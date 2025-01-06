@@ -271,6 +271,10 @@ function ImpulseTrackerStop()
 local t=renoise.song().transport
 
 if renoise.song().transport.playing == false then
+if renoise.song().selected_line_index ~= 1 then
+renoise.song().selected_line_index = 1
+return end
+
 renoise.song().selected_sequence_index = 1
 renoise.song().selected_line_index = 1
 else 
@@ -278,7 +282,7 @@ t.follow_player=false
 t:panic()
 t.loop_pattern=false
 t.loop_block_enabled=false
-renoise.song().selected_line_index = 1
+--renoise.song().selected_line_index = 1
 end
 end
 
@@ -630,6 +634,7 @@ end
 function ExpandSelection()
   local s = renoise.song()
   if s.selection_in_pattern == nil then
+  renoise.app():show_status("Nothing selected to Expand, doing nothing.")
   return
   else  
   local sl = s.selection_in_pattern.start_line
@@ -651,6 +656,7 @@ end
 end
 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker ALT-F Expand Selection", invoke=function() ExpandSelection() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker ALT-F Expand Selection Twice", invoke=function() ExpandSelection() ExpandSelection() end}
 -----------------------------------------------------------------------------------------------
 -------Protman's Shrink Selection
 function cpclsh_line(track, from_line, to_line)
@@ -663,6 +669,7 @@ end
 function ShrinkSelection()
   local s = renoise.song()
   if s.selection_in_pattern == nil then
+  renoise.app():show_status("Nothing selected to Shrink, doing nothing.")
   return
   else
   local sl = s.selection_in_pattern.start_line
@@ -682,6 +689,135 @@ function ShrinkSelection()
 end
 end
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker ALT-G Shrink Selection", invoke=function() ShrinkSelection() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker ALT-G Shrink Selection Twice", invoke=function() ShrinkSelection() ShrinkSelection() end}
+--------------------------------------------------------
+-- Renamed helper function to cpclexrep_line
+function cpclexrep_line(track, from_line, to_line)
+  local s = renoise.song()
+  local cur_pattern = s:pattern(s.selected_pattern_index)
+  local cur_track = cur_pattern:track(track)
+  
+  -- Copy from from_line to to_line
+  cur_track:line(to_line):copy_from(cur_track:line(from_line))
+  
+  -- Clear from_line
+  cur_track:line(from_line):clear()
+  
+  -- Clear to_line + 1 only if it's within the valid range
+  if to_line + 1 <= s.selected_pattern.number_of_lines then
+    cur_track:line(to_line + 1):clear()
+  end
+end
+
+function ExpandSelectionReplicate()
+  local s = renoise.song()
+  local currentLine = s.selected_line_index
+  
+  if s.selection_in_pattern == nil then
+    renoise.app():show_status("Nothing selected to Expand, doing nothing.")
+    return
+  end
+  
+  local sl = s.selection_in_pattern.start_line
+  local el = s.selection_in_pattern.end_line
+  local st = s.selection_in_pattern.start_track
+  local et = s.selection_in_pattern.end_track
+  local nl = s.selected_pattern.number_of_lines
+  
+  -- Calculate the original and new selection lengths
+  local original_length = el - sl + 1
+  local new_end_line = el * 2
+  if new_end_line > nl then
+    new_end_line = nl
+  end
+
+
+  
+  -- First pass: Expand the selection
+  for tr = st, et do
+    for l = el, sl, -1 do
+      if l ~= sl then
+        local new_line = (l * 2) - sl
+        if new_line <= nl then
+          cpclexrep_line(tr, l, new_line)
+        end
+      end
+    end
+  end
+  
+  -- Update selection to include expanded area
+  local expanded_length = new_end_line - sl + 1
+  s.selection_in_pattern = {start_line=sl, start_track=st, end_track=et, end_line = new_end_line}
+floodfill_with_selection()
+  renoise.app():show_status(string.format("Expanded and replicated selection from line %d to %d", sl, nl))
+end
+
+
+
+
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker ALT-F Expand Selection Replicate", invoke=function() ExpandSelectionReplicate() end}
+-----------------------------------------------------------------------------------------------
+-------Protman's Shrink Selection
+-- Renamed helper function to cpclshrep_line
+function cpclshrep_line(track, from_line, to_line)
+  local s = renoise.song()
+  local cur_pattern = s:pattern(s.selected_pattern_index)
+  local cur_track = cur_pattern:track(track)
+  
+  -- Copy from from_line to to_line
+  cur_track:line(to_line):copy_from(cur_track:line(from_line))
+  
+  -- Clear from_line
+  cur_track:line(from_line):clear()
+  
+  -- Clear from_line + 1 only if it's within the valid range
+  if from_line + 1 <= s.selected_pattern.number_of_lines then
+    cur_track:line(from_line + 1):clear()
+  end
+end
+
+function ShrinkSelectionReplicate()
+  local s = renoise.song()
+  local currentLine = s.selected_line_index
+  
+  if s.selection_in_pattern == nil then
+    renoise.app():show_status("Nothing selected to Shrink, doing nothing.")
+    return
+  else
+    local sl = s.selection_in_pattern.start_line
+    local el = s.selection_in_pattern.end_line
+    local st = s.selection_in_pattern.start_track
+    local et = s.selection_in_pattern.end_track
+    local nl = s.selected_pattern.number_of_lines
+    
+    -- Remove the problematic line index setting
+    -- renoise.song().selected_line_index = el + 1  -- This was causing the error
+    -- renoise.song().selected_line_index = currentLine
+    
+    for tr = st, et do
+      for l = sl, el, 2 do
+        if l ~= sl then
+          -- Calculate new_line as an integer
+          local new_line = math.floor(l / 2 + sl / 2)
+          
+          -- Ensure new_line is within valid range
+          if new_line >= 1 and new_line <= nl then
+            cpclshrep_line(tr, l, new_line)
+          end
+        end
+      end
+    end
+
+    -- Update selection to include shrunken area and trigger replication
+    local new_end_line = math.min(math.floor((el - sl) / 2) + sl, nl)
+    s.selection_in_pattern = {start_line=sl, start_track=st, end_track=et, end_line=new_end_line}
+    floodfill_with_selection()
+    renoise.app():show_status(string.format("Shrank and replicated selection from line %d to %d", sl, nl))
+  end
+end
+
+
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker ALT-G Shrink Selection Replicate", invoke=function() ShrinkSelectionReplicate() end}
 --------------------------------------------------------
 --Protman's Set Instrument
 function SetInstrument()
@@ -1966,7 +2102,7 @@ end
 
 -- Add keybinding to trigger the functionality
 renoise.tool():add_keybinding {
-  name = "Global:Tools:ALT-X *2 (Interpolate and Clear Effect Columns)",
+  name = "Pattern Editor:Paketti:Impulse Tracker ALT-X *2 (Interpolate&Clear Effect Columns)",
   invoke = function()
     alt_x_functionality()
   end

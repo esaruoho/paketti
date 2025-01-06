@@ -51,12 +51,12 @@
   <UserDefinedSampleFolders05/>
   <UserDefinedSampleFolders06/>
   <PakettiDynamicViews/>
-  <pakettiEditMode>1.0</pakettiEditMode>
+  <pakettiEditMode>2</pakettiEditMode>
   <WipeSlices>
-    <sliceCounter>1.0</sliceCounter>
+    <sliceCounter>15</sliceCounter>
     <WipeSlicesBeatSyncMode>1.0</WipeSlicesBeatSyncMode>
     <WipeSlicesLoopRelease>false</WipeSlicesLoopRelease>
-    <WipeSlicesMuteGroup>1.0</WipeSlicesMuteGroup>
+    <WipeSlicesMuteGroup>0.0</WipeSlicesMuteGroup>
     <WipeSlicesBeatSyncGlobal>false</WipeSlicesBeatSyncGlobal>
     <WipeSlicesAutofade>true</WipeSlicesAutofade>
     <slicePreviousDirection>1.0</slicePreviousDirection>
@@ -67,8 +67,8 @@
   </WipeSlices>
   <PakettiDeviceLoaders/>
   <pakettiCheatSheet>
-    <pakettiCheatSheetRandomizeMax>188.1293706293707</pakettiCheatSheetRandomizeMax>
-    <pakettiCheatSheetRandomizeMin>87.377622377622373</pakettiCheatSheetRandomizeMin>
+    <pakettiCheatSheetRandomizeMax>118.58391608391619</pakettiCheatSheetRandomizeMax>
+    <pakettiCheatSheetRandomizeMin>14.265734265734274</pakettiCheatSheetRandomizeMin>
     <pakettiCheatSheetRandomizeDontOverwrite>false</pakettiCheatSheetRandomizeDontOverwrite>
     <pakettiCheatSheetRandomizeWholeTrack>true</pakettiCheatSheetRandomizeWholeTrack>
     <pakettiCheatSheetRandomizeSwitch>false</pakettiCheatSheetRandomizeSwitch>
@@ -83,6 +83,14 @@
     <PakettiPluginLoader type="lua_model:PakettiPluginEntry">
       <name>XO (AU)</name>
       <path>Audio/Generators/AU/aumu:xAXO:xlnA</path>
+    </PakettiPluginLoader>
+    <PakettiPluginLoader type="lua_model:PakettiPluginEntry">
+      <name>XO (VST)</name>
+      <path>Audio/Generators/VST/XO</path>
+    </PakettiPluginLoader>
+    <PakettiPluginLoader type="lua_model:PakettiPluginEntry">
+      <name>XO (VST3)</name>
+      <path>Audio/Generators/VST3/ABCDEF019182FAEB786C6E417841584F</path>
     </PakettiPluginLoader>
   </PakettiPluginLoaders>
   <pakettiDialogClose>esc</pakettiDialogClose>
@@ -105,9 +113,9 @@
   </pakettiTitler>
   <pakettiPhraseInitDialog>
     <NoteColumns>1.0</NoteColumns>
-    <LPB>4</LPB>
+    <LPB>64</LPB>
     <VolumeColumnVisible>false</VolumeColumnVisible>
-    <Name/>
+    <Name>Phrase 01</Name>
     <Autoseek>false</Autoseek>
     <Shuffle>0.0</Shuffle>
     <Length>64</Length>
@@ -183,13 +191,13 @@
   <UserDefinedSampleFolders01/>
   <UserDevices>
     <Slot10/>
-    <Path/>
+    <Path>/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/DeviceChains/</Path>
     <Slot06>/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/DeviceChains//Slot06.xrnt</Slot06>
     <Slot01>/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/DeviceChains/colourcopy-valhalladelay-pingpong-niceness.xrnt</Slot01>
     <Slot03>/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/DeviceChains//Slot03.xrnt</Slot03>
     <Slot05>/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/DeviceChains//Slot05.xrnt</Slot05>
     <Slot04>/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/DeviceChains//Slot04.xrnt</Slot04>
-    <Slot09/>
+    <Slot09>/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/DeviceChains//Slot09.xrnt</Slot09>
     <Slot08/>
     <Slot07/>
     <Slot02>/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/DeviceChains//Slot02.xrnt</Slot02>
@@ -202,10 +210,11 @@
   <pakettiThemeSelector>
     <FavoritedList>
       <Favorited>&lt;No Theme Selected&gt;</Favorited>
+      <Favorited>Mono Blue (dblue)</Favorited>
     </FavoritedList>
     <RenoiseLaunchFavoritesLoad>false</RenoiseLaunchFavoritesLoad>
     <RenoiseLaunchRandomLoad>false</RenoiseLaunchRandomLoad>
-    <PreviousSelectedTheme/>
+    <PreviousSelectedTheme>Mono Blue (dblue)</PreviousSelectedTheme>
   </pakettiThemeSelector>
   <renderBitDepth>32</renderBitDepth>
   <UserDefinedSampleFolders04/>

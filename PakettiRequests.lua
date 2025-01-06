@@ -1,46 +1,3 @@
--- from Jalex
-function JalexAdd(number)
-if renoise.song().selected_note_column_index == renoise.song().selected_track.visible_note_columns then 
-if renoise.song().selected_track.visible_note_columns == 12 then 
-renoise.song().selected_line_index=renoise.song().selected_line_index+1
-renoise.song().selected_note_column_index = 1
-
-return
-end
-
-renoise.song().selected_track.visible_note_columns = renoise.song().selected_track.visible_note_columns+1 
-end
-
-local originalNote=renoise.song().selected_note_column.note_value
-local originalInstrument=renoise.song().selected_note_column.instrument_value
-
-if originalNote == 120 or originalNote == 121 then 
-renoise.app():show_status("You are not on a note.")
-return else
-
-if originalNote + number > 120 then
-renoise.app():show_status("Cannot go higher than B-9") return end
-end
-renoise.song().selected_pattern.tracks[renoise.song().selected_track_index].lines[renoise.song().selected_line_index].note_columns[renoise.song().selected_note_column_index + 1].note_value = originalNote + number
-renoise.song().selected_pattern.tracks[renoise.song().selected_track_index].lines[renoise.song().selected_line_index].note_columns[renoise.song().selected_note_column_index + 1].instrument_value = originalInstrument
-
-renoise.song().selected_note_column_index = renoise.song().selected_note_column_index +1
-end
-
-for i=1,12 do
-  renoise.tool():add_keybinding{
-    name=string.format("Pattern Editor:Paketti:Chordsplus (Add %02d)", i),
-    invoke=function() JalexAdd(i) end
-  }
-end
-
-for i=1,12 do
-  renoise.tool():add_keybinding{
-    name=string.format("Pattern Editor:Paketti:Chordsplus (Sub %02d)", i),
-    invoke=function() JalexAdd(-i) end
-  }
-end
-
 renoise.tool():add_keybinding{
   name="Pattern Editor:Paketti:Selection in Pattern to Group",
   invoke=function()
@@ -354,12 +311,51 @@ function selectedInstrumentAllAutofadeControl(state)
   end
 end
 
+function selectedInstrumentAllAutoseekToggle()
+  local instrument = renoise.song().instruments[renoise.song().selected_instrument_index]
 
+  -- Check if the instrument and samples are valid
+  if not instrument or #instrument.samples == 0 then
+    print("No samples are available or no instrument selected.")
+    return
+  end
+
+  -- Iterate through each sample in the instrument and toggle the autoseek setting
+  for i, sample in ipairs(instrument.samples) do
+    sample.autoseek = not sample.autoseek
+  end
+end
+
+function selectedInstrumentAllAutoseekControl(state)
+  local instrument = renoise.song().instruments[renoise.song().selected_instrument_index]
+
+  -- Check if the instrument and samples are valid
+  if not instrument or #instrument.samples == 0 then
+    --print("No samples are available or no instrument selected.")
+    return
+  end
+
+  -- Convert numerical state to boolean for autoseek
+  local autoseekState = (state == 1)
+
+  -- Iterate through each sample in the instrument and set the autoseek setting
+  for i, sample in ipairs(instrument.samples) do
+    sample.autoseek = autoseekState
+  end
+end
+
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Set Selected Instrument All Autofade On",invoke=function() selectedInstrumentAllAutofadeControl(1) end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Set Selected Instrument All Autoseek On",invoke=function() selectedInstrumentAllAutoseekControl(1) end}
 
 
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Instrument All Autofade On/Off",invoke=function() selectedInstrumentAllAutofadeToggle() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Instrument All Autofade On",invoke=function() selectedInstrumentAllAutofadeControl(1) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Instrument All Autofade Off",invoke=function() selectedInstrumentAllAutofadeControl(0) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Instrument All Autoseek On/Off",invoke=function() selectedInstrumentAllAutoseekToggle() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Instrument All Autoseek On",invoke=function() selectedInstrumentAllAutoseekControl(1) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Instrument All Autoseek Off",invoke=function() selectedInstrumentAllAutoseekControl(0) end}
+
+
 -----------
 
 function halveBeatsyncLinesAll()
@@ -2186,9 +2182,9 @@ renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Duplicate Track Dup
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Duplicate Track Duplicate Instrument",invoke=function() duplicateTrackDuplicateInstrument() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Track Duplicate Instrument",invoke=function() duplicateTrackDuplicateInstrument() end}
 ------------
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Note Interpolation",invoke=function() note_interpolation() end}
-renoise.tool():add_midi_mapping{name="Paketti:Note Interpolation",invoke=function() note_interpolation() end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Note Columns..:Note Interpolation",invoke=function() note_interpolation() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Interpolate Notes",invoke=function() note_interpolation() end}
+renoise.tool():add_midi_mapping{name="Paketti:Interpolate Notes",invoke=function() note_interpolation() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Note Columns..:Interpolate Notes",invoke=function() note_interpolation() end}
 
 -- Main function for note interpolation
 function note_interpolation()
@@ -2667,26 +2663,29 @@ end
 
 -- Function to move slice marker by a given amount
 function move_slice_marker(slice_index, amount)
-  if not is_slice_selected() then 
-    debug_log("No slice selected or no slice markers available.")
-    return 
+  local song = renoise.song()
+  local selected_instrument = song.selected_instrument
+  local selected_sample = selected_instrument.samples[1]
+
+  if not selected_sample or #selected_sample.slice_markers == 0 then
+    debug_log("No valid sample with slice markers selected.")
+    return
   end
 
-  local sample = renoise.song().selected_instrument.samples[1]
-  if slice_index <= 0 or slice_index > #sample.slice_markers then
+  if slice_index <= 0 or slice_index > #selected_sample.slice_markers then
     debug_log("Invalid slice index: " .. string.format("%X", slice_index))
     return
   end
 
-  local old_marker_pos = sample.slice_markers[slice_index]
+  local old_marker_pos = selected_sample.slice_markers[slice_index]
   local new_marker_pos = old_marker_pos + amount
 
   if new_marker_pos < 1 then new_marker_pos = 1 end
-  if new_marker_pos > sample.sample_buffer.number_of_frames - 1 then
-    new_marker_pos = sample.sample_buffer.number_of_frames - 1
+  if new_marker_pos > selected_sample.sample_buffer.number_of_frames - 1 then
+    new_marker_pos = selected_sample.sample_buffer.number_of_frames - 1
   end
 
-  sample:move_slice_marker(old_marker_pos, new_marker_pos)
+  selected_sample:move_slice_marker(old_marker_pos, new_marker_pos)
   debug_log(string.format("Moved slice marker #%X from %d to %d", slice_index, old_marker_pos, new_marker_pos))
 end
 
@@ -2844,6 +2843,8 @@ renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti..:Isolate Slices o
 renoise.tool():add_keybinding{name="Global:Paketti:Isolate Slices or Samples to New Instruments",invoke=PakettiIsolateSlices}
 renoise.tool():add_midi_mapping{name="Paketti:Isolate Slices or Samples to New Instruments",invoke=PakettiIsolateSlices}
 
+
+
 -- Main function to isolate slices into a new instrument or samples into new instruments
 function PakettiIsolateSlicesToInstrument()
   local song = renoise.song()
@@ -2857,7 +2858,7 @@ function PakettiIsolateSlicesToInstrument()
   end
 
   -- Helper function to create a new instrument
-  local function create_new_instrument(name_suffix, index)
+  local function create_new_instrumentWithSlices(name_suffix, index)
     song:insert_instrument_at(index)
     song.selected_instrument_index = index
 renoise.app():load_instrument(preferences.pakettiDefaultDrumkitXRNI.value)
@@ -2887,6 +2888,23 @@ renoise.app():load_instrument(preferences.pakettiDefaultDrumkitXRNI.value)
     end
 
     new_sample.sample_buffer:finalize_sample_data_changes()
+
+    -- Copy additional sample properties
+    new_sample.autofade = sample.autofade
+    new_sample.autoseek = sample.autoseek
+    new_sample.loop_mode = sample.loop_mode
+ --   new_sample.loop_start = sample.loop_start -- i had to comment these away because they don't work
+ --   new_sample.loop_end = sample.loop_end
+    new_sample.beat_sync_mode = sample.beat_sync_mode
+    new_sample.beat_sync_lines = sample.beat_sync_lines
+    new_sample.fine_tune = sample.fine_tune
+    new_sample.volume = sample.volume
+    new_sample.panning = sample.panning
+    new_sample.new_note_action = sample.new_note_action
+    new_sample.mute_group = sample.mute_group
+    new_sample.new_note_action = sample.new_note_action
+    new_sample.oversample_enabled = sample.oversample_enabled
+    new_sample.interpolation_mode = sample.interpolation_mode
   end
 
   local sample = instrument.samples[1]
@@ -2894,7 +2912,7 @@ renoise.app():load_instrument(preferences.pakettiDefaultDrumkitXRNI.value)
 
   if #sample.slice_markers > 0 then
     -- Create one new instrument for all slices
-    local new_instrument = create_new_instrument(" (Isolated Slices)", insert_index)
+    local new_instrument = create_new_instrumentWithSlices(" (Isolated Slices)", insert_index)
     for i, slice_start in ipairs(sample.slice_markers) do
       local slice_end = (i == #sample.slice_markers) and sample.sample_buffer.number_of_frames or sample.slice_markers[i + 1] - 1
       local slice_length = slice_end - slice_start + 1
@@ -2913,7 +2931,7 @@ renoise.app():load_instrument(preferences.pakettiDefaultDrumkitXRNI.value)
     for i = 1, #instrument.samples do
       local sample = instrument.samples[i]
       -- Create a new instrument for each sample
-      local new_instrument = create_new_instrument(" (Sample " .. string.format("%02X", i) .. ")", insert_index)
+      local new_instrument = create_new_instrumentWithSlices(" (Sample " .. string.format("%02X", i) .. ")", insert_index)
       create_new_sample(new_instrument, sample, 1, sample.sample_buffer.number_of_frames, sample.name)
       insert_index = insert_index + 1
     end
@@ -2929,36 +2947,13 @@ renoise.app():load_instrument(preferences.pakettiDefaultDrumkitXRNI.value)
   renoise.song().selected_instrument:delete_sample_at(1)
 end
 
--- Update menu entries and keybindings to reflect the new function name and purpose
-renoise.tool():add_menu_entry{
-  name="Instrument Box:Paketti..:Isolate Slices to New Instrument",
-  invoke=PakettiIsolateSlicesToInstrument
-}
-renoise.tool():add_menu_entry{
-  name="Sample Navigator:Paketti..:Isolate Slices to New Instrument",
-  invoke=PakettiIsolateSlicesToInstrument
-}
-renoise.tool():add_menu_entry{
-  name="Sample Editor:Paketti..:Isolate Slices to New Instrument",
-  invoke=PakettiIsolateSlicesToInstrument
-}
-renoise.tool():add_menu_entry{
-  name="Sample Mappings:Paketti..:Isolate Slices to New Instrument",
-  invoke=PakettiIsolateSlicesToInstrument
-}
-renoise.tool():add_menu_entry{
-  name="Main Menu:Tools:Paketti..:Instruments..:Isolate Slices to New Instrument",
-  invoke=PakettiIsolateSlicesToInstrument
-}
-renoise.tool():add_keybinding{
-  name="Global:Paketti:Isolate Slices to New Instrument",
-  invoke=PakettiIsolateSlicesToInstrument
-}
-renoise.tool():add_midi_mapping{
-  name="Paketti:Isolate Slices to New Instrument",
-  invoke=PakettiIsolateSlicesToInstrument
-}
-
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Isolate Slices to New Instrument as Samples",invoke=PakettiIsolateSlicesToInstrument}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Isolate Slices to New Instrument as Samples",invoke=PakettiIsolateSlicesToInstrument}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Isolate Slices to New Instrument as Samples",invoke=PakettiIsolateSlicesToInstrument}
+renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Isolate Slices to New Instrument as Samples",invoke=PakettiIsolateSlicesToInstrument}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:Isolate Slices to New Instrument as Samples",invoke=PakettiIsolateSlicesToInstrument}
+renoise.tool():add_keybinding{name="Global:Paketti:Isolate Slices to New Instrument as Samples",invoke=PakettiIsolateSlicesToInstrument}
+renoise.tool():add_midi_mapping{name="Paketti:Isolate Slices to New Instrument as Samples",invoke=PakettiIsolateSlicesToInstrument}
 
 ---------
 --[[
@@ -3356,7 +3351,7 @@ local MIN_SHIFT = -12
 local MAX_SHIFT = 12
 
 -- Main function to adjust instrument transpose
-local function PakettiTransposeShifter(interval, scope)
+function PakettiTransposeShifter(interval, scope)
   local song = renoise.song()
   
   -- Validate interval
@@ -3684,8 +3679,6 @@ end
 
 -- Registering the function with a keybinding
 renoise.tool():add_keybinding{name="Global:Paketti:Populate Send Tracks for All Selected Tracks",invoke=PakettiPopulateSendTracksToSelectionInPattern}
-
-
 
 -- Add menu entries for the new functions under Main Menu:Tools
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Populate Send Tracks for All Tracks",invoke=PakettiPopulateSendTracksAllTracks}
@@ -4502,7 +4495,7 @@ function floodfill_with_selection()
     end
 
     -- Debug: print selection data for current track
-    rprint(selection_data[track_idx])
+    --rprint(selection_data[track_idx])
   end
 
   -- Repeat the selection data throughout the pattern
@@ -4545,7 +4538,7 @@ function floodfill_with_selection()
           end
 
           -- Debug: print copied data
-          print(string.format("Copied data from track %d, row %d, col %d to row %d", track_idx, row, col_idx, target_row))
+ --         print(string.format("Copied data from track %d, row %d, col %d to row %d", track_idx, row, col_idx, target_row))
         end
       end
     end
@@ -5615,45 +5608,45 @@ end
 
 -- Add the menu entries to the Global:Paketti section
 renoise.tool():add_keybinding{name="Global:Paketti:Resize all non-empty Patterns to current Pattern length",invoke = resize_all_non_empty_patterns_to_current_pattern_length}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Resize all non-empty Patterns to current Pattern length",invoke = resize_all_non_empty_patterns_to_current_pattern_length}
-renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Resize all non-empty Patterns to current Pattern length",invoke = resize_all_non_empty_patterns_to_current_pattern_length}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Resize all non-empty Patterns..:Resize all non-empty Patterns to current Pattern length",invoke = resize_all_non_empty_patterns_to_current_pattern_length}
+renoise.tool():add_menu_entry{name="--Pattern Sequencer:Paketti..:Resize all non-empty Patterns..:Resize all non-empty Patterns to current Pattern length",invoke = resize_all_non_empty_patterns_to_current_pattern_length}
 
-renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Resize all non-empty Patterns to 064",invoke=function() resize_all_non_empty_patterns_to(064) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Resize all non-empty Patterns to 064",invoke=function() resize_all_non_empty_patterns_to(064) end}
-renoise.tool():add_keybinding{name="Global:Paketti:Resize all non-empty Patterns to 064",invoke=function() resize_all_non_empty_patterns_to(064) end}
-renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Resize all non-empty Patterns to 048",invoke=function() resize_all_non_empty_patterns_to(048) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Resize all non-empty Patterns to 048",invoke=function() resize_all_non_empty_patterns_to(048) end}
-renoise.tool():add_keybinding{name="Global:Paketti:Resize all non-empty Patterns to 048",invoke=function() resize_all_non_empty_patterns_to(048) end}
-renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Resize all non-empty Patterns to 032",invoke=function() resize_all_non_empty_patterns_to(032) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Resize all non-empty Patterns to 032",invoke=function() resize_all_non_empty_patterns_to(032) end}
-renoise.tool():add_keybinding{name="Global:Paketti:Resize all non-empty Patterns to 032",invoke=function() resize_all_non_empty_patterns_to(032) end}
-renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Resize all non-empty Patterns to 016",invoke=function() resize_all_non_empty_patterns_to(016) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Resize all non-empty Patterns to 016",invoke=function() resize_all_non_empty_patterns_to(016) end}
-renoise.tool():add_keybinding{name="Global:Paketti:Resize all non-empty Patterns to 016",invoke=function() resize_all_non_empty_patterns_to(016) end}
-renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Resize all non-empty Patterns to 012",invoke=function() resize_all_non_empty_patterns_to(012) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Resize all non-empty Patterns to 012",invoke=function() resize_all_non_empty_patterns_to(12) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Resize all non-empty Patterns to 012",invoke=function() resize_all_non_empty_patterns_to(12) end}
-renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Resize all non-empty Patterns to 024",invoke=function() resize_all_non_empty_patterns_to(024) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Resize all non-empty Patterns to 024",invoke=function() resize_all_non_empty_patterns_to(024) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Resize all non-empty Patterns to 016",invoke=function() resize_all_non_empty_patterns_to(016) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Resize all non-empty Patterns to 024",invoke=function() resize_all_non_empty_patterns_to(024) end}
-renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Resize all non-empty Patterns to 096",invoke=function() resize_all_non_empty_patterns_to(96) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Resize all non-empty Patterns to 096",invoke=function() resize_all_non_empty_patterns_to(96) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Resize all non-empty Patterns to 032",invoke=function() resize_all_non_empty_patterns_to(032) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Resize all non-empty Patterns to 048",invoke=function() resize_all_non_empty_patterns_to(048) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Resize all non-empty Patterns to 064",invoke=function() resize_all_non_empty_patterns_to(064) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Resize all non-empty Patterns to 096",invoke=function() resize_all_non_empty_patterns_to(96) end}
-renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Resize all non-empty Patterns to 128",invoke=function() resize_all_non_empty_patterns_to(128) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Resize all non-empty Patterns to 128",invoke=function() resize_all_non_empty_patterns_to(128) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Resize all non-empty Patterns to 128",invoke=function() resize_all_non_empty_patterns_to(128) end}
-renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Resize all non-empty Patterns to 192",invoke=function() resize_all_non_empty_patterns_to(192) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Resize all non-empty Patterns to 192",invoke=function() resize_all_non_empty_patterns_to(192) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Resize all non-empty Patterns to 192",invoke=function() resize_all_non_empty_patterns_to(192) end}
-renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Resize all non-empty Patterns to 256",invoke=function() resize_all_non_empty_patterns_to(256) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Resize all non-empty Patterns to 256",invoke=function() resize_all_non_empty_patterns_to(256) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Resize all non-empty Patterns to 256",invoke=function() resize_all_non_empty_patterns_to(256) end}
-renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Resize all non-empty Patterns to 384",invoke=function() resize_all_non_empty_patterns_to(384) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Resize all non-empty Patterns to 384",invoke=function() resize_all_non_empty_patterns_to(384) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Resize all non-empty Patterns to 384",invoke=function() resize_all_non_empty_patterns_to(384) end}
-renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Resize all non-empty Patterns to 512",invoke=function() resize_all_non_empty_patterns_to(512) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Resize all non-empty Patterns to 512",invoke=function() resize_all_non_empty_patterns_to(512) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Resize all non-empty Patterns to 512",invoke=function() resize_all_non_empty_patterns_to(512) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Resize all non-empty Patterns..:Resize all non-empty Patterns to 012",invoke=function() resize_all_non_empty_patterns_to(12) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Resize all non-empty Patterns..:Resize all non-empty Patterns to 016",invoke=function() resize_all_non_empty_patterns_to(016) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Resize all non-empty Patterns..:Resize all non-empty Patterns to 024",invoke=function() resize_all_non_empty_patterns_to(024) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Resize all non-empty Patterns..:Resize all non-empty Patterns to 032",invoke=function() resize_all_non_empty_patterns_to(032) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Resize all non-empty Patterns..:Resize all non-empty Patterns to 048",invoke=function() resize_all_non_empty_patterns_to(048) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Resize all non-empty Patterns..:Resize all non-empty Patterns to 064",invoke=function() resize_all_non_empty_patterns_to(064) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Resize all non-empty Patterns..:Resize all non-empty Patterns to 096",invoke=function() resize_all_non_empty_patterns_to(96) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Resize all non-empty Patterns..:Resize all non-empty Patterns to 128",invoke=function() resize_all_non_empty_patterns_to(128) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Resize all non-empty Patterns..:Resize all non-empty Patterns to 192",invoke=function() resize_all_non_empty_patterns_to(192) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Resize all non-empty Patterns..:Resize all non-empty Patterns to 256",invoke=function() resize_all_non_empty_patterns_to(256) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Resize all non-empty Patterns..:Resize all non-empty Patterns to 384",invoke=function() resize_all_non_empty_patterns_to(384) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Resize all non-empty Patterns..:Resize all non-empty Patterns to 512",invoke=function() resize_all_non_empty_patterns_to(512) end}
+renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Resize all non-empty Patterns..:Resize all non-empty Patterns to 012",invoke=function() resize_all_non_empty_patterns_to(012) end}
+renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Resize all non-empty Patterns..:Resize all non-empty Patterns to 016",invoke=function() resize_all_non_empty_patterns_to(016) end}
+renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Resize all non-empty Patterns..:Resize all non-empty Patterns to 024",invoke=function() resize_all_non_empty_patterns_to(024) end}
+renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Resize all non-empty Patterns..:Resize all non-empty Patterns to 032",invoke=function() resize_all_non_empty_patterns_to(032) end}
+renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Resize all non-empty Patterns..:Resize all non-empty Patterns to 048",invoke=function() resize_all_non_empty_patterns_to(048) end}
+renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Resize all non-empty Patterns..:Resize all non-empty Patterns to 064",invoke=function() resize_all_non_empty_patterns_to(064) end}
+renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Resize all non-empty Patterns..:Resize all non-empty Patterns to 096",invoke=function() resize_all_non_empty_patterns_to(96) end}
+renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Resize all non-empty Patterns..:Resize all non-empty Patterns to 128",invoke=function() resize_all_non_empty_patterns_to(128) end}
+renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Resize all non-empty Patterns..:Resize all non-empty Patterns to 192",invoke=function() resize_all_non_empty_patterns_to(192) end}
+renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Resize all non-empty Patterns..:Resize all non-empty Patterns to 256",invoke=function() resize_all_non_empty_patterns_to(256) end}
+renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Resize all non-empty Patterns..:Resize all non-empty Patterns to 384",invoke=function() resize_all_non_empty_patterns_to(384) end}
+renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Resize all non-empty Patterns..:Resize all non-empty Patterns to 512",invoke=function() resize_all_non_empty_patterns_to(512) end}
 
 
 -------
@@ -6263,163 +6256,6 @@ function wipeNoteColumn(column_number)
   song.patterns[song.selected_pattern_index].tracks[song.selected_track_index].lines[song.selected_line_index].note_columns[column_number].instrument_string = ".."
 end
 
-function chordsplus(number1, number2, number3, number4, number5, number6)
-
-  -- Process number1 using JalexAdd
-  JalexAdd(number1)
-
-  -- Process number2
-  if number2 == nil then
-    -- If number2 is nil, wipe columns 3, 4, 5, 6, and 7
-    wipeNoteColumn(3)
-    wipeNoteColumn(4)
-    wipeNoteColumn(5)
-    wipeNoteColumn(6)
-    wipeNoteColumn(7)
-    renoise.song().selected_note_column_index = 1
-    return
-  else
-    -- If number2 is not nil, process it using JalexAdd
-    JalexAdd(number2)
-  end
-
-  -- Process number3
-  if number3 == nil then
-    -- If number3 is nil, wipe columns 4, 5, 6, and 7
-    wipeNoteColumn(4)
-    wipeNoteColumn(5)
-    wipeNoteColumn(6)
-    wipeNoteColumn(7)
-    renoise.song().selected_note_column_index = 1
-    return
-  else
-    -- If number3 is not nil, process it using JalexAdd
-    JalexAdd(number3)
-  end
-
-  -- Process number4
-  if number4 == nil then
-    -- If number4 is nil, wipe columns 5, 6, and 7
-    wipeNoteColumn(5)
-    wipeNoteColumn(6)
-    wipeNoteColumn(7)
-    renoise.song().selected_note_column_index = 1
-    return
-  else
-    -- If number4 is not nil, process it using JalexAdd
-    JalexAdd(number4)
-  end
-
-  -- Process number5
-  if number5 == nil then
-    -- If number5 is nil, wipe columns 6 and 7
-    wipeNoteColumn(6)
-    wipeNoteColumn(7)
-    renoise.song().selected_note_column_index = 1
-    return
-  else
-    -- If number5 is not nil, process it using JalexAdd
-    JalexAdd(number5)
-  end
-
-  -- Process number6
-  if number6 == nil then
-    -- If number6 is nil, wipe columns 7 and 8
-    wipeNoteColumn(7)
-    wipeNoteColumn(8)
-    renoise.song().selected_note_column_index = 1
-    return
-  else
-    -- If number6 is not nil, process it using JalexAdd
-    JalexAdd(number6)
-  end
-
-  -- Reset the selected note column index to 1
-  renoise.song().selected_note_column_index = 1
-end
-
-
-
-
--- List of chord progressions, reordered logically
-local chord_list = {
-  {name="Chordsplus 3-4 (Maj)", fn=function() chordsplus(4,3) end},
-  {name="Chordsplus 4-3 (Min)", fn=function() chordsplus(3,4) end},
-  {name="Chordsplus 4-3-4 (Maj7)", fn=function() chordsplus(4,3,4) end},
-  {name="Chordsplus 3-4-3 (Min7)", fn=function() chordsplus(3,4,3) end},
-  {name="Chordsplus 4-4-3 (Maj7+5)", fn=function() chordsplus(4,4,3) end},
-  {name="Chordsplus 3-5-2 (Min7+5)", fn=function() chordsplus(3,5,2) end},
-  {name="Chordsplus 4-3-3 (Maj Dominant 7th)", fn=function() chordsplus(4,3,3) end}, -- MajMajor7
-  {name="Chordsplus 3-4-4 (MinMaj7)", fn=function() chordsplus(3,4,4) end}, -- MinorMajor7
-  {name="Chordsplus 4-3-4-3 (Maj9)", fn=function() chordsplus(4,3,4,3) end},
-  {name="Chordsplus 3-4-3-3 (Min9)", fn=function() chordsplus(3,4,3,3) end},
-  {name="Chordsplus 4-3-7 (Maj Added 9th)", fn=function() chordsplus(4,3,7) end},
-  {name="Chordsplus 3-4-7 (Min Added 9th)", fn=function() chordsplus(3,4,7) end},
-  {name="Chordsplus 4-7-3 (Maj9 Simplified)", fn=function() chordsplus(4,7,3) end}, -- Maj9 without 5th
-  
-  {name="Chordsplus 3-7-4 (Min9 Simplified)", fn=function() chordsplus(3,7,4) end}, -- Min9 without 5th
-  {name="Chordsplus 3-8-3 (mM9 Simplified)", fn=function() chordsplus(3,8,3) end}, -- MinorMajor9 without 5th
-{name="Chordsplus 4-3-4-4 (MM9)", fn=function() chordsplus(4,3,4,4) end}, -- MajorMajor9 with Augmented 9th
-  {name="Chordsplus 3-4-4-3 (mM9)", fn=function() chordsplus(3,4,4,3) end}, -- MinorMajor9
-  {name="Chordsplus 4-3-2-5 (Maj6 Add9)", fn=function() chordsplus(4,3,2,5) end}, -- Maj6 Add9
-  {name="Chordsplus 3-4-2-5 (Min6 Add9)", fn=function() chordsplus(3,4,2,5) end}, -- Min6 Add9
-  {name="Chordsplus 2-5 (Sus2)", fn=function() chordsplus(2,5) end},
-  {name="Chordsplus 5-2 (Sus4)", fn=function() chordsplus(5,2) end},
-  {name="Chordsplus 5-2-3 (7Sus4)", fn=function() chordsplus(5,2,3) end},
-  {name="Chordsplus 4-4 (Aug5)", fn=function() chordsplus(4,4) end},
-{name="Chordsplus 4-4-2 (Aug6)", fn=function() chordsplus(4,4,2) end},
-{name="Chordsplus 4-4-3 (Aug7)", fn=function() chordsplus(4,4,3) end},
-{name="Chordsplus 4-4-4 (Aug8)", fn=function() chordsplus(4,4,4) end},  
-  {name="Chordsplus 4-3-3-5 (Aug9)", fn=function() chordsplus(4,3,3,5) end},
-  {name="Chordsplus 4-4-7 (Aug10)", fn=function() chordsplus(4,4,7) end},
-  {name="Chordsplus 4-3-3-4-4 (Aug11)", fn=function() chordsplus(4,3,3,4,4) end},
-  {name="Chordsplus 12-12-12 (Octaves)", fn=function() chordsplus(12,12,12) end}
-}
-
-local current_chord_index = 1 -- Start at the first chord
-
--- Function to advance to the next chord in the list
-local function next_chord()
-  chord_list[current_chord_index].fn() -- Invoke the current chord function
-  renoise.app():show_status("Played: " .. chord_list[current_chord_index].name)
-  current_chord_index = current_chord_index + 1
-  if current_chord_index > #chord_list then
-    current_chord_index = 1 -- Wrap back to the first chord
-  end
-end
-
--- MIDI mapping handler, maps values 0-127 to the list of chords
-function midi_chord_mapping(value)
-if renoise.song().selected_track.visible_note_columns ~=  0 then
-  local chord_index = math.floor((value / 127) * (#chord_list - 1)) + 1
-  if renoise.song().selected_pattern.tracks[renoise.song().selected_track_index].lines[renoise.song().selected_line_index].note_columns[renoise.song().selected_note_column_index].is_empty
-  then renoise.app():show_status("There was no note, doing nothing.")
-  return
-  end
-
-  chord_list[chord_index].fn()
-  renoise.app():show_status("Set Basenote and Intervals to: " .. chord_list[chord_index].name)
-else
-renoise.app():show_status("This track does not have a Note Column. Doing nothing.")
-end
-
-end
-
--- Add keybindings dynamically based on the chord list
-for i, chord in ipairs(chord_list) do
-  renoise.tool():add_keybinding{
-    name="Pattern Editor:Paketti:" .. chord.name,
-    invoke=chord.fn
-  }
-end
-
--- Add keybinding for cycling through chords
-renoise.tool():add_keybinding{
-  name="Pattern Editor:Paketti:Next Chord in List",
-  invoke=next_chord
-}
-
-renoise.tool():add_midi_mapping{name="Paketti:Chord Selector [0-127]",invoke=function(midi_message) midi_chord_mapping(midi_message.int_value) end}
 
 function FinderShower2(plugin)
 for i=2,#renoise.song().tracks[renoise.song().sequencer_track_count+1].devices do
@@ -6879,8 +6715,6 @@ renoise.tool():add_midi_mapping {
     end
   end
 }
-  
-  
   
   
   
@@ -7602,6 +7436,419 @@ function create_row_controls(slider_set, initial_value, range, loop_default)
   return row, sliders_row
 end
 
+
+function volume_interpolation()
+  local song = renoise.song()
+  local changes_made = false
+  
+  -- Get the selection data using the pro function
+  local selection_data = selection_in_pattern_pro()
+  if not selection_data then
+    renoise.app():show_error("No selection in pattern!")
+    return
+  end
+
+  -- Get pattern info
+  local pattern_index = song.selected_pattern_index
+  local pattern = song:pattern(pattern_index)
+  local selection = song.selection_in_pattern
+  local start_line = selection.start_line
+  local end_line = selection.end_line
+
+  -- Ensure there is a difference between start and end lines
+  if start_line == end_line then
+    renoise.app():show_error("The selection must span at least two lines.")
+    return
+  end
+
+  -- Iterate through each track in the selection
+  for _, track_info in ipairs(selection_data) do
+    local track_index = track_info.track_index
+    local track = pattern:track(track_index)
+    
+    -- Check if volume column is visible for this track
+    if song:track(track_index).volume_column_visible then
+      -- Process each selected note column in this track
+      for _, note_column_index in ipairs(track_info.note_columns) do
+        -- Get start and end note columns
+        local start_note = track:line(start_line):note_column(note_column_index)
+        local end_note = track:line(end_line):note_column(note_column_index)
+
+        -- Get volume values, using 80 (0x50) as default when empty
+        local start_vol = start_note.volume_value
+        local end_vol = end_note.volume_value
+        local start_vol_empty = start_note.volume_string == ".."
+        local end_vol_empty = end_note.volume_string == ".."
+
+        -- If end volume is empty, use 0x50 (80) as the target
+        if end_vol_empty then
+          end_vol = 0x50
+        end
+
+        -- Only proceed if we have a valid end volume or the end is explicitly empty (00)
+        if not end_note.is_empty then
+          -- Calculate volume difference and step
+          local vol_diff = end_vol - (start_vol_empty and 0x50 or start_vol)
+          
+          -- Skip if no difference to interpolate
+          if vol_diff ~= 0 then
+            changes_made = true
+            local steps = end_line - start_line
+            local step_size = vol_diff / steps
+
+            -- Interpolate volumes between start and end lines
+            for i = 1, steps - 1 do
+              local line_index = start_line + i
+              local line = track:line(line_index)
+              local note_column = line:note_column(note_column_index)
+              
+              -- Calculate interpolated volume
+              local interpolated_vol = math.floor((start_vol_empty and 0x50 or start_vol) + (i * step_size))
+              
+              -- Ensure volume stays within valid range (0x00-0x80)
+              interpolated_vol = math.max(0, math.min(0x80, interpolated_vol))
+              
+              -- Only set volume if we're not on the first line or if first line already has volume
+              if i > 0 or not start_vol_empty then
+                note_column.volume_value = interpolated_vol
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+
+  if not changes_made then
+    renoise.app():show_status("No volume values to interpolate in the selection.")
+  end
+end
+
+function delay_interpolation()
+  local song = renoise.song()
+  local changes_made = false
+  
+  -- Get the selection data using the pro function
+  local selection_data = selection_in_pattern_pro()
+  if not selection_data then
+    renoise.app():show_error("No selection in pattern!")
+    return
+  end
+
+  -- Get pattern info
+  local pattern_index = song.selected_pattern_index
+  local pattern = song:pattern(pattern_index)
+  local selection = song.selection_in_pattern
+  local start_line = selection.start_line
+  local end_line = selection.end_line
+
+  -- Ensure there is a difference between start and end lines
+  if start_line == end_line then
+    renoise.app():show_error("The selection must span at least two lines.")
+    return
+  end
+
+  -- Iterate through each track in the selection
+  for _, track_info in ipairs(selection_data) do
+    local track_index = track_info.track_index
+    local track = pattern:track(track_index)
+    
+    -- Check if delay column is visible for this track
+    if song:track(track_index).delay_column_visible then
+      -- Process each selected note column in this track
+      for _, note_column_index in ipairs(track_info.note_columns) do
+        -- Get start and end note columns
+        local start_note = track:line(start_line):note_column(note_column_index)
+        local end_note = track:line(end_line):note_column(note_column_index)
+
+        -- Get delay values, using 0 as default when empty
+        local start_delay = start_note.delay_value
+        local end_delay = end_note.delay_value
+        local start_delay_empty = start_note.delay_string == ".."
+        local end_delay_empty = end_note.delay_string == ".."
+
+        -- If end delay is empty, use 0 as the target
+        if end_delay_empty then
+          end_delay = 0
+        end
+
+        -- Only proceed if we have a valid end delay or the end is explicitly empty (00)
+        if not end_note.is_empty then
+          -- Calculate delay difference and step
+          local delay_diff = end_delay - (start_delay_empty and 0 or start_delay)
+          
+          -- Skip if no difference to interpolate
+          if delay_diff ~= 0 then
+            changes_made = true
+            local steps = end_line - start_line
+            local step_size = delay_diff / steps
+
+            -- Interpolate delays between start and end lines
+            for i = 1, steps - 1 do
+              local line_index = start_line + i
+              local line = track:line(line_index)
+              local note_column = line:note_column(note_column_index)
+              
+              -- Calculate interpolated delay
+              local interpolated_delay = math.floor((start_delay_empty and 0 or start_delay) + (i * step_size))
+              
+              -- Ensure delay stays within valid range (0x00-0xFF)
+              interpolated_delay = math.max(0, math.min(0xFF, interpolated_delay))
+              
+              -- Only set delay if we're not on the first line or if first line already has delay
+              if i > 0 or not start_delay_empty then
+                note_column.delay_value = interpolated_delay
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+
+  if not changes_made then
+    renoise.app():show_status("No delay values to interpolate in the selection.")
+  end
+end
+
+function panning_interpolation()
+  local song = renoise.song()
+  local changes_made = false
+  
+  -- Get the selection data using the pro function
+  local selection_data = selection_in_pattern_pro()
+  if not selection_data then
+    renoise.app():show_error("No selection in pattern!")
+    return
+  end
+
+  -- Get pattern info
+  local pattern_index = song.selected_pattern_index
+  local pattern = song:pattern(pattern_index)
+  local selection = song.selection_in_pattern
+  local start_line = selection.start_line
+  local end_line = selection.end_line
+
+  -- Ensure there is a difference between start and end lines
+  if start_line == end_line then
+    renoise.app():show_error("The selection must span at least two lines.")
+    return
+  end
+
+  -- Iterate through each track in the selection
+  for _, track_info in ipairs(selection_data) do
+    local track_index = track_info.track_index
+    local track = pattern:track(track_index)
+    
+    -- Check if panning column is visible for this track
+    if song:track(track_index).panning_column_visible then
+      -- Process each selected note column in this track
+      for _, note_column_index in ipairs(track_info.note_columns) do
+        -- Get start and end note columns
+        local start_note = track:line(start_line):note_column(note_column_index)
+        local end_note = track:line(end_line):note_column(note_column_index)
+
+        -- Get panning values, using 0x40 (center) as default when empty
+        local start_pan = start_note.panning_value
+        local end_pan = end_note.panning_value
+        local start_pan_empty = start_note.panning_string == ".."
+        local end_pan_empty = end_note.panning_string == ".."
+
+        -- If end panning is empty, use 0x40 (center) as the target
+        if end_pan_empty then
+          end_pan = 0x40
+        end
+
+        -- Only proceed if we have a valid end panning or the end is explicitly empty (00)
+        if not end_note.is_empty then
+          -- Calculate panning difference and step
+          local pan_diff = end_pan - (start_pan_empty and 0x40 or start_pan)
+          
+          -- Skip if no difference to interpolate
+          if pan_diff ~= 0 then
+            changes_made = true
+            local steps = end_line - start_line
+            local step_size = pan_diff / steps
+
+            -- Interpolate panning between start and end lines
+            for i = 1, steps - 1 do
+              local line_index = start_line + i
+              local line = track:line(line_index)
+              local note_column = line:note_column(note_column_index)
+              
+              -- Calculate interpolated panning
+              local interpolated_pan = math.floor((start_pan_empty and 0x40 or start_pan) + (i * step_size))
+              
+              -- Ensure panning stays within valid range (0x00-0x80)
+              interpolated_pan = math.max(0, math.min(0x80, interpolated_pan))
+              
+              -- Only set panning if we're not on the first line or if first line already has panning
+              if i > 0 or not start_pan_empty then
+                note_column.panning_value = interpolated_pan
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+
+  if not changes_made then
+    renoise.app():show_status("No panning values to interpolate in the selection.")
+  end
+end
+
+-- Add keybindings for interpolation functions
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Interpolate Column Values (Volume)",
+  invoke=function() volume_interpolation() end}
+
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Interpolate Column Values (Delay)",
+  invoke=function() delay_interpolation() end}
+
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Interpolate Column Values (Panning)",invoke=function() panning_interpolation() end}
+
+-- Add menu entries for interpolation functions
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Interpolate Column Values (Volume)",
+  invoke=function() volume_interpolation() end}
+
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Interpolate Column Values (Delay)",
+  invoke=function() delay_interpolation() end}
+
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Interpolate Column Values (Panning)",
+  invoke=function() panning_interpolation() end}
+
+-- Add MIDI mappings for interpolation functions
+renoise.tool():add_midi_mapping{
+  name="Paketti:Interpolate Column Values (Volume)",
+  invoke=function(message) 
+    if message:is_trigger() then volume_interpolation() end 
+  end
+}
+
+renoise.tool():add_midi_mapping{
+  name="Paketti:Interpolate Column Values (Delay)",
+  invoke=function(message) 
+    if message:is_trigger() then delay_interpolation() end 
+  end
+}
+
+renoise.tool():add_midi_mapping{
+  name="Paketti:Interpolate Column Values (Panning)",
+  invoke=function(message) 
+    if message:is_trigger() then panning_interpolation() end 
+  end
+}
+
+function samplefx_interpolation()
+  local song = renoise.song()
+  local changes_made = false
+  
+  -- Get the selection data using the pro function
+  local selection_data = selection_in_pattern_pro()
+  if not selection_data then
+    renoise.app():show_error("No selection in pattern!")
+    return
+  end
+
+  -- Get pattern info
+  local pattern_index = song.selected_pattern_index
+  local pattern = song:pattern(pattern_index)
+  local selection = song.selection_in_pattern
+  local start_line = selection.start_line
+  local end_line = selection.end_line
+
+  -- Ensure there is a difference between start and end lines
+  if start_line == end_line then
+    renoise.app():show_error("The selection must span at least two lines.")
+    return
+  end
+
+  -- Iterate through each track in the selection
+  for _, track_info in ipairs(selection_data) do
+    local track_index = track_info.track_index
+    local track = pattern:track(track_index)
+    
+    -- Check if sample effects column is visible for this track
+    if song:track(track_index).sample_effects_column_visible then
+      -- Process each selected note column in this track
+      for _, note_column_index in ipairs(track_info.note_columns) do
+        -- Get start and end note columns
+        local start_note = track:line(start_line):note_column(note_column_index)
+        local end_note = track:line(end_line):note_column(note_column_index)
+
+        -- Get effect values
+        local start_effect_num = start_note.effect_number_value
+        local end_effect_num = end_note.effect_number_value
+        local start_effect_amt = start_note.effect_amount_value
+        local end_effect_amt = end_note.effect_amount_value
+
+        -- Check if effects are empty
+        local start_empty = start_note.effect_number_string == ".."
+        local end_empty = end_note.effect_number_string == ".."
+
+        -- Only proceed if we have a valid end effect
+        if not end_empty and not end_note.is_empty then
+          -- We'll only interpolate the amount if the effect numbers match
+          if start_effect_num == end_effect_num or start_empty then
+            local effect_num = end_effect_num
+            local amt_diff = end_effect_amt - (start_empty and 0 or start_effect_amt)
+            
+            -- Skip if no difference to interpolate
+            if amt_diff ~= 0 then
+              changes_made = true
+              local steps = end_line - start_line
+              local step_size = amt_diff / steps
+
+              -- Interpolate effect amounts between start and end lines
+              for i = 1, steps - 1 do
+                local line_index = start_line + i
+                local line = track:line(line_index)
+                local note_column = line:note_column(note_column_index)
+                
+                -- Calculate interpolated amount
+                local interpolated_amt = math.floor((start_empty and 0 or start_effect_amt) + (i * step_size))
+                
+                -- Ensure amount stays within valid range (0x00-0xFF)
+                interpolated_amt = math.max(0, math.min(0xFF, interpolated_amt))
+                
+                -- Set the effect number and interpolated amount
+                note_column.effect_number_value = effect_num
+                note_column.effect_amount_value = interpolated_amt
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+
+  if not changes_made then
+    renoise.app():show_status("No sample effects to interpolate in the selection.")
+  else
+    renoise.app():show_status("Sample effects interpolated successfully!")
+  end
+end
+
+-- Add keybinding for sample fx interpolation
+renoise.tool():add_keybinding{
+  name="Pattern Editor:Paketti:Interpolate Column Values (Sample FX)",
+  invoke=function() samplefx_interpolation() end
+}
+
+-- Add menu entry for sample fx interpolation
+renoise.tool():add_menu_entry{
+  name="Pattern Editor:Paketti..:Interpolate Column Values (Sample FX)",
+  invoke=function() samplefx_interpolation() end
+}
+
+-- Add MIDI mapping for sample fx interpolation
+renoise.tool():add_midi_mapping{
+  name="Paketti:Interpolate Column Values (Sample FX)",
+  invoke=function(message) 
+    if message:is_trigger() then samplefx_interpolation() end 
+  end
+}
+
 -- Show the GUI dialog
 function show_VDPdialog()
   if dialog and dialog.visible then
@@ -8290,3 +8537,425 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Wipe Random Notes",invoke=function() wipe_random_notes_with_note_offs() end}
 
+
+
+--------
+-- Add this helper function at the top
+function isInstrumentEmpty(instrument)
+  return (#instrument.samples == 0 and 
+          not instrument.plugin_properties.plugin_loaded and
+          not instrument.midi_output_properties.device_name and
+          #instrument.sample_mappings[1].slices == 0)
+end
+
+-- Function to reduce volume of all instruments
+function reduceInstrumentsVolume(db_amount)
+  local song = renoise.song()
+  local MIN_DB = -96  -- Renoise's minimum dB level before -INF
+  
+  -- Check volumes first
+  for i = 1, #song.instruments do
+    local instrument = song.instruments[i]
+    if not isInstrumentEmpty(instrument) then
+      local current_db = math.lin2db(instrument.volume)
+      if (current_db - db_amount) <= MIN_DB then
+        renoise.app():show_status("Cannot reduce by -" .. db_amount .. "dB: would go below -96dB")
+        return
+      end
+    end
+  end
+  
+  -- Apply volume changes
+  local changed_count = 0
+  for i = 1, #song.instruments do
+    local instrument = song.instruments[i]
+    if not isInstrumentEmpty(instrument) then
+      local current_db = math.lin2db(instrument.volume)
+      local new_db = current_db - db_amount
+      instrument.volume = math.db2lin(new_db)
+      changed_count = changed_count + 1
+    end
+  end
+  
+  renoise.app():show_status(string.format("%d instruments volume reduced by %.1fdB", changed_count, db_amount))
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Global Volume Reduce All Instruments by -4.5dB",invoke=function() reduceInstrumentsVolume(4.5) end}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Instruments..:Global Volume Reduce All Instruments by -4.5dB",invoke=function() reduceInstrumentsVolume(4.5) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Global Volume Reduce All Instruments by -4.5dB",invoke=function() reduceInstrumentsVolume(4.5) end}
+renoise.tool():add_midi_mapping{name="Paketti:Global Volume Reduce All Instruments by -4.5dB",invoke=function(message) if message:is_trigger() then reduceInstrumentsVolume(4.5) end end}
+
+-- Function to reduce volume of all samples in all instruments
+function reduceSamplesVolume(db_amount)
+  local song = renoise.song()
+  local MIN_DB = -96  -- Renoise's minimum dB level before -INF
+  
+  -- First check if any sample would go below MIN_DB
+  for i = 1, #song.instruments do
+    local instrument = song.instruments[i]
+    if instrument and #instrument.samples > 0 then
+      for _, sample in ipairs(instrument.samples) do
+        local current_db = math.lin2db(sample.volume)
+        if (current_db - db_amount) <= MIN_DB then
+          renoise.app():show_status("Cannot reduce by -" .. db_amount .. "dB: would go below -96dB")
+          return
+        end
+      end
+    end
+  end
+  
+  -- If we get here, it's safe to reduce all volumes
+  for i = 1, #song.instruments do
+    local instrument = song.instruments[i]
+    if instrument and #instrument.samples > 0 then
+      for _, sample in ipairs(instrument.samples) do
+        local current_db = math.lin2db(sample.volume)
+        local new_db = current_db - db_amount
+        sample.volume = math.db2lin(new_db)
+      end
+    end
+  end
+  
+  renoise.app():show_status(string.format("All samples volume reduced by %.1fdB", db_amount))
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Global Volume Reduce All Samples by -4.5dB",invoke=function() reduceSamplesVolume(4.5) end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:Global Volume Reduce All Samples by -4.5dB",invoke=function() reduceSamplesVolume(4.5) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Global Volume Reduce Reduce All Samples by -4.5dB",invoke=function() reduceSamplesVolume(4.5) end}
+renoise.tool():add_midi_mapping{name="Paketti:Global Volume Reduce All Samples by -4.5dB",invoke=function(message) if message:is_trigger() then reduceSamplesVolume(4.5) end end}
+
+function show_global_volume_dialog()
+  local vb = renoise.ViewBuilder()
+  local dialog = nil
+  local current_db_value = 0
+  local current_sample_db_value = 0
+  
+  local value_display = vb:text{ text = "0.0 dB" }
+  local sample_value_display = vb:text{ text = "0.0 dB" }
+  local value_slider
+  local value_box
+  local sample_value_slider
+  local sample_value_box
+  
+  local function update_instrument_controls(new_value)
+    current_db_value = new_value
+    value_display.text = string.format("%.1f dB", new_value)
+    value_slider.value = new_value
+    value_box.value = new_value
+  end
+  
+  local function update_sample_controls(new_value)
+    current_sample_db_value = new_value
+    sample_value_display.text = string.format("%.1f dB", new_value)
+    sample_value_slider.value = new_value
+    sample_value_box.value = new_value
+  end
+
+  value_box = vb:valuebox {
+    min = -96,
+    max = 0,
+    width = 90,
+    value = current_db_value,
+    tostring = function(value) return string.format("%.1f", value) end,
+    tonumber = function(str) return tonumber(str) or 0 end,
+    notifier = function(new_value)
+      update_instrument_controls(new_value)
+    end
+  }
+  
+  sample_value_box = vb:valuebox {
+    min = -96,
+    max = 0,
+    width = 90,
+    value = current_sample_db_value,
+    tostring = function(value) return string.format("%.1f", value) end,
+    tonumber = function(str) return tonumber(str) or 0 end,
+    notifier = function(new_value)
+      update_sample_controls(new_value)
+    end
+  }
+  
+  value_slider = vb:slider {
+    min = -96,
+    max = 0,
+    value = current_db_value,
+    width = 250,
+    notifier = function(new_value)
+      update_instrument_controls(new_value)
+    end
+  }
+  
+  sample_value_slider = vb:slider {
+    min = -96,
+    max = 0,
+    value = current_sample_db_value,
+    width = 250,
+    notifier = function(new_value)
+      update_sample_controls(new_value)
+    end
+  }
+  
+  local dialog_content = vb:column {
+    margin = 0,
+    spacing = 0,
+    
+    vb:text { text = "Instrument Volume:", width = 120 },
+    vb:row {
+      spacing = 0,
+      value_box,
+      value_display
+    },
+    value_slider,
+    
+    vb:text { text = "Sample/Slice Volume:", width = 120 },
+    vb:row {
+      spacing = 0,
+      sample_value_box,
+      sample_value_display
+    },
+    sample_value_slider,
+    
+    vb:button {
+      text = "Apply Volume Changes",
+      width = 250,
+      notifier = function()
+        if current_db_value ~= 0 then
+          reduceInstrumentsVolume(-current_db_value)
+        end
+        if current_sample_db_value ~= 0 then
+          reduceSamplesVolume(-current_sample_db_value)
+        end
+        if dialog and dialog.visible then
+          dialog:close()
+        end
+      end
+    }
+  }
+  
+  dialog = renoise.app():show_custom_dialog("Global Instrument/Sample Volume Adjustment",dialog_content)
+end
+
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti Global Volume Adjustment...",invoke=function() show_global_volume_dialog() end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Paketti Global Volume Adjustment...",invoke=function() show_global_volume_dialog() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Global Volume Adjustment...",invoke=function() show_global_volume_dialog() end}
+renoise.tool():add_midi_mapping{name="Paketti:Global Volume Adjustment...",invoke=function(message) if message:is_trigger() then show_global_volume_dialog() end end}
+-------
+------
+
+-------
+function PatternMatrixCopyExpandLine(track_index, pattern_index, from_line, to_line)
+  local s = renoise.song()
+  local cur_pattern = s:pattern(pattern_index)
+  local cur_track = cur_pattern:track(track_index)
+  
+  print(string.format("    Expanding in pattern %d: line %d -> line %d", pattern_index, from_line, to_line))
+  cur_track:line(to_line):copy_from(cur_track:line(from_line))
+  cur_track:line(from_line):clear()
+  cur_track:line(to_line + 1):clear()
+end
+
+function PatternMatrixCopyShrinkLine(track_index, pattern_index, from_line, to_line)
+  local s = renoise.song()
+  local cur_pattern = s:pattern(pattern_index)
+  local cur_track = cur_pattern:track(track_index)
+  
+  print(string.format("    Shrinking in pattern %d: line %d -> line %d", pattern_index, from_line, to_line))
+  cur_track:line(to_line):copy_from(cur_track:line(from_line))
+  cur_track:line(from_line):clear()
+  cur_track:line(from_line + 1):clear()
+end
+
+function PatternMatrixExpandTrack(track_index, pattern_index, start_line, end_line)
+  local s = renoise.song()
+  local pattern = s:pattern(pattern_index)
+  
+  print(string.format("  Expanding track %d in pattern %d (lines %d to %d)", 
+    track_index, pattern_index, start_line, end_line))
+  
+  for l = end_line, start_line, -1 do
+    if l ~= start_line and l*2-start_line <= pattern.number_of_lines then
+      PatternMatrixCopyExpandLine(track_index, pattern_index, l, l*2-start_line)
+    end
+  end
+end
+
+function PatternMatrixShrinkTrack(track_index, pattern_index, start_line, end_line)
+  local s = renoise.song()
+  local pattern = s:pattern(pattern_index)
+  
+  print(string.format("  Shrinking track %d in pattern %d (lines %d to %d)", 
+    track_index, pattern_index, start_line, end_line))
+  
+  for l = start_line, end_line, 2 do
+    if l ~= start_line then
+      PatternMatrixCopyShrinkLine(track_index, pattern_index, l, l/2 + start_line/2)
+    end
+  end
+end
+
+function PatternMatrixExpand()
+  local song = renoise.song()
+  local sequencer = song.sequencer
+  local selected_tracks = {}
+  local selected_sequences = {}  -- Track -> array of sequence indices
+  
+  -- First pass: collect all selected tracks and their sequence positions
+  for track_idx = 1, song.sequencer_track_count do
+    for seq_idx = 1, #sequencer.pattern_sequence do
+      if sequencer:track_sequence_slot_is_selected(track_idx, seq_idx) then
+        if not selected_tracks[track_idx] then
+          selected_tracks[track_idx] = true
+          selected_sequences[track_idx] = {}
+        end
+        table.insert(selected_sequences[track_idx], seq_idx)
+      end
+    end
+  end
+
+  if next(selected_tracks) == nil then
+    print("No tracks selected in pattern matrix")
+    renoise.app():show_status("Nothing selected in pattern matrix")
+    return
+  end
+
+  -- Second pass: process each track's selected patterns in order
+  for track_idx, sequences in pairs(selected_sequences) do
+    for _, seq_idx in ipairs(sequences) do
+      local pattern_index = sequencer.pattern_sequence[seq_idx]
+      local pattern_lines = song.patterns[pattern_index].number_of_lines
+      PatternMatrixExpandTrack(track_idx, pattern_index, 1, pattern_lines)
+    end
+  end
+end
+
+function PatternMatrixShrink()
+  local song = renoise.song()
+  local sequencer = song.sequencer
+  local selected_tracks = {}
+  
+  print("\nPattern Matrix Selection:")
+  print("------------------------")
+  
+  for track_idx = 1, song.sequencer_track_count do
+    local track_has_selection = false
+    local track_selections = {}
+    
+    for seq_idx = 1, #sequencer.pattern_sequence do
+      if sequencer:track_sequence_slot_is_selected(track_idx, seq_idx) then
+        track_has_selection = true
+        selected_tracks[track_idx] = true
+        table.insert(track_selections, seq_idx)
+      end
+    end
+    
+    if track_has_selection then
+      print(string.format("Track %02d: Selected in sequences %s", 
+        track_idx, 
+        table.concat(track_selections, ", ")))
+    end
+  end
+  print("------------------------")
+  
+  if next(selected_tracks) == nil then
+    print("No tracks selected in pattern matrix")
+    renoise.app():show_status("Nothing selected in pattern matrix")
+    return
+  end
+  
+  print("\nProcessing Patterns:")
+  print("------------------------")
+  
+  for seq_idx = 1, #sequencer.pattern_sequence do
+    local pattern_index = sequencer.pattern_sequence[seq_idx]
+    local pattern_lines = song.patterns[pattern_index].number_of_lines
+    
+    for track_idx, _ in pairs(selected_tracks) do
+      if sequencer:track_sequence_slot_is_selected(track_idx, seq_idx) then
+        print(string.format("\nProcessing: Track %02d, Sequence %02d (Pattern %02d with %d lines)", 
+          track_idx, seq_idx, pattern_index, pattern_lines))
+        PatternMatrixShrinkTrack(track_idx, pattern_index, 1, pattern_lines)
+      end
+    end
+  end
+  print("------------------------")
+  
+  renoise.app():show_status("Shrank selected tracks in pattern matrix")
+end
+
+renoise.tool():add_keybinding { name = "Pattern Matrix:Paketti..:Pattern Matrix Selection Expand", invoke = PatternMatrixExpand }
+renoise.tool():add_keybinding { name = "Pattern Matrix:Paketti..:Pattern Matrix Selection Shrink", invoke = PatternMatrixShrink }
+renoise.tool():add_menu_entry { name = "Pattern Matrix:Paketti..:Pattern Matrix Selection Expand", invoke = PatternMatrixExpand }
+renoise.tool():add_menu_entry { name = "Pattern Matrix:Paketti..:Pattern Matrix Selection Shrink", invoke = PatternMatrixShrink }
+--------
+-- Dialog state
+local dialog = nil
+local vb = nil
+
+-- Create and show the dialog
+local function show_edit_step_dialog()
+  if dialog and dialog.visible then
+    return
+  end
+
+  vb = renoise.ViewBuilder()
+  
+  local dialog_content = vb:row {
+    vb:text {text = "EditStep&Enter"},
+    vb:textfield {
+      id = "edit_step_input",
+      width = 30,
+      active = true,
+      edit_mode = true,
+      value = tostring(renoise.song().transport.edit_step),
+      notifier = function(text)
+        local number = tonumber(text)
+        if number then
+          -- Cap the value at 64 if it's higher
+          if number > 64 then
+            number = 64
+          end
+          -- Ensure number is not negative
+          if number >= 0 then
+            renoise.song().transport.edit_step = number
+            dialog:close()
+          end
+        end
+      end
+    }
+  }
+
+  dialog = renoise.app():show_custom_dialog("Set EditStep&Enter",dialog_content,function() end )
+  
+end
+
+-- Key binding functions
+local function key_handler(key)
+  if key.modifiers == "alt" then  -- You can change this modifier
+    if key.name == "key_down" then
+      show_edit_step_dialog()
+    elseif key.name == "key_up" then
+      if dialog and dialog.visible then
+        dialog:close()
+      end
+    end
+  end
+end
+
+-- Register the key handler
+renoise.tool():add_keybinding {
+  name = "Global:Paketti:Show EditStep Dialog",
+  invoke = function(repeated)
+    if not repeated then
+      key_handler({name = "key_down", modifiers = "alt"})
+    end
+  end
+}
+
+--[[renoise.tool():add_keybinding {
+  name = "Global:Paketti:Hide EditStep Dialog",
+  invoke = function(repeated)
+    if not repeated then
+      key_handler({name = "key_up", modifiers = "alt"})
+    end
+  end
+} ]]--

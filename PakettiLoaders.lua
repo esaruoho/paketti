@@ -456,7 +456,14 @@ invoke=function() loadnative("Audio/Effects/Native/*Hydra") end}
 renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise *Instr. Automation",
 invoke=function() loadnative("Audio/Effects/Native/*Instr. Automation") end}
 renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise *Instr. Macros",
-invoke=function() loadnative("Audio/Effects/Native/*Instr. Macros") end}
+invoke=function() 
+if renoise.app().window.active_lower_frame == 2 then 
+loadnative("Audio/Effects/Native/*Instr. Macros") 
+renoise.app().window.active_lower_frame = 2
+else
+loadnative("Audio/Effects/Native/*Instr. Macros") 
+end
+end}
 renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise *Instr. MIDI Control",
 invoke=function() loadnative("Audio/Effects/Native/*Instr. MIDI Control") end}
 renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise *Key Tracker",
@@ -2963,4 +2970,168 @@ end
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Load New Instrument with Current Slice Markers",invoke=function() loadNewWithCurrentSliceMarkers() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Load New Instrument with Current Slice Markers",invoke=function() loadNewWithCurrentSliceMarkers() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Load New Instrument with Current Slice Markers",invoke=function() loadNewWithCurrentSliceMarkers() end}
+---------
+-- Globals for tracking mode and open editors
+local auto_open_mode = false
+local current_track_index = nil
+
+-- Function to open external editors on a track
+local function PakettiHandleTrackDevices(track)
+  if not track or #track.devices == 0 then return end
+  
+  for i=2, #track.devices do -- Skip Master Device
+    local device = track.devices[i]
+    if device.external_editor_available then
+      device.external_editor_visible = true
+    end
+  end
+end
+
+-- Function to close only the editors that are open
+local function PakettiCloseTrackEditors(track)
+  if not track or #track.devices == 0 then return end
+  
+  for i=2, #track.devices do -- Skip Master Device
+    local device = track.devices[i]
+    if device.external_editor_available and device.external_editor_visible then
+      device.external_editor_visible = false
+    end
+  end
+end
+
+-- Called when the track index changes
+local function PakettiTrackIndexChanged()
+  if not auto_open_mode then return end
+
+  local new_track = renoise.song().selected_track
+  local new_track_index = renoise.song().selected_track_index
+
+  -- Close editors from the previous track
+  if current_track_index and current_track_index ~= new_track_index then
+    local prev_track = renoise.song().tracks[current_track_index]
+    PakettiCloseTrackEditors(prev_track)
+  end
+
+  -- Open editors for the new track
+  PakettiHandleTrackDevices(new_track)
+
+  -- Update the current track index
+  current_track_index = new_track_index
+end
+
+-- Toggle the automatic mode
+function PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode()
+  auto_open_mode = not auto_open_mode
+
+  if auto_open_mode then
+    renoise.app():show_status("Automatically Open Selected Track Devices Toggled ON")
+
+    -- Initialize the current track index and open its devices
+    current_track_index = renoise.song().selected_track_index
+    PakettiHandleTrackDevices(renoise.song().selected_track)
+
+    -- Add notifier for track index changes
+    if not renoise.song().selected_track_index_observable:has_notifier(PakettiTrackIndexChanged) then
+      renoise.song().selected_track_index_observable:add_notifier(PakettiTrackIndexChanged)
+    end
+  else
+    renoise.app():show_status("Automatically Open Selected Track Devices Toggled OFF")
+    
+    -- Remove the notifier (stop tracking track changes)
+    if renoise.song().selected_track_index_observable:has_notifier(PakettiTrackIndexChanged) then
+      renoise.song().selected_track_index_observable:remove_notifier(PakettiTrackIndexChanged)
+    end
+
+    -- Do NOT close any currently open editors
+    current_track_index = nil
+  end
+end
+
+
+renoise.tool():add_menu_entry {name = "Main Menu:Tools:Paketti..:Automatically Open Selected Track Device Editors",invoke = PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode}
+renoise.tool():add_keybinding {name = "Global:Paketti:Toggle Auto-Open Track Devices",invoke = PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode}
+renoise.tool():add_midi_mapping {name = "Paketti:Toggle Auto-Open Track Devices",invoke = PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode}
+
+
+
+
+
+-------
+function XOPointCloud()
+  local au_path = "Audio/Generators/AU/aumu:xAXO:xlnA"
+  local vst_path = "Audio/Generators/VST/XO"
+  local vst3_path = "Audio/Generators/VST3/ABCDEF019182FAEB786C6E417841584F"
+  
+  local available_plugins = renoise.song().selected_instrument.plugin_properties.available_plugins
+  
+  -- Helper function to check if a plugin exists in the available plugins
+  local function is_plugin_available(path)
+    for _, plugin in ipairs(available_plugins) do
+      if plugin == path then
+        return true
+      end
+    end
+    return false
+  end
+  
+  -- Determine which plugin format to load
+  local plugin_to_load = nil
+  
+  if is_plugin_available(au_path) then
+    plugin_to_load = au_path
+  elseif is_plugin_available(vst_path) then
+    plugin_to_load = vst_path
+  elseif is_plugin_available(vst3_path) then
+    plugin_to_load = vst3_path
+  else
+    renoise.app():show_status("You don't have XO available as AudioUnit, VST, or VST3, doing nothing.")
+    return
+  end
+  
+  -- Check existing instruments to see if the plugin is already loaded
+  for i = 1, #renoise.song().instruments do
+    local instrument = renoise.song().instruments[i]
+    local plugin_device = instrument.plugin_properties.plugin_device
+    
+    if plugin_device ~= nil and
+      (plugin_device.name == "AU: XLN Audio: XO" or 
+       plugin_device.name == "VST: XLN Audio: XO" or 
+       plugin_device.name == "VST3: XLN Audio: XO") then
+      
+      -- Toggle the external editor visibility
+      if plugin_device.external_editor_visible ~= false then
+        plugin_device.external_editor_visible = false
+      else
+        plugin_device.external_editor_visible = true
+      end
+      return
+    end
+  end
+  
+  -- Load the plugin using the provided path
+  loadPlugin(plugin_to_load)
+  
+  -- TODO: Find the device and open the external editor
+  for i = 1, #renoise.song().instruments do
+    local instrument = renoise.song().instruments[i]
+    local plugin_device = instrument.plugin_properties.plugin_device
+    
+    if plugin_device ~= nil and
+      (plugin_device.name == "AU: XLN Audio: XO" or 
+       plugin_device.name == "VST: XLN Audio: XO" or 
+       plugin_device.name == "VST3: XLN Audio: XO") then
+      
+      -- Open the external editor
+      plugin_device.external_editor_visible = true
+      renoise.app():show_status("Opened external editor for XO plugin.")
+      return
+    end
+  end
+
+  renoise.app():show_status("Failed to find XO plugin after loading. Something might have gone wrong.")
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Show XO Plugin External Editor",invoke = function() XOPointCloud() end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Show XO Plugin External Editor",invoke = function() XOPointCloud() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:Show XO Plugin External Editor",invoke = function() XOPointCloud() end}
 

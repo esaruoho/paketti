@@ -1264,7 +1264,7 @@ function record_midi_value(value)
       local time = line -- Time in pattern lines
       -- Create or modify an automation point at the specified time
       envelope:add_point_at(time, clamped_value)
-      print("Added automation point at time: " .. time .. " with value: " .. tostring(clamped_value))
+--      print("Added automation point at time: " .. time .. " with value: " .. tostring(clamped_value))
     end
     
     renoise.app():show_status("Automation points written to cleared selection from line " .. start_line .. " to line " .. end_line)
@@ -1285,7 +1285,7 @@ function record_midi_value(value)
       local time = line -- Time in pattern lines
       -- Create or modify an automation point at the specified time
       envelope:add_point_at(time, clamped_value)
-      print("Added automation point at time: " .. time .. " with value: " .. tostring(clamped_value))
+--      print("Added automation point at time: " .. time .. " with value: " .. tostring(clamped_value))
     end
     
     renoise.app():show_status("Automation points written to cleared selection from line " .. start_line .. " to line " .. end_line)
@@ -1295,29 +1295,26 @@ function record_midi_value(value)
   -- If no selection exists or other conditions aren't met, write to playhead
   local playhead_line = song.transport.playback_pos.line
   envelope:add_point_at(playhead_line, clamped_value)
-  renoise.app():show_status("Automation recorded at playhead: " .. playhead_line .. " with value: " .. tostring(clamped_value))
-  print("Automation recorded at playhead: " .. playhead_line .. " with value: " .. tostring(clamped_value))
+--  renoise.app():show_status("Automation recorded at playhead: " .. playhead_line .. " with value: " .. tostring(clamped_value))
+--  print("Automation recorded at playhead: " .. playhead_line .. " with value: " .. tostring(clamped_value))
 end
 
-renoise.tool():add_midi_mapping{
-  name = "Paketti:Record Automation to Selected Parameter",
+renoise.tool():add_midi_mapping{name = "Paketti:Record Automation to Selected Parameter",
   invoke = function(midi_msg)
     -- Normalize the MIDI value (0-127) to a range of 0.0 - 1.0
     renoise.song().transport.record_parameter_mode=renoise.Transport.RECORD_PARAMETER_MODE_AUTOMATION
     local normalized_value = midi_msg.int_value / 127
-    print("Received MIDI value: " .. tostring(midi_msg.int_value) .. " (normalized: " .. tostring(normalized_value) .. ")")
-    
+--    print("Received MIDI value: " .. tostring(midi_msg.int_value) .. " (normalized: " .. tostring(normalized_value) .. ")")  
     record_midi_value(normalized_value)
   end
 }
 
-renoise.tool():add_midi_mapping{
-  name = "Paketti:Record Automation to Selected Parameter (2nd)",
+renoise.tool():add_midi_mapping{name = "Paketti:Record Automation to Selected Parameter (2nd)",
   invoke = function(midi_msg)
     -- Normalize the MIDI value (0-127) to a range of 0.0 - 1.0
     renoise.song().transport.record_parameter_mode=renoise.Transport.RECORD_PARAMETER_MODE_AUTOMATION
     local normalized_value = midi_msg.int_value / 127
-    print("Received MIDI value: " .. tostring(midi_msg.int_value) .. " (normalized: " .. tostring(normalized_value) .. ")")
+--    print("Received MIDI value: " .. tostring(midi_msg.int_value) .. " (normalized: " .. tostring(normalized_value) .. ")")
     
     record_midi_value(normalized_value)
   end
@@ -1688,4 +1685,8 @@ for _, device_info in ipairs(target_devices) do
     end
   end
 end
+----------
 
+renoise.tool():add_midi_mapping{name="Paketti:Clear Current Track in Pattern",invoke=function()
+renoise.song().selected_pattern.tracks[renoise.song().selected_track_index]:clear()
+end}

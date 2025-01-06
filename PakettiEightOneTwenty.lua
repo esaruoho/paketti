@@ -1,5 +1,25 @@
 -- Paketti Groovebox 8120 Script
 
+-- "Random" keybinding: Selects a random sample and mutes others
+function sample_random()
+  local song = renoise.song()
+  local ing = song.selected_instrument
+
+  -- Edge case: no instrument or no samples
+  if not ing or #ing.samples == 0 then
+    renoise.app():show_status("No instrument or samples available.")
+    return
+  end
+
+  -- Pick a random sample index
+  local random_index = math.random(1, #ing.samples)
+  song.selected_sample_index = random_index
+
+  -- Set velocity ranges accordingly
+  pakettiSampleVelocityRangeChoke(random_index)
+end
+
+
 -- Initialization
 local vb = renoise.ViewBuilder()
 local dialog, rows = nil, {}
@@ -264,9 +284,7 @@ table.insert(yxx_checkbox_row_elements, yxx_clear_button)
         return
       end
       renoise.song().selected_instrument_index = instrument_index
-      if type(midi_sample_velocity_switcharoo) == "function" then
         midi_sample_velocity_switcharoo(value)
-      end
       row_elements.update_sample_name_label()
       renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
     end
@@ -425,11 +443,7 @@ table.insert(yxx_checkbox_row_elements, yxx_clear_button)
     renoise.song().selected_track_index = track_index
     renoise.song().selected_instrument_index = instrument_index
 
-    if type(pitchBendDrumkitLoader) == "function" then
       pitchBendDrumkitLoader()
-    else
-      renoise.app():show_warning("pitchBendDrumkitLoader function is not defined.")
-    end
 
     local instrument = renoise.song().instruments[instrument_index]
     if not instrument then
@@ -454,9 +468,7 @@ table.insert(yxx_checkbox_row_elements, yxx_clear_button)
     update_instrument_list_and_popups()
     slider.value = 1
 
-    if type(pakettiSampleVelocityRangeChoke) == "function" then
       pakettiSampleVelocityRangeChoke(1)
-    end
 
     row_elements.update_sample_name_label()
     row_elements.random_button_pressed = row_elements.random_button_pressed
@@ -487,10 +499,7 @@ table.insert(yxx_checkbox_row_elements, yxx_clear_button)
       return
     end
     renoise.song().selected_instrument_index = instrument_index
-
-    if type(sample_random) == "function" then
       sample_random()
-    end
 
     local instrument = renoise.song().instruments[instrument_index]
     for sample_index, sample in ipairs(instrument.samples) do

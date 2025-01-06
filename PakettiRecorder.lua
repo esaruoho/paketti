@@ -342,14 +342,8 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Simple Play Record Follow",invoke=function() simpleplayrecordfollow() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Simple Play Record Follow (2nd)",invoke=function() simpleplayrecordfollow() end}
-
-
 -- PD use
-renoise.tool():add_keybinding{name="Global:Paketti:TouchOSC Sample Recorder and Record",
-invoke=function()
-handle_sample_recording()
-end}
-
+renoise.tool():add_keybinding{name="Global:Paketti:TouchOSC Sample Recorder and Record", invoke=function() handle_sample_recording() end}
 
 renoise.tool():add_keybinding{name="Global:Paketti:TouchOSC Pattern Editor",
 invoke=function() 
@@ -384,20 +378,15 @@ renoise.song().selected_instrument_index=renoise.song().selected_instrument_inde
     sample.beat_sync_enabled = false
     sample.beat_sync_mode = 2
     renoise.song().selected_instrument.sample_modulation_sets[1].filter_type=preferences.pakettiLoaderFilterType.value
-      if preferences.pakettiPitchbendLoaderEnvelope.value then
-renoise.song().selected_instrument.sample_modulation_sets[1].devices[2].is_active = true else end
+      if preferences.pakettiPitchbendLoaderEnvelope.value then renoise.song().selected_instrument.sample_modulation_sets[1].devices[2].is_active = true else end
   sample.oversample_enabled = preferences.pakettiLoaderOverSampling.value
   sample.autofade = preferences.pakettiLoaderAutoFade.value
   sample.autoseek = preferences.pakettiLoaderAutoseek.value
   sample.oneshot = preferences.pakettiLoaderOneshot.value
   sample.loop_mode = preferences.pakettiLoaderLoopMode.value
   sample.new_note_action = preferences.pakettiLoaderNNA.value
-    sample.loop_mode = 2
+  sample.loop_mode = 2
   sample.loop_release = preferences.pakettiLoaderLoopExit.value
-
-
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Start/Stop Sample Recording and Pakettify",invoke=function() handle_sample_recording() end}
-
-

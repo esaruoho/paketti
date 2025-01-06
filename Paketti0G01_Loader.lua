@@ -791,8 +791,8 @@ function manage_sample_count_observer(attach)
 end
 
 function update_dynamic_menu_entries()
-    local enableMenuEntryName = "Main Menu:Tools:Paketti..:!Preferences..:0G01 Loader Enable"
-    local disableMenuEntryName = "Main Menu:Tools:Paketti..:!Preferences..:0G01 Loader Disable"
+    local enableMenuEntryName = "--Main Menu:Tools:Paketti..:!Preferences..:0G01 Loader Enable"
+    local disableMenuEntryName = "--Main Menu:Tools:Paketti..:!Preferences..:0G01 Loader Disable"
 
     if preferences._0G01_Loader.value then
         if renoise.tool():has_menu_entry(enableMenuEntryName) then

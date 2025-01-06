@@ -529,6 +529,6 @@ loadFromPreferences()
 
 -- Register the menu entry to show the plugin list dialog
 renoise.tool():add_menu_entry{
-  name="--Main Menu:Tools:Paketti..:Plugins/Devices..:Load Plugins Dialog",
+  name="--Main Menu:Tools:Paketti..:Plugins/Devices..:Load Plugins...",
   invoke=function() showPluginListDialog() end
 }

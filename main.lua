@@ -1,10 +1,8 @@
-local rx = require 'rx'
+local init_time = os.clock()
 
 function formatDigits(digits, number)
   return string.format("%0" .. digits .. "d", number)
 end
-
-
 
 function selection_in_pattern_pro()
   local song = renoise.song()
@@ -83,42 +81,122 @@ function selection_in_pattern_pro()
   return result
 end
 
-require "Paketti0G01_Loader"
-require "PakettiKeyBindings"
-require "PakettiThemeSelector"
-require "PakettieSpeak"
-require "base64float"
-require "PakettiAutomation"
-require "PakettiAudioProcessing"
-require "PakettiBeatDetect"
-require "PakettiControls"
-require "PakettiDeviceChains"
-require "PakettiDynamicViews"
-require "PakettiEightOneTwenty"
-require "PakettiGater"
-require "PakettiImpulseTracker"
-require "PakettiInstrumentBox"
-require "PakettiLoaders"
-require "PakettiLoadDevices"
-require "PakettiLoadPlugins"
-require "PakettiMainMenuEntries"
-require "PakettiMidi"
-require "PakettiMidiPopulator"
-require "PakettiPatternEditor"
-require "PakettiPatternEditorCheatSheet"
-require "PakettiPatternMatrix"
-require "PakettiPatternSequencer"
-require "PakettiPhraseEditor"
-require "PakettiOctaMEDSuite"
-require "PakettiPlayerProSuite"
-require "PakettiSampleLoader"
-require "PakettiSamples"
-require "PakettiTkna"
-require "PakettiRecorder" 
-require "PakettiColuga"
-require "PakettiRequests"
-require "PakettiExperimental_Verify"
+function timed_require(module_name)
+    local start_time = os.clock()
+    
+    -- Count lines in the file
+    local line_count = 0
+    local file_path = renoise.tool().bundle_path .. module_name .. ".lua"
+    local file = io.open(file_path, "r")
+    if file then
+        for _ in file:lines() do
+            line_count = line_count + 1
+        end
+        file:close()
+    end
+    
+    -- Require the module and time it
+    require(module_name)
+    local elapsed = (os.clock() - start_time) * 1000 -- convert to milliseconds
+    
+    print(string.format("%s, %d lines, %.2f ms", module_name, line_count, elapsed))
+end
+print ("---------------------")
 
+local renoise_version = tonumber(string.match(renoise.RENOISE_VERSION, "(%d+%.%d+)"))
+
+
+
+
+
+
+
+
+if renoise_version == 2.8 then
+--December 15, 2011, Renoise 2.8 only
+--esaruoho
+function EZMaximizeSpectrum()
+  local s=renoise.song()
+  local t=s.transport
+  local w=renoise.app().window
+    if t.playing==false then
+       t.playing=true end
+  
+  w.disk_browser_is_expanded=true
+  w.active_upper_frame=4
+  w.upper_frame_is_visible=true
+  w.lower_frame_is_visible=false
+  renoise.app():show_status("Current BPM: " .. t.bpm .. " Current LPB: " .. t.lpb .. ". You are feeling fine. Playback started.")
+  end
+  
+  renoise.tool():add_keybinding{name="Global:Paketti:EZ Maximize Spectrum",invoke=function() EZMaximizeSpectrum() end}
+  renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:EZ Maximize Spectrum",invoke=function() EZMaximizeSpectrum() end}
+  renoise.tool():add_menu_entry{name="Mixer:EZ Maximize Spectrum",invoke=function() EZMaximizeSpectrum() end}
+  renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:EZ Maximize Spectrum",invoke=function() EZMaximizeSpectrum() end}
+end
+
+timed_require("rx")                          -- 2318 lines, 2.00 ms
+timed_require("Paketti0G01_Loader")          -- 857 lines, 4.00 ms
+--if renoise_version >= 3.4 then ]]--
+timed_require("PakettieSpeak")               -- 930 lines, 4.00 ms
+timed_require("PakettiPlayerProSuite")       -- 852 lines, 3.00 ms
+--else
+--  print("PakettieSpeak and PakettiPlayerProSuite require Renoise v3.4 or higher")
+--end  
+timed_require("PakettiChordsPlus")
+
+
+
+
+-- Quick loads (under 1ms)
+timed_require("PakettiSampleLoader")         -- 0 lines, 0.00 ms
+timed_require("PakettiCustomization")        -- 61 lines, 0.50 ms
+timed_require("PakettiDeviceChains")         -- 85 lines, 0.00 ms
+timed_require("base64float")                 -- 203 lines, 0.00 ms
+timed_require("PakettiLoadDevices")          -- 496 lines, 1.00 ms
+timed_require("PakettiSandbox")              -- 352 lines, 0.50 ms
+timed_require("PakettiTupletGenerator")      -- 386 lines, 0.50 ms
+timed_require("PakettiLoadPlugins")          -- 534 lines, 0.50 ms
+timed_require("PakettiPatternSequencer")     -- 47 lines, 0.50 ms
+timed_require("PakettiPatternMatrix")        -- 176 lines, 0.50 ms
+timed_require("PakettiInstrumentBox")        -- 280 lines, 0.50 ms
+timed_require("PakettiColuga")               -- 854 lines, 1.00 ms
+timed_require("PakettiStretch")              -- 925 lines, 1.50 ms
+timed_require("PakettiBeatDetect")           -- 396 lines, 1.00 ms
+timed_require("PakettiStacker")              -- 518 lines, 1.00 ms
+timed_require("PakettiRecorder")             -- 403 lines, 1.00 ms
+
+-- Light loads (>1ms)
+timed_require("PakettiControls")             -- 544 lines, 1.00 ms
+timed_require("PakettiKeyBindings")          -- 1443 lines, 2.00 ms
+timed_require("PakettiPhraseEditor")         -- 461 lines, 1.00 ms
+timed_require("PakettiOctaMEDSuite")         -- 601 lines, 1.00 ms
+timed_require("PakettiWavetabler")           -- 223 lines, 0.50 ms
+timed_require("PakettiAudioProcessing")      -- 1538 lines, 1.50 ms
+timed_require("PakettiPatternEditorCheatSheet") -- 953 lines, 1.00 ms
+timed_require("PakettiThemeSelector")        -- 516 lines, 4.50 ms
+
+-- Medium loads (2-5ms)
+timed_require("PakettiMidiPopulator")        -- 531 lines, 1.00 ms
+timed_require("PakettiImpulseTracker")       -- 2112 lines, 2.00 ms
+timed_require("PakettiGater")                -- 1233 lines, 2.50 ms
+timed_require("PakettiAutomation")           -- 2776 lines, 3.50 ms
+timed_require("PakettiMainMenuEntries")      -- 383 lines, 4.50 ms
+timed_require("PakettiMidi")                 -- 1692 lines, 5.50 ms
+timed_require("PakettiDynamicViews")         -- 703 lines, 9.00 ms
+
+-- Heavy loads (5ms+)
+timed_require("PakettiEightOneTwenty")       -- 1457 lines, 4.50 ms
+timed_require("PakettiSamples")              -- 4249 lines, 6.00 ms
+timed_require("PakettiExperimental_Verify")  -- 4543 lines, 8.50 ms
+timed_require("PakettiLoaders")              -- 3137 lines, 9.00 ms
+
+-- Extra heavy (10ms+)
+timed_require("PakettiPatternEditor")        -- 4583 lines, 11.50 ms
+timed_require("PakettiTkna")                 -- 1495 lines, 23.00 ms
+timed_require("PakettiRequests")             -- 9168 lines, 127.00 ms
+
+print(string.format("Total load time: %.3f seconds", os.clock() - init_time))
 
 ------------------------------------------------
 local themes_path = renoise.tool().bundle_path .. "Themes/"
@@ -193,11 +271,10 @@ function startup()
 else end
 end
 
-
 if not renoise.tool().app_new_document_observable:has_notifier(startup)   
   then renoise.tool().app_new_document_observable:add_notifier(startup)
   else renoise.tool().app_new_document_observable:remove_notifier(startup) end  
----------
+--------
 -- Debug print  
 function dbug(msg)  
  local base_types = {  
@@ -210,6 +287,4 @@ function dbug(msg)
 end
 
 _AUTO_RELOAD_DEBUG = true
-
-
 

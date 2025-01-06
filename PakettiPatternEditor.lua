@@ -1,4 +1,3 @@
-
 -- Function to mute or unmute the selected note column
 function muteUnmuteNoteColumn()
   -- Access the song object
@@ -1601,73 +1600,6 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Select Effect Column 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Select Effect Column (Next)", invoke=function() nextEffectColumn() end}
 
 
-function cloneAndExpandPatternToLPBDouble()
-local number=nil
-local numbertwo=nil
-local rs=renoise.song()
-write_bpm()
-clonePTN()
-local nol=nil
-      nol=renoise.song().selected_pattern.number_of_lines+renoise.song().selected_pattern.number_of_lines
-      renoise.song().selected_pattern.number_of_lines=nol
-
-number=renoise.song().transport.lpb*2
-if number == 1 then number = 2 end
-if number > 128 then number=128 
-renoise.song().transport.lpb=number
-  write_bpm()
-  Deselect_All()
-  MarkTrackMarkPattern()
-  MarkTrackMarkPattern()
-  ExpandSelection()
-  Deselect_All()
-  return end
-renoise.song().transport.lpb=number
-  write_bpm()
-  Deselect_All()
-  MarkTrackMarkPattern()
-  MarkTrackMarkPattern()
-  ExpandSelection()
-  Deselect_All()
-
-
-end
-
-
---------------------------------------------------------------------------------------------------------------------------------------------------------
-renoise.tool():add_keybinding{name="Global:Paketti:Clone and Expand Pattern to LPB*2",invoke=function() cloneAndExpandPatternToLPBDouble()
-end}
-
-
-function cloneAndShrinkPatternToLPBHalve()
-local number=nil
-local numbertwo=nil
-local rs=renoise.song()
-write_bpm()
-clonePTN()
-Deselect_All()
-MarkTrackMarkPattern()
-MarkTrackMarkPattern()
-ShrinkSelection()
-Deselect_All()
-local nol=nil
-      nol=renoise.song().selected_pattern.number_of_lines/2
-      renoise.song().selected_pattern.number_of_lines=nol
-
-number=renoise.song().transport.lpb/2
-if number == 1 then number = 2 end
-if number > 128 then number=128 
-renoise.song().transport.lpb=number
-  write_bpm()
-return end
-renoise.song().transport.lpb=number
-  write_bpm()
-end
-
-
-renoise.tool():add_keybinding{name="Global:Paketti:Clone and Shrink Pattern to LPB/2",invoke=function()
-cloneAndShrinkPatternToLPBHalve()
-end}
 -----------------
 
 -- Columnizer, +1 / -1 / +10 / -10 on current_row, display needed column
@@ -2093,10 +2025,10 @@ function pakettiInterpolateEffectColumnParameters()
   renoise.app():show_status("Effect column parameters interpolated.")
 end
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Interpolate Effect Column Parameters",invoke=pakettiInterpolateEffectColumnParameters}
-renoise.tool():add_keybinding{name="Global:Paketti:Interpolate Effect Column Parameters",invoke=pakettiInterpolateEffectColumnParameters}
-renoise.tool():add_midi_mapping{name="Paketti:Interpolate Effect Column Parameters",invoke=pakettiInterpolateEffectColumnParameters}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Effect Columns..:Interpolate Effect Column Parameters",invoke=pakettiInterpolateEffectColumnParameters}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Interpolate Column Values (Effect)",invoke=pakettiInterpolateEffectColumnParameters}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Interpolate Column Values (Effect)",invoke=pakettiInterpolateEffectColumnParameters}
+renoise.tool():add_midi_mapping{name="Paketti:Interpolate Column Values (Effect)",invoke=pakettiInterpolateEffectColumnParameters}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Effect Columns..:Interpolate Column Values (Effect)",invoke=pakettiInterpolateEffectColumnParameters}
 
 --------
 -- Function to flood fill the track with the current note and instrument
@@ -2768,35 +2700,68 @@ renoise.tool():add_keybinding{
 
 -------
 function PhrasingRandom()
-
-    local song=renoise.song()
-    local track=song.selected_track
-    local line=song.selected_line
-    local count=track.visible_note_columns
-    local adjustments={-36, -24, -12, 12, 24, 36}
-    
-    for i=1,count do
-      local note=line.note_columns[i]
-      if not note.is_empty then
-        -- Pick a random adjustment and apply it to the note_value
-        local adjustment=adjustments[math.random(#adjustments)]
-        local new_value=note.note_value+adjustment
-        
-        -- Ensure new_value is within the 13 to 106 range
-        new_value=math.max(13, math.min(106, new_value))
-        
-        -- Update the note value
-        note.note_value=new_value
+  local song = renoise.song()
+  local track = song.selected_track
+  local line = song.selected_line
+  local count = track.visible_note_columns
+  local adjustments = {-36, -24, -12, 12, 24, 36}
+  
+  -- Track if any notes were found and modified
+  local found_notes = false
+  local note_changes = {}
+  
+  for i = 1, count do
+      local note = line.note_columns[i]
+      if not note.is_empty and note.note_string ~= "OFF" and note.note_string ~= "---" then
+          found_notes = true
+          -- Store original note
+          local original_note = note.note_string
+          
+          -- Pick a random adjustment and apply it to the note_value
+          local adjustment = adjustments[math.random(#adjustments)]
+          local new_value = note.note_value + adjustment
+          
+          -- Ensure new_value is within the 13 to 106 range
+          new_value = math.max(13, math.min(106, new_value))
+          
+          -- Update the note value
+          note.note_value = new_value
+          
+          -- Store the change
+          table.insert(note_changes, {
+              original = original_note,
+              new = note.note_string
+          })
       end
-    end
-    end
-
-
+  end
+  
+  -- Show appropriate status message
+  if not found_notes then
+      renoise.app():show_status("There were no notes on this row, doing nothing.")
+  else
+      -- Build status message
+      local original_notes = {}
+      local new_notes = {}
+      for _, change in ipairs(note_changes) do
+          table.insert(original_notes, change.original)
+          table.insert(new_notes, change.new)
+      end
+      
+      local msg = string.format("Original Note Columns (%s) Randomized Phrasings to (%s)",
+          table.concat(original_notes, " "),
+          table.concat(new_notes, " "))
+      renoise.app():show_status(msg)
+  end
+end
 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Randomize Phrasing for Notes in Current Row",
   invoke=function() PhrasingRandom() end}
 renoise.tool():add_midi_mapping{name="Paketti:Randomize Phrasing for Notes in Current Row",
   invoke=function() PhrasingRandom() end}
+renoise.tool():add_menu_entry { name = "--Pattern Editor:Paketti ChordsPlus..:Randomize Phrasing for Notes in Current Row",
+  invoke=function() PhrasingRandom() end}
+
+
 
 --------------
 local function insert_random_value(mode)
@@ -2941,17 +2906,19 @@ renoise.tool():add_midi_mapping{name="Paketti:Insert Random Volume to Selected R
 
 -------
 -- Main function to replicate content
-local function PakettiReplicateAtCursor(transpose, tracks_option, row_option)
+function PakettiReplicateAtCursor(transpose, tracks_option, row_option)
   local song = renoise.song()
   local pattern = song.selected_pattern
   local cursor_row = song.selected_line_index
   local pattern_length = pattern.number_of_lines
 
   -- Check if there is content to replicate
-  if (cursor_row == 1 and row_option == "above_current") or (cursor_row == pattern_length and row_option == "above_and_current") then
+  if (cursor_row == pattern_length and row_option == "above_and_current") then
     renoise.app():show_status("No rows to replicate.")
     return
   end
+  if (cursor_row == 1 and row_option == "above_current") then
+  row_option = "above_and_current" end
 
   -- Determine the repeat_length and starting row based on row_option
   local repeat_length, start_row
@@ -3285,9 +3252,89 @@ renoise.tool():add_midi_mapping{name="Paketti:Hide Current and Select Previous C
 
 
 
-
 --------
 
+
+function cloneAndExpandPatternToLPBDouble()
+  local rs = renoise.song()
+  local current_pattern_length = rs.selected_pattern.number_of_lines
+  
+  -- Check if pattern length is 257 or more
+  if current_pattern_length >= 257 then
+      renoise.app():show_status("Cannot expand: Pattern length would exceed maximum")
+      return
+  end
+  
+  write_bpm()
+  
+  -- Store current pattern length before cloning
+  local original_length = current_pattern_length
+  
+  -- Clone the pattern
+  clonePTN()
+  
+  -- Set the new pattern length
+  local new_length = original_length * 2
+  rs.selected_pattern.number_of_lines = new_length
+  
+  -- Double the LPB
+  local number = rs.transport.lpb * 2
+  if number == 1 then number = 2 end
+  if number > 128 then 
+      number = 128 
+      rs.transport.lpb = number
+      write_bpm()
+      Deselect_All()
+      MarkTrackMarkPattern()
+      MarkTrackMarkPattern()
+      ExpandSelection()
+      Deselect_All()
+      return 
+  end
+  
+  rs.transport.lpb = number
+  write_bpm()
+  Deselect_All()
+  MarkTrackMarkPattern()
+  MarkTrackMarkPattern()
+  ExpandSelection()
+  Deselect_All()
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Clone and Expand Pattern to LPB*2",invoke=function() cloneAndExpandPatternToLPBDouble()end}
+renoise.tool():add_menu_entry{name="--Pattern Sequencer:Paketti..:Clone and Expand Pattern to LPB*2",invoke=function() cloneAndExpandPatternToLPBDouble()end}
+renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Clone and Expand Pattern to LPB*2",invoke=function() cloneAndExpandPatternToLPBDouble()end}
+
+
+function cloneAndShrinkPatternToLPBHalve()
+local number=nil
+local numbertwo=nil
+local rs=renoise.song()
+write_bpm()
+clonePTN()
+Deselect_All()
+MarkTrackMarkPattern()
+MarkTrackMarkPattern()
+ShrinkSelection()
+Deselect_All()
+local nol=nil
+    nol=renoise.song().selected_pattern.number_of_lines/2
+    renoise.song().selected_pattern.number_of_lines=nol
+
+number=renoise.song().transport.lpb/2
+if number == 1 then number = 2 end
+if number > 128 then number=128 
+renoise.song().transport.lpb=number
+write_bpm()
+return end
+renoise.song().transport.lpb=number
+write_bpm()
+end
+
+
+renoise.tool():add_keybinding{name="Global:Paketti:Clone and Shrink Pattern to LPB/2",invoke=function() cloneAndShrinkPatternToLPBHalve()end}
+renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Clone and Shrink Pattern to LPB/2",invoke=function() cloneAndShrinkPatternToLPBHalve()end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Clone and Shrink Pattern to LPB/2",invoke=function() cloneAndShrinkPatternToLPBHalve()end}
 
 
 
@@ -3315,7 +3362,6 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Set Pattern Length to
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Set Pattern Length to LPB*128",invoke=function() setPatternLengthByLPB(128) end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Set Pattern Length to LPB*256",invoke=function() setPatternLengthByLPB(256) end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Set Pattern Length to LPB*512",invoke=function() setPatternLengthByLPB(512) end}
-
 
 
 
@@ -4393,4 +4439,178 @@ end
 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Nudge and Paste Selection", invoke=function() NudgeAndPasteSelection(true) end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Nudge and Paste Selection + Deselect", invoke=function() NudgeAndPasteSelection(false) end}
+------
+function SelectionToNewPattern()
+  local song = renoise.song()
+  local selection = song.selection_in_pattern
 
+  -- Validate selection
+  if not selection then
+    renoise.app():show_status("No selection found in the pattern.")
+    return
+  end
+
+  -- Calculate the selection length
+  local selection_length = selection.end_line - selection.start_line + 1
+  if selection_length <= 0 then
+    renoise.app():show_status("Invalid selection length.")
+    return
+  end
+
+  -- Clone the current sequence
+  local current_sequence_index = song.selected_sequence_index
+  local source_pattern_index = song.sequencer.pattern_sequence[current_sequence_index]
+  
+  -- Clone the sequence
+  song.sequencer:clone_range(current_sequence_index, current_sequence_index)
+  
+  -- Move focus to the cloned sequence
+  local new_sequence_index = current_sequence_index + 1
+  song.selected_sequence_index = new_sequence_index
+  
+  -- Get the new pattern index
+  local new_pattern_index = song.sequencer.pattern_sequence[new_sequence_index]
+  local new_pattern = song.patterns[new_pattern_index]
+  
+  -- Resize the new pattern to match the selection
+  new_pattern.number_of_lines = selection_length
+
+  -- Copy the content from the selection into the new pattern
+  local source_pattern = song.patterns[source_pattern_index]
+  for track = selection.start_track, selection.end_track do
+    local source_track = source_pattern.tracks[track]
+    local dest_track = new_pattern.tracks[track]
+    
+    for line = selection.start_line, selection.end_line do
+      dest_track:line(line - selection.start_line + 1):copy_from(source_track:line(line))
+    end
+  end
+
+  -- Show status to the user
+  renoise.app():show_status("Selection copied to a new pattern in the sequence.")
+
+Deselect_All()
+end
+
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Create New Pattern with Selection",invoke=function() SelectionToNewPattern() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Create New Pattern with Selection",invoke=function() SelectionToNewPattern() end}
+---
+function HideAllEffectColumns()
+for i=1,renoise.song().sequencer_track_count do
+if renoise.song().tracks[i].type==1 then
+print (i)
+renoise.song().tracks[i].visible_effect_columns=0
+else end
+end
+
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Hide All Effect Columns",invoke=function() HideAllEffectColumns() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Hide All Effect Columns",invoke=function() HideAllEffectColumns() end}
+
+function moveTrackLeft()
+  local song = renoise.song()
+  local current_index = song.selected_track_index
+  
+  -- Check if we're at the leftmost movable position (track 1)
+  if current_index <= 1 then
+    local track_name = song.selected_track.name
+    renoise.app():show_status(string.format("Track '%s' cannot be moved further to the left, doing nothing.", track_name))
+    return
+  end
+  
+  -- Swap with the track to the left
+  song:swap_tracks_at(current_index, current_index - 1)
+  
+  -- Keep the moved track selected
+  song.selected_track_index = current_index - 1
+end
+
+function moveTrackRight()
+  local song = renoise.song()
+  local current_index = song.selected_track_index
+  local last_regular_track = song.sequencer_track_count
+  
+  -- Check if we're at the rightmost movable position (last track before master)
+  if current_index >= last_regular_track then
+    local track_name = song.selected_track.name
+    renoise.app():show_status(string.format("Track '%s' cannot be moved further to the right, doing nothing.", track_name))
+    return
+  end
+  
+  -- Swap with the track to the right
+  song:swap_tracks_at(current_index, current_index + 1)
+  
+  -- Keep the moved track selected
+  song.selected_track_index = current_index + 1
+end
+
+-- Add keybindings
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Move Track Left",
+  invoke = moveTrackLeft
+}
+
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Move Track Right", 
+  invoke = moveTrackRight
+}
+
+-- Add menu entries
+renoise.tool():add_menu_entry{
+  name = "Pattern Editor:Paketti..:Move Track Left",
+  invoke = moveTrackLeft
+}
+
+renoise.tool():add_menu_entry{
+  name = "Pattern Editor:Paketti..:Move Track Right",
+  invoke = moveTrackRight
+}
+
+
+
+
+
+
+
+function randomly_raise_selected_notes_one_octave(probability)
+  local song = renoise.song()
+  local pattern = song.selected_pattern
+  local selection_data = selection_in_pattern_pro()
+  
+  probability = probability or 0.5
+  
+  if not selection_data then
+    return
+  end
+
+  for _, track_info in ipairs(selection_data) do
+    local track = song.tracks[track_info.track_index]
+    local pattern_track = pattern.tracks[track_info.track_index]
+    
+    if #track_info.note_columns > 0 then
+      for line_index = song.selection_in_pattern.start_line, song.selection_in_pattern.end_line do
+        for _, column_index in ipairs(track_info.note_columns) do
+          local note_column = pattern_track:line(line_index):note_column(column_index)
+          
+          if note_column.note_value > 0 and note_column.note_value < 120 then
+            if math.random() < probability then
+              local new_note = note_column.note_value + 12
+              
+              if new_note <= 108 then
+                note_column.note_value = new_note
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+end
+
+renoise.tool():add_menu_entry { name = "Pattern Editor:Paketti..:Random Selected Notes Octave Up 25% Probability", invoke = function() randomly_raise_selected_notes_one_octave(0.25) end }
+renoise.tool():add_menu_entry { name = "Pattern Editor:Paketti..:Random Selected Notes Octave Up 50% Probability", invoke = function() randomly_raise_selected_notes_one_octave(0.5) end }
+renoise.tool():add_menu_entry { name = "Pattern Editor:Paketti..:Random Selected Notes Octave Up 75% Probability", invoke = function() randomly_raise_selected_notes_one_octave(0.75) end }
+renoise.tool():add_keybinding { name = "Pattern Editor:Paketti..:Random Selected Notes Octave Up 25% Probability", invoke = function() randomly_raise_selected_notes_one_octave(0.25) end }
+renoise.tool():add_keybinding { name = "Pattern Editor:Paketti..:Random Selected Notes Octave Up 50% Probability", invoke = function() randomly_raise_selected_notes_one_octave(0.5) end }
+renoise.tool():add_keybinding { name = "Pattern Editor:Paketti..:Random Selected Notes Octave Up 75% Probability", invoke = function() randomly_raise_selected_notes_one_octave(0.75) end }

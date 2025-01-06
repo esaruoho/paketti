@@ -845,7 +845,7 @@ function PakettiColugaCloseDialog()
   renoise.app():show_status("Closing Paketti YT-DLP Dialog")
 end
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress:Paketti YT-DLP Downloader Dialog...", invoke = function() PakettiColugaShowDialog() end }
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress:Paketti YT-DLP Downloader...", invoke = function() PakettiColugaShowDialog() end }
 
 renoise.tool():add_keybinding { name = "Global:Tools:Paketti YT-DLP Downloader", invoke = PakettiColugaShowDialog }
 --renoise.tool():add_menu_entry { name = "Sample Editor:Paketti..:Paketti YT-DLP Downloader...", invoke = PakettiColugaShowDialog }

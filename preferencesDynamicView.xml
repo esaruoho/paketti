@@ -15,15 +15,15 @@
   <dynamic_view01_disk_browser_visible_step2>false</dynamic_view01_disk_browser_visible_step2>
   <dynamic_view01_instrument_box_visible_step2>false</dynamic_view01_instrument_box_visible_step2>
   <dynamic_view01_pattern_matrix_visible_step2>false</dynamic_view01_pattern_matrix_visible_step2>
-  <dynamic_view01_pattern_advanced_edit_visible_step2>true</dynamic_view01_pattern_advanced_edit_visible_step2>
+  <dynamic_view01_pattern_advanced_edit_visible_step2>false</dynamic_view01_pattern_advanced_edit_visible_step2>
   <dynamic_view01_upper_step3>1.0</dynamic_view01_upper_step3>
-  <dynamic_view01_middle_step3>1.0</dynamic_view01_middle_step3>
+  <dynamic_view01_middle_step3>2</dynamic_view01_middle_step3>
   <dynamic_view01_lower_step3>1.0</dynamic_view01_lower_step3>
   <dynamic_view01_sample_record_visible_step3>false</dynamic_view01_sample_record_visible_step3>
   <dynamic_view01_disk_browser_visible_step3>false</dynamic_view01_disk_browser_visible_step3>
   <dynamic_view01_instrument_box_visible_step3>false</dynamic_view01_instrument_box_visible_step3>
   <dynamic_view01_pattern_matrix_visible_step3>false</dynamic_view01_pattern_matrix_visible_step3>
-  <dynamic_view01_pattern_advanced_edit_visible_step3>false</dynamic_view01_pattern_advanced_edit_visible_step3>
+  <dynamic_view01_pattern_advanced_edit_visible_step3>true</dynamic_view01_pattern_advanced_edit_visible_step3>
   <dynamic_view01_upper_step4>1.0</dynamic_view01_upper_step4>
   <dynamic_view01_middle_step4>1.0</dynamic_view01_middle_step4>
   <dynamic_view01_lower_step4>1.0</dynamic_view01_lower_step4>

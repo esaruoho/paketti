@@ -236,7 +236,7 @@ function pakettiPhraseSettingsDialogShow()
         vb:valuebox {
           id = "lpb_valuebox",
           min = 1,
-          max = 64,
+          max = 256,
           value = preferences.pakettiPhraseInitDialog.LPB.value,
           width = 100,
           notifier = function(value) preferences.pakettiPhraseInitDialog.LPB.value = value end
@@ -292,6 +292,7 @@ renoise.tool():add_keybinding {name = "Global:Paketti:Open Paketti Init Phrase D
 renoise.tool():add_keybinding {name = "Phrase Editor:Paketti:Open Paketti Init Phrase Dialog...", invoke = function() pakettiPhraseSettingsDialogShow() end}
 
 renoise.tool():add_menu_entry {name = "Phrase Editor:Paketti..:Open Paketti Init Phrase Dialog...", invoke = function() pakettiPhraseSettingsDialogShow() end}
+renoise.tool():add_menu_entry {name = "Main Menu:Tools:Paketti..:!Preferences..:Open Paketti Init Phrase Dialog...", invoke = function() pakettiPhraseSettingsDialogShow() end}
 
 renoise.tool():add_keybinding {name = "Global:Paketti:Create New Phrase using Paketti Settings", invoke = function() pakettiInitPhraseSettingsCreateNewPhrase() end}
 renoise.tool():add_menu_entry {name = "Phrase Editor:Paketti..:Create New Phrase using Paketti Settings", invoke = function() pakettiInitPhraseSettingsCreateNewPhrase() end}

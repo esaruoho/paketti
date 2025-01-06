@@ -173,19 +173,21 @@ function PakettiTranspose(steps)
     if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
       local track_pattern = pattern:track(track_index)
 
-      for line_index = start_line, end_line do
-        local line = track_pattern:line(line_index)
+for line_index = start_line, end_line do
+  local line = track_pattern:line(line_index)
 
-        for column_index = start_column, end_column do
-          local note_column = line:note_column(column_index)
-          if not note_column.is_empty then
+  -- Clamp the end column for this particular track
+  local columns_to_end = math.min(end_column, track.visible_note_columns)
 
-            if note_column.note_value < 120 then
-              note_column.note_value = (note_column.note_value + steps) % 120
-            end
-          end
-        end
+  for column_index = start_column, columns_to_end do
+    local note_column = line:note_column(column_index)
+    if not note_column.is_empty then
+      if note_column.note_value < 120 then
+        note_column.note_value = (note_column.note_value + steps) % 120
       end
+    end
+  end
+end
     end
   end
 end
@@ -346,7 +348,8 @@ renoise.tool():add_keybinding{name="Global:Paketti:Select Track (Previous)",invo
 
 
 function createNewTrack()
-renoise.song():insert_track_at(renoise.song().selected_track_index)
+renoise.song():insert_track_at(renoise.song().selected_track_index+1)
+renoise.song().selected_track_index = renoise.song().selected_track_index+1
 end
 renoise.tool():add_keybinding{name="Global:Paketti:Insert Track (2nd)", invoke=function() createNewTrack() end}
 
@@ -454,5 +457,88 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Load Recently Saved Song",invoke=function() loadRecentlySavedSong() end}
 renoise.tool():add_menu_entry{name="Main Menu:File:Paketti..:Load Recently Saved Song",invoke=function() loadRecentlySavedSong() end}
 
+-----------
+local function switch_upper_frame()
+  local app_window=renoise.app().window
+
+  -- Check if the upper frame is visible; make it visible if not
+  if not app_window.upper_frame_is_visible then
+    app_window.upper_frame_is_visible=true
+  end
+
+  -- Toggle the upper frame between Track Scopes and Master Spectrum
+  if app_window.active_upper_frame==renoise.ApplicationWindow.UPPER_FRAME_TRACK_SCOPES then
+    app_window.active_upper_frame=renoise.ApplicationWindow.UPPER_FRAME_MASTER_SPECTRUM
+  else
+    app_window.active_upper_frame=renoise.ApplicationWindow.UPPER_FRAME_TRACK_SCOPES
+  end
+
+  -- Provide user feedback
+  renoise.app():show_status("Switched Upper Frame to "..app_window.active_upper_frame)
+end
+
+-- Run the function
+renoise.tool():add_keybinding{name="Global:Paketti:Switch Upper Frame (Track Scopes/Master Spectrum)",invoke=function()
+switch_upper_frame() end}
+----
+
+
+-- Function to duplicate the selected track and rename it
+local function duplicate_selected_track()
+  local song=renoise.song()
+  local selected_track_index=song.selected_track_index
+  local selected_track=song.tracks[selected_track_index]
+
+  -- Prevent duplication of master, send, or group tracks
+  if selected_track.type~=1 then -- 1 represents a sequencer track
+    renoise.app():show_status("Cannot duplicate master, group, or send tracks.")
+    return
+  end
+
+  -- Extract the name of the selected track
+  local original_name=selected_track.name
+  local new_name=original_name -- Default to original name if no number is found
+
+  -- Check if the name ends with a number, e.g., "drum1"
+  local base_name, number=original_name:match("^(.-)(%d+)$")
+  if number then
+    local incremented_number=tonumber(number)+1
+    new_name=base_name..incremented_number
+  else
+    -- If no number exists, append " Copy" to the name
+    new_name=original_name.." Copy"
+  end
+
+  -- Insert a new track and copy properties/settings
+  local new_track_index=selected_track_index+1
+  song:insert_track_at(new_track_index)
+  local new_track=song.tracks[new_track_index]
+
+  -- Copy basic properties
+  new_track.name=new_name
+  new_track.color=selected_track.color
+
+  -- Copy visibility settings
+  new_track.visible_note_columns=selected_track.visible_note_columns
+  new_track.visible_effect_columns=selected_track.visible_effect_columns
+  new_track.volume_column_visible=selected_track.volume_column_visible
+  new_track.panning_column_visible=selected_track.panning_column_visible
+  new_track.delay_column_visible=selected_track.delay_column_visible
+  new_track.sample_effects_column_visible=selected_track.sample_effects_column_visible
+
+  -- Copy pattern data from the original track to the new track
+  for pattern_index,pattern in ipairs(song.patterns) do
+    local original_pattern_track=pattern.tracks[selected_track_index]
+    local new_pattern_track=pattern.tracks[new_track_index]
+    new_pattern_track:copy_from(original_pattern_track)
+  end
+
+  -- Provide feedback to the user
+  renoise.app():show_status("Duplicated track '"..original_name.."' as '"..new_name.."'.")
+end
+
+-- Trigger the function
+renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Selected Track & Name",invoke=function() 
+duplicate_selected_track() end}
 
 

@@ -233,6 +233,20 @@ function apply_selected_routing(selected_index)
     end
 end
 
+function my_keyhandler_func(dialog, key)
+  -- Check for specific keys to handle in the dialog
+  local closer = preferences.pakettiDialogClose.value
+  if key.modifiers == "" and key.name == closer then
+dialog:close()
+dialog=nil
+    renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+
+return nil
+else
+  return key
+end
+end
+
 -- Function to open a dialog with the list of available output routings using a popup
 function showAvailableRoutings()
     local selected_track_index = renoise.song().selected_track_index
@@ -250,7 +264,7 @@ function showAvailableRoutings()
         margin = 10,
         spacing = 5,
         vb:text {
-            text = "Select Output Routing:"
+            text = "Select Output Routing for Selected Track:"
         },
         vb:popup {
             id = "popup_output_routings",
@@ -281,8 +295,11 @@ function showAvailableRoutings()
     }
 
     -- Show the dialog
-    dialog = renoise.app():show_custom_dialog("Output Routings", dialog_content, my_keyhandler_func)
+    dialog = renoise.app():show_custom_dialog("Output Routing for Selected Track", dialog_content, my_keyhandler_func)
 end
+
+
+
 
 function simpleOutputRoute(output)
   -- Get the selected track from the current song
@@ -412,7 +429,7 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Toggle Sequence Selection to Loop",invoke=function() SequenceSelectionToLoop() end}
 
 -- Adding a menu entry for the function
-renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Toggle Sequence Selection to Loop",invoke=function() SequenceSelectionToLoop() end}
+renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Sequences/Sections..:Toggle Sequence Selection to Loop",invoke=function() SequenceSelectionToLoop() end}
 
 renoise.tool():add_keybinding{name="Global:Paketti:Toggle Sequence Selection (All) On/Off",invoke=function()
 local sequencerCount=#renoise.song().sequencer.pattern_sequence
@@ -422,7 +439,6 @@ renoise.song().sequencer.selection_range={1,#renoise.song().sequencer.pattern_se
 --end
 end
 }
-
 
 function tknaUnselectSequenceSelection()
 renoise.song().sequencer.selection_range={}
@@ -949,8 +965,8 @@ renoise.tool():add_keybinding{name="Global:Paketti:Set Current Section as Schedu
 renoise.tool():add_keybinding{name="Global:Paketti:Add Current Section to Scheduled Sequences",invoke=tknaAddCurrentSectionToScheduledSequences}
 
 -- Adding menu entries for the functions
-renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Set Current Section as Scheduled Sequence",invoke=tknaSetCurrentSectionAsScheduledSequence}
-renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Add Current Section to Scheduled Sequences",invoke=tknaAddCurrentSectionToScheduledSequences}
+renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Sequences/Sections..:Set Current Section as Scheduled Sequence",invoke=tknaSetCurrentSectionAsScheduledSequence}
+renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Sequences/Sections..:Add Current Section to Scheduled Sequences",invoke=tknaAddCurrentSectionToScheduledSequences}
 
 -- Adding MIDI mappings for the functions
 renoise.tool():add_midi_mapping{name="Paketti:Set Current Section as Scheduled Sequence",invoke=tknaSetCurrentSectionAsScheduledSequence}
@@ -1080,8 +1096,8 @@ renoise.tool():add_keybinding{name="Global:Paketti:Section Loop (Next)",invoke=e
 renoise.tool():add_keybinding{name="Global:Paketti:Section Loop (Previous)",invoke=expandSectionLoopPrevious}
 
 -- Adding menu entry for the functions
-renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Section Loop (Next)",invoke=expandSectionLoopNext}
-renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Section Loop (Previous)",invoke=expandSectionLoopPrevious}
+renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Sequences/Sections..:Section Loop (Next)",invoke=expandSectionLoopNext}
+renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Sequences/Sections..:Section Loop (Previous)",invoke=expandSectionLoopPrevious}
 
 -- Adding MIDI mapping for the functions
 renoise.tool():add_midi_mapping{name="Paketti:Section Loop (Next)",invoke=expandSectionLoopNext}
@@ -1147,8 +1163,8 @@ renoise.tool():add_keybinding{name="Global:Paketti:Sequence Selection (Next)",in
 renoise.tool():add_keybinding{name="Global:Paketti:Sequence Selection (Previous)",invoke=tknaSequenceSelectionMinusOne}
 
 -- Adding menu entry for the functions
-renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Sequence Selection (Next)",invoke=tknaSequenceSelectionPlusOne}
-renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Sequence Selection (Previous)",invoke=tknaSequenceSelectionMinusOne}
+renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Sequences/Sections..:Sequence Selection (Next)",invoke=tknaSequenceSelectionPlusOne}
+renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Sequences/Sections..:Sequence Selection (Previous)",invoke=tknaSequenceSelectionMinusOne}
 
 -- Adding MIDI mapping for the functions
 renoise.tool():add_midi_mapping{name="Paketti:Sequence Selection (Next)",invoke=tknaSequenceSelectionPlusOne}
@@ -1213,8 +1229,8 @@ renoise.tool():add_keybinding{name="Global:Paketti:Sequence Loop Selection (Next
 renoise.tool():add_keybinding{name="Global:Paketti:Sequence Loop Selection (Previous)",invoke=tknaSequenceLoopSelectionPrevious}
 
 -- Adding menu entries for the functions
-renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Sequence Loop Selection (Next)",invoke=tknaSequenceLoopSelectionNext}
-renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Sequence Loop Selection (Previous)",invoke=tknaSequenceLoopSelectionPrevious}
+renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Sequences/Sections..:Sequence Loop Selection (Next)",invoke=tknaSequenceLoopSelectionNext}
+renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Sequences/Sections..:Sequence Loop Selection (Previous)",invoke=tknaSequenceLoopSelectionPrevious}
 
 -- Adding MIDI mappings for the functions
 renoise.tool():add_midi_mapping{name="Paketti:Sequence Loop Selection (Next)",invoke=tknaSequenceLoopSelectionNext}

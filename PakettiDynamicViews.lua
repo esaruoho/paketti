@@ -510,8 +510,8 @@ function build_dialog_interface(vb, start_dv, end_dv, close_dialog)
   end
   -- Add Save, Save & Close, and Load buttons to the bottom
   interface:add_child(vb:row {
-    vb:button { text = "Save Dynamic Views as a textfile", height = 20, width = 150, pressed = function() save_dynamic_views_to_txt() end },
-    vb:button { text = "Load Dynamic Views from a textfile", height = 20, width = 150, pressed = function() load_dynamic_views_from_txt() end },
+    vb:button { text = "Save Dynamic Views as a Textfile", height = 20, width = 150, pressed = function() save_dynamic_views_to_txt() end },
+    vb:button { text = "Load Dynamic Views from a Textfile", height = 20, width = 150, pressed = function() load_dynamic_views_from_txt() end },
     vb:button { text = "Save & Close", height = 20, width = 100, pressed = function()
       renoise.app():show_status("Saving current settings")
       saveDynamicViewPreferences()
@@ -691,13 +691,9 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Dynamic View Preferences Dialog 1-4...", invoke=function() showDynamicViewDialog(1, 4) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Dynamic View Preferences Dialog 5-8...", invoke=function() showDynamicViewDialog(5, 8) end}
-
 renoise.tool():add_midi_mapping{name="Paketti:Paketti Dynamic View Preferences Dialog 1-4...", invoke=function() showDynamicViewDialog(1, 4) end}
 renoise.tool():add_midi_mapping{name="Paketti:Paketti Dynamic View Preferences Dialog 5-8...", invoke=function() showDynamicViewDialog(5, 8) end}
-
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:!Preferences..:Paketti Dynamic View Preferences Dialog 1-4...",invoke=function() showDynamicViewDialog(1, 4) end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:!Preferences..:Paketti Dynamic View Preferences Dialog 5-8...",invoke=function() showDynamicViewDialog(5, 8) end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:!Preferences..:Paketti Save Dynamic Views as a textfile", invoke=function() save_dynamic_views_to_txt() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:!Preferences..:Paketti Load Dynamic Views from a textfile", invoke=function() load_dynamic_views_from_txt() end}
-
-
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:!Preferences..:Paketti Save Dynamic Views as a Textfile", invoke=function() save_dynamic_views_to_txt() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:!Preferences..:Paketti Load Dynamic Views from a Textfile", invoke=function() load_dynamic_views_from_txt() end}

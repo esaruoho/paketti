@@ -1291,6 +1291,76 @@ function normalize_selected_sample()
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Normalize Sample",invoke=function() normalize_selected_sample() end}
+-----------
+function normalize_and_reduce(scope, db_reduction)
+  local function process_sample(sample, reduction_factor)
+    if not sample then return false, "No sample provided!" end
+    local buffer = sample.sample_buffer
+    if not buffer or not buffer.has_sample_data then return false, "Sample has no data!" end
+
+    buffer:prepare_sample_data_changes()
+
+    local max_amplitude = 0
+    for channel = 1, buffer.number_of_channels do
+      for frame = 1, buffer.number_of_frames do
+        local sample_value = math.abs(buffer:sample_data(channel, frame))
+        if sample_value > max_amplitude then max_amplitude = sample_value end
+      end
+    end
+
+    if max_amplitude > 0 then
+      local normalization_factor = 1 / max_amplitude
+      for channel = 1, buffer.number_of_channels do
+        for frame = 1, buffer.number_of_frames do
+          local sample_value = buffer:sample_data(channel, frame)
+          buffer:set_sample_data(channel, frame, sample_value * normalization_factor * reduction_factor)
+        end
+      end
+    end
+
+    buffer:finalize_sample_data_changes()
+    return true, "Sample processed successfully!"
+  end
+
+  local reduction_factor = 10 ^ (db_reduction / 20)
+
+  if scope == "current_sample" then
+    local sample = renoise.song().selected_sample
+    if not sample then renoise.app():show_error("No sample selected!") return end
+    local success, message = process_sample(sample, reduction_factor)
+    renoise.app():show_status(message)
+  elseif scope == "all_samples" then
+    local instrument = renoise.song().selected_instrument
+    if not instrument or #instrument.samples == 0 then renoise.app():show_error("No samples in the selected instrument!") return end
+    for _, sample in ipairs(instrument.samples) do
+      local success, message = process_sample(sample, reduction_factor)
+      if not success then renoise.app():show_status(message) end
+    end
+    renoise.app():show_status("All samples in the selected instrument processed.")
+  elseif scope == "all_instruments" then
+    for _, instrument in ipairs(renoise.song().instruments) do
+      if #instrument.samples > 0 then
+        for _, sample in ipairs(instrument.samples) do
+          local success, message = process_sample(sample, reduction_factor)
+          if not success then renoise.app():show_status("Instrument skipped: " .. message) end
+        end
+      end
+    end
+    renoise.app():show_status("All instruments processed.")
+  else
+    renoise.app():show_error("Invalid processing scope!")
+  end
+end
+
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Normalize Selected Sample -12dB",invoke=function() normalize_and_reduce("current_sample", -12) end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Normalize Selected Instrument -12dB (All Samples & Slices)",invoke=function() normalize_and_reduce("all_samples", -12) end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Normalize All Instruments -12dB",invoke=function() normalize_and_reduce("all_instruments", -12) end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Normalize Selected Sample to -12dB",invoke=function() normalize_and_reduce("current_sample", -12) end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Normalize Selected Instrument to -12dB",invoke=function() normalize_and_reduce("all_samples", -12) end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Normalize All Instruments to -12dB",invoke=function() normalize_and_reduce("all_instruments", -12) end}
+renoise.tool():add_midi_mapping{name="Paketti:Normalize Selected Sample to -12dB",invoke=function(message) if message:is_trigger() then normalize_and_reduce("current_sample", -12) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Normalize Selected Instrument to -12dB",invoke=function(message) if message:is_trigger() then normalize_and_reduce("all_samples", -12) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Normalize All Instruments to -12dB",invoke=function(message) if message:is_trigger() then normalize_and_reduce("all_instruments", -12) end end}
 ---------
 local function auto_correlate()
   local sample = renoise.song().selected_sample

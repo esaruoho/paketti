@@ -848,5 +848,5 @@ end
   dialog = renoise.app():show_custom_dialog("Player Pro Main Dialog", dialog_content, my_PPkeyhandler_func)
 end
 
-renoise.tool():add_menu_entry{name = "Pattern Editor:Paketti..:Other Trackers..:Open Player Pro Tools Dialog", invoke = pakettiPlayerProShowMainDialog}
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Open Player Pro Tools Dialog", invoke = pakettiPlayerProShowMainDialog}
+renoise.tool():add_menu_entry{name = "Pattern Editor:Paketti..:Other Trackers..:Open Player Pro Tools Dialog...", invoke = pakettiPlayerProShowMainDialog}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Open Player Pro Tools Dialog...", invoke = pakettiPlayerProShowMainDialog}
