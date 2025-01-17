@@ -1440,10 +1440,7 @@ local function auto_correlate()
   end
 end
 
-renoise.tool():add_menu_entry {
-  name = "Sample Editor:Auto Correlate Loop",
-  invoke = auto_correlate
-}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:WIP:Auto Correlate Loop",invoke=auto_correlate}
 
 
 
@@ -1529,10 +1526,80 @@ local function auto_detect_single_cycle_loop()
 end
 
 renoise.tool():add_menu_entry {
-  name = "Sample Editor:Auto Detect Single-Cycle Loop",
+  name = "Sample Editor:Paketti..:WIP:Auto Detect Single-Cycle Loop",
   invoke = auto_detect_single_cycle_loop
 }
 
 
 
 
+function normalize_selected_sample_by_slices()
+  local selected_sample = renoise.song().selected_sample
+  
+  if not selected_sample or not selected_sample.sample_buffer or not selected_sample.sample_buffer.has_sample_data then
+    renoise.app():show_status("Normalization failed: No valid sample to normalize.")
+    return
+  end
+
+  -- Check if sample has slice markers
+  if #selected_sample.slice_markers == 0 then
+    -- If no slice markers, fall back to regular normalize
+    normalize_selected_sample()
+    return
+  end
+
+  local sbuf = selected_sample.sample_buffer
+  local slice_count = #selected_sample.slice_markers
+  
+  -- Prepare buffer for changes
+  sbuf:prepare_sample_data_changes()
+  
+  -- Process each slice independently
+  for slice_idx = 1, slice_count do
+    local slice_start = selected_sample.slice_markers[slice_idx]
+    local slice_end = (slice_idx < slice_count) 
+      and selected_sample.slice_markers[slice_idx + 1] - 1 
+      or sbuf.number_of_frames
+    
+    -- Find highest amplitude in this slice
+    local highest_detected = 0
+    for frame_idx = slice_start, slice_end do
+      if sbuf.number_of_channels == 2 then
+        highest_detected = math.max(math.abs(sbuf:sample_data(1, frame_idx)), highest_detected)
+        highest_detected = math.max(math.abs(sbuf:sample_data(2, frame_idx)), highest_detected)
+      else
+        highest_detected = math.max(math.abs(sbuf:sample_data(1, frame_idx)), highest_detected)
+      end
+    end
+    
+    -- Only normalize if the slice isn't silent
+    if highest_detected > 0 then
+      -- Normalize this slice
+      for frame_idx = slice_start, slice_end do
+        if sbuf.number_of_channels == 2 then
+          local normalized_sdata = sbuf:sample_data(1, frame_idx) / highest_detected
+          sbuf:set_sample_data(1, frame_idx, normalized_sdata)
+          normalized_sdata = sbuf:sample_data(2, frame_idx) / highest_detected
+          sbuf:set_sample_data(2, frame_idx, normalized_sdata)
+        else
+          local normalized_sdata = sbuf:sample_data(1, frame_idx) / highest_detected
+          sbuf:set_sample_data(1, frame_idx, normalized_sdata)
+        end
+      end
+    end
+  end
+  
+  sbuf:finalize_sample_data_changes()
+  
+  renoise.app():show_status(string.format("Normalized %d slices independently", slice_count))
+end
+-- Add keybinding and menu entries
+renoise.tool():add_keybinding{
+  name="Global:Paketti:Normalize Sample Slices Independently",
+  invoke=function() normalize_selected_sample_by_slices() end
+}
+
+renoise.tool():add_menu_entry{
+  name="Sample Editor:Paketti..:Normalize Slices Independently",
+  invoke=function() normalize_selected_sample_by_slices() end
+}

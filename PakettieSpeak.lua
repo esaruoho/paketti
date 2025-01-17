@@ -98,13 +98,13 @@ local control_width = 190
 local valuebox_width = 60
 local button_width = 190
 
-local path_to_espeak = vb:text{ width = control_width, height = 24, text ="Path to eSpeak", font="bold"}
+local path_to_espeak = vb:text{width=control_width,height=24,text="Path to eSpeak",font="bold"}
 
 local randomize_everything = vb:row{
       vb:button{id = "PakettieSpeak_randomize_everything",
-        text = "Randomized String",
-        width = button_width + button_width,
-        height = 24,
+        text="Randomized String",
+        width=button_width + button_width,
+        height=24,
         notifier = function()
           local characters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!#€%&/()=?"
           local result = ""
@@ -122,9 +122,9 @@ local randomize_everything = vb:row{
     }
     
     local randomize_consonants = vb:button{id = "PakettieSpeak_randomize_consonants",
-        text = "Randomize Consonants",
-        width = button_width,
-        height = 24,
+        text="Randomize Consonants",
+        width=button_width,
+        height=24,
         notifier = function()
           local consonants = "bcdfghjklmnpqrstvwxyz"
           local result = ""
@@ -141,9 +141,9 @@ local randomize_everything = vb:row{
               }
 
 local randomize_vowels = vb:button{id = "PakettieSpeak_randomize_vowels",
-        text = "Randomize Vowels",
-        width = button_width,
-        height = 24,
+        text="Randomize Vowels",
+        width=button_width,
+        height=24,
         notifier = function()
           local vowels = "aeiou"
           local result = ""
@@ -174,22 +174,17 @@ local exe_button = vb:button{id="PakettieSpeak_exe_button",
             vb.views.PakettieSpeak_exe_button.width = math.min(#vb.views.PakettieSpeak_exe_button.text * 8, control_width)
           end end}
 
-local horalign =vb:horizontal_aligner{mode="right",path_to_espeak,exe_button}
-local consonants_vowels = vb:row{randomize_consonants,randomize_vowels,}
+local horalign=vb:horizontal_aligner{mode="right",path_to_espeak,exe_button}
+local consonants_vowels=vb:row{randomize_consonants,randomize_vowels,}
 
-local loadtext_refresh=    vb:row{
+local loadtext_refresh=vb:row{
       vb:button{id = "PakettieSpeak_load_textfile_button",
-        text = "Load Textfile",
-        width = button_width,
-        height = 24,
+        text="Load Textfile",width=button_width,height=24,
         notifier = function()
           PakettieSpeakLoadTextfile(false)
         end
       },
-      vb:button{
-        text = "Refresh",
-        width = button_width,
-        height = 24,
+      vb:button{text="Refresh",width=button_width,height=24,
         notifier = function()
           PakettieSpeakLoadTextfile(true)
           print("Refresh: loaded textfile and updated textfield")
@@ -199,22 +194,15 @@ local loadtext_refresh=    vb:row{
       }
     }
 
-local eSpeak_textfield=    vb:column{
+local eSpeak_textfield=vb:column{
       margin = renoise.ViewBuilder.DEFAULT_CONTROL_MARGIN,
       spacing = renoise.ViewBuilder.DEFAULT_CONTROL_SPACING,
       width = 380,
       style = "group",
-      vb:multiline_textfield{
-        id = "PakettieSpeak_text_field",
-        width = 373,
-        height = 100,
+      vb:multiline_textfield{id="PakettieSpeak_text_field",width=373,height=100,
         style = "border",
         text = tostring(eSpeak.text.value),
-        notifier = function()
-          PakettieSpeakUpdateLineCount()
-        end
-      }
-    }
+        notifier = function() PakettieSpeakUpdateLineCount() end}}
 
 local which_row= vb:row{
       vb:text{text = "Which row:", width=80},
@@ -238,8 +226,6 @@ local which_row= vb:row{
         end
       }
     }
-
-
 
 function PakettieSpeakUpdateSelection()
   local text = vb.views.PakettieSpeak_text_field.text

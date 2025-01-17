@@ -980,7 +980,6 @@ end
 -- Add a menu entry and key binding for toggling Catch Octave
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Pattern Editor..:Catch Octave",invoke = toggle_catch_octave}
 
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Clone Current Sequence",invoke=clone_current_sequence}
 
 
 renoise.tool():add_keybinding{name="Global:Paketti:Catch Octave",invoke=toggle_catch_octave}
@@ -3685,8 +3684,8 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:P
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Populate Send Tracks for Selected Track",invoke=PakettiPopulateSendTracksSelectedTrack}
 
 -- Add menu entries for the new functions under Pattern Editor
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Populate Send Tracks for All Tracks",invoke=PakettiPopulateSendTracksAllTracks}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Populate Send Tracks for Selected Track",invoke=PakettiPopulateSendTracksSelectedTrack}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Devices..:Populate Send Tracks for All Tracks",invoke=PakettiPopulateSendTracksAllTracks}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Devices..:Populate Send Tracks for Selected Track",invoke=PakettiPopulateSendTracksSelectedTrack}
 
 -- Add menu entries for the new functions under Mixer
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Populate Send Tracks for All Tracks",invoke=PakettiPopulateSendTracksAllTracks}
@@ -7914,8 +7913,7 @@ end
 -- Trigger the dialog to show
 renoise.tool():add_keybinding{name="Global:Paketti:Open VolDelayPan Slider Dialog...",invoke=function() show_VDPdialog() end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Open VolDelayPan Slider Dialog...",invoke=function() show_VDPdialog() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Open VolDelayPan Slider Dialog...",invoke=function() show_VDPdialog() end}
-
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti Volume/Delay/Pan Slider Controls...",invoke=function() show_VDPdialog() end}
 renoise.tool():add_midi_mapping{name="Paketti:Open VolDelayPan Slider Dialog...",invoke=function(message)  if message:is_trigger() then show_VDPdialog() end end}
 -----
 
@@ -8882,8 +8880,8 @@ function PatternMatrixShrink()
   renoise.app():show_status("Shrank selected tracks in pattern matrix")
 end
 
-renoise.tool():add_keybinding { name = "Pattern Matrix:Paketti..:Pattern Matrix Selection Expand", invoke = PatternMatrixExpand }
-renoise.tool():add_keybinding { name = "Pattern Matrix:Paketti..:Pattern Matrix Selection Shrink", invoke = PatternMatrixShrink }
+renoise.tool():add_keybinding { name = "Pattern Matrix:Paketti:Pattern Matrix Selection Expand", invoke = PatternMatrixExpand }
+renoise.tool():add_keybinding { name = "Pattern Matrix:Paketti:Pattern Matrix Selection Shrink", invoke = PatternMatrixShrink }
 renoise.tool():add_menu_entry { name = "Pattern Matrix:Paketti..:Pattern Matrix Selection Expand", invoke = PatternMatrixExpand }
 renoise.tool():add_menu_entry { name = "Pattern Matrix:Paketti..:Pattern Matrix Selection Shrink", invoke = PatternMatrixShrink }
 --------

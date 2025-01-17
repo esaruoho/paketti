@@ -1533,10 +1533,10 @@ renoise.tool():add_menu_entry { name = "Pattern Matrix:Paketti..:Automation Ramp
 renoise.tool():add_menu_entry { name = "Pattern Matrix:Paketti..:Automation Ramp Up (Lin) for Pattern Matrix Selection", invoke = automation_ramp_up_lin }
 renoise.tool():add_menu_entry { name = "Pattern Matrix:Paketti..:Automation Ramp Down (Lin) for Pattern Matrix Selection", invoke = automation_ramp_down_lin }
 
-renoise.tool():add_keybinding { name = "Global:Paketti..:Automation Ramp Up (Exp)", invoke = automation_ramp_up_exp }
-renoise.tool():add_keybinding { name = "Global:Paketti..:Automation Ramp Down (Exp)", invoke = automation_ramp_down_exp }
-renoise.tool():add_keybinding { name = "Global:Paketti..:Automation Ramp Up (Lin)", invoke = automation_ramp_up_lin }
-renoise.tool():add_keybinding { name = "Global:Paketti..:Automation Ramp Down (Lin)", invoke = automation_ramp_down_lin }
+renoise.tool():add_keybinding { name = "Global:Paketti:Automation Ramp Up (Exp)", invoke = automation_ramp_up_exp }
+renoise.tool():add_keybinding { name = "Global:Paketti:Automation Ramp Down (Exp)", invoke = automation_ramp_down_exp }
+renoise.tool():add_keybinding { name = "Global:Paketti:Automation Ramp Up (Lin)", invoke = automation_ramp_up_lin }
+renoise.tool():add_keybinding { name = "Global:Paketti:Automation Ramp Down (Lin)", invoke = automation_ramp_down_lin }
 
 -- Whitelist of center-based automation parameters
 local center_based_parameters = {
@@ -1653,15 +1653,15 @@ renoise.tool():add_menu_entry { name = "Pattern Matrix:Paketti..:Automation Top 
 renoise.tool():add_menu_entry { name = "Pattern Matrix:Paketti..:Automation Center to Bottom (Lin) for Pattern Matrix Selection", invoke = automation_center_to_bottom_lin }
 renoise.tool():add_menu_entry { name = "Pattern Matrix:Paketti..:Automation Bottom to Center (Lin) for Pattern Matrix Selection", invoke = automation_bottom_to_center_lin }
 
-renoise.tool():add_keybinding { name = "Global:Paketti..:Automation Center to Top (Exp)", invoke = automation_center_to_top_exp }
-renoise.tool():add_keybinding { name = "Global:Paketti..:Automation Top to Center (Exp)", invoke = automation_top_to_center_exp }
-renoise.tool():add_keybinding { name = "Global:Paketti..:Automation Center to Bottom (Exp)", invoke = automation_center_to_bottom_exp }
-renoise.tool():add_keybinding { name = "Global:Paketti..:Automation Bottom to Center (Exp)", invoke = automation_bottom_to_center_exp }
+renoise.tool():add_keybinding { name = "Global:Paketti:Automation Center to Top (Exp)", invoke = automation_center_to_top_exp }
+renoise.tool():add_keybinding { name = "Global:Paketti:Automation Top to Center (Exp)", invoke = automation_top_to_center_exp }
+renoise.tool():add_keybinding { name = "Global:Paketti:Automation Center to Bottom (Exp)", invoke = automation_center_to_bottom_exp }
+renoise.tool():add_keybinding { name = "Global:Paketti:Automation Bottom to Center (Exp)", invoke = automation_bottom_to_center_exp }
 
-renoise.tool():add_keybinding { name = "Global:Paketti..:Automation Center to Top (Lin)", invoke = automation_center_to_top_lin }
-renoise.tool():add_keybinding { name = "Global:Paketti..:Automation Top to Center (Lin)", invoke = automation_top_to_center_lin }
-renoise.tool():add_keybinding { name = "Global:Paketti..:Automation Center to Bottom (Lin)", invoke = automation_center_to_bottom_lin }
-renoise.tool():add_keybinding { name = "Global:Paketti..:Automation Bottom to Center (Lin)", invoke = automation_bottom_to_center_lin }
+renoise.tool():add_keybinding { name = "Global:Paketti:Automation Center to Top (Lin)", invoke = automation_center_to_top_lin }
+renoise.tool():add_keybinding { name = "Global:Paketti:Automation Top to Center (Lin)", invoke = automation_top_to_center_lin }
+renoise.tool():add_keybinding { name = "Global:Paketti:Automation Center to Bottom (Lin)", invoke = automation_center_to_bottom_lin }
+renoise.tool():add_keybinding { name = "Global:Paketti:Automation Bottom to Center (Lin)", invoke = automation_bottom_to_center_lin }
 
 local function randomize_envelope()
   local song = renoise.song()

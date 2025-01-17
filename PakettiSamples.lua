@@ -1,460 +1,4 @@
-_AUTO_RELOAD_DEBUG = true
 
-local vb = renoise.ViewBuilder()
-
-local app_paths = {}
-local smart_folder_paths = {}
-
--- Function to browse for an app and update the corresponding field
-function appSelectionBrowseForApp(index)
-    local file_extensions = {"*.*"}
-    local dialog_title = "Select an Application"
-
-    local selected_file = renoise.app():prompt_for_filename_to_read(file_extensions, dialog_title)
-    if selected_file ~= "" then
-        -- Detect the operating system
-        local os_name = os.platform()
-        if os_name == "WINDOWS" then
-            -- Replace backslashes with double backslashes for Windows paths
-            selected_file = string.gsub(selected_file, "\\", "\\\\")
-        end
-        preferences.AppSelection["AppSelection"..index].value = selected_file
-        if app_paths[index] then
-            app_paths[index].text = selected_file
-        end
-        renoise.app():show_status("Selected file: " .. selected_file)
-    else
-        renoise.app():show_status("No file selected")
-    end
-end
-
--- Function to browse for a smart folder and update the corresponding field
-function browseForSmartFolder(index)
-    local dialog_title = "Select a Smart Folder / Backup Folder"
-
-    local selected_folder = renoise.app():prompt_for_path(dialog_title)
-    if selected_folder ~= "" then
-        preferences.AppSelection["SmartFoldersApp"..index].value = selected_folder
-        if smart_folder_paths[index] then
-            smart_folder_paths[index].text = selected_folder
-        end
-        renoise.app():show_status("Selected folder: " .. selected_folder)
-    else
-        renoise.app():show_status("No folder selected")
-    end
-end
-
--- Function to save selected sample to temp and open with the selected app
-function saveSelectedSampleToTempAndOpen(app_path)
-    if renoise.song() == nil then return end
-    local song = renoise.song()
-    if song.selected_sample == nil or not song.selected_sample.sample_buffer.has_sample_data then
-        renoise.app():show_status("No sample data available.")
-        return
-    end
-
-    local temp_file_path = os.tmpname() .. ".wav"
-    song.selected_sample.sample_buffer:save_as(temp_file_path, "wav")
-    
-    -- Detect the operating system
-    local os_name = os.platform()
-    local command
-
-    if os_name == "WINDOWS" then
-        command = 'start "" "' .. app_path .. '" "' .. temp_file_path .. '"'
-    elseif os_name == "MACINTOSH" then
-        command = 'open -a "' .. app_path .. '" "' .. temp_file_path .. '"'
-    else
-        command = 'exec "' .. app_path .. '" "' .. temp_file_path .. '" &'
-    end
-
-    os.execute(command)
-    renoise.app():show_status("Sample sent to " .. app_path)
-end
-
--- Create the dialog UI
-local function create_dialog_content(close_dialog)
-    app_paths = {}
-    smart_folder_paths = {}
-
-    return vb:column{
-        margin=10,
-        --spacing=10,
-        width=900,
-        vb:row{vb:text{text="App Selection", font="bold", style="strong"}},
-        vb:row{
-            spacing=10,
-            vb:button{
-                text="Browse",
-                notifier=function() appSelectionBrowseForApp(1) end
-            },
-            vb:button{
-                text="Send Selected Sample to App",
-                notifier=function() 
-                    saveSelectedSampleToTempAndOpen(preferences.AppSelection.AppSelection1.value) 
-                end,
-                width=200
-            },
-            (function()
-                local path = vb:text{
-                    text=(preferences.AppSelection.AppSelection1.value ~= "" and preferences.AppSelection.AppSelection1.value or "None"),
-                    width=600,
-                    font="bold"
-                }
-                app_paths[1] = path
-                return path
-            end)()
-        },
-        vb:row{
-            spacing=10,
-            vb:button{
-                text="Browse",
-                notifier=function() appSelectionBrowseForApp(2) end
-            },
-            vb:button{
-                text="Send Selected Sample to App",
-                notifier=function() 
-                    saveSelectedSampleToTempAndOpen(preferences.AppSelection.AppSelection2.value) 
-                end,
-                width=200
-            },
-            (function()
-                local path = vb:text{
-                    text=(preferences.AppSelection.AppSelection2.value ~= "" and preferences.AppSelection.AppSelection2.value or "None"),
-                    width=600,
-                    font="bold"
-                }
-                app_paths[2] = path
-                return path
-            end)()
-        },
-        vb:row{
-            spacing=10,
-            vb:button{
-                text="Browse",
-                notifier=function() appSelectionBrowseForApp(3) end
-            },
-            vb:button{
-                text="Send Selected Sample to App",
-                notifier=function() 
-                    saveSelectedSampleToTempAndOpen(preferences.AppSelection.AppSelection3.value) 
-                end,
-                width=200
-            },
-            (function()
-                local path = vb:text{
-                    text=(preferences.AppSelection.AppSelection3.value ~= "" and preferences.AppSelection.AppSelection3.value or "None"),
-                    width=600,
-                    font="bold"
-                }
-                app_paths[3] = path
-                return path
-            end)()
-        },
-        vb:row{
-            spacing=10,
-            vb:button{
-                text="Browse",
-                notifier=function() appSelectionBrowseForApp(4) end
-            },
-            vb:button{
-                text="Send Selected Sample to App",
-                notifier=function() 
-                    saveSelectedSampleToTempAndOpen(preferences.AppSelection.AppSelection4.value) 
-                end,
-                width=200
-            },
-            (function()
-                local path = vb:text{
-                    text=(preferences.AppSelection.AppSelection4.value ~= "" and preferences.AppSelection.AppSelection4.value or "None"),
-                    width=600,
-                    font="bold"
-                }
-                app_paths[4] = path
-                return path
-            end)()
-        },
-        vb:row{
-            spacing=10,
-            vb:button{
-                text="Browse",
-                notifier=function() appSelectionBrowseForApp(5) end
-            },
-            vb:button{
-                text="Send Selected Sample to App",
-                notifier=function() 
-                    saveSelectedSampleToTempAndOpen(preferences.AppSelection.AppSelection5.value) 
-                end,
-                width=200
-            },
-            (function()
-                local path = vb:text{
-                    text=(preferences.AppSelection.AppSelection5.value ~= "" and preferences.AppSelection.AppSelection5.value or "None"),
-                    width=600,
-                    font="bold"
-                }
-                app_paths[5] = path
-                return path
-            end)()
-        },
-        vb:row{
-            spacing=10,
-            vb:button{
-                text="Browse",
-                notifier=function() appSelectionBrowseForApp(6) end
-            },
-            vb:button{
-                text="Send Selected Sample to App",
-                notifier=function() 
-                    saveSelectedSampleToTempAndOpen(preferences.AppSelection.AppSelection6.value) 
-                end,
-                width=200
-            },
-            (function()
-                local path = vb:text{
-                    text=(preferences.AppSelection.AppSelection6.value ~= "" and preferences.AppSelection.AppSelection6.value or "None"),
-                    width=600,
-                    font="bold"
-                }
-                app_paths[6] = path
-                return path
-            end)()
-        },
-        vb:row{vb:text{text="Smart Folders / Backup Folders", font="bold", style="strong"}},
-        vb:row{
-            spacing=10,
-            vb:button{
-                text="Browse",
-                notifier=function() browseForSmartFolder(1) end
-            },
-            vb:button{
-                text="Save Selected Sample to Folder",
-                notifier=function() 
-                    saveSampleToSmartFolder(1) 
-                end,
-                width=200
-            },
-            vb:button{
-                text="Save All Samples to Folder",
-                notifier=function() 
-                    saveSamplesToSmartFolder(1) 
-                end,
-                width=200
-            },
-            (function()
-                local path = vb:text{
-                    text=(preferences.AppSelection.SmartFoldersApp1.value ~= "" and preferences.AppSelection.SmartFoldersApp1.value or "None"),
-                    width=600,
-                    font="bold"
-                }
-                smart_folder_paths[1] = path
-                return path
-            end)()
-        },
-        vb:row{
-            spacing=10,
-            vb:button{
-                text="Browse",
-                notifier=function() browseForSmartFolder(2) end
-            },
-            vb:button{
-                text="Save Selected Sample to Folder",
-                notifier=function() 
-                    saveSampleToSmartFolder(2) 
-                end,
-                width=200
-            },
-            vb:button{
-                text="Save All Samples to Folder",
-                notifier=function() 
-                    saveSamplesToSmartFolder(2) 
-                end,
-                width=200
-            },
-            (function()
-                local path = vb:text{
-                    text=(preferences.AppSelection.SmartFoldersApp2.value ~= "" and preferences.AppSelection.SmartFoldersApp2.value or "None"),
-                    width=600,
-                    font="bold"
-                }
-                smart_folder_paths[2] = path
-                return path
-            end)()
-        },
-        vb:row{
-            spacing=10,
-            vb:button{
-                text="Browse",
-                notifier=function() browseForSmartFolder(3) end
-            },
-            vb:button{
-                text="Save Selected Sample to Folder",
-                notifier=function() 
-                    saveSampleToSmartFolder(3) 
-                end,
-                width=200
-            },
-            vb:button{
-                text="Save All Samples to Folder",
-                notifier=function() 
-                    saveSamplesToSmartFolder(3) 
-                end,
-                width=200
-            },
-            (function()
-                local path = vb:text{
-                    text=(preferences.AppSelection.SmartFoldersApp3.value ~= "" and preferences.AppSelection.SmartFoldersApp3.value or "None"),
-                    width=600,
-                    font="bold"
-                }
-                smart_folder_paths[3] = path
-                return path
-            end)()
-        },
-        vb:button{
-            text="OK",
-            notifier=function()
-                close_dialog()
-            end
-        }
-    }
-end
-
-function my_appSelection_keyhandlerfunc(dialog,key)
-
-local closer = preferences.pakettiDialogClose.value
-  if key.modifiers == "" and key.name == closer then
-dialog:close()
-dialog=nil
-return nil
-else
-
-    return key
-end
-end
-
--- Show the dialog
-function show_app_selection_dialog()
-    local dialog = nil
-    dialog = renoise.app():show_custom_dialog("App Selection & Smart Folders / Backup Folders", create_dialog_content(function()
-        dialog:close()
-    end), my_appSelection_keyhandlerfunc)
-end
-
---renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:App Selection & Smart Folders",invoke=show_app_selection_dialog}
-
--- Add key bindings and MIDI mappings for AppSelection shortcuts
-for i=1, 6 do
-    renoise.tool():add_keybinding{
-        name="Global:Paketti:Send Selected Sample to AppSelection" .. i,
-        invoke=function()
-            saveSelectedSampleToTempAndOpen(preferences.AppSelection["AppSelection"..i].value)
-        end
-    }
-    renoise.tool():add_menu_entry{
-        name="Sample Editor:Paketti..:Launch App..:Send Selected Sample to AppSelection" .. i,
-        invoke=function()
-            saveSelectedSampleToTempAndOpen(preferences.AppSelection["AppSelection"..i].value)
-        end
-    }
-
-    renoise.tool():add_midi_mapping{name="Paketti:Send Selected Sample to AppSelection" .. i,
-        invoke=function(message)
-            if message:is_trigger() then saveSelectedSampleToTempAndOpen(preferences.AppSelection["AppSelection"..i].value)
-            end
-        end
-    }
-end
-
-for i=1, 3 do
-    renoise.tool():add_keybinding{name="Global:Paketti:Save Sample to Smart/Backup Folder " .. i, invoke=function() saveSampleToSmartFolder(i) end }
-    renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Save Sample to Smart/Backup Folder " .. i, invoke=function() saveSampleToSmartFolder(i) end }
-    renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Save Sample to Smart/Backup Folder " .. i, invoke=function() saveSampleToSmartFolder(i) end }
-    renoise.tool():add_midi_mapping{name="Paketti:Save Sample to Smart/Backup Folder " .. i, invoke=function(message) if message:is_trigger() then saveSampleToSmartFolder(i) end end}
-end
-
-for i=1, 3 do
-    renoise.tool():add_keybinding{name="Global:Paketti:Save All Samples to Smart/Backup Folder " .. i, invoke=function() saveSamplesToSmartFolder(i) end}
-    renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Save All Samples to Smart/Backup Folder " .. i, invoke=function() saveSamplesToSmartFolder(i) end }
-    renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Save All Samples to Smart/Backup Folder " .. i, invoke=function() saveSamplesToSmartFolder(i) end }
-    renoise.tool():add_midi_mapping{ name="Paketti:Save All Samples to Smart/Backup Folder " .. i, invoke=function(message)
-    if message:is_trigger() then saveSamplesToSmartFolder(i) end end}
-end
-
-
-
-----------------
--- Function to save selected sample to the specified Smart Folder
-function saveSampleToSmartFolder(index)
-    local smart_folder_path = preferences.AppSelection["SmartFoldersApp"..index].value
-    if smart_folder_path == "" then
-        renoise.app():show_status("Please set the Smart Folder path for " .. index)
-        renoise.app():show_custom_dialog("Set Smart Folder Path", create_dialog_content())
-        return
-    end
-
-    local lsfvariable = nil
-    lsfvariable = os.tmpname("wav")
-    local path = smart_folder_path .. "/"
-    local s = renoise.song()
-    local instboxname = s.selected_instrument.name
-
-    if not s.selected_sample or not s.selected_sample.sample_buffer.has_sample_data then
-        renoise.app():show_status("No sample data available.")
-        return
-    end
-
-    local sample = s.selected_sample.sample_buffer
-    local file_name = instboxname .. ".wav"
-    
-    if sample.bit_depth == 32 then
-        -- local temp_sample = sample:clone()
-        -- temp_sample.bit_depth = 24
-        -- temp_sample:save_as(path .. file_name, "wav")
-        sample:save_as(path .. file_name, "wav")
-    else
-        sample:save_as(path .. file_name, "wav")
-    end
-    renoise.app():show_status("Saved " .. file_name .. " to Smart Folder " .. path)
-end
-
--- Function to save all samples to the specified Smart Folder
-function saveSamplesToSmartFolder(index)
-    local smart_folder_path = preferences.AppSelection["SmartFoldersApp"..index].value
-    if smart_folder_path == "" then
-        renoise.app():show_status("Please set the Smart Folder path for " .. index)
-        renoise.app():show_custom_dialog("Set Smart Folder Path", create_dialog_content())
-        return
-    end
-
-    local s = renoise.song()
-    local path = smart_folder_path .. "/"
-    local saved_samples_count = 0
-
-    for i = 1, #s.instruments do
-        local instrument = s.instruments[i]
-        if instrument and #instrument.samples > 0 then
-            for j = 1, #instrument.samples do
-                local sample = instrument.samples[j].sample_buffer
-                if sample.has_sample_data then
-                    local file_name = instrument.name .. "_" .. j .. ".wav"
-                    if sample.bit_depth == 32 then
-                        -- local temp_sample = sample:clone()
-                        -- temp_sample.bit_depth = 24
-                        -- temp_sample:save_as(path .. file_name, "wav")
-                        sample:save_as(path .. file_name, "wav")
-                    else
-                        sample:save_as(path .. file_name, "wav")
-                    end
-                    saved_samples_count = saved_samples_count + 1
-                end
-            end
-        end
-    end
-
-    renoise.app():show_status("Saved " .. saved_samples_count .. " samples to Smart Folder " .. path)
-    os.execute("cd " .. smart_folder_path .. ";open .")
-end
 
 
 -------------
@@ -1614,11 +1158,13 @@ function pakettiCleanRenderSelectionLPB()
     end
 end
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Clean Render Selected Track/Group LPB*2", invoke = function() pakettiCleanRenderSelectionLPB() end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Clean Render Selected Track/Group LPB*2", invoke = function() pakettiCleanRenderSelectionLPB() end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Clean Render Seamless Selected Track/Group", invoke = function() PakettiSeamlessCleanRenderSelection() end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Clean Render Selected Track/Group LPB*2", invoke = function() pakettiCleanRenderSelectionLPB() end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Clean Render Seamless Selected Track/Group", invoke = function() PakettiSeamlessCleanRenderSelection() end}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Pattern Editor..:Clean Render Selected Track/Group LPB*2", invoke = function() pakettiCleanRenderSelectionLPB() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Clean Render Selected Track/Group", invoke = function() pakettiCleanRenderSelection() end}
+
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Clean Render..:Clean Render Selected Track/Group LPB*2", invoke = function() pakettiCleanRenderSelectionLPB() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Clean Render..:Clean Render Seamless Selected Track/Group", invoke = function() PakettiSeamlessCleanRenderSelection() end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Clean Render..:Clean Render Selected Track/Group LPB*2", invoke = function() pakettiCleanRenderSelectionLPB() end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Clean Render..:Clean Render Seamless Selected Track/Group", invoke = function() PakettiSeamlessCleanRenderSelection() end}
 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Clean Render Selected Track/Group LPB*2", invoke = function() pakettiCleanRenderSelectionLPB() end}
 renoise.tool():add_keybinding{name="Mixer:Paketti:Clean Render Selected Track/Group LPB*2", invoke = function() pakettiCleanRenderSelectionLPB() end}
@@ -2189,7 +1735,7 @@ function pakettiMinimizeToLoopEnd()
 end
 
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:FT2 Minimize Selected Sample",invoke=pakettiMinimizeToLoopEnd}
-renoise.tool():add_keybinding{name="Global:Paketti..:FT2 Minimize Selected Sample",invoke=pakettiMinimizeToLoopEnd}
+renoise.tool():add_keybinding{name="Global:Paketti:FT2 Minimize Selected Sample",invoke=pakettiMinimizeToLoopEnd}
 --------
 -- Invert Left Channel
 function PakettiSampleInvertLeftChannel()
@@ -2587,10 +2133,10 @@ end
 -- Menu entries and keybindings
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Clean Render and Save Selected Track/Group as .WAV", invoke=function() CleanRenderAndSaveSelection("WAV") end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Clean Render and Save Selected Track/Group as .FLAC", invoke=function() CleanRenderAndSaveSelection("FLAC") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Clean Render and Save Selected Track/Group as .WAV", invoke=function() CleanRenderAndSaveSelection("WAV") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Clean Render and Save Selected Track/Group as .FLAC", invoke=function() CleanRenderAndSaveSelection("FLAC") end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Clean Render and Save Selected Track/Group as .WAV", invoke=function() CleanRenderAndSaveSelection("WAV") end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Clean Render and Save Selected Track/Group as .FLAC", invoke=function() CleanRenderAndSaveSelection("FLAC") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Clean Render..:Clean Render and Save Selected Track/Group as .WAV", invoke=function() CleanRenderAndSaveSelection("WAV") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Clean Render..:Clean Render and Save Selected Track/Group as .FLAC", invoke=function() CleanRenderAndSaveSelection("FLAC") end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Clean Render..:Clean Render and Save Selected Track/Group as .WAV", invoke=function() CleanRenderAndSaveSelection("WAV") end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Clean Render..:Clean Render and Save Selected Track/Group as .FLAC", invoke=function() CleanRenderAndSaveSelection("FLAC") end}
 
 renoise.tool():add_keybinding{name="Global:Paketti:Clean Render&Save Selected Track/Group (.WAV)", invoke=function() CleanRenderAndSaveSelection("WAV") end}
 renoise.tool():add_keybinding{name="Global:Paketti:Clean Render&Save Selected Track/Group (.FLAC)", invoke=function() CleanRenderAndSaveSelection("FLAC") end}
@@ -2897,7 +2443,7 @@ function PakettiSeamlessCleanRenderSelection()
 end
 
 -- Menu and keybinding for rendering
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Clean Render Seamless Selected Track/Group", invoke = function() PakettiSeamlessCleanRenderSelection() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Clean Render..:Clean Render Seamless Selected Track/Group", invoke = function() PakettiSeamlessCleanRenderSelection() end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Clean Render Seamless Selected Track/Group", invoke = function() PakettiSeamlessCleanRenderSelection() end}
 renoise.tool():add_keybinding{name="Mixer:Paketti:Clean Render Seamless Selected Track/Group", invoke = function() PakettiSeamlessCleanRenderSelection() end}
 
@@ -3067,6 +2613,46 @@ renoise.tool():add_menu_entry{name="--Sample Modulation Matrix:Paketti..:Show/Hi
 renoise.tool():add_menu_entry{name="Sample Modulation Matrix:Paketti..:Modify PitchStep Steps (Random)",invoke=function() PakettiFillPitchStepperRandom() end}
 renoise.tool():add_menu_entry{name="Sample Modulation Matrix:Paketti..:Modify PitchStep Steps (Octave Up, Octave Down)",invoke=function() PakettiFillPitchStepper() end}
 renoise.tool():add_menu_entry{name="Sample Modulation Matrix:Paketti..:Clear PitchStep Steps", invoke=function() PakettiClearPitchStepper() end}
+
+renoise.tool():add_keybinding{name="Global:Paketti:Modify PitchStep Steps (Hard Detune)",invoke=function() PakettiFillPitchStepperDigits(0.05,64) end}
+renoise.tool():add_menu_entry{name="Sample Modulation Matrix:Paketti..:Modify PitchStep Steps (Hard Detune)",invoke=function() PakettiFillPitchStepperDigits(0.05,64) end}
+
+function PakettiFillPitchStepperDigits(detune_amount, step_count)
+  local device = renoise.song().selected_instrument.sample_modulation_sets[1].devices[1]
+  
+  if device == nil then 
+    renoise.app():show_status("There is no Pitch Stepper modulation device in this instrument, doing nothing.") 
+    return 
+  end
+
+  if device.name == "Pitch Stepper" then
+    device.length = step_count
+    device:clear_points()
+    
+    local points_data = {}
+    -- First point starts at center
+    table.insert(points_data, {scaling=0, time=1, value=0.5})
+    
+    -- Generate random detune values within the range
+    for i = 2, device.length do
+      local random_detune = math.random() * detune_amount
+      local up_or_down = math.random() < 0.5 and -1 or 1
+      table.insert(points_data, {
+        scaling = 0,
+        time = i,
+        value = 0.5 + (random_detune * up_or_down)
+      })
+    end
+
+    device.points = points_data
+    renoise.song().selected_instrument.sample_modulation_sets[1].pitch_range = 2
+
+    renoise.app():show_status("Pitch Stepper random detune points filled successfully.")
+  else 
+    renoise.app():show_status("Selected device is not a Pitch Stepper.") 
+  end
+end
+
 -----
 local function load_random_akwf_sample(amount)
   local tool_folder = renoise.tool().bundle_path .. "AKWF/"
@@ -4016,3 +3602,52 @@ renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Duplicate All Sampl
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Duplicate All Samples at +12 Transpose",invoke=function() PakettiDuplicateInstrumentSamplesWithTranspose(12) end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Duplicate All Samples at +24 Transpose",invoke=function() PakettiDuplicateInstrumentSamplesWithTranspose(24) end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Duplicate All Samples at +36 Transpose",invoke=function() PakettiDuplicateInstrumentSamplesWithTranspose(36) end}
+--------
+---------------------------------------------------------------------------------------------------
+--Set the next ReWire channel - shortcut. If you have a pre-configured 32 input ReWire master host
+--running, you can just press a shortcut and get it to play in the track of your choice (on your
+--master host that is). This is a really simple thing, but it works after a fashion and does
+--what I wanted it to do.
+--[[function next_rewire()
+local s=renoise.song()
+local current=s.selected_track.output_routing
+local st=s.selected_track
+if current=="Master Track" then st.output_routing="Bus 01 L/R"
+elseif current=="Bus 01 L/R" then st.output_routing="Bus 02 L/R"
+elseif current=="Bus 02 L/R" then st.output_routing="Bus 03 L/R"
+elseif current=="Bus 03 L/R" then st.output_routing="Bus 04 L/R"
+elseif current=="Bus 04 L/R" then st.output_routing="Bus 05 L/R"
+elseif current=="Bus 05 L/R" then st.output_routing="Bus 06 L/R"
+elseif current=="Bus 06 L/R" then st.output_routing="Bus 07 L/R"
+elseif current=="Bus 07 L/R" then st.output_routing="Bus 08 L/R"
+elseif current=="Bus 08 L/R" then st.output_routing="Bus 09 L/R"
+elseif current=="Bus 09 L/R" then st.output_routing="Bus 10 L/R"
+elseif current=="Bus 10 L/R" then st.output_routing="Bus 11 L/R"
+elseif current=="Bus 11 L/R" then st.output_routing="Bus 12 L/R"
+elseif current=="Bus 12 L/R" then st.output_routing="Bus 13 L/R"
+elseif current=="Bus 13 L/R" then st.output_routing="Bus 14 L/R"
+elseif current=="Bus 14 L/R" then st.output_routing="Bus 15 L/R"
+elseif current=="Bus 15 L/R" then st.output_routing="Bus 16 L/R"
+elseif current=="Bus 16 L/R" then st.output_routing="Bus 17 L/R"
+elseif current=="Bus 17 L/R" then st.output_routing="Bus 18 L/R"
+elseif current=="Bus 18 L/R" then st.output_routing="Bus 19 L/R"
+elseif current=="Bus 19 L/R" then st.output_routing="Bus 20 L/R"
+elseif current=="Bus 20 L/R" then st.output_routing="Bus 21 L/R"
+elseif current=="Bus 21 L/R" then st.output_routing="Bus 22 L/R"
+elseif current=="Bus 22 L/R" then st.output_routing="Bus 23 L/R"
+elseif current=="Bus 23 L/R" then st.output_routing="Bus 24 L/R"
+elseif current=="Bus 24 L/R" then st.output_routing="Bus 25 L/R"
+elseif current=="Bus 25 L/R" then st.output_routing="Bus 26 L/R"
+elseif current=="Bus 26 L/R" then st.output_routing="Bus 27 L/R"
+elseif current=="Bus 27 L/R" then st.output_routing="Bus 28 L/R"
+elseif current=="Bus 28 L/R" then st.output_routing="Bus 29 L/R"
+elseif current=="Bus 29 L/R" then st.output_routing="Bus 30 L/R"
+elseif current=="Bus 30 L/R" then st.output_routing="Bus 31 L/R"
+elseif current=="Bus 31 L/R" then st.output_routing="Master Track"
+end
+renoise.app():show_status("Current Track output set to: " .. st.output_routing) 
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Set ReWire Channel (Next)", invoke=function() next_rewire() end  }
+----------------------------------------------------------------------------------------------------------
+]]--

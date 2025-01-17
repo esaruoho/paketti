@@ -51,7 +51,6 @@ renoise.song().selected_effect_column.amount_string ="00"
 end
 renoise.song().selected_note_column_index = 1
 end
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Effect Column L00 Track Volume Level 0 On/Off",invoke=function() voloff() end}
 
 ---------------
 function RecordFollowOffPattern()
@@ -562,15 +561,13 @@ end
 
 -- Add menu entries and keybindings for the tool
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Pattern Editor..:Paketti Pattern Doubler", invoke=pakettiPatternDoubler}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Paketti Pattern Halver", invoke = pakettiPatternHalver}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Paketti Pattern Doubler", invoke=pakettiPatternDoubler}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Paketti Pattern Halver", invoke = pakettiPatternHalver}
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Paketti Pattern Doubler", invoke=pakettiPatternDoubler}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Paketti Pattern Halver", invoke = pakettiPatternHalver}
 
 renoise.tool():add_keybinding{name="Mixer:Paketti:Paketti Pattern Doubler", invoke=pakettiPatternDoubler}
-
--- The function can be bound to a menu item or a keybinding within Renoise to make it easily accessible
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Paketti Pattern Halver", invoke = pakettiPatternHalver}
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Paketti Pattern Halver", invoke = pakettiPatternHalver}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Paketti Pattern Halver", invoke = pakettiPatternHalver}
 renoise.tool():add_keybinding{name="Mixer:Paketti:Paketti Pattern Halver", invoke = pakettiPatternHalver}
 
 function get_master_track_index()
@@ -639,7 +636,7 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Play at 75% Speed (Song BPM)", invoke=function() playat75() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Play at 100% Speed (Song BPM)", invoke=function() returnbackto100() end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:BPM&LPB..:Play at 75% Speed (Song BPM)", invoke=function() playat75()  end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:BPM&LPB..:Play at 75% Speed (Song BPM)", invoke=function() playat75()  end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:BPM&LPB..:Play at 100% Speed (Song BPM)", invoke=function() returnbackto100()  end}
 
 renoise.tool():add_keybinding{name="Global:Paketti:Random BPM from List",
@@ -1201,10 +1198,12 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Effect Column Dxx Sli
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Effect Column Dxx Slide Pitch Down (+10) (3rd)",invoke=function() effectamount(10,"0D") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Effect Column Dxx Slide Pitch Down (-10) (3rd)",invoke=function() effectamount(-10,"0D") end}
 
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Effect Columns..:(L00) Set Track Volume Level",invoke=function() voloff() end}
 
 
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Effect Columns..:Clear Effect Columns",invoke=function() delete_effect_column() end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Effect Columns..:(L00) Set Track Volume Level",invoke=function() voloff() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Effect Column L00 Track Volume Level 0 On/Off",invoke=function() voloff() end}
+renoise.tool():add_midi_mapping{name="Paketti:Set Track Volume Level (L00)",invoke=function(message) if message:is_trigger() then voloff() end end}
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Effect Columns..:(Uxx) Selection Slide Pitch Up +1",invoke=function() effectamount(1,"0U") end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Effect Columns..:(Uxx) Selection Slide Pitch Up +10",invoke=function() effectamount(10,"0U") end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Effect Columns..:(Uxx) Selection Slide Pitch Up -1",invoke=function() effectamount(-1,"0U") end}
@@ -1234,7 +1233,7 @@ if s.selected_note_column_index==nil then return end
   end
 end
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Switch Effect Column/Note Column",invoke=function() switchcolumns() end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Effect Columns..:Switch Effect Column/Note Column",invoke=function() switchcolumns() end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Effect Columns..:Switch Effect Column/Note Column",invoke=function() switchcolumns() end}
 --------
 function ClearRow()
  local s=renoise.song()
@@ -1295,7 +1294,7 @@ renoise.song().selected_pattern.tracks[get_master_track_index()].lines[renoise.s
 end
 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Effect Column ZBxx Jump To Row (Next)", invoke=function() JumpToNextRow() end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Effect Columns..:ZBxx Jump To Row (Next)", invoke=function() JumpToNextRow() end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Effect Columns..:ZBxx Jump To Row (Next)", invoke=function() JumpToNextRow() end}
 
 --------------------
 --Clone Current Pattern to Current Sequence and maintain pattern line index.
@@ -1379,26 +1378,58 @@ end
 end
 
 function effectColumnB00()
-local nci=renoise.song().selected_note_column_index 
-renoise.song().selected_effect_column_index=1
-revnote() 
-if renoise.song().selected_track.type==2 or renoise.song().selected_track.type==3 or renoise.song().selected_track.type==4 then return
-else renoise.song().selected_note_column_index=nci
---renoise.song().selected_note_column_index=1 
-end 
+  local song = renoise.song()
+  local track = song.selected_track
+  local line = song.selected_pattern_track.lines[song.selected_line_index]
+  
+  -- Only proceed if we can have effect columns
+  if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+    -- First check all effect columns for existing B00
+    for i = 1, track.visible_effect_columns do
+      local effect = line.effect_columns[i]
+      if effect.number_value == 11 and effect.amount_value == 0 then
+        -- Found B00, clear it
+        effect.number_value = 0
+        effect.amount_value = 0
+        return -- Exit after clearing
+      end
+    end
+    
+    -- If we're in an effect column, try to use that first
+    local target_column = nil
+    if song.selected_effect_column_index and song.selected_effect_column_index > 0 then
+      target_column = song.selected_effect_column_index
+    else
+      -- Find first empty effect column
+      for i = 1, track.visible_effect_columns do
+        if line.effect_columns[i].number_value == 0 then
+          target_column = i
+          break
+        end
+      end
+    end
+    
+    -- If no empty visible column found, try to make a new one visible
+    if not target_column and track.visible_effect_columns < 8 then
+      track.visible_effect_columns = track.visible_effect_columns + 1
+      target_column = track.visible_effect_columns
+    end
+    
+    -- If we found or created a column, add B00
+    if target_column then
+      line.effect_columns[target_column].number_value = 11 -- 'B' effect
+      line.effect_columns[target_column].amount_value = 0  -- '00' amount
+    else
+      renoise.app():show_status("There are no free Effect Columns available, doing nothing.")
+    end
+  end
 end
 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Effect Column B00 Reverse Sample Effect On/Off",invoke=function() effectColumnB00()end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Effect Column B00 Reverse Sample Effect On/Off (2nd)",invoke=function() effectColumnB00()end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Effect Columns..:B00 Reverse Sample Effect On/Off",invoke=function() effectColumnB00()end}
+renoise.tool():add_midi_mapping{name="Paketti:Effect Column B00 Reverse Sample Effect On/Off",invoke=function(message) if message:is_trigger() then effectColumnB00() end end}
 
-
-renoise.tool():add_midi_mapping{name="Paketti:Effect Column B00 Reverse Sample Effect On/Off",invoke=function() 
-renoise.app().window.active_middle_frame=1
-renoise.song().selected_effect_column_index=1
-revnote() 
-if renoise.song().selected_track.type==2 or renoise.song().selected_track.type==3 or renoise.song().selected_track.type==4 then return
-else renoise.song().selected_note_column_index=1 end end}
 ----------------------------------------------------------------------------------------------------------------------------------
 function displayEffectColumn(number) local rs=renoise.song() rs.tracks[rs.selected_track_index].visible_effect_columns=number end
 
@@ -1931,7 +1962,7 @@ end
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Pattern Editor..:Duplicate Effect Column Content to Pattern or Selection",invoke=pakettiDuplicateEffectColumnToPatternOrSelection}
 renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Effect Column Content to Pattern or Selection",invoke=pakettiDuplicateEffectColumnToPatternOrSelection}
 renoise.tool():add_midi_mapping{name="Paketti:Duplicate Effect Column Content to Pattern or Selection",invoke=pakettiDuplicateEffectColumnToPatternOrSelection}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Effect Columns..:Duplicate Effect Column Content to Pattern or Selection",invoke=pakettiDuplicateEffectColumnToPatternOrSelection}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Effect Columns..:Duplicate Effect Column Content to Pattern or Selection",invoke=pakettiDuplicateEffectColumnToPatternOrSelection}
 
 
 ------------
@@ -2617,8 +2648,8 @@ renoise.song().patterns[renoise.song().selected_pattern_index].tracks[currTrak].
 end
 end
 ------
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Devices..:Enable 8 Track DSP Devices (Write to Pattern)", invoke=function() effectenablepattern()  end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Devices..:Bypass 8 Track DSP Devices (Write to Pattern)", invoke=function() effectbypasspattern() end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Devices..:Enable 8 Track DSP Devices (Write to Pattern)", invoke=function() effectenablepattern()  end}
 -----
 function patternEditorSelectedLastTrack()
 renoise.song().selected_track_index=#renoise.song().tracks
@@ -4506,7 +4537,7 @@ end
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Hide All Effect Columns",invoke=function() HideAllEffectColumns() end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Hide All Effect Columns",invoke=function() HideAllEffectColumns() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Effect Columns..:Hide All Effect Columns",invoke=function() HideAllEffectColumns() end}
 
 function moveTrackLeft()
   local song = renoise.song()
@@ -4546,32 +4577,10 @@ function moveTrackRight()
 end
 
 -- Add keybindings
-renoise.tool():add_keybinding{
-  name = "Global:Paketti:Move Track Left",
-  invoke = moveTrackLeft
-}
-
-renoise.tool():add_keybinding{
-  name = "Global:Paketti:Move Track Right", 
-  invoke = moveTrackRight
-}
-
--- Add menu entries
-renoise.tool():add_menu_entry{
-  name = "Pattern Editor:Paketti..:Move Track Left",
-  invoke = moveTrackLeft
-}
-
-renoise.tool():add_menu_entry{
-  name = "Pattern Editor:Paketti..:Move Track Right",
-  invoke = moveTrackRight
-}
-
-
-
-
-
-
+renoise.tool():add_keybinding{name="Global:Paketti:Move Track Left",invoke=moveTrackLeft}
+renoise.tool():add_keybinding{name="Global:Paketti:Move Track Right", invoke=moveTrackRight}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Move Track Left",invoke=moveTrackLeft}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Move Track Right",invoke=moveTrackRight}
 
 function randomly_raise_selected_notes_one_octave(probability)
   local song = renoise.song()
@@ -4611,6 +4620,6 @@ end
 renoise.tool():add_menu_entry { name = "Pattern Editor:Paketti..:Random Selected Notes Octave Up 25% Probability", invoke = function() randomly_raise_selected_notes_one_octave(0.25) end }
 renoise.tool():add_menu_entry { name = "Pattern Editor:Paketti..:Random Selected Notes Octave Up 50% Probability", invoke = function() randomly_raise_selected_notes_one_octave(0.5) end }
 renoise.tool():add_menu_entry { name = "Pattern Editor:Paketti..:Random Selected Notes Octave Up 75% Probability", invoke = function() randomly_raise_selected_notes_one_octave(0.75) end }
-renoise.tool():add_keybinding { name = "Pattern Editor:Paketti..:Random Selected Notes Octave Up 25% Probability", invoke = function() randomly_raise_selected_notes_one_octave(0.25) end }
-renoise.tool():add_keybinding { name = "Pattern Editor:Paketti..:Random Selected Notes Octave Up 50% Probability", invoke = function() randomly_raise_selected_notes_one_octave(0.5) end }
-renoise.tool():add_keybinding { name = "Pattern Editor:Paketti..:Random Selected Notes Octave Up 75% Probability", invoke = function() randomly_raise_selected_notes_one_octave(0.75) end }
+renoise.tool():add_keybinding { name = "Pattern Editor:Paketti:Random Selected Notes Octave Up 25% Probability", invoke = function() randomly_raise_selected_notes_one_octave(0.25) end }
+renoise.tool():add_keybinding { name = "Pattern Editor:Paketti:Random Selected Notes Octave Up 50% Probability", invoke = function() randomly_raise_selected_notes_one_octave(0.5) end }
+renoise.tool():add_keybinding { name = "Pattern Editor:Paketti:Random Selected Notes Octave Up 75% Probability", invoke = function() randomly_raise_selected_notes_one_octave(0.75) end }

@@ -755,8 +755,8 @@ local function add_menu_entries_and_keybindings()
   for i = 1, 10 do
     local slot_number = string.format("%02d", i)
 
-    local menu_entry_name_xrnt = "Mixer:Paketti..:Load Device Chain (.XRNT) Slot" .. slot_number
-    local menu_entry_name2_xrnt = "DSP Device:Paketti..:Load Device Chain (.XRNT) Slot" .. slot_number
+    local menu_entry_name_xrnt = "Mixer:Paketti..:Device Chains..:Load Device Chain (.XRNT) Slot" .. slot_number
+    local menu_entry_name2_xrnt = "DSP Device:Paketti..:Device Chains..:Load Device Chain (.XRNT) Slot" .. slot_number
     local key_binding_name_xrnt = "Global:Paketti:Load Device Chain (.XRNT) Slot " .. slot_number
 
     renoise.tool():add_menu_entry { name = menu_entry_name_xrnt, invoke = function() load_device_chain_from_slot(i) end }
@@ -768,8 +768,8 @@ local function add_menu_entries_and_keybindings()
   for i = 1, 10 do
     local slot_number = string.format("%02d", i)
 
-    local menu_entry_name_xrni = "Mixer:Paketti..:Load Instrument (.XRNI) Slot" .. slot_number
-    local menu_entry_name2_xrni = "DSP Device:Paketti..:Load Instrument (.XRNI) Slot" .. slot_number
+    local menu_entry_name_xrni = "Mixer:Paketti..:Device Chains..:Load Instrument (.XRNI) Slot" .. slot_number
+    local menu_entry_name2_xrni = "DSP Device:Paketti..:Device Chains..:Load Instrument (.XRNI) Slot" .. slot_number
     local key_binding_name_xrni = "Global:Paketti:Load Instrument (.XRNI) Slot " .. slot_number
 
     renoise.tool():add_menu_entry { name = menu_entry_name_xrni, invoke = function() load_instrument_from_slot(i) end }
@@ -781,8 +781,8 @@ local function add_menu_entries_and_keybindings()
   for i = 1, 10 do
     local slot_number = string.format("%02d", i)
 
-    local menu_entry_name_load_both = "Mixer:Paketti..:Load Both Instrument&Device Chain (.XRNI&.XRNT) Slot" .. slot_number
-    local menu_entry_name2_load_both = "DSP Device:Paketti..:Load Both Instrument&Device Chain (.XRNI&.XRNT) Slot" .. slot_number
+    local menu_entry_name_load_both = "Mixer:Paketti..:Device Chains..:Load Both Instrument&Device Chain (.XRNI&.XRNT) Slot" .. slot_number
+    local menu_entry_name2_load_both = "DSP Device:Paketti..:Device Chains..:Load Both Instrument&Device Chain (.XRNI&.XRNT) Slot" .. slot_number
     local key_binding_name_load_both = "Global:Paketti:Load Both Instrument&Device Chain (.XRNI&.XRNT) Slot " .. slot_number
 
     renoise.tool():add_menu_entry { name = menu_entry_name_load_both, invoke = function() load_both_from_slot(i) end }
@@ -792,9 +792,9 @@ local function add_menu_entries_and_keybindings()
 end
 
 add_menu_entries_and_keybindings()
-renoise.tool():add_menu_entry { name = "Mixer:Paketti..:Open Track DSP Device & Instrument Loader...", invoke = function() show_paketti_device_chain_dialog() end }
-renoise.tool():add_menu_entry { name = "DSP Device:Paketti..:Open Track DSP Device & Instrument Loader...", invoke = function() show_paketti_device_chain_dialog() end }
-renoise.tool():add_menu_entry { name = "Main Menu:Tools:Paketti..:Paketti Track DSP Device & Instrument Loader...", invoke = function() show_paketti_device_chain_dialog() end }
+renoise.tool():add_menu_entry { name = "--Mixer:Paketti..:Device Chains..:Open Track DSP Device & Instrument Loader...", invoke = function() show_paketti_device_chain_dialog() end }
+renoise.tool():add_menu_entry { name = "--DSP Device:Paketti..:Device Chains..:Open Track DSP Device & Instrument Loader...", invoke = function() show_paketti_device_chain_dialog() end }
+renoise.tool():add_menu_entry { name = "--Main Menu:Tools:Paketti..:Paketti Track DSP Device & Instrument Loader...", invoke = function() show_paketti_device_chain_dialog() end }
 
 
 
@@ -2642,7 +2642,7 @@ function PakettiToggleSoloTracks()
 end
 
 -- Add menu entry, keybinding, and MIDI mapping for the toggle solo tracks function
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Toggle Solo Tracks",invoke=PakettiToggleSoloTracks}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Pattern Editor..:Toggle Solo Tracks",invoke=PakettiToggleSoloTracks}
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Toggle Solo Tracks",invoke=PakettiToggleSoloTracks}
 renoise.tool():add_keybinding{name="Global:Paketti:Toggle Solo Tracks",invoke=PakettiToggleSoloTracks}
 renoise.tool():add_midi_mapping{name="Paketti:Toggle Solo Tracks",invoke=PakettiToggleSoloTracks}
@@ -3959,6 +3959,22 @@ end
   end
 end
 
+-------
+--[[
+function launchApp(appName)
+os.execute(appName)
+end
+
+function terminalApp(scriptPath)
+ local command = 'open -a Terminal "' .. scriptPath .. '"'
+    os.execute(command)
+end
+
+renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti..:Run Experimental Script",invoke=function() terminalApp("/Users/esaruoho/macOS_EnableScriptingTools.sh") end}
+renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti..:Open macOS Terminal",invoke=function() launchApp("open -a Terminal.app") end}
+]]--
+
+
 --renoise.tool():add_keybinding{name="Global:Paketti:Stair RecordToCurrent", invoke=function() 
 --if renoise.song().transport.playing==false then
     --renoise.song().transport.playing=true end
@@ -4231,29 +4247,6 @@ renoise.tool():add_keybinding{name="Global:Paketti:Note Off / Caps Lock replacem
 if renoise.song().transport.wrapped_pattern_edit == false then PakettiCapsLockNoteOffNextPtn() 
 else PakettiCapsLockNoteOff() end
 end}
---------------------------------------------------------------
-renoise.tool():add_keybinding{name="Global:Paketti:Record to Current Track+Plus", 
-invoke=function() 
-      renoise.app().window.active_lower_frame=1
-local howmany = table.count(renoise.song().selected_track.devices)
-
-if howmany == 1 then 
-loadnative("Audio/Effects/Native/#Line Input")
-recordtocurrenttrack()
-return
-else
-if renoise.song().selected_track.devices[2].name=="#Line Input" then
-  renoise.song().selected_track:delete_device_at(2)
-  recordtocurrenttrack()
-  return
-else
-  loadnative("Audio/Effects/Native/#Line Input")
-  recordtocurrenttrack()
-  return
-end end end}
-
-----------------------------------------------------------------------------------------------------------
-
 ----------------------------------------
 require "Research/FormulaDeviceManual"
 
@@ -4531,7 +4524,7 @@ function PakettiCreateUnisonSamples()
 
   -- Set the instrument volume
 --  renoise.song().selected_instrument.volume = 0.3
-
+PakettiFillPitchStepperDigits(0.05,64)
   renoise.app():show_status("Unison samples created successfully.")
 end
 

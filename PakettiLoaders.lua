@@ -899,8 +899,7 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Inspect Device in Slot 2", invoke=function() inspectEffect() end}
 ------------------------------------------------------------------------------------------------------
 -- Add the menu entry to show plugin details
--- Add the menu entry to show plugin details
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Plugins/Devices..:Debug..:Show Plugin Details",invoke=function() show_plugin_details_gui() end}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Plugins/Devices..:Debug..:Show Plugin Details Dialog...",invoke=function() show_plugin_details_gui() end}
 
 -- Declare the customdialog variable at the beginning
 customdialog = nil
@@ -1052,7 +1051,7 @@ end
 -----
 
 -- Add the menu entry to show effect details
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:Debug..:Show Effect Details",invoke=function() show_effect_details_gui() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:Debug..:Show Effect Details Dialog...",invoke=function() show_effect_details_gui() end}
 
 -- Declare the customdialog variable at the beginning
 customdialog = nil
@@ -1258,10 +1257,7 @@ for _, target in ipairs(targets) do
       local menu_entry_name = string.format("Sample Modulation Matrix:Paketti..:%s %s:%s", target.number, target.display, device)
       renoise.tool():add_menu_entry{
         name = menu_entry_name,
-        invoke = function()
-          loadModulationDevice(device, target.target)
-          
-        end
+        invoke = function() loadModulationDevice(device, target.target) end
       }
     else
      -- print("Error: Missing display name or device for target")
@@ -1337,19 +1333,6 @@ renoise.tool():add_menu_entry{name="Mixer:Paketti..:Expose/Hide Selected Track A
 renoise.tool():add_keybinding{name="Global:Paketti:Expose/Hide Selected Track ALL Device Parameters", invoke=function() exposeHideParametersInMixer() end}  
 
 
---[[
-function launchApp(appName)
-os.execute(appName)
-end
-
-function terminalApp(scriptPath)
- local command = 'open -a Terminal "' .. scriptPath .. '"'
-    os.execute(command)
-end
-
-renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti..:Run Experimental Script",invoke=function() terminalApp("/Users/esaruoho/macOS_EnableScriptingTools.sh") end}
-renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti..:Open macOS Terminal",invoke=function() launchApp("open -a Terminal.app") end}
-]]--
 
 function effectbypass()
 local number = (table.count(renoise.song().selected_track.devices))
@@ -1368,14 +1351,13 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Bypass All Devices on Track", invoke=function() effectbypass() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Enable All Devices on Track", invoke=function() effectenable() end}
 
-renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Bypass All Devices on Track", invoke=function() effectbypass() end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Enable All Devices on Track", invoke=function() effectenable() end}
-renoise.tool():add_menu_entry {name="Mixer:Paketti..:Bypass All Devices on All Tracks",invoke=function() PakettiAllDevices(false) end}
+renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Bypass All Devices on Track", invoke=function() effectbypass() end}
 renoise.tool():add_menu_entry {name="Mixer:Paketti..:Enable All Devices on All Tracks",invoke=function() PakettiAllDevices(true) end}
+renoise.tool():add_menu_entry {name="Mixer:Paketti..:Bypass All Devices on All Tracks",invoke=function() PakettiAllDevices(false) end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Bypass/Enable All Other Track DSP Devices (Toggle)",invoke=function() toggle_bypass_selected_device() end}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Devices..:Bypass All Devices on Track", invoke=function() effectbypass() end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Devices..:Enable All Devices on Track", invoke=function() effectenable() end}
-
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Devices..:Bypass All Devices on Track", invoke=function() effectbypass() end}
 
 function PakettiAllDevices(state)
   local song = renoise.song()
@@ -1400,8 +1382,8 @@ renoise.tool():add_keybinding {name="Global:Paketti:Enable All Devices on All Tr
 renoise.tool():add_midi_mapping {name="Paketti:Bypass All Devices on All Tracks",invoke=function(message) if message:is_trigger() then PakettiAllDevices(false) end end}
 renoise.tool():add_midi_mapping {name="Paketti:Enable All Devices on All Tracks",invoke=function(message) if message:is_trigger() then PakettiAllDevices(true) end end}
 
-renoise.tool():add_menu_entry {name="Pattern Editor:Paketti..:Bypass All Devices on All Tracks",invoke=function() PakettiAllDevices(false) end}
-renoise.tool():add_menu_entry {name="Pattern Editor:Paketti..:Enable All Devices on All Tracks",invoke=function() PakettiAllDevices(true) end}
+renoise.tool():add_menu_entry {name="--Pattern Editor:Paketti..:Devices..:Enable All Devices on All Tracks",invoke=function() PakettiAllDevices(true) end}
+renoise.tool():add_menu_entry {name="Pattern Editor:Paketti..:Devices..:Bypass All Devices on All Tracks",invoke=function() PakettiAllDevices(false) end}
 
 
 -- Utility function to print a formatted list from the provided items
@@ -1761,163 +1743,7 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:
 renoise.tool():add_midi_mapping{name="Paketti:Hide Track DSP Device External Editors for All Tracks",invoke=function(message) if message:is_trigger() then  hide_all_external_editors() end end}
 
 ---------
--- Table to keep track of added menu entries
-local added_menu_entries = {}
 
--- Global function to launch the applications
-function appSelectionLaunchApp(app_path)
-  local os_name = os.platform()
-  local command
-
-  if os_name == "WINDOWS" then
-    command = 'start "" "' .. app_path .. '"'
-  elseif os_name == "MACINTOSH" then
-    command = 'open -a "' .. app_path .. '"'
-  else
-    command = 'exec "' .. app_path .. ' &"'
-  end
-
-  os.execute(command)
-  renoise.app():show_status("Launched app " .. app_path:match("([^/\\]+)%.app$"))
-end
-
--- Function to remove existing menu entries
-function appSelectionRemoveMenuEntries()
-  for _, entry in ipairs(added_menu_entries) do
-    if renoise.tool():has_menu_entry(entry) then
-      renoise.tool():remove_menu_entry(entry)
-    end
-  end
-  -- Clear the tracking table
-  added_menu_entries = {}
-end
-function appSelectionCreateMenuEntries()
-  local preferences = renoise.tool().preferences
-  local app_selections = {
-    preferences.AppSelection.AppSelection1 and preferences.AppSelection.AppSelection1.value or "",
-    preferences.AppSelection.AppSelection2 and preferences.AppSelection.AppSelection2.value or "",
-    preferences.AppSelection.AppSelection3 and preferences.AppSelection.AppSelection3.value or "",
-    preferences.AppSelection.AppSelection4 and preferences.AppSelection.AppSelection4.value or "",
-    preferences.AppSelection.AppSelection5 and preferences.AppSelection.AppSelection5.value or "",
-    preferences.AppSelection.AppSelection6 and preferences.AppSelection.AppSelection6.value or ""
-  }
-
-  local apps_present = false
-
-  -- Create menu entries for each app selection
-  for i, app_path in ipairs(app_selections) do
-    if app_path ~= "" then
-      apps_present = true
---      local app_name = app_path:match("([^/\\]+)%.app$")
-local app_name = app_path:match("([^/\\]+)%.app$") or app_path:match("([^/\\]+)$")
-      local menu_entry_name = "Instrument Box:Paketti..:Launch App..:Launch App "..i.." "..app_name
-      if not renoise.tool():has_menu_entry(menu_entry_name) then
-        renoise.tool():add_menu_entry{name=menu_entry_name, invoke=function() appSelectionLaunchApp(app_path) end}
-        table.insert(added_menu_entries, menu_entry_name)
-      end
-
-      menu_entry_name = "Main Menu:Tools:Paketti..:Launch App..:Launch App "..i.." "..app_name
-      if not renoise.tool():has_menu_entry(menu_entry_name) then
-        renoise.tool():add_menu_entry{
-          name=menu_entry_name,
-          invoke=function() appSelectionLaunchApp(app_path) end
-        }
-        table.insert(added_menu_entries, menu_entry_name)
-      end
-      menu_entry_name = "Sample Navigator:Paketti..:Launch App..:Launch App "..i.." "..app_name
-      if not renoise.tool():has_menu_entry(menu_entry_name) then
-        renoise.tool():add_menu_entry{
-          name=menu_entry_name,
-          invoke=function() appSelectionLaunchApp(app_path) end
-        }
-        table.insert(added_menu_entries, menu_entry_name)
-      end
-      menu_entry_name = "Sample Editor:Paketti..:Launch App..:Launch App "..i.." "..app_name
-      if not renoise.tool():has_menu_entry(menu_entry_name) then
-        renoise.tool():add_menu_entry{
-          name=menu_entry_name,
-          invoke=function() appSelectionLaunchApp(app_path) end
-        }
-        table.insert(added_menu_entries, menu_entry_name)
-      end
-
-    end
-  end
-
-  -- If no app selections are set, show the app selection dialog
-  if not apps_present then
-    renoise.app():show_status("No apps have been configured in Paketti..:Launch App..:Configure Launch App Selection, cannot populate Menu.")
-  end
-
-  -- Add static menu entry for configuring app selections
-  local configure_entry_name = "--Instrument Box:Paketti..:Launch App..:Configure Launch App Selection..."
-  if not renoise.tool():has_menu_entry(configure_entry_name) then
-    renoise.tool():add_menu_entry{
-      name=configure_entry_name,
-      invoke=show_app_selection_dialog
-    }
-    table.insert(added_menu_entries, configure_entry_name)
-  end
-
-  configure_entry_name = "--Main Menu:Tools:Paketti..:Launch App..:Configure Launch App Selection..."
-  if not renoise.tool():has_menu_entry(configure_entry_name) then
-    renoise.tool():add_menu_entry{
-      name=configure_entry_name,
-      invoke=show_app_selection_dialog
-    }
-    table.insert(added_menu_entries, configure_entry_name)
-  end
-
-  configure_entry_name = "--Sample Navigator:Paketti..:Launch App..:Configure Launch App Selection..."
-  if not renoise.tool():has_menu_entry(configure_entry_name) then
-    renoise.tool():add_menu_entry{
-      name=configure_entry_name,
-      invoke=show_app_selection_dialog
-    }
-    table.insert(added_menu_entries, configure_entry_name)
-  end  
-  configure_entry_name = "--Sample Editor:Paketti..:Launch App..:Configure Launch App Selection..."
-  if not renoise.tool():has_menu_entry(configure_entry_name) then
-    renoise.tool():add_menu_entry{
-      name=configure_entry_name,
-      invoke=show_app_selection_dialog
-    }
-    table.insert(added_menu_entries, configure_entry_name)
-
-
-  end  
-  
-  
-end
-
-function appSelectionUpdateMenuEntries()
-  if renoise.song() == nil then return end
-  appSelectionRemoveMenuEntries()
-  appSelectionCreateMenuEntries()
-end
-
--- Idle notifier function
-local function handle_idle_notifier()
-  if renoise.song() then
-    appSelectionUpdateMenuEntries()
-    -- Remove this notifier to prevent repeated execution
-    renoise.tool().app_idle_observable:remove_notifier(handle_idle_notifier)
-  end
-end
-
--- Ensure menu entries are created only after renoise.song() is initialized
-local function handle_new_document()
-  if not renoise.tool().app_idle_observable:has_notifier(handle_idle_notifier) then
-    renoise.tool().app_idle_observable:add_notifier(handle_idle_notifier)
-  end
-end
-
-renoise.tool().app_new_document_observable:add_notifier(handle_new_document)
-
--- Ensure menu entries are created only after renoise.song() is initialized (initial load)
-if not renoise.tool().app_idle_observable:has_notifier(handle_idle_notifier) then
-  renoise.tool().app_idle_observable:add_notifier(handle_idle_notifier)
-end
 
 ---------
 -- Function to toggle external editors for all devices in a given device chain
@@ -2578,6 +2404,7 @@ end
 -- Tool Registration
 renoise.tool():add_menu_entry{name="DSP Device:Paketti..:Randomize Selected Device Parameters",invoke=function()randomize_selected_device()end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:Randomize Selected Device Parameters",invoke=function()randomize_selected_device()end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Randomize Selected Device Parameters",invoke=function()randomize_selected_device()end}
 renoise.tool():add_keybinding{name="Global:Paketti:Randomize Selected Device",invoke=function()randomize_selected_device()end}
 
 -- Function to randomize parameters of the selected device
@@ -2698,7 +2525,7 @@ else
 end
 end
 
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Plugins/Devices..:Debug..:Dump VST/VST3/AU/LADSPA/DSSI/Native Effects to Dialog", invoke=function() show_available_plugins_dialog() end}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Plugins/Devices..:Debug..:Dump VST/VST3/AU/LADSPA/DSSI/Native Effects to Dialog...", invoke=function() show_available_plugins_dialog() end}
 
 
 
@@ -3047,12 +2874,9 @@ function PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMod
   end
 end
 
-
-renoise.tool():add_menu_entry {name = "Main Menu:Tools:Paketti..:Automatically Open Selected Track Device Editors",invoke = PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode}
+renoise.tool():add_menu_entry {name = "Main Menu:Tools:Paketti..:!Preferences..:Toggle Automatically Open Selected Track Device Editors ON/OFF",invoke = PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode}
 renoise.tool():add_keybinding {name = "Global:Paketti:Toggle Auto-Open Track Devices",invoke = PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode}
 renoise.tool():add_midi_mapping {name = "Paketti:Toggle Auto-Open Track Devices",invoke = PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode}
-
-
 
 
 

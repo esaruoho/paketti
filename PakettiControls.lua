@@ -9,7 +9,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Save Song (2nd)",invoke=funct
 
 function RecordFollowToggle()
 local s=renoise.song()
-local t=s.transport
+local t=renoise.song().transport
 local w=renoise.app().window
 w.active_middle_frame=1
 if t.edit_mode == true and t.follow_player == true then t.edit_mode=false t.follow_player=false return end
@@ -28,7 +28,7 @@ previous_edit_step = nil
 
 function RecordToggleg()
   local s = renoise.song()
-  local t = s.transport
+  local t = renoise.song().transport
 
   -- Output the current edit_step
   print("Current edit_step: " .. t.edit_step)
@@ -132,8 +132,8 @@ renoise.tool():add_keybinding{name="Global:Paketti:KeybOctave Down", invoke=func
 -----
 function PakettiTranspose(steps)
   local song = renoise.song()
-  local selection = song.selection_in_pattern
-  local pattern = song.selected_pattern
+  local selection = renoise.song().selection_in_pattern
+  local pattern = renoise.song().selected_pattern
 
   local start_track, end_track, start_line, end_line, start_column, end_column
 
@@ -281,8 +281,27 @@ renoise.song().transport.wrapped_pattern_edit=true
 renoise.app().window.active_middle_frame=1
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Contour Shuttle Record Off", invoke=function() recOffFollowOn() end}
-renoise.tool():add_keybinding{name="Global:Paketti:Contour Shuttle Record On", invoke=function() recOnFollowOff() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Contour Shuttle Record Off, Follow On", invoke=function() recOffFollowOn() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Contour Shuttle Record On, Follow Off", invoke=function() recOnFollowOff() end}
+
+function recordFollowFlip()
+  local t = renoise.song().transport
+  local w = renoise.app().window
+  
+  if t.edit_mode then
+    t.edit_mode = false
+    t.follow_player = true
+  else
+    t.edit_mode = true 
+    t.follow_player = false
+    w.active_middle_frame = 1
+    w.lock_keyboard_focus = true
+  end
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Record & Follow Flip", invoke=function() recordFollowFlip() end}
+renoise.tool():add_midi_mapping{name="Paketti:Record & Follow Flip x[Toggle]", invoke=function(message) if message:is_trigger() then recordFollowFlip() end end}
+
 -------
 renoise.tool():add_keybinding{name="Global:Paketti:Global Edit Mode Toggle",invoke=function() 
  if  renoise.song().transport.edit_mode then renoise.song().transport.edit_mode=false
@@ -426,16 +445,14 @@ end
 function RecordToggle()
  local a=renoise.app()
  local s=renoise.song()
- local t=s.transport
+ local t=renoise.song().transport
  local currentstep=t.edit_step
---if has notifier, dump notifier, if no notifier, add notifier
+--if has notifier, remove notifier, if no notifier, add notifier
  if t.edit_mode then
     t.edit_mode=false
  if t.edit_step==0 then
     t.edit_step=1
- else
-  return
- end 
+ else return end 
  else
       t.edit_mode = true
    if s.selected_effect_column_index == 1 then t.edit_step=0
@@ -445,9 +462,6 @@ end
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Record Toggle with EditStep Reading (2nd)", invoke=function() RecordToggle() end}
-
-
-
 
 ---------
 function loadRecentlySavedSong()
@@ -481,8 +495,6 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Switch Upper Frame (Track Scopes/Master Spectrum)",invoke=function()
 switch_upper_frame() end}
 ----
-
-
 -- Function to duplicate the selected track and rename it
 local function duplicate_selected_track()
   local song=renoise.song()

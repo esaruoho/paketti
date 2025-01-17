@@ -1,14 +1,60 @@
+-- Define the mapping between menu names and their corresponding identifiers
+local menu_to_identifier = {
+  ["Track Automation"] = "Automation",
+  ["Sample Mappings"] = "Sample Keyzones"
+}
+
+local function sortKeybindings(filteredKeybindings)
+  table.sort(filteredKeybindings, function(a, b)
+    -- Split each Topic into its parts
+    local a_parts = {}
+    local b_parts = {}
+    
+    -- Split by spaces and store each part
+    for part in a.Topic:gmatch("%S+") do
+      table.insert(a_parts, part)
+    end
+    for part in b.Topic:gmatch("%S+") do
+      table.insert(b_parts, part)
+    end
+    
+    -- First compare by Identifier
+    if a.Identifier ~= b.Identifier then
+      return a.Identifier < b.Identifier
+    end
+    
+    -- Then compare each Topic part in order
+    for i = 1, math.min(#a_parts, #b_parts) do
+      if a_parts[i] ~= b_parts[i] then
+        return a_parts[i] < b_parts[i]
+      end
+    end
+    
+    -- If one has more parts than the other, shorter comes first
+    if #a_parts ~= #b_parts then
+      return #a_parts < #b_parts
+    end
+    
+    -- If Topics are identical, sort by Binding
+    return a.Binding < b.Binding
+  end)
+end
+
 -- Function to extract and print MIDI mappings from required files
 function extract_midi_mappings()
   -- Define a list of required Lua files (replace with your actual files)
   local required_files = {
-    "Coluga/PakettiColuga.lua",
     "Paketti0G01_Loader.lua",
     "PakettiAudioProcessing.lua",
     "PakettiAutomation.lua",
+    "PakettiBeatDetect.lua",
+    "PakettiChordsPlus.lua",
+    "PakettiYTDLP.lua",
     "PakettiControls.lua",
+    "PakettiCustomization.lua",
     "PakettiDeviceChains.lua",
     "PakettiDynamicViews.lua",
+    "PakettiEightOneTwenty.lua",
     "PakettieSpeak.lua",
     "PakettiExperimental_Verify.lua",
     "PakettiGater.lua",
@@ -19,6 +65,7 @@ function extract_midi_mappings()
     "PakettiLoadPlugins.lua",
     "PakettiMainMenuEntries.lua",
     "PakettiMidi.lua",
+    "PakettiMidiPopulator.lua",
     "PakettiOctaMEDSuite.lua",
     "PakettiPatternEditor.lua",
     "PakettiPatternEditorCheatSheet.lua",
@@ -28,9 +75,15 @@ function extract_midi_mappings()
     "PakettiPlayerProSuite.lua",
     "PakettiRecorder.lua",
     "PakettiRequests.lua",
+    "PakettiSampleLoader.lua",
     "PakettiSamples.lua",
+    "PakettiSandbox.lua",
+    "PakettiStacker.lua",
+    "PakettiStretch.lua",
     "PakettiThemeSelector.lua",
     "PakettiTkna.lua",
+    "PakettiTupletGenerator.lua",
+    "PakettiWavetabler.lua"
   }
 
   -- Table to store extracted midi mappings
@@ -624,6 +677,7 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:!Preferences..:Deb
 
 ----
 
+-- Variable declarations
 local vb = renoise.ViewBuilder()
 local dialog
 local debug_log = ""
@@ -634,6 +688,7 @@ local keybinding_list
 local total_shortcuts_text
 local selected_shortcuts_text
 local show_shortcuts_switch
+local show_script_filter_switch  -- Add this line
 local search_text
 local search_textfield
 local padding_number_identifier = 5  -- Padding between number and identifier
@@ -750,6 +805,7 @@ function pakettiKeyBindingsUpdateList()
 
   local showUnassignedOnly = (show_shortcuts_switch.value == 2)
   local showAssignedOnly = (show_shortcuts_switch.value == 3)
+  local scriptFilter = show_script_filter_switch.value  -- Get value from the switch
   local selectedIdentifier = identifier_switch.items[identifier_switch.value]
   local searchQuery = search_textfield.value:lower()
   local content = ""
@@ -776,7 +832,11 @@ function pakettiKeyBindingsUpdateList()
       end
     end
 
-    if isSelected and matchesSearch then
+    -- Check if the entry should be included based on the scriptFilter
+    local isScript = binding.Binding:find("∿") ~= nil
+    local matchesScriptFilter = (scriptFilter == 1) or (scriptFilter == 2 and not isScript) or (scriptFilter == 3 and isScript)
+
+    if isSelected and matchesSearch and matchesScriptFilter then
       -- Count unassigned regardless of show_unassigned_only
       if binding.Key == "<Shortcut not Assigned>" then
         unassigned_count = unassigned_count + 1
@@ -799,14 +859,7 @@ function pakettiKeyBindingsUpdateList()
     count = count + 1
   end
 
-  -- Sort filteredKeybindings by Identifier first, then by Binding
-  table.sort(filteredKeybindings, function(a, b)
-    if a.Identifier == b.Identifier then
-      return a.Binding < b.Binding
-    else
-      return a.Identifier < b.Identifier
-    end
-  end)
+  sortKeybindings(filteredKeybindings)
 
   if #filteredKeybindings == 0 then
     content = "No KeyBindings available for this filter."
@@ -860,11 +913,16 @@ end
 end
 
 -- Main function to display the Paketti keybindings dialog
-function showPakettiKeyBindingsDialog()
+function showPakettiKeyBindingsDialog(selectedIdentifier)  -- Accept an optional parameter
   -- Check if the dialog is already visible and close it
   if dialog and dialog.visible then
     dialog:close()
-     return
+    return
+  end
+
+  -- Map menu identifiers to their internal names
+  if selectedIdentifier then
+    selectedIdentifier = menu_to_identifier[selectedIdentifier] or selectedIdentifier
   end
 
   local keyBindingsPath = detectOSAndGetKeyBindingsPath()
@@ -896,11 +954,23 @@ function showPakettiKeyBindingsDialog()
   end
   table.sort(identifier_items)
 
-  -- Create the switch for identifier selection
-  identifier_switch = vb:switch {
+  -- Determine the index of the selectedIdentifier
+  local selected_index = 1 -- Default to "All"
+  if selectedIdentifier then
+    -- Map the identifier before looking for its index
+    local mapped_identifier = menu_to_identifier[selectedIdentifier] or selectedIdentifier
+    for i, id in ipairs(identifier_items) do
+      if id == mapped_identifier then
+        selected_index = i
+        break
+      end
+    end
+  end
+
+  identifier_switch = vb:popup {
     items = identifier_items,
-    width = 1100,
-    value = 1, -- Default to "All"
+    width = 300,
+    value = selected_index,
     notifier = pakettiKeyBindingsUpdateList
   }
 
@@ -910,6 +980,22 @@ function showPakettiKeyBindingsDialog()
     width = 1100,
     value = 1, -- Default to "Show All"
     notifier = pakettiKeyBindingsUpdateList
+  }
+
+  show_script_filter_switch = vb:switch {
+    items = { "All", "Show without Tools", "Show Only Tools" },
+    width = 1100,
+    value = 1,
+    notifier = function(value)
+      pakettiKeyBindingsUpdateList()
+      if value == 1 then
+        renoise.app():show_status("Now showing all KeyBindings")
+      elseif value == 2 then
+        renoise.app():show_status("Now showing KeyBindings without Tools")
+      elseif value == 3 then
+        renoise.app():show_status("Now showing KeyBindings with only Tools")
+      end
+    end
   }
 
   -- UI Elements
@@ -984,25 +1070,58 @@ end
 -- Add main menu entry for Paketti keybindings dialog
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:!Preferences..:Paketti KeyBindings...",invoke = function() showPakettiKeyBindingsDialog() end}
 
--- Add specific menu entries under corresponding identifiers
-local identifiers = {
-  "Sample Editor",
+
+-- Single list of valid menu locations (using correct menu paths)
+local menu_entries = {
+  "Track Automation",  -- This will map to "Automation"
+  "Disk Browser",
+  "DSP Chain",
   "Instrument Box",
   "Mixer",
   "Pattern Editor",
-  "Pattern Sequencer",
   "Pattern Matrix",
+  "Pattern Sequencer",
   "Phrase Editor",
-  "Sample Keyzones"
+  "Phrase Map",
+  "Sample Editor",
+  "Sample FX Mixer",
+  "Sample Mappings",  -- This will map to "Sample Keyzones"
+  "Sample Modulation Matrix"
 }
 
-for _, identifier in ipairs(identifiers) do
-  renoise.tool():add_menu_entry {name = identifier .. ":Paketti..:Show Paketti KeyBindings...",
-    invoke = function() showPakettiKeyBindingsDialog(identifier) end}
+-- Add menu entries for both Paketti and Renoise KeyBindings
+for _, menu_name in ipairs(menu_entries) do
+  -- Get the correct identifier (handle special cases)
+  local identifier = menu_to_identifier[menu_name] or menu_name
+  
+  -- Add Paketti KeyBindings entry
+  renoise.tool():add_menu_entry {
+    name = menu_name .. ":Paketti..:Show Paketti KeyBindings...",
+    invoke = function() showPakettiKeyBindingsDialog(identifier) end
+  }
+  
+  -- Add Renoise KeyBindings entry
+  renoise.tool():add_menu_entry {
+    name = menu_name .. ":Paketti..:Show Renoise KeyBindings...",
+    invoke = function() showRenoiseKeyBindingsDialog(identifier) end
+  }
 end
 
--- Add keybinding
-renoise.tool():add_keybinding {name="Global:Paketti:Show Paketti KeyBindings Dialog",invoke=function() showPakettiKeyBindingsDialog() end}
+renoise.tool():add_menu_entry {
+  name = "Main Menu:Tools:Paketti..:!Preferences..:Renoise KeyBindings...",
+  invoke = function() showRenoiseKeyBindingsDialog() end
+}
+
+-- Add global keybindings
+renoise.tool():add_keybinding {
+  name = "Global:Paketti:Show Paketti KeyBindings Dialog...",
+  invoke = function() showPakettiKeyBindingsDialog() end
+}
+
+renoise.tool():add_keybinding {
+  name = "Global:Paketti:Show Renoise KeyBindings Dialog...",
+  invoke = function() showRenoiseKeyBindingsDialog() end
+}
 
 -------------------------------------------
 
@@ -1187,14 +1306,7 @@ function renoiseKeyBindingsUpdateList()
     count = count + 1
   end
 
-  -- Sort filteredKeybindings by Identifier first, then by Binding
-  table.sort(filteredKeybindings, function(a, b)
-    if a.Identifier == b.Identifier then
-      return a.Binding < b.Binding
-    else
-      return a.Identifier < b.Identifier
-    end
-  end)
+  sortKeybindings(filteredKeybindings)
 
   if #filteredKeybindings == 0 then
     content = "No KeyBindings available for this filter."
@@ -1255,6 +1367,11 @@ function showRenoiseKeyBindingsDialog(selectedIdentifier)  -- Accept an optional
     return
   end
 
+  -- Map menu identifiers to their internal names
+  if selectedIdentifier then
+    selectedIdentifier = menu_to_identifier[selectedIdentifier] or selectedIdentifier
+  end
+
   local keyBindingsPath = detectOSAndGetKeyBindingsPath()
   if not keyBindingsPath then
     renoise.app():show_status("Failed to detect OS and find KeyBindings.xml path.")
@@ -1287,8 +1404,10 @@ function showRenoiseKeyBindingsDialog(selectedIdentifier)  -- Accept an optional
   -- Determine the index of the selectedIdentifier
   local selected_index = 1 -- Default to "All"
   if selectedIdentifier then
+    -- Map the identifier before looking for its index
+    local mapped_identifier = menu_to_identifier[selectedIdentifier] or selectedIdentifier
     for i, id in ipairs(identifier_items) do
-      if id == selectedIdentifier then
+      if id == mapped_identifier then
         selected_index = i
         break
       end
@@ -1398,23 +1517,23 @@ function showRenoiseKeyBindingsDialog(selectedIdentifier)  -- Accept an optional
   renoiseKeyBindingsSaveDebugLog(renoiseKeybindings, false)
 end
 
--- Add main menu entry for Renoise keybindings dialog
-renoise.tool():add_menu_entry {
-  name = "Main Menu:Tools:Paketti..:!Preferences..:Renoise KeyBindings...",
-  invoke = function() showRenoiseKeyBindingsDialog() end  -- No identifier passed
-}
 
 -- Add submenu entries under corresponding identifiers
 local renoise_identifiers = {
-  "Global",
-  "Sample Editor",
+  "Automation",
+  "Disk Browser",
+  "DSP Chain",
   "Instrument Box",
   "Mixer",
   "Pattern Editor",
-  "Pattern Sequencer",
   "Pattern Matrix",
+  "Pattern Sequencer",
   "Phrase Editor",
-  "Sample Keyzones"
+  "Phrase Map",
+  "Sample Editor",
+  "Sample FX Mixer",
+  "Sample Keyzones",
+  "Sample Modulation Matrix",
 }
 
 for _, identifier in ipairs(renoise_identifiers) do
@@ -1422,22 +1541,11 @@ for _, identifier in ipairs(renoise_identifiers) do
     name = "Main Menu:Tools:Paketti..:!Preferences..:Renoise KeyBindings..:" .. identifier,
     invoke = function() showRenoiseKeyBindingsDialog(identifier) end  -- Pass identifier
   }
-end
-
--- Add specific menu entries under corresponding identifiers
-for _, identifier in ipairs(renoise_identifiers) do
   renoise.tool():add_menu_entry {
-    name = identifier .. ":Paketti..:Show Renoise KeyBindings...",
-    invoke = function() showRenoiseKeyBindingsDialog(identifier) end  -- Pass identifier
-  }
+    name = "Main Menu:Tools:Paketti..:!Preferences..:Paketti KeyBindings..:" .. identifier,
+    invoke = function() showPakettiKeyBindingsDialog(identifier) end  -- Pass identifier
+  }  
 end
 
--- Add keybinding
-renoise.tool():add_keybinding {
-  name = "Global:Paketti:Show Renoise KeyBindings Dialog",
-  invoke = function() showRenoiseKeyBindingsDialog() end
-}
-
- 
 
 

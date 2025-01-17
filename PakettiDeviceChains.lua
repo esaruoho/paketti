@@ -1,4 +1,3 @@
-
 function PakettiRandomDeviceChain(path)
   local files={}
   for file in io.popen('ls "'..path..'"'):lines() do
@@ -27,27 +26,18 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Create New Track&Load Random Device Chain/Preset",invoke=function() PakettiRandomDeviceChain(preferences.PakettiDeviceChainPath.value) end}
 
-
 renoise.tool():add_keybinding{name="Global:Paketti:Load Device Chain EQ10 Macro Experimental",invoke=function()
 PakettiLoadDeviceChain("DeviceChains/eq10macrotest.xrnt")
 end}
 
-
-function PakettiLoadDeviceChain(chainName)
-renoise.app():load_track_device_chain(chainName) 
-end
-
-function PakettiLoadDevicePreset(chainName)
-renoise.app():load_track_device_preset(chainName) 
-end
+function PakettiLoadDeviceChain(chainName) renoise.app():load_track_device_chain(chainName) end
+function PakettiLoadDevicePreset(chainName) renoise.app():load_track_device_preset(chainName) end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Load Device Chain SimpleSend",invoke=function()
-PakettiLoadDeviceChain("DeviceChains/SimpleSendMidi.xrnt")
-end}
+PakettiLoadDeviceChain("DeviceChains/SimpleSendMidi.xrnt") end}
 
 renoise.tool():add_keybinding{name="Global:Paketti:Load Device Chain Paketti Doofer Rudiments",invoke=function()
-PakettiLoadDeviceChain("DeviceChains/PakettiDooferRudiments.xrnt")
-end}
+PakettiLoadDeviceChain("DeviceChains/PakettiDooferRudiments.xrnt") end}
 
 renoise.tool():add_keybinding{name="Global:Paketti:Load Device Chain ClippyClip",invoke=function()
 PakettiLoadDevicePreset("DeviceChains/ClippyClip.xrdp")
@@ -58,18 +48,15 @@ and renoise.song().selected_track.devices[i].parameters[3].name == "8x ovrsmpl"
 and renoise.song().selected_track.devices[i].parameters[4].name == "Dry/Wet"
 and renoise.song().selected_track.devices[i].parameters[5].name == "Out"
 then renoise.song().selected_track.devices[i].display_name="ClippyClip"
-end
-end
-end}
+end end end}
 
 function PakettiLoadDeviceChain(chainName)
-renoise.app():load_track_device_chain(chainName) 
+renoise.app():load_track_device_chain(chainName)
 end
 
 function PakettiLoadDevicePreset(chainName)
 renoise.app():load_track_device_preset(chainName) 
 end
-
 
 renoise.tool():add_keybinding{name="Global:Paketti:Load Device Chain Track Compressor (NPC1)",invoke=function()
 PakettiLoadDevicePreset("DeviceChains/Track Compressor (NPC1).xrdp") end}
@@ -79,7 +66,3 @@ renoise.tool():add_keybinding{name="Global:Paketti:Load Device Chain Low - High 
 PakettiLoadDevicePreset("DeviceChains/Low - High Cut (halfsteep) (NPC1).xrdp") end}
 renoise.tool():add_keybinding{name="Global:Paketti:Load Device Chain Low - High Cut (flat) (NPC1)",invoke=function()
 PakettiLoadDevicePreset("DeviceChains/Low - High Cut (flat) (NPC1).xrdp") end}
-
-
-
-

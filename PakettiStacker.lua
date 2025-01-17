@@ -301,9 +301,9 @@ renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Stack All Samples 
 renoise.tool():add_keybinding{name="Global:Paketti:Write Velocity Ramp Up for Stacked Instrument",invoke=function() write_velocity_ramp_up() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Write Velocity Ramp Down for Stacked Instrument",invoke=function() write_velocity_ramp_down() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Write Velocity Random for Stacked Instrument",invoke=function() write_random_velocity_notes() end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Write Velocity Ramp Up for Stacked Instrument",invoke=function() write_velocity_ramp_up() end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Write Velocity Ramp Down for Stacked Instrument",invoke=function() write_velocity_ramp_down() end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Write Velocity Random for Stacked Instrument",invoke=function() write_random_velocity_notes() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Paketti Stacker..:Write Velocity Ramp Up for Stacked Instrument",invoke=function() write_velocity_ramp_up() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Paketti Stacker..:Write Velocity Ramp Down for Stacked Instrument",invoke=function() write_velocity_ramp_down() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Paketti Stacker..:Write Velocity Random for Stacked Instrument",invoke=function() write_random_velocity_notes() end}
 
 --
 function Stackerkeyhandlerfunc(dialog,key)
@@ -514,5 +514,5 @@ renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Paketti Stacker Dia
   showStackingDialog(proceed_with_stacking, on_switch_changed, PakettiIsolateSlicesToInstrument) end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Paketti Stacker Dialog...",invoke=function()
   showStackingDialog(proceed_with_stacking, on_switch_changed, PakettiIsolateSlicesToInstrument) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Paketti Stacker Dialog...",invoke=function()
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Paketti Stacker..:Paketti Stacker Dialog...",invoke=function()
   showStackingDialog(proceed_with_stacking, on_switch_changed, PakettiIsolateSlicesToInstrument) end}

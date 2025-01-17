@@ -240,6 +240,9 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:
 showDeviceListDialog()
 end}
 
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Pattern Editor..:Clone Current Sequence",invoke=clone_current_sequence}
+
+
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Plugins/Devices..:Debug..:List Available VST Plugins (Console)",
     invoke=function() listByPluginType("VST") end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:Debug..:List Available AU Plugins (Console)",
@@ -303,7 +306,7 @@ local function create_paketti_dialog()
         vb:button{text="Midi Mappings", width=50, notifier=function() show_midi_mappings_dialog() end},
         vb:button{text="Audio Processing", width=50, notifier=function() PakettiAudioProcessingToolsDialogShow() end },
         vb:button{text="eSpeak TTS", width=50, notifier=function() PakettieSpeakToggleDialog() end },
-        vb:button{text="Coluga", width=50, notifier=function() PakettiColugaShowDialog() end },
+        vb:button{text="Coluga", width=50, notifier=function() PakettiYTDLPShowDialog() end },
         vb:button{text="Output Routings", width=50, notifier=function() trackOutputRoutingsGUI_create() end },
         vb:button{text="Convolver Dialog", width=50, notifier=function() show_convolver_selection_dialog() end }},
        

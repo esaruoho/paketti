@@ -334,6 +334,7 @@
         <KeyBinding>
           <Topic>Transport</Topic>
           <Binding>Smart Note Off Row</Binding>
+          <Key>Shift + Option + PeakedBracket</Key>
         </KeyBinding>
         <KeyBinding>
           <Topic>Transport</Topic>
@@ -771,50 +772,17 @@
           <Key>Option + Return</Key>
         </KeyBinding>
         <KeyBinding>
-          <Topic>MidiPerformer</Topic>
-          <Binding>∿ Show dialog...</Binding>
+          <Topic>Tools</Topic>
+          <Binding>∿ Easy Tune</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Tools</Topic>
-          <Binding>∿ Setup automation device</Binding>
+          <Binding>∿ Select random instrument</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Show Paketti Preferences...</Binding>
           <Key>Shift + Command + Comma</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Paketti MIDI Mappings...</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Generate Paketti Midi Mappings to Console</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Show Paketti KeyBindings Dialog</Binding>
-          <Key>Command + K</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Show Renoise KeyBindings Dialog</Binding>
-          <Key>Shift + Command + K</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti Theme Selector</Topic>
-          <Binding>∿ Open Paketti Theme Selector Dialog</Binding>
-          <Key>Shift + Option + Comma</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti Theme Selector</Topic>
-          <Binding>∿ Pick a Random Theme (All)</Binding>
-          <Key>Shift + Option + Control + Comma</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti Theme Selector</Topic>
-          <Binding>∿ Pick a Random Theme (Favorites)</Binding>
-          <Key>Shift + Control + Comma</Key>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -963,153 +931,304 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Paketti Automation</Binding>
-          <Key>Option + T</Key>
+          <Binding>∿ Open Player Pro Note Column Dialog</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Switch to Automation</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti..</Topic>
-          <Binding>∿ Automation Ramp Up (Exp)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti..</Topic>
-          <Binding>∿ Automation Ramp Down (Exp)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti..</Topic>
-          <Binding>∿ Automation Ramp Up (Lin)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti..</Topic>
-          <Binding>∿ Automation Ramp Down (Lin)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti..</Topic>
-          <Binding>∿ Automation Center to Top (Exp)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti..</Topic>
-          <Binding>∿ Automation Top to Center (Exp)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti..</Topic>
-          <Binding>∿ Automation Center to Bottom (Exp)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti..</Topic>
-          <Binding>∿ Automation Bottom to Center (Exp)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti..</Topic>
-          <Binding>∿ Automation Center to Top (Lin)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti..</Topic>
-          <Binding>∿ Automation Top to Center (Lin)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti..</Topic>
-          <Binding>∿ Automation Center to Bottom (Lin)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti..</Topic>
-          <Binding>∿ Automation Bottom to Center (Lin)</Binding>
+          <Binding>∿ Create New Track&amp;Load Random Device Chain/Preset</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Randomize Automation Envelope</Binding>
-          <Key>Shift + Option + R</Key>
+          <Binding>∿ Load Device Chain EQ10 Macro Experimental</Binding>
+          <Key>Shift + Q</Key>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Randomize Automation Envelopes for Device</Binding>
-          <Key>Option + Command + R</Key>
+          <Binding>∿ Load Device Chain SimpleSend</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Switch to Automation Dynamic</Binding>
-          <Key>A</Key>
+          <Binding>∿ Load Device Chain Paketti Doofer Rudiments</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Show Automation Value Dialog...</Binding>
+          <Binding>∿ Load Device Chain ClippyClip</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Write Automation Value 0.0</Binding>
+          <Binding>∿ Load Device Chain Track Compressor (NPC1)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Write Automation Value 0.1</Binding>
+          <Binding>∿ Load Device Chain Low - High Cut (steep) (NPC1)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Write Automation Value 0.2</Binding>
+          <Binding>∿ Load Device Chain Low - High Cut (halfsteep) (NPC1)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Write Automation Value 0.3</Binding>
+          <Binding>∿ Load Device Chain Low - High Cut (flat) (NPC1)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Tools</Topic>
+          <Binding>∿ Paketti Tuplet Writer</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Write Automation Value 0.4</Binding>
+          <Binding>∿ Load Plugin Vintage (AU)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Write Automation Value 0.5</Binding>
+          <Binding>∿ Load Plugin XO (AU)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Write Automation Value 0.6</Binding>
+          <Binding>∿ Load Plugin XO (VST)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Write Automation Value 0.7</Binding>
+          <Binding>∿ Load Plugin XO (VST3)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Write Automation Value 0.8</Binding>
+          <Binding>∿ Clone Current Sequence</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Write Automation Value 0.9</Binding>
+          <Binding>∿ Show/Hide Pattern Matrix</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Write Automation Value 1.0</Binding>
+          <Binding>∿ Duplicate Pattern Above &amp; Clear Muted Tracks</Binding>
+          <Key>Shift + Control + X</Key>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Paketti Audio Processing Tools Dialog...</Binding>
-          <Key>Control + A</Key>
+          <Binding>∿ Duplicate Pattern Below &amp; Clear Muted Tracks</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Strip Silence</Binding>
-          <Key>Shift + Option + S</Key>
+          <Binding>∿ Duplicate Instrument and Select New Instrument</Binding>
+          <Key>Shift + Command + D</Key>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Move Beginning Silence to End</Binding>
+          <Binding>∿ Duplicate Instrument and Select New Instrument (2nd)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Max Amp DC Offset Kick Generator</Binding>
+          <Binding>∿ Duplicate Instrument and Select New Instrument (3rd)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Diagonal Line to 16800 length Sample</Binding>
+          <Binding>∿ Duplicate Instrument and Select Last Instrument</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Paketti Normalize Sample</Binding>
+          <Binding>∿ Numpad SelectPlay 0</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Numpad SelectPlay 1</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Numpad SelectPlay 2</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Numpad SelectPlay 3</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Numpad SelectPlay 4</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Numpad SelectPlay 5</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Numpad SelectPlay 6</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Numpad SelectPlay 7</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Numpad SelectPlay 8</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Numpad SelectPlay 9</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Capture Nearest Instrument and Octave (nojump)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Capture Nearest Instrument and Octave (jump)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Select Next Chunk (00..F0)</Binding>
+          <Key>Shift + Option + Command + Right</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Select Previous Chunk (00..F0)</Binding>
+          <Key>Shift + Option + Command + Left</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Select Chunk 00</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Select Chunk 10</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Select Chunk 20</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Select Chunk 30</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Select Chunk 40</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Select Chunk 50</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Select Chunk 60</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Select Chunk 70</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Select Chunk 80</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Select Chunk 90</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Select Chunk A0</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Select Chunk B0</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Select Chunk C0</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Select Chunk D0</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Select Chunk E0</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Select Chunk F0</Binding>
+          <Key>Shift + Option + F</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Tools</Topic>
+          <Binding>∿ Paketti YT-DLP Downloader</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ BeatDetector Modified...</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Stack All Samples in Instrument with Velocity Mapping Split</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Write Velocity Ramp Up for Stacked Instrument</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Write Velocity Ramp Down for Stacked Instrument</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Write Velocity Random for Stacked Instrument</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Load&amp;Slice&amp;Isolate&amp;Stack Sample</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Paketti Stacker Dialog...</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Set ReWire Channel (Next)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Contour Shuttle Record Prototype</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Sample NOW then F3 (Record)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Record to Current Track</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Record to Current Track w/Metronome</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Record Follow</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Simple Play Record Follow</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Simple Play Record Follow (2nd)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ TouchOSC Sample Recorder and Record</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ TouchOSC Pattern Editor</Binding>
+          <Key>Option + F2</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ TouchOSC Sample Editor</Binding>
+          <Key>Option + Control + F3</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Start/Stop Sample Recording and Pakettify</Binding>
+          <Key>Option + F3</Key>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -1500,103 +1619,152 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Create New Track&amp;Load Random Device Chain/Preset</Binding>
+          <Binding>∿ Record Toggle with EditStep Reading (2nd)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Load Device Chain EQ10 Macro Experimental</Binding>
-          <Key>Shift + Q</Key>
+          <Binding>∿ Load Recently Saved Song</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Load Device Chain SimpleSend</Binding>
+          <Binding>∿ Switch Upper Frame (Track Scopes/Master Spectrum)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Load Device Chain Paketti Doofer Rudiments</Binding>
+          <Binding>∿ Duplicate Selected Track &amp; Name</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Load Device Chain ClippyClip</Binding>
+          <Binding>∿ Paketti MIDI Mappings...</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Load Device Chain Track Compressor (NPC1)</Binding>
+          <Binding>∿ Generate Paketti Midi Mappings to Console</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Load Device Chain Low - High Cut (steep) (NPC1)</Binding>
+          <Binding>∿ Show Paketti KeyBindings Dialog</Binding>
+          <Key>Command + K</Key>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Load Device Chain Low - High Cut (halfsteep) (NPC1)</Binding>
+          <Binding>∿ Show Renoise KeyBindings Dialog</Binding>
+          <Key>Shift + Command + K</Key>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Load Device Chain Low - High Cut (flat) (NPC1)</Binding>
+          <Binding>∿ Open Paketti Init Phrase Dialog...</Binding>
+          <Key>Command + I</Key>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Cycle Paketti Dynamic View 01</Binding>
-          <Key>F2</Key>
+          <Binding>∿ Create New Phrase using Paketti Settings</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Cycle Paketti Dynamic View 02</Binding>
-          <Key>F3</Key>
+          <Binding>∿ Modify Current Phrase using Paketti Settings</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Cycle Paketti Dynamic View 03</Binding>
-          <Key>F4</Key>
+          <Binding>∿ Phrase Editor Visible</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Cycle Paketti Dynamic View 04</Binding>
-          <Key>F11</Key>
+          <Binding>∿ Add New Phrase</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Cycle Paketti Dynamic View 05</Binding>
+          <Binding>∿ Create Random AKWF Wavetable (032)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Cycle Paketti Dynamic View 06</Binding>
+          <Binding>∿ Create Random AKWF Wavetable (064)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Cycle Paketti Dynamic View 07</Binding>
+          <Binding>∿ Create Random AKWF Wavetable (128)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Cycle Paketti Dynamic View 08</Binding>
+          <Binding>∿ Create Random AKWF Wavetable (256)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Paketti Dynamic View Preferences Dialog 1-4...</Binding>
+          <Binding>∿ Create Random AKWF Wavetable (032,loop)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Paketti Dynamic View Preferences Dialog 5-8...</Binding>
+          <Binding>∿ Create Random AKWF Wavetable (064,loop)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Paketti Groovebox 8120</Binding>
-          <Key>Option + 8</Key>
+          <Binding>∿ Create Random AKWF Wavetable (128,loop)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Initialize for Groovebox 8120</Binding>
+          <Binding>∿ Create Random AKWF Wavetable (256,loop)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Paketti Gater Dialog...</Binding>
-          <Key>Control + G</Key>
+          <Binding>∿ Next Wavetable Cycle</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Paketti Gater Insert Commands</Binding>
-          <Key>Shift + Control + G</Key>
+          <Binding>∿ Previous Wavetable Cycle</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Paketti Audio Processing Tools Dialog...</Binding>
+          <Key>Control + A</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Strip Silence</Binding>
+          <Key>Shift + Option + S</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Move Beginning Silence to End</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Max Amp DC Offset Kick Generator</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Diagonal Line to 16800 length Sample</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Paketti Normalize Sample</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Normalize Sample Slices Independently</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Pattern Effect Command CheatSheet</Binding>
+          <Key>F1</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti Theme Selector</Topic>
+          <Binding>∿ Open Paketti Theme Selector Dialog</Binding>
+          <Key>Shift + Option + Comma</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti Theme Selector</Topic>
+          <Binding>∿ Pick a Random Theme (All)</Binding>
+          <Key>Shift + Option + Control + Comma</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti Theme Selector</Topic>
+          <Binding>∿ Pick a Random Theme (Favorites)</Binding>
+          <Key>Shift + Control + Comma</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Paketti MIDI Populator Dialog...</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -1715,148 +1883,1067 @@
           <Key>Command + Y</Key>
         </KeyBinding>
         <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Paketti Gater Dialog...</Binding>
+          <Key>Control + G</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Paketti Gater Insert Commands</Binding>
+          <Key>Shift + Control + G</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Paketti Automation</Binding>
+          <Key>Option + T</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Switch to Automation</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti..</Topic>
+          <Binding>∿ Automation Ramp Up (Exp)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti..</Topic>
+          <Binding>∿ Automation Ramp Down (Exp)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti..</Topic>
+          <Binding>∿ Automation Ramp Up (Lin)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti..</Topic>
+          <Binding>∿ Automation Ramp Down (Lin)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti..</Topic>
+          <Binding>∿ Automation Center to Top (Exp)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti..</Topic>
+          <Binding>∿ Automation Top to Center (Exp)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti..</Topic>
+          <Binding>∿ Automation Center to Bottom (Exp)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti..</Topic>
+          <Binding>∿ Automation Bottom to Center (Exp)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti..</Topic>
+          <Binding>∿ Automation Center to Top (Lin)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti..</Topic>
+          <Binding>∿ Automation Top to Center (Lin)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti..</Topic>
+          <Binding>∿ Automation Center to Bottom (Lin)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti..</Topic>
+          <Binding>∿ Automation Bottom to Center (Lin)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Randomize Automation Envelope</Binding>
+          <Key>Shift + Option + R</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Randomize Automation Envelopes for Device</Binding>
+          <Key>Option + Command + R</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Switch to Automation Dynamic</Binding>
+          <Key>A</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Show Automation Value Dialog...</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Write Automation Value 0.0</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Write Automation Value 0.1</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Write Automation Value 0.2</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Write Automation Value 0.3</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Write Automation Value 0.4</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Write Automation Value 0.5</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Write Automation Value 0.6</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Write Automation Value 0.7</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Write Automation Value 0.8</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Write Automation Value 0.9</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Write Automation Value 1.0</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Flood Fill Automation Selection</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Set Automation Range to Max (1.0)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Set Automation Range to Middle (0.5)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Set Automation Range to Min (0.0)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Scale Automation to 90%</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Scale Automation to 110%</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Scale Automation to 50%</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Flip Automation Selection Horizontally</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Flip Automation Selection Vertically</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Generate Automation Points from Notes in Selected Track</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Select Automation Playmode (Next)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Select Automation Playmode (Previous)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Select Automation Playmode 01 Points</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Select Automation Playmode 02 Lines</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Select Automation Playmode 03 Curves</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Clone Sequence (Automation Only)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Clone Pattern (Without Automation)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ ∿ Squiggly Sinewave to Clipboard (macOS)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Toggle Paketti Dialog of Dialogs</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Selected Instrument Midi Program +1 (Next)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Selected Instrument Midi Program -1 (Previous)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Cycle Paketti Dynamic View 01</Binding>
+          <Key>F2</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Cycle Paketti Dynamic View 02</Binding>
+          <Key>F3</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Cycle Paketti Dynamic View 03</Binding>
+          <Key>F4</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Cycle Paketti Dynamic View 04</Binding>
+          <Key>F11</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Cycle Paketti Dynamic View 05</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Cycle Paketti Dynamic View 06</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Cycle Paketti Dynamic View 07</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Cycle Paketti Dynamic View 08</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Paketti Dynamic View Preferences Dialog 1-4...</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Paketti Dynamic View Preferences Dialog 5-8...</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Paketti Groovebox 8120</Binding>
+          <Key>Option + 8</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Initialize for Groovebox 8120</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Send Selected Sample to AppSelection1</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Send Selected Sample to AppSelection2</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Send Selected Sample to AppSelection3</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Send Selected Sample to AppSelection4</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Send Selected Sample to AppSelection5</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Send Selected Sample to AppSelection6</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Save Sample to Smart/Backup Folder 1</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Save Sample to Smart/Backup Folder 2</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Save Sample to Smart/Backup Folder 3</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Save All Samples to Smart/Backup Folder 1</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Save All Samples to Smart/Backup Folder 2</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Save All Samples to Smart/Backup Folder 3</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Paketti PitchBend Drumkit Sample Loader</Binding>
+          <Key>Shift + Command + O</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Paketti PitchBend Drumkit Sample Loader (Random)</Binding>
+          <Key>Option + Command + O</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Create New Instrument &amp; Loop from Selection</Binding>
+          <Key>Option + Command + Right</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Paketti PitchBend Multiple Sample Loader</Binding>
+          <Key>Command + O</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Paketti PitchBend Multiple Sample Loader (Normalize)</Binding>
+          <Key>Shift + Option + O</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Add Sample Slot to Instrument</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Add 84 Sample Slots to Instrument</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Set Sample to One-Shot + NNA Continue</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Wipe&amp;Slice (2)</Binding>
+          <Key>Option + 1</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Wipe&amp;Slice (4)</Binding>
+          <Key>Option + 2</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Wipe&amp;Slice (8)</Binding>
+          <Key>Option + 3</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Wipe&amp;Slice (16)</Binding>
+          <Key>Option + 4</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Wipe&amp;Slice (32)</Binding>
+          <Key>Option + 5</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Wipe&amp;Slice (64)</Binding>
+          <Key>Option + 6</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Wipe&amp;Slice (128)</Binding>
+          <Key>Option + 7</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Wipe Slices</Binding>
+          <Key>Option + 0</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Show DSP FX Chain</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Paketti Save Selected Sample .WAV</Binding>
+          <Key>Command + W</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Paketti Save Selected Sample .FLAC</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Wipe Song Retain Sample</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Reset Slice Counter</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Sample Loop Cycler (Forwards)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Sample Loop Cycler (Backwards)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ All Samples Loop Cycler (Forwards)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ All Samples Loop Cycler (Backwards)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Duplicate and Reverse Instrument</Binding>
+          <Key>Shift + Command + R</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Paketti Save Selected Sample Range .WAV</Binding>
+          <Key>Shift + Command + W</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Paketti Save Selected Sample Range .FLAC</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti..</Topic>
+          <Binding>∿ FT2 Minimize Selected Sample</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Randomize Selected Instrument Modulation Filter Type</Binding>
+          <Key>Shift + Option + M</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Clean Render&amp;Save Selected Track/Group (.WAV)</Binding>
+          <Key>Shift + Control + R</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Clean Render&amp;Save Selected Track/Group (.FLAC)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Pakettify Current Instrument</Binding>
+          <Key>Shift + Control + 8</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Show/Hide PitchStep on Selected Instrument</Binding>
+          <Key>Option + P</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Smart BeatSync from Selection</Binding>
+          <Key>Shift + Command + S</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Eight 120-fy</Binding>
+          <Key>Shift + Option + 8</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Modify PitchStep Steps (Octave Up+2, Octave Down-2)</Binding>
+          <Key>Option + Command + P</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Modify PitchStep Steps (Random)</Binding>
+          <Key>Shift + Option + Command + P</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Modify PitchStep Steps (Octave Up, Octave Down)</Binding>
+          <Key>Shift + Command + P</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Clear PitchStep Steps</Binding>
+          <Key>Shift + Option + P</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Load Random AKWF Sample</Binding>
+          <Key>Shift + Command + 1</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Load Random amount (1...12) of AKWF Samples</Binding>
+          <Key>Shift + Command + 2</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Load 05 AKWF Samples</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Load 05 AKWF Samples with Overlap Random</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Load 05 AKWF Samples with Overlap Cycle</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Load 12 AKWF Samples with Overlap Random</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Load 12 AKWF Samples with Overlap Cycle</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Load 04 AKWF Samples (XY)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Load 12 AKWF Samples</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Load 02 AKWF Samples</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Load Random Samples (32) from Path</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Load Random Samples (01) from Path</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Load Random Samples (12) into Single Instrument</Binding>
+          <Key>Shift + Option + 1</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Load Random Samples (04) into Single Instrument (XY)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ User-Defined Sample Folders...</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Duplicate Selected Sample at -12 transpose</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Duplicate Selected Sample at -24 transpose</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Duplicate Selected Sample at +12 transpose</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Duplicate Selected Sample at +24 transpose</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Cycle Overlap Mode</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Set Overlap Mode 0 (Play All)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Set Overlap Mode 1 (Cycle)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Set Overlap Mode 2 (Random)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Set DrumKit to Overlap Random</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Load DrumKit with Overlap Random</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Load DrumKit with Overlap Cycle</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Duplicate All Samples at -36 Transpose</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Duplicate All Samples at -24 Transpose</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Duplicate All Samples at -12 Transpose</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Duplicate All Samples at +12 Transpose</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Duplicate All Samples at +24 Transpose</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Duplicate All Samples at +36 Transpose</Binding>
+        </KeyBinding>
+        <KeyBinding>
           <Topic>Tools</Topic>
-          <Binding>∿ ALT-X *2 (Interpolate and Clear Effect Columns)</Binding>
+          <Binding>∿ Toggle Match EditStep with Delay Pattern</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Duplicate Instrument and Select New Instrument</Binding>
-          <Key>Shift + Command + D</Key>
+          <Binding>∿ OctaMED Note Spread 02</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Duplicate Instrument and Select New Instrument (2nd)</Binding>
+          <Binding>∿ OctaMED Note Spread 03</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Duplicate Instrument and Select New Instrument (3rd)</Binding>
+          <Binding>∿ OctaMED Note Spread 04</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Duplicate Instrument and Select Last Instrument</Binding>
+          <Binding>∿ OctaMED Note Spread 05</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Numpad SelectPlay 0</Binding>
+          <Binding>∿ OctaMED Note Spread 06</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Numpad SelectPlay 1</Binding>
+          <Binding>∿ OctaMED Note Spread 07</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Numpad SelectPlay 2</Binding>
+          <Binding>∿ OctaMED Note Spread 08</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Numpad SelectPlay 3</Binding>
+          <Binding>∿ OctaMED Note Spread 09</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Numpad SelectPlay 4</Binding>
+          <Binding>∿ OctaMED Note Spread 10</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Numpad SelectPlay 5</Binding>
+          <Binding>∿ OctaMED Note Spread 11</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Numpad SelectPlay 6</Binding>
+          <Binding>∿ OctaMED Note Spread 12</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Numpad SelectPlay 7</Binding>
+          <Binding>∿ Load Device Chain (.XRNT) Slot 01</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Numpad SelectPlay 8</Binding>
+          <Binding>∿ Load Device Chain (.XRNT) Slot 02</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Numpad SelectPlay 9</Binding>
+          <Binding>∿ Load Device Chain (.XRNT) Slot 03</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Capture Nearest Instrument and Octave (nojump)</Binding>
+          <Binding>∿ Load Device Chain (.XRNT) Slot 04</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Capture Nearest Instrument and Octave (jump)</Binding>
+          <Binding>∿ Load Device Chain (.XRNT) Slot 05</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Select Next Chunk (00..F0)</Binding>
-          <Key>Shift + Option + Command + Right</Key>
+          <Binding>∿ Load Device Chain (.XRNT) Slot 06</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Select Previous Chunk (00..F0)</Binding>
-          <Key>Shift + Option + Command + Left</Key>
+          <Binding>∿ Load Device Chain (.XRNT) Slot 07</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Select Chunk 00</Binding>
+          <Binding>∿ Load Device Chain (.XRNT) Slot 08</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Select Chunk 10</Binding>
+          <Binding>∿ Load Device Chain (.XRNT) Slot 09</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Select Chunk 20</Binding>
+          <Binding>∿ Load Device Chain (.XRNT) Slot 10</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Select Chunk 30</Binding>
+          <Binding>∿ Load Instrument (.XRNI) Slot 01</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Select Chunk 40</Binding>
+          <Binding>∿ Load Instrument (.XRNI) Slot 02</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Select Chunk 50</Binding>
+          <Binding>∿ Load Instrument (.XRNI) Slot 03</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Select Chunk 60</Binding>
+          <Binding>∿ Load Instrument (.XRNI) Slot 04</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Select Chunk 70</Binding>
+          <Binding>∿ Load Instrument (.XRNI) Slot 05</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Select Chunk 80</Binding>
+          <Binding>∿ Load Instrument (.XRNI) Slot 06</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Select Chunk 90</Binding>
+          <Binding>∿ Load Instrument (.XRNI) Slot 07</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Select Chunk A0</Binding>
+          <Binding>∿ Load Instrument (.XRNI) Slot 08</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Select Chunk B0</Binding>
+          <Binding>∿ Load Instrument (.XRNI) Slot 09</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Select Chunk C0</Binding>
+          <Binding>∿ Load Instrument (.XRNI) Slot 10</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Select Chunk D0</Binding>
+          <Binding>∿ Load Both Instrument&amp;Device Chain (.XRNI&amp;.XRNT) Slot 01</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Select Chunk E0</Binding>
+          <Binding>∿ Load Both Instrument&amp;Device Chain (.XRNI&amp;.XRNT) Slot 02</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Select Chunk F0</Binding>
-          <Key>Shift + Option + F</Key>
+          <Binding>∿ Load Both Instrument&amp;Device Chain (.XRNI&amp;.XRNT) Slot 03</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Load Both Instrument&amp;Device Chain (.XRNI&amp;.XRNT) Slot 04</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Load Both Instrument&amp;Device Chain (.XRNI&amp;.XRNT) Slot 05</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Load Both Instrument&amp;Device Chain (.XRNI&amp;.XRNT) Slot 06</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Load Both Instrument&amp;Device Chain (.XRNI&amp;.XRNT) Slot 07</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Load Both Instrument&amp;Device Chain (.XRNI&amp;.XRNT) Slot 08</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Load Both Instrument&amp;Device Chain (.XRNI&amp;.XRNT) Slot 09</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Load Both Instrument&amp;Device Chain (.XRNI&amp;.XRNT) Slot 10</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Transport</Topic>
+          <Binding>∿ Reset SBx and Start Playback</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Crossfade Loop</Binding>
+          <Key>Shift + Command + C</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Flood Fill Column with Row</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Repeater 1 / 1 Even</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Repeater 1 / 1 Triplet</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Repeater 1 / 1 Dotted</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Repeater 1 / 2 Even</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Repeater 1 / 2 Triplet</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Repeater 1 / 2 Dotted</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Repeater 1 / 4 Even</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Repeater 1 / 4 Triplet</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Repeater 1 / 4 Dotted</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Repeater 1 / 8 Even</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Repeater 1 / 8 Triplet</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Repeater 1 / 8 Dotted</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Repeater 1 / 16 Even</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Repeater 1 / 16 Triplet</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Repeater 1 / 16 Dotted</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Repeater 1 / 32 Even</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Repeater 1 / 32 Triplet</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Repeater 1 / 32 Dotted</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Repeater 1 / 64 Even</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Repeater 1 / 64 Triplet</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Repeater 1 / 64 Dotted</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Repeater 1 / 128 Even</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Repeater 1 / 128 Triplet</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Repeater 1 / 128 Dotted</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Tools</Topic>
+          <Binding>∿ Randomize Effect Column Smatter (C00/C0F)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Tools</Topic>
+          <Binding>∿ Randomize Effect Column Smatter (0G Glide)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Tools</Topic>
+          <Binding>∿ Randomize Effect Column Smatter (0U Slide Up)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Tools</Topic>
+          <Binding>∿ Randomize Effect Column Smatter (0D Slide Down)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Tools</Topic>
+          <Binding>∿ Randomize Effect Column Smatter (0R Retrig)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Tools</Topic>
+          <Binding>∿ Randomize Effect Column Smatter (0P Panning)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Tools</Topic>
+          <Binding>∿ Randomize Effect Column Smatter (0B00/0B01)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Tools</Topic>
+          <Binding>∿ Randomize Effect Column Fill (C00/C0F)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Tools</Topic>
+          <Binding>∿ Randomize Effect Column Fill (0G Glide)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Tools</Topic>
+          <Binding>∿ Randomize Effect Column Fill (0U Slide Up)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Tools</Topic>
+          <Binding>∿ Randomize Effect Column Fill (0D Slide Down)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Tools</Topic>
+          <Binding>∿ Randomize Effect Column Fill (0R Retrig)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Tools</Topic>
+          <Binding>∿ Randomize Effect Column Fill (0P Panning)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Tools</Topic>
+          <Binding>∿ Randomize Effect Column Fill (0B00/0B01)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Toggle Solo Tracks</Binding>
+          <Key>Command + F10</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Toggle Mute Tracks</Binding>
+          <Key>Command + F9</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Open Visible Pages to Fit Parameters</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Recordammajic9000</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Display Sample Recorder with #Line Input</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Note Off / Caps Lock replacement</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Record to Current Track+Plus</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Open FormulaDevice Dialog...</Binding>
+          <Key>Command + Control + F</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Column Cycle Keyjazz 01</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Column Cycle Keyjazz 02</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Column Cycle Keyjazz 03</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Column Cycle Keyjazz 04</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Column Cycle Keyjazz 05</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Column Cycle Keyjazz 06</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Column Cycle Keyjazz 07</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Column Cycle Keyjazz 08</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Column Cycle Keyjazz 09</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Column Cycle Keyjazz 10</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Column Cycle Keyjazz 11</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Column Cycle Keyjazz 12</Binding>
+          <Key>Shift + Option + Control + 5</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Start/Stop Column Cycling</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Column Cycle Keyjazz 01_Special</Binding>
+          <Key>Shift + Option + Control + 1</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Paketti Unison Generator</Binding>
+          <Key>Option + U</Key>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -2702,235 +3789,31 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Load Device (Native) *XY Pad</Binding>
+          <Binding>∿ Wipe Phrases on Selected Instrument</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Load Device (Native) Repeater</Binding>
+          <Binding>∿ Load XRNI &amp; Wipe Phrases</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Load Device (VST) Frontier</Binding>
+          <Binding>∿ Load XRNI &amp; Disable Phrases</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Load Device (VST) Zebrify</Binding>
+          <Binding>∿ Load XRNI &amp; Keep Phrases</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Load Device (AudioUnit) AUSampleDelay</Binding>
+          <Binding>∿ Load New Instrument with Current Slice Markers</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Load Device (VST3) Supercharger</Binding>
+          <Binding>∿ Toggle Auto-Open Track Devices</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Load Device (Native) Gainer</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Load Device (Native) Mixer EQ</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Load Device (Native) RingMod 2</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Load Device (VST) FabFilter Micro</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Load Device (AudioUnit) Zebrify</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Load Device (VST3) ZRev</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Load Device (Native) #Multiband Send</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Load Device (Native) #Send</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Load Device (Native) *Instr. Automation</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Load Device (Native) *Instr. MIDI Control</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Load Device (Native) *Instr. Macros</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Load Device (Native) *Key Tracker</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Load Device (Native) #Sidechain</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Load Device (AudioUnit) AUDelay</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Load Device (AudioUnit) AUDynamicsProcessor</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Load Device (AudioUnit) AUHipass</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Load Device (AudioUnit) AURogerBeep</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Load Device (AudioUnit) Repeater</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Load Device (Native) (Hidden) Stutter</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Load Device (VST) George Yohng's W1 Limiter</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Load Device (VST) Spacer</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Load Device (VST) Uhbik-S</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Load Device (Native) *Meta Mixer</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Load Device (Native) Cabinet Simulator</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Load Device (Native) Comb Filter 2</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Load Device (Native) DC Offset</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Load Device (Native) *Velocity Tracker</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Load Device (Native) Bus Compressor</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Load Device (AudioUnit) TDR Kotelnikov</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Load Device (Native) (Hidden) Scream Filter</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Load Device (Native) (Hidden) Flanger</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Load Device (AudioUnit) Absynth 5 MFX</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Load Device (Native) (Hidden) Filter</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Load Device (Native) (Hidden) Filter 2</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Load Device (Native) (Hidden) Filter 3</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Load Plugin Absynth 5 (AU)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Load Plugin Attack (AU)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Load Plugin AUMIDISynth (AU)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Load Plugin AUSampler (AU)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Load Plugin MonoFury (AU)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Load Plugin MPS (AU)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Load Plugin Amigo (AU)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Load Plugin ANA 2 (AU)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Load Plugin DLSMusicDevice (AU)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Load Plugin Reaktor 6 (AU)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Load Plugin Vintage (AU)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Load Plugin Zebralette (AU)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ ∿ Squiggly Sinewave to Clipboard (macOS)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Toggle Paketti Dialog of Dialogs</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Selected Instrument Midi Program +1 (Next)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Selected Instrument Midi Program -1 (Previous)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Paketti MIDI Populator Dialog...</Binding>
+          <Binding>∿ Show XO Plugin External Editor</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -3170,14 +4053,6 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Clone and Expand Pattern to LPB*2</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Clone and Shrink Pattern to LPB/2</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
           <Binding>∿ Toggle Edit Mode and Tint Track</Binding>
         </KeyBinding>
         <KeyBinding>
@@ -3189,11 +4064,6 @@
           <Topic>Paketti</Topic>
           <Binding>∿ Randomize Effect Column Parameters</Binding>
           <Key>Shift + Option + X</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Interpolate Effect Column Parameters</Binding>
-          <Key>Shift + Option + I</Key>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -3214,13 +4084,11 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Expose and Select Next Column</Binding>
-          <Key>Shift + Command + Right</Key>
+          <Binding>∿ Clone and Expand Pattern to LPB*2</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Hide Current and Select Previous Column</Binding>
-          <Key>Shift + Command + Left</Key>
+          <Binding>∿ Clone and Shrink Pattern to LPB/2</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Tools</Topic>
@@ -3236,310 +4104,23 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Pattern Effect Command CheatSheet</Binding>
-          <Key>F1</Key>
+          <Binding>∿ Divide LPB by 4, return to Original</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Show/Hide Pattern Matrix</Binding>
+          <Binding>∿ Set All Tracks to Center</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Clone Current Sequence</Binding>
+          <Binding>∿ Hide All Effect Columns</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Open Paketti Init Phrase Dialog...</Binding>
-          <Key>Command + I</Key>
+          <Binding>∿ Move Track Left</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Create New Phrase using Paketti Settings</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Modify Current Phrase using Paketti Settings</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Phrase Editor Visible</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Add New Phrase</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Open Player Pro Note Column Dialog</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Send Selected Sample to AppSelection1</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Send Selected Sample to AppSelection2</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Send Selected Sample to AppSelection3</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Send Selected Sample to AppSelection4</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Send Selected Sample to AppSelection5</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Send Selected Sample to AppSelection6</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Save Sample to Smart/Backup Folder 1</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Save Sample to Smart/Backup Folder 2</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Save Sample to Smart/Backup Folder 3</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Save All Samples to Smart/Backup Folder 1</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Save All Samples to Smart/Backup Folder 2</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Save All Samples to Smart/Backup Folder 3</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Paketti PitchBend Drumkit Sample Loader</Binding>
-          <Key>Shift + Command + O</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Paketti PitchBend Drumkit Sample Loader (Random)</Binding>
-          <Key>Option + Command + O</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Create New Instrument &amp; Loop from Selection</Binding>
-          <Key>Option + Command + Right</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Paketti PitchBend Multiple Sample Loader</Binding>
-          <Key>Command + O</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Paketti PitchBend Multiple Sample Loader (Normalize)</Binding>
-          <Key>Shift + Option + O</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Add Sample Slot to Instrument</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Add 84 Sample Slots to Instrument</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Set Sample to One-Shot + NNA Continue</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Wipe&amp;Slice (2)</Binding>
-          <Key>Option + 1</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Wipe&amp;Slice (4)</Binding>
-          <Key>Option + 2</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Wipe&amp;Slice (8)</Binding>
-          <Key>Option + 3</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Wipe&amp;Slice (16)</Binding>
-          <Key>Option + 4</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Wipe&amp;Slice (32)</Binding>
-          <Key>Option + 5</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Wipe&amp;Slice (64)</Binding>
-          <Key>Option + 6</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Wipe&amp;Slice (128)</Binding>
-          <Key>Option + 7</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Wipe Slices</Binding>
-          <Key>Option + 0</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Show DSP FX Chain</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Paketti Save Selected Sample .WAV</Binding>
-          <Key>Command + W</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Paketti Save Selected Sample .FLAC</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Wipe Song Retain Sample</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Reset Slice Counter</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Sample Loop Cycler (Forwards)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Sample Loop Cycler (Backwards)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ All Samples Loop Cycler (Forwards)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ All Samples Loop Cycler (Backwards)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Duplicate and Reverse Instrument</Binding>
-          <Key>Shift + Command + R</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Paketti Save Selected Sample Range .WAV</Binding>
-          <Key>Shift + Command + W</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Paketti Save Selected Sample Range .FLAC</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti..</Topic>
-          <Binding>∿ FT2 Minimize Selected Sample</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Randomize Selected Instrument Modulation Filter Type</Binding>
-          <Key>Shift + Option + M</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Clean Render&amp;Save Selected Track/Group (.WAV)</Binding>
-          <Key>Shift + Control + R</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Clean Render&amp;Save Selected Track/Group (.FLAC)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Pakettify Current Instrument</Binding>
-          <Key>Shift + Control + 8</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Show/Hide PitchStep on Selected Instrument</Binding>
-          <Key>Option + P</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Smart BeatSync from Selection</Binding>
-          <Key>Shift + Command + S</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Eight 120-fy</Binding>
-          <Key>Shift + Option + 8</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Modify PitchStep Steps (Octave Up+2, Octave Down-2)</Binding>
-          <Key>Option + Command + P</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Modify PitchStep Steps (Random)</Binding>
-          <Key>Shift + Option + Command + P</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Modify PitchStep Steps (Octave Up, Octave Down)</Binding>
-          <Key>Shift + Command + P</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Clear PitchStep Steps</Binding>
-          <Key>Shift + Option + P</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Load Random AKWF Sample</Binding>
-          <Key>Shift + Command + 1</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Load Random amount (1...12) of AKWF Samples</Binding>
-          <Key>Shift + Command + 2</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Load 05 AKWF Samples</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Load 12 AKWF Samples</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Load 02 AKWF Samples</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Load Random Samples (32) from Path</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Load Random Samples (01) from Path</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Load Random Samples (12) into Single Instrument</Binding>
-          <Key>Shift + Option + 1</Key>
+          <Binding>∿ Move Track Right</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -6337,62 +6918,6 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Set ReWire Channel (Next)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Contour Shuttle Record Prototype</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Sample NOW then F3 (Record)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Record to Current Track</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Record to Current Track w/Metronome</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Record Follow</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Simple Play Record Follow</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Simple Play Record Follow (2nd)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ TouchOSC Sample Recorder and Record</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ TouchOSC Pattern Editor</Binding>
-          <Key>Option + F2</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ TouchOSC Sample Editor</Binding>
-          <Key>Option + Control + F3</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Start/Stop Sample Recording and Pakettify</Binding>
-          <Key>Option + F3</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Tools</Topic>
-          <Binding>∿ Paketti Coluga Downloader</Binding>
-          <Key>Control + C</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
           <Binding>∿ Computer Keyboard Velocity (-16)</Binding>
         </KeyBinding>
         <KeyBinding>
@@ -6997,6 +7522,18 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
+          <Binding>∿ Set Selected Instrument All Autoseek On/Off</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Set Selected Instrument All Autoseek On</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Set Selected Instrument All Autoseek Off</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
           <Binding>∿ Halve Beatsync Lines (All)</Binding>
         </KeyBinding>
         <KeyBinding>
@@ -7462,11 +7999,203 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Octave Basenote Up</Binding>
+          <Binding>∿ Isolate Slices to New Instrument as Samples</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Octave Basenote Down</Binding>
+          <Binding>∿ Roll the Dice on Notes</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Transpose Shift -12 (All Instruments)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Transpose Shift -12 (Selected Instrument)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Transpose Shift -11 (All Instruments)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Transpose Shift -11 (Selected Instrument)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Transpose Shift -10 (All Instruments)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Transpose Shift -10 (Selected Instrument)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Transpose Shift -9 (All Instruments)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Transpose Shift -9 (Selected Instrument)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Transpose Shift -8 (All Instruments)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Transpose Shift -8 (Selected Instrument)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Transpose Shift -7 (All Instruments)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Transpose Shift -7 (Selected Instrument)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Transpose Shift -6 (All Instruments)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Transpose Shift -6 (Selected Instrument)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Transpose Shift -5 (All Instruments)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Transpose Shift -5 (Selected Instrument)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Transpose Shift -4 (All Instruments)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Transpose Shift -4 (Selected Instrument)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Transpose Shift -3 (All Instruments)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Transpose Shift -3 (Selected Instrument)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Transpose Shift -2 (All Instruments)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Transpose Shift -2 (Selected Instrument)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Transpose Shift -1 (All Instruments)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Transpose Shift -1 (Selected Instrument)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Transpose Shift +1 (All Instruments)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Transpose Shift +1 (Selected Instrument)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Transpose Shift +2 (All Instruments)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Transpose Shift +2 (Selected Instrument)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Transpose Shift +3 (All Instruments)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Transpose Shift +3 (Selected Instrument)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Transpose Shift +4 (All Instruments)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Transpose Shift +4 (Selected Instrument)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Transpose Shift +5 (All Instruments)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Transpose Shift +5 (Selected Instrument)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Transpose Shift +6 (All Instruments)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Transpose Shift +6 (Selected Instrument)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Transpose Shift +7 (All Instruments)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Transpose Shift +7 (Selected Instrument)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Transpose Shift +8 (All Instruments)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Transpose Shift +8 (Selected Instrument)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Transpose Shift +9 (All Instruments)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Transpose Shift +9 (Selected Instrument)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Transpose Shift +10 (All Instruments)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Transpose Shift +10 (Selected Instrument)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Transpose Shift +11 (All Instruments)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Transpose Shift +11 (Selected Instrument)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Transpose Shift +12 (All Instruments)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Transpose Shift +12 (Selected Instrument)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -7852,15 +8581,7 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Resize all non-empty Patterns to 064</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Resize all non-empty Patterns to 048</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Resize all non-empty Patterns to 032</Binding>
+          <Binding>∿ Resize all non-empty Patterns to 012</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -7868,11 +8589,19 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Resize all non-empty Patterns to 012</Binding>
+          <Binding>∿ Resize all non-empty Patterns to 024</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Resize all non-empty Patterns to 024</Binding>
+          <Binding>∿ Resize all non-empty Patterns to 032</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Resize all non-empty Patterns to 048</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Resize all non-empty Patterns to 064</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -12841,364 +13570,27 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Wipe Random Notes</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Crossfade Loop</Binding>
-          <Key>Shift + Command + C</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
           <Binding>∿ Offset Dialog...</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Duplicate Selected Sample at -12 transpose</Binding>
+          <Binding>∿ Wipe Random Notes</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Duplicate Selected Sample at -24 transpose</Binding>
+          <Binding>∿ Global Volume Reduce All Instruments by -4.5dB</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Duplicate Selected Sample at +12 transpose</Binding>
+          <Binding>∿ Global Volume Reduce All Samples by -4.5dB</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Duplicate Selected Sample at +24 transpose</Binding>
+          <Binding>∿ Global Volume Adjustment...</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Duplicate Pattern Above &amp; Clear Muted Tracks</Binding>
-          <Key>Shift + Control + X</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Duplicate Pattern Below &amp; Clear Muted Tracks</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Load New Instrument with Current Slice Markers</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Select Automation Playmode (Next)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Select Automation Playmode (Previous)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Select Automation Playmode 01 Points</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Select Automation Playmode 02 Lines</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Select Automation Playmode 03 Curves</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ YOOOOO</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Flood Fill Column with Row</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Repeater 1 / 1 Even</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Repeater 1 / 1 Triplet</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Repeater 1 / 1 Dotted</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Repeater 1 / 2 Even</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Repeater 1 / 2 Triplet</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Repeater 1 / 2 Dotted</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Repeater 1 / 4 Even</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Repeater 1 / 4 Triplet</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Repeater 1 / 4 Dotted</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Repeater 1 / 8 Even</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Repeater 1 / 8 Triplet</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Repeater 1 / 8 Dotted</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Repeater 1 / 16 Even</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Repeater 1 / 16 Triplet</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Repeater 1 / 16 Dotted</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Repeater 1 / 32 Even</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Repeater 1 / 32 Triplet</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Repeater 1 / 32 Dotted</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Repeater 1 / 64 Even</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Repeater 1 / 64 Triplet</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Repeater 1 / 64 Dotted</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Repeater 1 / 128 Even</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Repeater 1 / 128 Triplet</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Repeater 1 / 128 Dotted</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Tools</Topic>
-          <Binding>∿ Randomize Effect Column Smatter (C00/C0F)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Tools</Topic>
-          <Binding>∿ Randomize Effect Column Smatter (0G Glide)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Tools</Topic>
-          <Binding>∿ Randomize Effect Column Smatter (0U Slide Up)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Tools</Topic>
-          <Binding>∿ Randomize Effect Column Smatter (0D Slide Down)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Tools</Topic>
-          <Binding>∿ Randomize Effect Column Smatter (0R Retrig)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Tools</Topic>
-          <Binding>∿ Randomize Effect Column Smatter (0P Panning)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Tools</Topic>
-          <Binding>∿ Randomize Effect Column Smatter (0B00/0B01)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Tools</Topic>
-          <Binding>∿ Randomize Effect Column Fill (C00/C0F)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Tools</Topic>
-          <Binding>∿ Randomize Effect Column Fill (0G Glide)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Tools</Topic>
-          <Binding>∿ Randomize Effect Column Fill (0U Slide Up)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Tools</Topic>
-          <Binding>∿ Randomize Effect Column Fill (0D Slide Down)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Tools</Topic>
-          <Binding>∿ Randomize Effect Column Fill (0R Retrig)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Tools</Topic>
-          <Binding>∿ Randomize Effect Column Fill (0P Panning)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Tools</Topic>
-          <Binding>∿ Randomize Effect Column Fill (0B00/0B01)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Toggle Solo Tracks</Binding>
-          <Key>Command + F10</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Toggle Mute Tracks</Binding>
-          <Key>Command + F9</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Open Visible Pages to Fit Parameters</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Recordammajic9000</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Display Sample Recorder with #Line Input</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Note Off / Caps Lock replacement</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Record to Current Track+Plus</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Open FormulaDevice Dialog...</Binding>
-          <Key>Command + Control + F</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Column Cycle Keyjazz 01</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Column Cycle Keyjazz 02</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Column Cycle Keyjazz 03</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Column Cycle Keyjazz 04</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Column Cycle Keyjazz 05</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Column Cycle Keyjazz 06</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Column Cycle Keyjazz 07</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Column Cycle Keyjazz 08</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Column Cycle Keyjazz 09</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Column Cycle Keyjazz 10</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Column Cycle Keyjazz 11</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Column Cycle Keyjazz 12</Binding>
-          <Key>Shift + Option + Control + 5</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Start/Stop Column Cycling</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Column Cycle Keyjazz 01_Special</Binding>
-          <Key>Shift + Option + Control + 1</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Paketti Unison Generator</Binding>
-          <Key>Option + U</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Tools</Topic>
-          <Binding>∿ Interpolate Beyond Linear</Binding>
-          <Key>Control + I</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Tools</Topic>
-          <Binding>∿ Interpolate Beyond Logarithmic In</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Tools</Topic>
-          <Binding>∿ Interpolate Beyond Logarithmic Out</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Tools</Topic>
-          <Binding>∿ Interpolate Beyond Sin</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Tools</Topic>
-          <Binding>∿ Interpolate Beyond Square</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Tools</Topic>
-          <Binding>∿ Interpolate Beyond Saw</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Tools</Topic>
-          <Binding>∿ Interpolate Beyond Tri</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Tools</Topic>
-          <Binding>∿ Interpolate Beyond Bounce Out</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Tools</Topic>
-          <Binding>∿ Interpolate Beyond Bounce In</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Tools</Topic>
-          <Binding>∿ Interpolate Beyond Gradient Noise</Binding>
+          <Binding>∿ Show EditStep Dialog</Binding>
         </KeyBinding>
       </KeyBindings>
     </Category>
@@ -14489,11 +14881,276 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Switch to Automation</Binding>
+          <Binding>∿ Player Pro Transpose Selection or Row +1</Binding>
+          <Key>Shift + Command + Up</Key>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Show Automation</Binding>
+          <Binding>∿ Player Pro Transpose Selection or Row -1</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Player Pro Transpose Selection or Row +12</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Player Pro Transpose Selection or Row -12</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Open Player Pro Tools Dialog...</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Chordsplus (Add 01)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Chordsplus (Add 02)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Chordsplus (Add 03)</Binding>
+          <Key>Shift + Control + 3</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Chordsplus (Add 04)</Binding>
+          <Key>Shift + Control + 4</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Chordsplus (Add 05)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Chordsplus (Add 06)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Chordsplus (Add 07)</Binding>
+          <Key>Shift + Control + 7</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Chordsplus (Add 08)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Chordsplus (Add 09)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Chordsplus (Add 10)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Chordsplus (Add 11)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Chordsplus (Add 12)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Chordsplus (Sub 01)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Chordsplus (Sub 02)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Chordsplus (Sub 03)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Chordsplus (Sub 04)</Binding>
+          <Key>Shift + Control + 2</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Chordsplus (Sub 05)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Chordsplus (Sub 06)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Chordsplus (Sub 07)</Binding>
+          <Key>Shift + Control + 6</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Chordsplus (Sub 08)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Chordsplus (Sub 09)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Chordsplus (Sub 10)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Chordsplus (Sub 11)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Chordsplus (Sub 12)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Chordsplus 3-4 (Maj)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Chordsplus 4-3 (Min)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Chordsplus 4-3-4 (Maj7)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Chordsplus 3-4-3 (Min7)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Chordsplus 4-4-3 (Maj7+5)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Chordsplus 3-5-2 (Min7+5)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Chordsplus 4-3-3 (Maj Dominant 7th)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Chordsplus 3-4-4 (MinMaj7)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Chordsplus 4-3-4-3 (Maj9)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Chordsplus 3-4-3-3 (Min9)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Chordsplus 4-3-7 (Maj Added 9th)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Chordsplus 3-4-7 (Min Added 9th)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Chordsplus 4-7-3 (Maj9 Simplified)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Chordsplus 3-7-4 (Min9 Simplified)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Chordsplus 3-8-3 (mM9 Simplified)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Chordsplus 4-3-4-4 (MM9)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Chordsplus 3-4-4-3 (mM9)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Chordsplus 4-3-2-5 (Maj6 Add9)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Chordsplus 3-4-2-5 (Min6 Add9)</Binding>
+          <Key>Shift + Control + 1</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Chordsplus 2-5 (Sus2)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Chordsplus 5-2 (Sus4)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Chordsplus 5-2-3 (7Sus4)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Chordsplus 4-4 (Aug5)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Chordsplus 4-4-2 (Aug6)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Chordsplus 4-4-3 (Aug7)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Chordsplus 4-4-4 (Aug8)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Chordsplus 4-3-3-5 (Aug9)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Chordsplus 4-4-7 (Aug10)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Chordsplus 4-3-3-4-4 (Aug11)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Chordsplus 12-12-12 (Octaves)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Next Chord in List</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Clean Render Selected Track/Group</Binding>
+          <Key>Command + R</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Keep Sequence Sorted False</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Keep Sequence Sorted True</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Keep Sequence Sorted Toggle</Binding>
+          <Key>Shift + Command + N</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Capture Nearest Instrument and Octave (nojump)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Capture Nearest Instrument and Octave (jump)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -14534,6 +15191,94 @@
           <Topic>Paketti</Topic>
           <Binding>∿ Transpose -1 Note Column (Selection/Note Column)</Binding>
           <Key>Option + Command + A</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Phrase Editor Visible</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ OctaMED Pick Slot 01</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ OctaMED Put Slot 01</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ OctaMED Pick Slot 02</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ OctaMED Put Slot 02</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ OctaMED Pick Slot 03</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ OctaMED Put Slot 03</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ OctaMED Pick Slot 04</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ OctaMED Put Slot 04</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ OctaMED Pick Slot 05</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ OctaMED Put Slot 05</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ OctaMED Pick Slot 06</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ OctaMED Put Slot 06</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ OctaMED Pick Slot 07</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ OctaMED Put Slot 07</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ OctaMED Pick Slot 08</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ OctaMED Put Slot 08</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ OctaMED Pick Slot 09</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ OctaMED Put Slot 09</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ OctaMED Pick Slot 10</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ OctaMED Put Slot 10</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ OctaMED Pick/Put Dialog</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -14591,8 +15336,24 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
+          <Binding>∿ Impulse Tracker ALT-F Expand Selection Twice</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
           <Binding>∿ Impulse Tracker ALT-G Shrink Selection</Binding>
           <Key>Command + G</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Impulse Tracker ALT-G Shrink Selection Twice</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Impulse Tracker ALT-F Expand Selection Replicate</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Impulse Tracker ALT-G Shrink Selection Replicate</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -14658,11 +15419,80 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Capture Nearest Instrument and Octave (nojump)</Binding>
+          <Binding>∿ Impulse Tracker ALT-X *2 (Interpolate&amp;Clear Effect Columns)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Capture Nearest Instrument and Octave (jump)</Binding>
+          <Binding>∿ Switch to Automation</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Show Automation</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Clean Render Selected Track/Group LPB*2</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Clean Render Seamless Selected Track/Group</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Impulse Tracker Alt-M MixPaste - Save</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Impulse Tracker Alt-M MixPaste - Load</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Shrink to Triplets</Binding>
+          <Key>Control + T</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Triple (Experimental)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Impulse Tracker Shift-Right Selection In Pattern</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Impulse Tracker Shift-Left Selection In Pattern</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Impulse Tracker Shift-Down Selection In Pattern</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Impulse Tracker Shift-Up Selection In Pattern</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Slide Selected Column Content Down</Binding>
+          <Key>Command + Control + Down</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Slide Selected Column Content Up</Binding>
+          <Key>Command + Control + Up</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Slide Selected Track Content Up</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Slide Selected Track Content Down</Binding>
+          <Key>Option + Command + Down</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Impulse Tracker MixPaste</Binding>
+          <Key>Option + M</Key>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -15364,6 +16194,10 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
+          <Binding>∿ Interpolate Column Values (Effect)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
           <Binding>∿ Flood Fill Note and Instrument</Binding>
           <Key>Shift + Option + Grave</Key>
         </KeyBinding>
@@ -15759,6 +16593,16 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
+          <Binding>∿ Expose and Select Next Column</Binding>
+          <Key>Shift + Command + Right</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Hide Current and Select Previous Column</Binding>
+          <Key>Shift + Command + Left</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
           <Binding>∿ Set Pattern Length to LPB*001</Binding>
         </KeyBinding>
         <KeyBinding>
@@ -15799,239 +16643,84 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Keep Sequence Sorted False</Binding>
+          <Binding>∿ Clear Selected Track Below Current Row</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Keep Sequence Sorted True</Binding>
+          <Binding>∿ Clear All Tracks Below Current Row</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Keep Sequence Sorted Toggle</Binding>
-          <Key>Shift + Command + N</Key>
+          <Binding>∿ Match Current Sub Column Selection</Binding>
+          <Key>Shift + Command + E</Key>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Phrase Editor Visible</Binding>
+          <Binding>∿ Match Volume Column to Current Row</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ OctaMED Pick Slot 01</Binding>
+          <Binding>∿ Match Panning Column to Current Row</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ OctaMED Put Slot 01</Binding>
+          <Binding>∿ Match Delay Column to Current Row</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ OctaMED Pick Slot 02</Binding>
+          <Binding>∿ Nudge Down</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ OctaMED Put Slot 02</Binding>
+          <Binding>∿ Nudge Up</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ OctaMED Pick Slot 03</Binding>
+          <Binding>∿ Nudge with Delay (Down)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ OctaMED Put Slot 03</Binding>
+          <Binding>∿ Nudge with Delay (Up)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ OctaMED Pick Slot 04</Binding>
+          <Binding>∿ Toggle Note Off in Selected Tracks</Binding>
+          <Key>Option + Capital</Key>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ OctaMED Put Slot 04</Binding>
+          <Binding>∿ Duplicate Selection with Padding&amp;Move Cursor 1</Binding>
+          <Key>Shift + Option + D</Key>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ OctaMED Pick Slot 05</Binding>
+          <Binding>∿ Duplicate Selection with Padding&amp;Move Cursor 2</Binding>
+          <Key>Option + D</Key>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ OctaMED Put Slot 05</Binding>
+          <Binding>∿ Nudge and Paste Selection</Binding>
+          <Key>Shift + Command + Down</Key>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ OctaMED Pick Slot 06</Binding>
+          <Binding>∿ Nudge and Paste Selection + Deselect</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ OctaMED Put Slot 06</Binding>
+          <Binding>∿ Create New Pattern with Selection</Binding>
         </KeyBinding>
         <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ OctaMED Pick Slot 07</Binding>
+          <Topic>Paketti..</Topic>
+          <Binding>∿ Random Selected Notes Octave Up 25% Probability</Binding>
         </KeyBinding>
         <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ OctaMED Put Slot 07</Binding>
+          <Topic>Paketti..</Topic>
+          <Binding>∿ Random Selected Notes Octave Up 50% Probability</Binding>
         </KeyBinding>
         <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ OctaMED Pick Slot 08</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ OctaMED Put Slot 08</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ OctaMED Pick Slot 09</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ OctaMED Put Slot 09</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ OctaMED Pick Slot 10</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ OctaMED Put Slot 10</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ OctaMED Pick/Put Dialog</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Player Pro Transpose Selection or Row +1</Binding>
-          <Key>Shift + Command + Up</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Player Pro Transpose Selection or Row -1</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Player Pro Transpose Selection or Row +12</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Player Pro Transpose Selection or Row -12</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Open Player Pro Tools Dialog</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Clean Render Selected Track/Group</Binding>
-          <Key>Command + R</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Clean Render Selected Track/Group LPB*2</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Clean Render Seamless Selected Track/Group</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Chordsplus (Add 01)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Chordsplus (Add 02)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Chordsplus (Add 03)</Binding>
-          <Key>Shift + Control + 3</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Chordsplus (Add 04)</Binding>
-          <Key>Shift + Control + 4</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Chordsplus (Add 05)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Chordsplus (Add 06)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Chordsplus (Add 07)</Binding>
-          <Key>Shift + Control + 7</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Chordsplus (Add 08)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Chordsplus (Add 09)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Chordsplus (Add 10)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Chordsplus (Add 11)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Chordsplus (Add 12)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Chordsplus (Sub 01)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Chordsplus (Sub 02)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Chordsplus (Sub 03)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Chordsplus (Sub 04)</Binding>
-          <Key>Shift + Control + 2</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Chordsplus (Sub 05)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Chordsplus (Sub 06)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Chordsplus (Sub 07)</Binding>
-          <Key>Shift + Control + 6</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Chordsplus (Sub 08)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Chordsplus (Sub 09)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Chordsplus (Sub 10)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Chordsplus (Sub 11)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Chordsplus (Sub 12)</Binding>
+          <Topic>Paketti..</Topic>
+          <Binding>∿ Random Selected Notes Octave Up 75% Probability</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -16111,8 +16800,7 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Note Interpolation</Binding>
-          <Key>Shift + Command + I</Key>
+          <Binding>∿ Interpolate Notes</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -16178,128 +16866,19 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Chordsplus 3-4 (Maj)</Binding>
+          <Binding>∿ Interpolate Column Values (Volume)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Chordsplus 4-3 (Min)</Binding>
+          <Binding>∿ Interpolate Column Values (Delay)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Chordsplus 4-3-4 (Maj7)</Binding>
+          <Binding>∿ Interpolate Column Values (Panning)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Chordsplus 3-4-3 (Min7)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Chordsplus 4-4-3 (Maj7+5)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Chordsplus 3-5-2 (Min7+5)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Chordsplus 4-3-3 (Maj Dominant 7th)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Chordsplus 3-4-4 (MinMaj7)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Chordsplus 4-3-4-3 (Maj9)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Chordsplus 3-4-3-3 (Min9)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Chordsplus 4-3-7 (Maj Added 9th)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Chordsplus 3-4-7 (Min Added 9th)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Chordsplus 4-7-3 (Maj9 Simplified)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Chordsplus 3-7-4 (Min9 Simplified)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Chordsplus 3-8-3 (mM9 Simplified)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Chordsplus 4-3-4-4 (MM9)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Chordsplus 3-4-4-3 (mM9)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Chordsplus 4-3-2-5 (Maj6 Add9)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Chordsplus 3-4-2-5 (Min6 Add9)</Binding>
-          <Key>Shift + Control + 1</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Chordsplus 2-5 (Sus2)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Chordsplus 5-2 (Sus4)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Chordsplus 5-2-3 (7Sus4)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Chordsplus 4-4 (Aug5)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Chordsplus 4-4-2 (Aug6)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Chordsplus 4-4-3 (Aug7)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Chordsplus 4-4-4 (Aug8)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Chordsplus 4-3-3-5 (Aug9)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Chordsplus 4-4-7 (Aug10)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Chordsplus 4-3-3-4-4 (Aug11)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Chordsplus 12-12-12 (Octaves)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Next Chord in List</Binding>
+          <Binding>∿ Interpolate Column Values (Sample FX)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -16315,104 +16894,6 @@
           <Topic>Paketti</Topic>
           <Binding>∿ Invert All Subcolumns</Binding>
           <Key>Shift + Option + Control + V</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Nudge and Paste Selection</Binding>
-          <Key>Shift + Command + Down</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Nudge and Paste Selection + Deselect</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Duplicate Selection with Padding&amp;Move Cursor 1</Binding>
-          <Key>Shift + Option + D</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Duplicate Selection with Padding&amp;Move Cursor 2</Binding>
-          <Key>Option + D</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Impulse Tracker Alt-M MixPaste - Save</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Impulse Tracker Alt-M MixPaste - Load</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Shrink to Triplets</Binding>
-          <Key>Control + T</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Triple (Experimental)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Impulse Tracker Shift-Right Selection In Pattern</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Impulse Tracker Shift-Left Selection In Pattern</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Impulse Tracker Shift-Down Selection In Pattern</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Impulse Tracker Shift-Up Selection In Pattern</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Slide Selected Column Content Down</Binding>
-          <Key>Command + Control + Down</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Slide Selected Column Content Up</Binding>
-          <Key>Command + Control + Up</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Slide Selected Track Content Up</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Slide Selected Track Content Down</Binding>
-          <Key>Option + Command + Down</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Toggle Note Off in Selected Tracks</Binding>
-          <Key>Option + Capital</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Impulse Tracker MixPaste</Binding>
-          <Key>Option + M</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Match Current Sub Column Selection</Binding>
-          <Key>Shift + Command + E</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Match Volume Column to Current Row</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Match Panning Column to Current Row</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Match Delay Column to Current Row</Binding>
         </KeyBinding>
       </KeyBindings>
     </Category>
@@ -16795,6 +17276,10 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
+          <Binding>∿ Phrase Editor Visible</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
           <Binding>∿ Phase Inversion</Binding>
         </KeyBinding>
         <KeyBinding>
@@ -16841,7 +17326,15 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Phrase Editor Visible</Binding>
+          <Binding>∿ Normalize Selected Sample to -12dB</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Normalize Selected Instrument to -12dB</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Normalize All Instruments to -12dB</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -16953,6 +17446,14 @@
           <Topic>Paketti</Topic>
           <Binding>∿ Select Loop Range</Binding>
           <Key>Shift + Option + L</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Rotate Sample Buffer Upwards</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Rotate Sample Buffer Downwards</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -18031,10 +18532,12 @@
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Move Slice End Left by 100</Binding>
+          <Key>Shift + Command + Left</Key>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Move Slice End Right by 100</Binding>
+          <Key>Shift + Command + Right</Key>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -18089,14 +18592,6 @@
           <Topic>Paketti</Topic>
           <Binding>∿ Multiply Sample Buffer by 0.5</Binding>
           <Key>Command + P</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Rotate Sample Buffer Upwards</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Rotate Sample Buffer Downwards</Binding>
         </KeyBinding>
       </KeyBindings>
     </Category>
@@ -18421,16 +18916,17 @@
           <Key>Command + Back</Key>
         </KeyBinding>
         <KeyBinding>
-          <Topic>Tools</Topic>
-          <Binding>∿ Record GUI controls</Binding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Clean Render Selected Track/Group</Binding>
+          <Key>Command + R</Key>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Switch to Automation</Binding>
+          <Binding>∿ Capture Nearest Instrument and Octave (nojump)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Show Automation</Binding>
+          <Binding>∿ Capture Nearest Instrument and Octave (jump)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -18466,11 +18962,19 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Capture Nearest Instrument and Octave (nojump)</Binding>
+          <Binding>∿ Switch to Automation</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Capture Nearest Instrument and Octave (jump)</Binding>
+          <Binding>∿ Show Automation</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Clean Render Selected Track/Group LPB*2</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Clean Render Seamless Selected Track/Group</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -18485,19 +18989,6 @@
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Paketti Track Renamer Dialog...</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Clean Render Selected Track/Group</Binding>
-          <Key>Command + R</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Clean Render Selected Track/Group LPB*2</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Clean Render Seamless Selected Track/Group</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -19156,6 +19647,14 @@
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Jump to First Track In Previous Group</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti..</Topic>
+          <Binding>∿ Pattern Matrix Selection Expand</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti..</Topic>
+          <Binding>∿ Pattern Matrix Selection Shrink</Binding>
         </KeyBinding>
       </KeyBindings>
     </Category>
@@ -19921,6 +20420,38 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
+          <Binding>∿ Open Paketti Init Phrase Dialog...</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Record+Follow Off</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Phrase Editor Visible</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Init Phrase Settings</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Paketti Phrase Doubler</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Paketti Phrase Doubler (2nd)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Phrase Halver (Joule)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Phrase Halver (Joule) (2nd)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
           <Binding>∿ Impulse Tracker ALT-U Unmark Selection</Binding>
         </KeyBinding>
         <KeyBinding>
@@ -20086,38 +20617,6 @@
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Set Phrase LPB to 256</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Open Paketti Init Phrase Dialog...</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Record+Follow Off</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Phrase Editor Visible</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Init Phrase Settings</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Paketti Phrase Doubler</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Paketti Phrase Doubler (2nd)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Phrase Halver (Joule)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Phrase Halver (Joule) (2nd)</Binding>
         </KeyBinding>
       </KeyBindings>
     </Category>
@@ -20298,14 +20797,6 @@
         <KeyBinding>
           <Topic>Edit</Topic>
           <Binding>Open Editor</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Tools</Topic>
-          <Binding>∿ Setup automation device</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Tools</Topic>
-          <Binding>∿ Record GUI controls</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -20942,10 +21433,6 @@
         <KeyBinding>
           <Topic>Edit</Topic>
           <Binding>Open Editor</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Tools</Topic>
-          <Binding>∿ Record GUI controls</Binding>
         </KeyBinding>
       </KeyBindings>
     </Category>

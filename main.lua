@@ -1,3 +1,17 @@
+-- Global variables
+sampleEditor = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+patternEditor = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+sampleMappings = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_KEYZONES
+sampleModulation = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_MODULATION
+mixer = renoise.ApplicationWindow.MIDDLE_FRAME_MIXER
+phraseEditor = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_PHRASE_EDITOR
+midiEditor = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_MIDI_EDITOR
+sampleFX = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EFFECTS
+lowerTrackdsp=renoise.ApplicationWindow.LOWER_FRAME_TRACK_DSPS
+lowerAutomation=renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION
+upperScopes=renoise.ApplicationWindow.UPPER_FRAME_TRACK_SCOPES
+upperSpectrum=renoise.ApplicationWindow.UPPER_FRAME_MASTER_SPECTRUM
+
 local init_time = os.clock()
 
 function formatDigits(digits, number)
@@ -14,6 +28,15 @@ function selection_in_pattern_pro()
     return nil
   end
 
+
+
+
+
+
+
+
+
+  
   -- Debug: Print selection details
   print("Selection in Pattern:")
   print("Start Track:", selection.start_track)
@@ -105,13 +128,6 @@ print ("---------------------")
 
 local renoise_version = tonumber(string.match(renoise.RENOISE_VERSION, "(%d+%.%d+)"))
 
-
-
-
-
-
-
-
 if renoise_version == 2.8 then
 --December 15, 2011, Renoise 2.8 only
 --esaruoho
@@ -126,7 +142,7 @@ function EZMaximizeSpectrum()
   w.active_upper_frame=4
   w.upper_frame_is_visible=true
   w.lower_frame_is_visible=false
-  renoise.app():show_status("Current BPM: " .. t.bpm .. " Current LPB: " .. t.lpb .. ". You are feeling fine. Playback started.")
+  renoise.app():show_status("Current BPM: " .. t.bpm .. " Current LPB: " .. t.lpb .. ". Playback started.")
   end
   
   renoise.tool():add_keybinding{name="Global:Paketti:EZ Maximize Spectrum",invoke=function() EZMaximizeSpectrum() end}
@@ -134,6 +150,9 @@ function EZMaximizeSpectrum()
   renoise.tool():add_menu_entry{name="Mixer:EZ Maximize Spectrum",invoke=function() EZMaximizeSpectrum() end}
   renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:EZ Maximize Spectrum",invoke=function() EZMaximizeSpectrum() end}
 end
+
+
+
 
 timed_require("rx")                          -- 2318 lines, 2.00 ms
 timed_require("Paketti0G01_Loader")          -- 857 lines, 4.00 ms
@@ -145,7 +164,7 @@ timed_require("PakettiPlayerProSuite")       -- 852 lines, 3.00 ms
 --end  
 timed_require("PakettiChordsPlus")
 
-
+timed_require("PakettiLaunchApp")
 
 
 -- Quick loads (under 1ms)
@@ -160,11 +179,17 @@ timed_require("PakettiLoadPlugins")          -- 534 lines, 0.50 ms
 timed_require("PakettiPatternSequencer")     -- 47 lines, 0.50 ms
 timed_require("PakettiPatternMatrix")        -- 176 lines, 0.50 ms
 timed_require("PakettiInstrumentBox")        -- 280 lines, 0.50 ms
-timed_require("PakettiColuga")               -- 854 lines, 1.00 ms
+timed_require("PakettiYTDLP")               -- 854 lines, 1.00 ms
 timed_require("PakettiStretch")              -- 925 lines, 1.50 ms
 timed_require("PakettiBeatDetect")           -- 396 lines, 1.00 ms
 timed_require("PakettiStacker")              -- 518 lines, 1.00 ms
 timed_require("PakettiRecorder")             -- 403 lines, 1.00 ms
+
+
+
+
+
+
 
 -- Light loads (>1ms)
 timed_require("PakettiControls")             -- 544 lines, 1.00 ms
@@ -242,14 +267,12 @@ end
 
 --local PakettiAutomationDoofer=false
 
-
 function startup()  
   if preferences.pakettiEditMode.value == 2 and renoise.song().transport.edit_mode then 
     for i = 1,#renoise.song().tracks do
       renoise.song().tracks[i].color_blend=0 
     end
 --renoise.song().selected_track.color_blend = 40 
-
 
   end
    local s=renoise.song()
@@ -287,4 +310,3 @@ function dbug(msg)
 end
 
 _AUTO_RELOAD_DEBUG = true
-

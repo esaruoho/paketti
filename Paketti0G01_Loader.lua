@@ -237,16 +237,16 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
     pakettiRandomizeAllPluginsPercentageUserPreference4=40,
     pakettiRandomizeAllPluginsPercentageUserPreference5=50
   },
-  pakettiColuga = {
-    pakettiColugaLoopMode=2,
-    pakettiColugaClipLength=10,
-    pakettiColugaAmountOfVideos=1,
-    pakettiColugaLoadWholeVideo=true,
-    pakettiColugaOutputDirectory="Set this yourself, please.",
-    pakettiColugaFormatToSave=1,
-    pakettiColugaPathToSave="<No path set>",
-    pakettiColugaNewInstrumentOrSameInstrument=true,
-    pakettiColugaYT_DLPLocation="/opt/homebrew/bin/yt-dlp"  
+  PakettiYTDLP = {
+    PakettiYTDLPLoopMode=2,
+    PakettiYTDLPClipLength=10,
+    PakettiYTDLPAmountOfVideos=1,
+    PakettiYTDLPLoadWholeVideo=true,
+    PakettiYTDLPOutputDirectory="Set this yourself, please.",
+    PakettiYTDLPFormatToSave=1,
+    PakettiYTDLPPathToSave="<No path set>",
+    PakettiYTDLPNewInstrumentOrSameInstrument=true,
+    PakettiYTDLPYT_DLPLocation="/opt/homebrew/bin/yt-dlp"  
   },  
   pakettiCheatSheet = {
     pakettiCheatSheetRandomize=false,
@@ -326,7 +326,7 @@ pakettiThemeSelector = renoise.tool().preferences.pakettiThemeSelector
 WipeSlices = renoise.tool().preferences.WipeSlices
 AppSelection = renoise.tool().preferences.AppSelection
 RandomizeSettings = renoise.tool().preferences.RandomizeSettings
-pakettiColuga = renoise.tool().preferences.pakettiColuga
+PakettiYTDLP = renoise.tool().preferences.PakettiYTDLP
 DynamicViewPrefs = renoise.tool().preferences.PakettiDynamicViews
 
 

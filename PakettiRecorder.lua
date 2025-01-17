@@ -1,87 +1,108 @@
----------------------------------------------------------------------------------------------------
---Set the next ReWire channel - shortcut. If you have a pre-configured 32 input ReWire master host
---running, you can just press a shortcut and get it to play in the track of your choice (on your
---master host that is). This is a really simple thing, but it works after a fashion and does
---what I wanted it to do.
-function next_rewire()
-local s=renoise.song()
-local current=s.selected_track.output_routing
-local st=s.selected_track
-if current=="Master Track" then st.output_routing="Bus 01 L/R"
-elseif current=="Bus 01 L/R" then st.output_routing="Bus 02 L/R"
-elseif current=="Bus 02 L/R" then st.output_routing="Bus 03 L/R"
-elseif current=="Bus 03 L/R" then st.output_routing="Bus 04 L/R"
-elseif current=="Bus 04 L/R" then st.output_routing="Bus 05 L/R"
-elseif current=="Bus 05 L/R" then st.output_routing="Bus 06 L/R"
-elseif current=="Bus 06 L/R" then st.output_routing="Bus 07 L/R"
-elseif current=="Bus 07 L/R" then st.output_routing="Bus 08 L/R"
-elseif current=="Bus 08 L/R" then st.output_routing="Bus 09 L/R"
-elseif current=="Bus 09 L/R" then st.output_routing="Bus 10 L/R"
-elseif current=="Bus 10 L/R" then st.output_routing="Bus 11 L/R"
-elseif current=="Bus 11 L/R" then st.output_routing="Bus 12 L/R"
-elseif current=="Bus 12 L/R" then st.output_routing="Bus 13 L/R"
-elseif current=="Bus 13 L/R" then st.output_routing="Bus 14 L/R"
-elseif current=="Bus 14 L/R" then st.output_routing="Bus 15 L/R"
-elseif current=="Bus 15 L/R" then st.output_routing="Bus 16 L/R"
-elseif current=="Bus 16 L/R" then st.output_routing="Bus 17 L/R"
-elseif current=="Bus 17 L/R" then st.output_routing="Bus 18 L/R"
-elseif current=="Bus 18 L/R" then st.output_routing="Bus 19 L/R"
-elseif current=="Bus 19 L/R" then st.output_routing="Bus 20 L/R"
-elseif current=="Bus 20 L/R" then st.output_routing="Bus 21 L/R"
-elseif current=="Bus 21 L/R" then st.output_routing="Bus 22 L/R"
-elseif current=="Bus 22 L/R" then st.output_routing="Bus 23 L/R"
-elseif current=="Bus 23 L/R" then st.output_routing="Bus 24 L/R"
-elseif current=="Bus 24 L/R" then st.output_routing="Bus 25 L/R"
-elseif current=="Bus 25 L/R" then st.output_routing="Bus 26 L/R"
-elseif current=="Bus 26 L/R" then st.output_routing="Bus 27 L/R"
-elseif current=="Bus 27 L/R" then st.output_routing="Bus 28 L/R"
-elseif current=="Bus 28 L/R" then st.output_routing="Bus 29 L/R"
-elseif current=="Bus 29 L/R" then st.output_routing="Bus 30 L/R"
-elseif current=="Bus 30 L/R" then st.output_routing="Bus 31 L/R"
-elseif current=="Bus 31 L/R" then st.output_routing="Master Track"
-end
-renoise.app():show_status("Current Track output set to: " .. st.output_routing) 
+local contour_sample_timer = nil
+
+function contourShuttleRecord()
+  local w = renoise.app().window
+  local t = renoise.song().transport
+  
+  if not w.sample_record_dialog_is_visible then
+    w.sample_record_dialog_is_visible = true
+    t:start_stop_sample_recording()
+  else
+    t:start_stop_sample_recording()
+    
+    -- Clean up existing timer if any
+    if contour_sample_timer and renoise.tool():has_timer(contourShuttleRecordMonitor) then
+      renoise.tool():remove_timer(contourShuttleRecordMonitor)
+      contour_sample_timer = nil
+    end
+    
+    -- Start new timer to monitor recording completion
+    contour_sample_timer = renoise.tool():add_timer(contourShuttleRecordMonitor, 100)
+  end
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Set ReWire Channel (Next)", invoke=function() next_rewire() end  }
-----------------------------------------------------------------------------------------------------------
-
--- //TODO: since notifiers do not work, how to find a workaround??
-function contourShuttleRecordPrototype()
-if not renoise.app().window.sample_record_dialog_is_visible
-then renoise.app().window.sample_record_dialog_is_visible=true
+function contourShuttleRecordMonitor()
+  local s = renoise.song()
+  
+  if s.selected_sample and s.selected_sample.sample_buffer.has_sample_data then
+    -- Recording finished, set properties
+    s.selected_sample.autoseek = true
+    s.selected_sample.autofade = true
+    
+    -- Stop monitoring
+    contour_sample_timer = nil
+    renoise.tool():remove_timer(contourShuttleRecordMonitor)
+    return false
+  end
+  -- Continue monitoring
+  return true
 end
-renoise.song().transport:start_stop_sample_recording()
-end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Contour Shuttle Record Prototype", invoke=function() contourShuttleRecordPrototype() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Contour Shuttle Record On/Off", invoke=function() contourShuttleRecord() end}
 ----
---Sampler which returns to sample editor.
-function sample_and_to_sample_editor()
+-- Keep track of the active timer
+local paketti_sample_timer = nil
+
+function PakettiSampleAndToSampleEditor()
   local w=renoise.app().window
   local t=renoise.song().transport
- if w.sample_record_dialog_is_visible==false then
- w.sample_record_dialog_is_visible=true
- t:start_stop_sample_recording()
- else
--- delay(1)
- t:start_stop_sample_recording()
-    w.active_upper_frame = 1
-    w.active_middle_frame = 5
-    w.lock_keyboard_focus=true
- end
-
-
+  local s=renoise.song()
+  
+  if w.sample_record_dialog_is_visible==false then
+    -- Check if there's already a selected sample and create new instrument if needed
+    if s.selected_sample then
+      local new_instrument_index=s.selected_instrument_index + 1
+      s:insert_instrument_at(new_instrument_index)
+      s.selected_instrument_index=new_instrument_index
+    end
+    
+    -- Start recording
+    w.sample_record_dialog_is_visible=true
+    t:start_stop_sample_recording()
+  else
+    -- Stop recording and start monitoring for completion
+    t:start_stop_sample_recording()
+    
+    -- Clean up existing timer if any
+    if paketti_sample_timer and renoise.tool():has_timer(PakettiSampleAndToSampleEditorMonitor) then
+      renoise.tool():remove_timer(PakettiSampleAndToSampleEditorMonitor)
+      paketti_sample_timer = nil
+    end
+    
+    -- Start new timer
+    paketti_sample_timer = renoise.tool():add_timer(PakettiSampleAndToSampleEditorMonitor, 100)
+  end
 end
 
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:WIP:Start Sampling (Record)", invoke=function() sample_and_to_sample_editor()
-renoise.app().window.sample_record_dialog_is_visible=true end}  
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:WIP:Start Sampling (Record)", invoke=function() sample_and_to_sample_editor()
-renoise.app().window.sample_record_dialog_is_visible=true end}  
-renoise.tool():add_keybinding{name="Global:Paketti:Sample NOW then F3 (Record)", invoke=function() sample_and_to_sample_editor()
-F3() end}
+function PakettiSampleAndToSampleEditorMonitor()
+  local s=renoise.song()
+  
+  if s.selected_sample and s.selected_sample.sample_buffer.has_sample_data then
+    PakettiSampleAndToSampleEditorFinish()
+    -- Stop monitoring
+    paketti_sample_timer = nil
+    renoise.tool():remove_timer(PakettiSampleAndToSampleEditorMonitor)
+    return false
+  end
+  -- Continue monitoring
+  return true
+end
 
--------
+function PakettiSampleAndToSampleEditorFinish()
+  local w=renoise.app().window
+  w.active_upper_frame=1
+  w.active_middle_frame=5
+  w.lock_keyboard_focus=true
+  renoise.song().selected_sample.autoseek=true
+  renoise.song().selected_sample.autofade=true
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Start Sampling and Sample Editor (Record)", invoke=function() PakettiSampleAndToSampleEditor() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Record..:Start Sampling and Sample Editor (Record)", invoke=function() PakettiSampleAndToSampleEditor() end}  
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Record..:Start Sampling and Sample Editor (Record)", invoke=function() PakettiSampleAndToSampleEditor() end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Record..:Start Sampling and Sample Editor (Record)", invoke=function() PakettiSampleAndToSampleEditor() end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Record..:Start Sampling and Sample Editor (Record)", invoke=function() PakettiSampleAndToSampleEditor() end}
+  -------
 
 -----
 function instrument_is_empty(instrument)
@@ -111,92 +132,9 @@ function search_empty_instrument()
   return #proc.instruments
 end
 --------------------------------------------------------------------------------------------------------
---This records to currently selected track and outputs 0G01 and C-4 and selected_instrument
-function recordtocurrenttrack()
-renoise.song().transport.edit_mode=false
- local s=renoise.song()
- local ss=s.selected_sample
- local t=renoise.song().transport
- local w=renoise.app().window 
-  w.active_lower_frame=2
- local currTrak=s.selected_track_index
- local currSamp=s.selected_sample_index
-    if t.playing==false then
-    t.playing=true end
-    
- local name = nil
-    if s.selected_track_index<10 then 
-    name="Track 0".. s.selected_track_index
-    else
-    name="Track ".. s.selected_track_index
-    end
-    
-     if s.tracks[currTrak].name==name
-     then s.tracks[currTrak].name=" 1"
-     end
-     
-       if  s.tracks[currTrak].name==" 12" then 
- local nexttrack=s.selected_track_index+1
-           s:insert_track_at(nexttrack)
-           s.selected_track_index=s.selected_track_index+1
-           s.tracks[s.selected_track_index].name=" 1"
-       end
-
-s.selected_instrument_index = search_empty_instrument()
-
- w.sample_record_dialog_is_visible=true   
- t:start_stop_sample_recording()
- if s.selected_sample == nil then return else 
-  if s.selected_sample.sample_buffer_observable:has_notifier(finalrecord) == false then 
-     s.selected_sample.sample_buffer_observable:add_notifier(finalrecord)
-     oprint ("kukkuu")
-     else
-     ss.sample_buffer_observable:remove_notifier(finalrecord)
-     oprint ("kikkii")
-  end
-  end
 --  delay(3)
 --  renoise.song().transport:trigger_sequence(1)
-end
---------------------------------------------------------------------------------------------------
-function finalrecord()
-  local s=renoise.song()
-  local ss=s.selected_sample
-  local currTrak=s.selected_track_index
-  local currPatt=s.selected_pattern_index
-  local currSamp=renoise.song().selected_sample_index
-  local currInst=s.selected_instrument_index
-
-  local w=renoise.app().window
-  local rightinstrument=nil
-  local place=nil 
-  local zero=nil
-  local o=nil
-  local rightinstrument=renoise.song().selected_instrument_index-1
-  local nc=s.patterns[currPatt].tracks[currTrak].lines[1].note_columns
-  local selnotcol=renoise.song().selected_note_column_index
-  local vnc=renoise.song().tracks[currTrak].visible_note_columns
-
-      w.sample_record_dialog_is_visible=false 
-      w.active_lower_frame=2
-      ss.autoseek=true
-      s.patterns[currPatt].tracks[currTrak].lines[1].effect_columns[1].number_string="0G"
-      s.patterns[currPatt].tracks[currTrak].lines[1].effect_columns[1].amount_string="01"
-              
-    for o = 1,12 do 
-      if nc[o].note_string=="---" then 
-        s.patterns[currPatt].tracks[currTrak].lines[1].note_columns[o].note_string="C-4"
-        s.patterns[currPatt].tracks[currTrak].lines[1].note_columns[o].instrument_value=rightinstrument
-         if vnc < o then
-          s.tracks[currTrak].visible_note_columns=o
-          renoise.song().tracks[currTrak].name=" " .. o
-         end
-        break
-      end 
-    end
-  local t=renoise.song().transport
-  local seq=renoise.song().selected_sequence_index
-  local startpos = renoise.song().transport.playback_pos  
+---
 --t:panic()
 --t:start(renoise.Transport.PLAYMODE_RESTART_PATTERN)
 --  startpos.line = renoise.song().selected_line_index
@@ -204,113 +142,533 @@ function finalrecord()
 --  renoise.song().transport.playback_pos = startpos
 --  t:start(renoise.Transport.PLAYMODE_CONTINUE_PATTERN)
 --  ss.sample_buffer_observable:remove_notifier(finalrecord) 
-  if ss.sample_buffer_observable:has_notifier(finalrecord) then 
+--[[  if ss.sample_buffer_observable:has_notifier(finalrecord) then 
      ss.sample_buffer_observable:remove_notifier(finalrecord)
      return
   end
   end
+]]--
 
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:WIP:Record to Current Track", invoke=function() recordtocurrenttrack() end}
---renoise.tool():add_menu_entry{name="Mixer:Paketti..:WIP:Record to Current Track", invoke=function() recordtocurrenttrack() end}
---renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:WIP:Record to Current Track", invoke=function() recordtocurrenttrack() end}
---renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti..:WIP:Record to Current Track", invoke=function() recordtocurrenttrack() end}
-renoise.tool():add_keybinding{name="Global:Paketti:Record to Current Track", invoke=function() 
-  local s=renoise.song()
-  local t=s.transport
+---------------------------------------------------------------------------------
+-- Paketti: Record to Current Track+Plus (Complete Version with max_columns)
+--
+-- This script:
+--   - Toggles recording (start/stop) with three parameters:
+--       use_metronome (bool), use_lineinput (bool), max_columns (number)
+--   - If row1 has reached "max_columns" used columns, creates a new track
+--     after the current one
+--   - Optionally creates a new instrument if the current one isn't empty
+--   - Names the track as "overdubXX"
+--   - Names the instrument as "overdubXX PTN:<len> BPM:<bpm> LPB:<lpb>"
+--   - Adds / removes #Line Input if use_lineinput == true
+--   - Enables / disables the metronome if use_metronome == true
+--   - Places a note on row1 of the pattern
+--   - Trims 959 frames from the end of the recorded sample, sets autofade/autoseek
+--------------------------------------------------------------------------------
 
-  recordtocurrenttrack()
-  s.selected_instrument_index = search_empty_instrument()
-  if not t.playing then t.playing=true end
 
-  t.follow_player=true
-  t.loop_block_enabled=false
-  renoise.app().window.lower_frame_is_visible=true
-  renoise.app().window.active_lower_frame=2
-end}
+--------------------------------------------------------------------------------
+-- Globals / State
+--------------------------------------------------------------------------------
 
- renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Xperimental/Work in Progress:Start Sampling (Record)", invoke=function()
-local s=renoise.song()
-local t=s.transport
-if not t.playing then t.playing=true end
+local am_i_recording = false
+local recording_instrument = nil
+local paketti_record_timer = nil
+local monitor_has_printed = nil
 
-recordtocurrenttrack() 
-s.selected_instrument_index = search_empty_instrument()
-  if t.playing==false then t.playing=true end
- local seq=renoise.song().selected_sequence_index
- local startpos = renoise.song().transport.playback_pos  
- t.follow_player=true
- t.loop_block_enabled=false
- t.follow_player=true
- renoise.app().window.lower_frame_is_visible=true
- renoise.app().window.active_lower_frame=2 end}
+-- These store the user's choices per recording session
+local record_use_metronome = false
+local record_use_lineinput = false
+local record_max_columns = 12  -- default to 12 columns if not specified
 
-renoise.tool():add_keybinding{name="Global:Paketti:Record to Current Track w/Metronome", invoke=function() 
-local s=renoise.song()
-local t=s.transport
 
-if t.metronome_enabled==false then t.metronome_enabled=true
-else
-t.metronome_enabled=false
+--------------------------------------------------------------------------------
+-- recordtocurrenttrack(use_metronome, use_lineinput, max_columns)
+--
+-- Toggles start/stop recording based on am_i_recording.
+--   If am_i_recording == false, we start recording.
+--   If am_i_recording == true, we stop recording.
+-- We also:
+--   - turn metronome on/off if requested
+--   - add/remove line input if requested
+--   - optionally create a new instrument if current one isn't empty
+--   - store "max_columns" for deciding if row1 is "full"
+--------------------------------------------------------------------------------
+function recordtocurrenttrack(use_metronome, use_lineinput, max_columns)
+  local s = renoise.song()
+  local t = s.transport
+  local track = s.selected_track
+
+  -- If user omitted max_columns, default to 12
+  if (max_columns == nil) then
+    max_columns = 12
+  end
+
+  print("=== recordtocurrenttrack() called ===")
+  print("  am_i_recording:", am_i_recording)
+  print("  use_metronome:", use_metronome,
+        " use_lineinput:", use_lineinput,
+        " max_columns:", max_columns)
+  print("  Selected track idx:", s.selected_track_index,
+        "  Selected instrument idx:", s.selected_instrument_index)
+
+  ------------------------------------------------------------------------------
+  -- START RECORDING
+  ------------------------------------------------------------------------------
+  if (not am_i_recording) then
+    am_i_recording = true
+    print("== START RECORDING ==")
+
+    -- Remember user choices so finalrecord() can see them
+    record_use_metronome = use_metronome
+    record_use_lineinput = use_lineinput
+    record_max_columns   = max_columns
+
+    -- 1) Check if the selected track is a sequencer track
+    if track.type ~= renoise.Track.TRACK_TYPE_SEQUENCER then
+      renoise.app():show_status("Please select a normal sequencer track with note columns.")
+      print("  Selected track is not a sequencer track. Aborting.")
+      am_i_recording = false
+      return
+    end
+
+    -- 2) If user wants metronome, enable it
+    if record_use_metronome then
+      t.metronome_enabled = true
+      print("  Turned ON the metronome.")
+    end
+
+    -- 3) Show the Sample Recorder dialog
+    renoise.app().window.sample_record_dialog_is_visible = true
+
+    -- 4) If user wants line input, ensure #Line Input is present
+    if record_use_lineinput then
+      local has_line_input = false
+      for _, device in ipairs(track.devices) do
+        if (device.name == "#Line Input") then
+          has_line_input = true
+          break
+        end
+      end
+      if not has_line_input then
+        loadnative("Audio/Effects/Native/#Line Input")
+        print("  Added #Line Input to the current track.")
+      end
+    end
+
+    -- 5) Check if the current instrument is empty; if not, create a new instrument
+    local curr_instr_idx = s.selected_instrument_index
+    local curr_instr = s.instruments[curr_instr_idx]
+    local is_empty_instrument =
+      (#curr_instr.samples == 0) and
+      (not curr_instr.plugin_properties.plugin_loaded)
+
+    if not is_empty_instrument then
+      -- Insert a new instrument at "current index + 1"
+      local new_instr_idx = curr_instr_idx + 1
+      if new_instr_idx > (#s.instruments + 1) then
+        new_instr_idx = #s.instruments + 1
+      end
+      s:insert_instrument_at(new_instr_idx)
+      s.selected_instrument_index = new_instr_idx
+      print(("  Current instrument not empty; created new instr at index %d."):
+        format(new_instr_idx))
+    end
+
+    pakettiPreferencesDefaultInstrumentLoader()
+  -- 6) Store the index of the instrument we are recording into
+    recording_instrument = s.selected_instrument_index
+    print("  Recording instrument set to:", recording_instrument)
+
+    -- 7) Start Renoise’s sample recording
+    t:start_stop_sample_recording()
+
+  ------------------------------------------------------------------------------
+  -- STOP RECORDING
+  ------------------------------------------------------------------------------
+  else
+    am_i_recording = false
+    print("== STOP RECORDING ==")
+
+    -- 1) Stop sample recording
+    local t = renoise.song().transport
+    t:start_stop_sample_recording()
+
+    -- 2) Add a timer to monitor sample data
+    if recording_instrument then
+      if renoise.tool():has_timer(recordtocurrenttrackMonitor) then
+        print("  Timer already exists, not adding another.")
+      else
+        renoise.tool():add_timer(recordtocurrenttrackMonitor, 100)
+        paketti_record_timer = true
+        print("  Added recordtocurrenttrackMonitor timer.")
+      end
+    else
+      print("  No recording_instrument set; unexpected scenario.")
+    end
+  end
 end
-recordtocurrenttrack() 
-s.selected_instrument_index = search_empty_instrument()
- if t.playing==false then t.playing=true end
- local seq=s.selected_sequence_index
- local startpos = t.playback_pos  
- t.follow_player=true
---t:panic()
- t.loop_block_enabled=false
- --startpos.line = renoise.song().selected_line_index
- --startpos.sequence = renoise.song().selected_sequence_index
- --renoise.song().transport.playback_pos = startpos
- --t:start(renoise.Transport.PLAYMODE_CONTINUE_PATTERN)
- t.follow_player=true
- renoise.app().window.lower_frame_is_visible=true
- renoise.app().window.active_lower_frame=2 end}
- 
---renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:WIP:Record to Current Track", invoke=function() recordtocurrenttrack() end}
---renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:WIP:Start Sampling (Record)", invoke=function() sample_and_to_sample_editor() renoise.app().window.sample_record_dialog_is_visible=true end}  
--------------
+
+
+--------------------------------------------------------------------------------
+-- recordtocurrenttrackMonitor()
+-- Checks every 100 ms if the sample buffer is ready, or if user closed the dialog.
+--------------------------------------------------------------------------------
+function recordtocurrenttrackMonitor()
+  local s = renoise.song()
+  local w = renoise.app().window
+
+  -- If user forcibly closed the recorder while we still think we're recording
+  if am_i_recording and (not w.sample_record_dialog_is_visible) then
+    print(">> Detected user closed the sample recorder dialog.")
+    renoise.app():show_status(
+      "Detected Sample Recorder was closed. Catching recorded sample..."
+    )
+    am_i_recording = false
+
+    -- Check if sample data is present
+    if s.selected_sample
+       and s.selected_sample.sample_buffer
+       and s.selected_sample.sample_buffer.has_sample_data
+       and (s.selected_instrument_index == recording_instrument)
+    then
+      print("   Some sample data is present; calling finalrecord().")
+      finalrecord()
+    else
+      print("   No sample data found => aborting silently.")
+      cleanupMonitorAndVars()
+    end
+    return false
+  else
+    -- Normal polling for sample data
+    if not monitor_has_printed then
+      print("Monitoring for sample data in instrument:", recording_instrument)
+      monitor_has_printed = true
+    else
+      io.write(".")
+      io.flush()
+    end
+
+    if s.selected_sample
+       and s.selected_sample.sample_buffer
+       and s.selected_sample.sample_buffer.has_sample_data
+       and (s.selected_instrument_index == recording_instrument)
+    then
+      print("\nSample data found, calling finalrecord()...")
+      print ("123 and " .. renoise.song().selected_sample.sample_buffer.number_of_frames)
+
+      finalrecord()
+      return false
+    end
+
+    return true
+  end
+end
+
+
+--------------------------------------------------------------------------------
+-- finalrecord()
+-- We remove line input if requested, turn off metronome if requested,
+-- place the note (row1 only). If row1 has "record_max_columns" used columns,
+-- we create a new track after the old one, place the note, rename track & instrument,
+-- etc. Also trims 959 frames from the end of the recorded sample, sets autofade/autoseek.
+--------------------------------------------------------------------------------
+function finalrecord()
+  print(">>> finalrecord triggered!")
+  local s = renoise.song()
+  local curr_track_idx = s.selected_track_index
+  local curr_track = s.selected_track
+
+  -- A) If track is not sequencer, fail.
+  if curr_track.type ~= renoise.Track.TRACK_TYPE_SEQUENCER then
+    renoise.app():show_status("Please select a normal sequencer track. Aborting finalrecord.")
+    print("  Current track not a sequencer track, aborting finalrecord.")
+    cleanupMonitorAndVars()
+    return
+  end
+
+  local pattern_idx  = s.selected_pattern_index
+  local pattern_track = s.patterns[pattern_idx].tracks[curr_track_idx]
+  local line1 = pattern_track.lines[1]
+
+  -- B) If we used line input, remove it
+  if record_use_lineinput then
+    for i, device in ipairs(curr_track.devices) do
+      if (device.name == "#Line Input") then
+        curr_track:delete_device_at(i)
+        print("  Removed #Line Input from track.")
+        break
+      end
+    end
+  end
+
+  -- C) If we used metronome, turn it off
+  if record_use_metronome then
+    s.transport.metronome_enabled = false
+    print("  Turned OFF the metronome.")
+  end
+
+  ------------------------------------------------------------------------------
+  -- D) Place the note in row1. If row1 is full (meaning record_max_columns used),
+  --    create a new track. Then rename track & instrument. Also do sample trimming.
+  ------------------------------------------------------------------------------
+  local right_instrument_value = s.selected_instrument_index - 1
+  local target_column = 1
+
+  -- We search only up to record_max_columns
+  for i = 1, record_max_columns do
+    if line1.note_columns[i].note_string ~= "---" then
+      target_column = i + 1
+    end
+  end
+
+  -- If target_column > record_max_columns => row1 is "full"
+  if target_column > record_max_columns then
+    local new_track_index = curr_track_idx + 1
+    if new_track_index > (#s.tracks + 1) then
+      new_track_index = #s.tracks + 1
+    end
+
+    s:insert_track_at(new_track_index)
+    s.selected_track_index = new_track_index
+    print(("  The old track is full (row1 has %d used columns). " ..
+          "Created new track AFTER old track at index %d."):
+          format(record_max_columns, new_track_index))
+
+    local new_track = s.selected_track
+    if new_track.type ~= renoise.Track.TRACK_TYPE_SEQUENCER then
+      renoise.app():show_status("New track is not a sequencer track. Aborting note placement.")
+      print("  New track is not a sequencer track, aborting note placement.")
+      cleanupMonitorAndVars()
+      return
+    end
+
+    local new_pattern_track = s.patterns[pattern_idx].tracks[new_track_index]
+    local new_line1 = new_pattern_track.lines[1]
+
+    -- Place note in col1
+    new_line1.note_columns[1].note_string      = "C-4"
+    new_line1.note_columns[1].instrument_value = right_instrument_value
+    new_line1.effect_columns[1].number_string  = "0G"
+    new_line1.effect_columns[1].amount_string  = "01"
+
+    -- Visible columns = 1 (a brand new track normally starts with 1 column)
+    s.tracks[new_track_index].visible_note_columns = 1
+    local col_count = s.tracks[new_track_index].visible_note_columns
+    s.tracks[new_track_index].name = ("Overdub%02d"):format(col_count)
+
+    local pat_length  = s.patterns[s.selected_pattern_index].number_of_lines
+    local current_bpm = math.floor(s.transport.bpm)
+    local current_lpb = s.transport.lpb
+    local new_instr_name =
+      ("Overdub%02d PTN:%d BPM:%d LPB:%d"):format(col_count, pat_length, current_bpm, current_lpb)
+
+    s.instruments[s.selected_instrument_index].name = new_instr_name
+
+    print(("  Placed C-4 (instr %d) in col1 of new track's row1. " ..
+           "Track named '%s', instrument named '%s'."):
+        format(
+          right_instrument_value,
+          s.tracks[new_track_index].name,
+          new_instr_name
+        ))
+
+  else
+    -- Not full => place note in the old track at target_column
+    s.tracks[curr_track_idx].visible_note_columns = target_column
+    line1.note_columns[target_column].note_string      = "C-4"
+    line1.note_columns[target_column].instrument_value = right_instrument_value
+    line1.effect_columns[1].number_string             = "0G"
+    line1.effect_columns[1].amount_string             = "01"
+
+    ----------------------------------------------------------------------------
+    -- Trim sample
+    ----------------------------------------------------------------------------
+    local sample_buffer = s.selected_sample.sample_buffer
+    print ("ABC" .. sample_buffer.number_of_frames)
+
+    renoise.song().selected_sample.sample_buffer:prepare_sample_data_changes()
+    local sample_buffer = s.selected_sample.sample_buffer
+    print ("DEF" .. sample_buffer.number_of_frames)
+    if sample_buffer and sample_buffer.has_sample_data then
+
+
+      
+      
+      local current_frames = sample_buffer.number_of_frames
+      local new_length = current_frames
+      
+      local current_framesv2=renoise.song().selected_sample.sample_buffer.number_of_frames
+
+      -- Special case for 336960 frames
+      if current_framesv2 == 336960 then
+        new_length = 336000
+      else
+        -- For all other cases, remove 3500 frames from the end
+        new_length = current_framesv2 - 3500
+      end
+      
+      if new_length > 0 then
+        local sample_rate  = sample_buffer.sample_rate
+        local bit_depth    = sample_buffer.bit_depth
+        local num_channels = sample_buffer.number_of_channels
+        
+        local temp_data = {}
+        for channel = 1, num_channels do
+          temp_data[channel] = {}
+          for frame = 1, new_length do
+            temp_data[channel][frame] = sample_buffer:sample_data(channel, frame)
+          end
+        end
+        print("Oh I'm definitely doing something to the sample now.")
+        sample_buffer:delete_sample_data()
+        local success = sample_buffer:create_sample_data(
+          sample_rate,
+          bit_depth,
+          num_channels,
+          new_length)
+          
+        if success and sample_buffer.has_sample_data then
+          for channel = 1, num_channels do
+            for frame = 1, new_length do
+              sample_buffer:set_sample_data(channel, frame, temp_data[channel][frame])
+            end
+          end
+        end
+      end
+    end  
+    renoise.song().selected_sample.sample_buffer:finalize_sample_data_changes()
+
+    -- Set autofade / autoseek
+    s.selected_sample.autofade = true
+    local amf=renoise.app().window.active_middle_frame
+    renoise.app().window.active_middle_frame = amf 
+    --s.selected_sample.autoseek = true
+    ----------------------------------------------------------------------------
+    -- Rename track & instrument
+    ----------------------------------------------------------------------------
+    local col_count = s.tracks[curr_track_idx].visible_note_columns
+    s.tracks[curr_track_idx].name = ("Overdub%02d"):format(col_count)
+
+    local pat_length  = s.patterns[s.selected_pattern_index].number_of_lines
+    local current_bpm = math.floor(s.transport.bpm)
+    local current_lpb = s.transport.lpb
+    local new_instr_name =
+      ("Overdub%02d PTN:%d BPM:%d LPB:%d"):format(col_count, pat_length, current_bpm, current_lpb)
+    s.instruments[s.selected_instrument_index].name = new_instr_name
+
+    print(("  Placed C-4 (instrument %d) in col %d of old track's row1. " ..
+           "Renamed track to '%s', instrument to '%s'."):
+      format(
+        right_instrument_value,
+        target_column,
+        s.tracks[curr_track_idx].name,
+        new_instr_name
+      ))
+  end
+
+  -- E) Cleanup
+  print ("Sample is name: " .. renoise.song().selected_sample.name)
+  cleanupMonitorAndVars()
+  print("finalrecord complete. Timer removed, variables cleared.")
+  print ("Sample is frames: " .. renoise.song().selected_sample.sample_buffer.number_of_frames)
+  print (renoise.song().instruments[renoise.song().selected_instrument_index].samples[1].name) 
+
+end
+
+
+--------------------------------------------------------------------------------
+-- cleanupMonitorAndVars()
+--------------------------------------------------------------------------------
+function cleanupMonitorAndVars()
+  if renoise.tool():has_timer(recordtocurrenttrackMonitor) then
+    renoise.tool():remove_timer(recordtocurrenttrackMonitor)
+  end
+  paketti_record_timer = nil
+  recording_instrument = nil
+  monitor_has_printed = nil
+  am_i_recording = false
+
+  -- Reset our booleans for the next usage
+  record_use_metronome = false
+  record_use_lineinput = false
+  record_max_columns   = 12
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Overdub 12 (No Metronome/No Line Input)",invoke=function() recordtocurrenttrack(false, false,12)
+end}
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Overdub 12 (Metronome/No Line Input)",invoke=function() recordtocurrenttrack(true, false,12) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Overdub 12 (No Metronome/Line Input)",invoke=function() recordtocurrenttrack(false, true,12) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Overdub 12 (Metronome/Line Input)",invoke=function() recordtocurrenttrack(true, true,12) end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Paketti Overdub 12 (Metronome/Line Input)",invoke=function() recordtocurrenttrack(true, true,12) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Paketti Overdub 12 (Metronome/No Line Input)",invoke=function() recordtocurrenttrack(true, false,12) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Paketti Overdub 12 (No Metronome/Line Input)",invoke=function() recordtocurrenttrack(false, true,12) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Paketti Overdub 12 (No Metronome/No Line Input)",invoke=function() recordtocurrenttrack(false, false,12) end}
+renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Paketti Overdub 12 (Metronome/Line Input)",invoke=function() recordtocurrenttrack(true, true,12) end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Paketti Overdub 12 (Metronome/No Line Input)",invoke=function() recordtocurrenttrack(true, false,12) end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Paketti Overdub 12 (No Metronome/Line Input)",invoke=function() recordtocurrenttrack(false, true,12) end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Paketti Overdub 12 (No Metronome/No Line Input)",invoke=function() recordtocurrenttrack(false, false,12) end}
+renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Paketti Overdub 12 (Metronome/Line Input)",invoke=function() recordtocurrenttrack(true, true,12) end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Paketti Overdub 12 (Metronome/No Line Input)",invoke=function() recordtocurrenttrack(true, false,12) end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Paketti Overdub 12 (No Metronome/Line Input)",invoke=function() recordtocurrenttrack(false, true,12) end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Paketti Overdub 12 (No Metronome/No Line Input)",invoke=function() recordtocurrenttrack(false, false,12) end}
+renoise.tool():add_midi_mapping{name="Paketti:Paketti Overdub 12 (Metronome/Line Input)",invoke=function(message) if message:is_trigger() then recordtocurrenttrack(true, true,12) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Paketti Overdub 12 (Metronome/no Line Input)",invoke=function(message) if message:is_trigger() then recordtocurrenttrack(true, false,12) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Paketti Overdub 12 (No Metronome/Line Input)",invoke=function(message) if message:is_trigger() then recordtocurrenttrack(false, true,12) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Paketti Overdub 12 (No Metronome/No Line Input)",invoke=function(message) if message:is_trigger() then recordtocurrenttrack(false, false,12) end end}
+
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Overdub 01 (No Metronome/No Line Input)",invoke=function() recordtocurrenttrack(false, false,1) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Overdub 01 (Metronome/No Line Input)",invoke=function() recordtocurrenttrack(true, false,1) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Overdub 01 (No Metronome/Line Input)",invoke=function() recordtocurrenttrack(false, true,1) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Overdub 01 (Metronome/Line Input)",invoke=function() recordtocurrenttrack(true, true,1) end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Paketti Overdub 01 (Metronome/Line Input)",invoke=function() recordtocurrenttrack(true, true,1) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Paketti Overdub 01 (Metronome/No Line Input)",invoke=function() recordtocurrenttrack(true, false,1) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Paketti Overdub 01 (No Metronome/Line Input)",invoke=function() recordtocurrenttrack(false, true,1) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Paketti Overdub 01 (No Metronome/No Line Input)",invoke=function() recordtocurrenttrack(false, false,1) end}
+renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Paketti Overdub 01 (Metronome/Line Input)",invoke=function() recordtocurrenttrack(true, true,1) end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Paketti Overdub 01 (Metronome/No Line Input)",invoke=function() recordtocurrenttrack(true, false,1) end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Paketti Overdub 01 (No Metronome/Line Input)",invoke=function() recordtocurrenttrack(false, true,1) end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Paketti Overdub 01 (No Metronome/No Line Input)",invoke=function() recordtocurrenttrack(false, false,1) end}
+renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Paketti Overdub 01 (Metronome/Line Input)",invoke=function() recordtocurrenttrack(true, true,1) end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Paketti Overdub 01 (Metronome/No Line Input)",invoke=function() recordtocurrenttrack(true, false,1) end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Paketti Overdub 01 (No Metronome/Line Input)",invoke=function() recordtocurrenttrack(false, true,1) end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Paketti Overdub 01 (No Metronome/No Line Input)",invoke=function() recordtocurrenttrack(false, false,12) end}
+renoise.tool():add_midi_mapping{name="Paketti:Paketti Overdub 01 (Metronome/Line Input)",invoke=function(message) if message:is_trigger() then recordtocurrenttrack(true, true,1) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Paketti Overdub 01 (Metronome/no Line Input)",invoke=function(message) if message:is_trigger() then recordtocurrenttrack(true, false,1) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Paketti Overdub 01 (No Metronome/Line Input)",invoke=function(message) if message:is_trigger() then recordtocurrenttrack(false, true,1) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Paketti Overdub 01 (No Metronome/No Line Input)",invoke=function(message) if message:is_trigger() then recordtocurrenttrack(false, false,1) end end}
+
+---
+
 function recordfollow()
 local w=renoise.app().window
 local t=renoise.song().transport
 local pe=renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
-local raw=renoise.ApplicationWindow
 
-if t.playing == false then t.playing = true else end
+if not t.playing then t.playing = true end
 
-w.active_middle_frame=raw.MIDDLE_FRAME_PATTERN_EDITOR
+w.active_middle_frame=pe
+--w.lower_frame_is_visible = true
+--w.upper_frame_is_visible = true
 
-if t.edit_mode==false and t.follow_player
-then t.edit_mode=true
-t.follow_player=false
-return
-else end
-
-if t.edit_mode and t.follow_player
-then t.follow_player=false
-return
-else t.edit_mode=true
-t.follow_player=true
-w.active_middle_frame=raw.MIDDLE_FRAME_PATTERN_EDITOR
-w.lower_frame_is_visible=true
-w.upper_frame_is_visible=true
-return
+   -- Case 1: Not editing but following
+   if not t.edit_mode and t.follow_player then
+    t.edit_mode = true
+    t.follow_player = false
+    return
 end
 
-if t.follow_player then t.follow_player=false t.edit_mode=true
-w.active_middle_frame=raw.MIDDLE_FRAME_PATTERN_EDITOR
-w.lower_frame_is_visible=true
-w.upper_frame_is_visible=true
-
-else
-t.follow_player=true
-t.edit_mode=true
-w.active_middle_frame=raw.MIDDLE_FRAME_PATTERN_EDITOR
-w.lower_frame_is_visible=true
-w.upper_frame_is_visible=true
-
+-- Case 2: Editing and following
+if t.edit_mode and t.follow_player then
+    t.follow_player = false
+    return
 end
+
+-- Case 3: All other cases (false/false or true/false)
+t.edit_mode = true
+t.follow_player = true
+
+
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Record Follow",invoke=function() recordfollow() end}
@@ -344,21 +702,16 @@ renoise.tool():add_keybinding{name="Global:Paketti:Simple Play Record Follow",in
 renoise.tool():add_keybinding{name="Global:Paketti:Simple Play Record Follow (2nd)",invoke=function() simpleplayrecordfollow() end}
 -- PD use
 renoise.tool():add_keybinding{name="Global:Paketti:TouchOSC Sample Recorder and Record", invoke=function() handle_sample_recording() end}
-
-renoise.tool():add_keybinding{name="Global:Paketti:TouchOSC Pattern Editor",
-invoke=function() 
-renoise.app().window.active_middle_frame=1
-end}
-renoise.tool():add_keybinding{name="Global:Paketti:TouchOSC Sample Editor",
-invoke=function() 
-renoise.app().window.active_middle_frame=5
-end}
+renoise.tool():add_keybinding{name="Global:Paketti:TouchOSC Pattern Editor", invoke=function() renoise.app().window.active_middle_frame=renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR end}
+renoise.tool():add_keybinding{name="Global:Paketti:TouchOSC Sample Editor", invoke=function() renoise.app().window.active_middle_frame=renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR end}
 -------------
+--renoise.app().window.active_middle_frame=sampleEditor
+
 -- Function to handle starting and stopping sample recording
 function handle_sample_recording()
   local dialog_visible = renoise.app().window.sample_record_dialog_is_visible
   local song = renoise.song()
-renoise.app().window.active_middle_frame=5
+renoise.app().window.active_middle_frame=renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
   if not dialog_visible then
     renoise.app().window.sample_record_dialog_is_visible = true
 renoise.song():insert_instrument_at(renoise.song().selected_instrument_index+1)

@@ -1,3 +1,124 @@
+-- from Paper
+-- Rough formula i hacked up: 
+-- ( 1 / (floor((5 * rate) / (3 * tempo)) / rate * speed) ) * 10
+
+-- and another Paper example:
+-- ( 1 / (floor((5 * rate) / (3 * tempo)) / rate * speed) ) * (rows_per_beat * 2.5)
+-- i think this is correct
+
+
+-- Paper simplified
+--- (rows_per_beat * 2.5 * rate) / (floor((5 * rate) / (3 * tempo)) * speed)
+
+-- from 8bitbubsy
+-- Take BPM 129 at 44100Hz as an example:
+-- samplesPerTick = 44100 / 129 = 341.860465116 --> truncated to 341.
+-- BPM = 44100.0 / samplesPerTick (341) = BPM 129.325 
+
+-- another example from 8bitbubsy
+-- realBPM = (rate / floor(rate / bpm * 2.5)) / (speed / 15) 
+-- result is (15 = 6*2.5)
+
+
+
+-- TODO: Does this work if you have a 192 pattern length?
+-- TODO: What if you wanna double it or halve it based on how many beats are there
+-- in the pattern?
+-- TODO: Consider those examples above.
+-- Dialog Reference
+local dialog = nil
+
+-- Default Values
+local speed = 6
+local tempo = 125
+local real_bpm = tempo / (speed / 6)
+
+-- Keyhandler Function
+local function my_keyhandler_func(dialog, key)
+  if key.name == "!" and not (key.modifiers == "shift" or key.modifiers == "control" or key.modifiers == "alt") then
+    dialog:close()
+  end
+end
+
+-- Function to Calculate BPM
+--[[local function calculate_bpm(speed, tempo)
+  return tempo / (speed / 6)
+end
+]]--
+
+-- Function to Calculate BPM
+local function calculate_bpm(speed, tempo)
+  local rate = 44100  -- or get actual sample rate
+  local samplesPerTick = math.floor(rate / tempo)
+  return (rate / samplesPerTick) / (speed / 15)
+end
+
+-- GUI Dialog Function
+function show_speed_tempo_dialog()
+  if dialog and dialog.visible then
+    dialog:close()
+  end
+
+  -- Valueboxes for Speed and Tempo
+  local vb = renoise.ViewBuilder()
+  local dialog_content = vb:column {
+    margin = 10,
+    spacing = 8,
+
+    vb:row {
+      spacing = 10,
+      vb:column {
+        vb:text { text = "Speed:" },
+        vb:valuebox {
+          min = 1,
+          max = 255,
+          value = speed,
+          tostring = function(val) return string.format("%X", val) end,
+          tonumber = function(val) return tonumber(val, 16) end,
+          notifier = function(val)
+            speed = val
+            real_bpm = calculate_bpm(speed, tempo)
+            vb.views.result_label.text = string.format("Speed %d Tempo %d is %.2f BPM", speed, tempo, real_bpm)
+          end
+        }
+      },
+      vb:column {
+        vb:text { text = "Tempo:" },
+        vb:valuebox {
+          min = 32,
+          max = 255,
+          value = tempo,
+          notifier = function(val)
+            tempo = val
+            real_bpm = calculate_bpm(speed, tempo)
+            vb.views.result_label.text = string.format("Speed %d Tempo %d is %.2f BPM", speed, tempo, real_bpm)
+          end
+        }
+      }
+    },
+
+    -- Result Display
+    vb:row {
+      vb:text {
+        id = "result_label",
+        text = string.format("Speed %d Tempo %d is %.2f BPM", speed, tempo, real_bpm)
+      }
+    }
+  }
+
+  -- Show Dialog
+  dialog = renoise.app():show_custom_dialog(
+    "Speed and Tempo to BPM",
+    dialog_content,
+    my_keyhandler_func
+  )
+  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+
+end
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti Speed and Tempo to BPM...", invoke=show_speed_tempo_dialog}
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Speed and Tempo to BPM...", invoke=show_speed_tempo_dialog}
+
+
 -- Function to check if values exceed Renoise limits and adjust if needed
 function adjustValuesForRenoiseLimits(F, K)
   local max_lpb = 256  -- Renoise's maximum LPB
