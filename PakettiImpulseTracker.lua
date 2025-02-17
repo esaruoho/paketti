@@ -40,7 +40,7 @@ return end
 
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker F2 Pattern Editor", invoke=function() F2() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker F2 Pattern Editor",invoke=function() F2() end}
 
 -- F2
 function F2Only()
@@ -51,7 +51,7 @@ w.lower_frame_is_visible=true
 w.upper_frame_is_visible=true
 w.active_lower_frame=raw.LOWER_FRAME_TRACK_DSPS
 end
-renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker F2 Pattern Editor ONLY", invoke=function() F2Only() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker F2 Pattern Editor ONLY",invoke=function() F2Only() end}
 ----------------------------------------------------------------------------------------------------------------
 function MixerToF2()
 local w=renoise.app().window
@@ -62,7 +62,7 @@ w.instrument_box_is_visible=true
 w.disk_browser_is_visible=true
 end
 
-renoise.tool():add_keybinding{name="Mixer:Paketti:To Pattern Editor", invoke=function() MixerToF2() end}
+renoise.tool():add_keybinding{name="Mixer:Paketti:To Pattern Editor",invoke=function() MixerToF2() end}
 ----------------------------------------------------------------------------------------------------------------
 function F2mini()
 local w=renoise.app().window
@@ -75,7 +75,7 @@ w.instrument_box_is_visible=false
 w.disk_browser_is_visible=false
 w.pattern_matrix_is_visible=false
 end
-renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker F2 Pattern Editor Mini", invoke=function() F2mini() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker F2 Pattern Editor Mini",invoke=function() F2mini() end}
 ----------------------------------------------------------------------------------------------------------------
 -- F3
 function F3()
@@ -147,7 +147,7 @@ return else end
 end
 
 
-renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker F3 Sample Editor", invoke=function() F3() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker F3 Sample Editor",invoke=function() F3() end}
 
 ---
 
@@ -165,7 +165,7 @@ s.selected_instrument.active_tab=1
 w.active_middle_frame=raw.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker F3 Sample Editor Only", invoke=function() F3Only() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker F3 Sample Editor Only",invoke=function() F3Only() end}
 ----------------------------------------------------------------------------------------------------------------
 -- F4, or "Impulse Tracker Shortcut F4 display-change", "Instrument Editor".
 -- Hides Pattern Matrix, Hides Advanced Edit.
@@ -197,7 +197,7 @@ else w.active_middle_frame = raw.MIDDLE_FRAME_INSTRUMENT_MIDI_EDITOR end
 --renoise.app().window.active_middle_frame=renoise.Instrument.TAB_PLUGIN end
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker F4 Instrument Editor", invoke=function() F4() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker F4 Instrument Editor",invoke=function() F4() end}
 ----------------------------------------------------------------------------------------------------------------
 -- F5
 function ImpulseTrackerPlaySong()
@@ -205,8 +205,9 @@ local s = renoise.song()
 local t = s.transport
 local startpos = t.playback_pos
 
-if t.playing then t:panic() else end
+if t.playing then t:panic() ResetAllPitchSteppers() else end
   t:panic()
+  ResetAllPitchSteppers()
   startpos.sequence = 1
   startpos.line = 1
   t.playback_pos = startpos
@@ -224,8 +225,8 @@ t.loop_pattern = false
 t.loop_block_enabled=false
 t:start_at(startpos)
 end
-renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker F5 Start Playback", invoke=function() ImpulseTrackerPlaySong() end}
-renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker F5 Start Playback (2nd)", invoke=function() ImpulseTrackerPlaySong() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker F5 Start Playback",invoke=function() ImpulseTrackerPlaySong() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker F5 Start Playback (2nd)",invoke=function() ImpulseTrackerPlaySong() end}
 ----------------------------------------------------------------------------------------------------------------
 -- F6, or Impulse Tracker Play Pattern.
 -- There is currently no need for this, but if there one day is, this'll be where it will reside :)
@@ -236,7 +237,7 @@ function ImpulseTrackerPlayFromLine()
 local monitoring_enabled = true
   --InitSBx()
   reset_repeat_counts()
-
+  ResetAllPitchSteppers()
 
  local s = renoise.song()
  local t = s.transport
@@ -264,37 +265,54 @@ local monitoring_enabled = true
 end
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker F7 Start Playback from Cursor Row", invoke=function() ImpulseTrackerPlayFromLine() end}
-renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker F7 Start Playback from Cursor Row (2nd)", invoke=function() ImpulseTrackerPlayFromLine() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker F7 Start Playback from Cursor Row",invoke=function() ImpulseTrackerPlayFromLine() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker F7 Start Playback from Cursor Row (2nd)",invoke=function() ImpulseTrackerPlayFromLine() end}
 ------------------------------------------------------------------------------------------------------------------------------------------- F8
 function ImpulseTrackerStop()
-local t=renoise.song().transport
+  local t = renoise.song().transport
+  local s = renoise.song()
 
-if renoise.song().transport.playing == false then
-if renoise.song().selected_line_index ~= 1 then
-renoise.song().selected_line_index = 1
-return end
+  -- If playing, stop playback
+  if t.playing then
+    t.follow_player = false
+    t:panic()
+    t.loop_pattern = false
+    t.loop_block_enabled = false
+    ResetAllPitchSteppers()
+    return
+  end
 
-renoise.song().selected_sequence_index = 1
-renoise.song().selected_line_index = 1
-else 
-t.follow_player=false
-t:panic()
-t.loop_pattern=false
-t.loop_block_enabled=false
---renoise.song().selected_line_index = 1
+  -- If stopped and not on first line, move to first line
+  if s.selected_line_index > 1 then
+    s.selected_line_index = 1
+    return
+  end
+
+  -- If on first line but not first pattern, move to first pattern
+  if s.selected_sequence_index > 1 then
+    s.selected_sequence_index = 1
+    s.selected_line_index = 1
+    return
+  end
+
+  -- If already at first pattern and line, trigger panic
+  if s.selected_sequence_index == 1 and s.selected_line_index == 1 then
+    t:panic()
+    ResetAllPitchSteppers()
+  end
 end
-end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker F8 Stop Playback (Panic)", invoke=function() ImpulseTrackerStop()  end}
-renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker F8 Stop Playback (Panic) (2nd)", invoke=function() ImpulseTrackerStop() end}
+-- Keep your existing keybindings
+renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker F8 Stop Playback (Panic)",invoke=function() ImpulseTrackerStop() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker F8 Stop Playback (Panic) (2nd)",invoke=function() ImpulseTrackerStop() end}
 
-renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker F8 Stop/Start Playback (Panic)", invoke=function() 
+renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker F8 Stop/Start Playback (Panic)",invoke=function() 
 local t = renoise.song().transport
 local startpos = t.playback_pos
 
 if t.playing then ImpulseTrackerStop() 
    t.edit_mode=true
+   ResetAllPitchSteppers()
 else
   startpos.sequence = 1
   startpos.line = 1
@@ -333,7 +351,7 @@ w.pattern_advanced_edit_is_visible=false
 --w.disk_browser_is_visible=false
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker F11 Order List", invoke=function() F11() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker F11 Order List",invoke=function() F11() end}
 ----------------------------------------------------------------------------------------------------------------
 -- F12, or "Not really IT F11, not really IT F12 either".
 -- Hides Pattern Matrix, Hides Advanced Edit.
@@ -387,7 +405,7 @@ function F12()
 end
 
 -- Add the keybinding to ensure the function can be invoked using F12
-renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker F12 Master", invoke=function() F12() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker F12 Master",invoke=function() F12() end}
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Impulse Tracker Next / Previous Pattern (Keyboard + Midi)
@@ -417,53 +435,180 @@ t:trigger_sequence(s.selected_sequence_index-1) end
   end
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker Pattern (Next)", invoke=function() ImpulseTrackerNextPattern() end}
-renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker Pattern (Previous)", invoke=function() ImpulseTrackerPrevPattern() end}
-renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker Pattern (Next) 2nd", invoke=function() ImpulseTrackerNextPattern() end}
-renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker Pattern (Previous) 2nd", invoke=function() ImpulseTrackerPrevPattern() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker Pattern (Next)",invoke=function() ImpulseTrackerNextPattern() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker Pattern (Previous)",invoke=function() ImpulseTrackerPrevPattern() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker Pattern (Next) 2nd",invoke=function() ImpulseTrackerNextPattern() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker Pattern (Previous) 2nd",invoke=function() ImpulseTrackerPrevPattern() end}
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
 --IT: ALT-D (whole track) Double-select
 function DoubleSelect()
- 
- local s = renoise.song()
- local lpb = s.transport.lpb
- local sip = s.selection_in_pattern
- local last_column = s.selected_track.visible_effect_columns + s.selected_track.visible_note_columns
- local protectrow= lpb + s.selected_line_index - 1
- if protectrow > s.selected_pattern.number_of_lines then
- protectrow = s.selected_pattern.number_of_lines end
- 
- if sip == nil or sip.start_track ~= s.selected_track_index or s.selected_line_index ~= s.selection_in_pattern.start_line then 
- 
-  s.selection_in_pattern = { 
-    start_line = s.selected_line_index, 
---      end_line = lpb + s.selected_line_index - 1,
-      end_line = protectrow,
-   start_track = s.selected_track_index, 
-     end_track = s.selected_track_index, 
-  start_column = 1, 
-    end_column = last_column }
- else 
+  local s = renoise.song()
+  local win = renoise.app().window
+  local middle_frame = win.active_middle_frame
 
-  local endline = sip.end_line
-  local startline = sip.start_line
-  local new_endline = (endline - startline) * 2 + (startline + 1)
+ ------------------------------------------------------------------------------
+  -- PHRASE EDITOR branch
+  ------------------------------------------------------------------------------
+  if middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_PHRASE_EDITOR then
+    if renoise.API_VERSION >= 6.2 then
+      local phrase = s.selected_phrase
+      if not phrase then
+        renoise.app():show_error("No phrase is selected!")
+        return
+      end
 
-  if new_endline > s.selected_pattern.number_of_lines then
-   new_endline = s.selected_pattern.number_of_lines
+      local lpb = s.transport.lpb
+      local sip = s.selection_in_phrase  -- may be nil
+      local start_line = renoise.song().selected_phrase_line_index
+      local total_columns = phrase.visible_note_columns + phrase.visible_effect_columns
+
+      -- Ensure there's at least one column
+      if total_columns < 1 then
+        total_columns = 1
+        phrase.visible_note_columns = 1
+      end
+
+      -- Helper function to visualize selection
+      local function selection_to_string(sel)
+        return sel and string.format("start_line=%d, end_line=%d, start_col=%d, end_col=%d",
+          sel.start_line, sel.end_line, sel.start_column, sel.end_column) or "nil"
+      end
+
+
+      if renoise.song().selection_in_phrase == nil then
+        renoise.song().selection_in_phrase={start_line=renoise.song().selected_phrase_line_index,end_line=renoise.song().selected_phrase_line_index+renoise.song().selected_phrase.lpb}
+return end
+
+      if not sip or (sip.start_line ~= start_line) or (sip.end_line == start_line) then
+        print("Creating NEW selection because:")
+        print("No selection: ", not sip)
+        print("Start line mismatch: ", sip and (sip.start_line ~= start_line) or false)
+        print("Single line selection: ", sip and (sip.end_line == start_line) or false)
+
+        -- Calculate new end_line
+        local new_end_line = start_line + lpb - 1
+        if new_end_line > phrase.number_of_lines then
+          new_end_line = phrase.number_of_lines
+        end
+
+        -- Prepare the new selection
+        renoise.song().selection_in_phrase = {
+          start_line   = renoise.song().selected_phrase_line_index,
+          end_line     = new_end_line,
+          start_column = 1,
+          end_column   = total_columns,
+        }
+
+        -- Assign the new selection and print the assigned values
+        --s.selection_in_phrase = new_selection
+        print("Assigned selection_in_phrase:")
+        print(selection_to_string(s.selection_in_phrase))
+
+        -- Verify the assignment
+        if s.selection_in_phrase and
+           s.selection_in_phrase.start_line == new_selection.start_line and
+           s.selection_in_phrase.end_line == new_selection.end_line and
+           s.selection_in_phrase.start_column == new_selection.start_column and
+           s.selection_in_phrase.end_column == new_selection.end_column then
+          print("Verification succeeded: selection_in_phrase matches the assigned values.")
+        else
+          print("Verification failed: selection_in_phrase does not match the assigned values!")
+          print("Expected: ", selection_to_string(new_selection))
+          print("Actual: ", selection_to_string(s.selection_in_phrase))
+        end
+
+      else
+        print("Expanding EXISTING selection: ", selection_to_string(sip))
+
+        -- Calculate new end_line to expand selection
+        local selection_length = sip.end_line - sip.start_line + 1
+        local new_end_line = sip.end_line + selection_length
+        if new_end_line > phrase.number_of_lines then
+          new_end_line = phrase.number_of_lines
+          print("Clamping new_end_line to phrase length")
+        end
+
+        -- Prepare the expanded selection
+        local new_selection = {
+          start_line   = sip.start_line,
+          end_line     = new_end_line,
+          start_column = 1,
+          end_column   = total_columns,
+        }
+
+        -- Assign the expanded selection and print the assigned values
+        s.selection_in_phrase = new_selection
+        print("Expanded selection_in_phrase:")
+        print(selection_to_string(s.selection_in_phrase))
+
+        -- Verify the assignment
+        if s.selection_in_phrase and
+           s.selection_in_phrase.start_line == new_selection.start_line and
+           s.selection_in_phrase.end_line == new_selection.end_line and
+           s.selection_in_phrase.start_column == new_selection.start_column and
+           s.selection_in_phrase.end_column == new_selection.end_column then
+          print("Verification succeeded: selection_in_phrase matches the assigned values.")
+        else
+          print("Verification failed: selection_in_phrase does not match the assigned values!")
+          print("Expected: ", selection_to_string(new_selection))
+          print("Actual: ", selection_to_string(s.selection_in_phrase))
+        end
+      end
+
+    else
+      renoise.app():show_error("Phrase Editor functionality requires API version 6.2 or higher!")
+      return
+    end
+
+
+  ------------------------------------------------------------------------------
+  -- PATTERN EDITOR branch
+  ------------------------------------------------------------------------------
+  elseif middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR then
+    local lpb = s.transport.lpb
+    local sip = s.selection_in_pattern
+    local last_column = s.selected_track.visible_effect_columns +
+                        s.selected_track.visible_note_columns
+    local protect_row = s.selected_line_index + lpb - 1
+    if protect_row > s.selected_pattern.number_of_lines then
+      protect_row = s.selected_pattern.number_of_lines
+    end
+
+    if (not sip)
+       or (sip.start_track ~= s.selected_track_index)
+       or (s.selected_line_index ~= sip.start_line) then
+      s.selection_in_pattern = {
+        start_line   = s.selected_line_index,
+        end_line     = protect_row,
+        start_track  = s.selected_track_index,
+        end_track    = s.selected_track_index,
+        start_column = 1,
+        end_column   = last_column,
+      }
+    else
+      local new_end_line = (sip.end_line - sip.start_line) * 2 + (sip.start_line + 1)
+      if new_end_line > s.selected_pattern.number_of_lines then
+        new_end_line = s.selected_pattern.number_of_lines
+      end
+      s.selection_in_pattern = {
+        start_line   = sip.start_line,
+        end_line     = new_end_line,
+        start_track  = s.selected_track_index,
+        end_track    = s.selected_track_index,
+        start_column = 1,
+        end_column   = last_column,
+      }
+    end
+
+  else
+    renoise.app():show_error("Active middle frame not recognized for DoubleSelect!")
   end
-
-  s.selection_in_pattern = { 
-    start_line = startline, 
-      end_line = new_endline, 
-   start_track = s.selected_track_index, 
-     end_track = s.selected_track_index, 
-  start_column = 1, 
-    end_column = last_column }
- end
 end
 
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker ALT-D Double Select", invoke=function() DoubleSelect() end}
+
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker ALT-D Double Select",invoke=DoubleSelect}
+renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Impulse Tracker ALT-D Double Select",invoke=DoubleSelect}
+renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker ALT-D Double Select",invoke=DoubleSelect}
 
 -----------
 -- Function to select the pattern range in automation
@@ -560,8 +705,8 @@ function DoubleSelectAutomation()
   selectPatternRangeInAutomation()
 end
 
-renoise.tool():add_keybinding{name = "Pattern Editor:Paketti:Impulse Tracker ALT-D Double Select W/ Automation",invoke=function() DoubleSelectAutomation() end}
-renoise.tool():add_keybinding{name = "Automation:Paketti:Impulse Tracker ALT-D Double Select W/ Automation",invoke=function() DoubleSelectAutomation() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker ALT-D Double Select W/ Automation",invoke=function() DoubleSelectAutomation() end}
+renoise.tool():add_keybinding{name="Automation:Paketti:Impulse Tracker ALT-D Double Select W/ Automation",invoke=function() DoubleSelectAutomation() end}
 
 
 
@@ -589,7 +734,7 @@ function Octave(new_octave)
 end
 
 for oct=0,9 do
-  renoise.tool():add_keybinding{name = "Pattern Editor:Paketti:Set Note to Octave " .. oct,
+  renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Set Note to Octave " .. oct,
     invoke=function() Octave(oct) end }
 end
 -------------------------------------------------------------------------------------------------------------------------------------
@@ -619,8 +764,8 @@ function Jump(Dir)
     s.transport.follow_player = false
 end  
 
-renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker PageUp Jump Lines", invoke=function() Jump(-1) end  }
-renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker PageDown Jump Lines", invoke=function() Jump(1) end  }
+renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker PageUp Jump Lines",invoke=function() Jump(-1) end  }
+renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker PageDown Jump Lines",invoke=function() Jump(1) end  }
 --------------------------------------------------------------------------------------------------
 ---------Protman's Expand Selection
 function cpclex_line(track, from_line, to_line)
@@ -655,8 +800,8 @@ function ExpandSelection()
 end
 end
 
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker ALT-F Expand Selection", invoke=function() ExpandSelection() end}
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker ALT-F Expand Selection Twice", invoke=function() ExpandSelection() ExpandSelection() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker ALT-F Expand Selection",invoke=function() ExpandSelection() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker ALT-F Expand Selection Twice",invoke=function() ExpandSelection() ExpandSelection() end}
 -----------------------------------------------------------------------------------------------
 -------Protman's Shrink Selection
 function cpclsh_line(track, from_line, to_line)
@@ -688,8 +833,8 @@ function ShrinkSelection()
   end
 end
 end
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker ALT-G Shrink Selection", invoke=function() ShrinkSelection() end}
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker ALT-G Shrink Selection Twice", invoke=function() ShrinkSelection() ShrinkSelection() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker ALT-G Shrink Selection",invoke=function() ShrinkSelection() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker ALT-G Shrink Selection Twice",invoke=function() ShrinkSelection() ShrinkSelection() end}
 --------------------------------------------------------
 -- Renamed helper function to cpclexrep_line
 function cpclexrep_line(track, from_line, to_line)
@@ -755,7 +900,7 @@ end
 
 
 
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker ALT-F Expand Selection Replicate", invoke=function() ExpandSelectionReplicate() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker ALT-F Expand Selection Replicate",invoke=function() ExpandSelectionReplicate() end}
 -----------------------------------------------------------------------------------------------
 -------Protman's Shrink Selection
 -- Renamed helper function to cpclshrep_line
@@ -817,7 +962,7 @@ function ShrinkSelectionReplicate()
 end
 
 
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker ALT-G Shrink Selection Replicate", invoke=function() ShrinkSelectionReplicate() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker ALT-G Shrink Selection Replicate",invoke=function() ShrinkSelectionReplicate() end}
 --------------------------------------------------------
 --Protman's Set Instrument
 function SetInstrument()
@@ -839,7 +984,7 @@ end
 end
 end
 
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker ALT-S Set Selection to Instrument", invoke=function() SetInstrument() end} 
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker ALT-S Set Selection to Instrument",invoke=function() SetInstrument() end} 
 ----------------------------------------------------------------------------------------------------
 -------------------------------------------------------------------------------------------------
 function MarkTrackMarkPattern()
@@ -889,7 +1034,7 @@ else
 
 end
 
-renoise.tool():add_keybinding{name="Pattern Editor:Selection:Impulse Tracker ALT-L Mark Track/Mark Pattern", invoke=function() MarkTrackMarkPattern() end}  
+renoise.tool():add_keybinding{name="Pattern Editor:Selection:Impulse Tracker ALT-L Mark Track/Mark Pattern",invoke=function() MarkTrackMarkPattern() end}  
 ------------------------------------------------------
 ----------Protman's Alt-D except patternwide
 function DoubleSelectPattern()
@@ -969,7 +1114,7 @@ end
  end
 end
 
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker ALT-D Double Select Column", invoke=function() DoubleSelectColumnOnly() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker ALT-D Double Select Column",invoke=function() DoubleSelectColumnOnly() end}
 --]]
 
 function PakettiImpulseTrackerDoubleSelectColumn()
@@ -1019,147 +1164,243 @@ function PakettiImpulseTrackerDoubleSelectColumn()
   end
 end
 
-renoise.tool():add_keybinding{
-  name="Pattern Editor:Paketti:Impulse Tracker ALT-D Double Select Column",
-  invoke=function() PakettiImpulseTrackerDoubleSelectColumn() end
-}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker ALT-D Double Select Column",
+  invoke=function() PakettiImpulseTrackerDoubleSelectColumn() end}
 
 
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker ALT-D Double Select Pattern", invoke=function() DoubleSelectPattern() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker ALT-D Double Select Pattern",invoke=function() DoubleSelectPattern() end}
 --------------------------------------------------------------------------------------------------------------------------------------
 --IT "Home Home Home" behaviour. First Home takes to current column first_line. Second Home takes to current track first_line. 
 --Third home takes to first track first_line.
 function homehome()
   local s = renoise.song()
+  local w = renoise.app().window
   local song_pos = s.transport.edit_pos
   local selcol = s.selected_note_column_index
   s.transport.follow_player = false
-  s.transport.loop_block_enabled=false
-  local w = renoise.app().window
-  
--- Always set to pattern editor
-renoise.app().window.active_middle_frame=1
+  s.transport.loop_block_enabled = false
 
--- If on Master or Send-track, detect and go to first effect column.
-if s.selected_note_column_index==0 and s.selected_effect_column_index > 1 and song_pos.line == 1 and renoise.song().tracks[renoise.song().selected_track_index].visible_note_columns==0 then
-s.selected_effect_column_index = 1 return end
+  -- Check if we're in the phrase editor and have API 6.2+
+  if w.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_PHRASE_EDITOR then
+    if renoise.API_VERSION >= 6.2 then
+      -- Print debug info about phrase editor state
+      if s.selected_phrase_note_column then
+        oprint("Selected phrase note column:", s.selected_phrase_note_column)
+      end
+      if s.selected_phrase_note_column_index then
+        oprint("Selected phrase note column index:", s.selected_phrase_note_column_index)
+      end
 
--- If on Master or Send-track, detect and go to 1st track and first note column.
-if s.selected_note_column_index==0 and song_pos.line == 1 and renoise.song().tracks[renoise.song().selected_track_index].visible_note_columns==0 then
-s.selected_track_index = 1
-s.selected_note_column_index = 1 return end
+      -- Handle phrase editor navigation
+      if s.selected_phrase_line_index > 1 then
+        s.selected_phrase_line_index = 1
+        return
+      end
+      
+      -- If we're at line 1 but not column 1, go to column 1
+      if s.selected_phrase_line_index == 1 and s.selected_phrase_note_column_index > 1 then
+        s.selected_phrase_note_column_index = 1
+        return
+      end
+      
+      -- If we're at line 1 and column 1, do nothing (matches pattern editor behavior)
+      if s.selected_phrase_line_index == 1 and s.selected_phrase_note_column_index == 1 then
+        return
+      end
+    else
+      renoise.app():show_error("Phrase Editor functionality requires API version 6.2 or higher!")
+      return
+    end
+  end
 
--- If Effect-columns chosen, take you to current effect column's first row.
-if s.selected_note_column_index==0 and song_pos.line == 1 then
-s.selected_note_column_index=1 return end
+  -- If not in pattern editor or phrase editor, switch to pattern editor
+  if w.active_middle_frame ~= renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR then
+    w.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+  end
 
-if s.selected_note_column_index==0 then 
-song_pos.line = 1
-s.transport.edit_pos = song_pos return end
+  -- Rest of the existing pattern editor logic
+  -- If on Master or Send-track, detect and go to first effect column.
+  if s.selected_note_column_index==0 and s.selected_effect_column_index > 1 and song_pos.line == 1 and renoise.song().tracks[renoise.song().selected_track_index].visible_note_columns==0 then
+    s.selected_effect_column_index = 1 
+    return 
+  end
 
--- If Song Position Line is already First Line - but Selected Note Column is not 1
--- Then go to Selected Note Column 1 First Line. Return outside of script immediately.
-if song_pos.line == 1 and s.selected_note_column_index > 1 then
-s.selected_note_column_index = 1 return end
+  -- If on Master or Send-track, detect and go to 1st track and first note column.
+  if s.selected_note_column_index==0 and song_pos.line == 1 and renoise.song().tracks[renoise.song().selected_track_index].visible_note_columns==0 then
+    s.selected_track_index = 1
+    s.selected_note_column_index = 1 
+    return 
+  end
 
--- If Song Position Line is not 1, and Selected Note Column is not 1
--- Then go to Selected Note Column's First Line. Return outside of script immediately.
-if (s.selected_note_column_index > 1) then
-s.selected_note_column_index = selcol
-song_pos.line = 1
-s.transport.edit_pos = song_pos return end
+  -- If Effect-columns chosen, take you to current effect column's first row.
+  if s.selected_note_column_index==0 and song_pos.line == 1 then
+    s.selected_note_column_index=1 
+    return 
+  end
+
+  if s.selected_note_column_index==0 then 
+    song_pos.line = 1
+    s.transport.edit_pos = song_pos 
+    return 
+  end
+
+  -- If Song Position Line is already First Line - but Selected Note Column is not 1
+  if song_pos.line == 1 and s.selected_note_column_index > 1 then
+    s.selected_note_column_index = 1 
+    return 
+  end
+
+  -- If Song Position Line is not 1, and Selected Note Column is not 1
+  if (s.selected_note_column_index > 1) then
+    s.selected_note_column_index = selcol
+    song_pos.line = 1
+    s.transport.edit_pos = song_pos 
+    return 
+  end
 
   if (song_pos.line > 1) then
     song_pos.line = 1          
     s.transport.edit_pos = song_pos   
-      if s.selected_note_column_index==0 then 
+    if s.selected_note_column_index==0 then 
       s.selected_effect_column_index=1 
-      else s.selected_note_column_index=1
-      end
+    else 
+      s.selected_note_column_index=1
+    end
     return    
   end  
--- Go to first track
+
+  -- Go to first track
   if (s.selected_track_index > 1) then
     s.selected_track_index = 1
-    s.selected_note_column_index=1 return end
+    s.selected_note_column_index=1 
+    return 
+  end
   s.selected_note_column_index=1
 end
 
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker Home *2 behaviour", invoke=function()
-renoise.app().window.active_middle_frame=1
-homehome() end}
-
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker Home *2 behaviour (2nd)", invoke=function()
-renoise.app().window.active_middle_frame=1
-homehome() end}
-
-renoise.tool():add_keybinding{name="Mixer:Paketti:Impulse Tracker Home *2 behaviour", invoke=function()
-renoise.app().window.active_middle_frame=1
-homehome() end}
----------------------------------------------------------------------------------------------------------------------------------------IT EndEnd
+-- Update keybindings to include phrase editor
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker Home *2 behaviour",invoke=homehome}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker Home *2 behaviour (2nd)",invoke=homehome}
+renoise.tool():add_keybinding{name="Mixer:Paketti:Impulse Tracker Home *2 behaviour",invoke=homehome}
+renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Impulse Tracker Home *2 behaviour",invoke=homehome}
+renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Impulse Tracker Home *2 behaviour (2nd)",invoke=homehome}
+---
 function endend()
   local s = renoise.song()
-  local number = s.patterns[s.selected_pattern_index].number_of_lines
+  local w = renoise.app().window
   local song_pos = s.transport.edit_pos
 
   -- Disable follow player and loop block
   s.transport.follow_player = false
   s.transport.loop_block_enabled = false
 
-  -- Always set to pattern editor
-  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+  -- Check if we're in the phrase editor and have API 6.2+
+  if w.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_PHRASE_EDITOR then
+    if renoise.API_VERSION >= 6.2 then
+      -- Print debug info about phrase editor state
+      if s.selected_phrase_note_column then
+        oprint("Selected phrase note column:", s.selected_phrase_note_column)
+      end
+      if s.selected_phrase_note_column_index then
+        oprint("Selected phrase note column index:", s.selected_phrase_note_column_index)
+      end
 
-  -- Check if we are in the last row
-  if song_pos.line == number then
-    -- Move to the last row of the last track before the master track
-    song_pos.line = number
-    s.selected_track_index = renoise.song().sequencer_track_count
-  else
-    -- Move to the last row of the current note column
-    song_pos.line = number
+      local phrase = s.selected_phrase
+      if not phrase then
+        renoise.app():show_error("No phrase is selected!")
+        return
+      end
+
+      -- Handle phrase editor navigation
+      if s.selected_phrase_line_index < phrase.number_of_lines then
+        s.selected_phrase_line_index = phrase.number_of_lines
+        return
+      end
+      
+      -- If we're at last line but not last column, go to last column
+      if s.selected_phrase_line_index == phrase.number_of_lines and 
+         s.selected_phrase_note_column_index < phrase.visible_note_columns then
+        s.selected_phrase_note_column_index = phrase.visible_note_columns
+        return
+      end
+      
+      -- If we're at last line and last column, do nothing
+      if s.selected_phrase_line_index == phrase.number_of_lines and 
+         s.selected_phrase_note_column_index == phrase.visible_note_columns then
+        return
+      end
+    else
+      renoise.app():show_error("Phrase Editor functionality requires API version 6.2 or higher!")
+      return
+    end
   end
 
-  -- Update the edit position
-  s.transport.edit_pos = song_pos
+  -- If not in pattern editor or phrase editor, switch to pattern editor
+  if w.active_middle_frame ~= renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR then
+    w.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+  end
+
+  local number = s.patterns[s.selected_pattern_index].number_of_lines
+  local current_track = s.selected_track_index
+  local max_track = s.sequencer_track_count
+
+  -- Pattern editor navigation logic
+  if song_pos.line < number then
+    -- First press: Go to last line of current column
+    song_pos.line = number
+    s.transport.edit_pos = song_pos
+    return
+  end
+
+  if song_pos.line == number then
+    if current_track < max_track then
+      -- Second press: Go to last track (if not already there)
+      s.selected_track_index = max_track
+      return
+    end
+  end
 end
 
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker End *2 behaviour", invoke=function() 
-renoise.app().window.active_middle_frame=1
-endend() end}
-
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker End *2 behaviour (2nd)", invoke=function() 
-renoise.app().window.active_middle_frame=1
-endend() end}
-
-renoise.tool():add_keybinding{name="Mixer:Paketti:Impulse Tracker End *2 behaviour", invoke=function()
-renoise.app().window.active_middle_frame=1
-endend() end}
+-- Update keybindings to include phrase editor
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker End *2 behaviour",invoke=endend}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker End *2 behaviour (2nd)",invoke=endend}
+renoise.tool():add_keybinding{name="Mixer:Paketti:Impulse Tracker End *2 behaviour",invoke=endend}
+renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Impulse Tracker End *2 behaviour",invoke=endend}
+renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Impulse Tracker End *2 behaviour (2nd)",invoke=endend}
 -----------------------------------------------------------------------------------------------------------------------------------------
 --8.  "8" in Impulse Tracker "Plays Current Line" and "Advances by EditStep".
 function PlayCurrentLine()
-local s=renoise.song()
-local currpos=s.transport.edit_pos
-local sli=s.selected_line_index
-local t=s.transport
-local result=nil
-t:start_at(sli)
-local start_time = os.clock()
-  while (os.clock() - start_time < 0.4) do
-        -- Delay the start after panic. Don't go below 0.2 seconds 
-        -- or you might tempt some plugins to crash and take Renoise in the fall!!      
-  end
-  t:stop()
-    if s.selected_line_index == s.selected_pattern.number_of_lines then
-    s.selected_line_index = 1
-    else
-    
-      if s.selected_pattern.number_of_lines <  s.selected_line_index+s.transport.edit_step
-      then s.selected_line_index=s.selected_pattern.number_of_lines
-      else s.selected_line_index=s.selected_line_index+s.transport.edit_step end
+  local s = renoise.song()
+  local sli = s.selected_line_index
+  
+  if renoise.API_VERSION >= 6.2 then
+    -- New API version
+    s:trigger_pattern_line(sli)
+  else
+    -- Old API version
+    local t = s.transport
+    t:start_at(sli)
+    local start_time = os.clock()
+    while (os.clock() - start_time < 0.4) do
+      -- Delay the start after panic. Don't go below 0.2 seconds 
+      -- or you might tempt some plugins to crash and take Renoise in the fall!!      
     end
+    t:stop()
+  end
+  
+  -- Handle line advancement (same for both versions)
+  if sli == s.selected_pattern.number_of_lines then
+    s.selected_line_index = 1
+  else
+    if s.selected_pattern.number_of_lines < sli + s.transport.edit_step then
+      s.selected_line_index = s.selected_pattern.number_of_lines
+    else
+      s.selected_line_index = sli + s.transport.edit_step
+    end
+  end
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker 8 Play Current Line & Advance by EditStep", invoke=function() PlayCurrentLine() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker 8 Play Current Line & Advance by EditStep",invoke=function() PlayCurrentLine() end}
 -----------------
 -- alt-f9 - solo / unsolo selected track. if not in Pattern Editor or in Mixer, transport to Pattern Editor.
 function impulseTrackerSoloKey()
@@ -1168,7 +1409,7 @@ local s=renoise.song()
     if renoise.app().window.active_middle_frame~=1 and renoise.app().window.active_middle_frame~=2 then renoise.app().window.active_middle_frame=1 end
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker ALT-F10 (Solo Toggle)", invoke=function() impulseTrackerSoloKey() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker ALT-F10 (Solo Toggle)",invoke=function() impulseTrackerSoloKey() end}
 -----------
 -----------
 -----------
@@ -1519,7 +1760,7 @@ else
   end
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker CTRL-N New Song Dialog", invoke=function() show_new_song_dialog() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker CTRL-N New Song Dialog",invoke=function() show_new_song_dialog() end}
 -----------------------------------------------------
 -----------------------------------------------------
 -----------------------------------------------------
@@ -1808,7 +2049,7 @@ function PakettiImpulseTrackerSwapBlock()
 end
 
 -- Add the keybinding for the ALT-Y action
-renoise.tool():add_keybinding{name = "Global:Paketti:Impulse Tracker ALT-Y Swap Block", invoke = PakettiImpulseTrackerSwapBlock}
+renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker ALT-Y Swap Block",invoke=PakettiImpulseTrackerSwapBlock}
 
 
 
@@ -1925,37 +2166,37 @@ function PakettiImpulseTrackerMoveBackwardsTrack()
 end
 
 -- Add keybindings for Pattern Editor
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker Alt-Right Move Forwards One Channel (Wrap)", invoke=PakettiImpulseTrackerMoveForwardsTrackWrap}
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker Alt-Left Move Backwards One Channel (Wrap)", invoke=PakettiImpulseTrackerMoveBackwardsTrackWrap}
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker Alt-Right Move Forwards One Channel", invoke=PakettiImpulseTrackerMoveForwardsTrack}
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker Alt-Left Move Backwards One Channel", invoke=PakettiImpulseTrackerMoveBackwardsTrack}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker Alt-Right Move Forwards One Channel (Wrap)",invoke=PakettiImpulseTrackerMoveForwardsTrackWrap}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker Alt-Left Move Backwards One Channel (Wrap)",invoke=PakettiImpulseTrackerMoveBackwardsTrackWrap}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker Alt-Right Move Forwards One Channel",invoke=PakettiImpulseTrackerMoveForwardsTrack}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker Alt-Left Move Backwards One Channel",invoke=PakettiImpulseTrackerMoveBackwardsTrack}
 
 -- Add keybindings for Mixer
-renoise.tool():add_keybinding{name="Mixer:Paketti:Impulse Tracker Alt-Right Move Forwards One Channel (Wrap)", invoke=PakettiImpulseTrackerMoveForwardsTrackWrap}
-renoise.tool():add_keybinding{name="Mixer:Paketti:Impulse Tracker Alt-Left Move Backwards One Channel (Wrap)", invoke=PakettiImpulseTrackerMoveBackwardsTrackWrap}
-renoise.tool():add_keybinding{name="Mixer:Paketti:Impulse Tracker Alt-Right Move Forwards One Channel", invoke=PakettiImpulseTrackerMoveForwardsTrack}
-renoise.tool():add_keybinding{name="Mixer:Paketti:Impulse Tracker Alt-Left Move Backwards One Channel", invoke=PakettiImpulseTrackerMoveBackwardsTrack}
+renoise.tool():add_keybinding{name="Mixer:Paketti:Impulse Tracker Alt-Right Move Forwards One Channel (Wrap)",invoke=PakettiImpulseTrackerMoveForwardsTrackWrap}
+renoise.tool():add_keybinding{name="Mixer:Paketti:Impulse Tracker Alt-Left Move Backwards One Channel (Wrap)",invoke=PakettiImpulseTrackerMoveBackwardsTrackWrap}
+renoise.tool():add_keybinding{name="Mixer:Paketti:Impulse Tracker Alt-Right Move Forwards One Channel",invoke=PakettiImpulseTrackerMoveForwardsTrack}
+renoise.tool():add_keybinding{name="Mixer:Paketti:Impulse Tracker Alt-Left Move Backwards One Channel",invoke=PakettiImpulseTrackerMoveBackwardsTrack}
 
 -- Add MIDI mappings
-renoise.tool():add_midi_mapping{name="Paketti:Move to Next Track (Wrap) [Knob]", invoke=function(message)
+renoise.tool():add_midi_mapping{name="Paketti:Move to Next Track (Wrap) [Knob]",invoke=function(message)
   if message:is_abs_value() then
     PakettiImpulseTrackerMoveForwardsTrackWrap()
   end
 end}
 
-renoise.tool():add_midi_mapping{name="Paketti:Move to Previous Track (Wrap) [Knob]", invoke=function(message)
+renoise.tool():add_midi_mapping{name="Paketti:Move to Previous Track (Wrap) [Knob]",invoke=function(message)
   if message:is_abs_value() then
     PakettiImpulseTrackerMoveBackwardsTrackWrap()
   end
 end}
 
-renoise.tool():add_midi_mapping{name="Paketti:Move to Next Track [Knob]", invoke=function(message)
+renoise.tool():add_midi_mapping{name="Paketti:Move to Next Track [Knob]",invoke=function(message)
   if message:is_abs_value() then
     PakettiImpulseTrackerMoveForwardsTrack()
   end
 end}
 
-renoise.tool():add_midi_mapping{name="Paketti:Move to Previous Track [Knob]", invoke=function(message)
+renoise.tool():add_midi_mapping{name="Paketti:Move to Previous Track [Knob]",invoke=function(message)
   if message:is_abs_value() then
     PakettiImpulseTrackerMoveBackwardsTrack()
   end
@@ -2101,12 +2342,8 @@ local function alt_x_functionality()
 end
 
 -- Add keybinding to trigger the functionality
-renoise.tool():add_keybinding {
-  name = "Pattern Editor:Paketti:Impulse Tracker ALT-X *2 (Interpolate&Clear Effect Columns)",
-  invoke = function()
-    alt_x_functionality()
-  end
-}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker ALT-X *2 (Interpolate&Clear Effect Columns)",
+  invoke=function() alt_x_functionality() end}
 
 
 

@@ -240,7 +240,7 @@ function pakettiCleanRenderSelection()
     end
 end
 
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Clean Render..:Clean Render Selected Track/Group", invoke = function() pakettiCleanRenderSelection() end}
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Clean Render Selected Track/Group", invoke = function() pakettiCleanRenderSelection() end}
-renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Clean Render..:Clean Render Selected Track/Group", invoke = function() pakettiCleanRenderSelection() end}
-renoise.tool():add_keybinding{name="Mixer:Paketti:Clean Render Selected Track/Group", invoke = function() pakettiCleanRenderSelection() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Clean Render..:Clean Render Selected Track/Group",invoke=function() pakettiCleanRenderSelection() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Clean Render Selected Track/Group",invoke=function() pakettiCleanRenderSelection() end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Clean Render..:Clean Render Selected Track/Group",invoke=function() pakettiCleanRenderSelection() end}
+renoise.tool():add_keybinding{name="Mixer:Paketti:Clean Render Selected Track/Group",invoke=function() pakettiCleanRenderSelection() end}

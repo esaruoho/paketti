@@ -1212,7 +1212,7 @@ renoise.app().window.active_middle_frame_observable:add_notifier(function()
 end)
 
 -- Keybinding function
-renoise.tool():add_keybinding{name="Global:Paketti:Paketti Gater Dialog...", invoke = function()
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Gater Dialog...",invoke=function()
   max_rows = renoise.song().selected_pattern.number_of_lines
   if renoise.song() then
     pakettiGaterDialog()
@@ -1220,9 +1220,9 @@ renoise.tool():add_keybinding{name="Global:Paketti:Paketti Gater Dialog...", inv
   end
 end}
 
-renoise.tool():add_keybinding{name="Global:Paketti:Paketti Gater Insert Commands", invoke=function() insert_commands() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Gater Insert Commands",invoke=function() insert_commands() end}
 
-renoise.tool():add_midi_mapping{name="Paketti:Paketti Gater Insert Commands", invoke=function(message)
+renoise.tool():add_midi_mapping{name="Paketti:Paketti Gater Insert Commands",invoke=function(message)
   if message:is_trigger() then
     insert_commands()
   end

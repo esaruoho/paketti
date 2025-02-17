@@ -38,7 +38,7 @@ function contourShuttleRecordMonitor()
   return true
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Contour Shuttle Record On/Off", invoke=function() contourShuttleRecord() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Contour Shuttle Record On/Off",invoke=function() contourShuttleRecord() end}
 ----
 -- Keep track of the active timer
 local paketti_sample_timer = nil
@@ -97,11 +97,11 @@ function PakettiSampleAndToSampleEditorFinish()
   renoise.song().selected_sample.autofade=true
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Start Sampling and Sample Editor (Record)", invoke=function() PakettiSampleAndToSampleEditor() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Record..:Start Sampling and Sample Editor (Record)", invoke=function() PakettiSampleAndToSampleEditor() end}  
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Record..:Start Sampling and Sample Editor (Record)", invoke=function() PakettiSampleAndToSampleEditor() end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Record..:Start Sampling and Sample Editor (Record)", invoke=function() PakettiSampleAndToSampleEditor() end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Record..:Start Sampling and Sample Editor (Record)", invoke=function() PakettiSampleAndToSampleEditor() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Start Sampling and Sample Editor (Record)",invoke=function() PakettiSampleAndToSampleEditor() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Record..:Start Sampling and Sample Editor (Record)",invoke=function() PakettiSampleAndToSampleEditor() end}  
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Record..:Start Sampling and Sample Editor (Record)",invoke=function() PakettiSampleAndToSampleEditor() end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Record..:Start Sampling and Sample Editor (Record)",invoke=function() PakettiSampleAndToSampleEditor() end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Record..:Start Sampling and Sample Editor (Record)",invoke=function() PakettiSampleAndToSampleEditor() end}
   -------
 
 -----
@@ -487,7 +487,6 @@ function finalrecord()
     local sample_buffer = s.selected_sample.sample_buffer
     print ("ABC" .. sample_buffer.number_of_frames)
 
-    renoise.song().selected_sample.sample_buffer:prepare_sample_data_changes()
     local sample_buffer = s.selected_sample.sample_buffer
     print ("DEF" .. sample_buffer.number_of_frames)
     if sample_buffer and sample_buffer.has_sample_data then
@@ -527,7 +526,8 @@ function finalrecord()
           bit_depth,
           num_channels,
           new_length)
-          
+
+          renoise.song().selected_sample.sample_buffer:prepare_sample_data_changes()          
         if success and sample_buffer.has_sample_data then
           for channel = 1, num_channels do
             for frame = 1, new_length do
@@ -604,10 +604,10 @@ renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Paketti Overdub 1
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Paketti Overdub 12 (Metronome/No Line Input)",invoke=function() recordtocurrenttrack(true, false,12) end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Paketti Overdub 12 (No Metronome/Line Input)",invoke=function() recordtocurrenttrack(false, true,12) end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Paketti Overdub 12 (No Metronome/No Line Input)",invoke=function() recordtocurrenttrack(false, false,12) end}
-renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Paketti Overdub 12 (Metronome/Line Input)",invoke=function() recordtocurrenttrack(true, true,12) end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Paketti Overdub 12 (Metronome/No Line Input)",invoke=function() recordtocurrenttrack(true, false,12) end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Paketti Overdub 12 (No Metronome/Line Input)",invoke=function() recordtocurrenttrack(false, true,12) end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Paketti Overdub 12 (No Metronome/No Line Input)",invoke=function() recordtocurrenttrack(false, false,12) end}
+renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Record..:Paketti Overdub 12 (Metronome/Line Input)",invoke=function() recordtocurrenttrack(true, true,12) end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Record..:Paketti Overdub 12 (Metronome/No Line Input)",invoke=function() recordtocurrenttrack(true, false,12) end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Record..:Paketti Overdub 12 (No Metronome/Line Input)",invoke=function() recordtocurrenttrack(false, true,12) end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Record..:Paketti Overdub 12 (No Metronome/No Line Input)",invoke=function() recordtocurrenttrack(false, false,12) end}
 renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Paketti Overdub 12 (Metronome/Line Input)",invoke=function() recordtocurrenttrack(true, true,12) end}
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Paketti Overdub 12 (Metronome/No Line Input)",invoke=function() recordtocurrenttrack(true, false,12) end}
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Paketti Overdub 12 (No Metronome/Line Input)",invoke=function() recordtocurrenttrack(false, true,12) end}
@@ -625,10 +625,10 @@ renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Paketti Overdub 0
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Paketti Overdub 01 (Metronome/No Line Input)",invoke=function() recordtocurrenttrack(true, false,1) end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Paketti Overdub 01 (No Metronome/Line Input)",invoke=function() recordtocurrenttrack(false, true,1) end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Paketti Overdub 01 (No Metronome/No Line Input)",invoke=function() recordtocurrenttrack(false, false,1) end}
-renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Paketti Overdub 01 (Metronome/Line Input)",invoke=function() recordtocurrenttrack(true, true,1) end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Paketti Overdub 01 (Metronome/No Line Input)",invoke=function() recordtocurrenttrack(true, false,1) end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Paketti Overdub 01 (No Metronome/Line Input)",invoke=function() recordtocurrenttrack(false, true,1) end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Paketti Overdub 01 (No Metronome/No Line Input)",invoke=function() recordtocurrenttrack(false, false,1) end}
+renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Record..:Paketti Overdub 01 (Metronome/Line Input)",invoke=function() recordtocurrenttrack(true, true,1) end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Record..:Paketti Overdub 01 (Metronome/No Line Input)",invoke=function() recordtocurrenttrack(true, false,1) end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Record..:Paketti Overdub 01 (No Metronome/Line Input)",invoke=function() recordtocurrenttrack(false, true,1) end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Record..:Paketti Overdub 01 (No Metronome/No Line Input)",invoke=function() recordtocurrenttrack(false, false,1) end}
 renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Paketti Overdub 01 (Metronome/Line Input)",invoke=function() recordtocurrenttrack(true, true,1) end}
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Paketti Overdub 01 (Metronome/No Line Input)",invoke=function() recordtocurrenttrack(true, false,1) end}
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Paketti Overdub 01 (No Metronome/Line Input)",invoke=function() recordtocurrenttrack(false, true,1) end}
@@ -701,9 +701,9 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Simple Play Record Follow",invoke=function() simpleplayrecordfollow() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Simple Play Record Follow (2nd)",invoke=function() simpleplayrecordfollow() end}
 -- PD use
-renoise.tool():add_keybinding{name="Global:Paketti:TouchOSC Sample Recorder and Record", invoke=function() handle_sample_recording() end}
-renoise.tool():add_keybinding{name="Global:Paketti:TouchOSC Pattern Editor", invoke=function() renoise.app().window.active_middle_frame=renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR end}
-renoise.tool():add_keybinding{name="Global:Paketti:TouchOSC Sample Editor", invoke=function() renoise.app().window.active_middle_frame=renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR end}
+renoise.tool():add_keybinding{name="Global:Paketti:TouchOSC Sample Recorder and Record",invoke=function() handle_sample_recording() end}
+renoise.tool():add_keybinding{name="Global:Paketti:TouchOSC Pattern Editor",invoke=function() renoise.app().window.active_middle_frame=renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR end}
+renoise.tool():add_keybinding{name="Global:Paketti:TouchOSC Sample Editor",invoke=function() renoise.app().window.active_middle_frame=renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR end}
 -------------
 --renoise.app().window.active_middle_frame=sampleEditor
 

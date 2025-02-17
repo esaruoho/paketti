@@ -1,6 +1,3 @@
-
-
-
 function DuplicateInstrumentAndSelectNewInstrument()
 local rs=renoise.song()
 if renoise.app().window.active_middle_frame==3 then 
@@ -35,7 +32,7 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Instrument and Select Last Instrument",invoke=function() duplicateSelectInstrumentToLastInstrument() end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Duplicate Instrument and Select Last Instrument",invoke=function() duplicateSelectInstrumentToLastInstrument() end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Duplicate and Reverse Instrument", invoke=function() PakettiDuplicateAndReverseInstrument() end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Duplicate and Reverse Instrument",invoke=function() PakettiDuplicateAndReverseInstrument() end}
 
 -- auto-suspend plugin off:
 function autosuspendOFF()
@@ -87,12 +84,12 @@ end
 
 ------------------------------------------------------------------------------------------------------
 --cortex.scripts.CaptureOctave v1.1 by cortex
-renoise.tool():add_keybinding{name="Global:Paketti:Capture Nearest Instrument and Octave (nojump)", invoke=function(repeated) capture_ins_oct("no") end}
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Capture Nearest Instrument and Octave (nojump)", invoke=function(repeated) capture_ins_oct("no") end}
-renoise.tool():add_keybinding{name="Mixer:Paketti:Capture Nearest Instrument and Octave (nojump)", invoke=function(repeated) capture_ins_oct("no") end}
-renoise.tool():add_keybinding{name="Global:Paketti:Capture Nearest Instrument and Octave (jump)", invoke=function(repeated) capture_ins_oct("yes") end}
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Capture Nearest Instrument and Octave (jump)", invoke=function(repeated) capture_ins_oct("yes") end}
-renoise.tool():add_keybinding{name="Mixer:Paketti:Capture Nearest Instrument and Octave (jump)", invoke=function(repeated) capture_ins_oct("yes") end}
+renoise.tool():add_keybinding{name="Global:Paketti:Capture Nearest Instrument and Octave (nojump)",invoke=function(repeated) capture_ins_oct("no") end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Capture Nearest Instrument and Octave (nojump)",invoke=function(repeated) capture_ins_oct("no") end}
+renoise.tool():add_keybinding{name="Mixer:Paketti:Capture Nearest Instrument and Octave (nojump)",invoke=function(repeated) capture_ins_oct("no") end}
+renoise.tool():add_keybinding{name="Global:Paketti:Capture Nearest Instrument and Octave (jump)",invoke=function(repeated) capture_ins_oct("yes") end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Capture Nearest Instrument and Octave (jump)",invoke=function(repeated) capture_ins_oct("yes") end}
+renoise.tool():add_keybinding{name="Mixer:Paketti:Capture Nearest Instrument and Octave (jump)",invoke=function(repeated) capture_ins_oct("yes") end}
 
 function capture_ins_oct(state)
    local closest_note = {}  
@@ -129,8 +126,15 @@ function capture_ins_oct(state)
          end 
       end 
    end
+   
+   if renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_PHRASE_EDITOR and renoise.song().selected_phrase == nil and #renoise.song().selected_instrument.phrases == 0 then 
+      pakettiInitPhraseSettingsCreateNewPhrase()
+      
+      
+--      renoise.song().instruments[renoise.song().selected_instrument_index]:insert_phrase_at(1)
+      renoise.song().selected_phrase_index = 1
+   return end
 
-   -- If no instrument is found, stop
    if not closest_note.ins then
       renoise.app():show_status("No nearby instrument found.")
       return
@@ -181,10 +185,8 @@ function capture_ins_oct(state)
 end
 
 
-
-
 -----------------------------------------------------------------------------------------------------------
---[[function emptyslices()
+function emptyslices()
 local w=renoise.app().window
 local si=renoise.song().selected_instrument
 local ss=renoise.song().selected_sample
@@ -197,12 +199,10 @@ local ssi=renoise.song().selected_sample_index
  renoise.song().selected_instrument.name=("Empty Sample Slices" .. renoise.song().selected_instrument_index)
  w.active_middle_frame= 3 end
 
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Initialize..:Create 64 Empty Sample Slots", invoke=function() emptyslices() end}
-renoise.tool():add_menu_entry{name="Sample List:Paketti..:Create 64 Empty Sample Slots", invoke=function() emptyslices() end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Create 64 Empty Sample Slots", invoke=function() emptyslices() end}
-]]--
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Initialize..:Create 64 Empty Sample Slots",invoke=function() emptyslices() end}
+renoise.tool():add_menu_entry{name="Sample List:Paketti..:Create 64 Empty Sample Slots",invoke=function() emptyslices() end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Create 64 Empty Sample Slots",invoke=function() emptyslices() end}
 --------------------------------------------------------------------------------------------------------------------------------------------------------
-
 -- Helper function to ensure the required number of instruments exist, with a max limit of 255 (FE)
 local function ensure_instruments_count(count)
   local song = renoise.song()
@@ -248,17 +248,15 @@ local function select_chunk(chunk_index)
 end
 
 -- Keybindings and MIDI mappings for chunk navigation with your exact naming convention
-renoise.tool():add_keybinding { name = "Global:Paketti:Select Next Chunk (00..F0)", invoke = select_next_chunk }
-renoise.tool():add_keybinding { name = "Global:Paketti:Select Previous Chunk (00..F0)", invoke = select_previous_chunk }
+renoise.tool():add_keybinding{name="Global:Paketti:Select Next Chunk (00..F0)",invoke=select_next_chunk }
+renoise.tool():add_keybinding{name="Global:Paketti:Select Previous Chunk (00..F0)",invoke=select_previous_chunk }
 
-renoise.tool():add_midi_mapping {
-  name = "Paketti:Select Next Chunk (00..FE)",
-  invoke = function(message) if message:is_trigger() then select_next_chunk() end end
+renoise.tool():add_midi_mapping{name="Paketti:Select Next Chunk (00..FE)",
+  invoke=function(message) if message:is_trigger() then select_next_chunk() end end
 }
 
-renoise.tool():add_midi_mapping {
-  name = "Paketti:Select Previous Chunk (00..FE)",
-  invoke = function(message) if message:is_trigger() then select_previous_chunk() end end
+renoise.tool():add_midi_mapping{name="Paketti:Select Previous Chunk (00..FE)",
+  invoke=function(message) if message:is_trigger() then select_previous_chunk() end end
 }
 
 -- Keybindings and MIDI mappings for selecting specific chunks (00 to F0), with FE as the max chunk
@@ -266,15 +264,11 @@ for i = 0, 15 do
   local chunk_hex = string.format("%02X", i * 16)
   local chunk_index = i * 16
 
-  renoise.tool():add_keybinding {
-    name = "Global:Paketti:Select Chunk " .. chunk_hex,
-    invoke = function() select_chunk(chunk_index) end
-  }
+  renoise.tool():add_keybinding{name="Global:Paketti:Select Chunk " .. chunk_hex,
+    invoke=function() select_chunk(chunk_index) end}
 
-  renoise.tool():add_midi_mapping {
-    name = "Paketti:Select Chunk " .. chunk_hex,
-    invoke = function(message) if message:is_trigger() then select_chunk(chunk_index) end end
-  }
+  renoise.tool():add_midi_mapping{name="Paketti:Select Chunk " .. chunk_hex,
+    invoke=function(message) if message:is_trigger() then select_chunk(chunk_index) end end}
 end
 
 

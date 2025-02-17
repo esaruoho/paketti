@@ -113,11 +113,11 @@ local function put_effect_columns(effect_data, line_indices)
   renoise.app():show_status("Effect columns updated successfully")
 end
 
--- Function to handle the Put operation for Note and Effect Columns
 local function put_note_instrument(slot_index)
   local track = renoise.song().selected_track
   local pattern = renoise.song().selected_pattern
   local current_line_index = renoise.song().selected_line_index
+  local selection = renoise.song().selection_in_pattern
 
   local textfield_value = vb.views["slot_display_"..string.format("%02d", slot_index)].text
   if textfield_value == "Slot " .. string.format("%02d", slot_index) .. ": Empty" then
@@ -140,27 +140,25 @@ local function put_note_instrument(slot_index)
     process_note_columns = false
   end
 
-  -- Determine the lines to process based on randomization and edit step
+  -- Determine the lines to process based on selection, randomization and edit step
   local line_indices = {}
   local pattern_length = pattern.number_of_lines
   local edit_step = renoise.song().transport.edit_step
-  local start_line = current_line_index
 
-  if randomize_enabled then
-    local total_steps = pattern_length
-    local step = 1
-
-    if use_edit_step_for_put and edit_step > 0 then
-      step = edit_step
-      total_steps = math.floor((pattern_length - start_line + 1) / step)
-    end
-
-    for i = start_line, pattern_length, step do
-      if math.random(100) <= randomize_percentage then
-        table.insert(line_indices, i)
+  if selection then
+    -- Process selection range with edit step if enabled
+    local step = (use_edit_step_for_put and edit_step > 0) and edit_step or 1
+    for line_index = selection.start_line, selection.end_line, step do
+      if randomize_enabled then
+        if math.random(100) <= randomize_percentage then
+          table.insert(line_indices, line_index)
+        end
+      else
+        table.insert(line_indices, line_index)
       end
     end
   else
+    -- Process single line
     if use_edit_step_for_put and edit_step > 0 then
       table.insert(line_indices, current_line_index)
       renoise.song().selected_line_index = math.min(current_line_index + edit_step, pattern_length)
@@ -198,24 +196,23 @@ local function put_note_instrument(slot_index)
         end
 
         if note_parts[3] ~= ".." then
-        renoise.song().selected_track.volume_column_visible = true
+          renoise.song().selected_track.volume_column_visible = true
           note_column.volume_string = note_parts[3]
         end
 
         if note_parts[4] ~= ".." then
-        renoise.song().selected_track.panning_column_visible = true
+          renoise.song().selected_track.panning_column_visible = true
           note_column.panning_string = note_parts[4]
         end
 
         if note_parts[5] ~= ".." then
-        renoise.song().selected_track.delay_column_visible = true
+          renoise.song().selected_track.delay_column_visible = true
           note_column.delay_string = note_parts[5]
         end
 
         -- Handle samplefx data
         if #note_parts > 5 and note_parts[6] ~= "...." then
-                  renoise.song().selected_track.sample_effects_column_visible = true
-
+          renoise.song().selected_track.sample_effects_column_visible = true
           note_column.effect_number_string = note_parts[6]:sub(1, 2) -- Effect command
           note_column.effect_amount_string = note_parts[6]:sub(3, 4) -- Effect value
         end
@@ -500,13 +497,16 @@ function create_paketti_pick_dialog()
     rows[#rows+1] = vb:row{
       vb:button{text="Pick " .. string.format("%02d", i), notifier=function()
         pick_note_instrument(i)
+        renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
       end},
       vb:button{text="Put " .. string.format("%02d", i), notifier=function()
         put_note_instrument(i)
+        renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
       end},
       vb:textfield{id="slot_display_"..string.format("%02d", i), text="Slot " .. string.format("%02d", i) .. ": Empty", width=800},
       vb:button{text="Clear", notifier=function()
         clear_pick(i)
+        renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
       end}
     }
   end
@@ -589,13 +589,190 @@ function clear_columns()
 end
 
 for i = 1, 10 do
-  renoise.tool():add_keybinding{name="Pattern Editor:Paketti:OctaMED Pick Slot "..formatDigits(2,i), invoke=function() pick_note_instrument(i) end}
-  renoise.tool():add_keybinding{name="Pattern Editor:Paketti:OctaMED Put Slot "..formatDigits(2,i), invoke=function() put_from_preferences(i) end}
-  renoise.tool():add_midi_mapping{name="Paketti:OctaMED Pick Slot "..formatDigits(2,i), invoke=function() pick_note_instrument(i) end}
-  renoise.tool():add_midi_mapping{name="Paketti:OctaMED Put Slot "..formatDigits(2,i), invoke=function() put_from_preferences(i) end}
+  renoise.tool():add_keybinding{name="Pattern Editor:Paketti:OctaMED Pick Slot "..formatDigits(2,i),invoke=function() pick_note_instrument(i) end}
+  renoise.tool():add_keybinding{name="Pattern Editor:Paketti:OctaMED Put Slot "..formatDigits(2,i),invoke=function() put_from_preferences(i) end}
+  renoise.tool():add_midi_mapping{name="Paketti:OctaMED Pick Slot "..formatDigits(2,i),invoke=function() pick_note_instrument(i) end}
+  renoise.tool():add_midi_mapping{name="Paketti:OctaMED Put Slot "..formatDigits(2,i),invoke=function() put_from_preferences(i) end}
 end
 
 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:OctaMED Pick/Put Dialog",invoke=function() toggle_paketti_pick_dialog() end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Other Trackers..:OctaMED Pick/Put Dialog",invoke=function() toggle_paketti_pick_dialog() end}
 
+------
+-- Function to spread notes across multiple columns
+function NoteSpread(num_columns)
+  if num_columns < 1 or num_columns > 12 then
+    renoise.app():show_status("Please choose a number of columns between 1 and 12.")
+    return
+  end
+
+  local song = renoise.song()
+  local track = song.selected_track
+  local track_idx = song.selected_track_index
+  local pattern = song.selected_pattern
+  local pattern_lines = pattern.number_of_lines
+  local current_visible_columns = track.visible_note_columns
+
+  print("Starting NoteSpread with num_columns =", num_columns)
+  print("Current visible note columns:", current_visible_columns)
+
+  -- Gather all existing notes from all visible columns
+  local note_list = {}
+  local notes_found = false
+
+  -- First pass: collect all notes from visible columns
+  for line_idx = 1, pattern_lines do
+    local line = pattern.tracks[track_idx].lines[line_idx]
+    for col_idx = 1, current_visible_columns do
+      local note_col = line.note_columns[col_idx]
+      if not note_col.is_empty then
+        notes_found = true
+        local note_copy = {
+          note_value = note_col.note_value,
+          instrument_value = note_col.instrument_value,
+          volume_value = note_col.volume_value,
+          panning_value = note_col.panning_value,
+          delay_value = note_col.delay_value,
+        }
+        table.insert(note_list, {
+          line = line_idx,
+          note = note_copy,
+          original_col = col_idx
+        })
+        -- Clear the original note
+        note_col:clear()
+      end
+    end
+  end
+
+  if not notes_found then
+    renoise.app():show_status("No notes found in any columns.")
+    return
+  end
+
+  -- Sort notes by line number to maintain order
+  table.sort(note_list, function(a, b) return a.line < b.line end)
+
+  -- Set visible note columns
+  track.visible_note_columns = num_columns
+
+  if num_columns == 1 then
+    -- Special handling for single column: maintain temporal order only
+    for _, note_data in ipairs(note_list) do
+      local line = pattern.tracks[track_idx].lines[note_data.line]
+      local target_col = line.note_columns[1]
+
+      target_col.note_value = note_data.note.note_value
+      target_col.instrument_value = note_data.note.instrument_value
+      target_col.volume_value = note_data.note.volume_value
+      target_col.panning_value = note_data.note.panning_value
+      target_col.delay_value = note_data.note.delay_value
+
+      print(string.format(
+        "Moved note from line %d, column %d to column 1: value = %d",
+        note_data.line, note_data.original_col, note_data.note.note_value
+      ))
+    end
+
+    renoise.app():show_status(string.format(
+      "Consolidated %d notes to single column", #note_list
+    ))
+  else
+    -- Multiple columns: distribute notes across columns
+    local column_counter = 1
+    local last_column = 1
+
+    for i, note_data in ipairs(note_list) do
+      if note_data.note.note_value == 120 then -- NOTE OFF
+        note_data.target_col = last_column
+      else
+        note_data.target_col = column_counter
+        last_column = column_counter
+        column_counter = (column_counter % num_columns) + 1
+      end
+    end
+
+    -- Apply the new note positions
+    for _, note_data in ipairs(note_list) do
+      local line = pattern.tracks[track_idx].lines[note_data.line]
+      local target_col = line.note_columns[note_data.target_col]
+
+      target_col.note_value = note_data.note.note_value
+      target_col.instrument_value = note_data.note.instrument_value
+      target_col.volume_value = note_data.note.volume_value
+      target_col.panning_value = note_data.note.panning_value
+      target_col.delay_value = note_data.note.delay_value
+
+      print(string.format(
+        "Moved note from line %d, column %d to column %d: value = %d",
+        note_data.line, note_data.original_col, note_data.target_col, note_data.note.note_value
+      ))
+    end
+
+    renoise.app():show_status(string.format(
+      "Redistributed %d notes across %d columns", #note_list, num_columns
+    ))
+  end
+end
+
+-- Helper function to format digits for shortcuts
+local function formatDigits(min_digits, number)
+  return string.format("%0" .. tostring(min_digits) .. "d", number)
+end
+
+-- Add keybindings for 1 to 12 note columns dynamically
+for i = 1, 12 do
+  renoise.tool():add_keybinding{name="Global:Paketti:OctaMED Note Spread " .. formatDigits(2, i),invoke=function() NoteSpread(i) end}
+  renoise.tool():add_keybinding{name="Pattern Editor:Paketti:OctaMED Note Spread " .. formatDigits(2, i),invoke=function() NoteSpread(i) end}
+  renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Other Trackers..:OctaMED Note Spread " .. formatDigits(2, i),invoke=function() NoteSpread(i) end}
+end
+
+-- Add this at the top of your file with other global variables
+local current_spread = 1
+
+-- Function to increment spread
+function IncrementSpread()
+  current_spread = current_spread + 1
+  if current_spread > 12 then
+    current_spread = 1
+  end
+  NoteSpread(current_spread)
+end
+
+-- Function to decrement spread
+function DecrementSpread()
+  current_spread = current_spread - 1
+  if current_spread < 1 then
+    current_spread = 12
+  end
+  NoteSpread(current_spread)
+end
+
+-- Add these with your other keybindings
+renoise.tool():add_keybinding{
+  name="Global:Paketti:OctaMED Note Spread Increment",
+  invoke=function() IncrementSpread() end
+}
+renoise.tool():add_keybinding{
+  name="Pattern Editor:Paketti:OctaMED Note Spread Increment",
+  invoke=function() IncrementSpread() end
+}
+
+renoise.tool():add_menu_entry{
+  name="Pattern Editor:Paketti..:Other Trackers..:OctaMED Note Spread Increment",
+  invoke=function() IncrementSpread() end
+}
+
+renoise.tool():add_keybinding{
+  name="Global:Paketti:OctaMED Note Spread Decrement",
+  invoke=function() DecrementSpread() end
+}
+renoise.tool():add_keybinding{
+  name="Pattern Editor:Paketti:OctaMED Note Spread Decrement",
+  invoke=function() DecrementSpread() end
+}
+renoise.tool():add_menu_entry{
+  name="Pattern Editor:Paketti..:Other Trackers..:OctaMED Note Spread Decrement",
+  invoke=function() DecrementSpread() end
+}

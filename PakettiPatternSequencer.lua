@@ -1,4 +1,4 @@
-renoise.tool():add_menu_entry{name="--Pattern Sequencer:Paketti..:Show/Hide Pattern Matrix", invoke=function() showhidepatternmatrix() end}
+renoise.tool():add_menu_entry{name="--Pattern Sequencer:Paketti..:Show/Hide Pattern Matrix",invoke=function() showhidepatternmatrix() end}
 
 -- Function to clone the currently selected pattern sequence row
 function clone_current_sequence()

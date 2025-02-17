@@ -316,10 +316,8 @@ end
 
 
 for i=0,63 do
-  renoise.tool():add_keybinding{
-    name="Global:Paketti:Set Selected Track Output Routing "..formatDigits(2,i),
-    invoke=function() simpleOutputRoute(i+1) end
-  }
+  renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Track Output Routing "..formatDigits(2,i),
+    invoke=function() simpleOutputRoute(i+1) end}
 end
 --------
 
@@ -334,10 +332,8 @@ function pakettiMasterOutputRoutings(output)
 end
 
 for i=0,63 do
-  renoise.tool():add_keybinding{
-    name="Global:Paketti:Set Master Track Output Routing "..string.format("%02d",i),
-    invoke=function() pakettiMasterOutputRoutings(i+1) end
-  }
+  renoise.tool():add_keybinding{name="Global:Paketti:Set Master Track Output Routing "..string.format("%02d",i),
+    invoke=function() pakettiMasterOutputRoutings(i+1) end}
 end
 
 
@@ -400,10 +396,10 @@ end
 -- Loop to create keybindings for sequence numbers 00 to 32
 for i = 1, 33 do
   local padded_number = string.format("%02d", i - 1)
-  local keybinding_name = "Global:Paketti:Toggle Sequence Selection " .. padded_number
+  local keybinding_name="Global:Paketti:Toggle Sequence Selection " .. padded_number
 
   -- Create a keybinding for each sequence number
-  renoise.tool():add_keybinding{name=keybinding_name, invoke=function() tknaToggleSequenceSelection(i - 1) end}
+  renoise.tool():add_keybinding{name=keybinding_name,invoke=function() tknaToggleSequenceSelection(i - 1) end}
 end
 
 
@@ -462,7 +458,7 @@ function tknaToggleCurrentSequenceSelection()
 end
 
 -- Add keybinding for the function
-renoise.tool():add_keybinding{name="Global:Paketti:Toggle Current Sequence Selection On/Off", invoke=tknaToggleCurrentSequenceSelection}
+renoise.tool():add_keybinding{name="Global:Paketti:Toggle Current Sequence Selection On/Off",invoke=tknaToggleCurrentSequenceSelection}
 
 
 
@@ -666,7 +662,7 @@ for i = 1, 32 do
   local padded_number = string.format("%02d", i - 1)
   
   -- Add keybinding for each sequence
-  renoise.tool():add_keybinding{name="Global:Paketti:Continue Sequence " .. padded_number .. " From Same Line", invoke=function() 
+  renoise.tool():add_keybinding{name="Global:Paketti:Continue Sequence " .. padded_number .. " From Same Line",invoke=function() 
   if i < #renoise.song().sequencer.pattern_sequence then
   tknaContinueSequenceFromSameLine(i) 
   else
@@ -701,7 +697,7 @@ function tknaContinueCurrentSequenceFromCurrentLine()
 end
 
 
-  renoise.tool():add_keybinding{name="Global:Paketti:Continue Current Sequence From Same Line", invoke=function() 
+  renoise.tool():add_keybinding{name="Global:Paketti:Continue Current Sequence From Same Line",invoke=function() 
   tknaContinueCurrentSequenceFromCurrentLine() 
 end}
 ---------
@@ -712,7 +708,7 @@ function tknaMidiMapSequence(value)
 end
 
 -- Add MIDI mapping
-renoise.tool():add_midi_mapping{name="Paketti:Continue Sequence From Same Line [Set Sequence]", invoke=function(message)
+renoise.tool():add_midi_mapping{name="Paketti:Continue Sequence From Same Line [Set Sequence]",invoke=function(message)
   if message:is_abs_value() then
     tknaMidiMapSequence(message.int_value)
   end
@@ -724,7 +720,7 @@ for i = 1, 32 do
   local padded_number = string.format("%02d", i - 1)
   
   -- Add keybinding for each sequence
-  renoise.tool():add_keybinding{name="Global:Paketti:Selected Specific Sequence " .. padded_number, invoke=function() 
+  renoise.tool():add_keybinding{name="Global:Paketti:Selected Specific Sequence " .. padded_number,invoke=function() 
   if i < #renoise.song().sequencer.pattern_sequence then 
   renoise.song().selected_sequence_index = i
   else renoise.app():show_status("Sequence does not exist, doing nothing.")
@@ -743,7 +739,7 @@ end
 
 for i = 1, 32 do
   local padded_number = string.format("%02d", i - 1)
-  renoise.tool():add_keybinding{name="Global:Paketti:Trigger Sequence " .. padded_number, invoke=function() tknaTriggerSequence(i) end}
+  renoise.tool():add_keybinding{name="Global:Paketti:Trigger Sequence " .. padded_number,invoke=function() tknaTriggerSequence(i) end}
 end
 
 function tknaSetSequenceAsScheduledList(number)
@@ -761,14 +757,14 @@ for i = 1,32 do
   local padded_number = string.format("%02d", i - 1)
   
   -- Add keybinding for each sequence
-  renoise.tool():add_keybinding{name="Global:Paketti:Set Sequence " .. padded_number .. " as Scheduled List", invoke=function() tknaSetSequenceAsScheduledList(i) end}
+  renoise.tool():add_keybinding{name="Global:Paketti:Set Sequence " .. padded_number .. " as Scheduled List",invoke=function() tknaSetSequenceAsScheduledList(i) end}
 end
 
-  renoise.tool():add_keybinding{name="Global:Paketti:Set Current Sequence as Scheduled List", invoke=function() 
+  renoise.tool():add_keybinding{name="Global:Paketti:Set Current Sequence as Scheduled List",invoke=function() 
   
   renoise.song().transport:set_scheduled_sequence(renoise.song().selected_sequence_index) end}
 
-  renoise.tool():add_keybinding{name="Global:Paketti:Add Current Sequence to Scheduled List", invoke=function() 
+  renoise.tool():add_keybinding{name="Global:Paketti:Add Current Sequence to Scheduled List",invoke=function() 
   
   renoise.song().transport:add_scheduled_sequence(renoise.song().selected_sequence_index) end}
 
@@ -788,14 +784,13 @@ for i = 1,32 do
   local padded_number = string.format("%02d", i - 1)
   
   -- Add keybinding for each sequence
-  renoise.tool():add_keybinding{name="Global:Paketti:Add Sequence " .. padded_number .. " to Scheduled List", invoke=function() tknaAddSequenceToScheduledList(i) end}
+  renoise.tool():add_keybinding{name="Global:Paketti:Add Sequence " .. padded_number .. " to Scheduled List",invoke=function() tknaAddSequenceToScheduledList(i) end}
 end
 
 
 for i = 1, 32 do
   local padded_number = string.format("%02d", i - 1)
-  renoise.tool():add_keybinding{
-    name="Global:Paketti:Toggle Sequence Loop to " .. padded_number,
+  renoise.tool():add_keybinding{name="Global:Paketti:Toggle Sequence Loop to " .. padded_number,
     invoke=function()
       local total_sequences = #renoise.song().sequencer.pattern_sequence
       if i <= total_sequences then
@@ -1322,11 +1317,8 @@ function tknaSetScheduledSequenceToCurrentSequenceAndLoop()
 end
 
 -- Add keybinding for the new function
-renoise.tool():add_keybinding{name="Global:Paketti:Set Current Sequence as Scheduled and Loop", invoke=tknaSetScheduledSequenceToCurrentSequenceAndLoop}
-
-
+renoise.tool():add_keybinding{name="Global:Paketti:Set Current Sequence as Scheduled and Loop",invoke=tknaSetScheduledSequenceToCurrentSequenceAndLoop}
 ---
-
 -- Function to normalize the section name to a two-digit string, allowing for '.', '-', or ',' as separators
 local function normalizeSectionName(section_name)
   -- Extract the numeric part before the separator (e.g., "01.", "01-", "01," -> "01")
@@ -1461,14 +1453,12 @@ for i = 0, 64 do
   local section_id = string.format("%02d", i)
 
   -- Keybinding: Select, Trigger and Loop the next occurrence of the Section
-  renoise.tool():add_keybinding {
-    name = "Global:Paketti:Select, Trigger and Loop Section " .. section_id,
-    invoke = function() tknaSelectTriggerLoopSection(i) end
+  renoise.tool():add_keybinding{name="Global:Paketti:Select, Trigger and Loop Section " .. section_id,
+    invoke=function() tknaSelectTriggerLoopSection(i) end
   }
 
   -- MIDI Mapping: Select, Trigger and Loop the next occurrence of the Section
-  renoise.tool():add_midi_mapping {
-    name = "Paketti:Select, Trigger and Loop Section " .. section_id,
+  renoise.tool():add_midi_mapping{name="Paketti:Select, Trigger and Loop Section " .. section_id,
     invoke = function(message) 
       if message:is_trigger() then
         tknaSelectTriggerLoopSection(i)
@@ -1477,14 +1467,12 @@ for i = 0, 64 do
   }
 
   -- Keybinding: Select, Schedule and Loop the next occurrence of the Section
-  renoise.tool():add_keybinding {
-    name = "Global:Paketti:Select, Schedule and Loop Section " .. section_id,
-    invoke = function() tknaSelectScheduleLoopSection(i) end
+  renoise.tool():add_keybinding{name="Global:Paketti:Select, Schedule and Loop Section " .. section_id,
+    invoke=function() tknaSelectScheduleLoopSection(i) end
   }
 
   -- MIDI Mapping: Select, Schedule and Loop the next occurrence of the Section
-  renoise.tool():add_midi_mapping {
-    name = "Paketti:Select, Schedule and Loop Section " .. section_id,
+  renoise.tool():add_midi_mapping{name="Paketti:Select, Schedule and Loop Section " .. section_id,
     invoke = function(message) 
       if message:is_trigger() then
         tknaSelectScheduleLoopSection(i)
@@ -1493,14 +1481,12 @@ for i = 0, 64 do
   }
 
   -- Keybinding: Select, Add to Schedule and Loop the next occurrence of the Section
-  renoise.tool():add_keybinding {
-    name = "Global:Paketti:Select, Add to Schedule and Loop Section " .. section_id,
-    invoke = function() tknaSelectAddScheduleLoopSection(i) end
+  renoise.tool():add_keybinding{name="Global:Paketti:Select, Add to Schedule and Loop Section " .. section_id,
+    invoke=function() tknaSelectAddScheduleLoopSection(i) end
   }
 
   -- MIDI Mapping: Select, Add to Schedule and Loop the next occurrence of the Section
-  renoise.tool():add_midi_mapping {
-    name = "Paketti:Select, Add to Schedule and Loop Section " .. section_id,
+  renoise.tool():add_midi_mapping{name="Paketti:Select, Add to Schedule and Loop Section " .. section_id,
     invoke = function(message) 
       if message:is_trigger() then
         tknaSelectAddScheduleLoopSection(i)
@@ -1509,3 +1495,92 @@ for i = 0, 64 do
   }
 end
 
+
+-----
+-- Slice mode settings
+local SLICE_SETTINGS = {
+  percussion = {
+    original = {
+      beat_sync_enabled = true,
+      beat_sync_mode = 2,    -- Percussion
+      loop_mode = 2,         -- Forward
+      mute_group = 1,
+      autoseek = true
+    },
+    slices = {
+      beat_sync_enabled = false,
+      oneshot = true,
+      autofade = true
+    }
+  },
+  texture = {
+    original = {
+      beat_sync_enabled = true,
+      beat_sync_mode = 3,    -- Texture
+      loop_mode = 2,         -- Forward
+      mute_group = 1,
+      autoseek = true
+    },
+    slices = {
+      beat_sync_enabled = false,
+      oneshot = true,
+      autofade = true
+    }
+  }
+}
+
+function sliceDrumKit(mode)
+  local s = renoise.song()
+  
+  -- Check if any instruments exist
+  if #s.instruments == 0 then
+    renoise.app():show_status("No instruments available.")
+    return
+  end
+  
+  local currInst = s.selected_instrument_index
+  
+  -- Check if instrument has samples
+  if #s.instruments[currInst].samples == 0 then
+    renoise.app():show_status("No samples in selected instrument.")
+    return
+  end
+  
+  s.selected_sample_index = 1
+  local settings = SLICE_SETTINGS[mode]
+  local sample = s.instruments[currInst].samples[1]
+  
+  -- Apply original sample settings
+  for key, value in pairs(settings.original) do
+    sample[key] = value
+  end
+  
+  -- Create slices if none exist
+  if #sample.slice_markers == 0 then
+    local buffer_size = sample.sample_buffer.number_of_frames
+    sample:insert_slice_marker(1)
+    for i = 1, 7 do  -- Create 8 equal slices
+      sample:insert_slice_marker(buffer_size * i / 8)
+    end
+  end
+  
+  -- Apply settings to slices
+  for i = 2, #s.instruments[currInst].samples do
+    local slice = s.instruments[currInst].samples[i]
+    for key, value in pairs(settings.slices) do
+      slice[key] = value
+    end
+  end
+  
+  renoise.app():show_status(string.format("Applied %s drum kit slice settings", mode))
+end
+
+function slicePercussionDrumKit() sliceDrumKit("percussion") end
+function sliceTextureDrumKit() sliceDrumKit("texture") end
+
+renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Slice Drumkit (Percussion)", invoke=slicePercussionDrumKit}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Slice Drumkit (Texture)", invoke=sliceTextureDrumKit}
+renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Slice Drumkit (Percussion)", invoke=slicePercussionDrumKit}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Slice Drumkit (Texture)", invoke=sliceTextureDrumKit}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Slice Drumkit (Percussion)", invoke=slicePercussionDrumKit}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Slice Drumkit (Texture)", invoke=sliceTextureDrumKit}

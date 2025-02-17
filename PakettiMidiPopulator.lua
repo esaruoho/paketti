@@ -515,10 +515,7 @@ function generaMIDISetupShowCustomDialog()
   custom_dialog = renoise.app():show_custom_dialog("Paketti MIDI Populator", dialog_content, my_MidiPopulatorkeyhandler_func)
 end
 
-renoise.tool():add_keybinding{
-  name = "Global:Paketti:Paketti MIDI Populator Dialog...", 
-  invoke = function() generaMIDISetupShowCustomDialog() end
-}
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti MIDI Populator Dialog...",invoke=function() generaMIDISetupShowCustomDialog() end}
 
 function table.index_of(tab, val)
   for index, value in ipairs(tab) do

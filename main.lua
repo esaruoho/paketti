@@ -1,4 +1,3 @@
--- Global variables
 sampleEditor = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
 patternEditor = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 sampleMappings = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_KEYZONES
@@ -12,7 +11,49 @@ lowerAutomation=renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION
 upperScopes=renoise.ApplicationWindow.UPPER_FRAME_TRACK_SCOPES
 upperSpectrum=renoise.ApplicationWindow.UPPER_FRAME_MASTER_SPECTRUM
 
+----------------------------------------------------------------------------------------------------------------------------------------
+--from http://lua-users.org/lists/lua-l/2004-09/msg00054.html 
+function DEC_HEX(IN)
+  local B,K,OUT,I,D=16,"0123456789ABCDEF","",0
+  while IN>0 do
+      I=I+1
+      IN,D=math.floor(IN/B),math.mod(IN,B)+1
+      OUT=string.sub(K,D,D)..OUT
+  end
+  return OUT
+end
+--
 local init_time = os.clock()
+
+-- Function to check if an instrument uses effects or has an empty FX chain and adjust name accordingly
+function align_instrument_names()
+  local song = renoise.song()
+  
+  for i, instrument in ipairs(song.instruments) do
+    local name = instrument.name
+    
+    -- Check if the instrument uses effects in the instrument editor or has an empty FX chain
+    local uses_fx = false
+
+    -- Check for FX chains (even empty ones should be counted as using FX)
+    if #instrument.sample_device_chains > 0 then
+      uses_fx = true  -- FX chain exists, even if empty, it adds an icon in the GUI
+    end
+
+    -- If instrument uses effects or has an empty FX chain, remove leading spaces
+    if uses_fx then
+      -- Remove the 5 spaces if the instrument was previously aligned
+      instrument.name = name:gsub("^%s%s%s%s%s", "")
+    else
+      -- If instrument does not use effects, add 5 spaces if not already aligned
+      if not name:match("^%s%s%s%s%s") then
+        instrument.name = "     " .. name
+      end
+    end
+  end
+end
+
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Align Instrument Names",invoke=function() align_instrument_names() end}
 
 function formatDigits(digits, number)
   return string.format("%0" .. digits .. "d", number)
@@ -29,12 +70,7 @@ function selection_in_pattern_pro()
   end
 
 
-
-
-
-
-
-
+  
 
   
   -- Debug: Print selection details
@@ -47,6 +83,7 @@ function selection_in_pattern_pro()
   print("End Line:", selection.end_line)
 
   local result = {}
+
 
   -- Iterate over the selected tracks
   for track_index = selection.start_track, selection.end_track do
@@ -126,6 +163,12 @@ function timed_require(module_name)
 end
 print ("---------------------")
 
+
+
+
+
+
+
 local renoise_version = tonumber(string.match(renoise.RENOISE_VERSION, "(%d+%.%d+)"))
 
 if renoise_version == 2.8 then
@@ -151,9 +194,6 @@ function EZMaximizeSpectrum()
   renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:EZ Maximize Spectrum",invoke=function() EZMaximizeSpectrum() end}
 end
 
-
-
-
 timed_require("rx")                          -- 2318 lines, 2.00 ms
 timed_require("Paketti0G01_Loader")          -- 857 lines, 4.00 ms
 --if renoise_version >= 3.4 then ]]--
@@ -163,10 +203,7 @@ timed_require("PakettiPlayerProSuite")       -- 852 lines, 3.00 ms
 --  print("PakettieSpeak and PakettiPlayerProSuite require Renoise v3.4 or higher")
 --end  
 timed_require("PakettiChordsPlus")
-
 timed_require("PakettiLaunchApp")
-
-
 -- Quick loads (under 1ms)
 timed_require("PakettiSampleLoader")         -- 0 lines, 0.00 ms
 timed_require("PakettiCustomization")        -- 61 lines, 0.50 ms
@@ -184,13 +221,6 @@ timed_require("PakettiStretch")              -- 925 lines, 1.50 ms
 timed_require("PakettiBeatDetect")           -- 396 lines, 1.00 ms
 timed_require("PakettiStacker")              -- 518 lines, 1.00 ms
 timed_require("PakettiRecorder")             -- 403 lines, 1.00 ms
-
-
-
-
-
-
-
 -- Light loads (>1ms)
 timed_require("PakettiControls")             -- 544 lines, 1.00 ms
 timed_require("PakettiKeyBindings")          -- 1443 lines, 2.00 ms
@@ -200,29 +230,27 @@ timed_require("PakettiWavetabler")           -- 223 lines, 0.50 ms
 timed_require("PakettiAudioProcessing")      -- 1538 lines, 1.50 ms
 timed_require("PakettiPatternEditorCheatSheet") -- 953 lines, 1.00 ms
 timed_require("PakettiThemeSelector")        -- 516 lines, 4.50 ms
-
 -- Medium loads (2-5ms)
 timed_require("PakettiMidiPopulator")        -- 531 lines, 1.00 ms
 timed_require("PakettiImpulseTracker")       -- 2112 lines, 2.00 ms
 timed_require("PakettiGater")                -- 1233 lines, 2.50 ms
 timed_require("PakettiAutomation")           -- 2776 lines, 3.50 ms
+timed_require("PakettiUnisonGenerator")      -- 122 lines, 0.00 ms
 timed_require("PakettiMainMenuEntries")      -- 383 lines, 4.50 ms
 timed_require("PakettiMidi")                 -- 1692 lines, 5.50 ms
 timed_require("PakettiDynamicViews")         -- 703 lines, 9.00 ms
-
 -- Heavy loads (5ms+)
 timed_require("PakettiEightOneTwenty")       -- 1457 lines, 4.50 ms
-timed_require("PakettiSamples")              -- 4249 lines, 6.00 ms
 timed_require("PakettiExperimental_Verify")  -- 4543 lines, 8.50 ms
 timed_require("PakettiLoaders")              -- 3137 lines, 9.00 ms
-
--- Extra heavy (10ms+)
 timed_require("PakettiPatternEditor")        -- 4583 lines, 11.50 ms
 timed_require("PakettiTkna")                 -- 1495 lines, 23.00 ms
 timed_require("PakettiRequests")             -- 9168 lines, 127.00 ms
+timed_require("PakettiSamples")              -- 4249 lines, 6.00 ms
+timed_require("Paketti35")
+
 
 print(string.format("Total load time: %.3f seconds", os.clock() - init_time))
-
 ------------------------------------------------
 local themes_path = renoise.tool().bundle_path .. "Themes/"
 local themes = os.filenames(themes_path, "*.xrnc")
@@ -232,6 +260,10 @@ local selected_theme_index = nil
 --for i, theme in ipairs(themes) do
 --  print(i .. ": " .. theme)
 --end
+
+
+
+
 
 function pakettiThemeSelectorRenoiseStartFavorites()
   if #preferences.pakettiThemeSelector.FavoritedList <= 1 then
@@ -272,7 +304,7 @@ function startup()
     for i = 1,#renoise.song().tracks do
       renoise.song().tracks[i].color_blend=0 
     end
---renoise.song().selected_track.color_blend = 40 
+--renoise.song().selected_track.color_blend = preferences.pakettiBlendValue.value
 
   end
    local s=renoise.song()
@@ -310,3 +342,41 @@ function dbug(msg)
 end
 
 _AUTO_RELOAD_DEBUG = true
+
+
+
+
+
+
+print ("111223gg2g33g9991199911ffggHEYgffgf")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

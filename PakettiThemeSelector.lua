@@ -508,9 +508,9 @@ local selected_theme_index = nil
   end
 end
 
-renoise.tool():add_keybinding { name = "Global:Paketti Theme Selector:Open Paketti Theme Selector Dialog", invoke = function() pakettiThemeSelectorDialogShow() end }
-renoise.tool():add_keybinding { name = "Global:Paketti Theme Selector:Pick a Random Theme (All)", invoke = function() pakettiThemeSelectorPickRandomThemeFromAll() end }
-renoise.tool():add_keybinding { name = "Global:Paketti Theme Selector:Pick a Random Theme (Favorites)", invoke = function() 
+renoise.tool():add_keybinding{name="Global:Paketti Theme Selector:Open Paketti Theme Selector Dialog",invoke=function() pakettiThemeSelectorDialogShow() end }
+renoise.tool():add_keybinding{name="Global:Paketti Theme Selector:Pick a Random Theme (All)",invoke=function() pakettiThemeSelectorPickRandomThemeFromAll() end }
+renoise.tool():add_keybinding{name="Global:Paketti Theme Selector:Pick a Random Theme (Favorites)",invoke=function() 
     local vb=renoise.ViewBuilder()
     pakettiThemeSelectorPickRandomThemeFromFavoritesNoGUI() end }
 

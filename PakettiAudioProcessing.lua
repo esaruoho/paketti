@@ -454,9 +454,8 @@ end
 
 
 
--- Function to create combined dialog content with full resampling functionality
 local function create_combined_dialog_content()
-  local vb = renoise.ViewBuilder()  -- Create a fresh ViewBuilder instance every time the dialog is opened
+  local vb = renoise.ViewBuilder()  -- Create a fresh ViewBuilder instance
   local sample = renoise.song().selected_sample
 
   if not sample or not sample.sample_buffer.has_sample_data then
@@ -464,7 +463,6 @@ local function create_combined_dialog_content()
     return
   end
 
-    
   local buffer = sample.sample_buffer
   local current_name = sample.name
   local current_rate = buffer.sample_rate
@@ -472,11 +470,15 @@ local function create_combined_dialog_content()
   local current_bit_depth = buffer.bit_depth
   local destination_rate = current_rate
   local destination_bit_depth = current_bit_depth
-  local threshold_label=vb:text{text=string.format("%.3f%%", preferences.PakettiStripSilenceThreshold.value*100),width=60}
-  local begthreshold_label=vb:text{text=string.format("%.3f%%", preferences.PakettiMoveSilenceThreshold.value*100),width=60}
 
+  -- Create new text elements specifically for this dialog
+  local threshold_label = vb:text{text=string.format("%.3f%%", preferences.PakettiStripSilenceThreshold.value*100), width=60}
+  local begthreshold_label = vb:text{text=string.format("%.3f%%", preferences.PakettiMoveSilenceThreshold.value*100), width=60}
+  local sample_name_text = vb:text{id="sample_name_text", text="Name: " .. (current_name or "No valid sample selected")}
+  local details_text = vb:text{id="details_text", text="Details: " .. (buffer and string.format("%dHz, %dbit, %d frames", current_rate, current_bit_depth, current_length) or "No valid sample selected")}
+  local slider_value = vb:text{text="1", width=40}
 
-
+  
   
   -- Create the dialog content
   local dialog_content = vb:column { width=375,
@@ -816,15 +818,15 @@ local function set_middle_frame_focus()
 end
 
 -- Keybindings for various operations
-renoise.tool():add_keybinding {name = "Sample Editor:Paketti:Phase Inversion", invoke = function() phase_invert_sample() end}
-renoise.tool():add_keybinding {name = "Sample Editor:Paketti:Phase Inversion & Audio Diff", invoke = function() phase_invert_and_diff_sample() end}
-renoise.tool():add_keybinding {name = "Sample Editor:Paketti:Pitch Shift", invoke = function() pitch_shift_sample(20) end}
-renoise.tool():add_keybinding {name = "Sample Editor:Paketti:Pitch Shift & Audio Diff", invoke = function() pitch_shift_and_diff_sample() end}
-renoise.tool():add_keybinding {name = "Sample Editor:Paketti:Clip bottom of waveform", invoke = function() modulate_samples() end}
-renoise.tool():add_keybinding {name = "Sample Editor:Paketti:Modulate & Audio Diff", invoke = function() modulate_and_diff_sample() end}
-renoise.tool():add_keybinding {name = "Sample Editor:Paketti:Invert Right, Sum Mono", invoke = function() invert_right_sum_mono() end}
-renoise.tool():add_keybinding {name = "Sample Editor:Paketti:Audio Diff", invoke = function() create_audio_diff_sample() end}
-renoise.tool():add_keybinding {name = "Global:Paketti:Paketti Audio Processing Tools Dialog...", invoke = function() PakettiAudioProcessingToolsDialogShow() end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Phase Inversion",invoke=function() phase_invert_sample() end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Phase Inversion & Audio Diff",invoke=function() phase_invert_and_diff_sample() end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Pitch Shift",invoke=function() pitch_shift_sample(20) end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Pitch Shift & Audio Diff",invoke=function() pitch_shift_and_diff_sample() end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Clip bottom of waveform",invoke=function() modulate_samples() end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Modulate & Audio Diff",invoke=function() modulate_and_diff_sample() end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Invert Right, Sum Mono",invoke=function() invert_right_sum_mono() end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Audio Diff",invoke=function() create_audio_diff_sample() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Audio Processing Tools Dialog...",invoke=function() PakettiAudioProcessingToolsDialogShow() end}
 
 function update_sample_details(details_text, sample_name_text)
   -- If UI elements are not properly initialized, exit early
@@ -1079,6 +1081,105 @@ renoise.tool():add_keybinding{name="Global:Paketti:Move Beginning Silence to End
 renoise.tool():add_midi_mapping{name="Paketti:Move Beginning Silence to End",invoke=function(message) if message:is_trigger() then  PakettiMoveSilence() end end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Move Beginning Silence to End",invoke=function() PakettiMoveSilence() end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Move Beginning Silence to End",invoke=function() PakettiMoveSilence() end}
+-----------
+
+function PakettiMoveSilenceAllSamples()
+  local song = renoise.song()
+  local instrument = song.selected_instrument
+  
+  if not instrument then
+    renoise.app():show_status("No instrument selected.")
+    return
+  end
+  
+  if #instrument.samples == 0 then
+    renoise.app():show_status("Selected instrument has no samples.")
+    return
+  end
+  
+  local processed_count = 0
+  local current_sample_index = song.selected_sample_index
+  
+  -- Process each sample in the instrument
+  for i = 1, #instrument.samples do
+    song.selected_sample_index = i
+    PakettiMoveSilence()
+    processed_count = processed_count + 1
+  end
+  
+  -- Restore original sample selection
+  song.selected_sample_index = current_sample_index
+  
+  renoise.app():show_status(string.format("Moved silence to end for %d samples in instrument.", processed_count))
+end
+
+-- Add keybinding and menu entries
+renoise.tool():add_keybinding{name="Global:Paketti:Move Beginning Silence to End for All Samples",invoke=function() PakettiMoveSilenceAllSamples() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Move Beginning Silence to End for All Samples",invoke=function() PakettiMoveSilenceAllSamples() end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Move Beginning Silence to End for All Samples",invoke=function() PakettiMoveSilenceAllSamples() end}
+--------
+function PakettiSampleInvertEntireSample()
+  local sample = renoise.song().selected_sample
+  if not sample or not sample.sample_buffer.has_sample_data then
+    renoise.app():show_status("No valid sample selected")
+    return
+  end
+
+  local buffer = sample.sample_buffer
+  buffer:prepare_sample_data_changes()
+  
+  for c = 1, buffer.number_of_channels do
+    for f = 1, buffer.number_of_frames do
+      local value = buffer:sample_data(c, f)
+      buffer:set_sample_data(c, f, -value)
+    end
+  end
+  
+  buffer:finalize_sample_data_changes()
+  renoise.app():show_status("Entire sample inverted (waveform flipped)")
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Invert Entire Sample",invoke=function() PakettiSampleInvertEntireSample() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Invert Entire Sample",invoke=function() PakettiSampleInvertEntireSample() end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Invert Entire Sample",invoke=function() PakettiSampleInvertEntireSample() end}
+---
+-- ... existing code ...
+
+function PakettiInvertRandomSamplesInInstrument()
+  local instrument = renoise.song().selected_instrument
+  if not instrument or #instrument.samples == 0 then
+    renoise.app():show_status("No instrument selected or instrument has no samples")
+    return
+  end
+
+  local original_index = renoise.song().selected_sample_index
+  local inverted_count = 0
+  
+  -- Invert random half of the samples by default
+  for i, sample in ipairs(instrument.samples) do
+    if math.random() < 0.5 then  -- 50% chance to invert each sample
+      renoise.song().selected_sample_index = i
+      PakettiSampleInvertEntireSample()
+      inverted_count = inverted_count + 1
+    end
+  end
+
+  -- Restore original selection
+  renoise.song().selected_sample_index = original_index
+  renoise.app():show_status(string.format("Randomly inverted %d/%d samples in instrument", inverted_count, #instrument.samples))
+end
+
+-- ... existing code ...
+
+-- Add to menu entries
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Invert Random Samples in Instrument",invoke=PakettiInvertRandomSamplesInInstrument}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Invert Random Samples in Instrument",invoke=PakettiInvertRandomSamplesInInstrument}
+renoise.tool():add_keybinding{name="Global:Paketti:Invert Random Samples in Instrument",invoke=PakettiInvertRandomSamplesInInstrument}
+
+
+
+---
+
 
 function apply_fade_in_out()
   local instrument=renoise.song().selected_instrument
@@ -1112,8 +1213,8 @@ renoise.song().selected_sample.sample_buffer:finalize_sample_data_changes()
   renoise.app():show_status("15-frame fade-in and fade-out applied")
 end
 
-renoise.tool():add_keybinding {name="Sample Editor:Paketti:15 Frame Fade In & Fade Out",invoke=function() apply_fade_in_out() end}
-renoise.tool():add_menu_entry {name="Sample Editor:Paketti..:15 Frame Fade In & Fade Out",invoke=function() apply_fade_in_out() end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:15 Frame Fade In & Fade Out",invoke=function() apply_fade_in_out() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:15 Frame Fade In & Fade Out",invoke=function() apply_fade_in_out() end}
 
 ---
 -- Function to create max amplitude DC offset kick
@@ -1153,8 +1254,8 @@ renoise.app().window.active_middle_frame=5
 end
 
 -- Adding keybinding and menu entry on single lines
-renoise.tool():add_keybinding { name="Global:Paketti:Max Amp DC Offset Kick Generator", invoke=function() pakettiMaxAmplitudeDCOffsetKickCreator() end }
-renoise.tool():add_menu_entry { name="Sample Editor:Paketti..:Max Amp DC Offset Kick Generator", invoke=function() pakettiMaxAmplitudeDCOffsetKickCreator() end }
+renoise.tool():add_keybinding{name="Global:Paketti:Max Amp DC Offset Kick Generator",invoke=function() pakettiMaxAmplitudeDCOffsetKickCreator() end }
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Max Amp DC Offset Kick Generator",invoke=function() pakettiMaxAmplitudeDCOffsetKickCreator() end }
 
 -- Function to apply the recursive DC offset correction algorithm
 function remove_dc_offset_recursive()
@@ -1199,7 +1300,7 @@ function remove_dc_offset_recursive()
   renoise.app():show_status("Recursive DC Offset correction applied successfully.")
 end
 
-renoise.tool():add_keybinding {name = "Sample Editor:Process:Recursive Remove DC Offset", invoke = function() remove_dc_offset_recursive() end}
+renoise.tool():add_keybinding{name="Sample Editor:Process:Recursive Remove DC Offset",invoke=function() remove_dc_offset_recursive() end}
 
 function remove_dc_offset_recursive_1to50()
 local iterations = math.random(1, 50)
@@ -1291,6 +1392,41 @@ function normalize_selected_sample()
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Normalize Sample",invoke=function() normalize_selected_sample() end}
+
+
+function normalize_all_samples_in_instrument()
+  local instrument = renoise.song().selected_instrument
+  
+  if not instrument then
+    renoise.app():show_status("No instrument selected.")
+    return
+  end
+  
+  if #instrument.samples == 0 then
+    renoise.app():show_status("Selected instrument has no samples.")
+    return
+  end
+  
+  local normalized_count = 0
+  local current_sample_index = renoise.song().selected_sample_index
+  
+  -- Normalize each sample in the instrument
+  for i = 1, #instrument.samples do
+    renoise.song().selected_sample_index = i
+    normalize_selected_sample()
+    normalized_count = normalized_count + 1
+  end
+  
+  -- Restore original sample selection
+  renoise.song().selected_sample_index = current_sample_index
+  
+  renoise.app():show_status(string.format("Normalized %d samples in instrument.", normalized_count))
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Normalize All Samples in Instrument",invoke=function() normalize_all_samples_in_instrument() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Normalize All Samples in Instrument",invoke=function() normalize_all_samples_in_instrument() end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Normalize All Samples in Instrument",invoke=function() normalize_all_samples_in_instrument() end}
+
 -----------
 function normalize_and_reduce(scope, db_reduction)
   local function process_sample(sample, reduction_factor)
@@ -1525,8 +1661,7 @@ local function auto_detect_single_cycle_loop()
   renoise.app():show_status(("Loop set: %d to %d (Period: %d)"):format(loop_start, loop_end, best_period))
 end
 
-renoise.tool():add_menu_entry {
-  name = "Sample Editor:Paketti..:WIP:Auto Detect Single-Cycle Loop",
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:WIP:Auto Detect Single-Cycle Loop",
   invoke = auto_detect_single_cycle_loop
 }
 
@@ -1594,12 +1729,10 @@ function normalize_selected_sample_by_slices()
   renoise.app():show_status(string.format("Normalized %d slices independently", slice_count))
 end
 -- Add keybinding and menu entries
-renoise.tool():add_keybinding{
-  name="Global:Paketti:Normalize Sample Slices Independently",
+renoise.tool():add_keybinding{name="Global:Paketti:Normalize Sample Slices Independently",
   invoke=function() normalize_selected_sample_by_slices() end
 }
 
-renoise.tool():add_menu_entry{
-  name="Sample Editor:Paketti..:Normalize Slices Independently",
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Normalize Slices Independently",
   invoke=function() normalize_selected_sample_by_slices() end
 }

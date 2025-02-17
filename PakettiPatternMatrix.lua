@@ -13,12 +13,12 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Show/Hide Pattern Matrix",invoke=function() showhidepatternmatrix() end}
 renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Switch to Automation",invoke=function() showAutomation() end}
-renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Bypass EFX (Write to Pattern)", invoke=function() effectbypasspattern()  end}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Enable EFX (Write to Pattern)", invoke=function() effectenablepattern() end}
-renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Bypass All Devices on Channel", invoke=function() effectbypass() end}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Enable All Devices on Channel", invoke=function() effectenable() end}
-renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Play at 75% Speed (Song BPM)", invoke=function() playat75() end}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Play at 100% Speed (Song BPM)", invoke=function() returnbackto100()  end}
+renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Bypass EFX (Write to Pattern)",invoke=function() effectbypasspattern()  end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Enable EFX (Write to Pattern)",invoke=function() effectenablepattern() end}
+renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Bypass All Devices on Channel",invoke=function() effectbypass() end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Enable All Devices on Channel",invoke=function() effectenable() end}
+renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Play at 75% Speed (Song BPM)",invoke=function() playat75() end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Play at 100% Speed (Song BPM)",invoke=function() returnbackto100()  end}
 -------
 local function duplicate_pattern_and_clear_muted_above()
   local song=renoise.song()
@@ -88,12 +88,12 @@ local function duplicate_pattern_and_clear_muted_above()
   renoise.app():show_status("Duplicated pattern above current sequence with mute states, complete automation, and cleared muted tracks.")
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Pattern Above & Clear Muted Tracks", invoke=duplicate_pattern_and_clear_muted_above}
-renoise.tool():add_midi_mapping{name="Paketti:Duplicate Pattern Above & Clear Muted", invoke=duplicate_pattern_and_clear_muted_above}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Duplicate Pattern Above & Clear Muted", invoke=duplicate_pattern_and_clear_muted_above}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Duplicate Pattern Above & Clear Muted", invoke=duplicate_pattern_and_clear_muted_above}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Duplicate Pattern Above & Clear Muted", invoke=duplicate_pattern_and_clear_muted_above}
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Duplicate Pattern Above & Clear Muted", invoke=duplicate_pattern_and_clear_muted_above}
+renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Pattern Above & Clear Muted Tracks",invoke=duplicate_pattern_and_clear_muted_above}
+renoise.tool():add_midi_mapping{name="Paketti:Duplicate Pattern Above & Clear Muted",invoke=duplicate_pattern_and_clear_muted_above}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Duplicate Pattern Above & Clear Muted",invoke=duplicate_pattern_and_clear_muted_above}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Duplicate Pattern Above & Clear Muted",invoke=duplicate_pattern_and_clear_muted_above}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Duplicate Pattern Above & Clear Muted",invoke=duplicate_pattern_and_clear_muted_above}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Duplicate Pattern Above & Clear Muted",invoke=duplicate_pattern_and_clear_muted_above}
 
 
 local function duplicate_pattern_and_clear_muted()
@@ -160,12 +160,12 @@ local function duplicate_pattern_and_clear_muted()
   renoise.app():show_status("Duplicated pattern below current sequence with mute states, complete automation, and cleared muted tracks.")
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Pattern Below & Clear Muted Tracks", invoke=duplicate_pattern_and_clear_muted}
-renoise.tool():add_midi_mapping{name="Paketti:Duplicate Pattern Below & Clear Muted", invoke=duplicate_pattern_and_clear_muted}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Duplicate Pattern Below & Clear Muted", invoke=duplicate_pattern_and_clear_muted}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Duplicate Pattern Below & Clear Muted", invoke=duplicate_pattern_and_clear_muted}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Duplicate Pattern Below & Clear Muted", invoke=duplicate_pattern_and_clear_muted}
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Duplicate Pattern Below & Clear Muted", invoke=duplicate_pattern_and_clear_muted}
+renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Pattern Below & Clear Muted Tracks",invoke=duplicate_pattern_and_clear_muted}
+renoise.tool():add_midi_mapping{name="Paketti:Duplicate Pattern Below & Clear Muted",invoke=duplicate_pattern_and_clear_muted}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Duplicate Pattern Below & Clear Muted",invoke=duplicate_pattern_and_clear_muted}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Duplicate Pattern Below & Clear Muted",invoke=duplicate_pattern_and_clear_muted}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Duplicate Pattern Below & Clear Muted",invoke=duplicate_pattern_and_clear_muted}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Duplicate Pattern Below & Clear Muted",invoke=duplicate_pattern_and_clear_muted}
 
 
 

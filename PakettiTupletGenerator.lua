@@ -370,17 +370,6 @@ local function show_tuplet_dialog()
 end
 
 -- Menu entries at the end of the script
-renoise.tool():add_menu_entry {
-  name = "Main Menu:Tools:Paketti..:Xperimental/Work in Progress:Paketti Tuplet Writer...",
-  invoke = function()
-    show_tuplet_dialog()
-  end
-}
-
-renoise.tool():add_keybinding {
-  name = "Global:Tools:Paketti Tuplet Writer",
-  invoke = function()
-    show_tuplet_dialog()
-  end
-}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress:Paketti Tuplet Writer...",invoke=function() show_tuplet_dialog() end}
+renoise.tool():add_keybinding{name="Global:Tools:Paketti Tuplet Writer",invoke=function() show_tuplet_dialog() end}
 

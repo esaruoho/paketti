@@ -1112,10 +1112,7 @@ local function create_timestretch_dialog()
     set_view_frame(vb)
 end
 
-renoise.tool():add_menu_entry{
-    name = "Main Menu:Tools:Paketti Timestretch Dialog...",
-    invoke = create_timestretch_dialog
-}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Timestretch Dialog...",invoke=create_timestretch_dialog}
 
 render_context = {
     source_track = 0,

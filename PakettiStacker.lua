@@ -44,7 +44,7 @@ local function set_loop_mode_for_selected_instrument(loop_mode)
   returnpe()
 end
 -- Menu entries for setting loop modes
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Set Loop Mode to Off",invoke=function() set_loop_mode_for_selected_instrument(renoise.Sample.LOOP_MODE_OFF) end}
+renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Set Loop Mode to Off",invoke=function() set_loop_mode_for_selected_instrument(renoise.Sample.LOOP_MODE_OFF) end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Set Loop Mode to Forward",invoke=function() set_loop_mode_for_selected_instrument(renoise.Sample.LOOP_MODE_FORWARD) end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Set Loop Mode to PingPong",invoke=function() set_loop_mode_for_selected_instrument(renoise.Sample.LOOP_MODE_PING_PONG) end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Set Loop Mode to Reverse",invoke=function() set_loop_mode_for_selected_instrument(renoise.Sample.LOOP_MODE_REVERSE) end}
@@ -505,7 +505,7 @@ showStackingDialog(proceed_with_stacking, on_switch_changed, PakettiIsolateSlice
     renoise.app():show_status("The Slices have been turned to Samples. The Samples have been Stacked together. The Velocity controls the Sample Selection. The Pattern now has a ramp up for the samples.")
   end
 
-renoise.tool():add_keybinding {name = "Global:Paketti:Load&Slice&Isolate&Stack Sample",invoke = function() LoadSliceIsolateStack() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Load&Slice&Isolate&Stack Sample",invoke=function() LoadSliceIsolateStack() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Stacker Dialog...",invoke=function()
   showStackingDialog(proceed_with_stacking, on_switch_changed, PakettiIsolateSlicesToInstrument) end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti Stacker...",invoke=function()

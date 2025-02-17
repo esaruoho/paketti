@@ -19,6 +19,43 @@ function save_Cheatsheetpreferences()
   renoise.app():show_status("CheatSheet preferences saved")
 end
 
+function Cheatsheetclear_effect_columns()
+  local s = renoise.song()
+  
+  if s.selection_in_pattern then
+    -- Clear selection
+    for t = s.selection_in_pattern.start_track, s.selection_in_pattern.end_track do
+      local track = s:track(t)
+      local note_columns_visible = track.visible_note_columns
+      local effect_columns_visible = track.visible_effect_columns
+      local total_columns_visible = note_columns_visible + effect_columns_visible
+      
+      local start_column = (t == s.selection_in_pattern.start_track) and s.selection_in_pattern.start_column or note_columns_visible + 1
+      local end_column = (t == s.selection_in_pattern.end_track) and s.selection_in_pattern.end_column or total_columns_visible
+      
+      for i = s.selection_in_pattern.start_line, s.selection_in_pattern.end_line do
+        for col = start_column, end_column do
+          local column_index = col - note_columns_visible
+          if column_index > 0 and column_index <= effect_columns_visible then
+            local effect_column = s:pattern(s.selected_pattern_index):track(t):line(i):effect_column(column_index)
+            if effect_column then
+              effect_column:clear()
+            end
+          end
+        end
+      end
+    end
+  else
+    -- Clear current effect column
+    if s.selected_effect_column then
+      s.selected_effect_column:clear()
+    end
+  end
+  
+  renoise.app():show_status("Effect columns cleared")
+  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+end
+
 
 -- Complete list of effects
 local effects = {
@@ -660,6 +697,14 @@ function CheatSheet()
     vb:horizontal_aligner {mode = "left", dontoverwrite_cb, vb:text {text = "Don't Overwrite Existing Data"}},
     vb:horizontal_aligner {mode = "left", vb:text {text = "Min", font = "mono"}, min_decrement_button, min_increment_button, min_slider, min_text},
     vb:horizontal_aligner {mode = "left", vb:text {text = "Max", font = "mono"}, max_decrement_button, max_increment_button, max_slider, max_text},
+    vb:button {
+      text = "Clear Effects",
+      tooltip = "Clear all effect columns in selection",
+      width = globalwidth,
+      pressed = function()
+        Cheatsheetclear_effect_columns()
+      end
+    },
     vb:button {text = "Close", width = globalwidth, pressed = function()
       dialog:close()
       renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
@@ -949,5 +994,5 @@ local closer = preferences.pakettiDialogClose.value
 end
 
 -- Keybinding to open the CheatSheet
-renoise.tool():add_keybinding {name = "Global:Paketti:Pattern Effect Command CheatSheet", invoke = CheatSheet}
+renoise.tool():add_keybinding{name="Global:Paketti:Pattern Effect Command CheatSheet",invoke=CheatSheet}
 

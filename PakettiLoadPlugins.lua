@@ -67,14 +67,14 @@ function loadFromPreferences()
     local path = plugin.path.value
 
     -- Create KeyBinding
-    local keyBindingName = "Global:Paketti:Load Plugin " .. pluginName
+    local keyBindingName="Global:Paketti:Load Plugin " .. pluginName
     renoise.tool():add_keybinding{
       name = keyBindingName,
-      invoke = function() loadPlugin(path) end
+      invoke=function() loadPlugin(path) end
     }
 
     -- Create MIDIMapping
-    local midiMappingName = "Paketti:Load Plugin " .. pluginName
+    local midiMappingName="Paketti:Load Plugin " .. pluginName
     renoise.tool():add_midi_mapping{
       name = midiMappingName,
       invoke = function(message)
@@ -171,12 +171,10 @@ local function addAsShortcut()
           if not addedEntries[entryName] then
             -- Attempt to add the keybinding and midi mapping
             local success, err = pcall(function()
-              renoise.tool():add_keybinding{
-                name = "Global:Paketti:Load Plugin " .. entryName,
-                invoke = function() loadPlugin(cb_info.path) end
+              renoise.tool():add_keybinding{name="Global:Paketti:Load Plugin " .. entryName,
+                invoke=function() loadPlugin(cb_info.path) end
               }
-              renoise.tool():add_midi_mapping{
-                name = "Paketti:Load Plugin " .. entryName,
+              renoise.tool():add_midi_mapping{name="Paketti:Load Plugin " .. entryName,
                 invoke = function(message)
                   if message:is_trigger() then
                     loadPlugin(cb_info.path)
@@ -227,7 +225,18 @@ local function updateRandomSelection()
 
   resetSelection()  -- Clear previous selections
 
-  local numDevices = #plugins
+  -- Check if "Favorites Only" is enabled
+  local favorites_only = vb.views["favorites_only_checkbox"].value
+
+  -- Filter plugins based on the "Favorites Only" checkbox
+  local filtered_plugins = {}
+  for _, cb_info in ipairs(plugins) do
+    if not favorites_only or (favorites_only and cb_info.is_favorite) then
+      table.insert(filtered_plugins, cb_info)
+    end
+  end
+
+  local numDevices = #filtered_plugins
   local percentage = random_select_percentage
   local numSelections = math.floor((percentage / 100) * numDevices + 0.5)
 
@@ -238,7 +247,7 @@ local function updateRandomSelection()
     return
   elseif numSelections >= numDevices then
     percentage_text_view.text = "All"
-    for _, cb_info in ipairs(plugins) do
+    for _, cb_info in ipairs(filtered_plugins) do
       cb_info.checkbox.value = true
     end
     return
@@ -260,7 +269,7 @@ local function updateRandomSelection()
   -- Select the first numSelections devices
   for i = 1, numSelections do
     local idx = indices[i]
-    plugins[idx].checkbox.value = true
+    filtered_plugins[idx].checkbox.value = true
   end
 end
 
@@ -297,11 +306,32 @@ local function createPluginList(plugins_list, title)
       local plugin = plugins_list[plugin_index]
       local checkbox_id = "checkbox_" .. title .. "_" .. tostring(plugin_index) .. "_" .. tostring(math.random(1000000))
       local checkbox = vb:checkbox{value=false, id=checkbox_id}
-      plugins[#plugins + 1] = {checkbox=checkbox, path=plugin.path, name=plugin.name}
+
+      local display_name = plugin.name
+
+      -- Debug: Print plugin info before applying styling
+      print("Creating Plugin Row for:", display_name)
+      print("Is Favorite:", plugin.is_favorite)
+
+      if plugin.is_favorite then
+        display_name = display_name .. "*"  -- Add * for favorites
+      end
+
+      plugins[#plugins + 1] = {
+        checkbox = checkbox,
+        path = plugin.path,
+        name = plugin.name,
+        is_favorite = plugin.is_favorite  -- Pass the is_favorite flag
+      }
+
       local plugin_row = vb:row{
         spacing=4,
         checkbox,
-        vb:text{text=plugin.name}
+        vb:text{
+          text = display_name,
+          font = plugin.is_favorite and "italic" or "normal",  -- Set font to italic for favorites
+          style = plugin.is_favorite and "strong" or "normal"  -- Set style to strong for favorites
+        }
       }
       columns[col]:add_child(plugin_row)
       plugin_index = plugin_index + 1
@@ -335,10 +365,30 @@ local function updatePluginList()
     local plugin_info = available_plugin_infos[i]
     if plugin_info then
       local short_name = plugin_info.short_name or "Unknown"
-      if plugin_path:find("/" .. current_plugin_type .. "/") then
-        table.insert(plugin_list, {name = short_name, path = plugin_path})
+
+      -- Normalize the path for comparison (replace backslashes with forward slashes)
+      local normalized_path = plugin_path:gsub("\\", "/")
+
+      -- Debug: Print plugin info
+      print("Plugin Path:", normalized_path)
+      print("Plugin Name:", short_name)
+      print("Is Favorite:", plugin_info.is_favorite)
+
+      -- Check if the plugin type matches the current selection
+      if normalized_path:lower():find("/" .. current_plugin_type:lower() .. "/") then
+        table.insert(plugin_list, {
+          name = short_name,
+          path = plugin_path,
+          is_favorite = plugin_info.is_favorite  -- Pass the is_favorite flag to the plugin list
+        })
       end
     end
+  end
+
+  -- Debug: Print the filtered plugin list
+  print("Filtered Plugin List for", current_plugin_type)
+  for _, plugin in ipairs(plugin_list) do
+    print("Name:", plugin.name, "Is Favorite:", plugin.is_favorite)
   end
 
   local display_title = plugin_type_display_names[current_plugin_type] .. " Plugins"
@@ -364,10 +414,14 @@ function showPluginListDialog()
     return
   end
 
+
+
+
   vb = renoise.ViewBuilder()
   plugins = {}
   random_select_percentage = 0  -- Reset the random selection percentage
   current_plugin_list_content = nil  -- Reset current content
+
 
   -- Dropdown Menu
   local dropdown_items = {}
@@ -404,7 +458,17 @@ function showPluginListDialog()
       text = "None",
       width = 40,
       align = "center"
-    }
+    },
+
+    vb:checkbox{
+      id = "favorites_only_checkbox",
+      value = false,
+      notifier = function(value)
+        updateRandomSelection()
+      end
+    },
+    vb:text{text="Favorites Only", width=70},
+  
   }
 
   -- Action Buttons

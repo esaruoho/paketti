@@ -4,16 +4,22 @@ local column3=vb:column{style="group"}
 local hex_text2=vb:text{text="0", style="normal"}
 local hex_text3=vb:text{text="0", style="normal"}
 local combined_text1=vb:text{text="00", style="strong", font="bold"}
+local decimal_text=vb:text{text="0", style="strong", font="bold"}  -- Add this line
 local value_labels2={}
 local value_labels3={}
-local label_map2 = {}
-local label_map3 = {}
+local label_map2={} -- Add this line
+local label_map3={} -- Add this line
 local writing_enabled = false
 
 local function update_combined_value()
   local combined_value=hex_text3.text..hex_text2.text
   combined_text1.text=combined_value
-  renoise.app():show_status(combined_text1.text)
+  
+  -- Convert hex to decimal
+  local decimal_value = tonumber(combined_value, 16)
+  decimal_text.text = tostring(decimal_value)
+    
+  renoise.app():show_status(combined_text1.text .. " " .. decimal_value)
 
   if not renoise.song() or not writing_enabled then return end
 
@@ -52,7 +58,8 @@ local function create_valuebox(i, column, hex_text, value_labels, label_map, pos
     tostring=function(v)
       local hex_value=string.format("%X",v)
       hex_text.text=hex_value
-      update_combined_value()
+      update_combined_value() -- Call the update function here
+      
       for _, label in ipairs(value_labels) do 
         if label.text ~= hex_value then
           label.style="normal"
@@ -72,9 +79,10 @@ local function create_valuebox(i, column, hex_text, value_labels, label_map, pos
         end
       end
       label_map[id_prefix .. "_label_" .. hex_value].style = "strong"
+      update_combined_value() -- Call the update function here too
     end
   }
-
+  
   if position == "number_first" then
     column:add_child(vb:row{number_label,valuebox})
   elseif position == "valuebox_first" then
@@ -98,7 +106,7 @@ end
 
 local separator = vb:space{width=50}
 
-local dialog_content=vb:column{
+dialog_content = vb:column{
   margin=10,
   vb:row{
     vb:checkbox{
@@ -114,7 +122,10 @@ local dialog_content=vb:column{
     vb:column{column2}
   },
   vb:horizontal_aligner{mode="distribute",
-    vb:row{combined_text1}
+    vb:column{
+      combined_text1,
+      decimal_text
+    }
   }
 }
 
@@ -133,7 +144,7 @@ end
 end
 
 --renoise.app():show_custom_dialog("FX", dialog_content)
-renoise.tool():add_menu_entry{name = "Pattern Editor:Paketti..:Other Trackers..:Open Player Pro Tools Effect Dialog", invoke = function() renoise.app():show_custom_dialog("FX", dialog_content, my_PPEffectkeyhandler_func) 
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Other Trackers..:Open Player Pro Tools Effect Dialog",invoke=function() renoise.app():show_custom_dialog("FX", dialog_content, my_PPEffectkeyhandler_func) 
 renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 end}
 ---------------
@@ -470,21 +481,20 @@ end
 
 local function PakettiPlayerProNoteGridAddNoteMenuEntries()
   local note_ranges = {
-    {name = "C-0 to B-2", range_start = 1, range_end = 36},
-    {name = "C-3 to B-5", range_start = 37, range_end = 72},
-    {name = "C-6 to B-9", range_start = 73, range_end = 108}
+    {name="C-0 to B-2", range_start = 1, range_end = 36},
+    {name="C-3 to B-5", range_start = 37, range_end = 72},
+    {name="C-6 to B-9", range_start = 73, range_end = 108}
   }
 
   for _, range in ipairs(note_ranges) do
     for i = range.range_start, range.range_end do
       if notes[i] then
-        renoise.tool():add_menu_entry{
-          name = "Pattern Editor:Paketti..:Other Trackers..:Note Dropdown.."..range.name..":"..notes[i],
-          invoke = function() PakettiPlayerProNoteGridInsertNoteInPattern(notes[i], renoise.song().selected_instrument_index) end}
+        renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Other Trackers..:Note Dropdown.."..range.name..":"..notes[i],
+          invoke=function() PakettiPlayerProNoteGridInsertNoteInPattern(notes[i], renoise.song().selected_instrument_index) end}
       end
     end
-    renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Other Trackers..:Note Dropdown.."..range.name..":000", invoke=function() PakettiPlayerProNoteGridInsertNoteInPattern("000", renoise.song().selected_instrument_index) end}
-    renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Other Trackers..:Note Dropdown.."..range.name..":OFF", invoke=function() PakettiPlayerProNoteGridInsertNoteInPattern("OFF", renoise.song().selected_instrument_index) end}
+    renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Other Trackers..:Note Dropdown.."..range.name..":000",invoke=function() PakettiPlayerProNoteGridInsertNoteInPattern("000", renoise.song().selected_instrument_index) end}
+    renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Other Trackers..:Note Dropdown.."..range.name..":OFF",invoke=function() PakettiPlayerProNoteGridInsertNoteInPattern("OFF", renoise.song().selected_instrument_index) end}
   end
 end
 
@@ -497,8 +507,8 @@ renoise.app().window.active_middle_frame_observable:add_notifier(function()
   end
 end)
 
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Other Trackers..:Open Player Pro Note Column Dialog", invoke=PakettiPlayerProNoteGridShowDropdownGrid}
-renoise.tool():add_keybinding{name="Global:Paketti:Open Player Pro Note Column Dialog", invoke=PakettiPlayerProNoteGridShowDropdownGrid}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Other Trackers..:Open Player Pro Note Column Dialog",invoke=PakettiPlayerProNoteGridShowDropdownGrid}
+renoise.tool():add_keybinding{name="Global:Paketti:Open Player Pro Note Column Dialog",invoke=PakettiPlayerProNoteGridShowDropdownGrid}
 
 PakettiPlayerProNoteGridAddNoteMenuEntries()
 --------------
@@ -848,5 +858,5 @@ end
   dialog = renoise.app():show_custom_dialog("Player Pro Main Dialog", dialog_content, my_PPkeyhandler_func)
 end
 
-renoise.tool():add_menu_entry{name = "Pattern Editor:Paketti..:Other Trackers..:Open Player Pro Tools Dialog...", invoke = pakettiPlayerProShowMainDialog}
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Open Player Pro Tools Dialog...", invoke = pakettiPlayerProShowMainDialog}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Other Trackers..:Open Player Pro Tools Dialog...",invoke=pakettiPlayerProShowMainDialog}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Open Player Pro Tools Dialog...",invoke=pakettiPlayerProShowMainDialog}

@@ -127,8 +127,8 @@ local t = renoise.song().transport
 t.octave= (t.octave + amount) % 9
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:KeybOctave Up", invoke=function() KeybOctave(1) end}
-renoise.tool():add_keybinding{name="Global:Paketti:KeybOctave Down", invoke=function() KeybOctave(-1) end}
+renoise.tool():add_keybinding{name="Global:Paketti:KeybOctave Up",invoke=function() KeybOctave(1) end}
+renoise.tool():add_keybinding{name="Global:Paketti:KeybOctave Down",invoke=function() KeybOctave(-1) end}
 -----
 function PakettiTranspose(steps)
   local song = renoise.song()
@@ -197,6 +197,119 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Transpose Octave Down
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Transpose +1 (Selection/Track)",invoke=function() PakettiTranspose(1) end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Transpose -1 (Selection/Track)",invoke=function() PakettiTranspose(-1) end}
 --------------
+function PakettiTransposer(steps, selection_and_row)
+  local song = renoise.song()
+  local selection = renoise.song().selection_in_pattern
+  local pattern = renoise.song().selected_pattern
+
+  -- Process selection if it exists and selection_and_row is true
+  if selection_and_row and selection then
+    -- Handle selection case
+    local start_track = selection.start_track
+    local end_track = selection.end_track
+    local start_line = selection.start_line
+    local end_line = selection.end_line
+    local start_column = selection.start_column
+    local end_column = selection.end_column
+
+    -- Check if any selected track is valid
+    local is_valid_track = false
+    for track_index = start_track, end_track do
+      local track = song:track(track_index)
+      if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+        is_valid_track = true
+        break
+      end
+    end
+
+    if not is_valid_track then
+      renoise.app():show_status("The selected track is a Group / Master or Send, and doesn't have Note Columns. Doing nothing.")
+      return
+    end
+
+    -- Process selection
+    for track_index = start_track, end_track do
+      local track = song:track(track_index)
+      if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+        local track_pattern = pattern:track(track_index)
+        for line_index = start_line, end_line do
+          local line = track_pattern:line(line_index)
+          local columns_to_end = math.min(end_column, track.visible_note_columns)
+          for column_index = start_column, columns_to_end do
+            local note_column = line:note_column(column_index)
+            if not note_column.is_empty then
+              if note_column.note_value < 120 then
+                note_column.note_value = (note_column.note_value + steps) % 120
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+
+  -- Always handle single cursor position case
+  local track = song:track(song.selected_track_index)
+  
+  -- Check if current track is valid
+  if track.type ~= renoise.Track.TRACK_TYPE_SEQUENCER then
+    if not selection then  -- Only show error if we haven't processed a selection
+      renoise.app():show_status("The current track is a Group / Master or Send, and doesn't have Note Columns. Doing nothing.")
+    end
+    return
+  end
+
+  local track_pattern = pattern:track(song.selected_track_index)
+  local line = track_pattern:line(song.selected_line_index)
+  local note_column = line:note_column(song.selected_note_column_index)
+  
+  if not note_column.is_empty then
+    if note_column.note_value < 120 then
+      note_column.note_value = (note_column.note_value + steps) % 120
+    end
+  end
+end
+
+-- Row-only operations (false)
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Chordsplus Transposer Row +03",invoke=function() PakettiTransposer(3, false) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Chordsplus Transposer Row -03",invoke=function() PakettiTransposer(-3, false) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Chordsplus Transposer Row +04",invoke=function() PakettiTransposer(4, false) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Chordsplus Transposer Row -04",invoke=function() PakettiTransposer(-4, false) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Chordsplus Transposer Row +07",invoke=function() PakettiTransposer(7, false) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Chordsplus Transposer Row -07",invoke=function() PakettiTransposer(-7, false) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Chordsplus Transposer Row +11",invoke=function() PakettiTransposer(11, false) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Chordsplus Transposer Row -11",invoke=function() PakettiTransposer(-11, false) end}
+
+-- Selection/Row operations (true)
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Chordsplus Transposer Selection/Row +03",invoke=function() PakettiTransposer(3, true) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Chordsplus Transposer Selection/Row -03",invoke=function() PakettiTransposer(-3, true) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Chordsplus Transposer Selection/Row +04",invoke=function() PakettiTransposer(4, true) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Chordsplus Transposer Selection/Row -04",invoke=function() PakettiTransposer(-4, true) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Chordsplus Transposer Selection/Row +07",invoke=function() PakettiTransposer(7, true) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Chordsplus Transposer Selection/Row -07",invoke=function() PakettiTransposer(-7, true) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Chordsplus Transposer Selection/Row +11",invoke=function() PakettiTransposer(11, true) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Chordsplus Transposer Selection/Row -11",invoke=function() PakettiTransposer(-11, true) end}
+
+-- Menu entries for row operations
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti ChordsPlus..:Transposer Row +03",invoke=function() PakettiTransposer(3, false) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Transposer Row -03",invoke=function() PakettiTransposer(-3, false) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Transposer Row +04",invoke=function() PakettiTransposer(4, false) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Transposer Row -04",invoke=function() PakettiTransposer(-4, false) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Transposer Row +07",invoke=function() PakettiTransposer(7, false) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Transposer Row -07",invoke=function() PakettiTransposer(-7, false) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Transposer Row +11",invoke=function() PakettiTransposer(11, false) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Transposer Row -11",invoke=function() PakettiTransposer(-11, false) end}
+
+-- Menu entries for Selection/Row operations
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti ChordsPlus..:Transposer Selection/Row +03",invoke=function() PakettiTransposer(3, true) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Transposer Selection/Row -03",invoke=function() PakettiTransposer(-3, true) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Transposer Selection/Row +04",invoke=function() PakettiTransposer(4, true) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Transposer Selection/Row -04",invoke=function() PakettiTransposer(-4, true) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Transposer Selection/Row +07",invoke=function() PakettiTransposer(7, true) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Transposer Selection/Row -07",invoke=function() PakettiTransposer(-7, true) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Transposer Selection/Row +11",invoke=function() PakettiTransposer(11, true) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Transposer Selection/Row -11",invoke=function() PakettiTransposer(-11, true) end}
+--------------
 function PakettiTransposeNoteColumn(steps)
   local song = renoise.song()
   local selection = song.selection_in_pattern
@@ -262,7 +375,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Toggle Metronome On/Off",invo
 ---------
 renoise.tool():add_keybinding{name="Global:Paketti:Song Details (Filename, BPM, LPB)",invoke=function() 
 local filename = nil
-if renoise.song().file_name == ("") then filename = "(Not Yet Saved)" 
+if renoise.song().file_name == ("") then filename="(Not Yet Saved)" 
 else filename = renoise.song().file_name
 end
 renoise.app():show_status("File: " .. filename .. ", BPM: " .. renoise.song().transport.bpm .. ", LPB: " .. renoise.song().transport.lpb) end}
@@ -281,8 +394,8 @@ renoise.song().transport.wrapped_pattern_edit=true
 renoise.app().window.active_middle_frame=1
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Contour Shuttle Record Off, Follow On", invoke=function() recOffFollowOn() end}
-renoise.tool():add_keybinding{name="Global:Paketti:Contour Shuttle Record On, Follow Off", invoke=function() recOnFollowOff() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Contour Shuttle Record Off, Follow On",invoke=function() recOffFollowOn() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Contour Shuttle Record On, Follow Off",invoke=function() recOnFollowOff() end}
 
 function recordFollowFlip()
   local t = renoise.song().transport
@@ -299,8 +412,8 @@ function recordFollowFlip()
   end
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Record & Follow Flip", invoke=function() recordFollowFlip() end}
-renoise.tool():add_midi_mapping{name="Paketti:Record & Follow Flip x[Toggle]", invoke=function(message) if message:is_trigger() then recordFollowFlip() end end}
+renoise.tool():add_keybinding{name="Global:Paketti:Record & Follow Flip",invoke=function() recordFollowFlip() end}
+renoise.tool():add_midi_mapping{name="Paketti:Record & Follow Flip x[Toggle]",invoke=function(message) if message:is_trigger() then recordFollowFlip() end end}
 
 -------
 renoise.tool():add_keybinding{name="Global:Paketti:Global Edit Mode Toggle",invoke=function() 
@@ -333,7 +446,7 @@ if renoise.song().transport.playing == true then
 end
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Rewind Playback by 4 steps", invoke=function() upbyn(4) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Rewind Playback by 4 steps",invoke=function() upbyn(4) end}
 ---------
 function midi_imm()
  if renoise.app().window.active_middle_frame==renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_MIDI_EDITOR 
@@ -370,7 +483,7 @@ function createNewTrack()
 renoise.song():insert_track_at(renoise.song().selected_track_index+1)
 renoise.song().selected_track_index = renoise.song().selected_track_index+1
 end
-renoise.tool():add_keybinding{name="Global:Paketti:Insert Track (2nd)", invoke=function() createNewTrack() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Insert Track (2nd)",invoke=function() createNewTrack() end}
 
 ---------
 -- Define a table with the middle frame constants
@@ -424,8 +537,8 @@ local t = renoise.song().transport
       t.follow_player = true
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Select LoopBlock Backwards (Previous)", invoke=function() loopblockback() end}
-renoise.tool():add_keybinding{name="Global:Paketti:Select LoopBlock Forwards (Next)", invoke=function() loopblockforward() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Select LoopBlock Backwards (Previous)",invoke=function() loopblockback() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Select LoopBlock Forwards (Next)",invoke=function() loopblockforward() end}
 --------
 ---------
 
@@ -461,7 +574,7 @@ function RecordToggle()
 end
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Record Toggle with EditStep Reading (2nd)", invoke=function() RecordToggle() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Record Toggle with EditStep Reading (2nd)",invoke=function() RecordToggle() end}
 
 ---------
 function loadRecentlySavedSong()
@@ -552,5 +665,301 @@ end
 -- Trigger the function
 renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Selected Track & Name",invoke=function() 
 duplicate_selected_track() end}
+
+
+
+
+
+
+function getSequencerSelectionLength()
+  if not renoise.song() then
+    print("No song is currently loaded.")
+    return nil
+  end
+
+  local song = renoise.song()
+  local selection = song.sequencer.selection_range
+  
+  if selection and #selection == 2 then
+    local length = selection[2] - selection[1] + 1
+    print("Sequence selection length: " .. length)
+    print(renoise.song().sequencer.selection_range)
+    oprint(renoise.song().sequencer.selection_range)
+    rprint(renoise.song().sequencer.selection_range)
+    return length
+  else
+    print("No sequence selection")
+    return nil
+  end
+end
+
+--getSequencerSelectionLength()
+---
+if renoise.API_VERSION >= 6.2 then 
+  renoise.app().window.instrument_box_is_visible=true
+  renoise.app().window.instrument_properties_is_visible=true
+  renoise.app().window.disk_browser_is_visible=false
+  renoise.app().window.instrument_properties_show_volume_transpose=true
+  renoise.app().window.instrument_properties_show_trigger_options=true
+  renoise.app().window.instrument_properties_show_scale_options=true
+  renoise.app().window.instrument_properties_show_plugin=true
+  renoise.app().window.instrument_properties_show_plugin_program=true
+  renoise.app().window.instrument_properties_show_midi=true
+  renoise.app().window.instrument_properties_show_midi_program=true
+  renoise.app().window.instrument_properties_show_macros=true
+  renoise.app().window.instrument_properties_show_phrases=true  
+  
+-- Ensure Disk Browser is visible before performing actions
+local function EnsureDiskBrowserVisible()
+  if not renoise.app().window.disk_browser_is_visible then renoise.app().window.disk_browser_is_visible = true end
+end
+
+-- Define the category cycler function
+local function DiskBrowserCategoryCycler()
+  EnsureDiskBrowserVisible()
+  local current_category = renoise.app().window.disk_browser_category
+  local next_category = current_category + 1
+  if next_category > 4 then next_category = 1 end
+  renoise.app().window.disk_browser_category = next_category
+end
+
+-- Define the function to set a specific category
+local function SetDiskBrowserCategory(category)
+  EnsureDiskBrowserVisible()
+  if category >= 1 and category <= 4 then renoise.app().window.disk_browser_category = category
+  else renoise.app():show_warning("Invalid category. Must be between 1 and 4.") end
+end
+
+-- Add menu entries to Disk Browser
+renoise.tool():add_menu_entry{name="Disk Browser:Paketti:Cycle Disk Browser Category", invoke=function() DiskBrowserCategoryCycler() end}
+renoise.tool():add_menu_entry{name="Disk Browser:Paketti:Set to Songs", invoke=function() SetDiskBrowserCategory(1) end}
+renoise.tool():add_menu_entry{name="Disk Browser:Paketti:Set to Instruments", invoke=function() SetDiskBrowserCategory(2) end}
+renoise.tool():add_menu_entry{name="Disk Browser:Paketti:Set to Samples", invoke=function() SetDiskBrowserCategory(3) end}
+renoise.tool():add_menu_entry{name="Disk Browser:Paketti:Set to Other", invoke=function() SetDiskBrowserCategory(4) end}
+
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:V3.5..:Show/Hide Disk Browser",invoke=function() 
+if renoise.app().window.disk_browser_is_visible then renoise.app().window.disk_browser_is_visible=false else
+  renoise.app().window.disk_browser_is_visible=true
+end end}
+
+renoise.tool():add_keybinding{name="Global:Paketti:Show/Hide Disk Browser",invoke=function() 
+  if renoise.app().window.disk_browser_is_visible then renoise.app().window.disk_browser_is_visible=false else
+    renoise.app().window.disk_browser_is_visible=true
+  end end}
+
+-- Try to verify if the feature exists first
+local instrument_box_feature_available = pcall(function()
+  -- Just try to read it first
+  local _ = renoise.app().window.instrument_box_slot_size
+end)
+
+-- Function to toggle instrument box slot size
+function ToggleInstrumentBoxSlotSize(large)
+  local success = pcall(function()
+    renoise.app().window.instrument_box_slot_size = large
+  end)
+
+  if not success then
+    renoise.app():show_status("Unfortunately Instrument Box Slot Size has not been fixed yet, doing nothing.")
+    print("Unfortunately Instrument Box Slot Size has not been fixed yet, doing nothing.")
+  end
+end
+
+-- Only create the key bindings if the feature is available
+if instrument_box_feature_available then
+  renoise.tool():add_keybinding{
+    name="Global:Paketti:Set Small Instrument Box",
+    invoke=function() ToggleInstrumentBoxSlotSize(false) end
+  }
+  
+  renoise.tool():add_keybinding{
+    name="Global:Paketti:Set Large Instrument Box",
+    invoke=function() ToggleInstrumentBoxSlotSize(true) end
+  }
+end
+
+-- Function to toggle instrument box slot size with error handling
+function ToggleInstrumentBoxSlotSize(mode)
+  local success = pcall(function()
+    if mode == "toggle" then
+      -- Toggle mode
+      local current = renoise.app().window.instrument_box_slot_size
+      renoise.app().window.instrument_box_slot_size = not current
+    else
+      -- Direct set mode
+      renoise.app().window.instrument_box_slot_size = mode
+    end
+  end)
+
+  if not success then
+    renoise.app():show_status("Unfortunately Instrument Box Slot Size has not been fixed yet, doing nothing.")
+    print("Unfortunately Instrument Box Slot Size has not been fixed yet, doing nothing.")
+  end
+end
+
+-- Try to verify if the feature exists first
+local instrument_box_feature_available = pcall(function()
+  local _ = renoise.app().window.instrument_box_slot_size
+end)
+
+-- Only create the key bindings if the feature is available
+if instrument_box_feature_available then
+  renoise.tool():add_keybinding{
+    name="Global:Paketti:Increase/Decrease Instrument Box Slot Size",
+    invoke=function() ToggleInstrumentBoxSlotSize("toggle") end
+  }
+
+  renoise.tool():add_keybinding{
+    name="Global:Paketti:Expand Instrument Box Slot Size",
+    invoke=function() ToggleInstrumentBoxSlotSize(true) end
+  }
+
+  renoise.tool():add_keybinding{
+    name="Global:Paketti:Shrink Instrument Box Slot Size",
+    invoke=function() ToggleInstrumentBoxSlotSize(false) end
+  }
+end
+
+-- Add menu entries to Main Menu > Tools
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:V3.5..:Cycle Disk Browser Category", invoke=function() DiskBrowserCategoryCycler() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:V3.5..:Set to Songs", invoke=function() SetDiskBrowserCategory(1) end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:V3.5..:Set to Instruments", invoke=function() SetDiskBrowserCategory(2) end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:V3.5..:Set to Samples", invoke=function() SetDiskBrowserCategory(3) end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:V3.5..:Set to Other", invoke=function() SetDiskBrowserCategory(4) end}
+
+-- Add keybindings
+renoise.tool():add_keybinding{name="Global:Paketti:Cycle Disk Browser Category", invoke=function() DiskBrowserCategoryCycler() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Set Disk Browser Category to Songs", invoke=function() SetDiskBrowserCategory(1) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Set Disk Browser Category to Instruments", invoke=function() SetDiskBrowserCategory(2) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Set Disk Browser Category to Samples", invoke=function() SetDiskBrowserCategory(3) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Set Disk Browser Category to Other", invoke=function() SetDiskBrowserCategory(4) end}
+  function setSyncMode(mode)
+    renoise.song().transport.sync_mode=mode
+  end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Show/Hide Right Frame",invoke=function() 
+if renoise.app().window.right_frame_is_visible then renoise.app().window.right_frame_is_visible=false else
+  renoise.app().window.right_frame_is_visible=true
+end end}
+
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:V3.5..:Show/Hide Right Frame",invoke=function() 
+  if renoise.app().window.right_frame_is_visible then renoise.app().window.right_frame_is_visible=false else
+    renoise.app().window.right_frame_is_visible=true
+  end end}
+  
+
+
+function PhraseExposeAndSelectColumn(number)
+  local song = renoise.song()
+  
+  if song.selected_phrase == nil then
+    renoise.app():show_status("No phrase selected")
+    return
+  end
+
+  if song.selected_phrase_note_column then
+    -- We're on a Note Column
+    local visNoteCol = song.selected_phrase.visible_note_columns
+    local newVisNoteCol = visNoteCol + number
+
+    if newVisNoteCol > 12 then
+      renoise.app():show_status("All 12 Note Columns are already visible for the selected phrase, cannot add more.")
+      return
+    elseif newVisNoteCol < 1 then
+      renoise.app():show_status("Cannot have less than 1 Note Column visible.")
+      return
+    end
+
+    -- Update the phrase's visible note columns
+    song.selected_phrase.visible_note_columns = newVisNoteCol
+    -- Select the new note column
+    song.selected_phrase_note_column_index = newVisNoteCol
+
+  elseif song.selected_phrase_effect_column then
+    -- We're on an Effect Column
+    local visEffectCol = song.selected_phrase.visible_effect_columns
+    local newVisEffectCol = visEffectCol + number
+
+    if newVisEffectCol > 8 then
+      renoise.app():show_status("All 8 Effect Columns are already visible for the selected phrase, cannot add more.")
+      return
+    elseif newVisEffectCol < 0 then
+      renoise.app():show_status("Cannot have less than 0 Effect Columns visible.")
+      return
+    end
+
+    -- Update the phrase's visible effect columns
+    song.selected_phrase.visible_effect_columns = newVisEffectCol
+
+    if newVisEffectCol > 0 then
+      -- Select the new effect column
+      song.selected_phrase_effect_column_index = newVisEffectCol
+    else
+      -- No effect columns visible, deselect any effect column
+      song.selected_phrase_effect_column_index = 0
+    end
+
+  else
+    renoise.app():show_status("You are not on a Note or Effect Column in the phrase editor.")
+  end
+end
+
+renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Expose and Select Next Column",invoke=function() PhraseExposeAndSelectColumn(1) end}
+renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Hide Current and Select Previous Column",invoke=function() PhraseExposeAndSelectColumn(-1) end}
+
+
+
+renoise.tool():add_keybinding{name="Global:Paketti:Set Sync Mode to (Internal)",invoke=function() setSyncMode(renoise.Transport.SYNC_MODE_INTERNAL) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Set Sync Mode to (Midi Clock)",invoke=function() setSyncMode(renoise.Transport.SYNC_MODE_MIDI_CLOCK) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Set Sync Mode to (Ableton Link)",invoke=function() setSyncMode(renoise.Transport.SYNC_MODE_ABLETON_LINK) end}
+
+renoise.tool():add_menu_entry{name="Main Menu:Paketti..:Set Sync Mode to (Internal)",invoke=function() setSyncMode(renoise.Transport.SYNC_MODE_INTERNAL) end}
+renoise.tool():add_menu_entry{name="Main Menu:Paketti..:Set Sync Mode to (Midi Clock)",invoke=function() setSyncMode(renoise.Transport.SYNC_MODE_MIDI_CLOCK) end}
+renoise.tool():add_menu_entry{name="Main Menu:Paketti..:Set Sync Mode to (Ableton Link)",invoke=function() setSyncMode(renoise.Transport.SYNC_MODE_ABLETON_LINK) end}
+
+if os.platform() ~= "WINDOWS" and os.platform() ~= "MACINTOSH" then
+  renoise.tool():add_keybinding{name="Global:Paketti:Set Sync Mode to (Jack)", invoke=function() setSyncMode(renoise.Transport.SYNC_MODE_JACK) end}
+  renoise.tool():add_menu_entry{name="Main Menu:Paketti..:Set Sync Mode to (Jack)", invoke=function() setSyncMode(renoise.Transport.SYNC_MODE_JACK)end}
+end
+
+
+  function setMetronomeVolume(volume)
+  local max_volume = math.db2lin(6)
+  local clamped_volume = math.min(math.max(volume, 0), max_volume)
+  renoise.song().transport.metronome_volume = clamped_volume
+  
+  -- Show feedback in dB (except for silence)
+  local db_value = (clamped_volume > 0) and math.lin2db(clamped_volume) or "Silence"
+  renoise.app():show_status(("Metronome volume: %s"):format(
+    type(db_value) == "number" and ("%.1f dB"):format(db_value) or db_value
+  ))
+end
+
+function adjustMetronomeVolume(delta)
+  local current = renoise.song().transport.metronome_volume
+  setMetronomeVolume(current + delta)
+end
+
+function resetMetronomeVolume()
+  setMetronomeVolume(math.db2lin(0)) -- Default value (0 dB = 1.0 linear)
+end
+
+-- Keybindings for volume control
+renoise.tool():add_keybinding{name="Global:Paketti:Metronome Volume Up", invoke=function() adjustMetronomeVolume(0.1) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Metronome Volume Down", invoke=function() adjustMetronomeVolume(-0.1) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Metronome Volume Reset", invoke=function() resetMetronomeVolume() end}
+
+-- MIDI mapping for 0-127 control
+renoise.tool():add_midi_mapping{name="Paketti:Metronome Volume x[Knob]",invoke=function(msg)
+    local max_volume = math.db2lin(6)
+    local scaled_volume = (msg.int_value / 127) * max_volume
+    setMetronomeVolume(scaled_volume)
+  end}
+
+    renoise.tool():add_keybinding{name="Global:Paketti:Set Metronome Volume to (0) Silence",
+      invoke=function() setMetronomeVolume(0) end}  
+end
+
+
 
 

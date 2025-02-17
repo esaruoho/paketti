@@ -62,14 +62,14 @@ function loadDeviceFromPreferences()
 
     -- Generate keybinding and midi mapping names
     local entryName = device_name
-    local keyBindingName = "Global:Paketti:Load Device (" .. device_type .. ") " .. entryName
-    local midiMappingName = "Paketti:Load Device (" .. device_type .. ") " .. entryName
+    local keyBindingName="Global:Paketti:Load Device (" .. device_type .. ") " .. entryName
+    local midiMappingName="Paketti:Load Device (" .. device_type .. ") " .. entryName
 
     -- Re-add keybinding and midi mapping
     local success, err = pcall(function()
       renoise.tool():add_keybinding{
         name = keyBindingName,
-        invoke = function()
+        invoke=function()
           if device_type == "Native" then
             loadnative(path)
           else
@@ -141,8 +141,8 @@ function addDeviceAsShortcut()
 
       local entryName = device_name
 
-      local keyBindingName = "Global:Paketti:Load Device (" .. device_type .. ") " .. entryName
-      local midiMappingName = "Paketti:Load Device (" .. device_type .. ") " .. entryName
+      local keyBindingName="Global:Paketti:Load Device (" .. device_type .. ") " .. entryName
+      local midiMappingName="Paketti:Load Device (" .. device_type .. ") " .. entryName
 
       if not addedKeyBindings[keyBindingName] then
         print("Adding shortcut for: " .. device_name)
@@ -150,7 +150,7 @@ function addDeviceAsShortcut()
         local success, err = pcall(function()
           renoise.tool():add_keybinding{
             name = keyBindingName,
-            invoke = function()
+            invoke=function()
               if device_type == "Native" then
                 loadnative(path)
               else
@@ -200,7 +200,18 @@ function updateRandomSelection()
 
   resetSelection()
 
-  local numDevices = #checkboxes
+  -- Check if "Favorites Only" is enabled
+  local favorites_only = vb.views["favorites_only_checkbox"].value
+
+  -- Filter devices based on the "Favorites Only" checkbox
+  local filtered_devices = {}
+  for _, cb_info in ipairs(checkboxes) do
+    if not favorites_only or (favorites_only and cb_info.is_favorite) then
+      table.insert(filtered_devices, cb_info)
+    end
+  end
+
+  local numDevices = #filtered_devices
   local percentage = random_select_percentage
   local numSelections = math.floor((percentage / 100) * numDevices + 0.5)
 
@@ -211,7 +222,7 @@ function updateRandomSelection()
     return
   elseif numSelections >= numDevices then
     percentage_text_view.text = "All"
-    for _, cb_info in ipairs(checkboxes) do
+    for _, cb_info in ipairs(filtered_devices) do
       cb_info.checkbox.value = true
     end
     return
@@ -224,14 +235,16 @@ function updateRandomSelection()
     indices[i] = i
   end
 
+  -- Shuffle indices using Fisher-Yates algorithm
   for i = numDevices, 2, -1 do
     local j = math.random(1, i)
     indices[i], indices[j] = indices[j], indices[i]
   end
 
+  -- Select the randomized devices from filtered list
   for i = 1, numSelections do
     local idx = indices[i]
-    checkboxes[idx].checkbox.value = true
+    filtered_devices[idx].checkbox.value = true
   end
 end
 
@@ -240,7 +253,6 @@ function createDeviceList(plugins, title)
     return vb:column{vb:text{text="No Devices found for this type.", font="italic", height=20}}
   end
 
-  -- Determine number of columns based on DEVICES_PER_COLUMN
   local num_devices = #plugins
   local devices_per_column = DEVICES_PER_COLUMN
   local num_columns = math.ceil(num_devices / devices_per_column)
@@ -250,17 +262,36 @@ function createDeviceList(plugins, title)
     columns[i] = vb:column{spacing=2}
   end
 
-  -- Split devices into columns sequentially
   local device_index = 1
-
   for col = 1, num_columns do
     for row = 1, devices_per_column do
       if device_index > num_devices then break end
       local plugin = plugins[device_index]
       local checkbox_id = "checkbox_" .. title .. "_" .. tostring(device_index) .. "_" .. tostring(math.random(1000000))
       local checkbox = vb:checkbox{value=false, id=checkbox_id}
-      checkboxes[#checkboxes + 1] = {checkbox=checkbox, path=plugin.path, name=plugin.name}
-      local plugin_row = vb:row{spacing=4,checkbox,vb:text{text=plugin.name}}
+      
+      -- Add favorite styling
+      local display_name = plugin.name
+      if plugin.is_favorite then
+        display_name = display_name .. "*"
+      end
+
+      checkboxes[#checkboxes + 1] = {
+        checkbox=checkbox, 
+        path=plugin.path, 
+        name=plugin.name,
+        is_favorite=plugin.is_favorite
+      }
+
+      local plugin_row = vb:row{
+        spacing=4,
+        checkbox,
+        vb:text{
+          text=display_name,
+          font=plugin.is_favorite and "italic" or "normal",
+          style=plugin.is_favorite and "strong" or "normal"
+        }
+      }
       columns[col]:add_child(plugin_row)
       device_index = device_index + 1
     end
@@ -290,35 +321,41 @@ function updateDeviceList()
   local device_list_content
 
   if current_device_type == "Native" then
-    -- Collect Native devices
     local native_devices = {}
     local hidden_devices = {
-      {name = "(Hidden) Chorus", path = "Audio/Effects/Native/Chorus"},
-      {name = "(Hidden) Comb Filter", path = "Audio/Effects/Native/Comb Filter"},
-      {name = "(Hidden) Distortion", path = "Audio/Effects/Native/Distortion"},
-      {name = "(Hidden) Filter", path = "Audio/Effects/Native/Filter"},
-      {name = "(Hidden) Filter 2", path = "Audio/Effects/Native/Filter 2"},
-      {name = "(Hidden) Filter 3", path = "Audio/Effects/Native/Filter 3"},
-      {name = "(Hidden) Flanger", path = "Audio/Effects/Native/Flanger"},
-      {name = "(Hidden) Gate", path = "Audio/Effects/Native/Gate"},
-      {name = "(Hidden) LofiMat", path = "Audio/Effects/Native/LofiMat"},
-      {name = "(Hidden) mpReverb", path = "Audio/Effects/Native/mpReverb"},
-      {name = "(Hidden) Phaser", path = "Audio/Effects/Native/Phaser"},
-      {name = "(Hidden) RingMod", path = "Audio/Effects/Native/RingMod"},
-      {name = "(Hidden) Scream Filter", path = "Audio/Effects/Native/Scream Filter"},
-      {name = "(Hidden) Shaper", path = "Audio/Effects/Native/Shaper"},
-      {name = "(Hidden) Stutter", path = "Audio/Effects/Native/Stutter"}}
+      {name="(Hidden) Chorus", path = "Audio/Effects/Native/Chorus"},
+      {name="(Hidden) Comb Filter", path = "Audio/Effects/Native/Comb Filter"},
+      {name="(Hidden) Distortion", path = "Audio/Effects/Native/Distortion"},
+      {name="(Hidden) Filter", path = "Audio/Effects/Native/Filter"},
+      {name="(Hidden) Filter 2", path = "Audio/Effects/Native/Filter 2"},
+      {name="(Hidden) Filter 3", path = "Audio/Effects/Native/Filter 3"},
+      {name="(Hidden) Flanger", path = "Audio/Effects/Native/Flanger"},
+      {name="(Hidden) Gate", path = "Audio/Effects/Native/Gate"},
+      {name="(Hidden) LofiMat", path = "Audio/Effects/Native/LofiMat"},
+      {name="(Hidden) mpReverb", path = "Audio/Effects/Native/mpReverb"},
+      {name="(Hidden) Phaser", path = "Audio/Effects/Native/Phaser"},
+      {name="(Hidden) RingMod", path = "Audio/Effects/Native/RingMod"},
+      {name="(Hidden) Scream Filter", path = "Audio/Effects/Native/Scream Filter"},
+      {name="(Hidden) Shaper", path = "Audio/Effects/Native/Shaper"},
+      {name="(Hidden) Stutter", path = "Audio/Effects/Native/Stutter"}}
 
-    for i, device_path in ipairs(available_devices) do
-      if device_path:find("Native/") then
-        local device_name = device_path:match("([^/]+)$")
-        table.insert(native_devices, {name = device_name, path = device_path})
+      for i, device_path in ipairs(available_devices) do
+        if device_path:find("Native/") then
+          local normalized_path = device_path:gsub("\\", "/")
+          local device_name = normalized_path:match("([^/]+)$")
+          local is_favorite = available_device_infos[i].is_favorite
+          
+          table.insert(native_devices, {
+            name = device_name, 
+            path = normalized_path,
+            is_favorite = is_favorite
+          })
+        end
       end
-    end
-
-    table.sort(native_devices, function(a, b)
-      return a.name:lower() < b.name:lower()
-    end)
+  
+      table.sort(native_devices, function(a, b)
+        return a.name:lower() < b.name:lower()
+      end)
 
     for _, hidden_device in ipairs(hidden_devices) do
       table.insert(native_devices, hidden_device)
@@ -330,8 +367,15 @@ function updateDeviceList()
     local vst_devices = {}
     for i, device_path in ipairs(available_devices) do
       if device_path:find("VST") and not device_path:find("VST3") then
-        local device_name = pluginReadableNames[device_path] or device_path:match("([^/]+)$")
-        table.insert(vst_devices, {name = device_name, path = device_path})
+        local normalized_path = device_path:gsub("\\", "/")
+        local device_name = pluginReadableNames[device_path] or normalized_path:match("([^/]+)$")
+        local is_favorite = available_device_infos[i].is_favorite
+        
+        table.insert(vst_devices, {
+          name = device_name, 
+          path = normalized_path,
+          is_favorite = is_favorite
+        })
       end
     end
     device_list_content = createDeviceList(vst_devices, "VST Devices")
@@ -340,8 +384,15 @@ function updateDeviceList()
     local vst3_devices = {}
     for i, device_path in ipairs(available_devices) do
       if device_path:find("VST3") then
-        local device_name = pluginReadableNames[device_path] or device_path:match("([^/]+)$")
-        table.insert(vst3_devices, {name = device_name, path = device_path})
+        local normalized_path = device_path:gsub("\\", "/")
+        local device_name = pluginReadableNames[device_path] or normalized_path:match("([^/]+)$")
+        local is_favorite = available_device_infos[i].is_favorite
+        
+        table.insert(vst3_devices, {
+          name = device_name, 
+          path = normalized_path,
+          is_favorite = is_favorite
+        })
       end
     end
 
@@ -355,8 +406,15 @@ function updateDeviceList()
     local au_devices = {}
     for i, device_path in ipairs(available_devices) do
       if device_path:find("AU") then
-        local device_name = pluginReadableNames[device_path] or device_path:match("([^/]+)$")
-        table.insert(au_devices, {name = device_name, path = device_path})
+        local normalized_path = device_path:gsub("\\", "/")
+        local device_name = pluginReadableNames[device_path] or normalized_path:match("([^/]+)$")
+        local is_favorite = available_device_infos[i].is_favorite
+        
+        table.insert(au_devices, {
+          name = device_name, 
+          path = normalized_path,
+          is_favorite = is_favorite
+        })
       end
     end
 
@@ -370,14 +428,19 @@ function updateDeviceList()
     local ladspa_devices = {}
     for i, device_path in ipairs(available_devices) do
       if device_path:find("LADSPA") then
-        local device_name = pluginReadableNames[device_path] or device_path:match("([^/]+)$")
-        device_name = device_name:match("([^:]+)$")
-        device_name = device_name:match("([^/]+)$")
-        table.insert(ladspa_devices, {name = device_name, path = device_path})
+        local normalized_path = device_path:gsub("\\", "/")
+        local device_name = pluginReadableNames[device_path] or normalized_path:match("([^/]+)$")
+        device_name = device_name:match("([^:]+)$") or device_name
+        local is_favorite = available_device_infos[i].is_favorite
+        
+        table.insert(ladspa_devices, {
+          name = device_name, 
+          path = normalized_path,
+          is_favorite = is_favorite
+        })
       end
     end
 
-    -- Sort the LADSPA devices by name
     table.sort(ladspa_devices, function(a, b)
       return a.name:lower() < b.name:lower()
     end)
@@ -388,9 +451,16 @@ function updateDeviceList()
     local dssi_devices = {}
     for i, device_path in ipairs(available_devices) do
       if device_path:find("DSSI") then
-        local device_name = pluginReadableNames[device_path] or device_path:match("([^/]+)$")
-        device_name = device_name:match("([^:]+)$")  -- Extract after the last colon
-        table.insert(dssi_devices, {name = device_name, path = device_path})
+        local normalized_path = device_path:gsub("\\", "/")
+        local device_name = pluginReadableNames[device_path] or normalized_path:match("([^/]+)$")
+        device_name = device_name:match("([^:]+)$") or device_name
+        local is_favorite = available_device_infos[i].is_favorite
+        
+        table.insert(dssi_devices, {
+          name = device_name, 
+          path = normalized_path,
+          is_favorite = is_favorite
+        })
       end
     end
 
@@ -410,6 +480,26 @@ function updateDeviceList()
 end
 
 function showDeviceListDialog()
+
+  -- Add dialog management from plugins version
+  if custom_dialog and custom_dialog.visible then
+    custom_dialog:close()
+    custom_dialog = nil
+    current_device_list_content = nil
+    return
+  end
+
+  -- Add display name mapping at top
+  local device_type_display_names = {
+    Native = "Native Instruments",
+    VST = "VST",
+    VST3 = "VST3",
+    AudioUnit = "AudioUnit",
+    LADSPA = "LADSPA",
+    DSSI = "DSSI"
+  }
+
+
   current_device_list_content = nil
 
   vb = renoise.ViewBuilder()
@@ -424,34 +514,41 @@ function showDeviceListDialog()
       updateDeviceList()
     end}
 
-  local random_selection_controls = vb:row{
-    vb:text{text = "Random Select:", width = 80, style="strong",font="bold"},
-    vb:slider{
-      id = "random_select_slider",
-      min = 0,
-      max = 100,
-      value = 0,
-      width = 200,
-      notifier = function(value)
-        random_select_percentage = value
-        updateRandomSelection()
-      end},
-    vb:text{id="random_percentage_text",text="None",width=40,
-      align="center"},
-    vb:button{text="All",width=20,
-      notifier = function()
-        for _, cb_info in ipairs(checkboxes) do
-          cb_info.checkbox.value = true
+    local random_selection_controls = vb:row{
+      vb:text{text = "Random Select:", width = 80, style="strong",font="bold"},
+      vb:slider{
+        id = "random_select_slider",
+        min = 0,
+        max = 100,
+        value = 0,
+        width = 200,
+        notifier = function(value)
+          random_select_percentage = value
+          updateRandomSelection()
+        end},
+      vb:text{id="random_percentage_text",text="None",width=40, align="center"},
+      vb:checkbox{
+        id = "favorites_only_checkbox",
+        value = false,
+        notifier = function() 
+          updateRandomSelection() 
         end
-        vb.views["random_select_slider"].value = 100
-        vb.views["random_percentage_text"].text = "All"
-      end},
-    vb:button{text="None",width=20,
-      notifier = function()
-        resetSelection()
-        vb.views["random_select_slider"].value = 0
-        vb.views["random_percentage_text"].text = "None"
-      end}}
+      },
+      vb:text{text="Favorites Only", width=70},
+      vb:button{text="Select All",width=20,
+        notifier = function()
+          for _, cb_info in ipairs(checkboxes) do
+            cb_info.checkbox.value = true
+          end
+          vb.views["random_select_slider"].value = 100
+          vb.views["random_percentage_text"].text = "All"
+        end},
+      vb:button{text="Reset Selection",width=20,
+        notifier = function()
+          resetSelection()
+          vb.views["random_select_slider"].value = 0
+          vb.views["random_percentage_text"].text = "None"
+        end}}
 
   local button_height = renoise.ViewBuilder.DEFAULT_DIALOG_BUTTON_HEIGHT
   local action_buttons = vb:column{
@@ -463,10 +560,19 @@ function showDeviceListDialog()
           end
         end
       },
+      vb:button{text="Load & Close",width=60,
+        notifier = function()
+          if loadSelectedDevices() then
+            custom_dialog:close()
+            renoise.app():show_status("Devices loaded.")
+          end
+        end
+      },
       vb:button{text="Add Device(s) as Shortcut(s) & MidiMappings",width=140,
         notifier = addDeviceAsShortcut},
       vb:button{text="Cancel",width=30,
         notifier = function() custom_dialog:close() end}}}
+        
   device_list_view = vb:column{}
   dialog_content_view = vb:column{margin = 10,spacing = 5,device_list_view,}
 

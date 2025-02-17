@@ -97,6 +97,9 @@ function create_device_entry(name, path, device_type)
 end
 
 preferences = renoise.Document.create("ScriptingToolPreferences") {
+  pakettiRotateSampleBufferCoarse=1000,
+  pakettiRotateSampleBufferFine=10,
+  pakettiBlendValue = 40,
   pakettiDialogClose="esc",
   PakettiDeviceChainPath = "DeviceChains/",
   upperFramePreference=0,
@@ -118,6 +121,8 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiLoaderLoopMode=1,
   pakettiLoaderNNA=2,
   pakettiLoaderLoopExit=false,
+  pakettiLoaderMoveSilenceToEnd=false,
+  pakettiLoaderNormalizeSamples=false,
   selectionNewInstrumentSelect=false,
   selectionNewInstrumentLoop=2,
   selectionNewInstrumentInterpolation=4,
@@ -151,6 +156,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
     WipeSlicesNNA=1,
     WipeSlicesBeatSyncGlobal=false,
     sliceCounter=1,
+    SliceLoopMode=true, 
     slicePreviousDirection=1
   },
   AppSelection = {
@@ -193,7 +199,8 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
     executable=default_executable,
     clear_all_samples=true,
     add_render_to_current_instrument=false,
-    render_on_change=false
+    render_on_change=false,
+    dont_pakettify = false
   },
   OctaMEDPickPutSlots = {
     SetSelectedInstrument=false,
@@ -270,7 +277,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
     LPB = 4,
     Length = 64,
     SetName = false,
-    Name = ""
+    Name=""
     },
     pakettiTitler = {
     textfile_path = "External/wordlist.txt",
@@ -328,6 +335,7 @@ AppSelection = renoise.tool().preferences.AppSelection
 RandomizeSettings = renoise.tool().preferences.RandomizeSettings
 PakettiYTDLP = renoise.tool().preferences.PakettiYTDLP
 DynamicViewPrefs = renoise.tool().preferences.PakettiDynamicViews
+
 
 
 -- Function to initialize the filter index
@@ -402,6 +410,10 @@ local dialog_content = nil
 function show_paketti_preferences()
     local threshold_label = vb:text {
         text = string.format("%.3f%%", preferences.PakettiStripSilenceThreshold.value * 100), width=100
+    }
+
+    local blend_value_label = vb:text{width=30,
+      text = tostring(math.floor(preferences.pakettiBlendValue.value))
     }
 
     local begthreshold_label = vb:text {
@@ -576,8 +588,39 @@ function show_paketti_preferences()
             vb:row { vb:text{text="Edit Mode",width=150},vb:switch{items={"None","Selected Track","All Tracks"},value=preferences.pakettiEditMode.value,width=300,
               notifier=function(value) preferences.pakettiEditMode.value=value end}
             },
-            vb:row { vb:text{style="strong",text="Enable Scope Highlight by going to Settings -> GUI -> Show Track Color Blends."} }
-          }
+            vb:row { vb:text{style="strong",text="Enable Scope Highlight by going to Settings -> GUI -> Show Track Color Blends."} },
+
+            vb:row {
+              vb:text{text="Blend Value", width=150},
+              vb:slider{
+                min = 0,
+                max = 100,
+                value = math.floor(preferences.pakettiBlendValue.value),
+                width = 200,
+                notifier = function(value)
+                  value = math.floor(value)  -- Force integer value
+                  preferences.pakettiBlendValue.value = value
+                  
+                  -- Update track blend in real-time if edit mode is on
+                  local song = renoise.song()
+                  if song and renoise.song().transport.edit_mode ~= false then
+                    if renoise.song().transport.edit_mode == true then
+                      -- Selected track only
+                      if song.selected_track then
+                        song.selected_track.color_blend = value
+                      end
+                    end
+                  end
+                  
+                  -- Update the display text
+                  blend_value_label.text = tostring(value)
+                end
+              },
+              blend_value_label
+            },
+                                  
+            
+                              }
         },
 
         -- Column 2
@@ -622,12 +665,19 @@ function show_paketti_preferences()
                 end
               }
             },
+            vb:row{vb:text{text="Paketti Loader Settings (Drumkit Loader)", font="bold", style="strong"}},
+            vb:row{vb:text{text="Move Beginning Silence",width=150},vb:switch{items={"Off","On"},value=preferences.pakettiLoaderMoveSilenceToEnd.value and 2 or 1,width=200,
+              notifier=function(value) preferences.pakettiLoaderMoveSilenceToEnd.value=(value==2) end}
+          },
+          vb:row{vb:text{text="Normalize Samples",width=150},vb:switch{items={"Off","On"},value=preferences.pakettiLoaderNormalizeSamples.value and 2 or 1,width=200,
+            notifier=function(value) preferences.pakettiLoaderNormalizeSamples.value=(value==2) end}
+        },
     --[[        vb:row { vb:text{text="Default XRNI to use:",width=150},vb:textfield{text=preferences.pakettiDefaultXRNI.value:match("[^/\\]+$"),width=300,id=pakettiDefaultXRNIDisplayId,notifier=function(value) preferences.pakettiDefaultXRNI.value=value end},vb:button{text="Browse",width=100,notifier=function()
               local filePath=renoise.app():prompt_for_filename_to_read({"*.XRNI"},"Paketti Default XRNI Selector Dialog")
               if filePath and filePath~="" then preferences.pakettiDefaultXRNI.value=filePath vb.views[pakettiDefaultXRNIDisplayId].text=filePath:match("[^/\\]+$") else renoise.app():show_status("No XRNI Instrument was selected") end end} },
               --]]
     -- Generate a unique id based on timestamp or counter
-
+--[[
     vb:row { 
       vb:text {
         text = "Default XRNI to use:", 
@@ -673,7 +723,8 @@ function show_paketti_preferences()
               vb.views[pakettiDefaultDrumkitXRNIDisplayId].text="Presets/"..selectedFile 
             end} }
           },
-
+--]]
+          },
           -- Wipe & Slice Settings wrapped in group
           horizontal_rule(),
           vb:column {
@@ -698,7 +749,10 @@ function show_paketti_preferences()
             },
             vb:row { vb:text{text="Mute Group",width=150},vb:switch{items={"Off","1","2","3","4","5","6","7","8","9","A","B","C","D","E","F"},value=preferences.WipeSlices.WipeSlicesMuteGroup.value+1,width=400,
               notifier=function(value) preferences.WipeSlices.WipeSlicesMuteGroup.value=value-1 end}
-            }
+            },
+            vb:row{vb:text{text="Slice Loop EndHalf",width=150},vb:switch{items={"Off","On"},value=preferences.WipeSlices.SliceLoopMode.value and 2 or 1, width=200,
+          notifier=function(value) preferences.WipeSlices.SliceLoopMode.value=(value==2) end}
+          }
           },
     --    },
         
@@ -748,8 +802,6 @@ function show_paketti_preferences()
       vb:horizontal_aligner { mode="distribute",
         vb:button{text="OK",width="50%",notifier=function() 
           preferences:save_as("preferences.xml")
-          print (preferences.pakettiDefaultXRNI.value)
-          print (preferences.pakettiLoaderFilterType.value)
           dialog:close() 
         end},
         vb:button{text="Cancel",width="50%",notifier=function() dialog:close() end}
@@ -791,16 +843,16 @@ function manage_sample_count_observer(attach)
 end
 
 function update_dynamic_menu_entries()
-    local enableMenuEntryName = "--Main Menu:Tools:Paketti..:!Preferences..:0G01 Loader Enable"
-    local disableMenuEntryName = "--Main Menu:Tools:Paketti..:!Preferences..:0G01 Loader Disable"
+    local enableMenuEntryName="--Main Menu:Tools:Paketti..:!Preferences..:0G01 Loader Enable"
+    local disableMenuEntryName="--Main Menu:Tools:Paketti..:!Preferences..:0G01 Loader Disable"
 
     if preferences._0G01_Loader.value then
         if renoise.tool():has_menu_entry(enableMenuEntryName) then
             renoise.tool():remove_menu_entry(enableMenuEntryName)
         end
         if not renoise.tool():has_menu_entry(disableMenuEntryName) then
-            renoise.tool():add_menu_entry{name = disableMenuEntryName,
-                invoke = function()
+            renoise.tool():add_menu_entry{name=disableMenuEntryName,
+                invoke=function()
                     preferences._0G01_Loader.value = false
                     update_dynamic_menu_entries()
                     if dialog and dialog.visible then
@@ -814,8 +866,8 @@ function update_dynamic_menu_entries()
             renoise.tool():remove_menu_entry(disableMenuEntryName)
         end
         if not renoise.tool():has_menu_entry(enableMenuEntryName) then
-            renoise.tool():add_menu_entry{name = enableMenuEntryName,
-                invoke = function()
+            renoise.tool():add_menu_entry{name=enableMenuEntryName,
+                invoke=function()
                     preferences._0G01_Loader.value = true
                     update_dynamic_menu_entries()
                     if dialog and dialog.visible then
@@ -852,6 +904,6 @@ function update_loadPaleGreenTheme_preferences() renoise.app():load_theme("Theme
 
 safe_initialize()
 
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti..:!Preferences..:Paketti Preferences...", invoke = show_paketti_preferences}
-renoise.tool():add_keybinding{name = "Global:Paketti:Show Paketti Preferences...", invoke = show_paketti_preferences}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:!Preferences..:Paketti Preferences...",invoke=show_paketti_preferences}
+renoise.tool():add_keybinding{name="Global:Paketti:Show Paketti Preferences...",invoke=show_paketti_preferences}
 

@@ -102,7 +102,7 @@ local path_to_espeak = vb:text{width=control_width,height=24,text="Path to eSpea
 
 local randomize_everything = vb:row{
       vb:button{id = "PakettieSpeak_randomize_everything",
-        text="Randomized String",
+      text="Randomized String",
         width=button_width + button_width,
         height=24,
         notifier = function()
@@ -538,6 +538,21 @@ local settingsColumn=    vb:column{
   },
   vb:text{text = "Add Render to Current Instrument"}
 }
+
+local dont_pakettify_checkbox = vb:row{
+  vb:checkbox{
+      id = "PakettieSpeak_dont_pakettify",
+      width = 18,
+      height = 18,
+      value = eSpeak.dont_pakettify.value,
+      notifier = function(bool)
+          eSpeak.dont_pakettify.value = bool
+          print("Don't Pakettify set to:", bool)
+      end
+  },
+  vb:text{text = "Don't Pakettify"}
+}
+
  local renderonchange= vb:row{
       vb:checkbox{
         id = "PakettieSpeak_render_on_change",
@@ -665,6 +680,7 @@ local lastbuttons=    vb:horizontal_aligner{
     settingsColumn,
     clearallsamples,
     addrendertocurrentinstrument,
+    dont_pakettify_checkbox,
     renderonchange,
     eSpeakloadsave,
     lastbuttons}
@@ -794,10 +810,10 @@ function PakettieSpeakCreateSample(custom_text)
   -- **Check if "Add Render to Current Instrument" is Enabled**
   if eSpeak.add_render_to_current_instrument.value then
     -- **If No Instruments Exist, Load the Pitchbend Instrument**
-    if #song.instruments == 0 then
+    if not eSpeak.dont_pakettify.value and #song.instruments == 0 then
       pakettiPreferencesDefaultInstrumentLoader()
-      print("No instruments found. Loaded pitchbend instrument.")
-    end
+      print("Loaded pitchbend instrument.")
+  end
 
     instrument = song.selected_instrument
     if not instrument then
@@ -815,7 +831,8 @@ function PakettieSpeakCreateSample(custom_text)
   elseif eSpeak.clear_all_samples.value then
     -- **Existing Behavior: Clear All Samples and Add One**
     instrument = song.selected_instrument
-    pakettiPreferencesDefaultInstrumentLoader()
+    if not eSpeak.dont_pakettify.value then 
+    pakettiPreferencesDefaultInstrumentLoader() else end 
     while #instrument.samples > 0 do
       instrument:delete_sample_at(1)
     end
@@ -828,7 +845,8 @@ function PakettieSpeakCreateSample(custom_text)
     -- **Existing Behavior: Insert New Instrument and Add Sample**
     instrument = song:insert_instrument_at(renoise.song().selected_instrument_index + 1)
     song.selected_instrument_index = song.selected_instrument_index + 1
-    pakettiPreferencesDefaultInstrumentLoader()
+    if not eSpeak.dont_pakettify.value then 
+    pakettiPreferencesDefaultInstrumentLoader() else end 
     instrument = song.selected_instrument
     instrument.name = "eSpeak (" .. LANGUAGE_NAMES[eSpeak.language.value] .. ", " .. VOICES_NAMES[eSpeak.voice.value] .. ")"
     local sample = instrument:insert_sample_at(1)

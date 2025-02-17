@@ -109,33 +109,33 @@ function create_random_akwf_wavetable_with_loop(num_samples)
   end
 
   if wavetable then
-    wavetable.name = "AKWF Wavetable (Looped)"
-    wavetable.loop_mode = renoise.Sample.LOOP_MODE_FORWARD
+    wavetable.name="AKWF Wavetable (Looped)"
+    wavetable.loop_mode=renoise.Sample.LOOP_MODE_FORWARD
     renoise.app():show_status(string.format("Created looped AKWF wavetable from %d random samples", num_samples))
   end
 end
 
 -- Regular version (full sample loop)
-renoise.tool():add_keybinding{name = "Global:Paketti:Create Random AKWF Wavetable (032)", invoke = function() create_random_akwf_wavetable(32) end}
-renoise.tool():add_keybinding{name = "Global:Paketti:Create Random AKWF Wavetable (064)", invoke = function() create_random_akwf_wavetable(64) end}
-renoise.tool():add_keybinding{name = "Global:Paketti:Create Random AKWF Wavetable (128)", invoke = function() create_random_akwf_wavetable(128) end}
-renoise.tool():add_keybinding{name = "Global:Paketti:Create Random AKWF Wavetable (256)", invoke = function() create_random_akwf_wavetable(256) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Create Random AKWF Wavetable (032)",invoke=function() create_random_akwf_wavetable(32) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Create Random AKWF Wavetable (064)",invoke=function() create_random_akwf_wavetable(64) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Create Random AKWF Wavetable (128)",invoke=function() create_random_akwf_wavetable(128) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Create Random AKWF Wavetable (256)",invoke=function() create_random_akwf_wavetable(256) end}
 
-renoise.tool():add_menu_entry{name = "Instrument Box:Paketti..:Create Random AKWF Wavetable (032)", invoke = function() create_random_akwf_wavetable(32) end}
-renoise.tool():add_menu_entry{name = "Instrument Box:Paketti..:Create Random AKWF Wavetable (064)", invoke = function() create_random_akwf_wavetable(64) end}
-renoise.tool():add_menu_entry{name = "Instrument Box:Paketti..:Create Random AKWF Wavetable (128)", invoke = function() create_random_akwf_wavetable(128) end}
-renoise.tool():add_menu_entry{name = "Instrument Box:Paketti..:Create Random AKWF Wavetable (256)", invoke = function() create_random_akwf_wavetable(256) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Create Random AKWF Wavetable (032)",invoke=function() create_random_akwf_wavetable(32) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Create Random AKWF Wavetable (064)",invoke=function() create_random_akwf_wavetable(64) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Create Random AKWF Wavetable (128)",invoke=function() create_random_akwf_wavetable(128) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Create Random AKWF Wavetable (256)",invoke=function() create_random_akwf_wavetable(256) end}
 
 -- Single-cycle loop version
-renoise.tool():add_keybinding{name = "Global:Paketti:Create Random AKWF Wavetable (032,loop)", invoke = function() create_random_akwf_wavetable_with_loop(32) end}
-renoise.tool():add_keybinding{name = "Global:Paketti:Create Random AKWF Wavetable (064,loop)", invoke = function() create_random_akwf_wavetable_with_loop(64) end}
-renoise.tool():add_keybinding{name = "Global:Paketti:Create Random AKWF Wavetable (128,loop)", invoke = function() create_random_akwf_wavetable_with_loop(128) end}
-renoise.tool():add_keybinding{name = "Global:Paketti:Create Random AKWF Wavetable (256,loop)", invoke = function() create_random_akwf_wavetable_with_loop(256) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Create Random AKWF Wavetable (032,loop)",invoke=function() create_random_akwf_wavetable_with_loop(32) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Create Random AKWF Wavetable (064,loop)",invoke=function() create_random_akwf_wavetable_with_loop(64) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Create Random AKWF Wavetable (128,loop)",invoke=function() create_random_akwf_wavetable_with_loop(128) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Create Random AKWF Wavetable (256,loop)",invoke=function() create_random_akwf_wavetable_with_loop(256) end}
 
-renoise.tool():add_menu_entry{name = "Instrument Box:Paketti..:Create Random AKWF Wavetable (032,loop)", invoke = function() create_random_akwf_wavetable_with_loop(32) end}
-renoise.tool():add_menu_entry{name = "Instrument Box:Paketti..:Create Random AKWF Wavetable (064,loop)", invoke = function() create_random_akwf_wavetable_with_loop(64) end}
-renoise.tool():add_menu_entry{name = "Instrument Box:Paketti..:Create Random AKWF Wavetable (128,loop)", invoke = function() create_random_akwf_wavetable_with_loop(128) end}
-renoise.tool():add_menu_entry{name = "Instrument Box:Paketti..:Create Random AKWF Wavetable (256,loop)", invoke = function() create_random_akwf_wavetable_with_loop(256) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Create Random AKWF Wavetable (032,loop)",invoke=function() create_random_akwf_wavetable_with_loop(32) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Create Random AKWF Wavetable (064,loop)",invoke=function() create_random_akwf_wavetable_with_loop(64) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Create Random AKWF Wavetable (128,loop)",invoke=function() create_random_akwf_wavetable_with_loop(128) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Create Random AKWF Wavetable (256,loop)",invoke=function() create_random_akwf_wavetable_with_loop(256) end}
 
 -- Function to calculate and set loop points for a specific cycle index
 function set_loop_points_for_cycle(sample, cycle_index)
@@ -182,42 +182,9 @@ function set_cycle_from_midi(midi_value)
   set_loop_points_for_cycle(sample, cycle_index)
 end
 
--- Add keybindings
-renoise.tool():add_keybinding{
-  name = "Global:Paketti:Next Wavetable Cycle",
-  invoke = function() move_loop_cycle(1) end
-}
-renoise.tool():add_keybinding{
-  name = "Global:Paketti:Previous Wavetable Cycle",
-  invoke = function() move_loop_cycle(-1) end
-}
-
--- Add MIDI mappings
-renoise.tool():add_midi_mapping{
-  name = "Paketti:Next Wavetable Cycle",
-  invoke = function(message) 
-    if message.boolean_value then 
-      move_loop_cycle(1)
-    end
-  end
-}
-
-renoise.tool():add_midi_mapping{
-  name = "Paketti:Previous Wavetable Cycle",
-  invoke = function(message)
-    if message.boolean_value then 
-      move_loop_cycle(-1)
-    end
-  end
-}
-
--- Add MIDI CC mapping
-renoise.tool():add_midi_mapping{
-  name = "Paketti:Select Wavetable Cycle [Set]",
-  invoke = function(message)
-    if message.is_value then
-      set_cycle_from_midi(message.value)
-    end
-  end
-}
+renoise.tool():add_keybinding{name="Global:Paketti:Next Wavetable Cycle",invoke=function() move_loop_cycle(1) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Previous Wavetable Cycle",invoke=function() move_loop_cycle(-1) end}
+renoise.tool():add_midi_mapping{name="Paketti:Next Wavetable Cycle",invoke=function(message) if message.boolean_value then move_loop_cycle(1) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Previous Wavetable Cycle",invoke=function(message) if message.boolean_value then move_loop_cycle(-1) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Select Wavetable Cycle [Set]",invoke=function(message) if message.is_value then set_cycle_from_midi(message.value) end end}
 

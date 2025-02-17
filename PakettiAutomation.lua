@@ -624,9 +624,9 @@ end
 function initialize_doofer_monitoring()
 PakettiAutomationDoofer = true
 
-  if renoise.song().instruments[1].name ~= "Used for Paketti Automation" then
+  if renoise.song().instruments[1].name~="Used for Paketti Automation" then
     renoise.song():insert_instrument_at(1)
-    renoise.song().instruments[1].name = "Used for Paketti Automation"
+    renoise.song().instruments[1].name="Used for Paketti Automation"
   end
   if renoise.song().tracks[renoise.song().sequencer_track_count+1].devices[2] ~= nil and  renoise.song().tracks[renoise.song().sequencer_track_count+1].devices[3] ~= nil then 
   if renoise.song().tracks[renoise.song().sequencer_track_count+1].devices[2].display_name == "Paketti Automation" and renoise.song().tracks[renoise.song().sequencer_track_count+1].devices[3].display_name == "Paketti Automation 2" then
@@ -656,7 +656,21 @@ renoise.tool():add_keybinding{name="Global:Paketti:Paketti Automation",
 
 
 
-
+---------
+-- Helper function to handle volume-specific scaling
+local function get_volume_value(normalized_position, curve_type)
+  local unity_gain = 0.715  -- 0dB point for volume
+  
+  if curve_type == "exp_up" then
+    return math.pow(normalized_position, 3) * unity_gain
+  elseif curve_type == "exp_down" then
+    return (1 - math.pow(normalized_position, 3)) * unity_gain
+  elseif curve_type == "linear_up" then
+    return normalized_position * unity_gain
+  elseif curve_type == "linear_down" then
+    return (1 - normalized_position) * unity_gain
+  end
+end
 
 --------
 local renoise = renoise
@@ -681,9 +695,22 @@ function apply_selection_up_linear()
   local start_line = selection[1]
   local end_line = selection[2]
 
-  envelope:clear_range(start_line, end_line)
-  envelope:add_point_at(start_line, automation_parameter.value_min)
-  envelope:add_point_at(end_line, 1.0)
+  if automation_parameter.name == "Volume" then
+    envelope:clear_range(start_line, end_line)
+    -- Add points for each line to ensure complete coverage
+    for i = start_line, end_line do
+      local normalizedPosition = (i - start_line) / (end_line - start_line)
+      local value = normalizedPosition * 0.715  -- Linear interpolation to unity gain
+      envelope:add_point_at(i, value)
+    end
+  else
+    envelope:clear_range(start_line, end_line)
+    for i = start_line, end_line do
+      local normalizedPosition = (i - start_line) / (end_line - start_line)
+      local value = normalizedPosition
+      envelope:add_point_at(i, value)
+    end
+  end
 
   print("Selection Up Linear applied:")
   print("Start Line: " .. start_line .. ", Value: " .. automation_parameter.value_min)
@@ -713,9 +740,22 @@ function apply_selection_down_linear()
   local start_line = selection[1]
   local end_line = selection[2]
 
-  envelope:clear_range(start_line, end_line)
-  envelope:add_point_at(start_line, 1.0)
-  envelope:add_point_at(end_line, automation_parameter.value_min)
+  if automation_parameter.name == "Volume" then
+    envelope:clear_range(start_line, end_line)
+    -- Add points for each line to ensure complete coverage
+    for i = start_line, end_line do
+      local normalizedPosition = (i - start_line) / (end_line - start_line)
+      local value = (1 - normalizedPosition) * 0.715  -- Linear interpolation from unity gain to zero
+      envelope:add_point_at(i, value)
+    end
+  else
+    envelope:clear_range(start_line, end_line)
+    for i = start_line, end_line do
+      local normalizedPosition = (i - start_line) / (end_line - start_line)
+      local value = 1 - normalizedPosition
+      envelope:add_point_at(i, value)
+    end
+  end
 
   print("Selection Down Linear applied:")
   print("Start Line: " .. start_line .. ", Value: 1.0")
@@ -791,6 +831,7 @@ local tool = renoise.tool()
 function apply_exponential_automation_curve_top_to_center(type)
   local song = renoise.song()
   local automation_parameter = song.selected_automation_parameter
+
   if not automation_parameter or not automation_parameter.is_automatable then
     renoise.app():show_status("Please select an automatable parameter.")
     return
@@ -996,13 +1037,21 @@ function apply_exponential_automation_curveDOWN(type)
   envelope:clear_range(start_line, end_line)
 
   local k = 3  -- Adjust this value to change the steepness of the curve
+  if automation_parameter.name == "Volume" then
+    for i = start_line, end_line do
+      local normalizedPosition = (i - start_line) / (end_line - start_line)
+      local value = get_volume_value(normalizedPosition, "exp_down")
+      envelope:add_point_at(i, value)
+    end
+  else
+
   for i = start_line, end_line do
     local normalizedPosition = (i - start_line) / (end_line - start_line)
     local value = 1 - (math.exp(k * normalizedPosition) / math.exp(k))  -- Using exponential decay
     envelope:add_point_at(i, value)
     print("Adding point at line " .. i .. " with value " .. value)  -- Debug print
   end
-
+end 
   -- Explicitly setting the last point to ensure it hits exactly 0.0
   envelope:add_point_at(end_line, 0.0)
   print("Explicitly setting final point at line " .. end_line .. " with value 0.0")  -- Debug print for the final point
@@ -1014,10 +1063,10 @@ end
 local renoise = renoise
 local tool = renoise.tool()
 
-
-function apply_exponential_automation_curveUP(type)
+function apply_exponential_automation_curveUP()
   local song = renoise.song()
   local automation_parameter = song.selected_automation_parameter
+  
   if not automation_parameter or not automation_parameter.is_automatable then
     renoise.app():show_status("Please select an automatable parameter.")
     return
@@ -1033,25 +1082,24 @@ function apply_exponential_automation_curveUP(type)
   local start_line = selection[1]
   local end_line = selection[2]
 
-  print("Selection start: " .. start_line .. ", end: " .. end_line)  -- Debug for selection range
-
   envelope:clear_range(start_line, end_line)
 
   local k = 3  -- Adjust this value to change the steepness of the curve
-  for i = start_line, end_line do
-    local normalizedPosition = (i - start_line) / (end_line - start_line)
-    local value = (math.exp(k * normalizedPosition)) / (math.exp(k))
-    envelope:add_point_at(i, value)
-    print("Adding point at line " .. i .. " with value " .. value)  -- Debug print
   
-
-  -- Explicitly setting the last point to ensure it hits exactly 1.0
-  local final_value = (math.exp(k)) / (math.exp(k))
-  envelope:add_point_at(end_line, final_value)
-  print("Explicitly setting final point at line " .. (end_line) .. " with value " .. final_value)  -- Debug print for the final point
+  if automation_parameter.name == "Volume" then
+    for i = start_line, end_line do
+      local normalizedPosition = (i - start_line) / (end_line - start_line)
+      local value = get_volume_value(normalizedPosition, "exp_up")
+      envelope:add_point_at(i, value)
+    end
+  else
+    for i = start_line, end_line do
+      local normalizedPosition = (i - start_line) / (end_line - start_line)
+      local value = (math.exp(k * normalizedPosition)) / (math.exp(k))
+      envelope:add_point_at(i, value)
+    end
+  end
 end
-end
-
 --------
 -------- linear uplocal renoise = renoise
 local renoise = renoise
@@ -1073,11 +1121,11 @@ invoke=function() apply_constant_automation_bottom_to_bottom() end})
 renoise.tool():add_menu_entry({name="--Track Automation:Paketti..:Automation Curves..:Selection Up (Exp)",
 invoke=function() apply_exponential_automation_curveUP() end})
 renoise.tool():add_menu_entry({name="Track Automation:Paketti..:Automation Curves..:Selection Up (Linear)",
-invoke = function() apply_selection_up_linear() end})
+invoke=function() apply_selection_up_linear() end})
 renoise.tool():add_menu_entry({name="Track Automation:Paketti..:Automation Curves..:Selection Down (Exp)",
 invoke=function() apply_exponential_automation_curveDOWN() end})
 renoise.tool():add_menu_entry({name="Track Automation:Paketti..:Automation Curves..:Selection Down (Linear)",
-invoke = function() apply_selection_down_linear() end})
+invoke=function() apply_selection_down_linear() end})
 renoise.tool():add_menu_entry({name="--Track Automation:Paketti..:Automation Curves..:Center to Top (Exp)",
 invoke=function() apply_exponential_automation_curve_center_to_top() end})
 renoise.tool():add_menu_entry({name="Track Automation:Paketti..:Automation Curves..:Center to Bottom (Exp)",
@@ -1093,11 +1141,11 @@ invoke=function() apply_constant_automation_bottom_to_bottom() end})
 renoise.tool():add_menu_entry({name="Pattern Matrix:Paketti..:Automation Curves..:Selection Up (Exp)",
 invoke=function() apply_exponential_automation_curveUP() end})
 renoise.tool():add_menu_entry({name="Pattern Matrix:Paketti..:Automation Curves..:Selection Up (Linear)",
-invoke = function() apply_selection_up_linear() end})
+invoke=function() apply_selection_up_linear() end})
 renoise.tool():add_menu_entry({name="Pattern Matrix:Paketti..:Automation Curves..:Selection Down (Exp)",
 invoke=function() apply_exponential_automation_curveDOWN() end})
 renoise.tool():add_menu_entry({name="Pattern Matrix:Paketti..:Automation Curves..:Selection Down (Linear)",
-invoke = function() apply_selection_down_linear() end})
+invoke=function() apply_selection_down_linear() end})
 renoise.tool():add_menu_entry({name="Pattern Matrix:Paketti..:Automation Curves..:Center to Top (Exp)",
 invoke=function() apply_exponential_automation_curve_center_to_top() end})
 renoise.tool():add_menu_entry({name="Pattern Matrix:Paketti..:Automation Curves..:Center to Bottom (Exp)",
@@ -1108,7 +1156,7 @@ renoise.tool():add_menu_entry({name="Pattern Matrix:Paketti..:Automation Curves.
 invoke=function() apply_exponential_automation_curve_bottom_to_center() end})
 
 
-for _, entry in ipairs(menu_entries) do tool:add_menu_entry({name = entry[1], invoke = function() apply_linear_automation_curveCenter(entry[2]) end})
+for _, entry in ipairs(menu_entries) do tool:add_menu_entry({name=entry[1],invoke=function() apply_linear_automation_curveCenter(entry[2]) end})
 end
 
 -- Create the linear automation functions
@@ -1174,8 +1222,8 @@ end
 local renoise = renoise
 local tool = renoise.tool()
 
-tool:add_menu_entry({name = "--Track Automation:Paketti..:Automation Curves..:Set to Center",
-  invoke = function() set_to_center() end
+tool:add_menu_entry({name="--Track Automation:Paketti..:Automation Curves..:Set to Center",
+  invoke=function() set_to_center() end
 })
 
 function set_to_center()
@@ -1236,9 +1284,9 @@ renoise.app():show_status("The selected automation device does not have an Exter
 end
 end
 
-renoise.tool():add_menu_entry{name="Track Automation List:Paketti..:Show/Hide External Editor for Device", invoke=function() AutomationDeviceShowUI() end}
+renoise.tool():add_menu_entry{name="Track Automation List:Paketti..:Show/Hide External Editor for Device",invoke=function() AutomationDeviceShowUI() end}
 renoise.tool():add_menu_entry{name="Track Automation List:Paketti..:Show/Hide External Editor for Plugin",invoke=function() openExternalInstrumentEditor() end}
-renoise.tool():add_menu_entry{name="--Track Automation:Paketti..:Show/Hide External Editor for Device", invoke=function() AutomationDeviceShowUI() end}
+renoise.tool():add_menu_entry{name="--Track Automation:Paketti..:Show/Hide External Editor for Device",invoke=function() AutomationDeviceShowUI() end}
 renoise.tool():add_menu_entry{name="Track Automation:Paketti..:Show/Hide External Editor for Plugin",invoke=function() openExternalInstrumentEditor() end}
 
 
@@ -1304,7 +1352,7 @@ renoise.tool():add_keybinding{name="Mixer:Paketti:Switch to Automation",invoke=f
 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Show Automation",invoke=function() renoise.app().window.active_lower_frame=renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION
  end}
- renoise.tool():add_keybinding{name="Mixer:Paketti:Show Automation", invoke=function() renoise.app().window.active_lower_frame=renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION
+ renoise.tool():add_keybinding{name="Mixer:Paketti:Show Automation",invoke=function() renoise.app().window.active_lower_frame=renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION
  end}
 renoise.tool():add_keybinding{name="Instrument Box:Paketti:Show Automation",invoke=function() renoise.app().window.active_lower_frame=renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION
  end}
@@ -1312,83 +1360,6 @@ renoise.tool():add_keybinding{name="Instrument Box:Paketti:Show Automation",invo
 -- Draw Automation curves, lines, within Automation Selection.
 
 -------------------------------------------------------
-function gainerExpCurveVol()
-  local song = renoise.song()
-  local length = song.patterns[song.selected_pattern_index].number_of_lines
-  local curve = 1.105
-  
-  loadnative("Audio/Effects/Native/Gainer")
-  local gainer = song.selected_track.devices[2]
-  local gain_parameter = gainer.parameters[1]  -- Gain parameter
-  local track_index = song.selected_track_index
-  local envelope = song.patterns[song.selected_pattern_index].tracks[track_index]:create_automation(gain_parameter)
-  envelope:clear()
-
-  -- Define the number of points based on the pattern length
-  local total_points = length <= 16 and 16 or length  -- If pattern length is 16 or fewer, use 16 points; otherwise, use the length
-
-  local max_exp_value = math.pow(curve, length - 1)  -- Calculate the maximum value for normalization
-
-  -- Insert points for detailed automation
-  for i = 0, total_points - 1 do
-    local position = i / (total_points - 1) * (length - 1)  -- Scale position in the range of 0 to length-1
-    local expValue = math.pow(curve, position)
-    local normalizedValue = (expValue - 1) / (max_exp_value - 1) * 0.25  -- Adjust the normalized value to cap at 0.25
-    envelope:add_point_at(math.floor(position + 1), math.max(0, normalizedValue))  -- Ensure the point is within valid range
-  end
-
-  song.transport.edit_mode = false
-  renoise.app().window.active_lower_frame = renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION
-end
-
-
-function gainerExpReverseCurveVol()
-  local song = renoise.song()
-  local length = song.patterns[song.selected_pattern_index].number_of_lines
-  local curve = 1.105
-  
-  loadnative("Audio/Effects/Native/Gainer")
-  local gainer = song.selected_track.devices[2]
-  local gain_parameter = gainer.parameters[1]  -- Gain parameter
-  local track_index = song.selected_track_index
-  local envelope = song.patterns[song.selected_pattern_index].tracks[track_index]:create_automation(gain_parameter)
-  envelope:clear()
-
-  -- Define the number of points based on the pattern length
-  local total_points = length <= 16 and 16 or length  -- Use 16 points for patterns of 16 rows or fewer
-
-  local max_exp_value = math.pow(curve, length - 1)  -- Calculate the maximum value for normalization
-
-  -- Insert points for detailed automation
-  for i = 0, total_points - 1 do
-    local position = i / (total_points - 1) * (length - 1)  -- Scale position in the range of 0 to length-1
-    local expValue = math.pow(curve, (length - 1) - position)  -- Reverse the curve calculation
-    local normalizedValue = (expValue - 1) / (max_exp_value - 1) * 0.25  -- Adjust the normalized value to cap at 0.25
-    envelope:add_point_at(math.floor(position + 1), math.max(0, normalizedValue))  -- Ensure the point is within valid range
-  end
-
-  song.transport.edit_mode = false
-  renoise.app().window.active_lower_frame = renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION
-end
-
---renoise.tool():add_keybinding{name="Global:Paketti:Gainer Exponential Curve Up", invoke=function() gainerExpCurveVol() end}
---renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Gainer Exponential Curve Up", invoke=function() gainerExpCurveVol() end}
---renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Gainer Exponential Curve Up", invoke=function() gainerExpCurveVol() end}
---renoise.tool():add_menu_entry{name="--Track Automation:Paketti..:Gainer Exponential Curve Up", invoke=function() gainerExpCurveVol() end}
---renoise.tool():add_menu_entry{name="Track Automation List:Paketti..:Gainer Exponential Curve Up", invoke=function() gainerExpCurveVol() end}
-
---renoise.tool():add_keybinding{name="Global:Paketti:Gainer Exponential Curve Down", invoke=function() gainerExpReverseCurveVol() end}
---renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Gainer Exponential Curve Down", invoke=function() gainerExpReverseCurveVol() end}
---renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Gainer Exponential Curve Down", invoke=function() gainerExpReverseCurveVol() end}
---renoise.tool():add_menu_entry{name="Track Automation:Paketti..:Gainer Exponential Curve Down", invoke=function() gainerExpReverseCurveVol() end}
---renoise.tool():add_menu_entry{name="Track Automation List:Paketti..:Gainer Exponential Curve Down", invoke=function() gainerExpReverseCurveVol() end}
-
-
---------------
-
-
-
-
 -- Function to read the selected slots in the pattern matrix for the currently selected track.
 local function read_pattern_matrix_selection()
   local song = renoise.song()
@@ -1447,6 +1418,7 @@ local function apply_ramp(selected_slots, ramp_type, is_exp, is_up)
   -- Set up exponential or linear ramp
   local curve = is_exp and 1.1 or 1.0
   local max_value = math.pow(curve, total_length - 1)
+  local unity_gain = 0.715  -- ADD THIS LINE
 
   -- Apply the ramp to the automation parameter
   local current_position = 0
@@ -1462,13 +1434,24 @@ local function apply_ramp(selected_slots, ramp_type, is_exp, is_up)
       local global_position = current_position + line
       local normalized_value
 
-      if is_exp then
-        -- Exponential calculation
-        normalized_value = math.pow(curve, global_position)
-        normalized_value = (normalized_value - 1) / (max_value - 1)
+  -- Around line 1439, modify the normalized_value calculation:
+      if selected_parameter.name == "Volume" then
+        if is_exp then
+          normalized_value = math.pow(curve, global_position)
+          normalized_value = (normalized_value - 1) / (max_value - 1)
+          normalized_value = normalized_value * unity_gain  -- Scale to unity gain
+        else
+          normalized_value = (global_position / (total_length - 1)) * unity_gain
+        end
       else
-        -- Linear calculation
-        normalized_value = global_position / (total_length - 1)
+        if is_exp then
+          -- Original exponential calculation
+          normalized_value = math.pow(curve, global_position)
+          normalized_value = (normalized_value - 1) / (max_value - 1)
+        else
+          -- Original linear calculation
+          normalized_value = global_position / (total_length - 1)
+        end
       end
 
       -- Clamp the value to the [0, 1] range
@@ -1528,15 +1511,15 @@ local function automation_ramp_down_lin()
 end
 
 -- Optimized `menu_entry` and `key_binding` definitions for compactness
-renoise.tool():add_menu_entry { name = "--Pattern Matrix:Paketti..:Automation Ramp Up (Exp) for Pattern Matrix Selection", invoke = automation_ramp_up_exp }
-renoise.tool():add_menu_entry { name = "Pattern Matrix:Paketti..:Automation Ramp Down (Exp) for Pattern Matrix Selection", invoke = automation_ramp_down_exp }
-renoise.tool():add_menu_entry { name = "Pattern Matrix:Paketti..:Automation Ramp Up (Lin) for Pattern Matrix Selection", invoke = automation_ramp_up_lin }
-renoise.tool():add_menu_entry { name = "Pattern Matrix:Paketti..:Automation Ramp Down (Lin) for Pattern Matrix Selection", invoke = automation_ramp_down_lin }
+renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Automation Ramp Up (Exp) for Pattern Matrix Selection",invoke=automation_ramp_up_exp }
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Automation Ramp Down (Exp) for Pattern Matrix Selection",invoke=automation_ramp_down_exp }
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Automation Ramp Up (Lin) for Pattern Matrix Selection",invoke=automation_ramp_up_lin }
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Automation Ramp Down (Lin) for Pattern Matrix Selection",invoke=automation_ramp_down_lin }
 
-renoise.tool():add_keybinding { name = "Global:Paketti:Automation Ramp Up (Exp)", invoke = automation_ramp_up_exp }
-renoise.tool():add_keybinding { name = "Global:Paketti:Automation Ramp Down (Exp)", invoke = automation_ramp_down_exp }
-renoise.tool():add_keybinding { name = "Global:Paketti:Automation Ramp Up (Lin)", invoke = automation_ramp_up_lin }
-renoise.tool():add_keybinding { name = "Global:Paketti:Automation Ramp Down (Lin)", invoke = automation_ramp_down_lin }
+renoise.tool():add_keybinding{name="Global:Paketti:Automation Ramp Up (Exp)",invoke=automation_ramp_up_exp }
+renoise.tool():add_keybinding{name="Global:Paketti:Automation Ramp Down (Exp)",invoke=automation_ramp_down_exp }
+renoise.tool():add_keybinding{name="Global:Paketti:Automation Ramp Up (Lin)",invoke=automation_ramp_up_lin }
+renoise.tool():add_keybinding{name="Global:Paketti:Automation Ramp Down (Lin)",invoke=automation_ramp_down_lin }
 
 -- Whitelist of center-based automation parameters
 local center_based_parameters = {
@@ -1643,25 +1626,25 @@ local function automation_center_to_bottom_lin() apply_center_based_ramp(read_pa
 local function automation_bottom_to_center_lin() apply_center_based_ramp(read_pattern_matrix_selection(), "Bottom to Center", true, false) end
 
 -- Register menu entries and keybindings for all 8 center-based automations
-renoise.tool():add_menu_entry { name = "--Pattern Matrix:Paketti..:Automation Center to Top (Exp) for Pattern Matrix Selection", invoke = automation_center_to_top_exp }
-renoise.tool():add_menu_entry { name = "Pattern Matrix:Paketti..:Automation Top to Center (Exp) for Pattern Matrix Selection", invoke = automation_top_to_center_exp }
-renoise.tool():add_menu_entry { name = "Pattern Matrix:Paketti..:Automation Center to Bottom (Exp) for Pattern Matrix Selection", invoke = automation_center_to_bottom_exp }
-renoise.tool():add_menu_entry { name = "Pattern Matrix:Paketti..:Automation Bottom to Center (Exp) for Pattern Matrix Selection", invoke = automation_bottom_to_center_exp }
+renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Automation Center to Top (Exp) for Pattern Matrix Selection",invoke=automation_center_to_top_exp }
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Automation Top to Center (Exp) for Pattern Matrix Selection",invoke=automation_top_to_center_exp }
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Automation Center to Bottom (Exp) for Pattern Matrix Selection",invoke=automation_center_to_bottom_exp }
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Automation Bottom to Center (Exp) for Pattern Matrix Selection",invoke=automation_bottom_to_center_exp }
 
-renoise.tool():add_menu_entry { name = "Pattern Matrix:Paketti..:Automation Center to Top (Lin) for Pattern Matrix Selection", invoke = automation_center_to_top_lin }
-renoise.tool():add_menu_entry { name = "Pattern Matrix:Paketti..:Automation Top to Center (Lin) for Pattern Matrix Selection", invoke = automation_top_to_center_lin }
-renoise.tool():add_menu_entry { name = "Pattern Matrix:Paketti..:Automation Center to Bottom (Lin) for Pattern Matrix Selection", invoke = automation_center_to_bottom_lin }
-renoise.tool():add_menu_entry { name = "Pattern Matrix:Paketti..:Automation Bottom to Center (Lin) for Pattern Matrix Selection", invoke = automation_bottom_to_center_lin }
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Automation Center to Top (Lin) for Pattern Matrix Selection",invoke=automation_center_to_top_lin }
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Automation Top to Center (Lin) for Pattern Matrix Selection",invoke=automation_top_to_center_lin }
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Automation Center to Bottom (Lin) for Pattern Matrix Selection",invoke=automation_center_to_bottom_lin }
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Automation Bottom to Center (Lin) for Pattern Matrix Selection",invoke=automation_bottom_to_center_lin }
 
-renoise.tool():add_keybinding { name = "Global:Paketti:Automation Center to Top (Exp)", invoke = automation_center_to_top_exp }
-renoise.tool():add_keybinding { name = "Global:Paketti:Automation Top to Center (Exp)", invoke = automation_top_to_center_exp }
-renoise.tool():add_keybinding { name = "Global:Paketti:Automation Center to Bottom (Exp)", invoke = automation_center_to_bottom_exp }
-renoise.tool():add_keybinding { name = "Global:Paketti:Automation Bottom to Center (Exp)", invoke = automation_bottom_to_center_exp }
+renoise.tool():add_keybinding{name="Global:Paketti:Automation Center to Top (Exp)",invoke=automation_center_to_top_exp }
+renoise.tool():add_keybinding{name="Global:Paketti:Automation Top to Center (Exp)",invoke=automation_top_to_center_exp }
+renoise.tool():add_keybinding{name="Global:Paketti:Automation Center to Bottom (Exp)",invoke=automation_center_to_bottom_exp }
+renoise.tool():add_keybinding{name="Global:Paketti:Automation Bottom to Center (Exp)",invoke=automation_bottom_to_center_exp }
 
-renoise.tool():add_keybinding { name = "Global:Paketti:Automation Center to Top (Lin)", invoke = automation_center_to_top_lin }
-renoise.tool():add_keybinding { name = "Global:Paketti:Automation Top to Center (Lin)", invoke = automation_top_to_center_lin }
-renoise.tool():add_keybinding { name = "Global:Paketti:Automation Center to Bottom (Lin)", invoke = automation_center_to_bottom_lin }
-renoise.tool():add_keybinding { name = "Global:Paketti:Automation Bottom to Center (Lin)", invoke = automation_bottom_to_center_lin }
+renoise.tool():add_keybinding{name="Global:Paketti:Automation Center to Top (Lin)",invoke=automation_center_to_top_lin }
+renoise.tool():add_keybinding{name="Global:Paketti:Automation Top to Center (Lin)",invoke=automation_top_to_center_lin }
+renoise.tool():add_keybinding{name="Global:Paketti:Automation Center to Bottom (Lin)",invoke=automation_center_to_bottom_lin }
+renoise.tool():add_keybinding{name="Global:Paketti:Automation Bottom to Center (Lin)",invoke=automation_bottom_to_center_lin }
 
 local function randomize_envelope()
   local song = renoise.song()
@@ -1818,6 +1801,17 @@ local dialog = nil
 local vb = nil -- Make vb accessible globally
 local suppress_notifier = false -- Flag to suppress the notifier
 
+-- Define the notifier function once to maintain the same reference
+local edit_step_notifier_fn = function()
+  if dialog and dialog.visible and vb and vb.views.editstep_valuebox then
+    vb.views.editstep_valuebox.value = renoise.song().transport.edit_step
+    -- Refocus the textfield when edit step changes
+    dialog:show()
+    vb.views.value_textfield.active = true
+    vb.views.value_textfield.edit_mode = true
+  end
+end
+
 local function apply_textfield_value(value)
   local song = renoise.song()
   local track = song.selected_track
@@ -1906,7 +1900,12 @@ local function textfield_notifier(new_value)
 end
 
 local function show_value_dialog()
+  -- If dialog is already open, clean up and close
   if dialog and dialog.visible then
+    local edit_step_observable = renoise.song().transport.edit_step_observable
+    if edit_step_observable:has_notifier(edit_step_notifier_fn) then
+      edit_step_observable:remove_notifier(edit_step_notifier_fn)
+    end
     dialog:close()
     dialog = nil
     return
@@ -1960,6 +1959,10 @@ local function show_value_dialog()
     text = "Close",
     notifier = function()
       if dialog and dialog.visible then
+        local edit_step_observable = renoise.song().transport.edit_step_observable
+        if edit_step_observable:has_notifier(edit_step_notifier_fn) then
+          edit_step_observable:remove_notifier(edit_step_notifier_fn)
+        end
         dialog:close()
         dialog = nil
       end
@@ -1984,6 +1987,13 @@ local function show_value_dialog()
       }
     }
   )
+
+    -- Add the edit step notifier after dialog is created
+    local edit_step_observable = renoise.song().transport.edit_step_observable
+    if not edit_step_observable:has_notifier(edit_step_notifier_fn) then
+      edit_step_observable:add_notifier(edit_step_notifier_fn)
+    end
+
   renoise.app().window.active_lower_frame = 2
   -- Set initial focus to the textfield
   vb.views.value_textfield.active = true
@@ -2043,12 +2053,12 @@ end
 
 for i = 0, 1, 0.1 do
   local formatted_value = string.format("%.1f", i)
-renoise.tool():add_keybinding{name = "Global:Paketti:Write Automation Value " .. formatted_value,invoke = function() write_automation_value(tonumber(formatted_value)) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Write Automation Value " .. formatted_value,invoke=function() write_automation_value(tonumber(formatted_value)) end}
 if i == 0 then
 
-renoise.tool():add_menu_entry{name = "--Main Menu:Tools:Paketti..:Automation..:Write Automation Value " .. formatted_value,invoke = function() write_automation_value(tonumber(formatted_value)) end}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Automation..:Write Automation Value " .. formatted_value,invoke=function() write_automation_value(tonumber(formatted_value)) end}
 else
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti..:Automation..:Write Automation Value " .. formatted_value,invoke = function() write_automation_value(tonumber(formatted_value)) end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Automation..:Write Automation Value " .. formatted_value,invoke=function() write_automation_value(tonumber(formatted_value)) end}
 end
 end
 -----------------
@@ -2409,8 +2419,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Scale Automation to 110%",invoke=f
 renoise.tool():add_midi_mapping{name="Paketti:Scale Automation to 200%",invoke=function(message) if message:is_trigger() then ScaleAutomation(2.0) end end}
 renoise.tool():add_midi_mapping{name="Paketti:Scale Automation to 50%",invoke=function(message) if message:is_trigger() then ScaleAutomation(0.5) end end}
 --------
-renoise.tool():add_midi_mapping{
-  name="Paketti:Dynamic Scale Automation",
+renoise.tool():add_midi_mapping{name="Paketti:Dynamic Scale Automation",
   invoke=function(message)
     if not message.int_value then
       renoise.app():show_status("Invalid MIDI message for dynamic scaling.")
@@ -2439,9 +2448,6 @@ renoise.tool():add_midi_mapping{
 }
 
 ---
-
-
-
 
 local function FlipAutomationVertical()
   local song = renoise.song()
@@ -2630,18 +2636,18 @@ local function PakettiAutomationPlayModeChange_Previous()
 end
 
 -- Add Keybindings
-renoise.tool():add_keybinding {name="Global:Paketti:Select Automation Playmode (Next)",invoke=PakettiAutomationPlayModeChange_Next}
-renoise.tool():add_keybinding {name="Global:Paketti:Select Automation Playmode (Previous)",invoke=PakettiAutomationPlayModeChange_Previous}
-renoise.tool():add_keybinding {name="Global:Paketti:Select Automation Playmode 01 Points",invoke=function() PakettiAutomationPlayModeChange_SetPlaymode(renoise.PatternTrackAutomation.PLAYMODE_POINTS) end}
-renoise.tool():add_keybinding {name="Global:Paketti:Select Automation Playmode 02 Lines",invoke=function() PakettiAutomationPlayModeChange_SetPlaymode(renoise.PatternTrackAutomation.PLAYMODE_LINES) end}
-renoise.tool():add_keybinding {name="Global:Paketti:Select Automation Playmode 03 Curves",invoke=function() PakettiAutomationPlayModeChange_SetPlaymode(renoise.PatternTrackAutomation.PLAYMODE_CURVES) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Select Automation Playmode (Next)",invoke=PakettiAutomationPlayModeChange_Next}
+renoise.tool():add_keybinding{name="Global:Paketti:Select Automation Playmode (Previous)",invoke=PakettiAutomationPlayModeChange_Previous}
+renoise.tool():add_keybinding{name="Global:Paketti:Select Automation Playmode 01 Points",invoke=function() PakettiAutomationPlayModeChange_SetPlaymode(renoise.PatternTrackAutomation.PLAYMODE_POINTS) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Select Automation Playmode 02 Lines",invoke=function() PakettiAutomationPlayModeChange_SetPlaymode(renoise.PatternTrackAutomation.PLAYMODE_LINES) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Select Automation Playmode 03 Curves",invoke=function() PakettiAutomationPlayModeChange_SetPlaymode(renoise.PatternTrackAutomation.PLAYMODE_CURVES) end}
 
 -- Add MIDI Mappings
-renoise.tool():add_midi_mapping {name="Paketti:Select Automation Playmode (Next)",invoke=PakettiAutomationPlayModeChange_Next}
-renoise.tool():add_midi_mapping {name="Paketti:Select Automation Playmode (Previous)",invoke=PakettiAutomationPlayModeChange_Previous}
-renoise.tool():add_midi_mapping {name="Paketti:Select Automation Playmode 01 Points",invoke=function() PakettiAutomationPlayModeChange_SetPlaymode(renoise.PatternTrackAutomation.PLAYMODE_POINTS) end}
-renoise.tool():add_midi_mapping {name="Paketti:Select Automation Playmode 02 Lines",invoke=function() PakettiAutomationPlayModeChange_SetPlaymode(renoise.PatternTrackAutomation.PLAYMODE_LINES) end}
-renoise.tool():add_midi_mapping {name="Paketti:Select Automation Playmode 03 Curves",invoke=function() PakettiAutomationPlayModeChange_SetPlaymode(renoise.PatternTrackAutomation.PLAYMODE_CURVES) end}
+renoise.tool():add_midi_mapping{name="Paketti:Select Automation Playmode (Next)",invoke=PakettiAutomationPlayModeChange_Next}
+renoise.tool():add_midi_mapping{name="Paketti:Select Automation Playmode (Previous)",invoke=PakettiAutomationPlayModeChange_Previous}
+renoise.tool():add_midi_mapping{name="Paketti:Select Automation Playmode 01 Points",invoke=function() PakettiAutomationPlayModeChange_SetPlaymode(renoise.PatternTrackAutomation.PLAYMODE_POINTS) end}
+renoise.tool():add_midi_mapping{name="Paketti:Select Automation Playmode 02 Lines",invoke=function() PakettiAutomationPlayModeChange_SetPlaymode(renoise.PatternTrackAutomation.PLAYMODE_LINES) end}
+renoise.tool():add_midi_mapping{name="Paketti:Select Automation Playmode 03 Curves",invoke=function() PakettiAutomationPlayModeChange_SetPlaymode(renoise.PatternTrackAutomation.PLAYMODE_CURVES) end}
 
 
 
@@ -2702,15 +2708,8 @@ local function clone_sequence_with_automation_only()
   renoise.app():show_status("Sequence cloned with automation only in selected tracks")
 end
 
-renoise.tool():add_menu_entry{
-  name = "Pattern Matrix:Paketti..:Clone Sequence (Automation Only)",
-  invoke = clone_sequence_with_automation_only
-}
-
-renoise.tool():add_keybinding{
-  name = "Global:Paketti:Clone Sequence (Automation Only)",
-  invoke = clone_sequence_with_automation_only
-}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Clone Sequence (Automation Only)",invoke=clone_sequence_with_automation_only}
+renoise.tool():add_keybinding{name="Global:Paketti:Clone Sequence (Automation Only)",invoke=clone_sequence_with_automation_only}
 
 local function clone_pattern_without_automation()
   local song = renoise.song()
@@ -2763,14 +2762,7 @@ local function clone_pattern_without_automation()
   end
 end
 
-renoise.tool():add_menu_entry{
-  name = "Pattern Matrix:Paketti..:Clone Pattern (Without Automation)",
-  invoke = clone_pattern_without_automation
-}
-
-renoise.tool():add_keybinding{
-  name = "Global:Paketti:Clone Pattern (Without Automation)",
-  invoke = clone_pattern_without_automation
-}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Clone Pattern (Without Automation)",invoke = clone_pattern_without_automation}
+renoise.tool():add_keybinding{name="Global:Paketti:Clone Pattern (Without Automation)",invoke = clone_pattern_without_automation}
 
 

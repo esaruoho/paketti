@@ -1,6 +1,6 @@
 -------------------------------------------------------------------------------------------------
 -- Dump list of plugins, fx available to Terminal
-renoise.tool():add_keybinding{name="Global:Paketti:AU/VST/VST3/Native Plugins/Effects Lister Dump", invoke=function()
+renoise.tool():add_keybinding{name="Global:Paketti:AU/VST/VST3/Native Plugins/Effects Lister Dump",invoke=function()
 local plugins = renoise.song().selected_instrument.plugin_properties.available_plugins
   for key, value in ipairs(plugins) do
     print(key, value)
@@ -10,7 +10,7 @@ local devices = renoise.song().tracks[renoise.song().selected_track_index].avail
     print(key, value)
   end end}
 
-renoise.tool():add_keybinding{name="Global:Paketti:Dump Current Instrument parameters", invoke=function() 
+renoise.tool():add_keybinding{name="Global:Paketti:Dump Current Instrument parameters",invoke=function() 
 local instpara = renoise.song().instruments[renoise.song().selected_instrument_index].plugin_properties.plugin_device.parameters
 --oprint (renoise.song().instruments[renoise.song().selected_instrument_index].plugin_properties.plugin_device.parameters[26].name)
   for key, value in ipairs (instpara) do 
@@ -56,7 +56,7 @@ raw.lower_frame_is_visible=true
   ss.devices[2].parameters[2].value=2
   ss.devices[2].parameters[3].value=1
 end
-renoise.tool():add_keybinding{name="Global:Paketti:Add Filter & LFO (AutoFilter)", invoke=function() AutoFilter() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Add Filter & LFO (AutoFilter)",invoke=function() AutoFilter() end}
 
 ----------------
 function read_file(path)
@@ -117,13 +117,13 @@ renoise.app().window.active_lower_frame=3
 s.selected_instrument.active_tab=2 
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Load Rhino 2.1 AU", invoke=function() LoadRhino() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Load Rhino 2.1 AU",invoke=function() LoadRhino() end}
 ------------------------------------------------------------------------------------------------------------
-renoise.tool():add_keybinding{name="Global:Paketti:Load FabFilter One", invoke=function() renoise.song().instruments[renoise.song().selected_instrument_index].plugin_properties:load_plugin("Audio/Generators/AU/aumu:FOne:FabF")
+renoise.tool():add_keybinding{name="Global:Paketti:Load FabFilter One",invoke=function() renoise.song().instruments[renoise.song().selected_instrument_index].plugin_properties:load_plugin("Audio/Generators/AU/aumu:FOne:FabF")
 local pd=renoise.song().selected_instrument.plugin_properties.plugin_device
  if pd.external_editor_visible==false then pd.external_editor_visible=true end end}
 ------------------------------------------------------------------------------------------------------------
-renoise.tool():add_keybinding{name="Global:Paketti:Load Surge (VST)", invoke=function() renoise.song().instruments[renoise.song().selected_instrument_index].plugin_properties:load_plugin("Audio/Generators/VST/Surge")
+renoise.tool():add_keybinding{name="Global:Paketti:Load Surge (VST)",invoke=function() renoise.song().instruments[renoise.song().selected_instrument_index].plugin_properties:load_plugin("Audio/Generators/VST/Surge")
 local pd=renoise.song().selected_instrument.plugin_properties.plugin_device
  if pd.external_editor_visible==false then pd.external_editor_visible=true end 
  
@@ -143,7 +143,7 @@ end
 renoise.app().window.active_middle_frame=3
 s.selected_instrument.active_tab=2 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Load U-He Zebra (VST)", invoke=function() LoadZebra() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Load U-He Zebra (VST)",invoke=function() LoadZebra() end}
 
 ------------------------------------------------------------------------------------------------------------
 -- Function to read XML file contents
@@ -432,6 +432,8 @@ renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise Phaser 2",
 invoke=function() loadnative("Audio/Effects/Native/Phaser 2") end}
 renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise Repeater",
 invoke=function() loadnative("Audio/Effects/Native/Repeater") end}
+renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise Notepad",
+invoke=function() loadnative("Audio/Effects/Native/Notepad") end}
 renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise Reverb",
 invoke=function() loadnative("Audio/Effects/Native/Reverb") end}
 renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise RingMod 2",
@@ -447,7 +449,7 @@ renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise #ReWire In
 invoke=function() loadnative("Audio/Effects/Native/#ReWire Input") end}
 renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise #Send",
 invoke=function() loadnative("Audio/Effects/Native/#Send") end}
-renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise #Sidechain", invoke=function() loadnative("Audio/Effects/Native/#Sidechain") end}
+renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise #Sidechain",invoke=function() loadnative("Audio/Effects/Native/#Sidechain") end}
 -------- *
 renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise *Formula",
 invoke=function() loadnative("Audio/Effects/Native/*Formula") end}
@@ -671,59 +673,59 @@ end
 --- AU
 -- Audio/Effects/AU/aufx:sdly:appl
 
-renoise.tool():add_keybinding{name="Global:Track Devices:Load U-He Colour Copy", invoke=function() loadvst("Audio/Effects/AU/aumf:uLyr:UHfX") end}
-renoise.tool():add_keybinding{name="Global:Track Devices:Load Koen KTGranulator (AU)", invoke=function() loadvst("Audio/Effects/AU/aufx:KTGr:KTfx") end}
-renoise.tool():add_keybinding{name="Global:Track Devices:Load Uhbik U-He Runciter", invoke=function() loadvst("Audio/Effects/AU/aumf:Rc17:UHfX") end}
-renoise.tool():add_keybinding{name="Global:Track Devices:Load SphereDelay Maybe?", invoke=function() loadvst("Audio/Effects/AU/aufx:SpDl:No1z") end}
-renoise.tool():add_keybinding{name="Global:Track Devices:Load D16 Syntorus 2", invoke=function() loadvst("Audio/Effects/AU/aumf:Sn8R:d16g") end}
-renoise.tool():add_keybinding{name="Global:Track Devices:Load D16 Toraverb", invoke=function() loadvst("Audio/Effects/AU/aufx:T4V8:d16g") end}
-renoise.tool():add_keybinding{name="Global:Track Devices:Load D16 Frontier", invoke=function() loadvst("Audio/Effects/AU/aumf:FRn7:d16g") end}
-renoise.tool():add_keybinding{name="Global:Track Devices:Load D16 Toraverb 2", invoke=function() loadvst("Audio/Effects/AU/aumf:T4V9:d16g") end}
-renoise.tool():add_keybinding{name="Global:Track Devices:Load D16 Repeater", invoke=function() loadvst("Audio/Effects/AU/aumf:RP78:d16g") end}
-renoise.tool():add_keybinding{name="Global:Track Devices:Load D16 Repeater (2nd)", invoke=function() loadvst("Audio/Effects/AU/aumf:RP78:d16g") end}
-renoise.tool():add_keybinding{name="Global:Track Devices:Load George Yohng's W1 1", invoke=function() loadvst("Audio/Effects/AU/aufx:4Fwl:Yhng") end}
-renoise.tool():add_keybinding{name="Global:Track Devices:Load George Yohng's W1 2", invoke=function() loadvst("Audio/Effects/AU/aufx:4FwL:4FNT") end}
+renoise.tool():add_keybinding{name="Global:Track Devices:Load U-He Colour Copy",invoke=function() loadvst("Audio/Effects/AU/aumf:uLyr:UHfX") end}
+renoise.tool():add_keybinding{name="Global:Track Devices:Load Koen KTGranulator (AU)",invoke=function() loadvst("Audio/Effects/AU/aufx:KTGr:KTfx") end}
+renoise.tool():add_keybinding{name="Global:Track Devices:Load Uhbik U-He Runciter",invoke=function() loadvst("Audio/Effects/AU/aumf:Rc17:UHfX") end}
+renoise.tool():add_keybinding{name="Global:Track Devices:Load SphereDelay Maybe?",invoke=function() loadvst("Audio/Effects/AU/aufx:SpDl:No1z") end}
+renoise.tool():add_keybinding{name="Global:Track Devices:Load D16 Syntorus 2",invoke=function() loadvst("Audio/Effects/AU/aumf:Sn8R:d16g") end}
+renoise.tool():add_keybinding{name="Global:Track Devices:Load D16 Toraverb",invoke=function() loadvst("Audio/Effects/AU/aufx:T4V8:d16g") end}
+renoise.tool():add_keybinding{name="Global:Track Devices:Load D16 Frontier",invoke=function() loadvst("Audio/Effects/AU/aumf:FRn7:d16g") end}
+renoise.tool():add_keybinding{name="Global:Track Devices:Load D16 Toraverb 2",invoke=function() loadvst("Audio/Effects/AU/aumf:T4V9:d16g") end}
+renoise.tool():add_keybinding{name="Global:Track Devices:Load D16 Repeater",invoke=function() loadvst("Audio/Effects/AU/aumf:RP78:d16g") end}
+renoise.tool():add_keybinding{name="Global:Track Devices:Load D16 Repeater (2nd)",invoke=function() loadvst("Audio/Effects/AU/aumf:RP78:d16g") end}
+renoise.tool():add_keybinding{name="Global:Track Devices:Load George Yohng's W1 1",invoke=function() loadvst("Audio/Effects/AU/aufx:4Fwl:Yhng") end}
+renoise.tool():add_keybinding{name="Global:Track Devices:Load George Yohng's W1 2",invoke=function() loadvst("Audio/Effects/AU/aufx:4FwL:4FNT") end}
 
-renoise.tool():add_keybinding{name="Global:Track Devices:Load OhmForce Predatohm", invoke=function() loadvst("Audio/Effects/AU/aumf:Opdh:OmFo") end}
-renoise.tool():add_keybinding{name="Global:Track Devices:Load OhmForce Hematohm", invoke=function() loadvst("Audio/Effects/AU/aumf:OHmt:OmFo") end}
-renoise.tool():add_keybinding{name="Global:Track Devices:Load OhmForce OhmBoyz", invoke=function() loadvst("Audio/Effects/AU/aumf:OByZ:OmFo") end}
-renoise.tool():add_keybinding{name="Global:Track Devices:Load QuikQuak FusionField", invoke=function() loadvst("Audio/Effects/AU/aumf:FuFi:QkQk") end}
-renoise.tool():add_keybinding{name="Global:Track Devices:Load Schaack Transient Shaper (VST)", invoke=function() loadvst("Audio/Effects/VST/TransientShaper") end}
-renoise.tool():add_keybinding{name="Global:Track Devices:Load FabFilter Pro-Q 3", invoke=function() loadvst("Audio/Effects/AU/aumf:FQ3p:FabF") end}
-renoise.tool():add_keybinding{name="Global:Track Devices:Load FabFilter Pro-Q 3 (VST)", invoke=function() loadvst("Audio/Effects/VST/FabFilter Pro-Q 3") end}
-renoise.tool():add_keybinding{name="Global:Track Devices:Load TAL-Reverb 4", invoke=function() loadvst("Audio/Effects/AU/aufx:reV4:TOGU") end}
-renoise.tool():add_keybinding{name="Global:Track Devices:Load TAL-Dub 3 AU", invoke=function() loadvst("Audio/Effects/AU/aumf:xg70:TOGU") end}
-renoise.tool():add_keybinding{name="Global:Track Devices:Load TAL-Chorus LX", invoke=function() loadvst("Audio/Effects/AU/aufx:cHL1:TOGU") end}
-renoise.tool():add_keybinding{name="Global:Track Devices:Load TAL-Chorus", invoke=function() loadvst("Audio/Effects/AU/aufx:Chor:Togu") end}
+renoise.tool():add_keybinding{name="Global:Track Devices:Load OhmForce Predatohm",invoke=function() loadvst("Audio/Effects/AU/aumf:Opdh:OmFo") end}
+renoise.tool():add_keybinding{name="Global:Track Devices:Load OhmForce Hematohm",invoke=function() loadvst("Audio/Effects/AU/aumf:OHmt:OmFo") end}
+renoise.tool():add_keybinding{name="Global:Track Devices:Load OhmForce OhmBoyz",invoke=function() loadvst("Audio/Effects/AU/aumf:OByZ:OmFo") end}
+renoise.tool():add_keybinding{name="Global:Track Devices:Load QuikQuak FusionField",invoke=function() loadvst("Audio/Effects/AU/aumf:FuFi:QkQk") end}
+renoise.tool():add_keybinding{name="Global:Track Devices:Load Schaack Transient Shaper (VST)",invoke=function() loadvst("Audio/Effects/VST/TransientShaper") end}
+renoise.tool():add_keybinding{name="Global:Track Devices:Load FabFilter Pro-Q 3",invoke=function() loadvst("Audio/Effects/AU/aumf:FQ3p:FabF") end}
+renoise.tool():add_keybinding{name="Global:Track Devices:Load FabFilter Pro-Q 3 (VST)",invoke=function() loadvst("Audio/Effects/VST/FabFilter Pro-Q 3") end}
+renoise.tool():add_keybinding{name="Global:Track Devices:Load TAL-Reverb 4",invoke=function() loadvst("Audio/Effects/AU/aufx:reV4:TOGU") end}
+renoise.tool():add_keybinding{name="Global:Track Devices:Load TAL-Dub 3 AU",invoke=function() loadvst("Audio/Effects/AU/aumf:xg70:TOGU") end}
+renoise.tool():add_keybinding{name="Global:Track Devices:Load TAL-Chorus LX",invoke=function() loadvst("Audio/Effects/AU/aufx:cHL1:TOGU") end}
+renoise.tool():add_keybinding{name="Global:Track Devices:Load TAL-Chorus",invoke=function() loadvst("Audio/Effects/AU/aufx:Chor:Togu") end}
 
 -- ValhallaDSP (AU)
-renoise.tool():add_keybinding{name="Global:Track Devices:Load ValhallaRoom", invoke=function() loadvst("Audio/Effects/AU/aufx:Ruum:oDin") end}
-renoise.tool():add_keybinding{name="Global:Track Devices:Load ValhallaShimmer", invoke=function() loadvst("Audio/Effects/AU/aufx:shmr:oDin") end}
-renoise.tool():add_keybinding{name="Global:Track Devices:Load ValhallaFreqEchoMkI", invoke=function() loadvst("Audio/Effects/AU/aufx:FqEh:oDin") end}
-renoise.tool():add_keybinding{name="Global:Track Devices:Load ValhallaDelay", invoke=function() loadvst("Audio/Effects/AU/aufx:dLay:oDin") end}
-renoise.tool():add_keybinding{name="Global:Track Devices:Load ValhallaVintageVerb", invoke=function() loadvst("Audio/Effects/AU/aufx:vee3:oDin") end}
-renoise.tool():add_keybinding{name="Global:Track Devices:Load ValhallaSpaceModulator (AU)", invoke=function() loadvst("Audio/Effects/AU/aufx:SpMd:oDi") end}
+renoise.tool():add_keybinding{name="Global:Track Devices:Load ValhallaRoom",invoke=function() loadvst("Audio/Effects/AU/aufx:Ruum:oDin") end}
+renoise.tool():add_keybinding{name="Global:Track Devices:Load ValhallaShimmer",invoke=function() loadvst("Audio/Effects/AU/aufx:shmr:oDin") end}
+renoise.tool():add_keybinding{name="Global:Track Devices:Load ValhallaFreqEchoMkI",invoke=function() loadvst("Audio/Effects/AU/aufx:FqEh:oDin") end}
+renoise.tool():add_keybinding{name="Global:Track Devices:Load ValhallaDelay",invoke=function() loadvst("Audio/Effects/AU/aufx:dLay:oDin") end}
+renoise.tool():add_keybinding{name="Global:Track Devices:Load ValhallaVintageVerb",invoke=function() loadvst("Audio/Effects/AU/aufx:vee3:oDin") end}
+renoise.tool():add_keybinding{name="Global:Track Devices:Load ValhallaSpaceModulator (AU)",invoke=function() loadvst("Audio/Effects/AU/aufx:SpMd:oDi") end}
 -- ValhallaDSP (VST)
-renoise.tool():add_keybinding{name="Global:Track Devices:Load ValhallaRoom (VST)", invoke=function() loadvst("Audio/Effects/VST/ValhallaRoom") end}
-renoise.tool():add_keybinding{name="Global:Track Devices:Load ValhallaShimmer (VST)", invoke=function() loadvst("Audio/Effects/VST/ValhallaShimmer") end}
-renoise.tool():add_keybinding{name="Global:Track Devices:Load ValhallaFreqEchoMkI (VST)", invoke=function() loadvst("Audio/Effects/VST/ValhallaFreqEcho") end}
-renoise.tool():add_keybinding{name="Global:Track Devices:Load ValhallaDelay (VST)", invoke=function() loadvst("Audio/Effects/VST/ValhallaDelay") end}
-renoise.tool():add_keybinding{name="Global:Track Devices:Load ValhallaVintageVerb (VST)", invoke=function() loadvst("Audio/Effects/VST/ValhallaVintageVerb") end}
-renoise.tool():add_keybinding{name="Global:Track Devices:Load ValhallaSpaceModulator (VST)", invoke=function() loadvst("Audio/Effects/VST/ValhallaSpaceModulator") end}
+renoise.tool():add_keybinding{name="Global:Track Devices:Load ValhallaRoom (VST)",invoke=function() loadvst("Audio/Effects/VST/ValhallaRoom") end}
+renoise.tool():add_keybinding{name="Global:Track Devices:Load ValhallaShimmer (VST)",invoke=function() loadvst("Audio/Effects/VST/ValhallaShimmer") end}
+renoise.tool():add_keybinding{name="Global:Track Devices:Load ValhallaFreqEchoMkI (VST)",invoke=function() loadvst("Audio/Effects/VST/ValhallaFreqEcho") end}
+renoise.tool():add_keybinding{name="Global:Track Devices:Load ValhallaDelay (VST)",invoke=function() loadvst("Audio/Effects/VST/ValhallaDelay") end}
+renoise.tool():add_keybinding{name="Global:Track Devices:Load ValhallaVintageVerb (VST)",invoke=function() loadvst("Audio/Effects/VST/ValhallaVintageVerb") end}
+renoise.tool():add_keybinding{name="Global:Track Devices:Load ValhallaSpaceModulator (VST)",invoke=function() loadvst("Audio/Effects/VST/ValhallaSpaceModulator") end}
 ----------------------------------------------------------------------------------------------------------------------------------------------- VST
-renoise.tool():add_keybinding{name="Global:Track Devices:Load FabFilter Pro-Q (VST)", invoke=function() loadvst("Audio/Effects/VST/FabFilter Pro-Q") end}
-renoise.tool():add_keybinding{name="Global:Track Devices:Load GRM PitchAccum Stereo (VST)", invoke=function() loadvst("Audio/Effects/VST/GRM PitchAccum Stereo") end}
-renoise.tool():add_keybinding{name="Global:Track Devices:Load GRM Delays Stereo (VST)", invoke=function() loadvst("Audio/Effects/VST/GRM Delays Stereo") end}
-renoise.tool():add_keybinding{name="Global:Track Devices:Load GRM Reson Stereo (VST)", invoke=function() loadvst("Audio/Effects/VST/GRM Reson Stereo") end}
-renoise.tool():add_keybinding{name="Global:Track Devices:Load TAL-Dub 3 (VST)", invoke=function() loadvst("Audio/Effects/VST/TAL-Dub-3") end}
-renoise.tool():add_keybinding{name="Global:Track Devices:Load WatKat (VST)", invoke=function() loadvst("Audio/Effects/VST/WatKat") end}
+renoise.tool():add_keybinding{name="Global:Track Devices:Load FabFilter Pro-Q (VST)",invoke=function() loadvst("Audio/Effects/VST/FabFilter Pro-Q") end}
+renoise.tool():add_keybinding{name="Global:Track Devices:Load GRM PitchAccum Stereo (VST)",invoke=function() loadvst("Audio/Effects/VST/GRM PitchAccum Stereo") end}
+renoise.tool():add_keybinding{name="Global:Track Devices:Load GRM Delays Stereo (VST)",invoke=function() loadvst("Audio/Effects/VST/GRM Delays Stereo") end}
+renoise.tool():add_keybinding{name="Global:Track Devices:Load GRM Reson Stereo (VST)",invoke=function() loadvst("Audio/Effects/VST/GRM Reson Stereo") end}
+renoise.tool():add_keybinding{name="Global:Track Devices:Load TAL-Dub 3 (VST)",invoke=function() loadvst("Audio/Effects/VST/TAL-Dub-3") end}
+renoise.tool():add_keybinding{name="Global:Track Devices:Load WatKat (VST)",invoke=function() loadvst("Audio/Effects/VST/WatKat") end}
 ---------------------------------------------------------------------------------------
 --- Combinations
-renoise.tool():add_keybinding{name="Global:Track Devices:Load EQ10+Schaack Transient Shaper (VST)", invoke=function() 
+renoise.tool():add_keybinding{name="Global:Track Devices:Load EQ10+Schaack Transient Shaper (VST)",invoke=function() 
 loadvst("Audio/Effects/VST/TransientShaper")
 loadnative("Audio/Effects/Native/EQ 10") end}
 
-renoise.tool():add_midi_mapping{name="Track Devices:Paketti:Load DC Offset", invoke=function(message) if message:is_trigger() then 
+renoise.tool():add_midi_mapping{name="Track Devices:Paketti:Load DC Offset",invoke=function(message) if message:is_trigger() then 
 renoise.app().window.lower_frame_is_visible=true
 renoise.app().window.active_lower_frame=1
 renoise.song().selected_track:insert_device_at("Audio/Effects/Native/DC Offset",2)
@@ -736,7 +738,7 @@ nativeDevices = {
   "Analog Filter", "Bus Compressor", "Cabinet Simulator", "Chorus", "Chorus 2",
   "Comb Filter 2", "Compressor", "Convolver", "DC Offset", "Delay", "Digital Filter",
   "Distortion 2", "Doofer", "EQ 5", "EQ 10", "Exciter", "Flanger 2", "Gainer", 
-  "Gate 2", "LofiMat 2", "Maximizer", "Mixer EQ", "mpReverb 2", "Multitap",
+  "Gate 2", "LofiMat 2", "Maximizer", "Mixer EQ", "mpReverb 2", "Multitap", "Notepad",
   "Phaser 2", "Repeater", "Reverb", "RingMod 2", "Stereo Expander", "#Line Input",
   "#Multiband Send", "#ReWire Input", "#Send", "*Formula", "*Hydra", "*Instr. Automation",
   "*Instr. Macros", "*Instr. MIDI Control", "*Key Tracker", "*LFO", "*Meta Mixer",
@@ -752,17 +754,23 @@ nativeDeprecatedDevices = {
 -- Generate menu entries for native devices
 for i, device in ipairs(nativeDevices) do
   local device_path = "Audio/Effects/Native/" .. device:gsub(" ", " ")
-  renoise.tool():add_menu_entry{
-    name = "DSP Device:Paketti..:Load Renoise Native:" .. device, 
-    invoke = function() loadnative(device_path) end
+  renoise.tool():add_menu_entry{name="DSP Device:Paketti..:Load Renoise Native:" .. device, 
+    invoke=function() loadnative(device_path) end
+  }
+end
+
+-- Generate menu entries for native devices
+for i, device in ipairs(nativeDevices) do
+  local device_path = "Audio/Effects/Native/" .. device:gsub(" ", " ")
+  renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti..:Load Renoise Native:" .. device, 
+    invoke=function() loadnative(device_path) end
   }
 end
 
 for i, device in ipairs(nativeDevices) do
   local device_path = "Audio/Effects/Native/" .. device:gsub(" ", " ")
-  renoise.tool():add_menu_entry{
-    name = "Mixer:Paketti..:Load Renoise Native:" .. device, 
-    invoke = function() loadnative(device_path) end
+  renoise.tool():add_menu_entry{name="Mixer:Paketti..:Load Renoise Native:" .. device, 
+    invoke=function() loadnative(device_path) end
   }
 end
 
@@ -772,16 +780,27 @@ for i, device in ipairs(nativeDeprecatedDevices) do
   local separator = i == 1 and "-- " or ""
   renoise.tool():add_menu_entry{
     name = separator .. "DSP Device:Paketti..:Load Renoise Native:(Hidden) " .. device, 
-    invoke = function() loadnative(device_path) end
+    invoke=function() loadnative(device_path) end
   }
 end
+
+-- Generate menu entries for deprecated devices
+for i, device in ipairs(nativeDeprecatedDevices) do
+  local device_path = "Audio/Effects/Native/" .. device:gsub(" ", " ")
+  local separator = i == 1 and "-- " or ""
+  renoise.tool():add_menu_entry{
+    name = separator .. "Sample FX Mixer:Paketti..:Load Renoise Native:(Hidden) " .. device, 
+    invoke=function() loadnative(device_path) end
+  }
+end
+
 
 for i, device in ipairs(nativeDeprecatedDevices) do
   local device_path = "Audio/Effects/Native/" .. device:gsub(" ", " ")
   local separator = i == 1 and "-- " or ""
   renoise.tool():add_menu_entry{
     name = separator .. "Mixer:Paketti..:Load Renoise Native:(Hidden) " .. device, 
-    invoke = function() loadnative(device_path) end
+    invoke=function() loadnative(device_path) end
   }
 end
 
@@ -791,7 +810,7 @@ end
 --writeToClipboard(for key, value in ipairs (devices) do  print(key, value)
 --end}
 
---renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Dump VST/AU/Native Effects to Clipboard", invoke=function() 
+--renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Dump VST/AU/Native Effects to Clipboard",invoke=function() 
 
 
 
@@ -869,7 +888,7 @@ function inspectPlugin()
 end
 
 -- Adding keybinding for the inspectPlugin function
-renoise.tool():add_keybinding{name="Global:Paketti:Inspect Plugin", invoke=function() inspectPlugin() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Inspect Plugin",invoke=function() inspectPlugin() end}
 
 -- Function to inspect the effect in device slot 2
 function inspectEffect()
@@ -896,7 +915,7 @@ function inspectEffect()
 end
 
 -- Adding keybinding for the inspectEffect function
-renoise.tool():add_keybinding{name="Global:Paketti:Inspect Device in Slot 2", invoke=function() inspectEffect() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Inspect Device in Slot 2",invoke=function() inspectEffect() end}
 ------------------------------------------------------------------------------------------------------
 -- Add the menu entry to show plugin details
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Plugins/Devices..:Debug..:Show Plugin Details Dialog...",invoke=function() show_plugin_details_gui() end}
@@ -1236,7 +1255,7 @@ end
 for _, device in ipairs(moddevices) do
   for _, target in ipairs(modtargets) do
     local keybinding_name=string.format("Global:Paketti:Load Modulation Device (%s) %s", target.name, device)
-    renoise.tool():add_keybinding{name=keybinding_name, invoke = function() loadModulationDevice(device, target.target)
+    renoise.tool():add_keybinding{name=keybinding_name,invoke=function() loadModulationDevice(device, target.target)
       end
     }
   end
@@ -1257,7 +1276,7 @@ for _, target in ipairs(targets) do
       local menu_entry_name = string.format("Sample Modulation Matrix:Paketti..:%s %s:%s", target.number, target.display, device)
       renoise.tool():add_menu_entry{
         name = menu_entry_name,
-        invoke = function() loadModulationDevice(device, target.target) end
+        invoke=function() loadModulationDevice(device, target.target) end
       }
     else
      -- print("Error: Missing display name or device for target")
@@ -1272,7 +1291,7 @@ for _, target in ipairs(targets) do
       local menu_entry_name = string.format("Modulation Set:Paketti..:%s %s:%s", target.number, target.display, device)
       renoise.tool():add_menu_entry{
         name = menu_entry_name,
-        invoke = function()
+        invoke=function()
           loadModulationDevice(device, target.target)
         end
       }
@@ -1302,9 +1321,9 @@ end
 end
 end
 end
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Plugins/Devices..:Expose/Hide Selected Device Parameters in Mixer",invoke = function() exposeHideParametersInMixer() end}
-renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Expose/Hide Selected Device Parameters",invoke = function() exposeHideParametersInMixer() end}
-renoise.tool():add_keybinding{name="Global:Paketti:Expose/Hide Selected Device Parameters in Mixer", invoke=function() exposeHideParametersInMixer() end}  
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Plugins/Devices..:Expose/Hide Selected Device Parameters in Mixer",invoke=function() exposeHideParametersInMixer() end}
+renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Expose/Hide Selected Device Parameters",invoke=function() exposeHideParametersInMixer() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Expose/Hide Selected Device Parameters in Mixer",invoke=function() exposeHideParametersInMixer() end}  
 
 function exposeHideAllParametersInMixer()
 
@@ -1328,9 +1347,9 @@ end
 end
 end
 end
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:Expose/Hide Selected Track ALL Device Parameters",invoke = function() exposeHideParametersInMixer() end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Expose/Hide Selected Track ALL Device Parameters",invoke = function() exposeHideAllParametersInMixer() end}
-renoise.tool():add_keybinding{name="Global:Paketti:Expose/Hide Selected Track ALL Device Parameters", invoke=function() exposeHideParametersInMixer() end}  
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:Expose/Hide Selected Track ALL Device Parameters",invoke=function() exposeHideParametersInMixer() end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Expose/Hide Selected Track ALL Device Parameters",invoke=function() exposeHideAllParametersInMixer() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Expose/Hide Selected Track ALL Device Parameters",invoke=function() exposeHideParametersInMixer() end}  
 
 
 
@@ -1348,16 +1367,16 @@ end
 renoise.app():show_status("Enabled all Track DSP Devices on Selected Track")
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Bypass All Devices on Track", invoke=function() effectbypass() end}
-renoise.tool():add_keybinding{name="Global:Paketti:Enable All Devices on Track", invoke=function() effectenable() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Bypass All Devices on Track",invoke=function() effectbypass() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Enable All Devices on Track",invoke=function() effectenable() end}
 
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Enable All Devices on Track", invoke=function() effectenable() end}
-renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Bypass All Devices on Track", invoke=function() effectbypass() end}
-renoise.tool():add_menu_entry {name="Mixer:Paketti..:Enable All Devices on All Tracks",invoke=function() PakettiAllDevices(true) end}
-renoise.tool():add_menu_entry {name="Mixer:Paketti..:Bypass All Devices on All Tracks",invoke=function() PakettiAllDevices(false) end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Enable All Devices on Track",invoke=function() effectenable() end}
+renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Bypass All Devices on Track",invoke=function() effectbypass() end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Enable All Devices on All Tracks",invoke=function() PakettiAllDevices(true) end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Bypass All Devices on All Tracks",invoke=function() PakettiAllDevices(false) end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Bypass/Enable All Other Track DSP Devices (Toggle)",invoke=function() toggle_bypass_selected_device() end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Devices..:Enable All Devices on Track", invoke=function() effectenable() end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Devices..:Bypass All Devices on Track", invoke=function() effectbypass() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Devices..:Enable All Devices on Track",invoke=function() effectenable() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Devices..:Bypass All Devices on Track",invoke=function() effectbypass() end}
 
 function PakettiAllDevices(state)
   local song = renoise.song()
@@ -1376,14 +1395,14 @@ function PakettiAllDevices(state)
   renoise.app():show_status("All devices " .. status_message .. " from device[2] onward for all tracks")
 end
 
-renoise.tool():add_keybinding {name="Global:Paketti:Bypass All Devices on All Tracks",invoke=function() PakettiAllDevices(false) end}
-renoise.tool():add_keybinding {name="Global:Paketti:Enable All Devices on All Tracks",invoke=function() PakettiAllDevices(true) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Bypass All Devices on All Tracks",invoke=function() PakettiAllDevices(false) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Enable All Devices on All Tracks",invoke=function() PakettiAllDevices(true) end}
 
-renoise.tool():add_midi_mapping {name="Paketti:Bypass All Devices on All Tracks",invoke=function(message) if message:is_trigger() then PakettiAllDevices(false) end end}
-renoise.tool():add_midi_mapping {name="Paketti:Enable All Devices on All Tracks",invoke=function(message) if message:is_trigger() then PakettiAllDevices(true) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Bypass All Devices on All Tracks",invoke=function(message) if message:is_trigger() then PakettiAllDevices(false) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Enable All Devices on All Tracks",invoke=function(message) if message:is_trigger() then PakettiAllDevices(true) end end}
 
-renoise.tool():add_menu_entry {name="--Pattern Editor:Paketti..:Devices..:Enable All Devices on All Tracks",invoke=function() PakettiAllDevices(true) end}
-renoise.tool():add_menu_entry {name="Pattern Editor:Paketti..:Devices..:Bypass All Devices on All Tracks",invoke=function() PakettiAllDevices(false) end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Devices..:Enable All Devices on All Tracks",invoke=function() PakettiAllDevices(true) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Devices..:Bypass All Devices on All Tracks",invoke=function() PakettiAllDevices(false) end}
 
 
 -- Utility function to print a formatted list from the provided items
@@ -1406,12 +1425,12 @@ function listAvailablePluginsByType(typeFilter)
         if typeFilter == "VST" and pluginPath:find("/VST/") and not pluginPath:find("/VST3/") then
             local pluginInfo = availablePluginInfos[index]
             if pluginInfo then
-                table.insert(pluginItems, {name = pluginInfo.name, path = pluginInfo.path})
+                table.insert(pluginItems, {name=pluginInfo.name, path = pluginInfo.path})
             end
         elseif typeFilter ~= "VST" and pluginPath:find("/" .. typeFilter .. "/") then
             local pluginInfo = availablePluginInfos[index]
             if pluginInfo then
-                table.insert(pluginItems, {name = pluginInfo.name, path = pluginInfo.path})
+                table.insert(pluginItems, {name=pluginInfo.name, path = pluginInfo.path})
             end
         end
     end
@@ -1432,7 +1451,7 @@ function listDevicesByType(typeFilter)
      print(typeFilter .. " Devices:")
     for _, deviceInfo in ipairs(devices) do
         if deviceInfo.path:find("/" .. typeFilter .. "/") and not deviceInfo.path:find("/Native/") then
-            table.insert(deviceItems, {name = deviceInfo.name, path = deviceInfo.path})
+            table.insert(deviceItems, {name=deviceInfo.name, path = deviceInfo.path})
         end
     end
     printItems(deviceItems)
@@ -1736,8 +1755,8 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Hide Track DSP Device External Editors for All Tracks",invoke=function() hide_all_external_editors() end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Plugins/Devices..:Hide Track DSP Device External Editors for All Tracks",invoke=function() hide_all_external_editors() end}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Plugins/Devices..:Bypass All Devices on Track", invoke=function() effectbypass() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:Enable All Devices on Track", invoke=function() effectenable() end}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Plugins/Devices..:Bypass All Devices on Track",invoke=function() effectbypass() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:Enable All Devices on Track",invoke=function() effectenable() end}
 
 
 renoise.tool():add_midi_mapping{name="Paketti:Hide Track DSP Device External Editors for All Tracks",invoke=function(message) if message:is_trigger() then  hide_all_external_editors() end end}
@@ -2525,7 +2544,7 @@ else
 end
 end
 
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Plugins/Devices..:Debug..:Dump VST/VST3/AU/LADSPA/DSSI/Native Effects to Dialog...", invoke=function() show_available_plugins_dialog() end}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Plugins/Devices..:Debug..:Dump VST/VST3/AU/LADSPA/DSSI/Native Effects to Dialog...",invoke=function() show_available_plugins_dialog() end}
 
 
 
@@ -2874,9 +2893,9 @@ function PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMod
   end
 end
 
-renoise.tool():add_menu_entry {name = "Main Menu:Tools:Paketti..:!Preferences..:Toggle Automatically Open Selected Track Device Editors ON/OFF",invoke = PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode}
-renoise.tool():add_keybinding {name = "Global:Paketti:Toggle Auto-Open Track Devices",invoke = PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode}
-renoise.tool():add_midi_mapping {name = "Paketti:Toggle Auto-Open Track Devices",invoke = PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:!Preferences..:Toggle Automatically Open Selected Track Device Editors ON/OFF",invoke = PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode}
+renoise.tool():add_keybinding{name="Global:Paketti:Toggle Auto-Open Track Devices",invoke = PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode}
+renoise.tool():add_midi_mapping{name="Paketti:Toggle Auto-Open Track Devices",invoke = PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode}
 
 
 
@@ -2935,7 +2954,6 @@ function XOPointCloud()
   -- Load the plugin using the provided path
   loadPlugin(plugin_to_load)
   
-  -- TODO: Find the device and open the external editor
   for i = 1, #renoise.song().instruments do
     local instrument = renoise.song().instruments[i]
     local plugin_device = instrument.plugin_properties.plugin_device
@@ -2955,7 +2973,7 @@ function XOPointCloud()
   renoise.app():show_status("Failed to find XO plugin after loading. Something might have gone wrong.")
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Show XO Plugin External Editor",invoke = function() XOPointCloud() end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Show XO Plugin External Editor",invoke = function() XOPointCloud() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:Show XO Plugin External Editor",invoke = function() XOPointCloud() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Show XO Plugin External Editor",invoke=function() XOPointCloud() end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Show XO Plugin External Editor",invoke=function() XOPointCloud() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:Show XO Plugin External Editor",invoke=function() XOPointCloud() end}
 
