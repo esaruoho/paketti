@@ -1,0 +1,3 @@
+[submodule "definitions"]
+    path = definitions
+    url = http://github.com/renoise/definitions
