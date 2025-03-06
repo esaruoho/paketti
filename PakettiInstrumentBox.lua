@@ -214,7 +214,7 @@ local function ensure_instruments_count(count)
 end
 
 -- Function to select the next chunk, properly handling the maximum chunk of FE
-local function select_next_chunk()
+function select_next_chunk()
   local song = renoise.song()
   local current_index = song.selected_instrument_index
   local next_chunk_index = math.floor((current_index - 1) / 16) * 16 + 16 + 1  -- Calculate the next chunk, ensuring alignment
@@ -228,7 +228,7 @@ local function select_next_chunk()
 end
 
 -- Function to select the previous chunk, properly handling lower bounds and correct chunk stepping
-local function select_previous_chunk()
+function select_previous_chunk()
   local song = renoise.song()
   local current_index = song.selected_instrument_index
 

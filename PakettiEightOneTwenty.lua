@@ -1439,19 +1439,21 @@ end
 
 assign_midi_mappings()
 
-renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120",invoke=function()
+function GrooveboxShowClose()
   if dialog and dialog.visible then
     dialog:close()
     dialog = nil
     rows = {}
-  else PakettiEightSlotsByOneTwentyDialog() end end}
+  else PakettiEightSlotsByOneTwentyDialog() end
+
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120",invoke=function()
+GrooveboxShowClose()   
+end}
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti Groovebox 8120...",invoke=function()
-  if dialog and dialog.visible then
-    dialog:close()
-    dialog = nil
-    rows = {}
-  else PakettiEightSlotsByOneTwentyDialog() end end}
+GrooveboxShowClose() end}
 
 renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120",invoke=function(message)
   if message:is_trigger() then
@@ -1460,7 +1462,6 @@ renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120",invoke=fun
       dialog = nil
       rows = {}
     else PakettiEightSlotsByOneTwentyDialog() end end end}
-
 
 function debug_instruments_and_samples()
   print("----- Debug: Instruments and Samples (Velocity 00-7F) -----")

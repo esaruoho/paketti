@@ -747,18 +747,19 @@ local randombpm = {80, 100, 115, 123, 128, 132, 135, 138, 160}
     end
 end
 
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Renoise Random BPM & Write BPM/LPB to Master",
-    invoke=function()
-        local randombpm = {80, 100, 115, 123, 128, 132, 135, 138, 160}
-        math.randomseed(os.time())
-        local prefix = randombpm[math.random(#randombpm)]
-        renoise.song().transport.bpm = prefix
+function randomBPMMaster()
+  local randombpm = {80, 100, 115, 123, 128, 132, 135, 138, 160}
+  math.randomseed(os.time())
+  local prefix = randombpm[math.random(#randombpm)]
+  renoise.song().transport.bpm = prefix
 
-        if renoise.tool().preferences.RandomBPM.value then 
-      
-            write_bpm()
-        end
-    end}
+  if renoise.tool().preferences.RandomBPM.value then 
+
+      write_bpm()
+  end
+end
+
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Renoise Random BPM & Write BPM/LPB to Master",invoke=function() randomBPMMaster() end}
 
 
 function playat75()
@@ -778,8 +779,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Play at 100% Speed (Song BPM)
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:BPM&LPB..:Play at 75% Speed (Song BPM)",invoke=function() playat75()  end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:BPM&LPB..:Play at 100% Speed (Song BPM)",invoke=function() returnbackto100()  end}
 
-renoise.tool():add_keybinding{name="Global:Paketti:Random BPM from List",
-    invoke=function()
+function randomBPMFromList()
         -- Define a list of possible BPM values
         local bpmList = {80, 100, 115, 123, 128, 132, 135, 138, 160}
         
@@ -809,7 +809,8 @@ renoise.tool():add_keybinding{name="Global:Paketti:Random BPM from List",
             print("BPM written to file or handled additionally.")
         end
     end
-}
+  
+renoise.tool():add_keybinding{name="Global:Paketti:Random BPM from List",invoke=function() randomBPMFromList() end}
 -------------------------
 function WipeEfxFromSelection()
   local s = renoise.song()
@@ -2654,7 +2655,7 @@ function ShowRenameDialogForTrack(index)
   local selected_track = renoise.song().tracks[track_index]
   local initial_name = selected_track.name
 
-  local function close_dialog()
+  local function closeRD_dialog()
     if dialog and dialog.visible then
       dialog:close()
     end
@@ -2662,7 +2663,7 @@ function ShowRenameDialogForTrack(index)
 
   local function rename_track_and_close(new_name)
     selected_track.name = new_name
-    close_dialog()
+    closeRD_dialog()
     -- Move to the next track in the selection
     index = index + 1
     if index <= #selected_tracks then
@@ -2692,7 +2693,7 @@ function ShowRenameDialogForTrack(index)
       rename_track_and_close(vb.views.track_name_field.text)
       return
     elseif key.modifiers == "" and key.name == closer then
-      close_dialog()
+      closeRD_dialog()
       return
     else
       return key
@@ -2717,7 +2718,7 @@ function ShowRenameDialogForTrack(index)
       vb:button{
         text = "Cancel",
         width = 50,
-        notifier = close_dialog
+        notifier = closeRD_dialog
       }
     }
   }
@@ -3092,74 +3093,86 @@ renoise.tool():add_midi_mapping{name="Paketti:Insert Random Volume to Selected R
 
 
 -------
+-------
 -- Main function to replicate content
 function PakettiReplicateAtCursor(transpose, tracks_option, row_option)
   local song = renoise.song()
-  local pattern = song.selected_pattern
-  local cursor_row = song.selected_line_index
-  local pattern_length = pattern.number_of_lines
-
-  -- Check if there is content to replicate
-  if (cursor_row == pattern_length and row_option == "above_and_current") then
-    renoise.app():show_status("No rows to replicate.")
-    return
-  end
-  if (cursor_row == 1 and row_option == "above_current") then
-  row_option = "above_and_current" end
-
-  -- Determine the repeat_length and starting row based on row_option
-  local repeat_length, start_row
-  if row_option == "above_current" then
-    if cursor_row == 1 then
-      renoise.app():show_status("You are on the first row, nothing to replicate.")
-      return
-    end
-    repeat_length = cursor_row - 1
-    start_row = cursor_row
-  elseif row_option == "above_and_current" then
-    repeat_length = cursor_row
-    start_row = cursor_row + 1
-    if cursor_row == pattern_length then
-      renoise.app():show_status("You are on the last row, nothing to replicate.")
-      return
-    end
-  else
-    renoise.app():show_status("Invalid row option: " .. tostring(row_option))
-    return
-  end
-
-  if repeat_length == 0 then
-    renoise.app():show_status("No rows to replicate.")
-    return
-  end
-
-  transpose = transpose or 0
-
-  local function transpose_note(note_value, transpose_amount)
-    local min_note = 0
-    local max_note = 119
-
-    if note_value >= min_note and note_value <= max_note then
-      local new_note = note_value + transpose_amount
-      if new_note > max_note then
-        new_note = max_note
-      elseif new_note < min_note then
-        new_note = min_note
+  
+  -- Check API version and determine if we're in phrase editor
+  local in_phrase_editor = false
+  if renoise.API_VERSION >= 6.2 then
+    if renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_PHRASE_EDITOR then
+      local phrase = song.selected_phrase
+      if phrase then
+        in_phrase_editor = true
       end
-      return new_note
-    else
-      return note_value
     end
   end
 
-  -- Function to replicate content on a track
-  local function replicate_on_track(track_index)
-    for row = start_row, pattern_length do
-      local source_row = ((row - start_row) % repeat_length) + 1
-      local source_line = pattern:track(track_index):line(source_row)
-      local dest_line = pattern:track(track_index):line(row)
+  if in_phrase_editor then
+    -- Phrase Editor replication logic
+    local phrase = song.selected_phrase
+    local cursor_row = song.selected_phrase_line_index
+    local phrase_length = phrase.number_of_lines
 
-      for col = 1, #source_line.note_columns do
+    -- Check if there is content to replicate
+    if (cursor_row == phrase_length and row_option == "above_and_current") then
+      renoise.app():show_status("No rows to replicate in phrase.")
+      return
+    end
+    if (cursor_row == 1 and row_option == "above_current") then
+      row_option = "above_and_current"
+    end
+
+    -- Determine the repeat_length and starting row based on row_option
+    local repeat_length, start_row
+    if row_option == "above_current" then
+      if cursor_row == 1 then
+        renoise.app():show_status("You are on the first row of the phrase, nothing to replicate.")
+        return
+      end
+      repeat_length = cursor_row - 1
+      start_row = cursor_row
+    elseif row_option == "above_and_current" then
+      repeat_length = cursor_row
+      start_row = cursor_row + 1
+      if cursor_row == phrase_length then
+        renoise.app():show_status("You are on the last row of the phrase, nothing to replicate.")
+        return
+      end
+    else
+      renoise.app():show_status("Invalid row option: " .. tostring(row_option))
+      return
+    end
+
+    if repeat_length == 0 then
+      renoise.app():show_status("No rows to replicate in phrase.")
+      return
+    end
+
+    transpose = transpose or 0
+
+    -- Function to transpose note
+    local function transpose_note(note_value, transpose_amount)
+      local min_note = 0
+      local max_note = 119
+      if note_value >= min_note and note_value <= max_note then
+        local new_note = note_value + transpose_amount
+        if new_note > max_note then new_note = max_note
+        elseif new_note < min_note then new_note = min_note end
+        return new_note
+      else
+        return note_value
+      end
+    end
+
+    -- Replicate content in phrase
+    for row = start_row, phrase_length do
+      local source_row = ((row - start_row) % repeat_length) + 1
+      local source_line = phrase:line(source_row)
+      local dest_line = phrase:line(row)
+
+      for col = 1, phrase.visible_note_columns do
         local source_note = source_line.note_columns[col]
         local dest_note = dest_line.note_columns[col]
 
@@ -3172,7 +3185,7 @@ function PakettiReplicateAtCursor(transpose, tracks_option, row_option)
         dest_note.effect_amount_value = source_note.effect_amount_value
       end
 
-      for col = 1, #source_line.effect_columns do
+      for col = 1, phrase.visible_effect_columns do
         local source_effect = source_line.effect_columns[col]
         local dest_effect = dest_line.effect_columns[col]
 
@@ -3180,21 +3193,113 @@ function PakettiReplicateAtCursor(transpose, tracks_option, row_option)
         dest_effect.amount_value = source_effect.amount_value
       end
     end
-  end
 
-  if tracks_option == "all_tracks" then
-    for track_index = 1, #pattern.tracks do
-      replicate_on_track(track_index)
-    end
-  elseif tracks_option == "selected_track" then
-    local selected_track_index = song.selected_track_index
-    replicate_on_track(selected_track_index)
+    renoise.app():show_status("Replicated content in phrase with transpose: " .. transpose)
+
   else
-    renoise.app():show_status("Invalid tracks option: " .. tostring(tracks_option))
-    return
-  end
+    -- Pattern Editor replication logic
+    local pattern = song.selected_pattern
+    local cursor_row = song.selected_line_index
+    local pattern_length = pattern.number_of_lines
 
-  renoise.app():show_status("Replicated content with transpose: " .. transpose)
+    -- Check if there is content to replicate
+    if (cursor_row == pattern_length and row_option == "above_and_current") then
+      renoise.app():show_status("No rows to replicate.")
+      return
+    end
+    if (cursor_row == 1 and row_option == "above_current") then
+      row_option = "above_and_current"
+    end
+
+    -- Determine the repeat_length and starting row based on row_option
+    local repeat_length, start_row
+    if row_option == "above_current" then
+      if cursor_row == 1 then
+        renoise.app():show_status("You are on the first row, nothing to replicate.")
+        return
+      end
+      repeat_length = cursor_row - 1
+      start_row = cursor_row
+    elseif row_option == "above_and_current" then
+      repeat_length = cursor_row
+      start_row = cursor_row + 1
+      if cursor_row == pattern_length then
+        renoise.app():show_status("You are on the last row, nothing to replicate.")
+        return
+      end
+    else
+      renoise.app():show_status("Invalid row option: " .. tostring(row_option))
+      return
+    end
+
+    if repeat_length == 0 then
+      renoise.app():show_status("No rows to replicate.")
+      return
+    end
+
+    transpose = transpose or 0
+
+    local function transpose_note(note_value, transpose_amount)
+      local min_note = 0
+      local max_note = 119
+
+      if note_value >= min_note and note_value <= max_note then
+        local new_note = note_value + transpose_amount
+        if new_note > max_note then
+          new_note = max_note
+        elseif new_note < min_note then
+          new_note = min_note
+        end
+        return new_note
+      else
+        return note_value
+      end
+    end
+
+    -- Function to replicate content on a track
+    local function replicate_on_track(track_index)
+      for row = start_row, pattern_length do
+        local source_row = ((row - start_row) % repeat_length) + 1
+        local source_line = pattern:track(track_index):line(source_row)
+        local dest_line = pattern:track(track_index):line(row)
+
+        for col = 1, #source_line.note_columns do
+          local source_note = source_line.note_columns[col]
+          local dest_note = dest_line.note_columns[col]
+
+          dest_note.note_value = transpose_note(source_note.note_value, transpose)
+          dest_note.instrument_value = source_note.instrument_value
+          dest_note.volume_value = source_note.volume_value
+          dest_note.panning_value = source_note.panning_value
+          dest_note.delay_value = source_note.delay_value
+          dest_note.effect_number_value = source_note.effect_number_value
+          dest_note.effect_amount_value = source_note.effect_amount_value
+        end
+
+        for col = 1, #source_line.effect_columns do
+          local source_effect = source_line.effect_columns[col]
+          local dest_effect = dest_line.effect_columns[col]
+
+          dest_effect.number_value = source_effect.number_value
+          dest_effect.amount_value = source_effect.amount_value
+        end
+      end
+    end
+
+    if tracks_option == "all_tracks" then
+      for track_index = 1, #pattern.tracks do
+        replicate_on_track(track_index)
+      end
+    elseif tracks_option == "selected_track" then
+      local selected_track_index = song.selected_track_index
+      replicate_on_track(selected_track_index)
+    else
+      renoise.app():show_status("Invalid tracks option: " .. tostring(tracks_option))
+      return
+    end
+
+    renoise.app():show_status("Replicated content with transpose: " .. transpose)
+  end
 end
 
 -- Helper function to create menu entries, keybindings, and MIDI mappings
@@ -3227,29 +3332,35 @@ local row_options = {
 for _, tracks_opt in ipairs(tracks_options) do
   for _, row_opt in ipairs(row_options) do
     for _, transpose_opt in ipairs(transpose_options) do
-
-      local menu_entry_name="Pattern Editor:Paketti..:Replicate..:Replicate " .. tracks_opt.name .. " " .. row_opt.name .. " " .. transpose_opt.name
-
       local replicate_function = create_replicate_function(transpose_opt.value, tracks_opt.value, row_opt.value)
 
+      -- Pattern Editor entries (always add these)
+      local menu_entry_name = "Pattern Editor:Paketti..:Replicate..:Replicate " .. tracks_opt.name .. " " .. row_opt.name .. " " .. transpose_opt.name
       renoise.tool():add_menu_entry{name=menu_entry_name,invoke=replicate_function}
-      local keybinding_name="Pattern Editor:Paketti:Replicate " .. tracks_opt.name .. " " .. row_opt.name .. " " .. transpose_opt.name
+      
+      local keybinding_name = "Pattern Editor:Paketti:Replicate " .. tracks_opt.name .. " " .. row_opt.name .. " " .. transpose_opt.name
       renoise.tool():add_keybinding{name=keybinding_name,invoke=replicate_function}
-      local midi_mapping_name="Paketti:Replicate " .. tracks_opt.name .. " " .. row_opt.name .. " " .. transpose_opt.name
+      
+      local midi_mapping_name = "Paketti:Replicate " .. tracks_opt.name .. " " .. row_opt.name .. " " .. transpose_opt.name
       renoise.tool():add_midi_mapping{name=midi_mapping_name,invoke=function(message)
-          if message:is_trigger() then
-            replicate_function()
-          end
-        end}
+        if message:is_trigger() then
+          replicate_function()
+        end
+      end}
 
+      -- Add Phrase Editor entries only for "selected_track" option
+      -- since phrases don't have multiple tracks
+      if renoise.API_VERSION >= 6.2 and tracks_opt.value == "selected_track" then
+        local phrase_menu_entry_name = "Phrase Editor:Paketti..:Replicate..:Replicate " .. row_opt.name .. " " .. transpose_opt.name
+        renoise.tool():add_menu_entry{name=phrase_menu_entry_name,invoke=replicate_function}
+        
+        local phrase_keybinding_name = "Phrase Editor:Paketti:Replicate " .. row_opt.name .. " " .. transpose_opt.name
+        renoise.tool():add_keybinding{name=phrase_keybinding_name,invoke=replicate_function}
+      end
     end
   end
 end
 ------------
-
-
-
-
 -- Function to adjust the delay column within the selected area or current note column
 function PakettiDelayColumnModifier(amount)
   -- Get the current song
@@ -3333,16 +3444,33 @@ renoise.tool():add_keybinding{name= "Pattern Editor:Paketti:Delay Column Decreas
 function ExposeAndSelectColumn(number)
   local song = renoise.song()
   local track = song.selected_track
-
-  -- Get the track type
   local track_type = track.type
 
-  if track_type == renoise.Track.TRACK_TYPE_SEQUENCER then
-    -- It's a normal track that can have note and effect columns
+  -- Special handling for Master, Send, and Group tracks
+  if track_type == renoise.Track.TRACK_TYPE_MASTER or 
+     track_type == renoise.Track.TRACK_TYPE_SEND or 
+     track_type == renoise.Track.TRACK_TYPE_GROUP then
+    
+    local visEffectCol = track.visible_effect_columns
+    local newVisEffectCol = visEffectCol + number
 
-    -- Detect if we're on a note column or an effect column
+    if newVisEffectCol > 8 then
+      renoise.app():show_status("All 8 Effect Columns are already visible for the selected track, cannot add more.")
+      return
+    elseif newVisEffectCol < 1 then
+      renoise.app():show_status("Cannot have less than 1 Effect Column visible on Master/Send/Group tracks.")
+      return
+    end
+
+    track.visible_effect_columns = newVisEffectCol
+    song.selected_effect_column_index = newVisEffectCol
+    return
+  end
+
+  -- Normal sequencer track handling
+  if track_type == renoise.Track.TRACK_TYPE_SEQUENCER then
     if song.selected_note_column ~= nil then
-      -- We're on a Note Column
+      -- Note Column handling (unchanged)
       local visNoteCol = track.visible_note_columns
       local newVisNoteCol = visNoteCol + number
 
@@ -3354,13 +3482,11 @@ function ExposeAndSelectColumn(number)
         return
       end
 
-      -- Update the track's visible note columns
       track.visible_note_columns = newVisNoteCol
-      -- Select the new note column
       song.selected_note_column_index = newVisNoteCol
 
     elseif song.selected_effect_column ~= nil then
-      -- We're on an Effect Column
+      -- Effect Column handling for sequencer tracks
       local visEffectCol = track.visible_effect_columns
       local newVisEffectCol = visEffectCol + number
 
@@ -3368,47 +3494,17 @@ function ExposeAndSelectColumn(number)
         renoise.app():show_status("All 8 Effect Columns are already visible for the selected track, cannot add more.")
         return
       elseif newVisEffectCol < 0 then
-        renoise.app():show_status("Cannot have less than 0 Effect Columns visible.")
+        renoise.app():show_status("Hiding all Effect Columns.")
+        track.visible_effect_columns = 0
         return
       end
 
-      -- Update the track's visible effect columns
       track.visible_effect_columns = newVisEffectCol
-
       if newVisEffectCol > 0 then
-        -- Select the new effect column
         song.selected_effect_column_index = newVisEffectCol
-      else
-        -- No effect columns visible, deselect any effect column
-     --   song.selected_effect_column_index = nil
       end
-
     else
       renoise.app():show_status("You are not on a Note or Effect Column, doing nothing.")
-    end
-
-  else
-    -- The track cannot have note columns, handle effect columns only
-    local visEffectCol = track.visible_effect_columns
-    local newVisEffectCol = visEffectCol + number
-
-    if newVisEffectCol > 8 then
-      renoise.app():show_status("All 8 Effect Columns are already visible for the selected track, cannot add more.")
-      return
-    elseif newVisEffectCol < 0 then
-      renoise.app():show_status("Cannot have less than 0 Effect Columns visible.")
-      return
-    end
-
-    -- Update the track's visible effect columns
-    track.visible_effect_columns = newVisEffectCol
-
-    if newVisEffectCol > 0 then
-      -- Select the new effect column
-      song.selected_effect_column_index = newVisEffectCol
-    else
-      -- No effect columns visible, deselect any effect column
-      song.selected_effect_column_index = nil
     end
   end
 end
@@ -3416,7 +3512,7 @@ end
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Expose and Select Next Column",invoke=function() ExposeAndSelectColumn(1) end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Hide Current and Select Previous Column",invoke=function() ExposeAndSelectColumn(-1) end}
 renoise.tool():add_midi_mapping{name="Paketti:Expose and Select Next Column",invoke=function(message) if message:is_trigger() then ExposeAndSelectColumn(1) end end}
-renoise.tool():add_midi_mapping{name="Paketti:Hide Current and Select Previous Column",invoke=function(message) if message:is_trigger() then xposeAndSelectColumn(-1) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Hide Current and Select Previous Column",invoke=function(message) if message:is_trigger() then ExposeAndSelectColumn(-1) end end}
 
 --------
 function cloneAndExpandPatternToLPBDouble()
@@ -4358,6 +4454,19 @@ renoise.app():show_status("Panning values for all tracks set to 0.5")
 
 end
 
+-- Add new keybindings and menu entries for Left/Right
+renoise.tool():add_keybinding{name="Global:Paketti:Set All Tracks to Hard Left",invoke=function() globalLeft() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Set All Tracks to Hard Right",invoke=function() globalRight() end}
+
+renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Set All Tracks to Hard Left",invoke=function() globalLeft() end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Set All Tracks to Hard Right",invoke=function() globalRight() end}
+
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Set All Tracks to Hard Left",invoke=function() globalLeft() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Set All Tracks to Hard Right",invoke=function() globalRight() end}
+
+renoise.tool():add_menu_entry{name="--DSP Device:Paketti..:Set All Tracks to Hard Left",invoke=function() globalLeft() end}
+renoise.tool():add_menu_entry{name="DSP Device:Paketti..:Set All Tracks to Hard Right",invoke=function() globalRight() end}
+
 renoise.tool():add_keybinding{name="Global:Paketti:Set All Tracks to Center",invoke=function() globalCenter() end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Set All Tracks to Center",invoke=function() globalCenter() end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Set All Tracks to Center",invoke=function() globalCenter() end}
@@ -4597,7 +4706,7 @@ end
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Duplicate Selection with Padding&Move Cursor 1",invoke=function() DuplicateSelectionWithPaddingMoveCursor(false) end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Duplicate Selection with Padding&Move Cursor 2",invoke=function() DuplicateSelectionWithPaddingMoveCursor(true) end}
 ------
-local function NudgeAndPasteSelection(deselect)
+function NudgeAndPasteSelection(deselect)
     local song = renoise.song()
     local selection = song.selection_in_pattern
 
@@ -4757,17 +4866,22 @@ renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Create New Patter
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Create New Pattern with Selection",invoke=function() SelectionToNewPattern() end}
 ---
 function HideAllEffectColumns()
-for i=1,renoise.song().sequencer_track_count do
-if renoise.song().tracks[i].type==1 then
-print (i)
-renoise.song().tracks[i].visible_effect_columns=0
-else end
-end
-
+  local song = renoise.song()
+  
+  -- Process only sequencer tracks (skip group, send, master)
+  for i = 1, song.sequencer_track_count do
+    local track = song.tracks[i]
+    if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+      -- Set to minimum of 1 effect column
+      track.visible_effect_columns = 0
+    end
+  end
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Hide All Effect Columns",invoke=function() HideAllEffectColumns() end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Effect Columns..:Hide All Effect Columns",invoke=function() HideAllEffectColumns() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Visible Columns..:Hide All Effect Columns",invoke=function() HideAllEffectColumns() end}
+renoise.tool():add_menu_entry{name="Main Menu:View:Paketti..:Visible Columns..:Hide All Effect Columns",invoke=function() HideAllEffectColumns() end}
 
 function moveTrackLeft()
   local song = renoise.song()
@@ -4887,14 +5001,24 @@ local function writeEffectToPattern(effect_string, first_row_effect)
   -- Process each line
   for line_index = 1, num_lines do
     local effect = effect_string
+    local effect_column = pattern.tracks[track_index].lines[line_index].effect_columns[1]
     
     -- If first_row_effect is specified, use it for the first row
     if line_index == 1 and first_row_effect then
       effect = first_row_effect
+    else
+      -- For other rows, check if there's existing content
+      local current_number = effect_column.number_string
+      local current_amount = effect_column.amount_string
+      
+      -- If there's an existing effect with a value
+      if (current_number == "0D" or current_number == "0U") and 
+         current_amount ~= "00" then
+        -- Keep the amount but switch D/U if needed
+        local new_number = effect:sub(1,2)  -- Get the new effect type (0D or 0U)
+        effect = new_number .. current_amount
+      end
     end
-    
-    -- Get the effect column
-    local effect_column = pattern.tracks[track_index].lines[line_index].effect_columns[1]
     
     -- Parse the effect string (format: "0D00")
     local number_string = effect:sub(1,2)  -- "0D"
@@ -4912,7 +5036,7 @@ local function writeEffectToPattern(effect_string, first_row_effect)
     song.selected_line_index = 1
   end
   song.selected_effect_column_index = 1  -- Select first effect column
-renoise.song().transport.edit_step=0
+  renoise.song().transport.edit_step = 0
 end
 
 -- Add keybindings and menu entries
@@ -4925,6 +5049,42 @@ renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Effect Columns..:Fi
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Effect Columns..:Fill Effect Column with 0U00",invoke=function() writeEffectToPattern("0U00") end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Effect Columns..:Fill Effect Column with 0G01+0D00",invoke=function() writeEffectToPattern("0D00", "0G01") end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Effect Columns..:Fill Effect Column with 0G01+0U00",invoke=function() writeEffectToPattern("0U00", "0G01") end}
+
+-- Add MIDI mappings for effect column fills
+renoise.tool():add_midi_mapping{
+  name = "Global:Paketti:Fill Effect Column with 0D00 [Trigger]",
+  invoke = function(message)
+    if message:is_trigger() then
+      writeEffectToPattern("0D00")
+    end
+  end
+}
+
+renoise.tool():add_midi_mapping{
+  name = "Global:Paketti:Fill Effect Column with 0U00 [Trigger]",
+  invoke = function(message)
+    if message:is_trigger() then
+      writeEffectToPattern("0U00")
+    end
+  end
+}
+
+renoise.tool():add_midi_mapping{
+  name = "Global:Paketti:Fill Effect Column with 0G01+0D00 [Trigger]",
+  invoke = function(message)
+    if message:is_trigger() then
+      writeEffectToPattern("0D00", "0G01")
+    end
+  end
+}
+
+renoise.tool():add_midi_mapping{
+  name = "Global:Paketti:Fill Effect Column with 0G01+0U00 [Trigger]",
+  invoke = function(message)
+    if message:is_trigger() then
+      writeEffectToPattern("0U00", "0G01")
+    end
+  end}
 
 
 ------
@@ -4990,7 +5150,7 @@ function deleteUnusedColumns()
   renoise.app():show_status("Unused columns have been removed")
 end
 
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti..:Delete Unused Columns", invoke = deleteUnusedColumns}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti..:Pattern Editor..:Delete Unused Columns", invoke = deleteUnusedColumns}
 renoise.tool():add_menu_entry{name = "Pattern Editor:Paketti..:Delete Unused Columns", invoke = deleteUnusedColumns}
 renoise.tool():add_keybinding{name = "Pattern Editor:Paketti:Delete Unused Columns", invoke = deleteUnusedColumns}
 
@@ -5168,14 +5328,16 @@ function create_group_and_move_dsps()
   local devices_to_move = {}
   for i = 2, #selected_track.devices do
     local device = selected_track.devices[i]
-    -- Store device path and all parameter values
+    -- Store device path, parameter values, and minimized state
     local params = {}
     for _, param in ipairs(device.parameters) do
       params[#params + 1] = param.value
     end
     devices_to_move[#devices_to_move + 1] = {
       path = device.device_path,
-      parameters = params
+      parameters = params,
+      is_maximized = device.is_maximized  -- Store maximized state
+ 
     }
   end
   
@@ -5191,10 +5353,12 @@ function create_group_and_move_dsps()
       new_device.parameters[param_index].value = value
     end
     
+    -- Restore minimized state
+    new_device.is_maximized = device_data.is_maximized
+        
     -- Remove from original track
     selected_track:delete_device_at(2) -- Always remove at position 2 since the list shifts
-  end
-  
+  end  
   -- Create a new track after the grouped track
   song:insert_track_at(selected_track_index + 2)
   
@@ -5202,7 +5366,7 @@ function create_group_and_move_dsps()
   song:add_track_to_group(selected_track_index + 2, selected_track_index + 1)
   
   -- Select the newly created track
-  song.selected_track_index = selected_track_index + 2
+  song.selected_track_index = selected_track_index + 1
   
   renoise.app():show_status("Created group and moved DSP devices")
 end
@@ -5213,3 +5377,432 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Create Group and Move
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Create Group and Move DSPs",invoke=create_group_and_move_dsps}
 renoise.tool():add_keybinding{name="Mixer:Paketti:Create Group and Move DSPs",invoke=create_group_and_move_dsps}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Create Group and Move DSPs",invoke=create_group_and_move_dsps}
+
+
+-------
+function applyNoteColumnEffects()
+  local s = renoise.song()
+  local track = s:track(s.selected_track_index)
+  local pattern_track = s.selected_pattern:track(s.selected_track_index)
+  local selected_column = s.selected_note_column_index
+  
+  -- Enable Sample Effects visibility for the track
+  track.sample_effects_column_visible = true
+  
+  -- Check if we have a valid note column selected
+  if selected_column == 0 then return end
+  
+  -- Process each visible note column
+  for i = 1, track.visible_note_columns do
+    local note_column = pattern_track:line(s.selected_line_index):note_column(i)
+    
+    -- Apply MFF to selected column, M00 to others
+    if i == selected_column then
+      note_column.effect_number_string = "0M"
+      note_column.effect_amount_string = "FF"
+    else
+      note_column.effect_number_string = "0M"
+      note_column.effect_amount_string = "00"
+    end
+  end
+end
+
+function clearNoteColumnEffects()
+  local s = renoise.song()
+  local track = s:track(s.selected_track_index)
+  local pattern_track = s.selected_pattern:track(s.selected_track_index)
+  
+  -- Process each visible note column for the entire pattern
+  for i = 1, track.visible_note_columns do
+    for line_index = 1, s.selected_pattern.number_of_lines do
+      local note_column = pattern_track:line(line_index):note_column(i)
+      
+      -- Clear effect values if they're M00 or MFF
+      if (note_column.effect_number_string == "0M" and 
+          (note_column.effect_amount_string == "00" or 
+           note_column.effect_amount_string == "FF")) then
+        note_column.effect_number_string = ""
+        note_column.effect_amount_string = ""
+      end
+    end
+  end
+end
+
+-- Add keybindings
+renoise.tool():add_keybinding{
+  name="Pattern Editor:Paketti:Apply Note Column Sample Effects M00/MFF",
+  invoke=function() applyNoteColumnEffects() end
+}
+
+renoise.tool():add_keybinding{
+  name="Pattern Editor:Paketti:Clear Note Column Sample Effects M00/MFF",
+  invoke=function() clearNoteColumnEffects() end
+}
+
+-- Add menu entries
+renoise.tool():add_menu_entry{
+  name="Pattern Editor:Paketti..:Note Columns..:Apply Note Column Sample Effects M00/MFF",
+  invoke=function() applyNoteColumnEffects() end
+}
+
+renoise.tool():add_menu_entry{
+  name="Pattern Editor:Paketti..:Note Columns..:Clear Note Column Sample Effects M00/MFF",
+  invoke=function() clearNoteColumnEffects() end
+}
+---
+function globalLeft()
+  local song = renoise.song()
+  local total_tracks = song.sequencer_track_count + 1 + song.send_track_count
+  
+  for i = 1, total_tracks do
+    local track = song.tracks[i]
+    track.postfx_panning.value = 0.0
+    track.prefx_panning.value = 0.0
+  end
+  
+  renoise.app():show_status("Panning values for all tracks set to Hard Left")
+end
+
+function globalRight()
+  local song = renoise.song()
+  local total_tracks = song.sequencer_track_count + 1 + song.send_track_count
+  
+  for i = 1, total_tracks do
+    local track = song.tracks[i]
+    track.postfx_panning.value = 1.0
+    track.prefx_panning.value = 1.0
+  end
+  
+  renoise.app():show_status("Panning values for all tracks set to Hard Right")
+end
+
+
+
+--------------------------------------------------------------------------------
+-- Template Mode Implementation
+--------------------------------------------------------------------------------
+
+-- Add template mode state variables - all declared at the top
+local template_mode = false
+local template_data = nil
+local last_processed_time = 0
+local REUSE_DELAY = 0.1 -- seconds
+
+-- Function to check for note input
+local function check_for_note_input()
+  if not template_mode then return end
+  
+  local song = renoise.song()
+  local pattern = song:pattern(song.selected_pattern_index)
+  local track = pattern:track(song.selected_track_index)
+  local line = track:line(song.selected_line_index)
+  local note_col = line.note_columns[1]
+  
+  -- Only process if it's a new note
+  if note_col.note_value ~= renoise.PatternLine.EMPTY_NOTE and 
+     note_col.note_value < 120 then  -- Only real notes, not OFF
+    
+    local current_time = os.clock()
+    -- Process if enough time has passed since last note
+    if (current_time - last_processed_time) > REUSE_DELAY then
+      local current_note = note_col.note_value
+      last_processed_time = current_time
+      
+      -- Clear the note that triggered the template
+      note_col.note_value = renoise.PatternLine.EMPTY_NOTE
+      
+      -- Apply the template with the captured note
+      apply_template(current_note)
+    end
+  end
+end
+
+function toggle_template_mode()
+  local song = renoise.song()
+  local selection = song.selection_in_pattern
+  
+  if not selection then
+    renoise.app():show_status("No selection in pattern! Select something first.")
+    return
+  end
+  
+  if not template_mode then
+    -- Reset the time tracker when entering template mode
+    last_processed_time = 0
+    
+    -- Store the template data when enabling template mode
+    template_data = {
+      max_effect_columns = 0,
+      has_delay_column = false,
+      lines = {}
+    }
+    local base_note = nil
+    
+    -- Store the selection data
+    for line_idx = selection.start_line, selection.end_line do
+      template_data.lines[line_idx - selection.start_line] = {}
+      for track_idx = selection.start_track, selection.end_track do
+        local track = song:track(track_idx)
+        local pattern_track = song:pattern(song.selected_pattern_index):track(track_idx)
+        local line = pattern_track:line(line_idx)
+        
+        -- Track maximum effect columns used
+        template_data.max_effect_columns = math.max(template_data.max_effect_columns, track.visible_effect_columns)
+        
+        -- Store note column data
+        template_data.lines[line_idx - selection.start_line][track_idx] = {
+          note_columns = {},
+          effect_columns = {}
+        }
+        
+        -- Store note columns
+        for col_idx = 1, track.visible_note_columns do
+          local note_col = line.note_columns[col_idx]
+          if note_col then
+            -- Check for delay column usage
+            if note_col.delay_value > 0 then
+              template_data.has_delay_column = true
+            end
+            
+            -- Store ALL column data regardless of note presence
+            template_data.lines[line_idx - selection.start_line][track_idx].note_columns[col_idx] = {
+              note_value = note_col.note_value,
+              instrument_value = note_col.instrument_value,
+              volume_value = note_col.volume_value,
+              panning_value = note_col.panning_value,
+              delay_value = note_col.delay_value,
+              effect_number_value = note_col.effect_number_value,
+              effect_amount_value = note_col.effect_amount_value,
+              had_note = (note_col.note_value ~= renoise.PatternLine.EMPTY_NOTE and 
+                         note_col.note_value < 120),
+              relative_note = (note_col.note_value ~= renoise.PatternLine.EMPTY_NOTE and 
+                             note_col.note_value < 120) and 
+                             (note_col.note_value - (base_note or note_col.note_value)) or nil
+            }
+            
+            -- Update base_note if this is the first actual note we've found
+            if not base_note and note_col.note_value ~= renoise.PatternLine.EMPTY_NOTE and 
+               note_col.note_value < 120 then
+              base_note = note_col.note_value
+            end
+          end
+        end
+        
+        -- Store effect columns
+        for fx_idx = 1, track.visible_effect_columns do
+          local fx_col = line.effect_columns[fx_idx]
+          if fx_col and (fx_col.number_value ~= 0 or fx_col.amount_value ~= 0) then
+            template_data.lines[line_idx - selection.start_line][track_idx].effect_columns[fx_idx] = {
+              number_value = fx_col.number_value,
+              amount_value = fx_col.amount_value
+            }
+          end
+        end
+      end
+    end
+    
+    template_mode = true
+    renoise.app():show_status("Template Mode ON - Input a note to transpose the template")
+  else
+    -- Disable template mode
+    template_mode = false
+    template_data = nil
+    last_processed_time = 0
+    renoise.app():show_status("Template Mode OFF")
+  end
+end
+
+-- Function to apply template at a specific note
+function apply_template(target_note)
+  if not template_mode or not template_data then return end
+  
+  local song = renoise.song()
+  local current_track_idx = song.selected_track_index
+  local current_line_idx = song.selected_line_index
+  
+  -- Get the current instrument value from the triggering note
+  local current_line = song:pattern(song.selected_pattern_index):track(current_track_idx):line(current_line_idx)
+  local current_instrument = current_line.note_columns[1].instrument_value
+  
+  -- Adjust track settings if needed
+  local track = song:track(current_track_idx)
+  if track.visible_effect_columns < template_data.max_effect_columns then
+    track.visible_effect_columns = template_data.max_effect_columns
+  end
+  if template_data.has_delay_column then
+    track.delay_column_visible = true
+  end
+  
+  -- Apply the template data
+  for line_offset, line_data in pairs(template_data.lines) do
+    local target_line_idx = current_line_idx + line_offset
+    if target_line_idx <= song.selected_pattern.number_of_lines then
+      for track_idx, track_data in pairs(line_data) do
+        local pattern_track = song:pattern(song.selected_pattern_index):track(current_track_idx)
+        local line = pattern_track:line(target_line_idx)
+        
+        -- Apply note columns
+        for col_idx, note_data in pairs(track_data.note_columns) do
+          if col_idx <= track.visible_note_columns then
+            local note_col = line.note_columns[col_idx]
+            if note_col then
+              if note_data.had_note then
+                -- This line had a note in the template, apply new note and instrument
+                note_col.note_value = math.min(119, math.max(0, target_note + note_data.relative_note))
+                if current_instrument ~= renoise.PatternLine.EMPTY_INSTRUMENT then
+                  note_col.instrument_value = current_instrument
+                else
+                  note_col.instrument_value = note_data.instrument_value
+                end
+              else
+                -- No note in template, just copy the original values
+                note_col.note_value = note_data.note_value
+                note_col.instrument_value = note_data.instrument_value
+              end
+              
+              -- Always copy these values regardless of note presence
+              note_col.volume_value = note_data.volume_value
+              note_col.panning_value = note_data.panning_value
+              note_col.delay_value = note_data.delay_value
+              note_col.effect_number_value = note_data.effect_number_value
+              note_col.effect_amount_value = note_data.effect_amount_value
+            end
+          end
+        end
+        
+        -- Apply effect columns
+        for fx_idx, fx_data in pairs(track_data.effect_columns) do
+          if fx_idx <= track.visible_effect_columns then
+            local fx_col = line.effect_columns[fx_idx]
+            if fx_col then
+              fx_col.number_value = fx_data.number_value
+              fx_col.amount_value = fx_data.amount_value
+            end
+          end
+        end
+      end
+    end
+  end
+end
+
+-- Add MIDI mapping for completeness
+renoise.tool():add_midi_mapping{
+  name = "Global:Paketti:Template Mode Note Input",
+  invoke = function(message)
+    if template_mode and message:is_note() then
+      apply_template(message.note_value)
+    end
+  end
+}
+
+-- Add keybinding and menu entry for template mode toggle
+renoise.tool():add_keybinding{
+  name = "Pattern Editor:Paketti:Toggle Template Mode",
+  invoke = toggle_template_mode
+}
+
+renoise.tool():add_menu_entry{
+  name = "--Pattern Editor:Paketti..:Toggle Template Mode",
+  invoke = toggle_template_mode
+}
+
+-- Set up the idle observer
+renoise.tool().app_idle_observable:add_notifier(check_for_note_input)
+
+
+
+-------
+-- Function to write notes in specified order (ascending, descending, or random)
+function writeNotesMethod(method)
+  local song = renoise.song()
+  local pattern = song:pattern(song.selected_pattern_index)
+  local track = pattern:track(song.selected_track_index)
+  local instrument = song.selected_instrument
+  local current_line = song.selected_line_index
+  local selected_note_column = song.selected_note_column_index
+  
+  if not instrument or not instrument.sample_mappings[1] then
+    renoise.app():show_status("No sample mappings found for this instrument")
+    return
+  end
+  
+  -- Create a table of all mapped notes
+  local notes = {}
+  for _, mapping in ipairs(instrument.sample_mappings[1]) do
+    if mapping.note_range then
+      for i = mapping.note_range[1], mapping.note_range[2] do
+        table.insert(notes, {
+          note = i,
+          mapping = mapping
+        })
+      end
+    end
+  end
+  
+  if #notes == 0 then
+    renoise.app():show_status("No valid sample mappings found for this instrument")
+    return
+  end
+  
+  -- Sort or shuffle based on method
+  if method == "ascending" then
+    table.sort(notes, function(a, b) return a.note < b.note end)
+  elseif method == "descending" then
+    table.sort(notes, function(a, b) return a.note > b.note end)
+  elseif method == "random" then
+    -- Fisher-Yates shuffle
+    for i = #notes, 2, -1 do
+      local j = math.random(i)
+      notes[i], notes[j] = notes[j], notes[i]
+    end
+  end
+  
+  local last_note = -1
+  local last_mapping = nil
+  
+  -- Write the notes
+  for i = 1, #notes do
+    if current_line <= pattern.number_of_lines then
+      local note_column = track:line(current_line):note_column(selected_note_column)
+      note_column.note_value = notes[i].note
+      note_column.instrument_value = song.selected_instrument_index - 1
+      current_line = current_line + 1
+      last_note = notes[i].note
+      last_mapping = notes[i].mapping
+    else
+      break
+    end
+  end
+  
+  if last_note ~= -1 and last_mapping then
+    local note_name = note_value_to_string(last_note)
+    renoise.app():show_status(string.format(
+      "Wrote notes until row %d at note %s (base note: %d)", 
+      current_line - 1, 
+      note_name,
+      last_mapping.base_note
+    ))
+  end
+end
+
+-- Helper function to convert note value to string
+function note_value_to_string(value)
+  local notes = {"C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"}
+  local octave = math.floor(value / 12)
+  local note = notes[(value % 12) + 1]
+  return note .. octave
+end
+
+-- Add keybindings
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Write Notes Ascending",invoke=function() writeNotesMethod("ascending") end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Write Notes Descending",invoke=function() writeNotesMethod("descending") end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Write Notes Random",invoke=function() writeNotesMethod("random") end}
+
+-- Add menu entries
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Write Notes..:Write Notes Ascending",invoke=function() writeNotesMethod("ascending") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Write Notes..:Write Notes Descending",invoke=function() writeNotesMethod("descending") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Write Notes..:Write Notes Random",invoke=function() writeNotesMethod("random") end}
+
+
+
+

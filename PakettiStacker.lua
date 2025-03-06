@@ -1,3 +1,10 @@
+local vb = renoise.ViewBuilder()
+
+
+local dialog = nil
+local dialog_content = nil
+
+
 function returnpe()
     renoise.app().window.active_middle_frame=renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 end
@@ -50,7 +57,7 @@ renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Set Loop Mode to 
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Set Loop Mode to Reverse",invoke=function() set_loop_mode_for_selected_instrument(renoise.Sample.LOOP_MODE_REVERSE) end}
 
 -- Fix velocity mappings of all samples in the selected instrument and disable vel->vol
-local function fix_sample_velocity_mappings()
+function fix_sample_velocity_mappings()
   local song = renoise.song()
   local instrument = song.selected_instrument
 
@@ -354,15 +361,23 @@ function on_switch_changed(selected_value)
 end
 
 function showStackingDialog(proceed_with_stacking, on_switch_changed, PakettiIsolateSlicesToInstrument)
-  local vb = renoise.ViewBuilder()
-  local dialog = nil
+  if dialog and dialog.visible then
+    print ("BLAA")
+  dialog:close()
+  dialog = nil
+  dialog_content = nil
+  return 
+  end
+
+  
+--  local dialog = nil
 
   local switch_values = {"OFF", "2", "4", "8", "16", "32", "64", "128"}
   local switch_index = 1 -- Default to "OFF"
 
   -- Function to close the dialog
-  local function close_dialog()
-    if dialog then
+  local function closeST_dialog()
+    if dialog and dialog.visible then
       dialog:close()
       dialog = nil
     end
@@ -373,7 +388,7 @@ function showStackingDialog(proceed_with_stacking, on_switch_changed, PakettiIso
     vb:row{vb:button{text="Browse",notifier=function() pitchBendMultipleSampleLoader() end}},
     vb:row {vb:text {text = "Set Slice Count",width=100,style = "strong",font = "bold"},
 vb:switch {
-  id="wipeslice",
+--  id="wipeslice",
   items = switch_values,
   width = 250,
   value = switch_index,
@@ -421,7 +436,7 @@ vb:row{
 vb:text{text="Instrument Pitch",width=100,font="bold",style="strong"},
 vb:switch {
   width = 250,
-  id = "instrument_pitch",
+--  id = "instrument_pitch",
   items = {"-24", "-12", "0", "+12", "+24"},
   value = 3,
   notifier = function(index)

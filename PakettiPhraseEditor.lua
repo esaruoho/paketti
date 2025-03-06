@@ -405,8 +405,7 @@ function joulephrasedoubler()
   local old_phraselength = renoise.song().selected_phrase.number_of_lines
   local s=renoise.song()
   local resultlength = nil
---Note, when doubling up a 512 pattern, this will shoot a "can't change number_of_lines to 1024" error. fix.
---Note: tried to fix, still shoots 1024 error in Terminal.
+
   resultlength = old_phraselength*2
 if resultlength > 512 then return else s.selected_phrase.number_of_lines=resultlength
 
@@ -434,8 +433,7 @@ function joulephrasehalver()
   local old_phraselength = renoise.song().selected_phrase.number_of_lines
   local s=renoise.song()
   local resultlength = nil
---Note, when doubling up a 512 pattern, this will shoot a "can't change number_of_lines to 1024" error. fix.
---Note: tried to fix, still shoots 1024 error in Terminal.
+
   resultlength = old_phraselength/2
 if resultlength > 512 or resultlength < 1 then return else s.selected_phrase.number_of_lines=resultlength
 
@@ -460,3 +458,183 @@ end
 renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Phrase Halver (Joule)",invoke=function() joulephrasehalver() end}  
 renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Phrase Halver (Joule) (2nd)",invoke=function() joulephrasehalver() end}  
 
+----------
+local last_pattern_pos = 1  -- Start at 1, not 0
+local current_section = 0
+
+local function phrase_follow_notifier()
+  if renoise.song().transport.playing then
+    local song = renoise.song()
+    local pattern_pos = song.selected_line_index  -- This is already 1-based from Renoise
+    local pattern_length = song.selected_pattern.number_of_lines
+    local phrase_length = song.selected_phrase.number_of_lines
+    
+    -- Detect wrap from end to start of pattern
+    if pattern_pos < last_pattern_pos then
+      current_section = (current_section + 1) % math.ceil(phrase_length / pattern_length)
+    end
+    
+    -- Calculate phrase position based on current section (keeping 1-based indexing)
+    local phrase_pos = pattern_pos + (current_section * pattern_length)
+    
+    -- Handle wrap-around if we exceed phrase length
+    if phrase_pos > phrase_length then  -- Changed from >= to > since we're 1-based
+      phrase_pos = 1  -- Reset to 1, not 0
+      current_section = 0
+    end
+    
+    print(string.format("Pattern pos: %d/%d, Section: %d, Phrase pos: %d/%d", 
+          pattern_pos, pattern_length, current_section, phrase_pos, phrase_length))
+          
+    song.selected_phrase_line_index = phrase_pos
+    last_pattern_pos = pattern_pos
+  end
+end
+
+
+-- Function to explicitly enable phrase follow
+function enable_phrase_follow()
+  local s = renoise.song()
+  local w = renoise.app().window
+
+  -- Check API version first
+  if renoise.API_VERSION < 6.2 then
+    renoise.app():show_error("Phrase Editor observation requires API version 6.2 or higher!")
+    return
+  end
+
+  -- Enable follow player and set editstep to 0
+  s.transport.follow_player = true
+  s.transport.edit_step = 0
+  
+  -- Force phrase editor view
+  w.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_PHRASE_EDITOR
+  
+  -- Set up monitoring if not already active
+  if not renoise.tool().app_idle_observable:has_notifier(phrase_follow_notifier) then
+    renoise.tool().app_idle_observable:add_notifier(phrase_follow_notifier)
+  end
+  
+  -- Reset cycle when enabling
+  current_cycle = 0
+  
+  phrase_follow_enabled = true
+  renoise.app():show_status("Phrase Follow Pattern Playback: ON")
+end
+
+-- Function to explicitly disable phrase follow
+function disable_phrase_follow()
+  -- Remove monitoring if active
+  if renoise.tool().app_idle_observable:has_notifier(phrase_follow_notifier) then
+    renoise.tool().app_idle_observable:remove_notifier(phrase_follow_notifier)
+  end
+  
+  phrase_follow_enabled = false
+  current_cycle = 0  -- Reset cycle when disabling
+  renoise.app():show_status("Phrase Follow Pattern Playback: OFF")
+end
+
+function observe_phrase_playhead()
+  local s = renoise.song()
+  local w = renoise.app().window
+
+  -- Check API version first
+  if renoise.API_VERSION < 6.2 then
+    renoise.app():show_error("Phrase Editor observation requires API version 6.2 or higher!")
+    return
+  end
+
+  -- Toggle state
+  phrase_follow_enabled = not phrase_follow_enabled
+  
+  if phrase_follow_enabled then
+    -- Enable follow player and set editstep to 0
+    s.transport.follow_player = true
+    s.transport.edit_step = 0
+    
+    -- Force phrase editor view
+    w.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_PHRASE_EDITOR
+    
+    -- Set up monitoring
+    if not renoise.tool().app_idle_observable:has_notifier(phrase_follow_notifier) then
+      renoise.tool().app_idle_observable:add_notifier(phrase_follow_notifier)
+    end
+    -- Reset cycle when enabling
+    current_cycle = 0
+    renoise.app():show_status("Phrase Follow Pattern Playback: ON")
+  else
+    -- Remove monitoring
+    if renoise.tool().app_idle_observable:has_notifier(phrase_follow_notifier) then
+      renoise.tool().app_idle_observable:remove_notifier(phrase_follow_notifier)
+    end
+    current_cycle = 0  -- Reset cycle when disabling
+    renoise.app():show_status("Phrase Follow Pattern Playback: OFF")
+  end
+end
+
+-- Add menu entry and keybinding
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Phrase Follow Pattern Playback Hack",invoke=observe_phrase_playhead}
+renoise.tool():add_menu_entry{name="Phrase Editor:Paketti..:Phrase Follow Pattern Playback Hack",invoke=observe_phrase_playhead}
+renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Toggle Phrase Follow Pattern Playback Hack",invoke=observe_phrase_playhead}
+renoise.tool():add_keybinding{name="Global:Paketti:Toggle Phrase Follow Pattern Playback Hack",invoke=observe_phrase_playhead}
+
+
+---
+function Phrplusdelay(chg)
+  local song = renoise.song()
+  local nc = song.selected_note_column
+
+  -- Check if a note column is selected
+  if not nc then
+    local message = "No note column is selected!"
+    renoise.app():show_status(message)
+    print(message)
+    return
+  end
+
+  local currTrak = song.selected_track_index
+  local currInst = song.selected_instrument_index
+  local currPhra = song.selected_phrase_index
+  local sli = song.selected_phrase_line_index
+  local snci = song.selected_phrase_note_column_index
+
+  -- Check if a phrase is selected
+  if currPhra == 0 then
+    local message = "No phrase is selected!"
+    renoise.app():show_status(message)
+    print(message)
+    return
+  end
+
+  -- Ensure delay columns are visible in both track and phrase
+  song.instruments[currInst].phrases[currPhra].delay_column_visible = true
+  song.tracks[currTrak].delay_column_visible = true
+
+  -- Get current delay value from the selected note column in the phrase
+  local phrase = song.instruments[currInst].phrases[currPhra]
+  local line = phrase:line(sli)
+  local note_column = line:note_column(snci)
+  local Phrad = note_column.delay_value
+
+  -- Adjust delay value, ensuring it stays within 0-255 range
+  note_column.delay_value = math.max(0, math.min(255, Phrad + chg))
+
+  -- Show and print status message
+  local message = "Delay value adjusted by " .. chg .. " at line " .. sli .. ", column " .. snci
+  renoise.app():show_status(message)
+  print(message)
+
+  -- Show and print visible note columns and effect columns
+  local visible_note_columns = phrase.visible_note_columns
+  local visible_effect_columns = phrase.visible_effect_columns
+  local columns_message = string.format("Visible Note Columns: %d, Visible Effect Columns: %d", visible_note_columns, visible_effect_columns)
+  renoise.app():show_status(columns_message)
+  print(columns_message)
+end
+
+-- Add keybindings for adjusting the delay value
+renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Increase Delay +1",invoke=function() Phrplusdelay(1) end}
+renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Decrease Delay -1",invoke=function() Phrplusdelay(-1) end}
+renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Increase Delay +10",invoke=function() Phrplusdelay(10) end}
+renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Decrease Delay -10",invoke=function() Phrplusdelay(-10) end}
+---------------------------------------------------------------------------------------------------------

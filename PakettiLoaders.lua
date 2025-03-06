@@ -235,8 +235,7 @@ s.selected_instrument.active_tab=2
 end
 renoise.tool():add_keybinding{name="Global:Paketti:Load Waldorf Attack (VST)",invoke=function() LoadAttack() end}
 -----------------------------------------------------------------------------------------------------
-function loadnative(effect,name)
-
+function loadnative(effect, name, preset_path)
   local checkline=nil
   local s=renoise.song()
   local w=renoise.app().window
@@ -310,18 +309,24 @@ function loadnative(effect,name)
           device.parameters[2].show_in_mixer = false
           device.active_preset_data = read_file("Presets/PakettiSend.xml")
         end
+        -- Add preset loading if path is provided
+        if preset_path then
+          local preset_data = read_file(preset_path)
+          if preset_data then
+            device.active_preset_data = preset_data
+          else
+            renoise.app():show_status("Failed to load preset from: " .. preset_path)
+          end
+        end
         renoise.song().selected_sample_device_index = checkline
-                    if name ~= nil then
-  sample_devices[checkline].display_name = name else end
-
+        if name ~= nil then
+          sample_devices[checkline].display_name = name 
+        end
       end
     else
       renoise.app():show_status("No sample selected.")
-      
-      
     end
 
-    
   else
     local sdevices = s.selected_track.devices
     checkline = (table.count(sdevices)) < 2 and 2 or (sdevices[2] and sdevices[2].name == "#Line Input" and 3 or 2)
@@ -361,19 +366,25 @@ function loadnative(effect,name)
         device.parameters[1].show_in_mixer = false
         device.parameters[3].show_in_mixer = false
         device.parameters[5].show_in_mixer = false 
-        device.active_preset_data = read_file("Presets/PakettiMultiSend.xml")
       end
       if device.name == "#Line Input" then device.parameters[2].show_in_mixer = true end
       if device.name == "#Send" then 
         device.parameters[2].show_in_mixer = false
-        device.active_preset_data = read_file("Presets/PakettiSend.xml")
       end
-        if name ~= nil then
-  sdevices[checkline].display_name = name else end
-
+      -- Add preset loading if path is provided
+      if preset_path then
+        local preset_data = read_file(preset_path)
+        if preset_data then
+          device.active_preset_data = preset_data
+        else
+          renoise.app():show_status("Failed to load preset from: " .. preset_path)
+        end
+      end
+      if name ~= nil then
+        sdevices[checkline].display_name = name 
+      end
     end
   end
-  
 end
 
 
@@ -415,7 +426,7 @@ invoke=function() loadnative("Audio/Effects/Native/Exciter") end}
 renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise Flanger 2",
 invoke=function() loadnative("Audio/Effects/Native/Flanger 2") end}
 renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise Gainer",
-invoke=function() loadnative("Audio/Effects/Native/Gainer","BLA") end}
+invoke=function() loadnative("Audio/Effects/Native/Gainer","Gainer") end}
 renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise Gate 2",
 invoke=function() loadnative("Audio/Effects/Native/Gate 2") end}
 renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise LofiMat 2",
@@ -444,11 +455,11 @@ invoke=function() loadnative("Audio/Effects/Native/Stereo Expander") end}
 renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise #Line Input",
 invoke=function() loadnative("Audio/Effects/Native/#Line Input") end}
 renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise #Multiband Send",
-invoke=function() loadnative("Audio/Effects/Native/#Multiband Send") end}
+invoke=function() loadnative("Audio/Effects/Native/#Multiband Send",nil,"./Presets/PakettiMultiSend.xml") end}
 renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise #ReWire Input",
 invoke=function() loadnative("Audio/Effects/Native/#ReWire Input") end}
 renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise #Send",
-invoke=function() loadnative("Audio/Effects/Native/#Send") end}
+invoke=function() loadnative("Audio/Effects/Native/#Send",nil,"./Presets/PakettiSend.xml") end}
 renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise #Sidechain",invoke=function() loadnative("Audio/Effects/Native/#Sidechain") end}
 -------- *
 renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise *Formula",
@@ -506,8 +517,7 @@ renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise (Hidden) S
 -- TAL Reverb 4 Plugin opens with massive-ish Reverb
 -- ValhallaDSP ValhallaVintageVerb opens with 50% Wet instead of 100% Wet, and a long tail
 -- And each line input will become first.
-function loadvst(vstname)
-
+function loadvst(vstname, name, preset_path)
   local checkline=nil
   local s=renoise.song()
   local slt=s.selected_track
@@ -556,12 +566,10 @@ if raw.active_middle_frame==7 then
 
     -- Insert the rest of your logic for handling the inserted device here
     if inserted_device.name=="AU: Koen Tanghe @ Smartelectronix: KTGranulator" then 
-    
-    return
+      return
     end
     inserted_device.external_editor_visible=true 
-        inserted_device.is_maximized=false
-
+    inserted_device.is_maximized=false
 
     -- Additional device-specific parameter adjustments
     if inserted_device.name=="AU: Schaack Audio Technologies: TransientShaper" then 
@@ -608,6 +616,22 @@ if raw.active_middle_frame==7 then
       inserted_device.parameters[1].show_in_mixer=true
       inserted_device.parameters[2].show_in_mixer=true
     end
+
+    -- Add preset loading if path is provided
+    if preset_path then
+      local preset_data = read_file(preset_path)
+      if preset_data then
+        inserted_device.active_preset_data = preset_data
+      else
+        renoise.app():show_status("Failed to load preset from: " .. preset_path)
+      end
+    end
+
+    -- Set custom name if provided
+    if name ~= nil then
+      inserted_device.display_name = name
+    end
+
     renoise.song().selected_sample_device_index=checkline
   end
 else
@@ -643,12 +667,26 @@ else
     inserted_device.parameters[9].value=0.7
   end 
 
+
+  if inserted_device.name=="AU: D16 Group Audio Software: Repeater" then
+inserted_device.parameters[23].value=0.19181250035763
+inserted_device.parameters[24].value=0.19181250035763
+inserted_device.parameters[25].value=0.49859374761581
+  end   
   if inserted_device.name=="AU: Valhalla DSP, LLC: ValhallaVintageVerb" then 
     inserted_device.parameters[1].value=0.474
     inserted_device.parameters[3].value=0.688
     inserted_device.parameters[15].value=0.097
   end 
 
+  if inserted_device.name=="AU: Valhalla DSP, LLC: ValhallaDelay" then
+    inserted_device.parameters[23].value=0.093999996781349
+  end
+
+  if inserted_device.name=="AU: Valhalla DSP, LLC: ValhallaShimmer" then
+    inserted_device.parameters[6].value =0.095477387309074
+  end
+  
   if inserted_device.name=="AU: Koen Tanghe @ Smartelectronix: KTGranulator" then 
     inserted_device.is_maximized=true
     inserted_device.parameters[31].value=1
@@ -664,6 +702,21 @@ else
     inserted_device.is_maximized=true
     inserted_device.parameters[1].show_in_mixer=true
     inserted_device.parameters[2].show_in_mixer=true
+  end
+
+  -- Add preset loading if path is provided
+  if preset_path then
+    local preset_data = read_file(preset_path)
+    if preset_data then
+      inserted_device.active_preset_data = preset_data
+    else
+      renoise.app():show_status("Failed to load preset from: " .. preset_path)
+    end
+  end
+
+  -- Set custom name if provided
+  if name ~= nil then
+    inserted_device.display_name = name
   end
 end
 end
@@ -806,15 +859,7 @@ end
 
 
 
---renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:writeToClipboard",invoke=function() 
---writeToClipboard(for key, value in ipairs (devices) do  print(key, value)
---end}
 
---renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Dump VST/AU/Native Effects to Clipboard",invoke=function() 
-
-
-
---) end}
 
 ----------------------
 function OpenSelectedEffectExternalEditor()
@@ -1695,7 +1740,16 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Insert Stereo -> Mono device to Beginning of Master",invoke=function() insertMonoToMasterBeginning() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Insert Stereo -> Mono device to End of Master",invoke=function() insertMonoToMasterEnd() end}
+-----------
 
+
+
+
+
+
+
+
+-----------
 
 -- Function to hide all visible external editors of Devices
 function hide_all_external_editors()
@@ -2565,33 +2619,18 @@ renoise.tool():add_keybinding{name="Global:Paketti:Clear All TrackDSPs from Curr
 ----------
 -- TODO: make this use loadnative("name",XML) okay?
 function PakettiInvertDeviceTrackDSP()
-  loadnative("Audio/Effects/Native/Gainer")
+  loadnative("Audio/Effects/Native/Gainer","Inverter","./Presets/PakettiGainerInverter.xml")
   
   -- Load the preset XML file into the plugin device
-  local preset_xml = providePresetXML("Presets/PakettiGainerInverter.xml")
-  
-  if not preset_xml then
-    renoise.app():show_status("Preset loading failed.")
-    return
-  end
   local device 
   if renoise.app().window.active_middle_frame == 7 or renoise.app().window.active_middle_frame == 6 then 
   device = renoise.song().selected_sample_device
   else
   device = renoise.song().selected_device
   end 
-  
-  if device then
-    device.active_preset_data = preset_xml
-    device.display_name = "Inverter"
-    renoise.app():show_status("Preset successfully loaded from: Presets/PakettiGainerInverter.xml")
-  else
-    renoise.app():show_status("No device found to apply the preset.")
-  end
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Insert Inverter Device to TrackDSP/SampleFX",invoke=function() PakettiInvertDeviceTrackDSP() end}
-
 renoise.tool():add_midi_mapping{name="Paketti:Insert Inverter Device to TrackDSP/SampleFX",invoke=function(message) if message:is_trigger() then PakettiInvertDeviceTrackDSP() end end}
 -----
 
@@ -2977,3 +3016,279 @@ renoise.tool():add_keybinding{name="Global:Paketti:Show XO Plugin External Edito
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Show XO Plugin External Editor",invoke=function() XOPointCloud() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:Show XO Plugin External Editor",invoke=function() XOPointCloud() end}
 
+
+--------
+function insertMonoToAllTracksEnd()
+  local song = renoise.song()
+  
+  -- Iterate through all tracks
+  for track_index = 1, #song.tracks do
+      local track = song:track(track_index)
+      local mono_device_index = nil
+
+      -- Check for existing "Mono" device in the track
+      for i = 2, #track.devices do
+          if track.devices[i].display_name == "Mono" then
+              mono_device_index = i
+              break
+          end
+      end
+
+      if mono_device_index then
+          -- If Mono exists but not at the end, move it to the end
+          if mono_device_index ~= #track.devices then
+              -- Insert Gainer device at the end
+              track:insert_device_at("Audio/Effects/Native/Gainer", #track.devices + 1)
+              
+              -- Swap Mono device with Gainer device
+              track:swap_devices_at(mono_device_index, #track.devices)
+              
+              -- Remove the Gainer device which is now at the original mono_device_index position
+              track:delete_device_at(mono_device_index)
+          end
+      else
+          -- Insert new Mono device at the end
+          local mono_device = track:insert_device_at("Audio/Effects/Native/Stereo Expander", #track.devices + 1)
+          mono_device.display_name = "Mono"
+          mono_device.parameters[1].value = 0
+          mono_device.is_maximized = false
+      end
+  end
+  
+  renoise.app():show_status("Mono devices added/moved to the end of all tracks")
+end
+
+-- Keep the existing keybindings
+renoise.tool():add_keybinding{name="Global:Paketti:Insert Stereo -> Mono device to End of ALL DSP Chains",invoke=function() insertMonoToAllTracksEnd() end}
+renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Insert Stereo -> Mono device to End of ALL DSP Chains",invoke=function() insertMonoToAllTracksEnd() end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Insert Stereo -> Mono device to End of ALL DSP Chains",invoke=function() insertMonoToAllTracksEnd() end}
+renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Insert Stereo -> Mono device to End of ALL DSP Chains",invoke=function() insertMonoToAllTracksEnd() end}
+
+
+-----
+-- LFO Shape control functions
+local function get_lfo_device()
+  local track = renoise.song().selected_track
+  for idx, device in ipairs(track.devices) do
+    -- Debug print to see what we're finding
+    print("Device " .. idx .. ": " .. device.name .. " (Path: " .. device.device_path .. ")")
+    
+    -- Try different possible LFO path formats
+    if device.device_path == "Audio/Effects/Native/*LFO" or
+       device.device_path == "Audio/Effects/Native/LFO" or
+       device.device_path:match("LFO") or
+       device.name == "*LFO" then
+      return device
+    end
+  end
+  
+  -- If no device found, show more detailed error
+  renoise.app():show_status("Debug: No LFO found among " .. #track.devices .. " devices")
+  return nil
+end
+
+local function modify_lfo_shape(new_value)
+  local lfo = get_lfo_device()
+  if not lfo then
+    renoise.app():show_status("No LFO device found on selected track - Please add an LFO device first")
+    return
+  end
+  lfo.parameters[7].value = new_value
+  renoise.app():show_status("LFO Shape changed to: " .. lfo.parameters[7].value_string)
+end
+
+local function next_lfo_shape()
+  local lfo = get_lfo_device()
+  if not lfo then
+    renoise.app():show_status("No LFO device found on selected track")
+    return
+  end
+  local current_value = lfo.parameters[7].value
+  local next_value = (current_value + 1) % 5  -- Changed from 6 to 5
+  modify_lfo_shape(next_value)
+end
+
+local function prev_lfo_shape()
+  local lfo = get_lfo_device()
+  if not lfo then
+    renoise.app():show_status("No LFO device found on selected track")
+    return
+  end
+  local current_value = lfo.parameters[7].value
+  local prev_value = (current_value - 1)
+  if prev_value < 0 then prev_value = 4 end  -- Changed from 5 to 4
+  modify_lfo_shape(prev_value)
+end
+
+-- Add keybindings for LFO shape control
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:LFO Shape Next",
+  invoke = function() next_lfo_shape() end
+}
+
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:LFO Shape Previous",
+  invoke = function() prev_lfo_shape() end
+}
+
+-- Add direct shape selection keybindings with descriptive names
+renoise.tool():add_keybinding{name = "Global:Paketti:LFO 01 Sinewave",invoke = function() modify_lfo_shape(0) end}
+renoise.tool():add_keybinding{name = "Global:Paketti:LFO 02 Triangle",invoke = function() modify_lfo_shape(1) end}
+renoise.tool():add_keybinding{name = "Global:Paketti:LFO 03 Squarewave",invoke = function() modify_lfo_shape(2) end}
+renoise.tool():add_keybinding{name = "Global:Paketti:LFO 04 Random",invoke = function() modify_lfo_shape(3) end}
+renoise.tool():add_keybinding{name = "Global:Paketti:LFO 05 Custom",invoke = function() modify_lfo_shape(4) end}
+
+----------
+-- Get a random device, optionally AU only
+function getRandomDevice(au_only)
+  local available_devices = renoise.song().selected_track.available_devices
+  if #available_devices == 0 then return nil end
+  
+  local filtered_devices = {}
+  for _, device in ipairs(available_devices) do
+    if au_only then
+      if device:find("AU/") or device:find("Native") then
+        table.insert(filtered_devices, device)
+      end
+    else
+      table.insert(filtered_devices, device)
+    end
+  end
+  
+  if #filtered_devices == 0 then return nil end
+  local random_index = math.random(1, #filtered_devices)
+  return filtered_devices[random_index]
+end
+
+-- Get a random plugin, optionally AU only
+function getRandomPlugin(au_only)
+  local instrument = renoise.song().selected_instrument
+  if not instrument.plugin_properties then return nil end
+  
+  local available_plugins = instrument.plugin_properties.available_plugins
+  local filtered_plugins = {}
+  for _, plugin in ipairs(available_plugins) do
+    if au_only then
+      if plugin:find("AU/") then
+        table.insert(filtered_plugins, plugin)
+      end
+    else
+      table.insert(filtered_plugins, plugin)
+    end
+  end
+  
+  if #filtered_plugins == 0 then return nil end
+  local random_index = math.random(1, #filtered_plugins)
+  return filtered_plugins[random_index]
+end
+
+-- Function to insert random device (with AU only option)
+function insertRandomDevice(au_only)
+  local random_device = getRandomDevice(au_only)
+  if random_device then
+    local s = renoise.song()
+    local w = renoise.app().window
+    local insert_index = 2  -- Always start at 2 for tracks due to vol/pan device
+
+    -- Check if we're in sample fx chain view
+    if w.active_middle_frame == 7 then
+      -- Check if the selected sample device chain exists, and create one if it doesn't
+      local chain = s.selected_sample_device_chain
+      local chain_index = s.selected_sample_device_chain_index
+
+      if chain == nil or chain_index == 0 then
+        s.selected_instrument:insert_sample_device_chain_at(1)
+        chain = s.selected_sample_device_chain
+        chain_index = 1
+      end
+
+      if chain then
+        local sample_devices = chain.devices
+        insert_index = (table.count(sample_devices)) < 2 and 2 or 
+                      (sample_devices[2] and sample_devices[2].name == "#Line Input" and 3 or 2)
+        insert_index = math.min(insert_index, #sample_devices + 1)
+        
+        chain:insert_device_at(random_device, insert_index)
+        
+        -- Handle non-native devices
+        if not random_device:find("Native") then
+          chain.devices[insert_index].is_maximized = false
+          chain.devices[insert_index].external_editor_visible = true
+        end
+        s.selected_sample_device_index = insert_index
+      else
+        renoise.app():show_status("No sample selected.")
+        return
+      end
+    else
+      -- Track device chain - always start at index 2
+      local track_devices = s.selected_track.devices
+      if track_devices[2] and track_devices[2].name == "#Line Input" then
+        insert_index = 3
+      end
+      s.selected_track:insert_device_at(random_device, insert_index)
+      
+      -- Handle non-native devices
+      if not random_device:find("Native") then
+        s.selected_track.devices[insert_index].is_maximized = false
+        s.selected_track.devices[insert_index].external_editor_visible = true
+      end
+    end
+    
+    renoise.app():show_status("Inserted: " .. random_device)
+  else
+    if au_only then
+      renoise.app():show_status("No AudioUnit devices available for this track type")
+    else
+      renoise.app():show_status("No devices available for this track type")
+    end
+  end
+end
+
+function insertRandomPlugin(au_only)
+  local s = renoise.song()
+  
+  -- Insert new instrument at current position
+  s:insert_instrument_at(s.selected_instrument_index+1)
+  renoise.song().selected_instrument_index = renoise.song().selected_instrument_index+1
+  local random_plugin = getRandomPlugin(au_only)
+  if random_plugin then
+    -- Load the plugin using the correct method
+    s.selected_instrument.plugin_properties:load_plugin(random_plugin)
+    
+    -- Always open external editor for plugins
+    if s.selected_instrument.plugin_properties then
+      --s.selected_instrument.plugin_properties.plugin_device.is_maximized = false
+      s.selected_instrument.plugin_properties.plugin_device.external_editor_visible = true
+    end
+    
+    renoise.app():show_status("Inserted plugin: " .. random_plugin)
+  else
+    if au_only then
+      renoise.app():show_status("No AudioUnit plugins available")
+    else
+      renoise.app():show_status("No plugins available")
+    end
+  end
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Insert Random Device (All)", invoke=function() insertRandomDevice(false) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Insert Random Device (AU/Native Only)", invoke=function() insertRandomDevice(true) end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:Insert Random Device (All)", invoke=function() insertRandomDevice(false) end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:Insert Random Device (AU/Native Only)", invoke=function() insertRandomDevice(true) end}
+renoise.tool():add_midi_mapping{name="Paketti:Insert Random Device (All)", invoke=function(message) if message:is_trigger() then insertRandomDevice(false) end end }
+renoise.tool():add_midi_mapping{name="Paketti:Insert Random Device (AU/Native Only)", invoke=function(message) if message:is_trigger() then insertRandomDevice(true) end end}
+
+renoise.tool():add_menu_entry{name="DSP Device:Paketti..:Insert Random Device (All)", invoke=function() insertRandomDevice(false) end}
+renoise.tool():add_menu_entry{name="DSP Device:Paketti..:Insert Random Device (AU/Native Only)", invoke=function() insertRandomDevice(true) end}
+renoise.tool():add_menu_entry{name="DSP Chain:Paketti..:Insert Random Device (All)", invoke=function() insertRandomDevice(false) end}
+renoise.tool():add_menu_entry{name="DSP Chain:Paketti..:Insert Random Device (AU/Native Only)", invoke=function() insertRandomDevice(true) end}
+
+renoise.tool():add_keybinding{name="Global:Paketti:Insert Random Plugin (All)", invoke=function() insertRandomPlugin(false) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Insert Random Plugin (AU Only)", invoke=function() insertRandomPlugin(true) end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:Insert Random Plugin (All)", invoke=function() insertRandomPlugin(false) end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:Insert Random Plugin (AU Only)", invoke=function() insertRandomPlugin(true) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Insert Random Plugin (All)", invoke=function() insertRandomPlugin(false) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Insert Random Plugin (AU Only)", invoke=function() insertRandomPlugin(true) end}
+renoise.tool():add_midi_mapping{name="Paketti:Insert Random Plugin (All)", invoke=function(message) if message:is_trigger() then insertRandomPlugin(false) end end }
+renoise.tool():add_midi_mapping{name="Paketti:Insert Random Plugin (AU Only)", invoke=function(message) if message:is_trigger() then insertRandomPlugin(true) end end}

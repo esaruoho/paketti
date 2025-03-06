@@ -991,15 +991,11 @@ function PakettiMoveSilence()
     return
   end
 
-  buffer:prepare_sample_data_changes()
-  local num_channels = buffer.number_of_channels
-  local num_frames = buffer.number_of_frames
+  -- Check for silence before creating temporary sample
   local start_frame = 1
-
-  -- Find start frame (end of initial silence)
-  for frame = 1, num_frames do
+  for frame = 1, buffer.number_of_frames do
     local is_silent = true
-    for channel = 1, num_channels do
+    for channel = 1, buffer.number_of_channels do
       if math.abs(buffer:sample_data(channel, frame)) > threshold then
         is_silent = false
         break
@@ -1016,70 +1012,67 @@ function PakettiMoveSilence()
     return
   end
 
-  -- Move initial silence to the end
-  local new_num_frames = num_frames - start_frame + 1 + start_frame - 1
-  local new_sample = instrument:insert_sample_at(sample_index + 1)
-  local new_buffer = new_sample.sample_buffer
-  new_buffer:create_sample_data(buffer.sample_rate, buffer.bit_depth, num_channels, new_num_frames)
-  new_buffer:prepare_sample_data_changes()
-
-  -- Copy non-silent part to the beginning
-  for frame = 1, num_frames - start_frame + 1 do
-    for channel = 1, num_channels do
-      new_buffer:set_sample_data(channel, frame, buffer:sample_data(channel, start_frame + frame - 1))
+  -- Create temporary sample only if we found silence to move
+  local temp_sample = instrument:insert_sample_at(#instrument.samples + 1)
+  temp_sample:copy_from(sample)
+  
+  -- Now process the audio data in the temporary sample
+  local temp_buffer = temp_sample.sample_buffer
+  temp_buffer:prepare_sample_data_changes()
+  
+  -- Find start frame (end of initial silence)
+  local start_frame = 1
+  for frame = 1, buffer.number_of_frames do
+    local is_silent = true
+    for channel = 1, buffer.number_of_channels do
+      if math.abs(buffer:sample_data(channel, frame)) > threshold then
+        is_silent = false
+        break
+      end
+    end
+    if not is_silent then
+      start_frame = frame
+      break
     end
   end
 
-  -- Copy silent part to the end
-  for frame = num_frames - start_frame + 2, new_num_frames do
-    for channel = 1, num_channels do
-      new_buffer:set_sample_data(channel, frame, 0)
+  if start_frame == 1 then
+    -- No silence found, clean up and return
+    instrument:delete_sample_at(#instrument.samples)
+    renoise.app():show_status("No initial silence found.")
+    return
+  end
+
+  -- Copy non-silent part to beginning
+  for channel = 1, buffer.number_of_channels do
+    for frame = 1, buffer.number_of_frames - start_frame + 1 do
+      temp_buffer:set_sample_data(channel, frame, 
+        buffer:sample_data(channel, start_frame + frame - 1))
+    end
+    -- Fill end with silence
+    for frame = buffer.number_of_frames - start_frame + 2, buffer.number_of_frames do
+      temp_buffer:set_sample_data(channel, frame, 0)
     end
   end
 
-  new_buffer:finalize_sample_data_changes()
+  temp_buffer:finalize_sample_data_changes()
 
-  -- Copy properties from the old sample to the new sample
-  new_sample.name = sample.name
-  new_sample.volume = sample.volume
-  new_sample.panning = sample.panning
-  new_sample.transpose = sample.transpose
-  new_sample.fine_tune = sample.fine_tune
-  new_sample.beat_sync_enabled = sample.beat_sync_enabled
-  new_sample.beat_sync_lines = sample.beat_sync_lines
-  new_sample.beat_sync_mode = sample.beat_sync_mode
-  new_sample.oneshot = sample.oneshot
-  new_sample.loop_release = sample.loop_release
-  new_sample.loop_mode = sample.loop_mode
-  new_sample.mute_group = sample.mute_group
-  new_sample.new_note_action = sample.new_note_action
-  new_sample.autoseek = sample.autoseek
-  new_sample.autofade = sample.autofade
-  new_sample.oversample_enabled = sample.oversample_enabled
-  new_sample.interpolation_mode = sample.interpolation_mode
-
-  if sample.loop_start < new_buffer.number_of_frames then
-    new_sample.loop_start = sample.loop_start
-  end
-  if sample.loop_end < new_buffer.number_of_frames then
-    new_sample.loop_end = sample.loop_end
-  end
-
-  -- Delete the old sample
-  instrument:delete_sample_at(sample_index)
-  song.selected_sample_index = sample_index
+  -- Now swap the samples to maintain the index (and thus mappings)
+  instrument:swap_samples_at(sample_index, #instrument.samples)
+  
+  -- Delete the old sample (which is now at the end)
+  instrument:delete_sample_at(#instrument.samples)
 
   renoise.app():show_status("Moved beginning silence to the end of the sample.")
 end
 
-
 renoise.tool():add_keybinding{name="Global:Paketti:Strip Silence",invoke=function() PakettiStripSilence() end}
 renoise.tool():add_midi_mapping{name="Paketti:Strip Silence",invoke=function() PakettiStripSilence() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Strip Silence",invoke=function() PakettiStripSilence() end}
+renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Process..:Strip Silence",invoke=function() PakettiStripSilence() end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Strip Silence",invoke=function() PakettiStripSilence() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Move Beginning Silence to End",invoke=function() PakettiMoveSilence() end}
 renoise.tool():add_midi_mapping{name="Paketti:Move Beginning Silence to End",invoke=function(message) if message:is_trigger() then  PakettiMoveSilence() end end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Move Beginning Silence to End",invoke=function() PakettiMoveSilence() end}
+renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Process..:Move Beginning Silence to End",invoke=function() PakettiMoveSilence() end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Move Beginning Silence to End",invoke=function() PakettiMoveSilence() end}
 -----------
 
@@ -1099,10 +1092,46 @@ function PakettiMoveSilenceAllSamples()
   
   local processed_count = 0
   local current_sample_index = song.selected_sample_index
+  local threshold = renoise.tool().preferences.PakettiMoveSilenceThreshold.value
+  local MIN_SILENCE_FRAMES = 50  -- Changed from 100 to 50 frames
   
-  -- Process each sample in the instrument
+  -- First analyze all samples to find those with significant silence
+  local samples_to_process = {}
+  
   for i = 1, #instrument.samples do
-    song.selected_sample_index = i
+    local sample = instrument:sample(i)
+    local buffer = sample.sample_buffer
+    
+    if buffer and buffer.has_sample_data then
+      -- Find the first non-silent frame
+      local silent_frames = 0
+      local first_non_silent_frame = nil
+      
+      for frame = 1, buffer.number_of_frames do
+        local is_silent = true
+        for channel = 1, buffer.number_of_channels do
+          if math.abs(buffer:sample_data(channel, frame)) > threshold then
+            is_silent = false
+            first_non_silent_frame = frame
+            break
+          end
+        end
+        if first_non_silent_frame then break end
+        silent_frames = silent_frames + 1
+      end
+      
+      -- Only process if we found significant initial silence
+      if silent_frames >= MIN_SILENCE_FRAMES then
+        table.insert(samples_to_process, i)
+        print(string.format("Sample %d ('%s'): %d frames of initial silence", 
+          i, sample.name, silent_frames))
+      end
+    end
+  end
+  
+  -- Now process only the samples with significant silence
+  for _, sample_index in ipairs(samples_to_process) do
+    song.selected_sample_index = sample_index
     PakettiMoveSilence()
     processed_count = processed_count + 1
   end
@@ -1110,13 +1139,27 @@ function PakettiMoveSilenceAllSamples()
   -- Restore original sample selection
   song.selected_sample_index = current_sample_index
   
-  renoise.app():show_status(string.format("Moved silence to end for %d samples in instrument.", processed_count))
+  if processed_count > 0 then
+    renoise.app():show_status(string.format("Moved initial silence to end for %d samples with >50 frames of silence.", processed_count))
+  else
+    renoise.app():show_status("No samples with significant initial silence found (minimum 50 frames).")
+  end
 end
 
 -- Add keybinding and menu entries
 renoise.tool():add_keybinding{name="Global:Paketti:Move Beginning Silence to End for All Samples",invoke=function() PakettiMoveSilenceAllSamples() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Move Beginning Silence to End for All Samples",invoke=function() PakettiMoveSilenceAllSamples() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Move Beginning Silence to End for All Samples",invoke=function() PakettiMoveSilenceAllSamples() end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Move Beginning Silence to End for All Samples",invoke=function() PakettiMoveSilenceAllSamples() end}
+--------
+
+
+
+
+
+
+
+
+
 --------
 function PakettiSampleInvertEntireSample()
   local sample = renoise.song().selected_sample
@@ -1140,11 +1183,8 @@ function PakettiSampleInvertEntireSample()
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Invert Entire Sample",invoke=function() PakettiSampleInvertEntireSample() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Invert Entire Sample",invoke=function() PakettiSampleInvertEntireSample() end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Invert Entire Sample",invoke=function() PakettiSampleInvertEntireSample() end}
 ---
--- ... existing code ...
-
 function PakettiInvertRandomSamplesInInstrument()
   local instrument = renoise.song().selected_instrument
   if not instrument or #instrument.samples == 0 then
@@ -1169,10 +1209,10 @@ function PakettiInvertRandomSamplesInInstrument()
   renoise.app():show_status(string.format("Randomly inverted %d/%d samples in instrument", inverted_count, #instrument.samples))
 end
 
--- ... existing code ...
 
 -- Add to menu entries
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Invert Random Samples in Instrument",invoke=PakettiInvertRandomSamplesInInstrument}
+
+
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Invert Random Samples in Instrument",invoke=PakettiInvertRandomSamplesInInstrument}
 renoise.tool():add_keybinding{name="Global:Paketti:Invert Random Samples in Instrument",invoke=PakettiInvertRandomSamplesInInstrument}
 
@@ -1214,7 +1254,7 @@ renoise.song().selected_sample.sample_buffer:finalize_sample_data_changes()
 end
 
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:15 Frame Fade In & Fade Out",invoke=function() apply_fade_in_out() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:15 Frame Fade In & Fade Out",invoke=function() apply_fade_in_out() end}
+renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Process..:15 Frame Fade In & Fade Out",invoke=function() apply_fade_in_out() end}
 
 ---
 -- Function to create max amplitude DC offset kick
@@ -1255,7 +1295,7 @@ end
 
 -- Adding keybinding and menu entry on single lines
 renoise.tool():add_keybinding{name="Global:Paketti:Max Amp DC Offset Kick Generator",invoke=function() pakettiMaxAmplitudeDCOffsetKickCreator() end }
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Max Amp DC Offset Kick Generator",invoke=function() pakettiMaxAmplitudeDCOffsetKickCreator() end }
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Max Amp DC Offset Kick Generator",invoke=function() pakettiMaxAmplitudeDCOffsetKickCreator() end }
 
 -- Function to apply the recursive DC offset correction algorithm
 function remove_dc_offset_recursive()
@@ -1424,7 +1464,7 @@ function normalize_all_samples_in_instrument()
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Normalize All Samples in Instrument",invoke=function() normalize_all_samples_in_instrument() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Normalize All Samples in Instrument",invoke=function() normalize_all_samples_in_instrument() end}
+renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Process..:Normalize All Samples in Instrument",invoke=function() normalize_all_samples_in_instrument() end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Normalize All Samples in Instrument",invoke=function() normalize_all_samples_in_instrument() end}
 
 -----------
@@ -1488,9 +1528,9 @@ function normalize_and_reduce(scope, db_reduction)
   end
 end
 
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Normalize Selected Sample -12dB",invoke=function() normalize_and_reduce("current_sample", -12) end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Normalize Selected Instrument -12dB (All Samples & Slices)",invoke=function() normalize_and_reduce("all_samples", -12) end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Normalize All Instruments -12dB",invoke=function() normalize_and_reduce("all_instruments", -12) end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Normalize Selected Sample -12dB",invoke=function() normalize_and_reduce("current_sample", -12) end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Normalize Selected Instrument -12dB (All Samples & Slices)",invoke=function() normalize_and_reduce("all_samples", -12) end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Normalize All Instruments -12dB",invoke=function() normalize_and_reduce("all_instruments", -12) end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Normalize Selected Sample to -12dB",invoke=function() normalize_and_reduce("current_sample", -12) end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Normalize Selected Instrument to -12dB",invoke=function() normalize_and_reduce("all_samples", -12) end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Normalize All Instruments to -12dB",invoke=function() normalize_and_reduce("all_instruments", -12) end}
@@ -1498,7 +1538,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Normalize Selected Sample to -12dB
 renoise.tool():add_midi_mapping{name="Paketti:Normalize Selected Instrument to -12dB",invoke=function(message) if message:is_trigger() then normalize_and_reduce("all_samples", -12) end end}
 renoise.tool():add_midi_mapping{name="Paketti:Normalize All Instruments to -12dB",invoke=function(message) if message:is_trigger() then normalize_and_reduce("all_instruments", -12) end end}
 ---------
-local function auto_correlate()
+function auto_correlate()
   local sample = renoise.song().selected_sample
   if not sample or not sample.sample_buffer.has_sample_data then
     renoise.app():show_status("No sample selected or sample buffer empty.")
@@ -1576,7 +1616,7 @@ local function auto_correlate()
   end
 end
 
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:WIP:Auto Correlate Loop",invoke=auto_correlate}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Experimental/WIP..:Auto Correlate Loop",invoke=auto_correlate}
 
 
 
@@ -1585,7 +1625,7 @@ renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:WIP:Auto Correlate L
 
 
 ----------
-local function auto_detect_single_cycle_loop()
+function auto_detect_single_cycle_loop()
   local sample = renoise.song().selected_sample
   if not sample or not sample.sample_buffer.has_sample_data then
     renoise.app():show_status("No sample selected or sample buffer empty.")
@@ -1661,7 +1701,7 @@ local function auto_detect_single_cycle_loop()
   renoise.app():show_status(("Loop set: %d to %d (Period: %d)"):format(loop_start, loop_end, best_period))
 end
 
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:WIP:Auto Detect Single-Cycle Loop",
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Experimental/WIP..:Auto Detect Single-Cycle Loop",
   invoke = auto_detect_single_cycle_loop
 }
 
@@ -1733,6 +1773,6 @@ renoise.tool():add_keybinding{name="Global:Paketti:Normalize Sample Slices Indep
   invoke=function() normalize_selected_sample_by_slices() end
 }
 
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Normalize Slices Independently",
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Normalize Slices Independently",
   invoke=function() normalize_selected_sample_by_slices() end
 }

@@ -278,9 +278,21 @@ renoise.tool():add_menu_entry{name="--Disk Browser Files:Paketti..:Paketti Pitch
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti PitchBend Drumkit Sample Loader",invoke=function() pitchBendDrumkitLoader() end}
 renoise.tool():add_midi_mapping{name="Paketti:Midi Paketti PitchBend Drumkit Sample Loader",invoke=function(message) if message:is_trigger() then pitchBendDrumkitLoader() end end}
 
-local function loadRandomDrumkitSamples(num_samples)
+function loadRandomDrumkitSamples(num_samples)
+    -- Create a more unique seed using both time and microseconds if available
+    local seed = os.time() * 1000
+    if os.clock then
+        -- os.clock() returns CPU time in seconds with microsecond precision
+        -- Multiply by 10000 and take modulo to get a number between 0-999
+        seed = seed + math.floor((os.clock() * 10000) % 1000)
+    end
+    math.randomseed(seed)
+    -- Discard first few values as they can be less random
+    math.random(); math.random(); math.random()
+    
+  
     -- Define valid audio file extensions
-    local valid_extensions = { ".wav", ".flac", ".mp3", ".aiff" }
+    local valid_extensions = { ".wav", ".flac", ".mp3", ".aif", ".aiff"}
     
     -- Function to check if a file has a valid extension
     local function is_valid_audio_file(filename)
@@ -292,29 +304,40 @@ local function loadRandomDrumkitSamples(num_samples)
         return false
     end
     
-    -- Function to list files using OS-specific directory listing commands
     local function get_files_in_directory(dir)
-        local files = {}
-        
-        -- Use OS-specific commands to list all files recursively
-        local command
-        if package.config:sub(1,1) == "\\" then  -- Windows
-            command = 'dir "' .. dir .. '" /b /s'
-        else  -- macOS and Linux
-            command = 'find "' .. dir .. '" -type f'
-        end
-        
-        -- Execute the command and process the output
-        local handle = io.popen(command)
-        for line in handle:lines() do
-            if is_valid_audio_file(line) then
-                table.insert(files, line)
-            end
-        end
-        handle:close()
-        
-        return files
-    end
+      local files = {}
+      
+      -- Define valid audio file extensions (can be modified as needed)
+      local valid_extensions = { ".wav", ".mp3", ".flac", ".aif", ".aiff"}
+      
+      -- Build the command string based on valid extensions
+      local command
+      if package.config:sub(1,1) == "\\" then  -- Windows
+          -- Build Windows command
+          local patterns = {}
+          for _, ext in ipairs(valid_extensions) do
+              table.insert(patterns, string.format('"%s\\*%s"', dir, ext))
+          end
+          command = 'dir /b /s ' .. table.concat(patterns, ' ') .. ' 2>nul'
+      else  -- macOS and Linux
+          -- Build Unix command
+          local patterns = {}
+          for _, ext in ipairs(valid_extensions) do
+              table.insert(patterns, string.format('-iname "*%s"', ext))
+          end
+          command = string.format('find "%s" -type f \\( %s \\)', 
+              dir, table.concat(patterns, ' -o '))
+      end
+      
+      -- Execute the command and collect the files
+      local handle = io.popen(command)
+      for line in handle:lines() do
+          table.insert(files, line)
+      end
+      handle:close()
+      
+      return files
+  end
 
     -- Prompt the user to select a folder
     local folder_path = renoise.app():prompt_for_path("Select Folder to Randomize DrumKit Loading From")
@@ -354,17 +377,19 @@ local function loadRandomDrumkitSamples(num_samples)
     local max_samples = 120
     local num_samples_to_load = math.min(#sample_files, max_samples)
 
+-- Inside the loadRandomDrumkitSamples function:
+
+    -- Create a table to store failed loads
+    local failed_loads = {}
+    
     -- Load each sample as a new drum zone with specified properties
     for i = 1, num_samples_to_load do
-        -- Select a random file from the list and remove it
         local random_index = math.random(1, #sample_files)
         local selected_file = sample_files[random_index]
         table.remove(sample_files, random_index)
 
-        -- Extract the file name without the extension for naming
         local file_name = selected_file:match("([^/\\]+)%.%w+$")
 
-        -- Insert a new sample slot if necessary
         if #instrument.samples < i then
             instrument:insert_sample_at(i)
         end
@@ -373,26 +398,46 @@ local function loadRandomDrumkitSamples(num_samples)
         local sample_buffer = sample.sample_buffer
 
         -- Load the sample file into the sample buffer
-        if sample_buffer:load_from(selected_file) then
-            renoise.app():show_status("Loaded sample: " .. selected_file)
+        local success, error_message = pcall(function()
+            return sample_buffer:load_from(selected_file)
+        end)
 
+        if success and error_message then
+            sample.name = file_name
+            sample.interpolation_mode = preferences.pakettiLoaderInterpolation.value
+            sample.oversample_enabled = preferences.pakettiLoaderOverSampling.value
+            sample.oneshot = preferences.pakettiLoaderOneshot.value
+            sample.autofade = preferences.pakettiLoaderAutoFade.value
+            sample.autoseek = preferences.pakettiLoaderAutoseek.value
+            sample.loop_mode = preferences.pakettiLoaderLoopMode.value
+            sample.new_note_action = preferences.pakettiLoaderNNA.value
+            sample.loop_release = preferences.pakettiLoaderLoopExit.value
+            
+            renoise.app():show_status(formatDigits(3,i) .. ": Loaded sample: " .. file_name)
         else
-            renoise.app():show_status("Failed to load sample: " .. selected_file)
-            break
+            -- Store failed loads with their index and error message
+            table.insert(failed_loads, {
+                index = i,
+                file = selected_file,
+                error = tostring(error_message)
+            })
         end
-
-        -- Set sample name and properties
-                      
-        sample.name = file_name
-        sample.interpolation_mode = preferences.pakettiLoaderInterpolation.value
-        sample.oversample_enabled = preferences.pakettiLoaderOverSampling.value
-        sample.oneshot = preferences.pakettiLoaderOneshot.value
-        sample.autofade = preferences.pakettiLoaderAutoFade.value
-        sample.autoseek = preferences.pakettiLoaderAutoseek.value
-        sample.loop_mode = preferences.pakettiLoaderLoopMode.value
-        sample.new_note_action = preferences.pakettiLoaderNNA.value
-        sample.loop_release = preferences.pakettiLoaderLoopExit.value
     end
+
+    -- After the loading loop, show summary of failures if any
+    if #failed_loads > 0 then
+        print("\n=== FAILED LOADS SUMMARY ===")
+        print(string.format("Total failures: %d", #failed_loads))
+        for _, fail in ipairs(failed_loads) do
+            print(string.format("Sample %03d: %s\nError: %s\n", 
+                fail.index, fail.file, fail.error))
+        end
+        print("=========================")
+        
+        -- Also show in status bar how many failed
+        renoise.app():show_status(string.format("%d samples failed to load. Check Terminal for details.", #failed_loads))
+    end
+    
 
     -- Inform the user if any files were left unprocessed
     if #sample_files > max_samples then
@@ -744,7 +789,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Add Sample Slot to Instrument
 renoise.tool():add_keybinding{name="Global:Paketti:Add 84 Sample Slots to Instrument",invoke=function() addSampleSlot(84) end}
 renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Add 84 Sample Slots to Instrument",invoke=function() addSampleSlot(84) end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Initialize..:Add 84 Sample Slots to Instrument",invoke=function() addSampleSlot(84) end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Add 84 Sample Slots to Instrument",invoke=function() addSampleSlot(84) end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Instruments..:Add 84 Sample Slots to Instrument",invoke=function() addSampleSlot(84) end}
 -------------------------------------------------------------------------------------------------------------------------------
 function oneshotcontinue()
   local s=renoise.song()
@@ -971,8 +1016,8 @@ renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Wipe&Slice..:Wipe&S
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Wipe&Slice..:Wipe&Slice (128)",invoke=function() slicerough(128) end}
 renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Wipe&Slice..:Wipe Slices",invoke=function() wipeslices() end}
 
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Double BeatSync Line",invoke=function() doubleBeatSyncLines() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Halve BeatSync Line",invoke=function() halveBeatSyncLines() end}
+renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Beatsync/Slices..:Double Beatsync Line",invoke=function() doubleBeatSyncLines() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Beatsync/Slices..:Halve Beatsync Line",invoke=function() halveBeatSyncLines() end}
 --------------
 function DSPFXChain()
 renoise.app().window.active_middle_frame=renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EFFECTS end
@@ -992,10 +1037,10 @@ end
 end
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Save Selected Sample .WAV",invoke=function() pakettiSaveSample("WAV") end}
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Save Selected Sample .FLAC",invoke=function() pakettiSaveSample("FLAC") end}
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Paketti Save Selected Sample .WAV",invoke=function() pakettiSaveSample("WAV") end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Paketti Save Selected Sample .FLAC",invoke=function() pakettiSaveSample("FLAC") end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Paketti Save Selected Sample Range .WAV",invoke=function() pakettiSaveSampleRange("WAV") end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Paketti Save Selected Sample Range .FLAC",invoke=function() pakettiSaveSampleRange("FLAC") end}
+renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Save..:Paketti Save Selected Sample .WAV",invoke=function() pakettiSaveSample("WAV") end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Save..:Paketti Save Selected Sample .FLAC",invoke=function() pakettiSaveSample("FLAC") end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Save..:Paketti Save Selected Sample Range .WAV",invoke=function() pakettiSaveSampleRange("WAV") end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Save..:Paketti Save Selected Sample Range .FLAC",invoke=function() pakettiSaveSampleRange("FLAC") end}
 
 renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Paketti Save Selected Sample .WAV",invoke=function() pakettiSaveSample("WAV") end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Paketti Save Selected Sample .FLAC",invoke=function() pakettiSaveSample("FLAC") end}
@@ -1086,8 +1131,28 @@ render_context = {
 
 -- Function to initiate rendering
 function start_renderingLPB()
-    local render_priority = "high"
-    local selected_track = renoise.song().selected_track
+  local song = renoise.song()
+  local render_priority = "high"
+  local selected_track = song.selected_track
+
+  -- Add DC Offset if enabled in preferences
+  if preferences.RenderDCOffset.value then
+      local has_dc_offset = false
+      for _, device in ipairs(selected_track.devices) do
+          if device.display_name == "Render DC Offset" then
+              has_dc_offset = true
+              break
+          end
+      end
+      
+      if not has_dc_offset then
+          loadnative("Audio/Effects/Native/DC Offset","Render DC Offset")
+          local dc_offset_device = selected_track.devices[#selected_track.devices]
+          if dc_offset_device.display_name == "Render DC Offset" then
+              dc_offset_device.parameters[2].value = 1
+          end
+      end
+  end 
 
     for _, device in ipairs(selected_track.devices) do
         if device.name == "#Line Input" then
@@ -1124,8 +1189,19 @@ end
 
 -- Callback function that gets called when rendering is complete
 function rendering_done_callbackLPB()
-    local song = renoise.song()
-    local renderTrack = render_context.source_track
+  local song = renoise.song()
+  local renderTrack = render_context.source_track
+
+  -- Remove DC Offset if it was added (FIRST, before other operations)
+  if preferences.RenderDCOffset.value then
+      local original_track = song:track(renderTrack)
+      local last_device = original_track.devices[#original_track.devices]
+      if last_device.display_name == "Render DC Offset" then
+          original_track:delete_device_at(#original_track.devices)
+      end
+  end
+
+
     local renderedTrack = renderTrack + 1
     local renderedInstrument = render_context.target_instrument
 
@@ -1215,6 +1291,9 @@ else
 renoise.song().transport.edit_mode = true
 renoise.song().transport.edit_mode = false
 end
+for i=1,#song.tracks do
+  renoise.song().tracks[i].mute_state=1
+end 
 
 end
 
@@ -1654,7 +1733,7 @@ function ReverseSelectedSliceInSample()
 end
 -- Add keybinding and menu entries
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Reverse Selected Sample or Slice",invoke=ReverseSelectedSliceInSample}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Reverse Selected Sample or Slice",invoke=ReverseSelectedSliceInSample}
+renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Process..:Reverse Selected Sample or Slice",invoke=ReverseSelectedSliceInSample}
 renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Reverse Selected Sample or Slice",invoke=ReverseSelectedSliceInSample}
 renoise.tool():add_midi_mapping{name="Paketti:Reverse Selected Sample or Slice",invoke=function(message) if message:is_trigger() then ReverseSelectedSliceInSample() end end}
 
@@ -1689,6 +1768,7 @@ function NormalizeSelectedSliceInSample()
     -- Apply normalization
     local factor = peak > 0 and 1.0 / peak or 1
     buffer:prepare_sample_data_changes()
+    print("PREPARE")
     for channel = 1, buffer.number_of_channels do
       for frame = slice_start, slice_end do
         local value = buffer:sample_data(channel, frame)
@@ -1696,6 +1776,7 @@ function NormalizeSelectedSliceInSample()
       end
     end
     buffer:finalize_sample_data_changes()
+    print("FINALIZE")
     renoise.app():show_status("Normalized current sample")
     return
   end
@@ -1763,7 +1844,7 @@ end
 
 -- Add keybinding and menu entries
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Normalize Selected Sample or Slice",invoke=NormalizeSelectedSliceInSample}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Normalize Selected Sample or Slice",invoke=NormalizeSelectedSliceInSample}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Normalize Selected Sample or Slice",invoke=NormalizeSelectedSliceInSample}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Normalize Selected Sample or Slice",invoke=NormalizeSelectedSliceInSample}
 renoise.tool():add_midi_mapping{name="Paketti:Normalize Selected Sample or Slice",invoke=function(message) if message:is_trigger() then NormalizeSelectedSliceInSample() end end}
 
@@ -1937,7 +2018,7 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Duplicate and Reverse Instrument",invoke=function() PakettiDuplicateAndReverseInstrument() end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Instruments..:Duplicate and Reverse Instrument",invoke=function() PakettiDuplicateAndReverseInstrument() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Duplicate and Reverse Instrument",invoke=function() PakettiDuplicateAndReverseInstrument() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Instruments..:Duplicate and Reverse Instrument",invoke=function() PakettiDuplicateAndReverseInstrument() end}
 renoise.tool():add_midi_mapping{name="Paketti:Duplicate and Reverse Instrument [Trigger]",invoke=function(message) if message:is_trigger() then PakettiDuplicateAndReverseInstrument() end end}
 -----
 function pakettiSampleBufferHalfSelector(half)
@@ -2087,7 +2168,7 @@ function pakettiMinimizeToLoopEnd()
   renoise.app():show_status("Sample minimized to loop end.")
 end
 
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:FT2 Minimize Selected Sample",invoke=pakettiMinimizeToLoopEnd}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:FT2 Minimize Selected Sample",invoke=pakettiMinimizeToLoopEnd}
 renoise.tool():add_keybinding{name="Global:Paketti:FT2 Minimize Selected Sample",invoke=pakettiMinimizeToLoopEnd}
 --------
 -- Invert Left Channel
@@ -2144,9 +2225,6 @@ function PakettiSampleInvertEntireSample()
 end
 
 -- Menu Entries and Keybindings
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Invert Left Channel of Selected Sample",invoke=PakettiSampleInvertLeftChannel}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Invert Right Channel of Selected Sample",invoke=PakettiSampleInvertRightChannel}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Invert Sample",invoke=PakettiSampleInvertEntireSample}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Invert Left Channel of Selected Sample",invoke=PakettiSampleInvertLeftChannel}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Invert Right Channel of Selected Sample",invoke=PakettiSampleInvertRightChannel}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Invert Sample",invoke=PakettiSampleInvertEntireSample}
@@ -2306,6 +2384,14 @@ end
   end
 end
 
+renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Process..:Invert Entire Sample",invoke=function() PakettiSampleInvertEntireSample() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Invert Left Channel of Selected Sample",invoke=PakettiSampleInvertLeftChannel}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Invert Right Channel of Selected Sample",invoke=PakettiSampleInvertRightChannel}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Invert Sample",invoke=PakettiSampleInvertEntireSample}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Invert Random Samples in Instrument",invoke=PakettiInvertRandomSamplesInInstrument}
+
+
+
 -- Add keybindings for rotating the sample buffer by fixed amounts
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Rotate Sample Buffer Right 10",invoke=function() rotate_sample_buffer_fixed(10) end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Rotate Sample Buffer Left 10",invoke=function() rotate_sample_buffer_fixed(-10) end}
@@ -2315,6 +2401,12 @@ renoise.tool():add_keybinding{name="Sample Editor:Paketti:Rotate Sample Buffer R
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Rotate Sample Buffer Left 1000",invoke=function() rotate_sample_buffer_fixed(-1000) end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Rotate Sample Buffer Right 10000",invoke=function() rotate_sample_buffer_fixed(10000) end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Rotate Sample Buffer Left 10000",invoke=function() rotate_sample_buffer_fixed(-10000) end}
+
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Rotate Sample Buffer Right Coarse",invoke=function() rotate_sample_buffer_fixed(preferences.pakettiRotateSampleBufferCoarse.value) end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Rotate Sample Buffer Left Coarse",invoke=function() rotate_sample_buffer_fixed(-preferences.pakettiRotateSampleBufferCoarse.value) end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Rotate Sample Buffer Right Fine",invoke=function() rotate_sample_buffer_fixed(preferences.pakettiRotateSampleBufferFine.value) end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Rotate Sample Buffer Left Fine",invoke=function() rotate_sample_buffer_fixed(-preferences.pakettiRotateSampleBufferFine.value) end}
+
 
 ---------
 function filterTypeRandom()
@@ -2491,10 +2583,14 @@ renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Duplicate and Rev
 
 ---------
 function PakettiInjectDefaultXRNI()
-local instVol = renoise.song().selected_instrument.volume
+  local instVol = renoise.song().selected_instrument.volume
   local song = renoise.song()
   local selected_instrument_index = song.selected_instrument_index
   local original_instrument = song.selected_instrument
+
+  -- Store the original selected phrase index BEFORE we do anything
+  local original_phrase_index = renoise.song().selected_phrase_index
+  print(string.format("\nStoring original selected_phrase_index: %d", original_phrase_index))
 
   if not original_instrument or #original_instrument.samples == 0 then
     renoise.app():show_status("No instrument or samples selected.")
@@ -2506,9 +2602,20 @@ local instVol = renoise.song().selected_instrument.volume
   song.selected_instrument_index = new_instrument_index
   local new_instrument = song.selected_instrument
 
+  -- First load the XRNI
   pakettiPreferencesDefaultInstrumentLoader()
   new_instrument = renoise.song().selected_instrument
 
+  -- Copy phrases from original instrument if any exist
+  if #original_instrument.phrases > 0 then
+    print(string.format("\nCopying %d phrases from original instrument", #original_instrument.phrases))
+    for i = 1, #original_instrument.phrases do
+      new_instrument:insert_phrase_at(i)
+      new_instrument.phrases[i]:copy_from(original_instrument.phrases[i])
+      print(string.format("Copied phrase %d: '%s' (%d lines)", 
+        i, original_instrument.phrases[i].name, #original_instrument.phrases[i].lines))
+    end
+  end
   -- Copy the samples and their settings from the original instrument to the new instrument
   for i = 1, #original_instrument.samples do
     local from_sample = original_instrument.samples[i]
@@ -2566,10 +2673,20 @@ local instVol = renoise.song().selected_instrument.volume
     new_instrument.sample_modulation_sets[1].filter_type = preferences.pakettiLoaderFilterType.value
   end
 
+  -- At the end, before returning focus:
+  renoise.song().selected_phrase_index = original_phrase_index
+  print(string.format("Restored selected_phrase_index to: %d", renoise.song().selected_phrase_index))
+
   -- Return focus to the Instrument Sample Editor
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
   new_instrument.sample_modulation_sets[1].name = "Pitchbend"
-new_instrument.volume = instVol
+  new_instrument.volume = instVol
+  -- Remove the placeholder sample from the last slot
+  local num_samples = #new_instrument.samples
+  if num_samples > 0 and new_instrument.samples[num_samples].name == "Placeholder sample" then
+    new_instrument:delete_sample_at(num_samples)
+    print("Removed placeholder sample from last slot")
+  end  
 end
 
 -- Add keybinding and menu entry to invoke the PakettiInjectDefaultXRNI function
@@ -2710,7 +2827,7 @@ function BeatSyncFromSelection()
   end
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Smart BeatSync from Selection",invoke=function()
+renoise.tool():add_keybinding{name="Global:Paketti:Smart Beatsync from Selection",invoke=function()
 BeatSyncFromSelection() end}
 --
 render_context = {
@@ -2759,9 +2876,28 @@ end
 
 -- Function to initiate rendering
 function PakettiSeamlessStartRendering()
-    local render_priority = "high"
-    local selected_track = renoise.song().selected_track
+  local song = renoise.song()
+  local render_priority = "high"
+  local selected_track = song.selected_track
 
+  -- Add DC Offset if enabled in preferences
+  if preferences.RenderDCOffset.value then
+      local has_dc_offset = false
+      for _, device in ipairs(selected_track.devices) do
+          if device.display_name == "Render DC Offset" then
+              has_dc_offset = true
+              break
+          end
+      end
+      
+      if not has_dc_offset then
+          loadnative("Audio/Effects/Native/DC Offset","Render DC Offset")
+          local dc_offset_device = selected_track.devices[#selected_track.devices]
+          if dc_offset_device.display_name == "Render DC Offset" then
+              dc_offset_device.parameters[2].value = 1
+          end
+      end
+  end
 
     for _, device in ipairs(selected_track.devices) do
         if device.name == "#Line Input" then
@@ -2797,8 +2933,19 @@ end
 
 -- Callback function that gets called when rendering is complete
 function PakettiSeamlessRenderingDoneCallback()
-    local song = renoise.song()
-    local renderTrack = render_context.source_track
+  local song = renoise.song()
+  local renderTrack = render_context.source_track
+
+  -- Remove DC Offset if it was added (FIRST, before other operations)
+  if preferences.RenderDCOffset.value then
+      local original_track = song:track(renderTrack)
+      local last_device = original_track.devices[#original_track.devices]
+      if last_device.display_name == "Render DC Offset" then
+          original_track:delete_device_at(#original_track.devices)
+      end
+  end
+
+
     local renderedInstrument = render_context.target_instrument
 
     -- Remove the monitoring timer
@@ -2837,6 +2984,10 @@ renoise.song().selected_instrument.name = renoise.song().selected_track.name
         renoise.song().transport.edit_mode = true
         renoise.song().transport.edit_mode = false
     end
+
+    for i=1,#song.tracks do
+      renoise.song().tracks[i].mute_state=1
+  end     
 end
 
 function PakettiSeamlessMonitorRendering()
@@ -2917,16 +3068,16 @@ renoise.tool():add_keybinding{name="Sample Editor:Paketti:Flip Sample by 1/2",in
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Flip Sample by 1/8",invoke=function() PakettiFlipSample(1/8) end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Flip Sample by 1/16",invoke=function() PakettiFlipSample(1/16) end}
 
+function PakettiEight120fy()
+  local instrument = renoise.song().selected_instrument
+  for _, sample in ipairs(instrument.samples) do
+    sample.sample_mapping.base_note=48
+    sample.sample_mapping.note_range={0,119}
+  end
+  renoise.app():show_status("Base notes set to C-4 and key mapping adjusted for all samples.")
+end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Eight 120-fy",invoke=function()
-    local instrument = renoise.song().selected_instrument
-    for _, sample in ipairs(instrument.samples) do
-      sample.sample_mapping.base_note=48
-      sample.sample_mapping.note_range={0,119}
-    end
-    renoise.app():show_status("Base notes set to C-4 and key mapping adjusted for all samples.") end}
-    
-    
+renoise.tool():add_keybinding{name="Global:Paketti:Eight 120-fy",invoke=function() PakettiEight120fy() end}
     
     
     -----
@@ -3055,6 +3206,14 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Modify PitchStep Steps (Octave Up+2, Octave Down-2)",invoke=function()
 PakettiFillPitchStepperTwoOctaves() end}
 
+
+renoise.tool():add_keybinding{name="Global:Paketti:Modify PitchStep Steps (Minor Flurry)",invoke=function()
+  PakettiFillPitchStepperDigits(0.015,64) end}
+  renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Modify PitchStep Steps (Minor Flurry)",invoke=function()
+    PakettiFillPitchStepperDigits(0.015,64) end}
+    renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Modify PitchStep Steps (Minor Flurry)",invoke=function()
+      PakettiFillPitchStepperDigits(0.015,64) end}
+    
 function PakettiFillPitchStepper()
   local instrument = renoise.song().selected_instrument
     
@@ -3185,7 +3344,7 @@ function PakettiFillPitchStepperDigits(detune_amount, step_count)
 end
 
 -----
-local function load_random_akwf_sample(amount)
+function load_random_akwf_sample(amount)
   local tool_folder = renoise.tool().bundle_path .. "AKWF/"
   local file_path = tool_folder .. "akwf.txt"
   local wav_files = {}
@@ -4235,62 +4394,8 @@ renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Duplicate All Sampl
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Duplicate All Samples at +12 Transpose",invoke=function() PakettiDuplicateInstrumentSamplesWithTranspose(12) end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Duplicate All Samples at +24 Transpose",invoke=function() PakettiDuplicateInstrumentSamplesWithTranspose(24) end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Duplicate All Samples at +36 Transpose",invoke=function() PakettiDuplicateInstrumentSamplesWithTranspose(36) end}
---------
----------------------------------------------------------------------------------------------------
---Set the next ReWire channel - shortcut. If you have a pre-configured 32 input ReWire master host
---running, you can just press a shortcut and get it to play in the track of your choice (on your
---master host that is). This is a really simple thing, but it works after a fashion and does
---what I wanted it to do.
---[[function next_rewire()
-local s=renoise.song()
-local current=s.selected_track.output_routing
-local st=s.selected_track
-if current=="Master Track" then st.output_routing="Bus 01 L/R"
-elseif current=="Bus 01 L/R" then st.output_routing="Bus 02 L/R"
-elseif current=="Bus 02 L/R" then st.output_routing="Bus 03 L/R"
-elseif current=="Bus 03 L/R" then st.output_routing="Bus 04 L/R"
-elseif current=="Bus 04 L/R" then st.output_routing="Bus 05 L/R"
-elseif current=="Bus 05 L/R" then st.output_routing="Bus 06 L/R"
-elseif current=="Bus 06 L/R" then st.output_routing="Bus 07 L/R"
-elseif current=="Bus 07 L/R" then st.output_routing="Bus 08 L/R"
-elseif current=="Bus 08 L/R" then st.output_routing="Bus 09 L/R"
-elseif current=="Bus 09 L/R" then st.output_routing="Bus 10 L/R"
-elseif current=="Bus 10 L/R" then st.output_routing="Bus 11 L/R"
-elseif current=="Bus 11 L/R" then st.output_routing="Bus 12 L/R"
-elseif current=="Bus 12 L/R" then st.output_routing="Bus 13 L/R"
-elseif current=="Bus 13 L/R" then st.output_routing="Bus 14 L/R"
-elseif current=="Bus 14 L/R" then st.output_routing="Bus 15 L/R"
-elseif current=="Bus 15 L/R" then st.output_routing="Bus 16 L/R"
-elseif current=="Bus 16 L/R" then st.output_routing="Bus 17 L/R"
-elseif current=="Bus 17 L/R" then st.output_routing="Bus 18 L/R"
-elseif current=="Bus 18 L/R" then st.output_routing="Bus 19 L/R"
-elseif current=="Bus 19 L/R" then st.output_routing="Bus 20 L/R"
-elseif current=="Bus 20 L/R" then st.output_routing="Bus 21 L/R"
-elseif current=="Bus 21 L/R" then st.output_routing="Bus 22 L/R"
-elseif current=="Bus 22 L/R" then st.output_routing="Bus 23 L/R"
-elseif current=="Bus 23 L/R" then st.output_routing="Bus 24 L/R"
-elseif current=="Bus 24 L/R" then st.output_routing="Bus 25 L/R"
-elseif current=="Bus 25 L/R" then st.output_routing="Bus 26 L/R"
-elseif current=="Bus 26 L/R" then st.output_routing="Bus 27 L/R"
-elseif current=="Bus 27 L/R" then st.output_routing="Bus 28 L/R"
-elseif current=="Bus 28 L/R" then st.output_routing="Bus 29 L/R"
-elseif current=="Bus 29 L/R" then st.output_routing="Bus 30 L/R"
-elseif current=="Bus 30 L/R" then st.output_routing="Bus 31 L/R"
-elseif current=="Bus 31 L/R" then st.output_routing="Master Track"
-end
-renoise.app():show_status("Current Track output set to: " .. st.output_routing) 
-end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Set ReWire Channel (Next)",invoke=function() next_rewire() end  }
-----------------------------------------------------------------------------------------------------------
-]]--
-
-
-
-
-
-
-
+----
 
 
 function add_backwards_effect_to_selection()
@@ -4425,3 +4530,854 @@ end
 -- Add menu entry
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Play Samples Backwards in Selection 0B00",invoke=add_backwards_effect_to_selection}
 renoise.tool():add_keybinding{name="Global:Paketti:Play Samples Backwards in Selection 0B00",invoke=add_backwards_effect_to_selection}
+
+
+---
+function PakettiRandomIR(ir_path)
+  local song = renoise.song()
+  local track = song.selected_track
+  local device = nil
+  
+  -- First try to find an existing Convolver in the track
+  for _, dev in ipairs(track.devices) do
+      if dev.name == "Convolver" then
+          device = dev
+          break
+      end
+  end
+  
+    -- If no Convolver found, create one and wait for it to initialize
+    if not device then
+      track:insert_device_at("Audio/Effects/Native/Convolver", #track.devices + 1)
+      renoise.app():show_status("Added new Convolver to track")
+      
+      -- Give Renoise time to create the device
+      
+      -- Now look for the Convolver device
+      for _, dev in ipairs(track.devices) do
+          if dev.name == "Convolver" then
+              device = dev
+              break
+          end
+      end
+      
+      if not device then
+          renoise.app():show_error("Failed to create Convolver device")
+          return
+      end
+  end
+
+  -- List of common IR file extensions
+  local valid_extensions = { ".wav", ".flac", ".aiff" }
+  
+  -- Function to check if a file has a valid extension
+  local function is_valid_audio_file(filename)
+      for _, ext in ipairs(valid_extensions) do
+          if filename:lower():match(ext .. "$") then
+              return true
+          end
+      end
+      return false
+  end
+  
+  -- Function to list files using OS-specific directory listing commands
+  local function get_files_in_directory(dir)
+      local files = {}
+      
+      -- Use OS-specific commands to list all files recursively
+      local command
+      if package.config:sub(1, 1) == "\\" then  -- Windows
+          command = 'dir "' .. dir .. '" /b /s'
+      else  -- macOS and Linux
+          command = 'find "' .. dir .. '" -type f'
+      end
+      
+      -- Execute the command and process the output
+      local handle = io.popen(command)
+      for line in handle:lines() do
+          if is_valid_audio_file(line) then
+              table.insert(files, line)
+          end
+      end
+      handle:close()
+      
+      return files
+  end
+
+  -- Get all IR files from the path and its subdirectories
+  local ir_files = get_files_in_directory(ir_path)
+  
+  if #ir_files == 0 then
+      renoise.app():show_error("No IR files found in " .. ir_path .. " or its subdirectories")
+      return
+  end
+
+  -- Select a random IR file
+  local random_ir = ir_files[math.random(1, #ir_files)]
+  local file_name = random_ir:match("([^/\\]+)%.%w+$")
+
+  -- Create temporary instrument
+  local temp_instrument_index = song.selected_instrument_index + 1
+  song:insert_instrument_at(temp_instrument_index)
+  local temp_instrument = song.instruments[temp_instrument_index]
+  temp_instrument.name = "IR Loader Temp: " .. file_name
+  local temp_sample = temp_instrument:insert_sample_at(1)
+  temp_sample.name = "IR: " .. file_name
+  
+  -- Try to load the sample
+  local success = pcall(function()
+      temp_sample.sample_buffer:load_from(random_ir)
+  end)
+
+  if not success then
+      print(string.format("Failed to load IR file into sample buffer: %s", random_ir))
+      song:delete_instrument_at(temp_instrument_index)
+      renoise.app():show_error("Failed to load IR file: " .. random_ir)
+      return
+  end
+
+  -- Get the sample data
+  local sample_buffer = temp_sample.sample_buffer
+  if not sample_buffer.has_sample_data then
+      print(string.format("No sample data in IR file: %s", random_ir))
+      song:delete_instrument_at(temp_instrument_index)
+      renoise.app():show_error("No sample data in IR file: " .. random_ir)
+      return
+  end
+
+  -- Print sample info
+  print(string.format("Loading IR - File: %s\nInstrument: %s\nSample: %s\nChannels: %d\nSample Rate: %d\nFrames: %d", 
+      random_ir,
+      temp_instrument.name,
+      temp_sample.name,
+      sample_buffer.number_of_channels,
+      sample_buffer.sample_rate,
+      sample_buffer.number_of_frames
+  ))
+
+  -- Get the sample data as base64
+  local left_data = get_channel_data_as_b64(sample_buffer, 1)
+  local right_data = sample_buffer.number_of_channels == 2 and get_channel_data_as_b64(sample_buffer, 2) or ""
+  local sample_rate = sample_buffer.sample_rate
+  local stereo = sample_buffer.number_of_channels == 2
+
+  -- Check if this is a new/default convolver or an existing one
+  local current_xml = device.active_preset_data
+  local is_init = current_xml:match("<SampleName>(.-)</SampleName>") == "No impulse loaded"
+  local is_default = current_xml:match("<ImpulseDataSampleRate>(%d+)</ImpulseDataSampleRate>") == "0"
+
+  local updated_xml
+  if is_init or is_default then
+      updated_xml = full_update_convolver_preset_data(
+          left_data,
+          right_data,
+          sample_rate,
+          file_name,
+          stereo,
+          ir_path
+      )
+  else
+      updated_xml = soft_update_convolver_preset_data(
+          current_xml,
+          left_data,
+          right_data,
+          sample_rate,
+          file_name,
+          stereo,
+          ir_path
+      )
+  end
+
+  -- Try to apply the XML
+  local success, error_message = pcall(function()
+      device.active_preset_data = updated_xml
+  end)
+
+  -- Clean up the temporary instrument
+--  song:delete_instrument_at(temp_instrument_index)
+
+  if success then
+      renoise.app():show_status(string.format("Successfully loaded IR: %s", file_name))
+      print(string.format("Successfully loaded IR file: %s", random_ir))
+  else
+      renoise.app():show_error(string.format("Failed to load IR: %s\nError: %s", file_name, error_message))
+      print(string.format("Failed to load IR file: %s\nError: %s", random_ir, error_message))
+  end
+end
+
+
+
+------
+-- Function to save all samples to a user-selected folder
+function saveAllSamplesToFolder()
+  -- Prompt for save location
+  local dialog_title = "Select Folder to Save All Samples"
+  local folder_path = renoise.app():prompt_for_path(dialog_title)
+  
+  if folder_path == "" then
+      renoise.app():show_status("No folder selected, operation cancelled")
+      return
+  end
+
+  local s = renoise.song()
+  local path = folder_path .. "/"
+  local saved_samples_count = 0
+
+  for i = 1, #s.instruments do
+      local instrument = s.instruments[i]
+      if instrument and #instrument.samples > 0 then
+          for j = 1, #instrument.samples do
+              local sample = instrument.samples[j].sample_buffer
+              if sample.has_sample_data then
+                  local file_name = instrument.name .. "_" .. j .. ".wav"
+                  if sample.bit_depth == 32 then
+                      sample:save_as(path .. file_name, "wav")
+                  else
+                      sample:save_as(path .. file_name, "wav")
+                  end
+                  saved_samples_count = saved_samples_count + 1
+              end
+          end
+      end
+  end
+
+  renoise.app():show_status("Saved " .. saved_samples_count .. " samples to folder " .. path)
+  -- Open the folder in system's file explorer
+  local os_name = os.platform()
+  if os_name == "WINDOWS" then
+      os.execute('explorer "' .. folder_path .. '"')
+  elseif os_name == "MACINTOSH" then 
+      os.execute('open "' .. folder_path .. '"')
+  else -- Linux/Unix systems
+      os.execute('xdg-open "' .. folder_path .. '"')
+  end
+end
+
+renoise.tool():add_menu_entry{name = "--Main Menu:Tools:Paketti..:Instruments..:Save All Samples to Folder...",invoke = saveAllSamplesToFolder}
+renoise.tool():add_menu_entry{name = "Main Menu:File:Save All Samples to Folder...",invoke = saveAllSamplesToFolder}
+renoise.tool():add_menu_entry{name = "--Sample Navigator:Paketti..:Save All Samples to Folder...",invoke = saveAllSamplesToFolder}
+renoise.tool():add_menu_entry{name = "--Instrument Box:Paketti..:Save All Samples to Folder...",invoke = saveAllSamplesToFolder}
+
+-------
+function showSampleSelectionInfo()
+  local song = renoise.song()
+  local sample = song.selected_sample
+  
+  if not sample or not sample.sample_buffer.has_sample_data then
+    renoise.app():show_status("No sample selected or no sample data")
+    return
+  end
+  
+  local buffer = sample.sample_buffer
+  local selection = buffer.selection_range
+  local start_frame = selection[1]
+  local end_frame = selection[2]
+  local frames_selected = end_frame - start_frame + 1
+  
+  -- Calculate milliseconds based on sample rate
+  local ms_per_frame = 1000 / buffer.sample_rate
+  local start_ms = start_frame * ms_per_frame
+  local end_ms = end_frame * ms_per_frame
+  local ms_selected = frames_selected * ms_per_frame
+  
+  renoise.app():show_status(string.format(
+    "Selection: %d-%d frames (%d frames total) | %.2f-%.2f ms (%.2f ms total)", 
+    start_frame, end_frame, frames_selected,
+    start_ms, end_ms, ms_selected
+  ))
+end
+
+-- Add keybinding for showing selection info
+renoise.tool():add_keybinding{
+  name = "Sample Editor:Paketti:Show Selection Info",
+  invoke = showSampleSelectionInfo
+}
+
+
+-- Create a preferences entry for the sample detail show state
+local preferences = renoise.Document.create("SampleSelectionPreferences") {
+  show_sample_details = false
+}
+
+-- Timer for updating the sample details
+local sample_details_timer = nil
+
+function isSampleEditorVisible()
+  return renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+end
+
+function startSampleDetailsTimer()
+  if not sample_details_timer then
+    sample_details_timer = renoise.tool():add_timer(updateSampleSelectionInfo, 50)
+  end
+end
+
+function stopSampleDetailsTimer()
+  if sample_details_timer then
+    renoise.tool():remove_timer(sample_details_timer)
+    sample_details_timer = nil
+  end
+end
+
+function updateSampleSelectionInfo()
+  -- First check if sample editor is visible
+  if not isSampleEditorVisible() then
+    stopSampleDetailsTimer()
+    return
+  end
+
+  local song = renoise.song()
+  local sample = song.selected_sample
+  
+  if not sample or not sample.sample_buffer.has_sample_data then
+    return
+  end
+  
+  local buffer = sample.sample_buffer
+  local selection = buffer.selection_range
+  local start_frame = selection[1]
+  local end_frame = selection[2]
+  local frames_selected = end_frame - start_frame + 1
+  
+  -- Calculate milliseconds based on sample rate
+  local ms_per_frame = 1000 / buffer.sample_rate
+  local start_ms = start_frame * ms_per_frame
+  local end_ms = end_frame * ms_per_frame
+  local ms_selected = frames_selected * ms_per_frame
+  
+  -- Calculate beats and divisions based on BPM
+  local bpm = song.transport.bpm
+  local lpb = song.transport.lpb
+  local beats_per_ms = bpm / (60 * 1000) -- beats per millisecond
+  local divisions_per_ms = beats_per_ms * lpb -- divisions per millisecond
+  
+  local start_beats = start_ms * beats_per_ms
+  local end_beats = end_ms * beats_per_ms
+  local beats_selected = ms_selected * beats_per_ms
+  
+  local start_divisions = start_ms * divisions_per_ms
+  local end_divisions = end_ms * divisions_per_ms
+  local divisions_selected = ms_selected * divisions_per_ms
+  
+  renoise.app():show_status(string.format(
+    "Selection: %d-%d frames (%d frames total) | %.2f-%.2f ms (%.2f ms total) | %.2f-%.2f beats (%.2f total) | %.2f-%.2f divs (%.2f total)", 
+    start_frame, end_frame, frames_selected,
+    start_ms, end_ms, ms_selected,
+    start_beats, end_beats, beats_selected,
+    start_divisions, end_divisions, divisions_selected
+  ))
+end
+
+-- Function to toggle the sample details display
+function toggleSampleDetails()
+  -- Check if sample editor is visible before allowing toggle
+  if not isSampleEditorVisible() then
+    renoise.app():show_status("Sample selection info only available in Sample Editor")
+    return
+  end
+
+  preferences.show_sample_details.value = not preferences.show_sample_details.value
+  
+  if preferences.show_sample_details.value then
+    startSampleDetailsTimer()
+    renoise.app():show_status("Sample selection info display: ON")
+  else
+    stopSampleDetailsTimer()
+    renoise.app():show_status("Sample selection info display: OFF")
+  end
+end
+
+-- Add observer for window changes
+renoise.app().window.active_middle_frame_observable:add_notifier(function()
+  if not isSampleEditorVisible() then
+    stopSampleDetailsTimer()
+    preferences.show_sample_details.value = false
+  elseif preferences.show_sample_details.value then
+    startSampleDetailsTimer()
+  end
+end)
+
+renoise.tool():add_keybinding{name = "Sample Editor:Paketti:Toggle Sample Selection Info",invoke = toggleSampleDetails}
+renoise.tool():add_menu_entry{name = "--Sample Editor:Paketti..:Toggle Sample Selection Info",invoke = toggleSampleDetails}
+renoise.tool().app_release_document_observable:add_notifier(function() stopSampleDetailsTimer() end)
+
+----------
+
+
+function adjust_loop_range(multiply_by)
+  local song = renoise.song()
+  if not song then 
+    debug_print("No song available")
+    return 
+  end
+
+  local instrument = song.selected_instrument
+  if not instrument then 
+    debug_print("No instrument selected")
+    return 
+  end
+
+  local sample = song.selected_sample
+  if not sample then 
+    debug_print("No sample selected")
+    return 
+  end
+
+  local sample_buffer = sample.sample_buffer
+  if not sample_buffer or not sample_buffer.has_sample_data then 
+    debug_print("No sample buffer or no sample data")
+    return 
+  end
+
+  if sample.loop_mode ~= renoise.Sample.LOOP_MODE_OFF then  -- Fixed this line
+    local loop_start = sample.loop_start
+    local loop_end = sample.loop_end
+    local loop_length = loop_end - loop_start
+    local total_frames = sample_buffer.number_of_frames
+    
+    -- For halving, check if loop is too small
+    if multiply_by < 1 and loop_length <= 1 then
+      debug_print("Loop length too small to halve")
+      return
+    end
+    
+    local new_loop_end = loop_start + math.floor(loop_length * multiply_by)
+    -- Ensure we don't exceed sample bounds
+    if new_loop_end > total_frames then
+      new_loop_end = total_frames
+    end
+    
+    sample.loop_end = new_loop_end
+    local action = multiply_by < 1 and "Halved" or "Doubled"
+    debug_print(action .. " loop range from " .. loop_start .. "-" .. loop_end .. " to " .. loop_start .. "-" .. new_loop_end)
+  else
+    debug_print("Loop mode is off")
+  end
+end
+
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Sample Loop Halve",invoke=function() adjust_loop_range(0.5) end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Sample Loop Double",invoke=function() adjust_loop_range(2) end}
+renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Sample Loop Halve",invoke=function() adjust_loop_range(0.5) end}
+renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Sample Loop Double",invoke=function() adjust_loop_range(2) end}
+renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Sample Loop Halve",invoke=function() adjust_loop_range(0.5) end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Sample Loop Double",invoke=function() adjust_loop_range(2) end}
+
+local function get_next_division(current_rows, going_up)
+  local divisions = {1,2,3,4,5,6,7,8,12,16,24,32}
+  
+  -- Find the nearest division
+  local closest_idx = 1
+  local closest_diff = math.abs(divisions[1] - current_rows)
+  
+  for i = 1, #divisions do
+    local diff = math.abs(divisions[i] - current_rows)
+    if diff < closest_diff then
+      closest_idx = i
+      closest_diff = diff
+    end
+  end
+  
+  -- Move to next or previous division
+  if going_up then
+    closest_idx = math.min(closest_idx + 1, #divisions)
+  else
+    closest_idx = math.max(closest_idx - 1, 1)
+  end
+  
+  return divisions[closest_idx]
+end
+
+function cycle_loop_division(going_up)
+  local song = renoise.song()
+  if not song then 
+    debug_print("No song available")
+    return 
+  end
+
+  local instrument = song.selected_instrument
+  if not instrument then 
+    debug_print("No instrument selected")
+    return 
+  end
+
+  local sample = song.selected_sample
+  if not sample then 
+    debug_print("No sample selected")
+    return 
+  end
+
+  local sample_buffer = sample.sample_buffer
+  if not sample_buffer or not sample_buffer.has_sample_data then 
+    debug_print("No sample buffer or no sample data")
+    return 
+  end
+
+  if sample.loop_mode ~= renoise.Sample.LOOP_MODE_OFF then
+    local bpm = song.transport.bpm
+    local lpb = song.transport.lpb
+    local sample_rate = sample_buffer.sample_rate
+    
+    -- Calculate frames per row
+    local frames_per_row = math.floor((60 / bpm / lpb) * sample_rate)
+    
+    -- Get current loop length
+    local loop_start = sample.loop_start
+    local loop_end = sample.loop_end
+    local current_length = loop_end - loop_start
+    
+    -- Calculate current rows and find next division
+    local current_rows = math.floor(current_length / frames_per_row)
+    local new_rows = get_next_division(current_rows, going_up)
+    
+    -- Calculate new loop end
+    local new_length = frames_per_row * new_rows
+    local new_loop_end = loop_start + new_length
+    
+    -- Ensure we don't exceed sample bounds
+    local total_frames = sample_buffer.number_of_frames
+    if new_loop_end > total_frames then
+      new_loop_end = total_frames
+      new_rows = math.floor((new_loop_end - loop_start) / frames_per_row)
+      debug_print("Warning: Loop truncated to fit sample length")
+    end
+    
+    sample.loop_end = new_loop_end
+    debug_print(string.format(
+      "Adjusted loop to %d rows\nBPM: %d, LPB: %d\nLoop range: %d-%d", 
+      new_rows, bpm, lpb, loop_start, new_loop_end
+    ))
+  else
+    debug_print("Loop mode is off")
+  end
+end
+
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Sample Loop Length Next Division",invoke=function() cycle_loop_division(true) end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Sample Loop Length Previous Division",invoke=function() cycle_loop_division(false) end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Sample Loop Length Next Division",invoke=function() cycle_loop_division(true) end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Sample Loop Length Previous Division",invoke=function() cycle_loop_division(false) end}
+
+
+function snap_loop_to_rows()
+  local song = renoise.song()
+  if not song then 
+    debug_print("No song available")
+    return 
+  end
+
+  local instrument = song.selected_instrument
+  if not instrument then 
+    debug_print("No instrument selected")
+    return 
+  end
+
+  local sample = song.selected_sample
+  if not sample then 
+    debug_print("No sample selected")
+    return 
+  end
+
+  local sample_buffer = sample.sample_buffer
+  if not sample_buffer or not sample_buffer.has_sample_data then 
+    debug_print("No sample buffer or no sample data")
+    return 
+  end
+
+  if sample.loop_mode ~= renoise.Sample.LOOP_MODE_OFF then
+    local bpm = song.transport.bpm
+    local lpb = song.transport.lpb
+    local sample_rate = sample_buffer.sample_rate
+    
+    -- Calculate frames per row
+    local frames_per_row = math.floor((60 / bpm / lpb) * sample_rate)
+    
+    -- Get current loop length
+    local loop_start = sample.loop_start
+    local loop_end = sample.loop_end
+    local current_length = loop_end - loop_start
+    
+    -- Calculate nearest number of rows
+    local rows = math.floor((current_length / frames_per_row) + 0.5)
+    if rows < 1 then rows = 1 end
+    
+    -- Calculate new loop end
+    local new_length = frames_per_row * rows
+    local new_loop_end = loop_start + new_length
+    
+    -- Ensure we don't exceed sample bounds
+    local total_frames = sample_buffer.number_of_frames
+    if new_loop_end > total_frames then
+      new_loop_end = total_frames
+      rows = math.floor((new_loop_end - loop_start) / frames_per_row)
+      debug_print("Warning: Loop truncated to fit sample length")
+    end
+    
+    sample.loop_end = new_loop_end
+    debug_print(string.format(
+      "Snapped loop to nearest row division (%d rows)\nBPM: %d, LPB: %d\nLoop range: %d-%d", 
+      rows, bpm, lpb, loop_start, new_loop_end
+    ))
+  else
+    debug_print("Loop mode is off")
+  end
+end
+
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Snap Loop To Nearest Row",invoke=snap_loop_to_rows}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Snap Loop To Nearest Row",invoke=snap_loop_to_rows}
+
+---------
+function ShowLargestSamples()
+  local song = renoise.song()
+  local vb = renoise.ViewBuilder()
+  local dialog = nil
+  local used_samples = nil
+  
+  local function collect_samples()
+    used_samples = findUsedSamples()
+    local samples_list = {}
+    
+    for instr_idx, instrument in ipairs(song.instruments) do
+      for sample_idx, sample in ipairs(instrument.samples) do
+        if sample.sample_buffer and sample.sample_buffer.has_sample_data then
+          local sample_size = sample.sample_buffer.number_of_frames * 
+                             sample.sample_buffer.number_of_channels * 
+                             (sample.sample_buffer.bit_depth / 8)
+          
+          table.insert(samples_list, {
+            size = sample_size,
+            formatted_size = formatFileSize(sample_size),
+            instr_idx = instr_idx,
+            sample_idx = sample_idx,
+            instr_name = instrument.name,
+            sample_name = sample.name,
+            is_used = used_samples[instr_idx][sample_idx]
+          })
+        end
+      end
+    end
+    
+    table.sort(samples_list, function(a, b) return a.size > b.size end)
+    return samples_list
+  end
+
+  local function ShowLargestSamplesDialog()
+    local samples = collect_samples()
+    
+    if #samples == 0 then
+      renoise.app():show_status("No samples found in the song")
+      return
+    end
+
+    local dialog_content = vb:column {
+      margin = 0,
+      
+      vb:row {
+        margin = 0,
+        vb:button {
+          text = "Refresh",
+          notifier = function()
+            if dialog and dialog.visible then
+              dialog:close()
+            end
+            ShowLargestSamplesDialog()
+          end
+        },
+        vb:button {
+          text = "Delete Unused Samples",
+          notifier = function()
+            deleteUnusedSamples(true)  -- Skip confirmation since we're in the viewer
+            if dialog and dialog.visible then
+              dialog:close()
+            end
+            ShowLargestSamplesDialog()
+          end
+        },
+          vb:text { 
+          text = "Bold items are unused and can be safely deleted",
+          font = "italic"
+        }
+      },      
+      vb:row {
+        margin = 0,
+        vb:text { width = 40, text = "Action", font = "bold" },
+        vb:text { width = 70, text = "Size", font = "bold" },
+        vb:text { width = 30, text = "Slot", font = "bold" },
+        vb:text { width = 150, text = "Instrument", font = "bold" },
+        vb:text { width = 150, text = "Sample", font = "bold" }
+      }
+    }
+    
+    for i = 1, math.min(50, #samples) do
+      local sample = samples[i]
+      dialog_content:add_child(vb:row {
+        margin = 0,
+        spacing = 0,
+        
+        vb:button {
+          width = 40,
+          text = "Show",
+          notifier = function()
+            local song = renoise.song()
+            song.selected_instrument_index = sample.instr_idx
+            song.selected_sample_index = sample.sample_idx
+            renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+          end
+        },
+        
+        vb:text { 
+          width = 70, 
+          text = sample.formatted_size,
+          font = sample.is_used and "normal" or "bold",
+          style = sample.is_used and "normal" or "strong"
+        },
+        
+        vb:text { 
+          width = 30, 
+          text = string.format("%03d", sample.instr_idx),
+          font = sample.is_used and "normal" or "bold",
+          style = sample.is_used and "normal" or "strong"
+        },
+        
+        vb:text { 
+          width = 150, 
+          text = sample.instr_name,
+          font = sample.is_used and "normal" or "bold",
+          style = sample.is_used and "normal" or "strong"
+        },
+        
+        vb:text { 
+          width = 150, 
+          text = sample.sample_name,
+          font = sample.is_used and "normal" or "bold",
+          style = sample.is_used and "normal" or "strong"
+        }
+      })
+    end
+    
+    dialog = renoise.app():show_custom_dialog(
+      "Show Largest Samples (Top 50)",
+      dialog_content
+    )
+  end
+  
+  ShowLargestSamplesDialog()
+end
+
+renoise.tool():add_menu_entry{name = "--Main Menu:Tools:Paketti..:Show Largest Samples...",invoke = ShowLargestSamples}
+renoise.tool():add_menu_entry{name = "--Instrument Box:Paketti..:Show Largest Samples...",invoke = ShowLargestSamples}
+renoise.tool():add_keybinding{name = "Global:Paketti:Show Largest Samples...",invoke = ShowLargestSamples}
+---------
+-- Function to duplicate track and instrument with all settings
+function duplicateTrackAndInstrument()
+  -- Get the current song and important indices
+  local song = renoise.song()
+  local track_index = song.selected_track_index
+  local selected_track = song:track(track_index)
+  
+  -- First, duplicate the instrument
+  local instrument_index = song.selected_instrument_index
+  local original_instrument = song.instruments[instrument_index]
+  
+  -- Store external editor state and close it temporarily if needed
+  local external_editor_open = false
+  if original_instrument.plugin_properties and original_instrument.plugin_properties.plugin_device then
+    external_editor_open = original_instrument.plugin_properties.plugin_device.external_editor_visible
+    if external_editor_open then
+      original_instrument.plugin_properties.plugin_device.external_editor_visible = false
+    end
+  end
+  
+  -- Insert and copy the instrument
+  song:insert_instrument_at(instrument_index + 1)
+  local new_instrument = song.instruments[instrument_index + 1]
+  new_instrument:copy_from(original_instrument)
+  
+  -- Copy phrases if they exist
+  if #original_instrument.phrases > 0 then
+    for phrase_index = 1, #original_instrument.phrases do
+      new_instrument:insert_phrase_at(phrase_index)
+      new_instrument.phrases[phrase_index]:copy_from(original_instrument.phrases[phrase_index])
+    end
+  end
+  
+  -- Create new track
+  song:insert_track_at(track_index + 1)
+  local new_track = song:track(track_index + 1)
+  
+  -- Copy track settings
+  new_track.visible_note_columns = selected_track.visible_note_columns
+  new_track.visible_effect_columns = selected_track.visible_effect_columns
+  new_track.volume_column_visible = selected_track.volume_column_visible
+  new_track.panning_column_visible = selected_track.panning_column_visible
+  new_track.delay_column_visible = selected_track.delay_column_visible
+  new_track.sample_effects_column_visible = selected_track.sample_effects_column_visible
+  new_track.collapsed = selected_track.collapsed
+  
+  -- Copy DSP devices and their settings
+  for device_index = 2, #selected_track.devices do  -- Start from 2 to skip Track Volume device
+    local old_device = selected_track.devices[device_index]
+    local new_device = new_track:insert_device_at(old_device.device_path, device_index)
+    
+    -- Copy device parameters
+    for param_index = 1, #old_device.parameters do
+      new_device.parameters[param_index].value = old_device.parameters[param_index].value
+    end
+    
+    -- Copy device display settings
+    new_device.is_maximized = old_device.is_maximized
+    
+    -- Handle Instrument Automation device specially
+    if old_device.device_path:find("Instr. Automation") then
+      local old_xml = old_device.active_preset_data
+      local new_xml = old_xml:gsub("<instrument>(%d+)</instrument>", 
+        function(instr_index)
+          return string.format("<instrument>%d</instrument>", instrument_index)
+        end)
+      new_device.active_preset_data = new_xml
+    end
+  end
+  
+  -- Copy pattern data and update instrument references
+  for pattern_index = 1, #song.patterns do
+    local pattern = song:pattern(pattern_index)
+    local source_track = pattern:track(track_index)
+    local dest_track = pattern:track(track_index + 1)
+    
+    -- Copy all lines
+    for line_index = 1, pattern.number_of_lines do
+      dest_track:line(line_index):copy_from(source_track:line(line_index))
+      
+      -- Update instrument references in note columns
+      for _, note_column in ipairs(dest_track:line(line_index).note_columns) do
+        if note_column.instrument_value ~= 255 then  -- Skip empty instrument values
+          note_column.instrument_value = instrument_index
+        end
+      end
+    end
+    
+    -- Copy automation data
+    for _, automation in ipairs(source_track.automation) do
+      local new_automation = dest_track:create_automation(automation.dest_parameter)
+      for _, point in ipairs(automation.points) do
+        new_automation:add_point_at(point.time, point.value)
+      end
+    end
+  end
+  
+  -- Select the new track and instrument
+  song.selected_track_index = track_index + 1
+  song.selected_instrument_index = instrument_index + 1
+  
+  -- Restore external editor state if needed
+  if external_editor_open and new_instrument.plugin_properties and new_instrument.plugin_properties.plugin_device then
+    new_instrument.plugin_properties.plugin_device.external_editor_visible = true
+  end
+  
+  -- Show status message
+  renoise.app():show_status("Track and instrument duplicated successfully")
+end
+
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Duplicate Track and Instrument",invoke=duplicateTrackAndInstrument}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Duplicate Track and Instrument",invoke=duplicateTrackAndInstrument}
+renoise.tool():add_keybinding{name="Mixer:Paketti:Duplicate Track and Instrument",invoke=duplicateTrackAndInstrument}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Duplicate Track and Instrument",invoke=duplicateTrackAndInstrument}
+renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Track and Instrument",invoke=duplicateTrackAndInstrument}

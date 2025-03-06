@@ -600,3 +600,217 @@ end
 
 loadDeviceFromPreferences()
 
+
+-------
+--[[---------------------------------------------------------------------------
+Quick Load Device Dialog for Paketti
+---------------------------------------------------------------------------]]--
+
+local custom_dialog = nil  -- Keep track of dialog state
+
+function showQuickLoadDialog()
+  -- Toggle dialog if it exists
+  if custom_dialog and custom_dialog.visible then
+    custom_dialog:close()
+    custom_dialog = nil
+    return
+  end
+
+  local vb = renoise.ViewBuilder()
+  
+  -- Get current track's available devices and their info
+  local track = renoise.song().selected_track
+  local available_devices = track.available_devices
+  local available_device_infos = track.available_device_infos
+  
+  -- Create category-specific arrays
+  local native_devices = {}
+  local au_devices = {}
+  local vst_devices = {}
+  local vst3_devices = {}
+  local ladspa_devices = {}
+  local dssi_devices = {}
+  
+  -- Create readable names mapping
+  local device_items = {}
+  local device_paths = {}
+  
+  -- Add hidden native devices first
+  local hidden_devices = {
+    {name="Native: (Hidden) Chorus", path="Audio/Effects/Native/Chorus"},
+    {name="Native: (Hidden) Comb Filter", path="Audio/Effects/Native/Comb Filter"},
+    {name="Native: (Hidden) Distortion", path="Audio/Effects/Native/Distortion"},
+    {name="Native: (Hidden) Filter", path="Audio/Effects/Native/Filter"},
+    {name="Native: (Hidden) Filter 2", path="Audio/Effects/Native/Filter 2"},
+    {name="Native: (Hidden) Filter 3", path="Audio/Effects/Native/Filter 3"},
+    {name="Native: (Hidden) Flanger", path="Audio/Effects/Native/Flanger"},
+    {name="Native: (Hidden) Gate", path="Audio/Effects/Native/Gate"},
+    {name="Native: (Hidden) LofiMat", path="Audio/Effects/Native/LofiMat"},
+    {name="Native: (Hidden) mpReverb", path="Audio/Effects/Native/mpReverb"},
+    {name="Native: (Hidden) Phaser", path="Audio/Effects/Native/Phaser"},
+    {name="Native: (Hidden) RingMod", path="Audio/Effects/Native/RingMod"},
+    {name="Native: (Hidden) Scream Filter", path="Audio/Effects/Native/Scream Filter"},
+    {name="Native: (Hidden) Shaper", path="Audio/Effects/Native/Shaper"},
+    {name="Native: (Hidden) Stutter", path="Audio/Effects/Native/Stutter"}
+  }
+  
+  for _, device in ipairs(hidden_devices) do
+    table.insert(native_devices, device)
+  end
+  
+  -- Sort devices into categories
+  for i, device_path in ipairs(available_devices) do
+    local device_name
+    local normalized_path = device_path:gsub("\\", "/")
+    
+    if device_path:find("Native/") then
+      device_name = "Native: " .. normalized_path:match("([^/]+)$")
+      table.insert(native_devices, {name=device_name, path=normalized_path})
+    elseif device_path:find("VST3") then
+      device_name = "VST3: " .. (available_device_infos[i].short_name or normalized_path:match("([^/]+)$"))
+      table.insert(vst3_devices, {name=device_name, path=normalized_path})
+    elseif device_path:find("VST") and not device_path:find("VST3") then
+      device_name = "VST: " .. (available_device_infos[i].short_name or normalized_path:match("([^/]+)$"))
+      table.insert(vst_devices, {name=device_name, path=normalized_path})
+    elseif device_path:find("AU") then
+      device_name = "AU: " .. (available_device_infos[i].short_name or normalized_path:match("([^/]+)$"))
+      table.insert(au_devices, {name=device_name, path=normalized_path})
+    elseif device_path:find("LADSPA") then
+      local short_name = (available_device_infos[i].short_name or normalized_path:match("([^/]+)$")):match("([^:]+)$")
+      device_name = "LADSPA: " .. short_name
+      table.insert(ladspa_devices, {name=device_name, path=normalized_path})
+    elseif device_path:find("DSSI") then
+      local short_name = (available_device_infos[i].short_name or normalized_path:match("([^/]+)$")):match("([^:]+)$")
+      device_name = "DSSI: " .. short_name
+      table.insert(dssi_devices, {name=device_name, path=normalized_path})
+    end
+  end
+  
+  -- Sort each category internally
+  local function sort_devices(devices)
+    table.sort(devices, function(a, b) return a.name:lower() < b.name:lower() end)
+  end
+  
+  sort_devices(native_devices)
+  sort_devices(au_devices)
+  sort_devices(vst_devices)
+  sort_devices(vst3_devices)
+  sort_devices(ladspa_devices)
+  sort_devices(dssi_devices)
+  
+  -- Combine all devices in the desired order
+  local all_categories = {
+    {devices = native_devices},
+    {devices = au_devices},
+    {devices = vst_devices},
+    {devices = vst3_devices},
+    {devices = ladspa_devices},
+    {devices = dssi_devices}
+  }
+  
+  -- Add devices to the final list only if the category has items
+  for _, category in ipairs(all_categories) do
+    if #category.devices > 0 then
+      for _, device in ipairs(category.devices) do
+        table.insert(device_items, device.name)
+        device_paths[device.name] = device.path
+      end
+    end
+  end
+  
+  local content = vb:column {
+    margin = 10,
+    spacing = 10,
+    
+    vb:row {
+      spacing = 10,
+      vb:popup {
+        id = "device_selector",
+        width = 400,
+        items = device_items,
+        value = 1
+      },
+      vb:button {
+        text = "Load",
+        width = 60,
+        notifier = function()
+          local selected_name = device_items[vb.views.device_selector.value]
+          local device_path = device_paths[selected_name]
+          local track = renoise.song().selected_track
+          
+          -- Check device restrictions based on track type
+          if device_path:find("*Instr.") or device_path:find("*Key Tracker") or 
+             device_path:find("*Velocity Tracker") or device_path:find("*MIDI Control") then
+            if track.type == renoise.Track.TRACK_TYPE_GROUP then
+              renoise.app():show_status("Cannot load MIDI/Instrument devices on Group tracks")
+              return
+            elseif track.type == renoise.Track.TRACK_TYPE_SEND then
+              renoise.app():show_status("Cannot load MIDI/Instrument devices on Send tracks")
+              return
+            elseif track.type == renoise.Track.TRACK_TYPE_MASTER then
+              renoise.app():show_status("Cannot load MIDI/Instrument devices on Master track")
+              return
+            end
+          end
+          
+          -- Check if we're in sample fx mode
+          local in_sample_fx = false
+          if renoise.song().selected_sample_index > 0 then
+            in_sample_fx = true
+          end
+          
+          -- Find Line Input position for insertion
+          local line_input_index = nil
+          if not in_sample_fx then
+            for i, device in ipairs(track.devices) do
+              if device.name == "Line Input" then
+                line_input_index = i
+                break
+              end
+            end
+          end
+          
+          -- Load the device
+          if device_path:find("Native/") then
+            loadnative(device_path, line_input_index, in_sample_fx)
+          else
+            loadvst(device_path, line_input_index, in_sample_fx)
+          end
+          
+          renoise.app():show_status("Loaded: " .. selected_name)
+        end
+      }
+    }
+  }
+  
+  -- Create dialog
+  custom_dialog = renoise.app():show_custom_dialog(
+    "Quick Load Device", 
+    content,
+    function(dialog, key)
+      local closer = preferences.pakettiDialogClose.value
+      if key.modifiers == "" and key.name == closer then
+        dialog:close()
+        custom_dialog = nil
+        return nil
+      else
+        return key
+      end
+    end
+  )
+
+  -- Set focus to the dropdown
+  vb.views.device_selector.value = 1
+
+  -- Set middle frame
+  if renoise.app().window.active_middle_frame then
+    renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
+  end
+end
+
+-- Add menu entries and keybinding
+renoise.tool():add_keybinding{name="Global:Tools:Quick Load Device", invoke=showQuickLoadDialog}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Quick Load Device...", invoke=showQuickLoadDialog}
+renoise.tool():add_menu_entry{name="DSP Device:Paketti..:Quick Load Device...", invoke=showQuickLoadDialog}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Quick Load Device...", invoke=showQuickLoadDialog}
+renoise.tool():add_midi_mapping{name="Paketti:Quick Load Device [Trigger]", invoke=function(message) if message:is_trigger() then showQuickLoadDialog() end end}

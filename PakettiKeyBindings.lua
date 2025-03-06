@@ -1136,7 +1136,7 @@ local padding_topic_binding = 25  -- Padding between topic and binding
 -- Function to detect OS and construct the KeyBindings.xml path
 function detectOSAndGetKeyBindingsPath()
   local os_name = os.platform()
-  local renoise_version = renoise.RENOISE_VERSION
+  local renoise_version = renoise.RENOISE_VERSION:match("(%d+%.%d+%.%d+)") -- This will grab just "3.5.0" from "3.5.0 b4"
   local key_bindings_path
 
   if os_name == "WINDOWS" then
@@ -1152,6 +1152,7 @@ function detectOSAndGetKeyBindingsPath()
 
   return key_bindings_path
 end
+
 
 -- Function to replace XML encoded entities with their corresponding characters
 local function decodeXMLString(value)
@@ -1536,3 +1537,394 @@ end
 
 
 
+
+
+----------
+-- Define possible keys that can be used in shortcuts
+local possible_keys = {
+  -- Letters
+  "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M",
+  "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z",
+  
+  -- Numbers (both number row and numpad)
+  "0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
+  
+  -- Special characters
+  "!", "@", "#", "$", "%", "^", "&", "*", "(", ")",
+  "+", "-", "=", "_", 
+  "[", "]", "{", "}", 
+  ";", ":", "'", "\"",
+  ",", ".", "/", "?",
+  "\\", "|",
+  "<", ">",
+  
+  -- International characters
+  "Å", "Ä", "Ö", "å", "ä", "ö",
+  "É", "È", "Ê", "Ë", "é", "è", "ê", "ë",
+  "Ñ", "ñ", "ß", "§", "¨", "´", "`", "~",
+  
+  -- Function keys
+  "F1", "F2", "F3", "F4", "F5", "F6",
+  "F7", "F8", "F9", "F10", "F11", "F12",
+  
+  -- Navigation keys
+  "Left", "Right", "Up", "Down",
+  "Home", "End", "PageUp", "PageDown",
+  
+  -- Editing keys
+  "Space", "Tab", "Return", "Enter",
+  "Backspace", "Delete", "Insert", "Escape",
+  
+  -- Numpad specific
+  "Numpad0", "Numpad1", "Numpad2", "Numpad3", "Numpad4",
+  "Numpad5", "Numpad6", "Numpad7", "Numpad8", "Numpad9",
+  "NumpadMultiply", "NumpadDivide", "NumpadAdd", 
+  "NumpadSubtract", "NumpadDecimal", "NumpadEnter"
+}
+
+-- Add mapping for special characters to their Renoise XML names
+local key_xml_names = {
+  ["<"] = "PeakedBracket",
+  [">"] = "PeakedBracket",  -- Note: Shift + PeakedBracket
+  ["{"] = "CurlyBracket",
+  ["}"] = "CurlyBracket",
+  ["["] = "SquareBracket",
+  ["]"] = "SquareBracket",
+  -- Add any other special character mappings here
+}
+
+
+-- Add this mapping for the correct modifier names as they appear in KeyBindings.xml
+local modifier_xml_names = {
+  -- macOS
+  ["Ctrl"] = "Control",
+  ["Cmd"] = "Command",
+  ["Option"] = "Option",
+  ["Shift"] = "Shift",
+  -- Windows/Linux
+  ["Alt"] = "Alt"
+}
+
+
+
+-- Cache for used combinations
+local used_combinations_cache = nil
+
+function get_used_combinations()
+  if used_combinations_cache then
+    return used_combinations_cache
+  end
+  
+  local used_combinations = {}
+  local keyBindingsPath = detectOSAndGetKeyBindingsPath()
+  
+  print("\nDEBUG: Reading from " .. keyBindingsPath)
+  
+  local file = io.open(keyBindingsPath, "r")
+  if not file then
+    print("ERROR: Could not open KeyBindings.xml")
+    return used_combinations
+  end
+  
+  local content = file:read("*all")
+  file:close()
+  
+  -- Parse each line looking for key combinations
+  for line in content:gmatch("[^\r\n]+") do
+    local key = line:match("<Key>([^<]+)</Key>")
+    if key and key ~= "<Shortcut not Assigned>" then
+      print("DEBUG: Found XML key: '" .. key .. "'")
+      used_combinations[key] = true
+    end
+  end
+  
+  print("\nDEBUG: All used combinations:")
+  for combo in pairs(used_combinations) do
+    print("  '" .. combo .. "'")
+  end
+  
+  used_combinations_cache = used_combinations
+  return used_combinations
+end
+
+-- Function to save results to a file
+function save_combinations_to_file(combinations, filename)
+  local file = io.open(filename, "w")
+  if not file then
+    print("Error: Could not open file for writing")
+    return false
+  end
+  
+  for _, combo in ipairs(combinations) do
+    file:write(combo .. "\n")
+  end
+  
+  file:close()
+  return true
+end
+
+
+function check_free_combinations(selected_modifiers)
+  local used_combinations = get_used_combinations()
+  local free_combinations = {}
+  
+  -- First normalize the modifier order to match XML exactly
+  local ordered_mods = normalize_modifier_order(selected_modifiers)
+  print("\nDEBUG: Normalized modifiers:", table.concat(ordered_mods, ", "))
+  
+  for _, key in ipairs(possible_keys) do
+    local xml_key = key_xml_names[key] or key
+    local combo = #ordered_mods > 0 and 
+      table.concat(ordered_mods, " + ") .. " + " .. xml_key or 
+      xml_key
+      
+    print("\nDEBUG: Checking combo: '" .. combo .. "'")
+    if used_combinations[combo] then
+      print("  USED: '" .. combo .. "'")
+    else
+      print("  FREE: '" .. combo .. "'")
+      table.insert(free_combinations, combo)
+    end
+  end
+  
+  return free_combinations
+end
+
+-- Also fix the print_free_combinations function to use correct names
+function print_free_combinations()
+  local os_name = os.platform()
+  local modifiers = os_name == "MACINTOSH" and {
+    {"Control"}, {"Command"}, {"Option"}, {"Shift"},
+    {"Shift", "Option"}, {"Shift", "Command"}, {"Shift", "Control"},
+    {"Option", "Command"}, {"Option", "Control"}, {"Command", "Control"},
+    {"Shift", "Option", "Command"}, {"Shift", "Option", "Control"},
+    {"Shift", "Command", "Control"}, {"Option", "Command", "Control"},
+    {"Shift", "Option", "Command", "Control"}
+  } or {
+    {"Control"}, {"Alt"}, {"Shift"},
+    {"Shift", "Alt"}, {"Shift", "Control"}, {"Alt", "Control"},
+    {"Shift", "Alt", "Control"}
+  }
+
+  local all_results = {}
+  print(string.format("Free combinations for %s:", os_name == "MACINTOSH" and "macOS" or "Windows/Linux"))
+  
+  for _, mod_set in ipairs(modifiers) do
+    local mod_string = table.concat(mod_set, "+")
+    local free = check_free_combinations(mod_set)
+    print(string.format("\nThere are %d free combinations with %s:", #free, mod_string))
+    
+    for _, combo in ipairs(free) do
+      print("  " .. combo)
+    end
+  end  
+  -- Save results to file
+  local timestamp = os.date("%Y%m%d_%H%M%S")
+  local filename = "free_keybindings_" .. timestamp .. ".txt"
+  if save_combinations_to_file(all_results, filename) then
+    print("\nResults saved to: " .. filename)
+  end
+end
+
+function show_free_keybindings_dialog()
+  local vb = renoise.ViewBuilder()
+  local dialog_content = vb:column{
+    margin = renoise.ViewBuilder.DEFAULT_DIALOG_MARGIN,
+    spacing = renoise.ViewBuilder.DEFAULT_CONTROL_SPACING
+  }
+  
+  -- Get OS name first
+  local os_name = os.platform()
+  
+  -- Create modifier checkboxes based on OS
+  local checkbox_row = vb:row{spacing = 10}
+  
+  if os_name == "MACINTOSH" then
+    modifier_checkboxes = {
+      ctrl = {
+        box = vb:checkbox{notifier = function() update_free_list() end},
+        label = vb:text{text = "Control"}
+      },
+      cmd = {
+        box = vb:checkbox{notifier = function() update_free_list() end},
+        label = vb:text{text = "Command"}
+      },
+      option = {
+        box = vb:checkbox{notifier = function() update_free_list() end},
+        label = vb:text{text = "Option"}
+      },
+      shift = {
+        box = vb:checkbox{notifier = function() update_free_list() end},
+        label = vb:text{text = "Shift"}
+      }
+    }
+  else
+    modifier_checkboxes = {
+      ctrl = {
+        box = vb:checkbox{notifier = function() update_free_list() end},
+        label = vb:text{text = "Control"}
+      },
+      alt = {
+        box = vb:checkbox{notifier = function() update_free_list() end},
+        label = vb:text{text = "Alt"}
+      },
+      shift = {
+        box = vb:checkbox{notifier = function() update_free_list() end},
+        label = vb:text{text = "Shift"}
+      }
+    }
+  end
+  
+  -- Create rows with checkboxes and labels
+  for _, mod in pairs(modifier_checkboxes) do
+    local mod_row = vb:row{
+      spacing = 4,
+      mod.box,
+      mod.label
+    }
+    checkbox_row:add_child(mod_row)
+  end
+
+  -- ADD THIS LINE - Add the checkbox row to dialog_content
+  dialog_content:add_child(checkbox_row)
+
+
+  
+  -- Add save button
+  local save_button = vb:button{
+    text = "Save to File",
+    notifier = function()
+      local selected_modifiers = {}
+      if os_name == "MACINTOSH" then
+        if modifier_checkboxes.ctrl.box.value then table.insert(selected_modifiers, "Ctrl") end
+        if modifier_checkboxes.cmd.box.value then table.insert(selected_modifiers, "Cmd") end
+        if modifier_checkboxes.option.box.value then table.insert(selected_modifiers, "Option") end
+        if modifier_checkboxes.shift.box.value then table.insert(selected_modifiers, "Shift") end
+      else
+        if modifier_checkboxes.ctrl.box.value then table.insert(selected_modifiers, "Ctrl") end
+        if modifier_checkboxes.alt.box.value then table.insert(selected_modifiers, "Alt") end
+        if modifier_checkboxes.shift.box.value then table.insert(selected_modifiers, "Shift") end
+      end
+      
+      local free = check_free_combinations(selected_modifiers)
+      local timestamp = os.date("%Y%m%d_%H%M%S")
+      local filename = "free_keybindings_" .. timestamp .. ".txt"
+      
+      if save_combinations_to_file(free, filename) then
+        renoise.app():show_message("Results saved to: " .. filename)
+      else
+        renoise.app():show_error("Failed to save results")
+      end
+    end
+  }
+  dialog_content:add_child(save_button)
+  
+  -- Add results view
+  local results_view = vb:multiline_textfield{
+    width = 400,
+    height = 400,
+    font = "mono",
+    edit_mode = false  -- Changed from read_only = true
+  }
+  dialog_content:add_child(results_view)
+  
+  -- Function to update the free combinations list
+  function update_free_list()
+    local selected_modifiers = {}
+    if os_name == "MACINTOSH" then
+      -- Add modifiers in the correct order
+      if modifier_checkboxes.shift.box.value then table.insert(selected_modifiers, "Shift") end
+      if modifier_checkboxes.option.box.value then table.insert(selected_modifiers, "Option") end
+      if modifier_checkboxes.cmd.box.value then table.insert(selected_modifiers, "Command") end
+      if modifier_checkboxes.ctrl.box.value then table.insert(selected_modifiers, "Control") end
+    else
+      if modifier_checkboxes.shift.box.value then table.insert(selected_modifiers, "Shift") end
+      if modifier_checkboxes.alt.box.value then table.insert(selected_modifiers, "Alt") end
+      if modifier_checkboxes.ctrl.box.value then table.insert(selected_modifiers, "Control") end
+    end
+    
+    print("\nDEBUG: Selected modifiers:", table.concat(selected_modifiers, ", "))
+    
+    local free = check_free_combinations(selected_modifiers)
+    local text = string.format("There are %d free combinations with %s:\n\n", 
+      #free,
+      #selected_modifiers > 0 and table.concat(selected_modifiers, " + ") or "no modifiers")
+    
+    for _, combo in ipairs(free) do
+      text = text .. combo .. "\n"
+    end
+    
+    results_view.text = text
+  end
+
+  
+  -- Show dialog
+  renoise.app():show_custom_dialog(
+    "Free Keybindings Finder",
+    dialog_content
+  )
+  
+  -- Initial update
+  update_free_list()
+end
+
+-- Add menu entries
+renoise.tool():add_menu_entry{
+  name = "Main Menu:Tools:Paketti..:!Preferences..:Find Free KeyBindings...",
+  invoke = show_free_keybindings_dialog
+}
+
+renoise.tool():add_menu_entry{
+  name = "Main Menu:Tools:Paketti..:!Preferences..:Print Free KeyBindings to Terminal",
+  invoke = print_free_combinations
+}
+
+-- Add keybinding for the dialog
+renoise.tool():add_keybinding{
+  name = "Global:Tools:Show Free KeyBindings Dialog",
+  invoke = show_free_keybindings_dialog
+}
+
+-- Function to normalize modifier order to match Renoise's XML format
+function normalize_modifier_order(modifiers)
+  -- Renoise's exact order: Shift, Option, Command, Control
+  local ordered = {}
+  local has = {
+    Shift = false,
+    Option = false,
+    Command = false,
+    Control = false,
+    Alt = false  -- Windows version of Option
+  }
+  
+  -- Mark which modifiers we have
+  for _, mod in ipairs(modifiers) do
+    has[mod] = true
+  end
+  
+  -- Add them in Renoise's EXACT order
+  if has.Shift then table.insert(ordered, "Shift") end
+  if has.Option or has.Alt then table.insert(ordered, "Option") end
+  if has.Command then table.insert(ordered, "Command") end
+  if has.Control then table.insert(ordered, "Control") end
+  
+  return ordered
+end
+
+function generate_combinations(modifiers)
+  local combinations = {}
+  
+  -- First normalize the modifier order to match XML exactly
+  modifiers = normalize_modifier_order(modifiers)
+  
+  for _, key in ipairs(possible_keys) do
+    local xml_key = key_xml_names[key] or key
+    local combo = #modifiers > 0 and 
+      table.concat(modifiers, " + ") .. " + " .. xml_key or  -- Note: spaces around + to match XML exactly
+      xml_key
+      
+    table.insert(combinations, combo)
+  end
+  
+  return combinations
+end

@@ -9,7 +9,6 @@ renoise.tool():add_midi_mapping{name="Paketti:Groove Settings Groove #2&4 x[Knob
     renoise.song().transport.groove_amounts = {ga[1], midi_message.int_value/127, ga[3], midi_message.int_value/127}
     end}
 
-
 --Groove Settings, re-written and simplified by mxb
 --Control Grooves with a slider
 renoise.tool():add_midi_mapping{name="Paketti:Groove Settings Groove #1 x[Knob]",
@@ -1601,9 +1600,14 @@ local target_devices = {
   {path="Audio/Effects/Native/Compressor", params={"Threshold", "Ratio", "Release", "Makeup"}},
   {path="Audio/Effects/Native/Comb Filter 2", params={"Note", "Transpose", "Feedback", "Dry/Wet"}},
   {path="Audio/Effects/Native/RingMod 2", params={"Note", "Transpose", "Dry/Wet"}},
-  {path="Audio/Effects/Native/mpReverb 2", params={"Duration", "Color", "Wet Mix"}},
+  {path="Audio/Effects/Native/mpReverb 2", params={"Duration", "Color", "Wet Mix", "Width"}},
+  {path="Audio/Effects/Native/Phaser 2", params={"Floor", "Ceiling", "Rate", "Feedback", "Depth", "Stages"}},
+  {path="Audio/Effects/Native/LofiMat 2", params={"Bit Crunch", "Rate", "Noise", "Wet Mix","Dry Mix"}},
+  {path="Audio/Effects/Native/Delay", params={"L Delay", "R Delay", "L Feedb.", "R Feedb.", "Send", "L Sync Time", "R Sync Time"}},
+  {path="Audio/Effects/Native/Analog Filter", params={"Type", "Cutoff", "Resonance", "Drive", "Inertia"}},
   {path="Audio/Effects/Native/EQ 10", params={}} -- EQ 10 now explicitly handled
 }
+
 
 -- Function to map MIDI value to parameter range
 local function scale_midi_to_param(midi_value, param)
@@ -1611,7 +1615,7 @@ local function scale_midi_to_param(midi_value, param)
 end
 
 -- Function to find and modify parameters of the target devices
-local function modify_device_param(device_path, param_index, midi_value)
+local function modify_device_param(device_path, param_identifier, midi_value)
   local track = renoise.song().selected_track
   local found_device = false
   
@@ -1619,23 +1623,42 @@ local function modify_device_param(device_path, param_index, midi_value)
   for device_index, device in ipairs(track.devices) do
     if device.device_path == device_path then
       found_device = true
+      local param
 
-      -- Directly modify the parameter at the given index for EQ 10
-      local param = device.parameters[param_index]
-      param.value = scale_midi_to_param(midi_value, param)
-      renoise.app():show_status("Parameter " .. string.format("%02d", param_index) .. " of " .. device.name .. " modified.")
+      -- Handle numeric parameter indices (for EQ 10)
+      if type(param_identifier) == "number" then
+        param = device.parameters[param_identifier]
+      else
+        -- Handle parameter names (for other devices)
+        for _, parameter in ipairs(device.parameters) do
+          if parameter.name == param_identifier then
+            param = parameter
+            break
+          end
+        end
+      end
+
+      -- Check if we found the parameter
+      if param then
+        param.value = scale_midi_to_param(midi_value, param)
+        renoise.app():show_status(param.name .. " of " .. device.name .. " modified.")
+      else
+        renoise.app():show_status("Parameter not found in " .. device.name)
+        return
+      end
       
       -- Set focus back to the pattern editor after modification
-      renoise.app().window.active_middle_frame=renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+      renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
       return
     end
   end
 
   -- If device not found, show a status message
   if not found_device then
-    renoise.app():show_status("The device " .. device_path .. " is not present on selected track, doing nothing.")
+    renoise.app():show_status("The device " .. device_path .. " is not present on selected track.")
   end
 end
+
 
 -- Helper function to remove " 2" from the device names for clean mapping names
 local function clean_device_name(device_name)
@@ -1699,7 +1722,315 @@ for _, device_info in ipairs(target_devices) do
   end
 end
 ----------
+local filter_types = {
+  "2P K35",
+  "2P Moog", 
+  "4P Moog",
+  "4P Diode"
+}
+
+-- Function to modify only the filter type in XML
+local function modify_filter_type(midi_value)
+  local track = renoise.song().selected_track
+  local found_device = false
+  
+  -- Find the Analog Filter device
+  for _, device in ipairs(track.devices) do
+    if device.device_path == "Audio/Effects/Native/Analog Filter" then
+      found_device = true
+      
+      -- Get current XML data
+      local xml_data = device.active_preset_data
+      
+      -- Calculate which filter type to use based on MIDI value (0-127)
+      local type_index = math.floor((midi_value / 127) * (#filter_types - 0.01)) + 1
+      type_index = math.min(type_index, #filter_types)
+      local new_type = filter_types[type_index]
+      
+      -- Replace only the Model tag in XML
+      local new_xml = xml_data:gsub(
+        '<Model>[^<]+</Model>',
+        '<Model>' .. new_type .. '</Model>'
+      )
+      
+      -- Apply the modified XML
+      device.active_preset_data = new_xml
+      
+      -- Show status message
+      renoise.app():show_status("Analog Filter Type changed to: " .. new_type)
+      return
+    end
+  end
+  
+  if not found_device then
+    renoise.app():show_status("Analog Filter device not found on selected track")
+  end
+end
+
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Selected Track Dev Analog Filter Filter Type",
+  invoke = function(message)
+    if message:is_abs_value() then
+      modify_filter_type(message.int_value)
+    end
+  end
+}
+
+---------
+
 
 renoise.tool():add_midi_mapping{name="Paketti:Clear Current Track in Pattern",invoke=function()
 renoise.song().selected_pattern.tracks[renoise.song().selected_track_index]:clear()
 end}
+-------
+
+-- Function to write MIDI-controlled effect command to pattern
+function MidiWriteEffectToLine(effect_number, range_min, range_max, clear_on_zero)
+  return function(midi_value)
+    local song = renoise.song()
+    local pattern = song:pattern(song.selected_pattern_index)
+    local track = pattern:track(song.selected_track_index)
+    local selection = song.selection_in_pattern
+    
+    -- Function to write effect to a specific line
+    local function write_effect_to_line(line)
+      -- Ensure at least one effect column is visible
+      if song.selected_track.visible_effect_columns == 0 then
+        song.selected_track.visible_effect_columns = 1
+      end
+      
+      -- Get the first effect column
+      local effect_column = line.effect_columns[1]
+      if effect_column then
+        if clear_on_zero and midi_value == 0 then
+          -- Clear the effect column
+          effect_column:clear()
+        else
+          -- Scale MIDI value (0-127) to desired range
+          local scaled_value = math.floor(range_min + (midi_value * (range_max - range_min) / 127))
+          local hex_value = string.format("%02X", scaled_value)
+          
+          effect_column.number_string = effect_number
+          effect_column.amount_string = hex_value
+        end
+      end
+    end
+    
+    if selection then
+      -- Write to selection
+      for line_idx = selection.start_line, selection.end_line do
+        local line = track:line(line_idx)
+        write_effect_to_line(line)
+      end
+      if clear_on_zero and midi_value == 0 then
+        renoise.app():show_status("Cleared effect columns in selection")
+      else
+        local scaled_value = math.floor(range_min + (midi_value * (range_max - range_min) / 127))
+        local hex_value = string.format("%02X", scaled_value)
+        renoise.app():show_status(string.format("Wrote %s%s to selection", effect_number, hex_value))
+      end
+    else
+      -- Write to current line only
+      write_effect_to_line(song.selected_line)
+      if clear_on_zero and midi_value == 0 then
+        renoise.app():show_status("Cleared effect column in current line")
+      else
+        local scaled_value = math.floor(range_min + (midi_value * (range_max - range_min) / 127))
+        local hex_value = string.format("%02X", scaled_value)
+        renoise.app():show_status(string.format("Wrote %s%s to current line", effect_number, hex_value))
+      end
+    end
+  end
+end
+
+-- Example mappings using the new system
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Write 0Sxx Command x[Knob]",
+  invoke = function(message)
+    if message:is_abs_value() then
+      local slice_count = get_slice_marker_count()
+      if slice_count then
+        -- If we have slice markers, adjust range to match slice count (1 to slice_count)
+        MidiWriteEffectToLine("0S", 1, slice_count)(message.int_value)
+        -- Show additional info about slice mapping
+        renoise.app():show_status(string.format("Using slice range: 1 to %d", slice_count))
+      else
+        -- No slice markers, use full range
+        MidiWriteEffectToLine("0S", 0, 255)(message.int_value)
+      end
+    end
+  end}
+  
+
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Write ZLxx Command x[Knob]",
+  invoke = function(message)
+    if message:is_abs_value() then
+      MidiWriteEffectToLine("ZL", 1, 64, true)(message.int_value)
+    end
+  end}
+
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Write ZTxx Command x[Knob]",
+  invoke = function(message)
+    if message:is_abs_value() then
+      MidiWriteEffectToLine("ZT", 20, 255)(message.int_value)
+    end
+  end}
+
+-- Function to get slice marker count for current instrument
+function get_slice_marker_count()
+  local song = renoise.song()
+  local instrument = song.selected_instrument
+  
+  -- Check if we have an instrument with samples and slice markers
+  if instrument and instrument.samples[1] then
+    local sample = instrument.samples[1]
+    if sample.slice_markers and #sample.slice_markers > 0 then
+      return #sample.slice_markers
+    end
+  end
+  return nil
+end
+
+-- Function to write random slice or offset commands
+function write_random_slice_command()
+  local song = renoise.song()
+  local pattern = song:pattern(song.selected_pattern_index)
+  local track = pattern:track(song.selected_track_index)
+  local selection = song.selection_in_pattern
+  local slice_count = get_slice_marker_count()
+  
+  -- Function to write effect to a specific line
+  local function write_random_to_line(line)
+    if song.selected_track.visible_effect_columns == 0 then
+      song.selected_track.visible_effect_columns = 1
+    end
+    
+    local effect_column = line.effect_columns[1]
+    if effect_column then
+      local random_value = slice_count and math.random(1, slice_count) or math.random(0, 255)
+      effect_column.number_string = "0S"
+      effect_column.amount_string = string.format("%02X", random_value)
+    end
+  end
+  
+  if selection then
+    -- Write to selection
+    for line_idx = selection.start_line, selection.end_line do
+      write_random_to_line(track:line(line_idx))
+    end
+  else
+    -- Write to current line only
+    write_random_to_line(song.selected_line)
+  end
+end
+
+renoise.tool():add_midi_mapping{name="Paketti:Write 0Sxx Command Random Slice/Offset x[Toggle]",invoke=function(message) if message:is_trigger() then write_random_slice_command() end end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Write 0Sxx Command Random Slice/Offset",invoke = function() write_random_slice_command() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Write 0Sxx Command Random Slice/Offset",invoke = function() write_random_slice_command() end}
+
+-- Function to rename tracks based on actual samples being played
+function rename_tracks_by_played_samples()
+  local song = renoise.song()
+  local pattern = song:pattern(song.selected_pattern_index)
+  
+  -- Store used samples for each track
+  local track_samples = {}
+  
+  -- Scan pattern for used samples
+  for track_idx, track in ipairs(pattern.tracks) do
+    local song_track = song.tracks[track_idx]
+    track_samples[track_idx] = {}
+    
+    -- Skip master, send tracks, and group tracks
+    if song_track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+      for line_idx, line in ipairs(track.lines) do
+        for _, note_col in ipairs(line.note_columns) do
+          if note_col.note_value >= 0 and note_col.instrument_value >= 0 then
+            local instr = song.instruments[note_col.instrument_value + 1]
+            if instr then
+              local found_sample = false
+              
+              print(string.format("\nTrack %d Line %d: Note %d Instrument '%s'", 
+                track_idx, line_idx, note_col.note_value, instr.name))
+              
+              -- Check each mapping group
+              for map_group_idx, map_group in ipairs(instr.sample_mappings) do
+                -- Check each individual mapping in the group
+                for map_idx = 1, #map_group do
+                  local mapping = map_group[map_idx]
+                  if mapping and mapping.note_range then
+                    print(string.format("  Checking mapping group %d index %d", map_group_idx, map_idx))
+                    print(string.format("  Note range: %d to %d", mapping.note_range[1], mapping.note_range[2]))
+                    
+                    -- Check if note is in range
+                    if note_col.note_value >= mapping.note_range[1] and 
+                       note_col.note_value <= mapping.note_range[2] then
+                      -- Get the sample directly from the mapping
+                      if mapping.sample then
+                        local name = mapping.sample.name
+                        if name and name ~= "" then
+                          track_samples[track_idx][name] = true
+                          found_sample = true
+                          print(string.format("  Found match! Using sample '%s'", name))
+                          break
+                        end
+                      end
+                    end
+                  end
+                end
+                if found_sample then break end
+              end
+              
+              -- Only use first sample as fallback if no mapping was found
+              if not found_sample and #instr.samples > 0 then
+                local sample = instr.samples[1]
+                if sample and sample.sample_buffer.has_sample_data then
+                  local name = sample.name
+                  if name and name ~= "" then
+                    track_samples[track_idx][name] = true
+                    print(string.format("No mapping found, using first sample '%s'", name))
+                  end
+                end
+              end
+            end
+          end
+        end
+      end
+      
+      -- Rename track based on found samples
+      local samples_found = {}
+      for sample_name, _ in pairs(track_samples[track_idx]) do
+        table.insert(samples_found, sample_name)
+      end
+      
+      if #samples_found > 0 then
+        if #samples_found == 1 then
+          song_track.name = samples_found[1]
+        else
+          local max_samples = math.min(3, #samples_found)
+          local new_name = samples_found[1]
+          for i = 2, max_samples do
+            new_name = new_name .. "+" .. samples_found[i]
+          end
+          if #samples_found > 3 then
+            new_name = new_name .. "+..."
+          end
+          song_track.name = new_name
+        end
+        renoise.app():show_status("Renamed track " .. track_idx .. " to: " .. song_track.name)
+      else
+        print(string.format("No samples found for track %d", track_idx))
+      end
+    end
+  end
+end
+
+-- Add keybinding and menu entry for the rename function
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Rename Tracks By Played Samples",invoke = function() rename_tracks_by_played_samples() end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Rename Tracks By Played Samples",invoke = function() rename_tracks_by_played_samples() end}
+renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Rename Tracks By Played Samples",invoke = function() rename_tracks_by_played_samples() end}
+
+
+

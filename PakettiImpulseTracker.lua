@@ -1374,10 +1374,8 @@ function PlayCurrentLine()
   local sli = s.selected_line_index
   
   if renoise.API_VERSION >= 6.2 then
-    -- New API version
     s:trigger_pattern_line(sli)
   else
-    -- Old API version
     local t = s.transport
     t:start_at(sli)
     local start_time = os.clock()

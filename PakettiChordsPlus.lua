@@ -171,13 +171,13 @@ function JalexAdd(number)
         {name="Chordsplus 4-3-7 (Maj Added 9th)", fn=function() chordsplus(4,3,7) end},
         {name="Chordsplus 3-4-7 (Min Added 9th)", fn=function() chordsplus(3,4,7) end},
         {name="Chordsplus 4-7-3 (Maj9 Simplified)", fn=function() chordsplus(4,7,3) end}, -- Maj9 without 5th
-        
         {name="Chordsplus 3-7-4 (Min9 Simplified)", fn=function() chordsplus(3,7,4) end}, -- Min9 without 5th
         {name="Chordsplus 3-8-3 (mM9 Simplified)", fn=function() chordsplus(3,8,3) end}, -- MinorMajor9 without 5th
         {name="Chordsplus 4-3-4-4 (MM9)", fn=function() chordsplus(4,3,4,4) end}, -- MajorMajor9 with Augmented 9th
         {name="Chordsplus 3-4-4-3 (mM9)", fn=function() chordsplus(3,4,4,3) end}, -- MinorMajor9
         {name="Chordsplus 4-3-2-5 (Maj6 Add9)", fn=function() chordsplus(4,3,2,5) end}, -- Maj6 Add9
         {name="Chordsplus 3-4-2-5 (Min6 Add9)", fn=function() chordsplus(3,4,2,5) end}, -- Min6 Add9
+        {name="Chordsplus 4-3-4-3-3 (Maj9 Add11)", fn=function() chordsplus(4,3,4,3,3) end},
         {name="Chordsplus 2-5 (Sus2)", fn=function() chordsplus(2,5) end},
         {name="Chordsplus 5-2 (Sus4)", fn=function() chordsplus(5,2) end},
         {name="Chordsplus 5-2-3 (7Sus4)", fn=function() chordsplus(5,2,3) end},
@@ -194,7 +194,7 @@ function JalexAdd(number)
     local current_chord_index = 1 -- Start at the first chord
     
     -- Function to advance to the next chord in the list
-    local function next_chord()
+    function next_chord()
         chord_list[current_chord_index].fn() -- Invoke the current chord function
         renoise.app():show_status("Played: " .. chord_list[current_chord_index].name)
         current_chord_index = current_chord_index + 1
@@ -204,7 +204,7 @@ function JalexAdd(number)
     end
     
     -- Add Previous Chord function and menu entry
-    local function previous_chord()
+    function previous_chord()
         current_chord_index = current_chord_index - 2 -- Go back two steps since next_chord() will add one
         if current_chord_index < 0 then
             current_chord_index = #chord_list - 1 -- Wrap to end of list
@@ -264,6 +264,7 @@ function JalexAdd(number)
     renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Added - Minor Add 9 (3-4-7)",invoke=function() chordsplus(3,4,7) end }
     renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Added - Major 6 Add 9 (4-3-2-5)",invoke=function() chordsplus(4,3,2,5) end }
     renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Added - Minor 6 Add 9 (3-4-2-5)",invoke=function() chordsplus(3,4,2,5) end }
+    renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Added - Major 9 Add 11 (4-3-4-3-3)",invoke=function() chordsplus(4,3,4,3,3) end }
     renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Augmented - Aug6 (4-4-2)",invoke=function() chordsplus(4,4,2) end }
     renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Augmented - Aug7 (4-4-3)",invoke=function() chordsplus(4,4,3) end }
     renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Augmented - Aug8 (4-4-4)",invoke=function() chordsplus(4,4,4) end }
@@ -474,14 +475,12 @@ function NoteSorterDescending()
   renoise.app():show_status(selection and "Selection sorted in descending order" or "Notes sorted in descending order")
 end
 
-  -- Add keybindings and menu entries
   renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Note Sorter (Ascending)",invoke=NoteSorterAscending}
   renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Note Sorter (Ascending)",invoke=NoteSorterAscending}
-  
   renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Note Sorter (Descending)",invoke=NoteSorterDescending}
   renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Note Sorter (Descending)",invoke=NoteSorterDescending}
-  
-  function PhrasingRandom()
+---  
+  function RandomizeVoicing()
     local song = renoise.song()
     local track = song.selected_track
     local pattern = song.selected_pattern
@@ -559,16 +558,10 @@ end
     end
 end
 
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Randomize Phrasing for Notes in Row/Selection",
-    invoke=function() PhrasingRandom() end}
-renoise.tool():add_midi_mapping{name="Paketti:Randomize Phrasing for Notes in Row/Selection",
-    invoke=function() PhrasingRandom() end}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti ChordsPlus..:Randomize Phrasing for Notes in Row/Selection",
-    invoke=function() PhrasingRandom() end}
-
-    
-
-
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Randomize Voicing for Notes in Row/Selection",invoke=function() RandomizeVoicing() end}
+renoise.tool():add_midi_mapping{name="Paketti:Randomize Voicing for Notes in Row/Selection",invoke=function() RandomizeVoicing() end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti ChordsPlus..:Randomize Voicing for Notes in Row/Selection",invoke=function() RandomizeVoicing() end}
+---
   -- Function to shift notes left or right
   function ShiftNotes(direction)
     local song = renoise.song()
@@ -802,8 +795,143 @@ function RandomChord()
   
   -- Show what chord was selected
   renoise.app():show_status("Random Chord: " .. selected_chord.name)
+  print("Random Chord: " .. selected_chord.name)
 end
 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Random Chord",invoke=function() RandomChord() end}
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti ChordsPlus..:Random - Apply Random Chord",invoke=function() RandomChord() end}
 renoise.tool():add_midi_mapping{name="Paketti:ChordsPlus Random Chord",invoke=function(message) if message:is_trigger() then RandomChord() end end}
+
+
+function ExtractBassline()
+  local song = renoise.song()
+  local pattern = song.selected_pattern
+  local source_track_index = song.selected_track_index
+  local dest_track_index = source_track_index + 1
+  
+  -- Check if destination track exists
+  if dest_track_index > song.sequencer_track_count then
+    renoise.app():show_status("No track available after the current track")
+    return
+  end
+  
+  local source_track = pattern:track(source_track_index)
+  local dest_track = pattern:track(dest_track_index)
+  local visible_note_columns = song:track(source_track_index).visible_note_columns
+  local changes_made = false
+  
+  -- Process each line in the pattern
+  for line_index = 1, pattern.number_of_lines do
+    local line = source_track:line(line_index)
+    local lowest_note = nil
+    local lowest_note_data = nil
+    
+    -- Find lowest note in this row across all note columns
+    for column_index = 1, visible_note_columns do
+      local note_column = line:note_column(column_index)
+      
+      -- Only process actual notes (skip empty notes and note-offs)
+      if not note_column.is_empty and note_column.note_string ~= "OFF" then
+        if lowest_note == nil or note_column.note_value < lowest_note then
+          lowest_note = note_column.note_value
+          lowest_note_data = {
+            note_value = note_column.note_value,
+            instrument_value = note_column.instrument_value,
+            volume_value = note_column.volume_value,
+            panning_value = note_column.panning_value,
+            delay_value = note_column.delay_value
+          }
+        end
+      end
+    end
+    
+    -- If we found a lowest note, copy it to the destination track
+    if lowest_note_data then
+      local dest_note_column = dest_track:line(line_index):note_column(1)
+      dest_note_column.note_value = lowest_note_data.note_value
+      dest_note_column.instrument_value = lowest_note_data.instrument_value
+      dest_note_column.volume_value = lowest_note_data.volume_value
+      dest_note_column.panning_value = lowest_note_data.panning_value
+      dest_note_column.delay_value = lowest_note_data.delay_value
+      changes_made = true
+    end
+  end
+  
+  if changes_made then
+    renoise.app():show_status("Bassline extracted to track " .. dest_track_index)
+  else
+    renoise.app():show_status("No notes found to extract")
+  end
+end
+
+-- Add menu entry and keybinding
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Extract Bassline to Next Track",
+  invoke=function() ExtractBassline() end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti ChordsPlus..:Extract Bassline to Next Track",
+  invoke=function() ExtractBassline() end}
+
+  function ExtractHighestNote()
+    local song = renoise.song()
+    local pattern = song.selected_pattern
+    local source_track_index = song.selected_track_index
+    local dest_track_index = source_track_index + 1
+    
+    -- Check if destination track exists
+    if dest_track_index > song.sequencer_track_count then
+      renoise.app():show_status("No track available after the current track")
+      return
+    end
+    
+    local source_track = pattern:track(source_track_index)
+    local dest_track = pattern:track(dest_track_index)
+    local visible_note_columns = song:track(source_track_index).visible_note_columns
+    local changes_made = false
+    
+    -- Process each line in the pattern
+    for line_index = 1, pattern.number_of_lines do
+      local line = source_track:line(line_index)
+      local highest_note = nil
+      local highest_note_data = nil
+      
+      -- Find highest note in this row across all note columns
+      for column_index = 1, visible_note_columns do
+        local note_column = line:note_column(column_index)
+        
+        -- Only process actual notes (skip empty notes and note-offs)
+        if not note_column.is_empty and note_column.note_string ~= "OFF" then
+          if highest_note == nil or note_column.note_value > highest_note then
+            highest_note = note_column.note_value
+            highest_note_data = {
+              note_value = note_column.note_value,
+              instrument_value = note_column.instrument_value,
+              volume_value = note_column.volume_value,
+              panning_value = note_column.panning_value,
+              delay_value = note_column.delay_value
+            }
+          end
+        end
+      end
+      
+      -- If we found a highest note, copy it to the destination track
+      if highest_note_data then
+        local dest_note_column = dest_track:line(line_index):note_column(1)
+        dest_note_column.note_value = highest_note_data.note_value
+        dest_note_column.instrument_value = highest_note_data.instrument_value
+        dest_note_column.volume_value = highest_note_data.volume_value
+        dest_note_column.panning_value = highest_note_data.panning_value
+        dest_note_column.delay_value = highest_note_data.delay_value
+        changes_made = true
+      end
+    end
+    
+    if changes_made then
+      renoise.app():show_status("Highest notes extracted to track " .. dest_track_index)
+    else
+      renoise.app():show_status("No notes found to extract")
+    end
+  end
+  
+  renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Extract Highest Note to Next Track",
+    invoke=function() ExtractHighestNote() end}
+  renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Extract Highest Note to Next Track",
+    invoke=function() ExtractHighestNote() end}

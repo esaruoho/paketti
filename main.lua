@@ -248,7 +248,7 @@ timed_require("PakettiTkna")                 -- 1495 lines, 23.00 ms
 timed_require("PakettiRequests")             -- 9168 lines, 127.00 ms
 timed_require("PakettiSamples")              -- 4249 lines, 6.00 ms
 timed_require("Paketti35")
-
+timed_require("PakettiActionSelector")
 
 print(string.format("Total load time: %.3f seconds", os.clock() - init_time))
 ------------------------------------------------
@@ -285,7 +285,7 @@ renoise.app():load_theme(themes_path .. tostring(random_theme) .. ".xrnc")
 renoise.app():show_status("Randomized a theme out of your favorite list. " .. tostring(random_theme))
 end
 
-local function pakettiThemeSelectorPickRandomThemeFromAll()
+function pakettiThemeSelectorPickRandomThemeFromAll()
 local themes_path = renoise.tool().bundle_path .. "Themes/"
 local themes = os.filenames(themes_path, "*.xrnc")
   local new_index = selected_theme_index
@@ -342,14 +342,6 @@ function dbug(msg)
 end
 
 _AUTO_RELOAD_DEBUG = true
-
-
-
-
-
-
-print ("111223gg2g33g9991199911ffggHEYgffgf")
-
 
 
 

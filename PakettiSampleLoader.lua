@@ -10,7 +10,6 @@ render_context = {
 -- Variable to store the original solo and mute states
 local track_states = {}
 
--- Function to initiate rendering
 function start_rendering()
     local song = renoise.song()
     local render_priority = "high"
@@ -20,6 +19,26 @@ function start_rendering()
         if device.name == "#Line Input" then
             render_priority = "realtime"
             break
+        end
+    end
+
+    -- Add DC Offset if enabled in preferences and not already present
+    if preferences.RenderDCOffset.value then
+        local has_dc_offset = false
+        for _, device in ipairs(selected_track.devices) do
+            if device.name == "Render DC Offset" then
+                has_dc_offset = true
+                break
+            end
+        end
+        
+        if not has_dc_offset then
+            loadnative("Audio/Effects/Native/DC Offset","Render DC Offset")
+            -- Set DC Offset parameter to 1 (similar to how it's done in PakettiLoaders.lua)
+            local dc_offset_device = selected_track.devices[#selected_track.devices]
+            if dc_offset_device.name == "Render DC Offset" then
+                dc_offset_device.parameters[2].value = 1
+            end
         end
     end
 
@@ -35,7 +54,7 @@ function start_rendering()
 
     -- Save current solo and mute states of all tracks
     track_states = {}
-    render_context.num_tracks_before = #song.tracks  -- Save the number of tracks before rendering
+    render_context.num_tracks_before = #song.tracks
     for i, track in ipairs(song.tracks) do
         track_states[i] = {
             solo_state = track.solo_state,
@@ -59,17 +78,55 @@ function start_rendering()
     local success, error_message = song:render(render_options, render_context.temp_file_path, rendering_done_callback)
     if not success then
         print("Rendering failed: " .. error_message)
+        -- Remove DC Offset if it was added
+        if preferences.RenderDCOffset.value then
+            local last_device = selected_track.devices[#selected_track.devices]
+            if last_device.display_name == "Render DC Offset" then
+                selected_track:delete_device_at(#selected_track.devices)
+            end
+        end
     else
         -- Start a timer to monitor rendering progress
         renoise.tool():add_timer(monitor_rendering, 500)
     end
 end
 
--- Callback function that gets called when rendering is complete
 function rendering_done_callback()
     print("Rendering done callback started")
     local song = renoise.song()
     local renderTrack = render_context.source_track
+
+    -- DEBUG: Print initial state
+    print("Checking track", renderTrack, "for DC Offset removal")
+    local original_track = song:track(renderTrack)
+    print("Number of devices on track:", #original_track.devices)
+    for i, device in ipairs(original_track.devices) do
+        print(string.format("Device %d: %s", i, device.name))
+    end
+
+    -- Remove DC Offset if it was added (from original track) FIRST, before any other operations
+    if preferences.RenderDCOffset.value then
+        print("RenderDCOffset preference is enabled")
+        -- Remove from original track
+        local last_device = original_track.devices[#original_track.devices]
+        print("Last device name:", last_device.display_name)
+        if last_device.display_name == "Render DC Offset" then
+            print("Found Render DC Offset device, removing it...")
+            original_track:delete_device_at(#original_track.devices)
+            print("Device removed. New device count:", #original_track.devices)
+        else
+            print("Last device is not Render DC Offset, skipping removal")
+        end
+    else
+        print("RenderDCOffset preference is disabled")
+    end
+    
+    -- DEBUG: Print final state
+    print("Final device list:")
+    for i, device in ipairs(original_track.devices) do
+        print(string.format("Device %d: %s", i, device.name))
+    end
+
     local renderedTrack = renderTrack + 1
     local renderedInstrument = render_context.target_instrument
 
@@ -167,6 +224,10 @@ function rendering_done_callback()
         song.transport.edit_mode = false
     end
     renoise.song().selected_track.mute_state=1
+
+    for i=1,#song.tracks do
+        renoise.song().tracks[i].mute_state=1
+    end 
 end
 
 -- Function to monitor rendering progress

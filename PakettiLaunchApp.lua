@@ -1,5 +1,6 @@
 _AUTO_RELOAD_DEBUG = true
-
+local dialog = nil
+local dialog_content = nil
 local vb = renoise.ViewBuilder()
 
 local app_paths = {}
@@ -73,7 +74,7 @@ function saveSelectedSampleToTempAndOpen(app_path)
 end
 
 -- Create the dialog UI
-local function create_dialog_content(close_dialog)
+local function create_dialog_content(closeLA_dialog)
     app_paths = {}
     smart_folder_paths = {}
 
@@ -314,28 +315,37 @@ local function create_dialog_content(close_dialog)
         vb:button{
             text="OK",
             notifier=function()
-                close_dialog()
+                appSelectionUpdateMenuEntries()
+                dialog:close()
+                dialog = nil
             end
         }
     }
 end
 
 function my_appSelection_keyhandlerfunc(dialog,key)
+    local closer = preferences.pakettiDialogClose.value
+    if key.modifiers == "" and key.name == closer then
+     dialog:close()
+     return end
+     
+      if key.name == "!" then
+        dialog:close()
+  --      renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+      else
+        return key
+      end
+  end
 
-local closer = preferences.pakettiDialogClose.value
-  if key.modifiers == "" and key.name == closer then
-dialog:close()
-dialog=nil
-return nil
-else
-
-    return key
-end
-end
 
 -- Show the dialog
 function show_app_selection_dialog()
-    local dialog = nil
+    if dialog and dialog.visible then 
+        dialog:close()
+        dialog = nil
+        return
+    end    
+
     dialog = renoise.app():show_custom_dialog("App Selection & Smart Folders / Backup Folders", create_dialog_content(function()
         dialog:close()
         appSelectionUpdateMenuEntries() 
@@ -378,7 +388,7 @@ end
 for i=1, 3 do
     renoise.tool():add_keybinding{name="Global:Paketti:Save Sample to Smart/Backup Folder " .. i,invoke=function() saveSampleToSmartFolder(i) end }
     renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Save Sample to Smart/Backup Folder " .. i,invoke=function() saveSampleToSmartFolder(i) end }
-    renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Save Sample to Smart/Backup Folder " .. i,invoke=function() saveSampleToSmartFolder(i) end }
+    renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Save..:Save Sample to Smart/Backup Folder " .. i,invoke=function() saveSampleToSmartFolder(i) end }
     renoise.tool():add_midi_mapping{name="Paketti:Save Sample to Smart/Backup Folder " .. i,invoke=function(message) if message:is_trigger() then saveSampleToSmartFolder(i) end end}
 end
 
@@ -592,12 +602,10 @@ local app_name = app_path:match("([^/\\]+)%.app$") or app_path:match("([^/\\]+)$
       invoke=show_app_selection_dialog
     }
     table.insert(added_menu_entries, configure_entry_name)
-
-
-  end  
-  
-  
+  end 
 end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Configure Launch App Selection...",invoke=show_app_selection_dialog}
 
 function appSelectionUpdateMenuEntries()
   if renoise.song() == nil then return end

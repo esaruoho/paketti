@@ -463,7 +463,7 @@ local function build_dynamic_view_ui(vb, dv)
 end
 
 -- Assemble the dialog interface for dynamic views
-function build_dialog_interface(vb, start_dv, end_dv, close_dialog)
+function build_dialog_interface(vb, start_dv, end_dv, closeDV_dialog)
   local interface = vb:column { spacing = 1 }
   for dv = start_dv, end_dv do
     interface:add_child(build_dynamic_view_ui(vb, dv))
@@ -475,7 +475,7 @@ function build_dialog_interface(vb, start_dv, end_dv, close_dialog)
     vb:button { text = "Save & Close", height = 20, width = 100, pressed = function()
       renoise.app():show_status("Saving current settings")
       saveDynamicViewPreferences()
-      close_dialog()
+      closeDV_dialog()
     end }
   })
   return interface
@@ -487,13 +487,13 @@ function showDynamicViewDialog(start_dv, end_dv)
   local dialog_content
   local dialog
 
-  local function close_dialog()
+  local function closeDV_dialog()
     if dialog and dialog.visible then
       dialog:close()
     end
   end
 
-  dialog_content = build_dialog_interface(vb, start_dv, end_dv, close_dialog)
+  dialog_content = build_dialog_interface(vb, start_dv, end_dv, closeDV_dialog)
   dialog = renoise.app():show_custom_dialog("Paketti Dynamic View Preferences Dialog " .. start_dv .. "-" .. end_dv, dialog_content, function()
     -- Save settings when the dialog is closed
     saveDynamicViewPreferences()

@@ -493,7 +493,7 @@ function finalrecord()
 
 
       
-      
+      renoise.song().selected_sample.sample_buffer:prepare_sample_data_changes()                
       local current_frames = sample_buffer.number_of_frames
       local new_length = current_frames
       

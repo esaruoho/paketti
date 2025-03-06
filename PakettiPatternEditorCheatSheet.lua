@@ -65,7 +65,7 @@ local effects = {
   {"0G", "-Gxx", "Glide towards given note by xx 1/16ths of a semitone"},
   {"0I", "-Ixx", "Fade Volume in by xx volume units"},
   {"0O", "-Oxx", "Fade Volume out by xx volume units"},
-  {"0C", "-Cxy", "Cut volume to x after y ticks (x frandomiolume factor: 0=0%, F=100%)"},
+  {"0C", "-Cxy", "Cut volume to x after y ticks (x = volume factor: 0=0%, F=100%)"},
   {"0Q", "-Qxx", "Delay note by xx ticks"},
   {"0M", "-Mxx", "Set note volume to xx"},
   {"0S", "-Sxx", "Trigger sample slice number xx or offset xx"},
@@ -98,10 +98,22 @@ function randomizeSmatterEffectColumnCustom(effect_command, fill_percentage, min
   local selection = song.selection_in_pattern
   local randomize_switch = preferences.pakettiCheatSheet.pakettiCheatSheetRandomizeSwitch.value
   local dont_overwrite = preferences.pakettiCheatSheet.pakettiCheatSheetRandomizeDontOverwrite.value
+  local only_modify_effects = preferences.pakettiCheatSheet.pakettiCheatSheetOnlyModifyEffects.value
+  local only_modify_notes = preferences.pakettiCheatSheet.pakettiCheatSheetOnlyModifyNotes.value
   local randomize_whole_track_cb = preferences.pakettiCheatSheet.pakettiCheatSheetRandomizeWholeTrack.value
 
   if min_value > max_value then
     min_value, max_value = max_value, min_value
+  end
+
+  -- Check for slice markers if this is a 0S command
+  if effect_command == "0S" then
+    local instrument = song.selected_instrument
+    if instrument and instrument.samples[1] and #instrument.samples[1].slice_markers > 0 then
+      -- Adjust range to start from 01 for slices
+      min_value = 1
+      max_value = #instrument.samples[1].slice_markers
+    end
   end
 
   local randomize = function()
@@ -116,11 +128,36 @@ function randomizeSmatterEffectColumnCustom(effect_command, fill_percentage, min
     return math.random(100) <= fill_percentage
   end
 
-  local apply_command = function(line, column_index)
+  local has_notes_in_line = function(track, line_index, track_index)
+    local song = renoise.song()
+    local line = track:line(line_index)
+    local visible_columns = song:track(track_index).visible_note_columns
+    for i = 1, visible_columns do
+      local note_column = line.note_columns[i]
+      -- Only check for actual notes (not empty and not NOTE_OFF)
+      if note_column.note_value ~= renoise.PatternLine.EMPTY_NOTE and 
+         note_column.note_string ~= "OFF" then
+        return true
+      end
+    end
+    return false
+  end
+
+  local apply_command = function(line, column_index, track, line_index, track_index)
     local effect_column = line:effect_column(column_index)
     if effect_column then
-      if dont_overwrite then
+      if only_modify_notes then
+        if has_notes_in_line(track, line_index, track_index) and should_apply() then
+          effect_column.number_string = effect_command
+          effect_column.amount_string = randomize()
+        end
+      elseif dont_overwrite then
         if effect_column.is_empty and should_apply() then
+          effect_column.number_string = effect_command
+          effect_column.amount_string = randomize()
+        end
+      elseif only_modify_effects then
+        if not effect_column.is_empty and should_apply() then
           effect_column.number_string = effect_command
           effect_column.amount_string = randomize()
         end
@@ -151,7 +188,7 @@ function randomizeSmatterEffectColumnCustom(effect_command, fill_percentage, min
         for col = start_column, end_column do
           local column_index = col - note_columns_visible
           if col > note_columns_visible and column_index > 0 and column_index <= effect_columns_visible then
-            apply_command(track:line(line_index), column_index)
+            apply_command(track:line(line_index), column_index, track, line_index, t)
           end
         end
       end
@@ -166,15 +203,17 @@ function randomizeSmatterEffectColumnCustom(effect_command, fill_percentage, min
         local lines = pattern.number_of_lines
         for line_index = 1, lines do
           for column_index = 1, song:track(track_index).visible_effect_columns do
-            apply_command(track:line(line_index), column_index)
+            apply_command(track:line(line_index), column_index, track, line_index, track_index)
           end
         end
       end
     else
       -- Apply to current line
       local line = song.selected_line
+      local track_index = song.selected_track_index
+      local track = song:pattern(song.selected_pattern_index):track(track_index)
       for column_index = 1, song.selected_track.visible_effect_columns do
-        apply_command(line, column_index)
+        apply_command(line, column_index, track, song.selected_line_index, track_index)
       end
     end
   end
@@ -447,6 +486,16 @@ function effect_write(effect, status, command, min_value, max_value)
     min_value, max_value = max_value, min_value
   end
 
+  -- Check for slice markers if this is a 0S command
+  if effect == "0S" then
+    local instrument = s.selected_instrument
+    if instrument and instrument.samples[1] and #instrument.samples[1].slice_markers > 0 then
+      -- Adjust range to start from 01 for slices
+      min_value = 1
+      max_value = #instrument.samples[1].slice_markers
+    end
+  end
+
   local randomize = function()
     if randomize_switch then
       return string.format("%02X", math.random() < 0.5 and min_value or max_value)
@@ -519,8 +568,21 @@ function CheatSheet()
     return
   end
 
-  local eSlider = 137 -- Adjusted slider height
+  -- Check for slice markers and adjust initial min/max values if needed
+  local initial_min = preferences.pakettiCheatSheet.pakettiCheatSheetRandomizeMin.value
+  local initial_max = preferences.pakettiCheatSheet.pakettiCheatSheetRandomizeMax.value
+  
+  -- Check if current instrument has slice markers
+  local instrument = s.selected_instrument
+  if instrument and instrument.samples[1] and #instrument.samples[1].slice_markers > 0 then
+    initial_min = 1
+    initial_max = #instrument.samples[1].slice_markers
+    -- Update preferences
+    preferences.pakettiCheatSheet.pakettiCheatSheetRandomizeMin.value = initial_min
+    preferences.pakettiCheatSheet.pakettiCheatSheetRandomizeMax.value = initial_max
+  end
 
+  local eSlider = 137 -- Adjusted slider height
   local globalwidth = 50
 
   local wikitooltip = "http://tutorials.renoise.com/wiki/Pattern_Effect_Commands#Effect_Listing"
@@ -602,8 +664,24 @@ function CheatSheet()
     end
   }
 
+  local only_modify_effects_cb = vb:checkbox {
+    value = preferences.pakettiCheatSheet.pakettiCheatSheetOnlyModifyEffects.value,
+    notifier = function(v)
+      preferences.pakettiCheatSheet.pakettiCheatSheetOnlyModifyEffects.value = v
+      save_Cheatsheetpreferences()
+    end
+  }
+
+  local only_modify_notes_cb = vb:checkbox {
+    value = preferences.pakettiCheatSheet.pakettiCheatSheetOnlyModifyNotes.value,
+    notifier = function(v)
+      preferences.pakettiCheatSheet.pakettiCheatSheetOnlyModifyNotes.value = v
+      save_Cheatsheetpreferences()
+    end
+  }
+
   -- Minimum Slider
-  local min_value = preferences.pakettiCheatSheet.pakettiCheatSheetRandomizeMin.value
+  local min_value = initial_min
 
   local min_slider = vb:minislider {
     id = "min_slider_unique",
@@ -646,7 +724,7 @@ function CheatSheet()
   }
 
   -- Maximum Slider
-  local max_value = preferences.pakettiCheatSheet.pakettiCheatSheetRandomizeMax.value
+  local max_value = initial_max
 
   local max_slider = vb:minislider {
     id = "max_slider_unique",
@@ -695,6 +773,8 @@ function CheatSheet()
     vb:horizontal_aligner {mode = "left", randomize_whole_track_cb, vb:text {text = "Randomize whole track if nothing is selected"}},
     vb:horizontal_aligner {mode = "left", randomizeswitch_cb, vb:text {text = "Randomize Min/Max Only"}},
     vb:horizontal_aligner {mode = "left", dontoverwrite_cb, vb:text {text = "Don't Overwrite Existing Data"}},
+    vb:horizontal_aligner {mode = "left", only_modify_effects_cb, vb:text {text = "Only Modify Rows With Effects"}},
+    vb:horizontal_aligner {mode = "left", only_modify_notes_cb, vb:text {text = "Only Modify Rows With Notes"}},
     vb:horizontal_aligner {mode = "left", vb:text {text = "Min", font = "mono"}, min_decrement_button, min_increment_button, min_slider, min_text},
     vb:horizontal_aligner {mode = "left", vb:text {text = "Max", font = "mono"}, max_decrement_button, max_increment_button, max_slider, max_text},
     vb:button {

@@ -8,15 +8,45 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Save Song (2nd)",invoke=function() saveSong() end}
 
 function RecordFollowToggle()
-local s=renoise.song()
-local t=renoise.song().transport
-local w=renoise.app().window
-w.active_middle_frame=1
-if t.edit_mode == true and t.follow_player == true then t.edit_mode=false t.follow_player=false return end
-if t.edit_mode == false and t.follow_player == false then t.edit_mode=true t.follow_player=true return else t.edit_mode=false t.follow_player=false end
-
-if t.follow_player == false and t.edit_mode == false then t.follow_player=true t.edit_mode=true else t.follow_player=false t.edit_mode=false end
-w.active_middle_frame=1
+  local s = renoise.song()
+  local t = renoise.song().transport
+  local w = renoise.app().window
+  
+  -- Handle phrase editor specific behavior
+  if w.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_PHRASE_EDITOR then
+    if t.playing then
+      if not t.follow_player then
+        -- Playing but not following - enable everything
+        t.follow_player = true
+        t.edit_mode = true
+        enable_phrase_follow()
+      else
+        -- Playing and following - disable everything
+        t.follow_player = false
+        t.edit_mode = false
+        disable_phrase_follow()
+      end
+    end
+    return
+  end
+  -- For all other cases, force pattern editor (middle_frame = 1)
+  w.active_middle_frame = 1
+  
+  if t.edit_mode == true and t.follow_player == true then 
+    t.edit_mode = false 
+    t.follow_player = false
+    return 
+  end
+  
+  if t.edit_mode == false and t.follow_player == false then
+    t.edit_mode = true
+    t.follow_player = true
+  else
+    t.edit_mode = false
+    t.follow_player = false
+  end
+  
+  w.active_middle_frame = 1
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Record+Follow Toggle (2nd)",invoke=function() RecordFollowToggle() end}
@@ -103,6 +133,7 @@ local a=renoise.app()
 local t=renoise.song().transport
 local w=renoise.app().window
 local pe=renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR 
+
   if t.follow_player==true and w.active_middle_frame==pe
 then t.follow_player=false
 else t.follow_player = true
@@ -709,6 +740,120 @@ if renoise.API_VERSION >= 6.2 then
   renoise.app().window.instrument_properties_show_macros=true
   renoise.app().window.instrument_properties_show_phrases=true  
   
+
+
+-- MIDI CC knob implementation for smooth pattern line scrubbing
+function TriggerPatternLineMidiValue(midi_value)
+  local song = renoise.song()
+  local pattern = song.selected_pattern
+  local number_of_rows = pattern.number_of_lines
+  
+  -- Scale MIDI value (0-127) to pattern length (1 to number_of_rows)
+  local line_number = math.floor(1 + (midi_value / 127) * (number_of_rows - 1))
+  
+  -- Trigger the line and show status
+  if line_number <= number_of_rows then
+    local hex_number = string.format("%02X", line_number - 1)
+    song:trigger_pattern_line(line_number)
+    renoise.app():show_status(string.format("Trigger Pattern Line %03d (%s)", line_number, hex_number))
+  end
+end
+
+-- Add MIDI CC mapping for smooth scrubbing
+renoise.tool():add_midi_mapping{
+  name = "Global:Paketti:Trigger Pattern Line Scrub (CC)",
+  invoke = function(message)
+    if message.boolean_value then
+      TriggerPatternLineMidiValue(message.value)
+    end
+  end
+}
+
+-- Create 512 individual trigger functions with their own MIDI mappings and shortcuts
+for i = 1, 512 do
+  local hex_number = string.format("%02X", i - 1)
+  
+  -- Add keybinding and MIDI mapping for each line
+  renoise.tool():add_keybinding{
+    name = string.format("Global:Paketti:Trigger Pattern Line %03d (%s)", i, hex_number),
+    invoke = function()
+      local song = renoise.song()
+      local pattern = song.selected_pattern
+      if i <= pattern.number_of_lines then
+        song:trigger_pattern_line(i)
+        renoise.app():show_status(string.format("Trigger Pattern Line %03d (%s)", i, hex_number))
+      else
+        renoise.app():show_status(string.format("The Pattern Row %d doesn't exist, doing nothing.", i))
+      end
+    end
+  }
+  
+  renoise.tool():add_midi_mapping{
+    name = string.format("Global:Paketti:Trigger Pattern Line %03d (%s)", i, hex_number),
+    invoke = function(message)
+      if message.boolean_value then
+        local song = renoise.song()
+        local pattern = song.selected_pattern
+        if i <= pattern.number_of_lines then
+          song:trigger_pattern_line(i)
+          renoise.app():show_status(string.format("Trigger Pattern Line %03d (%s)", i, hex_number))
+        else
+          renoise.app():show_status(string.format("The Pattern Row %d doesn't exist, doing nothing.", i))
+        end
+      end
+    end
+  }
+end
+
+
+renoise.tool():add_keybinding{name="Global:Paketti:Hide Sample Properties", invoke=function()
+  renoise.app().window.sample_properties_is_visible=false end}
+renoise.tool():add_keybinding{name="Global:Paketti:Show Sample Properties", invoke=function()
+  renoise.app().window.sample_properties_is_visible=true end}
+  renoise.tool():add_keybinding{name="Global:Paketti:Toggle Sample Properties", invoke=function()
+  if renoise.app().window.sample_properties_is_visible
+  then renoise.app().window.sample_properties_is_visible=false
+  else renoise.app().window.sample_properties_is_visible=true  
+end
+  
+  end}
+
+-- Function to control all instrument properties visibility
+function InstrumentPropertiesControl(show)
+  local app = renoise.app().window
+  
+  -- Main visibility
+  app.instrument_properties_is_visible = show
+  
+  -- All sub-properties
+  app.instrument_properties_show_volume_transpose = show
+  app.instrument_properties_show_trigger_options = show
+  app.instrument_properties_show_scale_options = show
+  app.instrument_properties_show_plugin = show
+  app.instrument_properties_show_plugin_program = show
+  app.instrument_properties_show_midi = show
+  app.instrument_properties_show_midi_program = show
+  app.instrument_properties_show_macros = show
+  app.instrument_properties_show_phrases = show
+  
+  renoise.app():show_status(show and "All instrument properties shown" or "All instrument properties hidden")
+end
+
+-- Add keybindings
+renoise.tool():add_keybinding{name="Global:Paketti:Hide All Instrument Properties",invoke=function() InstrumentPropertiesControl(false) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Show All Instrument Properties",invoke=function() InstrumentPropertiesControl(true) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Hide All Instrument Properties",invoke=function() InstrumentPropertiesControl(false) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Show All Instrument Properties",invoke=function() InstrumentPropertiesControl(true) end}
+
+
+
+-- Add menu entries
+renoise.tool():add_menu_entry{name="Global:Paketti..:Instrument Properties:Hide All Properties",invoke=function() hideAllInstrumentProperties() end}
+renoise.tool():add_menu_entry{name="Global:Paketti..:Instrument Properties:Show All Properties",invoke=function() showAllInstrumentProperties() end}
+
+
+
+
 -- Ensure Disk Browser is visible before performing actions
 local function EnsureDiskBrowserVisible()
   if not renoise.app().window.disk_browser_is_visible then renoise.app().window.disk_browser_is_visible = true end
@@ -752,6 +897,9 @@ local instrument_box_feature_available = pcall(function()
   -- Just try to read it first
   local _ = renoise.app().window.instrument_box_slot_size
 end)
+
+--renoise.app().window.instrument_box_slot_size = true
+
 
 -- Function to toggle instrument box slot size
 function ToggleInstrumentBoxSlotSize(large)

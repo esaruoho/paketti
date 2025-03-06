@@ -1469,43 +1469,43 @@ local function apply_ramp(selected_slots, ramp_type, is_exp, is_up)
 end
 
 -- Wrapper functions for the different ramp operations
-local function automation_volume_ramp_up_exp()
+function automation_volume_ramp_up_exp()
   local selected_slots = read_pattern_matrix_selection()
   apply_ramp(selected_slots, "Exponential Volume Up", true, true)
 end
 
-local function automation_volume_ramp_down_exp()
+function automation_volume_ramp_down_exp()
   local selected_slots = read_pattern_matrix_selection()
   apply_ramp(selected_slots, "Exponential Volume Down", true, false)
 end
 
-local function automation_volume_ramp_up_lin()
+function automation_volume_ramp_up_lin()
   local selected_slots = read_pattern_matrix_selection()
   apply_ramp(selected_slots, "Linear Volume Up", false, true)
 end
 
-local function automation_volume_ramp_down_lin()
+function automation_volume_ramp_down_lin()
   local selected_slots = read_pattern_matrix_selection()
   apply_ramp(selected_slots, "Linear Volume Down", false, false)
 end
 
 -- Automation ramps based on selected automation lane
-local function automation_ramp_up_exp()
+function automation_ramp_up_exp()
   local selected_slots = read_pattern_matrix_selection()
   apply_ramp(selected_slots, "Exponential Automation Up", true, true)
 end
 
-local function automation_ramp_down_exp()
+function automation_ramp_down_exp()
   local selected_slots = read_pattern_matrix_selection()
   apply_ramp(selected_slots, "Exponential Automation Down", true, false)
 end
 
-local function automation_ramp_up_lin()
+function automation_ramp_up_lin()
   local selected_slots = read_pattern_matrix_selection()
   apply_ramp(selected_slots, "Linear Automation Up", false, true)
 end
 
-local function automation_ramp_down_lin()
+function automation_ramp_down_lin()
   local selected_slots = read_pattern_matrix_selection()
   apply_ramp(selected_slots, "Linear Automation Down", false, false)
 end
@@ -1615,15 +1615,15 @@ local function apply_center_based_ramp(selected_slots, ramp_type, is_up, is_exp)
 end
 
 -- Special center-based ramp operations (Exponential and Linear)
-local function automation_center_to_top_exp() apply_center_based_ramp(read_pattern_matrix_selection(), "Center to Top", true, true) end
-local function automation_top_to_center_exp() apply_center_based_ramp(read_pattern_matrix_selection(), "Top to Center", false, true) end
-local function automation_center_to_bottom_exp() apply_center_based_ramp(read_pattern_matrix_selection(), "Center to Bottom", false, true) end
-local function automation_bottom_to_center_exp() apply_center_based_ramp(read_pattern_matrix_selection(), "Bottom to Center", true, true) end
+function automation_center_to_top_exp() apply_center_based_ramp(read_pattern_matrix_selection(), "Center to Top", true, true) end
+ function automation_top_to_center_exp() apply_center_based_ramp(read_pattern_matrix_selection(), "Top to Center", false, true) end
+ function automation_center_to_bottom_exp() apply_center_based_ramp(read_pattern_matrix_selection(), "Center to Bottom", false, true) end
+ function automation_bottom_to_center_exp() apply_center_based_ramp(read_pattern_matrix_selection(), "Bottom to Center", true, true) end
 
-local function automation_center_to_top_lin() apply_center_based_ramp(read_pattern_matrix_selection(), "Center to Top", true, false) end
-local function automation_top_to_center_lin() apply_center_based_ramp(read_pattern_matrix_selection(), "Top to Center", false, false) end
-local function automation_center_to_bottom_lin() apply_center_based_ramp(read_pattern_matrix_selection(), "Center to Bottom", false, false) end
-local function automation_bottom_to_center_lin() apply_center_based_ramp(read_pattern_matrix_selection(), "Bottom to Center", true, false) end
+ function automation_center_to_top_lin() apply_center_based_ramp(read_pattern_matrix_selection(), "Center to Top", true, false) end
+ function automation_top_to_center_lin() apply_center_based_ramp(read_pattern_matrix_selection(), "Top to Center", false, false) end
+ function automation_center_to_bottom_lin() apply_center_based_ramp(read_pattern_matrix_selection(), "Center to Bottom", false, false) end
+ function automation_bottom_to_center_lin() apply_center_based_ramp(read_pattern_matrix_selection(), "Bottom to Center", true, false) end
 
 -- Register menu entries and keybindings for all 8 center-based automations
 renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Automation Center to Top (Exp) for Pattern Matrix Selection",invoke=automation_center_to_top_exp }
@@ -1646,7 +1646,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Automation Top to Center (Lin
 renoise.tool():add_keybinding{name="Global:Paketti:Automation Center to Bottom (Lin)",invoke=automation_center_to_bottom_lin }
 renoise.tool():add_keybinding{name="Global:Paketti:Automation Bottom to Center (Lin)",invoke=automation_bottom_to_center_lin }
 
-local function randomize_envelope()
+function randomize_envelope()
   local song = renoise.song()
   local automation_parameter = song.selected_automation_parameter
   
@@ -2062,11 +2062,7 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Automation..:Write
 end
 end
 -----------------
-
-
-
-
-local function PakettiAutomationSelectionFloodFill()
+function PakettiAutomationSelectionFloodFill()
   local song = renoise.song()
   local automation_parameter = song.selected_automation_parameter
 
@@ -2185,7 +2181,7 @@ renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Automation..:Flo
 renoise.tool():add_menu_entry{name="--Track Automation:Paketti..:Flood Fill Automation Selection",invoke=PakettiAutomationSelectionFloodFill}
 
 ------
-local function SetAutomationRangeValue(value)
+function SetAutomationRangeValue(value)
   local song = renoise.song()
   local automation_parameter = song.selected_automation_parameter
 
@@ -2250,7 +2246,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Set Automation Range to Max (1.0)"
 renoise.tool():add_midi_mapping{name="Paketti:Set Automation Range to Middle (0.5)",invoke=function(message) if message:is_trigger() then SetAutomationRangeValue(0.5) end end}
 renoise.tool():add_midi_mapping{name="Paketti:Set Automation Range to Min (0.0)",invoke=function(message) if message:is_trigger() then SetAutomationRangeValue(0.0) end end}
 -------
-local function FlipAutomationHorizontal()
+function FlipAutomationHorizontal()
   local song = renoise.song()
   local automation_parameter = song.selected_automation_parameter
 
@@ -2322,7 +2318,7 @@ local center_based_parameters = {
   -- Add other center-based parameters as needed
 }
 
-local function ScaleAutomation(scale_factor)
+function ScaleAutomation(scale_factor)
   local song = renoise.song()
   local automation_parameter = song.selected_automation_parameter
 
@@ -2449,7 +2445,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Dynamic Scale Automation",
 
 ---
 
-local function FlipAutomationVertical()
+function FlipAutomationVertical()
   local song = renoise.song()
   local automation_parameter = song.selected_automation_parameter
 
@@ -2508,7 +2504,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Flip Automation Selection Horizont
 renoise.tool():add_midi_mapping{name="Paketti:Flip Automation Selection Vertically",invoke=function(message) if message:is_trigger() then FlipAutomationVertical() end end}
 -----
 
-local function add_automation_points_for_notes()
+function add_automation_points_for_notes()
   local song = renoise.song()
 
   -- Ensure there's a selected track and automation parameter
@@ -2581,7 +2577,7 @@ renoise.app().window.active_lower_frame = 2
 
 --------
 
-local function PakettiAutomationPlayModeChange_SetPlaymode(mode)
+function PakettiAutomationPlayModeChange_SetPlaymode(mode)
   local song = renoise.song()
   local automation_parameter = song.selected_automation_parameter
   if not automation_parameter or not automation_parameter.is_automatable then
@@ -2599,7 +2595,7 @@ local function PakettiAutomationPlayModeChange_SetPlaymode(mode)
   renoise.app():show_status("Playmode set to " .. mode)
 end
 
-local function PakettiAutomationPlayModeChange_Next()
+function PakettiAutomationPlayModeChange_Next()
   local song = renoise.song()
   local automation_parameter = song.selected_automation_parameter
   if not automation_parameter or not automation_parameter.is_automatable then
@@ -2617,7 +2613,7 @@ local function PakettiAutomationPlayModeChange_Next()
   renoise.app():show_status("Next playmode selected: " .. envelope.playmode)
 end
 
-local function PakettiAutomationPlayModeChange_Previous()
+function PakettiAutomationPlayModeChange_Previous()
   local song = renoise.song()
   local automation_parameter = song.selected_automation_parameter
   if not automation_parameter or not automation_parameter.is_automatable then
@@ -2651,7 +2647,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Select Automation Playmode 03 Curv
 
 
 
-local function clone_sequence_with_automation_only()
+function clone_sequence_with_automation_only()
   local song = renoise.song()
   local sequencer = song.sequencer
   local current_sequence = sequencer.pattern_sequence
@@ -2711,7 +2707,7 @@ end
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Clone Sequence (Automation Only)",invoke=clone_sequence_with_automation_only}
 renoise.tool():add_keybinding{name="Global:Paketti:Clone Sequence (Automation Only)",invoke=clone_sequence_with_automation_only}
 
-local function clone_pattern_without_automation()
+function clone_pattern_without_automation()
   local song = renoise.song()
   local sequencer = song.sequencer
   local current_sequence_pos = song.selected_sequence_index

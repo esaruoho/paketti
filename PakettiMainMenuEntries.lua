@@ -205,31 +205,33 @@ renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:!!About..:About 
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:!Preferences..:Open Paketti Path",invoke=function() renoise.app():open_path(renoise.tool().bundle_path)end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:Debug..:Inspect Plugin (Console)",invoke=function() inspectPlugin() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:Debug..:Inspect Device in Slot 2 (Console)",invoke=function() inspectEffect() end}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Pattern Editor..:Random BPM (60-180)",invoke=function()
-        local bpmList = {80, 100, 115, 123, 128, 132, 135, 138, 160}
-        local currentBPM = renoise.song().transport.bpm
-        local newBpmList = {}
-        for _, bpm in ipairs(bpmList) do
-            if bpm ~= currentBPM then
-                table.insert(newBpmList, bpm)
-            end
-        end
+function randomBPM()
+  local bpmList = {80, 100, 115, 123, 128, 132, 135, 138, 160}
+  local currentBPM = renoise.song().transport.bpm
+  local newBpmList = {}
+  for _, bpm in ipairs(bpmList) do
+      if bpm ~= currentBPM then
+          table.insert(newBpmList, bpm)
+      end
+  end
 
-        if #newBpmList > 0 then
-            local selectedBPM = newBpmList[math.random(#newBpmList)]
-            renoise.song().transport.bpm = selectedBPM
-            print("Random BPM set to: " .. selectedBPM) -- Debug output to the console
-        else
-            print("No alternative BPM available to switch to.")
-        end
+  if #newBpmList > 0 then
+      local selectedBPM = newBpmList[math.random(#newBpmList)]
+      renoise.song().transport.bpm = selectedBPM
+      print("Random BPM set to: " .. selectedBPM) -- Debug output to the console
+  else
+      print("No alternative BPM available to switch to.")
+  end
 
-        -- Optional: write the BPM to a file or apply other logic
-        if renoise.tool().preferences.RandomBPM and renoise.tool().preferences.RandomBPM.value then
-            write_bpm() -- Ensure this function is defined elsewhere in your tool
-            print("BPM written to file or handled additionally.")
-        end
-    end
-}
+  -- Optional: write the BPM to a file or apply other logic
+  if renoise.tool().preferences.RandomBPM and renoise.tool().preferences.RandomBPM.value then
+      write_bpm() -- Ensure this function is defined elsewhere in your tool
+      print("BPM written to file or handled additionally.")
+  end
+
+end  
+
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Pattern Editor..:Random BPM (60-180)",invoke=function() randomBPM() end}
 
 --renoise.song().transport.bpm=math.random(60,180) end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Write Current BPM&LPB to Master column",invoke=function() write_bpm() end}
@@ -262,7 +264,7 @@ local devices=renoise.song().tracks[renoise.song().selected_track_index].availab
     print(key, value)
   end
 end}
-renoise.tool():add_menu_entry{name="---Main Menu:Tools:Paketti..:Plugins/Devices..:Debug..:Available Routings for Track...",invoke=function() showAvailableRoutings() end}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Plugins/Devices..:Debug..:Available Routings for Track...",invoke=function() showAvailableRoutings() end}
 
 -- Function to create and show the dialog with a text field.
 function squigglerdialog()

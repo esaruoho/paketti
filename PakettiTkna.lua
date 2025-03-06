@@ -1,3 +1,139 @@
+function tknaSelectedTrackVolume0to1Toggle(number)
+  renoise.song().tracks[renoise.song().selected_track_index].postfx_volume.value=number
+  end
+  
+  
+  renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Track Volume to -INF dB",invoke=function() tknaSelectedTrackVolume0to1Toggle(0) end}
+  renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Track Volume to 0.0dB",invoke=function() tknaSelectedTrackVolume0to1Toggle(1) end}
+  
+  function tknaMasterTrackVolume0to1Toggle(number)
+  local masterTrackIndex=renoise.song().sequencer_track_count+1
+  renoise.song().tracks[masterTrackIndex].postfx_volume.value=number
+  end
+  
+  renoise.tool():add_keybinding{name="Global:Paketti:Set Master Track Volume to -INF dB",invoke=function() tknaMasterTrackVolume0to1Toggle(0) end}
+  renoise.tool():add_keybinding{name="Global:Paketti:Set Master Track Volume to 0.0dB",invoke=function() tknaMasterTrackVolume0to1Toggle(1) end}
+  -------------
+
+  -----
+  function tknaChangeMasterTrackVolumeBy(dB_change)
+    local masterTrackIndex=renoise.song().sequencer_track_count+1
+    local masterTrack=renoise.song().tracks[masterTrackIndex]
+    local currentVolumeString=masterTrack.postfx_volume.value_string
+    local currentVolumeValue=masterTrack.postfx_volume.value
+  
+    -- Debug: Current state
+    print("-----")
+    print("Starting with dB change: "..dB_change.." dB")
+    print("Current Volume String: "..currentVolumeString)
+    print("Current Volume Value: "..currentVolumeValue)
+  
+    -- Extract the numeric value from the value_string
+    local currentdB=tonumber(currentVolumeString:match("[-]?%d+%.?%d*")) or -200
+  
+    -- Debug: Extracted current dB
+    print("Current dB: "..currentdB)
+  
+    -- Handle the case where the volume is at -INF
+    if currentVolumeString=="-INF dB" then
+      if dB_change>0 then
+        currentdB=-48 -- Jump to -48dB when increasing from -INF
+        print("New dB set to: "..currentdB.." because current volume is at -INF and change is positive")
+      else
+        renoise.app():show_status("Master Track Volume is already at -INF, cannot go lower.")
+        return
+      end
+    end
+  
+    local newdB=currentdB+dB_change
+    print("New dB after change: "..newdB)
+  
+    -- Correctly handle the transitions
+    if newdB>3 then
+      newdB=3
+      renoise.app():show_status("Master Track Volume is already at 3.0dB, cannot go higher.")
+    elseif newdB>=2.9 and newdB<3 and currentdB<2.9 then
+      newdB=math.floor((currentdB+dB_change)*100+0.5)/100
+    elseif newdB==3.0 and dB_change<0 then
+      newdB=math.floor((currentdB+dB_change)*100+0.5)/100
+    elseif newdB<=-48 and dB_change<0 then
+      newdB=-200 -- Transition to -INF
+    elseif newdB<=-47.9 and newdB>-48.1 and dB_change>0 then
+      newdB=math.floor((currentdB+dB_change)*100+0.5)/100
+    end
+  
+    newdB=math.floor(newdB*100+0.5)/100 -- Reduce to 2 decimals
+    local newVolumeString
+    if newdB<=-200 then
+      newVolumeString="-INF dB"
+    else
+      newVolumeString=string.format("%.2f dB", newdB)
+    end
+  
+    -- Debug: What we are going to do
+    print("Setting New Volume String: "..newVolumeString)
+    print("Setting New Volume Value: "..newdB)
+  
+    masterTrack.postfx_volume.value_string=newVolumeString
+  
+    -- Debug: New state
+    print("New Volume String: "..masterTrack.postfx_volume.value_string)
+    print("New Volume Value: "..masterTrack.postfx_volume.value)
+  
+    renoise.app():show_status("Master Track Volume: "..masterTrack.postfx_volume.value_string)
+  end
+  
+  renoise.tool():add_keybinding{name="Global:Paketti:Change Master Track Volume by +0.1dB",invoke=function() tknaChangeMasterTrackVolumeBy(0.1) end}
+  renoise.tool():add_keybinding{name="Global:Paketti:Change Master Track Volume by -0.1dB",invoke=function() tknaChangeMasterTrackVolumeBy(-0.1) end}
+
+  ---
+  
+
+
+function tknaMidiSelectedTrackOutputRoutings(midi_value)
+  local track=renoise.song().selected_track
+  local routings=#track.available_output_routings
+  local output=math.floor((midi_value/127)*routings)+1
+  if output<=routings then
+    track.output_routing=track.available_output_routings[output]
+    renoise.app():show_status("Selected Track Output Routing set to "..output)
+  else
+    renoise.app():show_status("Selected Track Output Routing value out of range.")
+  end
+end
+
+function tknaMidiMasterOutputRoutings(midi_value)
+  local song=renoise.song()
+  local masterTrack=song:track(song.sequencer_track_count+1)
+  local routings=#masterTrack.available_output_routings
+  local output=math.floor((midi_value/127)*routings)+1
+  if output<=routings then
+    masterTrack.output_routing=masterTrack.available_output_routings[output]
+    renoise.app():show_status("Master Track Output Routing set to "..output)
+  else
+    renoise.app():show_status("Master Track Output Routing value out of range.")
+  end
+end
+
+renoise.tool():add_midi_mapping{name="Paketti:Midi Change Selected Track Output Routings",
+  invoke=function(midi_message)
+    local midi_value=midi_message.int_value
+    tknaMidiSelectedTrackOutputRoutings(midi_value)
+  end
+}
+
+renoise.tool():add_midi_mapping{name="Paketti:Midi Change Master Output Routings",
+  invoke=function(midi_message)
+    local midi_value=midi_message.int_value
+    tknaMidiMasterOutputRoutings(midi_value)
+  end
+}
+
+
+
+
+
+
 -- All of these have been requested by tkna91 via 
 function loopReleaseToggle()
 if renoise.song().selected_sample.loop_release
@@ -16,13 +152,15 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample One-Shot On/Off",invoke=function() oneShotToggle() end}
 
 function selectedSampleLoopSet(number)
+  if renoise.song().selected_sample ~= nil then 
 renoise.song().selected_sample.oneshot=false
 local loop_modet = renoise.song().selected_sample.loop_mode
   if renoise.song().selected_sample.loop_mode==number then renoise.song().selected_sample.loop_mode=1 else loop_modet = number
   renoise.song().selected_sample.loop_mode=loop_modet
   end
+else renoise.app():show_status("No sample selected, doing nothing.")
 end
-
+end
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Loop 1 (Off)",invoke=function() selectedSampleLoopSet(1) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Loop 2 (Forward)",invoke=function() selectedSampleLoopSet(2) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Loop 3 (Backward)",invoke=function() selectedSampleLoopSet(3) end}
@@ -427,14 +565,15 @@ renoise.tool():add_keybinding{name="Global:Paketti:Toggle Sequence Selection to 
 -- Adding a menu entry for the function
 renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Sequences/Sections..:Toggle Sequence Selection to Loop",invoke=function() SequenceSelectionToLoop() end}
 
-renoise.tool():add_keybinding{name="Global:Paketti:Toggle Sequence Selection (All) On/Off",invoke=function()
-local sequencerCount=#renoise.song().sequencer.pattern_sequence
---if renoise.song().sequencer.selection_range=={1,sequencerCount} 
---then renoise.song().sequencer.selection_range={} else
-renoise.song().sequencer.selection_range={1,#renoise.song().sequencer.pattern_sequence}
---end
+function TKNAToggleSequenceSelectionAll()
+  local sequencerCount=#renoise.song().sequencer.pattern_sequence
+  --if renoise.song().sequencer.selection_range=={1,sequencerCount} 
+  --then renoise.song().sequencer.selection_range={} else
+  renoise.song().sequencer.selection_range={1,#renoise.song().sequencer.pattern_sequence}
+  --end
 end
-}
+
+renoise.tool():add_keybinding{name="Global:Paketti:Toggle Sequence Selection (All) On/Off",invoke=function() TKNAToggleSequenceSelectionAll() end}
 
 function tknaUnselectSequenceSelection()
 renoise.song().sequencer.selection_range={}
@@ -811,8 +950,10 @@ for i = 1, 32 do
   }
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Clear Pattern Sequence Loop",invoke=function()
-renoise.song().transport.loop_sequence_range = {} end}
+function TKNAClearPatternSequenceLoop()
+  renoise.song().transport.loop_sequence_range = {}
+end
+renoise.tool():add_keybinding{name="Global:Paketti:Clear Pattern Sequence Loop",invoke=function() TKNAClearPatternSequenceLoop() end}
 
 -- Function to compare two tables for value equality
 function tables_equal(t1, t2)
@@ -1578,8 +1719,8 @@ end
 function slicePercussionDrumKit() sliceDrumKit("percussion") end
 function sliceTextureDrumKit() sliceDrumKit("texture") end
 
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Slice Drumkit (Percussion)", invoke=slicePercussionDrumKit}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Slice Drumkit (Texture)", invoke=sliceTextureDrumKit}
+renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Beatsync/Slices..:Slice Drumkit (Percussion)", invoke=slicePercussionDrumKit}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Beatsync/Slices..:Slice Drumkit (Texture)", invoke=sliceTextureDrumKit}
 renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Slice Drumkit (Percussion)", invoke=slicePercussionDrumKit}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Slice Drumkit (Texture)", invoke=sliceTextureDrumKit}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Slice Drumkit (Percussion)", invoke=slicePercussionDrumKit}

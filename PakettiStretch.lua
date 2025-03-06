@@ -244,7 +244,7 @@ local function Timekeyhandlerfunc(dialog, key)
 end
 
 -- Dialog creation and pattern manipulation for timestretching
-local function create_timestretch_dialog()
+function create_timestretch_dialog()
     local song = renoise.song()
     local selected_track = song:track(song.selected_track_index)
     render_context.source_track = song.selected_track_index  -- Store the track index
@@ -1130,6 +1130,28 @@ local track_states = {}
 -- Function to initiate rendering
 function Strstart_rendering()
     local song = renoise.song()
+    local render_priority = "high"
+    local selected_track = song.selected_track
+
+    -- Add DC Offset if enabled in preferences
+    if preferences.RenderDCOffset.value then
+        local has_dc_offset = false
+        for _, device in ipairs(selected_track.devices) do
+            if device.display_name == "Render DC Offset" then
+                has_dc_offset = true
+                break
+            end
+        end
+        
+        if not has_dc_offset then
+            loadnative("Audio/Effects/Native/DC Offset","Render DC Offset")
+            local dc_offset_device = selected_track.devices[#selected_track.devices]
+            if dc_offset_device.display_name == "Render DC Offset" then
+                dc_offset_device.parameters[2].value = 1
+            end
+        end
+    end    
+    local song = renoise.song()
     print("AT Strstart_rendering BEFORE SET - Transport BPM:", song.transport.bpm)
     print("AT Strstart_rendering BEFORE SET - Context BPM:", render_context.current_bpm)
     
@@ -1192,6 +1214,18 @@ end
 -- Callback function that gets called when rendering is complete
 function Strrendering_done_callback()
     local song = renoise.song()
+    local renderTrack = render_context.source_track
+
+    -- Remove DC Offset if it was added (FIRST, before other operations)
+    if preferences.RenderDCOffset.value then
+        local original_track = song:track(renderTrack)
+        local last_device = original_track.devices[#original_track.devices]
+        if last_device.display_name == "Render DC Offset" then
+            original_track:delete_device_at(#original_track.devices)
+        end
+    end
+
+    local song = renoise.song()
     
     -- Remove any reference to target_track = source_track + 1
     render_context.target_track = render_context.source_track  -- Stay on same track
@@ -1245,6 +1279,11 @@ function Strrendering_done_callback()
         song.transport.edit_mode = false
     end
     renoise.song().selected_track.mute_state = 1
+    for i=1,#song.tracks do
+        renoise.song().tracks[i].mute_state=1
+    end 
+
+
 end
 
 -- Function to monitor rendering progress

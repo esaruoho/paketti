@@ -20,7 +20,7 @@ renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Enable All Devices 
 renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Play at 75% Speed (Song BPM)",invoke=function() playat75() end}
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Play at 100% Speed (Song BPM)",invoke=function() returnbackto100()  end}
 -------
-local function duplicate_pattern_and_clear_muted_above()
+function duplicate_pattern_and_clear_muted_above()
   local song=renoise.song()
   local current_pattern_index=song.selected_pattern_index
   local current_sequence_index=song.selected_sequence_index
@@ -96,7 +96,7 @@ renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Duplicate Pattern A
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Duplicate Pattern Above & Clear Muted",invoke=duplicate_pattern_and_clear_muted_above}
 
 
-local function duplicate_pattern_and_clear_muted()
+function duplicate_pattern_and_clear_muted()
   local song=renoise.song()
   local current_pattern_index=song.selected_pattern_index
   local current_sequence_index=song.selected_sequence_index

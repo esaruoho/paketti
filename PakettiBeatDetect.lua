@@ -387,8 +387,8 @@ function prepare_for_start()
 end
 
 -- Add menu entries and keybinding
-renoise.tool():add_menu_entry{name='Sample Editor:Paketti..:WIP:BeatDetector Modified...',invoke=function() prepare_for_start() end }
-renoise.tool():add_menu_entry{name='Sample Editor:Paketti..:WIP:BeatDetector Modified (Headless Mode)',invoke=function() BeatSlicerDetect() end }
+renoise.tool():add_menu_entry{name='Sample Editor:Paketti..:Experimental/WIP..:BeatDetector Modified...',invoke=function() prepare_for_start() end }
+renoise.tool():add_menu_entry{name='Sample Editor:Paketti..:Experimental/WIP..:BeatDetector Modified (Headless Mode)',invoke=function() BeatSlicerDetect() end }
 renoise.tool():add_menu_entry{name='Main Menu:Tools:Paketti..:Xperimental/Work in Progress:BeatDetector Modified...',invoke=function() prepare_for_start() end }
 renoise.tool():add_keybinding{name='Global:Paketti:BeatDetector Modified...',invoke=function() prepare_for_start() end }
 

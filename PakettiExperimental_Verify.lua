@@ -1,105 +1,142 @@
-local phrase_follow_enabled = false
-
--- Define the notifier function at file scope
-local function phrase_follow_notifier()
-  if renoise.song().transport.playing then
-    renoise.song().selected_phrase_line_index = renoise.song().selected_line_index        
-  end
-end
-
-function observe_phrase_playhead()
-  local s = renoise.song()
-  local w = renoise.app().window
-
-  -- Check API version first
-  if renoise.API_VERSION < 6.2 then
-    renoise.app():show_error("Phrase Editor observation requires API version 6.2 or higher!")
-    return
-  end
-
-  -- Toggle state
-  phrase_follow_enabled = not phrase_follow_enabled
-  
-  if phrase_follow_enabled then
-    -- Enable follow player and set editstep to 0
-    s.transport.follow_player = true
-    s.transport.edit_step = 0
-    
-    -- Force phrase editor view
-    w.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_PHRASE_EDITOR
-    
-    -- Set up monitoring
-    if not renoise.tool().app_idle_observable:has_notifier(phrase_follow_notifier) then
-      renoise.tool().app_idle_observable:add_notifier(phrase_follow_notifier)
-    end
-    renoise.app():show_status("Phrase Follow Pattern Playback: ON")
-  else
-    -- Remove monitoring
-    if renoise.tool().app_idle_observable:has_notifier(phrase_follow_notifier) then
-      renoise.tool().app_idle_observable:remove_notifier(phrase_follow_notifier)
-    end
-    renoise.app():show_status("Phrase Follow Pattern Playback: OFF")
-  end
-end
-
--- Add menu entry and keybinding
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Phrase Follow Pattern Playback Hack",invoke=observe_phrase_playhead}
-renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Toggle Phrase Follow Pattern Playback Hack",invoke=observe_phrase_playhead}
-renoise.tool():add_keybinding{name="Global:Paketti:Toggle Phrase Follow Pattern Playback Hack",invoke=observe_phrase_playhead}
-
-
-function ReplaceLegacyEffect(old_effect, new_effect)
+-- Function to ensure EQ10 exists on selected track and return its index
+local function ensure_eq10_exists()
   local song = renoise.song()
-  local pattern_count = #song.patterns
-  local changes_made = 0
+  local track = song.selected_track
   
-  -- Iterate through all patterns
-  for pattern_index = 1, pattern_count do
-    local pattern = song:pattern(pattern_index)
-    local track_count = #pattern.tracks
-    
-    -- Iterate through all tracks in pattern
-    for track_index = 1, track_count do
-      local track = pattern:track(track_index)
-      local line_count = pattern.number_of_lines
-      
-      -- Iterate through all lines in track
-      for line_index = 1, line_count do
-        local line = track:line(line_index)
-        
-        -- Check effect columns
-        for effect_column_index = 1, #line.effect_columns do
-          local effect_column = line.effect_columns[effect_column_index]
-          
-          -- Check if effect number matches old_effect and replace with new_effect
-          if effect_column.number_string == old_effect then
-            effect_column.number_string = new_effect
-            changes_made = changes_made + 1
-          end
-        end
-      end
+  -- First check if EQ10 already exists
+  for i, device in ipairs(track.devices) do
+    if device.name == "EQ 10" then
+      -- Show the device in DSP chain
+      device.is_maximized = true
+      return i
     end
   end
   
-  -- Show status message with number of changes made
-  if changes_made > 0 then
-    renoise.app():show_status(string.format("Replaced %d instances of %s with %s", changes_made, old_effect, new_effect))
-  else
-    renoise.app():show_status(string.format("No %s effects found to replace", old_effect))
+  -- If not found, add EQ10 after the track volume device
+  loadnative("Audio/Effects/Native/EQ 10")
+  
+  -- Find the newly added EQ10
+  for i, device in ipairs(track.devices) do
+    if device.name == "EQ 10" then
+      device.is_maximized = true
+      return i
+    end
   end
+  
+  return nil
 end
 
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti..:Replace FC with 0L",invoke = function() ReplaceLegacyEffect("FC", "0L") end}
-renoise.tool():add_keybinding{name = "Global:Paketti:Replace FC with 0L",invoke = function() ReplaceLegacyEffect("FC", "0L") end}
+-- Function to get current EQ10 parameters
+local function get_eq10_params(device)
+  local params = {}
+  for i = 1, 10 do
+    params[i] = {
+      gain = device.parameters[i].value,              -- Gains are parameters 1-10
+      freq = device.parameters[i + 10].value,         -- Frequencies are parameters 11-20
+      bandwidth = device.parameters[i + 20].value     -- Bandwidths are parameters 21-30
+    }
+  end
+  return params
+end
 
+-- Function to normalize gain value to 0-1 range
+local function normalize_gain(gain)
+  -- EQ10 gain range is -12 to +12
+  local normalized = (gain + 12) / 24
+  -- Ensure value is between 0 and 1
+  return math.max(0, math.min(1, normalized))
+end
 
+-- Function to create the EQ10 dialog
+function show_eq10_dialog()
+  local vb = renoise.ViewBuilder()
+  local dialog = nil
+  
+  -- Ensure EQ10 exists and get its index
+  local eq10_index = ensure_eq10_exists()
+  local eq10_device = renoise.song().selected_track.devices[eq10_index]
+  
+  -- Create single row of XY pads
+  local content = vb:column {
+    margin = 5,
+    spacing = 5
+  }
+  
+  -- Create the single row for all XY pads
+  local row_content = vb:row {
+    margin = 5,
+    spacing = 10
+  }
+  
+  -- Add all 10 bands
+  for band_idx = 1, 10 do
+    -- Parameter indices for this band
+    local gain_idx = band_idx           -- Gains are parameters 1-10
+    local freq_idx = band_idx + 10      -- Frequencies are parameters 11-20
+    local bw_idx = band_idx + 20        -- Bandwidths are parameters 21-30
+    
+    -- Get current values
+    local gain_param = eq10_device.parameters[gain_idx]
+    local freq_param = eq10_device.parameters[freq_idx]
+    local bw_param = eq10_device.parameters[bw_idx]
+    
+    -- Calculate normalized values
+    local x_value = (freq_param.value - freq_param.value_min) / 
+                   (freq_param.value_max - freq_param.value_min)
+    local y_value = normalize_gain(gain_param.value)
+    
+    local band_group = vb:column {
+      margin = 2,
+      vb:text { text = string.format("Band %d", band_idx) },
+      vb:xypad {
+        id = string.format("xy_band_%d", band_idx),
+        width = 80,
+        height = 80,
+        value = { x = x_value, y = y_value },
+        notifier = function(value)
+          -- Update frequency (X axis)
+          local new_freq = freq_param.value_min + 
+                         value.x * (freq_param.value_max - freq_param.value_min)
+          freq_param.value = new_freq
+          
+          -- Update gain and bandwidth (Y axis)
+          local gain = (value.y * 24) - 12
+          gain_param.value = gain
+          
+          -- Adjust bandwidth based on gain (higher bandwidth when further from center)
+          -- Scale to 0.0001 to 1 range
+          local bw_factor = math.abs(gain) / 12  -- 0 to 1 based on gain
+          local new_bw = 0.0001 + (bw_factor * 0.9999)  -- Scale to valid range
+          bw_param.value = new_bw
+        end
+      }
+    }
+    row_content:add_child(band_group)
+  end
+  
+  -- Add the row to the content
+  content:add_child(row_content)
 
+  -- Key handler for the dialog
+  local function key_handler(dialog, key)
+    local closer = preferences.pakettiDialogClose.value
+    if key.modifiers == "" and key.name == closer then
+      dialog:close()
+      return
+    end
+    return key
+  end
 
+  -- Show dialog
+  dialog = renoise.app():show_custom_dialog(
+    "EQ10 XY Control", 
+    content,
+    key_handler
+  )
+end
 
-
-
-
-
+renoise.tool():add_menu_entry {name = "Main Menu:Tools:Paketti..:EQ10 XY Control...",invoke = show_eq10_dialog}
+renoise.tool():add_keybinding {name = "Global:Tools:Show EQ10 XY Control",invoke = show_eq10_dialog}
 
 -----
 local match_editstep_enabled = false
@@ -196,81 +233,10 @@ renoise.tool():add_keybinding{name="Global:Tools:Toggle Match EditStep with Dela
 
 --[[
 for i=1,512 do
-print ("renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample BeatSync Lines to " .. i,invoke=function()SelectedSampleBeatSyncLine(i)end}")
+print ("renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Beatsync Lines to " .. i,invoke=function()SelectedSampleBeatSyncLine(i)end}")
 end
 ]]--
 
-local vb = renoise.ViewBuilder()
-local dialog = nil
-
--- Parameters for the wacky filter
-local filter_params = {
-  chaos = 0.5,
-  cutoff = 2000,
-  resonance = 0.7
-}
-
--- Function to close dialog with '!'
-local function my_keyhandler_func(dialog_key)
-  if dialog_key.name == "exclamation" and
-     not (dialog_key.modifiers == "shift" or dialog_key.modifiers == "control" or dialog_key.modifiers == "alt") then
-    dialog:close()
-    renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
-  end
-end
-
--- Function to export, process, and reimport audio
-local function process_audio()
-  local song = renoise.song()
-  local selection = song.selection_in_pattern
-  if not selection then
-    renoise.app():show_status("No audio selection found")
-    return
-  end
-
-  -- Export selected audio to a WAV file
-  local sample = song.instruments[1].samples[1]
-  local output_path = os.tmpname() .. ".wav"
-  sample.sample_buffer:save_as(output_path, "wav")
-
-  -- Run Csound with the wacky filter
-  local csound_command = string.format(
-    "csound wacky_filter.csd -o %s -i %s -kcutoff %f -kresonance %f -kchaos %f",
-    output_path,
-    output_path,
-    filter_params.cutoff,
-    filter_params.resonance,
-    filter_params.chaos
-  )
-  os.execute(csound_command)
-
-  -- Load processed file back into Renoise
-  sample.sample_buffer:load_from(output_path)
-  renoise.app():show_status("Audio processed and reloaded")
-end
-
--- Create GUI
-local function show_dialog()
-  if dialog and dialog.visible then
-    dialog:close()
-    return
-  end
-
-  dialog = renoise.app():show_custom_dialog("Wacky Filter", vb:row {
-    vb:column {
-      vb:slider { min = 0, max = 1, value = filter_params.chaos, notifier = function(v) filter_params.chaos = v end },
-      vb:text { text = "Chaos" },
-      vb:slider { min = 20, max = 20000, value = filter_params.cutoff, notifier = function(v) filter_params.cutoff = v end },
-      vb:text { text = "Cutoff" },
-      vb:slider { min = 0.1, max = 10, value = filter_params.resonance, notifier = function(v) filter_params.resonance = v end },
-      vb:text { text = "Resonance" },
-      vb:button { text = "Process Audio", notifier = process_audio }
-    }
-  }, my_keyhandler_func)
-end
-
--- Add menu entry to show the dialog
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress:Wacky Filter",invoke=show_dialog}
 
 
 function AutoAssignOutputs()
@@ -968,7 +934,7 @@ local function disable_monitoring()
 end
 
 -- GUI for Triggering the Script
-local function show_dialog()
+function showSBX_dialog()
   if dialog and dialog.visible then dialog:close() return end
   local content = vb:column {
     margin = 10,
@@ -990,7 +956,7 @@ local function show_dialog()
 end
 
 -- Add Menu Entry
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress:SBx Loop Playback",invoke=show_dialog}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress:SBx Loop Playback",invoke=showSBX_dialog}
 
 -- Add Shortcut for Reset and Playback
 renoise.tool():add_keybinding{name="Global:Transport:Reset SBx and Start Playback",
@@ -1002,125 +968,6 @@ renoise.tool():add_keybinding{name="Global:Transport:Reset SBx and Start Playbac
 -- Tool Initialization
   monitoring_enabled = true
 --InitSBx()
-
-
---[[
-
-
-local key_hold_start = nil
-local held_note = nil
-local is_filling = false
-local mode_active = false
-local dialog = nil
-
--- Timer function to handle note filling
-local function check_key_hold()
-  if not key_hold_start or not held_note then
-    print("DEBUG: Timer running, but no key is being held.")
-    return
-  end
-
-  local hold_duration = os.clock() - key_hold_start
-  if hold_duration >= 1 and not is_filling then
-    print("DEBUG: Hold detected. Filling column...")
-
-    is_filling = true
-    local song = renoise.song()
-    local track_idx = song.selected_track_index
-    local line_idx = song.selected_line_index
-    local column_idx = song.selected_note_column_index
-
-    if track_idx and line_idx and column_idx then
-      local track = song:track(track_idx)
-      local note_column = track:line(line_idx):note_column(column_idx)
-
-      if not note_column.is_empty then
-        local note_value = note_column.note_value
-        local instrument_value = note_column.instrument_value
-        local volume_value = note_column.volume_value
-        local panning_value = note_column.panning_value
-        local delay_value = note_column.delay_value
-
-        print("DEBUG: Filling column with Note Value:", note_value)
-
-        -- Fill the rest of the column
-        local pattern = song.selected_pattern
-        local num_lines = pattern.number_of_lines
-        for i = line_idx + 1, num_lines do
-          local target_line = track:line(i)
-          local target_column = target_line:note_column(column_idx)
-          if target_column then
-            target_column.note_value = note_value
-            target_column.instrument_value = instrument_value
-            target_column.volume_value = volume_value
-            target_column.panning_value = panning_value
-            target_column.delay_value = delay_value
-          end
-        end
-        print("DEBUG: Filling complete.")
-      else
-        print("DEBUG: Note column is empty.")
-      end
-    else
-      print("DEBUG: Invalid pattern editor position.")
-    end
-
-    -- Reset state
-    is_filling = false
-    key_hold_start = nil
-    held_note = nil
-  end
-end
-
--- Key handler for dialog
-local function key_handler(dialog, key)
-  if key.note then
-    if key.state == "pressed" then
-      key_hold_start = os.clock()
-      held_note = key.note
-      print("DEBUG: Key pressed. Note:", key.note, "Start Time:", key_hold_start)
-    elseif key.state == "released" then
-      key_hold_start = nil
-      held_note = nil
-      print("DEBUG: Key released.")
-    end
-  elseif key.name == "esc" then
-    dialog:close()
-    renoise.tool():remove_timer(check_key_hold)
-    print("DEBUG: Dialog closed. Timer stopped.")
-  end
-end
-
--- Show dialog to enable key capture
-local function show_dialog()
-  if dialog and dialog.visible then
-    dialog:close()
-    renoise.tool():remove_timer(check_key_hold)
-    print("DEBUG: Dialog already open. Closing.")
-  else
-    local vb = renoise.ViewBuilder()
-    dialog = renoise.app():show_custom_dialog(
-      "Hold-to-Fill Mode",
-      vb:text{text="Hold a note to fill the column"},
-      key_handler
-    )
-    renoise.tool():add_timer(check_key_hold, 50)
-    print("DEBUG: Dialog opened. Timer started.")
-  end
-end
-
--- Add menu entry to toggle the tool
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Toggle Hold-to-Fill Mode",invoke=show_dialog}
-
-
-
-]]--
-
-
-
-
-
-
 
 
 
@@ -1305,7 +1152,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Crossfade Loop",
 
 
 -- Menu Entry: Use the dynamic crossfade length based on selection_end
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Crossfade Loop",
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Experimental/WIP..:Crossfade Loop",
   invoke=function()
     local crossfade_length = get_dynamic_crossfade_length()
     if crossfade_length then
@@ -3806,54 +3653,6 @@ end
 
 
 
-
-
--------------------------
---------
---[[
-function Experimental()
-    function read_file(path)
-        local file = io.open(path, "r")  -- Open the file in read mode
-        if not file then
-            print("Failed to open file")
-            return nil
-        end
-        local content = file:read("*a")  -- Read the entire content
-        file:close()
-        return content
-    end
-
-    function check_and_execute(xml_path, bash_script)
-        local xml_content = read_file(xml_path)
-        if not xml_content then
-            return
-        end
-
-        local pattern = "<ShowScriptingDevelopmentTools>(.-)</ShowScriptingDevelopmentTools>"
-        local current_value = xml_content:match(pattern)
-
-        if current_value == "false" then  -- Check if the value is false
-            print("Scripting tools are disabled. Executing the bash script to enable...")
-            local command = 'open -a Terminal "' .. bash_script .. '"'
-            os.execute(command)
-        elseif current_value == "true" then
-            print("Scripting tools are already enabled. No need to execute the bash script.")
-          local bash_script = "/Users/esaruoho/macOS_DisableScriptingTools.sh"
-            local command = 'open -a Terminal "' .. bash_script .. '"'
-            os.execute(command)
-        else
-            print("Could not find the <ShowScriptingDevelopmentTools> tag in the XML.")
-        end
-    end
-
-    local config_path = "/Users/esaruoho/Library/Preferences/Renoise/V3.4.3/Config.xml"
-    local bash_script = "/Users/esaruoho/macOS_EnableScriptingTools.sh" -- Ensure this path is correct
-
-    check_and_execute(config_path, bash_script)
-end
-
---renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Experimental (macOS Only) Config.XML overwriter (Destructive)",invoke=function() Experimental() end}
-]]--
 --Wipes the pattern data, but not the samples or instruments.
 --WARNING: Does not reset current filename.
 -- TODO
@@ -3873,14 +3672,15 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Wipe Song Patterns",invoke=function() wipeSongPattern() end}
 renoise.tool():add_menu_entry{name="Main Menu:File:Wipe Song Patterns",invoke=function() wipeSongPattern() end}
 ----
-function AutoGapper()
--- Something has changed with the Filter-device:
---*** ./Experimental_Verify.lua:30: attempt to index field '?' (a nil value)
---*** stack traceback:
---***   ./Experimental_Verify.lua:30: in function 'AutoGapper'
---***   ./Experimental_Verify.lua:37: in function <./Experimental_Verify.lua:37>
+--]]
+function get_master_track_index()
+  for k,v in ripairs(renoise.song().tracks)
+    do if v.type == renoise.Track.TRACK_TYPE_MASTER then return k end  
+  end
+end
 
---renoise.song().tracks[get_master_track_index()].visible_effect_columns = 4  
+function AutoGapper()
+renoise.song().tracks[get_master_track_index()].visible_effect_columns = 4  
 local gapper=nil
 renoise.app().window.active_lower_frame=1
 renoise.app().window.lower_frame_is_visible=true
@@ -3889,14 +3689,14 @@ renoise.app().window.lower_frame_is_visible=true
   renoise.song().selected_track.devices[2].parameters[2].value=2
   renoise.song().selected_track.devices[2].parameters[3].value=1
   renoise.song().selected_track.devices[2].parameters[7].value=2
-  renoise.song().selected_track.devices[3].parameters[5].value=0.0074
+--  renoise.song().selected_track.devices[3].parameters[5].value=0.0074
 local gapper=renoise.song().patterns[renoise.song().selected_pattern_index].number_of_lines*2*4
   renoise.song().selected_track.devices[2].parameters[6].value_string=tostring(gapper)
---renoise.song().selected_pattern.tracks[get_master_track_index()].lines[renoise.song().selected_line_index].effect_columns[4].number_string = "18"
+renoise.song().selected_pattern.tracks[get_master_track_index()].lines[renoise.song().selected_line_index].effect_columns[4].number_string = "18"
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Add Filter & LFO (AutoGapper)",invoke=function() AutoGapper() end}
---]]
+
 
 ------------
 function start_stop_sample_and_loop_oh_my()
@@ -3936,44 +3736,6 @@ end
   end
 end
 
--------
---[[
-function launchApp(appName)
-os.execute(appName)
-end
-
-function terminalApp(scriptPath)
- local command = 'open -a Terminal "' .. scriptPath .. '"'
-    os.execute(command)
-end
-
-renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti..:Run Experimental Script",invoke=function() terminalApp("/Users/esaruoho/macOS_EnableScriptingTools.sh") end}
-renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti..:Open macOS Terminal",invoke=function() launchApp("open -a Terminal.app") end}
-]]--
-
-
---renoise.tool():add_keybinding{name="Global:Paketti:Stair RecordToCurrent",invoke=function() 
---if renoise.song().transport.playing==false then
-    --renoise.song().transport.playing=true end
---start_stop_sample_and_loop_oh_my() end}
---
---function stairs()
---local currCol=nil
---local addCol=nil
---currCol=renoise.song().selected_note_column_index
----
---if renoise.song().selected_track.visibile_note_columns and renoise.song().selected_note_column_index == 12   then 
---renoise.song().selected_note_column_index = 1
---end
---
---
---if currCol == renoise.song().selected_track.visible_note_columns
---then renoise.song().selected_track.visible_note_columns = addCol end
---
---renoise.song().selected_note_column_index=currCol+1
---
---end
---renoise.tool():add_keybinding{name="Global:Paketti:Stair",invoke=function() stairs() end}
 ----------------------------
 -- has-line-input + add-line-input
 function has_line_input()
@@ -4243,8 +4005,6 @@ show_manual (
 end}
 
 ---------------------------
-
----------
 function move_up(chg)
 local sindex=renoise.song().selected_line_index
 local s= renoise.song()
@@ -4266,68 +4026,6 @@ end
 
 
 -- Function to adjust the delay value of the selected note column within the current phrase
-function Phrplusdelay(chg)
-  local song = renoise.song()
-  local nc = song.selected_note_column
-
-  -- Check if a note column is selected
-  if not nc then
-    local message = "No note column is selected!"
-    renoise.app():show_status(message)
-    print(message)
-    return
-  end
-
-  local currTrak = song.selected_track_index
-  local currInst = song.selected_instrument_index
-  local currPhra = song.selected_phrase_index
-  local sli = song.selected_phrase_line_index
-  local snci = song.selected_phrase_note_column_index
-
-  -- Check if a phrase is selected
-  if currPhra == 0 then
-    local message = "No phrase is selected!"
-    renoise.app():show_status(message)
-    print(message)
-    return
-  end
-
-  -- Ensure delay columns are visible in both track and phrase
-  song.instruments[currInst].phrases[currPhra].delay_column_visible = true
-  song.tracks[currTrak].delay_column_visible = true
-
-  -- Get current delay value from the selected note column in the phrase
-  local phrase = song.instruments[currInst].phrases[currPhra]
-  local line = phrase:line(sli)
-  local note_column = line:note_column(snci)
-  local Phrad = note_column.delay_value
-
-  -- Adjust delay value, ensuring it stays within 0-255 range
-  note_column.delay_value = math.max(0, math.min(255, Phrad + chg))
-
-  -- Show and print status message
-  local message = "Delay value adjusted by " .. chg .. " at line " .. sli .. ", column " .. snci
-  renoise.app():show_status(message)
-  print(message)
-
-  -- Show and print visible note columns and effect columns
-  local visible_note_columns = phrase.visible_note_columns
-  local visible_effect_columns = phrase.visible_effect_columns
-  local columns_message = string.format("Visible Note Columns: %d, Visible Effect Columns: %d", visible_note_columns, visible_effect_columns)
-  renoise.app():show_status(columns_message)
-  print(columns_message)
-end
-
--- Add keybindings for adjusting the delay value
-renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Increase Delay +1",invoke=function() Phrplusdelay(1) end}
-renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Decrease Delay -1",invoke=function() Phrplusdelay(-1) end}
-renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Increase Delay +10",invoke=function() Phrplusdelay(10) end}
-renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Decrease Delay -10",invoke=function() Phrplusdelay(-10) end}
----------------------------------------------------------------------------------------------------------
------------------
-
-
-
 function delay(seconds)
     local command = "sleep " .. tonumber(seconds)
     os.execute(command)
@@ -4381,7 +4079,85 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Generate Delay Value 
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Generate Delay Value on Entire Pattern",invoke=function() GenerateDelayValue("pattern") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Generate Delay Value on Selection",invoke=function() GenerateDelayValue("selection") end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Generate Delay Value on Selection",invoke=function() GenerateDelayValue("selection") end}
+-------
 
+-- Function to get selected columns in the current selection
+local function get_selected_columns(track, start_line, end_line)
+  local selected_note_columns = {}
+  local selected_effect_columns = {}
+
+  for column_index = 1, #track:line(start_line).note_columns do
+    for line = start_line, end_line do
+      if track:line(line).note_columns[column_index].is_selected then
+        table.insert(selected_note_columns, column_index)
+        break
+      end
+    end
+  end
+
+  return selected_note_columns, selected_effect_columns
+end
+
+function GenerateDelayValueNotes(scope)
+  local s = renoise.song()
+  local track = s.tracks[s.selected_track_index]
+  track.delay_column_visible = true
+  
+  local lines = {}
+  if scope == "row" then
+      table.insert(lines, s.selected_line_index)
+  elseif scope == "pattern" then
+      for i = 1, s.selected_pattern.number_of_lines do
+          table.insert(lines, i)
+      end
+  elseif scope == "selection" then
+      local selection = s.selection_in_pattern
+      if not selection then
+          renoise.app():show_status("No selection found!")
+          return
+      end
+      for i = selection.start_line, selection.end_line do
+          table.insert(lines, i)
+      end
+  end
+  
+  for _, line_index in ipairs(lines) do
+      local line = s.patterns[s.selected_pattern_index].tracks[s.selected_track_index]:line(line_index)
+      
+      local actual_notes = 0
+      for i = 1, track.visible_note_columns do
+          local note_column = line.note_columns[i]
+          if note_column and note_column.note_string ~= "" and 
+             note_column.note_string ~= "OFF" and note_column.note_value < 120 then
+              actual_notes = actual_notes + 1
+          end
+      end
+      
+      if actual_notes > 1 then
+          local current_note = 0
+          for i = 1, track.visible_note_columns do
+              local note_column = line.note_columns[i]
+              if note_column and note_column.note_string ~= "" and 
+                 note_column.note_string ~= "OFF" and note_column.note_value < 120 then
+                  local delay = math.floor(256 * current_note / actual_notes)
+                  note_column.delay_value = delay
+                  current_note = current_note + 1
+              end
+          end
+      end
+  end
+end
+
+
+-- Add new keybindings for note-specific version
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Generate Delay Value (Notes Only, Row)",invoke=function() GenerateDelayValueNotes("row") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Generate Delay Value (Notes Only, Row)",invoke=function() GenerateDelayValueNotes("row") end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Generate Delay Value (Notes Only, Pattern)",invoke=function() GenerateDelayValueNotes("pattern") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Generate Delay Value (Notes Only, Pattern)",invoke=function() GenerateDelayValueNotes("pattern") end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Generate Delay Value (Notes Only, Selection)",invoke=function() GenerateDelayValueNotes("selection") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Generate Delay Value (Notes Only, Selection)",invoke=function() GenerateDelayValueNotes("selection") end}
+
+-------
 function pattern_line_notifier(pos)
   local s = renoise.song()
   local t = s.transport
@@ -4480,285 +4256,4 @@ renoise.tool():add_keybinding{name="Global:Paketti:Column Cycle Keyjazz Special 
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Column Cycle Keyjazz..:Column Cycle Keyjazz Special (" .. ccks .. ")",invoke=function() ColumnCycleKeyjazzSpecial(ccks) end}
 end
 ----------------------------
---[[
-local sample_buffer_notifier = nil
-local is_processing = false
-local auto_settings_enabled = true
-local last_buffer_size = nil
 
--- Function to temporarily disable auto settings
-local function disable_auto_settings()
-    auto_settings_enabled = false
-    renoise.app():show_status("Paketti Auto Sample Settings: Disabled")
-end
-
--- Function to re-enable auto settings
-local function enable_auto_settings()
-    auto_settings_enabled = true
-    renoise.app():show_status("Paketti Auto Sample Settings: Enabled")
-end
-
-local function on_sample_buffer_changed()
-    local song = renoise.song()
-    if not song then return end
-    
-    local sample = song.selected_sample
-    if not sample or not sample.sample_buffer then return end
-    
-    -- Skip if auto settings are disabled or we're currently processing
-    if not auto_settings_enabled or is_processing then
-        return
-    end
-    
-    -- Only apply settings when a new sample is loaded (buffer size changes)
-    local current_buffer_size = sample.sample_buffer.number_of_frames
-    if sample.sample_buffer.has_sample_data and current_buffer_size ~= last_buffer_size then
-        is_processing = true
-        
-        print(string.format("Sample %d - Before: loop_mode=%s, loop_release=%s", 
-            song.selected_sample_index, tostring(sample.loop_mode), tostring(sample.loop_release)))
-        
-        sample.autofade = preferences.pakettiLoaderAutoFade.value
-        sample.autoseek = preferences.pakettiLoaderAutoseek.value
-        sample.loop_mode = preferences.pakettiLoaderLoopMode.value
-        sample.interpolation_mode = preferences.pakettiLoaderInterpolation.value
-        sample.oversample_enabled = preferences.pakettiLoaderOverSampling.value
-        sample.oneshot = preferences.pakettiLoaderOneshot.value
-        sample.new_note_action = preferences.pakettiLoaderNNA.value
-        sample.loop_release = preferences.pakettiLoaderLoopExit.value
-        
-        print(string.format("Sample %d - After: loop_mode=%s, loop_release=%s", 
-            song.selected_sample_index, tostring(sample.loop_mode), tostring(sample.loop_release)))
-        
-        last_buffer_size = current_buffer_size
-        is_processing = false
-    end
-end
-
-local function on_selected_sample_changed()
-    local song = renoise.song()
-    if not song or not song.selected_sample then
-        return
-    end
-
-    -- Reset last_buffer_size when changing samples
-    last_buffer_size = nil
-
-    -- Handle sample buffer notifier
-    if song.selected_sample.sample_buffer_observable:has_notifier(on_sample_buffer_changed) then
-        song.selected_sample.sample_buffer_observable:remove_notifier(on_sample_buffer_changed)
-    end
-    sample_buffer_notifier = song.selected_sample.sample_buffer_observable:add_notifier(on_sample_buffer_changed)
-end
-
--- Setup initial notifiers only when a document is available
-local function setup_notifiers()
-    local song = renoise.song()
-    if not song then return end
-    
-    -- Handle instrument selection notifier
-    if not song.selected_instrument_observable:has_notifier(on_selected_sample_changed) then
-        song.selected_instrument_observable:add_notifier(on_selected_sample_changed)
-    end
-    
-    -- Handle sample selection notifier
-    if not song.selected_sample_observable:has_notifier(on_selected_sample_changed) then
-        song.selected_sample_observable:add_notifier(on_selected_sample_changed)
-    end
-    
-    -- Initial setup of sample buffer notifier
-    on_selected_sample_changed()
-end
-
--- Add notifier for when a new document becomes available
-renoise.tool().app_new_document_observable:add_notifier(setup_notifiers)
-
--- Cleanup when tool is unloaded
-renoise.tool().app_release_document_observable:add_notifier(function()
-    local song = renoise.song()
-    if not song then return end
-    
-    if song.selected_sample and 
-       song.selected_sample.sample_buffer_observable:has_notifier(on_sample_buffer_changed) then
-        song.selected_sample.sample_buffer_observable:remove_notifier(on_sample_buffer_changed)
-    end
-    
-    if song.selected_instrument_observable:has_notifier(on_selected_sample_changed) then
-        song.selected_instrument_observable:remove_notifier(on_selected_sample_changed)
-    end
-    
-    if song.selected_sample_observable:has_notifier(on_selected_sample_changed) then
-        song.selected_sample_observable:remove_notifier(on_selected_sample_changed)
-    end
-    
-    last_buffer_size = nil
-end)
-
--- Add menu entries to enable/disable auto settings
-renoise.tool():add_menu_entry{
-    name = "Main Menu:Tools:Paketti..:Sample Settings:Enable Auto Settings",
-    invoke = enable_auto_settings
-}
-
-renoise.tool():add_menu_entry{
-    name = "Main Menu:Tools:Paketti..:Sample Settings:Disable Auto Settings",
-    invoke = disable_auto_settings
-}
-    ]]--
-
--- Get a random device, optionally AU only
-function getRandomDevice(au_only)
-  local available_devices = renoise.song().selected_track.available_devices
-  if #available_devices == 0 then return nil end
-  
-  local filtered_devices = {}
-  for _, device in ipairs(available_devices) do
-    if au_only then
-      if device:find("AU/") or device:find("Native") then
-        table.insert(filtered_devices, device)
-      end
-    else
-      table.insert(filtered_devices, device)
-    end
-  end
-  
-  if #filtered_devices == 0 then return nil end
-  local random_index = math.random(1, #filtered_devices)
-  return filtered_devices[random_index]
-end
-
--- Get a random plugin, optionally AU only
-function getRandomPlugin(au_only)
-  local instrument = renoise.song().selected_instrument
-  if not instrument.plugin_properties then return nil end
-  
-  local available_plugins = instrument.plugin_properties.available_plugins
-  local filtered_plugins = {}
-  for _, plugin in ipairs(available_plugins) do
-    if au_only then
-      if plugin:find("AU/") then
-        table.insert(filtered_plugins, plugin)
-      end
-    else
-      table.insert(filtered_plugins, plugin)
-    end
-  end
-  
-  if #filtered_plugins == 0 then return nil end
-  local random_index = math.random(1, #filtered_plugins)
-  return filtered_plugins[random_index]
-end
-
--- Function to insert random device (with AU only option)
-function insertRandomDevice(au_only)
-  local random_device = getRandomDevice(au_only)
-  if random_device then
-    local s = renoise.song()
-    local w = renoise.app().window
-    local insert_index = 2  -- Always start at 2 for tracks due to vol/pan device
-
-    -- Check if we're in sample fx chain view
-    if w.active_middle_frame == 7 then
-      -- Check if the selected sample device chain exists, and create one if it doesn't
-      local chain = s.selected_sample_device_chain
-      local chain_index = s.selected_sample_device_chain_index
-
-      if chain == nil or chain_index == 0 then
-        s.selected_instrument:insert_sample_device_chain_at(1)
-        chain = s.selected_sample_device_chain
-        chain_index = 1
-      end
-
-      if chain then
-        local sample_devices = chain.devices
-        insert_index = (table.count(sample_devices)) < 2 and 2 or 
-                      (sample_devices[2] and sample_devices[2].name == "#Line Input" and 3 or 2)
-        insert_index = math.min(insert_index, #sample_devices + 1)
-        
-        chain:insert_device_at(random_device, insert_index)
-        
-        -- Handle non-native devices
-        if not random_device:find("Native") then
-          chain.devices[insert_index].is_maximized = false
-          chain.devices[insert_index].external_editor_visible = true
-        end
-        s.selected_sample_device_index = insert_index
-      else
-        renoise.app():show_status("No sample selected.")
-        return
-      end
-    else
-      -- Track device chain - always start at index 2
-      local track_devices = s.selected_track.devices
-      if track_devices[2] and track_devices[2].name == "#Line Input" then
-        insert_index = 3
-      end
-      s.selected_track:insert_device_at(random_device, insert_index)
-      
-      -- Handle non-native devices
-      if not random_device:find("Native") then
-        s.selected_track.devices[insert_index].is_maximized = false
-        s.selected_track.devices[insert_index].external_editor_visible = true
-      end
-    end
-    
-    renoise.app():show_status("Inserted: " .. random_device)
-  else
-    if au_only then
-      renoise.app():show_status("No AudioUnit devices available for this track type")
-    else
-      renoise.app():show_status("No devices available for this track type")
-    end
-  end
-end
-
-function insertRandomPlugin(au_only)
-  local s = renoise.song()
-  
-  -- Insert new instrument at current position
-  s:insert_instrument_at(s.selected_instrument_index+1)
-  renoise.song().selected_instrument_index = renoise.song().selected_instrument_index+1
-  local random_plugin = getRandomPlugin(au_only)
-  if random_plugin then
-    -- Load the plugin using the correct method
-    s.selected_instrument.plugin_properties:load_plugin(random_plugin)
-    
-    -- Always open external editor for plugins
-    if s.selected_instrument.plugin_properties then
-      --s.selected_instrument.plugin_properties.plugin_device.is_maximized = false
-      s.selected_instrument.plugin_properties.plugin_device.external_editor_visible = true
-    end
-    
-    renoise.app():show_status("Inserted plugin: " .. random_plugin)
-  else
-    if au_only then
-      renoise.app():show_status("No AudioUnit plugins available")
-    else
-      renoise.app():show_status("No plugins available")
-    end
-  end
-end
-
--- Add keybindings, menu entries and MIDI mappings
--- For Devices
-renoise.tool():add_keybinding{name="Global:Paketti:Insert Random Device (All)", invoke=function() insertRandomDevice(false) end}
-renoise.tool():add_keybinding{name="Global:Paketti:Insert Random Device (AU/Native Only)", invoke=function() insertRandomDevice(true) end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Insert Random Device (All)", invoke=function() insertRandomDevice(false) end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Insert Random Device (AU/Native Only)", invoke=function() insertRandomDevice(true) end}
-renoise.tool():add_midi_mapping{name="Paketti:Insert Random Device (All)", invoke=function(message) if message:is_trigger() then insertRandomDevice(false) end end }
-renoise.tool():add_midi_mapping{name="Paketti:Insert Random Device (AU/Native Only)", invoke=function(message) if message:is_trigger() then insertRandomDevice(true) end end}
-
-renoise.tool():add_menu_entry{name="DSP Device:Paketti..:Insert Random Device (All)", invoke=function() insertRandomDevice(false) end}
-renoise.tool():add_menu_entry{name="DSP Device:Paketti..:Insert Random Device (AU/Native Only)", invoke=function() insertRandomDevice(true) end}
-renoise.tool():add_menu_entry{name="DSP Chain:Paketti..:Insert Random Device (All)", invoke=function() insertRandomDevice(false) end}
-renoise.tool():add_menu_entry{name="DSP Chain:Paketti..:Insert Random Device (AU/Native Only)", invoke=function() insertRandomDevice(true) end}
-
--- For Plugins
-renoise.tool():add_keybinding{name="Global:Paketti:Insert Random Plugin (All)", invoke=function() insertRandomPlugin(false) end}
-renoise.tool():add_keybinding{name="Global:Paketti:Insert Random Plugin (AU Only)", invoke=function() insertRandomPlugin(true) end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Insert Random Plugin (All)", invoke=function() insertRandomPlugin(false) end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Insert Random Plugin (AU Only)", invoke=function() insertRandomPlugin(true) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Insert Random Plugin (All)", invoke=function() insertRandomPlugin(false) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Insert Random Plugin (AU Only)", invoke=function() insertRandomPlugin(true) end}
-renoise.tool():add_midi_mapping{name="Paketti:Insert Random Plugin (All)", invoke=function(message) if message:is_trigger() then insertRandomPlugin(false) end end }
-renoise.tool():add_midi_mapping{name="Paketti:Insert Random Plugin (AU Only)", invoke=function(message) if message:is_trigger() then insertRandomPlugin(true) end end}

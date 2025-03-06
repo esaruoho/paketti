@@ -27,12 +27,62 @@ function PakettiCreateUnisonSamples()
   local original_instrument_name = instrument.name:gsub("%s*%(Unison%)%s*", "")
   original_sample.loop_mode = 2
 
-  -- Create a new instrument underneath the selected instrument
+    -- Store the original selected phrase index
+    local original_phrase_index = renoise.song().selected_phrase_index
+    print(string.format("\nStoring original selected_phrase_index: %d", original_phrase_index))
+
+    
   local new_instrument_index = selected_instrument_index + 1
   song:insert_instrument_at(new_instrument_index)
   song.selected_instrument_index = new_instrument_index
   local new_instrument = renoise.song().selected_instrument
+
+
+  local phrases_to_copy = #instrument.phrases
+  print(string.format("\nORIGINAL: Instrument[%d:'%s'] has %d phrases:", 
+    selected_instrument_index, instrument.name, phrases_to_copy))
+  for i = 1, phrases_to_copy do
+    print(string.format("  Source Instrument[%d:'%s'] Phrase[%d:'%s'] (%d lines)", 
+      selected_instrument_index, instrument.name, i, instrument.phrases[i].name, #instrument.phrases[i].lines))
+  end
+  
+  print(string.format("\nNEW: Created empty Instrument[%d:'%s']", new_instrument_index, new_instrument.name))
+  
+  -- First load the XRNI
+  print("\nLoading XRNI template...")
+  print(string.format("Pre-XRNI state: Instrument[%d:'%s']", new_instrument_index, new_instrument.name))
   pakettiPreferencesDefaultInstrumentLoader()
+  print(string.format("Immediate post-XRNI state: Instrument[%d:'%s']", new_instrument_index, new_instrument.name))
+  
+  -- Force refresh our reference to the instrument
+  new_instrument = renoise.song().instruments[new_instrument_index]
+  print(string.format("After refresh: Instrument[%d:'%s']", new_instrument_index, new_instrument.name))
+
+  -- NOW copy the phrases after the XRNI is loaded
+  if phrases_to_copy > 0 then
+    print(string.format("\nCopying %d phrases from Instrument[%d:'%s'] to Instrument[%d:'%s']:", 
+      phrases_to_copy, selected_instrument_index, instrument.name, 
+      new_instrument_index, new_instrument.name))
+    for i = 1, phrases_to_copy do
+      print(string.format("  Creating phrase slot %d in Instrument[%d:'%s']...", 
+        i, new_instrument_index, new_instrument.name))
+      new_instrument:insert_phrase_at(i)
+      print(string.format("  Copying from Instrument[%d:'%s'] Phrase[%d:'%s'] (%d lines)", 
+        selected_instrument_index, instrument.name, i, instrument.phrases[i].name, #instrument.phrases[i].lines))
+      new_instrument.phrases[i]:copy_from(instrument.phrases[i])
+      print(string.format("  Result: Instrument[%d:'%s'] Phrase[%d:'%s'] (%d lines)", 
+        new_instrument_index, new_instrument.name, i, new_instrument.phrases[i].name, #new_instrument.phrases[i].lines))
+    end
+  end
+
+  print(string.format("\nFINAL STATE: Instrument[%d:'%s'] has %d phrases:", 
+    new_instrument_index, new_instrument.name, #new_instrument.phrases))
+  for i = 1, #new_instrument.phrases do
+    print(string.format("  Instrument[%d:'%s'] Phrase[%d:'%s'] (%d lines)", 
+      new_instrument_index, new_instrument.name, i, new_instrument.phrases[i].name, #new_instrument.phrases[i].lines))
+  end
+  print("") -- Empty line for readability
+
 
   if preferences.pakettiPitchbendLoaderEnvelope.value then
     renoise.song().selected_instrument.sample_modulation_sets[1].devices[2].is_active = true
@@ -111,6 +161,11 @@ end
   -- Set the instrument volume
 --  renoise.song().selected_instrument.volume = 0.3
 PakettiFillPitchStepperDigits(0.015,64)
+
+renoise.song().selected_phrase_index = original_phrase_index
+print(string.format("Restored selected_phrase_index to: %d", renoise.song().selected_phrase_index))
+
+
   renoise.app():show_status("Unison samples created successfully.")
 end
 

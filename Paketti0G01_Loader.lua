@@ -3,6 +3,7 @@ local vb = renoise.ViewBuilder()
 local initial_value = nil
 local dialog = nil
 local pakettiDeviceChainPathDisplayId
+local pakettiIRPathDisplayId 
 
 local DEBUG = false
 
@@ -97,11 +98,14 @@ function create_device_entry(name, path, device_type)
 end
 
 preferences = renoise.Document.create("ScriptingToolPreferences") {
+  pakettiOctaMEDNoteEchoDistance=2,
+  pakettiOctaMEDNoteEchoMin=1,
   pakettiRotateSampleBufferCoarse=1000,
   pakettiRotateSampleBufferFine=10,
   pakettiBlendValue = 40,
-  pakettiDialogClose="esc",
-  PakettiDeviceChainPath = "DeviceChains/",
+  pakettiDialogClose="tab",
+  PakettiDeviceChainPath = "./DeviceChains/",
+  PakettiIRPath = "./IR/",
   upperFramePreference=0,
   _0G01_Loader=false,
   RandomBPM=false,
@@ -111,6 +115,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   renderSampleRate=88200,
   renderBitDepth=32,
   renderBypass=false,
+  RenderDCOffset=false,
   pakettiEditMode=1,
   pakettiLoaderInterpolation=1,
   pakettiLoaderFilterType="LP Clean",
@@ -132,6 +137,58 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiSlideContentAutomationToo=true,
   pakettiDefaultXRNI="Presets/12st_Pitchbend.xrni",
   pakettiDefaultDrumkitXRNI="Presets/12st_Pitchbend_Drumkit_C0.xrni",
+  ActionSelector = {
+ Index01="",
+ Index02="",
+ Index03="",
+ Index04="",
+ Index05="",
+ Index06="",
+ Index07="",
+ Index08="",
+ Index09="",
+ Index10="",
+ Index11="",
+ Index12="",
+ Index13="",
+ Index14="",
+ Index15="",
+ Index16="",
+ Index17="",
+ Index18="",
+ Index19="",
+ Index20="",
+ Index21="",
+ Index22="",
+ Index23="",
+ Index24="",
+ Index25="",
+ Index26="",
+ Index27="",
+ Index28="",
+ Index29="",
+ Index30="",
+ Index31="",
+ Index32="",
+ Index33="",
+ Index34="",
+ Index35="",
+ Index36="",
+ Index37="",
+ Index38="",
+ Index39="",
+ Index40="",
+ Index41="",
+ Index42="",
+ Index43="",
+ Index44="",
+ Index45="",
+ Index46="",
+ Index47="",
+ Index48="",
+ Index49="",
+ Index50="",
+  },
   UserPreferences = {
     userPreferredDevice01 = "<None>",
     userPreferredDevice02 = "<None>",
@@ -262,7 +319,9 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
     pakettiCheatSheetFillAll=100,
     pakettiCheatSheetRandomizeWholeTrack=false,
     pakettiCheatSheetRandomizeSwitch=false,
-    pakettiCheatSheetRandomizeDontOverwrite=false
+    pakettiCheatSheetRandomizeDontOverwrite=false,
+    pakettiCheatSheetOnlyModifyEffects=false,
+    pakettiCheatSheetOnlyModifyNotes=false,
   }, 
   pakettiPhraseInitDialog = {
     Autoseek = false,
@@ -338,6 +397,8 @@ DynamicViewPrefs = renoise.tool().preferences.PakettiDynamicViews
 
 
 
+
+
 -- Function to initialize the filter index
 local function initialize_filter_index()
   if preferences.pakettiLoaderFilterType.value ~= nil then
@@ -351,7 +412,7 @@ end
 initialize_filter_index()
 
 local function pakettiGetXRNIDefaultPresetFiles()
-    local presetsFolder = "Presets/"
+    local presetsFolder = "./Presets/"
     local files = os.filenames(presetsFolder, "*.xrni")
     
     if not files or #files == 0 then
@@ -397,6 +458,106 @@ function create_loop_mode_switch(preference)
   }
 end
 
+local function update_strip_silence_preview(threshold)
+  local song = renoise.song()
+  if not song.selected_sample then return end
+  
+  local sample_buffer = song.selected_sample.sample_buffer
+  if not sample_buffer or not sample_buffer.has_sample_data then return end
+  
+  renoise.app().window.active_middle_frame=renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR  
+  
+  -- If threshold is 0, clear selection and return
+  if threshold == 0 then
+    sample_buffer.selection_start = 1
+    sample_buffer.selection_end = 1
+    return
+  end
+  
+  -- Calculate silence regions
+  local channels = sample_buffer.number_of_channels
+  local frames = sample_buffer.number_of_frames
+  local selection_ranges = {}
+  local in_silence = false
+  local silence_start = 0
+  
+  for frame = 1, frames do
+      local is_silent = true
+      for channel = 1, channels do
+          if math.abs(sample_buffer:sample_data(channel, frame)) > threshold then
+              is_silent = false
+              break
+          end
+      end
+      
+      if is_silent and not in_silence then
+          in_silence = true
+          silence_start = frame
+      elseif not is_silent and in_silence then
+          in_silence = false
+          table.insert(selection_ranges, {silence_start, frame - 1})
+      end
+  end
+  
+  -- If we ended in silence, add final range
+  if in_silence then
+      table.insert(selection_ranges, {silence_start, frames})
+  end
+  
+  -- Update sample editor selection to show silence regions
+  if #selection_ranges > 0 then
+      sample_buffer.selection_start = selection_ranges[1][1]
+      sample_buffer.selection_end = selection_ranges[1][2]
+  end
+end
+
+local function update_move_silence_preview(threshold)
+  local song = renoise.song()
+  if not song.selected_sample then return end
+  
+  local sample_buffer = song.selected_sample.sample_buffer
+  if not sample_buffer or not sample_buffer.has_sample_data then return end
+  
+  renoise.app().window.active_middle_frame=renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR  
+
+  -- If threshold is 0, clear selection and return
+  if threshold == 0 then
+    sample_buffer.selection_start = 1
+    sample_buffer.selection_end = 1
+    return
+  end
+  
+  -- Find first non-silent frame
+  local channels = sample_buffer.number_of_channels
+  local frames = sample_buffer.number_of_frames
+  local first_sound = 1
+  
+  for frame = 1, frames do
+      local is_silent = true
+      for channel = 1, channels do
+          if math.abs(sample_buffer:sample_data(channel, frame)) > threshold then
+              is_silent = false
+              break
+          end
+      end
+      
+      if not is_silent then
+          first_sound = frame
+          break
+      end
+  end
+  
+  -- Update sample editor selection to show beginning silence
+  if first_sound > 1 then
+      sample_buffer.selection_start = 1
+      sample_buffer.selection_end = first_sound - 1
+  else
+      -- No silence at beginning, clear selection
+      sample_buffer.selection_start = 1
+      sample_buffer.selection_end = 1
+  end
+end
+
 -- Initialize filter index
 if preferences.pakettiLoaderFilterType.value ~= nil then
   initial_value = get_filter_type_index(preferences.pakettiLoaderFilterType.value)
@@ -408,7 +569,17 @@ end
 local dialog_content = nil
 
 function show_paketti_preferences()
-    local threshold_label = vb:text {
+  local coarse_value_label = vb:text{
+    width = 50,  -- Width to accommodate values up to 10000
+    text = tostring(preferences.pakettiRotateSampleBufferCoarse.value)
+  }
+  
+  local fine_value_label = vb:text{
+    width = 50,  -- Width to accommodate values up to 10000
+    text = tostring(preferences.pakettiRotateSampleBufferFine.value)
+  }
+
+  local threshold_label = vb:text {
         text = string.format("%.3f%%", preferences.PakettiStripSilenceThreshold.value * 100), width=100
     }
 
@@ -538,47 +709,92 @@ function show_paketti_preferences()
             },
             vb:row { vb:text{text="Bypass Devices",width=150},vb:switch{items={"Off","On"},value=preferences.renderBypass.value and 2 or 1,width=300,
               notifier=function(value) preferences.renderBypass.value=(value==2) end}
-            }
+            },
+            vb:row { vb:text{text="DC Offset",width=150},vb:switch{items={"Off","On"},value=preferences.RenderDCOffset.value and 2 or 1,width=300,
+              notifier=function(value) preferences.RenderDCOffset.value=(value==2) end}
+            }            
           },
 
-          -- Strip Silence / Move Beginning Silence to End wrapped in group
           horizontal_rule(),
-     vb:column {
-      style = "group", margin = 10, width = "100%",
+          vb:column {
+            style = "group", margin = 10, width = "100%",
+            vb:text{style = "strong", font = "bold", text = "Rotate Sample Buffer Settings"},
+            
+            -- Fine control
+            vb:row {
+                vb:text{text = "Fine Control", width = 150},
+                vb:slider{
+                    min = 0,
+                    max = 10000,
+                    value = preferences.pakettiRotateSampleBufferFine.value,
+                    width = 200,
+                    notifier = function(value)
+                        value = math.floor(value)  -- Ensure integer value
+                        preferences.pakettiRotateSampleBufferFine.value = value
+                        fine_value_label.text = tostring(value)
+                    end
+                },
+                fine_value_label
+            },
+            
+            -- Coarse control
+            vb:row {
+                vb:text{text = "Coarse Control", width = 150},
+                vb:slider{
+                    min = 0,
+                    max = 10000,
+                    value = preferences.pakettiRotateSampleBufferCoarse.value,
+                    width = 200,
+                    notifier = function(value)
+                        value = math.floor(value)  -- Ensure integer value
+                        preferences.pakettiRotateSampleBufferCoarse.value = value
+                        coarse_value_label.text = tostring(value)
+                    end
+                },
+                coarse_value_label
+            }
+        },
+        horizontal_rule(),
 
-      -- Title text
-      vb:text{style = "strong", font = "bold", text = "Silence Settings"},
+        horizontal_rule(),
+        vb:column {
+          style="group",margin=10, width="100%",
+          vb:text{style="strong",font="bold",text="Strip Silence Settings"}, -- Applied bold and strong
 
-      -- First row for Strip Silence Threshold
-      vb:row {vb:text{text="Strip Silence Threshold:", width=150},
-        vb:minislider{
-          min=0,
-          max=1,
-          value=preferences.PakettiStripSilenceThreshold.value,
-          width=200,
-          notifier = function(value)
-            threshold_label.text = string.format("%.3f%%", value * 100) -- Update the label
-            preferences.PakettiStripSilenceThreshold.value = value
-          end
-        },threshold_label,
-      },
+-- Modify the silence settings sliders
+vb:row {
+  vb:text{text = "Strip Silence Threshold:", width = 150},
+  vb:minislider{
+      min = 0,
+      max = 1,
+      value = preferences.PakettiStripSilenceThreshold.value,
+      width = 200,
+      notifier = function(value)
+          threshold_label.text = string.format("%.3f%%", value * 100)
+          preferences.PakettiStripSilenceThreshold.value = value
+          update_strip_silence_preview(value)
+      end
+  },
+  threshold_label,
+},
 
-      -- Second row for Move Silence Threshold
-      vb:row {
-        vb:text {text = "Move Silence Threshold:", width = 150},
-        vb:minislider {
-          min = 0,
-          max = 1,
-          value = preferences.PakettiMoveSilenceThreshold.value,
-          width = 200,
-          notifier = function(value)
-            begthreshold_label.text = string.format("%.3f%%", value * 100) -- Update the label
-            preferences.PakettiMoveSilenceThreshold.value = value
-          end
-        },begthreshold_label,
-      },
+vb:row {
+  vb:text{text = "Move Silence Threshold:", width = 150},
+  vb:minislider{
+      min = 0,
+      max = 1,
+      value = preferences.PakettiMoveSilenceThreshold.value,
+      width = 200,
+      notifier = function(value)
+          begthreshold_label.text = string.format("%.3f%%", value * 100)
+          preferences.PakettiMoveSilenceThreshold.value = value
+          update_move_silence_preview(value)
+      end
+  },
+  begthreshold_label,
+      
 
-    },
+    },},
 
           -- Edit Mode Coloring wrapped in group
           horizontal_rule(),
@@ -732,7 +948,7 @@ function show_paketti_preferences()
             vb:text{style="strong",font="bold",text="Wipe & Slices Settings"},
             vb:row { vb:text{text="Slice Loop Mode",width=150},create_loop_mode_switch(preferences.WipeSlices.WipeSlicesLoopMode) },
             vb:row { vb:text{text="Slice Loop Release/Exit Mode",width=150},vb:checkbox{value=preferences.WipeSlices.WipeSlicesLoopRelease.value,notifier=function(value) preferences.WipeSlices.WipeSlicesLoopRelease.value=value end} },
-            vb:row { vb:text{text="Slice BeatSync Mode",width=150},vb:switch{items={"Repitch","Time-Stretch (Percussion)","Time-Stretch (Texture)","Off"},value=preferences.WipeSlices.WipeSlicesBeatSyncMode.value,width=420,
+            vb:row { vb:text{text="Slice Beatsync Mode",width=150},vb:switch{items={"Repitch","Time-Stretch (Percussion)","Time-Stretch (Texture)","Off"},value=preferences.WipeSlices.WipeSlicesBeatSyncMode.value,width=420,
               notifier=function(value) preferences.WipeSlices.WipeSlicesBeatSyncMode.value=value end}
             },
             vb:row { vb:text{text="Slice One-Shot",width=150},vb:switch{items={"Off","On"},value=preferences.WipeSlices.WipeSlicesOneShot.value and 2 or 1,width=200,
@@ -756,7 +972,7 @@ function show_paketti_preferences()
           },
     --    },
         
-        vb:text{style="strong", font="bold", text="Random Device Chain Loader Path"},
+    vb:text{style="strong", font="bold", text="Random Device Chain Loader Path"},
     
     vb:row{
         vb:textfield{
@@ -791,11 +1007,49 @@ function show_paketti_preferences()
             end
         },
         vb:button{text="Load Random Chain",width=100,notifier=function()
-        PakettiRandomDeviceChain(preferences.PakettiDeviceChainPath.value)
-        end
-        }}
+            PakettiRandomDeviceChain(preferences.PakettiDeviceChainPath.value)
+        end}
     },
-        
+
+    vb:text{style="strong", font="bold", text="Random IR Loader Path"},
+
+    vb:row{
+        vb:textfield{
+            text = preferences.PakettiIRPath.value,
+            width = 300,
+            id = pakettiIRPathDisplayId,
+            notifier = function(value)
+                preferences.PakettiIRPath.value = value
+            end
+        },
+        vb:button{
+            text = "Browse",
+            width = 60,
+            notifier = function()
+                local path = renoise.app():prompt_for_path("Select IR Path")
+                if path and path ~= "" then
+                    preferences.PakettiIRPath.value = path
+                    vb.views.pakettiIRPathDisplayId.text = path
+                else
+                    renoise.app():show_status("No path was selected, returning to default.")
+                    preferences.PakettiIRPath.value = "IR/"
+                    vb.views.pakettiIRPathDisplayId.text = "IR/"
+                end
+            end
+        },
+        vb:button{
+            text = "Reset to Default",
+            width = 100,
+            notifier = function()
+                preferences.PakettiIRPath.value = "IR/"
+                vb.views.pakettiIRPathDisplayId.text = "IR/"
+            end
+        },
+        vb:button{text="Load Random IR",width=100,notifier=function()
+            PakettiRandomIR(preferences.PakettiIRPath.value)
+        end}
+    },      
+  },
       },
 
       -- Bottom Buttons

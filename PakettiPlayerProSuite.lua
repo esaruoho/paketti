@@ -462,7 +462,7 @@ else
   end
 end
 
-local function PakettiPlayerProNoteGridShowDropdownGrid()
+function PakettiPlayerProNoteGridShowDropdownGrid()
 renoise.app().window.active_middle_frame=1
 
   if dialog and dialog.visible then
@@ -761,7 +761,7 @@ local function pakettiPlayerProUpdateVolumeDisplay()
   vb.views["volume_display"].text = vol_display == "00" and "00" or vol_display
 end
 
-local function pakettiPlayerProShowMainDialog()
+function pakettiPlayerProShowMainDialog()
   local instrument_items = {"<None>"}
   for i = 0, #renoise.song().instruments - 1 do
     local instrument = renoise.song().instruments[i + 1]

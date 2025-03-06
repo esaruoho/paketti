@@ -338,7 +338,7 @@ end
 
 
 -- Add menu entries and keybindings
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Detect Zero Crossings",invoke=detect_zero_crossings}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Experimental/WIP..:Detect Zero Crossings",invoke=detect_zero_crossings}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Detect Zero Crossings",invoke=detect_zero_crossings}
 
 
@@ -993,61 +993,61 @@ renoise.tool():add_keybinding{name="Global:Paketti:Reset Nudge Delay Output Dela
 renoise.tool():add_keybinding{name="Global:Paketti:Reset Nudge Delay Output Delay to 0ms (ALL) (Rename)",invoke=function() reset_output_delayALL(true) end}
 
 -- Menu entries
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Nudge Delay Output +01ms",invoke=function() nudge_output_delay(1, false) end}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Nudge Delay Output -01ms",invoke=function() nudge_output_delay(-1, false) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Nudge Delay Output +05ms",invoke=function() nudge_output_delay(5, false) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Nudge Delay Output -05ms",invoke=function() nudge_output_delay(-5, false) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Nudge Delay Output +10ms",invoke=function() nudge_output_delay(10, false) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Nudge Delay Output -10ms",invoke=function() nudge_output_delay(-10, false) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Reset Delay Output Delay to 0ms",invoke=function() reset_output_delay(false) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Reset Delay Output Delay to 0ms (ALL)",invoke=function() reset_output_delayALL(false) end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Delay Output..:Nudge Delay Output +01ms",invoke=function() nudge_output_delay(1, false) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Nudge Delay Output -01ms",invoke=function() nudge_output_delay(-1, false) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Nudge Delay Output +05ms",invoke=function() nudge_output_delay(5, false) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Nudge Delay Output -05ms",invoke=function() nudge_output_delay(-5, false) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Nudge Delay Output +10ms",invoke=function() nudge_output_delay(10, false) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Nudge Delay Output -10ms",invoke=function() nudge_output_delay(-10, false) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Reset Delay Output Delay to 0ms",invoke=function() reset_output_delay(false) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Reset Delay Output Delay to 0ms (ALL)",invoke=function() reset_output_delayALL(false) end}
 
 -- Menu entries (Rename versions)
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Nudge Delay Output +01ms (Rename)",invoke=function() nudge_output_delay(1, true) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Nudge Delay Output -01ms (Rename)",invoke=function() nudge_output_delay(-1, true) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Nudge Delay Output +05ms (Rename)",invoke=function() nudge_output_delay(5, true) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Nudge Delay Output -05ms (Rename)",invoke=function() nudge_output_delay(-5, true) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Nudge Delay Output +10ms (Rename)",invoke=function() nudge_output_delay(10, true) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Nudge Delay Output -10ms (Rename)",invoke=function() nudge_output_delay(-10, true) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Reset Delay Output Delay to 0ms (Rename)",invoke=function() reset_output_delay(true) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Reset Delay Output Delay to 0ms (ALL) (Rename)",invoke=function() reset_output_delayALL(true) end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Delay Output..:Nudge Delay Output +01ms (Rename)",invoke=function() nudge_output_delay(1, true) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Nudge Delay Output -01ms (Rename)",invoke=function() nudge_output_delay(-1, true) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Nudge Delay Output +05ms (Rename)",invoke=function() nudge_output_delay(5, true) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Nudge Delay Output -05ms (Rename)",invoke=function() nudge_output_delay(-5, true) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Nudge Delay Output +10ms (Rename)",invoke=function() nudge_output_delay(10, true) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Nudge Delay Output -10ms (Rename)",invoke=function() nudge_output_delay(-10, true) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Reset Delay Output Delay to 0ms (Rename)",invoke=function() reset_output_delay(true) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Reset Delay Output Delay to 0ms (ALL) (Rename)",invoke=function() reset_output_delayALL(true) end}
 
 -- Mixer menu entries
-renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Nudge Delay Output Delay +01ms",invoke=function() nudge_output_delay(1, false) end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Nudge Delay Output Delay -01ms",invoke=function() nudge_output_delay(-1, false) end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Nudge Delay Output Delay +05ms",invoke=function() nudge_output_delay(5, false) end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Nudge Delay Output Delay -05ms",invoke=function() nudge_output_delay(-5, false) end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Nudge Delay Output Delay +10ms",invoke=function() nudge_output_delay(10, false) end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Nudge Delay Output Delay -10ms",invoke=function() nudge_output_delay(-10, false) end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Reset Delay Output Delay to 0ms",invoke=function() reset_output_delay(false) end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Reset Delay Output Delay to 0ms (ALL)",invoke=function() reset_output_delayALL(false) end}
+renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Delay Output..:Nudge Delay Output Delay +01ms",invoke=function() nudge_output_delay(1, false) end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Nudge Delay Output Delay -01ms",invoke=function() nudge_output_delay(-1, false) end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Nudge Delay Output Delay +05ms",invoke=function() nudge_output_delay(5, false) end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Nudge Delay Output Delay -05ms",invoke=function() nudge_output_delay(-5, false) end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Nudge Delay Output Delay +10ms",invoke=function() nudge_output_delay(10, false) end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Nudge Delay Output Delay -10ms",invoke=function() nudge_output_delay(-10, false) end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Reset Delay Output Delay to 0ms",invoke=function() reset_output_delay(false) end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Reset Delay Output Delay to 0ms (ALL)",invoke=function() reset_output_delayALL(false) end}
 
 -- Mixer menu entries (Rename versions)
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Nudge Delay Output Delay +01ms (Rename)",invoke=function() nudge_output_delay(1, true) end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Nudge Delay Output Delay -01ms (Rename)",invoke=function() nudge_output_delay(-1, true) end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Nudge Delay Output Delay +05ms (Rename)",invoke=function() nudge_output_delay(5, true) end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Nudge Delay Output Delay -05ms (Rename)",invoke=function() nudge_output_delay(-5, true) end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Nudge Delay Output Delay +10ms (Rename)",invoke=function() nudge_output_delay(10, true) end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Nudge Delay Output Delay -10ms (Rename)",invoke=function() nudge_output_delay(-10, true) end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Reset Delay Output Delay to 0ms (Rename)",invoke=function() reset_output_delay(true) end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Reset Delay Output Delay to 0ms (ALL) (Rename)",invoke=function() reset_output_delayALL(true) end}
+renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Delay Output..:Nudge Delay Output Delay +01ms (Rename)",invoke=function() nudge_output_delay(1, true) end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Nudge Delay Output Delay -01ms (Rename)",invoke=function() nudge_output_delay(-1, true) end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Nudge Delay Output Delay +05ms (Rename)",invoke=function() nudge_output_delay(5, true) end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Nudge Delay Output Delay -05ms (Rename)",invoke=function() nudge_output_delay(-5, true) end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Nudge Delay Output Delay +10ms (Rename)",invoke=function() nudge_output_delay(10, true) end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Nudge Delay Output Delay -10ms (Rename)",invoke=function() nudge_output_delay(-10, true) end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Reset Delay Output Delay to 0ms (Rename)",invoke=function() reset_output_delay(true) end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Reset Delay Output Delay to 0ms (ALL) (Rename)",invoke=function() reset_output_delayALL(true) end}
 
 -- Pattern Matrix menu entries
-renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Nudge Delay Output Delay +01ms",invoke=function() nudge_output_delay(1, false) end}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Nudge Delay Output Delay -01ms",invoke=function() nudge_output_delay(-1, false) end}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Nudge Delay Output Delay +05ms",invoke=function() nudge_output_delay(5, false) end}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Nudge Delay Output Delay -05ms",invoke=function() nudge_output_delay(-5, false) end}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Nudge Delay Output Delay +10ms",invoke=function() nudge_output_delay(10, false) end}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Nudge Delay Output Delay -10ms",invoke=function() nudge_output_delay(-10, false) end}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Reset Delay Output Delay to 0ms",invoke=function() reset_output_delay(false) end}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Reset Delay Output Delay to 0ms (ALL)",invoke=function() reset_output_delayALL(false) end}
+renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Delay Output..:Nudge Delay Output Delay +01ms",invoke=function() nudge_output_delay(1, false) end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Delay Output..:Nudge Delay Output Delay -01ms",invoke=function() nudge_output_delay(-1, false) end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Delay Output..:Nudge Delay Output Delay +05ms",invoke=function() nudge_output_delay(5, false) end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Delay Output..:Nudge Delay Output Delay -05ms",invoke=function() nudge_output_delay(-5, false) end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Delay Output..:Nudge Delay Output Delay +10ms",invoke=function() nudge_output_delay(10, false) end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Delay Output..:Nudge Delay Output Delay -10ms",invoke=function() nudge_output_delay(-10, false) end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Delay Output..:Reset Delay Output Delay to 0ms",invoke=function() reset_output_delay(false) end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Delay Output..:Reset Delay Output Delay to 0ms (ALL)",invoke=function() reset_output_delayALL(false) end}
 
 -- Pattern Matrix menu entries (Rename versions)
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Nudge Delay Output Delay +01ms (Rename)",invoke=function() nudge_output_delay(1, true) end}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Nudge Delay Output Delay -01ms (Rename)",invoke=function() nudge_output_delay(-1, true) end}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Nudge Delay Output Delay +05ms (Rename)",invoke=function() nudge_output_delay(5, true) end}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Nudge Delay Output Delay -05ms (Rename)",invoke=function() nudge_output_delay(-5, true) end}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Nudge Delay Output Delay +10ms (Rename)",invoke=function() nudge_output_delay(10, true) end}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Nudge Delay Output Delay -10ms (Rename)",invoke=function() nudge_output_delay(-10, true) end}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Reset Delay Output Delay to 0ms (Rename)",invoke=function() reset_output_delay(true) end}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Reset Delay Output Delay to 0ms (ALL) (Rename)",invoke=function() reset_output_delayALL(true) end}
+renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Delay Output..:Nudge Delay Output Delay +01ms (Rename)",invoke=function() nudge_output_delay(1, true) end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Delay Output..:Nudge Delay Output Delay -01ms (Rename)",invoke=function() nudge_output_delay(-1, true) end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Delay Output..:Nudge Delay Output Delay +05ms (Rename)",invoke=function() nudge_output_delay(5, true) end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Delay Output..:Nudge Delay Output Delay -05ms (Rename)",invoke=function() nudge_output_delay(-5, true) end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Delay Output..:Nudge Delay Output Delay +10ms (Rename)",invoke=function() nudge_output_delay(10, true) end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Delay Output..:Nudge Delay Output Delay -10ms (Rename)",invoke=function() nudge_output_delay(-10, true) end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Delay Output..:Reset Delay Output Delay to 0ms (Rename)",invoke=function() reset_output_delay(true) end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Delay Output..:Reset Delay Output Delay to 0ms (ALL) (Rename)",invoke=function() reset_output_delayALL(true) end}
