@@ -10,10 +10,12 @@ jobs:
   package-and-release:
     runs-on: ubuntu-latest
     steps:
-      # Checkout the repository
+      # Checkout the repository without submodules
       - name: Checkout repository
         uses: actions/checkout@v2
-      
+        with:
+          submodules: false
+          
       # Zip the contents or specified directory of the repo, excluding specific XML files
       - name: Zip XRNX Package
         run: |
