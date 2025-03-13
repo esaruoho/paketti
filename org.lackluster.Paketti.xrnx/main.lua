@@ -259,11 +259,6 @@ local selected_theme_index = nil
 -- Debug print all available themes
 --print("Debug: Available themes:")
 --for i, theme in ipairs(themes) do
-
-
-
-
-
 --  print(i .. ": " .. theme)
 --end
 
