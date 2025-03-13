@@ -27,13 +27,12 @@ jobs:
             -x "*.git*" "*.github*" \
             "preferences.xml" \
             "preferencesDynamicView.xml" \
-            "org.lackluster.Paketti.xrnx/definitions/*"
+            "definitions/*"
       
       # Dynamically generate a tag name and set it as an environment variable
       - name: Generate Tag Name
         run: |
-          echo "TAG_NAME=$(date +'%Y%m%d%H%M%S')" >> $GITHUB_ENV
-      
+          echo "TAG_NAME=$(date +'%Y-%m-%d-%H-%M-%S')" >> $GITHUB_ENV      
       # Create a tag with the generated tag name
       - name: Create and Push Tag
         run: |
