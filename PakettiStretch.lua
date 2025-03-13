@@ -237,8 +237,9 @@ end
 
 -- Key handler function
 local function Timekeyhandlerfunc(dialog, key)
-    if key.name == "esc" then
-        dialog:close()
+    local closer = preferences.pakettiDialogClose.value
+    if key.name == closer then
+      dialog:close()
     end
     return key
 end

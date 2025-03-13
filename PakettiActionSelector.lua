@@ -369,7 +369,7 @@ renoise.app().window.active_middle_frame=renoise.app().window.active_middle_fram
 end
 
 function keyhandlerfuncActionSelector(dialog, key)
-  local closer = "esc"
+  local closer = preferences.pakettiDialogClose.value
   if key.modifiers == "" and key.name == closer then
     dialog:close()
     dialog = nil

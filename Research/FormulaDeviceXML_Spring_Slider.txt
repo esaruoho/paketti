@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FilterDevicePreset doc_version="9">
+  <DeviceSlot type="FormulaMetaDevice">
+    <IsMaximized>true</IsMaximized>
+    <CustomDeviceName>Spring Slider</CustomDeviceName>
+    <FormulaParagraphs>
+      <FormulaParagraph>doit(A, B * B, 1 - C * C)</FormulaParagraph>
+    </FormulaParagraphs>
+    <FunctionsParagraphs>
+      <FunctionsParagraph>curVelocity = 0</FunctionsParagraph>
+      <FunctionsParagraph>function doit(target, velocity, damping)</FunctionsParagraph>
+      <FunctionsParagraph>  curVelocity = (curVelocity + (target - OUTPUT) * velocity) * damping</FunctionsParagraph>
+      <FunctionsParagraph>  return OUTPUT + curVelocity</FunctionsParagraph>
+      <FunctionsParagraph>end</FunctionsParagraph>
+    </FunctionsParagraphs>
+    <InputNameA>Target</InputNameA>
+    <InputNameB>Velocity</InputNameB>
+    <InputNameC>Damping</InputNameC>
+    <EditorVisible>true</EditorVisible>
+    <PanelVisible>1</PanelVisible>
+    <InputA>
+      <Value>0.314814806</Value>
+      <Visualization>Device only</Visualization>
+    </InputA>
+    <InputB>
+      <Value>0.27111119</Value>
+      <Visualization>Device only</Visualization>
+    </InputB>
+    <InputC>
+      <Value>0.179999962</Value>
+      <Visualization>Device only</Visualization>
+    </InputC>
+    <DestTrack>
+      <Value>-1</Value>
+      <Visualization>Device only</Visualization>
+    </DestTrack>
+    <DestEffect>
+      <Value>0.0</Value>
+      <Visualization>Device only</Visualization>
+    </DestEffect>
+    <DestParameter>
+      <Value>1.0</Value>
+      <Visualization>Device only</Visualization>
+    </DestParameter>
+  </DeviceSlot>
+</FilterDevicePreset>

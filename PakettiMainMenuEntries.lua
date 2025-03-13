@@ -31,7 +31,7 @@ local dialog_content = vb:column{
   vb:multiline_textfield{width = textfield_width, height = 40, text = "There's probably tons more, but: dBlue, danoise, cortex, pandabot, ffx, Joule, Avaruus, astu/flo, syflom, Protman, vV, Bantai, taktik, Snowrobot, MXB, Jenoki, Kmaki, aleksip, Unless, martblek, schmuzoo and the whole Renoise community."},
 
   vb:text{text = "Ideas provided by:", style = "strong", font = "bold"},
-  vb:multiline_textfield{width = textfield_width, height = 80, text = "tkna, Nate Schmold, Casiino, Royal Sexton, Bovaflux, Xerxes, ViZiON, Satoi, Kaneel, Subi, MigloJE, Yalk DX, Michael Langer, Christopher Jooste, Zoey Samples, Avaruus, Pieter Koenekoop, Widgetphreak, Bálint Magyar, Mick Rippon, MMD (Mr. Mark Dollin), ne7, renoize-user, Dionysis, untilde, Greystar, Kaidiak, sousândrade, senseiprod, Brandon Hale, dmt, Diigitae, Dávid Halmi (Nagz), tEiS, Floppi J, Aleksi Eeben, fuzzy, Jalex, Mike Pehel, grymmjack, Mister Garbanzo, tdel, Jek, Mezzguru, Run Anymore, gentleclockdivider, Aaron Munson (Ilkae), pr0t0type, Joonas Holmén (JouluPam), Ugly Cry, NPC1, Vulkan, Dancing Ponies and many others."},
+  vb:multiline_textfield{width = textfield_width, height = 80, text = "tkna, Nate Schmold, Casiino, Royal Sexton, Bovaflux, Xerxes, ViZiON, Satoi, Kaneel, Subi, MigloJE, Yalk DX, Michael Langer, Christopher Jooste, Zoey Samples, Avaruus, Pieter Koenekoop, Widgetphreak, Bálint Magyar, Mick Rippon, MMD (Mr. Mark Dollin), ne7, renoize-user, Dionysis, untilde, Greystar, Kaidiak, sousândrade, senseiprod, Brandon Hale, dmt, Diigitae, Dávid Halmi (Nagz), tEiS, Floppi J, Aleksi Eeben, fuzzy, Jalex, Mike Pehel, grymmjack, Mister Garbanzo, tdel, Jek, Mezzguru, Run Anymore, gentleclockdivider, Aaron Munson (Ilkae), pr0t0type, Joonas Holmén (JouluPam), Ugly Cry, NPC1, Vulkan, Dancing Ponies, super_lsd and many others."},
 
   vb:text{text = "Who made it possible:", style = "strong", font = "bold"},
   vb:multiline_textfield{width = textfield_width, height = 40, text = "Thanks to @lpn (Brothomstates) for suggesting that I could pick up and learn LUA, that it would not be beyond me. Really appreciate your (sometimes misplaced and ahead-of-time) faith in me. And thanks for the inspiration."},
@@ -204,7 +204,7 @@ end
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:!!About..:About Paketti/Donations...",invoke=function() show_about_dialog() end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:!Preferences..:Open Paketti Path",invoke=function() renoise.app():open_path(renoise.tool().bundle_path)end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:Debug..:Inspect Plugin (Console)",invoke=function() inspectPlugin() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:Debug..:Inspect Device in Slot 2 (Console)",invoke=function() inspectEffect() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:Debug..:Inspect Selected Device (Console)",invoke=function() inspectEffect() end}
 function randomBPM()
   local bpmList = {80, 100, 115, 123, 128, 132, 135, 138, 160}
   local currentBPM = renoise.song().transport.bpm

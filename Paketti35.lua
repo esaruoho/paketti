@@ -612,7 +612,9 @@
   local dialog_content = create_dialog()
 
   -- Show the dialog
-  local dialog = renoise.app():show_custom_dialog("GUI Demo", dialog_content)
+  local dialog = renoise.app():show_custom_dialog("GUI Demo", dialog_content, keyhandler_35)
+
+
 
   -- Reset cursor when dialog is closed
   renoise.tool().app_release_document_observable:add_notifier(function()
@@ -620,6 +622,14 @@
       dialog_content.cursor = "default"
     end
   end)
+end
+
+function keyhandler_35(dialog,key)
+  local closer = preferences.pakettiDialogClose.value
+  if key.name == closer then
+    dialog:close()
+  end
+  return key
 end
 
 

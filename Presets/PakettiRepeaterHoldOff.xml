@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FilterDevicePreset doc_version="13">
+  <DeviceSlot type="RepeaterDevice">
+    <IsMaximized>true</IsMaximized>
+    <Mode>
+      <Value>0.0</Value>
+    </Mode>
+    <Divisor>
+      <Value>0.5</Value>
+    </Divisor>
+    <Hold>false</Hold>
+    <SyncMode>
+      <Value>0.0</Value>
+    </SyncMode>
+  </DeviceSlot>
+</FilterDevicePreset>

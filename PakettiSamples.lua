@@ -987,6 +987,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Wipe&Slice (16)",invoke=funct
 renoise.tool():add_keybinding{name="Global:Paketti:Wipe&Slice (32)",invoke=function() slicerough(32) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Wipe&Slice (64)",invoke=function() slicerough(64) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Wipe&Slice (128)",invoke=function() slicerough(128) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Wipe&Slice (256)",invoke=function() slicerough(256) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Wipe Slices",invoke=function() wipeslices() end}
 
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Wipe&Slice..:Wipe&Slice (2)",invoke=function() slicerough(2) end}
@@ -996,6 +997,7 @@ renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Wipe&Slice..:Wipe&Sl
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Wipe&Slice..:Wipe&Slice (32)",invoke=function() slicerough(32) end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Wipe&Slice..:Wipe&Slice (64)",invoke=function() slicerough(64) end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Wipe&Slice..:Wipe&Slice (128)",invoke=function() slicerough(128) end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Wipe&Slice..:Wipe&Slice (256)",invoke=function() slicerough(256) end}
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Wipe&Slice..:Wipe Slices",invoke=function() wipeslices() end}
 
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Wipe&Slice..:Wipe&Slice (2)",invoke=function() slicerough(2) end}
@@ -1005,6 +1007,7 @@ renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Wipe&Slice..:Wipe
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Wipe&Slice..:Wipe&Slice (32)",invoke=function() slicerough(32) end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Wipe&Slice..:Wipe&Slice (64)",invoke=function() slicerough(64) end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Wipe&Slice..:Wipe&Slice (128)",invoke=function() slicerough(128) end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Wipe&Slice..:Wipe&Slice (256)",invoke=function() slicerough(256) end}
 renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Wipe&Slice..:Wipe Slices",invoke=function() wipeslices() end}
 
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Wipe&Slice..:Wipe&Slice (2)",invoke=function() slicerough(2) end}
@@ -1014,6 +1017,7 @@ renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Wipe&Slice..:Wipe&S
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Wipe&Slice..:Wipe&Slice (32)",invoke=function() slicerough(32) end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Wipe&Slice..:Wipe&Slice (64)",invoke=function() slicerough(64) end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Wipe&Slice..:Wipe&Slice (128)",invoke=function() slicerough(128) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Wipe&Slice..:Wipe&Slice (256)",invoke=function() slicerough(256) end}
 renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Wipe&Slice..:Wipe Slices",invoke=function() wipeslices() end}
 
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Beatsync/Slices..:Double Beatsync Line",invoke=function() doubleBeatSyncLines() end}
@@ -4898,8 +4902,53 @@ renoise.app().window.active_middle_frame_observable:add_notifier(function()
 end)
 
 renoise.tool():add_keybinding{name = "Sample Editor:Paketti:Toggle Sample Selection Info",invoke = toggleSampleDetails}
+renoise.tool():add_menu_entry{name="Sample Editor Ruler:Paketti Toggle Sample Selection Info",invoke = toggleSampleDetails}
 renoise.tool():add_menu_entry{name = "--Sample Editor:Paketti..:Toggle Sample Selection Info",invoke = toggleSampleDetails}
 renoise.tool().app_release_document_observable:add_notifier(function() stopSampleDetailsTimer() end)
+----------
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Selected Phrase LPB (1-127) x[Knob]",
+  invoke = function(midi_message)
+    local song = renoise.song()
+    if song and song.selected_phrase then
+      -- Map MIDI value (0-127) to LPB range (1-127)
+      local new_lpb = math.max(1, math.min(127, midi_message.int_value))
+      song.selected_phrase.lpb = new_lpb
+      renoise.app():show_status("Phrase LPB: " .. new_lpb)
+    end
+  end
+}
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Selected Phrase LPB (1-64) x[Knob]",
+  invoke = function(midi_message)
+    local song = renoise.song()
+    if song and song.selected_phrase then
+      -- Map MIDI value (0-127) to LPB range (1-127)
+      local new_lpb = math.max(1, math.min(64, midi_message.int_value))
+      song.selected_phrase.lpb = new_lpb
+      renoise.app():show_status("Phrase LPB: " .. new_lpb)
+    end
+  end
+}
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Selected Phrase LPB (Powers of 2) x[Knob]",
+  invoke = function(midi_message)
+    local song = renoise.song()
+    if song and song.selected_phrase then
+      -- Define the allowed LPB values
+      local lpb_values = {1, 2, 4, 8, 16, 32}
+      -- Divide MIDI range (0-127) into sections for each value
+      local section_size = 127 / (#lpb_values - 1)
+      -- Find the closest LPB value based on MIDI input
+      local index = math.floor(midi_message.int_value / section_size + 0.5) + 1
+      index = math.max(1, math.min(#lpb_values, index))
+      local new_lpb = lpb_values[index]
+      song.selected_phrase.lpb = new_lpb
+      renoise.app():show_status("Phrase LPB: " .. new_lpb)
+    end
+  end
+}
+
 
 ----------
 

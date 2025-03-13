@@ -1985,8 +1985,15 @@ local function show_value_dialog()
       vb:row{
         close_button,
       }
-    }
-  )
+    }, keyhandlerfunc_automationvalue )
+
+function keyhandlerfunc_automationvalue(dialog,key)
+  local closer = preferences.pakettiDialogClose.value
+  if key.name == closer then
+    dialog:close()
+  end
+  return key
+end
 
     -- Add the edit step notifier after dialog is created
     local edit_step_observable = renoise.song().transport.edit_step_observable
@@ -2762,3 +2769,56 @@ renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Clone Pattern (With
 renoise.tool():add_keybinding{name="Global:Paketti:Clone Pattern (Without Automation)",invoke = clone_pattern_without_automation}
 
 
+--------
+local is_following_parameter = false
+local follow_timer = nil
+
+function follow_parameter()
+  local song = renoise.song()
+  local automation_parameter = song.selected_automation_parameter
+  
+  -- Get the specific device and parameter we want to read from
+  local source_value = song.selected_track.devices[3].parameters[4].value
+  
+  -- Check if we have a valid automation parameter
+  if not automation_parameter or not automation_parameter.is_automatable then
+    return
+  end
+
+  -- Find or create the automation envelope
+  local track_automation = song:pattern(song.selected_pattern_index):track(song.selected_track_index)
+  local envelope = track_automation:find_automation(automation_parameter)
+  
+  if not envelope then
+    envelope = track_automation:create_automation(automation_parameter)
+  end
+
+  -- Write the value at the current playhead position
+  local playhead_line = song.transport.playback_pos.line
+  envelope:add_point_at(playhead_line, source_value)
+end
+
+function toggle_parameter_following()
+  local song = renoise.song()
+  
+  -- Check if we can access the source device/parameter
+  if not song.selected_track.devices[3] or not song.selected_track.devices[3].parameters[4] then
+    return
+  end
+  
+  -- Check if timer is already running
+  if renoise.tool():has_timer(follow_parameter) then
+    renoise.tool():remove_timer(follow_parameter)
+    follow_timer = nil
+    is_following_parameter = false
+    print("Parameter following stopped")
+  else
+    -- Create new timer only if one doesn't exist
+    follow_timer = renoise.tool():add_timer(follow_parameter, 0.001)
+    is_following_parameter = true
+    print("Parameter following started")
+  end
+end
+
+renoise.tool():add_menu_entry {name = "Main Menu:Tools:Paketti..:Automation..:Follow Parameter 4",invoke = toggle_parameter_following}
+renoise.tool():add_keybinding{name = "Global:Paketti:LFO Automation Write Follow",invoke = toggle_parameter_following}

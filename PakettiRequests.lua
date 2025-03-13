@@ -5325,7 +5325,15 @@ function PakettiTitlerDialog()
   -- Initialize filename display
   PakettiTitlerUpdateFilenameDisplay()
 
-  dialog = renoise.app():show_custom_dialog("Paketti Track Dater & Titler", dialog_content)
+  dialog = renoise.app():show_custom_dialog("Paketti Track Dater & Titler", dialog_content, keyhandlerfunc_tdt)
+end
+
+function keyhandlerfunc_tdt(dialog,key)
+  local closer = preferences.pakettiDialogClose.value
+  if key.name == closer then
+    dialog:close()
+  end
+  return key
 end
 
 -- Adding the menu entries
@@ -8897,8 +8905,16 @@ function show_global_volume_dialog()
     }
   }
   
-  dialog = renoise.app():show_custom_dialog("Global Instrument/Sample Volume Adjustment",dialog_content)
+  dialog = renoise.app():show_custom_dialog("Global Instrument/Sample Volume Adjustment",dialog_content, keyhandlerfunc_gisv)
 end
+
+function keyhandlerfunc_gisv(dialog,key)
+  local closer = preferences.pakettiDialogClose.value
+  if key.name == closer then
+    dialog:close()
+  end
+  return key
+end  
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti Global Volume Adjustment...",invoke=function() show_global_volume_dialog() end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Paketti Global Volume Adjustment...",invoke=function() show_global_volume_dialog() end}
@@ -9089,8 +9105,16 @@ local function show_edit_step_dialog()
     }
   }
 
-  dialog = renoise.app():show_custom_dialog("Set EditStep&Enter",dialog_content,function() end )
+  dialog = renoise.app():show_custom_dialog("Set EditStep&Enter",dialog_content,keyhandlereditstep)
   
+end
+
+function keyhandlereditstep(dialog,key)
+  local closer = preferences.pakettiDialogClose.value
+  if key.name == closer then
+    dialog:close()
+  end
+  return key
 end
 
 -- Key binding functions

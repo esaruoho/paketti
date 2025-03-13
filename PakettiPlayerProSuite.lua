@@ -130,14 +130,12 @@ dialog_content = vb:column{
 }
 
 local function my_PPEffectkeyhandler_func(dialog, key)
-  -- Check for specific keys to handle in the dialog
   local closer = preferences.pakettiDialogClose.value
   if key.modifiers == "" and key.name == closer then
-dialog:close()
-dialog=nil
-    renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
-
-return nil
+  dialog:close()
+  dialog=nil
+  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+  return nil
 else
   return key
 end

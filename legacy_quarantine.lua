@@ -590,11 +590,19 @@ local function show_dialog()
       vb:text { text = "Resonance" },
       vb:button { text = "Process Audio", notifier = process_audio }
     }
-  }, my_keyhandler_func)
+  }, keyhandler_wackyfilter)
 end
 
 -- Add menu entry to show the dialog
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress:Wacky Filter",invoke=show_dialog}
+
+function keyhandler_wackyfilter(dialog,key)
+  local closer = preferences.pakettiDialogClose.value
+  if key.name == closer then
+    dialog:close()
+  end
+  return key
+end
 
 
 --[[

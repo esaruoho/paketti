@@ -443,6 +443,14 @@ renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise Phaser 2",
 invoke=function() loadnative("Audio/Effects/Native/Phaser 2") end}
 renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise Repeater",
 invoke=function() loadnative("Audio/Effects/Native/Repeater") end}
+renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise Repeater Hold Off",
+invoke=function() loadnative("Audio/Effects/Native/Repeater",nil,"./Presets/PakettiRepeaterHoldOff.xml") end}
+
+
+
+
+
+
 renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise Notepad",
 invoke=function() loadnative("Audio/Effects/Native/Notepad") end}
 renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise Reverb",
@@ -935,32 +943,34 @@ end
 -- Adding keybinding for the inspectPlugin function
 renoise.tool():add_keybinding{name="Global:Paketti:Inspect Plugin",invoke=function() inspectPlugin() end}
 
--- Function to inspect the effect in device slot 2
 function inspectEffect()
   local devices = renoise.song().selected_track.devices
+  local selected_device = renoise.song().selected_device
 
-  -- Check if there is an effect in device slot 2
-  if not devices[2] then
-    renoise.app():show_status("No effect in device slot 2")
+  -- Check if there is a selected effect
+  if not selected_device then
+    renoise.app():show_status("No effect has been selected, doing nothing.")
     return
   end
 
-  -- Print details of the effect in device slot 2
-  oprint("Effect Displayname: " .. devices[2].display_name)
-  oprint("Effect Name: " .. devices[2].name)
-  oprint("Effect Path: " .. devices[2].device_path)
+  -- Print details of the selected effect
+  oprint("Effect Displayname: " .. selected_device.display_name)
+  oprint("Effect Name: " .. selected_device.name)
+  oprint("Effect Path: " .. selected_device.device_path)
 
   -- Iterate over the effect parameters and print their details
-  for i = 1, #devices[2].parameters do
+  for i = 1, #selected_device.parameters do
     oprint(
-      devices[2].name .. ": " .. i .. ": " .. devices[2].parameters[i].name .. ": " ..
-      "renoise.song().selected_track.devices[2].parameters[" .. i .. "].value=" .. devices[2].parameters[i].value
+      selected_device.name .. ": " .. i .. ": " .. selected_device.parameters[i].name .. ": " ..
+      "renoise.song().selected_device.parameters[" .. i .. "].value=" .. selected_device.parameters[i].value
     )
   end
 end
 
 -- Adding keybinding for the inspectEffect function
-renoise.tool():add_keybinding{name="Global:Paketti:Inspect Device in Slot 2",invoke=function() inspectEffect() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Inspect Selected Device",invoke=function() inspectEffect() end}
+renoise.tool():add_menu_entry{name="--DSP Device:Paketti..:Inspect Selected Device",invoke=function() inspectEffect() end}
+
 ------------------------------------------------------------------------------------------------------
 -- Add the menu entry to show plugin details
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Plugins/Devices..:Debug..:Show Plugin Details Dialog...",invoke=function() show_plugin_details_gui() end}
@@ -1250,9 +1260,16 @@ function show_effect_details_gui()
   }
 
   -- Show dialog
-  customdialog = renoise.app():show_custom_dialog("Effect Details", dialog_content)
+  customdialog = renoise.app():show_custom_dialog("Effect Details", dialog_content, keyhandlerfunc_effectdetails)
 end
 
+function keyhandlerfunc_effectdetails(dialog,key)
+  local closer = preferences.pakettiDialogClose.value
+  if key.name == closer then
+    dialog:close()
+  end
+  return key
+end
 
 -- Modulation Device Loader Shortcut Generator
 local moddevices = {

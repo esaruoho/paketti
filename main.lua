@@ -249,6 +249,7 @@ timed_require("PakettiRequests")             -- 9168 lines, 127.00 ms
 timed_require("PakettiSamples")              -- 4249 lines, 6.00 ms
 timed_require("Paketti35")
 timed_require("PakettiActionSelector")
+timed_require("Research/FormulaDeviceManual")
 
 print(string.format("Total load time: %.3f seconds", os.clock() - init_time))
 ------------------------------------------------
@@ -260,7 +261,6 @@ local selected_theme_index = nil
 --for i, theme in ipairs(themes) do
 --  print(i .. ": " .. theme)
 --end
-
 
 
 

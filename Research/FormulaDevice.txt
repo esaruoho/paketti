@@ -2,25 +2,34 @@
 A                       : First input parameter [0..1]
 B                       : Second input parameter [0..1]
 C                       : Third input parameter [0..1]
+OUTPUT                  : Output parameter from previous run
 --[[ Math constants --------------------------------------------------------- ]]--
 PI                      : Pi constant
-TWOPI                   : Two Pi constant
-INF                     : Plus infinity (huge number)
+TWOPI                   : 2*Pi constant
+INF                     : Infinity (huge positive number)
 --[[ Musical variables ------------------------------------------------------ ]]--
+PLAYING                 : Playing or stopped (1 or 0)
+
 SRATE                   : Actual sampling rate
-BEATS                   : Current position in beats
-SAMPLES                 : Current position in samples
-PLAYING                 : Play or stopped
 BPM                     : Beats per minute
 LPB                     : Lines per beat
 TPL                     : Ticks per line
 SPL                     : Samples per line
-LINE                    : Line number in current pattern (integer)
-LINEF                   : Line number in current pattern (fractional)
 NUMLINES                : Number of lines in current pattern
+
 TICK                    : Tick number in current line
-TICKCOUNTER             : Absolute tick count
+LINE                    : Line number in current pattern
+LINEF                   : Line number with tick fractions
+
+SAMPLES                 : Current position in samples
+BEATS                   : Current position in beats
+LINES                   : Absolute position in song in lines
 SEQPOS                  : Current pattern index in sequencer
+
+SAMPLECOUNTER           : Continuously running sample counter
+TICKCOUNTER             : Absolute tick count
+LINECOUNTER             : Continuously running line counter
+LINEFCOUNTER            : Line counter with tick fractions
 --[[ Functions -------------------------------------------------------------- ]]--
 abs(x)                  : Absolute value
 acos(x)                 : Arc cosine

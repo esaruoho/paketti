@@ -159,6 +159,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Wipe&Slice (016) x[Toggle]",invoke
 renoise.tool():add_midi_mapping{name="Paketti:Wipe&Slice (032) x[Toggle]",invoke=function(message) if message:is_trigger() then slicerough(32) end end}
 renoise.tool():add_midi_mapping{name="Paketti:Wipe&Slice (064) x[Toggle]",invoke=function(message) if message:is_trigger() then slicerough(64) end end}
 renoise.tool():add_midi_mapping{name="Paketti:Wipe&Slice (128) x[Toggle]",invoke=function(message) if message:is_trigger() then slicerough(128) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Wipe&Slice (256) x[Toggle]",invoke=function(message) if message:is_trigger() then slicerough(256) end end}
 
 renoise.tool():add_midi_mapping{name="Paketti:Set Delay (+1) x[Toggle]",invoke=function(message) if message:is_trigger() then delayInput(1) end end}
 renoise.tool():add_midi_mapping{name="Paketti:Set Delay (-1) x[Toggle]",invoke=function(message) if message:is_trigger() then delayInput(-1) end end}

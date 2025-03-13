@@ -103,7 +103,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiRotateSampleBufferCoarse=1000,
   pakettiRotateSampleBufferFine=10,
   pakettiBlendValue = 40,
-  pakettiDialogClose="tab",
+  pakettiDialogClose="esc",
   PakettiDeviceChainPath = "./DeviceChains/",
   PakettiIRPath = "./IR/",
   upperFramePreference=0,
@@ -396,6 +396,8 @@ PakettiYTDLP = renoise.tool().preferences.PakettiYTDLP
 DynamicViewPrefs = renoise.tool().preferences.PakettiDynamicViews
 
 
+      -- Define available keys for dialog closing
+      local dialog_close_keys = {"tab", "esc", "space", "return", "q", "donteverclose"}
 
 
 
@@ -971,7 +973,9 @@ vb:row {
           }
           },
     --    },
-        
+    horizontal_rule(),
+    vb:column {
+      style="group",margin=10, width="100%",
     vb:text{style="strong", font="bold", text="Random Device Chain Loader Path"},
     
     vb:row{
@@ -1010,7 +1014,10 @@ vb:row {
             PakettiRandomDeviceChain(preferences.PakettiDeviceChainPath.value)
         end}
     },
-
+  },
+  horizontal_rule(),
+  vb:column {
+    style="group",margin=10, width="100%",
     vb:text{style="strong", font="bold", text="Random IR Loader Path"},
 
     vb:row{
@@ -1050,6 +1057,23 @@ vb:row {
         end}
     },      
   },
+  horizontal_rule(),
+  vb:column {
+    style="group",margin=10, width="100%",
+  -- Create the dropdown menu row
+  vb:row { 
+    vb:text{text="Dialog Close Key", width=150, style="strong",font="bold"},
+    vb:popup{
+      items = dialog_close_keys,
+      value = table.find(dialog_close_keys, preferences.pakettiDialogClose.value) or 1,
+      width = 200,
+      notifier = function(value)
+        preferences.pakettiDialogClose.value = dialog_close_keys[value]
+      end
+    },
+  },
+  },
+},
       },
 
       -- Bottom Buttons

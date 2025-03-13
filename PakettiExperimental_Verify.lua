@@ -671,7 +671,15 @@ local function show_paketti_device_chain_dialog()
   }
 
   -- Create and show the dialog
-  dialog = renoise.app():show_custom_dialog("Paketti Device Chain & Instrument Dialog", content, nil, nil)
+  dialog = renoise.app():show_custom_dialog("Paketti Device Chain & Instrument Dialog", content, nil, nil, keyhandlerfunc_dcid)
+end
+
+function keyhandlerfunc_dcid(dialog,key)
+  local closer = preferences.pakettiDialogClose.value
+  if key.name == closer then
+    dialog:close()
+  end
+  return key
 end
 
 -- Function to add menu entries and key bindings grouped by functionality
@@ -952,7 +960,15 @@ function showSBX_dialog()
       end
     }
   }
-  dialog = renoise.app():show_custom_dialog("SBX Playback Handler", content)
+  dialog = renoise.app():show_custom_dialog("SBX Playback Handler", content, keyhandlerfunc_sbx)
+end
+
+function keyhandlerfunc_sbx(dialog,key)
+  local closer = preferences.pakettiDialogClose.value
+  if key.name == closer then
+    dialog:close()
+  end
+  return key
 end
 
 -- Add Menu Entry
@@ -1533,7 +1549,7 @@ function PakettiRepeaterParameters(step, mode)
     end
   else
     -- If the device is not found, load it and apply the parameters
-    loadnative("Audio/Effects/Native/Repeater")
+    loadnative("Audio/Effects/Native/Repeater",nil,"./Presets/PakettiRepeaterHoldOff.xml")
     renoise.app():show_status("Repeater loaded and parameters set")
     
     -- Set the mode (parameter 1)
@@ -3987,24 +4003,6 @@ if renoise.song().transport.wrapped_pattern_edit == false then PakettiCapsLockNo
 else PakettiCapsLockNoteOff() end
 end}
 ----------------------------------------
-require "Research/FormulaDeviceManual"
-
-renoise.tool():add_keybinding{name="Global:Paketti:Open FormulaDevice Dialog..." ,invoke=function()  
-renoise.app().window.lower_frame_is_visible=true
-renoise.app().window.active_lower_frame=1
-renoise.song().tracks[renoise.song().selected_track_index]:insert_device_at("Audio/Effects/Native/*Formula", 2)  
-local infile = io.open( "Research/FormulaDeviceXML.txt", "rb" )
-local indata = infile:read( "*all" )
-renoise.song().tracks[renoise.song().selected_track_index].devices[2].active_preset_data = indata
-infile:close()
-
-show_manual (
-    "Formula Device Documentation", -- manual dialog title
-    "Research/FormulaDevice.txt" -- the textfile which contains the manual
-  )
-end}
-
----------------------------
 function move_up(chg)
 local sindex=renoise.song().selected_line_index
 local s= renoise.song()
