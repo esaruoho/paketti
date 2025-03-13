@@ -15,14 +15,19 @@ jobs:
         uses: actions/checkout@v2
         with:
           submodules: false
-          
-      # Zip the contents or specified directory of the repo, excluding specific XML files
+
+      # Remove the definitions folder if it exists (safety measure)
+      - name: Remove definitions folder
+        run: rm -rf org.lackluster.Paketti.xrnx/definitions
+
+      # Zip the contents, excluding the definitions folder along with other patterns
       - name: Zip XRNX Package
         run: |
           zip -r org.lackluster.Paketti_V3.54.xrnx . \
             -x "*.git*" "*.github*" \
             "preferences.xml" \
-            "preferencesDynamicView.xml"
+            "preferencesDynamicView.xml" \
+            "org.lackluster.Paketti.xrnx/definitions/*"
       
       # Dynamically generate a tag name and set it as an environment variable
       - name: Generate Tag Name
