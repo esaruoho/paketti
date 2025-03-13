@@ -1,0 +1,481 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<MidiActionMappingSet doc_version="0">
+  <ActionMappings>
+    <ActionMapping>
+      <Action>Paketti:Midi Selected Instrument Macro 2 (Cutoff)</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Notes</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>84</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Midi Selected Instrument Macro 3 (Resonance)</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>24</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Midi Selected Instrument Macro 4 (Cutoff LfoAmp)</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>28</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Midi Selected Instrument Macro 5 (Cutoff LfoFreq)</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>46</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Midi Selected Instrument Macro 6 (Overdrive)</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>50</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Midi Selected Instrument Macro 7 (Volume LfoAmp)</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>54</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Midi Selected Instrument Macro 8 (Volume LfoFreq)</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>58</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Midi Change Selected Track x[Knob]</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>17</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Midi Change Selected Instrument x[Knob]</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>21</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Midi Change Octave x[Knob]</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>25</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Midi Automation Selection 01 Start x[Knob]</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>18</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Midi Automation Selection 02 End x[Knob]</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>22</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Track Automation:Paketti:Midi Automation Curve Draw Selection x[Knob]</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>26</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Computer Keyboard Velocity Slider x[Knob]</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>29</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Shift Sample Buffer Down x[Knob]</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>56</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Shift Sample Buffer Up x[Knob]</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>52</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Rotate Sample Buffer Content Backward [Set]</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>48</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Rotate Sample Buffer Content Forward [Set]</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>60</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Midi Change 01 Volume Column Value x[Knob]</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>47</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Midi Change 02 Panning Column Value x[Knob]</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>51</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Midi Change 03 Delay Column Value x[Knob]</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>55</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Midi Change 04 Effect Column Value x[Knob]</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>59</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Set Beatsync Value x[Knob]</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>16</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Record Automation to Selected Parameter</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>16</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Midi Selected Instrument Macro 7 (ParallelCompression)</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>54</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Midi Selected Instrument Macro 8 (Glide Inertia)</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>58</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Midi Selected Instrument Macro 8 (2nd) (Glide Inertia)</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>77</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Midi Selected Instrument Macro 2 (2nd) (Cutoff)</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>71</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Midi Selected Instrument Macro 3 (2nd) (Resonance)</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>72</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Midi Selected Instrument Macro 4 (2nd) (Cutoff LfoAmp)</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>73</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Midi Selected Instrument Macro 5 (2nd) (Cutoff LfoFreq)</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>74</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Midi Selected Instrument Macro 6 (2nd) (Overdrive)</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>75</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Midi Selected Instrument Macro 7 (2nd) (ParallelCompression)</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>76</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Record Automation to Selected Parameter (2nd)</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>70</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+  </ActionMappings>
+</MidiActionMappingSet>

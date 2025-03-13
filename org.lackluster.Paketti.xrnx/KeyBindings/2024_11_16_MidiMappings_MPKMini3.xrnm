@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<MidiActionMappingSet doc_version="0">
+  <ActionMappings>
+    <ActionMapping>
+      <Action>Paketti:Midi Selected Instrument Macro 3 (2nd) (Resonance)</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>72</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Midi Selected Instrument Macro 4 (2nd) (Cutoff LfoAmp)</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>73</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Midi Selected Instrument Macro 2 (2nd) (Cutoff)</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>71</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Set Repeater Value (Name Tracks) (2nd) x[Knob]</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>74</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Midi Selected Instrument Macro 6 (2nd) (Overdrive)</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>76</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Midi Selected Instrument Macro 7 (2nd) (ParallelCompression)</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>77</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Record Automation to Selected Parameter (2nd)</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>70</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Midi Selected Instrument Macro 5 (2nd) (Cutoff LfoFreq)</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>75</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+  </ActionMappings>
+</MidiActionMappingSet>

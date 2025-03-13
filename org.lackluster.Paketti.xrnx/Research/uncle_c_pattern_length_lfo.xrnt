@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<RenoiseDeviceChain doc_version="21">
+  <SelectedPresetName>Init</SelectedPresetName>
+  <SelectedPresetLibrary>Bundled Content</SelectedPresetLibrary>
+  <SelectedPresetIsModified>false</SelectedPresetIsModified>
+  <Devices>
+    <FormulaMetaDevice type="FormulaMetaDevice">
+      <IsMaximized>true</IsMaximized>
+      <IsSelected>false</IsSelected>
+      <SelectedPresetName>Init</SelectedPresetName>
+      <SelectedPresetLibrary>Bundled Content</SelectedPresetLibrary>
+      <SelectedPresetIsModified>true</SelectedPresetIsModified>
+      <IsActive>
+        <Value>1.0</Value>
+        <Visualization>Device only</Visualization>
+      </IsActive>
+      <FormulaParagraphs>
+        <FormulaParagraph>LINEF/NUMLINES</FormulaParagraph>
+      </FormulaParagraphs>
+      <FunctionsParagraphs>
+        <FunctionsParagraph/>
+      </FunctionsParagraphs>
+      <InputNameA>A</InputNameA>
+      <InputNameB>B</InputNameB>
+      <InputNameC>C</InputNameC>
+      <EditorVisible>true</EditorVisible>
+      <InputA>
+        <Value>0.520661175</Value>
+        <Visualization>Device only</Visualization>
+      </InputA>
+      <InputB>
+        <Value>1.0</Value>
+        <Visualization>Device only</Visualization>
+      </InputB>
+      <InputC>
+        <Value>0.0</Value>
+        <Visualization>Device only</Visualization>
+      </InputC>
+      <DestTrack>
+        <Value>-1</Value>
+        <Visualization>Device only</Visualization>
+      </DestTrack>
+      <DestEffect>
+        <Value>2</Value>
+        <Visualization>Device only</Visualization>
+      </DestEffect>
+      <DestParameter>
+        <Value>8</Value>
+        <Visualization>Device only</Visualization>
+      </DestParameter>
+    </FormulaMetaDevice>
+    <LfoDevice type="LfoDevice">
+      <IsMaximized>true</IsMaximized>
+      <IsSelected>true</IsSelected>
+      <SelectedPresetName>Init</SelectedPresetName>
+      <SelectedPresetLibrary>Bundled Content</SelectedPresetLibrary>
+      <SelectedPresetIsModified>true</SelectedPresetIsModified>
+      <IsActive>
+        <Value>1.0</Value>
+        <Visualization>Device only</Visualization>
+      </IsActive>
+      <DestTrack>
+        <Value>-1</Value>
+        <Visualization>Device only</Visualization>
+      </DestTrack>
+      <DestEffect>
+        <Value>-1</Value>
+        <Visualization>Device only</Visualization>
+      </DestEffect>
+      <DestParameter>
+        <Value>-1</Value>
+        <Visualization>Device only</Visualization>
+      </DestParameter>
+      <Amplitude>
+        <Value>0.5</Value>
+        <Visualization>Device only</Visualization>
+      </Amplitude>
+      <Offset>
+        <Value>0.0</Value>
+        <Visualization>Device only</Visualization>
+      </Offset>
+      <Frequency>
+        <Value>0.93749994</Value>
+        <Visualization>Device only</Visualization>
+      </Frequency>
+      <Type>
+        <Value>4</Value>
+        <Visualization>Device only</Visualization>
+      </Type>
+      <CustomEnvelope>
+        <PlayMode>Lines</PlayMode>
+        <Length>64</Length>
+        <ValueQuantum>0.0</ValueQuantum>
+        <Polarity>Unipolar</Polarity>
+        <Points>
+          <Point>0,0.5,0.0</Point>
+          <Point>1,0.549783945,0.0</Point>
+          <Point>2,0.599073052,0.0</Point>
+          <Point>3,0.64737761,0.0</Point>
+          <Point>4,0.694217443,0.0</Point>
+          <Point>5,0.73912704,0.0</Point>
+          <Point>6,0.78166008,0.0</Point>
+          <Point>7,0.821393847,0.0</Point>
+          <Point>8,0.857933462,0.0</Point>
+          <Point>9,0.890915751,0.0</Point>
+          <Point>10,0.920012951,0.0</Point>
+          <Point>11,0.944935918,0.0</Point>
+          <Point>12,0.965436876,0.0</Point>
+          <Point>13,0.981312156,0.0</Point>
+          <Point>14,0.992403865,0.0</Point>
+          <Point>15,0.998601913,0.0</Point>
+          <Point>16,0.999844551,0.0</Point>
+          <Point>17,0.996119618,0.0</Point>
+          <Point>18,0.987463951,0.0</Point>
+          <Point>19,0.973963618,0.0</Point>
+          <Point>20,0.955752909,0.0</Point>
+          <Point>21,0.933012724,0.0</Point>
+          <Point>22,0.905968964,0.0</Point>
+          <Point>23,0.874890566,0.0</Point>
+          <Point>24,0.840086341,0.0</Point>
+          <Point>25,0.801902175,0.0</Point>
+          <Point>26,0.760717511,0.0</Point>
+          <Point>27,0.716941833,0.0</Point>
+          <Point>28,0.671010017,0.0</Point>
+          <Point>29,0.623378634,0.0</Point>
+          <Point>30,0.574521065,0.0</Point>
+          <Point>31,0.524922848,0.0</Point>
+          <Point>32,0.475076944,0.0</Point>
+          <Point>33,0.425478756,0.0</Point>
+          <Point>34,0.376621187,0.0</Point>
+          <Point>35,0.328989804,0.0</Point>
+          <Point>36,0.283057988,0.0</Point>
+          <Point>37,0.23928228,0.0</Point>
+          <Point>38,0.198097676,0.0</Point>
+          <Point>39,0.15991351,0.0</Point>
+          <Point>40,0.125109285,0.0</Point>
+          <Point>41,0.0940308869,0.0</Point>
+          <Point>42,0.0669872761,0.0</Point>
+          <Point>43,0.0442470014,0.0</Point>
+          <Point>44,0.0260362923,0.0</Point>
+          <Point>45,0.0125359893,0.0</Point>
+          <Point>46,0.00388038158,0.0</Point>
+          <Point>47,0.000155389309,0.0</Point>
+          <Point>48,0.00139811635,0.0</Point>
+          <Point>49,0.00759616494,0.0</Point>
+          <Point>50,0.0186879039,0.0</Point>
+          <Point>51,0.0345631242,0.0</Point>
+          <Point>52,0.0550641418,0.0</Point>
+          <Point>53,0.0799870491,0.0</Point>
+          <Point>54,0.109084338,0.0</Point>
+          <Point>55,0.142066598,0.0</Point>
+          <Point>56,0.178606302,0.0</Point>
+          <Point>57,0.218340009,0.0</Point>
+          <Point>58,0.260873169,0.0</Point>
+          <Point>59,0.305782676,0.0</Point>
+          <Point>60,0.352622569,0.0</Point>
+          <Point>61,0.400927007,0.0</Point>
+          <Point>62,0.450216264,0.0</Point>
+          <Point>63,0.50000006,0.0</Point>
+        </Points>
+      </CustomEnvelope>
+      <CustomEnvelopeOneShot>false</CustomEnvelopeOneShot>
+      <UseAdjustedEnvelopeLength>true</UseAdjustedEnvelopeLength>
+    </LfoDevice>
+  </Devices>
+</RenoiseDeviceChain>

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FilterDevicePreset doc_version="13">
+  <DeviceSlot type="SendDevice">
+    <IsMaximized>true</IsMaximized>
+    <SendAmount>
+      <Value>0.0</Value>
+    </SendAmount>
+    <SendPan>
+      <Value>0.5</Value>
+    </SendPan>
+    <DestSendTrack>
+      <Value>0.0</Value>
+    </DestSendTrack>
+    <MuteSource>false</MuteSource>
+    <SmoothParameterChanges>true</SmoothParameterChanges>
+    <ApplyPostVolume>false</ApplyPostVolume>
+  </DeviceSlot>
+</FilterDevicePreset>

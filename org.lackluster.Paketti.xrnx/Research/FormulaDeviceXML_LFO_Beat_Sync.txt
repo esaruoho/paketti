@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FilterDevicePreset doc_version="13">
+  <DeviceSlot type="FormulaMetaDevice">
+    <IsMaximized>true</IsMaximized>
+    <FormulaParagraphs>
+      <FormulaParagraph>A * beat_lfo(B) + C</FormulaParagraph>
+    </FormulaParagraphs>
+    <FunctionsParagraphs>
+      <FunctionsParagraph>-- This formula shows how to beat sync an LFO</FunctionsParagraph>
+      <FunctionsParagraph>-- via the 'BEATS' variable. Play the song to </FunctionsParagraph>
+      <FunctionsParagraph>-- see the LFO moving.</FunctionsParagraph>
+      <FunctionsParagraph>function beat_lfo(speed)</FunctionsParagraph>
+      <FunctionsParagraph>  local y = sin(BEATS*speed*TWOPI)</FunctionsParagraph>
+      <FunctionsParagraph>  return (y + 1) / 2</FunctionsParagraph>
+      <FunctionsParagraph>end</FunctionsParagraph>
+    </FunctionsParagraphs>
+    <InputNameA>Amount</InputNameA>
+    <InputNameB>Speed</InputNameB>
+    <InputNameC>Offset</InputNameC>
+    <EditorVisible>true</EditorVisible>
+    <InputA>
+      <Value>1.0</Value>
+    </InputA>
+    <InputB>
+      <Value>0.25</Value>
+    </InputB>
+    <InputC>
+      <Value>0.0</Value>
+    </InputC>
+  </DeviceSlot>
+</FilterDevicePreset>

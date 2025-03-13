@@ -1,0 +1,322 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<RenoiseDeviceChain doc_version="21">
+  <SelectedPresetName>Init</SelectedPresetName>
+  <SelectedPresetLibrary>Bundled Content</SelectedPresetLibrary>
+  <SelectedPresetIsModified>false</SelectedPresetIsModified>
+  <Devices>
+    <AudioPluginDevice type="AudioPluginDevice">
+      <IsMaximized>false</IsMaximized>
+      <IsSelected>false</IsSelected>
+      <SelectedPresetName>Init</SelectedPresetName>
+      <SelectedPresetLibrary>Bundled Content</SelectedPresetLibrary>
+      <SelectedPresetIsModified>true</SelectedPresetIsModified>
+      <IsActive>
+        <Value>1.0</Value>
+        <Visualization>Device only</Visualization>
+      </IsActive>
+      <ActiveProgram>-1</ActiveProgram>
+      <PluginType>AU</PluginType>
+      <PluginIdentifier>aumf:uLyr:UHfX</PluginIdentifier>
+      <PluginDisplayName>AU: u-he: ColourCopy</PluginDisplayName>
+      <PluginShortDisplayName>ColourCopy</PluginShortDisplayName>
+      <PluginEditorWindowPosition>472,320</PluginEditorWindowPosition>
+      <ParameterChunkType>Chunk</ParameterChunkType>
+      <ParameterChunk><![CDATA[YnBsaXN0MDDXAQIDBAUGBwgJCgsMDQ5cbWFudWZhY3R1cmVyVGRhdGFXc3VidHlwZVd2ZXJzaW9uVHR5cGVYQU1fU1RBVEVUbmFtZRJVSGZYTxD8AAAAAAAAAAAAAAAeAAAAAEGYAAAAAAABQwYAAAAAAAIAAAAAAAAAAwAAAAAAAAAEQQAAAAAAAAXCyAAAAAAABgAAAAAAAAAHQsgAAAAAAAhCyAAAAAAACQAAAAAAAAAKQaAAAAAAAAsAAAAAAAAADEJ0AAAAAAANAAAAAAAAAA7BwAAAAAAAD0LIAAAAAAAQQIAAAAAAABE/gAAAAAAAEgAAAAAAAAATAAAAAAAAABQAAAAAAAAAFQAAAAAAAAAWQsgAAAAAABdCSAAAAAAAGAAAAAAAAAAZAAAAAAAAABoAAAAAAAAAGwAAAAAAAAAcAAAAAAAAAB0AAAAAEnVMeXIQABJhdW1mTxEE3iNBTT1Db2xvdXJDb3B5CiNWZXJzPTEwMDAxCiNFbmRpYW49bGl0dGxlCiNubT04CiNtcz1ub25lCiNtcz1Nb2RXaGwKI21zPVBpdGNoVwojbXM9Q3RybEEKI21zPUN0cmxCCiNtcz1FbnYKI21zPUxGTyBMCiNtcz1MRk8gUgojbnY9MAojY209UENvcmUKU0Jhc2U9NApTd2luZz0wLjAwClNUcmlnPTEKUFByb2o9MApQRm9sZD0wClBGaWxlPTEKR0ZpbGU9MgpHU2NhbGU9MApDaExheT0wClN1cnJPPTAKUmV2PTEyMDkyCkxFRD0wLjAwClBBR0U9MApQYWdlc09uPTAKQ29yZU49MwpTbGljZT00ClVJX29wPTEKTWlkaUE9NQpNaWRpUD02CkRGb2xkPTcKQ3RybEE9MgpDdHJsQj0xMQojY209TEZPClJhdGU9MTkuMDAKU3RlcmVvPTEzNC4wMApGTW9kPTAuMDAKV2F2ZT0wCiNjbT1EZWxheQpUaW1lQj04CkRseVJhdGU9LTEwMC4wMApOb3RlQ3RyPTAKVGFwTD0xMDAuMDAKVGFwUj0xMDAuMDAKTEZPVHJnPTAKTEZPRHB0PTIwLjAwCkxGT0R5bj0wLjAwClJlZ2VuPTYxLjAwCkludmVydD0wCkJyaWdodD0tMjQuMDAKU2F0PTEwMC4wMApDb2xvdXI9NC4wMApGbG9vcj0xCkR1Y2s9MApEdWNrVHJnPTAKRHVja1Rocj0wLjAwClJvdXRJTj0wClJvdXRGQj0wCldpZHRoPTEwMC4wMApNaXg9NTAuMDAKSW5HPTAuMDAKT3V0Rz0wLjAwClBhbmljPTAKRnJlZXplPTAKQnlwYXNzPTAKSFE9MAojY209TE1lbQpMYXlNZW0xPTAKI2NtPVN0aWNrZXIKc3RrclR4dD04CmJnaWR4PTkKcG9zeD0tMS4wMApwb3N5PS0xLjAwCgoKCi8vIFNlY3Rpb24gZm9yIHVnbHkgY29tcHJlc3NlZCBiaW5hcnkgRGF0YQovLyBET04nVCBUT1VDSCBUSElTCgokJCQkMTMzMwo/Z2RnY2VuZWI6YWFhYmFhYWE6ZWFhYWFhYWE6Z2pnb2dqaGU6Z2pnYmdtZ2o6aGtnZmNvZ2k6ZGNoYWFhYWE6CmxvamJraWJqOmpvaGprZWZqOm1tYWtwa2NkOmFhOmVhOmpmOmFsOmlhOmpsOm9pOmFlOmFmOmFoOmFpOmFuOmIKYjpibzpjYTpjaDpjbDpjcDpkZDpkZzpkcDplYjplajplbDplbTplbiFnZGdjWlZBYWJBMjY1Z2RnY1pWQkExMApnamdvZ2poZWdqZ2JnbWdqaGtnZmNvZ2lkY2hhQTQ5Z2RnY1pWQkE3NGdkZ2NaVkJBMTBsb2pia2liampvaGprCmVmam1tYWtwa2NkTG9iQ25pZ2lCWVNURm1ubGtoakNmYmpqUGlqSmhrbG1rZVdsY0ZtbGdlSUtHRWxmZ2xocGoKZ0JSaW9Ra2tsaW5mRFVDZmlvbkdPWG9vQmdkZ2NaVkhBMTBsak5EQWdkZ2NaVkFhYkEyNjVnZGdjWlZFQTEzOApnZGdjWlZBYWJBMjY1Z2RnY1pWTUEyN2dkZ2NaVkJBNzQ9MzgwNzcKAABaaW5pdGlhbGl6ZQAIABcAJAApADEAOQA+AEcATABRAVABVQFXAVwGPgAAAAAAAAIBAAAAAAAAAA8AAAAAAAAAAAAAAAAAAAZJ]]></ParameterChunk>
+      <Parameters>
+        <Parameter>
+          <Value>0.189999998</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>0.74444443</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>0.5</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>0.0</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>0.400000006</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>0.0</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>0.0</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>1.0</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>1.0</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>0.0</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>0.200000003</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>0.5</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>0.610000014</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>0.0</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>0.379999995</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>1.0</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>0.75</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>1.0</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>0.0</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>0.666666687</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>0.0</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>0.0</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>1.0</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>0.5</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>0.5</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>0.5</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>0.0</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>0.0</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>0.0</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>0.0</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+      </Parameters>
+    </AudioPluginDevice>
+    <AudioPluginDevice type="AudioPluginDevice">
+      <IsMaximized>false</IsMaximized>
+      <IsSelected>true</IsSelected>
+      <SelectedPresetName>Init</SelectedPresetName>
+      <SelectedPresetLibrary>Bundled Content</SelectedPresetLibrary>
+      <SelectedPresetIsModified>true</SelectedPresetIsModified>
+      <IsActive>
+        <Value>1.0</Value>
+        <Visualization>Device only</Visualization>
+      </IsActive>
+      <ActiveProgram>-1</ActiveProgram>
+      <PluginType>AU</PluginType>
+      <PluginIdentifier>aufx:dLay:oDin</PluginIdentifier>
+      <PluginDisplayName>AU: Valhalla DSP, LLC: ValhallaDelay</PluginDisplayName>
+      <PluginShortDisplayName>ValhallaDelay</PluginShortDisplayName>
+      <PluginEditorWindowPosition>566,308</PluginEditorWindowPosition>
+      <ParameterChunkType>Chunk</ParameterChunkType>
+      <ParameterChunk><![CDATA[YnBsaXN0MDDYAQIDBAUGBwgJCgsTFBUWF1xtYW51ZmFjdHVyZXJUZGF0YVxlbGVtZW50LW5hbWVXc3VidHlwZVd2ZXJzaW9uVHR5cGVfEA9qdWNlUGx1Z2luU3RhdGVUbmFtZRJvRGluTxEBPAAAAAAAAAAAAAAAJgAAADA/AAAAAAAAMQAAAAAAAAAyPoAAAAAAADM+TMzNAAAAND6ZmZoAAAA1PoAAAAAAADY+TMzNAAAANz6ZmZoAAAA4PwAAAAAAADk/AAAAAAAGHz8dOF8AAAYgP4AAAAAABiE/gAAAAAAGIj+AAAAAAAYjP4AAAAAABiQ/gAAAAAAGJT6zMzMAAAYmP4AAAAAABicAAAAAAAAGKD8AAAAAAAY+AAAAAAAABj8/gAAAAAAGQAAAAAAAAAZBP4AAAAAABkI+jDP8AAAGQz8AAAAAAAZEPwAAAAAABkU/AAAAAAAGRj8AAAAAAAZHPxR64QAABl0/AAAAAAAGXj8AAAAAAAZfPSqqqwAABmA+qqqrAAAGYQAAAAAAAAZiAAAAAAAABmMAAAAAAAAGZAAAAADSDA0OEVExUTLRDxBRMFVJbnB1dNEPElZPdXRwdXQSZExheRAAEmF1ZnhPEQOiVkMyIZkDAAA8P3htbCB2ZXJzaW9uPSIxLjAiIGVuY29kaW5nPSJVVEYtOCI/PiA8VmFsaGFsbGFEZWxheSBwbHVnaW5WZXJzaW9uPSIyLjUuMiIgcHJlc2V0TmFtZT0iRGVmYXVsdCIgTWl4PSIwLjEzNjAwMDAwNzM5MDk3NiIgRGVsYXlTdHlsZT0iMC45NjI5OTk5OTk1MjMxNjI4IiBEZWxheUxTeW5jPSIwLjI1IiBEZWxheUxOb3RlPSIwLjIwMDAwMDAwMjk4MDIzMjIiIERlbGF5TF9Ncz0iMC41NTQwMDAwMjAwMjcxNjA2IiBEZWxheVJTeW5jPSIwLjI1IiBEZWxheVJOb3RlPSIwLjIwMDAwMDAwMjk4MDIzMjIiIERlbGF5Ul9Ncz0iMC4zMDAwMDAwMTE5MjA5MjkiIERlbGF5U3ByZWFkPSIwLjUiIERlbGF5U3BhY2luZz0iMC41ODYwMDAwMjUyNzIzNjk0IiBEZWxheVJhdGlvPSIwLjYxNDE0MTQwNDYyODc1MzciIFJlcGVhdFN3ZWxsPSIxLjAiIFRhcEE9IjEuMCIgVGFwQj0iMS4wIiBUYXBDPSIxLjAiIFRhcEQ9IjEuMCIgRmVlZGJhY2s9IjAuNDA3OTk5OTkyMzcwNjA1NSIgV2lkdGg9IjEuMCIgRHJpdmVJbj0iMC4wIiBBZ2U9IjEuMCIgRGlmZnVzaW9uPSIwLjM1ODk5OTk5NzM3NzM5NTYiIERpZmZTaXplPSIxLjAiIExvd0N1dD0iMC4wNTQwMDAwMDE0MDA3MDkxNSIgSGlnaEN1dD0iMS4wIiBNb2RSYXRlPSIwLjI3MzgzNDEwOTMwNjMzNTQiIE1vZERlcHRoPSIwLjUiIFdvdz0iMC41IiBGbHV0dGVyPSIwLjUiIEZyZXFTaGlmdD0iMC41IiBGcmVxRGV0dW5lPSIwLjU3OTk5OTk4MzMxMDY5OTUiIFBpdGNoU2hpZnQ9IjAuNSIgUGl0Y2hEZXR1bmU9IjAuNSIgTW9kZT0iMC4wNDE2NjY2Njc5MDg0MzAxIiBFcmE9IjAuMzMzMzMzMzQzMjY3NDQwOCIgRHVja2luZz0iMC4wIiBSZXNlcnZlZDI9IjAuMCIgUmVzZXJ2ZWQzPSIwLjAiIFJlc2VydmVkND0iMC4wIiBtaXhMb2NrPSIwIiB1aVdpZHRoPSI5NDUiIHVpSGVpZ2h0PSI0MzUiLz4AWFVudGl0bGVkAAgAGQAmACsAOABAAEgATQBfAGQAaQGpAa4BsAGyAbUBtwG9AcABxwHMAc4B0wV5AAAAAAAAAgEAAAAAAAAAGAAAAAAAAAAAAAAAAAAABYI=]]></ParameterChunk>
+      <Parameters>
+        <Parameter>
+          <Value>0.136000007</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>0.963</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>0.25</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>0.200000003</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>0.55400002</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>0.25</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>0.200000003</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>0.300000012</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>0.5</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>0.586000025</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>0.614141405</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>1.0</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>1.0</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>1.0</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>1.0</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>1.0</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>0.407999992</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>1.0</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>0.0</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>1.0</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>0.358999997</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>1.0</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>0.0540000014</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>1.0</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>0.273834109</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>0.5</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>0.5</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>0.5</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>0.5</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>0.579999983</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>0.5</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>0.5</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>0.0416666679</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>0.333333343</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>0.0</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>0.0</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>0.0</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+        <Parameter>
+          <Value>0.0</Value>
+          <Visualization>Device only</Visualization>
+        </Parameter>
+      </Parameters>
+    </AudioPluginDevice>
+  </Devices>
+</RenoiseDeviceChain>

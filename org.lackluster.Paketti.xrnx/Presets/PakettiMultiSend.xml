@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FilterDevicePreset doc_version="13">
+  <DeviceSlot type="CrossoverDevice">
+    <IsMaximized>true</IsMaximized>
+    <Out1SendAmount>
+      <Value>0.0</Value>
+    </Out1SendAmount>
+    <Out1DestSendTrack>
+      <Value>0.0</Value>
+    </Out1DestSendTrack>
+    <Out1MuteSource>false</Out1MuteSource>
+    <Out2SendAmount>
+      <Value>0.0</Value>
+    </Out2SendAmount>
+    <Out2DestSendTrack>
+      <Value>0.0</Value>
+    </Out2DestSendTrack>
+    <Out2MuteSource>false</Out2MuteSource>
+    <Out3SendAmount>
+      <Value>0.0</Value>
+    </Out3SendAmount>
+    <Out3DestSendTrack>
+      <Value>0.0</Value>
+    </Out3DestSendTrack>
+    <Out3MuteSource>false</Out3MuteSource>
+    <SmoothParameterChanges>true</SmoothParameterChanges>
+    <ApplyPostVolume>false</ApplyPostVolume>
+    <GraphVisible>true</GraphVisible>
+    <LowFrequency>
+      <Value>0.330993116</Value>
+    </LowFrequency>
+    <HighFrequency>
+      <Value>0.783621252</Value>
+    </HighFrequency>
+    <CrossoverType>LR8</CrossoverType>
+  </DeviceSlot>
+</FilterDevicePreset>

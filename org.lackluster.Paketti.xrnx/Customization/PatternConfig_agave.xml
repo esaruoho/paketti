@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PatternFontSettings doc_version="0">
+  <Small>
+    <Size>16,16</Size>
+    <FileName>Fonts/Agave-Regular.ttf</FileName>
+    <AntiAlias>YES</AntiAlias>
+  </Small>
+  <Normal>
+    <Size>19,19</Size>
+    <FileName>Fonts/Agave-Regular.ttf</FileName>
+    <AntiAlias>YES</AntiAlias>
+  </Normal>
+  <Big>
+    <Size>23,23</Size>
+    <FileName>Fonts/Agave-Regular.ttf</FileName>
+    <AntiAlias>YES</AntiAlias>
+  </Big>
+  <Huge>
+    <Size>28,28</Size>
+    <FileName>Fonts/Agave-Regular.ttf</FileName>
+    <AntiAlias>YES</AntiAlias>
+  </Huge>
+</PatternFontSettings>

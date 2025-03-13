@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FilterDevicePreset doc_version="13">
+  <DeviceSlot type="FormulaMetaDevice">
+    <IsMaximized>true</IsMaximized>
+    <FormulaParagraphs>
+      <FormulaParagraph>PLAYING*A</FormulaParagraph>
+    </FormulaParagraphs>
+    <FunctionsParagraphs>
+      <FunctionsParagraph/>
+    </FunctionsParagraphs>
+    <InputNameA>A</InputNameA>
+    <InputNameB>B</InputNameB>
+    <InputNameC>C</InputNameC>
+    <EditorVisible>true</EditorVisible>
+    <InputA>
+      <Value>0.520661175</Value>
+    </InputA>
+    <InputB>
+      <Value>1.0</Value>
+    </InputB>
+    <InputC>
+      <Value>0.0</Value>
+    </InputC>
+  </DeviceSlot>
+</FilterDevicePreset>

@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<RenoiseDeviceChain doc_version="21">
+  <SelectedPresetName>Init</SelectedPresetName>
+  <SelectedPresetLibrary>Bundled Content</SelectedPresetLibrary>
+  <SelectedPresetIsModified>false</SelectedPresetIsModified>
+  <Devices>
+    <LfoDevice type="LfoDevice">
+      <IsMaximized>true</IsMaximized>
+      <IsSelected>true</IsSelected>
+      <SelectedPresetName>Init</SelectedPresetName>
+      <SelectedPresetLibrary>Bundled Content</SelectedPresetLibrary>
+      <SelectedPresetIsModified>true</SelectedPresetIsModified>
+      <IsActive>
+        <Value>1.0</Value>
+        <Visualization>Device only</Visualization>
+      </IsActive>
+      <DestTrack>
+        <Value>-1</Value>
+        <Visualization>Device only</Visualization>
+      </DestTrack>
+      <DestEffect>
+        <Value>2</Value>
+        <Visualization>Device only</Visualization>
+      </DestEffect>
+      <DestParameter>
+        <Value>2</Value>
+        <Visualization>Device only</Visualization>
+      </DestParameter>
+      <Amplitude>
+        <Value>0.5</Value>
+        <Visualization>Device only</Visualization>
+      </Amplitude>
+      <Offset>
+        <Value>0.0</Value>
+        <Visualization>Device only</Visualization>
+      </Offset>
+      <Frequency>
+        <Value>0.93749994</Value>
+        <Visualization>Device only</Visualization>
+      </Frequency>
+      <Type>
+        <Value>0.0</Value>
+        <Visualization>Device only</Visualization>
+      </Type>
+      <CustomEnvelope>
+        <PlayMode>Lines</PlayMode>
+        <Length>64</Length>
+        <ValueQuantum>0.0</ValueQuantum>
+        <Polarity>Unipolar</Polarity>
+        <Points>
+          <Point>0,0.0,0.0</Point>
+          <Point>63,1.0,0.0</Point>
+        </Points>
+      </CustomEnvelope>
+      <CustomEnvelopeOneShot>false</CustomEnvelopeOneShot>
+      <UseAdjustedEnvelopeLength>true</UseAdjustedEnvelopeLength>
+    </LfoDevice>
+    <DooferDevice type="DooferDevice">
+      <IsMaximized>true</IsMaximized>
+      <IsSelected>false</IsSelected>
+      <SelectedPresetName>Init</SelectedPresetName>
+      <SelectedPresetLibrary>Bundled Content</SelectedPresetLibrary>
+      <SelectedPresetIsModified>true</SelectedPresetIsModified>
+      <IsActive>
+        <Value>1.0</Value>
+        <Visualization>Device only</Visualization>
+      </IsActive>
+      <Macro0>
+        <Value>82.611557</Value>
+        <Visualization>Device only</Visualization>
+        <Name>PitchBend</Name>
+        <Mappings>
+          <Mapping>
+            <DestDeviceIndex>0</DestDeviceIndex>
+            <DestParameterIndex>9</DestParameterIndex>
+            <Min>0.0</Min>
+            <Max>1.0</Max>
+            <Scaling>Linear</Scaling>
+          </Mapping>
+        </Mappings>
+      </Macro0>
+      <Macro1>
+        <Value>26.4610558</Value>
+        <Visualization>Device only</Visualization>
+        <Name>Cutoff</Name>
+      </Macro1>
+      <Macro2>
+        <Value>50</Value>
+        <Visualization>Device only</Visualization>
+        <Name>Resonance</Name>
+      </Macro2>
+      <Macro3>
+        <Value>50</Value>
+        <Visualization>Device only</Visualization>
+        <Name>CutLfoAmp</Name>
+      </Macro3>
+      <Macro4>
+        <Value>50</Value>
+        <Visualization>Device only</Visualization>
+        <Name>CutLfoFreq</Name>
+      </Macro4>
+      <Macro5>
+        <Value>50</Value>
+        <Visualization>Device only</Visualization>
+        <Name>Drive</Name>
+      </Macro5>
+      <Macro6>
+        <Value>50</Value>
+        <Visualization>Device only</Visualization>
+        <Name>ParallelComp</Name>
+      </Macro6>
+      <Macro7>
+        <Value>50</Value>
+        <Visualization>Device only</Visualization>
+        <Name>Glide Inertia</Name>
+      </Macro7>
+      <NumActiveMacros>8</NumActiveMacros>
+      <ShowDevices>true</ShowDevices>
+      <DeviceChain>
+        <SelectedPresetName>Init</SelectedPresetName>
+        <SelectedPresetLibrary>Bundled Content</SelectedPresetLibrary>
+        <SelectedPresetIsModified>true</SelectedPresetIsModified>
+        <Devices>
+          <InstrumentMacroDevice type="InstrumentMacroDevice">
+            <IsMaximized>false</IsMaximized>
+            <IsSelected>false</IsSelected>
+            <SelectedPresetName>Init</SelectedPresetName>
+            <SelectedPresetLibrary>Bundled Content</SelectedPresetLibrary>
+            <SelectedPresetIsModified>true</SelectedPresetIsModified>
+            <IsActive>
+              <Value>1.0</Value>
+              <Visualization>Device only</Visualization>
+            </IsActive>
+            <ParameterValue0>
+              <Value>0.820428669</Value>
+              <Visualization>Device only</Visualization>
+            </ParameterValue0>
+            <ParameterValue1>
+              <Value>1.0</Value>
+              <Visualization>Device only</Visualization>
+            </ParameterValue1>
+            <ParameterValue2>
+              <Value>0.0</Value>
+              <Visualization>Device only</Visualization>
+            </ParameterValue2>
+            <ParameterValue3>
+              <Value>0.0</Value>
+              <Visualization>Device only</Visualization>
+            </ParameterValue3>
+            <ParameterValue4>
+              <Value>0.0</Value>
+              <Visualization>Device only</Visualization>
+            </ParameterValue4>
+            <ParameterValue5>
+              <Value>0.0</Value>
+              <Visualization>Device only</Visualization>
+            </ParameterValue5>
+            <ParameterValue6>
+              <Value>0.0</Value>
+              <Visualization>Device only</Visualization>
+            </ParameterValue6>
+            <ParameterValue7>
+              <Value>0.0</Value>
+              <Visualization>Device only</Visualization>
+            </ParameterValue7>
+            <PitchbendValue>
+              <Value>0.826115549</Value>
+              <Visualization>Device only</Visualization>
+            </PitchbendValue>
+            <ModulationValue>
+              <Value>0.0</Value>
+              <Visualization>Device only</Visualization>
+            </ModulationValue>
+            <ChannelPressureValue>
+              <Value>0.0</Value>
+              <Visualization>Device only</Visualization>
+            </ChannelPressureValue>
+            <PhraseProgrammValue>
+              <Value>0.0</Value>
+              <Visualization>Device only</Visualization>
+            </PhraseProgrammValue>
+            <LinkedInstrument>1</LinkedInstrument>
+          </InstrumentMacroDevice>
+        </Devices>
+      </DeviceChain>
+    </DooferDevice>
+  </Devices>
+</RenoiseDeviceChain>

@@ -1,0 +1,332 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FilterDevicePreset doc_version="12">
+  <DeviceSlot type="DooferDevice">
+    <IsMaximized>true</IsMaximized>
+    <Macro0>
+      <Value>50</Value>
+    </Macro0>
+    <Macro1>
+      <Value>50</Value>
+      <Name>Macro 2</Name>
+    </Macro1>
+    <Macro2>
+      <Value>50</Value>
+      <Name>Macro 3</Name>
+    </Macro2>
+    <Macro3>
+      <Value>50</Value>
+      <Name>Macro 4</Name>
+    </Macro3>
+    <Macro4>
+      <Value>50</Value>
+      <Name>Macro 5</Name>
+    </Macro4>
+    <Macro5>
+      <Value>50</Value>
+      <Name>Macro 6</Name>
+    </Macro5>
+    <Macro6>
+      <Value>50</Value>
+      <Name>Macro 7</Name>
+    </Macro6>
+    <Macro7>
+      <Value>50</Value>
+      <Name>Macro 8</Name>
+    </Macro7>
+    <NumActiveMacros>1</NumActiveMacros>
+    <ShowDevices>true</ShowDevices>
+    <DeviceChain>
+      <SelectedPresetName>Init</SelectedPresetName>
+      <SelectedPresetLibrary>Bundled Content</SelectedPresetLibrary>
+      <SelectedPresetIsModified>true</SelectedPresetIsModified>
+      <Devices>
+        <KeyTrackingDevice type="KeyTrackingDevice">
+          <IsMaximized>true</IsMaximized>
+          <IsSelected>false</IsSelected>
+          <SelectedPresetName>Ktrk</SelectedPresetName>
+          <SelectedPresetLibrary>User Library</SelectedPresetLibrary>
+          <SelectedPresetIsModified>true</SelectedPresetIsModified>
+          <IsActive>
+            <Value>1.0</Value>
+            <Visualization>Device only</Visualization>
+          </IsActive>
+          <SrcInstrument>-1</SrcInstrument>
+          <DestScaling>Linear</DestScaling>
+          <KeyTrackingMode>Clamp</KeyTrackingMode>
+          <KeyTrackingMin>0</KeyTrackingMin>
+          <KeyTrackingMax>119</KeyTrackingMax>
+          <DestTrack>
+            <Value>-1</Value>
+            <Visualization>Device only</Visualization>
+          </DestTrack>
+          <DestEffect>
+            <Value>1.0</Value>
+            <Visualization>Device only</Visualization>
+          </DestEffect>
+          <DestParameter>
+            <Value>1.0</Value>
+            <Visualization>Device only</Visualization>
+          </DestParameter>
+          <DestMin>
+            <Value>0.0</Value>
+            <Visualization>Device only</Visualization>
+          </DestMin>
+          <DestMax>
+            <Value>1.0</Value>
+            <Visualization>Device only</Visualization>
+          </DestMax>
+        </KeyTrackingDevice>
+        <FormulaMetaDevice type="FormulaMetaDevice">
+          <IsMaximized>true</IsMaximized>
+          <IsSelected>false</IsSelected>
+          <SelectedPresetName>ktrk1.1 - TrkEQ</SelectedPresetName>
+          <SelectedPresetLibrary>User Library</SelectedPresetLibrary>
+          <SelectedPresetIsModified>true</SelectedPresetIsModified>
+          <IsActive>
+            <Value>1.0</Value>
+            <Visualization>Device only</Visualization>
+          </IsActive>
+          <FormulaParagraphs>
+            <FormulaParagraph>frq2flt(kt2frq(A, B, C)*harmonic)</FormulaParagraph>
+          </FormulaParagraphs>
+          <FunctionsParagraphs>
+            <FunctionsParagraph>-- tweak to taste --</FunctionsParagraph>
+            <FunctionsParagraph>local transpose = 0.0</FunctionsParagraph>
+            <FunctionsParagraph>local bendrange = 12.0</FunctionsParagraph>
+            <FunctionsParagraph>local detunerange = 1.0</FunctionsParagraph>
+            <FunctionsParagraph>local harmonic = 1.0</FunctionsParagraph>
+            <FunctionsParagraph>-- keytracker range --</FunctionsParagraph>
+            <FunctionsParagraph>local fromnote = 0.0</FunctionsParagraph>
+            <FunctionsParagraph>local tonote = 119.0</FunctionsParagraph>
+            <FunctionsParagraph/>
+            <FunctionsParagraph>-- reference note and its frequency:</FunctionsParagraph>
+            <FunctionsParagraph>local a4 = 57.0</FunctionsParagraph>
+            <FunctionsParagraph>local a4f = 440.0</FunctionsParagraph>
+            <FunctionsParagraph/>
+            <FunctionsParagraph>local trt = 1.0594630943592952645</FunctionsParagraph>
+            <FunctionsParagraph/>
+            <FunctionsParagraph>function frq2flt (inp)</FunctionsParagraph>
+            <FunctionsParagraph> -- put Hz to slider translation formula here</FunctionsParagraph>
+            <FunctionsParagraph> return (inp - 20.0) * 0.00005005</FunctionsParagraph>
+            <FunctionsParagraph>end</FunctionsParagraph>
+            <FunctionsParagraph/>
+            <FunctionsParagraph>function kt2frq (inp, bnd, det)</FunctionsParagraph>
+            <FunctionsParagraph> -- maps 0..1 keytracker value with bend to frequency in hz</FunctionsParagraph>
+            <FunctionsParagraph> local nnbr = inp*(tonote-fromnote) + fromnote + (bnd-0.5)*bendrange*2.0 + (det-0.5)*detunerange*2.0 + transpose</FunctionsParagraph>
+            <FunctionsParagraph> return a4f * pow(trt, nnbr-a4)</FunctionsParagraph>
+            <FunctionsParagraph>end</FunctionsParagraph>
+            <FunctionsParagraph/>
+          </FunctionsParagraphs>
+          <InputNameA>Key</InputNameA>
+          <InputNameB>Bend</InputNameB>
+          <InputNameC>Detune</InputNameC>
+          <EditorVisible>true</EditorVisible>
+          <InputA>
+            <Value>0.462184906</Value>
+            <Visualization>Device only</Visualization>
+          </InputA>
+          <InputB>
+            <Value>0.5</Value>
+            <Visualization>Device only</Visualization>
+          </InputB>
+          <InputC>
+            <Value>0.5</Value>
+            <Visualization>Device only</Visualization>
+          </InputC>
+          <DestTrack>
+            <Value>-1</Value>
+            <Visualization>Device only</Visualization>
+          </DestTrack>
+          <DestEffect>
+            <Value>4</Value>
+            <Visualization>Device only</Visualization>
+          </DestEffect>
+          <DestParameter>
+            <Value>7</Value>
+            <Visualization>Device only</Visualization>
+          </DestParameter>
+        </FormulaMetaDevice>
+        <KeyTrackingDevice type="KeyTrackingDevice">
+          <IsMaximized>true</IsMaximized>
+          <IsSelected>false</IsSelected>
+          <SelectedPresetName>Ktrk</SelectedPresetName>
+          <SelectedPresetLibrary>User Library</SelectedPresetLibrary>
+          <SelectedPresetIsModified>true</SelectedPresetIsModified>
+          <IsActive>
+            <Value>1.0</Value>
+            <Visualization>Device only</Visualization>
+          </IsActive>
+          <SrcInstrument>-1</SrcInstrument>
+          <DestScaling>Linear</DestScaling>
+          <KeyTrackingMode>Clamp</KeyTrackingMode>
+          <KeyTrackingMin>0</KeyTrackingMin>
+          <KeyTrackingMax>119</KeyTrackingMax>
+          <DestTrack>
+            <Value>-1</Value>
+            <Visualization>Device only</Visualization>
+          </DestTrack>
+          <DestEffect>
+            <Value>3</Value>
+            <Visualization>Device only</Visualization>
+          </DestEffect>
+          <DestParameter>
+            <Value>1.0</Value>
+            <Visualization>Device only</Visualization>
+          </DestParameter>
+          <DestMin>
+            <Value>0.0</Value>
+            <Visualization>Device only</Visualization>
+          </DestMin>
+          <DestMax>
+            <Value>1.0</Value>
+            <Visualization>Device only</Visualization>
+          </DestMax>
+        </KeyTrackingDevice>
+        <FormulaMetaDevice type="FormulaMetaDevice">
+          <IsMaximized>true</IsMaximized>
+          <IsSelected>true</IsSelected>
+          <SelectedPresetName>ktrk1.1 - TrkEQ</SelectedPresetName>
+          <SelectedPresetLibrary>User Library</SelectedPresetLibrary>
+          <SelectedPresetIsModified>true</SelectedPresetIsModified>
+          <IsActive>
+            <Value>1.0</Value>
+            <Visualization>Device only</Visualization>
+          </IsActive>
+          <FormulaParagraphs>
+            <FormulaParagraph>frq2flt(kt2frq(A, B, C)*harmonic)</FormulaParagraph>
+          </FormulaParagraphs>
+          <FunctionsParagraphs>
+            <FunctionsParagraph>-- tweak to taste --</FunctionsParagraph>
+            <FunctionsParagraph>local transpose = 0.0</FunctionsParagraph>
+            <FunctionsParagraph>local bendrange = 12.0</FunctionsParagraph>
+            <FunctionsParagraph>local detunerange = 1.0</FunctionsParagraph>
+            <FunctionsParagraph>local harmonic = 3.0</FunctionsParagraph>
+            <FunctionsParagraph>-- keytracker range --</FunctionsParagraph>
+            <FunctionsParagraph>local fromnote = 0.0</FunctionsParagraph>
+            <FunctionsParagraph>local tonote = 119.0</FunctionsParagraph>
+            <FunctionsParagraph/>
+            <FunctionsParagraph>-- reference note and its frequency:</FunctionsParagraph>
+            <FunctionsParagraph>local a4 = 57.0</FunctionsParagraph>
+            <FunctionsParagraph>local a4f = 440.0</FunctionsParagraph>
+            <FunctionsParagraph/>
+            <FunctionsParagraph>local trt = 1.0594630943592952645</FunctionsParagraph>
+            <FunctionsParagraph/>
+            <FunctionsParagraph>function frq2flt (inp)</FunctionsParagraph>
+            <FunctionsParagraph> -- put Hz to slider translation formula here</FunctionsParagraph>
+            <FunctionsParagraph> return (inp - 20.0) * 0.00005005</FunctionsParagraph>
+            <FunctionsParagraph>end</FunctionsParagraph>
+            <FunctionsParagraph/>
+            <FunctionsParagraph>function kt2frq (inp, bnd, det)</FunctionsParagraph>
+            <FunctionsParagraph> -- maps 0..1 keytracker value with bend to frequency in hz</FunctionsParagraph>
+            <FunctionsParagraph> local nnbr = inp*(tonote-fromnote) + fromnote + (bnd-0.5)*bendrange*2.0 + (det-0.5)*detunerange*2.0 + transpose</FunctionsParagraph>
+            <FunctionsParagraph> return a4f * pow(trt, nnbr-a4)</FunctionsParagraph>
+            <FunctionsParagraph>end</FunctionsParagraph>
+            <FunctionsParagraph/>
+          </FunctionsParagraphs>
+          <InputNameA>Key</InputNameA>
+          <InputNameB>Bend</InputNameB>
+          <InputNameC>Detune</InputNameC>
+          <EditorVisible>true</EditorVisible>
+          <InputA>
+            <Value>0.462184906</Value>
+            <Visualization>Device only</Visualization>
+          </InputA>
+          <InputB>
+            <Value>0.5</Value>
+            <Visualization>Device only</Visualization>
+          </InputB>
+          <InputC>
+            <Value>0.5</Value>
+            <Visualization>Device only</Visualization>
+          </InputC>
+          <DestTrack>
+            <Value>-1</Value>
+            <Visualization>Device only</Visualization>
+          </DestTrack>
+          <DestEffect>
+            <Value>4</Value>
+            <Visualization>Device only</Visualization>
+          </DestEffect>
+          <DestParameter>
+            <Value>8</Value>
+            <Visualization>Device only</Visualization>
+          </DestParameter>
+        </FormulaMetaDevice>
+        <Eq5Device type="Eq5Device">
+          <IsMaximized>true</IsMaximized>
+          <IsSelected>false</IsSelected>
+          <SelectedPresetName>Init</SelectedPresetName>
+          <SelectedPresetLibrary>Bundled Content</SelectedPresetLibrary>
+          <SelectedPresetIsModified>true</SelectedPresetIsModified>
+          <IsActive>
+            <Value>1.0</Value>
+            <Visualization>Device only</Visualization>
+          </IsActive>
+          <InputMode>L+R</InputMode>
+          <MaxVisualizedGain>20</MaxVisualizedGain>
+          <Gain0>
+            <Value>0.0</Value>
+            <Visualization>Device only</Visualization>
+          </Gain0>
+          <Gain1>
+            <Value>-14.666667</Value>
+            <Visualization>Device only</Visualization>
+          </Gain1>
+          <Gain2>
+            <Value>8.26666641</Value>
+            <Visualization>Device only</Visualization>
+          </Gain2>
+          <Gain3>
+            <Value>0.0</Value>
+            <Visualization>Device only</Visualization>
+          </Gain3>
+          <Gain4>
+            <Value>0.0</Value>
+            <Visualization>Device only</Visualization>
+          </Gain4>
+          <Frequency0>
+            <Value>261.625366</Value>
+            <Visualization>Device only</Visualization>
+          </Frequency0>
+          <Frequency1>
+            <Value>391.995148</Value>
+            <Visualization>Device only</Visualization>
+          </Frequency1>
+          <Frequency2>
+            <Value>1175.98535</Value>
+            <Visualization>Device only</Visualization>
+          </Frequency2>
+          <Frequency3>
+            <Value>8000</Value>
+            <Visualization>Device only</Visualization>
+          </Frequency3>
+          <Frequency4>
+            <Value>6215.37109</Value>
+            <Visualization>Device only</Visualization>
+          </Frequency4>
+          <BandWidth0>
+            <Value>1.0</Value>
+            <Visualization>Device only</Visualization>
+          </BandWidth0>
+          <BandWidth1>
+            <Value>0.666750073</Value>
+            <Visualization>Device only</Visualization>
+          </BandWidth1>
+          <BandWidth2>
+            <Value>1.01340771</Value>
+            <Visualization>Device only</Visualization>
+          </BandWidth2>
+          <BandWidth3>
+            <Value>4</Value>
+            <Visualization>Device only</Visualization>
+          </BandWidth3>
+          <BandWidth4>
+            <Value>1.0</Value>
+            <Visualization>Device only</Visualization>
+          </BandWidth4>
+          <VisualizationMode>Graph Only</VisualizationMode>
+        </Eq5Device>
+      </Devices>
+    </DeviceChain>
+  </DeviceSlot>
+</FilterDevicePreset>

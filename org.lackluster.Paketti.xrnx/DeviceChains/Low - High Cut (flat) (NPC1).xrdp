@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FilterDevicePreset doc_version="13">
+  <DeviceSlot type="DooferDevice">
+    <IsMaximized>true</IsMaximized>
+    <Macro0>
+      <Value>40.8237648</Value>
+      <Name>Lowcut</Name>
+      <Mappings>
+        <Mapping>
+          <DestDeviceIndex>0</DestDeviceIndex>
+          <DestParameterIndex>2</DestParameterIndex>
+          <Min>0.0</Min>
+          <Max>0.138448164</Max>
+          <Scaling>Linear</Scaling>
+        </Mapping>
+      </Mappings>
+    </Macro0>
+    <Macro1>
+      <Value>72.871109</Value>
+      <Name>Highcut</Name>
+      <Mappings>
+        <Mapping>
+          <DestDeviceIndex>1</DestDeviceIndex>
+          <DestParameterIndex>2</DestParameterIndex>
+          <Min>0.938181758</Min>
+          <Max>1.0</Max>
+          <Scaling>Linear</Scaling>
+        </Mapping>
+      </Mappings>
+    </Macro1>
+    <Macro2>
+      <Value>50</Value>
+      <Name>Macro 3</Name>
+    </Macro2>
+    <Macro3>
+      <Value>50</Value>
+      <Name>Macro 4</Name>
+    </Macro3>
+    <Macro4>
+      <Value>50</Value>
+      <Name>Macro 5</Name>
+    </Macro4>
+    <Macro5>
+      <Value>50</Value>
+      <Name>Macro 6</Name>
+    </Macro5>
+    <Macro6>
+      <Value>50</Value>
+      <Name>Macro 7</Name>
+    </Macro6>
+    <Macro7>
+      <Value>50</Value>
+      <Name>Macro 8</Name>
+    </Macro7>
+    <NumActiveMacros>2</NumActiveMacros>
+    <ShowDevices>false</ShowDevices>
+    <DeviceChain>
+      <SelectedPresetName>Init</SelectedPresetName>
+      <SelectedPresetLibrary>Bundled Content</SelectedPresetLibrary>
+      <SelectedPresetIsModified>true</SelectedPresetIsModified>
+      <Devices>
+        <DigitalFilterDevice type="DigitalFilterDevice">
+          <CustomDeviceName>Lowcut</CustomDeviceName>
+          <IsMaximized>true</IsMaximized>
+          <IsSelected>false</IsSelected>
+          <SelectedPresetName>Lowcut 80 Hz (flat)</SelectedPresetName>
+          <SelectedPresetLibrary>User Library</SelectedPresetLibrary>
+          <SelectedPresetIsModified>false</SelectedPresetIsModified>
+          <IsActive>
+            <Value>1.0</Value>
+            <Visualization>Device only</Visualization>
+          </IsActive>
+          <OversamplingFactor>2x</OversamplingFactor>
+          <Model>Biquad</Model>
+          <Type>
+            <Value>3</Value>
+            <Visualization>Device only</Visualization>
+          </Type>
+          <Cutoff>
+            <Value>0.0565197505</Value>
+            <Visualization>Device only</Visualization>
+          </Cutoff>
+          <Q>
+            <Value>0.125</Value>
+            <Visualization>Device only</Visualization>
+          </Q>
+          <Ripple>
+            <Value>0.0</Value>
+            <Visualization>Device only</Visualization>
+          </Ripple>
+          <Inertia>
+            <Value>0.0078125</Value>
+            <Visualization>Device only</Visualization>
+          </Inertia>
+          <ShowResponseView>true</ShowResponseView>
+          <ResponseViewMaxGain>18</ResponseViewMaxGain>
+        </DigitalFilterDevice>
+        <DigitalFilterDevice type="DigitalFilterDevice">
+          <CustomDeviceName>Highcut</CustomDeviceName>
+          <IsMaximized>true</IsMaximized>
+          <IsSelected>true</IsSelected>
+          <SelectedPresetName>Highcut 18.5 Khz (flat)</SelectedPresetName>
+          <SelectedPresetLibrary>User Library</SelectedPresetLibrary>
+          <SelectedPresetIsModified>false</SelectedPresetIsModified>
+          <IsActive>
+            <Value>1.0</Value>
+            <Visualization>Device only</Visualization>
+          </IsActive>
+          <OversamplingFactor>2x</OversamplingFactor>
+          <Model>Biquad</Model>
+          <Type>
+            <Value>0.0</Value>
+            <Visualization>Device only</Visualization>
+          </Type>
+          <Cutoff>
+            <Value>0.983229399</Value>
+            <Visualization>Device only</Visualization>
+          </Cutoff>
+          <Q>
+            <Value>0.125</Value>
+            <Visualization>Device only</Visualization>
+          </Q>
+          <Ripple>
+            <Value>0.0</Value>
+            <Visualization>Device only</Visualization>
+          </Ripple>
+          <Inertia>
+            <Value>0.0078125</Value>
+            <Visualization>Device only</Visualization>
+          </Inertia>
+          <ShowResponseView>true</ShowResponseView>
+          <ResponseViewMaxGain>18</ResponseViewMaxGain>
+        </DigitalFilterDevice>
+      </Devices>
+    </DeviceChain>
+  </DeviceSlot>
+</FilterDevicePreset>

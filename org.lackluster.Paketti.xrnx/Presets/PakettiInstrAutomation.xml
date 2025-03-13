@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FilterDevicePreset doc_version="13">
+  <DeviceSlot type="InstrumentAutomationDevice">
+    <IsMaximized>true</IsMaximized>
+    <ParameterNumber0>0</ParameterNumber0>
+    <ParameterNumber1>1</ParameterNumber1>
+    <ParameterNumber2>2</ParameterNumber2>
+    <ParameterNumber3>3</ParameterNumber3>
+    <ParameterNumber4>4</ParameterNumber4>
+    <ParameterNumber5>5</ParameterNumber5>
+    <ParameterNumber6>6</ParameterNumber6>
+    <ParameterNumber7>7</ParameterNumber7>
+    <ParameterNumber8>8</ParameterNumber8>
+    <ParameterNumber9>9</ParameterNumber9>
+    <ParameterNumber10>10</ParameterNumber10>
+    <ParameterNumber11>11</ParameterNumber11>
+    <ParameterNumber12>12</ParameterNumber12>
+    <ParameterNumber13>13</ParameterNumber13>
+    <ParameterNumber14>14</ParameterNumber14>
+    <ParameterNumber15>15</ParameterNumber15>
+    <ParameterNumber16>16</ParameterNumber16>
+    <ParameterNumber17>17</ParameterNumber17>
+    <ParameterNumber18>18</ParameterNumber18>
+    <ParameterNumber19>19</ParameterNumber19>
+    <ParameterNumber20>20</ParameterNumber20>
+    <ParameterNumber21>21</ParameterNumber21>
+    <ParameterNumber22>22</ParameterNumber22>
+    <ParameterNumber23>23</ParameterNumber23>
+    <ParameterNumber24>24</ParameterNumber24>
+    <ParameterNumber25>25</ParameterNumber25>
+    <ParameterNumber26>26</ParameterNumber26>
+    <ParameterNumber27>27</ParameterNumber27>
+    <ParameterNumber28>28</ParameterNumber28>
+    <ParameterNumber29>29</ParameterNumber29>
+    <ParameterNumber30>30</ParameterNumber30>
+    <ParameterNumber31>31</ParameterNumber31>
+    <ParameterNumber32>32</ParameterNumber32>
+    <ParameterNumber33>33</ParameterNumber33>
+    <ParameterNumber34>34</ParameterNumber34>
+    <VisiblePages>8</VisiblePages>
+  </DeviceSlot>
+</FilterDevicePreset>

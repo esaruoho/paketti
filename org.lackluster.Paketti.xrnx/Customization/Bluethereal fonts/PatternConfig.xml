@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PatternFontSettings doc_version="0">
+  <Small>
+    <Size>11,11</Size>
+    <FileName>Fonts/DejaVuSansMono.ttf</FileName>
+    <AntiAlias>YES</AntiAlias>
+  </Small>
+  <Normal>
+    <Size>11,11</Size>
+    <FileName>Fonts/PatternFont.ttf</FileName>
+    <AntiAlias>YES</AntiAlias>
+  </Normal>
+  <Big>
+    <Size>12,12</Size>
+    <FileName>Fonts/PatternFont.ttf</FileName>
+    <AntiAlias>YES</AntiAlias>
+  </Big>
+  <Huge>
+    <Size>13,13</Size>
+    <FileName>Fonts/PatternFont.ttf</FileName>
+    <AntiAlias>YES</AntiAlias>
+  </Huge>
+</PatternFontSettings>

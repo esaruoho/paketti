@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FilterDevicePreset doc_version="13">
+  <DeviceSlot type="FormulaMetaDevice">
+    <IsMaximized>true</IsMaximized>
+    <FormulaParagraphs>
+      <FormulaParagraph>quant(B*100)</FormulaParagraph>
+    </FormulaParagraphs>
+    <FunctionsParagraphs>
+      <FunctionsParagraph>--quantization of output by number of nodes --given by slider B times 100. i.e. B =.03 gives</FunctionsParagraph>
+      <FunctionsParagraph>--3 nodes, B =.05 gives 5 nodes, etc.</FunctionsParagraph>
+      <FunctionsParagraph/>
+      <FunctionsParagraph>function quant(x)</FunctionsParagraph>
+      <FunctionsParagraph>return ceil(A*x)/x+0</FunctionsParagraph>
+      <FunctionsParagraph>end</FunctionsParagraph>
+    </FunctionsParagraphs>
+    <InputNameA>INPUT</InputNameA>
+    <InputNameB>NODES</InputNameB>
+    <InputNameC>C</InputNameC>
+    <EditorVisible>true</EditorVisible>
+    <InputA>
+      <Value>0.0</Value>
+    </InputA>
+    <InputB>
+      <Value>0.0399999991</Value>
+    </InputB>
+    <InputC>
+      <Value>0.0</Value>
+    </InputC>
+  </DeviceSlot>
+</FilterDevicePreset>

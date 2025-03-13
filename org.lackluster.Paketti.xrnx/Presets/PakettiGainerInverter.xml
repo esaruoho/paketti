@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FilterDevicePreset doc_version="13">
+  <DeviceSlot type="GainerDevice">
+    <IsMaximized>true</IsMaximized>
+    <Volume>
+      <Value>1.0</Value>
+    </Volume>
+    <Panning>
+      <Value>0.5</Value>
+    </Panning>
+    <LPhaseInvert>true</LPhaseInvert>
+    <RPhaseInvert>true</RPhaseInvert>
+    <SmoothParameterChanges>true</SmoothParameterChanges>
+  </DeviceSlot>
+</FilterDevicePreset>
