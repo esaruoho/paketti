@@ -265,7 +265,6 @@ local selected_theme_index = nil
 
 
 
-
 function pakettiThemeSelectorRenoiseStartFavorites()
   if #preferences.pakettiThemeSelector.FavoritedList <= 1 then
     renoise.app():show_status("You currently have no Favorite Themes set.")
