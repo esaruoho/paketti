@@ -27,7 +27,12 @@ jobs:
             -x "*.git*" "*.github*" \
             "preferences.xml" \
             "preferencesDynamicView.xml" \
-            "definitions/*"
+            "definitions/*" \
+            ".dsp_cache" \ 
+            "action_selector_settings.txt" \
+            "free_keybindings_20250302_160606.txt" \
+            "paketti.sublime-workspace" \
+            "paketti.sublime-project" 
       
       # Dynamically generate a tag name and set it as an environment variable
       - name: Generate Tag Name
