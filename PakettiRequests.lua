@@ -845,6 +845,48 @@ end
 renoise.tool():add_midi_mapping{name = "Paketti:Delete/Clear/Wipe Selected Note Column with EditStep x[Toggle]",
   invoke = function(message) if message:is_trigger() then PakettiDeleteClearWipeSelectedNoteColumnWithEditStep() end end}
 
+  function PakettiDeleteClearWipeEntireRowWithEditStep()
+    local song = renoise.song()
+    local pattern = song.selected_pattern
+    local num_lines = pattern.number_of_lines
+    local edit_step = song.transport.edit_step
+    local line_index = song.selected_line_index
+  
+    -- Clear the entire current line
+    song.selected_line:clear()
+  
+    -- Calculate the next line index
+    local next_line_index = line_index + edit_step
+    if next_line_index > num_lines then
+      next_line_index = next_line_index - num_lines
+    end
+  
+    -- Move to the next line
+    song.selected_line_index = next_line_index
+  
+    -- Show status to notify the action performed
+    renoise.app():show_status("Wiped entire row and moved by edit step")
+  end
+  
+  -- Add keybinding
+  renoise.tool():add_keybinding{
+    name = "Global:Paketti:Delete/Clear/Wipe Entire Row with EditStep",
+    invoke = function() 
+      PakettiDeleteClearWipeEntireRowWithEditStep() 
+    end
+  }
+  
+  -- Add MIDI mapping
+  renoise.tool():add_midi_mapping{
+    name = "Paketti:Delete/Clear/Wipe Entire Row with EditStep x[Toggle]",
+    invoke = function(message) 
+      if message:is_trigger() then 
+        PakettiDeleteClearWipeEntireRowWithEditStep() 
+      end 
+    end
+  }
+
+
 function SelectedNoteColumnClear()
   if renoise.song().selected_note_column_index ~= nil then
     renoise.song().selected_note_column:clear()
