@@ -1,0 +1,800 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PatternClipboard.BlockBuffer doc_version="0">
+  <Columns>
+    <Column>
+      <Column>
+        <Lines>
+          <Line index="0">
+            <NoteColumns>
+              <NoteColumn>
+                <Note>E-2</Note>
+                <Instrument>01</Instrument>
+              </NoteColumn>
+            </NoteColumns>
+          </Line>
+          <Line index="1">
+            <NoteColumns>
+              <NoteColumn>
+                <Note>---</Note>
+                <Instrument>01</Instrument>
+              </NoteColumn>
+            </NoteColumns>
+          </Line>
+          <Line index="2">
+            <NoteColumns>
+              <NoteColumn>
+                <Note>---</Note>
+                <Instrument>01</Instrument>
+              </NoteColumn>
+            </NoteColumns>
+          </Line>
+          <Line index="3">
+            <NoteColumns>
+              <NoteColumn>
+                <Note>---</Note>
+                <Instrument>01</Instrument>
+              </NoteColumn>
+            </NoteColumns>
+          </Line>
+          <Line index="4">
+            <NoteColumns>
+              <NoteColumn>
+                <Note>---</Note>
+                <Instrument>01</Instrument>
+              </NoteColumn>
+            </NoteColumns>
+          </Line>
+          <Line index="5">
+            <NoteColumns>
+              <NoteColumn>
+                <Note>E-2</Note>
+                <Instrument>01</Instrument>
+              </NoteColumn>
+            </NoteColumns>
+          </Line>
+          <Line index="6">
+            <NoteColumns>
+              <NoteColumn>
+                <Note>---</Note>
+                <Instrument>01</Instrument>
+              </NoteColumn>
+            </NoteColumns>
+          </Line>
+          <Line index="7">
+            <NoteColumns>
+              <NoteColumn>
+                <Note>---</Note>
+                <Instrument>01</Instrument>
+              </NoteColumn>
+            </NoteColumns>
+          </Line>
+          <Line index="8">
+            <NoteColumns>
+              <NoteColumn>
+                <Note>---</Note>
+                <Instrument>01</Instrument>
+              </NoteColumn>
+            </NoteColumns>
+          </Line>
+          <Line index="9">
+            <NoteColumns>
+              <NoteColumn>
+                <Note>---</Note>
+                <Instrument>01</Instrument>
+              </NoteColumn>
+            </NoteColumns>
+          </Line>
+          <Line index="10">
+            <NoteColumns>
+              <NoteColumn>
+                <Note>E-2</Note>
+                <Instrument>01</Instrument>
+              </NoteColumn>
+            </NoteColumns>
+          </Line>
+          <Line index="11">
+            <NoteColumns>
+              <NoteColumn>
+                <Note>---</Note>
+                <Instrument>01</Instrument>
+              </NoteColumn>
+            </NoteColumns>
+          </Line>
+          <Line index="12">
+            <NoteColumns>
+              <NoteColumn>
+                <Note>---</Note>
+                <Instrument>01</Instrument>
+              </NoteColumn>
+            </NoteColumns>
+          </Line>
+          <Line index="13">
+            <NoteColumns>
+            </NoteColumns>
+          <Line />
+          </Line>
+          <Line index="14">
+            <NoteColumns>
+              <NoteColumn>
+                <Note>D-4</Note>
+                <Instrument>12</Instrument>
+              </NoteColumn>
+            </NoteColumns>
+          </Line>
+          <Line index="15">
+            <NoteColumns>
+              <NoteColumn>
+                <Note>C-4</Note>
+                <Instrument>12</Instrument>
+              </NoteColumn>
+            </NoteColumns>
+          </Line>
+          <Line index="16">
+            <NoteColumns>
+            </NoteColumns>
+          <Line />
+          </Line>
+          <Line index="17">
+            <NoteColumns>
+              <NoteColumn>
+                <Note>D-4</Note>
+                <Instrument>12</Instrument>
+              </NoteColumn>
+            </NoteColumns>
+          </Line>
+          <Line index="18">
+            <NoteColumns>
+              <NoteColumn>
+                <Note>C-4</Note>
+                <Instrument>12</Instrument>
+              </NoteColumn>
+            </NoteColumns>
+          </Line>
+          <Line index="19">
+            <NoteColumns>
+            </NoteColumns>
+          <Line />
+          </Line>
+          <Line index="20">
+            <NoteColumns>
+              <NoteColumn>
+                <Note>D-4</Note>
+                <Instrument>12</Instrument>
+              </NoteColumn>
+            </NoteColumns>
+          </Line>
+          <Line index="21">
+            <NoteColumns>
+              <NoteColumn>
+                <Note>C-4</Note>
+                <Instrument>12</Instrument>
+              </NoteColumn>
+            </NoteColumns>
+          </Line>
+          <Line index="22">
+            <NoteColumns>
+            </NoteColumns>
+          <Line />
+          </Line>
+          <Line index="23">
+            <NoteColumns>
+              <NoteColumn>
+                <Note>D-4</Note>
+                <Instrument>12</Instrument>
+              </NoteColumn>
+            </NoteColumns>
+          </Line>
+          <Line index="24">
+            <NoteColumns>
+              <NoteColumn>
+                <Note>C-4</Note>
+                <Instrument>12</Instrument>
+              </NoteColumn>
+            </NoteColumns>
+          </Line>
+          <Line index="25">
+            <NoteColumns>
+            </NoteColumns>
+          <Line />
+          </Line>
+          <Line index="26">
+            <NoteColumns>
+              <NoteColumn>
+                <Note>D-4</Note>
+                <Instrument>12</Instrument>
+              </NoteColumn>
+            </NoteColumns>
+          </Line>
+          <Line index="27">
+            <NoteColumns>
+              <NoteColumn>
+                <Note>C-4</Note>
+                <Instrument>12</Instrument>
+              </NoteColumn>
+            </NoteColumns>
+          </Line>
+          <Line index="28">
+            <NoteColumns>
+            </NoteColumns>
+          <Line />
+          </Line>
+          <Line index="29">
+            <NoteColumns>
+              <NoteColumn>
+                <Note>D-4</Note>
+                <Instrument>12</Instrument>
+              </NoteColumn>
+            </NoteColumns>
+          </Line>
+          <Line index="30">
+            <NoteColumns>
+              <NoteColumn>
+                <Note>C-4</Note>
+                <Instrument>12</Instrument>
+              </NoteColumn>
+            </NoteColumns>
+          </Line>
+          <Line index="31">
+            <NoteColumns>
+            </NoteColumns>
+          <Line />
+          </Line>
+          <Line index="32">
+            <NoteColumns>
+              <NoteColumn>
+                <Note>D-4</Note>
+                <Instrument>12</Instrument>
+              </NoteColumn>
+            </NoteColumns>
+          </Line>
+          <Line index="33">
+            <NoteColumns>
+              <NoteColumn>
+                <Note>C-4</Note>
+                <Instrument>12</Instrument>
+              </NoteColumn>
+            </NoteColumns>
+          </Line>
+          <Line index="34">
+            <NoteColumns>
+            </NoteColumns>
+          <Line />
+          </Line>
+          <Line index="35">
+            <NoteColumns>
+              <NoteColumn>
+                <Note>D-4</Note>
+                <Instrument>12</Instrument>
+              </NoteColumn>
+            </NoteColumns>
+          </Line>
+          <Line index="36">
+            <NoteColumns>
+              <NoteColumn>
+                <Note>C-4</Note>
+                <Instrument>12</Instrument>
+              </NoteColumn>
+            </NoteColumns>
+          </Line>
+          <Line index="37">
+            <NoteColumns>
+            </NoteColumns>
+          <Line />
+          </Line>
+          <Line index="38">
+            <NoteColumns>
+              <NoteColumn>
+                <Note>D-4</Note>
+                <Instrument>12</Instrument>
+              </NoteColumn>
+            </NoteColumns>
+          </Line>
+          <Line index="39">
+            <NoteColumns>
+              <NoteColumn>
+                <Note>C-4</Note>
+                <Instrument>12</Instrument>
+              </NoteColumn>
+            </NoteColumns>
+          </Line>
+          <Line index="40">
+            <NoteColumns>
+            </NoteColumns>
+          <Line />
+          </Line>
+          <Line index="41">
+            <NoteColumns>
+              <NoteColumn>
+                <Note>D-4</Note>
+                <Instrument>12</Instrument>
+              </NoteColumn>
+            </NoteColumns>
+          </Line>
+          <Line index="42">
+            <NoteColumns>
+              <NoteColumn>
+                <Note>C-4</Note>
+                <Instrument>12</Instrument>
+              </NoteColumn>
+            </NoteColumns>
+          </Line>
+          <Line index="43">
+            <NoteColumns>
+            </NoteColumns>
+          <Line />
+          </Line>
+          <Line index="44">
+            <NoteColumns>
+              <NoteColumn>
+                <Note>D-4</Note>
+                <Instrument>12</Instrument>
+              </NoteColumn>
+            </NoteColumns>
+          </Line>
+          <Line index="45">
+            <NoteColumns>
+              <NoteColumn>
+                <Note>C-4</Note>
+                <Instrument>12</Instrument>
+              </NoteColumn>
+            </NoteColumns>
+          </Line>
+          <Line index="46">
+            <NoteColumns>
+            </NoteColumns>
+          <Line />
+          </Line>
+          <Line index="47">
+            <NoteColumns>
+              <NoteColumn>
+                <Note>D-4</Note>
+                <Instrument>12</Instrument>
+              </NoteColumn>
+            </NoteColumns>
+          </Line>
+          <Line index="48">
+            <NoteColumns>
+              <NoteColumn>
+                <Note>C-4</Note>
+                <Instrument>12</Instrument>
+              </NoteColumn>
+            </NoteColumns>
+          </Line>
+          <Line index="49">
+            <NoteColumns>
+            </NoteColumns>
+          <Line />
+          </Line>
+          <Line index="50">
+            <NoteColumns>
+              <NoteColumn>
+                <Note>D-4</Note>
+                <Instrument>12</Instrument>
+              </NoteColumn>
+            </NoteColumns>
+          </Line>
+          <Line index="51">
+            <NoteColumns>
+              <NoteColumn>
+                <Note>C-4</Note>
+                <Instrument>12</Instrument>
+              </NoteColumn>
+            </NoteColumns>
+          </Line>
+          <Line index="52">
+            <NoteColumns>
+            </NoteColumns>
+          <Line />
+          </Line>
+          <Line index="53">
+            <NoteColumns>
+              <NoteColumn>
+                <Note>D-4</Note>
+                <Instrument>12</Instrument>
+              </NoteColumn>
+            </NoteColumns>
+          </Line>
+          <Line index="54">
+            <NoteColumns>
+              <NoteColumn>
+                <Note>C-4</Note>
+                <Instrument>12</Instrument>
+              </NoteColumn>
+            </NoteColumns>
+          </Line>
+          <Line index="55">
+            <NoteColumns>
+            </NoteColumns>
+          <Line />
+          </Line>
+          <Line index="56">
+            <NoteColumns>
+              <NoteColumn>
+                <Note>D-4</Note>
+                <Instrument>12</Instrument>
+              </NoteColumn>
+            </NoteColumns>
+          </Line>
+          <Line index="57">
+            <NoteColumns>
+              <NoteColumn>
+                <Note>C-4</Note>
+                <Instrument>12</Instrument>
+              </NoteColumn>
+            </NoteColumns>
+          </Line>
+          <Line index="58">
+            <NoteColumns>
+            </NoteColumns>
+          <Line />
+          </Line>
+          <Line index="59">
+            <NoteColumns>
+              <NoteColumn>
+                <Note>D-4</Note>
+                <Instrument>12</Instrument>
+              </NoteColumn>
+            </NoteColumns>
+          </Line>
+          <Line index="60">
+            <NoteColumns>
+              <NoteColumn>
+                <Note>C-4</Note>
+                <Instrument>12</Instrument>
+              </NoteColumn>
+            </NoteColumns>
+          </Line>
+          <Line index="61">
+            <NoteColumns>
+            </NoteColumns>
+          <Line />
+          </Line>
+          <Line index="62">
+            <NoteColumns>
+              <NoteColumn>
+                <Note>D-4</Note>
+                <Instrument>12</Instrument>
+              </NoteColumn>
+            </NoteColumns>
+          </Line>
+          <Line index="63">
+            <NoteColumns>
+              <NoteColumn>
+                <Note>C-4</Note>
+                <Instrument>12</Instrument>
+              </NoteColumn>
+            </NoteColumns>
+          </Line>
+        </Lines>
+        <ColumnType>NoteColumn</ColumnType>
+        <SubColumnMask>true false false false false false false false</SubColumnMask>
+      </Column>
+      <Column>
+        <Lines>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+          <Line>
+            <EffectColumns>
+            </EffectColumns>
+          <Line />
+          </Line>
+        </Lines>
+        <ColumnType>EffectColumn</ColumnType>
+        <SubColumnMask>true false false false false false false false</SubColumnMask>
+      </Column>
+    </Column>
+  </Columns>
+</PatternClipboard.BlockBuffer>

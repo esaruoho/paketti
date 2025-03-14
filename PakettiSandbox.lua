@@ -1,3 +1,6 @@
+
+-----
+
 local dialog = nil
 local show_dialog = nil
 local current_scope = 1  -- Add this to store the scope value

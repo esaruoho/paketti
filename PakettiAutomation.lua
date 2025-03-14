@@ -2770,15 +2770,24 @@ renoise.tool():add_keybinding{name="Global:Paketti:Clone Pattern (Without Automa
 
 
 --------
+-- Global variables for parameter following
 local is_following_parameter = false
 local follow_timer = nil
 
 function follow_parameter()
   local song = renoise.song()
   local automation_parameter = song.selected_automation_parameter
+  local master_track = song.tracks[song.sequencer_track_count + 1]
   
-  -- Get the specific device and parameter we want to read from
-  local source_value = song.selected_track.devices[3].parameters[4].value
+  -- Find our devices
+  local writer_index = find_device_by_name(master_track, "Paketti LFO Writer")
+  
+  if not writer_index then
+    return
+  end
+  
+  -- Get the actual Amplitude value from the Writer LFO
+  local writer_value = master_track.devices[writer_index].parameters[4].value
   
   -- Check if we have a valid automation parameter
   if not automation_parameter or not automation_parameter.is_automatable then
@@ -2795,30 +2804,285 @@ function follow_parameter()
 
   -- Write the value at the current playhead position
   local playhead_line = song.transport.playback_pos.line
-  envelope:add_point_at(playhead_line, source_value)
+  envelope:add_point_at(playhead_line, writer_value)
 end
 
 function toggle_parameter_following()
-  local song = renoise.song()
-  
-  -- Check if we can access the source device/parameter
-  if not song.selected_track.devices[3] or not song.selected_track.devices[3].parameters[4] then
-    return
-  end
-  
   -- Check if timer is already running
   if renoise.tool():has_timer(follow_parameter) then
+    -- Stop and cleanup
     renoise.tool():remove_timer(follow_parameter)
     follow_timer = nil
     is_following_parameter = false
+    -- Remove the LFO devices
+    remove_lfo_devices()
     print("Parameter following stopped")
+    renoise.app():show_status("Parameter following stopped")
   else
-    -- Create new timer only if one doesn't exist
-    follow_timer = renoise.tool():add_timer(follow_parameter, 0.001)
-    is_following_parameter = true
-    print("Parameter following started")
+    -- First remove any existing devices (cleanup)
+    remove_lfo_devices()
+    
+    -- Then create fresh devices
+    if create_lfo_devices() then
+      follow_timer = renoise.tool():add_timer(follow_parameter, 0.001)
+      is_following_parameter = true
+      print("Parameter following started")
+      renoise.app():show_status("Parameter following started")
+    else
+      print("Error: Could not create LFO devices")
+      renoise.app():show_status("Error: Could not create LFO devices")
+    end
   end
 end
 
-renoise.tool():add_menu_entry {name = "Main Menu:Tools:Paketti..:Automation..:Follow Parameter 4",invoke = toggle_parameter_following}
-renoise.tool():add_keybinding{name = "Global:Paketti:LFO Automation Write Follow",invoke = toggle_parameter_following}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:LFO Write..:LFO Write to Selected Automation Parameter",invoke = toggle_parameter_following}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:LFO Write..:LFO Write to Selected Automation Parameter",invoke = toggle_parameter_following}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:LFO Write..:LFO Write to Selected Automation Parameter",invoke = toggle_parameter_following}
+renoise.tool():add_keybinding{name="Global:Paketti:LFO Write to Selected Automation Parameter",invoke = toggle_parameter_following}
+
+
+-- Global variables
+local is_following_to_fx = false
+local follow_fx_timer = nil
+local current_fx_command = nil
+local last_written_line = nil
+
+function find_device_by_name(track, name)
+  for i = 1, #track.devices do
+    if track.devices[i].display_name == name then
+      return i
+    end
+  end
+  return nil
+end
+
+function create_lfo_devices()
+  local song = renoise.song()
+  local master_track_index = song.sequencer_track_count + 1
+  local master_track = song.tracks[master_track_index]
+  
+  -- Create LFO Source device with correct path
+  local source_device = master_track:insert_device_at("Audio/Effects/Native/*LFO", 2)
+  source_device.display_name = "Paketti LFO Source"
+  
+  -- Create LFO Writer device with correct path
+  local writer_device = master_track:insert_device_at("Audio/Effects/Native/*LFO", 3)
+  writer_device.display_name = "Paketti LFO Writer"
+  
+  -- Set up the Source LFO parameters
+  song.tracks[master_track_index].devices[2].parameters[2].value = 2
+  song.tracks[master_track_index].devices[2].parameters[3].value = 4
+  song.tracks[master_track_index].devices[2].parameters[4].show_in_mixer = true
+  song.tracks[master_track_index].devices[2].parameters[5].show_in_mixer = true
+  song.tracks[master_track_index].devices[2].parameters[6].show_in_mixer = true
+  
+  return true
+end
+
+function remove_lfo_devices()
+  local song = renoise.song()
+  local master_track = song.tracks[song.sequencer_track_count + 1]
+  
+  -- Find and remove devices by name (search in reverse to handle indices correctly)
+  local writer_index = find_device_by_name(master_track, "Paketti LFO Writer")
+  local source_index = find_device_by_name(master_track, "Paketti LFO Source")
+  
+  if writer_index then
+    master_track:delete_device_at(writer_index)
+  end
+  if source_index then
+    master_track:delete_device_at(source_index)
+  end
+end
+
+function follow_to_fx_amount()
+  local song = renoise.song()
+  local master_track = song.tracks[song.sequencer_track_count + 1]
+  
+  -- Find our devices
+  local source_index = find_device_by_name(master_track, "Paketti LFO Source")
+  local writer_index = find_device_by_name(master_track, "Paketti LFO Writer")
+  
+  if not source_index or not writer_index then
+    return
+  end
+  
+  -- Get current line number
+  local current_line = song.transport.playback_pos.line
+  
+  -- Only write if we're on a new line
+  if current_line ~= last_written_line then
+    local writer_device = master_track.devices[writer_index]
+    
+    if writer_device and writer_device.parameters[4] then
+      -- Get the actual Amplitude value from the Writer LFO
+      local writer_value = writer_device.parameters[4].value
+      
+      -- Convert the value for FX column
+      local hex_value = string.format("%02X", math.floor(writer_value * 255))
+      
+      -- Get current pattern and line
+      local pattern = song:pattern(song.selected_pattern_index)
+      local line = pattern:track(song.selected_track_index):line(current_line)
+      
+      -- Write to first effect column (index 1)
+      if current_fx_command then
+        line.effect_columns[1].number_string = current_fx_command
+      end
+      line.effect_columns[1].amount_string = hex_value
+      
+      -- Update last written line
+      last_written_line = current_line
+    end
+  end
+end
+
+function toggle_fx_amount_following(fx_command)
+  local song = renoise.song()
+  
+  -- Check if timer is already running
+  if renoise.tool():has_timer(follow_to_fx_amount) then
+    -- Stop and cleanup
+    renoise.tool():remove_timer(follow_to_fx_amount)
+    follow_fx_timer = nil
+    is_following_to_fx = false
+    current_fx_command = nil
+    last_written_line = nil
+    -- Remove the LFO devices
+    remove_lfo_devices()
+    print("FX following stopped")
+    renoise.app():show_status("FX following stopped")
+  else
+    -- First remove any existing devices (cleanup)
+    remove_lfo_devices()
+    
+    -- Then create fresh devices
+    if create_lfo_devices() then
+      -- Store the command and create timer
+      current_fx_command = fx_command
+      last_written_line = nil
+      follow_fx_timer = renoise.tool():add_timer(follow_to_fx_amount, 0.01)
+      is_following_to_fx = true
+      local status_msg = "FX following started" .. (fx_command and " with command " .. fx_command or " (amount only)")
+      print(status_msg)
+      renoise.app():show_status(status_msg)
+    else
+      print("Error: Could not create LFO devices")
+      renoise.app():show_status("Error: Could not create LFO devices")
+    end
+  end
+end
+
+-- Add menu entries
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:LFO Write..:LFO Write to Effect Column 1 (Amount Only)",invoke = function() toggle_fx_amount_following() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Yxx)",invoke = function() toggle_fx_amount_following("0Y") end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Sxx)",invoke = function() toggle_fx_amount_following("0S") end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Dxx)",invoke = function() toggle_fx_amount_following("0D") end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Uxx)",invoke = function() toggle_fx_amount_following("0U") end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Gxx)",invoke = function() toggle_fx_amount_following("0G") end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Rxx)",invoke = function() toggle_fx_amount_following("0R") end}
+renoise.tool():add_menu_entry{name="--Mixer:Paketti..:LFO Write..:LFO Write to Effect Column 1 (Amount Only)",invoke = function() toggle_fx_amount_following() end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Yxx)",invoke = function() toggle_fx_amount_following("0Y") end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Sxx)",invoke = function() toggle_fx_amount_following("0S") end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Dxx)",invoke = function() toggle_fx_amount_following("0D") end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Uxx)",invoke = function() toggle_fx_amount_following("0U") end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Gxx)",invoke = function() toggle_fx_amount_following("0G") end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Rxx)",invoke = function() toggle_fx_amount_following("0R") end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:LFO Write..:LFO Write to Effect Column 1 (Amount Only)",invoke = function() toggle_fx_amount_following() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Yxx)",invoke = function() toggle_fx_amount_following("0Y") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Sxx)",invoke = function() toggle_fx_amount_following("0S") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Dxx)",invoke = function() toggle_fx_amount_following("0D") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Uxx)",invoke = function() toggle_fx_amount_following("0U") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Gxx)",invoke = function() toggle_fx_amount_following("0G") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Rxx)",invoke = function() toggle_fx_amount_following("0R") end}
+
+
+renoise.tool():add_keybinding{name="Global:Paketti:LFO Write to Effect Column 1 (Amount Only)",invoke = function() toggle_fx_amount_following() end}
+renoise.tool():add_keybinding{name="Global:Paketti:LFO Write to Effect Column 1 (0Yxx)",invoke = function() toggle_fx_amount_following("0Y") end}
+renoise.tool():add_keybinding{name="Global:Paketti:LFO Write to Effect Column 1 (0Sxx)",invoke = function() toggle_fx_amount_following("0S") end}
+renoise.tool():add_keybinding{name="Global:Paketti:LFO Write to Effect Column 1 (0Dxx)",invoke = function() toggle_fx_amount_following("0D") end}
+renoise.tool():add_keybinding{name="Global:Paketti:LFO Write to Effect Column 1 (0Uxx)",invoke = function() toggle_fx_amount_following("0U") end}
+renoise.tool():add_keybinding{name="Global:Paketti:LFO Write to Effect Column 1 (0Gxx)",invoke = function() toggle_fx_amount_following("0G") end}
+renoise.tool():add_keybinding{name="Global:Paketti:LFO Write to Effect Column 1 (0Rxx)",invoke = function() toggle_fx_amount_following("0R") end}
+
+------
+-- Global variables
+local is_following_lpb = false
+local follow_lpb_timer = nil
+local current_range = 255  -- Default range, can be 255, 127, or 64
+
+function scale_value(value, max_range)
+  -- Scale from 0-1 to 1-max_range
+  return math.floor(value * (max_range - 1) + 1)
+end
+
+function follow_to_lpb()
+  local song = renoise.song()
+  local master_track = song.tracks[song.sequencer_track_count + 1]
+  
+  -- Find our devices
+  local writer_index = find_device_by_name(master_track, "Paketti LFO Writer")
+  
+  if not writer_index then
+    return
+  end
+  
+  -- Get current phrase
+  local phrase = song.selected_phrase
+  if not phrase then
+    return
+  end
+  
+  -- Get the actual Amplitude value from the Writer LFO
+  local writer_value = master_track.devices[writer_index].parameters[4].value
+  
+  -- Scale the value according to current_range
+  local lpb_value = scale_value(writer_value, current_range)
+  
+  -- Set the LPB value
+  phrase.lpb = lpb_value
+end
+
+function toggle_lpb_following(range)
+  local song = renoise.song()
+  
+  -- Check if timer is already running
+  if renoise.tool():has_timer(follow_to_lpb) then
+    -- Stop and cleanup
+    renoise.tool():remove_timer(follow_to_lpb)
+    follow_lpb_timer = nil
+    is_following_lpb = false
+    -- Remove the LFO devices
+    remove_lfo_devices()
+    print("LPB following stopped")
+    renoise.app():show_status("LPB following stopped")
+  else
+    -- First remove any existing devices (cleanup)
+    remove_lfo_devices()
+    
+    -- Set the range
+    current_range = range or 255
+    
+    -- Then create fresh devices
+    if create_lfo_devices() then
+      follow_lpb_timer = renoise.tool():add_timer(follow_to_lpb, 0.01)
+      is_following_lpb = true
+      print("LPB following started (Range: 1-" .. current_range .. ")")
+      renoise.app():show_status("LPB following started (Range: 1-" .. current_range .. ")")
+    else
+      print("Error: Could not create LFO devices")
+      renoise.app():show_status("Error: Could not create LFO devices")
+    end
+  end
+end
+
+-- Add menu entries for different ranges
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:LFO Write..:LFO Write to Phrase LPB (1-255)",invoke = function() toggle_lpb_following(255) end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:LFO Write..:LFO Write to Phrase LPB (1-127)",invoke = function() toggle_lpb_following(127) end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:LFO Write..:LFO Write to Phrase LPB (1-64)",invoke = function() toggle_lpb_following(64) end}
+renoise.tool():add_menu_entry{name="--Mixer:Paketti..:LFO Write..:LFO Write to Phrase LPB (1-255)",invoke = function() toggle_lpb_following(255) end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:LFO Write..:LFO Write to Phrase LPB (1-127)",invoke = function() toggle_lpb_following(127) end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:LFO Write..:LFO Write to Phrase LPB (1-64)",invoke = function() toggle_lpb_following(64) end}
+renoise.tool():add_keybinding{name="Global:Paketti:LFO Write to Phrase LPB (1-255)",invoke = function() toggle_lpb_following(255) end}
+renoise.tool():add_keybinding{name="Global:Paketti:LFO Write to Phrase LPB (1-127)",invoke = function() toggle_lpb_following(127) end}
+renoise.tool():add_keybinding{name="Global:Paketti:LFO Write to Phrase LPB (1-64)",invoke = function() toggle_lpb_following(64) end}

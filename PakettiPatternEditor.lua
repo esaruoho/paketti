@@ -254,6 +254,43 @@ renoise.tool():add_keybinding{name="Global:Paketti:KapsLock Note Off (No Step)",
 renoise.tool():add_keybinding{name="Global:Paketti:KapsLock Note Off (With Step)",invoke=function() CapsLok(true) end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:KapsLock CapsLock Caps Lock Note Off",invoke=function() CapsLok() end}
 renoise.tool():add_keybinding{name="Phrase Editor:Paketti:KapsLock CapsLock Caps Lock Note Off",invoke=function() CapsLok() end}
+-- Convert the existing keybindings into MIDI mappings
+renoise.tool():add_midi_mapping{
+  name="Global:Paketti:KapsLock Note Off (No Step) x[Trigger]",
+  invoke=function(message)
+    if message:is_trigger() then
+      CapsLok(false)
+    end
+  end
+}
+
+renoise.tool():add_midi_mapping{
+  name="Global:Paketti:KapsLock Note Off (With Step) x[Trigger]",
+  invoke=function(message)
+    if message:is_trigger() then
+      CapsLok(true)
+    end
+  end
+}
+
+renoise.tool():add_midi_mapping{
+  name="Pattern Editor:Paketti:KapsLock Note Off x[Trigger]",
+  invoke=function(message)
+    if message:is_trigger() then
+      CapsLok()
+    end
+  end
+}
+
+renoise.tool():add_midi_mapping{
+  name="Phrase Editor:Paketti:KapsLock Note Off x[Trigger]",
+  invoke=function(message)
+    if message:is_trigger() then
+      CapsLok()
+    end
+  end
+}
+
 -------
 function CleverNoteOff(mode)
   local s = renoise.song()
@@ -2932,21 +2969,46 @@ function PakettiToggleNoteOffAllTracks()
 end
 
 -- Add keybindings for both pattern and phrase editor
-renoise.tool():add_keybinding{
-  name = "Pattern Editor:Paketti:Toggle Note Off in All Visible Note Columns",
-  invoke = PakettiToggleNoteOffAllColumns}
-renoise.tool():add_keybinding{
-  name = "Phrase Editor:Paketti:Toggle Note Off in All Visible Note Columns",
-  invoke = PakettiToggleNoteOffAllColumns}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Toggle Note Off in All Visible Note Columns",  invoke = PakettiToggleNoteOffAllColumns}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Toggle Note Off on All Tracks on Current Row",invoke = PakettiToggleNoteOffAllTracks}
+renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Toggle Note Off in All Visible Note Columns",invoke = PakettiToggleNoteOffAllColumns}
+renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Toggle Note Off on All Tracks on Current Row",invoke = PakettiToggleNoteOffAllTracks}
 
-renoise.tool():add_keybinding{
-  name = "Pattern Editor:Paketti:Toggle Note Off on All Tracks on Current Row",
-  invoke = PakettiToggleNoteOffAllTracks}
-renoise.tool():add_keybinding{
-  name = "Phrase Editor:Paketti:Toggle Note Off on All Tracks on Current Row",
-  invoke = PakettiToggleNoteOffAllTracks
+renoise.tool():add_midi_mapping{
+  name = "Pattern Editor:Paketti:Toggle Note Off in All Visible Note Columns [Trigger]",
+  invoke = function(message)
+    if message:is_trigger() then
+      PakettiToggleNoteOffAllColumns()
+    end
+  end
 }
 
+renoise.tool():add_midi_mapping{
+  name = "Pattern Editor:Paketti:Toggle Note Off on All Tracks on Current Row [Trigger]",
+  invoke = function(message)
+    if message:is_trigger() then
+      PakettiToggleNoteOffAllTracks()
+    end
+  end
+}
+
+renoise.tool():add_midi_mapping{
+  name = "Phrase Editor:Paketti:Toggle Note Off in All Visible Note Columns [Trigger]",
+  invoke = function(message)
+    if message:is_trigger() then
+      PakettiToggleNoteOffAllColumns()
+    end
+  end
+}
+
+renoise.tool():add_midi_mapping{
+  name = "Phrase Editor:Paketti:Toggle Note Off on All Tracks on Current Row [Trigger]",
+  invoke = function(message)
+    if message:is_trigger() then
+      PakettiToggleNoteOffAllTracks()
+    end
+  end
+}
 -------
 
 

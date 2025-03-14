@@ -16,6 +16,7 @@ local function PakettiPluginEditorPositionControlKeyHandlerFunc(dialog, key)
   end
 end
 
+
 -- Check if selected instrument has a plugin loaded
 local function PakettiPluginEditorPositionControlGetPluginEditorPosition()
   local song = renoise.song()
