@@ -96,7 +96,7 @@
   <upperFramePreference>0.0</upperFramePreference>
   <pakettiOctaMEDNoteEchoDistance>3</pakettiOctaMEDNoteEchoDistance>
   <UserDefinedSampleFolders04/>
-  <pakettiLoaderAutoseek>false</pakettiLoaderAutoseek>
+  <PakettiLFOWriteDelete>true</PakettiLFOWriteDelete>
   <pakettiThemeSelector>
     <FavoritedList>
       <Favorited>&lt;No Theme Selected&gt;</Favorited>
@@ -157,17 +157,17 @@
     <Slot07/>
     <Slot02>/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/DeviceChains//Slot02.xrni</Slot02>
   </UserInstruments>
+  <UserDefinedSampleFolders06/>
   <UserDefinedSampleFolders08>/Users/esaruoho/Music/samples/TRACKERCORPS SAMPLE PACK 2025/</UserDefinedSampleFolders08>
-  <UserDefinedSampleFolders01/>
   <PakettiDynamicViews/>
   <PakettiDeviceLoaders/>
-  <PakettiDeviceChainPath>DeviceChains/</PakettiDeviceChainPath>
-  <UserDefinedSampleFolders02/>
   <pakettiTitler>
     <textfile_path>External/wordlist.txt</textfile_path>
     <trackTitlerDateFormat>YYYY_MM_DD</trackTitlerDateFormat>
     <notes_file_path>External/notes.txt</notes_file_path>
   </pakettiTitler>
+  <PakettiDeviceChainPath>DeviceChains/</PakettiDeviceChainPath>
+  <UserDefinedSampleFolders02/>
   <pakettiPhraseInitDialog>
     <NoteColumns>1.0</NoteColumns>
     <LPB>4</LPB>
@@ -194,9 +194,10 @@
     <PakettiYTDLPOutputDirectory>/Users/esaruoho/Music/samples/colugatest/</PakettiYTDLPOutputDirectory>
     <PakettiYTDLPPathToSave>/Users/esaruoho/Music/samples/ytube/</PakettiYTDLPPathToSave>
   </PakettiYTDLP>
-  <pakettiLoaderLoopExit>false</pakettiLoaderLoopExit>
+  <pakettiLoaderNNA>2</pakettiLoaderNNA>
   <UserDefinedSampleFolders10>/Users/esaruoho/Music/rMBP_2024_01_27 samples/</UserDefinedSampleFolders10>
-  <selectionNewInstrumentAutoseek>false</selectionNewInstrumentAutoseek>
+  <selectionNewInstrumentLoop>2</selectionNewInstrumentLoop>
+  <pakettiLoaderLoopMode>1.0</pakettiLoaderLoopMode>
   <UserDevices>
     <Slot10/>
     <Path>/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/DeviceChains/</Path>
@@ -211,11 +212,10 @@
     <Slot02>/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/DeviceChains//Slot02.xrnt</Slot02>
   </UserDevices>
   <pakettiLoaderOneshot>false</pakettiLoaderOneshot>
-  <UserDefinedSampleFolders06/>
   <UserDefinedSampleFolders05/>
   <UserDefinedSampleFolders03/>
+  <UserDefinedSampleFolders01/>
   <UserDefinedSampleFolders07>/Users/esaruoho/Music/samples/TRACKERCORPS SAMPLE PACK 2025/DRUMS &amp; PERCUSSIONS/</UserDefinedSampleFolders07>
-  <pakettiLoaderNNA>2</pakettiLoaderNNA>
   <ActionSelector>
     <Index29>Menu Entry: Pattern Editor:Paketti ChordsPlus..:Transposer Selection/Row -11||function() PakettiTransposer(-11, true) end</Index29>
     <Index26>Keybinding: Global:Paketti:Duplicate Track, set to Selected Instrument||function() setToSelectedInstrument_DuplicateTrack() end</Index26>
@@ -309,10 +309,11 @@ renoise.song().sequencer.keep_sequence_sorted=false end end</Index12>
     <Index22>Keybinding: Global:Paketti:Randomize Selected Plugin with User3 (%)||function() randomizeSelectedPluginFromGUI(preferences.RandomizeSettings.pakettiRandomizeSelectedPluginPercentageUserPreference3.value) end</Index22>
     <Index19>Menu Entry: Pattern Editor:Paketti..:Delay Output..:Nudge Delay Output +05ms (Rename)||function() nudge_output_delay(5, true) end</Index19>
   </ActionSelector>
-  <selectionNewInstrumentSelect>false</selectionNewInstrumentSelect>
+  <pakettiLoaderLoopExit>false</pakettiLoaderLoopExit>
+  <selectionNewInstrumentAutoseek>false</selectionNewInstrumentAutoseek>
   <pakettiLoaderNormalizeSamples>true</pakettiLoaderNormalizeSamples>
   <UserDefinedSampleFolders09>/Users/esaruoho/Music/samples/Analog Samples/</UserDefinedSampleFolders09>
-  <selectionNewInstrumentLoop>2</selectionNewInstrumentLoop>
+  <selectionNewInstrumentSelect>false</selectionNewInstrumentSelect>
   <renderBypass>false</renderBypass>
   <pakettiPitchbendLoaderEnvelope>false</pakettiPitchbendLoaderEnvelope>
   <pakettieSpeak>
@@ -342,7 +343,7 @@ renoise.song().sequencer.keep_sequence_sorted=false end end</Index12>
     <AppSelection2>/Applications/Ableton Live 12 Suite.app</AppSelection2>
   </AppSelection>
   <pakettiLoaderAutoFade>true</pakettiLoaderAutoFade>
-  <pakettiLoaderLoopMode>1.0</pakettiLoaderLoopMode>
+  <pakettiLoaderAutoseek>false</pakettiLoaderAutoseek>
   <_0G01_Loader>false</_0G01_Loader>
   <renderBitDepth>32</renderBitDepth>
 </ScriptingToolPreferences>

@@ -163,12 +163,6 @@ function timed_require(module_name)
 end
 print ("---------------------")
 
-
-
-
-
-
-
 local renoise_version = tonumber(string.match(renoise.RENOISE_VERSION, "(%d+%.%d+)"))
 
 if renoise_version == 2.8 then
@@ -339,10 +333,6 @@ function dbug(msg)
 end
 
 _AUTO_RELOAD_DEBUG = true
-
-
-
-
 
 
 

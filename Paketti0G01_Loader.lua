@@ -106,6 +106,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiDialogClose="esc",
   PakettiDeviceChainPath = "./DeviceChains/",
   PakettiIRPath = "./IR/",
+  PakettiLFOWriteDelete = "true",
   upperFramePreference=0,
   _0G01_Loader=false,
   RandomBPM=false,
@@ -638,9 +639,7 @@ function show_paketti_preferences()
         }
       },
 
-      -- Horizontal rule
       horizontal_rule(),
-
       vb:row {
         vb:column {
           margin=5,width=600,style="group",      
@@ -1055,7 +1054,8 @@ vb:row {
         vb:button{text="Load Random IR",width=100,notifier=function()
             PakettiRandomIR(preferences.PakettiIRPath.value)
         end}
-    },      
+    },
+  
   },
   horizontal_rule(),
   vb:column {
@@ -1072,8 +1072,15 @@ vb:row {
       end
     },
   },
+        },
+        horizontal_rule(),
+
+  vb:column{style="group",margin=10, width="100%",
+    vb:row{vb:text{text="LFO Write Device Delete",width=150},vb:switch{items={"Off","On"},
+    value=preferences.PakettiLFOWriteDelete.value and 2 or 1,width=200,
   },
-},
+  },
+},},
       },
 
       -- Bottom Buttons
