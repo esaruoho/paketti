@@ -24,7 +24,6 @@ function DEC_HEX(IN)
 end
 --
 local init_time = os.clock()
-
 -- Function to check if an instrument uses effects or has an empty FX chain and adjust name accordingly
 function align_instrument_names()
   local song = renoise.song()
@@ -244,6 +243,7 @@ timed_require("PakettiSamples")              -- 4249 lines, 6.00 ms
 timed_require("Paketti35")
 timed_require("PakettiActionSelector")
 timed_require("Research/FormulaDeviceManual")
+timed_require("PakettiXRNSProbe")
 
 print(string.format("Total load time: %.3f seconds", os.clock() - init_time))
 ------------------------------------------------
@@ -255,6 +255,14 @@ local selected_theme_index = nil
 --for i, theme in ipairs(themes) do
 --  print(i .. ": " .. theme)
 --end
+
+
+
+
+
+
+
+
 
 function pakettiThemeSelectorRenoiseStartFavorites()
   if #preferences.pakettiThemeSelector.FavoritedList <= 1 then
@@ -333,8 +341,6 @@ function dbug(msg)
 end
 
 _AUTO_RELOAD_DEBUG = true
-
-
 
 
 
