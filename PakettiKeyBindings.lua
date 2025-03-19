@@ -255,7 +255,6 @@ local PakettiMidiMappings = {
   "Paketti:Toggle Edit Mode and Tint Track",
   "Paketti:Duplicate Effect Column Content to Pattern or Selection",
   "Paketti:Randomize Effect Column Parameters",
-  "Paketti:Interpolate Effect Column Parameters",
   "Paketti:Flood Fill Note and Instrument",
   "Paketti:Flood Fill Note and Instrument with EditStep",
   "Paketti:Paketti Track Renamer",
@@ -878,7 +877,8 @@ function pakettiKeyBindingsUpdateList()
 
       -- Adjust the visual difference caused by the squiggle character
       local length_adjustment = binding.Binding:find("∿") and 2 or 0
-      local padded_entry = entry .. string.rep(" ", max_length - #entry + length_adjustment) .. " " .. binding.Key
+      local readable_key = convert_key_name(binding.Key)
+      local padded_entry = entry .. string.rep(" ", max_length - #entry + length_adjustment) .. " " .. readable_key
       content = content .. padded_entry .. "\n"
     end
   end
@@ -1317,7 +1317,8 @@ function renoiseKeyBindingsUpdateList()
 
       -- Adjust the visual difference caused by the squiggle character
       local length_adjustment = binding.Binding:find("∿") and 2 or 0
-      local padded_entry = entry .. string.rep(" ", max_length - #entry + length_adjustment) .. " " .. binding.Key
+      local readable_key = convert_key_name(binding.Key)
+      local padded_entry = entry .. string.rep(" ", max_length - #entry + length_adjustment) .. " " .. readable_key
       content = content .. padded_entry .. "\n"
     end
   end
@@ -1927,4 +1928,25 @@ function generate_combinations(modifiers)
   end
   
   return combinations
+end
+
+-- Add this function near the top with other function definitions
+function convert_key_name(key)
+  -- Split the key combination into parts
+  local parts = {}
+  for part in key:gmatch("[^%+]+") do
+    -- Trim spaces
+    part = part:match("^%s*(.-)%s*$")
+    -- Convert special keys
+    if part == "Backslash" then part = "\\"
+    elseif part == "Slash" then part = "/"
+    elseif part == "Apostrophe" then part = "'"
+    elseif part == "PeakedBracket" then part = "<"
+    elseif part == "Capital" then part = "CapsLock"
+    elseif part == "Grave" then part = "§"
+    elseif part == "Comma" then part = ","
+    end
+    table.insert(parts, part)
+  end
+  return table.concat(parts, " + ")
 end

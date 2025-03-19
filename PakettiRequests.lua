@@ -411,7 +411,7 @@ end
 -- Add menu entries and keybindings
 renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Set All Instruments All Samples AutoFade On",invoke=function() setAllInstrumentsAllSamplesAutofade(1) end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Set All Instruments All Samples AutoFade Off",invoke=function() setAllInstrumentsAllSamplesAutofade(0) end}
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Set All Instruments All Samples AutoFade On",invoke=function() setAllInstrumentsAllSamplesAutofade(1) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Set All Instruments All Samples AutoFade On",invoke=function() setAllInstrumentsAllSamplesAutofade(1) end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Set All Instruments All Samples AutoFade Off",invoke=function() setAllInstrumentsAllSamplesAutofade(0) end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Instruments..:Set All Instruments All Samples AutoFade On",invoke=function() setAllInstrumentsAllSamplesAutofade(1) end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:Set All Instruments All Samples AutoFade Off",invoke=function() setAllInstrumentsAllSamplesAutofade(0) end}
@@ -607,7 +607,14 @@ end
 
 
 function pitchedDrumkit()
-renoise.app():load_instrument(renoise.tool().bundle_path .. "Presets/12st_Pitchbend_Drumkit_C0.xrni")
+  local defaultInstrument = preferences.pakettiDefaultDrumkitXRNI
+  local fallbackInstrument = "Presets/12st_Pitchbend_Drumkit_C0.xrni"
+  
+
+--  renoise.app():load_instrument(renoise.tool().bundle_path .. "Presets/12st_Pitchbend_Drumkit_C0.xrni")
+renoise.app():load_instrument(defaultInstrument)
+
+
 renoise.song().selected_instrument.name="Pitchbend Drumkit"
 renoise.song().instruments[renoise.song().selected_instrument_index].macros_visible = true
 renoise.song().instruments[renoise.song().selected_instrument_index].sample_modulation_sets[1].name=("Pitchbend Drumkit")
@@ -3030,7 +3037,12 @@ function PakettiIsolateSlicesToInstrument()
   local function create_new_instrumentWithSlices(name_suffix, index)
     song:insert_instrument_at(index)
     song.selected_instrument_index = index
-    renoise.app():load_instrument(renoise.tool().bundle_path .. "Presets/12st_Pitchbend_Drumkit_C0.xrni")
+    local defaultInstrument = preferences.pakettiDefaultDrumkitXRNI
+    local fallbackInstrument = "Presets/12st_Pitchbend_Drumkit_C0.xrni"
+    
+  
+  --  renoise.app():load_instrument(renoise.tool().bundle_path .. "Presets/12st_Pitchbend_Drumkit_C0.xrni")
+  renoise.app():load_instrument(defaultInstrument)
     local new_instrument = song.instruments[index]
     new_instrument.name = instrument.name .. name_suffix
     return new_instrument
@@ -3148,7 +3160,12 @@ function PakettiIsolateSelectedSampleToInstrument()
   local insert_index = selected_instrument_index + 1
   song:insert_instrument_at(insert_index)
   song.selected_instrument_index = insert_index
-  renoise.app():load_instrument(renoise.tool().bundle_path .. "Presets/12st_Pitchbend_Drumkit_C0.xrni")
+  local defaultInstrument = preferences.pakettiDefaultDrumkitXRNI
+  local fallbackInstrument = "Presets/12st_Pitchbend_Drumkit_C0.xrni"
+  
+
+--  renoise.app():load_instrument(renoise.tool().bundle_path .. "Presets/12st_Pitchbend_Drumkit_C0.xrni")
+renoise.app():load_instrument(defaultInstrument)
   local new_instrument = song.instruments[insert_index]
   new_instrument.name = sample.name .. " (Isolated)"
 

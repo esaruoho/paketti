@@ -115,7 +115,7 @@ renoise.tool():add_midi_mapping{
 function pakettiPreferencesDefaultInstrumentLoader()
   local defaultInstrument = preferences.pakettiDefaultXRNI.value
   local fallbackInstrument = "Presets/12st_Pitchbend.xrni"
-
+  
   -- Function to check if a file exists
   local function file_exists(file)
     local f = io.open(file, "r")
@@ -130,7 +130,8 @@ function pakettiPreferencesDefaultInstrumentLoader()
   end
 
   print("Loading instrument from path: " .. defaultInstrument)
-  renoise.app():load_instrument(renoise.tool().bundle_path .. "Presets/12st_Pitchbend.xrni")
+--  renoise.app():load_instrument(renoise.tool().bundle_path .. "Presets/12st_Pitchbend.xrni")
+  renoise.app():load_instrument(defaultInstrument)
 
   if preferences.pakettiPitchbendLoaderEnvelope.value then
 renoise.song().selected_instrument.sample_modulation_sets[1].devices[2].is_active = true else end
@@ -166,7 +167,12 @@ function pitchBendDrumkitLoader()
   current_instrument = song:instrument(current_instrument_index)
 
   -- Load the preset instrument
-  renoise.app():load_instrument(renoise.tool().bundle_path .. "Presets/12st_Pitchbend_Drumkit_C0.xrni")
+  local defaultInstrument = preferences.pakettiDefaultDrumkitXRNI
+  local fallbackInstrument = "Presets/12st_Pitchbend_Drumkit_C0.xrni"
+  
+
+--  renoise.app():load_instrument(renoise.tool().bundle_path .. "Presets/12st_Pitchbend_Drumkit_C0.xrni")
+renoise.app():load_instrument(defaultInstrument)
 
   -- Ensure the new instrument is selected
   current_instrument_index = song.selected_instrument_index
@@ -364,7 +370,12 @@ function loadRandomDrumkitSamples(num_samples)
         instrument = song.selected_instrument
     end
 
-  renoise.app():load_instrument(renoise.tool().bundle_path .. "Presets/12st_Pitchbend_Drumkit_C0.xrni")
+    local defaultInstrument = preferences.pakettiDefaultDrumkitXRNI
+    local fallbackInstrument = "Presets/12st_Pitchbend_Drumkit_C0.xrni"
+    
+  
+  --  renoise.app():load_instrument(renoise.tool().bundle_path .. "Presets/12st_Pitchbend_Drumkit_C0.xrni")
+  renoise.app():load_instrument(defaultInstrument)
 
     -- Update the instrument reference after loading the instrument
     instrument = song.selected_instrument
@@ -459,7 +470,11 @@ end
 
 -- Shortcut usage example
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:Paketti PitchBend Drumkit Sample Loader (Random)",invoke=function() loadRandomDrumkitSamples(120)  end}
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Paketti PitchBend Drumkit Sample Loader (Random)",invoke=function() loadRandomDrumkitSamples(120) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Paketti PitchBend Drumkit Sample Loader (Random)",invoke=function() loadRandomDrumkitSamples(120) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Load DrumKit with Overlap Random",invoke=function() pitchBendDrumkitLoader() DrumKitToOverlay(2) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Load DrumKit with Overlap Cycle",invoke=function() pitchBendDrumkitLoader() DrumKitToOverlay(1) end}
+
+
 renoise.tool():add_menu_entry{name="--Disk Browser Files:Paketti..:Paketti PitchBend Drumkit Sample Loader (Random)",invoke=function() loadRandomDrumkitSamples(120) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti PitchBend Drumkit Sample Loader (Random)",invoke=function() loadRandomDrumkitSamples(120) end}
 renoise.tool():add_midi_mapping{name="Paketti:Midi Paketti PitchBend Drumkit Sample Loader (Random)",invoke=function(message) if message:is_trigger() then loadRandomDrumkitSamples(120)  end end}
@@ -2723,7 +2738,7 @@ function PakettiToggleMono()
 end
 
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Toggle Mono Device",invoke=PakettiToggleMono}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Toggle Mono Device",invoke=function() PakettiToggleMono() end}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Toggle Mono Device",invoke=function() PakettiToggleMono() end}
 
 ----
 
@@ -3132,10 +3147,10 @@ renoise.tool():add_keybinding{name="Global:Paketti:Eight 120-fy",invoke=function
         
         -- Clear existing points
         pitch_stepper:clear_points()
-        
+        --pitch_stepper.length
         -- Define points data with random values
         local points_data = {}
-        for i = 1, 17 do
+        for i = 1, pitch_stepper.length do
             table.insert(points_data, {
                 scaling = 0,
                 time = i,
@@ -3918,7 +3933,13 @@ local function loadRandomDrumkitSamples(num_samples, folder_path)
     song.selected_instrument_index = song.selected_instrument_index + 1
     instrument = song.selected_instrument
   end
-  renoise.app():load_instrument(renoise.tool().bundle_path .."Presets/12st_Pitchbend_Drumkit_C0.xrni")
+  local defaultInstrument = preferences.pakettiDefaultDrumkitXRNI
+  local fallbackInstrument = "Presets/12st_Pitchbend_Drumkit_C0.xrni"
+  
+
+--  renoise.app():load_instrument(renoise.tool().bundle_path .. "Presets/12st_Pitchbend_Drumkit_C0.xrni")
+renoise.app():load_instrument(defaultInstrument)
+
   instrument = song.selected_instrument
   instrument.name = string.format("%02X_Drumkit", song.selected_instrument_index - 1)
 
@@ -4252,17 +4273,11 @@ renoise.tool():add_keybinding{name="Global:Paketti:Load DrumKit with Overlap Ran
 pitchBendDrumkitLoader()
 DrumKitToOverlay(2) end}
 
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Load DrumKit with Overlap Random",invoke=function()
-pitchBendDrumkitLoader()
-DrumKitToOverlay(2) end}
 
 renoise.tool():add_keybinding{name="Global:Paketti:Load DrumKit with Overlap Cycle",invoke=function()
 pitchBendDrumkitLoader()
 DrumKitToOverlay(1) end}
 
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Load DrumKit with Overlap Cycle",invoke=function()
-pitchBendDrumkitLoader()
-DrumKitToOverlay(1) end}
 -------
 ---------------
 function PakettiDuplicateInstrumentSamplesWithTranspose(transpose_amount)

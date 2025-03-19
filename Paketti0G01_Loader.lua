@@ -98,6 +98,7 @@ function create_device_entry(name, path, device_type)
 end
 
 preferences = renoise.Document.create("ScriptingToolPreferences") {
+  SelectedSampleBeatSyncLines = false,
   pakettiOctaMEDNoteEchoDistance=2,
   pakettiOctaMEDNoteEchoMin=1,
   pakettiRotateSampleBufferCoarse=1000,
@@ -136,8 +137,8 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   selectionNewInstrumentAutoseek=false,
   pakettiPitchbendLoaderEnvelope=false,
   pakettiSlideContentAutomationToo=true,
-  pakettiDefaultXRNI="Presets/12st_Pitchbend.xrni",
-  pakettiDefaultDrumkitXRNI="Presets/12st_Pitchbend_Drumkit_C0.xrni",
+  pakettiDefaultXRNI = renoise.tool().bundle_path .. "Presets/12st_Pitchbend.xrni",
+  pakettiDefaultDrumkitXRNI = renoise.tool().bundle_path .. "Presets/12st_Pitchbend_Drumkit_C0.xrni",
   ActionSelector = {
  Index01="",
  Index02="",
@@ -651,7 +652,11 @@ function show_paketti_preferences()
               vb:switch{items={"Off","Scopes","Spectrum"},value=preferences.upperFramePreference.value+1,width=200,
                 notifier=function(value) preferences.upperFramePreference.value=value-1 end}
             },
-            -- Splitting and positioning the long text on a new row
+            vb:row {
+              vb:text{text="Selected Sample Beat Sync",width=150},
+              vb:switch{items={"Off","On"},value=preferences.SelectedSampleBeatSyncLines.value and 2 or 1,width=200,
+                notifier=function(value) preferences.SelectedSampleBeatSyncLines.value=(value==2) end}
+            },
             vb:row {vb:text{style="strong",text="Whether F2,F3,F4,F11 change the Upper Frame Scope state or not"}},
             vb:row {
               vb:text{text="0G01 Loader",width=150},
@@ -834,8 +839,25 @@ vb:row {
                 end
               },
               blend_value_label
-            },
-                                  
+            },},
+            horizontal_rule(),
+
+            vb:column {
+              style="group",margin=10, width="100%",
+            -- Create the dropdown menu row
+            vb:row { 
+              vb:text{text="Dialog Close Key", width=150, style="strong",font="bold"},
+              vb:popup{
+                items = dialog_close_keys,
+                value = table.find(dialog_close_keys, preferences.pakettiDialogClose.value) or 1,
+                width = 200,
+                notifier = function(value)
+                  preferences.pakettiDialogClose.value = dialog_close_keys[value]
+                end
+              },
+            
+                  },
+                                            
             
                               }
         },
@@ -889,59 +911,63 @@ vb:row {
           vb:row{vb:text{text="Normalize Samples",width=150},vb:switch{items={"Off","On"},value=preferences.pakettiLoaderNormalizeSamples.value and 2 or 1,width=200,
             notifier=function(value) preferences.pakettiLoaderNormalizeSamples.value=(value==2) end}
         },
-    --[[        vb:row { vb:text{text="Default XRNI to use:",width=150},vb:textfield{text=preferences.pakettiDefaultXRNI.value:match("[^/\\]+$"),width=300,id=pakettiDefaultXRNIDisplayId,notifier=function(value) preferences.pakettiDefaultXRNI.value=value end},vb:button{text="Browse",width=100,notifier=function()
+            vb:row { vb:text{text="Default XRNI to use:",width=150},vb:textfield{text=preferences.pakettiDefaultXRNI.value:match("[^/\\]+$"),width=300,id=pakettiDefaultXRNIDisplayId,notifier=function(value) preferences.pakettiDefaultXRNI.value=value end},vb:button{text="Browse",width=100,notifier=function()
               local filePath=renoise.app():prompt_for_filename_to_read({"*.XRNI"},"Paketti Default XRNI Selector Dialog")
               if filePath and filePath~="" then preferences.pakettiDefaultXRNI.value=filePath vb.views[pakettiDefaultXRNIDisplayId].text=filePath:match("[^/\\]+$") else renoise.app():show_status("No XRNI Instrument was selected") end end} },
-              --]]
-    -- Generate a unique id based on timestamp or counter
---[[
-    vb:row { 
-      vb:text {
-        text = "Default XRNI to use:", 
-        width = 150
-      },
-      
-      vb:textfield {
-        text = preferences.pakettiDefaultXRNI.value:match("[^/\\]+$"), 
-        width = 300, 
-        id = pakettiDefaultXRNIDisplayId, -- Use dynamic ID
-        notifier = function(value)
-          preferences.pakettiDefaultXRNI.value = value
-        end
-      },
-      
-      vb:button {
-        text = "Browse", 
-        width = 100, 
-        notifier = function()
-          local filePath = renoise.app():prompt_for_filename_to_read({"*.XRNI"}, "Paketti Default XRNI Selector Dialog")
-          
-          if filePath and filePath ~= "" then 
-            preferences.pakettiDefaultXRNI.value = filePath 
-            vb.views[pakettiDefaultXRNIDisplayId].text = filePath:match("[^/\\]+$")
-          else 
-            renoise.app():show_status("No XRNI Instrument was selected")
-          end
-        end
-      }
-    },    
-              vb:row { vb:text{text="Preset Files:",width=150},vb:popup{items=presetFiles,width=300,notifier=function(value)
-              local selectedFile=presetFiles[value] 
-              preferences.pakettiDefaultXRNI.value="Presets/"..selectedFile 
-              vb.views[pakettiDefaultXRNIDisplayId].text="Presets/"..selectedFile 
+            vb:row { vb:text{text="Preset Files:",width=150},vb:popup{items=presetFiles,width=300,notifier=function(value)
+              local selectedFile = presetFiles[value] 
+              local bundle_path = renoise.tool().bundle_path
+              local newPath
+              
+              if selectedFile:match("^<") then
+                newPath = bundle_path .. "Presets/12st_Pitchbend.xrni" -- Default fallback
+              else
+                newPath = bundle_path .. "Presets/" .. selectedFile
+              end
+              
+              print("Selected file:", selectedFile)
+              print("Bundle path:", bundle_path)
+              print("New path being set:", newPath)
+              print("Current preference value:", preferences.pakettiDefaultXRNI.value)
+              
+              preferences.pakettiDefaultXRNI.value = newPath
+              vb.views[pakettiDefaultXRNIDisplayId].text = selectedFile
+              
+              -- Save preferences immediately after update
+              preferences:save_as("preferences.xml")
+              print("After update - preference value:", preferences.pakettiDefaultXRNI.value)
             end} },
+         
          
             vb:row { vb:text{text="Default Drumkit XRNI to use:",width=150},vb:textfield{text=preferences.pakettiDefaultDrumkitXRNI.value:match("[^/\\]+$"),width=300,id=pakettiDefaultDrumkitXRNIDisplayId,notifier=function(value) preferences.pakettiDefaultDrumkitXRNI.value=value end},vb:button{text="Browse",width=100,notifier=function()
               local filePath=renoise.app():prompt_for_filename_to_read({"*.XRNI"},"Paketti Default Drumkit XRNI Selector Dialog")
               if filePath and filePath~="" then preferences.pakettiDefaultDrumkitXRNI.value=filePath vb.views[pakettiDefaultDrumkitXRNIDisplayId].text=filePath:match("[^/\\]+$") else renoise.app():show_status("No XRNI Drumkit Instrument was selected") end end} },
             vb:row { vb:text{text="Preset Files:",width=150},vb:popup{items=presetFiles,width=300,notifier=function(value)
-              local selectedFile=presetFiles[value] 
-              preferences.pakettiDefaultDrumkitXRNI.value="Presets/"..selectedFile 
-              vb.views[pakettiDefaultDrumkitXRNIDisplayId].text="Presets/"..selectedFile 
+              local selectedFile = presetFiles[value] 
+              local bundle_path = renoise.tool().bundle_path
+              local newPath
+              
+              if selectedFile:match("^<") then
+                newPath = bundle_path .. "Presets/12st_Pitchbend_Drumkit_C0.xrni" -- Default fallback
+              else
+                newPath = bundle_path .. "Presets/" .. selectedFile
+              end
+              
+              print("Selected file:", selectedFile)
+              print("Bundle path:", bundle_path)
+              print("New path being set:", newPath)
+              print("Current preference value:", preferences.pakettiDefaultDrumkitXRNI.value)
+              
+              preferences.pakettiDefaultDrumkitXRNI.value = newPath
+              vb.views[pakettiDefaultDrumkitXRNIDisplayId].text = selectedFile
+              
+              -- Save preferences immediately after update
+              preferences:save_as("preferences.xml")
+              print("After update - preference value:", preferences.pakettiDefaultDrumkitXRNI.value)
             end} }
           },
 --]]
-          },
+          
           -- Wipe & Slice Settings wrapped in group
           horizontal_rule(),
           vb:column {
@@ -969,9 +995,8 @@ vb:row {
             },
             vb:row{vb:text{text="Slice Loop EndHalf",width=150},vb:switch{items={"Off","On"},value=preferences.WipeSlices.SliceLoopMode.value and 2 or 1, width=200,
           notifier=function(value) preferences.WipeSlices.SliceLoopMode.value=(value==2) end}
-          }
           },
-    --    },
+        },
     horizontal_rule(),
     vb:column {
       style="group",margin=10, width="100%",
@@ -1058,31 +1083,15 @@ vb:row {
   
   },
   horizontal_rule(),
-  vb:column {
-    style="group",margin=10, width="100%",
-  -- Create the dropdown menu row
-  vb:row { 
-    vb:text{text="Dialog Close Key", width=150, style="strong",font="bold"},
-    vb:popup{
-      items = dialog_close_keys,
-      value = table.find(dialog_close_keys, preferences.pakettiDialogClose.value) or 1,
-      width = 200,
-      notifier = function(value)
-        preferences.pakettiDialogClose.value = dialog_close_keys[value]
-      end
-    },
-  },
-        },
-        horizontal_rule(),
 
   vb:column{style="group",margin=10, width="100%",
-    vb:row{vb:text{text="LFO Write Device Delete",width=150},vb:switch{items={"Off","On"},
+    vb:row{vb:text{text="LFO Write Device Delete",style="strong",font="bold",width=150},vb:switch{items={"Off","On"},
     value=preferences.PakettiLFOWriteDelete.value and 2 or 1,width=200,
   },
   },
 },},
-      },
-
+      
+    },
       -- Bottom Buttons
       vb:horizontal_aligner { mode="distribute",
         vb:button{text="OK",width="50%",notifier=function() 
@@ -1092,6 +1101,7 @@ vb:row {
         vb:button{text="Cancel",width="50%",notifier=function() dialog:close() end}
       }
     }
+  
 
     dialog = renoise.app():show_custom_dialog("Paketti Preferences", dialog_content, my_keyhandler_func)
 end
@@ -1182,7 +1192,26 @@ function safe_initialize()
 end
 
 function load_Pakettipreferences()
-    if io.exists("preferences.xml") then preferences:load_from("preferences.xml") end
+    if io.exists("preferences.xml") then 
+        preferences:load_from("preferences.xml")
+        local bundle_path = renoise.tool().bundle_path
+        
+        -- Always ensure full paths for XRNI files
+        if not preferences.pakettiDefaultXRNI.value:match("^" .. bundle_path) then
+            -- If it's a relative path or just filename, reconstruct the full path
+            local filename = preferences.pakettiDefaultXRNI.value:match("[^/\\]+$") or "12st_Pitchbend.xrni"
+            preferences.pakettiDefaultXRNI.value = bundle_path .. "Presets/" .. filename
+        end
+        
+        if not preferences.pakettiDefaultDrumkitXRNI.value:match("^" .. bundle_path) then
+            -- If it's a relative path or just filename, reconstruct the full path
+            local filename = preferences.pakettiDefaultDrumkitXRNI.value:match("[^/\\]+$") or "12st_Pitchbend_Drumkit_C0.xrni"
+            preferences.pakettiDefaultDrumkitXRNI.value = bundle_path .. "Presets/" .. filename
+        end
+        
+        -- Save the corrected paths immediately
+        preferences:save_as("preferences.xml")
+    end
 end
 
 function update_loadPaleGreenTheme_preferences() renoise.app():load_theme("Themes/Lackluster - Pale Green Renoise Theme.xrnc") end

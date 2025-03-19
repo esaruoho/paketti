@@ -899,12 +899,10 @@ local instrument_box_feature_available = pcall(function()
 end)
 
 --renoise.app().window.instrument_box_slot_size = true
-
-
 -- Function to toggle instrument box slot size
-function ToggleInstrumentBoxSlotSize(large)
+function ToggleInstrumentBoxSlotSize(size)
   local success = pcall(function()
-    renoise.app().window.instrument_box_slot_size = large
+    renoise.app().window.instrument_box_slot_size = size
   end)
 
   if not success then
@@ -916,57 +914,46 @@ end
 -- Only create the key bindings if the feature is available
 if instrument_box_feature_available then
   renoise.tool():add_keybinding{
-    name="Global:Paketti:Set Small Instrument Box",
-    invoke=function() ToggleInstrumentBoxSlotSize(false) end
+    name="Global:Paketti:Toggle Instrument Box Slot Size 1 (Normal)",
+    invoke=function() ToggleInstrumentBoxSlotSize(1) end
+  }
+
+  renoise.tool():add_keybinding{
+    name="Global:Paketti:Toggle Instrument Box Slot Size 2 (Small)",
+    invoke=function() ToggleInstrumentBoxSlotSize(2) end
   }
   
   renoise.tool():add_keybinding{
-    name="Global:Paketti:Set Large Instrument Box",
-    invoke=function() ToggleInstrumentBoxSlotSize(true) end
+    name="Global:Paketti:Toggle Instrument Box Slot Size 3 (Large)",
+    invoke=function() ToggleInstrumentBoxSlotSize(3) end
   }
 end
 
--- Function to toggle instrument box slot size with error handling
-function ToggleInstrumentBoxSlotSize(mode)
-  local success = pcall(function()
-    if mode == "toggle" then
-      -- Toggle mode
-      local current = renoise.app().window.instrument_box_slot_size
-      renoise.app().window.instrument_box_slot_size = not current
-    else
-      -- Direct set mode
-      renoise.app().window.instrument_box_slot_size = mode
-    end
-  end)
+-- Function to adjust instrument box slot size (1=Normal, 2=Small, 3=Large)
+function AdjustInstrumentBoxSlotSize(direction)
+  local current = renoise.app().window.instrument_box_slot_size
+  local new_size = current + direction
+  new_size = math.min(math.max(new_size, 1), 3)
+  renoise.app().window.instrument_box_slot_size = new_size
+  local size_names = {[1]="Normal", [2]="Small", [3]="Large"}
+  renoise.app():show_status(string.format("Instrument Box Slot Size: %s", size_names[new_size]))
+end
 
-  if not success then
-    renoise.app():show_status("Unfortunately Instrument Box Slot Size has not been fixed yet, doing nothing.")
-    print("Unfortunately Instrument Box Slot Size has not been fixed yet, doing nothing.")
+-- Direct size setting function
+function SetInstrumentBoxSlotSize(size)
+  if size >= 1 and size <= 3 then
+    renoise.app().window.instrument_box_slot_size = size
+    local size_names = {[1]="Normal", [2]="Small", [3]="Large"}
+    renoise.app():show_status(string.format("Instrument Box Slot Size: %s", size_names[size]))
   end
 end
 
--- Try to verify if the feature exists first
-local instrument_box_feature_available = pcall(function()
-  local _ = renoise.app().window.instrument_box_slot_size
-end)
-
--- Only create the key bindings if the feature is available
-if instrument_box_feature_available then
-  renoise.tool():add_keybinding{
-    name="Global:Paketti:Increase/Decrease Instrument Box Slot Size",
-    invoke=function() ToggleInstrumentBoxSlotSize("toggle") end
-  }
-
-  renoise.tool():add_keybinding{
-    name="Global:Paketti:Expand Instrument Box Slot Size",
-    invoke=function() ToggleInstrumentBoxSlotSize(true) end
-  }
-
-  renoise.tool():add_keybinding{
-    name="Global:Paketti:Shrink Instrument Box Slot Size",
-    invoke=function() ToggleInstrumentBoxSlotSize(false) end
-  }
-end
+-- Add all instrument box size keybindings
+renoise.tool():add_keybinding{name="Global:Paketti:Increase Instrument Box Slot Size", invoke=function() AdjustInstrumentBoxSlotSize(1) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Decrease Instrument Box Slot Size", invoke=function() AdjustInstrumentBoxSlotSize(-1) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Set Instrument Box Slot Size 1 (Normal)", invoke=function() SetInstrumentBoxSlotSize(1) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Set Instrument Box Slot Size 2 (Small)", invoke=function() SetInstrumentBoxSlotSize(2) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Set Instrument Box Slot Size 3 (Large)", invoke=function() SetInstrumentBoxSlotSize(3) end}
 
 -- Add menu entries to Main Menu > Tools
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:V3.5..:Cycle Disk Browser Category", invoke=function() DiskBrowserCategoryCycler() end}
@@ -1069,7 +1056,6 @@ if os.platform() ~= "WINDOWS" and os.platform() ~= "MACINTOSH" then
   renoise.tool():add_keybinding{name="Global:Paketti:Set Sync Mode to (Jack)", invoke=function() setSyncMode(renoise.Transport.SYNC_MODE_JACK) end}
   renoise.tool():add_menu_entry{name="Main Menu:Paketti..:Set Sync Mode to (Jack)", invoke=function() setSyncMode(renoise.Transport.SYNC_MODE_JACK)end}
 end
-
 
   function setMetronomeVolume(volume)
   local max_volume = math.db2lin(6)

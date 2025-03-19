@@ -1,5 +1,5 @@
--- Function to combine multiple sample buffers into wavetable and set loop points
-function combine_samples_into_wavetable_with_loop(samples)
+-- Function to combine multiple sample buffers into wavetable
+function combine_samples_into_wavetable(samples, use_loop)
   if #samples == 0 then
     renoise.app():show_status("No samples provided to combine")
     return nil
@@ -11,9 +11,6 @@ function combine_samples_into_wavetable_with_loop(samples)
   local bit_depth = first_sample.sample_buffer.bit_depth
   local frames_per_sample = first_sample.sample_buffer.number_of_frames
   local total_frames = frames_per_sample * #samples
-
-  -- Store the original single cycle length
-  local loop_length = frames_per_sample
 
   -- Create new sample buffer for the wavetable
   local instrument = renoise.song().selected_instrument
@@ -35,19 +32,21 @@ function combine_samples_into_wavetable_with_loop(samples)
 
   wavetable_buffer:finalize_sample_data_changes()
   
-  -- Set loop points based on original single cycle length
+  -- Set loop points based on use_loop parameter
   new_sample.loop_start = 1
-  new_sample.loop_end = loop_length
+  new_sample.loop_end = use_loop and frames_per_sample or total_frames
   
   return new_sample
 end
 
--- Function to load specified number of random AKWF samples and create wavetable with proper loop points
-function create_random_akwf_wavetable_with_loop(num_samples)
-  -- Default to 64 if no number specified
+-- Modified function to handle both looped and non-looped versions
+function create_random_akwf_wavetable(num_samples, use_loop)
+  -- Default to 64 samples if not specified
   num_samples = num_samples or 64
+  -- Default to false if not specified
+  use_loop = use_loop or false
   
-  -- Reference the existing AKWF file loading code
+  -- Rest of the function is same as create_random_akwf_wavetable_with_loop
   local valid_extensions = { ".wav" }
   
   local function is_valid_audio_file(filename)
@@ -59,11 +58,8 @@ function create_random_akwf_wavetable_with_loop(num_samples)
     return false
   end
 
-  -- Get the AKWF folder path from the tool's bundle path
   local tool_path = renoise.tool().bundle_path
   local akwf_path = tool_path .. "AKWF/"
-
-  -- Read and parse the akwf.txt file that contains all sample paths
   local akwf_list_path = akwf_path .. "akwf.txt"
   local akwf_file = io.open(akwf_list_path, "r")
   if not akwf_file then
@@ -71,7 +67,6 @@ function create_random_akwf_wavetable_with_loop(num_samples)
     return
   end
 
-  -- Read all AKWF file paths
   local wav_files = {}
   for line in akwf_file:lines() do
     if is_valid_audio_file(line) then
@@ -85,11 +80,9 @@ function create_random_akwf_wavetable_with_loop(num_samples)
     return
   end
 
-  -- Create temporary instrument to hold our samples
   local temp_instrument = renoise.song():insert_instrument_at(renoise.song().selected_instrument_index)
   local collected_samples = {}
 
-  -- Load specified number of random samples
   for i = 1, num_samples do
     local random_index = math.random(1, #wav_files)
     local selected_file = wav_files[random_index]
@@ -100,42 +93,48 @@ function create_random_akwf_wavetable_with_loop(num_samples)
     end
   end
 
-  -- Combine all samples into wavetable
-  local wavetable = combine_samples_into_wavetable_with_loop(collected_samples)
+  -- Use appropriate combine function based on use_loop parameter
+  local wavetable = combine_samples_into_wavetable(collected_samples, use_loop)
   
-  -- Delete all samples except the first one (our wavetable)
   for i = #temp_instrument.samples, 2, -1 do
     temp_instrument:delete_sample_at(i)
   end
 
   if wavetable then
-    wavetable.name="AKWF Wavetable (Looped)"
-    wavetable.loop_mode=renoise.Sample.LOOP_MODE_FORWARD
-    renoise.app():show_status(string.format("Created looped AKWF wavetable from %d random samples", num_samples))
+    wavetable.name = string.format("Random AKWF Wavetable (%03d%s)", 
+      num_samples, 
+      use_loop and "+loop" or "")
+    renoise.song().selected_instrument.name = string.format("Random AKWF Wavetable (%03d%s)", 
+      num_samples, 
+      use_loop and "+loop" or "")
+    wavetable.loop_mode = renoise.Sample.LOOP_MODE_FORWARD
+    renoise.app():show_status(string.format("Created %sAKWF wavetable from %d random samples", 
+      use_loop and "looped " or "", num_samples))
   end
 end
 
 -- Regular version (full sample loop)
-renoise.tool():add_keybinding{name="Global:Paketti:Create Random AKWF Wavetable (032)",invoke=function() create_random_akwf_wavetable(32) end}
-renoise.tool():add_keybinding{name="Global:Paketti:Create Random AKWF Wavetable (064)",invoke=function() create_random_akwf_wavetable(64) end}
-renoise.tool():add_keybinding{name="Global:Paketti:Create Random AKWF Wavetable (128)",invoke=function() create_random_akwf_wavetable(128) end}
-renoise.tool():add_keybinding{name="Global:Paketti:Create Random AKWF Wavetable (256)",invoke=function() create_random_akwf_wavetable(256) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Create Random AKWF Wavetable (032)",invoke=function() create_random_akwf_wavetable(32, false) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Create Random AKWF Wavetable (064)",invoke=function() create_random_akwf_wavetable(64, false) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Create Random AKWF Wavetable (128)",invoke=function() create_random_akwf_wavetable(128, false) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Create Random AKWF Wavetable (256)",invoke=function() create_random_akwf_wavetable(256, false) end}
 
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Create Random AKWF Wavetable (032)",invoke=function() create_random_akwf_wavetable(32) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Create Random AKWF Wavetable (064)",invoke=function() create_random_akwf_wavetable(64) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Create Random AKWF Wavetable (128)",invoke=function() create_random_akwf_wavetable(128) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Create Random AKWF Wavetable (256)",invoke=function() create_random_akwf_wavetable(256) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Create Random AKWF Wavetable (032)",invoke=function() create_random_akwf_wavetable(32, false) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Create Random AKWF Wavetable (064)",invoke=function() create_random_akwf_wavetable(64, false) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Create Random AKWF Wavetable (128)",invoke=function() create_random_akwf_wavetable(128, false) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Create Random AKWF Wavetable (256)",invoke=function() create_random_akwf_wavetable(256, false) end}
 
 -- Single-cycle loop version
-renoise.tool():add_keybinding{name="Global:Paketti:Create Random AKWF Wavetable (032,loop)",invoke=function() create_random_akwf_wavetable_with_loop(32) end}
-renoise.tool():add_keybinding{name="Global:Paketti:Create Random AKWF Wavetable (064,loop)",invoke=function() create_random_akwf_wavetable_with_loop(64) end}
-renoise.tool():add_keybinding{name="Global:Paketti:Create Random AKWF Wavetable (128,loop)",invoke=function() create_random_akwf_wavetable_with_loop(128) end}
-renoise.tool():add_keybinding{name="Global:Paketti:Create Random AKWF Wavetable (256,loop)",invoke=function() create_random_akwf_wavetable_with_loop(256) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Create Random AKWF Wavetable (032,loop)",invoke=function() create_random_akwf_wavetable(32, true) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Create Random AKWF Wavetable (064,loop)",invoke=function() create_random_akwf_wavetable(64, true) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Create Random AKWF Wavetable (128,loop)",invoke=function() create_random_akwf_wavetable(128, true) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Create Random AKWF Wavetable (256,loop)",invoke=function() create_random_akwf_wavetable(256, true) end}
 
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Create Random AKWF Wavetable (032,loop)",invoke=function() create_random_akwf_wavetable_with_loop(32) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Create Random AKWF Wavetable (064,loop)",invoke=function() create_random_akwf_wavetable_with_loop(64) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Create Random AKWF Wavetable (128,loop)",invoke=function() create_random_akwf_wavetable_with_loop(128) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Create Random AKWF Wavetable (256,loop)",invoke=function() create_random_akwf_wavetable_with_loop(256) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Create Random AKWF Wavetable (032,loop)",invoke=function() create_random_akwf_wavetable(32, true) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Create Random AKWF Wavetable (064,loop)",invoke=function() create_random_akwf_wavetable(64, true) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Create Random AKWF Wavetable (128,loop)",invoke=function() create_random_akwf_wavetable(128, true) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Create Random AKWF Wavetable (256,loop)",invoke=function() create_random_akwf_wavetable(256, true) end}
+
 
 -- Function to calculate and set loop points for a specific cycle index
 function set_loop_points_for_cycle(sample, cycle_index)

@@ -231,11 +231,13 @@ end
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress:Match EditStep with Delay Pattern",invoke=function() toggle_match_editstep() end}
 renoise.tool():add_keybinding{name="Global:Tools:Toggle Match EditStep with Delay Pattern",invoke=function() toggle_match_editstep() end}
 
---[[
+
+if preferences.SelectedSampleBeatSyncLines.value == true then 
+
 for i=1,512 do
-print ("renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Beatsync Lines to " .. i,invoke=function()SelectedSampleBeatSyncLine(i)end}")
+renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Beatsync Lines to " .. i,invoke=function()SelectedSampleBeatSyncLine(i)end}
+end 
 end
-]]--
 
 
 

@@ -352,5 +352,47 @@ _AUTO_RELOAD_DEBUG = true
 
 
 
+local vb=renoise.ViewBuilder()
+local dialog=nil
+
+function my_keyhandler_func(dialog,key)
+  if key.name=="!" and not (key.modifiers=="shift" or key.modifiers=="control" or key.modifiers=="alt") then
+    dialog:close()
+  end
+end
+
+function show_pitch_stepper_dialog()
+  if dialog and dialog.visible then
+    dialog:close()
+  end
+
+  PakettiShowPitchStepper()
+
+  dialog=renoise.app():show_custom_dialog(
+    "PitchStepper Demo",
+    vb:column{
+      vb:button{text="Show PitchStepper",pressed=function() PakettiShowPitchStepper() end},
+      vb:button{text="Fill Two Octaves",pressed=function() PakettiFillPitchStepperTwoOctaves() end},
+      vb:button{text="Fill with Random Steps",pressed=function() PakettiFillPitchStepperRandom() end},
+      vb:button{text="Fill Octave Up/Down",pressed=function() PakettiFillPitchStepper() end},
+      vb:button{text="Clear Pitch Stepper",pressed=function() PakettiClearPitchStepper() end},
+      vb:button{text="Fill with Digits (0.05, 64)",pressed=function() PakettiFillPitchStepperDigits(0.05,64) end},
+      vb:button{text="Fill with Digits (0.015, 64)",pressed=function() PakettiFillPitchStepperDigits(0.015,64) end},
+    },
+    my_keyhandler_func
+  )
+end
+
+
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Pitch Stepper Demo",invoke=function() show_pitch_stepper_dialog() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Pitch Stepper Demo",invoke=function() show_pitch_stepper_dialog() end}
+
+
+
+
+
+
+
+
 
 

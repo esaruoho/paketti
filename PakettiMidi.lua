@@ -625,7 +625,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Macro 4 (
 renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Macro 5 (Cutoff LfoFreq)",invoke=function(midi_message) map_midi_value_to_macro(5, midi_message.int_value) end}
 renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Macro 6 (Overdrive)",invoke=function(midi_message) map_midi_value_to_macro(6, midi_message.int_value) end}
 renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Macro 7 (ParallelCompression)",invoke=function(midi_message) map_midi_value_to_macro(7, midi_message.int_value) end}
-renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Macro 8 (Glide Inertia)",invoke=function(midi_message) map_midi_value_to_macro(8, midi_message.int_value) end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Macro 8 (PB Inertia)",invoke=function(midi_message) map_midi_value_to_macro(8, midi_message.int_value) end}
 
 renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Macro 1 (2nd) (PitchBend)",invoke=function(midi_message) map_midi_value_to_macro(1, midi_message.int_value) end}
 renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Macro 2 (2nd) (Cutoff)",invoke=function(midi_message) map_midi_value_to_macro(2, midi_message.int_value) end}
@@ -634,7 +634,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Macro 4 (
 renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Macro 5 (2nd) (Cutoff LfoFreq)",invoke=function(midi_message) map_midi_value_to_macro(5, midi_message.int_value) end}
 renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Macro 6 (2nd) (Overdrive)",invoke=function(midi_message) map_midi_value_to_macro(6, midi_message.int_value) end}
 renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Macro 7 (2nd) (ParallelCompression)",invoke=function(midi_message) map_midi_value_to_macro(7, midi_message.int_value) end}
-renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Macro 8 (2nd) (Glide Inertia)",invoke=function(midi_message) map_midi_value_to_macro(8, midi_message.int_value) end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Macro 8 (2nd) (PB Inertia)",invoke=function(midi_message) map_midi_value_to_macro(8, midi_message.int_value) end}
 
 
 ----------------

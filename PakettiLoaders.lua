@@ -706,6 +706,54 @@ inserted_device.parameters[25].value=0.49859374761581
     raw.active_lower_frame=1
   end 
 
+  if inserted_device.name=="AU: Ohm Force: Hematohm" then
+    inserted_device.parameters[1].value=0.5000
+    inserted_device.parameters[2].value=0.50015606155396
+  end
+
+  if inserted_device.name=="AU: Ohm Force: Predatohm" then
+    inserted_device.parameters[1].value=0
+    inserted_device.parameters[2].value=1
+    inserted_device.parameters[3].value=0.5
+    inserted_device.parameters[4].value=0
+    inserted_device.parameters[5].value=0.5
+    inserted_device.parameters[6].value=0
+    inserted_device.parameters[7].value=0.50781202316284
+    inserted_device.parameters[8].value=0.81027960777283
+    inserted_device.parameters[9].value=0
+    inserted_device.parameters[10].value=1
+    inserted_device.parameters[11].value=1
+    inserted_device.parameters[12].value=1
+    inserted_device.parameters[13].value=0.502685546875
+    inserted_device.parameters[14].value=0.4814453125
+    inserted_device.parameters[15].value=0.33426922559738
+    inserted_device.parameters[16].value=0
+    inserted_device.parameters[17].value=0.5187132358551
+    inserted_device.parameters[18].value=0
+    inserted_device.parameters[19].value=0
+    inserted_device.parameters[20].value=0.50007456541061
+    inserted_device.parameters[21].value=0.5001220703125
+    inserted_device.parameters[22].value=0.33447265625
+    inserted_device.parameters[23].value=0
+    inserted_device.parameters[24].value=0.51932287216187
+    inserted_device.parameters[25].value=0
+    inserted_device.parameters[26].value=0
+    inserted_device.parameters[27].value=0.50007456541061
+    inserted_device.parameters[28].value=0.5001220703125
+    inserted_device.parameters[29].value=0.33447265625
+    inserted_device.parameters[30].value=0
+    inserted_device.parameters[31].value=0.51932287216187
+    inserted_device.parameters[32].value=0
+    inserted_device.parameters[33].value=0
+    inserted_device.parameters[34].value=0.50007456541061
+    inserted_device.parameters[35].value=0.5001220703125
+    inserted_device.parameters[36].value=0.33447265625
+    inserted_device.parameters[37].value=0
+    inserted_device.parameters[38].value=0.51932287216187
+    inserted_device.parameters[39].value=0
+    inserted_device.parameters[40].value=0
+  end
+
   if inserted_device.name=="AU: George Yohng: W1 Limiter" then
     inserted_device.is_maximized=true
     inserted_device.parameters[1].show_in_mixer=true
@@ -2666,7 +2714,7 @@ else
 end
 end
 renoise.tool():add_keybinding{name="Global:Paketti:Wipe Phrases on Selected Instrument",invoke=function() wipePhrases() end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Wipe Phrases on Selected Instrument",invoke=function() wipePhrases() end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Phrases..:Wipe Phrases on Selected Instrument",invoke=function() wipePhrases() end}
 renoise.tool():add_menu_entry{name="Phrase Editor:Paketti..:Wipe Phrases on Selected Instrument",invoke=function() wipePhrases() end}
 renoise.tool():add_menu_entry{name="Phrase Mappings:Paketti..:Wipe Phrases on Selected Instrument",invoke=function() wipePhrases() end}
 renoise.tool():add_menu_entry{name="Phrase Grid:Paketti..:Wipe Phrases on Selected Instrument",invoke=function() wipePhrases() end}
@@ -2714,7 +2762,7 @@ end
 end 
 
 renoise.tool():add_keybinding{name="Global:Paketti:Load XRNI & Wipe Phrases",invoke=function() loadXRNIWipePhrases() end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Load XRNI & Wipe Phrases",invoke=function() loadXRNIWipePhrases() end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Phrases..:Load XRNI & Wipe Phrases",invoke=function() loadXRNIWipePhrases() end}
 renoise.tool():add_menu_entry{name="Phrase Editor:Paketti..:Load XRNI & Wipe Phrases",invoke=function() loadXRNIWipePhrases() end}
 renoise.tool():add_menu_entry{name="Phrase Mappings:Paketti..:Load XRNI & Wipe Phrases",invoke=function() loadXRNIWipePhrases() end}
 renoise.tool():add_menu_entry{name="Phrase Grid:Paketti..:Load XRNI & Wipe Phrases",invoke=function() loadXRNIWipePhrases() end}
@@ -2761,7 +2809,7 @@ end
 end 
 
 renoise.tool():add_keybinding{name="Global:Paketti:Load XRNI & Disable Phrases",invoke=function() loadXRNIWipePhrasesTwo() end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Load XRNI & Disable Phrases",invoke=function() loadXRNIWipePhrasesTwo() end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Phrases..:Load XRNI & Disable Phrases",invoke=function() loadXRNIWipePhrasesTwo() end}
 renoise.tool():add_menu_entry{name="Phrase Editor:Paketti..:Load XRNI & Disable Phrases",invoke=function() loadXRNIWipePhrasesTwo() end}
 renoise.tool():add_menu_entry{name="Phrase Mappings:Paketti..:Load XRNI & Disable Phrases",invoke=function() loadXRNIWipePhrasesTwo() end}
 renoise.tool():add_menu_entry{name="Phrase Grid:Paketti..:Load XRNI & Disable Phrases",invoke=function() loadXRNIWipePhrasesTwo() end}
@@ -2810,7 +2858,7 @@ end
 renoise.app():show_status("Loaded Instrument name: " .. file_path)
 end
 renoise.tool():add_keybinding{name="Global:Paketti:Load XRNI & Keep Phrases",invoke=function() loadXRNIKeepPhrases() end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Load XRNI & Keep Phrases",invoke=function() loadXRNIKeepPhrases() end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Phrases..:Load XRNI & Keep Phrases",invoke=function() loadXRNIKeepPhrases() end}
 renoise.tool():add_menu_entry{name="Phrase Editor:Paketti..:Load XRNI & Keep Phrases",invoke=function() loadXRNIKeepPhrases() end}
 renoise.tool():add_menu_entry{name="Phrase Mappings:Paketti..:Load XRNI & Keep Phrases",invoke=function() loadXRNIKeepPhrases() end}
 renoise.tool():add_menu_entry{name="Phrase Grid:Paketti..:Load XRNI & Keep Phrases",invoke=function() loadXRNIKeepPhrases() end}
