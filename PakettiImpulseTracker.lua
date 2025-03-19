@@ -474,11 +474,6 @@ function DoubleSelect()
           sel.start_line, sel.end_line, sel.start_column, sel.end_column) or "nil"
       end
 
-
-      if renoise.song().selection_in_phrase == nil then
-        renoise.song().selection_in_phrase={start_line=renoise.song().selected_phrase_line_index,end_line=renoise.song().selected_phrase_line_index+renoise.song().selected_phrase.lpb}
-return end
-
       if not sip or (sip.start_line ~= start_line) or (sip.end_line == start_line) then
         print("Creating NEW selection because:")
         print("No selection: ", not sip)
@@ -521,8 +516,9 @@ return end
         print("Expanding EXISTING selection: ", selection_to_string(sip))
 
         -- Calculate new end_line to expand selection
-        local selection_length = sip.end_line - sip.start_line + 1
-        local new_end_line = sip.end_line + selection_length
+        local current_length = sip.end_line - sip.start_line + 1
+        local new_end_line = sip.start_line + (current_length * 2) - 1
+
         if new_end_line > phrase.number_of_lines then
           new_end_line = phrase.number_of_lines
           print("Clamping new_end_line to phrase length")
@@ -1424,7 +1420,6 @@ renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker ALT-F10 (Solo
 -----------
 -----------
 -----------
------------
 local vb = renoise.ViewBuilder()
 local dialog = nil  -- Declare dialog variable
 
@@ -1759,7 +1754,6 @@ else
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker CTRL-N New Song Dialog",invoke=function() show_new_song_dialog() end}
------------------------------------------------------
 -----------------------------------------------------
 -----------------------------------------------------
 -----------------------------------------------------
