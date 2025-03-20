@@ -80,14 +80,16 @@ function create_random_akwf_wavetable(num_samples, use_loop)
     return
   end
 
-  local temp_instrument = renoise.song():insert_instrument_at(renoise.song().selected_instrument_index)
+  -- Create new instrument
+  pakettiPreferencesDefaultInstrumentLoader()
+  local instrument = renoise.song().selected_instrument
   local collected_samples = {}
 
   for i = 1, num_samples do
     local random_index = math.random(1, #wav_files)
     local selected_file = wav_files[random_index]
     
-    local sample = temp_instrument:insert_sample_at(i)
+    local sample = instrument:insert_sample_at(i)
     if sample.sample_buffer:load_from(selected_file) then
       table.insert(collected_samples, sample)
     end
@@ -96,15 +98,16 @@ function create_random_akwf_wavetable(num_samples, use_loop)
   -- Use appropriate combine function based on use_loop parameter
   local wavetable = combine_samples_into_wavetable(collected_samples, use_loop)
   
-  for i = #temp_instrument.samples, 2, -1 do
-    temp_instrument:delete_sample_at(i)
+  -- Clean up the temporary samples, but keep the wavetable
+  for i = #instrument.samples, 2, -1 do
+    instrument:delete_sample_at(i)
   end
 
   if wavetable then
     wavetable.name = string.format("Random AKWF Wavetable (%03d%s)", 
       num_samples, 
       use_loop and "+loop" or "")
-    renoise.song().selected_instrument.name = string.format("Random AKWF Wavetable (%03d%s)", 
+    instrument.name = string.format("Random AKWF Wavetable (%03d%s)", 
       num_samples, 
       use_loop and "+loop" or "")
     wavetable.loop_mode = renoise.Sample.LOOP_MODE_FORWARD

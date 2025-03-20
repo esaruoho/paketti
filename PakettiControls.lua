@@ -302,24 +302,24 @@ function PakettiTransposer(steps, selection_and_row)
 end
 
 -- Row-only operations (false)
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Chordsplus Transposer Row +03",invoke=function() PakettiTransposer(3, false) end}
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Chordsplus Transposer Row -03",invoke=function() PakettiTransposer(-3, false) end}
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Chordsplus Transposer Row +04",invoke=function() PakettiTransposer(4, false) end}
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Chordsplus Transposer Row -04",invoke=function() PakettiTransposer(-4, false) end}
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Chordsplus Transposer Row +07",invoke=function() PakettiTransposer(7, false) end}
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Chordsplus Transposer Row -07",invoke=function() PakettiTransposer(-7, false) end}
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Chordsplus Transposer Row +11",invoke=function() PakettiTransposer(11, false) end}
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Chordsplus Transposer Row -11",invoke=function() PakettiTransposer(-11, false) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Transposer Row +03",invoke=function() PakettiTransposer(3, false) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Transposer Row -03",invoke=function() PakettiTransposer(-3, false) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Transposer Row +04",invoke=function() PakettiTransposer(4, false) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Transposer Row -04",invoke=function() PakettiTransposer(-4, false) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Transposer Row +07",invoke=function() PakettiTransposer(7, false) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Transposer Row -07",invoke=function() PakettiTransposer(-7, false) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Transposer Row +11",invoke=function() PakettiTransposer(11, false) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Transposer Row -11",invoke=function() PakettiTransposer(-11, false) end}
 
 -- Selection/Row operations (true)
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Chordsplus Transposer Selection/Row +03",invoke=function() PakettiTransposer(3, true) end}
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Chordsplus Transposer Selection/Row -03",invoke=function() PakettiTransposer(-3, true) end}
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Chordsplus Transposer Selection/Row +04",invoke=function() PakettiTransposer(4, true) end}
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Chordsplus Transposer Selection/Row -04",invoke=function() PakettiTransposer(-4, true) end}
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Chordsplus Transposer Selection/Row +07",invoke=function() PakettiTransposer(7, true) end}
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Chordsplus Transposer Selection/Row -07",invoke=function() PakettiTransposer(-7, true) end}
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Chordsplus Transposer Selection/Row +11",invoke=function() PakettiTransposer(11, true) end}
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Chordsplus Transposer Selection/Row -11",invoke=function() PakettiTransposer(-11, true) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Transposer Selection/Row +03",invoke=function() PakettiTransposer(3, true) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Transposer Selection/Row -03",invoke=function() PakettiTransposer(-3, true) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Transposer Selection/Row +04",invoke=function() PakettiTransposer(4, true) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Transposer Selection/Row -04",invoke=function() PakettiTransposer(-4, true) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Transposer Selection/Row +07",invoke=function() PakettiTransposer(7, true) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Transposer Selection/Row -07",invoke=function() PakettiTransposer(-7, true) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Transposer Selection/Row +11",invoke=function() PakettiTransposer(11, true) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Transposer Selection/Row -11",invoke=function() PakettiTransposer(-11, true) end}
 
 -- Menu entries for row operations
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti ChordsPlus..:Transposer Row +03",invoke=function() PakettiTransposer(3, false) end}

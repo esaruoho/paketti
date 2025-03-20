@@ -11,6 +11,7 @@ lowerAutomation=renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION
 upperScopes=renoise.ApplicationWindow.UPPER_FRAME_TRACK_SCOPES
 upperSpectrum=renoise.ApplicationWindow.UPPER_FRAME_MASTER_SPECTRUM
 
+
 ----------------------------------------------------------------------------------------------------------------------------------------
 --from http://lua-users.org/lists/lua-l/2004-09/msg00054.html 
 function DEC_HEX(IN)

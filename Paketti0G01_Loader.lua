@@ -4,6 +4,7 @@ local initial_value = nil
 local dialog = nil
 local pakettiDeviceChainPathDisplayId
 local pakettiIRPathDisplayId 
+local separator = package.config:sub(1,1)  -- Gets \ for Windows, / for Unix
 
 local DEBUG = false
 
@@ -105,9 +106,9 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiRotateSampleBufferFine=10,
   pakettiBlendValue = 40,
   pakettiDialogClose="esc",
-  PakettiDeviceChainPath = "./DeviceChains/",
-  PakettiIRPath = "./IR/",
-  PakettiLFOWriteDelete = "true",
+  PakettiDeviceChainPath = "." .. separator .. "DeviceChains" .. separator,
+  PakettiIRPath = "." .. separator .. "IR" .. separator,
+  PakettiLFOWriteDelete=true,
   upperFramePreference=0,
   _0G01_Loader=false,
   RandomBPM=false,
@@ -137,8 +138,8 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   selectionNewInstrumentAutoseek=false,
   pakettiPitchbendLoaderEnvelope=false,
   pakettiSlideContentAutomationToo=true,
-  pakettiDefaultXRNI = renoise.tool().bundle_path .. "Presets/12st_Pitchbend.xrni",
-  pakettiDefaultDrumkitXRNI = renoise.tool().bundle_path .. "Presets/12st_Pitchbend_Drumkit_C0.xrni",
+  pakettiDefaultXRNI = renoise.tool().bundle_path .. "Presets" .. separator .. "12st_Pitchbend.xrni",
+  pakettiDefaultDrumkitXRNI = renoise.tool().bundle_path .. "Presets" .. separator .. "12st_Pitchbend_Drumkit_C0.xrni",
   ActionSelector = {
  Index01="",
  Index02="",
@@ -913,57 +914,65 @@ vb:row {
         },
             vb:row { vb:text{text="Default XRNI to use:",width=150},vb:textfield{text=preferences.pakettiDefaultXRNI.value:match("[^/\\]+$"),width=300,id=pakettiDefaultXRNIDisplayId,notifier=function(value) preferences.pakettiDefaultXRNI.value=value end},vb:button{text="Browse",width=100,notifier=function()
               local filePath=renoise.app():prompt_for_filename_to_read({"*.XRNI"},"Paketti Default XRNI Selector Dialog")
-              if filePath and filePath~="" then preferences.pakettiDefaultXRNI.value=filePath vb.views[pakettiDefaultXRNIDisplayId].text=filePath:match("[^/\\]+$") else renoise.app():show_status("No XRNI Instrument was selected") end end} },
+              if filePath and filePath~="" then
+                preferences.pakettiDefaultXRNI.value=filePath
+                vb.views[pakettiDefaultXRNIDisplayId].text=filePath:match("[^/\\]+$")
+                
+                -- Save preferences immediately
+                preferences:save_as("preferences.xml")
+              else
+                renoise.app():show_status("No XRNI Instrument was selected")
+              end
+            end} },
             vb:row { vb:text{text="Preset Files:",width=150},vb:popup{items=presetFiles,width=300,notifier=function(value)
               local selectedFile = presetFiles[value] 
-              local bundle_path = renoise.tool().bundle_path
+              local bundle_path = renoise.tool().bundle_path  -- Already has correct separators
               local newPath
               
               if selectedFile:match("^<") then
-                newPath = bundle_path .. "Presets/12st_Pitchbend.xrni" -- Default fallback
+                newPath = bundle_path .. "Presets" .. separator .. "12st_Pitchbend.xrni"
               else
-                newPath = bundle_path .. "Presets/" .. selectedFile
+                newPath = bundle_path .. "Presets" .. separator .. selectedFile
               end
               
-              print("Selected file:", selectedFile)
-              print("Bundle path:", bundle_path)
-              print("New path being set:", newPath)
-              print("Current preference value:", preferences.pakettiDefaultXRNI.value)
-              
+              -- Update both the preference value and the display
               preferences.pakettiDefaultXRNI.value = newPath
               vb.views[pakettiDefaultXRNIDisplayId].text = selectedFile
               
-              -- Save preferences immediately after update
+              -- Save preferences immediately
               preferences:save_as("preferences.xml")
-              print("After update - preference value:", preferences.pakettiDefaultXRNI.value)
             end} },
          
          
             vb:row { vb:text{text="Default Drumkit XRNI to use:",width=150},vb:textfield{text=preferences.pakettiDefaultDrumkitXRNI.value:match("[^/\\]+$"),width=300,id=pakettiDefaultDrumkitXRNIDisplayId,notifier=function(value) preferences.pakettiDefaultDrumkitXRNI.value=value end},vb:button{text="Browse",width=100,notifier=function()
               local filePath=renoise.app():prompt_for_filename_to_read({"*.XRNI"},"Paketti Default Drumkit XRNI Selector Dialog")
-              if filePath and filePath~="" then preferences.pakettiDefaultDrumkitXRNI.value=filePath vb.views[pakettiDefaultDrumkitXRNIDisplayId].text=filePath:match("[^/\\]+$") else renoise.app():show_status("No XRNI Drumkit Instrument was selected") end end} },
+              if filePath and filePath~="" then
+                preferences.pakettiDefaultDrumkitXRNI.value=filePath
+                vb.views[pakettiDefaultDrumkitXRNIDisplayId].text=filePath:match("[^/\\]+$")
+                
+                -- Save preferences immediately
+                preferences:save_as("preferences.xml")
+              else
+                renoise.app():show_status("No XRNI Drumkit Instrument was selected")
+              end
+            end} },
             vb:row { vb:text{text="Preset Files:",width=150},vb:popup{items=presetFiles,width=300,notifier=function(value)
               local selectedFile = presetFiles[value] 
-              local bundle_path = renoise.tool().bundle_path
+              local bundle_path = renoise.tool().bundle_path  -- Already has correct separators
               local newPath
               
               if selectedFile:match("^<") then
-                newPath = bundle_path .. "Presets/12st_Pitchbend_Drumkit_C0.xrni" -- Default fallback
+                newPath = bundle_path .. "Presets" .. separator .. "12st_Pitchbend_Drumkit_C0.xrni"
               else
-                newPath = bundle_path .. "Presets/" .. selectedFile
+                newPath = bundle_path .. "Presets" .. separator .. selectedFile
               end
               
-              print("Selected file:", selectedFile)
-              print("Bundle path:", bundle_path)
-              print("New path being set:", newPath)
-              print("Current preference value:", preferences.pakettiDefaultDrumkitXRNI.value)
-              
+              -- Update both the preference value and the display
               preferences.pakettiDefaultDrumkitXRNI.value = newPath
               vb.views[pakettiDefaultDrumkitXRNIDisplayId].text = selectedFile
               
-              -- Save preferences immediately after update
+              -- Save preferences immediately
               preferences:save_as("preferences.xml")
-              print("After update - preference value:", preferences.pakettiDefaultDrumkitXRNI.value)
             end} }
           },
 --]]
@@ -1021,8 +1030,8 @@ vb:row {
                     vb.views[pakettiDeviceChainPathDisplayId].text = path
                 else
                     renoise.app():show_status("No path was selected, returning to default.")
-                    preferences.PakettiDeviceChainPath.value = "DeviceChains/"
-                    vb.views[pakettiDeviceChainPathDisplayId].text = "DeviceChains/"
+                    preferences.PakettiDeviceChainPath.value = "." .. separator .. "DeviceChains" .. separator
+                    vb.views[pakettiDeviceChainPathDisplayId].text = "." .. separator .. "DeviceChains" .. separator
                 end
             end
         },
@@ -1030,8 +1039,8 @@ vb:row {
             text = "Reset to Default",
             width = 100,
             notifier = function()
-                preferences.PakettiDeviceChainPath.value = "DeviceChains/"
-                vb.views[pakettiDeviceChainPathDisplayId].text = "DeviceChains/"
+                preferences.PakettiDeviceChainPath.value = "." .. separator .. "DeviceChains" .. separator
+                vb.views[pakettiDeviceChainPathDisplayId].text = "." .. separator .. "DeviceChains" .. separator
             end
         },
         vb:button{text="Load Random Chain",width=100,notifier=function()
@@ -1063,8 +1072,8 @@ vb:row {
                     vb.views.pakettiIRPathDisplayId.text = path
                 else
                     renoise.app():show_status("No path was selected, returning to default.")
-                    preferences.PakettiIRPath.value = "IR/"
-                    vb.views.pakettiIRPathDisplayId.text = "IR/"
+                    preferences.PakettiIRPath.value = "." .. separator .. "IR" .. separator
+                    vb.views.pakettiIRPathDisplayId.text = "." .. separator .. "IR" .. separator
                 end
             end
         },
@@ -1072,8 +1081,8 @@ vb:row {
             text = "Reset to Default",
             width = 100,
             notifier = function()
-                preferences.PakettiIRPath.value = "IR/"
-                vb.views.pakettiIRPathDisplayId.text = "IR/"
+                preferences.PakettiIRPath.value = "." .. separator .. "IR" .. separator
+                vb.views.pakettiIRPathDisplayId.text = "." .. separator .. "IR" .. separator
             end
         },
         vb:button{text="Load Random IR",width=100,notifier=function()
@@ -1086,7 +1095,10 @@ vb:row {
 
   vb:column{style="group",margin=10, width="100%",
     vb:row{vb:text{text="LFO Write Device Delete",style="strong",font="bold",width=150},vb:switch{items={"Off","On"},
-    value=preferences.PakettiLFOWriteDelete.value and 2 or 1,width=200,
+    value=preferences.PakettiLFOWriteDelete and 2 or 1,width=200,
+    notifier=function(value)
+      preferences.PakettiLFOWriteDelete = (value == 2)
+    end
   },
   },
 },},

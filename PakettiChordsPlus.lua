@@ -33,13 +33,13 @@ function JalexAdd(number)
     end
     
     for i=1,12 do
-      renoise.tool():add_keybinding{name=string.format("Pattern Editor:Paketti:Chordsplus (Add %02d)", i),
+      renoise.tool():add_keybinding{name=string.format("Pattern Editor:Paketti:ChordPplus (Add %02d)", i),
         invoke=function() JalexAdd(i) end
       }
     end
     
     for i=1,12 do
-      renoise.tool():add_keybinding{name=string.format("Pattern Editor:Paketti:Chordsplus (Sub %02d)", i),
+      renoise.tool():add_keybinding{name=string.format("Pattern Editor:Paketti:ChordsPlus (Sub %02d)", i),
         invoke=function() JalexAdd(-i) end
       }
     end
@@ -158,37 +158,37 @@ function JalexAdd(number)
     
     -- List of chord progressions, reordered logically
     local chord_list = {
-        {name="Chordsplus 3-4 (Maj)", fn=function() chordsplus(4,3) end},
-        {name="Chordsplus 4-3 (Min)", fn=function() chordsplus(3,4) end},
-        {name="Chordsplus 4-3-4 (Maj7)", fn=function() chordsplus(4,3,4) end},
-        {name="Chordsplus 3-4-3 (Min7)", fn=function() chordsplus(3,4,3) end},
-        {name="Chordsplus 4-4-3 (Maj7+5)", fn=function() chordsplus(4,4,3) end},
-        {name="Chordsplus 3-5-2 (Min7+5)", fn=function() chordsplus(3,5,2) end},
-        {name="Chordsplus 4-3-3 (Maj Dominant 7th)", fn=function() chordsplus(4,3,3) end}, -- MajMajor7
-        {name="Chordsplus 3-4-4 (MinMaj7)", fn=function() chordsplus(3,4,4) end}, -- MinorMajor7
-        {name="Chordsplus 4-3-4-3 (Maj9)", fn=function() chordsplus(4,3,4,3) end},
-        {name="Chordsplus 3-4-3-3 (Min9)", fn=function() chordsplus(3,4,3,3) end},
-        {name="Chordsplus 4-3-7 (Maj Added 9th)", fn=function() chordsplus(4,3,7) end},
-        {name="Chordsplus 3-4-7 (Min Added 9th)", fn=function() chordsplus(3,4,7) end},
-        {name="Chordsplus 4-7-3 (Maj9 Simplified)", fn=function() chordsplus(4,7,3) end}, -- Maj9 without 5th
-        {name="Chordsplus 3-7-4 (Min9 Simplified)", fn=function() chordsplus(3,7,4) end}, -- Min9 without 5th
-        {name="Chordsplus 3-8-3 (mM9 Simplified)", fn=function() chordsplus(3,8,3) end}, -- MinorMajor9 without 5th
-        {name="Chordsplus 4-3-4-4 (MM9)", fn=function() chordsplus(4,3,4,4) end}, -- MajorMajor9 with Augmented 9th
-        {name="Chordsplus 3-4-4-3 (mM9)", fn=function() chordsplus(3,4,4,3) end}, -- MinorMajor9
-        {name="Chordsplus 4-3-2-5 (Maj6 Add9)", fn=function() chordsplus(4,3,2,5) end}, -- Maj6 Add9
-        {name="Chordsplus 3-4-2-5 (Min6 Add9)", fn=function() chordsplus(3,4,2,5) end}, -- Min6 Add9
-        {name="Chordsplus 4-3-4-3-3 (Maj9 Add11)", fn=function() chordsplus(4,3,4,3,3) end},
-        {name="Chordsplus 2-5 (Sus2)", fn=function() chordsplus(2,5) end},
-        {name="Chordsplus 5-2 (Sus4)", fn=function() chordsplus(5,2) end},
-        {name="Chordsplus 5-2-3 (7Sus4)", fn=function() chordsplus(5,2,3) end},
-        {name="Chordsplus 4-4 (Aug5)", fn=function() chordsplus(4,4) end},
-        {name="Chordsplus 4-4-2 (Aug6)", fn=function() chordsplus(4,4,2) end},
-        {name="Chordsplus 4-4-3 (Aug7)", fn=function() chordsplus(4,4,3) end},
-        {name="Chordsplus 4-4-4 (Aug8)", fn=function() chordsplus(4,4,4) end},  
-        {name="Chordsplus 4-3-3-5 (Aug9)", fn=function() chordsplus(4,3,3,5) end},
-        {name="Chordsplus 4-4-7 (Aug10)", fn=function() chordsplus(4,4,7) end},
-        {name="Chordsplus 4-3-3-4-4 (Aug11)", fn=function() chordsplus(4,3,3,4,4) end},
-        {name="Chordsplus 12-12-12 (Octaves)", fn=function() chordsplus(12,12,12) end}
+        {name="ChordsPlus 3-4 (Maj)", fn=function() chordsplus(4,3) end},
+        {name="ChordsPlus 4-3 (Min)", fn=function() chordsplus(3,4) end},
+        {name="ChordsPlus 4-3-4 (Maj7)", fn=function() chordsplus(4,3,4) end},
+        {name="ChordsPlus 3-4-3 (Min7)", fn=function() chordsplus(3,4,3) end},
+        {name="ChordsPlus 4-4-3 (Maj7+5)", fn=function() chordsplus(4,4,3) end},
+        {name="ChordsPlus 3-5-2 (Min7+5)", fn=function() chordsplus(3,5,2) end},
+        {name="ChordsPlus 4-3-3 (Maj Dominant 7th)", fn=function() chordsplus(4,3,3) end}, -- MajMajor7
+        {name="ChordsPlus 3-4-4 (MinMaj7)", fn=function() chordsplus(3,4,4) end}, -- MinorMajor7
+        {name="ChordsPlus 4-3-4-3 (Maj9)", fn=function() chordsplus(4,3,4,3) end},
+        {name="ChordsPlus 3-4-3-3 (Min9)", fn=function() chordsplus(3,4,3,3) end},
+        {name="ChordsPlus 4-3-7 (Maj Added 9th)", fn=function() chordsplus(4,3,7) end},
+        {name="ChordsPlus 3-4-7 (Min Added 9th)", fn=function() chordsplus(3,4,7) end},
+        {name="ChordsPlus 4-7-3 (Maj9 Simplified)", fn=function() chordsplus(4,7,3) end}, -- Maj9 without 5th
+        {name="ChordsPlus 3-7-4 (Min9 Simplified)", fn=function() chordsplus(3,7,4) end}, -- Min9 without 5th
+        {name="ChordsPlus 3-8-3 (mM9 Simplified)", fn=function() chordsplus(3,8,3) end}, -- MinorMajor9 without 5th
+        {name="ChordsPlus 4-3-4-4 (MM9)", fn=function() chordsplus(4,3,4,4) end}, -- MajorMajor9 with Augmented 9th
+        {name="ChordsPlus 3-4-4-3 (mM9)", fn=function() chordsplus(3,4,4,3) end}, -- MinorMajor9
+        {name="ChordsPlus 4-3-2-5 (Maj6 Add9)", fn=function() chordsplus(4,3,2,5) end}, -- Maj6 Add9
+        {name="ChordsPlus 3-4-2-5 (Min6 Add9)", fn=function() chordsplus(3,4,2,5) end}, -- Min6 Add9
+        {name="ChordsPlus 4-3-4-3-3 (Maj9 Add11)", fn=function() chordsplus(4,3,4,3,3) end},
+        {name="ChordsPlus 2-5 (Sus2)", fn=function() chordsplus(2,5) end},
+        {name="ChordsPlus 5-2 (Sus4)", fn=function() chordsplus(5,2) end},
+        {name="ChordsPlus 5-2-3 (7Sus4)", fn=function() chordsplus(5,2,3) end},
+        {name="ChordsPlus 4-4 (Aug5)", fn=function() chordsplus(4,4) end},
+        {name="ChordsPlus 4-4-2 (Aug6)", fn=function() chordsplus(4,4,2) end},
+        {name="ChordsPlus 4-4-3 (Aug7)", fn=function() chordsplus(4,4,3) end},
+        {name="ChordsPlus 4-4-4 (Aug8)", fn=function() chordsplus(4,4,4) end},  
+        {name="ChordsPlus 4-3-3-5 (Aug9)", fn=function() chordsplus(4,3,3,5) end},
+        {name="ChordsPlus 4-4-7 (Aug10)", fn=function() chordsplus(4,4,7) end},
+        {name="ChordsPlus 4-3-3-4-4 (Aug11)", fn=function() chordsplus(4,3,3,4,4) end},
+        {name="ChordsPlus 12-12-12 (Octaves)", fn=function() chordsplus(12,12,12) end}
     }
     
     local current_chord_index = 1 -- Start at the first chord

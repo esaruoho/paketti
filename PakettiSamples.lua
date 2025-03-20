@@ -1,3 +1,5 @@
+local separator = package.config:sub(1,1)  -- Gets \ for Windows, / for Unix
+
 function setSampleZoom(zoom_level)
   -- Ensure we have a valid sample selected
   local sample = renoise.song().selected_sample
@@ -111,10 +113,9 @@ renoise.tool():add_midi_mapping{
   end
 }
 
-
 function pakettiPreferencesDefaultInstrumentLoader()
   local defaultInstrument = preferences.pakettiDefaultXRNI.value
-  local fallbackInstrument = "Presets/12st_Pitchbend.xrni"
+  local fallbackInstrument = "Presets" .. separator .. "12st_Pitchbend.xrni"
   
   -- Function to check if a file exists
   local function file_exists(file)
@@ -130,11 +131,10 @@ function pakettiPreferencesDefaultInstrumentLoader()
   end
 
   print("Loading instrument from path: " .. defaultInstrument)
---  renoise.app():load_instrument(renoise.tool().bundle_path .. "Presets/12st_Pitchbend.xrni")
   renoise.app():load_instrument(defaultInstrument)
 
   if preferences.pakettiPitchbendLoaderEnvelope.value then
-renoise.song().selected_instrument.sample_modulation_sets[1].devices[2].is_active = true else end
+renoise.song().selected_instrument.sample_modulation_sets[1].devices[2].is_active = true end
 
   if preferences.pakettiLoaderFilterType.value then
   renoise.song().selected_instrument.sample_modulation_sets[1].filter_type=preferences.pakettiLoaderFilterType.value end
@@ -168,7 +168,7 @@ function pitchBendDrumkitLoader()
 
   -- Load the preset instrument
   local defaultInstrument = preferences.pakettiDefaultDrumkitXRNI
-  local fallbackInstrument = "Presets/12st_Pitchbend_Drumkit_C0.xrni"
+  local fallbackInstrument = "Presets" .. separator .. "12st_Pitchbend_Drumkit_C0.xrni"
   
 
 --  renoise.app():load_instrument(renoise.tool().bundle_path .. "Presets/12st_Pitchbend_Drumkit_C0.xrni")
@@ -371,7 +371,7 @@ function loadRandomDrumkitSamples(num_samples)
     end
 
     local defaultInstrument = preferences.pakettiDefaultDrumkitXRNI
-    local fallbackInstrument = "Presets/12st_Pitchbend_Drumkit_C0.xrni"
+    local fallbackInstrument = "Presets" .. separator .. "12st_Pitchbend_Drumkit_C0.xrni"
     
   
   --  renoise.app():load_instrument(renoise.tool().bundle_path .. "Presets/12st_Pitchbend_Drumkit_C0.xrni")
@@ -3934,7 +3934,7 @@ local function loadRandomDrumkitSamples(num_samples, folder_path)
     instrument = song.selected_instrument
   end
   local defaultInstrument = preferences.pakettiDefaultDrumkitXRNI
-  local fallbackInstrument = "Presets/12st_Pitchbend_Drumkit_C0.xrni"
+  local fallbackInstrument = "Presets" .. separator .. "12st_Pitchbend_Drumkit_C0.xrni"
   
 
 --  renoise.app():load_instrument(renoise.tool().bundle_path .. "Presets/12st_Pitchbend_Drumkit_C0.xrni")

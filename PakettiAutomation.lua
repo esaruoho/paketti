@@ -2808,6 +2808,9 @@ function follow_parameter()
 end
 
 function toggle_parameter_following()
+  renoise.app().window.active_middle_frame=2
+  renoise.app().window.lower_frame_is_visible=true
+  renoise.app().window.active_lower_frame=2
   -- Check if timer is already running
   if renoise.tool():has_timer(follow_parameter) then
     -- Stop and cleanup
@@ -2815,11 +2818,13 @@ function toggle_parameter_following()
     follow_timer = nil
     is_following_parameter = false
     -- Remove the LFO devices
+
     if preferences.PakettiLFOWriteDelete.value == true then
-    remove_lfo_devices()
+    remove_lfo_devices() 
+    return
     end
-    print("Parameter following stopped")
-    renoise.app():show_status("Parameter following stopped")
+    print("LFO Writer Parameter following stopped")
+    renoise.app():show_status("LFO Writer Parameter following stopped")
   else
     -- First remove any existing devices (cleanup)
     if preferences.PakettiLFOWriteDelete.value == true then
@@ -2830,8 +2835,9 @@ function toggle_parameter_following()
     if create_lfo_devices() then
       follow_timer = renoise.tool():add_timer(follow_parameter, 0.001)
       is_following_parameter = true
-      print("Parameter following started")
-      renoise.app():show_status("Parameter following started")
+      print("LFO Writer Parameter following started")
+      
+      renoise.app():show_status("LFO Writer Parameter following started")
     else
       print("Error: Could not create LFO devices")
       renoise.app():show_status("Error: Could not create LFO devices")
@@ -2879,8 +2885,6 @@ function create_lfo_devices()
     
     -- Get fresh Writer index and set up connection
     writer_index = find_device_by_name(master_track, "Paketti LFO Writer")
-    print ("DUDEWRITER " .. writer_index)
-    print (source_device)
     source_device.parameters[2].value = writer_index-1
     source_device.parameters[3].value = 4
     source_device.parameters[4].show_in_mixer = true
@@ -2963,8 +2967,8 @@ function toggle_fx_amount_following(fx_command)
     -- Remove the LFO devices
     if preferences.PakettiLFOWriteDelete.value == true then
     remove_lfo_devices() end
-    print("FX following stopped")
-    renoise.app():show_status("FX following stopped")
+    print("LFO Writer Effect Column following stopped")
+    renoise.app():show_status("LFO Writer Effect Column following stopped")
   else
     -- First remove any existing devices (cleanup)
     if preferences.PakettiLFOWriteDelete.value == true then
@@ -2977,7 +2981,7 @@ function toggle_fx_amount_following(fx_command)
       last_written_line = nil
       follow_fx_timer = renoise.tool():add_timer(follow_to_fx_amount, 0.01)
       is_following_to_fx = true
-      local status_msg = "FX following started" .. (fx_command and " with command " .. fx_command or " (amount only)")
+      local status_msg = "LFO Writer Effect Column following started" .. (fx_command and " with command " .. fx_command or " (amount only)")
       print(status_msg)
       renoise.app():show_status(status_msg)
     else
@@ -3070,8 +3074,8 @@ function toggle_lpb_following(range)
     if preferences.PakettiLFOWriteDelete.value == true then
     remove_lfo_devices()
     end
-    print("LPB following stopped")
-    renoise.app():show_status("LPB following stopped")
+    print("LFO Writer LPB Phrase following stopped")
+    renoise.app():show_status("LFO Writer LPB Phrase following stopped")
   else
     -- First remove any existing devices (cleanup)
     if preferences.PakettiLFOWriteDelete.value == true then
@@ -3085,8 +3089,8 @@ function toggle_lpb_following(range)
     if create_lfo_devices() then
       follow_lpb_timer = renoise.tool():add_timer(follow_to_lpb, 0.01)
       is_following_lpb = true
-      print("LPB following started (Range: 1-" .. current_range .. ")")
-      renoise.app():show_status("LPB following started (Range: 1-" .. current_range .. ")")
+      print("LFO Writer LPB Phrase following started (Range: 1-" .. current_range .. ")")
+      renoise.app():show_status("LFO Writer LPB Phrase following started (Range: 1-" .. current_range .. ")")
     else
       print("Error: Could not create LFO devices")
       renoise.app():show_status("Error: Could not create LFO devices")
@@ -3156,7 +3160,6 @@ function follow_single_parameter()
   local song = renoise.song()
   local automation_parameter = song.selected_automation_parameter
   local master_track = song.tracks[song.sequencer_track_count + 1]
-  
   -- Find our device
   local writer_index = find_device_by_name(master_track, "Paketti Single LFO Writer")
   if not writer_index then
@@ -3184,6 +3187,7 @@ end
 
 function toggle_single_parameter_following()
   -- Check if timer is already running
+
   if renoise.tool():has_timer(follow_single_parameter) then
     -- Stop and cleanup
     renoise.tool():remove_timer(follow_single_parameter)
@@ -3193,19 +3197,24 @@ function toggle_single_parameter_following()
     if preferences.PakettiLFOWriteDelete.value == true then
     remove_single_lfo_device()
     end
-    print("Single parameter following stopped")
-    renoise.app():show_status("Single parameter following stopped")
+    print("LFO Writer Single parameter following stopped")
+    renoise.app():show_status("LFO Writer Single Parameter following stopped")
   else
     -- First remove any existing device (cleanup)
     if preferences.PakettiLFOWriteDelete.value == true then
     remove_single_lfo_device()
     end
     -- Then create fresh device
+--    renoise.song().selected_track_index=renoise.song().sequencer_track_count+1
+    renoise.app().window.active_middle_frame=2
+    renoise.app().window.lower_frame_is_visible=true
+    renoise.app().window.active_lower_frame=2
+  
     if create_single_lfo_device() then
       single_follow_timer = renoise.tool():add_timer(follow_single_parameter, 0.001)
       is_following_single_parameter = true
-      print("Single parameter following started")
-      renoise.app():show_status("Single parameter following started")
+      print("LFO Writer Single parameter following started")
+      renoise.app():show_status("LFO Writer Single Parameter following started")
     else
       print("Error: Could not create LFO device")
       renoise.app():show_status("Error: Could not create LFO device")

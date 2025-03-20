@@ -1,16 +1,13 @@
-Debug: Total Paketti keybindings found - 4924
-0001:Global:Paketti: ∿ Double Beatsync Lines (Selected Sample): <Shortcut not Assigned>
-0002:Global:Paketti: ∿ Double Double Beatsync Lines (Selected Sample): <Shortcut not Assigned>
-0003:Global:Paketti: ∿ Halve Beatsync Lines (Selected Sample): <Shortcut not Assigned>
-0004:Global:Paketti: ∿ Halve Halve Beatsync Lines (Selected Sample): <Shortcut not Assigned>
-0005:Global:Paketti: ∿ Set Selected Sample Beatsync 1 (Repitch): <Shortcut not Assigned>
-0006:Global:Paketti: ∿ Set Selected Sample Beatsync 2 (Time-Stretch Percussion): <Shortcut not Assigned>
-0007:Global:Paketti: ∿ Set Selected Sample Beatsync 3 (Time-Stretch Texture): <Shortcut not Assigned>
-0008:Global:Paketti: ∿ Set Selected Sample Beatsync Line (+1): <Shortcut not Assigned>
-0009:Global:Paketti: ∿ Set Selected Sample Beatsync Line (-1): <Shortcut not Assigned>
-0010:Global:Paketti: ∿ Set Selected Sample Beatsync Line (Power of Two Above): <Shortcut not Assigned>
-0011:Global:Paketti: ∿ Set Selected Sample Beatsync Line (Power of Two Below): <Shortcut not Assigned>
-0012:Global:Paketti: ∿ Set Selected Sample Beatsync On/Off: <Shortcut not Assigned>
-0013:Global:Paketti: ∿ Set Selected Sample Beatsync On/Off 1 (Repitch): <Shortcut not Assigned>
-0014:Global:Paketti: ∿ Set Selected Sample Beatsync On/Off 2 (Time-Stretch Percussion): <Shortcut not Assigned>
-0015:Global:Paketti: ∿ Set Selected Sample Beatsync On/Off 3 (Time-Stretch Texture): <Shortcut not Assigned>
+Debug: Total Paketti keybindings found - 5436
+0001:Global:Paketti: ∿ Jump to Sends: <Shortcut not Assigned>
+0002:Global:Paketti: ∿ Jump to Sequence (Next): <Shortcut not Assigned>
+0003:Global:Paketti: ∿ Jump to Sequence (Previous): <Shortcut not Assigned>
+0004:Mixer:Paketti: ∿ Jump to First Track In Next Group: <Shortcut not Assigned>
+0005:Mixer:Paketti: ∿ Jump to First Track In Previous Group: <Shortcut not Assigned>
+0006:Pattern Editor:Paketti: ∿ Capture Nearest Instrument and Octave (jump): <Shortcut not Assigned>
+0007:Pattern Editor:Paketti: ∿ Capture Nearest Instrument and Octave (nojump): <Shortcut not Assigned>
+0008:Pattern Editor:Paketti: ∿ Effect Column ZBxx Jump To Row (Next): <Shortcut not Assigned>
+0009:Pattern Editor:Paketti: ∿ Jump to First Track In Next Group: <Shortcut not Assigned>
+0010:Pattern Editor:Paketti: ∿ Jump to First Track In Previous Group: <Shortcut not Assigned>
+0011:Pattern Matrix:Paketti: ∿ Jump to First Track In Next Group: <Shortcut not Assigned>
+0012:Pattern Matrix:Paketti: ∿ Jump to First Track In Previous Group: <Shortcut not Assigned>

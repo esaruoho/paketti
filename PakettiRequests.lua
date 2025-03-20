@@ -1,3 +1,5 @@
+local separator = package.config:sub(1,1)
+
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Selection in Pattern to Group",
   invoke=function()
     if renoise.song().selection_in_pattern ~= nil then
@@ -598,18 +600,16 @@ renoise.tool():add_keybinding{name="Global:Paketti:Double Double Beatsync Lines 
 
 -- Function to load a pitchbend instrument
 function pitchedInstrument(st)
-  renoise.app():load_instrument(renoise.tool().bundle_path .. "Presets/" .. st .. "st_Pitchbend.xrni")
+  renoise.app():load_instrument(renoise.tool().bundle_path .. "Presets" .. separator .. st .. "st_Pitchbend.xrni")
   local selected_instrument = renoise.song().selected_instrument
   selected_instrument.name = st .. "st_Pitchbend Instrument"
   selected_instrument.macros_visible = true
   selected_instrument.sample_modulation_sets[1].name = st .. "st_Pitchbend"
 end
 
-
 function pitchedDrumkit()
   local defaultInstrument = preferences.pakettiDefaultDrumkitXRNI
-  local fallbackInstrument = "Presets/12st_Pitchbend_Drumkit_C0.xrni"
-  
+  local fallbackInstrument = "Presets" .. separator .. "12st_Pitchbend_Drumkit_C0.xrni"
 
 --  renoise.app():load_instrument(renoise.tool().bundle_path .. "Presets/12st_Pitchbend_Drumkit_C0.xrni")
 renoise.app():load_instrument(defaultInstrument)
@@ -3038,7 +3038,7 @@ function PakettiIsolateSlicesToInstrument()
     song:insert_instrument_at(index)
     song.selected_instrument_index = index
     local defaultInstrument = preferences.pakettiDefaultDrumkitXRNI
-    local fallbackInstrument = "Presets/12st_Pitchbend_Drumkit_C0.xrni"
+    local fallbackInstrument = "Presets" .. separator .. "12st_Pitchbend_Drumkit_C0.xrni"
     
   
   --  renoise.app():load_instrument(renoise.tool().bundle_path .. "Presets/12st_Pitchbend_Drumkit_C0.xrni")
@@ -3161,7 +3161,7 @@ function PakettiIsolateSelectedSampleToInstrument()
   song:insert_instrument_at(insert_index)
   song.selected_instrument_index = insert_index
   local defaultInstrument = preferences.pakettiDefaultDrumkitXRNI
-  local fallbackInstrument = "Presets/12st_Pitchbend_Drumkit_C0.xrni"
+  local fallbackInstrument = "Presets" .. separator .. "12st_Pitchbend_Drumkit_C0.xrni"
   
 
 --  renoise.app():load_instrument(renoise.tool().bundle_path .. "Presets/12st_Pitchbend_Drumkit_C0.xrni")
@@ -3745,7 +3745,7 @@ function PakettiPopulateSendTracksAllTracks()
   end
 
   -- Path to the XML preset file
-  local PakettiSend_xml_file_path = "Presets/PakettiSend.XML"
+  local PakettiSend_xml_file_path = "Presets" .. separator .. "PakettiSend.XML"
   local PakettiSend_xml_data = PakettiSendPopulatorReadFile(PakettiSend_xml_file_path)
 
   -- Create the appropriate number of #Send devices in each track
@@ -3807,7 +3807,7 @@ function PakettiPopulateSendTracksSelectedTrack()
   end
 
   -- Path to the XML preset file
-  local PakettiSend_xml_file_path = "Presets/PakettiSend.XML"
+  local PakettiSend_xml_file_path = "Presets" .. separator .. "PakettiSend.XML"
   local PakettiSend_xml_data = PakettiSendPopulatorReadFile(PakettiSend_xml_file_path)
 
   -- Collect existing send devices' target indices (parameter 3)
@@ -3880,7 +3880,7 @@ function PakettiPopulateSendTracksToSelectionInPattern()
   end
 
   -- Path to the XML preset file
-  local PakettiSend_xml_file_path = "Presets/PakettiSend.XML"
+  local PakettiSend_xml_file_path = "Presets" .. separator .. "PakettiSend.XML"
   local PakettiSend_xml_data = PakettiSendPopulatorReadFile(PakettiSend_xml_file_path)
 
   -- Loop through each track in the selected range
@@ -10354,3 +10354,457 @@ end
 
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti..:Pattern Editor..:Replace FC with 0L",invoke = function() ReplaceLegacyEffect("FC", "0L") end}
 renoise.tool():add_keybinding{name = "Global:Paketti:Replace FC with 0L",invoke = function() ReplaceLegacyEffect("FC", "0L") end}
+
+
+
+
+-- Create menu entry and MIDI mapping
+renoise.tool():add_menu_entry {
+  name = "Main Menu:Tools:Explode Notes to New Tracks",
+  invoke = function() explode_notes_to_tracks() end
+}
+
+renoise.tool():add_midi_mapping {
+  name = "Tools:Explode Notes to New Tracks",
+  invoke = function() explode_notes_to_tracks() end
+}
+
+renoise.tool():add_keybinding {
+  name = "Global:Paketti:Explode Notes to New Tracks",
+  invoke = function() explode_notes_to_tracks() end
+}
+
+function explode_notes_to_tracks()
+  local song = renoise.song()
+  local selected_track_index = song.selected_track_index
+  local selected_track = song:track(selected_track_index)
+  local pattern = song.selected_pattern
+  local track_data = pattern:track(selected_track_index)
+  
+  -- Check if there are any notes
+  local found_notes = false
+  for column_index = 1, selected_track.visible_note_columns do
+    for line_index = 1, pattern.number_of_lines do
+      local line = track_data:line(line_index)
+      local note = line.note_columns[column_index]
+      if note.note_value > 0 and note.note_value < 120 then
+        found_notes = true
+        break
+      end
+    end
+    if found_notes then break end
+  end
+  
+  if not found_notes then
+    renoise.app():show_status("There are no notes on the currently selected track, doing nothing.")
+    return
+  end
+    -- Store all unique notes and their positions
+  local notes_map = {}
+  
+  local track_data = pattern:track(selected_track_index)
+  
+  -- Go through all visible note columns
+  for column_index = 1, selected_track.visible_note_columns do
+    -- Scan all lines in the pattern
+    for line_index = 1, pattern.number_of_lines do
+      local line = track_data:line(line_index)
+      local note = line.note_columns[column_index]
+      
+      if note.note_value > 0 and note.note_value < 120 then
+        local note_name = note_string(note.note_value)
+        if not notes_map[note_name] then
+          notes_map[note_name] = {}
+        end
+        
+        -- Store position information for the note
+        local note_info = {
+          line_index = line_index,
+          note_value = note.note_value,
+          instrument_value = note.instrument_value,
+          volume_value = note.volume_value,
+          panning_value = note.panning_value,
+          note_offs = {}  -- Will store any following note-offs
+        }
+        
+        -- Look ahead for note-offs
+        local next_index = line_index + 1
+        while next_index <= pattern.number_of_lines do
+          local next_line = track_data:line(next_index)
+          local next_note = next_line.note_columns[column_index]
+          
+          if next_note.note_value == 120 then  -- Note-off
+            table.insert(note_info.note_offs, next_index)
+            next_index = next_index + 1
+          else
+            break  -- Stop if we find anything other than a note-off
+          end
+        end
+        
+        table.insert(notes_map[note_name], note_info)
+      end
+    end
+  end
+  
+  -- Create new tracks for each unique note
+  for note_name, positions in pairs(notes_map) do
+    -- Create new track after the selected track
+    song:insert_track_at(selected_track_index + 1)
+    local new_track = song:track(selected_track_index + 1)
+    new_track.name = note_name .. " Notes"
+    
+    -- Copy notes to new track
+    for _, pos in ipairs(positions) do
+      local track_data = pattern:track(selected_track_index + 1)
+      
+      -- Place the note
+      local line = track_data:line(pos.line_index)
+      local note_column = line.note_columns[1]
+      note_column.note_value = pos.note_value
+      note_column.instrument_value = pos.instrument_value
+      note_column.volume_value = pos.volume_value
+      note_column.panning_value = pos.panning_value
+      
+      -- Place any associated note-offs
+      for _, off_index in ipairs(pos.note_offs) do
+        local off_line = track_data:line(off_index)
+        off_line.note_columns[1].note_value = 120  -- Note-off
+      end
+    end
+  end
+end
+
+-- Helper function to convert note value to string
+function note_string(note_value)
+  local notes = {"C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"}
+  local note_index = ((note_value - 48) % 12) + 1
+  local octave = math.floor((note_value - 48) / 12) + 4
+  return notes[note_index] .. octave
+end
+
+
+-------
+-- Direction and scope enums
+local DIRECTION = { PREVIOUS = 1, NEXT = 2 }
+local SCOPE = { TRACK = 1, PATTERN = 2 }
+
+-- Menu entries with better discoverability
+renoise.tool():add_menu_entry {
+  name = "Main Menu:Tools:Paketti..:Find Note (Next,Track)",
+  invoke = function() GotoNote(DIRECTION.NEXT, SCOPE.TRACK) end}
+
+renoise.tool():add_menu_entry {
+  name = "Main Menu:Tools:Paketti..:Find Note (Previous,Track)",
+  invoke = function() GotoNote(DIRECTION.PREVIOUS, SCOPE.TRACK) end}
+
+renoise.tool():add_menu_entry {
+  name = "Main Menu:Tools:Paketti..:Find Note (Next,Pattern)",
+  invoke = function() GotoNote(DIRECTION.NEXT, SCOPE.PATTERN) end}
+
+renoise.tool():add_menu_entry {
+  name = "Main Menu:Tools:Paketti..:Find Note (Previous,Pattern)",
+  invoke = function() GotoNote(DIRECTION.PREVIOUS, SCOPE.PATTERN) end}
+
+
+  renoise.tool():add_keybinding {
+    name = "Global:Paketti:Find Note (Next,Track)",
+    invoke = function() GotoNote(DIRECTION.NEXT, SCOPE.TRACK) end
+  }
+
+renoise.tool():add_keybinding {
+  name = "Global:Paketti:Find Note (Previous,Track)",
+  invoke = function() GotoNote(DIRECTION.PREVIOUS, SCOPE.TRACK) end
+}
+
+renoise.tool():add_keybinding {
+  name = "Global:Paketti:Find Note (Next,Pattern)",
+  invoke = function() GotoNote(DIRECTION.NEXT, SCOPE.PATTERN) end
+}
+
+renoise.tool():add_keybinding {
+  name = "Global:Paketti:Find Note (Previous,Pattern)",
+  invoke = function() GotoNote(DIRECTION.PREVIOUS, SCOPE.PATTERN) end
+}
+
+-- MIDI mappings with correct naming
+renoise.tool():add_midi_mapping {
+  name = "Paketti:Find Note (Next,Track)",
+  invoke = function() GotoNote(DIRECTION.NEXT, SCOPE.TRACK) end
+}
+
+renoise.tool():add_midi_mapping {
+  name = "Paketti:Find Note (Previous,Track)",
+  invoke = function() GotoNote(DIRECTION.PREVIOUS, SCOPE.TRACK) end
+}
+
+renoise.tool():add_midi_mapping {
+  name = "Paketti:Find Note (Next,Pattern)",
+  invoke = function() GotoNote(DIRECTION.NEXT, SCOPE.PATTERN) end
+}
+
+renoise.tool():add_midi_mapping {
+  name = "Paketti:Find Note (Previous,Pattern)",
+  invoke = function() GotoNote(DIRECTION.PREVIOUS, SCOPE.PATTERN) end
+}
+
+-- Add playback versions if API supports it
+if renoise.API_VERSION >= 6.2 then
+  renoise.tool():add_menu_entry {
+    name = "Main Menu:Tools:Paketti..:Find Note (Next,Track,Play)",
+    invoke = function() GotoNote(DIRECTION.NEXT, SCOPE.TRACK, true) end}
+
+  renoise.tool():add_menu_entry {
+    name = "Main Menu:Tools:Paketti..:Find Note (Previous,Track,Play)",
+    invoke = function() GotoNote(DIRECTION.PREVIOUS, SCOPE.TRACK, true) end}
+
+  renoise.tool():add_menu_entry {
+    name = "Main Menu:Tools:Paketti..:Find Note (Next,Pattern,Play)",
+    invoke = function() GotoNote(DIRECTION.NEXT, SCOPE.PATTERN, true) end}
+
+  renoise.tool():add_menu_entry {
+    name = "Main Menu:Tools:Paketti..:Find Note (Previous,Pattern,Play)",
+    invoke = function() GotoNote(DIRECTION.PREVIOUS, SCOPE.PATTERN, true) end}
+
+  -- Playback keybindings
+  renoise.tool():add_keybinding {
+    name = "Global:Paketti:Find Note (Next,Track,Play)",
+    invoke = function() GotoNote(DIRECTION.NEXT, SCOPE.TRACK, true) end
+  }
+
+  renoise.tool():add_keybinding {
+    name = "Global:Paketti:Find Note (Previous,Track,Play)",
+    invoke = function() GotoNote(DIRECTION.PREVIOUS, SCOPE.TRACK, true) end
+  }
+
+  renoise.tool():add_keybinding {
+    name = "Global:Paketti:Find Note (Next,Pattern,Play)",
+    invoke = function() GotoNote(DIRECTION.NEXT, SCOPE.PATTERN, true) end
+  }
+
+  renoise.tool():add_keybinding {
+    name = "Global:Paketti:Find Note (Previous,Pattern,Play)",
+    invoke = function() GotoNote(DIRECTION.PREVIOUS, SCOPE.PATTERN, true) end
+  }
+
+  -- Playback MIDI mappings
+  renoise.tool():add_midi_mapping {
+    name = "Paketti:Find Note (Next,Track,Play)",
+    invoke = function() GotoNote(DIRECTION.NEXT, SCOPE.TRACK, true) end
+  }
+
+  renoise.tool():add_midi_mapping {
+    name = "Paketti:Find Note (Previous,Track,Play)",
+    invoke = function() GotoNote(DIRECTION.PREVIOUS, SCOPE.TRACK, true) end
+  }
+
+  renoise.tool():add_midi_mapping {
+    name = "Paketti:Find Note (Next,Pattern,Play)",
+    invoke = function() GotoNote(DIRECTION.NEXT, SCOPE.PATTERN, true) end
+  }
+
+  renoise.tool():add_midi_mapping {
+    name = "Paketti:Find Note (Previous,Pattern,Play)",
+    invoke = function() GotoNote(DIRECTION.PREVIOUS, SCOPE.PATTERN, true) end
+  }
+end
+
+local function has_note_at(track_data, line_index, track_index, column_index)
+  local song = renoise.song()
+  local track = song:track(track_index)
+  local line = track_data:line(line_index)
+  
+  -- If column_index is provided, check only that column
+  if column_index then
+    if column_index <= track.visible_note_columns then
+      local note = line.note_columns[column_index]
+      return note.note_value > 0 and note.note_value < 120
+    end
+    return false
+  end
+  
+  -- Otherwise check all columns
+  for col = 1, track.visible_note_columns do
+    local note = line.note_columns[col]
+    if note.note_value > 0 and note.note_value < 120 then
+      return true
+    end
+  end
+  return false
+end
+
+function GotoNote(direction, scope, play_note)
+  local song = renoise.song()
+  local pattern = song.selected_pattern
+  local current_track = song.selected_track_index
+  local current_line = song.selected_line_index
+  local current_column = song.selected_note_column_index or 1
+  
+  local function update_position(line_idx, track_idx, col_idx)
+    song.selected_line_index = line_idx
+    if track_idx then song.selected_track_index = track_idx end
+    song.selected_note_column_index = col_idx
+    if play_note and renoise.API_VERSION >= 6.2 then
+      song:trigger_pattern_line(line_idx)
+    end
+  end
+  
+  if scope == SCOPE.TRACK then
+    local track_data = pattern:track(current_track)
+    local track = song:track(current_track)
+    
+    if direction == DIRECTION.NEXT then
+      -- First try remaining columns in current line
+      for col = current_column + 1, track.visible_note_columns do
+        if has_note_at(track_data, current_line, current_track, col) then
+          update_position(current_line, nil, col)
+          return
+        end
+      end
+      
+      -- Then try next lines
+      for line_index = current_line + 1, pattern.number_of_lines do
+        for col = 1, track.visible_note_columns do
+          if has_note_at(track_data, line_index, current_track, col) then
+            update_position(line_index, nil, col)
+            return
+          end
+        end
+      end
+      
+      -- Wrap to start
+      for line_index = 1, current_line do
+        for col = 1, track.visible_note_columns do
+          if has_note_at(track_data, line_index, current_track, col) then
+            update_position(line_index, nil, col)
+            return
+          end
+        end
+      end
+      
+      renoise.app():show_status("No notes found in current track")
+      
+    else -- DIRECTION.PREVIOUS
+      -- First try previous columns in current line
+      for col = current_column - 1, 1, -1 do
+        if has_note_at(track_data, current_line, current_track, col) then
+          update_position(current_line, nil, col)
+          return
+        end
+      end
+      
+      -- Then try previous lines
+      for line_index = current_line - 1, 1, -1 do
+        for col = track.visible_note_columns, 1, -1 do
+          if has_note_at(track_data, line_index, current_track, col) then
+            update_position(line_index, nil, col)
+            return
+          end
+        end
+      end
+      
+      -- Wrap to end
+      for line_index = pattern.number_of_lines, current_line, -1 do
+        for col = track.visible_note_columns, 1, -1 do
+          if has_note_at(track_data, line_index, current_track, col) then
+            update_position(line_index, nil, col)
+            return
+          end
+        end
+      end
+      
+      renoise.app():show_status("No notes found in current track")
+    end
+    
+  else -- SCOPE.PATTERN
+    if direction == DIRECTION.NEXT then
+      -- First check remaining columns in current track/row
+      local track = song:track(current_track)
+      for col = current_column + 1, track.visible_note_columns do
+        if has_note_at(pattern:track(current_track), current_line, current_track, col) then
+          update_position(current_line, current_track, col)
+          return
+        end
+      end
+      
+      -- Then check remaining tracks in current row
+      for track_index = current_track + 1, #song.tracks do
+        local track_data = pattern:track(track_index)
+        local track = song:track(track_index)
+        for col = 1, track.visible_note_columns do
+          if has_note_at(track_data, current_line, track_index, col) then
+            update_position(current_line, track_index, col)
+            return
+          end
+        end
+      end
+      
+      -- Move to next rows
+      local start_line = current_line + 1
+      if start_line > pattern.number_of_lines then start_line = 1 end
+      
+      local current_row = start_line
+      repeat
+        for track_index = 1, #song.tracks do
+          local track_data = pattern:track(track_index)
+          local track = song:track(track_index)
+          for col = 1, track.visible_note_columns do
+            if has_note_at(track_data, current_row, track_index, col) then
+              update_position(current_row, track_index, col)
+              return
+            end
+          end
+        end
+        
+        current_row = current_row + 1
+        if current_row > pattern.number_of_lines then current_row = 1 end
+      until current_row == start_line
+      
+      renoise.app():show_status("No notes found in pattern")
+      
+    else -- DIRECTION.PREVIOUS
+      -- First check previous columns in current track/row
+      local track = song:track(current_track)
+      for col = current_column - 1, 1, -1 do
+        if has_note_at(pattern:track(current_track), current_line, current_track, col) then
+          update_position(current_line, current_track, col)
+          return
+        end
+      end
+      
+      -- Then check previous tracks in current row
+      for track_index = current_track - 1, 1, -1 do
+        local track_data = pattern:track(track_index)
+        local track = song:track(track_index)
+        for col = track.visible_note_columns, 1, -1 do
+          if has_note_at(track_data, current_line, track_index, col) then
+            update_position(current_line, track_index, col)
+            return
+          end
+        end
+      end
+      
+      -- Move to previous rows
+      local start_line = current_line - 1
+      if start_line < 1 then start_line = pattern.number_of_lines end
+      
+      local current_row = start_line
+      repeat
+        for track_index = #song.tracks, 1, -1 do
+          local track_data = pattern:track(track_index)
+          local track = song:track(track_index)
+          for col = track.visible_note_columns, 1, -1 do
+            if has_note_at(track_data, current_row, track_index, col) then
+              update_position(current_row, track_index, col)
+              return
+            end
+          end
+        end
+        
+        current_row = current_row - 1
+        if current_row < 1 then current_row = pattern.number_of_lines end
+      until current_row == start_line
+      
+      renoise.app():show_status("No notes found in pattern")
+    end
+  end
+end
