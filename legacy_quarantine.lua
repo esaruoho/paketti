@@ -643,7 +643,7 @@ local function on_sample_buffer_changed()
         print(string.format("Sample %d - Before: loop_mode=%s, loop_release=%s", 
             song.selected_sample_index, tostring(sample.loop_mode), tostring(sample.loop_release)))
         
-        sample.autofade = preferences.pakettiLoaderAutoFade.value
+        sample.autofade = preferences.pakettiLoaderAutofade.value
         sample.autoseek = preferences.pakettiLoaderAutoseek.value
         sample.loop_mode = preferences.pakettiLoaderLoopMode.value
         sample.interpolation_mode = preferences.pakettiLoaderInterpolation.value

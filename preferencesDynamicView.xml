@@ -197,7 +197,7 @@
   <dynamic_view04_lower_step1>3</dynamic_view04_lower_step1>
   <dynamic_view04_sample_record_visible_step1>1.0</dynamic_view04_sample_record_visible_step1>
   <dynamic_view04_disk_browser_visible_step1>2</dynamic_view04_disk_browser_visible_step1>
-  <dynamic_view04_instrument_box_visible_step1>2</dynamic_view04_instrument_box_visible_step1>
+  <dynamic_view04_instrument_box_visible_step1>1.0</dynamic_view04_instrument_box_visible_step1>
   <dynamic_view04_pattern_matrix_visible_step1>2</dynamic_view04_pattern_matrix_visible_step1>
   <dynamic_view04_pattern_advanced_edit_visible_step1>2</dynamic_view04_pattern_advanced_edit_visible_step1>
   <dynamic_view04_upper_step2>4</dynamic_view04_upper_step2>

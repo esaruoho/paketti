@@ -83,7 +83,6 @@ renoise.tool():add_keybinding{name="Global:Paketti:Numpad SelectPlay " .. i,invo
 end
 
 ------------------------------------------------------------------------------------------------------
---cortex.scripts.CaptureOctave v1.1 by cortex
 renoise.tool():add_keybinding{name="Global:Paketti:Capture Nearest Instrument and Octave (nojump)",invoke=function(repeated) capture_ins_oct("no") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Capture Nearest Instrument and Octave (nojump)",invoke=function(repeated) capture_ins_oct("no") end}
 renoise.tool():add_keybinding{name="Mixer:Paketti:Capture Nearest Instrument and Octave (nojump)",invoke=function(repeated) capture_ins_oct("no") end}
@@ -95,7 +94,41 @@ function capture_ins_oct(state)
    local closest_note = {}  
    local current_track = renoise.song().selected_track_index
    local current_pattern = renoise.song().selected_pattern_index
+   local found_note = false
    
+   -- Check if any notes exist for current instrument in track
+   for pos, line in renoise.song().pattern_iterator:lines_in_pattern_track(current_pattern, current_track) do
+      if (not line.is_empty) then
+         for i = 1, renoise.song().tracks[current_track].visible_note_columns do
+            local notecol = line.note_columns[i]
+            if (not notecol.is_empty and notecol.note_string ~= "OFF" and 
+                notecol.instrument_value + 1 == renoise.song().selected_instrument_index) then
+               found_note = true
+               break
+            end
+         end
+      end
+      if found_note then break end
+   end
+
+   -- If we're in Sample Editor and no notes found, try to go to Phrase Editor
+   if renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR and not found_note then
+      local instrument = renoise.song().instruments[renoise.song().selected_instrument_index]
+      if instrument and #instrument.phrases > 0 then
+         renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_PHRASE_EDITOR
+         renoise.song().selected_phrase_index = 1
+         renoise.app():show_status("No notes found, switching to Phrase Editor.")
+         return
+      end
+   end
+
+   -- If we're in Phrase Editor, go back to Pattern Editor
+   if renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_PHRASE_EDITOR then
+      renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+      renoise.app():show_status("Back to Pattern Editor.")
+      return
+   end
+
    for pos, line in renoise.song().pattern_iterator:lines_in_pattern_track(current_pattern, current_track) do
       if (not line.is_empty) then
          local t = {}
@@ -155,15 +188,32 @@ function capture_ins_oct(state)
       return
    end
 
-   -- Step 3: If instrument is selected, jump to the nearest sample in the Sample Editor
+   -- Step 3: If instrument is selected, jump to the nearest sample/phrase in the editor
    if state == "yes" then
       local instrument = renoise.song().instruments[closest_note.ins]
-      if instrument and #instrument.samples > 0 then
-         -- Determine the first sample's root note using sample_mappings
-         local sample_mapping = instrument.sample_mappings[1][1] -- First sample mapping
-         local first_sample_note = sample_mapping and sample_mapping.note_range[1] or 0 -- Default to C-0 (0)
+      
+      -- Check if instrument has phrases
+      if instrument and #instrument.phrases > 0 then
+         -- If we're in phrase editor, go back to pattern editor
+         if renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_PHRASE_EDITOR then
+            renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+            renoise.app():show_status("Back to Pattern Editor.")
+            return
+         end
          
-         -- Calculate the sample index based on the closest note
+         -- Go to phrase editor
+         renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_PHRASE_EDITOR
+         renoise.song().selected_phrase_index = 1
+         renoise.app():show_status("Instrument captured, jumping to Phrase Editor.")
+         return
+      end
+      
+      -- If no phrases, fall back to original sample editor behavior
+      if instrument and #instrument.samples > 0 then
+         -- Original sample editor code remains unchanged
+         local sample_mapping = instrument.sample_mappings[1][1]
+         local first_sample_note = sample_mapping and sample_mapping.note_range[1] or 0
+         
          local sample_index = 1
          for i, sample_map in ipairs(instrument.sample_mappings[1]) do
             if closest_note.note >= sample_map.note_range[1] and closest_note.note <= sample_map.note_range[2] then
@@ -172,7 +222,6 @@ function capture_ins_oct(state)
             end
          end
 
-         -- Set the selected sample index and switch to the sample editor
          renoise.song().selected_sample_index = sample_index
          renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
          renoise.app():show_status("Instrument and sample captured, jumping to Sample Editor.")

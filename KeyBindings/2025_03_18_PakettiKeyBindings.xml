@@ -6635,39 +6635,39 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Set Selected Sample Beatsync 1 (Repitch)</Binding>
+          <Binding>∿ Set Selected Sample BeatSync 1 (Repitch)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Set Selected Sample Beatsync 2 (Time-Stretch Percussion)</Binding>
+          <Binding>∿ Set Selected Sample BeatSync 2 (Time-Stretch Percussion)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Set Selected Sample Beatsync 3 (Time-Stretch Texture)</Binding>
+          <Binding>∿ Set Selected Sample BeatSync 3 (Time-Stretch Texture)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Set Selected Sample Beatsync On/Off 1 (Repitch)</Binding>
+          <Binding>∿ Set Selected Sample BeatSync On/Off 1 (Repitch)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Set Selected Sample Beatsync On/Off 2 (Time-Stretch Percussion)</Binding>
+          <Binding>∿ Set Selected Sample BeatSync On/Off 2 (Time-Stretch Percussion)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Set Selected Sample Beatsync On/Off 3 (Time-Stretch Texture)</Binding>
+          <Binding>∿ Set Selected Sample BeatSync On/Off 3 (Time-Stretch Texture)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Set Selected Sample Beatsync On/Off</Binding>
+          <Binding>∿ Set Selected Sample BeatSync On/Off</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Set Selected Sample Beatsync Line (+1)</Binding>
+          <Binding>∿ Set Selected Sample BeatSync Line (+1)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Set Selected Sample Beatsync Line (-1)</Binding>
+          <Binding>∿ Set Selected Sample BeatSync Line (-1)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -7267,11 +7267,11 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Set Selected Sample Beatsync Line (Power of Two Above)</Binding>
+          <Binding>∿ Set Selected Sample BeatSync Line (Power of Two Above)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Set Selected Sample Beatsync Line (Power of Two Below)</Binding>
+          <Binding>∿ Set Selected Sample BeatSync Line (Power of Two Below)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -9937,35 +9937,35 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Halve Beatsync Lines (All)</Binding>
+          <Binding>∿ Halve BeatSync Lines (All)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Halve Beatsync Lines (Selected Sample)</Binding>
+          <Binding>∿ Halve BeatSync Lines (Selected Sample)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Double Beatsync Lines (All)</Binding>
+          <Binding>∿ Double BeatSync Lines (All)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Double Beatsync Lines (Selected Sample)</Binding>
+          <Binding>∿ Double BeatSync Lines (Selected Sample)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Halve Halve Beatsync Lines (All)</Binding>
+          <Binding>∿ Halve Halve BeatSync Lines (All)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Halve Halve Beatsync Lines (Selected Sample)</Binding>
+          <Binding>∿ Halve Halve BeatSync Lines (Selected Sample)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Double Double Beatsync Lines (All)</Binding>
+          <Binding>∿ Double Double BeatSync Lines (All)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Double Double Beatsync Lines (Selected Sample)</Binding>
+          <Binding>∿ Double Double BeatSync Lines (Selected Sample)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -16198,7 +16198,7 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Smart Beatsync from Selection</Binding>
+          <Binding>∿ Smart BeatSync from Selection</Binding>
           <Key>Shift + Command + S</Key>
         </KeyBinding>
         <KeyBinding>

@@ -235,7 +235,7 @@ renoise.tool():add_keybinding{name="Global:Tools:Toggle Match EditStep with Dela
 if preferences.SelectedSampleBeatSyncLines.value == true then 
 
 for i=1,512 do
-renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Beatsync Lines to " .. i,invoke=function()SelectedSampleBeatSyncLine(i)end}
+renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample BeatSync Lines to " .. i,invoke=function()SelectedSampleBeatSyncLine(i)end}
 end 
 end
 

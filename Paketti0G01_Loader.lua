@@ -124,7 +124,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiLoaderFilterType="LP Clean",
   pakettiLoaderOverSampling=true,
   pakettiLoaderOneshot=false,
-  pakettiLoaderAutoFade=true,
+  pakettiLoaderAutofade=true,
   pakettiLoaderAutoseek=false,
   pakettiLoaderLoopMode=1,
   pakettiLoaderNNA=2,
@@ -134,7 +134,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   selectionNewInstrumentSelect=false,
   selectionNewInstrumentLoop=2,
   selectionNewInstrumentInterpolation=4,
-  selectionNewInstrumentAutoFade=true,
+  selectionNewInstrumentAutofade=true,
   selectionNewInstrumentAutoseek=false,
   pakettiPitchbendLoaderEnvelope=false,
   pakettiSlideContentAutomationToo=true,
@@ -444,7 +444,7 @@ function vertical_space(height) return vb:row{height = height} end
 
 -- Functions to update preferences
 function update_interpolation_mode(value) preferences.pakettiLoaderInterpolation.value = value end
-function update_autofade_mode(value) preferences.pakettiLoaderAutoFade.value = value end
+function update_autofade_mode(value) preferences.pakettiLoaderAutofade.value = value end
 function update_oversampling_mode(value) preferences.pakettiLoaderOverSampling.value=value end
 
 function update_loop_mode(loop_mode_pref, value)
@@ -654,7 +654,7 @@ function show_paketti_preferences()
                 notifier=function(value) preferences.upperFramePreference.value=value-1 end}
             },
             vb:row {
-              vb:text{text="Selected Sample Beat Sync",width=150},
+              vb:text{text="Selected Sample BeatSync",width=150},
               vb:switch{items={"Off","On"},value=preferences.SelectedSampleBeatSyncLines.value and 2 or 1,width=200,
                 notifier=function(value) preferences.SelectedSampleBeatSyncLines.value=(value==2) end}
             },
@@ -698,9 +698,9 @@ function show_paketti_preferences()
             vb:row { vb:text{text="Autoseek",width=150},vb:switch{items={"Off","On"},value=preferences.selectionNewInstrumentAutoseek.value and 2 or 1,width=200,
               notifier=function(value) preferences.selectionNewInstrumentAutoseek.value=(value ==2) end}
             },
-            vb:row { vb:text{text="AutoFade",width=150},vb:switch{items={"Off","On"},value=preferences.selectionNewInstrumentAutoFade.value and 2 or 1,width=200,
+            vb:row { vb:text{text="Autofade",width=150},vb:switch{items={"Off","On"},value=preferences.selectionNewInstrumentAutofade.value and 2 or 1,width=200,
               notifier=function(value) 
-              preferences.selectionNewInstrumentAutoFade.value=(value==2) 
+              preferences.selectionNewInstrumentAutofade.value=(value==2) 
               end}
             }},
           -- Render Settings wrapped in group
@@ -879,8 +879,8 @@ vb:row {
             vb:row { vb:text{text="Autoseek",width=150},vb:switch{items={"Off","On"},value=preferences.pakettiLoaderAutoseek.value and 2 or 1,width=200,
               notifier=function(value) preferences.pakettiLoaderAutoseek.value=(value==2) end}
             },
-            vb:row { vb:text{text="AutoFade",width=150},vb:switch{items={"Off","On"},value=preferences.pakettiLoaderAutoFade.value and 2 or 1,width=200,
-              notifier=function(value) preferences.pakettiLoaderAutoFade.value=(value==2) end}
+            vb:row { vb:text{text="Autofade",width=150},vb:switch{items={"Off","On"},value=preferences.pakettiLoaderAutofade.value and 2 or 1,width=200,
+              notifier=function(value) preferences.pakettiLoaderAutofade.value=(value==2) end}
             },
             vb:row { vb:text{text="New Note Action(NNA) Mode",width=150},vb:switch{items={"Cut","Note-Off","Continue"},value=preferences.pakettiLoaderNNA.value,width=300,
               notifier=function(value) preferences.pakettiLoaderNNA.value=value end}
@@ -984,7 +984,7 @@ vb:row {
             vb:text{style="strong",font="bold",text="Wipe & Slices Settings"},
             vb:row { vb:text{text="Slice Loop Mode",width=150},create_loop_mode_switch(preferences.WipeSlices.WipeSlicesLoopMode) },
             vb:row { vb:text{text="Slice Loop Release/Exit Mode",width=150},vb:checkbox{value=preferences.WipeSlices.WipeSlicesLoopRelease.value,notifier=function(value) preferences.WipeSlices.WipeSlicesLoopRelease.value=value end} },
-            vb:row { vb:text{text="Slice Beatsync Mode",width=150},vb:switch{items={"Repitch","Time-Stretch (Percussion)","Time-Stretch (Texture)","Off"},value=preferences.WipeSlices.WipeSlicesBeatSyncMode.value,width=420,
+            vb:row { vb:text{text="Slice BeatSync Mode",width=150},vb:switch{items={"Repitch","Time-Stretch (Percussion)","Time-Stretch (Texture)","Off"},value=preferences.WipeSlices.WipeSlicesBeatSyncMode.value,width=420,
               notifier=function(value) preferences.WipeSlices.WipeSlicesBeatSyncMode.value=value end}
             },
             vb:row { vb:text{text="Slice One-Shot",width=150},vb:switch{items={"Off","On"},value=preferences.WipeSlices.WipeSlicesOneShot.value and 2 or 1,width=200,

@@ -114,6 +114,7 @@ function create_random_akwf_wavetable(num_samples, use_loop)
     renoise.app():show_status(string.format("Created %sAKWF wavetable from %d random samples", 
       use_loop and "looped " or "", num_samples))
   end
+  PakettiFillPitchStepperDigits(0.015,64)
 end
 
 -- Regular version (full sample loop)

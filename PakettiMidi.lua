@@ -989,7 +989,7 @@ renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Move Slice End Left 
 renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Move Slice End Right by 500",invoke=function(message) if message:is_trigger() then move_slice_end_right_500() end end}
 
 ----------------
-renoise.tool():add_midi_mapping{name="Paketti:Set Beatsync Value x[Knob]",invoke=function(message) 
+renoise.tool():add_midi_mapping{name="Paketti:Set BeatSync Value x[Knob]",invoke=function(message) 
   if message:is_abs_value() then
   if renoise.song().selected_instrument ~= nil and renoise.song().selected_sample ~= nil then
     renoise.song().selected_sample.beat_sync_enabled=true

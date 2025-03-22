@@ -310,7 +310,7 @@
       </MidiMappings>
     </ActionMapping>
     <ActionMapping>
-      <Action>Paketti:Set Beatsync Value x[Knob]</Action>
+      <Action>Paketti:Set BeatSync Value x[Knob]</Action>
       <MidiMappings>
         <MidiMapping>
           <MappingMode>Controllers</MappingMode>

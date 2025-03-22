@@ -206,7 +206,7 @@ renoise.app():load_instrument(defaultInstrument)
   
   sample.interpolation_mode=preferences.pakettiLoaderInterpolation.value
   sample.oversample_enabled = preferences.pakettiLoaderOverSampling.value
-  sample.autofade = preferences.pakettiLoaderAutoFade.value
+  sample.autofade = preferences.pakettiLoaderAutofade.value
   sample.autoseek = preferences.pakettiLoaderAutoseek.value
   sample.oneshot = preferences.pakettiLoaderOneshot.value
   sample.loop_mode = preferences.pakettiLoaderLoopMode.value
@@ -220,7 +220,7 @@ renoise.app():load_instrument(defaultInstrument)
   sample.interpolation_mode=preferences.pakettiLoaderInterpolation.value
   sample.oversample_enabled = preferences.pakettiLoaderOverSampling.value
   sample.oneshot = preferences.pakettiLoaderOneshot.value
-  sample.autofade = preferences.pakettiLoaderAutoFade.value
+  sample.autofade = preferences.pakettiLoaderAutofade.value
   sample.autoseek = preferences.pakettiLoaderAutoseek.value
   sample.loop_mode = preferences.pakettiLoaderLoopMode.value
   sample.oneshot = preferences.pakettiLoaderOneshot.value
@@ -418,7 +418,7 @@ function loadRandomDrumkitSamples(num_samples)
             sample.interpolation_mode = preferences.pakettiLoaderInterpolation.value
             sample.oversample_enabled = preferences.pakettiLoaderOverSampling.value
             sample.oneshot = preferences.pakettiLoaderOneshot.value
-            sample.autofade = preferences.pakettiLoaderAutoFade.value
+            sample.autofade = preferences.pakettiLoaderAutofade.value
             sample.autoseek = preferences.pakettiLoaderAutoseek.value
             sample.loop_mode = preferences.pakettiLoaderLoopMode.value
             sample.new_note_action = preferences.pakettiLoaderNNA.value
@@ -598,7 +598,7 @@ if renoise.song().selected_sample ~= nil then
     song.selected_sample_index = 1
     renoise.song().instruments[renoise.song().selected_instrument_index].samples[1].interpolation_mode = preferences.selectionNewInstrumentInterpolation.value
     renoise.song().instruments[renoise.song().selected_instrument_index].samples[1].oversample_enabled = preferences.pakettiLoaderOverSampling.value
-    renoise.song().instruments[renoise.song().selected_instrument_index].samples[1].autofade = preferences.selectionNewInstrumentAutoFade.value
+    renoise.song().instruments[renoise.song().selected_instrument_index].samples[1].autofade = preferences.selectionNewInstrumentAutofade.value
     renoise.song().instruments[renoise.song().selected_instrument_index].samples[1].autoseek = preferences.selectionNewInstrumentAutoseek.value
     renoise.song().instruments[renoise.song().selected_instrument_index].samples[1].oneshot = preferences.pakettiLoaderOneshot.value
     print("Selected the new instrument and sample.")
@@ -607,7 +607,7 @@ if renoise.song().selected_sample ~= nil then
     song.selected_instrument_index = selected_instrument_index
     renoise.song().instruments[new_instrument_index].samples[1].interpolation_mode=preferences.selectionNewInstrumentInterpolation.value
     renoise.song().instruments[new_instrument_index].samples[1].oversample_enabled=preferences.pakettiLoaderOverSampling.value
-    renoise.song().instruments[new_instrument_index].samples[1].autofade=preferences.selectionNewInstrumentAutoFade.value
+    renoise.song().instruments[new_instrument_index].samples[1].autofade=preferences.selectionNewInstrumentAutofade.value
     renoise.song().instruments[new_instrument_index].samples[1].autoseek=preferences.selectionNewInstrumentAutoseek.value
     renoise.song().instruments[new_instrument_index].samples[1].oneshot=preferences.pakettiLoaderOneshot.value
     print("Stayed in the current sample editor view of the instrument you chopped out of.")
@@ -682,7 +682,7 @@ function pitchBendMultipleSampleLoader(normalize)
 
         current_sample.interpolation_mode = preferences.pakettiLoaderInterpolation.value
         current_sample.oversample_enabled = preferences.pakettiLoaderOverSampling.value
-        current_sample.autofade = preferences.pakettiLoaderAutoFade.value
+        current_sample.autofade = preferences.pakettiLoaderAutofade.value
         current_sample.autoseek = preferences.pakettiLoaderAutoseek.value
         current_sample.loop_mode = preferences.pakettiLoaderLoopMode.value
         current_sample.oneshot = preferences.pakettiLoaderOneshot.value
@@ -866,7 +866,7 @@ else
   dontsync=true
   beatsynclines = 0
     -- Determine the appropriate beatsync lines from the table or use a default value
- --   renoise.app():show_status("Please set Beatsync Lines Value before Wipe&Slice, for accurate slicing.")
+ --   renoise.app():show_status("Please set BeatSync Lines Value before Wipe&Slice, for accurate slicing.")
 --   beatsynclines = beatsync_lines[changer] or 64
 --return
 end
@@ -1035,8 +1035,8 @@ renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Wipe&Slice..:Wipe&S
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Wipe&Slice..:Wipe&Slice (256)",invoke=function() slicerough(256) end}
 renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Wipe&Slice..:Wipe Slices",invoke=function() wipeslices() end}
 
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Beatsync/Slices..:Double Beatsync Line",invoke=function() doubleBeatSyncLines() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Beatsync/Slices..:Halve Beatsync Line",invoke=function() halveBeatSyncLines() end}
+renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:BeatSync/Slices..:Double BeatSync Line",invoke=function() doubleBeatSyncLines() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:BeatSync/Slices..:Halve BeatSync Line",invoke=function() halveBeatSyncLines() end}
 --------------
 function DSPFXChain()
 renoise.app().window.active_middle_frame=renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EFFECTS end
@@ -2846,7 +2846,7 @@ function BeatSyncFromSelection()
   end
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Smart Beatsync from Selection",invoke=function()
+renoise.tool():add_keybinding{name="Global:Paketti:Smart BeatSync from Selection",invoke=function()
 BeatSyncFromSelection() end}
 --
 render_context = {
@@ -3409,7 +3409,9 @@ function load_random_akwf_sample(amount)
 
       sample.sample_buffer:load_from(selected_file)
       sample.loop_mode = renoise.Sample.LOOP_MODE_FORWARD
-
+      sample.autofade = preferences.pakettiLoaderAutofade.value
+      sample.oversample_enabled = preferences.pakettiLoaderOverSampling.value
+      sample.interpolation_mode = preferences.pakettiLoaderInterpolation.value
       -- Set the volume of each sample to the calculated reduction factor
       sample.volume = volume_reduction_factor
       renoise.song().selected_instrument.volume = volume_reduction_factor
@@ -3431,6 +3433,7 @@ function load_random_akwf_sample(amount)
   else
     renoise.app():show_status("No .wav files found in AKWF folder.")
   end
+  PakettiFillPitchStepperDigits(0.015,64)
 end
 
 
@@ -3438,14 +3441,23 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Load Random AKWF Sample",invoke=function() load_random_akwf_sample(1) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Load Random amount (1...12) of AKWF Samples",invoke=function() load_random_akwf_sample("random") end}
 renoise.tool():add_keybinding{name="Global:Paketti:Load 05 AKWF Samples",invoke=function() load_random_akwf_sample(5) end}
-renoise.tool():add_keybinding{name="Global:Paketti:Load 05 AKWF Samples with Overlap Random",invoke=function() load_random_akwf_sample(5) 
-DrumKitToOverlay(2) end}
-renoise.tool():add_keybinding{name="Global:Paketti:Load 05 AKWF Samples with Overlap Cycle",invoke=function() load_random_akwf_sample(5) 
-DrumKitToOverlay(1) end}
-renoise.tool():add_keybinding{name="Global:Paketti:Load 12 AKWF Samples with Overlap Random",invoke=function() load_random_akwf_sample(12) 
-DrumKitToOverlay(2) end}
-renoise.tool():add_keybinding{name="Global:Paketti:Load 12 AKWF Samples with Overlap Cycle",invoke=function() load_random_akwf_sample(12) 
-DrumKitToOverlay(1) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Load 05 AKWF Samples with Overlap Random",invoke=function() load_random_akwf_sample(5) DrumKitToOverlay(2) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Load 05 AKWF Samples with Overlap Cycle",invoke=function() load_random_akwf_sample(5) DrumKitToOverlay(1) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Load 12 AKWF Samples with Overlap Random",invoke=function() load_random_akwf_sample(12) DrumKitToOverlay(2) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Load 12 AKWF Samples with Overlap Cycle",invoke=function() load_random_akwf_sample(12) DrumKitToOverlay(1) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Load 12 AKWF Samples",invoke=function() load_random_akwf_sample(12) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Load 02 AKWF Samples",invoke=function() load_random_akwf_sample(2) end}
+
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:AKWF..:Load Random AKWF Sample",invoke=function() load_random_akwf_sample(1) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Load Random amount (1...12) of AKWF Samples",invoke=function() load_random_akwf_sample("random") end}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:AKWF..:Load 02 AKWF Samples",invoke=function() load_random_akwf_sample(2) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Load 05 AKWF Samples",invoke=function() load_random_akwf_sample(5) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Load 12 AKWF Samples",invoke=function() load_random_akwf_sample(12) end}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:AKWF..:Load 05 AKWF Samples with Overlap Random",invoke=function() load_random_akwf_sample(5) DrumKitToOverlay(2) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Load 05 AKWF Samples with Overlap Cycle",invoke=function() load_random_akwf_sample(5) DrumKitToOverlay(1) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Load 12 AKWF Samples with Overlap Random",invoke=function() load_random_akwf_sample(12) DrumKitToOverlay(2) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Load 12 AKWF Samples with Overlap Cycle",invoke=function() load_random_akwf_sample(12) DrumKitToOverlay(1) end}
+
 
 
 renoise.tool():add_keybinding{name="Global:Paketti:Load 04 AKWF Samples (XY)",invoke=function() load_random_akwf_sample(4)
@@ -3455,8 +3467,6 @@ end
 renoise.song().selected_instrument.volume=0.25
 showXyPaddialog()
  end}
-renoise.tool():add_keybinding{name="Global:Paketti:Load 12 AKWF Samples",invoke=function() load_random_akwf_sample(12) end}
-renoise.tool():add_keybinding{name="Global:Paketti:Load 02 AKWF Samples",invoke=function() load_random_akwf_sample(2) end}
 
 
 --[[local function generate_akwf_txt()

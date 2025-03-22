@@ -94,7 +94,7 @@ function PakettiCreateUnisonSamples()
   renoise.song().selected_instrument.samples[1].panning = 0.5
   renoise.song().selected_instrument.samples[1].interpolation_mode = preferences.pakettiLoaderInterpolation.value
   renoise.song().selected_instrument.samples[1].oversample_enabled = preferences.pakettiLoaderOverSampling.value
-  renoise.song().selected_instrument.samples[1].autofade = preferences.pakettiLoaderAutoFade.value
+  renoise.song().selected_instrument.samples[1].autofade = preferences.pakettiLoaderAutofade.value
   renoise.song().selected_instrument.samples[1].name = string.format("%s (Unison 0 [0] (Center))", original_sample_name)
 
   -- Rename the new instrument to match the original instrument's name with " (Unison)" appended
@@ -108,7 +108,7 @@ function PakettiCreateUnisonSamples()
     renoise.song().selected_instrument.samples[i].loop_mode = 2
     renoise.song().selected_instrument.samples[i].interpolation_mode = preferences.pakettiLoaderInterpolation.value
     renoise.song().selected_instrument.samples[i].oversample_enabled = preferences.pakettiLoaderOverSampling.value
-    renoise.song().selected_instrument.samples[i].autofade = preferences.pakettiLoaderAutoFade.value
+    renoise.song().selected_instrument.samples[i].autofade = preferences.pakettiLoaderAutofade.value
 end
 
   -- Define the finetune and panning adjustments

@@ -73,16 +73,15 @@ function SelectionInPatternMatrixToGroup()
   song:insert_group_at(groupPos)
 
   -- Add selected tracks to the group in their original order
+  -- Sort tracks in reverse order to maintain correct positions during grouping
+  table.sort(selected_tracks, function(a, b) return a > b end)
   for _, track_index in ipairs(selected_tracks) do
-    -- Track position needs to be adjusted as we add to the group
-    local adjusted_group_pos = groupPos
-    song:add_track_to_group(track_index, adjusted_group_pos)
-    groupPos = groupPos + 1
+    song:add_track_to_group(track_index, groupPos)
   end
 end
 
-renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Selection in Pattern Matrix to Group",
-  invoke=function() SelectionInPatternMatrixToGroup() end}
+renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Selection in Pattern Matrix to Group",invoke=function() SelectionInPatternMatrixToGroup() end}
+renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Selection in Pattern Matrix to Group",invoke=function() SelectionInPatternMatrixToGroup() end}
 
 function jenokiSystem(bpl,lpb,rowcount)
 -- Set Transport LPB and Metronome LPB to x (lpb)
@@ -407,24 +406,22 @@ function setAllInstrumentsAllSamplesAutofade(state)
   
   -- Show status message
   local stateText = autofadeState and "ON" or "OFF"
-  renoise.app():show_status("Set AutoFade " .. stateText .. " for all samples in all instruments")
+  renoise.app():show_status("Set Autofade " .. stateText .. " for all samples in all instruments")
 end
 
 -- Add menu entries and keybindings
-renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Set All Instruments All Samples AutoFade On",invoke=function() setAllInstrumentsAllSamplesAutofade(1) end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Set All Instruments All Samples AutoFade Off",invoke=function() setAllInstrumentsAllSamplesAutofade(0) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Set All Instruments All Samples AutoFade On",invoke=function() setAllInstrumentsAllSamplesAutofade(1) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Set All Instruments All Samples AutoFade Off",invoke=function() setAllInstrumentsAllSamplesAutofade(0) end}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Instruments..:Set All Instruments All Samples AutoFade On",invoke=function() setAllInstrumentsAllSamplesAutofade(1) end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:Set All Instruments All Samples AutoFade Off",invoke=function() setAllInstrumentsAllSamplesAutofade(0) end}
-renoise.tool():add_keybinding{name="Global:Paketti:Set All Instruments All Samples AutoFade On",invoke=function() setAllInstrumentsAllSamplesAutofade(1) end}
-renoise.tool():add_keybinding{name="Global:Paketti:Set All Instruments All Samples AutoFade Off",invoke=function() setAllInstrumentsAllSamplesAutofade(0) end}
-
-
+renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Set All Instruments All Samples Autofade On",invoke=function() setAllInstrumentsAllSamplesAutofade(1) end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Set All Instruments All Samples Autofade Off",invoke=function() setAllInstrumentsAllSamplesAutofade(0) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Set All Instruments All Samples Autofade On",invoke=function() setAllInstrumentsAllSamplesAutofade(1) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Set All Instruments All Samples Autofade Off",invoke=function() setAllInstrumentsAllSamplesAutofade(0) end}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Instruments..:Set All Instruments All Samples Autofade On",invoke=function() setAllInstrumentsAllSamplesAutofade(1) end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:Set All Instruments All Samples Autofade Off",invoke=function() setAllInstrumentsAllSamplesAutofade(0) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Set All Instruments All Samples Autofade On",invoke=function() setAllInstrumentsAllSamplesAutofade(1) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Set All Instruments All Samples Autofade Off",invoke=function() setAllInstrumentsAllSamplesAutofade(0) end}
 
 -----------
 
-function halveBeatsyncLinesAll()
+function halveBeatSyncLinesAll()
     local s = renoise.song()
     local currInst = s.selected_instrument_index
     if currInst == nil or not s.instruments[currInst] then
@@ -463,10 +460,10 @@ function halveBeatsyncLinesAll()
             samples[i].beat_sync_lines = new_sync_lines
         end
     end
-    renoise.app():show_status("Beatsync lines halved for all applicable samples from " .. reference_sync_lines .. " to " .. new_sync_lines)
+    renoise.app():show_status("BeatSync lines halved for all applicable samples from " .. reference_sync_lines .. " to " .. new_sync_lines)
 end
 
-function halveBeatsyncLinesSelected()
+function halveBeatSyncLinesSelected()
     local s = renoise.song()
     local currInst = s.selected_instrument_index
     if currInst == nil or not s.instruments[currInst] then
@@ -489,10 +486,10 @@ function halveBeatsyncLinesSelected()
     local reference_sync_lines = samples[currSample].beat_sync_lines
     local new_sync_lines = math.max(math.floor(reference_sync_lines / 2), 1)
     samples[currSample].beat_sync_lines = new_sync_lines
-    renoise.app():show_status("Beatsync lines halved for the selected sample from " .. reference_sync_lines .. " to " .. new_sync_lines)
+    renoise.app():show_status("BeatSync lines halved for the selected sample from " .. reference_sync_lines .. " to " .. new_sync_lines)
 end
 
-function doubleBeatsyncLinesAll()
+function doubleBeatSyncLinesAll()
     local s = renoise.song()
     local currInst = s.selected_instrument_index
     if currInst == nil or not s.instruments[currInst] then
@@ -520,7 +517,7 @@ function doubleBeatsyncLinesAll()
         return
     end
     if reference_sync_lines >= 512 then
-        renoise.app():show_status("Maximum Beatsync line amount is 512, cannot go higher.")
+        renoise.app():show_status("Maximum BeatSync line amount is 512, cannot go higher.")
         return
     end
     local new_sync_lines = math.min(reference_sync_lines * 2, 512)
@@ -535,10 +532,10 @@ function doubleBeatsyncLinesAll()
             samples[i].beat_sync_lines = new_sync_lines
         end
     end
-    renoise.app():show_status("Beatsync lines doubled for all applicable samples from " .. reference_sync_lines .. " to " .. new_sync_lines)
+    renoise.app():show_status("BeatSync lines doubled for all applicable samples from " .. reference_sync_lines .. " to " .. new_sync_lines)
 end
 
-function doubleBeatsyncLinesSelected()
+function doubleBeatSyncLinesSelected()
     local s = renoise.song()
     local currInst = s.selected_instrument_index
     if currInst == nil or not s.instruments[currInst] then
@@ -560,43 +557,43 @@ function doubleBeatsyncLinesSelected()
     end
     local reference_sync_lines = samples[currSample].beat_sync_lines
     if reference_sync_lines >= 512 then
-        renoise.app():show_status("Maximum Beatsync line amount is 512, cannot go higher.")
+        renoise.app():show_status("Maximum BeatSync line amount is 512, cannot go higher.")
         return
     end
     local new_sync_lines = math.min(reference_sync_lines * 2, 512)
     if reference_sync_lines == 1 then new_sync_lines = 2 end
     samples[currSample].beat_sync_lines = new_sync_lines
-    renoise.app():show_status("Beatsync lines doubled for the selected sample from " .. reference_sync_lines .. " to " .. new_sync_lines)
+    renoise.app():show_status("BeatSync lines doubled for the selected sample from " .. reference_sync_lines .. " to " .. new_sync_lines)
 end
 
 -- Main Menu Entries
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Instruments..:Beatsync Lines Halve (All)",invoke=function() halveBeatsyncLinesAll() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:Beatsync Lines Halve (Selected Sample)",invoke=function() halveBeatsyncLinesSelected() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:Beatsync Lines Double (All)",invoke=function() doubleBeatsyncLinesAll() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:Beatsync Lines Double (Selected Sample)",invoke=function() doubleBeatsyncLinesSelected() end}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Instruments..:BeatSync Lines Halve (All)",invoke=function() halveBeatSyncLinesAll() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:BeatSync Lines Halve (Selected Sample)",invoke=function() halveBeatSyncLinesSelected() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:BeatSync Lines Double (All)",invoke=function() doubleBeatSyncLinesAll() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:BeatSync Lines Double (Selected Sample)",invoke=function() doubleBeatSyncLinesSelected() end}
 
 -- Sample Editor Menu Entries
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Beatsync/Slices..:Beatsync Lines Halve (All)",invoke=function() halveBeatsyncLinesAll() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Beatsync/Slices..:Beatsync Lines Halve (Selected Sample)",invoke=function() halveBeatsyncLinesSelected() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Beatsync/Slices..:Beatsync Lines Double (All)",invoke=function() doubleBeatsyncLinesAll() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Beatsync/Slices..:Beatsync Lines Double (Selected Sample)",invoke=function() doubleBeatsyncLinesSelected() end}
+renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:BeatSync/Slices..:BeatSync Lines Halve (All)",invoke=function() halveBeatSyncLinesAll() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:BeatSync/Slices..:BeatSync Lines Halve (Selected Sample)",invoke=function() halveBeatSyncLinesSelected() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:BeatSync/Slices..:BeatSync Lines Double (All)",invoke=function() doubleBeatSyncLinesAll() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:BeatSync/Slices..:BeatSync Lines Double (Selected Sample)",invoke=function() doubleBeatSyncLinesSelected() end}
 
 -- Sample Navigator Menu Entries
-renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Beatsync Lines Halve (All)",invoke=function() halveBeatsyncLinesAll() end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Beatsync Lines Halve (Selected Sample)",invoke=function() halveBeatsyncLinesSelected() end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Beatsync Lines Double (All)",invoke=function() doubleBeatsyncLinesAll() end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Beatsync Lines Double (Selected Sample)",invoke=function() doubleBeatsyncLinesSelected() end}
+renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:BeatSync Lines Halve (All)",invoke=function() halveBeatSyncLinesAll() end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:BeatSync Lines Halve (Selected Sample)",invoke=function() halveBeatSyncLinesSelected() end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:BeatSync Lines Double (All)",invoke=function() doubleBeatSyncLinesAll() end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:BeatSync Lines Double (Selected Sample)",invoke=function() doubleBeatSyncLinesSelected() end}
 
 -- Keybindings
-renoise.tool():add_keybinding{name="Global:Paketti:Halve Beatsync Lines (All)",invoke=function() halveBeatsyncLinesAll() end}
-renoise.tool():add_keybinding{name="Global:Paketti:Halve Beatsync Lines (Selected Sample)",invoke=function() halveBeatsyncLinesSelected() end}
-renoise.tool():add_keybinding{name="Global:Paketti:Double Beatsync Lines (All)",invoke=function() doubleBeatsyncLinesAll() end}
-renoise.tool():add_keybinding{name="Global:Paketti:Double Beatsync Lines (Selected Sample)",invoke=function() doubleBeatsyncLinesSelected() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Halve BeatSync Lines (All)",invoke=function() halveBeatSyncLinesAll() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Halve BeatSync Lines (Selected Sample)",invoke=function() halveBeatSyncLinesSelected() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Double BeatSync Lines (All)",invoke=function() doubleBeatSyncLinesAll() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Double BeatSync Lines (Selected Sample)",invoke=function() doubleBeatSyncLinesSelected() end}
 
-renoise.tool():add_keybinding{name="Global:Paketti:Halve Halve Beatsync Lines (All)",invoke=function() halveBeatsyncLinesAll() halveBeatsyncLinesAll()end}
-renoise.tool():add_keybinding{name="Global:Paketti:Halve Halve Beatsync Lines (Selected Sample)",invoke=function() halveBeatsyncLinesSelected() halveBeatsyncLinesSelected() end}
-renoise.tool():add_keybinding{name="Global:Paketti:Double Double Beatsync Lines (All)",invoke=function() doubleBeatsyncLinesAll() doubleBeatsyncLinesAll() end}
-renoise.tool():add_keybinding{name="Global:Paketti:Double Double Beatsync Lines (Selected Sample)",invoke=function() doubleBeatsyncLinesSelected() doubleBeatsyncLinesSelected()  end}
+renoise.tool():add_keybinding{name="Global:Paketti:Halve Halve BeatSync Lines (All)",invoke=function() halveBeatSyncLinesAll() halveBeatSyncLinesAll()end}
+renoise.tool():add_keybinding{name="Global:Paketti:Halve Halve BeatSync Lines (Selected Sample)",invoke=function() halveBeatSyncLinesSelected() halveBeatSyncLinesSelected() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Double Double BeatSync Lines (All)",invoke=function() doubleBeatSyncLinesAll() doubleBeatSyncLinesAll() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Double Double BeatSync Lines (Selected Sample)",invoke=function() doubleBeatSyncLinesSelected() doubleBeatSyncLinesSelected()  end}
 
 -- Function to load a pitchbend instrument
 function pitchedInstrument(st)
