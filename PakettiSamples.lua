@@ -167,7 +167,7 @@ function pitchBendDrumkitLoader()
   current_instrument = song:instrument(current_instrument_index)
 
   -- Load the preset instrument
-  local defaultInstrument = preferences.pakettiDefaultDrumkitXRNI
+  local defaultInstrument = preferences.pakettiDefaultDrumkitXRNI.value
   local fallbackInstrument = "Presets" .. separator .. "12st_Pitchbend_Drumkit_C0.xrni"
   
 
@@ -370,7 +370,7 @@ function loadRandomDrumkitSamples(num_samples)
         instrument = song.selected_instrument
     end
 
-    local defaultInstrument = preferences.pakettiDefaultDrumkitXRNI
+    local defaultInstrument = preferences.pakettiDefaultDrumkitXRNI.value
     local fallbackInstrument = "Presets" .. separator .. "12st_Pitchbend_Drumkit_C0.xrni"
     
   
@@ -3943,7 +3943,7 @@ local function loadRandomDrumkitSamples(num_samples, folder_path)
     song.selected_instrument_index = song.selected_instrument_index + 1
     instrument = song.selected_instrument
   end
-  local defaultInstrument = preferences.pakettiDefaultDrumkitXRNI
+  local defaultInstrument = preferences.pakettiDefaultDrumkitXRNI.value
   local fallbackInstrument = "Presets" .. separator .. "12st_Pitchbend_Drumkit_C0.xrni"
   
 
@@ -5455,3 +5455,132 @@ renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Duplicate Track and
 renoise.tool():add_keybinding{name="Mixer:Paketti:Duplicate Track and Instrument",invoke=duplicateTrackAndInstrument}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Duplicate Track and Instrument",invoke=duplicateTrackAndInstrument}
 renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Track and Instrument",invoke=duplicateTrackAndInstrument}
+
+
+-------
+local function get_files_in_directory(dir)
+  local files = {}
+  
+  -- Define valid audio file extensions
+  local valid_extensions = { ".wav", ".mp3", ".flac", ".aif", ".aiff"}
+  
+  -- Build the command string based on valid extensions
+  local command
+  if package.config:sub(1,1) == "\\" then  -- Windows
+      local patterns = {}
+      for _, ext in ipairs(valid_extensions) do
+          table.insert(patterns, string.format('"%s\\*%s"', dir, ext))
+      end
+      command = 'dir /b /s ' .. table.concat(patterns, ' ') .. ' 2>nul'
+  else  -- macOS and Linux
+      local patterns = {}
+      for _, ext in ipairs(valid_extensions) do
+          table.insert(patterns, string.format('-iname "*%s"', ext))
+      end
+      command = string.format('find "%s" -type f \\( %s \\)', 
+          dir, table.concat(patterns, ' -o '))
+  end
+  
+  -- Execute the command and collect the files
+  local handle = io.popen(command)
+  for line in handle:lines() do
+      table.insert(files, line)
+  end
+  handle:close()
+  
+  return files
+end
+
+function fillEmptySampleSlots()
+     -- Initialize random seed with current time and microseconds
+     local seed = os.time() * 1000
+     if os.clock then
+         seed = seed + math.floor((os.clock() * 10000) % 1000)
+     end
+     math.randomseed(seed)
+     -- Discard first few values as they can be less random
+     math.random(); math.random(); math.random()
+ 
+     local instrument = renoise.song().selected_instrument
+
+     
+  local instrument = renoise.song().selected_instrument
+  if not instrument then return end
+  
+  local folder_path = renoise.app():prompt_for_path("Select Folder to Fill Empty Slots From")
+  if not folder_path then return end
+
+  local sample_files = get_files_in_directory(folder_path)
+  if #sample_files == 0 then
+      renoise.app():show_status("No audio files found in the selected folder.")
+      return
+  end
+
+  -- Create table of used notes
+  local used_notes = {}
+  for _, mapping_group in ipairs(instrument.sample_mappings) do
+      for _, mapping in ipairs(mapping_group) do
+          if mapping.note_range then
+              for note = mapping.note_range[1], mapping.note_range[2] do
+                  used_notes[note] = true
+              end
+          end
+      end
+  end
+
+  -- Fill empty notes from C0 (0) to B9 (119)
+  for note = 0, 119 do
+      if not used_notes[note] then
+          if #sample_files == 0 then
+              renoise.app():show_status("Ran out of sample files.")
+              break
+          end
+
+          local sample_index = #instrument.samples + 1
+          instrument:insert_sample_at(sample_index)
+          local sample = instrument.samples[sample_index]
+
+          local random_index = math.random(1, #sample_files)
+          local selected_file = sample_files[random_index]
+          table.remove(sample_files, random_index)
+
+          local success = pcall(function()
+              sample.sample_buffer:load_from(selected_file)
+          end)
+
+          if success then
+            sample.name = selected_file:match("([^/\\]+)%.%w+$")
+            
+            -- Apply all preferences from the original loader
+--[[            sample.interpolation_mode = preferences.pakettiLoaderInterpolation.value
+            sample.oversample_enabled = preferences.pakettiLoaderOverSampling.value
+            sample.oneshot = preferences.pakettiLoaderOneshot.value
+            sample.autofade = preferences.pakettiLoaderAutofade.value
+            sample.autoseek = preferences.pakettiLoaderAutoseek.value
+            sample.loop_mode = preferences.pakettiLoaderLoopMode.value
+            sample.new_note_action = preferences.pakettiLoaderNNA.value
+            sample.loop_release = preferences.pakettiLoaderLoopExit.value
+    ]]--        
+            -- Set both note_range and base_note to the current note
+            local mapping = instrument.sample_mappings[1][sample_index]
+            mapping.note_range = {note, note}
+            mapping.base_note = note
+            
+            local note_name = string.format("%s%d", string.char(65 + (note % 12)), math.floor(note / 12))
+            renoise.app():show_status(string.format("Mapped %s: %s", note_name, sample.name))
+        end
+
+                  end
+  end
+end
+
+-- Add menu entries
+renoise.tool():add_menu_entry{
+  name = "Main Menu:Tools:Paketti..:Instruments..:Fill Empty Sample Slots",
+  invoke = function() fillEmptySampleSlots() end
+}
+
+renoise.tool():add_menu_entry{
+  name = "Instrument Box:Paketti..:Fill Empty Sample Slots",
+  invoke = function() fillEmptySampleSlots() end
+}

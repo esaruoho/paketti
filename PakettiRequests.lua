@@ -73,9 +73,9 @@ function SelectionInPatternMatrixToGroup()
   song:insert_group_at(groupPos)
 
   -- Add selected tracks to the group in their original order
-  -- Sort tracks in reverse order to maintain correct positions during grouping
-  table.sort(selected_tracks, function(a, b) return a > b end)
-  for _, track_index in ipairs(selected_tracks) do
+  -- Add selected tracks to the group in their original order
+  for i = #selected_tracks, 1, -1 do
+    local track_index = selected_tracks[i]
     song:add_track_to_group(track_index, groupPos)
   end
 end
@@ -83,6 +83,8 @@ end
 renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Selection in Pattern Matrix to Group",invoke=function() SelectionInPatternMatrixToGroup() end}
 renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Selection in Pattern Matrix to Group",invoke=function() SelectionInPatternMatrixToGroup() end}
 
+------------
+------------
 function jenokiSystem(bpl,lpb,rowcount)
 -- Set Transport LPB and Metronome LPB to x (lpb)
 renoise.song().transport.lpb = lpb
@@ -605,7 +607,7 @@ function pitchedInstrument(st)
 end
 
 function pitchedDrumkit()
-  local defaultInstrument = preferences.pakettiDefaultDrumkitXRNI
+  local defaultInstrument = preferences.pakettiDefaultDrumkitXRNI.value
   local fallbackInstrument = "Presets" .. separator .. "12st_Pitchbend_Drumkit_C0.xrni"
 
 --  renoise.app():load_instrument(renoise.tool().bundle_path .. "Presets/12st_Pitchbend_Drumkit_C0.xrni")
@@ -3034,7 +3036,7 @@ function PakettiIsolateSlicesToInstrument()
   local function create_new_instrumentWithSlices(name_suffix, index)
     song:insert_instrument_at(index)
     song.selected_instrument_index = index
-    local defaultInstrument = preferences.pakettiDefaultDrumkitXRNI
+    local defaultInstrument = preferences.pakettiDefaultDrumkitXRNI.value
     local fallbackInstrument = "Presets" .. separator .. "12st_Pitchbend_Drumkit_C0.xrni"
     
   
@@ -3157,7 +3159,7 @@ function PakettiIsolateSelectedSampleToInstrument()
   local insert_index = selected_instrument_index + 1
   song:insert_instrument_at(insert_index)
   song.selected_instrument_index = insert_index
-  local defaultInstrument = preferences.pakettiDefaultDrumkitXRNI
+  local defaultInstrument = preferences.pakettiDefaultDrumkitXRNI.value
   local fallbackInstrument = "Presets" .. separator .. "12st_Pitchbend_Drumkit_C0.xrni"
   
 
