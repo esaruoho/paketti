@@ -10102,31 +10102,29 @@ function findUsedSamples()
   local song = renoise.song()
   local used_samples = {}
   local used_notes = {}
-  local used_velocities = {}
   
-  -- Initialize tracking tables
-  for instr_idx, instrument in ipairs(song.instruments) do
-    used_samples[instr_idx] = {}
-    used_notes[instr_idx] = {}
-    used_velocities[instr_idx] = {}
-    for sample_idx = 1, #instrument.samples do
-      used_samples[instr_idx][sample_idx] = false
-    end
+  -- Initialize tables
+  for i = 1, #song.instruments do
+    used_samples[i] = {}
+    used_notes[i] = {}
   end
-  
-  -- First pass: Find notes/velocities from both patterns AND phrases
-  for _, pattern in ipairs(song.patterns) do
-    for _, track in ipairs(pattern.tracks) do
-      for _, line in ipairs(track.lines) do
+
+  for pattern_idx, pattern in ipairs(song.patterns) do
+    for track_idx, track in ipairs(pattern.tracks) do
+      for line_idx, line in ipairs(track.lines) do
         if line.note_columns then
+          -- Check ALL note columns, not just the first one
           for _, note_col in ipairs(line.note_columns) do
-            local instr_idx = note_col.instrument_value + 1
-            if instr_idx > 0 and instr_idx <= #song.instruments then
-              if note_col.note_value and note_col.note_value < 120 then
+            if note_col.note_value then
+              local instr_idx = (note_col.instrument_value or 0) + 1
+              if instr_idx <= #song.instruments then
                 used_notes[instr_idx][note_col.note_value] = true
-                if note_col.volume_value then
-                  used_velocities[instr_idx][note_col.volume_value] = true
-                end
+                print(string.format("DEBUG: Found note %s (value %d) at pattern %d, track %d, line %d", 
+                      noteValueToName(note_col.note_value),
+                      note_col.note_value,
+                      pattern_idx,
+                      track_idx,
+                      line_idx))
               end
             end
           end
@@ -10135,159 +10133,155 @@ function findUsedSamples()
     end
   end
 
-  -- Check phrases for each instrument
-  for instr_idx, instrument in ipairs(song.instruments) do
-    if instrument.phrases and #instrument.phrases > 0 then
-      for _, phrase in ipairs(instrument.phrases) do
-        for _, line in ipairs(phrase.lines) do
-          for _, note_col in ipairs(line.note_columns) do
-            if note_col.note_value and note_col.note_value < 120 then
-              used_notes[instr_idx][note_col.note_value] = true
-              if note_col.volume_value then
-                used_velocities[instr_idx][note_col.volume_value] = true
-              end
-            end
-          end
-        end
-      end
+  -- Print notes in order
+  print("\nNotes found (sorted by value):")
+  for instr_idx, notes in pairs(used_notes) do
+    print(string.format("\nInstrument %d:", instr_idx))
+    local sorted_notes = {}
+    for note_value in pairs(notes) do
+      table.insert(sorted_notes, note_value)
+    end
+    table.sort(sorted_notes)
+    for _, note_value in ipairs(sorted_notes) do
+      print(string.format("  %s (value %d)", 
+            noteValueToName(note_value), note_value))
     end
   end
-  
-  -- Second pass: Check each instrument's type and handle accordingly
-  for instr_idx, instrument in ipairs(song.instruments) do
-    -- First check for phrases - if instrument has phrases, we need to be more careful
-    local has_phrases = instrument.phrases and #instrument.phrases > 0
-    
-    -- Check for slice markers
-    local has_slices = #instrument.samples > 0 and 
-                      instrument.samples[1].slice_markers and 
-                      #instrument.samples[1].slice_markers > 0
-    
-    if has_slices then
-      -- Mark all samples as used in sliced instruments
-      for sample_idx = 1, #instrument.samples do
-        used_samples[instr_idx][sample_idx] = true
-      end
-    else
-      -- Check if this is a velocity-mapped instrument
-      local is_velocity_mapped = false
-      if instrument.sample_mappings and #instrument.sample_mappings > 0 then
-        for sample_idx = 1, #instrument.samples do
-          local mapping = instrument.sample_mappings[1][sample_idx]
-          if mapping and mapping.velocity_range and 
-             (mapping.velocity_range[1] > 0 or mapping.velocity_range[2] < 127) then
-            is_velocity_mapped = true
-            break
-          end
-        end
-      end
 
-      -- Handle based on instrument type
-      if is_velocity_mapped then
-        -- For velocity-mapped instruments, check both note and velocity ranges
+  -- Now map notes to samples
+  for instr_idx, notes in pairs(used_notes) do
+    local instrument = song.instruments[instr_idx]
+    if instrument and instrument.sample_mappings then
+      for note_value in pairs(notes) do
         for sample_idx = 1, #instrument.samples do
           local mapping = instrument.sample_mappings[1][sample_idx]
-          if mapping then
-            for note in pairs(used_notes[instr_idx]) do
-              if mapping.note_range and 
-                 note >= mapping.note_range[1] and 
-                 note <= mapping.note_range[2] then
-                -- For velocity-mapped samples, check velocity range
-                if has_phrases then
-                  -- If instrument has phrases, be more conservative with velocity-mapped samples
-                  used_samples[instr_idx][sample_idx] = true
-                else
-                  for vel in pairs(used_velocities[instr_idx]) do
-                    if mapping.velocity_range and 
-                       vel >= mapping.velocity_range[1] and 
-                       vel <= mapping.velocity_range[2] then
-                      used_samples[instr_idx][sample_idx] = true
-                      break
-                    end
-                  end
-                end
-              end
-            end
-          end
-        end
-      else
-        -- For regular instruments, only check note ranges
-        for sample_idx = 1, #instrument.samples do
-          local mapping = instrument.sample_mappings[1][sample_idx]
-          if mapping then
-            for note in pairs(used_notes[instr_idx]) do
-              if mapping.note_range and 
-                 note >= mapping.note_range[1] and 
-                 note <= mapping.note_range[2] then
-                used_samples[instr_idx][sample_idx] = true
-                break
-              end
+          if mapping and mapping.note_range then
+            if note_value >= mapping.note_range[1] and 
+               note_value <= mapping.note_range[2] then
+              used_samples[instr_idx][sample_idx] = true
+              print(string.format("Note %s maps to sample %d (%s) in instrument %d", 
+                    noteValueToName(note_value), 
+                    sample_idx,
+                    instrument.samples[sample_idx].name,
+                    instr_idx))
             end
           end
         end
       end
     end
   end
-  
-  return used_samples
+
+  return used_samples, used_notes
 end
 
+-- Helper function to convert note values to note names
+function noteValueToName(value)
+  if not value or value < 0 or value > 119 then return "---" end
+  local notes = {"C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"}
+  local octave = math.floor(value / 12)
+  local note = value % 12
+  return string.format("%s%d", notes[note + 1], octave)
+end
 
-function deleteUnusedSamples(skip_confirmation)
+function deleteUnusedSamples()
   local song = renoise.song()
-  local used_samples = findUsedSamples()
-  local total_unused = 0
+  local used_notes = {}
+  local used_samples = {}
   
-  -- Count unused samples and build a list of what will be deleted
-  local samples_to_delete = {}
-  for instr_idx, instrument in ipairs(song.instruments) do
-    if #instrument.samples > 0 then
-      samples_to_delete[instr_idx] = {}
-      for sample_idx = 1, #instrument.samples do
-        if not used_samples[instr_idx][sample_idx] then
-          total_unused = total_unused + 1
-          table.insert(samples_to_delete[instr_idx], sample_idx)
+  -- Initialize tracking tables
+  for i = 1, #song.instruments do
+    used_notes[i] = {}
+    used_samples[i] = {}
+  end
+
+  -- Find all notes being played
+  print("\nScanning for notes:")
+  for pattern_idx, pattern in ipairs(song.patterns) do
+    for track_idx, track in ipairs(pattern.tracks) do
+      for line_idx, line in ipairs(track.lines) do
+        for _, note_col in ipairs(line.note_columns) do
+          -- Add debug for C-0 specifically
+          if note_col.note_value == 0 then
+            print(string.format("DEBUG: Found C-0 at pattern %d, track %d, line %d, instrument %d",
+                  pattern_idx, track_idx, line_idx, note_col.instrument_value))
+          end
+          
+          -- Changed this condition - removed the > 0 check
+          if note_col.note_value and note_col.instrument_value then
+            local instr_idx = note_col.instrument_value + 1
+            if instr_idx > 0 and instr_idx <= #song.instruments then
+              used_notes[instr_idx][note_col.note_value] = true
+              print(string.format("Found note %s (value %d) in instrument %d at pattern %d, track %d, line %d",
+                    noteValueToName(note_col.note_value), note_col.note_value,
+                    instr_idx, pattern_idx, track_idx, line_idx))
+            end
+          end
         end
       end
     end
   end
-  
-  if total_unused == 0 then
-    renoise.app():show_status("No unused samples found in the song")
-    return
-  end
 
-  -- If confirmation is needed, show the dialog
-  if not skip_confirmation then
-    local message = string.format(
-      "Found %d samples that appear to be unused.\n" ..
-      "This will only remove samples that are unmapped and in instruments that are never triggered.\n" ..
-      "Are you sure you want to continue?",
-      total_unused
-    )
-    local ok = renoise.app():show_prompt("Delete Unused Samples", message, {"Yes", "No"})
-    if ok ~= "Yes" then
-      renoise.app():show_status("Delete operation cancelled")
-      return
-    end
-  end
-  
-  -- Delete samples (working backwards)
-  local deleted_count = 0
-  for instr_idx = #song.instruments, 1, -1 do
-    local instrument = song.instruments[instr_idx]
-    for sample_idx = #instrument.samples, 1, -1 do
-      if not used_samples[instr_idx][sample_idx] then
-        instrument:delete_sample_at(sample_idx)
-        deleted_count = deleted_count + 1
+  -- Check sample mappings
+  print("\nChecking sample mappings:")
+  for instr_idx, instrument in ipairs(song.instruments) do
+    if instrument.sample_mappings[1] then
+      for sample_idx, sample in ipairs(instrument.samples) do
+        local mapping = instrument.sample_mappings[1][sample_idx]
+        local is_used = false
+        
+        if mapping and mapping.note_range then
+          -- Debug output for C-0 mappings
+          if mapping.note_range[1] == 0 or mapping.note_range[2] == 0 then
+            print(string.format("DEBUG: Sample %d in instrument %d has C-0 in range (%s to %s)",
+                  sample_idx, instr_idx,
+                  noteValueToName(mapping.note_range[1]),
+                  noteValueToName(mapping.note_range[2])))
+          end
+          
+          for note = mapping.note_range[1], mapping.note_range[2] do
+            if used_notes[instr_idx][note] then
+              is_used = true
+              print(string.format("Sample %d in instrument %d is USED - mapped to note %s (value %d)",
+                    sample_idx, instr_idx, noteValueToName(note), note))
+              break
+            end
+          end
+        end
+
+        -- If unused, clear the sample
+        if not is_used and mapping then
+          print(string.format("Clearing unused sample %d (%s) from instrument %d (range: %s to %s)", 
+                sample_idx, sample.name, instr_idx,
+                noteValueToName(mapping.note_range[1]),
+                noteValueToName(mapping.note_range[2])))
+          instrument.samples[sample_idx]:clear()
+        end
       end
     end
   end
-  
-  renoise.app():show_status(string.format(
-    "Deleted %d unused samples",
-    deleted_count
-  ))
+
+  -- Second pass: Delete empty sample slots
+  local deleted_count = 0
+  for instr_idx, instrument in ipairs(song.instruments) do
+    -- Collect indices of empty samples first (from highest to lowest)
+    local empty_slots = {}
+    for sample_idx = #instrument.samples, 1, -1 do
+      local sample = instrument.samples[sample_idx]
+      if sample and sample.sample_buffer and sample.sample_buffer.has_sample_data == false then
+        table.insert(empty_slots, sample_idx)
+      end
+    end
+    
+    -- Delete empty slots from highest to lowest index
+    for _, sample_idx in ipairs(empty_slots) do
+      print(string.format("Deleting empty sample slot %d from instrument %d", sample_idx, instr_idx))
+      instrument:delete_sample_at(sample_idx)
+      deleted_count = deleted_count + 1
+    end
+  end
+
+  print(string.format("\nOperation complete. Cleared %d unused samples and deleted %d empty slots.", 
+        cleared_count, deleted_count))
 end
 
 -- Add menu entries and keybindings (FIXED VERSION)
@@ -10489,19 +10483,19 @@ local SCOPE = { TRACK = 1, PATTERN = 2 }
 
 -- Menu entries with better discoverability
 renoise.tool():add_menu_entry {
-  name = "Main Menu:Tools:Paketti..:Find Note (Next,Track)",
+  name = "Main Menu:Tools:Paketti..:Pattern Editor..:Find Note (Next,Track)",
   invoke = function() GotoNote(DIRECTION.NEXT, SCOPE.TRACK) end}
 
 renoise.tool():add_menu_entry {
-  name = "Main Menu:Tools:Paketti..:Find Note (Previous,Track)",
+  name = "Main Menu:Tools:Paketti..:Pattern Editor..:Find Note (Previous,Track)",
   invoke = function() GotoNote(DIRECTION.PREVIOUS, SCOPE.TRACK) end}
 
 renoise.tool():add_menu_entry {
-  name = "Main Menu:Tools:Paketti..:Find Note (Next,Pattern)",
+  name = "Main Menu:Tools:Paketti..:Pattern Editor..:Find Note (Next,Pattern)",
   invoke = function() GotoNote(DIRECTION.NEXT, SCOPE.PATTERN) end}
 
 renoise.tool():add_menu_entry {
-  name = "Main Menu:Tools:Paketti..:Find Note (Previous,Pattern)",
+  name = "Main Menu:Tools:Paketti..:Pattern Editor..:Find Note (Previous,Pattern)",
   invoke = function() GotoNote(DIRECTION.PREVIOUS, SCOPE.PATTERN) end}
 
 
@@ -10549,19 +10543,19 @@ renoise.tool():add_midi_mapping {
 -- Add playback versions if API supports it
 if renoise.API_VERSION >= 6.2 then
   renoise.tool():add_menu_entry {
-    name = "Main Menu:Tools:Paketti..:Find Note (Next,Track,Play)",
+    name = "Main Menu:Tools:Paketti..:Pattern Editor..:Find Note (Next,Track,Play)",
     invoke = function() GotoNote(DIRECTION.NEXT, SCOPE.TRACK, true) end}
 
   renoise.tool():add_menu_entry {
-    name = "Main Menu:Tools:Paketti..:Find Note (Previous,Track,Play)",
+    name = "Main Menu:Tools:Paketti..:Pattern Editor..:Find Note (Previous,Track,Play)",
     invoke = function() GotoNote(DIRECTION.PREVIOUS, SCOPE.TRACK, true) end}
 
   renoise.tool():add_menu_entry {
-    name = "Main Menu:Tools:Paketti..:Find Note (Next,Pattern,Play)",
+    name = "Main Menu:Tools:Paketti..:Pattern Editor..:Find Note (Next,Pattern,Play)",
     invoke = function() GotoNote(DIRECTION.NEXT, SCOPE.PATTERN, true) end}
 
   renoise.tool():add_menu_entry {
-    name = "Main Menu:Tools:Paketti..:Find Note (Previous,Pattern,Play)",
+    name = "Main Menu:Tools:Paketti..:Pattern Editor..:Find Note (Previous,Pattern,Play)",
     invoke = function() GotoNote(DIRECTION.PREVIOUS, SCOPE.PATTERN, true) end}
 
   -- Playback keybindings
@@ -10807,3 +10801,32 @@ function GotoNote(direction, scope, play_note)
     end
   end
 end
+
+
+
+function toggle_two_devices(device1_index, device2_index)
+  -- Get current states
+  local device1_active = renoise.song().selected_track.devices[device1_index + 1].is_active
+  local device2_active = renoise.song().selected_track.devices[device2_index + 1].is_active
+  
+  -- Handle edge cases first
+  if device1_active and device2_active then
+      -- Both ON: Turn device2 OFF first
+      PakettiDeviceBypass(device2_index, "disable")
+      return
+  elseif not device1_active and not device2_active then
+      -- Both OFF: Turn device1 ON first
+      PakettiDeviceBypass(device1_index, "enable")
+      return
+  end
+  
+  -- Normal flip case (when one is ON and other is OFF)
+  PakettiDeviceBypass(device1_index, device1_active and "disable" or "enable")
+  PakettiDeviceBypass(device2_index, device2_active and "disable" or "enable")
+end
+
+-- Add keybinding for the toggle function (example using devices 1 and 2)
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Flip Devices 1&2 On/Off",
+  invoke = function() toggle_two_devices(1, 2) end
+}

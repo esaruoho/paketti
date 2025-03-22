@@ -1,66 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ScriptingToolPreferences doc_version="0">
-  <WipeSlices>
-    <WipeSlicesLoopMode>2</WipeSlicesLoopMode>
-    <WipeSlicesLoopRelease>false</WipeSlicesLoopRelease>
-    <WipeSlicesBeatSyncMode>1.0</WipeSlicesBeatSyncMode>
-    <WipeSlicesOneShot>false</WipeSlicesOneShot>
-    <WipeSlicesAutoseek>false</WipeSlicesAutoseek>
-    <WipeSlicesAutofade>true</WipeSlicesAutofade>
-    <WipeSlicesMuteGroup>0.0</WipeSlicesMuteGroup>
-    <WipeSlicesNNA>1.0</WipeSlicesNNA>
-    <WipeSlicesBeatSyncGlobal>false</WipeSlicesBeatSyncGlobal>
-    <sliceCounter>15</sliceCounter>
-    <SliceLoopMode>true</SliceLoopMode>
-    <slicePreviousDirection>1.0</slicePreviousDirection>
-  </WipeSlices>
-  <SelectedSampleBeatSyncLines>true</SelectedSampleBeatSyncLines>
-  <pakettiOctaMEDNoteEchoDistance>3</pakettiOctaMEDNoteEchoDistance>
-  <pakettiOctaMEDNoteEchoMin>1.0</pakettiOctaMEDNoteEchoMin>
-  <pakettiRotateSampleBufferCoarse>1612</pakettiRotateSampleBufferCoarse>
-  <pakettiRotateSampleBufferFine>160</pakettiRotateSampleBufferFine>
-  <pakettiBlendValue>54</pakettiBlendValue>
-  <pakettiPhraseInitDialog>
-    <InstrumentColumnVisible>false</InstrumentColumnVisible>
-    <DelayColumnVisible>false</DelayColumnVisible>
-    <SampleFXColumnVisible>false</SampleFXColumnVisible>
-    <NoteColumns>1.0</NoteColumns>
-    <EffectColumns>0.0</EffectColumns>
-    <Shuffle>0.0</Shuffle>
-    <LPB>4</LPB>
-    <Length>128</Length>
-    <SetName>false</SetName>
-    <Name>Phrase 01</Name>
-    <Autoseek>false</Autoseek>
-    <VolumeColumnVisible>false</VolumeColumnVisible>
-    <PanningColumnVisible>false</PanningColumnVisible>
-  </pakettiPhraseInitDialog>
-  <AppSelection>
-    <AppSelection3>/System/Applications/VoiceMemos.app</AppSelection3>
-    <AppSelection4>/System/Applications/Music.app</AppSelection4>
-    <AppSelection5>/Applications/Logic Pro.app</AppSelection5>
-    <AppSelection6>/Applications/Cursor.app</AppSelection6>
-    <SmartFoldersApp1>/Users/esaruoho/Music/samples/LogicSmartFolder/</SmartFoldersApp1>
-    <SmartFoldersApp2>/Users/esaruoho/Music/samples/RenoiseSmartFolder/</SmartFoldersApp2>
-    <SmartFoldersApp3>/Users/esaruoho/Music/samples/LiveSmartFolder/</SmartFoldersApp3>
-    <AppSelection1>/Applications/Audacity.app</AppSelection1>
-    <AppSelection2>/Applications/Ableton Live 12 Suite.app</AppSelection2>
-  </AppSelection>
-  <PakettiDeviceChainPath>DeviceChains/</PakettiDeviceChainPath>
-  <UserDefinedSampleFolders01/>
-  <pakettiTitler>
-    <notes_file_path>External/notes.txt</notes_file_path>
-    <trackTitlerDateFormat>YYYY_MM_DD</trackTitlerDateFormat>
-    <textfile_path>External/wordlist.txt</textfile_path>
-  </pakettiTitler>
-  <UserDefinedSampleFolders03/>
-  <UserDefinedSampleFolders04/>
-  <UserDefinedSampleFolders05/>
-  <UserDefinedSampleFolders06/>
-  <UserDefinedSampleFolders07>/Users/esaruoho/Music/samples/TRACKERCORPS SAMPLE PACK 2025/DRUMS &amp; PERCUSSIONS/</UserDefinedSampleFolders07>
-  <UserDefinedSampleFolders08>/Users/esaruoho/Music/samples/TRACKERCORPS SAMPLE PACK 2025/</UserDefinedSampleFolders08>
+  <PakettiIRPath>/Users/esaruoho/Music/samples/IRs/</PakettiIRPath>
+  <PakettiLFOWriteDelete>true</PakettiLFOWriteDelete>
+  <upperFramePreference>0.0</upperFramePreference>
+  <_0G01_Loader>false</_0G01_Loader>
+  <RandomBPM>false</RandomBPM>
+  <loadPaleGreenTheme>false</loadPaleGreenTheme>
+  <PakettiStripSilenceThreshold>0.024129032258064516</PakettiStripSilenceThreshold>
+  <PakettiMoveSilenceThreshold>0.024</PakettiMoveSilenceThreshold>
+  <renderSampleRate>48000</renderSampleRate>
+  <renderBitDepth>32</renderBitDepth>
+  <renderBypass>false</renderBypass>
+  <RenderDCOffset>true</RenderDCOffset>
+  <pakettiEditMode>2</pakettiEditMode>
   <pakettiMidiPopulator>
     <collapsed>false</collapsed>
+    <volumeColumn>false</volumeColumn>
     <panningColumn>false</panningColumn>
     <delayColumn>false</delayColumn>
     <sampleEffectsColumn>false</sampleEffectsColumn>
@@ -68,28 +23,88 @@
     <effectColumns>1.0</effectColumns>
     <incomingAudio>false</incomingAudio>
     <populateSends>true</populateSends>
-    <volumeColumn>false</volumeColumn>
   </pakettiMidiPopulator>
+  <AppSelection>
+    <AppSelection1>/Applications/Audacity.app</AppSelection1>
+    <AppSelection2>/Applications/Ableton Live 12 Suite.app</AppSelection2>
+    <AppSelection3>/System/Applications/VoiceMemos.app</AppSelection3>
+    <AppSelection4>/System/Applications/Music.app</AppSelection4>
+    <AppSelection5>/Applications/Logic Pro.app</AppSelection5>
+    <AppSelection6>/Applications/Cursor.app</AppSelection6>
+    <SmartFoldersApp1>/Users/esaruoho/Music/samples/LogicSmartFolder/</SmartFoldersApp1>
+    <SmartFoldersApp2>/Users/esaruoho/Music/samples/RenoiseSmartFolder/</SmartFoldersApp2>
+    <SmartFoldersApp3>/Users/esaruoho/Music/samples/LiveSmartFolder/</SmartFoldersApp3>
+  </AppSelection>
+  <PakettiPluginLoaders>
+    <PakettiPluginLoader type="lua_model:PakettiPluginEntry">
+      <path>Audio/Generators/AU/aumu:V4vi:Manu</path>
+      <name>Vintage (AU)</name>
+    </PakettiPluginLoader>
+    <PakettiPluginLoader type="lua_model:PakettiPluginEntry">
+      <path>Audio/Generators/AU/aumu:xAXO:xlnA</path>
+      <name>XO (AU)</name>
+    </PakettiPluginLoader>
+    <PakettiPluginLoader type="lua_model:PakettiPluginEntry">
+      <path>Audio/Generators/VST/XO</path>
+      <name>XO (VST)</name>
+    </PakettiPluginLoader>
+    <PakettiPluginLoader type="lua_model:PakettiPluginEntry">
+      <path>Audio/Generators/VST3/ABCDEF019182FAEB786C6E417841584F</path>
+      <name>XO (VST3)</name>
+    </PakettiPluginLoader>
+  </PakettiPluginLoaders>
+  <PakettiDeviceLoaders/>
+  <UserDevices>
+    <Slot01>/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/DeviceChains/colourcopy-valhalladelay-pingpong-niceness.xrnt</Slot01>
+    <Slot02>/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/DeviceChains//Slot02.xrnt</Slot02>
+    <Slot03>/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/DeviceChains//Slot03.xrnt</Slot03>
+    <Slot04>/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/DeviceChains//Slot04.xrnt</Slot04>
+    <Slot05>/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/DeviceChains//Slot05.xrnt</Slot05>
+    <Slot06>/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/DeviceChains//Slot06.xrnt</Slot06>
+    <Slot07/>
+    <Slot08/>
+    <Slot09>/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/DeviceChains//Slot09.xrnt</Slot09>
+    <Slot10/>
+    <Path>/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/DeviceChains/</Path>
+  </UserDevices>
+  <UserInstruments>
+    <Slot01>/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/DeviceChains//Slot01.xrni</Slot01>
+    <Slot02>/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/DeviceChains//Slot02.xrni</Slot02>
+    <Slot03>/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/DeviceChains//Slot03.xrni</Slot03>
+    <Slot04/>
+    <Slot05/>
+    <Slot06/>
+    <Slot07/>
+    <Slot08/>
+    <Slot09/>
+    <Slot10/>
+    <Path/>
+  </UserInstruments>
+  <UserDefinedSampleFolders01/>
+  <UserDefinedSampleFolders02/>
+  <UserDefinedSampleFolders03/>
+  <UserDefinedSampleFolders04/>
+  <UserDefinedSampleFolders05/>
+  <UserDefinedSampleFolders06/>
+  <UserDefinedSampleFolders07>/Users/esaruoho/Music/samples/TRACKERCORPS SAMPLE PACK 2025/DRUMS &amp; PERCUSSIONS/</UserDefinedSampleFolders07>
+  <UserDefinedSampleFolders08>/Users/esaruoho/Music/samples/TRACKERCORPS SAMPLE PACK 2025/</UserDefinedSampleFolders08>
+  <UserDefinedSampleFolders09>/Users/esaruoho/Music/samples/Analog Samples/</UserDefinedSampleFolders09>
   <UserDefinedSampleFolders10>/Users/esaruoho/Music/rMBP_2024_01_27 samples/</UserDefinedSampleFolders10>
   <pakettieSpeak>
-    <text>tchee tchee shee thee</text>
-    <word_gap>57</word_gap>
-    <capitals>55</capitals>
-    <pitch>56</pitch>
-    <voice>54</voice>
+    <speed>235</speed>
     <language>8</language>
-    <executable>/opt/homebrew/bin/espeak-ng</executable>
+    <voice>54</voice>
+    <amplitude>5</amplitude>
     <clear_all_samples>false</clear_all_samples>
     <add_render_to_current_instrument>false</add_render_to_current_instrument>
     <render_on_change>false</render_on_change>
+    <text>tchee tchee shee thee</text>
     <dont_pakettify>false</dont_pakettify>
-    <amplitude>5</amplitude>
-    <speed>235</speed>
+    <executable>/opt/homebrew/bin/espeak-ng</executable>
+    <word_gap>57</word_gap>
+    <capitals>55</capitals>
+    <pitch>56</pitch>
   </pakettieSpeak>
-  <renderBitDepth>32</renderBitDepth>
-  <renderBypass>false</renderBypass>
-  <RenderDCOffset>true</RenderDCOffset>
-  <pakettiLoaderInterpolation>4</pakettiLoaderInterpolation>
   <pakettiLoaderFilterType>LP Moog</pakettiLoaderFilterType>
   <pakettiLoaderOverSampling>true</pakettiLoaderOverSampling>
   <pakettiLoaderOneshot>false</pakettiLoaderOneshot>
@@ -102,7 +117,22 @@
   <pakettiLoaderNormalizeSamples>false</pakettiLoaderNormalizeSamples>
   <selectionNewInstrumentSelect>false</selectionNewInstrumentSelect>
   <selectionNewInstrumentLoop>2</selectionNewInstrumentLoop>
-  <selectionNewInstrumentInterpolation>4</selectionNewInstrumentInterpolation>
+  <OctaMEDPickPutSlots>
+    <SetSelectedInstrument>true</SetSelectedInstrument>
+    <UseEditStep>true</UseEditStep>
+    <Slot01>--- .. .. .. .. ....||0A30|0BEF|0GAB|0FED</Slot01>
+    <Slot02>C-4 01 .. .. .. .... | D-4 01 .. .. .. .... | E-4 01 .. .. .. .... | F-4 01 .. .. .. ....||</Slot02>
+    <Slot03>--- .. .. .. .. ....||0A30|0BEF|0GAB|0FED</Slot03>
+    <Slot04/>
+    <Slot05/>
+    <Slot06/>
+    <Slot07/>
+    <Slot08/>
+    <Slot09/>
+    <Slot10/>
+    <RandomizeEnabled>false</RandomizeEnabled>
+    <RandomizePercentage>10</RandomizePercentage>
+  </OctaMEDPickPutSlots>
   <selectionNewInstrumentAutofade>true</selectionNewInstrumentAutofade>
   <selectionNewInstrumentAutoseek>false</selectionNewInstrumentAutoseek>
   <pakettiPitchbendLoaderEnvelope>false</pakettiPitchbendLoaderEnvelope>
@@ -202,23 +232,16 @@ end</Index16>
     <Index49>Keybinding: Global:Track Devices:Load Renoise *Hydra||function() loadnative("Audio/Effects/Native/*Hydra") end</Index49>
     <Index50>Keybinding: Global:Paketti:Set Selected Sample Transpose (+12)||function() selectedSampleTranspose(12) end</Index50>
   </ActionSelector>
-  <OctaMEDPickPutSlots>
-    <UseEditStep>true</UseEditStep>
-    <Slot01>--- .. .. .. .. ....||0A30|0BEF|0GAB|0FED</Slot01>
-    <Slot02>C-4 01 .. .. .. .... | D-4 01 .. .. .. .... | E-4 01 .. .. .. .... | F-4 01 .. .. .. ....||</Slot02>
-    <Slot03>--- .. .. .. .. ....||0A30|0BEF|0GAB|0FED</Slot03>
-    <Slot04/>
-    <Slot05/>
-    <Slot06/>
-    <Slot07/>
-    <Slot08/>
-    <Slot09/>
-    <Slot10/>
-    <RandomizeEnabled>false</RandomizeEnabled>
-    <RandomizePercentage>10</RandomizePercentage>
-    <SetSelectedInstrument>true</SetSelectedInstrument>
-  </OctaMEDPickPutSlots>
   <RandomizeSettings>
+    <pakettiRandomizeSelectedPluginPercentageUserPreference5>50</pakettiRandomizeSelectedPluginPercentageUserPreference5>
+    <pakettiRandomizeAllPluginsPercentage>50</pakettiRandomizeAllPluginsPercentage>
+    <pakettiRandomizeAllPluginsPercentageUserPreference1>10</pakettiRandomizeAllPluginsPercentageUserPreference1>
+    <pakettiRandomizeAllPluginsPercentageUserPreference2>20</pakettiRandomizeAllPluginsPercentageUserPreference2>
+    <pakettiRandomizeAllPluginsPercentageUserPreference3>30</pakettiRandomizeAllPluginsPercentageUserPreference3>
+    <pakettiRandomizeAllPluginsPercentageUserPreference4>40</pakettiRandomizeAllPluginsPercentageUserPreference4>
+    <pakettiRandomizeAllPluginsPercentageUserPreference5>50</pakettiRandomizeAllPluginsPercentageUserPreference5>
+    <pakettiRandomizeSelectedDevicePercentage>100</pakettiRandomizeSelectedDevicePercentage>
+    <pakettiRandomizeSelectedDevicePercentageUserPreference1>10</pakettiRandomizeSelectedDevicePercentageUserPreference1>
     <pakettiRandomizeSelectedDevicePercentageUserPreference2>25</pakettiRandomizeSelectedDevicePercentageUserPreference2>
     <pakettiRandomizeSelectedDevicePercentageUserPreference3>50</pakettiRandomizeSelectedDevicePercentageUserPreference3>
     <pakettiRandomizeSelectedDevicePercentageUserPreference4>75</pakettiRandomizeSelectedDevicePercentageUserPreference4>
@@ -234,92 +257,9 @@ end</Index16>
     <pakettiRandomizeSelectedPluginPercentageUserPreference2>20</pakettiRandomizeSelectedPluginPercentageUserPreference2>
     <pakettiRandomizeSelectedPluginPercentageUserPreference3>30</pakettiRandomizeSelectedPluginPercentageUserPreference3>
     <pakettiRandomizeSelectedPluginPercentageUserPreference4>40</pakettiRandomizeSelectedPluginPercentageUserPreference4>
-    <pakettiRandomizeSelectedPluginPercentageUserPreference5>50</pakettiRandomizeSelectedPluginPercentageUserPreference5>
-    <pakettiRandomizeAllPluginsPercentage>50</pakettiRandomizeAllPluginsPercentage>
-    <pakettiRandomizeAllPluginsPercentageUserPreference1>10</pakettiRandomizeAllPluginsPercentageUserPreference1>
-    <pakettiRandomizeAllPluginsPercentageUserPreference2>20</pakettiRandomizeAllPluginsPercentageUserPreference2>
-    <pakettiRandomizeAllPluginsPercentageUserPreference3>30</pakettiRandomizeAllPluginsPercentageUserPreference3>
-    <pakettiRandomizeAllPluginsPercentageUserPreference4>40</pakettiRandomizeAllPluginsPercentageUserPreference4>
-    <pakettiRandomizeAllPluginsPercentageUserPreference5>50</pakettiRandomizeAllPluginsPercentageUserPreference5>
-    <pakettiRandomizeSelectedDevicePercentage>100</pakettiRandomizeSelectedDevicePercentage>
-    <pakettiRandomizeSelectedDevicePercentageUserPreference1>10</pakettiRandomizeSelectedDevicePercentageUserPreference1>
   </RandomizeSettings>
-  <pakettiThemeSelector>
-    <RenoiseLaunchRandomLoad>false</RenoiseLaunchRandomLoad>
-    <RenoiseLaunchFavoritesLoad>false</RenoiseLaunchFavoritesLoad>
-    <FavoritedList>
-      <Favorited>&lt;No Theme Selected&gt;</Favorited>
-      <Favorited>Mono Blue (dblue)</Favorited>
-    </FavoritedList>
-    <PreviousSelectedTheme>Mono Blue (dblue)</PreviousSelectedTheme>
-  </pakettiThemeSelector>
-  <UserInstruments>
-    <Slot01>/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/DeviceChains//Slot01.xrni</Slot01>
-    <Slot02>/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/DeviceChains//Slot02.xrni</Slot02>
-    <Slot03>/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/DeviceChains//Slot03.xrni</Slot03>
-    <Slot04/>
-    <Slot05/>
-    <Slot06/>
-    <Slot07/>
-    <Slot08/>
-    <Slot09/>
-    <Slot10/>
-    <Path/>
-  </UserInstruments>
-  <UserDevices>
-    <Slot01>/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/DeviceChains/colourcopy-valhalladelay-pingpong-niceness.xrnt</Slot01>
-    <Slot02>/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/DeviceChains//Slot02.xrnt</Slot02>
-    <Slot03>/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/DeviceChains//Slot03.xrnt</Slot03>
-    <Slot04>/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/DeviceChains//Slot04.xrnt</Slot04>
-    <Slot05>/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/DeviceChains//Slot05.xrnt</Slot05>
-    <Slot06>/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/DeviceChains//Slot06.xrnt</Slot06>
-    <Slot07/>
-    <Slot08/>
-    <Slot09>/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/DeviceChains//Slot09.xrnt</Slot09>
-    <Slot10/>
-    <Path>/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/DeviceChains/</Path>
-  </UserDevices>
-  <PakettiDynamicViews/>
-  <PakettiDeviceLoaders/>
-  <pakettiEditMode>2</pakettiEditMode>
-  <pakettiDialogClose>tab</pakettiDialogClose>
-  <PakettiPluginLoaders>
-    <PakettiPluginLoader type="lua_model:PakettiPluginEntry">
-      <path>Audio/Generators/AU/aumu:V4vi:Manu</path>
-      <name>Vintage (AU)</name>
-    </PakettiPluginLoader>
-    <PakettiPluginLoader type="lua_model:PakettiPluginEntry">
-      <path>Audio/Generators/AU/aumu:xAXO:xlnA</path>
-      <name>XO (AU)</name>
-    </PakettiPluginLoader>
-    <PakettiPluginLoader type="lua_model:PakettiPluginEntry">
-      <path>Audio/Generators/VST/XO</path>
-      <name>XO (VST)</name>
-    </PakettiPluginLoader>
-    <PakettiPluginLoader type="lua_model:PakettiPluginEntry">
-      <path>Audio/Generators/VST3/ABCDEF019182FAEB786C6E417841584F</path>
-      <name>XO (VST3)</name>
-    </PakettiPluginLoader>
-  </PakettiPluginLoaders>
-  <renderSampleRate>48000</renderSampleRate>
-  <UserPreferences>
-    <userPreferredDevice01>&lt;None&gt;</userPreferredDevice01>
-    <userPreferredDevice02>&lt;None&gt;</userPreferredDevice02>
-    <userPreferredDevice03>&lt;None&gt;</userPreferredDevice03>
-    <userPreferredDevice04>&lt;None&gt;</userPreferredDevice04>
-    <userPreferredDevice05>&lt;None&gt;</userPreferredDevice05>
-    <userPreferredDevice06>&lt;None&gt;</userPreferredDevice06>
-    <userPreferredDevice07>&lt;None&gt;</userPreferredDevice07>
-    <userPreferredDevice08>&lt;None&gt;</userPreferredDevice08>
-    <userPreferredDevice09>&lt;None&gt;</userPreferredDevice09>
-    <userPreferredDevice10>&lt;None&gt;</userPreferredDevice10>
-    <userPreferredDeviceLoad>true</userPreferredDeviceLoad>
-  </UserPreferences>
-  <PakettiMoveSilenceThreshold>0.024</PakettiMoveSilenceThreshold>
-  <PakettiStripSilenceThreshold>0.024129032258064516</PakettiStripSilenceThreshold>
-  <loadPaleGreenTheme>false</loadPaleGreenTheme>
-  <RandomBPM>false</RandomBPM>
   <PakettiYTDLP>
+    <PakettiYTDLPNewInstrumentOrSameInstrument>true</PakettiYTDLPNewInstrumentOrSameInstrument>
     <PakettiYTDLPYT_DLPLocation>/opt/homebrew/Cellar/yt-dlp/2024.12.23/libexec/bin/yt-dlp</PakettiYTDLPYT_DLPLocation>
     <PakettiYTDLPLoopMode>2</PakettiYTDLPLoopMode>
     <PakettiYTDLPClipLength>10</PakettiYTDLPClipLength>
@@ -328,14 +268,24 @@ end</Index16>
     <PakettiYTDLPOutputDirectory>/Users/esaruoho/Music/samples/colugatest/</PakettiYTDLPOutputDirectory>
     <PakettiYTDLPFormatToSave>1.0</PakettiYTDLPFormatToSave>
     <PakettiYTDLPPathToSave>/Users/esaruoho/Music/samples/ytube/</PakettiYTDLPPathToSave>
-    <PakettiYTDLPNewInstrumentOrSameInstrument>true</PakettiYTDLPNewInstrumentOrSameInstrument>
   </PakettiYTDLP>
-  <_0G01_Loader>false</_0G01_Loader>
-  <upperFramePreference>0.0</upperFramePreference>
-  <PakettiLFOWriteDelete>true</PakettiLFOWriteDelete>
-  <PakettiIRPath>/Users/esaruoho/Music/samples/IRs/</PakettiIRPath>
-  <UserDefinedSampleFolders02/>
-  <UserDefinedSampleFolders09>/Users/esaruoho/Music/samples/Analog Samples/</UserDefinedSampleFolders09>
+  <pakettiDialogClose>tab</pakettiDialogClose>
+  <PakettiDynamicViews/>
+  <selectionNewInstrumentInterpolation>4</selectionNewInstrumentInterpolation>
+  <WipeSlices>
+    <WipeSlicesMuteGroup>0.0</WipeSlicesMuteGroup>
+    <WipeSlicesNNA>1.0</WipeSlicesNNA>
+    <WipeSlicesBeatSyncGlobal>false</WipeSlicesBeatSyncGlobal>
+    <sliceCounter>15</sliceCounter>
+    <SliceLoopMode>true</SliceLoopMode>
+    <slicePreviousDirection>1.0</slicePreviousDirection>
+    <WipeSlicesLoopMode>2</WipeSlicesLoopMode>
+    <WipeSlicesLoopRelease>false</WipeSlicesLoopRelease>
+    <WipeSlicesBeatSyncMode>1.0</WipeSlicesBeatSyncMode>
+    <WipeSlicesOneShot>false</WipeSlicesOneShot>
+    <WipeSlicesAutoseek>false</WipeSlicesAutoseek>
+    <WipeSlicesAutofade>true</WipeSlicesAutofade>
+  </WipeSlices>
   <pakettiCheatSheet>
     <pakettiCheatSheetRandomize>true</pakettiCheatSheetRandomize>
     <pakettiCheatSheetRandomizeMin>1.0</pakettiCheatSheetRandomizeMin>
@@ -347,4 +297,54 @@ end</Index16>
     <pakettiCheatSheetOnlyModifyEffects>false</pakettiCheatSheetOnlyModifyEffects>
     <pakettiCheatSheetOnlyModifyNotes>false</pakettiCheatSheetOnlyModifyNotes>
   </pakettiCheatSheet>
+  <pakettiLoaderInterpolation>4</pakettiLoaderInterpolation>
+  <pakettiTitler>
+    <textfile_path>External/wordlist.txt</textfile_path>
+    <notes_file_path>External/notes.txt</notes_file_path>
+    <trackTitlerDateFormat>YYYY_MM_DD</trackTitlerDateFormat>
+  </pakettiTitler>
+  <pakettiBlendValue>54</pakettiBlendValue>
+  <SelectedSampleBeatSyncLines>true</SelectedSampleBeatSyncLines>
+  <pakettiOctaMEDNoteEchoDistance>3</pakettiOctaMEDNoteEchoDistance>
+  <pakettiOctaMEDNoteEchoMin>1.0</pakettiOctaMEDNoteEchoMin>
+  <pakettiRotateSampleBufferCoarse>1612</pakettiRotateSampleBufferCoarse>
+  <pakettiRotateSampleBufferFine>160</pakettiRotateSampleBufferFine>
+  <UserPreferences>
+    <userPreferredDevice03>&lt;None&gt;</userPreferredDevice03>
+    <userPreferredDevice04>&lt;None&gt;</userPreferredDevice04>
+    <userPreferredDevice05>&lt;None&gt;</userPreferredDevice05>
+    <userPreferredDevice06>&lt;None&gt;</userPreferredDevice06>
+    <userPreferredDevice07>&lt;None&gt;</userPreferredDevice07>
+    <userPreferredDevice08>&lt;None&gt;</userPreferredDevice08>
+    <userPreferredDevice09>&lt;None&gt;</userPreferredDevice09>
+    <userPreferredDevice10>&lt;None&gt;</userPreferredDevice10>
+    <userPreferredDeviceLoad>true</userPreferredDeviceLoad>
+    <userPreferredDevice01>&lt;None&gt;</userPreferredDevice01>
+    <userPreferredDevice02>&lt;None&gt;</userPreferredDevice02>
+  </UserPreferences>
+  <pakettiPhraseInitDialog>
+    <PanningColumnVisible>false</PanningColumnVisible>
+    <InstrumentColumnVisible>false</InstrumentColumnVisible>
+    <DelayColumnVisible>false</DelayColumnVisible>
+    <SampleFXColumnVisible>false</SampleFXColumnVisible>
+    <NoteColumns>1.0</NoteColumns>
+    <EffectColumns>0.0</EffectColumns>
+    <Shuffle>0.0</Shuffle>
+    <LPB>4</LPB>
+    <Length>128</Length>
+    <SetName>false</SetName>
+    <Name>Phrase 01</Name>
+    <Autoseek>false</Autoseek>
+    <VolumeColumnVisible>false</VolumeColumnVisible>
+  </pakettiPhraseInitDialog>
+  <PakettiDeviceChainPath>DeviceChains/</PakettiDeviceChainPath>
+  <pakettiThemeSelector>
+    <PreviousSelectedTheme>Mono Blue (dblue)</PreviousSelectedTheme>
+    <FavoritedList>
+      <Favorited>&lt;No Theme Selected&gt;</Favorited>
+      <Favorited>Mono Blue (dblue)</Favorited>
+    </FavoritedList>
+    <RenoiseLaunchRandomLoad>false</RenoiseLaunchRandomLoad>
+    <RenoiseLaunchFavoritesLoad>false</RenoiseLaunchFavoritesLoad>
+  </pakettiThemeSelector>
 </ScriptingToolPreferences>

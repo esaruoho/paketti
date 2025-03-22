@@ -1,9 +1,11 @@
 sampleEditor = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
 patternEditor = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+pe = patternEditor
 sampleMappings = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_KEYZONES
 sampleModulation = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_MODULATION
 mixer = renoise.ApplicationWindow.MIDDLE_FRAME_MIXER
 phraseEditor = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_PHRASE_EDITOR
+phrase = phraseEditor
 midiEditor = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_MIDI_EDITOR
 sampleFX = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EFFECTS
 lowerTrackdsp=renoise.ApplicationWindow.LOWER_FRAME_TRACK_DSPS
