@@ -3228,70 +3228,102 @@ renoise.tool():add_menu_entry{name="Mixer:Paketti..:LFO Write..:Single Parameter
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:LFO Write..:Single Parameter Write to Automation",invoke = toggle_single_parameter_following}
 renoise.tool():add_keybinding{name="Global:Paketti:LFO Write Single Parameter Write to Automation",invoke = toggle_single_parameter_following}
 --------------
-function read_fx_to_automation()
-  local song = renoise.song()
-  local pattern = song.selected_pattern
-  local track = song.selected_track
-  local track_index = song.selected_track_index
 
-  -- Store automations by device number and parameter name
-  local automation_cache = {}
+local function get_or_create_cached_automation(device_num, param)
+local song=renoise.song()
+local pattern_index = song.selected_pattern_index
+local track_index = song.selected_track_index
+local track = song.tracks[track_index]
+local pattern = song.patterns[pattern_index]
+local track_pattern = pattern.tracks[track_index]
+local automation_cache = {}  -- Cache by device_num and param name
 
-  -- Get number of visible effect columns
-  local num_effect_columns = track.visible_effect_columns
-  print(string.format("Processing %d effect columns in pattern", num_effect_columns))
-
-  -- Helper function to get or create automation for a specific device and parameter
-  local function get_or_create_cached_automation(device_num, param)
-    if not automation_cache[device_num] then
-      automation_cache[device_num] = {}
-    end
-    
-    if not automation_cache[device_num][param.name] then
-      local automation = get_or_create_automation(param, song.selected_pattern_index, track_index)
-      automation_cache[device_num][param.name] = automation
+  -- Initialize cache structure if needed
+  if not automation_cache[device_num] then
+    automation_cache[device_num] = {}
+  end
+  
+  -- Check if automation already exists in cache
+  if not automation_cache[device_num][param.name] then
+    -- Create new automation
+    local automation = song.patterns[pattern_index].tracks[track_index]:find_automation(param)
+    if not automation then
+      automation = song.patterns[pattern_index].tracks[track_index]:create_automation(param)
       print(string.format("Created new automation for device %d parameter: %s", device_num, param.name))
     end
-    return automation_cache[device_num][param.name]
+    automation_cache[device_num][param.name] = automation
   end
+  
+  return automation_cache[device_num][param.name]
+end
 
-  for line_index = 1, pattern.number_of_lines do
-    local line = pattern:track(track_index):line(line_index)
-    
-    for column_index = 1, num_effect_columns do
-      local fx_column = line.effect_columns[column_index]
-      
-      if not fx_column.is_empty then
-        local number = fx_column.number_string
-        local amount = tonumber(fx_column.amount_string, 16)
-        
-        if number and amount then
-          amount = amount / 255  -- Normalize to 0-1 range
-          print(string.format("\nLine %d, Column %d: Found effect %s with value %x (normalized: %.3f)", 
-                            line_index, column_index, number, amount * 255, amount))
-          
-          local param = nil
-          local device_num = nil
-          
+
+-------
+function read_fx_to_automation()
+  local song = renoise.song()
+  local pattern_index = song.selected_pattern_index
+  local track_index = song.selected_track_index
+  local track = song.tracks[track_index]
+  local pattern = song.patterns[pattern_index]
+  local track_pattern = pattern.tracks[track_index]
+  local automation_cache = {}  -- Cache by device_num and param name
+  
+  print(string.format("\nProcessing %d effect columns in pattern", #track_pattern.lines[1].effect_columns))
+  print("")
+
+  -- For each line in pattern
+  for line_index, line in ipairs(track_pattern.lines) do
+    -- For each effect column
+    for column_index, fx in ipairs(line.effect_columns) do
+      local number = fx.number_string
+      local amount = fx.amount_value / 255  -- Normalize to 0-1
+
+      if #number > 0 then
+        print(string.format("Line %d, Column %d: Found effect %s with value %02x (normalized: %.3f)", 
+                          line_index, column_index, number, fx.amount_value, amount))
+
+        -- Handle 2-character effects
+        if #number == 2 then
+          local first_char = string.sub(number, 1, 1)
+          local second_char = string.sub(number, 2, 2)
+
           -- Handle mixer commands (0L, 0P, 0W)
-          if number == "0L" then
-            param = track.devices[1].parameters[1]  -- Volume
-            device_num = 1
-            print("Processing Mixer Volume parameter")
-          elseif number == "0P" then
-            param = track.devices[1].parameters[2]  -- Panning
-            device_num = 1
-            print("Processing Mixer Panning parameter")
-          elseif number == "0W" then
-            param = track.devices[1].parameters[3]  -- Width
-            device_num = 1
-            print("Processing Mixer Width parameter")
-          
+          if first_char == "0" then
+            local mixer = track.devices[1]  -- Mixer is always first device
+            local param = nil
+            
+            if second_char == "L" then
+              print("Processing Mixer Volume parameter")
+              param = mixer:parameter(1)
+            elseif second_char == "P" then
+              print("Processing Mixer Panning parameter")
+              param = mixer:parameter(2)
+            elseif second_char == "W" then
+              print("Processing Mixer Width parameter")
+              param = mixer:parameter(3)
+            end
+            
+            if param then
+              local automation = get_or_create_cached_automation(0, param)
+              if automation then
+                automation:add_point_at(line_index, amount)
+                if preferences.pakettiAutomationFormat.value == 1 then
+                  automation.playmode = renoise.PatternTrackAutomation.PLAYMODE_LINES
+                elseif preferences.pakettiAutomationFormat.value == 2 then
+                  automation.playmode = renoise.PatternTrackAutomation.PLAYMODE_POINTS
+                else
+                  automation.playmode = renoise.PatternTrackAutomation.PLAYMODE_CURVES
+                end
+                print(string.format("Added mixer point to automation for %s at line %d with value %.3f", 
+                                 param.name, line_index, amount))
+              end
+            end
+
           -- Handle device parameters (11-1Y, 21-2Y, etc.)
-          elseif #number == 2 then
-            -- First character can be 1-9 or A-Y
-            local device_char = string.sub(number, 1, 1)
-            local param_char = string.sub(number, 2, 2)
+          else
+            local device_char = first_char
+            local param_char = second_char
+            local device_num = nil
             
             -- Convert device character to number
             if device_char >= "1" and device_char <= "9" then
@@ -3305,12 +3337,12 @@ function read_fx_to_automation()
             
             if device_num and param_num then
               print(string.format("Converting effect %s: device %s (%d) parameter %s (%d)", 
-                                number, device_char, device_num, param_char, param_num))
+                               number, device_char, device_num, param_char, param_num))
               
-              if device_num > 0 and device_num <= #track.devices then
-                local device = track.devices[device_num + 1]  -- +1 because device 1 in FX is second device
+              if device_num > 0 and device_num <= (#track.devices - 1) then  -- -1 because mixer is separate
+                local device = track.devices[device_num + 1]  -- +1 because mixer is device 1
                 if device and param_num <= #device.parameters then
-                  param = device.parameters[param_num]
+                  local param = device.parameters[param_num]
                   if param then
                     print(string.format("Line %d: Effect %s -> Device %d, Parameter %d (%s), Value: %.3f", 
                                     line_index, number, device_num, param_num, param.name, amount))
@@ -3319,7 +3351,6 @@ function read_fx_to_automation()
                       local automation = get_or_create_cached_automation(device_num, param)
                       if automation then
                         automation:add_point_at(line_index, amount)
-                        -- Set playmode using proper Renoise enum values
                         if preferences.pakettiAutomationFormat.value == 1 then
                           automation.playmode = renoise.PatternTrackAutomation.PLAYMODE_LINES
                         elseif preferences.pakettiAutomationFormat.value == 2 then
@@ -3331,7 +3362,7 @@ function read_fx_to_automation()
                                         device_num, param.name, line_index, amount))
                       end
                     else
-                      print(string.format("WARNING: Parameter %s is not automatable!", param.name))
+                      print(string.format("WARNING: Parameter %s is not automatable", param.name))
                     end
                   else
                     print(string.format("WARNING: Invalid parameter %d for device %d", param_num, device_num))
@@ -3344,7 +3375,7 @@ function read_fx_to_automation()
               end
             else
               print(string.format("WARNING: Could not parse effect command: %s (device: %s, param: %s)", 
-                                number, device_char, param_char))
+                               number, device_char, param_char))
             end
           end
         end
@@ -3368,10 +3399,11 @@ function read_fx_to_automation()
   for device_num, device_automations in pairs(automation_cache) do
     for param_name, automation in pairs(device_automations) do
       print(string.format("Device %d Parameter '%s' has %d automation points", 
-                        device_num, param_name, #automation.points))
+                       device_num, param_name, #automation.points))
     end
   end
 end
+
 
 
 
