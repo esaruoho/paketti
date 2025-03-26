@@ -3316,6 +3316,12 @@ function read_fx_to_automation()
                 end
                 print(string.format("Added mixer point to automation for %s at line %d with value %.3f", 
                                  param.name, line_index, amount))
+                                 
+                -- Clear the effect if preference is set
+                if preferences.pakettiAutomationWipeAfterSwitch.value then
+                  fx.number_string = ""
+                  fx.amount_value = 0
+                end
               end
             end
 
@@ -3360,6 +3366,12 @@ function read_fx_to_automation()
                         end
                         print(string.format("Added point to automation for device %d %s at line %d with value %.3f", 
                                         device_num, param.name, line_index, amount))
+                        
+                        -- Clear the effect if preference is set
+                        if preferences.pakettiAutomationWipeAfterSwitch.value then
+                          fx.number_string = ""
+                          fx.amount_value = 0
+                        end
                       end
                     else
                       print(string.format("WARNING: Parameter %s is not automatable", param.name))

@@ -100,6 +100,7 @@ end
 
 preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiAutomationFormat=2,
+  pakettiAutomationWipeAfterSwitch=true,
   SelectedSampleBeatSyncLines = false,
   pakettiLoadOrder = false,
   pakettiOctaMEDNoteEchoDistance=2,
@@ -877,6 +878,17 @@ vb:row {
                 end
               } 
             },
+            vb:row {
+              vb:text{text="Retain Effect Column?",width=150},
+              vb:switch{
+                items={"Keep","Wipe"},
+                value=preferences.pakettiAutomationWipeAfterSwitch.value and 2 or 1,
+                width=200,
+                notifier=function(value)
+                  preferences.pakettiAutomationWipeAfterSwitch.value = (value == 2)
+                end
+              }
+            }
           
                         }                },
 
