@@ -100,6 +100,7 @@ end
 
 preferences = renoise.Document.create("ScriptingToolPreferences") {
   SelectedSampleBeatSyncLines = false,
+  pakettiLoadOrder = false,
   pakettiOctaMEDNoteEchoDistance=2,
   pakettiOctaMEDNoteEchoMin=1,
   pakettiRotateSampleBufferCoarse=1000,
@@ -1093,6 +1094,22 @@ vb:row {
   },
   horizontal_rule(),
 
+vb:column{style="group",margin=10, width="100%",
+  vb:row { 
+    vb:text{text="Device Load Order", style="strong",font="bold", width=150},
+    vb:switch{
+      items={"First", "Last"},
+      value=preferences.pakettiLoadOrder.value and 2 or 1,
+      width=200,
+      notifier=function(value) 
+        preferences.pakettiLoadOrder.value = (value == 2)
+        print (preferences.pakettiLoadOrder.value)
+      end
+    }
+  },
+},
+
+horizontal_rule(),
   vb:column{style="group",margin=10, width="100%",
     vb:row{vb:text{text="LFO Write Device Delete",style="strong",font="bold",width=150},vb:switch{items={"Off","On"},
     value=preferences.PakettiLFOWriteDelete and 2 or 1,width=200,

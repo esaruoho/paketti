@@ -70,8 +70,6 @@ function read_file(path)
 end
 
 -----------------------------------------------------------------------------------------------------------------------------------
-function checkline(effect)
-end
 
 function instrument_is_empty(instrument)
  local s=renoise.song()
@@ -277,8 +275,15 @@ function loadnative(effect, name, preset_path)
 
     if chain then
       local sample_devices = chain.devices
-      checkline = (table.count(sample_devices)) < 2 and 2 or (sample_devices[2] and sample_devices[2].name == "#Line Input" and 3 or 2)
+      if preferences.pakettiLoadOrder.value then
+        -- Load at end of chain
+        checkline = #sample_devices + 1
+      else
+        -- Load at start (after input device if present)
+        checkline = (table.count(sample_devices)) < 2 and 2 or (sample_devices[2] and sample_devices[2].name == "#Line Input" and 3 or 2)
+      end
       checkline = math.min(checkline, #sample_devices + 1)
+
 
       if is_blacklisted(effect, samplefx_blacklist) then
         renoise.app():show_status("The device " .. get_device_name(effect) .. " cannot be added to a Sample FX chain.")
@@ -329,9 +334,15 @@ function loadnative(effect, name, preset_path)
 
   else
     local sdevices = s.selected_track.devices
-    checkline = (table.count(sdevices)) < 2 and 2 or (sdevices[2] and sdevices[2].name == "#Line Input" and 3 or 2)
+    if preferences.pakettiLoadOrder.value then
+      -- Load at end of track devices
+      checkline = #sdevices + 1
+    else
+      -- Load at start (after input device if present)
+      checkline = (table.count(sdevices)) < 2 and 2 or (sdevices[2] and sdevices[2].name == "#Line Input" and 3 or 2)
+    end
     checkline = math.min(checkline, #sdevices + 1)
-
+    
     w.lower_frame_is_visible = true
     w.active_lower_frame = 1
 
@@ -529,103 +540,245 @@ renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise (Hidden) S
 -- ValhallaDSP ValhallaVintageVerb opens with 50% Wet instead of 100% Wet, and a long tail
 -- And each line input will become first.
 function loadvst(vstname, name, preset_path)
-  local checkline=nil
-  local s=renoise.song()
-  local slt=s.selected_track
-  local raw=renoise.app().window
-  local devices=s.selected_track.devices
+  local s = renoise.song()
+  local raw = renoise.app().window
+  local checkline = nil
 
-  if (table.count(s.selected_track.devices))<2 then checkline=2
+  if raw.lower_frame_is_visible == false then 
+    raw.lower_frame_is_visible = false
   else 
-    if s.selected_track.devices[2].name=="#Line Input" then checkline=3
-    else checkline=2
+    raw.lower_frame_is_visible = true 
+  end
+
+  if raw.active_middle_frame == 6 then
+    raw.active_middle_frame = 7 
+  end
+
+  if raw.active_middle_frame == 7 then
+    -- Sample chain device handling
+    local chain = s.selected_sample_device_chain
+    local chain_index = s.selected_sample_device_chain_index
+
+    if chain == nil or chain_index == 0 then
+      local instrument = s.selected_instrument
+      instrument:insert_sample_device_chain_at(1)
+      chain = s.selected_sample_device_chain
+      chain_index = 1
     end
-  end
 
-  if raw.lower_frame_is_visible==false then raw.lower_frame_is_visible=false
-  else raw.lower_frame_is_visible=true end
-
-if raw.active_middle_frame == 6 then
-raw.active_middle_frame = 7 end
-
-if raw.active_middle_frame==7 then
-  -- Check if the selected sample device chain exists, and create one if it doesn't
-  local chain=s.selected_sample_device_chain
-  local chain_index=s.selected_sample_device_chain_index
-
-  if chain==nil or chain_index==0 then
-    local instrument=s.selected_instrument
-    instrument:insert_sample_device_chain_at(1)
-    chain=s.selected_sample_device_chain
-    chain_index=1
-  end
-
-  if chain then
-    -- Determine the valid index for inserting the device
-    if (table.count(chain.devices))<2 then checkline=2
-    else 
-      if chain.devices[2].name=="#Line Input" then checkline=3
-      else checkline=2
+    if chain then
+      local devices = chain.devices
+      if preferences.pakettiLoadOrder.value then
+        -- Load at end of chain
+        checkline = #devices + 1
+      else
+        -- Load at start (after input device if present)
+        checkline = (table.count(devices)) < 2 and 2 or (devices[2] and devices[2].name == "#Line Input" and 3 or 2)
       end
+      
+      checkline = math.min(checkline, #devices + 1)
+
+      chain:insert_device_at(vstname, checkline)
+      local inserted_device = chain.devices[checkline]
+
+      if inserted_device.name == "AU: Koen Tanghe @ Smartelectronix: KTGranulator" then 
+        return
+      end
+      inserted_device.external_editor_visible = true 
+      inserted_device.is_maximized = false
+
+      -- Additional device-specific parameter adjustments
+      if inserted_device.name == "AU: Schaack Audio Technologies: TransientShaper" then 
+        inserted_device.parameters[1].show_in_mixer = true
+        inserted_device.parameters[2].show_in_mixer = true
+        inserted_device.parameters[4].show_in_mixer = true
+        inserted_device.parameters[7].show_in_mixer = true
+        inserted_device.is_maximized = false
+      end 
+
+      if inserted_device.name == "VST: FabFilter: Pro-Q" then 
+        inserted_device.parameters[206].value = 1 
+      end 
+
+      if inserted_device.name == "AU: TAL-Togu Audio Line: TAL Reverb 4 Plugin" then 
+        inserted_device.parameters[2].value = 0.0
+        inserted_device.parameters[3].value = 0.30
+        inserted_device.parameters[4].value = 0.88
+        inserted_device.parameters[5].value = 0.9
+        inserted_device.parameters[6].value = 1
+        inserted_device.parameters[7].value = 0.4
+        inserted_device.parameters[9].value = 0.7
+      end 
+
+      if inserted_device.name == "AU: Valhalla DSP, LLC: ValhallaVintageVerb" then 
+        inserted_device.parameters[1].value = 0.474
+        inserted_device.parameters[3].value = 0.688
+        inserted_device.parameters[15].value = 0.097
+      end 
+
+      if inserted_device.name == "AU: Koen Tanghe @ Smartelectronix: KTGranulator" then 
+        inserted_device.is_maximized = true
+        inserted_device.parameters[31].value = 1
+        inserted_device.parameters[16].value = 0.75
+        inserted_device.parameters[2].value = 0.50
+        inserted_device.parameters[3].value = 0.35
+        inserted_device.parameters[6].value = 0.75
+        raw.lower_frame_is_visible = true
+        raw.active_lower_frame = 1
+      end 
+
+      if inserted_device.name == "AU: George Yohng: W1 Limiter" then
+        inserted_device.is_maximized = true
+        inserted_device.parameters[1].show_in_mixer = true
+        inserted_device.parameters[2].show_in_mixer = true
+      end
+
+      -- Add preset loading if path is provided
+      if preset_path then
+        local preset_data = read_file(preset_path)
+        if preset_data then
+          inserted_device.active_preset_data = preset_data
+        else
+          renoise.app():show_status("Failed to load preset from: " .. preset_path)
+        end
+      end
+
+      -- Set custom name if provided
+      if name ~= nil then
+        inserted_device.display_name = name
+      end
+
+      renoise.song().selected_sample_device_index = checkline
     end
-    
-    -- Ensure checkline is within the valid range
-    checkline=math.min(checkline, #chain.devices + 1)
+  else
+    -- Track device handling
+    local devices = s.selected_track.devices
+    if preferences.pakettiLoadOrder.value then
+      -- Load at end of track devices
+      checkline = #devices + 1
+    else
+      -- Load at start (after input device if present)
+      checkline = (table.count(devices)) < 2 and 2 or (devices[2] and devices[2].name == "#Line Input" and 3 or 2)
+    end
+    checkline = math.min(checkline, #devices + 1)
 
-    chain:insert_device_at(vstname, checkline)
-    local inserted_device=chain.devices[checkline]
+    -- Insert device into track
+    s.selected_track:insert_device_at(vstname, checkline)
+    local inserted_device = s.selected_track.devices[checkline]
 
-    -- Insert the rest of your logic for handling the inserted device here
-    if inserted_device.name=="AU: Koen Tanghe @ Smartelectronix: KTGranulator" then 
+    if inserted_device.name == "AU: Koen Tanghe @ Smartelectronix: KTGranulator" then 
       return
     end
-    inserted_device.external_editor_visible=true 
-    inserted_device.is_maximized=false
+    inserted_device.external_editor_visible = true
+    inserted_device.is_maximized = false
+    renoise.song().selected_device_index = checkline
 
     -- Additional device-specific parameter adjustments
-    if inserted_device.name=="AU: Schaack Audio Technologies: TransientShaper" then 
-      inserted_device.parameters[1].show_in_mixer=true
-      inserted_device.parameters[2].show_in_mixer=true
-      inserted_device.parameters[4].show_in_mixer=true
-      inserted_device.parameters[7].show_in_mixer=true
-      inserted_device.is_maximized=false
+    if inserted_device.name == "AU: Schaack Audio Technologies: TransientShaper" then 
+      inserted_device.parameters[1].show_in_mixer = true
+      inserted_device.parameters[2].show_in_mixer = true
+      inserted_device.parameters[4].show_in_mixer = true
+      inserted_device.parameters[7].show_in_mixer = true
+      inserted_device.is_maximized = false
     end 
 
-    if inserted_device.name=="VST: FabFilter: Pro-Q" then 
-      inserted_device.parameters[206].value=1 
+    if inserted_device.name == "VST: FabFilter: Pro-Q" then 
+      inserted_device.parameters[206].value = 1 
     end 
 
-    if inserted_device.name=="AU: TAL-Togu Audio Line: TAL Reverb 4 Plugin" then 
-      inserted_device.parameters[2].value=0.0
-      inserted_device.parameters[3].value=0.30
-      inserted_device.parameters[4].value=0.88
-      inserted_device.parameters[5].value=0.9
-      inserted_device.parameters[6].value=1
-      inserted_device.parameters[7].value=0.4
-      inserted_device.parameters[9].value=0.7
+    if inserted_device.name == "AU: TAL-Togu Audio Line: TAL Reverb 4 Plugin" then 
+      inserted_device.parameters[2].value = 0.0
+      inserted_device.parameters[3].value = 0.30
+      inserted_device.parameters[4].value = 0.88
+      inserted_device.parameters[5].value = 0.9
+      inserted_device.parameters[6].value = 1
+      inserted_device.parameters[7].value = 0.4
+      inserted_device.parameters[9].value = 0.7
     end 
 
-    if inserted_device.name=="AU: Valhalla DSP, LLC: ValhallaVintageVerb" then 
-      inserted_device.parameters[1].value=0.474
-      inserted_device.parameters[3].value=0.688
-      inserted_device.parameters[15].value=0.097
+    if inserted_device.name == "AU: D16 Group Audio Software: Repeater" then
+      inserted_device.parameters[23].value = 0.19181250035763
+      inserted_device.parameters[24].value = 0.19181250035763
+      inserted_device.parameters[25].value = 0.49859374761581
+    end   
+
+    if inserted_device.name == "AU: Valhalla DSP, LLC: ValhallaVintageVerb" then 
+      inserted_device.parameters[1].value = 0.474
+      inserted_device.parameters[3].value = 0.688
+      inserted_device.parameters[15].value = 0.097
     end 
 
-    if inserted_device.name=="AU: Koen Tanghe @ Smartelectronix: KTGranulator" then 
-      inserted_device.is_maximized=true
-      inserted_device.parameters[31].value=1
-      inserted_device.parameters[16].value=0.75
-      inserted_device.parameters[2].value=0.50
-      inserted_device.parameters[3].value=0.35
-      inserted_device.parameters[6].value=0.75
-      raw.lower_frame_is_visible=true
-      raw.active_lower_frame=1
+    if inserted_device.name == "AU: Valhalla DSP, LLC: ValhallaDelay" then
+      inserted_device.parameters[23].value = 0.093999996781349
+    end
+
+    if inserted_device.name == "AU: Valhalla DSP, LLC: ValhallaShimmer" then
+      inserted_device.parameters[6].value = 0.095477387309074
+    end
+    
+    if inserted_device.name == "AU: Koen Tanghe @ Smartelectronix: KTGranulator" then 
+      inserted_device.is_maximized = true
+      inserted_device.parameters[31].value = 1
+      inserted_device.parameters[16].value = 0.75
+      inserted_device.parameters[2].value = 0.50
+      inserted_device.parameters[3].value = 0.35
+      inserted_device.parameters[6].value = 0.75
+      raw.lower_frame_is_visible = true
+      raw.active_lower_frame = 1
     end 
 
-    if inserted_device.name=="AU: George Yohng: W1 Limiter" then
-      inserted_device.is_maximized=true
-      inserted_device.parameters[1].show_in_mixer=true
-      inserted_device.parameters[2].show_in_mixer=true
+    if inserted_device.name == "AU: Ohm Force: Hematohm" then
+      inserted_device.parameters[1].value = 0.5000
+      inserted_device.parameters[2].value = 0.50015606155396
+    end
+
+    if inserted_device.name == "AU: Ohm Force: Predatohm" then
+      inserted_device.parameters[1].value = 0
+      inserted_device.parameters[2].value = 1
+      inserted_device.parameters[3].value = 0.5
+      inserted_device.parameters[4].value = 0
+      inserted_device.parameters[5].value = 0.5
+      inserted_device.parameters[6].value = 0
+      inserted_device.parameters[7].value = 0.50781202316284
+      inserted_device.parameters[8].value = 0.81027960777283
+      inserted_device.parameters[9].value = 0
+      inserted_device.parameters[10].value = 1
+      inserted_device.parameters[11].value = 1
+      inserted_device.parameters[12].value = 1
+      inserted_device.parameters[13].value = 0.502685546875
+      inserted_device.parameters[14].value = 0.4814453125
+      inserted_device.parameters[15].value = 0.33426922559738
+      inserted_device.parameters[16].value = 0
+      inserted_device.parameters[17].value = 0.5187132358551
+      inserted_device.parameters[18].value = 0
+      inserted_device.parameters[19].value = 0
+      inserted_device.parameters[20].value = 0.50007456541061
+      inserted_device.parameters[21].value = 0.5001220703125
+      inserted_device.parameters[22].value = 0.33447265625
+      inserted_device.parameters[23].value = 0
+      inserted_device.parameters[24].value = 0.51932287216187
+      inserted_device.parameters[25].value = 0
+      inserted_device.parameters[26].value = 0
+      inserted_device.parameters[27].value = 0.50007456541061
+      inserted_device.parameters[28].value = 0.5001220703125
+      inserted_device.parameters[29].value = 0.33447265625
+      inserted_device.parameters[30].value = 0
+      inserted_device.parameters[31].value = 0.51932287216187
+      inserted_device.parameters[32].value = 0
+      inserted_device.parameters[33].value = 0
+      inserted_device.parameters[34].value = 0.50007456541061
+      inserted_device.parameters[35].value = 0.5001220703125
+      inserted_device.parameters[36].value = 0.33447265625
+      inserted_device.parameters[37].value = 0
+      inserted_device.parameters[38].value = 0.51932287216187
+      inserted_device.parameters[39].value = 0
+      inserted_device.parameters[40].value = 0
+    end
+
+    if inserted_device.name == "AU: George Yohng: W1 Limiter" then
+      inserted_device.is_maximized = true
+      inserted_device.parameters[1].show_in_mixer = true
+      inserted_device.parameters[2].show_in_mixer = true
     end
 
     -- Add preset loading if path is provided
@@ -642,143 +795,9 @@ if raw.active_middle_frame==7 then
     if name ~= nil then
       inserted_device.display_name = name
     end
-
-    renoise.song().selected_sample_device_index=checkline
-  end
-else
-  -- Original functionality for selected track
-  s.selected_track:insert_device_at(vstname, checkline)
-  local inserted_device=s.selected_track.devices[checkline]
-
-  if inserted_device.name=="AU: Koen Tanghe @ Smartelectronix: KTGranulator" then return
-  else inserted_device.external_editor_visible=true end
-  inserted_device.is_maximized=false
-  renoise.song().selected_device_index=checkline
-
-  -- Additional device-specific parameter adjustments
-  if inserted_device.name=="AU: Schaack Audio Technologies: TransientShaper" then 
-    inserted_device.parameters[1].show_in_mixer=true
-    inserted_device.parameters[2].show_in_mixer=true
-    inserted_device.parameters[4].show_in_mixer=true
-    inserted_device.parameters[7].show_in_mixer=true
-    inserted_device.is_maximized=false
-  end 
-
-  if inserted_device.name=="VST: FabFilter: Pro-Q" then 
-    inserted_device.parameters[206].value=1 
-  end 
-
-  if inserted_device.name=="AU: TAL-Togu Audio Line: TAL Reverb 4 Plugin" then 
-    inserted_device.parameters[2].value=0.0
-    inserted_device.parameters[3].value=0.30
-    inserted_device.parameters[4].value=0.88
-    inserted_device.parameters[5].value=0.9
-    inserted_device.parameters[6].value=1
-    inserted_device.parameters[7].value=0.4
-    inserted_device.parameters[9].value=0.7
-  end 
-
-
-  if inserted_device.name=="AU: D16 Group Audio Software: Repeater" then
-inserted_device.parameters[23].value=0.19181250035763
-inserted_device.parameters[24].value=0.19181250035763
-inserted_device.parameters[25].value=0.49859374761581
-  end   
-  if inserted_device.name=="AU: Valhalla DSP, LLC: ValhallaVintageVerb" then 
-    inserted_device.parameters[1].value=0.474
-    inserted_device.parameters[3].value=0.688
-    inserted_device.parameters[15].value=0.097
-  end 
-
-  if inserted_device.name=="AU: Valhalla DSP, LLC: ValhallaDelay" then
-    inserted_device.parameters[23].value=0.093999996781349
-  end
-
-  if inserted_device.name=="AU: Valhalla DSP, LLC: ValhallaShimmer" then
-    inserted_device.parameters[6].value =0.095477387309074
-  end
-  
-  if inserted_device.name=="AU: Koen Tanghe @ Smartelectronix: KTGranulator" then 
-    inserted_device.is_maximized=true
-    inserted_device.parameters[31].value=1
-    inserted_device.parameters[16].value=0.75
-    inserted_device.parameters[2].value=0.50
-    inserted_device.parameters[3].value=0.35
-    inserted_device.parameters[6].value=0.75
-    raw.lower_frame_is_visible=true
-    raw.active_lower_frame=1
-  end 
-
-  if inserted_device.name=="AU: Ohm Force: Hematohm" then
-    inserted_device.parameters[1].value=0.5000
-    inserted_device.parameters[2].value=0.50015606155396
-  end
-
-  if inserted_device.name=="AU: Ohm Force: Predatohm" then
-    inserted_device.parameters[1].value=0
-    inserted_device.parameters[2].value=1
-    inserted_device.parameters[3].value=0.5
-    inserted_device.parameters[4].value=0
-    inserted_device.parameters[5].value=0.5
-    inserted_device.parameters[6].value=0
-    inserted_device.parameters[7].value=0.50781202316284
-    inserted_device.parameters[8].value=0.81027960777283
-    inserted_device.parameters[9].value=0
-    inserted_device.parameters[10].value=1
-    inserted_device.parameters[11].value=1
-    inserted_device.parameters[12].value=1
-    inserted_device.parameters[13].value=0.502685546875
-    inserted_device.parameters[14].value=0.4814453125
-    inserted_device.parameters[15].value=0.33426922559738
-    inserted_device.parameters[16].value=0
-    inserted_device.parameters[17].value=0.5187132358551
-    inserted_device.parameters[18].value=0
-    inserted_device.parameters[19].value=0
-    inserted_device.parameters[20].value=0.50007456541061
-    inserted_device.parameters[21].value=0.5001220703125
-    inserted_device.parameters[22].value=0.33447265625
-    inserted_device.parameters[23].value=0
-    inserted_device.parameters[24].value=0.51932287216187
-    inserted_device.parameters[25].value=0
-    inserted_device.parameters[26].value=0
-    inserted_device.parameters[27].value=0.50007456541061
-    inserted_device.parameters[28].value=0.5001220703125
-    inserted_device.parameters[29].value=0.33447265625
-    inserted_device.parameters[30].value=0
-    inserted_device.parameters[31].value=0.51932287216187
-    inserted_device.parameters[32].value=0
-    inserted_device.parameters[33].value=0
-    inserted_device.parameters[34].value=0.50007456541061
-    inserted_device.parameters[35].value=0.5001220703125
-    inserted_device.parameters[36].value=0.33447265625
-    inserted_device.parameters[37].value=0
-    inserted_device.parameters[38].value=0.51932287216187
-    inserted_device.parameters[39].value=0
-    inserted_device.parameters[40].value=0
-  end
-
-  if inserted_device.name=="AU: George Yohng: W1 Limiter" then
-    inserted_device.is_maximized=true
-    inserted_device.parameters[1].show_in_mixer=true
-    inserted_device.parameters[2].show_in_mixer=true
-  end
-
-  -- Add preset loading if path is provided
-  if preset_path then
-    local preset_data = read_file(preset_path)
-    if preset_data then
-      inserted_device.active_preset_data = preset_data
-    else
-      renoise.app():show_status("Failed to load preset from: " .. preset_path)
-    end
-  end
-
-  -- Set custom name if provided
-  if name ~= nil then
-    inserted_device.display_name = name
   end
 end
-end
+
 --Audio/Effects/AU/aufx:cHL1:TOGU
 --Audio/Effects/AU/aumf:58h8:TOGU
 --73  Audio/Effects/AU/aumf:676v:TOGU

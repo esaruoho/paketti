@@ -73,11 +73,11 @@
   <dynamic_view02_pattern_matrix_visible_step1>2</dynamic_view02_pattern_matrix_visible_step1>
   <dynamic_view02_pattern_advanced_edit_visible_step1>2</dynamic_view02_pattern_advanced_edit_visible_step1>
   <dynamic_view02_upper_step2>1.0</dynamic_view02_upper_step2>
-  <dynamic_view02_middle_step2>8</dynamic_view02_middle_step2>
+  <dynamic_view02_middle_step2>5</dynamic_view02_middle_step2>
   <dynamic_view02_lower_step2>2</dynamic_view02_lower_step2>
   <dynamic_view02_sample_record_visible_step2>1.0</dynamic_view02_sample_record_visible_step2>
-  <dynamic_view02_disk_browser_visible_step2>1.0</dynamic_view02_disk_browser_visible_step2>
-  <dynamic_view02_instrument_box_visible_step2>1.0</dynamic_view02_instrument_box_visible_step2>
+  <dynamic_view02_disk_browser_visible_step2>2</dynamic_view02_disk_browser_visible_step2>
+  <dynamic_view02_instrument_box_visible_step2>2</dynamic_view02_instrument_box_visible_step2>
   <dynamic_view02_pattern_matrix_visible_step2>2</dynamic_view02_pattern_matrix_visible_step2>
   <dynamic_view02_pattern_advanced_edit_visible_step2>2</dynamic_view02_pattern_advanced_edit_visible_step2>
   <dynamic_view02_upper_step3>1.0</dynamic_view02_upper_step3>
@@ -89,7 +89,7 @@
   <dynamic_view02_pattern_matrix_visible_step3>2</dynamic_view02_pattern_matrix_visible_step3>
   <dynamic_view02_pattern_advanced_edit_visible_step3>2</dynamic_view02_pattern_advanced_edit_visible_step3>
   <dynamic_view02_upper_step4>1.0</dynamic_view02_upper_step4>
-  <dynamic_view02_middle_step4>4</dynamic_view02_middle_step4>
+  <dynamic_view02_middle_step4>8</dynamic_view02_middle_step4>
   <dynamic_view02_lower_step4>2</dynamic_view02_lower_step4>
   <dynamic_view02_sample_record_visible_step4>1.0</dynamic_view02_sample_record_visible_step4>
   <dynamic_view02_disk_browser_visible_step4>1.0</dynamic_view02_disk_browser_visible_step4>
@@ -97,13 +97,13 @@
   <dynamic_view02_pattern_matrix_visible_step4>2</dynamic_view02_pattern_matrix_visible_step4>
   <dynamic_view02_pattern_advanced_edit_visible_step4>2</dynamic_view02_pattern_advanced_edit_visible_step4>
   <dynamic_view02_upper_step5>1.0</dynamic_view02_upper_step5>
-  <dynamic_view02_middle_step5>5</dynamic_view02_middle_step5>
-  <dynamic_view02_lower_step5>2</dynamic_view02_lower_step5>
+  <dynamic_view02_middle_step5>1.0</dynamic_view02_middle_step5>
+  <dynamic_view02_lower_step5>1.0</dynamic_view02_lower_step5>
   <dynamic_view02_sample_record_visible_step5>1.0</dynamic_view02_sample_record_visible_step5>
   <dynamic_view02_disk_browser_visible_step5>1.0</dynamic_view02_disk_browser_visible_step5>
   <dynamic_view02_instrument_box_visible_step5>1.0</dynamic_view02_instrument_box_visible_step5>
-  <dynamic_view02_pattern_matrix_visible_step5>2</dynamic_view02_pattern_matrix_visible_step5>
-  <dynamic_view02_pattern_advanced_edit_visible_step5>2</dynamic_view02_pattern_advanced_edit_visible_step5>
+  <dynamic_view02_pattern_matrix_visible_step5>1.0</dynamic_view02_pattern_matrix_visible_step5>
+  <dynamic_view02_pattern_advanced_edit_visible_step5>1.0</dynamic_view02_pattern_advanced_edit_visible_step5>
   <dynamic_view02_upper_step6>1.0</dynamic_view02_upper_step6>
   <dynamic_view02_middle_step6>1.0</dynamic_view02_middle_step6>
   <dynamic_view02_lower_step6>1.0</dynamic_view02_lower_step6>

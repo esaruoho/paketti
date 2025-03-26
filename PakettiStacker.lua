@@ -430,7 +430,7 @@ vb:button{text="Reverse",notifier=function() set_loop_mode_for_selected_instrume
 vb:row{vb:text{text="PitchStepper",width=100,font="bold",style="strong"},
 vb:button{text="+12 -12",width=50,notifier=function() PakettiFillPitchStepper() end},
 vb:button{text="+24 -24",width=50,notifier=function() PakettiFillPitchStepperTwoOctaves() end},
-vb:button{text="0",width=50,notifier=function() PakettiClearPitchStepper() end},
+vb:button{text="0",width=50,notifier=function() PakettiClearStepper("Pitch Stepper") end},
 },
 vb:row{
 vb:text{text="Instrument Pitch",width=100,font="bold",style="strong"},

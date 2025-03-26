@@ -205,9 +205,9 @@ local s = renoise.song()
 local t = s.transport
 local startpos = t.playback_pos
 
-if t.playing then t:panic() ResetAllPitchSteppers() else end
+if t.playing then t:panic() ResetAllSteppers() else end
   t:panic()
-  ResetAllPitchSteppers()
+  ResetAllSteppers()
   startpos.sequence = 1
   startpos.line = 1
   t.playback_pos = startpos
@@ -237,7 +237,7 @@ function ImpulseTrackerPlayFromLine()
 local monitoring_enabled = true
   --InitSBx()
   reset_repeat_counts()
-  ResetAllPitchSteppers()
+  ResetAllSteppers()
 
  local s = renoise.song()
  local t = s.transport
@@ -278,7 +278,7 @@ function ImpulseTrackerStop()
     t:panic()
     t.loop_pattern = false
     t.loop_block_enabled = false
-    ResetAllPitchSteppers()
+    ResetAllSteppers()
     return
   end
 
@@ -298,7 +298,7 @@ function ImpulseTrackerStop()
   -- If already at first pattern and line, trigger panic
   if s.selected_sequence_index == 1 and s.selected_line_index == 1 then
     t:panic()
-    ResetAllPitchSteppers()
+    ResetAllSteppers()
   end
 end
 
@@ -312,7 +312,7 @@ local startpos = t.playback_pos
 
 if t.playing then ImpulseTrackerStop() 
    t.edit_mode=true
-   ResetAllPitchSteppers()
+   ResetAllSteppers()
 else
   startpos.sequence = 1
   startpos.line = 1
@@ -711,10 +711,10 @@ renoise.tool():add_keybinding{name="Automation:Paketti:Impulse Tracker ALT-D Dou
 
 
 --------------------------------------------------------------------------------------------------------------------------------
--- Protman's set octave
+-- Protman's set octave with or without EditStep
 -- Protman: Thanks to suva for the function per octave declaration loop :)
 -- http://www.protman.com
-function Octave(new_octave)
+function Octave(new_octave, use_editstep)
   local new_pos = 0
   local s = renoise.song()
   local editstep = s.transport.edit_step
@@ -723,15 +723,21 @@ function Octave(new_octave)
   if ((s.selected_note_column ~= nil) and (s.selected_note_column.note_value < 120)) then
     s.selected_note_column.note_value = s.selected_note_column.note_value  % 12 + (12 * new_octave)
   end
-  new_pos.line = new_pos.line + editstep
-  if new_pos.line <= s.selected_pattern.number_of_lines then
-     s.transport.edit_pos = new_pos
+  
+  if use_editstep then
+    new_pos.line = new_pos.line + editstep
+    if new_pos.line <= s.selected_pattern.number_of_lines then
+       s.transport.edit_pos = new_pos
+    end
   end
 end
 
+-- Create keybindings for both with and without EditStep
 for oct=0,9 do
-  renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Set Note to Octave " .. oct,
-    invoke=function() Octave(oct) end }
+  renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Set Note to Octave " .. oct .. " with EditStep",
+    invoke=function() Octave(oct, true) end }
+  renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Set Note to Octave " .. oct .. " without EditStep",
+    invoke=function() Octave(oct, false) end }
 end
 -------------------------------------------------------------------------------------------------------------------------------------
 ------Protman PageUp PageDn

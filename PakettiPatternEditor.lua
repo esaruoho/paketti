@@ -3153,7 +3153,124 @@ renoise.tool():add_midi_mapping{name="Paketti:Insert Random Panning to Selected 
 renoise.tool():add_midi_mapping{name="Paketti:Insert Random Volume to Selected Row",invoke=function()insert_random_value("volume")end}
 
 
+-- Function to replicate current note column content
+function PakettiReplicateNoteColumnAtCursor(transpose, row_option)
+  local song = renoise.song()
+  local pattern = song.selected_pattern
+  local cursor_row = song.selected_line_index
+  local pattern_length = pattern.number_of_lines
+  local selected_track_index = song.selected_track_index
+  local selected_column_index = song.selected_note_column_index
 
+  -- Check if there is content to replicate
+  if (cursor_row == pattern_length and row_option == "above_and_current") then
+    renoise.app():show_status("No rows to replicate.")
+    return
+  end
+  if (cursor_row == 1 and row_option == "above_current") then
+    row_option = "above_and_current"
+  end
+
+  -- Determine the repeat_length and starting row based on row_option
+  local repeat_length, start_row
+  if row_option == "above_current" then
+    if cursor_row == 1 then
+      renoise.app():show_status("You are on the first row, nothing to replicate.")
+      return
+    end
+    repeat_length = cursor_row - 1
+    start_row = cursor_row
+  elseif row_option == "above_and_current" then
+    repeat_length = cursor_row
+    start_row = cursor_row + 1
+    if cursor_row == pattern_length then
+      renoise.app():show_status("You are on the last row, nothing to replicate.")
+      return
+    end
+  else
+    renoise.app():show_status("Invalid row option: " .. tostring(row_option))
+    return
+  end
+
+  if repeat_length == 0 then
+    renoise.app():show_status("No rows to replicate.")
+    return
+  end
+
+  transpose = transpose or 0
+
+  local function transpose_note(note_value, transpose_amount)
+    local min_note = 0
+    local max_note = 119
+    if note_value >= min_note and note_value <= max_note then
+      local new_note = note_value + transpose_amount
+      if new_note > max_note then new_note = max_note
+      elseif new_note < min_note then new_note = min_note end
+      return new_note
+    else
+      return note_value
+    end
+  end
+
+  -- Replicate only the selected note column
+  for row = start_row, pattern_length do
+    local source_row = ((row - start_row) % repeat_length) + 1
+    local source_line = pattern:track(selected_track_index):line(source_row)
+    local dest_line = pattern:track(selected_track_index):line(row)
+
+    local source_note = source_line.note_columns[selected_column_index]
+    local dest_note = dest_line.note_columns[selected_column_index]
+
+    dest_note.note_value = transpose_note(source_note.note_value, transpose)
+    dest_note.instrument_value = source_note.instrument_value
+    dest_note.volume_value = source_note.volume_value
+    dest_note.panning_value = source_note.panning_value
+    dest_note.delay_value = source_note.delay_value
+    dest_note.effect_number_value = source_note.effect_number_value
+    dest_note.effect_amount_value = source_note.effect_amount_value
+  end
+
+  renoise.app():show_status("Replicated note column with transpose: " .. transpose)
+end
+
+-- Helper function for note column replication
+local function create_note_column_replicate_function(transpose, row_option)
+  return function()
+    PakettiReplicateNoteColumnAtCursor(transpose, row_option)
+  end
+end
+-- Options for transpose and rows for note column replication
+local transpose_options = {
+  {value = -12, name = "(-12)"},
+  {value = -1, name = "(-1)"},
+  {value = 0, name = ""},
+  {value = 1, name = "(+1)"},
+  {value = 12, name = "(+12)"},
+}
+
+local row_options = {
+  {value = "above_current", name = "Above Current Row"},
+  {value = "above_and_current", name = "Above + Current"},
+}
+
+-- Create menu entries, keybindings, and MIDI mappings for note column replication
+for _, row_opt in ipairs(row_options) do
+  for _, transpose_opt in ipairs(transpose_options) do
+    local replicate_function = create_note_column_replicate_function(transpose_opt.value, row_opt.value)
+    local menu_entry_name = "Pattern Editor:Paketti..:Replicate..:Replicate Note Column " .. row_opt.name .. " " .. transpose_opt.name
+    renoise.tool():add_menu_entry{name=menu_entry_name,invoke=replicate_function}
+    
+    local keybinding_name = "Pattern Editor:Paketti:Replicate Note Column " .. row_opt.name .. " " .. transpose_opt.name
+    renoise.tool():add_keybinding{name=keybinding_name,invoke=replicate_function}
+    
+    local midi_mapping_name = "Paketti:Replicate Note Column " .. row_opt.name .. " " .. transpose_opt.name
+    renoise.tool():add_midi_mapping{name=midi_mapping_name,invoke=function(message)
+      if message:is_trigger() then
+        replicate_function()
+      end
+    end}
+  end
+end
 -------
 -------
 -- Main function to replicate content

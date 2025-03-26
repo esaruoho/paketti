@@ -8453,8 +8453,8 @@ function map_crossfade_to_ab(crossfade_value)
     local track = song:track(i)
     for j = 2, #track.devices do
       local device = track.devices[j]
-      if device.display_name == "Gainer A" then device.parameters[1].value = scaled_a * 4 end
-      if device.display_name == "Gainer B" then device.parameters[1].value = scaled_b * 4 end
+      if device.display_name == "Gainer A" then device.parameters[1].value = scaled_a end
+      if device.display_name == "Gainer B" then device.parameters[1].value = scaled_b end
     end
   end
 end
@@ -8465,6 +8465,50 @@ renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Add Gainer A to Selected T
 renoise.tool():add_keybinding{name="Global:Paketti:Add Gainer B to Selected Track",invoke=function() AddGainerCrossfadeSelectedTrack("B") end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Add Gainer B to Selected Track",invoke=function() AddGainerCrossfadeSelectedTrack("B") end}
 renoise.tool():add_midi_mapping{name="Paketti:Gainer Crossfade A/B",invoke=function(midi_message) map_crossfade_to_ab(midi_message.int_value) end}
+
+------
+function flip_gainers()
+  local song = renoise.song()
+  local current_state = false -- will be used to track which gainer is active
+  
+  -- First, check any track's first gainer to determine current state
+  for i = 1, song.sequencer_track_count do
+    local track = song:track(i)
+    for j = 2, #track.devices do
+      local device = track.devices[j]
+      if device.display_name == "Gainer A" then
+        current_state = (device.parameters[1].value > 0.9) -- if A is high, we're in A state
+        break
+      end
+      if device.display_name == "Gainer B" then
+        current_state = (device.parameters[1].value <= 0.9) -- if B is low, we're in A state
+        break
+      end
+    end
+    break -- we only need to check the first track
+  end
+  
+  -- Now flip the state
+  local a_value = current_state and 0 or 1
+  local b_value = current_state and 1 or 0
+  
+  -- Apply to all tracks
+  for i = 1, song.sequencer_track_count do
+    local track = song:track(i)
+    for j = 2, #track.devices do
+      local device = track.devices[j]
+      if device.display_name == "Gainer A" then device.parameters[1].value = a_value end
+      if device.display_name == "Gainer B" then device.parameters[1].value = b_value end
+    end
+  end
+  
+  renoise.app():show_status(string.format("Switched to Gainer %s", current_state and "B" or "A"))
+end
+
+-- Add keybinding and menu entry for the flipper
+renoise.tool():add_keybinding{name="Global:Paketti:Flip Gainers A/B",invoke=function() flip_gainers() end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Flip Gainers A/B",invoke=function() flip_gainers() end}
+
 
 ------
 -- Create a timestamp in the format YYYYMMDD-HHMMSS
@@ -10187,6 +10231,7 @@ function deleteUnusedSamples()
   local song = renoise.song()
   local used_notes = {}
   local used_samples = {}
+  local cleared_count = 0
   
   -- Initialize tracking tables
   for i = 1, #song.instruments do
@@ -10285,22 +10330,13 @@ function deleteUnusedSamples()
 end
 
 -- Add menu entries and keybindings (FIXED VERSION)
-renoise.tool():add_menu_entry{
-  name="Main Menu:Tools:Paketti..:Delete Unused Samples...",
-  invoke=deleteUnusedSamples  -- Just pass the function reference, don't execute it
-}
-renoise.tool():add_menu_entry{
-  name="Main Menu:File:Delete Unused Samples...",
-  invoke=deleteUnusedSamples
-}
-renoise.tool():add_menu_entry{
-  name="Instrument Box:Paketti..:Delete Unused Samples...",
-  invoke=deleteUnusedSamples
-}
-renoise.tool():add_keybinding{
-  name="Global:Paketti:Delete Unused Samples",
-  invoke=deleteUnusedSamples
-}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Delete Unused Samples...",invoke=deleteUnusedSamples}
+renoise.tool():add_menu_entry{name="Main Menu:File:Delete Unused Samples...",invoke=deleteUnusedSamples}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Delete Unused Samples...",invoke=deleteUnusedSamples}
+renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Delete Unused Samples...",invoke=deleteUnusedSamples}
+renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti..:Delete Unused Samples...",invoke=deleteUnusedSamples}
+
+renoise.tool():add_keybinding{name="Global:Paketti:Delete Unused Samples",invoke=deleteUnusedSamples}
 --------
 
 -----------
