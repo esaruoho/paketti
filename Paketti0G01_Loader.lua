@@ -99,6 +99,7 @@ function create_device_entry(name, path, device_type)
 end
 
 preferences = renoise.Document.create("ScriptingToolPreferences") {
+  pakettiAutomationFormat=2,
   SelectedSampleBeatSyncLines = false,
   pakettiLoadOrder = false,
   pakettiOctaMEDNoteEchoDistance=2,
@@ -845,7 +846,7 @@ vb:row {
             horizontal_rule(),
 
             vb:column {
-              style="group",margin=10, width="100%",
+              style="group",margin=10,-- width="100%",
             -- Create the dropdown menu row
             vb:row { 
               vb:text{text="Dialog Close Key", width=150, style="strong",font="bold"},
@@ -859,10 +860,25 @@ vb:row {
               },
             
                   },
-                                            
-            
-                              }
-        },
+                },
+          horizontal_rule(),
+          vb:column {
+            style="group",margin=10, width="100%",
+            vb:text{style="strong",font="bold",text="Effect Column->Automation Settings"},
+            vb:row { 
+              vb:text{text="Format",width=150},
+              vb:switch{
+                items={"Lines","Points","Curves"},
+                value=preferences.pakettiAutomationFormat.value,
+                width=200,
+                notifier=function(value) 
+                  preferences.pakettiAutomationFormat.value = value
+                  print("Automation format set to: " .. value)
+                end
+              } 
+            },
+          
+                        }                },
 
         -- Column 2
         vb:column {

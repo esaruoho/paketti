@@ -14,7 +14,8 @@ local donations = {
   {"2024-09-19", "Casiino", 12.87, {"Instagram", "https://www.instagram.com/elcasiino/"}},
   {"2024-10-25", "grymmjack", 9.11, {"YouTube", "https://youtube.com/grymmjack"}, {"Soundcloud","https://soundcloud.com/grymmjack"},{"GitHub","https://github.com/grymmjack"}},
   {"2024-12-19", "c0der9", 4.23, {"Codingplace.de","https://codingplace.de"}},
-  {"2024-12-25", "tkna | TAKAHASHI Naoki", 100.00, {"tkna", "https://tkna.work"}, {"1/a", "https://one-over-a.com"}, {"Ittteki", "https://ittteki.com"}}
+  {"2024-12-25", "tkna | TAKAHASHI Naoki", 100.00, {"tkna", "https://tkna.work"}, {"1/a", "https://one-over-a.com"}, {"Ittteki", "https://ittteki.com"}},
+  {"2025-03-26", "Brandon Hale", 20.61, {"bthale", "https://bthale.com"}, {"YouTube", "https://www.youtube.com/@brandonhale7574"}}
 }
 
 local total_amount = 0
@@ -155,7 +156,15 @@ vb:horizontal_aligner{mode="distribute",
       vb:button{text = donations[11+1][4][1], notifier = function() renoise.app():open_url(donations[11+1][4][2]) end},
       vb:button{text = donations[11+1][5][1], notifier = function() renoise.app():open_url(donations[11+1][5][2]) end},
       vb:button{text = donations[11+1][6][1], notifier = function() renoise.app():open_url(donations[11+1][6][2]) end}}
-    },   
+    }, 
+    vb:row{
+      vb:text{text = donations[12+1][1], width = 70},
+      vb:text{text = donations[12+1][2], width = 150},
+      vb:text{text = string.format("%.2f", donations[12+1][3]).."€", width = 50, font = "bold"},
+      vb:horizontal_aligner{mode = "left",
+      vb:button{text = donations[12+1][4][1], notifier = function() renoise.app():open_url(donations[12+1][4][2]) end},
+      vb:button{text = donations[12+1][5][1], notifier = function() renoise.app():open_url(donations[12+1][5][2]) end}}
+    },
     
 
     vb:space{height = 5},
@@ -197,7 +206,7 @@ function show_about_dialog()
   if dialog and dialog.visible then
     dialog:close() -- Close the dialog if it's open
   else
-    dialog = renoise.app():show_custom_dialog("About Paketti / Donations, written by Esa Juhani Ruoho (C) 2009-2024", dialog_content, my_keyhandler_func)
+    dialog = renoise.app():show_custom_dialog("About Paketti / Donations, written by Esa Juhani Ruoho (C) 2009-2025", dialog_content, my_keyhandler_func)
   end
 end
 
@@ -344,7 +353,6 @@ local function toggle_paketti_dialog()
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Toggle Paketti Dialog of Dialogs",invoke=function() toggle_paketti_dialog() end}
-
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti Dialog of Dialogs...",invoke=function() toggle_paketti_dialog() end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Paketti New Song Dialog...",invoke=function() show_new_song_dialog() end }
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti Track Dater & Titler...",invoke=function() PakettiTrackDaterTitlerDialog() end}
@@ -362,3 +370,4 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Oblique Strategies
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti Track Renamer...",invoke=function() PakettiTrackRenamerDialog() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti eSpeak Text-to-Speech...",invoke=function()PakettieSpeakToggleDialog()end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress:Audio Processing Tools...",invoke=function() PakettiAudioProcessingToolsDialogShow() end}
+
