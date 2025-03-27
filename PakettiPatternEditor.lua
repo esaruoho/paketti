@@ -5985,3 +5985,162 @@ renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Write Notes..:Write
 
 
 
+
+local velocity_dialog = nil
+function pakettiVolumeInterpolationLooper()
+  if velocity_dialog and velocity_dialog.visible then
+    velocity_dialog:close()
+    return
+  end
+
+  local vb = renoise.ViewBuilder()
+  local DEFAULT_NOTES = 16
+  local notes_count = DEFAULT_NOTES
+  local start_vol = 0
+  local end_vol = 128
+
+  local function formatVolumeValue(value)
+    return string.format("%03d (%02X)", value, value)
+  end
+
+local function apply_interpolation()
+  local song = renoise.song()
+  local pattern_index = song.selected_pattern_index
+  local track_index = song.selected_track_index
+  local track = song.tracks[track_index]
+  
+  -- Make volume column visible
+  track.volume_column_visible = true
+  
+  local pattern = song:pattern(pattern_index)
+  local track_data = pattern:track(track_index)
+  local pattern_lines = pattern.number_of_lines
+  
+  -- First pass: Count actual notes in pattern
+  local notes = {}
+  for line_index = 1, pattern_lines do
+    local line = track_data:line(line_index)
+    local has_note = false
+    for note_column_index = 1, track.visible_note_columns do
+      if line:note_column(note_column_index).note_value ~= 121 then -- 121 is empty note
+        has_note = true
+        break
+      end
+    end
+    if has_note then
+      table.insert(notes, line_index)
+    end
+  end
+  
+  -- Check if pattern is empty
+  if #notes == 0 then
+    renoise.app():show_status("No notes to interpolate with, doing nothing")
+    return
+  end
+  
+  -- Calculate interpolation
+  for i = 1, #notes do
+    -- Calculate position within the cycle
+    local cycle_position = ((i - 1) % notes_count)
+    -- Calculate interpolation factor (0 to 1)
+    local factor = cycle_position / (math.max(1, notes_count - 1))  -- Changed this line
+    -- Calculate volume
+    local interpolated_vol = math.floor(start_vol + (end_vol - start_vol) * factor)
+    interpolated_vol = math.min(128, math.max(0, interpolated_vol))
+    
+    local line = track_data:line(notes[i])
+    -- Apply same volume to all note columns in the same line
+    for note_column_index = 1, track.visible_note_columns do
+      if line:note_column(note_column_index).note_value ~= 121 then
+        line:note_column(note_column_index).volume_value = interpolated_vol
+      end
+    end
+  end
+  
+  renoise.app():show_status(string.format(
+    "Applied interpolation to %d notes (cycle: %d)", 
+    #notes, 
+    notes_count
+  ))
+end
+
+velocity_dialog = renoise.app():show_custom_dialog(
+    "Paketti Volume Interpolation Looper",
+    vb:column {width=250,
+      vb:row {width=250,
+        vb:text { text = "Notes", width = 90, style="strong",font="bold" },
+        vb:valuebox {
+          min = 1,
+          max = 512,
+          value = DEFAULT_NOTES,
+          notifier = function(value)
+            notes_count = value
+          end
+        }
+      },
+      vb:row {width=250,
+        vb:text { text = "StartVolume", width = 90, style="strong",font="bold" },
+        vb:slider {
+          min = 0,
+          max = 128,
+          value = start_vol,
+          width = 100,
+          notifier = function(value)
+            start_vol = value
+            vb.views.start_vol_display.text = formatVolumeValue(value)
+          end
+        },
+        vb:text { 
+          id = "start_vol_display", width=50,
+          text = formatVolumeValue(start_vol)
+        }
+      },
+      vb:row {width=250,
+        vb:text { text = "EndVolume", width = 90, style="strong",font="bold" },
+        vb:slider {
+          min = 0,
+          max = 128,
+          value = end_vol,
+          width = 100,
+          notifier = function(value)
+            end_vol = value
+            vb.views.end_vol_display.text = formatVolumeValue(value)
+          end
+        },
+        vb:text { 
+          id = "end_vol_display", width=50,
+          text = formatVolumeValue(end_vol)
+        }
+      },
+      vb:button {
+        text = "Print",
+        notifier = function()
+          apply_interpolation()
+          renoise.app():show_status("Volume interpolation applied")
+        end
+      }
+    }, 
+    pakettiInterpolationLooperKeyhandler
+  )
+  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+end
+
+function pakettiInterpolationLooperKeyhandler(dialog, key)
+  local closer = preferences.pakettiDialogClose.value
+  if key.modifiers == "" and key.name == closer then
+    dialog:close()
+    return
+  end
+  
+  -- Allow other keys to pass through
+  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+
+  return key
+end
+
+renoise.tool():add_menu_entry {name = "--Main Menu:Tools:Paketti..:Pattern Editor..:Volume Interpolation Looper",invoke = pakettiVolumeInterpolationLooper}
+renoise.tool():add_menu_entry {name = "--Pattern Editor:Paketti..:Volume Interpolation Looper",invoke = pakettiVolumeInterpolationLooper}
+renoise.tool():add_keybinding {name = "Pattern Editor:Tools:Paketti Volume Interpolation Looper",invoke = pakettiVolumeInterpolationLooper}
+
+
+
