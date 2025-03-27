@@ -1105,3 +1105,143 @@ end
 
 
 
+
+---------
+local target_devices = {
+  "Audio/Effects/Native/Delay",                -- [1]
+  "Audio/Effects/Native/Multitap",            -- [2]
+  "Audio/Effects/Native/mpReverb 2",          -- [3]
+  "Audio/Effects/Native/Reverb",              -- [4]
+  "Audio/Effects/Native/Convolver",           -- [5]
+  "Audio/Effects/Native/Bus Compressor",      -- [6]
+  "Audio/Effects/Native/Compressor",          -- [7]
+  "Audio/Effects/Native/Gate 2",              -- [8]
+  "Audio/Effects/Native/Maximizer",           -- [9]
+  "Audio/Effects/Native/Analog Filter",       -- [10]
+  "Audio/Effects/Native/Digital Filter",      -- [11]
+  "Audio/Effects/Native/Comb Filter 2",       -- [12]
+  "Audio/Effects/Native/EQ 5",                -- [13]
+  "Audio/Effects/Native/EQ 10",               -- [14]
+  "Audio/Effects/Native/Mixer EQ",            -- [15]
+  "Audio/Effects/Native/Chorus 2",            -- [16]
+  "Audio/Effects/Native/Flanger 2",           -- [17]
+  "Audio/Effects/Native/Phaser 2",            -- [18]
+  "Audio/Effects/Native/RingMod 2",           -- [19]
+  "Audio/Effects/Native/LofiMat 2",           -- [20]
+  "Audio/Effects/Native/Distortion 2",        -- [21]
+  "Audio/Effects/Native/Cabinet Simulator",    -- [22]
+  "Audio/Effects/Native/Exciter",             -- [23]
+  "Audio/Effects/Native/Stereo Expander",     -- [24]
+  "Audio/Effects/Native/DC Offset",           -- [25]
+  "Audio/Effects/Native/Gainer",              -- [26]
+  "Audio/Effects/Native/Repeater",            -- [27]
+  "Audio/Effects/Native/Doofer",              -- [28]
+  "Audio/Effects/Native/#Line Input",         -- [29]
+  "Audio/Effects/Native/#Send",               -- [30]
+  "Audio/Effects/Native/#Multiband Send",     -- [31]
+  "Audio/Effects/Native/#Sidechain",          -- [32]
+  "Audio/Effects/Native/*Instr. Macros",      -- [33]
+  "Audio/Effects/Native/*Instr. Automation",  -- [34]
+  "Audio/Effects/Native/*Instr. MIDI Control",-- [35]
+  "Audio/Effects/Native/*Hydra",              -- [36]
+  "Audio/Effects/Native/*Meta Mixer",         -- [37]
+  "Audio/Effects/Native/*Formula",            -- [38]
+  "Audio/Effects/Native/*XY Pad",             -- [39]
+  "Audio/Effects/Native/*LFO",                -- [40]
+  "Audio/Effects/Native/*Key Tracker",        -- [41]
+  "Audio/Effects/Native/*Velocity Tracker",   -- [42]
+  "Audio/Effects/Native/*Signal Follower"     -- [43]
+}
+
+-- Check Renoise API version and add Notepad device if supported
+if renoise.API_VERSION >= 6.2 then
+  table.insert(target_devices, "Audio/Effects/Native/Notepad")  -- [44]
+end
+
+-- Function to find and control a device
+function control_device(device_path, action)
+  local track = renoise.song().selected_track
+  local device_found = false
+  
+  -- Search for the device in the track's device chain
+  for _, device in ipairs(track.devices) do
+    if device.device_path == device_path then
+      device_found = true
+      
+      -- Handle different actions
+      if action == "toggle" then
+        device.is_active = not device.is_active
+        renoise.app():show_status(string.format("%s: %s", device.name, device.is_active and "On" or "Off"))
+      elseif action == "on" then
+        device.is_active = true
+        renoise.app():show_status(string.format("%s: On", device.name))
+      elseif action == "off" then
+        device.is_active = false
+        renoise.app():show_status(string.format("%s: Off", device.name))
+      end
+      
+      return true
+    end
+  end
+  
+  if not device_found then
+    renoise.app():show_status(string.format("No %s in Selected Track", device_path:match("[^/]+$")))
+  end
+  return false
+end
+
+for i, device_path in ipairs(target_devices) do
+  local device_name = device_path:match("[^/]+$")
+  
+  -- Toggle keybinding
+  renoise.tool():add_keybinding{
+    name = string.format("Global:Paketti:Toggle Device %s", device_name),
+    invoke = function()
+      control_device(device_path, "toggle")
+    end
+  }
+  
+  -- On keybinding
+  renoise.tool():add_keybinding{
+    name = string.format("Global:Paketti:Enable Device %s", device_name),
+    invoke = function()
+      control_device(device_path, "on")
+    end
+  }
+  
+  -- Off keybinding
+  renoise.tool():add_keybinding{
+    name = string.format("Global:Paketti:Disable Device %s", device_name),
+    invoke = function()
+      control_device(device_path, "off")
+    end
+  }
+
+  -- Toggle MIDI mapping
+  renoise.tool():add_midi_mapping{
+    name = string.format("Paketti:Toggle Device %d (%s) x[Toggle]", i, device_name),
+    invoke = function(message)
+      if message:is_trigger() then
+        control_device(device_path, "toggle")
+      end
+    end
+  }
+  
+  -- Momentary MIDI mapping (press to activate, release to deactivate)
+  renoise.tool():add_midi_mapping{
+    name = string.format("Paketti:Hold Device %d (%s) x[Button]", i, device_name),
+    invoke = function(message)
+      if message:is_abs_value() then
+        control_device(device_path, message.int_value > 0 and "on" or "off")
+      end
+    end
+  }
+    
+  -- Keybinding for toggle
+  renoise.tool():add_keybinding{
+    name = string.format("Global:Paketti:Toggle Device %d (%s)", i, device_name),
+    invoke = function()
+      control_device(device_path, "toggle")
+    end
+  }
+end
