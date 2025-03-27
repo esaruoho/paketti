@@ -5996,22 +5996,33 @@ function pakettiVolumeInterpolationLooper()
   local vb = renoise.ViewBuilder()
   local DEFAULT_NOTES = 16
   local notes_count = DEFAULT_NOTES
-  local start_vol = 0
-  local end_vol = 128
+  local start_val = 0
+  local end_val = 80
+  local current_mode = "volume"  -- Default mode
 
-  local function formatVolumeValue(value)
-    return string.format("%03d (%02X)", value, value)
+  local function formatValue(value, mode)
+    if mode == "delay" then
+      return string.format("%02X (%d)", value, value)
+    else
+      return string.format("%02d (%02X)", value, value)
+    end
   end
 
-local function apply_interpolation()
-  local song = renoise.song()
-  local pattern_index = song.selected_pattern_index
-  local track_index = song.selected_track_index
-  local track = song.tracks[track_index]
-  
-  -- Make volume column visible
-  track.volume_column_visible = true
-  
+  local function apply_interpolation()
+    local song = renoise.song()
+    local pattern_index = song.selected_pattern_index
+    local track_index = song.selected_track_index
+    local track = song.tracks[track_index]
+    
+    -- Make column visible based on mode
+    if current_mode == "volume" then
+      track.volume_column_visible = true
+    elseif current_mode == "panning" then
+      track.panning_column_visible = true
+    elseif current_mode == "delay" then
+      track.delay_column_visible = true
+    end
+
   local pattern = song:pattern(pattern_index)
   local track_data = pattern:track(track_index)
   local pattern_lines = pattern.number_of_lines
@@ -6038,37 +6049,59 @@ local function apply_interpolation()
     return
   end
   
-  -- Calculate interpolation
-  for i = 1, #notes do
-    -- Calculate position within the cycle
-    local cycle_position = ((i - 1) % notes_count)
-    -- Calculate interpolation factor (0 to 1)
-    local factor = cycle_position / (math.max(1, notes_count - 1))  -- Changed this line
-    -- Calculate volume
-    local interpolated_vol = math.floor(start_vol + (end_vol - start_vol) * factor)
-    interpolated_vol = math.min(128, math.max(0, interpolated_vol))
-    
-    local line = track_data:line(notes[i])
-    -- Apply same volume to all note columns in the same line
-    for note_column_index = 1, track.visible_note_columns do
-      if line:note_column(note_column_index).note_value ~= 121 then
-        line:note_column(note_column_index).volume_value = interpolated_vol
+    -- Calculate interpolation
+    for i = 1, #notes do
+      local cycle_position = ((i - 1) % notes_count)
+      local factor = cycle_position / (math.max(1, notes_count - 1))
+      local interpolated_val = math.floor(start_val + (end_val - start_val) * factor)
+      
+      -- Clamp values based on mode
+      if current_mode == "delay" then
+        interpolated_val = math.min(255, math.max(0, interpolated_val))
+      else
+        interpolated_val = math.min(80, math.max(0, interpolated_val))
+      end
+      
+      local line = track_data:line(notes[i])
+      for note_column_index = 1, track.visible_note_columns do
+        if line:note_column(note_column_index).note_value ~= 121 then
+          if current_mode == "volume" then
+            line:note_column(note_column_index).volume_value = interpolated_val
+          elseif current_mode == "panning" then
+            line:note_column(note_column_index).panning_value = interpolated_val
+          elseif current_mode == "delay" then
+            line:note_column(note_column_index).delay_value = interpolated_val
+          end
+        end
       end
     end
   end
-  
-  renoise.app():show_status(string.format(
-    "Applied interpolation to %d notes (cycle: %d)", 
-    #notes, 
-    notes_count
-  ))
-end
 
-velocity_dialog = renoise.app():show_custom_dialog(
-    "Paketti Volume Interpolation Looper",
-    vb:column {width=250,
-      vb:row {width=250,
-        vb:text { text = "Notes", width = 90, style="strong",font="bold" },
+  velocity_dialog = renoise.app():show_custom_dialog(
+    "Paketti Value Interpolation Looper",
+    vb:column {
+      width = 250,
+      vb:row {
+        width = 250,
+        vb:switch {
+          width = 250,
+          items = {"Volume", "Panning", "Delay"},
+          value = 1,
+          notifier = function(idx)
+            current_mode = idx == 1 and "volume" or idx == 2 and "panning" or "delay"
+            -- Update max value of sliders based on mode
+            local max_val = current_mode == "delay" and 255 or 80
+            vb.views.start_slider.max = max_val
+            vb.views.end_slider.max = max_val
+            -- Update value displays
+            vb.views.start_val_display.text = formatValue(start_val, current_mode)
+            vb.views.end_val_display.text = formatValue(end_val, current_mode)
+          end
+        }
+      },
+      vb:row {
+        width = 250,
+        vb:text { text = "Notes", width = 90, style="strong", font="bold" },
         vb:valuebox {
           min = 1,
           max = 512,
@@ -6078,45 +6111,49 @@ velocity_dialog = renoise.app():show_custom_dialog(
           end
         }
       },
-      vb:row {width=250,
-        vb:text { text = "StartVolume", width = 90, style="strong",font="bold" },
+      vb:row {
+        width = 250,
+        vb:text { text = "Start", width = 90, style="strong", font="bold" },
         vb:slider {
+          id = "start_slider",
           min = 0,
-          max = 128,
-          value = start_vol,
+          max = 80,
+          value = start_val,
           width = 100,
           notifier = function(value)
-            start_vol = value
-            vb.views.start_vol_display.text = formatVolumeValue(value)
+            start_val = value
+            vb.views.start_val_display.text = formatValue(value, current_mode)
           end
         },
         vb:text { 
-          id = "start_vol_display", width=50,
-          text = formatVolumeValue(start_vol)
+          id = "start_val_display",
+          text = formatValue(start_val, current_mode)
         }
       },
-      vb:row {width=250,
-        vb:text { text = "EndVolume", width = 90, style="strong",font="bold" },
+      vb:row {
+        width = 250,
+        vb:text { text = "End", width = 90, style="strong", font="bold" },
         vb:slider {
+          id = "end_slider",
           min = 0,
-          max = 128,
-          value = end_vol,
+          max = 80,
+          value = end_val,
           width = 100,
           notifier = function(value)
-            end_vol = value
-            vb.views.end_vol_display.text = formatVolumeValue(value)
+            end_val = value
+            vb.views.end_val_display.text = formatValue(value, current_mode)
           end
         },
         vb:text { 
-          id = "end_vol_display", width=50,
-          text = formatVolumeValue(end_vol)
+          id = "end_val_display",
+          text = formatValue(end_val, current_mode)
         }
       },
       vb:button {
         text = "Print",
         notifier = function()
           apply_interpolation()
-          renoise.app():show_status("Volume interpolation applied")
+          renoise.app():show_status(string.format("%s interpolation applied", current_mode:upper()))
         end
       }
     }, 
@@ -6138,9 +6175,9 @@ function pakettiInterpolationLooperKeyhandler(dialog, key)
   return key
 end
 
-renoise.tool():add_menu_entry {name = "--Main Menu:Tools:Paketti..:Pattern Editor..:Volume Interpolation Looper",invoke = pakettiVolumeInterpolationLooper}
-renoise.tool():add_menu_entry {name = "--Pattern Editor:Paketti..:Volume Interpolation Looper",invoke = pakettiVolumeInterpolationLooper}
-renoise.tool():add_keybinding {name = "Pattern Editor:Tools:Paketti Volume Interpolation Looper",invoke = pakettiVolumeInterpolationLooper}
+renoise.tool():add_menu_entry {name = "--Main Menu:Tools:Paketti..:Pattern Editor..:Value Interpolation Looper",invoke = pakettiVolumeInterpolationLooper}
+renoise.tool():add_menu_entry {name = "--Pattern Editor:Paketti..:Value Interpolation Looper",invoke = pakettiVolumeInterpolationLooper}
+renoise.tool():add_keybinding {name = "Pattern Editor:Tools:Paketti Value Interpolation Looper",invoke = pakettiVolumeInterpolationLooper}
 
 
 
