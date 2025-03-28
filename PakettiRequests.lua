@@ -10866,3 +10866,179 @@ renoise.tool():add_keybinding{
   name = "Global:Paketti:Flip Devices 1&2 On/Off",
   invoke = function() toggle_two_devices(1, 2) end
 }
+
+
+
+
+
+
+
+
+----------
+-- Fuzzy search function
+local function fuzzy_match(pattern, str)
+  pattern = string.lower(pattern)
+  str = string.lower(str)
+  
+  local pattern_len = #pattern
+  local str_len = #str
+  local j = 1
+  
+  for i = 1, pattern_len do
+    local pattern_char = pattern:sub(i,i)
+    local found = false
+    
+    while j <= str_len do
+      if pattern_char == str:sub(j,j) then
+        found = true
+        j = j + 1
+        break
+      end
+      j = j + 1
+    end
+    
+    if not found then return false end
+  end
+  
+  return true
+end
+
+-- Track fuzzy search dialog
+local track_search_dialog = nil
+local function show_track_search_dialog()
+  if track_search_dialog and track_search_dialog.visible then
+    track_search_dialog:close()
+    return
+  end
+  
+  local vb = renoise.ViewBuilder()
+  
+  -- Store matched tracks for selection
+  local matched_tracks = {}
+  local results_listbox = nil
+  
+  local function select_track()
+    -- Adjust for the <Empty> row offset
+    local actual_index = results_listbox.value - 1
+    if actual_index > 0 and actual_index <= #matched_tracks then
+      local selected = matched_tracks[actual_index]
+      renoise.song().selected_track_index = selected.index
+      track_search_dialog:close()
+    end
+  end
+
+  local function update_search_results(search_text)
+    matched_tracks = {}
+    local song = renoise.song()
+    
+    for i = 1, #song.tracks do
+      if fuzzy_match(search_text, song.tracks[i].name) then
+        table.insert(matched_tracks, {
+          index = i,
+          name = song.tracks[i].name
+        })
+      end
+    end
+    
+    -- If exactly one match is found, select it and close immediately
+    if #matched_tracks == 1 then
+      renoise.song().selected_track_index = matched_tracks[1].index
+      track_search_dialog:close()
+      return
+    end
+    
+    -- Update chooser items
+    local items = {"<Empty>"}
+    if #matched_tracks > 0 then
+      for _, track in ipairs(matched_tracks) do
+        table.insert(items, string.format("%d: %s", track.index, track.name))
+      end
+    else
+      table.insert(items, "No matches found")
+    end
+    
+    results_listbox.items = items
+    
+    -- If we have results, select the first one automatically
+    if #matched_tracks > 0 then
+      results_listbox.value = 2  -- Select first actual result
+    else
+      results_listbox.value = 1  -- Select <Empty>
+    end
+  end
+
+  local search_field = vb:textfield {
+    width = 200,
+    active = true,
+    edit_mode = true,
+    notifier = function(text)
+      update_search_results(text)
+    end
+  }
+ 
+  results_listbox = vb:chooser {
+    width = 200,
+    height = 150,
+    items = {"<Empty>", "Type to search..."},
+    -- Remove the notifier that was auto-selecting
+    notifier = function() end  -- Do nothing when selection changes
+  }
+  
+  local PakettiFuzzySearchDialogContent = vb:column {
+    vb:text { text = "Search for track:", style="strong", font="bold" },
+    search_field,
+    vb:space { height = 5 },
+    results_listbox
+  }
+   
+  track_search_dialog = renoise.app():show_custom_dialog(
+    "Paketti Fuzzy Search Track",
+    PakettiFuzzySearchDialogContent,
+    function(dialog, key)
+      local closer = preferences.pakettiDialogClose.value
+      if key.name == closer then
+        dialog:close()
+        return true
+      elseif key.name == "return" then
+        if results_listbox.value > 1 then
+          -- If we have a real selection (not <Empty>), select the track
+          select_track()
+          return true
+        else
+          -- If no selection or <Empty>, focus the textfield
+          search_field.active = true
+          search_field.edit_mode = true
+          return true
+        end
+      elseif key.name == "up" then
+        if results_listbox.value > 2 then
+          results_listbox.value = results_listbox.value - 1
+        end
+        return true
+      elseif key.name == "down" then
+        if results_listbox.value < #results_listbox.items then
+          results_listbox.value = results_listbox.value + 1
+        end
+        return true
+      end
+      return false
+    end
+  )
+
+
+
+
+  
+
+
+
+end
+
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Fuzzy Search Track",invoke = show_track_search_dialog}
+renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Fuzzy Search Track",invoke = show_track_search_dialog}
+renoise.tool():add_keybinding{name="Mixer:Paketti:Fuzzy Search Track",invoke = show_track_search_dialog}
+renoise.tool():add_keybinding{name="Global:Paketti:Fuzzy Search Track",invoke = show_track_search_dialog}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Fuzzy Search Track",invoke = show_track_search_dialog}
+renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Fuzzy Search Track",invoke = show_track_search_dialog}
+renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Fuzzy Search Track",invoke = show_track_search_dialog}
+

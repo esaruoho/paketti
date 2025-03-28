@@ -5997,16 +5997,19 @@ function pakettiVolumeInterpolationLooper()
   local DEFAULT_NOTES = 16
   local notes_count = DEFAULT_NOTES
   local start_val = 0
-  local end_val = 80
+  local end_val = 128
   local current_mode = "volume"  -- Default mode
 
   local function formatValue(value, mode)
     if mode == "delay" then
       return string.format("%02X (%d)", value, value)
     else
+      -- For volume/panning, we need to show the hex value correctly
+      -- value is in decimal (0-128), but we want to show it as 00-80 hex
       return string.format("%02d (%02X)", value, value)
     end
   end
+
 
   local function apply_interpolation()
     local song = renoise.song()
@@ -6059,8 +6062,9 @@ function pakettiVolumeInterpolationLooper()
       if current_mode == "delay" then
         interpolated_val = math.min(255, math.max(0, interpolated_val))
       else
-        interpolated_val = math.min(80, math.max(0, interpolated_val))
+        interpolated_val = math.min(128, math.max(0, interpolated_val))  -- Changed from 80 to 128
       end
+      
       
       local line = track_data:line(notes[i])
       for note_column_index = 1, track.visible_note_columns do
@@ -6090,9 +6094,24 @@ function pakettiVolumeInterpolationLooper()
           notifier = function(idx)
             current_mode = idx == 1 and "volume" or idx == 2 and "panning" or "delay"
             -- Update max value of sliders based on mode
-            local max_val = current_mode == "delay" and 255 or 80
-            vb.views.start_slider.max = max_val
-            vb.views.end_slider.max = max_val
+            local max_val = current_mode == "delay" and 255 or 128  -- 128 decimal = 80 hex
+            local start_slider = vb.views.start_slider
+            local end_slider = vb.views.end_slider
+            
+            -- Adjust values if they were at previous max
+            if start_val == start_slider.max then
+              start_val = max_val
+            end
+            if end_val == end_slider.max then
+              end_val = max_val
+            end
+            
+            -- Update slider properties
+            start_slider.max = max_val
+            end_slider.max = max_val
+            start_slider.value = start_val
+            end_slider.value = end_val
+            
             -- Update value displays
             vb.views.start_val_display.text = formatValue(start_val, current_mode)
             vb.views.end_val_display.text = formatValue(end_val, current_mode)
@@ -6117,7 +6136,7 @@ function pakettiVolumeInterpolationLooper()
         vb:slider {
           id = "start_slider",
           min = 0,
-          max = 80,
+          max = 128,
           value = start_val,
           width = 100,
           notifier = function(value)
@@ -6136,7 +6155,7 @@ function pakettiVolumeInterpolationLooper()
         vb:slider {
           id = "end_slider",
           min = 0,
-          max = 80,
+          max = 128,
           value = end_val,
           width = 100,
           notifier = function(value)
