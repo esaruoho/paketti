@@ -1,5 +1,16 @@
 -- Paketti Groovebox 8120 Script
 
+
+local stored_step_counts = {
+  [1] = 16,
+  [2] = 16,
+  [3] = 16,
+  [4] = 16,
+  [5] = 16,
+  [6] = 16,
+  [7] = 16,
+  [8] = 16
+}
 -- "Random" keybinding: Selects a random sample and mutes others
 function sample_random()
   local song = renoise.song()
@@ -45,22 +56,7 @@ function ensure_instruments_exist()
   end
 end
 
--- Ensure tracks exist
-function ensure_tracks_exist()
-  local song = renoise.song()
-  local sequencer_track_count = 0
-  for i, track in ipairs(song.tracks) do
-    if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
-      sequencer_track_count = sequencer_track_count + 1
-    end
-  end
-  if sequencer_track_count < 8 then
-    for i = sequencer_track_count + 1, 8 do
-      song:insert_track_at(#song.tracks + 1)
-      song.tracks[#song.tracks].name = "Track " .. i
-    end
-  end
-end
+
 
 -- Function to update instrument and track lists
 function update_instrument_list_and_popups()
@@ -132,21 +128,26 @@ local output_delay_value_label = vb:text {
   style = "strong"
 }
 
+-- In PakettiEightSlotsByOneTwentyCreateRow, after creating the output delay controls:
+
 local output_delay_slider = vb:slider {
   min = -100,
   max = 100,
-  value = 0,
+  steps = {1, -1},
+  value = renoise.song().tracks[row_index].output_delay,  -- Initialize with current value
   width = 150,
   notifier = function(value)
     local track_index = track_indices[row_elements.track_popup.value]
     if track_index then
       value = math.floor(value)  -- Ensure whole number
-   
       renoise.song().tracks[track_index].output_delay = value
       output_delay_value_label.text = string.format("%+04dms", value)        
     end
   end
 }
+
+-- Initialize the label with the current value
+output_delay_value_label.text = string.format("%+04dms", renoise.song().tracks[row_index].output_delay)
 
 local output_delay_reset = vb:button {
   text = "Reset",
@@ -190,11 +191,13 @@ local output_delay_reset = vb:button {
   -- Valuebox for Steps
   local valuebox = vb:valuebox {
     min = 1,
-    max = 64,
-    value = 16,
-    width = 50,
+    max = 512,
+    value = stored_step_counts[row_index],  -- Initialize with stored value
+    width = 55,
     notifier = function(value)
       if not row_elements.updating_steps then
+        -- Store the step count for this row
+        stored_step_counts[row_index] = value
         row_elements.print_to_pattern()
         renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
       end
@@ -212,63 +215,62 @@ local output_delay_reset = vb:button {
   table.insert(checkbox_row_elements, valuebox)
   table.insert(checkbox_row_elements, sample_name_label)
 
-  -- Create Yxx Checkboxes (1-16)
-  local yxx_checkboxes = {}
-  local yxx_checkbox_row_elements = {}
-  for i = 1, 16 do
-    yxx_checkboxes[i] = vb:checkbox {
-      value = false,
-      width = 30,
-      notifier = function()
-        if not row_elements.updating_yxx_checkboxes then
-          row_elements.print_to_pattern()
-          renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+    -- Create Yxx Checkboxes (1-16)
+    local yxx_checkboxes = {}
+    local yxx_checkbox_row_elements = {}
+    for i = 1, 16 do
+      yxx_checkboxes[i] = vb:checkbox {
+        value = false,
+        width = 30,
+        notifier = function()
+          if not row_elements.updating_yxx_checkboxes then
+            row_elements.print_to_pattern()
+            renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+          end
         end
+      }
+      table.insert(yxx_checkbox_row_elements, yxx_checkboxes[i])
+    end
+  
+    -- Create the valuebox first
+    local yxx_valuebox = vb:valuebox {
+      min = 0,
+      max = 255,
+      value = 0,  -- Initialize to 00
+      width = 55,
+      tostring = function(value)
+        return string.format("%02X", value)
+      end,
+      tonumber = function(text)
+        return tonumber(text, 16)
+      end,
+      notifier = function(value)
+        row_elements.print_to_pattern()
+        renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+      end
+    }  
+  
+    -- Create the slider that updates the valuebox
+    local yxx_slider = vb:slider {
+      min = 0,
+      max = 255,
+      steps = {1, -1},
+      value = 32, -- Default to 0x20
+      width = 300,
+      notifier = function(value)
+        yxx_valuebox.value = math.floor(value)
+        row_elements.print_to_pattern()
       end
     }
-    table.insert(yxx_checkbox_row_elements, yxx_checkboxes[i])
-  end
-
-  -- Yxx Valuebox
-  local yxx_valuebox = vb:valuebox {
-    min = 0,
-    max = 255,
-    value = 0,  -- Initialize to 00
-    width = 50,
-    tostring = function(value)
-      return string.format("%02X", value)
-    end,
-    tonumber = function(text)
-      return tonumber(text, 16)
-    end,
-    notifier = function(value)
-      row_elements.print_to_pattern()
-      renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
-    end
-  }
+    row_elements.yxx_slider = yxx_slider
   
+    -- Append yxx_valuebox and label after yxx checkboxes
+    table.insert(yxx_checkbox_row_elements, yxx_valuebox)
+    table.insert(yxx_checkbox_row_elements, vb:text {font="bold",style="strong",text = "Yxx"})
   
-
-  -- Append yxx_valuebox and label after yxx checkboxes
-  table.insert(yxx_checkbox_row_elements, yxx_valuebox)
-  table.insert(yxx_checkbox_row_elements, vb:text {font="bold",style="strong",text = "Yxx"})
-
--- Add Yxx Slider
-local yxx_slider = vb:slider {
-  min = 0,
-  max = 255,
-  value = 32, -- Default to 0x20
-  width = 300, -- Adjust width as needed
-  notifier = function(value)
-    yxx_valuebox.value = math.floor(value)
-    row_elements.print_to_pattern()
-  end
-}
-row_elements.yxx_slider = yxx_slider
-
--- Randomize Button for Yxx Slider
+  -- Randomize Button for Yxx Slider
 local yxx_randomize_button = vb:button {
-  text = "Randomize",
+  text = "Random Yxx",
   width = 70, -- Adjust width as needed
   notifier = function()
     local random_value = math.random(0, 255)
@@ -280,7 +282,7 @@ local yxx_randomize_button = vb:button {
 
 -- **Clear Button for Yxx Checkboxes**
 local yxx_clear_button = vb:button {
-  text = "Clear",
+  text = "Clear Yxx",
   width = 40, -- Adjust width as needed
   notifier = function()
     for _, checkbox in ipairs(yxx_checkboxes) do
@@ -311,7 +313,6 @@ table.insert(yxx_checkbox_row_elements, yxx_clear_button)
     end
   }
 
-  -- Mute Checkbox
   local mute_checkbox = vb:checkbox {
     value = false,
     notifier = function(value)
@@ -322,13 +323,17 @@ table.insert(yxx_checkbox_row_elements, yxx_clear_button)
     end
   }
 
-  -- Slider for Sample Selection
   local slider = vb:slider {
     min = 1,
     max = 120,
     value = 1,
     width = 130,
+    steps = {1, -1},    -- Left click: increment by 1, Right click: increment by 10
+
     notifier = function(value)
+      
+      value = math.floor(value)  -- Enforce integer values
+      print (value)
       local instrument_index = row_elements.instrument_popup.value
       local instrument = renoise.song().instruments[instrument_index]
       if instrument and instrument.samples[1] and instrument.samples[1].slice_markers and #instrument.samples[1].slice_markers > 0 then
@@ -336,12 +341,11 @@ table.insert(yxx_checkbox_row_elements, yxx_clear_button)
         return
       end
       renoise.song().selected_instrument_index = instrument_index
-        midi_sample_velocity_switcharoo(value)
+      midi_sample_velocity_switcharoo(value)
       row_elements.update_sample_name_label()
       renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
     end
   }
-
   -- Adjusted Instrument Popup
   local instrument_popup = vb:popup {
     items = instrument_names,
@@ -417,7 +421,7 @@ end
   -- Function to Update Sample Name Label
   function row_elements.update_sample_name_label()
     local instrument = renoise.song().instruments[instrument_popup.value]
-    local sample_name = "No valid sample selected"
+    local sample_name = "No sample available"
     if instrument and #instrument.samples > 0 then
       for _, sample in ipairs(instrument.samples) do
         local velocity_min = sample.sample_mapping and sample.sample_mapping.velocity_range and sample.sample_mapping.velocity_range[1]
@@ -567,14 +571,12 @@ end
       return
     end
     renoise.song().selected_instrument_index = instrument_index
-      sample_random()
+    sample_random()
 
-    local instrument = renoise.song().instruments[instrument_index]
-    for sample_index, sample in ipairs(instrument.samples) do
-      if sample.sample_mapping.note_range[1] == 0 and sample.sample_mapping.note_range[2] == 127 then
-        slider.value = sample_index
-        break
-      end
+    -- Update slider to match the currently selected sample
+    local selected_index = renoise.song().selected_sample_index
+    if selected_index and selected_index > 0 then
+      slider.value = selected_index
     end
 
     row_elements.update_sample_name_label()
@@ -600,13 +602,64 @@ end
 
   -- Function to Show Automation
   function row_elements.show_automation()
+    local song = renoise.song()
+    local track_index = track_indices[track_popup.value]
+    local track = song.tracks[track_index]
+    
+    -- First switch to mixer view and show automation
     renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_MIXER
     renoise.app().window.lower_frame_is_visible = true
     renoise.app().window.active_lower_frame = renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION
-    renoise.song().selected_track_index = track_indices[track_popup.value]
-  --  renoise.song().selected_device_index = 2
-    renoise.app():show_status("Showing Automation for Row " .. row_index)
+    
+  -- Select the track
+  song.selected_track_index = track_index
+  
+  -- Find and select the PitchBend parameter
+  local found_pitchbend = false
+  for device_index, device in ipairs(track.devices) do
+    for param_index, param in ipairs(device.parameters) do
+      if param.name:find("Pitchbend") then
+        song.selected_automation_parameter = param
+        found_pitchbend = true
+        renoise.app():show_status(string.format('In Track "%s" Pitchbend automation', track.name))
+        break
+      end
+    end
+    if found_pitchbend then break end
   end
+  
+  if not found_pitchbend then
+    renoise.app():show_status(string.format('No Pitchbend automation found in Track "%s"', track.name))
+  end
+end
+
+function row_elements.show_macros()
+  local instrument_index = row_elements.instrument_popup.value
+  local instrument = renoise.song().instruments[instrument_index]
+  
+  -- Find the active sample (the one with velocity range 00-7F)
+  local selected_sample_index = 1
+  if instrument and #instrument.samples > 0 then
+    for i, sample in ipairs(instrument.samples) do
+      local velocity_min = sample.sample_mapping and sample.sample_mapping.velocity_range and sample.sample_mapping.velocity_range[1]
+      local velocity_max = sample.sample_mapping and sample.sample_mapping.velocity_range and sample.sample_mapping.velocity_range[2]
+      if velocity_min == 0x00 and velocity_max == 0x7F then
+        selected_sample_index = i
+        break
+      end
+    end
+  end
+
+  -- Set both instrument and sample
+  renoise.song().selected_instrument_index = instrument_index
+  renoise.song().selected_sample_index = selected_sample_index
+  
+  -- Switch views
+  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+  renoise.app().window.lower_frame_is_visible = true
+  renoise.app().window.active_lower_frame = renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION
+  renoise.song().selected_track_index = track_indices[track_popup.value]
+end
 
   -- Define the Reverse Button
   local reverse_button = vb:button {
@@ -681,7 +734,7 @@ end
         end
       },
       vb:button {
-        text = "Randomize",
+        text = "Random Steps",
         notifier = function()
           row_elements.randomize()
           renoise.app():show_status("Randomized steps of row " .. row_index .. ".")
@@ -695,13 +748,50 @@ end
       },
       instrument_popup,
       vb:button {text = "Browse", notifier = row_elements.browse_instrument},
+      vb:button {text = "RandomLoad", notifier = function() 
+        local track_popup_value = row_elements.track_popup.value
+        local instrument_popup_value = row_index  -- Set instrument based on row number
+        local track_index = track_indices[track_popup_value]
+        local instrument_index = instrument_popup_value
+        renoise.song().selected_track_index = track_index
+        renoise.song().selected_instrument_index = instrument_index
+      
+        loadRandomDrumkitSamples(120)
+      
+        local instrument = renoise.song().instruments[instrument_index]
+        if not instrument then
+          renoise.app():show_warning("Selected instrument does not exist.")
+          return
+        end
+      
+        for _, sample in ipairs(instrument.samples) do
+          sample.sample_mapping.base_note = 48
+          sample.sample_mapping.note_range = {0, 119}
+        end
+      
+        if renoise.song().tracks[track_index] then
+          renoise.song().tracks[track_index].name = instrument.name ~= "" and instrument.name or "Instrument " .. instrument_index
+          renoise.app():show_status("Track " .. track_index .. " renamed to '" .. (instrument.name ~= "" and instrument.name or "Instrument " .. instrument_index) .. "'.")
+        else
+          renoise.app():show_warning("Selected track does not exist.")
+        end
+      
+        update_instrument_list_and_popups()
+        row_elements.slider.value = 1
+        pakettiSampleVelocityRangeChoke(1)
+        row_elements.update_sample_name_label()
+        renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+      end},
       vb:button {text = "Refresh", notifier = row_elements.refresh_instruments},
       vb:button {text = "Show", notifier = row_elements.select_instrument},
       slider,
       vb:button {text = "Random", notifier = row_elements.random_button_pressed},
-      vb:button {text = "Show Automation", notifier = row_elements.show_automation},
-      reverse_button
-    }
+      vb:button {text = "Automation", notifier = row_elements.show_automation},
+      vb:button {text = "Macros", notifier=row_elements.show_macros},
+      reverse_button,
+     
+    },
+    vb:space {height=8}
   }
 
   -- Assign Elements to row_elements Table
@@ -713,6 +803,8 @@ end
   row_elements.track_popup = track_popup
   row_elements.instrument_popup = instrument_popup
   row_elements.mute_checkbox = mute_checkbox
+  row_elements.output_delay_slider = output_delay_slider
+  row_elements.output_delay_value_label = output_delay_value_label
 
   -- Initialize the Row
   row_elements.initialize_row()
@@ -749,7 +841,7 @@ function create_global_controls()
   local groove_controls = vb:row {}
   for i = 1, 4 do
     local groove_value = renoise.song().transport.groove_amounts[i] or 0
-    local_groove_labels[i] = vb:text {text = string.format("%d%%", groove_value * 100), width = 30}
+    local_groove_labels[i] = vb:text {text = string.format("%d%%", groove_value * 100), style="strong", font="bold", width = 35}
     local_groove_sliders[i] = vb:slider {min = 0.0, max = 1.0, value = groove_value, width = 100, notifier = function(value)
       if initializing then return end
       local_groove_labels[i].text = string.format("%d%%", value * 100)
@@ -771,8 +863,8 @@ function create_global_controls()
     renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
   end}
 
-  fill_empty_label = vb:text{ text="Fill Empty Steps: 0%", width=90 }
-  fill_empty_slider = vb:slider {min = 0, max = 20, value = 0, width = 150, midi_mapping="Paketti:Paketti Groovebox 8120:Fill Empty Steps Slider", notifier = function(value)
+  fill_empty_label = vb:text{ text="Fill Empty Steps: 0%", style="strong", font="bold", width=140 }
+  fill_empty_slider = vb:slider {min = 0, max = 20, value = 0, width = 150, steps = {0.1, -0.1}, midi_mapping="Paketti:Paketti Groovebox 8120:Fill Empty Steps Slider", notifier = function(value)
     if initializing then return end
     fill_empty_label.text = "Fill Empty Steps: " .. tostring(math.floor(value)) .. "%"
     if value == 0 then
@@ -784,11 +876,11 @@ function create_global_controls()
     end
   end}
 
-  local reverse_all_button = vb:button {text = "Reverse All", midi_mapping="Paketti:Paketti Groovebox 8120:Reverse All", notifier = reverse_all}
+  local reverse_all_button = vb:button {text = "Reverse Samples", midi_mapping="Paketti:Paketti Groovebox 8120:Reverse All", notifier = reverse_all}
 
 
 local randomize_all_yxx_button = vb:button {
-  text = "Randomize all Yxx",
+  text = "Random Yxx",
   notifier = function()
     for _, row_elements in ipairs(rows) do
       local random_value = math.random(0, 255)
@@ -799,6 +891,8 @@ local randomize_all_yxx_button = vb:button {
     renoise.app():show_status("Randomized Yxx values for all rows.")
   end
 }
+
+
 
   global_controls = vb:column {
     vb:row {
@@ -814,11 +908,28 @@ local randomize_all_yxx_button = vb:button {
       random_gate_button,
       vb:button {text = "Fetch", midi_mapping="Paketti:Paketti Groovebox 8120:Fetch Pattern", notifier = fetch_pattern},
       fill_empty_label,
-      fill_empty_slider,
-      vb:button {text = "Random All", midi_mapping="Paketti:Paketti Groovebox 8120:Random All",notifier = random_all},
-      vb:button {text = "Randomize All",  midi_mapping="Paketti:Paketti Groovebox 8120:Randomize All", notifier = randomize_all},
-      reverse_all_button,
-      randomize_all_yxx_button
+      fill_empty_slider}}
+
+  local global_buttons = vb:row {
+    vb:text{text="Global", style="strong", font="bold"},
+    vb:button {text = "Random Samples", midi_mapping="Paketti:Paketti Groovebox 8120:Random All", notifier = random_all},
+    reverse_all_button,
+    vb:button {text = "Random Steps", midi_mapping="Paketti:Paketti Groovebox 8120:Randomize All", notifier = randomize_all},
+    randomize_all_yxx_button,
+    vb:button {
+      text = "Reset Output Delay",
+      notifier = function()
+        local song = renoise.song()
+        -- Reset all tracks' output delays and update all rows' displays
+        for i = 1, 8 do
+          song.tracks[i].output_delay = 0
+          -- Update the corresponding row's display
+          if rows[i] then
+            rows[i].output_delay_slider.value = 0
+            rows[i].output_delay_value_label.text = string.format("%+04dms", 0)
+          end
+        end
+      end
     }
   }
 
@@ -828,7 +939,7 @@ local randomize_all_yxx_button = vb:button {
   }
 
   -- Create Global Step Buttons
-  local step_values = {"1", "2", "4", "6", "8", "12", "16", "<<", ">>"}
+  local step_values = {"1", "2", "4", "6", "8", "12", "16", "24", "32", "48", "64", "128", "192", "256", "384", "512", "<<", ">>"}
   global_step_buttons = vb:row {}
   for _, step in ipairs(step_values) do
     global_step_buttons:add_child(vb:button {
@@ -879,10 +990,11 @@ local randomize_all_yxx_button = vb:button {
   end
 
 --global_controls:add_child(randomize_all_yxx_button)
-  return global_controls, global_groove_controls, global_step_buttons
+  return global_controls, global_groove_controls, global_buttons, global_step_buttons
 end
 
--- Function to fetch the pattern
+
+-- Modify the fetch_pattern function to store step counts
 function fetch_pattern()
   if initializing then
     -- Allow fetching during initialization without setting checkboxes to inactive
@@ -896,17 +1008,27 @@ function fetch_pattern()
       end
     end
   end
+
+  local pattern = renoise.song().selected_pattern
+  
+  -- For each row/track, analyze the pattern and store step count
   for i, row_elements in ipairs(rows) do
+    -- Get the stored step count or default to 16
+    local step_count = stored_step_counts[i] or 16
+    row_elements.valuebox.value = step_count
+
     local track_index = track_indices[row_elements.track_popup.value]
-    local pattern = renoise.song().selected_pattern
+    local track_in_pattern = pattern.tracks[track_index]
     local line_count = pattern.number_of_lines
     local instrument_used = nil
     row_elements.updating_checkboxes = true
     row_elements.updating_yxx_checkboxes = true
     local yxx_value_found = false
+
+    -- Now fetch the actual pattern content for the first 16 steps
     for line = 1, math.min(line_count, 16) do
-      local note_line = pattern.tracks[track_index].lines[line].note_columns[1]
-      local effect_column = pattern.tracks[track_index].lines[line].effect_columns[1]
+      local note_line = track_in_pattern:line(line).note_columns[1]
+      local effect_column = track_in_pattern:line(line).effect_columns[1]
       if note_line and note_line.note_string == "C-4" then
         row_elements.checkboxes[line].value = true
         if effect_column and effect_column.number_string == "0Y" then
@@ -924,19 +1046,23 @@ function fetch_pattern()
         row_elements.yxx_checkboxes[line].value = false
       end
     end
+
     if not yxx_value_found then
-      row_elements.yxx_valuebox.value = 0x20 -- Initialize to FF if no Yxx content
+      row_elements.yxx_valuebox.value = 0x20 -- Initialize to 20 if no Yxx content
     end
+
     if instrument_used then
       row_elements.instrument_popup.value = instrument_used + 1
       renoise.song().selected_instrument_index = row_elements.instrument_popup.value
     else
       row_elements.instrument_popup.value = i  -- Set default instrument index to row number
     end
+
     row_elements.print_to_pattern()
     row_elements.updating_checkboxes = false
     row_elements.updating_yxx_checkboxes = false
   end
+
   if not initializing then
     for _, row_elements in ipairs(rows) do
       for _, checkbox in ipairs(row_elements.checkboxes) do
@@ -947,9 +1073,12 @@ function fetch_pattern()
       end
     end
   end
+
   renoise.app():show_status("Pattern fetched successfully.")
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 end
+
+
 
 -- Function to reverse sample
 function reverse_sample(row_elements)
@@ -969,7 +1098,7 @@ function reverse_sample(row_elements)
     end
   end
   if not sample_to_reverse or not sample_to_reverse.sample_buffer then
-    renoise.app():show_warning("Sample not found or no audio data.")
+    renoise.app():show_status("No sample to reverse, doing nothing.")
     return
   end
   local sample_buffer = sample_to_reverse.sample_buffer
@@ -1018,7 +1147,7 @@ function reverse_all()
         end
       end
       if not sample_to_reverse or not sample_to_reverse.sample_buffer then
-        table.insert(reversed_samples, string.format("Row %d: Sample not found or no audio data.", row_index))
+        table.insert(reversed_samples, string.format("Row %d: N/A", row_index))
       else
         local sample_buffer = sample_to_reverse.sample_buffer
         local num_channels = sample_buffer.number_of_channels
@@ -1055,27 +1184,47 @@ function reverse_all()
   end
 end
 
--- Function to randomize gate
 function random_gate()
   if initializing then return end
+  
+  -- Set batch update mode
   for _, row_elements in ipairs(rows) do
     row_elements.updating_checkboxes = true
     row_elements.updating_yxx_checkboxes = true
+    row_elements.valuebox.value = 16  -- Set all valueboxes first
   end
+
+  -- Prepare all changes in memory first
+  local checkbox_states = {}
+  -- Remove yxx_states as we don't want to randomize Yxx checkboxes
+  
   for i = 1, 16 do
     local selected_row = math.random(1, #rows)
-    for row_index, row_elements in ipairs(rows) do
-      row_elements.checkboxes[i].value = (row_index == selected_row)
-      row_elements.yxx_checkboxes[i].value = (row_index == selected_row)
+    for row_index = 1, #rows do
+      if not checkbox_states[row_index] then 
+        checkbox_states[row_index] = {}
+      end
+      checkbox_states[row_index][i] = (row_index == selected_row)
+      -- Remove the yxx_states assignment
     end
   end
+
+  -- Apply all changes at once
+  for row_index, row_elements in ipairs(rows) do
+    for i = 1, 16 do
+      row_elements.checkboxes[i].value = checkbox_states[row_index][i]
+      -- Leave Yxx checkboxes unchanged
+    end
+  end
+
+  -- Single pattern update at the end
   for _, row_elements in ipairs(rows) do
-    row_elements.print_to_pattern()
-    row_elements.valuebox.value = 16
     row_elements.updating_checkboxes = false
     row_elements.updating_yxx_checkboxes = false
+    row_elements.print_to_pattern()
   end
-  renoise.app():show_status("Step count reset to 16, all rows filled with one checkbox per each row step.")
+
+  renoise.app():show_status("Step count reset to 16, random gate pattern applied.")
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 end
 
@@ -1133,25 +1282,45 @@ function random_all()
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
 end
 
--- Function to randomize all steps
 function randomize_all()
   if initializing then return end
+  
+  -- First set all rows to update mode
   for _, row_elements in ipairs(rows) do
-    row_elements.randomize()
+    row_elements.updating_checkboxes = true
+    row_elements.updating_yxx_checkboxes = true
   end
+  
+  -- Then do all randomization
+  for _, row_elements in ipairs(rows) do
+    for i = 1, 16 do
+      row_elements.checkboxes[i].value = math.random() >= 0.5
+      row_elements.yxx_checkboxes[i].value = math.random() >= 0.5
+    end
+  end
+  
+  -- Finally, update pattern and reset flags
+  for _, row_elements in ipairs(rows) do
+    row_elements.print_to_pattern()
+    row_elements.updating_checkboxes = false
+    row_elements.updating_yxx_checkboxes = false
+  end
+  
   renoise.app():show_status("Each Instrument Row step content has now been randomized.")
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 end
 
--- Function to set global steps
 function set_global_steps(steps)
-  if initializing then return end  -- Prevent action during initialization
+  if initializing then return end  
+  
+  -- Don't set initializing flag, as it prevents pattern printing
   for _, row_elements in ipairs(rows) do
-    row_elements.updating_steps = true
+    row_elements.updating_steps = true  -- Prevent recursive calls
     row_elements.valuebox.value = steps
     row_elements.updating_steps = false
-    row_elements.print_to_pattern()
+    row_elements.print_to_pattern()  -- This will now execute
   end
+  
   renoise.app():show_status("All step counts set to " .. tostring(steps) .. ".")
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 end
@@ -1232,7 +1401,8 @@ function PakettiEightSlotsByOneTwentyDialog()
   initializing = true  -- Set initializing flag to true
 
   ensure_instruments_exist()  -- Ensure at least 8 instruments exist
-  ensure_tracks_exist()       -- Ensure at least 8 sequencer tracks exist
+  PakettiEightOneTwentyInit()
+
 
   -- Now rebuild track_names and track_indices
   track_names, track_indices = {}, {}
@@ -1259,13 +1429,13 @@ function PakettiEightSlotsByOneTwentyDialog()
     debug_instruments_and_samples()
     renoise.app():show_status("Debug information printed to console.")
   end}) ]]--
-  dc:add_child(vb:button {text = "Print to Pattern", notifier = function()
+--[[  dc:add_child(vb:button {text = "Print to Pattern", notifier = function()
     for i, elements in ipairs(rows) do
       elements.print_to_pattern()
     end
     renoise.app():show_status("Pattern updated successfully.")
     renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
-  end})
+  end})--]]
   for _, row_elements in ipairs(rows) do
     row_elements.update_sample_name_label()
   end
@@ -1312,7 +1482,7 @@ function assign_midi_mappings()
     if message:is_trigger() then reverse_all() end
   end}
 
-  local step_button_names = {"1", "2", "4", "6", "8", "12", "16", "<<", ">>"}
+  local step_button_names = {"1", "2", "4", "6", "8", "12", "16", "24", "32", "48", "64", "128", "192", "256", "384", "512", "<<", ">>"}
   for _, step in ipairs(step_button_names) do
     renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120:Global Step " .. step,invoke=function(message)
       if message:is_trigger() then
@@ -1425,8 +1595,10 @@ function assign_midi_mappings()
               row_elements.select_instrument()
             elseif btn == "Random" then
               row_elements.random_button_pressed()
-            elseif btn == "Show Automation" then
+            elseif btn == "Automation" then
               row_elements.show_automation()
+            elseif btn == "Macros" then 
+              row_elements.show_macros()
             elseif btn == "Reverse" then
               reverse_sample(row_elements)
             end
@@ -1499,15 +1671,47 @@ function PakettiEightSlotsByOneTwentyKeyHandler(dialog, key)
 end
 
 function PakettiEightOneTwentyInit()
-local editmodestate=false
-if renoise.song().transport.edit_mode then 
-editmodestate = true
-renoise.song().transport.edit_mode=false end
-for i = 1,8 do
-renoise.song():insert_track_at(i)
+  local song = renoise.song()
+  local editmodestate = song.transport.edit_mode
+  song.transport.edit_mode = true
+  
+  -- Count sequencer tracks in first 8 positions
+  local sequencer_tracks = 0
+  local needs_initialization = false
+  for i = 1, math.min(8, #song.tracks) do
+    if song:track(i).type == renoise.Track.TRACK_TYPE_SEQUENCER then
+      sequencer_tracks = sequencer_tracks + 1
+      -- Check if track needs initialization (doesn't have correct name)
+      if song:track(i).name ~= string.format("8120_%02d", sequencer_tracks) then
+        needs_initialization = true
+      end
+    end
+  end
+
+  -- Only change track if we need to initialize AND we're not in automation view
+  local in_automation = (renoise.app().window.active_lower_frame == renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION)
+  if needs_initialization and not in_automation then
+    song.selected_track_index = 1
+  end
+
+  -- Add any missing sequencer tracks at position 1
+  while sequencer_tracks < 8 do
+    song:insert_track_at(1)
+    sequencer_tracks = sequencer_tracks + 1
+    song:track(1).name = string.format("8120_%02d", sequencer_tracks)
+  end
+
+  -- Ensure all sequencer tracks in first 8 positions have correct names
+  for i = 1, 8 do
+    local track = song:track(i)
+    if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+      track.name = string.format("8120_%02d", i)
+    end
+  end
+
+  song.transport.edit_mode = editmodestate
 end
-renoise.song().transport.edit_mode = editmodestate
-end
+
 
 renoise.tool():add_keybinding{name="Global:Paketti:Initialize for Groovebox 8120",invoke=function() 
 PakettiEightOneTwentyInit()
@@ -1516,11 +1720,6 @@ end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Initialize for Groovebox 8120",invoke=function() 
 PakettiEightOneTwentyInit()
 end}
-
-
-
-
-
 
 
 

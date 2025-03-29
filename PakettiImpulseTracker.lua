@@ -1626,13 +1626,13 @@ function show_new_song_dialog()
   if dialog and dialog.visible then
     dialog:close()
     clear_registered_views()  -- Ensure the reference is cleared
+    return  -- Add this return to prevent creating a new dialog
   end
 
-  -- Resetting the ViewBuilder instance to ensure IDs are not reused
+  -- Rest of the dialog creation code...
   vb = renoise.ViewBuilder()
-
   local dialog_content = vb:column {
-    margin = 10,
+        margin = 10,
     vb:text {text = "New Song ... with", font = "bold", align = "center"},
    
     -- "Set all to" switch   
@@ -1748,13 +1748,16 @@ function show_new_song_dialog()
 end
 
 function my_ctrl_n_keyhandler_func(dialog, key)
-
-local closer = preferences.pakettiDialogClose.value
+  local closer = preferences.pakettiDialogClose.value
   if key.modifiers == "" and key.name == closer then
     dialog:close()
     dialog = nil
     return nil
-else
+  elseif dialog.visible then
+    dialog:close()
+    dialog = nil
+    return nil  -- Return nil to prevent the key from triggering another action
+  else
     return key  -- Allow other key events to be handled as usual
   end
 end
