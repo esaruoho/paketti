@@ -1425,13 +1425,20 @@ function pakettiGaterDialog()
       value = 1,
       width = 300,
       notifier = function(index)
+        local previous_choice = column_choice
         column_choice = (index == 1) and "FX Column" or (index == 2) and "Volume Column" or "FX Column (L00)"
+        
+        -- If switching from L00 to C00, reset the first device's parameter to 1 (regular volume)
+        if previous_choice == "FX Column (L00)" and column_choice == "FX Column" then
+          renoise.song().selected_track.devices[1].parameters[2].value = 1
+        end
+        
         if not initializing then
           insert_commands()
         end
       end
-    },
-    vb:row {
+        },
+   vb:row {
       buttons[1], buttons[2], buttons[3], buttons[4], buttons[5], buttons[6], buttons[7], buttons[8],
       buttons[9], buttons[10], buttons[11], buttons[12], buttons[13], buttons[14], buttons[15], buttons[16],
       vb:valuebox {

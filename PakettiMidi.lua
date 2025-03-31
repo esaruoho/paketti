@@ -312,6 +312,33 @@ renoise.tool():add_midi_mapping{name="Paketti:Toggle Track DSP Device " .. i,inv
 end
 
 -------
+-- Helper function to map MIDI value (1-127) to pattern position (0 to pattern_length-1)
+local function mapPatternPosition(midi_value, pattern_length)
+  -- Ensure midi_value is 1-127
+  midi_value = math.max(1, math.min(127, midi_value))
+  -- Map 1-127 to 0-(pattern_length-1)
+  return math.floor((midi_value - 1) * (pattern_length - 1) / 126)
+end
+
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Midi Change Pattern Row Position x[Knob]",
+  invoke = function(message)
+    if message:is_abs_value() then
+      local song = renoise.song()
+      local pattern = song:pattern(song.selected_pattern_index)
+      local pattern_length = pattern.number_of_lines
+      local new_position = mapPatternPosition(message.int_value, pattern_length)
+      
+      -- Set the new pattern position
+      renoise.song().selected_line_index = new_position + 1  -- +1 because Renoise uses 1-based indexing
+      
+      -- Show feedback
+      renoise.app():show_status(string.format("Pattern Position: %d/%d", new_position + 1, pattern_length))
+    end
+  end
+}
+
+---
 renoise.tool():add_midi_mapping{name="Paketti:Midi Change EditStep 1-64 x[Knob]",
   invoke = function(message)
     if message:is_abs_value() then

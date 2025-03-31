@@ -284,6 +284,13 @@ end
 
 -- Randomize functions for note columns
 function randomizeNoteColumn(column_name)
+    -- Add this right at the start of the function
+    if (column_name == "volume_value" or column_name == "panning_value" or column_name == "effect_amount_value") 
+      and preferences.pakettiCheatSheet.pakettiCheatSheetRandomizeMax.value > 0x80 then
+      renoise.app():show_status("Warning: Values above 0x80 cannot be set for Volume or Panning")
+      return
+    end
+
   local s = renoise.song()
   local min_value = preferences.pakettiCheatSheet.pakettiCheatSheetRandomizeMin.value
   local max_value = preferences.pakettiCheatSheet.pakettiCheatSheetRandomizeMax.value
@@ -296,7 +303,8 @@ function randomizeNoteColumn(column_name)
   sliderVisible(column_name)
   local column_max_value = 0xFF
   if column_name == "volume_value" or column_name == "panning_value" or column_name == "effect_amount_value" then
-    column_max_value = 0x80
+    -- Changed from 0x80 to 0xFF to allow full slider range
+    column_max_value = 0xFF
   end
 
   if max_value > column_max_value then
@@ -313,12 +321,19 @@ function randomizeNoteColumn(column_name)
   end
 
   local random_value = function()
+    -- Clamp the values for volume/panning/effect_amount to 0x80 max
+    local actual_max = max_value
+    if column_name == "volume_value" or column_name == "panning_value" or column_name == "effect_amount_value" then
+      actual_max = math.min(max_value, 0x80)
+    end
+    
     if randomize_switch then
-      return math.random() < 0.5 and min_value or max_value
+      return math.random() < 0.5 and math.min(min_value, actual_max) or math.min(max_value, actual_max)
     else
-      return math.random(min_value, max_value)
+      return math.random(min_value, math.min(max_value, actual_max))
     end
   end
+
 
   local is_subcolumn_not_empty = function(note_column)
     if column_name == "volume_value" then
