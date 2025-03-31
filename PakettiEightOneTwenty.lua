@@ -350,11 +350,18 @@ table.insert(yxx_checkbox_row_elements, yxx_clear_button)
       end
       renoise.song().selected_instrument_index = instrument_index
       
+    -- Set the selected track before changing the sample
+    local track_index = track_indices[row_elements.track_popup.value]
+    renoise.song().selected_track_index = track_index
+
+
       -- Direct 1:1 mapping - slider value is the sample index
       pakettiSampleVelocityRangeChoke(value)
       
       row_elements.update_sample_name_label()
       renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+
+
     end
   }
 
