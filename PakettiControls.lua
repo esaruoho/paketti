@@ -12,6 +12,8 @@ function RecordFollowToggle()
   local t = renoise.song().transport
   local w = renoise.app().window
   
+
+
   -- If not in pattern or phrase editor, force pattern editor with edit+follow on
   if w.active_middle_frame ~= pe and w.active_middle_frame ~= phrase then
     w.active_middle_frame = pe
@@ -19,6 +21,8 @@ function RecordFollowToggle()
     t.follow_player = true
     return
   end
+
+
 
   -- Handle phrase editor specific behavior
   if w.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_PHRASE_EDITOR then
@@ -39,7 +43,13 @@ function RecordFollowToggle()
   end
   -- For all other cases, force pattern editor (middle_frame = 1)
   w.active_middle_frame = 1
-  
+
+    -- Check if follow is on, playing is on, but edit mode is off
+    if t.follow_player and t.playing and not t.edit_mode then
+      t.edit_mode = true
+      return
+    end
+
   if t.edit_mode == true and t.follow_player == true then 
     t.edit_mode = false 
     t.follow_player = false

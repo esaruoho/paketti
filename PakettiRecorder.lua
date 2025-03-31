@@ -710,10 +710,12 @@ renoise.tool():add_keybinding{name="Global:Paketti:TouchOSC Sample Editor",invok
 -- Function to handle starting and stopping sample recording
 function handle_sample_recording()
   local dialog_visible = renoise.app().window.sample_record_dialog_is_visible
+renoise.app().window.active_middle_frame=1
   local song = renoise.song()
 renoise.app().window.active_middle_frame=renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
   if not dialog_visible then
     renoise.app().window.sample_record_dialog_is_visible = true
+    renoise.app().window.active_middle_frame=1
 renoise.song():insert_instrument_at(renoise.song().selected_instrument_index+1)
 renoise.song().selected_instrument_index=renoise.song().selected_instrument_index+1
     pakettiPreferencesDefaultInstrumentLoader()

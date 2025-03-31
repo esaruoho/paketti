@@ -611,7 +611,7 @@ function loadvst(vstname, name, preset_path)
       end 
 
       if inserted_device.name == "AU: Valhalla DSP, LLC: ValhallaVintageVerb" then 
-        inserted_device.parameters[1].value = 0.474
+        inserted_device.parameters[1].value = 0.304
         inserted_device.parameters[3].value = 0.688
         inserted_device.parameters[15].value = 0.097
       end 
@@ -703,7 +703,7 @@ function loadvst(vstname, name, preset_path)
     end   
 
     if inserted_device.name == "AU: Valhalla DSP, LLC: ValhallaVintageVerb" then 
-      inserted_device.parameters[1].value = 0.474
+      inserted_device.parameters[1].value = 0.304
       inserted_device.parameters[3].value = 0.688
       inserted_device.parameters[15].value = 0.097
     end 
