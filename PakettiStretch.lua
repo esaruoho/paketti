@@ -19,58 +19,39 @@ local function set_view_frame(vb)
         or 1  -- Default to Pattern Editor if switchmode doesn't exist
 end
 
--- Add this new function
 local function fill_pattern_with_steps(pattern_index, instrument_index, use_512, note_value, reverse_s, step_size, fill_all)
     local song = renoise.song()
     local pattern = song.patterns[pattern_index]
     local track = pattern:track(song.selected_track_index)
-    local base_length = 256
     
-    -- Set pattern length
-    pattern.number_of_lines = use_512 and 512 or 256
-    
-    -- Function to fill a 256-line segment
-    local function fill_segment(start_line)
-        -- Calculate total number of steps
-        local total_steps = math.floor(base_length / step_size)
-        
-        for i = 1, base_length do
-            local current_line = start_line + i - 1
-            local should_fill = fill_all or ((i-1) % step_size == 0)
-            
-            if should_fill then
-                -- Calculate step position (0 to total_steps-1)
-                local step_position = math.floor((i-1) / step_size)
-                
-                -- Calculate S-value (ensure it stays within 0-255)
-                local s_value
-                if reverse_s then
-                    -- For reverse, start at 255 and step down
-                    s_value = math.max(0, math.min(255, 255 - (step_position * (255 / (total_steps - 1)))))
-                else
-                    -- For normal, start at 0 and step up
-                    s_value = math.max(0, math.min(255, step_position * (255 / (total_steps - 1))))
-                end
-                
-                -- Debug print
-                print(string.format("Line %d: Step %d of %d, S-value: %d", i, step_position, total_steps, s_value))
-                
-                track:line(current_line).note_columns[1].note_value = note_value
-                track:line(current_line).note_columns[1].instrument_value = instrument_index
-                track:line(current_line).effect_columns[1].number_string = "0S"
-                track:line(current_line).effect_columns[1].amount_value = math.floor(s_value)
-            else
-                track:line(current_line).note_columns[1].note_value = 121
-                track:line(current_line).note_columns[1].instrument_value = 255
-                track:line(current_line).effect_columns[1].number_string = "00"
-                track:line(current_line).effect_columns[1].amount_value = 0
-            end
+    -- First 256 lines: 00->FF (or FF->00 if reversed)
+    for i = 1, 256 do
+        local s_value
+        if reverse_s then
+            s_value = 255 - ((i - 1) * 255 / 255)  -- FF->00
+        else
+            s_value = (i - 1) * 255 / 255  -- 00->FF
         end
+        
+        -- Only modify the effect column
+        track:line(i).effect_columns[1].number_string = "0S"
+        track:line(i).effect_columns[1].amount_value = math.floor(s_value)
     end
     
-    fill_segment(1)
+    -- If 512 mode, do second 256 lines with same pattern
     if use_512 then
-        fill_segment(257)
+        for i = 257, 512 do
+            local s_value
+            if reverse_s then
+                s_value = 255 - ((i - 257) * 255 / 255)  -- FF->00
+            else
+                s_value = (i - 257) * 255 / 255  -- 00->FF
+            end
+            
+            -- Only modify the effect column
+            track:line(i).effect_columns[1].number_string = "0S"
+            track:line(i).effect_columns[1].amount_value = math.floor(s_value)
+        end
     end
 end
 

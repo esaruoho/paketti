@@ -1,50 +1,50 @@
-Menu Entry: Main Menu:Tools:Paketti..:Paketti User-Defined Sample Folders...
-Keybinding: Global:Tools:Randomize Effect Column Smatter (0R Retrig)
-Keybinding: Global:Paketti:Nudge Delay Output Delay +01ms (Rename)
-Keybinding: Global:Paketti:Set Automation Range to Min (0.0)
-Keybinding: Global:Paketti:Scale Automation to 110%
-Keybinding: Pattern Editor:Paketti:Effect Column RXy Retrig Amount Xy (+1)
-Keybinding: Global:Paketti:Nudge Delay Output Delay -01ms (Rename)
-Menu Entry: Pattern Editor:Paketti ChordsPlus..:Augmented - Aug9 (4-3-3-5)
-Keybinding: Global:Track Devices:Load ValhallaSpaceModulator (VST)
-Keybinding: Global:Paketti:Selected Sample Exit Loop Note-Off On
-Keybinding: Global:Paketti:Output Routing (Continual, Skip Master, Include Master in Cycle)
-Keybinding: Pattern Sequencer:Paketti:Keep Sequence Sorted Toggle
-Menu Entry: Pattern Sequencer:Paketti..:Sequences/Sections..:Section Loop (Next)
-Keybinding: Pattern Editor:Paketti:Global Visible Column (None)
-Keybinding: Global:Paketti:Resize all non-empty Patterns to 016
-Keybinding: Phrase Editor:Paketti:Init Phrase Settings
-Menu Entry: Main Menu:Tools:Paketti..:Paketti Track DSP Device & Instrument Loader...
-Keybinding: Pattern Editor:Paketti:Wipe Effects From Selection
-Menu Entry: Pattern Editor:Paketti..:Delay Output..:Nudge Delay Output +05ms (Rename)
-Keybinding: Global:Paketti:Set Interpolation 1 (None) Globally
+Menu Entry: Main Menu:Tools:Paketti..:!Preferences..:Renoise KeyBindings...
+Keybinding: Global:Paketti:Increase All Track Volumes by 3dB
+Keybinding: Global:Paketti:Clone Current Pattern to Current Sequence
+Menu Entry: Pattern Editor:Paketti..:Clear Selected Track Below Current Row
 Keybinding: Global:Paketti:Move Beginning Silence to End for All Samples
-Keybinding: Global:Paketti:Randomize Selected Plugin with User3 (%)
-Keybinding: Phrase Editor:Paketti:KapsLock CapsLock Caps Lock Note Off
-Menu Entry: Pattern Editor:Paketti..:Create Identical Track
-Keybinding: Global:Track Devices:Load D16 Toraverb
-Keybinding: Global:Paketti:Duplicate Track, set to Selected Instrument
-Menu Entry: Pattern Editor:Paketti..:Delete Unused Columns
-Menu Entry: Main Menu:Tools:Paketti..:!Preferences..:Paketti Load Dynamic Views from a Textfile
-Menu Entry: Pattern Editor:Paketti ChordsPlus..:Transposer Selection/Row -11
-Keybinding: Pattern Editor:Paketti:Wipe All Automation in All Tracks on Whole Song
-Menu Entry: Pattern Editor:Paketti..:Delay Output..:Reset Delay Output Delay to 0ms (ALL) (Rename)
-Keybinding: Global:Paketti:Configure Launch App Selection...
-Menu Entry: Mixer:Paketti..:Insert Stereo -> Mono device to End of ALL DSP Chains
-Keybinding: Pattern Editor:Paketti:Set Pattern Length to LPB*032
-Menu Entry: Pattern Editor:Paketti..:Effect Columns..:Clear Effect Columns
-Keybinding: Global:Paketti:Set Selected Instrument Interpolation to 4 (Sinc)
-Keybinding: Global:Paketti:Show/Hide Disk Browser
-Menu Entry: Pattern Editor:Paketti..:Invert Effect Column Subcolumns
-Keybinding: Global:Paketti:Set Selected Sample Volume to -INF dB
-Menu Entry: Pattern Editor:Paketti ChordsPlus..:Added - Major 6 Add 9 (4-3-2-5)
-Keybinding: Global:Paketti:Open VolDelayPan Slider Dialog...
-Keybinding: Global:Paketti:Enable All Devices on All Tracks
-Menu Entry: Pattern Editor:Paketti..:Other Trackers..:Open Player Pro Note Column Dialog
-Keybinding: Mixer:Paketti:Paketti Pattern Doubler
-Keybinding: Global:Paketti:Set Selected Sample Mute Group to B
-Keybinding: Sample Keyzones:Paketti:Mono to Left with Blank Right
-Keybinding: Phrase Editor:Paketti:Impulse Tracker ALT-D Double Select
-Keybinding: Global:Paketti:Global Volume Reduce All Instruments by -4.5dB
-Keybinding: Global:Track Devices:Load Renoise *Hydra
-Keybinding: Global:Paketti:Set Selected Sample Transpose (+12)
+Menu Entry: Instrument Box:Paketti..:Enable All Sample FX on Selected Instrument
+Keybinding: Pattern Editor:Paketti:Show Automation
+Menu Entry: Disk Browser Files:Paketti..:Paketti PitchBend Drumkit Sample Loader (Random)
+Keybinding: Global:Paketti:Set Sequence Loop Selection Off
+Keybinding: Global:Paketti:Insert Random Device (AU/Native Only)
+Keybinding: Pattern Matrix:Paketti:Pattern Matrix Selection Expand
+Menu Entry: Pattern Editor:Paketti ChordsPlus..:Seventh - Major 7 (4-3-4)
+Keybinding: Pattern Editor:Paketti:Columnizer Decrease Panning (-10) (2nd)
+Keybinding: Pattern Editor:Paketti:Set Pattern Length to LPB*008
+Keybinding: Global:Paketti:Set Selected Instrument All Autoseek On/Off
+Menu Entry: Pattern Sequencer:Paketti..:Resize all non-empty Patterns..:Resize all non-empty Patterns to 192
+Menu Entry: Main Menu:Tools:Paketti..:Pattern Editor..:Visible Columns..:Toggle Visible Column (Delay) Globally
+Menu Entry: Mixer:Paketti..:Record..:Paketti Overdub 01 (Metronome/No Line Input)
+Menu Entry: DSP Device:Paketti..:Randomize Automation Envelopes for Device
+Keybinding: Pattern Editor:Paketti:Effect Column Uxx Slide Pitch Up (-10)
+Menu Entry: Pattern Editor:Paketti..:Devices..:Bypass All Devices on All Tracks
+Menu Entry: Pattern Editor:Paketti..:Visible Columns..:Global Visible Column (Sample Effects)
+Menu Entry: Instrument Box:Paketti..:Toggle Mono Device
+Keybinding: Global:Paketti:Wipe Song Retain Sample
+Menu Entry: Sample Mappings:Paketti..:Load XRNI & Wipe Phrases
+Keybinding: Global:Paketti:Set Selected Instrument Transpose (-12)
+Keybinding: Global:Paketti:Set Random EditStep 1-64
+Menu Entry: Track Automation:Paketti..:Show/Hide External Editor for Device
+Keybinding: Global:Paketti:Set Selected Sample FX Group (Previous)
+Keybinding: Global:Paketti:Paketti Overdub 01 (No Metronome/Line Input)
+Menu Entry: Instrument Box:Paketti..:Wipe&Slice..:Wipe Slices
+Keybinding: Global:Paketti:Set Selected Sample Finetune (+10)
+Menu Entry: Main Menu:Tools:Paketti..:Instruments..:Paketti PitchBend Drumkit Sample Loader (Random)
+Keybinding: Global:Paketti:Set Selected Sample Transpose (-5)
+Keybinding: Phrase Editor:Paketti:Set Phrase Length to 048 (030)
+Menu Entry: Main Menu:Tools:Paketti..:Plugins/Devices..:Insert Random Device (All)
+Keybinding: Global:Paketti:Open Visible Pages to Fit Parameters
+Menu Entry: Pattern Editor:Paketti..:Delay Output..:Reset Delay Output Delay to 0ms (Rename)
+Keybinding: Global:Paketti:Random BPM from List
+Keybinding: Mixer:Paketti:Create Group and Move DSPs
+Menu Entry: Pattern Matrix:Paketti..:Delay Output..:Nudge Delay Output Delay +01ms
+Menu Entry: Main Menu:Tools:Paketti..:Plugins/Devices..:Insert Random Device (AU/Native Only)
+Menu Entry: Phrase Editor:Paketti..:Create New Phrase using Paketti Settings
+Keybinding: Global:Paketti:Set Selected Instrument Global Volume (-0.01)
+Keybinding: Global:Paketti:Set Selected Sample Finetune (-1)
+Menu Entry: Main Menu:Tools:Paketti..:Pattern Editor..:Flood Fill Note and Instrument
+Keybinding: Global:Paketti:Find Note (Next,Pattern,Play)
+Keybinding: Global:Track Devices:Load Renoise (Hidden) Flanger
+Menu Entry: Main Menu:Tools:Paketti..:Pattern Editor..:Resize&Fill..:Paketti Pattern Resize and Fill 128
+Menu Entry: Pattern Editor:Paketti..:Wipe All Effect Columns on Song

@@ -989,7 +989,7 @@ renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Move Slice End Left 
 renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Move Slice End Right by 500",invoke=function(message) if message:is_trigger() then move_slice_end_right_500() end end}
 
 ----------------
-renoise.tool():add_midi_mapping{name="Paketti:Set BeatSync Value x[Knob]",invoke=function(message) 
+renoise.tool():add_midi_mapping{name="Paketti:Set Beatsync Value for Selected Sample x[Knob]",invoke=function(message) 
   if message:is_abs_value() then
   if renoise.song().selected_instrument ~= nil and renoise.song().selected_sample ~= nil then
     renoise.song().selected_sample.beat_sync_enabled=true
@@ -997,7 +997,28 @@ renoise.tool():add_midi_mapping{name="Paketti:Set BeatSync Value x[Knob]",invoke
   else renoise.app():show_status("There is no Instrument and no Sample.") end
   end
   end}
-  
+  renoise.tool():add_midi_mapping{
+    name = "Paketti:Set All Beatsync Values for Instrument x[Knob]",
+      invoke = function(message)
+        if message:is_abs_value() then
+          local instrument = renoise.song().selected_instrument
+          if instrument then
+            -- Calculate beat sync lines value once
+            local beat_sync_lines = math.floor(message.int_value * (128/127) + 0.5)
+            if beat_sync_lines < 1 then beat_sync_lines = 1 end
+            if beat_sync_lines > 128 then beat_sync_lines = 128 end
+            
+            for _, sample in ipairs(instrument.samples) do
+              sample.beat_sync_enabled = true
+              sample.beat_sync_lines = beat_sync_lines
+            end
+            renoise.app():show_status(string.format("Set beatsync to %d lines for all samples", beat_sync_lines))
+          else 
+            renoise.app():show_status("No instrument selected")
+          end
+        end
+      end
+    }
 ---
 function PakettiMidiSendBang(number)
   local selected_track = renoise.song().selected_track
@@ -1606,6 +1627,7 @@ local target_devices = {
   {path="Audio/Effects/Native/LofiMat 2", params={"Bit Crunch", "Rate", "Noise", "Wet Mix","Dry Mix"}},
   {path="Audio/Effects/Native/Delay", params={"L Delay", "R Delay", "L Feedb.", "R Feedb.", "Send", "L Sync Time", "R Sync Time"}},
   {path="Audio/Effects/Native/Analog Filter", params={"Type", "Cutoff", "Resonance", "Drive", "Inertia"}},
+  {path="Audio/Effects/Native/Doofer", params={1,2,3,4,5,6,7,8}}, -- Doofer uses parameter indices instead of names
   {path="Audio/Effects/Native/EQ 10", params={}} -- EQ 10 now explicitly handled
 }
 
@@ -1620,15 +1642,25 @@ local function modify_device_param(device_path, param_identifier, midi_value)
   local track = renoise.song().selected_track
   local found_device = false
   
-  -- Loop through the devices in the selected track
   for device_index, device in ipairs(track.devices) do
     if device.device_path == device_path then
       found_device = true
       local param
 
-      -- Handle numeric parameter indices (for EQ 10)
+      -- Handle numeric parameter indices (for Doofer and EQ 10)
       if type(param_identifier) == "number" then
-        param = device.parameters[param_identifier]
+        -- Check if the parameter index exists
+        if param_identifier <= #device.parameters then
+          param = device.parameters[param_identifier]
+          -- For Doofer, just try to access the parameter - if it's not available, it won't exist
+          if device_path:match("Doofer$") and not param then
+            renoise.app():show_status(string.format("Doofer Macro %02d not available", param_identifier))
+            return
+          end
+        else
+          renoise.app():show_status(string.format("Parameter %d not available", param_identifier))
+          return
+        end
       else
         -- Handle parameter names (for other devices)
         for _, parameter in ipairs(device.parameters) do
@@ -1639,7 +1671,6 @@ local function modify_device_param(device_path, param_identifier, midi_value)
         end
       end
 
-      -- Check if we found the parameter
       if param then
         param.value = scale_midi_to_param(midi_value, param)
         renoise.app():show_status(param.name .. " of " .. device.name .. " modified.")
@@ -1647,19 +1678,14 @@ local function modify_device_param(device_path, param_identifier, midi_value)
         renoise.app():show_status("Parameter not found in " .. device.name)
         return
       end
-      
-      -- Set focus back to the pattern editor after modification
-      renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
       return
     end
   end
 
-  -- If device not found, show a status message
   if not found_device then
     renoise.app():show_status("The device " .. device_path .. " is not present on selected track.")
   end
 end
-
 
 -- Helper function to remove " 2" from the device names for clean mapping names
 local function clean_device_name(device_name)
@@ -1671,8 +1697,21 @@ for _, device_info in ipairs(target_devices) do
   local device_path = device_info.path
   local device_name_clean = clean_device_name(device_path:match("[^/]+$"))
 
+  if device_path == "Audio/Effects/Native/Doofer" then
+    -- Generate mappings for Doofer parameters by index
+    for _, param_index in ipairs(device_info.params) do
+      local mapping_name = string.format("Paketti:Selected Track Dev Doofer Macro %02d", param_index)
+      renoise.tool():add_midi_mapping{
+        name = mapping_name,
+        invoke = function(message)
+          local midi_value = message.int_value
+          modify_device_param(device_path, param_index, midi_value)
+        end
+      }
+    end
+
   -- Generate mappings for EQ 10 parameters directly
-  if device_path == "Audio/Effects/Native/EQ 10" then
+  elseif device_path == "Audio/Effects/Native/EQ 10" then
     -- Generate 10 Gain mappings
     for i = 1, 10 do
       local mapping_name="Paketti:Selected Track Dev EQ 10 Gain " .. string.format("%02d", i)

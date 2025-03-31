@@ -912,14 +912,14 @@ renoise.tool():add_keybinding {
   invoke = PakettiXRNSProbeShowDialog
 }
 renoise.tool():add_menu_entry {
-  name = "Main Menu:Tools:Paketti XRNS Probe",
+  name = "Main Menu:Tools:Paketti..:Xperimental/Work in Progress..:Paketti XRNS Probe",
   invoke = PakettiXRNSProbeShowDialog
 }
 
 -- Only add Browse menu entry if show_browse is true
 if show_browse then
 renoise.tool():add_menu_entry {
-  name = "Main Menu:Tools:Paketti XRNS Probe (Browse)",
+  name = "Main Menu:Tools:Paketti..:Xperimental/Work in Progress..:Paketti XRNS Probe (Browse)",
   invoke = function() PakettiXRNSProbeShowDialog("Browse") end
 }
 end

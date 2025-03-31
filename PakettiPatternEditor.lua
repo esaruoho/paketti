@@ -2837,8 +2837,6 @@ renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Clear/Wipe Selected Track 
 renoise.tool():add_menu_entry{name="--DSP Device:Paketti..:Clear/Wipe Selected Track TrackDSPs",invoke=function() wipeSelectedTrackTrackDSPs() end}
 ------
 
-
-
 -- Function to toggle note off in all visible note columns
 function PakettiToggleNoteOffAllColumns()
   local s = renoise.song()
@@ -2849,20 +2847,28 @@ function PakettiToggleNoteOffAllColumns()
       local line = s.selected_line
       local count = track.visible_note_columns
       
-      -- Check if all visible note columns are set to "OFF"
-      local all_off = true
+      -- Count how many columns are OFF vs empty
+      local off_count = 0
+      local empty_or_off_count = 0
       for i = 1, count do
-          if line.note_columns[i].note_string ~= "OFF" then
-              all_off = false
-              break
+          if line.note_columns[i].note_string == "OFF" then
+              off_count = off_count + 1
+              empty_or_off_count = empty_or_off_count + 1
+          elseif line.note_columns[i].note_value == 121 then -- empty note
+              empty_or_off_count = empty_or_off_count + 1
           end
       end
       
-      -- Set or clear "OFF" depending on the result
+      -- If all empty/OFF columns are OFF, clear them. Otherwise, set empty columns to OFF
+      local should_clear = (off_count == empty_or_off_count and empty_or_off_count > 0)
+      
       for i = 1, count do
-          line.note_columns[i].note_string = all_off and "" or "OFF"
+          if line.note_columns[i].note_string == "OFF" or
+             line.note_columns[i].note_value == 121 then
+              line.note_columns[i].note_string = should_clear and "" or "OFF"
+          end
       end
-      renoise.app():show_status("Toggled Note OFF in all visible columns")
+      renoise.app():show_status("Toggled Note OFF in empty columns")
       
   elseif renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_PHRASE_EDITOR then
       -- Ensure Renoise API version 6.2 or higher
@@ -2881,20 +2887,28 @@ function PakettiToggleNoteOffAllColumns()
       local line = phrase.lines[s.selected_phrase_line_index]
       local count = phrase.visible_note_columns
       
-      -- Check if all visible note columns are set to "OFF"
-      local all_off = true
+      -- Count how many columns are OFF vs empty
+      local off_count = 0
+      local empty_or_off_count = 0
       for i = 1, count do
-          if line.note_columns[i].note_string ~= "OFF" then
-              all_off = false
-              break
+          if line.note_columns[i].note_string == "OFF" then
+              off_count = off_count + 1
+              empty_or_off_count = empty_or_off_count + 1
+          elseif line.note_columns[i].note_value == 121 then -- empty note
+              empty_or_off_count = empty_or_off_count + 1
           end
       end
       
-      -- Set or clear "OFF" depending on the result
+      -- If all empty/OFF columns are OFF, clear them. Otherwise, set empty columns to OFF
+      local should_clear = (off_count == empty_or_off_count and empty_or_off_count > 0)
+      
       for i = 1, count do
-          line.note_columns[i].note_string = all_off and "" or "OFF"
+          if line.note_columns[i].note_string == "OFF" or
+             line.note_columns[i].note_value == 121 then
+              line.note_columns[i].note_string = should_clear and "" or "OFF"
+          end
       end
-      renoise.app():show_status("Toggled Note OFF in all visible phrase columns")
+      renoise.app():show_status("Toggled Note OFF in empty phrase columns")
   end
 end
 
@@ -2903,68 +2917,53 @@ function PakettiToggleNoteOffAllTracks()
   local s = renoise.song()
   
   if renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR then
-      -- Pattern Editor handling
       local cursor_pos = s.selected_line_index
       
-      -- Iterate over all tracks
+      -- Count how many columns are OFF vs empty across all tracks
+      local off_count = 0
+      local empty_or_off_count = 0
+      
       for t = 1, #s.tracks do
           local track = s:track(t)
           
-          -- Skip group, master, and send tracks
           if not (track.type == renoise.Track.TRACK_TYPE_GROUP or 
                  track.type == renoise.Track.TRACK_TYPE_MASTER or 
                  track.type == renoise.Track.TRACK_TYPE_SEND) then
               local line = s.patterns[s.selected_pattern_index]:track(t):line(cursor_pos)
               local count = track.visible_note_columns
               
-              -- Check if all visible note columns are set to "OFF"
-              local all_off = true
               for i = 1, count do
-                  if line.note_columns[i].note_string ~= "OFF" then
-                      all_off = false
-                      break
+                  if line.note_columns[i].note_string == "OFF" then
+                      off_count = off_count + 1
+                      empty_or_off_count = empty_or_off_count + 1
+                  elseif line.note_columns[i].note_value == 121 then -- empty note
+                      empty_or_off_count = empty_or_off_count + 1
                   end
               end
+          end
+      end
+      
+      -- If all empty/OFF columns are OFF, clear them. Otherwise, set empty columns to OFF
+      local should_clear = (off_count == empty_or_off_count and empty_or_off_count > 0)
+      
+      for t = 1, #s.tracks do
+          local track = s:track(t)
+          
+          if not (track.type == renoise.Track.TRACK_TYPE_GROUP or 
+                 track.type == renoise.Track.TRACK_TYPE_MASTER or 
+                 track.type == renoise.Track.TRACK_TYPE_SEND) then
+              local line = s.patterns[s.selected_pattern_index]:track(t):line(cursor_pos)
+              local count = track.visible_note_columns
               
-              -- Set or clear "OFF" depending on the result
               for i = 1, count do
-                  line.note_columns[i].note_string = all_off and "" or "OFF"
+                  if line.note_columns[i].note_string == "OFF" or
+                     line.note_columns[i].note_value == 121 then
+                      line.note_columns[i].note_string = should_clear and "" or "OFF"
+                  end
               end
           end
       end
-      renoise.app():show_status("Toggled Note OFF in all tracks")
-      
-  elseif renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_PHRASE_EDITOR then
-      -- Ensure Renoise API version 6.2 or higher
-      if renoise.API_VERSION < 6.2 then
-          renoise.app():show_status("This feature requires Renoise API version 6.2 or higher.")
-          return
-      end
-      
-      -- Phrase Editor handling
-      local phrase = s.selected_phrase
-      if not phrase then
-          renoise.app():show_status("No phrase selected")
-          return
-      end
-      
-      local line = phrase.lines[s.selected_phrase_line_index]
-      local count = phrase.visible_note_columns
-      
-      -- Check if all visible note columns are set to "OFF"
-      local all_off = true
-      for i = 1, count do
-          if line.note_columns[i].note_string ~= "OFF" then
-              all_off = false
-              break
-          end
-      end
-      
-      -- Set or clear "OFF" depending on the result
-      for i = 1, count do
-          line.note_columns[i].note_string = all_off and "" or "OFF"
-      end
-      renoise.app():show_status("Toggled Note OFF in all phrase columns")
+      renoise.app():show_status("Toggled Note OFF in empty columns across tracks")
   end
 end
 
@@ -3981,8 +3980,8 @@ function toggle_match_editstep_note()
   end
 end
 
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Xperimental/Work in Progress:Match Effect Column EditStep with Note Placement",invoke=function() toggle_match_editstep_effect() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress:Match Note Column EditStep with Note Placement",invoke=function() toggle_match_editstep_note() end}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Xperimental/Work in Progress..:Match Effect Column EditStep with Note Placement",invoke=function() toggle_match_editstep_effect() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress..:Match Note Column EditStep with Note Placement",invoke=function() toggle_match_editstep_note() end}
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Match Effect Column EditStep with Note Placement",invoke=function() toggle_match_editstep_effect() end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Match Note Column EditStep with Note Placement",invoke=function() toggle_match_editstep_note() end}
 

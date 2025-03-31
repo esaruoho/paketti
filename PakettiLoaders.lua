@@ -302,6 +302,16 @@ function loadnative(effect, name, preset_path)
       if sample_devices[checkline] then
         local device = sample_devices[checkline]
         if device.name == "Maximizer" then device.parameters[1].show_in_mixer = true end
+
+        if device.name == "Mixer EQ" then 
+          device.active_preset_data = read_file("Presets/PakettiMixerEQ.xml")
+        end
+
+        if device.name == "EQ 10" then 
+          device.active_preset_data = read_file("Presets/PakettiEQ10.xml")
+        end
+
+
         if device.name == "DC Offset" then device.parameters[2].value = 1 end
         if device.name == "#Multiband Send" then 
           device.parameters[1].show_in_mixer = false
@@ -379,6 +389,13 @@ function loadnative(effect, name, preset_path)
         device.parameters[5].show_in_mixer = false 
       end
       if device.name == "#Line Input" then device.parameters[2].show_in_mixer = true end
+      if device.name == "Mixer EQ" then 
+        device.active_preset_data = read_file("Presets/PakettiMixerEQ.xml")
+      end
+      if device.name == "EQ 10" then 
+        device.active_preset_data = read_file("Presets/PakettiEQ10.xml")
+      end
+
       if device.name == "#Send" then 
         device.parameters[2].show_in_mixer = false
       end

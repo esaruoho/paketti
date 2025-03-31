@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FilterDevicePreset doc_version="13">
+  <DeviceSlot type="MixerEqDevice">
+    <IsMaximized>true</IsMaximized>
+    <InputMode>L+R</InputMode>
+    <MaxVisualizedGain>9</MaxVisualizedGain>
+    <LowGain>
+      <Value>0.0</Value>
+    </LowGain>
+    <MidGain>
+      <Value>0.0</Value>
+    </MidGain>
+    <MidFreq>
+      <Value>0.600000024</Value>
+    </MidFreq>
+    <MidQ>
+      <Value>0.5</Value>
+    </MidQ>
+    <HiGain>
+      <Value>0.0</Value>
+    </HiGain>
+  </DeviceSlot>
+</FilterDevicePreset>

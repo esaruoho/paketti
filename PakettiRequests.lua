@@ -3648,64 +3648,65 @@ function PakettiTransposeShifter(interval, scope)
   end
 end
 
--- Generate controls for each semitone shift from -12 to +12, excluding 0
+-- First create all "All Instruments" entries
 for interval = MIN_SHIFT, MAX_SHIFT do
   if interval ~= 0 then
     local shift_label = (interval > 0) and ("+" .. interval) or tostring(interval)
-
-    -- Define menu labels under "Main Menu:Tools:Paketti..:Instrument..:"
+    
+    -- Define labels for "All Instruments"
     local menu_label_all_main = "Main Menu:Tools:Paketti..:Instruments..:Transpose..:Transpose Shift " .. shift_label .. " (All Instruments)"
-    local menu_label_current_main = "Main Menu:Tools:Paketti..:Instruments..:Transpose..:Transpose Shift " .. shift_label .. " (Selected Instrument)"
-    
-    -- Define menu labels under "Sample Editor:Paketti..:"
     local menu_label_all_pattern = "Sample Editor:Paketti..:Transpose..:Transpose Shift " .. shift_label .. " (All Instruments)"
-    local menu_label_current_pattern = "Sample Editor:Paketti..:Transpose..:Transpose Shift " .. shift_label .. " (Selected Instrument)"
-    
-    -- Define unique identifiers for keybindings
     local keybinding_label_all = "Global:Paketti:Transpose Shift " .. shift_label .. " (All Instruments)"
-    local keybinding_label_current = "Global:Paketti:Transpose Shift " .. shift_label .. " (Selected Instrument)"
-    
-    -- Define MIDI mapping labels
     local midi_mapping_all = "Paketti:Transpose Shift " .. shift_label .. " (All Instruments)"
-    local midi_mapping_current = "Paketti:Transpose Shift " .. shift_label .. " (Selected Instrument)"
 
-    -- Add menu entries under "Main Menu:Tools:Paketti..:Instrument..:"
+    -- Add all "All Instruments" entries
     renoise.tool():add_menu_entry{
       name = menu_label_all_main,
       invoke=function() PakettiTransposeShifter(interval, "all") end
     }
     
     renoise.tool():add_menu_entry{
-      name = menu_label_current_main,
-      invoke=function() PakettiTransposeShifter(interval, "current") end
-    }
-
-    -- Add menu entries under "Sample Editor:Paketti..:"
-    renoise.tool():add_menu_entry{
       name = menu_label_all_pattern,
       invoke=function() PakettiTransposeShifter(interval, "all") end
+    }
+    
+    renoise.tool():add_keybinding{
+      name = keybinding_label_all,
+      invoke=function() PakettiTransposeShifter(interval, "all") end
+    }
+    
+    renoise.tool():add_midi_mapping{
+      name = midi_mapping_all,
+      invoke=function() PakettiTransposeShifter(interval, "all") end
+    }
+  end
+end
+
+-- Then create all "Selected Instrument" entries
+for interval = MIN_SHIFT, MAX_SHIFT do
+  if interval ~= 0 then
+    local shift_label = (interval > 0) and ("+" .. interval) or tostring(interval)
+    
+    -- Define labels for "Selected Instrument"
+    local menu_label_current_main = "Main Menu:Tools:Paketti..:Instruments..:Transpose..:Transpose Shift " .. shift_label .. " (Selected Instrument)"
+    local menu_label_current_pattern = "Sample Editor:Paketti..:Transpose..:Transpose Shift " .. shift_label .. " (Selected Instrument)"
+    local keybinding_label_current = "Global:Paketti:Transpose Shift " .. shift_label .. " (Selected Instrument)"
+    local midi_mapping_current = "Paketti:Transpose Shift " .. shift_label .. " (Selected Instrument)"
+
+    -- Add all "Selected Instrument" entries
+    renoise.tool():add_menu_entry{
+      name = menu_label_current_main,
+      invoke=function() PakettiTransposeShifter(interval, "current") end
     }
     
     renoise.tool():add_menu_entry{
       name = menu_label_current_pattern,
       invoke=function() PakettiTransposeShifter(interval, "current") end
     }
-
-    -- Add keybindings
-    renoise.tool():add_keybinding{
-      name = keybinding_label_all,
-      invoke=function() PakettiTransposeShifter(interval, "all") end
-    }
     
     renoise.tool():add_keybinding{
       name = keybinding_label_current,
       invoke=function() PakettiTransposeShifter(interval, "current") end
-    }
-
-    -- Add MIDI mappings
-    renoise.tool():add_midi_mapping{
-      name = midi_mapping_all,
-      invoke=function() PakettiTransposeShifter(interval, "all") end
     }
     
     renoise.tool():add_midi_mapping{
@@ -3714,7 +3715,6 @@ for interval = MIN_SHIFT, MAX_SHIFT do
     }
   end
 end
-
 
 ---------
 
@@ -6319,7 +6319,7 @@ local function detect_and_apply_triplet_pattern()
     end
 end
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress:Expand to Triplets (Note every row, note every 2nd row)",invoke=function() pcall(detect_and_apply_triplet_pattern)end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress..:Expand to Triplets (Note every row, note every 2nd row)",invoke=function() pcall(detect_and_apply_triplet_pattern)end}
 ----------
 
 
@@ -10389,12 +10389,12 @@ renoise.tool():add_keybinding{name = "Global:Paketti:Replace FC with 0L",invoke 
 
 -- Create menu entry and MIDI mapping
 renoise.tool():add_menu_entry {
-  name = "Main Menu:Tools:Explode Notes to New Tracks",
+  name = "Main Menu:Tools:Paketti..:Pattern Editor..:Explode Notes to New Tracks",
   invoke = function() explode_notes_to_tracks() end
 }
 
 renoise.tool():add_midi_mapping {
-  name = "Tools:Explode Notes to New Tracks",
+  name = "Paketti:Explode Notes to New Tracks",
   invoke = function() explode_notes_to_tracks() end
 }
 

@@ -1985,15 +1985,9 @@ local function show_value_dialog()
       vb:row{
         close_button,
       }
-    }, keyhandlerfunc_automationvalue )
+    },keyhandlerfunc_automationvalue)
 
-function keyhandlerfunc_automationvalue(dialog,key)
-  local closer = preferences.pakettiDialogClose.value
-  if key.name == closer then
-    dialog:close()
-  end
-  return key
-end
+
 
     -- Add the edit step notifier after dialog is created
     local edit_step_observable = renoise.song().transport.edit_step_observable
@@ -2005,6 +1999,14 @@ end
   -- Set initial focus to the textfield
   vb.views.value_textfield.active = true
   vb.views.value_textfield.edit_mode = true
+end
+
+function keyhandlerfunc_automationvalue(dialog,key)
+  local closer = preferences.pakettiDialogClose.value
+  if key.name == closer then
+    dialog:close()
+  end
+  return key
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Show Automation Value Dialog...",invoke=function() show_value_dialog() end}

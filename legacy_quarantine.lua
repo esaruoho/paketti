@@ -594,7 +594,7 @@ local function show_dialog()
 end
 
 -- Add menu entry to show the dialog
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress:Wacky Filter",invoke=show_dialog}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress..:Wacky Filter",invoke=show_dialog}
 
 function keyhandler_wackyfilter(dialog,key)
   local closer = preferences.pakettiDialogClose.value

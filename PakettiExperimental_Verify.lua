@@ -228,7 +228,7 @@ local function toggle_match_editstep()
 end
 
 -- Add menu entry for toggling
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress:Match EditStep with Delay Pattern",invoke=function() toggle_match_editstep() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/..:Match EditStep with Delay Pattern",invoke=function() toggle_match_editstep() end}
 renoise.tool():add_keybinding{name="Global:Tools:Toggle Match EditStep with Delay Pattern",invoke=function() toggle_match_editstep() end}
 
 
@@ -795,7 +795,7 @@ function showXyPaddialog()
   end
 end
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress:XY Pad Sound Mixer",invoke=function() showXyPaddialog() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress..:XY Pad Sound Mixer",invoke=function() showXyPaddialog() end}
 
 
 
@@ -974,7 +974,7 @@ function keyhandlerfunc_sbx(dialog,key)
 end
 
 -- Add Menu Entry
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress:SBx Loop Playback",invoke=showSBX_dialog}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress..:SBx Loop Playback",invoke=showSBX_dialog}
 
 -- Add Shortcut for Reset and Playback
 renoise.tool():add_keybinding{name="Global:Transport:Reset SBx and Start Playback",

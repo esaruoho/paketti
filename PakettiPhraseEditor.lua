@@ -343,7 +343,7 @@ selphra.lpb=preferences.pakettiPhraseInitDialog.LPB.value
 selphra.number_of_lines=preferences.pakettiPhraseInitDialog.Length.value
 end
 
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Phrases..:Create Paketti Phrase",invoke=function() createPhrase() end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Phrases..:Create Paketti Phrase",invoke=function() createPhrase() end}
 --renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Create Paketti Phrase",invoke=function() createPhrase() end}
 
 --------

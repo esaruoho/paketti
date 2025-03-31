@@ -55,7 +55,7 @@ function align_instrument_names()
   end
 end
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Align Instrument Names",invoke=function() align_instrument_names() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress..:Align Instrument Names",invoke=function() align_instrument_names() end}
 
 function formatDigits(digits, number)
   return string.format("%0" .. digits .. "d", number)
