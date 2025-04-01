@@ -1661,73 +1661,116 @@ function ReverseSelectedSliceInSample()
   local current_slice = song.selected_sample_index
   local first_sample = instrument.samples[1]
   local current_sample = song.selected_sample
+  local current_buffer = current_sample.sample_buffer
   
   -- Check if we have valid data
-  if not current_sample or not current_sample.sample_buffer.has_sample_data then
+  if not current_sample or not current_buffer.has_sample_data then
     renoise.app():show_status("No sample available")
     return
   end
 
-  -- Case 1: No slice markers - reverse current sample
+  print(string.format("\nSample Selected is Sample Slot %d", song.selected_sample_index))
+  print(string.format("Sample Frames Length is 1-%d", current_buffer.number_of_frames))
+
+  -- Case 1: No slice markers - work on current sample
   if #first_sample.slice_markers == 0 then
-    local buffer = current_sample.sample_buffer
-    local slice_start = 1
-    local slice_end = buffer.number_of_frames
-    print("No slice markers found - reversing current sample")
+    local slice_start, slice_end
     
-    local num_channels = buffer.number_of_channels
-    local half_frames = math.floor(slice_end / 2)
-    buffer:prepare_sample_data_changes()
+    -- Check for selection in current sample
+    if current_buffer.selection_range[1] and current_buffer.selection_range[2] then
+      slice_start = current_buffer.selection_range[1]
+      slice_end = current_buffer.selection_range[2]
+      print(string.format("Selection in Sample: %d-%d", slice_start, slice_end))
+      print("Reversing: selection in sample")
+    else
+      slice_start = 1
+      slice_end = current_buffer.number_of_frames
+      print("Reversing: entire sample")
+    end
+    
+    -- Reverse the range
+    current_buffer:prepare_sample_data_changes()
+    
+    local num_channels = current_buffer.number_of_channels
+    local frames_to_process = slice_end - slice_start + 1
+    local half_frames = math.floor(frames_to_process / 2)
 
     for offset = 0, half_frames - 1 do
       local frame_a = slice_start + offset
       local frame_b = slice_end - offset
-
       for channel = 1, num_channels do
-        local temp = buffer:sample_data(channel, frame_a)
-        buffer:set_sample_data(channel, frame_a, buffer:sample_data(channel, frame_b))
-        buffer:set_sample_data(channel, frame_b, temp)
+        local temp = current_buffer:sample_data(channel, frame_a)
+        current_buffer:set_sample_data(channel, frame_a, current_buffer:sample_data(channel, frame_b))
+        current_buffer:set_sample_data(channel, frame_b, temp)
       end
-
     end
-    buffer:finalize_sample_data_changes()
+
+    current_buffer:finalize_sample_data_changes()
     
-    renoise.app():show_status("Reversed current sample")
+    if current_buffer.selection_range[1] and current_buffer.selection_range[2] then
+      renoise.app():show_status("Reversed selection in " .. current_sample.name)
+    else
+      renoise.app():show_status("Reversed " .. current_sample.name)
+    end
     return
   end
 
   -- Case 2: Has slice markers
   local buffer = first_sample.sample_buffer
   local slice_start, slice_end
-  
-  buffer:prepare_sample_data_changes()
-  -- If we're on the first sample, reverse the whole thing
+  local slice_markers = first_sample.slice_markers
+
+  -- If we're on the first sample
   if current_slice == 1 then
-    slice_start = 1
-    slice_end = buffer.number_of_frames
-    print("Reversing entire sample")
-  else
-    -- Otherwise reverse the selected slice
-    local slice_markers = first_sample.slice_markers
-    local slice_num = current_slice
-    
-    if slice_num <= 0 then
-      renoise.app():show_status("No slice selected")
-      return
+    -- Check for selection in first sample
+    if buffer.selection_range[1] and buffer.selection_range[2] then
+      slice_start = buffer.selection_range[1]
+      slice_end = buffer.selection_range[2]
+      print(string.format("Selection in First Sample: %d-%d", slice_start, slice_end))
+      print("Reversing: selection in first sample")
+    else
+      slice_start = 1
+      slice_end = buffer.number_of_frames
+      print("Reversing: entire first sample")
     end
+  else
+    -- Get slice boundaries
+    slice_start = current_slice > 1 and slice_markers[current_slice - 1] or 1
+    local slice_end_marker = slice_markers[current_slice] or buffer.number_of_frames
+    local slice_length = slice_end_marker - slice_start + 1
 
-    slice_start = slice_num > 1 and slice_markers[slice_num - 1] or 1
-    -- Fix for last slice: if there's no next marker, use the end of the buffer
-    slice_end = slice_markers[slice_num] or buffer.number_of_frames
-    buffer:finalize_sample_data_changes()
+    print(string.format("Selection is within Slice %d", current_slice))
+    print(string.format("Slice %d length is %d-%d (length: %d), within 1-%d of sample frames length", 
+      current_slice, slice_start, slice_end_marker, slice_length, buffer.number_of_frames))
 
---    renoise.song().selected_sample_index = renoise.song().selected_sample_index -1 
---    renoise.song().selected_sample_index = renoise.song().selected_sample_index +1  
-
-    print(string.format("Reversing slice %d from frame %d to %d", slice_num, slice_start, slice_end))
+    -- Debug selection values
+    print(string.format("Current sample selection range: start=%s, end=%s", 
+      tostring(current_buffer.selection_range[1]), tostring(current_buffer.selection_range[2])))
+    
+    -- Check if there's a selection in the current slice view
+    if current_buffer.selection_range[1] and current_buffer.selection_range[2] then
+      local rel_sel_start = current_buffer.selection_range[1]
+      local rel_sel_end = current_buffer.selection_range[2]
+      
+      -- Convert slice-relative selection to absolute position in sample0
+      local abs_sel_start = slice_start + rel_sel_start - 1
+      local abs_sel_end = slice_start + rel_sel_end - 1
+      
+      print(string.format("Selection %d-%d in slice view converts to %d-%d in sample", 
+        rel_sel_start, rel_sel_end, abs_sel_start, abs_sel_end))
+          
+      -- Use the converted absolute positions
+      slice_start = abs_sel_start
+      slice_end = abs_sel_end
+      print("Reversing: selection in slice")
+    else
+      -- No selection in slice view - reverse whole slice
+      slice_end = slice_end_marker
+      print("Reversing: entire slice (no selection in slice view)")
+    end
   end
-  
-  -- Reverse the selected portion
+
+  -- Reverse the range
   buffer:prepare_sample_data_changes()
   
   local num_channels = buffer.number_of_channels
@@ -1743,14 +1786,24 @@ function ReverseSelectedSliceInSample()
       buffer:set_sample_data(channel, frame_b, temp)
     end
   end
+
   buffer:finalize_sample_data_changes()
 
   if current_slice == 1 then
-    renoise.app():show_status("Reversed entire sample")
+    if current_buffer.selection_range[1] and current_buffer.selection_range[2] then
+      renoise.app():show_status("Reversed selection in " .. current_sample.name)
+    else
+      renoise.app():show_status("Reversed entire sample")
+    end
   else
-    renoise.app():show_status(string.format("Reversed slice %d", current_slice))
-    renoise.song().selected_sample_index = renoise.song().selected_sample_index -1 
-    renoise.song().selected_sample_index = renoise.song().selected_sample_index +1
+    if current_buffer.selection_range[1] and current_buffer.selection_range[2] then
+      renoise.app():show_status(string.format("Reversed selection in slice %d", current_slice))
+    else
+      renoise.app():show_status(string.format("Reversed slice %d", current_slice))
+    end
+    -- Refresh view for slices
+    song.selected_sample_index = song.selected_sample_index - 1 
+    song.selected_sample_index = song.selected_sample_index + 1
   end
 end
 -- Add keybinding and menu entries
