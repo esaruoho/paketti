@@ -1772,14 +1772,27 @@ function NormalizeSelectedSliceInSample()
     return
   end
 
-  -- Case 1: No slice markers - normalize current sample
+  print(string.format("\nSample Selected is Sample Slot %d", song.selected_sample_index))
+  print(string.format("Sample Frames Length is 1-%d", current_sample.sample_buffer.number_of_frames))
+
+  -- Case 1: No slice markers - work on current sample
   if #first_sample.slice_markers == 0 then
     local buffer = current_sample.sample_buffer
-    local slice_start = 1
-    local slice_end = buffer.number_of_frames
-    print("No slice markers found - normalizing current sample")
+    local slice_start, slice_end
     
-    -- Find peak amplitude
+    -- Check for selection in current sample
+    if buffer.selection_range[1] and buffer.selection_range[2] then
+      slice_start = buffer.selection_range[1]
+      slice_end = buffer.selection_range[2]
+      print(string.format("Selection in Sample: %d-%d", slice_start, slice_end))
+      print("Normalizing: selection in sample")
+    else
+      slice_start = 1
+      slice_end = buffer.number_of_frames
+      print("Normalizing: entire sample")
+    end
+    
+    -- Find peak in range
     local peak = 0
     for channel = 1, buffer.number_of_channels do
       for frame = slice_start, slice_end do
@@ -1787,57 +1800,90 @@ function NormalizeSelectedSliceInSample()
       end
     end
 
-    -- Apply normalization
-    local factor = peak > 0 and 1.0 / peak or 1
-    buffer:prepare_sample_data_changes()
-    print("PREPARE")
-    for channel = 1, buffer.number_of_channels do
-      for frame = slice_start, slice_end do
-        local value = buffer:sample_data(channel, frame)
-        buffer:set_sample_data(channel, frame, value * factor)
+    if peak > 0 then
+      buffer:prepare_sample_data_changes()
+      local factor = 1.0 / peak
+      for channel = 1, buffer.number_of_channels do
+        for frame = slice_start, slice_end do
+          local value = buffer:sample_data(channel, frame)
+          buffer:set_sample_data(channel, frame, value * factor)
+        end
+      end
+      buffer:finalize_sample_data_changes()
+      
+      if buffer.selection_range[1] and buffer.selection_range[2] then
+        renoise.app():show_status("Normalized selection in " .. current_sample.name)
+      else
+        renoise.app():show_status("Normalized " .. current_sample.name)
       end
     end
-    buffer:finalize_sample_data_changes()
-    print("FINALIZE")
-    renoise.app():show_status("Normalized current sample")
     return
   end
 
   -- Case 2: Has slice markers
   local buffer = first_sample.sample_buffer
   local slice_start, slice_end
-  
-  buffer:prepare_sample_data_changes()
-  -- If we're on the first sample, normalize the whole thing
+  local slice_markers = first_sample.slice_markers
+
+  -- If we're on the first sample
   if current_slice == 1 then
-    slice_start = 1
-    slice_end = buffer.number_of_frames
-    print("Normalizing entire sample")
-  else
-    -- Otherwise normalize the selected slice
-    local slice_markers = first_sample.slice_markers
-    local slice_num = current_slice
-    
-    if slice_num <= 0 then
-      renoise.app():show_status("No slice selected")
-      return
+    -- Check for selection in first sample
+    if buffer.selection_range[1] and buffer.selection_range[2] then
+      slice_start = buffer.selection_range[1]
+      slice_end = buffer.selection_range[2]
+      print(string.format("Selection in First Sample: %d-%d", slice_start, slice_end))
+      print("Normalizing: selection in first sample")
+    else
+      slice_start = 1
+      slice_end = buffer.number_of_frames
+      print("Normalizing: entire first sample")
     end
+  else
+    -- Get slice boundaries
+    slice_start = current_slice > 1 and slice_markers[current_slice - 1] or 1
+    local slice_end_marker = slice_markers[current_slice] or buffer.number_of_frames
+    local slice_length = slice_end_marker - slice_start + 1
 
-    slice_start = slice_num > 1 and slice_markers[slice_num - 1] or 1
-    -- Fix for last slice: if there's no next marker, use the end of the buffer
-    slice_end = slice_markers[slice_num] or buffer.number_of_frames
-    buffer:finalize_sample_data_changes()
+    print(string.format("Selection is within Slice %d", current_slice))
+    print(string.format("Slice %d length is %d-%d (length: %d), within 1-%d of sample frames length", 
+      current_slice, slice_start, slice_end_marker, slice_length, buffer.number_of_frames))
 
-    renoise.song().selected_sample_index = renoise.song().selected_sample_index -1 
-    renoise.song().selected_sample_index = renoise.song().selected_sample_index +1
-  
-    print(string.format("Normalizing slice %d from frame %d to %d", slice_num, slice_start, slice_end))
+    -- When in a slice, check the current_sample's selection range (slice view)
+    local current_buffer = current_sample.sample_buffer
+    
+    -- Debug selection values
+    print(string.format("Current sample selection range: start=%s, end=%s", 
+      tostring(current_buffer.selection_range[1]), tostring(current_buffer.selection_range[2])))
+    
+    -- Check if there's a selection in the current slice view
+    if current_buffer.selection_range[1] and current_buffer.selection_range[2] then
+      local rel_sel_start = current_buffer.selection_range[1]
+      local rel_sel_end = current_buffer.selection_range[2]
+      
+      -- Convert slice-relative selection to absolute position in sample0
+      local abs_sel_start = slice_start + rel_sel_start - 1
+      local abs_sel_end = slice_start + rel_sel_end - 1
+      
+      print(string.format("Selection %d-%d in slice view converts to %d-%d in sample", 
+        rel_sel_start, rel_sel_end, abs_sel_start, abs_sel_end))
+          
+      -- Use the converted absolute positions
+      slice_start = abs_sel_start
+      slice_end = abs_sel_end
+      print("Normalizing: selection in slice")
+    else
+      -- No selection in slice view - normalize whole slice
+      slice_end = slice_end_marker
+      print("Normalizing: entire slice (no selection in slice view)")
+    end
   end
-  
-  -- Normalize the selected portion
-  buffer:prepare_sample_data_changes()
-  
-  -- Find peak amplitude
+
+  -- Ensure we don't exceed buffer bounds
+  slice_start = math.max(1, math.min(slice_start, buffer.number_of_frames))
+  slice_end = math.max(slice_start, math.min(slice_end, buffer.number_of_frames))
+  print(string.format("Final normalize range: %d-%d\n", slice_start, slice_end))
+
+  -- Find peak in range
   local peak = 0
   for channel = 1, buffer.number_of_channels do
     for frame = slice_start, slice_end do
@@ -1845,22 +1891,33 @@ function NormalizeSelectedSliceInSample()
     end
   end
 
-  -- Apply normalization
-  local factor = peak > 0 and 1.0 / peak or 1
-  for channel = 1, buffer.number_of_channels do
-    for frame = slice_start, slice_end do
-      local value = buffer:sample_data(channel, frame)
-      buffer:set_sample_data(channel, frame, value * factor)
+  if peak > 0 then
+    buffer:prepare_sample_data_changes()
+    local factor = 1.0 / peak
+    for channel = 1, buffer.number_of_channels do
+      for frame = slice_start, slice_end do
+        local value = buffer:sample_data(channel, frame)
+        buffer:set_sample_data(channel, frame, value * factor)
+      end
     end
-  end
-  buffer:finalize_sample_data_changes()
+    buffer:finalize_sample_data_changes()
 
-  if current_slice == 1 then
-    renoise.app():show_status("Normalized entire sample")
-  else
-    renoise.app():show_status(string.format("Normalized slice %d", current_slice))
-    renoise.song().selected_sample_index = renoise.song().selected_sample_index -1 
-    renoise.song().selected_sample_index = renoise.song().selected_sample_index +1
+    if current_slice == 1 then
+      if buffer.selection_range[1] and buffer.selection_range[2] then
+        renoise.app():show_status("Normalized selection in " .. current_sample.name)
+      else
+        renoise.app():show_status("Normalized entire sample")
+      end
+    else
+      if buffer.selection_range[1] and buffer.selection_range[2] then
+        renoise.app():show_status(string.format("Normalized selection in slice %d", current_slice))
+      else
+        renoise.app():show_status(string.format("Normalized slice %d", current_slice))
+      end
+      -- Refresh view for slices
+      song.selected_sample_index = song.selected_sample_index - 1 
+      song.selected_sample_index = song.selected_sample_index + 1
+    end
   end
 end
 
@@ -1870,6 +1927,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Normalize Selected Sample or 
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Normalize Selected Sample or Slice",invoke=NormalizeSelectedSliceInSample}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Normalize Selected Sample or Slice",invoke=NormalizeSelectedSliceInSample}
 renoise.tool():add_midi_mapping{name="Paketti:Normalize Selected Sample or Slice",invoke=function(message) if message:is_trigger() then NormalizeSelectedSliceInSample() end end}
+
 
 
 
