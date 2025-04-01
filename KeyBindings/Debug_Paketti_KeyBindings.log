@@ -1,237 +1,80 @@
 Debug: Total Paketti keybindings found - 5658
-0001:Automation:Paketti: ∿ Impulse Tracker ALT-D Double Select W/ Automation: Command + D
-0002:Global:Paketti: ∿ Add Gainer B to Selected Track: Shift + Control + 5
-0003:Global:Paketti: ∿ BPM Decrease (-0.1): Shift + RBracket
-0004:Global:Paketti: ∿ BPM Decrease (-0.5): Shift + Control + Backslash
-0005:Global:Paketti: ∿ BPM Decrease (-1): Backslash
-0006:Global:Paketti: ∿ BPM Increase (+0.1): Command + RBracket
-0007:Global:Paketti: ∿ BPM Increase (+0.5): Control + Backslash
-0008:Global:Paketti: ∿ BPM Increase (+1): Shift + Backslash
-0009:Global:Paketti: ∿ Capture Nearest Instrument and Octave (jump): Return
-0010:Global:Paketti: ∿ Change Selected Track Volume by +0.1dB: Shift + Control + Minus
-0011:Global:Paketti: ∿ Clean Render&Save Selected Track/Group (.WAV): Shift + Control + R
-0012:Global:Paketti: ∿ Clear All TrackDSPs from Current Track: Shift + Option + T
-0013:Global:Paketti: ∿ Clear PitchStep Steps: Shift + Option + P
-0014:Global:Paketti: ∿ Column Cycle Keyjazz 04: Shift + Option + 4
-0015:Global:Paketti: ∿ Column Cycle Keyjazz 12: Shift + Option + 3
-0016:Global:Paketti: ∿ Create New Instrument & Loop from Selection: Option + Command + Right
-0017:Global:Paketti: ∿ Crossfade Loop: Shift + Command + C
-0018:Global:Paketti: ∿ Cycle Paketti Dynamic View 01: F2
-0019:Global:Paketti: ∿ Cycle Paketti Dynamic View 02: F3
-0020:Global:Paketti: ∿ Cycle Paketti Dynamic View 03: F4
-0021:Global:Paketti: ∿ Cycle Paketti Dynamic View 04: F11
-0022:Global:Paketti: ∿ Divide LPB by 4, return to Original: Shift + Option + Control + Down
-0023:Global:Paketti: ∿ Duplicate Effect Column Content to Pattern or Selection: Option + X
-0024:Global:Paketti: ∿ Duplicate Instrument and Select New Instrument: Shift + Command + D
-0025:Global:Paketti: ∿ Duplicate and Reverse Instrument: Shift + Command + R
-0026:Global:Paketti: ∿ Eight 120-fy: Shift + Option + 8
-0027:Global:Paketti: ∿ Fill Empty Sample Slots (Randomized Folder): Option + Command + Control + O
-0028:Global:Paketti: ∿ Flip Devices 1&2 On/Off: Shift + Control + 2
-0029:Global:Paketti: ∿ Flip Gainers A/B: Shift + Control + Tab
-0030:Global:Paketti: ∿ Flood Fill Automation Selection: Option + Y
-0031:Global:Paketti: ∿ Fuzzy Search Track: Shift + Option + F
-0032:Global:Paketti: ∿ Hide Track DSP Device External Editors for All Tracks: Command + H
-0033:Global:Paketti: ∿ Impulse Tracker ALT-Y Swap Block: Command + Y
-0034:Global:Paketti: ∿ Impulse Tracker CTRL-N New Song Dialog: Control + N
-0035:Global:Paketti: ∿ Impulse Tracker F12 Master: F12
-0036:Global:Paketti: ∿ Impulse Tracker F5 Start Playback: F5
-0037:Global:Paketti: ∿ Impulse Tracker F7 Start Playback from Cursor Row: F7
-0038:Global:Paketti: ∿ Impulse Tracker F7 Start Playback from Cursor Row (2nd): RControl
-0039:Global:Paketti: ∿ Impulse Tracker F8 Stop Playback (Panic): F8
-0040:Global:Paketti: ∿ Insert Inverter Device to TrackDSP/SampleFX: Option + I
-0041:Global:Paketti: ∿ Insert Stereo -&gt; Mono device to End of DSP Chain: Option + S
-0042:Global:Paketti: ∿ LFO Write Single Parameter Write to Automation: Shift + Control + 1
-0043:Global:Paketti: ∿ LFO Write to Phrase LPB (1-64): Option + Grave
-0044:Global:Paketti: ∿ LFO Write to Selected Automation Parameter: Shift + Option + Grave
-0045:Global:Paketti: ∿ Load Device Chain EQ10 Macro Experimental: Shift + Q
-0046:Global:Paketti: ∿ Load FabFilter One: Option + Command + F
-0047:Global:Paketti: ∿ Load Random AKWF Sample: Shift + Command + 1
-0048:Global:Paketti: ∿ Load Random Samples (12) into Single Instrument: Shift + Option + 1
-0049:Global:Paketti: ∿ Load Random amount (1...12) of AKWF Samples: Shift + Command + 2
-0050:Global:Paketti: ∿ Load U-He Zebra (VST): Option + Z
-0051:Global:Paketti: ∿ Loop Set Percussion: Shift + Command + Y
-0052:Global:Paketti: ∿ Modify PitchStep Steps (Hard Detune): Shift + Option + Command + Control + P
-0053:Global:Paketti: ∿ Modify PitchStep Steps (Octave Up+2, Octave Down-2): Option + Command + P
-0054:Global:Paketti: ∿ Modify PitchStep Steps (Octave Up, Octave Down): Shift + Command + P
-0055:Global:Paketti: ∿ Modify PitchStep Steps (Random): Shift + Option + Command + P
-0056:Global:Paketti: ∿ Next Wavetable Cycle: Control + E
-0057:Global:Paketti: ∿ Normalize Sample Slices Independently: Shift + Command + N
-0058:Global:Paketti: ∿ Normalize Selected Sample or Slice: Command + N
-0059:Global:Paketti: ∿ Nudge Delay Output Delay +01ms: Control + Minus
-0060:Global:Paketti: ∿ Nudge Delay Output Delay -01ms: Control + Slash
-0061:Global:Paketti: ∿ OctaMED Note Spread Decrement: Shift + Command + Control + Left
-0062:Global:Paketti: ∿ OctaMED Note Spread Increment: Shift + Command + Control + Right
-0063:Global:Paketti: ∿ Open External Editor for Plugin: Apostrophe
-0064:Global:Paketti: ∿ Open Oblique Strategies Dialog...: Control + O
-0065:Global:Paketti: ∿ Open Paketti Init Phrase Dialog...: Command + I
-0066:Global:Paketti: ∿ Paketti Audio Processing Tools Dialog...: Control + A
-0067:Global:Paketti: ∿ Paketti Automation: Option + T
-0068:Global:Paketti: ∿ Paketti Gater Dialog...: Control + G
-0069:Global:Paketti: ∿ Paketti Groovebox 8120: Option + 8
-0070:Global:Paketti: ∿ Paketti Overdub 12 (No Metronome/No Line Input): Command + Minus
-0071:Global:Paketti: ∿ Paketti PitchBend Drumkit Sample Loader: Shift + Command + O
-0072:Global:Paketti: ∿ Paketti PitchBend Drumkit Sample Loader (Random): Option + Command + O
-0073:Global:Paketti: ∿ Paketti PitchBend Multiple Sample Loader: Command + O
-0074:Global:Paketti: ∿ Paketti PitchBend Multiple Sample Loader (Normalize): Shift + Option + O
-0075:Global:Paketti: ∿ Paketti Save Selected Sample .WAV: Command + W
-0076:Global:Paketti: ∿ Paketti Save Selected Sample Range .WAV: Shift + Command + W
-0077:Global:Paketti: ∿ Paketti Stacker Dialog...: Shift + Control + P
-0078:Global:Paketti: ∿ Paketti Unison Generator: Option + U
-0079:Global:Paketti: ∿ Pakettify Current Instrument: Shift + Control + 8
-0080:Global:Paketti: ∿ Pattern Effect Command CheatSheet: F1
-0081:Global:Paketti: ∿ Previous Wavetable Cycle: Control + W
-0082:Global:Paketti: ∿ Randomize Automation Envelope: Shift + Option + R
-0083:Global:Paketti: ∿ Randomize Automation Envelopes for Device: Option + Command + R
-0084:Global:Paketti: ∿ Randomize Effect Column Parameters: Shift + Option + X
-0085:Global:Paketti: ∿ Randomize Selected Device: Option + R
-0086:Global:Paketti: ∿ Randomize Selected Instrument Modulation Filter Type: Shift + Option + M
-0087:Global:Paketti: ∿ Record+Follow Toggle (2nd): RShift
-0088:Global:Paketti: ∿ Record+Follow+Metronome Toggle: Shift + Escape
-0089:Global:Paketti: ∿ Reset Nudge Delay Output Delay to 0ms: Control + 0
-0090:Global:Paketti: ∿ Select Next Chunk (00..F0): Shift + Option + Command + Right
-0091:Global:Paketti: ∿ Select Specific Track 01: Shift + 1
-0092:Global:Paketti: ∿ Select Specific Track 02: Shift + 2
-0093:Global:Paketti: ∿ Select Specific Track 03: Shift + 3
-0094:Global:Paketti: ∿ Select Specific Track 04: Shift + 4
-0095:Global:Paketti: ∿ Select Specific Track 05: Shift + 5
-0096:Global:Paketti: ∿ Select Specific Track 06: Shift + 6
-0097:Global:Paketti: ∿ Select Specific Track 07: Shift + 7
-0098:Global:Paketti: ∿ Select Specific Track 08: Shift + 8
-0099:Global:Paketti: ∿ Select Specific Track 09: Shift + 9
-0100:Global:Paketti: ∿ Select Specific Track 10: Shift + 0
-0101:Global:Paketti: ∿ Sequence Selection (Next): Command + Control + 2
-0102:Global:Paketti: ∿ Sequence Selection (Previous): Command + Control + 1
-0103:Global:Paketti: ∿ Show Automation Value Dialog...: Shift + Option + A
-0104:Global:Paketti: ∿ Show Paketti KeyBindings Dialog...: Shift + Command + K
-0105:Global:Paketti: ∿ Show Paketti Preferences...: Shift + Command + Comma
-0106:Global:Paketti: ∿ Show/Hide PitchStep on Selected Instrument: Option + P
-0107:Global:Paketti: ∿ Show/Hide Track DSP and FX Chain Device External Editors: Shift + Command + H
-0108:Global:Paketti: ∿ Show/Hide User Preference Devices Master Dialog: Shift + Option + 0
-0109:Global:Paketti: ∿ Smart BeatSync from Selection: Shift + Command + S
-0110:Global:Paketti: ∿ Start/Stop Sample Recording and Pakettify: Option + F3
-0111:Global:Paketti: ∿ Switch to Automation Dynamic: A
-0112:Global:Paketti: ∿ Toggle EditMode (3rd): Escape
-0113:Global:Paketti: ∿ Toggle Mute Tracks: Command + F9
-0114:Global:Paketti: ∿ Toggle Solo Tracks: Command + F10
-0115:Global:Paketti: ∿ TouchOSC Pattern Editor: Option + F2
-0116:Global:Paketti: ∿ TouchOSC Sample Editor: Option + Control + F3
-0117:Global:Paketti: ∿ TouchOSC Sample Recorder and Record: Shift + Control + Grave
-0118:Global:Paketti: ∿ User-Defined Sample Folders...: Shift + Command + U
-0119:Global:Paketti: ∿ Wipe Slices: Option + 0
-0120:Global:Paketti: ∿ Wipe&Slice (128): Option + 7
-0121:Global:Paketti: ∿ Wipe&Slice (16): Option + 4
-0122:Global:Paketti: ∿ Wipe&Slice (2): Option + 1
-0123:Global:Paketti: ∿ Wipe&Slice (32): Option + 5
-0124:Global:Paketti: ∿ Wipe&Slice (4): Option + 2
-0125:Global:Paketti: ∿ Wipe&Slice (64): Option + 6
-0126:Global:Paketti: ∿ Wipe&Slice (8): Option + 3
-0127:Global:Paketti Theme Selector: ∿ Open Paketti Theme Selector Dialog: Shift + Option + Comma
-0128:Global:Paketti Theme Selector: ∿ Pick a Random Theme (All): Shift + Option + Control + Comma
-0129:Global:Paketti Theme Selector: ∿ Pick a Random Theme (Favorites): Shift + Control + Comma
-0130:Mixer:Paketti: ∿ Clean Render Selected Track/Group: Command + R
-0131:Mixer:Paketti: ∿ Create Group and Move DSPs: Shift + Control + G
-0132:Mixer:Paketti: ∿ Duplicate Track and Instrument: Command + D
-0133:Mixer:Paketti: ∿ Impulse Tracker Alt-Left Move Backwards One Channel (Wrap): Option + Left
-0134:Mixer:Paketti: ∿ Impulse Tracker Alt-Right Move Forwards One Channel (Wrap): Option + Right
-0135:Mixer:Paketti: ∿ Impulse Tracker End *2 behaviour: Option + Down
-0136:Mixer:Paketti: ∿ Impulse Tracker Home *2 behaviour: Option + Up
-0137:Mixer:Paketti: ∿ Paketti Pattern Doubler: Command + Grave
-0138:Pattern Editor:Paketti: ∿ ChordsPlus (Sub 07): Shift + Control + 6
-0139:Pattern Editor:Paketti: ∿ ChordsPlus Random Chord: Shift + Control + 3
-0140:Pattern Editor:Paketti: ∿ Clean Render Selected Track/Group: Command + R
-0141:Pattern Editor:Paketti: ∿ Delay Column Decrease (-1): Control + PeakedBracket
-0142:Pattern Editor:Paketti: ∿ Delay Column Decrease Selection/Row (-1): Control + Left
-0143:Pattern Editor:Paketti: ∿ Delay Column Decrease Selection/Row (-10): Shift + Control + Left
-0144:Pattern Editor:Paketti: ∿ Delay Column Increase (+1): Shift + Control + PeakedBracket
-0145:Pattern Editor:Paketti: ∿ Delay Column Increase Selection/Row (+1): Control + Right
-0146:Pattern Editor:Paketti: ∿ Delay Column Increase Selection/Row (+10): Shift + Control + Right
-0147:Pattern Editor:Paketti: ∿ Duplicate Selection with Padding&Move Cursor 2: Option + D
-0148:Pattern Editor:Paketti: ∿ Expose and Select Next Column: Shift + Command + Right
-0149:Pattern Editor:Paketti: ∿ Fill Effect Column with 0G01+0D00: Shift + Option + D
-0150:Pattern Editor:Paketti: ∿ Fill Effect Column with 0G01+0U00: Shift + Option + S
-0151:Pattern Editor:Paketti: ∿ Flood Fill Note and Instrument every 5 step: Shift + Option + 5
-0152:Pattern Editor:Paketti: ∿ Flood Fill Note and Instrument every 6 step: Shift + Option + 6
-0153:Pattern Editor:Paketti: ∿ Flood Fill Note and Instrument every 7 step: Shift + Option + 7
-0154:Pattern Editor:Paketti: ∿ Flood Fill Note and Instrument every 9 step: Shift + Option + 9
-0155:Pattern Editor:Paketti: ∿ Flood Fill with Selection: Control + F
-0156:Pattern Editor:Paketti: ∿ Hide Current and Select Previous Column: Shift + Command + Left
-0157:Pattern Editor:Paketti: ∿ Impulse Tracker ALT-D Double Select W/ Automation: Command + D
-0158:Pattern Editor:Paketti: ∿ Impulse Tracker ALT-F Expand Selection: Command + F
-0159:Pattern Editor:Paketti: ∿ Impulse Tracker ALT-F Expand Selection Replicate: Shift + Command + F
-0160:Pattern Editor:Paketti: ∿ Impulse Tracker ALT-G Shrink Selection: Command + G
-0161:Pattern Editor:Paketti: ∿ Impulse Tracker ALT-G Shrink Selection Replicate: Shift + Command + G
-0162:Pattern Editor:Paketti: ∿ Impulse Tracker ALT-S Set Selection to Instrument: Command + S
-0163:Pattern Editor:Paketti: ∿ Impulse Tracker ALT-U Unmark Selection: Command + U
-0164:Pattern Editor:Paketti: ∿ Impulse Tracker Alt-Left Move Backwards One Channel (Wrap): Option + Left
-0165:Pattern Editor:Paketti: ∿ Impulse Tracker Alt-Right Move Forwards One Channel (Wrap): Option + Right
-0166:Pattern Editor:Paketti: ∿ Impulse Tracker End *2 behaviour: Option + Down
-0167:Pattern Editor:Paketti: ∿ Impulse Tracker Home *2 behaviour: Option + Up
-0168:Pattern Editor:Paketti: ∿ Impulse Tracker MixPaste: Option + M
-0169:Pattern Editor:Paketti: ∿ KapsLock CapsLock Caps Lock Note Off: Capital
-0170:Pattern Editor:Paketti: ∿ Match Current Sub Column Selection: Shift + Command + E
-0171:Pattern Editor:Paketti: ∿ Nudge Down: Shift + Command + Down
-0172:Pattern Editor:Paketti: ∿ Nudge Up: Shift + Command + Up
-0173:Pattern Editor:Paketti: ∿ Paketti Pattern Doubler: Command + Grave
-0174:Pattern Editor:Paketti: ∿ Paketti Pattern Halver: Shift + Command + Grave
-0175:Pattern Editor:Paketti: ∿ Replicate All Above + Current : Shift + Control + Down
-0176:Pattern Editor:Paketti: ∿ Replicate Selected Track Above Current Row : Control + Down
-0177:Pattern Editor:Paketti: ∿ Reverse Notes in Selection: Control + R
-0178:Pattern Editor:Paketti: ∿ Rotate Track Content to SelectionStart First: Option + E
-0179:Pattern Editor:Paketti: ∿ Set Pattern Length to 004 (004): Control + 1
-0180:Pattern Editor:Paketti: ∿ Set Pattern Length to 008 (008): Control + 2
-0181:Pattern Editor:Paketti: ∿ Set Pattern Length to 016 (010): Control + 3
-0182:Pattern Editor:Paketti: ∿ Set Pattern Length to 032 (020): Control + 4
-0183:Pattern Editor:Paketti: ∿ Set Pattern Length to 064 (040): Control + 5
-0184:Pattern Editor:Paketti: ∿ Set Pattern Length to 128 (080): Control + 6
-0185:Pattern Editor:Paketti: ∿ Set Pattern Length to 256 (100): Control + 7
-0186:Pattern Editor:Paketti: ∿ Set Pattern Length to 512 (200): Control + 8
-0187:Pattern Editor:Paketti: ∿ Shift Notes Left: Option + Command + Left
-0188:Pattern Editor:Paketti: ∿ Shrink to Triplets: Control + T
-0189:Pattern Editor:Paketti: ∿ Slide Selected Column Content Down: Command + Control + Down
-0190:Pattern Editor:Paketti: ∿ Slide Selected Column Content Up: Command + Control + Up
-0191:Pattern Editor:Paketti: ∿ Slide Selected Track Content Down: Option + Command + Down
-0192:Pattern Editor:Paketti: ∿ Toggle Note Off in All Visible Note Columns: Shift + Capital
-0193:Pattern Editor:Paketti: ∿ Toggle Note Off in Selected Tracks: Option + Capital
-0194:Pattern Editor:Paketti: ∿ Toggle Note Off on All Tracks on Current Row: Control + Capital
-0195:Pattern Editor:Paketti: ∿ Transpose +1 (Selection/Track): Command + Q
-0196:Pattern Editor:Paketti: ∿ Transpose +1 Note Column (Selection/Note Column): Option + Command + Q
-0197:Pattern Editor:Paketti: ∿ Transpose -1 (Selection/Track): Command + A
-0198:Pattern Editor:Paketti: ∿ Transpose -1 Note Column (Selection/Note Column): Option + Command + A
-0199:Pattern Editor:Paketti: ∿ Transpose Octave Down (Selection/Track): Shift + Command + A
-0200:Pattern Editor:Paketti: ∿ Transpose Octave Down Note Column (Selection/Note Column): Shift + Option + Command + A
-0201:Pattern Editor:Paketti: ∿ Transpose Octave Up (Selection/Track): Shift + Command + Q
-0202:Pattern Editor:Paketti: ∿ Transpose Octave Up Note Column (Selection/Note Column): Shift + Option + Command + Q
-0203:Pattern Editor:Paketti: ∿ Write 0Sxx Command Random Slice/Offset: Shift + Control + X
-0204:Pattern Sequencer:Paketti: ∿ Keep Sequence Sorted False: Shift + Command + Q
-0205:Pattern Sequencer:Paketti: ∿ Keep Sequence Sorted True: Shift + Command + E
-0206:Phrase Editor:Paketti: ∿ Impulse Tracker ALT-D Double Select: Command + D
-0207:Phrase Editor:Paketti: ∿ Impulse Tracker ALT-U Unmark Selection: Command + U
-0208:Phrase Editor:Paketti: ∿ Impulse Tracker End *2 behaviour: Option + Down
-0209:Phrase Editor:Paketti: ∿ Impulse Tracker Home *2 behaviour: Option + Up
-0210:Phrase Editor:Paketti: ∿ Replicate Above Current Row : Control + Down
-0211:Phrase Editor:Paketti: ∿ Set Phrase Length to 004 (004): Control + 1
-0212:Phrase Editor:Paketti: ∿ Set Phrase Length to 008 (008): Control + 2
-0213:Phrase Editor:Paketti: ∿ Set Phrase Length to 016 (010): Control + 3
-0214:Phrase Editor:Paketti: ∿ Set Phrase Length to 032 (020): Control + 4
-0215:Phrase Editor:Paketti: ∿ Set Phrase Length to 064 (040): Control + 5
-0216:Phrase Editor:Paketti: ∿ Set Phrase Length to 128 (080): Control + 6
-0217:Phrase Editor:Paketti: ∿ Set Phrase Length to 256 (100): Control + 7
-0218:Phrase Editor:Paketti: ∿ Set Phrase Length to 512 (200): Control + 8
-0219:Sample Editor:Paketti: ∿ Move Slice End Left by 10: Command + Left
-0220:Sample Editor:Paketti: ∿ Move Slice End Left by 100: Shift + Command + Left
-0221:Sample Editor:Paketti: ∿ Move Slice End Right by 10: Command + Right
-0222:Sample Editor:Paketti: ∿ Move Slice End Right by 100: Shift + Command + Right
-0223:Sample Editor:Paketti: ∿ Move Slice Start Left by 10: Control + Left
-0224:Sample Editor:Paketti: ∿ Move Slice Start Left by 100: Shift + Control + Left
-0225:Sample Editor:Paketti: ∿ Move Slice Start Right by 10: Control + Right
-0226:Sample Editor:Paketti: ∿ Move Slice Start Right by 100: Shift + Control + Right
-0227:Sample Editor:Paketti: ∿ Reverse Selected Sample or Slice: Command + R
-0228:Sample Editor:Paketti: ∿ Rotate Sample Buffer Downwards: Shift + Control + Down
-0229:Sample Editor:Paketti: ∿ Rotate Sample Buffer Left 1000: Command + Control + Right
-0230:Sample Editor:Paketti: ∿ Rotate Sample Buffer Right 1000: Command + Control + Left
-0231:Sample Editor:Paketti: ∿ Rotate Sample Buffer Upwards: Shift + Control + Up
-0232:Sample Editor:Paketti: ∿ Select First Half of Sample Buffer: Option + Left
-0233:Sample Editor:Paketti: ∿ Select Loop Range: Shift + Option + L
-0234:Sample Editor:Paketti: ∿ Select Padded Slice (Next): Option + E
-0235:Sample Editor:Paketti: ∿ Select Padded Slice (Previous): Option + W
-0236:Sample Editor:Paketti: ∿ Select Second Half of Sample Buffer: Option + Right
+0001:Global:Paketti: ∿ Clone and Expand Pattern to LPB*2: <Shortcut not Assigned>
+0002:Global:Paketti: ∿ Clone and Shrink Pattern to LPB/2: <Shortcut not Assigned>
+0003:Global:Paketti: ∿ Divide LPB by 4, return to Original: Shift + Option + Control + Down
+0004:Global:Paketti: ∿ Double Double LPB: <Shortcut not Assigned>
+0005:Global:Paketti: ∿ Double LPB: <Shortcut not Assigned>
+0006:Global:Paketti: ∿ Halve BPM & Multiply LPB: <Shortcut not Assigned>
+0007:Global:Paketti: ∿ Halve Halve LPB: <Shortcut not Assigned>
+0008:Global:Paketti: ∿ Halve LPB: <Shortcut not Assigned>
+0009:Global:Paketti: ∿ LFO Write to Phrase LPB (1-127): <Shortcut not Assigned>
+0010:Global:Paketti: ∿ LFO Write to Phrase LPB (1-255): <Shortcut not Assigned>
+0011:Global:Paketti: ∿ LFO Write to Phrase LPB (1-64): Option + Grave
+0012:Global:Paketti: ∿ LPB Decrease (-1): <Shortcut not Assigned>
+0013:Global:Paketti: ∿ LPB Increase (+1): <Shortcut not Assigned>
+0014:Global:Paketti: ∿ Metronome LPB Decrease (-1): <Shortcut not Assigned>
+0015:Global:Paketti: ∿ Metronome LPB Increase (+1): <Shortcut not Assigned>
+0016:Global:Paketti: ∿ Multiply BPM & Halve LPB: <Shortcut not Assigned>
+0017:Global:Paketti: ∿ Play at Random Line in Current Pattern LPB: <Shortcut not Assigned>
+0018:Global:Paketti: ∿ Song Details (Filename, BPM, LPB): <Shortcut not Assigned>
+0019:Mixer:Paketti: ∿ Clean Render Selected Track/Group LPB*2: <Shortcut not Assigned>
+0020:Pattern Editor:Paketti: ∿ Clean Render Selected Track/Group LPB*2: <Shortcut not Assigned>
+0021:Pattern Editor:Paketti: ∿ Effect Column 0R(LPB) Retrig On/Off: <Shortcut not Assigned>
+0022:Pattern Editor:Paketti: ∿ Renoise Random BPM & Write BPM/LPB to Master: <Shortcut not Assigned>
+0023:Pattern Editor:Paketti: ∿ Set Global LPB to 001: <Shortcut not Assigned>
+0024:Pattern Editor:Paketti: ∿ Set Global LPB to 002: <Shortcut not Assigned>
+0025:Pattern Editor:Paketti: ∿ Set Global LPB to 003: <Shortcut not Assigned>
+0026:Pattern Editor:Paketti: ∿ Set Global LPB to 004: <Shortcut not Assigned>
+0027:Pattern Editor:Paketti: ∿ Set Global LPB to 005: <Shortcut not Assigned>
+0028:Pattern Editor:Paketti: ∿ Set Global LPB to 006: <Shortcut not Assigned>
+0029:Pattern Editor:Paketti: ∿ Set Global LPB to 007: <Shortcut not Assigned>
+0030:Pattern Editor:Paketti: ∿ Set Global LPB to 008: <Shortcut not Assigned>
+0031:Pattern Editor:Paketti: ∿ Set Global LPB to 009: <Shortcut not Assigned>
+0032:Pattern Editor:Paketti: ∿ Set Global LPB to 010: <Shortcut not Assigned>
+0033:Pattern Editor:Paketti: ∿ Set Global LPB to 011: <Shortcut not Assigned>
+0034:Pattern Editor:Paketti: ∿ Set Global LPB to 012: <Shortcut not Assigned>
+0035:Pattern Editor:Paketti: ∿ Set Global LPB to 013: <Shortcut not Assigned>
+0036:Pattern Editor:Paketti: ∿ Set Global LPB to 014: <Shortcut not Assigned>
+0037:Pattern Editor:Paketti: ∿ Set Global LPB to 015: <Shortcut not Assigned>
+0038:Pattern Editor:Paketti: ∿ Set Global LPB to 016: <Shortcut not Assigned>
+0039:Pattern Editor:Paketti: ∿ Set Global LPB to 024: <Shortcut not Assigned>
+0040:Pattern Editor:Paketti: ∿ Set Global LPB to 032: <Shortcut not Assigned>
+0041:Pattern Editor:Paketti: ∿ Set Global LPB to 048: <Shortcut not Assigned>
+0042:Pattern Editor:Paketti: ∿ Set Global LPB to 064: <Shortcut not Assigned>
+0043:Pattern Editor:Paketti: ∿ Set Global LPB to 128: <Shortcut not Assigned>
+0044:Pattern Editor:Paketti: ∿ Set Global LPB to 256: <Shortcut not Assigned>
+0045:Pattern Editor:Paketti: ∿ Set Pattern Length to LPB*001: <Shortcut not Assigned>
+0046:Pattern Editor:Paketti: ∿ Set Pattern Length to LPB*002: <Shortcut not Assigned>
+0047:Pattern Editor:Paketti: ∿ Set Pattern Length to LPB*004: <Shortcut not Assigned>
+0048:Pattern Editor:Paketti: ∿ Set Pattern Length to LPB*008: <Shortcut not Assigned>
+0049:Pattern Editor:Paketti: ∿ Set Pattern Length to LPB*016: <Shortcut not Assigned>
+0050:Pattern Editor:Paketti: ∿ Set Pattern Length to LPB*032: <Shortcut not Assigned>
+0051:Pattern Editor:Paketti: ∿ Set Pattern Length to LPB*064: <Shortcut not Assigned>
+0052:Pattern Editor:Paketti: ∿ Set Pattern Length to LPB*128: <Shortcut not Assigned>
+0053:Pattern Editor:Paketti: ∿ Set Pattern Length to LPB*256: <Shortcut not Assigned>
+0054:Pattern Editor:Paketti: ∿ Set Pattern Length to LPB*512: <Shortcut not Assigned>
+0055:Pattern Editor:Paketti: ∿ Set Time Signature 3/4 and 48 rows @ LPB 4: <Shortcut not Assigned>
+0056:Pattern Editor:Paketti: ∿ Set Time Signature 6/8 and 48 rows @ LPB 8: <Shortcut not Assigned>
+0057:Pattern Editor:Paketti: ∿ Set Time Signature 7/8 and 56 rows @ LPB 8: <Shortcut not Assigned>
+0058:Phrase Editor:Paketti: ∿ Set Phrase LPB to 001: <Shortcut not Assigned>
+0059:Phrase Editor:Paketti: ∿ Set Phrase LPB to 002: <Shortcut not Assigned>
+0060:Phrase Editor:Paketti: ∿ Set Phrase LPB to 003: <Shortcut not Assigned>
+0061:Phrase Editor:Paketti: ∿ Set Phrase LPB to 004: <Shortcut not Assigned>
+0062:Phrase Editor:Paketti: ∿ Set Phrase LPB to 005: <Shortcut not Assigned>
+0063:Phrase Editor:Paketti: ∿ Set Phrase LPB to 006: <Shortcut not Assigned>
+0064:Phrase Editor:Paketti: ∿ Set Phrase LPB to 007: <Shortcut not Assigned>
+0065:Phrase Editor:Paketti: ∿ Set Phrase LPB to 008: <Shortcut not Assigned>
+0066:Phrase Editor:Paketti: ∿ Set Phrase LPB to 009: <Shortcut not Assigned>
+0067:Phrase Editor:Paketti: ∿ Set Phrase LPB to 010: <Shortcut not Assigned>
+0068:Phrase Editor:Paketti: ∿ Set Phrase LPB to 011: <Shortcut not Assigned>
+0069:Phrase Editor:Paketti: ∿ Set Phrase LPB to 012: <Shortcut not Assigned>
+0070:Phrase Editor:Paketti: ∿ Set Phrase LPB to 013: <Shortcut not Assigned>
+0071:Phrase Editor:Paketti: ∿ Set Phrase LPB to 014: <Shortcut not Assigned>
+0072:Phrase Editor:Paketti: ∿ Set Phrase LPB to 015: <Shortcut not Assigned>
+0073:Phrase Editor:Paketti: ∿ Set Phrase LPB to 016: <Shortcut not Assigned>
+0074:Phrase Editor:Paketti: ∿ Set Phrase LPB to 024: <Shortcut not Assigned>
+0075:Phrase Editor:Paketti: ∿ Set Phrase LPB to 032: <Shortcut not Assigned>
+0076:Phrase Editor:Paketti: ∿ Set Phrase LPB to 048: <Shortcut not Assigned>
+0077:Phrase Editor:Paketti: ∿ Set Phrase LPB to 064: <Shortcut not Assigned>
+0078:Phrase Editor:Paketti: ∿ Set Phrase LPB to 128: <Shortcut not Assigned>
+0079:Phrase Editor:Paketti: ∿ Set Phrase LPB to 256: <Shortcut not Assigned>

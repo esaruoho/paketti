@@ -767,8 +767,6 @@ function write_bpm()
   end
 end
 
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:BPM&LPB..:Write Current BPM&LPB to Master Column",invoke=function() write_bpm() end}
-
 function randombpm()
 local prefix=nil
 local randombpm = {80, 100, 115, 123, 128, 132, 135, 138, 160}
@@ -796,8 +794,14 @@ function randomBPMMaster()
   end
 end
 
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Renoise Random BPM & Write BPM/LPB to Master",invoke=function() randomBPMMaster() end}
 
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Renoise Random BPM & Write BPM/LPB to Master",invoke=function() randomBPMMaster() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:BPM&LPB..:Renoise Random BPM & Write BPM/LPB to Master",invoke=function() randomBPMMaster() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:BPM&LPB..:Renoise Random BPM & Write BPM/LPB to Master",invoke=function() randomBPMMaster() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:BPM&LPB..:Write Current BPM&LPB to Master Column",invoke=function() write_bpm() end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:BPM&LPB..:Random BPM (60-180)",invoke=function() randomBPM() end}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Pattern Editor..:BPM&LPB..:Write Current BPM&LPB to Master Column",invoke=function() write_bpm() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:BPM&LPB..:Random BPM (60-180)",invoke=function() randomBPM() end}
 
 function playat75()
  renoise.song().transport.bpm=renoise.song().transport.bpm*0.75

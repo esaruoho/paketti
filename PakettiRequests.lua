@@ -620,28 +620,12 @@ renoise.song().instruments[renoise.song().selected_instrument_index].sample_modu
 end
 
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Instruments..:Initialize..:12st PitchBend Instrument Init",invoke=function() pitchedInstrument(12) end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:Initialize..:24st PitchBend Instrument Init",invoke=function() pitchedInstrument(24) end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:Initialize..:36st PitchBend Instrument Init",invoke=function() pitchedInstrument(36) end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:Initialize..:48st PitchBend Instrument Init",invoke=function() pitchedInstrument(48) end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:Initialize..:64st PitchBend Instrument Init",invoke=function() pitchedInstrument(64) end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:Initialize..:96st PitchBend Instrument Init",invoke=function() pitchedInstrument(96) end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:Initialize..:PitchBend Drumkit Instrument Init",invoke=function() pitchedDrumkit() end}
 
 renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Initialize..:12st PitchBend Instrument Init",invoke=function() pitchedInstrument(12) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Initialize..:24st PitchBend Instrument Init",invoke=function() pitchedInstrument(24) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Initialize..:36st PitchBend Instrument Init",invoke=function() pitchedInstrument(36) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Initialize..:48st PitchBend Instrument Init",invoke=function() pitchedInstrument(48) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Initialize..:64st PitchBend Instrument Init",invoke=function() pitchedInstrument(64) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Initialize..:96st PitchBend Instrument Init",invoke=function() pitchedInstrument(96) end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Initialize..:PitchBend Drumkit Instrument Init",invoke=function() pitchedDrumkit() end}
 
 renoise.tool():add_keybinding{name="Global:Paketti:12st PitchBend Instrument Init",invoke=function() pitchedInstrument(12) end}
-renoise.tool():add_keybinding{name="Global:Paketti:24st PitchBend Instrument Init",invoke=function() pitchedInstrument(24) end}
-renoise.tool():add_keybinding{name="Global:Paketti:36st PitchBend Instrument Init",invoke=function() pitchedInstrument(36) end}
-renoise.tool():add_keybinding{name="Global:Paketti:48st PitchBend Instrument Init",invoke=function() pitchedInstrument(48) end}
-renoise.tool():add_keybinding{name="Global:Paketti:64st PitchBend Instrument Init",invoke=function() pitchedInstrument(64) end}
-renoise.tool():add_keybinding{name="Global:Paketti:96st PitchBend Instrument Init",invoke=function() pitchedInstrument(96) end}
-
 renoise.tool():add_keybinding{name="Global:Paketti:PitchBend Drumkit Instrument Init",invoke=function() pitchedDrumkit() end}
 
 function transposeAllSamplesInInstrument(amount)
@@ -6089,6 +6073,16 @@ renoise.tool():add_keybinding{name="Global:Paketti:Double LPB",invoke=function()
 renoise.tool():add_keybinding{name="Global:Paketti:Halve LPB",invoke=function() PakettiLPBHalve() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Double Double LPB",invoke=function() PakettiLPBDouble() PakettiLPBDouble() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Halve Halve LPB",invoke=function() PakettiLPBHalve() PakettiLPBHalve() end}
+
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:BPM&LPB..:Double LPB",invoke=function() PakettiLPBDouble() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:BPM&LPB..:Halve LPB",invoke=function() PakettiLPBHalve() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:BPM&LPB..:Double Double LPB",invoke=function() PakettiLPBDouble() PakettiLPBDouble() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:BPM&LPB..:Halve Halve LPB",invoke=function() PakettiLPBHalve() PakettiLPBHalve() end}
+
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Pattern Editor..:BPM&LPB..:Double LPB",invoke=function() PakettiLPBDouble() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:BPM&LPB..:Halve LPB",invoke=function() PakettiLPBHalve() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:BPM&LPB..:Double Double LPB",invoke=function() PakettiLPBDouble() PakettiLPBDouble() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:BPM&LPB..:Halve Halve LPB",invoke=function() PakettiLPBHalve() PakettiLPBHalve() end}
 
 
 function halve_bpm()

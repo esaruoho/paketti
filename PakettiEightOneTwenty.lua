@@ -334,9 +334,24 @@ table.insert(yxx_checkbox_row_elements, yxx_clear_button)
     end
   }
 
+  -- Function to map sample index to slider value
+  function row_elements.sample_to_slider_value(sample_index, num_samples)
+    if num_samples <= 0 then return 1 end
+    -- Reverse the mapping: sample index -> slider value
+    return math.floor(1 + ((sample_index - 1) * 120) / num_samples)
+  end
+
+  -- Function to map slider value to sample index
+  function row_elements.slider_to_sample_index(slider_value, num_samples)
+    if num_samples <= 0 then return 1 end
+    -- Map slider value -> sample index
+    local actual_value = math.floor(1 + ((slider_value - 1) / 120) * num_samples)
+    return math.max(1, math.min(actual_value, num_samples))
+  end
+
   local slider = vb:slider {
     min = 1,
-    max = 120,  
+    max = 120,
     value = 1,
     width = 130,
     steps = {1, -1},
@@ -350,20 +365,30 @@ table.insert(yxx_checkbox_row_elements, yxx_clear_button)
       end
       renoise.song().selected_instrument_index = instrument_index
       
-    -- Set the selected track before changing the sample
-    local track_index = track_indices[row_elements.track_popup.value]
-    renoise.song().selected_track_index = track_index
+      -- Set the selected track before changing the sample
+      local track_index = track_indices[row_elements.track_popup.value]
+      renoise.song().selected_track_index = track_index
 
-
-      -- Direct 1:1 mapping - slider value is the sample index
-      pakettiSampleVelocityRangeChoke(value)
+      if instrument and #instrument.samples > 0 then
+        value = math.min(value, #instrument.samples)
+        pakettiSampleVelocityRangeChoke(value)
+      end
       
       row_elements.update_sample_name_label()
       renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
-
-
     end
   }
+
+  -- Update the slider value when updating sample name label
+  local original_update_sample_name_label = row_elements.update_sample_name_label
+  row_elements.update_sample_name_label = function()
+    original_update_sample_name_label()
+    local instrument_index = row_elements.instrument_popup.value
+    local instrument = renoise.song().instruments[instrument_index]
+    if instrument and #instrument.samples > 0 then
+      slider.value = renoise.song().selected_sample_index
+    end
+  end
 
     -- Adjusted Instrument Popup
   local instrument_popup = vb:popup {
@@ -580,8 +605,12 @@ end
     renoise.app():show_status("Base notes set to C-4 and key mapping adjusted for all samples.")
 
     if renoise.song().tracks[track_index] then
-      renoise.song().tracks[track_index].name = instrument.name ~= "" and instrument.name or "Instrument " .. instrument_index
-      renoise.app():show_status("Track " .. track_index .. " renamed to '" .. (instrument.name ~= "" and instrument.name or "Instrument " .. instrument_index) .. "'.")
+      -- Preserve the 8120 track name format
+      local track = renoise.song().tracks[track_index]
+      if not track.name:match("^8120_%d+%[%d+%]$") then
+        local base_name = string.format("8120_%02d", track_index)
+        track.name = string.format("%s[016]", base_name)  -- Initialize with 16 steps
+      end
     else
       renoise.app():show_warning("Selected track does not exist.")
     end
@@ -677,18 +706,10 @@ end
           -- Create automation in the pattern if it doesn't exist
           local pattern = song.selected_pattern
           local pattern_track = pattern.tracks[track_index]
-          local has_automation = false
-          
-          -- Check if automation already exists
-          for _, automation in ipairs(pattern_track.automation) do
-            if automation.dest_parameter == param then
-              has_automation = true
-              break
-            end
-          end
+          local existing_automation = pattern_track:find_automation(param)
           
           -- If no automation exists, create it
-          if not has_automation then
+          if not existing_automation then
             local automation = pattern_track:create_automation(param)
             automation:add_point_at(1, 0.5) -- Start at middle
             automation:add_point_at(pattern.number_of_lines, 0.5) -- End at middle
@@ -845,8 +866,12 @@ end
         end
       
         if renoise.song().tracks[track_index] then
-          renoise.song().tracks[track_index].name = instrument.name ~= "" and instrument.name or "Instrument " .. instrument_index
-          renoise.app():show_status("Track " .. track_index .. " renamed to '" .. (instrument.name ~= "" and instrument.name or "Instrument " .. instrument_index) .. "'.")
+          -- Preserve the 8120 track name format
+          local track = renoise.song().tracks[track_index]
+          if not track.name:match("^8120_%d+%[%d+%]$") then
+            local base_name = string.format("8120_%02d", track_index)
+            track.name = string.format("%s[016]", base_name)  -- Initialize with 16 steps
+          end
         else
           renoise.app():show_warning("Selected track does not exist.")
         end
@@ -1045,7 +1070,14 @@ local randomize_all_yxx_button = vb:button {
               end
               
               if renoise.song().tracks[track_index] then
-                renoise.song().tracks[track_index].name = instrument.name ~= "" and instrument.name or "Instrument " .. instrument_index
+                -- Preserve the 8120 track name format
+                local track = renoise.song().tracks[track_index]
+                if not track.name:match("^8120_%d+%[%d+%]$") then
+                  local base_name = string.format("8120_%02d", track_index)
+                  track.name = string.format("%s[016]", base_name)  -- Initialize with 16 steps
+                end
+              else
+                renoise.app():show_warning("Selected track does not exist.")
               end
             end
           
@@ -1848,9 +1880,10 @@ function PakettiEightOneTwentyInit()
 
   -- Add any missing sequencer tracks at position 1
   while sequencer_tracks < 8 do
-    song:insert_track_at(1)
+    local next_track_number = sequencer_tracks + 1
+    song:insert_track_at(next_track_number)
+    song:track(next_track_number).name = string.format("8120_%02d[016]", next_track_number)
     sequencer_tracks = sequencer_tracks + 1
-    song:track(1).name = string.format("8120_%02d[016]", sequencer_tracks)
   end
 
   -- Only initialize track names if they don't follow the correct format

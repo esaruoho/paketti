@@ -381,7 +381,7 @@ local tempo = 125
 local real_bpm = tempo / (speed / 6)
 
 -- Keyhandler Function
-local function my_keyhandler_func(dialog, key)
+local function SpeedBPMkeyhandler_func(dialog, key)
     local closer = preferences.pakettiDialogClose.value
       if key.modifiers == "" and key.name == closer then
         dialog:close()
@@ -462,12 +462,13 @@ function show_speed_tempo_dialog()
   dialog = renoise.app():show_custom_dialog(
     "Speed and Tempo to BPM",
     dialog_content,
-    my_keyhandler_func
+    SpeedBPMkeyhandler_func
   )
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 
 end
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti Speed and Tempo to BPM...",invoke=show_speed_tempo_dialog}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:BPM&LPB..:Paketti Speed and Tempo to BPM...",invoke=show_speed_tempo_dialog}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:BPM&LPB..:Paketti Speed and Tempo to BPM...",invoke=show_speed_tempo_dialog}
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Speed and Tempo to BPM...",invoke=show_speed_tempo_dialog}
 
 
@@ -594,7 +595,6 @@ function configureTimeSignature(F, K)
   print(message)  -- Print to console
   renoise.app():show_status(message)
 end
-
 
 -- Function to show custom time signature dialog
 function showTimeSignatureDialog()

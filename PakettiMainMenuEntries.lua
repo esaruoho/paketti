@@ -240,10 +240,10 @@ function randomBPM()
 
 end  
 
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Pattern Editor..:Random BPM (60-180)",invoke=function() randomBPM() end}
-
 --renoise.song().transport.bpm=math.random(60,180) end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Write Current BPM&LPB to Master column",invoke=function() write_bpm() end}
+
+
+
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Paketti Effect Column CheatSheet...",invoke=function() CheatSheet() end}
 
 -------- Plugins/Devices

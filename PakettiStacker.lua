@@ -124,12 +124,19 @@ function write_velocity_ramp_up()
   local song = renoise.song()
   local pattern = song.selected_pattern
   local start_line_index = song.selected_line_index  
-  local patterntrack = pattern.tracks[renoise.song().selected_track_index]
   local line_index = song.selected_line_index
   local instrument_index = song.selected_instrument_index
+  
+  local notecoll
+  if song.selected_note_column_index == 0 then
+    notecoll = 1
+  else
+    notecoll = song.selected_note_column_index
+  end
 
-  if not song.selected_note_column then
-    renoise.app():show_status("No note column selected.")
+  -- Check if track is a note track
+  if renoise.song().selected_track.type ~= 1 then
+    renoise.app():show_status("Cannot write notes to non-note tracks.")
     return
   end
 
@@ -154,45 +161,53 @@ function write_velocity_ramp_up()
     return
   end
 
+  -- Calculate how many notes we can write before hitting the pattern limit
+  local max_lines = pattern.number_of_lines
+  local available_lines = max_lines - line_index + 1
+  local notes_to_write = math.min(num_ranges, available_lines)
+
   local base_note = 48 -- C-4
 
   -- Write notes using the actual velocity ranges
-  for i, range in ipairs(unique_ranges) do
-    local velocity = range[1] -- Use the lower bound of each range
-    local line = patterntrack:line(line_index + i - 1)
-    local note_col = line.note_columns[1]
-
-    note_col.note_value = base_note
-    note_col.instrument_value = instrument_index - 1
-    note_col.volume_value = velocity
+  for i = 1, notes_to_write do
+    local velocity = unique_ranges[i][1] -- Use the lower bound of each range
+    local line = pattern.tracks[song.selected_track_index].lines[line_index + i - 1]
+    if line and line.note_columns and line.note_columns[notecoll] then
+      line.note_columns[notecoll].note_value = base_note
+      line.note_columns[notecoll].instrument_value = instrument_index - 1
+      line.note_columns[notecoll].volume_value = velocity
+    end
   end
 
-  -- Create selection
   song.selection_in_pattern = {
     start_line = start_line_index,
-    end_line = start_line_index + num_ranges - 1,
+    end_line = start_line_index + notes_to_write - 1,
     start_track = song.selected_track_index,
     end_track = song.selected_track_index,
-    start_column = 1,
-    end_column = 1
+    start_column = notecoll,
+    end_column = notecoll
   }
 
-  renoise.app():show_status("Ramp-up velocities written based on " .. num_ranges .. " unique velocity ranges.")
+  renoise.app():show_status("Ramp-up velocities written based on " .. notes_to_write .. " unique velocity ranges.")
 end
--- Write notes with ramp-down velocities starting from the last sample's upper velocity bound
-
-
 
 -- Write notes with ramp-down velocities starting from the last sample's lower velocity bound
 function write_velocity_ramp_down()
   local song = renoise.song()
   local pattern = song.selected_pattern
-  local patterntrack = pattern.tracks[renoise.song().selected_track_index]
-  local start_line_index = song.selected_line_index  -- Store starting line for selection
+  local start_line_index = song.selected_line_index
   local instrument_index = song.selected_instrument_index
+  
+  local notecoll
+  if song.selected_note_column_index == 0 then
+    notecoll = 1
+  else
+    notecoll = song.selected_note_column_index
+  end
 
-  if not song.selected_note_column then
-    renoise.app():show_status("No note column selected.")
+  -- Check if track is a note track
+  if renoise.song().selected_track.type ~= 1 then
+    renoise.app():show_status("Cannot write notes to non-note tracks.")
     return
   end
 
@@ -217,42 +232,53 @@ function write_velocity_ramp_down()
     return
   end
 
+  -- Calculate how many notes we can write before hitting the pattern limit
+  local max_lines = pattern.number_of_lines
+  local available_lines = max_lines - start_line_index + 1
+  local notes_to_write = math.min(num_ranges, available_lines)
+
   local base_note = 48
 
   -- Write notes using the actual velocity ranges in descending order
-  for i, range in ipairs(unique_ranges) do
-    local velocity = range[1] -- Use the lower bound of each range
-    local line = patterntrack:line(start_line_index + i - 1)
-    local note_col = line.note_columns[1]
-
-    note_col.note_value = base_note
-    note_col.instrument_value = instrument_index - 1
-    note_col.volume_value = velocity
+  for i = 1, notes_to_write do
+    local velocity = unique_ranges[i][1] -- Use the lower bound of each range
+    local line = pattern.tracks[song.selected_track_index].lines[start_line_index + i - 1]
+    if line and line.note_columns and line.note_columns[notecoll] then
+      line.note_columns[notecoll].note_value = base_note
+      line.note_columns[notecoll].instrument_value = instrument_index - 1
+      line.note_columns[notecoll].volume_value = velocity
+    end
   end
 
-  -- Create selection
   song.selection_in_pattern = {
     start_line = start_line_index,
-    end_line = start_line_index + num_ranges - 1,
+    end_line = start_line_index + notes_to_write - 1,
     start_track = song.selected_track_index,
     end_track = song.selected_track_index,
-    start_column = 1,
-    end_column = 1
+    start_column = notecoll,
+    end_column = notecoll
   }
 
-  renoise.app():show_status("Ramp-down velocities written based on " .. num_ranges .. " unique velocity ranges.")
+  renoise.app():show_status("Ramp-down velocities written based on " .. notes_to_write .. " unique velocity ranges.")
 end
 
 -- Write notes with random velocities, respecting the last sample's velocity range
 function write_random_velocity_notes()
   local song = renoise.song()
   local pattern = song.selected_pattern
-  local patterntrack = pattern.tracks[renoise.song().selected_track_index]
-  local start_line_index = song.selected_line_index  -- Store starting line for selection
+  local start_line_index = song.selected_line_index
   local instrument_index = song.selected_instrument_index
+  
+  local notecoll
+  if song.selected_note_column_index == 0 then
+    notecoll = 1
+  else
+    notecoll = song.selected_note_column_index
+  end
 
-  if not song.selected_note_column then
-    renoise.app():show_status("No note column selected.")
+  -- Check if track is a note track
+  if renoise.song().selected_track.type ~= 1 then
+    renoise.app():show_status("Cannot write notes to non-note tracks.")
     return
   end
 
@@ -276,30 +302,39 @@ function write_random_velocity_notes()
     return
   end
 
+  -- Calculate how many notes we can write before hitting the pattern limit
+  local max_lines = pattern.number_of_lines
+  local available_lines = max_lines - start_line_index + 1
+  local notes_to_write = math.min(num_ranges, available_lines)
+
   local base_note = 48
 
   -- Write notes with random velocities within the available ranges
-  for i, range in ipairs(unique_ranges) do
-    local velocity = range[1] -- Use the lower bound of each range
-    local line = patterntrack:line(start_line_index + i - 1)
-    local note_col = line.note_columns[1]
-
-    note_col.note_value = base_note
-    note_col.instrument_value = instrument_index - 1
-    note_col.volume_value = velocity
+  for i = 1, notes_to_write do
+    -- Pick a random range
+    local random_range_index = math.random(1, num_ranges)
+    local range = unique_ranges[random_range_index]
+    
+    -- Pick a random velocity within that range
+    local velocity = math.random(range[1], range[2])
+    local line = pattern.tracks[song.selected_track_index].lines[start_line_index + i - 1]
+    if line and line.note_columns and line.note_columns[notecoll] then
+      line.note_columns[notecoll].note_value = base_note
+      line.note_columns[notecoll].instrument_value = instrument_index - 1
+      line.note_columns[notecoll].volume_value = velocity
+    end
   end
 
-  -- Create selection
   song.selection_in_pattern = {
     start_line = start_line_index,
-    end_line = start_line_index + num_ranges - 1,
+    end_line = start_line_index + notes_to_write - 1,
     start_track = song.selected_track_index,
     end_track = song.selected_track_index,
-    start_column = 1,
-    end_column = 1
+    start_column = notecoll,
+    end_column = notecoll
   }
 
-  renoise.app():show_status("Random velocities written based on " .. num_ranges .. " unique velocity ranges.")
+  renoise.app():show_status("Random velocities written based on " .. notes_to_write .. " unique velocity ranges.")
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Stack All Samples in Instrument with Velocity Mapping Split",invoke=function() fix_sample_velocity_mappings() end}
@@ -471,16 +506,26 @@ vb:row{
 end
 
   function proceed_with_stacking()
+    local song = renoise.song()
+    local current_track = song.selected_track
+    
+    -- Remove *Instr. Macros device if it exists
+    for i = #current_track.devices, 2, -1 do
+      if current_track.devices[i].name == "*Instr. Macros" then
+        current_track:delete_device_at(i)
+        break
+      end
+    end
+
+    -- Run the isolation function
     PakettiIsolateSlicesToInstrument()
 
-    local instrument = renoise.song().selected_instrument
+    -- Add *Instr. Macros device back
+    loadnative("Audio/Effects/Native/*Instr. Macros")
+
+    local instrument = song.selected_instrument
     local samples = instrument.samples
     local num_samples = #samples
-
-    -- Define the velocity range (1 to 127)
-    local velocity_min = 1
-    local velocity_max = 127
-    local velocity_step = math.floor((velocity_max - velocity_min + 1) / num_samples)
 
     -- Base note and note range to apply to all samples
     local base_note = 48 -- Default to C-4
@@ -488,21 +533,16 @@ end
 
     for i = 1, num_samples do
       local sample = samples[i]
-      local start_velocity = velocity_min + (i - 1) * velocity_step
-      local end_velocity = start_velocity + velocity_step - 1
-
-      if i == num_samples then
-        end_velocity = velocity_max
-      end
+      
+      -- First slice gets velocity 0, rest get 1-127
+      local velocity = (i == 1) and 0 or (i - 1)
 
       sample.sample_mapping.map_velocity_to_volume = false
-
       sample.sample_mapping.base_note = base_note
       sample.sample_mapping.note_range = note_range
-      sample.sample_mapping.velocity_range = {start_velocity, end_velocity}
+      sample.sample_mapping.velocity_range = {velocity, velocity} -- Each slice gets exactly one velocity
     end
-  --showStackingDialog(proceed_with_stacking, on_switch_changed, PakettiIsolateSlicesToInstrument)
-end
+  end
 
 function LoadSliceIsolateStack()
   -- Initial Operations
