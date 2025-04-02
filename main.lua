@@ -249,6 +249,7 @@ timed_require("Research/FormulaDeviceManual")
 timed_require("PakettiXRNSProbe")
 timed_require("PakettiAKWF")
 timed_require("PakettiSteppers")
+timed_require("PakettiREXLoader")
 print(string.format("Total load time: %.3f seconds", os.clock() - init_time))
 ------------------------------------------------
 local themes_path = renoise.tool().bundle_path .. "Themes/"
