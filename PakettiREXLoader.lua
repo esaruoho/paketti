@@ -325,13 +325,14 @@ function rex_loadsample(filename)
   os.remove(aiff_copy)
   dprint("Import completed successfully")
 
+  if preferences.pakettiLoaderDontCreateAutomationDevice.value == false then 
   if renoise.song().selected_track.type == 2 then renoise.app():show_status("*Instr. Macro Device will not be added to the Master track.") return else
     loadnative("Audio/Effects/Native/*Instr. Macros") 
     local macro_device = renoise.song().selected_track:device(2)
     macro_device.display_name = string.format("%02X", renoise.song().selected_instrument_index - 1) .. " " .. get_clean_filename(filename)
     renoise.song().selected_track.devices[2].is_maximized = false
   end
-
+end
   renoise.app():show_status(string.format("REX cleaned and imported with %d slice markers", #slice_offsets))
   return true
 end
@@ -407,7 +408,7 @@ local function dump_rex_structure(file_path)
 end
 
 renoise.tool():add_menu_entry {
-  name = "Main Menu:Tools:REX Tools:Dump REX Structure to Text",
+  name = "Main Menu:Tools:Paketti..:Instruments..:REX Tools..:Dump REX Structure to Text",
   invoke = function()
     local file_path = renoise.app():prompt_for_filename_to_read({ "rex" }, "")
     if file_path then

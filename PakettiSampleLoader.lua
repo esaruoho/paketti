@@ -177,10 +177,10 @@ function rendering_done_callback()
 
     -- Load default instrument (assuming this function is defined)
     pakettiPreferencesDefaultInstrumentLoader()
-
+    if preferences.pakettiLoaderDontCreateAutomationDevice.value == false then 
     -- Add *Instr. Macros to Rendered Track
     local new_instrument = song:instrument(song.selected_instrument_index)
-
+    end 
     -- Load Sample into New Instrument Sample Buffer
     new_instrument.samples[1].sample_buffer:load_from(render_context.temp_file_path)
     os.remove(render_context.temp_file_path)

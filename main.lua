@@ -250,6 +250,7 @@ timed_require("PakettiXRNSProbe")
 timed_require("PakettiAKWF")
 timed_require("PakettiSteppers")
 timed_require("PakettiREXLoader")
+--timed_require("PakettiRX2Loader")
 print(string.format("Total load time: %.3f seconds", os.clock() - init_time))
 ------------------------------------------------
 local themes_path = renoise.tool().bundle_path .. "Themes/"
@@ -304,6 +305,10 @@ end
 --local PakettiAutomationDoofer=false
 
 function startup()  
+  if preferences.pakettiAlwaysOpenDSPsOnTrack.value then
+    PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode()
+  end
+
   if preferences.pakettiEditMode.value == 2 and renoise.song().transport.edit_mode then 
     for i = 1,#renoise.song().tracks do
       renoise.song().tracks[i].color_blend=0 

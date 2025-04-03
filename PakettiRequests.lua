@@ -10382,120 +10382,148 @@ renoise.tool():add_keybinding{name = "Global:Paketti:Replace FC with 0L",invoke 
 
 
 -- Create menu entry and MIDI mapping
-renoise.tool():add_menu_entry {
-  name = "Main Menu:Tools:Paketti..:Pattern Editor..:Explode Notes to New Tracks",
-  invoke = function() explode_notes_to_tracks() end
-}
-
-renoise.tool():add_midi_mapping {
-  name = "Paketti:Explode Notes to New Tracks",
-  invoke = function() explode_notes_to_tracks() end
-}
-
+renoise.tool():add_menu_entry {name = "Main Menu:Tools:Paketti..:Pattern Editor..:Explode Notes to New Tracks",invoke = function() explode_notes_to_tracks() end}
+renoise.tool():add_midi_mapping {name = "Paketti:Explode Notes to New Tracks",invoke = function() explode_notes_to_tracks() end}
 renoise.tool():add_keybinding {
-  name = "Global:Paketti:Explode Notes to New Tracks",
-  invoke = function() explode_notes_to_tracks() end
-}
+  name = "Global:Paketti:Explode Notes to New Tracks",invoke = function() explode_notes_to_tracks() end}
 
-function explode_notes_to_tracks()
-  local song = renoise.song()
-  local selected_track_index = song.selected_track_index
-  local selected_track = song:track(selected_track_index)
-  local pattern = song.selected_pattern
-  local track_data = pattern:track(selected_track_index)
-  
-  -- Check if there are any notes
-  local found_notes = false
-  for column_index = 1, selected_track.visible_note_columns do
-    for line_index = 1, pattern.number_of_lines do
-      local line = track_data:line(line_index)
-      local note = line.note_columns[column_index]
-      if note.note_value > 0 and note.note_value < 120 then
-        found_notes = true
-        break
-      end
-    end
-    if found_notes then break end
-  end
-  
-  if not found_notes then
-    renoise.app():show_status("There are no notes on the currently selected track, doing nothing.")
-    return
-  end
-    -- Store all unique notes and their positions
-  local notes_map = {}
-  
-  local track_data = pattern:track(selected_track_index)
-  
-  -- Go through all visible note columns
-  for column_index = 1, selected_track.visible_note_columns do
-    -- Scan all lines in the pattern
-    for line_index = 1, pattern.number_of_lines do
-      local line = track_data:line(line_index)
-      local note = line.note_columns[column_index]
-      
-      if note.note_value > 0 and note.note_value < 120 then
-        local note_name = note_string(note.note_value)
-        if not notes_map[note_name] then
-          notes_map[note_name] = {}
-        end
-        
-        -- Store position information for the note
-        local note_info = {
-          line_index = line_index,
-          note_value = note.note_value,
-          instrument_value = note.instrument_value,
-          volume_value = note.volume_value,
-          panning_value = note.panning_value,
-          note_offs = {}  -- Will store any following note-offs
-        }
-        
-        -- Look ahead for note-offs
-        local next_index = line_index + 1
-        while next_index <= pattern.number_of_lines do
-          local next_line = track_data:line(next_index)
-          local next_note = next_line.note_columns[column_index]
-          
-          if next_note.note_value == 120 then  -- Note-off
-            table.insert(note_info.note_offs, next_index)
-            next_index = next_index + 1
-          else
-            break  -- Stop if we find anything other than a note-off
-          end
-        end
-        
-        table.insert(notes_map[note_name], note_info)
-      end
-    end
-  end
-  
-  -- Create new tracks for each unique note
-  for note_name, positions in pairs(notes_map) do
-    -- Create new track after the selected track
-    song:insert_track_at(selected_track_index + 1)
-    local new_track = song:track(selected_track_index + 1)
-    new_track.name = note_name .. " Notes"
+  function explode_notes_to_tracks()
+    local song = renoise.song()
+    local selected_track_index = song.selected_track_index
+    local selected_track = song:track(selected_track_index)
+    local pattern = song.selected_pattern
+    local track_data = pattern:track(selected_track_index)
     
-    -- Copy notes to new track
-    for _, pos in ipairs(positions) do
-      local track_data = pattern:track(selected_track_index + 1)
+  -- Store original edit mode state
+  local original_edit_mode = song.transport.edit_mode
+  -- Temporarily disable edit mode
+  song.transport.edit_mode = false
+
+    -- Check if there are any notes
+    local found_notes = false
+    for column_index = 1, selected_track.visible_note_columns do
+      for line_index = 1, pattern.number_of_lines do
+        local line = track_data:line(line_index)
+        local note = line.note_columns[column_index]
+        if note.note_value > 0 and note.note_value < 120 then
+          found_notes = true
+          break
+        end
+      end
+      if found_notes then break end
+    end
+    
+    if not found_notes then
+      renoise.app():show_status("There are no notes on the currently selected track, doing nothing.")
+      return
+    end
+  
+    -- Store all unique notes and their positions, keeping track of simultaneous notes
+    local notes_map = {}
+    
+    -- Go through all visible note columns
+    for line_index = 1, pattern.number_of_lines do
+      -- For each line, check all columns for simultaneous notes
+      local simultaneous_notes = {}
       
-      -- Place the note
-      local line = track_data:line(pos.line_index)
-      local note_column = line.note_columns[1]
-      note_column.note_value = pos.note_value
-      note_column.instrument_value = pos.instrument_value
-      note_column.volume_value = pos.volume_value
-      note_column.panning_value = pos.panning_value
-      
-      -- Place any associated note-offs
-      for _, off_index in ipairs(pos.note_offs) do
-        local off_line = track_data:line(off_index)
-        off_line.note_columns[1].note_value = 120  -- Note-off
+      for column_index = 1, selected_track.visible_note_columns do
+        local line = track_data:line(line_index)
+        local note = line.note_columns[column_index]
+        
+        if note.note_value > 0 and note.note_value < 120 then
+          local note_name = note_string(note.note_value)
+          
+          -- Initialize the note map entry if it doesn't exist
+          if not notes_map[note_name] then
+            notes_map[note_name] = {
+              max_simultaneous = 1,
+              notes = {}
+            }
+          end
+          
+          -- Count simultaneous notes of the same pitch
+          if not simultaneous_notes[note_name] then
+            simultaneous_notes[note_name] = 1
+          else
+            simultaneous_notes[note_name] = simultaneous_notes[note_name] + 1
+            -- Update the maximum number of simultaneous notes needed
+            notes_map[note_name].max_simultaneous = math.max(notes_map[note_name].max_simultaneous, simultaneous_notes[note_name])
+          end
+          
+          -- Store position information for the note
+          local note_info = {
+            line_index = line_index,
+            column_index = simultaneous_notes[note_name], -- Store which column this should go to
+            note_value = note.note_value,
+            instrument_value = note.instrument_value,
+            volume_value = note.volume_value,
+            panning_value = note.panning_value,
+            note_offs = {}  -- Will store any following note-offs
+          }
+          
+          -- Look ahead for note-offs
+          local next_index = line_index + 1
+          while next_index <= pattern.number_of_lines do
+            local next_line = track_data:line(next_index)
+            local next_note = next_line.note_columns[column_index]
+            
+            if next_note.note_value == 120 then  -- Note-off
+              table.insert(note_info.note_offs, next_index)
+              next_index = next_index + 1
+            else
+              break  -- Stop if we find anything other than a note-off
+            end
+          end
+          
+          table.insert(notes_map[note_name].notes, note_info)
+        end
       end
     end
+    
+    -- Create new tracks for each unique note
+    for note_name, note_data in pairs(notes_map) do
+      -- Create new track after the selected track
+      song:insert_track_at(selected_track_index + 1)
+      local new_track = song:track(selected_track_index + 1)
+      new_track.name = note_name .. " Notes"
+      
+      -- Set the number of visible note columns needed for simultaneous notes
+      new_track.visible_note_columns = note_data.max_simultaneous
+      
+      -- Copy notes to new track
+      for _, note_info in ipairs(note_data.notes) do
+        local track_data = pattern:track(selected_track_index + 1)
+        
+        -- Place the note in the appropriate column
+        local line = track_data:line(note_info.line_index)
+        local note_column = line.note_columns[note_info.column_index]
+        note_column.note_value = note_info.note_value
+        note_column.instrument_value = note_info.instrument_value
+        note_column.volume_value = note_info.volume_value
+        note_column.panning_value = note_info.panning_value
+        
+        -- Place any associated note-offs
+        for _, off_index in ipairs(note_info.note_offs) do
+          local off_line = track_data:line(off_index)
+          off_line.note_columns[note_info.column_index].note_value = 120  -- Note-off
+        end
+      end
+    end
+  
+    -- Wipe the original track if the preference is enabled
+    if preferences.pakettiWipeExplodedTrack.value then
+      local original_track_data = pattern:track(selected_track_index)
+      for line_index = 1, pattern.number_of_lines do
+        local line = original_track_data:line(line_index)
+        for column_index = 1, selected_track.visible_note_columns do
+          local note = line.note_columns[column_index]
+          note:clear()
+        end
+      end
+    end
+      -- Restore original edit mode state
+  song.transport.edit_mode = original_edit_mode
   end
-end
 
 -- Helper function to convert note value to string
 function note_string(note_value)
@@ -11018,14 +11046,6 @@ local function show_track_search_dialog()
       return false
     end
   )
-
-
-
-
-  
-
-
-
 end
 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Fuzzy Search Track",invoke = show_track_search_dialog}
@@ -11035,4 +11055,3 @@ renoise.tool():add_keybinding{name="Global:Paketti:Fuzzy Search Track",invoke = 
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Fuzzy Search Track",invoke = show_track_search_dialog}
 renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Fuzzy Search Track",invoke = show_track_search_dialog}
 renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Fuzzy Search Track",invoke = show_track_search_dialog}
-

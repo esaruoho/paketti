@@ -1,4 +1,3 @@
-
 function PakettiCreateUnisonSamples()
   local song = renoise.song()
   local selected_instrument_index = song.selected_instrument_index
@@ -115,6 +114,13 @@ end
   local fraction_values = {1/8, 2/8, 3/8, 4/8, 5/8, 6/8, 7/8}
   local unison_range = 8  -- Adjust as needed
 
+  -- Check if sample is too large for fractional shifting
+  local skip_fractional_shifting = false
+  if original_sample.sample_buffer.has_sample_data and original_sample.sample_buffer.number_of_frames > 500000 then
+    skip_fractional_shifting = true
+    print(string.format("Sample has %d frames - skipping fractional shifting to avoid slowdown", original_sample.sample_buffer.number_of_frames))
+  end
+
   -- Adjust finetune and panning for each unison sample
   for i = 2, 8 do
     local sample = renoise.song().selected_instrument.samples[i]
@@ -124,8 +130,8 @@ end
     sample.fine_tune = math.random(-unison_range, unison_range)
     sample.loop_mode = 2
 
-    -- Adjust sample buffer if sample data exists
-    if original_sample.sample_buffer.has_sample_data then
+    -- Adjust sample buffer if sample data exists and sample is not too large
+    if original_sample.sample_buffer.has_sample_data and not skip_fractional_shifting then
       local new_sample_buffer = sample.sample_buffer
       new_sample_buffer:prepare_sample_data_changes()
       for channel = 1, original_sample.sample_buffer.number_of_channels do

@@ -99,6 +99,9 @@ function create_device_entry(name, path, device_type)
 end
 
 preferences = renoise.Document.create("ScriptingToolPreferences") {
+  pakettiAlwaysOpenDSPsOnTrack=false,
+  pakettiLoaderDontCreateAutomationDevice=false,
+  pakettiWipeExplodedTrack=false,
   pakettiAutomationFormat=2,
   pakettiAutomationWipeAfterSwitch=true,
   SelectedSampleBeatSyncLines = false,
@@ -663,6 +666,19 @@ function show_paketti_preferences()
             },
             vb:row {vb:text{style="strong",text="Whether F2,F3,F4,F11 change the Upper Frame Scope state or not"}},
             vb:row {
+              vb:text{text="Always Open Track DSPs",width=150},
+              vb:switch{items={"Off","On"},value=preferences.pakettiAlwaysOpenDSPsOnTrack.value and 2 or 1,width=200,
+                notifier=function(value) 
+                  preferences.pakettiAlwaysOpenDSPsOnTrack.value=(value==2)
+                  PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode()
+                end}
+            },
+            vb:row {
+              vb:text{text="Wipe Exploded Track",width=150},
+              vb:switch{items={"Off","On"},value=preferences.pakettiWipeExplodedTrack.value and 2 or 1,width=200,
+                notifier=function(value) preferences.pakettiWipeExplodedTrack.value=(value==2) end}
+            },
+            vb:row {
               vb:text{text="0G01 Loader",width=150},
               vb:switch{items={"Off","On"},value=preferences._0G01_Loader.value and 2 or 1,width=200,
                 notifier=function(value)
@@ -670,9 +686,7 @@ function show_paketti_preferences()
                   update_0G01_loader_menu_entries()
                 end}
             },
-            -- Splitting and positioning the long text on a new row
             vb:row {vb:text{style="strong",text="Upon loading a Sample, inserts a C-4 and -G01 to New Track, Sample plays until end of length and triggers again."}},
-
             vb:row {
               vb:text{text="Random BPM",width=150},
               vb:switch{items={"Off","On"},value=preferences.RandomBPM.value and 2 or 1,width=200,
@@ -899,6 +913,11 @@ vb:row {
           vb:column {
             style="group",margin=10, width="100%",
             vb:text{style="strong",font="bold",text="Paketti Loader Settings"},
+            vb:row {
+              vb:text{text="Skip Automation Device",width=150},
+              vb:switch{items={"Off","On"},value=preferences.pakettiLoaderDontCreateAutomationDevice.value and 2 or 1,width=200,
+                notifier=function(value) preferences.pakettiLoaderDontCreateAutomationDevice.value=(value==2) end}
+            },
             vb:row { vb:text{text="Sample Interpolation",width=150},vb:switch{items={"None","Linear","Cubic","Sinc"},value=preferences.pakettiLoaderInterpolation.value,width=200,
               notifier=function(value) update_interpolation_mode(value) end}
             },

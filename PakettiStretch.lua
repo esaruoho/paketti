@@ -1248,11 +1248,11 @@ function Strrendering_done_callback()
     new_instrument.samples[1].name = renderName
     new_instrument.name = renderName
     new_instrument.samples[1].autofade = true
-
+if preferences.pakettiLoaderDontCreateAutomationDevice.value == false then 
     -- Add *Instr. Macros to selected Track
     loadnative("Audio/Effects/Native/*Instr. Macros")
     song.selected_track.devices[2].is_maximized = false
-
+end
     if song.transport.edit_mode then
         song.transport.edit_mode = false
         song.transport.edit_mode = true

@@ -3438,32 +3438,88 @@ function PakettiReplicateAtCursor(transpose, tracks_option, row_option)
       end
     end
 
+    -- Function to check if a track section has any content
+    local function track_section_has_content(track, start_line, length)
+      for row = start_line, start_line + length - 1 do
+        local line = track:line(row)
+        
+        -- Check note columns
+        for _, note_col in ipairs(line.note_columns) do
+          if not note_col.is_empty then
+            return true
+          end
+        end
+        
+        -- Check effect columns
+        for _, fx_col in ipairs(line.effect_columns) do
+          if not fx_col.is_empty then
+            return true
+          end
+        end
+      end
+      return false
+    end
+
     -- Function to replicate content on a track
     local function replicate_on_track(track_index)
+      local track = pattern:track(track_index)
+      
+      -- Skip empty tracks for performance
+      if not track_section_has_content(track, 1, repeat_length) then
+        return
+      end
+      
+      local source_data = {}
+      
+      -- Pre-cache source lines for better performance
+      for source_row = 1, repeat_length do
+        source_data[source_row] = track:line(source_row)
+      end
+      
+      -- Process in batches for better performance
+      local BATCH_SIZE = 32
+      local current_batch = {}
+      
       for row = start_row, pattern_length do
         local source_row = ((row - start_row) % repeat_length) + 1
-        local source_line = pattern:track(track_index):line(source_row)
-        local dest_line = pattern:track(track_index):line(row)
-
+        local dest_line = track:line(row)
+        local source_line = source_data[source_row]
+        
+        -- Apply note columns
         for col = 1, #source_line.note_columns do
           local source_note = source_line.note_columns[col]
           local dest_note = dest_line.note_columns[col]
-
-          dest_note.note_value = transpose_note(source_note.note_value, transpose)
-          dest_note.instrument_value = source_note.instrument_value
-          dest_note.volume_value = source_note.volume_value
-          dest_note.panning_value = source_note.panning_value
-          dest_note.delay_value = source_note.delay_value
-          dest_note.effect_number_value = source_note.effect_number_value
-          dest_note.effect_amount_value = source_note.effect_amount_value
+          
+          -- Add to batch
+          table.insert(current_batch, {
+            dest_note = dest_note,
+            source_note = source_note,
+            transpose = transpose
+          })
         end
-
+        
+        -- Apply effect columns immediately since they're simpler
         for col = 1, #source_line.effect_columns do
           local source_effect = source_line.effect_columns[col]
           local dest_effect = dest_line.effect_columns[col]
-
           dest_effect.number_value = source_effect.number_value
           dest_effect.amount_value = source_effect.amount_value
+        end
+        
+        -- Process batch when it reaches size limit or at end
+        if #current_batch >= BATCH_SIZE or row == pattern_length then
+          for _, update in ipairs(current_batch) do
+            local dest_note = update.dest_note
+            local source_note = update.source_note
+            dest_note.note_value = transpose_note(source_note.note_value, update.transpose)
+            dest_note.instrument_value = source_note.instrument_value
+            dest_note.volume_value = source_note.volume_value
+            dest_note.panning_value = source_note.panning_value
+            dest_note.delay_value = source_note.delay_value
+            dest_note.effect_number_value = source_note.effect_number_value
+            dest_note.effect_amount_value = source_note.effect_amount_value
+          end
+          current_batch = {}
         end
       end
     end

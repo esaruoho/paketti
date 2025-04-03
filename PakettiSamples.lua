@@ -263,7 +263,7 @@ renoise.app():load_instrument(defaultInstrument)
  
   if preferences.pakettiLoaderNormalizeSamples.value ~= false then normalize_all_samples_in_instrument() end
   if preferences.pakettiLoaderMoveSilenceToEnd.value ~= false then PakettiMoveSilenceAllSamples() end
-  
+  if preferences.pakettiLoaderDontCreateAutomationDevice.value == false then 
   -- Load the *Instr. Macros device and rename it
 if renoise.song().selected_track.type == 2 then renoise.app():show_status("*Instr. Macro Device will not be added to the Master track.") return else
   loadnative("Audio/Effects/Native/*Instr. Macros")
@@ -272,6 +272,7 @@ if renoise.song().selected_track.type == 2 then renoise.app():show_status("*Inst
   macro_device.display_name = instrument_name_prefix
   song.selected_track.devices[2].is_maximized = false
 end
+end 
   -- Additional actions after loading samples
   on_sample_count_change()
   -- showAutomation()
@@ -456,6 +457,7 @@ function loadRandomDrumkitSamples(num_samples)
     end
 
     -- Load the Instr. Macros device and rename it based on the drumkit slot name
+    if preferences.pakettiLoaderDontCreateAutomationDevice.value == false then 
     if song.selected_track.type ~= renoise.Track.TRACK_TYPE_MASTER then
       loadnative("Audio/Effects/Native/*Instr. Macros")
       -- Get the number of devices after loading
@@ -465,7 +467,7 @@ function loadRandomDrumkitSamples(num_samples)
       macro_device.display_name = instrument.name
       macro_device.is_maximized = false
   end
-
+end
     -- Call additional actions to update sample count or display automation, if needed
     on_sample_count_change()
 end
@@ -585,6 +587,7 @@ if renoise.song().selected_sample ~= nil then
   print(string.format("Set names for the new instrument and sample: %s_%s", instrument_slot_hex, original_sample_name))
 
   -- Load the *Instr. Macros device and rename it
+  if preferences.pakettiLoaderDontCreateAutomationDevice.value == false then 
   if renoise.song().selected_track.type == 2 then renoise.app():show_status("*Instr. Macro Device will not be added to the Master track.") return else
   loadnative("Audio/Effects/Native/*Instr. Macros")
   end
@@ -592,7 +595,7 @@ if renoise.song().selected_sample ~= nil then
   macro_device.display_name = string.format("%s_%s", instrument_slot_hex, original_sample_name)
   song.selected_track.devices[2].is_maximized = false
   print("Loaded and configured *Instr. Macros device.")
-  
+end
   placeholder_sample.new_note_action = 1
 
   -- Select the new instrument and sample if preferences.selectionNewInstrumentSelect is true
@@ -698,7 +701,7 @@ if normalize then normalize_selected_sample() end
 
 --if preferences.pakettiLoaderMoveSilenceToEnd.value ~= false then PakettiMoveSilence() end
 --if preferences.pakettiLoaderNormalizeSamples.value ~= false then normalize_selected_sample() end
-
+if preferences.pakettiLoaderDontCreateAutomationDevice.value == false then 
 if renoise.song().selected_track.type == 2 then renoise.app():show_status("*Instr. Macro Device will not be added to the Master track.") return else
         loadnative("Audio/Effects/Native/*Instr. Macros") 
         local macro_device = renoise.song().selected_track:device(2)
@@ -708,6 +711,7 @@ if renoise.song().selected_track.type == 2 then renoise.app():show_status("*Inst
       else
         renoise.app():show_status("Failed to load the sample " .. filename_only)
       end
+    else end 
     end
   else
     renoise.app():show_status("No file selected.")
@@ -1291,9 +1295,10 @@ renoise.song().transport.lpb=number
     --    song.selected_pattern.tracks[renderedTrack].lines[1].effect_columns[1].number_string = "0G"
     --    song.selected_pattern.tracks[renderedTrack].lines[1].effect_columns[1].amount_value = 01 
     -- Add Instr* Macros to selected Track
+    if preferences.pakettiLoaderDontCreateAutomationDevice.value == false then 
     loadnative("Audio/Effects/Native/*Instr. Macros")
     renoise.song().selected_track.devices[2].is_maximized = false
-
+    end
     -- Rename Sample Slot to Render Track
     new_instrument.samples[1].name = renderName .. " (Rendered)"
 

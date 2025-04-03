@@ -3351,17 +3351,14 @@ end
 function insertRandomPlugin(au_only)
   local s = renoise.song()
   
-  -- Insert new instrument at current position
   s:insert_instrument_at(s.selected_instrument_index+1)
   renoise.song().selected_instrument_index = renoise.song().selected_instrument_index+1
   local random_plugin = getRandomPlugin(au_only)
   if random_plugin then
-    -- Load the plugin using the correct method
+    
     s.selected_instrument.plugin_properties:load_plugin(random_plugin)
     
-    -- Always open external editor for plugins
     if s.selected_instrument.plugin_properties then
-      --s.selected_instrument.plugin_properties.plugin_device.is_maximized = false
       s.selected_instrument.plugin_properties.plugin_device.external_editor_visible = true
     end
     
@@ -3395,3 +3392,38 @@ renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Insert Random Plugi
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Insert Random Plugin (AU Only)", invoke=function() insertRandomPlugin(true) end}
 renoise.tool():add_midi_mapping{name="Paketti:Insert Random Plugin (All)", invoke=function(message) if message:is_trigger() then insertRandomPlugin(false) end end }
 renoise.tool():add_midi_mapping{name="Paketti:Insert Random Plugin (AU Only)", invoke=function(message) if message:is_trigger() then insertRandomPlugin(true) end end}
+
+-- ... existing code ...
+local auto_open_mode = false
+local current_track_index = nil
+
+-- Function to explicitly set the automatic mode state
+function PakettiSetAutomaticOpenState(should_be_on)
+  -- Only take action if the state needs to change
+  if auto_open_mode ~= should_be_on then
+    auto_open_mode = should_be_on
+
+    if auto_open_mode then
+      -- Initialize the current track index and open its devices
+      current_track_index = renoise.song().selected_track_index
+      PakettiHandleTrackDevices(renoise.song().selected_track)
+
+      -- Add notifier for track index changes
+      if not renoise.song().selected_track_index_observable:has_notifier(PakettiTrackIndexChanged) then
+        renoise.song().selected_track_index_observable:add_notifier(PakettiTrackIndexChanged)
+      end
+      
+      renoise.app():show_status("Automatically Open Selected Track Devices: ON")
+    else
+      -- Remove the notifier (stop tracking track changes)
+      if renoise.song().selected_track_index_observable:has_notifier(PakettiTrackIndexChanged) then
+        renoise.song().selected_track_index_observable:remove_notifier(PakettiTrackIndexChanged)
+      end
+
+      -- Do NOT close any currently open editors
+      current_track_index = nil
+      
+      renoise.app():show_status("Automatically Open Selected Track Devices: OFF")
+    end
+  end
+end
