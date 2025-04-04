@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FilterDevicePreset doc_version="13">
+  <DeviceSlot type="FormulaMetaDevice">
+    <IsMaximized>true</IsMaximized>
+    <FormulaParagraphs>
+      <FormulaParagraph>(sine(A)+sine(B)+sine(C))/3</FormulaParagraph>
+    </FormulaParagraphs>
+    <FunctionsParagraphs>
+      <FunctionsParagraph>function sine(rate) </FunctionsParagraph>
+      <FunctionsParagraph>  return (sin(TICKCOUNTER/(rate*1000))+1)/2</FunctionsParagraph>
+      <FunctionsParagraph>end</FunctionsParagraph>
+    </FunctionsParagraphs>
+    <InputNameA>A</InputNameA>
+    <InputNameB>B</InputNameB>
+    <InputNameC>C</InputNameC>
+    <EditorVisible>true</EditorVisible>
+    <InputA>
+      <Value>0.165024787</Value>
+    </InputA>
+    <InputB>
+      <Value>0.140495867</Value>
+    </InputB>
+    <InputC>
+      <Value>0.0743801668</Value>
+    </InputC>
+  </DeviceSlot>
+</FilterDevicePreset>

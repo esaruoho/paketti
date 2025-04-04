@@ -29,15 +29,14 @@ local function pti_loadsample(filepath)
   local pcm_data = file:read("*a")
   file:close()
 
-  -- Always create a new instrument instead of overwriting
-  renoise.song():insert_instrument_at(renoise.song().selected_instrument_index + 1)
-  renoise.song().selected_instrument_index = renoise.song().selected_instrument_index
-
   -- Initialize with Paketti default instrument
+  renoise.song():insert_instrument_at(renoise.song().selected_instrument_index + 1)
+  renoise.song().selected_instrument_index = renoise.song().selected_instrument_index + 1
+
   pakettiPreferencesDefaultInstrumentLoader()
-  
-  -- Create and fill sample buffer in the first slot
   local smp = renoise.song().selected_instrument.samples[1]
+
+  -- Create and fill sample buffer in the first slot
   smp.sample_buffer:create_sample_data(44100, 16, 1, sample_length)
   local buffer = smp.sample_buffer
   buffer:prepare_sample_data_changes()
@@ -70,12 +69,15 @@ local function pti_loadsample(filepath)
   smp.new_note_action = preferences.pakettiLoaderNNA.value
   smp.loop_release = preferences.pakettiLoaderLoopExit.value
 
-  -- Process slices
+  -- Read number of valid slices from offset 376
+  local slice_count = string.byte(header, 377) -- Lua strings are 1-indexed
+
+  -- Process only actual slices
   local slice_frames = {}
-  for i = 0, 47 do
+  for i = 0, slice_count - 1 do
     local offset = 280 + i * 2
     local raw_value = read_uint16_le(header, offset)
-    if raw_value > 0 and raw_value <= 65535 then
+    if raw_value >= 0 and raw_value <= 65535 then
       local frame = math.floor((raw_value / 65535) * sample_length)
       table.insert(slice_frames, frame)
     end
@@ -92,7 +94,8 @@ local function pti_loadsample(filepath)
     renoise.song().selected_instrument.samples[1]:insert_slice_marker(1)
     
     for _, frame in ipairs(slice_frames) do
-      renoise.song().selected_instrument.samples[1]:insert_slice_marker(frame)
+      local pos = math.max(1, frame)
+      renoise.song().selected_instrument.samples[1]:insert_slice_marker(pos)
     end
     
     -- Enable oversampling for all slices
@@ -119,6 +122,11 @@ local function pti_loadsample(filepath)
   else
     renoise.app():show_status("PTI imported successfully")
   end
+  print("Slice markers:")
+  for _, frame in ipairs(slice_frames) do
+    print("  ", frame)
+  end
+
 end
 
 local pti_integration = {

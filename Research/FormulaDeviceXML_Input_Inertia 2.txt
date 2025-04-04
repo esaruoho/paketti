@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FilterDevicePreset doc_version="13">
+  <DeviceSlot type="FormulaMetaDevice">
+    <IsMaximized>true</IsMaximized>
+    <FormulaParagraphs>
+      <FormulaParagraph>OUTPUT - (OUTPUT - A) * power_inertia(B, 0.025, 0.5)</FormulaParagraph>
+    </FormulaParagraphs>
+    <FunctionsParagraphs>
+      <FunctionsParagraph>-- Outputs smoothed movement of input parameter</FunctionsParagraph>
+      <FunctionsParagraph>-- A (labeled 'Input') with the given amount.</FunctionsParagraph>
+      <FunctionsParagraph>function power_inertia(inertia, min, max)</FunctionsParagraph>
+      <FunctionsParagraph>  inertia = pow(1.0 - inertia, 4)</FunctionsParagraph>
+      <FunctionsParagraph>  return min + inertia * (max - min)</FunctionsParagraph>
+      <FunctionsParagraph>end</FunctionsParagraph>
+    </FunctionsParagraphs>
+    <InputNameA>Input</InputNameA>
+    <InputNameB>Inertia</InputNameB>
+    <InputNameC>N/A</InputNameC>
+    <EditorVisible>false</EditorVisible>
+    <InputA>
+      <Value>0.214876026</Value>
+    </InputA>
+    <InputB>
+      <Value>1.0</Value>
+    </InputB>
+    <InputC>
+      <Value>0.0</Value>
+    </InputC>
+  </DeviceSlot>
+</FilterDevicePreset>

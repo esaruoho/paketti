@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FilterDevicePreset doc_version="0">
+  <DeviceSlot type="FormulaMetaDevice">
+    <IsActive>true</IsActive>
+    <IsSelected>true</IsSelected>
+    <SelectedPresetName>Init</SelectedPresetName>
+    <SelectedPresetIsModified>true</SelectedPresetIsModified>
+    <IsMaximized>true</IsMaximized>
+    <CustomDeviceName>Meta Modulator</CustomDeviceName>
+    <FormulaParagraphs>
+      <FormulaParagraph>A * B * C</FormulaParagraph>
+    </FormulaParagraphs>
+    <FunctionsParagraphs>
+      <FunctionsParagraph></FunctionsParagraph>
+      <FunctionsParagraph></FunctionsParagraph>
+    </FunctionsParagraphs>
+    <InputNameA>Input A</InputNameA>
+    <InputNameB>Input B</InputNameB>
+    <InputNameC>Input C</InputNameC>
+    <EditorVisible>false</EditorVisible>
+    <InputA>
+      <Value>1.0</Value>
+    </InputA>
+    <InputB>
+      <Value>1.0</Value>
+    </InputB>
+    <InputC>
+      <Value>1.0</Value>
+    </InputC>
+  </DeviceSlot>
+</FilterDevicePreset>

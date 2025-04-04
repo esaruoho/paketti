@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FilterDevicePreset doc_version="9">
+  <DeviceSlot type="FormulaMetaDevice">
+    <IsMaximized>true</IsMaximized>
+    <FormulaParagraphs>
+      <FormulaParagraph>OUTPUT-(OUTPUT-A)*power_inertia(B,0.025,0.5)</FormulaParagraph>
+    </FormulaParagraphs>
+    <FunctionsParagraphs>
+      <FunctionsParagraph>function power_inertia(inertia,min,max)</FunctionsParagraph>
+      <FunctionsParagraph>  inertia=1.0-inertia</FunctionsParagraph>
+      <FunctionsParagraph>  inertia=inertia*inertia*inertia</FunctionsParagraph>
+      <FunctionsParagraph>  return min+inertia*(max-min)</FunctionsParagraph>
+      <FunctionsParagraph>end</FunctionsParagraph>
+      <FunctionsParagraph/>
+    </FunctionsParagraphs>
+    <InputNameA>Input</InputNameA>
+    <InputNameB>Inertia</InputNameB>
+    <InputNameC>_</InputNameC>
+    <EditorVisible>false</EditorVisible>
+    <PanelVisible>0</PanelVisible>
+    <InputA>
+      <Value>0.0</Value>
+    </InputA>
+    <InputB>
+      <Value>0.599999905</Value>
+    </InputB>
+    <InputC>
+      <Value>0.0</Value>
+    </InputC>
+  </DeviceSlot>
+</FilterDevicePreset>
