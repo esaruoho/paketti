@@ -250,6 +250,7 @@ timed_require("PakettiXRNSProbe")
 timed_require("PakettiAKWF")
 timed_require("PakettiSteppers")
 timed_require("PakettiREXLoader")
+timed_require("PakettiPTILoader")
 --timed_require("PakettiRX2Loader")
 print(string.format("Total load time: %.3f seconds", os.clock() - init_time))
 ------------------------------------------------

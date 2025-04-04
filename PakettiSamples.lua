@@ -3333,6 +3333,8 @@ local function loadRandomSamplesIntoSingleInstrument(num_samples)
         
         renoise.app():show_status("Loaded file into sample slot: " .. selected_file)
     end
+instrument.name = num_samples .. " Randomized Samples"
+
 end
 
 -- Shortcut usage example

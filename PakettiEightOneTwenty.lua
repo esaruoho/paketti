@@ -467,17 +467,22 @@ end
     local instrument = renoise.song().instruments[instrument_popup.value]
     local sample_name = "No sample available"
     if instrument and #instrument.samples > 0 then
-      for _, sample in ipairs(instrument.samples) do
+      for sample_idx, sample in ipairs(instrument.samples) do
         local velocity_min = sample.sample_mapping and sample.sample_mapping.velocity_range and sample.sample_mapping.velocity_range[1]
         local velocity_max = sample.sample_mapping and sample.sample_mapping.velocity_range and sample.sample_mapping.velocity_range[2]
         if velocity_min == 0x00 and velocity_max == 0x7F then
-          sample_name = sample.name ~= "" and sample.name or "Sample " .. sample.index
+          sample_name = sample.name ~= "" and sample.name or string.format("Sample %d", sample_idx)
           -- Truncate sample name if longer than 50 characters
           if #sample_name > 50 then
             sample_name = sample_name:sub(1, 47) .. "..."
           end
           break
         end
+      end
+      -- Only show status if we have an instrument but couldn't find a valid sample
+      if sample_name == "No sample available" then
+        renoise.app():show_status(string.format("Instrument %d ('%s') has no samples with full velocity range (00-7F)", 
+          instrument_popup.value, instrument.name))
       end
     end
     sample_name_label.text = sample_name
