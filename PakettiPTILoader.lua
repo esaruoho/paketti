@@ -140,94 +140,89 @@ if is_wavetable == 1 then
   loop_start = math.max(1, math.min(loop_start, sample_length - wavetable_window))
   loop_end = loop_start + wavetable_window
 
-  print(string.format("-- Original Wavetable Loop: Start = %d, End = %d (Position %d of %d)", 
+  print(string.format("-- Original Wavetable Loop: Start = %d, End = %d (Position %03d of %d)", 
     loop_start, loop_end, wavetable_position, wavetable_total_positions))
 
-  -- Store just the wavetable window data
-  local window_data = {}
+  -- Store the original PCM data and buffer data
+  local original_pcm_data = pcm_data
+  local original_sample_length = sample_length
+
+  -- First slot: Create the full wavetable
+  smp.sample_buffer:create_sample_data(44100, 16, 1, original_sample_length)
+  local wavetable_buffer = smp.sample_buffer
+  wavetable_buffer:prepare_sample_data_changes()
+
+  -- Copy the complete data to the wavetable slot
+  for i = 1, original_sample_length do
+    local byte_offset = (i - 1) * 2 + 1
+    local lo = string.byte(original_pcm_data, byte_offset) or 0
+    local hi = string.byte(original_pcm_data, byte_offset + 1) or 0
+    local sample = bit.bor(bit.lshift(hi, 8), lo)
+    if sample >= 32768 then sample = sample - 65536 end
+    wavetable_buffer:set_sample_data(1, i, sample / 32768)
+  end
+
+  wavetable_buffer:finalize_sample_data_changes()
   
-  -- Copy exactly one window of data
-  for i = 1, wavetable_window do
-    window_data[i] = buffer:sample_data(1, i + loop_start - 1)
-  end
-
-  -- Recreate the buffer with only the window content
-  smp.sample_buffer:create_sample_data(44100, 16, 1, wavetable_window)
-  buffer = smp.sample_buffer
-  buffer:prepare_sample_data_changes()
-
-  -- Copy the window data
-  for i = 1, wavetable_window do
-    buffer:set_sample_data(1, i, window_data[i])
-  end
-
-  buffer:finalize_sample_data_changes()
-  sample_length = wavetable_window -- update for future use
-
-  -- Apply loop to the entire sample
+  -- Set properties for the wavetable slot
+  smp.name = clean_name .. " (Wavetable)"
   smp.loop_mode = renoise.Sample.LOOP_MODE_FORWARD
-  smp.loop_start = 1
-  smp.loop_end = wavetable_window
+  smp.loop_start = loop_start
+  smp.loop_end = loop_end
+  smp.volume = 1.0
+  smp.sample_mapping.note_range = {0, 119}
+  -- Set velocity to 0 for the full wavetable
+  smp.sample_mapping.velocity_range = {0, 0}
 
-  -- Now create additional sample slots for all positions
+  -- Clear any existing samples except the first one (wavetable)
   local current_instrument = renoise.song().selected_instrument
-  
-  -- Clear any existing samples except the first one
   while #current_instrument.samples > 1 do
     current_instrument:delete_sample_at(#current_instrument.samples)
   end
 
-  -- Store the original PCM data for reuse
-  local original_pcm_data = pcm_data
-
-  -- Create a sample slot for each position
+  -- Create a sample slot for each position starting from slot 2
   for pos = 0, wavetable_total_positions - 1 do
     local pos_start = pos * wavetable_window
     
-    -- Create new sample slot (skip first one as it exists)
-    local new_sample
-    if pos == wavetable_position then
-      new_sample = smp -- use existing sample for selected position
-    else
-      new_sample = current_instrument:insert_sample_at(pos + 1)
-      -- Create and fill the buffer for this position
-      new_sample.sample_buffer:create_sample_data(44100, 16, 1, wavetable_window)
-      local new_buffer = new_sample.sample_buffer
-      new_buffer:prepare_sample_data_changes()
+    -- Create new sample slot
+    local new_sample = current_instrument:insert_sample_at(pos + 2) -- Start from slot 2
+    -- Create and fill the buffer for this position
+    new_sample.sample_buffer:create_sample_data(44100, 16, 1, wavetable_window)
+    local new_buffer = new_sample.sample_buffer
+    new_buffer:prepare_sample_data_changes()
+    
+    -- Copy the window data for this position
+    for i = 1, wavetable_window do
+      -- Calculate byte offset in the original PCM data
+      local byte_offset = ((pos_start + i - 1) * 2) + 1
       
-      -- Copy the window data for this position
-      for i = 1, wavetable_window do
-        -- Calculate byte offset in the original PCM data
-        local byte_offset = ((pos_start + i - 1) * 2) + 1
-        
-        -- Read the bytes and convert to sample value
-        local lo = string.byte(original_pcm_data, byte_offset) or 0
-        local hi = string.byte(original_pcm_data, byte_offset + 1) or 0
-        local sample = bit.bor(bit.lshift(hi, 8), lo)
-        
-        -- Convert from signed 16-bit to float
-        if sample >= 32768 then 
-          sample = sample - 65536 
-        end
-        
-        -- Set the sample data (-1.0 to 1.0 range)
-        new_buffer:set_sample_data(1, i, sample / 32768)
+      -- Read the bytes and convert to sample value
+      local lo = string.byte(original_pcm_data, byte_offset) or 0
+      local hi = string.byte(original_pcm_data, byte_offset + 1) or 0
+      local sample = bit.bor(bit.lshift(hi, 8), lo)
+      
+      -- Convert from signed 16-bit to float
+      if sample >= 32768 then 
+        sample = sample - 65536 
       end
       
-      new_buffer:finalize_sample_data_changes()
-      
-      -- Print first sample value for debugging
-      local first_val = new_buffer:sample_data(1, 1)
-      print(string.format("-- Position %d first sample value: %.6f", pos, first_val))
+      -- Set the sample data (-1.0 to 1.0 range)
+      new_buffer:set_sample_data(1, i, sample / 32768)
     end
+    
+    new_buffer:finalize_sample_data_changes()
+    
+    -- Print first sample value for debugging
+    local first_val = new_buffer:sample_data(1, 1)
+    print(string.format("-- Position %03d first sample value: %.6f", pos, first_val))
 
     -- Set sample properties
     new_sample.loop_mode = renoise.Sample.LOOP_MODE_FORWARD
     new_sample.loop_start = 1
     new_sample.loop_end = wavetable_window
     
-    -- Set name to indicate position
-    new_sample.name = string.format("%s (Pos %d)", clean_name, pos)
+    -- Set name to indicate position with 3-digit format
+    new_sample.name = string.format("%s (Pos %03d)", clean_name, pos)
 
     -- Set volume to 1 for all samples
     new_sample.volume = 1.0
@@ -239,6 +234,7 @@ if is_wavetable == 1 then
     if pos == wavetable_position then
       -- Selected position gets full velocity range
       new_sample.sample_mapping.velocity_range = {0, 127}
+      print(string.format("-- Setting full velocity range for position %03d", pos))
     else
       -- Other positions get zero velocity
       new_sample.sample_mapping.velocity_range = {0, 0}

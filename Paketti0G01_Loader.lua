@@ -99,6 +99,7 @@ function create_device_entry(name, path, device_type)
 end
 
 preferences = renoise.Document.create("ScriptingToolPreferences") {
+  pakettiShowSampleDetails=true,
   pakettiAlwaysOpenDSPsOnTrack=false,
   pakettiLoaderDontCreateAutomationDevice=false,
   pakettiWipeExplodedTrack=false,
@@ -423,12 +424,24 @@ end
 initialize_filter_index()
 
 local function pakettiGetXRNIDefaultPresetFiles()
-    local presetsFolder = "./Presets/"
-    local files = os.filenames(presetsFolder, "*.xrni")
+    local presetsFolder = renoise.tool().bundle_path .. "Presets" .. separator
+    local files = {}
     
-    if not files or #files == 0 then
+    -- Try to get files from the presets folder
+    local success, result = pcall(os.filenames, presetsFolder, "*.xrni")
+    if success and result then
+        files = result
+    end
+    
+    if #files == 0 then
         renoise.app():show_status("No .xrni preset files found in: " .. presetsFolder)
         return { "<No Preset Selected>" }
+    end
+    
+    -- Process filenames to remove path and use correct separator
+    for i, file in ipairs(files) do
+        -- Extract just the filename from the full path
+        files[i] = file:match("[^"..separator.."]+$")
     end
     
     -- Sort the files alphabetically for better user experience
@@ -1158,12 +1171,30 @@ vb:column{style="group",margin=10, width="100%",
 
 horizontal_rule(),
   vb:column{style="group",margin=10, width="100%",
-    vb:row{vb:text{text="LFO Write Device Delete",style="strong",font="bold",width=150},vb:switch{items={"Off","On"},
-    value=preferences.PakettiLFOWriteDelete and 2 or 1,width=200,
-    notifier=function(value)
-      preferences.PakettiLFOWriteDelete = (value == 2)
-    end
+    vb:row{
+      vb:text{text="LFO Write Device Delete",style="strong",font="bold",width=150},
+      vb:switch{
+        items={"Off","On"},
+        value=preferences.PakettiLFOWriteDelete and 2 or 1,
+        width=200,
+        notifier=function(value)
+          preferences.PakettiLFOWriteDelete = (value == 2)
+        end
+      }
+    }
   },
+
+  horizontal_rule(),
+  vb:column{style="group",margin=10,width="100%",
+    vb:row {
+      vb:text{text="Show Sample Selection",width=150, style="strong",font="bold"},
+      vb:switch{items={"Off","On"},
+        value=preferences.pakettiShowSampleDetails.value and 2 or 1,
+        width=200,
+        notifier=function(value) 
+          preferences.pakettiShowSampleDetails.value=(value==2) 
+        end
+      }
   },
 },},
       
@@ -1179,6 +1210,7 @@ horizontal_rule(),
     }
   
 
+    
     dialog = renoise.app():show_custom_dialog("Paketti Preferences", dialog_content, my_keyhandler_func)
 end
 
@@ -1292,8 +1324,15 @@ end
 
 function update_loadPaleGreenTheme_preferences() renoise.app():load_theme("Themes/Lackluster - Pale Green Renoise Theme.xrnc") end
 
+-- Function to check if sample editor is visible
+function isSampleEditorVisible()
+  return renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+end
+
+-- Initialize the tool
 safe_initialize()
 
+-- Add menu entries
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:!Preferences..:Paketti Preferences...",invoke=show_paketti_preferences}
 renoise.tool():add_keybinding{name="Global:Paketti:Show Paketti Preferences...",invoke=show_paketti_preferences}
 

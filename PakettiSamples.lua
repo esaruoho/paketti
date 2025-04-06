@@ -1228,7 +1228,7 @@ function rendering_done_callbackLPB()
   end
 
 
-    local renderedTrack = renderTrack + 1
+    local renderedTrack = render_context.target_track
     local renderedInstrument = render_context.target_instrument
 
     -- Remove the monitoring timer
@@ -3965,7 +3965,7 @@ function PakettiDuplicateInstrumentSamplesWithTranspose(transpose_amount)
   local processed_sets = 0
   local seen_transposes = {}
   for i, sample in ipairs(instrument.samples) do
-    if sample.name:match("PakettiProcessed[%+%-]%d+") then
+    if sample.name:match("PakettiProcessed([%+%-]%d+)") then
       local transpose = sample.name:match("PakettiProcessed([%+%-]%d+)")
       if not seen_transposes[transpose] then
         seen_transposes[transpose] = true
@@ -4458,12 +4458,6 @@ renoise.tool():add_keybinding{
   invoke = showSampleSelectionInfo
 }
 
-
--- Create a preferences entry for the sample detail show state
-local preferences = renoise.Document.create("SampleSelectionPreferences") {
-  show_sample_details = false
-}
-
 -- Timer for updating the sample details
 local sample_details_timer = nil
 
@@ -4472,14 +4466,17 @@ function isSampleEditorVisible()
 end
 
 function startSampleDetailsTimer()
-  if not sample_details_timer then
+  -- First check if we already have this timer
+  if not renoise.tool():has_timer(updateSampleSelectionInfo) then
     sample_details_timer = renoise.tool():add_timer(updateSampleSelectionInfo, 50)
   end
 end
 
 function stopSampleDetailsTimer()
-  if sample_details_timer then
-    renoise.tool():remove_timer(sample_details_timer)
+  -- First check if the timer exists before trying to remove it
+  if renoise.tool():has_timer(updateSampleSelectionInfo) then
+    renoise.tool():remove_timer(updateSampleSelectionInfo)
+    
     sample_details_timer = nil
   end
 end
@@ -4541,9 +4538,9 @@ function toggleSampleDetails()
     return
   end
 
-  preferences.show_sample_details.value = not preferences.show_sample_details.value
+  preferences.pakettiShowSampleDetails.value = not preferences.pakettiShowSampleDetails.value
   
-  if preferences.show_sample_details.value then
+  if preferences.pakettiShowSampleDetails.value then
     startSampleDetailsTimer()
     renoise.app():show_status("Sample selection info display: ON")
   else
@@ -4556,8 +4553,8 @@ end
 renoise.app().window.active_middle_frame_observable:add_notifier(function()
   if not isSampleEditorVisible() then
     stopSampleDetailsTimer()
-    preferences.show_sample_details.value = false
-  elseif preferences.show_sample_details.value then
+    preferences.pakettiShowSampleDetails.value = false
+  elseif preferences.pakettiShowSampleDetails.value then
     startSampleDetailsTimer()
   end
 end)
@@ -4566,6 +4563,18 @@ renoise.tool():add_keybinding{name = "Sample Editor:Paketti:Toggle Sample Select
 renoise.tool():add_menu_entry{name="Sample Editor Ruler:Paketti Toggle Sample Selection Info",invoke = toggleSampleDetails}
 renoise.tool():add_menu_entry{name = "--Sample Editor:Paketti..:Toggle Sample Selection Info",invoke = toggleSampleDetails}
 renoise.tool().app_release_document_observable:add_notifier(function() stopSampleDetailsTimer() end)
+
+-- Initialize sample details display based on preference
+function initializeSampleDetails()
+  if preferences.pakettiShowSampleDetails.value and isSampleEditorVisible() then
+    startSampleDetailsTimer()
+  end
+end
+
+-- Add the initialization call
+renoise.tool().app_new_document_observable:add_notifier(initializeSampleDetails)
+renoise.tool().app_idle_observable:add_notifier(initializeSampleDetails)
+
 ----------
 renoise.tool():add_midi_mapping{
   name = "Paketti:Selected Phrase LPB (1-127) x[Knob]",

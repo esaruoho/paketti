@@ -99,6 +99,7 @@
   <pakettiOctaMEDNoteEchoDistance>3</pakettiOctaMEDNoteEchoDistance>
   <UserDefinedSampleFolders04/>
   <PakettiLFOWriteDelete>true</PakettiLFOWriteDelete>
+  <pakettiShowSampleDetails>true</pakettiShowSampleDetails>
   <pakettiThemeSelector>
     <FavoritedList>
       <Favorited>&lt;No Theme Selected&gt;</Favorited>
