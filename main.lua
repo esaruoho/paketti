@@ -297,7 +297,8 @@ function PakettiGetFilesInDirectory(dir)
     local handle = io.popen(command)
     if handle then
         for line in handle:lines() do
-            if PakettiIsValidAudioFile(line) then
+            -- Skip files in OPS7 folder
+            if not line:match("OPS7") and PakettiIsValidAudioFile(line) then
                 table.insert(files, line)
             end
         end
