@@ -2086,12 +2086,20 @@ function PakettiDuplicateAndReverseInstrument()
   local current_index = song.selected_instrument_index
   local current_instrument = song.selected_instrument
 
+  -- Check if the instrument has any samples
+  if #current_instrument.samples == 0 then
+    renoise.app():show_status("No sample in the Instrument, doing nothing.")
+    return
+  end
+
   song:insert_instrument_at(current_index + 1)
   
   song.selected_instrument_index = current_index + 1
   pakettiPreferencesDefaultInstrumentLoader()
 
   local new_instrument = song:instrument(current_index + 1)
+  -- Remove the placeholder sample that comes with the default instrument
+  new_instrument:delete_sample_at(1)
   local num_samples = #current_instrument.samples
 
   if num_samples == 1 then

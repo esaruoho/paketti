@@ -4,12 +4,69 @@ local write_to_master = false  -- State for master track writing
 local vb=renoise.ViewBuilder()
 local step_size = 1
 local fill_all = true
+local safe_mode = true  -- Add safety lock
+local dialog_initializing = true  -- Add initialization flag
+
+local function debug_print(...)
+    print(string.format("[PakettiStretch Debug] %s", table.concat({...}, " ")))
+end
+
 
 -- Declare variables first
 local step_slider
 local step_stepper
 
 -- Helper Functions (all defined before usage)
+local function find_volume_ahdsr_device(instrument)
+    if not instrument or not instrument.sample_modulation_sets or #instrument.sample_modulation_sets == 0 then
+        return nil
+    end
+    
+    -- Search through all modulation sets and their devices
+    for _, mod_set in ipairs(instrument.sample_modulation_sets) do
+        if mod_set.devices then
+            for _, device in ipairs(mod_set.devices) do
+                if device.name == "Volume AHDSR" then
+                    return device
+                end
+            end
+        end
+    end
+    return nil
+end
+
+-- Add this helper function to check if all notes in pattern are the same
+function get_uniform_note_value(pattern_index)
+    local song = renoise.song()
+    local pattern = song.patterns[pattern_index]
+    local track = pattern:track(song.selected_track_index)
+    local first_note = nil
+    local all_same = true
+    
+    -- First find the first actual note
+    for i = 1, pattern.number_of_lines do
+        local note_val = track:line(i).note_columns[1].note_value
+        if note_val ~= 121 then -- If we find a note
+            first_note = note_val
+            break
+        end
+    end
+    
+    -- If no notes found, return nil
+    if not first_note then return nil end
+    
+    -- Check if all other notes match the first one
+    for i = 1, pattern.number_of_lines do
+        local note_val = track:line(i).note_columns[1].note_value
+        if note_val ~= 121 and note_val ~= first_note then -- If we find a different note
+            all_same = false
+            break
+        end
+    end
+    
+    return all_same and first_note or nil
+end
+
 local function set_view_frame(vb)
     renoise.app().window.active_middle_frame = 
         vb.views.switchmode and 
@@ -19,43 +76,103 @@ local function set_view_frame(vb)
         or 1  -- Default to Pattern Editor if switchmode doesn't exist
 end
 
-local function fill_pattern_with_steps(pattern_index, instrument_index, use_512, note_value, reverse_s, step_size, fill_all)
+-- Function to check if pattern has content
+local function pattern_is_empty(pattern_index)
     local song = renoise.song()
     local pattern = song.patterns[pattern_index]
     local track = pattern:track(song.selected_track_index)
     
-    -- First 256 lines: 00->FF (or FF->00 if reversed)
-    for i = 1, 256 do
+    -- Check first line for ANY content
+    local first_line = track:line(1)
+    if first_line.note_columns[1].note_value ~= 121 or -- 121 is empty note
+       first_line.effect_columns[1].number_string == "0S" then
+        return false
+    end
+    
+    return true
+end
+
+local function fill_pattern_with_steps(pattern_index, instrument_index, use_512, note_value, reverse_s, step_size, fill_all)
+    local song = renoise.song()
+    local pattern = song.patterns[pattern_index]
+    local track = pattern:track(song.selected_track_index)
+    local pattern_length = use_512 and 512 or 256
+    
+    -- Don't clear notes, only clear effect columns
+    for i = 1, pattern_length do
+        track:line(i).effect_columns[1]:clear()
+    end
+    
+    -- First 256 lines
+    for step = 0, math.floor(256/step_size) - 1 do
         local s_value
         if reverse_s then
-            s_value = 255 - ((i - 1) * 255 / 255)  -- FF->00
+            s_value = 255 - (step * step_size)
         else
-            s_value = (i - 1) * 255 / 255  -- 00->FF
+            s_value = step * step_size
         end
+        s_value = math.min(255, math.max(0, s_value))
         
-        -- Only modify the effect column
-        track:line(i).effect_columns[1].number_string = "0S"
-        track:line(i).effect_columns[1].amount_value = math.floor(s_value)
+        -- Get the note at the start of this step
+        local step_start = step * step_size + 1
+        local step_note = track:line(step_start).note_columns[1].note_value
+        -- If no note at step start (121 is empty), use the provided note_value
+        if step_note == 121 then step_note = note_value end
+        
+        for i = 1, step_size do
+            local line_num = step * step_size + i
+            if line_num <= 256 then
+                -- Only write note if there isn't one already
+                if (fill_all or i == 1) and track:line(line_num).note_columns[1].note_value == 121 then
+                    local note_column = track:line(line_num).note_columns[1]
+                    -- Use the step's note instead of note_value when filling
+                    note_column.note_value = step_note
+                    note_column.instrument_value = instrument_index
+                end
+                
+                -- Always write the sample offset
+                track:line(line_num).effect_columns[1].number_string = "0S"
+                track:line(line_num).effect_columns[1].amount_value = s_value
+            end
+        end
     end
     
     -- If 512 mode, do second 256 lines with same pattern
     if use_512 then
-        for i = 257, 512 do
+        for step = 0, math.floor(256/step_size) - 1 do
             local s_value
             if reverse_s then
-                s_value = 255 - ((i - 257) * 255 / 255)  -- FF->00
+                s_value = 255 - (step * step_size)
             else
-                s_value = (i - 257) * 255 / 255  -- 00->FF
+                s_value = step * step_size
             end
+            s_value = math.min(255, math.max(0, s_value))
             
-            -- Only modify the effect column
-            track:line(i).effect_columns[1].number_string = "0S"
-            track:line(i).effect_columns[1].amount_value = math.floor(s_value)
+            -- Get the note at the start of this step
+            local step_start = 256 + step * step_size + 1
+            local step_note = track:line(step_start).note_columns[1].note_value
+            -- If no note at step start (121 is empty), use the provided note_value
+            if step_note == 121 then step_note = note_value end
+            
+            for i = 1, step_size do
+                local line_num = 256 + step * step_size + i
+                if line_num <= 512 then
+                    -- Only write note if there isn't one already
+                    if (fill_all or i == 1) and track:line(line_num).note_columns[1].note_value == 121 then
+                        local note_column = track:line(line_num).note_columns[1]
+                        -- Use the step's note instead of note_value when filling
+                        note_column.note_value = step_note
+                        note_column.instrument_value = instrument_index
+                    end
+                    
+                    -- Always write the sample offset
+                    track:line(line_num).effect_columns[1].number_string = "0S"
+                    track:line(line_num).effect_columns[1].amount_value = s_value
+                end
+            end
         end
     end
 end
-
-   
 
 local function ensure_master_track_effects()
     local song = renoise.song()
@@ -225,6 +342,90 @@ local function Timekeyhandlerfunc(dialog, key)
     return key
 end
 
+-- Add this helper function with other helper functions at the top
+local function analyze_pattern_settings(pattern_index)
+    local song = renoise.song()
+    local pattern = song.patterns[pattern_index]
+    local track = pattern:track(song.selected_track_index)
+    local pattern_length = pattern.number_of_lines
+    
+    print("-- Starting pattern analysis...")
+    
+    -- First find where sample offsets change value
+    local offset_changes = {}
+    local last_offset_value = -1
+    local current_run_start = 1
+    
+    -- Find all points where sample offset value changes
+    for i = 1, pattern_length do
+        local fx_col = track:line(i).effect_columns[1]
+        if fx_col.number_string == "0S" then
+            if fx_col.amount_value ~= last_offset_value then
+                if last_offset_value ~= -1 then
+                    -- Store the length of this run of same offset value
+                    local run_length = i - current_run_start
+                    table.insert(offset_changes, {
+                        position = current_run_start,
+                        length = run_length,
+                        value = last_offset_value
+                    })
+                    print(string.format("-- Sample offset change at line %d, previous value %d ran for %d lines", 
+                        i, last_offset_value, run_length))
+                end
+                last_offset_value = fx_col.amount_value
+                current_run_start = i
+            end
+        end
+    end
+    
+    if #offset_changes == 0 then
+        print("-- No sample offset changes found")
+        return nil, nil
+    end
+    
+    -- Calculate the most common run length (this will be our step size)
+    local length_counts = {}
+    local max_count = 0
+    local detected_step = offset_changes[1].length
+    
+    for _, change in ipairs(offset_changes) do
+        length_counts[change.length] = (length_counts[change.length] or 0) + 1
+        if length_counts[change.length] > max_count then
+            max_count = length_counts[change.length]
+            detected_step = change.length
+        end
+    end
+    
+    print(string.format("-- Detected step size: %d", detected_step))
+    
+    -- Check if we have notes throughout each step (Fill All)
+    -- or only at the start of each step
+    local detected_fill = true  -- Assume Fill All until proven otherwise
+    
+    -- Look at the first few steps to determine Fill All
+    for _, change in ipairs(offset_changes) do
+        local has_notes_between = false
+        -- Check if there are notes between the start and end of this run
+        for i = change.position + 1, change.position + change.length - 1 do
+            if track:line(i).note_columns[1].note_value ~= 121 then
+                has_notes_between = true
+                print(string.format("-- Found note between offsets at line %d", i))
+                break
+            end
+        end
+        if not has_notes_between then
+            detected_fill = false
+            print("-- No notes between offset changes, Fill All = false")
+            break
+        end
+    end
+    
+    print(string.format("-- Analysis complete: Step Size = %d, Fill All = %s", 
+        detected_step, tostring(detected_fill)))
+        
+    return detected_step, detected_fill
+end
+
 -- Dialog creation and pattern manipulation for timestretching
 function create_timestretch_dialog()
     local song = renoise.song()
@@ -268,6 +469,29 @@ function create_timestretch_dialog()
     local step_display
     local fill_all_checkbox
     
+-- Check for existing notes and sample offset commands
+local has_notes_or_offsets = false
+for i = 1, current_pattern.number_of_lines do
+    local line = current_pattern:track(song.selected_track_index):line(i)
+    if line.note_columns[1].note_value ~= 121 or line.effect_columns[1].number_string == "0S" then
+        has_notes_or_offsets = true
+        debug_print("Found existing content at line", i)
+        break
+    end
+end
+
+-- Only initialize with C-4 if pattern is completely empty
+if not has_notes_or_offsets then
+    debug_print("Pattern is empty, initializing with C-4")
+    for i = 1, current_pattern.number_of_lines do
+        local note_column = current_pattern:track(song.selected_track_index):line(i).note_columns[1]
+        note_column.note_value = 48  -- C-4
+        note_column.instrument_value = song.selected_instrument_index - 1
+    end
+else
+    debug_print("Pattern has existing content, preserving notes")
+end
+
     -- Declare these variables before creating the row
     local scale_value_text = vb:text {  -- Create the text elements first
         width = 40,
@@ -398,28 +622,29 @@ function create_timestretch_dialog()
         width = 20,
         notifier = function(new_value)
             print("512 Mode - New value:", new_value)
-            print("Current step_size:", step_size)
-            print("Current fill_all:", fill_all)
-            
             local song = renoise.song()
             local pattern = song.patterns[current_pattern_index]
+            local current_length = pattern.number_of_lines
             
-            if new_value and pattern.number_of_lines ~= 512 then
-                -- Store the note from line 255 before expanding
-                local note_255 = pattern:track(song.selected_track_index):line(255).note_columns[1].note_value
-                local inst_255 = pattern:track(song.selected_track_index):line(255).note_columns[1].instrument_value
-                
-                -- Set pattern length
+            -- Only resize if checkbox state actually changed
+            if new_value and current_length == 256 then
+                -- Going to 512 mode from 256
                 pattern.number_of_lines = 512
+                -- Copy notes from first half to second half
+                local track = pattern:track(song.selected_track_index)
+                local note_255 = track:line(255).note_columns[1].note_value
+                local inst_255 = track:line(255).note_columns[1].instrument_value
                 
-                -- Fill lines 256-512 with the same note
                 for i = 256, 512 do
-                    pattern:track(song.selected_track_index):line(i).note_columns[1].note_value = note_255
-                    pattern:track(song.selected_track_index):line(i).note_columns[1].instrument_value = inst_255
+                    track:line(i).note_columns[1].note_value = note_255
+                    track:line(i).note_columns[1].instrument_value = inst_255
                 end
+            elseif not new_value and current_length == 512 then
+                -- Going back to 256 mode from 512
+                pattern.number_of_lines = 256
             end
             
-            -- Fill pattern with effects using current step_size and fill_all settings
+            -- Fill pattern with effects
             fill_pattern_with_steps(current_pattern_index, 
                         instrument_index_display.value, 
                         new_value,
@@ -476,16 +701,29 @@ function create_timestretch_dialog()
     
     -- 7. Create note slider
     note_slider = vb:slider {
+        id = "note_slider",
         min = 0,
         max = 119,
         value = 48,
         width = 300,
         steps = {1, 12},  -- Small steps = 1, large steps = 12 (one octave)
         notifier = function(new_value)
-            new_value = math.floor(new_value)  -- Ensure whole number
-            local song = renoise.song()
             new_value = math.floor(new_value)
             
+            -- Always update display if it exists
+            if note_display then
+                local note = new_value % 12
+                local octave = math.floor(new_value / 12)
+                local note_names = {"C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"}
+                note_display.text = note_names[note + 1] .. tostring(octave)
+            end
+            
+            -- Exit if we're initializing
+            if dialog_initializing then
+                return
+            end
+            
+            local song = renoise.song()
             local pattern = song.patterns[current_pattern_index]
             local track = pattern:track(song.selected_track_index)
             
@@ -499,25 +737,22 @@ function create_timestretch_dialog()
                     end
                 end
             else
-                -- Record mode OFF: Write to ALL rows or step rows
-                for i = 1, pattern.number_of_lines do
-                    if fill_all or ((i-1) % step_size == 0) then
-                        track:line(i).note_columns[1].note_value = new_value
-                        track:line(i).note_columns[1].instrument_value = instrument_index_display.value
+                -- Record mode OFF: Only update if not in record mode
+                if not record_mode.value then
+                    for i = 1, pattern.number_of_lines do
+                        if fill_all or ((i-1) % step_size == 0) then
+                            track:line(i).note_columns[1].note_value = new_value
+                            track:line(i).note_columns[1].instrument_value = instrument_index_display.value
+                        end
                     end
                 end
             end
             
-            -- Update note display
-            local note = new_value % 12
-            local octave = math.floor(new_value / 12)
-            local note_names = {"C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"}
-            note_display.text = note_names[note + 1] .. tostring(octave)
-            
-            -- Always ensure playback
+            -- Start playback on actual user action
             song.transport.playing = true
             song.transport.loop_pattern = true
             song.transport.follow_player = true
+            
             set_view_frame(vb)
         end
     }
@@ -584,39 +819,57 @@ function create_timestretch_dialog()
     end
     
     -- Create step controls
-    local step_values = {1,2,3,4,6,8,12,16,24,32,48,64}
     step_display = vb:text { width = 40, text = "1" }
 
-    step_slider = vb:slider {
-        min = 1,
-        max = 12,  -- 12 steps total
-        value = 1,
-        width = 200,
-        notifier = function(new_value)
-            -- Force to nearest integer
-            new_value = math.max(1, math.min(12, math.floor(new_value + 0.5)))
-            print("Step Slider - Value:", new_value)
-            print("Corresponding step_value:", step_values[new_value])
-            
-            step_size = step_values[new_value]
-            step_display.text = tostring(step_size)
-            
-            fill_pattern_with_steps(current_pattern_index,
-                instrument_index_display.value,
-                pattern_512_mode.value,
-                note_slider.value,
-                reverse_checkbox.value,
-                step_size,
-                fill_all)
+step_slider = vb:slider {
+    min = 1,
+    max = 64,  -- Direct range from 1 to 64
+    value = 1,
+    width = 200,
+    steps = {1, -1},  -- Small steps = 1, large steps = 1
+    notifier = function(new_value)
+        -- Force to nearest integer and clamp to valid range
+        new_value = math.max(1, math.min(64, math.floor(new_value)))
+        debug_print("Changing step size to:", new_value)
+        
+        step_size = new_value
+        step_display.text = tostring(step_size)
+        
+        local song = renoise.song()
+        local pattern = song.patterns[current_pattern_index]
+        local track = pattern:track(song.selected_track_index)
+        local pattern_length = pattern.number_of_lines
+        
+        -- Only clear effect columns, preserve notes
+        for i = 1, pattern_length do
+            track:line(i).effect_columns[1]:clear()
         end
-    }
+        
+        -- Update pattern with new step size, preserving existing notes
+        fill_pattern_with_steps(current_pattern_index,
+            instrument_index_display.value,
+            pattern_512_mode.value,
+            note_slider.value,
+            reverse_checkbox.value,
+            step_size,
+            fill_all)
+            
+        debug_print("Step size change complete")
+    end
+}
 
     -- Create the stepper
     step_stepper = vb:valuebox {
         min = 1,
-        max = 12,
+        max = 64,
         value = 1,
         width = 30,
+        tonumber = function(str)
+            return math.floor(tonumber(str) or 1)
+        end,
+        tostring = function(value)
+            return tostring(value)
+        end,
         notifier = function(new_value)
             step_slider.value = new_value
         end
@@ -627,7 +880,7 @@ function create_timestretch_dialog()
         width = 20,
         notifier = function(new_value)
             fill_all = new_value
-            -- Refill pattern with new fill_all setting
+            -- Update pattern with new fill_all setting
             fill_pattern_with_steps(current_pattern_index,
                 instrument_index_display.value,
                 pattern_512_mode.value,
@@ -896,16 +1149,9 @@ function create_timestretch_dialog()
                 notifier = function(new_value)
                     local instrument = renoise.song().selected_instrument
                     
-                    -- Check if sample modulation sets exist
-                    if not instrument.sample_modulation_sets or #instrument.sample_modulation_sets == 0 then
-                        renoise.app():show_status("Please Pakettify the Instrument to enable envelopes") 
-                        vb.views.envelope_checkbox.value = false
-                        return
-                    end
-                    
-                    -- Check if device exists and is Volume AHDSR
-                    local device = instrument.sample_modulation_sets[1].devices[3]
-                    if not device or device.name ~= "Volume AHDSR" then
+                    -- Find Volume AHDSR device
+                    local device = find_volume_ahdsr_device(instrument)
+                    if not device then
                         renoise.app():show_status("Please Pakettify the Instrument to enable envelopes") 
                         vb.views.envelope_checkbox.value = false
                         return
@@ -930,6 +1176,8 @@ function create_timestretch_dialog()
                         if renoise.song().selected_sample.loop_mode == 1 then
                             renoise.song().selected_sample.loop_mode = 2
                         end
+                        
+                        renoise.app():show_status("Activated Volume AHDSR, Envelopes now enabled")
                     else
                         renoise.song().selected_sample.new_note_action = 1
                         if renoise.song().selected_sample.loop_mode == 2 then
@@ -937,6 +1185,8 @@ function create_timestretch_dialog()
                         end
                         device.operator = 1
                         device.enabled = false
+                        
+                        renoise.app():show_status("Deactivated Volume AHDSR, Envelopes now disabled")
                     end
                 end
             },
@@ -951,8 +1201,17 @@ function create_timestretch_dialog()
                 value = 100,
                 width = 100,
                 notifier = function(new_value)
+                    local instrument = renoise.song().selected_instrument
+                    
+                    -- Find Volume AHDSR device
+                    local device = find_volume_ahdsr_device(instrument)
+                    if not device then
+                        renoise.app():show_status("Please Pakettify the Instrument to use Scale") 
+                        return
+                    end
+                    
                     local scaled_value = new_value / 100
-                    renoise.song().selected_instrument.sample_modulation_sets[1].devices[3].parameters[8].value = scaled_value
+                    device.parameters[8].value = scaled_value
                     scale_value_text.text = string.format("%.2f", scaled_value)
                 end
             },
@@ -970,16 +1229,10 @@ function create_timestretch_dialog()
                 notifier = function(new_value)
                     local instrument = renoise.song().selected_instrument
                     
-                    -- Check if sample modulation sets exist
-                    if not instrument.sample_modulation_sets or #instrument.sample_modulation_sets == 0 then
-                        renoise.app():show_status("Please Pakettify the Instrument in order to use this feature. Doing nothing for now.") 
-                        return
-                    end
-                    
-                    -- Check if device exists and is Volume AHDSR
-                    local device = instrument.sample_modulation_sets[1].devices[3]
-                    if not device or device.name ~= "Volume AHDSR" then
-                        renoise.app():show_status("Please Pakettify the Instrument in order to use this feature. Doing nothing for now.") 
+                    -- Find Volume AHDSR device
+                    local device = find_volume_ahdsr_device(instrument)
+                    if not device then
+                        renoise.app():show_status("Please Pakettify the Instrument to use Release") 
                         return
                     end
                     
@@ -990,7 +1243,8 @@ function create_timestretch_dialog()
                     if not device.enabled then
                         renoise.song().selected_sample.new_note_action = 2
                         if renoise.song().selected_sample.loop_mode == 1 then
-                            renoise.song().selected_sample.loop_mode = 2 else return end
+                            renoise.song().selected_sample.loop_mode = 2
+                        end
                         device.operator = 3
                         device.enabled = true
                         device.parameters[3].value = 0
@@ -1014,11 +1268,24 @@ function create_timestretch_dialog()
                 text = "Pakettify",
                 width = 60,
                 notifier = function()
+                    -- Store current view before pakettifying
+                    local current_view = vb.views.switchmode.value
+                    
                     PakettiInjectDefaultXRNI()
+                    
                     -- Update the instrument index display
                     instrument_index_display.value = renoise.song().selected_instrument_index - 1
                     -- Update the instrument name display
                     instrument_name_text.text = renoise.song().instruments[renoise.song().selected_instrument_index].name
+                    
+                    -- Restore the view based on switchmode value
+                    if current_view == 1 then
+                        renoise.app().window.active_middle_frame = 1  -- Pattern Editor
+                    elseif current_view == 2 then
+                        renoise.app().window.active_middle_frame = 5  -- Sample Editor
+                    else
+                        renoise.app().window.active_middle_frame = 6  -- Modulation Matrix
+                    end
                 end
             }
         },
@@ -1040,58 +1307,68 @@ function create_timestretch_dialog()
     -- Initial update of timing displays
     update_timing_displays()
     
-    -- Function to check if pattern has content
-    local function pattern_is_empty(pattern_index)
-        local song = renoise.song()
-        local pattern = song.patterns[pattern_index]
-        local track = pattern:track(song.selected_track_index)
-        
-        -- Check first line for sample offset or notes
-        local first_line = track:line(1)
-        if first_line.effect_columns[1].number_string == "0S" or 
-            first_line.note_columns[1].note_value ~= 121 then -- 121 is empty note
-            return false
-        end
-        
-        -- Check a few more lines to be sure
-        for i = 1, 4 do
-            local line = track:line(i)
-            if line.effect_columns[1].number_string == "0S" or 
-                line.note_columns[1].note_value ~= 121 then
-                return false
-            end
-        end
-        
-        return true
-    end
-    
     -- At the end of create_timestretch_dialog(), before showing the dialog
     if pattern_is_empty(current_pattern_index) then
-        -- Fill with default note (C-4) and sample offsets
-        local default_note = 48  -- C-4
+        -- Only initialize a completely empty pattern
         local pattern = song.patterns[current_pattern_index]
+        if pattern.number_of_lines ~= 512 then
+            pattern.number_of_lines = 256
+        end
+        
         local track = pattern:track(song.selected_track_index)
         
-        -- Fill notes and sample offsets
+        -- Fill empty pattern with initial values
         for i = 1, pattern.number_of_lines do
-            -- Set note
-            track:line(i).note_columns[1].note_value = default_note
-            track:line(i).note_columns[1].instrument_value = instrument_index_display.value
+            local note_column = track:line(i).note_columns[1]
+            note_column.note_value = 48  -- C-4
+            note_column.instrument_value = instrument_index_display.value
             
-            -- Set sample offset
-            local s_value = math.floor(((i - 1) % 256) * 255 / 255)  -- S00 to SFF
+            local s_value = math.floor((i - 1) % 256 * 255 / 255)
             track:line(i).effect_columns[1].number_string = "0S"
             track:line(i).effect_columns[1].amount_value = s_value
         end
-        
-        -- Update note slider to match
-        note_slider.value = default_note
     end
     
+    -- Always set slider to C-4 initially, without touching pattern
+    note_slider.value = 48
+
+    -- Update note display
+    local note = note_slider.value % 12
+    local octave = math.floor(note_slider.value / 12)
+    local note_names = {"C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"}
+    note_display.text = note_names[note + 1] .. tostring(octave)
+
+    -- Analyze current pattern and set controls accordingly
+    local detected_step, detected_fill = analyze_pattern_settings(current_pattern_index)
+    if detected_step then
+        step_size = detected_step
+        fill_all = detected_fill
+        
+        -- Update UI controls
+        step_slider.value = detected_step
+        step_display.text = tostring(detected_step)
+        fill_all_checkbox.value = detected_fill
+        
+        -- Check if all notes are the same and set record mode accordingly
+        local uniform_note = get_uniform_note_value(current_pattern_index)
+        record_mode.value = (uniform_note == nil)  -- Enable record mode if notes are different
+        if uniform_note == nil then
+            debug_print("Multiple different notes detected, enabling record mode")
+        else
+            debug_print("All notes are the same, record mode disabled")
+        end
+        
+        -- Show status message about detected settings
+        renoise.app():show_status(string.format(
+            "Detected pattern settings: Step Size = %d, Fill All = %s", 
+            detected_step, detected_fill and "Yes" or "No"))
+    end
+    
+    -- Turn off initialization flag BEFORE showing dialog
+    dialog_initializing = false
+
     -- Show dialog
     renoise.app():show_custom_dialog("Paketti Timestretch Dialog", dialog_content, Timekeyhandlerfunc)
-    
-    set_view_frame(vb)
 end
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Timestretch Dialog...",invoke=create_timestretch_dialog}
@@ -1433,6 +1710,25 @@ local function write_tempo_commands(bpm, lpb, from_line)
     end
 end
 
+-- Add this helper function at the top of the file with other helper functions
+local function find_volume_ahdsr_device(instrument)
+    if not instrument or not instrument.sample_modulation_sets or #instrument.sample_modulation_sets == 0 then
+        return nil
+    end
+    
+    -- Search through all modulation sets and their devices
+    for _, mod_set in ipairs(instrument.sample_modulation_sets) do
+        if mod_set.devices then
+            for _, device in ipairs(mod_set.devices) do
+                if device.name == "Volume AHDSR" then
+                    return device
+                end
+            end
+        end
+    end
+    return nil
+end
+
 -- Add checkbox for master track writing
 local master_write_checkbox = vb:checkbox {
     value = write_to_master,
@@ -1496,16 +1792,9 @@ vb:checkbox {
     notifier = function(new_value)
         local instrument = renoise.song().selected_instrument
         
-        -- Check if sample modulation sets exist
-        if not instrument.sample_modulation_sets or #instrument.sample_modulation_sets == 0 then
-            renoise.app():show_status("Please Pakettify the Instrument to enable envelopes") 
-            vb.views.envelope_checkbox.value = false
-            return
-        end
-        
-        -- Check if device exists and is Volume AHDSR
-        local device = instrument.sample_modulation_sets[1].devices[3]
-        if not device or device.name ~= "Volume AHDSR" then
+        -- Find Volume AHDSR device
+        local device = find_volume_ahdsr_device(instrument)
+        if not device then
             renoise.app():show_status("Please Pakettify the Instrument to enable envelopes") 
             vb.views.envelope_checkbox.value = false
             return
@@ -1530,6 +1819,8 @@ vb:checkbox {
             if renoise.song().selected_sample.loop_mode == 1 then
                 renoise.song().selected_sample.loop_mode = 2
             end
+            
+            renoise.app():show_status("Activated Volume AHDSR, Envelopes now enabled")
         else
             renoise.song().selected_sample.new_note_action = 1
             if renoise.song().selected_sample.loop_mode == 2 then
@@ -1537,12 +1828,11 @@ vb:checkbox {
             end
             device.operator = 1
             device.enabled = false
+            
+            renoise.app():show_status("Deactivated Volume AHDSR, Envelopes now disabled")
         end
     end
 }
 
 -- In dialog creation, after creating the checkbox
 check_and_set_envelope_status(vb)
-
-
-   
