@@ -286,66 +286,6 @@ renoise.tool():add_keybinding{name="Global:Paketti:Paketti PitchBend Drumkit Sam
 renoise.tool():add_midi_mapping{name="Paketti:Midi Paketti PitchBend Drumkit Sample Loader",invoke=function(message) if message:is_trigger() then pitchBendDrumkitLoader() end end}
 
 function loadRandomDrumkitSamples(num_samples)
-    -- Create a more unique seed using both time and microseconds if available
-    local seed = os.time() * 1000
-    if os.clock then
-        -- os.clock() returns CPU time in seconds with microsecond precision
-        -- Multiply by 10000 and take modulo to get a number between 0-999
-        seed = seed + math.floor((os.clock() * 10000) % 1000)
-    end
-    math.randomseed(seed)
-    -- Discard first few values as they can be less random
-    math.random(); math.random(); math.random()
-    
-  
-    -- Define valid audio file extensions
-    local valid_extensions = { ".wav", ".flac", ".mp3", ".aif", ".aiff"}
-    
-    -- Function to check if a file has a valid extension
-    local function is_valid_audio_file(filename)
-        for _, ext in ipairs(valid_extensions) do
-            if filename:lower():match(ext .. "$") then
-                return true
-            end
-        end
-        return false
-    end
-    
-    local function get_files_in_directory(dir)
-      local files = {}
-      
-      -- Define valid audio file extensions (can be modified as needed)
-      local valid_extensions = { ".wav", ".mp3", ".flac", ".aif", ".aiff"}
-      
-      -- Build the command string based on valid extensions
-      local command
-      if package.config:sub(1,1) == "\\" then  -- Windows
-          -- Build Windows command
-          local patterns = {}
-          for _, ext in ipairs(valid_extensions) do
-              table.insert(patterns, string.format('"%s\\*%s"', dir, ext))
-          end
-          command = 'dir /b /s ' .. table.concat(patterns, ' ') .. ' 2>nul'
-      else  -- macOS and Linux
-          -- Build Unix command
-          local patterns = {}
-          for _, ext in ipairs(valid_extensions) do
-              table.insert(patterns, string.format('-iname "*%s"', ext))
-          end
-          command = string.format('find "%s" -type f \\( %s \\)', 
-              dir, table.concat(patterns, ' -o '))
-      end
-      
-      -- Execute the command and collect the files
-      local handle = io.popen(command)
-      for line in handle:lines() do
-          table.insert(files, line)
-      end
-      handle:close()
-      
-      return files
-  end
-
     -- Prompt the user to select a folder
     local folder_path = renoise.app():prompt_for_path("Select Folder to Randomize DrumKit Loading From")
     if not folder_path then
@@ -353,8 +293,8 @@ function loadRandomDrumkitSamples(num_samples)
         return nil
     end
 
-    -- Get all valid audio files in the selected directory and subdirectories
-    local sample_files = get_files_in_directory(folder_path)
+    -- Get all valid audio files in the selected directory and subdirectories using global function
+    local sample_files = PakettiGetFilesInDirectory(folder_path)
     
     -- Check if there are enough files to choose from
     if #sample_files == 0 then
@@ -374,9 +314,7 @@ function loadRandomDrumkitSamples(num_samples)
     local defaultInstrument = preferences.pakettiDefaultDrumkitXRNI.value
     local fallbackInstrument = "Presets" .. separator .. "12st_Pitchbend_Drumkit_C0.xrni"
     
-  
-  --  renoise.app():load_instrument(renoise.tool().bundle_path .. "Presets/12st_Pitchbend_Drumkit_C0.xrni")
-  renoise.app():load_instrument(defaultInstrument)
+    renoise.app():load_instrument(defaultInstrument)
 
     -- Update the instrument reference after loading the instrument
     instrument = song.selected_instrument
@@ -388,8 +326,6 @@ function loadRandomDrumkitSamples(num_samples)
     -- Limit the number of samples to load to 120
     local max_samples = 120
     local num_samples_to_load = math.min(#sample_files, max_samples)
-
--- Inside the loadRandomDrumkitSamples function:
 
     -- Create a table to store failed loads
     local failed_loads = {}
@@ -450,7 +386,6 @@ function loadRandomDrumkitSamples(num_samples)
         renoise.app():show_status(string.format("%d samples failed to load. Check Terminal for details.", #failed_loads))
     end
     
-
     -- Inform the user if any files were left unprocessed
     if #sample_files > max_samples then
         renoise.app():show_status("Maximum Drumkit Zones is 120 - Additional files were not loaded.")
@@ -458,16 +393,16 @@ function loadRandomDrumkitSamples(num_samples)
 
     -- Load the Instr. Macros device and rename it based on the drumkit slot name
     if preferences.pakettiLoaderDontCreateAutomationDevice.value == false then 
-    if song.selected_track.type ~= renoise.Track.TRACK_TYPE_MASTER then
-      loadnative("Audio/Effects/Native/*Instr. Macros")
-      -- Get the number of devices after loading
-      local num_devices = #song.selected_track.devices
-      -- Access the last device (the one we just added)
-      local macro_device = song.selected_track:device(num_devices)
-      macro_device.display_name = instrument.name
-      macro_device.is_maximized = false
-  end
-end
+        if song.selected_track.type ~= renoise.Track.TRACK_TYPE_MASTER then
+            loadnative("Audio/Effects/Native/*Instr. Macros")
+            -- Get the number of devices after loading
+            local num_devices = #song.selected_track.devices
+            -- Access the last device (the one we just added)
+            local macro_device = song.selected_track:device(num_devices)
+            macro_device.display_name = instrument.name
+            macro_device.is_maximized = false
+        end
+    end
     -- Call additional actions to update sample count or display automation, if needed
     on_sample_count_change()
 end
@@ -3174,43 +3109,6 @@ renoise.tool():add_keybinding{name="Sample Editor:Paketti:Select Loop Range",inv
 select_loop_range_in_sample_editor() end}
 ----
 local function loadRandomSample(num_samples)
-    -- Define valid audio file extensions
-    local valid_extensions = { ".wav", ".flac", ".mp3", ".aiff" }
-    
-    -- Function to check if a file has a valid extension
-    local function is_valid_audio_file(filename)
-        for _, ext in ipairs(valid_extensions) do
-            if filename:lower():match(ext .. "$") then
-                return true
-            end
-        end
-        return false
-    end
-    
-    -- Function to list files using OS-specific directory listing commands
-    local function get_files_in_directory(dir)
-        local files = {}
-        
-        -- Use OS-specific commands to list all files recursively
-        local command
-        if package.config:sub(1, 1) == "\\" then  -- Windows
-            command = 'dir "' .. dir .. '" /b /s'
-        else  -- macOS and Linux
-            command = 'find "' .. dir .. '" -type f'
-        end
-        
-        -- Execute the command and process the output
-        local handle = io.popen(command)
-        for line in handle:lines() do
-            if is_valid_audio_file(line) then
-                table.insert(files, line)
-            end
-        end
-        handle:close()
-        
-        return files
-    end
-
     -- Prompt the user to select a folder
     local folder_path = renoise.app():prompt_for_path("Select Folder Containing Audio Files")
     if not folder_path then
@@ -3219,7 +3117,7 @@ local function loadRandomSample(num_samples)
     end
 
     -- Get all valid audio files in the selected directory and subdirectories
-    local wav_files = get_files_in_directory(folder_path)
+    local wav_files = PakettiGetFilesInDirectory(folder_path)
     
     -- Check if there are enough files to choose from
     if #wav_files == 0 then
@@ -3261,43 +3159,6 @@ renoise.tool():add_keybinding{name="Global:Paketti:Load Random Samples (01) from
 
 
 local function loadRandomSamplesIntoSingleInstrument(num_samples)
-    -- Define valid audio file extensions
-    local valid_extensions = { ".wav", ".flac", ".mp3", ".aiff" }
-    
-    -- Function to check if a file has a valid extension
-    local function is_valid_audio_file(filename)
-        for _, ext in ipairs(valid_extensions) do
-            if filename:lower():match(ext .. "$") then
-                return true
-            end
-        end
-        return false
-    end
-    
-    -- Function to list files using OS-specific directory listing commands
-    local function get_files_in_directory(dir)
-        local files = {}
-        
-        -- Use OS-specific commands to list all files recursively
-        local command
-        if package.config:sub(1, 1) == "\\" then  -- Windows
-            command = 'dir "' .. dir .. '" /b /s'
-        else  -- macOS and Linux
-            command = 'find "' .. dir .. '" -type f'
-        end
-        
-        -- Execute the command and process the output
-        local handle = io.popen(command)
-        for line in handle:lines() do
-            if is_valid_audio_file(line) then
-                table.insert(files, line)
-            end
-        end
-        handle:close()
-        
-        return files
-    end
-
     -- Prompt the user to select a folder
     local folder_path = renoise.app():prompt_for_path("Select Folder Containing Audio Files")
     if not folder_path then
@@ -3306,7 +3167,7 @@ local function loadRandomSamplesIntoSingleInstrument(num_samples)
     end
 
     -- Get all valid audio files in the selected directory and subdirectories
-    local wav_files = get_files_in_directory(folder_path)
+    local wav_files = PakettiGetFilesInDirectory(folder_path)
     
     -- Check if there are enough files to choose from
     if #wav_files == 0 then
@@ -3383,61 +3244,9 @@ local function loadRandomSamplesIntoSingleInstrument(num_samples, folder_path)
         renoise.app():show_status("Folder path is not defined. Please set a valid path.")
         return nil
     end
-
-    -- Define valid audio file extensions
-    local valid_extensions = { ".wav", ".flac", ".mp3", ".aiff" }
     
-    -- Function to check if a file has a valid extension
-    local function is_valid_audio_file(filename)
-        for _, ext in ipairs(valid_extensions) do
-            if filename:lower():match(ext .. "$") then
-                return true
-            end
-        end
-        return false
-    end
-    
-    -- Function to list files using OS-specific directory listing commands
-    local function get_files_in_directory(dir)
-      local files = {}
-      
-      -- Use OS-specific commands to list all files recursively
-      local command
-      if package.config:sub(1, 1) == "\\" then  -- Windows
-          command = string.format('dir "%s" /b /s', dir)
-      else  -- macOS and Linux
-          -- Escape spaces and special characters in the path
-          local escaped_dir = dir:gsub('([%(%)%[%]%{%}%\\%^%$%*%+%-%?%.%|])', '\\%1'):gsub(' ', '\\ ')
-          command = string.format('find %s -type f', escaped_dir)
-      end
-      
-      -- Execute the command and process the output
-      local handle = io.popen(command)
-      if handle then
-          for line in handle:lines() do
-              if is_valid_audio_file(line) then
-                  table.insert(files, line)
-              end
-          end
-          local success, msg, code = handle:close()
-          if not success then
-              print("Error closing handle:", msg, code)
-          end
-      end
-      
-      -- Debug output
-      print(string.format("Found %d valid audio files in directory: %s", #files, dir))
-      -- Print first few files as sample
-      for i = 1, math.min(5, #files) do
-          print(string.format("Sample file %d: %s", i, files[i]))
-      end
-      
-      return files
-  end
-
-
     -- Get all valid audio files in the specified directory
-    local wav_files = get_files_in_directory(folder_path)
+    local wav_files = PakettiGetFilesInDirectory(folder_path)
     
     -- Check if there are enough files to choose from
     if #wav_files == 0 then
@@ -3484,35 +3293,7 @@ local function loadRandomSample(num_samples, folder_path)
     return nil
   end
 
-  local valid_extensions = { ".wav", ".flac", ".mp3", ".aiff" }
-  local function is_valid_audio_file(filename)
-    for _, ext in ipairs(valid_extensions) do
-      if filename:lower():match(ext .. "$") then
-        return true
-      end
-    end
-    return false
-  end
-
-  local function get_files_in_directory(dir)
-    local files = {}
-    local command
-    if package.config:sub(1, 1) == "\\" then
-      command = 'dir "' .. dir .. '" /b /s'
-    else
-      command = 'find "' .. dir .. '" -type f'
-    end
-    local handle = io.popen(command)
-    for line in handle:lines() do
-      if is_valid_audio_file(line) then
-        table.insert(files, line)
-      end
-    end
-    handle:close()
-    return files
-  end
-
-  local wav_files = get_files_in_directory(folder_path)
+  local wav_files = PakettiGetFilesInDirectory(folder_path)
   if #wav_files == 0 then
     renoise.app():show_status("No audio files found in the selected folder.")
     return nil
@@ -3526,7 +3307,7 @@ local function loadRandomSample(num_samples, folder_path)
     renoise.song():insert_instrument_at(renoise.song().selected_instrument_index + 1)
     renoise.song().selected_instrument_index = renoise.song().selected_instrument_index + 1
 
-pakettiPreferencesDefaultInstrumentLoader() 
+    pakettiPreferencesDefaultInstrumentLoader() 
 
     local instrument = renoise.song().selected_instrument
     instrument:delete_sample_at(1)
@@ -3546,35 +3327,7 @@ local function loadRandomDrumkitSamples(num_samples, folder_path)
     return nil
   end
 
-  local valid_extensions = { ".wav", ".flac", ".mp3", ".aiff" }
-  local function is_valid_audio_file(filename)
-    for _, ext in ipairs(valid_extensions) do
-      if filename:lower():match(ext .. "$") then
-        return true
-      end
-    end
-    return false
-  end
-
-  local function get_files_in_directory(dir)
-    local files = {}
-    local command
-    if package.config:sub(1, 1) == "\\" then
-      command = 'dir "' .. dir .. '" /b /s'
-    else
-      command = 'find "' .. dir .. '" -type f'
-    end
-    local handle = io.popen(command)
-    for line in handle:lines() do
-      if is_valid_audio_file(line) then
-        table.insert(files, line)
-      end
-    end
-    handle:close()
-    return files
-  end
-
-  local sample_files = get_files_in_directory(folder_path)
+  local sample_files = PakettiGetFilesInDirectory(folder_path)
   if #sample_files == 0 then
     renoise.app():show_status("No audio files found in the selected folder.")
     return nil
@@ -3589,10 +3342,8 @@ local function loadRandomDrumkitSamples(num_samples, folder_path)
   end
   local defaultInstrument = preferences.pakettiDefaultDrumkitXRNI.value
   local fallbackInstrument = "Presets" .. separator .. "12st_Pitchbend_Drumkit_C0.xrni"
-  
 
---  renoise.app():load_instrument(renoise.tool().bundle_path .. "Presets/12st_Pitchbend_Drumkit_C0.xrni")
-renoise.app():load_instrument(defaultInstrument)
+  renoise.app():load_instrument(defaultInstrument)
 
   instrument = song.selected_instrument
   instrument.name = string.format("%02X_Drumkit", song.selected_instrument_index - 1)
@@ -4219,12 +3970,10 @@ function PakettiRandomIR(ir_path)
       end
   end
   
-    -- If no Convolver found, create one and wait for it to initialize
-    if not device then
+  -- If no Convolver found, create one and wait for it to initialize
+  if not device then
       track:insert_device_at("Audio/Effects/Native/Convolver", #track.devices + 1)
       renoise.app():show_status("Added new Convolver to track")
-      
-      -- Give Renoise time to create the device
       
       -- Now look for the Convolver device
       for _, dev in ipairs(track.devices) do
@@ -4240,45 +3989,8 @@ function PakettiRandomIR(ir_path)
       end
   end
 
-  -- List of common IR file extensions
-  local valid_extensions = { ".wav", ".flac", ".aiff" }
-  
-  -- Function to check if a file has a valid extension
-  local function is_valid_audio_file(filename)
-      for _, ext in ipairs(valid_extensions) do
-          if filename:lower():match(ext .. "$") then
-              return true
-          end
-      end
-      return false
-  end
-  
-  -- Function to list files using OS-specific directory listing commands
-  local function get_files_in_directory(dir)
-      local files = {}
-      
-      -- Use OS-specific commands to list all files recursively
-      local command
-      if package.config:sub(1, 1) == "\\" then  -- Windows
-          command = 'dir "' .. dir .. '" /b /s'
-      else  -- macOS and Linux
-          command = 'find "' .. dir .. '" -type f'
-      end
-      
-      -- Execute the command and process the output
-      local handle = io.popen(command)
-      for line in handle:lines() do
-          if is_valid_audio_file(line) then
-              table.insert(files, line)
-          end
-      end
-      handle:close()
-      
-      return files
-  end
-
   -- Get all IR files from the path and its subdirectories
-  local ir_files = get_files_in_directory(ir_path)
+  local ir_files = PakettiGetFilesInDirectory(ir_path)
   
   if #ir_files == 0 then
       renoise.app():show_error("No IR files found in " .. ir_path .. " or its subdirectories")
@@ -5111,39 +4823,6 @@ renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Track and Instrumen
 
 
 -------
-local function get_files_in_directory(dir)
-  local files = {}
-  
-  -- Define valid audio file extensions
-  local valid_extensions = { ".wav", ".mp3", ".flac", ".aif", ".aiff"}
-  
-  -- Build the command string based on valid extensions
-  local command
-  if package.config:sub(1,1) == "\\" then  -- Windows
-      local patterns = {}
-      for _, ext in ipairs(valid_extensions) do
-          table.insert(patterns, string.format('"%s\\*%s"', dir, ext))
-      end
-      command = 'dir /b /s ' .. table.concat(patterns, ' ') .. ' 2>nul'
-  else  -- macOS and Linux
-      local patterns = {}
-      for _, ext in ipairs(valid_extensions) do
-          table.insert(patterns, string.format('-iname "*%s"', ext))
-      end
-      command = string.format('find "%s" -type f \\( %s \\)', 
-          dir, table.concat(patterns, ' -o '))
-  end
-  
-  -- Execute the command and collect the files
-  local handle = io.popen(command)
-  for line in handle:lines() do
-      table.insert(files, line)
-  end
-  handle:close()
-  
-  return files
-end
-
 function fillEmptySampleSlots()
      -- Initialize random seed with current time and microseconds
      local seed = os.time() * 1000
@@ -5163,7 +4842,7 @@ function fillEmptySampleSlots()
   local folder_path = renoise.app():prompt_for_path("Select Folder to Fill Empty Slots From")
   if not folder_path then return end
 
-  local sample_files = get_files_in_directory(folder_path)
+  local sample_files = PakettiGetFilesInDirectory(folder_path)
   if #sample_files == 0 then
       renoise.app():show_status("No audio files found in the selected folder.")
       return

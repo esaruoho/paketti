@@ -251,6 +251,7 @@ timed_require("PakettiAKWF")
 timed_require("PakettiSteppers")
 timed_require("PakettiREXLoader")
 timed_require("PakettiPTILoader")
+timed_require("process_slicer")
 --timed_require("PakettiRX2Loader")
 print(string.format("Total load time: %.3f seconds", os.clock() - init_time))
 ------------------------------------------------
@@ -262,6 +263,60 @@ local selected_theme_index = nil
 --for i, theme in ipairs(themes) do
 --  print(i .. ": " .. theme)
 --end
+
+
+---
+-- Define valid audio file extensions globally
+PakettiValidAudioExtensions = { ".wav", ".mp3", ".flac", ".aif", ".aiff"}
+
+-- Global helper function to check if a file has a valid audio extension
+function PakettiIsValidAudioFile(filename)
+    for _, ext in ipairs(PakettiValidAudioExtensions) do
+        if filename:lower():match(ext .. "$") then
+            return true
+        end
+    end
+    return false
+end
+
+-- Global function to get files from directory with improved error handling and debugging
+function PakettiGetFilesInDirectory(dir)
+    local files = {}
+    
+    -- Use OS-specific commands to list all files recursively
+    local command
+    if package.config:sub(1, 1) == "\\" then  -- Windows
+        command = string.format('dir "%s" /b /s', dir)
+    else  -- macOS and Linux
+        -- Escape spaces and special characters in the path
+        local escaped_dir = dir:gsub('([%(%)%[%]%{%}%\\%^%$%*%+%-%?%.%|])', '\\%1'):gsub(' ', '\\ ')
+        command = string.format('find %s -type f', escaped_dir)
+    end
+    
+    -- Execute the command and process the output
+    local handle = io.popen(command)
+    if handle then
+        for line in handle:lines() do
+            if PakettiIsValidAudioFile(line) then
+                table.insert(files, line)
+            end
+        end
+        local success, msg, code = handle:close()
+        if not success then
+            print("Error closing handle:", msg, code)
+        end
+    end
+    
+    -- Debug output
+    print(string.format("Found %d valid audio files in directory: %s", #files, dir))
+    -- Print first few files as sample
+    for i = 1, math.min(5, #files) do
+        print(string.format("Sample file %d: %s", i, files[i]))
+    end
+    
+    return files
+end
+---
 
 
 

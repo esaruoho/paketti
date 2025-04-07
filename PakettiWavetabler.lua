@@ -45,18 +45,6 @@ function create_random_akwf_wavetable(num_samples, use_loop)
   num_samples = num_samples or 64
   -- Default to false if not specified
   use_loop = use_loop or false
-  
-  -- Rest of the function is same as create_random_akwf_wavetable_with_loop
-  local valid_extensions = { ".wav" }
-  
-  local function is_valid_audio_file(filename)
-    for _, ext in ipairs(valid_extensions) do
-      if filename:lower():match(ext .. "$") then
-        return true
-      end
-    end
-    return false
-  end
 
   local tool_path = renoise.tool().bundle_path
   local akwf_path = tool_path .. "AKWF/"
@@ -69,9 +57,7 @@ function create_random_akwf_wavetable(num_samples, use_loop)
 
   local wav_files = {}
   for line in akwf_file:lines() do
-    if is_valid_audio_file(line) then
-      table.insert(wav_files, akwf_path .. line)
-    end
+    table.insert(wav_files, akwf_path .. line)
   end
   akwf_file:close()
 
