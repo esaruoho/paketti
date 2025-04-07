@@ -7,11 +7,6 @@ local fill_all = true
 local safe_mode = true  -- Add safety lock
 local dialog_initializing = true  -- Add initialization flag
 
-local function debug_print(...)
-    print(string.format("[PakettiStretch Debug] %s", table.concat({...}, " ")))
-end
-
-
 -- Declare variables first
 local step_slider
 local step_stepper
@@ -449,10 +444,15 @@ function create_timestretch_dialog()
     local current_pattern_length = current_pattern.number_of_lines
     local vb = renoise.ViewBuilder()
     
+    -- Create record_mode checkbox first, before any analysis that might use it
+    local record_mode = vb:checkbox {
+        value = false,
+        width = 20
+    }
+    
     -- 1. Declare ALL variables we'll need upfront
     local note_slider
     local pattern_512_mode
-    local record_mode
     local reverse_checkbox
     local bpm_slider
     local lpb_slider
@@ -469,29 +469,55 @@ function create_timestretch_dialog()
     local step_display
     local fill_all_checkbox
     
--- Check for existing notes and sample offset commands
-local has_notes_or_offsets = false
-for i = 1, current_pattern.number_of_lines do
-    local line = current_pattern:track(song.selected_track_index):line(i)
-    if line.note_columns[1].note_value ~= 121 or line.effect_columns[1].number_string == "0S" then
-        has_notes_or_offsets = true
-        debug_print("Found existing content at line", i)
-        break
-    end
-end
-
--- Only initialize with C-4 if pattern is completely empty
-if not has_notes_or_offsets then
-    debug_print("Pattern is empty, initializing with C-4")
+    -- Check for existing notes and sample offset commands
+    local has_notes = false
+    local has_offsets = false
     for i = 1, current_pattern.number_of_lines do
-        local note_column = current_pattern:track(song.selected_track_index):line(i).note_columns[1]
-        note_column.note_value = 48  -- C-4
-        note_column.instrument_value = song.selected_instrument_index - 1
+        local line = current_pattern:track(song.selected_track_index):line(i)
+        if line.note_columns[1].note_value ~= 121 then
+            has_notes = true
+        end
+        if line.effect_columns[1].number_string == "0S" then
+            has_offsets = true
+        end
     end
-else
-    debug_print("Pattern has existing content, preserving notes")
-end
-
+    
+    print("Pattern analysis - Has notes:", has_notes, "Has offsets:", has_offsets)
+    
+    -- Initialize pattern if completely empty
+    if not has_notes and not has_offsets then
+        print("Pattern is completely empty, initializing with C-4 and sample offsets")
+        for i = 1, current_pattern.number_of_lines do
+            local note_column = current_pattern:track(song.selected_track_index):line(i).note_columns[1]
+            note_column.note_value = 48  -- C-4
+            note_column.instrument_value = song.selected_instrument_index - 1
+            
+            -- Always write sample offset
+            local s_value = math.floor(((i - 1) % 256) * 255 / 255)
+            current_pattern:track(song.selected_track_index):line(i).effect_columns[1].number_string = "0S"
+            current_pattern:track(song.selected_track_index):line(i).effect_columns[1].amount_value = s_value
+        end
+    else
+        -- If we have notes but no offsets, add the offsets
+        if not has_offsets then
+            print("Pattern has notes but no offsets, adding sample offsets")
+            for i = 1, current_pattern.number_of_lines do
+                local s_value = math.floor(((i - 1) % 256) * 255 / 255)
+                current_pattern:track(song.selected_track_index):line(i).effect_columns[1].number_string = "0S"
+                current_pattern:track(song.selected_track_index):line(i).effect_columns[1].amount_value = s_value
+            end
+        end
+        
+        -- Check for uniform notes and set record mode
+        local uniform_note = get_uniform_note_value(current_pattern_index)
+        record_mode.value = (uniform_note == nil)
+        if uniform_note == nil then
+            print("Multiple different notes detected, enabling record mode")
+        else
+            print("All notes are the same, record mode disabled")
+        end
+    end
+    
     -- Declare these variables before creating the row
     local scale_value_text = vb:text {  -- Create the text elements first
         width = 40,
@@ -654,11 +680,6 @@ end
                         fill_all)
             set_view_frame(vb)
         end
-    }
-    
-    record_mode = vb:checkbox {
-        value = false,
-        width = 20
     }
     
     reverse_checkbox = vb:checkbox {
@@ -830,31 +851,104 @@ step_slider = vb:slider {
     notifier = function(new_value)
         -- Force to nearest integer and clamp to valid range
         new_value = math.max(1, math.min(64, math.floor(new_value)))
-        debug_print("Changing step size to:", new_value)
-        
-        step_size = new_value
-        step_display.text = tostring(step_size)
+        print("Changing step size to:", new_value)
         
         local song = renoise.song()
         local pattern = song.patterns[current_pattern_index]
         local track = pattern:track(song.selected_track_index)
         local pattern_length = pattern.number_of_lines
         
-        -- Only clear effect columns, preserve notes
+        -- First collect all notes at their positions
+        local original_notes = {}
+        local last_valid_note = nil
+        local last_valid_instrument = nil
+        
         for i = 1, pattern_length do
+            local note_val = track:line(i).note_columns[1].note_value
+            if note_val ~= 121 then  -- If there's a note
+                last_valid_note = note_val
+                last_valid_instrument = track:line(i).note_columns[1].instrument_value
+                original_notes[i] = {
+                    note = note_val,
+                    instrument = track:line(i).note_columns[1].instrument_value
+                }
+            end
+        end
+        
+        -- Clear everything
+        for i = 1, pattern_length do
+            track:line(i).note_columns[1]:clear()
             track:line(i).effect_columns[1]:clear()
         end
         
-        -- Update pattern with new step size, preserving existing notes
-        fill_pattern_with_steps(current_pattern_index,
-            instrument_index_display.value,
-            pattern_512_mode.value,
-            note_slider.value,
-            reverse_checkbox.value,
-            step_size,
-            fill_all)
+        step_size = new_value
+        step_display.text = tostring(step_size)
+        
+        -- Write new pattern with new step size
+        last_valid_note = nil
+        last_valid_instrument = nil
+        
+        for step = 0, math.floor((pattern_length - 1) / step_size) do
+            local step_start = step * step_size + 1
+            local note_found = nil
+            local instrument_found = nil
             
-        debug_print("Step size change complete")
+            -- First try to find a note in the original pattern for this step region
+            for i = step_start, math.min(step_start + step_size - 1, pattern_length) do
+                if original_notes[i] then
+                    note_found = original_notes[i].note
+                    instrument_found = original_notes[i].instrument
+                    last_valid_note = note_found
+                    last_valid_instrument = instrument_found
+                    break
+                end
+            end
+            
+            -- If no note found for this step, use the last valid note
+            if not note_found and last_valid_note then
+                note_found = last_valid_note
+                instrument_found = last_valid_instrument
+            end
+            
+            if note_found then
+                -- Write note at step start
+                if fill_all then
+                    -- Fill all positions in this step
+                    for i = 0, step_size - 1 do
+                        local pos = step_start + i
+                        if pos <= pattern_length then
+                            local note_column = track:line(pos).note_columns[1]
+                            note_column.note_value = note_found
+                            note_column.instrument_value = instrument_found
+                        end
+                    end
+                else
+                    -- Just write the first note
+                    local note_column = track:line(step_start).note_columns[1]
+                    note_column.note_value = note_found
+                    note_column.instrument_value = instrument_found
+                end
+            end
+            
+            -- Write effect columns for this step
+            local s_value
+            if reverse_checkbox.value then
+                s_value = 255 - (step * step_size)
+            else
+                s_value = step * step_size
+            end
+            s_value = math.min(255, math.max(0, s_value))
+            
+            for i = 0, step_size - 1 do
+                local pos = step_start + i
+                if pos <= pattern_length then
+                    track:line(pos).effect_columns[1].number_string = "0S"
+                    track:line(pos).effect_columns[1].amount_value = s_value
+                end
+            end
+        end
+            
+        print("Step size change complete")
     end
 }
 
@@ -880,14 +974,62 @@ step_slider = vb:slider {
         width = 20,
         notifier = function(new_value)
             fill_all = new_value
-            -- Update pattern with new fill_all setting
-            fill_pattern_with_steps(current_pattern_index,
-                instrument_index_display.value,
-                pattern_512_mode.value,
-                note_slider.value,
-                reverse_checkbox.value,
-                step_size,
-                fill_all)
+            print("Fill All changed to:", new_value)
+            
+            local song = renoise.song()
+            local pattern = song.patterns[current_pattern_index]
+            local track = pattern:track(song.selected_track_index)
+            
+            -- Store existing notes at step positions
+            local step_notes = {}
+            for i = 1, pattern.number_of_lines do
+                if (i - 1) % step_size == 0 then
+                    local note_val = track:line(i).note_columns[1].note_value
+                    local instr_val = track:line(i).note_columns[1].instrument_value
+                    if note_val ~= 121 then  -- If there's a note
+                        step_notes[i] = {note = note_val, instrument = instr_val}
+                    end
+                end
+            end
+            
+            -- If fill_all is turned off, clear notes between steps
+            if not new_value then
+                for i = 1, pattern.number_of_lines do
+                    if (i - 1) % step_size ~= 0 then  -- If not at step start
+                        track:line(i).note_columns[1]:clear()
+                    end
+                end
+            else
+                -- Fill all positions with the note from their step
+                for i = 1, pattern.number_of_lines do
+                    local step_start = i - ((i - 1) % step_size)
+                    if step_notes[step_start] then
+                        local note_column = track:line(i).note_columns[1]
+                        note_column.note_value = step_notes[step_start].note
+                        note_column.instrument_value = step_notes[step_start].instrument
+                    end
+                end
+            end
+            
+            -- Always maintain sample offsets
+            for step = 0, math.floor((pattern.number_of_lines - 1) / step_size) do
+                local s_value
+                if reverse_checkbox.value then
+                    s_value = 255 - (step * step_size)
+                else
+                    s_value = step * step_size
+                end
+                s_value = math.min(255, math.max(0, s_value))
+                
+                -- Write the same offset value for all lines in this step
+                for i = 1, step_size do
+                    local line_num = step * step_size + i
+                    if line_num <= pattern.number_of_lines then
+                        track:line(line_num).effect_columns[1].number_string = "0S"
+                        track:line(line_num).effect_columns[1].amount_value = s_value
+                    end
+                end
+            end
         end
     }
     
@@ -960,7 +1102,8 @@ step_slider = vb:slider {
             if new_value then
                 ensure_master_track_effects()
                 -- Write current values immediately
-                write_tempo_commands(song.transport.bpm, song.transport.lpb)
+                write_tempo_commands(song.transport.bpm, song.transport.lpb,
+                    song.transport.playing and song.transport.playback_pos.line or 1)
             end
         end
     }
@@ -1308,38 +1451,61 @@ step_slider = vb:slider {
     update_timing_displays()
     
     -- At the end of create_timestretch_dialog(), before showing the dialog
-    if pattern_is_empty(current_pattern_index) then
-        -- Only initialize a completely empty pattern
-        local pattern = song.patterns[current_pattern_index]
-        if pattern.number_of_lines ~= 512 then
-            pattern.number_of_lines = 256
+    -- First analyze the pattern
+    local detected_step, detected_fill = analyze_pattern_settings(current_pattern_index)
+    local pattern = song.patterns[current_pattern_index]
+    local track = pattern:track(song.selected_track_index)
+    
+    -- Check for existing notes and sample offset commands
+    local has_notes = false
+    local has_offsets = false
+    for i = 1, pattern.number_of_lines do
+        local line = track:line(i)
+        if line.note_columns[1].note_value ~= 121 then
+            has_notes = true
         end
-        
-        local track = pattern:track(song.selected_track_index)
-        
-        -- Fill empty pattern with initial values
+        if line.effect_columns[1].number_string == "0S" then
+            has_offsets = true
+        end
+    end
+    
+    print("Pattern analysis - Has notes: " .. (has_notes and "yes" or "no") .. ", Has offsets: " .. (has_offsets and "yes" or "no"))
+    
+    -- Initialize pattern if completely empty
+    if not has_notes and not has_offsets then
+        print("Pattern is completely empty, initializing with C-4 and sample offsets")
         for i = 1, pattern.number_of_lines do
             local note_column = track:line(i).note_columns[1]
             note_column.note_value = 48  -- C-4
             note_column.instrument_value = instrument_index_display.value
             
-            local s_value = math.floor((i - 1) % 256 * 255 / 255)
+            -- Always write sample offset
+            local s_value = math.floor(((i - 1) % 256) * 255 / 255)
             track:line(i).effect_columns[1].number_string = "0S"
             track:line(i).effect_columns[1].amount_value = s_value
         end
+    else
+        -- If we have notes but no offsets, add the offsets
+        if not has_offsets then
+            print("Pattern has notes but no offsets, adding sample offsets")
+            for i = 1, pattern.number_of_lines do
+                local s_value = math.floor(((i - 1) % 256) * 255 / 255)
+                track:line(i).effect_columns[1].number_string = "0S"
+                track:line(i).effect_columns[1].amount_value = s_value
+            end
+        end
+        
+        -- Check for uniform notes and set record mode
+        local uniform_note = get_uniform_note_value(current_pattern_index)
+        record_mode.value = (uniform_note == nil)
+        if uniform_note == nil then
+            print("Multiple different notes detected, enabling record mode")
+        else
+            print("All notes are the same, record mode disabled")
+        end
     end
     
-    -- Always set slider to C-4 initially, without touching pattern
-    note_slider.value = 48
-
-    -- Update note display
-    local note = note_slider.value % 12
-    local octave = math.floor(note_slider.value / 12)
-    local note_names = {"C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"}
-    note_display.text = note_names[note + 1] .. tostring(octave)
-
-    -- Analyze current pattern and set controls accordingly
-    local detected_step, detected_fill = analyze_pattern_settings(current_pattern_index)
+    -- Set initial controls based on analysis
     if detected_step then
         step_size = detected_step
         fill_all = detected_fill
@@ -1349,19 +1515,7 @@ step_slider = vb:slider {
         step_display.text = tostring(detected_step)
         fill_all_checkbox.value = detected_fill
         
-        -- Check if all notes are the same and set record mode accordingly
-        local uniform_note = get_uniform_note_value(current_pattern_index)
-        record_mode.value = (uniform_note == nil)  -- Enable record mode if notes are different
-        if uniform_note == nil then
-            debug_print("Multiple different notes detected, enabling record mode")
-        else
-            debug_print("All notes are the same, record mode disabled")
-        end
-        
-        -- Show status message about detected settings
-        renoise.app():show_status(string.format(
-            "Detected pattern settings: Step Size = %d, Fill All = %s", 
-            detected_step, detected_fill and "Yes" or "No"))
+        print("Setting detected values: Step Size = " .. detected_step .. ", Fill All = " .. (detected_fill and "yes" or "no"))
     end
     
     -- Turn off initialization flag BEFORE showing dialog
@@ -1738,7 +1892,8 @@ local master_write_checkbox = vb:checkbox {
         if new_value then
             ensure_master_track_effects()
             -- Write current values immediately
-            write_tempo_commands(song.transport.bpm, song.transport.lpb)
+            write_tempo_commands(song.transport.bpm, song.transport.lpb,
+                song.transport.playing and song.transport.playback_pos.line or 1)
         end
     end
 }
