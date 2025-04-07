@@ -625,7 +625,7 @@ end
 
       pakettiSampleVelocityRangeChoke(1)
 
-    row_elements.update_sample_name_label()
+    update_instrument_list_and_popups()
     row_elements.random_button_pressed = row_elements.random_button_pressed
     renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
   end
@@ -857,11 +857,8 @@ end
         renoise.song().selected_track_index = track_index
         renoise.song().selected_instrument_index = instrument_index
       
-        loadRandomDrumkitSamples(120)
-      
-        local instrument = renoise.song().instruments[instrument_index]
+        local instrument = loadRandomDrumkitSamples(120)
         if not instrument then
-          renoise.app():show_warning("Selected instrument does not exist.")
           return
         end
       
@@ -1065,34 +1062,30 @@ local randomize_all_yxx_button = vb:button {
             renoise.song().selected_track_index = track_index
             renoise.song().selected_instrument_index = instrument_index
             renoise.app():show_status("Loading samples for row " .. i)
-            loadRandomDrumkitSamples(120)
-          
-            local instrument = renoise.song().instruments[instrument_index]
-            if instrument then
-              for _, sample in ipairs(instrument.samples) do
-                sample.sample_mapping.base_note = 48
-                sample.sample_mapping.note_range = {0, 119}
-              end
-              
-              if renoise.song().tracks[track_index] then
-                -- Preserve the 8120 track name format
-                local track = renoise.song().tracks[track_index]
-                if not track.name:match("^8120_%d+%[%d+%]$") then
-                  local base_name = string.format("8120_%02d", track_index)
-                  track.name = string.format("%s[016]", base_name)  -- Initialize with 16 steps
-                end
-              else
-                renoise.app():show_warning("Selected track does not exist.")
-              end
+            local instrument = loadRandomDrumkitSamples(120)
+            if not instrument then
+              return
             end
           
-            update_instrument_list_and_popups()
-            row_elements.slider.value = 1
-            pakettiSampleVelocityRangeChoke(1)
-            row_elements.update_sample_name_label()
+            for _, sample in ipairs(instrument.samples) do
+              sample.sample_mapping.base_note = 48
+              sample.sample_mapping.note_range = {0, 119}
+            end
+          
+            if renoise.song().tracks[track_index] then
+              -- Preserve the 8120 track name format
+              local track = renoise.song().tracks[track_index]
+              if not track.name:match("^8120_%d+%[%d+%]$") then
+                local base_name = string.format("8120_%02d", track_index)
+                track.name = string.format("%s[016]", base_name)  -- Initialize with 16 steps
+              end
+            else
+              renoise.app():show_warning("Selected track does not exist.")
+            end
           end
         end
-        
+        pakettiSampleVelocityRangeChoke(1)
+        update_instrument_list_and_popups()
         renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
       end
     },    

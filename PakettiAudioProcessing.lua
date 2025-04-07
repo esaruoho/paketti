@@ -1379,88 +1379,84 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Diagonal Line to 16800 length Sample",invoke=function() Paketti_Diagonal_Line_to_Sample() end}
 
 function normalize_selected_sample()
-  local selected_sample = renoise.song().selected_sample
-  
-  if selected_sample.is_slice_alias then
-    selected_sample = renoise.song().selected_instrument:sample(1)
-  end
-  
-  if not selected_sample or not selected_sample.sample_buffer or not selected_sample.sample_buffer.has_sample_data then
-    renoise.app():show_status("Normalization failed: No valid sample to normalize.")
-    return
-  end
+    local selected_sample = renoise.song().selected_sample
+    
+    if selected_sample.is_slice_alias then
+        selected_sample = renoise.song().selected_instrument:sample(1)
+    end
+    
+    if not selected_sample or not selected_sample.sample_buffer or not selected_sample.sample_buffer.has_sample_data then
+        renoise.app():show_status("Normalization failed: No valid sample to normalize.")
+        return
+    end
 
-  local sbuf = selected_sample.sample_buffer
-  
-  local highest_detected = 0
-  
-  for frame_idx = 1, sbuf.number_of_frames do
-    if sbuf.number_of_channels == 2 then
-      highest_detected = math.max(math.abs(sbuf:sample_data(1, frame_idx)), highest_detected)
-      highest_detected = math.max(math.abs(sbuf:sample_data(2, frame_idx)), highest_detected)
-    else
-      highest_detected = math.max(math.abs(sbuf:sample_data(1, frame_idx)), highest_detected)
+    local sbuf = selected_sample.sample_buffer
+    
+    local highest_detected = 0
+    
+    for frame_idx = 1, sbuf.number_of_frames do
+        if sbuf.number_of_channels == 2 then
+            highest_detected = math.max(math.abs(sbuf:sample_data(1, frame_idx)), highest_detected)
+            highest_detected = math.max(math.abs(sbuf:sample_data(2, frame_idx)), highest_detected)
+        else
+            highest_detected = math.max(math.abs(sbuf:sample_data(1, frame_idx)), highest_detected)
+        end
     end
-  end
-  
-  if highest_detected == 0 then
-    renoise.app():show_status("Sample is absolute silence, nothing to normalize.")
-    return
-  end
-  
-  sbuf:prepare_sample_data_changes()
-  
-  for frame_idx = 1, sbuf.number_of_frames do
-    if sbuf.number_of_channels == 2 then
-      local normalized_sdata = sbuf:sample_data(1, frame_idx) / highest_detected
-      sbuf:set_sample_data(1, frame_idx, normalized_sdata)
-      normalized_sdata = sbuf:sample_data(2, frame_idx) / highest_detected
-      sbuf:set_sample_data(2, frame_idx, normalized_sdata)
-    else
-      local normalized_sdata = sbuf:sample_data(1, frame_idx) / highest_detected
-      sbuf:set_sample_data(1, frame_idx, normalized_sdata)
+    
+    if highest_detected == 0 then
+        renoise.app():show_status("Sample is absolute silence, nothing to normalize.")
+        return
     end
-  end
-  
-  sbuf:finalize_sample_data_changes()
-  
-  if sbuf.has_sample_data then
+    
+    sbuf:prepare_sample_data_changes()
+    
+    for frame_idx = 1, sbuf.number_of_frames do
+        if sbuf.number_of_channels == 2 then
+            local normalized_sdata = sbuf:sample_data(1, frame_idx) / highest_detected
+            sbuf:set_sample_data(1, frame_idx, normalized_sdata)
+            normalized_sdata = sbuf:sample_data(2, frame_idx) / highest_detected
+            sbuf:set_sample_data(2, frame_idx, normalized_sdata)
+        else
+            local normalized_sdata = sbuf:sample_data(1, frame_idx) / highest_detected
+            sbuf:set_sample_data(1, frame_idx, normalized_sdata)
+        end
+    end
+    
+    sbuf:finalize_sample_data_changes()
+    
     renoise.app():show_status("Sample successfully normalized (maximized volume).")
-  else
-    renoise.app():show_status("Normalization failed.")
-  end
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Normalize Sample",invoke=function() normalize_selected_sample() end}
 
 
 function normalize_all_samples_in_instrument()
-  local instrument = renoise.song().selected_instrument
-  
-  if not instrument then
-    renoise.app():show_status("No instrument selected.")
-    return
-  end
-  
-  if #instrument.samples == 0 then
-    renoise.app():show_status("Selected instrument has no samples.")
-    return
-  end
-  
-  local normalized_count = 0
-  local current_sample_index = renoise.song().selected_sample_index
-  
-  -- Normalize each sample in the instrument
-  for i = 1, #instrument.samples do
-    renoise.song().selected_sample_index = i
-    normalize_selected_sample()
-    normalized_count = normalized_count + 1
-  end
-  
-  -- Restore original sample selection
-  renoise.song().selected_sample_index = current_sample_index
-  
-  renoise.app():show_status(string.format("Normalized %d samples in instrument.", normalized_count))
+    local instrument = renoise.song().selected_instrument
+    
+    if not instrument then
+        renoise.app():show_status("No instrument selected.")
+        return
+    end
+    
+    if #instrument.samples == 0 then
+        renoise.app():show_status("Selected instrument has no samples.")
+        return
+    end
+    
+    local normalized_count = 0
+    local current_sample_index = renoise.song().selected_sample_index
+    
+    -- Normalize each sample in the instrument
+    for i = 1, #instrument.samples do
+        renoise.song().selected_sample_index = i
+        normalize_selected_sample()
+        normalized_count = normalized_count + 1
+    end
+    
+    -- Restore original sample selection
+    renoise.song().selected_sample_index = current_sample_index
+    
+    renoise.app():show_status(string.format("Normalized %d samples in instrument.", normalized_count))
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Normalize All Samples in Instrument",invoke=function() normalize_all_samples_in_instrument() end}

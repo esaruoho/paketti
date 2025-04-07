@@ -1,4 +1,5 @@
 -- At the very start of the file
+local dialog = nil  -- Proper global dialog reference
 local view_switch
 local write_to_master = false  -- State for master track writing
 local vb=renoise.ViewBuilder()
@@ -332,7 +333,10 @@ end
 local function Timekeyhandlerfunc(dialog, key)
     local closer = preferences.pakettiDialogClose.value
     if key.name == closer then
-      dialog:close()
+        if dialog and dialog.visible then
+            dialog:close()
+            dialog = nil  -- Clear the reference
+        end
     end
     return key
 end
@@ -423,6 +427,14 @@ end
 
 -- Dialog creation and pattern manipulation for timestretching
 function create_timestretch_dialog()
+
+    -- First, check if dialog exists and is visible
+    if dialog and dialog.visible then
+        dialog:close()
+        dialog = nil  -- Clear the dialog reference
+        return  -- Exit the function
+    end
+
     local song = renoise.song()
     local selected_track = song:track(song.selected_track_index)
     render_context.source_track = song.selected_track_index  -- Store the track index
@@ -1521,12 +1533,12 @@ step_slider = vb:slider {
     -- Turn off initialization flag BEFORE showing dialog
     dialog_initializing = false
 
-    -- Show dialog
-    renoise.app():show_custom_dialog("Paketti Timestretch Dialog", dialog_content, Timekeyhandlerfunc)
+    -- Show dialog and store reference
+    dialog = renoise.app():show_custom_dialog("Paketti Timestretch Dialog", dialog_content, Timekeyhandlerfunc)
 end
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Timestretch Dialog...",invoke=create_timestretch_dialog}
-
+renoise.tool():add_keybinding{name="Global:Paketti:Timestretch Dialog...",invoke=create_timestretch_dialog}
 render_context = {
     source_track = 0,
     target_track = 0,
@@ -1991,3 +2003,4 @@ vb:checkbox {
 
 -- In dialog creation, after creating the checkbox
 check_and_set_envelope_status(vb)
+

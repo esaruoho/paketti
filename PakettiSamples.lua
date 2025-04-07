@@ -363,48 +363,38 @@ function loadRandomDrumkitSamples(num_samples)
             
             renoise.app():show_status(formatDigits(3,i) .. ": Loaded sample: " .. file_name)
         else
+            -- Get file info for better error reporting
+            local folder_path = selected_file:match("(.*[/\\])")
+            local file_size = "unknown"
+            local file_handle = io.open(selected_file, "rb")
+            if file_handle then
+                file_size = string.format("%.2f MB", file_handle:seek("end") / 1024 / 1024)
+                file_handle:close()
+            end
+            
             -- Store failed loads with their index and error message
             table.insert(failed_loads, {
                 index = i,
                 file = selected_file,
+                folder = folder_path,
+                size = file_size,
                 error = tostring(error_message)
             })
         end
     end
 
-    -- After the loading loop, show summary of failures if any
+    -- Show summary of failed loads if any
     if #failed_loads > 0 then
-        print("\n=== FAILED LOADS SUMMARY ===")
-        print(string.format("Total failures: %d", #failed_loads))
+        local message = "Failed to load " .. #failed_loads .. " samples:\n"
         for _, fail in ipairs(failed_loads) do
-            print(string.format("Sample %03d: %s\nError: %s\n", 
-                fail.index, fail.file, fail.error))
+            message = message .. string.format("\nIndex %d: %s\nFolder: %s\nSize: %s\nError: %s\n",
+                fail.index, fail.file:match("([^/\\]+)$"), fail.folder, fail.size, fail.error)
         end
-        print("=========================")
-        
-        -- Also show in status bar how many failed
-        renoise.app():show_status(string.format("%d samples failed to load. Check Terminal for details.", #failed_loads))
-    end
-    
-    -- Inform the user if any files were left unprocessed
-    if #sample_files > max_samples then
-        renoise.app():show_status("Maximum Drumkit Zones is 120 - Additional files were not loaded.")
+        renoise.app():show_warning(message)
     end
 
-    -- Load the Instr. Macros device and rename it based on the drumkit slot name
-    if preferences.pakettiLoaderDontCreateAutomationDevice.value == false then 
-        if song.selected_track.type ~= renoise.Track.TRACK_TYPE_MASTER then
-            loadnative("Audio/Effects/Native/*Instr. Macros")
-            -- Get the number of devices after loading
-            local num_devices = #song.selected_track.devices
-            -- Access the last device (the one we just added)
-            local macro_device = song.selected_track:device(num_devices)
-            macro_device.display_name = instrument.name
-            macro_device.is_maximized = false
-        end
-    end
-    -- Call additional actions to update sample count or display automation, if needed
-    on_sample_count_change()
+    -- Return the loaded instrument
+    return instrument
 end
 
 
