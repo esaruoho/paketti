@@ -1413,10 +1413,15 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Clear Current Row 2nd
 --Select specific track:
 
 function select_specific_track(number)
+
   if number > renoise.song().sequencer_track_count  then 
      number=renoise.song().sequencer_track_count
      renoise.song().selected_track_index=number
   else renoise.song().selected_track_index=number  end
+
+  if renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR then
+    capture_ins_oct("no")
+  end
 end
 
 for st=1,16 do

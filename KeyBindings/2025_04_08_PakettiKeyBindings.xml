@@ -1315,6 +1315,11 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
+          <Binding>∿ Timestretch Dialog...</Binding>
+          <Key>Control + P</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
           <Binding>∿ BeatDetector Modified...</Binding>
         </KeyBinding>
         <KeyBinding>
@@ -3108,7 +3113,7 @@
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ LFO Write to Selected Automation Parameter</Binding>
-          <Key>Shift + Option + Grave</Key>
+          <Key>Shift + Control + 2</Key>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -16640,7 +16645,6 @@
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Flip Devices 1&amp;2 On/Off</Binding>
-          <Key>Shift + Control + 2</Key>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -17206,11 +17210,6 @@
           <Topic>Paketti</Topic>
           <Binding>∿ Show/Hide PitchStep on Selected Instrument</Binding>
           <Key>Option + P</Key>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Timestretch Dialog...</Binding>
-          <Key>Control + P</Key>
         </KeyBinding>
       </KeyBindings>
     </Category>
