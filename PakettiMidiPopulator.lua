@@ -107,7 +107,17 @@ local function MidiInitChannelTrackInstrument(track_index)
   -- Create a new track
   renoise.song():insert_track_at(track_index)
   local new_track = renoise.song():track(track_index)
-  new_track.name = "CH" .. string.format("%02d", midi_in_channel) .. " " .. midi_in_device
+  local track_name = "TR" .. string.format("%02d", midi_in_channel)
+  if midi_in_device ~= "<None>" and midi_in_device ~= "No MIDI Input Devices - do not select this" then
+    track_name = track_name .. " " .. midi_in_device .. ":" .. string.format("%02d", midi_in_channel) .. ">"
+  end
+  if plugin and plugin ~= "<None>" then
+    track_name = track_name .. " (" .. plugin:sub(5) .. ")"
+  end
+  if midi_out_device ~= "<None>" and midi_out_device ~= "No MIDI Output Devices - do not select this" then
+    track_name = track_name .. " >" .. midi_out_device .. ":" .. string.format("%02d", midi_out_channel)
+  end
+  new_track.name = track_name
   renoise.song().selected_track_index = track_index
 
   -- Set track column settings
@@ -125,26 +135,63 @@ local function MidiInitChannelTrackInstrument(track_index)
   end
 
   -- Load *Line Input device if incoming audio is set to ON
-  local checkline = #new_track.devices + 1
   if incoming_audio then
-    loadnative("Audio/Effects/Native/#Line Input", checkline)
-    checkline = checkline + 1
+    local success, device = pcall(function()
+      return loadnative("Audio/Effects/Native/#Line Input")
+    end)
+    if success and device then
+      device:insert_at(#new_track.devices + 1)
+    end
   end
 
   -- Create a new instrument
   renoise.song():insert_instrument_at(track_index)
   local new_instrument = renoise.song():instrument(track_index)
-  new_instrument.name = "CH" .. string.format("%02d", midi_in_channel) .. " " .. midi_in_device
+  local instrument_name = "TR" .. string.format("%02d", midi_in_channel)
+  if midi_in_device ~= "<None>" and midi_in_device ~= "No MIDI Input Devices - do not select this" then
+    instrument_name = instrument_name .. " " .. midi_in_device .. ":" .. string.format("%02d", midi_in_channel) .. ">"
+  end
+  if plugin and plugin ~= "<None>" then
+    instrument_name = instrument_name .. " (" .. plugin:sub(5) .. ")"
+  end
+  if midi_out_device ~= "<None>" and midi_out_device ~= "No MIDI Output Devices - do not select this" then
+    instrument_name = instrument_name .. " >" .. midi_out_device .. ":" .. string.format("%02d", midi_out_channel)
+  end
+  new_instrument.name = instrument_name
 
-  -- Set MIDI input properties for the new instrument
-  new_instrument.midi_input_properties.device_name = midi_in_device
-  new_instrument.midi_input_properties.channel = midi_in_channel
-  new_instrument.midi_input_properties.assigned_track = track_index
+  -- Set MIDI input properties for the new instrument only if a valid device is selected
+  if midi_in_device ~= "<None>" and midi_in_device ~= "No MIDI Input Devices - do not select this" then
+    -- Check if the device exists in available devices
+    local device_exists = false
+    for _, device in ipairs(renoise.Midi.available_input_devices()) do
+      if device == midi_in_device then
+        device_exists = true
+        break
+      end
+    end
+    
+    if device_exists then
+      new_instrument.midi_input_properties.device_name = midi_in_device
+      new_instrument.midi_input_properties.channel = midi_in_channel
+      new_instrument.midi_input_properties.assigned_track = track_index
+    end
+  end
 
-  -- Set the output device for the new track
-  if midi_out_device ~= "<None>" then
-    new_instrument.midi_output_properties.device_name = midi_out_device
-    new_instrument.midi_output_properties.channel = midi_out_channel
+  -- Set the output device for the new track only if a valid device is selected
+  if midi_out_device ~= "<None>" and midi_out_device ~= "No MIDI Output Devices - do not select this" then
+    -- Check if the device exists in available devices
+    local device_exists = false
+    for _, device in ipairs(renoise.Midi.available_output_devices()) do
+      if device == midi_out_device then
+        device_exists = true
+        break
+      end
+    end
+    
+    if device_exists then
+      new_instrument.midi_output_properties.device_name = midi_out_device
+      new_instrument.midi_output_properties.channel = midi_out_channel
+    end
   end
 
   -- Load the selected plugin for the new instrument
@@ -158,26 +205,38 @@ local function MidiInitChannelTrackInstrument(track_index)
     end
     if plugin_path then
       new_instrument.plugin_properties:load_plugin(plugin_path)
-      -- Rename the instrument
-      new_instrument.name = "CH" .. string.format("%02d", midi_in_channel) .. " " .. midi_in_device .. " (" .. plugin:sub(5) .. ")"
+      -- Rename the instrument with the same format
+      local plugin_instrument_name = "TR" .. string.format("%02d", midi_in_channel)
+      if midi_in_device ~= "<None>" and midi_in_device ~= "No MIDI Input Devices - do not select this" then
+        plugin_instrument_name = plugin_instrument_name .. " " .. midi_in_device .. ":" .. string.format("%02d", midi_in_channel) .. ">"
+      end
+      plugin_instrument_name = plugin_instrument_name .. " (" .. plugin:sub(5) .. ")"
+      if midi_out_device ~= "<None>" and midi_out_device ~= "No MIDI Output Devices - do not select this" then
+        plugin_instrument_name = plugin_instrument_name .. " >" .. midi_out_device .. ":" .. string.format("%02d", midi_out_channel)
+      end
+      new_instrument.name = plugin_instrument_name
 
       -- Select the instrument to ensure devices are mapped correctly
       renoise.song().selected_instrument_index = track_index
 
-      local currName = renoise.song().selected_track.name
-      renoise.song().selected_track.name = currName .. " (" .. plugin:sub(5) .. ")"
-        
+      -- Update track name to match instrument name exactly
+      renoise.song().selected_track.name = plugin_instrument_name
+
       -- Add *Instr. Automation and *Instr. MIDI Control to the track immediately after the plugin is loaded
-      local instr_automation_device = loadnative("Audio/Effects/Native/*Instr. Automation", checkline)
-      if instr_automation_device then
+      local success_auto, instr_automation_device = pcall(function()
+        return loadnative("Audio/Effects/Native/*Instr. Automation")
+      end)
+      if success_auto and instr_automation_device then
+        instr_automation_device:insert_at(#new_track.devices + 1)
         instr_automation_device.parameters[1].value = track_index - 1
-        checkline = checkline + 1
       end
 
-      local instr_midi_control_device = loadnative("Audio/Effects/Native/*Instr. MIDI Control", checkline)
-      if instr_midi_control_device then
+      local success_midi, instr_midi_control_device = pcall(function()
+        return loadnative("Audio/Effects/Native/*Instr. MIDI Control")
+      end)
+      if success_midi and instr_midi_control_device then
+        instr_midi_control_device:insert_at(#new_track.devices + 1)
         instr_midi_control_device.parameters[1].value = track_index - 1
-        checkline = checkline + 1
       end
 
       -- Open external editor if the option is enabled

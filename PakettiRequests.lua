@@ -10147,22 +10147,16 @@ function findUsedSamples()
     used_notes[i] = {}
   end
 
+  -- First pass: Find all notes being played in the song
   for pattern_idx, pattern in ipairs(song.patterns) do
     for track_idx, track in ipairs(pattern.tracks) do
       for line_idx, line in ipairs(track.lines) do
         if line.note_columns then
-          -- Check ALL note columns, not just the first one
           for _, note_col in ipairs(line.note_columns) do
             if note_col.note_value then
               local instr_idx = (note_col.instrument_value or 0) + 1
               if instr_idx <= #song.instruments then
                 used_notes[instr_idx][note_col.note_value] = true
-                print(string.format("DEBUG: Found note %s (value %d) at pattern %d, track %d, line %d", 
-                      noteValueToName(note_col.note_value),
-                      note_col.note_value,
-                      pattern_idx,
-                      track_idx,
-                      line_idx))
               end
             end
           end
@@ -10171,37 +10165,39 @@ function findUsedSamples()
     end
   end
 
-  -- Print notes in order
-  print("\nNotes found (sorted by value):")
-  for instr_idx, notes in pairs(used_notes) do
-    print(string.format("\nInstrument %d:", instr_idx))
-    local sorted_notes = {}
-    for note_value in pairs(notes) do
-      table.insert(sorted_notes, note_value)
-    end
-    table.sort(sorted_notes)
-    for _, note_value in ipairs(sorted_notes) do
-      print(string.format("  %s (value %d)", 
-            noteValueToName(note_value), note_value))
-    end
-  end
-
-  -- Now map notes to samples
+  -- Second pass: Check each sample's mappings
   for instr_idx, notes in pairs(used_notes) do
     local instrument = song.instruments[instr_idx]
     if instrument and instrument.sample_mappings then
-      for note_value in pairs(notes) do
-        for sample_idx = 1, #instrument.samples do
-          local mapping = instrument.sample_mappings[1][sample_idx]
-          if mapping and mapping.note_range then
-            if note_value >= mapping.note_range[1] and 
-               note_value <= mapping.note_range[2] then
-              used_samples[instr_idx][sample_idx] = true
-              print(string.format("Note %s maps to sample %d (%s) in instrument %d", 
-                    noteValueToName(note_value), 
-                    sample_idx,
-                    instrument.samples[sample_idx].name,
-                    instr_idx))
+      for sample_idx = 1, #instrument.samples do
+        local mapping = instrument.sample_mappings[1][sample_idx]
+        if mapping then
+          -- Print velocity range info first
+          print(string.format("DEBUG: Sample %d in instrument %d has velocity range [%d,%d]", 
+                sample_idx, instr_idx,
+                mapping.velocity_range[1], mapping.velocity_range[2]))
+
+          -- Check if velocity range is [0,0]
+          if mapping.velocity_range[1] == 0 and mapping.velocity_range[2] == 0 then
+            used_samples[instr_idx][sample_idx] = false
+            print(string.format("Sample %d in instrument %d is UNUSED - velocity range is [0,0]", 
+                  sample_idx, instr_idx))
+          else
+            -- Only check note mappings if velocity range is valid
+            if mapping.note_range then
+              for note_value in pairs(notes) do
+                if note_value >= mapping.note_range[1] and 
+                   note_value <= mapping.note_range[2] then
+                  used_samples[instr_idx][sample_idx] = true
+                  print(string.format("Sample %d in instrument %d is USED - mapped to note %s (value %d) with velocity range [%d,%d]", 
+                        sample_idx,
+                        instr_idx,
+                        noteValueToName(note_value), 
+                        note_value,
+                        mapping.velocity_range[1],
+                        mapping.velocity_range[2]))
+                end
+              end
             end
           end
         end
@@ -10211,6 +10207,7 @@ function findUsedSamples()
 
   return used_samples, used_notes
 end
+
 
 -- Helper function to convert note values to note names
 function noteValueToName(value)
@@ -10222,108 +10219,171 @@ function noteValueToName(value)
 end
 
 function deleteUnusedSamples()
-  local song = renoise.song()
-  local used_notes = {}
-  local used_samples = {}
-  local cleared_count = 0
-  
-  -- Initialize tracking tables
-  for i = 1, #song.instruments do
-    used_notes[i] = {}
-    used_samples[i] = {}
-  end
-
-  -- Find all notes being played
-  print("\nScanning for notes:")
-  for pattern_idx, pattern in ipairs(song.patterns) do
-    for track_idx, track in ipairs(pattern.tracks) do
-      for line_idx, line in ipairs(track.lines) do
-        for _, note_col in ipairs(line.note_columns) do
-          -- Add debug for C-0 specifically
-          if note_col.note_value == 0 then
-            print(string.format("DEBUG: Found C-0 at pattern %d, track %d, line %d, instrument %d",
-                  pattern_idx, track_idx, line_idx, note_col.instrument_value))
-          end
-          
-          -- Changed this condition - removed the > 0 check
-          if note_col.note_value and note_col.instrument_value then
-            local instr_idx = note_col.instrument_value + 1
-            if instr_idx > 0 and instr_idx <= #song.instruments then
-              used_notes[instr_idx][note_col.note_value] = true
-              print(string.format("Found note %s (value %d) in instrument %d at pattern %d, track %d, line %d",
-                    noteValueToName(note_col.note_value), note_col.note_value,
-                    instr_idx, pattern_idx, track_idx, line_idx))
-            end
-          end
-        end
-      end
-    end
-  end
-
-  -- Check sample mappings
-  print("\nChecking sample mappings:")
-  for instr_idx, instrument in ipairs(song.instruments) do
-    if instrument.sample_mappings[1] then
-      for sample_idx, sample in ipairs(instrument.samples) do
-        local mapping = instrument.sample_mappings[1][sample_idx]
-        local is_used = false
-        
-        if mapping and mapping.note_range then
-          -- Debug output for C-0 mappings
-          if mapping.note_range[1] == 0 or mapping.note_range[2] == 0 then
-            print(string.format("DEBUG: Sample %d in instrument %d has C-0 in range (%s to %s)",
-                  sample_idx, instr_idx,
-                  noteValueToName(mapping.note_range[1]),
-                  noteValueToName(mapping.note_range[2])))
-          end
-          
-          for note = mapping.note_range[1], mapping.note_range[2] do
-            if used_notes[instr_idx][note] then
-              is_used = true
-              print(string.format("Sample %d in instrument %d is USED - mapped to note %s (value %d)",
-                    sample_idx, instr_idx, noteValueToName(note), note))
-              break
-            end
-          end
-        end
-
-        -- If unused, clear the sample
-        if not is_used and mapping then
-          print(string.format("Clearing unused sample %d (%s) from instrument %d (range: %s to %s)", 
-                sample_idx, sample.name, instr_idx,
-                noteValueToName(mapping.note_range[1]),
-                noteValueToName(mapping.note_range[2])))
-          instrument.samples[sample_idx]:clear()
-        end
-      end
-    end
-  end
-
-  -- Second pass: Delete empty sample slots
-  local deleted_count = 0
-  for instr_idx, instrument in ipairs(song.instruments) do
-    -- Collect indices of empty samples first (from highest to lowest)
-    local empty_slots = {}
-    for sample_idx = #instrument.samples, 1, -1 do
-      local sample = instrument.samples[sample_idx]
-      if sample and sample.sample_buffer and sample.sample_buffer.has_sample_data == false then
-        table.insert(empty_slots, sample_idx)
-      end
-    end
+  local function process_samples()
+    local song = renoise.song()
+    local deleted_count = 0
+    local notes_found = 0
+    local dialog, vb = ProcessSlicer:create_dialog("Deleting Unused Samples")
+    local status_text = ""
     
-    -- Delete empty slots from highest to lowest index
-    for _, sample_idx in ipairs(empty_slots) do
-      print(string.format("Deleting empty sample slot %d from instrument %d", sample_idx, instr_idx))
-      instrument:delete_sample_at(sample_idx)
-      deleted_count = deleted_count + 1
-    end
-  end
+    -- Set the width of the progress text
+    vb.views.progress_text.width = 300
 
-  print(string.format("\nOperation complete. Cleared %d unused samples and deleted %d empty slots.", 
-        cleared_count, deleted_count))
+    local function update_dialog(progress, status, is_error)
+      if status then
+        if is_error then
+          status = "ERROR: " .. status
+        end
+        status_text = status .. "\n" .. status_text
+        local lines = {}
+        for line in status_text:gmatch("[^\n]+") do
+          table.insert(lines, line)
+        end
+        if #lines > 8 then
+          status_text = table.concat({unpack(lines, 1, 8)}, "\n")
+        end
+      end
+      vb.views.progress_text.text = progress .. "\n\n" .. status_text
+      coroutine.yield()
+    end
+
+    -- First, find all used notes in the song
+    local used_notes = {}
+    for i = 1, #song.instruments do
+      used_notes[i] = {}
+    end
+
+    update_dialog("Scanning for used notes...", nil)
+    for pattern_idx, pattern in ipairs(song.patterns) do
+      for track_idx, track in ipairs(pattern.tracks) do
+        for line_idx, line in ipairs(track.lines) do
+          for _, note_col in ipairs(line.note_columns) do
+            if note_col.note_value and note_col.instrument_value then
+              local instr_idx = note_col.instrument_value + 1
+              if instr_idx > 0 and instr_idx <= #song.instruments then
+                if not used_notes[instr_idx][note_col.note_value] then
+                  notes_found = notes_found + 1
+                  used_notes[instr_idx][note_col.note_value] = true
+                  if notes_found % 10 == 0 then
+                    update_dialog(string.format("Scanning pattern %d/%d... (Found %d notes)", 
+                      pattern_idx, #song.patterns, notes_found), nil)
+                  end
+                end
+              end
+            end
+          end
+        end
+      end
+    end
+    update_dialog(string.format("Found %d unique notes in total", notes_found), nil)
+
+    -- Process each instrument
+    for instr_idx, instrument in ipairs(song.instruments) do
+      -- Only process instruments that have samples and sample mappings
+      if #instrument.samples > 0 and instrument.sample_mappings[1] then
+        -- Check if any sample has slice markers
+        local has_slices = false
+        for _, sample in ipairs(instrument.samples) do
+          if #sample.slice_markers > 0 then
+            has_slices = true
+            break
+          end
+        end
+
+        if not has_slices then
+          -- Check if instrument is used at all
+          local instrument_used = false
+          for note, _ in pairs(used_notes[instr_idx]) do
+            instrument_used = true
+            break
+          end
+
+          -- If instrument is not used at all, delete all its samples
+          if not instrument_used then
+            print(string.format("Instrument %d is completely unused - deleting all samples", instr_idx))
+            for sample_idx = #instrument.samples, 1, -1 do
+              update_dialog(
+                string.format("Processing unused instrument %d/%d", instr_idx, #song.instruments),
+                string.format("Deleting sample %d (instrument unused)", sample_idx)
+              )
+              -- Just delete the sample slot directly since the instrument is unused
+              instrument:delete_sample_at(sample_idx)
+              deleted_count = deleted_count + 1
+            end
+          else
+            -- Instrument is used, check each sample
+            for sample_idx = #instrument.samples, 1, -1 do
+              local mapping = instrument.sample_mappings[1][sample_idx]
+              if mapping then
+                -- Debug print velocity range
+                print(string.format("Instrument %d, Sample %d - Velocity Range: [%d,%d]", 
+                  instr_idx, sample_idx, 
+                  mapping.velocity_range[1], mapping.velocity_range[2]))
+
+                -- Check if this specific sample mapping is used
+                local sample_used = false
+                if mapping.note_range then
+                  for note = mapping.note_range[1], mapping.note_range[2] do
+                    if used_notes[instr_idx][note] then
+                      sample_used = true
+                      break
+                    end
+                  end
+                end
+
+                -- Delete sample if:
+                -- 1. It has velocity range [0,0] OR
+                -- 2. It's not used in the song (even if velocity range is [0,127])
+                if mapping.velocity_range[1] == 0 and mapping.velocity_range[2] == 0 then
+                  print(string.format("Deleting sample %d in instrument %d: Velocity range [0,0]", 
+                    sample_idx, instr_idx))
+                  -- Just delete the slot directly
+                  instrument:delete_sample_at(sample_idx)
+                  deleted_count = deleted_count + 1
+                elseif not sample_used then
+                  print(string.format("Deleting sample %d in instrument %d: No used notes in range", 
+                    sample_idx, instr_idx))
+                  -- Just delete the slot directly
+                  instrument:delete_sample_at(sample_idx)
+                  deleted_count = deleted_count + 1
+                end
+              else
+                -- No mapping, just delete the slot
+                instrument:delete_sample_at(sample_idx)
+                deleted_count = deleted_count + 1
+              end
+            end
+          end
+        else
+          update_dialog(
+            string.format("Processing instrument %d/%d", instr_idx, #song.instruments),
+            string.format("Skipping instrument %d: Contains sliced samples", instr_idx)
+          )
+        end
+      end
+    end
+
+    -- At completion, just change the Cancel button text to Done
+    vb.views.cancel_button.text = "Done"
+    
+    update_dialog(
+      deleted_count > 0 
+        and string.format("Deleted %d unused samples", deleted_count)
+        or "Didn't find any unused samples to delete",
+      nil
+    )
+  end
+  local slicer = ProcessSlicer(process_samples)
+  slicer:start()
 end
 
--- Add menu entries and keybindings (FIXED VERSION)
+
+
+
+
+
+
+-- Add menu entries and keybindings
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Delete Unused Samples...",invoke=deleteUnusedSamples}
 renoise.tool():add_menu_entry{name="Main Menu:File:Delete Unused Samples...",invoke=deleteUnusedSamples}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Delete Unused Samples...",invoke=deleteUnusedSamples}
@@ -10331,6 +10391,7 @@ renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Delete Unused S
 renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti..:Delete Unused Samples...",invoke=deleteUnusedSamples}
 
 renoise.tool():add_keybinding{name="Global:Paketti:Delete Unused Samples",invoke=deleteUnusedSamples}
+renoise.tool():add_keybinding{name="Sample Keyzones:Paketti:Delete Unused Samples",invoke=deleteUnusedSamples}
 --------
 
 -----------

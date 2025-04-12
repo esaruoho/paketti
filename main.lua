@@ -251,6 +251,7 @@ timed_require("PakettiAKWF")
 timed_require("PakettiSteppers")
 timed_require("PakettiREXLoader")
 timed_require("PakettiPTILoader")
+timed_require("PakettiSF2Loader")
 timed_require("process_slicer")
 --timed_require("PakettiRX2Loader")
 print(string.format("Total load time: %.3f seconds", os.clock() - init_time))
@@ -265,9 +266,18 @@ local selected_theme_index = nil
 --end
 
 
+
+
+
+
+
+
+
+
+
 ---
 -- Define valid audio file extensions globally
-PakettiValidAudioExtensions = { ".wav", ".mp3", ".flac", ".aif", ".aiff"}
+PakettiValidAudioExtensions = {".wav",".mp3",".flac",".aif",".aiff",".m4a"}
 
 -- Global helper function to check if a file has a valid audio extension
 function PakettiIsValidAudioFile(filename)
@@ -308,16 +318,21 @@ function PakettiGetFilesInDirectory(dir)
         end
     end
     
-    -- Debug output
+  --[[  -- Debug output
     print(string.format("Found %d valid audio files in directory: %s", #files, dir))
     -- Print first few files as sample
     for i = 1, math.min(5, #files) do
         print(string.format("Sample file %d: %s", i, files[i]))
     end
-    
+    ]]--
     return files
 end
 ---
+
+
+
+
+
 
 
 
@@ -408,23 +423,4 @@ function dbug(msg)
 end
 
 _AUTO_RELOAD_DEBUG = true
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

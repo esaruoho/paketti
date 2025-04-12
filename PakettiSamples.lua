@@ -1738,6 +1738,7 @@ function ReverseSelectedSliceInSample()
 end
 -- Add keybinding and menu entries
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Reverse Selected Sample or Slice",invoke=ReverseSelectedSliceInSample}
+renoise.tool():add_keybinding{name="Sample Keyzones:Paketti:Reverse Selected Sample or Slice",invoke=ReverseSelectedSliceInSample}
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Process..:Reverse Selected Sample or Slice",invoke=ReverseSelectedSliceInSample}
 renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Reverse Selected Sample or Slice",invoke=ReverseSelectedSliceInSample}
 renoise.tool():add_midi_mapping{name="Paketti:Reverse Selected Sample or Slice",invoke=function(message) if message:is_trigger() then ReverseSelectedSliceInSample() end end}
@@ -4902,3 +4903,4 @@ renoise.tool():add_menu_entry{name = "Instrument Box:Paketti..:Fill Empty Sample
 renoise.tool():add_menu_entry{name = "Sample Navigator:Paketti..:Fill Empty Sample Slots (Randomized Folder)",invoke = function() fillEmptySampleSlots() end}
 renoise.tool():add_menu_entry{name = "Sample Keyzones:Paketti..:Fill Empty Sample Slots (Randomized Folder)",invoke = function() fillEmptySampleSlots() end}
 renoise.tool():add_keybinding{name = "Global:Paketti:Fill Empty Sample Slots (Randomized Folder)",invoke = function() fillEmptySampleSlots() end}
+

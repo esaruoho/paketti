@@ -210,19 +210,62 @@ function capture_ins_oct(state)
       
       -- If no phrases, fall back to original sample editor behavior
       if instrument and #instrument.samples > 0 then
-         -- Original sample editor code remains unchanged
-         local sample_mapping = instrument.sample_mappings[1][1]
-         local first_sample_note = sample_mapping and sample_mapping.note_range[1] or 0
-         
-         local sample_index = 1
+         -- Debug print to show number of samples and mappings
+         print("Number of samples in instrument:", #instrument.samples)
+         print("Number of mapping sets:", #instrument.sample_mappings)
+         if #instrument.sample_mappings > 0 then
+            print("Number of mappings in first set:", #instrument.sample_mappings[1])
+         end
+
+         -- First check for a sample mapped to full velocity range (00-7F)
+         local full_range_sample_index = nil
          for i, sample_map in ipairs(instrument.sample_mappings[1]) do
-            if closest_note.note >= sample_map.note_range[1] and closest_note.note <= sample_map.note_range[2] then
-               sample_index = i
-               break
+            -- Debug print for each mapping
+            print(string.format("Sample %d velocity range: %d to %d", i, sample_map.velocity_range[1], sample_map.velocity_range[2]))
+            
+            -- Check if this sample covers full velocity range (00-7F) while others are limited
+            if sample_map.velocity_range[1] == 0 and sample_map.velocity_range[2] == 127 then
+               print("Found potential full velocity range sample at index", i)
+               local other_samples_limited = true
+               for j, other_map in ipairs(instrument.sample_mappings[1]) do
+                  if j ~= i then
+                     print(string.format("Checking other sample %d velocity range: %d to %d", j, other_map.velocity_range[1], other_map.velocity_range[2]))
+                     if other_map.velocity_range[1] ~= 0 or other_map.velocity_range[2] ~= 0 then
+                        other_samples_limited = false
+                        print("Found non-limited other sample at index", j)
+                        break
+                     end
+                  end
+               end
+               if other_samples_limited then
+                  full_range_sample_index = i
+                  print("Confirmed full velocity range sample at index", i)
+                  break
+               end
             end
          end
 
-         renoise.song().selected_sample_index = sample_index
+         -- If we found a full velocity range sample, use it
+         if full_range_sample_index then
+            print("Using full velocity range sample at index", full_range_sample_index)
+            renoise.song().selected_sample_index = full_range_sample_index
+            renoise.app():show_status(string.format("Found full velocity range sample at slot %d", full_range_sample_index))
+         else
+            print("No full velocity range sample found, falling back to note-based selection")
+            -- Otherwise fall back to original behavior - find sample by note
+            local sample_mapping = instrument.sample_mappings[1][1]
+            local first_sample_note = sample_mapping and sample_mapping.note_range[1] or 0
+            
+            local sample_index = 1
+            for i, sample_map in ipairs(instrument.sample_mappings[1]) do
+               if closest_note.note >= sample_map.note_range[1] and closest_note.note <= sample_map.note_range[2] then
+                  sample_index = i
+                  break
+               end
+            end
+            renoise.song().selected_sample_index = sample_index
+         end
+
          renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
          renoise.app():show_status("Instrument and sample captured, jumping to Sample Editor.")
          return

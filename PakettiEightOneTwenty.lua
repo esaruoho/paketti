@@ -55,7 +55,7 @@ function ensure_instruments_exist()
   if instrument_count < 8 then
     for i = instrument_count + 1, 8 do
       renoise.song():insert_instrument_at(i)
-      renoise.song().instruments[i].name = "Instrument " .. i
+      renoise.song().instruments[i].name = ""  -- Set empty name instead of "Instrument " .. i
     end
   end
   instrument_names = {}
@@ -70,7 +70,7 @@ end
 function update_instrument_list_and_popups()
   instrument_names = {}
   for i, instr in ipairs(renoise.song().instruments) do
-    table.insert(instrument_names, instr.name ~= "" and instr.name or "Instrument " .. i)
+    table.insert(instrument_names, instr.name ~= "" and instr.name or "")  -- Use empty string as fallback
   end
   for i, row_elements in ipairs(rows) do
     local instrument_popup = row_elements.instrument_popup
@@ -109,6 +109,21 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
   local row_elements = {}
   local normal_color, highlight_color = nil, {0x22 / 255, 0xaa / 255, 0xff / 255}
 
+  -- Create Instrument Popup first
+  local instrument_popup = vb:popup {
+    items = instrument_names,
+    value = row_index,  -- Set default instrument index to row number
+    width = 150,
+    notifier = function(value)
+      row_elements.print_to_pattern()
+      row_elements.update_sample_name_label()
+      renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+    end
+  }
+  
+  -- Store instrument_popup in row_elements immediately
+  row_elements.instrument_popup = instrument_popup
+
   -- Create Number Buttons (1-16)
   local number_buttons = {}
   for i = 1, 16 do
@@ -117,67 +132,120 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
       text = string.format("%02d", i),
       width = 30,
       color = is_highlight and highlight_color or normal_color,
-      notifier = function() end,
-      active = false
+      notifier = function()
+        -- Update track name and valuebox
+        local track_index = track_indices[row_elements.track_popup.value]
+        local track = renoise.song():track(track_index)
+        updateTrackNameWithSteps(track, i)
+        row_elements.valuebox.value = i
+        row_elements.print_to_pattern()
+        renoise.app():show_status(string.format("Set steps to %d for row %d", i, row_index))
+      end,
+      active = true  -- Make buttons active
     }
   end
 
--- Add Output Delay Controls
-local output_delay_label = vb:text {
-  text = "Output Delay",
-  font = "bold",
-  style = "strong"
-}
+  -- Create number buttons row
+  local number_buttons_plain = vb:row(number_buttons)
 
-local output_delay_value_label = vb:text {
-  text = "0ms",
-  width= 50,
-  font = "bold",
-  style = "strong"
-}
-
--- In PakettiEightSlotsByOneTwentyCreateRow, after creating the output delay controls:
-
-local output_delay_slider = vb:slider {
-  min = -100,
-  max = 100,
-  steps = {1, -1},
-  value = renoise.song().tracks[row_index].output_delay,  -- Initialize with current value
-  width = 150,
-  notifier = function(value)
-    local track_index = track_indices[row_elements.track_popup.value]
-    if track_index then
-      value = math.floor(value)  -- Ensure whole number
-      renoise.song().tracks[track_index].output_delay = value
-      output_delay_value_label.text = string.format("%+04dms", value)        
-    end
-  end
-}
-
--- Initialize the label with the current value
-output_delay_value_label.text = string.format("%+04dms", renoise.song().tracks[row_index].output_delay)
-
-local output_delay_reset = vb:button {
-  text = "Reset",
-  notifier = function()
-    local track_index = track_indices[row_elements.track_popup.value]
-    if track_index then
-      output_delay_slider.value = 0
-      renoise.song().tracks[track_index].output_delay = 0
-      output_delay_value_label.text = "0ms"  -- Consistent format when reset
+  -- Create transpose rotary with the available instrument_popup
+  local instrument = renoise.song().instruments[instrument_popup.value]
+  local current_transpose = instrument and instrument.transpose or 0
+  
+  local transpose_rotary = vb:rotary {
+    min = -36,
+    max = 36,
+    value = current_transpose,
+    width = 25,
+    height = 25,
+    notifier = function(value)
+      -- Get and select the track first
+      local track_index = track_indices[row_elements.track_popup.value]
+      if track_index then
+        renoise.song().selected_track_index = track_index
+      end
       
+      -- Update instrument transpose
+      local instrument_index = instrument_popup.value
+      local instrument = renoise.song().instruments[instrument_index]
+      if instrument then
+        instrument.transpose = value
+      end
+      
+      -- If we're in sample editor view, select the instrument and its active sample
+      if renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR then
+        -- Select the instrument
+        renoise.song().selected_instrument_index = instrument_index
+        
+        -- Find and select the sample with 00-7F velocity mapping
+        if instrument then
+          for sample_idx, sample in ipairs(instrument.samples) do
+            local velocity_min = sample.sample_mapping and sample.sample_mapping.velocity_range and sample.sample_mapping.velocity_range[1]
+            local velocity_max = sample.sample_mapping and sample.sample_mapping.velocity_range and sample.sample_mapping.velocity_range[2]
+            if velocity_min == 0x00 and velocity_max == 0x7F then
+              renoise.song().selected_sample_index = sample_idx
+              break
+            end
+          end
+        end
+      end
+      
+      renoise.app():show_status(string.format("Set transpose to %+d for instrument %d: %s.", value, instrument_index, renoise.song().selected_sample.name))
     end
-  end
-}
+  }
+    -- Create transpose label
+    local transpose_label = vb:text {text="Pitch",font="bold",style="strong"}
+    
+    -- Create transpose column
+    local transpose_column=vb:column{transpose_label,transpose_rotary,vb:text{text="Mute",font="bold",style="strong",width=30}}
+  
+    -- Create the final number_buttons_row with transpose
+    local number_buttons_row=vb:row{number_buttons_plain}
+    
+    -- Add Output Delay Controls
+  local output_delay_label=vb:text{text="Output Delay",font="bold",style="strong"}
+  local output_delay_value_label=vb:text{text="0ms",width=50,font="bold",style="strong"}
 
-  local number_buttons_row = vb:row(number_buttons)
+  local output_delay_slider = vb:slider {
+    min= -100,
+    max=100,
+    steps={1,-1},
+    value=renoise.song().tracks[row_index].output_delay,  -- Initialize with current value
+    width=100,
+    notifier = function(value)
+      local track_index = track_indices[row_elements.track_popup.value]
+      if track_index then
+        value = math.floor(value)  -- Ensure whole number
+        renoise.song().tracks[track_index].output_delay = value
+        output_delay_value_label.text = string.format("%+04dms", value)        
+      end
+    end
+  }
 
-  -- Add Output Delay Controls to the same row
+  local output_delay_reset = vb:button {
+    text = "Reset",
+    notifier = function()
+      local track_index = track_indices[row_elements.track_popup.value]
+      if track_index then
+        output_delay_slider.value = 0
+        renoise.song().tracks[track_index].output_delay = 0
+        output_delay_value_label.text = "0ms"  -- Consistent format when reset
+      end
+    end
+  }
+
+  -- Add Output Delay Controls to the row
   number_buttons_row:add_child(output_delay_label)
   number_buttons_row:add_child(output_delay_slider)
   number_buttons_row:add_child(output_delay_value_label)
   number_buttons_row:add_child(output_delay_reset)
 
+  -- Store the row elements for later use
+  row_elements.number_buttons_row = number_buttons_row
+  row_elements.number_buttons = number_buttons
+  row_elements.transpose_rotary = transpose_rotary
+  row_elements.output_delay_slider = output_delay_slider
+  row_elements.output_delay_value_label = output_delay_value_label
 
   -- Create Note Checkboxes (1-16)
   local checkboxes = {}
@@ -188,8 +256,34 @@ local output_delay_reset = vb:button {
       width = 30,
       notifier = function()
         if not row_elements.updating_checkboxes then
+          -- Get and select the track first
+          local track_index = track_indices[row_elements.track_popup.value]
+          if track_index then
+            renoise.song().selected_track_index = track_index
+          end
+          
+          -- If we're in sample editor view, select the instrument and its active sample
+          if renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR then
+            -- Select the instrument
+            local instrument_index = row_elements.instrument_popup.value
+            renoise.song().selected_instrument_index = instrument_index
+            
+            -- Find and select the sample with 00-7F velocity mapping
+            local instrument = renoise.song().instruments[instrument_index]
+            if instrument then
+              for sample_idx, sample in ipairs(instrument.samples) do
+                local velocity_min = sample.sample_mapping and sample.sample_mapping.velocity_range and sample.sample_mapping.velocity_range[1]
+                local velocity_max = sample.sample_mapping and sample.sample_mapping.velocity_range and sample.sample_mapping.velocity_range[2]
+                if velocity_min == 0x00 and velocity_max == 0x7F then
+                  renoise.song().selected_sample_index = sample_idx
+                  break
+                end
+              end
+            end
+          end
+          
+          -- Then print to pattern
           row_elements.print_to_pattern()
-          renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
         end
       end
     }
@@ -206,11 +300,14 @@ local output_delay_reset = vb:button {
       if not row_elements.updating_steps then
         local track_index = track_indices[row_elements.track_popup.value]
         local track = renoise.song():track(track_index)
+        -- Select the track first
+        renoise.song().selected_track_index = track_index
+        -- Then update track name and pattern
         updateTrackNameWithSteps(track, value)
         row_elements.print_to_pattern()
-        renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
-      else 
-        renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+        --renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+      --else 
+        --renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
       end
     end
   }
@@ -222,7 +319,7 @@ local output_delay_reset = vb:button {
     style = "strong"
   }
 
--- Append valuebox and sample name label after checkboxes
+  -- Append valuebox and sample name label after checkboxes
   table.insert(checkbox_row_elements, valuebox)
   table.insert(checkbox_row_elements, sample_name_label)
 
@@ -235,8 +332,32 @@ local output_delay_reset = vb:button {
         width = 30,
         notifier = function()
           if not row_elements.updating_yxx_checkboxes then
+            local track_index = track_indices[row_elements.track_popup.value]
+            if track_index then
+              renoise.song().selected_track_index = track_index
+            end
+                      -- If we're in sample editor view, select the instrument and its active sample
+          if renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR then
+            -- Select the instrument
+            local instrument_index = row_elements.instrument_popup.value
+            renoise.song().selected_instrument_index = instrument_index
+            
+            -- Find and select the sample with 00-7F velocity mapping
+            local instrument = renoise.song().instruments[instrument_index]
+            if instrument then
+              for sample_idx, sample in ipairs(instrument.samples) do
+                local velocity_min = sample.sample_mapping and sample.sample_mapping.velocity_range and sample.sample_mapping.velocity_range[1]
+                local velocity_max = sample.sample_mapping and sample.sample_mapping.velocity_range and sample.sample_mapping.velocity_range[2]
+                if velocity_min == 0x00 and velocity_max == 0x7F then
+                  renoise.song().selected_sample_index = sample_idx
+                  break
+                end
+              end
+            end
+          end
+
             row_elements.print_to_pattern()
-            renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+            --renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
           end
         end
       }
@@ -257,7 +378,7 @@ local output_delay_reset = vb:button {
       end,
       notifier = function(value)
         row_elements.print_to_pattern()
-        renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+        --renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
       end
     }  
   
@@ -267,7 +388,7 @@ local output_delay_reset = vb:button {
       max = 255,
       steps = {1, -1},
       value = 32, -- Default to 0x20
-      width = 300,
+      width = 100,
       notifier = function(value)
         yxx_valuebox.value = math.floor(value)
         row_elements.print_to_pattern()
@@ -280,34 +401,34 @@ local output_delay_reset = vb:button {
     table.insert(yxx_checkbox_row_elements, vb:text {font="bold",style="strong",text = "Yxx"})
   
   -- Randomize Button for Yxx Slider
-local yxx_randomize_button = vb:button {
-  text = "Random Yxx",
-  width = 70, -- Adjust width as needed
-  notifier = function()
-    local random_value = math.random(0, 255)
-    yxx_slider.value = random_value
-    yxx_valuebox.value = random_value
-    row_elements.print_to_pattern()
-  end
-}
-
--- **Clear Button for Yxx Checkboxes**
-local yxx_clear_button = vb:button {
-  text = "Clear Yxx",
-  width = 40, -- Adjust width as needed
-  notifier = function()
-    for _, checkbox in ipairs(yxx_checkboxes) do
-      checkbox.value = false
+  local yxx_randomize_button = vb:button {
+    text = "Random Yxx",
+    width = 70, -- Adjust width as needed
+    notifier = function()
+      local random_value = math.random(0, 255)
+      yxx_slider.value = random_value
+      yxx_valuebox.value = random_value
+      row_elements.print_to_pattern()
     end
-    row_elements.print_to_pattern()
-    renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
-  end
-}
+  }
 
--- Add slider and buttons to yxx_checkbox_row_elements
-table.insert(yxx_checkbox_row_elements, yxx_slider)
-table.insert(yxx_checkbox_row_elements, yxx_randomize_button)
-table.insert(yxx_checkbox_row_elements, yxx_clear_button)
+  -- **Clear Button for Yxx Checkboxes**
+  local yxx_clear_button = vb:button {
+    text = "Clear Yxx",
+    width = 40, -- Adjust width as needed
+    notifier = function()
+      for _, checkbox in ipairs(yxx_checkboxes) do
+        checkbox.value = false
+      end
+      row_elements.print_to_pattern()
+      --renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+    end
+  }
+
+  -- Add slider and buttons to yxx_checkbox_row_elements
+  table.insert(yxx_checkbox_row_elements, yxx_slider)
+  table.insert(yxx_checkbox_row_elements, yxx_randomize_button)
+  table.insert(yxx_checkbox_row_elements, yxx_clear_button)
   
   -- === End of Yxx Value Buttons Addition ===
   -- Adjusted Track Popup
@@ -326,11 +447,12 @@ table.insert(yxx_checkbox_row_elements, yxx_clear_button)
 
   local mute_checkbox = vb:checkbox {
     value = false,
+    width=30,
     notifier = function(value)
       local track_index = track_indices[track_popup.value]
       local track = renoise.song().tracks[track_index]
       track.mute_state = value and renoise.Track.MUTE_STATE_MUTED or renoise.Track.MUTE_STATE_ACTIVE
-      renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+      --renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
     end
   }
 
@@ -353,7 +475,7 @@ table.insert(yxx_checkbox_row_elements, yxx_clear_button)
     min = 1,
     max = 120,
     value = 1,
-    width = 130,
+    width = 150,
     steps = {1, -1},
     notifier = function(value)
       value = math.floor(value)
@@ -364,16 +486,14 @@ table.insert(yxx_checkbox_row_elements, yxx_clear_button)
         return
       end
       renoise.song().selected_instrument_index = instrument_index
-      
       -- Set the selected track before changing the sample
       local track_index = track_indices[row_elements.track_popup.value]
       renoise.song().selected_track_index = track_index
-
       if instrument and #instrument.samples > 0 then
         value = math.min(value, #instrument.samples)
         pakettiSampleVelocityRangeChoke(value)
       end
-      
+
       row_elements.update_sample_name_label()
       renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
     end
@@ -390,7 +510,7 @@ table.insert(yxx_checkbox_row_elements, yxx_clear_button)
     end
   end
 
-    -- Adjusted Instrument Popup
+    -- Create Instrument Popup first
   local instrument_popup = vb:popup {
     items = instrument_names,
     value = row_index,  -- Set default instrument index to row number
@@ -401,6 +521,12 @@ table.insert(yxx_checkbox_row_elements, yxx_clear_button)
       renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
     end
   }
+  
+  -- Store instrument_popup in row_elements immediately
+  row_elements.instrument_popup = instrument_popup
+
+
+  
 
 -- Function to Print to Pattern
 function row_elements.print_to_pattern()
@@ -718,10 +844,10 @@ end
             local automation = pattern_track:create_automation(param)
             automation:add_point_at(1, 0.5) -- Start at middle
             automation:add_point_at(pattern.number_of_lines, 0.5) -- End at middle
+            add_automation_points_for_notes()            
           end
-          
           found_pitchbend = true
-          renoise.app():show_status(string.format('In Track "%s" Pitchbend automation', track.name))
+          renoise.app():show_status(string.format('Track "%s" Pitchbend automation for %s', track.name, renoise.song().selected_sample.name))
           break
         end
       end
@@ -772,11 +898,13 @@ end
   }
 
   -- Define the Row Column Layout
-  local row = vb:column {
-    number_buttons_row,
-    vb:row(checkbox_row_elements),  -- Note checkboxes with valuebox and sample name label
-    vb:row(yxx_checkbox_row_elements),  -- Yxx checkboxes with yxx valuebox and label
-    vb:row {
+  local row = vb:row {
+    vb:column {transpose_column, mute_checkbox},
+    vb:column {
+    vb:row {number_buttons_row},
+    vb:row(checkbox_row_elements),
+    vb:row(yxx_checkbox_row_elements),
+    vb:row{
       vb:button {
         text = "<",
         notifier = function()
@@ -794,7 +922,7 @@ end
           row_elements.print_to_pattern()
           row_elements.updating_checkboxes = false
           row_elements.updating_yxx_checkboxes = false
-          renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+          --renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
         end
       },
       vb:button {
@@ -814,7 +942,7 @@ end
           row_elements.print_to_pattern()
           row_elements.updating_checkboxes = false
           row_elements.updating_yxx_checkboxes = false
-          renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+         --renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
         end
       },
       vb:button {
@@ -831,7 +959,7 @@ end
           row_elements.updating_yxx_checkboxes = false
           row_elements.print_to_pattern()
           renoise.app():show_status("Wiped all steps of row " .. row_index .. ".")
-          renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+          --renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
         end
       },
       vb:button {
@@ -839,17 +967,13 @@ end
         notifier = function()
           row_elements.randomize()
           renoise.app():show_status("Randomized steps of row " .. row_index .. ".")
-          renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+         --renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
         end
       },
-      track_popup,
-      vb:row {
-        mute_checkbox,
-        vb:text {text = "Mute", font = "bold", style = "strong", width = 30}
-      },
-      instrument_popup,
-      vb:button {text = "Browse", notifier = row_elements.browse_instrument},
-      vb:button {text = "RandomLoad", notifier = function() 
+      --mute_checkbox,vb:text {text = "Mute", font = "bold", style = "strong", width = 30},
+        instrument_popup,
+        vb:button {text = "Browse", notifier = row_elements.browse_instrument},
+        vb:button {text = "RandomLoad", notifier = function() 
         local track_popup_value = row_elements.track_popup.value
         local instrument_popup_value = row_index  -- Set instrument based on row number
         local track_index = track_indices[track_popup_value]
@@ -874,6 +998,24 @@ end
             local base_name = string.format("8120_%02d", track_index)
             track.name = string.format("%s[016]", base_name)  -- Initialize with 16 steps
           end
+  
+  -- Add automation device if enabled in preferences
+  if preferences.pakettiLoaderDontCreateAutomationDevice.value == false then
+    -- Remove any existing *Instr. Macros device first
+    for i = #track.devices, 1, -1 do
+      local device = track.devices[i]
+      if device.name == "*Instr. Macros" then
+        track:delete_device_at(i)
+      end
+    end
+    -- Add new *Instr. Macros device
+    loadnative("Audio/Effects/Native/*Instr. Macros")
+    local macro_device = track:device(#track.devices)
+    macro_device.display_name = string.format("%02X_Drumkit", track_index - 1)
+    macro_device.is_maximized = false
+  end
+
+
         else
           renoise.app():show_warning("Selected track does not exist.")
         end
@@ -882,7 +1024,7 @@ end
         row_elements.slider.value = 1
         pakettiSampleVelocityRangeChoke(1)
         row_elements.update_sample_name_label()
-        renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+        --renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
       end},
       vb:button {text = "Refresh", notifier = row_elements.refresh_instruments},
       slider,
@@ -891,7 +1033,8 @@ end
       vb:button {text = "Automation", notifier = row_elements.show_automation},
 --      vb:button {text = "Macros", notifier=row_elements.show_macros},
       reverse_button,
-     
+    
+  },
     },
   }
 
@@ -922,17 +1065,17 @@ function create_global_controls()
     else
       renoise.song().transport:stop()
     end
-    renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+    --renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
   end}
   follow_checkbox = vb:checkbox {value = renoise.song().transport.follow_player, notifier = function(value)
     if initializing then return end
     renoise.song().transport.follow_player = value
-    renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+    --renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
   end}
   groove_enabled_checkbox = vb:checkbox {value = renoise.song().transport.groove_enabled, notifier = function(value)
     if initializing then return end
     renoise.song().transport.groove_enabled = value
-    renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+    --renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
     renoise.app().window.active_lower_frame = renoise.ApplicationWindow.LOWER_FRAME_TRACK_DSPS
   end}
   bpm_display = vb:button {text = "BPM: " .. tostring(renoise.song().transport.bpm), width = 60, notifier = update_bpm}
@@ -960,7 +1103,7 @@ function create_global_controls()
   random_gate_button = vb:button{ text="Random Gate", midi_mapping="Paketti:Paketti Groovebox 8120:Random Gate", notifier=function()
     if initializing then return end
     random_gate()
-    renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+    --renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
   end}
 
   fill_empty_label = vb:text{ text="Fill Empty Steps: 0%", style="strong", font="bold", width=140 }
@@ -972,7 +1115,7 @@ function create_global_controls()
     else
       fill_empty_steps(value / 100)
       renoise.app():show_status("Filled empty steps with " .. tostring(math.floor(value)) .. "% probability.")
-      renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+      --renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
     end
   end}
 
@@ -1051,42 +1194,7 @@ local randomize_all_yxx_button = vb:button {
     vb:button {
       text = "Sequential RandomLoad",
       notifier = function()
-        -- Load samples for all 8 rows in sequence
-        for i = 1, 8 do
-          local row_elements = rows[i]
-          if row_elements then
-            local track_popup_value = row_elements.track_popup.value
-            local instrument_popup_value = i  -- Use row number for instrument
-            local track_index = track_indices[track_popup_value]
-            local instrument_index = instrument_popup_value
-            renoise.song().selected_track_index = track_index
-            renoise.song().selected_instrument_index = instrument_index
-            renoise.app():show_status("Loading samples for row " .. i)
-            local instrument = loadRandomDrumkitSamples(120)
-            if not instrument then
-              return
-            end
-          
-            for _, sample in ipairs(instrument.samples) do
-              sample.sample_mapping.base_note = 48
-              sample.sample_mapping.note_range = {0, 119}
-            end
-          
-            if renoise.song().tracks[track_index] then
-              -- Preserve the 8120 track name format
-              local track = renoise.song().tracks[track_index]
-              if not track.name:match("^8120_%d+%[%d+%]$") then
-                local base_name = string.format("8120_%02d", track_index)
-                track.name = string.format("%s[016]", base_name)  -- Initialize with 16 steps
-              end
-            else
-              renoise.app():show_warning("Selected track does not exist.")
-            end
-          end
-        end
-        pakettiSampleVelocityRangeChoke(1)
-        update_instrument_list_and_popups()
-        renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+        loadSequentialDrumkitSamples()
       end
     },    
   }
@@ -1142,7 +1250,7 @@ local randomize_all_yxx_button = vb:button {
         else
           set_global_steps(tonumber(step))
         end
-        renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+        --renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
       end
     })
   end
@@ -1243,7 +1351,7 @@ function fetch_pattern()
   end
 
   renoise.app():show_status("Pattern fetched successfully.")
-  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+  --renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 end
 
 
@@ -1298,13 +1406,13 @@ end
 -- Function to reverse all samples
 function reverse_all()
   if initializing then return end
+  local reversed_count = 0
   local reversed_samples = {}
+  
   for row_index, row_elements in ipairs(rows) do
     local instrument_index = row_elements.instrument_popup.value
     local instrument = renoise.song().instruments[instrument_index]
-    if not instrument then
-      table.insert(reversed_samples, string.format("Row %d: Instrument not found.", row_index))
-    else
+    if instrument then
       local sample_to_reverse = nil
       for _, sample in ipairs(instrument.samples) do
         local velocity_min = sample.sample_mapping and sample.sample_mapping.velocity_range and sample.sample_mapping.velocity_range[1]
@@ -1314,15 +1422,13 @@ function reverse_all()
           break
         end
       end
-      if not sample_to_reverse or not sample_to_reverse.sample_buffer then
-        table.insert(reversed_samples, string.format("Row %d: N/A", row_index))
-      else
+      
+      if sample_to_reverse and sample_to_reverse.sample_buffer then
         local sample_buffer = sample_to_reverse.sample_buffer
         local num_channels = sample_buffer.number_of_channels
         local num_frames = sample_buffer.number_of_frames
-        if num_channels == 0 or num_frames == 0 then
-          table.insert(reversed_samples, string.format("Row %d: Selected sample has no channels or frames.", row_index))
-        else
+        
+        if num_channels > 0 and num_frames > 0 then
           sample_buffer:prepare_sample_data_changes()
           for channel = 1, num_channels do
             local channel_data = {}
@@ -1337,18 +1443,20 @@ function reverse_all()
             end
           end
           sample_buffer:finalize_sample_data_changes()
+          
           local sample_name = sample_to_reverse.name ~= "" and sample_to_reverse.name or "Sample " .. sample_to_reverse.index
-          local instrument_name = instrument.name ~= "" and instrument.name or "Instrument " .. instrument_index
-          table.insert(reversed_samples, string.format("Row %d: Reversed Sample '%s' of Instrument '%s'.", row_index, sample_name, instrument_name))
+          table.insert(reversed_samples, string.format("%02d: %s", row_index, sample_name))
+          reversed_count = reversed_count + 1
         end
       end
     end
   end
-  if #reversed_samples > 0 then
-    local status_message = table.concat(reversed_samples, "\n")
+  
+  if reversed_count > 0 then
+    local status_message = string.format("Reversed Sample: %s", table.concat(reversed_samples, " - "))
     renoise.app():show_status(status_message)
   else
-    renoise.app():show_status("No samples were reversed.")
+    renoise.app():show_status("No samples found to reverse in any instrument.")
   end
 end
 
@@ -1398,7 +1506,7 @@ function random_gate()
   end
 
   renoise.app():show_status("Step count reset to 16, random gate pattern applied.")
-  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+  --renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 end
 
 -- Function to clear all steps
@@ -1418,7 +1526,7 @@ function clear_all()
     row_elements.print_to_pattern()
   end
   renoise.app():show_status("Wiped all steps of each row.")
-  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+  --renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 end
 
 -- Function to fill empty steps
@@ -1444,6 +1552,29 @@ end
 -- Function to randomize all samples
 function random_all()
   if initializing then return end
+  
+  -- Check if we have enough instruments
+  local song = renoise.song()
+  if #song.instruments < 8 then
+    renoise.app():show_status(string.format("Not enough instruments. Need 8, but only have %d. Please add more instruments first.", #song.instruments))
+    return
+  end
+  
+  -- Check if any instruments have samples
+  local has_samples = false
+  for i = 1, 8 do
+    if song.instruments[i] and #song.instruments[i].samples > 0 then
+      has_samples = true
+      break
+    end
+  end
+  
+  if not has_samples then
+    renoise.app():show_status("No samples found in any of the 8 instruments. Please load some samples first.")
+    return
+  end
+  
+  -- Now proceed with randomization only if we have samples
   for _, row_elements in ipairs(rows) do
     if row_elements.random_button_pressed then
       row_elements.random_button_pressed()
@@ -1452,7 +1583,6 @@ function random_all()
     end
   end
   renoise.app():show_status("Each Instrument Bank now has a Random Selected Sample.")
-  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
 end
 
 function randomize_all()
@@ -1480,7 +1610,7 @@ function randomize_all()
   end
   
   renoise.app():show_status("Each Instrument Row step content has now been randomized.")
-  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+  --renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 end
 
 function set_global_steps(steps)
@@ -1498,7 +1628,7 @@ function set_global_steps(steps)
   end
   
   renoise.app():show_status("All step counts set to " .. tostring(steps) .. ".")
-  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+  --renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 end
 
 -- Functions to adjust BPM
@@ -1508,7 +1638,7 @@ function increase_bpm()
   if new_bpm > 999 then new_bpm = 999 end
   renoise.song().transport.bpm = new_bpm
   if bpm_display then bpm_display.text = "BPM: " .. tostring(renoise.song().transport.bpm) end
-  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+  --renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 end
 
 function decrease_bpm()
@@ -1517,7 +1647,7 @@ function decrease_bpm()
   if new_bpm < 20 then new_bpm = 20 end
   renoise.song().transport.bpm = new_bpm
   if bpm_display then bpm_display.text = "BPM: " .. tostring(renoise.song().transport.bpm) end
-  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+  --renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 end
 
 function divide_bpm()
@@ -1526,7 +1656,7 @@ function divide_bpm()
   if new_bpm < 20 then new_bpm = 20 end
   renoise.song().transport.bpm = new_bpm
   if bpm_display then bpm_display.text = "BPM: " .. tostring(renoise.song().transport.bpm) end
-  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+  --renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 end
 
 function multiply_bpm()
@@ -1535,7 +1665,7 @@ function multiply_bpm()
   if new_bpm > 999 then new_bpm = 999 end
   renoise.song().transport.bpm = new_bpm
   if bpm_display then bpm_display.text = "BPM: " .. tostring(renoise.song().transport.bpm) end
-  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+  --renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 end
 
 function update_bpm()
@@ -1616,7 +1746,7 @@ function PakettiEightSlotsByOneTwentyDialog()
       elements.print_to_pattern()
     end
     renoise.app():show_status("Pattern updated successfully.")
-    renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+    --renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
   end})--]]
   for _, row_elements in ipairs(rows) do
     row_elements.update_sample_name_label()
@@ -1705,7 +1835,7 @@ function assign_midi_mappings()
         else
           set_global_steps(tonumber(step))
         end
-        renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+        --renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
       end
     end}
   end
@@ -1721,7 +1851,7 @@ function assign_midi_mappings()
         end
       end}
     end
-    local buttons = {"<", ">", "Clear", "Randomize", "Browse", "Show", "Random", "Show Automation", "Reverse"}
+    local buttons = {"<", ">", "Clear", "Randomize", "Browse", "Show", "Random", "Automation", "Reverse"}
     for _, btn in ipairs(buttons) do
       renoise.tool():add_midi_mapping{name=string.format("Paketti:Paketti Groovebox 8120:Row%d %s", row, btn),invoke=function(message)
         if message:is_trigger() then
@@ -1799,15 +1929,10 @@ function GrooveboxShowClose()
     dialog = nil
     rows = {}
   else PakettiEightSlotsByOneTwentyDialog() end
-
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120",invoke=function()
-GrooveboxShowClose()   
-end}
-
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti Groovebox 8120...",invoke=function()
-GrooveboxShowClose() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120",invoke=function() GrooveboxShowClose() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti Groovebox 8120...",invoke=function() GrooveboxShowClose() end}
 
 renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120",invoke=function(message)
   if message:is_trigger() then
@@ -1910,3 +2035,318 @@ end}
 
 
 
+
+
+-- Function to load samples sequentially from 8 folders using ProcessSlicer
+function loadSequentialDrumkitSamples()
+  local folders = {}
+  local current_folder = 1
+  local slicer = nil
+  local dialog = nil
+  local vb = nil
+  local status_labels = {}
+  
+  -- Helper function to get just filename from path
+  local function getFilename(filepath)
+    return filepath:match("([^/\\]+)%.%w+$") or filepath
+  end
+  
+  -- Helper function to get file size
+  local function getFileSize(filepath)
+    local file = io.open(filepath, "rb")
+    if file then
+      local size = file:seek("end")
+      file:close()
+      return size
+    end
+    return 0
+  end
+  
+  -- Helper function to format file size
+  local function formatFileSize(size)
+    local units = {'B', 'KB', 'MB', 'GB'}
+    local unit_index = 1
+    while size > 1024 and unit_index < #units do
+      size = size / 1024
+      unit_index = unit_index + 1
+    end
+    return string.format("%.2f %s", size, units[unit_index])
+  end
+  
+  -- Helper function to cap filename length
+  local function capFilename(filename)
+    if #filename > 80 then
+      return filename:sub(1, 77) .. "..."
+    end
+    return filename
+  end
+
+  -- Function to add *Instr. Macros device to a track
+  local function addInstrMacrosToTrack(track_index)
+    local song = renoise.song()
+    -- First select the matching instrument
+    song.selected_instrument_index = track_index
+    -- Then select the track
+    song.selected_track_index = track_index
+    
+    if song.selected_track.type ~= renoise.Track.TRACK_TYPE_MASTER then -- Don't add to master track
+      -- Remove any existing *Instr. Macros device first
+      for i = #song.selected_track.devices, 1, -1 do
+        local device = song.selected_track.devices[i]
+        if device.name == "*Instr. Macros" then
+          song.selected_track:delete_device_at(i)
+        end
+      end
+      -- Add new *Instr. Macros device
+      loadnative("Audio/Effects/Native/*Instr. Macros")
+      local macro_device = song.selected_track:device(#song.selected_track.devices)
+      macro_device.display_name = string.format("%02X_Drumkit", track_index - 1)
+      macro_device.is_maximized = false
+      
+      -- Print debug info
+      print(string.format("Added *Instr. Macros to track %d, linked to instrument %d", track_index, song.selected_instrument_index))
+    end
+  end
+  
+  -- Function to process a single instrument
+  local function processInstrument(instrument_index, folder_path)
+    -- Get all valid audio files in the directory
+    local sample_files = PakettiGetFilesInDirectory(folder_path)
+    if #sample_files == 0 then
+      print(string.format("ERROR: No audio files found in folder: %s", folder_path))
+      return false, "No audio files found in folder " .. folder_path
+    end
+
+    -- Set up the instrument
+    local song = renoise.song()
+    song.selected_track_index = instrument_index
+    song.selected_instrument_index = instrument_index
+    local instrument = song.selected_instrument
+    
+    -- Load the default drumkit instrument
+    local defaultInstrument = preferences.pakettiDefaultDrumkitXRNI.value
+    renoise.app():load_instrument(defaultInstrument)
+    
+    -- Update instrument reference and name
+    instrument = song.selected_instrument
+    instrument.name = string.format("8120_%02d Kit", instrument_index)
+    instrument.macros_visible = true
+
+    -- Load samples
+    local max_samples = 120
+    local num_samples_to_load = math.min(#sample_files, max_samples)
+    local failed_files = {}
+    
+    for i = 1, num_samples_to_load do
+      local random_index = math.random(1, #sample_files)
+      local selected_file = sample_files[random_index]
+      table.remove(sample_files, random_index)
+      
+      local file_size = getFileSize(selected_file)
+
+      if #instrument.samples < i then
+        instrument:insert_sample_at(i)
+      end
+      
+      local load_failed = false
+      local error_msg = ""
+      
+      -- Try to load the sample
+      local ok = pcall(function()
+        local buffer = instrument.samples[i].sample_buffer
+        if not buffer then
+          load_failed = true
+          error_msg = "No sample buffer available"
+          return
+        end
+        
+        -- Attempt to load and catch any errors
+        local load_ok, load_err = buffer:load_from(selected_file)
+        if not load_ok then
+          load_failed = true
+          error_msg = load_err or "Unknown error during load_from"
+          return
+        end
+        
+        -- Set the name only if load succeeded
+        instrument.samples[i].name = getFilename(selected_file)
+      end)
+
+      -- Check both pcall result and our own error flag
+      if not ok or load_failed then
+        print(string.format("FAILED TO LOAD SAMPLE Part %d [%d/%d]: PATH: %s SIZE: %s", 
+          instrument_index, i, num_samples_to_load, selected_file, formatFileSize(file_size)))
+        
+        table.insert(failed_files, {
+          index = i,
+          path = selected_file,
+          size = file_size,
+          error = error_msg
+        })
+      end
+
+      -- Update status display
+      if dialog and dialog.visible then
+        local display_name = capFilename(getFilename(selected_file))
+        status_labels[instrument_index].text = string.format("Part %d/8: Loading sample %03d/%03d: %s", 
+          instrument_index, i, num_samples_to_load, display_name)
+        status_labels[instrument_index].font = "bold"
+        status_labels[instrument_index].style = "strong"
+      end
+      
+      if i % 5 == 0 then
+        coroutine.yield()
+      end
+    end
+
+    -- Print summary of failed files at the end
+    if #failed_files > 0 then
+      print(string.format("\nSUMMARY: Part %d had %d failed loads:", instrument_index, #failed_files))
+      for _, fail in ipairs(failed_files) do
+        print(string.format("Sample [%d/%d]: PATH: %s SIZE: %s", 
+          fail.index, num_samples_to_load, fail.path, formatFileSize(fail.size)))
+      end
+      print("----------------------------------------")
+    end
+
+    return true
+  end
+
+  -- Main processing function for ProcessSlicer
+  local function process()
+    -- Switch to sample editor at start
+    renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+
+    for i = 1, 8 do
+      if slicer:was_cancelled() then
+        renoise.app():show_status("Sequential loading cancelled")
+        break
+      end
+      
+      -- Update status to show which part is processing
+      for j = i + 1, 8 do
+        local folder_name = getFilename(folders[j])
+        status_labels[j].text = string.format("Part %d/8: Queued - Random from %s", j, folder_name)
+        status_labels[j].font = "bold"
+        status_labels[j].style = "strong"
+      end
+      
+      local success, error = processInstrument(i, folders[i])
+      if not success then
+        print(error)
+      end
+      
+      coroutine.yield()
+    end
+    
+    -- Close dialog and finish up
+    if dialog and dialog.visible then
+      dialog:close()
+    end
+    
+    -- Apply final settings and update UI
+    for i = 1, 8 do
+      local instrument = renoise.song():instrument(i)
+      if instrument then
+        -- First set all samples to velocity 0-0
+        for sample_idx, sample in ipairs(instrument.samples) do
+          sample.sample_mapping.velocity_range = {0, 0}
+          -- Set base note and note range for all samples
+          sample.sample_mapping.base_note = 48
+          sample.sample_mapping.note_range = {0, 119}
+        end
+        -- Then set first sample to full velocity range
+        if #instrument.samples > 0 then
+          instrument.samples[1].sample_mapping.velocity_range = {0, 127}
+        end
+      -- Add *Instr. Macros device to each track if enabled in preferences
+      if preferences.pakettiLoaderDontCreateAutomationDevice.value == false then
+          renoise.song().selected_track_index = i
+          addInstrMacrosToTrack(i)
+        end
+      end
+    
+    end
+    
+    update_instrument_list_and_popups()
+    -- Switch back to pattern editor when done
+   --renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+    renoise.app():show_status("Sequential loading completed - All instruments loaded")
+  end
+
+  -- Function to start the processing
+  local function startProcessing()
+    -- Create ProcessSlicer
+    slicer = ProcessSlicer(process)
+    
+    -- Create progress dialog with status for all 8 parts
+    local vb = renoise.ViewBuilder()
+    local DEFAULT_MARGIN = renoise.ViewBuilder.DEFAULT_CONTROL_MARGIN
+    local DEFAULT_SPACING = renoise.ViewBuilder.DEFAULT_CONTROL_SPACING
+    
+    local dialog_content = vb:column {
+      margin = DEFAULT_MARGIN,
+      spacing = DEFAULT_SPACING,
+    }
+    
+    -- Add status labels for all 8 parts
+    for i = 1, 8 do
+      local folder_name = getFilename(folders[i])
+      local status_label = vb:text {
+        text = string.format("Part %d/8: Queued - Random from %s", i, folder_name),
+        font = "bold",
+        style = "strong"
+      }
+      status_labels[i] = status_label
+      dialog_content:add_child(status_label)
+    end
+    
+    -- Add cancel button
+    dialog_content:add_child(vb:button {
+      text = "Cancel",
+      width = 80,
+      notifier = function()
+        slicer:cancel()
+        if dialog and dialog.visible then
+          dialog:close()
+        end
+        renoise.app():show_status("Sequential loading cancelled by user")
+      end
+    })
+    
+    -- Show dialog
+    dialog = renoise.app():show_custom_dialog(
+      "Paketti Groovebox 8120 Sequential Load Progress Dialog", dialog_content)
+    
+    -- Start processing
+    slicer:start()
+  end
+
+  -- Function to prompt for next folder
+  local function promptNextFolder()
+    local folder_path = renoise.app():prompt_for_path(string.format("Select folder %d of 8 for sequential loading", current_folder))
+    if folder_path then
+      folders[current_folder] = folder_path
+      local folder_name = getFilename(folder_path)
+      renoise.app():show_status(string.format("Selected folder %d/8: %s", current_folder, folder_name))
+      current_folder = current_folder + 1
+      if current_folder <= 8 then
+        return promptNextFolder()
+      else
+        -- All folders selected, start processing
+        renoise.app():show_status("All folders selected, starting sequential load...")
+        startProcessing()
+      end
+    else
+      -- User cancelled folder selection
+      if dialog and dialog.visible then
+        dialog:close()
+      end
+      renoise.app():show_status("Sequential loading cancelled - folder selection aborted")
+      return
+    end
+  end
+
+  -- Start by prompting for folders
+  promptNextFolder()
+end

@@ -1537,7 +1537,9 @@ step_slider = vb:slider {
     dialog = renoise.app():show_custom_dialog("Paketti Timestretch Dialog", dialog_content, Timekeyhandlerfunc)
 end
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Timestretch Dialog...",invoke=create_timestretch_dialog}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Paketti Timestretch Dialog...",invoke=create_timestretch_dialog}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Paketti Timestretch Dialog...",invoke=create_timestretch_dialog}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Paketti Timestretch Dialog...",invoke=create_timestretch_dialog}
 renoise.tool():add_keybinding{name="Global:Paketti:Timestretch Dialog...",invoke=create_timestretch_dialog}
 render_context = {
     source_track = 0,

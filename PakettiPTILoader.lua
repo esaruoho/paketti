@@ -2,7 +2,9 @@ local bit = require("bit")
 
 local function get_clean_filename(filepath)
   local filename = filepath:match("[^/\\]+$")
-  if filename then return filename:gsub("%.pti$", "") end
+  if filename then 
+    return filename:gsub("%.pti$", "") 
+  end
   return "PTI Sample"
 end
 
@@ -32,46 +34,79 @@ local function pti_loadsample(filepath)
   local pcm_data = file:read("*a")
   file:close()
 
-  -- Initialize with Paketti default instrument
+  -- Detect if PCM data is mono or stereo
+  local expected_mono_bytes = sample_length * 2
+  local expected_stereo_bytes = sample_length * 4
+  local is_stereo = #pcm_data >= expected_stereo_bytes
+
+  print(string.format("-- PCM data size = %d bytes | Expected mono = %d | Expected stereo = %d | Detected: %s",
+    #pcm_data, expected_mono_bytes, expected_stereo_bytes, is_stereo and "Stereo" or "Mono"))
+
+  -- Insert a new instrument and setup with Paketti defaults
   renoise.song():insert_instrument_at(renoise.song().selected_instrument_index + 1)
   renoise.song().selected_instrument_index = renoise.song().selected_instrument_index + 1
 
   pakettiPreferencesDefaultInstrumentLoader()
   local smp = renoise.song().selected_instrument.samples[1]
-
-  -- Set names for instrument, sample, and related components immediately after creation
   local clean_name = get_clean_filename(filepath)
   renoise.song().selected_instrument.name = clean_name
   smp.name = clean_name
-  renoise.song().instruments[renoise.song().selected_instrument_index].sample_modulation_sets[1].name = clean_name
-  renoise.song().instruments[renoise.song().selected_instrument_index].sample_device_chains[1].name = clean_name
+  renoise.song().instruments[renoise.song().selected_instrument_index]
+      .sample_modulation_sets[1].name = clean_name
+  renoise.song().instruments[renoise.song().selected_instrument_index]
+      .sample_device_chains[1].name = clean_name
 
-  -- Create and fill sample buffer in the first slot
-  smp.sample_buffer:create_sample_data(44100, 16, 1, sample_length)
+  -- Create the sample buffer using the stereo flag
+  smp.sample_buffer:create_sample_data(44100, 16, is_stereo and 2 or 1, sample_length)
   local buffer = smp.sample_buffer
-  
-  -- Read number of valid slices from offset 376
-  local slice_count = string.byte(header, 377) -- Lua strings are 1-indexed
-  
-  -- Print format information with slice count
+
+  -- Read the number of valid slices from the header (1-indexed Lua)
+  local slice_count = string.byte(header, 377)
+
   print(string.format("-- Format: %s, %dHz, %d-bit, %d frames, sliceCount = %d", 
-    "Mono", 44100, 16, sample_length, slice_count))
+    is_stereo and "Stereo" or "Mono", 44100, 16, sample_length, slice_count))
+  print(string.format("-- Stereo detected by blockwise comparison: %s", tostring(is_stereo)))
 
   buffer:prepare_sample_data_changes()
 
-  for i = 1, sample_length do
-    local byte_offset = (i - 1) * 2 + 1
-    local lo = pcm_data:byte(byte_offset) or 0
-    local hi = pcm_data:byte(byte_offset + 1) or 0
-    local sample = bit.bor(bit.lshift(hi, 8), lo)
-    if sample >= 32768 then sample = sample - 65536 end
-    buffer:set_sample_data(1, i, sample / 32768)
+  if is_stereo then
+    -- For stereo, left and right channels are stored in two separate blocks.
+    local left_offset = 0
+    local right_offset = sample_length * 2
+  
+    for i = 1, sample_length do
+      local byteL = left_offset + (i - 1) * 2 + 1
+      local byteR = right_offset + (i - 1) * 2 + 1
+  
+      local loL = pcm_data:byte(byteL) or 0
+      local hiL = pcm_data:byte(byteL + 1) or 0
+      local loR = pcm_data:byte(byteR) or 0
+      local hiR = pcm_data:byte(byteR + 1) or 0
+  
+      local sampleL = bit.bor(bit.lshift(hiL, 8), loL)
+      local sampleR = bit.bor(bit.lshift(hiR, 8), loR)
+  
+      if sampleL >= 32768 then sampleL = sampleL - 65536 end
+      if sampleR >= 32768 then sampleR = sampleR - 65536 end
+  
+      buffer:set_sample_data(1, i, sampleL / 32768)
+      buffer:set_sample_data(2, i, sampleR / 32768)
+    end
+  else
+    for i = 1, sample_length do
+      local byte_offset = (i - 1) * 2 + 1
+      local lo = pcm_data:byte(byte_offset) or 0
+      local hi = pcm_data:byte(byte_offset + 1) or 0
+      local sample = bit.bor(bit.lshift(hi, 8), lo)
+      if sample >= 32768 then sample = sample - 65536 end
+      buffer:set_sample_data(1, i, sample / 32768)
+    end
   end
-
+  
   buffer:finalize_sample_data_changes()
 
-  -- Read loop data
-  local loop_mode_byte = string.byte(header, 77) -- offset 76 in 1-based Lua
+  -- Read loop data from the header
+  local loop_mode_byte = string.byte(header, 77)
   local loop_start_raw = read_uint16_le(header, 80)
   local loop_end_raw = read_uint16_le(header, 82)
 
@@ -82,25 +117,16 @@ local function pti_loadsample(filepath)
     [3] = "PingPong"
   }
 
-  -- Convert to sample frames (PTI spec defines range as 1-65534)
-  -- We need to map from 1-65534 to 1-sample_length
   local function map_loop_point(value, sample_len)
-    -- Ensure value is in valid range
     value = math.max(1, math.min(value, 65534))
-    -- Map from 1-65534 to 1-sample_length
     return math.max(1, math.min(math.floor(((value - 1) / 65533) * (sample_len - 1)) + 1, sample_len))
   end
 
   local loop_start_frame = map_loop_point(loop_start_raw, sample_length)
   local loop_end_frame = map_loop_point(loop_end_raw, sample_length)
-
-  -- Ensure end is after start and within sample bounds
   loop_end_frame = math.max(loop_start_frame + 1, math.min(loop_end_frame, sample_length))
-
-  -- Calculate loop length
   local loop_length = loop_end_frame - loop_start_frame
 
-  -- Set loop mode
   local loop_modes = {
     [0] = renoise.Sample.LOOP_MODE_OFF,
     [1] = renoise.Sample.LOOP_MODE_FORWARD,
@@ -112,254 +138,279 @@ local function pti_loadsample(filepath)
   smp.loop_start = loop_start_frame
   smp.loop_end = loop_end_frame
 
-  -- Print loop information (ensure we show OFF for mode 0)
   print(string.format("-- Loopmode: %s, Start: %d, End: %d, Looplength: %d", 
     loop_mode_names[loop_mode_byte] or "OFF",
     loop_start_frame,
     loop_end_frame,
     loop_length))
  
--- Wavetable detection
-local is_wavetable = string.byte(header, 21) -- offset 20 in 1-based Lua
-local wavetable_window = read_uint16_le(header, 64)
-local wavetable_total_positions = read_uint16_le(header, 68)
-local wavetable_position = read_uint16_le(header, 88)
+  -- Wavetable detection
+  local is_wavetable = string.byte(header, 21)
+  local wavetable_window = read_uint16_le(header, 64)
+  local wavetable_total_positions = read_uint16_le(header, 68)
+  local wavetable_position = read_uint16_le(header, 88)
 
-if is_wavetable == 1 then
-  print(string.format("-- Wavetable Mode: TRUE, Window: %d, Total Positions: %d, Position: %d (%.2f%%)", 
-    wavetable_window,
-    wavetable_total_positions,
-    wavetable_position,
-    (wavetable_total_positions > 0) and (wavetable_position / wavetable_total_positions * 100) or 0))
+  if is_wavetable == 1 then
+    print(string.format("-- Wavetable Mode: TRUE, Window: %d, Total Positions: %d, Position: %d (%.2f%%)", 
+      wavetable_window,
+      wavetable_total_positions,
+      wavetable_position,
+      (wavetable_total_positions > 0) and (wavetable_position / wavetable_total_positions * 100) or 0))
 
-  -- Calculate wavetable loop points
-  local loop_start = wavetable_position * wavetable_window
-  local loop_end = loop_start + wavetable_window
-
-  -- Clamp to sample bounds
-  loop_start = math.max(1, math.min(loop_start, sample_length - wavetable_window))
-  loop_end = loop_start + wavetable_window
-
-  print(string.format("-- Original Wavetable Loop: Start = %d, End = %d (Position %03d of %d)", 
-    loop_start, loop_end, wavetable_position, wavetable_total_positions))
-
-  -- Store the original PCM data and buffer data
-  local original_pcm_data = pcm_data
-  local original_sample_length = sample_length
-
-  -- First slot: Create the full wavetable
-  smp.sample_buffer:create_sample_data(44100, 16, 1, original_sample_length)
-  local wavetable_buffer = smp.sample_buffer
-  wavetable_buffer:prepare_sample_data_changes()
-
-  -- Copy the complete data to the wavetable slot
-  for i = 1, original_sample_length do
-    local byte_offset = (i - 1) * 2 + 1
-    local lo = string.byte(original_pcm_data, byte_offset) or 0
-    local hi = string.byte(original_pcm_data, byte_offset + 1) or 0
-    local sample = bit.bor(bit.lshift(hi, 8), lo)
-    if sample >= 32768 then sample = sample - 65536 end
-    wavetable_buffer:set_sample_data(1, i, sample / 32768)
-  end
-
-  wavetable_buffer:finalize_sample_data_changes()
   
-  -- Set properties for the wavetable slot
-  smp.name = clean_name .. " (Wavetable)"
-  smp.loop_mode = renoise.Sample.LOOP_MODE_FORWARD
-  smp.loop_start = loop_start
-  smp.loop_end = loop_end
-  smp.volume = 1.0
-  smp.sample_mapping.note_range = {0, 119}
-  -- Set velocity to 0 for the full wavetable
-  smp.sample_mapping.velocity_range = {0, 0}
+    local loop_start = wavetable_position * wavetable_window
+    local loop_end = loop_start + wavetable_window
+    loop_start = math.max(1, math.min(loop_start, sample_length - wavetable_window))
+    loop_end = loop_start + wavetable_window
 
-  -- Clear any existing samples except the first one (wavetable)
-  local current_instrument = renoise.song().selected_instrument
-  while #current_instrument.samples > 1 do
-    current_instrument:delete_sample_at(#current_instrument.samples)
-  end
+    print(string.format("-- Original Wavetable Loop: Start = %d, End = %d (Position %03d of %d)", 
+      loop_start, loop_end, wavetable_position, wavetable_total_positions))
 
-  -- Create a sample slot for each position starting from slot 2
-  for pos = 0, wavetable_total_positions - 1 do
-    local pos_start = pos * wavetable_window
+    local original_pcm_data = pcm_data
+    local original_sample_length = sample_length
+
+    -- Overwrite the current buffer with the complete wavetable data
+    smp.sample_buffer:create_sample_data(44100, 16, is_stereo and 2 or 1, sample_length)
+    local wavetable_buffer = smp.sample_buffer
+    wavetable_buffer:prepare_sample_data_changes()
+
+    if is_stereo then
+      local left_offset = 0
+      local right_offset = sample_length * 2
+      for i = 1, original_sample_length do
+        local byteL = left_offset + (i - 1) * 2 + 1
+        local byteR = right_offset + (i - 1) * 2 + 1
+        local loL = string.byte(original_pcm_data, byteL) or 0
+        local hiL = string.byte(original_pcm_data, byteL + 1) or 0
+        local loR = string.byte(original_pcm_data, byteR) or 0
+        local hiR = string.byte(original_pcm_data, byteR + 1) or 0
+        local sampleL = bit.bor(bit.lshift(hiL, 8), loL)
+        local sampleR = bit.bor(bit.lshift(hiR, 8), loR)
+        if sampleL >= 32768 then sampleL = sampleL - 65536 end
+        if sampleR >= 32768 then sampleR = sampleR - 65536 end
+        wavetable_buffer:set_sample_data(1, i, sampleL / 32768)
+        wavetable_buffer:set_sample_data(2, i, sampleR / 32768)
+      end
+    else
+      for i = 1, original_sample_length do
+        local byte_offset = (i - 1) * 2 + 1
+        local lo = string.byte(original_pcm_data, byte_offset) or 0
+        local hi = string.byte(original_pcm_data, byte_offset + 1) or 0
+        local sample = bit.bor(bit.lshift(hi, 8), lo)
+        if sample >= 32768 then sample = sample - 65536 end
+        wavetable_buffer:set_sample_data(1, i, sample / 32768)
+      end
+    end
+
+    wavetable_buffer:finalize_sample_data_changes()
     
-    -- Create new sample slot
-    local new_sample = current_instrument:insert_sample_at(pos + 2) -- Start from slot 2
-    -- Create and fill the buffer for this position
-    new_sample.sample_buffer:create_sample_data(44100, 16, 1, wavetable_window)
-    local new_buffer = new_sample.sample_buffer
-    new_buffer:prepare_sample_data_changes()
-    
-    -- Copy the window data for this position
-    for i = 1, wavetable_window do
-      -- Calculate byte offset in the original PCM data
-      local byte_offset = ((pos_start + i - 1) * 2) + 1
+    -- Set properties for the wavetable slot
+    smp.name = clean_name .. " (Wavetable)"
+    smp.loop_mode = renoise.Sample.LOOP_MODE_FORWARD
+    smp.loop_start = loop_start
+    smp.loop_end = loop_end
+    smp.volume = 1.0
+    smp.sample_mapping.note_range = {0, 119}
+    smp.sample_mapping.velocity_range = {0, 0}
+
+    local current_instrument = renoise.song().selected_instrument
+    while #current_instrument.samples > 1 do
+      current_instrument:delete_sample_at(#current_instrument.samples)
+    end
+
+    for pos = 0, wavetable_total_positions - 1 do
+      local pos_start = pos * wavetable_window
+      local new_sample = current_instrument:insert_sample_at(pos + 2)
+      new_sample.sample_buffer:create_sample_data(44100, 16, is_stereo and 2 or 1, wavetable_window)
+      local new_buffer = new_sample.sample_buffer
+      new_buffer:prepare_sample_data_changes()
       
-      -- Read the bytes and convert to sample value
-      local lo = string.byte(original_pcm_data, byte_offset) or 0
-      local hi = string.byte(original_pcm_data, byte_offset + 1) or 0
-      local sample = bit.bor(bit.lshift(hi, 8), lo)
-      
-      -- Convert from signed 16-bit to float
-      if sample >= 32768 then 
-        sample = sample - 65536 
+      if is_stereo then
+        local left_offset = 0
+        local right_offset = sample_length * 2
+        for i = 1, wavetable_window do
+          local byteL = left_offset + (pos_start + i - 1) * 2 + 1
+          local byteR = right_offset + (pos_start + i - 1) * 2 + 1
+          local loL = string.byte(original_pcm_data, byteL) or 0
+          local hiL = string.byte(original_pcm_data, byteL + 1) or 0
+          local loR = string.byte(original_pcm_data, byteR) or 0
+          local hiR = string.byte(original_pcm_data, byteR + 1) or 0
+          local sampleL = bit.bor(bit.lshift(hiL, 8), loL)
+          local sampleR = bit.bor(bit.lshift(hiR, 8), loR)
+          if sampleL >= 32768 then sampleL = sampleL - 65536 end
+          if sampleR >= 32768 then sampleR = sampleR - 65536 end
+          new_buffer:set_sample_data(1, i, sampleL / 32768)
+          new_buffer:set_sample_data(2, i, sampleR / 32768)
+        end
+      else
+        for i = 1, wavetable_window do
+          local byte_offset = ((pos_start + i - 1) * 2) + 1
+          local lo = string.byte(original_pcm_data, byte_offset) or 0
+          local hi = string.byte(original_pcm_data, byte_offset + 1) or 0
+          local sample = bit.bor(bit.lshift(hi, 8), lo)
+          if sample >= 32768 then sample = sample - 65536 end
+          new_buffer:set_sample_data(1, i, sample / 32768)
+        end
       end
       
-      -- Set the sample data (-1.0 to 1.0 range)
-      new_buffer:set_sample_data(1, i, sample / 32768)
+      new_buffer:finalize_sample_data_changes()
+      
+      local first_val = new_buffer:sample_data(1, 1)
+      print(string.format("-- Position %03d first sample value: %.6f", pos, first_val))
+  
+      new_sample.loop_mode = renoise.Sample.LOOP_MODE_FORWARD
+      new_sample.loop_start = 1
+      new_sample.loop_end = wavetable_window
+      new_sample.name = string.format("%s (Pos %03d)", clean_name, pos)
+      new_sample.volume = 1.0
+      new_sample.sample_mapping.note_range = {0, 119}
+  
+      if pos == wavetable_position then
+        new_sample.sample_mapping.velocity_range = {0, 127}
+        print(string.format("-- Setting full velocity range for position %03d", pos))
+      else
+        new_sample.sample_mapping.velocity_range = {0, 0}
+      end
     end
-    
-    new_buffer:finalize_sample_data_changes()
-    
-    -- Print first sample value for debugging
-    local first_val = new_buffer:sample_data(1, 1)
-    print(string.format("-- Position %03d first sample value: %.6f", pos, first_val))
-
-    -- Set sample properties
-    new_sample.loop_mode = renoise.Sample.LOOP_MODE_FORWARD
-    new_sample.loop_start = 1
-    new_sample.loop_end = wavetable_window
-    
-    -- Set name to indicate position with 3-digit format
-    new_sample.name = string.format("%s (Pos %03d)", clean_name, pos)
-
-    -- Set volume to 1 for all samples
-    new_sample.volume = 1.0
-
-    -- All samples get full key range C-0 to B-9
-    new_sample.sample_mapping.note_range = {0, 119} -- C-0 to B-9
-
-    -- Control visibility through velocity mapping
-    if pos == wavetable_position then
-      -- Selected position gets full velocity range
-      new_sample.sample_mapping.velocity_range = {0, 127}
-      print(string.format("-- Setting full velocity range for position %03d", pos))
-    else
-      -- Other positions get zero velocity
-      new_sample.sample_mapping.velocity_range = {0, 0}
-    end
+  
+    print(string.format("-- Created wavetable with %d positions, window size %d",
+      wavetable_total_positions, wavetable_window))
+  else
+    print("-- Wavetable Mode: FALSE")
   end
 
-  print(string.format("-- Created wavetable with %d positions, window size %d", 
-    wavetable_total_positions, wavetable_window))
-else
-  print("-- Wavetable Mode: FALSE")
-end
-
-
-    
--- Process only actual slices
-local slice_frames = {}
-for i = 0, slice_count - 1 do
-  local offset = 280 + i * 2
-  local raw_value = read_uint16_le(header, offset)
-  if raw_value >= 0 and raw_value <= 65535 then
-    local frame = math.floor((raw_value / 65535) * sample_length)
-    table.insert(slice_frames, frame)
-  end
-end
-
-table.sort(slice_frames)
-
--- Detect audio content length
-local abs_threshold = 0.001
-local function find_trim_range()
-  local nonzero_found = false
-  local first, last = 1, sample_length
-  for i = 1, sample_length do
-    local val = math.abs(buffer:sample_data(1, i))
-    if not nonzero_found and val > abs_threshold then
-      first = i
-      nonzero_found = true
-    end
-    if val > abs_threshold then
-      last = i
-    end
-  end
-  return first, last
-end
-
-local _, last_content_frame = find_trim_range()
-local keep_ratio = last_content_frame / sample_length
-
-if math.abs(keep_ratio - 0.5) < 0.01 then
-  print(string.format("-- Detected 50%% silence: trimming to %d frames", last_content_frame))
-
-  -- Rescale slice markers
-  local rescaled_slices = {}
-  for _, old_frame in ipairs(slice_frames) do
-    local new_frame = math.floor((old_frame / sample_length) * last_content_frame)
-    table.insert(rescaled_slices, new_frame)
-  end
-
-  -- Trim sample buffer by recreating it
-  local trimmed_length = last_content_frame
-  local old_data = {}
-
-  for i = 1, trimmed_length do
-    old_data[i] = buffer:sample_data(1, i)
-  end
-
-  -- Recreate the buffer with only the trimmed content
-  smp.sample_buffer:create_sample_data(44100, 16, 1, trimmed_length)
-  buffer = smp.sample_buffer
-  buffer:prepare_sample_data_changes()
-
-  for i = 1, trimmed_length do
-    buffer:set_sample_data(1, i, old_data[i])
-  end
-
-  buffer:finalize_sample_data_changes()
-  sample_length = trimmed_length -- update for future use
-
-  -- Apply rescaled slices
-  for i, frame in ipairs(rescaled_slices) do
-    print(string.format("-- Slice %02d at frame: %d", i, frame))
-    smp:insert_slice_marker(frame + 1)
-  end
-
-  -- Enable oversampling for all slices
-  for i = 1, #smp.slice_markers do
-    local slice_sample = renoise.song().selected_instrument.samples[i+1]
-    if slice_sample then
-      slice_sample.oversample_enabled = preferences.pakettiLoaderOverSampling.value
+  -- Process slice markers. (Note: slice_count was taken from header at offset 377.)
+  local slice_frames = {}
+  for i = 0, slice_count - 1 do
+    local offset = 280 + i * 2
+    local raw_value = read_uint16_le(header, offset)
+    if raw_value >= 0 and raw_value <= 65535 then
+      local frame = math.floor((raw_value / 65535) * sample_length)
+      table.insert(slice_frames, frame)
     end
   end
 
-else
-  -- Apply original slices
-  if #slice_frames > 0 then
-    for i, frame in ipairs(slice_frames) do
+  table.sort(slice_frames)
+
+  -- Detect audio content length for possible trimming
+  local abs_threshold = 0.001
+  local function find_trim_range()
+    local nonzero_found = false
+    local first, last = 1, sample_length
+    for i = 1, sample_length do
+      local val = math.abs(buffer:sample_data(1, i))
+      if not nonzero_found and val > abs_threshold then
+        first = i
+        nonzero_found = true
+      end
+      if val > abs_threshold then
+        last = i
+      end
+    end
+    return first, last
+  end
+
+  local _, last_content_frame = find_trim_range()
+  local keep_ratio = last_content_frame / sample_length
+
+  if math.abs(keep_ratio - 0.5) < 0.01 then
+    print(string.format("-- Detected 50%% silence: trimming to %d frames", last_content_frame))
+
+    local rescaled_slices = {}
+    for _, old_frame in ipairs(slice_frames) do
+      local new_frame = math.floor((old_frame / sample_length) * last_content_frame)
+      table.insert(rescaled_slices, new_frame)
+    end
+
+    -- Save current sample data before trimming
+    local trimmed_length = last_content_frame
+    local old_data = {}
+    for i = 1, trimmed_length do
+      if is_stereo then
+        old_data[i] = {
+          left = buffer:sample_data(1, i),
+          right = buffer:sample_data(2, i)
+        }
+      else
+        old_data[i] = buffer:sample_data(1, i)
+      end
+    end
+
+    -- Recreate the buffer with the trimmed length, using the stereo flag
+    smp.sample_buffer:create_sample_data(44100, 16, is_stereo and 2 or 1, trimmed_length)
+    buffer = smp.sample_buffer
+    buffer:prepare_sample_data_changes()
+    for i = 1, trimmed_length do
+      if is_stereo then
+        buffer:set_sample_data(1, i, old_data[i].left)
+        buffer:set_sample_data(2, i, old_data[i].right)
+      else
+        buffer:set_sample_data(1, i, old_data[i])
+      end
+    end
+    buffer:finalize_sample_data_changes()
+    sample_length = trimmed_length  -- update sample_length for later use
+
+    -- Apply rescaled slice markers
+    for i, frame in ipairs(rescaled_slices) do
       print(string.format("-- Slice %02d at frame: %d", i, frame))
       smp:insert_slice_marker(frame + 1)
-    end    
+    end
+
     -- Enable oversampling for all slices
     for i = 1, #smp.slice_markers do
-      local slice_sample = renoise.song().selected_instrument.samples[i+1]
+      local slice_sample = renoise.song().selected_instrument.samples[i + 1]
       if slice_sample then
         slice_sample.oversample_enabled = preferences.pakettiLoaderOverSampling.value
+        slice_sample.autofade = preferences.pakettiLoaderAutofade.value
+        slice_sample.autoseek = preferences.pakettiLoaderAutoseek.value
+        slice_sample.interpolation_mode = preferences.pakettiLoaderInterpolation.value
+        slice_sample.oversample_enabled = preferences.pakettiLoaderOverSampling.value
+        slice_sample.oneshot = preferences.pakettiLoaderOneshot.value
+        slice_sample.new_note_action = preferences.pakettiLoaderNNA.value
+
+      end
+    end
+
+  else
+    -- Apply original slices if no trim is necessary
+    if #slice_frames > 0 then
+      for i, frame in ipairs(slice_frames) do
+        print(string.format("-- Slice %02d at frame: %d", i, frame))
+        smp:insert_slice_marker(frame + 1)
+      end    
+      for i = 1, #smp.slice_markers do
+        local slice_sample = renoise.song().selected_instrument.samples[i + 1]
+        if slice_sample then
+          slice_sample.oversample_enabled = preferences.pakettiLoaderOverSampling.value
+          slice_sample.autofade = preferences.pakettiLoaderAutofade.value
+          slice_sample.autoseek = preferences.pakettiLoaderAutoseek.value
+          slice_sample.interpolation_mode = preferences.pakettiLoaderInterpolation.value
+          slice_sample.oversample_enabled = preferences.pakettiLoaderOverSampling.value
+          slice_sample.oneshot = preferences.pakettiLoaderOneshot.value
+          slice_sample.new_note_action = preferences.pakettiLoaderNNA.value
+        
+
+        end
       end
     end
   end
-end
-  -- Apply Paketti Loader defaults before slicing
+
+  -- Apply Paketti Loader preferences to the sample
   smp.autofade = preferences.pakettiLoaderAutofade.value
   smp.autoseek = preferences.pakettiLoaderAutoseek.value
-  --  smp.loop_mode = preferences.pakettiLoaderLoopMode.value
   smp.interpolation_mode = preferences.pakettiLoaderInterpolation.value
   smp.oversample_enabled = preferences.pakettiLoaderOverSampling.value
   smp.oneshot = preferences.pakettiLoaderOneshot.value
   smp.new_note_action = preferences.pakettiLoaderNNA.value
   -- smp.loop_release = preferences.pakettiLoaderLoopExit.value
 
-  -- Show status message
-local total_slices = #renoise.song().selected_instrument.samples[1].slice_markers
-if total_slices > 0 then
-  renoise.app():show_status(string.format("PTI imported with %d slice markers", total_slices))
-else
-  renoise.app():show_status("PTI imported successfully")
-end
+  local total_slices = #renoise.song().selected_instrument.samples[1].slice_markers
+  if total_slices > 0 then
+    renoise.app():show_status(string.format("PTI imported with %d slice markers", total_slices))
+  else
+    renoise.app():show_status("PTI imported successfully")
+  end
 end
 
 local pti_integration = {
