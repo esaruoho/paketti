@@ -122,7 +122,11 @@ function capture_ins_oct(state)
       end
    end
 
-   -- If we're in Phrase Editor, go back to Pattern Editor
+   if renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_PHRASE_EDITOR and renoise.song().selected_phrase == nil and #renoise.song().selected_instrument.phrases == 0 then 
+      pakettiInitPhraseSettingsCreateNewPhrase()
+      renoise.song().selected_phrase_index = 1
+   return end
+
    if renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_PHRASE_EDITOR then
       renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
       renoise.app():show_status("Back to Pattern Editor.")
@@ -160,13 +164,7 @@ function capture_ins_oct(state)
       end 
    end
    
-   if renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_PHRASE_EDITOR and renoise.song().selected_phrase == nil and #renoise.song().selected_instrument.phrases == 0 then 
-      pakettiInitPhraseSettingsCreateNewPhrase()
-      
-      
---      renoise.song().instruments[renoise.song().selected_instrument_index]:insert_phrase_at(1)
-      renoise.song().selected_phrase_index = 1
-   return end
+
 
    if not closest_note.ins then
       renoise.app():show_status("No nearby instrument found.")

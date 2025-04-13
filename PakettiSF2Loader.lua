@@ -1,12 +1,12 @@
 --------------------------------------------------------------------------------
--- Advanced SF2 Importer for Renoise
--- Single XRNI per preset, merges multiple SF2 instruments if needed.
--- Drum presets (bank == 128) get one-sample-per-key mapping (C-0, C#0, D-0, etc.)
+-- SF2 Importer with Detailed Debugging of Panning, Transpose, Fine-Tune, and Key Ranges
 --------------------------------------------------------------------------------
 
 local _DEBUG = true
 local function dprint(...)
-  if _DEBUG then print("SF2 Tool:", ...) end
+  if _DEBUG then
+    print("SF2 Tool:", ...)
+  end
 end
 
 --------------------------------------------------------------------------------
@@ -32,154 +32,192 @@ end
 
 local function read_s16_le(data, pos)
   local val = read_u16_le(data, pos)
-  if val >= 32768 then return val - 65536 else return val end
+  if val >= 32768 then
+    return val - 65536
+  else
+    return val
+  end
+end
+
+-- Convert a 16-bit unsigned generator value to a signed integer
+local function to_signed(val)
+  -- First ensure val is in 0-65535 range
+  val = val % 65536
+  -- Then convert to signed, but scale it to -120..120 range
+  if val >= 32768 then
+    -- Scale negative range from -120 to 0
+    local neg = val - 65536  -- This gives us -32768 to -1
+    return (neg * 120) / 32768
+  else
+    -- Scale positive range from 0 to 120
+    return (val * 120) / 32768
+  end
 end
 
 --------------------------------------------------------------------------------
--- Step 1: Read SHDR (Sample Headers)
+-- Step 1: Read Sample Headers (SHDR)
 --------------------------------------------------------------------------------
 local function read_sample_headers(data)
   local shdr_pos = data:find("shdr", 1, true)
   if not shdr_pos then
-    renoise.app():show_error("SF2 file missing 'shdr' chunk")
+    renoise.app():show_error("SF2 file missing 'shdr' chunk.")
     return nil
   end
+
   local shdr_size = read_u32_le(data, shdr_pos + 4)
   local shdr_data_start = shdr_pos + 8
   local record_size = 46
   local headers = {}
+
   local pos = shdr_data_start
-  while pos + record_size - 1 <= shdr_data_start + shdr_size - 1 do
-    local sample_name = data:sub(pos, pos+19)
+  while (pos + record_size - 1) <= (shdr_data_start + shdr_size - 1) do
+    local sample_name = data:sub(pos, pos + 19)
     pos = pos + 20
-    local s_start = read_u32_le(data, pos); pos=pos+4
-    local s_end   = read_u32_le(data, pos); pos=pos+4
-    local loop_start = read_u32_le(data, pos); pos=pos+4
-    local loop_end   = read_u32_le(data, pos); pos=pos+4
-    local sample_rate = read_u32_le(data, pos); pos=pos+4
-    local orig_pitch  = data:byte(pos); pos=pos+1
-    local pitch_corr  = data:byte(pos); pos=pos+1
+    local s_start = read_u32_le(data, pos) ; pos = pos + 4
+    local s_end   = read_u32_le(data, pos) ; pos = pos + 4
+    local loop_start = read_u32_le(data, pos) ; pos = pos + 4
+    local loop_end   = read_u32_le(data, pos) ; pos = pos + 4
+    local sample_rate = read_u32_le(data, pos) ; pos = pos + 4
+    local orig_pitch  = data:byte(pos) ; pos = pos + 1
+    local pitch_corr  = data:byte(pos) ; pos = pos + 1
     if pitch_corr >= 128 then pitch_corr = pitch_corr - 256 end
-    local sample_link = read_u16_le(data, pos); pos=pos+2
-    local sample_type = read_u16_le(data, pos); pos=pos+2
+    local sample_link = read_u16_le(data, pos) ; pos = pos + 2
+    local sample_type = read_u16_le(data, pos) ; pos = pos + 2
+
     local name = trim_string(sample_name)
-    if name:find("EOS") then
-      break
-    end
-    table.insert(headers, {
-      name = name,
-      s_start = s_start,
-      s_end   = s_end,
-      loop_start = loop_start,
-      loop_end   = loop_end,
+    if name:find("EOS") then break end
+
+    headers[#headers + 1] = {
+      name        = name,
+      s_start     = s_start,
+      s_end       = s_end,
+      loop_start  = loop_start,
+      loop_end    = loop_end,
       sample_rate = sample_rate,
       orig_pitch  = orig_pitch,
       pitch_corr  = pitch_corr,
       sample_link = sample_link,
-      sample_type = sample_type
-    })
+      sample_type = sample_type,
+    }
   end
+
   dprint("Total sample headers (excluding EOS):", #headers)
   return headers
 end
 
 --------------------------------------------------------------------------------
--- Step 2: Read Instrument Zones (INST, IBAG, IGEN)
--- For each instrument, store .zones = { {params={}, sample_id?=...}, ... }
+-- Step 2: Parse Instrument Zones (INST, IBAG, IGEN)
 --------------------------------------------------------------------------------
 local function read_instruments(data)
   local pdta_pos = data:find("pdta", 1, true)
   if not pdta_pos then
-    dprint("No pdta chunk found (read_instruments).")
+    dprint("No pdta chunk found for instrument analysis.")
     return {}
   end
-  local pdta_data_start = pdta_pos + 8
 
-  local inst_pos = data:find("inst", pdta_data_start, true)
+  local inst_pos = data:find("inst", pdta_pos + 8, true)
   if not inst_pos then
     dprint("No inst chunk found.")
     return {}
   end
+
   local inst_size = read_u32_le(data, inst_pos + 4)
   local inst_data_start = inst_pos + 8
   local inst_record_size = 22
   local instruments = {}
+
   local pos = inst_data_start
-  while pos + inst_record_size - 1 <= inst_data_start + inst_size - 1 do
-    local inst_name = trim_string(data:sub(pos, pos+19))
-    local bag_index = read_u16_le(data, pos+20)
-    table.insert(instruments, { name=inst_name, bag_index=bag_index })
+  while (pos + inst_record_size - 1) <= (inst_data_start + inst_size - 1) do
+    local inst_name = trim_string(data:sub(pos, pos + 19))
+    local bag_index = read_u16_le(data, pos + 20)
+    instruments[#instruments + 1] = { name = inst_name, bag_index = bag_index }
     pos = pos + inst_record_size
   end
 
-  local ibag_pos = data:find("ibag", pdta_data_start, true)
+  local ibag_pos = data:find("ibag", pdta_pos + 8, true)
   if not ibag_pos then
     dprint("No ibag chunk found.")
     return instruments
   end
+
   local ibag_size = read_u32_le(data, ibag_pos + 4)
   local ibag_data_start = ibag_pos + 8
   local ibag_record_size = 4
   local ibags = {}
+
   pos = ibag_data_start
-  while pos + ibag_record_size - 1 <= ibag_data_start + ibag_size - 1 do
+  while (pos + ibag_record_size - 1) <= (ibag_data_start + ibag_size - 1) do
     local gen_index = read_u16_le(data, pos)
-    local mod_index = read_u16_le(data, pos+2)
-    table.insert(ibags, { gen_index=gen_index, mod_index=mod_index })
+    local mod_index = read_u16_le(data, pos + 2)
+    ibags[#ibags + 1] = { gen_index = gen_index, mod_index = mod_index }
     pos = pos + ibag_record_size
   end
 
-  local igen_pos = data:find("igen", pdta_data_start, true)
+  local igen_pos = data:find("igen", pdta_pos + 8, true)
   if not igen_pos then
     dprint("No igen chunk found.")
     return instruments
   end
+
   local igen_size = read_u32_le(data, igen_pos + 4)
   local igen_data_start = igen_pos + 8
   local igen_record_size = 4
   local igens = {}
+
   pos = igen_data_start
-  while pos + igen_record_size - 1 <= igen_data_start + igen_size - 1 do
+  while (pos + igen_record_size - 1) <= (igen_data_start + igen_size - 1) do
     local op = read_u16_le(data, pos)
-    local amount = read_u16_le(data, pos+2)
-    table.insert(igens, { op=op, amount=amount })
+    local amount = read_u16_le(data, pos + 2)
+    igens[#igens + 1] = { op = op, amount = amount }
     pos = pos + igen_record_size
   end
 
-  -- Construct zones for each instrument
   local instruments_zones = {}
   for i, inst in ipairs(instruments) do
     local zones = {}
     local bag_start = inst.bag_index + 1
-    local bag_end   = #ibags
+    local bag_end = #ibags
     if i < #instruments then
-      bag_end = instruments[i+1].bag_index
+      bag_end = instruments[i + 1].bag_index
     end
     for b = bag_start, bag_end do
       local bag = ibags[b]
       local zone_params = {}
       local gen_start = bag.gen_index + 1
-      local gen_end = (#igens)+1
+      local gen_end = #igens
       if b < #ibags then
-        gen_end = ibags[b+1].gen_index + 1
+        gen_end = ibags[b + 1].gen_index
       end
-      for g=gen_start, gen_end-1 do
+      for g = gen_start, gen_end do
         local gen = igens[g]
         if gen then
-          zone_params[ gen.op ] = gen.amount
+          zone_params[gen.op] = gen.amount
         end
       end
-      local zone = { params=zone_params }
-      -- If operator 53 => sample_id
-      if zone_params[53] then
-        zone.sample_id = zone_params[53]
+      local zone = { params = zone_params }
+      -- Key range
+      if zone_params[43] then
+        local kr = zone_params[43]
+        zone.key_range = {
+          low = kr % 256,
+          high = math.floor(kr / 256) % 256
+        }
       end
-      table.insert(zones, zone)
+      -- Velocity range
+      if zone_params[42] then
+        local vr = zone_params[42]
+        zone.vel_range = {
+          low = vr % 256,
+          high = math.floor(vr / 256) % 256
+        }
+      end
+      -- Sample ID
+      if zone_params[53] then
+        zone.sample_id = zone_params[53]  -- 0-based index
+      end
+      zones[#zones + 1] = zone
     end
-    instruments_zones[i] = {
-      name = inst.name,
-      zones = zones
-    }
+    instruments_zones[i] = { name = inst.name, zones = zones }
   end
 
   dprint("Parsed", #instruments, "instruments with zones.")
@@ -187,42 +225,42 @@ local function read_instruments(data)
 end
 
 --------------------------------------------------------------------------------
--- Step 3: Read Presets (PHDR, PBAG, PGEN)
--- For each preset, store .zones = { { params={} }, ... }
+-- Step 3: Parse Presets (PHDR, PBAG, PGEN)
 --------------------------------------------------------------------------------
 local function read_presets(data)
   local phdr_pos = data:find("phdr", 1, true)
   if not phdr_pos then
-    dprint("No phdr chunk found. No presets.")
+    dprint("No phdr chunk found.")
     return {}
   end
+
   local phdr_size = read_u32_le(data, phdr_pos + 4)
   local phdr_data_start = phdr_pos + 8
   local phdr_record_size = 38
   local presets = {}
+
   local pos = phdr_data_start
-  while (pos + phdr_record_size -1) <= (phdr_data_start + phdr_size -1) do
+  while (pos + phdr_record_size - 1) <= (phdr_data_start + phdr_size - 1) do
     local preset_name = trim_string(data:sub(pos, pos+19))
-    local preset_num  = read_u16_le(data, pos+20)
-    local bank_num    = read_u16_le(data, pos+22)
-    local pbag_idx    = read_u16_le(data, pos+24)
+    local preset = read_u16_le(data, pos+20)
+    local bank = read_u16_le(data, pos+22)
+    local pbag_idx = read_u16_le(data, pos+24)
     if preset_name:find("EOP") then break end
-    table.insert(presets, {
+    presets[#presets + 1] = {
       name = preset_name,
-      preset = preset_num,
-      bank   = bank_num,
+      preset = preset,
+      bank = bank,
       pbag_index = pbag_idx,
       zones = {}
-    })
+    }
     pos = pos + phdr_record_size
   end
 
   local pdta_pos = data:find("pdta", 1, true)
   if not pdta_pos then
-    dprint("No pdta chunk found, cannot parse PBAG/PGEN.")
+    dprint("No pdta chunk available for preset analysis.")
     return presets
   end
-  local pdta_data_start = pdta_pos + 8
 
   local function read_pbag(data, start_pos)
     local pbag_pos = data:find("pbag", start_pos, true)
@@ -238,7 +276,7 @@ local function read_presets(data)
     while (pos + record_size -1) <= (pbag_data_start + pbag_size -1) do
       local pgen_idx = read_u16_le(data, pos)
       local pmod_idx = read_u16_le(data, pos+2)
-      table.insert(pbag_list, { pgen_index=pgen_idx, pmod_index=pmod_idx })
+      pbag_list[#pbag_list + 1] = { pgen_index = pgen_idx, pmod_index = pmod_idx }
       pos = pos + record_size
     end
     return pbag_list
@@ -258,41 +296,48 @@ local function read_presets(data)
     while (pos + record_size -1) <= (pgen_data_start + pgen_size -1) do
       local op = read_u16_le(data, pos)
       local amount = read_u16_le(data, pos+2)
-      table.insert(pgen_list, { op=op, amount=amount })
+      pgen_list[#pgen_list + 1] = { op = op, amount = amount }
       pos = pos + record_size
     end
     return pgen_list
   end
 
-  local pbag_list = read_pbag(data, pdta_data_start)
-  local pgen_list = read_pgen(data, pdta_data_start)
-  if (#pbag_list == 0) or (#pgen_list == 0) then
+  local pbag = read_pbag(data, pdta_pos + 8)
+  local pgen = read_pgen(data, pdta_pos + 8)
+  if (#pbag == 0) or (#pgen == 0) then
     dprint("No PBAG/PGEN data; returning basic presets only.")
     return presets
   end
 
-  -- For each preset, read zones from pbag/pgen
-  for i, p in ipairs(presets) do
-    local zone_start = p.pbag_index + 1
-    local zone_end   = #pbag_list
+  for i, preset in ipairs(presets) do
+    local zone_start = preset.pbag_index + 1
+    local zone_end   = #pbag
     if i < #presets then
       zone_end = presets[i+1].pbag_index
     end
     for z = zone_start, zone_end do
-      local bag = pbag_list[z]
+      local bag = pbag[z]
       local zone_params = {}
       local pgen_start = bag.pgen_index + 1
-      local pgen_end   = #pgen_list
-      if z < #pbag_list then
-        pgen_end = pbag_list[z+1].pgen_index
+      local pgen_end   = #pgen
+      if z < #pbag then
+        pgen_end = pbag[z+1].pgen_index
       end
-      for g = pgen_start, pgen_end do
-        local gen = pgen_list[g]
+      for pg = pgen_start, pgen_end do
+        local gen = pgen[pg]
         if gen then
-          zone_params[ gen.op ] = gen.amount
+          zone_params[gen.op] = gen.amount
         end
       end
-      table.insert(p.zones, { params=zone_params })
+      local key_range = nil
+      if zone_params[43] then
+        local kr = zone_params[43]
+        key_range = { low = kr % 256, high = math.floor(kr / 256) % 256 }
+      end
+      preset.zones[#preset.zones + 1] = {
+        params = zone_params,
+        key_range = key_range
+      }
     end
   end
 
@@ -300,292 +345,414 @@ local function read_presets(data)
 end
 
 --------------------------------------------------------------------------------
--- Import SF2: Single XRNI per preset. If bank=128 => drum mapping
+-- Step 4: Import SF2
 --------------------------------------------------------------------------------
 local function import_sf2(file_path)
-  dprint("Importing SF2 file:", file_path)
-  local f = io.open(file_path, "rb")
-  if not f then
-    renoise.app():show_error("Could not open SF2: " .. file_path)
-    return false
-  end
-  local data = f:read("*all")
-  f:close()
-  if data:sub(1,4) ~= "RIFF" then
-    renoise.app():show_error("Not a valid SF2 (missing RIFF).")
-    return false
-  end
+  -- Create a ProcessSlicer to handle the import
+  local slicer = nil
+  
+  local function process_import()
+    local dialog, vb = nil, nil
+    dialog, vb = slicer:create_dialog("Importing SF2...")
+    
+    dprint("Importing SF2 file:", file_path)
 
-  local smpl_pos = data:find("smpl", 1, true)
-  if not smpl_pos then
-    renoise.app():show_error("SF2 missing 'smpl' chunk.")
-    return false
-  end
-  local smpl_data_start = smpl_pos + 8
-
-  -- 1) sample headers
-  local headers = read_sample_headers(data)
-  if not headers or #headers == 0 then
-    renoise.app():show_error("No sample headers found.")
-    return false
-  end
-
-  -- 2) read instruments => each instrument has multiple zones => each zone may reference one sample
-  local instruments_zones = read_instruments(data)
-
-  -- 3) read presets => each preset has multiple zones => each zone may reference an instrument via op41
-  local presets = read_presets(data)
-  if (#presets == 0) then
-    renoise.app():show_error("No presets found in SF2.")
-    return false
-  end
-
-  -- Build a "mapping" per preset. Instead of one XRNI per instrument, we do
-  -- one XRNI per PRESET. So all instruments that the preset references get
-  -- merged into that one XRNI.
-  local mappings_per_preset = {}
-
-  for _, preset in ipairs(presets) do
-    -- This table is all the samples for this preset
-    local these_samples = {}
-    local zone_count = #preset.zones
-    if zone_count < 1 then
-      dprint("Preset "..preset.name.." has no zones.")
-    end
-    for z_i, z_data in ipairs(preset.zones) do
-      local zone_params = z_data.params or {}
-      local inst_index  = zone_params[41]  -- op41 => instrument ID
-      local assigned_samples = {}
-
-      if (inst_index ~= nil) then
-        -- 0-based
-        local real_inst_idx = inst_index + 1
-        local inst_info = instruments_zones[ real_inst_idx ]
-        if inst_info and inst_info.zones then
-          -- For each zone in the instrument, if sample_id is present => fetch that sample
-          for _, izone in ipairs(inst_info.zones) do
-            if izone.sample_id then
-              local sample_idx = izone.sample_id + 1
-              local hdr = headers[ sample_idx ]
-              if hdr then
-                table.insert(assigned_samples, hdr)
-                dprint("Preset '"..preset.name.."': referencing instrument '"..inst_info.name.."' => sample '"..hdr.name.."'")
-              end
-            end
-          end
-        else
-          dprint("Instrument idx "..real_inst_idx.." not found, fallback logic.")
-        end
-      end
-      -- If no assigned samples found from instrument => fallback by key range or substring
-      if (#assigned_samples == 0) then
-        -- keyRange => op43
-        if zone_params[43] then
-          local kr = { low = zone_params[43] % 256, high = math.floor(zone_params[43]/256) % 256 }
-          for _, hdr in ipairs(headers) do
-            if hdr.orig_pitch >= kr.low and hdr.orig_pitch <= kr.high then
-              table.insert(assigned_samples, hdr)
-              dprint("Preset '"..preset.name.."': fallback keyRange => sample '"..hdr.name.."'")
-            end
-          end
-        end
-      end
-      if (#assigned_samples == 0) then
-        -- substring fallback
-        for _, hdr in ipairs(headers) do
-          if hdr.name:lower():find( preset.name:lower() ) then
-            table.insert(assigned_samples, hdr)
-            dprint("Preset '"..preset.name.."': substring fallback => sample '"..hdr.name.."'")
-          end
-        end
-      end
-
-      for _, s in ipairs(assigned_samples) do
-        table.insert(these_samples, s)
-      end
-    end
-
-    if #these_samples == 0 then
-      dprint("Preset "..preset.name.." => no assigned samples => skipping.")
-    else
-      table.insert(mappings_per_preset, {
-        preset_name = preset.name,
-        bank = preset.bank,
-        preset_num = preset.preset,
-        samples = these_samples
-      })
-    end
-  end
-
-  if #mappings_per_preset == 0 then
-    renoise.app():show_error("No preset found that has assigned samples.")
-    return false
-  end
-
-  local song = renoise.song()
-
-  for _, mapping_entry in ipairs(mappings_per_preset) do
-    local is_drumkit = (mapping_entry.bank == 128)
-    local preset_file = is_drumkit
-      and (renoise.tool().bundle_path .. "Presets/12st_Pitchbend_Drumkit_C0.xrni")
-      or  "Presets/12st_Pitchbend.xrni"
-
-    -- Insert new instrument for this preset
-    song:insert_instrument_at(song.selected_instrument_index+1)
-    song.selected_instrument_index = song.selected_instrument_index + 1
-    renoise.app():load_instrument(preset_file)
-    local r_inst = song.selected_instrument
-    if not r_inst then
-      renoise.app():show_error("Failed to load XRNI preset for "..mapping_entry.preset_name)
+    local f = io.open(file_path, "rb")
+    if not f then
+      renoise.app():show_error("Could not open SF2 file: " .. file_path)
       return false
     end
-    r_inst.name = string.format("%s (Bank %d, Preset %d)", mapping_entry.preset_name, mapping_entry.bank, mapping_entry.preset_num)
-    dprint("Created instrument for preset: "..r_inst.name)
+    local data = f:read("*all")
+    f:close()
 
-    -- We insert new sample slots at index 2, 3, 4... THEN remove slot 1 at the end if drumkit
-    -- If melodic => we do the old approach (overwrite slot1 for first sample).
-    local is_first_overwritten = false
-    local new_slots = {}
+    if data:sub(1,4) ~= "RIFF" then
+      renoise.app():show_error("Invalid SF2 file (missing RIFF header).")
+      return false
+    end
+    dprint("RIFF header found.")
 
-    for i, hdr in ipairs(mapping_entry.samples) do
-      local frames = hdr.s_end - hdr.s_start
-      if frames <= 0 then
-        dprint("Skipping sample "..hdr.name.." because frames <= 0.")
-      else
-        local is_stereo = false
-        if hdr.sample_link ~= 0 then
-          if hdr.sample_type == 0 or hdr.sample_type == 1 then
-            is_stereo = true
-          else
-            dprint("Skipping sample_link for right channel in stereo pair: "..hdr.name)
-            goto continue_samples
-          end
-        end
-        local sample_data = {}
-        if is_stereo then
-          for f_i = hdr.s_start+1, hdr.s_end do
-            local offs = smpl_data_start + (f_i -1)*4
-            if (offs+3) <= #data then
-              local left_val  = read_s16_le(data, offs)
-              local right_val = read_s16_le(data, offs+2)
-              table.insert(sample_data, {
-                left  = left_val / 32768.0,
-                right = right_val/ 32768.0
-              })
-            end
-          end
-        else
-          for f_i = hdr.s_start+1, hdr.s_end do
-            local offs = smpl_data_start + (f_i -1)*2
-            if (offs+1) <= #data then
-              local raw_val = read_s16_le(data, offs)
-              table.insert(sample_data, raw_val / 32768.0)
-            end
-          end
-        end
-        dprint(("Extracted %d frames from '%s'"):format(#sample_data, hdr.name))
-        if #sample_data == 0 then
-          dprint("Skipping sample "..hdr.name.." due to zero frames.")
-          goto continue_samples
-        end
+    local smpl_pos = data:find("smpl", 1, true)
+    if not smpl_pos then
+      renoise.app():show_error("SF2 file missing 'smpl' chunk.")
+      return false
+    end
+    local smpl_data_start = smpl_pos + 8
 
-        local slot_idx = nil
+    -- Read SF2 components:
+    if vb then vb.views.progress_text.text = "Reading sample headers..." end
+    coroutine.yield()
+    
+    local headers = read_sample_headers(data)
+    if not headers or #headers == 0 then
+      renoise.app():show_error("No sample headers found in SF2.")
+      return false
+    end
 
-        if not is_drumkit then
-          -- For melodic presets, overwrite slot 1 with the first sample; append subsequent.
-          if not is_first_overwritten and #r_inst.samples > 0 then
-            slot_idx = 1
-            is_first_overwritten = true
-          else
-            slot_idx = #r_inst.samples + 1
-            r_inst:insert_sample_at(slot_idx)
-          end
-        else
-          -- For drum presets => always append at the end, we will remove slot1 later.
-          slot_idx = #r_inst.samples + 1
-          r_inst:insert_sample_at(slot_idx)
-        end
+    if vb then vb.views.progress_text.text = "Reading instruments..." end
+    coroutine.yield()
+    
+    local instruments_zones = read_instruments(data)
+    
+    if vb then vb.views.progress_text.text = "Reading presets..." end
+    coroutine.yield()
+    
+    local presets = read_presets(data)
+    if #presets == 0 then
+      renoise.app():show_error("No presets found in SF2.")
+      return false
+    end
 
-        local new_samp = r_inst.samples[ slot_idx ]
+    -- Build a mapping: one XRNI instrument per preset
+    local mappings = {}
 
-        local success, err = pcall(function()
-          if is_stereo then
-            new_samp.sample_buffer:create_sample_data(hdr.sample_rate, 16, 2, #sample_data)
-          else
-            new_samp.sample_buffer:create_sample_data(hdr.sample_rate, 16, 1, #sample_data)
-          end
-        end)
-        if not success then
-          dprint("Error creating buffer for "..hdr.name..": "..tostring(err))
-        else
-          local buf = new_samp.sample_buffer
-          if is_stereo then
-            for f_i=1, #sample_data do
-              buf:set_sample_data(1, f_i, sample_data[f_i].left)
-              buf:set_sample_data(2, f_i, sample_data[f_i].right)
-            end
-          else
-            for f_i=1, #sample_data do
-              buf:set_sample_data(1, f_i, sample_data[f_i])
-            end
-          end
-          new_samp.name = hdr.name
-          -- Loop settings
-          if is_drumkit then
-            new_samp.loop_mode = renoise.Sample.LOOP_MODE_OFF
-          else
-            -- If loop is valid
-            if hdr.loop_start == hdr.s_start and hdr.loop_end == hdr.s_end then
-              new_samp.loop_mode = renoise.Sample.LOOP_MODE_OFF
-            else
-              local l_start = hdr.loop_start - hdr.s_start
-              local l_end   = hdr.loop_end   - hdr.s_start
-              if l_start <= 0 then l_start=1 end
-              if l_end > #sample_data then l_end=#sample_data end
-              if l_end > l_start then
-                new_samp.loop_mode  = renoise.Sample.LOOP_MODE_FORWARD
-                new_samp.loop_start = l_start
-                new_samp.loop_end   = l_end
-              else
-                new_samp.loop_mode = renoise.Sample.LOOP_MODE_OFF
+    if vb then vb.views.progress_text.text = "Processing presets..." end
+    coroutine.yield()
+
+    for _, preset in ipairs(presets) do
+      if slicer:was_cancelled() then
+        return false
+      end
+      
+      dprint("Preset", preset.name)
+      local combined_samples = {}
+      for _, zone in ipairs(preset.zones) do
+        local assigned_samples = {}
+        local zone_params = zone.params or {}
+
+        -- If there's an assigned instrument
+        if zone_params[41] then
+          local inst_idx = zone_params[41] + 1
+          local inst_info = instruments_zones[inst_idx]
+          if inst_info and inst_info.zones then
+            for _, izone in ipairs(inst_info.zones) do
+              if izone.sample_id then
+                local hdr_idx = izone.sample_id + 1
+                local hdr = headers[hdr_idx]
+                if hdr then
+                  dprint(string.format("  Instrument %s => Sample %s (SampleID %d)", inst_info.name, hdr.name, izone.sample_id))
+                  assigned_samples[#assigned_samples+1] = {
+                    header = hdr,
+                    zone_params = zone_params,
+                    inst_zone_params = izone.params
+                  }
+                end
               end
             end
           end
-
-          new_samp.sample_mapping.base_note = hdr.orig_pitch or 60
-          new_samp.sample_mapping.velocity_range = {0,127}
-          table.insert(new_slots, slot_idx)
         end
 
-        ::continue_samples::
+        -- Fallback: key_range from the preset zone
+        if #assigned_samples == 0 and zone.key_range then
+          for _, hdr in ipairs(headers) do
+            if hdr.orig_pitch >= zone.key_range.low and hdr.orig_pitch <= zone.key_range.high then
+              dprint(string.format("  KeyRange fallback => Sample %s (pitch %d in range %d-%d)", hdr.name, hdr.orig_pitch, zone.key_range.low, zone.key_range.high))
+              assigned_samples[#assigned_samples+1] = {
+                header = hdr,
+                zone_params = zone_params
+              }
+            end
+          end
+        end
+
+        -- Substring fallback if we still have no assigned samples
+        if #assigned_samples == 0 then
+          for _, hdr in ipairs(headers) do
+            if hdr.name:lower():find(preset.name:lower()) then
+              dprint("  Substring fallback => Sample", hdr.name)
+              assigned_samples[#assigned_samples+1] = {
+                header = hdr,
+                zone_params = zone_params
+              }
+            end
+          end
+        end
+
+        for _, smp_entry in ipairs(assigned_samples) do
+          combined_samples[#combined_samples+1] = smp_entry
+        end
       end
+
+      if #combined_samples > 0 then
+        mappings[#mappings+1] = {
+          preset_name = preset.name,
+          bank = preset.bank,
+          preset_num = preset.preset,
+          samples = combined_samples,
+          fallback_params = (preset.zones[#preset.zones] and preset.zones[#preset.zones].params) or {},
+          key_range = (preset.zones[#preset.zones] and preset.zones[#preset.zones].key_range)
+        }
+      else
+        dprint("Preset", preset.name, "has no assigned samples.")
+      end
+      
+      coroutine.yield()
     end
 
-    -- If this is a drum preset, remove the original placeholder sample at slot 1.
-    -- Then re-map each final sample to consecutive notes: C-0, C#0, D-0, etc.
-    if is_drumkit then
-      if #r_inst.samples > 1 then
-        local first_samp_name = r_inst.samples[1].name
-        dprint("Removing placeholder sample #1 => '"..first_samp_name.."' for drum preset.")
-        r_inst:delete_sample_at(1)
-      end
-      -- Now re-map the final sample slots (which are currently 1..N) to notes 0..(N-1).
-      for i_samp=1, #r_inst.samples do
-        local s = r_inst.samples[i_samp]
-        local note_idx = (i_samp -1)
-        s.sample_mapping.note_range = { note_idx, note_idx }
-        s.sample_mapping.base_note  = note_idx
-      end
+    if #mappings == 0 then
+      renoise.app():show_error("No preset with assigned samples.")
+      return false
     end
+
+    local song = renoise.song()
+
+    -- Process each mapping
+    for map_idx, map in ipairs(mappings) do
+      if slicer:was_cancelled() then
+        return false
+      end
+      
+      if vb then 
+        vb.views.progress_text.text = string.format(
+          "Creating instrument %d/%d: %s", 
+          map_idx, #mappings, map.preset_name)
+      end
+      
+      local is_drumkit = (map.bank == 128)
+      local preset_file = is_drumkit and
+        (renoise.tool().bundle_path .. "Presets/12st_Pitchbend_Drumkit_C0.xrni") or
+        "Presets/12st_Pitchbend.xrni"
+
+      song:insert_instrument_at(song.selected_instrument_index + 1)
+      song.selected_instrument_index = song.selected_instrument_index + 1
+      renoise.app():load_instrument(preset_file)
+
+      local r_inst = song.selected_instrument
+      if not r_inst then
+        renoise.app():show_error("Failed to load XRNI preset for " .. map.preset_name)
+        return false
+      end
+
+      r_inst.name = string.format("%s (Bank %d, Preset %d)", map.preset_name, map.bank, map.preset_num)
+      dprint("Created instrument for preset:", r_inst.name)
+
+      local is_first_overwritten = false
+
+      -- Process samples for this mapping
+      for smp_idx, smp_entry in ipairs(map.samples) do
+        if slicer:was_cancelled() then
+          return false
+        end
+        
+        if vb then 
+          vb.views.progress_text.text = string.format(
+            "Processing sample %d/%d in %s", 
+            smp_idx, #map.samples, map.preset_name)
+        end
+        
+        local hdr = smp_entry.header
+        local zone_params = smp_entry.zone_params or {}
+        local frames = hdr.s_end - hdr.s_start
+        if frames <= 0 then
+          dprint("Skipping sample", hdr.name, "(non-positive frame count).")
+        else
+          -- Determine if sample is stereo
+          local is_stereo = false
+          if hdr.sample_link ~= 0 then
+            if hdr.sample_type == 0 or hdr.sample_type == 1 then
+              is_stereo = true
+            else
+              dprint("Skipping right stereo channel for", hdr.name)
+            
+            end
+          end
+
+          -- Load sample data
+          local sample_data = {}
+          if is_stereo then
+            for f_i = hdr.s_start + 1, hdr.s_end do
+              local offset = smpl_data_start + (f_i - 1) * 4
+              if offset + 3 <= #data then
+                local left_val  = read_s16_le(data, offset)
+                local right_val = read_s16_le(data, offset + 2)
+                sample_data[#sample_data+1] = { left = left_val/32768.0, right = right_val/32768.0 }
+              end
+              -- Yield every 100,000 frames
+              if f_i % 100000 == 0 then coroutine.yield() end
+            end
+          else
+            for f_i = hdr.s_start + 1, hdr.s_end do
+              local offset = smpl_data_start + (f_i - 1) * 2
+              if offset + 1 <= #data then
+                local raw_val = read_s16_le(data, offset)
+                sample_data[#sample_data+1] = raw_val / 32768.0
+              end
+              -- Yield every 100,000 frames
+              if f_i % 100000 == 0 then coroutine.yield() end
+            end
+          end
+          dprint(string.format("Extracted %d frames from sample %s", #sample_data, hdr.name))
+          if #sample_data == 0 then
+            dprint("Skipping sample", hdr.name, "(zero frames).")
+            
+          end
+
+          local sample_slot = nil
+          if not is_drumkit then
+            if not is_first_overwritten and #r_inst.samples > 0 then
+              sample_slot = 1
+              is_first_overwritten = true
+            else
+              sample_slot = #r_inst.samples + 1
+              r_inst:insert_sample_at(sample_slot)
+            end
+          else
+            sample_slot = #r_inst.samples + 1
+            r_inst:insert_sample_at(sample_slot)
+          end
+
+          local reno_smp = r_inst.samples[sample_slot]
+          local success, err = pcall(function()
+            if is_stereo then
+              reno_smp.sample_buffer:create_sample_data(hdr.sample_rate, 16, 2, #sample_data)
+            else
+              reno_smp.sample_buffer:create_sample_data(hdr.sample_rate, 16, 1, #sample_data)
+            end
+          end)
+          if not success then
+            dprint("Error creating sample data for", hdr.name, err)
+          else
+            -- Fill sample buffer
+            local buf = reno_smp.sample_buffer
+            if is_stereo then
+              for f_i=1, #sample_data do
+                buf:set_sample_data(1, f_i, sample_data[f_i].left)
+                buf:set_sample_data(2, f_i, sample_data[f_i].right)
+                -- Yield every 100,000 frames
+                if f_i % 100000 == 0 then coroutine.yield() end
+              end
+            else
+              for f_i=1, #sample_data do
+                buf:set_sample_data(1, f_i, sample_data[f_i])
+                -- Yield every 100,000 frames
+                if f_i % 100000 == 0 then coroutine.yield() end
+              end
+            end
+            reno_smp.name = hdr.name
+
+            -- Key range
+            local zone_key_range = map.key_range
+            if zone_params[43] then
+              local kr = zone_params[43]
+              zone_key_range = {
+                low = kr % 256,
+                high = math.floor(kr / 256) % 256
+              }
+            end
+
+            -- Tuning
+            local coarse_tune = zone_params[51] and to_signed(zone_params[51]) or 0
+            local fine_tune   = zone_params[52] and to_signed(zone_params[52]) or 0
+
+            -- Pan (SF2 range -120..120 maps proportionally to Renoise 0..1)
+            local raw_pan = zone_params[17] or map.fallback_params[17]
+            if raw_pan ~= nil then
+              -- Get signed value already scaled to -120..120
+              local pan_val = to_signed(raw_pan)
+              print(string.format("PANNING DEBUG for %s:", hdr.name))
+              print(string.format("  - Raw SF2 pan value: %d", raw_pan))
+              print(string.format("  - Scaled to -120..120: %.2f", pan_val))
+              
+              -- Convert to 0..1 range proportionally
+              local pan_norm = 0.5 + (pan_val / 120) * 0.5
+              print(string.format("  - Proportionally mapped to 0..1: %.3f", pan_norm))
+              
+              reno_smp.panning = pan_norm
+              print(string.format("  - Final Renoise panning: %.3f", reno_smp.panning))
+            else
+              reno_smp.panning = 0.5
+              print(string.format("PANNING DEBUG for %s: No pan value found, defaulting to 0.5", hdr.name))
+            end
+
+            -- Assign mapping
+            local base_note = hdr.orig_pitch or 60
+            reno_smp.sample_mapping.base_note = base_note
+            reno_smp.transpose = coarse_tune
+            reno_smp.fine_tune = fine_tune
+
+            if zone_key_range then
+              reno_smp.sample_mapping.note_range = { zone_key_range.low, zone_key_range.high }
+              dprint(string.format("[KeyRange] Sample=%s => note_range=%d-%d", hdr.name,
+                zone_key_range.low, zone_key_range.high
+              ))
+            else
+              if is_drumkit then
+                -- We'll map them after removing placeholder
+                reno_smp.sample_mapping.note_range = { base_note, base_note }
+              else
+                -- full range for melodic
+                reno_smp.sample_mapping.note_range = {0, 119}
+                dprint(string.format("[KeyRange] Sample=%s => default melodic range 0-119", hdr.name))
+              end
+            end
+
+            -- Loop handling
+            if not is_drumkit then
+              if frames < 512 and (hdr.loop_end > hdr.loop_start) then
+                local l_start = hdr.loop_start - hdr.s_start
+                local l_end   = hdr.loop_end - hdr.s_start
+                if l_start <= 0 then l_start=1 end
+                if l_end > #sample_data then l_end=#sample_data end
+                reno_smp.loop_mode  = renoise.Sample.LOOP_MODE_FORWARD
+                reno_smp.loop_start = l_start
+                reno_smp.loop_end   = l_end
+                dprint("Short sample => forced loop", hdr.name, l_start, l_end)
+              elseif hdr.loop_start == hdr.s_start and hdr.loop_end == hdr.s_end then
+                reno_smp.loop_mode = renoise.Sample.LOOP_MODE_OFF
+                dprint("No valid loop => disabled for", hdr.name)
+              else
+                local l_start = hdr.loop_start - hdr.s_start
+                local l_end   = hdr.loop_end - hdr.s_start
+                if l_start <= 0 then l_start=1 end
+                if l_end > #sample_data then l_end=#sample_data end
+                if l_end > l_start then
+                  reno_smp.loop_mode = renoise.Sample.LOOP_MODE_FORWARD
+                  reno_smp.loop_start = l_start
+                  reno_smp.loop_end   = l_end
+                  dprint("Set loop for", hdr.name, l_start, l_end)
+                else
+                  reno_smp.loop_mode = renoise.Sample.LOOP_MODE_OFF
+                  dprint("Invalid loop => disabled for", hdr.name)
+                end
+              end
+            end
+          end
+        end
+        ::next_sample::
+        coroutine.yield()
+      end
+
+      -- If drumkit => remove placeholder and map each sample to one discrete note
+      if is_drumkit then
+        if #r_inst.samples > 1 then
+          dprint("Drum preset: removing placeholder sample #1 ("..r_inst.samples[1].name..")")
+          r_inst:delete_sample_at(1)
+        end
+        for i_smp=1, #r_inst.samples do
+          local s = r_inst.samples[i_smp]
+          local note = i_smp - 1
+          s.sample_mapping.note_range = { note, note }
+          s.sample_mapping.base_note  = note
+        end
+      end
+      
+      coroutine.yield()
+    end
+
+    if dialog and dialog.visible then
+      dialog:close()
+    end
+    
+    renoise.app():show_status("SF2 import complete. See console for debug details.")
+    return true
   end
-
-  renoise.app():show_status("SF2 import done. See script console for details.")
-  return true
+  
+  -- Create and start the ProcessSlicer
+  slicer = ProcessSlicer(process_import)
+  slicer:start()
 end
 
-
 --------------------------------------------------------------------------------
--- (Optional) Dummy Multitimbral Handler
+-- Dummy multitimbral
 --------------------------------------------------------------------------------
 local function import_sf2_multitimbral(filepath)
   renoise.app():show_error("Multitimbral import not implemented.")
@@ -595,38 +762,34 @@ end
 --------------------------------------------------------------------------------
 -- Register
 --------------------------------------------------------------------------------
-if renoise.tool():has_file_import_hook("sample", {"sf2_import"}) then
-  renoise.tool():remove_file_import_hook("sample", {"sf2_import"})
-  dprint("Removed old SF2 Import Hook.")
+if renoise.tool():has_file_import_hook("sample", {"sf2"}) then
+  renoise.tool():remove_file_import_hook("sample", {"sf2"})
+  dprint("Removed old SF2 Import Hook")
 end
 
-local sf2_hook = {
-  category   = "sample",
+local hook = {
+  category = "sample",
   extensions = {"sf2"},
-  invoke     = import_sf2
+  invoke = import_sf2
 }
 
-if not renoise.tool():has_file_import_hook("sample", {"sf2_import"}) then
-  renoise.tool():add_file_import_hook(sf2_hook)
-  dprint("Added SF2 Import Hook.")
+if not renoise.tool():has_file_import_hook("sample", {"sf2"}) then
+  renoise.tool():add_file_import_hook(hook)
+  dprint("Added SF2 Import Hook")
 end
 
 renoise.tool():add_menu_entry {
   name = "Main Menu:Tools:Import SF2 (Single XRNI per Preset)",
   invoke = function()
-    local f = renoise.app():prompt_for_filename_to_read({"*.sf2"}, "Select SF2 to import.")
-    if f and f~="" then
-      import_sf2(f)
-    end
+    local f = renoise.app():prompt_for_filename_to_read({"*.sf2"}, "Select SF2 to import")
+    if f and f ~= "" then import_sf2(f) end
   end
 }
 
 renoise.tool():add_menu_entry {
-  name = "Main Menu:Tools:Import SF2 (Multitimbral Placeholder)",
+  name = "Main Menu:Tools:Import SF2 (Multitimbral)",
   invoke = function()
-    local f = renoise.app():prompt_for_filename_to_read({"*.sf2"}, "Select SF2 to import (multitimbral).")
-    if f and f~="" then
-      import_sf2_multitimbral(f)
-    end
+    local f = renoise.app():prompt_for_filename_to_read({"*.sf2"}, "Select SF2 to import (multitimbral)")
+    if f and f ~= "" then import_sf2_multitimbral(f) end
   end
 }
