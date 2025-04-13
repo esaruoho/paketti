@@ -942,81 +942,58 @@ renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti ChordsPlus..:Extrac
   renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Extract Highest Note to New Track",
     invoke=function() ExtractHighestNote() end}
 
-    --------------------------------------------------------------------------------
+    
+--------------------------------------------------------------------------------
 -- DuplicateSpecificNotesToNewTrack(note_type, instrument_mode)
--- 
--- note_type: one of "highest" or "lowest" (highest note extraction or bassline)
+--
+-- note_type: one of "highest" or "lowest"
 -- instrument_mode: one of "duplicate", "selected", or "original"
 --
--- The function creates a new track by scanning each line in the currently
--- selected pattern for either the highest or lowest note.
---
--- Depending on the instrument mode:
---   "duplicate" -> the instrument (found in the first non-empty note) is duplicated,
---                  phrases are copied and any external editor is handled.
---   "selected"  -> the currently selected instrument (renoise.song().selected_instrument_index)
---                  will be used.
---   "original"  -> the instrument used in the source track (from the first note)
---                  will be used without duplication.
---
--- Also, if the original track has visible volume, panning or delay columns,
--- the new track will show them as well.
+-- The function duplicates the current track and its instrument (or uses the
+-- selected/original instrument), copies all DSP devices (using your clean-duplication
+-- code that starts at device index 2 to avoid the vol/pan device), handles the 
+-- special *Instr. Automation device by updating its XML, and then in the duplicated 
+-- track extracts either the highest or lowest note from each line.
 --------------------------------------------------------------------------------
 function DuplicateSpecificNotesToNewTrack(note_type, instrument_mode)
   local song = renoise.song()
   local pattern = song.selected_pattern
   local source_track_index = song.selected_track_index
   local source_track = song:track(source_track_index)
-  
-  -- Determine (and possibly prepare) the instrument to be used
-  local final_instrument_index = nil  -- 1-based index
-  local external_editor_was_open = false
+
+  ------------------------------------------------------------------------------
+  -- PART 1: Determine which instrument to use
+  ------------------------------------------------------------------------------
+  local final_instrument_index = nil  -- 1-based instrument index that will be used
+  local external_editor_open = false
   local instrument_was_duplicated = false
 
   if instrument_mode == "duplicate" then
-    -- Search for first non-empty note in the source track to find an instrument,
-    -- otherwise default to instrument 1.
-    local found_instrument_index = nil
-    for _, line in ipairs(pattern.tracks[source_track_index].lines) do
-      for _, note_column in ipairs(line.note_columns) do
-        if note_column.instrument_value ~= 255 then
-          found_instrument_index = note_column.instrument_value + 1
-          break
-        end
-      end
-      if found_instrument_index then 
-        break 
+    -- Duplicate the currently selected instrument.
+    local instrument_index = song.selected_instrument_index or 1
+    local original_instrument = song.instruments[instrument_index]
+    if original_instrument.plugin_properties 
+       and original_instrument.plugin_properties.plugin_device then
+      if original_instrument.plugin_properties.plugin_device.external_editor_visible then
+        external_editor_open = true
+        original_instrument.plugin_properties.plugin_device.external_editor_visible = false
       end
     end
-    if not found_instrument_index then
-      found_instrument_index = 1
-    end
-    -- Set the song's selected instrument to the one found.
-    song.selected_instrument_index = found_instrument_index
-    
-    -- Save external editor state and close it if open.
-    if song.instruments[found_instrument_index].plugin_properties.plugin_device then
-      if song.instruments[found_instrument_index].plugin_properties.plugin_device.external_editor_visible then
-        external_editor_was_open = true
-        song.instruments[found_instrument_index].plugin_properties.plugin_device.external_editor_visible = false
-      end
-    end
-    -- Duplicate the instrument:
-    song:insert_instrument_at(found_instrument_index + 1)
-    final_instrument_index = found_instrument_index + 1
-    song.instruments[final_instrument_index]:copy_from(song.instruments[found_instrument_index])
-    -- Duplicate any phrases:
-    if #song.instruments[found_instrument_index].phrases > 0 then
-      for phrase_index = 1, #song.instruments[found_instrument_index].phrases do
-        song.instruments[final_instrument_index]:insert_phrase_at(phrase_index)
-        song.instruments[final_instrument_index].phrases[phrase_index]
-          :copy_from(song.instruments[found_instrument_index].phrases[phrase_index])
+    song:insert_instrument_at(instrument_index + 1)
+    final_instrument_index = instrument_index + 1
+    local new_instrument = song.instruments[final_instrument_index]
+    new_instrument:copy_from(original_instrument)
+    if #original_instrument.phrases > 0 then
+      for phrase_index = 1, #original_instrument.phrases do
+        new_instrument:insert_phrase_at(phrase_index)
+        new_instrument.phrases[phrase_index]:copy_from(original_instrument.phrases[phrase_index])
       end
     end
     instrument_was_duplicated = true
 
   elseif instrument_mode == "selected" then
     final_instrument_index = song.selected_instrument_index or 1
+
   elseif instrument_mode == "original" then
     local found_instrument_index = nil
     for _, line in ipairs(pattern.tracks[source_track_index].lines) do
@@ -1032,232 +1009,262 @@ function DuplicateSpecificNotesToNewTrack(note_type, instrument_mode)
   end
 
   ------------------------------------------------------------------------------
-  -- Create New Track
+  -- PART 2: Duplicate the track using your clean DSP/device–copy code
   ------------------------------------------------------------------------------
-  song:insert_track_at(source_track_index + 1)
-  local dest_track_index = source_track_index + 1
-  local dest_track = song:track(dest_track_index)
-  
-  -- Set track name based on note extraction type.
-  if note_type == "highest" then
-    dest_track.name = source_track.name .. " High"
-  elseif note_type == "lowest" then
-    dest_track.name = source_track.name .. " Bass"
-  else
-    dest_track.name = source_track.name .. " (Extracted)"
-  end
+  local original_track_index = source_track_index
+  song:insert_track_at(original_track_index + 1)
+  local new_track = song:track(original_track_index + 1)
 
-  -- Always create one note column for the extracted note.
-  dest_track.visible_note_columns = 1
-  
-  -- If the source track shows volume, panning or delay columns, mirror them.
-  if source_track.volume_column_visible ~= nil then
-    dest_track.volume_column_visible = source_track.volume_column_visible
-  end
-  if source_track.panning_column_visible ~= nil then
-    dest_track.panning_column_visible = source_track.panning_column_visible
-  end
-  if source_track.delay_column_visible ~= nil then
-    dest_track.delay_column_visible = source_track.delay_column_visible
-  end
+  -- Copy track settings
+  new_track.visible_note_columns          = source_track.visible_note_columns
+  new_track.visible_effect_columns        = source_track.visible_effect_columns
+  new_track.volume_column_visible         = source_track.volume_column_visible
+  new_track.panning_column_visible        = source_track.panning_column_visible
+  new_track.delay_column_visible          = source_track.delay_column_visible
+  new_track.sample_effects_column_visible = source_track.sample_effects_column_visible
+  new_track.collapsed                     = source_track.collapsed
 
-  ------------------------------------------------------------------------------
-  -- Copy DSP Devices (and prepare for Instr. Automation)
-  ------------------------------------------------------------------------------
-  local has_instr_automation = false
-  local old_instr_automation_device = nil
-  local new_device_index = 1
-  for dsp_index = 2, #source_track.devices do
-    local device = source_track.devices[dsp_index]
-    if device.device_path:find("Instr. Automation") then
-      has_instr_automation = true
-      old_instr_automation_device = device
-    else
-      new_device_index = new_device_index + 1
-      local new_device = dest_track:insert_device_at(device.device_path, new_device_index)
-      for parameter_index = 1, #device.parameters do
-        new_device.parameters[parameter_index].value = device.parameters[parameter_index].value
-      end
-      new_device.is_maximized = device.is_maximized
+  -- Copy DSP devices starting from device index 2 so we don't interfere with the vol/pan device.
+  for device_index = 2, #source_track.devices do
+    local old_device = source_track.devices[device_index]
+    local new_device = new_track:insert_device_at(old_device.device_path, device_index)
+    for param_index = 1, #old_device.parameters do
+      new_device.parameters[param_index].value = old_device.parameters[param_index].value
+    end
+    new_device.is_maximized = old_device.is_maximized
+    -- Special handling for *Instr. Automation device
+    if old_device.device_path:find("Instr. Automation") then
+      local old_xml = old_device.active_preset_data
+      local new_xml = old_xml:gsub("<instrument>(%d+)</instrument>", 
+        function(instr_index)
+          -- In duplicate/selected mode, update the XML to refer to the instrument we want.
+          if instrument_mode == "duplicate" or instrument_mode == "selected" then
+            return string.format("<instrument>%d</instrument>", final_instrument_index)
+          else
+            -- In "original" mode, leave the reference as is.
+            return string.format("<instrument>%d</instrument>", tonumber(instr_index))
+          end
+        end)
+      new_device.active_preset_data = new_xml
     end
   end
 
   ------------------------------------------------------------------------------
-  -- Process the Pattern: Extract the Specific Note from each line
+  -- PART 3: Copy pattern data and update instrument references in new track
   ------------------------------------------------------------------------------
-  local changes_made = false
-  for line_index = 1, pattern.number_of_lines do
-    local source_line = pattern:track(source_track_index):line(line_index)
-    local dest_line = pattern:track(dest_track_index):line(line_index)
-    
-    local chosen_note = nil         -- the note value we want (number)
-    local chosen_volume = nil       -- volume column value
-    local chosen_panning = nil      -- panning column value
-    local chosen_delay = nil        -- delay column value
-    local chosen_instrument = nil   -- for "original" mode, we use each note’s own instrument
-  
-    -- Loop over all visible note columns in the source track:
-    for col = 1, source_track.visible_note_columns do
-      local note_column = source_line:note_column(col)
-      if (not note_column.is_empty) and (note_column.note_string ~= "OFF") then
-        local n_val = note_column.note_value
-        if chosen_note == nil then
-          chosen_note = n_val
-          chosen_volume = note_column.volume_value
-          chosen_panning = note_column.panning_value
-          chosen_delay = note_column.delay_value
-          chosen_instrument = note_column.instrument_value  -- 0-based
-        else
-          if note_type == "highest" and n_val > chosen_note then
-            chosen_note = n_val
-            chosen_volume = note_column.volume_value
-            chosen_panning = note_column.panning_value
-            chosen_delay = note_column.delay_value
-            chosen_instrument = note_column.instrument_value
-          elseif note_type == "lowest" and n_val < chosen_note then
-            chosen_note = n_val
-            chosen_volume = note_column.volume_value
-            chosen_panning = note_column.panning_value
-            chosen_delay = note_column.delay_value
-            chosen_instrument = note_column.instrument_value
+  for pat_index = 1, #song.patterns do
+    local pat = song:pattern(pat_index)
+    local source_pat_track = pat:track(original_track_index)
+    local dest_pat_track   = pat:track(original_track_index + 1)
+    for line_index = 1, pat.number_of_lines do
+      dest_pat_track:line(line_index):copy_from(source_pat_track:line(line_index))
+      for _, note_column in ipairs(dest_pat_track:line(line_index).note_columns) do
+        if note_column.instrument_value ~= 255 then
+          if instrument_mode == "duplicate" or instrument_mode == "selected" then
+            note_column.instrument_value = final_instrument_index - 1  -- 0-based
           end
+          -- "original" mode leaves the note's instrument as in the original pattern.
         end
       end
     end
-
-    -- If a note was found, write it to the first note column of the destination line.
-    if chosen_note then
-      local dest_note_column = dest_line:note_column(1)
-      dest_note_column.note_value = chosen_note
-      -- For "duplicate" and "selected" modes, we use final_instrument_index,
-      -- converting to 0-based (Renoise stores instrument numbers as 0-based).
-      if (instrument_mode == "duplicate") or (instrument_mode == "selected") then
-        dest_note_column.instrument_value = final_instrument_index - 1
-      else
-        -- For "original" mode, keep the note’s own instrument value.
-        dest_note_column.instrument_value = chosen_instrument
-      end
-      dest_note_column.volume_value = chosen_volume
-      dest_note_column.panning_value = chosen_panning
-      dest_note_column.delay_value = chosen_delay
-      changes_made = true
-    end
-  end
-
-  ------------------------------------------------------------------------------
-  -- Copy Automation from Source Track to Destination Track
-  ------------------------------------------------------------------------------
-  for pat_index = 1, #song.patterns do
-    local src_pat_track = song.patterns[pat_index].tracks[source_track_index]
-    local dst_pat_track = song.patterns[pat_index].tracks[dest_track_index]
-    
-    for _, automation in ipairs(src_pat_track.automation) do
-      local new_automation = dst_pat_track:create_automation(automation.dest_parameter)
+    for _, automation in ipairs(source_pat_track.automation) do
+      local new_automation = dest_pat_track:create_automation(automation.dest_parameter)
       for _, point in ipairs(automation.points) do
         new_automation:add_point_at(point.time, point.value)
       end
     end
   end
 
-  ------------------------------------------------------------------------------
-  -- Handle Instr. Automation Device (if it existed in the source)
-  ------------------------------------------------------------------------------
-  if has_instr_automation then
-    new_device_index = new_device_index + 1
-    local new_device = dest_track:insert_device_at("Audio/Effects/Native/*Instr. Automation", new_device_index)
-    local old_xml = old_instr_automation_device.active_preset_data
-    local new_xml = old_xml:gsub("<instrument>(%d+)</instrument>", 
-      function(instr_index)
-        -- instrument numbers in XML are 0-based
-        return string.format("<instrument>%d</instrument>", final_instrument_index - 1)
-      end)
-    new_device.active_preset_data = new_xml
-    new_device.is_maximized = old_instr_automation_device.is_maximized
+-- PART 4: Extract the specific note (highest or lowest) for every line in the new track's pattern.
+-- For each pattern, we work on the duplicated track only.
+local new_track_index = original_track_index + 1
+for pat_index = 1, #song.patterns do
+  local pat = song:pattern(pat_index)
+  -- Get the duplicated pattern track (do not use properties of a PatternTrack, so use the SongTrack instead)
+  local dest_pat_track = pat:track(new_track_index)
+  -- Get the number of note columns from the duplicated track (a property of the SongTrack)
+  local num_columns = song:track(new_track_index).visible_note_columns
+  
+  for line_index = 1, pat.number_of_lines do
+    local line = dest_pat_track:line(line_index)
+    local chosen_note, chosen_volume, chosen_panning, chosen_delay, chosen_instrument = nil, nil, nil, nil, nil
+
+    -- Use the number of note columns from the original source track to examine all columns.
+    for col = 1, source_track.visible_note_columns do
+      local nc = line:note_column(col)
+      if (not nc.is_empty) and (nc.note_string ~= "OFF") then
+        local n_val = nc.note_value
+        if chosen_note == nil then
+          chosen_note = n_val
+          chosen_volume = nc.volume_value
+          chosen_panning = nc.panning_value
+          chosen_delay = nc.delay_value
+          chosen_instrument = nc.instrument_value
+        else
+          if note_type == "highest" and n_val > chosen_note then
+            chosen_note = n_val
+            chosen_volume = nc.volume_value
+            chosen_panning = nc.panning_value
+            chosen_delay = nc.delay_value
+            chosen_instrument = nc.instrument_value
+          elseif note_type == "lowest" and n_val < chosen_note then
+            chosen_note = n_val
+            chosen_volume = nc.volume_value
+            chosen_panning = nc.panning_value
+            chosen_delay = nc.delay_value
+            chosen_instrument = nc.instrument_value
+          end
+        end
+      end
+    end
+
+    if chosen_note then
+      -- Clear all columns in the new track's line using the correct number
+      for col = 1, num_columns do
+        line:note_column(col):clear()
+      end
+      -- Write the chosen note in column 1
+      local nc = line:note_column(1)
+      nc.note_value    = chosen_note
+      nc.volume_value  = chosen_volume
+      nc.panning_value = chosen_panning
+      nc.delay_value   = chosen_delay
+      if instrument_mode == "duplicate" or instrument_mode == "selected" then
+        nc.instrument_value = final_instrument_index - 1  -- convert to 0-based index
+      else
+        nc.instrument_value = chosen_instrument
+      end
+    end
   end
+end
+
+-- Finally, set the duplicated track to display only one note column.
+song:track(new_track_index).visible_note_columns = 1
+   
 
   ------------------------------------------------------------------------------
-  -- Restore external editor if needed (only for "duplicate" mode)
+  -- PART 5: Final touches – select the new track, update instrument selection,
+  -- and restore the external editor if needed.
   ------------------------------------------------------------------------------
-  if instrument_was_duplicated and external_editor_was_open then
-    if song.instruments[final_instrument_index].plugin_properties.plugin_device then
-      song.instruments[final_instrument_index].plugin_properties.plugin_device.external_editor_visible = true
+  song.selected_track_index = original_track_index + 1
+  if instrument_mode == "duplicate" then
+    song.selected_instrument_index = final_instrument_index
+  end
+  if instrument_was_duplicated and external_editor_open then
+    local new_instrument = song.instruments[final_instrument_index]
+    if new_instrument.plugin_properties and new_instrument.plugin_properties.plugin_device then
+      new_instrument.plugin_properties.plugin_device.external_editor_visible = true
     end
   end
 
-  ------------------------------------------------------------------------------
-  -- Final Setup
-  ------------------------------------------------------------------------------
-  song.selected_track_index = dest_track_index
-
-  if changes_made then
-    local mode_msg = (instrument_mode == "duplicate") and "with duplicated instrument" or 
-                     (instrument_mode == "selected") and "using selected instrument" or 
-                     "using original instrument"
-    renoise.app():show_status(string.format("%s notes extracted to new track %d %s (instrument %d)",
-      (note_type == "highest") and "Highest" or "Lowest",
-      dest_track_index, mode_msg, final_instrument_index))
-  else
-    renoise.app():show_status("No notes found to extract")
-  end
-
+  local mode_msg = instrument_mode == "duplicate" and "with duplicated instrument" or
+                   instrument_mode == "selected" and "using selected instrument" or
+                   "using original instrument"
+  renoise.app():show_status(string.format("%s notes extracted to new track (%s, instrument %d)",
+    note_type == "highest" and "Highest" or "Lowest",
+    mode_msg, final_instrument_index))
 end
 
 --------------------------------------------------------------------------------
--- Register Keybindings and Menu Entries for Each of the 6 Variations
+-- Keybindings
 --------------------------------------------------------------------------------
-
--- Highest Note extractions:
+-- Pattern Editor Keybindings:
 renoise.tool():add_keybinding{
   name = "Pattern Editor:Paketti:Duplicate Highest Notes to New Track & Duplicate Instrument",
   invoke = function() DuplicateSpecificNotesToNewTrack("highest", "duplicate") end
 }
-renoise.tool():add_menu_entry{
-  name = "Pattern Editor:Paketti ChordsPlus..:Duplicate Highest Notes to New Track & Duplicate Instrument",
-  invoke = function() DuplicateSpecificNotesToNewTrack("highest", "duplicate") end
-}
-
 renoise.tool():add_keybinding{
   name = "Pattern Editor:Paketti:Duplicate Highest Notes to New Track (Selected Instrument)",
   invoke = function() DuplicateSpecificNotesToNewTrack("highest", "selected") end
+}
+renoise.tool():add_keybinding{
+  name = "Pattern Editor:Paketti:Duplicate Highest Notes to New Track (Original Instrument)",
+  invoke = function() DuplicateSpecificNotesToNewTrack("highest", "original") end
+}
+renoise.tool():add_keybinding{
+  name = "Pattern Editor:Paketti:Duplicate Lowest Notes to New Track & Duplicate Instrument",
+  invoke = function() DuplicateSpecificNotesToNewTrack("lowest", "duplicate") end
+}
+renoise.tool():add_keybinding{
+  name = "Pattern Editor:Paketti:Duplicate Lowest Notes to New Track (Selected Instrument)",
+  invoke = function() DuplicateSpecificNotesToNewTrack("lowest", "selected") end
+}
+renoise.tool():add_keybinding{
+  name = "Pattern Editor:Paketti:Duplicate Lowest Notes to New Track (Original Instrument)",
+  invoke = function() DuplicateSpecificNotesToNewTrack("lowest", "original") end
+}
+
+renoise.tool():add_keybinding{
+  name = "Mixer:Paketti:Duplicate Highest Notes to New Track & Duplicate Instrument",
+  invoke = function() DuplicateSpecificNotesToNewTrack("highest", "duplicate") end
+}
+renoise.tool():add_keybinding{
+  name = "Mixer:Paketti:Duplicate Highest Notes to New Track (Selected Instrument)",
+  invoke = function() DuplicateSpecificNotesToNewTrack("highest", "selected") end
+}
+renoise.tool():add_keybinding{
+  name = "Mixer:Paketti:Duplicate Highest Notes to New Track (Original Instrument)",
+  invoke = function() DuplicateSpecificNotesToNewTrack("highest", "original") end
+}
+renoise.tool():add_keybinding{
+  name = "Mixer:Paketti:Duplicate Lowest Notes to New Track & Duplicate Instrument",
+  invoke = function() DuplicateSpecificNotesToNewTrack("lowest", "duplicate") end
+}
+renoise.tool():add_keybinding{
+  name = "Mixer:Paketti:Duplicate Lowest Notes to New Track (Selected Instrument)",
+  invoke = function() DuplicateSpecificNotesToNewTrack("lowest", "selected") end
+}
+renoise.tool():add_keybinding{
+  name = "Mixer:Paketti:Duplicate Lowest Notes to New Track (Original Instrument)",
+  invoke = function() DuplicateSpecificNotesToNewTrack("lowest", "original") end
+}
+
+renoise.tool():add_menu_entry{
+  name = "Pattern Editor:Paketti ChordsPlus..:Duplicate Highest Notes to New Track & Duplicate Instrument",
+  invoke = function() DuplicateSpecificNotesToNewTrack("highest", "duplicate") end
 }
 renoise.tool():add_menu_entry{
   name = "Pattern Editor:Paketti ChordsPlus..:Duplicate Highest Notes to New Track (Selected Instrument)",
   invoke = function() DuplicateSpecificNotesToNewTrack("highest", "selected") end
 }
-
-renoise.tool():add_keybinding{
-  name = "Pattern Editor:Paketti:Duplicate Highest Notes to New Track (Original Instrument)",
-  invoke = function() DuplicateSpecificNotesToNewTrack("highest", "original") end
-}
 renoise.tool():add_menu_entry{
   name = "Pattern Editor:Paketti ChordsPlus..:Duplicate Highest Notes to New Track (Original Instrument)",
   invoke = function() DuplicateSpecificNotesToNewTrack("highest", "original") end
-}
-
--- Lowest Note extractions:
-renoise.tool():add_keybinding{
-  name = "Pattern Editor:Paketti:Duplicate Lowest Notes to New Track & Duplicate Instrument",
-  invoke = function() DuplicateSpecificNotesToNewTrack("lowest", "duplicate") end
 }
 renoise.tool():add_menu_entry{
   name = "Pattern Editor:Paketti ChordsPlus..:Duplicate Lowest Notes to New Track & Duplicate Instrument",
   invoke = function() DuplicateSpecificNotesToNewTrack("lowest", "duplicate") end
 }
-
-renoise.tool():add_keybinding{
-  name = "Pattern Editor:Paketti:Duplicate Lowest Notes to New Track (Selected Instrument)",
-  invoke = function() DuplicateSpecificNotesToNewTrack("lowest", "selected") end
-}
 renoise.tool():add_menu_entry{
   name = "Pattern Editor:Paketti ChordsPlus..:Duplicate Lowest Notes to New Track (Selected Instrument)",
   invoke = function() DuplicateSpecificNotesToNewTrack("lowest", "selected") end
 }
-
-renoise.tool():add_keybinding{
-  name = "Pattern Editor:Paketti:Duplicate Lowest Notes to New Track (Original Instrument)",
-  invoke = function() DuplicateSpecificNotesToNewTrack("lowest", "original") end
-}
 renoise.tool():add_menu_entry{
   name = "Pattern Editor:Paketti ChordsPlus..:Duplicate Lowest Notes to New Track (Original Instrument)",
+  invoke = function() DuplicateSpecificNotesToNewTrack("lowest", "original") end
+}
+
+renoise.tool():add_menu_entry{
+  name = "Mixer:Paketti ChordsPlus..:Duplicate Highest Notes to New Track & Duplicate Instrument",
+  invoke = function() DuplicateSpecificNotesToNewTrack("highest", "duplicate") end
+}
+renoise.tool():add_menu_entry{
+  name = "Mixer:Paketti ChordsPlus..:Duplicate Highest Notes to New Track (Selected Instrument)",
+  invoke = function() DuplicateSpecificNotesToNewTrack("highest", "selected") end
+}
+renoise.tool():add_menu_entry{
+  name = "Mixer:Paketti ChordsPlus..:Duplicate Highest Notes to New Track (Original Instrument)",
+  invoke = function() DuplicateSpecificNotesToNewTrack("highest", "original") end
+}
+renoise.tool():add_menu_entry{
+  name = "Mixer:Paketti ChordsPlus..:Duplicate Lowest Notes to New Track & Duplicate Instrument",
+  invoke = function() DuplicateSpecificNotesToNewTrack("lowest", "duplicate") end
+}
+renoise.tool():add_menu_entry{
+  name = "Mixer:Paketti ChordsPlus..:Duplicate Lowest Notes to New Track (Selected Instrument)",
+  invoke = function() DuplicateSpecificNotesToNewTrack("lowest", "selected") end
+}
+renoise.tool():add_menu_entry{
+  name = "Mixer:Paketti ChordsPlus..:Duplicate Lowest Notes to New Track (Original Instrument)",
   invoke = function() DuplicateSpecificNotesToNewTrack("lowest", "original") end
 }
