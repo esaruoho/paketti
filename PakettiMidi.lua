@@ -1,5 +1,14 @@
 --- This is the way
 -- function(message) if message:is_trigger() then
+
+-- Helper function to clean device names for MIDI mapping names
+local function clean_device_name(name)
+  if not name then return "" end
+  -- Remove special characters and spaces, keep alphanumeric and some basic punctuation
+  -- Replace spaces and special chars with underscores
+  local cleaned = name:gsub("[^%w%s%-]", ""):gsub("%s+", "_")
+  return cleaned
+end
 -------------------------------------------------------------------------------------------------------------------------------
 renoise.tool():add_midi_mapping{name="Paketti:Groove Settings Groove #2&4 x[Knob]",
   invoke=function(midi_message)
