@@ -1203,17 +1203,9 @@ end
 for i, device_path in ipairs(target_devices) do
   local device_name = device_path:match("[^/]+$")
   
-  -- Toggle keybinding
-  renoise.tool():add_keybinding{
-    name = string.format("Global:Paketti:Toggle Device %s", device_name),
-    invoke = function()
-      control_device(device_path, "toggle")
-    end
-  }
-  
   -- On keybinding
   renoise.tool():add_keybinding{
-    name = string.format("Global:Paketti:Enable Device %s", device_name),
+    name = string.format("Global:Paketti:Enable Device %02d (%s)", i, device_name),
     invoke = function()
       control_device(device_path, "on")
     end
@@ -1221,7 +1213,7 @@ for i, device_path in ipairs(target_devices) do
   
   -- Off keybinding
   renoise.tool():add_keybinding{
-    name = string.format("Global:Paketti:Disable Device %s", device_name),
+    name = string.format("Global:Paketti:Disable Device %02d (%s)", i, device_name),
     invoke = function()
       control_device(device_path, "off")
     end
@@ -1229,7 +1221,7 @@ for i, device_path in ipairs(target_devices) do
 
   -- Toggle MIDI mapping
   renoise.tool():add_midi_mapping{
-    name = string.format("Paketti:Toggle Device %d (%s) x[Toggle]", i, device_name),
+    name = string.format("Paketti:Toggle Device %02d (%s) x[Toggle]", i, device_name),
     invoke = function(message)
       if message:is_trigger() then
         control_device(device_path, "toggle")
@@ -1239,7 +1231,7 @@ for i, device_path in ipairs(target_devices) do
   
   -- Momentary MIDI mapping (press to activate, release to deactivate)
   renoise.tool():add_midi_mapping{
-    name = string.format("Paketti:Hold Device %d (%s) x[Button]", i, device_name),
+    name = string.format("Paketti:Hold Device %02d (%s) x[Button]", i, device_name),
     invoke = function(message)
       if message:is_abs_value() then
         control_device(device_path, message.int_value > 0 and "on" or "off")
@@ -1247,9 +1239,9 @@ for i, device_path in ipairs(target_devices) do
     end
   }
     
-  -- Keybinding for toggle
+  -- Toggle keybinding
   renoise.tool():add_keybinding{
-    name = string.format("Global:Paketti:Toggle Device %d (%s)", i, device_name),
+    name = string.format("Global:Paketti:Toggle Device %02d (%s)", i, device_name),
     invoke = function()
       control_device(device_path, "toggle")
     end

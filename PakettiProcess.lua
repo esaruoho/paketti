@@ -1,5 +1,9 @@
 -- Configuration for process yielding (in seconds)
-local PROCESS_YIELD_INTERVAL = 1.5  -- Adjust this value to control how often the process yields
+local PROCESS_YIELD_INTERVAL = 4.53  -- Adjust as needed
+
+-- Localize math library functions for efficiency
+local math_log10 = math.log10
+local math_abs   = math.abs
 
 function NormalizeSelectedSliceInSample()
   local song = renoise.song()
@@ -7,19 +11,8 @@ function NormalizeSelectedSliceInSample()
   local current_slice = song.selected_sample_index
   local first_sample = instrument.samples[1]
   local current_sample = song.selected_sample
-  local last_yield_time = os.clock()
-  
-  -- Function to check if we should yield
-  local function should_yield()
-    local current_time = os.clock()
-    if current_time - last_yield_time >= PROCESS_YIELD_INTERVAL then
-      last_yield_time = current_time
-      return true
-    end
-    return false
-  end
-  
-  -- Check if we have valid data
+  local start_time = os.clock()
+
   if not current_sample or not current_sample.sample_buffer.has_sample_data then
     renoise.app():show_status("No sample available")
     return
@@ -28,454 +21,376 @@ function NormalizeSelectedSliceInSample()
   print(string.format("\nSample Selected is Sample Slot %d", song.selected_sample_index))
   print(string.format("Sample Frames Length is 1-%d", current_sample.sample_buffer.number_of_frames))
 
-  -- Case 1: No slice markers - work on current sample
+  -----------------------------
+  -- CASE 1: No slice markers – process entire sample.
   if #first_sample.slice_markers == 0 then
-    local buffer = current_sample.sample_buffer
-    local slice_start, slice_end
-    
-    -- Check for selection in current sample
-    if buffer.selection_range[1] and buffer.selection_range[2] then
-      slice_start = buffer.selection_range[1]
-      slice_end = buffer.selection_range[2]
-      print(string.format("Selection in Sample: %d-%d", slice_start, slice_end))
-      print("Normalizing: selection in sample")
-    else
-      slice_start = 1
-      slice_end = buffer.number_of_frames
-      print("Normalizing: entire sample")
-    end
-    
-    -- Create ProcessSlicer instance and dialog
-    local slicer = nil
-    local dialog = nil
-    local vb = nil
-    
-    -- Define the process function
+    local slicer, dialog, vb  -- declare upvalues so process_func can refer to them
     local function process_func()
-      local time_start = os.clock()
-      local time_reading = 0
-      local time_processing = 0
+      local buffer = current_sample.sample_buffer
+      local sel_range = buffer.selection_range
+      local slice_start, slice_end
+
+      if sel_range[1] and sel_range[2] then
+        slice_start = sel_range[1]
+        slice_end   = sel_range[2]
+        print(string.format("Selection in Sample: %d-%d", slice_start, slice_end))
+        print("Normalizing: selection in sample")
+      else
+        slice_start = 1
+        slice_end   = buffer.number_of_frames
+        print("Normalizing: entire sample")
+      end
+
+      -- Localize properties for efficiency.
+      local num_channels = buffer.number_of_channels
+      local sample_rate  = buffer.sample_rate
+      local bit_depth    = buffer.bit_depth
       local total_frames = slice_end - slice_start + 1
-      
-      print(string.format("\nNormalizing %d frames (%.1f seconds at %dHz)", 
-          total_frames, 
-          total_frames / buffer.sample_rate,
-          buffer.sample_rate))
-      
-      -- First pass: Find peak and cache data
-      local peak = 0
-      local processed_frames = 0
-      local CHUNK_SIZE = 524288  -- 512KB worth of frames
-      
-      -- Pre-allocate tables for better performance
+      local get_sample   = buffer.sample_data
+      local set_sample   = buffer.set_sample_data
+
+      -- Preallocate flat cache table and per‑channel peak table.
       local channel_peaks = {}
-      local sample_cache = {}
-      for channel = 1, buffer.number_of_channels do
-          channel_peaks[channel] = 0
-          sample_cache[channel] = {}
+      local sample_cache  = {}
+      for ch = 1, num_channels do
+        channel_peaks[ch] = 0
+        sample_cache[ch]  = {}  -- sample index = absolute frame - slice_start + 1
       end
-      
+
       buffer:prepare_sample_data_changes()
-      
-      -- Process in blocks
+
+      local next_yield_time = os.clock() + PROCESS_YIELD_INTERVAL
+      local function yield_if_needed()
+        if os.clock() >= next_yield_time then
+          coroutine.yield()
+          next_yield_time = os.clock() + PROCESS_YIELD_INTERVAL
+        end
+      end
+
+      local processed_frames = 0
+      local time_reading = 0
+      local CHUNK_SIZE = 4194304  -- block size for full sample processing
+
+      print(string.format("\nNormalizing %d frames (%.1f sec at %dHz, %d‑bit)", 
+            total_frames, total_frames/sample_rate, sample_rate, bit_depth))
+
+      -- First Pass: Cache sample data and compute peak.
       for frame = slice_start, slice_end, CHUNK_SIZE do
-          local block_end = math.min(frame + CHUNK_SIZE - 1, slice_end)
-          local block_size = block_end - frame + 1
-          
-          -- Read and process each channel
-          for channel = 1, buffer.number_of_channels do
-              local read_start = os.clock()
-              local channel_peak = 0
-              
-              -- Cache the data while finding peak
-              sample_cache[channel][frame] = {}
-              for i = 0, block_size - 1 do
-                  local sample_value = buffer:sample_data(channel, frame + i)
-                  sample_cache[channel][frame][i] = sample_value
-                  local abs_value = math.abs(sample_value)
-                  if abs_value > channel_peak then
-                      channel_peak = abs_value
-                  end
+        local block_end = math.min(frame + CHUNK_SIZE - 1, slice_end)
+        local block_size = block_end - frame + 1
+        local t_block = os.clock()
+        for ch = 1, num_channels do
+          for i = 0, block_size - 1 do
+            local f = frame + i
+            local idx = f - slice_start + 1
+            local value = get_sample(buffer, ch, f)
+            sample_cache[ch][idx] = value
+            local abs_val = value < 0 and -value or value
+            if abs_val > channel_peaks[ch] then
+              channel_peaks[ch] = abs_val
+              if channel_peaks[ch] >= 1.0 then
+                print("Found peak of 1.0 - no normalization needed")
+                buffer:finalize_sample_data_changes()
+                if dialog and dialog.visible then
+                  dialog:close()
+                end
+                return
               end
-              
-              time_reading = time_reading + (os.clock() - read_start)
-              if channel_peak > channel_peaks[channel] then
-                  channel_peaks[channel] = channel_peak
-              end
+            end
           end
-          
-          -- Update progress and check if we should yield
-          processed_frames = processed_frames + block_size
-          local progress = processed_frames / total_frames
-          if dialog and dialog.visible then
-              vb.views.progress_text.text = string.format("Finding peak... %.1f%%", progress * 100)
-          end
-          
-          if slicer:was_cancelled() then
-              buffer:finalize_sample_data_changes()
-              return
-          end
-          
-          if should_yield() then
-            coroutine.yield()
-          end
-      end
-      
-      -- Find overall peak
-      for _, channel_peak in ipairs(channel_peaks) do
-          if channel_peak > peak then
-              peak = channel_peak
-          end
-      end
-      
-      -- Check if sample is silent
-      if peak == 0 then
-          print("Sample is silent, no normalization needed")
+        end
+        time_reading = time_reading + (os.clock() - t_block)
+        processed_frames = processed_frames + block_size
+        if dialog and dialog.visible then
+          vb.views.progress_text.text = string.format("Finding peak... %.1f%%", (processed_frames/total_frames)*100)
+        end
+        if slicer and slicer:was_cancelled() then
           buffer:finalize_sample_data_changes()
-          if dialog and dialog.visible then
-              dialog:close()
-          end
           return
+        end
+        yield_if_needed()
       end
-      
-      -- Calculate and display normalization info
+
+      -- Find overall peak.
+      local peak = 0
+      for _, p in ipairs(channel_peaks) do
+        if p > peak then peak = p end
+      end
+      if peak == 0 then
+        print("Sample is silent, no normalization needed")
+        buffer:finalize_sample_data_changes()
+        if dialog and dialog.visible then
+          dialog:close()
+        end
+        return
+      end
+
       local scale = 1.0 / peak
-      local db_increase = 20 * math.log10(scale)
+      local db_increase = 20 * math_log10(scale)
       print(string.format("\nPeak amplitude: %.6f (%.1f dB below full scale)", peak, -db_increase))
       print(string.format("Will increase volume by %.1f dB", db_increase))
-      
-      -- Reset progress for second pass
+
+      -- Second Pass: Apply normalization.
       processed_frames = 0
-      last_yield_time = os.clock()  -- Reset yield timer for second pass
-      
-      -- Second pass: Apply normalization using cached data
+      local time_processing = 0
+      next_yield_time = os.clock() + PROCESS_YIELD_INTERVAL  -- reset yield timer
+
       for frame = slice_start, slice_end, CHUNK_SIZE do
-          local block_end = math.min(frame + CHUNK_SIZE - 1, slice_end)
-          local block_size = block_end - frame + 1
-          
-          -- Process each channel
-          for channel = 1, buffer.number_of_channels do
-              local process_start = os.clock()
-              
-              for i = 0, block_size - 1 do
-                  local current_frame = frame + i
-                  -- Use cached data instead of reading from buffer again
-                  local sample_value = sample_cache[channel][frame][i]
-                  buffer:set_sample_data(channel, current_frame, sample_value * scale)
-              end
-              
-              time_processing = time_processing + (os.clock() - process_start)
+        local block_end = math.min(frame + CHUNK_SIZE - 1, slice_end)
+        local block_size = block_end - frame + 1
+        local t_block = os.clock()
+        for ch = 1, num_channels do
+          for i = 0, block_size - 1 do
+            local f = frame + i
+            local idx = f - slice_start + 1
+            local cached_value = sample_cache[ch][idx]
+            set_sample(buffer, ch, f, cached_value * scale)
           end
-          
-          -- Clear cache for this chunk to free memory
-          for channel = 1, buffer.number_of_channels do
-              sample_cache[channel][frame] = nil
-          end
-          
-          -- Update progress and check if we should yield
-          processed_frames = processed_frames + block_size
-          local progress = processed_frames / total_frames
-          if dialog and dialog.visible then
-              vb.views.progress_text.text = string.format("Normalizing... %.1f%%", progress * 100)
-          end
-          
-          if slicer:was_cancelled() then
-              buffer:finalize_sample_data_changes()
-              return
-          end
-          
-          if should_yield() then
-            coroutine.yield()
-          end
+        end
+        time_processing = time_processing + (os.clock() - t_block)
+        processed_frames = processed_frames + block_size
+        if dialog and dialog.visible then
+          vb.views.progress_text.text = string.format("Normalizing... %.1f%%", (processed_frames/total_frames)*100)
+        end
+        if slicer and slicer:was_cancelled() then
+          buffer:finalize_sample_data_changes()
+          return
+        end
+        yield_if_needed()
       end
-      
-      -- Clear the entire cache
+
       sample_cache = nil
-      
-      -- Finalize changes
       buffer:finalize_sample_data_changes()
-      
-      -- Calculate and display performance stats
-      local total_time = os.clock() - time_start
-      local frames_per_second = total_frames / total_time
+
+      local total_time = os.clock() - start_time
+      local frames_per_sec = total_frames / total_time
       print(string.format("\nNormalization complete:"))
-      print(string.format("Total time: %.2f seconds (%.1fM frames/sec)", 
-          total_time, frames_per_second / 1000000))
-      print(string.format("Reading: %.1f%%, Processing: %.1f%%", 
-          (time_reading/total_time) * 100,
-          ((total_time - time_reading)/total_time) * 100))
+      print(string.format("Total time: %.2f seconds (%.5fM frames/sec)", total_time, frames_per_sec/1000000))
+      print(string.format("Reading: %.3f%%, Processing: %.3f%%", 
+             (time_reading/total_time)*100, ((total_time-time_reading)/total_time)*100))
       
-      -- Close dialog when done
       if dialog and dialog.visible then
-          dialog:close()
+        dialog:close()
       end
-      
-      if buffer.selection_range[1] and buffer.selection_range[2] then
+
+      if sel_range[1] and sel_range[2] then
         renoise.app():show_status("Normalized selection in " .. current_sample.name)
       else
         renoise.app():show_status("Normalized " .. current_sample.name)
       end
     end
-    
-    -- Create and start the ProcessSlicer
+
     slicer = ProcessSlicer(process_func)
     dialog, vb = slicer:create_dialog("Normalizing Sample")
     slicer:start()
     return
   end
 
-  -- Case 2: Has slice markers
-  local buffer = first_sample.sample_buffer
-  local slice_start, slice_end
-  local slice_markers = first_sample.slice_markers
+  -----------------------------
+  -- CASE 2: Slice markers exist – process based on current slice.
+  do
+    local slicer, dialog, vb  -- declare upvalues
+    local function process_func()
+      local buffer = first_sample.sample_buffer
+      local slice_markers = first_sample.slice_markers
+      local slice_start, slice_end
 
-  -- If we're on the first sample
-  if current_slice == 1 then
-    -- Check for selection in first sample
-    if buffer.selection_range[1] and buffer.selection_range[2] then
-      slice_start = buffer.selection_range[1]
-      slice_end = buffer.selection_range[2]
-      print(string.format("Selection in First Sample: %d-%d", slice_start, slice_end))
-      print("Normalizing: selection in first sample")
-    else
-      slice_start = 1
-      slice_end = buffer.number_of_frames
-      print("Normalizing: entire first sample")
-    end
-  else
-    -- Get slice boundaries
-    slice_start = current_slice > 1 and slice_markers[current_slice - 1] or 1
-    local slice_end_marker = slice_markers[current_slice] or buffer.number_of_frames
-    local slice_length = slice_end_marker - slice_start + 1
+      if current_slice == 1 then
+        local sel = buffer.selection_range
+        if sel[1] and sel[2] then
+          slice_start = sel[1]
+          slice_end   = sel[2]
+          print(string.format("Selection in First Sample: %d-%d", slice_start, slice_end))
+          print("Normalizing: selection in first sample")
+        else
+          slice_start = 1
+          slice_end   = buffer.number_of_frames
+          print("Normalizing: entire first sample")
+        end
+      else
+        slice_start = current_slice > 1 and slice_markers[current_slice - 1] or 1
+        local slice_end_marker = slice_markers[current_slice] or buffer.number_of_frames
+        print(string.format("Selection is within Slice %d", current_slice))
+        print(string.format("Slice %d bounds: %d-%d", current_slice, slice_start, slice_end_marker))
+        local current_buffer = current_sample.sample_buffer
+        print(string.format("Current sample selection range: start=%s, end=%s", 
+              tostring(current_buffer.selection_range[1]), tostring(current_buffer.selection_range[2])))
+        if current_buffer.selection_range[1] and current_buffer.selection_range[2] then
+          local rel_sel_start = current_buffer.selection_range[1]
+          local rel_sel_end   = current_buffer.selection_range[2]
+          local abs_sel_start = slice_start + rel_sel_start - 1
+          local abs_sel_end   = slice_start + rel_sel_end - 1
+          print(string.format("Selection %d-%d in slice view converts to %d-%d in sample", 
+                rel_sel_start, rel_sel_end, abs_sel_start, abs_sel_end))
+          slice_start = abs_sel_start
+          slice_end   = abs_sel_end
+          print("Normalizing: selection in slice")
+        else
+          slice_end = slice_end_marker
+          print("Normalizing: entire slice (no selection in slice view)")
+        end
+      end
 
-    print(string.format("Selection is within Slice %d", current_slice))
-    print(string.format("Slice %d length is %d-%d (length: %d), within 1-%d of sample frames length", 
-      current_slice, slice_start, slice_end_marker, slice_length, buffer.number_of_frames))
+      slice_start = math.max(1, math.min(slice_start, buffer.number_of_frames))
+      slice_end   = math.max(slice_start, math.min(slice_end, buffer.number_of_frames))
+      print(string.format("Final normalize range: %d-%d", slice_start, slice_end))
 
-    -- When in a slice, check the current_sample's selection range (slice view)
-    local current_buffer = current_sample.sample_buffer
-    
-    -- Debug selection values
-    print(string.format("Current sample selection range: start=%s, end=%s", 
-      tostring(current_buffer.selection_range[1]), tostring(current_buffer.selection_range[2])))
-    
-    -- Check if there's a selection in the current slice view
-    if current_buffer.selection_range[1] and current_buffer.selection_range[2] then
-      local rel_sel_start = current_buffer.selection_range[1]
-      local rel_sel_end = current_buffer.selection_range[2]
-      
-      -- Convert slice-relative selection to absolute position in sample
-      local abs_sel_start = slice_start + rel_sel_start - 1
-      local abs_sel_end = slice_start + rel_sel_end - 1
-      
-      print(string.format("Selection %d-%d in slice view converts to %d-%d in sample", 
-        rel_sel_start, rel_sel_end, abs_sel_start, abs_sel_end))
-          
-      -- Use the converted absolute positions
-      slice_start = abs_sel_start
-      slice_end = abs_sel_end
-      print("Normalizing: selection in slice")
-    else
-      -- No selection in slice view - normalize whole slice
-      slice_end = slice_end_marker
-      print("Normalizing: entire slice (no selection in slice view)")
-    end
-  end
+      local num_channels = buffer.number_of_channels
+      local sample_rate  = buffer.sample_rate
+      local total_frames = slice_end - slice_start + 1
+      local get_sample   = buffer.sample_data
+      local set_sample   = buffer.set_sample_data
+      local CHUNK_SIZE   = 4194304  -- block size for slice processing
 
-  -- Ensure we don't exceed buffer bounds
-  slice_start = math.max(1, math.min(slice_start, buffer.number_of_frames))
-  slice_end = math.max(slice_start, math.min(slice_end, buffer.number_of_frames))
-  print(string.format("Final normalize range: %d-%d\n", slice_start, slice_end))
+      local channel_peaks = {}
+      local sample_cache  = {}
+      for ch = 1, num_channels do
+        channel_peaks[ch] = 0
+        sample_cache[ch]  = {}
+      end
 
-  -- Create ProcessSlicer instance and dialog for sliced processing
-  local slicer = nil
-  local dialog = nil
-  local vb = nil
-  
-  -- Define the process function for sliced processing
-  local function process_func()
-    local time_start = os.clock()
-    local time_reading = 0
-    local time_processing = 0
-    local total_frames = slice_end - slice_start + 1
-    
-    print(string.format("\nNormalizing %d frames (%.1f seconds at %dHz)", 
-        total_frames, 
-        total_frames / buffer.sample_rate,
-        buffer.sample_rate))
-    
-    -- First pass: Find peak and cache data
-    local peak = 0
-    local processed_frames = 0
-    local CHUNK_SIZE = 524288  -- 512KB worth of frames
-    
-    -- Pre-allocate tables for better performance
-    local channel_peaks = {}
-    local sample_cache = {}
-    for channel = 1, buffer.number_of_channels do
-        channel_peaks[channel] = 0
-        sample_cache[channel] = {}
-    end
-    
-    buffer:prepare_sample_data_changes()
-    
-    -- Process in blocks
-    for frame = slice_start, slice_end, CHUNK_SIZE do
+      buffer:prepare_sample_data_changes()
+
+      local next_yield_time = os.clock() + PROCESS_YIELD_INTERVAL
+      local function yield_if_needed()
+        if os.clock() >= next_yield_time then
+          coroutine.yield()
+          next_yield_time = os.clock() + PROCESS_YIELD_INTERVAL
+        end
+      end
+
+      local processed_frames = 0
+      local time_reading = 0
+
+      print(string.format("\nNormalizing %d frames (%.1f sec at %dHz)", total_frames, total_frames/sample_rate, sample_rate))
+
+      -- First Pass: cache and find the peak.
+      for frame = slice_start, slice_end, CHUNK_SIZE do
         local block_end = math.min(frame + CHUNK_SIZE - 1, slice_end)
         local block_size = block_end - frame + 1
-        
-        -- Read and process each channel
-        for channel = 1, buffer.number_of_channels do
-            local read_start = os.clock()
-            local channel_peak = 0
-            
-            -- Cache the data while finding peak
-            sample_cache[channel][frame] = {}
-            for i = 0, block_size - 1 do
-                local sample_value = buffer:sample_data(channel, frame + i)
-                sample_cache[channel][frame][i] = sample_value
-                local abs_value = math.abs(sample_value)
-                if abs_value > channel_peak then
-                    channel_peak = abs_value
+        local t_block = os.clock()
+        for ch = 1, num_channels do
+          for i = 0, block_size - 1 do
+            local f = frame + i
+            local idx = f - slice_start + 1
+            local value = get_sample(buffer, ch, f)
+            sample_cache[ch][idx] = value
+            local abs_val = value < 0 and -value or value
+            if abs_val > channel_peaks[ch] then
+              channel_peaks[ch] = abs_val
+              if channel_peaks[ch] >= 1.0 then
+                print("Found peak of 1.0 - no normalization needed")
+                renoise.app():show_status("Found a peak of 1.0 - no normalization, doing nothing.")
+                buffer:finalize_sample_data_changes()
+                if dialog and dialog.visible then
+                  dialog:close()
                 end
+                return
+              end
             end
-            
-            time_reading = time_reading + (os.clock() - read_start)
-            if channel_peak > channel_peaks[channel] then
-                channel_peaks[channel] = channel_peak
-            end
+          end
         end
-        
-        -- Update progress and check if we should yield
+        time_reading = time_reading + (os.clock() - t_block)
         processed_frames = processed_frames + block_size
-        local progress = processed_frames / total_frames
         if dialog and dialog.visible then
-            vb.views.progress_text.text = string.format("Finding peak... %.1f%%", progress * 100)
+          vb.views.progress_text.text = string.format("Finding peak... %.1f%%", (processed_frames/total_frames)*100)
         end
-        
-        if slicer:was_cancelled() then
-            buffer:finalize_sample_data_changes()
-            return
+        if slicer and slicer:was_cancelled() then
+          buffer:finalize_sample_data_changes()
+          return
         end
-        
-        if should_yield() then
-          coroutine.yield()
-        end
-    end
-    
-    -- Find overall peak
-    for _, channel_peak in ipairs(channel_peaks) do
+        yield_if_needed()
+      end
+
+      local peak = 0
+      for _, channel_peak in ipairs(channel_peaks) do
         if channel_peak > peak then
-            peak = channel_peak
+          peak = channel_peak
         end
-    end
-    
-    -- Check if sample is silent
-    if peak == 0 then
+      end
+
+      if peak == 0 then
         print("Sample is silent, no normalization needed")
         buffer:finalize_sample_data_changes()
         if dialog and dialog.visible then
-            dialog:close()
+          dialog:close()
         end
         return
-    end
-    
-    -- Calculate and display normalization info
-    local scale = 1.0 / peak
-    local db_increase = 20 * math.log10(scale)
-    print(string.format("\nPeak amplitude: %.6f (%.1f dB below full scale)", peak, -db_increase))
-    print(string.format("Will increase volume by %.1f dB", db_increase))
-    
-    -- Reset progress for second pass
-    processed_frames = 0
-    last_yield_time = os.clock()  -- Reset yield timer for second pass
-    
-    -- Second pass: Apply normalization using cached data
-    for frame = slice_start, slice_end, CHUNK_SIZE do
+      end
+
+      local scale = 1.0 / peak
+      local db_increase = 20 * math_log10(scale)
+      print(string.format("\nPeak amplitude: %.6f (%.1f dB below full scale)", peak, -db_increase))
+      print(string.format("Will increase volume by %.1f dB", db_increase))
+
+      processed_frames = 0
+      local time_processing = 0
+      next_yield_time = os.clock() + PROCESS_YIELD_INTERVAL
+
+      -- Second Pass: normalization.
+      for frame = slice_start, slice_end, CHUNK_SIZE do
         local block_end = math.min(frame + CHUNK_SIZE - 1, slice_end)
         local block_size = block_end - frame + 1
-        
-        -- Process each channel
-        for channel = 1, buffer.number_of_channels do
-            local process_start = os.clock()
-            
-            for i = 0, block_size - 1 do
-                local current_frame = frame + i
-                -- Use cached data instead of reading from buffer again
-                local sample_value = sample_cache[channel][frame][i]
-                buffer:set_sample_data(channel, current_frame, sample_value * scale)
-            end
-            
-            time_processing = time_processing + (os.clock() - process_start)
+        local t_block = os.clock()
+        for ch = 1, num_channels do
+          for i = 0, block_size - 1 do
+            local f = frame + i
+            local idx = f - slice_start + 1
+            local value = sample_cache[ch][idx]
+            set_sample(buffer, ch, f, value * scale)
+          end
         end
-        
-        -- Clear cache for this chunk to free memory
-        for channel = 1, buffer.number_of_channels do
-            sample_cache[channel][frame] = nil
-        end
-        
-        -- Update progress and check if we should yield
+        time_processing = time_processing + (os.clock() - t_block)
         processed_frames = processed_frames + block_size
-        local progress = processed_frames / total_frames
         if dialog and dialog.visible then
-            vb.views.progress_text.text = string.format("Normalizing... %.1f%%", progress * 100)
+          vb.views.progress_text.text = string.format("Normalizing... %.1f%%", (processed_frames/total_frames)*100)
         end
-        
-        if slicer:was_cancelled() then
-            buffer:finalize_sample_data_changes()
-            return
+        if slicer and slicer:was_cancelled() then
+          buffer:finalize_sample_data_changes()
+          return
         end
-        
-        if should_yield() then
-          coroutine.yield()
-        end
-    end
-    
-    -- Clear the entire cache
-    sample_cache = nil
-    
-    -- Finalize changes
-    buffer:finalize_sample_data_changes()
-    
-    -- Calculate and display performance stats
-    local total_time = os.clock() - time_start
-    local frames_per_second = total_frames / total_time
-    print(string.format("\nNormalization complete:"))
-    print(string.format("Total time: %.2f seconds (%.1fM frames/sec)", 
-        total_time, frames_per_second / 1000000))
-    print(string.format("Reading: %.1f%%, Processing: %.1f%%", 
-        (time_reading/total_time) * 100,
-        ((total_time - time_reading)/total_time) * 100))
-    
-    -- Close dialog when done
-    if dialog and dialog.visible then
+        yield_if_needed()
+      end
+
+      sample_cache = nil
+      buffer:finalize_sample_data_changes()
+
+      local total_time = os.clock() - start_time
+      local frames_per_sec = total_frames / total_time
+      print(string.format("\nNormalization complete:"))
+      print(string.format("Total time: %.2f seconds (%.1fM frames/sec)", total_time, frames_per_sec/1000000))
+      print(string.format("Reading: %.1f%%, Processing: %.1f%%", 
+            (time_reading/total_time)*100, ((total_time-time_reading)/total_time)*100))
+      
+      if dialog and dialog.visible then
         dialog:close()
-    end
-    
-    -- Show appropriate status message
-    if current_slice == 1 then
-      if buffer.selection_range[1] and buffer.selection_range[2] then
-        renoise.app():show_status("Normalized selection in " .. current_sample.name)
-      else
-        renoise.app():show_status("Normalized entire sample")
       end
-    else
-      if buffer.selection_range[1] and buffer.selection_range[2] then
-        renoise.app():show_status(string.format("Normalized selection in slice %d", current_slice))
+
+      if current_slice == 1 then
+        local sel = buffer.selection_range
+        if sel[1] and sel[2] then
+          renoise.app():show_status("Normalized selection in " .. current_sample.name)
+        else
+          renoise.app():show_status("Normalized entire sample")
+        end
       else
-        renoise.app():show_status(string.format("Normalized slice %d", current_slice))
+        local sel = buffer.selection_range
+        if sel[1] and sel[2] then
+          renoise.app():show_status(string.format("Normalized selection in slice %d", current_slice))
+        else
+          renoise.app():show_status(string.format("Normalized slice %d", current_slice))
+        end
+        song.selected_sample_index = song.selected_sample_index - 1 
+        song.selected_sample_index = song.selected_sample_index + 1
       end
-      -- Refresh view for slices
-      song.selected_sample_index = song.selected_sample_index - 1 
-      song.selected_sample_index = song.selected_sample_index + 1
     end
+
+    slicer = ProcessSlicer(process_func)
+    dialog, vb = slicer:create_dialog("Normalizing Sample")
+    slicer:start()
   end
-  
-  -- Create and start the ProcessSlicer for sliced processing
-  slicer = ProcessSlicer(process_func)
-  dialog, vb = slicer:create_dialog("Normalizing Sample")
-  slicer:start()
 end
+
 
 -- Add keybinding and menu entries
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Normalize Selected Sample or Slice",invoke=NormalizeSelectedSliceInSample}
@@ -866,7 +781,7 @@ function normalize_selected_sample()
         
         -- Calculate and display normalization info
         local scale = 1.0 / peak
-        local db_increase = 20 * math.log10(scale)
+        local db_increase = 20 * log10(scale)
         print(string.format("\nPeak amplitude: %.6f (%.1f dB below full scale)", peak, -db_increase))
         print(string.format("Will increase volume by %.1f dB", db_increase))
         
@@ -1388,3 +1303,735 @@ renoise.tool():add_keybinding{name="Global:Paketti:Normalize Sample Slices Indep
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Normalize Slices Independently",
   invoke=function() normalize_selected_sample_by_slices() end
 }
+
+-- Function to convert mono sample to specified channels with blank opposite channel
+function mono_to_blank(left_channel, right_channel)
+  -- Ensure a song exists
+  if not renoise.song() then
+    renoise.app():show_status("No song is currently loaded.")
+    return
+  end
+
+  -- Ensure an instrument is selected
+  local song = renoise.song()
+  local instrument = song.selected_instrument
+  if not instrument then
+    renoise.app():show_status("No instrument is selected.")
+    return
+  end
+
+  -- Ensure a sample is selected
+  local sample_index = song.selected_sample_index
+  local sample = instrument:sample(sample_index)
+  if not sample then
+    renoise.app():show_status("No sample is selected.")
+    return
+  end
+
+  -- Ensure the sample is mono
+  if sample.sample_buffer.number_of_channels ~= 1 then
+    renoise.app():show_status("Selected sample is not mono.")
+    return
+  end
+
+  -- Get the sample buffer and its properties
+  local sample_buffer = sample.sample_buffer
+  local sample_rate = sample_buffer.sample_rate
+  local bit_depth = sample_buffer.bit_depth
+  local number_of_frames = sample_buffer.number_of_frames
+  local sample_name = sample.name
+
+  -- Store the sample mapping properties
+  local sample_mapping = sample.sample_mapping
+  local base_note = sample_mapping.base_note
+  local note_range = sample_mapping.note_range
+  local velocity_range = sample_mapping.velocity_range
+  local map_key_to_pitch = sample_mapping.map_key_to_pitch
+  local map_velocity_to_volume = sample_mapping.map_velocity_to_volume
+
+  -- Create a new temporary sample slot
+  local temp_sample_index = #instrument.samples + 1
+  instrument:insert_sample_at(temp_sample_index)
+  local temp_sample = instrument:sample(temp_sample_index)
+  local temp_sample_buffer = temp_sample.sample_buffer
+  
+  -- Prepare the temporary sample buffer with the same sample rate and bit depth as the original
+  temp_sample_buffer:create_sample_data(sample_rate, bit_depth, 2, number_of_frames)
+  temp_sample_buffer:prepare_sample_data_changes()
+
+  -- Copy the sample data to the specified channels
+  for frame = 1, number_of_frames do
+    local sample_value = sample_buffer:sample_data(1, frame)
+    if left_channel == 1 then
+      temp_sample_buffer:set_sample_data(1, frame, sample_value)
+      temp_sample_buffer:set_sample_data(2, frame, 0)
+    else
+      temp_sample_buffer:set_sample_data(1, frame, 0)
+      temp_sample_buffer:set_sample_data(2, frame, sample_value)
+    end
+  end
+
+  -- Finalize changes
+  temp_sample_buffer:finalize_sample_data_changes()
+
+  -- Name the new temporary sample
+  temp_sample.name = sample_name
+  
+  -- Delete the original sample and insert the stereo sample into the same slot
+  instrument:delete_sample_at(sample_index)
+  instrument:insert_sample_at(sample_index)
+  local new_sample = instrument:sample(sample_index)
+  new_sample.name = sample_name
+
+  -- Copy the stereo data from the temporary sample buffer to the new sample buffer
+  local new_sample_buffer = new_sample.sample_buffer
+  new_sample_buffer:create_sample_data(sample_rate, bit_depth, 2, number_of_frames)
+  new_sample_buffer:prepare_sample_data_changes()
+
+  for frame = 1, number_of_frames do
+    local left_value = temp_sample_buffer:sample_data(1, frame)
+    local right_value = temp_sample_buffer:sample_data(2, frame)
+    new_sample_buffer:set_sample_data(1, frame, left_value)
+    new_sample_buffer:set_sample_data(2, frame, right_value)
+  end
+
+  new_sample_buffer:finalize_sample_data_changes()
+
+  -- Restore the sample mapping properties
+  new_sample.sample_mapping.base_note = base_note
+  new_sample.sample_mapping.note_range = note_range
+  new_sample.sample_mapping.velocity_range = velocity_range
+  new_sample.sample_mapping.map_key_to_pitch = map_key_to_pitch
+  new_sample.sample_mapping.map_velocity_to_volume = map_velocity_to_volume
+
+  -- Delete the temporary sample
+  instrument:delete_sample_at(temp_sample_index)
+
+  -- Provide feedback
+  renoise.app():show_status("Mono sample successfully converted to specified channels with blank opposite channel.")
+end
+
+
+-- Function to convert a mono sample to stereo
+function convert_mono_to_stereo()
+  -- Ensure a song exists
+  if not renoise.song() then
+    renoise.app():show_status("No song is currently loaded.")
+    return
+  end
+
+  -- Ensure an instrument is selected
+  local song = renoise.song()
+  local instrument = song.selected_instrument
+  if not instrument then
+    renoise.app():show_status("No instrument is selected.")
+    return
+  end
+
+  -- Ensure a sample is selected
+  local sample_index = song.selected_sample_index
+  local sample = instrument:sample(sample_index)
+  if not sample then
+    renoise.app():show_status("No sample is selected.")
+    return
+  end
+
+  -- Ensure the sample is mono
+  if sample.sample_buffer.number_of_channels ~= 1 then
+    renoise.app():show_status("Selected sample is not mono.")
+    return
+  end
+
+  -- Get the sample buffer and its properties
+  local sample_buffer = sample.sample_buffer
+  local sample_rate = sample_buffer.sample_rate
+  local bit_depth = sample_buffer.bit_depth
+  local number_of_frames = sample_buffer.number_of_frames
+  local sample_name = sample.name
+
+  -- Store the sample mapping properties
+  local sample_mapping = sample.sample_mapping
+  local base_note = sample_mapping.base_note
+  local note_range = sample_mapping.note_range
+  local velocity_range = sample_mapping.velocity_range
+  local map_key_to_pitch = sample_mapping.map_key_to_pitch
+  local map_velocity_to_volume = sample_mapping.map_velocity_to_volume
+
+  -- Create a new temporary sample slot
+  local temp_sample_index = #instrument.samples + 1
+  instrument:insert_sample_at(temp_sample_index)
+  local temp_sample = instrument:sample(temp_sample_index)
+  local temp_sample_buffer = temp_sample.sample_buffer
+  
+  -- Prepare the temporary sample buffer with the same sample rate and bit depth as the original
+  temp_sample_buffer:create_sample_data(sample_rate, bit_depth, 2, number_of_frames)
+  temp_sample_buffer:prepare_sample_data_changes()
+
+  -- Copy the sample data
+  for frame = 1, number_of_frames do
+    local sample_value = sample_buffer:sample_data(1, frame)
+    temp_sample_buffer:set_sample_data(1, frame, sample_value)
+    temp_sample_buffer:set_sample_data(2, frame, sample_value)
+  end
+
+  -- Finalize changes
+  temp_sample_buffer:finalize_sample_data_changes()
+
+  -- Name the new temporary sample
+  temp_sample.name = sample_name
+  
+  -- Delete the original sample and insert the stereo sample into the same slot
+  instrument:delete_sample_at(sample_index)
+  instrument:insert_sample_at(sample_index)
+  local new_sample = instrument:sample(sample_index)
+  new_sample.name = sample_name
+
+  -- Copy the stereo data from the temporary sample buffer to the new sample buffer
+  local new_sample_buffer = new_sample.sample_buffer
+  new_sample_buffer:create_sample_data(sample_rate, bit_depth, 2, number_of_frames)
+  new_sample_buffer:prepare_sample_data_changes()
+
+  for frame = 1, number_of_frames do
+    local sample_value = temp_sample_buffer:sample_data(1, frame)
+    new_sample_buffer:set_sample_data(1, frame, sample_value)
+    new_sample_buffer:set_sample_data(2, frame, sample_value)
+  end
+
+  new_sample_buffer:finalize_sample_data_changes()
+
+  -- Restore the sample mapping properties
+  new_sample.sample_mapping.base_note = base_note
+  new_sample.sample_mapping.note_range = note_range
+  new_sample.sample_mapping.velocity_range = velocity_range
+  new_sample.sample_mapping.map_key_to_pitch = map_key_to_pitch
+  new_sample.sample_mapping.map_velocity_to_volume = map_velocity_to_volume
+
+  -- Delete the temporary sample
+  instrument:delete_sample_at(temp_sample_index)
+
+  -- Provide feedback
+  renoise.app():show_status("Mono sample successfully converted to stereo and preserved in the same slot with keymapping settings.")
+end
+
+function convert_mono_to_stereo_optimized()
+  -- Ensure a song exists
+  if not renoise.song() then
+    renoise.app():show_status("No song is currently loaded.")
+    return
+  end
+
+  -- Ensure an instrument is selected
+  local song = renoise.song()
+  local instrument = song.selected_instrument
+  if not instrument then
+    renoise.app():show_status("No instrument is selected.")
+    return
+  end
+
+  -- Ensure a sample is selected
+  local sample_index = song.selected_sample_index
+  local sample = instrument:sample(sample_index)
+  if not sample then
+    renoise.app():show_status("No sample is selected.")
+    return
+  end
+
+  -- Ensure the sample is mono
+  if sample.sample_buffer.number_of_channels ~= 1 then
+    renoise.app():show_status("Selected sample is not mono.")
+    return
+  end
+
+  -- Create ProcessSlicer instance and dialog
+  local slicer = nil
+  local dialog = nil
+  local vb = nil
+
+  -- Define the process function
+  local function process_func()
+    -- Get the sample buffer and its properties
+    local sample_buffer = sample.sample_buffer
+    local sample_rate = sample_buffer.sample_rate
+    local bit_depth = sample_buffer.bit_depth
+    local number_of_frames = sample_buffer.number_of_frames
+    local sample_name = sample.name
+
+    -- Store the sample mapping properties
+    local sample_mapping = sample.sample_mapping
+    local base_note = sample_mapping.base_note
+    local note_range = sample_mapping.note_range
+    local velocity_range = sample_mapping.velocity_range
+    local map_key_to_pitch = sample_mapping.map_key_to_pitch
+    local map_velocity_to_volume = sample_mapping.map_velocity_to_volume
+
+    -- Create a new temporary sample slot
+    local temp_sample_index = #instrument.samples + 1
+    instrument:insert_sample_at(temp_sample_index)
+    local temp_sample = instrument:sample(temp_sample_index)
+    local temp_sample_buffer = temp_sample.sample_buffer
+    
+    -- Prepare the temporary sample buffer
+    temp_sample_buffer:create_sample_data(sample_rate, bit_depth, 2, number_of_frames)
+    temp_sample_buffer:prepare_sample_data_changes()
+
+    -- Process in chunks
+    local CHUNK_SIZE = 16384
+    local processed_frames = 0
+
+    -- Copy the sample data
+    for frame = 1, number_of_frames, CHUNK_SIZE do
+      local block_end = math.min(frame + CHUNK_SIZE - 1, number_of_frames)
+      
+      for f = frame, block_end do
+        local sample_value = sample_buffer:sample_data(1, f)
+        temp_sample_buffer:set_sample_data(1, f, sample_value)
+        temp_sample_buffer:set_sample_data(2, f, sample_value)
+      end
+
+      processed_frames = processed_frames + (block_end - frame + 1)
+      
+      if dialog and dialog.visible then
+        vb.views.progress_text.text = string.format("Converting to stereo... %.1f%%", 
+          (processed_frames / number_of_frames) * 100)
+      end
+
+      if slicer:was_cancelled() then
+        temp_sample_buffer:finalize_sample_data_changes()
+        instrument:delete_sample_at(temp_sample_index)
+        return
+      end
+
+      coroutine.yield()
+    end
+
+    -- Finalize changes
+    temp_sample_buffer:finalize_sample_data_changes()
+
+    -- Name the new temporary sample
+    temp_sample.name = sample_name
+    
+    -- Delete the original sample and insert the stereo sample into the same slot
+    instrument:delete_sample_at(sample_index)
+    instrument:insert_sample_at(sample_index)
+    local new_sample = instrument:sample(sample_index)
+    new_sample.name = sample_name
+
+    -- Copy the stereo data from the temporary sample buffer to the new sample buffer
+    local new_sample_buffer = new_sample.sample_buffer
+    new_sample_buffer:create_sample_data(sample_rate, bit_depth, 2, number_of_frames)
+    new_sample_buffer:prepare_sample_data_changes()
+
+    processed_frames = 0
+
+    for frame = 1, number_of_frames, CHUNK_SIZE do
+      local block_end = math.min(frame + CHUNK_SIZE - 1, number_of_frames)
+      
+      for f = frame, block_end do
+        local left_value = temp_sample_buffer:sample_data(1, f)
+        local right_value = temp_sample_buffer:sample_data(2, f)
+        new_sample_buffer:set_sample_data(1, f, left_value)
+        new_sample_buffer:set_sample_data(2, f, right_value)
+      end
+
+      processed_frames = processed_frames + (block_end - frame + 1)
+      
+      if dialog and dialog.visible then
+        vb.views.progress_text.text = string.format("Finalizing... %.1f%%", 
+          (processed_frames / number_of_frames) * 100)
+      end
+
+      if slicer:was_cancelled() then
+        new_sample_buffer:finalize_sample_data_changes()
+        return
+      end
+
+      coroutine.yield()
+    end
+
+    new_sample_buffer:finalize_sample_data_changes()
+
+    -- Restore the sample mapping properties
+    new_sample.sample_mapping.base_note = base_note
+    new_sample.sample_mapping.note_range = note_range
+    new_sample.sample_mapping.velocity_range = velocity_range
+    new_sample.sample_mapping.map_key_to_pitch = map_key_to_pitch
+    new_sample.sample_mapping.map_velocity_to_volume = map_velocity_to_volume
+
+    -- Delete the temporary sample
+    instrument:delete_sample_at(temp_sample_index)
+
+    if dialog and dialog.visible then
+      dialog:close()
+    end
+
+    -- Provide feedback
+    renoise.app():show_status("Mono sample successfully converted to stereo.")
+  end
+
+  -- Create and start the ProcessSlicer
+  slicer = ProcessSlicer(process_func)
+  dialog, vb = slicer:create_dialog("Converting Mono to Stereo")
+  slicer:start()
+end
+
+function mono_to_blank_optimized(left_channel, right_channel)
+  -- Ensure a song exists
+  if not renoise.song() then
+    renoise.app():show_status("No song is currently loaded.")
+    return
+  end
+
+  -- Ensure an instrument is selected
+  local song = renoise.song()
+  local instrument = song.selected_instrument
+  if not instrument then
+    renoise.app():show_status("No instrument is selected.")
+    return
+  end
+
+  -- Ensure a sample is selected
+  local sample_index = song.selected_sample_index
+  local sample = instrument:sample(sample_index)
+  if not sample then
+    renoise.app():show_status("No sample is selected.")
+    return
+  end
+
+  -- Ensure the sample is mono
+  if sample.sample_buffer.number_of_channels ~= 1 then
+    renoise.app():show_status("Selected sample is not mono.")
+    return
+  end
+
+  -- Create ProcessSlicer instance and dialog
+  local slicer = nil
+  local dialog = nil
+  local vb = nil
+
+  -- Define the process function
+  local function process_func()
+    -- Get the sample buffer and its properties
+    local sample_buffer = sample.sample_buffer
+    local sample_rate = sample_buffer.sample_rate
+    local bit_depth = sample_buffer.bit_depth
+    local number_of_frames = sample_buffer.number_of_frames
+    local sample_name = sample.name
+
+    -- Store the sample mapping properties
+    local sample_mapping = sample.sample_mapping
+    local base_note = sample_mapping.base_note
+    local note_range = sample_mapping.note_range
+    local velocity_range = sample_mapping.velocity_range
+    local map_key_to_pitch = sample_mapping.map_key_to_pitch
+    local map_velocity_to_volume = sample_mapping.map_velocity_to_volume
+
+    -- Create a new temporary sample slot
+    local temp_sample_index = #instrument.samples + 1
+    instrument:insert_sample_at(temp_sample_index)
+    local temp_sample = instrument:sample(temp_sample_index)
+    local temp_sample_buffer = temp_sample.sample_buffer
+    
+    -- Prepare the temporary sample buffer
+    temp_sample_buffer:create_sample_data(sample_rate, bit_depth, 2, number_of_frames)
+    temp_sample_buffer:prepare_sample_data_changes()
+
+    -- Process in chunks
+    local CHUNK_SIZE = 16384
+    local processed_frames = 0
+
+    -- Copy the sample data to the specified channels
+    for frame = 1, number_of_frames, CHUNK_SIZE do
+      local block_end = math.min(frame + CHUNK_SIZE - 1, number_of_frames)
+      
+      for f = frame, block_end do
+        local sample_value = sample_buffer:sample_data(1, f)
+        if left_channel == 1 then
+          temp_sample_buffer:set_sample_data(1, f, sample_value)
+          temp_sample_buffer:set_sample_data(2, f, 0)
+        else
+          temp_sample_buffer:set_sample_data(1, f, 0)
+          temp_sample_buffer:set_sample_data(2, f, sample_value)
+        end
+      end
+
+      processed_frames = processed_frames + (block_end - frame + 1)
+      
+      if dialog and dialog.visible then
+        vb.views.progress_text.text = string.format("Converting to stereo... %.1f%%", 
+          (processed_frames / number_of_frames) * 100)
+      end
+
+      if slicer:was_cancelled() then
+        temp_sample_buffer:finalize_sample_data_changes()
+        instrument:delete_sample_at(temp_sample_index)
+        return
+      end
+
+      coroutine.yield()
+    end
+
+    -- Finalize changes
+    temp_sample_buffer:finalize_sample_data_changes()
+
+    -- Name the new temporary sample
+    temp_sample.name = sample_name
+    
+    -- Delete the original sample and insert the stereo sample into the same slot
+    instrument:delete_sample_at(sample_index)
+    instrument:insert_sample_at(sample_index)
+    local new_sample = instrument:sample(sample_index)
+    new_sample.name = sample_name
+
+    -- Copy the stereo data from the temporary sample buffer to the new sample buffer
+    local new_sample_buffer = new_sample.sample_buffer
+    new_sample_buffer:create_sample_data(sample_rate, bit_depth, 2, number_of_frames)
+    new_sample_buffer:prepare_sample_data_changes()
+
+    processed_frames = 0
+
+    for frame = 1, number_of_frames, CHUNK_SIZE do
+      local block_end = math.min(frame + CHUNK_SIZE - 1, number_of_frames)
+      
+      for f = frame, block_end do
+        local left_value = temp_sample_buffer:sample_data(1, f)
+        local right_value = temp_sample_buffer:sample_data(2, f)
+        new_sample_buffer:set_sample_data(1, f, left_value)
+        new_sample_buffer:set_sample_data(2, f, right_value)
+      end
+
+      processed_frames = processed_frames + (block_end - frame + 1)
+      
+      if dialog and dialog.visible then
+        vb.views.progress_text.text = string.format("Finalizing... %.1f%%", 
+          (processed_frames / number_of_frames) * 100)
+      end
+
+      if slicer:was_cancelled() then
+        new_sample_buffer:finalize_sample_data_changes()
+        return
+      end
+
+      coroutine.yield()
+    end
+
+    new_sample_buffer:finalize_sample_data_changes()
+
+    -- Restore the sample mapping properties
+    new_sample.sample_mapping.base_note = base_note
+    new_sample.sample_mapping.note_range = note_range
+    new_sample.sample_mapping.velocity_range = velocity_range
+    new_sample.sample_mapping.map_key_to_pitch = map_key_to_pitch
+    new_sample.sample_mapping.map_velocity_to_volume = map_velocity_to_volume
+
+    -- Delete the temporary sample
+    instrument:delete_sample_at(temp_sample_index)
+
+    if dialog and dialog.visible then
+      dialog:close()
+    end
+
+    -- Provide feedback
+    renoise.app():show_status("Mono sample successfully converted to stereo with blank channel.")
+  end
+
+  -- Create and start the ProcessSlicer
+  slicer = ProcessSlicer(process_func)
+  dialog, vb = slicer:create_dialog("Converting Mono to Stereo")
+  slicer:start()
+end
+
+function stereo_to_mono_optimized(keep_channel)
+  -- Ensure a song exists
+  if not renoise.song() then
+    renoise.app():show_status("No song is currently loaded.")
+    return
+  end
+
+  -- Ensure an instrument is selected
+  local song = renoise.song()
+  local instrument = song.selected_instrument
+  if not instrument then
+    renoise.app():show_status("No instrument is selected.")
+    return
+  end
+
+  -- Ensure a sample is selected
+  local sample_index = song.selected_sample_index
+  local sample = instrument:sample(sample_index)
+  if not sample then
+    renoise.app():show_status("No sample is selected.")
+    return
+  end
+
+  -- Ensure the sample is stereo
+  if sample.sample_buffer.number_of_channels ~= 2 then
+    renoise.app():show_status("Selected sample is not stereo.")
+    return
+  end
+
+  -- Create ProcessSlicer instance and dialog
+  local slicer = nil
+  local dialog = nil
+  local vb = nil
+
+  -- Define the process function
+  local function process_func()
+    -- Get the sample buffer and its properties
+    local sample_buffer = sample.sample_buffer
+    local sample_rate = sample_buffer.sample_rate
+    local bit_depth = sample_buffer.bit_depth
+    local number_of_frames = sample_buffer.number_of_frames
+    local sample_name = sample.name
+
+    -- Store the sample mapping properties
+    local sample_mapping = sample.sample_mapping
+    local base_note = sample_mapping.base_note
+    local note_range = sample_mapping.note_range
+    local velocity_range = sample_mapping.velocity_range
+    local map_key_to_pitch = sample_mapping.map_key_to_pitch
+    local map_velocity_to_volume = sample_mapping.map_velocity_to_volume
+
+    -- Create a new temporary sample slot
+    local temp_sample_index = #instrument.samples + 1
+    instrument:insert_sample_at(temp_sample_index)
+    local temp_sample = instrument:sample(temp_sample_index)
+    local temp_sample_buffer = temp_sample.sample_buffer
+    
+    -- Prepare the temporary sample buffer
+    temp_sample_buffer:create_sample_data(sample_rate, bit_depth, 1, number_of_frames)
+    temp_sample_buffer:prepare_sample_data_changes()
+
+    -- Process in chunks
+    local CHUNK_SIZE = 16384
+    local processed_frames = 0
+
+    -- Copy the sample data from the specified channel
+    for frame = 1, number_of_frames, CHUNK_SIZE do
+      local block_end = math.min(frame + CHUNK_SIZE - 1, number_of_frames)
+      
+      for f = frame, block_end do
+        local sample_value = sample_buffer:sample_data(keep_channel, f)
+        temp_sample_buffer:set_sample_data(1, f, sample_value)
+      end
+
+      processed_frames = processed_frames + (block_end - frame + 1)
+      
+      if dialog and dialog.visible then
+        vb.views.progress_text.text = string.format("Converting to mono... %.1f%%", 
+          (processed_frames / number_of_frames) * 100)
+      end
+
+      if slicer:was_cancelled() then
+        temp_sample_buffer:finalize_sample_data_changes()
+        instrument:delete_sample_at(temp_sample_index)
+        return
+      end
+
+      coroutine.yield()
+    end
+
+    -- Finalize changes
+    temp_sample_buffer:finalize_sample_data_changes()
+
+    -- Name the new temporary sample
+    temp_sample.name = sample_name
+    
+    -- Delete the original sample and insert the mono sample into the same slot
+    instrument:delete_sample_at(sample_index)
+    instrument:insert_sample_at(sample_index)
+    local new_sample = instrument:sample(sample_index)
+    new_sample.name = sample_name
+
+    -- Copy the mono data from the temporary sample buffer to the new sample buffer
+    local new_sample_buffer = new_sample.sample_buffer
+    new_sample_buffer:create_sample_data(sample_rate, bit_depth, 1, number_of_frames)
+    new_sample_buffer:prepare_sample_data_changes()
+
+    processed_frames = 0
+
+    for frame = 1, number_of_frames, CHUNK_SIZE do
+      local block_end = math.min(frame + CHUNK_SIZE - 1, number_of_frames)
+      
+      for f = frame, block_end do
+        local mono_value = temp_sample_buffer:sample_data(1, f)
+        new_sample_buffer:set_sample_data(1, f, mono_value)
+      end
+
+      processed_frames = processed_frames + (block_end - frame + 1)
+      
+      if dialog and dialog.visible then
+        vb.views.progress_text.text = string.format("Finalizing... %.1f%%", 
+          (processed_frames / number_of_frames) * 100)
+      end
+
+      if slicer:was_cancelled() then
+        new_sample_buffer:finalize_sample_data_changes()
+        return
+      end
+
+      coroutine.yield()
+    end
+
+    new_sample_buffer:finalize_sample_data_changes()
+
+    -- Restore the sample mapping properties
+    new_sample.sample_mapping.base_note = base_note
+    new_sample.sample_mapping.note_range = note_range
+    new_sample.sample_mapping.velocity_range = velocity_range
+    new_sample.sample_mapping.map_key_to_pitch = map_key_to_pitch
+    new_sample.sample_mapping.map_velocity_to_volume = map_velocity_to_volume
+
+    -- Delete the temporary sample
+    instrument:delete_sample_at(temp_sample_index)
+
+    if dialog and dialog.visible then
+      dialog:close()
+    end
+
+    -- Provide feedback
+    local channel_name = keep_channel == 1 and "left" or "right"
+    renoise.app():show_status(string.format("Stereo sample successfully converted to mono (kept %s channel).", channel_name))
+  end
+
+  -- Create and start the ProcessSlicer
+  slicer = ProcessSlicer(process_func)
+  dialog, vb = slicer:create_dialog("Converting Stereo to Mono")
+  slicer:start()
+end
+
+-- Replace old menu entries with optimized versions
+renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Process..:Convert Mono to Stereo",invoke=convert_mono_to_stereo_optimized}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Mono to Left with Blank Right",invoke=function() mono_to_blank_optimized(1, 0) end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Mono to Right with Blank Left",invoke=function() mono_to_blank_optimized(0, 1) end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert Stereo to Mono (Keep Left)",invoke=function() stereo_to_mono_optimized(1) end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert Stereo to Mono (Keep Right)",invoke=function() stereo_to_mono_optimized(2) end}
+
+renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti..:Convert Mono to Stereo",invoke=convert_mono_to_stereo_optimized}
+renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Mono to Left with Blank Right",invoke=function() mono_to_blank_optimized(1, 0) end}
+renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Mono to Right with Blank Left",invoke=function() mono_to_blank_optimized(0, 1) end}
+renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Convert Stereo to Mono (Keep Left)",invoke=function() stereo_to_mono_optimized(1) end}
+renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Convert Stereo to Mono (Keep Right)",invoke=function() stereo_to_mono_optimized(2) end}
+
+renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Process..:Convert Mono to Stereo",invoke=convert_mono_to_stereo_optimized}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Process..:Mono to Left with Blank Right",invoke=function() mono_to_blank_optimized(1, 0) end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Process..:Mono to Right with Blank Left",invoke=function() mono_to_blank_optimized(0, 1) end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Process..:Convert Stereo to Mono (Keep Left)",invoke=function() stereo_to_mono_optimized(1) end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Process..:Convert Stereo to Mono (Keep Right)",invoke=function() stereo_to_mono_optimized(2) end}
+
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Convert Mono to Stereo",invoke=convert_mono_to_stereo_optimized}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Mono to Left with Blank Right",invoke=function() mono_to_blank_optimized(1, 0) end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Mono to Right with Blank Left",invoke=function() mono_to_blank_optimized(0, 1) end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Convert Stereo to Mono (Keep Left)",invoke=function() stereo_to_mono_optimized(1) end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Convert Stereo to Mono (Keep Right)",invoke=function() stereo_to_mono_optimized(2) end}
+
+renoise.tool():add_keybinding{name="Sample Keyzones:Paketti:Convert Mono to Stereo",invoke=convert_mono_to_stereo_optimized}
+renoise.tool():add_keybinding{name="Sample Keyzones:Paketti:Mono to Left with Blank Right",invoke=function() mono_to_blank_optimized(1, 0) end}
+renoise.tool():add_keybinding{name="Sample Keyzones:Paketti:Mono to Right with Blank Left",invoke=function() mono_to_blank_optimized(0, 1) end}
+renoise.tool():add_keybinding{name="Sample Keyzones:Paketti:Convert Stereo to Mono (Keep Left)",invoke=function() stereo_to_mono_optimized(1) end}
+renoise.tool():add_keybinding{name="Sample Keyzones:Paketti:Convert Stereo to Mono (Keep Right)",invoke=function() stereo_to_mono_optimized(2) end}
+
+renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Convert Mono to Stereo",invoke=convert_mono_to_stereo_optimized}
+renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Mono to Right with Blank Left",invoke=function() mono_to_blank_optimized(0, 1) end}
+renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Mono to Left with Blank Right",invoke=function() mono_to_blank_optimized(1, 0) end}
+renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Convert Stereo to Mono (Keep Left)",invoke=function() stereo_to_mono_optimized(1) end}
+renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Convert Stereo to Mono (Keep Right)",invoke=function() stereo_to_mono_optimized(2) end}

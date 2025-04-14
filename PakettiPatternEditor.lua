@@ -1498,7 +1498,7 @@ local nci=s.selected_note_column_index
 s.selected_effect_column_index=1
 revnoter() 
 if renoise.song().selected_track.type==2 or renoise.song().selected_track.type==3 or renoise.song().selected_track.type==4 then 
-  return
+    return
 else 
 s.selected_note_column_index=nci
 --s.selected_note_column_index=1 
@@ -1533,7 +1533,7 @@ if efc==nil then
      efc.number_value=11
      efc.amount_value=00
   end
-end
+  end
 end
 
 function effectColumnB00()
@@ -1794,7 +1794,7 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Select Effect Column 
 
 -- Columnizer, +1 / -1 / +10 / -10 on current_row, display needed column
 function columns(chg,thing)
-local song=renoise.song()
+  local song=renoise.song()
 local s=renoise.song()
 local snci=song.selected_note_column_index
 local seci=song.selected_effect_column_index
@@ -1913,14 +1913,14 @@ end
     -- Ensure the effect column exists
     if effect_column_index > renoise.song().tracks[currTrak].visible_effect_columns then
         renoise.app():show_status("Effect column index out of range")
-        return
-    end
-    
+    return
+  end
+
     local effect_column = track.lines[currLine].effect_columns[effect_column_index]
     if not effect_column then
         renoise.app():show_status("No effect column available at index " .. tostring(effect_column_index))
-        return
-    end
+    return
+  end
 
     -- Fetch the current values for the selected effect column
     local columns = {
@@ -1968,20 +1968,38 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Columnizer Decrease E
 
 --------
 -- Global variables to store the last track index and color
-lastTrackIndex=nil
-lastTrackColor=nil
-trackNotifierAdded=false -- Flag to track if the notifier was added
+lastTrackIndex = nil
+lastTrackColor = nil
+trackNotifierAdded = false -- Flag to track if the notifier was added
 
 -- Function to set color blend for all tracks
 function pakettiEditModeSignalerSetAllTracksColorBlend(value)
-  for i=1,#renoise.song().tracks do
-    renoise.song().tracks[i].color_blend=value
+  local song = renoise.song()
+  if not song or not song.tracks then
+    print("-- Paketti Debug: song or tracks table is nil in SetAllTracksColorBlend")
+    return
+  end
+  for i=1,#song.tracks do
+    song.tracks[i].color_blend = value
   end
 end
 
 -- Function to set color blend for a specific track
 function pakettiEditModeSignalerSetTrackColorBlend(index,value)
-  renoise.song().tracks[index].color_blend=value
+  local song = renoise.song()
+  if not song then
+    print("-- Paketti Debug: song is nil in SetTrackColorBlend")
+    return
+  end
+  if not song.tracks then
+    print("-- Paketti Debug: song.tracks is nil in SetTrackColorBlend")
+    return
+  end
+  if not song.tracks[index] then
+    print(string.format("-- Paketti Debug: track at index %d is nil in SetTrackColorBlend", index))
+    return
+  end
+  song.tracks[index].color_blend = value
 end
 
 -- Function to handle edit mode enabled
@@ -2013,8 +2031,8 @@ function pakettiEditModeSignalerOnEditModeDisabled()
   local pakettiEditMode=preferences.pakettiEditMode.value
 
   if lastTrackIndex and pakettiEditMode~=1 then
-    pakettiEditModeSignalerSetTrackColorBlend(lastTrackIndex,lastTrackColor)
-    pakettiEditModeSignalerSetAllTracksColorBlend(0)
+      pakettiEditModeSignalerSetTrackColorBlend(lastTrackIndex,lastTrackColor)
+      pakettiEditModeSignalerSetAllTracksColorBlend(0)
   end
 
   -- Set all tracks' color blend to 0
@@ -2022,7 +2040,7 @@ function pakettiEditModeSignalerOnEditModeDisabled()
   -- Remove selected track index notifier if it was added
   if trackNotifierAdded then
     pcall(function()
-      song.selected_track_index_observable:remove_notifier(pakettiEditModeSignalerTrackIndexNotifier)
+        song.selected_track_index_observable:remove_notifier(pakettiEditModeSignalerTrackIndexNotifier)
     end)
     trackNotifierAdded=false
   end
@@ -2049,12 +2067,12 @@ function pakettiEditModeSignalerTrackIndexNotifier()
       pakettiEditModeSignalerSetAllTracksColorBlend(preferences.pakettiBlendValue.value)
     else
       if lastTrackIndex and lastTrackIndex~=selectedTrackIndex and pakettiEditMode~=1 then
-        pakettiEditModeSignalerSetTrackColorBlend(lastTrackIndex,lastTrackColor)
+          pakettiEditModeSignalerSetTrackColorBlend(lastTrackIndex,lastTrackColor)
       end
       lastTrackIndex=selectedTrackIndex
-      lastTrackColor=song.tracks[selectedTrackIndex].color_blend
-      if pakettiEditMode==2 then
-        pakettiEditModeSignalerSetTrackColorBlend(selectedTrackIndex,preferences.pakettiBlendValue.value)
+        lastTrackColor=song.tracks[selectedTrackIndex].color_blend
+        if pakettiEditMode==2 then
+          pakettiEditModeSignalerSetTrackColorBlend(selectedTrackIndex,preferences.pakettiBlendValue.value)
       end
     end
   end
@@ -2121,7 +2139,7 @@ end
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Pattern Editor..:Duplicate Effect Column Content to Pattern or Selection",invoke=pakettiDuplicateEffectColumnToPatternOrSelection}
 renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Effect Column Content to Pattern or Selection",invoke=pakettiDuplicateEffectColumnToPatternOrSelection}
 renoise.tool():add_midi_mapping{name="Paketti:Duplicate Effect Column Content to Pattern or Selection",invoke=pakettiDuplicateEffectColumnToPatternOrSelection}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Effect Columns..:Duplicate Effect Column Content to Pattern or Selection",invoke=pakettiDuplicateEffectColumnToPatternOrSelection}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Effect Columns..:Duplicate Effect Column Content to Pattern or Selection",invoke=pakettiDuplicateEffectColumnToPatternOrSelection}
 
 
 ------------
@@ -2246,7 +2264,7 @@ function pakettiFloodFill()
     renoise.app():show_status("No note/instrument data to flood fill with")
     return
   end
-  
+
   -- Get all the note column values
   local note_value = current_note_column.note_value
   local instrument_value = current_note_column.instrument_value
@@ -2399,8 +2417,8 @@ function pakettiFloodFillWithEditStep()
           print(string.format("Cleared Track %d, Column %d from Row %d to Row %d", track_idx, column_index, start_line, end_line))
         end
       end
-    end
   end
+end
 
   -- Apply Flood Fill with edit step
   for track_idx = start_track, end_track do
@@ -3049,9 +3067,9 @@ local function insert_random_value(mode)
        song.tracks[song.selected_track_index].type == renoise.Track.TRACK_TYPE_SEND then
       renoise.app():show_status("There are no Note Columns on a Track of this type")
       print("Skipped Group/Master/Send track:", song.selected_track_index)
-      return
-    end
-
+    return
+  end
+  
     -- Print track details
     print("Processing track:", song.selected_track_index, "with", track.visible_note_columns, "note columns and",
           track.visible_effect_columns, "effect columns")
@@ -3305,8 +3323,8 @@ function PakettiReplicateAtCursor(transpose, tracks_option, row_option)
     -- Check if there is content to replicate
     if (cursor_row == phrase_length and row_option == "above_and_current") then
       renoise.app():show_status("No rows to replicate in phrase.")
-      return
-    end
+    return
+  end
     if (cursor_row == 1 and row_option == "above_current") then
       row_option = "above_and_current"
     end
@@ -3350,8 +3368,8 @@ function PakettiReplicateAtCursor(transpose, tracks_option, row_option)
         return new_note
       else
         return note_value
-      end
     end
+  end
 
     -- Replicate content in phrase
     for row = start_row, phrase_length do
@@ -3378,8 +3396,8 @@ function PakettiReplicateAtCursor(transpose, tracks_option, row_option)
 
         dest_effect.number_value = source_effect.number_value
         dest_effect.amount_value = source_effect.amount_value
-      end
-    end
+  end
+end
 
     renoise.app():show_status("Replicated content in phrase with transpose: " .. transpose)
 
@@ -3612,7 +3630,7 @@ function PakettiDelayColumnModifier(amount)
     renoise.app():show_status("No active song found.")
     return
   end
-
+  
   -- Get the selection in the pattern editor
   local selection = song.selection_in_pattern
 
@@ -3654,8 +3672,8 @@ function PakettiDelayColumnModifier(amount)
     -- Check if the cursor is in a note column
     if selected_note_column_index == 0 then
       renoise.app():show_status("Not in a note column. No delay adjustment made.")
-      return
-    end
+    return
+  end
 
     -- Ensure the delay column is visible
     if not track.delay_column_visible then
@@ -3702,8 +3720,8 @@ function ExposeAndSelectColumn(number)
       return
     elseif newVisEffectCol < 1 then
       renoise.app():show_status("Cannot have less than 1 Effect Column visible on Master/Send/Group tracks.")
-      return
-    end
+    return
+  end
 
     track.visible_effect_columns = newVisEffectCol
     song.selected_effect_column_index = newVisEffectCol
@@ -3748,8 +3766,8 @@ function ExposeAndSelectColumn(number)
       end
     else
       renoise.app():show_status("You are not on a Note or Effect Column, doing nothing.")
-    end
-  end
+        end
+      end
 end
 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Expose and Select Next Column",invoke=function() ExposeAndSelectColumn(1) end}
@@ -4081,7 +4099,7 @@ function clear_track_direction(direction, all_tracks)
     renoise.app():show_status("You are already on the bottom row, doing nothing.")
     return
   end
-  
+
   -- Define the range of tracks to process
   local track_range = all_tracks and {1, #song.tracks} or {song.selected_track_index, song.selected_track_index}
   

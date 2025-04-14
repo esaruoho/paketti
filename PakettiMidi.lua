@@ -78,30 +78,68 @@ renoise.tool():add_midi_mapping{
 -- Control Computer Keyboard Velocity with a slider.
 renoise.tool():add_midi_mapping{name="Paketti:Computer Keyboard Velocity Slider x[Knob]",
   invoke=function(midi_message) 
-  local t=renoise.song().transport
-  if t.keyboard_velocity_enabled==false then t.keyboard_velocity_enabled=true end
-     t.keyboard_velocity=midi_message.int_value end}
+    local t = renoise.song().transport
+    if t.keyboard_velocity_enabled == false then 
+      t.keyboard_velocity_enabled = true 
+    end
+    
+    if midi_message:is_abs_value() then
+      -- For absolute values (0-127), directly set the velocity
+      t.keyboard_velocity = midi_message.int_value
+    elseif midi_message:is_rel_value() then
+      -- For relative values (-63 to +63), adjust current velocity
+      local new_value = t.keyboard_velocity + midi_message.int_value
+      -- Clamp between 0 and 127
+      t.keyboard_velocity = math.max(0, math.min(127, new_value))
+    end
+  end}
 
 -- Destructively control Sample volume with a slider
-renoise.tool():add_midi_mapping{name="Paketti:Change Selected Sample Volume x[Slider]",invoke=function(midi_message)
-renoise.app().window.active_middle_frame=5
-renoise.song().selected_sample.volume=midi_message.int_value/127
-end}
+renoise.tool():add_midi_mapping{name="Paketti:Change Selected Sample Volume x[Slider]",
+  invoke=function(midi_message)
+    local sample = renoise.song().selected_sample
+    if not sample then
+      renoise.app():show_status("No sample selected")
+      return
+    end
+    
+    renoise.app().window.active_middle_frame = 5
+    
+    if midi_message:is_abs_value() then
+      -- For absolute values (0-127), scale to 0-1 range
+      sample.volume = midi_message.int_value / 127
+    elseif midi_message:is_rel_value() then
+      -- For relative values (-63 to +63), adjust current volume
+      local new_value = sample.volume + (midi_message.int_value / 127)
+      -- Clamp between 0 and 1
+      sample.volume = math.max(0, math.min(1, new_value))
+    end
+  end}
 
-renoise.tool():add_midi_mapping{name="Paketti:Delay Column (DEPRECATED) x[Slider]",invoke=function(midi_message)
-renoise.song().selected_track.delay_column_visible=true
-renoise.app().window.active_middle_frame=1
-local results = nil
-
-results=midi_message.int_value/127
-renoise.song().selected_note_column.delay_value = math.max(0, math.min(257, midi_message.int_value * 2))
-
--- if midi_message.int_value > 64 then columns(1,1)
--- else if midi_message.int_value < 64 then columns(-1,1)
--- end
--- end
-
-end}
+renoise.tool():add_midi_mapping{name="Paketti:Delay Column (DEPRECATED) x[Slider]",
+  invoke=function(midi_message)
+    local track = renoise.song().selected_track
+    local note_column = renoise.song().selected_note_column
+    
+    if not note_column then
+      renoise.app():show_status("No note column selected")
+      return
+    end
+    
+    -- Ensure delay column is visible
+    track.delay_column_visible = true
+    renoise.app().window.active_middle_frame = 1
+    
+    if midi_message:is_abs_value() then
+      -- For absolute values (0-127), scale to 0-256 range (Renoise delay range)
+      note_column.delay_value = math.floor(midi_message.int_value * 2)
+    elseif midi_message:is_rel_value() then
+      -- For relative values (-63 to +63), adjust current delay
+      local new_value = note_column.delay_value + (midi_message.int_value * 2)
+      -- Clamp between 0 and 256
+      note_column.delay_value = math.max(0, math.min(256, new_value))
+    end
+  end}
 -------------------------------------------------------------------------------------------------------------------------------------
 --Midi Mapping for Metronome On/Off Toggle
 renoise.tool():add_midi_mapping{name="Paketti:Metronome On/Off x[Toggle]",invoke=function(message) if message:is_trigger() then MetronomeOff() end end}
@@ -2237,5 +2275,135 @@ end
 
 renoise.tool():add_midi_mapping{name = "Paketti:Selected Device *XY Pad X-Axis",invoke = function(message) modify_selected_xy_pad_param("X-Axis", message) end}
 renoise.tool():add_midi_mapping{name = "Paketti:Selected Device *XY Pad Y-Axis",invoke = function(message) modify_selected_xy_pad_param("Y-Axis", message) end}
+
+-- Helper function to validate sample device chain access and get count
+local function get_device_chain_info()
+  local song = renoise.song()
+  
+  if not song.selected_instrument then
+    renoise.app():show_status("No instrument selected")
+    return nil
+  end
+  
+  if not song.selected_instrument.sample_device_chains then
+    renoise.app():show_status("No device chains available")
+    return nil
+  end
+  
+  local chain_count = #song.selected_instrument.sample_device_chains
+  if chain_count == 0 then
+    renoise.app():show_status("No device chains available")
+    return nil
+  end
+  
+  return {
+    chain_count = chain_count,
+    current_index = song.selected_sample and song.selected_sample.device_chain_index or 1
+  }
+end
+
+-- Scaled version for single sample (0-127 maps to available chains)
+local function handle_sample_chain_scaled(midi_message)
+  local info = get_device_chain_info()
+  if not info then return end
+  
+  if not renoise.song().selected_sample then
+    renoise.app():show_status("No sample selected")
+    return
+  end
+  
+  local new_index
+  if midi_message:is_abs_value() then
+    -- Scale 0-127 to 1-chain_count
+    new_index = math.floor(1 + (midi_message.int_value / 127) * (info.chain_count - 1) + 0.5)
+  elseif midi_message:is_rel_value() then
+    -- Relative change, scaled by chain count
+    local change = math.floor((midi_message.int_value / 127) * info.chain_count + 0.5)
+    new_index = math.max(1, math.min(info.chain_count, info.current_index + change))
+  end
+  
+  if new_index then
+    renoise.song().selected_sample.device_chain_index = new_index
+    renoise.app():show_status(string.format("Sample Device Chain: %d/%d", new_index, info.chain_count))
+  end
+end
+
+-- Direct version for single sample (each value maps to a chain if available)
+local function handle_sample_chain_direct(midi_message)
+  local info = get_device_chain_info()
+  if not info then return end
+  
+  if not renoise.song().selected_sample then
+    renoise.app():show_status("No sample selected")
+    return
+  end
+  
+  local new_index
+  if midi_message:is_abs_value() then
+    -- Direct mapping: 0->1, 1->2, etc. (capped at chain_count)
+    new_index = math.min(midi_message.int_value + 1, info.chain_count)
+  elseif midi_message:is_rel_value() then
+    -- Relative change, one step at a time
+    new_index = math.max(1, math.min(info.chain_count, info.current_index + midi_message.int_value))
+  end
+  
+  if new_index then
+    renoise.song().selected_sample.device_chain_index = new_index
+    renoise.app():show_status(string.format("Sample Device Chain: %d/%d", new_index, info.chain_count))
+  end
+end
+
+-- Scaled version for all samples in instrument
+local function handle_instrument_chains_scaled(midi_message)
+  local info = get_device_chain_info()
+  if not info then return end
+  
+  local new_index
+  if midi_message:is_abs_value() then
+    -- Scale 0-127 to 1-chain_count
+    new_index = math.floor(1 + (midi_message.int_value / 127) * (info.chain_count - 1) + 0.5)
+  elseif midi_message:is_rel_value() then
+    -- Relative change, scaled by chain count
+    local change = math.floor((midi_message.int_value / 127) * info.chain_count + 0.5)
+    new_index = math.max(1, math.min(info.chain_count, info.current_index + change))
+  end
+  
+  if new_index then
+    local instr = renoise.song().selected_instrument
+    for i = 1, #instr.samples do
+      instr.samples[i].device_chain_index = new_index
+    end
+    renoise.app():show_status(string.format("All Samples Device Chain: %d/%d", new_index, info.chain_count))
+  end
+end
+
+-- Direct version for all samples in instrument
+local function handle_instrument_chains_direct(midi_message)
+  local info = get_device_chain_info()
+  if not info then return end
+  
+  local new_index
+  if midi_message:is_abs_value() then
+    -- Direct mapping: 0->1, 1->2, etc. (capped at chain_count)
+    new_index = math.min(midi_message.int_value + 1, info.chain_count)
+  elseif midi_message:is_rel_value() then
+    -- Relative change, one step at a time
+    new_index = math.max(1, math.min(info.chain_count, info.current_index + midi_message.int_value))
+  end
+  
+  if new_index then
+    local instr = renoise.song().selected_instrument
+    for i = 1, #instr.samples do
+      instr.samples[i].device_chain_index = new_index
+    end
+    renoise.app():show_status(string.format("All Samples Device Chain: %d/%d", new_index, info.chain_count))
+  end
+end
+
+-- MIDI mappings (one line each)
+renoise.tool():add_midi_mapping{name = "Paketti:Change Selected Sample Device Chain (Scaled) x[Knob]", invoke = handle_sample_chain_scaled}
+renoise.tool():add_midi_mapping{name = "Paketti:Change Selected Sample Device Chain (Direct) x[Knob]", invoke = handle_sample_chain_direct}
+renoise.tool():add_midi_mapping{name = "Paketti:Change All Samples Device Chain (Scaled) x[Knob]", invoke = handle_instrument_chains_scaled}
+renoise.tool():add_midi_mapping{name = "Paketti:Change All Samples Device Chain (Direct) x[Knob]", invoke = handle_instrument_chains_direct}
 
 
