@@ -717,7 +717,7 @@ local function import_sf2(file_path)
             end
           end
         end
-        ::next_sample::
+        
         coroutine.yield()
       end
 

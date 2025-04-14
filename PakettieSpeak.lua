@@ -1,3 +1,6 @@
+-- Add at the top of the file after the initial requires/imports
+require "process_slicer"
+
 -- Initialize the ViewBuilder and other variables
 local vb = renoise.ViewBuilder()
 local dialog = nil
@@ -5,6 +8,8 @@ local rns = nil
 local rnt = renoise.tool()
 local ra = renoise.app()
 local button_press_active = false
+
+
 
 local LANGUAGES = {{"Afrikaans","af"},{"Albanian","sq"},{"Amharic","am"},{"Aragonese","an"},{"Arabic","ar"},{"Armenian (East Armenia)","hy"},{"Armenian (West Armenia)","hyw"},{"Assamese","as"},{"Azerbaijani","az"},{"Bashkir","ba"},{"Basque","eu"},{"Belarusian","be"},{"Bengali","bn"},{"Bishnupriya Manipuri","bpy"},{"Bosnian","bs"},{"Bulgarian","bg"},{"Catalan","ca"},{"Cherokee","chr"},{"Chinese (Cantonese)","yue"},{"Chinese (Cantonese, Latin as Jyutping)","yue-Latn-jyutping"},{"Chinese (Mandarin, Latin as English)","cmn"},{"Chinese (Mandarin, Latin as Pinyin)","cmn-Latn-pinyin"},{"Chuvash","cv"},{"Croatian","hr"},{"Czech","cs"},{"Danish","da"},{"Dutch","nl"},{"English (America)","en-US"},{"English (America, New York City)","en-US-nyc"},{"English (Caribbean)","en-029"},{"English (Great Britain)","en"},{"English (Lancaster)","en-GB-x-gbclan"},{"English (Received Pronunciation)","en-GB-x-rp"},{"English (Scotland)","en-GB-scotland"},{"English (West Midlands)","en-GB-x-gbcwmd"},{"Esperanto","eo"},{"Estonian","et"},{"Finnish","fi"},{"French (Belgium)","fr-BE"},{"French (France)","fr"},{"French (Switzerland)","fr-CH"},{"Gaelic (Irish)","ga"},{"Gaelic (Scottish)","gd"},{"Georgian","ka"},{"German","de"},{"Greek","el"},{"Greek (Ancient)","grc"},{"Greenlandic","kl"},{"Gujarati","gu"},{"Haitian Creole","ht"},{"Hakka Chinese","hak"},{"Hawaiian","haw"},{"Hebrew","he"},{"Hindi","hi"},{"Hungarian","hu"},{"Icelandic","is"},{"Ido","io"},{"Indonesian","id"},{"Interlingua","ia"},{"Italian","it"},{"Japanese","ja"},{"Kazakh","kk"},{"K'iche'","quc"},{"Klingon","piqd"},{"Kannada","kn"},{"Konkani","kok"},{"Korean","ko"},{"Kurdish","ku"},{"Kyrgyz","ky"},{"Lang Belta","qdb"},{"Latin","la"},{"Latgalian","ltg"},{"Latvian","lv"},{"Lingua Franca Nova","lfn"},{"Lithuanian","lt"},{"Lojban","jbo"},{"Luxembourgish","lb"},{"Lule Saami","smj"},{"Macedonian","mk"},{"Maori","mi"},{"Malay","ms"},{"Malayalam","ml"},{"Maltese","mt"},{"Marathi","mr"},{"Myanmar (Burmese)","my"},{"Nahuatl (Classical)","nci"},{"Nepali","ne"},{"Norwegian Bokmål","nb"},{"Nogai","nog"},{"Oromo","om"},{"Oriya","or"},{"Papiamento","pap"},{"Persian","fa"},{"Persian (Pinglish)","fa-Latn"},{"Polish","pl"},{"Portuguese (Brazil)","pt-BR"},{"Portuguese (Portugal)","pt"},{"Punjabi","pa"},{"Pyash","py"},{"Quechua","qu"},{"Quenya","qya"},{"Romanian","ro"},{"Russian","ru"},{"Russian (Latvia)","ru-LV"},{"Sindarin","sjn"},{"Sindhi","sd"},{"Sinhala","si"},{"Shan (Tai Yai)","shn"},{"Slovak","sk"},{"Slovenian","sl"},{"Spanish (Latin America)","es-419"},{"Spanish (Spain)","es"},{"Swahili","sw"},{"Swedish","sv"},{"Tamil","ta"},{"Telugu","te"},{"Thai","th"},{"Turkish","tr"},{"Turkmen","tk"},{"Tatar","tt"},{"Ukrainian","uk"},{"Urdu","ur"},{"Uyghur","ug"},{"Uzbek","uz"},{"Vietnamese (Central)","vi-VN-x-central"},{"Vietnamese (Northern)","vi"},{"Vietnamese (Southern)","vi-VN-x-south"},{"Welsh","cy"}}
 
@@ -630,7 +635,6 @@ local lastbuttons=    vb:horizontal_aligner{
         notifier = function()
           eSpeak.text.value = vb.views.PakettieSpeak_text_field.text
           PakettieSpeakCreateSample()
-          normalize_selected_sample()
           renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
         end
       },
@@ -658,10 +662,8 @@ local lastbuttons=    vb:horizontal_aligner{
           if eSpeak.render_on_change.value then
             PakettieSpeakCreateSample(eSpeak.text.value)
           end
-                    eSpeak.text.value = vb.views.PakettieSpeak_text_field.text
+          eSpeak.text.value = vb.views.PakettieSpeak_text_field.text
           PakettieSpeakCreateSample()
-          normalize_selected_sample()
-          renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
         end
       }
     }
@@ -737,7 +739,6 @@ end
 if key.modifiers == "control" and key.name == "return" then
       eSpeak.text.value = vb.views.PakettieSpeak_text_field.text
       PakettieSpeakCreateSample()
-      normalize_selected_sample()
 end
 
 if key.modifiers == "alt" and key.name == "return" then
@@ -778,50 +779,67 @@ function PakettieSpeakToggleDialog()
   end
 end
 
-function PakettieSpeakCreateSample(custom_text)
-  local text_to_render = custom_text or eSpeak.text.value
-  print(text_to_render)
+function PakettieSpeakCreateSampleProcess(text_to_render, dialog, vb)
+  -- This is the actual process function that will be run by ProcessSlicer
   local executable = PakettieSpeakRevertPath(eSpeak.executable)
   local path = os.tmpname() .. ".wav"
 
-  local cmd = executable
-  cmd=cmd .. " -a " .. eSpeak.amplitude.value
-  cmd=cmd .. " -v " .. LANGUAGE_SHORTS[eSpeak.language.value]
+  -- Update progress text
+  if dialog and dialog.visible then
+    vb.views.progress_text.text = "Running eSpeak text-to-speech engine..."
+  end
+  
+  -- Quote the executable and path to handle spaces
+  local cmd = '"' .. executable .. '"'
+  cmd = cmd .. " -a " .. eSpeak.amplitude.value
+  cmd = cmd .. " -v " .. LANGUAGE_SHORTS[eSpeak.language.value]
 
   if eSpeak.voice.value ~= 1 then
     cmd = cmd .. "+" .. VOICES[eSpeak.voice.value]
   end
 
-  cmd=cmd .. " -b 1 -m "
-  cmd=cmd .. " -p " .. eSpeak.pitch.value
-  cmd=cmd .. " -s " .. eSpeak.speed.value
-  cmd=cmd .. " -g " .. eSpeak.word_gap.value
-  cmd=cmd .. " -k " .. eSpeak.capitals.value
-  cmd=cmd .. " -w " .. path
-  cmd=cmd .. ' "' .. text_to_render .. '"'
+  cmd = cmd .. " -b 1 -m "
+  cmd = cmd .. " -p " .. eSpeak.pitch.value
+  cmd = cmd .. " -s " .. eSpeak.speed.value
+  cmd = cmd .. " -g " .. eSpeak.word_gap.value
+  cmd = cmd .. " -k " .. eSpeak.capitals.value
+  cmd = cmd .. ' -w "' .. path .. '"'
+  cmd = cmd .. ' "' .. text_to_render .. '"'
 
   print("Command to be executed:" .. cmd)
 
+  -- Allow UI to update
+  coroutine.yield()
+  
   os.execute(cmd)
+
+  -- Allow UI to update
+  coroutine.yield()
+
+  if dialog and dialog.visible then
+    vb.views.progress_text.text = "Generated sample, preparing instrument..."
+  end
 
   local song = renoise.song()
   local instrument
 
-  -- **Check if "Add Render to Current Instrument" is Enabled**
+  -- Check if "Add Render to Current Instrument" is Enabled
   if eSpeak.add_render_to_current_instrument.value then
-    -- **If No Instruments Exist, Load the Pitchbend Instrument**
+    -- If No Instruments Exist, Load the Pitchbend Instrument
     if not eSpeak.dont_pakettify.value and #song.instruments == 0 then
       pakettiPreferencesDefaultInstrumentLoader()
-      print("Loaded pitchbend instrument.")
-  end
+    end
 
     instrument = song.selected_instrument
     if not instrument then
+      if dialog and dialog.visible then
+        dialog:close()
+      end
       renoise.app():show_error("No instrument selected and failed to load the pitchbend instrument.")
       return
     end
 
-    -- **Add a New Sample Slot to the Current Instrument**
+    -- Add a New Sample Slot to the Current Instrument
     local new_sample_index = #instrument.samples + 1
     local sample = instrument:insert_sample_at(new_sample_index)
     song.selected_sample_index = new_sample_index
@@ -829,10 +847,11 @@ function PakettieSpeakCreateSample(custom_text)
     print("Added new sample slot to current instrument:", sample.name)
 
   elseif eSpeak.clear_all_samples.value then
-    -- **Existing Behavior: Clear All Samples and Add One**
+    -- Existing Behavior: Clear All Samples and Add One
     instrument = song.selected_instrument
     if not eSpeak.dont_pakettify.value then 
-    pakettiPreferencesDefaultInstrumentLoader() else end 
+      pakettiPreferencesDefaultInstrumentLoader() 
+    end 
     while #instrument.samples > 0 do
       instrument:delete_sample_at(1)
     end
@@ -842,11 +861,12 @@ function PakettieSpeakCreateSample(custom_text)
     print("Cleared all samples and added new sample:", sample.name)
 
   else
-    -- **Existing Behavior: Insert New Instrument and Add Sample**
+    -- Existing Behavior: Insert New Instrument and Add Sample
     instrument = song:insert_instrument_at(renoise.song().selected_instrument_index + 1)
     song.selected_instrument_index = song.selected_instrument_index + 1
     if not eSpeak.dont_pakettify.value then 
-    pakettiPreferencesDefaultInstrumentLoader() else end 
+      pakettiPreferencesDefaultInstrumentLoader() 
+    end 
     instrument = song.selected_instrument
     instrument.name = "eSpeak (" .. LANGUAGE_NAMES[eSpeak.language.value] .. ", " .. VOICES_NAMES[eSpeak.voice.value] .. ")"
     local sample = instrument:insert_sample_at(1)
@@ -855,27 +875,77 @@ function PakettieSpeakCreateSample(custom_text)
     print("Inserted new instrument and added sample:", sample.name)
   end
 
-  -- **Load the Rendered WAV File into the Selected Sample**
+  -- Allow UI to update
+  coroutine.yield()
+
+  if dialog and dialog.visible then
+    vb.views.progress_text.text = "Generated sample. Normalizing volume..."
+  end
+
+  -- Load the Rendered WAV File into the Selected Sample
   local sample = song.selected_sample
   local buffer = sample.sample_buffer
 
   print("Loading path:" .. path)
   if not PakettieSpeakFileExists(path) then
+    if dialog and dialog.visible then
+      dialog:close()
+    end
     renoise.app():show_error("Sample was not rendered. An error happened.")
     return
   end
 
   local success, result = buffer:load_from(path)
   if not success then
+    if dialog and dialog.visible then
+      dialog:close()
+    end
     renoise.app():show_error("Failed to load sample from " .. path)
     return
   end
 
-  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+  -- Allow UI to update before normalizing
+  coroutine.yield()
+
+  if dialog and dialog.visible then
+    vb.views.progress_text.text = "Generated sample, normalizing volume..."
+  end
+
+  -- Normalize the sample
   normalize_selected_sample()
+
+  -- Check for and remove any "Placeholder sample"
+  for i = 1, #instrument.samples do
+    if instrument.samples[i].name == "Placeholder sample" then
+      instrument:delete_sample_at(i)
+      print("Removed placeholder sample")
+      break
+    end
+  end
+
+  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
   print("Sample loaded successfully.")
+
+  -- Clean up
+  if dialog and dialog.visible then
+    dialog:close()
+  end
 end
--- **End of Modified Function**
+
+function PakettieSpeakCreateSample(custom_text)
+  local text_to_render = custom_text or eSpeak.text.value
+  print(text_to_render)
+
+  -- Create the process slicer with our process function
+  local process = ProcessSlicer(PakettieSpeakCreateSampleProcess)
+  
+  -- Create the progress dialog
+  local dialog, vb = process:create_dialog("Generating Speech")
+  
+  -- Start the process with our parameters
+  process.__process_func_args = {text_to_render, dialog, vb}
+  process:start()
+end
 
 -- Check if file exists
 function PakettieSpeakFileExists(path)
@@ -889,7 +959,6 @@ renoise.tool():add_keybinding{name="Global:Paketti:Paketti eSpeak Generate Sampl
     if dialog and dialog.visible then
       eSpeak.text.value = vb.views.PakettieSpeak_text_field.text
       PakettieSpeakCreateSample()
-      normalize_selected_sample()
     else PakettieSpeakPrepare() end end }
 
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti eSpeak Generate Selection",invoke=function()
@@ -929,6 +998,39 @@ renoise.tool():add_keybinding{name="Global:Paketti:Paketti eSpeak Refresh",invok
       eSpeak.text.value = vb.views.PakettieSpeak_text_field.text
       PakettieSpeakUpdateLineCount()
     else PakettieSpeakPrepare() end end}
+
+-- Add text file import hook
+local function txt_loadfile(filename)
+  if dialog and dialog.visible then
+    dialog:close()
+  end
+  selected_textfile = filename
+  if selected_textfile ~= "" then
+    local file = io.open(selected_textfile, "r")
+    if file then
+      local content = file:read("*all")
+      file:close()
+      eSpeak.text.value = content
+      PakettieSpeakPrepare()
+      PakettieSpeakCreateSample()
+      return true
+    else
+      renoise.app():show_error("Failed to read the text file.")
+      return false
+    end
+  end
+  return false
+end
+
+local txt_integration = {
+  category = "sample",
+  extensions = { "txt" },
+  invoke = txt_loadfile
+}
+
+if not renoise.tool():has_file_import_hook("sample", { "txt" }) then
+  renoise.tool():add_file_import_hook(txt_integration)
+end
 
 _AUTO_RELOAD_DEBUG = function() end
 

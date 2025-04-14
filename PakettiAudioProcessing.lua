@@ -1379,56 +1379,196 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Diagonal Line to 16800 length Sample",invoke=function() Paketti_Diagonal_Line_to_Sample() end}
 
 function normalize_selected_sample()
-    local selected_sample = renoise.song().selected_sample
+    local song = renoise.song()
+    local instrument = song.selected_instrument
+    local current_slice = song.selected_sample_index
+    local first_sample = instrument.samples[1]
+    local current_sample = song.selected_sample
     
-    if selected_sample.is_slice_alias then
-        selected_sample = renoise.song().selected_instrument:sample(1)
-    end
-    
-    if not selected_sample or not selected_sample.sample_buffer or not selected_sample.sample_buffer.has_sample_data then
-        renoise.app():show_status("Normalization failed: No valid sample to normalize.")
+    -- Check if we have valid data
+    if not current_sample or not current_sample.sample_buffer.has_sample_data then
+        renoise.app():show_status("No sample available")
         return
     end
 
-    local sbuf = selected_sample.sample_buffer
+    -- Create ProcessSlicer instance and dialog
+    local slicer = nil
+    local dialog = nil
+    local vb = nil
     
-    local highest_detected = 0
-    
-    for frame_idx = 1, sbuf.number_of_frames do
-        if sbuf.number_of_channels == 2 then
-            highest_detected = math.max(math.abs(sbuf:sample_data(1, frame_idx)), highest_detected)
-            highest_detected = math.max(math.abs(sbuf:sample_data(2, frame_idx)), highest_detected)
+    -- Define the process function that will be passed to ProcessSlicer
+    local function process_func()
+        -- Get the appropriate sample and buffer based on whether we're dealing with a slice
+        local sample = current_sample
+        local buffer = sample.sample_buffer
+        local slice_start = 1
+        local slice_end = buffer.number_of_frames
+        
+        -- If this is a slice, we need to work with the first sample's buffer
+        if sample.is_slice_alias then
+            buffer = first_sample.sample_buffer
+            -- Find the slice boundaries
+            if current_slice > 1 and #first_sample.slice_markers > 0 then
+                slice_start = first_sample.slice_markers[current_slice - 1]
+                slice_end = current_slice < #first_sample.slice_markers 
+                    and first_sample.slice_markers[current_slice] - 1 
+                    or buffer.number_of_frames
+            end
+        end
+        
+        local total_frames = slice_end - slice_start + 1
+        
+        -- Timing variables
+        local time_start = os.clock()
+        local time_reading = 0
+        local time_processing = 0
+        
+        print(string.format("\nNormalizing %d frames (%.1f seconds at %dHz)", 
+            total_frames, 
+            total_frames / buffer.sample_rate,
+            buffer.sample_rate))
+        
+        -- First pass: Find peak
+        local peak = 0
+        local processed_frames = 0
+        local CHUNK_SIZE = 524288  -- 512KB worth of frames
+        
+        -- Pre-allocate tables for better performance
+        local channel_peaks = {}
+        for channel = 1, buffer.number_of_channels do
+            channel_peaks[channel] = 0
+        end
+        
+        buffer:prepare_sample_data_changes()
+        
+        -- Process in blocks
+        for frame = slice_start, slice_end, CHUNK_SIZE do
+            local block_end = math.min(frame + CHUNK_SIZE - 1, slice_end)
+            local block_size = block_end - frame + 1
+            
+            -- Read and process each channel
+            for channel = 1, buffer.number_of_channels do
+                local read_start = os.clock()
+                local channel_peak = 0
+                
+                for i = 0, block_size - 1 do
+                    local sample = math.abs(buffer:sample_data(channel, frame + i))
+                    if sample > channel_peak then
+                        channel_peak = sample
+                    end
+                end
+                
+                time_reading = time_reading + (os.clock() - read_start)
+                if channel_peak > channel_peaks[channel] then
+                    channel_peaks[channel] = channel_peak
+                end
+            end
+            
+            -- Update progress and yield
+            processed_frames = processed_frames + block_size
+            local progress = processed_frames / total_frames
+            if dialog and dialog.visible then
+                vb.views.progress_text.text = string.format("Finding peak... %.1f%%", progress * 100)
+            end
+            
+            if slicer:was_cancelled() then
+                buffer:finalize_sample_data_changes()
+                return
+            end
+            
+            coroutine.yield()
+        end
+        
+        -- Find overall peak
+        for _, channel_peak in ipairs(channel_peaks) do
+            if channel_peak > peak then
+                peak = channel_peak
+            end
+        end
+        
+        -- Check if sample is silent
+        if peak == 0 then
+            print("Sample is silent, no normalization needed")
+            buffer:finalize_sample_data_changes()
+            if dialog and dialog.visible then
+                dialog:close()
+            end
+            return
+        end
+        
+        -- Calculate and display normalization info
+        local scale = 1.0 / peak
+        local db_increase = 20 * math.log10(scale)
+        print(string.format("\nPeak amplitude: %.6f (%.1f dB below full scale)", peak, -db_increase))
+        print(string.format("Will increase volume by %.1f dB", db_increase))
+        
+        -- Reset progress for second pass
+        processed_frames = 0
+        
+        -- Second pass: Apply normalization
+        for frame = slice_start, slice_end, CHUNK_SIZE do
+            local block_end = math.min(frame + CHUNK_SIZE - 1, slice_end)
+            local block_size = block_end - frame + 1
+            
+            -- Process each channel
+            for channel = 1, buffer.number_of_channels do
+                local process_start = os.clock()
+                
+                for i = 0, block_size - 1 do
+                    local current_frame = frame + i
+                    buffer:set_sample_data(channel, current_frame, 
+                        buffer:sample_data(channel, current_frame) * scale)
+                end
+                
+                time_processing = time_processing + (os.clock() - process_start)
+            end
+            
+            -- Update progress and yield
+            processed_frames = processed_frames + block_size
+            local progress = processed_frames / total_frames
+            if dialog and dialog.visible then
+                vb.views.progress_text.text = string.format("Normalizing... %.1f%%", progress * 100)
+            end
+            
+            if slicer:was_cancelled() then
+                buffer:finalize_sample_data_changes()
+                return
+            end
+            
+            coroutine.yield()
+        end
+        
+        -- Finalize changes
+        buffer:finalize_sample_data_changes()
+        
+        -- Calculate and display performance stats
+        local total_time = os.clock() - time_start
+        local frames_per_second = total_frames / total_time
+        print(string.format("\nNormalization complete:"))
+        print(string.format("Total time: %.2f seconds (%.1fM frames/sec)", 
+            total_time, frames_per_second / 1000000))
+        print(string.format("Reading: %.1f%%, Processing: %.1f%%", 
+            (time_reading/total_time) * 100,
+            ((total_time - time_reading)/total_time) * 100))
+        
+        -- Close dialog when done
+        if dialog and dialog.visible then
+            dialog:close()
+        end
+        
+        -- Show appropriate status message
+        if sample.is_slice_alias then
+            renoise.app():show_status(string.format("Normalized slice %d", current_slice))
         else
-            highest_detected = math.max(math.abs(sbuf:sample_data(1, frame_idx)), highest_detected)
+            renoise.app():show_status("Sample normalized successfully")
         end
     end
     
-    if highest_detected == 0 then
-        renoise.app():show_status("Sample is absolute silence, nothing to normalize.")
-        return
-    end
-    
-    sbuf:prepare_sample_data_changes()
-    
-    for frame_idx = 1, sbuf.number_of_frames do
-        if sbuf.number_of_channels == 2 then
-            local normalized_sdata = sbuf:sample_data(1, frame_idx) / highest_detected
-            sbuf:set_sample_data(1, frame_idx, normalized_sdata)
-            normalized_sdata = sbuf:sample_data(2, frame_idx) / highest_detected
-            sbuf:set_sample_data(2, frame_idx, normalized_sdata)
-        else
-            local normalized_sdata = sbuf:sample_data(1, frame_idx) / highest_detected
-            sbuf:set_sample_data(1, frame_idx, normalized_sdata)
-        end
-    end
-    
-    sbuf:finalize_sample_data_changes()
-    
-    renoise.app():show_status("Sample successfully normalized (maximized volume).")
+    -- Create and start the ProcessSlicer
+    slicer = ProcessSlicer(process_func)
+    dialog, vb = slicer:create_dialog("Normalizing Sample")
+    slicer:start()
 end
-
-renoise.tool():add_keybinding{name="Global:Paketti:Paketti Normalize Sample",invoke=function() normalize_selected_sample() end}
-
 
 function normalize_all_samples_in_instrument()
     local instrument = renoise.song().selected_instrument
@@ -1443,24 +1583,60 @@ function normalize_all_samples_in_instrument()
         return
     end
     
-    local normalized_count = 0
+    -- Store current sample index
     local current_sample_index = renoise.song().selected_sample_index
     
-    -- Normalize each sample in the instrument
-    for i = 1, #instrument.samples do
-        renoise.song().selected_sample_index = i
-        normalize_selected_sample()
-        normalized_count = normalized_count + 1
+    -- Create ProcessSlicer instance and dialog
+    local slicer = nil
+    local dialog = nil
+    local vb = nil
+    
+    -- Define the process function
+    local function process_func()
+        local total_samples = #instrument.samples
+        local processed_samples = 0
+        
+        for i = 1, total_samples do
+            -- Update progress
+            if dialog and dialog.visible then
+                vb.views.progress_text.text = string.format("Processing sample %d of %d...", i, total_samples)
+            end
+            
+            -- Process each sample
+            renoise.song().selected_sample_index = i
+            normalize_selected_sample()
+            processed_samples = processed_samples + 1
+            
+            if slicer:was_cancelled() then
+                break
+            end
+            
+            coroutine.yield()
+        end
+        
+        -- Restore original sample selection
+        renoise.song().selected_sample_index = current_sample_index
+        
+        -- Close dialog when done
+        if dialog and dialog.visible then
+            dialog:close()
+        end
+        
+        renoise.app():show_status(string.format("Normalized %d samples in instrument.", processed_samples))
     end
     
-    -- Restore original sample selection
-    renoise.song().selected_sample_index = current_sample_index
-    
-    renoise.app():show_status(string.format("Normalized %d samples in instrument.", normalized_count))
+    -- Create and start the ProcessSlicer
+    slicer = ProcessSlicer(process_func)
+    dialog, vb = slicer:create_dialog("Normalizing All Samples")
+    slicer:start()
 end
 
+-- Add keybinding and menu entries
+renoise.tool():add_keybinding{name="Global:Paketti:Normalize Sample",invoke=function() normalize_selected_sample() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Normalize All Samples in Instrument",invoke=function() normalize_all_samples_in_instrument() end}
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Process..:Normalize All Samples in Instrument",invoke=function() normalize_all_samples_in_instrument() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Normalize Sample",invoke=function() normalize_selected_sample() end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Normalize Sample",invoke=function() normalize_selected_sample() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Normalize All Samples in Instrument",invoke=function() normalize_all_samples_in_instrument() end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Normalize All Samples in Instrument",invoke=function() normalize_all_samples_in_instrument() end}
 
 -----------
