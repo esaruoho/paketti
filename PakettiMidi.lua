@@ -338,20 +338,57 @@ renoise.tool():add_midi_mapping{
   end
 }
 
+-- Direct MIDI to row mapping (0-127 maps directly to rows, capped at pattern length)
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Midi Change Pattern Row Position Direct x[Knob]",
+  invoke = function(message)
+    if message:is_abs_value() then
+      local song = renoise.song()
+      local pattern = song:pattern(song.selected_pattern_index)
+      local pattern_length = pattern.number_of_lines
+      
+      -- Map MIDI value directly to row, but cap at pattern length
+      local new_position = math.min(message.int_value, pattern_length - 1)
+      
+      -- Set the new pattern position (+1 for Renoise's 1-based indexing)
+      renoise.song().selected_line_index = new_position + 1
+      
+      -- Show feedback
+      renoise.app():show_status(string.format("Pattern Row: %d (max: %d)", new_position + 1, pattern_length))
+    end
+  end
+}
+
 ---
 renoise.tool():add_midi_mapping{name="Paketti:Midi Change EditStep 1-64 x[Knob]",
   invoke = function(message)
     if message:is_abs_value() then
-      -- Pass the actual property object, not just the value
+      -- Handle absolute values (0-127)
       midiValues(1, 64, renoise.song().transport, 'edit_step', message.int_value)
+    elseif message:is_rel_value() then
+      -- Handle relative values (-63 to +63)
+      local current_value = renoise.song().transport.edit_step
+      -- Add the relative change to current value
+      local new_value = current_value + message.int_value
+      -- Clamp between 1 and 64
+      new_value = math.max(1, math.min(64, new_value))
+      renoise.song().transport.edit_step = new_value
     end
   end}
 
-renoise.tool():add_midi_mapping{name="Paketti:Midi Change EditStep 0-64 x[Knob]",
+  renoise.tool():add_midi_mapping{name="Paketti:Midi Change EditStep 0-64 x[Knob]",
   invoke = function(message)
     if message:is_abs_value() then
-      -- Pass the actual property object, not just the value
+      -- Handle absolute values (0-127)
       midiValues(0, 64, renoise.song().transport, 'edit_step', message.int_value)
+    elseif message:is_rel_value() then
+      -- Handle relative values (-63 to +63)
+      local current_value = renoise.song().transport.edit_step
+      -- Add the relative change to current value
+      local new_value = current_value + message.int_value
+      -- Clamp between 0 and 64
+      new_value = math.max(0, math.min(64, new_value))
+      renoise.song().transport.edit_step = new_value
     end
   end}
 
@@ -366,10 +403,19 @@ renoise.tool():add_midi_mapping{name="Paketti:Midi Change EditStep 0-64 x[Knob]"
 
 
 -- A function to handle MIDI input and map it to a specified range and property
-function midiValues(minValue, maxValue, object, propertyName, midiInput)
-  local scaledValue = scaleValue(midiInput, 0, 127, minValue, maxValue)
-  -- Set the property on the object using propertyName
-  object[propertyName] = math.floor(math.max(minValue, math.min(scaledValue, maxValue)))
+function midiValues(minValue, maxValue, object, propertyName, midi_message)
+  if midi_message:is_abs_value() then
+    local scaledValue = scaleValue(midi_message.int_value, 0, 127, minValue, maxValue)
+    object[propertyName] = math.floor(math.max(minValue, math.min(scaledValue, maxValue)))
+  elseif midi_message:is_rel_value() then
+    local current_value = object[propertyName]
+    -- Scale the relative change appropriately for the value range
+    local value_range = maxValue - minValue
+    local relative_change = (midi_message.int_value / 127) * value_range
+    local new_value = current_value + relative_change
+    -- Clamp to valid range
+    object[propertyName] = math.floor(math.max(minValue, math.min(new_value, maxValue)))
+  end
 end
 
 -- Scales an input value from a given input range to a specified output range
@@ -618,30 +664,28 @@ renoise.tool():add_midi_mapping{name="Paketti:Create New Instrument & Loop from 
 local added_midi_mappings = {}
 
 -- Function to map MIDI values to macro values
-function map_midi_value_to_macro(macro_index, midi_value)
-  -- Ensure renoise.song() is available
-  if not pcall(renoise.song) then
-    renoise.app():show_status("No song is currently loaded.")
-    return
-  end
-
+function map_midi_value_to_macro(macro_index, midi_message)
   -- Ensure the macro index is within the valid range (1 to 8)
   if macro_index < 1 or macro_index > 8 then
     renoise.app():show_status("Macro index must be between 1 and 8")
     return
   end
 
-  -- Ensure the MIDI value is within the valid range (0 to 127)
-  if midi_value < 0 or midi_value > 127 then
-    renoise.app():show_status("MIDI value must be between 0 and 127")
-    return
+  local current_value = renoise.song().selected_instrument.macros[macro_index].value
+
+  if midi_message:is_abs_value() then
+    -- Convert the absolute MIDI value (0 to 127) to a range of 0 to 1
+    local macro_value = midi_message.int_value / 127
+    renoise.song().selected_instrument.macros[macro_index].value = macro_value
+  elseif midi_message:is_rel_value() then
+    -- Handle relative values (-63 to +63)
+    -- Scale the relative change to be smaller for finer control
+    local relative_change = midi_message.int_value / 127
+    local new_value = current_value + relative_change
+    -- Clamp between 0 and 1
+    new_value = math.max(0, math.min(1, new_value))
+    renoise.song().selected_instrument.macros[macro_index].value = new_value
   end
-
-  -- Convert the MIDI value to a range of 0 to 1
-  local macro_value = midi_value / 127
-
-  -- Set the value of the specified macro
-  renoise.song().selected_instrument.macros[macro_index].value = macro_value
 end
 
 -- Static MIDI mappings for each of the 8 macros
@@ -1654,6 +1698,7 @@ local target_devices = {
   {path="Audio/Effects/Native/LofiMat 2", params={"Bit Crunch", "Rate", "Noise", "Wet Mix","Dry Mix"}},
   {path="Audio/Effects/Native/Delay", params={"L Delay", "R Delay", "L Feedb.", "R Feedb.", "Send", "L Sync Time", "R Sync Time"}},
   {path="Audio/Effects/Native/Analog Filter", params={"Type", "Cutoff", "Resonance", "Drive", "Inertia"}},
+  {path="Audio/Effects/Native/*XY Pad", params={"X-Axis", "Y-Axis"}},
   {path="Audio/Effects/Native/Doofer", params={1,2,3,4,5,6,7,8}}, -- Doofer uses parameter indices instead of names
   {path="Audio/Effects/Native/EQ 10", params={}} -- EQ 10 now explicitly handled
 }
@@ -1665,7 +1710,8 @@ local function scale_midi_to_param(midi_value, param)
 end
 
 -- Function to find and modify parameters of the target devices
-local function modify_device_param(device_path, param_identifier, midi_value)
+-- Function to find and modify parameters of the target devices
+local function modify_device_param(device_path, param_identifier, midi_message)
   local track = renoise.song().selected_track
   local found_device = false
   
@@ -1699,7 +1745,18 @@ local function modify_device_param(device_path, param_identifier, midi_value)
       end
 
       if param then
-        param.value = scale_midi_to_param(midi_value, param)
+        if midi_message:is_abs_value() then
+          -- Handle absolute values (0-127)
+          param.value = param.value_min + ((param.value_max - param.value_min) * (midi_message.int_value / 127))
+        elseif midi_message:is_rel_value() then
+          -- Handle relative values (-63 to +63)
+          local value_range = param.value_max - param.value_min
+          local relative_change = (midi_message.int_value / 127) * value_range
+          local new_value = param.value + relative_change
+          -- Clamp to parameter's valid range
+          new_value = math.max(param.value_min, math.min(param.value_max, new_value))
+          param.value = new_value
+        end
         renoise.app():show_status(param.name .. " of " .. device.name .. " modified.")
       else
         renoise.app():show_status("Parameter not found in " .. device.name)
@@ -1714,12 +1771,7 @@ local function modify_device_param(device_path, param_identifier, midi_value)
   end
 end
 
--- Helper function to remove " 2" from the device names for clean mapping names
-local function clean_device_name(device_name)
-  return device_name:gsub(" 2$", "")  -- Remove the " 2" at the end of the device name
-end
-
--- Auto-generate MIDI mappings for all the device parameters
+-- The MIDI mappings also need to be updated to pass the entire message:
 for _, device_info in ipairs(target_devices) do
   local device_path = device_info.path
   local device_name_clean = clean_device_name(device_path:match("[^/]+$"))
@@ -1731,8 +1783,7 @@ for _, device_info in ipairs(target_devices) do
       renoise.tool():add_midi_mapping{
         name = mapping_name,
         invoke = function(message)
-          local midi_value = message.int_value
-          modify_device_param(device_path, param_index, midi_value)
+          modify_device_param(device_path, param_index, message)  -- Pass entire message
         end
       }
     end
@@ -1744,8 +1795,7 @@ for _, device_info in ipairs(target_devices) do
       local mapping_name="Paketti:Selected Track Dev EQ 10 Gain " .. string.format("%02d", i)
       renoise.tool():add_midi_mapping{name=mapping_name,
         invoke = function(message)
-          local midi_value = message.int_value
-          modify_device_param(device_path, i, midi_value) -- Map to parameter index 1-10 (Gain)
+          modify_device_param(device_path, i, message)  -- Pass entire message
         end
       }
     end
@@ -1755,8 +1805,7 @@ for _, device_info in ipairs(target_devices) do
       local mapping_name="Paketti:Selected Track Dev EQ 10 Frequency " .. string.format("%02d", i - 10)
       renoise.tool():add_midi_mapping{name = mapping_name,
         invoke = function(message)
-          local midi_value = message.int_value
-          modify_device_param(device_path, i, midi_value) -- Map to parameter index 11-20 (Frequency)
+          modify_device_param(device_path, i, message)  -- Pass entire message
         end
       }
     end
@@ -1767,8 +1816,7 @@ for _, device_info in ipairs(target_devices) do
       renoise.tool():add_midi_mapping{
         name = mapping_name,
         invoke = function(message)
-          local midi_value = message.int_value
-          modify_device_param(device_path, i, midi_value) -- Map to parameter index 21-30 (Bandwidth)
+          modify_device_param(device_path, i, message)  -- Pass entire message
         end
       }
     end
@@ -1781,8 +1829,7 @@ for _, device_info in ipairs(target_devices) do
       renoise.tool():add_midi_mapping{
         name = mapping_name,
         invoke = function(message)
-          local midi_value = message.int_value
-          modify_device_param(device_path, param_name, midi_value)
+          modify_device_param(device_path, param_name, message)  -- Pass entire message
         end
       }
     end
@@ -2099,6 +2146,60 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Rename Tracks By Play
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Rename Tracks By Played Samples",invoke = function() rename_tracks_by_played_samples() end}
 renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Rename Tracks By Played Samples",invoke = function() rename_tracks_by_played_samples() end}
 
+-- Function to modify selected XY Pad parameter
+local function modify_selected_xy_pad_param(param_name, midi_message)
+  local song = renoise.song()
+  
+  if not song.selected_device then
+    renoise.app():show_status("No device selected, doing nothing")
+    return
+  end
+  
+  if not song.selected_device.device_path:match("*XY Pad$") then
+    renoise.app():show_status("This is not an *XY Pad device, doing nothing")
+    return
+  end
+  
+  local param
+  for _, parameter in ipairs(song.selected_device.parameters) do
+    if parameter.name == param_name then
+      param = parameter
+      break
+    end
+  end
+  
+  if param then
+    if midi_message:is_abs_value() then
+      -- Scale absolute MIDI value to parameter range
+      local scaled_value = param.value_min + ((param.value_max - param.value_min) * (midi_message.int_value / 127))
+      param.value = scaled_value
+    elseif midi_message:is_rel_value() then
+      -- Handle relative values
+      local value_range = param.value_max - param.value_min
+      local relative_change = (midi_message.int_value / 127) * value_range
+      local new_value = param.value + relative_change
+      -- Clamp to parameter's valid range
+      param.value = math.max(param.value_min, math.min(param.value_max, new_value))
+    end
+    renoise.app():show_status(param_name .. " of " .. song.selected_device.name .. " modified")
+  else
+    renoise.app():show_status("Parameter " .. param_name .. " not found")
+  end
+end
 
+-- Keep the original MIDI mappings for XY Pad
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Selected Device *XY Pad X-Axis",
+  invoke = function(message)
+    modify_selected_xy_pad_param("X-Axis", message)
+  end
+}
+
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Selected Device *XY Pad Y-Axis",
+  invoke = function(message)
+    modify_selected_xy_pad_param("Y-Axis", message)
+  end
+}
 
 
