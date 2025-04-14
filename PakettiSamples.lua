@@ -333,68 +333,99 @@ function loadRandomDrumkitSamples(num_samples)
     -- Create a table to store failed loads
     local failed_loads = {}
     
-    -- Load each sample as a new drum zone with specified properties
-    for i = 1, num_samples_to_load do
-        local random_index = math.random(1, #sample_files)
-        local selected_file = sample_files[random_index]
-        table.remove(sample_files, random_index)
+    -- Create ProcessSlicer instance and dialog
+    local slicer = nil
+    local dialog = nil
+    local vb = nil
 
-        local file_name = selected_file:match("([^/\\]+)%.%w+$")
-
-        if #instrument.samples < i then
-            instrument:insert_sample_at(i)
-        end
-
-        local sample = instrument.samples[i]
-        local sample_buffer = sample.sample_buffer
-
-        -- Load the sample file into the sample buffer
-        local success, error_message = pcall(function()
-            return sample_buffer:load_from(selected_file)
-        end)
-
-        if success and error_message then
-            sample.name = file_name
-            sample.interpolation_mode = preferences.pakettiLoaderInterpolation.value
-            sample.oversample_enabled = preferences.pakettiLoaderOverSampling.value
-            sample.oneshot = preferences.pakettiLoaderOneshot.value
-            sample.autofade = preferences.pakettiLoaderAutofade.value
-            sample.autoseek = preferences.pakettiLoaderAutoseek.value
-            sample.loop_mode = preferences.pakettiLoaderLoopMode.value
-            sample.new_note_action = preferences.pakettiLoaderNNA.value
-            sample.loop_release = preferences.pakettiLoaderLoopExit.value
-            
-            renoise.app():show_status(formatDigits(3,i) .. ": Loaded sample: " .. file_name)
-        else
-            -- Get file info for better error reporting
-            local folder_path = selected_file:match("(.*[/\\])")
-            local file_size = "unknown"
-            local file_handle = io.open(selected_file, "rb")
-            if file_handle then
-                file_size = string.format("%.2f MB", file_handle:seek("end") / 1024 / 1024)
-                file_handle:close()
+    -- Define the process function
+    local function process_func()
+        -- Load each sample as a new drum zone with specified properties
+        for i = 1, num_samples_to_load do
+            -- Update progress
+            if dialog and dialog.visible then
+                vb.views.progress_text.text = string.format("Loading sample %d/%d...", 
+                    i, num_samples_to_load)
             end
-            
-            -- Store failed loads with their index and error message
-            table.insert(failed_loads, {
-                index = i,
-                file = selected_file,
-                folder = folder_path,
-                size = file_size,
-                error = tostring(error_message)
-            })
+
+            local random_index = math.random(1, #sample_files)
+            local selected_file = sample_files[random_index]
+            table.remove(sample_files, random_index)
+
+            local file_name = selected_file:match("([^/\\]+)%.%w+$")
+
+            if #instrument.samples < i then
+                instrument:insert_sample_at(i)
+            end
+
+            local sample = instrument.samples[i]
+            local sample_buffer = sample.sample_buffer
+
+            -- Load the sample file into the sample buffer
+            local success, error_message = pcall(function()
+                return sample_buffer:load_from(selected_file)
+            end)
+
+            if success and error_message then
+                sample.name = file_name
+                sample.interpolation_mode = preferences.pakettiLoaderInterpolation.value
+                sample.oversample_enabled = preferences.pakettiLoaderOverSampling.value
+                sample.oneshot = preferences.pakettiLoaderOneshot.value
+                sample.autofade = preferences.pakettiLoaderAutofade.value
+                sample.autoseek = preferences.pakettiLoaderAutoseek.value
+                sample.loop_mode = preferences.pakettiLoaderLoopMode.value
+                sample.new_note_action = preferences.pakettiLoaderNNA.value
+                sample.loop_release = preferences.pakettiLoaderLoopExit.value
+                
+                renoise.app():show_status(formatDigits(3,i) .. ": Loaded sample: " .. file_name)
+            else
+                -- Get file info for better error reporting
+                local folder_path = selected_file:match("(.*[/\\])")
+                local file_size = "unknown"
+                local file_handle = io.open(selected_file, "rb")
+                if file_handle then
+                    file_size = string.format("%.2f MB", file_handle:seek("end") / 1024 / 1024)
+                    file_handle:close()
+                end
+                
+                -- Store failed loads with their index and error message
+                table.insert(failed_loads, {
+                    index = i,
+                    file = selected_file,
+                    folder = folder_path,
+                    size = file_size,
+                    error = tostring(error_message)
+                })
+            end
+
+            -- Yield every few samples to keep UI responsive
+            if i % 5 == 0 then
+                if slicer:was_cancelled() then
+                    return
+                end
+                coroutine.yield()
+            end
+        end
+
+        if dialog and dialog.visible then
+            dialog:close()
+        end
+
+        -- Show summary of failed loads if any
+        if #failed_loads > 0 then
+            local message = "Failed to load " .. #failed_loads .. " samples:\n"
+            for _, fail in ipairs(failed_loads) do
+                message = message .. string.format("\nIndex %d: %s\nFolder: %s\nSize: %s\nError: %s\n",
+                    fail.index, fail.file:match("([^/\\]+)$"), fail.folder, fail.size, fail.error)
+            end
+            renoise.app():show_warning(message)
         end
     end
 
-    -- Show summary of failed loads if any
-    if #failed_loads > 0 then
-        local message = "Failed to load " .. #failed_loads .. " samples:\n"
-        for _, fail in ipairs(failed_loads) do
-            message = message .. string.format("\nIndex %d: %s\nFolder: %s\nSize: %s\nError: %s\n",
-                fail.index, fail.file:match("([^/\\]+)$"), fail.folder, fail.size, fail.error)
-        end
-        renoise.app():show_warning(message)
-    end
+    -- Create and start the ProcessSlicer
+    slicer = ProcessSlicer(process_func)
+    dialog, vb = slicer:create_dialog("Loading Random Drumkit Samples")
+    slicer:start()
 
     -- Return the loaded instrument
     return instrument

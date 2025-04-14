@@ -2961,36 +2961,13 @@ renoise.app():load_instrument(defaultInstrument)
 end
 
 -- Add menu entries
-renoise.tool():add_menu_entry{
-  name="Instrument Box:Paketti..:Isolate Selected Sample to New Instrument",
-  invoke=PakettiIsolateSelectedSampleToInstrument
-}
-renoise.tool():add_menu_entry{
-  name="Sample Navigator:Paketti..:Isolate Selected Sample to New Instrument",
-  invoke=PakettiIsolateSelectedSampleToInstrument
-}
-renoise.tool():add_menu_entry{
-  name="Sample Editor:Paketti..:Isolate Selected Sample to New Instrument",
-  invoke=PakettiIsolateSelectedSampleToInstrument
-}
-renoise.tool():add_menu_entry{
-  name="Sample Mappings:Paketti..:Isolate Selected Sample to New Instrument",
-  invoke=PakettiIsolateSelectedSampleToInstrument
-}
-renoise.tool():add_menu_entry{
-  name="Main Menu:Tools:Paketti..:Instruments..:Isolate Selected Sample to New Instrument",
-  invoke=PakettiIsolateSelectedSampleToInstrument
-}
-
--- Add keybinding and MIDI mapping
-renoise.tool():add_keybinding{
-  name="Global:Paketti:Isolate Selected Sample to New Instrument",
-  invoke=PakettiIsolateSelectedSampleToInstrument
-}
-renoise.tool():add_midi_mapping{
-  name="Paketti:Isolate Selected Sample to New Instrument",
-  invoke=PakettiIsolateSelectedSampleToInstrument
-}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Isolate Selected Sample to New Instrument",invoke=PakettiIsolateSelectedSampleToInstrument}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Isolate Selected Sample to New Instrument",invoke=PakettiIsolateSelectedSampleToInstrument}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Isolate Selected Sample to New Instrument",invoke=PakettiIsolateSelectedSampleToInstrument}
+renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Isolate Selected Sample to New Instrument",invoke=PakettiIsolateSelectedSampleToInstrument}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:Isolate Selected Sample to New Instrument",invoke=PakettiIsolateSelectedSampleToInstrument}
+renoise.tool():add_keybinding{name="Global:Paketti:Isolate Selected Sample to New Instrument",invoke=PakettiIsolateSelectedSampleToInstrument}
+renoise.tool():add_midi_mapping{name="Paketti:Isolate Selected Sample to New Instrument",invoke=PakettiIsolateSelectedSampleToInstrument}
 ---------
 function PakettiReverseNotesInSelection()
   local song = renoise.song()

@@ -1069,11 +1069,11 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Strip Silence",invoke=function() PakettiStripSilence() end}
 renoise.tool():add_midi_mapping{name="Paketti:Strip Silence",invoke=function() PakettiStripSilence() end}
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Process..:Strip Silence",invoke=function() PakettiStripSilence() end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Strip Silence",invoke=function() PakettiStripSilence() end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Process..:Strip Silence",invoke=function() PakettiStripSilence() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Move Beginning Silence to End",invoke=function() PakettiMoveSilence() end}
 renoise.tool():add_midi_mapping{name="Paketti:Move Beginning Silence to End",invoke=function(message) if message:is_trigger() then  PakettiMoveSilence() end end}
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Process..:Move Beginning Silence to End",invoke=function() PakettiMoveSilence() end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Move Beginning Silence to End",invoke=function() PakettiMoveSilence() end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Process..:Move Beginning Silence to End",invoke=function() PakettiMoveSilence() end}
 -----------
 
 function PakettiMoveSilenceAllSamples()
@@ -1149,7 +1149,7 @@ end
 -- Add keybinding and menu entries
 renoise.tool():add_keybinding{name="Global:Paketti:Move Beginning Silence to End for All Samples",invoke=function() PakettiMoveSilenceAllSamples() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Move Beginning Silence to End for All Samples",invoke=function() PakettiMoveSilenceAllSamples() end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Move Beginning Silence to End for All Samples",invoke=function() PakettiMoveSilenceAllSamples() end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Process..:Move Beginning Silence to End for All Samples",invoke=function() PakettiMoveSilenceAllSamples() end}
 --------
 
 
@@ -1183,7 +1183,7 @@ function PakettiSampleInvertEntireSample()
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Invert Entire Sample",invoke=function() PakettiSampleInvertEntireSample() end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Invert Entire Sample",invoke=function() PakettiSampleInvertEntireSample() end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Process..:Invert Entire Sample",invoke=function() PakettiSampleInvertEntireSample() end}
 ---
 function PakettiInvertRandomSamplesInInstrument()
   local instrument = renoise.song().selected_instrument
@@ -1213,7 +1213,7 @@ end
 -- Add to menu entries
 
 
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Invert Random Samples in Instrument",invoke=PakettiInvertRandomSamplesInInstrument}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Process..:Invert Random Samples in Instrument",invoke=PakettiInvertRandomSamplesInInstrument}
 renoise.tool():add_keybinding{name="Global:Paketti:Invert Random Samples in Instrument",invoke=PakettiInvertRandomSamplesInInstrument}
 
 
