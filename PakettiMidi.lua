@@ -10,47 +10,70 @@ local function clean_device_name(name)
   return cleaned
 end
 -------------------------------------------------------------------------------------------------------------------------------
-renoise.tool():add_midi_mapping{name="Paketti:Groove Settings Groove #2&4 x[Knob]",
+-- Helper function for handling groove settings
+local function handle_groove_setting(midi_message, indices)
+  local ga = renoise.song().transport.groove_amounts
+  if not renoise.song().transport.groove_enabled then 
+    renoise.song().transport.groove_enabled = true 
+  end
+  renoise.app().window.active_lower_frame = 1
+    
+  local new_value
+  if midi_message:is_abs_value() then
+    -- For absolute values (0-127), directly map to 0-1 range
+    new_value = midi_message.int_value / 127
+  elseif midi_message:is_rel_value() then
+    -- For relative values, adjust current value
+    local change = (midi_message.int_value / 127) * 0.1 -- Scale the change to be smaller for finer control
+    -- Use the first index as reference for relative changes
+    new_value = math.max(0, math.min(1, ga[indices[1]] + change))
+  end
+    
+  if new_value then
+    local new_amounts = {ga[1], ga[2], ga[3], ga[4]}
+    for _, index in ipairs(indices) do
+      new_amounts[index] = new_value
+    end
+    renoise.song().transport.groove_amounts = new_amounts
+  end
+end
+
+renoise.tool():add_midi_mapping{
+  name="Paketti:Groove Settings Groove #2&4 x[Knob]",
   invoke=function(midi_message)
-  local ga=renoise.song().transport.groove_amounts
-    if not renoise.song().transport.groove_enabled then renoise.song().transport.groove_enabled=true end
-    renoise.app().window.active_lower_frame=1
-    renoise.song().transport.groove_amounts = {ga[1], midi_message.int_value/127, ga[3], midi_message.int_value/127}
-    end}
+    handle_groove_setting(midi_message, {2, 4})
+  end
+}
 
 --Groove Settings, re-written and simplified by mxb
 --Control Grooves with a slider
-renoise.tool():add_midi_mapping{name="Paketti:Groove Settings Groove #1 x[Knob]",
+renoise.tool():add_midi_mapping{
+  name="Paketti:Groove Settings Groove #1 x[Knob]",
   invoke=function(midi_message)
-  local ga=renoise.song().transport.groove_amounts
-    if not renoise.song().transport.groove_enabled then renoise.song().transport.groove_enabled=true end
-    renoise.app().window.active_lower_frame=1
-    renoise.song().transport.groove_amounts = {midi_message.int_value/127, ga[2], ga[3], ga[4]}
-    end}
+    handle_groove_setting(midi_message, {1})
+  end
+}
 
-renoise.tool():add_midi_mapping{name="Paketti:Groove Settings Groove #2 x[Knob]",
+renoise.tool():add_midi_mapping{
+  name="Paketti:Groove Settings Groove #2 x[Knob]",
   invoke=function(midi_message)
-  local ga=renoise.song().transport.groove_amounts
-    if not renoise.song().transport.groove_enabled then renoise.song().transport.groove_enabled=true end    
-    renoise.app().window.active_lower_frame=1
-    renoise.song().transport.groove_amounts = {ga[1], midi_message.int_value/127, ga[3], ga[4]}
-    end}
+    handle_groove_setting(midi_message, {2})
+  end
+}
 
-renoise.tool():add_midi_mapping{name="Paketti:Groove Settings Groove #3 x[Knob]",
+renoise.tool():add_midi_mapping{
+  name="Paketti:Groove Settings Groove #3 x[Knob]",
   invoke=function(midi_message)
-  local ga=renoise.song().transport.groove_amounts
-    if not renoise.song().transport.groove_enabled then renoise.song().transport.groove_enabled=true end
-    renoise.app().window.active_lower_frame=1
-    renoise.song().transport.groove_amounts = {ga[1], ga[2], midi_message.int_value/127, ga[4]}
-    end}
+    handle_groove_setting(midi_message, {3})
+  end
+}
 
-renoise.tool():add_midi_mapping{name="Paketti:Groove Settings Groove #4 x[Knob]",
+renoise.tool():add_midi_mapping{
+  name="Paketti:Groove Settings Groove #4 x[Knob]",
   invoke=function(midi_message)
-  local ga=renoise.song().transport.groove_amounts
-    if not renoise.song().transport.groove_enabled then renoise.song().transport.groove_enabled=true end
-    renoise.app().window.active_lower_frame=1
-    renoise.song().transport.groove_amounts = {ga[1], ga[2], ga[3], midi_message.int_value/127}
-    end}
+    handle_groove_setting(midi_message, {4})
+  end
+}
 -----------------------------------------------------------------------------------------------------------------------------------------
 -- Control Computer Keyboard Velocity with a slider.
 renoise.tool():add_midi_mapping{name="Paketti:Computer Keyboard Velocity Slider x[Knob]",
