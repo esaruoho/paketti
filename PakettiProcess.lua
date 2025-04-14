@@ -2505,7 +2505,8 @@ function convert_bit_depth(target_bits)
     end
 
     -- Ensure a sample is selected
-    local sample = song.selected_sample
+    local sample_index = song.selected_sample_index
+    local sample = instrument:sample(sample_index)
     if not sample or not sample.sample_buffer.has_sample_data then
         renoise.app():show_status("No sample selected or sample has no data.")
         return
@@ -2551,18 +2552,57 @@ function convert_bit_depth(target_bits)
         local processed_frames = 0
         local CHUNK_SIZE = 16384  -- Process in chunks for better responsiveness
 
-        -- Store original properties
-        local original_name = sample.name
-        local original_mapping = {
-            base_note = sample.sample_mapping.base_note,
-            note_range = sample.sample_mapping.note_range,
-            velocity_range = sample.sample_mapping.velocity_range,
-            map_key_to_pitch = sample.sample_mapping.map_key_to_pitch,
-            map_velocity_to_volume = sample.sample_mapping.map_velocity_to_volume
+        -- Store ALL sample properties
+        local properties = {
+            -- Basic properties
+            name = sample.name,
+            volume = sample.volume,
+            panning = sample.panning,
+            transpose = sample.transpose,
+            fine_tune = sample.fine_tune,
+            
+            -- Beat sync properties
+            beat_sync_enabled = sample.beat_sync_enabled,
+            beat_sync_lines = sample.beat_sync_lines,
+            beat_sync_mode = sample.beat_sync_mode,
+            
+            -- Loop and playback properties
+            oneshot = sample.oneshot,
+            loop_release = sample.loop_release,
+            loop_mode = sample.loop_mode,
+            mute_group = sample.mute_group,
+            new_note_action = sample.new_note_action,
+            
+            -- Audio processing properties
+            autoseek = sample.autoseek,
+            autofade = sample.autofade,
+            oversample_enabled = sample.oversample_enabled,
+            interpolation_mode = sample.interpolation_mode,
+            
+            -- Mapping properties
+            sample_mapping = {
+                base_note = sample.sample_mapping.base_note,
+                note_range = sample.sample_mapping.note_range,
+                velocity_range = sample.sample_mapping.velocity_range,
+                map_key_to_pitch = sample.sample_mapping.map_key_to_pitch,
+                map_velocity_to_volume = sample.sample_mapping.map_velocity_to_volume
+            }
         }
 
-        -- Prepare for changes
-        sample_buffer:prepare_sample_data_changes()
+        -- Create a new temporary sample slot
+        local temp_sample_index = #instrument.samples + 1
+        instrument:insert_sample_at(temp_sample_index)
+        local temp_sample = instrument:sample(temp_sample_index)
+        local temp_sample_buffer = temp_sample.sample_buffer
+        
+        -- Create new sample buffer with desired bit depth
+        temp_sample_buffer:create_sample_data(
+            sample_buffer.sample_rate,
+            target_bits,
+            num_channels,
+            total_frames
+        )
+        temp_sample_buffer:prepare_sample_data_changes()
 
         -- Process each channel in chunks
         for channel = 1, num_channels do
@@ -2579,8 +2619,8 @@ function convert_bit_depth(target_bits)
                     -- Convert to target bit depth
                     value = convert_to_bit_depth(value, target_bits)
                     
-                    -- Write back
-                    sample_buffer:set_sample_data(channel, f, value)
+                    -- Write to new buffer
+                    temp_sample_buffer:set_sample_data(channel, f, value)
                 end
 
                 processed_frames = processed_frames + (block_end - frame + 1)
@@ -2594,7 +2634,8 @@ function convert_bit_depth(target_bits)
 
                 -- Check for cancellation
                 if slicer:was_cancelled() then
-                    sample_buffer:finalize_sample_data_changes()
+                    temp_sample_buffer:finalize_sample_data_changes()
+                    instrument:delete_sample_at(temp_sample_index)
                     return
                 end
 
@@ -2602,19 +2643,67 @@ function convert_bit_depth(target_bits)
             end
         end
 
-        -- Finalize changes
-        sample_buffer:finalize_sample_data_changes()
+        -- Finalize changes to temporary buffer
+        temp_sample_buffer:finalize_sample_data_changes()
 
-        -- Update buffer properties
-        sample_buffer.bit_depth = target_bits
+        -- Delete the original sample and insert the new one in its place
+        instrument:delete_sample_at(sample_index)
+        instrument:insert_sample_at(sample_index)
+        local new_sample = instrument:sample(sample_index)
 
-        -- Restore sample name and mapping properties
-        sample.name = original_name
-        sample.sample_mapping.base_note = original_mapping.base_note
-        sample.sample_mapping.note_range = original_mapping.note_range
-        sample.sample_mapping.velocity_range = original_mapping.velocity_range
-        sample.sample_mapping.map_key_to_pitch = original_mapping.map_key_to_pitch
-        sample.sample_mapping.map_velocity_to_volume = original_mapping.map_velocity_to_volume
+        -- Copy the processed data to the new sample
+        local new_sample_buffer = new_sample.sample_buffer
+        new_sample_buffer:create_sample_data(
+            sample_buffer.sample_rate,
+            target_bits,
+            num_channels,
+            total_frames
+        )
+        new_sample_buffer:prepare_sample_data_changes()
+
+        -- Copy data from temp buffer to new buffer
+        for channel = 1, num_channels do
+            for frame = 1, total_frames do
+                new_sample_buffer:set_sample_data(
+                    channel,
+                    frame,
+                    temp_sample_buffer:sample_data(channel, frame)
+                )
+            end
+        end
+
+        new_sample_buffer:finalize_sample_data_changes()
+
+        -- Restore ALL sample properties
+        new_sample.name = properties.name
+        new_sample.volume = properties.volume
+        new_sample.panning = properties.panning
+        new_sample.transpose = properties.transpose
+        new_sample.fine_tune = properties.fine_tune
+        
+        new_sample.beat_sync_enabled = properties.beat_sync_enabled
+        new_sample.beat_sync_lines = properties.beat_sync_lines
+        new_sample.beat_sync_mode = properties.beat_sync_mode
+        
+        new_sample.oneshot = properties.oneshot
+        new_sample.loop_release = properties.loop_release
+        new_sample.loop_mode = properties.loop_mode
+        new_sample.mute_group = properties.mute_group
+        new_sample.new_note_action = properties.new_note_action
+        
+        new_sample.autoseek = properties.autoseek
+        new_sample.autofade = properties.autofade
+        new_sample.oversample_enabled = properties.oversample_enabled
+        new_sample.interpolation_mode = properties.interpolation_mode
+        
+        new_sample.sample_mapping.base_note = properties.sample_mapping.base_note
+        new_sample.sample_mapping.note_range = properties.sample_mapping.note_range
+        new_sample.sample_mapping.velocity_range = properties.sample_mapping.velocity_range
+        new_sample.sample_mapping.map_key_to_pitch = properties.sample_mapping.map_key_to_pitch
+        new_sample.sample_mapping.map_velocity_to_volume = properties.sample_mapping.map_velocity_to_volume
+
+        -- Delete the temporary sample
+        instrument:delete_sample_at(temp_sample_index)
 
         if dialog and dialog.visible then
             dialog:close()
@@ -2622,7 +2711,7 @@ function convert_bit_depth(target_bits)
 
         -- Show completion message
         renoise.app():show_status(string.format(
-            "Converted '%s' to %d-bit", sample.name, target_bits))
+            "Converted '%s' to %d-bit", new_sample.name, target_bits))
     end
 
     -- Create and start the ProcessSlicer
