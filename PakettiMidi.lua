@@ -351,11 +351,11 @@ renoise.tool():add_midi_mapping{
 renoise.tool():add_midi_mapping{
   name = "Paketti:Midi Change Pattern Row Position Direct x[Knob]",
   invoke = function(message)
+    local song = renoise.song()
+    local pattern = song:pattern(song.selected_pattern_index)
+    local pattern_length = pattern.number_of_lines
+    
     if message:is_abs_value() then
-      local song = renoise.song()
-      local pattern = song:pattern(song.selected_pattern_index)
-      local pattern_length = pattern.number_of_lines
-      
       -- Map MIDI value directly to row, but cap at pattern length
       local new_position = math.min(message.int_value, pattern_length - 1)
       
@@ -364,6 +364,21 @@ renoise.tool():add_midi_mapping{
       
       -- Show feedback
       renoise.app():show_status(string.format("Pattern Row: %d (max: %d)", new_position + 1, pattern_length))
+    elseif message:is_rel_value() then
+      -- Get current position
+      local current_position = song.selected_line_index
+      
+      -- Add relative change (-63 to +63)
+      local new_position = current_position + message.int_value
+      
+      -- Clamp to valid pattern range (1 to pattern_length)
+      new_position = math.max(1, math.min(pattern_length, new_position))
+      
+      -- Set the new position
+      renoise.song().selected_line_index = new_position
+      
+      -- Show feedback
+      renoise.app():show_status(string.format("Pattern Row: %d (max: %d)", new_position, pattern_length))
     end
   end
 }
@@ -673,6 +688,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Create New Instrument & Loop from 
 local added_midi_mappings = {}
 
 -- Function to map MIDI values to macro values
+-- Function to map MIDI values to macro values
 function map_midi_value_to_macro(macro_index, midi_message)
   -- Ensure the macro index is within the valid range (1 to 8)
   if macro_index < 1 or macro_index > 8 then
@@ -698,23 +714,23 @@ function map_midi_value_to_macro(macro_index, midi_message)
 end
 
 -- Static MIDI mappings for each of the 8 macros
-renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Macro 1 (PitchBend)",invoke=function(midi_message) map_midi_value_to_macro(1, midi_message.int_value) end}
-renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Macro 2 (Cutoff)",invoke=function(midi_message) map_midi_value_to_macro(2, midi_message.int_value) end}
-renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Macro 3 (Resonance)",invoke=function(midi_message) map_midi_value_to_macro(3, midi_message.int_value) end}
-renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Macro 4 (Cutoff LfoAmp)",invoke=function(midi_message) map_midi_value_to_macro(4, midi_message.int_value) end}
-renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Macro 5 (Cutoff LfoFreq)",invoke=function(midi_message) map_midi_value_to_macro(5, midi_message.int_value) end}
-renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Macro 6 (Overdrive)",invoke=function(midi_message) map_midi_value_to_macro(6, midi_message.int_value) end}
-renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Macro 7 (ParallelCompression)",invoke=function(midi_message) map_midi_value_to_macro(7, midi_message.int_value) end}
-renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Macro 8 (PB Inertia)",invoke=function(midi_message) map_midi_value_to_macro(8, midi_message.int_value) end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Macro 1 (PitchBend)",invoke=function(midi_message) map_midi_value_to_macro(1, midi_message) end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Macro 2 (Cutoff)",invoke=function(midi_message) map_midi_value_to_macro(2, midi_message) end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Macro 3 (Resonance)",invoke=function(midi_message) map_midi_value_to_macro(3, midi_message) end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Macro 4 (Cutoff LfoAmp)",invoke=function(midi_message) map_midi_value_to_macro(4, midi_message) end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Macro 5 (Cutoff LfoFreq)",invoke=function(midi_message) map_midi_value_to_macro(5, midi_message) end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Macro 6 (Overdrive)",invoke=function(midi_message) map_midi_value_to_macro(6, midi_message) end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Macro 7 (ParallelCompression)",invoke=function(midi_message) map_midi_value_to_macro(7, midi_message) end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Macro 8 (PB Inertia)",invoke=function(midi_message) map_midi_value_to_macro(8, midi_message) end}
 
-renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Macro 1 (2nd) (PitchBend)",invoke=function(midi_message) map_midi_value_to_macro(1, midi_message.int_value) end}
-renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Macro 2 (2nd) (Cutoff)",invoke=function(midi_message) map_midi_value_to_macro(2, midi_message.int_value) end}
-renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Macro 3 (2nd) (Resonance)",invoke=function(midi_message) map_midi_value_to_macro(3, midi_message.int_value) end}
-renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Macro 4 (2nd) (Cutoff LfoAmp)",invoke=function(midi_message) map_midi_value_to_macro(4, midi_message.int_value) end}
-renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Macro 5 (2nd) (Cutoff LfoFreq)",invoke=function(midi_message) map_midi_value_to_macro(5, midi_message.int_value) end}
-renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Macro 6 (2nd) (Overdrive)",invoke=function(midi_message) map_midi_value_to_macro(6, midi_message.int_value) end}
-renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Macro 7 (2nd) (ParallelCompression)",invoke=function(midi_message) map_midi_value_to_macro(7, midi_message.int_value) end}
-renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Macro 8 (2nd) (PB Inertia)",invoke=function(midi_message) map_midi_value_to_macro(8, midi_message.int_value) end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Macro 1 (2nd) (PitchBend)",invoke=function(midi_message) map_midi_value_to_macro(1, midi_message) end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Macro 2 (2nd) (Cutoff)",invoke=function(midi_message) map_midi_value_to_macro(2, midi_message) end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Macro 3 (2nd) (Resonance)",invoke=function(midi_message) map_midi_value_to_macro(3, midi_message) end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Macro 4 (2nd) (Cutoff LfoAmp)",invoke=function(midi_message) map_midi_value_to_macro(4, midi_message) end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Macro 5 (2nd) (Cutoff LfoFreq)",invoke=function(midi_message) map_midi_value_to_macro(5, midi_message) end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Macro 6 (2nd) (Overdrive)",invoke=function(midi_message) map_midi_value_to_macro(6, midi_message) end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Macro 7 (2nd) (ParallelCompression)",invoke=function(midi_message) map_midi_value_to_macro(7, midi_message) end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Macro 8 (2nd) (PB Inertia)",invoke=function(midi_message) map_midi_value_to_macro(8, midi_message) end}
 
 
 ----------------
@@ -2196,19 +2212,7 @@ local function modify_selected_xy_pad_param(param_name, midi_message)
   end
 end
 
--- Keep the original MIDI mappings for XY Pad
-renoise.tool():add_midi_mapping{
-  name = "Paketti:Selected Device *XY Pad X-Axis",
-  invoke = function(message)
-    modify_selected_xy_pad_param("X-Axis", message)
-  end
-}
-
-renoise.tool():add_midi_mapping{
-  name = "Paketti:Selected Device *XY Pad Y-Axis",
-  invoke = function(message)
-    modify_selected_xy_pad_param("Y-Axis", message)
-  end
-}
+renoise.tool():add_midi_mapping{name = "Paketti:Selected Device *XY Pad X-Axis",invoke = function(message) modify_selected_xy_pad_param("X-Axis", message) end}
+renoise.tool():add_midi_mapping{name = "Paketti:Selected Device *XY Pad Y-Axis",invoke = function(message) modify_selected_xy_pad_param("Y-Axis", message) end}
 
 
