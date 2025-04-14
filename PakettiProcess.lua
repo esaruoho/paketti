@@ -2035,3 +2035,180 @@ renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Mono to Right with B
 renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Mono to Left with Blank Right",invoke=function() mono_to_blank_optimized(1, 0) end}
 renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Convert Stereo to Mono (Keep Left)",invoke=function() stereo_to_mono_optimized(1) end}
 renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Convert Stereo to Mono (Keep Right)",invoke=function() stereo_to_mono_optimized(2) end}
+
+function stereo_to_mono_mix_optimized()
+  -- Ensure a song exists
+  if not renoise.song() then
+    renoise.app():show_status("No song is currently loaded.")
+    return
+  end
+
+  -- Ensure an instrument is selected
+  local song = renoise.song()
+  local instrument = song.selected_instrument
+  if not instrument then
+    renoise.app():show_status("No instrument is selected.")
+    return
+  end
+
+  -- Ensure a sample is selected
+  local sample_index = song.selected_sample_index
+  local sample = instrument:sample(sample_index)
+  if not sample then
+    renoise.app():show_status("No sample is selected.")
+    return
+  end
+
+  -- Ensure the sample is stereo
+  if sample.sample_buffer.number_of_channels ~= 2 then
+    renoise.app():show_status("Selected sample is not stereo.")
+    return
+  end
+
+  -- Create ProcessSlicer instance and dialog
+  local slicer = nil
+  local dialog = nil
+  local vb = nil
+
+  -- Define the process function
+  local function process_func()
+    -- Get the sample buffer and its properties
+    local sample_buffer = sample.sample_buffer
+    local sample_rate = sample_buffer.sample_rate
+    local bit_depth = sample_buffer.bit_depth
+    local number_of_frames = sample_buffer.number_of_frames
+    local sample_name = sample.name
+
+    -- Store the sample mapping properties
+    local sample_mapping = sample.sample_mapping
+    local base_note = sample_mapping.base_note
+    local note_range = sample_mapping.note_range
+    local velocity_range = sample_mapping.velocity_range
+    local map_key_to_pitch = sample_mapping.map_key_to_pitch
+    local map_velocity_to_volume = sample_mapping.map_velocity_to_volume
+
+    -- Create a new temporary sample slot
+    local temp_sample_index = #instrument.samples + 1
+    instrument:insert_sample_at(temp_sample_index)
+    local temp_sample = instrument:sample(temp_sample_index)
+    local temp_sample_buffer = temp_sample.sample_buffer
+    
+    -- Prepare the temporary sample buffer
+    temp_sample_buffer:create_sample_data(sample_rate, bit_depth, 1, number_of_frames)
+    temp_sample_buffer:prepare_sample_data_changes()
+
+    -- Process in chunks
+    local CHUNK_SIZE = 16384
+    local processed_frames = 0
+
+    -- Mix both channels to mono
+    for frame = 1, number_of_frames, CHUNK_SIZE do
+      local block_end = math.min(frame + CHUNK_SIZE - 1, number_of_frames)
+      
+      for f = frame, block_end do
+        -- Get both channel values
+        local left_value = sample_buffer:sample_data(1, f)
+        local right_value = sample_buffer:sample_data(2, f)
+        
+        -- Mix to mono (average of both channels)
+        local mono_value = (left_value + right_value) * 0.5
+        
+        -- Store the mixed value
+        temp_sample_buffer:set_sample_data(1, f, mono_value)
+      end
+
+      processed_frames = processed_frames + (block_end - frame + 1)
+      
+      if dialog and dialog.visible then
+        vb.views.progress_text.text = string.format("Converting to mono... %.1f%%", 
+          (processed_frames / number_of_frames) * 100)
+      end
+
+      if slicer:was_cancelled() then
+        temp_sample_buffer:finalize_sample_data_changes()
+        instrument:delete_sample_at(temp_sample_index)
+        return
+      end
+
+      coroutine.yield()
+    end
+
+    -- Finalize changes
+    temp_sample_buffer:finalize_sample_data_changes()
+
+    -- Name the new temporary sample
+    temp_sample.name = sample_name
+    
+    -- Delete the original sample and insert the mono sample into the same slot
+    instrument:delete_sample_at(sample_index)
+    instrument:insert_sample_at(sample_index)
+    local new_sample = instrument:sample(sample_index)
+    new_sample.name = sample_name
+
+    -- Copy the mono data from the temporary sample buffer to the new sample buffer
+    local new_sample_buffer = new_sample.sample_buffer
+    new_sample_buffer:create_sample_data(sample_rate, bit_depth, 1, number_of_frames)
+    new_sample_buffer:prepare_sample_data_changes()
+
+    processed_frames = 0
+
+    for frame = 1, number_of_frames, CHUNK_SIZE do
+      local block_end = math.min(frame + CHUNK_SIZE - 1, number_of_frames)
+      
+      for f = frame, block_end do
+        local mono_value = temp_sample_buffer:sample_data(1, f)
+        new_sample_buffer:set_sample_data(1, f, mono_value)
+      end
+
+      processed_frames = processed_frames + (block_end - frame + 1)
+      
+      if dialog and dialog.visible then
+        vb.views.progress_text.text = string.format("Finalizing... %.1f%%", 
+          (processed_frames / number_of_frames) * 100)
+      end
+
+      if slicer:was_cancelled() then
+        new_sample_buffer:finalize_sample_data_changes()
+        return
+      end
+
+      coroutine.yield()
+    end
+
+    new_sample_buffer:finalize_sample_data_changes()
+
+    -- Restore the sample mapping properties
+    new_sample.sample_mapping.base_note = base_note
+    new_sample.sample_mapping.note_range = note_range
+    new_sample.sample_mapping.velocity_range = velocity_range
+    new_sample.sample_mapping.map_key_to_pitch = map_key_to_pitch
+    new_sample.sample_mapping.map_velocity_to_volume = map_velocity_to_volume
+
+    -- Delete the temporary sample
+    instrument:delete_sample_at(temp_sample_index)
+
+    if dialog and dialog.visible then
+      dialog:close()
+    end
+
+    -- Provide feedback
+    renoise.app():show_status("Stereo sample successfully mixed down to mono.")
+  end
+
+  -- Create and start the ProcessSlicer
+  slicer = ProcessSlicer(process_func)
+  dialog, vb = slicer:create_dialog("Converting Stereo to Mono (Mix)")
+  slicer:start()
+end
+
+-- Add menu entries for the new stereo mix to mono function
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert Stereo to Mono (Mix Both)",invoke=stereo_to_mono_mix_optimized}
+renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Convert Stereo to Mono (Mix Both)",invoke=stereo_to_mono_mix_optimized}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Process..:Convert Stereo to Mono (Mix Both)",invoke=stereo_to_mono_mix_optimized}
+
+-- Add keybindings
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Convert Stereo to Mono (Mix Both)",invoke=stereo_to_mono_mix_optimized}
+renoise.tool():add_keybinding{name="Sample Keyzones:Paketti:Convert Stereo to Mono (Mix Both)",invoke=stereo_to_mono_mix_optimized}
+
+-- Add MIDI mapping
+renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Convert Stereo to Mono (Mix Both)",invoke=stereo_to_mono_mix_optimized}
