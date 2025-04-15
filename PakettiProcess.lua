@@ -1,5 +1,6 @@
--- Configuration for process yielding (in seconds)
-local PROCESS_YIELD_INTERVAL = 4.53  -- Adjust as needed
+-- Global constants for processing
+CHUNK_SIZE = 16777216 
+PROCESS_YIELD_INTERVAL = 4.53
 
 -- Localize math library functions for efficiency
 local math_log10 = math.log10
@@ -69,7 +70,6 @@ function NormalizeSelectedSliceInSample()
 
       local processed_frames = 0
       local time_reading = 0
-      local CHUNK_SIZE = 4194304  -- block size for full sample processing
 
       print(string.format("\nNormalizing %d frames (%.1f sec at %dHz, %d‑bit)", 
             total_frames, total_frames/sample_rate, sample_rate, bit_depth))
@@ -240,7 +240,6 @@ function NormalizeSelectedSliceInSample()
       local total_frames = slice_end - slice_start + 1
       local get_sample   = buffer.sample_data
       local set_sample   = buffer.set_sample_data
-      local CHUNK_SIZE   = 4194304  -- block size for slice processing
 
       local channel_peaks = {}
       local sample_cache  = {}
@@ -402,163 +401,81 @@ renoise.tool():add_midi_mapping{name="Paketti:Normalize Selected Sample or Slice
 
 function normalize_all_samples_in_instrument()
   local instrument = renoise.song().selected_instrument
-  local last_yield_time = os.clock()
-  local BATCH_SIZE = 20  -- Process 20 samples before yielding
-  
-  -- Function to check if we should yield
-  local function should_yield()
-    local current_time = os.clock()
-    if current_time - last_yield_time >= PROCESS_YIELD_INTERVAL then
-      last_yield_time = current_time
-      return true
-    end
-    return false
-  end
-  
   if not instrument then
-      renoise.app():show_status("No instrument selected.")
-      return
+    renoise.app():show_warning("No instrument selected")
+    return
   end
-  
-  if #instrument.samples == 0 then
-      renoise.app():show_status("Selected instrument has no samples.")
-      return
+
+  local total_samples = #instrument.samples
+  if total_samples == 0 then
+    renoise.app():show_warning("No samples in selected instrument")
+    return
   end
-  
-  -- Store current sample index
-  local current_sample_index = renoise.song().selected_sample_index
-  
-  -- Create ProcessSlicer instance and dialog
-  local slicer = nil
-  local dialog = nil
-  local vb = nil
-  
-  -- Define the process function
-  local function process_func()
-      local total_samples = #instrument.samples
-      local processed_samples = 0
-      local batch_count = 0
-      local CHUNK_SIZE = 524288  -- 512KB worth of frames
-      
-      for i = 1, total_samples do
-          -- Update progress
-          if dialog and dialog.visible then
-              vb.views.progress_text.text = string.format("Processing samples... %d/%d (%.1f%%)", 
-                  i, total_samples, (i / total_samples) * 100)
-          end
-          
-          -- Process current sample
-          local sample = instrument:sample(i)
-          if sample and sample.sample_buffer.has_sample_data then
-              local buffer = sample.sample_buffer
-              local peak = 0
-              local channel_peaks = {}
-              local sample_cache = {}
-              
-              -- Initialize cache and peaks arrays
-              for channel = 1, buffer.number_of_channels do
-                  channel_peaks[channel] = 0
-                  sample_cache[channel] = {}
-              end
-              
-              buffer:prepare_sample_data_changes()
-              
-              -- First pass: Find peak and cache data
-              for frame = 1, buffer.number_of_frames, CHUNK_SIZE do
-                  local block_end = math.min(frame + CHUNK_SIZE - 1, buffer.number_of_frames)
-                  local block_size = block_end - frame + 1
-                  
-                  for channel = 1, buffer.number_of_channels do
-                      sample_cache[channel][frame] = {}
-                      local channel_peak = 0
-                      
-                      for i = 0, block_size - 1 do
-                          local sample_value = buffer:sample_data(channel, frame + i)
-                          sample_cache[channel][frame][i] = sample_value
-                          local abs_value = math.abs(sample_value)
-                          if abs_value > channel_peak then
-                              channel_peak = abs_value
-                          end
-                      end
-                      
-                      if channel_peak > channel_peaks[channel] then
-                          channel_peaks[channel] = channel_peak
-                      end
-                  end
-                  
-                  if should_yield() then
-                      coroutine.yield()
-                  end
-              end
-              
-              -- Find overall peak
-              for _, channel_peak in ipairs(channel_peaks) do
-                  if channel_peak > peak then
-                      peak = channel_peak
-                  end
-              end
-              
-              -- Apply normalization if needed
-              if peak > 0 then
-                  local scale = 1.0 / peak
-                  
-                  -- Second pass: Apply normalization using cached data
-                  for frame = 1, buffer.number_of_frames, CHUNK_SIZE do
-                      local block_end = math.min(frame + CHUNK_SIZE - 1, buffer.number_of_frames)
-                      local block_size = block_end - frame + 1
-                      
-                      for channel = 1, buffer.number_of_channels do
-                          for i = 0, block_size - 1 do
-                              local sample_value = sample_cache[channel][frame][i]
-                              buffer:set_sample_data(channel, frame + i, sample_value * scale)
-                          end
-                      end
-                      
-                      -- Clear cache for this chunk to free memory
-                      for channel = 1, buffer.number_of_channels do
-                          sample_cache[channel][frame] = nil
-                      end
-                      
-                      if should_yield() then
-                          coroutine.yield()
-                      end
-                  end
-              end
-              
-              -- Clear the entire cache
-              sample_cache = nil
-              
-              buffer:finalize_sample_data_changes()
-              processed_samples = processed_samples + 1
-          end
-          
-          batch_count = batch_count + 1
-          
-          -- Yield after processing BATCH_SIZE samples
-          if batch_count >= BATCH_SIZE or should_yield() then
-              if slicer:was_cancelled() then
-                  break
-              end
-              batch_count = 0
-              coroutine.yield()
-          end
+
+  local dialog = renoise.app():show_status("Normalizing samples...")
+  dialog:add_line("Processing samples...")
+
+  local process = ProcessSlicer(function()
+    local processed_samples = 0
+    local skipped_samples = 0
+
+    for sample_idx = 1, total_samples do
+      local sample = instrument.samples[sample_idx]
+      if not sample or not sample.sample_buffer.has_sample_data then
+        skipped_samples = skipped_samples + 1
+        goto continue
       end
-      
-      -- Restore original sample selection
-      renoise.song().selected_sample_index = current_sample_index
-      
-      -- Close dialog when done
-      if dialog and dialog.visible then
-          dialog:close()
+
+      dialog:add_line(string.format("Processing sample %d of %d", sample_idx, total_samples))
+
+      local buffer = sample.sample_buffer
+      local num_channels = buffer.number_of_channels
+      local num_frames = buffer.number_of_frames
+
+      -- Find peak value across all channels
+      local max_peak = 0
+      for frame = 1, num_frames, CHUNK_SIZE do
+        local chunk_size = math.min(CHUNK_SIZE, num_frames - frame + 1)
+        for channel = 1, num_channels do
+          local data = buffer:sample_data(channel, frame, frame + chunk_size - 1)
+          for i = 1, #data do
+            max_peak = math.max(max_peak, math.abs(data[i]))
+          end
+        end
+        coroutine.yield()
       end
-      
-      renoise.app():show_status(string.format("Normalized %d samples in instrument.", processed_samples))
-  end
-  
-  -- Create and start the ProcessSlicer
-  slicer = ProcessSlicer(process_func)
-  dialog, vb = slicer:create_dialog("Normalizing All Samples")
-  slicer:start()
+
+      -- Skip if already normalized
+      if math.abs(max_peak - 1.0) < 0.0001 then
+        skipped_samples = skipped_samples + 1
+        goto continue
+      end
+
+      -- Apply normalization
+      local scale = 1.0 / max_peak
+      for frame = 1, num_frames, CHUNK_SIZE do
+        local chunk_size = math.min(CHUNK_SIZE, num_frames - frame + 1)
+        for channel = 1, num_channels do
+          local data = buffer:sample_data(channel, frame, frame + chunk_size - 1)
+          for i = 1, #data do
+            data[i] = data[i] * scale
+          end
+          buffer:set_sample_data(channel, frame, data)
+        end
+        coroutine.yield()
+      end
+
+      processed_samples = processed_samples + 1
+      ::continue::
+    end
+
+    dialog:close()
+    local msg = string.format("Normalized %d samples. Skipped %d samples.", 
+      processed_samples, skipped_samples)
+    renoise.app():show_message(msg)
+  end)
+
+  process:start()
 end
 
 -- Add keybinding and menu entries
@@ -706,7 +623,6 @@ function normalize_selected_sample()
         -- First pass: Find peak and cache data
         local peak = 0
         local processed_frames = 0
-        local CHUNK_SIZE = 524288  -- 512KB worth of frames
         
         -- Pre-allocate tables for better performance
         local channel_peaks = {}
@@ -2216,109 +2132,60 @@ renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Convert Stereo to Mo
 -- ... existing code ...
 
 function convert_all_samples_to_mono(mode)
-  -- Ensure a song exists
-  if not renoise.song() then
-    renoise.app():show_status("No song is currently loaded.")
-    return
-  end
-
-  -- Ensure an instrument is selected
-  local song = renoise.song()
-  local instrument = song.selected_instrument
+  local instrument = renoise.song().selected_instrument
   if not instrument then
-    renoise.app():show_status("No instrument is selected.")
+    renoise.app():show_warning("No instrument selected")
     return
   end
 
-  -- Check if we have any samples
-  if #instrument.samples == 0 then
-    renoise.app():show_status("Selected instrument has no samples.")
+  local total_samples = #instrument.samples
+  if total_samples == 0 then
+    renoise.app():show_warning("No samples in selected instrument")
     return
   end
 
-  -- Create ProcessSlicer instance and dialog
-  local slicer = nil
-  local dialog = nil
-  local vb = nil
+  local dialog = renoise.app():show_status("Converting samples to mono...")
+  dialog:add_line("Processing samples...")
 
-  -- Define the process function
-  local function process_func()
-    local total_samples = #instrument.samples
+  local process = ProcessSlicer(function()
     local processed_samples = 0
     local skipped_samples = 0
-    local converted_samples = 0
 
-    -- Process each sample
-    for sample_index = 1, total_samples do
-      local sample = instrument:sample(sample_index)
-      
-      -- Update progress
-      if dialog and dialog.visible then
-        vb.views.progress_text.text = string.format("Processing sample %d/%d...", 
-          sample_index, total_samples)
-      end
-
-      -- Skip invalid samples but count them as processed
+    for sample_idx = 1, total_samples do
+      local sample = instrument.samples[sample_idx]
       local should_process = true
 
-      -- Check for slice markers
-      if #sample.slice_markers > 0 then
-        print(string.format("Skipping sample %d: Has slice markers", sample_index))
+      -- Check if we should process this sample
+      if not sample or not sample.sample_buffer.has_sample_data then
+        should_process = false
+      elseif sample.sample_buffer.number_of_channels ~= 2 then
+        should_process = false
+      elseif #sample.slice_markers > 0 then
         should_process = false
       end
 
-      -- Check for sample data
-      if should_process and not sample.sample_buffer.has_sample_data then
-        print(string.format("Skipping sample %d: No sample data", sample_index))
-        should_process = false
-      end
+      if should_process then
+        dialog:add_line(string.format("Processing sample %d of %d", sample_idx, total_samples))
 
-      -- Check for stereo
-      if should_process and sample.sample_buffer.number_of_channels ~= 2 then
-        print(string.format("Skipping sample %d: Not a stereo sample (has %d channels)", 
-          sample_index, sample.sample_buffer.number_of_channels))
-        should_process = false
-      end
-
-      -- If any check failed, skip this sample
-      if not should_process then
-        skipped_samples = skipped_samples + 1
-        processed_samples = processed_samples + 1
-      else
-        -- Get the sample buffer and its properties
-        local sample_buffer = sample.sample_buffer
-        local sample_rate = sample_buffer.sample_rate
-        local bit_depth = sample_buffer.bit_depth
-        local number_of_frames = sample_buffer.number_of_frames
-
-        -- Store ALL sample properties
+        -- Store all sample properties
         local properties = {
-          -- Basic properties
           name = sample.name,
           volume = sample.volume,
           panning = sample.panning,
           transpose = sample.transpose,
           fine_tune = sample.fine_tune,
-          
-          -- Beat sync properties
           beat_sync_enabled = sample.beat_sync_enabled,
           beat_sync_lines = sample.beat_sync_lines,
           beat_sync_mode = sample.beat_sync_mode,
-          
-          -- Loop and playback properties
           oneshot = sample.oneshot,
           loop_release = sample.loop_release,
           loop_mode = sample.loop_mode,
           mute_group = sample.mute_group,
           new_note_action = sample.new_note_action,
-          
-          -- Audio processing properties
           autoseek = sample.autoseek,
           autofade = sample.autofade,
           oversample_enabled = sample.oversample_enabled,
           interpolation_mode = sample.interpolation_mode,
-          
-          -- Mapping properties
           sample_mapping = {
             base_note = sample.sample_mapping.base_note,
             note_range = sample.sample_mapping.note_range,
@@ -2328,146 +2195,71 @@ function convert_all_samples_to_mono(mode)
           }
         }
 
-        -- Create a new temporary sample slot
-        local temp_sample_index = #instrument.samples + 1
-        instrument:insert_sample_at(temp_sample_index)
-        local temp_sample = instrument:sample(temp_sample_index)
-        local temp_sample_buffer = temp_sample.sample_buffer
-        
-        -- Prepare the temporary sample buffer
-        temp_sample_buffer:create_sample_data(sample_rate, bit_depth, 1, number_of_frames)
-        temp_sample_buffer:prepare_sample_data_changes()
+        local buffer = sample.sample_buffer
+        local num_frames = buffer.number_of_frames
+        local new_sample = instrument:insert_sample_at(sample_idx + 1)
+        new_sample.sample_buffer:create_sample_data(1, num_frames)
 
-        -- Process in chunks
-        local CHUNK_SIZE = 16384
-        local processed_frames = 0
+        -- Process sample data in chunks
+        for frame = 1, num_frames, CHUNK_SIZE do
+          local chunk_size = math.min(CHUNK_SIZE, num_frames - frame + 1)
+          local left_data = buffer:sample_data(1, frame, frame + chunk_size - 1)
+          local right_data = buffer:sample_data(2, frame, frame + chunk_size - 1)
+          local mono_data = {}
 
-        -- Convert based on mode
-        for frame = 1, number_of_frames, CHUNK_SIZE do
-          local block_end = math.min(frame + CHUNK_SIZE - 1, number_of_frames)
-          
-          for f = frame, block_end do
-            local mono_value
+          for i = 1, #left_data do
             if mode == "left" then
-              mono_value = sample_buffer:sample_data(1, f)
+              mono_data[i] = left_data[i]
             elseif mode == "right" then
-              mono_value = sample_buffer:sample_data(2, f)
+              mono_data[i] = right_data[i]
             else -- mix
-              local left_value = sample_buffer:sample_data(1, f)
-              local right_value = sample_buffer:sample_data(2, f)
-              mono_value = (left_value + right_value) * 0.5
+              mono_data[i] = (left_data[i] + right_data[i]) * 0.5
             end
-            temp_sample_buffer:set_sample_data(1, f, mono_value)
           end
 
-          processed_frames = processed_frames + (block_end - frame + 1)
-          
-          if dialog and dialog.visible then
-            local progress = (sample_index - 1 + processed_frames / number_of_frames) / total_samples * 100
-            vb.views.progress_text.text = string.format("Converting sample %d/%d... %.1f%%", 
-              sample_index, total_samples, progress)
-          end
-
-          if slicer:was_cancelled() then
-            temp_sample_buffer:finalize_sample_data_changes()
-            instrument:delete_sample_at(temp_sample_index)
-            return
-          end
-
+          new_sample.sample_buffer:set_sample_data(1, frame, mono_data)
           coroutine.yield()
         end
 
-        -- Finalize changes
-        temp_sample_buffer:finalize_sample_data_changes()
-        
-        -- Delete the original sample and insert the mono sample into the same slot
-        instrument:delete_sample_at(sample_index)
-        instrument:insert_sample_at(sample_index)
-        local new_sample = instrument:sample(sample_index)
-
-        -- Copy the mono data from the temporary sample buffer to the new sample buffer
-        local new_sample_buffer = new_sample.sample_buffer
-        new_sample_buffer:create_sample_data(sample_rate, bit_depth, 1, number_of_frames)
-        new_sample_buffer:prepare_sample_data_changes()
-
-        processed_frames = 0
-
-        for frame = 1, number_of_frames, CHUNK_SIZE do
-          local block_end = math.min(frame + CHUNK_SIZE - 1, number_of_frames)
-          
-          for f = frame, block_end do
-            local mono_value = temp_sample_buffer:sample_data(1, f)
-            new_sample_buffer:set_sample_data(1, f, mono_value)
-          end
-
-          processed_frames = processed_frames + (block_end - frame + 1)
-
-          if slicer:was_cancelled() then
-            new_sample_buffer:finalize_sample_data_changes()
-            return
-          end
-
-          coroutine.yield()
-        end
-
-        new_sample_buffer:finalize_sample_data_changes()
-
-        -- Restore ALL sample properties
+        -- Restore all properties
         new_sample.name = properties.name
         new_sample.volume = properties.volume
         new_sample.panning = properties.panning
         new_sample.transpose = properties.transpose
         new_sample.fine_tune = properties.fine_tune
-        
         new_sample.beat_sync_enabled = properties.beat_sync_enabled
         new_sample.beat_sync_lines = properties.beat_sync_lines
         new_sample.beat_sync_mode = properties.beat_sync_mode
-        
         new_sample.oneshot = properties.oneshot
         new_sample.loop_release = properties.loop_release
         new_sample.loop_mode = properties.loop_mode
         new_sample.mute_group = properties.mute_group
         new_sample.new_note_action = properties.new_note_action
-        
         new_sample.autoseek = properties.autoseek
         new_sample.autofade = properties.autofade
         new_sample.oversample_enabled = properties.oversample_enabled
         new_sample.interpolation_mode = properties.interpolation_mode
-        
         new_sample.sample_mapping.base_note = properties.sample_mapping.base_note
         new_sample.sample_mapping.note_range = properties.sample_mapping.note_range
         new_sample.sample_mapping.velocity_range = properties.sample_mapping.velocity_range
         new_sample.sample_mapping.map_key_to_pitch = properties.sample_mapping.map_key_to_pitch
         new_sample.sample_mapping.map_velocity_to_volume = properties.sample_mapping.map_velocity_to_volume
 
-        -- Delete the temporary sample
-        instrument:delete_sample_at(temp_sample_index)
-
-        converted_samples = converted_samples + 1
-        print(string.format("Converted sample %d to mono", sample_index))
+        -- Delete the original stereo sample
+        instrument:delete_sample_at(sample_idx)
         processed_samples = processed_samples + 1
+      else
+        skipped_samples = skipped_samples + 1
       end
     end
 
-    if dialog and dialog.visible then
-      dialog:close()
-    end
+    dialog:close()
+    local msg = string.format("Converted %d samples to mono. Skipped %d samples.", 
+      processed_samples, skipped_samples)
+    renoise.app():show_message(msg)
+  end)
 
-    -- Provide feedback
-    local mode_text = mode == "left" and "left channel" or (mode == "right" and "right channel" or "mixed down")
-    local message = string.format(
-      "Converted %d stereo samples to mono (%s). Skipped %d samples.", 
-      converted_samples, mode_text, skipped_samples
-    )
-    print(message)
-    renoise.app():show_status(message)
-  end
-
-  -- Create and start the ProcessSlicer
-  local mode_text = mode == "left" and "Left" or (mode == "right" and "Right" or "Mix")
-  slicer = ProcessSlicer(process_func)
-  dialog, vb = slicer:create_dialog(string.format("Converting All Samples to Mono (%s)", mode_text))
-  slicer:start()
+  process:start()
 end
 
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert All Samples to Mono (Keep Left)",invoke=function() convert_all_samples_to_mono("left") end}
@@ -2550,7 +2342,7 @@ function convert_bit_depth(target_bits)
         local total_frames = sample_buffer.number_of_frames
         local num_channels = sample_buffer.number_of_channels
         local processed_frames = 0
-        local CHUNK_SIZE = 16384  -- Process in chunks for better responsiveness
+        -- Remove local CHUNK_SIZE definition here
 
         -- Store ALL sample properties
         local properties = {
@@ -2738,3 +2530,269 @@ renoise.tool():add_keybinding{name="Sample Keyzones:Paketti:Convert to 24-bit", 
 renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Convert to 8-bit", invoke=function(message) if message:is_trigger() then convert_bit_depth(8) end end}
 renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Convert to 16-bit", invoke=function(message) if message:is_trigger() then convert_bit_depth(16) end end}
 renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Convert to 24-bit", invoke=function(message) if message:is_trigger() then convert_bit_depth(24) end end}
+
+-- ... existing code ...
+
+function convert_all_samples_to_bit_depth(target_bits)
+    -- Ensure a song exists
+    if not renoise.song() then
+        renoise.app():show_status("No song is currently loaded.")
+        return
+    end
+
+    -- Ensure an instrument is selected
+    local song = renoise.song()
+    local instrument = song.selected_instrument
+    if not instrument then
+        renoise.app():show_status("No instrument is selected.")
+        return
+    end
+
+    -- Check if we have any samples
+    if #instrument.samples == 0 then
+        renoise.app():show_status("Selected instrument has no samples.")
+        return
+    end
+
+    -- Create ProcessSlicer instance and dialog
+    local slicer = nil
+    local dialog = nil
+    local vb = nil
+
+    -- Helper function for dithering
+    local function dither_sample(sample_value, target_bits)
+        local r1 = math.random() - 0.5
+        local r2 = math.random() - 0.5
+        local dither = (r1 + r2) / math.pow(2, target_bits - 1)
+        return sample_value + dither
+    end
+
+    -- Helper function for bit depth conversion
+    local function convert_to_bit_depth(sample_value, target_bits)
+        local clamped = math.max(-1.0, math.min(1.0, sample_value))
+        local max_value = math.pow(2, target_bits - 1) - 1
+        local scaled = clamped * max_value
+        local rounded = math.floor(scaled + 0.5)
+        return rounded / max_value
+    end
+
+    -- Define the process function
+    local function process_func()
+        local total_samples = #instrument.samples
+        local processed_samples = 0
+        local skipped_samples = 0
+        local converted_samples = 0
+
+        -- Process each sample
+        for sample_index = 1, total_samples do
+            local sample = instrument:sample(sample_index)
+            
+            -- Update progress
+            if dialog and dialog.visible then
+                vb.views.progress_text.text = string.format("Processing sample %d/%d...", 
+                    sample_index, total_samples)
+            end
+
+            -- Skip invalid samples
+            if not sample.sample_buffer.has_sample_data then
+                print(string.format("Skipping sample %d: No sample data", sample_index))
+                skipped_samples = skipped_samples + 1
+                processed_samples = processed_samples + 1
+                goto continue
+            end
+
+            -- Skip if already at target bit depth
+            if sample.sample_buffer.bit_depth == target_bits then
+                print(string.format("Skipping sample %d: Already at %d-bit", sample_index, target_bits))
+                skipped_samples = skipped_samples + 1
+                processed_samples = processed_samples + 1
+                goto continue
+            end
+
+            -- Store ALL sample properties
+            local properties = {
+                name = sample.name,
+                volume = sample.volume,
+                panning = sample.panning,
+                transpose = sample.transpose,
+                fine_tune = sample.fine_tune,
+                beat_sync_enabled = sample.beat_sync_enabled,
+                beat_sync_lines = sample.beat_sync_lines,
+                beat_sync_mode = sample.beat_sync_mode,
+                oneshot = sample.oneshot,
+                loop_release = sample.loop_release,
+                loop_mode = sample.loop_mode,
+                mute_group = sample.mute_group,
+                new_note_action = sample.new_note_action,
+                autoseek = sample.autoseek,
+                autofade = sample.autofade,
+                oversample_enabled = sample.oversample_enabled,
+                interpolation_mode = sample.interpolation_mode,
+                sample_mapping = {
+                    base_note = sample.sample_mapping.base_note,
+                    note_range = sample.sample_mapping.note_range,
+                    velocity_range = sample.sample_mapping.velocity_range,
+                    map_key_to_pitch = sample.sample_mapping.map_key_to_pitch,
+                    map_velocity_to_volume = sample.sample_mapping.map_velocity_to_volume
+                }
+            }
+
+            local sample_buffer = sample.sample_buffer
+            local num_channels = sample_buffer.number_of_channels
+            local number_of_frames = sample_buffer.number_of_frames
+
+            -- Create a new temporary sample slot
+            local temp_sample_index = #instrument.samples + 1
+            instrument:insert_sample_at(temp_sample_index)
+            local temp_sample = instrument:sample(temp_sample_index)
+            local temp_sample_buffer = temp_sample.sample_buffer
+            
+            -- Create new sample buffer with desired bit depth
+            temp_sample_buffer:create_sample_data(
+                sample_buffer.sample_rate,
+                target_bits,
+                num_channels,
+                number_of_frames
+            )
+            temp_sample_buffer:prepare_sample_data_changes()
+
+            -- Process in chunks
+            local processed_frames = 0  -- Remove local CHUNK_SIZE definition here
+
+            -- Convert the sample data
+            for channel = 1, num_channels do
+                for frame = 1, number_of_frames, CHUNK_SIZE do
+                    local block_end = math.min(frame + CHUNK_SIZE - 1, number_of_frames)
+                    
+                    for f = frame, block_end do
+                        local value = sample_buffer:sample_data(channel, f)
+                        value = dither_sample(value, target_bits)
+                        value = convert_to_bit_depth(value, target_bits)
+                        temp_sample_buffer:set_sample_data(channel, f, value)
+                    end
+
+                    processed_frames = processed_frames + (block_end - frame + 1)
+                    
+                    -- Calculate overall progress (combine sample index and frame progress)
+                    local sample_progress = processed_frames / (number_of_frames * num_channels)
+                    local total_progress = ((sample_index - 1) + sample_progress) / total_samples * 100
+                    
+                    if dialog and dialog.visible then
+                        vb.views.progress_text.text = string.format(
+                            "Converting sample %d/%d to %d-bit... %.1f%%", 
+                            sample_index, total_samples, target_bits, total_progress)
+                    end
+
+                    if slicer:was_cancelled() then
+                        temp_sample_buffer:finalize_sample_data_changes()
+                        instrument:delete_sample_at(temp_sample_index)
+                        return
+                    end
+
+                    coroutine.yield()
+                end
+            end
+
+            -- Finalize changes to temporary buffer
+            temp_sample_buffer:finalize_sample_data_changes()
+
+            -- Delete the original sample and insert the new one in its place
+            instrument:delete_sample_at(sample_index)
+            instrument:insert_sample_at(sample_index)
+            local new_sample = instrument:sample(sample_index)
+
+            -- Copy the processed data to the new sample
+            local new_sample_buffer = new_sample.sample_buffer
+            new_sample_buffer:create_sample_data(
+                sample_buffer.sample_rate,
+                target_bits,
+                num_channels,
+                number_of_frames
+            )
+            new_sample_buffer:prepare_sample_data_changes()
+
+            -- Copy data from temp buffer to new buffer
+            for channel = 1, num_channels do
+                for frame = 1, number_of_frames do
+                    new_sample_buffer:set_sample_data(
+                        channel,
+                        frame,
+                        temp_sample_buffer:sample_data(channel, frame)
+                    )
+                end
+            end
+
+            new_sample_buffer:finalize_sample_data_changes()
+
+            -- Restore ALL sample properties
+            new_sample.name = properties.name
+            new_sample.volume = properties.volume
+            new_sample.panning = properties.panning
+            new_sample.transpose = properties.transpose
+            new_sample.fine_tune = properties.fine_tune
+            new_sample.beat_sync_enabled = properties.beat_sync_enabled
+            new_sample.beat_sync_lines = properties.beat_sync_lines
+            new_sample.beat_sync_mode = properties.beat_sync_mode
+            new_sample.oneshot = properties.oneshot
+            new_sample.loop_release = properties.loop_release
+            new_sample.loop_mode = properties.loop_mode
+            new_sample.mute_group = properties.mute_group
+            new_sample.new_note_action = properties.new_note_action
+            new_sample.autoseek = properties.autoseek
+            new_sample.autofade = properties.autofade
+            new_sample.oversample_enabled = properties.oversample_enabled
+            new_sample.interpolation_mode = properties.interpolation_mode
+            new_sample.sample_mapping.base_note = properties.sample_mapping.base_note
+            new_sample.sample_mapping.note_range = properties.sample_mapping.note_range
+            new_sample.sample_mapping.velocity_range = properties.sample_mapping.velocity_range
+            new_sample.sample_mapping.map_key_to_pitch = properties.sample_mapping.map_key_to_pitch
+            new_sample.sample_mapping.map_velocity_to_volume = properties.sample_mapping.map_velocity_to_volume
+
+            -- Delete the temporary sample
+            instrument:delete_sample_at(temp_sample_index)
+
+            converted_samples = converted_samples + 1
+            processed_samples = processed_samples + 1
+            print(string.format("Converted sample %d to %d-bit", sample_index, target_bits))
+
+            ::continue::
+        end
+
+        if dialog and dialog.visible then
+            dialog:close()
+        end
+
+        -- Provide feedback
+        local message = string.format(
+            "Converted %d samples to %d-bit. Skipped %d samples.", 
+            converted_samples, target_bits, skipped_samples
+        )
+        print(message)
+        renoise.app():show_status(message)
+    end
+
+    -- Create and start the ProcessSlicer
+    slicer = ProcessSlicer(process_func)
+    dialog, vb = slicer:create_dialog(string.format("Converting All Samples to %d-bit", target_bits))
+    slicer:start()
+end
+
+-- Add menu entries for batch conversion
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert All Samples to 8-bit", invoke=function() convert_all_samples_to_bit_depth(8) end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert All Samples to 16-bit", invoke=function() convert_all_samples_to_bit_depth(16) end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert All Samples to 24-bit", invoke=function() convert_all_samples_to_bit_depth(24) end}
+renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Process..:Convert All Samples to 8-bit", invoke=function() convert_all_samples_to_bit_depth(8) end}
+renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Process..:Convert All Samples to 16-bit", invoke=function() convert_all_samples_to_bit_depth(16) end}
+renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Process..:Convert All Samples to 24-bit", invoke=function() convert_all_samples_to_bit_depth(24) end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Process..:Convert All Samples to 8-bit", invoke=function() convert_all_samples_to_bit_depth(8) end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Process..:Convert All Samples to 16-bit", invoke=function() convert_all_samples_to_bit_depth(16) end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Process..:Convert All Samples to 24-bit", invoke=function() convert_all_samples_to_bit_depth(24) end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Convert All Samples to 8-bit", invoke=function() convert_all_samples_to_bit_depth(8) end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Convert All Samples to 16-bit", invoke=function() convert_all_samples_to_bit_depth(16) end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Convert All Samples to 24-bit", invoke=function() convert_all_samples_to_bit_depth(24) end}
+renoise.tool():add_keybinding{name="Sample Keyzones:Paketti:Convert All Samples to 8-bit", invoke=function() convert_all_samples_to_bit_depth(8) end}
+renoise.tool():add_keybinding{name="Sample Keyzones:Paketti:Convert All Samples to 16-bit", invoke=function() convert_all_samples_to_bit_depth(16) end}
+renoise.tool():add_keybinding{name="Sample Keyzones:Paketti:Convert All Samples to 24-bit", invoke=function() convert_all_samples_to_bit_depth(24) end}
+renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Convert All Samples to 8-bit", invoke=function(message) if message:is_trigger() then convert_all_samples_to_bit_depth(8) end end}
+renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Convert All Samples to 16-bit", invoke=function(message) if message:is_trigger() then convert_all_samples_to_bit_depth(16) end end}
+renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Convert All Samples to 24-bit", invoke=function(message) if message:is_trigger() then convert_all_samples_to_bit_depth(24) end end}

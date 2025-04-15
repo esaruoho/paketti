@@ -254,6 +254,7 @@ timed_require("PakettiPTILoader")
 timed_require("PakettiSF2Loader")
 timed_require("process_slicer")
 timed_require("PakettiProcess")
+timed_require("PakettiSubColumnModifier")
 --timed_require("PakettiRX2Loader")
 print(string.format("Total load time: %.3f seconds", os.clock() - init_time))
 ------------------------------------------------
