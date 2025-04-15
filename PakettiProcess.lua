@@ -421,52 +421,48 @@ function normalize_all_samples_in_instrument()
 
     for sample_idx = 1, total_samples do
       local sample = instrument.samples[sample_idx]
-      if not sample or not sample.sample_buffer.has_sample_data then
-        skipped_samples = skipped_samples + 1
-        goto continue
-      end
+      if sample and sample.sample_buffer.has_sample_data then
+        dialog:add_line(string.format("Processing sample %d of %d", sample_idx, total_samples))
 
-      dialog:add_line(string.format("Processing sample %d of %d", sample_idx, total_samples))
+        local buffer = sample.sample_buffer
+        local num_channels = buffer.number_of_channels
+        local num_frames = buffer.number_of_frames
 
-      local buffer = sample.sample_buffer
-      local num_channels = buffer.number_of_channels
-      local num_frames = buffer.number_of_frames
-
-      -- Find peak value across all channels
-      local max_peak = 0
-      for frame = 1, num_frames, CHUNK_SIZE do
-        local chunk_size = math.min(CHUNK_SIZE, num_frames - frame + 1)
-        for channel = 1, num_channels do
-          local data = buffer:sample_data(channel, frame, frame + chunk_size - 1)
-          for i = 1, #data do
-            max_peak = math.max(max_peak, math.abs(data[i]))
+        -- Find peak value across all channels
+        local max_peak = 0
+        for frame = 1, num_frames, CHUNK_SIZE do
+          local chunk_size = math.min(CHUNK_SIZE, num_frames - frame + 1)
+          for channel = 1, num_channels do
+            local data = buffer:sample_data(channel, frame, frame + chunk_size - 1)
+            for i = 1, #data do
+              max_peak = math.max(max_peak, math.abs(data[i]))
+            end
           end
+          coroutine.yield()
         end
-        coroutine.yield()
-      end
 
-      -- Skip if already normalized
-      if math.abs(max_peak - 1.0) < 0.0001 then
-        skipped_samples = skipped_samples + 1
-        goto continue
-      end
-
-      -- Apply normalization
-      local scale = 1.0 / max_peak
-      for frame = 1, num_frames, CHUNK_SIZE do
-        local chunk_size = math.min(CHUNK_SIZE, num_frames - frame + 1)
-        for channel = 1, num_channels do
-          local data = buffer:sample_data(channel, frame, frame + chunk_size - 1)
-          for i = 1, #data do
-            data[i] = data[i] * scale
+        -- Only process if not already normalized
+        if math.abs(max_peak - 1.0) >= 0.0001 then
+          -- Apply normalization
+          local scale = 1.0 / max_peak
+          for frame = 1, num_frames, CHUNK_SIZE do
+            local chunk_size = math.min(CHUNK_SIZE, num_frames - frame + 1)
+            for channel = 1, num_channels do
+              local data = buffer:sample_data(channel, frame, frame + chunk_size - 1)
+              for i = 1, #data do
+                data[i] = data[i] * scale
+              end
+              buffer:set_sample_data(channel, frame, data)
+            end
+            coroutine.yield()
           end
-          buffer:set_sample_data(channel, frame, data)
+          processed_samples = processed_samples + 1
+        else
+          skipped_samples = skipped_samples + 1
         end
-        coroutine.yield()
+      else
+        skipped_samples = skipped_samples + 1
       end
-
-      processed_samples = processed_samples + 1
-      ::continue::
     end
 
     dialog:close()
@@ -2593,206 +2589,198 @@ function convert_all_samples_to_bit_depth(target_bits)
                     sample_index, total_samples)
             end
 
-            -- Skip invalid samples
+            -- Skip invalid samples or samples already at target bit depth
             if not sample.sample_buffer.has_sample_data then
                 print(string.format("Skipping sample %d: No sample data", sample_index))
                 skipped_samples = skipped_samples + 1
                 processed_samples = processed_samples + 1
-                goto continue
-            end
-
-            -- Skip if already at target bit depth
-            if sample.sample_buffer.bit_depth == target_bits then
+            elseif sample.sample_buffer.bit_depth == target_bits then
                 print(string.format("Skipping sample %d: Already at %d-bit", sample_index, target_bits))
                 skipped_samples = skipped_samples + 1
                 processed_samples = processed_samples + 1
-                goto continue
-            end
-
-            -- Store ALL sample properties
-            local properties = {
-                name = sample.name,
-                volume = sample.volume,
-                panning = sample.panning,
-                transpose = sample.transpose,
-                fine_tune = sample.fine_tune,
-                beat_sync_enabled = sample.beat_sync_enabled,
-                beat_sync_lines = sample.beat_sync_lines,
-                beat_sync_mode = sample.beat_sync_mode,
-                oneshot = sample.oneshot,
-                loop_release = sample.loop_release,
-                loop_mode = sample.loop_mode,
-                mute_group = sample.mute_group,
-                new_note_action = sample.new_note_action,
-                autoseek = sample.autoseek,
-                autofade = sample.autofade,
-                oversample_enabled = sample.oversample_enabled,
-                interpolation_mode = sample.interpolation_mode,
-                sample_mapping = {
-                    base_note = sample.sample_mapping.base_note,
-                    note_range = sample.sample_mapping.note_range,
-                    velocity_range = sample.sample_mapping.velocity_range,
-                    map_key_to_pitch = sample.sample_mapping.map_key_to_pitch,
-                    map_velocity_to_volume = sample.sample_mapping.map_velocity_to_volume
+            else
+                -- Store ALL sample properties
+                local properties = {
+                    name = sample.name,
+                    volume = sample.volume,
+                    panning = sample.panning,
+                    transpose = sample.transpose,
+                    fine_tune = sample.fine_tune,
+                    beat_sync_enabled = sample.beat_sync_enabled,
+                    beat_sync_lines = sample.beat_sync_lines,
+                    beat_sync_mode = sample.beat_sync_mode,
+                    oneshot = sample.oneshot,
+                    loop_release = sample.loop_release,
+                    loop_mode = sample.loop_mode,
+                    mute_group = sample.mute_group,
+                    new_note_action = sample.new_note_action,
+                    autoseek = sample.autoseek,
+                    autofade = sample.autofade,
+                    oversample_enabled = sample.oversample_enabled,
+                    interpolation_mode = sample.interpolation_mode,
+                    sample_mapping = {
+                        base_note = sample.sample_mapping.base_note,
+                        note_range = sample.sample_mapping.note_range,
+                        velocity_range = sample.sample_mapping.velocity_range,
+                        map_key_to_pitch = sample.sample_mapping.map_key_to_pitch,
+                        map_velocity_to_volume = sample.sample_mapping.map_velocity_to_volume
+                    }
                 }
-            }
 
-            local sample_buffer = sample.sample_buffer
-            local num_channels = sample_buffer.number_of_channels
-            local number_of_frames = sample_buffer.number_of_frames
+                local sample_buffer = sample.sample_buffer
+                local num_channels = sample_buffer.number_of_channels
+                local number_of_frames = sample_buffer.number_of_frames
 
-            -- Create a new temporary sample slot
-            local temp_sample_index = #instrument.samples + 1
-            instrument:insert_sample_at(temp_sample_index)
-            local temp_sample = instrument:sample(temp_sample_index)
-            local temp_sample_buffer = temp_sample.sample_buffer
-            
-            -- Create new sample buffer with desired bit depth
-            temp_sample_buffer:create_sample_data(
-                sample_buffer.sample_rate,
-                target_bits,
-                num_channels,
-                number_of_frames
-            )
-            temp_sample_buffer:prepare_sample_data_changes()
+                -- Create a new temporary sample slot
+                local temp_sample_index = #instrument.samples + 1
+                instrument:insert_sample_at(temp_sample_index)
+                local temp_sample = instrument:sample(temp_sample_index)
+                local temp_sample_buffer = temp_sample.sample_buffer
+                
+                -- Create new sample buffer with desired bit depth
+                temp_sample_buffer:create_sample_data(
+                    sample_buffer.sample_rate,
+                    target_bits,
+                    num_channels,
+                    number_of_frames
+                )
+                temp_sample_buffer:prepare_sample_data_changes()
 
-            -- Process in chunks
-            local processed_frames = 0  -- Remove local CHUNK_SIZE definition here
+                -- Process in chunks
+                local processed_frames = 0  -- Remove local CHUNK_SIZE definition here
 
-            -- Convert the sample data
-            for channel = 1, num_channels do
-                for frame = 1, number_of_frames, CHUNK_SIZE do
-                    local block_end = math.min(frame + CHUNK_SIZE - 1, number_of_frames)
-                    
-                    for f = frame, block_end do
-                        local value = sample_buffer:sample_data(channel, f)
-                        value = dither_sample(value, target_bits)
-                        value = convert_to_bit_depth(value, target_bits)
-                        temp_sample_buffer:set_sample_data(channel, f, value)
+                -- Convert the sample data
+                for channel = 1, num_channels do
+                    for frame = 1, number_of_frames, CHUNK_SIZE do
+                        local block_end = math.min(frame + CHUNK_SIZE - 1, number_of_frames)
+                        
+                        for f = frame, block_end do
+                            local value = sample_buffer:sample_data(channel, f)
+                            value = dither_sample(value, target_bits)
+                            value = convert_to_bit_depth(value, target_bits)
+                            temp_sample_buffer:set_sample_data(channel, f, value)
+                        end
+
+                        processed_frames = processed_frames + (block_end - frame + 1)
+                        
+                        -- Calculate overall progress (combine sample index and frame progress)
+                        local sample_progress = processed_frames / (number_of_frames * num_channels)
+                        local total_progress = ((sample_index - 1) + sample_progress) / total_samples * 100
+                        
+                        if dialog and dialog.visible then
+                            vb.views.progress_text.text = string.format(
+                                "Converting sample %d/%d to %d-bit... %.1f%%", 
+                                sample_index, total_samples, target_bits, total_progress)
+                        end
+
+                        if slicer:was_cancelled() then
+                            temp_sample_buffer:finalize_sample_data_changes()
+                            instrument:delete_sample_at(temp_sample_index)
+                            return
+                        end
+
+                        coroutine.yield()
                     end
-
-                    processed_frames = processed_frames + (block_end - frame + 1)
-                    
-                    -- Calculate overall progress (combine sample index and frame progress)
-                    local sample_progress = processed_frames / (number_of_frames * num_channels)
-                    local total_progress = ((sample_index - 1) + sample_progress) / total_samples * 100
-                    
-                    if dialog and dialog.visible then
-                        vb.views.progress_text.text = string.format(
-                            "Converting sample %d/%d to %d-bit... %.1f%%", 
-                            sample_index, total_samples, target_bits, total_progress)
-                    end
-
-                    if slicer:was_cancelled() then
-                        temp_sample_buffer:finalize_sample_data_changes()
-                        instrument:delete_sample_at(temp_sample_index)
-                        return
-                    end
-
-                    coroutine.yield()
                 end
+
+                -- Finalize changes to temporary buffer
+                temp_sample_buffer:finalize_sample_data_changes()
+
+                -- Delete the original sample and insert the new one in its place
+                instrument:delete_sample_at(sample_index)
+                instrument:insert_sample_at(sample_index)
+                local new_sample = instrument:sample(sample_index)
+
+                -- Copy the processed data to the new sample
+                local new_sample_buffer = new_sample.sample_buffer
+                new_sample_buffer:create_sample_data(
+                    sample_buffer.sample_rate,
+                    target_bits,
+                    num_channels,
+                    number_of_frames
+                )
+                new_sample_buffer:prepare_sample_data_changes()
+
+                -- Copy data from temp buffer to new buffer
+                for channel = 1, num_channels do
+                    for frame = 1, number_of_frames do
+                        new_sample_buffer:set_sample_data(
+                            channel,
+                            frame,
+                            temp_sample_buffer:sample_data(channel, frame)
+                        )
+                    end
+                end
+
+                new_sample_buffer:finalize_sample_data_changes()
+
+                -- Restore ALL sample properties
+                new_sample.name = properties.name
+                new_sample.volume = properties.volume
+                new_sample.panning = properties.panning
+                new_sample.transpose = properties.transpose
+                new_sample.fine_tune = properties.fine_tune
+                new_sample.beat_sync_enabled = properties.beat_sync_enabled
+                new_sample.beat_sync_lines = properties.beat_sync_lines
+                new_sample.beat_sync_mode = properties.beat_sync_mode
+                new_sample.oneshot = properties.oneshot
+                new_sample.loop_release = properties.loop_release
+                new_sample.loop_mode = properties.loop_mode
+                new_sample.mute_group = properties.mute_group
+                new_sample.new_note_action = properties.new_note_action
+                new_sample.autoseek = properties.autoseek
+                new_sample.autofade = properties.autofade
+                new_sample.oversample_enabled = properties.oversample_enabled
+                new_sample.interpolation_mode = properties.interpolation_mode
+                new_sample.sample_mapping.base_note = properties.sample_mapping.base_note
+                new_sample.sample_mapping.note_range = properties.sample_mapping.note_range
+                new_sample.sample_mapping.velocity_range = properties.sample_mapping.velocity_range
+                new_sample.sample_mapping.map_key_to_pitch = properties.sample_mapping.map_key_to_pitch
+                new_sample.sample_mapping.map_velocity_to_volume = properties.sample_mapping.map_velocity_to_volume
+
+                -- Delete the temporary sample
+                instrument:delete_sample_at(temp_sample_index)
+
+                converted_samples = converted_samples + 1
+                processed_samples = processed_samples + 1
+                print(string.format("Converted sample %d to %d-bit", sample_index, target_bits))
             end
 
-            -- Finalize changes to temporary buffer
-            temp_sample_buffer:finalize_sample_data_changes()
-
-            -- Delete the original sample and insert the new one in its place
-            instrument:delete_sample_at(sample_index)
-            instrument:insert_sample_at(sample_index)
-            local new_sample = instrument:sample(sample_index)
-
-            -- Copy the processed data to the new sample
-            local new_sample_buffer = new_sample.sample_buffer
-            new_sample_buffer:create_sample_data(
-                sample_buffer.sample_rate,
-                target_bits,
-                num_channels,
-                number_of_frames
-            )
-            new_sample_buffer:prepare_sample_data_changes()
-
-            -- Copy data from temp buffer to new buffer
-            for channel = 1, num_channels do
-                for frame = 1, number_of_frames do
-                    new_sample_buffer:set_sample_data(
-                        channel,
-                        frame,
-                        temp_sample_buffer:sample_data(channel, frame)
-                    )
-                end
+            if dialog and dialog.visible then
+                dialog:close()
             end
 
-            new_sample_buffer:finalize_sample_data_changes()
-
-            -- Restore ALL sample properties
-            new_sample.name = properties.name
-            new_sample.volume = properties.volume
-            new_sample.panning = properties.panning
-            new_sample.transpose = properties.transpose
-            new_sample.fine_tune = properties.fine_tune
-            new_sample.beat_sync_enabled = properties.beat_sync_enabled
-            new_sample.beat_sync_lines = properties.beat_sync_lines
-            new_sample.beat_sync_mode = properties.beat_sync_mode
-            new_sample.oneshot = properties.oneshot
-            new_sample.loop_release = properties.loop_release
-            new_sample.loop_mode = properties.loop_mode
-            new_sample.mute_group = properties.mute_group
-            new_sample.new_note_action = properties.new_note_action
-            new_sample.autoseek = properties.autoseek
-            new_sample.autofade = properties.autofade
-            new_sample.oversample_enabled = properties.oversample_enabled
-            new_sample.interpolation_mode = properties.interpolation_mode
-            new_sample.sample_mapping.base_note = properties.sample_mapping.base_note
-            new_sample.sample_mapping.note_range = properties.sample_mapping.note_range
-            new_sample.sample_mapping.velocity_range = properties.sample_mapping.velocity_range
-            new_sample.sample_mapping.map_key_to_pitch = properties.sample_mapping.map_key_to_pitch
-            new_sample.sample_mapping.map_velocity_to_volume = properties.sample_mapping.map_velocity_to_volume
-
-            -- Delete the temporary sample
-            instrument:delete_sample_at(temp_sample_index)
-
-            converted_samples = converted_samples + 1
-            processed_samples = processed_samples + 1
-            print(string.format("Converted sample %d to %d-bit", sample_index, target_bits))
-
-            ::continue::
+            -- Provide feedback
+            local message = string.format(
+                "Converted %d samples to %d-bit. Skipped %d samples.", 
+                converted_samples, target_bits, skipped_samples
+            )
+            print(message)
+            renoise.app():show_status(message)
         end
 
-        if dialog and dialog.visible then
-            dialog:close()
-        end
-
-        -- Provide feedback
-        local message = string.format(
-            "Converted %d samples to %d-bit. Skipped %d samples.", 
-            converted_samples, target_bits, skipped_samples
-        )
-        print(message)
-        renoise.app():show_status(message)
+        -- Create and start the ProcessSlicer
+        slicer = ProcessSlicer(process_func)
+        dialog, vb = slicer:create_dialog(string.format("Converting All Samples to %d-bit", target_bits))
+        slicer:start()
     end
 
-    -- Create and start the ProcessSlicer
-    slicer = ProcessSlicer(process_func)
-    dialog, vb = slicer:create_dialog(string.format("Converting All Samples to %d-bit", target_bits))
-    slicer:start()
-end
-
--- Add menu entries for batch conversion
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert All Samples to 8-bit", invoke=function() convert_all_samples_to_bit_depth(8) end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert All Samples to 16-bit", invoke=function() convert_all_samples_to_bit_depth(16) end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert All Samples to 24-bit", invoke=function() convert_all_samples_to_bit_depth(24) end}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Process..:Convert All Samples to 8-bit", invoke=function() convert_all_samples_to_bit_depth(8) end}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Process..:Convert All Samples to 16-bit", invoke=function() convert_all_samples_to_bit_depth(16) end}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Process..:Convert All Samples to 24-bit", invoke=function() convert_all_samples_to_bit_depth(24) end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Process..:Convert All Samples to 8-bit", invoke=function() convert_all_samples_to_bit_depth(8) end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Process..:Convert All Samples to 16-bit", invoke=function() convert_all_samples_to_bit_depth(16) end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Process..:Convert All Samples to 24-bit", invoke=function() convert_all_samples_to_bit_depth(24) end}
-renoise.tool():add_keybinding{name="Sample Editor:Paketti:Convert All Samples to 8-bit", invoke=function() convert_all_samples_to_bit_depth(8) end}
-renoise.tool():add_keybinding{name="Sample Editor:Paketti:Convert All Samples to 16-bit", invoke=function() convert_all_samples_to_bit_depth(16) end}
-renoise.tool():add_keybinding{name="Sample Editor:Paketti:Convert All Samples to 24-bit", invoke=function() convert_all_samples_to_bit_depth(24) end}
-renoise.tool():add_keybinding{name="Sample Keyzones:Paketti:Convert All Samples to 8-bit", invoke=function() convert_all_samples_to_bit_depth(8) end}
-renoise.tool():add_keybinding{name="Sample Keyzones:Paketti:Convert All Samples to 16-bit", invoke=function() convert_all_samples_to_bit_depth(16) end}
-renoise.tool():add_keybinding{name="Sample Keyzones:Paketti:Convert All Samples to 24-bit", invoke=function() convert_all_samples_to_bit_depth(24) end}
-renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Convert All Samples to 8-bit", invoke=function(message) if message:is_trigger() then convert_all_samples_to_bit_depth(8) end end}
-renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Convert All Samples to 16-bit", invoke=function(message) if message:is_trigger() then convert_all_samples_to_bit_depth(16) end end}
-renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Convert All Samples to 24-bit", invoke=function(message) if message:is_trigger() then convert_all_samples_to_bit_depth(24) end end}
+    -- Add menu entries for batch conversion
+    renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert All Samples to 8-bit", invoke=function() convert_all_samples_to_bit_depth(8) end}
+    renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert All Samples to 16-bit", invoke=function() convert_all_samples_to_bit_depth(16) end}
+    renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert All Samples to 24-bit", invoke=function() convert_all_samples_to_bit_depth(24) end}
+    renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Process..:Convert All Samples to 8-bit", invoke=function() convert_all_samples_to_bit_depth(8) end}
+    renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Process..:Convert All Samples to 16-bit", invoke=function() convert_all_samples_to_bit_depth(16) end}
+    renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Process..:Convert All Samples to 24-bit", invoke=function() convert_all_samples_to_bit_depth(24) end}
+    renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Process..:Convert All Samples to 8-bit", invoke=function() convert_all_samples_to_bit_depth(8) end}
+    renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Process..:Convert All Samples to 16-bit", invoke=function() convert_all_samples_to_bit_depth(16) end}
+    renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Process..:Convert All Samples to 24-bit", invoke=function() convert_all_samples_to_bit_depth(24) end}
+    renoise.tool():add_keybinding{name="Sample Editor:Paketti:Convert All Samples to 8-bit", invoke=function() convert_all_samples_to_bit_depth(8) end}
+    renoise.tool():add_keybinding{name="Sample Editor:Paketti:Convert All Samples to 16-bit", invoke=function() convert_all_samples_to_bit_depth(16) end}
+    renoise.tool():add_keybinding{name="Sample Editor:Paketti:Convert All Samples to 24-bit", invoke=function() convert_all_samples_to_bit_depth(24) end}
+    renoise.tool():add_keybinding{name="Sample Keyzones:Paketti:Convert All Samples to 8-bit", invoke=function() convert_all_samples_to_bit_depth(8) end}
+    renoise.tool():add_keybinding{name="Sample Keyzones:Paketti:Convert All Samples to 16-bit", invoke=function() convert_all_samples_to_bit_depth(16) end}
+    renoise.tool():add_keybinding{name="Sample Keyzones:Paketti:Convert All Samples to 24-bit", invoke=function() convert_all_samples_to_bit_depth(24) end}
+    renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Convert All Samples to 8-bit", invoke=function(message) if message:is_trigger() then convert_all_samples_to_bit_depth(8) end end}
+    renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Convert All Samples to 16-bit", invoke=function(message) if message:is_trigger() then convert_all_samples_to_bit_depth(16) end end}
+    renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Convert All Samples to 24-bit", invoke=function(message) if message:is_trigger() then convert_all_samples_to_bit_depth(24) end end}
