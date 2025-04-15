@@ -1,5 +1,6 @@
 -- Global constants for processing
-CHUNK_SIZE = 16777216 
+--CHUNK_SIZE = 16777216
+CHUNK_SIZE = 4194304
 PROCESS_YIELD_INTERVAL = 4.53
 
 -- Localize math library functions for efficiency
@@ -420,8 +421,13 @@ function normalize_all_samples_in_instrument()
     local skipped_samples = 0
 
     for sample_idx = 1, total_samples do
-      local sample = instrument.samples[sample_idx]
-      if sample and sample.sample_buffer.has_sample_data then
+      do
+        local sample = instrument.samples[sample_idx]
+        if not sample or not sample.sample_buffer.has_sample_data then
+          skipped_samples = skipped_samples + 1
+          break  -- breaks the do..end block, continues the for loop
+        end
+
         dialog:add_line(string.format("Processing sample %d of %d", sample_idx, total_samples))
 
         local buffer = sample.sample_buffer
@@ -441,28 +447,28 @@ function normalize_all_samples_in_instrument()
           coroutine.yield()
         end
 
-        -- Only process if not already normalized
-        if math.abs(max_peak - 1.0) >= 0.0001 then
-          -- Apply normalization
-          local scale = 1.0 / max_peak
-          for frame = 1, num_frames, CHUNK_SIZE do
-            local chunk_size = math.min(CHUNK_SIZE, num_frames - frame + 1)
-            for channel = 1, num_channels do
-              local data = buffer:sample_data(channel, frame, frame + chunk_size - 1)
-              for i = 1, #data do
-                data[i] = data[i] * scale
-              end
-              buffer:set_sample_data(channel, frame, data)
-            end
-            coroutine.yield()
-          end
-          processed_samples = processed_samples + 1
-        else
+        -- Skip if already normalized
+        if math.abs(max_peak - 1.0) < 0.0001 then
           skipped_samples = skipped_samples + 1
+          break  -- breaks the do..end block, continues the for loop
         end
-      else
-        skipped_samples = skipped_samples + 1
-      end
+
+        -- Apply normalization
+        local scale = 1.0 / max_peak
+        for frame = 1, num_frames, CHUNK_SIZE do
+          local chunk_size = math.min(CHUNK_SIZE, num_frames - frame + 1)
+          for channel = 1, num_channels do
+            local data = buffer:sample_data(channel, frame, frame + chunk_size - 1)
+            for i = 1, #data do
+              data[i] = data[i] * scale
+            end
+            buffer:set_sample_data(channel, frame, data)
+          end
+          coroutine.yield()
+        end
+
+        processed_samples = processed_samples + 1
+      end -- end of do block
     end
 
     dialog:close()
@@ -2589,16 +2595,23 @@ function convert_all_samples_to_bit_depth(target_bits)
                     sample_index, total_samples)
             end
 
-            -- Skip invalid samples or samples already at target bit depth
-            if not sample.sample_buffer.has_sample_data then
-                print(string.format("Skipping sample %d: No sample data", sample_index))
-                skipped_samples = skipped_samples + 1
-                processed_samples = processed_samples + 1
-            elseif sample.sample_buffer.bit_depth == target_bits then
-                print(string.format("Skipping sample %d: Already at %d-bit", sample_index, target_bits))
-                skipped_samples = skipped_samples + 1
-                processed_samples = processed_samples + 1
-            else
+            do
+                -- Skip invalid samples
+                if not sample.sample_buffer.has_sample_data then
+                    print(string.format("Skipping sample %d: No sample data", sample_index))
+                    skipped_samples = skipped_samples + 1
+                    processed_samples = processed_samples + 1
+                    break  -- breaks the do..end block, continues the for loop
+                end
+
+                -- Skip if already at target bit depth
+                if sample.sample_buffer.bit_depth == target_bits then
+                    print(string.format("Skipping sample %d: Already at %d-bit", sample_index, target_bits))
+                    skipped_samples = skipped_samples + 1
+                    processed_samples = processed_samples + 1
+                    break  -- breaks the do..end block, continues the for loop
+                end
+
                 -- Store ALL sample properties
                 local properties = {
                     name = sample.name,
@@ -2744,43 +2757,44 @@ function convert_all_samples_to_bit_depth(target_bits)
                 converted_samples = converted_samples + 1
                 processed_samples = processed_samples + 1
                 print(string.format("Converted sample %d to %d-bit", sample_index, target_bits))
-            end
-
-            if dialog and dialog.visible then
-                dialog:close()
-            end
-
-            -- Provide feedback
-            local message = string.format(
-                "Converted %d samples to %d-bit. Skipped %d samples.", 
-                converted_samples, target_bits, skipped_samples
-            )
-            print(message)
-            renoise.app():show_status(message)
+            end  -- end of do block
         end
 
-        -- Create and start the ProcessSlicer
-        slicer = ProcessSlicer(process_func)
-        dialog, vb = slicer:create_dialog(string.format("Converting All Samples to %d-bit", target_bits))
-        slicer:start()
+        if dialog and dialog.visible then
+            dialog:close()
+        end
+
+        -- Provide feedback
+        local message = string.format(
+            "Converted %d samples to %d-bit. Skipped %d samples.", 
+            converted_samples, target_bits, skipped_samples
+        )
+        print(message)
+        renoise.app():show_status(message)
     end
 
-    -- Add menu entries for batch conversion
-    renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert All Samples to 8-bit", invoke=function() convert_all_samples_to_bit_depth(8) end}
-    renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert All Samples to 16-bit", invoke=function() convert_all_samples_to_bit_depth(16) end}
-    renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert All Samples to 24-bit", invoke=function() convert_all_samples_to_bit_depth(24) end}
-    renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Process..:Convert All Samples to 8-bit", invoke=function() convert_all_samples_to_bit_depth(8) end}
-    renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Process..:Convert All Samples to 16-bit", invoke=function() convert_all_samples_to_bit_depth(16) end}
-    renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Process..:Convert All Samples to 24-bit", invoke=function() convert_all_samples_to_bit_depth(24) end}
-    renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Process..:Convert All Samples to 8-bit", invoke=function() convert_all_samples_to_bit_depth(8) end}
-    renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Process..:Convert All Samples to 16-bit", invoke=function() convert_all_samples_to_bit_depth(16) end}
-    renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Process..:Convert All Samples to 24-bit", invoke=function() convert_all_samples_to_bit_depth(24) end}
-    renoise.tool():add_keybinding{name="Sample Editor:Paketti:Convert All Samples to 8-bit", invoke=function() convert_all_samples_to_bit_depth(8) end}
-    renoise.tool():add_keybinding{name="Sample Editor:Paketti:Convert All Samples to 16-bit", invoke=function() convert_all_samples_to_bit_depth(16) end}
-    renoise.tool():add_keybinding{name="Sample Editor:Paketti:Convert All Samples to 24-bit", invoke=function() convert_all_samples_to_bit_depth(24) end}
-    renoise.tool():add_keybinding{name="Sample Keyzones:Paketti:Convert All Samples to 8-bit", invoke=function() convert_all_samples_to_bit_depth(8) end}
-    renoise.tool():add_keybinding{name="Sample Keyzones:Paketti:Convert All Samples to 16-bit", invoke=function() convert_all_samples_to_bit_depth(16) end}
-    renoise.tool():add_keybinding{name="Sample Keyzones:Paketti:Convert All Samples to 24-bit", invoke=function() convert_all_samples_to_bit_depth(24) end}
-    renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Convert All Samples to 8-bit", invoke=function(message) if message:is_trigger() then convert_all_samples_to_bit_depth(8) end end}
-    renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Convert All Samples to 16-bit", invoke=function(message) if message:is_trigger() then convert_all_samples_to_bit_depth(16) end end}
-    renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Convert All Samples to 24-bit", invoke=function(message) if message:is_trigger() then convert_all_samples_to_bit_depth(24) end end}
+    -- Create and start the ProcessSlicer
+    slicer = ProcessSlicer(process_func)
+    dialog, vb = slicer:create_dialog(string.format("Converting All Samples to %d-bit", target_bits))
+    slicer:start()
+end
+
+-- Add menu entries for batch conversion
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert All Samples to 8-bit", invoke=function() convert_all_samples_to_bit_depth(8) end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert All Samples to 16-bit", invoke=function() convert_all_samples_to_bit_depth(16) end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert All Samples to 24-bit", invoke=function() convert_all_samples_to_bit_depth(24) end}
+renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Process..:Convert All Samples to 8-bit", invoke=function() convert_all_samples_to_bit_depth(8) end}
+renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Process..:Convert All Samples to 16-bit", invoke=function() convert_all_samples_to_bit_depth(16) end}
+renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Process..:Convert All Samples to 24-bit", invoke=function() convert_all_samples_to_bit_depth(24) end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Process..:Convert All Samples to 8-bit", invoke=function() convert_all_samples_to_bit_depth(8) end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Process..:Convert All Samples to 16-bit", invoke=function() convert_all_samples_to_bit_depth(16) end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Process..:Convert All Samples to 24-bit", invoke=function() convert_all_samples_to_bit_depth(24) end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Convert All Samples to 8-bit", invoke=function() convert_all_samples_to_bit_depth(8) end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Convert All Samples to 16-bit", invoke=function() convert_all_samples_to_bit_depth(16) end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Convert All Samples to 24-bit", invoke=function() convert_all_samples_to_bit_depth(24) end}
+renoise.tool():add_keybinding{name="Sample Keyzones:Paketti:Convert All Samples to 8-bit", invoke=function() convert_all_samples_to_bit_depth(8) end}
+renoise.tool():add_keybinding{name="Sample Keyzones:Paketti:Convert All Samples to 16-bit", invoke=function() convert_all_samples_to_bit_depth(16) end}
+renoise.tool():add_keybinding{name="Sample Keyzones:Paketti:Convert All Samples to 24-bit", invoke=function() convert_all_samples_to_bit_depth(24) end}
+renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Convert All Samples to 8-bit", invoke=function(message) if message:is_trigger() then convert_all_samples_to_bit_depth(8) end end}
+renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Convert All Samples to 16-bit", invoke=function(message) if message:is_trigger() then convert_all_samples_to_bit_depth(16) end end}
+renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Convert All Samples to 24-bit", invoke=function(message) if message:is_trigger() then convert_all_samples_to_bit_depth(24) end end}
