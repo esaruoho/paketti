@@ -65,20 +65,14 @@ local function setup_os_specific_paths()
         setup_success = false
       end
     end
-    
   elseif os_name == "WINDOWS" then
     -- Windows specific paths and setup
     rex_decoder_path = renoise.tool().bundle_path .. "rx2\\rex2decoder_win.exe"
     sdk_path = renoise.tool().bundle_path .. "rx2" .. separator .. separator
---    sdk_path = renoise.tool().bundle_path .. "rx2" 
-
-   -- sdk_path = "REX Shared Library.dll" 
-
-
---  else
---    renoise.app():show_status("RX2 Import Error: Only macOS and Windows are currently supported.")
---    print("RX2 Import Error: Unsupported OS detected - " .. tostring(os_name))
---    setup_success = false
+  elseif os_name == "LINUX" then
+    rex_decoder_path = renoise.tool().bundle_path .. "rx2\\rex2decoder_win.exe"
+    sdk_path = renoise.tool().bundle_path .. "rx2" .. separator .. separator
+    renoise.app():show_status("Hi, Linux user, remember to have WINE installed.")
   end
   
   return setup_success, rex_decoder_path, sdk_path
