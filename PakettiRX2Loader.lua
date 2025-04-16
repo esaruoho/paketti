@@ -70,7 +70,7 @@ local function setup_os_specific_paths()
     rex_decoder_path = renoise.tool().bundle_path .. "rx2\\rex2decoder_win.exe"
     sdk_path = renoise.tool().bundle_path .. "rx2" .. separator .. separator
   elseif os_name == "LINUX" then
-    rex_decoder_path = renoise.tool().bundle_path .. "rx2\\rex2decoder_win.exe"
+    rex_decoder_path = renoise.tool().bundle_path .. "rx2" .. separator .. separator .. "rex2decoder_win.exe"
     sdk_path = renoise.tool().bundle_path .. "rx2" .. separator .. separator
     renoise.app():show_status("Hi, Linux user, remember to have WINE installed.")
   end
