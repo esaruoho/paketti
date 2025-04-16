@@ -54,6 +54,13 @@ local function to_signed(val)
   end
 end
 
+-- Clamp a value between min and max
+local function clamp(value, min, max)
+    if value < min then return min end
+    if value > max then return max end
+    return value
+end
+
 --------------------------------------------------------------------------------
 -- Step 1: Read Sample Headers (SHDR)
 --------------------------------------------------------------------------------
@@ -629,60 +636,146 @@ local function import_sf2(file_path)
             end
             reno_smp.name = hdr.name
 
-            -- Key range
-            local zone_key_range = map.key_range
-            if zone_params[43] then
-              local kr = zone_params[43]
-              zone_key_range = {
-                low = kr % 256,
-                high = math.floor(kr / 256) % 256
-              }
+            -- Key range - check instrument zone params first, then preset zone params
+            local zone_key_range = nil
+            local inst_zone_params = smp_entry.inst_zone_params or {}
+            
+            -- First try instrument zone key range
+            if inst_zone_params[43] then
+                local kr = inst_zone_params[43]
+                local orig_low = kr % 256
+                local orig_high = math.floor(kr / 256) % 256
+                zone_key_range = {
+                    low = clamp(orig_low, 0, 119),
+                    high = clamp(orig_high, 0, 119)
+                }
+                dprint(string.format("KEYRANGE DEBUG for %s:", hdr.name))
+                dprint(string.format("  - Found in instrument zone: %d-%d", orig_low, orig_high))
+                dprint(string.format("  - Clamped to Renoise range: %d-%d", zone_key_range.low, zone_key_range.high))
+            -- Then try preset zone key range
+            elseif zone_params[43] then
+                local kr = zone_params[43]
+                local orig_low = kr % 256
+                local orig_high = math.floor(kr / 256) % 256
+                zone_key_range = {
+                    low = clamp(orig_low, 0, 119),
+                    high = clamp(orig_high, 0, 119)
+                }
+                dprint(string.format("KEYRANGE DEBUG for %s:", hdr.name))
+                dprint(string.format("  - Found in preset zone: %d-%d", orig_low, orig_high))
+                dprint(string.format("  - Clamped to Renoise range: %d-%d", zone_key_range.low, zone_key_range.high))
+            -- Finally fall back to map key range
+            else
+                if map.key_range then
+                    local orig_low = map.key_range.low
+                    local orig_high = map.key_range.high
+                    zone_key_range = {
+                        low = clamp(orig_low, 0, 119),
+                        high = clamp(orig_high, 0, 119)
+                    }
+                    dprint(string.format("KEYRANGE DEBUG for %s:", hdr.name))
+                    dprint(string.format("  - Found in map: %d-%d", orig_low, orig_high))
+                    dprint(string.format("  - Clamped to Renoise range: %d-%d", zone_key_range.low, zone_key_range.high))
+                end
             end
 
             -- Tuning
-            local coarse_tune = zone_params[51] and to_signed(zone_params[51]) or 0
-            local fine_tune   = zone_params[52] and to_signed(zone_params[52]) or 0
+            local coarse_tune = 0
+            local fine_tune = 0
+            
+            -- Check instrument zone params first for tuning
+            -- Coarse tune (semitones) - Generator ID 51
+            if inst_zone_params[51] then
+                -- SF2 stores this as a signed 16-bit value directly representing semitones
+                local raw_val = inst_zone_params[51]
+                if raw_val >= 32768 then
+                    coarse_tune = raw_val - 65536  -- Convert to signed
+                else
+                    coarse_tune = raw_val
+                end
+                dprint(string.format("TUNING DEBUG for %s:", hdr.name))
+                dprint(string.format("  - Coarse tune (semitones) from instrument zone: %d (raw: %d)", coarse_tune, raw_val))
+            elseif zone_params[51] then
+                local raw_val = zone_params[51]
+                if raw_val >= 32768 then
+                    coarse_tune = raw_val - 65536  -- Convert to signed
+                else
+                    coarse_tune = raw_val
+                end
+                dprint(string.format("TUNING DEBUG for %s:", hdr.name))
+                dprint(string.format("  - Coarse tune (semitones) from preset zone: %d (raw: %d)", coarse_tune, raw_val))
+            end
+
+            -- Fine tune (cents) - Generator ID 52
+            if inst_zone_params[52] then
+                -- SF2 stores this as a signed 16-bit value representing cents (-100 to +100)
+                local raw_val = inst_zone_params[52]
+                if raw_val >= 32768 then
+                    fine_tune = raw_val - 65536  -- Convert to signed
+                else
+                    fine_tune = raw_val
+                end
+                -- Convert from cents (-100 to +100) to Renoise's fine tune range
+                fine_tune = (fine_tune * 100) / 100  -- Scale appropriately
+                dprint(string.format("  - Fine tune (cents) from instrument zone: %d (raw: %d)", fine_tune, raw_val))
+            elseif zone_params[52] then
+                local raw_val = zone_params[52]
+                if raw_val >= 32768 then
+                    fine_tune = raw_val - 65536  -- Convert to signed
+                else
+                    fine_tune = raw_val
+                end
+                -- Convert from cents (-100 to +100) to Renoise's fine tune range
+                fine_tune = (fine_tune * 100) / 100  -- Scale appropriately
+                dprint(string.format("  - Fine tune (cents) from preset zone: %d (raw: %d)", fine_tune, raw_val))
+            end
+
+            -- Add original pitch correction if available
+            if hdr.pitch_corr and hdr.pitch_corr ~= 0 then
+                fine_tune = fine_tune + hdr.pitch_corr
+                dprint(string.format("  - Added pitch correction: %d", hdr.pitch_corr))
+            end
+
+            -- Clamp the values to Renoise's valid ranges (-120 to 120 for transpose)
+            coarse_tune = clamp(coarse_tune, -120, 120)
+            fine_tune = clamp(fine_tune, -100, 100)
+
+            -- Assign the values
+            reno_smp.transpose = coarse_tune
+            reno_smp.fine_tune = fine_tune
+            dprint(string.format("  - Final values: transpose=%d, fine_tune=%d", coarse_tune, fine_tune))
+
+            -- Base note and mapping
+            local base_note = hdr.orig_pitch or 60
+            reno_smp.sample_mapping.base_note = base_note
+            dprint(string.format("  - Base note: %d", base_note))
 
             -- Pan (SF2 range -120..120 maps proportionally to Renoise 0..1)
             local raw_pan = zone_params[17] or map.fallback_params[17]
             if raw_pan ~= nil then
-              -- Get signed value already scaled to -120..120
-              local pan_val = to_signed(raw_pan)
-              print(string.format("PANNING DEBUG for %s:", hdr.name))
-              print(string.format("  - Raw SF2 pan value: %d", raw_pan))
-              print(string.format("  - Scaled to -120..120: %.2f", pan_val))
-              
-              -- Convert to 0..1 range proportionally
-              local pan_norm = 0.5 + (pan_val / 120) * 0.5
-              print(string.format("  - Proportionally mapped to 0..1: %.3f", pan_norm))
-              
-              reno_smp.panning = pan_norm
-              print(string.format("  - Final Renoise panning: %.3f", reno_smp.panning))
+                -- Get signed value already scaled to -120..120
+                local pan_val = to_signed(raw_pan)
+                -- Convert to 0..1 range proportionally
+                local pan_norm = 0.5 + (pan_val / 120) * 0.5
+                reno_smp.panning = pan_norm
             else
-              reno_smp.panning = 0.5
-              print(string.format("PANNING DEBUG for %s: No pan value found, defaulting to 0.5", hdr.name))
+                reno_smp.panning = 0.5
             end
 
             -- Assign mapping
-            local base_note = hdr.orig_pitch or 60
-            reno_smp.sample_mapping.base_note = base_note
-            reno_smp.transpose = coarse_tune
-            reno_smp.fine_tune = fine_tune
-
             if zone_key_range then
-              reno_smp.sample_mapping.note_range = { zone_key_range.low, zone_key_range.high }
-              dprint(string.format("[KeyRange] Sample=%s => note_range=%d-%d", hdr.name,
-                zone_key_range.low, zone_key_range.high
-              ))
+                reno_smp.sample_mapping.note_range = { zone_key_range.low, zone_key_range.high }
+                dprint(string.format("  - Applied note range to sample: %d-%d", zone_key_range.low, zone_key_range.high))
             else
-              if is_drumkit then
-                -- We'll map them after removing placeholder
-                reno_smp.sample_mapping.note_range = { base_note, base_note }
-              else
-                -- full range for melodic
-                reno_smp.sample_mapping.note_range = {0, 119}
-                dprint(string.format("[KeyRange] Sample=%s => default melodic range 0-119", hdr.name))
-              end
+                if is_drumkit then
+                    -- We'll map them after removing placeholder
+                    reno_smp.sample_mapping.note_range = { base_note, base_note }
+                    dprint(string.format("  - Drumkit: mapped to single note %d", base_note))
+                else
+                    -- full range for melodic
+                    reno_smp.sample_mapping.note_range = {0, 119}
+                    dprint("  - No key range found, using full range 0-119")
+                end
             end
 
             -- Loop handling
