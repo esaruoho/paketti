@@ -149,16 +149,24 @@ print (wav_output)
 print (txt_output)
 
 -- Build and run the command to execute the external decoder
---local cmd = string.format(''%s' '%s' '%s' '%s' '%s'', rex_decoder_path, filename, wav_output, txt_output, sdk_path)
---local cmd = rex_decoder_path .. " " .. filename .. " " .. wav_output .. " " .. txt_output .. " " .. sdk_path
-
-local cmd = string.format("%q %q %q %q %q 2>&1", 
-  rex_decoder_path,  -- decoder executable
-  filename,          -- input file
-  wav_output,        -- output WAV file
-  txt_output,        -- output TXT file
-  sdk_path           -- SDK directory
-)
+local cmd
+if os_name == "LINUX" then
+  cmd = string.format("wine %q %q %q %q %q 2>&1", 
+    rex_decoder_path,  -- decoder executable
+    filename,          -- input file
+    wav_output,        -- output WAV file
+    txt_output,        -- output TXT file
+    sdk_path           -- SDK directory
+  )
+else
+  cmd = string.format("%q %q %q %q %q 2>&1", 
+    rex_decoder_path,  -- decoder executable
+    filename,          -- input file
+    wav_output,        -- output WAV file
+    txt_output,        -- output TXT file
+    sdk_path           -- SDK directory
+  )
+end
 
 print("----- Running External Decoder Command -----")
 print(cmd)
