@@ -41,6 +41,7 @@ function PakettiColugaSetExecutablePaths()
   end
 end
 
+
 -- Function to log messages to the multiline textfield
 function PakettiColugaLogMessage(message)
   if logview then

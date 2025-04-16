@@ -250,6 +250,7 @@ timed_require("PakettiXRNSProbe")
 timed_require("PakettiAKWF")
 timed_require("PakettiSteppers")
 timed_require("PakettiREXLoader")
+timed_require("PakettiRX2Loader")
 timed_require("PakettiPTILoader")
 timed_require("PakettiSF2Loader")
 timed_require("process_slicer")
@@ -266,6 +267,10 @@ local selected_theme_index = nil
 --for i, theme in ipairs(themes) do
 --  print(i .. ": " .. theme)
 --end
+
+
+
+
 
 
 
