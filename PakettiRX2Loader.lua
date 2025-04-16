@@ -75,10 +75,10 @@ local function setup_os_specific_paths()
    -- sdk_path = "REX Shared Library.dll" 
 
 
-  else
-    renoise.app():show_status("RX2 Import Error: Only macOS and Windows are currently supported.")
-    print("RX2 Import Error: Unsupported OS detected - " .. tostring(os_name))
-    setup_success = false
+--  else
+--    renoise.app():show_status("RX2 Import Error: Only macOS and Windows are currently supported.")
+--    print("RX2 Import Error: Unsupported OS detected - " .. tostring(os_name))
+--    setup_success = false
   end
   
   return setup_success, rex_decoder_path, sdk_path
