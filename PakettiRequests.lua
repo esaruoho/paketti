@@ -10854,3 +10854,258 @@ renoise.tool():add_keybinding{name="Global:Paketti:Fuzzy Search Track",invoke = 
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Fuzzy Search Track",invoke = show_track_search_dialog}
 renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Fuzzy Search Track",invoke = show_track_search_dialog}
 renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Fuzzy Search Track",invoke = show_track_search_dialog}
+
+-----------
+local dialog = nil
+local show_dialog = nil
+local current_scope = 1  -- Add this to store the scope value
+
+
+function get_unique_notes()
+  local song = renoise.song()
+  local pattern = song.selected_pattern
+  local track = pattern:track(song.selected_track_index)
+  local trackvis = renoise.song().selected_track
+  local unique_notes = {}
+  local order = {}
+  
+  for line_index = 1, pattern.number_of_lines do
+    local line = track:line(line_index)
+    for note_index = 1, trackvis.visible_note_columns do
+      local note_column = line:note_column(note_index)
+      if note_column.note_string ~= "---" and note_column.note_string ~= "OFF" then
+        -- Use just the note string as key to group by note regardless of instrument
+        local key = note_column.note_string
+        if not unique_notes[key] then
+          unique_notes[key] = {
+            note = note_column.note_string,
+            instrument = note_column.instrument_value
+          }
+          table.insert(order, key)
+        end
+      end
+    end
+  end
+  
+  local ordered_notes = {}
+  for _, key in ipairs(order) do
+    table.insert(ordered_notes, unique_notes[key])
+  end
+  
+  return ordered_notes
+end
+
+function apply_instrument_changes(note_string, original_instrument, new_instrument, whole_song)
+  local song = renoise.song()
+  
+  print("\n=== Instrument Change Debug ===")
+  print(string.format("Note: %s", note_string))
+  print(string.format("Original Instrument: %02X", original_instrument))
+  print(string.format("New Instrument: %02X", new_instrument))
+  print(string.format("Whole Song Mode: %s", tostring(whole_song)))
+  print(string.format("Total Patterns: %d", #song.patterns))
+  print(string.format("Selected Track: %d", song.selected_track_index))
+  
+  if whole_song then
+    -- Apply changes across all patterns
+    for pattern_index = 1, #song.patterns do
+      local pattern = song.patterns[pattern_index]  -- Changed this line
+      local track = pattern:track(song.selected_track_index)
+      local trackvis = song.selected_track
+      local changes_in_pattern = 0
+      
+      for line_index = 1, pattern.number_of_lines do
+        local line = track:line(line_index)
+        for note_index = 1, trackvis.visible_note_columns do
+          local note_column = line:note_column(note_index)
+          if note_column.note_string == note_string and note_column.instrument_value == original_instrument then
+            note_column.instrument_value = new_instrument
+            changes_in_pattern = changes_in_pattern + 1
+          end
+        end
+      end
+      
+      print(string.format("Pattern %d: Changed %d notes", pattern_index, changes_in_pattern))
+    end
+else
+    -- Original behavior for current pattern only
+    local pattern = song.selected_pattern
+    local track = pattern:track(song.selected_track_index)
+    local trackvis = song.selected_track
+    local changes = 0
+    
+    for line_index = 1, pattern.number_of_lines do
+      local line = track:line(line_index)
+      for note_index = 1, trackvis.visible_note_columns do
+        local note_column = line:note_column(note_index)
+        if note_column.note_string == note_string and note_column.instrument_value == original_instrument then
+          note_column.instrument_value = new_instrument
+          changes = changes + 1
+        end
+      end
+    end
+    
+    print(string.format("Current Pattern: Changed %d notes", changes))
+  end
+  print("=== End Debug ===\n")
+end
+
+function track_change_handler()
+  if dialog and dialog.visible then
+    show_dialog()
+  end
+end
+
+function show_note_mapping_dialog()
+  local dialog = nil
+
+  if dialog and dialog.visible then
+    dialog:close()
+  end
+
+  local song = renoise.song()
+
+
+  -- Create track options for dropdown
+  local track_options = {}
+  for i = 1, song.sequencer_track_count do
+    local track = song:track(i)
+    track_options[i] = string.format("%02d: %s", i, track.name)
+  end
+
+  local instrument_options = {}
+  for i = 0, 255 do
+    local instrument = song.instruments[i + 1]
+    if instrument then
+      local name = instrument.name
+      if name == "" then name = string.format("Instrument %02X", i) end
+      instrument_options[i + 1] = string.format("%02X: %s", i, name)
+    end
+  end
+
+  -- Declare show_dialog function first
+-- Declare show_dialog function first
+
+  function show_dialog()
+    if dialog and dialog.visible then
+      -- Store current scope before closing
+      current_scope = dialog.views.scope_switch.value
+      dialog:close()
+    end
+
+    local vb = renoise.ViewBuilder()
+    local unique_notes = get_unique_notes()
+    local content = vb:column{      
+      vb:row{
+        vb:text{text="Track:", width=40},
+        vb:popup{
+          width = 250,
+          items = track_options,
+          value = song.selected_track_index,
+          notifier = function(new_index)
+            song.selected_track_index = new_index
+            show_dialog()
+          end
+        }
+      },
+      vb:row{
+        margin = 4,
+        vb:text{text="Scope:", width=40},
+        vb:switch{
+          id = "scope_switch",
+          width = 250,
+          items = {"Current Pattern", "Whole Song"},
+          value = current_scope  -- Use stored scope value
+        }
+      }
+    }
+
+        
+    -- Add header and notes if we have them
+    if #unique_notes > 0 then
+      content:add_child(
+        vb:row{
+          vb:text{text="Note", width=40, font="bold", style="strong"},
+          vb:text{text="Instrument", width = 250, font="bold", style="strong"}
+        }
+      )
+      
+      for _, note_data in ipairs(unique_notes) do
+        content:add_child(
+          vb:row{
+            vb:text{text = note_data.note, width = 40, font = "mono", style="strong"},
+            vb:popup{
+              width = 250,
+              items = instrument_options,
+              value = note_data.instrument + 1,
+              notifier = function(new_index)
+                local scope_whole_song = (vb.views.scope_switch.value == 2)
+                apply_instrument_changes(note_data.note, note_data.instrument, new_index - 1, scope_whole_song)
+              end
+            }
+          }
+        )
+      end
+    else
+      content:add_child(
+        vb:text{
+          text = "No notes on this track, select another one.",
+          font = "bold",
+          style = "strong"
+        }
+      )
+    end
+    
+    dialog = renoise.app():show_custom_dialog(
+      "Switch Note Instrument Dialog",
+      content,
+      NoteToInstrumentKeyhandler
+    )
+    renoise.app().window.active_middle_frame = patternEditor
+  end
+
+  -- Remove any existing notifiers first
+  if song.selected_track_index_observable:has_notifier(show_dialog) then
+    song.selected_track_index_observable:remove_notifier(show_dialog)
+  end
+  if song.selected_pattern_index_observable:has_notifier(show_dialog) then
+    song.selected_pattern_index_observable:remove_notifier(show_dialog)
+  end
+
+  -- Add notifiers
+  song.selected_track_index_observable:add_notifier(show_dialog)
+  song.selected_pattern_index_observable:add_notifier(show_dialog)
+
+
+
+  -- Show initial dialog
+  show_dialog()
+  
+  -- Add notifier for track changes
+--  song.selected_track_index_observable:add_notifier(show_dialog)
+  
+  renoise.app().window.active_middle_frame = patternEditor
+end
+
+function NoteToInstrumentKeyhandler(dialog,key)
+  local closer = preferences.pakettiDialogClose.value
+  if key.modifiers == "" and key.name == closer then
+    local song = renoise.song()
+    -- Clean up notifiers when closing
+    if song.selected_track_index_observable:has_notifier(show_dialog) then
+      song.selected_track_index_observable:remove_notifier(show_dialog)
+    end
+    if song.selected_pattern_index_observable:has_notifier(show_dialog) then
+      song.selected_pattern_index_observable:remove_notifier(show_dialog)
+    end
+    dialog:close()
+    dialog = nil
+    return nil
+  else
+    return key
+  end
+end
+  
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Switch Note Instrument Dialog...",invoke=show_note_mapping_dialog}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Switch Note Instrument Dialog...",invoke=show_note_mapping_dialog}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Switch Note Instrument Dialog...",invoke=show_note_mapping_dialog}

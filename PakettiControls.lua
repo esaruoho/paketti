@@ -1247,3 +1247,243 @@ for i, device_path in ipairs(target_devices) do
     end
   }
 end
+
+
+------
+
+
+-- Function to set output delay with bounds checking
+function set_output_delay(delay_value, rename)
+  local track = renoise.song().selected_track
+  
+  -- Check if track type allows output delay changes
+  if track.type ~= renoise.Track.TRACK_TYPE_SEQUENCER then
+    renoise.app():show_status("Cannot change output delay on group, master or send tracks")
+    return
+  end
+  
+  -- Clamp value between -100 and 100
+  delay_value = math.max(-100, math.min(100, delay_value))
+  track.output_delay = delay_value
+  
+  -- Update track name if rename is true
+  if rename then
+    local prefix = delay_value > 0 and "+" or ""
+    track.name = string.format("%s%dms", prefix, delay_value)
+  end
+  
+  renoise.app():show_status(string.format("Output delay set to: %d", delay_value))
+end
+
+-- Function to nudge output delay
+function nudge_output_delay(amount, rename)
+  local track = renoise.song().selected_track
+  
+  -- Check if track type allows output delay changes
+  if track.type ~= renoise.Track.TRACK_TYPE_SEQUENCER then
+    renoise.app():show_status("Cannot change output delay on group, master or send tracks")
+    return
+  end
+  
+  local current_delay = track.output_delay
+  local new_delay = current_delay + amount
+  
+  if new_delay > 100 then
+    renoise.app():show_status("At maximum positive delay, cannot go further")
+    return
+  elseif new_delay < -100 then
+    renoise.app():show_status("At maximum negative delay, cannot go further")
+    return
+  end
+  
+  track.output_delay = new_delay
+  
+  -- Update track name if rename is true
+  if rename then
+    local prefix = new_delay > 0 and "+" or ""
+    track.name = string.format("%s%dms", prefix, new_delay)
+  end
+  
+  renoise.app():show_status(string.format("Output delay: %d", new_delay))
+end
+
+function reset_output_delay(rename)
+  local track = renoise.song().selected_track
+  
+  -- Check if track type allows output delay changes
+  if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+    track.output_delay = 0
+    if rename then
+      track.name = "0ms"
+    end
+    renoise.app():show_status("Output delay reset to 0ms")
+  else
+    renoise.app():show_status("Cannot change output delay on group, master or send tracks")
+  end
+end
+
+function reset_output_delayALL(rename)
+  local song = renoise.song()
+  local count = 0
+  
+  -- Reset delays for sequencer tracks only
+  for i = 1, song.sequencer_track_count do
+    local track = song:track(i)
+    if track.type == renoise.Track.TRACK_TYPE_SEQUENCER and track.output_delay ~= 0 then
+      track.output_delay = 0
+      if rename then
+        track.name = "0ms"
+      end
+      count = count + 1
+    end
+  end
+  
+  if count > 0 then
+    renoise.app():show_status(string.format("Reset output delay to 0ms on %d tracks", count))
+  else
+    renoise.app():show_status("All track output delays were already at 0ms")
+  end
+end
+
+-- MIDI mappings
+renoise.tool():add_midi_mapping{name="Paketti:Nudge Delay Output Delay Control x[Knob]",
+  invoke = function(message)
+    if message:is_abs_value() then
+      local value = message.int_value
+      local delay_value
+      
+      if value == 64 then
+        delay_value = 0
+      elseif value > 64 then
+        -- Map 65-127 to 1-100
+        delay_value = math.floor((value - 64) * (100 / 63))
+      else
+        -- Map 0-63 to -100-(-1)
+        delay_value = math.floor(value * (-100 / 63))
+      end
+      
+      set_output_delay(delay_value, false)
+    end
+  end
+}
+
+renoise.tool():add_midi_mapping{name="Paketti:Nudge Delay Output Delay Control (Rename) x[Knob]",
+  invoke = function(message)
+    if message:is_abs_value() then
+      local value = message.int_value
+      local delay_value
+      
+      if value == 64 then
+        delay_value = 0
+      elseif value > 64 then
+        -- Map 65-127 to 1-100
+        delay_value = math.floor((value - 64) * (100 / 63))
+      else
+        -- Map 0-63 to -100-(-1)
+        delay_value = math.floor(value * (-100 / 63))
+      end
+      
+      set_output_delay(delay_value, true)
+    end
+  end
+}
+
+-- Trigger MIDI mappings
+renoise.tool():add_midi_mapping{name="Paketti:Nudge Delay Output Delay +01 x[Trigger]",invoke=function(message) if message:is_trigger() then nudge_output_delay(1, false) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Nudge Delay Output Delay -01 x[Trigger]",invoke=function(message) if message:is_trigger() then nudge_output_delay(-1, false) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Nudge Delay Output Delay +05 x[Trigger]",invoke=function(message) if message:is_trigger() then nudge_output_delay(5, false) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Nudge Delay Output Delay -05 x[Trigger]",invoke=function(message) if message:is_trigger() then nudge_output_delay(-5, false) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Nudge Delay Output Delay +10 x[Trigger]",invoke=function(message) if message:is_trigger() then nudge_output_delay(10, false) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Nudge Delay Output Delay -10 x[Trigger]",invoke=function(message) if message:is_trigger() then nudge_output_delay(-10, false) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Reset Nudge Delay Output Delay to 0ms x[Trigger]",invoke=function(message) if message:is_trigger() then reset_output_delay(false) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Reset Nudge Delay Output Delay to 0ms (ALL) x[Trigger]",invoke=function(message) if message:is_trigger() then reset_output_delayALL(false) end end}
+
+-- Trigger MIDI mappings (Rename versions)
+renoise.tool():add_midi_mapping{name="Paketti:Nudge Delay Output Delay +01 (Rename) x[Trigger]",invoke=function(message) if message:is_trigger() then nudge_output_delay(1, true) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Nudge Delay Output Delay -01 (Rename) x[Trigger]",invoke=function(message) if message:is_trigger() then nudge_output_delay(-1, true) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Nudge Delay Output Delay +05 (Rename) x[Trigger]",invoke=function(message) if message:is_trigger() then nudge_output_delay(5, true) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Nudge Delay Output Delay -05 (Rename) x[Trigger]",invoke=function(message) if message:is_trigger() then nudge_output_delay(-5, true) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Nudge Delay Output Delay +10 (Rename) x[Trigger]",invoke=function(message) if message:is_trigger() then nudge_output_delay(10, true) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Nudge Delay Output Delay -10 (Rename) x[Trigger]",invoke=function(message) if message:is_trigger() then nudge_output_delay(-10, true) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Reset Nudge Delay Output Delay to 0ms (Rename) x[Trigger]",invoke=function(message) if message:is_trigger() then reset_output_delay(true) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Reset Nudge Delay Output Delay to 0ms (ALL) (Rename) x[Trigger]",invoke=function(message) if message:is_trigger() then reset_output_delayALL(true) end end}
+
+-- Keybindings
+renoise.tool():add_keybinding{name="Global:Paketti:Nudge Delay Output Delay +01ms",invoke=function() nudge_output_delay(1, false) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Nudge Delay Output Delay -01ms",invoke=function() nudge_output_delay(-1, false) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Nudge Delay Output Delay +10ms",invoke=function() nudge_output_delay(10, false) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Nudge Delay Output Delay -10ms",invoke=function() nudge_output_delay(-10, false) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Nudge Delay Output Delay +05ms",invoke=function() nudge_output_delay(5, false) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Nudge Delay Output Delay -05ms",invoke=function() nudge_output_delay(-5, false) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Reset Nudge Delay Output Delay to 0ms",invoke=function() reset_output_delay(false) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Reset Nudge Delay Output Delay to 0ms (ALL)",invoke=function() reset_output_delayALL(false) end}
+
+-- Keybindings (Rename versions)
+renoise.tool():add_keybinding{name="Global:Paketti:Nudge Delay Output Delay +01ms (Rename)",invoke=function() nudge_output_delay(1, true) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Nudge Delay Output Delay -01ms (Rename)",invoke=function() nudge_output_delay(-1, true) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Nudge Delay Output Delay +10ms (Rename)",invoke=function() nudge_output_delay(10, true) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Nudge Delay Output Delay -10ms (Rename)",invoke=function() nudge_output_delay(-10, true) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Nudge Delay Output Delay +05ms (Rename)",invoke=function() nudge_output_delay(5, true) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Nudge Delay Output Delay -05ms (Rename)",invoke=function() nudge_output_delay(-5, true) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Reset Nudge Delay Output Delay to 0ms (Rename)",invoke=function() reset_output_delay(true) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Reset Nudge Delay Output Delay to 0ms (ALL) (Rename)",invoke=function() reset_output_delayALL(true) end}
+
+-- Menu entries
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Delay Output..:Nudge Delay Output +01ms",invoke=function() nudge_output_delay(1, false) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Nudge Delay Output -01ms",invoke=function() nudge_output_delay(-1, false) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Nudge Delay Output +05ms",invoke=function() nudge_output_delay(5, false) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Nudge Delay Output -05ms",invoke=function() nudge_output_delay(-5, false) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Nudge Delay Output +10ms",invoke=function() nudge_output_delay(10, false) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Nudge Delay Output -10ms",invoke=function() nudge_output_delay(-10, false) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Reset Delay Output Delay to 0ms",invoke=function() reset_output_delay(false) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Reset Delay Output Delay to 0ms (ALL)",invoke=function() reset_output_delayALL(false) end}
+
+-- Menu entries (Rename versions)
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Delay Output..:Nudge Delay Output +01ms (Rename)",invoke=function() nudge_output_delay(1, true) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Nudge Delay Output -01ms (Rename)",invoke=function() nudge_output_delay(-1, true) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Nudge Delay Output +05ms (Rename)",invoke=function() nudge_output_delay(5, true) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Nudge Delay Output -05ms (Rename)",invoke=function() nudge_output_delay(-5, true) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Nudge Delay Output +10ms (Rename)",invoke=function() nudge_output_delay(10, true) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Nudge Delay Output -10ms (Rename)",invoke=function() nudge_output_delay(-10, true) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Reset Delay Output Delay to 0ms (Rename)",invoke=function() reset_output_delay(true) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Reset Delay Output Delay to 0ms (ALL) (Rename)",invoke=function() reset_output_delayALL(true) end}
+
+-- Mixer menu entries
+renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Delay Output..:Nudge Delay Output Delay +01ms",invoke=function() nudge_output_delay(1, false) end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Nudge Delay Output Delay -01ms",invoke=function() nudge_output_delay(-1, false) end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Nudge Delay Output Delay +05ms",invoke=function() nudge_output_delay(5, false) end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Nudge Delay Output Delay -05ms",invoke=function() nudge_output_delay(-5, false) end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Nudge Delay Output Delay +10ms",invoke=function() nudge_output_delay(10, false) end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Nudge Delay Output Delay -10ms",invoke=function() nudge_output_delay(-10, false) end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Reset Delay Output Delay to 0ms",invoke=function() reset_output_delay(false) end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Reset Delay Output Delay to 0ms (ALL)",invoke=function() reset_output_delayALL(false) end}
+
+-- Mixer menu entries (Rename versions)
+renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Delay Output..:Nudge Delay Output Delay +01ms (Rename)",invoke=function() nudge_output_delay(1, true) end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Nudge Delay Output Delay -01ms (Rename)",invoke=function() nudge_output_delay(-1, true) end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Nudge Delay Output Delay +05ms (Rename)",invoke=function() nudge_output_delay(5, true) end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Nudge Delay Output Delay -05ms (Rename)",invoke=function() nudge_output_delay(-5, true) end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Nudge Delay Output Delay +10ms (Rename)",invoke=function() nudge_output_delay(10, true) end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Nudge Delay Output Delay -10ms (Rename)",invoke=function() nudge_output_delay(-10, true) end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Reset Delay Output Delay to 0ms (Rename)",invoke=function() reset_output_delay(true) end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Reset Delay Output Delay to 0ms (ALL) (Rename)",invoke=function() reset_output_delayALL(true) end}
+
+-- Pattern Matrix menu entries
+renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Delay Output..:Nudge Delay Output Delay +01ms",invoke=function() nudge_output_delay(1, false) end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Delay Output..:Nudge Delay Output Delay -01ms",invoke=function() nudge_output_delay(-1, false) end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Delay Output..:Nudge Delay Output Delay +05ms",invoke=function() nudge_output_delay(5, false) end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Delay Output..:Nudge Delay Output Delay -05ms",invoke=function() nudge_output_delay(-5, false) end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Delay Output..:Nudge Delay Output Delay +10ms",invoke=function() nudge_output_delay(10, false) end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Delay Output..:Nudge Delay Output Delay -10ms",invoke=function() nudge_output_delay(-10, false) end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Delay Output..:Reset Delay Output Delay to 0ms",invoke=function() reset_output_delay(false) end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Delay Output..:Reset Delay Output Delay to 0ms (ALL)",invoke=function() reset_output_delayALL(false) end}
+
+-- Pattern Matrix menu entries (Rename versions)
+renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Delay Output..:Nudge Delay Output Delay +01ms (Rename)",invoke=function() nudge_output_delay(1, true) end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Delay Output..:Nudge Delay Output Delay -01ms (Rename)",invoke=function() nudge_output_delay(-1, true) end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Delay Output..:Nudge Delay Output Delay +05ms (Rename)",invoke=function() nudge_output_delay(5, true) end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Delay Output..:Nudge Delay Output Delay -05ms (Rename)",invoke=function() nudge_output_delay(-5, true) end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Delay Output..:Nudge Delay Output Delay +10ms (Rename)",invoke=function() nudge_output_delay(10, true) end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Delay Output..:Nudge Delay Output Delay -10ms (Rename)",invoke=function() nudge_output_delay(-10, true) end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Delay Output..:Reset Delay Output Delay to 0ms (Rename)",invoke=function() reset_output_delay(true) end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Delay Output..:Reset Delay Output Delay to 0ms (ALL) (Rename)",invoke=function() reset_output_delayALL(true) end}

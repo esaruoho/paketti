@@ -2348,3 +2348,14 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker ALT-X
 
 
 
+
+
+  renoise.tool():add_keybinding{name="Global:Paketti:Select First Instrument Box Slot", invoke=function()
+  renoise.song().selected_instrument_index = 1  
+  local instrumentName = renoise.song().selected_instrument.name
+  if renoise.song().selected_instrument.name == "" then instrumentName = "<No Instrument>" end
+  
+renoise.app():show_status("Selected first instrument: " .. formatDigits(3,renoise.song().selected_instrument_index) .. ": " .. instrumentName)
+end
+
+  }

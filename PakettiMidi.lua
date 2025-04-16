@@ -2407,3 +2407,211 @@ renoise.tool():add_midi_mapping{name = "Paketti:Change All Samples Device Chain 
 renoise.tool():add_midi_mapping{name = "Paketti:Change All Samples Device Chain (Direct) x[Knob]", invoke = handle_instrument_chains_direct}
 
 
+-- Helper function to get total available columns for a track
+local function get_track_column_count(track)
+  -- Only sequencer tracks (type 1) can have note columns
+  if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+    return track.visible_note_columns + track.visible_effect_columns
+  else
+    -- Master (2), Send (3), and Group (4) tracks only have effect columns
+    return track.visible_effect_columns
+  end
+end
+
+-- Helper function to get total column count across all tracks
+local function get_total_column_count()
+  local total = 0
+  local song = renoise.song()
+  for i = 1, #song.tracks do
+    total = total + get_track_column_count(song.tracks[i])
+  end
+  return total
+end
+
+-- Helper function to select a specific column in a track
+local function select_column_in_track(track, column_index)
+  -- Handle non-sequencer tracks (Master, Send, Group)
+  if track.type ~= renoise.Track.TRACK_TYPE_SEQUENCER then
+    -- Only try to select effect columns, and only if they exist
+    if track.visible_effect_columns > 0 and column_index <= track.visible_effect_columns then
+      renoise.song().selected_effect_column_index = column_index
+      return true
+    end
+    return false
+  end
+  
+  -- For sequencer tracks, handle both note and effect columns
+  local note_columns = track.visible_note_columns
+  local effect_columns = track.visible_effect_columns
+  
+  if column_index <= note_columns then
+    renoise.song().selected_note_column_index = column_index
+    return true
+  elseif column_index <= (note_columns + effect_columns) then
+    renoise.song().selected_effect_column_index = column_index - note_columns
+    return true
+  end
+  return false
+end
+
+-- Main function to handle column cycling
+function pakettiColumnCount(message, range)
+  local song = renoise.song()
+  local current_track = song.selected_track
+  local current_track_index = song.selected_track_index
+  
+  -- Debug info about track type
+  print(string.format("Track: %s (Type: %d)", current_track.name, current_track.type))
+  
+  -- Get total available columns based on range
+  local total_columns = 0
+  if range == "current" then
+    total_columns = get_track_column_count(current_track)
+  elseif range == "all" then
+    total_columns = get_total_column_count()
+  else
+    return
+  end
+  
+  -- If no columns available, show status and return
+  if total_columns == 0 then
+    local track_type_name = "unknown"
+    if current_track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+      track_type_name = "sequencer"
+    elseif current_track.type == renoise.Track.TRACK_TYPE_MASTER then
+      track_type_name = "master"
+    elseif current_track.type == renoise.Track.TRACK_TYPE_SEND then
+      track_type_name = "send"
+    elseif current_track.type == renoise.Track.TRACK_TYPE_GROUP then
+      track_type_name = "group"
+    end
+    renoise.app():show_status(string.format("No columns available in %s (%s track)", 
+      (range == "current" and "current track" or "any track"), track_type_name))
+    return
+  end
+  
+  -- Handle MIDI message
+  if message:is_abs_value() then
+    -- Absolute value handling (0-127)
+    local target_index = math.floor((message.int_value / 127) * (total_columns - 1)) + 1
+    
+    if range == "current" then
+      -- Select column in current track
+      if select_column_in_track(current_track, target_index) then
+        local track_type = current_track.type == renoise.Track.TRACK_TYPE_SEQUENCER and "sequencer" or
+                          current_track.type == renoise.Track.TRACK_TYPE_MASTER and "master" or
+                          current_track.type == renoise.Track.TRACK_TYPE_SEND and "send" or "group"
+        renoise.app():show_status(string.format("Selected column %d/%d in current %s track", 
+          target_index, total_columns, track_type))
+      end
+    else -- "all" range
+      -- Find the target track and column
+      local remaining = target_index
+      for i = 1, #song.tracks do
+        local track = song.tracks[i]
+        local track_columns = get_track_column_count(track)
+        
+        if track_columns >= remaining then
+          -- Found our target track and column
+          song.selected_track_index = i
+          if select_column_in_track(track, remaining) then
+            local track_type = track.type == renoise.Track.TRACK_TYPE_SEQUENCER and "sequencer" or
+                              track.type == renoise.Track.TRACK_TYPE_MASTER and "master" or
+                              track.type == renoise.Track.TRACK_TYPE_SEND and "send" or "group"
+            renoise.app():show_status(string.format("Selected column %d/%d (Track %d - %s)", 
+              target_index, total_columns, i, track_type))
+          end
+          break
+        end
+        remaining = remaining - track_columns
+      end
+    end
+    
+  elseif message:is_rel_value() then
+    -- Relative value handling (-63 to +63)
+    local step = message.int_value
+    
+    if range == "current" then
+      -- Get current column index based on track type
+      local current_index = 0
+      if current_track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+        if song.selected_note_column_index > 0 then
+          current_index = song.selected_note_column_index
+        elseif song.selected_effect_column_index > 0 then
+          current_index = current_track.visible_note_columns + song.selected_effect_column_index
+        end
+      else
+        -- For non-sequencer tracks, only consider effect columns
+        if song.selected_effect_column_index > 0 then
+          current_index = song.selected_effect_column_index
+        end
+      end
+      
+      -- Calculate new index
+      local new_index = current_index + step
+      if new_index < 1 then new_index = total_columns
+      elseif new_index > total_columns then new_index = 1 end
+      
+      -- Select the new column
+      if select_column_in_track(current_track, new_index) then
+        local track_type = current_track.type == renoise.Track.TRACK_TYPE_SEQUENCER and "sequencer" or
+                          current_track.type == renoise.Track.TRACK_TYPE_MASTER and "master" or
+                          current_track.type == renoise.Track.TRACK_TYPE_SEND and "send" or "group"
+        renoise.app():show_status(string.format("Selected column %d/%d in current %s track", 
+          new_index, total_columns, track_type))
+      end
+      
+    else -- "all" range
+      -- Get current global column index
+      local current_global_index = 0
+      for i = 1, current_track_index - 1 do
+        current_global_index = current_global_index + get_track_column_count(song.tracks[i])
+      end
+      
+      -- Add current track's column position
+      if current_track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+        if song.selected_note_column_index > 0 then
+          current_global_index = current_global_index + song.selected_note_column_index
+        elseif song.selected_effect_column_index > 0 then
+          current_global_index = current_global_index + current_track.visible_note_columns + song.selected_effect_column_index
+        end
+      else
+        -- For non-sequencer tracks, only consider effect columns
+        if song.selected_effect_column_index > 0 then
+          current_global_index = current_global_index + song.selected_effect_column_index
+        end
+      end
+      
+      -- Calculate new global index
+      local new_global_index = current_global_index + step
+      if new_global_index < 1 then new_global_index = total_columns
+      elseif new_global_index > total_columns then new_global_index = 1 end
+      
+      -- Find the target track and column
+      local remaining = new_global_index
+      for i = 1, #song.tracks do
+        local track = song.tracks[i]
+        local track_columns = get_track_column_count(track)
+        
+        if track_columns >= remaining then
+          -- Found our target track and column
+          song.selected_track_index = i
+          if select_column_in_track(track, remaining) then
+            local track_type = track.type == renoise.Track.TRACK_TYPE_SEQUENCER and "sequencer" or
+                              track.type == renoise.Track.TRACK_TYPE_MASTER and "master" or
+                              track.type == renoise.Track.TRACK_TYPE_SEND and "send" or "group"
+            renoise.app():show_status(string.format("Selected column %d/%d (Track %d - %s)", 
+              new_global_index, total_columns, i, track_type))
+          end
+          break
+        end
+        remaining = remaining - track_columns
+      end
+    end
+  end
+end
+
+renoise.tool():add_midi_mapping{name = "Paketti:Cycle Through Selected Track Columns (Absolute) x[Knob]",invoke = function(message) pakettiColumnCount(message, "current") end}
+renoise.tool():add_midi_mapping{name = "Paketti:Cycle Through Selected Track Columns (Relative) x[Knob]",invoke = function(message) pakettiColumnCount(message, "current") end}
+renoise.tool():add_midi_mapping{name = "Paketti:Cycle Through All Track Columns (Absolute) x[Knob]",invoke = function(message) pakettiColumnCount(message, "all") end}
+renoise.tool():add_midi_mapping{name = "Paketti:Cycle Through All Track Columns (Relative) x[Knob]",invoke = function(message) pakettiColumnCount(message, "all") end}

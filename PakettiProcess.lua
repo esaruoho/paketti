@@ -8,6 +8,7 @@ local math_log10 = math.log10
 local math_abs   = math.abs
 
 function NormalizeSelectedSliceInSample()
+  local noprocess = false
   local song = renoise.song()
   local instrument = song.selected_instrument
   local current_slice = song.selected_sample_index
@@ -89,12 +90,15 @@ function NormalizeSelectedSliceInSample()
             local abs_val = value < 0 and -value or value
             if abs_val > channel_peaks[ch] then
               channel_peaks[ch] = abs_val
-              if channel_peaks[ch] >= 1.0 then
-                print("Found peak of 1.0 - no normalization needed")
+              if channel_peaks[ch] >= 0.999969 then
+                print("Found peak of 0.999969 or higher - no normalization needed")
+
                 buffer:finalize_sample_data_changes()
                 if dialog and dialog.visible then
                   dialog:close()
                 end
+                renoise.app():show_status("Found Peak value of 0.999969 or higher, doing nothing.")
+                noprocess = true
                 return
               end
             end
@@ -175,6 +179,9 @@ function NormalizeSelectedSliceInSample()
       end
 
       if sel_range[1] and sel_range[2] then
+        if noprocess == true then
+          renoise.app():show_status("Found Peak value of 0.999969 or higher, doing nothing.")
+        return end
         renoise.app():show_status("Normalized selection in " .. current_sample.name)
       else
         renoise.app():show_status("Normalized " .. current_sample.name)
@@ -278,13 +285,14 @@ function NormalizeSelectedSliceInSample()
             local abs_val = value < 0 and -value or value
             if abs_val > channel_peaks[ch] then
               channel_peaks[ch] = abs_val
-              if channel_peaks[ch] >= 1.0 then
-                print("Found peak of 1.0 - no normalization needed")
-                renoise.app():show_status("Found a peak of 1.0 - no normalization, doing nothing.")
+              if channel_peaks[ch] >= 0.999969 then
+                print("Found peak of 0.999969 or higher - no normalization needed")
                 buffer:finalize_sample_data_changes()
                 if dialog and dialog.visible then
                   dialog:close()
+                  noprocess = true
                 end
+                renoise.app():show_status("Found Peak value of 0.999969 or higher, doing nothing.")
                 return
               end
             end
@@ -297,6 +305,7 @@ function NormalizeSelectedSliceInSample()
         end
         if slicer and slicer:was_cancelled() then
           buffer:finalize_sample_data_changes()
+          noprocess = true
           return
         end
         yield_if_needed()
@@ -347,6 +356,7 @@ function NormalizeSelectedSliceInSample()
         end
         if slicer and slicer:was_cancelled() then
           buffer:finalize_sample_data_changes()
+          noprocess = true
           return
         end
         yield_if_needed()
@@ -369,6 +379,9 @@ function NormalizeSelectedSliceInSample()
       if current_slice == 1 then
         local sel = buffer.selection_range
         if sel[1] and sel[2] then
+          if noprocess == true then
+            renoise.app():show_status("Found Peak value of 0.999969 or higher, doing nothing.")
+          return end
           renoise.app():show_status("Normalized selection in " .. current_sample.name)
         else
           renoise.app():show_status("Normalized entire sample")
@@ -376,6 +389,9 @@ function NormalizeSelectedSliceInSample()
       else
         local sel = buffer.selection_range
         if sel[1] and sel[2] then
+          if noprocess == true then
+            renoise.app():show_status("Found Peak value of 0.999969 or higher, doing nothing.")
+          return end
           renoise.app():show_status(string.format("Normalized selection in slice %d", current_slice))
         else
           renoise.app():show_status(string.format("Normalized slice %d", current_slice))
