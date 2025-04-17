@@ -256,7 +256,7 @@ timed_require("PakettiSF2Loader")
 timed_require("process_slicer")
 timed_require("PakettiProcess")
 timed_require("PakettiSubColumnModifier")
---timed_require("PakettiRX2Loader")
+timed_require("PakettiPatternLength")
 print(string.format("Total load time: %.3f seconds", os.clock() - init_time))
 ------------------------------------------------
 local themes_path = renoise.tool().bundle_path .. "Themes/"
