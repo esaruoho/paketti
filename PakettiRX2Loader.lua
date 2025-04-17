@@ -67,7 +67,7 @@ local function setup_os_specific_paths()
     end
   elseif os_name == "WINDOWS" then
     -- Windows specific paths and setup
-    rex_decoder_path = renoise.tool().bundle_path .. "rx2\\rex2decoder_win.exe"
+    rex_decoder_path = renoise.tool().bundle_path .. "rx2" .. separator .. separator .. "rex2decoder_win.exe"
     sdk_path = renoise.tool().bundle_path .. "rx2" .. separator .. separator
   elseif os_name == "LINUX" then
     rex_decoder_path = renoise.tool().bundle_path .. "rx2" .. separator .. separator .. "rex2decoder_win.exe"
@@ -120,22 +120,15 @@ function rx2_loadsample(filename)
   renoise.song().selected_sample.name = rx2_basename
  
   -- Define paths for the output WAV file and the slice marker text file
-  local TEMP_FOLDER
+  local TEMP_FOLDER = "/tmp"
   local os_name = os.platform()
   if os_name == "MACINTOSH" then
     TEMP_FOLDER = os.getenv("TMPDIR")
   elseif os_name == "WINDOWS" then
     TEMP_FOLDER = os.getenv("TEMP")
-  else
-    TEMP_FOLDER = "/tmp"
   end
 
-  -- Ensure we have a valid temp folder, fallback to /tmp if all else fails
-  if not TEMP_FOLDER or TEMP_FOLDER == "" then
-    TEMP_FOLDER = "/tmp"
-    print("Warning: Could not determine temp folder path, falling back to /tmp")
-  end
-print (TEMP_FOLDER)
+
   local wav_output = TEMP_FOLDER .. separator .. instrument_name .. "_output.wav"
   local txt_output = TEMP_FOLDER .. separator .. instrument_name .. "_slices.txt"
 
@@ -153,7 +146,7 @@ if os_name == "LINUX" then
     sdk_path           -- SDK directory
   )
 else
-  cmd = string.format("%q %q %q %q %q 2>&1", 
+  cmd = string.format("%s %q %q %q %q 2>&1", 
     rex_decoder_path,  -- decoder executable
     filename,          -- input file
     wav_output,        -- output WAV file
@@ -175,7 +168,7 @@ local function file_exists(name)
   return f ~= nil
 end
 
-if (result ~= 1) then
+if (result ~= 0) then
   -- Check if both output files exist
   if file_exists(wav_output) and file_exists(txt_output) then
     print("Warning: Nonzero exit code (" .. tostring(result) .. ") but output files found.")
