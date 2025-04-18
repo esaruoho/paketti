@@ -7074,6 +7074,7 @@ function closeVDP_dialog()
 end
 
 function my_VDPkeyhandler_func(dialog, key)
+  
   local closer = preferences.pakettiDialogClose.value
   if key.modifiers == "" and key.name == closer then
     dialog:close()
@@ -7082,6 +7083,7 @@ function my_VDPkeyhandler_func(dialog, key)
   else
     return key
   end
+  renoise.app().window.active_middle_frame=1
 end
 
 
@@ -7134,7 +7136,7 @@ function print_row(slider_set, track_column, show_status)
   
   -- Only show status message if requested
   if show_status ~= false then
-    renoise.app():show_status(slider_set .. " sliders printed to pattern!")
+    renoise.app():show_status(string.upper(string.sub(slider_set,1,1)) .. string.sub(slider_set,2) .. " sliders printed to pattern!")
   end
 end
 
@@ -7254,7 +7256,7 @@ function receive_row(slider_set, track_column, update_pattern)
   if update_pattern then
     print_row(slider_set, slider_set)
   else
-    renoise.app():show_status(slider_set .. " sliders received from pattern!")
+    renoise.app():show_status(string.upper(string.sub(slider_set,1,1)) .. string.sub(slider_set,2) .. " sliders received from pattern!")
   end
 end
 
@@ -7376,25 +7378,10 @@ function create_row_controls(slider_set, initial_value, range, loop_default)
     notifier = function() print_row(slider_set, slider_set) end
   })
 
-  row:add_child(vb:button {
-    text = "Reset",
-    notifier = function() reset_row(slider_set) print_row(slider_set, slider_set) end
-  })
-
-  row:add_child(vb:button {
-    text = "Receive",
-    notifier = function() receive_row(slider_set, slider_set, false) end
-  })
-
-  row:add_child(vb:button {
-    text = "<<",
-    notifier = function() shift_row(slider_set, "left") end
-  })
-
-  row:add_child(vb:button {
-    text = ">>",
-    notifier = function() shift_row(slider_set, "right") end
-  })
+  row:add_child(vb:button {text = "Reset",notifier = function() reset_row(slider_set) print_row(slider_set, slider_set) end})
+  row:add_child(vb:button {text = "Receive",notifier = function() receive_row(slider_set, slider_set, false) end})
+  row:add_child(vb:button {text = "<",notifier = function() shift_row(slider_set, "left") end})
+  row:add_child(vb:button {text = ">",notifier = function() shift_row(slider_set, "right") end})
 
   return row, sliders_row
 end
@@ -7809,9 +7796,11 @@ renoise.tool():add_midi_mapping{name="Paketti:Interpolate Column Values (Sample 
 -- Show the GUI dialog
 function show_VDPdialog()
   if dialog and dialog.visible then
-    dialog:show()
+    dialog:close()
+    dialog=nil
     return
   end
+  renoise.app().window.active_middle_frame=1
 
   if not is_normal_track() then
     handle_invalid_track()
@@ -7836,10 +7825,7 @@ function show_VDPdialog()
   observe_track_changes()
 
   -- Layout the dialog with the auto-grab checkbox
-  local content = vb:column {
-    volume_row,
-    delay_row,
-    panning_row,
+  local content = vb:column {volume_row,delay_row,panning_row,
     vb:row {
       vb:checkbox {
         value = auto_grab_enabled,
@@ -7848,29 +7834,13 @@ function show_VDPdialog()
           renoise.app():show_status("Auto-grab " .. (value and "enabled" or "disabled"))
         end
       },
-      vb:text {text="Auto-Grab", style="strong", font="bold"}
-    },
+      vb:text {text="Auto-Grab", style="strong", font="bold"}},
     vb:row {  -- Print All and Randomize All buttons
-      vb:button {
-        text = "Print All",
-        notifier = function() print_all() end
-      },
-      vb:button {
-        text = "Randomize All",
-        notifier = function() randomizenongroovebox_all() end
-      },
-      vb:button {
-        text = "Global Receive",
-        notifier = function() global_receive() end
-      },
-      vb:button {
-        text = "<<",
-        notifier = function() global_shift_left() end
-      },
-      vb:button {
-        text = ">>",
-        notifier = function() global_shift_right() end
-      }
+      vb:button {text = "Print All",notifier = function() print_all() end},
+      vb:button {text = "Randomize All",notifier = function() randomizenongroovebox_all() end},
+      vb:button {text = "Grab",notifier = function() global_receive() end},
+      vb:button {text = "<<",notifier = function() global_shift_left() end},
+      vb:button {text = ">>",notifier = function() global_shift_right() end}
     }
   }
 
@@ -7878,6 +7848,7 @@ function show_VDPdialog()
   renoise.app().window.active_middle_frame = 1
 
   dialog = renoise.app():show_custom_dialog("Paketti Volume/Delay/Pan Slider Controls", content, my_VDPkeyhandler_func)
+  renoise.app().window.active_middle_frame=1
 end
 
 -- Trigger the dialog to show
