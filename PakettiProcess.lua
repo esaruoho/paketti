@@ -5,6 +5,7 @@ PROCESS_YIELD_INTERVAL = 4.53
 
 -- Localize math library functions for efficiency
 local math_log10 = math.log10
+local log10 = math.log10
 local math_abs   = math.abs
 
 function NormalizeSelectedSliceInSample()
