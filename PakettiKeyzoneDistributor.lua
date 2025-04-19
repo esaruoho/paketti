@@ -78,59 +78,56 @@ local function distribute_samples(keys_per_sample, base_note_mode)
   
   for sample_idx = 1, num_samples do
     local sample = instrument.samples[sample_idx]
-    if not sample then
-      debug_print(string.format("Sample %d no longer exists, skipping", sample_idx))
-      goto continue
-    end
-    
-    -- Calculate the new note range (starting from C-0 which is note 0)
-    local start_note = (sample_idx - 1) * keys_per_sample
-    local end_note = start_note + (keys_per_sample - 1)
-    
-    -- Handle the last possible mapping differently
-    if end_note > 119 then
-      -- If this is the first sample, we can't map anything
-      if sample_idx == 1 then
-        renoise.app():show_warning(string.format(
-          "Cannot map any samples: %d keys would exceed MIDI range",
-          keys_per_sample
-        ))
-        return
+    if sample then
+      -- Calculate the new note range (starting from C-0 which is note 0)
+      local start_note = (sample_idx - 1) * keys_per_sample
+      local end_note = start_note + (keys_per_sample - 1)
+      
+      -- Handle the last possible mapping differently
+      if end_note > 119 then
+        -- If this is the first sample, we can't map anything
+        if sample_idx == 1 then
+          renoise.app():show_warning(string.format(
+            "Cannot map any samples: %d keys would exceed MIDI range",
+            keys_per_sample
+          ))
+          return
+        end
+        
+        -- For the last sample that would exceed the range,
+        -- fit it in the remaining space
+        if sample_idx == mapped_samples + 1 then
+          end_note = 119
+          start_note = math.max(0, mapped_samples * keys_per_sample)
+          reached_limit = true
+        else
+          -- We're done mapping
+          break
+        end
       end
       
-      -- For the last sample that would exceed the range,
-      -- fit it in the remaining space
-      if sample_idx == mapped_samples + 1 then
-        end_note = 119
-        start_note = math.max(0, mapped_samples * keys_per_sample)
-        reached_limit = true
-      else
-        -- We're done mapping
-        break
-      end
+      -- Get the original base note before we change anything
+      local original_base_note = sample.sample_mapping.base_note
+      
+      -- Update the mapping range
+      sample.sample_mapping.note_range = {
+        start_note,  -- Start note (C-0 based)
+        end_note     -- End note
+      }
+      
+      -- Set base note according to selected mode
+      local new_base_note = get_base_note(start_note, end_note, original_base_note, base_note_mode)
+      sample.sample_mapping.base_note = new_base_note
+      
+      mapped_samples = mapped_samples + 1
+      
+      debug_print(string.format(
+        "Sample %d mapped to notes %d-%d with base note %d",
+        sample_idx, start_note, end_note, new_base_note
+      ))
+    else
+      debug_print(string.format("Sample %d no longer exists, skipping", sample_idx))
     end
-    
-    -- Get the original base note before we change anything
-    local original_base_note = sample.sample_mapping.base_note
-    
-    -- Update the mapping range
-    sample.sample_mapping.note_range = {
-      start_note,  -- Start note (C-0 based)
-      end_note     -- End note
-    }
-    
-    -- Set base note according to selected mode
-    local new_base_note = get_base_note(start_note, end_note, original_base_note, base_note_mode)
-    sample.sample_mapping.base_note = new_base_note
-    
-    mapped_samples = mapped_samples + 1
-    
-    debug_print(string.format(
-      "Sample %d mapped to notes %d-%d with base note %d",
-      sample_idx, start_note, end_note, new_base_note
-    ))
-    
-    ::continue::
   end
   
   -- Show appropriate status message
