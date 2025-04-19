@@ -10,20 +10,35 @@ jobs:
   package-and-release:
     runs-on: ubuntu-latest
     steps:
-      # Checkout the repository without submodules
+      # 1. Checkout the repository (no submodules)
       - name: Checkout repository
         uses: actions/checkout@v2
         with:
           submodules: false
 
-      # Remove the definitions folder if it exists (safety measure)
+      # 2. Fail if any .lua file contains forbidden tokens
+      - name: Check Lua for forbidden tokens
+        run: |
+          if grep -R -n -E 'goto continue|::::continue::::' --include '*.lua' .; then
+            echo "::error::Forbidden token found in Lua files. Please remove 'goto continue' or '::::continue::::'."
+            exit 1
+          fi
+
+      # 3. Remove the definitions folder if present
       - name: Remove definitions folder
         run: rm -rf org.lackluster.Paketti.xrnx/definitions
 
-      # Zip the contents, excluding the definitions folder along with other patterns
+      # 4. Generate a timestamp-based tag and filename
+      - name: Generate Tag and Filename
+        run: |
+          TIMESTAMP=$(date +'%Y-%m-%d_%H-%M-%S')
+          echo "TAG_NAME=$TIMESTAMP" >> $GITHUB_ENV
+          echo "FILENAME=org.lackluster.Paketti_V3.54_${TIMESTAMP}.xrnx" >> $GITHUB_ENV
+
+      # 5. Zip the package using the dynamic filename
       - name: Zip XRNX Package
         run: |
-          zip -r org.lackluster.Paketti_V3.54.xrnx . \
+          zip -r "${{ env.FILENAME }}" . \
             -x "*.git*" "*.github*" \
             "preferences.xml" \
             "preferencesDynamicView.xml" \
@@ -32,23 +47,19 @@ jobs:
             "action_selector_settings.txt" \
             "free_keybindings_20250302_160606.txt" \
             "paketti.sublime-workspace" \
-            "paketti.sublime-project" 
-      
-      # Dynamically generate a tag name and set it as an environment variable
-      - name: Generate Tag Name
-        run: |
-          echo "TAG_NAME=$(date +'%Y-%m-%d-%H-%M-%S')" >> $GITHUB_ENV      
-      # Create a tag with the generated tag name
+            "paketti.sublime-project"
+
+      # 6. Create and push the Git tag
       - name: Create and Push Tag
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git tag $TAG_NAME
-          git push origin $TAG_NAME
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
-      # Create a GitHub release using the generated tag name
+          git tag "$TAG_NAME"
+          git push origin "$TAG_NAME"
+
+      # 7. Create a GitHub release for that tag
       - name: Create GitHub Release
         id: create_release
         uses: actions/create-release@v1
@@ -59,14 +70,14 @@ jobs:
           release_name: Release ${{ env.TAG_NAME }}
           draft: false
           prerelease: false
-      
-      # Upload the XRNX file to the GitHub release
+
+      # 8. Upload the dynamically named .xrnx asset
       - name: Upload Release Asset
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./org.lackluster.Paketti_V3.54.xrnx
-          asset_name: org.lackluster.Paketti_V3.54.xrnx
+          asset_path: ${{ env.FILENAME }}
+          asset_name: ${{ env.FILENAME }}
           asset_content_type: application/octet-stream
