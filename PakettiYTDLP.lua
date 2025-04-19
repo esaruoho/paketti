@@ -570,7 +570,7 @@ end
 -- Function to prompt for yt-dlp path
 function PakettiYTDLPPromptForYTDLPPath()
   renoise.app():show_warning("Please select the YT-DLP executable")
-  local file = renoise.app():prompt_for_filename_to_read({"*.*"}, "Select YT-DLP Executable")
+  local file = renoise.app():prompt_for_filename_to_read({"*"}, "Select YT-DLP Executable")
   if file then
     vb.views.yt_dlp_location.text = file
     preferences.PakettiYTDLP.PakettiYTDLPYT_DLPLocation.value = file

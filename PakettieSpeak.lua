@@ -170,7 +170,7 @@ local exe_button = vb:button{id="PakettieSpeak_exe_button",
         height = 24,
         text = PakettieSpeakRevertPath(eSpeak.executable),
         notifier = function()
-          local filename = renoise.app():prompt_for_filename_to_read({"*.*"}, "Select Executable")
+          local filename = renoise.app():prompt_for_filename_to_read({"*"}, "Select Executable")
           if filename ~= "" then
           
             eSpeak.executable = PakettieSpeakConvertPath(filename)

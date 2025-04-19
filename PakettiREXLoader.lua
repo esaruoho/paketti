@@ -410,7 +410,7 @@ end
 renoise.tool():add_menu_entry {
   name = "Main Menu:Tools:Paketti..:Instruments..:REX Tools..:Dump REX Structure to Text",
   invoke = function()
-    local file_path = renoise.app():prompt_for_filename_to_read({ "rex" }, "")
+    local file_path = renoise.app():prompt_for_filename_to_read({ "*.rex" }, "")
     if file_path then
       dump_rex_structure(file_path)
     end
