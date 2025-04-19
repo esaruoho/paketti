@@ -868,10 +868,15 @@ local function import_sf2(file_path)
 
             -- Apply the key range to the sample mapping
             local base_note = hdr.orig_pitch or 60
+            -- Clamp base_note to valid range (0-108, where 108 is C-9)
+            base_note = math.min(108, math.max(0, base_note))
             reno_smp.sample_mapping.base_note = base_note
 
             if zone_key_range then
-                reno_smp.sample_mapping.note_range = { zone_key_range.low, zone_key_range.high }
+                -- Clamp key range to valid range (0-119)
+                local low = math.min(119, math.max(0, zone_key_range.low))
+                local high = math.min(119, math.max(0, zone_key_range.high))
+                reno_smp.sample_mapping.note_range = { low, high }
             else
                 if is_drumkit then
                     reno_smp.sample_mapping.note_range = { base_note, base_note }
