@@ -19,8 +19,8 @@ jobs:
       # 2. Fail if any .lua file contains forbidden tokens
       - name: Check Lua for forbidden tokens
         run: |
-          if grep -R -n -E 'goto continue|::::continue::::' --include '*.lua' .; then
-            echo "::error::Forbidden token found in Lua files. Please remove 'goto continue' or '::::continue::::'."
+          if grep -R -n -E 'goto continue|::continue::' --include '*.lua' .; then
+            echo "::error::Forbidden token found in Lua files. Please remove 'goto continue' or '::continue::'."
             exit 1
           fi
 
