@@ -515,34 +515,32 @@ function PakettiYTDLPLoadVideoAudioIntoRenoise(download_dir, loop_mode, create_n
       local buffer = sample.sample_buffer
       
       -- Load the sample
-      if not buffer:load_from(file) then
-        PakettiYTDLPLogMessage("Failed to load sample: " .. file)
-        goto continue
-      end
-      
-      -- Wait for sample to be fully loaded
-      buffer:prepare_sample_data_changes()
-      buffer:finalize_sample_data_changes()
-      
-      -- Only try to normalize if we have valid sample data
-      if buffer.has_sample_data then
-        if normalize_selected_sample() then
-          PakettiYTDLPLogMessage("Successfully normalized sample: " .. file)
+      if buffer:load_from(file) then
+        -- Wait for sample to be fully loaded
+        buffer:prepare_sample_data_changes()
+        buffer:finalize_sample_data_changes()
+        
+        -- Only try to normalize if we have valid sample data
+        if buffer.has_sample_data then
+          if normalize_selected_sample() then
+            PakettiYTDLPLogMessage("Successfully normalized sample: " .. file)
+          else
+            PakettiYTDLPLogMessage("Failed to normalize sample: " .. file)
+          end
         else
-          PakettiYTDLPLogMessage("Failed to normalize sample: " .. file)
+          PakettiYTDLPLogMessage("Skipping normalization - no valid sample data")
         end
-      else
-        PakettiYTDLPLogMessage("Skipping normalization - no valid sample data")
-      end
 
-      sample.name = file:match("^.+/(.+)$")
-      instrument.name = sample.name
-      PakettiYTDLPLogMessage("Loaded sample: " .. file)
-      sample.loop_mode = loop_mode
+        sample.name = file:match("^.+/(.+)$")
+        instrument.name = sample.name
+        PakettiYTDLPLogMessage("Loaded sample: " .. file)
+        sample.loop_mode = loop_mode
+      else
+        PakettiYTDLPLogMessage("Failed to load sample: " .. file)
+      end
     else
       PakettiYTDLPLogMessage("File does not exist: " .. file)
     end
-    ::continue::
   end
 
   for _, file in ipairs(sample_files) do
