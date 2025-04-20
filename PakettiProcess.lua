@@ -586,34 +586,34 @@ function normalize_selected_sample()
         return false
     end
 
-    success, instrument = pcall(function() return song.selected_instrument end)
-    if not success or not instrument then
+    local success_instrument, instrument = pcall(function() return song.selected_instrument end)
+    if not success_instrument or not instrument then
         print("Could not access selected instrument")
         return false
     end
 
-    success, current_slice = pcall(function() return song.selected_sample_index end)
-    if not success or not current_slice or current_slice < 1 then
+    local success_slice, current_slice = pcall(function() return song.selected_sample_index end)
+    if not success_slice or not current_slice or current_slice < 1 then
         print("Could not access sample index")
         return false
     end
 
-    success, first_sample = pcall(function() return instrument.samples[1] end)
-    if not success or not first_sample then
+    local success_first, first_sample = pcall(function() return instrument.samples[1] end)
+    if not success_first or not first_sample then
         print("Could not access first sample")
         return false
     end
 
-    success, current_sample = pcall(function() return song.selected_sample end)
-    if not success or not current_sample then
+    local success_current, current_sample = pcall(function() return song.selected_sample end)
+    if not success_current or not current_sample then
         print("Could not access selected sample")
         return false
     end
 
-    success, has_sample_data = pcall(function() 
+    local success_data, has_sample_data = pcall(function() 
         return current_sample.sample_buffer and current_sample.sample_buffer.has_sample_data 
     end)
-    if not success or not has_sample_data then
+    if not success_data or not has_sample_data then
         print("No sample data available")
         return false
     end

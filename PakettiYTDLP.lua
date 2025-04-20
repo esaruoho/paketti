@@ -494,17 +494,22 @@ function PakettiYTDLPLoadVideoAudioIntoRenoise(download_dir, loop_mode, create_n
     PakettiYTDLPLogMessage("File is fully available: " .. file)
   end
 
-  local selected_instrument_index = renoise.song().selected_instrument_index
+  local song = renoise.song()
+  local selected_instrument_index = song.selected_instrument_index
 
   if create_new_instrument then
-    selected_instrument_index = renoise.song().selected_instrument_index + 1
-    renoise.song():insert_instrument_at(selected_instrument_index)
-    renoise.song().selected_instrument_index = selected_instrument_index
+    selected_instrument_index = selected_instrument_index + 1
+    song:insert_instrument_at(selected_instrument_index)
+    song.selected_instrument_index = selected_instrument_index
     pakettiPreferencesDefaultInstrumentLoader() -- Assuming this function is defined elsewhere
     PakettiYTDLPLogMessage("Created new instrument at index: " .. selected_instrument_index)
   end
 
-  local instrument = renoise.song().instruments[selected_instrument_index]
+  local instrument = song.instruments[selected_instrument_index]
+  if not instrument then
+    PakettiYTDLPLogMessage("Failed to get instrument at index: " .. selected_instrument_index)
+    return
+  end
 
   for _, file in ipairs(sample_files) do
     PakettiYTDLPLogMessage("Loading sample: " .. file)
@@ -512,37 +517,58 @@ function PakettiYTDLPLoadVideoAudioIntoRenoise(download_dir, loop_mode, create_n
     if f then
       f:close()
       local sample = instrument:insert_sample_at(1)
-      local buffer = sample.sample_buffer
-      
-      -- Load the sample
-      if buffer:load_from(file) then
-        -- Wait for sample to be fully loaded
-        buffer:prepare_sample_data_changes()
-        buffer:finalize_sample_data_changes()
-        
-        -- Only try to normalize if we have valid sample data
-        if buffer.has_sample_data then
-          if normalize_selected_sample() then
-            PakettiYTDLPLogMessage("Successfully normalized sample: " .. file)
+      if sample then
+        local buffer = sample.sample_buffer
+        if buffer then
+          -- Load the sample
+          if buffer:load_from(file) then
+            -- Wait for sample to be fully loaded
+            buffer:prepare_sample_data_changes()
+            buffer:finalize_sample_data_changes()
+
+            -- Set names and properties
+            sample.name = file:match("^.+/(.+)$")
+            instrument.name = sample.name
+            sample.loop_mode = loop_mode
+
+            -- Only try to normalize if we have valid sample data
+            if buffer.has_sample_data then
+              -- Ensure correct sample is selected
+              song.selected_instrument_index = selected_instrument_index
+              song.selected_sample_index = 1
+
+              -- Try to normalize
+              local success = pcall(function()
+                if normalize_selected_sample() then
+                  PakettiYTDLPLogMessage("Successfully normalized sample: " .. file)
+                else
+                  PakettiYTDLPLogMessage("Normalization returned false for: " .. file)
+                end
+              end)
+              
+              if not success then
+                PakettiYTDLPLogMessage("Error during normalization of: " .. file)
+              end
+            else
+              PakettiYTDLPLogMessage("Skipping normalization - no valid sample data for: " .. file)
+            end
+
+            PakettiYTDLPLogMessage("Successfully loaded and processed sample: " .. file)
           else
-            PakettiYTDLPLogMessage("Failed to normalize sample: " .. file)
+            PakettiYTDLPLogMessage("Failed to load sample from file: " .. file)
           end
         else
-          PakettiYTDLPLogMessage("Skipping normalization - no valid sample data")
+          PakettiYTDLPLogMessage("Failed to get sample buffer for file: " .. file)
         end
-
-        sample.name = file:match("^.+/(.+)$")
-        instrument.name = sample.name
-        PakettiYTDLPLogMessage("Loaded sample: " .. file)
-        sample.loop_mode = loop_mode
       else
-        PakettiYTDLPLogMessage("Failed to load sample: " .. file)
+        PakettiYTDLPLogMessage("Failed to insert sample for file: " .. file)
       end
     else
       PakettiYTDLPLogMessage("File does not exist: " .. file)
     end
   end
 
+  -- Move files to final destination
   for _, file in ipairs(sample_files) do
     local dest_file = download_dir .. "/" .. file:match("^.+/(.+)$")
     local success_move, err_move = PakettiYTDLPMove(file, dest_file)
@@ -556,6 +582,7 @@ function PakettiYTDLPLoadVideoAudioIntoRenoise(download_dir, loop_mode, create_n
   -- Clear the filenames.txt file
   PakettiYTDLPClearFile(filenames_file)
 
+  -- Switch to sample editor view
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
   PakettiYTDLPLogMessage("Samples loaded into Renoise.")
 end
