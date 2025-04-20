@@ -779,261 +779,205 @@ function PakettieSpeakToggleDialog()
   end
 end
 
-function PakettieSpeakCreateSampleProcess(text_to_render, dialog, vb)
-  -- This is the actual process function that will be run by ProcessSlicer
-  local executable = PakettieSpeakRevertPath(eSpeak.executable)
-  local path = os.tmpname() .. ".wav"
-
-  -- Update progress text
-  if dialog and dialog.visible then
-    vb.views.progress_text.text = "Running eSpeak text-to-speech engine..."
-  end
-  
-  -- Quote the executable and path to handle spaces
-  local cmd = '"' .. executable .. '"'
-  cmd = cmd .. " -a " .. eSpeak.amplitude.value
-  cmd = cmd .. " -v " .. LANGUAGE_SHORTS[eSpeak.language.value]
-
-  if eSpeak.voice.value ~= 1 then
-    cmd = cmd .. "+" .. VOICES[eSpeak.voice.value]
-  end
-
-  cmd = cmd .. " -b 1 -m "
-  cmd = cmd .. " -p " .. eSpeak.pitch.value
-  cmd = cmd .. " -s " .. eSpeak.speed.value
-  cmd = cmd .. " -g " .. eSpeak.word_gap.value
-  cmd = cmd .. " -k " .. eSpeak.capitals.value
-  cmd = cmd .. ' -w "' .. path .. '"'
-  cmd = cmd .. ' "' .. text_to_render .. '"'
-
-  print("Command to be executed:" .. cmd)
-
-  -- Allow UI to update
-  coroutine.yield()
-  
-  os.execute(cmd)
-
-  -- Allow UI to update
-  coroutine.yield()
-
-  if dialog and dialog.visible then
-    vb.views.progress_text.text = "Generated sample, preparing instrument..."
-  end
-
-  local song = renoise.song()
-  if not song then
-    if dialog and dialog.visible then
-      dialog:close()
-    end
-    renoise.app():show_error("Could not access the song. Please try again.")
-    return
-  end
-
-  local instrument = nil
-
-  -- Check if "Add Render to Current Instrument" is Enabled
-  if eSpeak.add_render_to_current_instrument.value then
-    -- First check if we have a valid selected instrument
-    if song.selected_instrument_index and song.selected_instrument_index > 0 then
-      instrument = song.instruments[song.selected_instrument_index]
-    end
-    
-    -- If no valid instrument found, create one
-    if not instrument then
-      -- Create a new instrument
-      instrument = song:insert_instrument_at(#song.instruments + 1)
-      if not instrument then
-        if dialog and dialog.visible then
-          dialog:close()
-        end
-        renoise.app():show_error("Failed to create a new instrument.")
-        return
-      end
-      song.selected_instrument_index = #song.instruments
-    end
-
-    -- Load pitchbend instrument if needed
-    if not eSpeak.dont_pakettify.value and #song.instruments == 0 then
-      pcall(pakettiPreferencesDefaultInstrumentLoader)
-    end
-
-    -- Add a New Sample Slot to the Current Instrument
-    local new_sample_index = #instrument.samples + 1
-    local sample = instrument:insert_sample_at(new_sample_index)
-    if not sample then
-      if dialog and dialog.visible then
-        dialog:close()
-      end
-      renoise.app():show_error("Failed to create a new sample slot.")
-      return
-    end
-    song.selected_sample_index = new_sample_index
-    sample.name = "eSpeak (" .. LANGUAGE_NAMES[eSpeak.language.value] .. ", " .. VOICES_NAMES[eSpeak.voice.value] .. ")"
-    print("Added new sample slot to current instrument:", sample.name)
-
-  elseif eSpeak.clear_all_samples.value then
-    -- Get or create instrument
-    instrument = song.selected_instrument
-    if not instrument then
-      instrument = song:insert_instrument_at(#song.instruments + 1)
-      if not instrument then
-        if dialog and dialog.visible then
-          dialog:close()
-        end
-        renoise.app():show_error("Failed to create a new instrument.")
-        return
-      end
-      song.selected_instrument_index = #song.instruments
-    end
-
-    -- Load pitchbend if needed
-    if not eSpeak.dont_pakettify.value then 
-      pcall(pakettiPreferencesDefaultInstrumentLoader)
-    end
-
-    -- Clear existing samples
-    while instrument and #instrument.samples > 0 do
-      instrument:delete_sample_at(1)
-    end
-
-    -- Add new sample
-    local sample = instrument:insert_sample_at(1)
-    if not sample then
-      if dialog and dialog.visible then
-        dialog:close()
-      end
-      renoise.app():show_error("Failed to create a new sample.")
-      return
-    end
-    song.selected_sample_index = 1
-    sample.name = "eSpeak (" .. LANGUAGE_NAMES[eSpeak.language.value] .. ", " .. VOICES_NAMES[eSpeak.voice.value] .. ")"
-    print("Cleared all samples and added new sample:", sample.name)
-
-  else
-    -- Create new instrument
-    local new_index = (song.selected_instrument_index or 0) + 1
-    instrument = song:insert_instrument_at(new_index)
-    if not instrument then
-      if dialog and dialog.visible then
-        dialog:close()
-      end
-      renoise.app():show_error("Failed to create a new instrument.")
-      return
-    end
-    song.selected_instrument_index = new_index
-
-    -- Load pitchbend if needed
-    if not eSpeak.dont_pakettify.value then 
-      pcall(pakettiPreferencesDefaultInstrumentLoader)
-    end
-
-    -- Make sure we have the selected instrument
-    instrument = song.selected_instrument
-    if not instrument then
-      if dialog and dialog.visible then
-        dialog:close()
-      end
-      renoise.app():show_error("Failed to access the created instrument.")
-      return
-    end
-
-    instrument.name = "eSpeak (" .. LANGUAGE_NAMES[eSpeak.language.value] .. ", " .. VOICES_NAMES[eSpeak.voice.value] .. ")"
-    local sample = instrument:insert_sample_at(1)
-    if not sample then
-      if dialog and dialog.visible then
-        dialog:close()
-      end
-      renoise.app():show_error("Failed to create a new sample.")
-      return
-    end
-    sample.name = "eSpeak (" .. LANGUAGE_NAMES[eSpeak.language.value] .. ", " .. VOICES_NAMES[eSpeak.voice.value] .. ")"
-    song.selected_sample_index = 1
-    print("Inserted new instrument and added sample:", sample.name)
-  end
-
-  -- Allow UI to update
-  coroutine.yield()
-
-  if dialog and dialog.visible then
-    vb.views.progress_text.text = "Generated sample. Normalizing volume..."
-  end
-
-  -- Make sure we have a valid selected sample before proceeding
-  local sample = song.selected_sample
-  if not sample then
-    if dialog and dialog.visible then
-      dialog:close()
-    end
-    renoise.app():show_error("Could not access the sample. Please try again.")
-    return
-  end
-
-  local buffer = sample.sample_buffer
-  if not buffer then
-    if dialog and dialog.visible then
-      dialog:close()
-    end
-    renoise.app():show_error("Could not access the sample buffer. Please try again.")
-    return
-  end
-
-  print("Loading path:" .. path)
-  if not PakettieSpeakFileExists(path) then
-    if dialog and dialog.visible then
-      dialog:close()
-    end
-    renoise.app():show_error("Sample was not rendered. An error happened.")
-    return
-  end
-
-  local success, result = buffer:load_from(path)
-  if not success then
-    if dialog and dialog.visible then
-      dialog:close()
-    end
-    renoise.app():show_error("Failed to load sample from " .. path)
-    return
-  end
-
-  -- Allow UI to update before normalizing
-  coroutine.yield()
-
-  if dialog and dialog.visible then
-    vb.views.progress_text.text = "Generated sample, normalizing volume..."
-  end
-
-  -- Normalize the sample safely
-  pcall(normalize_selected_sample)
-
-  -- Check for and remove any "Placeholder sample" safely
-  if instrument and instrument.samples then
-    for i = 1, #instrument.samples do
-      if instrument.samples[i] and instrument.samples[i].name == "Placeholder sample" then
-        pcall(function() instrument:delete_sample_at(i) end)
-        print("Removed placeholder sample")
-        break
-      end
-    end
-  end
-
-  -- Try to switch to sample editor view
-  pcall(function()
-    renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
-  end)
-  print("Sample loaded successfully.")
-
-  -- Clean up
-  if dialog and dialog.visible then
-    dialog:close()
-  end
-end
-
 function PakettieSpeakCreateSample(custom_text)
   local text_to_render = custom_text or eSpeak.text.value
   print(text_to_render)
 
   -- Create the process slicer with our process function
-  local process = ProcessSlicer(PakettieSpeakCreateSampleProcess)
+  local process = ProcessSlicer(function(text_to_render, dialog, vb)
+    -- This is the actual process function that will be run by ProcessSlicer
+    local executable = PakettieSpeakRevertPath(eSpeak.executable)
+    local path = os.tmpname() .. ".wav"
+
+    -- Update progress text
+    if dialog and dialog.visible then
+      vb.views.progress_text.text = "Running eSpeak text-to-speech engine..."
+    end
+    
+    -- Quote the executable and path to handle spaces
+    local cmd = '"' .. executable .. '"'
+    cmd = cmd .. " -a " .. eSpeak.amplitude.value
+    cmd = cmd .. " -v " .. LANGUAGE_SHORTS[eSpeak.language.value]
+
+    if eSpeak.voice.value ~= 1 then
+      cmd = cmd .. "+" .. VOICES[eSpeak.voice.value]
+    end
+
+    cmd = cmd .. " -b 1 -m "
+    cmd = cmd .. " -p " .. eSpeak.pitch.value
+    cmd = cmd .. " -s " .. eSpeak.speed.value
+    cmd = cmd .. " -g " .. eSpeak.word_gap.value
+    cmd = cmd .. " -k " .. eSpeak.capitals.value
+    cmd = cmd .. ' -w "' .. path .. '"'
+    cmd = cmd .. ' "' .. text_to_render .. '"'
+
+    print("Command to be executed:" .. cmd)
+
+    -- Allow UI to update
+    coroutine.yield()
+    
+    os.execute(cmd)
+
+    -- Allow UI to update
+    coroutine.yield()
+
+    if dialog and dialog.visible then
+      vb.views.progress_text.text = "Setting up instrument..."
+    end
+
+    -- Set up instrument and sample slots
+    local ok, err = pcall(function()
+      local song = renoise.song()
+      local instrument = nil
+
+      -- Check if "Add Render to Current Instrument" is Enabled
+      if eSpeak.add_render_to_current_instrument.value then
+        -- If No Instruments Exist, Load the Pitchbend Instrument
+        if not eSpeak.dont_pakettify.value and #song.instruments == 0 then
+          pakettiPreferencesDefaultInstrumentLoader()
+        end
+
+        instrument = song.selected_instrument
+        if not instrument then
+          error("No instrument selected")
+        end
+
+        -- Add a New Sample Slot to the Current Instrument
+        local new_sample_index = #instrument.samples + 1
+        local sample = instrument:insert_sample_at(new_sample_index)
+        song.selected_sample_index = new_sample_index
+        sample.name = "eSpeak (" .. LANGUAGE_NAMES[eSpeak.language.value] .. ", " .. VOICES_NAMES[eSpeak.voice.value] .. ")"
+        instrument.name = "eSpeak (" .. LANGUAGE_NAMES[eSpeak.language.value] .. ", " .. VOICES_NAMES[eSpeak.voice.value] .. ")"
+        print("Added new sample slot to current instrument:", sample.name)
+
+      elseif eSpeak.clear_all_samples.value then
+        -- Existing Behavior: Clear All Samples and Add One
+        instrument = song.selected_instrument
+        if not instrument then
+          error("No instrument selected")
+        end
+        
+        if not eSpeak.dont_pakettify.value then 
+          pakettiPreferencesDefaultInstrumentLoader() 
+        end 
+        
+        while #instrument.samples > 0 do
+          instrument:delete_sample_at(1)
+        end
+        
+        local sample = instrument:insert_sample_at(1)
+        song.selected_sample_index = 1
+        sample.name = "eSpeak (" .. LANGUAGE_NAMES[eSpeak.language.value] .. ", " .. VOICES_NAMES[eSpeak.voice.value] .. ")"
+        instrument.name = "eSpeak (" .. LANGUAGE_NAMES[eSpeak.language.value] .. ", " .. VOICES_NAMES[eSpeak.voice.value] .. ")"
+        print("Cleared all samples and added new sample:", sample.name)
+
+      else
+        -- Existing Behavior: Insert New Instrument and Add Sample
+        instrument = song:insert_instrument_at(song.selected_instrument_index + 1)
+        song.selected_instrument_index = song.selected_instrument_index + 1
+        if not eSpeak.dont_pakettify.value then 
+          pakettiPreferencesDefaultInstrumentLoader() 
+        end 
+        instrument = song.selected_instrument
+        instrument.name = "eSpeak (" .. LANGUAGE_NAMES[eSpeak.language.value] .. ", " .. VOICES_NAMES[eSpeak.voice.value] .. ")"
+        local sample = instrument:insert_sample_at(1)
+        sample.name = "eSpeak (" .. LANGUAGE_NAMES[eSpeak.language.value] .. ", " .. VOICES_NAMES[eSpeak.voice.value] .. ")"
+        song.selected_sample_index = 1
+        print("Inserted new instrument and added sample:", sample.name)
+      end
+    end)
+
+    if not ok then
+      if dialog and dialog.visible then
+        dialog:close()
+      end
+      renoise.app():show_error("Failed to set up instrument: " .. tostring(err))
+      return
+    end
+
+    -- Allow UI to update
+    coroutine.yield()
+
+    if dialog and dialog.visible then
+      vb.views.progress_text.text = "Loading sample..."
+    end
+
+    -- Load the sample
+    ok, err = pcall(function()
+      local song = renoise.song()
+      local sample = song.selected_sample
+      if not sample then error("No sample selected") end
+      
+      local buffer = sample.sample_buffer
+      if not buffer then error("No sample buffer available") end
+
+      if not PakettieSpeakFileExists(path) then
+        error("Sample was not rendered")
+      end
+
+      print("Loading sample from:", path)
+      local success = buffer:load_from(path)
+      if not success then
+        error("Failed to load sample from file")
+      end
+
+      -- Wait for the sample to be fully loaded
+      buffer:prepare_sample_data_changes()
+      buffer:finalize_sample_data_changes()
+
+      -- Ensure proper naming after loading
+      local current_instrument = song.selected_instrument
+      if current_instrument then
+        current_instrument.name = "eSpeak (" .. LANGUAGE_NAMES[eSpeak.language.value] .. ", " .. VOICES_NAMES[eSpeak.voice.value] .. ")"
+      end
+      if sample then
+        sample.name = "eSpeak (" .. LANGUAGE_NAMES[eSpeak.language.value] .. ", " .. VOICES_NAMES[eSpeak.voice.value] .. ")"
+      end
+      
+      -- Now that sample is loaded, try to normalize
+      if dialog and dialog.visible then
+        vb.views.progress_text.text = "Normalizing volume..."
+      end
+
+      -- Try to normalize now that we have a valid sample
+      if not normalize_selected_sample() then
+        print("Normalization skipped - no valid sample")
+      end
+
+      -- Double check names one final time
+      current_instrument = song.selected_instrument
+      sample = song.selected_sample
+      if current_instrument then
+        current_instrument.name = "eSpeak (" .. LANGUAGE_NAMES[eSpeak.language.value] .. ", " .. VOICES_NAMES[eSpeak.voice.value] .. ")"
+      end
+      if sample then
+        sample.name = "eSpeak (" .. LANGUAGE_NAMES[eSpeak.language.value] .. ", " .. VOICES_NAMES[eSpeak.voice.value] .. ")"
+      end
+    end)
+
+    if not ok then
+      if dialog and dialog.visible then
+        dialog:close()
+      end
+      renoise.app():show_error("Failed to process sample: " .. tostring(err))
+      return
+    end
+
+    -- Allow UI to update
+    coroutine.yield()
+
+    -- Try to switch view
+    pcall(function()
+      renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+    end)
+
+    print("Sample processing completed")
+
+    -- Clean up
+    if dialog and dialog.visible then
+      dialog:close()
+    end
+  end)
   
   -- Create the progress dialog
   local dialog, vb = process:create_dialog("Generating Speech")

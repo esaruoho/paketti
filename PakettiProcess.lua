@@ -579,27 +579,61 @@ renoise.tool():add_midi_mapping{name="Paketti:Normalize All Instruments to -12dB
 local PROCESS_YIELD_INTERVAL = 1.5  -- Adjust this value to control how often the process yields
 
 function normalize_selected_sample()
-    local song = renoise.song()
-    local instrument = song.selected_instrument
-    local current_slice = song.selected_sample_index
-    local first_sample = instrument.samples[1]
-    local current_sample = song.selected_sample
+    -- Use pcall for all potentially dangerous operations
+    local success, song = pcall(function() return renoise.song() end)
+    if not success then
+        print("Could not access song")
+        return false
+    end
+
+    success, instrument = pcall(function() return song.selected_instrument end)
+    if not success or not instrument then
+        print("Could not access selected instrument")
+        return false
+    end
+
+    success, current_slice = pcall(function() return song.selected_sample_index end)
+    if not success or not current_slice or current_slice < 1 then
+        print("Could not access sample index")
+        return false
+    end
+
+    success, first_sample = pcall(function() return instrument.samples[1] end)
+    if not success or not first_sample then
+        print("Could not access first sample")
+        return false
+    end
+
+    success, current_sample = pcall(function() return song.selected_sample end)
+    if not success or not current_sample then
+        print("Could not access selected sample")
+        return false
+    end
+
+    success, has_sample_data = pcall(function() 
+        return current_sample.sample_buffer and current_sample.sample_buffer.has_sample_data 
+    end)
+    if not success or not has_sample_data then
+        print("No sample data available")
+        return false
+    end
+
     local last_yield_time = os.clock()
     
     -- Function to check if we should yield
     local function should_yield()
-      local current_time = os.clock()
-      if current_time - last_yield_time >= PROCESS_YIELD_INTERVAL then
-        last_yield_time = current_time
-        return true
-      end
-      return false
+        local current_time = os.clock()
+        if current_time - last_yield_time >= PROCESS_YIELD_INTERVAL then
+            last_yield_time = current_time
+            return true
+        end
+        return false
     end
     
     -- Check if we have valid data
-    if not current_sample or not current_sample.sample_buffer.has_sample_data then
-        renoise.app():show_status("No sample available")
-        return
+    if not current_sample or not current_sample.sample_buffer or not current_sample.sample_buffer.has_sample_data then
+        print("No sample data available")
+        return false
     end
 
     -- Create ProcessSlicer instance and dialog
