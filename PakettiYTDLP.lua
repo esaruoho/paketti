@@ -757,6 +757,15 @@ function PakettiYTDLPDialogContent()
             text = preferences.PakettiYTDLP.PakettiYTDLPOutputDirectory.value
           },
           vb:button { text = "Browse", notifier = PakettiYTDLPPromptForOutputDir },
+          vb:button { text = "Open Path", notifier = function()
+            local path = vb.views.output_dir.text
+            if path and path ~= "" and path ~= "Set this yourself, please." then
+              os.execute('open "' .. path .. '"')
+              PakettiYTDLPLogMessage("Opening path: " .. path)
+            else
+              renoise.app():show_warning("Please set a valid output directory first")
+            end
+          end },
         },
         vb:row {
           vb:textfield {
