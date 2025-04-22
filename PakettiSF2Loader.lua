@@ -608,6 +608,7 @@ local function import_sf2(file_path)
           else
             -- Fill sample buffer
             local buf = reno_smp.sample_buffer
+            buf:prepare_sample_data_changes()  -- Prepare before setting sample data
             if is_stereo then
               for f_i=1, #sample_data do
                 buf:set_sample_data(1, f_i, sample_data[f_i].left)
@@ -622,6 +623,7 @@ local function import_sf2(file_path)
                 if f_i % 100000 == 0 then coroutine.yield() end
               end
             end
+            buf:finalize_sample_data_changes()  -- Finalize after all sample data is set
             reno_smp.name = hdr.name
 
             -- Get parameters from both instrument and preset zones
@@ -809,6 +811,18 @@ reno_smp.sample_mapping.velocity_range = { vel_low, vel_high }
             -- Apply all values to the sample
             reno_smp.transpose = coarse_tune
             reno_smp.fine_tune = fine_tune
+
+            -- After first sample import, check for and remove placeholder if it exists
+            if not is_drumkit and is_first_overwritten then
+              for i=1, #r_inst.samples do
+                local s = r_inst.samples[i]
+                if s and s.name == "Placeholder sample" and s.sample_buffer.number_of_frames == 2 then
+                  print("Removing 2-frame placeholder sample")
+                  r_inst:delete_sample_at(i)
+                  break
+                end
+              end
+            end
           end
         end
         
