@@ -1,6 +1,7 @@
 --------------------------------------------------------------------------------
 -- SF2 Importer with Detailed Debugging of Panning, Transpose, Fine-Tune, and Key Ranges
 --------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 
 local _DEBUG = true
 local function dprint(...)
@@ -9,17 +10,13 @@ local function dprint(...)
   end
 end
 
--- Convert a 16-bit unsigned generator value to a signed integer
+-- Convert a 16-bit unsigned generator value to a signed integer (-120..120)
 local function to_signed(val)
-  -- First ensure val is in 0-65535 range
   val = val % 65536
-  -- Then convert to signed, but scale it to -120..120 range
   if val >= 32768 then
-    -- Scale negative range from -120 to 0
-    local neg = val - 65536  -- This gives us -32768 to -1
+    local neg = val - 65536
     return (neg * 120) / 32768
   else
-    -- Scale positive range from 0 to 120
     return (val * 120) / 32768
   end
 end
@@ -80,245 +77,131 @@ local SF2_PARAM_NAMES = {
     [58] = "OverridingRootKey"
 }
 
--- Helper function to format parameter value based on its type
+-- Format generator values for debug printing
 local function format_param_value(param_id, value)
     if param_id == 43 then -- KeyRange
         local low = value % 256
         local high = math.floor(value / 256) % 256
         return string.format("%d-%d", low, high)
-    elseif param_id == 54 then -- SampleModes
+    elseif param_id == 44 then -- VelRange
+        local low = value % 256
+        local high = math.floor(value / 256) % 256
+        return string.format("%d-%d", low, high)
+    elseif param_id == 54 then
         local modes = {"None", "Loop", "LoopBidi"}
-        return modes[value + 1] or "Unknown"
-    elseif param_id == 17 then -- Pan
-        local pan_val = to_signed(value)
-        return string.format("%d", pan_val)
-    elseif param_id == 51 or param_id == 52 then -- Tuning
-        if value >= 32768 then
-            return tostring(value - 65536)
-        end
-        return tostring(value)
+        return modes[value+1] or "Unknown"
+    elseif param_id == 17 then
+        return tostring(to_signed(value))
+    elseif param_id == 51 or param_id == 52 then
+        return tostring((value>=32768) and (value-65536) or value)
     else
         return tostring(value)
     end
 end
 
---------------------------------------------------------------------------------
--- Utility: trim_string, read_u16_le, read_u32_le, read_s16_le
---------------------------------------------------------------------------------
-local function trim_string(s)
-  return s:gsub("\0", ""):match("^%s*(.-)%s*$")
-end
+-- Basic binary readers and utils
+local function trim_string(s) return s:gsub("\0","") end
+local function read_u16_le(data,pos) return data:byte(pos) + data:byte(pos+1)*256 end
+local function read_u32_le(data,pos) return data:byte(pos) + data:byte(pos+1)*256 + data:byte(pos+2)*65536 + data:byte(pos+3)*16777216 end
+local function read_s16_le(data,pos) local v=read_u16_le(data,pos) return v>=32768 and v-65536 or v end
+local function clamp(v,minv,maxv) if v<minv then return minv elseif v>maxv then return maxv else return v end end
 
--- Helper function to get MIDI note name
-local function get_note_name(midi_note)
-    local notes = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"}
-    local octave = math.floor(midi_note / 12) - 1
-    local note_index = (midi_note % 12) + 1
-    return string.format("%s%d", notes[note_index], octave)
-end
-
-local function read_u16_le(data, pos)
-  local b1 = data:byte(pos)
-  local b2 = data:byte(pos+1)
-  return b1 + b2*256
-end
-
-local function read_u32_le(data, pos)
-  local b1 = data:byte(pos)
-  local b2 = data:byte(pos+1)
-  local b3 = data:byte(pos+2)
-  local b4 = data:byte(pos+3)
-  return b1 + b2*256 + b3*65536 + b4*16777216
-end
-
-local function read_s16_le(data, pos)
-  local val = read_u16_le(data, pos)
-  if val >= 32768 then
-    return val - 65536
-  else
-    return val
-  end
-end
-
--- Clamp a value between min and max
-local function clamp(value, min, max)
-    if value < min then return min end
-    if value > max then return max end
-    return value
-end
-
---------------------------------------------------------------------------------
--- Step 1: Read Sample Headers (SHDR)
---------------------------------------------------------------------------------
+-- Read sample headers
 local function read_sample_headers(data)
-  local shdr_pos = data:find("shdr", 1, true)
-  if not shdr_pos then
-    renoise.app():show_error("SF2 file missing 'shdr' chunk.")
-    return nil
+  local pos = data:find("shdr",1,true)
+  if not pos then return renoise.app():show_error("Missing shdr chunk") end
+  local size = read_u32_le(data,pos+4)
+  local p = pos+8
+  local rec = 46
+  local hdrs={}
+  while p+rec-1 <= pos+7+size do
+    local name=data:sub(p,p+19); p=p+20
+    local s_start=read_u32_le(data,p);p=p+4
+    local s_end=read_u32_le(data,p);p=p+4
+    local loop_start=read_u32_le(data,p);p=p+4
+    local loop_end=read_u32_le(data,p);p=p+4
+    local rate=read_u32_le(data,p);p=p+4
+    local pitch=data:byte(p);p=p+1
+    local corr=data:byte(p);p=p+1;if corr>=128 then corr=corr-256 end
+    local link=read_u16_le(data,p);p=p+2
+    local stype=read_u16_le(data,p);p=p+2
+    local n=trim_string(name)
+    if n:find("EOS") then break end
+    table.insert(hdrs,{name=n,s_start=s_start,s_end=s_end,loop_start=loop_start,loop_end=loop_end,sample_rate=rate,orig_pitch=pitch,pitch_corr=corr,sample_link=link,sample_type=stype})
   end
-
-  local shdr_size = read_u32_le(data, shdr_pos + 4)
-  local shdr_data_start = shdr_pos + 8
-  local record_size = 46
-  local headers = {}
-
-  local pos = shdr_data_start
-  while (pos + record_size - 1) <= (shdr_data_start + shdr_size - 1) do
-    local sample_name = data:sub(pos, pos + 19)
-    pos = pos + 20
-    local s_start = read_u32_le(data, pos) ; pos = pos + 4
-    local s_end   = read_u32_le(data, pos) ; pos = pos + 4
-    local loop_start = read_u32_le(data, pos) ; pos = pos + 4
-    local loop_end   = read_u32_le(data, pos) ; pos = pos + 4
-    local sample_rate = read_u32_le(data, pos) ; pos = pos + 4
-    local orig_pitch  = data:byte(pos) ; pos = pos + 1
-    local pitch_corr  = data:byte(pos) ; pos = pos + 1
-    if pitch_corr >= 128 then pitch_corr = pitch_corr - 256 end
-    local sample_link = read_u16_le(data, pos) ; pos = pos + 2
-    local sample_type = read_u16_le(data, pos) ; pos = pos + 2
-
-    local name = trim_string(sample_name)
-    if name:find("EOS") then break end
-
-    headers[#headers + 1] = {
-      name        = name,
-      s_start     = s_start,
-      s_end       = s_end,
-      loop_start  = loop_start,
-      loop_end    = loop_end,
-      sample_rate = sample_rate,
-      orig_pitch  = orig_pitch,
-      pitch_corr  = pitch_corr,
-      sample_link = sample_link,
-      sample_type = sample_type,
-    }
-  end
-
-  print("Total sample headers (excluding EOS): " .. #headers)
-  return headers
+  dprint("Sample headers:",#hdrs)
+  return hdrs
 end
 
---------------------------------------------------------------------------------
--- Step 2: Parse Instrument Zones (INST, IBAG, IGEN)
---------------------------------------------------------------------------------
+-- Parse instruments and their zones
 local function read_instruments(data)
-  local pdta_pos = data:find("pdta", 1, true)
-  if not pdta_pos then
-    print("No pdta chunk found for instrument analysis.")
-    return {}
+  local pdta=data:find("pdta",1,true)
+  if not pdta then return {} end
+  local inst=data:find("inst",pdta+8,true)
+  if not inst then return {} end
+  local n=read_u32_le(data,inst+4)
+  local p=inst+8
+  local instruments={}
+  while p+21 <= inst+7+n do
+    local name=trim_string(data:sub(p,p+19))
+    local bag=read_u16_le(data,p+20)
+    table.insert(instruments,{name=name,bag_index=bag})
+    p=p+22
   end
-
-  local inst_pos = data:find("inst", pdta_pos + 8, true)
-  if not inst_pos then
-    print("No inst chunk found.")
-    return {}
+  -- ibag
+  local ibag=data:find("ibag",pdta+8,true)
+  local ibag_n=read_u32_le(data,ibag+4)
+  local bpos=ibag+8
+  local ibags={}
+  while bpos+3 <= ibag+7+ibag_n do
+    table.insert(ibags,{gen_index=read_u16_le(data,bpos),mod_index=read_u16_le(data,bpos+2)})
+    bpos=bpos+4
   end
-
-  local inst_size = read_u32_le(data, inst_pos + 4)
-  local inst_data_start = inst_pos + 8
-  local inst_record_size = 22
-  local instruments = {}
-
-  local pos = inst_data_start
-  while (pos + inst_record_size - 1) <= (inst_data_start + inst_size - 1) do
-    local inst_name = trim_string(data:sub(pos, pos + 19))
-    local bag_index = read_u16_le(data, pos + 20)
-    instruments[#instruments + 1] = { name = inst_name, bag_index = bag_index }
-    pos = pos + inst_record_size
+  -- igen
+  local igen=data:find("igen",pdta+8,true)
+  local igen_n=read_u32_le(data,igen+4)
+  local gpos=igen+8
+  local gens={}
+  while gpos+3 <= igen+7+igen_n do
+    table.insert(gens,{op=read_u16_le(data,gpos),amount=read_u16_le(data,gpos+2)})
+    gpos=gpos+4
   end
-
-  local ibag_pos = data:find("ibag", pdta_pos + 8, true)
-  if not ibag_pos then
-    print("No ibag chunk found.")
-    return instruments
-  end
-
-  local ibag_size = read_u32_le(data, ibag_pos + 4)
-  local ibag_data_start = ibag_pos + 8
-  local ibag_record_size = 4
-  local ibags = {}
-
-  pos = ibag_data_start
-  while (pos + ibag_record_size - 1) <= (ibag_data_start + ibag_size - 1) do
-    local gen_index = read_u16_le(data, pos)
-    local mod_index = read_u16_le(data, pos + 2)
-    ibags[#ibags + 1] = { gen_index = gen_index, mod_index = mod_index }
-    pos = pos + ibag_record_size
-  end
-
-  local igen_pos = data:find("igen", pdta_pos + 8, true)
-  if not igen_pos then
-    print("No igen chunk found.")
-    return instruments
-  end
-
-  local igen_size = read_u32_le(data, igen_pos + 4)
-  local igen_data_start = igen_pos + 8
-  local igen_record_size = 4
-  local igens = {}
-
-  pos = igen_data_start
-  while (pos + igen_record_size - 1) <= (igen_data_start + igen_size - 1) do
-    local op = read_u16_le(data, pos)
-    local amount = read_u16_le(data, pos + 2)
-    igens[#igens + 1] = { op = op, amount = amount }
-    pos = pos + igen_record_size
-  end
-
-  local instruments_zones = {}
-  for i, inst in ipairs(instruments) do
-    local zones = {}
-    local bag_start = inst.bag_index + 1
-    local bag_end = #ibags
-    if i < #instruments then
-      bag_end = instruments[i + 1].bag_index
+  -- Build zones
+  local result={}
+  for i,inst in ipairs(instruments) do
+    local zones={}
+    local start_b=inst.bag_index+1
+    local end_b=(i<#instruments and instruments[i+1].bag_index) or #ibags
+    for bi=start_b,end_b do
+      local bag=ibags[bi]
+      local params={}
+      local gstart=bag.gen_index+1
+      local gend=(bi<#ibags and ibags[bi+1].gen_index) or #gens
+      for gi=gstart,gend do
+        local g=gens[gi]
+        params[g.op]=g.amount
+        dprint("Inst param",g.op,format_param_value(g.op,g.amount))
+      end
+      local zone={params=params}
+      -- key range
+      if params[43] then
+        local kr=params[43]
+        zone.key_range={low=clamp(kr%256,0,119),high=clamp(math.floor(kr/256)%256,0,119)}
+      end
+      -- velocity range
+      if params[44] then
+        local vr=params[44]
+        zone.vel_range={low=clamp(vr%256,1,127),high=clamp(math.floor(vr/256)%256,1,127)}
+        dprint("VelRange for zone",zone.vel_range.low.."-"..zone.vel_range.high)
+      end
+      -- sample ID
+      if params[53] then zone.sample_id=params[53] end
+      table.insert(zones,zone)
     end
-    for b = bag_start, bag_end do
-      local bag = ibags[b]
-      local zone_params = {}
-      local gen_start = bag.gen_index + 1
-      local gen_end = #igens
-      if b < #ibags then
-        gen_end = ibags[b + 1].gen_index
-      end
-      for g = gen_start, gen_end do
-        local gen = igens[g]
-        if gen then
-          zone_params[gen.op] = gen.amount
-          print("Found instrument param: op=" .. gen.op .. ", amount=" .. gen.amount)
-        end
-      end
-      local zone = { params = zone_params }
-      -- Key range
-      if zone_params[43] then
-        local kr = zone_params[43]
-        local orig_low = kr % 256
-        local orig_high = math.floor(kr / 256) % 256
-        -- Clamp values to 0-119 range
-        zone.key_range = {
-          low = math.min(119, math.max(0, orig_low)),
-          high = math.min(119, math.max(0, orig_high))
-        }
-      end
-      -- Velocity range
-      if zone_params[42] then
-        local vr = zone_params[42]
-        zone.vel_range = {
-          low = vr % 256,
-          high = math.floor(vr / 256) % 256
-        }
-      end
-      -- Sample ID
-      if zone_params[53] then
-        zone.sample_id = zone_params[53]  -- 0-based index
-      end
-      zones[#zones + 1] = zone
-    end
-    instruments_zones[i] = { name = inst.name, zones = zones }
+    table.insert(result,{name=inst.name,zones=zones})
   end
-
-  print("Parsed " .. #instruments .. " instruments with zones.")
-  return instruments_zones
+  dprint("Parsed instruments:",#result)
+  return result
 end
 
 --------------------------------------------------------------------------------
@@ -877,6 +760,27 @@ local function import_sf2(file_path)
                 local low = math.min(119, math.max(0, zone_key_range.low))
                 local high = math.min(119, math.max(0, zone_key_range.high))
                 reno_smp.sample_mapping.note_range = { low, high }
+                -- Apply velocity range: instrument zone overrides preset zone, defaults to full 1–127
+local vel_low, vel_high = 1, 127
+local vr = nil
+
+-- instrument‑level has priority
+if inst_zone_params[44] then
+  vr = inst_zone_params[44]
+-- then preset level
+elseif zone_params[44] then
+  vr = zone_params[44]
+end
+
+if vr then
+  -- low byte = low, high byte = high
+  vel_low  = clamp(vr % 256,  1, 127)
+  vel_high = clamp(math.floor(vr/256) % 256, 1, 127)
+end
+
+reno_smp.sample_mapping.velocity_range = { vel_low, vel_high }
+
+
             else
                 if is_drumkit then
                     reno_smp.sample_mapping.note_range = { base_note, base_note }
@@ -885,7 +789,7 @@ local function import_sf2(file_path)
                 end
             end
 
-            -- Print comprehensive debug info
+-- Print comprehensive debug info
             print("TUNING DEBUG for " .. hdr.name .. ": source=" .. tuning_source .. 
                   ", coarse=" .. raw_coarse .. "->" .. coarse_tune .. 
                   ", fine=" .. raw_fine .. "->" .. fine_tune .. 
