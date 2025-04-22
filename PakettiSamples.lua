@@ -3949,9 +3949,10 @@ function toggleSampleDetails()
     return
   end
 
-  preferences.pakettiShowSampleDetails.value = not preferences.pakettiShowSampleDetails.value
+  preferences.pakettiShowSampleDetails = not preferences.pakettiShowSampleDetails
+  preferences:save_as("preferences.xml")  -- Save after toggle
   
-  if preferences.pakettiShowSampleDetails.value then
+  if preferences.pakettiShowSampleDetails then
     startSampleDetailsTimer()
     renoise.app():show_status("Sample selection info display: ON")
   else
@@ -3960,14 +3961,20 @@ function toggleSampleDetails()
   end
 end
 
--- Add observer for window changes
+local was_in_sample_editor = false
+
 renoise.app().window.active_middle_frame_observable:add_notifier(function()
-  if not isSampleEditorVisible() then
+  local now_in_sample_editor = isSampleEditorVisible()
+  
+  if was_in_sample_editor and not now_in_sample_editor then
     stopSampleDetailsTimer()
-    preferences.pakettiShowSampleDetails.value = false
-  elseif preferences.pakettiShowSampleDetails.value then
+    preferences.pakettiShowSampleDetails = false
+    preferences:save_as("preferences.xml")
+  elseif now_in_sample_editor and preferences.pakettiShowSampleDetails then
     startSampleDetailsTimer()
   end
+  
+  was_in_sample_editor = now_in_sample_editor
 end)
 
 renoise.tool():add_keybinding{name = "Sample Editor:Paketti:Toggle Sample Selection Info",invoke = toggleSampleDetails}
@@ -3977,7 +3984,7 @@ renoise.tool().app_release_document_observable:add_notifier(function() stopSampl
 
 -- Initialize sample details display based on preference
 function initializeSampleDetails()
-  if preferences.pakettiShowSampleDetails.value and isSampleEditorVisible() then
+  if preferences.pakettiShowSampleDetails and isSampleEditorVisible() then
     startSampleDetailsTimer()
   end
 end
@@ -4603,6 +4610,4 @@ renoise.tool():add_menu_entry{name = "Instrument Box:Paketti..:Fill Empty Sample
 renoise.tool():add_menu_entry{name = "Sample Navigator:Paketti..:Fill Empty Sample Slots (Randomized Folder)",invoke = function() fillEmptySampleSlots() end}
 renoise.tool():add_menu_entry{name = "Sample Keyzones:Paketti..:Fill Empty Sample Slots (Randomized Folder)",invoke = function() fillEmptySampleSlots() end}
 renoise.tool():add_keybinding{name = "Global:Paketti:Fill Empty Sample Slots (Randomized Folder)",invoke = function() fillEmptySampleSlots() end}
-
-
 

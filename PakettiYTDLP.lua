@@ -917,7 +917,7 @@ function PakettiYTDLPDialogContent()
   logview = vb:multiline_textfield {
     id = "log_view",
     text = "",
-    width = 630,
+    width = 690,
     height = 500
   }
 
@@ -936,7 +936,7 @@ function PakettiYTDLPDialogContent()
 
   local dialog_content = vb:column {
     id = "main_column",
-    width = 700,
+    width = 690,
     margin = 1,
     vb:text { id="hi", text = "YT-DLP is able to download content from:", font="bold"},
     vb:text{id="List",text="YouTube, Twitter, Facebook, SoundCloud, Bandcamp and Instagram (tested).", font = "bold" },

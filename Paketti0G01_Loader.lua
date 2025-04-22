@@ -1190,10 +1190,11 @@ horizontal_rule(),
     vb:row {
       vb:text{text="Show Sample Selection",width=150, style="strong",font="bold"},
       vb:switch{items={"Off","On"},
-        value=preferences.pakettiShowSampleDetails.value and 2 or 1,
+        value=preferences.pakettiShowSampleDetails and 2 or 1,
         width=200,
         notifier=function(value) 
-          preferences.pakettiShowSampleDetails.value=(value==2) 
+          preferences.pakettiShowSampleDetails=(value==2)
+          print(string.format("Show Sample Selection changed to: %s", tostring(preferences.pakettiShowSampleDetails)))
         end
       }
   },

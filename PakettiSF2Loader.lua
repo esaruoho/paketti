@@ -965,7 +965,6 @@ local hook = {
 
 if not renoise.tool():has_file_import_hook("sample", {"sf2"}) then
   renoise.tool():add_file_import_hook(hook)
-  print("Added SF2 Import Hook")
 end
 
 renoise.tool():add_menu_entry {
