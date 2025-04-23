@@ -593,8 +593,109 @@ renoise.tool():add_keybinding{name="Global:Paketti:Select LoopBlock Forwards (Ne
 
 local function PakettiSetEditStep(value)
   renoise.song().transport.edit_step=value
---  renoise.app():show_status("Edit Step set to " .. tostring(value))
 end
+
+-- Function to double the edit step with bounds checking
+local function PakettiDoubleEditStep()
+  local t = renoise.song().transport
+  local current = t.edit_step
+  
+  -- Special case for 0 and 1
+  if current == 0 then
+    t.edit_step = 1
+    renoise.app():show_status("EditStep set to 1")
+    return
+  end
+  
+  local doubled = current * 2
+  if doubled > 64 then
+    renoise.app():show_status("Cannot double EditStep: would exceed maximum of 64")
+    return
+  end
+  
+  t.edit_step = doubled
+  renoise.app():show_status("EditStep doubled to " .. doubled)
+end
+
+-- Function to halve the edit step with bounds checking
+local function PakettiHalveEditStep()
+  local t = renoise.song().transport
+  local current = t.edit_step
+  
+  -- Special case for 0 and 1
+  if current <= 1 then
+    t.edit_step = 1
+    renoise.app():show_status("Cannot halve EditStep: already at minimum of 1")
+    return
+  end
+  
+  local halved = math.floor(current / 2)
+  t.edit_step = halved
+  renoise.app():show_status("EditStep halved to " .. halved)
+end
+
+-- Function to adjust edit step by a fixed amount with bounds checking
+local function PakettiAdjustEditStep(amount)
+  local t = renoise.song().transport
+  local current = t.edit_step
+  
+  -- Special handling for 0
+  if current == 0 then
+    if amount > 0 then
+      -- When increasing from 0, jump to the amount if possible
+      local target = math.min(amount, 64)
+      t.edit_step = target
+      renoise.app():show_status("EditStep set to " .. target)
+      return
+    else
+      -- When decreasing from 0, set to 1 first
+      current = 1
+    end
+  end
+  
+  -- Special handling for 1 when increasing by 2, 4 or 8
+  if current == 1 and (amount == 2 or amount == 4 or amount == 8) then
+    local target = amount
+    t.edit_step = target
+    renoise.app():show_status("EditStep set to " .. target)
+    return
+  end
+  
+  -- Special handling for 2, 4 or 8 when decreasing by the same amount
+  if (current == 2 and amount == -2) or 
+     (current == 4 and amount == -4) or 
+     (current == 8 and amount == -8) then
+    t.edit_step = 1
+    renoise.app():show_status("EditStep set to 1")
+    return
+  end
+  
+  local new_value = current + amount
+  
+  -- Bounds checking
+  if new_value < 1 then
+    renoise.app():show_status("Cannot decrease EditStep: already at minimum of 1")
+    return
+  elseif new_value > 64 then
+    renoise.app():show_status("Cannot increase EditStep: would exceed maximum of 64")
+    return
+  end
+  
+  t.edit_step = new_value
+  renoise.app():show_status("EditStep " .. (amount > 0 and "increased" or "decreased") .. " to " .. new_value)
+end
+
+-- Add keybindings for the new functions
+renoise.tool():add_keybinding{name="Global:Paketti:Double EditStep",invoke=function() PakettiDoubleEditStep() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Halve EditStep",invoke=function() PakettiHalveEditStep() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Increase EditStep by 1",invoke=function() PakettiAdjustEditStep(1) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Decrease EditStep by 1",invoke=function() PakettiAdjustEditStep(-1) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Increase EditStep by 2",invoke=function() PakettiAdjustEditStep(2) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Decrease EditStep by 2",invoke=function() PakettiAdjustEditStep(-2) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Increase EditStep by 4",invoke=function() PakettiAdjustEditStep(4) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Decrease EditStep by 4",invoke=function() PakettiAdjustEditStep(-4) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Increase EditStep by 8",invoke=function() PakettiAdjustEditStep(8) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Decrease EditStep by 8",invoke=function() PakettiAdjustEditStep(-8) end}
 
 -- Keybinding definitions from 00 to 64
 for i=0,64 do
