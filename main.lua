@@ -260,6 +260,7 @@ timed_require("PakettiPatternLength")
 timed_require("PakettiKeyzoneDistributor")
 timed_require("PakettiHexSliceLoop")
 timed_require("PakettiMergeInstruments")
+timed_require("PakettiXMImport")
 print(string.format("Total load time: %.3f seconds", os.clock() - init_time))
 ------------------------------------------------
 local themes_path = renoise.tool().bundle_path .. "Themes/"

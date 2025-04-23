@@ -30,7 +30,7 @@ local dialog_content = vb:column{
 
   vb:text{text = "Thanks for the support / assistance:", style = "strong", font = "bold"},
   vb:multiline_textfield{width = textfield_width, height = 40, text = 
-  "There's probably tons more, but: dBlue, danoise, cortex, pandabot, ffx, Joule, Avaruus, astu/flo, syflom, Protman, vV, Bantai, taktik, Snowrobot, MXB, Jenoki, Kmaki, aleksip, Unless, martblek, schmuzoo, Sandroid, ylmrx and the whole Renoise community."},
+  "dBlue, danoise, cortex, pandabot, ffx, Joule, Avaruus, astu/flo, syflom, Protman, vV, Bantai, taktik, Snowrobot, MXB, Jenoki, Kmaki, aleksip, Unless, martblek, schmuzoo, Sandroid, ylmrx, onetwentyeight and the whole Renoise community."},
 
   vb:text{text = "Ideas provided by:", style = "strong", font = "bold"},
   vb:multiline_textfield{width = textfield_width, height = 80, text = 
