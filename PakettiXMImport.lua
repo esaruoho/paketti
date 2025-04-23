@@ -1,4 +1,4 @@
--- XM Importer for Renoise v2.1 (Lua 5.1 compliant, full parsing with debug output)
+-- Paketti XM Importer for Renoise v2.1 (Lua 5.1 compliant, optimized bulk sample import)
 
 local renoise = renoise
 local rns = nil
@@ -113,29 +113,24 @@ local function import_xm_file(filename)
   end
 
   -- HEADER
-  local id_text         = read_string(f,17)
-  local module_name     = read_string(f,20)
-  local magic           = read_byte(f)
-  local tracker_name    = read_string(f,20)
-  local version         = read_word_le(f)
-  local header_size     = read_dword_le(f)
-  local song_length     = read_word_le(f)
-  local restart_position= read_word_le(f)
-  local num_channels    = read_word_le(f)
-  local num_patterns    = read_word_le(f)
-  local num_instruments = read_word_le(f)
-  local flags           = read_word_le(f)
-  local default_tempo   = read_word_le(f)
-  local default_bpm     = read_word_le(f)
-  local pattern_order   = {}
+  local id_text          = read_string(f,17)
+  local module_name      = read_string(f,20)
+  local magic            = read_byte(f)
+  local tracker_name     = read_string(f,20)
+  local version          = read_word_le(f)
+  local header_size      = read_dword_le(f)
+  local song_length      = read_word_le(f)
+  local restart_position = read_word_le(f)
+  local num_channels     = read_word_le(f)
+  local num_patterns     = read_word_le(f)
+  local num_instruments  = read_word_le(f)
+  local flags            = read_word_le(f)
+  local default_tempo    = read_word_le(f)
+  local default_bpm      = read_word_le(f)
+  local pattern_order    = {}
   for i=1,song_length do pattern_order[i] = read_byte(f) end
 
-  print(string.format(
-    "XM Header: id='%s', module='%s', tracker='%s', version=0x%04X, header_size=%d, channels=%d, patterns=%d, instruments=%d, tempo=%d, bpm=%d",
-    id_text, module_name, tracker_name, version, header_size, num_channels, num_patterns, num_instruments, default_tempo, default_bpm
-  ))
-
-  -- skip to end of header
+  -- Seek to pattern data
   f:seek('set',60 + header_size)
 
   -- PATTERNS
@@ -147,7 +142,6 @@ local function import_xm_file(filename)
     local packed_size= read_word_le(f)
     local pat_data    = packed_size>0 and read_bytes(f,packed_size) or nil
     patterns[pi]      = {rows=num_rows,data=pat_data}
-    print(string.format("Pattern %d: rows=%d, packed_size=%d", pi, num_rows, packed_size))
   end
 
   -- INSTRUMENTS & SAMPLES
@@ -161,24 +155,15 @@ local function import_xm_file(filename)
 
     if ins_samples > 0 then
       local samp_hdr_size = read_dword_le(f)
-      read_bytes(f,96) -- keymap
+      read_bytes(f,96)           -- keymap
       for i=1,48 do read_word_le(f) end -- envelopes
-      local vol_pn = read_byte(f)
-      local pan_pn = read_byte(f)
-      local vol_spt = read_byte(f)
-      local vol_lsp = read_byte(f)
-      local vol_lend= read_byte(f)
-      local pan_spt = read_byte(f)
-      local pan_lsp = read_byte(f)
-      local pan_lend= read_byte(f)
-      local vol_etype= read_byte(f)
-      local pan_etype= read_byte(f)
-      local vib_type= read_byte(f)
-      local vib_sweep= read_byte(f)
-      local vib_depth= read_byte(f)
-      local vib_rate= read_byte(f)
-      local vol_fadeout= read_word_le(f)
-      read_bytes(f,22) -- reserved
+      local vol_pn,pan_pn = read_byte(f),read_byte(f)
+      local vol_spt,vol_lsp,vol_lend = read_byte(f),read_byte(f),read_byte(f)
+      local pan_spt,pan_lsp,pan_lend = read_byte(f),read_byte(f),read_byte(f)
+      local vol_etype,pan_etype = read_byte(f),read_byte(f)
+      local vib_type,vib_sweep,vib_depth,vib_rate = read_byte(f),read_byte(f),read_byte(f),read_byte(f)
+      local vol_fadeout = read_word_le(f)
+      read_bytes(f,22)         -- reserved
 
       for si=1,ins_samples do
         local length     = read_dword_le(f)
@@ -189,62 +174,44 @@ local function import_xm_file(filename)
         local type_b     = read_byte(f)
         local panning    = read_byte(f)
         local rel_note   = read_byte(f)
-        read_byte(f) -- reserved
+        read_byte(f)    -- reserved
         local samp_name  = read_string(f,22)
-        -- Lua 5.1 compatible integer division for ADPCM header
+
         local extra = 0
         if type_b%16 == 13 then
           extra = math.floor((length+1)/2) + 16
         end
-        local raw = read_bytes(f,
-          length
-          + (type_b>=16 and 1 or 0)
-          + extra
-        )
+        local raw = read_bytes(f,length + (type_b>=16 and 1 or 0) + extra)
 
-        local data
-        local bitdepth = (type_b>=16) and 16 or 8
+        local data,bitdepth
         if type_b%16 == 13 then
-          data = decode_adpcm(raw, length)
-        elseif bitdepth==8 then
-          data = decode_delta_8(raw)
+          data,bitdepth = decode_adpcm(raw,length),8
+        elseif type_b>=16 then
+          data,bitdepth = decode_delta_16(raw),16
         else
-          data = decode_delta_16(raw)
+          data,bitdepth = decode_delta_8(raw),8
         end
 
         samples[si] = {
-          name       = samp_name,
-          length     = length,
-          loop_start = loop_start,
-          loop_len   = loop_len,
-          type       = type_b,
-          volume     = volume,
-          finetune   = (finetune>127 and finetune-256) or finetune,
-          panning    = panning,
-          rel_note   = rel_note,
-          bitdepth   = bitdepth,
-          data       = data
+          name=samp_name, length=length, loop_start=loop_start,
+          loop_len=loop_len, type=type_b, volume=volume,
+          finetune=(finetune>127 and finetune-256) or finetune,
+          panning=panning, rel_note=rel_note,
+          vol_fadeout=vol_fadeout, bitdepth=bitdepth, data=data
         }
-        print(string.format(
-          "  Sample %d: '%s', len=%d, bits=%d, loop=(%d,%d), mode=%d, vol=%d, finetune=%d, pan=%d",
-          si, samp_name, length, bitdepth, loop_start, loop_len, type_b%4, volume, finetune, panning
-        ))
       end
     end
 
-    instruments[ii] = {name=ins_name, samples=samples}
+    instruments[ii] = {name=ins_name,samples=samples}
   end
-
   f:close()
 
-  -- clear existing instruments (keep one empty)
-  while #rns.instruments > 1 do
-    rns:delete_instrument_at(2)
-  end
+  -- RESET EXISTING INSTRUMENTS
+  while #rns.instruments > 1 do rns:delete_instrument_at(2) end
 
-  -- import instruments & samples
+  -- IMPORT INSTRUMENTS & SAMPLES with bulk sample set
   for idx,ins in ipairs(instruments) do
-    local ri = (idx==1) and rns.instruments[1] or rns:insert_instrument_at(idx-1)
+    local ri = (idx==1) and rns.instruments[1] or rns:insert_instrument_at(idx)
     ri.name = ins.name
     while #ri.samples > 0 do ri:delete_sample_at(1) end
 
@@ -253,51 +220,88 @@ local function import_xm_file(filename)
       rs.name = s.name
       local buf = rs.sample_buffer
       if buf.has_sample_data then buf:delete_sample_data() end
-      buf:create_sample_data(8363, s.bitdepth, 1, s.length)
+      buf:create_sample_data(8363,s.bitdepth,1,#s.data)
       buf:prepare_sample_data_changes()
-      for frame=1,s.length do
-        buf:set_sample_data(1, frame, s.data[frame] or 0)
-      end
+      -- write each sample frame into track 1:
+for frame_idx = 1, s.length do
+  buf:set_sample_data(
+    1,          -- channel_index (mono → always 1)
+    frame_idx,  -- frame_index
+    s.data[frame_idx] or 0
+  )
+end
+
       buf:finalize_sample_data_changes()
 
-      if s.loop_len and s.loop_len > 1 then
-        rs.loop_mode  = (s.type%4==2)
-          and renoise.Sample.LOOP_MODE_PING_PONG
-          or renoise.Sample.LOOP_MODE_FORWARD
-        rs.loop_start = math.max(1, math.min(s.loop_start+1, s.length))
-        rs.loop_end   = math.max(1, math.min(s.loop_start + s.loop_len, s.length))
+      if s.loop_len>1 then
+        rs.loop_mode = (s.type%4==2) and renoise.Sample.LOOP_MODE_PING_PONG or renoise.Sample.LOOP_MODE_FORWARD
+        rs.loop_start = math.max(1, math.min((s.loop_start or 0)+1,#s.data))
+        rs.loop_end   = math.max(rs.loop_start, math.min((s.loop_start or 0) + (s.loop_len or 0),#s.data))
       else
-        rs.loop_mode  = renoise.Sample.LOOP_MODE_OFF
-        rs.loop_start, rs.loop_end = 1,1
+        rs.loop_mode = renoise.Sample.LOOP_MODE_OFF
       end
-
-      rs.volume    = math.max(0, math.min(s.volume,64))
-      rs.transpose = s.rel_note
-      rs.fine_tune = s.finetune
-      rs.panning   = math.max(0, math.min(s.panning/255,1))
+      -- Scale XM volume (0-64) to Renoise volume (0-4)
+      rs.volume           = (s.volume / 64) * 4
+      rs.transpose        = s.rel_note - 24
+      rs.fine_tune        = s.finetune
+  --    rs.volume_fade_out  = s.vol_fadeout or 0
+      rs.panning          = s.panning / 255
     end
   end
 
-  -- PATTERN IMPORT (basic unpacking)
+  -- PATTERN IMPORT
   for pi,pat in ipairs(patterns) do
-    local pat_obj = (#rns.patterns>=pi)
-      and rns.patterns[pi]
-      or rns:insert_pattern_at(pi-1)
-    pat_obj.number_of_tracks = num_channels
-    for row=1,pat.rows do
-      for tr=1,num_channels do
-        local col = pat_obj:track(tr).lines[row]
-        -- TODO: full unpacking code here
+    local pat_obj = (#rns.patterns>=pi) and rns.patterns[pi] or rns:insert_pattern_at(pi-1)
+    -- Ensure we have enough tracks
+    if pi == 1 then
+      -- Add tracks until we match the required XM channel count
+      while #rns.tracks < num_channels do
+        rns:insert_track_at(#rns.tracks + 1)
+      end
+    end
+    -- Set the number of lines for this pattern
+    pat_obj.number_of_lines = pat.rows
+    if pat.data then
+      local ptr=1
+      for row=1,pat.rows do
+        for tr=1,num_channels do
+          local col = pat_obj:track(tr).lines[row].note_columns[1]
+          local b = pat.data:byte(ptr); ptr=ptr+1
+          local note,ins,vol,eff,par = 0,0,0,0,0
+          if b>=128 then
+            if b%2==1 then note=pat.data:byte(ptr); ptr=ptr+1 end
+            if b%4>=2 then ins =pat.data:byte(ptr); ptr=ptr+1 end
+            if b%8>=4 then vol =pat.data:byte(ptr); ptr=ptr+1 end
+            if b%16>=8 then eff =pat.data:byte(ptr); ptr=ptr+1 end
+            if b%32>=16 then par=pat.data:byte(ptr); ptr=ptr+1 end
+          else
+            note=b; ins=pat.data:byte(ptr); vol=pat.data:byte(ptr+1)
+            eff=pat.data:byte(ptr+2); par=pat.data:byte(ptr+3)
+            ptr=ptr+4
+          end
+          col.note_string       = map_xm_note(note)
+          col.instrument_string = (ins > 0) and string.format("%02X",ins) or ""
+          col.volume_string     = (vol<=64) and string.format("%02X",vol) or ""
+          col.effect_number_string    = (eff > 0) and string.format("%02X",eff) or ""
+          col.effect_amount_string    = (par > 0) and string.format("%02X",par) or ""
+        end
       end
     end
   end
 
-  renoise.app():show_message("XM import completed: "..filename)
+  renoise.app():show_status("XM import completed: "..filename)
   return true
 end
 
--- Register file opener
+-- Menu entry & import hook
 renoise.tool():add_menu_entry{
-  name = "File.Import:XM Module...",
-  invoke = function() import_xm_file(renoise.app().prompt_load_filename({ "xm" })) end
+  name   = 'Song:Import...:XM File',
+  invoke = function()
+    import_xm_file(renoise.app():prompt_for_filename_to_read({title='Open XM File'}))
+  end
 }
+
+local xm_hook = { category="song", extensions={"xm"}, invoke=import_xm_file }
+if not renoise.tool():has_file_import_hook(xm_hook.category, xm_hook.extensions) then
+  renoise.tool():add_file_import_hook(xm_hook)
+end

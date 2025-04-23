@@ -1398,7 +1398,20 @@ else end
 
   renoise.song().instruments[i].sample_modulation_sets[renoise.song().instruments[renoise.song().selected_instrument_index].samples[renoise.song().selected_sample_index].modulation_set_index]:insert_device_at(
     "Modulation/" .. devicename, device_target, insert_index)
-renoise.song().selected_sample_modulation_set.devices[1].operator=1
+  renoise.song().selected_sample_modulation_set.devices[1].operator=1
+  
+  -- Set AHDSR parameters if the device is AHDSR
+  if devicename == "AHDSR" then
+    local device = renoise.song().selected_sample_modulation_set.devices[1]
+    device.parameters[1].value = 0            -- Attack Level
+    device.parameters[2].value = 0            -- Attack Time
+    device.parameters[3].value = 0.3218297958374  -- Hold
+    device.parameters[4].value = 1            -- Decay
+    device.parameters[5].value = 0.09410360455513 -- Sustain
+    device.parameters[6].value = 0            -- Release Level
+    device.parameters[7].value = 0            -- Release Time
+    device.parameters[8].value = 0            -- Delay
+  end
 end
 
 for _, device in ipairs(moddevices) do
