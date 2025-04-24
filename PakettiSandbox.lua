@@ -674,3 +674,68 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti Beat Struc
 renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Paketti Beat Structure Editor...",invoke=showTimeSignatureDialog}
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Beat Structure Editor...",invoke=showTimeSignatureDialog}
 -------
+
+-- Function to toggle all columns on/off
+function toggleAllColumns()
+    local song = renoise.song()
+    
+    -- Check the first track's state to determine if we should show or hide
+    local first_track = song.tracks[1]
+    local should_show = not (
+        first_track.volume_column_visible and
+        first_track.panning_column_visible and
+        first_track.delay_column_visible and
+        first_track.sample_effects_column_visible
+    )
+    
+    -- Iterate through all tracks (except Master and Send tracks)
+    for track_index = 1, song.sequencer_track_count do
+        local track = song.tracks[track_index]
+        track.volume_column_visible = should_show
+        track.panning_column_visible = should_show
+        track.delay_column_visible = should_show
+        track.sample_effects_column_visible = should_show
+    end
+    
+    -- Show status message
+    local message = should_show and 
+        "Showing all columns across all tracks" or 
+        "Hiding all columns across all tracks"
+    renoise.app():show_status(message)
+end
+
+renoise.tool():add_menu_entry{name = "Pattern Editor:Paketti..:Toggle All Columns",invoke = function() toggleAllColumns() end}
+renoise.tool():add_keybinding{name = "Pattern Editor:Paketti:Toggle All Columns",invoke = function() toggleAllColumns() end}
+
+-- Function to toggle all columns except sample effects
+function toggleAllExceptEffects()
+    local song = renoise.song()
+    
+    -- Check the first track's state to determine if we should show or hide
+    local first_track = song.tracks[1]
+    local should_show = not (
+        first_track.volume_column_visible and
+        first_track.panning_column_visible and
+        first_track.delay_column_visible
+    )
+    
+    -- Iterate through all tracks (except Master and Send tracks)
+    for track_index = 1, song.sequencer_track_count do
+        local track = song.tracks[track_index]
+        -- Set all basic columns
+        track.volume_column_visible = should_show
+        track.panning_column_visible = should_show
+        track.delay_column_visible = should_show
+        -- Always hide sample effects
+        track.sample_effects_column_visible = false
+    end
+    
+    -- Show status message
+    local message = should_show and 
+        "Showing all columns except effects across all tracks" or 
+        "Hiding all columns across all tracks"
+    renoise.app():show_status(message)
+end
+
+renoise.tool():add_menu_entry{name = "Pattern Editor:Paketti..:Toggle All Columns (No Sample Effects)",invoke = function() toggleAllExceptEffects() end}
+renoise.tool():add_keybinding{name = "Pattern Editor:Paketti:Toggle All Columns (No Sample Effects)",invoke = function() toggleAllExceptEffects() end}
