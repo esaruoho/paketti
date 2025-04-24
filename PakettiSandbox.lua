@@ -1,80 +1,201 @@
+-- Function to toggle showing only one specific column type
+function showOnlyColumnType(column_type)
+    local song = renoise.song()
+    
+    -- Validate column_type parameter
+    if not column_type or type(column_type) ~= "string" then
+        print("Invalid column type specified")
+        return
+    end
+    
+    -- Map of valid column types to their corresponding track properties
+    local column_properties = {
+        ["volume"] = "volume_column_visible",
+        ["panning"] = "panning_column_visible",
+        ["delay"] = "delay_column_visible",
+        ["effects"] = "sample_effects_column_visible"
+    }
+    
+    -- Check if the specified column type is valid
+    if not column_properties[column_type] then
+        print("Invalid column type: " .. column_type)
+        return
+    end
+    
+    -- Check if we're already showing only this column type
+    local is_showing_only_this = true
+    for track_index = 1, song.sequencer_track_count do
+        local track = song.tracks[track_index]
+        -- Check if current column is visible and others are hidden
+        if not track[column_properties[column_type]] or
+           (column_type ~= "volume" and track.volume_column_visible) or
+           (column_type ~= "panning" and track.panning_column_visible) or
+           (column_type ~= "delay" and track.delay_column_visible) or
+           (column_type ~= "effects" and track.sample_effects_column_visible) then
+            is_showing_only_this = false
+            break
+        end
+    end
+    
+    -- Iterate through all tracks (except Master and Send tracks)
+    for track_index = 1, song.sequencer_track_count do
+        local track = song.tracks[track_index]
+        
+        -- Hide all columns first
+        track.volume_column_visible = false
+        track.panning_column_visible = false
+        track.delay_column_visible = false
+        track.sample_effects_column_visible = false
+        
+        -- If we weren't already showing only this column, show it
+        if not is_showing_only_this then
+            track[column_properties[column_type]] = true
+        end
+    end
+    
+    -- Show status message
+    local message = is_showing_only_this and 
+        "Hiding all columns" or 
+        "Showing only " .. column_type .. " columns across all tracks"
+    renoise.app():show_status(message)
+end
+
+-- Add menu entries for each column type
+renoise.tool():add_menu_entry{
+    name = "Pattern Editor:Paketti..:Toggle Show Only Volume Columns",
+    invoke = function() showOnlyColumnType("volume") end
+}
+renoise.tool():add_menu_entry{
+    name = "Pattern Editor:Paketti..:Toggle Show Only Panning Columns",
+    invoke = function() showOnlyColumnType("panning") end
+}
+renoise.tool():add_menu_entry{
+    name = "Pattern Editor:Paketti..:Toggle Show Only Delay Columns",
+    invoke = function() showOnlyColumnType("delay") end
+}
+renoise.tool():add_menu_entry{
+    name = "Pattern Editor:Paketti..:Toggle Show Only Effect Columns",
+    invoke = function() showOnlyColumnType("effects") end
+}
+
+-- Add keybindings for each column type
+renoise.tool():add_keybinding{
+    name = "Pattern Editor:Paketti:Toggle Show Only Volume Columns",
+    invoke = function() showOnlyColumnType("volume") end
+}
+renoise.tool():add_keybinding{
+    name = "Pattern Editor:Paketti:Toggle Show Only Panning Columns",
+    invoke = function() showOnlyColumnType("panning") end
+}
+renoise.tool():add_keybinding{
+    name = "Pattern Editor:Paketti:Toggle Show Only Delay Columns",
+    invoke = function() showOnlyColumnType("delay") end
+}
+renoise.tool():add_keybinding{
+    name = "Pattern Editor:Paketti:Toggle Show Only Effect Columns",
+    invoke = function() showOnlyColumnType("effects") end
+}
+
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Show Only Volume Columns",invoke=function() showOnlyColumnType("volume") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Show Only Panning Columns",invoke=function() showOnlyColumnType("panning") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Show Only Delay Columns",invoke=function() showOnlyColumnType("delay") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Show Only Effect Columns",invoke=function() showOnlyColumnType("effects") end}
+
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Show Only Volume Columns",invoke=function() showOnlyColumnType("volume") end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Show Only Panning Columns",invoke=function() showOnlyColumnType("panning") end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Show Only Delay Columns",invoke=function() showOnlyColumnType("delay") end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Show Only Effect Columns",invoke=function() showOnlyColumnType("effects") end}
+
+
+
+
+
+
+
+
+
+
+
+
+
+--
 function detect_zero_crossings()
-  local song = renoise.song()
-  local sample = song.selected_sample
+    local song = renoise.song()
+    local sample = song.selected_sample
   
-  if not sample or not sample.sample_buffer.has_sample_data then
-    renoise.app():show_status("No sample selected or sample has no data")
-    return
-  end
-  
-  local buffer = sample.sample_buffer
-  local zero_crossings = {}
-  local max_silence = 0.002472  -- Your maximum silence threshold
-  
-  print("\n=== Sample Buffer Analysis ===")
-  print("Sample length:", buffer.number_of_frames, "frames")
-  print("Number of channels:", buffer.number_of_channels)
-  print("Scanning for zero crossings (threshold:", max_silence, ")")
-  
-  -- Scan through sample data in chunks for better performance
-  local chunk_size = 1000
-  local last_was_silence = nil
-  
-  for frame = 1, buffer.number_of_frames do
-    local value = buffer:sample_data(1, frame)
-    local is_silence = (value >= 0 and value <= max_silence)
-    
-    -- Detect transition points between silence and non-silence
-    if last_was_silence ~= nil and last_was_silence ~= is_silence then
-      table.insert(zero_crossings, frame)
+    if not sample or not sample.sample_buffer.has_sample_data then
+        renoise.app():show_status("No sample selected or sample has no data")
+        return
     end
-    
-    last_was_silence = is_silence
-    
-    -- Show progress every chunk_size frames
-    if frame % chunk_size == 0 or frame == buffer.number_of_frames then
-      renoise.app():show_status(string.format("Analyzing frames %d to %d of %d", 
-        math.max(1, frame-chunk_size+1), frame, buffer.number_of_frames))
+  
+    local buffer = sample.sample_buffer
+    local zero_crossings = {}
+    local max_silence = 0.002472  -- Your maximum silence threshold
+  
+    print("\n=== Sample Buffer Analysis ===")
+    print("Sample length:", buffer.number_of_frames, "frames")
+    print("Number of channels:", buffer.number_of_channels)
+    print("Scanning for zero crossings (threshold:", max_silence, ")")
+  
+    -- Scan through sample data in chunks for better performance
+    local chunk_size = 1000
+    local last_was_silence = nil
+  
+    for frame = 1, buffer.number_of_frames do
+        local value = buffer:sample_data(1, frame)
+        local is_silence = (value >= 0 and value <= max_silence)
+        
+        -- Detect transition points between silence and non-silence
+        if last_was_silence ~= nil and last_was_silence ~= is_silence then
+            table.insert(zero_crossings, frame)
+        end
+        
+        last_was_silence = is_silence
+        
+        -- Show progress every chunk_size frames
+        if frame % chunk_size == 0 or frame == buffer.number_of_frames then
+            renoise.app():show_status(string.format("Analyzing frames %d to %d of %d", 
+                math.max(1, frame-chunk_size+1), frame, buffer.number_of_frames))
+        end
     end
-  end
   
-  -- Show results
-  local status_message = string.format("\nFound %d zero crossings", #zero_crossings)
-  renoise.app():show_status(status_message)
-  print(status_message)
+    -- Show results
+    local status_message = string.format("\nFound %d zero crossings", #zero_crossings)
+    renoise.app():show_status(status_message)
+    print(status_message)
   
-  -- Animate through the zero crossings
-  if #zero_crossings >= 2 then
-    -- Create a coroutine to handle the animation
-    local co = coroutine.create(function()
-      for i = 1, #zero_crossings - 1, 2 do  -- Step by 2 to get pairs of transitions
-        if i + 1 <= #zero_crossings then
-          buffer.selection_range = {
-            zero_crossings[i],
-            zero_crossings[i + 1]
-          }
-          renoise.app():show_status(string.format("Selecting zero crossings %d to %d (frames %d to %d)", 
-            i, i+1, zero_crossings[i], zero_crossings[i + 1]))
-          coroutine.yield()
-        end
-      end
-    end)
-    
-    -- Add timer to step through coroutine
-    renoise.tool():add_timer(function()
-      if coroutine.status(co) ~= "dead" then
-        local success, err = coroutine.resume(co)
-        if not success then
-          print("Error:", err)
-          return false
-        end
-        return true
-      end
-      return false
-    end, 0.5)
-  else
-    print("Not enough zero crossings found to set loop points")
-  end
+    -- Animate through the zero crossings
+    if #zero_crossings >= 2 then
+        -- Create a coroutine to handle the animation
+        local co = coroutine.create(function()
+            for i = 1, #zero_crossings - 1, 2 do  -- Step by 2 to get pairs of transitions
+                if i + 1 <= #zero_crossings then
+                    buffer.selection_range = {
+                        zero_crossings[i],
+                        zero_crossings[i + 1]
+                    }
+                    renoise.app():show_status(string.format("Selecting zero crossings %d to %d (frames %d to %d)", 
+                        i, i+1, zero_crossings[i], zero_crossings[i + 1]))
+                    coroutine.yield()
+                end
+            end
+        end)
+        
+        -- Add timer to step through coroutine
+        renoise.tool():add_timer(function()
+            if coroutine.status(co) ~= "dead" then
+                local success, err = coroutine.resume(co)
+                if not success then
+                    print("Error:", err)
+                    return false
+                end
+                return true
+            end
+            return false
+        end, 0.5)
+    else
+        print("Not enough zero crossings found to set loop points")
+    end
 end
 
 

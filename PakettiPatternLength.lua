@@ -1,5 +1,5 @@
 -- Pattern Length Dialog for Paketti
--- Allows quick pattern length changes with a textfield
+-- Allows quick pattern/phrase length changes with a textfield
 
 local dialog = nil
 local view_builder = nil
@@ -26,12 +26,65 @@ local function focus_textfield()
   end
 end
 
--- Helper function to adjust pattern length by a relative amount
-local function adjust_pattern_length_by(amount)
+-- Helper function to check if we're in pattern editor
+local function is_in_pattern_editor()
+  return renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+end
+
+-- Helper function to check if we're in phrase editor with valid phrase
+local function is_in_phrase_editor()
+  if renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_PHRASE_EDITOR then
+    local song = renoise.song()
+    return song.selected_phrase_index > 0 and 
+           song.selected_instrument and 
+           song.selected_instrument.phrase_editor_visible and
+           song.selected_phrase
+  end
+  return false
+end
+
+-- Helper function to get the appropriate LPB based on context
+local function get_context_lpb()
   local song = renoise.song()
-  local pattern = song.selected_pattern
-  local current_length = pattern.number_of_lines
+  
+  -- Check if we're in phrase editor with valid phrase
+  if is_in_phrase_editor() then
+    -- Use phrase LPB
+    return song.selected_phrase.lpb
+  else
+    -- Use transport LPB for pattern editor
+    return song.transport.lpb
+  end
+end
+
+-- Helper function to adjust pattern or phrase length by a relative amount
+local function adjust_length_by(amount)
+  local song = renoise.song()
+  local current_length
   local new_length
+  local is_pattern_editor = is_in_pattern_editor()
+  
+  -- If not in pattern editor, check if we're in phrase editor with valid phrase
+  if not is_pattern_editor and not is_in_phrase_editor() then
+    -- Not in either editor or no valid phrase, do nothing
+    return
+  end
+  
+  -- Get current length based on editor context
+  if is_pattern_editor then
+    current_length = song.selected_pattern.number_of_lines
+  else
+    current_length = song.selected_phrase.number_of_lines
+  end
+  
+  -- If amount is 'lpb', get the appropriate LPB value based on context
+  if type(amount) == "string" then
+    if amount == "lpb" then
+      amount = get_context_lpb()
+    elseif amount == "-lpb" then
+      amount = -get_context_lpb()
+    end
+  end
   
   -- Calculate new length based on direction
   if amount > 0 then
@@ -50,70 +103,89 @@ local function adjust_pattern_length_by(amount)
     end
   end
   
-  -- Clamp within valid range
-  new_length = math.floor(math.min(math.max(new_length, 1), renoise.Pattern.MAX_NUMBER_OF_LINES))
+  -- Clamp within valid range (different max for patterns and phrases)
+  local max_lines = is_pattern_editor and renoise.Pattern.MAX_NUMBER_OF_LINES or renoise.InstrumentPhrase.MAX_NUMBER_OF_LINES
+  new_length = math.floor(math.min(math.max(new_length, 1), max_lines))
   
   -- Only apply if actually changed
   if new_length ~= current_length then
-    pattern.number_of_lines = new_length
-    renoise.app():show_status("Pattern length set to " .. formatDigits(3,new_length))
+    if is_pattern_editor then
+      song.selected_pattern.number_of_lines = new_length
+      renoise.app():show_status("Pattern length set to " .. formatDigits(3,new_length))
+    else
+      song.selected_phrase.number_of_lines = new_length
+      renoise.app():show_status("Phrase length set to " .. formatDigits(3,new_length))
+    end
   end
 end
 
--- Notifier for when the selected pattern changes
-local function pattern_change_notifier()
+-- Notifier for when the selected pattern/phrase changes
+local function length_change_notifier()
   -- First check if we're already updating to prevent recursion
   if is_updating_textfield then
-    debug_print("Pattern change notifier: Skipping due to is_updating_textfield flag")
+    debug_print("Length change notifier: Skipping due to is_updating_textfield flag")
     return
   end
 
   -- Basic validity checks
   if not dialog or not dialog.visible then
-    debug_print("Pattern change notifier: Dialog not visible, skipping update")
+    debug_print("Length change notifier: Dialog not visible, skipping update")
     return
   end
 
   if not view_builder then
-    debug_print("Pattern change notifier: No view builder, skipping update")
+    debug_print("Length change notifier: No view builder, skipping update")
     return
   end
 
   if not view_builder.views or not view_builder.views.length_textfield then
-    debug_print("Pattern change notifier: No length textfield view, skipping update")
+    debug_print("Length change notifier: No length textfield view, skipping update")
     return
   end
 
   -- Mark start of programmatic update
   is_updating_textfield = true
-  debug_print("Pattern change notifier: Starting textfield update")
+  debug_print("Length change notifier: Starting textfield update")
 
-  -- Get the new pattern length
+  -- Get the new length based on editor context
   local song = renoise.song()
-  local selected_pattern = song.selected_pattern
-  local new_length = tostring(selected_pattern.number_of_lines)
+  local new_length
+  local is_pattern_editor = is_in_pattern_editor()
+  
+  if is_pattern_editor then
+    new_length = tostring(song.selected_pattern.number_of_lines)
+  else
+    new_length = tostring(song.selected_phrase.number_of_lines)
+  end
   
   -- Update the textfield value
   local textfield = view_builder.views.length_textfield
   if textfield.value ~= new_length then
-    debug_print(string.format("Pattern change notifier: Updating textfield from %s to %s", 
+    debug_print(string.format("Length change notifier: Updating textfield from %s to %s", 
       textfield.value, new_length))
     -- Set value and focus to ensure it's selected
     textfield.value = new_length
     focus_textfield()
   else
-    debug_print("Pattern change notifier: Value unchanged, skipping update")
+    debug_print("Length change notifier: Value unchanged, skipping update")
   end
 
   -- End of programmatic update
   is_updating_textfield = false
-  debug_print("Pattern change notifier: Update complete")
+  debug_print("Length change notifier: Update complete")
 end
 
--- Apply and clamp the new pattern length
+-- Apply and clamp the new length value
 local function apply_length_value(value)
   local song = renoise.song()
-  local pattern = song.selected_pattern
+  local is_pattern_editor = is_in_pattern_editor()
+  
+  -- If not in pattern editor, check if we're in phrase editor with valid phrase
+  if not is_pattern_editor and not is_in_phrase_editor() then
+    -- Not in either editor or no valid phrase, do nothing
+    renoise.app():show_status("Please switch to Pattern Editor or Phrase Editor")
+    return
+  end
 
   -- Convert to number
   local new_length = tonumber(value)
@@ -124,15 +196,26 @@ local function apply_length_value(value)
   end
 
   -- Clamp within valid range
-  local max_lines = renoise.Pattern.MAX_NUMBER_OF_LINES
+  local max_lines = is_pattern_editor and renoise.Pattern.MAX_NUMBER_OF_LINES or renoise.InstrumentPhrase.MAX_NUMBER_OF_LINES
   new_length = math.floor(math.min(math.max(new_length, 1), max_lines))
 
-  -- Set the pattern length
-  pattern.number_of_lines = new_length
-
-  -- Notify user
-  renoise.app():show_status(string.format("Pattern length set to %d", new_length))
-  debug_print(string.format("Apply length: Set pattern length to %d", new_length))
+  -- Set the length based on context
+  if is_pattern_editor then
+    song.selected_pattern.number_of_lines = new_length
+    renoise.app():show_status(string.format("Pattern length set to %d", new_length))
+  else
+    -- Double check that we still have a valid phrase
+    if song.selected_phrase then
+      song.selected_phrase.number_of_lines = new_length
+      renoise.app():show_status(string.format("Phrase length set to %d", new_length))
+    else
+      renoise.app():show_status("No valid phrase selected")
+      debug_print("Apply length: No valid phrase selected")
+    end
+  end
+  
+  debug_print(string.format("Apply length: Set %s length to %d", 
+    is_pattern_editor and "pattern" or "phrase", new_length))
 end
 
 -- Notifier for the textfield (user edits only)
@@ -156,12 +239,7 @@ local function length_textfield_notifier(new_value)
   -- If "Close on Set" is checked, remove notifier and close
   if view_builder.views.close_on_set_checkbox.value then
     debug_print("Textfield notifier: Close on Set is checked, closing dialog")
-    local pattern_observable = renoise.song().selected_pattern_observable
-    if pattern_observable:has_notifier(pattern_change_notifier) then
-      pattern_observable:remove_notifier(pattern_change_notifier)
-    end
-    dialog:close()
-    dialog = nil
+    cleanup_dialog()
   else
     -- Otherwise, refocus the textfield for the next edit
     focus_textfield()
@@ -172,11 +250,21 @@ end
 local function cleanup_dialog()
   if dialog and dialog.visible then
     debug_print("Cleanup: Starting dialog cleanup")
-    local pattern_observable = renoise.song().selected_pattern_observable
-    if pattern_observable:has_notifier(pattern_change_notifier) then
-      pattern_observable:remove_notifier(pattern_change_notifier)
+    local song = renoise.song()
+    
+    -- Remove pattern notifier if exists
+    local pattern_observable = song.selected_pattern_observable
+    if pattern_observable:has_notifier(length_change_notifier) then
+      pattern_observable:remove_notifier(length_change_notifier)
       debug_print("Cleanup: Removed pattern change notifier")
     end
+    
+    -- Remove phrase notifier if exists
+    if song.selected_phrase_observable:has_notifier(length_change_notifier) then
+      song.selected_phrase_observable:remove_notifier(length_change_notifier)
+      debug_print("Cleanup: Removed phrase change notifier")
+    end
+    
     dialog:close()
     dialog = nil
     view_builder = nil
@@ -185,12 +273,21 @@ local function cleanup_dialog()
   end
 end
 
--- Show or toggle the Pattern Length dialog
-local function show_pattern_length_dialog()
+-- Show or toggle the Length dialog
+local function show_length_dialog()
   -- If already open, clean up and close
   if dialog and dialog.visible then
     debug_print("Show dialog: Dialog already open, cleaning up")
     cleanup_dialog()
+    return
+  end
+
+  -- Check which editor we're in
+  local is_pattern_editor = is_in_pattern_editor()
+  
+  -- If not in pattern editor, check if we're in phrase editor with valid phrase
+  if not is_pattern_editor and not is_in_phrase_editor() then
+    renoise.app():show_status("Please switch to Pattern Editor or Phrase Editor")
     return
   end
 
@@ -199,7 +296,11 @@ local function show_pattern_length_dialog()
   -- Build the UI
   view_builder = renoise.ViewBuilder()
   local song = renoise.song()
-  local initial_value = tostring(song.selected_pattern.number_of_lines)
+  
+  -- Get initial value based on context
+  local initial_value = is_pattern_editor and 
+    tostring(song.selected_pattern.number_of_lines) or 
+    tostring(song.selected_phrase.number_of_lines)
 
   local length_textfield = view_builder:textfield{
     width = 60,
@@ -239,9 +340,9 @@ local function show_pattern_length_dialog()
     end
   }
 
-  -- Show the custom dialog
+  -- Show the custom dialog with context-aware title
   dialog = renoise.app():show_custom_dialog(
-    "Set Pattern Length",
+    is_pattern_editor and "Set Pattern Length" or "Set Phrase Length",
     view_builder:column{
       margin = 10,
       spacing = 6,
@@ -251,45 +352,76 @@ local function show_pattern_length_dialog()
     }
   )
 
-  -- Add pattern change observer
-  local pattern_observable = renoise.song().selected_pattern_observable
-  if not pattern_observable:has_notifier(pattern_change_notifier) then
-    pattern_observable:add_notifier(pattern_change_notifier)
-    debug_print("Show dialog: Added pattern change notifier")
+  -- Add appropriate change observer based on context
+  if is_pattern_editor then
+    local pattern_observable = song.selected_pattern_observable
+    if not pattern_observable:has_notifier(length_change_notifier) then
+      pattern_observable:add_notifier(length_change_notifier)
+      debug_print("Show dialog: Added pattern change notifier")
+    end
+  else
+    if not song.selected_phrase_observable:has_notifier(length_change_notifier) then
+      song.selected_phrase_observable:add_notifier(length_change_notifier)
+      debug_print("Show dialog: Added phrase change notifier")
+    end
   end
 
   -- Initial focus
   focus_textfield()
 end
 
--- Add keybinding to launch dialog
+-- Add keybinding to launch dialog (Pattern Editor)
 renoise.tool():add_keybinding{
-  name = "Global:Paketti:Show Pattern Length Dialog...",
-  invoke = function() show_pattern_length_dialog() end
+  name = "Pattern Editor:Paketti:Show Length Dialog...",
+  invoke = function() show_length_dialog() end
+}
+
+-- Add keybinding to launch dialog (Phrase Editor)
+renoise.tool():add_keybinding{
+  name = "Phrase Editor:Paketti:Show Length Dialog...",
+  invoke = function() show_length_dialog() end
+}
+
+-- Add global keybinding to launch dialog
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Show Length Dialog...",
+  invoke = function() show_length_dialog() end
 }
 
 -- Add MIDI mapping to launch dialog
 renoise.tool():add_midi_mapping{
-  name = "Paketti:Show Pattern Length Dialog...",
+  name = "Paketti:Show Length Dialog...",
   invoke = function(message)
     if message:is_trigger() then
-      show_pattern_length_dialog()
+      show_length_dialog()
     end
   end
 }
 
 -- Add menu entries
 renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti..:Pattern Length Dialog...",
-  invoke = function() show_pattern_length_dialog() end
+  name = "Main Menu:Tools:Paketti..:Length Dialog...",
+  invoke = function() show_length_dialog() end
 }
 
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti..:Pattern Editor..:Pattern Length Increase by 8",invoke = function() adjust_pattern_length_by(8) end}
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti..:Pattern Editor..:Pattern Length Decrease by 8",invoke = function() adjust_pattern_length_by(-8) end}
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti..:Pattern Editor..:Pattern Length Increase by LPB",invoke = function() adjust_pattern_length_by(renoise.song().transport.lpb) end}
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti..:Pattern Editor..:Pattern Length Decrease by LPB",invoke = function() adjust_pattern_length_by(-renoise.song().transport.lpb) end}
+-- Pattern Editor menu entries and keybindings
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti..:Pattern Editor..:Pattern Length Increase by 8",invoke = function() adjust_length_by(8) end}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti..:Pattern Editor..:Pattern Length Decrease by 8",invoke = function() adjust_length_by(-8) end}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti..:Pattern Editor..:Pattern Length Increase by LPB",invoke = function() adjust_length_by("lpb") end}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti..:Pattern Editor..:Pattern Length Decrease by LPB",invoke = function() adjust_length_by("-lpb") end}
 
-renoise.tool():add_keybinding{name = "Pattern Editor:Paketti:Increase Pattern Length by 8",invoke = function() adjust_pattern_length_by(8) end}
-renoise.tool():add_keybinding{name = "Pattern Editor:Paketti:Decrease Pattern Length by 8",invoke = function() adjust_pattern_length_by(-8) end}
-renoise.tool():add_keybinding{name = "Pattern Editor:Paketti:Increase Pattern Length by LPB",invoke = function() adjust_pattern_length_by(renoise.song().transport.lpb) end}
-renoise.tool():add_keybinding{name = "Pattern Editor:Paketti:Decrease Pattern Length by LPB",invoke = function() adjust_pattern_length_by(-renoise.song().transport.lpb) end}
+renoise.tool():add_keybinding{name = "Pattern Editor:Paketti:Increase Pattern Length by 8",invoke = function() adjust_length_by(8) end}
+renoise.tool():add_keybinding{name = "Pattern Editor:Paketti:Decrease Pattern Length by 8",invoke = function() adjust_length_by(-8) end}
+renoise.tool():add_keybinding{name = "Pattern Editor:Paketti:Increase Pattern Length by LPB",invoke = function() adjust_length_by("lpb") end}
+renoise.tool():add_keybinding{name = "Pattern Editor:Paketti:Decrease Pattern Length by LPB",invoke = function() adjust_length_by("-lpb") end}
+
+-- Phrase Editor menu entries and keybindings
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti..:Phrase Editor..:Phrase Length Increase by 8",invoke = function() adjust_length_by(8) end}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti..:Phrase Editor..:Phrase Length Decrease by 8",invoke = function() adjust_length_by(-8) end}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti..:Phrase Editor..:Phrase Length Increase by LPB",invoke = function() adjust_length_by("lpb") end}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti..:Phrase Editor..:Phrase Length Decrease by LPB",invoke = function() adjust_length_by("-lpb") end}
+
+renoise.tool():add_keybinding{name = "Phrase Editor:Paketti:Increase Phrase Length by 8",invoke = function() adjust_length_by(8) end}
+renoise.tool():add_keybinding{name = "Phrase Editor:Paketti:Decrease Phrase Length by 8",invoke = function() adjust_length_by(-8) end}
+renoise.tool():add_keybinding{name = "Phrase Editor:Paketti:Increase Phrase Length by LPB",invoke = function() adjust_length_by("lpb") end}
+renoise.tool():add_keybinding{name = "Phrase Editor:Paketti:Decrease Phrase Length by LPB",invoke = function() adjust_length_by("-lpb") end}

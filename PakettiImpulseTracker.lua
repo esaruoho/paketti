@@ -1371,7 +1371,7 @@ renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Impulse Tracker End *2
 renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Impulse Tracker End *2 behaviour (2nd)",invoke=endend}
 -----------------------------------------------------------------------------------------------------------------------------------------
 --8.  "8" in Impulse Tracker "Plays Current Line" and "Advances by EditStep".
-function PlayCurrentLine()
+function PlayCurrentLine(should_step)
   local s = renoise.song()
   local sli = s.selected_line_index
   
@@ -1389,18 +1389,21 @@ function PlayCurrentLine()
   end
   
   -- Handle line advancement (same for both versions)
-  if sli == s.selected_pattern.number_of_lines then
-    s.selected_line_index = 1
-  else
-    if s.selected_pattern.number_of_lines < sli + s.transport.edit_step then
-      s.selected_line_index = s.selected_pattern.number_of_lines
+  if should_step then
+    if sli == s.selected_pattern.number_of_lines then
+      s.selected_line_index = 1
     else
-      s.selected_line_index = sli + s.transport.edit_step
+      if s.selected_pattern.number_of_lines < sli + s.transport.edit_step then
+        s.selected_line_index = s.selected_pattern.number_of_lines
+      else
+        s.selected_line_index = sli + s.transport.edit_step
+      end
     end
   end
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker 8 Play Current Line & Advance by EditStep",invoke=function() PlayCurrentLine() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker 8 Play Current Line & Advance by EditStep",invoke=function() PlayCurrentLine(true) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker 8 Play Current Line Only",invoke=function() PlayCurrentLine(false) end}
 -----------------
 -- alt-f9 - solo / unsolo selected track. if not in Pattern Editor or in Mixer, transport to Pattern Editor.
 function impulseTrackerSoloKey()
@@ -1410,7 +1413,6 @@ local s=renoise.song()
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker ALT-F10 (Solo Toggle)",invoke=function() impulseTrackerSoloKey() end}
------------
 -----------
 -----------
 -----------
