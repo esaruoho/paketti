@@ -721,8 +721,7 @@ local function formatDigits(min_digits, number)
   return string.format("%0" .. tostring(min_digits) .. "d", number)
 end
 
--- Add keybindings for 1 to 12 note columns dynamically
-for i = 1, 12 do
+for i=1, 12 do
   renoise.tool():add_keybinding{name="Global:Paketti:OctaMED Note Spread " .. formatDigits(2, i),invoke=function() NoteSpread(i) end}
   renoise.tool():add_keybinding{name="Pattern Editor:Paketti:OctaMED Note Spread " .. formatDigits(2, i),invoke=function() NoteSpread(i) end}
   renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Other Trackers..:OctaMED Note Spread " .. formatDigits(2, i),invoke=function() NoteSpread(i) end}
@@ -749,33 +748,12 @@ function DecrementSpread()
   NoteSpread(current_spread)
 end
 
--- Add these with your other keybindings
-renoise.tool():add_keybinding{
-  name="Global:Paketti:OctaMED Note Spread Increment",
-  invoke=function() IncrementSpread() end
-}
-renoise.tool():add_keybinding{
-  name="Pattern Editor:Paketti:OctaMED Note Spread Increment",
-  invoke=function() IncrementSpread() end
-}
-
-renoise.tool():add_menu_entry{
-  name="Pattern Editor:Paketti..:Other Trackers..:OctaMED Note Spread Increment",
-  invoke=function() IncrementSpread() end
-}
-
-renoise.tool():add_keybinding{
-  name="Global:Paketti:OctaMED Note Spread Decrement",
-  invoke=function() DecrementSpread() end
-}
-renoise.tool():add_keybinding{
-  name="Pattern Editor:Paketti:OctaMED Note Spread Decrement",
-  invoke=function() DecrementSpread() end
-}
-renoise.tool():add_menu_entry{
-  name="Pattern Editor:Paketti..:Other Trackers..:OctaMED Note Spread Decrement",
-  invoke=function() DecrementSpread() end
-}
+renoise.tool():add_keybinding{name="Global:Paketti:OctaMED Note Spread Increment",invoke=function() IncrementSpread() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:OctaMED Note Spread Increment",invoke=function() IncrementSpread() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Other Trackers..:OctaMED Note Spread Increment",invoke=function() IncrementSpread() end}
+renoise.tool():add_keybinding{name="Global:Paketti:OctaMED Note Spread Decrement",invoke=function() DecrementSpread() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:OctaMED Note Spread Decrement",invoke=function() DecrementSpread() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Other Trackers..:OctaMED Note Spread Decrement",invoke=function() DecrementSpread() end}
 -------
 -- Function to toggle mute state for a specific track
 function OctaMEDToggleTrackMute(track_index)
@@ -801,31 +779,12 @@ function OctaMEDToggleTrackMute(track_index)
   renoise.app():show_status(status .. " " ..renoise.song().tracks[track_index].name)
 end
 
-
-
--- Add keybindings for tracks 1-16
 for i = 1, 16 do
-  renoise.tool():add_keybinding{
-    name = string.format("Global:Paketti:OctaMED Toggle Mute Track %02d", i),
-    invoke = function() OctaMEDToggleTrackMute(i) end
-  }
-  
-  renoise.tool():add_keybinding{
-    name = string.format("Pattern Editor:Paketti:OctaMED Toggle Mute Track %02d", i),
-    invoke = function() OctaMEDToggleTrackMute(i) end
-  }
+  renoise.tool():add_keybinding{name=string.format("Global:Paketti:OctaMED Toggle Mute Track %02d", i),invoke = function() OctaMEDToggleTrackMute(i) end}
+  renoise.tool():add_keybinding{name=string.format("Pattern Editor:Paketti:OctaMED Toggle Mute Track %02d", i),invoke = function() OctaMEDToggleTrackMute(i) end}
+  renoise.tool():add_keybinding{name=string.format("Mixer:Paketti:OctaMED Toggle Mute Track %02d", i),invoke = function() OctaMEDToggleTrackMute(i) end}
+  renoise.tool():add_keybinding{name=string.format("Phrase Editor:Paketti:OctaMED Toggle Mute Track %02d", i),invoke = function() OctaMEDToggleTrackMute(i) end}  
 
-  renoise.tool():add_keybinding{
-    name = string.format("Mixer:Paketti:OctaMED Toggle Mute Track %02d", i),
-    invoke = function() OctaMEDToggleTrackMute(i) end
-  }
-
-  renoise.tool():add_keybinding{
-    name = string.format("Phrase Editor:Paketti:OctaMED Toggle Mute Track %02d", i),
-    invoke = function() OctaMEDToggleTrackMute(i) end
-  }  
-
-  -- Add MIDI mapping as well
   renoise.tool():add_midi_mapping{
     name = string.format("Paketti:OctaMED Toggle Mute Track %02d", i),
     invoke = function(message)
@@ -1063,14 +1022,6 @@ function CreateNoteEcho(distance, min_volume)
   end
 end
 
--- Add menu entry and keybinding for the dialog
-renoise.tool():add_keybinding{
-  name = "Pattern Editor:Paketti:OctaMED Note Echo Dialog",
-  invoke = create_echo_dialog
-}
-
-renoise.tool():add_menu_entry{
-  name = "Pattern Editor:Paketti..:Other Trackers..:OctaMED Note Echo Dialog",
-  invoke = create_echo_dialog
-}
+renoise.tool():add_keybinding{name = "Pattern Editor:Paketti:OctaMED Note Echo Dialog",invoke = create_echo_dialog}
+renoise.tool():add_menu_entry{name = "Pattern Editor:Paketti..:Other Trackers..:OctaMED Note Echo Dialog",invoke = create_echo_dialog}
 ---------

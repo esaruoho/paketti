@@ -319,7 +319,6 @@ function PakettiTransposer(steps, selection_and_row)
   end
 end
 
--- Row-only operations (false)
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Transposer Row +03",invoke=function() PakettiTransposer(3, false) end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Transposer Row -03",invoke=function() PakettiTransposer(-3, false) end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Transposer Row +04",invoke=function() PakettiTransposer(4, false) end}
@@ -329,7 +328,6 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Transposer
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Transposer Row +11",invoke=function() PakettiTransposer(11, false) end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Transposer Row -11",invoke=function() PakettiTransposer(-11, false) end}
 
--- Selection/Row operations (true)
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Transposer Selection/Row +03",invoke=function() PakettiTransposer(3, true) end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Transposer Selection/Row -03",invoke=function() PakettiTransposer(-3, true) end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Transposer Selection/Row +04",invoke=function() PakettiTransposer(4, true) end}
@@ -339,7 +337,6 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Transposer
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Transposer Selection/Row +11",invoke=function() PakettiTransposer(11, true) end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Transposer Selection/Row -11",invoke=function() PakettiTransposer(-11, true) end}
 
--- Menu entries for row operations
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti ChordsPlus..:Transposer Row +03",invoke=function() PakettiTransposer(3, false) end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Transposer Row -03",invoke=function() PakettiTransposer(-3, false) end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Transposer Row +04",invoke=function() PakettiTransposer(4, false) end}
@@ -349,7 +346,6 @@ renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Transpos
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Transposer Row +11",invoke=function() PakettiTransposer(11, false) end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Transposer Row -11",invoke=function() PakettiTransposer(-11, false) end}
 
--- Menu entries for Selection/Row operations
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti ChordsPlus..:Transposer Selection/Row +03",invoke=function() PakettiTransposer(3, true) end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Transposer Selection/Row -03",invoke=function() PakettiTransposer(-3, true) end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Transposer Selection/Row +04",invoke=function() PakettiTransposer(4, true) end}
@@ -685,7 +681,6 @@ local function PakettiAdjustEditStep(amount)
   renoise.app():show_status("EditStep " .. (amount > 0 and "increased" or "decreased") .. " to " .. new_value)
 end
 
--- Add keybindings for the new functions
 renoise.tool():add_keybinding{name="Global:Paketti:Double EditStep",invoke=function() PakettiDoubleEditStep() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Halve EditStep",invoke=function() PakettiHalveEditStep() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Increase EditStep by 1",invoke=function() PakettiAdjustEditStep(1) end}
@@ -697,7 +692,6 @@ renoise.tool():add_keybinding{name="Global:Paketti:Decrease EditStep by 4",invok
 renoise.tool():add_keybinding{name="Global:Paketti:Increase EditStep by 8",invoke=function() PakettiAdjustEditStep(8) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Decrease EditStep by 8",invoke=function() PakettiAdjustEditStep(-8) end}
 
--- Keybinding definitions from 00 to 64
 for i=0,64 do
   renoise.tool():add_keybinding{name="Global:Paketti:Set EditStep to " .. formatDigits(2,i),
     invoke=function() PakettiSetEditStep(i) end}
@@ -878,7 +872,6 @@ function TriggerPatternLineMidiValue(midi_value)
   end
 end
 
--- Add MIDI CC mapping for smooth scrubbing
 renoise.tool():add_midi_mapping{
   name = "Global:Paketti:Trigger Pattern Line Scrub (CC)",
   invoke = function(message)
@@ -892,7 +885,6 @@ renoise.tool():add_midi_mapping{
 for i = 1, 512 do
   local hex_number = string.format("%02X", i - 1)
   
-  -- Add keybinding and MIDI mapping for each line
   renoise.tool():add_keybinding{
     name = string.format("Global:Paketti:Trigger Pattern Line %03d (%s)", i, hex_number),
     invoke = function()
@@ -958,19 +950,12 @@ function InstrumentPropertiesControl(show)
   renoise.app():show_status(show and "All instrument properties shown" or "All instrument properties hidden")
 end
 
--- Add keybindings
 renoise.tool():add_keybinding{name="Global:Paketti:Hide All Instrument Properties",invoke=function() InstrumentPropertiesControl(false) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Show All Instrument Properties",invoke=function() InstrumentPropertiesControl(true) end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Hide All Instrument Properties",invoke=function() InstrumentPropertiesControl(false) end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Show All Instrument Properties",invoke=function() InstrumentPropertiesControl(true) end}
-
-
-
--- Add menu entries
 renoise.tool():add_menu_entry{name="Global:Paketti..:Instrument Properties:Hide All Properties",invoke=function() hideAllInstrumentProperties() end}
 renoise.tool():add_menu_entry{name="Global:Paketti..:Instrument Properties:Show All Properties",invoke=function() showAllInstrumentProperties() end}
-
-
 
 
 -- Ensure Disk Browser is visible before performing actions
@@ -994,7 +979,6 @@ local function SetDiskBrowserCategory(category)
   else renoise.app():show_warning("Invalid category. Must be between 1 and 4.") end
 end
 
--- Add menu entries to Disk Browser
 renoise.tool():add_menu_entry{name="Disk Browser:Paketti:Cycle Disk Browser Category", invoke=function() DiskBrowserCategoryCycler() end}
 renoise.tool():add_menu_entry{name="Disk Browser:Paketti:Set to Songs", invoke=function() SetDiskBrowserCategory(1) end}
 renoise.tool():add_menu_entry{name="Disk Browser:Paketti:Set to Instruments", invoke=function() SetDiskBrowserCategory(2) end}
@@ -1032,20 +1016,9 @@ end
 
 -- Only create the key bindings if the feature is available
 if instrument_box_feature_available then
-  renoise.tool():add_keybinding{
-    name="Global:Paketti:Toggle Instrument Box Slot Size 1 (Normal)",
-    invoke=function() ToggleInstrumentBoxSlotSize(1) end
-  }
-
-  renoise.tool():add_keybinding{
-    name="Global:Paketti:Toggle Instrument Box Slot Size 2 (Small)",
-    invoke=function() ToggleInstrumentBoxSlotSize(2) end
-  }
-  
-  renoise.tool():add_keybinding{
-    name="Global:Paketti:Toggle Instrument Box Slot Size 3 (Large)",
-    invoke=function() ToggleInstrumentBoxSlotSize(3) end
-  }
+  renoise.tool():add_keybinding{name="Global:Paketti:Toggle Instrument Box Slot Size 1 (Normal)",invoke=function() ToggleInstrumentBoxSlotSize(1) end}
+  renoise.tool():add_keybinding{name="Global:Paketti:Toggle Instrument Box Slot Size 2 (Small)",invoke=function() ToggleInstrumentBoxSlotSize(2) end}
+  renoise.tool():add_keybinding{name="Global:Paketti:Toggle Instrument Box Slot Size 3 (Large)",invoke=function() ToggleInstrumentBoxSlotSize(3) end}
 end
 
 -- Function to adjust instrument box slot size (1=Normal, 2=Small, 3=Large)
@@ -1067,21 +1040,16 @@ function SetInstrumentBoxSlotSize(size)
   end
 end
 
--- Add all instrument box size keybindings
 renoise.tool():add_keybinding{name="Global:Paketti:Increase Instrument Box Slot Size", invoke=function() AdjustInstrumentBoxSlotSize(1) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Decrease Instrument Box Slot Size", invoke=function() AdjustInstrumentBoxSlotSize(-1) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set Instrument Box Slot Size 1 (Normal)", invoke=function() SetInstrumentBoxSlotSize(1) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set Instrument Box Slot Size 2 (Small)", invoke=function() SetInstrumentBoxSlotSize(2) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set Instrument Box Slot Size 3 (Large)", invoke=function() SetInstrumentBoxSlotSize(3) end}
-
--- Add menu entries to Main Menu > Tools
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:V3.5..:Cycle Disk Browser Category", invoke=function() DiskBrowserCategoryCycler() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:V3.5..:Set to Songs", invoke=function() SetDiskBrowserCategory(1) end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:V3.5..:Set to Instruments", invoke=function() SetDiskBrowserCategory(2) end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:V3.5..:Set to Samples", invoke=function() SetDiskBrowserCategory(3) end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:V3.5..:Set to Other", invoke=function() SetDiskBrowserCategory(4) end}
-
--- Add keybindings
 renoise.tool():add_keybinding{name="Global:Paketti:Cycle Disk Browser Category", invoke=function() DiskBrowserCategoryCycler() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set Disk Browser Category to Songs", invoke=function() SetDiskBrowserCategory(1) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set Disk Browser Category to Instruments", invoke=function() SetDiskBrowserCategory(2) end}
@@ -1197,12 +1165,10 @@ function resetMetronomeVolume()
   setMetronomeVolume(math.db2lin(0)) -- Default value (0 dB = 1.0 linear)
 end
 
--- Keybindings for volume control
 renoise.tool():add_keybinding{name="Global:Paketti:Metronome Volume Up", invoke=function() adjustMetronomeVolume(0.1) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Metronome Volume Down", invoke=function() adjustMetronomeVolume(-0.1) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Metronome Volume Reset", invoke=function() resetMetronomeVolume() end}
 
--- MIDI mapping for 0-127 control
 renoise.tool():add_midi_mapping{name="Paketti:Metronome Volume x[Knob]",invoke=function(msg)
     local max_volume = math.db2lin(6)
     local scaled_volume = (msg.int_value / 127) * max_volume
@@ -1446,7 +1412,6 @@ function reset_output_delayALL(rename)
   end
 end
 
--- MIDI mappings
 renoise.tool():add_midi_mapping{name="Paketti:Nudge Delay Output Delay Control x[Knob]",
   invoke = function(message)
     if message:is_abs_value() then
@@ -1489,7 +1454,6 @@ renoise.tool():add_midi_mapping{name="Paketti:Nudge Delay Output Delay Control (
   end
 }
 
--- Trigger MIDI mappings
 renoise.tool():add_midi_mapping{name="Paketti:Nudge Delay Output Delay +01 x[Trigger]",invoke=function(message) if message:is_trigger() then nudge_output_delay(1, false) end end}
 renoise.tool():add_midi_mapping{name="Paketti:Nudge Delay Output Delay -01 x[Trigger]",invoke=function(message) if message:is_trigger() then nudge_output_delay(-1, false) end end}
 renoise.tool():add_midi_mapping{name="Paketti:Nudge Delay Output Delay +05 x[Trigger]",invoke=function(message) if message:is_trigger() then nudge_output_delay(5, false) end end}
@@ -1499,7 +1463,6 @@ renoise.tool():add_midi_mapping{name="Paketti:Nudge Delay Output Delay -10 x[Tri
 renoise.tool():add_midi_mapping{name="Paketti:Reset Nudge Delay Output Delay to 0ms x[Trigger]",invoke=function(message) if message:is_trigger() then reset_output_delay(false) end end}
 renoise.tool():add_midi_mapping{name="Paketti:Reset Nudge Delay Output Delay to 0ms (ALL) x[Trigger]",invoke=function(message) if message:is_trigger() then reset_output_delayALL(false) end end}
 
--- Trigger MIDI mappings (Rename versions)
 renoise.tool():add_midi_mapping{name="Paketti:Nudge Delay Output Delay +01 (Rename) x[Trigger]",invoke=function(message) if message:is_trigger() then nudge_output_delay(1, true) end end}
 renoise.tool():add_midi_mapping{name="Paketti:Nudge Delay Output Delay -01 (Rename) x[Trigger]",invoke=function(message) if message:is_trigger() then nudge_output_delay(-1, true) end end}
 renoise.tool():add_midi_mapping{name="Paketti:Nudge Delay Output Delay +05 (Rename) x[Trigger]",invoke=function(message) if message:is_trigger() then nudge_output_delay(5, true) end end}
@@ -1509,7 +1472,6 @@ renoise.tool():add_midi_mapping{name="Paketti:Nudge Delay Output Delay -10 (Rena
 renoise.tool():add_midi_mapping{name="Paketti:Reset Nudge Delay Output Delay to 0ms (Rename) x[Trigger]",invoke=function(message) if message:is_trigger() then reset_output_delay(true) end end}
 renoise.tool():add_midi_mapping{name="Paketti:Reset Nudge Delay Output Delay to 0ms (ALL) (Rename) x[Trigger]",invoke=function(message) if message:is_trigger() then reset_output_delayALL(true) end end}
 
--- Keybindings
 renoise.tool():add_keybinding{name="Global:Paketti:Nudge Delay Output Delay +01ms",invoke=function() nudge_output_delay(1, false) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Nudge Delay Output Delay -01ms",invoke=function() nudge_output_delay(-1, false) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Nudge Delay Output Delay +10ms",invoke=function() nudge_output_delay(10, false) end}
@@ -1519,7 +1481,6 @@ renoise.tool():add_keybinding{name="Global:Paketti:Nudge Delay Output Delay -05m
 renoise.tool():add_keybinding{name="Global:Paketti:Reset Nudge Delay Output Delay to 0ms",invoke=function() reset_output_delay(false) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Reset Nudge Delay Output Delay to 0ms (ALL)",invoke=function() reset_output_delayALL(false) end}
 
--- Keybindings (Rename versions)
 renoise.tool():add_keybinding{name="Global:Paketti:Nudge Delay Output Delay +01ms (Rename)",invoke=function() nudge_output_delay(1, true) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Nudge Delay Output Delay -01ms (Rename)",invoke=function() nudge_output_delay(-1, true) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Nudge Delay Output Delay +10ms (Rename)",invoke=function() nudge_output_delay(10, true) end}
@@ -1529,7 +1490,6 @@ renoise.tool():add_keybinding{name="Global:Paketti:Nudge Delay Output Delay -05m
 renoise.tool():add_keybinding{name="Global:Paketti:Reset Nudge Delay Output Delay to 0ms (Rename)",invoke=function() reset_output_delay(true) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Reset Nudge Delay Output Delay to 0ms (ALL) (Rename)",invoke=function() reset_output_delayALL(true) end}
 
--- Menu entries
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Delay Output..:Nudge Delay Output +01ms",invoke=function() nudge_output_delay(1, false) end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Nudge Delay Output -01ms",invoke=function() nudge_output_delay(-1, false) end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Nudge Delay Output +05ms",invoke=function() nudge_output_delay(5, false) end}
@@ -1539,7 +1499,6 @@ renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Nudg
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Reset Delay Output Delay to 0ms",invoke=function() reset_output_delay(false) end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Reset Delay Output Delay to 0ms (ALL)",invoke=function() reset_output_delayALL(false) end}
 
--- Menu entries (Rename versions)
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Delay Output..:Nudge Delay Output +01ms (Rename)",invoke=function() nudge_output_delay(1, true) end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Nudge Delay Output -01ms (Rename)",invoke=function() nudge_output_delay(-1, true) end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Nudge Delay Output +05ms (Rename)",invoke=function() nudge_output_delay(5, true) end}
@@ -1549,7 +1508,6 @@ renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Nudg
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Reset Delay Output Delay to 0ms (Rename)",invoke=function() reset_output_delay(true) end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Reset Delay Output Delay to 0ms (ALL) (Rename)",invoke=function() reset_output_delayALL(true) end}
 
--- Mixer menu entries
 renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Delay Output..:Nudge Delay Output Delay +01ms",invoke=function() nudge_output_delay(1, false) end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Nudge Delay Output Delay -01ms",invoke=function() nudge_output_delay(-1, false) end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Nudge Delay Output Delay +05ms",invoke=function() nudge_output_delay(5, false) end}
@@ -1559,7 +1517,6 @@ renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Nudge Delay O
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Reset Delay Output Delay to 0ms",invoke=function() reset_output_delay(false) end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Reset Delay Output Delay to 0ms (ALL)",invoke=function() reset_output_delayALL(false) end}
 
--- Mixer menu entries (Rename versions)
 renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Delay Output..:Nudge Delay Output Delay +01ms (Rename)",invoke=function() nudge_output_delay(1, true) end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Nudge Delay Output Delay -01ms (Rename)",invoke=function() nudge_output_delay(-1, true) end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Nudge Delay Output Delay +05ms (Rename)",invoke=function() nudge_output_delay(5, true) end}
@@ -1569,7 +1526,6 @@ renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Nudge Delay O
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Reset Delay Output Delay to 0ms (Rename)",invoke=function() reset_output_delay(true) end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Reset Delay Output Delay to 0ms (ALL) (Rename)",invoke=function() reset_output_delayALL(true) end}
 
--- Pattern Matrix menu entries
 renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Delay Output..:Nudge Delay Output Delay +01ms",invoke=function() nudge_output_delay(1, false) end}
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Delay Output..:Nudge Delay Output Delay -01ms",invoke=function() nudge_output_delay(-1, false) end}
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Delay Output..:Nudge Delay Output Delay +05ms",invoke=function() nudge_output_delay(5, false) end}
@@ -1579,7 +1535,6 @@ renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Delay Output..:Nudg
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Delay Output..:Reset Delay Output Delay to 0ms",invoke=function() reset_output_delay(false) end}
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Delay Output..:Reset Delay Output Delay to 0ms (ALL)",invoke=function() reset_output_delayALL(false) end}
 
--- Pattern Matrix menu entries (Rename versions)
 renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Delay Output..:Nudge Delay Output Delay +01ms (Rename)",invoke=function() nudge_output_delay(1, true) end}
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Delay Output..:Nudge Delay Output Delay -01ms (Rename)",invoke=function() nudge_output_delay(-1, true) end}
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Delay Output..:Nudge Delay Output Delay +05ms (Rename)",invoke=function() nudge_output_delay(5, true) end}

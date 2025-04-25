@@ -808,7 +808,6 @@ function showQuickLoadDialog()
   end
 end
 
--- Add menu entries and keybinding
 renoise.tool():add_keybinding{name="Global:Tools:Quick Load Device", invoke=showQuickLoadDialog}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Quick Load Device...", invoke=showQuickLoadDialog}
 renoise.tool():add_menu_entry{name="DSP Device:Paketti..:Quick Load Device...", invoke=showQuickLoadDialog}

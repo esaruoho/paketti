@@ -337,7 +337,6 @@ local function select_chunk(chunk_index)
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 end
 
--- Keybindings and MIDI mappings for chunk navigation with your exact naming convention
 renoise.tool():add_keybinding{name="Global:Paketti:Select Next Chunk (00..F0)",invoke=select_next_chunk }
 renoise.tool():add_keybinding{name="Global:Paketti:Select Previous Chunk (00..F0)",invoke=select_previous_chunk }
 
@@ -349,7 +348,6 @@ renoise.tool():add_midi_mapping{name="Paketti:Select Previous Chunk (00..FE)",
   invoke=function(message) if message:is_trigger() then select_previous_chunk() end end
 }
 
--- Keybindings and MIDI mappings for selecting specific chunks (00 to F0), with FE as the max chunk
 for i = 0, 15 do
   local chunk_hex = string.format("%02X", i * 16)
   local chunk_index = i * 16

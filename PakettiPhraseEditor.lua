@@ -572,13 +572,10 @@ function observe_phrase_playhead()
   end
 end
 
--- Add menu entry and keybinding
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Phrase Follow Pattern Playback Hack",invoke=observe_phrase_playhead}
 renoise.tool():add_menu_entry{name="Phrase Editor:Paketti..:Phrase Follow Pattern Playback Hack",invoke=observe_phrase_playhead}
 renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Toggle Phrase Follow Pattern Playback Hack",invoke=observe_phrase_playhead}
 renoise.tool():add_keybinding{name="Global:Paketti:Toggle Phrase Follow Pattern Playback Hack",invoke=observe_phrase_playhead}
-
-
 ---
 function Phrplusdelay(chg)
   local song = renoise.song()
@@ -632,7 +629,6 @@ function Phrplusdelay(chg)
   print(columns_message)
 end
 
--- Add keybindings for adjusting the delay value
 renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Increase Delay +1",invoke=function() Phrplusdelay(1) end}
 renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Decrease Delay -1",invoke=function() Phrplusdelay(-1) end}
 renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Increase Delay +10",invoke=function() Phrplusdelay(10) end}

@@ -284,7 +284,6 @@ end
 
 -- Randomize functions for note columns
 function randomizeNoteColumn(column_name)
-    -- Add this right at the start of the function
     if (column_name == "volume_value" or column_name == "panning_value" or column_name == "effect_amount_value") 
       and preferences.pakettiCheatSheet.pakettiCheatSheetRandomizeMax.value > 0x80 then
       renoise.app():show_status("Warning: Values above 0x80 cannot be set for Volume or Panning")

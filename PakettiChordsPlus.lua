@@ -1,4 +1,3 @@
--- from Jalex
 function JalexAdd(number)
     if renoise.song().selected_note_column_index == renoise.song().selected_track.visible_note_columns then 
     if renoise.song().selected_track.visible_note_columns == 12 then 
@@ -203,7 +202,6 @@ function JalexAdd(number)
         end
     end
     
-    -- Add Previous Chord function and menu entry
     function previous_chord()
         current_chord_index = current_chord_index - 2 -- Go back two steps since next_chord() will add one
         if current_chord_index < 0 then
@@ -212,9 +210,6 @@ function JalexAdd(number)
         next_chord() -- Use existing next_chord to play and advance
     end
 
-    
-
-    -- MIDI mapping handler, maps values 0-127 to the list of chords
     function midi_chord_mapping(value)
         if renoise.song().selected_track.visible_note_columns ~=  0 then
             local chord_index = math.floor((value / 127) * (#chord_list - 1)) + 1
@@ -231,22 +226,18 @@ function JalexAdd(number)
         
     end
     
-    -- Add keybindings dynamically based on the chord list
+  
     for i, chord in ipairs(chord_list) do
         renoise.tool():add_keybinding{name="Pattern Editor:Paketti:" .. chord.name,
             invoke=chord.fn
         }
     end
     
-
-    -- Add keybinding for cycling through chords
     renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Next Chord in List",
         invoke=next_chord
     }
     
     renoise.tool():add_midi_mapping{name="Paketti:Chord Selector [0-127]",invoke=function(midi_message) midi_chord_mapping(midi_message.int_value) end}
-    
-    -- Add menu entries for all chord functions
     renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Basic Triads - Major (3-4)",invoke=function() chordsplus(4,3) end }
     renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Basic Triads - Minor (4-3)",invoke=function() chordsplus(3,4) end }
     renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Basic Triads - Augmented (4-4)",invoke=function() chordsplus(4,4) end }
@@ -275,15 +266,9 @@ function JalexAdd(number)
     renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Special - Next Chord",invoke=next_chord }
     renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Special - Previous Chord",invoke=previous_chord }
     
-    -- Add menu entries for intervals 1-12 and their negative counterparts
     for i=1,12 do
-        renoise.tool():add_menu_entry{name=string.format("Pattern Editor:Paketti ChordsPlus..:Add Intervals..:Add %d", i), 
-            invoke=function() JalexAdd(i) end}
-    end
-
-    for i=1,12 do
-        renoise.tool():add_menu_entry{name=string.format("Pattern Editor:Paketti ChordsPlus..:Sub Intervals..:Sub %d", i), 
-            invoke=function() JalexAdd(-i) end}
+        renoise.tool():add_menu_entry{name=string.format("Pattern Editor:Paketti ChordsPlus..:Add Intervals..:Add %d", i),invoke=function() JalexAdd(i) end}
+        renoise.tool():add_menu_entry{name=string.format("Pattern Editor:Paketti ChordsPlus..:Sub Intervals..:Sub %d", i),invoke=function() JalexAdd(-i) end}
     end
 -------
 
@@ -867,11 +852,8 @@ function ExtractBassline()
   renoise.song().selected_track_index = dest_track_index
 end
 
--- Add menu entry and keybinding
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Extract Bassline to New Track",
-  invoke=function() ExtractBassline() end}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti ChordsPlus..:Extract Bassline to New Track",
-  invoke=function() ExtractBassline() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Extract Bassline to New Track",invoke=function() ExtractBassline() end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti ChordsPlus..:Extract Bassline to New Track",invoke=function() ExtractBassline() end}
 
   function ExtractHighestNote()
     local song = renoise.song()
@@ -1165,10 +1147,6 @@ song:track(new_track_index).visible_note_columns = 1
     mode_msg, final_instrument_index))
 end
 
---------------------------------------------------------------------------------
--- Keybindings
---------------------------------------------------------------------------------
--- Pattern Editor Keybindings:
 renoise.tool():add_keybinding{
   name = "Pattern Editor:Paketti:Duplicate Highest Notes to New Track & Duplicate Instrument",
   invoke = function() DuplicateSpecificNotesToNewTrack("highest", "duplicate") end

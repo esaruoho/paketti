@@ -817,7 +817,6 @@ local function set_middle_frame_focus()
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
 end
 
--- Keybindings for various operations
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Phase Inversion",invoke=function() phase_invert_sample() end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Phase Inversion & Audio Diff",invoke=function() phase_invert_and_diff_sample() end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Pitch Shift",invoke=function() pitch_shift_sample(20) end}
@@ -1146,20 +1145,9 @@ function PakettiMoveSilenceAllSamples()
   end
 end
 
--- Add keybinding and menu entries
 renoise.tool():add_keybinding{name="Global:Paketti:Move Beginning Silence to End for All Samples",invoke=function() PakettiMoveSilenceAllSamples() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Move Beginning Silence to End for All Samples",invoke=function() PakettiMoveSilenceAllSamples() end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Process..:Move Beginning Silence to End for All Samples",invoke=function() PakettiMoveSilenceAllSamples() end}
---------
-
-
-
-
-
-
-
-
-
 --------
 function PakettiSampleInvertEntireSample()
   local sample = renoise.song().selected_sample
@@ -1210,17 +1198,9 @@ function PakettiInvertRandomSamplesInInstrument()
 end
 
 
--- Add to menu entries
-
-
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Process..:Invert Random Samples in Instrument",invoke=PakettiInvertRandomSamplesInInstrument}
 renoise.tool():add_keybinding{name="Global:Paketti:Invert Random Samples in Instrument",invoke=PakettiInvertRandomSamplesInInstrument}
-
-
-
 ---
-
-
 function apply_fade_in_out()
   local instrument=renoise.song().selected_instrument
   if not instrument or #instrument.samples==0 then return end
@@ -1293,7 +1273,6 @@ renoise.app().window.active_middle_frame=5
   renoise.app():show_status("Max Amp DC Offset Kick Generated!")
 end
 
--- Adding keybinding and menu entry on single lines
 renoise.tool():add_keybinding{name="Global:Paketti:Max Amp DC Offset Kick Generator",invoke=function() pakettiMaxAmplitudeDCOffsetKickCreator() end }
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Max Amp DC Offset Kick Generator",invoke=function() pakettiMaxAmplitudeDCOffsetKickCreator() end }
 

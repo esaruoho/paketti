@@ -227,10 +227,8 @@ local function toggle_match_editstep()
   end
 end
 
--- Add menu entry for toggling
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress..:Match EditStep with Delay Pattern",invoke=function() toggle_match_editstep() end}
 renoise.tool():add_keybinding{name="Global:Tools:Toggle Match EditStep with Delay Pattern",invoke=function() toggle_match_editstep() end}
-
 
 if preferences.SelectedSampleBeatSyncLines.value == true then 
 
@@ -973,10 +971,7 @@ function keyhandlerfunc_sbx(dialog,key)
   return key
 end
 
--- Add Menu Entry
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress..:SBx Loop Playback",invoke=showSBX_dialog}
-
--- Add Shortcut for Reset and Playback
 renoise.tool():add_keybinding{name="Global:Transport:Reset SBx and Start Playback",
   invoke=function()
     reset_repeat_counts()
@@ -1180,27 +1175,6 @@ renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Experimental/WIP..:C
   end
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
--- MIDI Mapping for adjusting selected instrument transpose
 renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Transpose (-64-+64)",
   invoke=function(message)
     -- Ensure the selected instrument exists
@@ -1215,13 +1189,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Transpose
     renoise.app():show_status("Transpose adjusted to "..instrument.transpose)
   end
 }
-
-
-
-
-
-
-
+---
 local function flood_fill_column()
 
   local song = renoise.song()
@@ -1477,24 +1445,8 @@ function parse_xml_data(xml_string)
   return parsed_data
 end
 
--- Keybindings to invoke the save and load functions
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker Alt-M MixPaste - Save",
-  invoke=function() save_selection_as_xml() end}
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker Alt-M MixPaste - Load",
-  invoke=function() load_xml_into_selection() end}
-
-
-
-
-
-
-
-
-
-
-
-
-
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker Alt-M MixPaste - Save",invoke=function() save_selection_as_xml() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker Alt-M MixPaste - Load",invoke=function() load_xml_into_selection() end}
 
 -- Define the simplified table for base time divisions from 1/1 to 1/128
 local base_time_divisions = {
@@ -2483,7 +2435,6 @@ function PakettiToggleSoloTracks()
   end
 end
 
--- Add menu entry, keybinding, and MIDI mapping for the toggle solo tracks function
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Pattern Editor..:Toggle Solo Tracks",invoke=PakettiToggleSoloTracks}
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Toggle Solo Tracks",invoke=PakettiToggleSoloTracks}
 renoise.tool():add_keybinding{name="Global:Paketti:Toggle Solo Tracks",invoke=PakettiToggleSoloTracks}
@@ -2989,30 +2940,10 @@ function PakettiImpulseTrackerShiftUpMultipleColumns()
   print("----")
 end
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
--- Add key bindings for the functions
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker Shift-Right Selection In Pattern",invoke=PakettiImpulseTrackerShiftRight}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker Shift-Left Selection In Pattern",invoke=PakettiImpulseTrackerShiftLeft}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker Shift-Down Selection In Pattern",invoke=PakettiImpulseTrackerShiftDown}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker Shift-Up Selection In Pattern",invoke=PakettiImpulseTrackerShiftUp}
-
-
 -- Function to copy a single note column
 function PakettiImpulseTrackerSlideSelectedNoteColumnCopy(src, dst)
   if src and dst then
@@ -3257,13 +3188,10 @@ function PakettiImpulseTrackerSlideUp()
   end
 end
 
--- Add menu entry for sliding selected column content down
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Slide Selected Column Content Down",invoke=PakettiImpulseTrackerSlideDown}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Slide Selected Column Content Up",invoke=PakettiImpulseTrackerSlideUp}
-
 renoise.tool():add_midi_mapping{name="Paketti:Slide Selected Column Content Down",invoke=PakettiImpulseTrackerSlideDown}
 renoise.tool():add_midi_mapping{name="Paketti:Slide Selected Column Content Up",invoke=PakettiImpulseTrackerSlideUp}
-
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Other Trackers..:Slide Selected Column Content Down",invoke=PakettiImpulseTrackerSlideDown}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Other Trackers..:Slide Selected Column Content Up",invoke=PakettiImpulseTrackerSlideUp}
 

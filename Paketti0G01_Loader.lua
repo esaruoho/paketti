@@ -1334,7 +1334,6 @@ end
 -- Initialize the tool
 safe_initialize()
 
--- Add menu entries
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:!Preferences..:Paketti Preferences...",invoke=show_paketti_preferences}
 renoise.tool():add_keybinding{name="Global:Paketti:Show Paketti Preferences...",invoke=show_paketti_preferences}
 

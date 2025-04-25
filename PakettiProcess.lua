@@ -408,15 +408,12 @@ function NormalizeSelectedSliceInSample()
   end
 end
 
-
--- Add keybinding and menu entries
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Normalize Selected Sample or Slice",invoke=NormalizeSelectedSliceInSample}
 renoise.tool():add_keybinding{name="Global:Paketti:Normalize Selected Sample or Slice",invoke=NormalizeSelectedSliceInSample}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Normalize Selected Sample or Slice",invoke=NormalizeSelectedSliceInSample}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Process..:Normalize Selected Sample or Slice",invoke=NormalizeSelectedSliceInSample}
 renoise.tool():add_midi_mapping{name="Paketti:Normalize Selected Sample or Slice",invoke=function(message) if message:is_trigger() then NormalizeSelectedSliceInSample() end end}
-
-
+--------
 function normalize_all_samples_in_instrument()
   local instrument = renoise.song().selected_instrument
   if not instrument then
@@ -442,7 +439,7 @@ function normalize_all_samples_in_instrument()
         local sample = instrument.samples[sample_idx]
         if not sample or not sample.sample_buffer.has_sample_data then
           skipped_samples = skipped_samples + 1
-          break  -- breaks the do..end block, continues the for loop
+          break 
         end
 
         dialog:add_line(string.format("Processing sample %d of %d", sample_idx, total_samples))
@@ -467,7 +464,7 @@ function normalize_all_samples_in_instrument()
         -- Skip if already normalized
         if math.abs(max_peak - 1.0) < 0.0001 then
           skipped_samples = skipped_samples + 1
-          break  -- breaks the do..end block, continues the for loop
+          break
         end
 
         -- Apply normalization
@@ -497,14 +494,13 @@ function normalize_all_samples_in_instrument()
   process:start()
 end
 
--- Add keybinding and menu entries
 renoise.tool():add_keybinding{name="Global:Paketti:Normalize Sample",invoke=function() normalize_selected_sample() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Normalize All Samples in Instrument",invoke=function() normalize_all_samples_in_instrument() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Normalize Sample",invoke=function() normalize_selected_sample() end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Process..:Normalize Sample",invoke=function() normalize_selected_sample() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Normalize All Samples in Instrument",invoke=function() normalize_all_samples_in_instrument() end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Process..:Normalize All Samples in Instrument",invoke=function() normalize_all_samples_in_instrument() end}
-
+------
 function normalize_and_reduce(scope, db_reduction)
   local function process_sample(sample, reduction_factor)
     if not sample then return false, "No sample provided!" end
@@ -1053,16 +1049,12 @@ function ReverseSelectedSliceInSample()
   slicer:start()
 end
 
--- Add keybinding and menu entries
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Reverse Selected Sample or Slice",invoke=ReverseSelectedSliceInSample}
 renoise.tool():add_keybinding{name="Sample Keyzones:Paketti:Reverse Selected Sample or Slice",invoke=ReverseSelectedSliceInSample}
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Process..:Reverse Selected Sample or Slice",invoke=ReverseSelectedSliceInSample}
 renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Process..:Reverse Selected Sample or Slice",invoke=ReverseSelectedSliceInSample}
 renoise.tool():add_midi_mapping{name="Paketti:Reverse Selected Sample or Slice",invoke=function(message) if message:is_trigger() then ReverseSelectedSliceInSample() end end}
-
-
-
-
+--------
 function normalize_selected_sample_by_slices()
   local selected_sample = renoise.song().selected_sample
   local last_yield_time = os.clock()
@@ -1264,15 +1256,8 @@ function normalize_selected_sample_by_slices()
   slicer:start()
 end
 
--- Add keybinding and menu entries
-renoise.tool():add_keybinding{name="Global:Paketti:Normalize Sample Slices Independently",
-  invoke=function() normalize_selected_sample_by_slices() end
-}
-
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Normalize Slices Independently",
-  invoke=function() normalize_selected_sample_by_slices() end
-}
-
+renoise.tool():add_keybinding{name="Global:Paketti:Normalize Sample Slices Independently",invoke=function() normalize_selected_sample_by_slices() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Normalize Slices Independently",invoke=function() normalize_selected_sample_by_slices() end}
 -- Function to convert mono sample to specified channels with blank opposite channel
 function mono_to_blank(left_channel, right_channel)
   -- Ensure a song exists
@@ -2170,20 +2155,13 @@ function stereo_to_mono_mix_optimized()
   slicer:start()
 end
 
--- Add menu entries for the new stereo mix to mono function
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert Stereo to Mono (Mix Both)",invoke=stereo_to_mono_mix_optimized}
 renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Convert Stereo to Mono (Mix Both)",invoke=stereo_to_mono_mix_optimized}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Process..:Convert Stereo to Mono (Mix Both)",invoke=stereo_to_mono_mix_optimized}
-
--- Add keybindings
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Convert Stereo to Mono (Mix Both)",invoke=stereo_to_mono_mix_optimized}
 renoise.tool():add_keybinding{name="Sample Keyzones:Paketti:Convert Stereo to Mono (Mix Both)",invoke=stereo_to_mono_mix_optimized}
-
--- Add MIDI mapping
 renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Convert Stereo to Mono (Mix Both)",invoke=stereo_to_mono_mix_optimized}
-
--- ... existing code ...
-
+----
 function convert_all_samples_to_mono(mode)
   local instrument = renoise.song().selected_instrument
   if not instrument then
@@ -2652,7 +2630,7 @@ function convert_all_samples_to_bit_depth(target_bits)
                     print(string.format("Skipping sample %d: No sample data", sample_index))
                     skipped_samples = skipped_samples + 1
                     processed_samples = processed_samples + 1
-                    break  -- breaks the do..end block, continues the for loop
+                    break
                 end
 
                 -- Skip if already at target bit depth
@@ -2660,7 +2638,7 @@ function convert_all_samples_to_bit_depth(target_bits)
                     print(string.format("Skipping sample %d: Already at %d-bit", sample_index, target_bits))
                     skipped_samples = skipped_samples + 1
                     processed_samples = processed_samples + 1
-                    break  -- breaks the do..end block, continues the for loop
+                    break
                 end
 
                 -- Store ALL sample properties
@@ -2830,7 +2808,6 @@ function convert_all_samples_to_bit_depth(target_bits)
     slicer:start()
 end
 
--- Add menu entries for batch conversion
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert All Samples to 8-bit", invoke=function() convert_all_samples_to_bit_depth(8) end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert All Samples to 16-bit", invoke=function() convert_all_samples_to_bit_depth(16) end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert All Samples to 24-bit", invoke=function() convert_all_samples_to_bit_depth(24) end}

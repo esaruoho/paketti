@@ -249,12 +249,11 @@ function CapsLok(use_editstep)
   end
 end
 
--- Add keybindings for both versions (with and without edit step)
 renoise.tool():add_keybinding{name="Global:Paketti:KapsLock Note Off (No Step)",invoke=function() CapsLok(false) end}
 renoise.tool():add_keybinding{name="Global:Paketti:KapsLock Note Off (With Step)",invoke=function() CapsLok(true) end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:KapsLock CapsLock Caps Lock Note Off",invoke=function() CapsLok() end}
 renoise.tool():add_keybinding{name="Phrase Editor:Paketti:KapsLock CapsLock Caps Lock Note Off",invoke=function() CapsLok() end}
--- Convert the existing keybindings into MIDI mappings
+
 renoise.tool():add_midi_mapping{
   name="Global:Paketti:KapsLock Note Off (No Step) x[Trigger]",
   invoke=function(message)
@@ -733,16 +732,12 @@ function pakettiPatternHalver()
   song.selected_line_index = new_line
 end
 
-
-
--- Add menu entries and keybindings for the tool
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Pattern Editor..:Paketti Pattern Doubler",invoke=pakettiPatternDoubler}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Paketti Pattern Halver",invoke=pakettiPatternHalver}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Paketti Pattern Doubler",invoke=pakettiPatternDoubler}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Paketti Pattern Halver",invoke=pakettiPatternHalver}
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Paketti Pattern Doubler",invoke=pakettiPatternDoubler}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Paketti Pattern Halver",invoke=pakettiPatternHalver}
-
 renoise.tool():add_keybinding{name="Mixer:Paketti:Paketti Pattern Doubler",invoke=pakettiPatternDoubler}
 renoise.tool():add_keybinding{name="Mixer:Paketti:Paketti Pattern Halver",invoke=pakettiPatternHalver}
 
@@ -2135,13 +2130,10 @@ function pakettiDuplicateEffectColumnToPatternOrSelection()
   renoise.app():show_status("Effect column command duplicated to selected rows in the pattern.")
 end
 
--- Add a menu entry to trigger the function
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Pattern Editor..:Duplicate Effect Column Content to Pattern or Selection",invoke=pakettiDuplicateEffectColumnToPatternOrSelection}
 renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Effect Column Content to Pattern or Selection",invoke=pakettiDuplicateEffectColumnToPatternOrSelection}
 renoise.tool():add_midi_mapping{name="Paketti:Duplicate Effect Column Content to Pattern or Selection",invoke=pakettiDuplicateEffectColumnToPatternOrSelection}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Effect Columns..:Duplicate Effect Column Content to Pattern or Selection",invoke=pakettiDuplicateEffectColumnToPatternOrSelection}
-
-
 ------------
 -- Function to randomize effect column parameters
 function pakettiRandomizeEffectColumnParameters()
@@ -2994,7 +2986,6 @@ function PakettiToggleNoteOffAllTracks()
   end
 end
 
--- Add keybindings for both pattern and phrase editor
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Toggle Note Off in All Visible Note Columns",  invoke = PakettiToggleNoteOffAllColumns}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Toggle Note Off on All Tracks on Current Row",invoke = PakettiToggleNoteOffAllTracks}
 renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Toggle Note Off in All Visible Note Columns",invoke = PakettiToggleNoteOffAllColumns}
@@ -4623,14 +4614,8 @@ function nudge_with_delay(direction)
   renoise.app():show_status("Nudge " .. direction .. " with delay applied.")
 end
 
--- Keybindings for nudging up and down
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Nudge with Delay (Down)",invoke=function() nudge_with_delay("down") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Nudge with Delay (Up)",invoke=function() nudge_with_delay("up") end}
-
-
-
-
-
 -- Main function for toggling LPB and inserting ZLxx commands.
 local function toggle_lpb_and_insert_commands()
   local song=renoise.song()
@@ -4692,13 +4677,9 @@ local function toggle_lpb_and_insert_commands()
   renoise.song().transport.lpb=stored_lpb
 end
 
--- Add keybinding to trigger the function.
 renoise.tool():add_keybinding{name="Global:Paketti:Divide LPB by 4, return to Original",invoke=function() toggle_lpb_and_insert_commands() end}
 -------
-
-
 function globalCenter()
-
 local song=renoise.song()
 
 -- Calculate the total number of tracks
@@ -4715,19 +4696,14 @@ renoise.app():show_status("Panning values for all tracks set to 0.5")
 
 end
 
--- Add new keybindings and menu entries for Left/Right
 renoise.tool():add_keybinding{name="Global:Paketti:Set All Tracks to Hard Left",invoke=function() globalLeft() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set All Tracks to Hard Right",invoke=function() globalRight() end}
-
 renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Set All Tracks to Hard Left",invoke=function() globalLeft() end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Set All Tracks to Hard Right",invoke=function() globalRight() end}
-
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Set All Tracks to Hard Left",invoke=function() globalLeft() end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Set All Tracks to Hard Right",invoke=function() globalRight() end}
-
 renoise.tool():add_menu_entry{name="--DSP Device:Paketti..:Set All Tracks to Hard Left",invoke=function() globalLeft() end}
 renoise.tool():add_menu_entry{name="DSP Device:Paketti..:Set All Tracks to Hard Right",invoke=function() globalRight() end}
-
 renoise.tool():add_keybinding{name="Global:Paketti:Set All Tracks to Center",invoke=function() globalCenter() end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Set All Tracks to Center",invoke=function() globalCenter() end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Set All Tracks to Center",invoke=function() globalCenter() end}
@@ -4830,16 +4806,9 @@ function PakettiNoteOffToSelection()
       renoise.app():show_status("Not in Pattern Editor or Phrase Editor")
   end
 end
--- Add keybindings
-renoise.tool():add_keybinding{
-  name = "Pattern Editor:Paketti:Toggle Note Off in Selected Tracks",
-  invoke = function() PakettiNoteOffToSelection() end
-}
-renoise.tool():add_keybinding{
-  name = "Phrase Editor:Paketti:Toggle Note Off in Selected Tracks",
-  invoke = function() PakettiNoteOffToSelection() end
-}
 
+renoise.tool():add_keybinding{name = "Pattern Editor:Paketti:Toggle Note Off in Selected Tracks",invoke = function() PakettiNoteOffToSelection() end}
+renoise.tool():add_keybinding{name = "Phrase Editor:Paketti:Toggle Note Off in Selected Tracks",invoke = function() PakettiNoteOffToSelection() end}
 -------
 -- Function with an option to retain or clear silence rows
 local function DuplicateSelectionWithPaddingMoveCursor(retain_silence_content)
@@ -5181,12 +5150,11 @@ function moveTrackRight()
   song.selected_track_index = current_index + 1
 end
 
--- Add keybindings
 renoise.tool():add_keybinding{name="Global:Paketti:Move Track Left",invoke=moveTrackLeft}
 renoise.tool():add_keybinding{name="Global:Paketti:Move Track Right",invoke=moveTrackRight}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Move Track Left",invoke=moveTrackLeft}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Move Track Right",invoke=moveTrackRight}
-
+----
 function randomly_raise_selected_notes_one_octave(probability)
   local song = renoise.song()
   local pattern = song.selected_pattern
@@ -5300,18 +5268,14 @@ local function writeEffectToPattern(effect_string, first_row_effect)
   renoise.song().transport.edit_step = 0
 end
 
--- Add keybindings and menu entries
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Fill Effect Column with 0D00",invoke=function() writeEffectToPattern("0D00") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Fill Effect Column with 0U00",invoke=function() writeEffectToPattern("0U00") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Fill Effect Column with 0G01+0D00",invoke=function() writeEffectToPattern("0D00", "0G01") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Fill Effect Column with 0G01+0U00",invoke=function() writeEffectToPattern("0U00", "0G01") end}
-
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Effect Columns..:Fill Effect Column with 0D00",invoke=function() writeEffectToPattern("0D00") end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Effect Columns..:Fill Effect Column with 0U00",invoke=function() writeEffectToPattern("0U00") end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Effect Columns..:Fill Effect Column with 0G01+0D00",invoke=function() writeEffectToPattern("0D00", "0G01") end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Effect Columns..:Fill Effect Column with 0G01+0U00",invoke=function() writeEffectToPattern("0U00", "0G01") end}
-
--- Add MIDI mappings for effect column fills
 renoise.tool():add_midi_mapping{
   name = "Global:Paketti:Fill Effect Column with 0D00 [Trigger]",
   invoke = function(message)
@@ -5488,18 +5452,15 @@ function move_dsps_to_adjacent_track(direction)
     direction < 0 and "previous" or "next"))
 end
 
--- Add keybindings and menu entries
-renoise.tool():add_keybinding{name = "Pattern Editor:Paketti:Move DSPs to Previous Track",invoke = function() move_dsps_to_adjacent_track(-1) end}
-renoise.tool():add_keybinding{name = "Pattern Editor:Paketti:Move DSPs to Next Track",invoke = function() move_dsps_to_adjacent_track(1) end}
-renoise.tool():add_menu_entry{name = "--Pattern Editor:Paketti..:Move DSPs to Previous Track",invoke = function() move_dsps_to_adjacent_track(-1) end}
-renoise.tool():add_menu_entry{name = "Pattern Editor:Paketti..:Move DSPs to Next Track",invoke = function() move_dsps_to_adjacent_track(1) end}
-
-renoise.tool():add_keybinding{name = "Mixer:Paketti:Move DSPs to Previous Track",invoke = function() move_dsps_to_adjacent_track(-1) end}
-renoise.tool():add_keybinding{name = "Mixer:Paketti:Move DSPs to Next Track",invoke = function() move_dsps_to_adjacent_track(1) end}
-renoise.tool():add_menu_entry{name = "--Mixer:Paketti..:Move DSPs to Previous Track",invoke = function() move_dsps_to_adjacent_track(-1) end}
-renoise.tool():add_menu_entry{name = "Mixer:Paketti..:Move DSPs to Next Track",invoke = function() move_dsps_to_adjacent_track(1) end}
-
-
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Move DSPs to Previous Track",invoke = function() move_dsps_to_adjacent_track(-1) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Move DSPs to Next Track",invoke = function() move_dsps_to_adjacent_track(1) end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Move DSPs to Previous Track",invoke = function() move_dsps_to_adjacent_track(-1) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Move DSPs to Next Track",invoke = function() move_dsps_to_adjacent_track(1) end}
+renoise.tool():add_keybinding{name="Mixer:Paketti:Move DSPs to Previous Track",invoke = function() move_dsps_to_adjacent_track(-1) end}
+renoise.tool():add_keybinding{name="Mixer:Paketti:Move DSPs to Next Track",invoke = function() move_dsps_to_adjacent_track(1) end}
+renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Move DSPs to Previous Track",invoke = function() move_dsps_to_adjacent_track(-1) end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Move DSPs to Next Track",invoke = function() move_dsps_to_adjacent_track(1) end}
+---
 function move_selected_dsp_to_adjacent_track(direction)
   local song = renoise.song()
   local current_track_index = song.selected_track_index
@@ -5561,15 +5522,12 @@ function move_selected_dsp_to_adjacent_track(direction)
     direction < 0 and "previous" or "next"))
 end
 
-
--- Add keybindings and menu entries
 renoise.tool():add_keybinding{name = "Pattern Editor:Paketti:Move Selected DSP to Previous Track",invoke = function() move_selected_dsp_to_adjacent_track(-1) end}
 renoise.tool():add_keybinding{name = "Pattern Editor:Paketti:Move Selected DSP to Next Track",invoke = function() move_selected_dsp_to_adjacent_track(1) end}
 renoise.tool():add_keybinding{name = "Mixer:Paketti:Move Selected DSP to Previous Track",invoke = function() move_selected_dsp_to_adjacent_track(-1) end}
 renoise.tool():add_keybinding{name = "Mixer:Paketti:Move Selected DSP to Next Track",invoke = function() move_selected_dsp_to_adjacent_track(1) end}
 renoise.tool():add_menu_entry{name = "--Pattern Editor:Paketti..:Move Selected DSP to Previous Track",invoke = function() move_selected_dsp_to_adjacent_track(-1) end}
 renoise.tool():add_menu_entry{name = "Pattern Editor:Paketti..:Move Selected DSP to Next Track",invoke = function() move_selected_dsp_to_adjacent_track(1) end}
-
 ---------
 function create_group_and_move_dsps()
   local song = renoise.song()
@@ -5689,27 +5647,10 @@ function clearNoteColumnEffects()
   end
 end
 
--- Add keybindings
-renoise.tool():add_keybinding{
-  name="Pattern Editor:Paketti:Apply Note Column Sample Effects M00/MFF",
-  invoke=function() applyNoteColumnEffects() end
-}
-
-renoise.tool():add_keybinding{
-  name="Pattern Editor:Paketti:Clear Note Column Sample Effects M00/MFF",
-  invoke=function() clearNoteColumnEffects() end
-}
-
--- Add menu entries
-renoise.tool():add_menu_entry{
-  name="Pattern Editor:Paketti..:Note Columns..:Apply Note Column Sample Effects M00/MFF",
-  invoke=function() applyNoteColumnEffects() end
-}
-
-renoise.tool():add_menu_entry{
-  name="Pattern Editor:Paketti..:Note Columns..:Clear Note Column Sample Effects M00/MFF",
-  invoke=function() clearNoteColumnEffects() end
-}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Apply Note Column Sample Effects M00/MFF",invoke=function() applyNoteColumnEffects() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Clear Note Column Sample Effects M00/MFF",invoke=function() clearNoteColumnEffects() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Note Columns..:Apply Note Column Sample Effects M00/MFF",invoke=function() applyNoteColumnEffects() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Note Columns..:Clear Note Column Sample Effects M00/MFF",invoke=function() clearNoteColumnEffects() end}
 ---
 function globalLeft()
   local song = renoise.song()
@@ -5946,7 +5887,6 @@ function apply_template(target_note)
   end
 end
 
--- Add MIDI mapping for completeness
 renoise.tool():add_midi_mapping{
   name = "Global:Paketti:Template Mode Note Input",
   invoke = function(message)
@@ -5956,17 +5896,8 @@ renoise.tool():add_midi_mapping{
   end
 }
 
--- Add keybinding and menu entry for template mode toggle
-renoise.tool():add_keybinding{
-  name = "Pattern Editor:Paketti:Toggle Template Mode",
-  invoke = toggle_template_mode
-}
-
-renoise.tool():add_menu_entry{
-  name = "--Pattern Editor:Paketti..:Toggle Template Mode",
-  invoke = toggle_template_mode
-}
-
+renoise.tool():add_keybinding{name = "Pattern Editor:Paketti:Toggle Template Mode",invoke = toggle_template_mode}
+renoise.tool():add_menu_entry{name = "--Pattern Editor:Paketti..:Toggle Template Mode",invoke = toggle_template_mode}
 -- Set up the idle observer
 renoise.tool().app_idle_observable:add_notifier(check_for_note_input)
 
@@ -6054,12 +5985,9 @@ function note_value_to_string(value)
   return note .. octave
 end
 
--- Add keybindings
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Write Notes Ascending",invoke=function() writeNotesMethod("ascending") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Write Notes Descending",invoke=function() writeNotesMethod("descending") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Write Notes Random",invoke=function() writeNotesMethod("random") end}
-
--- Add menu entries
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Write Notes..:Write Notes Ascending",invoke=function() writeNotesMethod("ascending") end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Write Notes..:Write Notes Descending",invoke=function() writeNotesMethod("descending") end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Write Notes..:Write Notes Random",invoke=function() writeNotesMethod("random") end}

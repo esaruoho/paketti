@@ -2301,7 +2301,6 @@ function loadSequentialDrumkitSamples()
       dialog_content:add_child(status_label)
     end
     
-    -- Add cancel button
     dialog_content:add_child(vb:button {
       text = "Cancel",
       width = 80,

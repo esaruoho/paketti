@@ -38,35 +38,12 @@ function setSampleZoom(zoom_level)
   renoise.app():show_status(string.format("Sample zoom set to %dx", zoom_level))
 end
 
--- Add keybindings for each zoom level (1x to 11x)
+
 for i = 1, 11 do
-  renoise.tool():add_keybinding{
-    name = string.format("Sample Editor:Paketti:Set Sample Zoom " .. formatDigits(2,i) .. "x"),
-    invoke = function() setSampleZoom(i) end
-  }
+  renoise.tool():add_keybinding{name = string.format("Sample Editor:Paketti:Set Sample Zoom " .. formatDigits(2,i) .. "x"),invoke = function() setSampleZoom(i) end}
+  renoise.tool():add_menu_entry{name = string.format("Sample Editor:Paketti..:Set Sample Zoom..:Zoom " .. formatDigits(2,i) .. "x"),invoke = function() setSampleZoom(i) end}
 end
-
--- Add menu entries for each zoom level
-for i = 1, 11 do
-  renoise.tool():add_menu_entry{
-    name = string.format("Sample Editor:Paketti..:Set Sample Zoom..:Zoom " .. formatDigits(2,i) .. "x"),
-    invoke = function() setSampleZoom(i) end
-  }
-end
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+---------
 function setSampleZoomFromMidi(midi_value)
   local sample = renoise.song().selected_sample
   if not sample or not sample.sample_buffer.has_sample_data then
@@ -106,7 +83,7 @@ function setSampleZoomFromMidi(midi_value)
 
   renoise.app():show_status(string.format("Sample zoom: %dx", zoom_level))
 end
--- Add MIDI mapping for continuous zoom control
+
 renoise.tool():add_midi_mapping{
   name = "Paketti:Midi Sample Zoom (1x-11x) [Knob]",
   invoke = function(message)
@@ -741,7 +718,6 @@ function noteOnToNoteOff(noteoffPitch)
   renoise.song().selected_sample_index = 1
 end
 
--- Add menu entries for various transpositions
 renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Copy Sample in Note-On to Note-Off Layer +24",invoke=function() noteOnToNoteOff(24) end}
 renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Copy Sample in Note-On to Note-Off Layer +12",invoke=function() noteOnToNoteOff(12) end}
 renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Copy Sample in Note-On to Note-Off Layer",invoke=function() noteOnToNoteOff(0) end}
@@ -2059,9 +2035,8 @@ end
   end
 end
 
--- Add MIDI mapping for rotating the sample buffer
 renoise.tool():add_midi_mapping{name="Paketti:Rotate Sample Buffer Left/Right Fine x[Knob]",invoke=function(midi_message) rotate_sample_buffer(midi_message, rotation_amount) end}
-
+--
 local coarse_rotation_amount = 1000  -- Set Coarse rotation amount to 1000
 local previous_value_coarse = nil
 
@@ -2119,9 +2094,7 @@ end
   end
 end
 
--- Add MIDI mapping for coarse rotation
 renoise.tool():add_midi_mapping{name="Paketti:Rotate Sample Buffer Left/Right Coarse x[Knob]",invoke=function(midi_message) rotate_sample_buffer_coarse(midi_message, coarse_rotation_amount) end}
-
 
 -- Function to rotate sample buffer content forward or backward by a specified amount
 function rotate_sample_buffer_fixed(rotation_amount)
@@ -2461,7 +2434,6 @@ function PakettiInjectDefaultXRNI()
   end  
 end
 
--- Add keybinding and menu entry to invoke the PakettiInjectDefaultXRNI function
 renoise.tool():add_keybinding{name="Global:Paketti:Pakettify Current Instrument",invoke=function() PakettiInjectDefaultXRNI() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Pakettify Current Instrument",invoke=function() PakettiInjectDefaultXRNI() end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Pakettify Current Instrument",invoke=function() PakettiInjectDefaultXRNI() end}
@@ -3141,13 +3113,10 @@ function PakettiUserDefinedSamplesShowDialog()
   )
 end
 
--- Add menu entry to show the dialog
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti User-Defined Sample Folders...",invoke=PakettiUserDefinedSamplesShowDialog}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Quick Sample Folders..:Paketti User-Defined Sample Folders...",invoke=PakettiUserDefinedSamplesShowDialog}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:User-Defined Sample Folders...",invoke=PakettiUserDefinedSamplesShowDialog}
 renoise.tool():add_keybinding{name="Global:Paketti:User-Defined Sample Folders...",invoke=PakettiUserDefinedSamplesShowDialog}
-
-
 -- Function to get folder path from preferences
 function getFolderPath(folderNum)
   local preferences = renoise.tool().preferences
@@ -3198,7 +3167,7 @@ local function createFolderActions(folderNum)
     end
   end}
   
-  -- Keybindings
+
   renoise.tool():add_keybinding{name = string.format("Global:Paketti:Quick Folder %02d Open Folder", folderNum), invoke = function()
     if folderPath and folderPath ~= "" then
       renoise.app():open_path(folderPath)
@@ -3276,30 +3245,22 @@ local function duplicate_sample_with_transpose(transpose_amount)
   renoise.app():show_status("Sample duplicated and transposed by " .. transpose_amount .. ".")
 end
 
--- Keybindings, Menu Entries, and MIDI Mappings for each transpose amount
 renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Selected Sample at -12 transpose",invoke=function() duplicate_sample_with_transpose(-12) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Selected Sample at -24 transpose",invoke=function() duplicate_sample_with_transpose(-24) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Selected Sample at +12 transpose",invoke=function() duplicate_sample_with_transpose(12) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Selected Sample at +24 transpose",invoke=function() duplicate_sample_with_transpose(24) end}
-
-
 renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Duplicate Selected Sample at -12 transpose",invoke=function() duplicate_sample_with_transpose(-12) end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Duplicate Selected Sample at -24 transpose",invoke=function() duplicate_sample_with_transpose(-24) end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Duplicate Selected Sample at +12 transpose",invoke=function() duplicate_sample_with_transpose(12) end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Duplicate Selected Sample at +24 transpose",invoke=function() duplicate_sample_with_transpose(24) end}
-
 renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti..:Duplicate Selected Sample at -12 transpose",invoke=function() duplicate_sample_with_transpose(-12) end}
 renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Duplicate Selected Sample at -24 transpose",invoke=function() duplicate_sample_with_transpose(-24) end}
 renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Duplicate Selected Sample at +12 transpose",invoke=function() duplicate_sample_with_transpose(12) end}
 renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Duplicate Selected Sample at +24 transpose",invoke=function() duplicate_sample_with_transpose(24) end}
-
-
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Duplicate Selected Sample at -12 transpose",invoke=function() duplicate_sample_with_transpose(-12) end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Duplicate Selected Sample at -24 transpose",invoke=function() duplicate_sample_with_transpose(-24) end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Duplicate Selected Sample at +12 transpose",invoke=function() duplicate_sample_with_transpose(12) end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Duplicate Selected Sample at +24 transpose",invoke=function() duplicate_sample_with_transpose(24) end}
-
-
 renoise.tool():add_midi_mapping{name="Paketti:Duplicate Selected Sample at -12 transpose",invoke=function(message) if message:is_trigger() then duplicate_sample_with_transpose(-12) end end}
 renoise.tool():add_midi_mapping{name="Paketti:Duplicate Selected Sample at -24 transpose",invoke=function(message) if message:is_trigger() then duplicate_sample_with_transpose(-24) end end}
 renoise.tool():add_midi_mapping{name="Paketti:Duplicate Selected Sample at +12 transpose",invoke=function(message) if message:is_trigger() then duplicate_sample_with_transpose(12) end end}
@@ -3328,7 +3289,6 @@ function overlayModeCycle()
   renoise.app():show_status("Overlap Mode set to: "..instrument.sample_mapping_overlap_mode)
 end
 
--- Add menu entries
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Instruments..:Cycle Overlap Mode",invoke=overlayModeCycle}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:Set Overlap Mode 0 (Play All)",invoke=function() setOverlapMode(0) end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:Set Overlap Mode 1 (Cycle)",invoke=function() setOverlapMode(1) end}
@@ -3337,14 +3297,10 @@ renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Cycle Overlap Mode
 renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Set Overlap Mode 0 (Play All)",invoke=function() setOverlapMode(0) end}
 renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Set Overlap Mode 1 (Cycle)",invoke=function() setOverlapMode(1) end}
 renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Set Overlap Mode 2 (Random)",invoke=function() setOverlapMode(2) end}
-
--- Add MIDI mappings
 renoise.tool():add_midi_mapping{name="Paketti:Cycle Overlap Mode",invoke=function(message) if message:is_trigger() then overlayModeCycle() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Set Overlap Mode 0 (Play All)",invoke=function(message) if message:is_trigger() then setOverlapMode(0) end end}
 renoise.tool():add_midi_mapping{name="Paketti:Set Overlap Mode 1 (Cycle)",invoke=function(message) if message:is_trigger() then setOverlapMode(1) end end}
 renoise.tool():add_midi_mapping{name="Paketti:Set Overlap Mode 2 (Random)",invoke=function(message) if message:is_trigger() then setOverlapMode(2) end end}
-
--- Add key bindings
 renoise.tool():add_keybinding{name="Global:Paketti:Cycle Overlap Mode",invoke=overlayModeCycle}
 renoise.tool():add_keybinding{name="Global:Paketti:Set Overlap Mode 0 (Play All)",invoke=function() setOverlapMode(0) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set Overlap Mode 1 (Cycle)",invoke=function() setOverlapMode(1) end}
@@ -3642,11 +3598,8 @@ function add_backwards_effect_to_selection()
   end
 end
 
--- Add menu entry
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Play Samples Backwards in Selection 0B00",invoke=add_backwards_effect_to_selection}
 renoise.tool():add_keybinding{name="Global:Paketti:Play Samples Backwards in Selection 0B00",invoke=add_backwards_effect_to_selection}
-
-
 ---
 function PakettiRandomIR(ir_path)
   local song = renoise.song()
@@ -3863,11 +3816,7 @@ function showSampleSelectionInfo()
   ))
 end
 
--- Add keybinding for showing selection info
-renoise.tool():add_keybinding{
-  name = "Sample Editor:Paketti:Show Selection Info",
-  invoke = showSampleSelectionInfo
-}
+renoise.tool():add_keybinding{name = "Sample Editor:Paketti:Show Selection Info",invoke = showSampleSelectionInfo}
 
 -- Timer for updating the sample details
 local sample_details_timer = nil
@@ -4604,10 +4553,9 @@ function fillEmptySampleSlots()
   end
 end
 
--- Add menu entries
+
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti..:Instruments..:Fill Empty Sample Slots (Randomized Folder)",invoke = function() fillEmptySampleSlots() end}
 renoise.tool():add_menu_entry{name = "Instrument Box:Paketti..:Fill Empty Sample Slots (Randomized Folder)",invoke = function() fillEmptySampleSlots() end}
 renoise.tool():add_menu_entry{name = "Sample Navigator:Paketti..:Fill Empty Sample Slots (Randomized Folder)",invoke = function() fillEmptySampleSlots() end}
 renoise.tool():add_menu_entry{name = "Sample Keyzones:Paketti..:Fill Empty Sample Slots (Randomized Folder)",invoke = function() fillEmptySampleSlots() end}
 renoise.tool():add_keybinding{name = "Global:Paketti:Fill Empty Sample Slots (Randomized Folder)",invoke = function() fillEmptySampleSlots() end}
-

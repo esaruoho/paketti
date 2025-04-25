@@ -19,11 +19,9 @@ local active_steps_panning = num_checkboxes
 local panning_column_choice = "FX Column"
 local initializing = false -- Flag to control printing during initialization or fetching
 
--- Add at the top with other globals
 local auto_grab = false
 local previous_track_index = nil
 local track_notifier = nil
-
 
 -- Colors for buttons
 local normal_color = nil
@@ -1820,10 +1818,6 @@ renoise.tool():add_keybinding{name="Global:Paketti:Paketti Gater Dialog...",invo
 end}
 
 
-
-
-
--- Add this new function
 function auto_grab_handler()
   if not auto_grab then return end
   

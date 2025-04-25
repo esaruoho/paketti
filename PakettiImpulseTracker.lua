@@ -404,9 +404,7 @@ function F12()
   w.pattern_advanced_edit_is_visible = false
 end
 
--- Add the keybinding to ensure the function can be invoked using F12
 renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker F12 Master",invoke=function() F12() end}
-
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Impulse Tracker Next / Previous Pattern (Keyboard + Midi)
 function ImpulseTrackerNextPattern()
@@ -2051,16 +2049,8 @@ function PakettiImpulseTrackerSwapBlock()
   renoise.app():show_status("Blocks swapped successfully.")
 end
 
--- Add the keybinding for the ALT-Y action
 renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker ALT-Y Swap Block",invoke=PakettiImpulseTrackerSwapBlock}
-
-
-
-
-
-
 -----------
-
 -- Move to the next track, maintaining column type, with wrapping.
 -- Move to the next track, maintaining column type, with wrapping.
 function PakettiImpulseTrackerMoveForwardsTrackWrap()
@@ -2168,19 +2158,14 @@ function PakettiImpulseTrackerMoveBackwardsTrack()
   end
 end
 
--- Add keybindings for Pattern Editor
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker Alt-Right Move Forwards One Channel (Wrap)",invoke=PakettiImpulseTrackerMoveForwardsTrackWrap}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker Alt-Left Move Backwards One Channel (Wrap)",invoke=PakettiImpulseTrackerMoveBackwardsTrackWrap}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker Alt-Right Move Forwards One Channel",invoke=PakettiImpulseTrackerMoveForwardsTrack}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker Alt-Left Move Backwards One Channel",invoke=PakettiImpulseTrackerMoveBackwardsTrack}
-
--- Add keybindings for Mixer
 renoise.tool():add_keybinding{name="Mixer:Paketti:Impulse Tracker Alt-Right Move Forwards One Channel (Wrap)",invoke=PakettiImpulseTrackerMoveForwardsTrackWrap}
 renoise.tool():add_keybinding{name="Mixer:Paketti:Impulse Tracker Alt-Left Move Backwards One Channel (Wrap)",invoke=PakettiImpulseTrackerMoveBackwardsTrackWrap}
 renoise.tool():add_keybinding{name="Mixer:Paketti:Impulse Tracker Alt-Right Move Forwards One Channel",invoke=PakettiImpulseTrackerMoveForwardsTrack}
 renoise.tool():add_keybinding{name="Mixer:Paketti:Impulse Tracker Alt-Left Move Backwards One Channel",invoke=PakettiImpulseTrackerMoveBackwardsTrack}
-
--- Add MIDI mappings
 renoise.tool():add_midi_mapping{name="Paketti:Move to Next Track (Wrap) [Knob]",invoke=function(message)
   if message:is_abs_value() then
     PakettiImpulseTrackerMoveForwardsTrackWrap()
@@ -2204,8 +2189,6 @@ renoise.tool():add_midi_mapping{name="Paketti:Move to Previous Track [Knob]",inv
     PakettiImpulseTrackerMoveBackwardsTrack()
   end
 end}
-
-
 ---------
 local already_interpolated = false
 
@@ -2344,12 +2327,8 @@ local function alt_x_functionality()
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 end
 
--- Add keybinding to trigger the functionality
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker ALT-X *2 (Interpolate&Clear Effect Columns)",
   invoke=function() alt_x_functionality() end}
-
-
-
 
 
   renoise.tool():add_keybinding{name="Global:Paketti:Select First Instrument Box Slot", invoke=function()

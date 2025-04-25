@@ -316,7 +316,6 @@ local function write_value(midi_message)
   end
 end
 
--- MIDI mapping functions
 local function handle_absolute_command(midi_message)
   handle_midi_command(midi_message, false)
 end
@@ -333,33 +332,10 @@ local function handle_relative_value(midi_message)
   write_value(midi_message)
 end
 
--- Add MIDI mappings
-renoise.tool():add_midi_mapping {
-  name = "Paketti:Sub Column Command Absolute Control",
-  invoke = handle_absolute_command
-}
 
-renoise.tool():add_midi_mapping {
-  name = "Paketti:Sub Column Command Relative Control",
-  invoke = handle_relative_command
-}
-
-renoise.tool():add_midi_mapping {
-  name = "Paketti:Sub Column Value Absolute Control",
-  invoke = handle_absolute_value
-}
-
-renoise.tool():add_midi_mapping {
-  name = "Paketti:Sub Column Value Relative Control",
-  invoke = handle_relative_value
-}
-
-renoise.tool():add_menu_entry {
-  name = "Main Menu:Tools:Paketti..:Pattern Editor..:Sub Column Status",
-  invoke = show_sub_column_status
-}
-
-renoise.tool():add_keybinding {
-  name = "Pattern Editor:Paketti:Show Paketti Sub Column Status",
-  invoke = show_sub_column_status
-}
+renoise.tool():add_midi_mapping {name = "Paketti:Sub Column Command Absolute Control",invoke = handle_absolute_command}
+renoise.tool():add_midi_mapping {name = "Paketti:Sub Column Command Relative Control",invoke = handle_relative_command}
+renoise.tool():add_midi_mapping {name = "Paketti:Sub Column Value Absolute Control",invoke = handle_absolute_value}
+renoise.tool():add_midi_mapping {name = "Paketti:Sub Column Value Relative Control",invoke = handle_relative_value}
+renoise.tool():add_menu_entry {name = "Main Menu:Tools:Paketti..:Pattern Editor..:Sub Column Status",invoke = show_sub_column_status}
+renoise.tool():add_keybinding {name = "Pattern Editor:Paketti:Show Paketti Sub Column Status",invoke = show_sub_column_status}

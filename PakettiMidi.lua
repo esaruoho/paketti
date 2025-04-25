@@ -714,7 +714,6 @@ function midiValuesAutomation(start_point, end_point, automation, property, valu
   automation.selection_range = selection_range
 end
 
--- MIDI mapping for changing the start point of the automation selection
 renoise.tool():add_midi_mapping{name="Paketti:Midi Automation Selection 01 Start x[Knob]",
   invoke=function(message)
     if message:is_abs_value() then
@@ -728,7 +727,6 @@ renoise.tool():add_midi_mapping{name="Paketti:Midi Automation Selection 01 Start
   end
 }
 
--- MIDI mapping for changing the end point of the automation selection
 renoise.tool():add_midi_mapping{name="Paketti:Midi Automation Selection 02 End x[Knob]",
   invoke=function(message)
     if message:is_abs_value() then
@@ -822,11 +820,8 @@ function change_sample_modulation_set_filter(midi_value)
   end
 end
 
--- Add MIDI mapping for the function
 renoise.tool():add_midi_mapping{name="Paketti:Midi Change Sample Modulation Set Filter",invoke=function(message)
-  -- Call the function with the MIDI value
-  change_sample_modulation_set_filter(message.int_value)
-end}
+  change_sample_modulation_set_filter(message.int_value) end}
 
 ---------
 function midiprogram(change)  
@@ -1123,10 +1118,8 @@ function PakettiEditStepHalve()
   renoise.app():show_status("EditStep halved to " .. transport.edit_step)
 end
 
--- Adding the MIDI mappings
 renoise.tool():add_midi_mapping{name="Paketti:EditStep Double x[Button]",invoke=function(message) if message:is_trigger() then PakettiEditStepDouble() end end}
 renoise.tool():add_midi_mapping{name="Paketti:EditStep Halve x[Button]",invoke=function(message) if message:is_trigger() then PakettiEditStepHalve() end end}
-
 ------
 renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Move Slice Start Left by 10",invoke=function(message) if message:is_trigger() then move_slice_start_left_10() end end}
 renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Move Slice Start Right by 10",invoke=function(message) if message:is_trigger() then move_slice_start_right_10() end end}
@@ -1299,7 +1292,6 @@ function transpose_notes_by_midi_knob(message)
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 end
 
--- Add MIDI mapping for the transpose function
 renoise.tool():add_midi_mapping{name="Paketti:Transpose Notes in Selection/Row x[Knob]",invoke=transpose_notes_by_midi_knob}
 -----------------
 renoise.tool():add_midi_mapping{name="Paketti:Change Selected Instrument (Next) x[Knob]",
@@ -1562,7 +1554,6 @@ local modes = {
   [3] = "Dotted"
 }
 
--- MIDI mapping logic for the first knob (doesn't change the track name, only shows status)
 renoise.tool():add_midi_mapping{name="Paketti:Set Repeater Value x[Knob]",
   invoke = function(message)
     if message:is_abs_value() then
@@ -1911,7 +1902,6 @@ for _, device_info in ipairs(target_devices) do
     for _, param_name in ipairs(device_info.params) do
       local mapping_name="Paketti:Selected Track Dev " .. device_name_clean .. " " .. param_name
 
-      -- Add MIDI mapping for each parameter
       renoise.tool():add_midi_mapping{
         name = mapping_name,
         invoke = function(message)
@@ -2227,11 +2217,10 @@ function rename_tracks_by_played_samples()
   end
 end
 
--- Add keybinding and menu entry for the rename function
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Rename Tracks By Played Samples",invoke = function() rename_tracks_by_played_samples() end}
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Rename Tracks By Played Samples",invoke = function() rename_tracks_by_played_samples() end}
 renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Rename Tracks By Played Samples",invoke = function() rename_tracks_by_played_samples() end}
-
+-----
 -- Function to modify selected XY Pad parameter
 local function modify_selected_xy_pad_param(param_name, midi_message)
   local song = renoise.song()
@@ -2400,13 +2389,10 @@ local function handle_instrument_chains_direct(midi_message)
   end
 end
 
--- MIDI mappings (one line each)
 renoise.tool():add_midi_mapping{name = "Paketti:Change Selected Sample Device Chain (Scaled) x[Knob]", invoke = handle_sample_chain_scaled}
 renoise.tool():add_midi_mapping{name = "Paketti:Change Selected Sample Device Chain (Direct) x[Knob]", invoke = handle_sample_chain_direct}
 renoise.tool():add_midi_mapping{name = "Paketti:Change All Samples Device Chain (Scaled) x[Knob]", invoke = handle_instrument_chains_scaled}
 renoise.tool():add_midi_mapping{name = "Paketti:Change All Samples Device Chain (Direct) x[Knob]", invoke = handle_instrument_chains_direct}
-
-
 -- Helper function to get total available columns for a track
 local function get_track_column_count(track)
   -- Only sequencer tracks (type 1) can have note columns

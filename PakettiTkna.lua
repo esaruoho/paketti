@@ -559,10 +559,8 @@ function SequenceSelectionToLoop()
   end
 end
 
--- Adding a key binding for the function
-renoise.tool():add_keybinding{name="Global:Paketti:Toggle Sequence Selection to Loop",invoke=function() SequenceSelectionToLoop() end}
 
--- Adding a menu entry for the function
+renoise.tool():add_keybinding{name="Global:Paketti:Toggle Sequence Selection to Loop",invoke=function() SequenceSelectionToLoop() end}
 renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Sequences/Sections..:Toggle Sequence Selection to Loop",invoke=function() SequenceSelectionToLoop() end}
 
 function TKNAToggleSequenceSelectionAll()
@@ -596,11 +594,7 @@ function tknaToggleCurrentSequenceSelection()
   end
 end
 
--- Add keybinding for the function
 renoise.tool():add_keybinding{name="Global:Paketti:Toggle Current Sequence Selection On/Off",invoke=tknaToggleCurrentSequenceSelection}
-
-
-
 
 -- Helper function to select and loop a specific section
 function select_and_loop_section(section_number)
@@ -800,7 +794,6 @@ for i = 1, 32 do
   -- Zero-pad the number for sequence naming
   local padded_number = string.format("%02d", i - 1)
   
-  -- Add keybinding for each sequence
   renoise.tool():add_keybinding{name="Global:Paketti:Continue Sequence " .. padded_number .. " From Same Line",invoke=function() 
   if i < #renoise.song().sequencer.pattern_sequence then
   tknaContinueSequenceFromSameLine(i) 
@@ -846,19 +839,13 @@ function tknaMidiMapSequence(value)
   tknaContinueSequenceFromSameLine(sequence_num)
 end
 
--- Add MIDI mapping
-renoise.tool():add_midi_mapping{name="Paketti:Continue Sequence From Same Line [Set Sequence]",invoke=function(message)
-  if message:is_abs_value() then
-    tknaMidiMapSequence(message.int_value)
-  end
-end}
+renoise.tool():add_midi_mapping{name="Paketti:Continue Sequence From Same Line [Set Sequence]",invoke=function(message) if message:is_abs_value() then tknaMidiMapSequence(message.int_value) end end}
 
 --------
 for i = 1, 32 do
   -- Zero-pad the number for sequence naming
   local padded_number = string.format("%02d", i - 1)
   
-  -- Add keybinding for each sequence
   renoise.tool():add_keybinding{name="Global:Paketti:Selected Specific Sequence " .. padded_number,invoke=function() 
   if i < #renoise.song().sequencer.pattern_sequence then 
   renoise.song().selected_sequence_index = i
@@ -894,8 +881,6 @@ end
 
 for i = 1,32 do
   local padded_number = string.format("%02d", i - 1)
-  
-  -- Add keybinding for each sequence
   renoise.tool():add_keybinding{name="Global:Paketti:Set Sequence " .. padded_number .. " as Scheduled List",invoke=function() tknaSetSequenceAsScheduledList(i) end}
 end
 
@@ -921,8 +906,6 @@ end
 
 for i = 1,32 do
   local padded_number = string.format("%02d", i - 1)
-  
-  -- Add keybinding for each sequence
   renoise.tool():add_keybinding{name="Global:Paketti:Add Sequence " .. padded_number .. " to Scheduled List",invoke=function() tknaAddSequenceToScheduledList(i) end}
 end
 
@@ -1096,15 +1079,10 @@ function tknaAddCurrentSectionToScheduledSequences()
   end
 end
 
--- Adding keybindings for the functions
 renoise.tool():add_keybinding{name="Global:Paketti:Set Current Section as Scheduled Sequence",invoke=tknaSetCurrentSectionAsScheduledSequence}
 renoise.tool():add_keybinding{name="Global:Paketti:Add Current Section to Scheduled Sequences",invoke=tknaAddCurrentSectionToScheduledSequences}
-
--- Adding menu entries for the functions
-renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Sequences/Sections..:Set Current Section as Scheduled Sequence",invoke=tknaSetCurrentSectionAsScheduledSequence}
+renoise.tool():add_menu_entry{name="--Pattern Sequencer:Paketti..:Sequences/Sections..:Set Current Section as Scheduled Sequence",invoke=tknaSetCurrentSectionAsScheduledSequence}
 renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Sequences/Sections..:Add Current Section to Scheduled Sequences",invoke=tknaAddCurrentSectionToScheduledSequences}
-
--- Adding MIDI mappings for the functions
 renoise.tool():add_midi_mapping{name="Paketti:Set Current Section as Scheduled Sequence",invoke=tknaSetCurrentSectionAsScheduledSequence}
 renoise.tool():add_midi_mapping{name="Paketti:Add Current Section to Scheduled Sequences",invoke=tknaAddCurrentSectionToScheduledSequences}
 
@@ -1227,15 +1205,10 @@ function expandSectionLoopPrevious()
   end
 end
 
--- Adding keybinding for the functions
 renoise.tool():add_keybinding{name="Global:Paketti:Section Loop (Next)",invoke=expandSectionLoopNext}
 renoise.tool():add_keybinding{name="Global:Paketti:Section Loop (Previous)",invoke=expandSectionLoopPrevious}
-
--- Adding menu entry for the functions
 renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Sequences/Sections..:Section Loop (Next)",invoke=expandSectionLoopNext}
 renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Sequences/Sections..:Section Loop (Previous)",invoke=expandSectionLoopPrevious}
-
--- Adding MIDI mapping for the functions
 renoise.tool():add_midi_mapping{name="Paketti:Section Loop (Next)",invoke=expandSectionLoopNext}
 renoise.tool():add_midi_mapping{name="Paketti:Section Loop (Previous)",invoke=expandSectionLoopPrevious}
 
@@ -1294,15 +1267,10 @@ function tknaSequenceSelectionMinusOne()
   end
 end
 
--- Adding keybinding for the functions
 renoise.tool():add_keybinding{name="Global:Paketti:Sequence Selection (Next)",invoke=tknaSequenceSelectionPlusOne}
 renoise.tool():add_keybinding{name="Global:Paketti:Sequence Selection (Previous)",invoke=tknaSequenceSelectionMinusOne}
-
--- Adding menu entry for the functions
 renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Sequences/Sections..:Sequence Selection (Next)",invoke=tknaSequenceSelectionPlusOne}
 renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Sequences/Sections..:Sequence Selection (Previous)",invoke=tknaSequenceSelectionMinusOne}
-
--- Adding MIDI mapping for the functions
 renoise.tool():add_midi_mapping{name="Paketti:Sequence Selection (Next)",invoke=tknaSequenceSelectionPlusOne}
 renoise.tool():add_midi_mapping{name="Paketti:Sequence Selection (Previous)",invoke=tknaSequenceSelectionMinusOne}
 
@@ -1360,18 +1328,12 @@ function tknaSequenceLoopSelectionPrevious()
   end
 end
 
--- Adding keybindings for the functions
 renoise.tool():add_keybinding{name="Global:Paketti:Sequence Loop Selection (Next)",invoke=tknaSequenceLoopSelectionNext}
 renoise.tool():add_keybinding{name="Global:Paketti:Sequence Loop Selection (Previous)",invoke=tknaSequenceLoopSelectionPrevious}
-
--- Adding menu entries for the functions
 renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Sequences/Sections..:Sequence Loop Selection (Next)",invoke=tknaSequenceLoopSelectionNext}
 renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Sequences/Sections..:Sequence Loop Selection (Previous)",invoke=tknaSequenceLoopSelectionPrevious}
-
--- Adding MIDI mappings for the functions
 renoise.tool():add_midi_mapping{name="Paketti:Sequence Loop Selection (Next)",invoke=tknaSequenceLoopSelectionNext}
 renoise.tool():add_midi_mapping{name="Paketti:Sequence Loop Selection (Previous)",invoke=tknaSequenceLoopSelectionPrevious}
-
 -- Function to add a loop to the current section content and schedule the section to play from the first sequence
 function tknaAddLoopAndScheduleSection()
   local song = renoise.song()
@@ -1421,20 +1383,9 @@ function tknaAddLoopAndScheduleSection()
   end
 end
 
--- Add a global keybinding
-renoise.tool():add_keybinding{name="Global:Paketti:Set Section Loop and Schedule Section",
-  invoke=tknaAddLoopAndScheduleSection
-}
-
--- Add a global MIDI mapping
-renoise.tool():add_midi_mapping{name="Paketti:Set Section Loop and Schedule Section [Knob]",
-  invoke=function(message)
-    if message:is_trigger() then
-      tknaAddLoopAndScheduleSection()
-    end
-  end
-}
-
+renoise.tool():add_keybinding{name="Global:Paketti:Set Section Loop and Schedule Section",invoke=tknaAddLoopAndScheduleSection}
+renoise.tool():add_midi_mapping{name="Paketti:Set Section Loop and Schedule Section [Knob]",invoke=function(message) if message:is_trigger() then tknaAddLoopAndScheduleSection() end end}
+---
 function tknaSetScheduledSequenceToCurrentSequenceAndLoop()
   local song = renoise.song()
   local selection_start = song.selected_sequence_index
@@ -1457,7 +1408,6 @@ function tknaSetScheduledSequenceToCurrentSequenceAndLoop()
   end
 end
 
--- Add keybinding for the new function
 renoise.tool():add_keybinding{name="Global:Paketti:Set Current Sequence as Scheduled and Loop",invoke=tknaSetScheduledSequenceToCurrentSequenceAndLoop}
 ---
 -- Function to normalize the section name to a two-digit string, allowing for '.', '-', or ',' as separators
@@ -1593,12 +1543,11 @@ end
 for i = 0, 64 do
   local section_id = string.format("%02d", i)
 
-  -- Keybinding: Select, Trigger and Loop the next occurrence of the Section
   renoise.tool():add_keybinding{name="Global:Paketti:Select, Trigger and Loop Section " .. section_id,
     invoke=function() tknaSelectTriggerLoopSection(i) end
   }
 
-  -- MIDI Mapping: Select, Trigger and Loop the next occurrence of the Section
+
   renoise.tool():add_midi_mapping{name="Paketti:Select, Trigger and Loop Section " .. section_id,
     invoke = function(message) 
       if message:is_trigger() then
@@ -1607,12 +1556,10 @@ for i = 0, 64 do
     end
   }
 
-  -- Keybinding: Select, Schedule and Loop the next occurrence of the Section
   renoise.tool():add_keybinding{name="Global:Paketti:Select, Schedule and Loop Section " .. section_id,
     invoke=function() tknaSelectScheduleLoopSection(i) end
   }
 
-  -- MIDI Mapping: Select, Schedule and Loop the next occurrence of the Section
   renoise.tool():add_midi_mapping{name="Paketti:Select, Schedule and Loop Section " .. section_id,
     invoke = function(message) 
       if message:is_trigger() then
@@ -1621,12 +1568,10 @@ for i = 0, 64 do
     end
   }
 
-  -- Keybinding: Select, Add to Schedule and Loop the next occurrence of the Section
   renoise.tool():add_keybinding{name="Global:Paketti:Select, Add to Schedule and Loop Section " .. section_id,
     invoke=function() tknaSelectAddScheduleLoopSection(i) end
   }
 
-  -- MIDI Mapping: Select, Add to Schedule and Loop the next occurrence of the Section
   renoise.tool():add_midi_mapping{name="Paketti:Select, Add to Schedule and Loop Section " .. section_id,
     invoke = function(message) 
       if message:is_trigger() then
@@ -1635,8 +1580,6 @@ for i = 0, 64 do
     end
   }
 end
-
-
 -----
 -- Slice mode settings
 local SLICE_SETTINGS = {

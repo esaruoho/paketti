@@ -177,7 +177,6 @@ local function show_merge_dialog(initial_source_index, initial_target_index)
   dialog = renoise.app():show_custom_dialog("Merge Instruments", content)
 end
 
--- Add menu entries
 renoise.tool():add_menu_entry{
   name = "Main Menu:Tools:Paketti..:Instruments..:Merge Instruments...",
   invoke = function()

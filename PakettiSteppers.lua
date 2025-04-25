@@ -76,8 +76,6 @@ function ResetAllSteppers()
     end
 end
 ---
-
--- Add menu entries and keybindings
 renoise.tool():add_keybinding{name = "Global:Paketti:Reset All Steppers",invoke = ResetAllSteppers}
 renoise.tool():add_menu_entry{name = "--Sample Modulation Matrix:Paketti..:Reset All Steppers",invoke = ResetAllSteppers}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti..:Instruments..:Reset All Steppers",invoke = ResetAllSteppers}

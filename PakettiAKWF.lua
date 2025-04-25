@@ -71,8 +71,6 @@ function load_random_akwf_sample(amount)
   PakettiFillPitchStepperDigits(0.015,64)
 end
 
-
--- Keybindings to load different numbers of samples
 renoise.tool():add_keybinding{name="Global:Paketti:Load Random AKWF Sample",invoke=function() load_random_akwf_sample(1) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Load Random amount (1...12) of AKWF Samples",invoke=function() load_random_akwf_sample("random") end}
 renoise.tool():add_keybinding{name="Global:Paketti:Load 05 AKWF Samples",invoke=function() load_random_akwf_sample(5) end}

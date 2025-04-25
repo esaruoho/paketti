@@ -468,7 +468,7 @@ function build_dialog_interface(vb, start_dv, end_dv, closeDV_dialog)
   for dv = start_dv, end_dv do
     interface:add_child(build_dynamic_view_ui(vb, dv))
   end
-  -- Add Save, Save & Close, and Load buttons to the bottom
+  
   interface:add_child(vb:row {
     vb:button { text = "Save Dynamic Views as a Textfile", height = 20, width = 200, pressed = function() save_dynamic_views_to_txt() end },
     vb:button { text = "Load Dynamic Views from a Textfile", height = 20, width = 200, pressed = function() load_dynamic_views_from_txt() end },
@@ -668,7 +668,6 @@ function set_dynamic_view_step_from_knob(dv, knob_value)
   end
 end
 
--- Add menu entries and keybindings for each dynamic view
 for dv = 1, dynamic_views_count do
   local dv_id = string.format("%02d", dv)
   renoise.tool():add_keybinding{name="Global:Paketti:Cycle Paketti Dynamic View " .. dv_id, invoke=function() cycle_dynamic_view(dv) end}

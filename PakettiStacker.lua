@@ -50,7 +50,7 @@ local function set_loop_mode_for_selected_instrument(loop_mode)
   renoise.app():show_status("Loop mode set to " .. mode_name .. " for " .. num_samples .. " samples.")
   returnpe()
 end
--- Menu entries for setting loop modes
+
 renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Set Loop Mode to Off",invoke=function() set_loop_mode_for_selected_instrument(renoise.Sample.LOOP_MODE_OFF) end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Set Loop Mode to Forward",invoke=function() set_loop_mode_for_selected_instrument(renoise.Sample.LOOP_MODE_FORWARD) end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Set Loop Mode to PingPong",invoke=function() set_loop_mode_for_selected_instrument(renoise.Sample.LOOP_MODE_PING_PONG) end}

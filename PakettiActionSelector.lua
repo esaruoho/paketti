@@ -379,8 +379,16 @@ function keyhandlerfuncActionSelector(dialog, key)
   end
 end
 
+-- Helper function to ensure correct sequential channel numbering
+local function ensure_sequential_channel_prefix(name, channel_number)
+    -- Strip any existing [CHxx] prefix if it exists
+    local base_name = string.match(name, "^%[CH%d%d%]%s*(.+)") or name
+    -- Add the correct sequential channel number
+    return "[CH" .. string.format("%02d", channel_number) .. "] " .. base_name
+end
 
-
+-- Usage example:
+-- song.instruments[i].name = ensure_sequential_channel_prefix(song.instruments[i].name, i)
 
 renoise.tool():add_menu_entry {name = "Main Menu:Tools:Paketti..:Paketti Action Selector",invoke = ActionSelectorDialog}
 renoise.tool():add_keybinding {name = "Global:Paketti:Paketti Action Selector",invoke = ActionSelectorDialog}

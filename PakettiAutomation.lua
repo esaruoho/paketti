@@ -2640,20 +2640,16 @@ function PakettiAutomationPlayModeChange_Previous()
   renoise.app():show_status("Previous playmode selected: " .. envelope.playmode)
 end
 
--- Add Keybindings
 renoise.tool():add_keybinding{name="Global:Paketti:Select Automation Playmode (Next)",invoke=PakettiAutomationPlayModeChange_Next}
 renoise.tool():add_keybinding{name="Global:Paketti:Select Automation Playmode (Previous)",invoke=PakettiAutomationPlayModeChange_Previous}
 renoise.tool():add_keybinding{name="Global:Paketti:Select Automation Playmode 01 Points",invoke=function() PakettiAutomationPlayModeChange_SetPlaymode(renoise.PatternTrackAutomation.PLAYMODE_POINTS) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Select Automation Playmode 02 Lines",invoke=function() PakettiAutomationPlayModeChange_SetPlaymode(renoise.PatternTrackAutomation.PLAYMODE_LINES) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Select Automation Playmode 03 Curves",invoke=function() PakettiAutomationPlayModeChange_SetPlaymode(renoise.PatternTrackAutomation.PLAYMODE_CURVES) end}
-
--- Add MIDI Mappings
 renoise.tool():add_midi_mapping{name="Paketti:Select Automation Playmode (Next)",invoke=PakettiAutomationPlayModeChange_Next}
 renoise.tool():add_midi_mapping{name="Paketti:Select Automation Playmode (Previous)",invoke=PakettiAutomationPlayModeChange_Previous}
 renoise.tool():add_midi_mapping{name="Paketti:Select Automation Playmode 01 Points",invoke=function() PakettiAutomationPlayModeChange_SetPlaymode(renoise.PatternTrackAutomation.PLAYMODE_POINTS) end}
 renoise.tool():add_midi_mapping{name="Paketti:Select Automation Playmode 02 Lines",invoke=function() PakettiAutomationPlayModeChange_SetPlaymode(renoise.PatternTrackAutomation.PLAYMODE_LINES) end}
 renoise.tool():add_midi_mapping{name="Paketti:Select Automation Playmode 03 Curves",invoke=function() PakettiAutomationPlayModeChange_SetPlaymode(renoise.PatternTrackAutomation.PLAYMODE_CURVES) end}
-
 
 
 function clone_sequence_with_automation_only()
@@ -2993,7 +2989,6 @@ function toggle_fx_amount_following(fx_command)
   end
 end
 
--- Add menu entries
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:LFO Write..:LFO Write to Effect Column 1 (Amount Only)",invoke = function() toggle_fx_amount_following() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Yxx)",invoke = function() toggle_fx_amount_following("0Y") end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Sxx)",invoke = function() toggle_fx_amount_following("0S") end}
@@ -3015,7 +3010,6 @@ renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:LFO Write..:LFO Wri
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Uxx)",invoke = function() toggle_fx_amount_following("0U") end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Gxx)",invoke = function() toggle_fx_amount_following("0G") end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Rxx)",invoke = function() toggle_fx_amount_following("0R") end}
-
 
 renoise.tool():add_keybinding{name="Global:Paketti:LFO Write to Effect Column 1 (Amount Only)",invoke = function() toggle_fx_amount_following() end}
 renoise.tool():add_keybinding{name="Global:Paketti:LFO Write to Effect Column 1 (0Yxx)",invoke = function() toggle_fx_amount_following("0Y") end}
@@ -3100,7 +3094,6 @@ function toggle_lpb_following(range)
   end
 end
 
--- Add menu entries for different ranges
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:LFO Write..:LFO Write to Phrase LPB (1-255)",invoke = function() toggle_lpb_following(255) end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:LFO Write..:LFO Write to Phrase LPB (1-127)",invoke = function() toggle_lpb_following(127) end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:LFO Write..:LFO Write to Phrase LPB (1-64)",invoke = function() toggle_lpb_following(64) end}
@@ -3110,10 +3103,6 @@ renoise.tool():add_menu_entry{name="Mixer:Paketti..:LFO Write..:LFO Write to Phr
 renoise.tool():add_keybinding{name="Global:Paketti:LFO Write to Phrase LPB (1-255)",invoke = function() toggle_lpb_following(255) end}
 renoise.tool():add_keybinding{name="Global:Paketti:LFO Write to Phrase LPB (1-127)",invoke = function() toggle_lpb_following(127) end}
 renoise.tool():add_keybinding{name="Global:Paketti:LFO Write to Phrase LPB (1-64)",invoke = function() toggle_lpb_following(64) end}
-
-
-
-
 -------
 -- Global variables for parameter following
 local is_following_single_parameter = false
@@ -3223,14 +3212,11 @@ function toggle_single_parameter_following()
     end
   end
 end
-
--- Add menu entries and keybinding
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:LFO Write..:Single Parameter Write to Automation",invoke = toggle_single_parameter_following}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:LFO Write..:Single Parameter Write to Automation",invoke = toggle_single_parameter_following}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:LFO Write..:Single Parameter Write to Automation",invoke = toggle_single_parameter_following}
 renoise.tool():add_keybinding{name="Global:Paketti:LFO Write Single Parameter Write to Automation",invoke = toggle_single_parameter_following}
 --------------
-
 local function get_or_create_cached_automation(device_num, param)
 local song=renoise.song()
 local pattern_index = song.selected_pattern_index

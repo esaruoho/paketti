@@ -263,7 +263,6 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:
     invoke=function() listByPluginType("AU") end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:Debug..:List Available VST3 Plugins (Console)",
     invoke=function() listByPluginType("VST3") end}
--- Adding menu entries for listing available devices (effects) by type
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Plugins/Devices..:Debug..:List Available VST Effects (Console)",
     invoke=function() listDevicesByType("VST") end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Plugins/Devices..:Debug..:List Available AU Effects (Console)",

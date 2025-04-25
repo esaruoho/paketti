@@ -370,7 +370,6 @@ function setAllInstrumentsAllSamplesAutoseek(state)
   renoise.app():show_status("Set AutoSeek " .. stateText .. " for all samples in all instruments")
 end
 
--- Add menu entries and keybindings
 renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Set All Instruments All Samples AutoSeek On",invoke=function() setAllInstrumentsAllSamplesAutoseek(1) end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Set All Instruments All Samples AutoSeek Off",invoke=function() setAllInstrumentsAllSamplesAutoseek(0) end}
 renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Set All Instruments All Samples AutoSeek On",invoke=function() setAllInstrumentsAllSamplesAutoseek(1) end}
@@ -379,9 +378,6 @@ renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Instruments..:Se
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:Set All Instruments All Samples AutoSeek Off",invoke=function() setAllInstrumentsAllSamplesAutoseek(0) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set All Instruments All Samples AutoSeek On",invoke=function() setAllInstrumentsAllSamplesAutoseek(1) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set All Instruments All Samples AutoSeek Off",invoke=function() setAllInstrumentsAllSamplesAutoseek(0) end}
-
-
-
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Instrument All Autofade On/Off",invoke=function() selectedInstrumentAllAutofadeToggle() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Instrument All Autofade On",invoke=function() selectedInstrumentAllAutofadeControl(1) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Instrument All Autofade Off",invoke=function() selectedInstrumentAllAutofadeControl(0) end}
@@ -411,7 +407,6 @@ function setAllInstrumentsAllSamplesAutofade(state)
   renoise.app():show_status("Set Autofade " .. stateText .. " for all samples in all instruments")
 end
 
--- Add menu entries and keybindings
 renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Set All Instruments All Samples Autofade On",invoke=function() setAllInstrumentsAllSamplesAutofade(1) end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Set All Instruments All Samples Autofade Off",invoke=function() setAllInstrumentsAllSamplesAutofade(0) end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Set All Instruments All Samples Autofade On",invoke=function() setAllInstrumentsAllSamplesAutofade(1) end}
@@ -420,9 +415,7 @@ renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Instruments..:Se
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:Set All Instruments All Samples Autofade Off",invoke=function() setAllInstrumentsAllSamplesAutofade(0) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set All Instruments All Samples Autofade On",invoke=function() setAllInstrumentsAllSamplesAutofade(1) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set All Instruments All Samples Autofade Off",invoke=function() setAllInstrumentsAllSamplesAutofade(0) end}
-
 -----------
-
 function halveBeatSyncLinesAll()
     local s = renoise.song()
     local currInst = s.selected_instrument_index
@@ -568,35 +561,26 @@ function doubleBeatSyncLinesSelected()
     renoise.app():show_status("BeatSync lines doubled for the selected sample from " .. reference_sync_lines .. " to " .. new_sync_lines)
 end
 
--- Main Menu Entries
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Instruments..:BeatSync Lines Halve (All)",invoke=function() halveBeatSyncLinesAll() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:BeatSync Lines Halve (Selected Sample)",invoke=function() halveBeatSyncLinesSelected() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:BeatSync Lines Double (All)",invoke=function() doubleBeatSyncLinesAll() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:BeatSync Lines Double (Selected Sample)",invoke=function() doubleBeatSyncLinesSelected() end}
-
--- Sample Editor Menu Entries
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:BeatSync/Slices..:BeatSync Lines Halve (All)",invoke=function() halveBeatSyncLinesAll() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:BeatSync/Slices..:BeatSync Lines Halve (Selected Sample)",invoke=function() halveBeatSyncLinesSelected() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:BeatSync/Slices..:BeatSync Lines Double (All)",invoke=function() doubleBeatSyncLinesAll() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:BeatSync/Slices..:BeatSync Lines Double (Selected Sample)",invoke=function() doubleBeatSyncLinesSelected() end}
-
--- Sample Navigator Menu Entries
 renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:BeatSync Lines Halve (All)",invoke=function() halveBeatSyncLinesAll() end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:BeatSync Lines Halve (Selected Sample)",invoke=function() halveBeatSyncLinesSelected() end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:BeatSync Lines Double (All)",invoke=function() doubleBeatSyncLinesAll() end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:BeatSync Lines Double (Selected Sample)",invoke=function() doubleBeatSyncLinesSelected() end}
-
--- Keybindings
 renoise.tool():add_keybinding{name="Global:Paketti:Halve BeatSync Lines (All)",invoke=function() halveBeatSyncLinesAll() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Halve BeatSync Lines (Selected Sample)",invoke=function() halveBeatSyncLinesSelected() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Double BeatSync Lines (All)",invoke=function() doubleBeatSyncLinesAll() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Double BeatSync Lines (Selected Sample)",invoke=function() doubleBeatSyncLinesSelected() end}
-
 renoise.tool():add_keybinding{name="Global:Paketti:Halve Halve BeatSync Lines (All)",invoke=function() halveBeatSyncLinesAll() halveBeatSyncLinesAll()end}
 renoise.tool():add_keybinding{name="Global:Paketti:Halve Halve BeatSync Lines (Selected Sample)",invoke=function() halveBeatSyncLinesSelected() halveBeatSyncLinesSelected() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Double Double BeatSync Lines (All)",invoke=function() doubleBeatSyncLinesAll() doubleBeatSyncLinesAll() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Double Double BeatSync Lines (Selected Sample)",invoke=function() doubleBeatSyncLinesSelected() doubleBeatSyncLinesSelected()  end}
-
 -- Function to load a pitchbend instrument
 function pitchedInstrument(st)
   renoise.app():load_instrument(renoise.tool().bundle_path .. "Presets" .. separator .. st .. "st_Pitchbend.xrni")
@@ -858,7 +842,6 @@ renoise.tool():add_midi_mapping{name = "Paketti:Delete/Clear/Wipe Selected Note 
     renoise.app():show_status("Wiped entire row and moved by edit step")
   end
   
-  -- Add keybinding
   renoise.tool():add_keybinding{
     name = "Global:Paketti:Delete/Clear/Wipe Entire Row with EditStep",
     invoke = function() 
@@ -866,7 +849,6 @@ renoise.tool():add_midi_mapping{name = "Paketti:Delete/Clear/Wipe Selected Note 
     end
   }
   
-  -- Add MIDI mapping
   renoise.tool():add_midi_mapping{
     name = "Paketti:Delete/Clear/Wipe Entire Row with EditStep x[Toggle]",
     invoke = function(message) 
@@ -923,7 +905,6 @@ function setInstrumentVolume(amount)
     end
 end
 
--- Keybindings to adjust the volume of all samples in the selected instrument
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Instrument Volume (All) (+0.01)",invoke=function() setInstrumentVolume(0.01) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Instrument Volume (All) (-0.01)",invoke=function() setInstrumentVolume(-0.01) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Instrument Volume Reset (All) (0.0dB)",invoke=function()
@@ -999,7 +980,6 @@ function setInstrumentPanningValue(value)
     end
 end
 
--- Keybindings to adjust the panning of all samples in the selected instrument
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Instrument Panning (+0.01)",invoke=function() setInstrumentPanning(0.01) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Instrument Panning (-0.01)",invoke=function() setInstrumentPanning(-0.01) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Instrument Panning Reset (Center)",invoke=function() setInstrumentPanningValue(0.5) end}
@@ -1092,11 +1072,7 @@ function toggle_catch_octave()
   end
 end
 
--- Add a menu entry and key binding for toggling Catch Octave
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Pattern Editor..:Catch Octave",invoke = toggle_catch_octave}
-
-
-
 renoise.tool():add_keybinding{name="Global:Paketti:Catch Octave",invoke=toggle_catch_octave}
 
 -- Initial call to add notifiers if enabled
@@ -1164,7 +1140,6 @@ function setSelectedInstrumentInterpolation(amount)
   end
 end
 
--- Adding key bindings for setting interpolation modes for all samples in the selected instrument
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Instrument Interpolation to 1 (None)",invoke=function() setSelectedInstrumentInterpolation(1) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Instrument Interpolation to 2 (Linear)",invoke=function() setSelectedInstrumentInterpolation(2) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Instrument Interpolation to 3 (Cubic)",invoke=function() setSelectedInstrumentInterpolation(3) end}
@@ -1299,7 +1274,6 @@ function selectPreviousFXGroup()
   selectedSampleFX(previous_index)
 end
 
--- Adding keybindings for next and previous mod and FX groups
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Mod Group (Next)",invoke=function() selectNextModGroup() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Mod Group (Previous)",invoke=function() selectPreviousModGroup() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample FX Group (Next)",invoke=function() selectNextFXGroup() end}
@@ -1418,13 +1392,10 @@ function selectedInstrumentPreviousFXGroup()
   selectedInstrumentSampleFX(previous_index)
 end
 
--- Adding keybindings for next and previous mod and FX groups
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Instrument Mod Group (Next)",invoke=function() selectedInstrumentNextModGroup() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Instrument Mod Group (Previous)",invoke=function() selectedInstrumentPreviousModGroup() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Instrument FX Group (Next)",invoke=function() selectedInstrumentNextFXGroup() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Instrument FX Group (Previous)",invoke=function() selectedInstrumentPreviousFXGroup() end}
-
-
 ---
 -- Function to print debug information
 function debug_print(message)
@@ -1799,14 +1770,12 @@ local function add_wipe_entries(column_type)
   renoise.tool():add_midi_mapping{name="Paketti:Clear/Wipe Selection " .. column_type:gsub("^%l", string.upper) .. " Column",invoke=function() adjust_column(column_type, 0) end}
 end
 
--- Adding menu entries, keybindings, and MIDI mappings for delay, panning, and volume columns adjustments
 for _, column_type in ipairs({"delay", "panning", "volume"}) do
   for _, adjustment in ipairs({1, -1, 10, -10}) do
     add_tool_entries(column_type, adjustment)
   end
 end
 
--- Adding menu entries, keybindings, and MIDI mappings for wiping the columns
 for _, column_type in ipairs({"delay", "panning", "volume"}) do
   add_wipe_entries(column_type)
 end
@@ -2205,15 +2174,12 @@ function select_first_track_in_next_group(direction)
   end
 end
 
--- Add menu entries, keybindings, and MIDI mappings
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Pattern Editor..:Jump to First Track In Next Group",invoke=function() select_first_track_in_next_group(1) end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Jump to First Track In Previous Group",invoke=function() select_first_track_in_next_group(0) end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Jump to First Track In Next Group",invoke=function() select_first_track_in_next_group(1) end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Jump to First Track In Previous Group",invoke=function() select_first_track_in_next_group(0) end}
 renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Jump to First Track In Next Group",invoke=function() select_first_track_in_next_group(1) end}
 renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Jump to First Track In Previous Group",invoke=function() select_first_track_in_next_group(0) end}
-
-
 renoise.tool():add_keybinding{name="Mixer:Paketti:Jump to First Track In Next Group",invoke=function() select_first_track_in_next_group(1) end}
 renoise.tool():add_keybinding{name="Mixer:Paketti:Jump to First Track In Previous Group",invoke=function() select_first_track_in_next_group(0) end}
 renoise.tool():add_midi_mapping{name="Paketti:Jump to First Track in Next Group",invoke=function() select_first_track_in_next_group(1) end}
@@ -2311,8 +2277,6 @@ function globalToggleVisibleColumnState(columnName)
     end
   end
 end
-
--- Add menu entries for toggling column visibility
 
 function globalChangeVisibleColumnState(columnName,toggle)
   for i=1, renoise.song().sequencer_track_count do
@@ -2553,10 +2517,7 @@ function groupTracksNoteColumnSoloToggle()
   renoise.app():show_status(any_muted and "Unmuted all note columns in the group tracks" or "Muted all note columns in the group tracks")
 end
 
--- Add keybinding for the note column solo toggle function
 renoise.tool():add_keybinding{name="Global:Paketti:Note Column Solo Toggle",invoke=function() noteColumnSoloToggle() end}
-
--- Add keybinding for the group tracks note column solo toggle function
 renoise.tool():add_keybinding{name="Global:Paketti:Group Tracks Note Column Solo Toggle",invoke=function() groupTracksNoteColumnSoloToggle() end}
 ------------------------
 -- Function to check if the selected sample is a slice
@@ -2960,7 +2921,6 @@ renoise.app():load_instrument(defaultInstrument)
   renoise.app():show_status("Sample '" .. sample.name .. "' isolated to new instrument")
 end
 
--- Add menu entries
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Isolate Selected Sample to New Instrument",invoke=PakettiIsolateSelectedSampleToInstrument}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Isolate Selected Sample to New Instrument",invoke=PakettiIsolateSelectedSampleToInstrument}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Isolate Selected Sample to New Instrument",invoke=PakettiIsolateSelectedSampleToInstrument}
@@ -3282,18 +3242,14 @@ for interval = MIN_SHIFT, MAX_SHIFT do
       invoke=function() PakettiBaseNoteShifter(interval, "current") end
     }
 
-    -- Add menu entries under "Pattern Editor:Paketti..:"
     renoise.tool():add_menu_entry{
       name = menu_label_all_pattern,
       invoke=function() PakettiBaseNoteShifter(interval, "all") end
-    }
-    
+    }    
     renoise.tool():add_menu_entry{
       name = menu_label_current_pattern,
       invoke=function() PakettiBaseNoteShifter(interval, "current") end
     }
-
-    -- Add keybindings
     renoise.tool():add_keybinding{
       name = keybinding_label_all,
       invoke=function() PakettiBaseNoteShifter(interval, "all") end
@@ -3303,8 +3259,6 @@ for interval = MIN_SHIFT, MAX_SHIFT do
       name = keybinding_label_current,
       invoke=function() PakettiBaseNoteShifter(interval, "current") end
     }
-
-    -- Add MIDI mappings
     renoise.tool():add_midi_mapping{
       name = midi_mapping_all,
       invoke=function() PakettiBaseNoteShifter(interval, "all") end
@@ -3381,26 +3335,10 @@ for interval = MIN_SHIFT, MAX_SHIFT do
     local keybinding_label_all = "Global:Paketti:Transpose Shift " .. shift_label .. " (All Instruments)"
     local midi_mapping_all = "Paketti:Transpose Shift " .. shift_label .. " (All Instruments)"
 
-    -- Add all "All Instruments" entries
-    renoise.tool():add_menu_entry{
-      name = menu_label_all_main,
-      invoke=function() PakettiTransposeShifter(interval, "all") end
-    }
-    
-    renoise.tool():add_menu_entry{
-      name = menu_label_all_pattern,
-      invoke=function() PakettiTransposeShifter(interval, "all") end
-    }
-    
-    renoise.tool():add_keybinding{
-      name = keybinding_label_all,
-      invoke=function() PakettiTransposeShifter(interval, "all") end
-    }
-    
-    renoise.tool():add_midi_mapping{
-      name = midi_mapping_all,
-      invoke=function() PakettiTransposeShifter(interval, "all") end
-    }
+    renoise.tool():add_menu_entry{name=menu_label_all_main,invoke=function() PakettiTransposeShifter(interval, "all") end}
+    renoise.tool():add_menu_entry{name=menu_label_all_pattern,invoke=function() PakettiTransposeShifter(interval, "all") end}
+    renoise.tool():add_keybinding{name=keybinding_label_all,invoke=function() PakettiTransposeShifter(interval, "all") end}
+    renoise.tool():add_midi_mapping{name=midi_mapping_all,invoke=function() PakettiTransposeShifter(interval, "all") end}
   end
 end
 
@@ -3573,11 +3511,8 @@ function table.contains(table, element)
   return false
 end
 
-
--- Add keybindings for the new functions
 renoise.tool():add_keybinding{name="Global:Paketti:Populate Send Tracks for All Tracks",invoke=PakettiPopulateSendTracksAllTracks}
 renoise.tool():add_keybinding{name="Global:Paketti:Populate Send Tracks for Selected Track",invoke=PakettiPopulateSendTracksSelectedTrack}
-
 -- Function to populate send tracks for all tracks in the selected range
 function PakettiPopulateSendTracksToSelectionInPattern()
   local song = renoise.song()
@@ -3648,26 +3583,15 @@ function PakettiPopulateSendTracksToSelectionInPattern()
   renoise.app():show_status("Send tracks populated for all selected tracks.")
 end
 
--- Registering the function with a keybinding
 renoise.tool():add_keybinding{name="Global:Paketti:Populate Send Tracks for All Selected Tracks",invoke=PakettiPopulateSendTracksToSelectionInPattern}
-
--- Add menu entries for the new functions under Main Menu:Tools
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Populate Send Tracks for All Tracks",invoke=PakettiPopulateSendTracksAllTracks}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Populate Send Tracks for Selected Track",invoke=PakettiPopulateSendTracksSelectedTrack}
-
--- Add menu entries for the new functions under Pattern Editor
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Devices..:Populate Send Tracks for All Tracks",invoke=PakettiPopulateSendTracksAllTracks}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Devices..:Populate Send Tracks for Selected Track",invoke=PakettiPopulateSendTracksSelectedTrack}
-
--- Add menu entries for the new functions under Mixer
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Populate Send Tracks for All Tracks",invoke=PakettiPopulateSendTracksAllTracks}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Populate Send Tracks for Selected Track",invoke=PakettiPopulateSendTracksSelectedTrack}
-
--- Add menu entries for the new functions under DSP Chain
 renoise.tool():add_menu_entry{name="DSP Chain:Paketti..:Populate Send Tracks for All Tracks",invoke=PakettiPopulateSendTracksAllTracks}
 renoise.tool():add_menu_entry{name="DSP Chain:Paketti..:Populate Send Tracks for Selected Track",invoke=PakettiPopulateSendTracksSelectedTrack}
-
--- Add menu entries for the new functions under DSP Device
 renoise.tool():add_menu_entry{name="DSP Device:Paketti..:Populate Send Tracks for All Tracks",invoke=PakettiPopulateSendTracksAllTracks}
 renoise.tool():add_menu_entry{name="DSP Device:Paketti..:Populate Send Tracks for Selected Track",invoke=PakettiPopulateSendTracksSelectedTrack}
 --------
@@ -3962,7 +3886,6 @@ function handle_convolver_action(device, track_index, device_index, action)
   end
 end
 
--- Adding menu entries
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Plugins/Devices..:Show Convolver Selection Dialog...",invoke=function()
   show_convolver_selection_dialog(handle_convolver_action)
 end }
@@ -4168,9 +4091,7 @@ function sendTest()
   renoise.song().selected_track.devices[2].active_preset_data = active_preset_data
 end
 
--- Add the keybinding to toggle the MuteSource value
 renoise.tool():add_keybinding{name="Global:Paketti:Send Reverser",invoke=function() sendTest() end}
-------
 -------------
 function pakettiDumpAllTrackVolumes(db_change)
   local song = renoise.song()
@@ -4425,10 +4346,7 @@ function floodfill_with_selection()
   renoise.app():show_status("Flood fill with selection completed.")
 end
 
--- Add a keybinding to trigger the function
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Flood Fill with Selection",invoke=floodfill_with_selection}
-
-
 -----
 -- Define the function to rotate track content
 function rotate_track_content_to_selection_start_first()
@@ -4581,9 +4499,7 @@ function rotate_track_content_to_selection_start_first()
   renoise.app():show_status(string.format("Set Line %d as First Line", start_line))
 end
 
--- Add a keybinding to trigger the function
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Rotate Track Content to SelectionStart First",
-  invoke = rotate_track_content_to_selection_start_first}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Rotate Track Content to SelectionStart First",invoke = rotate_track_content_to_selection_start_first}
 
 -----
 local vb = renoise.ViewBuilder()
@@ -4696,16 +4612,11 @@ function shuffle_oblique_strategies()
   renoise.app():show_status("Oblique Strategies: " .. message)
 end
 
--- Add keybinding for opening/closing the dialog
-renoise.tool():add_keybinding{name="Global:Paketti:Open Oblique Strategies Dialog...",invoke=function() 
-  create_oblique_strategies_dialog() 
-end}
+renoise.tool():add_keybinding{name="Global:Paketti:Open Oblique Strategies Dialog...",invoke=function() create_oblique_strategies_dialog()  end}
 
--- Add keybinding for shuffling cards without opening the dialog
 renoise.tool():add_keybinding{name="Global:Paketti:Shuffle Oblique Strategies Cards",invoke=shuffle_oblique_strategies}
 -------
 -- Paketti Track Titler
-
 local dialog
 local vb = renoise.ViewBuilder()
 local default_file_path = "External/wordlist.txt" -- Default file path
@@ -5135,7 +5046,6 @@ function keyhandlerfunc_tdt(dialog,key)
   return key
 end
 
--- Adding the menu entries
 renoise.tool():add_menu_entry{name="Main Menu:File:Paketti..:Paketti Track Dater & Titler...",invoke=PakettiTitlerDialog}
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Track Dater & Titler",invoke=PakettiTitlerDialog}
 renoise.tool():add_menu_entry{name="Main Menu:File:Save (Paketti Track Dater & Titler)...",invoke=PakettiTitlerDialog}
@@ -5235,7 +5145,6 @@ renoise.app():show_status("Sample " .. sample_index .. ": " .. renoise.song().se
   --renoise.app():show_status("Sample " .. sample_index .. " set to velocity range 00-7F, all other samples set to 00-00.")
 end
 
--- MIDI Mapping: Adjust velocity ranges based on MIDI knob
 function midi_sample_velocity_switcharoo(value)
   local song = renoise.song()
   local ing = song.selected_instrument
@@ -5299,27 +5208,19 @@ function sample_random()
   pakettiSampleVelocityRangeChoke(random_index)
 end
 
--- Add MIDI mapping for knob control in one line
 renoise.tool():add_midi_mapping{name="Paketti:Midi Set Selected Sample Velocity Range 7F",invoke=function(midi_message) midi_sample_velocity_switcharoo(midi_message.int_value) end}
-
--- Add keybindings for moving up, down, and random sample selection, all in one line
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample (+1) Velocity Range 7F others 00",invoke=function() sample_one_down() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample (-1) Velocity Range 7F others 00",invoke=function() sample_one_up() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample (Random) Velocity Range 7F others 00",invoke=function() sample_random() end}
-
 renoise.tool():add_midi_mapping{name="Paketti:Set Selected Sample (+1) Velocity Range 7F others 00",invoke=function(message) if message:is_trigger() then sample_one_down() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Set Selected Sample (-1) Velocity Range 7F others 00",invoke=function(message) if message:is_trigger() then sample_one_up() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Set Selected Sample (Random) Velocity Range 7F others 00",invoke=function(message) if message:is_trigger() then sample_random() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Set Selected Sample Velocity Range 7F",invoke=function(message) if message:is_trigger() then SelectedSampleVelocityRange(0,127) end end}
 renoise.tool():add_midi_mapping{name="Paketti:Set Selected Sample Velocity Range 00",invoke=function(message) if message:is_trigger() then SelectedSampleVelocityRange(0,0) end end}
-
-
 renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti..:Set Selected Sample (+1) Velocity Range 7F others 00",invoke=function() sample_one_down() end}
 renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Set Selected Sample (-1) Velocity Range 7F others 00",invoke=function() sample_one_up() end}
 renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Set Selected Sample (Random) Velocity Range 7F others 00",invoke=function() sample_random() end}
-
-
-
+---
 function SelectedSampleVelocityRange(number1,number2)
   local ing = renoise.song().selected_instrument
 
@@ -5467,11 +5368,9 @@ function resize_all_non_empty_patterns_to_current_pattern_length()
   renoise.app():show_status("Resized all non-empty patterns to the current pattern's length (" .. song.patterns[song.selected_pattern_index].number_of_lines .. ")")
 end
 
--- Add the menu entries to the Global:Paketti section
 renoise.tool():add_keybinding{name="Global:Paketti:Resize all non-empty Patterns to current Pattern length",invoke = resize_all_non_empty_patterns_to_current_pattern_length}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Resize all non-empty Patterns..:Resize all non-empty Patterns to current Pattern length",invoke = resize_all_non_empty_patterns_to_current_pattern_length}
 renoise.tool():add_menu_entry{name="--Pattern Sequencer:Paketti..:Resize all non-empty Patterns..:Resize all non-empty Patterns to current Pattern length",invoke = resize_all_non_empty_patterns_to_current_pattern_length}
-
 renoise.tool():add_keybinding{name="Global:Paketti:Resize all non-empty Patterns to 012",invoke=function() resize_all_non_empty_patterns_to(12) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Resize all non-empty Patterns to 016",invoke=function() resize_all_non_empty_patterns_to(016) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Resize all non-empty Patterns to 024",invoke=function() resize_all_non_empty_patterns_to(024) end}
@@ -6501,31 +6400,11 @@ function PakettiUserPreferencesShowerDialog()
   renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
 end
 
-
-
--- Add Menu Entries for showing the dialog at various locations
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Show/Hide User Preference Devices Master Dialog",
-  invoke=function() PakettiUserPreferencesShowerDialog() end
-}
-
-renoise.tool():add_menu_entry{name="DSP Device:Paketti..:Show/Hide User Preference Devices Master Dialog",
-  invoke=function() PakettiUserPreferencesShowerDialog() end
-}
-
-renoise.tool():add_keybinding{name="Global:Paketti:Show/Hide User Preference Devices Master Dialog",
-  invoke=function() PakettiUserPreferencesShowerDialog() end
-}
-
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:SlotShow..:Show/Hide User Preference Devices Master Dialog",
-  invoke=function() PakettiUserPreferencesShowerDialog() end
-}
-
--- Add Keybinding for opening the preferences dialog
-renoise.tool():add_keybinding{name="Global:Paketti:Open User Preferences Dialog",
-  invoke=function() PakettiUserPreferencesShowerDialog() end
-}
-
--- Add Menu Entries and Keybindings for toggling devices on Master and Selected Tracks
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Show/Hide User Preference Devices Master Dialog",invoke=function() PakettiUserPreferencesShowerDialog() end}
+renoise.tool():add_menu_entry{name="DSP Device:Paketti..:Show/Hide User Preference Devices Master Dialog",invoke=function() PakettiUserPreferencesShowerDialog() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Show/Hide User Preference Devices Master Dialog",invoke=function() PakettiUserPreferencesShowerDialog() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:SlotShow..:Show/Hide User Preference Devices Master Dialog",invoke=function() PakettiUserPreferencesShowerDialog() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Open User Preferences Dialog",invoke=function() PakettiUserPreferencesShowerDialog() end}
 for i = 1, 10 do
   local slot = string.format("%02d", i)
 
@@ -6703,24 +6582,9 @@ function SampleSelectorMIDI(midi_value)
   end
 end
 
--- Add MIDI mapping
-renoise.tool():add_midi_mapping{
-  name = "Paketti:Select Sample x[Knob]",
-  invoke = function(message)
-    if message:is_abs_value() then
-      SampleSelectorMIDI(message.int_value)
-    end
-  end
-}
+renoise.tool():add_midi_mapping{name="Paketti:Select Sample x[Knob]",invoke = function(message) if message:is_abs_value() then SampleSelectorMIDI(message.int_value) end end}
 
 ---
-
-
-
-
-
-
-
 
 function PakettiSerialOutputRoutings(is_non_continual, noMaster, includeMaster)
   local availOut = renoise.song().selected_track.available_output_routings
@@ -6776,7 +6640,6 @@ function PakettiSerialOutputRoutings(is_non_continual, noMaster, includeMaster)
   for i = 1, seq_count + send_count + 1 do oprint(renoise.song().tracks[i].output_routing) end
 end
 
--- Keybindings with {} on the same line
 renoise.tool():add_keybinding{name="Global:Paketti:Output Routing (Non-Continual, Skip Master, Exclude Master)",invoke=function() PakettiSerialOutputRoutings(true, true, false) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Output Routing (Continual, Skip Master, Exclude Master)",invoke=function() PakettiSerialOutputRoutings(false, true, false) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Output Routing (Non-Continual, Include Master, Exclude Master)",invoke=function() PakettiSerialOutputRoutings(true, false, false) end}
@@ -6956,29 +6819,23 @@ end
 
 
 
--- Add MIDI mapping to trigger with default step=1 (random)
 renoise.tool():add_midi_mapping{name="Paketti:Play at Random Line in Current Pattern",invoke=function(message)
   if message:is_trigger() then setRandomLine(1) end
 end}
-
--- Add keybinding with default step=1 (random)
 renoise.tool():add_keybinding{name="Global:Paketti:Play at Random Line in Current Pattern",invoke=function()
   setRandomLine(1)
 end}
-
 
 renoise.tool():add_midi_mapping{name="Paketti:Play at Random Line in Current Pattern 2",invoke=function(message)
   if message:is_trigger() then setRandomLine(2) end
 end}
 
--- Add keybinding with default step=0 (random)
 renoise.tool():add_keybinding{name="Global:Paketti:Play at Random Line in Current Pattern 2",invoke=function() setRandomLine(2) end}
 
 renoise.tool():add_midi_mapping{name="Paketti:Play at Random Line in Current Pattern 4",invoke=function(message)
   if message:is_trigger() then setRandomLine(4) end
 end}
 
--- Add keybinding with default step=0 (random)
 renoise.tool():add_keybinding{name="Global:Paketti:Play at Random Line in Current Pattern 4",invoke=function()
   setRandomLine(4)
 end}
@@ -6988,8 +6845,6 @@ end}
 renoise.tool():add_midi_mapping{name="Paketti:Play at Random Line in Current Pattern LPB",invoke=function(message)
   if message:is_trigger() then setRandomLine("lpb") end
 end}
-
--- Add keybinding with default step=0 (random)
 renoise.tool():add_keybinding{name="Global:Paketti:Play at Random Line in Current Pattern LPB",invoke=function()
   setRandomLine("lpb")
 end}
@@ -7648,43 +7503,20 @@ function panning_interpolation()
   end
 end
 
--- Add keybindings for interpolation functions
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Interpolate Column Values (Volume)",
-  invoke=function() volume_interpolation() end}
-
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Interpolate Column Values (Delay)",
-  invoke=function() delay_interpolation() end}
-
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Interpolate Column Values (Volume)",invoke=function() volume_interpolation() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Interpolate Column Values (Delay)",invoke=function() delay_interpolation() end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Interpolate Column Values (Panning)",invoke=function() panning_interpolation() end}
-
--- Add menu entries for interpolation functions
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Interpolate Column Values (Volume)",
-  invoke=function() volume_interpolation() end}
-
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Interpolate Column Values (Delay)",
-  invoke=function() delay_interpolation() end}
-
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Interpolate Column Values (Panning)",
-  invoke=function() panning_interpolation() end}
-
--- Add MIDI mappings for interpolation functions
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Interpolate Column Values (Volume)",invoke=function() volume_interpolation() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Interpolate Column Values (Delay)",invoke=function() delay_interpolation() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Interpolate Column Values (Panning)",invoke=function() panning_interpolation() end}
 renoise.tool():add_midi_mapping{name="Paketti:Interpolate Column Values (Volume)",
   invoke=function(message) 
     if message:is_trigger() then volume_interpolation() end 
   end
 }
 
-renoise.tool():add_midi_mapping{name="Paketti:Interpolate Column Values (Delay)",
-  invoke=function(message) 
-    if message:is_trigger() then delay_interpolation() end 
-  end
-}
-
-renoise.tool():add_midi_mapping{name="Paketti:Interpolate Column Values (Panning)",
-  invoke=function(message) 
-    if message:is_trigger() then panning_interpolation() end 
-  end
-}
+renoise.tool():add_midi_mapping{name="Paketti:Interpolate Column Values (Delay)",invoke=function(message) if message:is_trigger() then delay_interpolation() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Interpolate Column Values (Panning)",invoke=function(message) if message:is_trigger() then panning_interpolation() end  end}
 
 function samplefx_interpolation()
   local song = renoise.song()
@@ -7776,22 +7608,10 @@ function samplefx_interpolation()
   end
 end
 
--- Add keybinding for sample fx interpolation
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Interpolate Column Values (Sample FX)",
-  invoke=function() samplefx_interpolation() end
-}
 
--- Add menu entry for sample fx interpolation
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Interpolate Column Values (Sample FX)",
-  invoke=function() samplefx_interpolation() end
-}
-
--- Add MIDI mapping for sample fx interpolation
-renoise.tool():add_midi_mapping{name="Paketti:Interpolate Column Values (Sample FX)",
-  invoke=function(message) 
-    if message:is_trigger() then samplefx_interpolation() end 
-  end
-}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Interpolate Column Values (Sample FX)",invoke=function() samplefx_interpolation() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Interpolate Column Values (Sample FX)",invoke=function() samplefx_interpolation() end}
+renoise.tool():add_midi_mapping{name="Paketti:Interpolate Column Values (Sample FX)",invoke=function(message) if message:is_trigger() then samplefx_interpolation() end  end}
 
 -- Show the GUI dialog
 function show_VDPdialog()
@@ -8162,7 +7982,6 @@ function map_crossfade_to_ab(crossfade_value)
   end
 end
 
--- Keybindings, menu entries, and MIDI mappings in a single line format
 renoise.tool():add_keybinding{name="Global:Paketti:Add Gainer A to Selected Track",invoke=function() AddGainerCrossfadeSelectedTrack("A") end}
 renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Add Gainer A to Selected Track",invoke=function() AddGainerCrossfadeSelectedTrack("A") end}
 renoise.tool():add_keybinding{name="Global:Paketti:Add Gainer B to Selected Track",invoke=function() AddGainerCrossfadeSelectedTrack("B") end}
@@ -8208,11 +8027,8 @@ function flip_gainers()
   renoise.app():show_status(string.format("Switched to Gainer %s", current_state and "B" or "A"))
 end
 
--- Add keybinding and menu entry for the flipper
 renoise.tool():add_keybinding{name="Global:Paketti:Flip Gainers A/B",invoke=function() flip_gainers() end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Flip Gainers A/B",invoke=function() flip_gainers() end}
-
-
 ------
 -- Create a timestamp in the format YYYYMMDD-HHMMSS
 local function generate_timestamp()
@@ -9228,26 +9044,13 @@ function halve_bpm_multiply_lpb()
     current_lpb, song.transport.lpb))
 end
 
--- Add keybindings and menu entries
 renoise.tool():add_keybinding{name="Global:Paketti:Multiply BPM & Halve LPB",invoke=function() multiply_bpm_halve_lpb() end}
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Multiply BPM & Halve LPB",invoke=function() multiply_bpm_halve_lpb() end}
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Multiply BPM & Halve LPB",invoke=function() multiply_bpm_halve_lpb() end}
-
 renoise.tool():add_keybinding{name="Global:Paketti:Halve BPM & Multiply LPB",invoke=function() halve_bpm_multiply_lpb() end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Halve BPM & Multiply LPB",invoke=function() halve_bpm_multiply_lpb() end}
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Halve BPM & Multiply LPB",invoke=function() halve_bpm_multiply_lpb() end}
-
 --------
-
-
-
-
-
-
-
-
-
-
 function sampleFXControls(scope, state)
   local total_affected = 0
   local song = renoise.song()
@@ -9277,23 +9080,18 @@ function sampleFXControls(scope, state)
   renoise.app():show_status(string.format("%s %d Sample FX Devices on %s", action, total_affected, target))
 end
 
--- Add keybindings
 renoise.tool():add_keybinding{name="Global:Paketti:Bypass All Sample FX on Selected Instrument",invoke=function() sampleFXControls("single", false) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Enable All Sample FX on Selected Instrument",invoke=function() sampleFXControls("single", true) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Bypass All Sample FX on All Instruments",invoke=function() sampleFXControls("all", false) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Enable All Sample FX on All Instruments",invoke=function() sampleFXControls("all", true) end}
-
-
 renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Enable All Sample FX on Selected Instrument",invoke=function() sampleFXControls("single", true) end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Bypass All Sample FX on Selected Instrument",invoke=function() sampleFXControls("single", false) end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Enable All Sample FX on All Instruments",invoke=function() sampleFXControls("all", true) end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Bypass All Sample FX on All Instruments",invoke=function() sampleFXControls("all", false) end}
-
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Enable All Sample FX on Selected Instrument",invoke=function() sampleFXControls("single", true) end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Bypass All Sample FX on Selected Instrument",invoke=function() sampleFXControls("single", false) end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Enable All Sample FX on All Instruments",invoke=function() sampleFXControls("all", true) end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Bypass All Sample FX on All Instruments",invoke=function() sampleFXControls("all", false) end}
-
 renoise.tool():add_menu_entry{name="--Sample FX Mixer:Paketti..:Enable All Sample FX on Selected Instrument",invoke=function() sampleFXControls("single", true) end}
 renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti..:Bypass All Sample FX on Selected Instrument",invoke=function() sampleFXControls("single", false) end}
 renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti..:Enable All Sample FX on All Instruments",invoke=function() sampleFXControls("all", true) end}
@@ -9374,10 +9172,8 @@ function random_note_offs_to_empty_rows()
   end
 end
 
--- Add keybinding
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Insert Random Note-Offs in Empty Rows",invoke=function() random_note_offs_to_empty_rows() end}
-
-
+---------
 function randomize_note_off_positions()
   local song = renoise.song()
   local random = math.random
@@ -9460,7 +9256,6 @@ function randomize_note_off_positions()
   renoise.app():show_status(string.format("Randomized positions of %d note-offs", #note_offs))
 end
 
--- Add keybinding
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Randomize Positions of Note-Offs",invoke=function() randomize_note_off_positions() end}
 
 
@@ -9714,12 +9509,10 @@ function saveUnusedSamples()
   ))
 end
 
--- Add menu entries and keybindings
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Save Unused Samples (.WAV&.XRNI)...",invoke=saveUnusedSamples}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Save Unused Samples (.WAV&.XRNI)...",invoke=saveUnusedSamples}
 renoise.tool():add_menu_entry{name="--Main Menu:File:Save Unused Samples (.WAV&.XRNI)...",invoke=saveUnusedSamples}
 renoise.tool():add_keybinding{name="Global:Paketti:Save Unused Samples (.WAV&.XRNI)",invoke=saveUnusedSamples}
-
 --------
 function saveUnusedInstruments()
   local song = renoise.song()
@@ -9781,15 +9574,11 @@ function saveUnusedInstruments()
   ))
 end
 
--- Add menu entries and keybindings
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Save Unused Instruments (.XRNI)...",invoke=saveUnusedInstruments}
 renoise.tool():add_menu_entry{name="Main Menu:File:Save Unused Instruments (.XRNI)...",invoke=saveUnusedInstruments}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Save Unused Instruments (.XRNI)...",invoke=saveUnusedInstruments}
 renoise.tool():add_keybinding{name="Global:Paketti:Save Unused Instruments (.XRNI)",invoke=saveUnusedInstruments}
-
-
-
-
+----
 function deleteUnusedInstruments()
   local song = renoise.song()
   local used_instruments, _ = findUsedInstruments()
@@ -9837,13 +9626,10 @@ function deleteUnusedInstruments()
   ))
 end
 
--- Add menu entries and keybindings
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Delete Unused Instruments...",invoke=deleteUnusedInstruments}
 renoise.tool():add_menu_entry{name="Main Menu:File:Delete Unused Instruments...",invoke=deleteUnusedInstruments}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Delete Unused Instruments...",invoke=deleteUnusedInstruments}
 renoise.tool():add_keybinding{name="Global:Paketti:Delete Unused Instruments",invoke=deleteUnusedInstruments}
-
-
 ---
 function findUsedSamples()
   local song = renoise.song()
@@ -10086,19 +9872,11 @@ function deleteUnusedSamples()
   slicer:start()
 end
 
-
-
-
-
-
-
--- Add menu entries and keybindings
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Delete Unused Samples...",invoke=deleteUnusedSamples}
 renoise.tool():add_menu_entry{name="Main Menu:File:Delete Unused Samples...",invoke=deleteUnusedSamples}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Delete Unused Samples...",invoke=deleteUnusedSamples}
 renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Delete Unused Samples...",invoke=deleteUnusedSamples}
 renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti..:Delete Unused Samples...",invoke=deleteUnusedSamples}
-
 renoise.tool():add_keybinding{name="Global:Paketti:Delete Unused Samples",invoke=deleteUnusedSamples}
 renoise.tool():add_keybinding{name="Sample Keyzones:Paketti:Delete Unused Samples",invoke=deleteUnusedSamples}
 --------
@@ -10309,7 +10087,6 @@ end
 local DIRECTION = { PREVIOUS = 1, NEXT = 2 }
 local SCOPE = { TRACK = 1, PATTERN = 2 }
 
--- Menu entries with better discoverability
 renoise.tool():add_menu_entry {
   name = "Main Menu:Tools:Paketti..:Pattern Editor..:Find Note (Next,Track)",
   invoke = function() GotoNote(DIRECTION.NEXT, SCOPE.TRACK) end}
@@ -10347,7 +10124,6 @@ renoise.tool():add_keybinding {
   invoke = function() GotoNote(DIRECTION.PREVIOUS, SCOPE.PATTERN) end
 }
 
--- MIDI mappings with correct naming
 renoise.tool():add_midi_mapping {
   name = "Paketti:Find Note (Next,Track)",
   invoke = function() GotoNote(DIRECTION.NEXT, SCOPE.TRACK) end
@@ -10653,18 +10429,7 @@ function toggle_two_devices(device1_index, device2_index)
   PakettiDeviceBypass(device2_index, device2_active and "disable" or "enable")
 end
 
--- Add keybinding for the toggle function (example using devices 1 and 2)
-renoise.tool():add_keybinding{
-  name = "Global:Paketti:Flip Devices 1&2 On/Off",
-  invoke = function() toggle_two_devices(1, 2) end
-}
-
-
-
-
-
-
-
+renoise.tool():add_keybinding{name = "Global:Paketti:Flip Devices 1&2 On/Off",invoke = function() toggle_two_devices(1, 2) end}
 
 ----------
 -- Fuzzy search function

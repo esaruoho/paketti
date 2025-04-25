@@ -6,7 +6,6 @@ local xy_value_text
 local position
 local reopen_dialog_flag = false
 
--- Key handler function
 local function PakettiPluginEditorPositionControlKeyHandlerFunc(dialog, key)
   if key.modifiers == "" and key.name == "exclamation" then
     print("Exclamation key pressed, closing dialog.")
@@ -16,8 +15,6 @@ local function PakettiPluginEditorPositionControlKeyHandlerFunc(dialog, key)
   end
 end
 
-
--- Check if selected instrument has a plugin loaded
 local function PakettiPluginEditorPositionControlGetPluginEditorPosition()
   local song = renoise.song()
   local instr = song.selected_instrument
@@ -518,10 +515,7 @@ local function show_dialog()
   end
 end
 
--- Add menu entry to toggle the tool
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Toggle Hold-to-Fill Mode",invoke=show_dialog}
-
-
 
 [[--
 local vb = renoise.ViewBuilder()
@@ -593,7 +587,6 @@ local function show_dialog()
   }, keyhandler_wackyfilter)
 end
 
--- Add menu entry to show the dialog
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress..:Wacky Filter",invoke=show_dialog}
 
 function keyhandler_wackyfilter(dialog,key)
@@ -719,16 +712,8 @@ renoise.tool().app_release_document_observable:add_notifier(function()
     last_buffer_size = nil
 end)
 
--- Add menu entries to enable/disable auto settings
-renoise.tool():add_menu_entry{
-    name = "Main Menu:Tools:Paketti..:Sample Settings:Enable Auto Settings",
-    invoke = enable_auto_settings
-}
-
-renoise.tool():add_menu_entry{
-    name = "Main Menu:Tools:Paketti..:Sample Settings:Disable Auto Settings",
-    invoke = disable_auto_settings
-}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti..:Sample Settings:Enable Auto Settings",invoke = enable_auto_settings}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti..:Sample Settings:Disable Auto Settings",invoke = disable_auto_settings}
     ]]--
 
     --[[renoise.tool():add_keybinding{name="Global:Paketti:Hide EditStep Dialog",

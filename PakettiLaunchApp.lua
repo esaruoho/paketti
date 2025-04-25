@@ -354,7 +354,6 @@ end
 
 --renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:App Selection & Smart Folders",invoke=show_app_selection_dialog}
 
--- Add key bindings and MIDI mappings for AppSelection shortcuts
 for i=1, 6 do
   local app_path = preferences.AppSelection["AppSelection"..i].value
   -- Only create entries if app_path exists and isn't empty
@@ -572,7 +571,6 @@ local app_name = app_path:match("([^/\\]+)%.app$") or app_path:match("([^/\\]+)$
     renoise.app():show_status("No apps have been configured in Paketti..:Launch App..:Configure Launch App Selection, cannot populate Menu.")
   end
 
-  -- Add static menu entry for configuring app selections
   local configure_entry_name="--Instrument Box:Paketti..:Launch App..:Configure Launch App Selection..."
   if not renoise.tool():has_menu_entry(configure_entry_name) then
     renoise.tool():add_menu_entry{name=configure_entry_name,

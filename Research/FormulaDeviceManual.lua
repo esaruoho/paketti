@@ -1,6 +1,5 @@
 local dialog = nil
 
--- Add at the top of the file
 local function retain_current_view()
   -- Do nothing - this removes the forced pattern editor focus
 end
@@ -376,7 +375,6 @@ renoise.tool():add_keybinding {name = "Global:Paketti:Show Paketti Formula Devic
 function add_input_inertia()
   local track = renoise.song().tracks[renoise.song().selected_track_index]
   
-  -- Add new Formula device
   track:insert_device_at("Audio/Effects/Native/*Formula", 2)
   local device = track.devices[2]
   device.display_name = "Input Inertia"
@@ -389,7 +387,7 @@ function add_input_inertia()
     device.active_preset_data = data
   end
 end
--- Add these at the bottom of the file with your other tool registrations
+
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Add Input Inertia Formula Device",invoke = add_input_inertia}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Add Input Inertia Formula Device",invoke = add_input_inertia}
 renoise.tool():add_keybinding{name="Global:Paketti:Add Input Inertia Formula Device",invoke = add_input_inertia}

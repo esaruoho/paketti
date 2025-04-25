@@ -233,13 +233,7 @@ local function show_keyzone_distributor()
   )
 end
 
--- Add keybinding to launch dialog
-renoise.tool():add_keybinding {
-  name = "Global:Paketti:Show Keyzone Distributor...",
-  invoke = function() show_keyzone_distributor() end
-}
-
--- Add MIDI mapping to launch dialog
+renoise.tool():add_keybinding {name = "Global:Paketti:Show Keyzone Distributor...",invoke = function() show_keyzone_distributor() end}
 renoise.tool():add_midi_mapping {
   name = "Paketti:Show Keyzone Distributor...",
   invoke = function(message)
@@ -249,8 +243,4 @@ renoise.tool():add_midi_mapping {
   end
 }
 
--- Add menu entry
-renoise.tool():add_menu_entry {
-  name = "Main Menu:Tools:Paketti..:Keyzone Distributor...",
-  invoke = function() show_keyzone_distributor() end
-} 
+renoise.tool():add_menu_entry {name = "Main Menu:Tools:Paketti..:Keyzone Distributor...",invoke = function() show_keyzone_distributor() end} 

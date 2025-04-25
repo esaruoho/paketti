@@ -103,7 +103,6 @@ function create_random_akwf_wavetable(num_samples, use_loop)
   PakettiFillPitchStepperDigits(0.015,64)
 end
 
--- Regular version (full sample loop)
 renoise.tool():add_keybinding{name="Global:Paketti:Create Random AKWF Wavetable (032)",invoke=function() create_random_akwf_wavetable(32, false) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Create Random AKWF Wavetable (064)",invoke=function() create_random_akwf_wavetable(64, false) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Create Random AKWF Wavetable (128)",invoke=function() create_random_akwf_wavetable(128, false) end}
@@ -114,7 +113,6 @@ renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Create Rando
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Create Random AKWF Wavetable (128)",invoke=function() create_random_akwf_wavetable(128, false) end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Create Random AKWF Wavetable (256)",invoke=function() create_random_akwf_wavetable(256, false) end}
 
--- Single-cycle loop version
 renoise.tool():add_keybinding{name="Global:Paketti:Create Random AKWF Wavetable (032,loop)",invoke=function() create_random_akwf_wavetable(32, true) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Create Random AKWF Wavetable (064,loop)",invoke=function() create_random_akwf_wavetable(64, true) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Create Random AKWF Wavetable (128,loop)",invoke=function() create_random_akwf_wavetable(128, true) end}

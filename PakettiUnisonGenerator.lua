@@ -175,7 +175,6 @@ print(string.format("Restored selected_phrase_index to: %d", renoise.song().sele
   renoise.app():show_status("Unison samples created successfully.")
 end
 
--- Adding keybinding and menu entries
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Unison Generator",invoke=PakettiCreateUnisonSamples}
 renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Unison Generator",invoke=PakettiCreateUnisonSamples}
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Unison Generator",invoke=PakettiCreateUnisonSamples}

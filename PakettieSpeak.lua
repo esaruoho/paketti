@@ -1,4 +1,3 @@
--- Add at the top of the file after the initial requires/imports
 require "process_slicer"
 
 -- Initialize the ViewBuilder and other variables
@@ -8,8 +7,6 @@ local rns = nil
 local rnt = renoise.tool()
 local ra = renoise.app()
 local button_press_active = false
-
-
 
 local LANGUAGES = {{"Afrikaans","af"},{"Albanian","sq"},{"Amharic","am"},{"Aragonese","an"},{"Arabic","ar"},{"Armenian (East Armenia)","hy"},{"Armenian (West Armenia)","hyw"},{"Assamese","as"},{"Azerbaijani","az"},{"Bashkir","ba"},{"Basque","eu"},{"Belarusian","be"},{"Bengali","bn"},{"Bishnupriya Manipuri","bpy"},{"Bosnian","bs"},{"Bulgarian","bg"},{"Catalan","ca"},{"Cherokee","chr"},{"Chinese (Cantonese)","yue"},{"Chinese (Cantonese, Latin as Jyutping)","yue-Latn-jyutping"},{"Chinese (Mandarin, Latin as English)","cmn"},{"Chinese (Mandarin, Latin as Pinyin)","cmn-Latn-pinyin"},{"Chuvash","cv"},{"Croatian","hr"},{"Czech","cs"},{"Danish","da"},{"Dutch","nl"},{"English (America)","en-US"},{"English (America, New York City)","en-US-nyc"},{"English (Caribbean)","en-029"},{"English (Great Britain)","en"},{"English (Lancaster)","en-GB-x-gbclan"},{"English (Received Pronunciation)","en-GB-x-rp"},{"English (Scotland)","en-GB-scotland"},{"English (West Midlands)","en-GB-x-gbcwmd"},{"Esperanto","eo"},{"Estonian","et"},{"Finnish","fi"},{"French (Belgium)","fr-BE"},{"French (France)","fr"},{"French (Switzerland)","fr-CH"},{"Gaelic (Irish)","ga"},{"Gaelic (Scottish)","gd"},{"Georgian","ka"},{"German","de"},{"Greek","el"},{"Greek (Ancient)","grc"},{"Greenlandic","kl"},{"Gujarati","gu"},{"Haitian Creole","ht"},{"Hakka Chinese","hak"},{"Hawaiian","haw"},{"Hebrew","he"},{"Hindi","hi"},{"Hungarian","hu"},{"Icelandic","is"},{"Ido","io"},{"Indonesian","id"},{"Interlingua","ia"},{"Italian","it"},{"Japanese","ja"},{"Kazakh","kk"},{"K'iche'","quc"},{"Klingon","piqd"},{"Kannada","kn"},{"Konkani","kok"},{"Korean","ko"},{"Kurdish","ku"},{"Kyrgyz","ky"},{"Lang Belta","qdb"},{"Latin","la"},{"Latgalian","ltg"},{"Latvian","lv"},{"Lingua Franca Nova","lfn"},{"Lithuanian","lt"},{"Lojban","jbo"},{"Luxembourgish","lb"},{"Lule Saami","smj"},{"Macedonian","mk"},{"Maori","mi"},{"Malay","ms"},{"Malayalam","ml"},{"Maltese","mt"},{"Marathi","mr"},{"Myanmar (Burmese)","my"},{"Nahuatl (Classical)","nci"},{"Nepali","ne"},{"Norwegian Bokmål","nb"},{"Nogai","nog"},{"Oromo","om"},{"Oriya","or"},{"Papiamento","pap"},{"Persian","fa"},{"Persian (Pinglish)","fa-Latn"},{"Polish","pl"},{"Portuguese (Brazil)","pt-BR"},{"Portuguese (Portugal)","pt"},{"Punjabi","pa"},{"Pyash","py"},{"Quechua","qu"},{"Quenya","qya"},{"Romanian","ro"},{"Russian","ru"},{"Russian (Latvia)","ru-LV"},{"Sindarin","sjn"},{"Sindhi","sd"},{"Sinhala","si"},{"Shan (Tai Yai)","shn"},{"Slovak","sk"},{"Slovenian","sl"},{"Spanish (Latin America)","es-419"},{"Spanish (Spain)","es"},{"Swahili","sw"},{"Swedish","sv"},{"Tamil","ta"},{"Telugu","te"},{"Thai","th"},{"Turkish","tr"},{"Turkmen","tk"},{"Tatar","tt"},{"Ukrainian","uk"},{"Urdu","ur"},{"Uyghur","ug"},{"Uzbek","uz"},{"Vietnamese (Central)","vi-VN-x-central"},{"Vietnamese (Northern)","vi"},{"Vietnamese (Southern)","vi-VN-x-south"},{"Welsh","cy"}}
 
@@ -1039,7 +1036,6 @@ renoise.tool():add_keybinding{name="Global:Paketti:Paketti eSpeak Refresh",invok
       PakettieSpeakUpdateLineCount()
     else PakettieSpeakPrepare() end end}
 
--- Add text file import hook
 local function txt_loadfile(filename)
   if dialog and dialog.visible then
     dialog:close()

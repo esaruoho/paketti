@@ -76,8 +76,7 @@ local function pakettiThemeSelectorUpdateLoadTheme(theme_name)
     renoise.app():show_status("No theme selected.")
     return
   end
-
-  -- Add the .xrnc extension for loading
+  
   local theme_path = themes_path .. theme_name .. ".xrnc"
   
   if io.open(theme_path) then

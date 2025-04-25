@@ -1067,10 +1067,7 @@ vb:row{vb:button{text="Save as Textfile", notifier = function()
   pakettiKeyBindingsSaveDebugLog(pakettiKeybindings, false)
 end
 
--- Add main menu entry for Paketti keybindings dialog
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:!Preferences..:Paketti KeyBindings...",invoke=function() showPakettiKeyBindingsDialog() end}
-
-
 -- Single list of valid menu locations (using correct menu paths)
 local menu_entries = {
   "Track Automation",  -- This will map to "Automation"
@@ -1089,20 +1086,12 @@ local menu_entries = {
   "Sample Modulation Matrix"
 }
 
--- Add menu entries for both Paketti and Renoise KeyBindings
 for _, menu_name in ipairs(menu_entries) do
   -- Get the correct identifier (handle special cases)
   local identifier = menu_to_identifier[menu_name] or menu_name
   
-  -- Add Paketti KeyBindings entry
-  renoise.tool():add_menu_entry{name=menu_name .. ":Paketti..:Show Paketti KeyBindings...",
-    invoke=function() showPakettiKeyBindingsDialog(identifier) end
-  }
-  
-  -- Add Renoise KeyBindings entry
-  renoise.tool():add_menu_entry{name=menu_name .. ":Paketti..:Show Renoise KeyBindings...",
-    invoke=function() showRenoiseKeyBindingsDialog(identifier) end
-  }
+  renoise.tool():add_menu_entry{name=menu_name .. ":Paketti..:Show Paketti KeyBindings...",invoke=function() showPakettiKeyBindingsDialog(identifier) end}
+  renoise.tool():add_menu_entry{name=menu_name .. ":Paketti..:Show Renoise KeyBindings...",invoke=function() showRenoiseKeyBindingsDialog(identifier) end}
 end
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:!Preferences..:Renoise KeyBindings...",
@@ -1789,9 +1778,6 @@ function show_free_keybindings_dialog()
   -- ADD THIS LINE - Add the checkbox row to dialog_content
   dialog_content:add_child(checkbox_row)
 
-
-  
-  -- Add save button
   local save_button = vb:button{
     text = "Save to File",
     notifier = function()

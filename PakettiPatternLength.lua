@@ -370,25 +370,10 @@ local function show_length_dialog()
   focus_textfield()
 end
 
--- Add keybinding to launch dialog (Pattern Editor)
-renoise.tool():add_keybinding{
-  name = "Pattern Editor:Paketti:Show Length Dialog...",
-  invoke = function() show_length_dialog() end
-}
+renoise.tool():add_keybinding{name = "Pattern Editor:Paketti:Show Length Dialog...",invoke = function() show_length_dialog() end}
+renoise.tool():add_keybinding{name = "Phrase Editor:Paketti:Show Length Dialog...",invoke = function() show_length_dialog() end}
+renoise.tool():add_keybinding{name = "Global:Paketti:Show Length Dialog...",invoke = function() show_length_dialog() end}
 
--- Add keybinding to launch dialog (Phrase Editor)
-renoise.tool():add_keybinding{
-  name = "Phrase Editor:Paketti:Show Length Dialog...",
-  invoke = function() show_length_dialog() end
-}
-
--- Add global keybinding to launch dialog
-renoise.tool():add_keybinding{
-  name = "Global:Paketti:Show Length Dialog...",
-  invoke = function() show_length_dialog() end
-}
-
--- Add MIDI mapping to launch dialog
 renoise.tool():add_midi_mapping{
   name = "Paketti:Show Length Dialog...",
   invoke = function(message)
@@ -398,29 +383,23 @@ renoise.tool():add_midi_mapping{
   end
 }
 
--- Add menu entries
 renoise.tool():add_menu_entry{
   name = "Main Menu:Tools:Paketti..:Length Dialog...",
   invoke = function() show_length_dialog() end
 }
 
--- Pattern Editor menu entries and keybindings
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti..:Pattern Editor..:Pattern Length Increase by 8",invoke = function() adjust_length_by(8) end}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti..:Pattern Editor..:Pattern Length Decrease by 8",invoke = function() adjust_length_by(-8) end}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti..:Pattern Editor..:Pattern Length Increase by LPB",invoke = function() adjust_length_by("lpb") end}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti..:Pattern Editor..:Pattern Length Decrease by LPB",invoke = function() adjust_length_by("-lpb") end}
-
 renoise.tool():add_keybinding{name = "Pattern Editor:Paketti:Increase Pattern Length by 8",invoke = function() adjust_length_by(8) end}
 renoise.tool():add_keybinding{name = "Pattern Editor:Paketti:Decrease Pattern Length by 8",invoke = function() adjust_length_by(-8) end}
 renoise.tool():add_keybinding{name = "Pattern Editor:Paketti:Increase Pattern Length by LPB",invoke = function() adjust_length_by("lpb") end}
 renoise.tool():add_keybinding{name = "Pattern Editor:Paketti:Decrease Pattern Length by LPB",invoke = function() adjust_length_by("-lpb") end}
-
--- Phrase Editor menu entries and keybindings
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti..:Phrase Editor..:Phrase Length Increase by 8",invoke = function() adjust_length_by(8) end}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti..:Phrase Editor..:Phrase Length Decrease by 8",invoke = function() adjust_length_by(-8) end}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti..:Phrase Editor..:Phrase Length Increase by LPB",invoke = function() adjust_length_by("lpb") end}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti..:Phrase Editor..:Phrase Length Decrease by LPB",invoke = function() adjust_length_by("-lpb") end}
-
 renoise.tool():add_keybinding{name = "Phrase Editor:Paketti:Increase Phrase Length by 8",invoke = function() adjust_length_by(8) end}
 renoise.tool():add_keybinding{name = "Phrase Editor:Paketti:Decrease Phrase Length by 8",invoke = function() adjust_length_by(-8) end}
 renoise.tool():add_keybinding{name = "Phrase Editor:Paketti:Increase Phrase Length by LPB",invoke = function() adjust_length_by("lpb") end}

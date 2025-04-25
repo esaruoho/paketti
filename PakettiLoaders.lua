@@ -1027,7 +1027,6 @@ function inspectPlugin()
   end
 end
 
--- Adding keybinding for the inspectPlugin function
 renoise.tool():add_keybinding{name="Global:Paketti:Inspect Plugin",invoke=function() inspectPlugin() end}
 
 function inspectEffect()
@@ -1054,12 +1053,10 @@ function inspectEffect()
   end
 end
 
--- Adding keybinding for the inspectEffect function
 renoise.tool():add_keybinding{name="Global:Paketti:Inspect Selected Device",invoke=function() inspectEffect() end}
 renoise.tool():add_menu_entry{name="--DSP Device:Paketti..:Inspect Selected Device",invoke=function() inspectEffect() end}
 
 ------------------------------------------------------------------------------------------------------
--- Add the menu entry to show plugin details
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Plugins/Devices..:Debug..:Show Plugin Details Dialog...",invoke=function() show_plugin_details_gui() end}
 
 -- Declare the customdialog variable at the beginning
@@ -1208,10 +1205,7 @@ else
     return key
 end
 end
-
 -----
-
--- Add the menu entry to show effect details
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:Debug..:Show Effect Details Dialog...",invoke=function() show_effect_details_gui() end}
 
 -- Declare the customdialog variable at the beginning
@@ -1998,34 +1992,29 @@ renoise.tool():add_keybinding{name="Global:Paketti:Show/Hide Track DSP and FX Ch
 
 end}
 ---------------------
--- Adding menu entries and keybinding for the combined randomizer dialog
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Plugins/Devices..:Randomize Devices and Plugins Dialog",invoke=function() openCombinedRandomizerDialog() end}
 renoise.tool():add_menu_entry{name="DSP Device:Paketti..:Randomize Devices and Plugins Dialog",invoke=function() openCombinedRandomizerDialog() end}
 renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Randomize Devices and Plugins Dialog",invoke=function() openCombinedRandomizerDialog() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Randomize Devices and Plugins Dialog",invoke=function() openCombinedRandomizerDialog() end}
 
--- Adding keybindings for user preferences for the selected device
 renoise.tool():add_keybinding{name="Global:Paketti:Randomize Selected Device with User1 (%)",invoke=function() randomizeSelectedDeviceFromGUI(preferences.RandomizeSettings.pakettiRandomizeSelectedDevicePercentageUserPreference1.value) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Randomize Selected Device with User2 (%)",invoke=function() randomizeSelectedDeviceFromGUI(preferences.RandomizeSettings.pakettiRandomizeSelectedDevicePercentageUserPreference2.value) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Randomize Selected Device with User3 (%)",invoke=function() randomizeSelectedDeviceFromGUI(preferences.RandomizeSettings.pakettiRandomizeSelectedDevicePercentageUserPreference3.value) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Randomize Selected Device with User4 (%)",invoke=function() randomizeSelectedDeviceFromGUI(preferences.RandomizeSettings.pakettiRandomizeSelectedDevicePercentageUserPreference4.value) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Randomize Selected Device with User5 (%)",invoke=function() randomizeSelectedDeviceFromGUI(preferences.RandomizeSettings.pakettiRandomizeSelectedDevicePercentageUserPreference5.value) end}
 
--- Adding keybindings for user preferences for all devices on the selected track
 renoise.tool():add_keybinding{name="Global:Paketti:Randomize All Devices of Track with User1 (%)",invoke=function() randomizeAllDevicesOnTrack(preferences.RandomizeSettings.pakettiRandomizeAllDevicesPercentageUserPreference1.value) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Randomize All Devices of Track with User2 (%)",invoke=function() randomizeAllDevicesOnTrack(preferences.RandomizeSettings.pakettiRandomizeAllDevicesPercentageUserPreference2.value) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Randomize All Devices of Track with User3 (%)",invoke=function() randomizeAllDevicesOnTrack(preferences.RandomizeSettings.pakettiRandomizeAllDevicesPercentageUserPreference3.value) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Randomize All Devices of Track with User4 (%)",invoke=function() randomizeAllDevicesOnTrack(preferences.RandomizeSettings.pakettiRandomizeAllDevicesPercentageUserPreference4.value) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Randomize All Devices of Track with User5 (%)",invoke=function() randomizeAllDevicesOnTrack(preferences.RandomizeSettings.pakettiRandomizeAllDevicesPercentageUserPreference5.value) end}
 
--- Adding keybindings for user preferences for the selected instrument plugin
 renoise.tool():add_keybinding{name="Global:Paketti:Randomize Selected Plugin with User1 (%)",invoke=function() randomizeSelectedPluginFromGUI(preferences.RandomizeSettings.pakettiRandomizeSelectedPluginPercentageUserPreference1.value) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Randomize Selected Plugin with User2 (%)",invoke=function() randomizeSelectedPluginFromGUI(preferences.RandomizeSettings.pakettiRandomizeSelectedPluginPercentageUserPreference2.value) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Randomize Selected Plugin with User3 (%)",invoke=function() randomizeSelectedPluginFromGUI(preferences.RandomizeSettings.pakettiRandomizeSelectedPluginPercentageUserPreference3.value) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Randomize Selected Plugin with User4 (%)",invoke=function() randomizeSelectedPluginFromGUI(preferences.RandomizeSettings.pakettiRandomizeSelectedPluginPercentageUserPreference4.value) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Randomize Selected Plugin with User5 (%)",invoke=function() randomizeSelectedPluginFromGUI(preferences.RandomizeSettings.pakettiRandomizeSelectedPluginPercentageUserPreference5.value) end}
 
--- Adding keybindings for user preferences for all plugins in the song
 renoise.tool():add_keybinding{name="Global:Paketti:Randomize All Plugins in Song with User1 (%)",invoke=function() randomizeAllPluginsInSong(preferences.RandomizeSettings.pakettiRandomizeAllPluginsPercentageUserPreference1.value) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Randomize All Plugins in Song with User2 (%)",invoke=function() randomizeAllPluginsInSong(preferences.RandomizeSettings.pakettiRandomizeAllPluginsPercentageUserPreference2.value) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Randomize All Plugins in Song with User3 (%)",invoke=function() randomizeAllPluginsInSong(preferences.RandomizeSettings.pakettiRandomizeAllPluginsPercentageUserPreference3.value) end}
@@ -3236,24 +3225,13 @@ local function prev_lfo_shape()
   modify_lfo_shape(prev_value)
 end
 
--- Add keybindings for LFO shape control
-renoise.tool():add_keybinding{
-  name = "Global:Paketti:LFO Shape Next",
-  invoke = function() next_lfo_shape() end
-}
-
-renoise.tool():add_keybinding{
-  name = "Global:Paketti:LFO Shape Previous",
-  invoke = function() prev_lfo_shape() end
-}
-
--- Add direct shape selection keybindings with descriptive names
+renoise.tool():add_keybinding{name = "Global:Paketti:LFO Shape Next",invoke = function() next_lfo_shape() end}
+renoise.tool():add_keybinding{name = "Global:Paketti:LFO Shape Previous",invoke = function() prev_lfo_shape() end}
 renoise.tool():add_keybinding{name = "Global:Paketti:LFO 01 Sinewave",invoke = function() modify_lfo_shape(0) end}
 renoise.tool():add_keybinding{name = "Global:Paketti:LFO 02 Triangle",invoke = function() modify_lfo_shape(1) end}
 renoise.tool():add_keybinding{name = "Global:Paketti:LFO 03 Squarewave",invoke = function() modify_lfo_shape(2) end}
 renoise.tool():add_keybinding{name = "Global:Paketti:LFO 04 Random",invoke = function() modify_lfo_shape(3) end}
 renoise.tool():add_keybinding{name = "Global:Paketti:LFO 05 Custom",invoke = function() modify_lfo_shape(4) end}
-
 ----------
 -- Get a random device, optionally AU only
 function getRandomDevice(au_only)
