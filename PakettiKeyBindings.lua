@@ -144,7 +144,7 @@ local PakettiMidiMappings = {
   "Paketti:Move to Previous Track [Knob]",
   "Track Devices:Paketti:Load DC Offset",
   "Paketti:Hide Track DSP Device External Editors for All Tracks",
-  "Paketti:Set BeatSync Value x[Knob]",
+  "Paketti:Set Beatsync Value x[Knob]",
   "Paketti:Groove Settings Groove #1 x[Knob]",
   "Paketti:Groove Settings Groove #2 x[Knob]",
   "Paketti:Groove Settings Groove #3 x[Knob]",
@@ -330,7 +330,7 @@ local grouped_mappings = {
     "Paketti:Shift Sample Buffer Up/Down x[Knob]",
     "Paketti:Strip Silence",
     "Paketti:Move Beginning Silence to End",
-    "Paketti:Set BeatSync Value x[Knob]",
+    "Paketti:Set Beatsync Value x[Knob]",
     "Paketti:Midi Change Sample Modulation Set Filter",
     "Paketti:Duplicate and Reverse Instrument [Trigger]",  
     "Paketti:Isolate Slices or Samples to New Instruments",  
@@ -645,10 +645,7 @@ function show_midi_mappings_dialog()
     end
   end
 
-  -- Show the custom dialog with key handler
-  PakettiMidiMappingDialog = renoise.app():show_custom_dialog(
-    "Paketti MIDI Mappings",
-    dialog_content,
+  PakettiMidiMappingDialog = renoise.app():show_custom_dialog("Paketti MIDI Mappings",dialog_content,
     function(dialog, key) return my_MidiMappingkeyhandler_func(dialog, key) end
   )
 end
@@ -900,18 +897,6 @@ function pakettiKeyBindingsUpdateList()
   end
 end
 
--- Function to handle key events
-function my_PakettiKeybindingskeyhandler_func(dialog, key)
-local closer = preferences.pakettiDialogClose.value
-  if key.modifiers == "" and key.name == closer then
-    dialog:close()
-    dialog = nil
-    return nil
-else
-    return key
-end
-end
-
 -- Main function to display the Paketti keybindings dialog
 function showPakettiKeyBindingsDialog(selectedIdentifier)  -- Accept an optional parameter
   -- Check if the dialog is already visible and close it
@@ -1026,8 +1011,7 @@ function showPakettiKeyBindingsDialog(selectedIdentifier)  -- Accept an optional
   -- Dialog title including Renoise version
   local dialog_title = "Paketti KeyBindings for Renoise Version " .. renoise.RENOISE_VERSION
 
-  dialog = renoise.app():show_custom_dialog(
-    dialog_title,
+  dialog = renoise.app():show_custom_dialog(dialog_title,
     vb:column {
       margin = 10,
       vb:text {
@@ -1055,9 +1039,7 @@ vb:row{vb:button{text="Save as Textfile", notifier = function()
       keybinding_list,
       selected_shortcuts_text,
       total_shortcuts_text
-    },
-    my_PakettiKeybindingskeyhandler_func  -- Key handler function
-  )
+    },my_keyhandler_func)
 
   -- Initial list update
   pakettiKeyBindingsUpdateList()
@@ -1329,17 +1311,6 @@ function renoiseKeyBindingsUpdateList()
   end
 end
 
--- Function to handle key events
-function my_RenoiseKeybindingskeyhandler_func(dialog, key)
-  local closer = preferences.pakettiDialogClose.value
-  if key.modifiers == "" and key.name == closer then
-    dialog:close()
-    dialog=nil
-    return nil
-  else
-    return key
-  end
-end
 
 -- Main function to display the Renoise keybindings dialog
 function showRenoiseKeyBindingsDialog(selectedIdentifier)  -- Accept an optional parameter
@@ -1453,8 +1424,7 @@ function showRenoiseKeyBindingsDialog(selectedIdentifier)  -- Accept an optional
   -- Dialog title including Renoise version
   local dialog_title = "Renoise KeyBindings for Renoise Version " .. renoise.RENOISE_VERSION
 
-  renoise_dialog = renoise.app():show_custom_dialog(
-    dialog_title,
+  renoise_dialog = renoise.app():show_custom_dialog(dialog_title,
     vb:column {
       margin = 10,
       vb:text {
@@ -1486,10 +1456,7 @@ function showRenoiseKeyBindingsDialog(selectedIdentifier)  -- Accept an optional
       renoise_search_textfield,
       renoise_keybinding_list,
       renoise_selected_shortcuts_text,
-      renoise_total_shortcuts_text
-    },
-    my_RenoiseKeybindingskeyhandler_func  -- Key handler function
-  )
+      renoise_total_shortcuts_text},my_keyhandler_func)
 
   -- Initial list update
   renoiseKeyBindingsUpdateList()
@@ -1716,6 +1683,7 @@ function print_free_combinations()
   end
 end
 
+-- Function to show the free keybindings dialog
 function show_free_keybindings_dialog()
   local vb = renoise.ViewBuilder()
   local dialog_content = vb:column{
@@ -1729,6 +1697,46 @@ function show_free_keybindings_dialog()
   -- Create modifier checkboxes based on OS
   local checkbox_row = vb:row{spacing = 10}
   
+  -- Declare modifier_checkboxes before assignment
+  local modifier_checkboxes
+  
+  -- Declare results_view early as it's used in update_free_list
+  local results_view = vb:multiline_textfield{
+    width = 400,
+    height = 400,
+    font = "mono",
+    edit_mode = false
+  }
+  
+  -- Function to update the free combinations list - declare before it's used in notifiers
+  local function update_free_list()
+    local selected_modifiers = {}
+    if os_name == "MACINTOSH" then
+      -- Add modifiers in the correct order
+      if modifier_checkboxes.shift.box.value then table.insert(selected_modifiers, "Shift") end
+      if modifier_checkboxes.option.box.value then table.insert(selected_modifiers, "Option") end
+      if modifier_checkboxes.cmd.box.value then table.insert(selected_modifiers, "Command") end
+      if modifier_checkboxes.ctrl.box.value then table.insert(selected_modifiers, "Control") end
+    else
+      if modifier_checkboxes.shift.box.value then table.insert(selected_modifiers, "Shift") end
+      if modifier_checkboxes.alt.box.value then table.insert(selected_modifiers, "Alt") end
+      if modifier_checkboxes.ctrl.box.value then table.insert(selected_modifiers, "Control") end
+    end
+    
+    print("\nDEBUG: Selected modifiers:", table.concat(selected_modifiers, ", "))
+    
+    local free = check_free_combinations(selected_modifiers)
+    local text = string.format("There are %d free combinations with %s:\n\n", 
+      #free,
+      #selected_modifiers > 0 and table.concat(selected_modifiers, " + ") or "no modifiers")
+    
+    for _, combo in ipairs(free) do
+      text = text .. combo .. "\n"
+    end
+    
+    results_view.text = text
+  end
+
   if os_name == "MACINTOSH" then
     modifier_checkboxes = {
       ctrl = {
@@ -1775,7 +1783,7 @@ function show_free_keybindings_dialog()
     checkbox_row:add_child(mod_row)
   end
 
-  -- ADD THIS LINE - Add the checkbox row to dialog_content
+  -- Add the checkbox row to dialog_content
   dialog_content:add_child(checkbox_row)
 
   local save_button = vb:button{
@@ -1806,50 +1814,11 @@ function show_free_keybindings_dialog()
   }
   dialog_content:add_child(save_button)
   
-  -- Add results view
-  local results_view = vb:multiline_textfield{
-    width = 400,
-    height = 400,
-    font = "mono",
-    edit_mode = false  -- Changed from read_only = true
-  }
+  -- Add results view to dialog
   dialog_content:add_child(results_view)
   
-  -- Function to update the free combinations list
-  function update_free_list()
-    local selected_modifiers = {}
-    if os_name == "MACINTOSH" then
-      -- Add modifiers in the correct order
-      if modifier_checkboxes.shift.box.value then table.insert(selected_modifiers, "Shift") end
-      if modifier_checkboxes.option.box.value then table.insert(selected_modifiers, "Option") end
-      if modifier_checkboxes.cmd.box.value then table.insert(selected_modifiers, "Command") end
-      if modifier_checkboxes.ctrl.box.value then table.insert(selected_modifiers, "Control") end
-    else
-      if modifier_checkboxes.shift.box.value then table.insert(selected_modifiers, "Shift") end
-      if modifier_checkboxes.alt.box.value then table.insert(selected_modifiers, "Alt") end
-      if modifier_checkboxes.ctrl.box.value then table.insert(selected_modifiers, "Control") end
-    end
-    
-    print("\nDEBUG: Selected modifiers:", table.concat(selected_modifiers, ", "))
-    
-    local free = check_free_combinations(selected_modifiers)
-    local text = string.format("There are %d free combinations with %s:\n\n", 
-      #free,
-      #selected_modifiers > 0 and table.concat(selected_modifiers, " + ") or "no modifiers")
-    
-    for _, combo in ipairs(free) do
-      text = text .. combo .. "\n"
-    end
-    
-    results_view.text = text
-  end
-
-  
   -- Show dialog
-  renoise.app():show_custom_dialog(
-    "Free Keybindings Finder",
-    dialog_content
-  )
+  renoise.app():show_custom_dialog("Free Keybindings Finder", dialog_content)
   
   -- Initial update
   update_free_list()

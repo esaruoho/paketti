@@ -872,8 +872,7 @@ function TriggerPatternLineMidiValue(midi_value)
   end
 end
 
-renoise.tool():add_midi_mapping{
-  name = "Global:Paketti:Trigger Pattern Line Scrub (CC)",
+renoise.tool():add_midi_mapping{name="Global:Paketti:Trigger Pattern Line Scrub (CC)",
   invoke = function(message)
     if message.boolean_value then
       TriggerPatternLineMidiValue(message.value)
@@ -885,8 +884,7 @@ renoise.tool():add_midi_mapping{
 for i = 1, 512 do
   local hex_number = string.format("%02X", i - 1)
   
-  renoise.tool():add_keybinding{
-    name = string.format("Global:Paketti:Trigger Pattern Line %03d (%s)", i, hex_number),
+  renoise.tool():add_keybinding{name=string.format("Global:Paketti:Trigger Pattern Line %03d (%s)", i, hex_number),
     invoke = function()
       local song = renoise.song()
       local pattern = song.selected_pattern
@@ -899,8 +897,7 @@ for i = 1, 512 do
     end
   }
   
-  renoise.tool():add_midi_mapping{
-    name = string.format("Global:Paketti:Trigger Pattern Line %03d (%s)", i, hex_number),
+  renoise.tool():add_midi_mapping{name=string.format("Global:Paketti:Trigger Pattern Line %03d (%s)", i, hex_number),
     invoke = function(message)
       if message.boolean_value then
         local song = renoise.song()
@@ -1271,34 +1268,16 @@ for i, device_path in ipairs(target_devices) do
   local device_name = device_path:match("[^/]+$")
   
   -- On keybinding
-  renoise.tool():add_keybinding{
-    name = string.format("Global:Paketti:Enable Device %02d (%s)", i, device_name),
+  renoise.tool():add_keybinding{name=string.format("Global:Paketti:Enable Device %02d (%s)", i, device_name),
     invoke = function()
       control_device(device_path, "on")
     end
   }
   
   -- Off keybinding
-  renoise.tool():add_keybinding{
-    name = string.format("Global:Paketti:Disable Device %02d (%s)", i, device_name),
-    invoke = function()
-      control_device(device_path, "off")
-    end
-  }
-
-  -- Toggle MIDI mapping
-  renoise.tool():add_midi_mapping{
-    name = string.format("Paketti:Toggle Device %02d (%s) x[Toggle]", i, device_name),
-    invoke = function(message)
-      if message:is_trigger() then
-        control_device(device_path, "toggle")
-      end
-    end
-  }
-  
-  -- Momentary MIDI mapping (press to activate, release to deactivate)
-  renoise.tool():add_midi_mapping{
-    name = string.format("Paketti:Hold Device %02d (%s) x[Button]", i, device_name),
+  renoise.tool():add_keybinding{name=string.format("Global:Paketti:Disable Device %02d (%s)", i, device_name),invoke=function() control_device(device_path, "off") end}
+  renoise.tool():add_midi_mapping{name=string.format("Paketti:Toggle Device %02d (%s) x[Toggle]", i, device_name),invoke=function(message) if message:is_trigger() then control_device(device_path, "toggle") end end}
+  renoise.tool():add_midi_mapping{name=string.format("Paketti:Hold Device %02d (%s) x[Button]", i, device_name),
     invoke = function(message)
       if message:is_abs_value() then
         control_device(device_path, message.int_value > 0 and "on" or "off")
@@ -1306,13 +1285,8 @@ for i, device_path in ipairs(target_devices) do
     end
   }
     
-  -- Toggle keybinding
-  renoise.tool():add_keybinding{
-    name = string.format("Global:Paketti:Toggle Device %02d (%s)", i, device_name),
-    invoke = function()
-      control_device(device_path, "toggle")
-    end
-  }
+  renoise.tool():add_keybinding{name=string.format("Global:Paketti:Toggle Device %02d (%s)", i, device_name),
+    invoke = function() control_device(device_path, "toggle") end}
 end
 
 
@@ -1490,7 +1464,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Nudge Delay Output Delay -05m
 renoise.tool():add_keybinding{name="Global:Paketti:Reset Nudge Delay Output Delay to 0ms (Rename)",invoke=function() reset_output_delay(true) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Reset Nudge Delay Output Delay to 0ms (ALL) (Rename)",invoke=function() reset_output_delayALL(true) end}
 
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Delay Output..:Nudge Delay Output +01ms",invoke=function() nudge_output_delay(1, false) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Nudge Delay Output +01ms",invoke=function() nudge_output_delay(1, false) end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Nudge Delay Output -01ms",invoke=function() nudge_output_delay(-1, false) end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Nudge Delay Output +05ms",invoke=function() nudge_output_delay(5, false) end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Nudge Delay Output -05ms",invoke=function() nudge_output_delay(-5, false) end}
@@ -1508,7 +1482,7 @@ renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Nudg
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Reset Delay Output Delay to 0ms (Rename)",invoke=function() reset_output_delay(true) end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Reset Delay Output Delay to 0ms (ALL) (Rename)",invoke=function() reset_output_delayALL(true) end}
 
-renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Delay Output..:Nudge Delay Output Delay +01ms",invoke=function() nudge_output_delay(1, false) end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Nudge Delay Output Delay +01ms",invoke=function() nudge_output_delay(1, false) end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Nudge Delay Output Delay -01ms",invoke=function() nudge_output_delay(-1, false) end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Nudge Delay Output Delay +05ms",invoke=function() nudge_output_delay(5, false) end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Nudge Delay Output Delay -05ms",invoke=function() nudge_output_delay(-5, false) end}
@@ -1526,7 +1500,7 @@ renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Nudge Delay O
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Reset Delay Output Delay to 0ms (Rename)",invoke=function() reset_output_delay(true) end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Reset Delay Output Delay to 0ms (ALL) (Rename)",invoke=function() reset_output_delayALL(true) end}
 
-renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Delay Output..:Nudge Delay Output Delay +01ms",invoke=function() nudge_output_delay(1, false) end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Delay Output..:Nudge Delay Output Delay +01ms",invoke=function() nudge_output_delay(1, false) end}
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Delay Output..:Nudge Delay Output Delay -01ms",invoke=function() nudge_output_delay(-1, false) end}
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Delay Output..:Nudge Delay Output Delay +05ms",invoke=function() nudge_output_delay(5, false) end}
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Delay Output..:Nudge Delay Output Delay -05ms",invoke=function() nudge_output_delay(-5, false) end}

@@ -177,29 +177,25 @@ local function show_merge_dialog(initial_source_index, initial_target_index)
   dialog = renoise.app():show_custom_dialog("Merge Instruments", content)
 end
 
-renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti..:Instruments..:Merge Instruments...",
+function mergeInstrumentsDialog()
+  local song = renoise.song()
+  local target_index = song.selected_instrument_index
+  local source_index = target_index - 1
+  if source_index < 1 then
+    source_index = target_index + 1
+  end
+  show_merge_dialog(source_index, target_index)
+end
+
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:Merge Instruments...",
   invoke = function()
-    local song = renoise.song()
-    local target_index = song.selected_instrument_index
-    local source_index = target_index - 1
-    if source_index < 1 then
-      source_index = target_index + 1
-    end
-    show_merge_dialog(source_index, target_index)
+    mergeInstrumentsDialog()
   end
 }
 
-renoise.tool():add_menu_entry{
-  name = "Instrument Box:Paketti..:Merge Instruments...",
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Merge Instruments...",
   invoke = function()
-    local song = renoise.song()
-    local target_index = song.selected_instrument_index
-    local source_index = target_index - 1
-    if source_index < 1 then
-      source_index = target_index + 1
-    end
-    show_merge_dialog(source_index, target_index)
+    mergeInstrumentsDialog()
   end
 }
 

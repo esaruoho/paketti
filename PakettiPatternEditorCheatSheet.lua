@@ -1,13 +1,7 @@
 -- Paketti Pattern Effect Command CheatSheet
-
--- Initialize dialog variable
 local dialog = nil
-
--- Use your existing preferences without overwriting them
 local preferences = renoise.tool().preferences
-
 -- Load and Save Preferences Functions
-
 function load_Cheatsheetpreferences()
   if io.exists("preferences.xml") then
     preferences:load_from("preferences.xml")
@@ -1059,31 +1053,10 @@ function CheatSheet()
     }
   }
 
-  local left_column = vb:column {
-    effect_buttons,
-    randomize_section
-  }
+  local left_column=vb:column{effect_buttons,randomize_section}
+  local dialog_content=vb:row{left_column,sliders}
 
-  local dialog_content = vb:row {
-    left_column,
-    sliders
-  }
-
-  local function keyhandler_func(dialog, key)
-local closer = preferences.pakettiDialogClose.value
-  if key.modifiers == "" and key.name == closer then
-   dialog:close()
-   return end
-   
-    if key.name == "!" then
-      dialog:close()
-      renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
-    else
-      return key
-    end
-  end
-
-  dialog = a:show_custom_dialog("Paketti Pattern Effect Command CheatSheet", dialog_content, keyhandler_func)
+  dialog = a:show_custom_dialog("Paketti Pattern Effect Command CheatSheet", dialog_content, my_keyhandler_func)
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 end
 

@@ -6,14 +6,6 @@ local xy_value_text
 local position
 local reopen_dialog_flag = false
 
-local function PakettiPluginEditorPositionControlKeyHandlerFunc(dialog, key)
-  if key.modifiers == "" and key.name == "exclamation" then
-    print("Exclamation key pressed, closing dialog.")
-    dialog:close()
-  else
-    return key
-  end
-end
 
 local function PakettiPluginEditorPositionControlGetPluginEditorPosition()
   local song = renoise.song()
@@ -228,7 +220,7 @@ local function PakettiPluginEditorPositionControlShowDialog()
   
   position = PakettiPluginEditorPositionControlGetPluginEditorPosition() or {x = 0, y = 0}
 
-  dialog = renoise.app():show_custom_dialog("Plugin Editor Position", PakettiPluginEditorPositionControlCreateDialog(), PakettiPluginEditorPositionControlKeyHandlerFunc)
+  dialog = renoise.app():show_custom_dialog("Plugin Editor Position", PakettiPluginEditorPositionControlCreateDialog(), my_keyhandler_func)
 end
 
 local function PakettiPluginEditorPositionControlShowInitialDialog()
@@ -478,7 +470,6 @@ local function check_key_hold()
   end
 end
 
--- Key handler for dialog
 local function key_handler(dialog, key)
   if key.note then
     if key.state == "pressed" then
@@ -505,8 +496,7 @@ local function show_dialog()
     print("DEBUG: Dialog already open. Closing.")
   else
     local vb = renoise.ViewBuilder()
-    dialog = renoise.app():show_custom_dialog(
-      "Hold-to-Fill Mode",
+    dialog = renoise.app():show_custom_dialog("Hold-to-Fill Mode",
       vb:text{text="Hold a note to fill the column"},
       key_handler
     )
@@ -584,19 +574,10 @@ local function show_dialog()
       vb:text { text = "Resonance" },
       vb:button { text = "Process Audio", notifier = process_audio }
     }
-  }, keyhandler_wackyfilter)
+  }, my_keyhandler_func)
 end
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress..:Wacky Filter",invoke=show_dialog}
-
-function keyhandler_wackyfilter(dialog,key)
-  local closer = preferences.pakettiDialogClose.value
-  if key.name == closer then
-    dialog:close()
-  end
-  return key
-end
-
 
 --[[
 local sample_buffer_notifier = nil
@@ -712,8 +693,8 @@ renoise.tool().app_release_document_observable:add_notifier(function()
     last_buffer_size = nil
 end)
 
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti..:Sample Settings:Enable Auto Settings",invoke = enable_auto_settings}
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti..:Sample Settings:Disable Auto Settings",invoke = disable_auto_settings}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Sample Settings:Enable Auto Settings",invoke = enable_auto_settings}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Sample Settings:Disable Auto Settings",invoke = disable_auto_settings}
     ]]--
 
     --[[renoise.tool():add_keybinding{name="Global:Paketti:Hide EditStep Dialog",

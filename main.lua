@@ -435,4 +435,30 @@ end
 
 _AUTO_RELOAD_DEBUG = true
 
+function my_keyhandler_func(dialog, key)
+  local closer = preferences.pakettiDialogClose.value
+  if key.modifiers == "" and key.name == closer then
+    dialog:close()
+    dialog=nil
+    return nil
+  else
+    return key
+  end
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

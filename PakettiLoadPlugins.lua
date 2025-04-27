@@ -68,21 +68,13 @@ function loadFromPreferences()
 
     -- Create KeyBinding
     local keyBindingName="Global:Paketti:Load Plugin " .. pluginName
-    renoise.tool():add_keybinding{
-      name = keyBindingName,
+    renoise.tool():add_keybinding{name=keyBindingName,
       invoke=function() loadPlugin(path) end
     }
 
     -- Create MIDIMapping
     local midiMappingName="Paketti:Load Plugin " .. pluginName
-    renoise.tool():add_midi_mapping{
-      name = midiMappingName,
-      invoke = function(message)
-        if message:is_trigger() then
-          loadPlugin(path)
-        end
-      end
-    }
+    renoise.tool():add_midi_mapping{name=midiMappingName,invoke = function(message) if message:is_trigger() then loadPlugin(path) end end}
 
     addedEntries[pluginName] = true
   end

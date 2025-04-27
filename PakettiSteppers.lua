@@ -7,25 +7,17 @@ local STEPPER_TYPES = {
     DRIVE = "Drive Stepper"
 }
 
-
 local vb=renoise.ViewBuilder()
 local dialog=nil
 
-function my_keyhandler_func(dialog,key)
-  if key.name=="!" and not (key.modifiers=="shift" or key.modifiers=="control" or key.modifiers=="alt") then
-    dialog:close()
-  end
-end
-
-function show_pitch_stepper_dialog()
+function show_pitchstepper_dialog()
   if dialog and dialog.visible then
     dialog:close()
   end
 
   PakettiShowStepper("Pitch Stepper")
 
-  dialog=renoise.app():show_custom_dialog(
-    "PitchStepper Demo",
+  dialog=renoise.app():show_custom_dialog("PitchStepper Demo",
     vb:column{
       vb:button{text="Show PitchStepper",pressed=function() PakettiShowStepper("Pitch Stepper") end},
       vb:button{text="Fill Two Octaves",pressed=function() PakettiFillPitchStepperTwoOctaves() end},
@@ -34,17 +26,12 @@ function show_pitch_stepper_dialog()
       vb:button{text="Clear Pitch Stepper",pressed=function() PakettiClearStepper("Pitch Stepper") end},
       vb:button{text="Fill with Digits (0.05, 64)",pressed=function() PakettiFillPitchStepperDigits(0.05,64) end},
       vb:button{text="Fill with Digits (0.015, 64)",pressed=function() PakettiFillPitchStepperDigits(0.015,64) end},
-    },
-    my_keyhandler_func
-  )
+    },my_keyhandler_func)
 end
 
-
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Pitch Stepper Demo",invoke=function() show_pitch_stepper_dialog() end}
-renoise.tool():add_menu_entry{name="--Sample Modulation Matrix:Paketti..:Pitch Stepper Demo",invoke=function() show_pitch_stepper_dialog() end}
-renoise.tool():add_keybinding{name="Global:Paketti:Pitch Stepper Demo",invoke=function() show_pitch_stepper_dialog() end}
-
-
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:PitchStepper Demo",invoke=function() show_pitchstepper_dialog() end}
+renoise.tool():add_menu_entry{name="--Sample Modulation Matrix:Paketti..:PitchStepper Demo",invoke=function() show_pitchstepper_dialog() end}
+renoise.tool():add_keybinding{name="Global:Paketti:PitchStepper Demo",invoke=function() show_pitchstepper_dialog() end}
 ---
 function ResetAllSteppers()
     local song = renoise.song()
@@ -76,10 +63,10 @@ function ResetAllSteppers()
     end
 end
 ---
-renoise.tool():add_keybinding{name = "Global:Paketti:Reset All Steppers",invoke = ResetAllSteppers}
-renoise.tool():add_menu_entry{name = "--Sample Modulation Matrix:Paketti..:Reset All Steppers",invoke = ResetAllSteppers}
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti..:Instruments..:Reset All Steppers",invoke = ResetAllSteppers}
-
+renoise.tool():add_keybinding{name="Global:Paketti:Reset All Steppers",invoke = ResetAllSteppers}
+renoise.tool():add_menu_entry{name="--Sample Modulation Matrix:Paketti..:Reset All Steppers",invoke = ResetAllSteppers}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:Reset All Steppers",invoke = ResetAllSteppers}
+----
 local function findStepperDeviceIndex(deviceName)
     local instrument = renoise.song().selected_instrument
     if not instrument or not instrument.sample_modulation_sets[1] then return nil end
@@ -92,8 +79,7 @@ local function findStepperDeviceIndex(deviceName)
     end
     return nil
 end
-
-
+---
 function PakettiFillStepperRandom(deviceName)
     local instrument = renoise.song().selected_instrument
     
@@ -265,13 +251,10 @@ end
 -- Create menu entries and keybindings for each stepper type
 for _, stepperType in pairs(STEPPER_TYPES) do
     local baseText = stepperType:gsub(" Stepper", "")
-    renoise.tool():add_keybinding{
-        name = string.format("Global:Paketti:Clear %s Steps", baseText),
+    renoise.tool():add_keybinding{name=string.format("Global:Paketti:Clear %s Steps", baseText),
         invoke = function() PakettiClearStepper(stepperType) end
     }
-    renoise.tool():add_menu_entry{
-        name = string.format("Sample Modulation Matrix:Paketti..:Clear %s Steps", baseText),
-        invoke = function() PakettiClearStepper(stepperType) end
+    renoise.tool():add_menu_entry{name=string.format("Sample Modulation Matrix:Paketti..:Clear %s Steps", baseText),invoke = function() PakettiClearStepper(stepperType) end
     }
 end
 
@@ -280,14 +263,11 @@ renoise.tool():add_keybinding{name="Global:Paketti:Modify PitchStep Steps (Octav
 renoise.tool():add_keybinding{name="Global:Paketti:Modify PitchStep Steps (Hard Detune)",invoke=function() PakettiFillPitchStepperDigits(0.05,64) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Clear PitchStep Steps",invoke=function() PakettiClearStepper("Pitch Stepper") end}
 
-renoise.tool():add_keybinding{name="Global:Paketti:Modify PitchStep Steps (Octave Up+2, Octave Down-2)",invoke=function()
-PakettiFillPitchStepperTwoOctaves() end}
-
+renoise.tool():add_keybinding{name="Global:Paketti:Modify PitchStep Steps (Octave Up+2, Octave Down-2)",invoke=function() PakettiFillPitchStepperTwoOctaves() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Modify PitchStep Steps (Minor Flurry)",invoke=function() PakettiFillPitchStepperDigits(0.015,64) end}
+
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Modify PitchStep Steps (Minor Flurry)",invoke=function() PakettiFillPitchStepperDigits(0.015,64) end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Modify PitchStep Steps (Minor Flurry)",invoke=function() PakettiFillPitchStepperDigits(0.015,64) end}
-    
-    
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Modify PitchStep Steps (Minor Flurry)",invoke=function() PakettiFillPitchStepperDigits(0.015,64) end}    
 renoise.tool():add_menu_entry{name="Sample Modulation Matrix:Paketti..:Clear PitchStep Steps",invoke=function() PakettiClearStepper("Pitch Stepper") end}
 renoise.tool():add_menu_entry{name="Sample Modulation Matrix:Paketti..:Show/Hide PitchStep on Selected Instrument",invoke=function() PakettiShowStepper("Pitch Stepper") end}
 renoise.tool():add_menu_entry{name="Sample Modulation Matrix:Paketti..:Modify PitchStep Steps (Random)",invoke=function() PakettiFillStepperRandom("Pitch Stepper") end}

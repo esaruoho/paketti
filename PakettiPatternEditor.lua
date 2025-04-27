@@ -168,14 +168,15 @@ end
 
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Pattern Editor..:Collapse All Tracks",invoke=function() Collapser() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Uncollapse All Tracks",invoke=function() Uncollapser() end}
---Global keyboard shortcuts
+
 renoise.tool():add_keybinding{name="Global:Paketti:Uncollapse All Tracks",invoke=function() Uncollapser() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Collapse All Tracks",invoke=function() Collapser() end}
---Menu entries for Pattern Editor and Mixer
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Uncollapse All Tracks",invoke=function() Uncollapser() end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Collapse All Tracks",invoke=function() Collapser() end}
 renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Uncollapse All Tracks",invoke=function() Uncollapser() end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Collapse All Tracks",invoke=function() Collapser() end}
+renoise.tool():add_menu_entry{name="--Main Menu:View:Paketti..:Visible Columns..:Uncollapse All Tracks",invoke=function() Uncollapser() end}
+renoise.tool():add_menu_entry{name="Main Menu:View:Paketti..:Visible Columns..:Collapse All Tracks",invoke=function() Collapser() end}
 
 -- Toggle CapsLock Note Off "===" On / Off.
 function CapsLok(use_editstep)
@@ -254,8 +255,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:KapsLock Note Off (With Step)
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:KapsLock CapsLock Caps Lock Note Off",invoke=function() CapsLok() end}
 renoise.tool():add_keybinding{name="Phrase Editor:Paketti:KapsLock CapsLock Caps Lock Note Off",invoke=function() CapsLok() end}
 
-renoise.tool():add_midi_mapping{
-  name="Global:Paketti:KapsLock Note Off (No Step) x[Trigger]",
+renoise.tool():add_midi_mapping{name="Global:Paketti:KapsLock Note Off (No Step) x[Trigger]",
   invoke=function(message)
     if message:is_trigger() then
       CapsLok(false)
@@ -263,8 +263,7 @@ renoise.tool():add_midi_mapping{
   end
 }
 
-renoise.tool():add_midi_mapping{
-  name="Global:Paketti:KapsLock Note Off (With Step) x[Trigger]",
+renoise.tool():add_midi_mapping{name="Global:Paketti:KapsLock Note Off (With Step) x[Trigger]",
   invoke=function(message)
     if message:is_trigger() then
       CapsLok(true)
@@ -272,8 +271,7 @@ renoise.tool():add_midi_mapping{
   end
 }
 
-renoise.tool():add_midi_mapping{
-  name="Pattern Editor:Paketti:KapsLock Note Off x[Trigger]",
+renoise.tool():add_midi_mapping{name="Pattern Editor:Paketti:KapsLock Note Off x[Trigger]",
   invoke=function(message)
     if message:is_trigger() then
       CapsLok()
@@ -281,8 +279,7 @@ renoise.tool():add_midi_mapping{
   end
 }
 
-renoise.tool():add_midi_mapping{
-  name="Phrase Editor:Paketti:KapsLock Note Off x[Trigger]",
+renoise.tool():add_midi_mapping{name="Phrase Editor:Paketti:KapsLock Note Off x[Trigger]",
   invoke=function(message)
     if message:is_trigger() then
       CapsLok()
@@ -2741,10 +2738,8 @@ function ShowRenameDialogForTrack(index)
     end
   }
 
-  -- Key handler for the text field
   local function key_handler(dialog, key)
     local closer = preferences.pakettiDialogClose.value
-  
     if key.name == "return" and not key.repeated then
       rename_track_and_close(vb.views.track_name_field.text)
       return
@@ -2991,8 +2986,7 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Toggle Note Off on Al
 renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Toggle Note Off in All Visible Note Columns",invoke = PakettiToggleNoteOffAllColumns}
 renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Toggle Note Off on All Tracks on Current Row",invoke = PakettiToggleNoteOffAllTracks}
 
-renoise.tool():add_midi_mapping{
-  name = "Pattern Editor:Paketti:Toggle Note Off in All Visible Note Columns [Trigger]",
+renoise.tool():add_midi_mapping{name="Pattern Editor:Paketti:Toggle Note Off in All Visible Note Columns [Trigger]",
   invoke = function(message)
     if message:is_trigger() then
       PakettiToggleNoteOffAllColumns()
@@ -3000,8 +2994,7 @@ renoise.tool():add_midi_mapping{
   end
 }
 
-renoise.tool():add_midi_mapping{
-  name = "Pattern Editor:Paketti:Toggle Note Off on All Tracks on Current Row [Trigger]",
+renoise.tool():add_midi_mapping{name="Pattern Editor:Paketti:Toggle Note Off on All Tracks on Current Row [Trigger]",
   invoke = function(message)
     if message:is_trigger() then
       PakettiToggleNoteOffAllTracks()
@@ -3009,8 +3002,7 @@ renoise.tool():add_midi_mapping{
   end
 }
 
-renoise.tool():add_midi_mapping{
-  name = "Phrase Editor:Paketti:Toggle Note Off in All Visible Note Columns [Trigger]",
+renoise.tool():add_midi_mapping{name="Phrase Editor:Paketti:Toggle Note Off in All Visible Note Columns [Trigger]",
   invoke = function(message)
     if message:is_trigger() then
       PakettiToggleNoteOffAllColumns()
@@ -3018,8 +3010,7 @@ renoise.tool():add_midi_mapping{
   end
 }
 
-renoise.tool():add_midi_mapping{
-  name = "Phrase Editor:Paketti:Toggle Note Off on All Tracks on Current Row [Trigger]",
+renoise.tool():add_midi_mapping{name="Phrase Editor:Paketti:Toggle Note Off on All Tracks on Current Row [Trigger]",
   invoke = function(message)
     if message:is_trigger() then
       PakettiToggleNoteOffAllTracks()
@@ -3840,11 +3831,7 @@ write_bpm()
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Clone and Expand Pattern to LPB*2",invoke=function() cloneAndExpandPatternToLPBDouble()end}
-renoise.tool():add_menu_entry{name="--Pattern Sequencer:Paketti..:Clone and Expand Pattern to LPB*2",invoke=function() cloneAndExpandPatternToLPBDouble()end}
-renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Clone and Expand Pattern to LPB*2",invoke=function() cloneAndExpandPatternToLPBDouble()end}
 renoise.tool():add_keybinding{name="Global:Paketti:Clone and Shrink Pattern to LPB/2",invoke=function() cloneAndShrinkPatternToLPBHalve()end}
-renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Clone and Shrink Pattern to LPB/2",invoke=function() cloneAndShrinkPatternToLPBHalve()end}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Clone and Shrink Pattern to LPB/2",invoke=function() cloneAndShrinkPatternToLPBHalve()end}
 
 
 
@@ -4698,16 +4685,20 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Set All Tracks to Hard Left",invoke=function() globalLeft() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set All Tracks to Hard Right",invoke=function() globalRight() end}
-renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Set All Tracks to Hard Left",invoke=function() globalLeft() end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Set All Tracks to Hard Right",invoke=function() globalRight() end}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Set All Tracks to Hard Left",invoke=function() globalLeft() end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Set All Tracks to Hard Right",invoke=function() globalRight() end}
-renoise.tool():add_menu_entry{name="--DSP Device:Paketti..:Set All Tracks to Hard Left",invoke=function() globalLeft() end}
-renoise.tool():add_menu_entry{name="DSP Device:Paketti..:Set All Tracks to Hard Right",invoke=function() globalRight() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set All Tracks to Center",invoke=function() globalCenter() end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Set All Tracks to Center",invoke=function() globalCenter() end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Set All Tracks to Center",invoke=function() globalCenter() end}
-renoise.tool():add_menu_entry{name="DSP Device:Paketti..:Set All Tracks to Center",invoke=function() globalCenter() end}
+renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Panning - Set All Tracks to Hard Left",invoke=function() globalLeft() end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Panning - Set All Tracks to Hard Right",invoke=function() globalRight() end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Panning - Set All Tracks to Center",invoke=function() globalCenter() end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Panning - Set All Tracks to Hard Left",invoke=function() globalLeft() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Panning - Set All Tracks to Hard Right",invoke=function() globalRight() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Panning - Set All Tracks to Center",invoke=function() globalCenter() end}
+renoise.tool():add_menu_entry{name="--DSP Device:Paketti..:Panning - Set All Tracks to Hard Left",invoke=function() globalLeft() end}
+renoise.tool():add_menu_entry{name="DSP Device:Paketti..:Panning - Set All Tracks to Hard Right",invoke=function() globalRight() end}
+renoise.tool():add_menu_entry{name="DSP Device:Paketti..:Panning - Set All Tracks to Center",invoke=function() globalCenter() end}
+
+
+
+
 -------- Toggle Note Off "===" On / Off in all selected tracks within the selection or current row.
 function PakettiNoteOffToSelection()
   local s = renoise.song()
@@ -4807,8 +4798,8 @@ function PakettiNoteOffToSelection()
   end
 end
 
-renoise.tool():add_keybinding{name = "Pattern Editor:Paketti:Toggle Note Off in Selected Tracks",invoke = function() PakettiNoteOffToSelection() end}
-renoise.tool():add_keybinding{name = "Phrase Editor:Paketti:Toggle Note Off in Selected Tracks",invoke = function() PakettiNoteOffToSelection() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Toggle Note Off in Selected Tracks",invoke = function() PakettiNoteOffToSelection() end}
+renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Toggle Note Off in Selected Tracks",invoke = function() PakettiNoteOffToSelection() end}
 -------
 -- Function with an option to retain or clear silence rows
 local function DuplicateSelectionWithPaddingMoveCursor(retain_silence_content)
@@ -5110,8 +5101,9 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Hide All Effect Columns",invoke=function() HideAllEffectColumns() end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Effect Columns..:Hide All Effect Columns",invoke=function() HideAllEffectColumns() end}
+renoise.tool():add_menu_entry{name="--Main Menu:View:Paketti..:Visible Columns..:Hide All Effect Columns",invoke=function() HideAllEffectColumns() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Visible Columns..:Hide All Effect Columns",invoke=function() HideAllEffectColumns() end}
-renoise.tool():add_menu_entry{name="Main Menu:View:Paketti..:Visible Columns..:Hide All Effect Columns",invoke=function() HideAllEffectColumns() end}
+
 
 function moveTrackLeft()
   local song = renoise.song()
@@ -5276,8 +5268,7 @@ renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Effect Columns..:Fi
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Effect Columns..:Fill Effect Column with 0U00",invoke=function() writeEffectToPattern("0U00") end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Effect Columns..:Fill Effect Column with 0G01+0D00",invoke=function() writeEffectToPattern("0D00", "0G01") end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Effect Columns..:Fill Effect Column with 0G01+0U00",invoke=function() writeEffectToPattern("0U00", "0G01") end}
-renoise.tool():add_midi_mapping{
-  name = "Global:Paketti:Fill Effect Column with 0D00 [Trigger]",
+renoise.tool():add_midi_mapping{name="Global:Paketti:Fill Effect Column with 0D00 [Trigger]",
   invoke = function(message)
     if message:is_trigger() then
       writeEffectToPattern("0D00")
@@ -5285,8 +5276,7 @@ renoise.tool():add_midi_mapping{
   end
 }
 
-renoise.tool():add_midi_mapping{
-  name = "Global:Paketti:Fill Effect Column with 0U00 [Trigger]",
+renoise.tool():add_midi_mapping{name="Global:Paketti:Fill Effect Column with 0U00 [Trigger]",
   invoke = function(message)
     if message:is_trigger() then
       writeEffectToPattern("0U00")
@@ -5294,8 +5284,7 @@ renoise.tool():add_midi_mapping{
   end
 }
 
-renoise.tool():add_midi_mapping{
-  name = "Global:Paketti:Fill Effect Column with 0G01+0D00 [Trigger]",
+renoise.tool():add_midi_mapping{name="Global:Paketti:Fill Effect Column with 0G01+0D00 [Trigger]",
   invoke = function(message)
     if message:is_trigger() then
       writeEffectToPattern("0D00", "0G01")
@@ -5303,8 +5292,7 @@ renoise.tool():add_midi_mapping{
   end
 }
 
-renoise.tool():add_midi_mapping{
-  name = "Global:Paketti:Fill Effect Column with 0G01+0U00 [Trigger]",
+renoise.tool():add_midi_mapping{name="Global:Paketti:Fill Effect Column with 0G01+0U00 [Trigger]",
   invoke = function(message)
     if message:is_trigger() then
       writeEffectToPattern("0U00", "0G01")
@@ -5375,10 +5363,9 @@ function deleteUnusedColumns()
   renoise.app():show_status("Unused columns have been removed")
 end
 
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti..:Pattern Editor..:Delete Unused Columns", invoke = deleteUnusedColumns}
-renoise.tool():add_menu_entry{name = "Pattern Editor:Paketti..:Delete Unused Columns", invoke = deleteUnusedColumns}
-renoise.tool():add_keybinding{name = "Pattern Editor:Paketti:Delete Unused Columns", invoke = deleteUnusedColumns}
-
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Delete Unused Columns", invoke = deleteUnusedColumns}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delete Unused Columns", invoke = deleteUnusedColumns}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Delete Unused Columns", invoke = deleteUnusedColumns}
 
 for i=1,32 do
   renoise.tool():add_keybinding{name="Global:Paketti:Set Quantization to ".. formatDigits(2,i), invoke = function() renoise.song().transport.record_quantize_line = i end}
@@ -5522,12 +5509,12 @@ function move_selected_dsp_to_adjacent_track(direction)
     direction < 0 and "previous" or "next"))
 end
 
-renoise.tool():add_keybinding{name = "Pattern Editor:Paketti:Move Selected DSP to Previous Track",invoke = function() move_selected_dsp_to_adjacent_track(-1) end}
-renoise.tool():add_keybinding{name = "Pattern Editor:Paketti:Move Selected DSP to Next Track",invoke = function() move_selected_dsp_to_adjacent_track(1) end}
-renoise.tool():add_keybinding{name = "Mixer:Paketti:Move Selected DSP to Previous Track",invoke = function() move_selected_dsp_to_adjacent_track(-1) end}
-renoise.tool():add_keybinding{name = "Mixer:Paketti:Move Selected DSP to Next Track",invoke = function() move_selected_dsp_to_adjacent_track(1) end}
-renoise.tool():add_menu_entry{name = "--Pattern Editor:Paketti..:Move Selected DSP to Previous Track",invoke = function() move_selected_dsp_to_adjacent_track(-1) end}
-renoise.tool():add_menu_entry{name = "Pattern Editor:Paketti..:Move Selected DSP to Next Track",invoke = function() move_selected_dsp_to_adjacent_track(1) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Move Selected DSP to Previous Track",invoke = function() move_selected_dsp_to_adjacent_track(-1) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Move Selected DSP to Next Track",invoke = function() move_selected_dsp_to_adjacent_track(1) end}
+renoise.tool():add_keybinding{name="Mixer:Paketti:Move Selected DSP to Previous Track",invoke = function() move_selected_dsp_to_adjacent_track(-1) end}
+renoise.tool():add_keybinding{name="Mixer:Paketti:Move Selected DSP to Next Track",invoke = function() move_selected_dsp_to_adjacent_track(1) end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Move Selected DSP to Previous Track",invoke = function() move_selected_dsp_to_adjacent_track(-1) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Move Selected DSP to Next Track",invoke = function() move_selected_dsp_to_adjacent_track(1) end}
 ---------
 function create_group_and_move_dsps()
   local song = renoise.song()
@@ -5887,8 +5874,7 @@ function apply_template(target_note)
   end
 end
 
-renoise.tool():add_midi_mapping{
-  name = "Global:Paketti:Template Mode Note Input",
+renoise.tool():add_midi_mapping{name="Global:Paketti:Template Mode Note Input",
   invoke = function(message)
     if template_mode and message:is_note() then
       apply_template(message.note_value)
@@ -5896,8 +5882,8 @@ renoise.tool():add_midi_mapping{
   end
 }
 
-renoise.tool():add_keybinding{name = "Pattern Editor:Paketti:Toggle Template Mode",invoke = toggle_template_mode}
-renoise.tool():add_menu_entry{name = "--Pattern Editor:Paketti..:Toggle Template Mode",invoke = toggle_template_mode}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Toggle Template Mode",invoke = toggle_template_mode}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Toggle Template Mode",invoke = toggle_template_mode}
 -- Set up the idle observer
 renoise.tool().app_idle_observable:add_notifier(check_for_note_input)
 
@@ -6091,8 +6077,7 @@ function pakettiVolumeInterpolationLooper()
     end
   end
 
-  velocity_dialog = renoise.app():show_custom_dialog(
-    "Paketti Value Interpolation Looper",
+  velocity_dialog = renoise.app():show_custom_dialog("Paketti Value Interpolation Looper",
     vb:column {
       width = 250,
       vb:row {
@@ -6183,30 +6168,15 @@ function pakettiVolumeInterpolationLooper()
         notifier = function()
           apply_interpolation()
           renoise.app():show_status(string.format("%s interpolation applied", current_mode:upper()))
-        end
-      }
-    }, 
-    pakettiInterpolationLooperKeyhandler
-  )
+        end}},my_keyhandler_func)
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 end
 
-function pakettiInterpolationLooperKeyhandler(dialog, key)
-  local closer = preferences.pakettiDialogClose.value
-  if key.modifiers == "" and key.name == closer then
-    dialog:close()
-    return
-  end
-  
-  -- Allow other keys to pass through
-  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
-
-  return key
-end
-
-renoise.tool():add_menu_entry {name = "--Main Menu:Tools:Paketti..:Pattern Editor..:Value Interpolation Looper",invoke = pakettiVolumeInterpolationLooper}
-renoise.tool():add_menu_entry {name = "--Pattern Editor:Paketti..:Value Interpolation Looper",invoke = pakettiVolumeInterpolationLooper}
-renoise.tool():add_keybinding {name = "Pattern Editor:Tools:Paketti Value Interpolation Looper",invoke = pakettiVolumeInterpolationLooper}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Pattern Editor..:Value Interpolation Looper Dialog...",invoke = pakettiVolumeInterpolationLooper}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Value Interpolation Looper Dialog...",invoke = pakettiVolumeInterpolationLooper}
+renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Value Interpolation Looper Dialog...",invoke = pakettiVolumeInterpolationLooper}
+renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Value Interpolation Looper Dialog...",invoke = pakettiVolumeInterpolationLooper}
+renoise.tool():add_keybinding{name="Pattern Editor:Tools:Paketti Value Interpolation Looper Dialog...",invoke = pakettiVolumeInterpolationLooper}
 
 
 

@@ -302,7 +302,6 @@ function ImpulseTrackerStop()
   end
 end
 
--- Keep your existing keybindings
 renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker F8 Stop Playback (Panic)",invoke=function() ImpulseTrackerStop() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker F8 Stop Playback (Panic) (2nd)",invoke=function() ImpulseTrackerStop() end}
 
@@ -1633,15 +1632,12 @@ function show_new_song_dialog()
   vb = renoise.ViewBuilder()
   local dialog_content = vb:column {
         margin = 10,
-    vb:text {text = "New Song ... with", font = "bold", align = "center"},
-   
+    vb:text{text="New Song ... with",font="bold",style="strong",align = "center"},
     -- "Set all to" switch   
-    vb:space { height = 10 },
-    vb:column {
-      style = "border",
-      margin = 10,
+    vb:space {height=10},
+    vb:column {style="border",margin=10,
    vb:row {
-      vb:text { text = "Set all to: ", width = 180 },
+      vb:text {text="Set all to",width=180},
       vb:switch {
         id = "set_all_switch",
         items = { "Keep", "Clear" },
@@ -1652,7 +1648,7 @@ function show_new_song_dialog()
     },
     vb:space { height = 10 },
       vb:row {
-        vb:text { text = "Patterns", width = 180 },
+        vb:text {text="Patterns",width=180},
         vb:switch {
           id = "patterns_switch",
           items = { "Keep", "Clear" },
@@ -1664,7 +1660,7 @@ function show_new_song_dialog()
         }
       },
       vb:row {
-        vb:text { text = "Pattern Sequence", width = 180 },
+        vb:text {text="Pattern Sequence",width=180},
         vb:switch {
           id = "pattern_sequence_switch",
           items = { "Keep", "Clear" },
@@ -1676,7 +1672,7 @@ function show_new_song_dialog()
         }
       },
       vb:row {
-        vb:text { text = "Instruments", width = 180 },
+        vb:text {text="Instruments",width=180},
         vb:switch {
           id = "instruments_switch",
           items = { "Keep", "Clear" },
@@ -1688,7 +1684,7 @@ function show_new_song_dialog()
         }
       },
       vb:row {
-        vb:text { text = "Instrument Samples", width = 180 },
+        vb:text {text="Instrument Samples",width=180},
         vb:switch {
           id = "instrument_samples_switch",
           items = { "Keep", "Clear" },
@@ -1700,7 +1696,7 @@ function show_new_song_dialog()
         }
       },
       vb:row {
-        vb:text { text = "Instrument MIDI Outs", width = 180 },
+        vb:text {text="Instrument MIDI Outs",width=180},
         vb:switch {
           id = "instrument_midi_outs_switch",
           items = { "Keep", "Clear" },
@@ -1712,7 +1708,7 @@ function show_new_song_dialog()
         }
       },
       vb:row {
-        vb:text { text = "Instrument Plugins", width = 180 },
+        vb:text {text="Instrument Plugins",width=180},
         vb:switch {
           id = "instrument_plugins_switch",
           items = { "Keep", "Clear" },
@@ -1724,7 +1720,7 @@ function show_new_song_dialog()
         }
       },
       vb:row {
-        vb:text { text = "Track DSPs", width = 180 },
+        vb:text {text="Track DSPs",width=180},
         vb:switch {
           id = "track_dsps_switch",
           items = { "Keep", "Clear" },
@@ -1735,58 +1731,20 @@ function show_new_song_dialog()
           end
         }
       },
-      vb:space { height = 10 },
+      vb:space {height=10},
       vb:row {
-        vb:button {text="OK", width=100, notifier=handle_ok_click()},
-        vb:button {text="Cancel", width=100, notifier=handle_cancel_click(), color={1, 0, 0}}
+        vb:button{text="OK",width=100,notifier=handle_ok_click()},
+        vb:button{text="Cancel",width=100,notifier=handle_cancel_click(), color={1, 0, 0}}
       }
     }
   }
 
   -- Open the new dialog and assign it to the 'dialog' variable
-  dialog = renoise.app():show_custom_dialog("New Song", dialog_content, my_ctrl_n_keyhandler_func)
-end
-
-function my_ctrl_n_keyhandler_func(dialog, key)
-  local closer = preferences.pakettiDialogClose.value
-  if key.modifiers == "" and key.name == closer then
-    dialog:close()
-    dialog = nil
-    return nil
-  elseif dialog.visible then
-    dialog:close()
-    dialog = nil
-    return nil  -- Return nil to prevent the key from triggering another action
-  else
-    return key  -- Allow other key events to be handled as usual
-  end
+  dialog = renoise.app():show_custom_dialog("New Song", dialog_content, my_keyhandler_func)
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker CTRL-N New Song Dialog",invoke=function() show_new_song_dialog() end}
 -----------------------------------------------------
------------------------------------------------------
------------------------------------------------------
------------------------------------------------------
------------------------------------------------------
------------------------------------------------------
------------------------------------------------------
------------------------------------------------------
------------------------------------------------------
------------------------------------------------------
------------------------------------------------------
------------------------------------------------------
------------------------------------------------------
------------------------------------------------------
------------------------------------------------------
------------------------------------------------------
------------------------------------------------------
------------------------------------------------------
------------------------------------------------------
------------------------------------------------------
------------------------------------------------------
------------------------------------------------------
------------------------------------------------------
-
 ----ALT-U
 function Deselect_All()
   local song = renoise.song()

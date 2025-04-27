@@ -1511,10 +1511,10 @@ function automation_ramp_down_lin()
 end
 
 -- Optimized `menu_entry` and `key_binding` definitions for compactness
-renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Automation Ramp Up (Exp) for Pattern Matrix Selection",invoke=automation_ramp_up_exp }
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Automation Ramp Down (Exp) for Pattern Matrix Selection",invoke=automation_ramp_down_exp }
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Automation Ramp Up (Lin) for Pattern Matrix Selection",invoke=automation_ramp_up_lin }
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Automation Ramp Down (Lin) for Pattern Matrix Selection",invoke=automation_ramp_down_lin }
+renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Automation Curves..:Automation Ramp Up (Exp) for Pattern Matrix Selection",invoke=automation_ramp_up_exp }
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Automation Curves..:Automation Ramp Down (Exp) for Pattern Matrix Selection",invoke=automation_ramp_down_exp }
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Automation Curves..:Automation Ramp Up (Lin) for Pattern Matrix Selection",invoke=automation_ramp_up_lin }
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Automation Curves..:Automation Ramp Down (Lin) for Pattern Matrix Selection",invoke=automation_ramp_down_lin }
 
 renoise.tool():add_keybinding{name="Global:Paketti:Automation Ramp Up (Exp)",invoke=automation_ramp_up_exp }
 renoise.tool():add_keybinding{name="Global:Paketti:Automation Ramp Down (Exp)",invoke=automation_ramp_down_exp }
@@ -1626,15 +1626,15 @@ function automation_center_to_top_exp() apply_center_based_ramp(read_pattern_mat
  function automation_bottom_to_center_lin() apply_center_based_ramp(read_pattern_matrix_selection(), "Bottom to Center", true, false) end
 
 -- Register menu entries and keybindings for all 8 center-based automations
-renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Automation Center to Top (Exp) for Pattern Matrix Selection",invoke=automation_center_to_top_exp }
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Automation Top to Center (Exp) for Pattern Matrix Selection",invoke=automation_top_to_center_exp }
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Automation Center to Bottom (Exp) for Pattern Matrix Selection",invoke=automation_center_to_bottom_exp }
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Automation Bottom to Center (Exp) for Pattern Matrix Selection",invoke=automation_bottom_to_center_exp }
+renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Automation Curves..:Center to Top (Exp) for Pattern Matrix Selection",invoke=automation_center_to_top_exp }
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Automation Curves..:Top to Center (Exp) for Pattern Matrix Selection",invoke=automation_top_to_center_exp }
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Automation Curves..:Center to Bottom (Exp) for Pattern Matrix Selection",invoke=automation_center_to_bottom_exp }
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Automation Curves..:Bottom to Center (Exp) for Pattern Matrix Selection",invoke=automation_bottom_to_center_exp }
 
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Automation Center to Top (Lin) for Pattern Matrix Selection",invoke=automation_center_to_top_lin }
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Automation Top to Center (Lin) for Pattern Matrix Selection",invoke=automation_top_to_center_lin }
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Automation Center to Bottom (Lin) for Pattern Matrix Selection",invoke=automation_center_to_bottom_lin }
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Automation Bottom to Center (Lin) for Pattern Matrix Selection",invoke=automation_bottom_to_center_lin }
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Automation Curves..:Center to Top (Lin) for Pattern Matrix Selection",invoke=automation_center_to_top_lin }
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Automation Curves..:Top to Center (Lin) for Pattern Matrix Selection",invoke=automation_top_to_center_lin }
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Automation Curves..:Center to Bottom (Lin) for Pattern Matrix Selection",invoke=automation_center_to_bottom_lin }
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Automation Curves..:Bottom to Center (Lin) for Pattern Matrix Selection",invoke=automation_bottom_to_center_lin }
 
 renoise.tool():add_keybinding{name="Global:Paketti:Automation Center to Top (Exp)",invoke=automation_center_to_top_exp }
 renoise.tool():add_keybinding{name="Global:Paketti:Automation Top to Center (Exp)",invoke=automation_top_to_center_exp }
@@ -1752,7 +1752,7 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Randomize Automation Envelopes for Device",invoke=function() randomize_device_envelopes(1) end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Automation..:Randomize Automation Envelopes for Device",invoke=function() randomize_device_envelopes(1) end}
 renoise.tool():add_menu_entry{name="DSP Device:Paketti..:Randomize Automation Envelopes for Device",invoke=function() randomize_device_envelopes(1) end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Randomize Automation Envelopes for Device",invoke=function() randomize_device_envelopes(1) end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Automation..:Randomize Automation Envelopes for Device",invoke=function() randomize_device_envelopes(1) end}
 renoise.tool():add_menu_entry{name="Track Automation:Paketti..:Randomize Automation Envelopes for Device",invoke=function() randomize_device_envelopes(1) end}
 
 renoise.tool():add_midi_mapping{name="Paketti:Randomize Automation Envelopes for Device",invoke=function() randomize_device_envelopes(1) end}
@@ -1899,7 +1899,7 @@ local function textfield_notifier(new_value)
   apply_textfield_value_and_move(clamped_value)
 end
 
-local function show_value_dialog()
+function show_value_dialog()
   -- If dialog is already open, clean up and close
   if dialog and dialog.visible then
     local edit_step_observable = renoise.song().transport.edit_step_observable
@@ -1985,9 +1985,7 @@ local function show_value_dialog()
       vb:row{
         close_button,
       }
-    },keyhandlerfunc_automationvalue)
-
-
+    },my_keyhandler_func)
 
     -- Add the edit step notifier after dialog is created
     local edit_step_observable = renoise.song().transport.edit_step_observable
@@ -2001,26 +1999,10 @@ local function show_value_dialog()
   vb.views.value_textfield.edit_mode = true
 end
 
-function keyhandlerfunc_automationvalue(dialog,key)
-  local closer = preferences.pakettiDialogClose.value
-  if key.name == closer then
-    dialog:close()
-  end
-  return key
-end
-
 renoise.tool():add_keybinding{name="Global:Paketti:Show Automation Value Dialog...",invoke=function() show_value_dialog() end}
 renoise.tool():add_midi_mapping{name="Paketti:Show Automation Value Dialog...",invoke=function(message) if message:is_trigger() then show_value_dialog() end end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti Automation Value...",invoke=function() show_value_dialog() end}
-
-
-
-
-
-
-
-
-
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Automation..:Paketti Automation Value...",invoke=function() show_value_dialog() end}
+---
 local function write_automation_value(value)
   local song = renoise.song()
   local track = song.selected_track
@@ -2709,8 +2691,7 @@ function clone_sequence_with_automation_only()
   renoise.app():show_status("Sequence cloned with automation only in selected tracks")
 end
 
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Clone Sequence (Automation Only)",invoke=clone_sequence_with_automation_only}
-renoise.tool():add_keybinding{name="Global:Paketti:Clone Sequence (Automation Only)",invoke=clone_sequence_with_automation_only}
+renoise.tool():add_keybinding{name="Global:Paketti:Clone Sequence (Automation Only)",invoke=function() clone_sequence_with_automation_only() end}
 
 function clone_pattern_without_automation()
   local song = renoise.song()
@@ -2763,7 +2744,7 @@ function clone_pattern_without_automation()
   end
 end
 
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Clone Pattern (Without Automation)",invoke = clone_pattern_without_automation}
+
 renoise.tool():add_keybinding{name="Global:Paketti:Clone Pattern (Without Automation)",invoke = clone_pattern_without_automation}
 
 
@@ -3465,9 +3446,9 @@ end
 
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Automation..:Snapshot Current Device Values to Automation",invoke = snapshot_current_values_to_automation}
 renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Automation..:Snapshot Current Device Values to Automation",invoke = snapshot_current_values_to_automation}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Automation..:Snapshot Current Device Values to Automation",invoke = snapshot_current_values_to_automation}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Automation..:Snapshot Current Device Values to Automation",invoke = snapshot_current_values_to_automation}
 renoise.tool():add_keybinding{name="Global:Paketti:Snapshot Current Device Values to Automation",invoke = snapshot_current_values_to_automation}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Automation..:Convert FX to Automation",invoke = read_fx_to_automation}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Automation..:Convert FX to Automation",invoke = read_fx_to_automation}
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Automation..:Convert FX to Automation",invoke = read_fx_to_automation}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Automation..:Convert FX to Automation",invoke = read_fx_to_automation}
+renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Automation..:Convert FX to Automation",invoke = read_fx_to_automation}
 renoise.tool():add_keybinding{name="Global:Paketti:Convert FX to Automation",invoke = read_fx_to_automation}

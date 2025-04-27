@@ -364,25 +364,13 @@ makeBeatDetector_gui = vb:column{
   },
 }
 
-function my_BeatDetectkeyhandler_func(dialog, key)
-local closer = preferences.pakettiDialogClose.value
-  if key.modifiers == "" and key.name == closer then
-    dialog:close()
-    dialog = nil
-    return nil
-else
-    return key
-  end
-end
-
-
 -- Prepare and show dialog
 function prepare_for_start()
   if dialog and dialog.visible then
     dialog:show()
     return
   else
-    dialog = renoise.app():show_custom_dialog('BeatDetector Modified v0.354', makeBeatDetector_gui, my_BeatDetectkeyhandler_func)
+    dialog = renoise.app():show_custom_dialog('BeatDetector Modified v0.354', makeBeatDetector_gui, my_keyhandler_func)
   end
 end
 

@@ -9,7 +9,7 @@ function returnpe()
     renoise.app().window.active_middle_frame=renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 end
 
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Set Instrument Transpose -24",invoke=function() renoise.song().selected_instrument.transpose=renoise.song().selected_instrument.transpose-24 end}
+renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Set Instrument Transpose -24",invoke=function() renoise.song().selected_instrument.transpose=renoise.song().selected_instrument.transpose-24 end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Set Instrument Transpose -12",invoke=function() renoise.song().selected_instrument.transpose=renoise.song().selected_instrument.transpose-12 end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Set Instrument Transpose 0",invoke=function() renoise.song().selected_instrument.transpose=0 end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Set Instrument Transpose +12",invoke=function() renoise.song().selected_instrument.transpose=renoise.song().selected_instrument.transpose+12 end}
@@ -338,8 +338,8 @@ function write_random_velocity_notes()
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Stack All Samples in Instrument with Velocity Mapping Split",invoke=function() fix_sample_velocity_mappings() end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Stack All Samples in Instrument with Velocity Mapping Split",invoke=function() fix_sample_velocity_mappings() end}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Stack All Samples in Instrument with Velocity Mapping Split",invoke=function() fix_sample_velocity_mappings() end}
+
+
 renoise.tool():add_keybinding{name="Global:Paketti:Write Velocity Ramp Up for Stacked Instrument",invoke=function() write_velocity_ramp_up() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Write Velocity Ramp Down for Stacked Instrument",invoke=function() write_velocity_ramp_down() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Write Velocity Random for Stacked Instrument",invoke=function() write_random_velocity_notes() end}
@@ -347,17 +347,6 @@ renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Paketti Stacker..:W
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Paketti Stacker..:Write Velocity Ramp Down for Stacked Instrument",invoke=function() write_velocity_ramp_down() end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Paketti Stacker..:Write Velocity Random for Stacked Instrument",invoke=function() write_random_velocity_notes() end}
 
---
-function Stackerkeyhandlerfunc(dialog,key)
-local closer = preferences.pakettiDialogClose.value
-  if key.modifiers == "" and key.name == closer then
-    dialog:close()
-    dialog=nil
-    return nil
-  else
-    return key
-  end
-end
 
 function on_switch_changed(selected_value)
   local instrument = renoise.song().selected_instrument
@@ -502,7 +491,7 @@ vb:row{
    vb:button{text = "7/8", notifier = function() jump_to_pattern_segment(7) end},
    vb:button{text = "8/8", notifier = function() jump_to_pattern_segment(8) end}}}
   -- Show the dialog
-  dialog = renoise.app():show_custom_dialog("Paketti Stacker", dialog_content,Stackerkeyhandlerfunc)
+  dialog = renoise.app():show_custom_dialog("Paketti Stacker", dialog_content,my_keyhandler_func)
 end
 
   function proceed_with_stacking()
@@ -564,13 +553,13 @@ showStackingDialog(proceed_with_stacking, on_switch_changed, PakettiIsolateSlice
   end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Load&Slice&Isolate&Stack Sample",invoke=function() LoadSliceIsolateStack() end}
-renoise.tool():add_keybinding{name="Global:Paketti:Paketti Stacker Dialog...",invoke=function()
-  showStackingDialog(proceed_with_stacking, on_switch_changed, PakettiIsolateSlicesToInstrument) end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti Stacker...",invoke=function()
-  showStackingDialog(proceed_with_stacking, on_switch_changed, PakettiIsolateSlicesToInstrument) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Paketti Stacker Dialog...",invoke=function()
-  showStackingDialog(proceed_with_stacking, on_switch_changed, PakettiIsolateSlicesToInstrument) end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Paketti Stacker Dialog...",invoke=function()
-  showStackingDialog(proceed_with_stacking, on_switch_changed, PakettiIsolateSlicesToInstrument) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Paketti Stacker..:Paketti Stacker Dialog...",invoke=function()
-  showStackingDialog(proceed_with_stacking, on_switch_changed, PakettiIsolateSlicesToInstrument) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Stacker Dialog...",invoke=function() showStackingDialog(proceed_with_stacking, on_switch_changed, PakettiIsolateSlicesToInstrument) end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti Stacker...",invoke=function() showStackingDialog(proceed_with_stacking, on_switch_changed, PakettiIsolateSlicesToInstrument) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Paketti Stacker Dialog...",invoke=function() showStackingDialog(proceed_with_stacking, on_switch_changed, PakettiIsolateSlicesToInstrument) end}
+renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Paketti Stacker Dialog...",invoke=function() showStackingDialog(proceed_with_stacking, on_switch_changed, PakettiIsolateSlicesToInstrument) end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Stack All Samples in Instrument with Velocity Mapping Split",invoke=function() fix_sample_velocity_mappings() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Paketti Stacker..:Paketti Stacker Dialog...",invoke=function() showStackingDialog(proceed_with_stacking, on_switch_changed, PakettiIsolateSlicesToInstrument) end}
+renoise.tool():add_menu_entry{name="--Disk Browser Files:Paketti..:Paketti Stacker Dialog...",invoke=function() showStackingDialog(proceed_with_stacking, on_switch_changed, PakettiIsolateSlicesToInstrument) end}
+
+renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti..:Paketti Stacker Dialog...",invoke=function() showStackingDialog(proceed_with_stacking, on_switch_changed, PakettiIsolateSlicesToInstrument) end}
+renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Stack All Samples in Instrument with Velocity Mapping Split",invoke=function() fix_sample_velocity_mappings() end}

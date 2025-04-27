@@ -34,24 +34,6 @@ end
 -- Initialize the filter index
 local cached_filter_index = 1
 
-local function my_keyhandler_func(dialog, key)
-  local closer = preferences.pakettiDialogClose.value
-
-  if key.modifiers == "" and key.name == closer then
-    dialog:close()
-    dialog = nil
-    return nil
-  end
-
-  if not (key.modifiers == "" and key.name == "exclamation") then
-    return key
-  else
-    dialog:close()
-    dialog = nil
-    return nil
-  end
-end
-
 local sample_rates = {22050, 44100, 48000, 88200, 96000, 192000}
 
 -- Function to find the index of the sample rate
@@ -336,6 +318,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   }, 
   pakettiPhraseInitDialog = {
     Autoseek = false,
+    PhraseLooping = true,
     VolumeColumnVisible = false,
     PanningColumnVisible = false,
     InstrumentColumnVisible = false,
@@ -1046,7 +1029,7 @@ vb:row {
             vb:text{style="strong",font="bold",text="Wipe & Slices Settings"},
             vb:row { vb:text{text="Slice Loop Mode",width=150},create_loop_mode_switch(preferences.WipeSlices.WipeSlicesLoopMode) },
             vb:row { vb:text{text="Slice Loop Release/Exit Mode",width=150},vb:checkbox{value=preferences.WipeSlices.WipeSlicesLoopRelease.value,notifier=function(value) preferences.WipeSlices.WipeSlicesLoopRelease.value=value end} },
-            vb:row { vb:text{text="Slice BeatSync Mode",width=150},vb:switch{items={"Repitch","Time-Stretch (Percussion)","Time-Stretch (Texture)","Off"},value=preferences.WipeSlices.WipeSlicesBeatSyncMode.value,width=420,
+            vb:row { vb:text{text="Slice Beatsync Mode",width=150},vb:switch{items={"Repitch","Time-Stretch (Percussion)","Time-Stretch (Texture)","Off"},value=preferences.WipeSlices.WipeSlicesBeatSyncMode.value,width=420,
               notifier=function(value) preferences.WipeSlices.WipeSlicesBeatSyncMode.value=value end}
             },
             vb:row { vb:text{text="Slice One-Shot",width=150},vb:switch{items={"Off","On"},value=preferences.WipeSlices.WipeSlicesOneShot.value and 2 or 1,width=200,

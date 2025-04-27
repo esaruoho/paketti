@@ -422,3 +422,10 @@ local pti_integration = {
 if not renoise.tool():has_file_import_hook("sample", { "pti" }) then
   renoise.tool():add_file_import_hook(pti_integration)
 end
+
+renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti..:Import .PTI (Polyend Tracker Instrument)",
+  invoke = function()
+    local f = renoise.app():prompt_for_filename_to_read({"*.PTI"}, "Select PTI to import")
+    if f and f ~= "" then pti_loadsample(f) end
+  end
+}

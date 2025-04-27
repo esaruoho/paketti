@@ -1152,7 +1152,6 @@ function PakettiYTDLPDialogContent()
   return dialog_content
 end
 
--- Key Handler function for the dialog
 function PakettiYTDLPKeyHandlerFunc(dialog, key)
 local closer = preferences.pakettiDialogClose.value
   if key.modifiers == "" and key.name == closer then

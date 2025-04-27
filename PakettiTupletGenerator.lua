@@ -345,24 +345,8 @@ local function show_tuplet_dialog()
       }
     }
   }
-  
-  local function Tupletkeyhandler_func(dialog, key)
-    local closer = preferences.pakettiDialogClose.value
-    if key.modifiers == "" and key.name == closer then
-      dialog:close()
-      renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
-      return
-    end
     
-    -- Allow other keys to pass through to the pattern editor
-    return key
-  end
-  
-  local dialog = renoise.app():show_custom_dialog(
-    "Paketti Tuplet Writer",
-    dialog_content,
-    Tupletkeyhandler_func
-  )
+  local dialog = renoise.app():show_custom_dialog("Paketti Tuplet Writer",dialog_content,my_keyhandler_func)
   
   -- Set focus to note count field
   vb.views.note_count.active = true

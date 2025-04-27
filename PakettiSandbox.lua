@@ -195,18 +195,7 @@ local speed = 6
 local tempo = 125
 local real_bpm = tempo / (speed / 6)
 
--- Keyhandler Function
-local function SpeedBPMkeyhandler_func(dialog, key)
-    local closer = preferences.pakettiDialogClose.value
-      if key.modifiers == "" and key.name == closer then
-        dialog:close()
-        dialog=nil
-        return nil
-      else
-        return key
-      end
-    end
-  
+
 -- Function to Calculate BPM
 local function calculate_bpm(speed, tempo)
   -- Simple formula: if speed is 6, BPM equals tempo
@@ -279,7 +268,7 @@ function show_speed_tempo_dialog()
     }
   }
 
-  dialog = renoise.app():show_custom_dialog("Speed and Tempo to BPM",dialog_content,SpeedBPMkeyhandler_func)
+  dialog = renoise.app():show_custom_dialog("Speed and Tempo to BPM",dialog_content,my_keyhandler_func)
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 end
 
@@ -604,24 +593,10 @@ function showTimeSignatureDialog()
   }
   
   printTimeSignatureInfo()  -- Add this before showing the dialog
-  
   updatePreview()  -- Initial preview update
-  
-  local dialog=renoise.app():show_custom_dialog("Beat Structure Editor",dialog_content,TimeSignatureDialogKeyHandler)
-  
-  -- Set initial focus to pattern editor
+  local dialog=renoise.app():show_custom_dialog("Beat Structure Editor",dialog_content,
+  my_keyhandler_func)
   renoise.app().window.active_middle_frame = 1
-end
-
-function TimeSignatureDialogKeyHandler(dialog, key)
-  local closer = preferences.pakettiDialogClose.value
-  if key.modifiers == "" and key.name == closer then
-    dialog:close()
-    dialog = nil
-    return nil
-  else
-    return key
-  end
 end
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti Beat Structure Editor...",invoke=showTimeSignatureDialog}
@@ -667,5 +642,9 @@ end
 
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Toggle All Columns",invoke = function() toggleColumns(true) end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Toggle All Columns (No Sample Effects)",invoke = function() toggleColumns(false) end}
+renoise.tool():add_menu_entry{name="Main Menu:View:Paketti..:Visible Columns..:Toggle All Columns",invoke = function() toggleColumns(true) end}
+renoise.tool():add_menu_entry{name="Main Menu:View:Paketti..:Visible Columns..:Toggle All Columns (No Sample Effects)",invoke = function() toggleColumns(false) end}
+
+
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Toggle All Columns",invoke = function() toggleColumns(true) end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Toggle All Columns (No Sample Effects)",invoke = function() toggleColumns(false) end}

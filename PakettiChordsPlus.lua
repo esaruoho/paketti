@@ -741,21 +741,15 @@ function process_row_inversion(pattern, track_index, line_index, start_col, end_
   end
 end
 
-
-
-      
-renoise.tool():add_keybinding {name="Pattern Editor:Paketti:Cycle Chord Inversion Up",invoke=function() cycle_inversion("up")
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Cycle Chord Inversion Up",invoke=function() cycle_inversion("up")
 NoteSorterAscending() end}
-renoise.tool():add_keybinding {name="Pattern Editor:Paketti:Cycle Chord Inversion Down",invoke=function() cycle_inversion("down")
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Cycle Chord Inversion Down",invoke=function() cycle_inversion("down")
 NoteSorterAscending() end}
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti ChordsPlus..:Cycle Chord Inversion Up",invoke=function() cycle_inversion("up")
 NoteSorterAscending() end}  
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Cycle Chord Inversion Down",invoke=function() cycle_inversion("down")
 NoteSorterAscending() end}
-  
-
-
--- Function to apply a random chord from the chord_list
+  -- Function to apply a random chord from the chord_list
 function RandomChord()
   local song = renoise.song()
   
@@ -1122,8 +1116,6 @@ end
 
 -- Finally, set the duplicated track to display only one note column.
 song:track(new_track_index).visible_note_columns = 1
-   
-
   ------------------------------------------------------------------------------
   -- PART 5: Final touches – select the new track, update instrument selection,
   -- and restore the external editor if needed.
@@ -1147,102 +1139,27 @@ song:track(new_track_index).visible_note_columns = 1
     mode_msg, final_instrument_index))
 end
 
-renoise.tool():add_keybinding{
-  name = "Pattern Editor:Paketti:Duplicate Highest Notes to New Track & Duplicate Instrument",
-  invoke = function() DuplicateSpecificNotesToNewTrack("highest", "duplicate") end
-}
-renoise.tool():add_keybinding{
-  name = "Pattern Editor:Paketti:Duplicate Highest Notes to New Track (Selected Instrument)",
-  invoke = function() DuplicateSpecificNotesToNewTrack("highest", "selected") end
-}
-renoise.tool():add_keybinding{
-  name = "Pattern Editor:Paketti:Duplicate Highest Notes to New Track (Original Instrument)",
-  invoke = function() DuplicateSpecificNotesToNewTrack("highest", "original") end
-}
-renoise.tool():add_keybinding{
-  name = "Pattern Editor:Paketti:Duplicate Lowest Notes to New Track & Duplicate Instrument",
-  invoke = function() DuplicateSpecificNotesToNewTrack("lowest", "duplicate") end
-}
-renoise.tool():add_keybinding{
-  name = "Pattern Editor:Paketti:Duplicate Lowest Notes to New Track (Selected Instrument)",
-  invoke = function() DuplicateSpecificNotesToNewTrack("lowest", "selected") end
-}
-renoise.tool():add_keybinding{
-  name = "Pattern Editor:Paketti:Duplicate Lowest Notes to New Track (Original Instrument)",
-  invoke = function() DuplicateSpecificNotesToNewTrack("lowest", "original") end
-}
-
-renoise.tool():add_keybinding{
-  name = "Mixer:Paketti:Duplicate Highest Notes to New Track & Duplicate Instrument",
-  invoke = function() DuplicateSpecificNotesToNewTrack("highest", "duplicate") end
-}
-renoise.tool():add_keybinding{
-  name = "Mixer:Paketti:Duplicate Highest Notes to New Track (Selected Instrument)",
-  invoke = function() DuplicateSpecificNotesToNewTrack("highest", "selected") end
-}
-renoise.tool():add_keybinding{
-  name = "Mixer:Paketti:Duplicate Highest Notes to New Track (Original Instrument)",
-  invoke = function() DuplicateSpecificNotesToNewTrack("highest", "original") end
-}
-renoise.tool():add_keybinding{
-  name = "Mixer:Paketti:Duplicate Lowest Notes to New Track & Duplicate Instrument",
-  invoke = function() DuplicateSpecificNotesToNewTrack("lowest", "duplicate") end
-}
-renoise.tool():add_keybinding{
-  name = "Mixer:Paketti:Duplicate Lowest Notes to New Track (Selected Instrument)",
-  invoke = function() DuplicateSpecificNotesToNewTrack("lowest", "selected") end
-}
-renoise.tool():add_keybinding{
-  name = "Mixer:Paketti:Duplicate Lowest Notes to New Track (Original Instrument)",
-  invoke = function() DuplicateSpecificNotesToNewTrack("lowest", "original") end
-}
-
-renoise.tool():add_menu_entry{
-  name = "Pattern Editor:Paketti ChordsPlus..:Duplicate Highest Notes to New Track & Duplicate Instrument",
-  invoke = function() DuplicateSpecificNotesToNewTrack("highest", "duplicate") end
-}
-renoise.tool():add_menu_entry{
-  name = "Pattern Editor:Paketti ChordsPlus..:Duplicate Highest Notes to New Track (Selected Instrument)",
-  invoke = function() DuplicateSpecificNotesToNewTrack("highest", "selected") end
-}
-renoise.tool():add_menu_entry{
-  name = "Pattern Editor:Paketti ChordsPlus..:Duplicate Highest Notes to New Track (Original Instrument)",
-  invoke = function() DuplicateSpecificNotesToNewTrack("highest", "original") end
-}
-renoise.tool():add_menu_entry{
-  name = "Pattern Editor:Paketti ChordsPlus..:Duplicate Lowest Notes to New Track & Duplicate Instrument",
-  invoke = function() DuplicateSpecificNotesToNewTrack("lowest", "duplicate") end
-}
-renoise.tool():add_menu_entry{
-  name = "Pattern Editor:Paketti ChordsPlus..:Duplicate Lowest Notes to New Track (Selected Instrument)",
-  invoke = function() DuplicateSpecificNotesToNewTrack("lowest", "selected") end
-}
-renoise.tool():add_menu_entry{
-  name = "Pattern Editor:Paketti ChordsPlus..:Duplicate Lowest Notes to New Track (Original Instrument)",
-  invoke = function() DuplicateSpecificNotesToNewTrack("lowest", "original") end
-}
-
-renoise.tool():add_menu_entry{
-  name = "Mixer:Paketti ChordsPlus..:Duplicate Highest Notes to New Track & Duplicate Instrument",
-  invoke = function() DuplicateSpecificNotesToNewTrack("highest", "duplicate") end
-}
-renoise.tool():add_menu_entry{
-  name = "Mixer:Paketti ChordsPlus..:Duplicate Highest Notes to New Track (Selected Instrument)",
-  invoke = function() DuplicateSpecificNotesToNewTrack("highest", "selected") end
-}
-renoise.tool():add_menu_entry{
-  name = "Mixer:Paketti ChordsPlus..:Duplicate Highest Notes to New Track (Original Instrument)",
-  invoke = function() DuplicateSpecificNotesToNewTrack("highest", "original") end
-}
-renoise.tool():add_menu_entry{
-  name = "Mixer:Paketti ChordsPlus..:Duplicate Lowest Notes to New Track & Duplicate Instrument",
-  invoke = function() DuplicateSpecificNotesToNewTrack("lowest", "duplicate") end
-}
-renoise.tool():add_menu_entry{
-  name = "Mixer:Paketti ChordsPlus..:Duplicate Lowest Notes to New Track (Selected Instrument)",
-  invoke = function() DuplicateSpecificNotesToNewTrack("lowest", "selected") end
-}
-renoise.tool():add_menu_entry{
-  name = "Mixer:Paketti ChordsPlus..:Duplicate Lowest Notes to New Track (Original Instrument)",
-  invoke = function() DuplicateSpecificNotesToNewTrack("lowest", "original") end
-}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Duplicate Highest Notes to New Track & Duplicate Instrument",invoke = function() DuplicateSpecificNotesToNewTrack("highest", "duplicate") end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Duplicate Highest Notes to New Track (Selected Instrument)",invoke = function() DuplicateSpecificNotesToNewTrack("highest", "selected") end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Duplicate Highest Notes to New Track (Original Instrument)",invoke = function() DuplicateSpecificNotesToNewTrack("highest", "original") end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Duplicate Lowest Notes to New Track & Duplicate Instrument",invoke = function() DuplicateSpecificNotesToNewTrack("lowest", "duplicate") end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Duplicate Lowest Notes to New Track (Selected Instrument)",invoke = function() DuplicateSpecificNotesToNewTrack("lowest", "selected") end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Duplicate Lowest Notes to New Track (Original Instrument)",invoke = function() DuplicateSpecificNotesToNewTrack("lowest", "original") end}
+renoise.tool():add_keybinding{name="Mixer:Paketti:Duplicate Highest Notes to New Track & Duplicate Instrument",invoke = function() DuplicateSpecificNotesToNewTrack("highest", "duplicate") end}
+renoise.tool():add_keybinding{name="Mixer:Paketti:Duplicate Highest Notes to New Track (Selected Instrument)",invoke = function() DuplicateSpecificNotesToNewTrack("highest", "selected") end}
+renoise.tool():add_keybinding{name="Mixer:Paketti:Duplicate Highest Notes to New Track (Original Instrument)",invoke = function() DuplicateSpecificNotesToNewTrack("highest", "original") end}
+renoise.tool():add_keybinding{name="Mixer:Paketti:Duplicate Lowest Notes to New Track & Duplicate Instrument",invoke = function() DuplicateSpecificNotesToNewTrack("lowest", "duplicate") end}
+renoise.tool():add_keybinding{name="Mixer:Paketti:Duplicate Lowest Notes to New Track (Selected Instrument)",invoke = function() DuplicateSpecificNotesToNewTrack("lowest", "selected") end}
+renoise.tool():add_keybinding{name="Mixer:Paketti:Duplicate Lowest Notes to New Track (Original Instrument)",invoke = function() DuplicateSpecificNotesToNewTrack("lowest", "original") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Duplicate Highest Notes to New Track & Duplicate Instrument",invoke = function() DuplicateSpecificNotesToNewTrack("highest", "duplicate") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Duplicate Highest Notes to New Track (Selected Instrument)",invoke = function() DuplicateSpecificNotesToNewTrack("highest", "selected") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Duplicate Highest Notes to New Track (Original Instrument)",invoke = function() DuplicateSpecificNotesToNewTrack("highest", "original") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Duplicate Lowest Notes to New Track & Duplicate Instrument",invoke = function() DuplicateSpecificNotesToNewTrack("lowest", "duplicate") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Duplicate Lowest Notes to New Track (Selected Instrument)",invoke = function() DuplicateSpecificNotesToNewTrack("lowest", "selected") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Duplicate Lowest Notes to New Track (Original Instrument)",invoke = function() DuplicateSpecificNotesToNewTrack("lowest", "original") end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti ChordsPlus..:Duplicate Highest Notes to New Track & Duplicate Instrument",invoke = function() DuplicateSpecificNotesToNewTrack("highest", "duplicate") end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti ChordsPlus..:Duplicate Highest Notes to New Track (Selected Instrument)",invoke = function() DuplicateSpecificNotesToNewTrack("highest", "selected") end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti ChordsPlus..:Duplicate Highest Notes to New Track (Original Instrument)",invoke = function() DuplicateSpecificNotesToNewTrack("highest", "original") end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti ChordsPlus..:Duplicate Lowest Notes to New Track & Duplicate Instrument",invoke = function() DuplicateSpecificNotesToNewTrack("lowest", "duplicate") end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti ChordsPlus..:Duplicate Lowest Notes to New Track (Selected Instrument)",invoke = function() DuplicateSpecificNotesToNewTrack("lowest", "selected") end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti ChordsPlus..:Duplicate Lowest Notes to New Track (Original Instrument)",invoke = function() DuplicateSpecificNotesToNewTrack("lowest", "original") end}

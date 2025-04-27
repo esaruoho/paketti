@@ -457,30 +457,13 @@ local function load_dialog_content_from_file()
   end
 end
 
--- Custom key handler function to allow key events to pass through to pattern editor
-local function my_keyhandler_func(dialog, key)
-  local closer = preferences.pakettiDialogClose.value
-  if key.modifiers == "" and key.name == closer then
-    dialog:close()
-    renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
-    return
-  end
-
-  -- Allow other keys to pass through to the pattern editor
-  return key
-end
-
 -- Function to toggle the visibility of the dialog
 function toggle_paketti_pick_dialog()
   if dialog and dialog.visible then
     dialog:close()
     dialog = nil
   else
-    dialog = renoise.app():show_custom_dialog(
-      "Paketti OctaMED Pick/Put",
-      create_paketti_pick_dialog(),
-      my_keyhandler_func
-    )
+    dialog = renoise.app():show_custom_dialog("Paketti OctaMED Pick/Put",create_paketti_pick_dialog(),my_keyhandler_func)
   end
   load_slots_from_preferences()
 
@@ -784,9 +767,7 @@ for i = 1, 16 do
   renoise.tool():add_keybinding{name=string.format("Pattern Editor:Paketti:OctaMED Toggle Mute Track %02d", i),invoke = function() OctaMEDToggleTrackMute(i) end}
   renoise.tool():add_keybinding{name=string.format("Mixer:Paketti:OctaMED Toggle Mute Track %02d", i),invoke = function() OctaMEDToggleTrackMute(i) end}
   renoise.tool():add_keybinding{name=string.format("Phrase Editor:Paketti:OctaMED Toggle Mute Track %02d", i),invoke = function() OctaMEDToggleTrackMute(i) end}  
-
-  renoise.tool():add_midi_mapping{
-    name = string.format("Paketti:OctaMED Toggle Mute Track %02d", i),
+  renoise.tool():add_midi_mapping{name=string.format("Paketti:OctaMED Toggle Mute Track %02d", i),
     invoke = function(message)
       if message:is_trigger() then
         OctaMEDToggleTrackMute(i)
@@ -795,21 +776,6 @@ for i = 1, 16 do
   }
 end
 -------
-
-
--- Custom key handler function to allow key events to pass through to pattern editor
-local function my_keyhandler_func(dialog, key)
-  local closer = preferences.pakettiDialogClose.value
-  if key.modifiers == "" and key.name == closer then
-    dialog:close()
-    renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
-    return
-  end
-  
-  -- Allow other keys to pass through to the pattern editor
-  return key
-end
-
 function create_echo_dialog()
   local vb = renoise.ViewBuilder()
   local dialog = nil
@@ -890,11 +856,7 @@ function create_echo_dialog()
     
   }
   
-  dialog = renoise.app():show_custom_dialog(
-    "OctaMED Note Echo",
-    dialog_content,
-    my_keyhandler_func
-  )
+  dialog = renoise.app():show_custom_dialog("OctaMED Note Echo",dialog_content,my_keyhandler_func)
   
   -- Return focus to pattern editor immediately after showing dialog
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
@@ -1022,6 +984,6 @@ function CreateNoteEcho(distance, min_volume)
   end
 end
 
-renoise.tool():add_keybinding{name = "Pattern Editor:Paketti:OctaMED Note Echo Dialog",invoke = create_echo_dialog}
-renoise.tool():add_menu_entry{name = "Pattern Editor:Paketti..:Other Trackers..:OctaMED Note Echo Dialog",invoke = create_echo_dialog}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:OctaMED Note Echo Dialog",invoke = create_echo_dialog}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Other Trackers..:OctaMED Note Echo Dialog",invoke = create_echo_dialog}
 ---------

@@ -114,30 +114,12 @@ function show_eq10_dialog()
     row_content:add_child(band_group)
   end
   
-  -- Add the row to the content
   content:add_child(row_content)
-
-  -- Key handler for the dialog
-  local function key_handler(dialog, key)
-    local closer = preferences.pakettiDialogClose.value
-    if key.modifiers == "" and key.name == closer then
-      dialog:close()
-      return
-    end
-    return key
-  end
-
-  -- Show dialog
-  dialog = renoise.app():show_custom_dialog(
-    "EQ10 XY Control", 
-    content,
-    key_handler
-  )
+  dialog = renoise.app():show_custom_dialog("EQ10 XY Control",content,my_keyhandler_func)
 end
 
-renoise.tool():add_menu_entry {name = "Main Menu:Tools:Paketti..:EQ10 XY Control...",invoke = show_eq10_dialog}
-renoise.tool():add_keybinding {name = "Global:Tools:Show EQ10 XY Control",invoke = show_eq10_dialog}
-
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:EQ10 XY Control...",invoke = show_eq10_dialog}
+renoise.tool():add_keybinding{name="Global:Tools:Show EQ10 XY Control",invoke = show_eq10_dialog}
 -----
 local match_editstep_enabled = false
 local last_line_index = nil
@@ -233,7 +215,7 @@ renoise.tool():add_keybinding{name="Global:Tools:Toggle Match EditStep with Dela
 if preferences.SelectedSampleBeatSyncLines.value == true then 
 
 for i=1,512 do
-renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample BeatSync Lines to " .. i,invoke=function()SelectedSampleBeatSyncLine(i)end}
+renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Beatsync Lines to " .. i,invoke=function()SelectedSampleBeatSyncLine(i)end}
 end 
 end
 
@@ -526,7 +508,7 @@ local function load_both_from_slot(slot_number)
 end
 
 -- Function to show the Paketti Device Chain Dialog with XRNI functionality
-local function show_paketti_device_chain_dialog()
+function show_paketti_device_chain_dialog()
   if dialog and dialog.visible then
     dialog:show()
     return
@@ -618,7 +600,7 @@ local function show_paketti_device_chain_dialog()
 
     -- Both XRNI&XRNT Row
     local row_both = vb:row {
-      vb:text { text = "Load Both Instrument&Device Chain (.XRNI&.XRNT) Slot" .. slot_number .. ":", width = 200 },
+      vb:text { text="Load Both Instrument&Device Chain (.XRNI&.XRNT) Slot" .. slot_number .. ":", width = 200 },
       vb:button {
         text = "Load Both",
         notifier = function()
@@ -632,7 +614,7 @@ local function show_paketti_device_chain_dialog()
   -- Define the content of the dialog
   local content = vb:column {
     vb:row {
-      vb:text { text = "User XRNT/XRNI Save Folder:", width = 200 },
+      vb:text { text="User XRNT/XRNI Save Folder:",width=200},
       vb:textfield {
         text = preferences.UserDevices.Path.value ~= "" and preferences.UserDevices.Path.value or "<Not Set, Please Set>",
         width = 900,  -- Increased width as per requirement
@@ -648,15 +630,15 @@ local function show_paketti_device_chain_dialog()
       }
     },
     vb:column {
-      vb:text { text = "Load Device Chain (.XRNT) Slots (01-10)", font = "bold" },
+      vb:text {text="Load Device Chain (.XRNT) Slots (01-10)",font="bold",style="strong"},
       unpack(slots_rows_xrnt)
     },
     vb:column {
-      vb:text { text = "Load Instrument (.XRNI) Slots (01-10)", font = "bold" },
+      vb:text {text="Load Instrument (.XRNI) Slots (01-10)",font="bold",style="strong"},
       unpack(slots_rows_xrni)
     },
     vb:column {
-      vb:text { text = "Load Both Instrument&Device Chain (.XRNI&.XRNT) Slots (01-10)", font = "bold" },
+      vb:text {text="Load Both Instrument&Device Chain (.XRNI&.XRNT) Slots (01-10)",font="bold",style="strong"},
       unpack(slots_rows_both)
     },
     vb:row {
@@ -671,15 +653,7 @@ local function show_paketti_device_chain_dialog()
   }
 
   -- Create and show the dialog
-  dialog = renoise.app():show_custom_dialog("Paketti Device Chain & Instrument Dialog", content, nil, nil, keyhandlerfunc_dcid)
-end
-
-function keyhandlerfunc_dcid(dialog,key)
-  local closer = preferences.pakettiDialogClose.value
-  if key.name == closer then
-    dialog:close()
-  end
-  return key
+  dialog = renoise.app():show_custom_dialog("Paketti Device Chain & Instrument Dialog", content, my_keyhandler_func)
 end
 
 -- Function to add menu entries and key bindings grouped by functionality
@@ -733,20 +707,6 @@ renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Paketti Track DS
 local vb = renoise.ViewBuilder()
 local dialog = nil
 local dialog_content = nil
-
-local function my_keyhandler_func(dialog, key)
-local closer = preferences.pakettiDialogClose.value
-  if key.modifiers == "" and key.name == closer then
-   dialog:close()
-   return end
-   
-    if key.name == "!" then
-      dialog:close()
-      renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
-    else
-      return key
-    end
-end
 
 local function update_sample_volumes(x, y)
   local instrument = renoise.song().selected_instrument
@@ -960,15 +920,7 @@ function showSBX_dialog()
       end
     }
   }
-  dialog = renoise.app():show_custom_dialog("SBX Playback Handler", content, keyhandlerfunc_sbx)
-end
-
-function keyhandlerfunc_sbx(dialog,key)
-  local closer = preferences.pakettiDialogClose.value
-  if key.name == closer then
-    dialog:close()
-  end
-  return key
+  dialog = renoise.app():show_custom_dialog("SBX Playback Handler", content, my_keyhandler_func)
 end
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress..:SBx Loop Playback",invoke=showSBX_dialog}
@@ -981,8 +933,6 @@ renoise.tool():add_keybinding{name="Global:Transport:Reset SBx and Start Playbac
 -- Tool Initialization
   monitoring_enabled = true
 --InitSBx()
-
-
 
 function crossfade_loop(crossfade_length)
   -- User-adjustable fade length for loop start/end fades
@@ -1678,17 +1628,6 @@ local prev_y = initial_position
 local shift_amount = 1  -- Reduced shift amount for smaller up/down changes
 local rotation_amount = 2000  -- Adjusted rotation amount for left/right to be less intense
 
--- Custom key handler function
-local function my_keyhandler_func(dialog, key)
-  if not (key.modifiers == "" and key.name == "exclamation") then
-    return key
-  else
-    dialog:close()
-    dialog = nil
-    return nil
-  end
-end
-
 -- Set the middle frame to the instrument sample editor
 renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
 
@@ -1888,10 +1827,7 @@ local function show_paketti_sample_rotator_dialog()
           max = 1.0,
           value = initial_position,
           notifier = on_horizontal_slider_change
-        }
-      }
-    },
-    my_keyhandler_func
+        }}},my_keyhandler_func
   )
 end
 
@@ -4179,9 +4115,14 @@ renoise.song().selected_note_column_index=1
 startcolumncycling(number)
 end
 
-for ccks=2,12 do
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Column Cycle Keyjazz..:Column Cycle Keyjazz Special (2)",invoke=function() ColumnCycleKeyjazzSpecial(2) end}
+
+for ccks=3,12 do
 renoise.tool():add_keybinding{name="Global:Paketti:Column Cycle Keyjazz Special (" .. ccks .. ")",invoke=function() ColumnCycleKeyjazzSpecial(ccks) end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Column Cycle Keyjazz..:Column Cycle Keyjazz Special (" .. ccks .. ")",invoke=function() ColumnCycleKeyjazzSpecial(ccks) end}
 end
+renoise.tool():add_keybinding{name="Global:Paketti:Column Cycle Keyjazz Special (2)",invoke=function() ColumnCycleKeyjazzSpecial(2) end}
+
+
 ----------------------------
 

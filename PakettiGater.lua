@@ -1389,19 +1389,6 @@ local function apply_preset(preset, is_retrig, is_playback)
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 end
 
--- Custom key handler function
-local function my_keyhandler_func(dialog, key)
-  local closer = preferences.pakettiDialogClose.value
-  
-  if key.modifiers == "" and key.name == closer then
-    dialog:close()
-    dialog = nil
-    return
-  else 
-    return key
-  end
-end
-
 -- Create the dialog
 function pakettiGaterDialog()
     if dialog and dialog.visible then

@@ -67,9 +67,7 @@ function loadDeviceFromPreferences()
 
     -- Re-add keybinding and midi mapping
     local success, err = pcall(function()
-      renoise.tool():add_keybinding{
-        name = keyBindingName,
-        invoke=function()
+      renoise.tool():add_keybinding{name=keyBindingName,invoke=function()
           if device_type == "Native" then
             loadnative(path)
           else
@@ -77,9 +75,7 @@ function loadDeviceFromPreferences()
           end
         end
       }
-      renoise.tool():add_midi_mapping{
-        name = midiMappingName,
-        invoke = function(message)
+      renoise.tool():add_midi_mapping{name=midiMappingName,invoke = function(message)
           if message:is_trigger() then
             if device_type == "Native" then
               loadnative(path)
@@ -148,8 +144,7 @@ function addDeviceAsShortcut()
         print("Adding shortcut for: " .. device_name)
 
         local success, err = pcall(function()
-          renoise.tool():add_keybinding{
-            name = keyBindingName,
+          renoise.tool():add_keybinding{name=keyBindingName,
             invoke=function()
               if device_type == "Native" then
                 loadnative(path)
@@ -158,9 +153,7 @@ function addDeviceAsShortcut()
               end
             end
           }
-          renoise.tool():add_midi_mapping{
-            name = midiMappingName,
-            invoke = function(message)
+          renoise.tool():add_midi_mapping{name=midiMappingName,invoke = function(message)
               if message:is_trigger() then
                 if device_type == "Native" then
                   loadnative(path)
@@ -582,30 +575,13 @@ function showDeviceListDialog()
       vb:text{text = "Device Type: ", font="bold",style="strong"},
       dropdown,action_buttons,random_selection_controls},dialog_content_view}
 
-  custom_dialog = renoise.app():show_custom_dialog("Load Device(s)", dialog_content, my_Devicekeyhandler_func)
+  custom_dialog = renoise.app():show_custom_dialog("Load Device(s)", dialog_content, my_keyhandler_func)
 
   updateDeviceList()
 end
 
-function my_Devicekeyhandler_func(custom_dialog, key)
-  local closer = preferences.pakettiDialogClose.value
-  if key.modifiers == "" and key.name == closer then
-    custom_dialog:close()
-    custom_dialog = nil
-    return nil
-  else
-    return key
-  end
-end
-
 loadDeviceFromPreferences()
-
-
 -------
---[[---------------------------------------------------------------------------
-Quick Load Device Dialog for Paketti
----------------------------------------------------------------------------]]--
-
 local custom_dialog = nil  -- Keep track of dialog state
 
 function showQuickLoadDialog()
@@ -719,11 +695,10 @@ function showQuickLoadDialog()
   end
   
   local content = vb:column {
-    margin = 10,
-    spacing = 10,
-    
+--    margin = 10,
+--    spacing = 10,  
     vb:row {
-      spacing = 10,
+      -- spacing = 10,
       vb:popup {
         id = "device_selector",
         width = 400,
@@ -784,8 +759,7 @@ function showQuickLoadDialog()
   }
   
   -- Create dialog
-  custom_dialog = renoise.app():show_custom_dialog(
-    "Quick Load Device", 
+  custom_dialog = renoise.app():show_custom_dialog("Paketti Quick Load Device", 
     content,
     function(dialog, key)
       local closer = preferences.pakettiDialogClose.value

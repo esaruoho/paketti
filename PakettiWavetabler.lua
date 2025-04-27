@@ -113,6 +113,11 @@ renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Create Rando
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Create Random AKWF Wavetable (128)",invoke=function() create_random_akwf_wavetable(128, false) end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Create Random AKWF Wavetable (256)",invoke=function() create_random_akwf_wavetable(256, false) end}
 
+renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti..:AKWF..:Create Random AKWF Wavetable (032)",invoke=function() create_random_akwf_wavetable(32, false) end}
+renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti..:AKWF..:Create Random AKWF Wavetable (064)",invoke=function() create_random_akwf_wavetable(64, false) end}
+renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti..:AKWF..:Create Random AKWF Wavetable (128)",invoke=function() create_random_akwf_wavetable(128, false) end}
+renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti..:AKWF..:Create Random AKWF Wavetable (256)",invoke=function() create_random_akwf_wavetable(256, false) end}
+
 renoise.tool():add_keybinding{name="Global:Paketti:Create Random AKWF Wavetable (032,loop)",invoke=function() create_random_akwf_wavetable(32, true) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Create Random AKWF Wavetable (064,loop)",invoke=function() create_random_akwf_wavetable(64, true) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Create Random AKWF Wavetable (128,loop)",invoke=function() create_random_akwf_wavetable(128, true) end}
@@ -122,6 +127,12 @@ renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Create Rando
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Create Random AKWF Wavetable (064,loop)",invoke=function() create_random_akwf_wavetable(64, true) end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Create Random AKWF Wavetable (128,loop)",invoke=function() create_random_akwf_wavetable(128, true) end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Create Random AKWF Wavetable (256,loop)",invoke=function() create_random_akwf_wavetable(256, true) end}
+
+renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti..:AKWF..:Create Random AKWF Wavetable (032,loop)",invoke=function() create_random_akwf_wavetable(32, true) end}
+renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti..:AKWF..:Create Random AKWF Wavetable (064,loop)",invoke=function() create_random_akwf_wavetable(64, true) end}
+renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti..:AKWF..:Create Random AKWF Wavetable (128,loop)",invoke=function() create_random_akwf_wavetable(128, true) end}
+renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti..:AKWF..:Create Random AKWF Wavetable (256,loop)",invoke=function() create_random_akwf_wavetable(256, true) end}
+
 
 
 -- Function to calculate and set loop points for a specific cycle index

@@ -885,16 +885,19 @@ if not renoise.tool():has_file_import_hook("sample", {"sf2"}) then
   renoise.tool():add_file_import_hook(hook)
 end
 
-renoise.tool():add_menu_entry {
-  name = "Main Menu:Tools:Import SF2 (Single XRNI per Preset)",
+renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti..:Import .SF2 (Single XRNI per Preset)",
+  invoke = function()
+    local f = renoise.app():prompt_for_filename_to_read({"*.sf2"}, "Select SF2 to import")
+    if f and f ~= "" then import_sf2(f) end end}
+
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Format Importers..:Import SF2 (Single XRNI per Preset)",
   invoke = function()
     local f = renoise.app():prompt_for_filename_to_read({"*.sf2"}, "Select SF2 to import")
     if f and f ~= "" then import_sf2(f) end
   end
 }
 
-renoise.tool():add_menu_entry {
-  name = "Main Menu:Tools:Import SF2 (Multitimbral)",
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Format Importers..:Import SF2 (Multitimbral)",
   invoke = function()
     local f = renoise.app():prompt_for_filename_to_read({"*.sf2"}, "Select SF2 to import (multitimbral)")
     if f and f ~= "" then import_sf2_multitimbral(f) end

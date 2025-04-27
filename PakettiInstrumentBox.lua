@@ -275,23 +275,6 @@ function capture_ins_oct(state)
 end
 
 
------------------------------------------------------------------------------------------------------------
-function emptyslices()
-local w=renoise.app().window
-local si=renoise.song().selected_instrument
-local ss=renoise.song().selected_sample
-local ssi=renoise.song().selected_sample_index
-  ssi=1
-   for i=1,64 do si:insert_sample_at(i) end
-
-   for i=1,64 do renoise.song().selected_instrument.samples[i].name="empty_sampleslot" .. i end
-
- renoise.song().selected_instrument.name=("Empty Sample Slices" .. renoise.song().selected_instrument_index)
- w.active_middle_frame= 3 end
-
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Initialize..:Create 64 Empty Sample Slots",invoke=function() emptyslices() end}
-renoise.tool():add_menu_entry{name="Sample List:Paketti..:Create 64 Empty Sample Slots",invoke=function() emptyslices() end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Create 64 Empty Sample Slots",invoke=function() emptyslices() end}
 --------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Helper function to ensure the required number of instruments exist, with a max limit of 255 (FE)
 local function ensure_instruments_count(count)

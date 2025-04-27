@@ -347,29 +347,17 @@ function show_manual()
       create_variable_row(vb, "tan(x)", "Tangent"),
       create_variable_row(vb, "tanh(x)", "Hyperbolic tangent"),
     },
-  }  -- Show dialog
+  }
 }
 
-  dialog = renoise.app():show_custom_dialog("Paketti Formula Device Manual", content, keyhandlerfunc_formula)
-  
-  -- Ensure focus remains in pattern editor
-  retain_current_view()  -- Instead of forcing pattern editor
+  dialog = renoise.app():show_custom_dialog("Paketti Formula Device Manual", content, my_keyhandler_func)
+  retain_current_view()
 end
 
-function keyhandlerfunc_formula(dialog, key)
-  if key.modifiers == "" and key.name == preferences.pakettiDialogClose.value then
-    dialog:close()
-    retain_current_view()  -- Instead of forcing pattern editor
-    return key
-  end
-  return key
-end
-
-renoise.tool():add_menu_entry {name = "--Main Menu:Tools:Paketti..:Show Paketti Formula Device Manual...",invoke = show_manual}
-renoise.tool():add_menu_entry {name = "--DSP Device:Paketti..:Show Paketti Formula Device Manual...",invoke = show_manual}
-renoise.tool():add_menu_entry {name = "--Mixer:Paketti..:Show Paketti Formula Device Manual...",invoke = show_manual}
-
-renoise.tool():add_keybinding {name = "Global:Paketti:Show Paketti Formula Device Manual...",invoke = show_manual}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Show Paketti Formula Device Manual...",invoke = show_manual}
+renoise.tool():add_menu_entry{name="--DSP Device:Paketti..:Show Paketti Formula Device Manual...",invoke = show_manual}
+renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Show Paketti Formula Device Manual...",invoke = show_manual}
+renoise.tool():add_keybinding{name="Global:Paketti:Show Paketti Formula Device Manual...",invoke = show_manual}
 
 ------
 function add_input_inertia()

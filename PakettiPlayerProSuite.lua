@@ -129,20 +129,8 @@ dialog_content = vb:column{
   }
 }
 
-local function my_PPEffectkeyhandler_func(dialog, key)
-  local closer = preferences.pakettiDialogClose.value
-  if key.modifiers == "" and key.name == closer then
-  dialog:close()
-  dialog=nil
-  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
-  return nil
-else
-  return key
-end
-end
-
 --renoise.app():show_custom_dialog("FX", dialog_content)
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Other Trackers..:Open Player Pro Tools Effect Dialog",invoke=function() renoise.app():show_custom_dialog("FX", dialog_content, my_PPEffectkeyhandler_func) 
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Other Trackers..:Open Player Pro Tools Effect Dialog",invoke=function() renoise.app():show_custom_dialog("FX", dialog_content, my_keyhandler_func) 
 renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 end}
 ---------------
@@ -448,18 +436,6 @@ local EditStepCheckboxValue = false -- Initial value for EditStepCheckbox
   }
 end
 
-
-local function PakettiPlayerProNoteGridKeyHandlerFunc(dialog, key)
-
-local closer = preferences.pakettiDialogClose.value
-  if key.modifiers == "" and key.name == closer then
-dialog:close()
-dialog=nil
-return nil
-else
-  end
-end
-
 function PakettiPlayerProNoteGridShowDropdownGrid()
 renoise.app().window.active_middle_frame=1
 
@@ -468,8 +444,7 @@ renoise.app().window.active_middle_frame=1
     PakettiPlayerProNoteGridCloseDialog()
   else
     print("Dialog is not visible, creating new dialog.")
-    dialog = renoise.app():show_custom_dialog("Player Pro Note Selector with EditStep", PakettiPlayerProNoteGridCreateDialogContent(), --PakettiPlayerProNoteGridKeyHandlerFunc)
- my_PPEffectkeyhandler_func)
+    dialog = renoise.app():show_custom_dialog("Player Pro Note Selector with EditStep", PakettiPlayerProNoteGridCreateDialogContent(),my_keyhandler_func)
     print("Dialog opened.")
     renoise.app():show_status("Opening Paketti PlayerPro Note Dialog")
     -- Return focus to the Pattern Editor
@@ -852,19 +827,7 @@ function pakettiPlayerProShowMainDialog()
     }
   }
 
-  local function my_PPkeyhandler_func(dialog, key)
-  
-local closer = preferences.pakettiDialogClose.value
-  if key.modifiers == "" and key.name == closer then
-dialog:close()
-dialog=nil
-return nil
-else
-
-    return key
-  end
-end
-  dialog = renoise.app():show_custom_dialog("Player Pro Main Dialog", dialog_content, my_PPkeyhandler_func)
+  dialog = renoise.app():show_custom_dialog("Player Pro Main Dialog", dialog_content, my_keyhandler_func)
 end
 
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Other Trackers..:Open Player Pro Tools Dialog...",invoke=pakettiPlayerProShowMainDialog}

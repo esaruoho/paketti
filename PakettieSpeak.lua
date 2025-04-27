@@ -848,7 +848,7 @@ function PakettieSpeakCreateSample(custom_text)
         print("Added new sample slot to current instrument:", sample.name)
 
       elseif eSpeak.clear_all_samples.value then
-        -- Existing Behavior: Clear All Samples and Add One
+        
         instrument = song.selected_instrument
         if not instrument then
           error("No instrument selected")
@@ -869,7 +869,7 @@ function PakettieSpeakCreateSample(custom_text)
         print("Cleared all samples and added new sample:", sample.name)
 
       else
-        -- Existing Behavior: Insert New Instrument and Add Sample
+        
         instrument = song:insert_instrument_at(song.selected_instrument_index + 1)
         song.selected_instrument_index = song.selected_instrument_index + 1
         if not eSpeak.dont_pakettify.value then 

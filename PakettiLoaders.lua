@@ -902,22 +902,13 @@ nativeDeprecatedDevices = {
 -- Generate menu entries for native devices
 for i, device in ipairs(nativeDevices) do
   local device_path = "Audio/Effects/Native/" .. device:gsub(" ", " ")
-  renoise.tool():add_menu_entry{name="DSP Device:Paketti..:Load Renoise Native:" .. device, 
+  renoise.tool():add_menu_entry{name="DSP Device:Paketti..:Load Renoise Native..:" .. device, 
     invoke=function() loadnative(device_path) end
   }
-end
-
--- Generate menu entries for native devices
-for i, device in ipairs(nativeDevices) do
-  local device_path = "Audio/Effects/Native/" .. device:gsub(" ", " ")
-  renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti..:Load Renoise Native:" .. device, 
+  renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti..:Load Renoise Native..:" .. device, 
     invoke=function() loadnative(device_path) end
-  }
-end
-
-for i, device in ipairs(nativeDevices) do
-  local device_path = "Audio/Effects/Native/" .. device:gsub(" ", " ")
-  renoise.tool():add_menu_entry{name="Mixer:Paketti..:Load Renoise Native:" .. device, 
+  }  
+  renoise.tool():add_menu_entry{name="Mixer:Paketti..:Load Renoise Native..:" .. device, 
     invoke=function() loadnative(device_path) end
   }
 end
@@ -926,35 +917,16 @@ end
 for i, device in ipairs(nativeDeprecatedDevices) do
   local device_path = "Audio/Effects/Native/" .. device:gsub(" ", " ")
   local separator = i == 1 and "-- " or ""
-  renoise.tool():add_menu_entry{
-    name = separator .. "DSP Device:Paketti..:Load Renoise Native:(Hidden) " .. device, 
+  renoise.tool():add_menu_entry{name=separator .. "DSP Device:Paketti..:Load Renoise Native..:(Hidden) " .. device, 
+    invoke=function() loadnative(device_path) end
+  }
+  renoise.tool():add_menu_entry{name=separator .. "Sample FX Mixer:Paketti..:Load Renoise Native..:(Hidden) " .. device, 
+    invoke=function() loadnative(device_path) end
+  }
+  renoise.tool():add_menu_entry{name=separator .. "Mixer:Paketti..:Load Renoise Native..:(Hidden) " .. device, 
     invoke=function() loadnative(device_path) end
   }
 end
-
--- Generate menu entries for deprecated devices
-for i, device in ipairs(nativeDeprecatedDevices) do
-  local device_path = "Audio/Effects/Native/" .. device:gsub(" ", " ")
-  local separator = i == 1 and "-- " or ""
-  renoise.tool():add_menu_entry{
-    name = separator .. "Sample FX Mixer:Paketti..:Load Renoise Native:(Hidden) " .. device, 
-    invoke=function() loadnative(device_path) end
-  }
-end
-
-
-for i, device in ipairs(nativeDeprecatedDevices) do
-  local device_path = "Audio/Effects/Native/" .. device:gsub(" ", " ")
-  local separator = i == 1 and "-- " or ""
-  renoise.tool():add_menu_entry{
-    name = separator .. "Mixer:Paketti..:Load Renoise Native:(Hidden) " .. device, 
-    invoke=function() loadnative(device_path) end
-  }
-end
-
-
-
-
 
 ----------------------
 function OpenSelectedEffectExternalEditor()
@@ -1003,7 +975,6 @@ renoise.tool():add_keybinding{name="Global:Paketti:Hide Track DSP Device Externa
       pd.external_editor_visible = false
     end
   end
-
 end}
 
 --------------------------
@@ -1055,7 +1026,6 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Inspect Selected Device",invoke=function() inspectEffect() end}
 renoise.tool():add_menu_entry{name="--DSP Device:Paketti..:Inspect Selected Device",invoke=function() inspectEffect() end}
-
 ------------------------------------------------------------------------------------------------------
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Plugins/Devices..:Debug..:Show Plugin Details Dialog...",invoke=function() show_plugin_details_gui() end}
 
@@ -1190,20 +1160,7 @@ function show_plugin_details_gui()
   vb.views.plugins_list.items = popup_items
 
   -- Dialog management
-  customdialog = renoise.app():show_custom_dialog("Plugin Details", dialog_content, myPluginDetailskeyhandlerfunc)
-end
-
-function myPluginDetailskeyhandlerfunc(dialog,key)
-
-local closer = preferences.pakettiDialogClose.value
-  if key.modifiers == "" and key.name == closer then
-dialog:close()
-dialog=nil
-return nil
-else
-
-    return key
-end
+  customdialog = renoise.app():show_custom_dialog("Plugin Details", dialog_content, my_keyhandler_func)
 end
 -----
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:Debug..:Show Effect Details Dialog...",invoke=function() show_effect_details_gui() end}
@@ -1341,15 +1298,7 @@ function show_effect_details_gui()
   }
 
   -- Show dialog
-  customdialog = renoise.app():show_custom_dialog("Effect Details", dialog_content, keyhandlerfunc_effectdetails)
-end
-
-function keyhandlerfunc_effectdetails(dialog,key)
-  local closer = preferences.pakettiDialogClose.value
-  if key.name == closer then
-    dialog:close()
-  end
-  return key
+  customdialog = renoise.app():show_custom_dialog("Effect Details", dialog_content, my_keyhandler_func)
 end
 
 -- Modulation Device Loader Shortcut Generator
@@ -1430,8 +1379,7 @@ for _, target in ipairs(targets) do
     -- Check if target.display and device are not nil
     if target.display and device then
       local menu_entry_name = string.format("Sample Modulation Matrix:Paketti..:%s %s:%s", target.number, target.display, device)
-      renoise.tool():add_menu_entry{
-        name = menu_entry_name,
+      renoise.tool():add_menu_entry{name=menu_entry_name,
         invoke=function() loadModulationDevice(device, target.target) end
       }
     else
@@ -1445,8 +1393,7 @@ for _, target in ipairs(targets) do
     -- Check if target.display and device are not nil
     if target.display and device then
       local menu_entry_name = string.format("Modulation Set:Paketti..:%s %s:%s", target.number, target.display, device)
-      renoise.tool():add_menu_entry{
-        name = menu_entry_name,
+      renoise.tool():add_menu_entry{name=menu_entry_name,
         invoke=function()
           loadModulationDevice(device, target.target)
         end
@@ -1526,11 +1473,12 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Bypass All Devices on Track",invoke=function() effectbypass() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Enable All Devices on Track",invoke=function() effectenable() end}
 
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Enable All Devices on Track",invoke=function() effectenable() end}
-renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Bypass All Devices on Track",invoke=function() effectbypass() end}
+renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Enable All Devices on Track",invoke=function() effectenable() end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Bypass All Devices on Track",invoke=function() effectbypass() end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Enable All Devices on All Tracks",invoke=function() PakettiAllDevices(true) end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Bypass All Devices on All Tracks",invoke=function() PakettiAllDevices(false) end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Bypass/Enable All Other Track DSP Devices (Toggle)",invoke=function() toggle_bypass_selected_device() end}
+
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Devices..:Enable All Devices on Track",invoke=function() effectenable() end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Devices..:Bypass All Devices on Track",invoke=function() effectbypass() end}
 
@@ -1559,7 +1507,6 @@ renoise.tool():add_midi_mapping{name="Paketti:Enable All Devices on All Tracks",
 
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Devices..:Enable All Devices on All Tracks",invoke=function() PakettiAllDevices(true) end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Devices..:Bypass All Devices on All Tracks",invoke=function() PakettiAllDevices(false) end}
-
 
 -- Utility function to print a formatted list from the provided items
 function printItems(items)
@@ -1922,13 +1869,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Hide Track DSP Device Externa
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Plugins/Devices..:Hide Track DSP Device External Editors for All Tracks",invoke=function() hide_all_external_editors() end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Plugins/Devices..:Bypass All Devices on Track",invoke=function() effectbypass() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:Enable All Devices on Track",invoke=function() effectenable() end}
-
-
 renoise.tool():add_midi_mapping{name="Paketti:Hide Track DSP Device External Editors for All Tracks",invoke=function(message) if message:is_trigger() then  hide_all_external_editors() end end}
-
----------
-
-
 ---------
 -- Function to toggle external editors for all devices in a given device chain
 function ToggleDeviceExternalEditors(device_chain)
@@ -2192,21 +2133,6 @@ function toggleAllExternalPluginEditorsInSong()
   renoise.app():show_status("Toggled all external editors for all plugins in the song")
 end
 
-  -- Keyhandler to close the dialog with exclamation mark
-  function my_RandomizeDeviceskeyhandler_func(dialog, key)
- local closer = preferences.pakettiDialogClose.value
-  if key.modifiers == "" and key.name == closer then
-dialog:close()
-dialog=nil
-return nil
-else
-
-    return key
-  end
-end 
-
-
--- Function to show the combined randomizer dialog
 function openCombinedRandomizerDialog()
   local vb = renoise.ViewBuilder()
   local song = renoise.song()
@@ -2217,9 +2143,6 @@ function openCombinedRandomizerDialog()
   local track_name = track and track.name or "Select a Track"
 --  local instrument_plugin_name = instrument.plugin_properties.plugin_device.name or "Instrument has no Plugin"
 local instrument_plugin_name = instrument.plugin_properties.plugin_device and instrument.plugin_properties.plugin_device.name or "Instrument has no Plugin"
-
-
-
 
   local function save_current_intensity()
     preferences.RandomizeSettings.pakettiRandomizeSelectedDevicePercentage.value = vb.views["randomize_slider_device"].value
@@ -2241,10 +2164,11 @@ local instrument_plugin_name = instrument.plugin_properties.plugin_device and in
   end
 
   local dialog_content = vb:row{
-    margin = 10,
-    vb:column{
+    --margin = 10,
+    vb:column{style="border",
       margin = 10,
-      vb:text{font = "bold", text = "Selected Device"},
+      
+      vb:text{font="bold",style="strong",text="Selected Device"},
       vb:text{id = "device_short_name", font = "bold", text = device_short_name},
       vb:horizontal_aligner{mode = "center", vb:text{text = "Randomization Intensity (%)"}},
       vb:slider{id = "randomize_slider_device", min = 0, max = 100, value = preferences.RandomizeSettings.pakettiRandomizeSelectedDevicePercentage.value, width = 200, notifier = function()
@@ -2294,9 +2218,9 @@ local instrument_plugin_name = instrument.plugin_properties.plugin_device and in
         toggleExternalEditor()
       end}}
     },
-    vb:column{
+    vb:column{style="border",
       margin = 10,
-      vb:text{font = "bold", text = "Selected Track"},
+      vb:text{font = "bold", text = "Selected Track", style="strong"},
       vb:text{id = "track_name_text", font = "bold", text = track_name},
       vb:horizontal_aligner{mode = "center", vb:text{text = "Randomization Intensity (%)"}},
       vb:slider{id = "randomize_slider_track", min = 0, max = 100, value = preferences.RandomizeSettings.pakettiRandomizeAllDevicesPercentage.value, width = 200, notifier = function()
@@ -2348,9 +2272,9 @@ vb:button{text="Run", width=50, notifier=function()
         toggleAllExternalEditorsOnTrack()
       end}}
     },
-    vb:column{
+    vb:column{style="border",
       margin = 10,
-      vb:text{font = "bold", text = "Selected Instrument Plugin"},
+      vb:text{font="bold",style="strong",text="Selected Instrument Plugin"},
       vb:text{id = "plugin_name_text", font = "bold", text = instrument_plugin_name},
       vb:horizontal_aligner{mode = "center", vb:text{text = "Randomization Intensity (%)"}},
       vb:slider{id = "randomize_slider_plugin", min = 0, max = 100, value = preferences.RandomizeSettings.pakettiRandomizeSelectedPluginPercentage.value, width = 200, notifier = function()
@@ -2393,9 +2317,9 @@ end}},
         toggleExternalPluginEditor()
       end}}
     },
-    vb:column{
+    vb:column{style="border",
       margin = 10,
-      vb:text{font = "bold", text = "All Plugins in Song"},
+      vb:text{font="bold",style="strong",text="All Plugins in Song"},
       vb:space{height = 18},
       vb:horizontal_aligner{mode = "center", vb:text{text = "Randomization Intensity (%)"}},
       vb:slider{id = "randomize_slider_all_plugins", min = 0, max = 100, value = preferences.RandomizeSettings.pakettiRandomizeAllPluginsPercentage.value, width = 200, notifier = function()
@@ -2483,9 +2407,6 @@ vb:horizontal_aligner{
     set_user_preference("pakettiRandomizeAllPluginsPercentageUserPreference5", "randomize_slider_all_plugins", "user_preference5_text_all_plugins") 
   end}
 },
-
-
-
       vb:horizontal_aligner{mode = "center", vb:button{text = "Show/Hide All Plugin External Editors", width = 200, notifier = function()
       
       local song = renoise.song()
@@ -2513,14 +2434,7 @@ vb:horizontal_aligner{
     }
   }
 
-  -- Key handler function to toggle keyboard focus
-  local function my_keyhandler_func(dialog, key)
-    renoise.app().window.lock_keyboard_focus = not renoise.app().window.lock_keyboard_focus
-    renoise.app().window.lock_keyboard_focus = not renoise.app().window.lock_keyboard_focus
-    return key
-  end
-
-  local dialog = renoise.app():show_custom_dialog("Randomize Devices and Plugins", dialog_content, my_RandomizeDeviceskeyhandler_func)
+  local dialog = renoise.app():show_custom_dialog("Randomize Devices and Plugins", dialog_content, my_keyhandler_func)
 
 song.selected_instrument_observable:add_notifier(function()
   local new_instrument = song.selected_instrument
@@ -2547,7 +2461,7 @@ end
 ---------
 
 
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Randomize Selected Instrument Plugin Parameters",invoke=function()randomizeSelectedPlugin()end}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Randomize Selected Instrument Plugin Parameters",invoke=function()randomizeSelectedPlugin()end}
 renoise.tool():add_keybinding{name="Global:Paketti:Randomize Selected Plugin",invoke=function()randomizeSelectedPlugin()end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:Randomize Selected Instrument Plugin Parameters",invoke=function()randomizeSelectedPlugin()end}
 
@@ -2685,29 +2599,11 @@ local function show_available_plugins_dialog()
 
   -- Create the dialog
   my_dialog = renoise.app():show_custom_dialog("Debug: Available Plugin Information", vb:column {
-    multiline_field,
-    save_button
-  }, my_AvailPlugkeyhandler_func)
+    multiline_field,save_button},my_keyhandler_func)
 
-end
-
-function my_AvailPlugkeyhandler_func(dialog,key)
-
-local closer = preferences.pakettiDialogClose.value
-  if key.modifiers == "" and key.name == closer then
-dialog:close()
-dialog=nil
-return nil
-else
-
-    return key
-end
 end
 
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Plugins/Devices..:Debug..:Dump VST/VST3/AU/LADSPA/DSSI/Native Effects to Dialog...",invoke=function() show_available_plugins_dialog() end}
-
-
-
 ---
 renoise.tool():add_keybinding{name="Global:Paketti:Clear All TrackDSPs from Current Track",
   invoke=function()
@@ -2755,11 +2651,11 @@ else
 end
 end
 renoise.tool():add_keybinding{name="Global:Paketti:Wipe Phrases on Selected Instrument",invoke=function() wipePhrases() end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Phrases..:Wipe Phrases on Selected Instrument",invoke=function() wipePhrases() end}
-renoise.tool():add_menu_entry{name="Phrase Editor:Paketti..:Wipe Phrases on Selected Instrument",invoke=function() wipePhrases() end}
-renoise.tool():add_menu_entry{name="Phrase Mappings:Paketti..:Wipe Phrases on Selected Instrument",invoke=function() wipePhrases() end}
-renoise.tool():add_menu_entry{name="Phrase Grid:Paketti..:Wipe Phrases on Selected Instrument",invoke=function() wipePhrases() end}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Wipe Phrases on Selected Instrument",invoke=function() wipePhrases() end}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Phrases..:Wipe Phrases on Selected Instrument",invoke=function() wipePhrases() end}
+renoise.tool():add_menu_entry{name="--Phrase Editor:Paketti..:Wipe Phrases on Selected Instrument",invoke=function() wipePhrases() end}
+renoise.tool():add_menu_entry{name="--Phrase Mappings:Paketti..:Wipe Phrases on Selected Instrument",invoke=function() wipePhrases() end}
+
+renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Phrases..:Wipe Phrases on Selected Instrument",invoke=function() wipePhrases() end}
 
 function loadXRNIWipePhrases()
 -- Prompts user to load an .XRNI, loads it into a new instrument, and deletes all phrases
@@ -2803,13 +2699,11 @@ end
 end 
 
 renoise.tool():add_keybinding{name="Global:Paketti:Load XRNI & Wipe Phrases",invoke=function() loadXRNIWipePhrases() end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Phrases..:Load XRNI & Wipe Phrases",invoke=function() loadXRNIWipePhrases() end}
-renoise.tool():add_menu_entry{name="Phrase Editor:Paketti..:Load XRNI & Wipe Phrases",invoke=function() loadXRNIWipePhrases() end}
-renoise.tool():add_menu_entry{name="Phrase Mappings:Paketti..:Load XRNI & Wipe Phrases",invoke=function() loadXRNIWipePhrases() end}
-renoise.tool():add_menu_entry{name="Phrase Grid:Paketti..:Load XRNI & Wipe Phrases",invoke=function() loadXRNIWipePhrases() end}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Load XRNI & Wipe Phrases",invoke=function() loadXRNIWipePhrases() end}
-renoise.tool():add_midi_mapping{name="Paketti:Load XRNI & Wipe Phrases",invoke=function(message) if message:is_trigger() then
- loadXRNIWipePhrases() end end}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Phrases..:Load XRNI & Wipe Phrases",invoke=function() loadXRNIWipePhrases() end}
+renoise.tool():add_menu_entry{name="--Phrase Editor:Paketti..:Load XRNI & Wipe Phrases",invoke=function() loadXRNIWipePhrases() end}
+renoise.tool():add_menu_entry{name="--Phrase Mappings:Paketti..:Load XRNI & Wipe Phrases",invoke=function() loadXRNIWipePhrases() end}
+renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti..:Phrases..:Load XRNI & Wipe Phrases",invoke=function() loadXRNIWipePhrases() end}
+renoise.tool():add_midi_mapping{name="Paketti:Load XRNI & Wipe Phrases",invoke=function(message) if message:is_trigger() then loadXRNIWipePhrases() end end}
 
 function loadXRNIWipePhrasesTwo()
 -- Prompts user to load an .XRNI, loads it into a new instrument, and deletes all phrases
@@ -2853,14 +2747,9 @@ renoise.tool():add_keybinding{name="Global:Paketti:Load XRNI & Disable Phrases",
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Phrases..:Load XRNI & Disable Phrases",invoke=function() loadXRNIWipePhrasesTwo() end}
 renoise.tool():add_menu_entry{name="Phrase Editor:Paketti..:Load XRNI & Disable Phrases",invoke=function() loadXRNIWipePhrasesTwo() end}
 renoise.tool():add_menu_entry{name="Phrase Mappings:Paketti..:Load XRNI & Disable Phrases",invoke=function() loadXRNIWipePhrasesTwo() end}
-renoise.tool():add_menu_entry{name="Phrase Grid:Paketti..:Load XRNI & Disable Phrases",invoke=function() loadXRNIWipePhrasesTwo() end}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Load XRNI & Disable Phrases",invoke=function() loadXRNIWipePhrasesTwo() end}
+renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Phrases..:Load XRNI & Disable Phrases",invoke=function() loadXRNIWipePhrasesTwo() end}
 renoise.tool():add_midi_mapping{name="Paketti:Load XRNI & Disable Phrases",invoke=function(message) if message:is_trigger() then
  loadXRNIWipePhrasesTwo() end end}
-
-
-
-
 
 
 function loadXRNIKeepPhrases()
@@ -2893,18 +2782,30 @@ if not success then
   return -- Exit if the XRNI couldn't be loaded
 end
 
-
-
 -- Show a status message with the instrument name and phrase info
 renoise.app():show_status("Loaded Instrument name: " .. file_path)
 end
+
 renoise.tool():add_keybinding{name="Global:Paketti:Load XRNI & Keep Phrases",invoke=function() loadXRNIKeepPhrases() end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Phrases..:Load XRNI & Keep Phrases",invoke=function() loadXRNIKeepPhrases() end}
 renoise.tool():add_menu_entry{name="Phrase Editor:Paketti..:Load XRNI & Keep Phrases",invoke=function() loadXRNIKeepPhrases() end}
 renoise.tool():add_menu_entry{name="Phrase Mappings:Paketti..:Load XRNI & Keep Phrases",invoke=function() loadXRNIKeepPhrases() end}
-renoise.tool():add_menu_entry{name="Phrase Grid:Paketti..:Load XRNI & Keep Phrases",invoke=function() loadXRNIKeepPhrases() end}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Load XRNI & Keep Phrases",invoke=function() loadXRNIKeepPhrases() end}
+
+renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Phrases..:Load XRNI & Keep Phrases",invoke=function() loadXRNIKeepPhrases() end}
 renoise.tool():add_midi_mapping{name="Paketti:Load XRNI & Keep Phrases",invoke=function(message) if message:is_trigger() then loadXRNIKeepPhrases() end end}
+
+renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti..:Phrases..:Load XRNI & Disable Phrases",invoke=function() loadXRNIWipePhrasesTwo() end}
+renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti..:Phrases..:Load XRNI & Keep Phrases",invoke=function() loadXRNIKeepPhrases() end}
+
+renoise.tool():add_menu_entry{name="Phrase Grid:Paketti..:Wipe Phrases on Selected Instrument",invoke=function() wipePhrases() end}
+renoise.tool():add_menu_entry{name="--Phrase Grid:Paketti..:Load XRNI & Wipe Phrases",invoke=function() loadXRNIWipePhrases() end}
+renoise.tool():add_menu_entry{name="Phrase Grid:Paketti..:Load XRNI & Disable Phrases",invoke=function() loadXRNIWipePhrasesTwo() end}
+renoise.tool():add_menu_entry{name="Phrase Grid:Paketti..:Load XRNI & Keep Phrases",invoke=function() loadXRNIKeepPhrases() end}
+
+renoise.tool():add_menu_entry{name="--Phrase Grid:Paketti..:Open Paketti Init Phrase Dialog...",invoke=function() pakettiPhraseSettingsDialogShow() end}
+renoise.tool():add_menu_entry{name="Phrase Grid:Paketti..:Create New Phrase using Paketti Settings",invoke=function() pakettiInitPhraseSettingsCreateNewPhrase() end}
+renoise.tool():add_menu_entry{name="Phrase Grid:Paketti..:Modify Current Phrase using Paketti Settings",invoke=function() pakettiPhraseSettingsModifyCurrentPhrase() end}
+renoise.tool():add_menu_entry{name="--Phrase Grid:Paketti..:Phrase Follow Pattern Playback Hack",invoke=function() observe_phrase_playhead() end}
 
 -------
 function loadNewWithCurrentSliceMarkers()
@@ -3163,13 +3064,10 @@ function insertMonoToAllTracksEnd()
   renoise.app():show_status("Mono devices added/moved to the end of all tracks")
 end
 
--- Keep the existing keybindings
 renoise.tool():add_keybinding{name="Global:Paketti:Insert Stereo -> Mono device to End of ALL DSP Chains",invoke=function() insertMonoToAllTracksEnd() end}
 renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Insert Stereo -> Mono device to End of ALL DSP Chains",invoke=function() insertMonoToAllTracksEnd() end}
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Insert Stereo -> Mono device to End of ALL DSP Chains",invoke=function() insertMonoToAllTracksEnd() end}
 renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Insert Stereo -> Mono device to End of ALL DSP Chains",invoke=function() insertMonoToAllTracksEnd() end}
-
-
 -----
 -- LFO Shape control functions
 local function get_lfo_device()
@@ -3225,13 +3123,13 @@ local function prev_lfo_shape()
   modify_lfo_shape(prev_value)
 end
 
-renoise.tool():add_keybinding{name = "Global:Paketti:LFO Shape Next",invoke = function() next_lfo_shape() end}
-renoise.tool():add_keybinding{name = "Global:Paketti:LFO Shape Previous",invoke = function() prev_lfo_shape() end}
-renoise.tool():add_keybinding{name = "Global:Paketti:LFO 01 Sinewave",invoke = function() modify_lfo_shape(0) end}
-renoise.tool():add_keybinding{name = "Global:Paketti:LFO 02 Triangle",invoke = function() modify_lfo_shape(1) end}
-renoise.tool():add_keybinding{name = "Global:Paketti:LFO 03 Squarewave",invoke = function() modify_lfo_shape(2) end}
-renoise.tool():add_keybinding{name = "Global:Paketti:LFO 04 Random",invoke = function() modify_lfo_shape(3) end}
-renoise.tool():add_keybinding{name = "Global:Paketti:LFO 05 Custom",invoke = function() modify_lfo_shape(4) end}
+renoise.tool():add_keybinding{name="Global:Paketti:LFO Shape Next",invoke = function() next_lfo_shape() end}
+renoise.tool():add_keybinding{name="Global:Paketti:LFO Shape Previous",invoke = function() prev_lfo_shape() end}
+renoise.tool():add_keybinding{name="Global:Paketti:LFO 01 Sinewave",invoke = function() modify_lfo_shape(0) end}
+renoise.tool():add_keybinding{name="Global:Paketti:LFO 02 Triangle",invoke = function() modify_lfo_shape(1) end}
+renoise.tool():add_keybinding{name="Global:Paketti:LFO 03 Squarewave",invoke = function() modify_lfo_shape(2) end}
+renoise.tool():add_keybinding{name="Global:Paketti:LFO 04 Random",invoke = function() modify_lfo_shape(3) end}
+renoise.tool():add_keybinding{name="Global:Paketti:LFO 05 Custom",invoke = function() modify_lfo_shape(4) end}
 ----------
 -- Get a random device, optionally AU only
 function getRandomDevice(au_only)
@@ -3384,7 +3282,6 @@ renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Insert Random Plugi
 renoise.tool():add_midi_mapping{name="Paketti:Insert Random Plugin (All)", invoke=function(message) if message:is_trigger() then insertRandomPlugin(false) end end }
 renoise.tool():add_midi_mapping{name="Paketti:Insert Random Plugin (AU Only)", invoke=function(message) if message:is_trigger() then insertRandomPlugin(true) end end}
 
--- ... existing code ...
 local auto_open_mode = false
 local current_track_index = nil
 

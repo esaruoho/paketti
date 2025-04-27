@@ -233,3 +233,12 @@ local rx2_integration = {
 if not renoise.tool():has_file_import_hook("sample", { "rx2" }) then
   renoise.tool():add_file_import_hook(rx2_integration)
 end
+
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Format Importers..:Import .RX2",invoke=function() 
+  local filename = renoise.app():prompt_for_filename_to_read({"*.RX2"}, "ReCycle .RX2 Import tool")
+  if filename then rx2_loadsample(filename) end end}
+
+  renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti..:Import .RX2 (ReCycle v2.0 Format)",invoke=function() 
+    local filename = renoise.app():prompt_for_filename_to_read({"*.RX2"}, "ReCycle .RX2 Import tool")
+    if filename then rx2_loadsample(filename) end end}
+  

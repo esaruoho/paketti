@@ -156,8 +156,8 @@ function create_hex_offset_dialog()
     focus_sample_editor()
 end
 
-renoise.tool():add_menu_entry{name = "Sample Editor:Paketti..:Set Selection by Hex Offset...", invoke = create_hex_offset_dialog}
-renoise.tool():add_menu_entry{name = "Sample Editor Ruler:Set Selection by Hex Offset...", invoke = create_hex_offset_dialog}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Set Selection by Hex Offset...", invoke = create_hex_offset_dialog}
+renoise.tool():add_menu_entry{name="Sample Editor Ruler:Set Selection by Hex Offset...", invoke = create_hex_offset_dialog}
 
 function cut_sample_after_selection()
   local song = renoise.song()

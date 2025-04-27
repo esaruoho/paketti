@@ -7,26 +7,6 @@ local selected_theme_index
 local themes_path = renoise.tool().bundle_path .. "Themes/"
 local themes = os.filenames(themes_path, "*.xrnc")
 
-local function pakettiThemeSelectorUpdateKeyHandler(dialog, key)
-local closer = preferences.pakettiDialogClose.value
-  if key.modifiers == "" and key.name == closer then
-dialog:close()
-dialog=nil
-return nil
-end
-
-  if not (key.modifiers == "" and key.name == "esco") then
-    return key
-  else
-    dialog:close()
-    dialog = nil
-    return nil
-  end
-        renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
-
-end
-
-
 -- Ensure FavoritedList is properly initialized
 if not preferences.pakettiThemeSelector:property("FavoritedList") then
   preferences.pakettiThemeSelector:define_property("FavoritedList", renoise.Document { Favorited = renoise.Document.ObservableStringList { "<No Theme Selected>" } })
@@ -468,10 +448,8 @@ function pakettiThemeSelectorDialogShow()
     return
   else
 
-  custom_dialog = renoise.app():show_custom_dialog("Paketti Theme Selector", pakettiThemeSelectorDialogOpen(vb), pakettiThemeSelectorUpdateKeyHandler)
+  custom_dialog = renoise.app():show_custom_dialog("Paketti Theme Selector", pakettiThemeSelectorDialogOpen(vb), my_keyhandler_func)
   pakettiThemeSelectorUpdateFavoritesDropdown(vb)
-          renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
-
 end
 end
 

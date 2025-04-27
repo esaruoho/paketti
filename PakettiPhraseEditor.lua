@@ -115,7 +115,7 @@ function pakettiPhraseSettingsDialogShow()
     "Paketti Phrase Default Settings Dialog",
     vb:column {
       margin = 10,
-      -- "Set Name" Checkbox above the Phrase Name field
+      
       vb:row {
         vb:checkbox {
           id = "set_name_checkbox",
@@ -127,7 +127,7 @@ function pakettiPhraseSettingsDialogShow()
         vb:text {text = "Set Name", width = 150},
       },
       vb:row {
-        vb:text {text = "Phrase Name:", width = 150},
+        vb:text {text = "Phrase Name", width = 150},
         vb:textfield {
           id = "phrase_name_textfield",
           width = 300,
@@ -136,7 +136,7 @@ function pakettiPhraseSettingsDialogShow()
         }
       },
       vb:row {
-        vb:text {text = "Autoseek:", width = 150},
+        vb:text {text = "Autoseek", width = 150},
         vb:switch {
           id = "autoseek_switch",
           width = 300,
@@ -146,7 +146,7 @@ function pakettiPhraseSettingsDialogShow()
         }
       },
       vb:row {
-        vb:text {text = "Volume Column Visible:", width = 150},
+        vb:text {text = "Volume Column Visible", width = 150},
         vb:switch {
           id = "volume_column_visible_switch",
           width = 300,
@@ -156,7 +156,7 @@ function pakettiPhraseSettingsDialogShow()
         }
       },
       vb:row {
-        vb:text {text = "Panning Column Visible:", width = 150},
+        vb:text {text = "Panning Column Visible", width = 150},
         vb:switch {
           id = "panning_column_visible_switch",
           width = 300,
@@ -166,7 +166,7 @@ function pakettiPhraseSettingsDialogShow()
         }
       },
       vb:row {
-        vb:text {text = "Instrument Column Visible:", width = 150},
+        vb:text {text = "Instrument Column Visible", width = 150},
         vb:switch {
           id = "instrument_column_visible_switch",
           width = 300,
@@ -176,7 +176,7 @@ function pakettiPhraseSettingsDialogShow()
         }
       },
       vb:row {
-        vb:text {text = "Delay Column Visible:", width = 150},
+        vb:text {text = "Delay Column Visible", width = 150},
         vb:switch {
           id = "delay_column_visible_switch",
           width = 300,
@@ -186,7 +186,7 @@ function pakettiPhraseSettingsDialogShow()
         }
       },
       vb:row {
-        vb:text {text = "Sample FX Column Visible:", width = 150},
+        vb:text {text = "Sample FX Column Visible", width = 150},
         vb:switch {
           id = "samplefx_column_visible_switch",
           width = 300,
@@ -195,9 +195,21 @@ function pakettiPhraseSettingsDialogShow()
           notifier = function(value) preferences.pakettiPhraseInitDialog.SampleFXColumnVisible.value = (value == 2) end
         }
       },     
-      
       vb:row {
-        vb:text {text = "Visible Note Columns:", width = 150},
+        vb:text {text = "Phrase Looping", width = 150},
+        vb:switch {
+          id = "phrase_looping_switch",
+          width = 300,
+          items = {"Off", "On"},
+          value = preferences.pakettiPhraseInitDialog.PhraseLooping.value and 2 or 1,
+          notifier = function(value) preferences.pakettiPhraseInitDialog.PhraseLooping.value = (value == 2) end
+        }
+      },     
+
+      
+
+      vb:row {
+        vb:text {text = "Visible Note Columns", width = 150},
         vb:switch {
           id = "note_columns_switch",
           width = 300,
@@ -207,7 +219,7 @@ function pakettiPhraseSettingsDialogShow()
         }
       },
       vb:row {
-        vb:text {text = "Visible Effect Columns:", width = 150},
+        vb:text {text = "Visible Effect Columns", width = 150},
         vb:switch {
           id = "effect_columns_switch",
           width = 300,
@@ -217,12 +229,12 @@ function pakettiPhraseSettingsDialogShow()
         }
       },
       vb:row {
-        vb:text {text = "Shuffle:", width = 150},
+        vb:text {text = "Shuffle", width = 150},
         vb:slider {
           id = "shuffle_slider",
           width = 100,
           min = 0,
-          max = 100,
+          max = 50,
           value = preferences.pakettiPhraseInitDialog.Shuffle.value,
           notifier = function(value)
             preferences.pakettiPhraseInitDialog.Shuffle.value = math.floor(value)
@@ -232,24 +244,24 @@ function pakettiPhraseSettingsDialogShow()
         vb:text {id = "shuffle_value", text = tostring(preferences.pakettiPhraseInitDialog.Shuffle.value) .. "%", width = 50}
       },
       vb:row {
-        vb:text {text = "LPB:", width = 150},
+        vb:text {text = "LPB", width = 150},
         vb:valuebox {
           id = "lpb_valuebox",
           min = 1,
           max = 256,
           value = preferences.pakettiPhraseInitDialog.LPB.value,
-          width = 100,
+          width = 60,
           notifier = function(value) preferences.pakettiPhraseInitDialog.LPB.value = value end
         }
       },
       vb:row {
-        vb:text {text = "Length:", width = 150},
+        vb:text {text = "Length", width = 150},
         vb:valuebox {
           id = "length_valuebox",
           min = 1,
           max = 512,
           value = preferences.pakettiPhraseInitDialog.Length.value,
-          width = 100,
+          width = 60,
           notifier = function(value) preferences.pakettiPhraseInitDialog.Length.value = value end
         },
         vb:button {text = "2", notifier = function() vb.views.length_valuebox.value = 2 preferences.pakettiPhraseInitDialog.Length.value = 2 end},
@@ -282,25 +294,34 @@ function pakettiPhraseSettingsDialogShow()
         vb:button {text = "Cancel", width = 100, notifier = function()
           pakettiInitPhraseSettingsDialog:close()
           pakettiInitPhraseSettingsDialog = nil
-        end}
-      }
-    }, pakettiPhraseSettingsKeyHandler
-  )
+        end}}}, pakettiPhraseSettingsKeyHandler)
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Open Paketti Init Phrase Dialog...",invoke=function() pakettiPhraseSettingsDialogShow() end}
-renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Open Paketti Init Phrase Dialog...",invoke=function() pakettiPhraseSettingsDialogShow() end}
-
-renoise.tool():add_menu_entry{name="Phrase Editor:Paketti..:Open Paketti Init Phrase Dialog...",invoke=function() pakettiPhraseSettingsDialogShow() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:!Preferences..:Open Paketti Init Phrase Dialog...",invoke=function() pakettiPhraseSettingsDialogShow() end}
-
 renoise.tool():add_keybinding{name="Global:Paketti:Create New Phrase using Paketti Settings",invoke=function() pakettiInitPhraseSettingsCreateNewPhrase() end}
-renoise.tool():add_menu_entry{name="Phrase Editor:Paketti..:Create New Phrase using Paketti Settings",invoke=function() pakettiInitPhraseSettingsCreateNewPhrase() end}
-renoise.tool():add_midi_mapping{name="Paketti:Create New Phrase Using Paketti Settings",invoke=function() pakettiInitPhraseSettingsCreateNewPhrase() end}
-
 renoise.tool():add_keybinding{name="Global:Paketti:Modify Current Phrase using Paketti Settings",invoke=function() pakettiPhraseSettingsModifyCurrentPhrase() end}
+
+renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Open Paketti Init Phrase Dialog...",invoke=function() pakettiPhraseSettingsDialogShow() end}
+renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Create New Phrase using Paketti Settings",invoke=function() pakettiInitPhraseSettingsCreateNewPhrase() end}
+renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Modify Current Phrase using Paketti Settings",invoke=function() pakettiPhraseSettingsModifyCurrentPhrase() end}
+
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Phrases..:Open Paketti Init Phrase Dialog...",invoke=function() pakettiPhraseSettingsDialogShow() end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Phrases..:Create New Phrase using Paketti Settings",invoke=function() pakettiInitPhraseSettingsCreateNewPhrase() end}
+
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:!Preferences..:Open Paketti Init Phrase Dialog...",invoke=function() pakettiPhraseSettingsDialogShow() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Phrase Editor..:Open Paketti Init Phrase Dialog...",invoke=function() pakettiPhraseSettingsDialogShow() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Phrase Editor..:Create New Phrase using Paketti Settings",invoke=function() pakettiInitPhraseSettingsCreateNewPhrase() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Phrase Editor..:Modify Current Phrase using Paketti Settings",invoke=function() pakettiPhraseSettingsModifyCurrentPhrase() end}
+
+renoise.tool():add_menu_entry{name="--Phrase Editor:Paketti..:Open Paketti Init Phrase Dialog...",invoke=function() pakettiPhraseSettingsDialogShow() end}
+renoise.tool():add_menu_entry{name="Phrase Editor:Paketti..:Create New Phrase using Paketti Settings",invoke=function() pakettiInitPhraseSettingsCreateNewPhrase() end}
 renoise.tool():add_menu_entry{name="Phrase Editor:Paketti..:Modify Current Phrase using Paketti Settings",invoke=function() pakettiPhraseSettingsModifyCurrentPhrase() end}
-renoise.tool():add_midi_mapping{name="Paketti:Modify Current Phrase Using Paketti Settings",invoke=function() pakettiPhraseSettingsModifyCurrentPhrase() end}
+
+
+renoise.tool():add_midi_mapping{name="Paketti:Open Paketti Init Phrase Dialog...",invoke=function(message) if message:is_trigger() then pakettiPhraseSettingsDialogShow() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Create New Phrase Using Paketti Settings",invoke=function(message) if message:is_trigger() then pakettiInitPhraseSettingsCreateNewPhrase() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Modify Current Phrase Using Paketti Settings",invoke=function(message) if message:is_trigger() then pakettiPhraseSettingsModifyCurrentPhrase() end end}
+
 
 
 
@@ -337,13 +358,14 @@ selphra.volume_column_visible=preferences.pakettiPhraseInitDialog.VolumeColumnVi
 selphra.panning_column_visible=preferences.pakettiPhraseInitDialog.PanningColumnVisible.value
 selphra.delay_column_visible=preferences.pakettiPhraseInitDialog.DelayColumnVisible.value
 selphra.sample_effects_column_visible=preferences.pakettiPhraseInitDialog.SampleFXColumnVisible.value
+selphra.looping=preferences.pakettiPhraseInitDialog.PhraseLooping.value
 selphra.instrument_column_visible=preferences.pakettiPhraseInitDialog.InstrumentColumnVisible.value
 selphra.autoseek=preferences.pakettiPhraseInitDialog.Autoseek.value
 selphra.lpb=preferences.pakettiPhraseInitDialog.LPB.value
 selphra.number_of_lines=preferences.pakettiPhraseInitDialog.Length.value
 end
 
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Phrases..:Create Paketti Phrase",invoke=function() createPhrase() end}
+--renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Phrases..:Create Paketti Phrase",invoke=function() createPhrase() end}
 --renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Create Paketti Phrase",invoke=function() createPhrase() end}
 
 --------
@@ -392,9 +414,11 @@ selphra.panning_column_visible=preferences.pakettiPhraseInitDialog.PanningColumn
 selphra.delay_column_visible=preferences.pakettiPhraseInitDialog.DelayColumnVisible.value
 selphra.sample_effects_column_visible=preferences.pakettiPhraseInitDialog.SampleFXColumnVisible.value
 selphra.instrument_column_visible=preferences.pakettiPhraseInitDialog.InstrumentColumnVisible.value
+selphra.looping=preferences.pakettiPhraseInitDialog.PhraseLooping.value
 selphra.autoseek=preferences.pakettiPhraseInitDialog.Autoseek.value
 selphra.lpb=preferences.pakettiPhraseInitDialog.LPB.value
 selphra.number_of_lines=preferences.pakettiPhraseInitDialog.Length.value
+selphra.looping=preferences.pakettiPhraseInitDialog.PhraseLooping.value
 
 local renamephrase_to_index=tostring(renoise.song().selected_phrase_index)
 selphra.name=renamephrase_to_index
@@ -572,8 +596,8 @@ function observe_phrase_playhead()
   end
 end
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Phrase Follow Pattern Playback Hack",invoke=observe_phrase_playhead}
-renoise.tool():add_menu_entry{name="Phrase Editor:Paketti..:Phrase Follow Pattern Playback Hack",invoke=observe_phrase_playhead}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Phrase Editor..:Phrase Follow Pattern Playback Hack",invoke=observe_phrase_playhead}
+renoise.tool():add_menu_entry{name="--Phrase Editor:Paketti..:Phrase Follow Pattern Playback Hack",invoke=observe_phrase_playhead}
 renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Toggle Phrase Follow Pattern Playback Hack",invoke=observe_phrase_playhead}
 renoise.tool():add_keybinding{name="Global:Paketti:Toggle Phrase Follow Pattern Playback Hack",invoke=observe_phrase_playhead}
 ---

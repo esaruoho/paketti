@@ -612,7 +612,7 @@
   local dialog_content = create_dialog()
 
   -- Show the dialog
-  local dialog = renoise.app():show_custom_dialog("GUI Demo", dialog_content, keyhandler_35)
+  local dialog = renoise.app():show_custom_dialog("GUI Demo", dialog_content, my_keyhandler_func)
 
 
 
@@ -624,19 +624,9 @@
   end)
 end
 
-function keyhandler_35(dialog,key)
-  local closer = preferences.pakettiDialogClose.value
-  if key.name == closer then
-    dialog:close()
-  end
-  return key
-end
-
-
 if renoise.API_VERSION >= 6.2 then
 -- Register the tool in Renoise
-renoise.tool():add_menu_entry {
-  name = "--Main Menu:Tools:Paketti..:V3.5..:Example Tool...",
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:V3.5..:Example Tool...",
   invoke = function()
     if renoise.API_VERSION >= 6.2 then
       show_gui_demo()

@@ -79,12 +79,13 @@ local function create_dialog_content(closeLA_dialog)
     smart_folder_paths = {}
 
     return vb:column{
-        margin=10,
+        --margin=10,
         --spacing=10,
+        vb:column{style="group",
         width=900,
         vb:row{vb:text{text="App Selection", font="bold", style="strong"}},
         vb:row{
-            spacing=10,
+          --  spacing=10,
             vb:button{
                 text="Browse",
                 notifier=function() appSelectionBrowseForApp(1) end
@@ -100,14 +101,13 @@ local function create_dialog_content(closeLA_dialog)
                 local path = vb:text{
                     text=(preferences.AppSelection.AppSelection1.value ~= "" and preferences.AppSelection.AppSelection1.value or "None"),
                     width=600,
-                    font="bold"
-                }
+                    font="bold", style="strong"}
                 app_paths[1] = path
                 return path
             end)()
         },
         vb:row{
-            spacing=10,
+           -- spacing=10,
             vb:button{
                 text="Browse",
                 notifier=function() appSelectionBrowseForApp(2) end
@@ -123,14 +123,13 @@ local function create_dialog_content(closeLA_dialog)
                 local path = vb:text{
                     text=(preferences.AppSelection.AppSelection2.value ~= "" and preferences.AppSelection.AppSelection2.value or "None"),
                     width=600,
-                    font="bold"
-                }
+                    font="bold",style="strong"}
                 app_paths[2] = path
                 return path
             end)()
         },
         vb:row{
-            spacing=10,
+         --   spacing=10,
             vb:button{
                 text="Browse",
                 notifier=function() appSelectionBrowseForApp(3) end
@@ -146,14 +145,13 @@ local function create_dialog_content(closeLA_dialog)
                 local path = vb:text{
                     text=(preferences.AppSelection.AppSelection3.value ~= "" and preferences.AppSelection.AppSelection3.value or "None"),
                     width=600,
-                    font="bold"
-                }
+                    font="bold",style="strong"}
                 app_paths[3] = path
                 return path
             end)()
         },
         vb:row{
-            spacing=10,
+         --   spacing=10,
             vb:button{
                 text="Browse",
                 notifier=function() appSelectionBrowseForApp(4) end
@@ -169,14 +167,13 @@ local function create_dialog_content(closeLA_dialog)
                 local path = vb:text{
                     text=(preferences.AppSelection.AppSelection4.value ~= "" and preferences.AppSelection.AppSelection4.value or "None"),
                     width=600,
-                    font="bold"
-                }
+                    font="bold",style="strong"}
                 app_paths[4] = path
                 return path
             end)()
         },
         vb:row{
-            spacing=10,
+         --   spacing=10,
             vb:button{
                 text="Browse",
                 notifier=function() appSelectionBrowseForApp(5) end
@@ -192,14 +189,13 @@ local function create_dialog_content(closeLA_dialog)
                 local path = vb:text{
                     text=(preferences.AppSelection.AppSelection5.value ~= "" and preferences.AppSelection.AppSelection5.value or "None"),
                     width=600,
-                    font="bold"
-                }
+                    font="bold",style="strong"}
                 app_paths[5] = path
                 return path
             end)()
         },
         vb:row{
-            spacing=10,
+           -- spacing=10,
             vb:button{
                 text="Browse",
                 notifier=function() appSelectionBrowseForApp(6) end
@@ -215,15 +211,15 @@ local function create_dialog_content(closeLA_dialog)
                 local path = vb:text{
                     text=(preferences.AppSelection.AppSelection6.value ~= "" and preferences.AppSelection.AppSelection6.value or "None"),
                     width=600,
-                    font="bold"
-                }
+                    font="bold",style="strong"}
                 app_paths[6] = path
                 return path
             end)()
-        },
+        }},
+        vb:column{style="group",width=900,
         vb:row{vb:text{text="Smart Folders / Backup Folders", font="bold", style="strong"}},
         vb:row{
-            spacing=10,
+         --   spacing=10,
             vb:button{
                 text="Browse",
                 notifier=function() browseForSmartFolder(1) end
@@ -235,25 +231,17 @@ local function create_dialog_content(closeLA_dialog)
                 end,
                 width=200
             },
-            vb:button{
-                text="Save All Samples to Folder",
-                notifier=function() 
-                    saveSamplesToSmartFolder(1) 
-                end,
-                width=200
-            },
+            vb:button{text="Save All Samples to Folder",notifier=function() saveSamplesToSmartFolder(1) end,width=200},
             (function()
                 local path = vb:text{
                     text=(preferences.AppSelection.SmartFoldersApp1.value ~= "" and preferences.AppSelection.SmartFoldersApp1.value or "None"),
-                    width=600,
-                    font="bold"
-                }
+                    width=600,font="bold", style="strong"}
                 smart_folder_paths[1] = path
                 return path
             end)()
         },
         vb:row{
-            spacing=10,
+          --  spacing=10,
             vb:button{
                 text="Browse",
                 notifier=function() browseForSmartFolder(2) end
@@ -275,15 +263,13 @@ local function create_dialog_content(closeLA_dialog)
             (function()
                 local path = vb:text{
                     text=(preferences.AppSelection.SmartFoldersApp2.value ~= "" and preferences.AppSelection.SmartFoldersApp2.value or "None"),
-                    width=600,
-                    font="bold"
-                }
+                    width=600,font="bold",style="strong"}
                 smart_folder_paths[2] = path
                 return path
             end)()
         },
         vb:row{
-            spacing=10,
+         --   spacing=10,
             vb:button{
                 text="Browse",
                 notifier=function() browseForSmartFolder(3) end
@@ -305,13 +291,11 @@ local function create_dialog_content(closeLA_dialog)
             (function()
                 local path = vb:text{
                     text=(preferences.AppSelection.SmartFoldersApp3.value ~= "" and preferences.AppSelection.SmartFoldersApp3.value or "None"),
-                    width=600,
-                    font="bold"
-                }
+                    width=600,font="bold",style="strong"}
                 smart_folder_paths[3] = path
                 return path
             end)()
-        },
+        }},
         vb:button{
             text="OK",
             notifier=function()
@@ -323,22 +307,6 @@ local function create_dialog_content(closeLA_dialog)
     }
 end
 
-function my_appSelection_keyhandlerfunc(dialog,key)
-    local closer = preferences.pakettiDialogClose.value
-    if key.modifiers == "" and key.name == closer then
-     dialog:close()
-     return end
-     
-      if key.name == "!" then
-        dialog:close()
-  --      renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
-      else
-        return key
-      end
-  end
-
-
--- Show the dialog
 function show_app_selection_dialog()
     if dialog and dialog.visible then 
         dialog:close()
@@ -349,10 +317,8 @@ function show_app_selection_dialog()
     dialog = renoise.app():show_custom_dialog("App Selection & Smart Folders / Backup Folders", create_dialog_content(function()
         dialog:close()
         appSelectionUpdateMenuEntries() 
-    end), my_appSelection_keyhandlerfunc)
+    end), my_keyhandler_func)
 end
-
---renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:App Selection & Smart Folders",invoke=show_app_selection_dialog}
 
 for i=1, 6 do
   local app_path = preferences.AppSelection["AppSelection"..i].value
@@ -383,24 +349,42 @@ for i=1, 6 do
       }
   end
 end
- 
+
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Paketti PitchBend Multiple Sample Loader",invoke=function() pitchBendMultipleSampleLoader() end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Paketti PitchBend Drumkit Sample Loader",invoke=function() pitchBendDrumkitLoader() end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Paketti PitchBend Drumkit Sample Loader (Random)",invoke=function() loadRandomDrumkitSamples(120) end}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Load Drumkit with Overlap Random",invoke=function() pitchBendDrumkitLoader() DrumKitToOverlay(2) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Load Drumkit with Overlap Cycle",invoke=function() pitchBendDrumkitLoader() DrumKitToOverlay(1) end}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Fill Empty Sample Slots (Randomized Folder)",invoke = function() fillEmptySampleSlots() end}
+
 for i=1, 3 do
     renoise.tool():add_keybinding{name="Global:Paketti:Save Sample to Smart/Backup Folder " .. i,invoke=function() saveSampleToSmartFolder(i) end }
-    renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Save Sample to Smart/Backup Folder " .. i,invoke=function() saveSampleToSmartFolder(i) end }
+    renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Save..:Save Sample to Smart/Backup Folder " .. i,invoke=function() saveSampleToSmartFolder(i) end }
+    renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Save..:Save Sample to Smart/Backup Folder " .. i,invoke=function() saveSampleToSmartFolder(i) end }
     renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Save..:Save Sample to Smart/Backup Folder " .. i,invoke=function() saveSampleToSmartFolder(i) end }
     renoise.tool():add_midi_mapping{name="Paketti:Save Sample to Smart/Backup Folder " .. i,invoke=function(message) if message:is_trigger() then saveSampleToSmartFolder(i) end end}
 end
 
 for i=1, 3 do
     renoise.tool():add_keybinding{name="Global:Paketti:Save All Samples to Smart/Backup Folder " .. i,invoke=function() saveSamplesToSmartFolder(i) end}
-    renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Save All Samples to Smart/Backup Folder " .. i,invoke=function() saveSamplesToSmartFolder(i) end }
-    renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Save All Samples to Smart/Backup Folder " .. i,invoke=function() saveSamplesToSmartFolder(i) end }
+    renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Save..:Save All Samples to Smart/Backup Folder " .. i,invoke=function() saveSamplesToSmartFolder(i) end }
+    renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Save..:Save All Samples to Smart/Backup Folder " .. i,invoke=function() saveSamplesToSmartFolder(i) end }
+    renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Save..:Save All Samples to Smart/Backup Folder " .. i,invoke=function() saveSamplesToSmartFolder(i) end }
     renoise.tool():add_midi_mapping{name="Paketti:Save All Samples to Smart/Backup Folder " .. i,invoke=function(message)
     if message:is_trigger() then saveSamplesToSmartFolder(i) end end}
 end
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Save..:Save Unused Samples (.WAV&.XRNI)...",invoke=function() saveUnusedSamples() end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Save..:Save Unused Instruments (.XRNI)...",invoke=function() saveUnusedInstruments() end}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Save..:Save All Samples to Folder...",invoke=function() saveAllSamplesToFolder() end}
 
-
-
+renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Save..:Paketti Save Selected Sample .WAV",invoke=function() pakettiSaveSample("WAV") end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Save..:Paketti Save Selected Sample .FLAC",invoke=function() pakettiSaveSample("FLAC") end}
+renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti..:Save..:Paketti Save Selected Sample .WAV",invoke=function() pakettiSaveSample("WAV") end}
+renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Save..:Paketti Save Selected Sample .FLAC",invoke=function() pakettiSaveSample("FLAC") end}
+renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Save..:Save All Samples to Folder...",invoke = function() saveAllSamplesToFolder() end}
+renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti..:Save..:Save All Samples to Folder...",invoke = function() saveAllSamplesToFolder() end}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Delete Unused Instruments...",invoke=function() deleteUnusedInstruments() end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Delete Unused Samples...",invoke=function() deleteUnusedSamples() end}
 ----------------
 -- Function to save selected sample to the specified Smart Folder
 function saveSampleToSmartFolder(index)
@@ -504,7 +488,6 @@ function appSelectionLaunchApp(app_path)
   renoise.app():show_status("Launched app " .. app_path:match("([^/\\]+)%.app$"))
 end
 
--- Function to remove existing menu entries
 function appSelectionRemoveMenuEntries()
   for _, entry in ipairs(added_menu_entries) do
     if renoise.tool():has_menu_entry(entry) then
@@ -535,34 +518,33 @@ function appSelectionCreateMenuEntries()
 local prefix = (i == 1) and "--" or ""  -- Add prefix only for first item
   
 local app_name = app_path:match("([^/\\]+)%.app$") or app_path:match("([^/\\]+)$")
-      local menu_entry_name = prefix .. "Instrument Box:Paketti..:Launch App..:Launch App "..i.." "..app_name
+      local menu_entry_name = "Instrument Box:Paketti..:Launch App..:Launch App "..i.." "..app_name
       if not renoise.tool():has_menu_entry(menu_entry_name) then
         renoise.tool():add_menu_entry{name=menu_entry_name,invoke=function() appSelectionLaunchApp(app_path) end}
         table.insert(added_menu_entries, menu_entry_name)
       end
 
-      menu_entry_name = prefix .. "Main Menu:Tools:Paketti..:Launch App..:Launch App "..i.." "..app_name
+      menu_entry_name = "Main Menu:Tools:Paketti..:Launch App..:Launch App "..i.." "..app_name
       if not renoise.tool():has_menu_entry(menu_entry_name) then
         renoise.tool():add_menu_entry{name=menu_entry_name,
           invoke=function() appSelectionLaunchApp(app_path) end
         }
         table.insert(added_menu_entries, menu_entry_name)
       end
-      menu_entry_name = prefix .."Sample Navigator:Paketti..:Launch App..:Launch App "..i.." "..app_name
+      menu_entry_name = "Sample Navigator:Paketti..:Launch App..:Launch App "..i.." "..app_name
       if not renoise.tool():has_menu_entry(menu_entry_name) then
         renoise.tool():add_menu_entry{name=menu_entry_name,
           invoke=function() appSelectionLaunchApp(app_path) end
         }
         table.insert(added_menu_entries, menu_entry_name)
       end
-      menu_entry_name = prefix .. "Sample Editor:Paketti..:Launch App..:Launch App "..i.." "..app_name
+      menu_entry_name = "Sample Editor:Paketti..:Launch App..:Launch App "..i.." "..app_name
       if not renoise.tool():has_menu_entry(menu_entry_name) then
         renoise.tool():add_menu_entry{name=menu_entry_name,
           invoke=function() appSelectionLaunchApp(app_path) end
         }
         table.insert(added_menu_entries, menu_entry_name)
       end
-
     end
   end
 

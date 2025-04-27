@@ -168,48 +168,27 @@ vb:horizontal_aligner{mode="distribute",
       vb:button{text = donations[12+1][4][1], notifier = function() renoise.app():open_url(donations[12+1][4][2]) end},
       vb:button{text = donations[12+1][5][1], notifier = function() renoise.app():open_url(donations[12+1][5][2]) end}}
     },
-    
-
     vb:space{height = 5},
     vb:horizontal_aligner{mode="distribute",
     vb:text{text = "Total: " .. string.format("%.2f", total_amount) .. "€", font = "bold"}}
   },
-  vb:horizontal_aligner{mode="distribute",vb:text{text = "Support Paketti", style = "strong", font = "bold"}},
-
-  vb:horizontal_aligner{
-    mode = "distribute",
-    vb:button{text = "Become a Patron at Patreon", notifier = function() renoise.app():open_url("https://patreon.com/esaruoho") end},
-    vb:button{text = "Send a donation via PayPal", notifier = function() renoise.app():open_url("https://www.paypal.com/donate/?hosted_button_id=PHZ9XDQZ46UR8") end},
-    vb:button{text = "Support via Ko-Fi", notifier = function() renoise.app():open_url("https://ko-fi.com/esaruoho") end},
-    vb:button{text = "Become a GitHub Sponsor", notifier = function() renoise.app():open_url("https://github.com/sponsors/esaruoho") end},
-    vb:button{text = "Onetime purchase from Gumroad", notifier=function() renoise.app():open_url("https://lackluster.gumroad.com/l/paketti") end},
-    vb:button{text = "Purchase Music via Bandcamp", notifier = function() renoise.app():open_url("http://lackluster.bandcamp.com/") end},
-    vb:button{text = "Linktr.ee", notifier = function() renoise.app():open_url("https://linktr.ee/esaruoho") end}
-  },
-
+  vb:horizontal_aligner{mode="distribute",vb:text{text="Support Paketti",style="strong",font="bold"}},
+  vb:horizontal_aligner{mode="distribute",
+    vb:button{text="Become a Patron at Patreon",notifier=function() renoise.app():open_url("https://patreon.com/esaruoho") end},
+    vb:button{text="Send a donation via PayPal",notifier=function() renoise.app():open_url("https://www.paypal.com/donate/?hosted_button_id=PHZ9XDQZ46UR8") end},
+    vb:button{text="Support via Ko-Fi",notifier=function() renoise.app():open_url("https://ko-fi.com/esaruoho") end},
+    vb:button{text="Become a GitHub Sponsor",notifier=function() renoise.app():open_url("https://github.com/sponsors/esaruoho") end},
+    vb:button{text="Onetime purchase from Gumroad",notifier=function() renoise.app():open_url("https://lackluster.gumroad.com/l/paketti") end},
+    vb:button{text="Purchase Music via Bandcamp",notifier=function() renoise.app():open_url("http://lackluster.bandcamp.com/") end},
+    vb:button{text="Linktr.ee", notifier=function() renoise.app():open_url("https://linktr.ee/esaruoho") end}},
   vb:space{height = 20},
-  vb:horizontal_aligner{mode = "distribute",
-    vb:button{text = "OK", notifier = function() dialog:close() end},
-    vb:button{text = "Cancel", notifier = function() dialog:close() end}
-  }
-}
-
-local function my_keyhandler_func(dialog, key)
-local closer = preferences.pakettiDialogClose.value
-  if key.modifiers == "" and key.name == closer then
-    dialog:close()
-    dialog = nil
-    return nil
-else
-    return key
-  end
-end
+  vb:horizontal_aligner{mode="distribute",
+    vb:button{text="OK",notifier=function() dialog:close() end},
+    vb:button{text="Cancel",notifier=function() dialog:close() end}}}
 
 function show_about_dialog()
-  if dialog and dialog.visible then
-    dialog:close() -- Close the dialog if it's open
-  else
-    dialog = renoise.app():show_custom_dialog("About Paketti / Donations, written by Esa Juhani Ruoho (C) 2009-2025", dialog_content, my_keyhandler_func)
+  if dialog and dialog.visible then dialog:close() else
+  dialog = renoise.app():show_custom_dialog("About Paketti / Donations, written by Esa Juhani Ruoho (C) 2009-2025", dialog_content, my_keyhandler_func)
   end
 end
 
@@ -217,6 +196,7 @@ renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:!!About..:About 
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:!Preferences..:Open Paketti Path",invoke=function() renoise.app():open_path(renoise.tool().bundle_path)end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:Debug..:Inspect Plugin (Console)",invoke=function() inspectPlugin() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:Debug..:Inspect Selected Device (Console)",invoke=function() inspectEffect() end}
+----------
 function randomBPM()
   local bpmList = {80, 100, 115, 123, 128, 132, 135, 138, 160}
   local currentBPM = renoise.song().transport.bpm
@@ -299,53 +279,100 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:
 local vb = renoise.ViewBuilder()
 local dialog_instance = nil
 
+local button_list = {
+  {"About Paketti/Donations", "show_about_dialog"},
+  {"Paketti Preferences", "show_paketti_preferences"},
+  {"Theme Selector", "pakettiThemeSelectorDialogShow"},
+  {"Gater", "pakettiGaterDialog"},
+  {"Effect Column CheatSheet", "CheatSheet"},
+  {"Phrase Init Dialog", "pakettiPhraseSettingsDialogShow"},
+  {"Dynamic Views 1-4", function() showDynamicViewDialog(1,4) end},
+  {"Dynamic Views 5-8", function() showDynamicViewDialog(5,8) end},
+  {"Automation Value Dialog", "show_value_dialog"},
+  {"Merge Instruments", "mergeInstrumentsDialog"},
+  {"Paketti Track DSP Device & Instrument Loader", "show_paketti_device_chain_dialog"},
+  {"Paketti Volume/Delay/Pan Slider Controls", "show_VDPdialog"},
+  {"Paketti Global Volume Adjustment", "show_global_volume_dialog"},
+  {"Paketti Offset Dialog", "pakettiOffsetDialog"},
+  {"PitchStepper Demo", "show_pitchstepper_dialog"},
+  {"Value Interpolation Looper Dialog", "pakettiVolumeInterpolationLooper"},
+  {"MIDI Populator", "generaMIDISetupShowCustomDialog"},
+  {"New Song Dialog", "show_new_song_dialog"},
+  {"Paketti Stacker", function() showStackingDialog(proceed_with_stacking) end},
+  {"SlotShow", "PakettiUserPreferencesShowerDialog"},
+  {"Configure Launch App Selection/Paths", "show_app_selection_dialog"},
+  {"Paketti KeyBindings", "showPakettiKeyBindingsDialog"},
+  {"Renoise KeyBindings", "showRenoiseKeyBindingsDialog"},
+  {"Find Free KeyBindings", "show_free_keybindings_dialog"},
+  {"TimeStretch Dialog", "create_timestretch_dialog"},
+  {"Fuzzy Search Track", "show_track_search_dialog"},
+  {"Keyzone Distributor", "show_keyzone_distributor"},
+  {"Paketti Formula Device Manual", "show_manual"},
+  {"Paketti Pattern/Phrase Length Dialog", "show_length_dialog"},
+  {"Paketti EQ10 XY Control Dialog", "show_eq10_dialog"},
+  {"EditStep Dialog", "show_edit_step_dialog"},
+  {"Switch Note Instrument Dialog", "show_note_mapping_dialog"},
+  {"Show Largest Samples", "ShowLargestSamples"},
+  {"Beat Structure Editor", "showTimeSignatureDialog"},
+  {"Paketti XRNS Probe", "PakettiXRNSProbeShowDialog"},
+  {"Audio Processing", "PakettiAudioProcessingToolsDialogShow"},
+  {"eSpeak Text-to-Speech", "PakettieSpeakToggleDialog"},
+  {"YT-DLP Downloader", "PakettiYTDLPShowDialog"},
+  {"User-Defined Sample Folders", "PakettiUserDefinedSamplesShowDialog"},
+  {"Output Routings", "trackOutputRoutingsGUI_create"},
+  {"Convolver Dialog", "show_convolver_selection_dialog"},
+  {"Oblique Strategies", "pakettiObliqueStrategiesDialog"},
+  {"Quick Load Device", "showQuickLoadDialog"},
+  {"Native/VST/VST3/AU Devices", "showDeviceListDialog"},
+  {"VST/VST3/AU Plugins", "showPluginListDialog"},
+  {"Randomize Plugins/Devices", "openCombinedRandomizerDialog"},
+  {"Track Renamer", "PakettiTrackRenamerDialog"},
+  {"Track Dater / Titler", "PakettiTitlerDialog"},
+  {"Paketti Action Selector", "ActionSelectorDialog"},
+  {"Squiggler", "squigglerdialog"},
+  {"Paketti Groovebox 8120", "PakettiEightSlotsByOneTwentyDialog"},
+  {"Midi Mappings", "show_midi_mappings_dialog"}
+}
+
+-- Function to create buttons from the list
 local function create_paketti_dialog()
-  local dialog_content = vb:column{margin=10,
-    vb:column{style="group",margin=5,
-      vb:row{
-        vb:button{text="About Paketti/Donations...", width=50, notifier=function() show_about_dialog() end},      
-        vb:button{text="Theme Selector", width=120, notifier=function() pakettiThemeSelectorDialogShow() end},
-        vb:button{text="Gater", width=80, notifier=function()
-          local max_rows = renoise.song().selected_pattern.number_of_lines
-          if renoise.song() then
-            pakettiGaterDialog()
-            renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
-          end
-        end},
-        vb:button{text="Effect Column CheatSheet", width=120, notifier=function() CheatSheet() end},
-        vb:button{text="Phrase Init Dialog", width=120, notifier=function() pakettiPhraseSettingsDialogShow() end},
-        vb:button{text="MIDI Populator", width=100, notifier=function() generaMIDISetupShowCustomDialog() end},
-        vb:button{text="KeyBindings", width=50, notifier=function() showPakettiKeyBindingsDialog() end},
-        vb:button{text="Midi Mappings", width=50, notifier=function() show_midi_mappings_dialog() end},
-        vb:button{text="Audio Processing", width=50, notifier=function() PakettiAudioProcessingToolsDialogShow() end },
-        vb:button{text="eSpeak TTS", width=50, notifier=function() PakettieSpeakToggleDialog() end },
-        vb:button{text="Coluga", width=50, notifier=function() PakettiYTDLPShowDialog() end },
-        vb:button{text="Output Routings", width=50, notifier=function() trackOutputRoutingsGUI_create() end },
-        vb:button{text="Convolver Dialog", width=50, notifier=function() show_convolver_selection_dialog() end }},
-       
-      vb:row{
-        vb:button{text="Oblique Strategies", width=50, notifier=function() create_oblique_strategies_dialog() end},
-        vb:button{text="Native/VST/VST3/AU/LADSPA/DSSI/ Devices", width=50, notifier=function() showDeviceListDialog() end},
-        vb:button{text="VST/VST3/AU Plugins", width=50, notifier=function() showPluginListDialog() end},
-        vb:button{text="Randomize Plugins/Devices", width=50, notifier=function() openCombinedRandomizerDialog() end},
-        vb:button{text="Configure Launch App Selection/Paths", width=50, notifier=function() show_app_selection_dialog() end},
-        vb:button{text="Renoise KeyBindings", width=50, notifier=function() showRenoiseKeyBindingsDialog()end},
-        vb:button{text="Track Renamer", width=50, notifier=function() PakettiTrackRenamerDialog() end},
-        vb:button{text="Track Dater / Titler", width=50, notifier=function() PakettiTrackDaterTitlerDialog() end}}, vb:row{
-        vb:button{text="Paketti Preferences", width=50, notifier=function() show_paketti_preferences() end},
-        vb:button{text="Squiggler", width=50, notifier=function() squigglerdialog() end},
-        vb:button{text="Paketti Groovebox 8120", width=50, notifier=function()   if dialog and dialog.visible then
-    dialog:close()
-    dialog = nil
-    rows = {}
-  else PakettiEightSlotsByOneTwentyDialog() end end}
-      }}}
-  return dialog_content
+  local buttons_per_row = 7
+  local rows = {}
+  local current_row = {}
+  
+  for i, button_def in ipairs(button_list) do
+    local name, func = button_def[1], button_def[2]
+    table.insert(current_row, vb:button{
+      text = name,
+      width = 120,
+      notifier = type(func) == "function" and func or function()
+        local global_func = _G[func]
+        if global_func then global_func() end
+      end
+    })
+    
+    if #current_row == buttons_per_row then
+      table.insert(rows, vb:row(current_row))
+      current_row = {}
+    end
+  end
+  
+  if #current_row > 0 then
+    table.insert(rows, vb:row(current_row))
+  end
+  
+  return vb:column{
+    margin = 5,
+    vb:column{
+      style = "group",
+      margin = 5,
+      unpack(rows)
+    }
+  }
 end
 
 local function toggle_paketti_dialog()
   if dialog_instance and dialog_instance.visible then
-
     dialog_instance:close()
     dialog_instance = nil
   else

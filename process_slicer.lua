@@ -125,8 +125,7 @@ function ProcessSlicer:create_dialog(title)
     }
   }
   
-  dialog = renoise.app():show_custom_dialog(
-    title or "Processing...", dialog_content)
+  dialog = renoise.app():show_custom_dialog(title or "Processing...", dialog_content)
     
   return dialog, vb
 end 

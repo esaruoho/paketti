@@ -8,9 +8,6 @@ local dialog = nil
 local results_textfield = nil
 local show_browse = true
 
---------------------------------------------------------------------------------
--- Utility Functions
---------------------------------------------------------------------------------
 
 function PakettiXRNSProbeAppendText(text)
   if not dialog or not results_textfield then return end
@@ -26,10 +23,6 @@ function PakettiXRNSProbeSetText(text)
   if not dialog or not results_textfield then return end
   results_textfield.text = text
 end
-
---------------------------------------------------------------------------------
--- Main Dialog Creation
---------------------------------------------------------------------------------
 
 function PakettiXRNSProbeShowDialog(mode)
   if dialog and dialog.visible then
@@ -99,10 +92,7 @@ function PakettiXRNSProbeShowDialog(mode)
     }
   }
 
-  dialog = renoise.app():show_custom_dialog(
-    "Paketti XRNS Probe", 
-    dialog_content
-  )
+  dialog = renoise.app():show_custom_dialog("Paketti XRNS Probe", dialog_content)
   
   results_textfield = vb.views.results
 
@@ -114,10 +104,6 @@ function PakettiXRNSProbeShowDialog(mode)
   end
 end
 
-
---------------------------------------------------------------------------------
--- Current Song Analysis
---------------------------------------------------------------------------------
 function PakettiXRNSProbeAnalyzeCurrentSong()
   local song = renoise.song()
   if not song then
@@ -281,11 +267,13 @@ function PakettiXRNSProbeAnalyzeInstrument(instr, instr_idx)
   if #instr.samples > 0 then
     for sample_idx, sample in ipairs(instr.samples) do
       if sample and sample.sample_buffer then
-        PakettiXRNSProbeAppendText(string.format("Instrument %02X Sample: %s\n", 
-          instr_idx, sample.name))
-        PakettiXRNSProbeAppendText(string.format("    Channels: %s\n", 
+        PakettiXRNSProbeAppendText(string.format("Instrument %02X Sample: %03d: %s ", 
+          instr_idx, sample_idx, sample.name))
+        PakettiXRNSProbeAppendText(string.format("[%s, ", 
           sample.sample_buffer.number_of_channels == 1 and "Mono" or "Stereo"))
-        PakettiXRNSProbeAppendText(string.format("    Size: %s frames\n", 
+        PakettiXRNSProbeAppendText(string.format("%s-Bit, ",
+          tostring(sample.sample_buffer.bit_depth)))
+        PakettiXRNSProbeAppendText(string.format("Size: %s frames]\n", 
           tostring(sample.sample_buffer.number_of_frames):reverse():gsub("(%d%d%d)", "%1,"):reverse():gsub("^,", "")))
       end
     end
@@ -375,9 +363,6 @@ function PakettiXRNSProbeAnalyzeTrackDevices(track)
     end
   end
 end
---------------------------------------------------------------------------------
--- XRNS File Analysis
---------------------------------------------------------------------------------
 
 function PakettiXRNSProbeBrowseAndAnalyzeXRNS()
   print("DEBUG: Starting Browse and Analyze function")
@@ -879,9 +864,6 @@ function PakettiXRNSProbeAnalyzeXRNSTrack(track_data)
   PakettiXRNSProbeAppendText("\n-------------------\n")
 end
 
---------------------------------------------------------------------------------
--- Plugin Format Detection
---------------------------------------------------------------------------------
 
 function PakettiXRNSProbeFindAlternativeFormat(device)
   if not device then return nil end
@@ -907,25 +889,13 @@ function PakettiXRNSProbeFindAlternativeFormat(device)
   
   return #alternatives > 0 and alternatives or nil
 end
-renoise.tool():add_keybinding {
-  name = "Global:Tools:Paketti XRNS Probe",
-  invoke = PakettiXRNSProbeShowDialog
-}
-renoise.tool():add_menu_entry {
-  name = "Main Menu:Tools:Paketti..:Xperimental/Work in Progress..:Paketti XRNS Probe",
-  invoke = PakettiXRNSProbeShowDialog
-}
+renoise.tool():add_keybinding{name="Global:Tools:Paketti XRNS Probe",invoke = PakettiXRNSProbeShowDialog}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress..:Paketti XRNS Probe",invoke = PakettiXRNSProbeShowDialog}
 
 -- Only add Browse menu entry if show_browse is true
 if show_browse then
-renoise.tool():add_menu_entry {
-  name = "Main Menu:Tools:Paketti..:Xperimental/Work in Progress..:Paketti XRNS Probe (Browse)",
-  invoke = function() PakettiXRNSProbeShowDialog("Browse") end
-}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress..:Paketti XRNS Probe (Browse)",invoke = function() PakettiXRNSProbeShowDialog("Browse") end}
 end
-
-
-
 
 function MissingDeviceParameters()
   print(renoise.song().selected_device.name)
@@ -933,13 +903,4 @@ for i = 1, #renoise.song().selected_device.parameters do
   print ("renoise.song().selected_device.parameters[" .. i .. "].value=" ..renoise.song().selected_device.parameters[i].value)
 end
 end
-renoise.tool():add_menu_entry {name="--DSP Device:Paketti..:Query Missing Device for Parameters", invoke=function() MissingDeviceParameters() end}
-
-
-
-
-
-
-
-
-
+renoise.tool():add_menu_entry{name="--DSP Device:Paketti..:Query Missing Device for Parameters", invoke=function() MissingDeviceParameters() end}

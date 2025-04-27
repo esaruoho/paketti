@@ -329,18 +329,6 @@ local function fill_pattern(pattern_index, instrument_index, use_512, note_value
     fill_pattern_with_steps(pattern_index, instrument_index, use_512, note_value, reverse_s, step_size, fill_all)
 end
 
--- Key handler function
-local function Timekeyhandlerfunc(dialog, key)
-    local closer = preferences.pakettiDialogClose.value
-    if key.name == closer then
-        if dialog and dialog.visible then
-            dialog:close()
-            dialog = nil  -- Clear the reference
-        end
-    end
-    return key
-end
-
 -- Add this helper function with other helper functions at the top
 local function analyze_pattern_settings(pattern_index)
     local song = renoise.song()
@@ -1534,7 +1522,7 @@ step_slider = vb:slider {
     dialog_initializing = false
 
     -- Show dialog and store reference
-    dialog = renoise.app():show_custom_dialog("Paketti Timestretch Dialog", dialog_content, Timekeyhandlerfunc)
+    dialog = renoise.app():show_custom_dialog("Paketti Timestretch Dialog", dialog_content, my_keyhandler_func)
 end
 
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Paketti Timestretch Dialog...",invoke=create_timestretch_dialog}

@@ -358,25 +358,12 @@ function ActionSelectorDialog()
   -- Load initial values from preferences
   ActionSelectorLoadPreferences()
   
-  dialog = renoise.app():show_custom_dialog(
-    string.format("Paketti Action Selector (%d actions available)", #actions),
-    dialog_content, keyhandlerfuncActionSelector
-  )
+  dialog = renoise.app():show_custom_dialog(string.format("Paketti Action Selector (%d actions available)", #actions),
+    dialog_content, my_keyhandler_func)
 
 --  if renoise.app().window.active_middle_frame==1 then
 ---  renoise.app().window.active_middle_frame=1 end
 renoise.app().window.active_middle_frame=renoise.app().window.active_middle_frame
-end
-
-function keyhandlerfuncActionSelector(dialog, key)
-  local closer = preferences.pakettiDialogClose.value
-  if key.modifiers == "" and key.name == closer then
-    dialog:close()
-    dialog = nil
-    return nil
-  else
-    return key
-  end
 end
 
 -- Helper function to ensure correct sequential channel numbering
@@ -390,5 +377,8 @@ end
 -- Usage example:
 -- song.instruments[i].name = ensure_sequential_channel_prefix(song.instruments[i].name, i)
 
-renoise.tool():add_menu_entry {name = "Main Menu:Tools:Paketti..:Paketti Action Selector",invoke = ActionSelectorDialog}
-renoise.tool():add_keybinding {name = "Global:Paketti:Paketti Action Selector",invoke = ActionSelectorDialog}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Paketti Action Selector Dialog...",invoke = ActionSelectorDialog}
+renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Paketti Action Selector Dialog...",invoke = ActionSelectorDialog}
+renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Paketti Action Selector Dialog...",invoke = ActionSelectorDialog}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Paketti Action Selector Dialog...",invoke = ActionSelectorDialog}
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Action Selector Dialog...",invoke = ActionSelectorDialog}
