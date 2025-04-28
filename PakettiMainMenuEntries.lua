@@ -331,7 +331,13 @@ local button_list = {
   {"Paketti Action Selector", "ActionSelectorDialog"},
   {"Squiggler", "squigglerdialog"},
   {"Paketti Groovebox 8120", "PakettiEightSlotsByOneTwentyDialog"},
-  {"Midi Mappings", "show_midi_mappings_dialog"}
+  {"Midi Mappings", "show_midi_mappings_dialog"},
+  {"BeatDetector", "prepare_for_start"},
+  {"OctaMED Note Echo", "create_echo_dialog"},
+  {"OctaMED Pick/Put Row", "toggle_paketti_pick_dialog"},
+  {"PlayerPro Note Dropdown Grid", "PakettiPlayerProNoteGridShowDropdownGrid"},
+  {"PlayerPro Main Dialog", "pakettiPlayerProShowMainDialog"},
+  {"PlayerPro Effect Dialog", "showPlayerProEffectDialog"}
 }
 
 -- Function to create buttons from the list

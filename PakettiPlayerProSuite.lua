@@ -128,13 +128,7 @@ dialog_content = vb:column{
     }
   }
 }
-
---renoise.app():show_custom_dialog("FX", dialog_content)
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Other Trackers..:Open Player Pro Tools Effect Dialog",invoke=function() renoise.app():show_custom_dialog("FX", dialog_content, my_keyhandler_func) 
-renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
-end}
 ---------------
-
 local vb
 local dialog
 
@@ -365,7 +359,6 @@ function PakettiPlayerProNoteGridCreateGrid()
   return grid
 end
 
-
 local function PakettiPlayerProNoteGridCloseDialog()
   if dialog and dialog.visible then
     dialog:close()
@@ -374,7 +367,6 @@ local function PakettiPlayerProNoteGridCloseDialog()
   print("Dialog closed.")
   renoise.app():show_status("Closing Paketti PlayerPro Note Dialog")
 end
-
 
 local function PakettiPlayerProNoteGridCreateDialogContent()
   vb = renoise.ViewBuilder()
@@ -400,7 +392,7 @@ local EditStepCheckboxValue = false -- Initial value for EditStepCheckbox
       vb:popup{
         items = instrument_items,
         width = 220,
-        id = "instrument_popup",
+        id = "effect_dialog_instrument_popup",  -- Changed ID to be unique
         value = selected_instrument_value,
         notifier = function(value)
           local instrument
@@ -485,14 +477,6 @@ renoise.tool():add_keybinding{name="Global:Paketti:Open Player Pro Note Column D
 
 PakettiPlayerProNoteGridAddNoteMenuEntries()
 --------------
-
-
-
-
-
-
-
--- Function to transpose notes
 function pakettiPlayerProTranspose(steps, range)
   local song = renoise.song()
   local selection = song.selection_in_pattern
@@ -560,9 +544,7 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Player Pro Transpose 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Player Pro Transpose Selection or Note Column -1",invoke=function() pakettiPlayerProTranspose(-1, "notecolumn") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Player Pro Transpose Selection or Note Column +12",invoke=function() pakettiPlayerProTranspose(12, "notecolumn") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Player Pro Transpose Selection or Note Column -12",invoke=function() pakettiPlayerProTranspose(-12, "notecolumn") end}
-
 --------------------
-
 local vb = renoise.ViewBuilder()
 local dialog
 
@@ -609,9 +591,25 @@ local function update_instrument_popup()
     local instrument = renoise.song().instruments[i + 1]
     table.insert(instrument_items, string.format("%02d: %s", i, (instrument.name or "Untitled")))
   end
-  if vb.views["instrument_popup"] then
-    vb.views["instrument_popup"].items = instrument_items
+  
+  local vb = renoise.ViewBuilder()
+  local popup = dialog.views.effect_dialog_instrument_popup  -- Updated ID reference
+  popup.items = instrument_items
+end
+
+local function get_selected_instrument()
+  if not dialog or not dialog.visible then
+    return nil
   end
+  
+  local popup = dialog.views.effect_dialog_instrument_popup  -- Updated ID reference
+  local selected_index = popup.value
+  
+  if selected_index == 1 then  -- "<None>" is selected
+    return nil
+  end
+  
+  return renoise.song().instruments[selected_index - 1]
 end
 
 local function pakettiPlayerProInsertIntoLine(line, col, note, instrument, effect, effect_argument, volume)
@@ -628,8 +626,6 @@ local function pakettiPlayerProInsertIntoLine(line, col, note, instrument, effec
   if volume and volume ~= "Off" and note ~= "---" and note ~= "OFF" then
     line:note_column(col).volume_string = volume
   end
-
-  
 end
 
 local function pakettiPlayerProInsertNoteInPattern(note, instrument, effect, effect_argument, volume)
@@ -704,7 +700,7 @@ local function pakettiPlayerProCreateNoteGrid()
           width = 30,
           height = 15,
           notifier = function()
-            local instrument_value = vb.views["instrument_popup"].value - 2
+            local instrument_value = vb.views["effect_dialog_instrument_popup"].value - 2
             local instrument = instrument_value >= 0 and instrument_value or nil
             local effect = vb.views["effect_popup"].value > 1 and vb.views["effect_popup"].items[vb.views["effect_popup"].value] or nil
             local effect_argument = vb.views["effect_argument_display"].text
@@ -746,6 +742,17 @@ local function pakettiPlayerProUpdateVolumeDisplay()
 end
 
 function pakettiPlayerProShowMainDialog()
+  if dialog and dialog.visible then
+    dialog:close()
+    dialog_content = nil
+    vb = nil
+    dialog = nil
+    return
+  end
+
+  -- Create new ViewBuilder instance
+  vb = renoise.ViewBuilder()
+
   local instrument_items = {"<None>"}
   for i = 0, #renoise.song().instruments - 1 do
     local instrument = renoise.song().instruments[i + 1]
@@ -761,7 +768,7 @@ function pakettiPlayerProShowMainDialog()
       vb:popup{
         items = instrument_items,
         width = 218,
-        id = "instrument_popup"
+        id = "effect_dialog_instrument_popup",
       },
       vb:button{
         text = "Refresh",
@@ -805,7 +812,7 @@ function pakettiPlayerProShowMainDialog()
         text = "Apply",
         width = 100,
         notifier = function()
-          local instrument_value = vb.views["instrument_popup"].value - 2
+          local instrument_value = vb.views["effect_dialog_instrument_popup"].value - 2
           local instrument = instrument_value >= 0 and instrument_value or nil
           local effect_value = vb.views["effect_popup"].value
           local effect = effect_value > 1 and vb.views["effect_popup"].items[effect_value] or nil
@@ -822,6 +829,9 @@ function pakettiPlayerProShowMainDialog()
         width = 100,
         notifier = function()
           dialog:close()
+          -- Clean up references
+          vb = nil
+          dialog = nil
         end
       }
     }
@@ -832,3 +842,24 @@ end
 
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Other Trackers..:Open Player Pro Tools Dialog...",invoke=pakettiPlayerProShowMainDialog}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Open Player Pro Tools Dialog...",invoke=pakettiPlayerProShowMainDialog}
+
+-- Global dialog variable
+local dialog = nil
+
+function showPlayerProEffectDialog()
+  if dialog and dialog.visible then
+    dialog:close()
+    dialog = nil
+    return
+  end
+  
+  dialog = renoise.app():show_custom_dialog("FX", dialog_content, my_keyhandler_func)
+  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+end
+
+-- Menu registration
+renoise.tool():add_menu_entry{
+  name="Pattern Editor:Paketti..:Other Trackers..:Open Player Pro Tools Effect Dialog",
+  invoke=function() showPlayerProEffectDialog() end
+}
+---------------
