@@ -422,12 +422,6 @@ function PakettiYTDLPSignalCompletion(completion_signal_file)
   PakettiYTDLPLogMessage("Created completion signal file: " .. completion_signal_file)
 end
 
-
--- =====================
--- Main Functionalities
--- =====================
-
--- Main Function to execute the download process
 function PakettiYTDLPExecuteLua(search_phrase, youtube_url, download_dir, clip_length, full_video)
   -- Set executable paths based on OS
   PakettiYTDLPSetExecutablePaths()
@@ -616,10 +610,6 @@ function PakettiYTDLPLoadVideoAudioIntoRenoise(download_dir, loop_mode, create_n
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
   PakettiYTDLPLogMessage("=== Sample import complete ===")
 end
-
--- =====================
--- GUI Components
--- =====================
 
 -- Function to prompt for output directory
 function PakettiYTDLPPromptForOutputDir()
@@ -906,11 +896,6 @@ function PakettiYTDLPStartYTDLP()
   renoise.tool():add_timer(completion_timer_func, 100)
 end
 
--- =====================
--- Dialog Functions
--- =====================
-
--- Function to create the dialog content
 function PakettiYTDLPDialogContent()
   vb = renoise.ViewBuilder()  -- Create a new ViewBuilder instance
 
@@ -1204,7 +1189,7 @@ end
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress..:Paketti YT-DLP Downloader...",invoke=function() PakettiYTDLPShowDialog() end }
 
-renoise.tool():add_keybinding{name="Global:Tools:Paketti YT-DLP Downloader",invoke=PakettiYTDLPShowDialog }
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti YT-DLP Downloader",invoke=PakettiYTDLPShowDialog }
 --renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Paketti YT-DLP Downloader...",invoke=PakettiYTDLPShowDialog }
 --renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Paketti YT-DLP Downloader...",invoke=PakettiYTDLPShowDialog }
 --renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Paketti YT-DLP Downloader...",invoke=PakettiYTDLPShowDialog }

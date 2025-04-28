@@ -873,7 +873,7 @@ renoise.tool():add_keybinding{name="Global:Track Devices:Load EQ10+Schaack Trans
 loadvst("Audio/Effects/VST/TransientShaper")
 loadnative("Audio/Effects/Native/EQ 10") end}
 
-renoise.tool():add_midi_mapping{name="Track Devices:Paketti:Load DC Offset",invoke=function(message) if message:is_trigger() then 
+renoise.tool():add_midi_mapping{name="Paketti:Load DC Offset",invoke=function(message) if message:is_trigger() then 
 renoise.app().window.lower_frame_is_visible=true
 renoise.app().window.active_lower_frame=1
 renoise.song().selected_track:insert_device_at("Audio/Effects/Native/DC Offset",2)
@@ -1946,10 +1946,10 @@ renoise.tool():add_keybinding{name="Global:Paketti:Show/Hide Track DSP and FX Ch
 
 end}
 ---------------------
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Plugins/Devices..:Randomize Devices and Plugins Dialog",invoke=function() openCombinedRandomizerDialog() end}
-renoise.tool():add_menu_entry{name="DSP Device:Paketti..:Randomize Devices and Plugins Dialog",invoke=function() openCombinedRandomizerDialog() end}
-renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Randomize Devices and Plugins Dialog",invoke=function() openCombinedRandomizerDialog() end}
-renoise.tool():add_keybinding{name="Global:Paketti:Randomize Devices and Plugins Dialog",invoke=function() openCombinedRandomizerDialog() end}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Plugins/Devices..:Randomize Devices and Plugins Dialog...",invoke=function() openCombinedRandomizerDialog() end}
+renoise.tool():add_menu_entry{name="DSP Device:Paketti..:Randomize Devices and Plugins Dialog...",invoke=function() openCombinedRandomizerDialog() end}
+renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Randomize Devices and Plugins Dialog...",invoke=function() openCombinedRandomizerDialog() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Devices and Plugins Dialog...",invoke=function() openCombinedRandomizerDialog() end}
 
 renoise.tool():add_keybinding{name="Global:Paketti:Randomize Selected Device with User1 (%)",invoke=function() randomizeSelectedDeviceFromGUI(preferences.RandomizeSettings.pakettiRandomizeSelectedDevicePercentageUserPreference1.value) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Randomize Selected Device with User2 (%)",invoke=function() randomizeSelectedDeviceFromGUI(preferences.RandomizeSettings.pakettiRandomizeSelectedDevicePercentageUserPreference2.value) end}
@@ -2815,7 +2815,7 @@ renoise.tool():add_menu_entry{name="--Phrase Grid:Paketti..:Load XRNI & Wipe Phr
 renoise.tool():add_menu_entry{name="Phrase Grid:Paketti..:Load XRNI & Disable Phrases",invoke=function() loadXRNIWipePhrasesTwo() end}
 renoise.tool():add_menu_entry{name="Phrase Grid:Paketti..:Load XRNI & Keep Phrases",invoke=function() loadXRNIKeepPhrases() end}
 
-renoise.tool():add_menu_entry{name="--Phrase Grid:Paketti..:Open Paketti Init Phrase Dialog...",invoke=function() pakettiPhraseSettingsDialogShow() end}
+renoise.tool():add_menu_entry{name="--Phrase Grid:Paketti..:Open Paketti Init Phrase Dialog...",invoke=function() pakettiPhraseSettings() end}
 renoise.tool():add_menu_entry{name="Phrase Grid:Paketti..:Create New Phrase using Paketti Settings",invoke=function() pakettiInitPhraseSettingsCreateNewPhrase() end}
 renoise.tool():add_menu_entry{name="Phrase Grid:Paketti..:Modify Current Phrase using Paketti Settings",invoke=function() pakettiPhraseSettingsModifyCurrentPhrase() end}
 renoise.tool():add_menu_entry{name="--Phrase Grid:Paketti..:Phrase Follow Pattern Playback Hack",invoke=function() observe_phrase_playhead() end}

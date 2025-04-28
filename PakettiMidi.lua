@@ -233,13 +233,6 @@ renoise.tool():add_midi_mapping{name="Paketti:Columnizer Effect Number Decrease 
 renoise.tool():add_midi_mapping{name="Paketti:Columnizer Effect Amount Increase (+1) x[Toggle]",invoke=function(message) if message:is_trigger() then  columnspart2(1,5) end end}
 renoise.tool():add_midi_mapping{name="Paketti:Columnizer Effect Amount Decrease (-1) x[Toggle]",invoke=function(message) if message:is_trigger() then  columnspart2(-1,5) end end}
 
---[[renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Disk Browser Focus",invoke=function()
-renoise.app().window.lock_keyboard_focus=false
-renoise.app().window:select_preset(7) end}
-
-renoise.tool():add_midi_mapping{name="Pattern Editor:Paketti:Disk Browser Focus",invoke=function() renoise.app().window:select_preset(8) end}
-]]--
-
 renoise.tool():add_midi_mapping{name="Paketti:Change Selected Sample Loop Mode x[Knob]",
   invoke = function(midi_message)
     local value = midi_message.int_value

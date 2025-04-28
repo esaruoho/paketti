@@ -12,7 +12,7 @@ local plugin_type_display_names = {
   LADSPA = "LADSPA",
   DSSI = "DSSI"
 }
-local custom_dialog = nil  -- Reference to the custom dialog
+local dialog = nil
 local plugin_list_view = nil
 local current_plugin_list_content = nil  -- Variable to keep track of current content
 
@@ -398,22 +398,17 @@ end
 
 -- Show Plugin List Dialog
 function showPluginListDialog()
-  -- Close the dialog if it's already open
-  if custom_dialog and custom_dialog.visible then
-    custom_dialog:close()
-    custom_dialog = nil
+  if dialog and dialog.visible then
+    dialog:close()
+    dialog = nil
     current_plugin_list_content = nil  -- Reset current content
     return
   end
-
-
-
 
   vb = renoise.ViewBuilder()
   plugins = {}
   random_select_percentage = 0  -- Reset the random selection percentage
   current_plugin_list_content = nil  -- Reset current content
-
 
   -- Dropdown Menu
   local dropdown_items = {}
@@ -519,8 +514,8 @@ function showPluginListDialog()
         height = button_height,
         notifier = function()
           if loadSelectedPlugins() then
-            custom_dialog:close()
-            custom_dialog = nil
+            dialog:close()
+            dialog = nil
             current_plugin_list_content = nil
           else
             renoise.app():show_status("Nothing was selected, doing nothing.")
@@ -532,8 +527,8 @@ function showPluginListDialog()
         height = button_height,
         width = "34%",
         notifier = function()
-          custom_dialog:close()
-          custom_dialog = nil
+          dialog:close()
+          dialog = nil
           current_plugin_list_content = nil
         end
       }
@@ -562,7 +557,7 @@ function showPluginListDialog()
     dialog_content_view
   }
 
-  custom_dialog = renoise.app():show_custom_dialog("Load Plugin(s)", dialog_content, my_pluginLoaderkeyhandlerfunc)
+  dialog = renoise.app():show_custom_dialog("Load Plugin(s)", dialog_content, my_pluginLoaderkeyhandlerfunc)
 
   -- Initial Update
   updatePluginList()
@@ -571,8 +566,8 @@ end
 function my_pluginLoaderkeyhandlerfunc(dialog, key)
   local closer = preferences.pakettiDialogClose.value
   if key.modifiers == "" and key.name == closer then
-    custom_dialog:close()
-    custom_dialog = nil
+    dialog:close()
+    dialog = nil
     current_plugin_list_content = nil  -- Reset current content
     return nil
   else

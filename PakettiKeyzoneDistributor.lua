@@ -1,6 +1,3 @@
--- Keyzone Distributor Dialog for Paketti
--- Allows quick distribution of samples across keyzones
-
 local dialog = nil
 local view_builder = nil
 local debug_mode = true -- Set to true to see what's happening
@@ -232,8 +229,8 @@ function show_keyzone_distributor()
   )
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Show Keyzone Distributor...",invoke=function() show_keyzone_distributor() end}
-renoise.tool():add_midi_mapping{name="Paketti:Show Keyzone Distributor...",invoke=function(message) if message:is_trigger() then show_keyzone_distributor() end end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Keyzone Distributor...",invoke=function() show_keyzone_distributor() end}
-renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Keyzone Distributor...",invoke=function() show_keyzone_distributor() end}
-renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti..:Keyzone Distributor...",invoke=function() show_keyzone_distributor() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Show Keyzone Distributor Dialog...",invoke=function() show_keyzone_distributor() end}
+renoise.tool():add_midi_mapping{name="Paketti:Show Keyzone Distributor Dialog...",invoke=function(message) if message:is_trigger() then show_keyzone_distributor() end end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Keyzone Distributor Dialog...",invoke=function() show_keyzone_distributor() end}
+renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Keyzone Distributor Dialog...",invoke=function() show_keyzone_distributor() end}
+renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti..:Keyzone Distributor Dialog...",invoke=function() show_keyzone_distributor() end}

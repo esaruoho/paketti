@@ -889,7 +889,7 @@ function PakettiXRNSProbeFindAlternativeFormat(device)
   
   return #alternatives > 0 and alternatives or nil
 end
-renoise.tool():add_keybinding{name="Global:Tools:Paketti XRNS Probe",invoke = PakettiXRNSProbeShowDialog}
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti XRNS Probe",invoke = PakettiXRNSProbeShowDialog}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress..:Paketti XRNS Probe",invoke = PakettiXRNSProbeShowDialog}
 
 -- Only add Browse menu entry if show_browse is true

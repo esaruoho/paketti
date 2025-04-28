@@ -119,7 +119,7 @@ function show_eq10_dialog()
 end
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:EQ10 XY Control...",invoke = show_eq10_dialog}
-renoise.tool():add_keybinding{name="Global:Tools:Show EQ10 XY Control",invoke = show_eq10_dialog}
+renoise.tool():add_keybinding{name="Global:Paketti:Show EQ10 XY Control Dialog...",invoke = show_eq10_dialog}
 -----
 local match_editstep_enabled = false
 local last_line_index = nil
@@ -210,7 +210,7 @@ local function toggle_match_editstep()
 end
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress..:Match EditStep with Delay Pattern",invoke=function() toggle_match_editstep() end}
-renoise.tool():add_keybinding{name="Global:Tools:Toggle Match EditStep with Delay Pattern",invoke=function() toggle_match_editstep() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Toggle Match EditStep with Delay Pattern",invoke=function() toggle_match_editstep() end}
 
 if preferences.SelectedSampleBeatSyncLines.value == true then 
 
@@ -2067,22 +2067,22 @@ local function randomizeSmatterEffectColumnCustom(effect_command)
   renoise.app():show_status("Random " .. effect_command .. " commands applied to the first effect column of the selected track.")
 end
 ]]--
-renoise.tool():add_keybinding{name="Global:Tools:Randomize Effect Column Smatter (C00/C0F)",invoke=function() randomizeSmatterEffectColumnCustom("0C", false, 0x00, 0xFF) end}
-renoise.tool():add_keybinding{name="Global:Tools:Randomize Effect Column Smatter (0G Glide)",invoke=function() randomizeSmatterEffectColumnCustom("0G", false, 0x00, 0xFF) end}
-renoise.tool():add_keybinding{name="Global:Tools:Randomize Effect Column Smatter (0U Slide Up)",invoke=function() randomizeSmatterEffectColumnCustom("0U", false, 0x00, 0xFF) end}
-renoise.tool():add_keybinding{name="Global:Tools:Randomize Effect Column Smatter (0D Slide Down)",invoke=function() randomizeSmatterEffectColumnCustom("0D", false, 0x00, 0xFF) end}
-renoise.tool():add_keybinding{name="Global:Tools:Randomize Effect Column Smatter (0R Retrig)",invoke=function() randomizeSmatterEffectColumnCustom("0R", false, 0x00, 0xFF) end}
-renoise.tool():add_keybinding{name="Global:Tools:Randomize Effect Column Smatter (0P Panning)",invoke=function() randomizeSmatterEffectColumnCustom("0P", false,0x00, 0xFF) end}
-renoise.tool():add_keybinding{name="Global:Tools:Randomize Effect Column Smatter (0B00/0B01)",invoke=function() randomizeSmatterEffectColumnCustom("0B", false, 0x00, 0xFF) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Effect Column Smatter (C00/C0F)",invoke=function() randomizeSmatterEffectColumnCustom("0C", false, 0x00, 0xFF) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Effect Column Smatter (0G Glide)",invoke=function() randomizeSmatterEffectColumnCustom("0G", false, 0x00, 0xFF) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Effect Column Smatter (0U Slide Up)",invoke=function() randomizeSmatterEffectColumnCustom("0U", false, 0x00, 0xFF) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Effect Column Smatter (0D Slide Down)",invoke=function() randomizeSmatterEffectColumnCustom("0D", false, 0x00, 0xFF) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Effect Column Smatter (0R Retrig)",invoke=function() randomizeSmatterEffectColumnCustom("0R", false, 0x00, 0xFF) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Effect Column Smatter (0P Panning)",invoke=function() randomizeSmatterEffectColumnCustom("0P", false,0x00, 0xFF) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Effect Column Smatter (0B00/0B01)",invoke=function() randomizeSmatterEffectColumnCustom("0B", false, 0x00, 0xFF) end}
 
 
-renoise.tool():add_keybinding{name="Global:Tools:Randomize Effect Column Fill (C00/C0F)",invoke=function() randomizeSmatterEffectColumnCustom("0C", true, 0x00, 0xFF) end}
-renoise.tool():add_keybinding{name="Global:Tools:Randomize Effect Column Fill (0G Glide)",invoke=function() randomizeSmatterEffectColumnCustom("0G", true, 0x00, 0xFF) end}
-renoise.tool():add_keybinding{name="Global:Tools:Randomize Effect Column Fill (0U Slide Up)",invoke=function() randomizeSmatterEffectColumnCustom("0U", true, 0x00, 0xFF) end}
-renoise.tool():add_keybinding{name="Global:Tools:Randomize Effect Column Fill (0D Slide Down)",invoke=function() randomizeSmatterEffectColumnCustom("0D", true, 0x00, 0xFF) end}
-renoise.tool():add_keybinding{name="Global:Tools:Randomize Effect Column Fill (0R Retrig)",invoke=function() randomizeSmatterEffectColumnCustom("0R", true, 0x00, 0xFF) end}
-renoise.tool():add_keybinding{name="Global:Tools:Randomize Effect Column Fill (0P Panning)",invoke=function() randomizeSmatterEffectColumnCustom("0P", true,0x00, 0xFF) end}
-renoise.tool():add_keybinding{name="Global:Tools:Randomize Effect Column Fill (0B00/0B01)",invoke=function() randomizeSmatterEffectColumnCustom("0B", true, 0x00, 0xFF) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Effect Column Fill (C00/C0F)",invoke=function() randomizeSmatterEffectColumnCustom("0C", true, 0x00, 0xFF) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Effect Column Fill (0G Glide)",invoke=function() randomizeSmatterEffectColumnCustom("0G", true, 0x00, 0xFF) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Effect Column Fill (0U Slide Up)",invoke=function() randomizeSmatterEffectColumnCustom("0U", true, 0x00, 0xFF) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Effect Column Fill (0D Slide Down)",invoke=function() randomizeSmatterEffectColumnCustom("0D", true, 0x00, 0xFF) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Effect Column Fill (0R Retrig)",invoke=function() randomizeSmatterEffectColumnCustom("0R", true, 0x00, 0xFF) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Effect Column Fill (0P Panning)",invoke=function() randomizeSmatterEffectColumnCustom("0P", true,0x00, 0xFF) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Effect Column Fill (0B00/0B01)",invoke=function() randomizeSmatterEffectColumnCustom("0B", true, 0x00, 0xFF) end}
 
 
 

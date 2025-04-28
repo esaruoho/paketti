@@ -576,7 +576,7 @@ end
 
 local dialog_content = nil
 
-function show_paketti_preferences()
+function pakettiPreferences()
   local coarse_value_label = vb:text{
     width = 50,  -- Width to accommodate values up to 10000
     text = tostring(preferences.pakettiRotateSampleBufferCoarse.value)
@@ -616,12 +616,16 @@ function show_paketti_preferences()
 
     local dialog_content = vb:column {
       margin=10,
-
+      vb:horizontal_aligner{mode="distribute",
+      vb:button{text="Open Dialog of Dialogs",width="100%", notifier=function() 
+        pakettiDialogOfDialogsToggle() 
+      end}},
+--[[
       -- Full-width row for buttons wrapped in a group
       vb:column {
         style="group",margin=10, width="100%",
         vb:row {
-          vb:button{text="About Paketti/Donations", width=50, notifier=function() show_about_dialog() end},
+          vb:button{text="About Paketti/Donations", width=50, notifier=function() pakettiAboutDonations() end},
           vb:button{text="Theme Selector",width=upperbuttonwidth-100,notifier=function() pakettiThemeSelectorDialogShow() end},
           vb:button{text="Gater",width=upperbuttonwidth-150,notifier=function()
             local max_rows=nil
@@ -633,7 +637,7 @@ function show_paketti_preferences()
           end},
           vb:button{text="Audio Processing",width=upperbuttonwidth-100,notifier=function() PakettiAudioProcessingToolsDialogShow() end},
           vb:button{text="Effect CheatSheet",width=40,notifier=function() CheatSheet() end},
-          vb:button{text="Phrase Init Dialog",width=upperbuttonwidth-100,notifier=function() pakettiPhraseSettingsDialogShow() end},
+          vb:button{text="Phrase Init Dialog",width=upperbuttonwidth-100,notifier=function() pakettiPhraseSettings() end},
           vb:button{text="Randomize Plugins/Devices", width=50, notifier=function()
           openCombinedRandomizerDialog() end},
           vb:button{text="Configure Launch App Selection/Paths", width=50, notifier=function()
@@ -643,7 +647,7 @@ function show_paketti_preferences()
           vb:button{text="Midi Mappings",width=upperbuttonwidth-100,notifier=function() show_midi_mappings_dialog() end}
         }
       },
-
+]]--
       horizontal_rule(),
       vb:row {
         vb:column {
@@ -1184,7 +1188,7 @@ horizontal_rule(),
 },},
       
     },
-      -- Bottom Buttons
+      
       vb:horizontal_aligner { mode="distribute",
         vb:button{text="OK",width="50%",notifier=function() 
           preferences:save_as("preferences.xml")
@@ -1245,7 +1249,7 @@ function update_dynamic_menu_entries()
                     update_dynamic_menu_entries()
                     if dialog and dialog.visible then
                         dialog:close()
-                        show_paketti_preferences()
+                        pakettiPreferences()
                     end
                 end}
         end
@@ -1260,7 +1264,7 @@ function update_dynamic_menu_entries()
                     update_dynamic_menu_entries()
                     if dialog and dialog.visible then
                         dialog:close()
-                        show_paketti_preferences()
+                        pakettiPreferences()
                     end
                 end}
         end
@@ -1317,6 +1321,6 @@ end
 -- Initialize the tool
 safe_initialize()
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:!Preferences..:Paketti Preferences...",invoke=show_paketti_preferences}
-renoise.tool():add_keybinding{name="Global:Paketti:Show Paketti Preferences...",invoke=show_paketti_preferences}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:!Preferences..:Paketti Preferences...",invoke=pakettiPreferences}
+renoise.tool():add_keybinding{name="Global:Paketti:Show Paketti Preferences...",invoke=pakettiPreferences}
 

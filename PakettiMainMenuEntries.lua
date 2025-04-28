@@ -186,13 +186,13 @@ vb:horizontal_aligner{mode="distribute",
     vb:button{text="OK",notifier=function() dialog:close() end},
     vb:button{text="Cancel",notifier=function() dialog:close() end}}}
 
-function show_about_dialog()
+function pakettiAboutDonations()
   if dialog and dialog.visible then dialog:close() else
   dialog = renoise.app():show_custom_dialog("About Paketti / Donations, written by Esa Juhani Ruoho (C) 2009-2025", dialog_content, my_keyhandler_func)
   end
 end
 
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:!!About..:About Paketti/Donations...",invoke=function() show_about_dialog() end}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:!!About..:About Paketti/Donations...",invoke=function() pakettiAboutDonations() end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:!Preferences..:Open Paketti Path",invoke=function() renoise.app():open_path(renoise.tool().bundle_path)end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:Debug..:Inspect Plugin (Console)",invoke=function() inspectPlugin() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:Debug..:Inspect Selected Device (Console)",invoke=function() inspectEffect() end}
@@ -275,26 +275,25 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:∿ Squiggly Sinewave to Clipboard (macOS)",invoke=function() squigglerdialog() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:Debug..:∿ Squiggly Sinewave to Clipboard...",invoke=function() squigglerdialog() end}
 ----------
-
-local vb = renoise.ViewBuilder()
-local dialog_instance = nil
+local vb=renoise.ViewBuilder()
+local dialog=nil
 
 local button_list = {
-  {"About Paketti/Donations", "show_about_dialog"},
-  {"Paketti Preferences", "show_paketti_preferences"},
+  {"About Paketti/Donations", "pakettiAboutDonations"},
+  {"Paketti Preferences", "pakettiPreferences"},
   {"Theme Selector", "pakettiThemeSelectorDialogShow"},
   {"Gater", "pakettiGaterDialog"},
   {"Effect Column CheatSheet", "CheatSheet"},
-  {"Phrase Init Dialog", "pakettiPhraseSettingsDialogShow"},
+  {"Phrase Init Dialog", "pakettiPhraseSettings"},
   {"Dynamic Views 1-4", function() showDynamicViewDialog(1,4) end},
   {"Dynamic Views 5-8", function() showDynamicViewDialog(5,8) end},
-  {"Automation Value Dialog", "show_value_dialog"},
+  {"Automation Value Dialog", "pakettiAutomationValue"},
   {"Merge Instruments", "mergeInstrumentsDialog"},
   {"Paketti Track DSP Device & Instrument Loader", "show_paketti_device_chain_dialog"},
   {"Paketti Volume/Delay/Pan Slider Controls", "show_VDPdialog"},
   {"Paketti Global Volume Adjustment", "show_global_volume_dialog"},
   {"Paketti Offset Dialog", "pakettiOffsetDialog"},
-  {"PitchStepper Demo", "show_pitchstepper_dialog"},
+  {"PitchStepper Demo", "pakettiPitchStepperDemo"},
   {"Value Interpolation Looper Dialog", "pakettiVolumeInterpolationLooper"},
   {"MIDI Populator", "generaMIDISetupShowCustomDialog"},
   {"New Song Dialog", "show_new_song_dialog"},
@@ -342,13 +341,12 @@ local button_list = {
   {"Paketti Tuplet Writer", "show_tuplet_dialog"},
   {"Speed and Tempo to BPM", "show_speed_tempo_dialog"},
   {"Debug: Available Plugin Information", "show_plugin_details_gui"},
-  {"Debug: Plugin Details", "show_plugin_details_gui"},
-  {"Debug: Effect Details", "show_effect_details_gui"},
+  {"Debug: Available Device Information", "show_effect_details_gui"},
   {"AKWF Load 04 Samples (XY)", "Load04AKWFSamplesXY"}
 }
 
 -- Function to create buttons from the list
-local function create_paketti_dialog()
+function pakettiDialogOfDialogs()
   local buttons_per_row = 7
   local rows = {}
   local current_row = {}
@@ -384,19 +382,19 @@ local function create_paketti_dialog()
   }
 end
 
-local function toggle_paketti_dialog()
-  if dialog_instance and dialog_instance.visible then
-    dialog_instance:close()
-    dialog_instance = nil
+function pakettiDialogOfDialogsToggle()
+  if dialog and dialog.visible then
+    dialog:close()
+    dialog = nil
   else
     -- Count the number of dialogs in button_list
     local dialog_count = #button_list
-    dialog_instance = renoise.app():show_custom_dialog(string.format("Paketti Dialog of Dialogs (%d)", dialog_count), create_paketti_dialog(), my_keyhandler_func)
+    dialog = renoise.app():show_custom_dialog(string.format("Paketti Dialog of Dialogs (%d)", dialog_count), pakettiDialogOfDialogs(), my_keyhandler_func)
   end
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Toggle Paketti Dialog of Dialogs",invoke=function() toggle_paketti_dialog() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti Dialog of Dialogs...",invoke=function() toggle_paketti_dialog() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Toggle Paketti Dialog of Dialogs...",invoke=function() pakettiDialogOfDialogsToggle() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti Dialog of Dialogs...",invoke=function() pakettiDialogOfDialogsToggle() end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Paketti New Song Dialog...",invoke=function() show_new_song_dialog() end }
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti Track Dater & Titler...",invoke=function() PakettiTitlerDialog() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti Theme Selector...",invoke=pakettiThemeSelectorDialogShow }

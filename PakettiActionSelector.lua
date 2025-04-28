@@ -215,7 +215,7 @@ function ActionSelectorDialog()
             -- Wrap everything in pcall to prevent any errors from stopping the process
             local ok, err = pcall(function()
               -- Method 1: Try direct evaluation
-              local func = load("return " .. action.invoke)
+              local func = loadstring("return " .. action.invoke)
               if func then
                 local ok, result = pcall(func)
                 if ok and type(result) == "function" then
@@ -328,7 +328,7 @@ function ActionSelectorDialog()
         notifier = function()
           local action = selected_actions[i]
           if action then
-            local func = load("return " .. action.invoke)
+            local func = loadstring("return " .. action.invoke)
             if func then
               local success, result = pcall(func)
               if success and type(result) == "function" then

@@ -98,7 +98,7 @@ else
 end
 
 -- Function to show the PakettiInitPhraseSettingsDialog
-function pakettiPhraseSettingsDialogShow()
+function pakettiPhraseSettings()
   if pakettiInitPhraseSettingsDialog and pakettiInitPhraseSettingsDialog.visible then
     pakettiInitPhraseSettingsDialog:close()
     pakettiInitPhraseSettingsDialog = nil
@@ -296,28 +296,28 @@ function pakettiPhraseSettingsDialogShow()
         end}}}, pakettiPhraseSettingsKeyHandler)
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Open Paketti Init Phrase Dialog...",invoke=function() pakettiPhraseSettingsDialogShow() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Open Paketti Init Phrase Dialog...",invoke=function() pakettiPhraseSettings() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Create New Phrase using Paketti Settings",invoke=function() pakettiInitPhraseSettingsCreateNewPhrase() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Modify Current Phrase using Paketti Settings",invoke=function() pakettiPhraseSettingsModifyCurrentPhrase() end}
 
-renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Open Paketti Init Phrase Dialog...",invoke=function() pakettiPhraseSettingsDialogShow() end}
+renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Open Paketti Init Phrase Dialog...",invoke=function() pakettiPhraseSettings() end}
 renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Create New Phrase using Paketti Settings",invoke=function() pakettiInitPhraseSettingsCreateNewPhrase() end}
 renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Modify Current Phrase using Paketti Settings",invoke=function() pakettiPhraseSettingsModifyCurrentPhrase() end}
 
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Phrases..:Open Paketti Init Phrase Dialog...",invoke=function() pakettiPhraseSettingsDialogShow() end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Phrases..:Open Paketti Init Phrase Dialog...",invoke=function() pakettiPhraseSettings() end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Phrases..:Create New Phrase using Paketti Settings",invoke=function() pakettiInitPhraseSettingsCreateNewPhrase() end}
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:!Preferences..:Open Paketti Init Phrase Dialog...",invoke=function() pakettiPhraseSettingsDialogShow() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Phrase Editor..:Open Paketti Init Phrase Dialog...",invoke=function() pakettiPhraseSettingsDialogShow() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:!Preferences..:Open Paketti Init Phrase Dialog...",invoke=function() pakettiPhraseSettings() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Phrase Editor..:Open Paketti Init Phrase Dialog...",invoke=function() pakettiPhraseSettings() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Phrase Editor..:Create New Phrase using Paketti Settings",invoke=function() pakettiInitPhraseSettingsCreateNewPhrase() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Phrase Editor..:Modify Current Phrase using Paketti Settings",invoke=function() pakettiPhraseSettingsModifyCurrentPhrase() end}
 
-renoise.tool():add_menu_entry{name="--Phrase Editor:Paketti..:Open Paketti Init Phrase Dialog...",invoke=function() pakettiPhraseSettingsDialogShow() end}
+renoise.tool():add_menu_entry{name="--Phrase Editor:Paketti..:Open Paketti Init Phrase Dialog...",invoke=function() pakettiPhraseSettings() end}
 renoise.tool():add_menu_entry{name="Phrase Editor:Paketti..:Create New Phrase using Paketti Settings",invoke=function() pakettiInitPhraseSettingsCreateNewPhrase() end}
 renoise.tool():add_menu_entry{name="Phrase Editor:Paketti..:Modify Current Phrase using Paketti Settings",invoke=function() pakettiPhraseSettingsModifyCurrentPhrase() end}
 
 
-renoise.tool():add_midi_mapping{name="Paketti:Open Paketti Init Phrase Dialog...",invoke=function(message) if message:is_trigger() then pakettiPhraseSettingsDialogShow() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Open Paketti Init Phrase Dialog...",invoke=function(message) if message:is_trigger() then pakettiPhraseSettings() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Create New Phrase Using Paketti Settings",invoke=function(message) if message:is_trigger() then pakettiInitPhraseSettingsCreateNewPhrase() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Modify Current Phrase Using Paketti Settings",invoke=function(message) if message:is_trigger() then pakettiPhraseSettingsModifyCurrentPhrase() end end}
 

@@ -782,8 +782,8 @@ function showQuickLoadDialog()
   end
 end
 
-renoise.tool():add_keybinding{name="Global:Tools:Quick Load Device", invoke=showQuickLoadDialog}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Quick Load Device...", invoke=showQuickLoadDialog}
-renoise.tool():add_menu_entry{name="DSP Device:Paketti..:Quick Load Device...", invoke=showQuickLoadDialog}
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Quick Load Device...", invoke=showQuickLoadDialog}
-renoise.tool():add_midi_mapping{name="Paketti:Quick Load Device [Trigger]", invoke=function(message) if message:is_trigger() then showQuickLoadDialog() end end}
+renoise.tool():add_keybinding{name="Global:Paketti:Quick Load Device Dialog...", invoke=showQuickLoadDialog}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Quick Load Device Dialog...", invoke=showQuickLoadDialog}
+renoise.tool():add_menu_entry{name="DSP Device:Paketti..:Quick Load Device Dialog...", invoke=showQuickLoadDialog}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Quick Load Device Dialog...", invoke=showQuickLoadDialog}
+renoise.tool():add_midi_mapping{name="Paketti:Quick Load Device Dialog... [Trigger]", invoke=function(message) if message:is_trigger() then showQuickLoadDialog() end end}

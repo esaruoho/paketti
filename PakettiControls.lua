@@ -872,7 +872,7 @@ function TriggerPatternLineMidiValue(midi_value)
   end
 end
 
-renoise.tool():add_midi_mapping{name="Global:Paketti:Trigger Pattern Line Scrub (CC)",
+renoise.tool():add_midi_mapping{name="Paketti:Trigger Pattern Line Scrub (CC)",
   invoke = function(message)
     if message.boolean_value then
       TriggerPatternLineMidiValue(message.value)

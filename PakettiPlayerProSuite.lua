@@ -472,8 +472,8 @@ renoise.app().window.active_middle_frame_observable:add_notifier(function()
   end
 end)
 
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Other Trackers..:Open Player Pro Note Column Dialog",invoke=PakettiPlayerProNoteGridShowDropdownGrid}
-renoise.tool():add_keybinding{name="Global:Paketti:Open Player Pro Note Column Dialog",invoke=PakettiPlayerProNoteGridShowDropdownGrid}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Other Trackers..:Open Player Pro Note Column Dialog...",invoke=PakettiPlayerProNoteGridShowDropdownGrid}
+renoise.tool():add_keybinding{name="Global:Paketti:Open Player Pro Note Column Dialog...",invoke=PakettiPlayerProNoteGridShowDropdownGrid}
 
 PakettiPlayerProNoteGridAddNoteMenuEntries()
 --------------

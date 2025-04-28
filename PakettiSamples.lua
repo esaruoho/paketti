@@ -4319,10 +4319,10 @@ function ShowLargestSamples()
   
   ShowLargestSamplesDialog()
 end
-renoise.tool():add_menu_entry{name="--Main Menu:File:Show Largest Samples...",invoke = ShowLargestSamples}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Show Largest Samples...",invoke = ShowLargestSamples}
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Show Largest Samples...",invoke = ShowLargestSamples}
-renoise.tool():add_keybinding{name="Global:Paketti:Show Largest Samples...",invoke = ShowLargestSamples}
+renoise.tool():add_menu_entry{name="--Main Menu:File:Show Largest Samples Dialog...",invoke = ShowLargestSamples}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Show Largest Samples Dialog...",invoke = ShowLargestSamples}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Show Largest Samples Dialog...",invoke = ShowLargestSamples}
+renoise.tool():add_keybinding{name="Global:Paketti:Show Largest Samples Dialog...",invoke = ShowLargestSamples}
 ---------
 -- Function to duplicate track and instrument with all settings
 function duplicateTrackAndInstrument()

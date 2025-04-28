@@ -579,8 +579,8 @@ for i = 1, 10 do
 end
 
 
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:OctaMED Pick/Put Dialog",invoke=function() toggle_paketti_pick_dialog() end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Other Trackers..:OctaMED Pick/Put Dialog",invoke=function() toggle_paketti_pick_dialog() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:OctaMED Pick/Put Dialog...",invoke=function() toggle_paketti_pick_dialog() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Other Trackers..:OctaMED Pick/Put Dialog...",invoke=function() toggle_paketti_pick_dialog() end}
 
 ------
 -- Function to spread notes across multiple columns
@@ -984,6 +984,6 @@ function CreateNoteEcho(distance, min_volume)
   end
 end
 
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:OctaMED Note Echo Dialog",invoke = create_echo_dialog}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Other Trackers..:OctaMED Note Echo Dialog",invoke = create_echo_dialog}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:OctaMED Note Echo Dialog...",invoke = create_echo_dialog}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Other Trackers..:OctaMED Note Echo Dialog...",invoke = create_echo_dialog}
 ---------

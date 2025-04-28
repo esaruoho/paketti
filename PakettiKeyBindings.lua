@@ -1826,7 +1826,7 @@ end
 
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:!Preferences..:Find Free KeyBindings...",invoke=show_free_keybindings_dialog}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:!Preferences..:Debug..:Print Free KeyBindings to Terminal",invoke=print_free_combinations}
-renoise.tool():add_keybinding{name="Global:Tools:Show Free KeyBindings Dialog",invoke=show_free_keybindings_dialog}
+renoise.tool():add_keybinding{name="Global:Paketti:Show Free KeyBindings Dialog...",invoke=show_free_keybindings_dialog}
 
 -- Function to normalize modifier order to match Renoise's XML format
 function normalize_modifier_order(modifiers)

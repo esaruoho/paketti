@@ -1,19 +1,52 @@
--- Define render state (initialized when starting to render)
-render_context = {
-    source_track = 0,
-    target_track = 0,
-    target_instrument = 0,
-    temp_file_path = "",
-    num_tracks_before = 0  -- Add this to keep track of the original number of tracks
-}
-
 -- Variable to store the original solo and mute states
 local track_states = {}
 
-function start_rendering()
+function create_render_context(justwav)
+    return {
+        source_track = 0,
+        target_track = 0,
+        target_instrument = 0,
+        temp_file_path = "",
+        num_tracks_before = 0,  -- Add this to keep track of the original number of tracks
+        justwav = justwav      -- Just store the value as is
+    }
+end
+
+function pakettiCleanRenderSelection(justwav)
+    print("DEBUG 1: pakettiCleanRenderSelection called with justwav =", justwav)
+    local song = renoise.song()
+    local renderTrack = song.selected_track_index
+    local renderedTrack = renderTrack + 1
+    local renderedInstrument = song.selected_instrument_index + 1
+
+    -- Create New Instrument
+    song:insert_instrument_at(renderedInstrument)
+
+    -- Select New Instrument
+    song.selected_instrument_index = renderedInstrument
+
+    -- Create a new render context with the justwav value
+    local render_context = create_render_context(justwav)
+    print("DEBUG 2: render_context.justwav set to", render_context.justwav)
+
+    -- Check if the selected track is a group track
+    if song:track(renderTrack).type == renoise.Track.TRACK_TYPE_GROUP then
+        print("DEBUG 3: Calling render_group_track with justwav =", render_context.justwav)
+        -- Render the group track
+        render_group_track(render_context)
+    else
+        print("DEBUG 3: Calling start_rendering with justwav =", render_context.justwav)
+        -- Start rendering
+        start_rendering(render_context)
+    end
+end
+
+function start_rendering(render_context)
     local song = renoise.song()
     local render_priority = "high"
     local selected_track = song.selected_track
+    
+    print("DEBUG 4: start_rendering - initial justwav =", render_context.justwav)
 
     for _, device in ipairs(selected_track.devices) do
         if device.name == "#Line Input" then
@@ -52,7 +85,7 @@ function start_rendering()
         end_pos = renoise.SongPos(song.selected_sequence_index, song.patterns[song.selected_pattern_index].number_of_lines),
     }
 
-    -- Save current solo and mute states of all tracks
+    -- Save current solo and mute states
     track_states = {}
     render_context.num_tracks_before = #song.tracks
     for i, track in ipairs(song.tracks) do
@@ -68,14 +101,18 @@ function start_rendering()
     end
     song.tracks[song.selected_track_index].solo_state = true
 
-    -- Set render context
+    print("DEBUG 5: start_rendering - before setting render_context, justwav =", render_context.justwav)
+
+    -- Update render context values
     render_context.source_track = song.selected_track_index
-    render_context.target_track = render_context.source_track + 1
+    render_context.target_track = song.selected_track_index + 1
     render_context.target_instrument = song.selected_instrument_index + 1
     render_context.temp_file_path = os.tmpname() .. ".wav"
 
+    print("DEBUG 6: start_rendering - after setting render_context, justwav =", render_context.justwav)
+
     -- Start rendering
-    local success, error_message = song:render(render_options, render_context.temp_file_path, rendering_done_callback)
+    local success, error_message = song:render(render_options, render_context.temp_file_path, function() rendering_done_callback(render_context) end)
     if not success then
         print("Rendering failed: " .. error_message)
         -- Remove DC Offset if it was added
@@ -91,18 +128,14 @@ function start_rendering()
     end
 end
 
-function rendering_done_callback()
-    print("Rendering done callback started")
+function rendering_done_callback(render_context)
+    print("DEBUG 7: rendering_done_callback started, justwav =", render_context.justwav)
     local song = renoise.song()
     local renderTrack = render_context.source_track
-
-    -- DEBUG: Print initial state
-    print("Checking track", renderTrack, "for DC Offset removal")
+    local should_preserve_track = render_context.justwav
     local original_track = song:track(renderTrack)
-    print("Number of devices on track:", #original_track.devices)
-    for i, device in ipairs(original_track.devices) do
-        print(string.format("Device %d: %s", i, device.name))
-    end
+    
+    print("DEBUG 8: should_preserve_track =", should_preserve_track)
 
     -- Remove DC Offset if it was added (from original track) FIRST, before any other operations
     if preferences.RenderDCOffset.value then
@@ -117,14 +150,6 @@ function rendering_done_callback()
         else
             print("Last device is not Render DC Offset, skipping removal")
         end
-    else
-        print("RenderDCOffset preference is disabled")
-    end
-    
-    -- DEBUG: Print final state
-    print("Final device list:")
-    for i, device in ipairs(original_track.devices) do
-        print(string.format("Device %d: %s", i, device.name))
     end
 
     local renderedTrack = renderTrack + 1
@@ -158,19 +183,27 @@ function rendering_done_callback()
         end
     end
 
-    -- Turn All Render Track Note Columns to "Off"
-    for i = 1, song.tracks[renderTrack].max_note_columns do
-        song.tracks[renderTrack]:set_column_is_muted(i, true)
-    end
+    print("DEBUG 9: Before destructive operations, should_preserve_track =", should_preserve_track)
 
-    if preferences.renderBypass.value == true then 
-        for i = 2, #song.selected_track.devices do
-            song.selected_track.devices[i].is_active = false
+    -- Only do these things if we're not in WAV only mode
+    if not should_preserve_track then
+        print("Regular mode - doing destructive operations")
+        -- Turn All Render Track Note Columns to "Off"
+        for i = 1, song.tracks[renderTrack].max_note_columns do
+            song.tracks[renderTrack]:set_column_is_muted(i, true)
         end
-    end
 
-    -- Collapse Render Track
-    song.tracks[renderTrack].collapsed = true
+        if preferences.renderBypass.value == true then 
+            for i = 2, #song.selected_track.devices do
+                song.selected_track.devices[i].is_active = false
+            end
+        end
+
+        -- Collapse Render Track
+        song.tracks[renderTrack].collapsed = true
+    else
+        print("WAV Only mode - skipping destructive operations")
+    end
 
     -- Change Selected Track to Rendered Track
     song.selected_track_index = song.selected_track_index + 1
@@ -178,10 +211,12 @@ function rendering_done_callback()
     -- Load default instrument (assuming this function is defined)
     pakettiPreferencesDefaultInstrumentLoader()
     if preferences.pakettiLoaderDontCreateAutomationDevice.value == false then 
-    -- Add *Instr. Macros to Rendered Track
-    local new_instrument = song:instrument(song.selected_instrument_index)
+        -- Add *Instr. Macros to Rendered Track
+        local new_instrument = song:instrument(song.selected_instrument_index)
     end 
     -- Load Sample into New Instrument Sample Buffer
+    local new_instrument = song:instrument(song.selected_instrument_index)
+
     new_instrument.samples[1].sample_buffer:load_from(render_context.temp_file_path)
     os.remove(render_context.temp_file_path)
 
@@ -208,7 +243,6 @@ function rendering_done_callback()
     new_instrument.samples[1].name = renderName .. " (Rendered)"
 
     -- Select New Track
-    print(renderedTrack .. " this was the track but is it really the track?")
     song.selected_track_index = renderedTrack
 
     -- Rename New Track using Render Track Name
@@ -223,11 +257,21 @@ function rendering_done_callback()
         song.transport.edit_mode = true
         song.transport.edit_mode = false
     end
-    renoise.song().selected_track.mute_state=1
 
-    for i=1,#song.tracks do
-        renoise.song().tracks[i].mute_state=1
-    end 
+    print("DEBUG 10: Before final muting, should_preserve_track =", should_preserve_track)
+
+    -- Only do muting if we're not in WAV only mode
+    if not should_preserve_track then
+        print("Regular mode - doing muting")
+        renoise.song().selected_track.mute_state = 1
+        for i=1,#song.tracks do
+            renoise.song().tracks[i].mute_state = 1
+        end 
+    else
+        print("WAV Only mode - skipping muting")
+        -- Ensure the new track is not muted in WAV Only mode
+        song.tracks[renderedTrack].mute_state = renoise.Track.MUTE_STATE_ACTIVE
+    end
 end
 
 -- Function to monitor rendering progress
@@ -243,7 +287,7 @@ function monitor_rendering()
 end
 
 -- Function to handle rendering for a group track
-function render_group_track()
+function render_group_track(render_context)
     local song = renoise.song()
     local group_track_index = song.selected_track_index
     local group_track = song:track(group_track_index)
@@ -270,38 +314,53 @@ function render_group_track()
     end
     group_track.solo_state = true
 
-    -- Start rendering
-    start_rendering()
+    -- Start rendering with the render_context
+    start_rendering(render_context)
 end
 
-function pakettiCleanRenderSelection()
-    local song = renoise.song()
-    local renderTrack = song.selected_track_index
-    local renderedTrack = renderTrack + 1
-    local renderedInstrument = song.selected_instrument_index + 1
-
-    -- Print the initial selected_instrument_index
-    print("Initial selected_instrument_index: " .. song.selected_instrument_index)
-
-    -- Create New Instrument
-    song:insert_instrument_at(renderedInstrument)
-
-    -- Select New Instrument
-    song.selected_instrument_index = renderedInstrument
-
-    -- Print the selected_instrument_index after creating new instrument
-    print("selected_instrument_index after creating new instrument: " .. song.selected_instrument_index)
-
-    -- Check if the selected track is a group track
-    if song:track(renderTrack).type == renoise.Track.TRACK_TYPE_GROUP then
-        -- Render the group track
-        render_group_track()
-    else
-        start_rendering()
+renoise.tool():add_menu_entry{
+    name="Pattern Editor:Paketti..:Clean Render..:Clean Render Selected Track/Group",
+    invoke=function() pakettiCleanRenderSelection(false) end
+}
+renoise.tool():add_menu_entry{
+    name="Pattern Editor:Paketti..:Clean Render..:Clean Render Selected Track/Group (WAV Only)",
+    invoke=function() 
+        print("DEBUG WAV: About to call pakettiCleanRenderSelection with true")
+        pakettiCleanRenderSelection(true) 
     end
-end
+}
+renoise.tool():add_menu_entry{
+    name="Mixer:Paketti..:Clean Render..:Clean Render Selected Track/Group",
+    invoke=function() pakettiCleanRenderSelection(false) end
+}
+renoise.tool():add_menu_entry{
+    name="Mixer:Paketti..:Clean Render..:Clean Render Selected Track/Group (WAV Only)",
+    invoke=function() 
+        print("DEBUG WAV: About to call pakettiCleanRenderSelection with true")
+        pakettiCleanRenderSelection(true) 
+    end
+}
 
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Clean Render..:Clean Render Selected Track/Group",invoke=function() pakettiCleanRenderSelection() end}
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Clean Render Selected Track/Group",invoke=function() pakettiCleanRenderSelection() end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Clean Render..:Clean Render Selected Track/Group",invoke=function() pakettiCleanRenderSelection() end}
-renoise.tool():add_keybinding{name="Mixer:Paketti:Clean Render Selected Track/Group",invoke=function() pakettiCleanRenderSelection() end}
+renoise.tool():add_keybinding{
+    name="Pattern Editor:Paketti:Clean Render Selected Track/Group",
+    invoke=function() pakettiCleanRenderSelection(false) end
+}
+renoise.tool():add_keybinding{
+    name="Pattern Editor:Paketti:Clean Render Selected Track/Group (WAV Only)",
+    invoke=function() 
+        print("DEBUG WAV: About to call pakettiCleanRenderSelection with true")
+        pakettiCleanRenderSelection(true) 
+    end
+}
+renoise.tool():add_keybinding{
+    name="Mixer:Paketti:Clean Render Selected Track/Group",
+    invoke=function() pakettiCleanRenderSelection(false) end
+}
+renoise.tool():add_keybinding{
+    name="Mixer:Paketti:Clean Render Selected Track/Group (WAV Only)",
+    invoke=function() 
+        print("DEBUG WAV: About to call pakettiCleanRenderSelection with true")
+        pakettiCleanRenderSelection(true) 
+    end
+}
+

@@ -362,5 +362,5 @@ function show_tuplet_dialog()
   vb.views.note_count.edit_mode = true
 end
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress..:Paketti Tuplet Writer...",invoke=function() show_tuplet_dialog() end}
-renoise.tool():add_keybinding{name="Global:Tools:Paketti Tuplet Writer",invoke=function() show_tuplet_dialog() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress..:Paketti Tuplet Writer Dialog...",invoke=function() show_tuplet_dialog() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Tuplet Writer Dialog...",invoke=function() show_tuplet_dialog() end}

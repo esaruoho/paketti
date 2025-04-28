@@ -2,7 +2,7 @@
 local vb = renoise.ViewBuilder()
 local midi_input_devices, midi_output_devices, plugin_dropdown_items, available_plugins
 local dialog_content
-local custom_dialog
+local dialog=nil
 
 local prefs = renoise.tool().preferences
 
@@ -315,17 +315,6 @@ local function clear_plugin_selection()
   end
 end
 
-function my_MidiPopulatorkeyhandler_func(dialog, key)
-  local closer = prefs.pakettiDialogClose.value
-  if key.modifiers == "" and key.name == closer then
-    custom_dialog:close()
-    custom_dialog = nil
-    return nil
-  else
-    return key
-  end
-end
-
 function horizontal_rule()
     return vb:horizontal_aligner{
       mode="justify", 
@@ -362,21 +351,21 @@ local function on_ok_button_pressed(dialog_content)
   renoise.song().selected_track_index = 1 -- Select the first track
 
   -- Close the dialog and restore focus to the pattern editor
-  custom_dialog:close()
-  custom_dialog = nil
+  dialog:close()
+  dialog = nil
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 end
 
 local function on_save_and_close_pressed()
   save_preferences()
-  custom_dialog:close()
-  custom_dialog = nil
+  dialog:close()
+  dialog = nil
 end
 
 function generaMIDISetupShowCustomDialog()
-  if custom_dialog and custom_dialog.visible then
-    custom_dialog:close()
-    custom_dialog = nil
+  if dialog and dialog.visible then
+    dialog:close()
+    dialog = nil
     return
   end
 
@@ -571,7 +560,7 @@ function generaMIDISetupShowCustomDialog()
     }}
   }
 
-  custom_dialog = renoise.app():show_custom_dialog("Paketti MIDI Populator", dialog_content, my_MidiPopulatorkeyhandler_func)
+  dialog = renoise.app():show_custom_dialog("Paketti MIDI Populator", dialog_content, my_keyhandler_func)
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti MIDI Populator Dialog...",invoke=function() generaMIDISetupShowCustomDialog() end}

@@ -1899,7 +1899,7 @@ local function textfield_notifier(new_value)
   apply_textfield_value_and_move(clamped_value)
 end
 
-function show_value_dialog()
+function pakettiAutomationValue()
   -- If dialog is already open, clean up and close
   if dialog and dialog.visible then
     local edit_step_observable = renoise.song().transport.edit_step_observable
@@ -1999,9 +1999,9 @@ function show_value_dialog()
   vb.views.value_textfield.edit_mode = true
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Show Automation Value Dialog...",invoke=function() show_value_dialog() end}
-renoise.tool():add_midi_mapping{name="Paketti:Show Automation Value Dialog...",invoke=function(message) if message:is_trigger() then show_value_dialog() end end}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Automation..:Paketti Automation Value...",invoke=function() show_value_dialog() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Show Automation Value Dialog...",invoke=function() pakettiAutomationValue() end}
+renoise.tool():add_midi_mapping{name="Paketti:Show Automation Value Dialog...",invoke=function(message) if message:is_trigger() then pakettiAutomationValue() end end}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Automation..:Paketti Automation Value...",invoke=function() pakettiAutomationValue() end}
 ---
 local function write_automation_value(value)
   local song = renoise.song()

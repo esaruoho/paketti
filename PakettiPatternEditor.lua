@@ -255,7 +255,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:KapsLock Note Off (With Step)
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:KapsLock CapsLock Caps Lock Note Off",invoke=function() CapsLok() end}
 renoise.tool():add_keybinding{name="Phrase Editor:Paketti:KapsLock CapsLock Caps Lock Note Off",invoke=function() CapsLok() end}
 
-renoise.tool():add_midi_mapping{name="Global:Paketti:KapsLock Note Off (No Step) x[Trigger]",
+renoise.tool():add_midi_mapping{name="Paketti:KapsLock Note Off (No Step) x[Trigger]",
   invoke=function(message)
     if message:is_trigger() then
       CapsLok(false)
@@ -263,7 +263,7 @@ renoise.tool():add_midi_mapping{name="Global:Paketti:KapsLock Note Off (No Step)
   end
 }
 
-renoise.tool():add_midi_mapping{name="Global:Paketti:KapsLock Note Off (With Step) x[Trigger]",
+renoise.tool():add_midi_mapping{name="Paketti:KapsLock Note Off (With Step) x[Trigger]",
   invoke=function(message)
     if message:is_trigger() then
       CapsLok(true)
@@ -5268,7 +5268,7 @@ renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Effect Columns..:Fi
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Effect Columns..:Fill Effect Column with 0U00",invoke=function() writeEffectToPattern("0U00") end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Effect Columns..:Fill Effect Column with 0G01+0D00",invoke=function() writeEffectToPattern("0D00", "0G01") end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Effect Columns..:Fill Effect Column with 0G01+0U00",invoke=function() writeEffectToPattern("0U00", "0G01") end}
-renoise.tool():add_midi_mapping{name="Global:Paketti:Fill Effect Column with 0D00 [Trigger]",
+renoise.tool():add_midi_mapping{name="Paketti:Fill Effect Column with 0D00 [Trigger]",
   invoke = function(message)
     if message:is_trigger() then
       writeEffectToPattern("0D00")
@@ -5276,7 +5276,7 @@ renoise.tool():add_midi_mapping{name="Global:Paketti:Fill Effect Column with 0D0
   end
 }
 
-renoise.tool():add_midi_mapping{name="Global:Paketti:Fill Effect Column with 0U00 [Trigger]",
+renoise.tool():add_midi_mapping{name="Paketti:Fill Effect Column with 0U00 [Trigger]",
   invoke = function(message)
     if message:is_trigger() then
       writeEffectToPattern("0U00")
@@ -5284,7 +5284,7 @@ renoise.tool():add_midi_mapping{name="Global:Paketti:Fill Effect Column with 0U0
   end
 }
 
-renoise.tool():add_midi_mapping{name="Global:Paketti:Fill Effect Column with 0G01+0D00 [Trigger]",
+renoise.tool():add_midi_mapping{name="Paketti:Fill Effect Column with 0G01+0D00 [Trigger]",
   invoke = function(message)
     if message:is_trigger() then
       writeEffectToPattern("0D00", "0G01")
@@ -5292,7 +5292,7 @@ renoise.tool():add_midi_mapping{name="Global:Paketti:Fill Effect Column with 0G0
   end
 }
 
-renoise.tool():add_midi_mapping{name="Global:Paketti:Fill Effect Column with 0G01+0U00 [Trigger]",
+renoise.tool():add_midi_mapping{name="Paketti:Fill Effect Column with 0G01+0U00 [Trigger]",
   invoke = function(message)
     if message:is_trigger() then
       writeEffectToPattern("0U00", "0G01")
@@ -5874,7 +5874,7 @@ function apply_template(target_note)
   end
 end
 
-renoise.tool():add_midi_mapping{name="Global:Paketti:Template Mode Note Input",
+renoise.tool():add_midi_mapping{name="Paketti:Template Mode Note Input",
   invoke = function(message)
     if template_mode and message:is_note() then
       apply_template(message.note_value)
@@ -6176,7 +6176,7 @@ renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Pattern Editor..
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Value Interpolation Looper Dialog...",invoke = pakettiVolumeInterpolationLooper}
 renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Value Interpolation Looper Dialog...",invoke = pakettiVolumeInterpolationLooper}
 renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Value Interpolation Looper Dialog...",invoke = pakettiVolumeInterpolationLooper}
-renoise.tool():add_keybinding{name="Pattern Editor:Tools:Paketti Value Interpolation Looper Dialog...",invoke = pakettiVolumeInterpolationLooper}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Paketti Value Interpolation Looper Dialog...",invoke = pakettiVolumeInterpolationLooper}
 
 
 

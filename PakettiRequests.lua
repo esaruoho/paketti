@@ -6070,7 +6070,6 @@ function PakettiUserPreferencesLoadPreferences()
   end
 end
 
-
 -- Function to save user preferences and show debug output
 function PakettiUserPreferenceSavePreferences(device_dropdowns, available_devices)
   for i = 1, #device_dropdowns do
@@ -6280,11 +6279,11 @@ function PakettiUserPreferencesShowerDialog()
   renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
 end
 
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Show/Hide User Preference Devices Master Dialog",invoke=function() PakettiUserPreferencesShowerDialog() end}
-renoise.tool():add_menu_entry{name="DSP Device:Paketti..:Show/Hide User Preference Devices Master Dialog",invoke=function() PakettiUserPreferencesShowerDialog() end}
-renoise.tool():add_keybinding{name="Global:Paketti:Show/Hide User Preference Devices Master Dialog",invoke=function() PakettiUserPreferencesShowerDialog() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:SlotShow..:Show/Hide User Preference Devices Master Dialog",invoke=function() PakettiUserPreferencesShowerDialog() end}
-renoise.tool():add_keybinding{name="Global:Paketti:Open User Preferences Dialog",invoke=function() PakettiUserPreferencesShowerDialog() end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Show/Hide User Preference Devices Master Dialog...",invoke=function() PakettiUserPreferencesShowerDialog() end}
+renoise.tool():add_menu_entry{name="DSP Device:Paketti..:Show/Hide User Preference Devices Master Dialog...",invoke=function() PakettiUserPreferencesShowerDialog() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Show/Hide User Preference Devices Master Dialog...",invoke=function() PakettiUserPreferencesShowerDialog() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:SlotShow..:Show/Hide User Preference Devices Master Dialog...",invoke=function() PakettiUserPreferencesShowerDialog() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Open User Preferences Dialog...",invoke=function() PakettiUserPreferencesShowerDialog() end}
 for i = 1, 10 do
   local slot = string.format("%02d", i)
 
@@ -8031,7 +8030,7 @@ end
 
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Offset Sample Buffer by -0.5",invoke=function() PakettiOffsetSampleBuffer("Subtract", 0.5) end }
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Multiply Sample Buffer by 0.5",invoke=function() PakettiOffsetSampleBuffer("Multiply", 0.5) end }
-renoise.tool():add_keybinding{name="Global:Paketti:Offset Dialog...",invoke=pakettiOffsetDialog }
+renoise.tool():add_keybinding{name="Global:Paketti:Open Offset Dialog...",invoke=pakettiOffsetDialog }
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Offset Dialog...",invoke=pakettiOffsetDialog }
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti Offset Dialog...",invoke=pakettiOffsetDialog }
 
@@ -8605,7 +8604,7 @@ local function key_handler(key)
 end
 ]]--
 
-renoise.tool():add_keybinding{name="Global:Paketti:Show EditStep Dialog",invoke = function() show_edit_step_dialog() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Show EditStep Dialog...",invoke = function() show_edit_step_dialog() end}
 ------
 -- Function to step by editstep (forwards or backwards)
 function PakettiStepByEditStep(direction)
@@ -10569,3 +10568,59 @@ end
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Switch Note Instrument Dialog...",invoke=show_note_mapping_dialog}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Switch Note Instrument Dialog...",invoke=show_note_mapping_dialog}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Switch Note Instrument Dialog...",invoke=show_note_mapping_dialog}
+
+------
+function pakettiGrooveToDelay()
+  local song = renoise.song()
+  local pattern_index = song.selected_pattern_index
+  local track_index = song.selected_track_index
+  local pattern_lines = song.patterns[pattern_index].number_of_lines
+  
+  -- Get groove amounts
+  local ga = song.transport.groove_amounts
+  
+  -- Debug print
+  print("Converting grooves to delays:")
+  print(string.format("GA1: %.3f (affects when odd lines play after even lines)", ga[1]))
+  print(string.format("GA2: %.3f (affects when line 3 plays after line 2)", ga[2]))
+  print(string.format("GA3: %.3f (affects when line 5 plays after line 4)", ga[3]))
+  print(string.format("GA4: %.3f (affects when line 7 plays after line 6)", ga[4]))
+  
+  -- Convert groove to delay
+  local function groove_to_delay(groove)
+      return math.floor((groove * 255) + 0.5)
+  end
+  
+  -- Write delays for the entire pattern length
+  for i = 0, pattern_lines - 1 do
+      local note_column = song.patterns[pattern_index].tracks[track_index].lines[i + 1].note_columns[1]
+      
+      -- Which line are we in the 8-line cycle?
+      local cycle_position = i % 8
+      
+      -- Only odd numbered lines (1,3,5,7) get delays
+      if cycle_position % 2 == 1 then
+          -- Get the groove amount that affects this line
+          local groove_index = math.floor(cycle_position/2) + 1
+          local delay = groove_to_delay(ga[groove_index])
+          note_column.delay_value = delay
+          print(string.format("Line %d: Applying delay %d (0x%02X) from Groove %d (%.3f)", 
+              i + 1, delay, delay, groove_index, ga[groove_index]))
+      else
+          -- Even numbered lines (0,2,4,6) get no delay
+          note_column.delay_value = 0
+          print(string.format("Line %d: No delay (base line)", i + 1))
+      end
+  end
+  
+  -- Disable global groove
+  song.transport.groove_enabled = false
+  
+  renoise.app():show_status("Groove converted to delay values")
+end
+
+-- Add menu entry
+renoise.tool():add_menu_entry {
+  name = "Pattern Editor:Paketti..:Convert Groove to Delay",
+  invoke = pakettiGrooveToDelay
+}

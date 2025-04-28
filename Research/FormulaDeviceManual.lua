@@ -354,10 +354,10 @@ function show_manual()
   retain_current_view()
 end
 
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Show Paketti Formula Device Manual...",invoke = show_manual}
-renoise.tool():add_menu_entry{name="--DSP Device:Paketti..:Show Paketti Formula Device Manual...",invoke = show_manual}
-renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Show Paketti Formula Device Manual...",invoke = show_manual}
-renoise.tool():add_keybinding{name="Global:Paketti:Show Paketti Formula Device Manual...",invoke = show_manual}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Show Paketti Formula Dialog...",invoke = show_manual}
+renoise.tool():add_menu_entry{name="--DSP Device:Paketti..:Show Paketti Formula Device Manual Dialog...",invoke = show_manual}
+renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Show Paketti Formula Device Manual Dialog...",invoke = show_manual}
+renoise.tool():add_keybinding{name="Global:Paketti:Show Paketti Formula Device Manual Dialog...",invoke = show_manual}
 
 ------
 function add_input_inertia()
