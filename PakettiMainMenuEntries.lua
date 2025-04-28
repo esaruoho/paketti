@@ -389,8 +389,9 @@ local function toggle_paketti_dialog()
     dialog_instance:close()
     dialog_instance = nil
   else
-
-    dialog_instance = renoise.app():show_custom_dialog("Paketti Dialog of Dialogs", create_paketti_dialog(), my_keyhandler_func)
+    -- Count the number of dialogs in button_list
+    local dialog_count = #button_list
+    dialog_instance = renoise.app():show_custom_dialog(string.format("Paketti Dialog of Dialogs (%d)", dialog_count), create_paketti_dialog(), my_keyhandler_func)
   end
 end
 
