@@ -4,6 +4,9 @@ local function calculate_delay(position, total_notes, ticks_per_line)
   return delay
 end
 
+-- Dialog tracking variable
+local dialog = nil
+
 local function generate_pattern(note_count, row_count, delays_only)
   local pattern = {}
   
@@ -132,7 +135,13 @@ local function apply_to_pattern(pattern_text, row_count, views)
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 end
 
-local function show_tuplet_dialog()
+function show_tuplet_dialog()
+  if dialog and dialog.visible then
+    dialog:close()
+    dialog = nil
+    return
+  end
+
   local vb = renoise.ViewBuilder()
   
   local function validate_and_generate()
@@ -346,7 +355,7 @@ local function show_tuplet_dialog()
     }
   }
     
-  local dialog = renoise.app():show_custom_dialog("Paketti Tuplet Writer",dialog_content,my_keyhandler_func)
+  dialog = renoise.app():show_custom_dialog("Paketti Tuplet Writer",dialog_content,my_keyhandler_func)
   
   -- Set focus to note count field
   vb.views.note_count.active = true

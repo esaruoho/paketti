@@ -1,4 +1,7 @@
 -- Helper functions
+-- Dialog tracking variable
+local dialog = nil
+
 function focus_sample_editor()
     renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
 end
@@ -81,6 +84,12 @@ function set_sample_selection_by_hex_offset(hex_value)
 end
 
 function create_hex_offset_dialog()
+if dialog and dialog.visible then
+    dialog:close()
+    dialog = nil
+    return
+end
+
     local song = renoise.song()
     local sample = song.selected_sample
     if not sample or not sample.sample_buffer.has_sample_data then
@@ -152,7 +161,7 @@ function create_hex_offset_dialog()
         return key
     end
     
-    renoise.app():show_custom_dialog("Set Selection by Hex Offset", dialog_content, key_handler)
+    dialog = renoise.app():show_custom_dialog("Set Selection by Hex Offset", dialog_content, key_handler)
     focus_sample_editor()
 end
 

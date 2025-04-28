@@ -207,6 +207,8 @@ end
 function show_speed_tempo_dialog()
   if dialog and dialog.visible then
     dialog:close()
+    dialog = nil
+    return
   end
 
   -- Valueboxes for Speed and Tempo
@@ -216,7 +218,7 @@ function show_speed_tempo_dialog()
     spacing = 8,
 
     vb:row {
-      spacing = 10,
+      --spacing = 10,
       vb:column {
         vb:text { text = "Speed:" },
         vb:valuebox {
@@ -263,6 +265,16 @@ function show_speed_tempo_dialog()
         notifier = function()
           renoise.song().transport.bpm = real_bpm
           renoise.app():show_status(string.format("BPM set to %.2f", real_bpm))
+        end
+      },
+      vb:button {
+        text = "Close",
+        width = 60,
+        notifier = function()
+          if dialog and dialog.visible then
+            dialog:close()
+            dialog = nil
+          end
         end
       }
     }

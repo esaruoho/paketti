@@ -1105,8 +1105,13 @@ function display_selected_plugin_details(index, available_plugin_infos)
   end
 end
 
--- Function to show the plugin details GUI
 function show_plugin_details_gui()
+  if dialog and dialog.visible then
+    dialog:close()
+    dialog = nil
+    return
+  end
+
   local vb = renoise.ViewBuilder()
   local available_plugin_infos = get_sorted_and_grouped_plugin_infos()
 
@@ -1145,8 +1150,9 @@ function show_plugin_details_gui()
     vb:button {
       text = "Close",
       released = function()
-        if customdialog and customdialog.visible then
-          customdialog:close()
+        if dialog and dialog.visible then
+          dialog:close()
+          dialog = nil
         end
       end
     }
@@ -1160,7 +1166,7 @@ function show_plugin_details_gui()
   vb.views.plugins_list.items = popup_items
 
   -- Dialog management
-  customdialog = renoise.app():show_custom_dialog("Plugin Details", dialog_content, my_keyhandler_func)
+  dialog = renoise.app():show_custom_dialog("Plugin Details", dialog_content, my_keyhandler_func)
 end
 -----
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:Debug..:Show Effect Details Dialog...",invoke=function() show_effect_details_gui() end}
@@ -1248,6 +1254,12 @@ end
 
 -- Function to show the effect details GUI
 function show_effect_details_gui()
+  if dialog and dialog.visible then
+    dialog:close()
+    dialog = nil
+    return
+  end
+
   local vb = renoise.ViewBuilder()
   local available_device_infos = get_sorted_and_grouped_device_infos()
   local device_names = {}
@@ -1290,15 +1302,16 @@ function show_effect_details_gui()
     vb:button {
       text = "Close",
       released = function()
-        if customdialog and customdialog.visible then
-          customdialog:close()
+        if dialog and dialog.visible then
+          dialog:close()
+          dialog = nil
         end
       end
     }
   }
 
   -- Show dialog
-  customdialog = renoise.app():show_custom_dialog("Effect Details", dialog_content, my_keyhandler_func)
+  dialog = renoise.app():show_custom_dialog("Effect Details", dialog_content, my_keyhandler_func)
 end
 
 -- Modulation Device Loader Shortcut Generator

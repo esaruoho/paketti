@@ -101,14 +101,16 @@ renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti..:AKWF..:Load 05 
 renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti..:AKWF..:Load 12 AKWF Samples with Overlap Random",invoke=function() load_random_akwf_sample(12) DrumKitToOverlay(2) end}
 renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti..:AKWF..:Load 12 AKWF Samples with Overlap Cycle",invoke=function() load_random_akwf_sample(12) DrumKitToOverlay(1) end}
 
-renoise.tool():add_keybinding{name="Global:Paketti:Load 04 AKWF Samples (XY)",invoke=function() load_random_akwf_sample(4)
+renoise.tool():add_keybinding{name="Global:Paketti:Load 04 AKWF Samples (XY)",invoke=function() Load04AKWFSamplesXY() end}
+  
+function Load04AKWFSamplesXY()
+  load_random_akwf_sample(4)
   for i = 1,#renoise.song().selected_instrument.samples do
   renoise.song().selected_instrument.samples[i].volume = 0
   end
   renoise.song().selected_instrument.volume=0.25
   showXyPaddialog()
-   end}
-  
+end  
   
   --[[local function generate_akwf_txt()
     local tool_folder = renoise.tool().bundle_path .. "AKWF/"

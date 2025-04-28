@@ -111,8 +111,7 @@ function pakettiPhraseSettingsDialogShow()
     preferences.pakettiPhraseInitDialog.Name.value = phrase.name
   end
 
-  pakettiInitPhraseSettingsDialog = renoise.app():show_custom_dialog(
-    "Paketti Phrase Default Settings Dialog",
+  pakettiInitPhraseSettingsDialog = renoise.app():show_custom_dialog("Paketti Phrase Default Settings Dialog",
     vb:column {
       margin = 10,
       

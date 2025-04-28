@@ -337,7 +337,14 @@ local button_list = {
   {"OctaMED Pick/Put Row", "toggle_paketti_pick_dialog"},
   {"PlayerPro Note Dropdown Grid", "PakettiPlayerProNoteGridShowDropdownGrid"},
   {"PlayerPro Main Dialog", "pakettiPlayerProShowMainDialog"},
-  {"PlayerPro Effect Dialog", "showPlayerProEffectDialog"}
+  {"PlayerPro Effect Dialog", "showPlayerProEffectDialog"},
+  {"Set Selection by Hex Offset", "create_hex_offset_dialog"},
+  {"Paketti Tuplet Writer", "show_tuplet_dialog"},
+  {"Speed and Tempo to BPM", "show_speed_tempo_dialog"},
+  {"Debug: Available Plugin Information", "show_plugin_details_gui"},
+  {"Debug: Plugin Details", "show_plugin_details_gui"},
+  {"Debug: Effect Details", "show_effect_details_gui"},
+  {"AKWF Load 04 Samples (XY)", "Load04AKWFSamplesXY"}
 }
 
 -- Function to create buttons from the list
