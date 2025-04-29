@@ -235,10 +235,10 @@ local function updateRandomSelection()
   local percentage_text_view = vb.views["random_percentage_text"]
 
   if numSelections == 0 then
-    percentage_text_view.text = "None"
+    percentage_text_view.text="None"
     return
   elseif numSelections >= numDevices then
-    percentage_text_view.text = "All"
+    percentage_text_view.text="All"
     for _, cb_info in ipairs(filtered_plugins) do
       cb_info.checkbox.value = true
     end
@@ -427,14 +427,14 @@ function showPluginListDialog()
 
   -- Random Selection Slider
   local random_selection_controls = vb:row{
-    spacing = 10,
-    vb:text{text = "Random Select:", width = 100},
+    spacing=10,
+    vb:text{text="Random Select:",width=100},
     vb:slider{
       id = "random_select_slider",
       min = 0,
       max = 100,
       value = 0,
-      width = 200,
+      width=200,
       notifier = function(value)
         random_select_percentage = value
         updateRandomSelection()
@@ -442,9 +442,9 @@ function showPluginListDialog()
     },
     vb:text{
       id = "random_percentage_text",
-      text = "None",
-      width = 40,
-      align = "center"
+      text="None",
+      width=40,
+      align="center"
     },
 
     vb:checkbox{
@@ -454,7 +454,7 @@ function showPluginListDialog()
         updateRandomSelection()
       end
     },
-    vb:text{text="Favorites Only", width=70},
+    vb:text{text="Favorites Only",width=70},
   
   }
 
@@ -462,43 +462,43 @@ function showPluginListDialog()
   local button_height = renoise.ViewBuilder.DEFAULT_DIALOG_BUTTON_HEIGHT
   local action_buttons = vb:column{
     uniform = true,
-    width = "100%",
+    width="100%",
     vb:button{
-      text = "Add Plugin(s) as Shortcut(s) & MIDI Mappings",
+      text="Add Plugin(s) as Shortcut(s) & MIDI Mappings",
       height = button_height,
-      width = "100%",
+      width="100%",
       notifier = addAsShortcut
     },
     vb:horizontal_aligner{
-      width = "100%",
+      width="100%",
       vb:button{
-        text = "Select All",
+        text="Select All",
         height = button_height,
-        width = "50%",
+        width="50%",
         notifier = function()
           for _, cb_info in ipairs(plugins) do
             cb_info.checkbox.value = true
           end
           vb.views["random_select_slider"].value = 100
-          vb.views["random_percentage_text"].text = "All"
+          vb.views["random_percentage_text"].text="All"
         end
       },
       vb:button{
-        text = "Reset Selection",
+        text="Reset Selection",
         height = button_height,
-        width = "50%",
+        width="50%",
         notifier = function()
           resetSelection()
           vb.views["random_select_slider"].value = 0
-          vb.views["random_percentage_text"].text = "None"
+          vb.views["random_percentage_text"].text="None"
         end
       }
     },
     vb:horizontal_aligner{
-      width = "100%",
+      width="100%",
       vb:button{
-        text = "Load Plugin(s)",
-        width = "33%",
+        text="Load Plugin(s)",
+        width="33%",
         height = button_height,
         notifier = function()
           if loadSelectedPlugins() then
@@ -509,8 +509,8 @@ function showPluginListDialog()
         end
       },
       vb:button{
-        text = "Load Plugin(s) & Close",
-        width = "33%",
+        text="Load Plugin(s) & Close",
+        width="33%",
         height = button_height,
         notifier = function()
           if loadSelectedPlugins() then
@@ -523,9 +523,9 @@ function showPluginListDialog()
         end
       },
       vb:button{
-        text = "Cancel",
+        text="Cancel",
         height = button_height,
-        width = "34%",
+        width="34%",
         notifier = function()
           dialog:close()
           dialog = nil
@@ -540,8 +540,8 @@ function showPluginListDialog()
 
   -- Main Dialog Content
   local dialog_content_view = vb:column{
-    margin = 10,
-    spacing = 5,
+    margin=10,
+    spacing=5,
     plugin_list_view,
     random_selection_controls,
     action_buttons
@@ -551,7 +551,7 @@ function showPluginListDialog()
   local dialog_content = vb:column{
     vb:horizontal_aligner{
       mode = "center",
-      vb:text{text = "Select Plugin Type: "},
+      vb:text{text="Select Plugin Type: "},
       dropdown
     },
     dialog_content_view

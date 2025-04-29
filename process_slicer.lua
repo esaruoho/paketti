@@ -100,22 +100,22 @@ function ProcessSlicer:create_dialog(title)
   local vb = renoise.ViewBuilder()
   local dialog = nil
   
-  local DEFAULT_MARGIN = renoise.ViewBuilder.DEFAULT_CONTROL_MARGIN
-  local DEFAULT_SPACING = renoise.ViewBuilder.DEFAULT_CONTROL_SPACING
+  local DEFAULT_CONTROL_MARGIN=renoise.ViewBuilder.DEFAULT_CONTROL_MARGIN
+  local DEFAULT_spacing=renoise.ViewBuilder.DEFAULT_CONTROL_SPACING
   
-  local dialog_content = vb:column {
-    margin = DEFAULT_MARGIN,
-    spacing = DEFAULT_SPACING,
+  local dialog_content = vb:column{
+    margin=DEFAULT_CONTROL_MARGIN,
+    spacing=DEFAULT_spacing,
     
-    vb:text {
+    vb:text{
       id = "progress_text",
-      text = "Processing..."
+      text="Processing..."
     },
     
-    vb:button {
+    vb:button{
       id = "cancel_button",
-      text = "Cancel",
-      width = 80,
+      text="Cancel",
+      width=80,
       notifier = function()
         self:cancel()
         if dialog and dialog.visible then

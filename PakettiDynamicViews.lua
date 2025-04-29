@@ -355,23 +355,23 @@ end
 
 -- Function to build the header row with step numbers
 local function build_header_row(vb, steps_per_view)
-  local row = vb:row {}
-  row:add_child(vb:text { text = "", width = 110 }) -- Blank cell for labels column
+  local row = vb:row{}
+  row:add_child(vb:text{text="",width=110 }) -- Blank cell for labels column
   for step = 1, steps_per_view do
-    row:add_child(vb:text { text = "Step " .. step, align = "center", width = 125, font = "bold" })
+    row:add_child(vb:text{text="Step " .. step, align="center",width=125, font = "bold" })
   end
   return row
 end
 
 -- Function to build a row for a specific property across all steps
 local function build_property_row(vb, dv_id, property_name, label_text, items_builder, update_steps_label)
-  local row = vb:row {}
-  row:add_child(vb:text { text = label_text, width = 110, font = "bold" })
+  local row = vb:row{}
+  row:add_child(vb:text{text=label_text,width=110, font = "bold" })
   for step = 1, steps_per_view do
-    row:add_child(vb:popup {
+    row:add_child(vb:popup{
       items = items_builder(),
       bind = DynamicViewPrefs["dynamic_view" .. dv_id .. "_" .. property_name .. step],
-      width = 125,
+      width=125,
       notifier = function()
         apply_dynamic_view_step(tonumber(dv_id), step)
         update_steps_label()
@@ -385,7 +385,7 @@ end
 -- Build dynamic view UI
 local function build_dynamic_view_ui(vb, dv)
   local dv_id = string.format("%02d", dv)
-  local steps_label = vb:text { text = "Steps in Cycle: 0", font = "bold" }
+  local steps_label = vb:text{text="Steps in Cycle: 0", font = "bold" }
 
   local function update_steps_label()
     local steps_count = 0
@@ -415,7 +415,7 @@ local function build_dynamic_view_ui(vb, dv)
         steps_count = steps_count + 1
       end
     end
-    steps_label.text = "Steps in Cycle: " .. steps_count
+    steps_label.text="Steps in Cycle: " .. steps_count
   end
 
   local function clear_visibility_controls()
@@ -438,10 +438,10 @@ local function build_dynamic_view_ui(vb, dv)
   -- Initialize the label
   update_steps_label()
 
-  local dv_column = vb:column {
-  --  spacing = 5,
-    vb:row {
-      vb:text { text = "Paketti Dynamic View " .. dv_id, font = "bold", width = 250 },
+  local dv_column = vb:column{
+  --  spacing=5,
+    vb:row{
+      vb:text{text="Paketti Dynamic View " .. dv_id, font = "bold",width=250 },
       steps_label
     },
     build_header_row(vb, steps_per_view),
@@ -453,9 +453,9 @@ local function build_dynamic_view_ui(vb, dv)
     build_property_row(vb, dv_id, "sample_record_visible_step", "Sample Recorder", build_visibility_options, update_steps_label),
     build_property_row(vb, dv_id, "pattern_matrix_visible_step", "Pattern Matrix", build_visibility_options, update_steps_label),
     build_property_row(vb, dv_id, "pattern_advanced_edit_visible_step", "Advanced Edit", build_visibility_options, update_steps_label),
-    vb:row {
-      vb:button { text = "Cycle", height = 20, width = 100, pressed = function() cycle_dynamic_view(dv) end},
-      vb:button { text = "Clear All Visibility Controls", height = 20, width = 200, pressed = function() clear_visibility_controls() end}
+    vb:row{
+      vb:button{ text="Cycle", height = 20,width=100, pressed = function() cycle_dynamic_view(dv) end},
+      vb:button{ text="Clear All Visibility Controls", height = 20,width=200, pressed = function() clear_visibility_controls() end}
     }
   }
 
@@ -464,15 +464,15 @@ end
 
 -- Assemble the dialog interface for dynamic views
 function build_dialog_interface(vb, start_dv, end_dv, closeDV_dialog)
-  local interface = vb:column { spacing = 1 }
+  local interface = vb:column{spacing=1 }
   for dv = start_dv, end_dv do
     interface:add_child(build_dynamic_view_ui(vb, dv))
   end
   
-  interface:add_child(vb:row {
-    vb:button { text = "Save Dynamic Views as a Textfile", height = 20, width = 200, pressed = function() save_dynamic_views_to_txt() end},
-    vb:button { text = "Load Dynamic Views from a Textfile", height = 20, width = 200, pressed = function() load_dynamic_views_from_txt() end},
-    vb:button { text = "Save & Close", height = 20, width = 100, pressed = function()
+  interface:add_child(vb:row{
+    vb:button{ text="Save Dynamic Views as a Textfile", height = 20,width=200, pressed = function() save_dynamic_views_to_txt() end},
+    vb:button{ text="Load Dynamic Views from a Textfile", height = 20,width=200, pressed = function() load_dynamic_views_from_txt() end},
+    vb:button{ text="Save & Close", height = 20,width=100, pressed = function()
       renoise.app():show_status("Saving current settings")
       saveDynamicViewPreferences()
       closeDV_dialog()

@@ -196,15 +196,15 @@ function ActionSelectorDialog()
   end
 
   -- Create dialog content
-  local dialog_content = vb:column {
-    margin = 0,
-    spacing = 0,
-    vb:row {
-      margin = 0,
-      spacing = 2,
-      vb:button {
-        text = "Debug All Actions",
-        width = 150,
+  local dialog_content = vb:column{
+    margin=0,
+    spacing=0,
+    vb:row{
+      margin=0,
+      spacing=2,
+      vb:button{
+        text="Debug All Actions",
+        width=150,
         notifier = function()
           print("\n=== Starting Debug Test of All Actions ===\n")
           local failed_actions = {}
@@ -256,30 +256,30 @@ function ActionSelectorDialog()
           print("\n=== End of Debug Report ===\n")
         end
       },
-            vb:button {
-        text = "Save",
-        width = 60,
+            vb:button{
+        text="Save",
+        width=60,
         notifier = function()
           ActionSelectorSaveToFile()
         end
       },
-      vb:button {
-        text = "Load",
-        width = 60,
+      vb:button{
+        text="Load",
+        width=60,
         notifier = function()
           ActionSelectorLoadPreferences()
         end
       },
-      vb:button {
-        text = "Reset",
-        width = 60,
+      vb:button{
+        text="Reset",
+        width=60,
         notifier = function()
           ActionSelectorReset()
         end
       },
-      vb:button {
-        text = "Random Fill",
-        width = 80,
+      vb:button{
+        text="Random Fill",
+        width=80,
         notifier = function()
           local available = {}
           for i, action in ipairs(actions) do
@@ -302,18 +302,18 @@ function ActionSelectorDialog()
   
   -- Create 50 rows of dropdown + button
   for i = 1, 50 do
-    local row = vb:row {
-      margin = 0,
-      spacing = 2,
-      vb:text {
+    local row = vb:row{
+      margin=0,
+      spacing=2,
+      vb:text{
         text = string.format("%02d. ", i),
         style="strong",
         font="bold",
-        width = 24,
+        width=24,
       },
-      vb:popup {
+      vb:popup{
         id = "dropdown_" .. i,
-        width = 650,
+        width=650,
         items = {"<None>"},
         value = 1,
         notifier = function(idx)
@@ -322,9 +322,9 @@ function ActionSelectorDialog()
             idx > 1 and (actions[idx - 1].type .. ": " .. actions[idx - 1].name .. "||" .. actions[idx - 1].invoke) or ""
         end
       },
-      vb:button {
-        text = "Run",
-        width = 50,
+      vb:button{
+        text="Run",
+        width=50,
         notifier = function()
           local action = selected_actions[i]
           if action then

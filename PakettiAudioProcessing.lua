@@ -64,7 +64,7 @@ end
 
 -- Function to create an audio diff sample
 local function create_audio_diff_sample()
-  local song = renoise.song()
+  local song=renoise.song()
   local sample = song.selected_sample
   local duplicate = duplicate_sample()
   if not duplicate then return end
@@ -100,7 +100,7 @@ end
 
 -- Function to duplicate a sample
 local function duplicate_sample()
-  local song = renoise.song()
+  local song=renoise.song()
   local instrument = song.selected_instrument
   if not instrument then renoise.app():show_status("There is no Instrument selected.") return nil end
   local sample = song.selected_sample
@@ -122,7 +122,7 @@ end
 
 -- Function to mix and process samples with various operations
 local function mix_and_process_samples(operation, mod_function)
-  local song = renoise.song()
+  local song=renoise.song()
   local sample = song.selected_sample
   local duplicate = duplicate_sample()
   if not duplicate then return end
@@ -176,7 +176,7 @@ end
 
 -- Function to perform phase inversion (subtraction) on a sample
 local function phase_invert_sample()
-  local song = renoise.song()
+  local song=renoise.song()
   local sample = song.selected_sample
   local duplicate = duplicate_sample()
   if not duplicate then return end
@@ -216,7 +216,7 @@ end
 
 -- Function to perform inversion of right channel and summing to mono
 local function invert_right_sum_mono()
-  local song = renoise.song()
+  local song=renoise.song()
   local sample = song.selected_sample
   local buffer = sample.sample_buffer
 
@@ -268,7 +268,7 @@ local function pitch_shift_sample(shift_amount)
     return
   end
 
-  local song = renoise.song()
+  local song=renoise.song()
   local duplicate = duplicate_sample()
   if not duplicate then return end
 
@@ -322,7 +322,7 @@ end
 
 -- Function to create an audio diff sample
 local function create_audio_diff_sample()
-  local song = renoise.song()
+  local song=renoise.song()
   local sample = song.selected_sample
   local duplicate = duplicate_sample()
   if not duplicate then return end
@@ -358,7 +358,7 @@ end
 
 -- Function to render the sample at a new sample rate without changing its sound
 local function RenderSampleAtNewRate(target_sample_rate, target_bit_depth)
-  local song = renoise.song()
+  local song=renoise.song()
   local instrument = song.selected_instrument
   local sample_index = song.selected_sample_index
   local sample = instrument:sample(sample_index)
@@ -402,7 +402,7 @@ end
 
 -- Function to destructively resample the selected sample to a specified sample rate
 local function DestructiveResample(target_sample_rate, target_bit_depth)
-  local song = renoise.song()
+  local song=renoise.song()
   local instrument = song.selected_instrument
   local sample_index = song.selected_sample_index
   local sample = instrument:sample(sample_index)
@@ -472,24 +472,24 @@ local function create_combined_dialog_content()
   local destination_bit_depth = current_bit_depth
 
   -- Create new text elements specifically for this dialog
-  local threshold_label = vb:text{text=string.format("%.3f%%", preferences.PakettiStripSilenceThreshold.value*100), width=60}
-  local begthreshold_label = vb:text{text=string.format("%.3f%%", preferences.PakettiMoveSilenceThreshold.value*100), width=60}
+  local threshold_label = vb:text{text=string.format("%.3f%%", preferences.PakettiStripSilenceThreshold.value*100),width=60}
+  local begthreshold_label = vb:text{text=string.format("%.3f%%", preferences.PakettiMoveSilenceThreshold.value*100),width=60}
   local sample_name_text = vb:text{id="sample_name_text", text="Name: " .. (current_name or "No valid sample selected")}
   local details_text = vb:text{id="details_text", text="Details: " .. (buffer and string.format("%dHz, %dbit, %d frames", current_rate, current_bit_depth, current_length) or "No valid sample selected")}
-  local slider_value = vb:text{text="1", width=40}
+  local slider_value = vb:text{text="1",width=40}
 
   
   
   -- Create the dialog content
-  local dialog_content = vb:column { width=375,
-    margin = 5,vb:column{style="group",margin=5,width=365,
-    vb:row {
-      vb:text {text = "Silence Threshold:"},
-      vb:slider {
+  local dialog_content = vb:column{width=375,
+    margin=5,vb:column{style="group",margin=5,width=365,
+    vb:row{
+      vb:text{text="Silence Threshold:"},
+      vb:slider{
         min = 0,
         max = 1,
         value = preferences.PakettiStripSilenceThreshold.value,
-        width = 200,
+        width=200,
         notifier = function(value)
           threshold_label.text = string.format("%.3f%%", value * 100)
           preferences.PakettiStripSilenceThreshold.value = value
@@ -497,13 +497,13 @@ local function create_combined_dialog_content()
       },
       threshold_label
     },
-    vb:button {
-      text = "Strip Silence using Threshold",
+    vb:button{
+      text="Strip Silence using Threshold",
       notifier = function()
         if preferences.PakettiStripSilenceThreshold.value == 1 then
           local choice = renoise.app():show_prompt("Warning", "Are you sure you want to remove this sample?", {"Yes", "Cancel"})
           if choice == "Yes" then
-            local song = renoise.song()
+            local song=renoise.song()
             local sample_index = song.selected_sample_index
             local instrument = song.selected_instrument
             if instrument and sample_index > 0 and instrument:sample(sample_index) then
@@ -518,13 +518,13 @@ local function create_combined_dialog_content()
         renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
       end
     },
-        vb:row {
-      vb:text {text = "Silence Threshold:"},
-      vb:slider {
+        vb:row{
+      vb:text{text="Silence Threshold:"},
+      vb:slider{
         min = 0,
         max = 1,
         value = preferences.PakettiMoveSilenceThreshold.value,
-        width = 200,
+        width=200,
         notifier = function(value)
           begthreshold_label.text = string.format("%.3f%%", value * 100)
           preferences.PakettiMoveSilenceThreshold.value = value
@@ -532,8 +532,8 @@ local function create_combined_dialog_content()
       },
       begthreshold_label
     },
-    vb:button {
-      text = "Move Beginning Silence to End",
+    vb:button{
+      text="Move Beginning Silence to End",
       notifier = function()
         PakettiMoveSilence()
         renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
@@ -550,7 +550,7 @@ local function create_combined_dialog_content()
     vb:row{vb:button{text="Recursive DC Offset", notifier= function() remove_dc_offset_recursive() end}},
   vb:row{
     vb:button{
-      text = "Run Recursive DC Offset x times",
+      text="Run Recursive DC Offset x times",
       notifier = function()
         local count = tonumber(vb.views.slider_value.text)
         for i = 1, count do
@@ -565,14 +565,14 @@ local function create_combined_dialog_content()
       min = 1,
       max = 500,
       value = 1,
-      width = 200,
+      width=200,
       notifier = function(value)
         vb.views.slider_value.text = tostring(math.floor(value))
       end
     },
     vb:text{
       id = "slider_value",
-      text = "1",
+      text="1",
       width=40, -- initial value
     }
   },
@@ -607,23 +607,23 @@ vb:row{vb:button{text="Normalize Sample",notifier=function() normalize_selected_
 vb:column{style="group",margin=5,width=365,
 
       -- Phase Inversion Buttons
-      vb:row{vb:button {text = "Phase Inversion", notifier = function() phase_invert_sample() set_middle_frame_focus() end},
-        vb:button {text = "Phase Inversion & Audio Diff", notifier = function() phase_invert_and_diff_sample() set_middle_frame_focus() end},},
+      vb:row{vb:button{text="Phase Inversion", notifier = function() phase_invert_sample() set_middle_frame_focus() end},
+        vb:button{text="Phase Inversion & Audio Diff", notifier = function() phase_invert_and_diff_sample() set_middle_frame_focus() end},},
 
-      vb:row {vb:button {text = "Invert Right, Sum Mono", notifier = function() invert_right_sum_mono() set_middle_frame_focus() end},},
+      vb:row{vb:button{text="Invert Right, Sum Mono", notifier = function() invert_right_sum_mono() set_middle_frame_focus() end},},
 
       -- Pitch Shift Buttons
-      vb:row {
-        vb:valuebox {min = -100, max = 100, value = pitch_shift_amount, notifier = function(value) pitch_shift_amount = value end},
-        vb:button {text = "Pitch Shift", notifier = function() pitch_shift_sample(pitch_shift_amount) set_middle_frame_focus() end},
-        vb:button {text = "Pitch Shift & Audio Diff", notifier = function() pitch_shift_and_diff_sample() set_middle_frame_focus() end},
+      vb:row{
+        vb:valuebox{min = -100, max = 100, value = pitch_shift_amount, notifier = function(value) pitch_shift_amount = value end},
+        vb:button{text="Pitch Shift", notifier = function() pitch_shift_sample(pitch_shift_amount) set_middle_frame_focus() end},
+        vb:button{text="Pitch Shift & Audio Diff", notifier = function() pitch_shift_and_diff_sample() set_middle_frame_focus() end},
       },
 
-      vb:row {vb:button {text = "Clip Bottom of Waveform", notifier = function() modulate_samples() set_middle_frame_focus() end},
-        vb:button {text = "Modulate & Audio Diff", notifier = function() modulate_and_diff_sample() set_middle_frame_focus() end},},
+      vb:row{vb:button{text="Clip Bottom of Waveform", notifier = function() modulate_samples() set_middle_frame_focus() end},
+        vb:button{text="Modulate & Audio Diff", notifier = function() modulate_and_diff_sample() set_middle_frame_focus() end},},
 
       -- Audio Diff Button
-      vb:row {vb:button {text = "Audio Diff", notifier = function() create_audio_diff_sample() set_middle_frame_focus() end},}},
+      vb:row{vb:button{text="Audio Diff", notifier = function() create_audio_diff_sample() set_middle_frame_focus() end},}},
     
     -- Resampling Section
     vb:column{style="group", margin=5,
@@ -709,7 +709,7 @@ local function update_dialog_on_selection_change()
 
 
 
-  local song = renoise.song()
+  local song=renoise.song()
   if song then
     local instrument = song.selected_instrument
     if instrument then
@@ -723,7 +723,7 @@ local function update_dialog_on_selection_change()
             -- Update the UI elements with valid sample data
             details_text.text = string.format("Details: %dHz, %dbit, %d frames", 
               buffer.sample_rate, buffer.bit_depth, buffer.number_of_frames)
-            sample_name_text.text = "Name: " .. sample.name
+            sample_name_text.text="Name: " .. sample.name
 
             renoise.app():show_status("Sample details and name updated.")
             return  -- Exit after successful update
@@ -734,8 +734,8 @@ local function update_dialog_on_selection_change()
   end
 
   -- Fallback if no valid sample is available
-  details_text.text = "Details: No valid sample selected"
-  sample_name_text.text = "Name: No valid sample selected"
+  details_text.text="Details: No valid sample selected"
+  sample_name_text.text="Name: No valid sample selected"
 
 
 
@@ -821,7 +821,7 @@ function update_sample_details(details_text, sample_name_text)
  --   return
  -- end
 
-  local song = renoise.song()
+  local song=renoise.song()
   if song then
     local instrument = song.selected_instrument
     if instrument then
@@ -835,7 +835,7 @@ function update_sample_details(details_text, sample_name_text)
             -- Update the UI elements with valid sample data
             details_text.text = string.format("Details: %dHz, %dbit, %d frames", 
               buffer.sample_rate, buffer.bit_depth, buffer.number_of_frames)
-            sample_name_text.text = "Name: " .. sample.name
+            sample_name_text.text="Name: " .. sample.name
 
             renoise.app():show_status("Sample details and name updated.")
             return  -- Exit after successful update
@@ -846,12 +846,12 @@ function update_sample_details(details_text, sample_name_text)
   end
 
   -- Fallback if no valid sample is available
-  details_text.text = "Details: No valid sample selected"
-  sample_name_text.text = "Name: No valid sample selected"
+  details_text.text="Details: No valid sample selected"
+  sample_name_text.text="Name: No valid sample selected"
 end
 
 function PakettiStripSilence()
-  local song = renoise.song()
+  local song=renoise.song()
   local sample_index = song.selected_sample_index
   local instrument = song.selected_instrument
   local threshold = renoise.tool().preferences.PakettiStripSilenceThreshold.value
@@ -960,7 +960,7 @@ function PakettiStripSilence()
 end
 
 function PakettiMoveSilence()
-  local song = renoise.song()
+  local song=renoise.song()
   local sample_index = song.selected_sample_index
   local instrument = song.selected_instrument
   local threshold = renoise.tool().preferences.PakettiMoveSilenceThreshold.value
@@ -1070,7 +1070,7 @@ renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti..:Process..:Move B
 -----------
 
 function PakettiMoveSilenceAllSamples()
-  local song = renoise.song()
+  local song=renoise.song()
   local instrument = song.selected_instrument
   
   if not instrument then

@@ -29,7 +29,7 @@ end
 local init_time = os.clock()
 -- Function to check if an instrument uses effects or has an empty FX chain and adjust name accordingly
 function align_instrument_names()
-  local song = renoise.song()
+  local song=renoise.song()
   
   for i, instrument in ipairs(song.instruments) do
     local name = instrument.name
@@ -62,7 +62,7 @@ function formatDigits(digits, number)
 end
 
 function selection_in_pattern_pro()
-  local song = renoise.song()
+  local song=renoise.song()
 
   -- Get the selection in pattern
   local selection = song.selection_in_pattern

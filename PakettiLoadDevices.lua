@@ -211,10 +211,10 @@ function updateRandomSelection()
   local percentage_text_view = vb.views["random_percentage_text"]
 
   if numSelections == 0 then
-    percentage_text_view.text = "None"
+    percentage_text_view.text="None"
     return
   elseif numSelections >= numDevices then
-    percentage_text_view.text = "All"
+    percentage_text_view.text="All"
     for _, cb_info in ipairs(filtered_devices) do
       cb_info.checkbox.value = true
     end
@@ -508,13 +508,13 @@ function showDeviceListDialog()
     end}
 
     local random_selection_controls = vb:row{
-      vb:text{text = "Random Select:", width = 80, style="strong",font="bold"},
+      vb:text{text="Random Select:",width=80, style="strong",font="bold"},
       vb:slider{
         id = "random_select_slider",
         min = 0,
         max = 100,
         value = 0,
-        width = 200,
+        width=200,
         notifier = function(value)
           random_select_percentage = value
           updateRandomSelection()
@@ -527,20 +527,20 @@ function showDeviceListDialog()
           updateRandomSelection() 
         end
       },
-      vb:text{text="Favorites Only", width=70},
+      vb:text{text="Favorites Only",width=70},
       vb:button{text="Select All",width=20,
         notifier = function()
           for _, cb_info in ipairs(checkboxes) do
             cb_info.checkbox.value = true
           end
           vb.views["random_select_slider"].value = 100
-          vb.views["random_percentage_text"].text = "All"
+          vb.views["random_percentage_text"].text="All"
         end},
       vb:button{text="Reset Selection",width=20,
         notifier = function()
           resetSelection()
           vb.views["random_select_slider"].value = 0
-          vb.views["random_percentage_text"].text = "None"
+          vb.views["random_percentage_text"].text="None"
         end}}
 
   local button_height = renoise.ViewBuilder.DEFAULT_DIALOG_BUTTON_HEIGHT
@@ -567,12 +567,12 @@ function showDeviceListDialog()
         notifier = function() custom_dialog:close() end}}}
         
   device_list_view = vb:column{}
-  dialog_content_view = vb:column{margin = 10,spacing = 5,device_list_view,}
+  dialog_content_view = vb:column{margin=10,spacing=5,device_list_view,}
 
   -- Wrap in a column to include the dropdown
   local dialog_content = vb:column{
     vb:horizontal_aligner{
-      vb:text{text = "Device Type: ", font="bold",style="strong"},
+      vb:text{text="Device Type: ", font="bold",style="strong"},
       dropdown,action_buttons,random_selection_controls},dialog_content_view}
 
   custom_dialog = renoise.app():show_custom_dialog("Load Device(s)", dialog_content, my_keyhandler_func)
@@ -694,20 +694,20 @@ function showQuickLoadDialog()
     end
   end
   
-  local content = vb:column {
---    margin = 10,
---    spacing = 10,  
-    vb:row {
-      -- spacing = 10,
-      vb:popup {
+  local content = vb:column{
+--    margin=10,
+--    spacing=10,  
+    vb:row{
+      -- spacing=10,
+      vb:popup{
         id = "device_selector",
-        width = 400,
+        width=400,
         items = device_items,
         value = 1
       },
-      vb:button {
-        text = "Load",
-        width = 60,
+      vb:button{
+        text="Load",
+        width=60,
         notifier = function()
           local selected_name = device_items[vb.views.device_selector.value]
           local device_path = device_paths[selected_name]

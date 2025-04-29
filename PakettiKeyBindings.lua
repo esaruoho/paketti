@@ -549,21 +549,21 @@ function show_midi_mappings_dialog()
   local vb = renoise.ViewBuilder()
 
   -- Define dialog properties
-  local DIALOG_MARGIN = renoise.ViewBuilder.DEFAULT_DIALOG_MARGIN
-  local CONTENT_SPACING = renoise.ViewBuilder.DEFAULT_CONTROL_SPACING
+  local DIALOG_margin=renoise.ViewBuilder.DEFAULT_DIALOG_MARGIN
+  local CONTENT_spacing=renoise.ViewBuilder.DEFAULT_CONTROL_SPACING
   local MAX_ITEMS_PER_COLUMN = 41
-  local COLUMN_WIDTH = 220
-  local buttonWidth = 200  -- Adjustable global button width
+  local COLUMN_width=220
+  local buttonwidth=200  -- Adjustable global button width
 
   -- Create the main column for the dialog
-  local dialog_content = vb:column {
-    margin = DIALOG_MARGIN,
-    spacing = CONTENT_SPACING,
+  local dialog_content = vb:column{
+    margin=DIALOG_MARGIN,
+    spacing=CONTENT_SPACING,
   }
 
   -- Add introductory note
-  local note = vb:text {
-    text = "NOTE: Open up the Renoise Midi Mappings dialog (CMD-M on macOS), click on the arrow down to show list + searchbar, then click on a button in this dialog to display it.",
+  local note = vb:text{
+    text="NOTE: Open up the Renoise Midi Mappings dialog (CMD-M on macOS), click on the arrow down to show list + searchbar, then click on a button in this dialog to display it.",
     style = "strong",
     font="bold"
   }
@@ -571,13 +571,13 @@ function show_midi_mappings_dialog()
 
   -- Function to create a new column
   local function create_new_column()
-    return vb:column {
-      spacing = CONTENT_SPACING,
-      width = COLUMN_WIDTH,
+    return vb:column{
+      spacing=CONTENT_SPACING,
+      width=COLUMN_WIDTH,
     }
   end
 
-  local current_row = vb:row {}
+  local current_row = vb:row{}
   dialog_content:add_child(current_row)
   local current_column = create_new_column()
   current_row:add_child(current_column)
@@ -617,7 +617,7 @@ function show_midi_mappings_dialog()
       end
 
       -- Add the group title
-      local group_title_text = vb:text {
+      local group_title_text = vb:text{
         text = group_title,
         font = "bold",
         style = "strong",
@@ -628,8 +628,8 @@ function show_midi_mappings_dialog()
       -- Add buttons for each mapping in the group
       for _, mapping in ipairs(mappings) do
         local button_text = mapping:gsub("Paketti:", ""):gsub("Track Automation:", ""):gsub("Sample Editor:", "Sample Editor:")
-        current_column:add_child(vb:button {
-          width = buttonWidth,
+        current_column:add_child(vb:button{
+          width=buttonWidth,
           text = button_text,
           midi_mapping = mapping
         })
@@ -882,15 +882,15 @@ function pakettiKeyBindingsUpdateList()
 
   keybinding_list.text = content
 
-  local selectedText = ""
+  local selectedtext=""
   if selectedIdentifier == "All" then
-    selectedText = "For all sections, there are " .. selected_count .. " shortcuts and " .. selected_unassigned_count .. " are unassigned."
+    selectedtext="For all sections, there are " .. selected_count .. " shortcuts and " .. selected_unassigned_count .. " are unassigned."
   else
-    selectedText = "For " .. selectedIdentifier .. ", there are " .. selected_count .. " shortcuts and " .. selected_unassigned_count .. " are unassigned."
+    selectedtext="For " .. selectedIdentifier .. ", there are " .. selected_count .. " shortcuts and " .. selected_unassigned_count .. " are unassigned."
   end
 
   selected_shortcuts_text.text = selectedText
-  total_shortcuts_text.text = "Total: " .. count .. " shortcuts, " .. unassigned_count .. " unassigned."
+  total_shortcuts_text.text="Total: " .. count .. " shortcuts, " .. unassigned_count .. " unassigned."
 
   if not suppress_debug_log then
     pakettiKeyBindingsSaveDebugLog(filteredKeybindings, showUnassignedOnly)
@@ -952,9 +952,9 @@ function showPakettiKeyBindingsDialog(selectedIdentifier)  -- Accept an optional
     end
   end
 
-  identifier_switch = vb:popup {
+  identifier_switch = vb:popup{
     items = identifier_items,
-    width = 300,
+    width=300,
     value = selected_index,
     notifier = pakettiKeyBindingsUpdateList
   }
@@ -962,14 +962,14 @@ function showPakettiKeyBindingsDialog(selectedIdentifier)  -- Accept an optional
   -- Create the switch for showing/hiding shortcuts
   show_shortcuts_switch = vb:switch {
     items = { "Show All", "Show KeyBindings without Shortcuts", "Show KeyBindings with Shortcuts" },
-    width = 1100,
+    width=1100,
     value = 1, -- Default to "Show All"
     notifier = pakettiKeyBindingsUpdateList
   }
 
   show_script_filter_switch = vb:switch {
     items = { "All", "Show without Tools", "Show Only Tools" },
-    width = 1100,
+    width=1100,
     value = 1,
     notifier = function(value)
       pakettiKeyBindingsUpdateList()
@@ -985,37 +985,37 @@ function showPakettiKeyBindingsDialog(selectedIdentifier)  -- Accept an optional
 
   -- UI Elements
   search_textfield = vb:textfield {
-    width = 300,
+    width=300,
     notifier = pakettiKeyBindingsUpdateList
   }
 
-  total_shortcuts_text = vb:text {
-    text = "Total: 0 shortcuts, 0 unassigned",
+  total_shortcuts_text = vb:text{
+    text="Total: 0 shortcuts, 0 unassigned",
     font = "bold",
-    width = 1100, -- Adjusted width to fit the dialog
-    align = "left"
+    width=1100, -- Adjusted width to fit the dialog
+    align="left"
   }
 
-  selected_shortcuts_text = vb:text {
-    text = "For selected sections, there are 0 shortcuts and 0 are unassigned.",
+  selected_shortcuts_text = vb:text{
+    text="For selected sections, there are 0 shortcuts and 0 are unassigned.",
     font = "bold",
-    width = 1100, -- Adjusted width to fit the dialog
-    align = "left"
+    width=1100, -- Adjusted width to fit the dialog
+    align="left"
   }
 
   search_text = vb:text{text="Filter with"}
 
 
-  keybinding_list = vb:multiline_textfield { width = 1100, height = 600, font = "mono" }
+  keybinding_list = vb:multiline_textfield { width=1100, height = 600, font = "mono" }
 
   -- Dialog title including Renoise version
   local dialog_title = "Paketti KeyBindings for Renoise Version " .. renoise.RENOISE_VERSION
 
   dialog = renoise.app():show_custom_dialog(dialog_title,
-    vb:column {
-      margin = 10,
-      vb:text {
-        text = "NOTE: KeyBindings.xml is only saved when Renoise is closed - so this is not a realtime / updatable Dialog. Make changes, quit Renoise, and relaunch this Dialog.",
+    vb:column{
+      margin=10,
+      vb:text{
+        text="NOTE: KeyBindings.xml is only saved when Renoise is closed - so this is not a realtime / updatable Dialog. Make changes, quit Renoise, and relaunch this Dialog.",
         font = "bold"
       },
       identifier_switch,
@@ -1296,15 +1296,15 @@ function renoiseKeyBindingsUpdateList()
 
   renoise_keybinding_list.text = content
 
-  local selectedText = ""
+  local selectedtext=""
   if selectedIdentifier == "All" then
-    selectedText = "For all sections, there are " .. selected_count .. " shortcuts and " .. selected_unassigned_count .. " are unassigned."
+    selectedtext="For all sections, there are " .. selected_count .. " shortcuts and " .. selected_unassigned_count .. " are unassigned."
   else
-    selectedText = "For " .. selectedIdentifier .. ", there are " .. selected_count .. " shortcuts and " .. selected_unassigned_count .. " are unassigned."
+    selectedtext="For " .. selectedIdentifier .. ", there are " .. selected_count .. " shortcuts and " .. selected_unassigned_count .. " are unassigned."
   end
 
   renoise_selected_shortcuts_text.text = selectedText
-  renoise_total_shortcuts_text.text = "Total: " .. count .. " shortcuts, " .. unassigned_count .. " unassigned."
+  renoise_total_shortcuts_text.text="Total: " .. count .. " shortcuts, " .. unassigned_count .. " unassigned."
 
   if not renoise_suppress_debug_log then
     renoiseKeyBindingsSaveDebugLog(filteredKeybindings, showUnassignedOnly)
@@ -1368,9 +1368,9 @@ function showRenoiseKeyBindingsDialog(selectedIdentifier)  -- Accept an optional
   end
 
   -- Create the dropdown menu for identifier selection
-  renoise_identifier_dropdown = vb:popup {
+  renoise_identifier_dropdown = vb:popup{
     items = identifier_items,
-    width = 300,
+    width=300,
     value = selected_index,  -- Set the dropdown to the selected identifier
     notifier = renoiseKeyBindingsUpdateList
   }
@@ -1378,7 +1378,7 @@ function showRenoiseKeyBindingsDialog(selectedIdentifier)  -- Accept an optional
   -- Create the switch for showing/hiding shortcuts
   renoise_show_shortcuts_switch = vb:switch {
     items = { "Show All", "Show without Shortcuts", "Show with Shortcuts" },
-    width = 1100,
+    width=1100,
     value = 1, -- Default to "Show All"
     notifier = renoiseKeyBindingsUpdateList
   }
@@ -1386,7 +1386,7 @@ function showRenoiseKeyBindingsDialog(selectedIdentifier)  -- Accept an optional
   -- Create the switch for showing/hiding tools/scripts
   renoise_show_script_filter_switch = vb:switch {
     items = { "All", "Show without Tools", "Show Only Tools" },
-    width = 1100,
+    width=1100,
     value = 1, -- Default to "All"
     notifier = function(value)
       renoiseKeyBindingsUpdateList()
@@ -1403,32 +1403,32 @@ function showRenoiseKeyBindingsDialog(selectedIdentifier)  -- Accept an optional
   -- UI Elements
   renoise_search_textfield = vb:textfield{width=300, notifier=renoiseKeyBindingsUpdateList}
 
-  renoise_total_shortcuts_text = vb:text {
-    text = "Total: 0 shortcuts, 0 unassigned",
+  renoise_total_shortcuts_text = vb:text{
+    text="Total: 0 shortcuts, 0 unassigned",
     font = "bold",
-    width = 1100, -- Adjusted width to fit the dialog
-    align = "left"
+    width=1100, -- Adjusted width to fit the dialog
+    align="left"
   }
 
-  renoise_selected_shortcuts_text = vb:text {
-    text = "For selected sections, there are 0 shortcuts and 0 are unassigned.",
+  renoise_selected_shortcuts_text = vb:text{
+    text="For selected sections, there are 0 shortcuts and 0 are unassigned.",
     font = "bold",
-    width = 1100, -- Adjusted width to fit the dialog
-    align = "left"
+    width=1100, -- Adjusted width to fit the dialog
+    align="left"
   }
 
   renoise_search_text = vb:text{text="Filter with"}
 
-  renoise_keybinding_list = vb:multiline_textfield { width = 1100, height = 600, font = "mono" }
+  renoise_keybinding_list = vb:multiline_textfield { width=1100, height = 600, font = "mono" }
 
   -- Dialog title including Renoise version
   local dialog_title = "Renoise KeyBindings for Renoise Version " .. renoise.RENOISE_VERSION
 
   renoise_dialog = renoise.app():show_custom_dialog(dialog_title,
-    vb:column {
-      margin = 10,
-      vb:text {
-        text = "NOTE: KeyBindings.xml is only saved when Renoise is closed - so this is not a realtime / updatable Dialog. Make changes, quit Renoise, and relaunch this Dialog.",
+    vb:column{
+      margin=10,
+      vb:text{
+        text="NOTE: KeyBindings.xml is only saved when Renoise is closed - so this is not a realtime / updatable Dialog. Make changes, quit Renoise, and relaunch this Dialog.",
         font = "bold"
       },
       renoise_identifier_dropdown,
@@ -1687,22 +1687,22 @@ end
 function show_free_keybindings_dialog()
   local vb = renoise.ViewBuilder()
   local dialog_content = vb:column{
-    margin = renoise.ViewBuilder.DEFAULT_DIALOG_MARGIN,
-    spacing = renoise.ViewBuilder.DEFAULT_CONTROL_SPACING
+    margin=renoise.ViewBuilder.DEFAULT_DIALOG_MARGIN,
+    spacing=renoise.ViewBuilder.DEFAULT_CONTROL_SPACING
   }
   
   -- Get OS name first
   local os_name = os.platform()
   
   -- Create modifier checkboxes based on OS
-  local checkbox_row = vb:row{spacing = 10}
+  local checkbox_row = vb:row{spacing=10}
   
   -- Declare modifier_checkboxes before assignment
   local modifier_checkboxes
   
   -- Declare results_view early as it's used in update_free_list
   local results_view = vb:multiline_textfield{
-    width = 400,
+    width=400,
     height = 400,
     font = "mono",
     edit_mode = false
@@ -1741,34 +1741,34 @@ function show_free_keybindings_dialog()
     modifier_checkboxes = {
       ctrl = {
         box = vb:checkbox{notifier = function() update_free_list() end},
-        label = vb:text{text = "Control"}
+        label = vb:text{text="Control"}
       },
       cmd = {
         box = vb:checkbox{notifier = function() update_free_list() end},
-        label = vb:text{text = "Command"}
+        label = vb:text{text="Command"}
       },
       option = {
         box = vb:checkbox{notifier = function() update_free_list() end},
-        label = vb:text{text = "Option"}
+        label = vb:text{text="Option"}
       },
       shift = {
         box = vb:checkbox{notifier = function() update_free_list() end},
-        label = vb:text{text = "Shift"}
+        label = vb:text{text="Shift"}
       }
     }
   else
     modifier_checkboxes = {
       ctrl = {
         box = vb:checkbox{notifier = function() update_free_list() end},
-        label = vb:text{text = "Control"}
+        label = vb:text{text="Control"}
       },
       alt = {
         box = vb:checkbox{notifier = function() update_free_list() end},
-        label = vb:text{text = "Alt"}
+        label = vb:text{text="Alt"}
       },
       shift = {
         box = vb:checkbox{notifier = function() update_free_list() end},
-        label = vb:text{text = "Shift"}
+        label = vb:text{text="Shift"}
       }
     }
   end
@@ -1776,7 +1776,7 @@ function show_free_keybindings_dialog()
   -- Create rows with checkboxes and labels
   for _, mod in pairs(modifier_checkboxes) do
     local mod_row = vb:row{
-      spacing = 4,
+      spacing=4,
       mod.box,
       mod.label
     }
@@ -1787,7 +1787,7 @@ function show_free_keybindings_dialog()
   dialog_content:add_child(checkbox_row)
 
   local save_button = vb:button{
-    text = "Save to File",
+    text="Save to File",
     notifier = function()
       local selected_modifiers = {}
       if os_name == "MACINTOSH" then

@@ -23,7 +23,7 @@ local function update_combined_value()
 
   if not renoise.song() or not writing_enabled then return end
 
-  local song = renoise.song()
+  local song=renoise.song()
   local start_pos, end_pos
   local start_track, end_track
 
@@ -49,7 +49,7 @@ end
 local function create_valuebox(i, column, hex_text, value_labels, label_map, position, id_prefix)
   local hex=string.format("%X",i)
   local label_id = id_prefix .. "_label_" .. hex
-  local number_label=vb:text{text=hex, width=2,style="normal"}
+  local number_label=vb:text{text=hex,width=2,style="normal"}
   label_map[label_id] = number_label
   value_labels[#value_labels + 1] = number_label
   
@@ -143,7 +143,7 @@ table.insert(notes, "000") -- Adding "---" as "000"
 table.insert(notes, "OFF")
 
 local function PakettiPlayerProNoteGridInsertNoteInPattern(note, instrument, editstep)
-  local song = renoise.song()
+  local song=renoise.song()
   local sel = song.selection_in_pattern
   local pattern_index = song.selected_pattern_index
   local note_to_insert = note == "000" and "---" or note
@@ -217,7 +217,7 @@ end
 end
 
 local function PakettiPlayerProNoteGridUpdateInstrumentInPattern(instrument, editstep_enabled)
-  local song = renoise.song()
+  local song=renoise.song()
   local sel = song.selection_in_pattern
   local pattern_index = song.selected_pattern_index
   local step = song.transport.edit_step -- Get the current edit step value from the transport
@@ -325,7 +325,7 @@ function PakettiPlayerProNoteGridCreateGrid()
       end
     },
     vb:text{
-      text = "Fill Selection with EditStep", style="strong",font="bold"
+      text="Fill Selection with EditStep", style="strong",font="bold"
     }
   })
 
@@ -338,7 +338,7 @@ function PakettiPlayerProNoteGridCreateGrid()
         -- Add a button for each note in the grid
         row_items:add_child(vb:button{
           text = notes[index],
-          width = 30,
+          width=30,
           height = 15,
           notifier = function()
             local instrument_value = renoise.song().selected_instrument_index
@@ -383,15 +383,15 @@ local EditStepCheckboxValue = false -- Initial value for EditStepCheckbox
   print("Dialog opened. Selected Instrument Index: " .. tostring(selected_instrument_index) .. ", Selected Instrument Value: " .. tostring(selected_instrument_value))
 
   return vb:column{
-    margin = 10,
+    margin=10,
     width="100%",
     vb:row{
       vb:text{
-        text = "Instrument:",style="strong",font="bold"
+        text="Instrument:",style="strong",font="bold"
       },
       vb:popup{
         items = instrument_items,
-        width = 220,
+        width=220,
         id = "effect_dialog_instrument_popup",  -- Changed ID to be unique
         value = selected_instrument_value,
         notifier = function(value)
@@ -408,8 +408,8 @@ local EditStepCheckboxValue = false -- Initial value for EditStepCheckbox
         end
       },
       vb:button{
-        text = "Refresh",
-        width = 90,
+        text="Refresh",
+        width=90,
         notifier = function()
           PakettiPlayerProNoteGridUpdateInstrumentPopup()
         end
@@ -418,8 +418,8 @@ local EditStepCheckboxValue = false -- Initial value for EditStepCheckbox
      PakettiPlayerProNoteGridCreateGrid(),
     vb:row{
       vb:button{
-        text = "Close",
-        width = 381,
+        text="Close",
+        width=381,
         notifier = function()
           PakettiPlayerProNoteGridCloseDialog()
         end
@@ -478,7 +478,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Open Player Pro Note Column D
 PakettiPlayerProNoteGridAddNoteMenuEntries()
 --------------
 function pakettiPlayerProTranspose(steps, range)
-  local song = renoise.song()
+  local song=renoise.song()
   local selection = song.selection_in_pattern
   local pattern = song.selected_pattern
 
@@ -629,7 +629,7 @@ local function pakettiPlayerProInsertIntoLine(line, col, note, instrument, effec
 end
 
 local function pakettiPlayerProInsertNoteInPattern(note, instrument, effect, effect_argument, volume)
-  local song = renoise.song()
+  local song=renoise.song()
   local sel = song.selection_in_pattern
   local pattern_index = song.selected_pattern_index
   local note_to_insert = note == "000" and "---" or note
@@ -697,7 +697,7 @@ local function pakettiPlayerProCreateNoteGrid()
       if notes[index] then
         row_items:add_child(vb:button{
           text = notes[index],
-          width = 30,
+          width=30,
           height = 15,
           notifier = function()
             local instrument_value = vb.views["effect_dialog_instrument_popup"].value - 2
@@ -721,7 +721,7 @@ end
 local function pakettiPlayerProCreateArgumentColumn(column_index, switch_group, update_display)
   return vb:switch{
     items = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F"},
-    width = 170,
+    width=170,
     height = 20,
     value = 1, -- default to "Off"
     notifier = function(idx)
@@ -760,19 +760,19 @@ function pakettiPlayerProShowMainDialog()
   end
 
   local dialog_content = vb:column{
-    margin = 10,
+    margin=10,
     vb:row{
       vb:text{
-        text = "Instrument:"
+        text="Instrument:"
       },
       vb:popup{
         items = instrument_items,
-        width = 218,
+        width=218,
         id = "effect_dialog_instrument_popup",
       },
       vb:button{
-        text = "Refresh",
-        width = 100,
+        text="Refresh",
+        width=100,
         notifier = function()
           update_instrument_popup()
         end
@@ -783,34 +783,34 @@ function pakettiPlayerProShowMainDialog()
     },
     vb:row{
       vb:text{
-        text = "Effect:"
+        text="Effect:"
       },
       vb:popup{
         items = {"None", "Effect 1", "Effect 2", "Effect 3"}, -- Add actual effects here
-        width = 200,
+        width=200,
         id = "effect_popup"
       }
     },
     vb:row{
         vb:column{
-          vb:text{text = "Volume"},
+          vb:text{text="Volume"},
           pakettiPlayerProCreateArgumentColumn(1, volume_switch_group, pakettiPlayerProUpdateVolumeDisplay),
           pakettiPlayerProCreateArgumentColumn(2, volume_switch_group, pakettiPlayerProUpdateVolumeDisplay),
-          vb:text{id = "volume_display", text = "00", width = 40, style="strong", font="bold"},
+          vb:text{id = "volume_display", text="00",width=40, style="strong", font="bold"},
         },
         vb:column{},
         vb:column{
-          vb:text{text = "Effect"},
+          vb:text{text="Effect"},
           pakettiPlayerProCreateArgumentColumn(1, switch_group, pakettiPlayerProUpdateEffectArgumentDisplay),
           pakettiPlayerProCreateArgumentColumn(2, switch_group, pakettiPlayerProUpdateEffectArgumentDisplay),
-          vb:text{id = "effect_argument_display", text = "00", width = 40, style="strong", font="bold"},
+          vb:text{id = "effect_argument_display", text="00",width=40, style="strong", font="bold"},
       }
     },
     vb:row{
-      spacing = 10,
+      spacing=10,
       vb:button{
-        text = "Apply",
-        width = 100,
+        text="Apply",
+        width=100,
         notifier = function()
           local instrument_value = vb.views["effect_dialog_instrument_popup"].value - 2
           local instrument = instrument_value >= 0 and instrument_value or nil
@@ -825,8 +825,8 @@ function pakettiPlayerProShowMainDialog()
         end
       },
       vb:button{
-        text = "Cancel",
-        width = 100,
+        text="Cancel",
+        width=100,
         notifier = function()
           dialog:close()
           -- Clean up references

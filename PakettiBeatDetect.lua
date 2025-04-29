@@ -264,7 +264,7 @@ function Row(idx, text, _min, _max, _default, unit, format_func)
   local gui = vb:horizontal_aligner{
     mode='left',
     width='100%',
-    vb:text{text=text, width=150},
+    vb:text{text=text,width=150},
     vb:slider{
       id=idx..'_slider',
       width=400,

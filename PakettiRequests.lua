@@ -25,7 +25,7 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Selection in Pattern 
 }
 
 function SelectionInPatternMatrixToGroup()
-  local song = renoise.song()
+  local song=renoise.song()
   local selected_tracks = {}
 
   -- Function to read selected tracks in the pattern matrix
@@ -349,7 +349,7 @@ renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Autofade/Autoseek
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Autofade/Autoseek..:Set Selected Instrument All Autoseek On",invoke=function() selectedInstrumentAllAutoseekControl(1) end}
 
 function setAllInstrumentsAllSamplesAutoseek(state)
-  local song = renoise.song()
+  local song=renoise.song()
   
   -- Convert numerical state to boolean for autoseek
   local autoseekState = (state == 1)
@@ -387,7 +387,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Instrument All A
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Instrument All Autoseek Off",invoke=function() selectedInstrumentAllAutoseekControl(0) end}
 
 function setAllInstrumentsAllSamplesAutofade(state)
-  local song = renoise.song()
+  local song=renoise.song()
   
   -- Convert numerical state to boolean for autofade
   local autofadeState = (state == 1)
@@ -750,7 +750,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Select Instrument " .. format
 end
 ------
 function selectNextGroupTrack()
-    local song = renoise.song()
+    local song=renoise.song()
     local current_index = song.selected_track_index
     local num_tracks = #song.tracks
 
@@ -767,7 +767,7 @@ function selectNextGroupTrack()
 end
 
 function selectPreviousGroupTrack()
-    local song = renoise.song()
+    local song=renoise.song()
     local current_index = song.selected_track_index
     local num_tracks = #song.tracks
 
@@ -791,7 +791,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Delete/Clear/Wipe Entire Row x[Tog
   invoke=function(message) if message:is_trigger() then clear_current_line() end end}
 
   function PakettiDeleteClearWipeSelectedNoteColumnWithEditStep()
-  local song = renoise.song()
+  local song=renoise.song()
   local pattern = song.selected_pattern
   local num_lines = pattern.number_of_lines
   local edit_step = song.transport.edit_step
@@ -821,7 +821,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Delete/Clear/Wipe Selected Note Co
   invoke=function(message) if message:is_trigger() then PakettiDeleteClearWipeSelectedNoteColumnWithEditStep() end end}
 
   function PakettiDeleteClearWipeEntireRowWithEditStep()
-    local song = renoise.song()
+    local song=renoise.song()
     local pattern = song.selected_pattern
     local num_lines = pattern.number_of_lines
     local edit_step = song.transport.edit_step
@@ -994,7 +994,7 @@ function update_octave_from_selected_note_column()
     return
   end
 
-  local song = renoise.song()
+  local song=renoise.song()
   local window = renoise.app().window
 
   -- Only proceed if the active middle frame is the Pattern Editor
@@ -1035,7 +1035,7 @@ function add_notifiers()
   end
 
   -- Add notifiers to trigger the function when the selected track or pattern changes
-  local song = renoise.song()
+  local song=renoise.song()
   song.selected_track_index_observable:add_notifier(update_octave_from_selected_note_column)
   song.selected_pattern_observable:add_notifier(update_octave_from_selected_note_column)
 
@@ -1051,7 +1051,7 @@ function remove_notifiers()
   end
 
   -- Remove the notifiers
-  local song = renoise.song()
+  local song=renoise.song()
   pcall(function() song.selected_track_index_observable:remove_notifier(update_octave_from_selected_note_column) end)
   pcall(function() song.selected_pattern_observable:remove_notifier(update_octave_from_selected_note_column) end)
   pcall(function() renoise.tool().app_idle_observable:remove_notifier(update_octave_from_selected_note_column) end)
@@ -1082,7 +1082,7 @@ end
 -----
 -- Function to adjust the slice marker by a specified delta
 function adjustSliceKeyshortcut(slice_index, delta)
-    local song = renoise.song()
+    local song=renoise.song()
     local sample = song.selected_sample
 
     -- Ensure there is a selected sample and enough slice markers
@@ -1403,7 +1403,7 @@ end
 
 -- Function to halve the selection range
 function halve_selection_range()
-  local song = renoise.song()
+  local song=renoise.song()
   if not song then 
     debug_print("No song available")
     return 
@@ -1446,7 +1446,7 @@ end
 
 -- Function to double the selection range
 function double_selection_range()
-  local song = renoise.song()
+  local song=renoise.song()
   if not song then 
     debug_print("No song available")
     return 
@@ -1551,8 +1551,8 @@ if dialog and dialog.visible then
 
   -- Create a view for the dialog content
   local content = vb:row{
-   -- margin = 10,
-   -- spacing = 10
+   -- margin=10,
+   -- spacing=10
   }
 
   -- Table to store dropdown elements
@@ -1562,9 +1562,9 @@ if dialog and dialog.visible then
   for col = 1, num_columns do
     -- Create a column to hold up to 18 tracks
     local column_content = vb:column{
-      --margin = 5,
-      --spacing = 5,
-      width = 200 -- Set column width to accommodate track name and dropdown
+      --margin=5,
+      --spacing=5,
+      width=200 -- Set column width to accommodate track name and dropdown
     }
 
     -- Add tracks to the column
@@ -1584,7 +1584,7 @@ if dialog and dialog.visible then
       local dropdown = vb:popup{
         items = available_output_routings,
         value = table.find(available_output_routings, current_output_routing),
-        width = 220 -- Set width to 200% of 60 to be 120
+        width=220 -- Set width to 200% of 60 to be 120
       }
       
       -- Store the dropdown element
@@ -1596,7 +1596,7 @@ if dialog and dialog.visible then
           text = track_name,
           font = is_group and "bold" or "normal",
           style = is_group and "strong" or "normal",
-          width = 140 -- Allocate 70% width for track name
+          width=140 -- Allocate 70% width for track name
         },
         dropdown
       })
@@ -1616,10 +1616,10 @@ if dialog and dialog.visible then
 
   -- OK and Cancel buttons
   content:add_child(vb:row{
-    --spacing = 5,
+    --spacing=5,
     vb:button{
-      text = "OK",
-      width = "50%", -- Set OK button width to 50%
+      text="OK",
+      width="50%", -- Set OK button width to 50%
       notifier = function()
         -- Apply changes to the output routings
         for _, entry in ipairs(dropdowns) do
@@ -1635,8 +1635,8 @@ if dialog and dialog.visible then
       end
     },
   vb:button{
-    text = "Refresh",
-    width = "33%", -- Equal width for all buttons
+    text="Refresh",
+    width="33%", -- Equal width for all buttons
     notifier = function()
       dialog:close()
       trackOutputRoutingsGUI_create()
@@ -1644,8 +1644,8 @@ if dialog and dialog.visible then
   },
 
     vb:button{
-      text = "Cancel",
-      width = "50%", -- Set Cancel button width to 50%
+      text="Cancel",
+      width="50%", -- Set Cancel button width to 50%
       notifier = function()
         dialog:close()
       end
@@ -1659,7 +1659,7 @@ end
 -- Function to adjust the delay, panning, or volume column within the selected area in the pattern editor
 function adjust_column(column_type, adjustment)
   -- Check if there's a valid song
-  local song = renoise.song()
+  local song=renoise.song()
   if not song then
     renoise.app():show_status("No active song found.")
     return
@@ -1773,7 +1773,7 @@ end
 -----------
 -- Function to duplicate the current track and set notes to the selected instrument
 function setToSelectedInstrument_DuplicateTrack()
-  local song = renoise.song()
+  local song=renoise.song()
   local pattern_index = song.selected_pattern_index
   local track_index = song.selected_track_index
   local selected_instrument_index = song.selected_instrument_index
@@ -1874,7 +1874,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Track, set to Selec
 
 -- Function to duplicate the current track and instrument, then copy notes and prepare the new track for editing
 function duplicateTrackDuplicateInstrument()
-  local song = renoise.song()
+  local song=renoise.song()
   local pattern_index = song.selected_pattern_index
   local track_index = song.selected_track_index
 
@@ -2029,7 +2029,7 @@ renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Note Columns..:Inte
 -- Main function for note interpolation
 function note_interpolation()
   -- Get the current song, pattern, and track
-  local song = renoise.song()
+  local song=renoise.song()
   local pattern_index = song.selected_pattern_index
   local track_index = song.selected_track_index
   local pattern = song:pattern(pattern_index)
@@ -2123,7 +2123,7 @@ end
 
 -- Function to select the first track in the next or previous group
 function select_first_track_in_next_group(direction)
-  local song = renoise.song()
+  local song=renoise.song()
   local current_index = song.selected_track_index
   local group_indices = {}
 
@@ -2177,7 +2177,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Jump to First Track in Previous Gr
 ----------
 
 function toggle_bypass_selected_device()
-  local song = renoise.song()
+  local song=renoise.song()
   local selected_device = song.selected_device
   local selected_track = song.selected_track
 
@@ -2350,7 +2350,7 @@ renoise.tool():add_menu_entry{name="Main Menu:View:Paketti..:Visible Columns..:G
 -- Create Identical Track Function
 function create_identical_track()
   -- Get the current song
-  local song = renoise.song()
+  local song=renoise.song()
   -- Get the selected track index
   local selected_track_index = song.selected_track_index
   -- Get the selected track
@@ -2433,7 +2433,7 @@ renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Pattern Editor..
 
 -- Function to toggle solo state for note columns in the selected track
 function noteColumnSoloToggle()
-  local song = renoise.song()
+  local song=renoise.song()
   local selected_track = song.tracks[song.selected_track_index]
 
   -- Check if any note column is muted in the selected track
@@ -2456,7 +2456,7 @@ end
 
 -- Function to toggle mute state for note columns in all tracks within the same group, except the selected track
 function groupTracksNoteColumnSoloToggle()
-  local song = renoise.song()
+  local song=renoise.song()
   local selected_track_index = song.selected_track_index
   local selected_track = song.tracks[selected_track_index]
   local selected_track_group = selected_track.group_parent
@@ -2513,7 +2513,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Group Tracks Note Column Solo
 ------------------------
 -- Function to check if the selected sample is a slice
 function is_slice_selected()
-  local song = renoise.song()
+  local song=renoise.song()
   local instrument = song.selected_instrument
   if not instrument or #instrument.samples == 0 then
     return false
@@ -2535,7 +2535,7 @@ end
 
 -- Function to move slice marker by a given amount
 function move_slice_marker(slice_index, amount)
-  local song = renoise.song()
+  local song=renoise.song()
   local selected_instrument = song.selected_instrument
   local selected_sample = selected_instrument.samples[1]
 
@@ -2637,7 +2637,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Move Slice End Right by 500",
 ----------
 -- Main function to isolate slices or samples into new instruments
 function PakettiIsolateSlices()
-  local song = renoise.song()
+  local song=renoise.song()
   local selected_instrument_index = song.selected_instrument_index
   local instrument = song.selected_instrument
   local selected_sample_index = song.selected_sample_index
@@ -2719,7 +2719,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Isolate Slices or Samples to New I
 
 -- Main function to isolate slices into a new instrument or samples into new instruments
 function PakettiIsolateSlicesToInstrument()
-  local song = renoise.song()
+  local song=renoise.song()
   local selected_instrument_index = song.selected_instrument_index
   local instrument = song.selected_instrument
   local selected_sample_index = song.selected_sample_index
@@ -2835,7 +2835,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Isolate Slices to New Instrument a
 -- Function to isolate selected sample to new instrument
 -- Function to isolate selected sample to new instrument
 function PakettiIsolateSelectedSampleToInstrument()
-  local song = renoise.song()
+  local song=renoise.song()
   local selected_instrument_index = song.selected_instrument_index
   local instrument = song.selected_instrument
   local selected_sample_index = song.selected_sample_index
@@ -2921,7 +2921,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Isolate Selected Sample to Ne
 renoise.tool():add_midi_mapping{name="Paketti:Isolate Selected Sample to New Instrument",invoke=PakettiIsolateSelectedSampleToInstrument}
 ---------
 function PakettiReverseNotesInSelection()
-  local song = renoise.song()
+  local song=renoise.song()
   local selection = selection_in_pattern_pro()
 
   if not selection then
@@ -3021,7 +3021,7 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Reverse Notes in Sele
 
 -- Randomize or swap notes in a pattern selection (using selection_in_pattern_pro)
 function randomize_notes_in_selection()
-  local song = renoise.song()
+  local song=renoise.song()
   local selection = selection_in_pattern_pro()
 
   -- Check if a valid selection is returned
@@ -3118,7 +3118,7 @@ local MAX_SHIFT = 12
 
 -- Main function to adjust base notes
 local function PakettiBaseNoteShifter(interval, scope)
-  local song = renoise.song()
+  local song=renoise.song()
   
   -- Validate interval
   if interval == 0 then
@@ -3233,7 +3233,7 @@ local MAX_SHIFT = 12
 
 -- Main function to adjust instrument transpose
 function PakettiTransposeShifter(interval, scope)
-  local song = renoise.song()
+  local song=renoise.song()
   
   -- Validate interval
   if interval == 0 then
@@ -3330,7 +3330,7 @@ end
 
 -- Function to create and configure send devices for all tracks in the song
 function PakettiPopulateSendTracksAllTracks()
-  local song = renoise.song()
+  local song=renoise.song()
   local send_tracks = {}
   local count = 0
 
@@ -3385,7 +3385,7 @@ end
 
 -- Function to create and configure send devices for the selected track
 function PakettiPopulateSendTracksSelectedTrack()
-  local song = renoise.song()
+  local song=renoise.song()
   local current_track = song.selected_track
 
   if current_track.type ~= renoise.Track.TRACK_TYPE_SEQUENCER and current_track.type ~= renoise.Track.TRACK_TYPE_GROUP then
@@ -3454,7 +3454,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Populate Send Tracks for All 
 renoise.tool():add_keybinding{name="Global:Paketti:Populate Send Tracks for Selected Track",invoke=PakettiPopulateSendTracksSelectedTrack}
 -- Function to populate send tracks for all tracks in the selected range
 function PakettiPopulateSendTracksToSelectionInPattern()
-  local song = renoise.song()
+  local song=renoise.song()
   local selection_range = song.selection_in_pattern
   
   -- Check if selection exists
@@ -3722,21 +3722,21 @@ function show_convolver_selection_dialog(callback)
   local vb = renoise.ViewBuilder()
   local dialog
   local function create_dialog_content()
-    local dialog_content = vb:column {}
-    local sample_name_text = vb:text {
-      text = "Selected Sample: " .. (renoise.song().selected_sample and renoise.song().selected_sample.name or "None"),
+    local dialog_content = vb:column{}
+    local sample_name_text = vb:text{
+      text="Selected Sample: " .. (renoise.song().selected_sample and renoise.song().selected_sample.name or "None"),
       style = "strong", font="bold"
     }
     dialog_content:add_child(sample_name_text)
-    dialog_content:add_child(vb:button {
-      text = "Refresh",
+    dialog_content:add_child(vb:button{
+      text="Refresh",
       notifier = function()
         dialog:close()
         show_convolver_selection_dialog(callback)
       end
     })
     renoise.song().selected_sample_observable:add_notifier(function()
-      sample_name_text.text = "Selected Sample: " .. (renoise.song().selected_sample and renoise.song().selected_sample.name or "None")
+      sample_name_text.text="Selected Sample: " .. (renoise.song().selected_sample and renoise.song().selected_sample.name or "None")
     end)
     for t = 1, #renoise.song().tracks do
       local track = renoise.song().tracks[t]
@@ -3746,15 +3746,15 @@ function show_convolver_selection_dialog(callback)
       elseif track.type == renoise.Track.TRACK_TYPE_GROUP then track_type = "Group"
       elseif track.type == renoise.Track.TRACK_TYPE_MASTER then track_type = "Master"
       end
-      local row = vb:row {}
-      row:add_child(vb:column { width = 200, vb:text { text = string.format("%s, %s", track_type, track.name) } })
-      local button_column = vb:row { width = "100%" }
+      local row = vb:row{}
+      row:add_child(vb:column{width=200, vb:text{text=string.format("%s, %s", track_type, track.name) } })
+      local button_column = vb:row{width="100%" }
       local convolver_count = 0
       for d = 1, #track.devices do
         local device = track.devices[d]
         if device.name == "Convolver" then
           convolver_count = convolver_count + 1
-          button_column:add_child(vb:button {
+          button_column:add_child(vb:button{
             text = string.format("Convolver #%d Import", convolver_count),
             notifier = function()
               renoise.song().selected_track_index = t
@@ -3763,7 +3763,7 @@ function show_convolver_selection_dialog(callback)
               callback(device, t, d, "import")
             end
           })
-          button_column:add_child(vb:button {
+          button_column:add_child(vb:button{
             text = string.format("Convolver #%d Export", convolver_count),
             notifier = function()
               renoise.song().selected_track_index = t
@@ -3775,8 +3775,8 @@ function show_convolver_selection_dialog(callback)
         end
       end
       row:add_child(button_column)
-      row:add_child(vb:button {
-        text = "Insert Convolver as First",
+      row:add_child(vb:button{
+        text="Insert Convolver as First",
         notifier = function()
           local device = track:insert_device_at("Audio/Effects/Native/Convolver", 2)
           renoise.song().selected_track_index = t
@@ -3785,8 +3785,8 @@ function show_convolver_selection_dialog(callback)
           show_convolver_selection_dialog(callback)
         end
       })
-      row:add_child(vb:button {
-        text = "Insert Convolver as Last",
+      row:add_child(vb:button{
+        text="Insert Convolver as Last",
         notifier = function()
           local device_position = #renoise.song().tracks[t].devices + 1
           local device = track:insert_device_at("Audio/Effects/Native/Convolver", device_position)
@@ -4019,7 +4019,7 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Send Reverser",invoke=function() sendTest() end}
 -------------
 function pakettiDumpAllTrackVolumes(db_change)
-  local song = renoise.song()
+  local song=renoise.song()
   local tracks_modified = 0
   
   for _, track in ipairs(song.tracks) do
@@ -4052,7 +4052,7 @@ renoise.tool():add_keybinding{name="--Global:Paketti:Decrease All Track Volumes 
 renoise.tool():add_keybinding{name="Global:Paketti:Increase All Track Volumes by 3dB", invoke=function() pakettiDumpAllTrackVolumes(3) end}
 -------
 function pakettiResizeAndFill(patternSize)
-  local song = renoise.song()
+  local song=renoise.song()
   local pattern = song.selected_pattern
   local current_length = pattern.number_of_lines
   local filled = false
@@ -4133,7 +4133,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Pattern Resize and Fill 512",
 -- Define the function to flood fill with the selection
 function floodfill_with_selection()
   -- Get the current song within the function
-  local song = renoise.song()
+  local song=renoise.song()
   
   -- Ensure there's a selection in the pattern
   local selection = song.selection_in_pattern
@@ -4264,7 +4264,7 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Flood Fill with Selec
 -- Define the function to rotate track content
 function rotate_track_content_to_selection_start_first()
   -- Get the current song
-  local song = renoise.song()
+  local song=renoise.song()
   
   -- Check if there's a selection in the pattern
   local selection = song.selection_in_pattern
@@ -4480,19 +4480,19 @@ function pakettiObliqueStrategiesDialog()
     vb:horizontal_aligner{
       mode = "center",
       vb:space{
-        width = 320,
+        width=320,
         height = 2,
       }
     },
     vb:horizontal_aligner{
       mode = "center",
-      spacing = 10,
-      vb:button{text = "OK", released = function()
+      spacing=10,
+      vb:button{text="OK", released = function()
         renoise.app():show_status("Oblique Strategies: " .. message)
         dialog:close()
       end},
-      vb:button{text = "Cancel", released = function() dialog:close() end},
-      vb:button{text = "Next", released = function() message =get_random_message() message_text.text = message end}
+      vb:button{text="Cancel", released = function() dialog:close() end},
+      vb:button{text="Next", released = function() message =get_random_message() message_text.text = message end}
     }
   }
   
@@ -4518,7 +4518,7 @@ local notes_file_path = default_notes_file_path -- Initial notes file path
 local use_dash_format = false
 local no_date = false
 local text_format = 1 -- 1=Off, 2=lowercase, 3=Capital, 4=UPPERCASE, 5=eLiTe
-local before_name_text = ""
+local before_name_text=""
 local date_format_option = "YYYY-MM-DD" -- default date format
 local date_formats = { -- list of possible date formats
   "YYYY-MM-DD",
@@ -4705,10 +4705,10 @@ function PakettiTitlerDialog()
     selected_file_path = renoise.app():prompt_for_filename_to_read({"*.txt"}, "Browse Textfile")
     if selected_file_path and selected_file_path ~= "" then
       PakettiTitlerPreferencesSave() -- Save the selected file path
-      vb.views.textfile_display.text = "Path: " .. selected_file_path -- Display the file path
+      vb.views.textfile_display.text="Path: " .. selected_file_path -- Display the file path
     else
       selected_file_path = default_file_path
-      vb.views.textfile_display.text = "Path: " .. default_file_path -- Revert to default
+      vb.views.textfile_display.text="Path: " .. default_file_path -- Revert to default
     end
   end
 
@@ -4810,58 +4810,58 @@ function PakettiTitlerDialog()
   PakettiTitlerPreferencesLoad()
 
   local dialog_content = vb:column{
-    margin = 10,
-    width = 580,
+    margin=10,
+    width=580,
     vb:row{
-      vb:text{text = "Before Name:", font = "mono"},
+      vb:text{text="Before Name:", font = "mono"},
       vb:textfield{
         id = "before_name_field",
         text = before_name_text,
-        width = 200,
+        width=200,
         notifier = function(text)
           PakettiTitlerHandleBeforeNameChange(text)
         end
       }
     },
     vb:row{
-      vb:text{text = "Actual Name:", font = "mono"},
+      vb:text{text="Actual Name:", font = "mono"},
       vb:textfield{
         id = "title_field",
         text = default_title,
-        width = 400,
+        width=400,
         edit_mode = true,
         notifier = function(text)
           PakettiTitlerUpdateFilenameDisplay()
         end
       },
-      vb:text{text = ".xrns"}
+      vb:text{text=".xrns"}
     },
     vb:row{
       vb:text{
         id = "filename_display",
-        text = "",
+        text="",
         font = "bold",
-        width = 800
+        width=800
       }
     },
     vb:row{
-      vb:button{text = "Save As", width = 135, notifier = PakettiTitlerHandleSave},
-      vb:button{text = "Cancel", width = 135, notifier = PakettiTitlerCloseDialog}
+      vb:button{text="Save As",width=135, notifier = PakettiTitlerHandleSave},
+      vb:button{text="Cancel",width=135, notifier = PakettiTitlerCloseDialog}
     },
     vb:row{
-      vb:button{text = "Random String", width = 135, notifier = PakettiTitlerRandomString},
-      vb:button{text = "Browse Textfile", width = 135, notifier = PakettiTitlerBrowseTextfile}
+      vb:button{text="Random String",width=135, notifier = PakettiTitlerRandomString},
+      vb:button{text="Browse Textfile",width=135, notifier = PakettiTitlerBrowseTextfile}
     },
     vb:row{
-      vb:text{id = "textfile_display", text = "Path: " .. selected_file_path}
+      vb:text{id = "textfile_display", text="Path: " .. selected_file_path}
     },
     vb:row{
-      vb:button{text = "Random Words", width = 135, notifier = PakettiTitlerRandomWords},
-      vb:button{text = "Shift Left", width = 135, notifier = PakettiTitlerShiftWordsLeft},
-      vb:button{text = "Shift Right", width = 135, notifier = PakettiTitlerShiftWordsRight}
+      vb:button{text="Random Words",width=135, notifier = PakettiTitlerRandomWords},
+      vb:button{text="Shift Left",width=135, notifier = PakettiTitlerShiftWordsLeft},
+      vb:button{text="Shift Right",width=135, notifier = PakettiTitlerShiftWordsRight}
     },
     vb:row{
-      vb:text{text = "Wordcount:"},
+      vb:text{text="Wordcount:"},
       vb:valuebox{
         id = "word_count",
         min = 1,
@@ -4876,20 +4876,20 @@ function PakettiTitlerDialog()
         value = no_date,
         notifier = PakettiTitlerHandleNoDate
       },
-      vb:text{text = "No Date"}
+      vb:text{text="No Date"}
     },
     vb:row{
-      vb:text{text = "Separator", width=70},
+      vb:text{text="Separator",width=70},
       vb:switch{
         id = "date_separator_switch",
         items = {"_", "-"},
-        width = 50,
+        width=50,
         value = use_dash_format and 2 or 1,
         notifier = PakettiTitlerSwitchDateSeparator
       }
     },
     vb:row{
-      vb:text{text = "Date Format", width=70},
+      vb:text{text="Date Format",width=70},
       vb:popup{
         width= 150,
         id = "date_format_popup",
@@ -4899,29 +4899,29 @@ function PakettiTitlerDialog()
       }
     },
     vb:row{
-      vb:text{text = "Text Format", width=70},
+      vb:text{text="Text Format",width=70},
       vb:switch{
         id = "text_format_switch",
         items = {"Off", "lowercase", "Capital", "UPPERCASE", "eLiTe"},
-        width = 350,
+        width=350,
         value = text_format,
         notifier = PakettiTitlerHandleTextFormat
       }
     },
     vb:row{
-      vb:text{text = "Save notes:", width=70},
+      vb:text{text="Save notes:",width=70},
       vb:textfield{
         id = "notes_file_field",
         text = notes_file_path,
-        width = 200,
+        width=200,
         notifier = function(text)
           notes_file_path = text
           PakettiTitlerPreferencesSave()
         end
       },
-      vb:button{text = "Browse",notifier = PakettiTitlerBrowseNotesFile},
-      vb:button{text = "Save",notifier = PakettiTitlerSaveTitleToNotes},
-      vb:button{text = "Open Path",notifier = PakettiTitlerOpenNotesPath}}
+      vb:button{text="Browse",notifier = PakettiTitlerBrowseNotesFile},
+      vb:button{text="Save",notifier = PakettiTitlerSaveTitleToNotes},
+      vb:button{text="Open Path",notifier = PakettiTitlerOpenNotesPath}}
   }
 
   -- Initialize filename display
@@ -4936,7 +4936,7 @@ renoise.tool():add_menu_entry{name="Main Menu:File:Save (Paketti Track Dater & T
 ------
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Volume to -INF dB",
   invoke=function() 
-    local song = renoise.song()
+    local song=renoise.song()
     local instrument = song.selected_instrument
     local sample = song.selected_sample
 
@@ -4998,7 +4998,7 @@ PakettiRecordFollowMetronomePrecountPatternEditor(4) end}
 
 -- Main function to adjust sample velocity range
 function pakettiSampleVelocityRangeChoke(sample_index)
-  local song = renoise.song()
+  local song=renoise.song()
   local ing = song.selected_instrument
 
   -- Edge case: no instrument or no samples
@@ -5030,7 +5030,7 @@ renoise.app():show_status("Sample " .. sample_index .. ": " .. renoise.song().se
 end
 
 function midi_sample_velocity_switcharoo(value)
-  local song = renoise.song()
+  local song=renoise.song()
   local ing = song.selected_instrument
 
   -- Edge case: no instrument or no samples
@@ -5049,7 +5049,7 @@ end
 
 -- "One-up" keybinding: Decreases selected_sample_index by 1
 function sample_one_up()
-  local song = renoise.song()
+  local song=renoise.song()
   local ing = song.selected_instrument
   local current_index = song.selected_sample_index
 
@@ -5062,7 +5062,7 @@ function sample_one_up()
 
 -- "One-down" keybinding: Increases selected_sample_index by 1
 function sample_one_down()
-  local song = renoise.song()
+  local song=renoise.song()
   local ing = song.selected_instrument
   local current_index = song.selected_sample_index
 
@@ -5075,7 +5075,7 @@ function sample_one_down()
 
 -- "Random" keybinding: Selects a random sample and mutes others
 function sample_random()
-  local song = renoise.song()
+  local song=renoise.song()
   local ing = song.selected_instrument
 
   -- Edge case: no instrument or no samples
@@ -5137,7 +5137,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Velocity 
 
 -- Function to set the velocity range for a specific sample slot
 local function SetSampleSlotVelocity(sample_slot_number, velocity)
-  local song = renoise.song()
+  local song=renoise.song()
   local instrument = song.selected_instrument
 
   -- Edge case: no instrument selected or no samples
@@ -5202,7 +5202,7 @@ end
   end
 
   function SelectedAllSamplesVelocityRange(number1,number2)
-    local song = renoise.song()
+    local song=renoise.song()
     local ing = song.selected_instrument
   
     -- Edge case: no instrument or no samples
@@ -5231,7 +5231,7 @@ end}
 -----
 -- Resize all non-empty patterns to <rowvalue> lines
 function resize_all_non_empty_patterns_to(rowvalue)
-  local song = renoise.song()
+  local song=renoise.song()
   for i = 1, #song.patterns do
     if not song.patterns[i].is_empty then
       song.patterns[i].number_of_lines = rowvalue
@@ -5242,7 +5242,7 @@ end
 
 -- Resize all non-empty patterns to the current pattern's length
 function resize_all_non_empty_patterns_to_current_pattern_length()
-  local song = renoise.song()
+  local song=renoise.song()
   local current_pattern_length = song.patterns[song.selected_pattern_index].number_of_lines
   for i = 1, #song.patterns do
     if not song.patterns[i].is_empty then
@@ -5317,7 +5317,7 @@ end
 
 -- Function to duplicate the selected sample range and mute the original sample
 function duplicate_sample_range_and_mute_original()
-  local song = renoise.song()
+  local song=renoise.song()
   local selected_sample = song.selected_sample
   if not selected_sample or not selected_sample.sample_buffer.has_sample_data then
     renoise.app():show_status("No valid sample selected")
@@ -5400,7 +5400,7 @@ renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Randomize Selected S
 renoise.tool():add_midi_mapping{name="Paketti:Randomize Selected Sample Transpose +6/-6 Finetune +127/-127",invoke=function() randomize_sample_pitch_and_finetune(6,127) end}
 ----------
 function DuplicateMaximizeConvertAndSave(format)
-  local song = renoise.song()
+  local song=renoise.song()
   local selected_sample = song.selected_sample
   
   if selected_sample == nil or not selected_sample.sample_buffer.has_sample_data then
@@ -5631,7 +5631,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Double Double BPM",invoke=fun
 -------
 -- Function to detect note spacing
 local function analyze_note_spacing()
-  local song = renoise.song()
+  local song=renoise.song()
   local selection = song.selection_in_pattern
   if not selection then
     renoise.app():show_status("No selection in pattern")
@@ -5653,7 +5653,7 @@ local function analyze_note_spacing()
     
     if not note_column.is_empty then
       if previous_note_line then
-        local spacing = line_index - previous_note_line
+        local spacing=line_index - previous_note_line
         print("Note found at line:", line_index, "with spacing:", spacing, "Note:", note_column.note_string)
         if spacing == 1 or spacing == 2 then
           note_spacing_counts[spacing] = note_spacing_counts[spacing] + 1
@@ -5679,7 +5679,7 @@ end
 
 -- Function to modify pattern for "notes every row"
 local function modify_pattern_triplets()
-  local song = renoise.song()
+  local song=renoise.song()
   local selection = song.selection_in_pattern
   if not selection then
     renoise.app():show_status("No selection in pattern")
@@ -5824,7 +5824,7 @@ local function detect_and_apply_triplet_pattern()
     local song = get_song()
     song.selected_track.delay_column_visible = true
 
-    local note_spacing = analyze_note_spacing()
+    local note_spacing=analyze_note_spacing()
     if note_spacing == 1 then
         modify_pattern_triplets()
     elseif note_spacing == 2 then
@@ -5889,7 +5889,7 @@ end}
 
 -- Function to wipe a specific note column
 function wipeNoteColumn(column_number)
-  local song = renoise.song()
+  local song=renoise.song()
   song.patterns[song.selected_pattern_index].tracks[song.selected_track_index].lines[song.selected_line_index].note_columns[column_number].note_string = "OFF"
   song.patterns[song.selected_pattern_index].tracks[song.selected_track_index].lines[song.selected_line_index].note_columns[column_number].instrument_string = ".."
 end
@@ -6213,18 +6213,18 @@ function PakettiUserPreferencesShowerDialog()
     end
 
     -- Create the dropdown with the correct value (index of the device)
-    device_dropdowns[i] = vb:popup {
+    device_dropdowns[i] = vb:popup{
       items = device_names,  -- Use the extracted device names list
       value = popup_value,   -- Set the popup to the correct index
-      width = 200
+      width=200
     }
 
     -- Add to rows
-    table.insert(rows, vb:row {
-      vb:text { text = string.format("%02d:", i), font = "bold", style = "strong" },
+    table.insert(rows, vb:row{
+      vb:text{text=string.format("%02d:", i), font = "bold", style = "strong" },
       device_dropdowns[i],
-      vb:text { text="Show/Hide:", font="bold", style="strong" },
-      vb:button {
+      vb:text{text="Show/Hide:", font="bold", style="strong" },
+      vb:button{
         text="Selected Track",
         notifier = function() 
           FinderShowerByPath(available_devices[device_dropdowns[i].value].path, "selected_track")
@@ -6232,7 +6232,7 @@ function PakettiUserPreferencesShowerDialog()
           renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
         end
       },
-      vb:button {
+      vb:button{
         text="Master",
         notifier = function() 
           FinderShowerByPath(available_devices[device_dropdowns[i].value].path, "master")
@@ -6240,7 +6240,7 @@ function PakettiUserPreferencesShowerDialog()
           renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
         end
       },
-      vb:button {
+      vb:button{
         text="Clear",
         notifier = function() 
           device_dropdowns[i].value = 1
@@ -6252,17 +6252,17 @@ function PakettiUserPreferencesShowerDialog()
   end
 
   -- Add Save and Close buttons
-  table.insert(rows, vb:row {
-    vb:button {
-      text = "Save",
+  table.insert(rows, vb:row{
+    vb:button{
+      text="Save",
       notifier = function()
         PakettiUserPreferenceSavePreferences(device_dropdowns, available_devices)
         -- Return focus to the active middle frame
         renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
       end
     },
-    vb:button {
-      text = "Close",
+    vb:button{
+      text="Close",
       notifier = function()
         PakettiUserPreferenceSavePreferences(device_dropdowns, available_devices)
         dialog:close()
@@ -6439,7 +6439,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Select Sample Previous",invoke=fun
 
 
 function SampleSelectorMIDI(midi_value)
-  local song = renoise.song()
+  local song=renoise.song()
   local instrument = song.selected_instrument
   local num_samples = #instrument.samples
   
@@ -6774,7 +6774,7 @@ end
 ---------
 local dialog = nil
 local vb = renoise.ViewBuilder()
-local global_slider_width = 20
+local global_slider_width=20
 local global_slider_height = 100
 local sliders = {volume={}, delay={}, panning={}}
 local loop_values = {volume=16, delay=16, panning=16}
@@ -6819,7 +6819,7 @@ function handle_invalid_track()
 end
 
 function print_row(slider_set, track_column, show_status)
-  local song = renoise.song()
+  local song=renoise.song()
   local pattern_index = song.selected_pattern_index
   local pattern = song.patterns[pattern_index]
   local track_index = song.selected_track_index
@@ -6946,7 +6946,7 @@ local is_receiving = false
 function receive_row(slider_set, track_column, update_pattern)
   -- Don't set is_receiving here, let the caller handle it
   
-  local song = renoise.song()
+  local song=renoise.song()
   local pattern_index = song.selected_pattern_index
   local pattern = song.patterns[pattern_index]
   local track_index = song.selected_track_index
@@ -7051,7 +7051,7 @@ function create_sliders(row, initial_value, range, slider_set)
   local slider_row = {}
   for i = 1, 16 do
     local slider = vb:minislider {
-      width = global_slider_width,
+      width=global_slider_width,
       height = global_slider_height,
       min = 0,
       max = range,
@@ -7070,12 +7070,12 @@ function create_sliders(row, initial_value, range, slider_set)
 end
 
 function create_row_controls(slider_set, initial_value, range, loop_default)
-  local row = vb:row {vb:text{text=slider_set:gsub("^%l", string.upper), font="bold", style="strong", width=60,}}
+  local row = vb:row{vb:text{text=slider_set:gsub("^%l", string.upper), font="bold", style="strong",width=60,}}
 
   -- Pass slider_set to create_sliders so it knows which pattern to update
   local sliders_row = create_sliders(row, initial_value, range, slider_set)
 
-  row:add_child(vb:valuebox {
+  row:add_child(vb:valuebox{
     min = 1,
     max = 16,
     value = loop_default,
@@ -7088,27 +7088,27 @@ function create_row_controls(slider_set, initial_value, range, loop_default)
     end
   })
 
-  row:add_child(vb:button {
-    text = "Randomize",
+  row:add_child(vb:button{
+    text="Randomize",
     notifier = function() randomize_row(slider_set) end
   })
   
-  row:add_child(vb:button {
-    text = "Print",
+  row:add_child(vb:button{
+    text="Print",
     notifier = function() print_row(slider_set, slider_set) end
   })
 
-  row:add_child(vb:button {text = "Reset",notifier = function() reset_row(slider_set) print_row(slider_set, slider_set) end})
-  row:add_child(vb:button {text = "Receive",notifier = function() receive_row(slider_set, slider_set, false) end})
-  row:add_child(vb:button {text = "<",notifier = function() shift_row(slider_set, "left") end})
-  row:add_child(vb:button {text = ">",notifier = function() shift_row(slider_set, "right") end})
+  row:add_child(vb:button{text="Reset",notifier = function() reset_row(slider_set) print_row(slider_set, slider_set) end})
+  row:add_child(vb:button{text="Receive",notifier = function() receive_row(slider_set, slider_set, false) end})
+  row:add_child(vb:button{text="<",notifier = function() shift_row(slider_set, "left") end})
+  row:add_child(vb:button{text=">",notifier = function() shift_row(slider_set, "right") end})
 
   return row, sliders_row
 end
 
 
 function volume_interpolation()
-  local song = renoise.song()
+  local song=renoise.song()
   local changes_made = false
   
   -- Get the selection data using the pro function
@@ -7195,7 +7195,7 @@ function volume_interpolation()
 end
 
 function delay_interpolation()
-  local song = renoise.song()
+  local song=renoise.song()
   local changes_made = false
   
   -- Get the selection data using the pro function
@@ -7282,7 +7282,7 @@ function delay_interpolation()
 end
 
 function panning_interpolation()
-  local song = renoise.song()
+  local song=renoise.song()
   local changes_made = false
   
   -- Get the selection data using the pro function
@@ -7384,7 +7384,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Interpolate Column Values (Delay)"
 renoise.tool():add_midi_mapping{name="Paketti:Interpolate Column Values (Panning)",invoke=function(message) if message:is_trigger() then panning_interpolation() end  end}
 
 function samplefx_interpolation()
-  local song = renoise.song()
+  local song=renoise.song()
   local changes_made = false
   
   -- Get the selection data using the pro function
@@ -7510,22 +7510,22 @@ function show_VDPdialog()
   observe_track_changes()
 
   -- Layout the dialog with the auto-grab checkbox
-  local content = vb:column {volume_row,delay_row,panning_row,
-    vb:row {
-      vb:checkbox {
+  local content = vb:column{volume_row,delay_row,panning_row,
+    vb:row{
+      vb:checkbox{
         value = auto_grab_enabled,
         notifier = function(value)
           auto_grab_enabled = value
           renoise.app():show_status("Auto-grab " .. (value and "enabled" or "disabled"))
         end
       },
-      vb:text {text="Auto-Grab", style="strong", font="bold"}},
-    vb:row {  -- Print All and Randomize All buttons
-      vb:button {text = "Print All",notifier = function() print_all() end},
-      vb:button {text = "Randomize All",notifier = function() randomizenongroovebox_all() end},
-      vb:button {text = "Grab",notifier = function() global_receive() end},
-      vb:button {text = "<<",notifier = function() global_shift_left() end},
-      vb:button {text = ">>",notifier = function() global_shift_right() end}
+      vb:text{text="Auto-Grab", style="strong", font="bold"}},
+    vb:row{ -- Print All and Randomize All buttons
+      vb:button{text="Print All",notifier = function() print_all() end},
+      vb:button{text="Randomize All",notifier = function() randomizenongroovebox_all() end},
+      vb:button{text="Grab",notifier = function() global_receive() end},
+      vb:button{text="<<",notifier = function() global_shift_left() end},
+      vb:button{text=">>",notifier = function() global_shift_right() end}
     }
   }
 
@@ -7610,7 +7610,7 @@ end
 
 --
 function PakettiJumpRowsForward(jump_amount)
-  local song = renoise.song()
+  local song=renoise.song()
   local current_pattern = song.selected_pattern
   local num_lines = current_pattern.number_of_lines
   local new_index = (song.selected_line_index + jump_amount - 1) % num_lines + 1
@@ -7619,7 +7619,7 @@ function PakettiJumpRowsForward(jump_amount)
 end
 
 function PakettiJumpRowsBackward(jump_amount)
-  local song = renoise.song()
+  local song=renoise.song()
   local current_pattern = song.selected_pattern
   local num_lines = current_pattern.number_of_lines
   local new_index = (song.selected_line_index - jump_amount - 1) % num_lines + 1
@@ -7628,7 +7628,7 @@ function PakettiJumpRowsBackward(jump_amount)
 end
 
 function PakettiJumpRowsRandomForward()
-  local song = renoise.song()
+  local song=renoise.song()
   local current_pattern = song.selected_pattern
   local num_lines = current_pattern.number_of_lines
   local random_index = math.random(1, num_lines)
@@ -7637,7 +7637,7 @@ function PakettiJumpRowsRandomForward()
 end
 
 function PakettiJumpRowsRandomBackward()
-  local song = renoise.song()
+  local song=renoise.song()
   local current_pattern = song.selected_pattern
   local num_lines = current_pattern.number_of_lines
   local random_index = (song.selected_line_index - math.random(1, num_lines) - 1) % num_lines + 1
@@ -7657,7 +7657,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Jump Backward Within Pattern 
 renoise.tool():add_midi_mapping{name="Paketti:Jump Backward Within Pattern by Random",invoke=function(message) if message:is_trigger() then PakettiJumpRowsRandomBackward() end end}
 
 local function get_total_song_rows()
-  local song = renoise.song()
+  local song=renoise.song()
   local total_rows = 0
   for _, pattern_index in ipairs(song.sequencer.pattern_sequence) do
     total_rows = total_rows + song.patterns[pattern_index].number_of_lines
@@ -7666,7 +7666,7 @@ local function get_total_song_rows()
 end
 
 local function get_pattern_and_row_from_cumulative_position(position)
-  local song = renoise.song()
+  local song=renoise.song()
   local cumulative_rows = 0
 
   for sequence_index, pattern_index in ipairs(song.sequencer.pattern_sequence) do
@@ -7681,7 +7681,7 @@ local function get_pattern_and_row_from_cumulative_position(position)
 end
 
 local function get_current_cumulative_position()
-  local song = renoise.song()
+  local song=renoise.song()
   local sequence_index = song.selected_sequence_index
   local line_index = song.selected_line_index
   local cumulative_rows = 0
@@ -7695,7 +7695,7 @@ end
 
 -- Forward jump across patterns in the song
 function PakettiJumpRowsForwardInSong(jump_amount)
-  local song = renoise.song()
+  local song=renoise.song()
   local current_position = get_current_cumulative_position()
   local total_rows = get_total_song_rows()
   local target_position = math.min(current_position + jump_amount, total_rows)
@@ -7708,7 +7708,7 @@ end
 
 -- Backward jump across patterns in the song
 function PakettiJumpRowsBackwardInSong(jump_amount)
-  local song = renoise.song()
+  local song=renoise.song()
   local current_position = get_current_cumulative_position()
   local target_position = math.max(current_position - jump_amount, 1)
 
@@ -7753,7 +7753,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Jump Backward Within Song by 
 renoise.tool():add_midi_mapping{name="Paketti:Jump Backward Within Song by Random",invoke=function(message) if message:is_trigger() then PakettiJumpRowsRandomBackwardInSong() end end}
 
 function PopulateGainersOnEachTrack(placement)
-  local song = renoise.song()
+  local song=renoise.song()
   for i = 1, song.sequencer_track_count do
     local track = song:track(i)
     local has_gainer = false
@@ -7778,7 +7778,7 @@ function PopulateGainersOnEachTrack(placement)
 end
 
 function map_knob_to_gainer(knob_value, placement)
-  local song = renoise.song()
+  local song=renoise.song()
   
   PopulateGainersOnEachTrack(placement)
   
@@ -7807,7 +7807,7 @@ renoise.tool():add_midi_mapping{name="Paketti:GlobalGainer Knob Control (start c
 renoise.tool():add_midi_mapping{name="Paketti:GlobalGainer Knob Control (end chain)",invoke=function(midi_message) map_knob_to_gainer(midi_message.int_value, "end") end}
 --------
 function AddGainerCrossfadeSelectedTrack(name)
-  local song = renoise.song()
+  local song=renoise.song()
   local track = song.selected_track
   local gainer_name = "Gainer " .. name
   local has_gainer_a, has_gainer_b = false, false
@@ -7832,7 +7832,7 @@ function AddGainerCrossfadeSelectedTrack(name)
 end
 
 function map_crossfade_to_ab(crossfade_value)
-  local song = renoise.song()
+  local song=renoise.song()
   local scaled_a = crossfade_value / 127
   local scaled_b = (127 - crossfade_value) / 127
   
@@ -7855,7 +7855,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Gainer Crossfade A/B",invoke=funct
 
 ------
 function flip_gainers()
-  local song = renoise.song()
+  local song=renoise.song()
   local current_state = false -- will be used to track which gainer is active
   
   -- First, check any track's first gainer to determine current state
@@ -7986,9 +7986,9 @@ function pakettiOffsetDialog()
   end
 
   local vb = renoise.ViewBuilder()
-  local slider_value = vb:text { text="0.0", width=40 } -- Initial display text for slider value
+  local slider_value = vb:text{text="0.0",width=40 } -- Initial display text for slider value
   
-  local slider = vb:slider {
+  local slider = vb:slider{
     min=-1.0,
     max=1.0,
     value=0,
@@ -7998,7 +7998,7 @@ function pakettiOffsetDialog()
     end
   }
 
-  local operation_switch = vb:switch { items={ "-", "*" }, value=1, width=40 }
+  local operation_switch = vb:switch { items={ "-", "*" }, value=1,width=40 }
   
   local function apply_offset()
     local value = slider.value
@@ -8010,17 +8010,17 @@ function pakettiOffsetDialog()
     renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
   end
 
-  local content = vb:column {
-    vb:horizontal_aligner {
-      vb:text { text="Offset/Multiplier:" },
+  local content = vb:column{
+    vb:horizontal_aligner{
+      vb:text{text="Offset/Multiplier:" },
       slider,
       slider_value -- Display text next to the slider
     },
-    vb:horizontal_aligner {
-      vb:text { text="Operation:" },
+    vb:horizontal_aligner{
+      vb:text{text="Operation:" },
       operation_switch
     },
-    vb:button { text="Change Sample Buffer", width=160, notifier=apply_offset }
+    vb:button{ text="Change Sample Buffer",width=160, notifier=apply_offset }
   }
 
   dialog = renoise.app():show_custom_dialog("Offset Sample Buffer", content, my_keyhandler_func)
@@ -8127,7 +8127,7 @@ renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Invert All Subcolum
 
 ---
 function wipe_random_notes_with_note_offs()
-  local song = renoise.song()
+  local song=renoise.song()
   local random = math.random
 
   -- Get the selection in pattern
@@ -8212,7 +8212,7 @@ end
 
 -- Function to reduce volume of all instruments
 function reduceInstrumentsVolume(db_amount)
-  local song = renoise.song()
+  local song=renoise.song()
   local MIN_DB = -96  -- Renoise's minimum dB level before -INF
   
   -- Check volumes first
@@ -8249,7 +8249,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Global Volume Reduce All Instrumen
 
 -- Function to reduce volume of all samples in all instruments
 function reduceSamplesVolume(db_amount)
-  local song = renoise.song()
+  local song=renoise.song()
   local MIN_DB = -96  -- Renoise's minimum dB level before -INF
   
   -- First check if any sample would go below MIN_DB
@@ -8292,8 +8292,8 @@ function show_global_volume_dialog()
   local current_db_value = 0
   local current_sample_db_value = 0
   
-  local value_display = vb:text{ text = "0.0 dB" }
-  local sample_value_display = vb:text{ text = "0.0 dB" }
+  local value_display = vb:text{ text="0.0 dB" }
+  local sample_value_display = vb:text{ text="0.0 dB" }
   local value_slider
   local value_box
   local sample_value_slider
@@ -8313,10 +8313,10 @@ function show_global_volume_dialog()
     sample_value_box.value = new_value
   end
 
-  value_box = vb:valuebox {
+  value_box = vb:valuebox{
     min = -96,
     max = 0,
-    width = 90,
+    width=90,
     value = current_db_value,
     tostring = function(value) return string.format("%.1f", value) end,
     tonumber = function(str) return tonumber(str) or 0 end,
@@ -8325,10 +8325,10 @@ function show_global_volume_dialog()
     end
   }
   
-  sample_value_box = vb:valuebox {
+  sample_value_box = vb:valuebox{
     min = -96,
     max = 0,
-    width = 90,
+    width=90,
     value = current_sample_db_value,
     tostring = function(value) return string.format("%.1f", value) end,
     tonumber = function(str) return tonumber(str) or 0 end,
@@ -8337,49 +8337,49 @@ function show_global_volume_dialog()
     end
   }
   
-  value_slider = vb:slider {
+  value_slider = vb:slider{
     min = -96,
     max = 0,
     value = current_db_value,
-    width = 250,
+    width=250,
     notifier = function(new_value)
       update_instrument_controls(new_value)
     end
   }
   
-  sample_value_slider = vb:slider {
+  sample_value_slider = vb:slider{
     min = -96,
     max = 0,
     value = current_sample_db_value,
-    width = 250,
+    width=250,
     notifier = function(new_value)
       update_sample_controls(new_value)
     end
   }
   
-  local dialog_content = vb:column {
-    margin = 0,
-    spacing = 0,
+  local dialog_content = vb:column{
+    margin=0,
+    spacing=0,
     
-    vb:text { text = "Instrument Volume:", width = 120 },
-    vb:row {
-      spacing = 0,
+    vb:text{text="Instrument Volume:",width=120 },
+    vb:row{
+      spacing=0,
       value_box,
       value_display
     },
     value_slider,
     
-    vb:text { text = "Sample/Slice Volume:", width = 120 },
-    vb:row {
-      spacing = 0,
+    vb:text{text="Sample/Slice Volume:",width=120 },
+    vb:row{
+      spacing=0,
       sample_value_box,
       sample_value_display
     },
     sample_value_slider,
     
-    vb:button {
-      text = "Apply Volume Changes",
-      width = 250,
+    vb:button{
+      text="Apply Volume Changes",
+      width=250,
       notifier = function()
         if current_db_value ~= 0 then
           reduceInstrumentsVolume(-current_db_value)
@@ -8456,7 +8456,7 @@ function PatternMatrixShrinkTrack(track_index, pattern_index, start_line, end_li
 end
 
 function PatternMatrixExpand()
-  local song = renoise.song()
+  local song=renoise.song()
   local sequencer = song.sequencer
   local selected_tracks = {}
   local selected_sequences = {}  -- Track -> array of sequence indices
@@ -8491,7 +8491,7 @@ function PatternMatrixExpand()
 end
 
 function PatternMatrixShrink()
-  local song = renoise.song()
+  local song=renoise.song()
   local sequencer = song.sequencer
   local selected_tracks = {}
   
@@ -8561,11 +8561,11 @@ function show_edit_step_dialog()
 
   vb = renoise.ViewBuilder()
   
-  local dialog_content = vb:row {
-    vb:text {text = "EditStep&Enter"},
+  local dialog_content = vb:row{
+    vb:text{text="EditStep&Enter"},
     vb:textfield {
       id = "edit_step_input",
-      width = 30,
+      width=30,
       active = true,
       edit_mode = true,
       value = tostring(renoise.song().transport.edit_step),
@@ -8608,7 +8608,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Show EditStep Dialog...",invo
 ------
 -- Function to step by editstep (forwards or backwards)
 function PakettiStepByEditStep(direction)
-  local song = renoise.song()
+  local song=renoise.song()
   local current_line = song.selected_line_index
   local pattern_length = song.selected_pattern.number_of_lines
   local edit_step = song.transport.edit_step * direction
@@ -8632,7 +8632,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Step by EditStep Forward x[Trigger
 renoise.tool():add_midi_mapping{name="Paketti:Step by EditStep Backward x[Trigger]", invoke=function(message) if message:is_trigger() then PakettiStepByEditStep(-1) end end}
 -------
 function PakettiFixC0Panning()
-  local song = renoise.song()
+  local song=renoise.song()
   local pattern = song:pattern(song.selected_pattern_index)
   local track = pattern:track(song.selected_track_index)
   local visible_note_columns = song.tracks[song.selected_track_index].visible_note_columns
@@ -8668,7 +8668,7 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Fix C0 Panning Values
 renoise.tool():add_midi_mapping{name="Paketti:Fix C0 Panning Values",invoke=function(message) if message:is_trigger() then PakettiFixC0Panning() end end}
 
 function delete_automation(all_tracks, whole_song)
-  local song = renoise.song()
+  local song=renoise.song()
   local start_pattern, end_pattern
   local start_track, end_track
   
@@ -8743,7 +8743,7 @@ renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Wipe All Automation
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Wipe All Automation in All Tracks on Whole Song",invoke=function() delete_automation(true, true) end}
 
 function wipe_effect_columns(all_tracks, whole_song)
-  local song = renoise.song()
+  local song=renoise.song()
   local start_pattern, end_pattern
   local start_track, end_track
   
@@ -8814,7 +8814,7 @@ renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Wipe All Effect Col
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Wipe All Effect Columns on Song",invoke=function() wipe_effect_columns(true, true) end}
 
 function multiply_bpm_halve_lpb()
-  local song = renoise.song()
+  local song=renoise.song()
   local current_bpm = song.transport.bpm
   local current_lpb = song.transport.lpb
   
@@ -8844,7 +8844,7 @@ end
 
 -- Function to halve BPM and multiply LPB with bounds checking
 function halve_bpm_multiply_lpb()
-  local song = renoise.song()
+  local song=renoise.song()
   local current_bpm = song.transport.bpm
   local current_lpb = song.transport.lpb
   
@@ -8881,7 +8881,7 @@ renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Halve BPM & Multipl
 --------
 function sampleFXControls(scope, state)
   local total_affected = 0
-  local song = renoise.song()
+  local song=renoise.song()
   
   -- Determine which instruments to process
   local instruments = {}
@@ -8927,7 +8927,7 @@ renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti..:Bypass All Sample 
 
 -----------
 function random_note_offs_to_empty_rows()
-  local song = renoise.song()
+  local song=renoise.song()
   local random = math.random
   
   -- Get the selection in pattern
@@ -9003,7 +9003,7 @@ end
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Insert Random Note-Offs in Empty Rows",invoke=function() random_note_offs_to_empty_rows() end}
 ---------
 function randomize_note_off_positions()
-  local song = renoise.song()
+  local song=renoise.song()
   local random = math.random
   
   -- Get the selection in pattern
@@ -9089,7 +9089,7 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Randomize Positions o
 
 --------
 function pakettiFloodFillFromCurrentRow()
-  local song = renoise.song()
+  local song=renoise.song()
   local pattern_index = song.selected_pattern_index
   local pattern = song.patterns[pattern_index]
   local current_line = song.selected_line_index  -- The source row we're copying FROM
@@ -9151,7 +9151,7 @@ renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Flood Fill from Cur
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Flood Fill from Current Row w/ AutoArp",invoke=pakettiFloodFillFromCurrentRow}
 --------
 function findUsedInstruments()
-  local song = renoise.song()
+  local song=renoise.song()
   local used_instruments = {}
   local used_samples = {}
   
@@ -9223,7 +9223,7 @@ function formatFileSize(bytes)
 end
 
 function saveUnusedSamples()
-  local song = renoise.song()
+  local song=renoise.song()
   local used_instruments, used_samples = findUsedInstruments()
   
   -- Build list of unused samples
@@ -9342,7 +9342,7 @@ renoise.tool():add_menu_entry{name="--Main Menu:File:Save Unused Samples (.WAV&.
 renoise.tool():add_keybinding{name="Global:Paketti:Save Unused Samples (.WAV&.XRNI)",invoke=saveUnusedSamples}
 --------
 function saveUnusedInstruments()
-  local song = renoise.song()
+  local song=renoise.song()
   local used_instruments, _ = findUsedInstruments()
   
   -- Build list of unused instruments
@@ -9406,7 +9406,7 @@ renoise.tool():add_menu_entry{name="Main Menu:File:Save Unused Instruments (.XRN
 renoise.tool():add_keybinding{name="Global:Paketti:Save Unused Instruments (.XRNI)",invoke=saveUnusedInstruments}
 ----
 function deleteUnusedInstruments()
-  local song = renoise.song()
+  local song=renoise.song()
   local used_instruments, _ = findUsedInstruments()
   
   -- Build list of unused instruments
@@ -9457,7 +9457,7 @@ renoise.tool():add_menu_entry{name="Main Menu:File:Delete Unused Instruments..."
 renoise.tool():add_keybinding{name="Global:Paketti:Delete Unused Instruments",invoke=deleteUnusedInstruments}
 ---
 function findUsedSamples()
-  local song = renoise.song()
+  local song=renoise.song()
   local used_samples = {}
   local used_notes = {}
   
@@ -9540,14 +9540,14 @@ end
 
 function deleteUnusedSamples()
   local function process_samples()
-    local song = renoise.song()
+    local song=renoise.song()
     local deleted_count = 0
     local notes_found = 0
     local dialog, vb = ProcessSlicer:create_dialog("Deleting Unused Samples")
-    local status_text = ""
+    local status_text=""
     
     -- Set the width of the progress text
-    vb.views.progress_text.width = 300
+    vb.views.progress_text.width=300
 
     local function update_dialog(progress, status, is_error)
       if status then
@@ -9684,7 +9684,7 @@ function deleteUnusedSamples()
     end
 
     -- At completion, just change the Cancel button text to Done
-    vb.views.cancel_button.text = "Done"
+    vb.views.cancel_button.text="Done"
     
     update_dialog(
       deleted_count > 0 
@@ -9708,7 +9708,7 @@ renoise.tool():add_keybinding{name="Sample Keyzones:Paketti:Delete Unused Sample
 
 -----------
 function ReplaceLegacyEffect(old_effect, new_effect)
-  local song = renoise.song()
+  local song=renoise.song()
   local pattern_count = #song.patterns
   local changes_made = 0
   
@@ -9757,7 +9757,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Explode Notes to New Tracks",invok
 renoise.tool():add_keybinding{name="Global:Paketti:Explode Notes to New Tracks",invoke=function() explode_notes_to_tracks() end}
 
   function explode_notes_to_tracks()
-    local song = renoise.song()
+    local song=renoise.song()
     local selected_track_index = song.selected_track_index
     local selected_track = song:track(selected_track_index)
     local pattern = song.selected_pattern
@@ -9937,7 +9937,7 @@ if renoise.API_VERSION >= 6.2 then
 end
 
 local function has_note_at(track_data, line_index, track_index, column_index)
-  local song = renoise.song()
+  local song=renoise.song()
   local track = song:track(track_index)
   local line = track_data:line(line_index)
   
@@ -9961,7 +9961,7 @@ local function has_note_at(track_data, line_index, track_index, column_index)
 end
 
 function GotoNote(direction, scope, play_note)
-  local song = renoise.song()
+  local song=renoise.song()
   local pattern = song.selected_pattern
   local current_track = song.selected_track_index
   local current_line = song.selected_line_index
@@ -10215,7 +10215,7 @@ function show_track_search_dialog()
 
   local function update_search_results(search_text)
     matched_tracks = {}
-    local song = renoise.song()
+    local song=renoise.song()
     
     for i = 1, #song.tracks do
       if fuzzy_match(search_text, song.tracks[i].name) then
@@ -10254,7 +10254,7 @@ function show_track_search_dialog()
   end
 
   local search_field = vb:textfield {
-    width = 200,
+    width=200,
     active = true,
     edit_mode = true,
     notifier = function(text)
@@ -10263,15 +10263,15 @@ function show_track_search_dialog()
   }
  
   results_listbox = vb:chooser {
-    width = 200,
+    width=200,
     height = 150,
     items = {"<Empty>", "Type to search..."},
     -- Remove the notifier that was auto-selecting
     notifier = function() end  -- Do nothing when selection changes
   }
   
-  local PakettiFuzzySearchDialogContent = vb:column {
-    vb:text { text = "Search for track:", style="strong", font="bold" },
+  local PakettiFuzzySearchDialogContent = vb:column{
+    vb:text{text="Search for track:", style="strong", font="bold" },
     search_field,
     vb:space { height = 5 },
     results_listbox
@@ -10325,7 +10325,7 @@ local current_scope = 1  -- Add this to store the scope value
 
 
 function get_unique_notes()
-  local song = renoise.song()
+  local song=renoise.song()
   local pattern = song.selected_pattern
   local track = pattern:track(song.selected_track_index)
   local trackvis = renoise.song().selected_track
@@ -10359,7 +10359,7 @@ function get_unique_notes()
 end
 
 function apply_instrument_changes(note_string, original_instrument, new_instrument, whole_song)
-  local song = renoise.song()
+  local song=renoise.song()
   
   print("\n=== Instrument Change Debug ===")
   print(string.format("Note: %s", note_string))
@@ -10426,7 +10426,7 @@ function show_note_mapping_dialog()
     dialog:close()
   end
 
-  local song = renoise.song()
+  local song=renoise.song()
 
 
   -- Create track options for dropdown
@@ -10458,11 +10458,11 @@ function show_note_mapping_dialog()
 
     local vb = renoise.ViewBuilder()
     local unique_notes = get_unique_notes()
-    local content = vb:column{      
+    local content = vb:column{     
       vb:row{
-        vb:text{text="Track", width=40},
+        vb:text{text="Track",width=40},
         vb:popup{
-          width = 250,
+          width=250,
           items = track_options,
           value = song.selected_track_index,
           notifier = function(new_index)
@@ -10472,11 +10472,11 @@ function show_note_mapping_dialog()
         }
       },
       vb:row{
-        margin = 4,
-        vb:text{text="Scope", width=40},
+        margin=4,
+        vb:text{text="Scope",width=40},
         vb:switch{
           id = "scope_switch",
-          width = 250,
+          width=250,
           items = {"Current Pattern", "Whole Song"},
           value = current_scope  -- Use stored scope value
         }
@@ -10488,17 +10488,17 @@ function show_note_mapping_dialog()
     if #unique_notes > 0 then
       content:add_child(
         vb:row{
-          vb:text{text="Note", width=40, font="bold", style="strong"},
-          vb:text{text="Instrument", width = 250, font="bold", style="strong"}
+          vb:text{text="Note",width=40, font="bold", style="strong"},
+          vb:text{text="Instrument",width=250, font="bold", style="strong"}
         }
       )
       
       for _, note_data in ipairs(unique_notes) do
         content:add_child(
           vb:row{
-            vb:text{text = note_data.note, width = 40, font = "mono", style="strong"},
+            vb:text{text = note_data.note,width=40, font = "mono", style="strong"},
             vb:popup{
-              width = 250,
+              width=250,
               items = instrument_options,
               value = note_data.instrument + 1,
               notifier = function(new_index)
@@ -10512,7 +10512,7 @@ function show_note_mapping_dialog()
     else
       content:add_child(
         vb:text{
-          text = "No notes on this track, select another one.",
+          text="No notes on this track, select another one.",
           font = "bold",
           style = "strong"
         }
@@ -10549,7 +10549,7 @@ end
 function NoteToInstrumentKeyhandler(dialog,key)
   local closer = preferences.pakettiDialogClose.value
   if key.modifiers == "" and key.name == closer then
-    local song = renoise.song()
+    local song=renoise.song()
     -- Clean up notifiers when closing
     if song.selected_track_index_observable:has_notifier(show_dialog) then
       song.selected_track_index_observable:remove_notifier(show_dialog)
@@ -10571,7 +10571,7 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Switch Note Instrumen
 
 ------
 function pakettiGrooveToDelay()
-  local song = renoise.song()
+  local song=renoise.song()
   local pattern_index = song.selected_pattern_index
   local track_index = song.selected_track_index
   local pattern_lines = song.patterns[pattern_index].number_of_lines
@@ -10624,4 +10624,6 @@ function pakettiGrooveToDelay()
   renoise.app():show_status("Groove converted to delay values")
 end
 
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Convert Groove to Delay",invoke = pakettiGrooveToDelay}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Convert Global Groove to Delay on Selected Track",invoke = pakettiGrooveToDelay}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Convert Global Groove to Delay on Selected Track",invoke = pakettiGrooveToDelay}
+renoise.tool():add_midi_mapping{name="Pattern Editor:Paketti:Convert Global Groove to Delay on Selected Track",invoke = function(message) if message:is_trigger() then pakettiGrooveToDelay end end}

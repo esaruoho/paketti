@@ -34,7 +34,7 @@ renoise.tool():add_menu_entry{name="--Sample Modulation Matrix:Paketti..:PitchSt
 renoise.tool():add_keybinding{name="Global:Paketti:PitchStepper Demo",invoke=function() pakettiPitchStepperDemo() end}
 ---
 function ResetAllSteppers()
-    local song = renoise.song()
+    local song=renoise.song()
     local count = 0
     local stepperTypes = {"Pitch Stepper", "Volume Stepper", "Pan Stepper", 
                          "Cutoff Stepper", "Resonance Stepper", "Drive Stepper"}

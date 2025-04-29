@@ -17,7 +17,7 @@ renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Set Instrument Tr
 
 -- Function to set loop mode for all samples in the selected instrument
 local function set_loop_mode_for_selected_instrument(loop_mode)
-  local song = renoise.song()
+  local song=renoise.song()
   local instrument = song.selected_instrument
 
   if not instrument then
@@ -58,7 +58,7 @@ renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Set Loop Mode to 
 
 -- Fix velocity mappings of all samples in the selected instrument and disable vel->vol
 function fix_sample_velocity_mappings()
-  local song = renoise.song()
+  local song=renoise.song()
   local instrument = song.selected_instrument
 
   if not instrument then
@@ -112,7 +112,7 @@ function fix_sample_velocity_mappings()
 end
 
 function jump_to_pattern_segment(segment_number)
-  local song = renoise.song()
+  local song=renoise.song()
   song.transport.follow_player = false
   local pattern_length = song.selected_pattern.number_of_lines
   local segment = math.floor(pattern_length / 8)
@@ -121,7 +121,7 @@ function jump_to_pattern_segment(segment_number)
 end
 -- Write notes with ramp-up velocities (01 to 127)
 function write_velocity_ramp_up()
-  local song = renoise.song()
+  local song=renoise.song()
   local pattern = song.selected_pattern
   local start_line_index = song.selected_line_index  
   local line_index = song.selected_line_index
@@ -193,7 +193,7 @@ end
 
 -- Write notes with ramp-down velocities starting from the last sample's lower velocity bound
 function write_velocity_ramp_down()
-  local song = renoise.song()
+  local song=renoise.song()
   local pattern = song.selected_pattern
   local start_line_index = song.selected_line_index
   local instrument_index = song.selected_instrument_index
@@ -264,7 +264,7 @@ end
 
 -- Write notes with random velocities, respecting the last sample's velocity range
 function write_random_velocity_notes()
-  local song = renoise.song()
+  local song=renoise.song()
   local pattern = song.selected_pattern
   local start_line_index = song.selected_line_index
   local instrument_index = song.selected_instrument_index
@@ -408,13 +408,13 @@ function showStackingDialog(proceed_with_stacking, on_switch_changed, PakettiIso
   end
 
   -- Dialog Content Definition
-  local dialog_content = vb:column {
+  local dialog_content = vb:column{
     vb:row{vb:button{text="Browse",notifier=function() pitchBendMultipleSampleLoader() end}},
-    vb:row {vb:text {text = "Set Slice Count",width=100,style = "strong",font = "bold"},
+    vb:row{vb:text{text="Set Slice Count",width=100,style = "strong",font = "bold"},
 vb:switch {
 --  id="wipeslice",
   items = switch_values,
-  width = 250,
+  width=250,
   value = switch_index,
   notifier = function(index)
     local selected_value = switch_values[index]
@@ -427,21 +427,21 @@ vb:switch {
       on_switch_changed("OFF")
     end
   end}},
-   vb:row{vb:button {
-        text = "Proceed with Stacking",
+   vb:row{vb:button{
+        text="Proceed with Stacking",
         notifier = function()
           proceed_with_stacking()
         returnpe() end}},
     
-    vb:row {vb:text {text = "Stack Ramp",width=100,font = "bold",style = "strong",},
-      vb:button {text = "Up",notifier = function() write_velocity_ramp_up()
+    vb:row{vb:text{text="Stack Ramp",width=100,font = "bold",style = "strong",},
+      vb:button{text="Up",notifier = function() write_velocity_ramp_up()
       returnpe() end},
-      vb:button {
-        text = "Down",
+      vb:button{
+        text="Down",
         notifier = function() write_velocity_ramp_down() 
         returnpe() end},
-      vb:button {
-        text = "Random",
+      vb:button{
+        text="Random",
         notifier = function() write_random_velocity_notes() 
         returnpe() end}},
 vb:row{vb:text{text="Set Loop Mode",width=100, style="strong",font="bold"},
@@ -459,7 +459,7 @@ vb:button{text="0",width=50,notifier=function() PakettiClearStepper("Pitch Stepp
 vb:row{
 vb:text{text="Instrument Pitch",width=100,font="bold",style="strong"},
 vb:switch {
-  width = 250,
+  width=250,
 --  id = "instrument_pitch",
   items = {"-24", "-12", "0", "+12", "+24"},
   value = 3,
@@ -474,7 +474,7 @@ vb:switch {
 }},
 vb:row{
   vb:button{
-    text = "Follow Pattern",
+    text="Follow Pattern",
     notifier = function()
       if renoise.song().transport.follow_player then
         renoise.song().transport.follow_player = false
@@ -482,20 +482,20 @@ vb:row{
         renoise.song().transport.follow_player = true
       end
     returnpe() end},
-   vb:button{text = "1/8", notifier = function() jump_to_pattern_segment(1) end},
-   vb:button{text = "2/8", notifier = function() jump_to_pattern_segment(2) end},
-   vb:button{text = "3/8", notifier = function() jump_to_pattern_segment(3) end},
-   vb:button{text = "4/8", notifier = function() jump_to_pattern_segment(4) end},
-   vb:button{text = "5/8", notifier = function() jump_to_pattern_segment(5) end},
-   vb:button{text = "6/8", notifier = function() jump_to_pattern_segment(6) end},
-   vb:button{text = "7/8", notifier = function() jump_to_pattern_segment(7) end},
-   vb:button{text = "8/8", notifier = function() jump_to_pattern_segment(8) end}}}
+   vb:button{text="1/8", notifier = function() jump_to_pattern_segment(1) end},
+   vb:button{text="2/8", notifier = function() jump_to_pattern_segment(2) end},
+   vb:button{text="3/8", notifier = function() jump_to_pattern_segment(3) end},
+   vb:button{text="4/8", notifier = function() jump_to_pattern_segment(4) end},
+   vb:button{text="5/8", notifier = function() jump_to_pattern_segment(5) end},
+   vb:button{text="6/8", notifier = function() jump_to_pattern_segment(6) end},
+   vb:button{text="7/8", notifier = function() jump_to_pattern_segment(7) end},
+   vb:button{text="8/8", notifier = function() jump_to_pattern_segment(8) end}}}
   -- Show the dialog
   dialog = renoise.app():show_custom_dialog("Paketti Stacker", dialog_content,my_keyhandler_func)
 end
 
   function proceed_with_stacking()
-    local song = renoise.song()
+    local song=renoise.song()
     local current_track = song.selected_track
     
     -- Remove *Instr. Macros device if it exists

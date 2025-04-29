@@ -33,7 +33,7 @@ end
 
 -- Add this helper function to check if all notes in pattern are the same
 function get_uniform_note_value(pattern_index)
-    local song = renoise.song()
+    local song=renoise.song()
     local pattern = song.patterns[pattern_index]
     local track = pattern:track(song.selected_track_index)
     local first_note = nil
@@ -74,7 +74,7 @@ end
 
 -- Function to check if pattern has content
 local function pattern_is_empty(pattern_index)
-    local song = renoise.song()
+    local song=renoise.song()
     local pattern = song.patterns[pattern_index]
     local track = pattern:track(song.selected_track_index)
     
@@ -89,7 +89,7 @@ local function pattern_is_empty(pattern_index)
 end
 
 local function fill_pattern_with_steps(pattern_index, instrument_index, use_512, note_value, reverse_s, step_size, fill_all)
-    local song = renoise.song()
+    local song=renoise.song()
     local pattern = song.patterns[pattern_index]
     local track = pattern:track(song.selected_track_index)
     local pattern_length = use_512 and 512 or 256
@@ -171,7 +171,7 @@ local function fill_pattern_with_steps(pattern_index, instrument_index, use_512,
 end
 
 local function ensure_master_track_effects()
-    local song = renoise.song()
+    local song=renoise.song()
     local master_track_index = song.sequencer_track_count + 1
     local master_track = song:track(master_track_index)
     
@@ -183,7 +183,7 @@ end
 local function write_tempo_commands(bpm, lpb, from_line)
     if not write_to_master then return end
     
-    local song = renoise.song()
+    local song=renoise.song()
     local master_track_index = song.sequencer_track_count + 1
     local pattern = song.patterns[song.selected_pattern_index]
     local master_track = pattern:track(master_track_index)
@@ -204,7 +204,7 @@ local function write_tempo_commands(bpm, lpb, from_line)
 end
 
 local function check_and_set_uniform_note()
-    local song = renoise.song()
+    local song=renoise.song()
     local pattern = song.patterns[current_pattern_index]
     local track = pattern:track(song.selected_track_index)
     local length = pattern.number_of_lines
@@ -331,7 +331,7 @@ end
 
 -- Add this helper function with other helper functions at the top
 local function analyze_pattern_settings(pattern_index)
-    local song = renoise.song()
+    local song=renoise.song()
     local pattern = song.patterns[pattern_index]
     local track = pattern:track(song.selected_track_index)
     local pattern_length = pattern.number_of_lines
@@ -423,7 +423,7 @@ function create_timestretch_dialog()
         return  -- Exit the function
     end
 
-    local song = renoise.song()
+    local song=renoise.song()
     local selected_track = song:track(song.selected_track_index)
     render_context.source_track = song.selected_track_index  -- Store the track index
     local original_seq_pos = song.selected_sequence_index  -- Store original position
@@ -445,9 +445,9 @@ function create_timestretch_dialog()
     local vb = renoise.ViewBuilder()
     
     -- Create record_mode checkbox first, before any analysis that might use it
-    local record_mode = vb:checkbox {
+    local record_mode = vb:checkbox{
         value = false,
-        width = 20
+        width=20
     }
     
     -- 1. Declare ALL variables we'll need upfront
@@ -519,30 +519,30 @@ function create_timestretch_dialog()
     end
     
     -- Declare these variables before creating the row
-    local scale_value_text = vb:text {  -- Create the text elements first
-        width = 40,
-        text = "1.00"
+    local scale_value_text = vb:text{ -- Create the text elements first
+        width=40,
+        text="1.00"
     }
     
-    local release_time_text = vb:text {  -- Create the text elements first
-        width = 50,
-        text = "480ms"
+    local release_time_text = vb:text{ -- Create the text elements first
+        width=50,
+        text="480ms"
     }
     
     -- 2. Create basic displays
-    bpm_display = vb:text {
-        width = 50,
+    bpm_display = vb:text{
+        width=50,
         text = tostring(song.transport.bpm)
     }
-    lpb_display = vb:text {width = 30, text = tostring(song.transport.lpb)}
-    note_display = vb:text {width = 50, text = "C-4", style="strong", font="bold"}
+    lpb_display = vb:text{width=30, text = tostring(song.transport.lpb)}
+    note_display = vb:text{width=50, text="C-4", style="strong", font="bold"}
     
     -- Add integer step valueboxes next to the displays
-    lpb_stepper = vb:valuebox {
+    lpb_stepper = vb:valuebox{
         min = -1,
         max = 1,
         value = 0,
-        width = 30,
+        width=30,
         tonumber = function(str) 
             return math.floor(tonumber(str) or 0)
         end,
@@ -564,11 +564,11 @@ function create_timestretch_dialog()
         end
     }
     
-    note_stepper = vb:valuebox {
+    note_stepper = vb:valuebox{
         min = -1,
         max = 1,
         value = 0,
-        width = 30,
+        width=30,
         tonumber = function(str) 
             return math.floor(tonumber(str) or 0)
         end,
@@ -584,11 +584,11 @@ function create_timestretch_dialog()
     }
     
     -- 3. Create instrument controls
-    instrument_index_display = vb:valuebox {
+    instrument_index_display = vb:valuebox{
         min = 0,
         max = 254,
         value = song.selected_instrument_index - 1,
-        width = 50,
+        width=50,
         tostring = function(value) return string.format("%02X", value) end,
         tonumber = function(str) return tonumber(str, 16) end,
         notifier = function(new_value)
@@ -611,16 +611,16 @@ function create_timestretch_dialog()
         end
     }
     
-    instrument_name_text = vb:text {
+    instrument_name_text = vb:text{
         text = song.instruments[song.selected_instrument_index].name,
-        width = 200,
+        width=200,
         style = "strong",
         font = "bold"
     }
     
     -- 5. Pattern fill function
     local function fill_pattern(pattern_index, instrument_index, use_512, note_value, reverse_s)
-        local song = renoise.song()
+        local song=renoise.song()
         local pattern = song.patterns[pattern_index]
         local track = pattern:track(song.selected_track_index)
         local length = use_512 and 512 or 256
@@ -643,12 +643,12 @@ function create_timestretch_dialog()
     end
     
     -- 6. Create checkboxes
-    pattern_512_mode = vb:checkbox {
+    pattern_512_mode = vb:checkbox{
         value = current_pattern_length == 512,
-        width = 20,
+        width=20,
         notifier = function(new_value)
             print("512 Mode - New value:", new_value)
-            local song = renoise.song()
+            local song=renoise.song()
             local pattern = song.patterns[current_pattern_index]
             local current_length = pattern.number_of_lines
             
@@ -682,9 +682,9 @@ function create_timestretch_dialog()
         end
     }
     
-    reverse_checkbox = vb:checkbox {
+    reverse_checkbox = vb:checkbox{
         value = false,
-        width = 20,
+        width=20,
         notifier = function(new_value)
             print("Reverse - New value:", new_value)
             print("Current step_size:", step_size)
@@ -703,7 +703,7 @@ function create_timestretch_dialog()
     
     -- In the dialog content creation
     view_switch = vb:switch {
-        width = 300,
+        width=300,
         items = {"Pattern Editor", "Sample Editor", "Modulation Matrix"},
         value = 1,
         notifier = function(new_value)
@@ -721,12 +721,12 @@ function create_timestretch_dialog()
     }
     
     -- 7. Create note slider
-    note_slider = vb:slider {
+    note_slider = vb:slider{
         id = "note_slider",
         min = 0,
         max = 119,
         value = 48,
-        width = 300,
+        width=300,
         steps = {1, 12},  -- Small steps = 1, large steps = 12 (one octave)
         notifier = function(new_value)
             new_value = math.floor(new_value)
@@ -744,7 +744,7 @@ function create_timestretch_dialog()
                 return
             end
             
-            local song = renoise.song()
+            local song=renoise.song()
             local pattern = song.patterns[current_pattern_index]
             local track = pattern:track(song.selected_track_index)
             
@@ -790,11 +790,11 @@ function create_timestretch_dialog()
     end
     
     -- Create BPM and LPB sliders (add these before the dialog content creation)
-    bpm_slider = vb:slider {
+    bpm_slider = vb:slider{
         min = 20,
         max = 256,
         value = math.min(256, song.transport.bpm),
-        width = 300,
+        width=300,
         steps = {1, 10},  -- Small steps = 1, large steps = 10
         notifier = function(new_value)
             new_value = math.floor(new_value)  -- Ensure whole number
@@ -808,11 +808,11 @@ function create_timestretch_dialog()
         end
     }
     
-    lpb_slider = vb:slider {
+    lpb_slider = vb:slider{
         min = 1,
         max = 256,
         value = math.min(256, song.transport.lpb),
-        width = 300,
+        width=300,
         steps = {1, 16},  -- Small steps = 1, large steps = 16
         notifier = function(new_value)
             new_value = math.floor(new_value)  -- Ensure whole number
@@ -829,9 +829,9 @@ function create_timestretch_dialog()
     -- Create BPM buttons array
     local bpm_buttons = {}
     for bpm = 50, 900, 50 do
-        table.insert(bpm_buttons, vb:button {
+        table.insert(bpm_buttons, vb:button{
             text = tostring(bpm),
-            width = 30,
+            width=30,
             notifier = function()
                 song.transport.bpm = bpm
                 bpm_display.text = tostring(bpm)
@@ -840,20 +840,20 @@ function create_timestretch_dialog()
     end
     
     -- Create step controls
-    step_display = vb:text { width = 40, text = "1" }
+    step_display = vb:text{width=40, text="1" }
 
-step_slider = vb:slider {
+step_slider = vb:slider{
     min = 1,
     max = 64,  -- Direct range from 1 to 64
     value = 1,
-    width = 200,
+    width=200,
     steps = {1, -1},  -- Small steps = 1, large steps = 1
     notifier = function(new_value)
         -- Force to nearest integer and clamp to valid range
         new_value = math.max(1, math.min(64, math.floor(new_value)))
         print("Changing step size to:", new_value)
         
-        local song = renoise.song()
+        local song=renoise.song()
         local pattern = song.patterns[current_pattern_index]
         local track = pattern:track(song.selected_track_index)
         local pattern_length = pattern.number_of_lines
@@ -953,11 +953,11 @@ step_slider = vb:slider {
 }
 
     -- Create the stepper
-    step_stepper = vb:valuebox {
+    step_stepper = vb:valuebox{
         min = 1,
         max = 64,
         value = 1,
-        width = 30,
+        width=30,
         tonumber = function(str)
             return math.floor(tonumber(str) or 1)
         end,
@@ -969,14 +969,14 @@ step_slider = vb:slider {
         end
     }
 
-    fill_all_checkbox = vb:checkbox {
+    fill_all_checkbox = vb:checkbox{
         value = true,
-        width = 20,
+        width=20,
         notifier = function(new_value)
             fill_all = new_value
             print("Fill All changed to:", new_value)
             
-            local song = renoise.song()
+            local song=renoise.song()
             local pattern = song.patterns[current_pattern_index]
             local track = pattern:track(song.selected_track_index)
             
@@ -1034,16 +1034,16 @@ step_slider = vb:slider {
     }
     
     -- Create timing displays after other displays
-    lines_per_sec_display = vb:text {
-        width = 50,
-        text = "0.00",
+    lines_per_sec_display = vb:text{
+        width=50,
+        text="0.00",
         style = "strong",
         font = "bold"
     }
     
-    ms_per_line_display = vb:text {
-        width = 50,
-        text = "0.00",
+    ms_per_line_display = vb:text{
+        width=50,
+        text="0.00",
         style = "strong",
         font = "bold"
     }
@@ -1067,7 +1067,7 @@ step_slider = vb:slider {
         -- Clamp the note value between 0 and 119 (C-0 to B-9)
         new_value = math.max(0, math.min(119, new_value))
         
-        local song = renoise.song()
+        local song=renoise.song()
         local pattern = song.patterns[current_pattern_index]
         local track = pattern:track(song.selected_track_index)
         
@@ -1094,9 +1094,9 @@ step_slider = vb:slider {
     end
     
     -- At the start of dialog creation, before creating other UI elements
-    local master_write_checkbox = vb:checkbox {
+    local master_write_checkbox = vb:checkbox{
         value = write_to_master,
-        width = 20,
+        width=20,
         notifier = function(new_value)
             write_to_master = new_value
             if new_value then
@@ -1109,61 +1109,61 @@ step_slider = vb:slider {
     }
     
     -- Create dialog content
-    local dialog_content = vb:column {
+    local dialog_content = vb:column{
         -- Instrument row
-        vb:row {
+        vb:row{
             instrument_index_display,
             instrument_name_text
         },
         
         -- Pattern type and checkboxes row
-        vb:row {
+        vb:row{
             pattern_512_mode,
-            vb:text { text = "512 rows mode", font = "bold" },
-            vb:space { width = 20 },
+            vb:text{text="512 rows mode", font = "bold" },
+            vb:space { width=20 },
             record_mode,
-            vb:text { text = "Record notes below cursor", font = "bold" },
-            vb:space { width = 20 },
+            vb:text{text="Record notes below cursor", font = "bold" },
+            vb:space { width=20 },
             reverse_checkbox,
-            vb:text { text = "Reversed", font = "bold" }
+            vb:text{text="Reversed", font = "bold" }
         },
         
         -- BPM row
-        vb:row {
-            vb:text { text = "BPM", width = 85, style = "strong", font = "bold" },
+        vb:row{
+            vb:text{text="BPM",width=85, style = "strong", font = "bold" },
             bpm_slider,
             bpm_display
         },
         
         -- BPM buttons row
-        vb:row {
-            spacing = 2,
+        vb:row{
+            spacing=2,
             unpack(bpm_buttons)
         },
         
         -- LPB row with preset buttons
-        vb:row {
-            vb:text { text = "LPB", width = 85, style = "strong", font = "bold" },
+        vb:row{
+            vb:text{text="LPB",width=85, style = "strong", font = "bold" },
             lpb_slider,
             lpb_display,
-            vb:space { width = 10 },
-            vb:button { text = "2", width = 30, notifier = function() song.transport.lpb = 2 lpb_display.text = "2" lpb_slider.value = 2 end},
-            vb:button { text = "4", width = 30, notifier = function() song.transport.lpb = 4 lpb_display.text = "4" lpb_slider.value = 4 end},
-            vb:button { text = "8", width = 30, notifier = function() song.transport.lpb = 8 lpb_display.text = "8" lpb_slider.value = 8 end},
-            vb:button { text = "16", width = 30, notifier = function() song.transport.lpb = 16 lpb_display.text = "16" lpb_slider.value = 16 end},
-            vb:button { text = "32", width = 30, notifier = function() song.transport.lpb = 32 lpb_display.text = "32" lpb_slider.value = 32 end},
-            vb:button { text = "64", width = 30, notifier = function() song.transport.lpb = 64 lpb_display.text = "64" lpb_slider.value = 64 end},
-            vb:button { text = "128", width = 30, notifier = function() song.transport.lpb = 128 lpb_display.text = "128" lpb_slider.value = 128 end}
+            vb:space { width=10 },
+            vb:button{ text="2",width=30, notifier = function() song.transport.lpb = 2 lpb_display.text="2" lpb_slider.value = 2 end},
+            vb:button{ text="4",width=30, notifier = function() song.transport.lpb = 4 lpb_display.text="4" lpb_slider.value = 4 end},
+            vb:button{ text="8",width=30, notifier = function() song.transport.lpb = 8 lpb_display.text="8" lpb_slider.value = 8 end},
+            vb:button{ text="16",width=30, notifier = function() song.transport.lpb = 16 lpb_display.text="16" lpb_slider.value = 16 end},
+            vb:button{ text="32",width=30, notifier = function() song.transport.lpb = 32 lpb_display.text="32" lpb_slider.value = 32 end},
+            vb:button{ text="64",width=30, notifier = function() song.transport.lpb = 64 lpb_display.text="64" lpb_slider.value = 64 end},
+            vb:button{ text="128",width=30, notifier = function() song.transport.lpb = 128 lpb_display.text="128" lpb_slider.value = 128 end}
         },
         
         -- ComboTempo row
-        vb:row {
-            vb:text { text = "ComboTempo", width = 85, style = "strong", font = "bold" },
-            vb:slider {
+        vb:row{
+            vb:text{text="ComboTempo",width=85, style = "strong", font = "bold" },
+            vb:slider{
                 min = 0,
                 max = 1000,
                 value = 500,
-                width = 555,
+                width=555,
                 notifier = function(new_value)
                     -- Calculate BPM and LPB values
                     local bpm, lpb = calculate_timing_values(new_value)
@@ -1198,49 +1198,49 @@ step_slider = vb:slider {
         },
         
         -- Lines/sec and ms/line row
-        vb:row {
-            vb:text { text = "Lines/sec:", style = "strong", font = "bold" },
+        vb:row{
+            vb:text{text="Lines/sec:", style = "strong", font = "bold" },
             lines_per_sec_display,
-            vb:text { text = "ms/line:", style = "strong", font = "bold" },
+            vb:text{text="ms/line:", style = "strong", font = "bold" },
             ms_per_line_display
         },
         
         -- Note row
-        vb:row {
-            vb:text { text = "Note", width = 85, style = "strong", font = "bold" },
+        vb:row{
+            vb:text{text="Note",width=85, style = "strong", font = "bold" },
             note_slider,
             note_display,
-            vb:button {
-                text = "-24",
-                width = 40,
+            vb:button{
+                text="-24",
+                width=40,
                 notifier = function()
                     update_note_value(note_slider.value - 24)
                 end
             },
-            vb:button {
-                text = "-12",
-                width = 40,
+            vb:button{
+                text="-12",
+                width=40,
                 notifier = function()
                     update_note_value(note_slider.value - 12)
                 end
             },
-            vb:button {
-                text = "C-4",
-                width = 40,
+            vb:button{
+                text="C-4",
+                width=40,
                 notifier = function()
                     update_note_value(48)  -- C-4 is note value 48
                 end
             },
-            vb:button {
-                text = "+12",
-                width = 40,
+            vb:button{
+                text="+12",
+                width=40,
                 notifier = function()
                     update_note_value(note_slider.value + 12)
                 end
             },
-            vb:button {
-                text = "+24",
-                width = 40,
+            vb:button{
+                text="+24",
+                width=40,
                 notifier = function()
                     update_note_value(note_slider.value + 24)
                 end
@@ -1248,10 +1248,10 @@ step_slider = vb:slider {
         },
         
         -- Render buttons row
-        vb:row {
-            vb:button {
-                text = "Render",
-                width = 100,
+        vb:row{
+            vb:button{
+                text="Render",
+                width=100,
                 notifier = function()
                     local current_bpm = song.transport.bpm
                     render_context.current_bpm = current_bpm
@@ -1262,11 +1262,11 @@ step_slider = vb:slider {
             }
         },
         
-        vb:row {
-            vb:text { text = "Force View:", width = 85, style = "strong", font = "bold" },
+        vb:row{
+            vb:text{text="Force View:",width=85, style = "strong", font = "bold" },
             vb:switch {
                 id = "switchmode",  -- Give it a proper ID
-                width = 354,
+                width=354,
                 items = {"Pattern Editor", "Sample Editor", "Modulation Matrix"},
                 value = 1,
                 notifier = function(new_value)
@@ -1284,11 +1284,11 @@ step_slider = vb:slider {
             }
         },
         
-        vb:row {
-            vb:checkbox {
+        vb:row{
+            vb:checkbox{
                 id = "envelope_checkbox",
                 value = false,
-                width = 20,
+                width=20,
                 notifier = function(new_value)
                     local instrument = renoise.song().selected_instrument
                     
@@ -1333,16 +1333,16 @@ step_slider = vb:slider {
                     end
                 end
             },
-            vb:text { text = "Enable Envelopes", font = "bold" },
-            vb:space { width = 10 },
+            vb:text{text="Enable Envelopes", font = "bold" },
+            vb:space { width=10 },
             
             -- Release Value scaling slider (0.00-1.00)
-            vb:text { text = "Scale:", font = "bold" },
-            vb:slider {
+            vb:text{text="Scale:", font = "bold" },
+            vb:slider{
                 min = 0,
                 max = 100,
                 value = 100,
-                width = 100,
+                width=100,
                 notifier = function(new_value)
                     local instrument = renoise.song().selected_instrument
                     
@@ -1360,15 +1360,15 @@ step_slider = vb:slider {
             },
             scale_value_text,
             
-            vb:space { width = 10 },
+            vb:space { width=10 },
             
             -- Release Time slider
-            vb:text { text = "Release:", font = "bold" },
-            vb:slider {
+            vb:text{text="Release:", font = "bold" },
+            vb:slider{
                 min = 0,
                 max = 100,
                 value = 20,
-                width = 300,
+                width=300,
                 notifier = function(new_value)
                     local instrument = renoise.song().selected_instrument
                     
@@ -1406,10 +1406,10 @@ step_slider = vb:slider {
                 end
             },
             release_time_text,
-            vb:space { width = 10 },
-            vb:button {
-                text = "Pakettify",
-                width = 60,
+            vb:space { width=10 },
+            vb:button{
+                text="Pakettify",
+                width=60,
                 notifier = function()
                     -- Store current view before pakettifying
                     local current_view = vb.views.switchmode.value
@@ -1433,16 +1433,16 @@ step_slider = vb:slider {
             }
         },
         
-        vb:row {
+        vb:row{
             master_write_checkbox,
-            vb:text { text = "Write to Master Track", font = "bold" }
+            vb:text{text="Write to Master Track", font = "bold" }
         },
         
-        vb:row {
-            vb:text { text = "Step Size:", width = 85, style = "strong", font = "bold" },
+        vb:row{
+            vb:text{text="Step Size:",width=85, style = "strong", font = "bold" },
             step_slider,
             step_display,
-            vb:text { text = "Fill All", font = "bold" },
+            vb:text{text="Fill All", font = "bold" },
             fill_all_checkbox
         }
     }
@@ -1544,7 +1544,7 @@ local track_states = {}
 
 -- Function to initiate rendering
 function Strstart_rendering()
-    local song = renoise.song()
+    local song=renoise.song()
     local render_priority = "high"
     local selected_track = song.selected_track
 
@@ -1566,7 +1566,7 @@ function Strstart_rendering()
             end
         end
     end    
-    local song = renoise.song()
+    local song=renoise.song()
     print("AT Strstart_rendering BEFORE SET - Transport BPM:", song.transport.bpm)
     print("AT Strstart_rendering BEFORE SET - Context BPM:", render_context.current_bpm)
     
@@ -1628,7 +1628,7 @@ end
 
 -- Callback function that gets called when rendering is complete
 function Strrendering_done_callback()
-    local song = renoise.song()
+    local song=renoise.song()
     local renderTrack = render_context.source_track
 
     -- Remove DC Offset if it was added (FIRST, before other operations)
@@ -1640,7 +1640,7 @@ function Strrendering_done_callback()
         end
     end
 
-    local song = renoise.song()
+    local song=renoise.song()
     
     -- Remove any reference to target_track = source_track + 1
     render_context.target_track = render_context.source_track  -- Stay on same track
@@ -1715,7 +1715,7 @@ end
 
 -- Function to handle rendering for a group track
 function Strrender_group_track()
-    local song = renoise.song()
+    local song=renoise.song()
     local group_track_index = song.selected_track_index
     local group_track = song:track(group_track_index)
 
@@ -1747,7 +1747,7 @@ function Strrender_group_track()
 end
 
 function StrRender()
-    local song = renoise.song()
+    local song=renoise.song()
     local renderTrack = render_context.source_track  -- This is set when we start working with the track
     local renderedInstrument = song.selected_instrument_index + 1
     
@@ -1833,7 +1833,7 @@ end
 
 -- Function to ensure master track has enough effect columns
 local function ensure_master_track_effects()
-    local song = renoise.song()
+    local song=renoise.song()
     local master_track_index = song.sequencer_track_count + 1
     local master_track = song:track(master_track_index)
     
@@ -1846,7 +1846,7 @@ end
 local function write_tempo_commands(bpm, lpb, from_line)
     if not write_to_master then return end
     
-    local song = renoise.song()
+    local song=renoise.song()
     local master_track_index = song.sequencer_track_count + 1
     local pattern = song.patterns[song.selected_pattern_index]
     local master_track = pattern:track(master_track_index)
@@ -1886,9 +1886,9 @@ local function find_volume_ahdsr_device(instrument)
 end
 
 -- Add checkbox for master track writing
-local master_write_checkbox = vb:checkbox {
+local master_write_checkbox = vb:checkbox{
     value = write_to_master,
-    width = 20,
+    width=20,
     notifier = function(new_value)
         write_to_master = new_value
         if new_value then
@@ -1942,10 +1942,10 @@ local function check_and_set_envelope_status(vb)
 end
 
 -- Modify the envelope checkbox creation
-vb:checkbox {
+vb:checkbox{
     id = "envelope_checkbox",
     value = false,
-    width = 20,
+    width=20,
     notifier = function(new_value)
         local instrument = renoise.song().selected_instrument
         

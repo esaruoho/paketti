@@ -112,93 +112,93 @@ function pakettiPhraseSettings()
   end
 
   pakettiInitPhraseSettingsDialog = renoise.app():show_custom_dialog("Paketti Phrase Default Settings Dialog",
-    vb:column {
-      margin = 10,
+    vb:column{
+      margin=10,
       
-      vb:row {
-        vb:checkbox {
+      vb:row{
+        vb:checkbox{
           id = "set_name_checkbox",
           value = preferences.pakettiPhraseInitDialog.SetName.value,
           notifier = function(value)
             preferences.pakettiPhraseInitDialog.SetName.value = value
           end
         },
-        vb:text {text = "Set Name", width = 150},
+        vb:text{text="Set Name",width=150},
       },
-      vb:row {
-        vb:text {text = "Phrase Name", width = 150},
+      vb:row{
+        vb:text{text="Phrase Name",width=150},
         vb:textfield {
           id = "phrase_name_textfield",
-          width = 300,
+          width=300,
           text = preferences.pakettiPhraseInitDialog.Name.value,
           notifier = function(value) preferences.pakettiPhraseInitDialog.Name.value = value end
         }
       },
-      vb:row {
-        vb:text {text = "Autoseek", width = 150},
+      vb:row{
+        vb:text{text="Autoseek",width=150},
         vb:switch {
           id = "autoseek_switch",
-          width = 300,
+          width=300,
           items = {"Off", "On"},
           value = preferences.pakettiPhraseInitDialog.Autoseek.value and 2 or 1,
           notifier = function(value) preferences.pakettiPhraseInitDialog.Autoseek.value = (value == 2) end
         }
       },
-      vb:row {
-        vb:text {text = "Volume Column Visible", width = 150},
+      vb:row{
+        vb:text{text="Volume Column Visible",width=150},
         vb:switch {
           id = "volume_column_visible_switch",
-          width = 300,
+          width=300,
           items = {"Off", "On"},
           value = preferences.pakettiPhraseInitDialog.VolumeColumnVisible.value and 2 or 1,
           notifier = function(value) preferences.pakettiPhraseInitDialog.VolumeColumnVisible.value = (value == 2) end
         }
       },
-      vb:row {
-        vb:text {text = "Panning Column Visible", width = 150},
+      vb:row{
+        vb:text{text="Panning Column Visible",width=150},
         vb:switch {
           id = "panning_column_visible_switch",
-          width = 300,
+          width=300,
           items = {"Off", "On"},
           value = preferences.pakettiPhraseInitDialog.PanningColumnVisible.value and 2 or 1,
           notifier = function(value) preferences.pakettiPhraseInitDialog.PanningColumnVisible.value = (value == 2) end
         }
       },
-      vb:row {
-        vb:text {text = "Instrument Column Visible", width = 150},
+      vb:row{
+        vb:text{text="Instrument Column Visible",width=150},
         vb:switch {
           id = "instrument_column_visible_switch",
-          width = 300,
+          width=300,
           items = {"Off", "On"},
           value = preferences.pakettiPhraseInitDialog.InstrumentColumnVisible.value and 2 or 1,
           notifier = function(value) preferences.pakettiPhraseInitDialog.InstrumentColumnVisible.value = (value == 2) end
         }
       },
-      vb:row {
-        vb:text {text = "Delay Column Visible", width = 150},
+      vb:row{
+        vb:text{text="Delay Column Visible",width=150},
         vb:switch {
           id = "delay_column_visible_switch",
-          width = 300,
+          width=300,
           items = {"Off", "On"},
           value = preferences.pakettiPhraseInitDialog.DelayColumnVisible.value and 2 or 1,
           notifier = function(value) preferences.pakettiPhraseInitDialog.DelayColumnVisible.value = (value == 2) end
         }
       },
-      vb:row {
-        vb:text {text = "Sample FX Column Visible", width = 150},
+      vb:row{
+        vb:text{text="Sample FX Column Visible",width=150},
         vb:switch {
           id = "samplefx_column_visible_switch",
-          width = 300,
+          width=300,
           items = {"Off", "On"},
           value = preferences.pakettiPhraseInitDialog.SampleFXColumnVisible.value and 2 or 1,
           notifier = function(value) preferences.pakettiPhraseInitDialog.SampleFXColumnVisible.value = (value == 2) end
         }
       },     
-      vb:row {
-        vb:text {text = "Phrase Looping", width = 150},
+      vb:row{
+        vb:text{text="Phrase Looping",width=150},
         vb:switch {
           id = "phrase_looping_switch",
-          width = 300,
+          width=300,
           items = {"Off", "On"},
           value = preferences.pakettiPhraseInitDialog.PhraseLooping.value and 2 or 1,
           notifier = function(value) preferences.pakettiPhraseInitDialog.PhraseLooping.value = (value == 2) end
@@ -207,31 +207,31 @@ function pakettiPhraseSettings()
 
       
 
-      vb:row {
-        vb:text {text = "Visible Note Columns", width = 150},
+      vb:row{
+        vb:text{text="Visible Note Columns",width=150},
         vb:switch {
           id = "note_columns_switch",
-          width = 300,
+          width=300,
           value = preferences.pakettiPhraseInitDialog.NoteColumns.value,
           items = {"1","2","3","4","5","6","7","8","9","10","11","12"},
           notifier = function(value) preferences.pakettiPhraseInitDialog.NoteColumns.value = value end
         }
       },
-      vb:row {
-        vb:text {text = "Visible Effect Columns", width = 150},
+      vb:row{
+        vb:text{text="Visible Effect Columns",width=150},
         vb:switch {
           id = "effect_columns_switch",
-          width = 300,
+          width=300,
           value = preferences.pakettiPhraseInitDialog.EffectColumns.value + 1,
           items = {"0","1","2","3","4","5","6","7","8"},
           notifier = function(value) preferences.pakettiPhraseInitDialog.EffectColumns.value = value - 1 end
         }
       },
-      vb:row {
-        vb:text {text = "Shuffle", width = 150},
-        vb:slider {
+      vb:row{
+        vb:text{text="Shuffle",width=150},
+        vb:slider{
           id = "shuffle_slider",
-          width = 100,
+          width=100,
           min = 0,
           max = 50,
           value = preferences.pakettiPhraseInitDialog.Shuffle.value,
@@ -240,57 +240,57 @@ function pakettiPhraseSettings()
             vb.views["shuffle_value"].text = tostring(preferences.pakettiPhraseInitDialog.Shuffle.value) .. "%"
           end
         },
-        vb:text {id = "shuffle_value", text = tostring(preferences.pakettiPhraseInitDialog.Shuffle.value) .. "%", width = 50}
+        vb:text{id = "shuffle_value", text = tostring(preferences.pakettiPhraseInitDialog.Shuffle.value) .. "%",width=50}
       },
-      vb:row {
-        vb:text {text = "LPB", width = 150},
-        vb:valuebox {
+      vb:row{
+        vb:text{text="LPB",width=150},
+        vb:valuebox{
           id = "lpb_valuebox",
           min = 1,
           max = 256,
           value = preferences.pakettiPhraseInitDialog.LPB.value,
-          width = 60,
+          width=60,
           notifier = function(value) preferences.pakettiPhraseInitDialog.LPB.value = value end
         }
       },
-      vb:row {
-        vb:text {text = "Length", width = 150},
-        vb:valuebox {
+      vb:row{
+        vb:text{text="Length",width=150},
+        vb:valuebox{
           id = "length_valuebox",
           min = 1,
           max = 512,
           value = preferences.pakettiPhraseInitDialog.Length.value,
-          width = 60,
+          width=60,
           notifier = function(value) preferences.pakettiPhraseInitDialog.Length.value = value end
         },
-        vb:button {text = "2", notifier = function() vb.views.length_valuebox.value = 2 preferences.pakettiPhraseInitDialog.Length.value = 2 end},
-        vb:button {text = "4", notifier = function() vb.views.length_valuebox.value = 4 preferences.pakettiPhraseInitDialog.Length.value = 4 end},
-        vb:button {text = "6", notifier = function() vb.views.length_valuebox.value = 6 preferences.pakettiPhraseInitDialog.Length.value = 6 end},
-        vb:button {text = "8", notifier = function() vb.views.length_valuebox.value = 8 preferences.pakettiPhraseInitDialog.Length.value = 8 end},
-        vb:button {text = "12", notifier = function() vb.views.length_valuebox.value = 12 preferences.pakettiPhraseInitDialog.Length.value = 12 end},
-        vb:button {text = "16", notifier = function() vb.views.length_valuebox.value = 16 preferences.pakettiPhraseInitDialog.Length.value = 16 end},
-        vb:button {text = "24", notifier = function() vb.views.length_valuebox.value = 24 preferences.pakettiPhraseInitDialog.Length.value = 24 end},
-        vb:button {text = "32", notifier = function() vb.views.length_valuebox.value = 32 preferences.pakettiPhraseInitDialog.Length.value = 32 end},
-        vb:button {text = "48", notifier = function() vb.views.length_valuebox.value = 48 preferences.pakettiPhraseInitDialog.Length.value = 48 end},
-        vb:button {text = "64", notifier = function() vb.views.length_valuebox.value = 64 preferences.pakettiPhraseInitDialog.Length.value = 64 end},
-        vb:button {text = "96", notifier = function() vb.views.length_valuebox.value = 96 preferences.pakettiPhraseInitDialog.Length.value = 96 end},
-        vb:button {text = "128", notifier = function() vb.views.length_valuebox.value = 128 preferences.pakettiPhraseInitDialog.Length.value = 128 end},
-        vb:button {text = "192", notifier = function() vb.views.length_valuebox.value = 192 preferences.pakettiPhraseInitDialog.Length.value = 192 end},
-        vb:button {text = "256", notifier = function() vb.views.length_valuebox.value = 256 preferences.pakettiPhraseInitDialog.Length.value = 256 end},
-        vb:button {text = "384", notifier = function() vb.views.length_valuebox.value = 384 preferences.pakettiPhraseInitDialog.Length.value = 384 end},
-        vb:button {text = "512", notifier = function() vb.views.length_valuebox.value = 512 preferences.pakettiPhraseInitDialog.Length.value = 512 end}
+        vb:button{text="2", notifier = function() vb.views.length_valuebox.value = 2 preferences.pakettiPhraseInitDialog.Length.value = 2 end},
+        vb:button{text="4", notifier = function() vb.views.length_valuebox.value = 4 preferences.pakettiPhraseInitDialog.Length.value = 4 end},
+        vb:button{text="6", notifier = function() vb.views.length_valuebox.value = 6 preferences.pakettiPhraseInitDialog.Length.value = 6 end},
+        vb:button{text="8", notifier = function() vb.views.length_valuebox.value = 8 preferences.pakettiPhraseInitDialog.Length.value = 8 end},
+        vb:button{text="12", notifier = function() vb.views.length_valuebox.value = 12 preferences.pakettiPhraseInitDialog.Length.value = 12 end},
+        vb:button{text="16", notifier = function() vb.views.length_valuebox.value = 16 preferences.pakettiPhraseInitDialog.Length.value = 16 end},
+        vb:button{text="24", notifier = function() vb.views.length_valuebox.value = 24 preferences.pakettiPhraseInitDialog.Length.value = 24 end},
+        vb:button{text="32", notifier = function() vb.views.length_valuebox.value = 32 preferences.pakettiPhraseInitDialog.Length.value = 32 end},
+        vb:button{text="48", notifier = function() vb.views.length_valuebox.value = 48 preferences.pakettiPhraseInitDialog.Length.value = 48 end},
+        vb:button{text="64", notifier = function() vb.views.length_valuebox.value = 64 preferences.pakettiPhraseInitDialog.Length.value = 64 end},
+        vb:button{text="96", notifier = function() vb.views.length_valuebox.value = 96 preferences.pakettiPhraseInitDialog.Length.value = 96 end},
+        vb:button{text="128", notifier = function() vb.views.length_valuebox.value = 128 preferences.pakettiPhraseInitDialog.Length.value = 128 end},
+        vb:button{text="192", notifier = function() vb.views.length_valuebox.value = 192 preferences.pakettiPhraseInitDialog.Length.value = 192 end},
+        vb:button{text="256", notifier = function() vb.views.length_valuebox.value = 256 preferences.pakettiPhraseInitDialog.Length.value = 256 end},
+        vb:button{text="384", notifier = function() vb.views.length_valuebox.value = 384 preferences.pakettiPhraseInitDialog.Length.value = 384 end},
+        vb:button{text="512", notifier = function() vb.views.length_valuebox.value = 512 preferences.pakettiPhraseInitDialog.Length.value = 512 end}
       },
-      vb:row {
-        vb:button {text = "Create New Phrase", width = 100, notifier = function()
+      vb:row{
+        vb:button{text="Create New Phrase",width=100, notifier = function()
           pakettiInitPhraseSettingsCreateNewPhrase()
         end},
-        vb:button {text = "Modify Phrase", width = 100, notifier = function()
+        vb:button{text="Modify Phrase",width=100, notifier = function()
           pakettiPhraseSettingsModifyCurrentPhrase()
         end},
-        vb:button {text = "Save", width = 100, notifier = function()
+        vb:button{text="Save",width=100, notifier = function()
           savePreferences()
         end},
-        vb:button {text = "Cancel", width = 100, notifier = function()
+        vb:button{text="Cancel",width=100, notifier = function()
           pakettiInitPhraseSettingsDialog:close()
           pakettiInitPhraseSettingsDialog = nil
         end}}}, pakettiPhraseSettingsKeyHandler)
@@ -487,7 +487,7 @@ local current_section = 0
 
 local function phrase_follow_notifier()
   if renoise.song().transport.playing then
-    local song = renoise.song()
+    local song=renoise.song()
     local pattern_pos = song.selected_line_index  -- This is already 1-based from Renoise
     local pattern_length = song.selected_pattern.number_of_lines
     local phrase_length = song.selected_phrase.number_of_lines
@@ -601,7 +601,7 @@ renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Toggle Phrase Follow P
 renoise.tool():add_keybinding{name="Global:Paketti:Toggle Phrase Follow Pattern Playback Hack",invoke=observe_phrase_playhead}
 ---
 function Phrplusdelay(chg)
-  local song = renoise.song()
+  local song=renoise.song()
   local nc = song.selected_note_column
 
   -- Check if a note column is selected

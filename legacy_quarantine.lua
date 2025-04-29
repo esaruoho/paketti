@@ -8,7 +8,7 @@ local reopen_dialog_flag = false
 
 
 local function PakettiPluginEditorPositionControlGetPluginEditorPosition()
-  local song = renoise.song()
+  local song=renoise.song()
   local instr = song.selected_instrument
   if not instr.plugin_properties.plugin_loaded then
     return nil
@@ -20,7 +20,7 @@ end
 
 -- Update XML data with new position
 local function PakettiPluginEditorPositionControlSetPluginEditorPosition(x, y)
-  local song = renoise.song()
+  local song=renoise.song()
   local instr = song.selected_instrument
   local xml_data = instr.plugin_properties.plugin_device.active_preset_data
 
@@ -45,7 +45,7 @@ end
 
 -- Timer function to update the external editor position
 local function update_external_editor_position()
-  local song = renoise.song()
+  local song=renoise.song()
   local instr = song.selected_instrument
   instr.plugin_properties.plugin_device.external_editor_visible = true
   if renoise.tool():has_timer(update_external_editor_position) then
@@ -56,7 +56,7 @@ end
 
 -- Function to set position and update external editor
 local function set_position_and_update(x, y)
-  local song = renoise.song()
+  local song=renoise.song()
   local instr = song.selected_instrument
   instr.plugin_properties.plugin_device.external_editor_visible = false
 
@@ -74,7 +74,7 @@ end
 local function dump_position(sliders)
   local new_x = sliders[1].value
   local new_y = sliders[2].value
-  local song = renoise.song()
+  local song=renoise.song()
   local instr = song.selected_instrument
   instr.plugin_properties.plugin_device.external_editor_visible = false
 
@@ -93,7 +93,7 @@ local function dump_position_xy(xypad)
   local value = xypad.value
   local new_x = value.x * 1500
   local new_y = (1 - value.y) * 850
-  local song = renoise.song()
+  local song=renoise.song()
   local instr = song.selected_instrument
   instr.plugin_properties.plugin_device.external_editor_visible = false
 
@@ -117,7 +117,7 @@ local function PakettiPluginEditorPositionControlCreateDialog()
     notifier = function(value)
       local x = math.floor(value.x * 1500)
       local y = math.floor((1 - value.y) * 850)
-      xy_value_text.text = "XY Value: x = " .. tostring(x) .. ", y = " .. tostring(y)
+      xy_value_text.text="XY Value: x = " .. tostring(x) .. ", y = " .. tostring(y)
     end
   }
 
@@ -126,9 +126,9 @@ local function PakettiPluginEditorPositionControlCreateDialog()
       min = 0,
       max = 1500,
       value = position.x,
-      width = 200,
+      width=200,
       notifier = function(value)
-        slider1_value_text.text = "Slider1 Value: " .. tostring(math.floor(value))
+        slider1_value_text.text="Slider1 Value: " .. tostring(math.floor(value))
         print("Slider 1 Value: " .. tostring(math.floor(value)))
       end
     },
@@ -136,63 +136,63 @@ local function PakettiPluginEditorPositionControlCreateDialog()
       min = 0,
       max = 850,
       value = position.y,
-      width = 200,
+      width=200,
       notifier = function(value)
-        slider2_value_text.text = "Slider2 Value: " .. tostring(math.floor(value))
+        slider2_value_text.text="Slider2 Value: " .. tostring(math.floor(value))
         print("Slider 2 Value: " .. tostring(math.floor(value)))
       end
     }
   }
 
   slider1_value_text = vb:text{
-    text = "Slider1 Value: " .. tostring(position.x)
+    text="Slider1 Value: " .. tostring(position.x)
   }
   
   slider2_value_text = vb:text{
-    text = "Slider2 Value: " .. tostring(position.y)
+    text="Slider2 Value: " .. tostring(position.y)
   }
   
   xy_value_text = vb:text{
-    text = "XY Value: x = " .. tostring(xypad.value.x * 1500) .. ", y = " .. tostring((1 - xypad.value.y) * 850)
+    text="XY Value: x = " .. tostring(xypad.value.x * 1500) .. ", y = " .. tostring((1 - xypad.value.y) * 850)
   }
 
   local dump_button = vb:button{
-    text = "Slider Dump to External Editor Position",
+    text="Slider Dump to External Editor Position",
     notifier = function()
       dump_position(sliders)
     end
   }
 
   local dump_xy_button = vb:button{
-    text = "XY Dump to External Editor Position",
+    text="XY Dump to External Editor Position",
     notifier = function()
       dump_position_xy(xypad)
     end
   }
 
   local set_button_200 = vb:button{
-    text = "Set Position to 200",
+    text="Set Position to 200",
     notifier = function()
       set_position_and_update(200, 200)
     end
   }
 
   local set_button_500 = vb:button{
-    text = "Set Position to 500",
+    text="Set Position to 500",
     notifier = function()
       set_position_and_update(500, 500)
     end
   }
 
   local position_text = vb:text{
-    text = "Current Position: x = " .. tostring(position.x) .. ", y = " .. tostring(position.y)
+    text="Current Position: x = " .. tostring(position.x) .. ", y = " .. tostring(position.y)
   }
 
   return vb:column{
     vb:row{
       vb:column{
         style = "border",
-        margin = 4,
+        margin=4,
         xypad
       },
       xy_value_text
@@ -224,7 +224,7 @@ local function PakettiPluginEditorPositionControlShowDialog()
 end
 
 local function PakettiPluginEditorPositionControlShowInitialDialog()
-  local song = renoise.song()
+  local song=renoise.song()
   local instr = song.selected_instrument
   if instr.plugin_properties.plugin_loaded and not instr.plugin_properties.plugin_device.external_editor_visible then
     instr.plugin_properties.plugin_device.external_editor_visible = true
@@ -303,8 +303,6 @@ end
 
 --renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Dump VST/AU/Native Effects to Clipboard",invoke=function() 
 --) end}
-
-
 --------
 ---------------------------------------------------------------------------------------------------
 --Set the next ReWire channel - shortcut. If you have a pre-configured 32 input ReWire master host
@@ -354,9 +352,7 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Set ReWire Channel (Next)",invoke=function() next_rewire() end}
 ----------------------------------------------------------------------------------------------------------
 ]]--
-
 ------
-
 --renoise.tool():add_keybinding{name="Global:Paketti:Stair RecordToCurrent",invoke=function() 
 --if renoise.song().transport.playing==false then
     --renoise.song().transport.playing=true end
@@ -394,13 +390,6 @@ end
 renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti..:Run Experimental Script",invoke=function() terminalApp("/Users/esaruoho/macOS_EnableScriptingTools.sh") end}
 renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti..:Open macOS Terminal",invoke=function() launchApp("open -a Terminal.app") end}
 ]]--
-
-
-
-
-
-
-
 ------
 --[[
 
@@ -423,7 +412,7 @@ local function check_key_hold()
     print("DEBUG: Hold detected. Filling column...")
 
     is_filling = true
-    local song = renoise.song()
+    local song=renoise.song()
     local track_idx = song.selected_track_index
     local line_idx = song.selected_line_index
     local column_idx = song.selected_note_column_index
@@ -529,7 +518,7 @@ end
 
 -- Function to export, process, and reimport audio
 local function process_audio()
-  local song = renoise.song()
+  local song=renoise.song()
   local selection = song.selection_in_pattern
   if not selection then
     renoise.app():show_status("No audio selection found")
@@ -564,15 +553,15 @@ local function show_dialog()
     return
   end
 
-  dialog = renoise.app():show_custom_dialog("Wacky Filter", vb:row {
-    vb:column {
-      vb:slider { min = 0, max = 1, value = filter_params.chaos, notifier = function(v) filter_params.chaos = v end},
-      vb:text { text = "Chaos" },
-      vb:slider { min = 20, max = 20000, value = filter_params.cutoff, notifier = function(v) filter_params.cutoff = v end},
-      vb:text { text = "Cutoff" },
-      vb:slider { min = 0.1, max = 10, value = filter_params.resonance, notifier = function(v) filter_params.resonance = v end},
-      vb:text { text = "Resonance" },
-      vb:button { text = "Process Audio", notifier = process_audio }
+  dialog = renoise.app():show_custom_dialog("Wacky Filter", vb:row{
+    vb:column{
+      vb:slider{ min = 0, max = 1, value = filter_params.chaos, notifier = function(v) filter_params.chaos = v end},
+      vb:text{text="Chaos" },
+      vb:slider{ min = 20, max = 20000, value = filter_params.cutoff, notifier = function(v) filter_params.cutoff = v end},
+      vb:text{text="Cutoff" },
+      vb:slider{ min = 0.1, max = 10, value = filter_params.resonance, notifier = function(v) filter_params.resonance = v end},
+      vb:text{text="Resonance" },
+      vb:button{ text="Process Audio", notifier = process_audio }
     }
   }, my_keyhandler_func)
 end
@@ -598,7 +587,7 @@ function enable_auto_settings()
 end
 
 local function on_sample_buffer_changed()
-    local song = renoise.song()
+    local song=renoise.song()
     if not song then return end
     
     local sample = song.selected_sample
@@ -635,7 +624,7 @@ local function on_sample_buffer_changed()
 end
 
 local function on_selected_sample_changed()
-    local song = renoise.song()
+    local song=renoise.song()
     if not song or not song.selected_sample then
         return
     end
@@ -652,7 +641,7 @@ end
 
 -- Setup initial notifiers only when a document is available
 local function setup_notifiers()
-    local song = renoise.song()
+    local song=renoise.song()
     if not song then return end
     
     -- Handle instrument selection notifier
@@ -674,7 +663,7 @@ renoise.tool().app_new_document_observable:add_notifier(setup_notifiers)
 
 -- Cleanup when tool is unloaded
 renoise.tool().app_release_document_observable:add_notifier(function()
-    local song = renoise.song()
+    local song=renoise.song()
     if not song then return end
     
     if song.selected_sample and 

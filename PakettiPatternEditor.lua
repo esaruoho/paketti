@@ -618,7 +618,7 @@ renoise.tool():add_midi_mapping{name="Paketti:BPM Increase (+0.5)",invoke=functi
 
 function pakettiPatternDoubler()
   -- Retrieve the current song object
-  local song = renoise.song()
+  local song=renoise.song()
   
   -- Get the currently selected pattern index
   local pattern_index = song.selected_pattern_index
@@ -681,7 +681,7 @@ function pakettiPatternDoubler()
 end
 
 function pakettiPatternHalver()
-  local song = renoise.song()
+  local song=renoise.song()
   local old_patternlength = song.selected_pattern.number_of_lines
   local resultlength = math.floor(old_patternlength / 2)
   local current_line = song.selected_line_index
@@ -1529,7 +1529,7 @@ if efc==nil then
 end
 
 function effectColumnB00()
-  local song = renoise.song()
+  local song=renoise.song()
   local track = song.selected_track
   local line = song.selected_pattern_track.lines[song.selected_line_index]
   
@@ -1692,7 +1692,7 @@ function previousEffectColumn()
       -- If the current column is the first one, or there's only one, go to the previous track's last column
       if current_index == 1 or num_effect_columns == 1 then
         -- Find and select the last track with visible effect columns
-        local song = renoise.song()
+        local song=renoise.song()
         local current_track_index = song.selected_track_index
         local track_count = #song.tracks
 
@@ -1746,7 +1746,7 @@ function nextEffectColumn()
       -- If the current column is the last one, or there's only one, go to the next track's first column
       if current_index == num_effect_columns or num_effect_columns == 1 then
         -- Find and select the first track with visible effect columns
-        local song = renoise.song()
+        local song=renoise.song()
         local current_track_index = song.selected_track_index
         local track_count = #song.tracks
 
@@ -1887,7 +1887,7 @@ nc.panning_value = pan
 end
 
 function columnspart2(chg,thing)
-    local song = renoise.song()
+    local song=renoise.song()
 local effect_column_index
     -- Handle nil for selected_effect_column_index, default to 1
 
@@ -1966,7 +1966,7 @@ trackNotifierAdded = false -- Flag to track if the notifier was added
 
 -- Function to set color blend for all tracks
 function pakettiEditModeSignalerSetAllTracksColorBlend(value)
-  local song = renoise.song()
+  local song=renoise.song()
   if not song or not song.tracks then
     print("-- Paketti Debug: song or tracks table is nil in SetAllTracksColorBlend")
     return
@@ -1978,7 +1978,7 @@ end
 
 -- Function to set color blend for a specific track
 function pakettiEditModeSignalerSetTrackColorBlend(index,value)
-  local song = renoise.song()
+  local song=renoise.song()
   if not song then
     print("-- Paketti Debug: song is nil in SetTrackColorBlend")
     return
@@ -2089,7 +2089,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Toggle Edit Mode and Tint Track",i
 ------------------
 function pakettiDuplicateEffectColumnToPatternOrSelection()
   -- Obtain the currently selected song and pattern
-  local song = renoise.song()
+  local song=renoise.song()
   local pattern_index = song.selected_pattern_index
   local pattern = song.patterns[pattern_index]
   
@@ -2135,7 +2135,7 @@ renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Effect Columns..:Du
 -- Function to randomize effect column parameters
 function pakettiRandomizeEffectColumnParameters()
   -- Obtain the currently selected song and pattern
-  local song = renoise.song()
+  local song=renoise.song()
   local pattern_index = song.selected_pattern_index
   local pattern = song.patterns[pattern_index]
   
@@ -2179,7 +2179,7 @@ renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Effect Columns..:Ra
 --------
 function pakettiInterpolateEffectColumnParameters()
   -- Obtain the currently selected song and pattern
-  local song = renoise.song()
+  local song=renoise.song()
   local pattern_index = song.selected_pattern_index
   local pattern = song.patterns[pattern_index]
   
@@ -2231,7 +2231,7 @@ renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Effect Columns..:In
 -- Function to flood fill the track with the current note and instrument
 function pakettiFloodFill()
   -- Obtain the currently selected song and pattern
-  local song = renoise.song()
+  local song=renoise.song()
   local pattern_index = song.selected_pattern_index
   local pattern = song.patterns[pattern_index]
   
@@ -2302,7 +2302,7 @@ renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Flood Fill Note and
 -- Function to Flood Fill the track with the current note and instrument with an edit step
 function pakettiFloodFillWithEditStep()
   -- Obtain the currently selected song and pattern
-  local song = renoise.song()
+  local song=renoise.song()
   local pattern_index = song.selected_pattern_index
   local pattern = song.patterns[pattern_index]
 
@@ -2449,7 +2449,7 @@ renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Flood Fill Note and
 --------------------
 -- Function to Flood Fill the track with the current note, instrument, volume, delay, panning, and sample FX with an edit step
 function pakettiFloodFillWithNotReallyEditStep(notstep)
-  local song = renoise.song()
+  local song=renoise.song()
   local pattern_index = song.selected_pattern_index
   local pattern = song.patterns[pattern_index]
 
@@ -2729,7 +2729,7 @@ function ShowRenameDialogForTrack(index)
   local text_field = vb:textfield{
     id = "track_name_field",
     text = initial_name,
-    width = 200,
+    width=200,
     edit_mode = true,
     notifier = function(new_name)
       if new_name ~= initial_name then
@@ -2752,23 +2752,23 @@ function ShowRenameDialogForTrack(index)
   end
 
   local dialog_content = vb:column{
-    margin = 10,
+    margin=10,
     vb:row{
       vb:text{
-        text = "Track Name:"
+        text="Track Name:"
       },
       text_field
     },
     vb:row{
-      margin = 10,
+      margin=10,
       vb:button{
-        text = "OK",
-        width = 50,
+        text="OK",
+        width=50,
         notifier = function() rename_track_and_close(vb.views.track_name_field.text) end
       },
       vb:button{
-        text = "Cancel",
-        width = 50,
+        text="Cancel",
+        width=50,
         notifier = closeRD_dialog
       }
     }
@@ -3023,7 +3023,7 @@ renoise.tool():add_midi_mapping{name="Phrase Editor:Paketti:Toggle Note Off on A
 
 --------------
 local function insert_random_value(mode)
-  local song = renoise.song()
+  local song=renoise.song()
   local selection = song.selection_in_pattern
   local pattern = song.selected_pattern
   local pattern_tracks = pattern.tracks
@@ -3163,7 +3163,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Insert Random Volume to Selected R
 
 -- Function to replicate current note column content
 function PakettiReplicateNoteColumnAtCursor(transpose, row_option)
-  local song = renoise.song()
+  local song=renoise.song()
   local pattern = song.selected_pattern
   local cursor_row = song.selected_line_index
   local pattern_length = pattern.number_of_lines
@@ -3283,7 +3283,7 @@ end
 -------
 -- Main function to replicate content
 function PakettiReplicateAtCursor(transpose, tracks_option, row_option)
-  local song = renoise.song()
+  local song=renoise.song()
   
   -- Check API version and determine if we're in phrase editor
   local in_phrase_editor = false
@@ -3607,7 +3607,7 @@ end
 -- Function to adjust the delay column within the selected area or current note column
 function PakettiDelayColumnModifier(amount)
   -- Get the current song
-  local song = renoise.song()
+  local song=renoise.song()
   if not song then
     renoise.app():show_status("No active song found.")
     return
@@ -3685,7 +3685,7 @@ renoise.tool():add_keybinding{name= "Pattern Editor:Paketti:Delay Column Decreas
 
 ------
 function ExposeAndSelectColumn(number)
-  local song = renoise.song()
+  local song=renoise.song()
   local track = song.selected_track
   local track_type = track.type
 
@@ -3875,7 +3875,7 @@ local target_column_type = "effect" -- Can be "effect" or "note"
 
 -- Function to find the next note line
 function find_next_note_line(start_line)
-  local song = renoise.song()
+  local song=renoise.song()
   local pattern = song.selected_pattern
   local num_lines = pattern.number_of_lines
   local current_track = song.selected_pattern_track
@@ -3927,7 +3927,7 @@ end
 
 -- Function to adjust the editstep
 function match_editstep_with_next_note()
-  local song = renoise.song()
+  local song=renoise.song()
   local current_line_index = song.selected_line_index
   local num_lines = song.selected_pattern.number_of_lines
 
@@ -3968,7 +3968,7 @@ end
 
 -- Function to immediately adjust the editstep when toggling on
 function set_initial_editstep()
-  local song = renoise.song()
+  local song=renoise.song()
   local current_line_index = song.selected_line_index
   local next_note_line = find_next_note_line(current_line_index)
   if next_note_line then
@@ -4058,7 +4058,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Set Random EditStep 1-64",inv
 ---------
 -- Function to clear the selected track either above or below the selected line index
 function clear_track_direction(direction, all_tracks)
-  local song = renoise.song()
+  local song=renoise.song()
   local pattern = song.selected_pattern
   local selected_line_index = song.selected_line_index
   local pattern_length = pattern.number_of_lines
@@ -4143,7 +4143,7 @@ end
 local function match_current_sub_column_to_track()
   if not is_in_note_column() then return end
 
-  local song = renoise.song()
+  local song=renoise.song()
   local track = song.selected_track
   local sub_column_type = song.selected_sub_column_type
   local line_index = song.selected_line_index
@@ -4178,7 +4178,7 @@ end
 local function match_volume_to_current_row()
   if not is_in_note_column() then return end
 
-  local song = renoise.song()
+  local song=renoise.song()
   local track = song.selected_track
   local line_index = song.selected_line_index
   local pattern = song.selected_pattern
@@ -4204,7 +4204,7 @@ end
 local function match_panning_to_current_row()
   if not is_in_note_column() then return end
 
-  local song = renoise.song()
+  local song=renoise.song()
   local track = song.selected_track
   local line_index = song.selected_line_index
   local pattern = song.selected_pattern
@@ -4230,7 +4230,7 @@ end
 local function match_delay_to_current_row()
   if not is_in_note_column() then return end
 
-  local song = renoise.song()
+  local song=renoise.song()
   local track = song.selected_track
   local line_index = song.selected_line_index
   local pattern = song.selected_pattern
@@ -4259,7 +4259,7 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Match Delay Column to
 -------
 
 function nudge(direction)
-  local song = renoise.song()
+  local song=renoise.song()
   local selection = selection_in_pattern_pro()
   if not selection then 
     renoise.app():show_status("No selection in pattern!")
@@ -4419,7 +4419,7 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Nudge Down",invoke=fu
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Nudge Up",invoke=function() nudge("up") end}
 
 function nudge_with_delay(direction)
-  local song = renoise.song()
+  local song=renoise.song()
   local selection = selection_in_pattern_pro()
   if not selection then 
     renoise.app():show_status("No selection in pattern!")
@@ -4803,7 +4803,7 @@ renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Toggle Note Off in Sel
 -------
 -- Function with an option to retain or clear silence rows
 local function DuplicateSelectionWithPaddingMoveCursor(retain_silence_content)
-    local song = renoise.song()
+    local song=renoise.song()
     local selection = song.selection_in_pattern
 
     -- Check if there's a selection
@@ -4928,7 +4928,7 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Duplicate Selection w
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Duplicate Selection with Padding&Move Cursor 2",invoke=function() DuplicateSelectionWithPaddingMoveCursor(true) end}
 ------
 function NudgeAndPasteSelection(deselect)
-    local song = renoise.song()
+    local song=renoise.song()
     local selection = song.selection_in_pattern
 
     -- Check if there's a selection
@@ -5032,7 +5032,7 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Nudge and Paste Selec
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Nudge and Paste Selection + Deselect",invoke=function() NudgeAndPasteSelection(false) end}
 ------
 function SelectionToNewPattern()
-  local song = renoise.song()
+  local song=renoise.song()
   local selection = song.selection_in_pattern
 
   -- Validate selection
@@ -5087,7 +5087,7 @@ renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Create New Patter
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Create New Pattern with Selection",invoke=function() SelectionToNewPattern() end}
 ---
 function HideAllEffectColumns()
-  local song = renoise.song()
+  local song=renoise.song()
   
   -- Process only sequencer tracks (skip group, send, master)
   for i = 1, song.sequencer_track_count do
@@ -5106,7 +5106,7 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:V
 
 
 function moveTrackLeft()
-  local song = renoise.song()
+  local song=renoise.song()
   local current_index = song.selected_track_index
   
   -- Check if we're at the leftmost movable position (track 1)
@@ -5124,7 +5124,7 @@ function moveTrackLeft()
 end
 
 function moveTrackRight()
-  local song = renoise.song()
+  local song=renoise.song()
   local current_index = song.selected_track_index
   local last_regular_track = song.sequencer_track_count
   
@@ -5148,7 +5148,7 @@ renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Move Track Left",in
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Move Track Right",invoke=moveTrackRight}
 ----
 function randomly_raise_selected_notes_one_octave(probability)
-  local song = renoise.song()
+  local song=renoise.song()
   local pattern = song.selected_pattern
   local selection_data = selection_in_pattern_pro()
   
@@ -5191,7 +5191,7 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Random Selected Notes
 ---
 -- Helper function to check if effect column is visible and exists
 local function canWriteToEffectColumn()
-  local song = renoise.song()
+  local song=renoise.song()
   local track = song.selected_track
   
   if not track then return false end
@@ -5209,7 +5209,7 @@ end
 local function writeEffectToPattern(effect_string, first_row_effect)
   if not canWriteToEffectColumn() then return end
   
-  local song = renoise.song()
+  local song=renoise.song()
   local pattern = song.selected_pattern
   local track_index = song.selected_track_index
   
@@ -5302,7 +5302,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Fill Effect Column with 0G01+0U00 
 
 ------
 function deleteUnusedColumns()
-  local song = renoise.song()
+  local song=renoise.song()
   local patterns = song.patterns
   local tracks = song.tracks
   
@@ -5375,7 +5375,7 @@ end
 
 
 function move_dsps_to_adjacent_track(direction)
-  local song = renoise.song()
+  local song=renoise.song()
   local current_track_index = song.selected_track_index
   local current_track = song.tracks[current_track_index]
   
@@ -5449,7 +5449,7 @@ renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Move DSPs to Previous Trac
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Move DSPs to Next Track",invoke=function() move_dsps_to_adjacent_track(1) end}
 ---
 function move_selected_dsp_to_adjacent_track(direction)
-  local song = renoise.song()
+  local song=renoise.song()
   local current_track_index = song.selected_track_index
   local current_track = song.tracks[current_track_index]
   
@@ -5517,7 +5517,7 @@ renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Move Selected DSP
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Move Selected DSP to Next Track",invoke=function() move_selected_dsp_to_adjacent_track(1) end}
 ---------
 function create_group_and_move_dsps()
-  local song = renoise.song()
+  local song=renoise.song()
   local selected_track_index = song.selected_track_index
   local selected_track = song.tracks[selected_track_index]
   
@@ -5640,7 +5640,7 @@ renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Note Columns..:Appl
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Note Columns..:Clear Note Column Sample Effects M00/MFF",invoke=function() clearNoteColumnEffects() end}
 ---
 function globalLeft()
-  local song = renoise.song()
+  local song=renoise.song()
   local total_tracks = song.sequencer_track_count + 1 + song.send_track_count
   
   for i = 1, total_tracks do
@@ -5653,7 +5653,7 @@ function globalLeft()
 end
 
 function globalRight()
-  local song = renoise.song()
+  local song=renoise.song()
   local total_tracks = song.sequencer_track_count + 1 + song.send_track_count
   
   for i = 1, total_tracks do
@@ -5681,7 +5681,7 @@ local REUSE_DELAY = 0.1 -- seconds
 local function check_for_note_input()
   if not template_mode then return end
   
-  local song = renoise.song()
+  local song=renoise.song()
   local pattern = song:pattern(song.selected_pattern_index)
   local track = pattern:track(song.selected_track_index)
   local line = track:line(song.selected_line_index)
@@ -5707,7 +5707,7 @@ local function check_for_note_input()
 end
 
 function toggle_template_mode()
-  local song = renoise.song()
+  local song=renoise.song()
   local selection = song.selection_in_pattern
   
   if not selection then
@@ -5805,7 +5805,7 @@ end
 function apply_template(target_note)
   if not template_mode or not template_data then return end
   
-  local song = renoise.song()
+  local song=renoise.song()
   local current_track_idx = song.selected_track_index
   local current_line_idx = song.selected_line_index
   
@@ -5892,7 +5892,7 @@ renoise.tool().app_idle_observable:add_notifier(check_for_note_input)
 -------
 -- Function to write notes in specified order (ascending, descending, or random)
 function writeNotesMethod(method)
-  local song = renoise.song()
+  local song=renoise.song()
   local pattern = song:pattern(song.selected_pattern_index)
   local track = pattern:track(song.selected_track_index)
   local instrument = song.selected_instrument
@@ -6008,7 +6008,7 @@ function pakettiVolumeInterpolationLooper()
 
 
   local function apply_interpolation()
-    local song = renoise.song()
+    local song=renoise.song()
     local pattern_index = song.selected_pattern_index
     local track_index = song.selected_track_index
     local track = song.tracks[track_index]
@@ -6078,12 +6078,12 @@ function pakettiVolumeInterpolationLooper()
   end
 
   velocity_dialog = renoise.app():show_custom_dialog("Paketti Value Interpolation Looper",
-    vb:column {
-      width = 250,
-      vb:row {
-        width = 250,
+    vb:column{
+      width=250,
+      vb:row{
+        width=250,
         vb:switch {
-          width = 250,
+          width=250,
           items = {"Volume", "Panning", "Delay"},
           value = 1,
           notifier = function(idx)
@@ -6113,10 +6113,10 @@ function pakettiVolumeInterpolationLooper()
           end
         }
       },
-      vb:row {
-        width = 250,
-        vb:text { text = "Notes", width = 90, style="strong", font="bold" },
-        vb:valuebox {
+      vb:row{
+        width=250,
+        vb:text{text="Notes",width=90, style="strong", font="bold" },
+        vb:valuebox{
           min = 1,
           max = 512,
           value = DEFAULT_NOTES,
@@ -6125,46 +6125,46 @@ function pakettiVolumeInterpolationLooper()
           end
         }
       },
-      vb:row {
-        width = 250,
-        vb:text { text = "Start", width = 90, style="strong", font="bold" },
-        vb:slider {
+      vb:row{
+        width=250,
+        vb:text{text="Start",width=90, style="strong", font="bold" },
+        vb:slider{
           id = "start_slider",
           min = 0,
           max = 128,
           value = start_val,
-          width = 100,
+          width=100,
           notifier = function(value)
             start_val = value
             vb.views.start_val_display.text = formatValue(value, current_mode)
           end
         },
-        vb:text { 
+        vb:text{
           id = "start_val_display",
           text = formatValue(start_val, current_mode)
         }
       },
-      vb:row {
-        width = 250,
-        vb:text { text = "End", width = 90, style="strong", font="bold" },
-        vb:slider {
+      vb:row{
+        width=250,
+        vb:text{text="End",width=90, style="strong", font="bold" },
+        vb:slider{
           id = "end_slider",
           min = 0,
           max = 128,
           value = end_val,
-          width = 100,
+          width=100,
           notifier = function(value)
             end_val = value
             vb.views.end_val_display.text = formatValue(value, current_mode)
           end
         },
-        vb:text { 
+        vb:text{
           id = "end_val_display",
           text = formatValue(end_val, current_mode)
         }
       },
-      vb:button {
-        text = "Print",
+      vb:button{
+        text="Print",
         notifier = function()
           apply_interpolation()
           renoise.app():show_status(string.format("%s interpolation applied", current_mode:upper()))

@@ -95,10 +95,10 @@ function PakettieSpeakUpdateLineCount()
   end
 end
 
-local dialog_width = 300
-local control_width = 190
-local valuebox_width = 60
-local button_width = 190
+local dialog_width=300
+local control_width=190
+local valuebox_width=60
+local button_width=190
 
 local path_to_espeak = vb:text{width=control_width,height=24,text="Path to eSpeak",font="bold"}
 
@@ -163,7 +163,7 @@ local randomize_vowels = vb:button{id = "PakettieSpeak_randomize_vowels",
     
 
 local exe_button = vb:button{id="PakettieSpeak_exe_button",
-        width = control_width,
+        width=control_width,
         height = 24,
         text = PakettieSpeakRevertPath(eSpeak.executable),
         notifier = function()
@@ -173,7 +173,7 @@ local exe_button = vb:button{id="PakettieSpeak_exe_button",
             eSpeak.executable = PakettieSpeakConvertPath(filename)
             renoise.tool().preferences.pakettieSpeak.executable = eSpeak.executable
             vb.views.PakettieSpeak_exe_button.text = PakettieSpeakRevertPath(eSpeak.executable)
-            vb.views.PakettieSpeak_exe_button.width = math.min(#vb.views.PakettieSpeak_exe_button.text * 8, control_width)
+            vb.views.PakettieSpeak_exe_button.width=math.min(#vb.views.PakettieSpeak_exe_button.text * 8, control_width)
           end end}
 
 local horalign=vb:horizontal_aligner{mode="right",path_to_espeak,exe_button}
@@ -197,9 +197,9 @@ local loadtext_refresh=vb:row{
     }
 
 local eSpeak_textfield=vb:column{
-      margin = renoise.ViewBuilder.DEFAULT_CONTROL_MARGIN,
-      spacing = renoise.ViewBuilder.DEFAULT_CONTROL_SPACING,
-      width = 380,
+      margin=renoise.ViewBuilder.DEFAULT_CONTROL_MARGIN,
+      spacing=renoise.ViewBuilder.DEFAULT_CONTROL_SPACING,
+      width=380,
       style = "group",
       vb:multiline_textfield{id="PakettieSpeak_text_field",width=373,height=100,
         style = "border",
@@ -207,7 +207,7 @@ local eSpeak_textfield=vb:column{
         notifier = function() PakettieSpeakUpdateLineCount() end}}
 
 local which_row= vb:row{
-      vb:text{text = "Which row:", width=80},
+      vb:text{text="Which row:",width=80},
       vb:valuebox{
         id = "PakettieSpeak_which_row",
         min = 0,
@@ -240,7 +240,7 @@ function PakettieSpeakUpdateSelection()
     renoise.app():show_status("No more can be selected")
   end
   if length == 0 then
-    vb.views.PakettieSpeak_selection_display.text = ""
+    vb.views.PakettieSpeak_selection_display.text=""
   else
     local end_pos = start + length - 1
     if start <= #text and end_pos <= #text and start <= end_pos then
@@ -251,7 +251,7 @@ function PakettieSpeakUpdateSelection()
 end
 
 local start_pos=    vb:row{
-      vb:text{text = "Start:", width=80},
+      vb:text{text="Start:",width=80},
       vb:valuebox{
         id = "PakettieSpeak_start_pos",
         min = 1,
@@ -259,7 +259,7 @@ local start_pos=    vb:row{
         value = 1,
         notifier = PakettieSpeakUpdateSelection
       },
-      vb:text{text = "Length:"},
+      vb:text{text="Length:"},
       vb:valuebox{
         id = "PakettieSpeak_length_pos",
         min = 0,
@@ -270,8 +270,8 @@ local start_pos=    vb:row{
         end
       },
       vb:button{
-        text = "-",
-        width = 20,
+        text="-",
+        width=20,
         notifier = function()
           if vb.views.PakettieSpeak_length_pos.value > 0 then
             vb.views.PakettieSpeak_length_pos.value = vb.views.PakettieSpeak_length_pos.value - 1
@@ -283,8 +283,8 @@ local start_pos=    vb:row{
         end
       },
       vb:button{
-        text = "+",
-        width = 20,
+        text="+",
+        width=20,
         notifier = function()
           if vb.views.PakettieSpeak_length_pos.value < 500 then
             vb.views.PakettieSpeak_length_pos.value = vb.views.PakettieSpeak_length_pos.value + 1
@@ -298,10 +298,10 @@ local start_pos=    vb:row{
     }
 
 local eSpeakselection=   vb:row{
-      vb:text{text = "Selection:", width=80},
+      vb:text{text="Selection:",width=80},
       vb:textfield{
         id = "PakettieSpeak_selection_display",
-        width = 290,
+        width=290,
         height = 20,
         edit_mode = false
       }
@@ -309,8 +309,8 @@ local eSpeakselection=   vb:row{
  local eSpeakGenerateSelection=   vb:horizontal_aligner{
       mode = "center",
       vb:button{
-        text = "Generate Selection",
-        width = button_width,
+        text="Generate Selection",
+        width=button_width,
         height = 24,
         notifier = function()
           local text = vb.views.PakettieSpeak_text_field.text
@@ -331,10 +331,10 @@ local eSpeakselection=   vb:row{
     }
 
 local settingsControls=      vb:row{
-        vb:text{text = "Language:", width = 80},
+        vb:text{text="Language:",width=80},
         vb:popup{
           id = "PakettieSpeak_language",
-          width = 250,
+          width=250,
           items = LANGUAGE_NAMES,
           value = eSpeak.language.value,
           notifier = function(idx)
@@ -345,8 +345,8 @@ local settingsControls=      vb:row{
           end
         },
         vb:button{
-          text = "-",
-          width = 20,
+          text="-",
+          width=20,
           notifier = function()
             if vb.views.PakettieSpeak_language.value > 1 then
               button_press_active = true
@@ -360,8 +360,8 @@ local settingsControls=      vb:row{
           end
         },
         vb:button{
-          text = "+",
-          width = 20,
+          text="+",
+          width=20,
           notifier = function()
             if vb.views.PakettieSpeak_language.value < #LANGUAGE_NAMES then
               button_press_active = true
@@ -377,9 +377,9 @@ local settingsControls=      vb:row{
       }
 
 local eSpeakvoice=      vb:row{
-        vb:text{text = "Voice:", width = 80},        vb:popup{
+        vb:text{text="Voice:",width=80},        vb:popup{
           id = "PakettieSpeak_voice",
-          width = 250,
+          width=250,
           items = VOICES,
           value = eSpeak.voice.value,
           notifier = function(idx)
@@ -390,8 +390,8 @@ local eSpeakvoice=      vb:row{
           end
         },
         vb:button{
-          text = "-",
-          width = 20,
+          text="-",
+          width=20,
           notifier = function()
             if vb.views.PakettieSpeak_voice.value > 2 then
               button_press_active = true
@@ -405,8 +405,8 @@ local eSpeakvoice=      vb:row{
           end
         },
         vb:button{
-          text = "+",
-          width = 20,
+          text="+",
+          width=20,
           notifier = function()
             if vb.views.PakettieSpeak_voice.value < #VOICES then
               button_press_active = true
@@ -421,10 +421,10 @@ local eSpeakvoice=      vb:row{
         }}
 
 local eSpeakgapbox= vb:row{
-        vb:text{width = 80, text = "Word Gap:"},
+        vb:text{width=80, text="Word Gap:"},
         vb:valuebox{
           id = "PakettieSpeak_gap_box",
-          width = valuebox_width,
+          width=valuebox_width,
           min = 1,
           max = 10000,
           value = eSpeak.word_gap.value,
@@ -437,10 +437,10 @@ local eSpeakgapbox= vb:row{
       }
 
 local eSpeakpitchcap=  vb:row{
-        vb:text{width = 80, text = "Pitch Capitals:"},
+        vb:text{width=80, text="Pitch Capitals:"},
         vb:valuebox{
           id = "PakettieSpeak_capitals_box",
-          width = valuebox_width,
+          width=valuebox_width,
           min = 1,
           max = 100,
           value = eSpeak.capitals.value,
@@ -453,10 +453,10 @@ local eSpeakpitchcap=  vb:row{
       }
 
 local eSpeakpitchbox=     vb:row{
-        vb:text{width = 80, text = "Pitch:"},
+        vb:text{width=80, text="Pitch:"},
         vb:valuebox{
           id = "PakettieSpeak_pitch_box",
-          width = valuebox_width,
+          width=valuebox_width,
           min = 0,
           max = 99,
           value = eSpeak.pitch.value,
@@ -469,10 +469,10 @@ local eSpeakpitchbox=     vb:row{
       }
 
 local eSpeakamplitude=      vb:row{
-        vb:text{width = 80, text = "Amplitude:"},
+        vb:text{width=80, text="Amplitude:"},
         vb:valuebox{
           id = "PakettieSpeak_amplitude_box",
-          width = valuebox_width,
+          width=valuebox_width,
           min = 0,
           max = 200,
           value = eSpeak.amplitude.value,
@@ -485,10 +485,10 @@ local eSpeakamplitude=      vb:row{
       }
       
       local eSpeakspeedbox=  vb:row{
-        vb:text{width = 80, text = "Speed:"},
+        vb:text{width=80, text="Speed:"},
         vb:valuebox{
           id = "PakettieSpeak_speed_box",
-          width = valuebox_width,
+          width=valuebox_width,
           min = 1,
           max = 500,
           value = eSpeak.speed.value,
@@ -501,9 +501,9 @@ local eSpeakamplitude=      vb:row{
       }
 
 local settingsColumn=    vb:column{
-      margin = renoise.ViewBuilder.DEFAULT_CONTROL_MARGIN,
-      spacing = renoise.ViewBuilder.DEFAULT_CONTROL_SPACING,
-      width = 373,
+      margin=renoise.ViewBuilder.DEFAULT_CONTROL_MARGIN,
+      spacing=renoise.ViewBuilder.DEFAULT_CONTROL_SPACING,
+      width=373,
          settingsControls,
  
           eSpeakvoice,
@@ -516,7 +516,7 @@ local settingsColumn=    vb:column{
     vb:row{
       vb:checkbox{
         id = "PakettieSpeak_clear_all_samples",
-        width = 18,
+        width=18,
         height = 18,
         value = eSpeak.clear_all_samples.value == true,
         notifier = function(bool)
@@ -524,12 +524,12 @@ local settingsColumn=    vb:column{
           print("Clear All Samples set to:", bool)
         end
       },
-      vb:text{text = "Overwrite Samples in Selected Instrument"}
+      vb:text{text="Overwrite Samples in Selected Instrument"}
     }
  local addrendertocurrentinstrument=vb:row{
   vb:checkbox{
     id = "PakettieSpeak_add_render_to_current_instrument",
-    width = 18,
+    width=18,
     height = 18,
     value = eSpeak.add_render_to_current_instrument.value == true,
     notifier = function(bool)
@@ -538,13 +538,13 @@ local settingsColumn=    vb:column{
       print("Add Render to Current Instrument set to:", bool)
     end
   },
-  vb:text{text = "Add Render to Current Instrument"}
+  vb:text{text="Add Render to Current Instrument"}
 }
 
 local dont_pakettify_checkbox = vb:row{
   vb:checkbox{
       id = "PakettieSpeak_dont_pakettify",
-      width = 18,
+      width=18,
       height = 18,
       value = eSpeak.dont_pakettify.value,
       notifier = function(bool)
@@ -552,13 +552,13 @@ local dont_pakettify_checkbox = vb:row{
           print("Don't Pakettify set to:", bool)
       end
   },
-  vb:text{text = "Don't Pakettify"}
+  vb:text{text="Don't Pakettify"}
 }
 
  local renderonchange= vb:row{
       vb:checkbox{
         id = "PakettieSpeak_render_on_change",
-        width = 18,
+        width=18,
         height = 18,
         value = eSpeak.render_on_change.value == true,
         notifier = function(bool)
@@ -566,15 +566,15 @@ local dont_pakettify_checkbox = vb:row{
           print("Render on Change set to:", bool)
         end
       },
-      vb:text{text = "+/- Click Should Render Again"}
+      vb:text{text="+/- Click Should Render Again"}
     }
 local eSpeakloadsave=    vb:horizontal_aligner{
       mode = "center",
       vb:button{
         id = "PakettieSpeak_load_button",
-        width = button_width,
+        width=button_width,
         height = 24,
-        text = "Load Settings",
+        text="Load Settings",
         notifier = function()
           local filename = renoise.app():prompt_for_filename_to_read({"*.rts"}, "Load Settings")
           if filename ~= "" then
@@ -593,7 +593,7 @@ local eSpeakloadsave=    vb:horizontal_aligner{
               vb.views.PakettieSpeak_speed_box.value = eSpeak.speed.value
               local espeak_executable = PakettieSpeakRevertPath(eSpeak.executable)
               vb.views.PakettieSpeak_exe_button.text = espeak_executable
-              vb.views.PakettieSpeak_exe_button.width = math.min(#vb.views.PakettieSpeak_exe_button.text * 8, control_width)
+              vb.views.PakettieSpeak_exe_button.width=math.min(#vb.views.PakettieSpeak_exe_button.text * 8, control_width)
               renoise.tool().preferences.pakettieSpeak.executable = espeak_executable
               vb.views.PakettieSpeak_clear_all_samples.value = eSpeak.clear_all_samples.value == true
               vb.views.PakettieSpeak_render_on_change.value = eSpeak.render_on_change.value == true
@@ -605,9 +605,9 @@ local eSpeakloadsave=    vb:horizontal_aligner{
       },
       vb:button{
         id = "PakettieSpeak_save_button",
-        width = button_width,
+        width=button_width,
         height = 24,
-        text = "Save Settings",
+        text="Save Settings",
         notifier = function()
           local filename = renoise.app():prompt_for_filename_to_write(".rts", "Save Settings")
           if filename ~= "" then
@@ -626,8 +626,8 @@ local eSpeakloadsave=    vb:horizontal_aligner{
 local lastbuttons=    vb:horizontal_aligner{
       mode = "center",
       vb:button{
-        text = "Generate Sample",
-        width = button_width,
+        text="Generate Sample",
+        width=button_width,
         height = 24,
         notifier = function()
           eSpeak.text.value = vb.views.PakettieSpeak_text_field.text
@@ -636,8 +636,8 @@ local lastbuttons=    vb:horizontal_aligner{
         end
       },
       vb:button{
-        text = "Randomize Settings",
-        width = button_width,
+        text="Randomize Settings",
+        width=button_width,
         height = 24,
         notifier = function()
           vb.views.PakettieSpeak_language.value = math.random(1, #LANGUAGE_NAMES)
@@ -666,7 +666,7 @@ local lastbuttons=    vb:horizontal_aligner{
     }
 
  local wholegui=vb:column{
-    width = dialog_width,
+    width=dialog_width,
     horalign,
     randomize_everything,
     consonants_vowels,
@@ -788,7 +788,7 @@ function PakettieSpeakCreateSample(custom_text)
 
     -- Update progress text
     if dialog and dialog.visible then
-      vb.views.progress_text.text = "Running eSpeak text-to-speech engine..."
+      vb.views.progress_text.text="Running eSpeak text-to-speech engine..."
     end
     
     -- Quote the executable and path to handle spaces
@@ -819,12 +819,12 @@ function PakettieSpeakCreateSample(custom_text)
     coroutine.yield()
 
     if dialog and dialog.visible then
-      vb.views.progress_text.text = "Setting up instrument..."
+      vb.views.progress_text.text="Setting up instrument..."
     end
 
     -- Set up instrument and sample slots
     local ok, err = pcall(function()
-      local song = renoise.song()
+      local song=renoise.song()
       local instrument = nil
 
       -- Check if "Add Render to Current Instrument" is Enabled
@@ -896,12 +896,12 @@ function PakettieSpeakCreateSample(custom_text)
     coroutine.yield()
 
     if dialog and dialog.visible then
-      vb.views.progress_text.text = "Loading sample..."
+      vb.views.progress_text.text="Loading sample..."
     end
 
     -- Load the sample
     ok, err = pcall(function()
-      local song = renoise.song()
+      local song=renoise.song()
       local sample = song.selected_sample
       if not sample then error("No sample selected") end
       
@@ -933,7 +933,7 @@ function PakettieSpeakCreateSample(custom_text)
       
       -- Now that sample is loaded, try to normalize
       if dialog and dialog.visible then
-        vb.views.progress_text.text = "Normalizing volume..."
+        vb.views.progress_text.text="Normalizing volume..."
       end
 
       -- Try to normalize now that we have a valid sample

@@ -3,7 +3,7 @@ renoise.tool():add_menu_entry{name="--Pattern Sequencer:Paketti..:Show/Hide Patt
 -- Function to clone the currently selected pattern sequence row
 function clone_current_sequence()
   -- Access the Renoise song
-  local song = renoise.song()
+  local song=renoise.song()
   
   -- Retrieve the currently selected sequence index
   local current_sequence_pos = song.selected_sequence_index

@@ -7,7 +7,7 @@ PakettiAutomationDoofer = false
 
 -- Utility Functions
 local function set_edit_mode(value)
-  local song = renoise.song()
+  local song=renoise.song()
   local edit_mode = value > 0
   song.transport.edit_mode = edit_mode
   if edit_mode then
@@ -41,13 +41,13 @@ end
 
 
 local function set_pattern_length(value)
-  local song = renoise.song()
+  local song=renoise.song()
   local pattern_length = math.floor((value / 100) * (512 - 1) + 1)
   song.selected_pattern.number_of_lines = pattern_length
 end
 
 local function set_instrument_pitch(value)
-  local song = renoise.song()
+  local song=renoise.song()
   local transpose_value = math.floor((value / 100) * (12 + 12) - 12)
   for i = 1, #song.selected_instrument.samples do
     song.selected_instrument.samples[i].transpose = transpose_value
@@ -59,7 +59,7 @@ local function placeholder_notifier(index, value)
 end
 
 local function set_groove_amount(index, value)
-  local song = renoise.song()
+  local song=renoise.song()
   local groove_amounts = song.transport.groove_amounts
   value = math.max(0, math.min(value, 1))
   groove_amounts[index] = value
@@ -67,31 +67,31 @@ local function set_groove_amount(index, value)
 end
 
 local function set_bpm(value)
-  local song = renoise.song()
+  local song=renoise.song()
   value = math.max(32, math.min(value, 187))
   song.transport.bpm = value
 end
 
 local function set_lpb(value)
-  local song = renoise.song()
+  local song=renoise.song()
   value = math.max(1, math.min(value, 32))
   song.transport.lpb = value
 end
 
 local function set_edit_step(value)
-  local song = renoise.song()
+  local song=renoise.song()
   value = math.floor(value * 64)
   song.transport.edit_step = value
 end
 
 local function set_octave(value)
-  local song = renoise.song()
+  local song=renoise.song()
   value = math.floor(value * 8)
   song.transport.octave = value
 end
 
 local function inject_xml_to_doofer1(device)
-  local song = renoise.song()
+  local song=renoise.song()
   local transport = song.transport
 
   -- Get current values for Groove, BPM, LPB, EditStep, and Octave
@@ -254,7 +254,7 @@ end
 -- XML Injection Function for "Paketti Automation 2"
 local function inject_xml_to_doofer2(device)
   -- Get current pattern length and set instrument pitch to 50%
-  local song = renoise.song()
+  local song=renoise.song()
   local pattern_length = ((song.selected_pattern.number_of_lines - 1) / (512 - 1)) * 100
   local instrument_pitch = 50 -- Start at 50%
 
@@ -532,7 +532,7 @@ function monitor_doofer2_macros(device)
 
   -- Macro 5 -> LoopEnd
 local function macro5_notifier()
-  local song = renoise.song()
+  local song=renoise.song()
   
   local sample = song.selected_sample
   local buffer = sample.sample_buffer
@@ -602,7 +602,7 @@ end
 
 -- Initialization Function
 function initialize_doofer(device_name, device_reference, monitor_function, inject_function)
-  local song = renoise.song()
+  local song=renoise.song()
   local track = renoise.song().sequencer_track_count + 1
   renoise.song().selected_track_index = track
 
@@ -678,7 +678,7 @@ local tool = renoise.tool()
 
 
 function apply_selection_up_linear()
-  local song = renoise.song()
+  local song=renoise.song()
   local automation_parameter = song.selected_automation_parameter
   if not automation_parameter or not automation_parameter.is_automatable then
     renoise.app():show_status("Please select an automatable parameter.")
@@ -723,7 +723,7 @@ local tool = renoise.tool()
 
 
 function apply_selection_down_linear()
-  local song = renoise.song()
+  local song=renoise.song()
   local automation_parameter = song.selected_automation_parameter
   if not automation_parameter or not automation_parameter.is_automatable then
     renoise.app():show_status("Please select an automatable parameter.")
@@ -766,7 +766,7 @@ local renoise = renoise
 local tool = renoise.tool()
 
 function apply_constant_automation_top_to_top(type)
-  local song = renoise.song()
+  local song=renoise.song()
   local automation_parameter = song.selected_automation_parameter
   if not automation_parameter or not automation_parameter.is_automatable then
     renoise.app():show_status("Please select an automatable parameter.")
@@ -796,7 +796,7 @@ local tool = renoise.tool()
 
 
 function apply_constant_automation_bottom_to_bottom(type)
-  local song = renoise.song()
+  local song=renoise.song()
   local automation_parameter = song.selected_automation_parameter
   if not automation_parameter or not automation_parameter.is_automatable then
     renoise.app():show_status("Please select an automatable parameter.")
@@ -829,7 +829,7 @@ local renoise = renoise
 local tool = renoise.tool()
 
 function apply_exponential_automation_curve_top_to_center(type)
-  local song = renoise.song()
+  local song=renoise.song()
   local automation_parameter = song.selected_automation_parameter
 
   if not automation_parameter or not automation_parameter.is_automatable then
@@ -875,7 +875,7 @@ local tool = renoise.tool()
 
 
 function apply_exponential_automation_curve_bottom_to_center(type)
-  local song = renoise.song()
+  local song=renoise.song()
   local automation_parameter = song.selected_automation_parameter
   if not automation_parameter or not automation_parameter.is_automatable then
     renoise.app():show_status("Please select an automatable parameter.")
@@ -920,7 +920,7 @@ local renoise = renoise
 local tool = renoise.tool()
 
 function apply_exponential_automation_curve_center_to_bottom(type)
-  local song = renoise.song()
+  local song=renoise.song()
   local automation_parameter = song.selected_automation_parameter
   if not automation_parameter or not automation_parameter.is_automatable then
     renoise.app():show_status("Please select an automatable parameter.")
@@ -966,7 +966,7 @@ local renoise = renoise
 local tool = renoise.tool()
 
 function apply_exponential_automation_curve_center_to_top(type)
-  local song = renoise.song()
+  local song=renoise.song()
   local automation_parameter = song.selected_automation_parameter
   if not automation_parameter or not automation_parameter.is_automatable then
     renoise.app():show_status("Please select an automatable parameter.")
@@ -1015,7 +1015,7 @@ local tool = renoise.tool()
 
 
 function apply_exponential_automation_curveDOWN(type)
-  local song = renoise.song()
+  local song=renoise.song()
   local automation_parameter = song.selected_automation_parameter
   if not automation_parameter or not automation_parameter.is_automatable then
     renoise.app():show_status("Please select an automatable parameter.")
@@ -1064,7 +1064,7 @@ local renoise = renoise
 local tool = renoise.tool()
 
 function apply_exponential_automation_curveUP()
-  local song = renoise.song()
+  local song=renoise.song()
   local automation_parameter = song.selected_automation_parameter
   
   if not automation_parameter or not automation_parameter.is_automatable then
@@ -1179,7 +1179,7 @@ end
 
 
 function apply_linear_automation_curveCenter(type)
-  local song = renoise.song()
+  local song=renoise.song()
   local automation_parameter = song.selected_automation_parameter
   if not automation_parameter or not automation_parameter.is_automatable then
     renoise.app():show_status("Please select an automatable parameter.")
@@ -1227,7 +1227,7 @@ tool:add_menu_entry({name="--Track Automation:Paketti..:Automation Curves..:Set 
 })
 
 function set_to_center()
-  local song = renoise.song()
+  local song=renoise.song()
   local automation_parameter = song.selected_automation_parameter
   if not automation_parameter or not automation_parameter.is_automatable then
     renoise.app():show_status("Please select an automatable parameter.")
@@ -1362,7 +1362,7 @@ renoise.tool():add_keybinding{name="Instrument Box:Paketti:Show Automation",invo
 -------------------------------------------------------
 -- Function to read the selected slots in the pattern matrix for the currently selected track.
 local function read_pattern_matrix_selection()
-  local song = renoise.song()
+  local song=renoise.song()
   local sequencer = song.sequencer
   local track_index = song.selected_track_index
   local selected_slots = {}
@@ -1396,7 +1396,7 @@ end
 
 -- Function to apply ramp to selected automation
 local function apply_ramp(selected_slots, ramp_type, is_exp, is_up)
-  local song = renoise.song()
+  local song=renoise.song()
   local track_index = song.selected_track_index
   local selected_parameter = song.selected_automation_parameter
 
@@ -1530,7 +1530,7 @@ local center_based_parameters = {
 
 -- Function to apply special center-based ramp for certain parameters (linear and exponential)
 local function apply_center_based_ramp(selected_slots, ramp_type, is_up, is_exp)
-  local song = renoise.song()
+  local song=renoise.song()
   local track_index = song.selected_track_index
   local selected_parameter = song.selected_automation_parameter
 
@@ -1647,7 +1647,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Automation Center to Bottom (
 renoise.tool():add_keybinding{name="Global:Paketti:Automation Bottom to Center (Lin)",invoke=automation_bottom_to_center_lin }
 
 function randomize_envelope()
-  local song = renoise.song()
+  local song=renoise.song()
   local automation_parameter = song.selected_automation_parameter
   
   if not automation_parameter or not automation_parameter.is_automatable then
@@ -1707,7 +1707,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Randomize Automation Envelope",inv
 
 ---
 local function randomize_device_envelopes(start_param)
-  local song = renoise.song()
+  local song=renoise.song()
   local selected_device = song.selected_track.devices[song.selected_device_index]
 
   if not selected_device then
@@ -1764,7 +1764,7 @@ local last_automation_index = 0
 
 function showAutomationHardDynamic()
   local app_window = renoise.app().window
-  local song = renoise.song()
+  local song=renoise.song()
   local track = song.selected_track
 
   -- Set active_middle_frame to 1 if not 1 or 2
@@ -1813,7 +1813,7 @@ local edit_step_notifier_fn = function()
 end
 
 local function apply_textfield_value(value)
-  local song = renoise.song()
+  local song=renoise.song()
   local track = song.selected_track
   local parameter = song.selected_automation_parameter
   local line_index = song.selected_line_index
@@ -1865,7 +1865,7 @@ local function apply_textfield_value_and_move(value)
   if dialog and dialog.visible then
     local follow_editstep = vb.views.follow_editstep_checkbox.value
     if follow_editstep then
-      local song = renoise.song()
+      local song=renoise.song()
       local edit_step = song.transport.edit_step
       local current_line = song.selected_line_index
       local pattern_length = song.selected_pattern.number_of_lines
@@ -1915,7 +1915,7 @@ function pakettiAutomationValue()
   local initial_value = "0.93524"
 
   local textfield = vb:textfield{
-    width = 60,
+    width=60,
     id = "value_textfield",
     value = initial_value,
     edit_mode = true,
@@ -1923,14 +1923,14 @@ function pakettiAutomationValue()
   }
 
   local apply_button = vb:button{
-    text = "Write Automation to Current Line",
-    width = 180,
+    text="Write Automation to Current Line",
+    width=180,
     notifier = function()
       apply_textfield_value_and_move(vb.views.value_textfield.value)
     end
   }
 
-  local follow_editstep_checkbox = vb:checkbox {
+  local follow_editstep_checkbox = vb:checkbox{
     id = "follow_editstep_checkbox",
     value = false, -- default unchecked
     notifier = function(value)
@@ -1941,7 +1941,7 @@ function pakettiAutomationValue()
     end
   }
 
-  local editstep_valuebox = vb:valuebox {
+  local editstep_valuebox = vb:valuebox{
     id = "editstep_valuebox",
     value = renoise.song().transport.edit_step,
     min = 0,
@@ -1956,7 +1956,7 @@ function pakettiAutomationValue()
   }
 
   local close_button = vb:button{
-    text = "Close",
+    text="Close",
     notifier = function()
       if dialog and dialog.visible then
         local edit_step_observable = renoise.song().transport.edit_step_observable
@@ -2004,7 +2004,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Show Automation Value Dialog...",i
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Automation..:Paketti Automation Value...",invoke=function() pakettiAutomationValue() end}
 ---
 local function write_automation_value(value)
-  local song = renoise.song()
+  local song=renoise.song()
   local track = song.selected_track
   local parameter = song.selected_automation_parameter
   local line_index = song.selected_line_index
@@ -2054,7 +2054,7 @@ end
 end
 -----------------
 function PakettiAutomationSelectionFloodFill()
-  local song = renoise.song()
+  local song=renoise.song()
   local automation_parameter = song.selected_automation_parameter
 
   if not automation_parameter or not automation_parameter.is_automatable then
@@ -2173,7 +2173,7 @@ renoise.tool():add_menu_entry{name="--Track Automation:Paketti..:Flood Fill Auto
 
 ------
 function SetAutomationRangeValue(value)
-  local song = renoise.song()
+  local song=renoise.song()
   local automation_parameter = song.selected_automation_parameter
 
   if not automation_parameter or not automation_parameter.is_automatable then
@@ -2238,7 +2238,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Set Automation Range to Middle (0.
 renoise.tool():add_midi_mapping{name="Paketti:Set Automation Range to Min (0.0)",invoke=function(message) if message:is_trigger() then SetAutomationRangeValue(0.0) end end}
 -------
 function FlipAutomationHorizontal()
-  local song = renoise.song()
+  local song=renoise.song()
   local automation_parameter = song.selected_automation_parameter
 
   if not automation_parameter or not automation_parameter.is_automatable then
@@ -2310,7 +2310,7 @@ local center_based_parameters = {
 }
 
 function ScaleAutomation(scale_factor)
-  local song = renoise.song()
+  local song=renoise.song()
   local automation_parameter = song.selected_automation_parameter
 
   if not automation_parameter or not automation_parameter.is_automatable then
@@ -2437,7 +2437,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Dynamic Scale Automation",
 ---
 
 function FlipAutomationVertical()
-  local song = renoise.song()
+  local song=renoise.song()
   local automation_parameter = song.selected_automation_parameter
 
   if not automation_parameter or not automation_parameter.is_automatable then
@@ -2496,7 +2496,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Flip Automation Selection Vertical
 -----
 
 function add_automation_points_for_notes()
-  local song = renoise.song()
+  local song=renoise.song()
 
   -- Ensure there's a selected track and automation parameter
   local track = song.selected_track
@@ -2569,7 +2569,7 @@ renoise.app().window.active_lower_frame = 2
 --------
 
 function PakettiAutomationPlayModeChange_SetPlaymode(mode)
-  local song = renoise.song()
+  local song=renoise.song()
   local automation_parameter = song.selected_automation_parameter
   if not automation_parameter or not automation_parameter.is_automatable then
     renoise.app():show_status("Please select an automatable parameter.")
@@ -2587,7 +2587,7 @@ function PakettiAutomationPlayModeChange_SetPlaymode(mode)
 end
 
 function PakettiAutomationPlayModeChange_Next()
-  local song = renoise.song()
+  local song=renoise.song()
   local automation_parameter = song.selected_automation_parameter
   if not automation_parameter or not automation_parameter.is_automatable then
     renoise.app():show_status("Please select an automatable parameter.")
@@ -2605,7 +2605,7 @@ function PakettiAutomationPlayModeChange_Next()
 end
 
 function PakettiAutomationPlayModeChange_Previous()
-  local song = renoise.song()
+  local song=renoise.song()
   local automation_parameter = song.selected_automation_parameter
   if not automation_parameter or not automation_parameter.is_automatable then
     renoise.app():show_status("Please select an automatable parameter.")
@@ -2635,7 +2635,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Select Automation Playmode 03 Curv
 
 
 function clone_sequence_with_automation_only()
-  local song = renoise.song()
+  local song=renoise.song()
   local sequencer = song.sequencer
   local current_sequence = sequencer.pattern_sequence
   local selected_tracks = {}
@@ -2694,7 +2694,7 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Clone Sequence (Automation Only)",invoke=function() clone_sequence_with_automation_only() end}
 
 function clone_pattern_without_automation()
-  local song = renoise.song()
+  local song=renoise.song()
   local sequencer = song.sequencer
   local current_sequence_pos = song.selected_sequence_index
   local selected_tracks = {}
@@ -2754,7 +2754,7 @@ local is_following_parameter = false
 local follow_timer = nil
 
 function follow_parameter()
-  local song = renoise.song()
+  local song=renoise.song()
   local automation_parameter = song.selected_automation_parameter
   local master_track = song.tracks[song.sequencer_track_count + 1]
   
@@ -2846,7 +2846,7 @@ function find_device_by_name(track, name)
 end
 
 function create_lfo_devices()
-  local song = renoise.song()
+  local song=renoise.song()
   local master_track = song.tracks[song.sequencer_track_count + 1]
   
   -- Create Writer first (if doesn't exist)
@@ -2875,7 +2875,7 @@ function create_lfo_devices()
 end
 
 function remove_lfo_devices()
-  local song = renoise.song()
+  local song=renoise.song()
   local master_track = song.tracks[song.sequencer_track_count + 1]
   
   -- Find and remove devices by name (search in reverse to handle indices correctly)
@@ -2891,7 +2891,7 @@ function remove_lfo_devices()
 end
 
 function follow_to_fx_amount()
-  local song = renoise.song()
+  local song=renoise.song()
   local master_track = song.tracks[song.sequencer_track_count + 1]
   
   -- Find our devices
@@ -2933,7 +2933,7 @@ function follow_to_fx_amount()
 end
 
 function toggle_fx_amount_following(fx_command)
-  local song = renoise.song()
+  local song=renoise.song()
   
   -- Check if timer is already running
   if renoise.tool():has_timer(follow_to_fx_amount) then
@@ -3012,7 +3012,7 @@ function scale_value(value, max_range)
 end
 
 function follow_to_lpb()
-  local song = renoise.song()
+  local song=renoise.song()
   local master_track = song.tracks[song.sequencer_track_count + 1]
   
   -- Find our devices
@@ -3039,7 +3039,7 @@ function follow_to_lpb()
 end
 
 function toggle_lpb_following(range)
-  local song = renoise.song()
+  local song=renoise.song()
   
   -- Check if timer is already running
   if renoise.tool():has_timer(follow_to_lpb) then
@@ -3090,7 +3090,7 @@ local is_following_single_parameter = false
 local single_follow_timer = nil
 
 function create_single_lfo_device()
-  local song = renoise.song()
+  local song=renoise.song()
   local master_track = song.tracks[song.sequencer_track_count + 1]
   
   -- Find or create the Single Writer device
@@ -3107,7 +3107,7 @@ end
 
 
 function remove_single_lfo_device()
-  local song = renoise.song()
+  local song=renoise.song()
   local master_track = song.tracks[song.sequencer_track_count + 1]
   
   -- Find and remove the LFO device
@@ -3129,7 +3129,7 @@ function find_single_device_by_name(track, name)
 end
 
 function follow_single_parameter()
-  local song = renoise.song()
+  local song=renoise.song()
   local automation_parameter = song.selected_automation_parameter
   local master_track = song.tracks[song.sequencer_track_count + 1]
   -- Find our device
@@ -3229,7 +3229,7 @@ end
 
 -------
 function read_fx_to_automation()
-  local song = renoise.song()
+  local song=renoise.song()
   local pattern_index = song.selected_pattern_index
   local track_index = song.selected_track_index
   local track = song.tracks[track_index]
@@ -3390,7 +3390,7 @@ end
 
 
 function snapshot_current_values_to_automation()
-  local song = renoise.song()
+  local song=renoise.song()
   local pattern = song.selected_pattern
   local track = song.selected_track
   local track_index = song.selected_track_index

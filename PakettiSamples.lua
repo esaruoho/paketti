@@ -132,7 +132,7 @@ function pitchBendDrumkitLoader()
   end
 
   -- Check for any existing instrument with samples or plugins and select a new instrument slot if necessary
-  local song = renoise.song()
+  local song=renoise.song()
   local current_instrument_index = song.selected_instrument_index
   local current_instrument = song:instrument(current_instrument_index)
 
@@ -280,7 +280,7 @@ function loadRandomDrumkitSamples(num_samples)
     end
 
     -- Check if the selected instrument slot is empty or contains a plugin
-    local song = renoise.song()
+    local song=renoise.song()
     local instrument = song.selected_instrument
     if #instrument.samples > 0 or instrument.plugin_properties.plugin_loaded then
         song:insert_instrument_at(song.selected_instrument_index + 1)
@@ -415,7 +415,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Midi Paketti PitchBend Drumkit Sam
 
 -- Function to create a new instrument from the selected sample buffer range
 function create_new_instrument_from_selection()
-  local song = renoise.song()
+  local song=renoise.song()
   local selected_sample = song.selected_sample
   local selected_instrument_index = song.selected_instrument_index
   local selected_instrument = song.selected_instrument
@@ -1088,7 +1088,7 @@ render_context = {
 
 -- Function to initiate rendering
 function start_renderingLPB()
-  local song = renoise.song()
+  local song=renoise.song()
   local render_priority = "high"
   local selected_track = song.selected_track
 
@@ -1146,7 +1146,7 @@ end
 
 -- Callback function that gets called when rendering is complete
 function rendering_done_callbackLPB()
-  local song = renoise.song()
+  local song=renoise.song()
   local renderTrack = render_context.source_track
 
   -- Remove DC Offset if it was added (FIRST, before other operations)
@@ -1269,7 +1269,7 @@ end
 
 -- Function to handle rendering for a group track
 function render_group_trackLPB()
-    local song = renoise.song()
+    local song=renoise.song()
     local group_track_index = song.selected_track_index
     local group_track = song:track(group_track_index)
     local start_track_index = group_track_index + 1
@@ -1284,7 +1284,7 @@ function render_group_trackLPB()
 end
 
 function pakettiCleanRenderSelectionLPB()
-    local song = renoise.song()
+    local song=renoise.song()
     local renderTrack = song.selected_track_index
     local renderedTrack = renderTrack + 1
     local renderedInstrument = song.selected_instrument_index + 1
@@ -1327,7 +1327,7 @@ renoise.tool():add_keybinding{name="Mixer:Paketti:Clean Render Selected Track/Gr
 ------
 -- Function to adjust a slice marker based on MIDI input
 function adjustSlice(slice_index, midivalue)
-    local song = renoise.song()
+    local song=renoise.song()
     local sample = song.selected_sample
 
     -- Ensure there is a selected sample and enough slice markers
@@ -1679,7 +1679,7 @@ function CopySliceSettings(from_sample, to_sample)
 end
 
 function PakettiDuplicateAndReverseInstrument()
-  local song = renoise.song()
+  local song=renoise.song()
   local current_index = song.selected_instrument_index
   local current_instrument = song.selected_instrument
 
@@ -1766,7 +1766,7 @@ renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Instruments..:Duplic
 renoise.tool():add_midi_mapping{name="Paketti:Duplicate and Reverse Instrument [Trigger]",invoke=function(message) if message:is_trigger() then PakettiDuplicateAndReverseInstrument() end end}
 -----
 function pakettiSampleBufferHalfSelector(half)
-  local song = renoise.song()
+  local song=renoise.song()
   local instrument = song.selected_instrument
   if not instrument then
     renoise.app():show_status("No instrument selected.")
@@ -1809,7 +1809,7 @@ renoise.tool():add_keybinding{name="Sample Editor:Paketti:Select First Half of S
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Select Second Half of Sample Buffer",invoke=function()pakettiSampleBufferHalfSelector(2)end}
 -------
 function pakettiSaveSampleRange(format)
-  local song = renoise.song()
+  local song=renoise.song()
   local original_instrument_index = song.selected_instrument_index
   local selected_sample = song.selected_sample
   if not selected_sample or not selected_sample.sample_buffer.has_sample_data then
@@ -1866,7 +1866,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Save Selected Sample Range .WAV",i
 renoise.tool():add_midi_mapping{name="Paketti:Save Selected Sample Range .FLAC",invoke=function(message) if message:is_trigger() then pakettiSaveSampleRange("flac") end end}
 ---
 function pakettiMinimizeToLoopEnd()
-  local song = renoise.song()
+  local song=renoise.song()
   local original_instrument_index = song.selected_instrument_index
   local selected_sample = song.selected_sample
   if not selected_sample or not selected_sample.sample_buffer.has_sample_data then
@@ -1986,7 +1986,7 @@ renoise.app():show_status("This sample is far too large to be rotated, would cau
 return
 end
 
-  local song = renoise.song()
+  local song=renoise.song()
   local sample = song.selected_sample
   local buffer = sample.sample_buffer
 
@@ -2045,7 +2045,7 @@ if renoise.song().selected_sample.sample_buffer.number_of_frames > 64000 then
 renoise.app():show_status("This sample is far too large to be rotated, would cause a significant performance hit and crash Renoise - aborting..")
 return
 end
-  local song = renoise.song()
+  local song=renoise.song()
   local sample = song.selected_sample
   local buffer = sample.sample_buffer
 
@@ -2101,7 +2101,7 @@ renoise.app():show_status("This sample is far too large to be rotated, would cau
 return
 end
 
-  local song = renoise.song()
+  local song=renoise.song()
   local sample = song.selected_sample
   local buffer = sample.sample_buffer
 
@@ -2223,7 +2223,7 @@ function CleanRenderAndSaveStart(format)
     
 -- Callback function that gets called when rendering is complete
 function CleanRenderAndSaveDoneCallback()
-    local song = renoise.song()
+    local song=renoise.song()
     local sourceTrackName = song.tracks[render_context.source_track].name
 
     -- Remove the monitoring timer
@@ -2278,7 +2278,7 @@ end
 
 -- Function to handle rendering for a group track
 function CleanRenderAndSaveGroupTrack(format)
-    local song = renoise.song()
+    local song=renoise.song()
     local group_track_index = song.selected_track_index
     local group_track = song:track(group_track_index)
     local start_track_index = group_track_index + 1
@@ -2294,7 +2294,7 @@ end
 
 -- Function to clean render and save the selection
 function CleanRenderAndSaveSelection(format)
-    local song = renoise.song()
+    local song=renoise.song()
     local renderTrack = song.selected_track_index
 
     -- Check if the selected track is a group track
@@ -2336,7 +2336,7 @@ renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Duplicate and Rev
 ---------
 function PakettiInjectDefaultXRNI()
   local instVol = renoise.song().selected_instrument.volume
-  local song = renoise.song()
+  local song=renoise.song()
   local selected_instrument_index = song.selected_instrument_index
   local original_instrument = song.selected_instrument
 
@@ -2507,7 +2507,7 @@ render_context = {
 
 -- Function to resize pattern if necessary
 function PakettiSeamlessCheckAndResizePattern()
-    local song = renoise.song()
+    local song=renoise.song()
     local pattern_index = song.selected_pattern_index
     local current_pattern = song:pattern(pattern_index)
     local current_pattern_size = current_pattern.number_of_lines
@@ -2536,7 +2536,7 @@ function PakettiSeamlessCheckAndResizePattern()
     end end end
 
 function PakettiSeamlessRestorePatternSize()
-    local song = renoise.song()
+    local song=renoise.song()
     local pattern_index = song.selected_pattern_index
     local current_pattern = song:pattern(pattern_index)
     current_pattern.number_of_lines = render_context.original_pattern_size
@@ -2544,7 +2544,7 @@ end
 
 -- Function to initiate rendering
 function PakettiSeamlessStartRendering()
-  local song = renoise.song()
+  local song=renoise.song()
   local render_priority = "high"
   local selected_track = song.selected_track
 
@@ -2601,7 +2601,7 @@ end
 
 -- Callback function that gets called when rendering is complete
 function PakettiSeamlessRenderingDoneCallback()
-  local song = renoise.song()
+  local song=renoise.song()
   local renderTrack = render_context.source_track
 
   -- Remove DC Offset if it was added (FIRST, before other operations)
@@ -2669,7 +2669,7 @@ function PakettiSeamlessMonitorRendering()
 end
 
 function PakettiSeamlessRenderGroupTrack()
-    local song = renoise.song()
+    local song=renoise.song()
     local group_track_index = song.selected_track_index
     local group_track = song:track(group_track_index)
     local start_track_index = group_track_index + 1
@@ -2682,7 +2682,7 @@ function PakettiSeamlessRenderGroupTrack()
 end
 
 function PakettiSeamlessCleanRenderSelection()
-    local song = renoise.song()
+    local song=renoise.song()
     local renderTrack = song.selected_track_index
     local renderedInstrument = song.selected_instrument_index + 1
 
@@ -2705,7 +2705,7 @@ renoise.tool():add_keybinding{name="Mixer:Paketti:Clean Render Seamless Selected
 
 --
 function PakettiFlipSample(fraction)
-  local song = renoise.song()
+  local song=renoise.song()
   local sample = song.selected_sample
   local buffer = sample.sample_buffer
 
@@ -2989,7 +2989,7 @@ local function loadRandomDrumkitSamples(num_samples, folder_path)
     return nil
   end
 
-  local song = renoise.song()
+  local song=renoise.song()
   local instrument = song.selected_instrument
   if #instrument.samples > 0 or instrument.plugin_properties.plugin_loaded then
     song:insert_instrument_at(song.selected_instrument_index + 1)
@@ -3049,11 +3049,11 @@ function PakettiUserDefinedSamplesShowDialog()
   for i = 1, 10 do
     local index = string.format("%02d", i)
     local path = preferences["UserDefinedSampleFolders" .. index].value or ""
-    local textfield = vb:textfield{ width = 600, text = path }
+    local textfield = vb:textfield{ width=600, text = path }
     folder_fields[i] = textfield
 
     local browse_button = vb:button{
-      text = "Browse",
+      text="Browse",
       notifier = function()
         local folder_path = renoise.app():prompt_for_path("Select Folder Containing Audio Files")
         if folder_path then
@@ -3063,8 +3063,8 @@ function PakettiUserDefinedSamplesShowDialog()
     }
 
     local button_row = vb:row{
-      spacing = 8,
-      vb:text{ text = "Folder " .. formatDigits(2,i) .. ":" },
+      spacing=8,
+      vb:text{ text="Folder " .. formatDigits(2,i) .. ":" },
       browse_button,
       textfield,
       vb:button{text="Open Path",notifier=function()
@@ -3074,14 +3074,14 @@ function PakettiUserDefinedSamplesShowDialog()
     button_row:add_child(vb:button{text="Random Drumkit", notifier = function() loadRandomDrumkitSamples(120, textfield.text) end})
 
     button_row:add_child(vb:button{
-      text = "Random 12",
+      text="Random 12",
       notifier = function()
       loadRandomSamplesIntoSingleInstrument(12, textfield.text)
       end
     })
 
     button_row:add_child(vb:button{
-      text = "Random 32",
+      text="Random 32",
       notifier = function()
         loadRandomSample(32, textfield.text)
       end
@@ -3091,7 +3091,7 @@ function PakettiUserDefinedSamplesShowDialog()
   end
 
   rows:add_child(vb:button{
-    text = "Save & Close",
+    text="Save & Close",
     notifier = function()
       PakettiUserDefinedSamplesSavePreferences()
       renoise.app():show_status("Sample folders saved successfully.")
@@ -3203,7 +3203,7 @@ end
 
 
 local function duplicate_sample_with_transpose(transpose_amount)
-  local song = renoise.song()
+  local song=renoise.song()
   local instrument = song.selected_instrument
   local selected_sample_index = song.selected_sample_index
 
@@ -3317,7 +3317,7 @@ DrumKitToOverlay(1) end}
 -------
 ---------------
 function PakettiDuplicateInstrumentSamplesWithTranspose(transpose_amount)
-  local song = renoise.song()
+  local song=renoise.song()
   local instrument = song.selected_instrument
   
   if not instrument then
@@ -3454,7 +3454,7 @@ renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Duplicate All Sampl
 
 
 function add_backwards_effect_to_selection()
-  local song = renoise.song()
+  local song=renoise.song()
   local selection = selection_in_pattern_pro()
   
   if not selection then
@@ -3586,7 +3586,7 @@ renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Play Samples Backwa
 renoise.tool():add_keybinding{name="Global:Paketti:Play Samples Backwards in Selection 0B00",invoke=add_backwards_effect_to_selection}
 ---
 function PakettiRandomIR(ir_path)
-  local song = renoise.song()
+  local song=renoise.song()
   local track = song.selected_track
   local device = nil
   
@@ -3772,7 +3772,7 @@ renoise.tool():add_menu_entry{name="Main Menu:File:Save All Samples to Folder...
 
 -------
 function showSampleSelectionInfo()
-  local song = renoise.song()
+  local song=renoise.song()
   local sample = song.selected_sample
   
   if not sample or not sample.sample_buffer.has_sample_data then
@@ -3831,7 +3831,7 @@ function updateSampleSelectionInfo()
     return
   end
 
-  local song = renoise.song()
+  local song=renoise.song()
   local sample = song.selected_sample
   
   if not sample or not sample.sample_buffer.has_sample_data then
@@ -3928,7 +3928,7 @@ renoise.tool().app_idle_observable:add_notifier(initializeSampleDetails)
 ----------
 renoise.tool():add_midi_mapping{name="Paketti:Selected Phrase LPB (1-127) x[Knob]",
   invoke=function(midi_message)
-    local song = renoise.song()
+    local song=renoise.song()
     if song and song.selected_phrase then
       -- Map MIDI value (0-127) to LPB range (1-127)
       local new_lpb = math.max(1, math.min(127, midi_message.int_value))
@@ -3939,7 +3939,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Selected Phrase LPB (1-127) x[Knob
 }
 renoise.tool():add_midi_mapping{name="Paketti:Selected Phrase LPB (1-64) x[Knob]",
   invoke=function(midi_message)
-    local song = renoise.song()
+    local song=renoise.song()
     if song and song.selected_phrase then
       -- Map MIDI value (0-127) to LPB range (1-127)
       local new_lpb = math.max(1, math.min(64, midi_message.int_value))
@@ -3950,7 +3950,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Selected Phrase LPB (1-64) x[Knob]
 }
 renoise.tool():add_midi_mapping{name="Paketti:Selected Phrase LPB (Powers of 2) x[Knob]",
   invoke=function(midi_message)
-    local song = renoise.song()
+    local song=renoise.song()
     if song and song.selected_phrase then
       -- Define the allowed LPB values
       local lpb_values = {1, 2, 4, 8, 16, 32}
@@ -3967,7 +3967,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Selected Phrase LPB (Powers of 2) 
 }
 ----------
 function adjust_loop_range(multiply_by)
-  local song = renoise.song()
+  local song=renoise.song()
   if not song then 
     debug_print("No song available")
     return 
@@ -4050,7 +4050,7 @@ local function get_next_division(current_rows, going_up)
 end
 
 function cycle_loop_division(going_up)
-  local song = renoise.song()
+  local song=renoise.song()
   if not song then 
     debug_print("No song available")
     return 
@@ -4120,7 +4120,7 @@ renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Sample Loop Length P
 
 
 function snap_loop_to_rows()
-  local song = renoise.song()
+  local song=renoise.song()
   if not song then 
     debug_print("No song available")
     return 
@@ -4188,7 +4188,7 @@ renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Snap Loop To Nearest
 
 ---------
 function ShowLargestSamples()
-  local song = renoise.song()
+  local song=renoise.song()
   local vb = renoise.ViewBuilder()
   local dialog = nil
   local used_samples = nil
@@ -4229,13 +4229,13 @@ function ShowLargestSamples()
       return
     end
 
-    local dialog_content = vb:column {
-      margin = 0,
+    local dialog_content = vb:column{
+      margin=0,
       
-      vb:row {
-        margin = 0,
-        vb:button {
-          text = "Refresh",
+      vb:row{
+        margin=0,
+        vb:button{
+          text="Refresh",
           notifier = function()
             if dialog and dialog.visible then
               dialog:close()
@@ -4243,8 +4243,8 @@ function ShowLargestSamples()
             ShowLargestSamplesDialog()
           end
         },
-        vb:button {
-          text = "Delete Unused Samples",
+        vb:button{
+          text="Delete Unused Samples",
           notifier = function()
             deleteUnusedSamples(true)  -- Skip confirmation since we're in the viewer
             if dialog and dialog.visible then
@@ -4253,60 +4253,60 @@ function ShowLargestSamples()
             ShowLargestSamplesDialog()
           end
         },
-          vb:text { 
-          text = "Bold items are unused and can be safely deleted",
+          vb:text{
+          text="Bold items are unused and can be safely deleted",
           font = "italic"
         }
       },      
-      vb:row {
-        margin = 0,
-        vb:text { width = 40, text = "Action", font = "bold" },
-        vb:text { width = 70, text = "Size", font = "bold" },
-        vb:text { width = 30, text = "Slot", font = "bold" },
-        vb:text { width = 150, text = "Instrument", font = "bold" },
-        vb:text { width = 150, text = "Sample", font = "bold" }
+      vb:row{
+        margin=0,
+        vb:text{width=40, text="Action", font = "bold" },
+        vb:text{width=70, text="Size", font = "bold" },
+        vb:text{width=30, text="Slot", font = "bold" },
+        vb:text{width=150, text="Instrument", font = "bold" },
+        vb:text{width=150, text="Sample", font = "bold" }
       }
     }
     
     for i = 1, math.min(40, #samples) do
       local sample = samples[i]
-      dialog_content:add_child(vb:row {
-    --    margin = 0,
-    --    spacing = 0,  
-        vb:button {
-          width = 40,
-          text = "Show",
+      dialog_content:add_child(vb:row{
+    --    margin=0,
+    --    spacing=0,  
+        vb:button{
+          width=40,
+          text="Show",
           notifier = function()
-            local song = renoise.song()
+            local song=renoise.song()
             song.selected_instrument_index = sample.instr_idx
             song.selected_sample_index = sample.sample_idx
             renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
           end
         },
         
-        vb:text { 
-          width = 70, 
+        vb:text{
+          width=70, 
           text = sample.formatted_size,
           font = sample.is_used and "normal" or "bold",
           style = sample.is_used and "normal" or "strong"
         },
         
-        vb:text { 
-          width = 30, 
+        vb:text{
+          width=30, 
           text = string.format("%03d", sample.instr_idx),
           font = sample.is_used and "normal" or "bold",
           style = sample.is_used and "normal" or "strong"
         },
         
-        vb:text { 
-          width = 150, 
+        vb:text{
+          width=150, 
           text = sample.instr_name,
           font = sample.is_used and "normal" or "bold",
           style = sample.is_used and "normal" or "strong"
         },
         
-        vb:text { 
-          width = 150, 
+        vb:text{
+          width=150, 
           text = sample.sample_name,
           font = sample.is_used and "normal" or "bold",
           style = sample.is_used and "normal" or "strong"
@@ -4327,7 +4327,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Show Largest Samples Dialog..
 -- Function to duplicate track and instrument with all settings
 function duplicateTrackAndInstrument()
   -- Get the current song and important indices
-  local song = renoise.song()
+  local song=renoise.song()
   local track_index = song.selected_track_index
   local selected_track = song:track(track_index)
   

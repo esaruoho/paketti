@@ -48,7 +48,7 @@ end
 -- Function to save selected sample to temp and open with the selected app
 function saveSelectedSampleToTempAndOpen(app_path)
     if renoise.song() == nil then return end
-    local song = renoise.song()
+    local song=renoise.song()
     if song.selected_sample == nil or not song.selected_sample.sample_buffer.has_sample_data then
         renoise.app():show_status("No sample data available.")
         return

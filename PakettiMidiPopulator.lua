@@ -320,7 +320,7 @@ function horizontal_rule()
       mode="justify", 
       width="100%", 
       vb:space{width=10}, 
-      vb:row{height=2, style="panel", width="30%"}, 
+      vb:row{height=2, style="panel",width="30%"}, 
       vb:space{width=2}
     }
 end
@@ -380,36 +380,36 @@ function generaMIDISetupShowCustomDialog()
   for i = 1, 16 do
     rows[i] = vb:horizontal_aligner{
       mode = "right",
-      vb:text{text = "Track " .. i .. ":", width = 100},
+      vb:text{text="Track " .. i .. ":",width=100},
       vb:popup{
         items = midi_input_devices, 
-        width = 200, 
+        width=200, 
         notifier = function(value) midi_input_device[i] = midi_input_devices[value] end, 
         id = "midi_input_popup_" .. i,
         value = table.index_of(midi_input_devices, midi_input_device[i]) or 1
       },
       vb:popup{
         items = {"1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16"}, 
-        width = 50, 
+        width=50, 
         notifier = function(value) midi_input_channel[i] = tonumber(value) end, 
         value = midi_input_channel[i] or i
       },
       vb:popup{
         items = midi_output_devices, 
-        width = 200, 
+        width=200, 
         notifier = function(value) midi_output_device[i] = midi_output_devices[value] end, 
         id = "midi_output_popup_" .. i,
         value = table.index_of(midi_output_devices, midi_output_device[i]) or 1
       },
       vb:popup{
         items = {"1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16"}, 
-        width = 50, 
+        width=50, 
         notifier = function(value) midi_output_channel[i] = tonumber(value) end, 
         value = midi_output_channel[i] or i
       },
       vb:popup{
         items = plugin_dropdown_items, 
-        width = 200, 
+        width=200, 
         notifier = function(value) selected_plugin[i] = plugin_dropdown_items[value] end, 
         id = "plugin_popup_" .. i,
         value = table.index_of(plugin_dropdown_items, selected_plugin[i]) or 1
@@ -424,137 +424,137 @@ function generaMIDISetupShowCustomDialog()
   -- Initialize switches based on existing preferences
   note_columns_switch = vb:switch{
     items = {"1","2","3","4","5","6","7","8","9","10","11","12"}, 
-    width = 300, 
+    width=300, 
     value = prefs.pakettiMidiPopulator.noteColumns.value or 1.0
   }
   effect_columns_switch = vb:switch{
     items = {"1","2","3","4","5","6","7","8"}, 
-    width = 300, 
+    width=300, 
     value = prefs.pakettiMidiPopulator.effectColumns.value or 1.0
   }
   delay_column_switch = vb:switch{
     items = {"Off","On"}, 
-    width = 300, 
+    width=300, 
     value = bool_to_switch_value(prefs.pakettiMidiPopulator.delayColumn.value)
   }
   volume_column_switch = vb:switch{
     items = {"Off","On"}, 
-    width = 300, 
+    width=300, 
     value = bool_to_switch_value(prefs.pakettiMidiPopulator.volumeColumn.value)
   }
   panning_column_switch = vb:switch{
     items = {"Off","On"}, 
-    width = 300, 
+    width=300, 
     value = bool_to_switch_value(prefs.pakettiMidiPopulator.panningColumn.value)
   }
   sample_effects_column_switch = vb:switch{
     items = {"Off","On"}, 
-    width = 300, 
+    width=300, 
     value = bool_to_switch_value(prefs.pakettiMidiPopulator.sampleEffectsColumn.value)
   }
   collapsed_switch = vb:switch{
     items = {"Not Collapsed","Collapsed"}, 
-    width = 300, 
+    width=300, 
     value = bool_to_switch_value(prefs.pakettiMidiPopulator.collapsed.value)
   }
   incoming_audio_switch = vb:switch{
     items = {"Off","On"}, 
-    width = 300, 
+    width=300, 
     value = bool_to_switch_value(prefs.pakettiMidiPopulator.incomingAudio.value)
   }
   populate_sends_switch = vb:switch{
     items = {"Off","On"}, 
-    width = 300, 
+    width=300, 
     value = bool_to_switch_value(prefs.pakettiMidiPopulator.populateSends.value)
   }
   external_editor_switch = vb:switch{
     items = {"Off","On"}, 
-    width = 300, 
+    width=300, 
     value = 1  -- Default to Off; adjust if you have a corresponding preference
   }
 
   dialog_content = vb:column{
-    margin = 10, spacing = 0,
+    margin=10, spacing=0,
     vb:horizontal_aligner{mode = "right", vb:row{
-      vb:text{text = "MIDI Input Device:"},
+      vb:text{text="MIDI Input Device:"},
       vb:popup{
         items = midi_input_devices, 
-        width = 700, 
+        width=700, 
         notifier = on_midi_input_switch_changed
       }
     }},
     vb:horizontal_aligner{mode = "right", vb:row{
-      vb:text{text = "MIDI Output Device:"},
+      vb:text{text="MIDI Output Device:"},
       vb:popup{
         items = midi_output_devices, 
-        width = 700, 
+        width=700, 
         notifier = on_midi_output_switch_changed
       }
     }},
     horizontal_rule(),
     vb:row{
-      vb:button{text = "Randomize AU Plugin Selection", width = 200, notifier = randomize_au_plugins},
-      vb:button{text = "Randomize VST Plugin Selection", width = 200, notifier = randomize_vst_plugins},
-      vb:button{text = "Randomize VST3 Plugin Selection", width = 200, notifier = randomize_vst3_plugins},
-      vb:button{text = "Clear Plugin Selection", width = 200, notifier = clear_plugin_selection}
+      vb:button{text="Randomize AU Plugin Selection",width=200, notifier = randomize_au_plugins},
+      vb:button{text="Randomize VST Plugin Selection",width=200, notifier = randomize_vst_plugins},
+      vb:button{text="Randomize VST3 Plugin Selection",width=200, notifier = randomize_vst3_plugins},
+      vb:button{text="Clear Plugin Selection",width=200, notifier = clear_plugin_selection}
     },
     horizontal_rule(),
     vb:column(rows),
     vb:horizontal_aligner{mode = "right", vb:row{
-      vb:text{text = "Note Columns:"}, 
+      vb:text{text="Note Columns:"}, 
       note_columns_switch
     }},
     vb:horizontal_aligner{mode = "right", vb:row{
-      vb:text{text = "Effect Columns:"}, 
+      vb:text{text="Effect Columns:"}, 
       effect_columns_switch
     }},
     vb:horizontal_aligner{mode = "right", vb:row{
-      vb:text{text = "Delay Column:"}, 
+      vb:text{text="Delay Column:"}, 
       delay_column_switch
     }},
     vb:horizontal_aligner{mode = "right", vb:row{
-      vb:text{text = "Volume Column:"}, 
+      vb:text{text="Volume Column:"}, 
       volume_column_switch
     }},
     vb:horizontal_aligner{mode = "right", vb:row{
-      vb:text{text = "Panning Column:"}, 
+      vb:text{text="Panning Column:"}, 
       panning_column_switch
     }},
     vb:horizontal_aligner{mode = "right", vb:row{
-      vb:text{text = "Sample Effects Column:"}, 
+      vb:text{text="Sample Effects Column:"}, 
       sample_effects_column_switch
     }},
     vb:horizontal_aligner{mode = "right", vb:row{
-      vb:text{text = "Track State:"}, 
+      vb:text{text="Track State:"}, 
       collapsed_switch
     }},
     vb:horizontal_aligner{mode = "right", vb:row{
-      vb:text{text = "Add #Line-Input Device for each Channel:"}, 
+      vb:text{text="Add #Line-Input Device for each Channel:"}, 
       incoming_audio_switch
     }},
     vb:horizontal_aligner{mode = "right", vb:row{
-      vb:text{text = "Populate Channels with Send Devices:"}, 
+      vb:text{text="Populate Channels with Send Devices:"}, 
       populate_sends_switch
     }},
     vb:horizontal_aligner{mode = "right", vb:row{
-      vb:text{text = "Open External Editor for each Plugin:"}, 
+      vb:text{text="Open External Editor for each Plugin:"}, 
       external_editor_switch
     }},
     horizontal_rule(),
     vb:horizontal_aligner{mode="right", vb:row{
       vb:button{
-        text = "OK", 
-        width = 100, 
+        text="OK", 
+        width=100, 
         notifier = function() on_ok_button_pressed(dialog_content) end
       },
       vb:button{
-        text = "Close", 
-        width = 100, 
+        text="Close", 
+        width=100, 
         notifier = function() custom_dialog:close() end
       },
       vb:button{
-        text = "Save & Close", 
-        width = 100, 
+        text="Save & Close", 
+        width=100, 
         notifier = on_save_and_close_pressed  -- Added Save & Close button
       }
     }}

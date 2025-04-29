@@ -722,7 +722,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:TouchOSC Sample Editor",invok
 function handle_sample_recording()
   local dialog_visible = renoise.app().window.sample_record_dialog_is_visible
 renoise.app().window.active_middle_frame=1
-  local song = renoise.song()
+  local song=renoise.song()
 renoise.app().window.active_middle_frame=renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
   if not dialog_visible then
     renoise.app().window.sample_record_dialog_is_visible = true

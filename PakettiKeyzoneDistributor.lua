@@ -157,7 +157,7 @@ function show_keyzone_distributor()
     min = 1,
     max = 120, -- Allow full MIDI range per sample
     value = 1, -- Default to single key per sample
-    width = 50,
+    width=50,
     notifier = function(new_value)
       distribute_samples(new_value, base_note_mode)
     end
@@ -167,7 +167,7 @@ function show_keyzone_distributor()
   local function create_quick_set_button(value)
     return view_builder:button {
       text = tostring(value),
-      width = 35,
+      width=35,
       notifier = function()
         keys_valuebox.value = value
         distribute_samples(value, base_note_mode)
@@ -176,7 +176,7 @@ function show_keyzone_distributor()
   end
   
   local base_note_switch = view_builder:switch {
-    width = 300,
+    width=300,
     items = {"Original", "Lowest Note", "Middle Note", "Highest Note"},
     value = base_note_mode,
     notifier = function(new_mode)
@@ -189,12 +189,12 @@ function show_keyzone_distributor()
   -- Create the dialog
   dialog = renoise.app():show_custom_dialog("Paketti Keyzone Distributor",
     view_builder:column {
-      --margin = 10,
-      --spacing = 6,
+      --margin=10,
+      --spacing=6,
       view_builder:row {
         view_builder:text {
           width=140,
-          text = "Distribute Samples by",
+          text="Distribute Samples by",
           font = "bold",
           style="strong",
         },
@@ -202,13 +202,13 @@ function show_keyzone_distributor()
         view_builder:text {
           font="bold",
           style="strong",
-          text = "keys per sample"
+          text="keys per sample"
         }
       },
       view_builder:row {
         view_builder:text {
             width=140,
-          text = "Quick Set",
+          text="Quick Set",
           font = "bold",
           style="strong",
         },
@@ -219,7 +219,7 @@ function show_keyzone_distributor()
       view_builder:row {
         view_builder:text {
             width=140,
-          text = "Base Note",
+          text="Base Note",
           font = "bold",
           style="strong",
         },

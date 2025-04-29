@@ -278,7 +278,7 @@ end
 --------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Helper function to ensure the required number of instruments exist, with a max limit of 255 (FE)
 local function ensure_instruments_count(count)
-  local song = renoise.song()
+  local song=renoise.song()
   local max_instruments = 255  -- Allow creation up to 255 instruments (FE in hex)
 
   while #song.instruments < count and #song.instruments <= max_instruments do
@@ -288,7 +288,7 @@ end
 
 -- Function to select the next chunk, properly handling the maximum chunk of FE
 function select_next_chunk()
-  local song = renoise.song()
+  local song=renoise.song()
   local current_index = song.selected_instrument_index
   local next_chunk_index = math.floor((current_index - 1) / 16) * 16 + 16 + 1  -- Calculate the next chunk, ensuring alignment
 
@@ -302,7 +302,7 @@ end
 
 -- Function to select the previous chunk, properly handling lower bounds and correct chunk stepping
 function select_previous_chunk()
-  local song = renoise.song()
+  local song=renoise.song()
   local current_index = song.selected_instrument_index
 
   -- Correctly calculate the previous chunk, ensuring it does not get stuck or fail to decrement

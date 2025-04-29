@@ -14,7 +14,7 @@ end
 
 function pakettiCleanRenderSelection(justwav)
     print("DEBUG 1: pakettiCleanRenderSelection called with justwav =", justwav)
-    local song = renoise.song()
+    local song=renoise.song()
     local renderTrack = song.selected_track_index
     local renderedTrack = renderTrack + 1
     local renderedInstrument = song.selected_instrument_index + 1
@@ -42,7 +42,7 @@ function pakettiCleanRenderSelection(justwav)
 end
 
 function start_rendering(render_context)
-    local song = renoise.song()
+    local song=renoise.song()
     local render_priority = "high"
     local selected_track = song.selected_track
     local dc_offset_added = false
@@ -160,7 +160,7 @@ end
 
 function rendering_done_callback(render_context)
     print("DEBUG 7: rendering_done_callback started, justwav =", render_context.justwav)
-    local song = renoise.song()
+    local song=renoise.song()
     local renderTrack = render_context.source_track
     local should_preserve_track = render_context.justwav
     
@@ -329,7 +329,7 @@ end
 
 -- Function to handle rendering for a group track
 function render_group_track(render_context)
-    local song = renoise.song()
+    local song=renoise.song()
     local group_track_index = song.selected_track_index
     local group_track = song:track(group_track_index)
 

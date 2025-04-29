@@ -15,7 +15,7 @@ end
 function rex_loadsample(filename)
   dprint("Starting REX import for file:", filename)
   
-  local song = renoise.song()
+  local song=renoise.song()
   
   -- Define constants
   local header_len = 256  -- Length of each header in frames

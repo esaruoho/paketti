@@ -88,7 +88,7 @@ local effects = {
 -- Randomization Functions for Effect Columns
 
 function randomizeSmatterEffectColumnCustom(effect_command, fill_percentage, min_value, max_value)
-  local song = renoise.song()
+  local song=renoise.song()
   local selection = song.selection_in_pattern
   local randomize_switch = preferences.pakettiCheatSheet.pakettiCheatSheetRandomizeSwitch.value
   local dont_overwrite = preferences.pakettiCheatSheet.pakettiCheatSheetRandomizeDontOverwrite.value
@@ -123,7 +123,7 @@ function randomizeSmatterEffectColumnCustom(effect_command, fill_percentage, min
   end
 
   local has_notes_in_line = function(track, line_index, track_index)
-    local song = renoise.song()
+    local song=renoise.song()
     local line = track:line(line_index)
     local visible_columns = song:track(track_index).visible_note_columns
     for i = 1, visible_columns do
@@ -591,12 +591,12 @@ function CheatSheet()
   end
 
   local eSlider = 137 -- Adjusted slider height
-  local globalwidth = 50
+  local globalwidth=50
 
   local wikitooltip = "http://tutorials.renoise.com/wiki/Pattern_Effect_Commands#Effect_Listing"
-  local wikibutton = vb:button {
-    width = globalwidth,
-    text = "www",
+  local wikibutton = vb:button{
+    width=globalwidth,
+    text="www",
     tooltip = wikitooltip,
     pressed = function()
       a:open_url(wikitooltip)
@@ -604,10 +604,10 @@ function CheatSheet()
     end
   }
 
-  local effect_buttons = vb:column {}
+  local effect_buttons = vb:column{}
   for _, effect in ipairs(effects) do
-    local button = vb:button {
-      width = globalwidth,
+    local button = vb:button{
+      width=globalwidth,
       text = effect[2],
       tooltip = effect[3],
       pressed = function()
@@ -615,12 +615,12 @@ function CheatSheet()
         renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
       end
     }
-    local desc = vb:text {text = effect[3]}
-    effect_buttons:add_child(vb:row {button, desc})
+    local desc = vb:text{text = effect[3]}
+    effect_buttons:add_child(vb:row{button, desc})
   end
 
   -- Randomization Preferences UI Elements
-  local randomize_cb = vb:checkbox {
+  local randomize_cb = vb:checkbox{
     value = preferences.pakettiCheatSheet.pakettiCheatSheetRandomize.value,
     notifier = function(v)
       preferences.pakettiCheatSheet.pakettiCheatSheetRandomize.value = v
@@ -628,13 +628,13 @@ function CheatSheet()
     end
   }
 
-  local fill_probability_text = vb:text {
+  local fill_probability_text = vb:text{
     style = "strong",
     text = string.format("%d%% Fill Probability", preferences.pakettiCheatSheet.pakettiCheatSheetFillAll.value)
   }
 
-  local fill_probability_slider = vb:slider {
-    width = 300,
+  local fill_probability_slider = vb:slider{
+    width=300,
     min = 0,
     max = 1,
     value = preferences.pakettiCheatSheet.pakettiCheatSheetFillAll.value / 100,
@@ -648,7 +648,7 @@ function CheatSheet()
     end
   }
 
-  local randomize_whole_track_cb = vb:checkbox {
+  local randomize_whole_track_cb = vb:checkbox{
     value = preferences.pakettiCheatSheet.pakettiCheatSheetRandomizeWholeTrack.value,
     notifier = function(v)
       preferences.pakettiCheatSheet.pakettiCheatSheetRandomizeWholeTrack.value = v
@@ -656,7 +656,7 @@ function CheatSheet()
     end
   }
 
-  local randomizeswitch_cb = vb:checkbox {
+  local randomizeswitch_cb = vb:checkbox{
     value = preferences.pakettiCheatSheet.pakettiCheatSheetRandomizeSwitch.value,
     notifier = function(v)
       preferences.pakettiCheatSheet.pakettiCheatSheetRandomizeSwitch.value = v
@@ -664,7 +664,7 @@ function CheatSheet()
     end
   }
 
-  local dontoverwrite_cb = vb:checkbox {
+  local dontoverwrite_cb = vb:checkbox{
     value = preferences.pakettiCheatSheet.pakettiCheatSheetRandomizeDontOverwrite.value,
     notifier = function(v)
       preferences.pakettiCheatSheet.pakettiCheatSheetRandomizeDontOverwrite.value = v
@@ -672,7 +672,7 @@ function CheatSheet()
     end
   }
 
-  local only_modify_effects_cb = vb:checkbox {
+  local only_modify_effects_cb = vb:checkbox{
     value = preferences.pakettiCheatSheet.pakettiCheatSheetOnlyModifyEffects.value,
     notifier = function(v)
       preferences.pakettiCheatSheet.pakettiCheatSheetOnlyModifyEffects.value = v
@@ -680,7 +680,7 @@ function CheatSheet()
     end
   }
 
-  local only_modify_notes_cb = vb:checkbox {
+  local only_modify_notes_cb = vb:checkbox{
     value = preferences.pakettiCheatSheet.pakettiCheatSheetOnlyModifyNotes.value,
     notifier = function(v)
       preferences.pakettiCheatSheet.pakettiCheatSheetOnlyModifyNotes.value = v
@@ -693,7 +693,7 @@ function CheatSheet()
 
   local min_slider = vb:minislider {
     id = "min_slider_unique",
-    width = 300,
+    width=300,
     min = 0,
     max = 255,
     value = min_value,
@@ -704,13 +704,13 @@ function CheatSheet()
     end
   }
 
-  local min_text = vb:text {
+  local min_text = vb:text{
     id = "min_text_unique",
     text = string.format("%02X", min_value)
   }
 
-  local min_decrement_button = vb:button {
-    text = "<",
+  local min_decrement_button = vb:button{
+    text="<",
     notifier = function()
       local current_value = preferences.pakettiCheatSheet.pakettiCheatSheetRandomizeMin.value
       if current_value > 0 then
@@ -720,8 +720,8 @@ function CheatSheet()
     end
   }
 
-  local min_increment_button = vb:button {
-    text = ">",
+  local min_increment_button = vb:button{
+    text=">",
     notifier = function()
       local current_value = preferences.pakettiCheatSheet.pakettiCheatSheetRandomizeMin.value
       if current_value < 255 then
@@ -736,7 +736,7 @@ function CheatSheet()
 
   local max_slider = vb:minislider {
     id = "max_slider_unique",
-    width = 300,
+    width=300,
     min = 0,
     max = 255,
     value = max_value,
@@ -747,13 +747,13 @@ function CheatSheet()
     end
   }
 
-  local max_text = vb:text {
+  local max_text = vb:text{
     id = "max_text_unique",
     text = string.format("%02X", max_value)
   }
 
-  local max_decrement_button = vb:button {
-    text = "<",
+  local max_decrement_button = vb:button{
+    text="<",
     notifier = function()
       local current_value = preferences.pakettiCheatSheet.pakettiCheatSheetRandomizeMax.value
       if current_value > 0 then
@@ -763,8 +763,8 @@ function CheatSheet()
     end
   }
 
-  local max_increment_button = vb:button {
-    text = ">",
+  local max_increment_button = vb:button{
+    text=">",
     notifier = function()
       local current_value = preferences.pakettiCheatSheet.pakettiCheatSheetRandomizeMax.value
       if current_value < 255 then
@@ -774,39 +774,39 @@ function CheatSheet()
     end
   }
 
-  local randomize_section = vb:column {
-    vb:text {style = "strong", text = "Randomize Effect Value content"},
-    vb:horizontal_aligner {mode = "left", randomize_cb, vb:text {text = "Randomize"}},
-    vb:horizontal_aligner {mode = "left", fill_probability_slider, fill_probability_text},
-    vb:horizontal_aligner {mode = "left", randomize_whole_track_cb, vb:text {text = "Randomize whole track if nothing is selected"}},
-    vb:horizontal_aligner {mode = "left", randomizeswitch_cb, vb:text {text = "Randomize Min/Max Only"}},
-    vb:horizontal_aligner {mode = "left", dontoverwrite_cb, vb:text {text = "Don't Overwrite Existing Data"}},
-    vb:horizontal_aligner {mode = "left", only_modify_effects_cb, vb:text {text = "Only Modify Rows With Effects"}},
-    vb:horizontal_aligner {mode = "left", only_modify_notes_cb, vb:text {text = "Only Modify Rows With Notes"}},
-    vb:horizontal_aligner {mode = "left", vb:text {text = "Min", font = "mono"}, min_decrement_button, min_increment_button, min_slider, min_text},
-    vb:horizontal_aligner {mode = "left", vb:text {text = "Max", font = "mono"}, max_decrement_button, max_increment_button, max_slider, max_text},
-    vb:button {
-      text = "Clear Effects",
+  local randomize_section = vb:column{
+    vb:text{style = "strong", text="Randomize Effect Value content"},
+    vb:horizontal_aligner{mode = "left", randomize_cb, vb:text{text="Randomize"}},
+    vb:horizontal_aligner{mode = "left", fill_probability_slider, fill_probability_text},
+    vb:horizontal_aligner{mode = "left", randomize_whole_track_cb, vb:text{text="Randomize whole track if nothing is selected"}},
+    vb:horizontal_aligner{mode = "left", randomizeswitch_cb, vb:text{text="Randomize Min/Max Only"}},
+    vb:horizontal_aligner{mode = "left", dontoverwrite_cb, vb:text{text="Don't Overwrite Existing Data"}},
+    vb:horizontal_aligner{mode = "left", only_modify_effects_cb, vb:text{text="Only Modify Rows With Effects"}},
+    vb:horizontal_aligner{mode = "left", only_modify_notes_cb, vb:text{text="Only Modify Rows With Notes"}},
+    vb:horizontal_aligner{mode = "left", vb:text{text="Min", font = "mono"}, min_decrement_button, min_increment_button, min_slider, min_text},
+    vb:horizontal_aligner{mode = "left", vb:text{text="Max", font = "mono"}, max_decrement_button, max_increment_button, max_slider, max_text},
+    vb:button{
+      text="Clear Effects",
       tooltip = "Clear all effect columns in selection",
-      width = globalwidth,
+      width=globalwidth,
       pressed = function()
         Cheatsheetclear_effect_columns()
       end
     },
-    vb:button {text = "Close", width = globalwidth, pressed = function()
+    vb:button{text="Close",width=globalwidth, pressed = function()
       dialog:close()
       renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
     end}
   }
 
   -- Sliders with Randomize Buttons
-  local sliders = vb:column {
+  local sliders = vb:column{
     -- Volume
-    vb:horizontal_aligner {
+    vb:horizontal_aligner{
       mode = "right",
-      vb:text {style = "strong", font = "bold", text = "Volume"},
-      vb:button {
-        text = "R",
+      vb:text{style = "strong", font = "bold", text="Volume"},
+      vb:button{
+        text="R",
         tooltip = "Randomize Volume",
         notifier = function()
           randomizeNoteColumn("volume_value")
@@ -815,7 +815,7 @@ function CheatSheet()
       },
       vb:minislider {
         id = "volumeslider",
-        width = 50,
+        width=50,
         height = eSlider,
         min = 0,
         max = 0x80,
@@ -851,11 +851,11 @@ function CheatSheet()
       }
     },
     -- Panning
-    vb:horizontal_aligner {
+    vb:horizontal_aligner{
       mode = "right",
-      vb:text {style = "strong", font = "bold", text = "Panning"},
-      vb:button {
-        text = "R",
+      vb:text{style = "strong", font = "bold", text="Panning"},
+      vb:button{
+        text="R",
         tooltip = "Randomize Panning",
         notifier = function()
           randomizeNoteColumn("panning_value")
@@ -864,7 +864,7 @@ function CheatSheet()
       },
       vb:minislider {
         id = "panningslider",
-        width = 50,
+        width=50,
         height = eSlider,
         min = 0,
         max = 0x80,
@@ -900,11 +900,11 @@ function CheatSheet()
       }
     },
     -- Delay
-    vb:horizontal_aligner {
+    vb:horizontal_aligner{
       mode = "right",
-      vb:text {style = "strong", font = "bold", text = "Delay"},
-      vb:button {
-        text = "R",
+      vb:text{style = "strong", font = "bold", text="Delay"},
+      vb:button{
+        text="R",
         tooltip = "Randomize Delay",
         notifier = function()
           randomizeNoteColumn("delay_value")
@@ -913,7 +913,7 @@ function CheatSheet()
       },
       vb:minislider {
         id = "delayslider",
-        width = 50,
+        width=50,
         height = eSlider,
         min = 0,
         max = 0xFF,
@@ -949,11 +949,11 @@ function CheatSheet()
       }
     },
     -- Sample FX
-    vb:horizontal_aligner {
+    vb:horizontal_aligner{
       mode = "right",
-      vb:text {style = "strong", font = "bold", text = "Sample FX"},
-      vb:button {
-        text = "R",
+      vb:text{style = "strong", font = "bold", text="Sample FX"},
+      vb:button{
+        text="R",
         tooltip = "Randomize Sample FX",
         notifier = function()
           randomizeNoteColumn("effect_amount_value")
@@ -962,7 +962,7 @@ function CheatSheet()
       },
       vb:minislider {
         id = "samplefxslider",
-        width = 50,
+        width=50,
         height = eSlider,
         min = 0,
         max = 0x80,
@@ -998,11 +998,11 @@ function CheatSheet()
       }
     },
     -- Effect
-    vb:horizontal_aligner {
+    vb:horizontal_aligner{
       mode = "right",
-      vb:text {style = "strong", font = "bold", text = "Effect"},
-      vb:button {
-        text = "R",
+      vb:text{style = "strong", font = "bold", text="Effect"},
+      vb:button{
+        text="R",
         tooltip = "Randomize Effect Amount",
         notifier = function()
           randomizeEffectAmount()
@@ -1011,7 +1011,7 @@ function CheatSheet()
       },
       vb:minislider {
         id = "effectslider",
-        width = 50,
+        width=50,
         height = eSlider,
         min = 0,
         max = 0xFF,

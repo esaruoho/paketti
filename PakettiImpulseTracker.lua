@@ -606,7 +606,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker ALT-D Double 
 -----------
 -- Function to select the pattern range in automation
 function selectPatternRangeInAutomation()
-  local song = renoise.song()
+  local song=renoise.song()
 
   -- Check if the automation lower frame is displayed
   if not (renoise.app().window.active_lower_frame == renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION) then
@@ -1439,21 +1439,21 @@ local track_dsps_state = "Keep"
 
 -- Functions to clear patterns, instruments, pattern sequence, MIDI outs, samples, plugins, and Track DSPs
 function patternClear()
-  local song = renoise.song()
+  local song=renoise.song()
   for i = 1, #song.patterns do
     song.patterns[i]:clear()
   end
 end
 
 function instrumentsClear()
-  local song = renoise.song()
+  local song=renoise.song()
   for i = 1, #song.instruments do
     song.instruments[i]:clear()
   end
 end
 
 function patternSequenceClear()
-  local song = renoise.song()
+  local song=renoise.song()
   local sequence_length = #song.sequencer.pattern_sequence
   for i = sequence_length, 2, -1 do
     song.sequencer:delete_sequence_at(i)
@@ -1461,14 +1461,14 @@ function patternSequenceClear()
 end
 
 function instrumentMidiOutsClear()
-  local song = renoise.song()
+  local song=renoise.song()
   for i = 1, #song.instruments do
     song.instruments[i].midi_output_properties.device_name = ""
   end
 end
 
 function instrumentSamplesClear()
-  local song = renoise.song()
+  local song=renoise.song()
   for i = 1, #song.instruments do
     local instrument = song.instruments[i]
     if #instrument.samples > 1 then
@@ -1485,14 +1485,14 @@ function instrumentSamplesClear()
 end
 
 function instrumentPluginsClear()
-  local song = renoise.song()
+  local song=renoise.song()
   for i = 1, #song.instruments do
     song.instruments[i].plugin_properties:load_plugin("")
   end
 end
 
 function trackDspsClear()
-  local song = renoise.song()
+  local song=renoise.song()
   for _, track in ipairs(song.tracks) do
     for i = #track.devices, 2, -1 do
       track:delete_device_at(i)
@@ -1630,109 +1630,109 @@ function show_new_song_dialog()
 
   -- Rest of the dialog creation code...
   vb = renoise.ViewBuilder()
-  local dialog_content = vb:column {
-        margin = 10,
-    vb:text{text="New Song ... with",font="bold",style="strong",align = "center"},
+  local dialog_content = vb:column{
+        margin=10,
+    vb:text{text="New Song ... with",font="bold",style="strong",align="center"},
     -- "Set all to" switch   
     vb:space {height=10},
-    vb:column {style="border",margin=10,
-   vb:row {
-      vb:text {text="Set all to",width=180},
+    vb:column{style="border",margin=10,
+   vb:row{
+      vb:text{text="Set all to",width=180},
       vb:switch {
         id = "set_all_switch",
         items = { "Keep", "Clear" },
         value = 1,
-        width = 100,
+        width=100,
         notifier = handle_set_all_switch_change
       }
     },
     vb:space { height = 10 },
-      vb:row {
-        vb:text {text="Patterns",width=180},
+      vb:row{
+        vb:text{text="Patterns",width=180},
         vb:switch {
           id = "patterns_switch",
           items = { "Keep", "Clear" },
           value = patterns_state == "Keep" and 1 or 2,
-          width = 100,
+          width=100,
           notifier = function(value)
             handle_switch_change(value, "Patterns")
           end
         }
       },
-      vb:row {
-        vb:text {text="Pattern Sequence",width=180},
+      vb:row{
+        vb:text{text="Pattern Sequence",width=180},
         vb:switch {
           id = "pattern_sequence_switch",
           items = { "Keep", "Clear" },
           value = pattern_sequence_state == "Keep" and 1 or 2,
-          width = 100,
+          width=100,
           notifier = function(value)
             handle_switch_change(value, "Pattern Sequence")
           end
         }
       },
-      vb:row {
-        vb:text {text="Instruments",width=180},
+      vb:row{
+        vb:text{text="Instruments",width=180},
         vb:switch {
           id = "instruments_switch",
           items = { "Keep", "Clear" },
           value = instruments_state == "Keep" and 1 or 2,
-          width = 100,
+          width=100,
           notifier = function(value)
             handle_switch_change(value, "Instruments")
           end
         }
       },
-      vb:row {
-        vb:text {text="Instrument Samples",width=180},
+      vb:row{
+        vb:text{text="Instrument Samples",width=180},
         vb:switch {
           id = "instrument_samples_switch",
           items = { "Keep", "Clear" },
           value = instrument_samples_state == "Keep" and 1 or 2,
-          width = 100,
+          width=100,
           notifier = function(value)
             handle_switch_change(value, "Instrument Samples")
           end
         }
       },
-      vb:row {
-        vb:text {text="Instrument MIDI Outs",width=180},
+      vb:row{
+        vb:text{text="Instrument MIDI Outs",width=180},
         vb:switch {
           id = "instrument_midi_outs_switch",
           items = { "Keep", "Clear" },
           value = instrument_midi_outs_state == "Keep" and 1 or 2,
-          width = 100,
+          width=100,
           notifier = function(value)
             handle_switch_change(value, "Instrument MIDI Outs")
           end
         }
       },
-      vb:row {
-        vb:text {text="Instrument Plugins",width=180},
+      vb:row{
+        vb:text{text="Instrument Plugins",width=180},
         vb:switch {
           id = "instrument_plugins_switch",
           items = { "Keep", "Clear" },
           value = instrument_plugins_state == "Keep" and 1 or 2,
-          width = 100,
+          width=100,
           notifier = function(value)
             handle_switch_change(value, "Instrument Plugins")
           end
         }
       },
-      vb:row {
-        vb:text {text="Track DSPs",width=180},
+      vb:row{
+        vb:text{text="Track DSPs",width=180},
         vb:switch {
           id = "track_dsps_switch",
           items = { "Keep", "Clear" },
           value = track_dsps_state == "Keep" and 1 or 2,
-          width = 100,
+          width=100,
           notifier = function(value)
             handle_switch_change(value, "Track DSPs")
           end
         }
       },
       vb:space {height=10},
-      vb:row {
+      vb:row{
         vb:button{text="OK",width=100,notifier=handle_ok_click()},
         vb:button{text="Cancel",width=100,notifier=handle_cancel_click(), color={1, 0, 0}}
       }
@@ -1747,7 +1747,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker CTRL-N New So
 -----------------------------------------------------
 ----ALT-U
 function Deselect_All()
-  local song = renoise.song()
+  local song=renoise.song()
   
   -- Deselect the selection in the pattern editor
   song.selection_in_pattern = nil
@@ -1783,7 +1783,7 @@ renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Impulse Tracker ALT-U 
 
 -- Function to swap blocks between note columns and effect columns
 function PakettiImpulseTrackerSwapBlock()
-  local song = renoise.song()
+  local song=renoise.song()
   local selection = song.selection_in_pattern
 
   if not selection then
@@ -2012,7 +2012,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker ALT-Y Swap Bl
 -- Move to the next track, maintaining column type, with wrapping.
 -- Move to the next track, maintaining column type, with wrapping.
 function PakettiImpulseTrackerMoveForwardsTrackWrap()
-  local song = renoise.song()
+  local song=renoise.song()
   local current_index = song.selected_track_index
   local is_effect_column = song.selected_effect_column_index > 0
   
@@ -2038,7 +2038,7 @@ end
 
 -- Move to the previous track, maintaining column type, with wrapping.
 function PakettiImpulseTrackerMoveBackwardsTrackWrap()
-  local song = renoise.song()
+  local song=renoise.song()
   local current_index = song.selected_track_index
   local is_effect_column = song.selected_effect_column_index > 0
   
@@ -2064,7 +2064,7 @@ end
 
 -- Move to the next track, maintaining column type, no wrapping.
 function PakettiImpulseTrackerMoveForwardsTrack()
-  local song = renoise.song()
+  local song=renoise.song()
   local current_index = song.selected_track_index
   local is_effect_column = song.selected_effect_column_index > 0
   
@@ -2091,7 +2091,7 @@ end
 
 -- Move to the previous track, maintaining column type, no wrapping.
 function PakettiImpulseTrackerMoveBackwardsTrack()
-  local song = renoise.song()
+  local song=renoise.song()
   local current_index = song.selected_track_index
   local is_effect_column = song.selected_effect_column_index > 0
   

@@ -31,7 +31,7 @@ end
 -- Helper function to check if we're in phrase editor with valid phrase
 local function is_in_phrase_editor()
   if renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_PHRASE_EDITOR then
-    local song = renoise.song()
+    local song=renoise.song()
     return song.selected_phrase_index > 0 and 
            song.selected_instrument and 
            song.selected_instrument.phrase_editor_visible and
@@ -42,7 +42,7 @@ end
 
 -- Helper function to get the appropriate LPB based on context
 local function get_context_lpb()
-  local song = renoise.song()
+  local song=renoise.song()
   
   -- Check if we're in phrase editor with valid phrase
   if is_in_phrase_editor() then
@@ -56,7 +56,7 @@ end
 
 -- Helper function to adjust pattern or phrase length by a relative amount
 local function adjust_length_by(amount)
-  local song = renoise.song()
+  local song=renoise.song()
   local current_length
   local new_length
   local is_pattern_editor = is_in_pattern_editor()
@@ -145,7 +145,7 @@ local function length_change_notifier()
   debug_print("Length change notifier: Starting textfield update")
 
   -- Get the new length based on editor context
-  local song = renoise.song()
+  local song=renoise.song()
   local new_length
   local is_pattern_editor = is_in_pattern_editor()
   
@@ -174,7 +174,7 @@ end
 
 -- Apply and clamp the new length value
 local function apply_length_value(value)
-  local song = renoise.song()
+  local song=renoise.song()
   local is_pattern_editor = is_in_pattern_editor()
   
   -- If not in pattern editor, check if we're in phrase editor with valid phrase
@@ -247,7 +247,7 @@ end
 local function cleanup_dialog()
   if dialog and dialog.visible then
     debug_print("Cleanup: Starting dialog cleanup")
-    local song = renoise.song()
+    local song=renoise.song()
     
     -- Remove pattern notifier if exists
     local pattern_observable = song.selected_pattern_observable
@@ -292,7 +292,7 @@ function show_length_dialog()
 
   -- Build the UI
   view_builder = renoise.ViewBuilder()
-  local song = renoise.song()
+  local song=renoise.song()
   
   -- Get initial value based on context
   local initial_value = is_pattern_editor and 
@@ -300,7 +300,7 @@ function show_length_dialog()
     tostring(song.selected_phrase.number_of_lines)
 
   local length_textfield = view_builder:textfield{
-    width = 60,
+    width=60,
     id = "length_textfield",
     value = initial_value,
     edit_mode = true,
@@ -318,7 +318,7 @@ function show_length_dialog()
 
   -- "Cancel" button
   local cancel_button = view_builder:button{
-    text = "Cancel",
+    text="Cancel",
     notifier = function()
       debug_print("Cancel button: Cleaning up dialog")
       cleanup_dialog()
@@ -327,7 +327,7 @@ function show_length_dialog()
 
   -- "Set" button applies the value just like pressing Enter
   local set_button = view_builder:button{
-    text = "Set",
+    text="Set",
     notifier = function()
       if view_builder and view_builder.views.length_textfield then
         debug_print("Set button: Processing textfield value")
@@ -340,10 +340,10 @@ function show_length_dialog()
   -- Show the custom dialog with context-aware title
   dialog = renoise.app():show_custom_dialog(is_pattern_editor and "Set Pattern Length" or "Set Phrase Length",
     view_builder:column{
-      --margin = 10,
-      --spacing = 6,
-      view_builder:row{ length_textfield, view_builder:text{ text = " lines" } },
-      view_builder:row{ view_builder:text{ text = "Close on Set" }, close_on_set_checkbox },
+      --margin=10,
+      --spacing=6,
+      view_builder:row{ length_textfield, view_builder:text{ text=" lines" } },
+      view_builder:row{ view_builder:text{ text="Close on Set" }, close_on_set_checkbox },
       view_builder:row{ cancel_button, set_button }
     }
   )

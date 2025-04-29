@@ -272,7 +272,7 @@
   --------------------------------------------------------------------------------
   local demo_canvas_view  -- forward declaration
   demo_canvas_view = vb:canvas{
-    width = 500,
+    width=500,
     height = 200,
     render = demo_canvas_render,
     mode = "transparent"  -- uses alpha blending
@@ -294,7 +294,7 @@
     min = 0,
     max = 100,
     value = demo_rotary_value,
-    width = 50,  -- set width and height equal for a circular appearance
+    width=50,  -- set width and height equal for a circular appearance
     height = 50,
     notifier = function(new_value)
       demo_rotary_value = new_value
@@ -316,7 +316,7 @@
     min = 0,
     max = 200,
     value = demo_scrollbar_value,
-    width = 400,
+    width=400,
     height = 20,
     notifier = function(new_value)
       demo_scrollbar_value = new_value
@@ -377,9 +377,9 @@
         local index = (i - 1) * items_per_column + j
         local cursor_shape = cursor_shapes[index]
         if cursor_shape then
-          column_items[#column_items + 1] = vb:button {
+          column_items[#column_items + 1] = vb:button{
             text = cursor_shape,
-            width = 120,
+            width=120,
             tooltip = "Click to set cursor: " .. cursor_shape,
             notifier = function()
               -- Set the cursor of the dialog content using its ID
@@ -389,7 +389,7 @@
         end
       end
       -- Build column without using unpack
-      local column_view_args = {spacing = 3, margin = 3}
+      local column_view_args = {spacing=3, margin=3}
       for _, item in ipairs(column_items) do
         table.insert(column_view_args, item)
       end
@@ -398,16 +398,16 @@
     end
 
     -- Build the row containing cursor demo columns without using unpack
-    local cursor_demo_row_args = {spacing = 3}
+    local cursor_demo_row_args = {spacing=3}
     for _, column in ipairs(cursor_demo_columns) do
       table.insert(cursor_demo_row_args, column)
     end
     local cursor_demo_row = vb:row(cursor_demo_row_args)
 
     -- Reset Cursor Button
-    local reset_cursor_button = vb:button {
-      text = "Reset Cursor",
-      width = 150,
+    local reset_cursor_button = vb:button{
+      text="Reset Cursor",
+      width=150,
       notifier = function()
         -- Reset the cursor to default
         vb.views.dialog_content.cursor = "default"
@@ -415,10 +415,10 @@
     }
 
     -- Dialog content
-    local dialog_content = vb:column {
+    local dialog_content = vb:column{
       id = "dialog_content", -- Assign an ID for easy access
-      spacing = 3,
-      margin = 3,
+      spacing=3,
+      margin=3,
 
       -- Button styles
       vb:row{
@@ -431,146 +431,137 @@
         }
       },
       -- Row of buttons demonstrating text alignment
-      vb:row {
-        vb:button {
-          text = "Left Aligned",
-          align = "left",
-          width = 140
+      vb:row{vb:button{
+          text="Left Aligned",
+          align="left",
+          width=140},
+        vb:button{
+          text="Center Aligned",
+          align="center", -- Center alignment is default
+          width=140
         },
-        vb:button {
-          text = "Center Aligned",
-          align = "center", -- Center alignment is default
-          width = 140
-        },
-        vb:button {
-          text = "Right Aligned",
-          align = "right",
-          width = 140
+        vb:button{
+          text="Right Aligned",
+          align="right",
+          width=140
         }
       },
 
       -- Row of buttons demonstrating button styles
-      vb:row {
-        spacing = 3,
-        vb:button {
-          text = "Normal",
+      vb:row{
+        spacing=3,
+        vb:button{
+          text="Normal",
           style = "normal",
-          width = 120
+          width=120
         },
-        vb:button {
-          text = "Rounded",
+        vb:button{
+          text="Rounded",
           style = "rounded",
-          width = 120
-        },
-        vb:button {
-          text = "Rounded Left",
+          width=120},
+        vb:button{
+          text="Rounded Left",
           style = "rounded_left",
-          width = 120
-        },
-        vb:button {
-          text = "Rounded Right",
+          width=120},
+        vb:button{
+          text="Rounded Right",
           style = "rounded_right",
-          width = 120
-        },
-        vb:button {
-          text = "Rounded Top",
+          width=120},
+        vb:button{
+          text="Rounded Top",
           style = "rounded_top",
-          width = 120
-        },
-        vb:button {
-          text = "Rounded Bottom",
+          width=120},
+        vb:button{
+          text="Rounded Bottom",
           style = "rounded_bottom",
-          width = 120
-        }
-      },
+          width=120}},
 
       -- Section for Text Orientation Examples
-      vb:column {
-        spacing = 3,
-        vb:text {
-          text = "Text Orientation Examples",
+      vb:column{
+        spacing=3,
+        vb:text{
+          text="Text Orientation Examples",
           font = "bold",
-          align = "center",
-        },
-        vb:row {
-          spacing = 3,
+          align="center",},
+        vb:row{
+          spacing=3,
 
           -- Horizontal (Default)
-          vb:text {
-            text = "Horizontal",
+          vb:text{
+            text="Horizontal",
             orientation = "horizontal", -- Default orientation
-            width = 100,
+            width=100,
           },
 
           -- Horizontal Right to Left
-          vb:text {
-            text = "Horizontal-RL",
+          vb:text{
+            text="Horizontal-RL",
             orientation = "horizontal-rl",
-            width = 100,
+            width=100,
           },
         },
 
-        vb:row {
-          spacing = 3,
+        vb:row{
+          spacing=3,
 
           -- Vertical (Bottom to Top)
-          vb:text {
-            text = "Vertical",
+          vb:text{
+            text="Vertical",
             orientation = "vertical",
-            width = 20,      -- Adjust width for vertical text
+            width=20,      -- Adjust width for vertical text
             height = 100,
           },
 
           -- Vertical Top to Bottom
-          vb:text {
-            text = "Vertical-TB",
+          vb:text{
+            text="Vertical-TB",
             orientation = "vertical-tb",
-            width = 20,
+            width=20,
             height = 100,
           },
         },
       },
 
       -- Section for Text Style Examples
-      vb:column {
-        vb:text {
-          text = "Text Style Examples",
+      vb:column{
+        vb:text{
+          text="Text Style Examples",
           font = "bold",
-          align = "center",
+          align="center",
         },
-        vb:column {
+        vb:column{
           -- Bold Text
-          vb:text {
-            text = "This is bold text",
+          vb:text{
+            text="This is bold text",
             font = "bold",
           },
 
           -- Italic Text
-          vb:text {
-            text = "This is italic text",
+          vb:text{
+            text="This is italic text",
             font = "italic",
           },
 
           -- Monospace Text
-          vb:text {
-            text = "This is monospace text",
+          vb:text{
+            text="This is monospace text",
             font = "mono",
           },
 
           -- Code Font
-          vb:text {
-            text = "This is code font",
+          vb:text{
+            text="This is code font",
             font = "code",
           },
         },
       },
 
       -- Section for Cursor Shape Examples
-      vb:column {
-        vb:text {
-          text = "Cursor Shape Examples",
+      vb:column{
+        vb:text{
+          text="Cursor Shape Examples",
           font = "bold",
-          align = "center",
+          align="center",
         },
 
         -- Row containing columns of cursor demos
@@ -581,23 +572,22 @@
       },
 
       -- Integration of the new controls and canvas
-      vb:column {
-        vb:text {
-          text = "Canvas and Controls Demo",
+      vb:column{
+        vb:text{
+          text="Canvas and Controls Demo",
           font = "bold",
-          align = "center",
+          align="center",
         },
 
         -- Canvas View
         demo_canvas_view,
 
         -- Controls
-        vb:row {
-          spacing = 10,
+        vb:row{
+          spacing=10,
           demo_chooser_view,
           demo_rotary_view,
-          demo_switch_view,
-        },
+          demo_switch_view,},
 
         -- Scrollbar
         demo_scrollbar_view,
@@ -608,12 +598,8 @@
     return dialog_content
   end
 
-  -- Create the dialog content
   local dialog_content = create_dialog()
-
-  -- Show the dialog
   local dialog = renoise.app():show_custom_dialog("GUI Demo", dialog_content, my_keyhandler_func)
-
   -- Reset cursor when dialog is closed
   renoise.tool().app_release_document_observable:add_notifier(function()
     if dialog_content then

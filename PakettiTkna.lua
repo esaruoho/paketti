@@ -384,33 +384,33 @@ function showAvailableRoutings()
     local dialog -- Pre-declare the dialog variable so it can be referenced inside button callbacks
 
     -- Define the content of the dialog
-    local dialog_content = vb:column {
-        margin = 10,
-        spacing = 5,
-        vb:text {
-            text = "Select Output Routing for Selected Track:"
+    local dialog_content = vb:column{
+        margin=10,
+        spacing=5,
+        vb:text{
+            text="Select Output Routing for Selected Track:"
         },
-        vb:popup {
+        vb:popup{
             id = "popup_output_routings",
             items = available_output_routings,
             value = selected_routing_index or 1, -- Set the popup to the current routing, or default to the first item
-            width = 300,
+            width=300,
             notifier = function(index)
                 -- Update the selected index when a new item is selected
                 selected_routing_index = index
             end
         },
-        vb:row {
-            spacing = 10,
-            vb:button {
-                text = "OK",
+        vb:row{
+            spacing=10,
+            vb:button{
+                text="OK",
                 notifier = function()
                     apply_selected_routing(selected_routing_index)
                     dialog:close()
                 end
             },
-            vb:button {
-                text = "Cancel",
+            vb:button{
+                text="Cancel",
                 notifier = function()
                     dialog:close()
                 end
@@ -530,7 +530,7 @@ end
 -- Function to toggle the sequence selection based on the provided sequence number
 -- If there is a selection_range, turn it into a sequence loop
 function SequenceSelectionToLoop()
-  local song = renoise.song()
+  local song=renoise.song()
   local selection_start = song.sequencer.selection_range[1]
   local selection_end = song.sequencer.selection_range[2]
 
@@ -586,7 +586,7 @@ renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Sequences/Sectio
 
 -- Helper function to select and loop a specific section
 function select_and_loop_section(section_number)
-  local song = renoise.song()
+  local song=renoise.song()
   local sequencer = song.sequencer
   local sequence_count = #sequencer.pattern_sequence
 
@@ -628,7 +628,7 @@ end
 
 -- Helper function to find the current section index
 function find_current_section_index()
-  local song = renoise.song()
+  local song=renoise.song()
   local sequencer = song.sequencer
   local sequence_count = #sequencer.pattern_sequence
   local current_pos = song.transport.edit_pos.sequence
@@ -683,14 +683,14 @@ end
 
 -- Function to turn off the sequence selection
 function set_sequence_selection_off()
-  local song = renoise.song()
+  local song=renoise.song()
   song.transport.loop_sequence_range = {0, 0}
   renoise.app():show_status("Sequence selection turned off.")
 end
 
 -- Function to select and loop a specific section, or deselect it if already selected
 function select_and_loop_section(section_index)
-  local song = renoise.song()
+  local song=renoise.song()
   local sequencer = song.sequencer
   local sequence_count = #sequencer.pattern_sequence
   local current_section_index = 0
@@ -792,7 +792,7 @@ end
 --------
 
 function tknaContinueCurrentSequenceFromCurrentLine()
-  local song = renoise.song()
+  local song=renoise.song()
 
   local storedSequence = song.selected_sequence_index
   local step = 1
@@ -977,7 +977,7 @@ end
 
 -- Function to set the scheduled sequence as the current section
 function tknaSetCurrentSectionAsScheduledSequence()
-  local song = renoise.song()
+  local song=renoise.song()
   local sequencer = song.sequencer
   local transport = song.transport
   local current_sequence_index = song.selected_sequence_index
@@ -1023,7 +1023,7 @@ end
 
 -- Function to add the current section to the scheduled sequences
 function tknaAddCurrentSectionToScheduledSequences()
-  local song = renoise.song()
+  local song=renoise.song()
   local sequencer = song.sequencer
   local transport = song.transport
   local current_sequence_index = song.selected_sequence_index
@@ -1076,7 +1076,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Add Current Section to Scheduled S
 
 -- Function to expand the section loop step-by-step, adding the next section
 function expandSectionLoopNext()
-  local song = renoise.song()
+  local song=renoise.song()
   local sequencer = song.sequencer
   local transport = song.transport
   local current_sequence_index = song.selected_sequence_index
@@ -1135,7 +1135,7 @@ end
 
 -- Function to expand the section loop step-by-step, adding the previous section
 function expandSectionLoopPrevious()
-  local song = renoise.song()
+  local song=renoise.song()
   local sequencer = song.sequencer
   local transport = song.transport
   local current_sequence_index = song.selected_sequence_index
@@ -1203,7 +1203,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Section Loop (Previous)",invoke=ex
 
 -- Function to expand the sequence selection step-by-step
 function tknaSequenceSelectionPlusOne()
-  local song = renoise.song()
+  local song=renoise.song()
   local sequencer = song.sequencer
   local current_sequence_index = song.selected_sequence_index
   local selection_range = sequencer.selection_range
@@ -1230,7 +1230,7 @@ end
 
 -- Function to reduce the sequence selection step-by-step
 function tknaSequenceSelectionMinusOne()
-  local song = renoise.song()
+  local song=renoise.song()
   local sequencer = song.sequencer
   local current_sequence_index = song.selected_sequence_index
   local selection_range = sequencer.selection_range
@@ -1263,7 +1263,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Sequence Selection (Previous)",inv
 
 -- Function to expand the loop selection to the next sequence
 function tknaSequenceLoopSelectionNext()
-  local song = renoise.song()
+  local song=renoise.song()
   local transport = song.transport
   local sequencer = song.sequencer
   local total_sequences = #sequencer.pattern_sequence
@@ -1290,7 +1290,7 @@ end
 
 -- Function to expand the loop selection to the previous sequence
 function tknaSequenceLoopSelectionPrevious()
-  local song = renoise.song()
+  local song=renoise.song()
   local transport = song.transport
   local sequencer = song.sequencer
   local total_sequences = #sequencer.pattern_sequence
@@ -1323,7 +1323,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Sequence Loop Selection (Next)",in
 renoise.tool():add_midi_mapping{name="Paketti:Sequence Loop Selection (Previous)",invoke=tknaSequenceLoopSelectionPrevious}
 -- Function to add a loop to the current section content and schedule the section to play from the first sequence
 function tknaAddLoopAndScheduleSection()
-  local song = renoise.song()
+  local song=renoise.song()
   local sequencer = song.sequencer
   local transport = song.transport
   local current_sequence_index = song.selected_sequence_index
@@ -1375,7 +1375,7 @@ renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Sequences/Sectio
 renoise.tool():add_midi_mapping{name="Paketti:Set Section Loop and Schedule Section [Knob]",invoke=function(message) if message:is_trigger() then tknaAddLoopAndScheduleSection() end end}
 ---
 function tknaSetScheduledSequenceToCurrentSequenceAndLoop()
-  local song = renoise.song()
+  local song=renoise.song()
   local selection_start = song.selected_sequence_index
   local selection_end = song.selected_sequence_index
 
@@ -1411,7 +1411,7 @@ end
 
 -- Helper function to find all occurrences of a section by number
 local function findAllOccurrences(number)
-  local song = renoise.song()
+  local song=renoise.song()
   local sequencer = song.sequencer
   local total_sequences = #sequencer.pattern_sequence
   local occurrences = {}
@@ -1444,7 +1444,7 @@ end
 
 -- Helper function to find the section end based on the start index
 local function findSectionEnd(section_start)
-  local song = renoise.song()
+  local song=renoise.song()
   local total_sequences = #song.sequencer.pattern_sequence
 
   for j = section_start + 1, total_sequences do
@@ -1458,7 +1458,7 @@ end
 
 -- Function to select, trigger, and loop the next occurrence of the section
 function tknaSelectTriggerLoopSection(number)
-  local song = renoise.song()
+  local song=renoise.song()
   local transport = song.transport
   local occurrences = findAllOccurrences(number)
 
@@ -1482,7 +1482,7 @@ end
 
 -- Function to select, schedule, and loop the next occurrence of the section
 function tknaSelectScheduleLoopSection(number)
-  local song = renoise.song()
+  local song=renoise.song()
   local transport = song.transport
   local occurrences = findAllOccurrences(number)
 
@@ -1506,7 +1506,7 @@ end
 
 -- Function to select, add to schedule, and loop the next occurrence of the section
 function tknaSelectAddScheduleLoopSection(number)
-  local song = renoise.song()
+  local song=renoise.song()
   local transport = song.transport
   local occurrences = findAllOccurrences(number)
 

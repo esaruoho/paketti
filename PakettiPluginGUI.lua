@@ -96,42 +96,42 @@ end
     filterAUPlugins()
 
     function create_scrollable_plugin_list(title, plugins)
-        local columns = {vb:vertical_aligner {mode = "top", spacing = 2},
-                         vb:vertical_aligner {mode = "top", spacing = 2},
-                         vb:vertical_aligner {mode = "top", spacing = 2}} -- Three columns initialized
+        local columns = {vb:vertical_aligner {mode = "top", spacing=2},
+                         vb:vertical_aligner {mode = "top", spacing=2},
+                         vb:vertical_aligner {mode = "top", spacing=2}} -- Three columns initialized
 
         local numColumns = title == "VST Effects" and 3 or 2
 
         for i, plugin_name in ipairs(plugins) do
             local target_column = columns[((i - 1) % numColumns) + 1]
-            local checkbox = vb:checkbox {value = false, id = "checkbox_" .. title .. "_" .. tostring(i)}
+            local checkbox = vb:checkbox{value = false, id = "checkbox_" .. title .. "_" .. tostring(i)}
             checkboxes[#checkboxes + 1] = {checkbox = checkbox, name = plugin_name, type = title}
-            target_column:add_child(vb:row {
+            target_column:add_child(vb:row{
                 checkbox,
-                vb:text {text = plugin_name}
+                vb:text{text = plugin_name}
             })
         end
 
-        local columnContainer = vb:row {}
+        local columnContainer = vb:row{}
         for i = 1, numColumns do
             columnContainer:add_child(columns[i])
         end
 
-        return vb:column {
-            margin = 5,
-            vb:text {text = title, font = "bold"},
-            vb:row {
+        return vb:column{
+            margin=5,
+            vb:text{text = title, font = "bold"},
+            vb:row{
                 style = "panel",
                 height = 680, -- Adjusted height for effects
-                width = title == "VST Effects" and 660 or 440, -- Adjusted width for VST Effects
+                width=title == "VST Effects" and 660 or 440, -- Adjusted width for VST Effects
                 columnContainer
             }
         }
     end
 
-    local plugin_lists = vb:row {
-        margin = 10,
-        spacing = 10,
+    local plugin_lists = vb:row{
+        margin=10,
+        spacing=10,
         create_scrollable_plugin_list("VST Effects", categorized_plugins.VST),
         create_scrollable_plugin_list("AU Effects", categorized_plugins.AU),
         create_scrollable_plugin_list("Native", categorized_plugins.Native),
@@ -181,19 +181,19 @@ end
         end
     end
 
-    local action_buttons = vb:horizontal_aligner {
+    local action_buttons = vb:horizontal_aligner{
         mode = "right",
-        spacing = 10,
-        vb:button {
-            text = "Load Selected Plugin",
+        spacing=10,
+        vb:button{
+            text="Load Selected Plugin",
             notifier = function()
                 loadSelectedPlugin()
             end
         },
-        vb:button {
-            text = "Generate Shortcuts",
+        vb:button{
+            text="Generate Shortcuts",
             notifier = function()
-                local selected_plugins_text = ""
+                local selected_plugins_text=""
                 for _, cb_info in ipairs(checkboxes) do
                     if cb_info.checkbox.value then
                         selected_plugins_text = selected_plugins_text .. cb_info.name .. "\n"
@@ -205,13 +205,13 @@ end
                 renoise.app():show_message("Selected Plugins:\n" .. selected_plugins_text)
             end
         },
-        vb:button {
-            text = "Cancel",
+        vb:button{
+            text="Cancel",
             notifier = function() custom_dialog:close() end
         }
     }
 
-    local dialog_content = vb:column { action_buttons, plugin_lists }
+    local dialog_content = vb:column{action_buttons, plugin_lists }
     custom_dialog = renoise.app():show_custom_dialog("Plugin List", dialog_content)
 end
 

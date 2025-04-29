@@ -16,7 +16,7 @@ end
 
 function PakettiXRNSProbeClearText()
   if not dialog or not results_textfield then return end
-  results_textfield.text = ""
+  results_textfield.text=""
 end
 
 function PakettiXRNSProbeSetText(text)
@@ -35,9 +35,9 @@ function PakettiXRNSProbeShowDialog(mode)
 
   -- Create buttons array based on show_browse flag
   local buttons = {
-      vb:button {
-        text = "Show Current Song",
-        width = 120,
+      vb:button{
+        text="Show Current Song",
+        width=120,
         notifier = function() 
           PakettiXRNSProbeClearText()
           PakettiXRNSProbeAnalyzeCurrentSong() 
@@ -47,9 +47,9 @@ function PakettiXRNSProbeShowDialog(mode)
   
   -- Only add Browse button if show_browse is true
   if show_browse then
-    table.insert(buttons, vb:button {
-        text = "Browse XRNS",
-        width = 120,
+    table.insert(buttons, vb:button{
+        text="Browse XRNS",
+        width=120,
         notifier = function() 
           PakettiXRNSProbeClearText()
           PakettiXRNSProbeBrowseAndAnalyzeXRNS() 
@@ -58,9 +58,9 @@ function PakettiXRNSProbeShowDialog(mode)
   end
   
   -- Always add Save button
-  table.insert(buttons, vb:button {
-    text = "Save as .TXT",
-    width = 120,
+  table.insert(buttons, vb:button{
+    text="Save as .TXT",
+    width=120,
     notifier = function()
       local filename = renoise.app():prompt_for_filename_to_write("txt", "Save Analysis as Text File")
       if filename then
@@ -79,14 +79,14 @@ function PakettiXRNSProbeShowDialog(mode)
     end
   })
 
-  local dialog_content = vb:column {
-    vb:horizontal_aligner {
-      spacing = 4,
+  local dialog_content = vb:column{
+    vb:horizontal_aligner{
+      spacing=4,
       unpack(buttons)  -- Use the dynamically created buttons array
     },
     vb:multiline_textfield {
       id = "results",
-      width = 777,
+      width=777,
       height = 888,
       font = "mono"
     }
@@ -105,7 +105,7 @@ function PakettiXRNSProbeShowDialog(mode)
 end
 
 function PakettiXRNSProbeAnalyzeCurrentSong()
-  local song = renoise.song()
+  local song=renoise.song()
   if not song then
     PakettiXRNSProbeSetText("Error: No song loaded")
     return

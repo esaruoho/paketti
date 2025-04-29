@@ -180,7 +180,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:KeybOctave Up",invoke=functio
 renoise.tool():add_keybinding{name="Global:Paketti:KeybOctave Down",invoke=function() KeybOctave(-1) end}
 -----
 function PakettiTranspose(steps)
-  local song = renoise.song()
+  local song=renoise.song()
   local selection = renoise.song().selection_in_pattern
   local pattern = renoise.song().selected_pattern
 
@@ -247,7 +247,7 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Transpose +1 (Selecti
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Transpose -1 (Selection/Track)",invoke=function() PakettiTranspose(-1) end}
 --------------
 function PakettiTransposer(steps, selection_and_row)
-  local song = renoise.song()
+  local song=renoise.song()
   local selection = renoise.song().selection_in_pattern
   local pattern = renoise.song().selected_pattern
 
@@ -356,7 +356,7 @@ renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Transpos
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Transposer Selection/Row -11",invoke=function() PakettiTransposer(-11, true) end}
 --------------
 function PakettiTransposeNoteColumn(steps)
-  local song = renoise.song()
+  local song=renoise.song()
   local selection = song.selection_in_pattern
   local pattern = song.selected_pattern
 
@@ -821,7 +821,7 @@ function getSequencerSelectionLength()
     return nil
   end
 
-  local song = renoise.song()
+  local song=renoise.song()
   local selection = song.sequencer.selection_range
   
   if selection and #selection == 2 then
@@ -857,7 +857,7 @@ if renoise.API_VERSION >= 6.2 then
 
 -- MIDI CC knob implementation for smooth pattern line scrubbing
 function TriggerPatternLineMidiValue(midi_value)
-  local song = renoise.song()
+  local song=renoise.song()
   local pattern = song.selected_pattern
   local number_of_rows = pattern.number_of_lines
   
@@ -886,7 +886,7 @@ for i = 1, 512 do
   
   renoise.tool():add_keybinding{name=string.format("Global:Paketti:Trigger Pattern Line %03d (%s)", i, hex_number),
     invoke=function()
-      local song = renoise.song()
+      local song=renoise.song()
       local pattern = song.selected_pattern
       if i <= pattern.number_of_lines then
         song:trigger_pattern_line(i)
@@ -900,7 +900,7 @@ for i = 1, 512 do
   renoise.tool():add_midi_mapping{name=string.format("Global:Paketti:Trigger Pattern Line %03d (%s)", i, hex_number),
     invoke=function(message)
       if message.boolean_value then
-        local song = renoise.song()
+        local song=renoise.song()
         local pattern = song.selected_pattern
         if i <= pattern.number_of_lines then
           song:trigger_pattern_line(i)
@@ -1069,7 +1069,7 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:V3.5..:Show/Hide R
 
 
 function PhraseExposeAndSelectColumn(number)
-  local song = renoise.song()
+  local song=renoise.song()
   
   if song.selected_phrase == nil then
     renoise.app():show_status("No phrase selected")
@@ -1364,7 +1364,7 @@ function reset_output_delay(rename)
 end
 
 function reset_output_delayALL(rename)
-  local song = renoise.song()
+  local song=renoise.song()
   local count = 0
   
   -- Reset delays for sequencer tracks only

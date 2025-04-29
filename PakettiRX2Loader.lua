@@ -109,7 +109,7 @@ function rx2_loadsample(filename)
     print("pakettiPreferencesDefaultInstrumentLoader not found – skipping default configuration")
   end
 
-  local song = renoise.song()
+  local song=renoise.song()
   local smp = song.selected_sample
   
   -- Use the filename (minus the .rx2 extension) to create instrument name

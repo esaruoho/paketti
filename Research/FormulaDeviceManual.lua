@@ -5,7 +5,7 @@ local function retain_current_view()
 end
 
 function loadFormula(filepath, display_name, mixer_params)
-  local song = renoise.song()
+  local song=renoise.song()
   local window = renoise.app().window
   local device_path = "Audio/Effects/Native/*Formula"
   local formula_index = nil
@@ -143,14 +143,14 @@ function insert_formula_text(text)
 end
 
 function create_variable_row(vb, name, description)
-  return vb:row {
-    vb:button {
-      width = 100,
+  return vb:row{
+    vb:button{
+      width=100,
       text = name,
       notifier = function() insert_formula_text(name) end
     },
-    vb:text {
-      width = 200,
+    vb:text{
+      width=200,
       text = description
     }
   }
@@ -199,55 +199,55 @@ function show_manual()
   end
 
   local vb = renoise.ViewBuilder()
-  local content = vb:column {
+  local content = vb:column{
       -- Forum buttons row
-      vb:row{vb:text{text = "A selection of Forum posts on the Formula Device", font = "bold", style="strong"}},
-      vb:row {
-        vb:button {text = "Forum 1", notifier = function() renoise.app():open_url("https://forum.renoise.com/t/formula-device-ama/71755") end},
-        vb:button {text = "Forum 2", notifier = function() renoise.app():open_url("https://forum.renoise.com/t/post-your-formula-device-code-here/47307") end},
-        vb:button {text = "Forum 3", notifier = function() renoise.app():open_url("https://forum.renoise.com/t/formula-transpose-for-eq-other-devices/41880") end},
-        vb:button {text = "Forum 4", notifier = function() renoise.app():open_url("https://forum.renoise.com/t/formula-device-how-to-learn-to-write-formulas/64197") end},
-        vb:button {text = "Forum 5", notifier = function() renoise.app():open_url("https://forum.renoise.com/t/what-is-the-formula-device/34346") end},
-        vb:button {text = "Forum 6", notifier = function() renoise.app():open_url("https://forum.renoise.com/t/generative-sequences-with-the-formula-device/48938") end},
-        vb:button {text = "Forum 7", notifier = function() renoise.app():open_url("https://forum.renoise.com/t/mathematically-come-up-with-eq-frequencies-for-specific-notes/58739/5") end},
-        vb:button {text = "Forum 8", notifier = function() renoise.app():open_url("https://forum.renoise.com/t/formula-device/39980/4") end},
+      vb:row{vb:text{text="A selection of Forum posts on the Formula Device", font = "bold", style="strong"}},
+      vb:row{
+        vb:button{text="Forum 1", notifier = function() renoise.app():open_url("https://forum.renoise.com/t/formula-device-ama/71755") end},
+        vb:button{text="Forum 2", notifier = function() renoise.app():open_url("https://forum.renoise.com/t/post-your-formula-device-code-here/47307") end},
+        vb:button{text="Forum 3", notifier = function() renoise.app():open_url("https://forum.renoise.com/t/formula-transpose-for-eq-other-devices/41880") end},
+        vb:button{text="Forum 4", notifier = function() renoise.app():open_url("https://forum.renoise.com/t/formula-device-how-to-learn-to-write-formulas/64197") end},
+        vb:button{text="Forum 5", notifier = function() renoise.app():open_url("https://forum.renoise.com/t/what-is-the-formula-device/34346") end},
+        vb:button{text="Forum 6", notifier = function() renoise.app():open_url("https://forum.renoise.com/t/generative-sequences-with-the-formula-device/48938") end},
+        vb:button{text="Forum 7", notifier = function() renoise.app():open_url("https://forum.renoise.com/t/mathematically-come-up-with-eq-frequencies-for-specific-notes/58739/5") end},
+        vb:button{text="Forum 8", notifier = function() renoise.app():open_url("https://forum.renoise.com/t/formula-device/39980/4") end},
       },
-      vb:row{vb:text{text = "Presets", font = "bold", style="strong"}},
-      vb:row {
-        vb:button {text = "Input Inertia", 
+      vb:row{vb:text{text="Presets", font = "bold", style="strong"}},
+      vb:row{
+        vb:button{text="Input Inertia", 
           notifier = function() loadFormula("./Research/FormulaDeviceXML_Input_Inertia.txt", "Input Inertia", 2) end},
-        vb:button {text = "Input Line Quantize", 
+        vb:button{text="Input Line Quantize", 
           notifier = function() loadFormula("./Research/FormulaDeviceXML_Input_Line_Quantize.txt", "Input Line Quantize", 3) end},
-        vb:button {text = "LFO Beat Sync", 
+        vb:button{text="LFO Beat Sync", 
           notifier = function() loadFormula("./Research/FormulaDeviceXML_LFO_Beat_Sync.txt", "LFO Beat Sync", 3) end},
-        vb:button {text = "LFO Chaotic", 
+        vb:button{text="LFO Chaotic", 
           notifier = function() loadFormula("./Research/FormulaDeviceXML_LFO_Chaotic.txt", "LFO Chaotic", 3) end},
-        vb:button {text = "Mixer Equal Weight", 
+        vb:button{text="Mixer Equal Weight", 
           notifier = function() loadFormula("./Research/FormulaDeviceXML_Mixer_Equal_Weight.txt", "Mixer Equal Weight", 3) end},
-          vb:button {text = "kRAkEn/gORe Inertial Slider", 
+          vb:button{text="kRAkEn/gORe Inertial Slider", 
           notifier = function() loadFormula("./Research/FormulaDeviceXML_Inertial_Slider.txt", "Inertial Slider", 2) end},
-          vb:button {text = "kRAkEn/gORe The Stepper", 
+          vb:button{text="kRAkEn/gORe The Stepper", 
           notifier = function() loadFormula("./Research/FormulaDeviceXML_The_Stepper.txt", "The Stepper", 3) end},
       },
       vb:row{
-          vb:button {text = "jk123 Spring Slider", 
+          vb:button{text="jk123 Spring Slider", 
           notifier = function() loadFormula("./Research/FormulaDeviceXML_Spring_Slider.txt", "Spring Slider", 3) end},
-          vb:button {text = "Cas Super Formula", 
+          vb:button{text="Cas Super Formula", 
           notifier = function() loadFormula("./Research/FormulaDeviceXML_Super_Formula.txt", "Super Formula", 2) end},
-          vb:button {text = "Cas Sample & Hold", 
+          vb:button{text="Cas Sample & Hold", 
           notifier = function() loadFormula("./Research/FormulaDeviceXML_Sample_and_Hold.txt", "Sample & Hold", 2) end},
-          vb:button {text = "Martblek Lorenz LFO", 
+          vb:button{text="Martblek Lorenz LFO", 
           notifier = function() loadFormula("./Research/FormulaDeviceXML_LorenzLFO.txt", "LorenzLFO", 3) end},
-          vb:button {text = "Bit_Arts Meta Modulator", 
+          vb:button{text="Bit_Arts Meta Modulator", 
           notifier = function() loadFormula("./Research/FormulaDeviceXML_Meta_Modulator.txt", "Meta Modulator", 3) end},
-          vb:button {text = "Afta8 Slew Limiter", 
+          vb:button{text="Afta8 Slew Limiter", 
           notifier = function() loadFormula("./Research/FormulaDeviceXML_Slew_Limiter.txt", "Slew Limiter", 2) end},
       },
-      vb:row{vb:text{text = "Paketti Experiments", font = "bold", style="strong"}},
-      vb:row{          
-          vb:button {text = "Paketti Silencer 1-3", 
+      vb:row{vb:text{text="Paketti Experiments", font = "bold", style="strong"}},
+      vb:row{         
+          vb:button{text="Paketti Silencer 1-3", 
           notifier = function() loadFormula("./Research/FormulaDeviceXML_Silencer_1-3.txt", "Paketti Silencer 1-3", 0) end},
-        vb:button {text = "Paketti Play/Silence/Tremolo", 
+        vb:button{text="Paketti Play/Silence/Tremolo", 
           notifier = function() 
             loadFormula("./Research/FormulaDeviceXML_Playcount_Silencecount.txt", "PakettiPlay/Silence/Tremolo", 3)
             local device = renoise.song().selected_device
@@ -278,21 +278,21 @@ function show_manual()
       },
   
 
-  vb:row {
+  vb:row{
     -- Left Column: Input Variables + Math Constants
-    vb:column {
-      vb:text { text = "INPUT VARIABLES", font = "bold", style="strong" },
+    vb:column{
+      vb:text{text="INPUT VARIABLES", font = "bold", style="strong" },
       create_variable_row(vb, "A", "First input parameter [0..1]"),
       create_variable_row(vb, "B", "Second input parameter [0..1]"),
       create_variable_row(vb, "C", "Third input parameter [0..1]"),
       create_variable_row(vb, "OUTPUT", "Output parameter from previous run"),
       
-      vb:text { text = "MATH CONSTANTS", font = "bold", style="strong" },
+      vb:text{text="MATH CONSTANTS", font = "bold", style="strong" },
       create_variable_row(vb, "PI", "Pi constant"),
       create_variable_row(vb, "TWOPI", "2*Pi constant"),
       create_variable_row(vb, "INF", "Infinity (huge positive number)"),
       
-      vb:text { text = "MUSICAL VARIABLES", font = "bold", style="strong" },
+      vb:text{text="MUSICAL VARIABLES", font = "bold", style="strong" },
       create_variable_row(vb, "PLAYING", "Playing or stopped (1 or 0)"),
       create_variable_row(vb, "SRATE", "Actual sampling rate"),
       create_variable_row(vb, "BPM", "Beats per minute"),
@@ -314,8 +314,8 @@ function show_manual()
     },
 
     -- Right Column: Functions
-    vb:column {
-      vb:text { text = "FUNCTIONS", font = "bold", style="strong" },
+    vb:column{
+      vb:text{text="FUNCTIONS", font = "bold", style="strong" },
       create_variable_row(vb, "abs(x)", "Absolute value"),
       create_variable_row(vb, "acos(x)", "Arc cosine"),
       create_variable_row(vb, "asin(x)", "Arc sine"),

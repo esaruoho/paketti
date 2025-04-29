@@ -10,7 +10,7 @@ local math_abs   = math.abs
 
 function NormalizeSelectedSliceInSample()
   local noprocess = false
-  local song = renoise.song()
+  local song=renoise.song()
   local instrument = song.selected_instrument
   local current_slice = song.selected_sample_index
   local first_sample = instrument.samples[1]
@@ -845,7 +845,7 @@ end
 
 
 function ReverseSelectedSliceInSample()
-  local song = renoise.song()
+  local song=renoise.song()
   local instrument = song.selected_instrument
   local current_slice = song.selected_sample_index
   local first_sample = instrument.samples[1]
@@ -1282,7 +1282,7 @@ function mono_to_blank(left_channel, right_channel)
   end
 
   -- Ensure an instrument is selected
-  local song = renoise.song()
+  local song=renoise.song()
   local instrument = song.selected_instrument
   if not instrument then
     renoise.app():show_status("No instrument is selected.")
@@ -1390,7 +1390,7 @@ function convert_mono_to_stereo()
   end
 
   -- Ensure an instrument is selected
-  local song = renoise.song()
+  local song=renoise.song()
   local instrument = song.selected_instrument
   if not instrument then
     renoise.app():show_status("No instrument is selected.")
@@ -1490,7 +1490,7 @@ function convert_mono_to_stereo_optimized()
   end
 
   -- Ensure an instrument is selected
-  local song = renoise.song()
+  local song=renoise.song()
   local instrument = song.selected_instrument
   if not instrument then
     renoise.app():show_status("No instrument is selected.")
@@ -1651,7 +1651,7 @@ function mono_to_blank_optimized(left_channel, right_channel)
   end
 
   -- Ensure an instrument is selected
-  local song = renoise.song()
+  local song=renoise.song()
   local instrument = song.selected_instrument
   if not instrument then
     renoise.app():show_status("No instrument is selected.")
@@ -1817,7 +1817,7 @@ function stereo_to_mono_optimized(keep_channel)
   end
 
   -- Ensure an instrument is selected
-  local song = renoise.song()
+  local song=renoise.song()
   local instrument = song.selected_instrument
   if not instrument then
     renoise.app():show_status("No instrument is selected.")
@@ -2013,7 +2013,7 @@ function stereo_to_mono_mix_optimized()
   end
 
   -- Ensure an instrument is selected
-  local song = renoise.song()
+  local song=renoise.song()
   local instrument = song.selected_instrument
   if not instrument then
     renoise.app():show_status("No instrument is selected.")
@@ -2335,7 +2335,7 @@ function convert_bit_depth(target_bits)
     end
 
     -- Ensure an instrument is selected
-    local song = renoise.song()
+    local song=renoise.song()
     local instrument = song.selected_instrument
     if not instrument then
         renoise.app():show_status("No instrument is selected.")
@@ -2585,7 +2585,7 @@ function convert_all_samples_to_bit_depth(target_bits)
     end
 
     -- Ensure an instrument is selected
-    local song = renoise.song()
+    local song=renoise.song()
     local instrument = song.selected_instrument
     if not instrument then
         renoise.app():show_status("No instrument is selected.")

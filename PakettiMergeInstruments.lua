@@ -1,6 +1,6 @@
 -- Function to merge samples and keymaps from source to target instrument
 function PakettiMergeInstruments(source_index, target_index)
-  local song = renoise.song()
+  local song=renoise.song()
   
   -- Validate instrument indices
   if not source_index or not target_index then
@@ -87,18 +87,18 @@ end
 local function show_merge_dialog(initial_source_index, initial_target_index)
   local vb = renoise.ViewBuilder()
   local dialog
-  local song = renoise.song()
+  local song=renoise.song()
   
   local source_index = initial_source_index or 1
   local target_index = initial_target_index or 2
   
   -- Create text views first so we can reference them
-  local source_name_text = vb:text {
+  local source_name_text = vb:text{
     text = song.instruments[source_index].name,
     font = "italic"
   }
   
-  local target_name_text = vb:text {
+  local target_name_text = vb:text{
     text = song.instruments[target_index].name,
     font = "italic"
   }
@@ -109,19 +109,19 @@ local function show_merge_dialog(initial_source_index, initial_target_index)
     target_name_text.text = song.instruments[target_index].name
   end
   
-  local content = vb:column {
-    vb:text { 
-      text = "Merge samples and keymaps from source to target instrument",
-      width = "100%"
+  local content = vb:column{
+    vb:text{
+      text="Merge samples and keymaps from source to target instrument",
+      width="100%"
     },
     vb:space { height = 5 },
-    vb:row {
-      vb:text { 
-        text = "Source Instrument",
-        width = 100,
+    vb:row{
+      vb:text{
+        text="Source Instrument",
+        width=100,
       },
-      vb:row {
-        vb:valuebox {
+      vb:row{
+        vb:valuebox{
           min = 1,
           max = #song.instruments,
           value = source_index,
@@ -132,18 +132,18 @@ local function show_merge_dialog(initial_source_index, initial_target_index)
             update_names()
           end
         },
-        vb:space { width = 5 },
+        vb:space { width=5 },
         source_name_text
       }
     },
     vb:space { height = 3 },
-    vb:row {
-      vb:text { 
-        text = "Target Instrument",
-        width = 100,
+    vb:row{
+      vb:text{
+        text="Target Instrument",
+        width=100,
       },
-      vb:row {
-        vb:valuebox {
+      vb:row{
+        vb:valuebox{
           min = 1,
           max = #song.instruments,
           value = target_index,
@@ -154,14 +154,14 @@ local function show_merge_dialog(initial_source_index, initial_target_index)
             update_names()
           end
         },
-        vb:space { width = 5 },
+        vb:space { width=5 },
         target_name_text
       }
     },
     vb:space { height = 5 },
-    vb:button {
-      text = "Merge",
-      width = "100%",
+    vb:button{
+      text="Merge",
+      width="100%",
       notifier = function()
         if source_index == target_index then
           renoise.app():show_error("Source and target must be different")
@@ -178,7 +178,7 @@ local function show_merge_dialog(initial_source_index, initial_target_index)
 end
 
 function mergeInstrumentsDialog()
-  local song = renoise.song()
+  local song=renoise.song()
   local target_index = song.selected_instrument_index
   local source_index = target_index - 1
   if source_index < 1 then

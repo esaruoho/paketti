@@ -1,6 +1,6 @@
 -- Function to toggle showing only one specific column type
 function showOnlyColumnType(column_type)
-    local song = renoise.song()
+    local song=renoise.song()
     
     -- Validate column_type parameter
     if not column_type or type(column_type) ~= "string" then
@@ -78,7 +78,7 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Show Only Delay Colum
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Show Only Effect Columns",invoke=function() showOnlyColumnType("effects") end}
 --
 function detect_zero_crossings()
-    local song = renoise.song()
+    local song=renoise.song()
     local sample = song.selected_sample
   
     if not sample or not sample.sample_buffer.has_sample_data then
@@ -213,15 +213,15 @@ function show_speed_tempo_dialog()
 
   -- Valueboxes for Speed and Tempo
   local vb = renoise.ViewBuilder()
-  local dialog_content = vb:column {
-    margin = 10,
-    spacing = 8,
+  local dialog_content = vb:column{
+    margin=10,
+    spacing=8,
 
-    vb:row {
-      --spacing = 10,
-      vb:column {
-        vb:text { text = "Speed:" },
-        vb:valuebox {
+    vb:row{
+      --spacing=10,
+      vb:column{
+        vb:text{text="Speed:" },
+        vb:valuebox{
           min = 1,
           max = 255,
           value = speed,
@@ -234,9 +234,9 @@ function show_speed_tempo_dialog()
           end
         }
       },
-      vb:column {
-        vb:text { text = "Tempo:" },
-        vb:valuebox {
+      vb:column{
+        vb:text{text="Tempo:" },
+        vb:valuebox{
           min = 32,
           max = 255,
           value = tempo,
@@ -250,26 +250,26 @@ function show_speed_tempo_dialog()
     },
 
     -- Result Display
-    vb:row {
-      vb:text {
+    vb:row{
+      vb:text{
         id = "result_label",
         text = string.format("Speed %d Tempo %d is %.2f BPM", speed, tempo, real_bpm)
       }
     },
     
     -- Set BPM Button
-    vb:row {
-      vb:button {
-        text = "Set BPM",
-        width = 60,
+    vb:row{
+      vb:button{
+        text="Set BPM",
+        width=60,
         notifier = function()
           renoise.song().transport.bpm = real_bpm
           renoise.app():show_status(string.format("BPM set to %.2f", real_bpm))
         end
       },
-      vb:button {
-        text = "Close",
-        width = 60,
+      vb:button{
+        text="Close",
+        width=60,
         notifier = function()
           if dialog and dialog.visible then
             dialog:close()
@@ -323,7 +323,7 @@ end
 
 -- Function to configure time signature settings
 function configureTimeSignature(F, K)
-  local song = renoise.song()
+  local song=renoise.song()
   
   -- Check and adjust values if they exceed limits
   local adjusted_F, adjusted_K = adjustValuesForRenoiseLimits(F, K)
@@ -417,13 +417,13 @@ end
 function showTimeSignatureDialog()
   local vb = renoise.ViewBuilder()
   
-  local DIALOG_MARGIN = renoise.ViewBuilder.DEFAULT_DIALOG_MARGIN
-  local CONTENT_SPACING = renoise.ViewBuilder.DEFAULT_CONTROL_SPACING
+  local DIALOG_margin=renoise.ViewBuilder.DEFAULT_DIALOG_MARGIN
+  local CONTENT_spacing=renoise.ViewBuilder.DEFAULT_CONTROL_SPACING
   
   local function createPresetButton(text, F, K)
-    return vb:button {
+    return vb:button{
       text = text,
-      width = 60,
+      width=60,
       notifier = function()
         vb.views.numerator.value = F
         vb.views.denominator.value = K
@@ -494,27 +494,27 @@ function showTimeSignatureDialog()
     end
   end
   
-  local dialog_content = vb:column {
-    margin = DIALOG_MARGIN,
-    spacing = CONTENT_SPACING,
+  local dialog_content = vb:column{
+    margin=DIALOG_MARGIN,
+    spacing=CONTENT_SPACING,
     
-    vb:horizontal_aligner {
+    vb:horizontal_aligner{
       mode = "center",
-      vb:row {
-        spacing = CONTENT_SPACING,
-        vb:text { text = "Rows per Beat:" },
-        vb:valuebox {
+      vb:row{
+        spacing=CONTENT_SPACING,
+        vb:text{text="Rows per Beat:" },
+        vb:valuebox{
           id = "numerator",
-          width = 70,
+          width=70,
           min = 1,
           max = 20,
           value = 4,
           notifier = function() updatePreview() end
         },
-        vb:text { text = "Beats per Pattern:" },
-        vb:valuebox {
+        vb:text{text="Beats per Pattern:" },
+        vb:valuebox{
           id = "denominator",
-          width = 70,
+          width=70,
           min = 1,
           max = 20,
           value = 4,
@@ -526,16 +526,16 @@ function showTimeSignatureDialog()
     vb:space { height = 10 },
     
     -- Common time signatures grid
-    vb:column {
+    vb:column{
       style = "group",
-      margin = DIALOG_MARGIN,
-      spacing = CONTENT_SPACING,
+      margin=DIALOG_MARGIN,
+      spacing=CONTENT_SPACING,
       
-      vb:text { text = "Presets:" },
+      vb:text{text="Presets:" },
       
       -- Common time signatures first
-      vb:row { 
-        spacing = CONTENT_SPACING,
+      vb:row{
+        spacing=CONTENT_SPACING,
         createPresetButton("4/4", 4, 4),
         createPresetButton("3/4", 3, 4),
         createPresetButton("5/4", 5, 4),
@@ -543,8 +543,8 @@ function showTimeSignatureDialog()
         createPresetButton("9/8", 9, 8)
       },
       -- Septuple meters
-      vb:row { 
-        spacing = CONTENT_SPACING,
+      vb:row{
+        spacing=CONTENT_SPACING,
         createPresetButton("7/4", 7, 4),
         createPresetButton("7/8", 7, 8),
         createPresetButton("7/9", 7, 9),
@@ -552,28 +552,28 @@ function showTimeSignatureDialog()
         createPresetButton("7/6", 7, 6)
       },
       -- Other time signatures
-      vb:row { 
-        spacing = CONTENT_SPACING,
+      vb:row{
+        spacing=CONTENT_SPACING,
         createPresetButton("2/5", 2, 5),
         createPresetButton("3/5", 3, 5),
         createPresetButton("8/5", 8, 5),
         createPresetButton("9/5", 9, 5),
         createPresetButton("7/7", 7, 7)
       },
-      vb:row { 
-        spacing = CONTENT_SPACING,
+      vb:row{
+        spacing=CONTENT_SPACING,
         createPresetButton("8/10", 8, 10),
         createPresetButton("9/10", 9, 10),
         createPresetButton("7/10", 7, 10),
         createPresetButton("3/18", 3, 18),
         createPresetButton("4/14", 4, 14)
       },
-    vb:column {
+    vb:column{
       id = "preview",
     --  style = "group",
-    --  margin = DIALOG_MARGIN,
+    --  margin=DIALOG_MARGIN,
       
-      vb:text { 
+      vb:text{
         id = "preview_text",
         text = string.format(
           "BPM: %d\nLPB: %d\nPattern Length: %d",
@@ -584,11 +584,11 @@ function showTimeSignatureDialog()
       }}
     },
     
-    vb:horizontal_aligner {
+    vb:horizontal_aligner{
       mode = "center",
-      vb:button {
-        text = "Apply",
-        width = 90,
+      vb:button{
+        text="Apply",
+        width=90,
         notifier = function()
           local F = tonumber(vb.views.numerator.value)
           local K = tonumber(vb.views.denominator.value)
@@ -618,7 +618,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Paketti Beat Structure Editor
 
 -- Function to toggle columns with configurable options
 function toggleColumns(include_sample_effects)
-    local song = renoise.song()
+    local song=renoise.song()
     
     -- Check the first track's state to determine if we should show or hide
     local first_track = song.tracks[1]

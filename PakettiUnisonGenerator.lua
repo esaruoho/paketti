@@ -1,5 +1,5 @@
 function PakettiCreateUnisonSamples()
-  local song = renoise.song()
+  local song=renoise.song()
   local selected_instrument_index = song.selected_instrument_index
   local instrument = song.selected_instrument
 

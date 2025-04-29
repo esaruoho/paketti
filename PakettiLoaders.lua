@@ -1115,40 +1115,40 @@ function show_plugin_details_gui()
   local vb = renoise.ViewBuilder()
   local available_plugin_infos = get_sorted_and_grouped_plugin_infos()
 
-  local dialog_content = vb:column {
-    margin = 10,
-    spacing = 5,
-    vb:row {
-      vb:column {
-        width = 300,
-        vb:text {
-          text = "Available Plugins:"
+  local dialog_content = vb:column{
+    margin=10,
+    spacing=5,
+    vb:row{
+      vb:column{
+        width=300,
+        vb:text{
+          text="Available Plugins:"
         },
-        vb:popup {
+        vb:popup{
           id = "plugins_list",
           items = {"--Select a Plugin--"}, -- Placeholder at index 1
-          width = 300,
+          width=300,
           notifier = function(index)
             vb.views.plugin_details.text = display_selected_plugin_details(index, available_plugin_infos)
           end
         }
       },
-      vb:column {
-        spacing = 5,
-        vb:text {
-          text = "Plugin Details:"
+      vb:column{
+        spacing=5,
+        vb:text{
+          text="Plugin Details:"
         },
         vb:multiline_textfield {
           id = "plugin_details",
-          text = "After you select a Plugin Instrument, you will get some additional data here for said Plugin.", -- Default text
+          text="After you select a Plugin Instrument, you will get some additional data here for said Plugin.", -- Default text
           font = "mono",
-          width = 400,
+          width=400,
           height = 300
         },
       },
     },
-    vb:button {
-      text = "Close",
+    vb:button{
+      text="Close",
       released = function()
         if dialog and dialog.visible then
           dialog:close()
@@ -1267,40 +1267,40 @@ function show_effect_details_gui()
     table.insert(device_names, info.name)
   end
 
-  local dialog_content = vb:column {
-    margin = 10,
-    spacing = 5,
-    vb:row {
-      vb:column {
-        width = 300,
-        vb:text {
-          text = "Available Devices:"
+  local dialog_content = vb:column{
+    margin=10,
+    spacing=5,
+    vb:row{
+      vb:column{
+        width=300,
+        vb:text{
+          text="Available Devices:"
         },
-        vb:popup {
+        vb:popup{
           id = "devices_list",
           items = {"--Select a Device--", unpack(device_names)},
-          width = 300,
+          width=300,
           notifier = function(index)
             vb.views.device_details.text = display_selected_device_details(index - 1, available_device_infos)
           end
         }
       },
-      vb:column {
-        spacing = 5,
-        vb:text {
-          text = "Device Details:"
+      vb:column{
+        spacing=5,
+        vb:text{
+          text="Device Details:"
         },
         vb:multiline_textfield {
           id = "device_details",
-          text = "Select a Device to see its details.", -- Default text
+          text="Select a Device to see its details.", -- Default text
           font = "mono",
-          width = 400,
+          width=400,
           height = 300
         }
       },
     },
-    vb:button {
-      text = "Close",
+    vb:button{
+      text="Close",
       released = function()
         if dialog and dialog.visible then
           dialog:close()
@@ -1327,7 +1327,7 @@ local modtargets = {
   {name= "06 Drive", target = renoise.SampleModulationDevice.TARGET_DRIVE}}
 
 function loadModulationDevice(devicename, device_target)
-  local song = renoise.song()
+  local song=renoise.song()
   local instrument = song.selected_instrument
   local sample_index = song.selected_sample_index
   local mod_set_index
@@ -1496,7 +1496,7 @@ renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Devices..:Enable Al
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Devices..:Bypass All Devices on Track",invoke=function() effectbypass() end}
 
 function PakettiAllDevices(state)
-  local song = renoise.song()
+  local song=renoise.song()
   local total_tracks = song.sequencer_track_count + 1 + song.send_track_count
 
   for i = 1, total_tracks do
@@ -1824,7 +1824,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Insert Stereo -> Mono device 
 
 -- Function to hide all visible external editors of Devices
 function hide_all_external_editors()
-  local song = renoise.song()
+  local song=renoise.song()
   local num_tracks = #song.tracks
   local num_instruments = #song.instruments
 
@@ -1977,7 +1977,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Randomize All Plugins in Song
 
 -- Function to randomize parameters of the selected device by a given intensity
 function randomizeSelectedDeviceFromGUI(intensity)
-  local song = renoise.song()
+  local song=renoise.song()
   local device = song.selected_device
 
   if not device then
@@ -2003,7 +2003,7 @@ end
 
 -- Function to randomize parameters of all devices on the selected track by a given intensity
 function randomizeAllDevicesOnTrack(intensity)
-  local song = renoise.song()
+  local song=renoise.song()
   local track = song.selected_track
 
   if not track then
@@ -2032,7 +2032,7 @@ end
 
 -- Function to randomize parameters of the selected instrument plugin by a given intensity
 function randomizeSelectedPluginFromGUI(intensity)
-  local song = renoise.song()
+  local song=renoise.song()
   local instrument = song.selected_instrument
 
   if not instrument.plugin_properties.plugin_loaded then
@@ -2059,7 +2059,7 @@ end
 
 -- Function to randomize parameters of all plugins in the song by a given intensity
 function randomizeAllPluginsInSong(intensity)
-  local song = renoise.song()
+  local song=renoise.song()
   for _, instrument in ipairs(song.instruments) do
     if instrument.plugin_properties.plugin_loaded then
       local device = instrument.plugin_properties
@@ -2082,7 +2082,7 @@ end
 
 -- Function to show/hide the external editor of the selected device
 function toggleExternalEditor()
-  local song = renoise.song()
+  local song=renoise.song()
   local device = song.selected_device
 
   if device and device.external_editor_available then
@@ -2096,7 +2096,7 @@ end
 
 -- Function to show/hide all external editors on the selected track
 function toggleAllExternalEditorsOnTrack()
-  local song = renoise.song()
+  local song=renoise.song()
   local track = song.selected_track
 
   if not track then
@@ -2120,7 +2120,7 @@ end
 
 -- Function to show/hide the external editor of the selected instrument plugin
 function toggleExternalPluginEditor()
-  local song = renoise.song()
+  local song=renoise.song()
   local instrument = song.selected_instrument
 
   if instrument.plugin_properties.plugin_loaded and instrument.plugin_properties.plugin_device.external_editor_available
@@ -2135,7 +2135,7 @@ end
 
 -- Function to show/hide all external editors for all plugins in the song
 function toggleAllExternalPluginEditorsInSong()
-  local song = renoise.song()
+  local song=renoise.song()
 
   for _, instrument in ipairs(song.instruments) do
     if instrument.plugin_properties.plugin_loaded and instrument.plugin_properties.plugin_device.external_editor_available then
@@ -2148,7 +2148,7 @@ end
 
 function openCombinedRandomizerDialog()
   local vb = renoise.ViewBuilder()
-  local song = renoise.song()
+  local song=renoise.song()
   local device = song.selected_device
   local track = song.selected_track
   local instrument = song.selected_instrument
@@ -2177,172 +2177,172 @@ local instrument_plugin_name = instrument.plugin_properties.plugin_device and in
   end
 
   local dialog_content = vb:row{
-    --margin = 10,
+    --margin=10,
     vb:column{style="border",
-      margin = 10,
+      margin=10,
       
       vb:text{font="bold",style="strong",text="Selected Device"},
       vb:text{id = "device_short_name", font = "bold", text = device_short_name},
-      vb:horizontal_aligner{mode = "center", vb:text{text = "Randomization Intensity (%)"}},
-      vb:slider{id = "randomize_slider_device", min = 0, max = 100, value = preferences.RandomizeSettings.pakettiRandomizeSelectedDevicePercentage.value, width = 200, notifier = function()
+      vb:horizontal_aligner{mode = "center", vb:text{text="Randomization Intensity (%)"}},
+      vb:slider{id = "randomize_slider_device", min = 0, max = 100, value = preferences.RandomizeSettings.pakettiRandomizeSelectedDevicePercentage.value,width=200, notifier = function()
         local slider_value = vb.views["randomize_slider_device"].value
         vb.views["slider_value_text_device"].text = string.format("%.1f%%", slider_value)
       end},
       vb:horizontal_aligner{mode = "center", vb:text{id = "slider_value_text_device", text = string.format("%.1f%%", preferences.RandomizeSettings.pakettiRandomizeSelectedDevicePercentage.value)}},
-      vb:horizontal_aligner{mode = "center", vb:button{text = "Randomize Selected Device", width = 200, notifier = function()
+      vb:horizontal_aligner{mode = "center", vb:button{text="Randomize Selected Device",width=200, notifier = function()
         local slider_value = vb.views["randomize_slider_device"].value
         randomizeSelectedDeviceFromGUI(slider_value)
         save_current_intensity()
       end}},
       vb:horizontal_aligner{mode = "center", 
-      vb:text{text="User1:"}, vb:text{id = "user_preference1_text_device", text = string.format("%.1f%%", preferences.RandomizeSettings.pakettiRandomizeSelectedDevicePercentageUserPreference1.value), width = 50}, 
-      vb:button{text="Run", width=50, notifier=function()
+      vb:text{text="User1:"}, vb:text{id = "user_preference1_text_device", text = string.format("%.1f%%", preferences.RandomizeSettings.pakettiRandomizeSelectedDevicePercentageUserPreference1.value),width=50}, 
+      vb:button{text="Run",width=50, notifier=function()
       randomizeSelectedDeviceFromGUI(preferences.RandomizeSettings.pakettiRandomizeSelectedDevicePercentageUserPreference1.value) end},
-      vb:button{text = "Set", width = 50, notifier = function()
+      vb:button{text="Set",width=50, notifier = function()
         set_user_preference("pakettiRandomizeSelectedDevicePercentageUserPreference1", "randomize_slider_device", "user_preference1_text_device")
       end}},
       vb:horizontal_aligner{mode = "center", 
-      vb:text{text="User2:"}, vb:text{id = "user_preference2_text_device", text = string.format("%.1f%%", preferences.RandomizeSettings.pakettiRandomizeSelectedDevicePercentageUserPreference2.value), width = 50}, 
-      vb:button{text="Run", width=50, notifier=function()
+      vb:text{text="User2:"}, vb:text{id = "user_preference2_text_device", text = string.format("%.1f%%", preferences.RandomizeSettings.pakettiRandomizeSelectedDevicePercentageUserPreference2.value),width=50}, 
+      vb:button{text="Run",width=50, notifier=function()
       randomizeSelectedDeviceFromGUI(preferences.RandomizeSettings.pakettiRandomizeSelectedDevicePercentageUserPreference2.value) end},
-      vb:button{text = "Set", width = 50, notifier = function()
+      vb:button{text="Set",width=50, notifier = function()
         set_user_preference("pakettiRandomizeSelectedDevicePercentageUserPreference2", "randomize_slider_device", "user_preference2_text_device")
       end}},
-      vb:horizontal_aligner{mode = "center", vb:text{text="User3:"}, vb:text{id = "user_preference3_text_device", text = string.format("%.1f%%", preferences.RandomizeSettings.pakettiRandomizeSelectedDevicePercentageUserPreference3.value), width = 50}, 
-      vb:button{text="Run", width=50, notifier=function()
+      vb:horizontal_aligner{mode = "center", vb:text{text="User3:"}, vb:text{id = "user_preference3_text_device", text = string.format("%.1f%%", preferences.RandomizeSettings.pakettiRandomizeSelectedDevicePercentageUserPreference3.value),width=50}, 
+      vb:button{text="Run",width=50, notifier=function()
       randomizeSelectedDeviceFromGUI(preferences.RandomizeSettings.pakettiRandomizeSelectedDevicePercentageUserPreference3.value) end},
-      vb:button{text = "Set", width = 50, notifier = function()
+      vb:button{text="Set",width=50, notifier = function()
         set_user_preference("pakettiRandomizeSelectedDevicePercentageUserPreference3", "randomize_slider_device", "user_preference3_text_device")
       end}},
-      vb:horizontal_aligner{mode = "center", vb:text{text="User4:"}, vb:text{id = "user_preference4_text_device", text = string.format("%.1f%%", preferences.RandomizeSettings.pakettiRandomizeSelectedDevicePercentageUserPreference4.value), width = 50}, 
-      vb:button{text="Run", width=50, notifier=function()
+      vb:horizontal_aligner{mode = "center", vb:text{text="User4:"}, vb:text{id = "user_preference4_text_device", text = string.format("%.1f%%", preferences.RandomizeSettings.pakettiRandomizeSelectedDevicePercentageUserPreference4.value),width=50}, 
+      vb:button{text="Run",width=50, notifier=function()
       randomizeSelectedDeviceFromGUI(preferences.RandomizeSettings.pakettiRandomizeSelectedDevicePercentageUserPreference4.value) end},
-      vb:button{text = "Set", width = 50, notifier = function()
+      vb:button{text="Set",width=50, notifier = function()
         set_user_preference("pakettiRandomizeSelectedDevicePercentageUserPreference4", "randomize_slider_device", "user_preference4_text_device")
       end}},
-      vb:horizontal_aligner{mode = "center", vb:text{text="User5:"}, vb:text{id = "user_preference5_text_device", text= string.format("%.1f%%", preferences.RandomizeSettings.pakettiRandomizeSelectedDevicePercentageUserPreference5.value), width = 50}, 
-      vb:button{text="Run", width=50, notifier=function()
+      vb:horizontal_aligner{mode = "center", vb:text{text="User5:"}, vb:text{id = "user_preference5_text_device", text= string.format("%.1f%%", preferences.RandomizeSettings.pakettiRandomizeSelectedDevicePercentageUserPreference5.value),width=50}, 
+      vb:button{text="Run",width=50, notifier=function()
       randomizeSelectedDeviceFromGUI(preferences.RandomizeSettings.pakettiRandomizeSelectedDevicePercentageUserPreference5.value) end},
 
-      vb:button{text = "Set", width = 50, notifier = function()
+      vb:button{text="Set",width=50, notifier = function()
         set_user_preference("pakettiRandomizeSelectedDevicePercentageUserPreference5", "randomize_slider_device", "user_preference5_text_device")
       end}},
-      vb:horizontal_aligner{mode = "center", vb:button{text = "Show/Hide Track Device External Editor", width = 200, notifier = function()
+      vb:horizontal_aligner{mode = "center", vb:button{text="Show/Hide Track Device External Editor",width=200, notifier = function()
         toggleExternalEditor()
       end}}
     },
     vb:column{style="border",
-      margin = 10,
-      vb:text{font = "bold", text = "Selected Track", style="strong"},
+      margin=10,
+      vb:text{font = "bold", text="Selected Track", style="strong"},
       vb:text{id = "track_name_text", font = "bold", text = track_name},
-      vb:horizontal_aligner{mode = "center", vb:text{text = "Randomization Intensity (%)"}},
-      vb:slider{id = "randomize_slider_track", min = 0, max = 100, value = preferences.RandomizeSettings.pakettiRandomizeAllDevicesPercentage.value, width = 200, notifier = function()
+      vb:horizontal_aligner{mode = "center", vb:text{text="Randomization Intensity (%)"}},
+      vb:slider{id = "randomize_slider_track", min = 0, max = 100, value = preferences.RandomizeSettings.pakettiRandomizeAllDevicesPercentage.value,width=200, notifier = function()
         local slider_value = vb.views["randomize_slider_track"].value
         vb.views["slider_value_text_track"].text = string.format("%.1f%%", slider_value)
       end},
       vb:horizontal_aligner{mode = "center", vb:text{id = "slider_value_text_track", text = string.format("%.1f%%", preferences.RandomizeSettings.pakettiRandomizeAllDevicesPercentage.value)}},
-      vb:horizontal_aligner{mode = "center", vb:button{text = "Randomize All Devices", width = 200, notifier = function()
+      vb:horizontal_aligner{mode = "center", vb:button{text="Randomize All Devices",width=200, notifier = function()
         local slider_value = vb.views["randomize_slider_track"].value
         randomizeAllDevicesOnTrack(slider_value)
         save_current_intensity()
       end}},
 
 
-      vb:horizontal_aligner{mode = "center", vb:text{text="User1:"}, vb:text{id = "user_preference1_text_track", text = string.format("%.1f%%", preferences.RandomizeSettings.pakettiRandomizeAllDevicesPercentageUserPreference1.value), width = 50},
-vb:button{text="Run", width=50, notifier=function()
+      vb:horizontal_aligner{mode = "center", vb:text{text="User1:"}, vb:text{id = "user_preference1_text_track", text = string.format("%.1f%%", preferences.RandomizeSettings.pakettiRandomizeAllDevicesPercentageUserPreference1.value),width=50},
+vb:button{text="Run",width=50, notifier=function()
   randomizeAllDevicesOnTrack(preferences.RandomizeSettings.pakettiRandomizeAllDevicesPercentageUserPreference1.value) end},
 
-vb:button{text = "Set", width = 50, notifier = function()
+vb:button{text="Set",width=50, notifier = function()
         set_user_preference("pakettiRandomizeAllDevicesPercentageUserPreference1", "randomize_slider_track", "user_preference1_text_track")
       end}},
-      vb:horizontal_aligner{mode = "center", vb:text{text="User2:"}, vb:text{id = "user_preference2_text_track", text = string.format("%.1f%%", preferences.RandomizeSettings.pakettiRandomizeAllDevicesPercentageUserPreference2.value), width = 50},
+      vb:horizontal_aligner{mode = "center", vb:text{text="User2:"}, vb:text{id = "user_preference2_text_track", text = string.format("%.1f%%", preferences.RandomizeSettings.pakettiRandomizeAllDevicesPercentageUserPreference2.value),width=50},
 
-vb:button{text="Run", width=50, notifier=function()
+vb:button{text="Run",width=50, notifier=function()
   randomizeAllDevicesOnTrack(preferences.RandomizeSettings.pakettiRandomizeAllDevicesPercentageUserPreference2.value) end},
 
-      vb:button{text = "Set", width = 50, notifier = function()
+      vb:button{text="Set",width=50, notifier = function()
         set_user_preference("pakettiRandomizeAllDevicesPercentageUserPreference2", "randomize_slider_track", "user_preference2_text_track")
       end}},
-      vb:horizontal_aligner{mode = "center", vb:text{text="User3:"}, vb:text{id = "user_preference3_text_track", text = string.format("%.1f%%", preferences.RandomizeSettings.pakettiRandomizeAllDevicesPercentageUserPreference3.value), width = 50},
-vb:button{text="Run", width=50, notifier=function()
+      vb:horizontal_aligner{mode = "center", vb:text{text="User3:"}, vb:text{id = "user_preference3_text_track", text = string.format("%.1f%%", preferences.RandomizeSettings.pakettiRandomizeAllDevicesPercentageUserPreference3.value),width=50},
+vb:button{text="Run",width=50, notifier=function()
   randomizeAllDevicesOnTrack(preferences.RandomizeSettings.pakettiRandomizeAllDevicesPercentageUserPreference3.value) end},
-      vb:button{text = "Set", width = 50, notifier = function()
+      vb:button{text="Set",width=50, notifier = function()
         set_user_preference("pakettiRandomizeAllDevicesPercentageUserPreference3", "randomize_slider_track", "user_preference3_text_track")
       end}},
-      vb:horizontal_aligner{mode = "center", vb:text{text="User4:"}, vb:text{id = "user_preference4_text_track", text=string.format("%.1f%%", preferences.RandomizeSettings.pakettiRandomizeAllDevicesPercentageUserPreference4.value), width=50},
-vb:button{text="Run", width=50, notifier=function()
+      vb:horizontal_aligner{mode = "center", vb:text{text="User4:"}, vb:text{id = "user_preference4_text_track", text=string.format("%.1f%%", preferences.RandomizeSettings.pakettiRandomizeAllDevicesPercentageUserPreference4.value),width=50},
+vb:button{text="Run",width=50, notifier=function()
   randomizeAllDevicesOnTrack(preferences.RandomizeSettings.pakettiRandomizeAllDevicesPercentageUserPreference4.value) end},
-      vb:button{text = "Set", width = 50, notifier = function()
+      vb:button{text="Set",width=50, notifier = function()
         set_user_preference("pakettiRandomizeAllDevicesPercentageUserPreference4", "randomize_slider_track", "user_preference4_text_track")
       end}},
-      vb:horizontal_aligner{mode = "center", vb:text{text="User5:"}, vb:text{id = "user_preference5_text_track", text=string.format("%.1f%%", preferences.RandomizeSettings.pakettiRandomizeAllDevicesPercentageUserPreference5.value), width=50},
-  vb:button{text="Run", width=50, notifier=function()
+      vb:horizontal_aligner{mode = "center", vb:text{text="User5:"}, vb:text{id = "user_preference5_text_track", text=string.format("%.1f%%", preferences.RandomizeSettings.pakettiRandomizeAllDevicesPercentageUserPreference5.value),width=50},
+  vb:button{text="Run",width=50, notifier=function()
   randomizeAllDevicesOnTrack(preferences.RandomizeSettings.pakettiRandomizeAllDevicesPercentageUserPreference5.value) end},
-      vb:button{text = "Set", width = 50, notifier = function()
+      vb:button{text="Set",width=50, notifier = function()
         set_user_preference("pakettiRandomizeAllDevicesPercentageUserPreference5", "randomize_slider_track", "user_preference5_text_track")
       end}},
-      vb:horizontal_aligner{mode = "center", vb:button{text = "Show/Hide All Devices on Track External Editor", width = 200, notifier = function()
+      vb:horizontal_aligner{mode = "center", vb:button{text="Show/Hide All Devices on Track External Editor",width=200, notifier = function()
         toggleAllExternalEditorsOnTrack()
       end}}
     },
     vb:column{style="border",
-      margin = 10,
+      margin=10,
       vb:text{font="bold",style="strong",text="Selected Instrument Plugin"},
       vb:text{id = "plugin_name_text", font = "bold", text = instrument_plugin_name},
-      vb:horizontal_aligner{mode = "center", vb:text{text = "Randomization Intensity (%)"}},
-      vb:slider{id = "randomize_slider_plugin", min = 0, max = 100, value = preferences.RandomizeSettings.pakettiRandomizeSelectedPluginPercentage.value, width = 200, notifier = function()
+      vb:horizontal_aligner{mode = "center", vb:text{text="Randomization Intensity (%)"}},
+      vb:slider{id = "randomize_slider_plugin", min = 0, max = 100, value = preferences.RandomizeSettings.pakettiRandomizeSelectedPluginPercentage.value,width=200, notifier = function()
         local slider_value = vb.views["randomize_slider_plugin"].value
         vb.views["slider_value_text_plugin"].text = string.format("%.1f%%", slider_value)
       end},
       vb:horizontal_aligner{mode = "center", vb:text{id = "slider_value_text_plugin", text = string.format("%.1f%%", preferences.RandomizeSettings.pakettiRandomizeSelectedPluginPercentage.value)}},
-      vb:horizontal_aligner{mode = "center", vb:button{text = "Randomize Selected Plugin", width = 200, notifier = function()
+      vb:horizontal_aligner{mode = "center", vb:button{text="Randomize Selected Plugin",width=200, notifier = function()
         local slider_value = vb.views["randomize_slider_plugin"].value
         randomizeSelectedPluginFromGUI(slider_value)
         save_current_intensity()
       end}},
 vb:horizontal_aligner{mode = "center", vb:text{text="User1:"},vb:text{id = "user_preference1_text_plugin", text=string.format("%.1f%%", preferences.RandomizeSettings.pakettiRandomizeSelectedPluginPercentageUserPreference1.value),width=50}, 
-vb:button{text="Run", width=50, notifier=function()
+vb:button{text="Run",width=50, notifier=function()
 randomizeSelectedPluginFromGUI(preferences.RandomizeSettings.pakettiRandomizeSelectedPluginPercentageUserPreference1.value) end},
-vb:button{text = "Set", width = 50, notifier = function() set_user_preference("pakettiRandomizeSelectedPluginPercentageUserPreference1", "randomize_slider_plugin", "user_preference1_text_plugin")
+vb:button{text="Set",width=50, notifier = function() set_user_preference("pakettiRandomizeSelectedPluginPercentageUserPreference1", "randomize_slider_plugin", "user_preference1_text_plugin")
 end}},
 vb:horizontal_aligner{mode = "center", vb:text{text="User2:"},vb:text{id = "user_preference2_text_plugin", text=string.format("%.1f%%", preferences.RandomizeSettings.pakettiRandomizeSelectedPluginPercentageUserPreference2.value),width=50}, 
-vb:button{text="Run", width=50, notifier=function()
+vb:button{text="Run",width=50, notifier=function()
 randomizeSelectedPluginFromGUI(preferences.RandomizeSettings.pakettiRandomizeSelectedPluginPercentageUserPreference2.value) end},
-vb:button{text = "Set", width = 50, notifier = function() set_user_preference("pakettiRandomizeSelectedPluginPercentageUserPreference2", "randomize_slider_plugin", "user_preference2_text_plugin")
+vb:button{text="Set",width=50, notifier = function() set_user_preference("pakettiRandomizeSelectedPluginPercentageUserPreference2", "randomize_slider_plugin", "user_preference2_text_plugin")
 end}},
 vb:horizontal_aligner{mode = "center", vb:text{text="User3:"},vb:text{id = "user_preference3_text_plugin", text=string.format("%.1f%%", preferences.RandomizeSettings.pakettiRandomizeSelectedPluginPercentageUserPreference3.value),width=50}, 
-vb:button{text="Run", width=50, notifier=function()
+vb:button{text="Run",width=50, notifier=function()
 randomizeSelectedPluginFromGUI(preferences.RandomizeSettings.pakettiRandomizeSelectedPluginPercentageUserPreference3.value) end},
-vb:button{text = "Set", width = 50, notifier = function() set_user_preference("pakettiRandomizeSelectedPluginPercentageUserPreference3", "randomize_slider_plugin", "user_preference3_text_plugin")
+vb:button{text="Set",width=50, notifier = function() set_user_preference("pakettiRandomizeSelectedPluginPercentageUserPreference3", "randomize_slider_plugin", "user_preference3_text_plugin")
 end}},
 vb:horizontal_aligner{mode = "center", vb:text{text="User4:"},vb:text{id = "user_preference4_text_plugin", text=string.format("%.1f%%", preferences.RandomizeSettings.pakettiRandomizeSelectedPluginPercentageUserPreference4.value),width=50},
-vb:button{text="Run", width=50, notifier=function()
+vb:button{text="Run",width=50, notifier=function()
 randomizeSelectedPluginFromGUI(preferences.RandomizeSettings.pakettiRandomizeSelectedPluginPercentageUserPreference4.value) end},
-vb:button{text = "Set", width = 50, notifier = function() set_user_preference("pakettiRandomizeSelectedPluginPercentageUserPreference4", "randomize_slider_plugin", "user_preference4_text_plugin")
+vb:button{text="Set",width=50, notifier = function() set_user_preference("pakettiRandomizeSelectedPluginPercentageUserPreference4", "randomize_slider_plugin", "user_preference4_text_plugin")
 end}},
 vb:horizontal_aligner{mode = "center", vb:text{text="User5:"},vb:text{id = "user_preference5_text_plugin", text=string.format("%.1f%%", preferences.RandomizeSettings.pakettiRandomizeSelectedPluginPercentageUserPreference5.value),width=50}, 
-vb:button{text="Run", width=50, notifier=function()
+vb:button{text="Run",width=50, notifier=function()
 randomizeSelectedPluginFromGUI(preferences.RandomizeSettings.pakettiRandomizeSelectedPluginPercentageUserPreference5.value) end},
-vb:button{text = "Set", width = 50, notifier = function() set_user_preference("pakettiRandomizeSelectedPluginPercentageUserPreference5", "randomize_slider_plugin", "user_preference5_text_plugin")
+vb:button{text="Set",width=50, notifier = function() set_user_preference("pakettiRandomizeSelectedPluginPercentageUserPreference5", "randomize_slider_plugin", "user_preference5_text_plugin")
 end}},
 
-      vb:horizontal_aligner{mode = "center", vb:button{text = "Show/Hide Plugin External Editor", width = 200, notifier = function()
+      vb:horizontal_aligner{mode = "center", vb:button{text="Show/Hide Plugin External Editor",width=200, notifier = function()
         toggleExternalPluginEditor()
       end}}
     },
     vb:column{style="border",
-      margin = 10,
+      margin=10,
       vb:text{font="bold",style="strong",text="All Plugins in Song"},
       vb:space{height = 18},
-      vb:horizontal_aligner{mode = "center", vb:text{text = "Randomization Intensity (%)"}},
-      vb:slider{id = "randomize_slider_all_plugins", min = 0, max = 100, value = preferences.RandomizeSettings.pakettiRandomizeAllPluginsPercentage.value, width = 200, notifier = function()
+      vb:horizontal_aligner{mode = "center", vb:text{text="Randomization Intensity (%)"}},
+      vb:slider{id = "randomize_slider_all_plugins", min = 0, max = 100, value = preferences.RandomizeSettings.pakettiRandomizeAllPluginsPercentage.value,width=200, notifier = function()
         local slider_value = vb.views["randomize_slider_all_plugins"].value
         vb.views["slider_value_text_all_plugins"].text = string.format("%.1f%%", slider_value)
       end},
       vb:horizontal_aligner{mode = "center", vb:text{id = "slider_value_text_all_plugins", text = string.format("%.1f%%", preferences.RandomizeSettings.pakettiRandomizeAllPluginsPercentage.value)}},
-      vb:horizontal_aligner{mode = "center", vb:button{text = "Randomize All Plugins", width = 200, notifier = function()
+      vb:horizontal_aligner{mode = "center", vb:button{text="Randomize All Plugins",width=200, notifier = function()
         local slider_value = vb.views["randomize_slider_all_plugins"].value
- local song = renoise.song()
+ local song=renoise.song()
           local has_plugins = false
           
           for _, track in ipairs(song.tracks) do
@@ -2364,65 +2364,65 @@ end}},
       end}},
 vb:horizontal_aligner{
   mode = "center",
-  vb:text{text = "User1:"},
-  vb:text{id = "user_preference1_text_all_plugins", text = string.format("%.1f%%", preferences.RandomizeSettings.pakettiRandomizeAllPluginsPercentageUserPreference1.value), width = 50},
-  vb:button{text = "Run", width = 50, notifier = function() 
+  vb:text{text="User1:"},
+  vb:text{id = "user_preference1_text_all_plugins", text = string.format("%.1f%%", preferences.RandomizeSettings.pakettiRandomizeAllPluginsPercentageUserPreference1.value),width=50},
+  vb:button{text="Run",width=50, notifier = function() 
     randomizeAllPluginsInSong(preferences.RandomizeSettings.pakettiRandomizeAllPluginsPercentageUserPreference1.value)
   end},
-  vb:button{text = "Set", width = 50, notifier = function() 
+  vb:button{text="Set",width=50, notifier = function() 
     set_user_preference("pakettiRandomizeAllPluginsPercentageUserPreference1", "randomize_slider_all_plugins", "user_preference1_text_all_plugins") 
   end}
 },
 vb:horizontal_aligner{
   mode = "center",
-  vb:text{text = "User2:"},
-  vb:text{id = "user_preference2_text_all_plugins", text = string.format("%.1f%%", preferences.RandomizeSettings.pakettiRandomizeAllPluginsPercentageUserPreference2.value), width = 50},
-  vb:button{text = "Run", width = 50, notifier = function() 
+  vb:text{text="User2:"},
+  vb:text{id = "user_preference2_text_all_plugins", text = string.format("%.1f%%", preferences.RandomizeSettings.pakettiRandomizeAllPluginsPercentageUserPreference2.value),width=50},
+  vb:button{text="Run",width=50, notifier = function() 
     randomizeAllPluginsInSong(preferences.RandomizeSettings.pakettiRandomizeAllPluginsPercentageUserPreference2.value)
   end},
-  vb:button{text = "Set", width = 50, notifier = function() 
+  vb:button{text="Set",width=50, notifier = function() 
     set_user_preference("pakettiRandomizeAllPluginsPercentageUserPreference2", "randomize_slider_all_plugins", "user_preference2_text_all_plugins") 
   end}
 },
 
 vb:horizontal_aligner{
   mode = "center",
-  vb:text{text = "User3:"},
-  vb:text{id = "user_preference3_text_all_plugins", text = string.format("%.1f%%", preferences.RandomizeSettings.pakettiRandomizeAllPluginsPercentageUserPreference3.value), width = 50},
-  vb:button{text = "Run", width = 50, notifier = function() 
+  vb:text{text="User3:"},
+  vb:text{id = "user_preference3_text_all_plugins", text = string.format("%.1f%%", preferences.RandomizeSettings.pakettiRandomizeAllPluginsPercentageUserPreference3.value),width=50},
+  vb:button{text="Run",width=50, notifier = function() 
     randomizeAllPluginsInSong(preferences.RandomizeSettings.pakettiRandomizeAllPluginsPercentageUserPreference3.value)
   end},
-  vb:button{text = "Set", width = 50, notifier = function() 
+  vb:button{text="Set",width=50, notifier = function() 
     set_user_preference("pakettiRandomizeAllPluginsPercentageUserPreference3", "randomize_slider_all_plugins", "user_preference3_text_all_plugins") 
   end}
 },
 
 vb:horizontal_aligner{
   mode = "center",
-  vb:text{text = "User4:"},
-  vb:text{id = "user_preference4_text_all_plugins", text = string.format("%.1f%%", preferences.RandomizeSettings.pakettiRandomizeAllPluginsPercentageUserPreference4.value), width = 50}, 
-  vb:button{text = "Run", width = 50, notifier = function() 
+  vb:text{text="User4:"},
+  vb:text{id = "user_preference4_text_all_plugins", text = string.format("%.1f%%", preferences.RandomizeSettings.pakettiRandomizeAllPluginsPercentageUserPreference4.value),width=50}, 
+  vb:button{text="Run",width=50, notifier = function() 
     randomizeAllPluginsInSong(preferences.RandomizeSettings.pakettiRandomizeAllPluginsPercentageUserPreference4.value)
   end},
-  vb:button{text = "Set", width = 50, notifier = function() 
+  vb:button{text="Set",width=50, notifier = function() 
     set_user_preference("pakettiRandomizeAllPluginsPercentageUserPreference4", "randomize_slider_all_plugins", "user_preference4_text_all_plugins") 
   end}
 },
 
 vb:horizontal_aligner{
   mode = "center",
-  vb:text{text = "User5:"},
-  vb:text{id = "user_preference5_text_all_plugins", text = string.format("%.1f%%", preferences.RandomizeSettings.pakettiRandomizeAllPluginsPercentageUserPreference5.value), width = 50},
-  vb:button{text = "Run", width = 50, notifier = function() 
+  vb:text{text="User5:"},
+  vb:text{id = "user_preference5_text_all_plugins", text = string.format("%.1f%%", preferences.RandomizeSettings.pakettiRandomizeAllPluginsPercentageUserPreference5.value),width=50},
+  vb:button{text="Run",width=50, notifier = function() 
     randomizeAllPluginsInSong(preferences.RandomizeSettings.pakettiRandomizeAllPluginsPercentageUserPreference5.value)
   end},
-  vb:button{text = "Set", width = 50, notifier = function() 
+  vb:button{text="Set",width=50, notifier = function() 
     set_user_preference("pakettiRandomizeAllPluginsPercentageUserPreference5", "randomize_slider_all_plugins", "user_preference5_text_all_plugins") 
   end}
 },
-      vb:horizontal_aligner{mode = "center", vb:button{text = "Show/Hide All Plugin External Editors", width = 200, notifier = function()
+      vb:horizontal_aligner{mode = "center", vb:button{text="Show/Hide All Plugin External Editors",width=200, notifier = function()
       
-      local song = renoise.song()
+      local song=renoise.song()
       local has_plugins = false
 
       for _, track in ipairs(song.tracks) do
@@ -2458,13 +2458,13 @@ song.selected_instrument_observable:add_notifier(function()
         if new_instrument.plugin_properties.plugin_device then
           vb.views["plugin_name_text"].text = new_instrument.plugin_properties.plugin_device.name
         else
-          vb.views["plugin_name_text"].text = "Instrument plugin device missing"
+          vb.views["plugin_name_text"].text="Instrument plugin device missing"
         end
       else
-        vb.views["plugin_name_text"].text = "Instrument has no Plugin"
+        vb.views["plugin_name_text"].text="Instrument has no Plugin"
       end
     else
-      vb.views["plugin_name_text"].text = "No Instrument Selected"
+      vb.views["plugin_name_text"].text="No Instrument Selected"
     end
   end
 end)
@@ -2480,7 +2480,7 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:
 
 -- Function to randomize parameters of the selected plugin
 function randomizeSelectedPlugin()
-  local song = renoise.song()
+  local song=renoise.song()
   local instrument = renoise.song().selected_instrument 
 
   if not instrument or not instrument.plugin_properties then
@@ -2515,7 +2515,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Randomize Selected Device",in
 
 -- Function to randomize parameters of the selected device
 function randomize_selected_device()
-  local song = renoise.song()
+  local song=renoise.song()
   local device = nil
 
   if renoise.app().window.active_middle_frame == 7 and song.selected_sample_device ~= nil then
@@ -2560,7 +2560,7 @@ local function show_available_plugins_dialog()
   local device_infos = renoise.song().selected_track.available_device_infos
 
   -- Convert these to strings for the textfield
-  local devices_text = ""
+  local devices_text=""
   for i, device in ipairs(devices) do
     -- Format the index to 3 digits with leading zeros (e.g., 001, 002)
     local index = string.format("%03d", i)
@@ -2570,7 +2570,7 @@ local function show_available_plugins_dialog()
   -- Separator for readability
   local separator = "-----------////////////------------------------------------////////////------------------------------------////////////------------------------------------////////////------------------------------------////////////------------------------------------////////////------------------------------------////////////-------------------------"
 
-  local device_infos_text = ""
+  local device_infos_text=""
   for i, info in ipairs(device_infos) do
     -- Format the index to 3 digits with leading zeros
     local index = string.format("%03d", i)
@@ -2591,7 +2591,7 @@ local function show_available_plugins_dialog()
  
   -- Function to save the textfield content to a file
   local vb = renoise.ViewBuilder()
-  local multiline_field = vb:multiline_textfield { text = combined_text, width = 900, height = 700 }
+  local multiline_field = vb:multiline_textfield { text = combined_text,width=900, height = 700 }
 
   local function save_to_file()
     local filename = renoise.app():prompt_for_filename_to_write(".txt", "Available Plugins Saver")
@@ -2608,10 +2608,10 @@ local function show_available_plugins_dialog()
   end
 
   -- Create the save button
-  local save_button = vb:button { text = "Save as textfile", notifier = save_to_file }
+  local save_button = vb:button{ text="Save as textfile", notifier = save_to_file }
 
   -- Create the dialog
-  my_dialog = renoise.app():show_custom_dialog("Debug: Available Plugin Information", vb:column {
+  my_dialog = renoise.app():show_custom_dialog("Debug: Available Plugin Information", vb:column{
     multiline_field,save_button},my_keyhandler_func)
 
 end
@@ -2651,7 +2651,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Insert Inverter Device to TrackDSP
 
 function wipePhrases()
 -- Deletes all phrases in the current instrument or shows a status if none exist
-local song = renoise.song()
+local song=renoise.song()
 local instrument = song.selected_instrument
 
 if #instrument.phrases > 0 then
@@ -2672,7 +2672,7 @@ renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Phrases..:Wipe Phr
 
 function loadXRNIWipePhrases()
 -- Prompts user to load an .XRNI, loads it into a new instrument, and deletes all phrases
-local song = renoise.song()
+local song=renoise.song()
 local current_instrument_index = song.selected_instrument_index
 
 -- Create a new instrument below the current one and select it
@@ -2720,7 +2720,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Load XRNI & Wipe Phrases",invoke=f
 
 function loadXRNIWipePhrasesTwo()
 -- Prompts user to load an .XRNI, loads it into a new instrument, and deletes all phrases
-local song = renoise.song()
+local song=renoise.song()
 local current_instrument_index = song.selected_instrument_index
 
 -- Create a new instrument below the current one and select it
@@ -2768,7 +2768,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Load XRNI & Disable Phrases",invok
 function loadXRNIKeepPhrases()
 
 -- Creates a new instrument, loads an XRNI, and shows its name with phrase information
-local song = renoise.song()
+local song=renoise.song()
 local current_instrument_index = song.selected_instrument_index
 
 -- Create a new instrument below the current one and select it
@@ -3038,7 +3038,7 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:
 
 --------
 function insertMonoToAllTracksEnd()
-  local song = renoise.song()
+  local song=renoise.song()
   
   -- Iterate through all tracks
   for track_index = 1, #song.tracks do

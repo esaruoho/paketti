@@ -48,42 +48,42 @@ local function initialize_checkboxes(count)
 
   for i = 1, count do
     local is_highlight = (i == 1 or i == 5 or i == 9 or i == 13)
-    buttons[i] = vb:button {
+    buttons[i] = vb:button{
       text = string.format("%02d", i),
-      width = 30,
+      width=30,
       color = is_highlight and highlight_color or normal_color
     }
-    retrig_buttons[i] = vb:button {
+    retrig_buttons[i] = vb:button{
       text = string.format("%02d", i),
-      width = 30,
+      width=30,
       color = is_highlight and highlight_color or normal_color
     }
-    playback_buttons[i] = vb:button {
+    playback_buttons[i] = vb:button{
       text = string.format("%02d", i),
-      width = 30,
+      width=30,
       color = is_highlight and highlight_color or normal_color
     }
-    checkboxes[i] = vb:checkbox {
+    checkboxes[i] = vb:checkbox{
       value = false,
-      width = 30,
+      width=30,
       notifier = function()
         if not initializing then
           insert_commands()
         end
       end
     }
-    retrig_checkboxes[i] = vb:checkbox {
+    retrig_checkboxes[i] = vb:checkbox{
       value = false,
-      width = 30,
+      width=30,
       notifier = function()
         if not initializing then
           insert_commands()
         end
       end
     }
-    playback_checkboxes[i] = vb:checkbox {
+    playback_checkboxes[i] = vb:checkbox{
       value = false,
-      width = 30,
+      width=30,
       notifier = function()
         if not initializing then
           insert_commands()
@@ -93,9 +93,9 @@ local function initialize_checkboxes(count)
   end
 
   for i = 1, count do
-    panning_left_checkboxes[i] = vb:checkbox {
+    panning_left_checkboxes[i] = vb:checkbox{
       value = false,
-      width = 30,
+      width=30,
       notifier = function()
         if panning_left_checkboxes[i].value then
           panning_center_checkboxes[i].value = false
@@ -106,9 +106,9 @@ local function initialize_checkboxes(count)
         end
       end
     }
-    panning_center_checkboxes[i] = vb:checkbox {
+    panning_center_checkboxes[i] = vb:checkbox{
       value = true,
-      width = 30,
+      width=30,
       notifier = function()
         if panning_center_checkboxes[i].value then
           panning_left_checkboxes[i].value = false
@@ -119,9 +119,9 @@ local function initialize_checkboxes(count)
         end
       end
     }
-    panning_right_checkboxes[i] = vb:checkbox {
+    panning_right_checkboxes[i] = vb:checkbox{
       value = false,
-      width = 30,
+      width=30,
       notifier = function()
         if panning_right_checkboxes[i].value then
           panning_left_checkboxes[i].value = false
@@ -132,9 +132,9 @@ local function initialize_checkboxes(count)
         end
       end
     }
-    panning_buttons[i] = vb:button {
+    panning_buttons[i] = vb:button{
       text = string.format("%02d", i),
-      width = 30,
+      width=30,
       color = (i == 1 or i == 5 or i == 9 or i == 13) and highlight_color or normal_color
     }
   end
@@ -1179,7 +1179,7 @@ function insert_commands()
 end
 
 function PakettiReplicateAtCursorGater(transpose, tracks_option, row_option)
-  local song = renoise.song()
+  local song=renoise.song()
   local pattern = song.selected_pattern
   local pattern_length = pattern.number_of_lines
   
@@ -1403,12 +1403,12 @@ function pakettiGaterDialog()
   initializing = true -- Start initialization
 
   initialize_checkboxes(num_checkboxes)
-  local content = vb:column {
-    vb:text { text = "Volume Gater", font = "bold", style="strong" },
+  local content = vb:column{
+    vb:text{text="Volume Gater", font = "bold", style="strong" },
     vb:switch {
       items = { "FX Column (C00)", "Volume Column", "FX Column (L00)" },
       value = 1,
-      width = 300,
+      width=300,
       notifier = function(index)
         local previous_choice = column_choice
         column_choice = (index == 1) and "FX Column" or (index == 2) and "Volume Column" or "FX Column (L00)"
@@ -1423,54 +1423,54 @@ function pakettiGaterDialog()
         end
       end
         },
-   vb:row {
+   vb:row{
       buttons[1], buttons[2], buttons[3], buttons[4], buttons[5], buttons[6], buttons[7], buttons[8],
       buttons[9], buttons[10], buttons[11], buttons[12], buttons[13], buttons[14], buttons[15], buttons[16],
-      vb:valuebox {
+      vb:valuebox{
         min = 1,
         max = num_checkboxes,
         value = active_steps_volume,
-        width = 50,
+        width=50,
         notifier = function(value)
           set_active_steps_volume(value)
         end
       }
     },
     vb:row(checkboxes),
-    vb:row {
-      vb:button { text = "Clear", pressed = clear_volume_gater },
-      vb:button { text = "Random", pressed = rand_volume_checkboxes },
-      vb:button { text = "<", pressed = function() 
+    vb:row{
+      vb:button{ text="Clear", pressed = clear_volume_gater },
+      vb:button{ text="Random", pressed = rand_volume_checkboxes },
+      vb:button{ text="<", pressed = function() 
         initializing = true
         shift_checkboxes("left")
         initializing = false
         insert_commands()
       end},
-      vb:button { text = ">", pressed = function() 
+      vb:button{ text=">", pressed = function() 
         initializing = true
         shift_checkboxes("right")
         initializing = false
         insert_commands()
       end},
-      vb:button { text = "Clear FX Column", pressed = clear_effect_columns },
-      vb:button { text = "Clear Volume Column", pressed = clear_volume_column },
-      vb:button { text = "Receive", pressed = receive_volume_checkboxes }
+      vb:button{ text="Clear FX Column", pressed = clear_effect_columns },
+      vb:button{ text="Clear Volume Column", pressed = clear_volume_column },
+      vb:button{ text="Receive", pressed = receive_volume_checkboxes }
     },
-    vb:row {
-      vb:button { text = "All", pressed = function() apply_preset("all", false, false) end},
-      vb:button { text = "Every 2nd", pressed = function() apply_preset("every_2nd", false, false) end},
-      vb:button { text = "Every 3rd", pressed = function() apply_preset("every_third", false, false) end},
-      vb:button { text = "Every 4th", pressed = function() apply_preset("every_fourth", false, false) end},
-      vb:button { text = "Jaguar", pressed = function() apply_preset("jaguar", false, false) end},
-      vb:button { text = "Caapi", pressed = function() apply_preset("caapi", false, false) end} 
+    vb:row{
+      vb:button{ text="All", pressed = function() apply_preset("all", false, false) end},
+      vb:button{ text="Every 2nd", pressed = function() apply_preset("every_2nd", false, false) end},
+      vb:button{ text="Every 3rd", pressed = function() apply_preset("every_third", false, false) end},
+      vb:button{ text="Every 4th", pressed = function() apply_preset("every_fourth", false, false) end},
+      vb:button{ text="Jaguar", pressed = function() apply_preset("jaguar", false, false) end},
+      vb:button{ text="Caapi", pressed = function() apply_preset("caapi", false, false) end} 
     },
-    vb:text { text = "Retrig Gater", font = "bold", style="strong"},
-    vb:row {
-      vb:valuebox {
+    vb:text{text="Retrig Gater", font = "bold", style="strong"},
+    vb:row{
+      vb:valuebox{
         min = 1,
         max = 15,
         value = retrig_value,
-        width = 50,
+        width=50,
         tooltip = "Retrig Speed",
         notifier = function(value)
           retrig_value = value
@@ -1479,12 +1479,12 @@ function pakettiGaterDialog()
           end
         end
       },
-      vb:text { text = "Retrig Speed" }
+      vb:text{text="Retrig Speed" }
     },
     vb:switch {
       items = { "FX Column", "Volume Column", "Panning Column" },
       value = 1,
-      width = 300,
+      width=300,
       notifier = function(index)
         retrig_column_choice = (index == 1) and "FX Column" or (index == 2) and "Volume Column" or "Panning Column"
         if not initializing then
@@ -1492,70 +1492,70 @@ function pakettiGaterDialog()
         end
       end
     },
-    vb:row {
+    vb:row{
       retrig_buttons[1], retrig_buttons[2], retrig_buttons[3], retrig_buttons[4], retrig_buttons[5], retrig_buttons[6], retrig_buttons[7], retrig_buttons[8],
       retrig_buttons[9], retrig_buttons[10], retrig_buttons[11], retrig_buttons[12], retrig_buttons[13], retrig_buttons[14], retrig_buttons[15], retrig_buttons[16],
-      vb:valuebox {
+      vb:valuebox{
         min = 1,
         max = num_checkboxes,
         value = active_steps_retrig,
-        width = 50,
+        width=50,
         notifier = set_active_steps_retrig
       }
     },
     vb:row(retrig_checkboxes),
-    vb:row {
-      vb:button { text = "Clear", pressed = clear_retrig_checkboxes },
-      vb:button { text = "Random", pressed = rand_retrig_checkboxes },
-      vb:button { text = "<", pressed = function() 
+    vb:row{
+      vb:button{ text="Clear", pressed = clear_retrig_checkboxes },
+      vb:button{ text="Random", pressed = rand_retrig_checkboxes },
+      vb:button{ text="<", pressed = function() 
         initializing = true
         shift_retrig_checkboxes("left")
         initializing = false
         insert_commands()
       end},
-      vb:button { text = ">", pressed = function() 
+      vb:button{ text=">", pressed = function() 
         initializing = true
         shift_retrig_checkboxes("right")
         initializing = false
         insert_commands()
       end},
-            vb:button { text = "Receive", pressed = receive_retrig_checkboxes }
+            vb:button{ text="Receive", pressed = receive_retrig_checkboxes }
     },
-    vb:text { text = "Playback Direction Gater", font = "bold", style="strong" },
-    vb:row {
+    vb:text{text="Playback Direction Gater", font = "bold", style="strong" },
+    vb:row{
       playback_buttons[1], playback_buttons[2], playback_buttons[3], playback_buttons[4], playback_buttons[5], playback_buttons[6], playback_buttons[7], playback_buttons[8],
       playback_buttons[9], playback_buttons[10], playback_buttons[11], playback_buttons[12], playback_buttons[13], playback_buttons[14], playback_buttons[15], playback_buttons[16],
-      vb:valuebox {
+      vb:valuebox{
         min = 1,
         max = num_checkboxes,
         value = active_steps_playback,
-        width = 50,
+        width=50,
         notifier = set_active_steps_playback
       }
     },
     vb:row(playback_checkboxes),
-    vb:row {
-      vb:button { text = "Clear", pressed = clear_playback_checkboxes },
-      vb:button { text = "Random", pressed = rand_playback_checkboxes },
-      vb:button { text = "<", pressed = function() 
+    vb:row{
+      vb:button{ text="Clear", pressed = clear_playback_checkboxes },
+      vb:button{ text="Random", pressed = rand_playback_checkboxes },
+      vb:button{ text="<", pressed = function() 
         initializing = true
         shift_playback_checkboxes("left")
         initializing = false
         insert_commands()
       end},
-      vb:button { text = ">", pressed = function() 
+      vb:button{ text=">", pressed = function() 
         initializing = true
         shift_playback_checkboxes("right")
         initializing = false
         insert_commands()
       end},
-            vb:button { text = "Receive", pressed = receive_playback_checkboxes }
+            vb:button{ text="Receive", pressed = receive_playback_checkboxes }
     },
-    vb:text { text = "Panning Gater", font = "bold", style="strong" },
+    vb:text{text="Panning Gater", font = "bold", style="strong" },
     vb:switch {
       items = { "FX Column", "Panning Column" },
       value = 1,
-      width = 300,
+      width=300,
       notifier = function(index)
         panning_column_choice = (index == 1) and "FX Column" or "Panning Column"
         if not initializing then
@@ -1563,42 +1563,42 @@ function pakettiGaterDialog()
         end
       end
     },
-    vb:row {
+    vb:row{
       panning_buttons[1], panning_buttons[2], panning_buttons[3], panning_buttons[4], panning_buttons[5], 
       panning_buttons[6], panning_buttons[7], panning_buttons[8], panning_buttons[9], 
       panning_buttons[10], panning_buttons[11], panning_buttons[12], panning_buttons[13], 
       panning_buttons[14], panning_buttons[15], panning_buttons[16],
-      vb:valuebox {
+      vb:valuebox{
         min = 1,
         max = num_checkboxes,
         value = active_steps_panning,
-        width = 50,
+        width=50,
         notifier = set_active_steps_panning
       }
     },
     vb:row(panning_left_checkboxes),
     vb:row(panning_center_checkboxes),
     vb:row(panning_right_checkboxes),
-    vb:row {
-      vb:button { text = "Clear", pressed = clear_panning_checkboxes },
-      vb:button { text = "Random", pressed = rand_panning_checkboxes },
-      vb:button { text = "<", pressed = function() 
+    vb:row{
+      vb:button{ text="Clear", pressed = clear_panning_checkboxes },
+      vb:button{ text="Random", pressed = rand_panning_checkboxes },
+      vb:button{ text="<", pressed = function() 
         initializing = true
         shift_panning_checkboxes("left")
         initializing = false
         insert_commands()
       end},
-      vb:button { text = ">", pressed = function() 
+      vb:button{ text=">", pressed = function() 
         initializing = true
         shift_panning_checkboxes("right")
         initializing = false
         insert_commands()
       end},
-            vb:button { text = "Receive", pressed = receive_panning_checkboxes },
+            vb:button{ text="Receive", pressed = receive_panning_checkboxes },
     },
-    vb:row {
+    vb:row{
       vb:text{text="Global", font="bold", style="strong"},
-      vb:checkbox {
+      vb:checkbox{
         value = auto_grab,
         notifier = function(value)
           auto_grab = value
@@ -1619,10 +1619,10 @@ function pakettiGaterDialog()
           end
         end
       },
-      vb:text { text = "Auto-Grab", style="strong", font="bold" },
+      vb:text{text="Auto-Grab", style="strong", font="bold" },
     
       
-      vb:button { text = "<<", pressed = function()
+      vb:button{ text="<<", pressed = function()
         initializing = true  -- Prevent multiple updates
         shift_checkboxes("left")
         shift_retrig_checkboxes("left")
@@ -1631,7 +1631,7 @@ function pakettiGaterDialog()
         initializing = false
         insert_commands()  -- Single update at the end
       end},
-      vb:button { text = ">>", pressed = function()
+      vb:button{ text=">>", pressed = function()
         initializing = true  -- Prevent multiple updates
         shift_checkboxes("right")
         shift_retrig_checkboxes("right")
@@ -1640,7 +1640,7 @@ function pakettiGaterDialog()
         initializing = false
         insert_commands()  -- Single update at the end
       end},
-      vb:button { text = "Global Clear", pressed = function()
+      vb:button{ text="Global Clear", pressed = function()
         initializing = true
         -- Clear volume
         for i = 1, num_checkboxes do
@@ -1701,7 +1701,7 @@ function pakettiGaterDialog()
         insert_commands()  -- Single update at the end
       end},
 
-      vb:button { text = "Global Random", pressed = function()
+      vb:button{ text="Global Random", pressed = function()
         initializing = true
         -- Randomize volume
         for i = 1, num_checkboxes do
@@ -1754,7 +1754,7 @@ function pakettiGaterDialog()
         insert_commands()  -- Single update at the end
       end},
 
-        vb:button { text = "Global Receive", pressed = function()
+        vb:button{ text="Global Receive", pressed = function()
         initializing = true
         receive_volume_checkboxes()
         receive_retrig_checkboxes()

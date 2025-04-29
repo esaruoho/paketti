@@ -275,7 +275,7 @@ function JalexAdd(number)
 -- Helper function to get all notes from a row and sort them
 function GetAndSortNotes(line, ascending)
   local notes = {}
-  local song = renoise.song()
+  local song=renoise.song()
   local track = song.selected_track
   
   -- First, detect if we have a delay pattern
@@ -370,7 +370,7 @@ end
   
   -- Function to sort notes in ascending order (lowest to highest)
 function NoteSorterAscending()
-  local song = renoise.song()
+  local song=renoise.song()
   local track = song.selected_track
   local pattern = song.selected_pattern
   local selection = song.selection_in_pattern
@@ -416,7 +416,7 @@ end
 
 -- Function to sort notes in descending order (highest to lowest)
 function NoteSorterDescending()
-  local song = renoise.song()
+  local song=renoise.song()
   local track = song.selected_track
   local pattern = song.selected_pattern
   local selection = song.selection_in_pattern
@@ -466,7 +466,7 @@ end
   renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Note Sorter (Descending)",invoke=NoteSorterDescending}
 ---  
   function RandomizeVoicing()
-    local song = renoise.song()
+    local song=renoise.song()
     local track = song.selected_track
     local pattern = song.selected_pattern
     local selection = song.selection_in_pattern
@@ -549,7 +549,7 @@ renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti ChordsPlus..:Random
 ---
   -- Function to shift notes left or right
   function ShiftNotes(direction)
-    local song = renoise.song()
+    local song=renoise.song()
     local track = song.selected_track
     local pattern = song.selected_pattern
     local selection = song.selection_in_pattern
@@ -676,7 +676,7 @@ renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti ChordsPlus..:Random
 --------
 
 function cycle_inversion(direction)
-  local song = renoise.song()
+  local song=renoise.song()
   local pattern = song.selected_pattern
   local track_index = song.selected_track_index
   local track = song.tracks[track_index]
@@ -751,7 +751,7 @@ renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Cycle Ch
 NoteSorterAscending() end}
   -- Function to apply a random chord from the chord_list
 function RandomChord()
-  local song = renoise.song()
+  local song=renoise.song()
   
   -- Check if we're on a valid note
   if song.selected_note_column.note_value >= 120 then
@@ -783,7 +783,7 @@ renoise.tool():add_midi_mapping{name="Paketti:ChordsPlus Random Chord",invoke=fu
 
 
 function ExtractBassline()
-  local song = renoise.song()
+  local song=renoise.song()
   local pattern = song.selected_pattern
   local source_track_index = song.selected_track_index
   
@@ -850,7 +850,7 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Extract Ba
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti ChordsPlus..:Extract Bassline to New Track",invoke=function() ExtractBassline() end}
 
   function ExtractHighestNote()
-    local song = renoise.song()
+    local song=renoise.song()
     local pattern = song.selected_pattern
     local source_track_index = song.selected_track_index
     
@@ -932,7 +932,7 @@ renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti ChordsPlus..:Extrac
 -- track extracts either the highest or lowest note from each line.
 --------------------------------------------------------------------------------
 function DuplicateSpecificNotesToNewTrack(note_type, instrument_mode)
-  local song = renoise.song()
+  local song=renoise.song()
   local pattern = song.selected_pattern
   local source_track_index = song.selected_track_index
   local source_track = song:track(source_track_index)

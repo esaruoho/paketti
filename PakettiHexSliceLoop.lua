@@ -7,7 +7,7 @@ function focus_sample_editor()
 end
 
 function validate_sample()
-    local song = renoise.song()
+    local song=renoise.song()
     local sample = song.selected_sample
     if not sample or not sample.sample_buffer.has_sample_data then
         renoise.app():show_status("No sample selected or sample buffer empty")
@@ -17,7 +17,7 @@ function validate_sample()
 end
 
 function set_sample_selection_by_hex_offset(hex_value)
-    local song = renoise.song()
+    local song=renoise.song()
     local instrument = song.selected_instrument
     if not instrument then
         renoise.app():show_status("No instrument selected")
@@ -90,7 +90,7 @@ if dialog and dialog.visible then
     return
 end
 
-    local song = renoise.song()
+    local song=renoise.song()
     local sample = song.selected_sample
     if not sample or not sample.sample_buffer.has_sample_data then
         renoise.app():show_status("No sample selected or sample buffer empty")
@@ -102,7 +102,7 @@ end
     -- Create textfield with immediate update notifier
     local hex_input = vb:textfield {
         id = "hex_input",
-        width = 50,
+        width=50,
         value = "80",
         notifier = function(value)
             if value and value ~= "" then
@@ -115,7 +115,7 @@ end
     -- Create switch for quick hex values
     local hex_switch = vb:switch {
         id = "hex_switch",
-        width = 200,
+        width=200,
         items = {"10", "20", "40", "80"},
         value = 4, -- Default to "80"
         notifier = function(value)
@@ -126,22 +126,22 @@ end
         end
     }
     
-    local dialog_content = vb:column {
-        margin = 5,
-        spacing = 5,
+    local dialog_content = vb:column{
+        margin=5,
+        spacing=5,
         
-        vb:row {
-            vb:text { text = "Hex value:" },
+        vb:row{
+            vb:text{text="Hex value:" },
             hex_input
         },
-        vb:row {
-            vb:text { text = "Quick select:" },
+        vb:row{
+            vb:text{text="Quick select:" },
             hex_switch
         },
-        vb:row {
-            vb:button {
-                text = "Set forward loops for all samples",
-                width = 305,
+        vb:row{
+            vb:button{
+                text="Set forward loops for all samples",
+                width=305,
                 notifier = function()
                     set_sample_selection_by_hex_offset(vb.views.hex_input.value)
                     focus_sample_editor()
@@ -169,7 +169,7 @@ renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Set Selection by Hex
 renoise.tool():add_menu_entry{name="Sample Editor Ruler:Set Selection by Hex Offset...", invoke = create_hex_offset_dialog}
 
 function cut_sample_after_selection()
-  local song = renoise.song()
+  local song=renoise.song()
   local sample = song.selected_sample
   if not sample or not sample.sample_buffer.has_sample_data then
       renoise.app():show_status("No sample selected or sample buffer empty")
@@ -276,7 +276,7 @@ end
 
 function cut_all_samples_in_instrument()
     -- Get the hex selection value from the original sample
-    local song = renoise.song()
+    local song=renoise.song()
     local selected_sample = song.selected_sample
     if not selected_sample or not selected_sample.sample_buffer.has_sample_data then
         renoise.app():show_status("No sample selected or sample buffer empty")

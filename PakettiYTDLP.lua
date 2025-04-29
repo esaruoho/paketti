@@ -248,9 +248,9 @@ function PakettiYTDLPProcessSlice()
     -- Update status text based on output
     if status_text then
       if output:match("^%[download%]%s+([%d%.]+)%%%s+") then
-        status_text.text = "Downloading: " .. output:match("^%[download%]%s+([%d%.]+)%%%s+") .. "%"
+        status_text.text="Downloading: " .. output:match("^%[download%]%s+([%d%.]+)%%%s+") .. "%"
       elseif output:match("^%[ExtractAudio%]") then
-        status_text.text = "Extracting Audio..."
+        status_text.text="Extracting Audio..."
       end
     end
     
@@ -266,7 +266,7 @@ function PakettiYTDLPProcessSlice()
     end
     process_running = false
     if status_text then
-      status_text.text = "Ready"
+      status_text.text="Ready"
     end
     if cancel_button then
       cancel_button.active = false
@@ -285,14 +285,14 @@ function PakettiYTDLPExecuteCommand(command)
   if not process_handle then
     PakettiYTDLPLogMessage("Failed to start process")
     if status_text then
-      status_text.text = "Failed to start process"
+      status_text.text="Failed to start process"
     end
     return false
   end
   
   process_running = true
   if status_text then
-    status_text.text = "Processing..."
+    status_text.text="Processing..."
   end
   if cancel_button then
     cancel_button.active = true
@@ -541,7 +541,7 @@ function PakettiYTDLPLoadVideoAudioIntoRenoise(download_dir, loop_mode, create_n
     PakettiYTDLPLogMessage("File is ready: " .. file)
   end
 
-  local song = renoise.song()
+  local song=renoise.song()
   local selected_instrument_index = song.selected_instrument_index
 
   if create_new_instrument then
@@ -683,7 +683,7 @@ function PakettiYTDLPSlicedProcess(search_phrase, youtube_url, output_dir, clip_
   else
     -- Search command - do this immediately without slicing
     -- Update the log BEFORE starting the search
-    logview.text = "=== Starting search for term: \"" .. search_phrase .. "\" ===\n"
+    logview.text="=== Starting search for term: \"" .. search_phrase .. "\" ===\n"
     local search_command = string.format('env PATH=/opt/homebrew/bin:$PATH "%s" "ytsearch30:%s" --get-id --no-warnings', yt_dlp_path, search_phrase)
     local handle = io.popen(search_command)
     if not handle then
@@ -773,9 +773,9 @@ function PakettiYTDLPSlicedProcess(search_phrase, youtube_url, output_dir, clip_
     -- Update status text based on output
     if status_text then
       if output:match("^%[download%]%s+([%d%.]+)%%%s+") then
-        status_text.text = "Downloading: " .. output:match("^%[download%]%s+([%d%.]+)%%%s+") .. "%"
+        status_text.text="Downloading: " .. output:match("^%[download%]%s+([%d%.]+)%%%s+") .. "%"
       elseif output:match("^%[ExtractAudio%]") then
-        status_text.text = "Extracting Audio..."
+        status_text.text="Extracting Audio..."
       end
     end
     
@@ -787,7 +787,7 @@ function PakettiYTDLPSlicedProcess(search_phrase, youtube_url, output_dir, clip_
   process_handle = nil
   
   if status_text then
-    status_text.text = "Ready"
+    status_text.text="Ready"
   end
   
   -- Write downloaded filenames to filenames.txt
@@ -901,47 +901,47 @@ function PakettiYTDLPDialogContent()
 
   logview = vb:multiline_textfield {
     id = "log_view",
-    text = "",
-    width = 690,
+    text="",
+    width=690,
     height = 500
   }
 
-  status_text = vb:text { 
+  status_text = vb:text{
     id = "status_text",
-    text = "Ready",
-    width = 200
+    text="Ready",
+    width=200
   }
 
-  cancel_button = vb:button {
+  cancel_button = vb:button{
     id = "cancel_button",
-    text = "Cancel",
+    text="Cancel",
     active = false,
     notifier = PakettiYTDLPCancelProcess
   }
 
-  local dialog_content = vb:column {
+  local dialog_content = vb:column{
     id = "main_column",
-    width = 690,
-    margin = 1,
-    vb:text { id="hi", text = "YT-DLP is able to download content from:", font="bold"},
+    width=690,
+    margin=1,
+    vb:text{id="hi", text="YT-DLP is able to download content from:", font="bold"},
     vb:text{id="List",text="YouTube, Twitter, Facebook, SoundCloud, Bandcamp and Instagram (tested).", font = "bold" },
-    vb:row {
-      margin = 5,
-      vb:column {
-        width = 170,
-        vb:text { text = "Search Phrase:" },
-        vb:text { text = "URL:" },
-        vb:text { text = "Output Directory:" },
-        vb:text { text = "yt-dlp location:" },
-        vb:text { text = "Clip Length (seconds):" },
-        vb:text { text = "Loop Mode:" },
-        vb:text { text = "Amount of Videos to Search for:" }
+    vb:row{
+      margin=5,
+      vb:column{
+        width=170,
+        vb:text{text="Search Phrase:" },
+        vb:text{text="URL:" },
+        vb:text{text="Output Directory:" },
+        vb:text{text="yt-dlp location:" },
+        vb:text{text="Clip Length (seconds):" },
+        vb:text{text="Loop Mode:" },
+        vb:text{text="Amount of Videos to Search for:" }
       },
-      vb:column {
-        width = 600,
+      vb:column{
+        width=600,
         vb:textfield { 
           id = "search_phrase", 
-          width = 400,
+          width=400,
           edit_mode = true,
           notifier = function(value)
             if value ~= "" then
@@ -951,7 +951,7 @@ function PakettiYTDLPDialogContent()
         },
         vb:textfield {
           id = "youtube_url",
-          width = 400,
+          width=400,
           edit_mode = true,
           notifier = function(value)
             if value ~= "" then
@@ -959,14 +959,14 @@ function PakettiYTDLPDialogContent()
             end
           end
         },
-        vb:row {
+        vb:row{
           vb:textfield {
             id = "output_dir",
-            width = 400,
+            width=400,
             text = preferences.PakettiYTDLP.PakettiYTDLPOutputDirectory.value
           },
-          vb:button { text = "Browse", notifier = PakettiYTDLPPromptForOutputDir },
-          vb:button { text = "Open Path", notifier = function()
+          vb:button{ text="Browse", notifier = PakettiYTDLPPromptForOutputDir },
+          vb:button{ text="Open Path", notifier = function()
             local path = vb.views.output_dir.text
             if path and path ~= "" and path ~= "Set this yourself, please." then
               os.execute('open "' .. path .. '"')
@@ -976,16 +976,16 @@ function PakettiYTDLPDialogContent()
             end
           end},
         },
-        vb:row {
+        vb:row{
           vb:textfield {
             id = "yt_dlp_location",
-            width = 400,
+            width=400,
             text = preferences.PakettiYTDLP.PakettiYTDLPYT_DLPLocation.value or "<No path set>",
            -- read_only = true
           },
-          vb:button { text = "Browse", notifier = PakettiYTDLPPromptForYTDLPPath },
+          vb:button{ text="Browse", notifier = PakettiYTDLPPromptForYTDLPPath },
         },
-        vb:valuebox {
+        vb:valuebox{
           id = "clip_length",
           min = 1,
           max = 60,
@@ -995,17 +995,17 @@ function PakettiYTDLPDialogContent()
             PakettiYTDLPLogMessage("Saved Clip Length to " .. value)
           end
         },
-        vb:popup {
+        vb:popup{
           id = "loop_mode",
           items = loop_modes,
           value = preferences.PakettiYTDLP.PakettiYTDLPLoopMode.value or 2,
-          width = 80,
+          width=80,
           notifier = function(value)
             preferences.PakettiYTDLP.PakettiYTDLPLoopMode.value = value
             PakettiYTDLPLogMessage("Saved Loop Mode to " .. value)
           end
         },
-        vb:valuebox {
+        vb:valuebox{
           id = "video_amount",
           min = 1,
           max = 100,
@@ -1017,8 +1017,8 @@ function PakettiYTDLPDialogContent()
         }
       }
     },
-    vb:row {
-      vb:checkbox {
+    vb:row{
+      vb:checkbox{
         id = "full_video",
         value = preferences.PakettiYTDLP.PakettiYTDLPLoadWholeVideo.value,
         notifier = function(value)
@@ -1027,10 +1027,10 @@ function PakettiYTDLPDialogContent()
           PakettiYTDLPLogMessage("Saved Load Whole Video to " .. tostring(value))
         end
       },
-      vb:text { text = "Download Whole Video as Audio" },
+      vb:text{text="Download Whole Video as Audio" },
     },
-    vb:row {
-      vb:checkbox {
+    vb:row{
+      vb:checkbox{
         id = "create_new_instrument",
         value = preferences.PakettiYTDLP.PakettiYTDLPNewInstrumentOrSameInstrument.value,
         notifier = function(value)
@@ -1038,14 +1038,14 @@ function PakettiYTDLPDialogContent()
           PakettiYTDLPLogMessage("Saved Create New Instrument to " .. tostring(value))
         end
       },
-      vb:text { text = "Create New Instrument for Each Downloaded Audio" },
+      vb:text{text="Create New Instrument for Each Downloaded Audio" },
     },
-    vb:row { vb:text { text = "Save Successfully Downloaded Audio to Selected Folder" },
-      vb:popup {
+    vb:row{vb:text{text="Save Successfully Downloaded Audio to Selected Folder" },
+      vb:popup{
         id = "save_format",
         items = {"Off", "Save WAV", "Save FLAC"},
         value = preferences.PakettiYTDLP.PakettiYTDLPFormatToSave.value or 1,
-        width = 120,
+        width=120,
         notifier = function(value)
           preferences.PakettiYTDLP.PakettiYTDLPFormatToSave.value = value
           if (value == 2 or value == 3) and (vb.views.save_path.text == "<No path set>" or vb.views.save_path.text == "") then
@@ -1055,34 +1055,34 @@ function PakettiYTDLPDialogContent()
         end
       },
     },
-    vb:row {
-      vb:text { text = "Save Path: " },
-      vb:text { id = "save_path", text = preferences.PakettiYTDLP.PakettiYTDLPPathToSave.value or "<No path set>", font = "bold" },
-      vb:button { text = "Browse", notifier = PakettiYTDLPPromptForSavePath }
+    vb:row{
+      vb:text{text="Save Path: " },
+      vb:text{id = "save_path", text = preferences.PakettiYTDLP.PakettiYTDLPPathToSave.value or "<No path set>", font = "bold" },
+      vb:button{ text="Browse", notifier = PakettiYTDLPPromptForSavePath }
     },
-    vb:row {
-      vb:text { text = "Status: " },
+    vb:row{
+      vb:text{text="Status: " },
       status_text,
       cancel_button
     },
     -- Multiline Textfield for Logs
-    vb:row {
-      vb:column {
-        vb:row {
-          vb:text { text = "Log Output:", font = "bold" },
-          vb:button {
+    vb:row{
+      vb:column{
+        vb:row{
+          vb:text{text="Log Output:", font = "bold" },
+          vb:button{
             id = "Clear_thing",
-            text = "Clear",
-            notifier = function() logview.text = "" end
+            text="Clear",
+            notifier = function() logview.text="" end
           }
         },
         logview,
       }
     },
-    vb:row {
-      vb:button {
+    vb:row{
+      vb:button{
         id = "start_button",
-        text = "Start",
+        text="Start",
         notifier = function()
           -- Disable Start if yt-dlp location is not set
           if preferences.PakettiYTDLP.PakettiYTDLPYT_DLPLocation.value == nil or preferences.PakettiYTDLP.PakettiYTDLPYT_DLPLocation.value == "" then
@@ -1095,7 +1095,7 @@ function PakettiYTDLPDialogContent()
           PakettiYTDLPStartYTDLP()
         end
       },
-      vb:button { text = "Save", notifier = function()
+      vb:button{ text="Save", notifier = function()
         preferences.PakettiYTDLP.PakettiYTDLPOutputDirectory.value = vb.views.output_dir.text
         preferences.PakettiYTDLP.PakettiYTDLPClipLength.value = vb.views.clip_length.value
         preferences.PakettiYTDLP.PakettiYTDLPLoopMode.value = vb.views.loop_mode.value
@@ -1108,7 +1108,7 @@ function PakettiYTDLPDialogContent()
 
         PakettiYTDLPPrintPreferences()
       end},
-      vb:button { text = "Save & Close", notifier = function()
+      vb:button{ text="Save & Close", notifier = function()
         preferences.PakettiYTDLP.PakettiYTDLPOutputDirectory.value = vb.views.output_dir.text
         preferences.PakettiYTDLP.PakettiYTDLPClipLength.value = vb.views.clip_length.value
         preferences.PakettiYTDLP.PakettiYTDLPLoopMode.value = vb.views.loop_mode.value
@@ -1217,7 +1217,7 @@ function PakettiYTDLPCancelProcess()
   
   process_running = false
   if status_text then
-    status_text.text = "Ready"
+    status_text.text="Ready"
   end
   if cancel_button then
     cancel_button.active = false

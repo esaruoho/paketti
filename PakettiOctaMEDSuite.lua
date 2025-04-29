@@ -11,7 +11,7 @@ local function check_and_update_slot_display(slot_index)
   local textfield_value = vb.views["slot_display_"..string.format("%02d", slot_index)].text
   -- If the textfield only contains ' || ' or is empty, set it to "Slot is Empty"
   if textfield_value == " || " or textfield_value == "" then
-    vb.views["slot_display_"..string.format("%02d", slot_index)].text = "Slot " .. string.format("%02d", slot_index) .. ": Empty"
+    vb.views["slot_display_"..string.format("%02d", slot_index)].text="Slot " .. string.format("%02d", slot_index) .. ": Empty"
   end
 end
 
@@ -72,7 +72,7 @@ local function clear_pick(slot_index)
 
   -- Reset the textfield to empty state if the dialog is open
   if vb and vb.views["slot_display_"..string.format("%02d", slot_index)] then
-    vb.views["slot_display_"..string.format("%02d", slot_index)].text = "Slot " .. string.format("%02d", slot_index) .. ": Empty"
+    vb.views["slot_display_"..string.format("%02d", slot_index)].text="Slot " .. string.format("%02d", slot_index) .. ": Empty"
   end
 
   -- Update status message
@@ -486,7 +486,7 @@ function create_paketti_pick_dialog()
         put_note_instrument(i)
         renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
       end},
-      vb:textfield{id="slot_display_"..string.format("%02d", i), text="Slot " .. string.format("%02d", i) .. ": Empty", width=800},
+      vb:textfield{id="slot_display_"..string.format("%02d", i), text="Slot " .. string.format("%02d", i) .. ": Empty",width=800},
       vb:button{text="Clear", notifier=function()
         clear_pick(i)
         renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
@@ -540,13 +540,13 @@ function create_paketti_pick_dialog()
     },
     vb:row{
       vb:button{
-        text = "Save Slots",
+        text="Save Slots",
         notifier = function()
           save_dialog_content_to_file()
         end
       },
       vb:button{
-        text = "Load Slots",
+        text="Load Slots",
         notifier = function()
           load_dialog_content_from_file()
         end
@@ -590,7 +590,7 @@ function NoteSpread(num_columns)
     return
   end
 
-  local song = renoise.song()
+  local song=renoise.song()
   local track = song.selected_track
   local track_idx = song.selected_track_index
   local pattern = song.selected_pattern
@@ -740,7 +740,7 @@ renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Other Trackers..:Oc
 -------
 -- Function to toggle mute state for a specific track
 function OctaMEDToggleTrackMute(track_index)
-  local song = renoise.song()
+  local song=renoise.song()
   
   -- Check if track index is valid
   if track_index > #song.tracks then
@@ -782,7 +782,7 @@ function create_echo_dialog()
   
   -- Get selection info
   local selection = renoise.song().selection_in_pattern
-  local selection_text = "No selection"
+  local selection_text="No selection"
   local selection_length = 0
   
   if selection then
@@ -793,15 +793,15 @@ function create_echo_dialog()
     preferences.pakettiOctaMEDNoteEchoDistance.value = selection_length
   end
   
-  local dialog_content = vb:column {
-  --  margin = 10,
-  --  spacing = 5,
+  local dialog_content = vb:column{
+  --  margin=10,
+  --  spacing=5,
     
-    vb:text { text = selection_text, width=70 },
+    vb:text{text=selection_text,width=70 },
     
-    vb:row {
-      vb:text { text = "Distance", width=70 },
-      vb:valuebox {
+    vb:row{
+      vb:text{text="Distance",width=70 },
+      vb:valuebox{
         min = 1,
         max = 16,
         value = preferences.pakettiOctaMEDNoteEchoDistance.value,
@@ -810,9 +810,9 @@ function create_echo_dialog()
         end
       }
     },    
-    vb:row {
-      vb:text { text = "Min Volume", width=70 },
-      vb:valuebox {
+    vb:row{
+      vb:text{text="Min Volume",width=70 },
+      vb:valuebox{
         min = 1,
         max = 64,
         value = preferences.pakettiOctaMEDNoteEchoMin.value,
@@ -822,9 +822,9 @@ function create_echo_dialog()
       }
     },
 
-    vb:button {
-      text = "Apply",
-      width = 100,
+    vb:button{
+      text="Apply",
+      width=100,
       notifier = function()
         local distance = preferences.pakettiOctaMEDNoteEchoDistance.value
         
@@ -845,9 +845,9 @@ function create_echo_dialog()
         renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
       end
     },    
-      vb:button {
-        text = "Close",
-        width = 100,
+      vb:button{
+        text="Close",
+        width=100,
         notifier = function()
           dialog:close()
           renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
@@ -864,7 +864,7 @@ end
 
 
 function CreateNoteEcho(distance, min_volume)
-  local song = renoise.song()
+  local song=renoise.song()
   local pattern = song.selected_pattern
   local track = song.selected_track
   local track_idx = song.selected_track_index

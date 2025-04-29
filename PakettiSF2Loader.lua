@@ -500,7 +500,7 @@ local function import_sf2(file_path)
     local smpl_data_start = smpl_pos + 8
 
     -- Read SF2 components:
-    if vb then vb.views.progress_text.text = "Reading sample headers..." end
+    if vb then vb.views.progress_text.text="Reading sample headers..." end
     coroutine.yield()
     
     local headers = read_sample_headers(data)
@@ -509,12 +509,12 @@ local function import_sf2(file_path)
       return false
     end
 
-    if vb then vb.views.progress_text.text = "Reading instruments..." end
+    if vb then vb.views.progress_text.text="Reading instruments..." end
     coroutine.yield()
     
     local instruments_zones = read_instruments(data, slicer)
     
-    if vb then vb.views.progress_text.text = "Reading presets..." end
+    if vb then vb.views.progress_text.text="Reading presets..." end
     coroutine.yield()
     
     local presets = read_presets(data, slicer)
@@ -526,7 +526,7 @@ local function import_sf2(file_path)
     -- Build a mapping: one XRNI instrument per preset
     local mappings = {}
 
-    if vb then vb.views.progress_text.text = "Processing presets..." end
+    if vb then vb.views.progress_text.text="Processing presets..." end
     coroutine.yield()
 
     for _, preset in ipairs(presets) do
@@ -623,7 +623,7 @@ local function import_sf2(file_path)
       return false
     end
 
-    local song = renoise.song()
+    local song=renoise.song()
     local imported_count = 0
     local max_instruments = 255
     local empty_slots = 0

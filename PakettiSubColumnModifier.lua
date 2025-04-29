@@ -43,14 +43,14 @@ local current_indices = {
 
 -- Function to get the current sub-column name
 local function get_sub_column_name()
-  local song = renoise.song()
+  local song=renoise.song()
   local sub_column_type = song.selected_sub_column_type
   return SUB_COLUMN_TYPES[sub_column_type] or "Unknown"
 end
 
 -- Function to show current sub-column status
 local function show_sub_column_status()
-  local song = renoise.song()
+  local song=renoise.song()
   local sub_column_type = song.selected_sub_column_type
   local sub_column_name = get_sub_column_name()
   print(string.format("Selected SubColumn is %d (%s)", sub_column_type, sub_column_name))
@@ -59,7 +59,7 @@ end
 
 -- Function to write to volume column
 local function write_to_volume_column(command)
-  local song = renoise.song()
+  local song=renoise.song()
   if not song.selected_note_column then return end
   
   local note_column = song.selected_note_column
@@ -79,7 +79,7 @@ end
 
 -- Function to write to panning column
 local function write_to_panning_column(command)
-  local song = renoise.song()
+  local song=renoise.song()
   if not song.selected_note_column then return end
   
   local note_column = song.selected_note_column
@@ -99,7 +99,7 @@ end
 
 -- Function to write to sample effect number
 local function write_to_sample_effect(command)
-  local song = renoise.song()
+  local song=renoise.song()
   if not song.selected_note_column then return end
   
   local note_column = song.selected_note_column
@@ -112,7 +112,7 @@ end
 
 -- Function to write sample effect amount (00-FF)
 local function write_sample_effect_amount(midi_message)
-  local song = renoise.song()
+  local song=renoise.song()
   if not song.selected_note_column then return end
   
   local note_column = song.selected_note_column
@@ -135,7 +135,7 @@ end
 
 -- Function to write to effect column number
 local function write_to_effect_column(command)
-  local song = renoise.song()
+  local song=renoise.song()
   local effect_column
   
   -- Get the actual pattern line we're writing to
@@ -157,7 +157,7 @@ end
 
 -- Function to write effect column amount (00-FF)
 local function write_effect_amount(midi_message)
-  local song = renoise.song()
+  local song=renoise.song()
   local effect_column
   
   if song.selected_effect_column then
@@ -187,7 +187,7 @@ end
 
 -- Function to handle MIDI input for commands
 local function handle_midi_command(midi_message, is_relative)
-  local song = renoise.song()
+  local song=renoise.song()
   local sub_column_type = song.selected_sub_column_type
   
   -- Convert midi_message to number
@@ -243,7 +243,7 @@ end
 
 -- Function to write values to any column type
 local function write_value(midi_message)
-  local song = renoise.song()
+  local song=renoise.song()
   local sub_column_type = song.selected_sub_column_type
   
   -- Handle note column values (volume, panning)

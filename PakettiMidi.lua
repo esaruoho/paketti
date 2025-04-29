@@ -358,7 +358,7 @@ end
 renoise.tool():add_midi_mapping{name="Paketti:Midi Change Pattern Row Position x[Knob]",
   invoke=function(message)
     if message:is_abs_value() then
-      local song = renoise.song()
+      local song=renoise.song()
       local pattern = song:pattern(song.selected_pattern_index)
       local pattern_length = pattern.number_of_lines
       local new_position = mapPatternPosition(message.int_value, pattern_length)
@@ -375,7 +375,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Midi Change Pattern Row Position x
 -- Direct MIDI to row mapping (0-127 maps directly to rows, capped at pattern length)
 renoise.tool():add_midi_mapping{name="Paketti:Midi Change Pattern Row Position Direct x[Knob]",
   invoke=function(message)
-    local song = renoise.song()
+    local song=renoise.song()
     local pattern = song:pattern(song.selected_pattern_index)
     local pattern_length = pattern.number_of_lines
     
@@ -493,7 +493,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Midi Select Track (Next)",invoke=f
 -----
 -- Retrieve all group track indices
 function groupTrackIndices()
-    local song = renoise.song()
+    local song=renoise.song()
     local indices = {}
     for i = 1, #song.tracks do
         if song.tracks[i].type == renoise.Track.TRACK_TYPE_GROUP then
@@ -505,7 +505,7 @@ end
 
 -- Function to select a group track by index
 function selectGroupTrackByIndex(index)
-    local song = renoise.song()
+    local song=renoise.song()
     local groups = groupTrackIndices()
     if #groups > 0 and index >= 1 and index <= #groups then
         song.selected_track_index = groups[index]
@@ -762,7 +762,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Macro 8 (
 -- Define a function to change the sample modulation set filter type based on MIDI value
 function change_sample_modulation_set_filter(midi_value)
   -- Get the current song
-  local song = renoise.song()
+  local song=renoise.song()
   
   -- Check if a sample and modulation set are selected
   if song.selected_sample and song.selected_sample_modulation_set then
@@ -803,7 +803,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Selected Instrument Midi Program -
 -----------
 function pakettiMidiValuesColumn(minValue, maxValue, note_column_index, propertyName, midiInput)
   local scaledValue = pakettiScaleValuesColumn(midiInput, 0, 127, minValue, maxValue)
-  local song = renoise.song()
+  local song=renoise.song()
   local selection = song.selection_in_pattern
 
   -- Handle cases where no note column is selected
@@ -872,7 +872,7 @@ end
 -- Volume Column MIDI Mapping
 renoise.tool():add_midi_mapping{name="Paketti:Midi Change 01 Volume Column Value x[Knob]",invoke=function(message)
   if message:is_abs_value() then
-    local song = renoise.song()
+    local song=renoise.song()
     local selection = song.selection_in_pattern
     
     -- Check if there's an active selection in the pattern
@@ -901,7 +901,7 @@ end}
 -- Panning Column MIDI Mapping
 renoise.tool():add_midi_mapping{name="Paketti:Midi Change 02 Panning Column Value x[Knob]",invoke=function(message)
   if message:is_abs_value() then
-    local song = renoise.song()
+    local song=renoise.song()
     local selection = song.selection_in_pattern
     
     -- Check if there's an active selection in the pattern
@@ -930,7 +930,7 @@ end}
 -- Delay Column MIDI Mapping
 renoise.tool():add_midi_mapping{name="Paketti:Midi Change 03 Delay Column Value x[Knob]",invoke=function(message)
   if message:is_abs_value() then
-    local song = renoise.song()
+    local song=renoise.song()
     local selection = song.selection_in_pattern
     
     -- Check if there's an active selection in the pattern
@@ -959,7 +959,7 @@ end}
 -- Sample FX Column MIDI Mapping
 renoise.tool():add_midi_mapping{name="Paketti:Midi Change 04 Sample FX Column Value x[Knob]",invoke=function(message)
   if message:is_abs_value() then
-    local song = renoise.song()
+    local song=renoise.song()
     local selection = song.selection_in_pattern
     
     -- Check if there's an active selection in the pattern
@@ -988,7 +988,7 @@ end}
 -- Function to process MIDI values and set the appropriate property
 function pakettiMidiValuesEffectColumn(minValue, maxValue, effect_column_index, propertyName, midiInput)
   local scaledValue = pakettiScaleValuesColumn(midiInput, 0, 127, minValue, maxValue)
-local song = renoise.song()
+local song=renoise.song()
 local selection = song.selection_in_pattern
 
 if selection then
@@ -1203,7 +1203,7 @@ end
 local previous_value = nil
 
 function transpose_notes_by_midi_knob(message)
-  local song = renoise.song()
+  local song=renoise.song()
 
   -- Extract the MIDI value from the message
   local value = message.int_value
@@ -1282,7 +1282,7 @@ end
 
 -- Function to modify the selected device parameter directly or record to automation
 function MidiSelectedAutomationParameter(number, message)
-  local song = renoise.song()
+  local song=renoise.song()
   local selected_device = song.selected_device
   local playback_active = song.transport.playing
   local edit_mode = song.transport.edit_mode
@@ -1375,7 +1375,7 @@ local function clamp_value(value)
 end
 
 function record_midi_value(value)
-  local song = renoise.song()
+  local song=renoise.song()
   local automation_parameter = song.selected_automation_parameter
 
   -- Check if the automation parameter is valid and automatable
@@ -1934,7 +1934,7 @@ end}
 -- Function to write MIDI-controlled effect command to pattern
 function MidiWriteEffectToLine(effect_number, range_min, range_max, clear_on_zero)
   return function(midi_value)
-    local song = renoise.song()
+    local song=renoise.song()
     local pattern = song:pattern(song.selected_pattern_index)
     local track = pattern:track(song.selected_track_index)
     local selection = song.selection_in_pattern
@@ -2024,7 +2024,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Write ZTxx Command x[Knob]",
 
 -- Function to get slice marker count for current instrument
 function get_slice_marker_count()
-  local song = renoise.song()
+  local song=renoise.song()
   local instrument = song.selected_instrument
   
   -- Check if we have an instrument with samples and slice markers
@@ -2039,7 +2039,7 @@ end
 
 -- Function to write random slice or offset commands
 function write_random_slice_command()
-  local song = renoise.song()
+  local song=renoise.song()
   local pattern = song:pattern(song.selected_pattern_index)
   local track = pattern:track(song.selected_track_index)
   local selection = song.selection_in_pattern
@@ -2076,7 +2076,7 @@ renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Write 0Sxx Command 
 
 -- Function to rename tracks based on actual samples being played
 function rename_tracks_by_played_samples()
-  local song = renoise.song()
+  local song=renoise.song()
   local pattern = song:pattern(song.selected_pattern_index)
   
   -- Store used samples for each track
@@ -2177,7 +2177,7 @@ renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Rename Tracks By Played Sa
 -----
 -- Function to modify selected XY Pad parameter
 local function modify_selected_xy_pad_param(param_name, midi_message)
-  local song = renoise.song()
+  local song=renoise.song()
   
   if not song.selected_device then
     renoise.app():show_status("No device selected, doing nothing")
@@ -2221,7 +2221,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Selected Device *XY Pad Y-Axis",in
 
 -- Helper function to validate sample device chain access and get count
 local function get_device_chain_info()
-  local song = renoise.song()
+  local song=renoise.song()
   
   if not song.selected_instrument then
     renoise.app():show_status("No instrument selected")
@@ -2361,7 +2361,7 @@ end
 -- Helper function to get total column count across all tracks
 local function get_total_column_count()
   local total = 0
-  local song = renoise.song()
+  local song=renoise.song()
   for i = 1, #song.tracks do
     total = total + get_track_column_count(song.tracks[i])
   end
@@ -2396,7 +2396,7 @@ end
 
 -- Main function to handle column cycling
 function pakettiColumnCount(message, range)
-  local song = renoise.song()
+  local song=renoise.song()
   local current_track = song.selected_track
   local current_track_index = song.selected_track_index
   

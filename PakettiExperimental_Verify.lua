@@ -1,6 +1,6 @@
 -- Function to ensure EQ10 exists on selected track and return its index
 local function ensure_eq10_exists()
-  local song = renoise.song()
+  local song=renoise.song()
   local track = song.selected_track
   
   -- First check if EQ10 already exists
@@ -33,7 +33,7 @@ local function get_eq10_params(device)
     params[i] = {
       gain = device.parameters[i].value,              -- Gains are parameters 1-10
       freq = device.parameters[i + 10].value,         -- Frequencies are parameters 11-20
-      bandwidth = device.parameters[i + 20].value     -- Bandwidths are parameters 21-30
+      bandwidth=device.parameters[i + 20].value     -- Bandwidths are parameters 21-30
     }
   end
   return params
@@ -57,15 +57,15 @@ function show_eq10_dialog()
   local eq10_device = renoise.song().selected_track.devices[eq10_index]
   
   -- Create single row of XY pads
-  local content = vb:column {
-    margin = 5,
-    spacing = 5
+  local content = vb:column{
+    margin=5,
+    spacing=5
   }
   
   -- Create the single row for all XY pads
-  local row_content = vb:row {
-    margin = 5,
-    spacing = 10
+  local row_content = vb:row{
+    margin=5,
+    spacing=10
   }
   
   -- Add all 10 bands
@@ -85,12 +85,12 @@ function show_eq10_dialog()
                    (freq_param.value_max - freq_param.value_min)
     local y_value = normalize_gain(gain_param.value)
     
-    local band_group = vb:column {
-      margin = 2,
-      vb:text { text = string.format("Band %d", band_idx) },
-      vb:xypad {
+    local band_group = vb:column{
+      margin=2,
+      vb:text{text=string.format("Band %d", band_idx) },
+      vb:xypad{
         id = string.format("xy_band_%d", band_idx),
-        width = 80,
+        width=80,
         height = 80,
         value = { x = x_value, y = y_value },
         notifier = function(value)
@@ -127,7 +127,7 @@ local tick_counter = 0 -- To track the "tick-tick-tick-skip" cycle
 
 -- Function to find the next valid delay value in the track
 local function find_next_delay_line(start_line_index)
-  local song = renoise.song()
+  local song=renoise.song()
   local track = song.selected_pattern_track
   local num_lines = song.selected_pattern.number_of_lines
 
@@ -157,7 +157,7 @@ end
 
 -- Main function to dynamically adjust editstep
 local function match_editstep_with_delay_pattern()
-  local song = renoise.song()
+  local song=renoise.song()
   local current_line_index = song.selected_line_index
 
   -- Only act when the selected line changes
@@ -222,7 +222,7 @@ end
 
 
 function AutoAssignOutputs()
-  local song = renoise.song()
+  local song=renoise.song()
   local instrument = song.selected_instrument
   local samples = instrument.samples
   local sample_device_chains = instrument.sample_device_chains
@@ -529,7 +529,7 @@ function show_paketti_device_chain_dialog()
     -- Create XRNT textfield and store it
     local textfield_xrnt = vb:textfield {
       text = get_slot_preference_xrnt(i).value or "",
-      width = 900,  -- Increased width as per requirement
+      width=900,  -- Increased width as per requirement
       notifier = function(text)
         get_slot_preference_xrnt(i).value = text
       end
@@ -537,24 +537,24 @@ function show_paketti_device_chain_dialog()
     slot_path_views_xrnt[i] = textfield_xrnt
 
     -- XRNT Row
-    local row_xrnt = vb:row {
-     -- margin = 2,
-      vb:text { text = "Load Device Chain (.XRNT) Slot" .. slot_number .. ":", width = 200 },
+    local row_xrnt = vb:row{
+     -- margin=2,
+      vb:text{text="Load Device Chain (.XRNT) Slot" .. slot_number .. ":",width=200 },
       textfield_xrnt,
-      vb:button {
-        text = "Browse",
+      vb:button{
+        text="Browse",
         notifier = function()
           select_xrnt_file(i)
         end
       },
-      vb:button {
-        text = "Save",
+      vb:button{
+        text="Save",
         notifier = function()
           save_device_chain_to_slot(i)
         end
       },
-      vb:button {
-        text = "Load",
+      vb:button{
+        text="Load",
         notifier = function()
           load_device_chain_from_slot(i)
         end
@@ -565,7 +565,7 @@ function show_paketti_device_chain_dialog()
     -- Create XRNI textfield and store it
     local textfield_xrni = vb:textfield {
       text = get_slot_preference_xrni(i).value or "",
-      width = 900,  -- Increased width as per requirement
+      width=900,  -- Increased width as per requirement
       notifier = function(text)
         get_slot_preference_xrni(i).value = text
       end
@@ -573,24 +573,24 @@ function show_paketti_device_chain_dialog()
     slot_path_views_xrni[i] = textfield_xrni
 
     -- XRNI Row
-    local row_xrni = vb:row {
-    --  margin = 2,
-      vb:text { text = "Load Instrument (.XRNI) Slot" .. slot_number .. ":", width = 200 },
+    local row_xrni = vb:row{
+    --  margin=2,
+      vb:text{text="Load Instrument (.XRNI) Slot" .. slot_number .. ":",width=200 },
       textfield_xrni,
-      vb:button {
-        text = "Browse",
+      vb:button{
+        text="Browse",
         notifier = function()
           select_xrni_file(i)
         end
       },
-      vb:button {
-        text = "Save",
+      vb:button{
+        text="Save",
         notifier = function()
           save_instrument_to_slot(i)
         end
       },
-      vb:button {
-        text = "Load",
+      vb:button{
+        text="Load",
         notifier = function()
           load_instrument_from_slot(i)
         end
@@ -599,10 +599,10 @@ function show_paketti_device_chain_dialog()
     slots_rows_xrni[#slots_rows_xrni + 1] = row_xrni
 
     -- Both XRNI&XRNT Row
-    local row_both = vb:row {
-      vb:text { text="Load Both Instrument&Device Chain (.XRNI&.XRNT) Slot" .. slot_number .. ":", width = 200 },
-      vb:button {
-        text = "Load Both",
+    local row_both = vb:row{
+      vb:text{text="Load Both Instrument&Device Chain (.XRNI&.XRNT) Slot" .. slot_number .. ":",width=200 },
+      vb:button{
+        text="Load Both",
         notifier = function()
           load_both_from_slot(i)
         end
@@ -612,38 +612,38 @@ function show_paketti_device_chain_dialog()
   end
 
   -- Define the content of the dialog
-  local content = vb:column {
-    vb:row {
-      vb:text { text="User XRNT/XRNI Save Folder:",width=200},
+  local content = vb:column{
+    vb:row{
+      vb:text{text="User XRNT/XRNI Save Folder:",width=200},
       vb:textfield {
         text = preferences.UserDevices.Path.value ~= "" and preferences.UserDevices.Path.value or "<Not Set, Please Set>",
-        width = 900,  -- Increased width as per requirement
+        width=900,  -- Increased width as per requirement
         notifier = function(text)
           preferences.UserDevices.Path.value = text
         end
       },
-      vb:button {
-        text = "Browse",
+      vb:button{
+        text="Browse",
         notifier = function()
           select_user_xrnt_saving_folder()
         end
       }
     },
-    vb:column {
-      vb:text {text="Load Device Chain (.XRNT) Slots (01-10)",font="bold",style="strong"},
+    vb:column{
+      vb:text{text="Load Device Chain (.XRNT) Slots (01-10)",font="bold",style="strong"},
       unpack(slots_rows_xrnt)
     },
-    vb:column {
-      vb:text {text="Load Instrument (.XRNI) Slots (01-10)",font="bold",style="strong"},
+    vb:column{
+      vb:text{text="Load Instrument (.XRNI) Slots (01-10)",font="bold",style="strong"},
       unpack(slots_rows_xrni)
     },
-    vb:column {
-      vb:text {text="Load Both Instrument&Device Chain (.XRNI&.XRNT) Slots (01-10)",font="bold",style="strong"},
+    vb:column{
+      vb:text{text="Load Both Instrument&Device Chain (.XRNI&.XRNT) Slots (01-10)",font="bold",style="strong"},
       unpack(slots_rows_both)
     },
-    vb:row {
-      vb:button {
-        text = "Close",
+    vb:row{
+      vb:button{
+        text="Close",
         notifier = function()
           dialog:close()
           dialog = nil  -- Clear the dialog reference
@@ -734,9 +734,9 @@ local function update_sample_volumes(x, y)
   )
 end
 
-dialog_content = vb:column {
-  vb:xypad {
-    width = 200,
+dialog_content = vb:column{
+  vb:xypad{
+    width=200,
     height = 200,
     value = {x=0.5, y=0.5},
     notifier = function(value)
@@ -775,7 +775,7 @@ local loop_pairs = {}
 -- Scan the Master Track for all SB0/SBX pairs
 
 function analyze_loops()
-  local song = renoise.song()
+  local song=renoise.song()
   local master_track_index = renoise.song().sequencer_track_count + 1
   local master_track = song.selected_pattern.tracks[master_track_index]
   loop_pairs = {}
@@ -816,7 +816,7 @@ end
 
 -- Playback Monitoring Function
 local function monitor_playback()
-  local song = renoise.song()
+  local song=renoise.song()
   local play_pos = song.transport.playback_pos
   local current_line = play_pos.line
   local max_row = renoise.song().selected_pattern.number_of_lines - 1 -- Last row in the pattern
@@ -904,17 +904,17 @@ end
 -- GUI for Triggering the Script
 function showSBX_dialog()
   if dialog and dialog.visible then dialog:close() return end
-  local content = vb:column {
-    margin = 10,
-    vb:text { text = "Trigger SBX Loop Handler" },
-    vb:button {
-      text = "Enable Monitoring",
+  local content = vb:column{
+    margin=10,
+    vb:text{text="Trigger SBX Loop Handler" },
+    vb:button{
+      text="Enable Monitoring",
       released = function()
         enable_monitoring()
       end
     },
-    vb:button {
-      text = "Disable Monitoring",
+    vb:button{
+      text="Disable Monitoring",
       released = function()
         disable_monitoring()
       end
@@ -1073,7 +1073,7 @@ end
 
 -- Helper function to determine crossfade_length based on the current selection
 local function get_dynamic_crossfade_length()
-  local song = renoise.song()
+  local song=renoise.song()
   local sample = song and song.selected_sample or nil
   if not sample or not sample.sample_buffer or not sample.sample_buffer.has_sample_data then
     renoise.app():show_status("No valid sample selected.")
@@ -1142,7 +1142,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Transpose
 ---
 local function flood_fill_column()
 
-  local song = renoise.song()
+  local song=renoise.song()
   local track = song.selected_track
   local pattern_index = song.selected_pattern_index
   local pattern = song.patterns[pattern_index]
@@ -1198,7 +1198,7 @@ local xml_file_path = tool_dir .. "mixpaste.xml"
 
 -- Function to save the current pattern selection to mixpaste.xml
 function save_selection_as_xml()
-  local song = renoise.song()
+  local song=renoise.song()
   local selection = song.selection_in_pattern
 
   if not selection then 
@@ -1305,7 +1305,7 @@ end
 
 -- Function to load the pattern data from mixpaste.xml and paste at the current cursor line
 function load_xml_into_selection()
-  local song = renoise.song()
+  local song=renoise.song()
   local cursor_line = song.selected_line_index
   local cursor_track = song.selected_track_index
 
@@ -1487,7 +1487,7 @@ end
 
 
 function shrink_to_triplets()
-    local song = renoise.song()
+    local song=renoise.song()
     local track = song.selected_pattern.tracks[renoise.song().selected_track_index]
     local pattern_length = song.selected_pattern.number_of_lines
 
@@ -1517,7 +1517,7 @@ function shrink_to_triplets()
     end
 
     -- Calculate the original spacing between notes
-    local original_spacing = note_positions[2][1] - note_positions[1][1]
+    local original_spacing=note_positions[2][1] - note_positions[1][1]
 
     -- Determine the modifier based on the spacing
     local modifier = math.floor(original_spacing / 2)  -- Will be 1 for 2-row spacing and 2 for 4-row spacing
@@ -1644,7 +1644,7 @@ end
 
 -- Function to shift the sample buffer upwards with wrap-around
 local function PakettiXYPadSampleRotatorUp(knob_value)
-  local song = renoise.song()
+  local song=renoise.song()
   local sample = song.selected_sample
   local buffer = sample.sample_buffer
 
@@ -1667,7 +1667,7 @@ end
 
 -- Function to shift the sample buffer downwards with wrap-around
 local function PakettiXYPadSampleRotatorDown(knob_value)
-  local song = renoise.song()
+  local song=renoise.song()
   local sample = song.selected_sample
   local buffer = sample.sample_buffer
 
@@ -1690,7 +1690,7 @@ end
 
 -- Function to rotate sample buffer content forwards by a specified number of frames
 local function PakettiXYPadSampleRotatorRight(knob_value)
-  local song = renoise.song()
+  local song=renoise.song()
   local sample = song.selected_sample
   local buffer = sample.sample_buffer
 
@@ -1716,7 +1716,7 @@ end
 
 -- Function to rotate sample buffer content backwards by a specified number of frames
 local function PakettiXYPadSampleRotatorLeft(knob_value)
-  local song = renoise.song()
+  local song=renoise.song()
   local sample = song.selected_sample
   local buffer = sample.sample_buffer
 
@@ -1803,7 +1803,7 @@ local function show_paketti_sample_rotator_dialog()
     vb:column{
       vb:row{
         vb:xypad{
-          width = 200,
+          width=200,
           height = 200,
           notifier = on_xy_change,
           value = {x = initial_position, y = initial_position} -- Center the XY pad
@@ -1822,7 +1822,7 @@ local function show_paketti_sample_rotator_dialog()
       vb:horizontal_aligner{
         mode = "center",
         vb:slider{
-          width = 200,
+          width=200,
           min = 0.0,
           max = 1.0,
           value = initial_position,
@@ -1854,7 +1854,7 @@ end
 
 -- Function to shift the sample buffer upwards with wrap-around
 function PakettiShiftSampleBufferUpwards(knob_value)
-  local song = renoise.song()
+  local song=renoise.song()
   local sample = song.selected_sample
   local buffer = sample.sample_buffer
 
@@ -1886,7 +1886,7 @@ local function wrap_sample_value(value)
 end
 
 function PakettiShiftSampleBufferDownwards(knob_value)
-  local song = renoise.song()
+  local song=renoise.song()
   local sample = song.selected_sample
   local buffer = sample.sample_buffer
 
@@ -1975,7 +1975,7 @@ end
 
 -- Function to shift the sample buffer based on knob position (Up/Down)
 function PakettiShiftSampleBuffer(knob_value)
-  local song = renoise.song()
+  local song=renoise.song()
   local sample = song.selected_sample
   local buffer = sample.sample_buffer
 
@@ -2028,7 +2028,7 @@ renoise.tool():add_keybinding{name="Sample Editor:Paketti:Rotate Sample Buffer D
 
 --[[
 local function randomizeSmatterEffectColumnCustom(effect_command)
-  local song = renoise.song()
+  local song=renoise.song()
   local track_index = song.selected_track_index
   local pattern_index = song.selected_pattern_index
   local pattern = song.patterns[pattern_index]
@@ -2105,7 +2105,7 @@ end
 
 -- Function to unmute all tracks and send tracks except the master track
 function PakettiToggleSoloTracksUnmuteAllTracks()
-  local song = renoise.song()
+  local song=renoise.song()
   local total_track_count = song.sequencer_track_count + 1 + song.send_track_count
 
   print("----")
@@ -2120,7 +2120,7 @@ end
 
 -- Function to mute all tracks except a specific range, and not the master track
 function PakettiToggleSoloTracksMuteAllExceptRange(start_track, end_track)
-  local song = renoise.song()
+  local song=renoise.song()
   local total_track_count = song.sequencer_track_count + 1 + song.send_track_count
   local group_parents = {}
 
@@ -2169,7 +2169,7 @@ end
 
 -- Function to mute all tracks except a specific track and its group, and not the master track
 function PakettiToggleSoloTracksMuteAllExceptSelectedTrack(track_index)
-  local song = renoise.song()
+  local song=renoise.song()
   local total_track_count = song.sequencer_track_count + 1 + song.send_track_count
   local selected_track = song:track(track_index)
   local group_tracks = {}
@@ -2221,7 +2221,7 @@ end
 
 -- Function to check if all tracks and send tracks are unmuted
 function PakettiToggleSoloTracksAllTracksUnmuted()
-  local song = renoise.song()
+  local song=renoise.song()
   local total_track_count = song.sequencer_track_count + 1 + song.send_track_count
 
   for i = 1, total_track_count do
@@ -2234,7 +2234,7 @@ end
 
 -- Function to check if all tracks except the selected track and its group are muted
 function PakettiToggleSoloTracksAllOthersMutedExceptSelected(track_index)
-  local song = renoise.song()
+  local song=renoise.song()
   local selected_track = song:track(track_index)
   local group_tracks = {}
   local total_track_count = song.sequencer_track_count + 1 + song.send_track_count
@@ -2271,7 +2271,7 @@ end
 
 -- Function to check if all tracks except the selected range are muted
 function PakettiToggleSoloTracksAllOthersMutedExceptRange(start_track, end_track)
-  local song = renoise.song()
+  local song=renoise.song()
   local total_track_count = song.sequencer_track_count + 1 + song.send_track_count
   local group_parents = {}
 
@@ -2318,7 +2318,7 @@ end
 
 -- Main function to toggle mute states
 function PakettiToggleSoloTracks()
-  local song = renoise.song()
+  local song=renoise.song()
   local sip = song.selection_in_pattern
   local selected_track_index = song.selected_track_index
   local selected_track = song:track(selected_track_index)
@@ -2379,7 +2379,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Toggle Solo Tracks",invoke=Paketti
 -- Define the function to toggle mute state
 function toggle_mute_tracks()
   -- Get the current song
-  local song = renoise.song()
+  local song=renoise.song()
 
   -- Determine the range of selected tracks
   local selection = song.selection_in_pattern
@@ -2466,7 +2466,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Toggle Mute Tracks",invoke=toggle_
 --------
 -- Function to initialize selection if it is nil
 function PakettiImpulseTrackerShiftInitializeSelection()
-  local song = renoise.song()
+  local song=renoise.song()
   local pos = song.transport.edit_pos
   local selected_track_index = song.selected_track_index
   local selected_column_index = song.selected_note_column_index > 0 and song.selected_note_column_index or song.selected_effect_column_index
@@ -2483,7 +2483,7 @@ end
 
 -- Function to ensure selection is valid and swap if necessary
 function PakettiImpulseTrackerShiftEnsureValidSelection()
-  local song = renoise.song()
+  local song=renoise.song()
   local selection = song.selection_in_pattern
 
   if selection.start_track > selection.end_track then
@@ -2509,7 +2509,7 @@ end
 
 -- Debug function to print selection details
 local function debug_print_selection(message)
-  local song = renoise.song()
+  local song=renoise.song()
   local selection = song.selection_in_pattern
   print(message)
 print("--------")
@@ -2522,7 +2522,7 @@ end
 
 -- Function to select the next column or track to the right
 function PakettiImpulseTrackerShiftRight()
-  local song = renoise.song()
+  local song=renoise.song()
   local selection = song.selection_in_pattern
 
   if not selection then
@@ -2575,7 +2575,7 @@ end
 
 -- Function to select the previous column or track to the left
 function PakettiImpulseTrackerShiftLeft()
-  local song = renoise.song()
+  local song=renoise.song()
   local selection = song.selection_in_pattern
 
   if not selection then
@@ -2628,7 +2628,7 @@ end
 
 -- Function to extend the selection down by one line
 function PakettiImpulseTrackerShiftDown()
-  local song = renoise.song()
+  local song=renoise.song()
   local selection = song.selection_in_pattern
   local current_pattern = song.selected_pattern_index
 
@@ -2664,7 +2664,7 @@ end
 
 -- Main function to determine which shift up function to call
 function PakettiImpulseTrackerShiftUp()
-  local song = renoise.song()
+  local song=renoise.song()
   local selection = song.selection_in_pattern
 
   if not selection then
@@ -2681,7 +2681,7 @@ end
 
 -- Function to extend the selection up by one line in a single column
 function PakettiImpulseTrackerShiftUpSingleColumn()
-  local song = renoise.song()
+  local song=renoise.song()
   local selection = song.selection_in_pattern
   local edit_pos = song.transport.edit_pos
 
@@ -2767,7 +2767,7 @@ end
 
 -- Function to extend the selection up by one line in multiple columns
 function PakettiImpulseTrackerShiftUpMultipleColumns()
-  local song = renoise.song()
+  local song=renoise.song()
   local selection = song.selection_in_pattern
   local edit_pos = song.transport.edit_pos
 
@@ -2907,7 +2907,7 @@ end
 
 -- Slide selected column content down by one row in the current pattern
 function PakettiImpulseTrackerSlideSelectedColumnDown()
-  local song = renoise.song()
+  local song=renoise.song()
   local pattern_index = song.selected_pattern_index
   local track_index = song.selected_track_index
   local pattern = song:pattern(pattern_index)
@@ -2952,7 +2952,7 @@ end
 
 -- Slide selected column content up by one row in the current pattern
 function PakettiImpulseTrackerSlideSelectedColumnUp()
-  local song = renoise.song()
+  local song=renoise.song()
   local pattern_index = song.selected_pattern_index
   local track_index = song.selected_track_index
   local pattern = song:pattern(pattern_index)
@@ -3088,7 +3088,7 @@ end
 
 -- Slide selected column content down by one row or the selection if it exists
 function PakettiImpulseTrackerSlideDown()
-  local song = renoise.song()
+  local song=renoise.song()
   local selection = song.selection_in_pattern
 
   if selection then
@@ -3107,7 +3107,7 @@ end
 
 -- Slide selected column content up by one row or the selection if it exists
 function PakettiImpulseTrackerSlideUp()
-  local song = renoise.song()
+  local song=renoise.song()
   local selection = song.selection_in_pattern
 
   if selection then
@@ -3167,7 +3167,7 @@ end
 
 -- Slide selected track content down by one row in the current pattern
 function PakettiImpulseTrackerSlideTrackDown()
-  local song = renoise.song()
+  local song=renoise.song()
   local pattern_index = song.selected_pattern_index
   local track_index = song.selected_track_index
   local pattern = song:pattern(pattern_index)
@@ -3206,7 +3206,7 @@ end
 
 -- Slide selected track content up by one row in the current pattern
 function PakettiImpulseTrackerSlideTrackUp()
-  local song = renoise.song()
+  local song=renoise.song()
   local pattern_index = song.selected_pattern_index
   local track_index = song.selected_track_index
   local pattern = song:pattern(pattern_index)
@@ -3306,7 +3306,7 @@ local InstrautomationXML = [[
 
 -- Function to load the preset XML directly into the Instr. Automation device
 function openVisiblePagesToFitParameters()
-  local song = renoise.song()
+  local song=renoise.song()
 
   -- Load the Instr. Automation device into the selected track using insert_device_at
   local track = song.selected_track
@@ -3368,7 +3368,7 @@ function mix_paste()
 end
 
 function save_selection_to_text()
-  local song = renoise.song()
+  local song=renoise.song()
   local selection = song.selection_in_pattern
   if not selection then
     renoise.app():show_error("Please make a selection in the pattern first.")
@@ -3417,7 +3417,7 @@ function load_pattern_data_from_text()
 end
 
 function perform_initial_paste(clipboard_data)
-  local song = renoise.song()
+  local song=renoise.song()
   local track_index = song.selected_track_index
   local line_index = song.selected_line_index
   local pattern = song:pattern(song.selected_pattern_index)
@@ -3452,7 +3452,7 @@ function perform_initial_paste(clipboard_data)
 end
 
 function perform_final_mix_paste(clipboard_data)
-  local song = renoise.song()
+  local song=renoise.song()
   local track_index = song.selected_track_index
   local line_index = song.selected_line_index
   local pattern = song:pattern(song.selected_pattern_index)

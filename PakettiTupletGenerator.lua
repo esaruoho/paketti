@@ -30,7 +30,7 @@ local function generate_pattern(note_count, row_count, delays_only)
     pattern[6] = delays_only and string.format("-- %02X", d2) or string.format("C-4 %02X", d2)
   
   elseif note_count == 4 then
-    local spacing = math.floor(row_count/4)
+    local spacing=math.floor(row_count/4)
     for i = 0, 3 do
       pattern[1 + (i * spacing)] = delays_only and "-- --" or "C-4 --"
     end
@@ -63,7 +63,7 @@ local function generate_pattern(note_count, row_count, delays_only)
     end
   
   elseif note_count == 8 then
-    local spacing = math.floor(row_count/8)
+    local spacing=math.floor(row_count/8)
     for i = 0, 7 do
       pattern[1 + (i * spacing)] = delays_only and "-- --" or "C-4 --"
     end
@@ -73,7 +73,7 @@ local function generate_pattern(note_count, row_count, delays_only)
 end
 
 local function apply_to_pattern(pattern_text, row_count, views)
-  local song = renoise.song()
+  local song=renoise.song()
   local pattern = song.selected_pattern
   local track = song.selected_track_index
   local line = song.selected_line_index
@@ -166,67 +166,67 @@ function show_tuplet_dialog()
     end
   end
   
-  local dialog_content = vb:column {
-    vb:horizontal_aligner {
+  local dialog_content = vb:column{
+    vb:horizontal_aligner{
       -- Left side inputs with aligned labels
-      vb:column {
-        vb:horizontal_aligner {
-          vb:text { 
-            text = "Note Count:",
-            width = 100,
+      vb:column{
+        vb:horizontal_aligner{
+          vb:text{
+            text="Note Count:",
+            width=100,
           },
           vb:textfield {
             id = "note_count",
             value = "3",
-            width = 50,
+            width=50,
             notifier = function(value)
               validate_and_generate()
               renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
             end
           }
         },
-        vb:horizontal_aligner {
-          vb:text { 
-            text = "Row Count:",
-            width = 100,
+        vb:horizontal_aligner{
+          vb:text{
+            text="Row Count:",
+            width=100,
           },
           vb:textfield {
             id = "row_count",
             value = "8",
-            width = 50,
+            width=50,
             notifier = function(value)
               validate_and_generate()
               renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
             end
           }
         },
-        vb:horizontal_aligner {
-          vb:text { 
-            text = "Ticks per Line:",
-            width = 100,
+        vb:horizontal_aligner{
+          vb:text{
+            text="Ticks per Line:",
+            width=100,
           },
           vb:textfield {
             id = "ticks",
             value = "12",
-            width = 50,
+            width=50,
           }
         },
-        vb:horizontal_aligner {
-          vb:text { 
-            text = "Highlight:",
-            width = 100,
+        vb:horizontal_aligner{
+          vb:text{
+            text="Highlight:",
+            width=100,
           },
           vb:textfield {
             id = "highlight",
             value = "8",
-            width = 50,
+            width=50,
           }
         }
       },
       
       -- Right side pattern view
-      vb:column {
-        vb:text {
+      vb:column{
+        vb:text{
           id = "pattern_view",
           font = "mono",
           text = generate_pattern(3, 8)
@@ -235,10 +235,10 @@ function show_tuplet_dialog()
     },
     
     -- Bottom buttons
-    vb:horizontal_aligner {
-      vb:button {
-        text = "Print",
-        width = 60,
+    vb:horizontal_aligner{
+      vb:button{
+        text="Print",
+        width=60,
         notifier = function() 
           local row_count = tonumber(vb.views.row_count.value) or 8
           apply_to_pattern(vb.views.pattern_view.text, row_count, vb.views)
@@ -247,22 +247,22 @@ function show_tuplet_dialog()
       }
     },
     
-    vb:horizontal_aligner {
-      vb:checkbox {
+    vb:horizontal_aligner{
+      vb:checkbox{
         id = "auto_print",
         value = true,
         notifier = function()
           renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
         end
       },
-      vb:text {
-        text = "Print when switch changes"
+      vb:text{
+        text="Print when switch changes"
       }
     },
     
     vb:switch {
       id = "tuplet_switch",
-      width = 500,
+      width=500,
       items = {"Single", "Quarter", "Triplets", "Eighth", "Quintuplets", "Sextuplets", "Septuplets", "Sixteenth"},
       value = 3,
       notifier = function(index)
@@ -275,7 +275,7 @@ function show_tuplet_dialog()
         vb.views.pattern_view.text = pattern
         
         -- Always update the selection
-        local song = renoise.song()
+        local song=renoise.song()
         local line = song.selected_line_index
         local end_line = math.min(line + (row_count - 1), 512)  -- Ensure we don't exceed 512
         
@@ -298,8 +298,8 @@ function show_tuplet_dialog()
       end
     },
     
-    vb:horizontal_aligner {
-      vb:checkbox {
+    vb:horizontal_aligner{
+      vb:checkbox{
         id = "delays_only",
         value = false,
         notifier = function()
@@ -323,34 +323,34 @@ function show_tuplet_dialog()
           renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
         end
       },
-      vb:text {
-        text = "Print Delay Values Only"
+      vb:text{
+        text="Print Delay Values Only"
       }
     },
     
-    vb:horizontal_aligner {
-      vb:checkbox {
+    vb:horizontal_aligner{
+      vb:checkbox{
         id = "auto_flood",
         value = false,
         notifier = function()
           renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
         end
       },
-      vb:text {
-        text = "Auto flood fill after printing"
+      vb:text{
+        text="Auto flood fill after printing"
       }
     },
     
-    vb:horizontal_aligner {
-      vb:checkbox {
+    vb:horizontal_aligner{
+      vb:checkbox{
         id = "jump_below",
         value = false,
         notifier = function()
           renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
         end
       },
-      vb:text {
-        text = "Jump to below selection"
+      vb:text{
+        text="Jump to below selection"
       }
     }
   }
