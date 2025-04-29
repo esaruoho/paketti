@@ -45,6 +45,8 @@ function start_rendering(render_context)
     local song = renoise.song()
     local render_priority = "high"
     local selected_track = song.selected_track
+    local dc_offset_added = false
+    local dc_offset_position = 0  -- Track where we find or add the DC Offset
     
     print("DEBUG 4: start_rendering - initial justwav =", render_context.justwav)
 
@@ -57,23 +59,51 @@ function start_rendering(render_context)
 
     -- Add DC Offset if enabled in preferences and not already present
     if preferences.RenderDCOffset.value then
-        local has_dc_offset = false
-        for _, device in ipairs(selected_track.devices) do
-            if device.name == "Render DC Offset" then
-                has_dc_offset = true
+        print("DEBUG DC: RenderDCOffset preference is enabled")
+        -- First check if DC Offset already exists and find its position
+        for i, device in ipairs(selected_track.devices) do
+            if device.display_name == "Render DC Offset" then
+                dc_offset_position = i
+                print("DEBUG DC: Found existing DC Offset at position", i)
                 break
             end
         end
         
-        if not has_dc_offset then
+        if dc_offset_position == 0 then
+            print("DEBUG DC: Adding DC Offset to track", song.selected_track_index)
             loadnative("Audio/Effects/Native/DC Offset","Render DC Offset")
-            -- Set DC Offset parameter to 1 (similar to how it's done in PakettiLoaders.lua)
-            local dc_offset_device = selected_track.devices[#selected_track.devices]
-            if dc_offset_device.name == "Render DC Offset" then
-                dc_offset_device.parameters[2].value = 1
+            
+            -- Find the newly added DC Offset and its position
+            for i, device in ipairs(selected_track.devices) do
+                if device.display_name == "Render DC Offset" then
+                    dc_offset_position = i
+                    device.parameters[2].value = 1
+                    dc_offset_added = true
+                    print("DEBUG DC: Added new DC Offset at position", i)
+                    break
+                end
+            end
+            
+            if not dc_offset_added then
+                print("DEBUG DC: WARNING - Failed to find DC Offset after adding")
+                print("DEBUG DC: Current devices on track:")
+                for i, dev in ipairs(selected_track.devices) do
+                    print(string.format("DEBUG DC: Device %d - name: %s, display_name: %s", 
+                        i, dev.name or "nil", dev.display_name or "nil"))
+                end
             end
         end
+    else
+        print("DEBUG DC: RenderDCOffset preference is disabled")
     end
+
+    -- Store DC Offset information in render context
+    render_context.dc_offset_added = dc_offset_added
+    render_context.dc_offset_track_index = song.selected_track_index
+    render_context.dc_offset_position = dc_offset_position
+    print("DEBUG DC: Stored DC Offset info - added:", dc_offset_added, 
+          "track:", song.selected_track_index, 
+          "position:", dc_offset_position)
 
     -- Set up rendering options
     local render_options = {
@@ -133,23 +163,34 @@ function rendering_done_callback(render_context)
     local song = renoise.song()
     local renderTrack = render_context.source_track
     local should_preserve_track = render_context.justwav
-    local original_track = song:track(renderTrack)
     
     print("DEBUG 8: should_preserve_track =", should_preserve_track)
 
-    -- Remove DC Offset if it was added (from original track) FIRST, before any other operations
-    if preferences.RenderDCOffset.value then
-        print("RenderDCOffset preference is enabled")
-        -- Remove from original track
-        local last_device = original_track.devices[#original_track.devices]
-        print("Last device name:", last_device.display_name)
-        if last_device.display_name == "Render DC Offset" then
-            print("Found Render DC Offset device, removing it...")
-            original_track:delete_device_at(#original_track.devices)
-            print("Device removed. New device count:", #original_track.devices)
+    -- Handle DC Offset removal
+    if render_context.dc_offset_position > 0 then  -- If we found or added DC Offset
+        print("DEBUG DC: Checking for DC Offset at position", render_context.dc_offset_position)
+        local track = song:track(render_context.dc_offset_track_index)
+        
+        -- Verify the device is still there and is still DC Offset
+        if track and track.devices[render_context.dc_offset_position] and
+           track.devices[render_context.dc_offset_position].display_name == "Render DC Offset" then
+            print("DEBUG DC: Removing DC Offset from position", render_context.dc_offset_position)
+            track:delete_device_at(render_context.dc_offset_position)
+            print("DEBUG DC: Successfully removed DC Offset")
         else
-            print("Last device is not Render DC Offset, skipping removal")
+            print("DEBUG DC: WARNING - DC Offset not found at expected position", render_context.dc_offset_position)
+            -- Double check if it moved somewhere else
+            for i, device in ipairs(track.devices) do
+                if device.display_name == "Render DC Offset" then
+                    print("DEBUG DC: Found DC Offset at different position", i, "- removing")
+                    track:delete_device_at(i)
+                    print("DEBUG DC: Successfully removed DC Offset from position", i)
+                    break
+                end
+            end
         end
+    else
+        print("DEBUG DC: No DC Offset position stored")
     end
 
     local renderedTrack = renderTrack + 1
