@@ -454,8 +454,8 @@ local function build_dynamic_view_ui(vb, dv)
     build_property_row(vb, dv_id, "pattern_matrix_visible_step", "Pattern Matrix", build_visibility_options, update_steps_label),
     build_property_row(vb, dv_id, "pattern_advanced_edit_visible_step", "Advanced Edit", build_visibility_options, update_steps_label),
     vb:row {
-      vb:button { text = "Cycle", height = 20, width = 100, pressed = function() cycle_dynamic_view(dv) end },
-      vb:button { text = "Clear All Visibility Controls", height = 20, width = 200, pressed = function() clear_visibility_controls() end }
+      vb:button { text = "Cycle", height = 20, width = 100, pressed = function() cycle_dynamic_view(dv) end},
+      vb:button { text = "Clear All Visibility Controls", height = 20, width = 200, pressed = function() clear_visibility_controls() end}
     }
   }
 
@@ -470,13 +470,13 @@ function build_dialog_interface(vb, start_dv, end_dv, closeDV_dialog)
   end
   
   interface:add_child(vb:row {
-    vb:button { text = "Save Dynamic Views as a Textfile", height = 20, width = 200, pressed = function() save_dynamic_views_to_txt() end },
-    vb:button { text = "Load Dynamic Views from a Textfile", height = 20, width = 200, pressed = function() load_dynamic_views_from_txt() end },
+    vb:button { text = "Save Dynamic Views as a Textfile", height = 20, width = 200, pressed = function() save_dynamic_views_to_txt() end},
+    vb:button { text = "Load Dynamic Views from a Textfile", height = 20, width = 200, pressed = function() load_dynamic_views_from_txt() end},
     vb:button { text = "Save & Close", height = 20, width = 100, pressed = function()
       renoise.app():show_status("Saving current settings")
       saveDynamicViewPreferences()
       closeDV_dialog()
-    end }
+    end}
   })
   return interface
 end

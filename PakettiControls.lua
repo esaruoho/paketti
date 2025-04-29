@@ -873,7 +873,7 @@ function TriggerPatternLineMidiValue(midi_value)
 end
 
 renoise.tool():add_midi_mapping{name="Paketti:Trigger Pattern Line Scrub (CC)",
-  invoke = function(message)
+  invoke=function(message)
     if message.boolean_value then
       TriggerPatternLineMidiValue(message.value)
     end
@@ -885,7 +885,7 @@ for i = 1, 512 do
   local hex_number = string.format("%02X", i - 1)
   
   renoise.tool():add_keybinding{name=string.format("Global:Paketti:Trigger Pattern Line %03d (%s)", i, hex_number),
-    invoke = function()
+    invoke=function()
       local song = renoise.song()
       local pattern = song.selected_pattern
       if i <= pattern.number_of_lines then
@@ -898,7 +898,7 @@ for i = 1, 512 do
   }
   
   renoise.tool():add_midi_mapping{name=string.format("Global:Paketti:Trigger Pattern Line %03d (%s)", i, hex_number),
-    invoke = function(message)
+    invoke=function(message)
       if message.boolean_value then
         local song = renoise.song()
         local pattern = song.selected_pattern
@@ -1269,7 +1269,7 @@ for i, device_path in ipairs(target_devices) do
   
   -- On keybinding
   renoise.tool():add_keybinding{name=string.format("Global:Paketti:Enable Device %02d (%s)", i, device_name),
-    invoke = function()
+    invoke=function()
       control_device(device_path, "on")
     end
   }
@@ -1278,7 +1278,7 @@ for i, device_path in ipairs(target_devices) do
   renoise.tool():add_keybinding{name=string.format("Global:Paketti:Disable Device %02d (%s)", i, device_name),invoke=function() control_device(device_path, "off") end}
   renoise.tool():add_midi_mapping{name=string.format("Paketti:Toggle Device %02d (%s) x[Toggle]", i, device_name),invoke=function(message) if message:is_trigger() then control_device(device_path, "toggle") end end}
   renoise.tool():add_midi_mapping{name=string.format("Paketti:Hold Device %02d (%s) x[Button]", i, device_name),
-    invoke = function(message)
+    invoke=function(message)
       if message:is_abs_value() then
         control_device(device_path, message.int_value > 0 and "on" or "off")
       end
@@ -1286,7 +1286,7 @@ for i, device_path in ipairs(target_devices) do
   }
     
   renoise.tool():add_keybinding{name=string.format("Global:Paketti:Toggle Device %02d (%s)", i, device_name),
-    invoke = function() control_device(device_path, "toggle") end}
+    invoke=function() control_device(device_path, "toggle") end}
 end
 
 
@@ -1387,7 +1387,7 @@ function reset_output_delayALL(rename)
 end
 
 renoise.tool():add_midi_mapping{name="Paketti:Nudge Delay Output Delay Control x[Knob]",
-  invoke = function(message)
+  invoke=function(message)
     if message:is_abs_value() then
       local value = message.int_value
       local delay_value
@@ -1408,7 +1408,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Nudge Delay Output Delay Control x
 }
 
 renoise.tool():add_midi_mapping{name="Paketti:Nudge Delay Output Delay Control (Rename) x[Knob]",
-  invoke = function(message)
+  invoke=function(message)
     if message:is_abs_value() then
       local value = message.int_value
       local delay_value

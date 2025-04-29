@@ -188,13 +188,13 @@ function mergeInstrumentsDialog()
 end
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:Merge Instruments...",
-  invoke = function()
+  invoke=function()
     mergeInstrumentsDialog()
   end
 }
 
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Merge Instruments...",
-  invoke = function()
+  invoke=function()
     mergeInstrumentsDialog()
   end
 }

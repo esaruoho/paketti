@@ -1445,22 +1445,22 @@ function pakettiGaterDialog()
         shift_checkboxes("left")
         initializing = false
         insert_commands()
-      end },
+      end},
       vb:button { text = ">", pressed = function() 
         initializing = true
         shift_checkboxes("right")
         initializing = false
         insert_commands()
-      end },
+      end},
       vb:button { text = "Clear FX Column", pressed = clear_effect_columns },
       vb:button { text = "Clear Volume Column", pressed = clear_volume_column },
       vb:button { text = "Receive", pressed = receive_volume_checkboxes }
     },
     vb:row {
-      vb:button { text = "All", pressed = function() apply_preset("all", false, false) end },
-      vb:button { text = "Every 2nd", pressed = function() apply_preset("every_2nd", false, false) end },
-      vb:button { text = "Every 3rd", pressed = function() apply_preset("every_third", false, false) end },
-      vb:button { text = "Every 4th", pressed = function() apply_preset("every_fourth", false, false) end },
+      vb:button { text = "All", pressed = function() apply_preset("all", false, false) end},
+      vb:button { text = "Every 2nd", pressed = function() apply_preset("every_2nd", false, false) end},
+      vb:button { text = "Every 3rd", pressed = function() apply_preset("every_third", false, false) end},
+      vb:button { text = "Every 4th", pressed = function() apply_preset("every_fourth", false, false) end},
       vb:button { text = "Jaguar", pressed = function() apply_preset("jaguar", false, false) end},
       vb:button { text = "Caapi", pressed = function() apply_preset("caapi", false, false) end} 
     },
@@ -1512,13 +1512,13 @@ function pakettiGaterDialog()
         shift_retrig_checkboxes("left")
         initializing = false
         insert_commands()
-      end },
+      end},
       vb:button { text = ">", pressed = function() 
         initializing = true
         shift_retrig_checkboxes("right")
         initializing = false
         insert_commands()
-      end },
+      end},
             vb:button { text = "Receive", pressed = receive_retrig_checkboxes }
     },
     vb:text { text = "Playback Direction Gater", font = "bold", style="strong" },
@@ -1542,13 +1542,13 @@ function pakettiGaterDialog()
         shift_playback_checkboxes("left")
         initializing = false
         insert_commands()
-      end },
+      end},
       vb:button { text = ">", pressed = function() 
         initializing = true
         shift_playback_checkboxes("right")
         initializing = false
         insert_commands()
-      end },
+      end},
             vb:button { text = "Receive", pressed = receive_playback_checkboxes }
     },
     vb:text { text = "Panning Gater", font = "bold", style="strong" },
@@ -1587,13 +1587,13 @@ function pakettiGaterDialog()
         shift_panning_checkboxes("left")
         initializing = false
         insert_commands()
-      end },
+      end},
       vb:button { text = ">", pressed = function() 
         initializing = true
         shift_panning_checkboxes("right")
         initializing = false
         insert_commands()
-      end },
+      end},
             vb:button { text = "Receive", pressed = receive_panning_checkboxes },
     },
     vb:row {
@@ -1630,7 +1630,7 @@ function pakettiGaterDialog()
         shift_panning_checkboxes("left")
         initializing = false
         insert_commands()  -- Single update at the end
-      end },
+      end},
       vb:button { text = ">>", pressed = function()
         initializing = true  -- Prevent multiple updates
         shift_checkboxes("right")
@@ -1639,7 +1639,7 @@ function pakettiGaterDialog()
         shift_panning_checkboxes("right")
         initializing = false
         insert_commands()  -- Single update at the end
-      end },
+      end},
       vb:button { text = "Global Clear", pressed = function()
         initializing = true
         -- Clear volume
@@ -1699,7 +1699,7 @@ function pakettiGaterDialog()
         suppress_status_messages = false
         initializing = false
         insert_commands()  -- Single update at the end
-      end },
+      end},
 
       vb:button { text = "Global Random", pressed = function()
         initializing = true
@@ -1752,7 +1752,7 @@ function pakettiGaterDialog()
         end
         initializing = false
         insert_commands()  -- Single update at the end
-      end },
+      end},
 
         vb:button { text = "Global Receive", pressed = function()
         initializing = true
@@ -1762,7 +1762,7 @@ function pakettiGaterDialog()
         receive_panning_checkboxes()
         initializing = false
         insert_commands()
-      end }
+      end}
     }
   }
 

@@ -2970,35 +2970,35 @@ function toggle_fx_amount_following(fx_command)
   end
 end
 
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:LFO Write..:LFO Write to Effect Column 1 (Amount Only)",invoke = function() toggle_fx_amount_following() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Yxx)",invoke = function() toggle_fx_amount_following("0Y") end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Sxx)",invoke = function() toggle_fx_amount_following("0S") end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Dxx)",invoke = function() toggle_fx_amount_following("0D") end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Uxx)",invoke = function() toggle_fx_amount_following("0U") end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Gxx)",invoke = function() toggle_fx_amount_following("0G") end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Rxx)",invoke = function() toggle_fx_amount_following("0R") end}
-renoise.tool():add_menu_entry{name="--Mixer:Paketti..:LFO Write..:LFO Write to Effect Column 1 (Amount Only)",invoke = function() toggle_fx_amount_following() end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Yxx)",invoke = function() toggle_fx_amount_following("0Y") end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Sxx)",invoke = function() toggle_fx_amount_following("0S") end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Dxx)",invoke = function() toggle_fx_amount_following("0D") end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Uxx)",invoke = function() toggle_fx_amount_following("0U") end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Gxx)",invoke = function() toggle_fx_amount_following("0G") end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Rxx)",invoke = function() toggle_fx_amount_following("0R") end}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:LFO Write..:LFO Write to Effect Column 1 (Amount Only)",invoke = function() toggle_fx_amount_following() end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Yxx)",invoke = function() toggle_fx_amount_following("0Y") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Sxx)",invoke = function() toggle_fx_amount_following("0S") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Dxx)",invoke = function() toggle_fx_amount_following("0D") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Uxx)",invoke = function() toggle_fx_amount_following("0U") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Gxx)",invoke = function() toggle_fx_amount_following("0G") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Rxx)",invoke = function() toggle_fx_amount_following("0R") end}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:LFO Write..:LFO Write to Effect Column 1 (Amount Only)",invoke=function() toggle_fx_amount_following() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Yxx)",invoke=function() toggle_fx_amount_following("0Y") end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Sxx)",invoke=function() toggle_fx_amount_following("0S") end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Dxx)",invoke=function() toggle_fx_amount_following("0D") end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Uxx)",invoke=function() toggle_fx_amount_following("0U") end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Gxx)",invoke=function() toggle_fx_amount_following("0G") end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Rxx)",invoke=function() toggle_fx_amount_following("0R") end}
+renoise.tool():add_menu_entry{name="--Mixer:Paketti..:LFO Write..:LFO Write to Effect Column 1 (Amount Only)",invoke=function() toggle_fx_amount_following() end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Yxx)",invoke=function() toggle_fx_amount_following("0Y") end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Sxx)",invoke=function() toggle_fx_amount_following("0S") end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Dxx)",invoke=function() toggle_fx_amount_following("0D") end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Uxx)",invoke=function() toggle_fx_amount_following("0U") end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Gxx)",invoke=function() toggle_fx_amount_following("0G") end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Rxx)",invoke=function() toggle_fx_amount_following("0R") end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:LFO Write..:LFO Write to Effect Column 1 (Amount Only)",invoke=function() toggle_fx_amount_following() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Yxx)",invoke=function() toggle_fx_amount_following("0Y") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Sxx)",invoke=function() toggle_fx_amount_following("0S") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Dxx)",invoke=function() toggle_fx_amount_following("0D") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Uxx)",invoke=function() toggle_fx_amount_following("0U") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Gxx)",invoke=function() toggle_fx_amount_following("0G") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Rxx)",invoke=function() toggle_fx_amount_following("0R") end}
 
-renoise.tool():add_keybinding{name="Global:Paketti:LFO Write to Effect Column 1 (Amount Only)",invoke = function() toggle_fx_amount_following() end}
-renoise.tool():add_keybinding{name="Global:Paketti:LFO Write to Effect Column 1 (0Yxx)",invoke = function() toggle_fx_amount_following("0Y") end}
-renoise.tool():add_keybinding{name="Global:Paketti:LFO Write to Effect Column 1 (0Sxx)",invoke = function() toggle_fx_amount_following("0S") end}
-renoise.tool():add_keybinding{name="Global:Paketti:LFO Write to Effect Column 1 (0Dxx)",invoke = function() toggle_fx_amount_following("0D") end}
-renoise.tool():add_keybinding{name="Global:Paketti:LFO Write to Effect Column 1 (0Uxx)",invoke = function() toggle_fx_amount_following("0U") end}
-renoise.tool():add_keybinding{name="Global:Paketti:LFO Write to Effect Column 1 (0Gxx)",invoke = function() toggle_fx_amount_following("0G") end}
-renoise.tool():add_keybinding{name="Global:Paketti:LFO Write to Effect Column 1 (0Rxx)",invoke = function() toggle_fx_amount_following("0R") end}
+renoise.tool():add_keybinding{name="Global:Paketti:LFO Write to Effect Column 1 (Amount Only)",invoke=function() toggle_fx_amount_following() end}
+renoise.tool():add_keybinding{name="Global:Paketti:LFO Write to Effect Column 1 (0Yxx)",invoke=function() toggle_fx_amount_following("0Y") end}
+renoise.tool():add_keybinding{name="Global:Paketti:LFO Write to Effect Column 1 (0Sxx)",invoke=function() toggle_fx_amount_following("0S") end}
+renoise.tool():add_keybinding{name="Global:Paketti:LFO Write to Effect Column 1 (0Dxx)",invoke=function() toggle_fx_amount_following("0D") end}
+renoise.tool():add_keybinding{name="Global:Paketti:LFO Write to Effect Column 1 (0Uxx)",invoke=function() toggle_fx_amount_following("0U") end}
+renoise.tool():add_keybinding{name="Global:Paketti:LFO Write to Effect Column 1 (0Gxx)",invoke=function() toggle_fx_amount_following("0G") end}
+renoise.tool():add_keybinding{name="Global:Paketti:LFO Write to Effect Column 1 (0Rxx)",invoke=function() toggle_fx_amount_following("0R") end}
 
 ------
 -- Global variables
@@ -3075,15 +3075,15 @@ function toggle_lpb_following(range)
   end
 end
 
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:LFO Write..:LFO Write to Phrase LPB (1-255)",invoke = function() toggle_lpb_following(255) end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:LFO Write..:LFO Write to Phrase LPB (1-127)",invoke = function() toggle_lpb_following(127) end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:LFO Write..:LFO Write to Phrase LPB (1-64)",invoke = function() toggle_lpb_following(64) end}
-renoise.tool():add_menu_entry{name="--Mixer:Paketti..:LFO Write..:LFO Write to Phrase LPB (1-255)",invoke = function() toggle_lpb_following(255) end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:LFO Write..:LFO Write to Phrase LPB (1-127)",invoke = function() toggle_lpb_following(127) end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:LFO Write..:LFO Write to Phrase LPB (1-64)",invoke = function() toggle_lpb_following(64) end}
-renoise.tool():add_keybinding{name="Global:Paketti:LFO Write to Phrase LPB (1-255)",invoke = function() toggle_lpb_following(255) end}
-renoise.tool():add_keybinding{name="Global:Paketti:LFO Write to Phrase LPB (1-127)",invoke = function() toggle_lpb_following(127) end}
-renoise.tool():add_keybinding{name="Global:Paketti:LFO Write to Phrase LPB (1-64)",invoke = function() toggle_lpb_following(64) end}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:LFO Write..:LFO Write to Phrase LPB (1-255)",invoke=function() toggle_lpb_following(255) end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:LFO Write..:LFO Write to Phrase LPB (1-127)",invoke=function() toggle_lpb_following(127) end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:LFO Write..:LFO Write to Phrase LPB (1-64)",invoke=function() toggle_lpb_following(64) end}
+renoise.tool():add_menu_entry{name="--Mixer:Paketti..:LFO Write..:LFO Write to Phrase LPB (1-255)",invoke=function() toggle_lpb_following(255) end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:LFO Write..:LFO Write to Phrase LPB (1-127)",invoke=function() toggle_lpb_following(127) end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:LFO Write..:LFO Write to Phrase LPB (1-64)",invoke=function() toggle_lpb_following(64) end}
+renoise.tool():add_keybinding{name="Global:Paketti:LFO Write to Phrase LPB (1-255)",invoke=function() toggle_lpb_following(255) end}
+renoise.tool():add_keybinding{name="Global:Paketti:LFO Write to Phrase LPB (1-127)",invoke=function() toggle_lpb_following(127) end}
+renoise.tool():add_keybinding{name="Global:Paketti:LFO Write to Phrase LPB (1-64)",invoke=function() toggle_lpb_following(64) end}
 -------
 -- Global variables for parameter following
 local is_following_single_parameter = false

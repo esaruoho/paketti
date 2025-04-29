@@ -374,9 +374,10 @@ renoise.tool():add_menu_entry{
     name="Mixer:Paketti..:Clean Render..:Clean Render Selected Track/Group",
     invoke=function() pakettiCleanRenderSelection(false) end
 }
+
 renoise.tool():add_menu_entry{
-    name="Mixer:Paketti..:Clean Render..:Clean Render Selected Track/Group (WAV Only)",
-    invoke=function() 
+    name="Mixer:Paketti..:Clean Render..:Clean Render Selected Track/Group (WAV Only)", -- CMD-R / ⌘-R",
+    invoke=function()
         print("DEBUG WAV: About to call pakettiCleanRenderSelection with true")
         pakettiCleanRenderSelection(true) 
     end

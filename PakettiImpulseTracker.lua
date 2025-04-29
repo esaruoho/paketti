@@ -649,7 +649,7 @@ function selectPatternRangeInAutomation()
   local automation_end = math.floor(((end_line + 1) / pattern_lines) * envelope.length)
 
   -- Set the selection range in the automation envelope
-  envelope.selection_range = { automation_start, automation_end }
+  envelope.selection_range = { automation_start, automation_end}
 
   -- Notify the user
   renoise.app():show_status("Automation selection set from line " .. start_line .. " to line " .. end_line)
@@ -732,9 +732,9 @@ end
 -- Create keybindings for both with and without EditStep
 for oct=0,9 do
   renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Set Note to Octave " .. oct .. " with EditStep",
-    invoke=function() Octave(oct, true) end }
+    invoke=function() Octave(oct, true) end}
   renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Set Note to Octave " .. oct .. " without EditStep",
-    invoke=function() Octave(oct, false) end }
+    invoke=function() Octave(oct, false) end}
 end
 -------------------------------------------------------------------------------------------------------------------------------------
 ------Protman PageUp PageDn
@@ -763,8 +763,8 @@ function Jump(Dir)
     s.transport.follow_player = false
 end  
 
-renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker PageUp Jump Lines",invoke=function() Jump(-1) end  }
-renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker PageDown Jump Lines",invoke=function() Jump(1) end  }
+renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker PageUp Jump Lines",invoke=function() Jump(-1) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker PageDown Jump Lines",invoke=function() Jump(1) end}
 --------------------------------------------------------------------------------------------------
 ---------Protman's Expand Selection
 function cpclex_line(track, from_line, to_line)

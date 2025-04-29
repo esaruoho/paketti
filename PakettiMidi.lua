@@ -234,7 +234,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Columnizer Effect Amount Increase 
 renoise.tool():add_midi_mapping{name="Paketti:Columnizer Effect Amount Decrease (-1) x[Toggle]",invoke=function(message) if message:is_trigger() then  columnspart2(-1,5) end end}
 
 renoise.tool():add_midi_mapping{name="Paketti:Change Selected Sample Loop Mode x[Knob]",
-  invoke = function(midi_message)
+  invoke=function(midi_message)
     local value = midi_message.int_value
     local loop_modes = {
       [0] = 1,   -- No Loop
@@ -356,7 +356,7 @@ local function mapPatternPosition(midi_value, pattern_length)
 end
 
 renoise.tool():add_midi_mapping{name="Paketti:Midi Change Pattern Row Position x[Knob]",
-  invoke = function(message)
+  invoke=function(message)
     if message:is_abs_value() then
       local song = renoise.song()
       local pattern = song:pattern(song.selected_pattern_index)
@@ -374,7 +374,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Midi Change Pattern Row Position x
 
 -- Direct MIDI to row mapping (0-127 maps directly to rows, capped at pattern length)
 renoise.tool():add_midi_mapping{name="Paketti:Midi Change Pattern Row Position Direct x[Knob]",
-  invoke = function(message)
+  invoke=function(message)
     local song = renoise.song()
     local pattern = song:pattern(song.selected_pattern_index)
     local pattern_length = pattern.number_of_lines
@@ -409,7 +409,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Midi Change Pattern Row Position D
 
 ---
 renoise.tool():add_midi_mapping{name="Paketti:Midi Change EditStep 1-64 x[Knob]",
-  invoke = function(message)
+  invoke=function(message)
     if message:is_abs_value() then
       -- Handle absolute values (0-127)
       midiValues(1, 64, renoise.song().transport, 'edit_step', message.int_value)
@@ -425,7 +425,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Midi Change EditStep 1-64 x[Knob]"
   end}
 
   renoise.tool():add_midi_mapping{name="Paketti:Midi Change EditStep 0-64 x[Knob]",
-  invoke = function(message)
+  invoke=function(message)
     if message:is_abs_value() then
       -- Handle absolute values (0-127)
       midiValues(0, 64, renoise.song().transport, 'edit_step', message.int_value)
@@ -441,7 +441,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Midi Change EditStep 1-64 x[Knob]"
   end}
 
   renoise.tool():add_midi_mapping{name="Paketti:Midi Change LPB 1-64 x[Knob]",
-  invoke = function(message)
+  invoke=function(message)
     if message:is_abs_value() then
       -- Pass the actual property object, not just the value
       midiValues(1, 64, renoise.song().transport, 'lpb', message.int_value)
@@ -526,14 +526,14 @@ renoise.tool():add_midi_mapping{name="Paketti:Midi Select Group Tracks x[Knob]",
 --------
 --
 renoise.tool():add_midi_mapping{name="Paketti:Midi Change Octave x[Knob]",
-  invoke = function(message)
+  invoke=function(message)
     if message:is_abs_value() then
       midiValues(0, 8, renoise.song().transport, 'octave', message.int_value)
     end
 end}
 
 renoise.tool():add_midi_mapping{name="Paketti:Midi Change Selected Track x[Knob]",
-  invoke = function(message)
+  invoke=function(message)
     if message:is_abs_value() then
     local trackCount = #renoise.song().tracks
       midiValues(1, trackCount, renoise.song(), 'selected_track_index', message.int_value)
@@ -541,7 +541,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Midi Change Selected Track x[Knob]
 end}
 
 renoise.tool():add_midi_mapping{name="Paketti:Midi Change Selected Track DSP Device x[Knob]",
-  invoke = function(message)
+  invoke=function(message)
     if message:is_abs_value() then
     local deviceCount = #renoise.song().selected_track.devices
     if deviceCount < 2 then 
@@ -553,7 +553,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Midi Change Selected Track DSP Dev
 end}
 
 renoise.tool():add_midi_mapping{name="Paketti:Midi Change Selected Instrument x[Knob]",
-  invoke = function(message)
+  invoke=function(message)
     if message:is_abs_value() then
     local instrumentCount = #renoise.song().instruments
       midiValues(1, instrumentCount, renoise.song(), 'selected_instrument_index', message.int_value)
@@ -561,7 +561,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Midi Change Selected Instrument x[
 end}
 ----------------
 renoise.tool():add_midi_mapping{name="Paketti:Midi Change Selected Sample Loop 01 Start x[Knob]",
-  invoke = function(message)
+  invoke=function(message)
     if message:is_abs_value() then
     local sampleEndPosition = renoise.song().selected_sample.loop_end -1
       midiValues(1, sampleEndPosition, renoise.song().selected_sample, 'loop_start', message.int_value)
@@ -569,7 +569,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Midi Change Selected Sample Loop 0
 end}
 
 renoise.tool():add_midi_mapping{name="Paketti:Midi Change Selected Sample Loop 02 End x[Knob]",
-  invoke = function(message)
+  invoke=function(message)
     if message:is_abs_value() then
     local loopStart = renoise.song().selected_sample.loop_start
       midiValues(loopStart, renoise.song().selected_sample.sample_buffer.number_of_frames, renoise.song().selected_sample, 'loop_end', message.int_value)
@@ -577,7 +577,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Midi Change Selected Sample Loop 0
 end}
 
 renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Sample Buffer Selection 01 Start x[Knob]",
-  invoke = function(message)
+  invoke=function(message)
     if message:is_abs_value() then
     local selectionEnd=renoise.song().selected_sample.sample_buffer.selection_end
     local selectionStart=renoise.song().selected_sample.sample_buffer.selection_start
@@ -587,7 +587,7 @@ renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Sample Buffer Select
 end}
 
 renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Sample Buffer Selection 02 End x[Knob]",
-  invoke = function(message)
+  invoke=function(message)
     if message:is_abs_value() then
     local selectionEnd=renoise.song().selected_sample.sample_buffer.selection_end
     local selectionStart=renoise.song().selected_sample.sample_buffer.selection_start
@@ -1111,7 +1111,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Set Beatsync Value for Selected Sa
   end
   end}
   renoise.tool():add_midi_mapping{name="Paketti:Set All Beatsync Values for Instrument x[Knob]",
-      invoke = function(message)
+      invoke=function(message)
         if message:is_abs_value() then
           local instrument = renoise.song().selected_instrument
           if instrument then
@@ -1169,7 +1169,7 @@ end
 for i = 2, 64 do
   local actual_number = i - 1
   renoise.tool():add_midi_mapping{name="Paketti:Selected Track Send " .. string.format("%02d", actual_number) .. " On/Off Toggle",
-    invoke = function(message)
+    invoke=function(message)
       if message:is_trigger() then
         PakettiMidiSendBang(actual_number)
       end
@@ -1257,7 +1257,7 @@ end
 renoise.tool():add_midi_mapping{name="Paketti:Transpose Notes in Selection/Row x[Knob]",invoke=transpose_notes_by_midi_knob}
 -----------------
 renoise.tool():add_midi_mapping{name="Paketti:Change Selected Instrument (Next) x[Knob]",
-invoke= function(message) if message:is_trigger() then
+invoke=function(message) if message:is_trigger() then
 local currInst= renoise.song().selected_instrument_index
 local newInst = currInst + 1
 if newInst > #renoise.song().instruments then newInst = #renoise.song().instruments end
@@ -1265,7 +1265,7 @@ renoise.song().selected_instrument_index = newInst
 end end}
 
 renoise.tool():add_midi_mapping{name="Paketti:Change Selected Instrument (Previous) x[Knob]",
-invoke= function(message) if message:is_trigger() then
+invoke=function(message) if message:is_trigger() then
 local currInst= renoise.song().selected_instrument_index
 local newInst = currInst - 1
 if newInst < 1 then newInst = 1 end
@@ -1354,7 +1354,7 @@ end
 -- Generate MIDI mappings for automation parameters 001-128
 for i = 1, 128 do
   renoise.tool():add_midi_mapping{name=string.format("Paketti:Selected Device Automation Parameter %03d", i),
-    invoke = function(message)
+    invoke=function(message)
       -- Normalize the MIDI message (0-127) to a range of 0.0 - 1.0
       local normalized_message = message.int_value / 127
       -- Change device parameter or record to automation based on the logic
@@ -1450,7 +1450,7 @@ function record_midi_value(value)
 end
 
 renoise.tool():add_midi_mapping{name="Paketti:Record Automation to Selected Parameter",
-  invoke = function(midi_msg)
+  invoke=function(midi_msg)
     -- Normalize the MIDI value (0-127) to a range of 0.0 - 1.0
     renoise.song().transport.record_parameter_mode=renoise.Transport.RECORD_PARAMETER_MODE_AUTOMATION
     local normalized_value = midi_msg.int_value / 127
@@ -1460,7 +1460,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Record Automation to Selected Para
 }
 
 renoise.tool():add_midi_mapping{name="Paketti:Record Automation to Selected Parameter (2nd)",
-  invoke = function(midi_msg)
+  invoke=function(midi_msg)
     -- Normalize the MIDI value (0-127) to a range of 0.0 - 1.0
     renoise.song().transport.record_parameter_mode=renoise.Transport.RECORD_PARAMETER_MODE_AUTOMATION
     local normalized_value = midi_msg.int_value / 127
@@ -1516,7 +1516,7 @@ local modes = {
 }
 
 renoise.tool():add_midi_mapping{name="Paketti:Set Repeater Value x[Knob]",
-  invoke = function(message)
+  invoke=function(message)
     if message:is_abs_value() then
       local int_value = message.int_value
 
@@ -1529,7 +1529,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Set Repeater Value x[Knob]",
   end}
 
 renoise.tool():add_midi_mapping{name="Paketti:Set Repeater Value (Name Tracks) x[Knob]",
-  invoke = function(message)
+  invoke=function(message)
     if message:is_abs_value() then
       local int_value = message.int_value
       if int_value <= 5 then
@@ -1541,7 +1541,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Set Repeater Value (Name Tracks) x
   end}
 
 renoise.tool():add_midi_mapping{name="Paketti:Set Repeater Value (2nd) x[Knob]",
-  invoke = function(message)
+  invoke=function(message)
     if message:is_abs_value() then
       local int_value = message.int_value
 
@@ -1554,7 +1554,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Set Repeater Value (2nd) x[Knob]",
   end}
 
 renoise.tool():add_midi_mapping{name="Paketti:Set Repeater Value (Name Tracks) (2nd) x[Knob]",
-  invoke = function(message)
+  invoke=function(message)
     if message:is_abs_value() then
       local int_value = message.int_value
       if int_value <= 5 then
@@ -1819,7 +1819,7 @@ for _, device_info in ipairs(target_devices) do
     for _, param_index in ipairs(device_info.params) do
       local mapping_name = string.format("Paketti:Selected Track Dev Doofer Macro %02d", param_index)
       renoise.tool():add_midi_mapping{name=mapping_name,
-        invoke = function(message)
+        invoke=function(message)
           modify_device_param(device_path, param_index, message)  -- Pass entire message
         end
       }
@@ -1831,7 +1831,7 @@ for _, device_info in ipairs(target_devices) do
     for i = 1, 10 do
       local mapping_name="Paketti:Selected Track Dev EQ 10 Gain " .. string.format("%02d", i)
       renoise.tool():add_midi_mapping{name=mapping_name,
-        invoke = function(message)
+        invoke=function(message)
           modify_device_param(device_path, i, message)  -- Pass entire message
         end
       }
@@ -1841,7 +1841,7 @@ for _, device_info in ipairs(target_devices) do
     for i = 11, 20 do
       local mapping_name="Paketti:Selected Track Dev EQ 10 Frequency " .. string.format("%02d", i - 10)
       renoise.tool():add_midi_mapping{name=mapping_name,
-        invoke = function(message)
+        invoke=function(message)
           modify_device_param(device_path, i, message)  -- Pass entire message
         end
       }
@@ -1851,7 +1851,7 @@ for _, device_info in ipairs(target_devices) do
     for i = 21, 30 do
       local mapping_name="Paketti:Selected Track Dev EQ 10 Bandwidth " .. string.format("%02d", i - 20)
       renoise.tool():add_midi_mapping{name=mapping_name,
-        invoke = function(message)
+        invoke=function(message)
           modify_device_param(device_path, i, message)  -- Pass entire message
         end
       }
@@ -1862,7 +1862,7 @@ for _, device_info in ipairs(target_devices) do
       local mapping_name="Paketti:Selected Track Dev " .. device_name_clean .. " " .. param_name
 
       renoise.tool():add_midi_mapping{name=mapping_name,
-        invoke = function(message)
+        invoke=function(message)
           modify_device_param(device_path, param_name, message)  -- Pass entire message
         end
       }
@@ -1916,7 +1916,7 @@ local function modify_filter_type(midi_value)
 end
 
 renoise.tool():add_midi_mapping{name="Paketti:Selected Track Dev Analog Filter Filter Type",
-  invoke = function(message)
+  invoke=function(message)
     if message:is_abs_value() then
       modify_filter_type(message.int_value)
     end
@@ -1992,7 +1992,7 @@ end
 
 -- Example mappings using the new system
 renoise.tool():add_midi_mapping{name="Paketti:Write 0Sxx Command x[Knob]",
-  invoke = function(message)
+  invoke=function(message)
     if message:is_abs_value() then
       local slice_count = get_slice_marker_count()
       if slice_count then
@@ -2009,14 +2009,14 @@ renoise.tool():add_midi_mapping{name="Paketti:Write 0Sxx Command x[Knob]",
   
 
 renoise.tool():add_midi_mapping{name="Paketti:Write ZLxx Command x[Knob]",
-  invoke = function(message)
+  invoke=function(message)
     if message:is_abs_value() then
       MidiWriteEffectToLine("ZL", 1, 64, true)(message.int_value)
     end
   end}
 
 renoise.tool():add_midi_mapping{name="Paketti:Write ZTxx Command x[Knob]",
-  invoke = function(message)
+  invoke=function(message)
     if message:is_abs_value() then
       MidiWriteEffectToLine("ZT", 20, 255)(message.int_value)
     end
@@ -2071,8 +2071,8 @@ function write_random_slice_command()
 end
 
 renoise.tool():add_midi_mapping{name="Paketti:Write 0Sxx Command Random Slice/Offset x[Toggle]",invoke=function(message) if message:is_trigger() then write_random_slice_command() end end}
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Write 0Sxx Command Random Slice/Offset",invoke = function() write_random_slice_command() end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Write 0Sxx Command Random Slice/Offset",invoke = function() write_random_slice_command() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Write 0Sxx Command Random Slice/Offset",invoke=function() write_random_slice_command() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Write 0Sxx Command Random Slice/Offset",invoke=function() write_random_slice_command() end}
 
 -- Function to rename tracks based on actual samples being played
 function rename_tracks_by_played_samples()
@@ -2171,9 +2171,9 @@ function rename_tracks_by_played_samples()
   end
 end
 
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Rename Tracks By Played Samples",invoke = function() rename_tracks_by_played_samples() end}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Rename Tracks By Played Samples",invoke = function() rename_tracks_by_played_samples() end}
-renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Rename Tracks By Played Samples",invoke = function() rename_tracks_by_played_samples() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Rename Tracks By Played Samples",invoke=function() rename_tracks_by_played_samples() end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Rename Tracks By Played Samples",invoke=function() rename_tracks_by_played_samples() end}
+renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Rename Tracks By Played Samples",invoke=function() rename_tracks_by_played_samples() end}
 -----
 -- Function to modify selected XY Pad parameter
 local function modify_selected_xy_pad_param(param_name, midi_message)
@@ -2216,8 +2216,8 @@ local function modify_selected_xy_pad_param(param_name, midi_message)
   end
 end
 
-renoise.tool():add_midi_mapping{name="Paketti:Selected Device *XY Pad X-Axis",invoke = function(message) modify_selected_xy_pad_param("X-Axis", message) end}
-renoise.tool():add_midi_mapping{name="Paketti:Selected Device *XY Pad Y-Axis",invoke = function(message) modify_selected_xy_pad_param("Y-Axis", message) end}
+renoise.tool():add_midi_mapping{name="Paketti:Selected Device *XY Pad X-Axis",invoke=function(message) modify_selected_xy_pad_param("X-Axis", message) end}
+renoise.tool():add_midi_mapping{name="Paketti:Selected Device *XY Pad Y-Axis",invoke=function(message) modify_selected_xy_pad_param("Y-Axis", message) end}
 
 -- Helper function to validate sample device chain access and get count
 local function get_device_chain_info()
@@ -2551,7 +2551,7 @@ function pakettiColumnCount(message, range)
   end
 end
 
-renoise.tool():add_midi_mapping{name="Paketti:Cycle Through Selected Track Columns (Absolute) x[Knob]",invoke = function(message) pakettiColumnCount(message, "current") end}
-renoise.tool():add_midi_mapping{name="Paketti:Cycle Through Selected Track Columns (Relative) x[Knob]",invoke = function(message) pakettiColumnCount(message, "current") end}
-renoise.tool():add_midi_mapping{name="Paketti:Cycle Through All Track Columns (Absolute) x[Knob]",invoke = function(message) pakettiColumnCount(message, "all") end}
-renoise.tool():add_midi_mapping{name="Paketti:Cycle Through All Track Columns (Relative) x[Knob]",invoke = function(message) pakettiColumnCount(message, "all") end}
+renoise.tool():add_midi_mapping{name="Paketti:Cycle Through Selected Track Columns (Absolute) x[Knob]",invoke=function(message) pakettiColumnCount(message, "current") end}
+renoise.tool():add_midi_mapping{name="Paketti:Cycle Through Selected Track Columns (Relative) x[Knob]",invoke=function(message) pakettiColumnCount(message, "current") end}
+renoise.tool():add_midi_mapping{name="Paketti:Cycle Through All Track Columns (Absolute) x[Knob]",invoke=function(message) pakettiColumnCount(message, "all") end}
+renoise.tool():add_midi_mapping{name="Paketti:Cycle Through All Track Columns (Relative) x[Knob]",invoke=function(message) pakettiColumnCount(message, "all") end}

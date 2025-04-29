@@ -974,7 +974,7 @@ function PakettiYTDLPDialogContent()
             else
               renoise.app():show_warning("Please set a valid output directory first")
             end
-          end },
+          end},
         },
         vb:row {
           vb:textfield {
@@ -1107,7 +1107,7 @@ function PakettiYTDLPDialogContent()
         preferences.PakettiYTDLP.PakettiYTDLPYT_DLPLocation.value = vb.views.yt_dlp_location.text
 
         PakettiYTDLPPrintPreferences()
-      end },
+      end},
       vb:button { text = "Save & Close", notifier = function()
         preferences.PakettiYTDLP.PakettiYTDLPOutputDirectory.value = vb.views.output_dir.text
         preferences.PakettiYTDLP.PakettiYTDLPClipLength.value = vb.views.clip_length.value
@@ -1121,7 +1121,7 @@ function PakettiYTDLPDialogContent()
 
         PakettiYTDLPPrintPreferences()
         PakettiYTDLPCloseDialog()
-      end }
+      end}
     }
   }
 
@@ -1187,7 +1187,7 @@ function PakettiYTDLPCloseDialog()
   renoise.app():show_status("Closing Paketti YT-DLP Dialog")
 end
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress..:Paketti YT-DLP Downloader...",invoke=function() PakettiYTDLPShowDialog() end }
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress..:Paketti YT-DLP Downloader...",invoke=function() PakettiYTDLPShowDialog() end}
 
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti YT-DLP Downloader",invoke=PakettiYTDLPShowDialog }
 --renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Paketti YT-DLP Downloader...",invoke=PakettiYTDLPShowDialog }

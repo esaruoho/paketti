@@ -74,7 +74,7 @@ function loadFromPreferences()
 
     -- Create MIDIMapping
     local midiMappingName="Paketti:Load Plugin " .. pluginName
-    renoise.tool():add_midi_mapping{name=midiMappingName,invoke = function(message) if message:is_trigger() then loadPlugin(path) end end}
+    renoise.tool():add_midi_mapping{name=midiMappingName,invoke=function(message) if message:is_trigger() then loadPlugin(path) end end}
 
     addedEntries[pluginName] = true
   end
@@ -167,7 +167,7 @@ local function addAsShortcut()
                 invoke=function() loadPlugin(cb_info.path) end
               }
               renoise.tool():add_midi_mapping{name="Paketti:Load Plugin " .. entryName,
-                invoke = function(message)
+                invoke=function(message)
                   if message:is_trigger() then
                     loadPlugin(cb_info.path)
                   end

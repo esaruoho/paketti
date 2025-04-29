@@ -448,7 +448,7 @@ vb:row{vb:text{text="Set Loop Mode",width=100, style="strong",font="bold"},
 vb:button{text="Off",notifier=function() set_loop_mode_for_selected_instrument(renoise.Sample.LOOP_MODE_OFF) end},
 vb:button{text="Forward",notifier=function() set_loop_mode_for_selected_instrument(renoise.Sample.LOOP_MODE_FORWARD) end},
 vb:button{text="PingPong",notifier=function() set_loop_mode_for_selected_instrument(renoise.Sample.LOOP_MODE_PING_PONG) end},
-vb:button{text="Reverse",notifier=function() set_loop_mode_for_selected_instrument(renoise.Sample.LOOP_MODE_REVERSE)end }
+vb:button{text="Reverse",notifier=function() set_loop_mode_for_selected_instrument(renoise.Sample.LOOP_MODE_REVERSE)end}
 
 },
 vb:row{vb:text{text="PitchStepper",width=100,font="bold",style="strong"},

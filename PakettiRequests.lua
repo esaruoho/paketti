@@ -788,7 +788,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Select Group (Previous)",invo
 ------
 renoise.tool():add_keybinding{name="Global:Paketti:Delete/Clear/Wipe Entire Row",invoke=function() renoise.song().selected_line:clear() end}
 renoise.tool():add_midi_mapping{name="Paketti:Delete/Clear/Wipe Entire Row x[Toggle]",
-  invoke = function(message) if message:is_trigger() then clear_current_line() end end}
+  invoke=function(message) if message:is_trigger() then clear_current_line() end end}
 
   function PakettiDeleteClearWipeSelectedNoteColumnWithEditStep()
   local song = renoise.song()
@@ -818,7 +818,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Delete/Clear/Wipe Entire Row x[Tog
 end
 
 renoise.tool():add_midi_mapping{name="Paketti:Delete/Clear/Wipe Selected Note Column with EditStep x[Toggle]",
-  invoke = function(message) if message:is_trigger() then PakettiDeleteClearWipeSelectedNoteColumnWithEditStep() end end}
+  invoke=function(message) if message:is_trigger() then PakettiDeleteClearWipeSelectedNoteColumnWithEditStep() end end}
 
   function PakettiDeleteClearWipeEntireRowWithEditStep()
     local song = renoise.song()
@@ -843,13 +843,13 @@ renoise.tool():add_midi_mapping{name="Paketti:Delete/Clear/Wipe Selected Note Co
     renoise.app():show_status("Wiped entire row and moved by edit step")
   end
   
-  renoise.tool():add_keybinding{name="Global:Paketti:Delete/Clear/Wipe Entire Row with EditStep",invoke = function() 
+  renoise.tool():add_keybinding{name="Global:Paketti:Delete/Clear/Wipe Entire Row with EditStep",invoke=function() 
       PakettiDeleteClearWipeEntireRowWithEditStep() 
     end
   }
   
-  renoise.tool():add_midi_mapping{name = "Paketti:Delete/Clear/Wipe Entire Row with EditStep x[Toggle]",
-    invoke = function(message) 
+  renoise.tool():add_midi_mapping{name="Paketti:Delete/Clear/Wipe Entire Row with EditStep x[Toggle]",
+    invoke=function(message) 
       if message:is_trigger() then 
         PakettiDeleteClearWipeEntireRowWithEditStep() 
       end 
@@ -865,10 +865,10 @@ function SelectedNoteColumnClear()
   end
 end
 renoise.tool():add_midi_mapping{name="Paketti:Delete/Clear/Wipe Selected Note Column x[Toggle]",
-invoke = function(message) if message:is_trigger() then SelectedNoteColumnClear() end end}
+invoke=function(message) if message:is_trigger() then SelectedNoteColumnClear() end end}
 
 renoise.tool():add_keybinding{name="Global:Paketti:Delete/Clear/Wipe Selected Note Column",
-invoke = function() SelectedNoteColumnClear() end}
+invoke=function() SelectedNoteColumnClear() end}
 
 
 renoise.tool():add_keybinding{name="Global:Paketti:Delete/Clear/Wipe Selected Note Column with EditStep", 
@@ -3016,7 +3016,7 @@ function PakettiReverseNotesInSelection()
   renoise.app():show_status("Notes and effects reversed across all selected tracks and columns.")
 end
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Reverse Notes in Selection",invoke=function() PakettiReverseNotesInSelection() end }
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Reverse Notes in Selection",invoke=function() PakettiReverseNotesInSelection() end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Reverse Notes in Selection",invoke=function() PakettiReverseNotesInSelection() end}
 
 -- Randomize or swap notes in a pattern selection (using selection_in_pattern_pro)
@@ -3104,10 +3104,10 @@ end
 
 
 
-renoise.tool():add_keybinding{name="Global:Paketti:Roll the Dice on Notes",invoke= function()
+renoise.tool():add_keybinding{name="Global:Paketti:Roll the Dice on Notes",invoke=function()
 randomize_notes_in_selection() end}
 
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Roll the Dice on Notes in Selection",invoke=function() randomize_notes_in_selection() end }
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Roll the Dice on Notes in Selection",invoke=function() randomize_notes_in_selection() end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Reverse Notes in Selection",invoke=PakettiReverseNotesInSelection}
 
 
@@ -3813,7 +3813,7 @@ end
 
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Plugins/Devices..:Show Convolver Selection Dialog...",invoke=function()
   show_convolver_selection_dialog(handle_convolver_action)
-end }
+end}
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:Import Selected Sample to Selected Convolver",invoke=function()
   print("Importing selected sample to Convolver via menu entry")
@@ -3825,7 +3825,7 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:
     return
   end
   save_instrument_to_convolver(selected_device, selected_track_index, selected_device_index)
-end }
+end}
 
 renoise.tool():add_menu_entry{name="--DSP Device:Paketti..:Convolver..:Import Selected Sample to Convolver",invoke=function()
   print("Importing selected sample to Convolver via DSP menu entry")
@@ -3837,7 +3837,7 @@ renoise.tool():add_menu_entry{name="--DSP Device:Paketti..:Convolver..:Import Se
     return
   end
   save_instrument_to_convolver(selected_device, selected_track_index, selected_device_index)
-end }
+end}
 renoise.tool():add_menu_entry{name="DSP Device:Paketti..:Convolver..:Load Random IR from User Set Folder",invoke=function() PakettiRandomIR(preferences.PakettiIRPath.value) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Load Random IR from User Set Folder", invoke=function() PakettiRandomIR(preferences.PakettiIRPath.value) end}
 
@@ -3851,7 +3851,7 @@ renoise.tool():add_menu_entry{name="Mixer:Paketti..:Convolver..:Import Selected 
     return
   end
   save_instrument_to_convolver(selected_device, selected_track_index, selected_device_index)
-end }
+end}
 
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Convolver..:Import Selected Sample to Convolver",invoke=function()
   print("Importing selected sample to Convolver via Sample Editor menu entry")
@@ -3863,7 +3863,7 @@ renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Convolver..:Import S
     return
   end
   save_instrument_to_convolver(selected_device, selected_track_index, selected_device_index)
-end }
+end}
 
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Convolver..:Export Convolver IR into New Instrument",invoke=function()
   print("Exporting Convolver IR into New Instrument via menu entry")
@@ -3875,7 +3875,7 @@ renoise.tool():add_menu_entry{name="Mixer:Paketti..:Convolver..:Export Convolver
     return
   end
   create_instrument_from_convolver(selected_device, selected_track_index, selected_device_index)
-end }
+end}
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:Export Convolver IR into New Instrument",invoke=function()
   print("Exporting Convolver IR into New Instrument via menu entry")
@@ -3887,7 +3887,7 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:
     return
   end
   create_instrument_from_convolver(selected_device, selected_track_index, selected_device_index)
-end }
+end}
 
 renoise.tool():add_menu_entry{name="DSP Device:Paketti..:Convolver..:Export Convolver IR into New Instrument",invoke=function()
   print("Exporting Convolver IR into New Instrument via DSP menu entry")
@@ -3899,23 +3899,23 @@ renoise.tool():add_menu_entry{name="DSP Device:Paketti..:Convolver..:Export Conv
     return
   end
   create_instrument_from_convolver(selected_device, selected_track_index, selected_device_index)
-end }
+end}
 
 
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Convolver..:Show Convolver Selection Dialog",invoke=function()
   print("Showing Convolver Selection Dialog via Mixer menu")
   show_convolver_selection_dialog(handle_convolver_action)
-end }
+end}
 
 renoise.tool():add_menu_entry{name="DSP Device:Paketti..:Convolver..:Show Convolver Selection Dialog",invoke=function()
   print("Showing Convolver Selection Dialog via DSP menu")
   show_convolver_selection_dialog(handle_convolver_action)
-end }
+end}
 
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Convolver..:Show Convolver Selection Dialog",invoke=function()
   print("Showing Convolver Selection Dialog via Sample Editor menu")
   show_convolver_selection_dialog(handle_convolver_action)
-end }
+end}
 
 --------
 function pakettiMidiSimpleOutputRoute(output)
@@ -4042,14 +4042,14 @@ function pakettiDumpAllTrackVolumes(db_change)
   renoise.app():show_status(string.format("%s volume by %.1fdB for %d tracks", msg, math.abs(db_change), tracks_modified))
 end
 
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Track Properties..:Decrease All Track Volumes by 3dB", invoke = function() pakettiDumpAllTrackVolumes(-3) end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Track Properties..:Increase All Track Volumes by 3dB", invoke = function() pakettiDumpAllTrackVolumes(3) end}
-renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Decrease All Track Volumes by 3dB", invoke = function() pakettiDumpAllTrackVolumes(-3) end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Increase All Track Volumes by 3dB", invoke = function() pakettiDumpAllTrackVolumes(3) end}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Decrease All Track Volumes by 3dB", invoke = function() pakettiDumpAllTrackVolumes(-3) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Increase All Track Volumes by 3dB", invoke = function() pakettiDumpAllTrackVolumes(3) end}
-renoise.tool():add_keybinding{name="--Global:Paketti:Decrease All Track Volumes by 3dB", invoke = function() pakettiDumpAllTrackVolumes(-3) end}
-renoise.tool():add_keybinding{name="Global:Paketti:Increase All Track Volumes by 3dB", invoke = function() pakettiDumpAllTrackVolumes(3) end}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Track Properties..:Decrease All Track Volumes by 3dB", invoke=function() pakettiDumpAllTrackVolumes(-3) end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Track Properties..:Increase All Track Volumes by 3dB", invoke=function() pakettiDumpAllTrackVolumes(3) end}
+renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Decrease All Track Volumes by 3dB", invoke=function() pakettiDumpAllTrackVolumes(-3) end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Increase All Track Volumes by 3dB", invoke=function() pakettiDumpAllTrackVolumes(3) end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Decrease All Track Volumes by 3dB", invoke=function() pakettiDumpAllTrackVolumes(-3) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Increase All Track Volumes by 3dB", invoke=function() pakettiDumpAllTrackVolumes(3) end}
+renoise.tool():add_keybinding{name="--Global:Paketti:Decrease All Track Volumes by 3dB", invoke=function() pakettiDumpAllTrackVolumes(-3) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Increase All Track Volumes by 3dB", invoke=function() pakettiDumpAllTrackVolumes(3) end}
 -------
 function pakettiResizeAndFill(patternSize)
   local song = renoise.song()
@@ -5196,7 +5196,7 @@ end
         invoke=function() SetSampleSlotVelocity(i, 127) end}
 
       renoise.tool():add_midi_mapping{name="Paketti:Set Sample Slot " .. sample_slot_name .. " Velocity to 00",
-        invoke = function(message) if message:is_trigger() then SetSampleSlotVelocity(i, 0) end end}
+        invoke=function(message) if message:is_trigger() then SetSampleSlotVelocity(i, 0) end end}
       renoise.tool():add_midi_mapping{name="Paketti:Set Sample Slot " .. sample_slot_name .. " Velocity to 7F",
         invoke=function(message) if message:is_trigger() then SetSampleSlotVelocity(i, 127) end end}
   end
@@ -6303,7 +6303,7 @@ for i = 1, 10 do
     invoke=function() FinderShowerByPath(preferences.UserPreferences["userPreferredDevice" .. slot].value, "selected_track") end
   }
 renoise.tool():add_midi_mapping{name="Paketti:Show/Hide Slot " .. slot .. " on Master",
-  invoke = function(message)
+  invoke=function(message)
     if message:is_trigger() then
       FinderShowerByPath(preferences.UserPreferences["userPreferredDevice" .. slot].value, "master")
     end
@@ -6311,7 +6311,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Show/Hide Slot " .. slot .. " on M
 }
 
 renoise.tool():add_midi_mapping{name="Paketti:Show/Hide Slot " .. slot .. " on Selected Track",
-  invoke = function(message)
+  invoke=function(message)
     if message:is_trigger() then
       FinderShowerByPath(preferences.UserPreferences["userPreferredDevice" .. slot].value, "selected_track")
     end
@@ -6461,7 +6461,7 @@ function SampleSelectorMIDI(midi_value)
   end
 end
 
-renoise.tool():add_midi_mapping{name="Paketti:Select Sample x[Knob]",invoke = function(message) if message:is_abs_value() then SampleSelectorMIDI(message.int_value) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Select Sample x[Knob]",invoke=function(message) if message:is_abs_value() then SampleSelectorMIDI(message.int_value) end end}
 
 ---
 
@@ -8028,8 +8028,8 @@ function pakettiOffsetDialog()
 
 end
 
-renoise.tool():add_keybinding{name="Sample Editor:Paketti:Offset Sample Buffer by -0.5",invoke=function() PakettiOffsetSampleBuffer("Subtract", 0.5) end }
-renoise.tool():add_keybinding{name="Sample Editor:Paketti:Multiply Sample Buffer by 0.5",invoke=function() PakettiOffsetSampleBuffer("Multiply", 0.5) end }
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Offset Sample Buffer by -0.5",invoke=function() PakettiOffsetSampleBuffer("Subtract", 0.5) end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Multiply Sample Buffer by 0.5",invoke=function() PakettiOffsetSampleBuffer("Multiply", 0.5) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Open Offset Dialog...",invoke=pakettiOffsetDialog }
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Offset Dialog...",invoke=pakettiOffsetDialog }
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti Offset Dialog...",invoke=pakettiOffsetDialog }
@@ -8604,7 +8604,7 @@ local function key_handler(key)
 end
 ]]--
 
-renoise.tool():add_keybinding{name="Global:Paketti:Show EditStep Dialog...",invoke = function() show_edit_step_dialog() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Show EditStep Dialog...",invoke=function() show_edit_step_dialog() end}
 ------
 -- Function to step by editstep (forwards or backwards)
 function PakettiStepByEditStep(direction)
@@ -8626,10 +8626,10 @@ function PakettiStepByEditStep(direction)
     edit_step, next_position))
 end
 
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Step by EditStep (Forwards)", invoke = function() PakettiStepByEditStep(1) end}
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Step by EditStep (Backwards)", invoke = function() PakettiStepByEditStep(-1) end}
-renoise.tool():add_midi_mapping{name="Paketti:Step by EditStep Forward x[Trigger]", invoke = function(message) if message:is_trigger() then PakettiStepByEditStep(1) end end}
-renoise.tool():add_midi_mapping{name="Paketti:Step by EditStep Backward x[Trigger]", invoke = function(message) if message:is_trigger() then PakettiStepByEditStep(-1) end end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Step by EditStep (Forwards)", invoke=function() PakettiStepByEditStep(1) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Step by EditStep (Backwards)", invoke=function() PakettiStepByEditStep(-1) end}
+renoise.tool():add_midi_mapping{name="Paketti:Step by EditStep Forward x[Trigger]", invoke=function(message) if message:is_trigger() then PakettiStepByEditStep(1) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Step by EditStep Backward x[Trigger]", invoke=function(message) if message:is_trigger() then PakettiStepByEditStep(-1) end end}
 -------
 function PakettiFixC0Panning()
   local song = renoise.song()
@@ -9748,13 +9748,13 @@ function ReplaceLegacyEffect(old_effect, new_effect)
   end
 end
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Replace FC with 0L",invoke = function() ReplaceLegacyEffect("FC", "0L") end}
-renoise.tool():add_keybinding{name="Global:Paketti:Replace FC with 0L",invoke = function() ReplaceLegacyEffect("FC", "0L") end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Replace FC with 0L",invoke=function() ReplaceLegacyEffect("FC", "0L") end}
+renoise.tool():add_keybinding{name="Global:Paketti:Replace FC with 0L",invoke=function() ReplaceLegacyEffect("FC", "0L") end}
 
 -- Create menu entry and MIDI mapping
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Explode Notes to New Tracks",invoke = function() explode_notes_to_tracks() end}
-renoise.tool():add_midi_mapping{name="Paketti:Explode Notes to New Tracks",invoke = function() explode_notes_to_tracks() end}
-renoise.tool():add_keybinding{name="Global:Paketti:Explode Notes to New Tracks",invoke = function() explode_notes_to_tracks() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Explode Notes to New Tracks",invoke=function() explode_notes_to_tracks() end}
+renoise.tool():add_midi_mapping{name="Paketti:Explode Notes to New Tracks",invoke=function() explode_notes_to_tracks() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Explode Notes to New Tracks",invoke=function() explode_notes_to_tracks() end}
 
   function explode_notes_to_tracks()
     local song = renoise.song()
@@ -9907,33 +9907,33 @@ end
 -- Direction and scope enums
 local DIRECTION = { PREVIOUS = 1, NEXT = 2 }
 local SCOPE = { TRACK = 1, PATTERN = 2 }
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Find Note (Next, Track)",invoke = function() GotoNote(DIRECTION.NEXT, SCOPE.TRACK) end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Find Note (Previous, Track)",invoke = function() GotoNote(DIRECTION.PREVIOUS, SCOPE.TRACK) end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Find Note (Next, Pattern)",invoke = function() GotoNote(DIRECTION.NEXT, SCOPE.PATTERN) end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Find Note (Previous, Pattern)",invoke = function() GotoNote(DIRECTION.PREVIOUS, SCOPE.PATTERN) end}
-renoise.tool():add_keybinding{name="Global:Paketti:Find Note (Next, Track)",invoke = function() GotoNote(DIRECTION.NEXT, SCOPE.TRACK) end}
-renoise.tool():add_keybinding{name="Global:Paketti:Find Note (Previous, Track)",invoke = function() GotoNote(DIRECTION.PREVIOUS, SCOPE.TRACK) end}
-renoise.tool():add_keybinding{name="Global:Paketti:Find Note (Next, Pattern)",invoke = function() GotoNote(DIRECTION.NEXT, SCOPE.PATTERN) end}
-renoise.tool():add_keybinding{name="Global:Paketti:Find Note (Previous, Pattern)",invoke = function() GotoNote(DIRECTION.PREVIOUS, SCOPE.PATTERN) end}
-renoise.tool():add_midi_mapping{name="Paketti:Find Note (Next, Track)",invoke = function() GotoNote(DIRECTION.NEXT, SCOPE.TRACK) end}
-renoise.tool():add_midi_mapping{name="Paketti:Find Note (Previous, Track)",invoke = function() GotoNote(DIRECTION.PREVIOUS, SCOPE.TRACK) end}
-renoise.tool():add_midi_mapping{name="Paketti:Find Note (Next, Pattern)",invoke = function() GotoNote(DIRECTION.NEXT, SCOPE.PATTERN) end}
-renoise.tool():add_midi_mapping{name="Paketti:Find Note (Previous, Pattern)",invoke = function() GotoNote(DIRECTION.PREVIOUS, SCOPE.PATTERN) end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Find Note (Next, Track)",invoke=function() GotoNote(DIRECTION.NEXT, SCOPE.TRACK) end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Find Note (Previous, Track)",invoke=function() GotoNote(DIRECTION.PREVIOUS, SCOPE.TRACK) end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Find Note (Next, Pattern)",invoke=function() GotoNote(DIRECTION.NEXT, SCOPE.PATTERN) end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Find Note (Previous, Pattern)",invoke=function() GotoNote(DIRECTION.PREVIOUS, SCOPE.PATTERN) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Find Note (Next, Track)",invoke=function() GotoNote(DIRECTION.NEXT, SCOPE.TRACK) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Find Note (Previous, Track)",invoke=function() GotoNote(DIRECTION.PREVIOUS, SCOPE.TRACK) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Find Note (Next, Pattern)",invoke=function() GotoNote(DIRECTION.NEXT, SCOPE.PATTERN) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Find Note (Previous, Pattern)",invoke=function() GotoNote(DIRECTION.PREVIOUS, SCOPE.PATTERN) end}
+renoise.tool():add_midi_mapping{name="Paketti:Find Note (Next, Track)",invoke=function() GotoNote(DIRECTION.NEXT, SCOPE.TRACK) end}
+renoise.tool():add_midi_mapping{name="Paketti:Find Note (Previous, Track)",invoke=function() GotoNote(DIRECTION.PREVIOUS, SCOPE.TRACK) end}
+renoise.tool():add_midi_mapping{name="Paketti:Find Note (Next, Pattern)",invoke=function() GotoNote(DIRECTION.NEXT, SCOPE.PATTERN) end}
+renoise.tool():add_midi_mapping{name="Paketti:Find Note (Previous, Pattern)",invoke=function() GotoNote(DIRECTION.PREVIOUS, SCOPE.PATTERN) end}
 
 -- Add playback versions if API supports it
 if renoise.API_VERSION >= 6.2 then
-  renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Find Note (Next, Track, Play)",invoke = function() GotoNote(DIRECTION.NEXT, SCOPE.TRACK, true) end}
-  renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Find Note (Previous, Track, Play)",invoke = function() GotoNote(DIRECTION.PREVIOUS, SCOPE.TRACK, true) end}
-  renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Find Note (Next, Pattern, Play)",invoke = function() GotoNote(DIRECTION.NEXT, SCOPE.PATTERN, true) end}
-  renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Find Note (Previous, Pattern, Play)",invoke = function() GotoNote(DIRECTION.PREVIOUS, SCOPE.PATTERN, true) end}
-  renoise.tool():add_keybinding{name="Global:Paketti:Find Note (Next, Track, Play)",invoke = function() GotoNote(DIRECTION.NEXT, SCOPE.TRACK, true) end}
-  renoise.tool():add_keybinding{name="Global:Paketti:Find Note (Previous, Track, Play)",invoke = function() GotoNote(DIRECTION.PREVIOUS, SCOPE.TRACK, true) end}
-  renoise.tool():add_keybinding{name="Global:Paketti:Find Note (Next, Pattern, Play)",invoke = function() GotoNote(DIRECTION.NEXT, SCOPE.PATTERN, true) end}
-  renoise.tool():add_keybinding{name="Global:Paketti:Find Note (Previous, Pattern, Play)",invoke = function() GotoNote(DIRECTION.PREVIOUS, SCOPE.PATTERN, true) end}-- Playback MIDI mappings
-  renoise.tool():add_midi_mapping{name="Paketti:Find Note (Next, Track, Play)",invoke = function() GotoNote(DIRECTION.NEXT, SCOPE.TRACK, true) end}
-  renoise.tool():add_midi_mapping{name="Paketti:Find Note (Previous, Track, Play)",invoke = function() GotoNote(DIRECTION.PREVIOUS, SCOPE.TRACK, true) end}
-  renoise.tool():add_midi_mapping{name="Paketti:Find Note (Next, Pattern, Play)",invoke = function() GotoNote(DIRECTION.NEXT, SCOPE.PATTERN, true) end}
-  renoise.tool():add_midi_mapping{name="Paketti:Find Note (Previous, Pattern, Play)",invoke = function() GotoNote(DIRECTION.PREVIOUS, SCOPE.PATTERN, true) end}
+  renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Find Note (Next, Track, Play)",invoke=function() GotoNote(DIRECTION.NEXT, SCOPE.TRACK, true) end}
+  renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Find Note (Previous, Track, Play)",invoke=function() GotoNote(DIRECTION.PREVIOUS, SCOPE.TRACK, true) end}
+  renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Find Note (Next, Pattern, Play)",invoke=function() GotoNote(DIRECTION.NEXT, SCOPE.PATTERN, true) end}
+  renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Find Note (Previous, Pattern, Play)",invoke=function() GotoNote(DIRECTION.PREVIOUS, SCOPE.PATTERN, true) end}
+  renoise.tool():add_keybinding{name="Global:Paketti:Find Note (Next, Track, Play)",invoke=function() GotoNote(DIRECTION.NEXT, SCOPE.TRACK, true) end}
+  renoise.tool():add_keybinding{name="Global:Paketti:Find Note (Previous, Track, Play)",invoke=function() GotoNote(DIRECTION.PREVIOUS, SCOPE.TRACK, true) end}
+  renoise.tool():add_keybinding{name="Global:Paketti:Find Note (Next, Pattern, Play)",invoke=function() GotoNote(DIRECTION.NEXT, SCOPE.PATTERN, true) end}
+  renoise.tool():add_keybinding{name="Global:Paketti:Find Note (Previous, Pattern, Play)",invoke=function() GotoNote(DIRECTION.PREVIOUS, SCOPE.PATTERN, true) end}-- Playback MIDI mappings
+  renoise.tool():add_midi_mapping{name="Paketti:Find Note (Next, Track, Play)",invoke=function() GotoNote(DIRECTION.NEXT, SCOPE.TRACK, true) end}
+  renoise.tool():add_midi_mapping{name="Paketti:Find Note (Previous, Track, Play)",invoke=function() GotoNote(DIRECTION.PREVIOUS, SCOPE.TRACK, true) end}
+  renoise.tool():add_midi_mapping{name="Paketti:Find Note (Next, Pattern, Play)",invoke=function() GotoNote(DIRECTION.NEXT, SCOPE.PATTERN, true) end}
+  renoise.tool():add_midi_mapping{name="Paketti:Find Note (Previous, Pattern, Play)",invoke=function() GotoNote(DIRECTION.PREVIOUS, SCOPE.PATTERN, true) end}
 end
 
 local function has_note_at(track_data, line_index, track_index, column_index)
@@ -10158,7 +10158,7 @@ function toggle_two_devices(device1_index, device2_index)
   PakettiDeviceBypass(device2_index, device2_active and "disable" or "enable")
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Flip Devices 1&2 On/Off",invoke = function() toggle_two_devices(1, 2) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Flip Devices 1&2 On/Off",invoke=function() toggle_two_devices(1, 2) end}
 
 ----------
 -- Fuzzy search function
@@ -10581,14 +10581,19 @@ function pakettiGrooveToDelay()
   
   -- Debug print
   print("Converting grooves to delays:")
-  print(string.format("GA1: %.3f (affects when odd lines play after even lines)", ga[1]))
-  print(string.format("GA2: %.3f (affects when line 3 plays after line 2)", ga[2]))
-  print(string.format("GA3: %.3f (affects when line 5 plays after line 4)", ga[3]))
-  print(string.format("GA4: %.3f (affects when line 7 plays after line 6)", ga[4]))
+  print(string.format("GA1: %.3f (affects line 1)", ga[1]))
+  print(string.format("GA2: %.3f (affects line 3)", ga[2]))
+  print(string.format("GA3: %.3f (affects line 5)", ga[3]))
+  print(string.format("GA4: %.3f (affects line 7)", ga[4]))
   
-  -- Convert groove to delay
+  -- Convert groove to delay using the correct formula
+  -- 100% groove = 170 (0xAA) which is 2/3 of 256
   local function groove_to_delay(groove)
-      return math.floor((groove * 255) + 0.5)
+      -- RENOISE_GROOVE_MAX = 170 (0xAA) which represents 2/3 of a line
+      local RENOISE_GROOVE_MAX = 170
+      -- Scale the groove percentage to the max delay value
+      local delay = math.floor((groove * RENOISE_GROOVE_MAX) + 0.5)
+      return delay
   end
   
   -- Write delays for the entire pattern length
@@ -10604,8 +10609,8 @@ function pakettiGrooveToDelay()
           local groove_index = math.floor(cycle_position/2) + 1
           local delay = groove_to_delay(ga[groove_index])
           note_column.delay_value = delay
-          print(string.format("Line %d: Applying delay %d (0x%02X) from Groove %d (%.3f)", 
-              i + 1, delay, delay, groove_index, ga[groove_index]))
+          print(string.format("Line %d: Applying delay %d (0x%02X) from Groove %d (%.3f) - %.1f%% of max delay", 
+              i + 1, delay, delay, groove_index, ga[groove_index], (delay/170)*100))
       else
           -- Even numbered lines (0,2,4,6) get no delay
           note_column.delay_value = 0
@@ -10619,8 +10624,4 @@ function pakettiGrooveToDelay()
   renoise.app():show_status("Groove converted to delay values")
 end
 
--- Add menu entry
-renoise.tool():add_menu_entry {
-  name = "Pattern Editor:Paketti..:Convert Groove to Delay",
-  invoke = pakettiGrooveToDelay
-}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Convert Groove to Delay",invoke = pakettiGrooveToDelay}

@@ -351,7 +351,7 @@ end
 renoise.app():show_status("Current Track output set to: " .. st.output_routing) 
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Set ReWire Channel (Next)",invoke=function() next_rewire() end  }
+renoise.tool():add_keybinding{name="Global:Paketti:Set ReWire Channel (Next)",invoke=function() next_rewire() end}
 ----------------------------------------------------------------------------------------------------------
 ]]--
 
@@ -566,11 +566,11 @@ local function show_dialog()
 
   dialog = renoise.app():show_custom_dialog("Wacky Filter", vb:row {
     vb:column {
-      vb:slider { min = 0, max = 1, value = filter_params.chaos, notifier = function(v) filter_params.chaos = v end },
+      vb:slider { min = 0, max = 1, value = filter_params.chaos, notifier = function(v) filter_params.chaos = v end},
       vb:text { text = "Chaos" },
-      vb:slider { min = 20, max = 20000, value = filter_params.cutoff, notifier = function(v) filter_params.cutoff = v end },
+      vb:slider { min = 20, max = 20000, value = filter_params.cutoff, notifier = function(v) filter_params.cutoff = v end},
       vb:text { text = "Cutoff" },
-      vb:slider { min = 0.1, max = 10, value = filter_params.resonance, notifier = function(v) filter_params.resonance = v end },
+      vb:slider { min = 0.1, max = 10, value = filter_params.resonance, notifier = function(v) filter_params.resonance = v end},
       vb:text { text = "Resonance" },
       vb:button { text = "Process Audio", notifier = process_audio }
     }
@@ -698,7 +698,7 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Sample Settings:Di
     ]]--
 
     --[[renoise.tool():add_keybinding{name="Global:Paketti:Hide EditStep Dialog",
-  invoke = function(repeated)
+  invoke=function(repeated)
     if not repeated then
       key_handler({name="key_up", modifiers = "alt"})
     end

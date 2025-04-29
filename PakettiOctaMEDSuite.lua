@@ -763,12 +763,12 @@ function OctaMEDToggleTrackMute(track_index)
 end
 
 for i = 1, 16 do
-  renoise.tool():add_keybinding{name=string.format("Global:Paketti:OctaMED Toggle Mute Track %02d", i),invoke = function() OctaMEDToggleTrackMute(i) end}
-  renoise.tool():add_keybinding{name=string.format("Pattern Editor:Paketti:OctaMED Toggle Mute Track %02d", i),invoke = function() OctaMEDToggleTrackMute(i) end}
-  renoise.tool():add_keybinding{name=string.format("Mixer:Paketti:OctaMED Toggle Mute Track %02d", i),invoke = function() OctaMEDToggleTrackMute(i) end}
-  renoise.tool():add_keybinding{name=string.format("Phrase Editor:Paketti:OctaMED Toggle Mute Track %02d", i),invoke = function() OctaMEDToggleTrackMute(i) end}  
+  renoise.tool():add_keybinding{name=string.format("Global:Paketti:OctaMED Toggle Mute Track %02d", i),invoke=function() OctaMEDToggleTrackMute(i) end}
+  renoise.tool():add_keybinding{name=string.format("Pattern Editor:Paketti:OctaMED Toggle Mute Track %02d", i),invoke=function() OctaMEDToggleTrackMute(i) end}
+  renoise.tool():add_keybinding{name=string.format("Mixer:Paketti:OctaMED Toggle Mute Track %02d", i),invoke=function() OctaMEDToggleTrackMute(i) end}
+  renoise.tool():add_keybinding{name=string.format("Phrase Editor:Paketti:OctaMED Toggle Mute Track %02d", i),invoke=function() OctaMEDToggleTrackMute(i) end}  
   renoise.tool():add_midi_mapping{name=string.format("Paketti:OctaMED Toggle Mute Track %02d", i),
-    invoke = function(message)
+    invoke=function(message)
       if message:is_trigger() then
         OctaMEDToggleTrackMute(i)
       end

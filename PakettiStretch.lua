@@ -1147,13 +1147,13 @@ step_slider = vb:slider {
             lpb_slider,
             lpb_display,
             vb:space { width = 10 },
-            vb:button { text = "2", width = 30, notifier = function() song.transport.lpb = 2 lpb_display.text = "2" lpb_slider.value = 2 end },
-            vb:button { text = "4", width = 30, notifier = function() song.transport.lpb = 4 lpb_display.text = "4" lpb_slider.value = 4 end },
-            vb:button { text = "8", width = 30, notifier = function() song.transport.lpb = 8 lpb_display.text = "8" lpb_slider.value = 8 end },
-            vb:button { text = "16", width = 30, notifier = function() song.transport.lpb = 16 lpb_display.text = "16" lpb_slider.value = 16 end },
-            vb:button { text = "32", width = 30, notifier = function() song.transport.lpb = 32 lpb_display.text = "32" lpb_slider.value = 32 end },
-            vb:button { text = "64", width = 30, notifier = function() song.transport.lpb = 64 lpb_display.text = "64" lpb_slider.value = 64 end },
-            vb:button { text = "128", width = 30, notifier = function() song.transport.lpb = 128 lpb_display.text = "128" lpb_slider.value = 128 end }
+            vb:button { text = "2", width = 30, notifier = function() song.transport.lpb = 2 lpb_display.text = "2" lpb_slider.value = 2 end},
+            vb:button { text = "4", width = 30, notifier = function() song.transport.lpb = 4 lpb_display.text = "4" lpb_slider.value = 4 end},
+            vb:button { text = "8", width = 30, notifier = function() song.transport.lpb = 8 lpb_display.text = "8" lpb_slider.value = 8 end},
+            vb:button { text = "16", width = 30, notifier = function() song.transport.lpb = 16 lpb_display.text = "16" lpb_slider.value = 16 end},
+            vb:button { text = "32", width = 30, notifier = function() song.transport.lpb = 32 lpb_display.text = "32" lpb_slider.value = 32 end},
+            vb:button { text = "64", width = 30, notifier = function() song.transport.lpb = 64 lpb_display.text = "64" lpb_slider.value = 64 end},
+            vb:button { text = "128", width = 30, notifier = function() song.transport.lpb = 128 lpb_display.text = "128" lpb_slider.value = 128 end}
         },
         
         -- ComboTempo row

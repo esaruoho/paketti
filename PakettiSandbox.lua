@@ -652,11 +652,11 @@ function toggleColumns(include_sample_effects)
     renoise.app():show_status(message)
 end
 
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Toggle All Columns",invoke = function() toggleColumns(true) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Toggle All Columns (No Sample Effects)",invoke = function() toggleColumns(false) end}
-renoise.tool():add_menu_entry{name="Main Menu:View:Paketti..:Visible Columns..:Toggle All Columns",invoke = function() toggleColumns(true) end}
-renoise.tool():add_menu_entry{name="Main Menu:View:Paketti..:Visible Columns..:Toggle All Columns (No Sample Effects)",invoke = function() toggleColumns(false) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Toggle All Columns",invoke=function() toggleColumns(true) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Toggle All Columns (No Sample Effects)",invoke=function() toggleColumns(false) end}
+renoise.tool():add_menu_entry{name="Main Menu:View:Paketti..:Visible Columns..:Toggle All Columns",invoke=function() toggleColumns(true) end}
+renoise.tool():add_menu_entry{name="Main Menu:View:Paketti..:Visible Columns..:Toggle All Columns (No Sample Effects)",invoke=function() toggleColumns(false) end}
 
 
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Toggle All Columns",invoke = function() toggleColumns(true) end}
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Toggle All Columns (No Sample Effects)",invoke = function() toggleColumns(false) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Toggle All Columns",invoke=function() toggleColumns(true) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Toggle All Columns (No Sample Effects)",invoke=function() toggleColumns(false) end}

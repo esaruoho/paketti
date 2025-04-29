@@ -2987,7 +2987,7 @@ renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Toggle Note Off in All
 renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Toggle Note Off on All Tracks on Current Row",invoke = PakettiToggleNoteOffAllTracks}
 
 renoise.tool():add_midi_mapping{name="Pattern Editor:Paketti:Toggle Note Off in All Visible Note Columns [Trigger]",
-  invoke = function(message)
+  invoke=function(message)
     if message:is_trigger() then
       PakettiToggleNoteOffAllColumns()
     end
@@ -2995,7 +2995,7 @@ renoise.tool():add_midi_mapping{name="Pattern Editor:Paketti:Toggle Note Off in 
 }
 
 renoise.tool():add_midi_mapping{name="Pattern Editor:Paketti:Toggle Note Off on All Tracks on Current Row [Trigger]",
-  invoke = function(message)
+  invoke=function(message)
     if message:is_trigger() then
       PakettiToggleNoteOffAllTracks()
     end
@@ -3003,7 +3003,7 @@ renoise.tool():add_midi_mapping{name="Pattern Editor:Paketti:Toggle Note Off on 
 }
 
 renoise.tool():add_midi_mapping{name="Phrase Editor:Paketti:Toggle Note Off in All Visible Note Columns [Trigger]",
-  invoke = function(message)
+  invoke=function(message)
     if message:is_trigger() then
       PakettiToggleNoteOffAllColumns()
     end
@@ -3011,7 +3011,7 @@ renoise.tool():add_midi_mapping{name="Phrase Editor:Paketti:Toggle Note Off in A
 }
 
 renoise.tool():add_midi_mapping{name="Phrase Editor:Paketti:Toggle Note Off on All Tracks on Current Row [Trigger]",
-  invoke = function(message)
+  invoke=function(message)
     if message:is_trigger() then
       PakettiToggleNoteOffAllTracks()
     end
@@ -4124,10 +4124,10 @@ renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Clear Selected Tr
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Clear Selected Track Below Current Row",invoke=function() clear_track_direction("below",false) end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Clear All Tracks Above Current Row",invoke=function() clear_track_direction("above",true) end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Clear All Tracks Below Current Row",invoke=function() clear_track_direction("below",true) end}
-renoise.tool():add_midi_mapping{name="Paketti:Clear Selected Track Above Current Row",invoke = function(message) if message:is_trigger() then clear_track_direction("above", false) end end}
-renoise.tool():add_midi_mapping{name="Paketti:Clear Selected Track Below Current Row",invoke = function(message) if message:is_trigger() then clear_track_direction("below", false) end end}
-renoise.tool():add_midi_mapping{name="Paketti:Clear All Tracks Above Current Row",invoke = function(message) if message:is_trigger() then clear_track_direction("above", true) end end}
-renoise.tool():add_midi_mapping{name="Paketti:Clear All Tracks Below Current Row",invoke = function(message) if message:is_trigger() then clear_track_direction("below", true) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Clear Selected Track Above Current Row",invoke=function(message) if message:is_trigger() then clear_track_direction("above", false) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Clear Selected Track Below Current Row",invoke=function(message) if message:is_trigger() then clear_track_direction("below", false) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Clear All Tracks Above Current Row",invoke=function(message) if message:is_trigger() then clear_track_direction("above", true) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Clear All Tracks Below Current Row",invoke=function(message) if message:is_trigger() then clear_track_direction("below", true) end end}
 -----
 -- Helper function to check if in a valid note column
 local function is_in_note_column()
@@ -4798,8 +4798,8 @@ function PakettiNoteOffToSelection()
   end
 end
 
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Toggle Note Off in Selected Tracks",invoke = function() PakettiNoteOffToSelection() end}
-renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Toggle Note Off in Selected Tracks",invoke = function() PakettiNoteOffToSelection() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Toggle Note Off in Selected Tracks",invoke=function() PakettiNoteOffToSelection() end}
+renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Toggle Note Off in Selected Tracks",invoke=function() PakettiNoteOffToSelection() end}
 -------
 -- Function with an option to retain or clear silence rows
 local function DuplicateSelectionWithPaddingMoveCursor(retain_silence_content)
@@ -5182,12 +5182,12 @@ function randomly_raise_selected_notes_one_octave(probability)
   end
 end
 
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Random Selected Notes Octave Up 25% Probability",invoke=function() randomly_raise_selected_notes_one_octave(0.25) end }
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Random Selected Notes Octave Up 50% Probability",invoke=function() randomly_raise_selected_notes_one_octave(0.5) end }
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Random Selected Notes Octave Up 75% Probability",invoke=function() randomly_raise_selected_notes_one_octave(0.75) end }
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Random Selected Notes Octave Up 25% Probability",invoke=function() randomly_raise_selected_notes_one_octave(0.25) end }
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Random Selected Notes Octave Up 50% Probability",invoke=function() randomly_raise_selected_notes_one_octave(0.5) end }
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Random Selected Notes Octave Up 75% Probability",invoke=function() randomly_raise_selected_notes_one_octave(0.75) end }
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Random Selected Notes Octave Up 25% Probability",invoke=function() randomly_raise_selected_notes_one_octave(0.25) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Random Selected Notes Octave Up 50% Probability",invoke=function() randomly_raise_selected_notes_one_octave(0.5) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Random Selected Notes Octave Up 75% Probability",invoke=function() randomly_raise_selected_notes_one_octave(0.75) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Random Selected Notes Octave Up 25% Probability",invoke=function() randomly_raise_selected_notes_one_octave(0.25) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Random Selected Notes Octave Up 50% Probability",invoke=function() randomly_raise_selected_notes_one_octave(0.5) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Random Selected Notes Octave Up 75% Probability",invoke=function() randomly_raise_selected_notes_one_octave(0.75) end}
 ---
 -- Helper function to check if effect column is visible and exists
 local function canWriteToEffectColumn()
@@ -5269,7 +5269,7 @@ renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Effect Columns..:Fi
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Effect Columns..:Fill Effect Column with 0G01+0D00",invoke=function() writeEffectToPattern("0D00", "0G01") end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Effect Columns..:Fill Effect Column with 0G01+0U00",invoke=function() writeEffectToPattern("0U00", "0G01") end}
 renoise.tool():add_midi_mapping{name="Paketti:Fill Effect Column with 0D00 [Trigger]",
-  invoke = function(message)
+  invoke=function(message)
     if message:is_trigger() then
       writeEffectToPattern("0D00")
     end
@@ -5277,7 +5277,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Fill Effect Column with 0D00 [Trig
 }
 
 renoise.tool():add_midi_mapping{name="Paketti:Fill Effect Column with 0U00 [Trigger]",
-  invoke = function(message)
+  invoke=function(message)
     if message:is_trigger() then
       writeEffectToPattern("0U00")
     end
@@ -5285,7 +5285,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Fill Effect Column with 0U00 [Trig
 }
 
 renoise.tool():add_midi_mapping{name="Paketti:Fill Effect Column with 0G01+0D00 [Trigger]",
-  invoke = function(message)
+  invoke=function(message)
     if message:is_trigger() then
       writeEffectToPattern("0D00", "0G01")
     end
@@ -5293,7 +5293,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Fill Effect Column with 0G01+0D00 
 }
 
 renoise.tool():add_midi_mapping{name="Paketti:Fill Effect Column with 0G01+0U00 [Trigger]",
-  invoke = function(message)
+  invoke=function(message)
     if message:is_trigger() then
       writeEffectToPattern("0U00", "0G01")
     end
@@ -5368,9 +5368,9 @@ renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delete Unused Colum
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Delete Unused Columns", invoke = deleteUnusedColumns}
 
 for i=1,32 do
-  renoise.tool():add_keybinding{name="Global:Paketti:Set Quantization to ".. formatDigits(2,i), invoke = function() renoise.song().transport.record_quantize_line = i end}
-  renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Set Quantization to ".. formatDigits(2,i), invoke = function() renoise.song().transport.record_quantize_line = i end}
-  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Set Quantization to ".. formatDigits(2,i), invoke = function() renoise.song().transport.record_quantize_line = i end}
+  renoise.tool():add_keybinding{name="Global:Paketti:Set Quantization to ".. formatDigits(2,i), invoke=function() renoise.song().transport.record_quantize_line = i end}
+  renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Set Quantization to ".. formatDigits(2,i), invoke=function() renoise.song().transport.record_quantize_line = i end}
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Set Quantization to ".. formatDigits(2,i), invoke=function() renoise.song().transport.record_quantize_line = i end}
 end
 
 
@@ -5439,14 +5439,14 @@ function move_dsps_to_adjacent_track(direction)
     direction < 0 and "previous" or "next"))
 end
 
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Move DSPs to Previous Track",invoke = function() move_dsps_to_adjacent_track(-1) end}
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Move DSPs to Next Track",invoke = function() move_dsps_to_adjacent_track(1) end}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Move DSPs to Previous Track",invoke = function() move_dsps_to_adjacent_track(-1) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Move DSPs to Next Track",invoke = function() move_dsps_to_adjacent_track(1) end}
-renoise.tool():add_keybinding{name="Mixer:Paketti:Move DSPs to Previous Track",invoke = function() move_dsps_to_adjacent_track(-1) end}
-renoise.tool():add_keybinding{name="Mixer:Paketti:Move DSPs to Next Track",invoke = function() move_dsps_to_adjacent_track(1) end}
-renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Move DSPs to Previous Track",invoke = function() move_dsps_to_adjacent_track(-1) end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Move DSPs to Next Track",invoke = function() move_dsps_to_adjacent_track(1) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Move DSPs to Previous Track",invoke=function() move_dsps_to_adjacent_track(-1) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Move DSPs to Next Track",invoke=function() move_dsps_to_adjacent_track(1) end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Move DSPs to Previous Track",invoke=function() move_dsps_to_adjacent_track(-1) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Move DSPs to Next Track",invoke=function() move_dsps_to_adjacent_track(1) end}
+renoise.tool():add_keybinding{name="Mixer:Paketti:Move DSPs to Previous Track",invoke=function() move_dsps_to_adjacent_track(-1) end}
+renoise.tool():add_keybinding{name="Mixer:Paketti:Move DSPs to Next Track",invoke=function() move_dsps_to_adjacent_track(1) end}
+renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Move DSPs to Previous Track",invoke=function() move_dsps_to_adjacent_track(-1) end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Move DSPs to Next Track",invoke=function() move_dsps_to_adjacent_track(1) end}
 ---
 function move_selected_dsp_to_adjacent_track(direction)
   local song = renoise.song()
@@ -5509,12 +5509,12 @@ function move_selected_dsp_to_adjacent_track(direction)
     direction < 0 and "previous" or "next"))
 end
 
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Move Selected DSP to Previous Track",invoke = function() move_selected_dsp_to_adjacent_track(-1) end}
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Move Selected DSP to Next Track",invoke = function() move_selected_dsp_to_adjacent_track(1) end}
-renoise.tool():add_keybinding{name="Mixer:Paketti:Move Selected DSP to Previous Track",invoke = function() move_selected_dsp_to_adjacent_track(-1) end}
-renoise.tool():add_keybinding{name="Mixer:Paketti:Move Selected DSP to Next Track",invoke = function() move_selected_dsp_to_adjacent_track(1) end}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Move Selected DSP to Previous Track",invoke = function() move_selected_dsp_to_adjacent_track(-1) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Move Selected DSP to Next Track",invoke = function() move_selected_dsp_to_adjacent_track(1) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Move Selected DSP to Previous Track",invoke=function() move_selected_dsp_to_adjacent_track(-1) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Move Selected DSP to Next Track",invoke=function() move_selected_dsp_to_adjacent_track(1) end}
+renoise.tool():add_keybinding{name="Mixer:Paketti:Move Selected DSP to Previous Track",invoke=function() move_selected_dsp_to_adjacent_track(-1) end}
+renoise.tool():add_keybinding{name="Mixer:Paketti:Move Selected DSP to Next Track",invoke=function() move_selected_dsp_to_adjacent_track(1) end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Move Selected DSP to Previous Track",invoke=function() move_selected_dsp_to_adjacent_track(-1) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Move Selected DSP to Next Track",invoke=function() move_selected_dsp_to_adjacent_track(1) end}
 ---------
 function create_group_and_move_dsps()
   local song = renoise.song()
@@ -5875,7 +5875,7 @@ function apply_template(target_note)
 end
 
 renoise.tool():add_midi_mapping{name="Paketti:Template Mode Note Input",
-  invoke = function(message)
+  invoke=function(message)
     if template_mode and message:is_note() then
       apply_template(message.note_value)
     end

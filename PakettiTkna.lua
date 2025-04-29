@@ -219,7 +219,7 @@ end
  
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Volume (+0.01)",invoke=function() selectedSampleVolume(0.01) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Volume (-0.01)",invoke=function() selectedSampleVolume(-0.01) end}
-renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Volume Reset (0.0dB)",invoke=function() renoise.song().selected_sample.volume=1 end }
+renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Volume Reset (0.0dB)",invoke=function() renoise.song().selected_sample.volume=1 end}
 
 function selectedSampleInterpolation(amount)
 renoise.song().selected_sample.interpolation_mode=amount
@@ -269,9 +269,9 @@ function selectedSampleBeatSync(number)
 renoise.song().selected_sample.beat_sync_mode = number
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Beatsync 1 (Repitch)",invoke=function() selectedSampleBeatSync(1) end }
-renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Beatsync 2 (Time-Stretch Percussion)",invoke=function() selectedSampleBeatSync(2) end }
-renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Beatsync 3 (Time-Stretch Texture)",invoke=function() selectedSampleBeatSync(3) end }
+renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Beatsync 1 (Repitch)",invoke=function() selectedSampleBeatSync(1) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Beatsync 2 (Time-Stretch Percussion)",invoke=function() selectedSampleBeatSync(2) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Beatsync 3 (Time-Stretch Texture)",invoke=function() selectedSampleBeatSync(3) end}
 
 function selectedSampleBeatSyncAndToggleOn(number)
 if renoise.song().selected_sample == nil then return else
@@ -291,9 +291,9 @@ end
 end
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Beatsync On/Off 1 (Repitch)",invoke=function() selectedSampleBeatSyncAndToggleOn(1) end }
-renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Beatsync On/Off 2 (Time-Stretch Percussion)",invoke=function() selectedSampleBeatSyncAndToggleOn(2) end }
-renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Beatsync On/Off 3 (Time-Stretch Texture)",invoke=function() selectedSampleBeatSyncAndToggleOn(3) end }
+renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Beatsync On/Off 1 (Repitch)",invoke=function() selectedSampleBeatSyncAndToggleOn(1) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Beatsync On/Off 2 (Time-Stretch Percussion)",invoke=function() selectedSampleBeatSyncAndToggleOn(2) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Beatsync On/Off 3 (Time-Stretch Texture)",invoke=function() selectedSampleBeatSyncAndToggleOn(3) end}
 
 
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Beatsync On/Off",invoke=function()
@@ -541,7 +541,7 @@ function SequenceSelectionToLoop()
     song.transport.loop_sequence_range = {}
   else
     -- Otherwise, set the loop range to the current selection
-    song.transport.loop_sequence_range = { selection_start, selection_end }
+    song.transport.loop_sequence_range = { selection_start, selection_end}
   end
 end
 
@@ -1383,7 +1383,7 @@ function tknaSetScheduledSequenceToCurrentSequenceAndLoop()
      song.transport.loop_sequence_range[2] == selection_end then
     song.transport.loop_sequence_range = {}
   else
-    song.transport.loop_sequence_range = { selection_start, selection_end }
+    song.transport.loop_sequence_range = { selection_start, selection_end}
   end
 
   local current_sequence_index = song.selected_sequence_index
@@ -1535,7 +1535,7 @@ for i = 0, 64 do
   renoise.tool():add_keybinding{name="Global:Paketti:Select, Trigger and Loop Section " .. section_id,invoke=function() tknaSelectTriggerLoopSection(i) end}
   renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Sequences/Sections..:Select, Trigger and Loop..:Select, Trigger and Loop Section " .. section_id,invoke=function() tknaSelectTriggerLoopSection(i) end}
   renoise.tool():add_midi_mapping{name="Paketti:Select, Trigger and Loop Section " .. section_id,
-    invoke = function(message) 
+    invoke=function(message) 
       if message:is_trigger() then
         tknaSelectTriggerLoopSection(i)
       end
@@ -1547,7 +1547,7 @@ for i = 0, 64 do
   }
   renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Sequences/Sections..:Select, Schedule and Loop..:Select, Schedule and Loop Section " .. section_id,invoke=function() tknaSelectScheduleLoopSection(i) end}
   renoise.tool():add_midi_mapping{name="Paketti:Select, Schedule and Loop Section " .. section_id,
-    invoke = function(message) 
+    invoke=function(message) 
       if message:is_trigger() then
         tknaSelectScheduleLoopSection(i)
       end
@@ -1559,7 +1559,7 @@ for i = 0, 64 do
   }
   renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Sequences/Sections..:Select, Add to Schedule and Loop..:Select, Add to Schedule and Loop Section " .. section_id,invoke=function() tknaSelectAddScheduleLoopSection(i) end}
   renoise.tool():add_midi_mapping{name="Paketti:Select, Add to Schedule and Loop Section " .. section_id,
-    invoke = function(message) 
+    invoke=function(message) 
       if message:is_trigger() then
         tknaSelectAddScheduleLoopSection(i)
       end

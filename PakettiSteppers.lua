@@ -252,9 +252,9 @@ end
 for _, stepperType in pairs(STEPPER_TYPES) do
     local baseText = stepperType:gsub(" Stepper", "")
     renoise.tool():add_keybinding{name=string.format("Global:Paketti:Clear %s Steps", baseText),
-        invoke = function() PakettiClearStepper(stepperType) end
+        invoke=function() PakettiClearStepper(stepperType) end
     }
-    renoise.tool():add_menu_entry{name=string.format("Sample Modulation Matrix:Paketti..:Clear %s Steps", baseText),invoke = function() PakettiClearStepper(stepperType) end
+    renoise.tool():add_menu_entry{name=string.format("Sample Modulation Matrix:Paketti..:Clear %s Steps", baseText),invoke=function() PakettiClearStepper(stepperType) end
     }
 end
 

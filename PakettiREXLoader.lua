@@ -408,7 +408,7 @@ local function dump_rex_structure(file_path)
 end
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Format Importers..:Dump REX Structure to Text",
-  invoke = function()
+  invoke=function()
     local file_path = renoise.app():prompt_for_filename_to_read({ "*.rex" }, "ReCycle Legacy .REX Import Structure Dumper")
     if file_path then
       dump_rex_structure(file_path)

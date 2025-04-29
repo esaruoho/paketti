@@ -75,7 +75,7 @@ function loadDeviceFromPreferences()
           end
         end
       }
-      renoise.tool():add_midi_mapping{name=midiMappingName,invoke = function(message)
+      renoise.tool():add_midi_mapping{name=midiMappingName,invoke=function(message)
           if message:is_trigger() then
             if device_type == "Native" then
               loadnative(path)
@@ -153,7 +153,7 @@ function addDeviceAsShortcut()
               end
             end
           }
-          renoise.tool():add_midi_mapping{name=midiMappingName,invoke = function(message)
+          renoise.tool():add_midi_mapping{name=midiMappingName,invoke=function(message)
               if message:is_trigger() then
                 if device_type == "Native" then
                   loadnative(path)

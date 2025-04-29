@@ -996,7 +996,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Paketti eSpeak Generate Sampl
     if dialog and dialog.visible then
       eSpeak.text.value = vb.views.PakettieSpeak_text_field.text
       PakettieSpeakCreateSample()
-    else PakettieSpeakPrepare() end end }
+    else PakettieSpeakPrepare() end end}
 
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti eSpeak Generate Selection",invoke=function()
     if dialog and dialog.visible then

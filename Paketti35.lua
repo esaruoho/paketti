@@ -614,25 +614,17 @@
   -- Show the dialog
   local dialog = renoise.app():show_custom_dialog("GUI Demo", dialog_content, my_keyhandler_func)
 
-
-
   -- Reset cursor when dialog is closed
   renoise.tool().app_release_document_observable:add_notifier(function()
     if dialog_content then
       dialog_content.cursor = "default"
-    end
-  end)
+    end end)
 end
 
 if renoise.API_VERSION >= 6.2 then
 -- Register the tool in Renoise
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:V3.5..:Example Tool...",
-  invoke = function()
-    if renoise.API_VERSION >= 6.2 then
-      show_gui_demo()
-    else
-      print("soon you'll be in v3.5")
-    end
-  end
-}
+  invoke=function()
+    if renoise.API_VERSION >= 6.2 then show_gui_demo()
+    else print("soon you'll be in v3.5") end end}
 end

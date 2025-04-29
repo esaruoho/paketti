@@ -40,8 +40,8 @@ end
 
 
 for i = 1, 11 do
-  renoise.tool():add_keybinding{name=string.format("Sample Editor:Paketti:Set Sample Zoom " .. formatDigits(2,i) .. "x"),invoke = function() setSampleZoom(i) end}
-  renoise.tool():add_menu_entry{name=string.format("Sample Editor:Paketti..:Set Sample Zoom..:Zoom " .. formatDigits(2,i) .. "x"),invoke = function() setSampleZoom(i) end}
+  renoise.tool():add_keybinding{name=string.format("Sample Editor:Paketti:Set Sample Zoom " .. formatDigits(2,i) .. "x"),invoke=function() setSampleZoom(i) end}
+  renoise.tool():add_menu_entry{name=string.format("Sample Editor:Paketti..:Set Sample Zoom..:Zoom " .. formatDigits(2,i) .. "x"),invoke=function() setSampleZoom(i) end}
 end
 ---------
 function setSampleZoomFromMidi(midi_value)
@@ -85,7 +85,7 @@ function setSampleZoomFromMidi(midi_value)
 end
 
 renoise.tool():add_midi_mapping{name="Paketti:Midi Sample Zoom (1x-11x) [Knob]",
-  invoke = function(message)
+  invoke=function(message)
     if message:is_abs_value() then
       setSampleZoomFromMidi(message.int_value)
     end
@@ -651,7 +651,7 @@ renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti..:Paketti PitchBe
 renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti..:Paketti PitchBend Drumkit Sample Loader (Random)",invoke=function() loadRandomDrumkitSamples(120) end}
 renoise.tool():add_menu_entry{name="--Disk Browser Files:Paketti..:Paketti PitchBend Multiple Sample Loader",invoke=function() pitchBendMultipleSampleLoader() end}
 renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti..:Paketti PitchBend Multiple Sample Loader (Normalize)",invoke=function() pitchBendMultipleSampleLoader(true) end}
-renoise.tool():add_menu_entry{name="--Disk Browser Files:Paketti..:Fill Empty Sample Slots (Randomized Folder)",invoke = function() fillEmptySampleSlots() end}
+renoise.tool():add_menu_entry{name="--Disk Browser Files:Paketti..:Fill Empty Sample Slots (Randomized Folder)",invoke=function() fillEmptySampleSlots() end}
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:Paketti PitchBend Multiple Sample Loader",invoke=function() pitchBendMultipleSampleLoader() end}
 
@@ -1360,7 +1360,7 @@ end
 -- Create MIDI mappings for up to 16 slice markers
 for i = 1, 32 do
     renoise.tool():add_midi_mapping{name="Paketti:Midi Change Slice " .. formatDigits(2,i),
-        invoke = function(message) if message:is_abs_value() then adjustSlice(i, message.int_value) end end} end
+        invoke=function(message) if message:is_abs_value() then adjustSlice(i, message.int_value) end end} end
 
 renoise.tool():add_midi_mapping{name="Paketti:Midi Select Padded Slice (Next)",invoke=function(message) if message:is_trigger() then  selectNextSliceInOriginalSample() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Midi Select Padded Slice (Previous)",invoke=function(message) if message:is_trigger() then  selectPreviousSliceInOriginalSample() end end}
@@ -1970,7 +1970,7 @@ end
 
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Invert Left Channel of Selected Sample",invoke=function() PakettiSampleInvertLeftChannel() end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Invert Right Channel of Selected Sample",invoke=function() PakettiSampleInvertRightChannel() end}
-renoise.tool():add_keybinding{name="Sample Editor:Paketti:Invert Sample",invoke=  function() PakettiSampleInvertEntireSample() end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Invert Sample",invoke= function() PakettiSampleInvertEntireSample() end}
 
 
 
@@ -3120,7 +3120,7 @@ local function createFolderActions(folderNum)
   local folderName = string.format("Folder %02d", folderNum)
   
   -- Open Folder
-  renoise.tool():add_menu_entry{name=string.format("Main Menu:Tools:Paketti..:Quick Sample Folders..:%s:Open Folder", folderName), invoke = function() 
+  renoise.tool():add_menu_entry{name=string.format("Main Menu:Tools:Paketti..:Quick Sample Folders..:%s:Open Folder", folderName), invoke=function() 
     if folderPath and folderPath ~= "" then
       renoise.app():open_path(folderPath)
     else
@@ -3129,7 +3129,7 @@ local function createFolderActions(folderNum)
   end}
   
   -- Random Drumkit
-  renoise.tool():add_menu_entry{name=string.format("Main Menu:Tools:Paketti..:Quick Sample Folders..:%s:Random Drumkit", folderName), invoke = function()
+  renoise.tool():add_menu_entry{name=string.format("Main Menu:Tools:Paketti..:Quick Sample Folders..:%s:Random Drumkit", folderName), invoke=function()
     if folderPath and folderPath ~= "" then
       renoise.app():show_status("Loading Random Drumkit from " .. folderPath)
       loadRandomDrumkitSamples(120, folderPath)
@@ -3139,7 +3139,7 @@ local function createFolderActions(folderNum)
   end}
   
   -- Random 12
-  renoise.tool():add_menu_entry{name=string.format("Main Menu:Tools:Paketti..:Quick Sample Folders..:%s:Random 12", folderName), invoke = function()
+  renoise.tool():add_menu_entry{name=string.format("Main Menu:Tools:Paketti..:Quick Sample Folders..:%s:Random 12", folderName), invoke=function()
     if folderPath and folderPath ~= "" then
       renoise.app():show_status("Loading Random 12 samples from " .. folderPath)
       loadRandomSamplesIntoSingleInstrument(12, folderPath)
@@ -3149,7 +3149,7 @@ local function createFolderActions(folderNum)
   end}
   
   -- Random 32
-  renoise.tool():add_menu_entry{name=string.format("Main Menu:Tools:Paketti..:Quick Sample Folders..:%s:Random 32", folderName), invoke = function()
+  renoise.tool():add_menu_entry{name=string.format("Main Menu:Tools:Paketti..:Quick Sample Folders..:%s:Random 32", folderName), invoke=function()
     if folderPath and folderPath ~= "" then
       renoise.app():show_status("Loading Random 32 instruments from " .. folderPath)
       loadRandomSample(32, folderPath)
@@ -3159,7 +3159,7 @@ local function createFolderActions(folderNum)
   end}
   
 
-  renoise.tool():add_keybinding{name=string.format("Global:Paketti:Quick Folder %02d Open Folder", folderNum), invoke = function()
+  renoise.tool():add_keybinding{name=string.format("Global:Paketti:Quick Folder %02d Open Folder", folderNum), invoke=function()
     if folderPath and folderPath ~= "" then
       renoise.app():open_path(folderPath)
     else
@@ -3167,7 +3167,7 @@ local function createFolderActions(folderNum)
     end
   end}
   
-  renoise.tool():add_keybinding{name=string.format("Global:Paketti:Quick Folder %02d Random Drumkit", folderNum), invoke = function()
+  renoise.tool():add_keybinding{name=string.format("Global:Paketti:Quick Folder %02d Random Drumkit", folderNum), invoke=function()
     if folderPath and folderPath ~= "" then
       renoise.app():show_status("Loading Random Drumkit from " .. folderPath)
       loadRandomDrumkitSamples(120, folderPath)
@@ -3176,7 +3176,7 @@ local function createFolderActions(folderNum)
     end
   end}
   
-  renoise.tool():add_keybinding{name=string.format("Global:Paketti:Quick Folder %02d Random 12", folderNum), invoke = function()
+  renoise.tool():add_keybinding{name=string.format("Global:Paketti:Quick Folder %02d Random 12", folderNum), invoke=function()
     if folderPath and folderPath ~= "" then
       renoise.app():show_status("Loading Random 12 samples from " .. folderPath)
       loadRandomSamplesIntoSingleInstrument(12, folderPath)
@@ -3185,7 +3185,7 @@ local function createFolderActions(folderNum)
     end
   end}
   
-  renoise.tool():add_keybinding{name=string.format("Global:Paketti:Quick Folder %02d Random 32", folderNum), invoke = function()
+  renoise.tool():add_keybinding{name=string.format("Global:Paketti:Quick Folder %02d Random 32", folderNum), invoke=function()
     if folderPath and folderPath ~= "" then
       renoise.app():show_status("Loading Random 32 instruments from " .. folderPath)
       loadRandomSample(32, folderPath)
@@ -3927,7 +3927,7 @@ renoise.tool().app_idle_observable:add_notifier(initializeSampleDetails)
 
 ----------
 renoise.tool():add_midi_mapping{name="Paketti:Selected Phrase LPB (1-127) x[Knob]",
-  invoke = function(midi_message)
+  invoke=function(midi_message)
     local song = renoise.song()
     if song and song.selected_phrase then
       -- Map MIDI value (0-127) to LPB range (1-127)
@@ -3938,7 +3938,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Selected Phrase LPB (1-127) x[Knob
   end
 }
 renoise.tool():add_midi_mapping{name="Paketti:Selected Phrase LPB (1-64) x[Knob]",
-  invoke = function(midi_message)
+  invoke=function(midi_message)
     local song = renoise.song()
     if song and song.selected_phrase then
       -- Map MIDI value (0-127) to LPB range (1-127)
@@ -3949,7 +3949,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Selected Phrase LPB (1-64) x[Knob]
   end
 }
 renoise.tool():add_midi_mapping{name="Paketti:Selected Phrase LPB (Powers of 2) x[Knob]",
-  invoke = function(midi_message)
+  invoke=function(midi_message)
     local song = renoise.song()
     if song and song.selected_phrase then
       -- Define the allowed LPB values
@@ -4521,7 +4521,7 @@ function fillEmptySampleSlots()
             renoise.app():show_status(string.format("Mapped %s: %s", note_name, sample.name))
         end end end end 
 
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Instruments..:Fill Empty Sample Slots (Randomized Folder)",invoke = function() fillEmptySampleSlots() end}
-renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Fill Empty Sample Slots (Randomized Folder)",invoke = function() fillEmptySampleSlots() end}
-renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti..:Fill Empty Sample Slots (Randomized Folder)",invoke = function() fillEmptySampleSlots() end}
-renoise.tool():add_keybinding{name="Global:Paketti:Fill Empty Sample Slots (Randomized Folder)",invoke = function() fillEmptySampleSlots() end}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Instruments..:Fill Empty Sample Slots (Randomized Folder)",invoke=function() fillEmptySampleSlots() end}
+renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Fill Empty Sample Slots (Randomized Folder)",invoke=function() fillEmptySampleSlots() end}
+renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti..:Fill Empty Sample Slots (Randomized Folder)",invoke=function() fillEmptySampleSlots() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Fill Empty Sample Slots (Randomized Folder)",invoke=function() fillEmptySampleSlots() end}

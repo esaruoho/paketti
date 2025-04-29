@@ -1,8 +1,6 @@
 --------------------------------------------------------------------------------
 -- SF2 Importer with Detailed Debugging of Panning, Transpose, Fine-Tune, and Key Ranges
 --------------------------------------------------------------------------------
---------------------------------------------------------------------------------
-
 local _DEBUG = true
 local function dprint(...)
   if _DEBUG then
@@ -101,10 +99,29 @@ end
 
 -- Basic binary readers and utils
 local function trim_string(s) return s:gsub("\0","") end
-local function read_u16_le(data,pos) return data:byte(pos) + data:byte(pos+1)*256 end
-local function read_u32_le(data,pos) return data:byte(pos) + data:byte(pos+1)*256 + data:byte(pos+2)*65536 + data:byte(pos+3)*16777216 end
-local function read_s16_le(data,pos) local v=read_u16_le(data,pos) return v>=32768 and v-65536 or v end
+
+local function read_u16_le(data,pos) 
+  if not data or not pos or pos < 1 or pos + 1 > #data then return nil end
+  return data:byte(pos) + data:byte(pos+1)*256 
+end
+
+local function read_u32_le(data,pos) 
+  if not data or not pos or pos < 1 or pos + 3 > #data then return nil end
+  return data:byte(pos) + data:byte(pos+1)*256 + data:byte(pos+2)*65536 + data:byte(pos+3)*16777216 
+end
+
+local function read_s16_le(data,pos) 
+  local v = read_u16_le(data,pos) 
+  if not v then return nil end
+  return v>=32768 and v-65536 or v 
+end
+
 local function clamp(v,minv,maxv) if v<minv then return minv elseif v>maxv then return maxv else return v end end
+
+-- Clamp note values to valid Renoise range (0-119)
+local function clamp_note(note)
+  return math.min(119, math.max(0, note))
+end
 
 -- Read sample headers
 local function read_sample_headers(data)
@@ -134,7 +151,7 @@ local function read_sample_headers(data)
 end
 
 -- Parse instruments and their zones
-local function read_instruments(data)
+local function read_instruments(data, slicer)
   local pdta=data:find("pdta",1,true)
   if not pdta then return {} end
   local inst=data:find("inst",pdta+8,true)
@@ -142,11 +159,26 @@ local function read_instruments(data)
   local n=read_u32_le(data,inst+4)
   local p=inst+8
   local instruments={}
+  local instrument_count = 0
+  local total_instruments = math.floor(n/22)
+  
+  print(string.format("Reading %d instruments...", total_instruments))
+  
   while p+21 <= inst+7+n do
+    if slicer and slicer:was_cancelled() then return {} end
+    
     local name=trim_string(data:sub(p,p+19))
     local bag=read_u16_le(data,p+20)
     table.insert(instruments,{name=name,bag_index=bag})
     p=p+22
+    
+    instrument_count = instrument_count + 1
+    print(string.format("Reading instrument %03d/%03d: %s", instrument_count, total_instruments, name))
+    if slicer and slicer.dialog and slicer.dialog.views.progress_text then 
+      slicer.dialog.views.progress_text.text = string.format("Reading Instruments (%03d/%03d): %s", 
+        instrument_count, total_instruments, name)
+      coroutine.yield() 
+    end
   end
   -- ibag
   local ibag=data:find("ibag",pdta+8,true)
@@ -154,8 +186,13 @@ local function read_instruments(data)
   local bpos=ibag+8
   local ibags={}
   while bpos+3 <= ibag+7+ibag_n do
+    if slicer and slicer:was_cancelled() then return {} end
+    
     table.insert(ibags,{gen_index=read_u16_le(data,bpos),mod_index=read_u16_le(data,bpos+2)})
     bpos=bpos+4
+    
+    -- Yield every 100 entries to keep UI responsive
+    if slicer and (#ibags % 100 == 0) then coroutine.yield() end
   end
   -- igen
   local igen=data:find("igen",pdta+8,true)
@@ -163,24 +200,38 @@ local function read_instruments(data)
   local gpos=igen+8
   local gens={}
   while gpos+3 <= igen+7+igen_n do
+    if slicer and slicer:was_cancelled() then return {} end
+    
     table.insert(gens,{op=read_u16_le(data,gpos),amount=read_u16_le(data,gpos+2)})
     gpos=gpos+4
+    
+    -- Yield every 100 entries to keep UI responsive
+    if slicer and (#gens % 100 == 0) then coroutine.yield() end
   end
   -- Build zones
   local result={}
   for i,inst in ipairs(instruments) do
+    if slicer and slicer:was_cancelled() then return {} end
+    
     local zones={}
     local start_b=inst.bag_index+1
     local end_b=(i<#instruments and instruments[i+1].bag_index) or #ibags
     for bi=start_b,end_b do
+      if slicer and slicer:was_cancelled() then return {} end
+      
       local bag=ibags[bi]
       local params={}
       local gstart=bag.gen_index+1
       local gend=(bi<#ibags and ibags[bi+1].gen_index) or #gens
       for gi=gstart,gend do
+        if slicer and slicer:was_cancelled() then return {} end
+        
         local g=gens[gi]
         params[g.op]=g.amount
         dprint("Inst param",g.op,format_param_value(g.op,g.amount))
+        
+        -- Yield every 100 entries to keep UI responsive
+        if slicer and (gi % 100 == 0) then coroutine.yield() end
       end
       local zone={params=params}
       -- key range
@@ -197,17 +248,18 @@ local function read_instruments(data)
       -- sample ID
       if params[53] then zone.sample_id=params[53] end
       table.insert(zones,zone)
+      
+      if slicer then coroutine.yield() end
     end
     table.insert(result,{name=inst.name,zones=zones})
+    
+    if slicer then coroutine.yield() end
   end
   dprint("Parsed instruments:",#result)
   return result
 end
 
---------------------------------------------------------------------------------
--- Step 3: Parse Presets (PHDR, PBAG, PGEN)
---------------------------------------------------------------------------------
-local function read_presets(data)
+local function read_presets(data, slicer)
   local phdr_pos = data:find("phdr", 1, true)
   if not phdr_pos then
     print("No phdr chunk found.")
@@ -218,9 +270,15 @@ local function read_presets(data)
   local phdr_data_start = phdr_pos + 8
   local phdr_record_size = 38
   local presets = {}
+  local preset_count = 0
+  local total_presets = math.floor(phdr_size / phdr_record_size)
+
+  print(string.format("Reading %d presets...", total_presets))
 
   local pos = phdr_data_start
-  while (pos + phdr_record_size - 1) <= (phdr_data_start + phdr_size - 1) do
+  while (pos + phdr_record_size -1) <= (phdr_data_start + phdr_size -1) do
+    if slicer and slicer:was_cancelled() then return {} end
+    
     local preset_name = trim_string(data:sub(pos, pos+19))
     local preset = read_u16_le(data, pos+20)
     local bank = read_u16_le(data, pos+22)
@@ -234,6 +292,15 @@ local function read_presets(data)
       zones = {}
     }
     pos = pos + phdr_record_size
+    
+    preset_count = preset_count + 1
+    print(string.format("Reading preset %03d/%03d: %s (Bank %d, Preset %d)", 
+      preset_count, total_presets, preset_name, bank, preset))
+    if slicer and slicer.dialog and slicer.dialog.views.progress_text then 
+      slicer.dialog.views.progress_text.text = string.format("Reading Presets (%03d/%03d): %s (Bank %d, Preset %d)", 
+        preset_count, total_presets, preset_name, bank, preset)
+      coroutine.yield() 
+    end
   end
 
   local pdta_pos = data:find("pdta", 1, true)
@@ -254,10 +321,15 @@ local function read_presets(data)
     local pbag_list = {}
     local pos = pbag_data_start
     while (pos + record_size -1) <= (pbag_data_start + pbag_size -1) do
+      if slicer and slicer:was_cancelled() then return {} end
+      
       local pgen_idx = read_u16_le(data, pos)
       local pmod_idx = read_u16_le(data, pos+2)
       pbag_list[#pbag_list + 1] = { pgen_index = pgen_idx, pmod_index = pmod_idx }
       pos = pos + record_size
+      
+      -- Yield every 100 entries to keep UI responsive
+      if slicer and (#pbag_list % 100 == 0) then coroutine.yield() end
     end
     return pbag_list
   end
@@ -274,10 +346,15 @@ local function read_presets(data)
     local pgen_list = {}
     local pos = pgen_data_start
     while (pos + record_size -1) <= (pgen_data_start + pgen_size -1) do
+      if slicer and slicer:was_cancelled() then return {} end
+      
       local op = read_u16_le(data, pos)
       local amount = read_u16_le(data, pos+2)
       pgen_list[#pgen_list + 1] = { op = op, amount = amount }
       pos = pos + record_size
+      
+      -- Yield every 100 entries to keep UI responsive
+      if slicer and (#pgen_list % 100 == 0) then coroutine.yield() end
     end
     return pgen_list
   end
@@ -290,48 +367,107 @@ local function read_presets(data)
   end
 
   for i, preset in ipairs(presets) do
+    if slicer and slicer:was_cancelled() then return {} end
+    
     local zone_start = preset.pbag_index + 1
     local zone_end   = #pbag
     if i < #presets then
       zone_end = presets[i+1].pbag_index
     end
-    for z = zone_start, zone_end do
-      local bag = pbag[z]
-      local zone_params = {}
-      local pgen_start = bag.pgen_index + 1
-      local pgen_end   = #pgen
-      if z < #pbag then
-        pgen_end = pbag[z+1].pgen_index
-      end
-      for pg = pgen_start, pgen_end do
-        local gen = pgen[pg]
-        if gen then
-          zone_params[gen.op] = gen.amount
+    
+    -- Skip if zone_start is invalid
+    if zone_start <= #pbag then
+      for z = zone_start, zone_end do
+        if slicer and slicer:was_cancelled() then return {} end
+        
+        -- Skip if zone index is invalid
+        if z > #pbag then
+          print(string.format("Warning: Invalid zone index %d for preset '%s' (pbag size: %d)", 
+            z, preset.name, #pbag))
+          break
         end
+        
+        local bag = pbag[z]
+        -- Skip this zone if bag is nil
+        if bag then
+          local zone_params = {}
+          local pgen_start = bag.pgen_index + 1
+          local pgen_end   = #pgen
+          if z < #pbag then
+            pgen_end = pbag[z+1].pgen_index
+          end
+
+          -- Only process if pgen indices are valid
+          if pgen_start <= #pgen then
+            for pg = pgen_start, pgen_end do
+              if slicer and slicer:was_cancelled() then return {} end
+              
+              if pg > #pgen then
+                print(string.format("Warning: Invalid pgen index %d for preset '%s' zone %d (pgen size: %d)", 
+                  pg, preset.name, z, #pgen))
+                break
+              end
+              
+              local gen = pgen[pg]
+              if gen then
+                zone_params[gen.op] = gen.amount
+              end
+              
+              -- Yield every 100 entries to keep UI responsive
+              if slicer and (pg % 100 == 0) then coroutine.yield() end
+            end
+            
+            local key_range = nil
+            if zone_params[43] then
+              local kr = zone_params[43]
+              local low = kr % 256
+              local high = math.floor(kr / 256) % 256
+              -- Clamp values to 0-119 range
+              low = math.min(119, math.max(0, low))
+              high = math.min(119, math.max(0, high))
+              key_range = { low = low, high = high }
+            end
+            
+            preset.zones[#preset.zones + 1] = {
+              params = zone_params,
+              key_range = key_range
+            }
+          else
+            print(string.format("Warning: Invalid pgen_start %d for preset '%s' zone %d (pgen size: %d)", 
+              pgen_start, preset.name, z, #pgen))
+          end
+        else
+          print(string.format("Warning: Nil bag at index %d for preset '%s'", z, preset.name))
+        end
+        
+        if slicer then coroutine.yield() end
       end
-      local key_range = nil
-      if zone_params[43] then
-        local kr = zone_params[43]
-        local low = kr % 256
-        local high = math.floor(kr / 256) % 256
-        -- Clamp values to 0-119 range
-        low = math.min(119, math.max(0, low))
-        high = math.min(119, math.max(0, high))
-        key_range = { low = low, high = high }
-      end
-      preset.zones[#preset.zones + 1] = {
-        params = zone_params,
-        key_range = key_range
-      }
+    else
+      print(string.format("Warning: Invalid zone_start %d for preset '%s' (pbag size: %d)", 
+        zone_start, preset.name, #pbag))
     end
+    
+    if slicer then coroutine.yield() end
   end
 
   return presets
 end
 
---------------------------------------------------------------------------------
--- Step 4: Import SF2
---------------------------------------------------------------------------------
+-- Helper function to check if an instrument is truly empty
+local function is_instrument_empty(instrument)
+  -- Check if it has any samples
+  if #instrument.samples > 0 then return false end
+  
+  -- Check if it has MIDI routing set up
+  if instrument.midi_input_properties.device_name ~= "" then return false end
+  
+  -- Check if it has any plugin devices
+  if instrument.plugin_properties.plugin_device then return false end
+  
+  -- If we got here, the instrument is empty
+  return true
+end
+
 local function import_sf2(file_path)
   -- Create a ProcessSlicer to handle the import
   local slicer = nil
@@ -376,12 +512,12 @@ local function import_sf2(file_path)
     if vb then vb.views.progress_text.text = "Reading instruments..." end
     coroutine.yield()
     
-    local instruments_zones = read_instruments(data)
+    local instruments_zones = read_instruments(data, slicer)
     
     if vb then vb.views.progress_text.text = "Reading presets..." end
     coroutine.yield()
     
-    local presets = read_presets(data)
+    local presets = read_presets(data, slicer)
     if #presets == 0 then
       renoise.app():show_error("No presets found in SF2.")
       return false
@@ -488,6 +624,18 @@ local function import_sf2(file_path)
     end
 
     local song = renoise.song()
+    local imported_count = 0
+    local max_instruments = 255
+    local empty_slots = 0
+    
+    -- First count how many empty slots we have
+    for i = 1, #song.instruments do
+      if is_instrument_empty(song.instruments[i]) then
+        empty_slots = empty_slots + 1
+      end
+    end
+    
+    print(string.format("Found %d empty instrument slots", empty_slots))
 
     -- Process each mapping
     for map_idx, map in ipairs(mappings) do
@@ -495,10 +643,21 @@ local function import_sf2(file_path)
         return false
       end
       
+      -- Check if we've hit the absolute limit
+      if imported_count >= max_instruments then
+        if dialog and dialog.visible then
+          dialog:close()
+        end
+        renoise.app():show_status(string.format(
+          "Imported maximum of %d instruments. %d presets were skipped.", 
+          max_instruments, #mappings - max_instruments))
+        return true
+      end
+      
       if vb then 
         vb.views.progress_text.text = string.format(
           "Creating instrument %d/%d: %s", 
-          map_idx, #mappings, map.preset_name)
+          map_idx, math.min(#mappings, max_instruments), map.preset_name)
       end
       
       local is_drumkit = (map.bank == 128)
@@ -506,8 +665,32 @@ local function import_sf2(file_path)
         (renoise.tool().bundle_path .. "Presets/12st_Pitchbend_Drumkit_C0.xrni") or
         "Presets/12st_Pitchbend.xrni"
 
-      song:insert_instrument_at(song.selected_instrument_index + 1)
-      song.selected_instrument_index = song.selected_instrument_index + 1
+      -- Try to find an empty slot first
+      local empty_slot_found = false
+      if #song.instruments < max_instruments then
+        for i = 1, #song.instruments do
+          if is_instrument_empty(song.instruments[i]) then
+            song.selected_instrument_index = i
+            empty_slot_found = true
+            break
+          end
+        end
+      end
+      
+      -- If no empty slot found and we haven't hit the limit, create new slot
+      if not empty_slot_found and #song.instruments < max_instruments then
+        song:insert_instrument_at(song.selected_instrument_index + 1)
+        song.selected_instrument_index = song.selected_instrument_index + 1
+      elseif not empty_slot_found then
+        -- We've hit the limit and found no empty slots
+        if dialog and dialog.visible then
+          dialog:close()
+        end
+        renoise.app():show_status(string.format(
+          "Imported %d instruments. No more empty slots available.", imported_count))
+        return true
+      end
+
       renoise.app():load_instrument(preset_file)
 
       local r_inst = song.selected_instrument
@@ -516,6 +699,7 @@ local function import_sf2(file_path)
         return false
       end
 
+      imported_count = imported_count + 1
       r_inst.name = string.format("%s (Bank %d, Preset %d)", map.preset_name, map.bank, map.preset_num)
       print("Created instrument for preset: " .. r_inst.name)
 
@@ -759,8 +943,8 @@ local function import_sf2(file_path)
 
             if zone_key_range then
                 -- Clamp key range to valid range (0-119)
-                local low = math.min(119, math.max(0, zone_key_range.low))
-                local high = math.min(119, math.max(0, zone_key_range.high))
+                local low = clamp_note(zone_key_range.low)
+                local high = clamp_note(zone_key_range.high)
                 reno_smp.sample_mapping.note_range = { low, high }
                 -- Apply velocity range: instrument zone overrides preset zone, defaults to full 1–127
 local vel_low, vel_high = 1, 127
@@ -785,7 +969,9 @@ reno_smp.sample_mapping.velocity_range = { vel_low, vel_high }
 
             else
                 if is_drumkit then
-                    reno_smp.sample_mapping.note_range = { base_note, base_note }
+                    -- For drumkits, clamp the base note
+                    local clamped_base = clamp_note(base_note)
+                    reno_smp.sample_mapping.note_range = { clamped_base, clamped_base }
                 else
                     reno_smp.sample_mapping.note_range = { 0, 119 }
                 end
@@ -837,7 +1023,7 @@ reno_smp.sample_mapping.velocity_range = { vel_low, vel_high }
         end
         for i_smp=1, #r_inst.samples do
           local s = r_inst.samples[i_smp]
-          local note = i_smp - 1
+          local note = clamp_note(i_smp - 1)  -- Clamp the note value
           s.sample_mapping.note_range = { note, note }
           s.sample_mapping.base_note  = note
         end
@@ -850,7 +1036,15 @@ reno_smp.sample_mapping.velocity_range = { vel_low, vel_high }
       dialog:close()
     end
     
-    renoise.app():show_status("SF2 import complete. See console for debug details.")
+    if imported_count < #mappings then
+      renoise.app():show_status(string.format(
+        "Imported %d instruments (%d into empty slots). %d presets were skipped.", 
+        imported_count, empty_slots, #mappings - imported_count))
+    else
+      renoise.app():show_status(string.format(
+        "SF2 import complete. Imported %d instruments (%d into empty slots).", 
+        imported_count, empty_slots))
+    end
     return true
   end
   
@@ -859,17 +1053,12 @@ reno_smp.sample_mapping.velocity_range = { vel_low, vel_high }
   slicer:start()
 end
 
---------------------------------------------------------------------------------
--- Dummy multitimbral
---------------------------------------------------------------------------------
+
 local function import_sf2_multitimbral(filepath)
   renoise.app():show_error("Multitimbral import not implemented.")
   return false
 end
 
---------------------------------------------------------------------------------
--- Register
---------------------------------------------------------------------------------
 if renoise.tool():has_file_import_hook("sample", {"sf2"}) then
   renoise.tool():remove_file_import_hook("sample", {"sf2"})
   print("Removed old SF2 Import Hook")
@@ -886,19 +1075,19 @@ if not renoise.tool():has_file_import_hook("sample", {"sf2"}) then
 end
 
 renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti..:Import .SF2 (Single XRNI per Preset)",
-  invoke = function()
+  invoke=function()
     local f = renoise.app():prompt_for_filename_to_read({"*.sf2"}, "Select SF2 to import")
     if f and f ~= "" then import_sf2(f) end end}
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Format Importers..:Import SF2 (Single XRNI per Preset)",
-  invoke = function()
+  invoke=function()
     local f = renoise.app():prompt_for_filename_to_read({"*.sf2"}, "Select SF2 to import")
     if f and f ~= "" then import_sf2(f) end
   end
 }
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Format Importers..:Import SF2 (Multitimbral)",
-  invoke = function()
+  invoke=function()
     local f = renoise.app():prompt_for_filename_to_read({"*.sf2"}, "Select SF2 to import (multitimbral)")
     if f and f ~= "" then import_sf2_multitimbral(f) end
   end

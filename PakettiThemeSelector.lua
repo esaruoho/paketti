@@ -299,21 +299,21 @@ local function pakettiThemeSelectorDialogOpen(vb)
           selected_theme_index = index
           local theme_name = themes[selected_theme_index]
           pakettiThemeSelectorUpdateLoadTheme(theme_name)
-        end },
+        end},
         vb:button { text = "-", tooltip="hullo hello", notifier = function()
           selected_theme_index = (selected_theme_index - 2) % #themes + 1
           if selected_theme_index == 1 then selected_theme_index = #themes end
           vb.views["themes_popup"].value = selected_theme_index
           local theme_name = themes[selected_theme_index]
           pakettiThemeSelectorUpdateLoadTheme(theme_name)
-        end },
+        end},
         vb:button { text = "+", notifier = function()
           selected_theme_index = selected_theme_index % #themes + 1
           if selected_theme_index == 1 then selected_theme_index = 2 end
           vb.views["themes_popup"].value = selected_theme_index
           local theme_name = themes[selected_theme_index]
           pakettiThemeSelectorUpdateLoadTheme(theme_name)
-        end },
+        end},
         vb:button { text = "Randomize", notifier = function()
           local new_index = selected_theme_index
           while new_index == selected_theme_index do new_index = math.random(#themes - 1) + 1 end
@@ -322,7 +322,7 @@ local function pakettiThemeSelectorDialogOpen(vb)
           local theme_name = themes[selected_theme_index]
           pakettiThemeSelectorUpdateLoadTheme(theme_name)
           renoise.app():show_status("Picked a random theme at random.")
-        end },
+        end},
         vb:button { text = "Add as Favorite", notifier = function()
           local theme_name = themes[selected_theme_index] .. ".xrnc"
           renoise.app():show_status("Added (" .. theme_name .. ") to Favorites list.")
@@ -330,7 +330,7 @@ local function pakettiThemeSelectorDialogOpen(vb)
             pakettiThemeSelectorAddFavorite(theme_name)
             pakettiThemeSelectorUpdateFavoritesDropdown(vb)
           end
-        end }
+        end}
       },
       vb:row { vb:text { text = "Previously Loaded Theme", font = "bold" } },
       vb:row {
@@ -343,7 +343,7 @@ local function pakettiThemeSelectorDialogOpen(vb)
             renoise.app():show_status("Loaded Previous Theme: " .. prev_theme)
           else
             renoise.app():show_status("There was no previous theme saved, please select a theme and close the dialog and reopen the dialog.")
-          end end }},
+          end end}},
       vb:row { vb:text { id = "favorites_count", text = "Favorites (" .. tostring(#preferences.pakettiThemeSelector.FavoritedList - 1) .. ")", font = "bold" } },  -- Exclude "<No Theme Selected>"
       vb:row{vb:button{text="Load Favorites", notifier=function() load_favorites(vb) end},
              vb:button{text="Save Favorites", notifier=function() save_favorites() end}},
@@ -353,7 +353,7 @@ local function pakettiThemeSelectorDialogOpen(vb)
             selected_theme_index = table.find(themes, theme_name)
             pakettiThemeSelectorUpdateLoadTheme(themes[selected_theme_index])
           end
-        end },
+        end},
         vb:row {
           vb:button { text = "-", notifier = function()
             local current_index = vb.views["favorites_popup"].value
@@ -362,7 +362,7 @@ local function pakettiThemeSelectorDialogOpen(vb)
             local theme_name = tostring(preferences.pakettiThemeSelector.FavoritedList[current_index])
             selected_theme_index = table.find(themes, theme_name)
             pakettiThemeSelectorUpdateLoadTheme(theme_name)
-          end },
+          end},
           vb:button { text = "+", notifier = function()
             local current_index = vb.views["favorites_popup"].value
             if current_index < #preferences.pakettiThemeSelector.FavoritedList then current_index = current_index + 1 else current_index = 2 end
@@ -370,7 +370,7 @@ local function pakettiThemeSelectorDialogOpen(vb)
             local theme_name = tostring(preferences.pakettiThemeSelector.FavoritedList[current_index])
             selected_theme_index = table.find(themes, theme_name)
             pakettiThemeSelectorUpdateLoadTheme(theme_name)
-          end },
+          end},
           vb:button { text = "Randomize", notifier = function()
             if #preferences.pakettiThemeSelector.FavoritedList <= 1 then
               renoise.app():show_status("You currently have no Favorite Themes set.")
@@ -408,7 +408,7 @@ local function pakettiThemeSelectorDialogOpen(vb)
     renoise.app():show_status("Selected theme not found.")            
             end
             
-          end },
+          end},
           vb:button { text = "Remove Favorite", notifier = function()
             local current_index = vb.views["favorites_popup"].value
             if current_index > 1 and current_index <= #preferences.pakettiThemeSelector.FavoritedList then
@@ -416,7 +416,7 @@ local function pakettiThemeSelectorDialogOpen(vb)
             else
               renoise.app():show_status("There are no Favorites to be removed.")
             end
-          end }}},
+          end}}},
       vb:row{vb:text{text = "Paketti Theme Selector Settings", font="bold"}},
       vb:row{vb:button{text="Open Themes Path", notifier=pakettiThemeSelectorOpenThemesPath},
         vb:button{text="Refresh", notifier=function() pakettiThemeSelectorRefreshThemes(vb) end}},
@@ -485,9 +485,9 @@ local selected_theme_index = nil
   end
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti Theme Selector:Open Paketti Theme Selector Dialog...",invoke=function() pakettiThemeSelectorDialogShow() end }
-renoise.tool():add_keybinding{name="Global:Paketti Theme Selector:Pick a Random Theme (All)",invoke=function() pakettiThemeSelectorPickRandomThemeFromAll() end }
+renoise.tool():add_keybinding{name="Global:Paketti Theme Selector:Open Paketti Theme Selector Dialog...",invoke=function() pakettiThemeSelectorDialogShow() end}
+renoise.tool():add_keybinding{name="Global:Paketti Theme Selector:Pick a Random Theme (All)",invoke=function() pakettiThemeSelectorPickRandomThemeFromAll() end}
 renoise.tool():add_keybinding{name="Global:Paketti Theme Selector:Pick a Random Theme (Favorites)",invoke=function() 
     local vb=renoise.ViewBuilder()
-    pakettiThemeSelectorPickRandomThemeFromFavoritesNoGUI() end }
+    pakettiThemeSelectorPickRandomThemeFromFavoritesNoGUI() end}
 

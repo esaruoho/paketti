@@ -1417,7 +1417,7 @@ for _, target in ipairs(targets) do
   end
 end
 
-renoise.tool():add_menu_entry{name="Modulation Matrix:Paketti..:Bla",invoke= function() jaa() end}
+renoise.tool():add_menu_entry{name="Modulation Matrix:Paketti..:Bla",invoke=function() jaa() end}
 
 --------------
 function exposeHideParametersInMixer()
@@ -3136,13 +3136,13 @@ local function prev_lfo_shape()
   modify_lfo_shape(prev_value)
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:LFO Shape Next",invoke = function() next_lfo_shape() end}
-renoise.tool():add_keybinding{name="Global:Paketti:LFO Shape Previous",invoke = function() prev_lfo_shape() end}
-renoise.tool():add_keybinding{name="Global:Paketti:LFO 01 Sinewave",invoke = function() modify_lfo_shape(0) end}
-renoise.tool():add_keybinding{name="Global:Paketti:LFO 02 Triangle",invoke = function() modify_lfo_shape(1) end}
-renoise.tool():add_keybinding{name="Global:Paketti:LFO 03 Squarewave",invoke = function() modify_lfo_shape(2) end}
-renoise.tool():add_keybinding{name="Global:Paketti:LFO 04 Random",invoke = function() modify_lfo_shape(3) end}
-renoise.tool():add_keybinding{name="Global:Paketti:LFO 05 Custom",invoke = function() modify_lfo_shape(4) end}
+renoise.tool():add_keybinding{name="Global:Paketti:LFO Shape Next",invoke=function() next_lfo_shape() end}
+renoise.tool():add_keybinding{name="Global:Paketti:LFO Shape Previous",invoke=function() prev_lfo_shape() end}
+renoise.tool():add_keybinding{name="Global:Paketti:LFO 01 Sinewave",invoke=function() modify_lfo_shape(0) end}
+renoise.tool():add_keybinding{name="Global:Paketti:LFO 02 Triangle",invoke=function() modify_lfo_shape(1) end}
+renoise.tool():add_keybinding{name="Global:Paketti:LFO 03 Squarewave",invoke=function() modify_lfo_shape(2) end}
+renoise.tool():add_keybinding{name="Global:Paketti:LFO 04 Random",invoke=function() modify_lfo_shape(3) end}
+renoise.tool():add_keybinding{name="Global:Paketti:LFO 05 Custom",invoke=function() modify_lfo_shape(4) end}
 ----------
 -- Get a random device, optionally AU only
 function getRandomDevice(au_only)
@@ -3278,7 +3278,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Insert Random Device (All)", 
 renoise.tool():add_keybinding{name="Global:Paketti:Insert Random Device (AU/Native Only)", invoke=function() insertRandomDevice(true) end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:Insert Random Device (All)", invoke=function() insertRandomDevice(false) end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:Insert Random Device (AU/Native Only)", invoke=function() insertRandomDevice(true) end}
-renoise.tool():add_midi_mapping{name="Paketti:Insert Random Device (All)", invoke=function(message) if message:is_trigger() then insertRandomDevice(false) end end }
+renoise.tool():add_midi_mapping{name="Paketti:Insert Random Device (All)", invoke=function(message) if message:is_trigger() then insertRandomDevice(false) end end}
 renoise.tool():add_midi_mapping{name="Paketti:Insert Random Device (AU/Native Only)", invoke=function(message) if message:is_trigger() then insertRandomDevice(true) end end}
 
 renoise.tool():add_menu_entry{name="DSP Device:Paketti..:Insert Random Device (All)", invoke=function() insertRandomDevice(false) end}
@@ -3292,7 +3292,7 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:Insert Random Plugin (AU Only)", invoke=function() insertRandomPlugin(true) end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Insert Random Plugin (All)", invoke=function() insertRandomPlugin(false) end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Insert Random Plugin (AU Only)", invoke=function() insertRandomPlugin(true) end}
-renoise.tool():add_midi_mapping{name="Paketti:Insert Random Plugin (All)", invoke=function(message) if message:is_trigger() then insertRandomPlugin(false) end end }
+renoise.tool():add_midi_mapping{name="Paketti:Insert Random Plugin (All)", invoke=function(message) if message:is_trigger() then insertRandomPlugin(false) end end}
 renoise.tool():add_midi_mapping{name="Paketti:Insert Random Plugin (AU Only)", invoke=function(message) if message:is_trigger() then insertRandomPlugin(true) end end}
 
 local auto_open_mode = false

@@ -894,7 +894,7 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work i
 
 -- Only add Browse menu entry if show_browse is true
 if show_browse then
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress..:Paketti XRNS Probe (Browse)",invoke = function() PakettiXRNSProbeShowDialog("Browse") end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress..:Paketti XRNS Probe (Browse)",invoke=function() PakettiXRNSProbeShowDialog("Browse") end}
 end
 
 function MissingDeviceParameters()

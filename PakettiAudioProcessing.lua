@@ -1266,8 +1266,8 @@ renoise.app().window.active_middle_frame=5
   renoise.app():show_status("Max Amp DC Offset Kick Generated!")
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Max Amp DC Offset Kick Generator",invoke=function() pakettiMaxAmplitudeDCOffsetKickCreator() end }
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Max Amp DC Offset Kick Generator",invoke=function() pakettiMaxAmplitudeDCOffsetKickCreator() end }
+renoise.tool():add_keybinding{name="Global:Paketti:Max Amp DC Offset Kick Generator",invoke=function() pakettiMaxAmplitudeDCOffsetKickCreator() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Max Amp DC Offset Kick Generator",invoke=function() pakettiMaxAmplitudeDCOffsetKickCreator() end}
 
 -- Function to apply the recursive DC offset correction algorithm
 function remove_dc_offset_recursive()
