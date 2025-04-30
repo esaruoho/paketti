@@ -342,7 +342,8 @@ local button_list = {
   {"Speed and Tempo to BPM", "show_speed_tempo_dialog"},
   {"Debug: Available Plugin Information", "show_plugin_details_gui"},
   {"Debug: Available Device Information", "show_effect_details_gui"},
-  {"AKWF Load 04 Samples (XY)", "Load04AKWFSamplesXY"}
+  {"AKWF Load 04 Samples (XY)", "Load04AKWFSamplesXY"},
+  {"BPM to MS Delay Calculator", "pakettiBPMMSCalculator"}
 }
 
 -- Function to create buttons from the list

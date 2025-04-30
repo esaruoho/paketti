@@ -417,8 +417,8 @@ end
 function showTimeSignatureDialog()
   local vb = renoise.ViewBuilder()
   
-  local DIALOG_margin=renoise.ViewBuilder.DEFAULT_DIALOG_MARGIN
-  local CONTENT_spacing=renoise.ViewBuilder.DEFAULT_CONTROL_SPACING
+  local DIALOG_MARGIN = renoise.ViewBuilder.DEFAULT_DIALOG_MARGIN
+  local CONTENT_SPACING = renoise.ViewBuilder.DEFAULT_CONTROL_SPACING
   
   local function createPresetButton(text, F, K)
     return vb:button{

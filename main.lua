@@ -260,6 +260,9 @@ timed_require("PakettiPatternLength")
 timed_require("PakettiKeyzoneDistributor")
 timed_require("PakettiHexSliceLoop")
 timed_require("PakettiMergeInstruments")
+timed_require("PakettiBPMToMS")
+timed_require("PakettiGlobalGrooveToDelayValues")
+
 --timed_require("PakettiXMImport")
 print(string.format("Total load time: %.3f seconds", os.clock() - init_time))
 ------------------------------------------------
@@ -456,6 +459,21 @@ end
 
 
 renoise.tool():add_menu_entry{name="Script Editor:Paketti..:PRINT",invoke=function() print("HEEY") end}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

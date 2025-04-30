@@ -166,6 +166,13 @@ renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Loop 2 (F
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Loop 3 (Backward)",invoke=function() selectedSampleLoopSet(3) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Loop 4 (PingPong)",invoke=function() selectedSampleLoopSet(4) end}
 
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Set Selected Sample Loop 1 (Off)",invoke=function() selectedSampleLoopSet(1) end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Set Selected Sample Loop 2 (Forward)",invoke=function() selectedSampleLoopSet(2) end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Set Selected Sample Loop 3 (Backward)",invoke=function() selectedSampleLoopSet(3) end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Set Selected Sample Loop 4 (PingPong)",invoke=function() selectedSampleLoopSet(4) end}
+
+
+
 function selectedSampleTranspose(amount)
 local currentSampleTranspose = renoise.song().selected_sample.transpose
 local changedSampleTranspose = currentSampleTranspose + amount
