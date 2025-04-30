@@ -87,8 +87,8 @@ function pakettiGrooveToDelay()
   
   -- Write delays for the entire pattern length
   for i = 0, pattern_lines - 1 do
-    local note_column = song.patterns[pattern_index].tracks[track_index].lines[i + 1].note_columns[1]
     local current_line = i + 1
+    local note_column = song.patterns[pattern_index].tracks[track_index].lines[current_line].note_columns[1]
     local should_delay = false
     local groove_index = 1
     
@@ -112,7 +112,7 @@ function pakettiGrooveToDelay()
         end
       end
     else
-      -- LPB16 and higher: Scale up from LPB8 positions and subtract 1
+      -- LPB16 and higher: First shift notes down by one line and then apply delays
       local cycle_length = lpb * 2
       local scale = lpb / 8
       local base_positions = {
@@ -122,12 +122,52 @@ function pakettiGrooveToDelay()
         (15 * scale) - 1
       }
       
-      -- Check if current line matches any position
-      for idx, pos in ipairs(base_positions) do
-        if current_line % cycle_length == pos % cycle_length then
-          should_delay = true
-          groove_index = idx
-          break
+      -- For LPB16: First shift the note down by one line if it's on a delay position
+      if lpb == 16 then
+        for idx, pos in ipairs(base_positions) do
+          if current_line % cycle_length == pos % cycle_length then
+            -- We're on a position that needs delay
+            -- First, check if there's a note on this line
+            if note_column.note_value ~= 121 then -- 121 is empty note
+              -- Store current line's note data
+              local current_note = {
+                note_value = note_column.note_value,
+                instrument_value = note_column.instrument_value,
+                volume_value = note_column.volume_value,
+                panning_value = note_column.panning_value,
+                delay_value = note_column.delay_value,
+                effect_number_value = note_column.effect_number_value,
+                effect_amount_value = note_column.effect_amount_value
+              }
+              
+              -- Clear current line
+              note_column:clear()
+              
+              -- Move note to next line if possible
+              if current_line < pattern_lines then
+                local next_line = song.patterns[pattern_index].tracks[track_index].lines[current_line + 1].note_columns[1]
+                next_line.note_value = current_note.note_value
+                next_line.instrument_value = current_note.instrument_value
+                next_line.volume_value = current_note.volume_value
+                next_line.panning_value = current_note.panning_value
+                next_line.effect_number_value = current_note.effect_number_value
+                next_line.effect_amount_value = current_note.effect_amount_value
+                -- Delay will be calculated in the next iteration
+              end
+            end
+            should_delay = true
+            groove_index = idx
+            break
+          end
+        end
+      else
+        -- Non-LPB16 higher LPB values just check position
+        for idx, pos in ipairs(base_positions) do
+          if current_line % cycle_length == pos % cycle_length then
+            should_delay = true
+            groove_index = idx
+            break
+          end
         end
       end
     end
@@ -159,8 +199,14 @@ function pakettiGrooveToDelay()
     math.floor(ga[3] * 100), delays[3],
     math.floor(ga[4] * 100), delays[4],
     track_name)
-  print(status_msg)  
-  renoise.app():show_status(status_msg)
+  print(status_msg)
+  
+  -- Show warning for LPB16 users
+  if lpb == 16 then
+    renoise.app():show_status(status_msg .. " -- LPB16 Global Groove to Delay Column Values is not precise, please contact esaruoho@icloud.com and provide details of expected result")
+  else
+    renoise.app():show_status(status_msg)
+  end
 end
 
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Convert Global Groove to Delay on Selected Track",invoke = pakettiGrooveToDelay}
