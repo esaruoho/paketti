@@ -10575,6 +10575,12 @@ function pakettiGrooveToDelay()
   local track_index = song.selected_track_index
   local pattern_lines = song.patterns[pattern_index].number_of_lines
   
+  -- Make sure delay column is visible
+  if not song.tracks[track_index].delay_column_visible then
+    song.tracks[track_index].delay_column_visible = true
+    print("Made delay column visible for track " .. track_index)
+  end
+
   -- Get groove amounts
   local ga = song.transport.groove_amounts
   
@@ -10593,6 +10599,12 @@ function pakettiGrooveToDelay()
       -- Scale the groove percentage to the max delay value
       local delay = math.floor((groove * RENOISE_GROOVE_MAX) + 0.5)
       return delay
+  end
+  
+  -- Calculate all delays first for status message
+  local delays = {}
+  for i = 1, 4 do
+    delays[i] = groove_to_delay(ga[i])
   end
   
   -- Write delays for the entire pattern length
@@ -10620,7 +10632,20 @@ function pakettiGrooveToDelay()
   -- Disable global groove
   song.transport.groove_enabled = false
   
-  renoise.app():show_status("Groove converted to delay values")
+  -- Get track name
+  local track_name = song.tracks[track_index].name
+  if track_name == "" then
+    track_name = string.format("#%02d", track_index)
+  end
+  
+  local status_msg = string.format("Global Groove 0&1: %d%% (%02X), 2&3: %d%% (%02X), 4&5: %d%% (%02X), 6&7: %d%% (%02X) -> %s",
+    math.floor(ga[1] * 100), delays[1],
+    math.floor(ga[2] * 100), delays[2],
+    math.floor(ga[3] * 100), delays[3],
+    math.floor(ga[4] * 100), delays[4],
+    track_name)
+  print (status_msg)  
+  renoise.app():show_status(status_msg)
 end
 
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Convert Global Groove to Delay on Selected Track",invoke = pakettiGrooveToDelay}
