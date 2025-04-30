@@ -3161,15 +3161,19 @@ renoise.tool():add_midi_mapping{name="Paketti:Insert Random Panning to Selected 
 renoise.tool():add_midi_mapping{name="Paketti:Insert Random Volume to Selected Row",invoke=function()insert_random_value("volume")end}
 
 
--- Function to replicate current note column content
+-- Function to replicate current note or effect column content
 function PakettiReplicateNoteColumnAtCursor(transpose, row_option)
-  local song=renoise.song()
+  local song = renoise.song()
   local pattern = song.selected_pattern
   local cursor_row = song.selected_line_index
   local pattern_length = pattern.number_of_lines
   local selected_track_index = song.selected_track_index
-  local selected_column_index = song.selected_note_column_index
-
+  local selected_note_column_index = song.selected_note_column_index
+  local selected_effect_column_index = song.selected_effect_column_index
+  
+  -- Determine if we're on a note column or effect column
+  local is_effect_column = (selected_effect_column_index > 0)
+  
   -- Check if there is content to replicate
   if (cursor_row == pattern_length and row_option == "above_and_current") then
     renoise.app():show_status("No rows to replicate.")
@@ -3220,34 +3224,53 @@ function PakettiReplicateNoteColumnAtCursor(transpose, row_option)
     end
   end
 
-  -- Replicate only the selected note column
+  -- Replicate the selected column (either note or effect)
   for row = start_row, pattern_length do
     local source_row = ((row - start_row) % repeat_length) + 1
     local source_line = pattern:track(selected_track_index):line(source_row)
     local dest_line = pattern:track(selected_track_index):line(row)
 
-    local source_note = source_line.note_columns[selected_column_index]
-    local dest_note = dest_line.note_columns[selected_column_index]
-
-    dest_note.note_value = transpose_note(source_note.note_value, transpose)
-    dest_note.instrument_value = source_note.instrument_value
-    dest_note.volume_value = source_note.volume_value
-    dest_note.panning_value = source_note.panning_value
-    dest_note.delay_value = source_note.delay_value
-    dest_note.effect_number_value = source_note.effect_number_value
-    dest_note.effect_amount_value = source_note.effect_amount_value
+    if is_effect_column then
+      -- Handle effect column replication
+      local source_fx = source_line.effect_columns[selected_effect_column_index]
+      local dest_fx = dest_line.effect_columns[selected_effect_column_index]
+      
+      if source_fx and dest_fx then
+        dest_fx.number_value = source_fx.number_value
+        dest_fx.amount_value = source_fx.amount_value
+      end
+    else
+      -- Handle note column replication
+      local source_note = source_line.note_columns[selected_note_column_index]
+      local dest_note = dest_line.note_columns[selected_note_column_index]
+      
+      if source_note and dest_note then
+        dest_note.note_value = transpose_note(source_note.note_value, transpose)
+        dest_note.instrument_value = source_note.instrument_value
+        dest_note.volume_value = source_note.volume_value
+        dest_note.panning_value = source_note.panning_value
+        dest_note.delay_value = source_note.delay_value
+        dest_note.effect_number_value = source_note.effect_number_value
+        dest_note.effect_amount_value = source_note.effect_amount_value
+      end
+    end
   end
 
-  renoise.app():show_status("Replicated note column with transpose: " .. transpose)
+  if is_effect_column then
+    renoise.app():show_status("Replicated effect column")
+  else
+    renoise.app():show_status("Replicated note column with transpose: " .. transpose)
+  end
 end
 
--- Helper function for note column replication
-local function create_note_column_replicate_function(transpose, row_option)
+-- Helper function for column replication
+local function create_column_replicate_function(transpose, row_option)
   return function()
     PakettiReplicateNoteColumnAtCursor(transpose, row_option)
   end
 end
--- Options for transpose and rows for note column replication
+
+-- Options for transpose and rows for column replication
 local transpose_options = {
   {value = -12, name = "(-12)"},
   {value = -1, name = "(-1)"},
@@ -3261,18 +3284,20 @@ local row_options = {
   {value = "above_and_current", name = "Above + Current"},
 }
 
--- Create menu entries, keybindings, and MIDI mappings for note column replication
+-- Create menu entries, keybindings, and MIDI mappings for column replication
 for _, row_opt in ipairs(row_options) do
   for _, transpose_opt in ipairs(transpose_options) do
-    local replicate_function = create_note_column_replicate_function(transpose_opt.value, row_opt.value)
-    local menu_entry_name = "Pattern Editor:Paketti..:Replicate..:Replicate Note Column " .. row_opt.name .. " " .. transpose_opt.name
-    renoise.tool():add_menu_entry{name=menu_entry_name,invoke=replicate_function}
+    local replicate_function = create_column_replicate_function(transpose_opt.value, row_opt.value)
     
-    local keybinding_name = "Pattern Editor:Paketti:Replicate Note Column " .. row_opt.name .. " " .. transpose_opt.name
-    renoise.tool():add_keybinding{name=keybinding_name,invoke=replicate_function}
+    -- For note columns
+    local note_menu_entry_name = "Pattern Editor:Paketti..:Replicate..:Replicate Note/FX Column " .. row_opt.name .. " " .. transpose_opt.name
+    renoise.tool():add_menu_entry{name=note_menu_entry_name,invoke=replicate_function}
     
-    local midi_mapping_name = "Paketti:Replicate Note Column " .. row_opt.name .. " " .. transpose_opt.name
-    renoise.tool():add_midi_mapping{name=midi_mapping_name,invoke=function(message)
+    local note_keybinding_name = "Pattern Editor:Paketti:Replicate Note/FX Column " .. row_opt.name .. " " .. transpose_opt.name
+    renoise.tool():add_keybinding{name=note_keybinding_name,invoke=replicate_function}
+    
+    local note_midi_mapping_name = "Paketti:Replicate Note/FX Column " .. row_opt.name .. " " .. transpose_opt.name
+    renoise.tool():add_midi_mapping{name=note_midi_mapping_name,invoke=function(message)
       if message:is_trigger() then
         replicate_function()
       end
@@ -3319,7 +3344,7 @@ function PakettiReplicateAtCursor(transpose, tracks_option, row_option)
         return
       end
       repeat_length = cursor_row - 1
-      start_row = cursor_row
+    start_row = cursor_row
     elseif row_option == "above_and_current" then
       repeat_length = cursor_row
       start_row = cursor_row + 1
@@ -3586,10 +3611,10 @@ for _, tracks_opt in ipairs(tracks_options) do
       
       local midi_mapping_name = "Paketti:Replicate " .. tracks_opt.name .. " " .. row_opt.name .. " " .. transpose_opt.name
       renoise.tool():add_midi_mapping{name=midi_mapping_name,invoke=function(message)
-        if message:is_trigger() then
-          replicate_function()
-        end
-      end}
+      if message:is_trigger() then
+        replicate_function()
+      end
+    end}
 
       -- Add Phrase Editor entries only for "selected_track" option
       -- since phrases don't have multiple tracks
@@ -3599,9 +3624,9 @@ for _, tracks_opt in ipairs(tracks_options) do
         
         local phrase_keybinding_name = "Phrase Editor:Paketti:Replicate " .. row_opt.name .. " " .. transpose_opt.name
         renoise.tool():add_keybinding{name=phrase_keybinding_name,invoke=replicate_function}
-      end
-    end
   end
+end
+end
 end
 ------------
 -- Function to adjust the delay column within the selected area or current note column
@@ -3614,9 +3639,9 @@ function PakettiDelayColumnModifier(amount)
   end
   
   -- Get the selection in the pattern editor
-  local selection = song.selection_in_pattern
+    local selection = song.selection_in_pattern
 
-  if selection then
+    if selection then
     -- There is a selection; adjust the delay values within the selection
     for track_index = selection.start_track, selection.end_track do
       local track = song:track(track_index)

@@ -782,7 +782,6 @@ function selectPreviousGroupTrack()
         end
     end
 end
-
 renoise.tool():add_keybinding{name="Global:Paketti:Select Group (Next)",invoke=function() selectNextGroupTrack() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Select Group (Previous)",invoke=function() selectPreviousGroupTrack() end}
 ------
@@ -10626,4 +10625,4 @@ end
 
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Convert Global Groove to Delay on Selected Track",invoke = pakettiGrooveToDelay}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Convert Global Groove to Delay on Selected Track",invoke = pakettiGrooveToDelay}
-renoise.tool():add_midi_mapping{name="Pattern Editor:Paketti:Convert Global Groove to Delay on Selected Track",invoke = function(message) if message:is_trigger() then pakettiGrooveToDelay end end}
+renoise.tool():add_midi_mapping{name="Pattern Editor:Paketti:Convert Global Groove to Delay on Selected Track",invoke = function(message) if message:is_trigger() then pakettiGrooveToDelay() end end}
