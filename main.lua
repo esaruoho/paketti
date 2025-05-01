@@ -449,35 +449,7 @@ function my_keyhandler_func(dialog, key)
   end
 end
 
-
-
-
-
-
-
-
-
-
 renoise.tool():add_menu_entry{name="Script Editor:Paketti..:PRINT",invoke=function() print("HEEY") end}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
