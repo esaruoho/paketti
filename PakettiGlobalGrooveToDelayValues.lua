@@ -6,6 +6,29 @@ function pakettiGrooveToDelay()
   local lpb = song.transport.lpb
   local selected_track = song.selected_track
   
+  -- Check for master or send tracks
+  if selected_track.type == renoise.Track.TRACK_TYPE_MASTER then
+    renoise.app():show_status("Cannot apply groove to delay conversion on Master track.")
+    return
+  elseif selected_track.type == renoise.Track.TRACK_TYPE_SEND then
+    renoise.app():show_status("Cannot apply groove to delay conversion on Send track.")
+    return
+  end
+  
+  -- Check if pattern exists
+  if not song.patterns[pattern_index] then
+    renoise.app():show_status("Invalid pattern index.")
+    return
+  end
+  
+  -- Check for empty group tracks
+  if selected_track.type == renoise.Track.TRACK_TYPE_GROUP then
+    if #selected_track.members == 0 then
+      renoise.app():show_status("Cannot process empty group track. Group track must have member tracks.")
+      return
+    end
+  end
+  
   -- Validate LPB is a power of 2 and at least 4
   local function is_power_of_two(n)
     return n > 0 and math.floor(math.log(n)/math.log(2)) == math.log(n)/math.log(2)
