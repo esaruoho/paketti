@@ -131,7 +131,14 @@ function pakettiPhraseSettings()
           id = "phrase_name_textfield",
           width=300,
           text = preferences.pakettiPhraseInitDialog.Name.value,
-          notifier = function(value) preferences.pakettiPhraseInitDialog.Name.value = value end
+          notifier = function(value) 
+            preferences.pakettiPhraseInitDialog.Name.value = value
+            -- Auto-check the Set Name checkbox when text is entered
+            if value ~= "" then
+              preferences.pakettiPhraseInitDialog.SetName.value = true
+              vb.views.set_name_checkbox.value = true
+            end
+          end
         }
       },
       vb:row{

@@ -118,6 +118,7 @@
   <pakettiLoadOrder>false</pakettiLoadOrder>
   <PakettiMoveSilenceThreshold>0.024</PakettiMoveSilenceThreshold>
   <pakettiSlideContentAutomationToo>true</pakettiSlideContentAutomationToo>
+  <selectionNewInstrumentLoop>2</selectionNewInstrumentLoop>
   <pakettiREXBundlePath>./rx2</pakettiREXBundlePath>
   <pakettiBlendValue>54</pakettiBlendValue>
   <RenderDCOffset>true</RenderDCOffset>
@@ -170,19 +171,19 @@
     <NoteColumns>4</NoteColumns>
     <LPB>4</LPB>
     <VolumeColumnVisible>false</VolumeColumnVisible>
-    <Name>Phrase</Name>
+    <Name>Phraseqa</Name>
     <Shuffle>0.0</Shuffle>
     <Autoseek>false</Autoseek>
     <PhraseLooping>true</PhraseLooping>
     <Length>64</Length>
-    <SetName>false</SetName>
+    <SetName>true</SetName>
     <SampleFXColumnVisible>false</SampleFXColumnVisible>
     <EffectColumns>0.0</EffectColumns>
     <InstrumentColumnVisible>true</InstrumentColumnVisible>
     <DelayColumnVisible>false</DelayColumnVisible>
     <PanningColumnVisible>false</PanningColumnVisible>
   </pakettiPhraseInitDialog>
-  <UserDefinedSampleFolders08>/Users/esaruoho/Music/samples/TRACKERCORPS SAMPLE PACK 2025/</UserDefinedSampleFolders08>
+  <UserDefinedSampleFolders08>/Users/esaruoho/Music/rMBP_2024_01_27 samples/!outsidesources/TRACKERCORPS SAMPLE PACK 2025/DRUMS &amp; PERCUSSIONS/</UserDefinedSampleFolders08>
   <pakettiCheatSheet>
     <pakettiCheatSheetRandomizeMax>255</pakettiCheatSheetRandomizeMax>
     <pakettiCheatSheetRandomizeMin>239.84265734265745</pakettiCheatSheetRandomizeMin>
@@ -211,7 +212,15 @@
   <pakettiLoaderLoopExit>false</pakettiLoaderLoopExit>
   <UserDefinedSampleFolders10>/Users/esaruoho/Music/rMBP_2024_01_27 samples/</UserDefinedSampleFolders10>
   <pakettiWipeExplodedTrack>true</pakettiWipeExplodedTrack>
-  <selectionNewInstrumentLoop>2</selectionNewInstrumentLoop>
+  <pakettiPatternSequencer>
+    <naming_behavior>1.0</naming_behavior>
+    <clone_suffix/>
+    <use_numbering>false</use_numbering>
+    <numbering_format>%02d</numbering_format>
+    <select_after_clone>true</select_after_clone>
+    <numbering_start>1.0</numbering_start>
+    <clone_prefix>HH</clone_prefix>
+  </pakettiPatternSequencer>
   <pakettiLoaderNNA>2</pakettiLoaderNNA>
   <UserDefinedSampleFolders06/>
   <UserDevices>
@@ -231,7 +240,7 @@
   <UserDefinedSampleFolders03/>
   <selectionNewInstrumentAutofade>true</selectionNewInstrumentAutofade>
   <UserDefinedSampleFolders01/>
-  <UserDefinedSampleFolders07>/Users/esaruoho/Music/samples/TRACKERCORPS SAMPLE PACK 2025/DRUMS &amp; PERCUSSIONS/</UserDefinedSampleFolders07>
+  <UserDefinedSampleFolders07>/Users/esaruoho/Music/rMBP_2024_01_27 samples/!outsidesources/TRACKERCORPS SAMPLE PACK 2025/</UserDefinedSampleFolders07>
   <ActionSelector>
     <Index29>Menu Entry: Main Menu:Tools:Paketti..:Pattern Editor..:Toggle Mute Tracks||toggle_mute_tracks</Index29>
     <Index26>Keybinding: Global:Paketti:Load XRNI &amp; Disable Phrases||function() loadXRNIWipePhrasesTwo() end</Index26>
@@ -287,7 +296,7 @@
   <pakettiLoaderNormalizeSamples>false</pakettiLoaderNormalizeSamples>
   <selectionNewInstrumentAutoseek>false</selectionNewInstrumentAutoseek>
   <pakettiLoaderDontCreateAutomationDevice>false</pakettiLoaderDontCreateAutomationDevice>
-  <UserDefinedSampleFolders09>/Users/esaruoho/Music/samples/Analog Samples/</UserDefinedSampleFolders09>
+  <UserDefinedSampleFolders09>/Users/esaruoho/Music/rMBP_2024_01_27 samples/!outsidesources/Analog Samples/</UserDefinedSampleFolders09>
   <selectionNewInstrumentSelect>true</selectionNewInstrumentSelect>
   <renderBypass>false</renderBypass>
   <pakettiPitchbendLoaderEnvelope>false</pakettiPitchbendLoaderEnvelope>

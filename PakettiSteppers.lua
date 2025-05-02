@@ -45,11 +45,31 @@ function ResetAllSteppers()
             for dev_idx, device in ipairs(devices) do
                 for _, stepperType in ipairs(stepperTypes) do
                     if device.name == stepperType then
-                        device.parameters[1].value = 1
-                        count = count + 1
+                        -- Clear existing points first
+                        device:clear_points()
+                        
+                        -- Get the total number of steps from device length
+                        local total_steps = device.length
+                        local default_value = (device.name == "Volume Stepper") and 1 or 0.5
+                        local points_data = {}
+                        
+                        -- Reset ALL steps from 1 to device.length
+                        for step = 1, total_steps do
+                            table.insert(points_data, {
+                                scaling = 0,
+                                time = step,
+                                value = default_value
+                            })
+                        end
+                        
+                        device.points = points_data
+                        
+                        -- Close editor if open
                         if device.external_editor_visible then
                             device.external_editor_visible = false
                         end
+                        
+                        count = count + 1
                     end
                 end
             end

@@ -376,7 +376,18 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
     Slot08 = renoise.Document.ObservableString(""),
     Slot09 = renoise.Document.ObservableString(""),
     Slot10 = renoise.Document.ObservableString("")    
-  }}
+  },
+  -- Add pattern sequencer preferences section
+  pakettiPatternSequencer = {
+    clone_prefix = renoise.Document.ObservableString(""),
+    clone_suffix = renoise.Document.ObservableString(" (Clone)"),
+    use_numbering = renoise.Document.ObservableBoolean(true),
+    numbering_format = renoise.Document.ObservableString("%d"),
+    numbering_start = renoise.Document.ObservableNumber(2),
+    select_after_clone = renoise.Document.ObservableBoolean(true),
+    naming_behavior = renoise.Document.ObservableNumber(1)  -- 1=Use Settings, 2=Clear Name, 3=Keep Original
+  },
+}
 
 renoise.tool().preferences = preferences
 
@@ -389,6 +400,8 @@ RandomizeSettings = renoise.tool().preferences.RandomizeSettings
 PakettiYTDLP = renoise.tool().preferences.PakettiYTDLP
 DynamicViewPrefs = renoise.tool().preferences.PakettiDynamicViews
 
+-- Add pattern sequencer preferences accessor
+PatternSequencer = renoise.tool().preferences.pakettiPatternSequencer
 
       -- Define available keys for dialog closing
       local dialog_close_keys = {"tab", "esc", "space", "return", "q", "donteverclose"}

@@ -343,7 +343,8 @@ local button_list = {
   {"Debug: Available Plugin Information", "pakettiDebugPluginInfoDialog"},
   {"Debug: Available Device Information", "pakettiDebugDeviceInfoDialog"},
   {"AKWF Load 04 Samples (XY)", "pakettiLoad04AKWFSamplesXYDialog"},
-  {"BPM to MS Delay Calculator", "pakettiBPMMSCalculator"}
+  {"BPM to MS Delay Calculator", "pakettiBPMMSCalculator"},
+  {"Paketti Sequencer Settings Dialog", "pakettiSequencerSettingsDialog"}
 }
 
 -- Function to create buttons from the list

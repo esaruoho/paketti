@@ -1165,10 +1165,41 @@ function PakettiSampleInvertEntireSample()
   renoise.app():show_status("Entire sample inverted (waveform flipped)")
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Invert Entire Sample",invoke=function() PakettiSampleInvertEntireSample() end}
+-- Invert Left Channel
+function PakettiSampleInvertLeftChannel()
+  local song = renoise.song()
+  local sample = song.selected_sample
+  if not sample or not sample.sample_buffer or sample.sample_buffer.number_of_channels < 2 then
+    renoise.app():show_status("No stereo sample available")
+    return
+  end
+  local buffer = sample.sample_buffer
+  buffer:prepare_sample_data_changes()
+  for f = 1, buffer.number_of_frames do
+    buffer:set_sample_data(1, f, -buffer:sample_data(1, f))
+  end
+  buffer:finalize_sample_data_changes()
+  renoise.app():show_status("Left channel inverted")
+end
 
+-- Invert Right Channel
+function PakettiSampleInvertRightChannel()
+  local song = renoise.song()
+  local sample = song.selected_sample
+  if not sample or not sample.sample_buffer or sample.sample_buffer.number_of_channels < 2 then
+    renoise.app():show_status("No stereo sample available")
+    return
+  end
+  local buffer = sample.sample_buffer
+  buffer:prepare_sample_data_changes()
+  for f = 1, buffer.number_of_frames do
+    buffer:set_sample_data(2, f, -buffer:sample_data(2, f))
+  end
+  buffer:finalize_sample_data_changes()
+  renoise.app():show_status("Right channel inverted")
+end
 
----
+-- Random invert function
 function PakettiInvertRandomSamplesInInstrument()
   local instrument = renoise.song().selected_instrument
   if not instrument or #instrument.samples == 0 then
@@ -1192,7 +1223,24 @@ function PakettiInvertRandomSamplesInInstrument()
   renoise.song().selected_sample_index = original_index
   renoise.app():show_status(string.format("Randomly inverted %d/%d samples in instrument", inverted_count, #instrument.samples))
 end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Invert Sample",invoke=function() PakettiSampleInvertEntireSample() end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Invert Sample",invoke=function() PakettiSampleInvertEntireSample() end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Invert Left Channel",invoke=function() PakettiSampleInvertLeftChannel() end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Invert Right Channel",invoke=function() PakettiSampleInvertRightChannel() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Invert Random Samples in Instrument",invoke=PakettiInvertRandomSamplesInInstrument}
+renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Process..:Invert Sample",invoke=PakettiSampleInvertEntireSample}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Invert Left Channel",invoke=PakettiSampleInvertLeftChannel}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Invert Right Channel",invoke=PakettiSampleInvertRightChannel}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Invert Random Samples in Instrument",invoke=PakettiInvertRandomSamplesInInstrument}
+renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Process..:Invert Sample",invoke=PakettiSampleInvertEntireSample}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Process..:Invert Left Channel",invoke=PakettiSampleInvertLeftChannel}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Process..:Invert Right Channel",invoke=PakettiSampleInvertRightChannel}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Process..:Invert Random Samples in Instrument",invoke=PakettiInvertRandomSamplesInInstrument}
+renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti..:Process..:Invert Sample",invoke=PakettiSampleInvertEntireSample}
+renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Process..:Invert Left Channel",invoke=PakettiSampleInvertLeftChannel}
+renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Process..:Invert Right Channel",invoke=PakettiSampleInvertRightChannel}
+renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Process..:Invert Random Samples in Instrument",invoke=PakettiInvertRandomSamplesInInstrument}
 ---
 function apply_fade_in_out()
   local instrument=renoise.song().selected_instrument

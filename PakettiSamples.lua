@@ -1915,67 +1915,6 @@ end
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:FT2 Minimize Selected Sample",invoke=pakettiMinimizeToLoopEnd}
 renoise.tool():add_keybinding{name="Global:Paketti:FT2 Minimize Selected Sample",invoke=pakettiMinimizeToLoopEnd}
 --------
--- Invert Left Channel
-function PakettiSampleInvertLeftChannel()
-  local song=renoise.song()
-  local sample=song.selected_sample
-  if not sample or not sample.sample_buffer or sample.sample_buffer.number_of_channels < 2 then
-    renoise.app():show_status("No stereo sample available")
-    return
-  end
-  local buffer=sample.sample_buffer
-  buffer:prepare_sample_data_changes()
-  for f=1,buffer.number_of_frames do
-    buffer:set_sample_data(1,f,-buffer:sample_data(1,f))
-  end
-  buffer:finalize_sample_data_changes()
-  renoise.app():show_status("Left channel inverted")
-end
-
--- Invert Right Channel
-function PakettiSampleInvertRightChannel()
-  local song=renoise.song()
-  local sample=song.selected_sample
-  if not sample or not sample.sample_buffer or sample.sample_buffer.number_of_channels < 2 then
-    renoise.app():show_status("No stereo sample available")
-    return
-  end
-  local buffer=sample.sample_buffer
-  buffer:prepare_sample_data_changes()
-  for f=1,buffer.number_of_frames do
-    buffer:set_sample_data(2,f,-buffer:sample_data(2,f))
-  end
-  buffer:finalize_sample_data_changes()
-  renoise.app():show_status("Right channel inverted")
-end
-
--- Invert Entire Sample
-function PakettiSampleInvertEntireSample()
-  local song=renoise.song()
-  local sample=song.selected_sample
-  if not sample or not sample.sample_buffer then
-    renoise.app():show_status("No sample available")
-    return
-  end
-  local buffer=sample.sample_buffer
-  buffer:prepare_sample_data_changes()
-  for ch=1,buffer.number_of_channels do
-    for f=1,buffer.number_of_frames do
-      buffer:set_sample_data(ch,f,-buffer:sample_data(ch,f))
-    end
-  end
-  buffer:finalize_sample_data_changes()
-  renoise.app():show_status("Sample inverted")
-end
-
-renoise.tool():add_keybinding{name="Sample Editor:Paketti:Invert Left Channel of Selected Sample",invoke=function() PakettiSampleInvertLeftChannel() end}
-renoise.tool():add_keybinding{name="Sample Editor:Paketti:Invert Right Channel of Selected Sample",invoke=function() PakettiSampleInvertRightChannel() end}
-renoise.tool():add_keybinding{name="Sample Editor:Paketti:Invert Sample",invoke= function() PakettiSampleInvertEntireSample() end}
-
-
-
--------
-----
 local previous_value = nil
 local rotation_amount = 5  -- You can set this to any desired default value
 
@@ -2126,24 +2065,6 @@ end
     renoise.app():show_status("No sample data to rotate.")
   end
 end
-
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Process..:Invert Entire Sample",invoke=function() PakettiSampleInvertEntireSample() end}
-renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Process..:Invert Entire Sample",invoke=function() PakettiSampleInvertEntireSample() end}
-renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti..:Process..:Invert Entire Sample",invoke=function() PakettiSampleInvertEntireSample() end}
-
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Invert Left Channel of Selected Sample",invoke=PakettiSampleInvertLeftChannel}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Invert Right Channel of Selected Sample",invoke=PakettiSampleInvertRightChannel}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Invert Sample",invoke=PakettiSampleInvertEntireSample}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Invert Random Samples in Instrument",invoke=PakettiInvertRandomSamplesInInstrument}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Process..:Invert Left Channel of Selected Sample",invoke=PakettiSampleInvertLeftChannel}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Process..:Invert Right Channel of Selected Sample",invoke=PakettiSampleInvertRightChannel}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Process..:Invert Sample",invoke=PakettiSampleInvertEntireSample}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Process..:Invert Random Samples in Instrument",invoke=PakettiInvertRandomSamplesInInstrument}
-
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Process..:Invert Left Channel of Selected Sample",invoke=PakettiSampleInvertLeftChannel}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Process..:Invert Right Channel of Selected Sample",invoke=PakettiSampleInvertRightChannel}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Process..:Invert Sample",invoke=PakettiSampleInvertEntireSample}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Process..:Invert Random Samples in Instrument",invoke=PakettiInvertRandomSamplesInInstrument}
 
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Rotate Sample Buffer Right 10",invoke=function() rotate_sample_buffer_fixed(10) end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Rotate Sample Buffer Left 10",invoke=function() rotate_sample_buffer_fixed(-10) end}
@@ -3040,7 +2961,8 @@ function pakettiUserDefinedSamplesDialog()
   local function PakettiUserDefinedSamplesSavePreferences()
     for i = 1, 10 do
       local field = folder_fields[i]
-      preferences["UserDefinedSampleFolders" .. string.format("%02d", i)].value = field.text
+      local sanitized_path = sanitizeFolderPath(field.text)
+      preferences["UserDefinedSampleFolders" .. string.format("%02d", i)].value = sanitized_path or field.text
     end
   end
 
@@ -3057,7 +2979,13 @@ function pakettiUserDefinedSamplesDialog()
       notifier = function()
         local folder_path = renoise.app():prompt_for_path("Select Folder Containing Audio Files")
         if folder_path then
-          textfield.text = folder_path
+          local sanitized_path = sanitizeFolderPath(folder_path)
+          if sanitized_path then
+            textfield.text = sanitized_path
+            print("-- Paketti Debug: Selected and validated folder path:", sanitized_path)
+          else
+            renoise.app():show_warning("The selected folder path appears to be invalid or inaccessible.")
+          end
         end
       end
     }
@@ -3068,22 +2996,45 @@ function pakettiUserDefinedSamplesDialog()
       browse_button,
       textfield,
       vb:button{text="Open Path",notifier=function()
-      renoise.app():open_path(textfield.text) end}
+        local sanitized_path = sanitizeFolderPath(textfield.text)
+        if sanitized_path then
+          renoise.app():open_path(sanitized_path)
+        else
+          renoise.app():show_warning("The folder path appears to be invalid or inaccessible.")
+        end
+      end}
     }
 
-    button_row:add_child(vb:button{text="Random Drumkit", notifier = function() loadRandomDrumkitSamples(120, textfield.text) end})
+    button_row:add_child(vb:button{text="Random Drumkit", notifier = function() 
+      local sanitized_path = sanitizeFolderPath(textfield.text)
+      if sanitized_path then
+        loadRandomDrumkitSamples(120, sanitized_path) 
+      else
+        renoise.app():show_warning("The folder path appears to be invalid or inaccessible.")
+      end
+    end})
 
     button_row:add_child(vb:button{
       text="Random 12",
       notifier = function()
-      loadRandomSamplesIntoSingleInstrument(12, textfield.text)
+        local sanitized_path = sanitizeFolderPath(textfield.text)
+        if sanitized_path then
+          loadRandomSamplesIntoSingleInstrument(12, sanitized_path)
+        else
+          renoise.app():show_warning("The folder path appears to be invalid or inaccessible.")
+        end
       end
     })
 
     button_row:add_child(vb:button{
       text="Random 32",
       notifier = function()
-        loadRandomSample(32, textfield.text)
+        local sanitized_path = sanitizeFolderPath(textfield.text)
+        if sanitized_path then
+          loadRandomSample(32, sanitized_path)
+        else
+          renoise.app():show_warning("The folder path appears to be invalid or inaccessible.")
+        end
       end
     })
 
@@ -4525,3 +4476,23 @@ renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Instruments..:Fi
 renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Fill Empty Sample Slots (Randomized Folder)",invoke=function() fillEmptySampleSlots() end}
 renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti..:Fill Empty Sample Slots (Randomized Folder)",invoke=function() fillEmptySampleSlots() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Fill Empty Sample Slots (Randomized Folder)",invoke=function() fillEmptySampleSlots() end}
+
+-- Function to sanitize and validate folder path
+function sanitizeFolderPath(path)
+  if not path then return nil end
+  
+  -- Normalize path separators
+  local sanitized = path:gsub([[\]], [[/]])
+  
+  -- Remove any trailing slashes
+  sanitized = sanitized:gsub("/*$", "")
+  
+  -- Check if the path exists
+  if not os.rename(sanitized, sanitized) then
+    print("-- Paketti Debug: Path does not exist:", sanitized)
+    return nil
+  end
+  
+  print("-- Paketti Debug: Sanitized path:", sanitized)
+  return sanitized
+end

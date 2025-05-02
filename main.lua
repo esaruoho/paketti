@@ -310,35 +310,36 @@ function PakettiGetFilesInDirectory(dir)
     -- Use OS-specific commands to list all files recursively
     local command
     if package.config:sub(1, 1) == "\\" then  -- Windows
-        command = string.format('dir "%s" /b /s', dir)
+        -- Escape special characters for Windows cmd
+        local escaped_dir = dir:gsub('"', '\\"')
+        command = string.format('dir "%s" /b /s', escaped_dir)
     else  -- macOS and Linux
-        -- Escape spaces and special characters in the path
-        local escaped_dir = dir:gsub('([%(%)%[%]%{%}%\\%^%$%*%+%-%?%.%|])', '\\%1'):gsub(' ', '\\ ')
-        command = string.format('find %s -type f', escaped_dir)
+        -- Simple path escaping for macOS/Linux - just escape spaces
+        local escaped_dir = "'"..dir:gsub("'", "'\\''").."'"
+        command = string.format("find %s -type f", escaped_dir)
     end
+    
+    print("-- Paketti Debug: Running command:", command)
     
     -- Execute the command and process the output
     local handle = io.popen(command)
     if handle then
         for line in handle:lines() do
-            -- Skip files in OPS7 folder
+            -- Skip files in OPS7 folder and check if it's a valid audio file
             if not line:match("OPS7") and PakettiIsValidAudioFile(line) then
                 table.insert(files, line)
+                print("-- Paketti Debug: Found valid audio file:", line)
             end
         end
         local success, msg, code = handle:close()
         if not success then
-            print("Error closing handle:", msg, code)
+            print("-- Paketti Error: Failed to close handle:", msg, code)
         end
+    else
+        print("-- Paketti Error: Failed to execute directory listing command")
     end
     
-  --[[  -- Debug output
-    print(string.format("Found %d valid audio files in directory: %s", #files, dir))
-    -- Print first few files as sample
-    for i = 1, math.min(5, #files) do
-        print(string.format("Sample file %d: %s", i, files[i]))
-    end
-    ]]--
+    print(string.format("-- Paketti Debug: Found %d valid audio files in directory: %s", #files, dir))
     return files
 end
 ---
@@ -450,6 +451,18 @@ function my_keyhandler_func(dialog, key)
 end
 
 renoise.tool():add_menu_entry{name="Script Editor:Paketti..:PRINT",invoke=function() print("HEEY") end}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
