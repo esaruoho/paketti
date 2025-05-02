@@ -1061,5 +1061,5 @@ function pakettiPatternEditorCheatsheetDialog()
 end
 
 -- Keybinding to open the CheatSheet
-renoise.tool():add_keybinding{name="Global:Paketti:Pattern Effect Command CheatSheet",invoke=CheatSheet}
+renoise.tool():add_keybinding{name="Global:Paketti:Pattern Effect Command CheatSheet",invoke=pakettiPatternEditorCheatsheetDialog}
 
