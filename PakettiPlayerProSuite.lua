@@ -428,7 +428,7 @@ local EditStepCheckboxValue = false -- Initial value for EditStepCheckbox
   }
 end
 
-function PakettiPlayerProNoteGridShowDropdownGrid()
+function pakettiPlayerProNoteGridShowDropdownGrid()
 renoise.app().window.active_middle_frame=1
 
   if dialog and dialog.visible then
@@ -472,8 +472,8 @@ renoise.app().window.active_middle_frame_observable:add_notifier(function()
   end
 end)
 
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Other Trackers..:Open Player Pro Note Column Dialog...",invoke=PakettiPlayerProNoteGridShowDropdownGrid}
-renoise.tool():add_keybinding{name="Global:Paketti:Open Player Pro Note Column Dialog...",invoke=PakettiPlayerProNoteGridShowDropdownGrid}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Other Trackers..:Open Player Pro Note Column Dialog...",invoke=pakettiPlayerProNoteGridShowDropdownGrid}
+renoise.tool():add_keybinding{name="Global:Paketti:Open Player Pro Note Column Dialog...",invoke=pakettiPlayerProNoteGridShowDropdownGrid}
 
 PakettiPlayerProNoteGridAddNoteMenuEntries()
 --------------
@@ -846,7 +846,7 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Open Player Pro Tools
 -- Global dialog variable
 local dialog = nil
 
-function showPlayerProEffectDialog()
+function pakettiPlayerProEffectDialog()
   if dialog and dialog.visible then
     dialog:close()
     dialog = nil
@@ -860,6 +860,6 @@ end
 -- Menu registration
 renoise.tool():add_menu_entry{
   name="Pattern Editor:Paketti..:Other Trackers..:Open Player Pro Tools Effect Dialog",
-  invoke=function() showPlayerProEffectDialog() end
+  invoke=function() pakettiPlayerProEffectDialog() end
 }
 ---------------

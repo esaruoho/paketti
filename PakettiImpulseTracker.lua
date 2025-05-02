@@ -1620,7 +1620,7 @@ function handle_cancel_click()
 end
 
 -- Function to show the dialog
-function show_new_song_dialog()
+function pakettiImpulseTrackerNewSongDialog()
   -- Close any existing dialog before opening a new one
   if dialog and dialog.visible then
     dialog:close()
@@ -1743,7 +1743,7 @@ function show_new_song_dialog()
   dialog = renoise.app():show_custom_dialog("New Song", dialog_content, my_keyhandler_func)
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker CTRL-N New Song Dialog...",invoke=function() show_new_song_dialog() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker CTRL-N New Song Dialog...",invoke=function() pakettiImpulseTrackerNewSongDialog() end}
 -----------------------------------------------------
 ----ALT-U
 function Deselect_All()

@@ -2677,7 +2677,7 @@ local selected_tracks = {}
 local vb = renoise.ViewBuilder()
 
 -- Function to show the track renamer dialog
-function PakettiTrackRenamerDialog()
+function pakettiTrackRenamerDialog()
   -- Get the current selection in the pattern
   local selection = renoise.song().selection_in_pattern
   selected_tracks = {}
@@ -2778,10 +2778,10 @@ function ShowRenameDialogForTrack(index)
   dialog = renoise.app():show_custom_dialog("Paketti Track Renamer", dialog_content, key_handler)
 end
 
-renoise.tool():add_keybinding{name="Mixer:Paketti:Paketti Track Renamer Dialog...",invoke=PakettiTrackRenamerDialog}
-renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Paketti Track Renamer Dialog...",invoke=PakettiTrackRenamerDialog}
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Paketti Track Renamer Dialog...",invoke=PakettiTrackRenamerDialog}
-renoise.tool():add_midi_mapping{name="Paketti:Paketti Track Renamer",invoke=PakettiTrackRenamerDialog}
+renoise.tool():add_keybinding{name="Mixer:Paketti:Paketti Track Renamer Dialog...",invoke=pakettiTrackRenamerDialog}
+renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Paketti Track Renamer Dialog...",invoke=pakettiTrackRenamerDialog}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Paketti Track Renamer Dialog...",invoke=pakettiTrackRenamerDialog}
+renoise.tool():add_midi_mapping{name="Paketti:Paketti Track Renamer",invoke=pakettiTrackRenamerDialog}
 
 -----
 function effectbypasspattern()

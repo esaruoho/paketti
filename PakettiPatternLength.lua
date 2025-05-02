@@ -271,7 +271,7 @@ local function cleanup_dialog()
 end
 
 -- Show or toggle the Length dialog
-function show_length_dialog()
+function pakettiLengthDialog()
   -- If already open, clean up and close
   if dialog and dialog.visible then
     debug_print("Show dialog: Dialog already open, cleaning up")
@@ -366,11 +366,11 @@ function show_length_dialog()
   focus_textfield()
 end
 
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Show Pattern Length Dialog...",invoke=function() show_length_dialog() end}
-renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Show Phrase Length Dialog...",invoke=function() show_length_dialog() end}
-renoise.tool():add_keybinding{name="Global:Paketti:Show Pattern/Phrase Length Dialog...",invoke=function() show_length_dialog() end}
-renoise.tool():add_midi_mapping{name="Paketti:Show Pattern/Phrase Length Dialog...",invoke=function(message) if message:is_trigger() then show_length_dialog() end end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern/Phrase Length Dialog...",invoke=function() show_length_dialog() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Show Pattern Length Dialog...",invoke=function() pakettiLengthDialog() end}
+renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Show Phrase Length Dialog...",invoke=function() pakettiLengthDialog() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Show Pattern/Phrase Length Dialog...",invoke=function() pakettiLengthDialog() end}
+renoise.tool():add_midi_mapping{name="Paketti:Show Pattern/Phrase Length Dialog...",invoke=function(message) if message:is_trigger() then pakettiLengthDialog() end end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern/Phrase Length Dialog...",invoke=function() pakettiLengthDialog() end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Pattern Editor..:Pattern Length Increase by 8",invoke=function() adjust_length_by(8) end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Pattern Length Decrease by 8",invoke=function() adjust_length_by(-8) end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Pattern Length Increase by LPB",invoke=function() adjust_length_by("lpb") end}

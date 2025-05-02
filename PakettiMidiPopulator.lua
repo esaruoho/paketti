@@ -362,7 +362,7 @@ local function on_save_and_close_pressed()
   dialog = nil
 end
 
-function generaMIDISetupShowCustomDialog()
+function pakettiMIDIPopulator()
   if dialog and dialog.visible then
     dialog:close()
     dialog = nil
@@ -563,7 +563,7 @@ function generaMIDISetupShowCustomDialog()
   dialog = renoise.app():show_custom_dialog("Paketti MIDI Populator", dialog_content, my_keyhandler_func)
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Paketti MIDI Populator Dialog...",invoke=function() generaMIDISetupShowCustomDialog() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti MIDI Populator Dialog...",invoke=function() pakettiMIDIPopulator() end}
 
 function table.index_of(tab, val)
   for index, value in ipairs(tab) do

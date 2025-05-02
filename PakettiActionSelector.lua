@@ -49,7 +49,7 @@ local paketti_files = {
 
 local dialog = nil
 
-function ActionSelectorDialog()
+function pakettiActionSelectorDialog()
   if dialog and dialog.visible then
     dialog:close()
     return
@@ -377,8 +377,8 @@ end
 -- Usage example:
 -- song.instruments[i].name = ensure_sequential_channel_prefix(song.instruments[i].name, i)
 
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Paketti Action Selector Dialog...",invoke = ActionSelectorDialog}
-renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Paketti Action Selector Dialog...",invoke = ActionSelectorDialog}
-renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Paketti Action Selector Dialog...",invoke = ActionSelectorDialog}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Paketti Action Selector Dialog...",invoke = ActionSelectorDialog}
-renoise.tool():add_keybinding{name="Global:Paketti:Paketti Action Selector Dialog...",invoke = ActionSelectorDialog}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Paketti Action Selector Dialog...",invoke = pakettiActionSelectorDialog}
+renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Paketti Action Selector Dialog...",invoke = pakettiActionSelectorDialog}
+renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Paketti Action Selector Dialog...",invoke = pakettiActionSelectorDialog}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Paketti Action Selector Dialog...",invoke = pakettiActionSelectorDialog}
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Action Selector Dialog...",invoke = pakettiActionSelectorDialog}

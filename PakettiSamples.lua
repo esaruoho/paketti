@@ -3026,7 +3026,7 @@ local function loadRandomDrumkitSamples(num_samples, folder_path)
 end
 
 -- Main dialog function
-function PakettiUserDefinedSamplesShowDialog()
+function pakettiUserDefinedSamplesDialog()
   if dialog and dialog.visible then
     dialog:close()
     dialog = nil
@@ -3103,11 +3103,11 @@ function PakettiUserDefinedSamplesShowDialog()
   dialog = renoise.app():show_custom_dialog("Paketti User-Defined Sample Folders", rows, my_keyhandler_func)
 end
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti User-Defined Sample Folders...",invoke=PakettiUserDefinedSamplesShowDialog}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Quick Sample Folders..:Paketti User-Defined Sample Folders...",invoke=PakettiUserDefinedSamplesShowDialog}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:User-Defined Sample Folders...",invoke=PakettiUserDefinedSamplesShowDialog}
-renoise.tool():add_menu_entry{name="--Disk Browser Files:Paketti..:User-Defined Sample Folders...",invoke=PakettiUserDefinedSamplesShowDialog}
-renoise.tool():add_keybinding{name="Global:Paketti:User-Defined Sample Folders...",invoke=PakettiUserDefinedSamplesShowDialog}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti User-Defined Sample Folders...",invoke=pakettiUserDefinedSamplesDialog}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Quick Sample Folders..:Paketti User-Defined Sample Folders...",invoke=pakettiUserDefinedSamplesDialog}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:User-Defined Sample Folders...",invoke=pakettiUserDefinedSamplesDialog}
+renoise.tool():add_menu_entry{name="--Disk Browser Files:Paketti..:User-Defined Sample Folders...",invoke=pakettiUserDefinedSamplesDialog}
+renoise.tool():add_keybinding{name="Global:Paketti:User-Defined Sample Folders...",invoke=pakettiUserDefinedSamplesDialog}
 -- Function to get folder path from preferences
 function getFolderPath(folderNum)
   local preferences = renoise.tool().preferences
@@ -4187,7 +4187,7 @@ renoise.tool():add_keybinding{name="Sample Editor:Paketti:Snap Loop To Nearest R
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Snap Loop To Nearest Row",invoke=snap_loop_to_rows}
 
 ---------
-function ShowLargestSamples()
+function pakettiShowLargestSamplesDialog()
   local song=renoise.song()
   local vb = renoise.ViewBuilder()
   local dialog = nil
@@ -4221,7 +4221,7 @@ function ShowLargestSamples()
     return samples_list
   end
 
-  local function ShowLargestSamplesDialog()
+  local function pakettiShowLargestSamplesDialogDialog()
     local samples = collect_samples()
     
     if #samples == 0 then
@@ -4240,7 +4240,7 @@ function ShowLargestSamples()
             if dialog and dialog.visible then
               dialog:close()
             end
-            ShowLargestSamplesDialog()
+            pakettiShowLargestSamplesDialogDialog()
           end
         },
         vb:button{
@@ -4250,7 +4250,7 @@ function ShowLargestSamples()
             if dialog and dialog.visible then
               dialog:close()
             end
-            ShowLargestSamplesDialog()
+            pakettiShowLargestSamplesDialogDialog()
           end
         },
           vb:text{
@@ -4317,12 +4317,12 @@ function ShowLargestSamples()
     dialog = renoise.app():show_custom_dialog("Show Largest Samples (Top 40)",dialog_content)
   end
   
-  ShowLargestSamplesDialog()
+  pakettiShowLargestSamplesDialogDialog()
 end
-renoise.tool():add_menu_entry{name="--Main Menu:File:Show Largest Samples Dialog...",invoke = ShowLargestSamples}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Show Largest Samples Dialog...",invoke = ShowLargestSamples}
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Show Largest Samples Dialog...",invoke = ShowLargestSamples}
-renoise.tool():add_keybinding{name="Global:Paketti:Show Largest Samples Dialog...",invoke = ShowLargestSamples}
+renoise.tool():add_menu_entry{name="--Main Menu:File:Show Largest Samples Dialog...",invoke = pakettiShowLargestSamplesDialog}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Show Largest Samples Dialog...",invoke = pakettiShowLargestSamplesDialog}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Show Largest Samples Dialog...",invoke = pakettiShowLargestSamplesDialog}
+renoise.tool():add_keybinding{name="Global:Paketti:Show Largest Samples Dialog...",invoke = pakettiShowLargestSamplesDialog}
 ---------
 -- Function to duplicate track and instrument with all settings
 function duplicateTrackAndInstrument()

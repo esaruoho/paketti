@@ -1698,7 +1698,7 @@ function randomize_groove()
 end
 
 -- Paketti Groovebox 8120 Dialog
-function PakettiEightSlotsByOneTwentyDialog()
+function pakettiEightSlotsByOneTwentyDialog()
   if dialog and dialog.visible then
     dialog:show()
     return
@@ -1928,7 +1928,7 @@ function GrooveboxShowClose()
     dialog:close()
     dialog = nil
     rows = {}
-  else PakettiEightSlotsByOneTwentyDialog() end
+  else pakettiEightSlotsByOneTwentyDialog() end
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120",invoke=function() GrooveboxShowClose() end}
@@ -1940,7 +1940,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120",invoke=fun
       dialog:close()
       dialog = nil
       rows = {}
-    else PakettiEightSlotsByOneTwentyDialog() end end end}
+    else pakettiEightSlotsByOneTwentyDialog() end end end}
 
 function debug_instruments_and_samples()
   print("----- Debug: Instruments and Samples (Velocity 00-7F) -----")

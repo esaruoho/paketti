@@ -307,7 +307,7 @@ local function create_dialog_content(closeLA_dialog)
     }
 end
 
-function show_app_selection_dialog()
+function pakettiAppSelectionDialog()
     if dialog and dialog.visible then 
         dialog:close()
         dialog = nil
@@ -556,7 +556,7 @@ local app_name = app_path:match("([^/\\]+)%.app$") or app_path:match("([^/\\]+)$
   local configure_entry_name="--Instrument Box:Paketti..:Launch App..:Configure Launch App Selection..."
   if not renoise.tool():has_menu_entry(configure_entry_name) then
     renoise.tool():add_menu_entry{name=configure_entry_name,
-      invoke=show_app_selection_dialog
+      invoke=pakettiAppSelectionDialog
     }
     table.insert(added_menu_entries, configure_entry_name)
   end
@@ -564,7 +564,7 @@ local app_name = app_path:match("([^/\\]+)%.app$") or app_path:match("([^/\\]+)$
   configure_entry_name="--Main Menu:Tools:Paketti..:Launch App..:Configure Launch App Selection..."
   if not renoise.tool():has_menu_entry(configure_entry_name) then
     renoise.tool():add_menu_entry{name=configure_entry_name,
-      invoke=show_app_selection_dialog
+      invoke=pakettiAppSelectionDialog
     }
     table.insert(added_menu_entries, configure_entry_name)
   end
@@ -572,20 +572,20 @@ local app_name = app_path:match("([^/\\]+)%.app$") or app_path:match("([^/\\]+)$
   configure_entry_name="--Sample Navigator:Paketti..:Launch App..:Configure Launch App Selection..."
   if not renoise.tool():has_menu_entry(configure_entry_name) then
     renoise.tool():add_menu_entry{name=configure_entry_name,
-      invoke=show_app_selection_dialog
+      invoke=pakettiAppSelectionDialog
     }
     table.insert(added_menu_entries, configure_entry_name)
   end  
   configure_entry_name="--Sample Editor:Paketti..:Launch App..:Configure Launch App Selection..."
   if not renoise.tool():has_menu_entry(configure_entry_name) then
     renoise.tool():add_menu_entry{name=configure_entry_name,
-      invoke=show_app_selection_dialog
+      invoke=pakettiAppSelectionDialog
     }
     table.insert(added_menu_entries, configure_entry_name)
   end 
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Configure Launch App Selection...",invoke=show_app_selection_dialog}
+renoise.tool():add_keybinding{name="Global:Paketti:Configure Launch App Selection...",invoke=pakettiAppSelectionDialog}
 
 function appSelectionUpdateMenuEntries()
   if renoise.song() == nil then return end

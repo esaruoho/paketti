@@ -177,7 +177,7 @@ local function show_merge_dialog(initial_source_index, initial_target_index)
   dialog = renoise.app():show_custom_dialog("Merge Instruments", content)
 end
 
-function mergeInstrumentsDialog()
+function pakettiMergeInstrumentsDialog()
   local song=renoise.song()
   local target_index = song.selected_instrument_index
   local source_index = target_index - 1
@@ -189,13 +189,13 @@ end
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:Merge Instruments...",
   invoke=function()
-    mergeInstrumentsDialog()
+    pakettiMergeInstrumentsDialog()
   end
 }
 
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Merge Instruments...",
   invoke=function()
-    mergeInstrumentsDialog()
+    pakettiMergeInstrumentsDialog()
   end
 }
 

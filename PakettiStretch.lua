@@ -414,7 +414,7 @@ local function analyze_pattern_settings(pattern_index)
 end
 
 -- Dialog creation and pattern manipulation for timestretching
-function create_timestretch_dialog()
+function pakettiTimestretchDialog()
 
     -- First, check if dialog exists and is visible
     if dialog and dialog.visible then
@@ -1450,7 +1450,7 @@ step_slider = vb:slider{
     -- Initial update of timing displays
     update_timing_displays()
     
-    -- At the end of create_timestretch_dialog(), before showing the dialog
+    -- At the end of pakettiTimestretchDialog(), before showing the dialog
     -- First analyze the pattern
     local detected_step, detected_fill = analyze_pattern_settings(current_pattern_index)
     local pattern = song.patterns[current_pattern_index]
@@ -1525,10 +1525,10 @@ step_slider = vb:slider{
     dialog = renoise.app():show_custom_dialog("Paketti Timestretch Dialog", dialog_content, my_keyhandler_func)
 end
 
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Paketti Timestretch Dialog...",invoke=create_timestretch_dialog}
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Paketti Timestretch Dialog...",invoke=create_timestretch_dialog}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Paketti Timestretch Dialog...",invoke=create_timestretch_dialog}
-renoise.tool():add_keybinding{name="Global:Paketti:Timestretch Dialog...",invoke=create_timestretch_dialog}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Paketti Timestretch Dialog...",invoke=pakettiTimestretchDialog}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Paketti Timestretch Dialog...",invoke=pakettiTimestretchDialog}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Paketti Timestretch Dialog...",invoke=pakettiTimestretchDialog}
+renoise.tool():add_keybinding{name="Global:Paketti:Timestretch Dialog...",invoke=pakettiTimestretchDialog}
 render_context = {
     source_track = 0,
     target_track = 0,

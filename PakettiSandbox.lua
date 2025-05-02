@@ -204,7 +204,7 @@ local function calculate_bpm(speed, tempo)
 end
 
 -- GUI Dialog Function
-function show_speed_tempo_dialog()
+function pakettiSpeedTempoDialog()
   if dialog and dialog.visible then
     dialog:close()
     dialog = nil
@@ -284,9 +284,9 @@ function show_speed_tempo_dialog()
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 end
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:BPM&LPB..:Paketti Speed and Tempo to BPM...",invoke=show_speed_tempo_dialog}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:BPM&LPB..:Paketti Speed and Tempo to BPM...",invoke=show_speed_tempo_dialog}
-renoise.tool():add_keybinding{name="Global:Paketti:Paketti Speed and Tempo to BPM...",invoke=show_speed_tempo_dialog}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:BPM&LPB..:Paketti Speed and Tempo to BPM...",invoke=pakettiSpeedTempoDialog}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:BPM&LPB..:Paketti Speed and Tempo to BPM...",invoke=pakettiSpeedTempoDialog}
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Speed and Tempo to BPM...",invoke=pakettiSpeedTempoDialog}
 
 
 -- Function to check if values exceed Renoise limits and adjust if needed
@@ -414,7 +414,7 @@ function configureTimeSignature(F, K)
 end
 
 -- Function to show custom time signature dialog
-function showTimeSignatureDialog()
+function pakettiBeatStructureEditorDialog()
   local vb = renoise.ViewBuilder()
   
   local DIALOG_MARGIN = renoise.ViewBuilder.DEFAULT_DIALOG_MARGIN
@@ -611,9 +611,9 @@ function showTimeSignatureDialog()
   renoise.app().window.active_middle_frame = 1
 end
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti Beat Structure Editor...",invoke=showTimeSignatureDialog}
-renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Paketti Beat Structure Editor...",invoke=showTimeSignatureDialog}
-renoise.tool():add_keybinding{name="Global:Paketti:Paketti Beat Structure Editor...",invoke=showTimeSignatureDialog}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti Beat Structure Editor...",invoke=pakettiBeatStructureEditorDialog}
+renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Paketti Beat Structure Editor...",invoke=pakettiBeatStructureEditorDialog}
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Beat Structure Editor...",invoke=pakettiBeatStructureEditorDialog}
 -------
 
 -- Function to toggle columns with configurable options

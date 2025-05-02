@@ -83,7 +83,7 @@ function set_sample_selection_by_hex_offset(hex_value)
     focus_sample_editor()
 end
 
-function create_hex_offset_dialog()
+function pakettiHexOffsetDialog()
 if dialog and dialog.visible then
     dialog:close()
     dialog = nil
@@ -165,8 +165,8 @@ end
     focus_sample_editor()
 end
 
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Set Selection by Hex Offset...", invoke = create_hex_offset_dialog}
-renoise.tool():add_menu_entry{name="Sample Editor Ruler:Set Selection by Hex Offset...", invoke = create_hex_offset_dialog}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Set Selection by Hex Offset...", invoke = pakettiHexOffsetDialog}
+renoise.tool():add_menu_entry{name="Sample Editor Ruler:Set Selection by Hex Offset...", invoke = pakettiHexOffsetDialog}
 
 function cut_sample_after_selection()
   local song=renoise.song()

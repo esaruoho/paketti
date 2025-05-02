@@ -747,7 +747,7 @@ local function update_dialog_on_selection_change()
 end
 
 -- Function to show or hide the combined dialog
-function PakettiAudioProcessingToolsDialogShow()  
+function pakettiAudioProcessingToolsDialog()  
   if renoise.song().selected_instrument_observable:has_notifier(update_dialog_on_selection_change) then
     renoise.song().selected_instrument_observable:remove_notifier(update_dialog_on_selection_change)
   end
@@ -812,7 +812,7 @@ renoise.tool():add_keybinding{name="Sample Editor:Paketti:Clip bottom of wavefor
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Modulate & Audio Diff",invoke=function() modulate_and_diff_sample() end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Invert Right, Sum Mono",invoke=function() invert_right_sum_mono() end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Audio Diff",invoke=function() create_audio_diff_sample() end}
-renoise.tool():add_keybinding{name="Global:Paketti:Paketti Audio Processing Tools Dialog...",invoke=function() PakettiAudioProcessingToolsDialogShow() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Audio Processing Tools Dialog...",invoke=function() pakettiAudioProcessingToolsDialog() end}
 
 function update_sample_details(details_text, sample_name_text)
   -- If UI elements are not properly initialized, exit early

@@ -24,7 +24,7 @@ function PakettiXRNSProbeSetText(text)
   results_textfield.text = text
 end
 
-function PakettiXRNSProbeShowDialog(mode)
+function pakettiXRNSProbeShowDialog(mode)
   if dialog and dialog.visible then
     dialog:close()
     return
@@ -889,12 +889,12 @@ function PakettiXRNSProbeFindAlternativeFormat(device)
   
   return #alternatives > 0 and alternatives or nil
 end
-renoise.tool():add_keybinding{name="Global:Paketti:Paketti XRNS Probe",invoke = PakettiXRNSProbeShowDialog}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress..:Paketti XRNS Probe",invoke = PakettiXRNSProbeShowDialog}
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti XRNS Probe",invoke = pakettiXRNSProbeShowDialog}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress..:Paketti XRNS Probe",invoke = pakettiXRNSProbeShowDialog}
 
 -- Only add Browse menu entry if show_browse is true
 if show_browse then
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress..:Paketti XRNS Probe (Browse)",invoke=function() PakettiXRNSProbeShowDialog("Browse") end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress..:Paketti XRNS Probe (Browse)",invoke=function() pakettiXRNSProbeShowDialog("Browse") end}
 end
 
 function MissingDeviceParameters()

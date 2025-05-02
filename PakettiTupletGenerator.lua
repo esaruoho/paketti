@@ -135,7 +135,7 @@ local function apply_to_pattern(pattern_text, row_count, views)
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 end
 
-function show_tuplet_dialog()
+function pakettiTupletDialog()
   if dialog and dialog.visible then
     dialog:close()
     dialog = nil
@@ -362,5 +362,5 @@ function show_tuplet_dialog()
   vb.views.note_count.edit_mode = true
 end
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress..:Paketti Tuplet Writer Dialog...",invoke=function() show_tuplet_dialog() end}
-renoise.tool():add_keybinding{name="Global:Paketti:Paketti Tuplet Writer Dialog...",invoke=function() show_tuplet_dialog() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress..:Paketti Tuplet Writer Dialog...",invoke=function() pakettiTupletDialog() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Tuplet Writer Dialog...",invoke=function() pakettiTupletDialog() end}

@@ -472,7 +472,7 @@ function updateDeviceList()
   current_device_list_content = device_list_content
 end
 
-function showDeviceListDialog()
+function pakettiLoadDevicesDialog()
 
   -- Add dialog management from plugins version
   if custom_dialog and custom_dialog.visible then
@@ -584,7 +584,7 @@ loadDeviceFromPreferences()
 -------
 local custom_dialog = nil  -- Keep track of dialog state
 
-function showQuickLoadDialog()
+function pakettiQuickLoadDialog()
   -- Toggle dialog if it exists
   if custom_dialog and custom_dialog.visible then
     custom_dialog:close()
@@ -782,8 +782,8 @@ function showQuickLoadDialog()
   end
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Quick Load Device Dialog...", invoke=showQuickLoadDialog}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Quick Load Device Dialog...", invoke=showQuickLoadDialog}
-renoise.tool():add_menu_entry{name="DSP Device:Paketti..:Quick Load Device Dialog...", invoke=showQuickLoadDialog}
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Quick Load Device Dialog...", invoke=showQuickLoadDialog}
-renoise.tool():add_midi_mapping{name="Paketti:Quick Load Device Dialog... [Trigger]", invoke=function(message) if message:is_trigger() then showQuickLoadDialog() end end}
+renoise.tool():add_keybinding{name="Global:Paketti:Quick Load Device Dialog...", invoke=pakettiQuickLoadDialog}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Quick Load Device Dialog...", invoke=pakettiQuickLoadDialog}
+renoise.tool():add_menu_entry{name="DSP Device:Paketti..:Quick Load Device Dialog...", invoke=pakettiQuickLoadDialog}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Quick Load Device Dialog...", invoke=pakettiQuickLoadDialog}
+renoise.tool():add_midi_mapping{name="Paketti:Quick Load Device Dialog... [Trigger]", invoke=function(message) if message:is_trigger() then pakettiQuickLoadDialog() end end}

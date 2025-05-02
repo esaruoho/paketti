@@ -537,7 +537,7 @@ end
 end
 
 -- Function to create and show the MIDI mappings dialog
-function show_midi_mappings_dialog()
+function pakettiMIDIMappingsDialog()
   -- Close the dialog if it's already open
   if PakettiMidiMappingDialog and PakettiMidiMappingDialog.visible then
     PakettiMidiMappingDialog:close()
@@ -662,9 +662,9 @@ function generate_paketti_midi_mappings()
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti MIDI Mappings...",
-  invoke=function() show_midi_mappings_dialog() end}
+  invoke=function() pakettiMIDIMappingsDialog() end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:!Preferences..:Paketti MIDI Mappings...",
-  invoke=function() show_midi_mappings_dialog() end}
+  invoke=function() pakettiMIDIMappingsDialog() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Generate Paketti Midi Mappings to Console",
   invoke=function() generate_paketti_midi_mappings() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:!Preferences..:Debug..:Generate Paketti Midi Mappings to Console",
@@ -898,7 +898,7 @@ function pakettiKeyBindingsUpdateList()
 end
 
 -- Main function to display the Paketti keybindings dialog
-function showPakettiKeyBindingsDialog(selectedIdentifier)  -- Accept an optional parameter
+function pakettiKeyBindingsDialog(selectedIdentifier)  -- Accept an optional parameter
   -- Check if the dialog is already visible and close it
   if dialog and dialog.visible then
     dialog:close()
@@ -1049,7 +1049,7 @@ vb:row{vb:button{text="Save as Textfile", notifier = function()
   pakettiKeyBindingsSaveDebugLog(pakettiKeybindings, false)
 end
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:!Preferences..:Paketti KeyBindings...",invoke=function() showPakettiKeyBindingsDialog() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:!Preferences..:Paketti KeyBindings...",invoke=function() pakettiKeyBindingsDialog() end}
 -- Single list of valid menu locations (using correct menu paths)
 local menu_entries = {
   "Track Automation",  -- This will map to "Automation"
@@ -1072,18 +1072,18 @@ for _, menu_name in ipairs(menu_entries) do
   -- Get the correct identifier (handle special cases)
   local identifier = menu_to_identifier[menu_name] or menu_name
   
-  renoise.tool():add_menu_entry{name=menu_name .. ":Paketti..:Show Paketti KeyBindings...",invoke=function() showPakettiKeyBindingsDialog(identifier) end}
-  renoise.tool():add_menu_entry{name=menu_name .. ":Paketti..:Show Renoise KeyBindings...",invoke=function() showRenoiseKeyBindingsDialog(identifier) end}
+  renoise.tool():add_menu_entry{name=menu_name .. ":Paketti..:Show Paketti KeyBindings...",invoke=function() pakettiKeyBindingsDialog(identifier) end}
+  renoise.tool():add_menu_entry{name=menu_name .. ":Paketti..:Show Renoise KeyBindings...",invoke=function() pakettiRenoiseKeyBindingsDialog(identifier) end}
 end
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:!Preferences..:Renoise KeyBindings...",
-  invoke=function() showRenoiseKeyBindingsDialog() end}
+  invoke=function() pakettiRenoiseKeyBindingsDialog() end}
 
 renoise.tool():add_keybinding{name="Global:Paketti:Show Paketti KeyBindings Dialog...",
-  invoke=function() showPakettiKeyBindingsDialog() end}
+  invoke=function() pakettiKeyBindingsDialog() end}
 
 renoise.tool():add_keybinding{name="Global:Paketti:Show Renoise KeyBindings Dialog...",
-  invoke=function() showRenoiseKeyBindingsDialog() end}
+  invoke=function() pakettiRenoiseKeyBindingsDialog() end}
 
 -------------------------------------------
 
@@ -1313,7 +1313,7 @@ end
 
 
 -- Main function to display the Renoise keybindings dialog
-function showRenoiseKeyBindingsDialog(selectedIdentifier)  -- Accept an optional parameter
+function pakettiRenoiseKeyBindingsDialog(selectedIdentifier)  -- Accept an optional parameter
   -- Check if the dialog is already visible and close it
   if renoise_dialog and renoise_dialog.visible then
     renoise_dialog:close()
@@ -1487,9 +1487,9 @@ local renoise_identifiers = {
 
 for _, identifier in ipairs(renoise_identifiers) do
   renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:!Preferences..:Renoise KeyBindings..:" .. identifier,
-    invoke=function() showRenoiseKeyBindingsDialog(identifier) end}
+    invoke=function() pakettiRenoiseKeyBindingsDialog(identifier) end}
   renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:!Preferences..:Paketti KeyBindings..:" .. identifier,
-    invoke=function() showPakettiKeyBindingsDialog(identifier) end}  
+    invoke=function() pakettiKeyBindingsDialog(identifier) end}  
 end
 
 
@@ -1684,7 +1684,7 @@ function print_free_combinations()
 end
 
 -- Function to show the free keybindings dialog
-function show_free_keybindings_dialog()
+function pakettiFreeKeybindingsDialog()
   local vb = renoise.ViewBuilder()
   local dialog_content = vb:column{
     margin=renoise.ViewBuilder.DEFAULT_DIALOG_MARGIN,
@@ -1824,9 +1824,9 @@ function show_free_keybindings_dialog()
   update_free_list()
 end
 
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:!Preferences..:Find Free KeyBindings...",invoke=show_free_keybindings_dialog}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:!Preferences..:Find Free KeyBindings...",invoke=pakettiFreeKeybindingsDialog}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:!Preferences..:Debug..:Print Free KeyBindings to Terminal",invoke=print_free_combinations}
-renoise.tool():add_keybinding{name="Global:Paketti:Show Free KeyBindings Dialog...",invoke=show_free_keybindings_dialog}
+renoise.tool():add_keybinding{name="Global:Paketti:Show Free KeyBindings Dialog...",invoke=pakettiFreeKeybindingsDialog}
 
 -- Function to normalize modifier order to match Renoise's XML format
 function normalize_modifier_order(modifiers)

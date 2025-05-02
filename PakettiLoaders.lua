@@ -1027,7 +1027,7 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Inspect Selected Device",invoke=function() inspectEffect() end}
 renoise.tool():add_menu_entry{name="--DSP Device:Paketti..:Inspect Selected Device",invoke=function() inspectEffect() end}
 ------------------------------------------------------------------------------------------------------
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Plugins/Devices..:Debug..:Show Plugin Details Dialog...",invoke=function() show_plugin_details_gui() end}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Plugins/Devices..:Debug..:Show Plugin Details Dialog...",invoke=function() pakettiDebugPluginInfoDialog() end}
 
 -- Declare the customdialog variable at the beginning
 customdialog = nil
@@ -1105,7 +1105,7 @@ function display_selected_plugin_details(index, available_plugin_infos)
   end
 end
 
-function show_plugin_details_gui()
+function pakettiDebugPluginInfoDialog()
   if dialog and dialog.visible then
     dialog:close()
     dialog = nil
@@ -1169,7 +1169,7 @@ function show_plugin_details_gui()
   dialog = renoise.app():show_custom_dialog("Plugin Details", dialog_content, my_keyhandler_func)
 end
 -----
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:Debug..:Show Effect Details Dialog...",invoke=function() show_effect_details_gui() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:Debug..:Show Effect Details Dialog...",invoke=function() pakettiDebugDeviceInfoDialog() end}
 
 -- Declare the customdialog variable at the beginning
 customdialog = nil
@@ -1253,7 +1253,7 @@ function display_selected_device_details(index, available_device_infos)
 end
 
 -- Function to show the effect details GUI
-function show_effect_details_gui()
+function pakettiDebugDeviceInfoDialog()
   if dialog and dialog.visible then
     dialog:close()
     dialog = nil
@@ -1946,10 +1946,10 @@ renoise.tool():add_keybinding{name="Global:Paketti:Show/Hide Track DSP and FX Ch
 
 end}
 ---------------------
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Plugins/Devices..:Randomize Devices and Plugins Dialog...",invoke=function() openCombinedRandomizerDialog() end}
-renoise.tool():add_menu_entry{name="DSP Device:Paketti..:Randomize Devices and Plugins Dialog...",invoke=function() openCombinedRandomizerDialog() end}
-renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Randomize Devices and Plugins Dialog...",invoke=function() openCombinedRandomizerDialog() end}
-renoise.tool():add_keybinding{name="Global:Paketti:Randomize Devices and Plugins Dialog...",invoke=function() openCombinedRandomizerDialog() end}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Plugins/Devices..:Randomize Devices and Plugins Dialog...",invoke=function() pakettiRandomizerDialog() end}
+renoise.tool():add_menu_entry{name="DSP Device:Paketti..:Randomize Devices and Plugins Dialog...",invoke=function() pakettiRandomizerDialog() end}
+renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Randomize Devices and Plugins Dialog...",invoke=function() pakettiRandomizerDialog() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize Devices and Plugins Dialog...",invoke=function() pakettiRandomizerDialog() end}
 
 renoise.tool():add_keybinding{name="Global:Paketti:Randomize Selected Device with User1 (%)",invoke=function() randomizeSelectedDeviceFromGUI(preferences.RandomizeSettings.pakettiRandomizeSelectedDevicePercentageUserPreference1.value) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Randomize Selected Device with User2 (%)",invoke=function() randomizeSelectedDeviceFromGUI(preferences.RandomizeSettings.pakettiRandomizeSelectedDevicePercentageUserPreference2.value) end}
@@ -2146,7 +2146,7 @@ function toggleAllExternalPluginEditorsInSong()
   renoise.app():show_status("Toggled all external editors for all plugins in the song")
 end
 
-function openCombinedRandomizerDialog()
+function pakettiRandomizerDialog()
   local vb = renoise.ViewBuilder()
   local song=renoise.song()
   local device = song.selected_device

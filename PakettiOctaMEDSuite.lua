@@ -458,7 +458,7 @@ local function load_dialog_content_from_file()
 end
 
 -- Function to toggle the visibility of the dialog
-function toggle_paketti_pick_dialog()
+function pakettiOctaMEDPickPutRowDialog()
   if dialog and dialog.visible then
     dialog:close()
     dialog = nil
@@ -579,8 +579,8 @@ for i = 1, 10 do
 end
 
 
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:OctaMED Pick/Put Dialog...",invoke=function() toggle_paketti_pick_dialog() end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Other Trackers..:OctaMED Pick/Put Dialog...",invoke=function() toggle_paketti_pick_dialog() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:OctaMED Pick/Put Dialog...",invoke=function() pakettiOctaMEDPickPutRowDialog() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Other Trackers..:OctaMED Pick/Put Dialog...",invoke=function() pakettiOctaMEDPickPutRowDialog() end}
 
 ------
 -- Function to spread notes across multiple columns
@@ -776,7 +776,7 @@ for i = 1, 16 do
   }
 end
 -------
-function create_echo_dialog()
+function pakettiOctaMEDNoteEchoDialog()
   local vb = renoise.ViewBuilder()
   local dialog = nil
   
@@ -984,6 +984,6 @@ function CreateNoteEcho(distance, min_volume)
   end
 end
 
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:OctaMED Note Echo Dialog...",invoke = create_echo_dialog}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Other Trackers..:OctaMED Note Echo Dialog...",invoke = create_echo_dialog}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:OctaMED Note Echo Dialog...",invoke = pakettiOctaMEDNoteEchoDialog}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Other Trackers..:OctaMED Note Echo Dialog...",invoke = pakettiOctaMEDNoteEchoDialog}
 ---------

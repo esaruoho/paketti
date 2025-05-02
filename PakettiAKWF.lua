@@ -101,9 +101,9 @@ renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti..:AKWF..:Load 05 
 renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti..:AKWF..:Load 12 AKWF Samples with Overlap Random",invoke=function() load_random_akwf_sample(12) DrumKitToOverlay(2) end}
 renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti..:AKWF..:Load 12 AKWF Samples with Overlap Cycle",invoke=function() load_random_akwf_sample(12) DrumKitToOverlay(1) end}
 
-renoise.tool():add_keybinding{name="Global:Paketti:Load 04 AKWF Samples (XY)",invoke=function() Load04AKWFSamplesXY() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Load 04 AKWF Samples (XY)",invoke=function() pakettiLoad04AKWFSamplesXYDialog() end}
   
-function Load04AKWFSamplesXY()
+function pakettiLoad04AKWFSamplesXYDialog()
   load_random_akwf_sample(4)
   for i = 1,#renoise.song().selected_instrument.samples do
   renoise.song().selected_instrument.samples[i].volume = 0

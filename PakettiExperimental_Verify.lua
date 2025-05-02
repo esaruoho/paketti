@@ -48,7 +48,7 @@ local function normalize_gain(gain)
 end
 
 -- Function to create the EQ10 dialog
-function show_eq10_dialog()
+function pakettiEQ10XYDialog()
   local vb = renoise.ViewBuilder()
   local dialog = nil
   
@@ -118,8 +118,8 @@ function show_eq10_dialog()
   dialog = renoise.app():show_custom_dialog("EQ10 XY Control",content,my_keyhandler_func)
 end
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:EQ10 XY Control...",invoke = show_eq10_dialog}
-renoise.tool():add_keybinding{name="Global:Paketti:Show EQ10 XY Control Dialog...",invoke = show_eq10_dialog}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:EQ10 XY Control...",invoke = pakettiEQ10XYDialog}
+renoise.tool():add_keybinding{name="Global:Paketti:Show EQ10 XY Control Dialog...",invoke = pakettiEQ10XYDialog}
 -----
 local match_editstep_enabled = false
 local last_line_index = nil
@@ -508,7 +508,7 @@ local function load_both_from_slot(slot_number)
 end
 
 -- Function to show the Paketti Device Chain Dialog with XRNI functionality
-function show_paketti_device_chain_dialog()
+function pakettiDeviceChainDialog()
   if dialog and dialog.visible then
     dialog:show()
     return
@@ -699,9 +699,9 @@ local function add_menu_entries_and_keybindings()
 end
 
 add_menu_entries_and_keybindings()
-renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Device Chains..:Open Track DSP Device & Instrument Loader...",invoke=function() show_paketti_device_chain_dialog() end}
-renoise.tool():add_menu_entry{name="--DSP Device:Paketti..:Device Chains..:Open Track DSP Device & Instrument Loader...",invoke=function() show_paketti_device_chain_dialog() end}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Paketti Track DSP Device & Instrument Loader...",invoke=function() show_paketti_device_chain_dialog() end}
+renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Device Chains..:Open Track DSP Device & Instrument Loader...",invoke=function() pakettiDeviceChainDialog() end}
+renoise.tool():add_menu_entry{name="--DSP Device:Paketti..:Device Chains..:Open Track DSP Device & Instrument Loader...",invoke=function() pakettiDeviceChainDialog() end}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Paketti Track DSP Device & Instrument Loader...",invoke=function() pakettiDeviceChainDialog() end}
 
 ------------------------
 local vb = renoise.ViewBuilder()

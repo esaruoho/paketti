@@ -227,11 +227,11 @@ end
 
 
 
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Paketti Effect Column CheatSheet...",invoke=function() CheatSheet() end}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Paketti Effect Column CheatSheet...",invoke=function() pakettiPatternEditorCheatsheetDialog() end}
 
 -------- Plugins/Devices
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:Load Devices...",invoke=function()
-showDeviceListDialog()
+pakettiLoadDevicesDialog()
 end}
 
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Pattern Editor..:Clone Current Sequence",invoke=clone_current_sequence}
@@ -283,66 +283,66 @@ local button_list = {
   {"Paketti Preferences", "pakettiPreferences"},
   {"Theme Selector", "pakettiThemeSelectorDialogShow"},
   {"Gater", "pakettiGaterDialog"},
-  {"Effect Column CheatSheet", "CheatSheet"},
+  {"Effect Column CheatSheet", "pakettiPatternEditorCheatsheetDialog"},
   {"Phrase Init Dialog", "pakettiPhraseSettings"},
-  {"Dynamic Views 1-4", function() showDynamicViewDialog(1,4) end},
-  {"Dynamic Views 5-8", function() showDynamicViewDialog(5,8) end},
+  {"Dynamic Views 1-4", function() pakettiDynamicViewDialog(1,4) end},
+  {"Dynamic Views 5-8", function() pakettiDynamicViewDialog(5,8) end},
   {"Automation Value Dialog", "pakettiAutomationValue"},
-  {"Merge Instruments", "mergeInstrumentsDialog"},
-  {"Paketti Track DSP Device & Instrument Loader", "show_paketti_device_chain_dialog"},
-  {"Paketti Volume/Delay/Pan Slider Controls", "show_VDPdialog"},
-  {"Paketti Global Volume Adjustment", "show_global_volume_dialog"},
+  {"Merge Instruments", "pakettiMergeInstrumentsDialog"},
+  {"Paketti Track DSP Device & Instrument Loader", "pakettiDeviceChainDialog"},
+  {"Paketti Volume/Delay/Pan Slider Controls", "pakettiVolDelayPanSliderDialog"},
+  {"Paketti Global Volume Adjustment", "pakettiGlobalVolumeDialog"},
   {"Paketti Offset Dialog", "pakettiOffsetDialog"},
   {"PitchStepper Demo", "pakettiPitchStepperDemo"},
   {"Value Interpolation Looper Dialog", "pakettiVolumeInterpolationLooper"},
-  {"MIDI Populator", "generaMIDISetupShowCustomDialog"},
-  {"New Song Dialog", "show_new_song_dialog"},
-  {"Paketti Stacker", function() showStackingDialog(proceed_with_stacking) end},
-  {"SlotShow", "PakettiUserPreferencesShowerDialog"},
-  {"Configure Launch App Selection/Paths", "show_app_selection_dialog"},
-  {"Paketti KeyBindings", "showPakettiKeyBindingsDialog"},
-  {"Renoise KeyBindings", "showRenoiseKeyBindingsDialog"},
-  {"Find Free KeyBindings", "show_free_keybindings_dialog"},
-  {"TimeStretch Dialog", "create_timestretch_dialog"},
-  {"Fuzzy Search Track", "show_track_search_dialog"},
-  {"Keyzone Distributor", "show_keyzone_distributor"},
-  {"Paketti Formula Device Manual", "show_manual"},
-  {"Paketti Pattern/Phrase Length Dialog", "show_length_dialog"},
-  {"Paketti EQ10 XY Control Dialog", "show_eq10_dialog"},
-  {"EditStep Dialog", "show_edit_step_dialog"},
-  {"Switch Note Instrument Dialog", "show_note_mapping_dialog"},
-  {"Show Largest Samples", "ShowLargestSamples"},
-  {"Beat Structure Editor", "showTimeSignatureDialog"},
-  {"Paketti XRNS Probe", "PakettiXRNSProbeShowDialog"},
-  {"Audio Processing", "PakettiAudioProcessingToolsDialogShow"},
-  {"eSpeak Text-to-Speech", "PakettieSpeakToggleDialog"},
-  {"YT-DLP Downloader", "PakettiYTDLPShowDialog"},
-  {"User-Defined Sample Folders", "PakettiUserDefinedSamplesShowDialog"},
-  {"Output Routings", "trackOutputRoutingsGUI_create"},
-  {"Convolver Dialog", "show_convolver_selection_dialog"},
+  {"MIDI Populator", "pakettiMIDIPopulator"},
+  {"New Song Dialog", "pakettiImpulseTrackerNewSongDialog"},
+  {"Paketti Stacker", function() pakettiStackerDialog(proceed_with_stacking) end},
+  {"SlotShow", "pakettiUserPreferencesShowerDialog"},
+  {"Configure Launch App Selection/Paths", "pakettiAppSelectionDialog"},
+  {"Paketti KeyBindings", "pakettiKeyBindingsDialog"},
+  {"Renoise KeyBindings", "pakettiRenoiseKeyBindingsDialog"},
+  {"Find Free KeyBindings", "pakettiFreeKeybindingsDialog"},
+  {"TimeStretch Dialog", "pakettiTimestretchDialog"},
+  {"Fuzzy Search Track", "pakettiFuzzySearchTrackDialog"},
+  {"Keyzone Distributor", "pakettiKeyzoneDistributorDialog"},
+  {"Paketti Formula Device Manual", "pakettiFormulaDeviceDialog"},
+  {"Paketti Pattern/Phrase Length Dialog", "pakettiLengthDialog"},
+  {"Paketti EQ10 XY Control Dialog", "pakettiEQ10XYDialog"},
+  {"EditStep Dialog", "pakettiEditStepDialog"},
+  {"Switch Note Instrument Dialog", "pakettiSwitchNoteInstrumentDialog"},
+  {"Show Largest Samples", "pakettiShowLargestSamplesDialog"},
+  {"Beat Structure Editor", "pakettiBeatStructureEditorDialog"},
+  {"Paketti XRNS Probe", "pakettiXRNSProbeShowDialog"},
+  {"Audio Processing", "pakettiAudioProcessingToolsDialog"},
+  {"eSpeak Text-to-Speech", "pakettieSpeakDialog"},
+  {"YT-DLP Downloader", "pakettiYTDLPDialog"},
+  {"User-Defined Sample Folders", "pakettiUserDefinedSamplesDialog"},
+  {"Output Routings", "pakettiTrackOutputRoutingsDialog"},
+  {"Convolver Dialog", "pakettiConvolverSelectionDialog"},
   {"Oblique Strategies", "pakettiObliqueStrategiesDialog"},
-  {"Quick Load Device", "showQuickLoadDialog"},
-  {"Native/VST/VST3/AU Devices", "showDeviceListDialog"},
-  {"VST/VST3/AU Plugins", "showPluginListDialog"},
-  {"Randomize Plugins/Devices", "openCombinedRandomizerDialog"},
-  {"Track Renamer", "PakettiTrackRenamerDialog"},
-  {"Track Dater / Titler", "PakettiTitlerDialog"},
-  {"Paketti Action Selector", "ActionSelectorDialog"},
+  {"Quick Load Device", "pakettiQuickLoadDialog"},
+  {"Native/VST/VST3/AU Devices", "pakettiLoadDevicesDialog"},
+  {"VST/VST3/AU Plugins", "pakettiLoadPluginsDialog"},
+  {"Randomize Plugins/Devices", "pakettiRandomizerDialog"},
+  {"Track Renamer", "pakettiTrackRenamerDialog"},
+  {"Track Dater / Titler", "pakettiTitlerDialog"},
+  {"Paketti Action Selector", "pakettiActionSelectorDialog"},
   {"Squiggler", "squigglerdialog"},
-  {"Paketti Groovebox 8120", "PakettiEightSlotsByOneTwentyDialog"},
-  {"Midi Mappings", "show_midi_mappings_dialog"},
-  {"BeatDetector", "prepare_for_start"},
-  {"OctaMED Note Echo", "create_echo_dialog"},
-  {"OctaMED Pick/Put Row", "toggle_paketti_pick_dialog"},
-  {"PlayerPro Note Dropdown Grid", "PakettiPlayerProNoteGridShowDropdownGrid"},
+  {"Paketti Groovebox 8120", "pakettiEightSlotsByOneTwentyDialog"},
+  {"Midi Mappings", "pakettiMIDIMappingsDialog"},
+  {"BeatDetector", "pakettiBeatDetectorDialog"},
+  {"OctaMED Note Echo", "pakettiOctaMEDNoteEchoDialog"},
+  {"OctaMED Pick/Put Row", "pakettiOctaMEDPickPutRowDialog"},
+  {"PlayerPro Note Dropdown Grid", "pakettiPlayerProNoteGridShowDropdownGrid"},
   {"PlayerPro Main Dialog", "pakettiPlayerProShowMainDialog"},
-  {"PlayerPro Effect Dialog", "showPlayerProEffectDialog"},
-  {"Set Selection by Hex Offset", "create_hex_offset_dialog"},
-  {"Paketti Tuplet Writer", "show_tuplet_dialog"},
-  {"Speed and Tempo to BPM", "show_speed_tempo_dialog"},
-  {"Debug: Available Plugin Information", "show_plugin_details_gui"},
-  {"Debug: Available Device Information", "show_effect_details_gui"},
-  {"AKWF Load 04 Samples (XY)", "Load04AKWFSamplesXY"},
+  {"PlayerPro Effect Dialog", "pakettiPlayerProEffectDialog"},
+  {"Set Selection by Hex Offset", "pakettiHexOffsetDialog"},
+  {"Paketti Tuplet Writer", "pakettiTupletDialog"},
+  {"Speed and Tempo to BPM", "pakettiSpeedTempoDialog"},
+  {"Debug: Available Plugin Information", "pakettiDebugPluginInfoDialog"},
+  {"Debug: Available Device Information", "pakettiDebugDeviceInfoDialog"},
+  {"AKWF Load 04 Samples (XY)", "pakettiLoad04AKWFSamplesXYDialog"},
   {"BPM to MS Delay Calculator", "pakettiBPMMSCalculator"}
 }
 
@@ -396,8 +396,8 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Toggle Paketti Dialog of Dialogs...",invoke=function() pakettiDialogOfDialogsToggle() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti Dialog of Dialogs...",invoke=function() pakettiDialogOfDialogsToggle() end}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Paketti New Song Dialog...",invoke=function() show_new_song_dialog() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti Track Dater & Titler...",invoke=function() PakettiTitlerDialog() end}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Paketti New Song Dialog...",invoke=function() pakettiImpulseTrackerNewSongDialog() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti Track Dater & Titler...",invoke=function() pakettiTitlerDialog() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti Theme Selector...",invoke=pakettiThemeSelectorDialogShow }
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti Gater...",invoke=function()
           local max_rows = renoise.song().selected_pattern.number_of_lines
@@ -406,10 +406,10 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti Gater...",
             renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
           end
         end}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Paketti MIDI Populator...",invoke=function() generaMIDISetupShowCustomDialog() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Track Routings...",invoke=function() trackOutputRoutingsGUI_create() end}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Paketti MIDI Populator...",invoke=function() pakettiMIDIPopulator() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Track Routings...",invoke=function() pakettiTrackOutputRoutingsDialog() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Oblique Strategies...",invoke=function() create_oblique_strategies_dialog() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti Track Renamer...",invoke=function() PakettiTrackRenamerDialog() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti eSpeak Text-to-Speech...",invoke=function()PakettieSpeakToggleDialog()end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress..:Audio Processing Tools...",invoke=function() PakettiAudioProcessingToolsDialogShow() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti Track Renamer...",invoke=function() pakettiTrackRenamerDialog() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti eSpeak Text-to-Speech...",invoke=function()pakettieSpeakDialog()end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress..:Audio Processing Tools...",invoke=function() pakettiAudioProcessingToolsDialog() end}
 

@@ -767,7 +767,7 @@ print (closer)
   end
 end
 
-function PakettieSpeakToggleDialog()
+function pakettieSpeakDialog()
   if dialog and dialog.visible then
     eSpeak.text.value = vb.views.PakettieSpeak_text_field.text
     PakettieSpeakCreateSample()
@@ -990,8 +990,8 @@ function PakettieSpeakFileExists(path)
   return f ~= nil and io.close(f)
 end
 
---renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Paketti eSpeak Text-to-Speech...",invoke=function() PakettieSpeakToggleDialog() end}
-renoise.tool():add_keybinding{name="Global:Paketti:Paketti eSpeak Text-to-Speech Dialog...",invoke=function() PakettieSpeakToggleDialog() end}
+--renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Paketti eSpeak Text-to-Speech...",invoke=function() pakettieSpeakDialog() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti eSpeak Text-to-Speech Dialog...",invoke=function() pakettieSpeakDialog() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti eSpeak Generate Sample",invoke=function()
     if dialog and dialog.visible then
       eSpeak.text.value = vb.views.PakettieSpeak_text_field.text

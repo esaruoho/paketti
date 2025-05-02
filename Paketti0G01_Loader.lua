@@ -635,16 +635,16 @@ function pakettiPreferences()
               renoise.app().window.active_middle_frame=renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
             end
           end},
-          vb:button{text="Audio Processing",width=upperbuttonwidth-100,notifier=function() PakettiAudioProcessingToolsDialogShow() end},
-          vb:button{text="Effect CheatSheet",width=40,notifier=function() CheatSheet() end},
+          vb:button{text="Audio Processing",width=upperbuttonwidth-100,notifier=function() pakettiAudioProcessingToolsDialog() end},
+          vb:button{text="Effect CheatSheet",width=40,notifier=function() pakettiPatternEditorCheatsheetDialog() end},
           vb:button{text="Phrase Init Dialog",width=upperbuttonwidth-100,notifier=function() pakettiPhraseSettings() end},
           vb:button{text="Randomize Plugins/Devices",width=50, notifier=function()
-          openCombinedRandomizerDialog() end},
+          pakettiRandomizerDialog() end},
           vb:button{text="Configure Launch App Selection/Paths",width=50, notifier=function()
-          show_app_selection_dialog() end},
-          vb:button{text="MIDI Populator",width=upperbuttonwidth-100,notifier=function() generaMIDISetupShowCustomDialog() end},
-          vb:button{text="KeyBindings",width=upperbuttonwidth-100,notifier=function() showPakettiKeyBindingsDialog() end},
-          vb:button{text="Midi Mappings",width=upperbuttonwidth-100,notifier=function() show_midi_mappings_dialog() end}
+          pakettiAppSelectionDialog() end},
+          vb:button{text="MIDI Populator",width=upperbuttonwidth-100,notifier=function() pakettiMIDIPopulator() end},
+          vb:button{text="KeyBindings",width=upperbuttonwidth-100,notifier=function() pakettiKeyBindingsDialog() end},
+          vb:button{text="Midi Mappings",width=upperbuttonwidth-100,notifier=function() pakettiMIDIMappingsDialog() end}
         }
       },
 ]]--

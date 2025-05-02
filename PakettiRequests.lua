@@ -1533,7 +1533,7 @@ function trackOutputRoutingsGUI_horizontal_rule()
 end
 
 -- Function to create the GUI
-function trackOutputRoutingsGUI_create()
+function pakettiTrackOutputRoutingsDialog()
 if dialog and dialog.visible then
     dialog:close()
     dialog = nil
@@ -1638,7 +1638,7 @@ if dialog and dialog.visible then
     width="33%", -- Equal width for all buttons
     notifier = function()
       dialog:close()
-      trackOutputRoutingsGUI_create()
+      pakettiTrackOutputRoutingsDialog()
     end
   },
 
@@ -3716,7 +3716,7 @@ function create_instrument_from_convolver(convolver_device, track_index, device_
 end
 
 -- Function to show the GUI for selecting or adding a Convolver device
-function show_convolver_selection_dialog(callback)
+function pakettiConvolverSelectionDialog(callback)
   print("Showing Convolver selection dialog")
   local vb = renoise.ViewBuilder()
   local dialog
@@ -3731,7 +3731,7 @@ function show_convolver_selection_dialog(callback)
       text="Refresh",
       notifier = function()
         dialog:close()
-        show_convolver_selection_dialog(callback)
+        pakettiConvolverSelectionDialog(callback)
       end
     })
     renoise.song().selected_sample_observable:add_notifier(function()
@@ -3781,7 +3781,7 @@ function show_convolver_selection_dialog(callback)
           renoise.song().selected_track_index = t
           renoise.song().selected_device_index = 2
           dialog:close()
-          show_convolver_selection_dialog(callback)
+          pakettiConvolverSelectionDialog(callback)
         end
       })
       row:add_child(vb:button{
@@ -3792,7 +3792,7 @@ function show_convolver_selection_dialog(callback)
           renoise.song().selected_track_index = t
           renoise.song().selected_device_index = device_position
           dialog:close()
-          show_convolver_selection_dialog(callback)
+          pakettiConvolverSelectionDialog(callback)
         end
       })
       dialog_content:add_child(row)
@@ -3811,7 +3811,7 @@ function handle_convolver_action(device, track_index, device_index, action)
 end
 
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Plugins/Devices..:Show Convolver Selection Dialog...",invoke=function()
-  show_convolver_selection_dialog(handle_convolver_action)
+  pakettiConvolverSelectionDialog(handle_convolver_action)
 end}
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:Import Selected Sample to Selected Convolver",invoke=function()
@@ -3820,7 +3820,7 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:
   local selected_track_index = renoise.song().selected_track_index
   local selected_device_index = renoise.song().selected_device_index
   if not selected_device or selected_device.name ~= "Convolver" then
-    show_convolver_selection_dialog(handle_convolver_action)
+    pakettiConvolverSelectionDialog(handle_convolver_action)
     return
   end
   save_instrument_to_convolver(selected_device, selected_track_index, selected_device_index)
@@ -3832,7 +3832,7 @@ renoise.tool():add_menu_entry{name="--DSP Device:Paketti..:Convolver..:Import Se
   local selected_track_index = renoise.song().selected_track_index
   local selected_device_index = renoise.song().selected_device_index
   if not selected_device or selected_device.name ~= "Convolver" then
-    show_convolver_selection_dialog(handle_convolver_action)
+    pakettiConvolverSelectionDialog(handle_convolver_action)
     return
   end
   save_instrument_to_convolver(selected_device, selected_track_index, selected_device_index)
@@ -3846,7 +3846,7 @@ renoise.tool():add_menu_entry{name="Mixer:Paketti..:Convolver..:Import Selected 
   local selected_track_index = renoise.song().selected_track_index
   local selected_device_index = renoise.song().selected_device_index
   if not selected_device or selected_device.name ~= "Convolver" then
-    show_convolver_selection_dialog(handle_convolver_action)
+    pakettiConvolverSelectionDialog(handle_convolver_action)
     return
   end
   save_instrument_to_convolver(selected_device, selected_track_index, selected_device_index)
@@ -3858,7 +3858,7 @@ renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Convolver..:Import S
   local selected_track_index = renoise.song().selected_track_index
   local selected_device_index = renoise.song().selected_device_index
   if not selected_device or selected_device.name ~= "Convolver" then
-    show_convolver_selection_dialog(handle_convolver_action)
+    pakettiConvolverSelectionDialog(handle_convolver_action)
     return
   end
   save_instrument_to_convolver(selected_device, selected_track_index, selected_device_index)
@@ -3870,7 +3870,7 @@ renoise.tool():add_menu_entry{name="Mixer:Paketti..:Convolver..:Export Convolver
   local selected_track_index = renoise.song().selected_track_index
   local selected_device_index = renoise.song().selected_device_index
   if not selected_device or selected_device.name ~= "Convolver" then
-    show_convolver_selection_dialog(handle_convolver_action)
+    pakettiConvolverSelectionDialog(handle_convolver_action)
     return
   end
   create_instrument_from_convolver(selected_device, selected_track_index, selected_device_index)
@@ -3882,7 +3882,7 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:
   local selected_track_index = renoise.song().selected_track_index
   local selected_device_index = renoise.song().selected_device_index
   if not selected_device or selected_device.name ~= "Convolver" then
-    show_convolver_selection_dialog(handle_convolver_action)
+    pakettiConvolverSelectionDialog(handle_convolver_action)
     return
   end
   create_instrument_from_convolver(selected_device, selected_track_index, selected_device_index)
@@ -3894,7 +3894,7 @@ renoise.tool():add_menu_entry{name="DSP Device:Paketti..:Convolver..:Export Conv
   local selected_track_index = renoise.song().selected_track_index
   local selected_device_index = renoise.song().selected_device_index
   if not selected_device or selected_device.name ~= "Convolver" then
-    show_convolver_selection_dialog(handle_convolver_action)
+    pakettiConvolverSelectionDialog(handle_convolver_action)
     return
   end
   create_instrument_from_convolver(selected_device, selected_track_index, selected_device_index)
@@ -3903,17 +3903,17 @@ end}
 
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Convolver..:Show Convolver Selection Dialog",invoke=function()
   print("Showing Convolver Selection Dialog via Mixer menu")
-  show_convolver_selection_dialog(handle_convolver_action)
+  pakettiConvolverSelectionDialog(handle_convolver_action)
 end}
 
 renoise.tool():add_menu_entry{name="DSP Device:Paketti..:Convolver..:Show Convolver Selection Dialog",invoke=function()
   print("Showing Convolver Selection Dialog via DSP menu")
-  show_convolver_selection_dialog(handle_convolver_action)
+  pakettiConvolverSelectionDialog(handle_convolver_action)
 end}
 
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Convolver..:Show Convolver Selection Dialog",invoke=function()
   print("Showing Convolver Selection Dialog via Sample Editor menu")
-  show_convolver_selection_dialog(handle_convolver_action)
+  pakettiConvolverSelectionDialog(handle_convolver_action)
 end}
 
 --------
@@ -4677,7 +4677,7 @@ local function PakettiTitlerGetDateFormatIndex()
 end
 
 -- Function to show the date & title dialog
-function PakettiTitlerDialog()
+function pakettiTitlerDialog()
   vb = renoise.ViewBuilder()
   local date = PakettiTitlerGetFormattedDate()
   local default_title = ""
@@ -4929,9 +4929,9 @@ function PakettiTitlerDialog()
   dialog = renoise.app():show_custom_dialog("Paketti Track Dater & Titler", dialog_content, my_keyhandler_func)
 end
 
-renoise.tool():add_menu_entry{name="Main Menu:File:Paketti..:Paketti Track Dater & Titler...",invoke=PakettiTitlerDialog}
-renoise.tool():add_keybinding{name="Global:Paketti:Paketti Track Dater & Titler",invoke=PakettiTitlerDialog}
-renoise.tool():add_menu_entry{name="Main Menu:File:Save (Paketti Track Dater & Titler)...",invoke=PakettiTitlerDialog}
+renoise.tool():add_menu_entry{name="Main Menu:File:Paketti..:Paketti Track Dater & Titler...",invoke=pakettiTitlerDialog}
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Track Dater & Titler",invoke=pakettiTitlerDialog}
+renoise.tool():add_menu_entry{name="Main Menu:File:Save (Paketti Track Dater & Titler)...",invoke=pakettiTitlerDialog}
 ------
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Volume to -INF dB",
   invoke=function() 
@@ -6112,7 +6112,7 @@ else
   end
 end
 
-function PakettiUserPreferencesShowerDialog()
+function pakettiUserPreferencesShowerDialog()
   local vb = renoise.ViewBuilder()
 
   -- If the dialog is already visible, close it and return focus to the pattern editor
@@ -6278,11 +6278,11 @@ function PakettiUserPreferencesShowerDialog()
   renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
 end
 
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Show/Hide User Preference Devices Master Dialog...",invoke=function() PakettiUserPreferencesShowerDialog() end}
-renoise.tool():add_menu_entry{name="DSP Device:Paketti..:Show/Hide User Preference Devices Master Dialog...",invoke=function() PakettiUserPreferencesShowerDialog() end}
-renoise.tool():add_keybinding{name="Global:Paketti:Show/Hide User Preference Devices Master Dialog...",invoke=function() PakettiUserPreferencesShowerDialog() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:SlotShow..:Show/Hide User Preference Devices Master Dialog...",invoke=function() PakettiUserPreferencesShowerDialog() end}
-renoise.tool():add_keybinding{name="Global:Paketti:Open User Preferences Dialog...",invoke=function() PakettiUserPreferencesShowerDialog() end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Show/Hide User Preference Devices Master Dialog...",invoke=function() pakettiUserPreferencesShowerDialog() end}
+renoise.tool():add_menu_entry{name="DSP Device:Paketti..:Show/Hide User Preference Devices Master Dialog...",invoke=function() pakettiUserPreferencesShowerDialog() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Show/Hide User Preference Devices Master Dialog...",invoke=function() pakettiUserPreferencesShowerDialog() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:SlotShow..:Show/Hide User Preference Devices Master Dialog...",invoke=function() pakettiUserPreferencesShowerDialog() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Open User Preferences Dialog...",invoke=function() pakettiUserPreferencesShowerDialog() end}
 for i = 1, 10 do
   local slot = string.format("%02d", i)
 
@@ -7478,7 +7478,7 @@ renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Interpolate Column 
 renoise.tool():add_midi_mapping{name="Paketti:Interpolate Column Values (Sample FX)",invoke=function(message) if message:is_trigger() then samplefx_interpolation() end  end}
 
 -- Show the GUI dialog
-function show_VDPdialog()
+function pakettiVolDelayPanSliderDialog()
   if dialog and dialog.visible then
     dialog:close()
     dialog=nil
@@ -7536,10 +7536,10 @@ function show_VDPdialog()
 end
 
 -- Trigger the dialog to show
-renoise.tool():add_keybinding{name="Global:Paketti:Open VolDelayPan Slider Dialog...",invoke=function() show_VDPdialog() end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Open VolDelayPan Slider Dialog...",invoke=function() show_VDPdialog() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti Volume/Delay/Pan Slider Controls...",invoke=function() show_VDPdialog() end}
-renoise.tool():add_midi_mapping{name="Paketti:Open VolDelayPan Slider Dialog...",invoke=function(message)  if message:is_trigger() then show_VDPdialog() end end}
+renoise.tool():add_keybinding{name="Global:Paketti:Open VolDelayPan Slider Dialog...",invoke=function() pakettiVolDelayPanSliderDialog() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Open VolDelayPan Slider Dialog...",invoke=function() pakettiVolDelayPanSliderDialog() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti Volume/Delay/Pan Slider Controls...",invoke=function() pakettiVolDelayPanSliderDialog() end}
+renoise.tool():add_midi_mapping{name="Paketti:Open VolDelayPan Slider Dialog...",invoke=function(message)  if message:is_trigger() then pakettiVolDelayPanSliderDialog() end end}
 -----
 
 renoise.tool():add_keybinding{name="Global:Paketti:Wipe All Columns of Selected Track",invoke=function()
@@ -8285,7 +8285,7 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:Glob
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Global Volume Reduce Reduce All Samples by -4.5dB",invoke=function() reduceSamplesVolume(4.5) end}
 renoise.tool():add_midi_mapping{name="Paketti:Global Volume Reduce All Samples by -4.5dB",invoke=function(message) if message:is_trigger() then reduceSamplesVolume(4.5) end end}
 
-function show_global_volume_dialog()
+function pakettiGlobalVolumeDialog()
   local vb = renoise.ViewBuilder()
   local dialog = nil
   local current_db_value = 0
@@ -8396,10 +8396,10 @@ function show_global_volume_dialog()
   dialog = renoise.app():show_custom_dialog("Global Instrument/Sample Volume Adjustment",dialog_content, my_keyhandler_func)
 end
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti Global Volume Adjustment...",invoke=function() show_global_volume_dialog() end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Paketti Global Volume Adjustment...",invoke=function() show_global_volume_dialog() end}
-renoise.tool():add_keybinding{name="Global:Paketti:Global Volume Adjustment...",invoke=function() show_global_volume_dialog() end}
-renoise.tool():add_midi_mapping{name="Paketti:Global Volume Adjustment...",invoke=function(message) if message:is_trigger() then show_global_volume_dialog() end end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti Global Volume Adjustment...",invoke=function() pakettiGlobalVolumeDialog() end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Paketti Global Volume Adjustment...",invoke=function() pakettiGlobalVolumeDialog() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Global Volume Adjustment...",invoke=function() pakettiGlobalVolumeDialog() end}
+renoise.tool():add_midi_mapping{name="Paketti:Global Volume Adjustment...",invoke=function(message) if message:is_trigger() then pakettiGlobalVolumeDialog() end end}
 -------
 ------
 
@@ -8553,7 +8553,7 @@ local dialog = nil
 local vb = nil
 
 -- Create and show the dialog
-function show_edit_step_dialog()
+function pakettiEditStepDialog()
   if dialog and dialog.visible then
     return
   end
@@ -8593,7 +8593,7 @@ end
 local function key_handler(key)
   if key.modifiers == "alt" then  -- You can change this modifier
     if key.name == "key_down" then
-      show_edit_step_dialog()      
+      pakettiEditStepDialog()      
     elseif key.name == "key_up" then
       if dialog and dialog.visible then
         dialog:close()
@@ -8603,7 +8603,7 @@ local function key_handler(key)
 end
 ]]--
 
-renoise.tool():add_keybinding{name="Global:Paketti:Show EditStep Dialog...",invoke=function() show_edit_step_dialog() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Show EditStep Dialog...",invoke=function() pakettiEditStepDialog() end}
 ------
 -- Function to step by editstep (forwards or backwards)
 function PakettiStepByEditStep(direction)
@@ -10190,7 +10190,7 @@ end
 
 -- Track fuzzy search dialog
 local track_search_dialog = nil
-function show_track_search_dialog()
+function pakettiFuzzySearchTrackDialog()
   if track_search_dialog and track_search_dialog.visible then
     track_search_dialog:close()
     return
@@ -10309,14 +10309,14 @@ function show_track_search_dialog()
   )
 end
 
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Fuzzy Search Track",invoke = show_track_search_dialog}
-renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Fuzzy Search Track",invoke = show_track_search_dialog}
-renoise.tool():add_keybinding{name="Mixer:Paketti:Fuzzy Search Track",invoke = show_track_search_dialog}
-renoise.tool():add_keybinding{name="Global:Paketti:Fuzzy Search Track",invoke = show_track_search_dialog}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Fuzzy Search Track...",invoke = show_track_search_dialog}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Fuzzy Search Track...",invoke = show_track_search_dialog}
-renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Fuzzy Search Track...",invoke = show_track_search_dialog}
-renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Fuzzy Search Track...",invoke = show_track_search_dialog}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Fuzzy Search Track",invoke = pakettiFuzzySearchTrackDialog}
+renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Fuzzy Search Track",invoke = pakettiFuzzySearchTrackDialog}
+renoise.tool():add_keybinding{name="Mixer:Paketti:Fuzzy Search Track",invoke = pakettiFuzzySearchTrackDialog}
+renoise.tool():add_keybinding{name="Global:Paketti:Fuzzy Search Track",invoke = pakettiFuzzySearchTrackDialog}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Fuzzy Search Track...",invoke = pakettiFuzzySearchTrackDialog}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Fuzzy Search Track...",invoke = pakettiFuzzySearchTrackDialog}
+renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Fuzzy Search Track...",invoke = pakettiFuzzySearchTrackDialog}
+renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Fuzzy Search Track...",invoke = pakettiFuzzySearchTrackDialog}
 -----------
 local dialog = nil
 local show_dialog = nil
@@ -10418,7 +10418,7 @@ function track_change_handler()
   end
 end
 
-function show_note_mapping_dialog()
+function pakettiSwitchNoteInstrumentDialog()
   local dialog = nil
 
   if dialog and dialog.visible then
@@ -10564,7 +10564,7 @@ function NoteToInstrumentKeyhandler(dialog,key)
   end
 end
   
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Switch Note Instrument Dialog...",invoke=show_note_mapping_dialog}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Switch Note Instrument Dialog...",invoke=show_note_mapping_dialog}
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Switch Note Instrument Dialog...",invoke=show_note_mapping_dialog}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Switch Note Instrument Dialog...",invoke=pakettiSwitchNoteInstrumentDialog}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Switch Note Instrument Dialog...",invoke=pakettiSwitchNoteInstrumentDialog}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Switch Note Instrument Dialog...",invoke=pakettiSwitchNoteInstrumentDialog}
 --------

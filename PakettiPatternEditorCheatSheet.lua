@@ -565,7 +565,7 @@ function effect_write(effect, status, command, min_value, max_value)
 end
 
 -- GUI elements
-function CheatSheet()
+function pakettiPatternEditorCheatsheetDialog()
   local vb = renoise.ViewBuilder()
   local a = renoise.app()
   local s = renoise.song()

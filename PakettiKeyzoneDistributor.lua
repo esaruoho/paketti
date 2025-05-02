@@ -142,7 +142,7 @@ local function distribute_samples(keys_per_sample, base_note_mode)
 end
 
 -- Show or toggle the Keyzone Distributor dialog
-function show_keyzone_distributor()
+function pakettiKeyzoneDistributorDialog()
   -- Check environment and handle dialog state
   if not setup_environment() then return end
   
@@ -229,8 +229,8 @@ function show_keyzone_distributor()
   )
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Show Keyzone Distributor Dialog...",invoke=function() show_keyzone_distributor() end}
-renoise.tool():add_midi_mapping{name="Paketti:Show Keyzone Distributor Dialog...",invoke=function(message) if message:is_trigger() then show_keyzone_distributor() end end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Keyzone Distributor Dialog...",invoke=function() show_keyzone_distributor() end}
-renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Keyzone Distributor Dialog...",invoke=function() show_keyzone_distributor() end}
-renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti..:Keyzone Distributor Dialog...",invoke=function() show_keyzone_distributor() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Show Keyzone Distributor Dialog...",invoke=function() pakettiKeyzoneDistributorDialog() end}
+renoise.tool():add_midi_mapping{name="Paketti:Show Keyzone Distributor Dialog...",invoke=function(message) if message:is_trigger() then pakettiKeyzoneDistributorDialog() end end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Keyzone Distributor Dialog...",invoke=function() pakettiKeyzoneDistributorDialog() end}
+renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Keyzone Distributor Dialog...",invoke=function() pakettiKeyzoneDistributorDialog() end}
+renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti..:Keyzone Distributor Dialog...",invoke=function() pakettiKeyzoneDistributorDialog() end}
