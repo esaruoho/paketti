@@ -5390,7 +5390,6 @@ local function randomize_sample_pitch_and_finetune(random_range_pitch, random_ra
 end
 
 
-
 renoise.tool():add_keybinding{name="Global:Paketti:Randomize Selected Sample Finetune/Transpose +6/-6",invoke=function() randomize_sample_pitch_and_finetune(6,6) end}
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Randomize Selected Sample Finetune/Transpose +6/-6",invoke=function() randomize_sample_pitch_and_finetune(6,6) end}
 renoise.tool():add_midi_mapping{name="Paketti:Randomize Selected Sample Finetune/Transpose +6/-6",invoke=function() randomize_sample_pitch_and_finetune(6,6) end}
@@ -6907,7 +6906,6 @@ function randomize_row(slider_set)
 
   print_row(slider_set, slider_set)
 end
-
 -- Randomize all sliders (volume, delay, panning) and print afterward
 function randomizenongroovebox_all()
   randomize_row("volume")
@@ -10568,3 +10566,6 @@ renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Switch Note Instrum
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Switch Note Instrument Dialog...",invoke=pakettiSwitchNoteInstrumentDialog}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Switch Note Instrument Dialog...",invoke=pakettiSwitchNoteInstrumentDialog}
 --------
+
+
+------------

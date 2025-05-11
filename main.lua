@@ -12,8 +12,6 @@ lowerTrackdsp=renoise.ApplicationWindow.LOWER_FRAME_TRACK_DSPS
 lowerAutomation=renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION
 upperScopes=renoise.ApplicationWindow.UPPER_FRAME_TRACK_SCOPES
 upperSpectrum=renoise.ApplicationWindow.UPPER_FRAME_MASTER_SPECTRUM
-
-
 ----------------------------------------------------------------------------------------------------------------------------------------
 --from http://lua-users.org/lists/lua-l/2004-09/msg00054.html 
 function DEC_HEX(IN)
@@ -71,10 +69,6 @@ function selection_in_pattern_pro()
     return nil
   end
 
-
-  
-
-  
   -- Debug: Print selection details
   print("Selection in Pattern:")
   print("Start Track:", selection.start_track)
@@ -85,7 +79,6 @@ function selection_in_pattern_pro()
   print("End Line:", selection.end_line)
 
   local result = {}
-
 
   -- Iterate over the selected tracks
   for track_index = selection.start_track, selection.end_track do
@@ -200,7 +193,6 @@ timed_require("PakettiPlayerProSuite")       -- 852 lines, 3.00 ms
 --end  
 timed_require("PakettiChordsPlus")
 timed_require("PakettiLaunchApp")
--- Quick loads (under 1ms)
 timed_require("PakettiSampleLoader")         -- 0 lines, 0.00 ms
 timed_require("PakettiCustomization")        -- 61 lines, 0.50 ms
 timed_require("PakettiDeviceChains")         -- 85 lines, 0.00 ms
@@ -217,7 +209,6 @@ timed_require("PakettiStretch")              -- 925 lines, 1.50 ms
 timed_require("PakettiBeatDetect")           -- 396 lines, 1.00 ms
 timed_require("PakettiStacker")              -- 518 lines, 1.00 ms
 timed_require("PakettiRecorder")             -- 403 lines, 1.00 ms
--- Light loads (>1ms)
 timed_require("PakettiControls")             -- 544 lines, 1.00 ms
 timed_require("PakettiKeyBindings")          -- 1443 lines, 2.00 ms
 timed_require("PakettiPhraseEditor")         -- 461 lines, 1.00 ms
@@ -226,7 +217,6 @@ timed_require("PakettiWavetabler")           -- 223 lines, 0.50 ms
 timed_require("PakettiAudioProcessing")      -- 1538 lines, 1.50 ms
 timed_require("PakettiPatternEditorCheatSheet") -- 953 lines, 1.00 ms
 timed_require("PakettiThemeSelector")        -- 516 lines, 4.50 ms
--- Medium loads (2-5ms)
 timed_require("PakettiMidiPopulator")        -- 531 lines, 1.00 ms
 timed_require("PakettiImpulseTracker")       -- 2112 lines, 2.00 ms
 timed_require("PakettiGater")                -- 1233 lines, 2.50 ms
@@ -235,7 +225,6 @@ timed_require("PakettiUnisonGenerator")      -- 122 lines, 0.00 ms
 timed_require("PakettiMainMenuEntries")      -- 383 lines, 4.50 ms
 timed_require("PakettiMidi")                 -- 1692 lines, 5.50 ms
 timed_require("PakettiDynamicViews")         -- 703 lines, 9.00 ms
--- Heavy loads (5ms+)
 timed_require("PakettiEightOneTwenty")       -- 1457 lines, 4.50 ms
 timed_require("PakettiExperimental_Verify")  -- 4543 lines, 8.50 ms
 timed_require("PakettiLoaders")              -- 3137 lines, 9.00 ms
@@ -262,6 +251,21 @@ timed_require("PakettiHexSliceLoop")
 timed_require("PakettiMergeInstruments")
 timed_require("PakettiBPMToMS")
 timed_require("PakettiGlobalGrooveToDelayValues")
+timed_require("PakettiAmigoInspect")
+timed_require("PakettiRePitch")
+timed_require("PakettiPhraseGenerator")
+
+function my_keyhandler_func(dialog, key)
+  local closer = preferences.pakettiDialogClose.value
+  if key.modifiers == "" and key.name == closer then
+    dialog:close()
+    dialog=nil
+    return nil
+  else
+    return key
+  end
+end
+
 
 --timed_require("PakettiXMImport")
 print(string.format("Total load time: %.3f seconds", os.clock() - init_time))
@@ -275,21 +279,6 @@ local selected_theme_index = nil
 --  print(i .. ": " .. theme)
 --end
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
----
 -- Define valid audio file extensions globally
 PakettiValidAudioExtensions = {".wav",".mp3",".flac",".aif",".aiff",".m4a"}
 
@@ -343,20 +332,6 @@ function PakettiGetFilesInDirectory(dir)
     return files
 end
 ---
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function pakettiThemeSelectorRenoiseStartFavorites()
   if #preferences.pakettiThemeSelector.FavoritedList <= 1 then
     renoise.app():show_status("You currently have no Favorite Themes set.")
@@ -426,48 +401,4 @@ if not renoise.tool().app_new_document_observable:has_notifier(startup)
   then renoise.tool().app_new_document_observable:add_notifier(startup)
   else renoise.tool().app_new_document_observable:remove_notifier(startup) end  
 --------
--- Debug print  
-function dbug(msg)  
- local base_types = {  
- ["nil"]=true, ["boolean"]=true, ["number"]=true,  
- ["string"]=true, ["thread"]=true, ["table"]=true  
- }  
- if not base_types[type(msg)] then oprint(msg)  
- elseif type(msg) == 'table' then rprint(msg)  
- else print(msg) end  
-end
-
-_AUTO_RELOAD_DEBUG = true
-
-function my_keyhandler_func(dialog, key)
-  local closer = preferences.pakettiDialogClose.value
-  if key.modifiers == "" and key.name == closer then
-    dialog:close()
-    dialog=nil
-    return nil
-  else
-    return key
-  end
-end
-
-renoise.tool():add_menu_entry{name="Script Editor:Paketti..:PRINT",invoke=function() print("HEEY") end}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

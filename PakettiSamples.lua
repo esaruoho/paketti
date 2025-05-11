@@ -4496,3 +4496,41 @@ function sanitizeFolderPath(path)
   print("-- Paketti Debug: Sanitized path:", sanitized)
   return sanitized
 end
+
+
+-------
+last_index=nil
+
+function pakettiSelectRandomInstrument()
+  local s=renoise.song()
+  local pool={}
+  for i=1,#s.instruments do
+    local instr=s.instruments[i]
+    local has_sample=#instr.samples>0
+    local has_plugin=instr.plugin_properties.plugin_loaded
+    local has_midi=instr.midi_output_properties.device_name~=""
+    if has_sample or has_plugin or has_midi then
+      table.insert(pool,i)
+    end
+  end
+  if #pool==0 then
+    renoise.app():show_status("Couldn't find a single instrument.")
+    return
+  end
+  local new_index
+  if #pool==1 then
+    new_index=pool[1]
+  else
+    repeat
+      new_index=pool[math.random(#pool)]
+    until new_index~=last_index
+  end
+  s.selected_instrument_index=new_index
+  last_index=new_index
+  renoise.app():show_status("Selected instrument #"..new_index)
+end
+
+renoise.tool():add_keybinding {name="Global:Paketti:Select Random Instrument (Sample,Plugin,MIDI)",invoke=function() pakettiSelectRandomInstrument() end}
+renoise.tool():add_menu_entry {name="Instrument Box:Paketti..:Select Random Instrument (Sample,Plugin,MIDI)",invoke=function() pakettiSelectRandomInstrument() end}
+
+-------

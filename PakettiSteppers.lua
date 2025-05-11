@@ -1,7 +1,7 @@
 local STEPPER_TYPES = {
     PITCH = "Pitch Stepper",
     VOLUME = "Volume Stepper",
-    PAN = "Pan Stepper",
+    PAN = "Panning Stepper",
     CUTOFF = "Cutoff Stepper",
     RESONANCE = "Resonance Stepper",
     DRIVE = "Drive Stepper"
@@ -36,7 +36,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:PitchStepper Demo",invoke=fun
 function ResetAllSteppers()
     local song=renoise.song()
     local count = 0
-    local stepperTypes = {"Pitch Stepper", "Volume Stepper", "Pan Stepper", 
+    local stepperTypes = {"Pitch Stepper", "Volume Stepper", "Panning Stepper", 
                          "Cutoff Stepper", "Resonance Stepper", "Drive Stepper"}
     
     for inst_idx, instrument in ipairs(song.instruments) do
@@ -375,7 +375,14 @@ function PakettiShowStepper(deviceName)
     end
     
     local device = instrument.sample_modulation_sets[1].devices[deviceIndex]
-    device.external_editor_visible = not device.external_editor_visible
+    local was_visible = device.external_editor_visible
+    device.external_editor_visible = not was_visible
+    
+    -- Lock keyboard focus when opening the editor
+    if not was_visible then
+        renoise.app().window.lock_keyboard_focus = true
+    end
+    
     isPitchStepSomewhere = renoise.song().selected_track_index
     renoise.app():show_status(string.format("%s visibility toggled.", deviceName))
 end
@@ -384,7 +391,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Show/Hide VolumeStep on Selec
 renoise.tool():add_keybinding{name="Global:Paketti:Show/Hide CutoffStep on Selected Instrument",invoke=function() PakettiShowStepper("Cutoff Stepper") end}
 renoise.tool():add_keybinding{name="Global:Paketti:Show/Hide ResonanceStep on Selected Instrument",invoke=function() PakettiShowStepper("Resonance Stepper") end}
 renoise.tool():add_keybinding{name="Global:Paketti:Show/Hide DriveStep on Selected Instrument",invoke=function() PakettiShowStepper("Drive Stepper") end}
-renoise.tool():add_keybinding{name="Global:Paketti:Show/Hide PanStep on Selected Instrument",invoke=function() PakettiShowStepper("Pan Stepper") end}
+renoise.tool():add_keybinding{name="Global:Paketti:Show/Hide PanningStep on Selected Instrument",invoke=function() PakettiShowStepper("Panning Stepper") end}
 
 --------
 
