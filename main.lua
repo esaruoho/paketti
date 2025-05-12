@@ -308,8 +308,6 @@ function PakettiGetFilesInDirectory(dir)
         command = string.format("find %s -type f", escaped_dir)
     end
     
-    print("-- Paketti Debug: Running command:", command)
-    
     -- Execute the command and process the output
     local handle = io.popen(command)
     if handle then
@@ -317,18 +315,16 @@ function PakettiGetFilesInDirectory(dir)
             -- Skip files in OPS7 folder and check if it's a valid audio file
             if not line:match("OPS7") and PakettiIsValidAudioFile(line) then
                 table.insert(files, line)
-                print("-- Paketti Debug: Found valid audio file:", line)
             end
         end
         local success, msg, code = handle:close()
         if not success then
-            print("-- Paketti Error: Failed to close handle:", msg, code)
+            renoise.app():show_error("Failed to close file handle: " .. tostring(msg))
         end
     else
-        print("-- Paketti Error: Failed to execute directory listing command")
+        renoise.app():show_error("Failed to execute directory listing command")
     end
     
-    print(string.format("-- Paketti Debug: Found %d valid audio files in directory: %s", #files, dir))
     return files
 end
 ---

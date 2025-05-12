@@ -263,6 +263,11 @@ renoise.tool():add_keybinding{name="Global:Paketti:Paketti PitchBend Drumkit Sam
 renoise.tool():add_midi_mapping{name="Paketti:Midi Paketti PitchBend Drumkit Sample Loader",invoke=function(message) if message:is_trigger() then pitchBendDrumkitLoader() end end}
 
 function loadRandomDrumkitSamples(num_samples)
+    -- Seed the random number generator with current time
+    math.randomseed(os.time())
+    -- Add some random calls to further randomize the sequence
+    math.random(); math.random(); math.random()
+
     -- Prompt the user to select a folder
     local folder_path = renoise.app():prompt_for_path("Select Folder to Randomize Drumkit Loading From")
     if not folder_path then
@@ -271,12 +276,18 @@ function loadRandomDrumkitSamples(num_samples)
     end
 
     -- Get all valid audio files in the selected directory and subdirectories using global function
-    local sample_files = PakettiGetFilesInDirectory(folder_path)
+    local original_sample_files = PakettiGetFilesInDirectory(folder_path)
     
     -- Check if there are enough files to choose from
-    if #sample_files == 0 then
+    if #original_sample_files == 0 then
         renoise.app():show_status("No audio files found in the selected folder.")
         return nil
+    end
+
+    -- Create a working copy of the files table for this run
+    local sample_files = {}
+    for i, file in ipairs(original_sample_files) do
+        sample_files[i] = file
     end
 
     -- Check if the selected instrument slot is empty or contains a plugin
@@ -322,6 +333,7 @@ function loadRandomDrumkitSamples(num_samples)
                     i, num_samples_to_load)
             end
 
+            -- Get a random file from our working copy
             local random_index = math.random(1, #sample_files)
             local selected_file = sample_files[random_index]
             table.remove(sample_files, random_index)
@@ -406,10 +418,8 @@ function loadRandomDrumkitSamples(num_samples)
 end
 
 
--- Shortcut usage example
+
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:Paketti PitchBend Drumkit Sample Loader (Random)",invoke=function() loadRandomDrumkitSamples(120)  end}
-
-
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti PitchBend Drumkit Sample Loader (Random)",invoke=function() loadRandomDrumkitSamples(120) end}
 renoise.tool():add_midi_mapping{name="Paketti:Midi Paketti PitchBend Drumkit Sample Loader (Random)",invoke=function(message) if message:is_trigger() then loadRandomDrumkitSamples(120)  end end}
 
@@ -4534,3 +4544,147 @@ renoise.tool():add_keybinding {name="Global:Paketti:Select Random Instrument (Sa
 renoise.tool():add_menu_entry {name="Instrument Box:Paketti..:Select Random Instrument (Sample,Plugin,MIDI)",invoke=function() pakettiSelectRandomInstrument() end}
 
 -------
+
+
+function double_slices()
+    local s = renoise.song()
+    local currInst = s.selected_instrument_index
+    
+    -- Check if there is a valid instrument selected
+    if currInst == nil or currInst == 0 then
+        renoise.app():show_status("No instrument selected.")
+        return
+    end
+    
+    -- Check if there are any samples in the selected instrument
+    if #s.instruments[currInst].samples == 0 then
+        renoise.app():show_status("No samples available in the selected instrument.")
+        return
+    end
+    
+    -- Get current slice count
+    local current_slices = #s.instruments[currInst].samples[1].slice_markers
+    
+    -- If no slices, create 2 slices
+    if current_slices == 0 then
+        slicerough(2)
+        return
+    end
+    
+    -- Check if doubling would exceed the 255 slice limit
+    if current_slices * 2 > 255 then
+        renoise.app():show_status("Cannot double: would exceed maximum of 255 slices.")
+        return
+    end
+    
+    -- Double the slice count
+    local new_slice_count = current_slices * 2
+    slicerough(new_slice_count)
+end
+
+function halve_slices()
+    local s = renoise.song()
+    local currInst = s.selected_instrument_index
+    
+    -- Check if there is a valid instrument selected
+    if currInst == nil or currInst == 0 then
+        renoise.app():show_status("No instrument selected.")
+        return
+    end
+    
+    -- Check if there are any samples in the selected instrument
+    if #s.instruments[currInst].samples == 0 then
+        renoise.app():show_status("No samples available in the selected instrument.")
+        return
+    end
+    
+    -- Get current slice count
+    local current_slices = #s.instruments[currInst].samples[1].slice_markers
+    
+    -- If only one slice, clear all slices
+    if current_slices == 1 then
+        wipeslices()
+        return
+    end
+    
+    -- If no slices, nothing to do
+    if current_slices == 0 then
+        renoise.app():show_status("No slices to halve.")
+        return
+    end
+    
+    -- Halve the slice count (round down to nearest integer)
+    local new_slice_count = math.floor(current_slices / 2)
+    slicerough(new_slice_count)
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Double Slice Count",invoke=function() double_slices() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Halve Slice Count",invoke=function() halve_slices() end}
+
+function pakettiSlicesFromSelection()
+    local s = renoise.song()
+    local currInst = s.selected_instrument_index
+    
+    -- Check if there is a valid instrument selected
+    if currInst == nil or currInst == 0 then
+        renoise.app():show_status("No instrument selected.")
+        return
+    end
+    
+    -- Check if there are any samples in the selected instrument
+    if #s.instruments[currInst].samples == 0 then
+        renoise.app():show_status("No samples available in the selected instrument.")
+        return
+    end
+    
+    local sample = s.selected_sample
+    if not sample then
+        renoise.app():show_status("No sample selected.")
+        return
+    end
+    
+    -- Get selection range
+    local sel = sample.sample_buffer.selection_range
+    if not sel then
+        renoise.app():show_status("Please make a selection in the sample first.")
+        return
+    end
+    
+    -- Calculate selection length
+    local sel_length = sel[2] - sel[1]
+    if sel_length <= 0 then
+        renoise.app():show_status("Invalid selection range.")
+        return
+    end
+    
+    -- Clear existing slice markers
+    for i = #sample.slice_markers, 1, -1 do
+        sample:delete_slice_marker(sample.slice_markers[i])
+    end
+    
+    -- Create slices until we reach the end of the buffer
+    local total_frames = sample.sample_buffer.number_of_frames
+    local slice_count = 0
+    local current_pos = 1  -- Start from position 1
+    
+    -- Always add first slice at position 1
+    sample:insert_slice_marker(current_pos)
+    slice_count = slice_count + 1
+    
+    -- Keep adding slices until we reach the end or hit 255 limit
+    while (current_pos + sel_length) < total_frames and slice_count < 255 do
+        current_pos = current_pos + sel_length
+        sample:insert_slice_marker(current_pos)
+        slice_count = slice_count + 1
+    end
+    
+    -- Show appropriate status message
+    if slice_count == 255 then
+        renoise.app():show_status(string.format("Created maximum 255 slices (sample not fully sliced)."))
+    else
+        renoise.app():show_status(string.format("Created %d slices using entire sample.", slice_count))
+    end
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Slice Count From Selection",invoke=function() pakettiSlicesFromSelection() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Slice Count From Selection",invoke=function() pakettiSlicesFromSelection() end}

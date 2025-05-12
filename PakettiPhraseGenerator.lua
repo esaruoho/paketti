@@ -1,20 +1,22 @@
--- Debug print  
-function dbug(msg)  
-  local base_types = {  
-  ["nil"]=true, ["boolean"]=true, ["number"]=true,  
-  ["string"]=true, ["thread"]=true, ["table"]=true  
-  }  
-  if not base_types[type(msg)] then oprint(msg)  
-  elseif type(msg) == 'table' then rprint(msg)  
-  else print(msg) end  
- end
- 
- _AUTO_RELOAD_DEBUG = true
+-- Add transpose limits and safety function
+local TRANSPOSE_MIN = -120  -- Typical Renoise limit
+local TRANSPOSE_MAX = 120   -- Typical Renoise limit
+
+local function set_transpose_safely(instrument, new_value)
+  if not instrument then return end
+  -- Clamp value between min and max
+  new_value = math.max(TRANSPOSE_MIN, math.min(TRANSPOSE_MAX, new_value))
+  instrument.transpose = new_value
+  return new_value
+end
+
+_AUTO_RELOAD_DEBUG = true
   
  renoise.tool():add_menu_entry{name="Script Editor:Paketti..:PRINT",invoke=function() print("HEEY") end}
  
  -- Constants for configuration
  local NOTE_RANGES = {
+  full = {"c-4", "c#4", "d-4", "d#4", "e-4", "f-4", "f#4", "g-4", "g#4", "a-4", "a#4", "b-4", "c-5"},
    minimal = {"c-4", "d-4", "e-4", "f-4", "g-4", "a-4", "b-4", "c-5"},
    pentatonic = {"c-4", "d-4", "f-4", "g-4", "a-4", "c-5"},
    chromatic = {"c-4", "c#4", "d-4", "d#4", "e-4", "f-4", "f#4", "g-4", "g#4", "a-4", "a#4", "b-4", "c-5"},
@@ -43,7 +45,7 @@ function dbug(msg)
  }
  
  local SCALE_NAMES = {
-   "minimal", "pentatonic", "chromatic", "blues",
+   "full", "minimal", "pentatonic", "chromatic", "blues",
    "major", "natural_minor", "harmonic_minor", "melodic_minor",
    "dorian", "phrygian", "lydian", "mixolydian", "locrian",
    "whole_tone", "diminished", "persian", "japanese", "gamelan",
@@ -52,6 +54,7 @@ function dbug(msg)
  }
  
  local SCALE_DISPLAY_NAMES = {
+   full = "All Notes",
    minimal = "Minimal (C Major)",
    pentatonic = "Pentatonic (C)",
    chromatic = "Chromatic",
@@ -85,7 +88,7 @@ function dbug(msg)
 local STEPPER_TYPES = {
   {name = "Pitch Stepper", color = {0.9, 0.3, 0.3}},
   {name = "Volume Stepper", color = {0.3, 0.9, 0.3}},
-  {name = "Pan Stepper", color = {0.3, 0.3, 0.9}},
+  {name = "Panning Stepper", color = {0.3, 0.3, 0.9}},
   {name = "Cutoff Stepper", color = {0.9, 0.9, 0.3}},
   {name = "Resonance Stepper", color = {0.9, 0.3, 0.9}},
   {name = "Drive Stepper", color = {0.3, 0.9, 0.9}}
@@ -104,7 +107,8 @@ local DEFAULT_SETTINGS = {
    always_render = false,
    current_phrase_index = 1,
    auto_advance = false,  -- New setting for auto-advancing to next phrase
-   transpose = 0  -- Default transpose value
+   transpose = 0,  -- Default transpose value
+   play_until_end = false  -- Setting for 0G01 effect
  }
  
  local dialog = nil
@@ -150,9 +154,7 @@ local DEFAULT_SETTINGS = {
      
      -- Update instrument name in UI if it exists
      if vb and vb.views.instrument_name then
-       vb.views.instrument_name.text = string.format("%02d: %s", 
-         song.selected_instrument_index - 1,
-         instr.name)
+       vb.views.instrument_name.text = instr.name ~= "" and instr.name or "<No Name>"
      end
      
      -- Read and update current values from the instrument
@@ -168,9 +170,7 @@ local DEFAULT_SETTINGS = {
    if instr then
      add_observer(instr, function()
        if vb and vb.views.instrument_name then
-         vb.views.instrument_name.text = string.format("%02d: %s", 
-           song.selected_instrument_index - 1,
-           instr.name)
+         vb.views.instrument_name.text = instr.name ~= "" and instr.name or "<No Name>"
        end
      end)
    end
@@ -419,17 +419,17 @@ local DEFAULT_SETTINGS = {
  end
  
  -- Helper function to format pattern status with step size
- function format_pattern_status(pattern, unit, direction)
+ function format_pattern_status(pattern, unit, text)
    local pattern_viz = {}
    for _, val in ipairs(pattern) do
      table.insert(pattern_viz, val == 1 and "■" or "□")
    end
    return string.format("Pattern (%s) (%02d): %s %s", 
-     unit, #pattern, table.concat(pattern_viz, ""), direction or "")
+     unit, #pattern, table.concat(pattern_viz, ""), text or "")
  end
- 
+
  -- Modified note status formatter to include step size
- function format_note_status(notes, unit, direction)
+ function format_note_status(notes, unit, text)
    -- Helper function to format notes in a consistent way
    local note_info = {}
    for _, note in ipairs(notes) do
@@ -442,18 +442,77 @@ local DEFAULT_SETTINGS = {
      end
    end
    return string.format("Note (%s) (%02d): %s %s", 
-     unit, #notes, table.concat(note_info, ", "), direction or "")
+     unit, #notes, table.concat(note_info, ", "), text or "")
  end
  
+ -- Helper function to ensure phrase exists
+ function ensure_phrase_exists(instr)
+   if not instr then return false end
+   
+   -- Create a phrase if none exists
+   if #instr.phrases == 0 then
+     instr:insert_phrase_at(1)
+     current_settings.current_phrase_index = 1
+     -- Select the newly created phrase using the correct API
+     renoise.song().selected_phrase_index = 1
+     -- Set initial LPB
+     instr.phrases[1].lpb = current_settings.lpb
+     -- Create initial script with default values
+     local script = instr.phrases[1].script
+     script.paragraphs = {
+       "return rhythm {",
+       string.format('  unit = "%s",', current_settings.unit),
+       string.format("  pattern = {%s},", table.concat(generate_musical_pattern(current_settings.pattern_length), ",")),
+       "  emit = {}",
+       "}"
+     }
+     script:commit()
+     -- Update UI
+     if dialog and dialog.visible then
+       update_phrase_display()
+     end
+     
+     -- Add phrase trigger to pattern if first line is empty
+     local s = renoise.song()
+     local currPatt = s.selected_pattern_index
+     local currTrak = s.selected_track_index
+     local line = s.patterns[currPatt].tracks[currTrak].lines[1]
+     local note_col = line.note_columns[s.selected_note_column_index]
+     
+     if note_col.is_empty then
+       note_col.note_string = "C-4"
+       note_col.instrument_value = s.selected_instrument_index - 1  -- -1 because Renoise uses 0-based indexing for instrument_value
+       -- Only add 0G01 if Play Until End is enabled
+       if current_settings.play_until_end then
+         line.effect_columns[1].number_string = "0G"
+         line.effect_columns[1].amount_string = "01"
+       end
+     end
+     
+     return true
+   else
+     -- If we have phrases but none is selected, select the first one
+     if renoise.song().selected_phrase_index == 0 or not renoise.song().selected_phrase then
+       renoise.song().selected_phrase_index = 1
+       current_settings.current_phrase_index = 1
+     end
+   end
+   return true
+ end
+ 
+ -- Modify update_pattern_length to use ensure_phrase_exists
  function update_pattern_length(settings, old_length)
    local instr = renoise.song().selected_instrument
-   if not instr or #instr.phrases == 0 then return end
+   if not instr then return end
+   
+   -- Ensure we have a phrase
+   if not ensure_phrase_exists(instr) then return end
    
    local phrase = instr.phrases[current_settings.current_phrase_index]
    local script = phrase.script
    if not script then return end
    
-   -- Find current pattern, unit and emit sections
+   -- Find current pattern and emit
    local current_pattern = {}
    local current_unit = settings.unit
    local existing_notes = {}
@@ -468,9 +527,7 @@ local DEFAULT_SETTINGS = {
          table.insert(current_pattern, tonumber(num))
        end
      end
-     if unit_str then
-       current_unit = unit_str
-     end
+     if unit_str then current_unit = unit_str end
      if emit_str then
        for key, vol in emit_str:gmatch('key%s*=%s*"([^"]+)",?%s*volume%s*=%s*([%d%.]+)') do
          table.insert(existing_notes, {key=key, volume=tonumber(vol)})
@@ -507,17 +564,10 @@ local DEFAULT_SETTINGS = {
    -- Convert emit table to strings with compact formatting
    local emit_strings = {}
    for _, note in ipairs(existing_notes) do
-     -- Clean up note name
-     local note_name = note.key:match("([a-g][#%-]?)")
-     local octave = note.key:match("%d+$")
-     if note_name and octave then
-       note_name = note_name:gsub("%-$", "") -- Remove trailing - if not a flat
-       local clean_key = note_name .. octave
-       table.insert(emit_strings, string.format('{key="%s",volume=%.2f}', clean_key, note.volume))
-     end
+     table.insert(emit_strings, string.format('{key="%s",volume=%.2f}', note.key, note.volume))
    end
    
-   -- Rebuild the script with the modified pattern
+   -- Rebuild script with the modified pattern
    script.paragraphs = {
      "return rhythm {",
      string.format('  unit = "%s",', current_unit),
@@ -537,11 +587,7 @@ local DEFAULT_SETTINGS = {
    
    -- More accurate message about pattern length change
    local diff = settings.pattern_length - old_length
-   if diff > 0 then
-     renoise.app():show_status(format_pattern_status(new_pattern, current_unit, ">"))
-   elseif diff < 0 then
-     renoise.app():show_status(format_pattern_status(new_pattern, current_unit, "<"))
-   end
+   renoise.app():show_status(format_pattern_status(new_pattern, current_unit))
 
    -- Add auto-render if enabled
    if settings.always_render then
@@ -802,11 +848,15 @@ local DEFAULT_SETTINGS = {
    -- Update valuebox (subtract 1 to show 00-based index)
    vb.views.instrument_selector.value = current_index - 1
    -- Update name display
-   vb.views.instrument_name.text = current_name
+   if vb.views.instrument_name then
+     vb.views.instrument_name.text = current_name ~= "" and current_name or "<No Name>"
+   end
    
-   -- Update transpose display
+   -- Update transpose display with current instrument's transpose value
    if vb.views.transpose_display then
-     vb.views.transpose_display.text = tostring(song.instruments[current_index].transpose)
+     local instr = song.instruments[current_index]
+     current_settings.transpose = instr.transpose
+     vb.views.transpose_display.text = tostring(current_settings.transpose)
    end
    
    -- Read current values from the phrase
@@ -902,6 +952,8 @@ local DEFAULT_SETTINGS = {
          max = 255,
          value = renoise.song().selected_instrument_index - 1,
          width = 50,
+         tostring = function(value) return string.format("%02X", value) end,
+         tonumber = function(str) return tonumber(str, 16) end,
          notifier = function(value)
            local new_index = value + 1
            local song = renoise.song()
@@ -913,8 +965,19 @@ local DEFAULT_SETTINGS = {
        },
        vb:text {
          id = "instrument_name",
-         text = renoise.song().instruments[renoise.song().selected_instrument_index].name,
-         font = "bold"
+         text = renoise.song().instruments[renoise.song().selected_instrument_index].name ~= "" 
+           and renoise.song().instruments[renoise.song().selected_instrument_index].name 
+           or "<No Name>",
+         font = "bold",
+         style = "strong"
+       },
+       vb:button {
+         text = "Unison",
+         tooltip = "Generate unison samples for the current instrument",
+         notifier = function()
+           PakettiCreateUnisonSamples()
+           update_instrument_display()
+         end
        },
        vb:button {
          text = "Pakettify",
@@ -948,31 +1011,36 @@ local DEFAULT_SETTINGS = {
            notifier = function()
              local instr = renoise.song().selected_instrument
              if instr then
-               instr.transpose = -36
-               vb.views.transpose_display.text = tostring(-36)
+               local new_value = set_transpose_safely(instr, instr.transpose - 36)
+               if vb.views.transpose_display then
+                 vb.views.transpose_display.text = tostring(new_value)
+               end
              end
            end
          },
          vb:button {
            text = "-24",
            width = 40,
-           notifier = function()
+           notifier = function() 
              local instr = renoise.song().selected_instrument
              if instr then
-               instr.transpose = -24
-               vb.views.transpose_display.text = tostring(-24)
+               local new_value = set_transpose_safely(instr, instr.transpose - 24)
+               if vb.views.transpose_display then
+                 vb.views.transpose_display.text = tostring(new_value)
+               end
              end
-           end
-         },
-         vb:button {
+         end
+       },
+       vb:button {
            text = "-12",
            width = 40,
            notifier = function()
              local instr = renoise.song().selected_instrument
              if instr then
-               -- Subtract 12 from current transpose
-               instr.transpose = instr.transpose - 12
-               vb.views.transpose_display.text = tostring(instr.transpose)
+               local new_value = set_transpose_safely(instr, instr.transpose - 12)
+               if vb.views.transpose_display then
+                 vb.views.transpose_display.text = tostring(new_value)
+               end
              end
            end
          },
@@ -982,8 +1050,11 @@ local DEFAULT_SETTINGS = {
            notifier = function()
              local instr = renoise.song().selected_instrument
              if instr then
-               instr.transpose = 0
-               vb.views.transpose_display.text = "0"
+               -- Always reset to 0
+               local new_value = set_transpose_safely(instr, 0)
+               if vb.views.transpose_display then
+                 vb.views.transpose_display.text = tostring(new_value)
+               end
              end
            end
          },
@@ -993,9 +1064,10 @@ local DEFAULT_SETTINGS = {
            notifier = function()
              local instr = renoise.song().selected_instrument
              if instr then
-               -- Add 12 to current transpose
-               instr.transpose = instr.transpose + 12
-               vb.views.transpose_display.text = tostring(instr.transpose)
+               local new_value = set_transpose_safely(instr, instr.transpose + 12)
+               if vb.views.transpose_display then
+                 vb.views.transpose_display.text = tostring(new_value)
+               end
              end
            end
          },
@@ -1005,8 +1077,10 @@ local DEFAULT_SETTINGS = {
            notifier = function()
              local instr = renoise.song().selected_instrument
              if instr then
-               instr.transpose = 24
-               vb.views.transpose_display.text = tostring(24)
+               local new_value = set_transpose_safely(instr, instr.transpose + 24)
+               if vb.views.transpose_display then
+                 vb.views.transpose_display.text = tostring(new_value)
+               end
              end
            end
          },
@@ -1016,8 +1090,10 @@ local DEFAULT_SETTINGS = {
            notifier = function()
              local instr = renoise.song().selected_instrument
              if instr then
-               instr.transpose = 36
-               vb.views.transpose_display.text = tostring(36)
+               local new_value = set_transpose_safely(instr, instr.transpose + 36)
+               if vb.views.transpose_display then
+                 vb.views.transpose_display.text = tostring(new_value)
+               end
              end
            end
          }
@@ -1054,40 +1130,26 @@ local DEFAULT_SETTINGS = {
        },
        vb:button {
          text = "Duplicate",
-         tooltip = "Create a copy of the current phrase and start playing it",
+         tooltip = "Create a copy of the current track and instrument and start playing it",
          notifier = function()
-           local instr = renoise.song().selected_instrument
-           if not instr then return end
+           duplicateTrackAndInstrument()
            
-           local source_phrase = instr.phrases[current_settings.current_phrase_index]
-           if not source_phrase then return end
+           -- After duplication, update the UI to reflect the new instrument
+           local song = renoise.song()
+           if vb.views.instrument_selector then
+             vb.views.instrument_selector.value = song.selected_instrument_index - 1
+           end
            
-           -- Create new phrase
-           local new_idx = #instr.phrases + 1
-           instr:insert_phrase_at(new_idx)
-           local new_phrase = instr.phrases[new_idx]
+           -- Update all displays and settings
+           update_instrument_display()
            
-           -- Copy content
-           new_phrase.lpb = source_phrase.lpb
-           new_phrase.script.paragraphs = table.copy(source_phrase.script.paragraphs)
-           new_phrase.script:commit()
-           
-           -- Select new phrase
-           current_settings.current_phrase_index = new_idx
+           -- Update phrase selector and display
            update_phrase_display()
-
-           -- Select and play the new phrase
-           instr.selected_phrase_index = new_idx
-           instr.phrase_playback_mode = renoise.Instrument.PHRASES_OFF
-           instr.phrase_playback_mode = renoise.Instrument.PHRASES_PLAY_SELECTIVE
-           
-           renoise.app():show_status(string.format("Duplicated phrase %d to %d", 
-             current_settings.current_phrase_index - 1, new_idx))
          end
        },
        vb:button {
-         text = "Reverse",
-         tooltip = "Reverse the current pattern",
+         text = "Reverse Triggers",
+         tooltip = "Reverse the current trigger pattern",
          notifier = function()
            local instr = renoise.song().selected_instrument
            if not instr or #instr.phrases == 0 then return end
@@ -1100,10 +1162,12 @@ local DEFAULT_SETTINGS = {
            local new_paragraphs = {}
            local current_unit = ""
            local reversed_pattern = {}
+           local current_emit = ""
            
            for _, line in ipairs(script.paragraphs) do
              local pattern_str = line:match('pattern%s*=%s*{([^}]+)}')
              local unit_str = line:match('unit%s*=%s*"([^"]+)"')
+             local emit_str = line:match('emit%s*=%s*{(.+)}')
              
              if pattern_str then
                -- Extract and reverse the pattern
@@ -1112,7 +1176,12 @@ local DEFAULT_SETTINGS = {
                end
                table.insert(new_paragraphs, string.format('  pattern = {%s},', table.concat(reversed_pattern, ",")))
              elseif unit_str then
+               -- Keep track of the current unit
                current_unit = unit_str
+               table.insert(new_paragraphs, line)
+             elseif emit_str then
+               -- Keep emit section unchanged
+               current_emit = line
                table.insert(new_paragraphs, line)
              else
                table.insert(new_paragraphs, line)
@@ -1129,8 +1198,86 @@ local DEFAULT_SETTINGS = {
              return
            end
            
-           -- Show pattern status with visualization
-           renoise.app():show_status(format_pattern_status(reversed_pattern, current_unit, "(Reversed)"))
+           -- Show pattern status with visualization and current unit
+           renoise.app():show_status(format_pattern_status(reversed_pattern, current_unit, "(Reversed Triggers)"))
+           
+           -- Render if auto-render is enabled
+           if current_settings.always_render then
+             render_to_pattern(script, current_settings, false)
+           end
+         end
+       },
+       
+       vb:button {
+         text = "Reverse Notes",
+         tooltip = "Reverse the order of notes in the phrase",
+         notifier = function()
+           local instr = renoise.song().selected_instrument
+           if not instr or #instr.phrases == 0 then return end
+           
+           local phrase = instr.phrases[current_settings.current_phrase_index]
+           local script = phrase.script
+           if not script then return end
+           
+           -- Find current pattern and notes
+           local current_pattern = {}
+           local current_unit = ""
+           local notes = {}
+           
+           for _, line in ipairs(script.paragraphs) do
+             local pattern_str = line:match('pattern%s*=%s*{([^}]+)}')
+             local unit_str = line:match('unit%s*=%s*"([^"]+)"')
+             local emit_str = line:match('emit%s*=%s*{(.+)}')
+             
+             if pattern_str then
+               -- Keep pattern unchanged
+               for num in pattern_str:gmatch("[01]") do
+                 table.insert(current_pattern, tonumber(num))
+               end
+             end
+             if unit_str then 
+               current_unit = unit_str
+             end
+             if emit_str then
+               -- Extract notes and volumes
+               for key, vol in emit_str:gmatch('key%s*=%s*"([^"]+)",?%s*volume%s*=%s*([%d%.]+)') do
+                 table.insert(notes, {key=key, volume=tonumber(vol)})
+               end
+             end
+           end
+           
+           -- Reverse the notes array
+           local reversed_notes = {}
+           for i = #notes, 1, -1 do
+             table.insert(reversed_notes, notes[i])
+           end
+           
+           -- Convert reversed notes to emit string format
+           local emit_strings = {}
+           for _, note in ipairs(reversed_notes) do
+             table.insert(emit_strings, string.format('{key="%s",volume=%.2f}', note.key, note.volume))
+           end
+           
+           -- Rebuild script with reversed notes
+           script.paragraphs = {
+             "return rhythm {",
+             string.format('  unit = "%s",', current_unit),
+             string.format("  pattern = {%s},", table.concat(current_pattern, ",")),
+             string.format("  emit = {%s}", table.concat(emit_strings, ",")),
+             "}"
+           }
+           
+           script:commit()
+           
+           if script.compile_error ~= "" then
+             local msg = "Compile error: " .. script.compile_error
+             print(msg)
+             renoise.app():show_status(msg)
+             return
+           end
+           
+           -- Show note status with reversed notes
+           renoise.app():show_status(format_note_status(reversed_notes, current_unit, "(Reversed Notes)"))
            
            -- Render if auto-render is enabled
            if current_settings.always_render then
@@ -1155,6 +1302,38 @@ local DEFAULT_SETTINGS = {
            current_settings.always_render = value
          end,
          tooltip = "Enable to automatically render changes to pattern"
+       }
+     },
+
+     -- Play Until End checkbox
+     vb:horizontal_aligner {
+       vb:text { 
+         text = "Play Until End",
+         width = 90,
+         font = "bold",
+         style = "strong",
+         tooltip = "When enabled, adds 0G01 effect to make phrase play until end"
+       },
+       vb:checkbox {
+         value = current_settings.play_until_end,
+         notifier = function(value)
+           current_settings.play_until_end = value
+           local s = renoise.song()
+           local currPatt = s.selected_pattern_index
+           local currTrak = s.selected_track_index
+           local line = s.patterns[currPatt].tracks[currTrak].lines[1]
+           
+           if value then
+             -- Add 0G01 effect
+             line.effect_columns[1].number_string = "0G"
+             line.effect_columns[1].amount_string = "01"
+           else
+             -- Remove 0G01 effect
+             line.effect_columns[1].number_string = "00"
+             line.effect_columns[1].amount_string = "00"
+           end
+         end,
+         tooltip = "Enable to make phrase play until end"
        }
      },
 
@@ -1243,8 +1422,9 @@ local DEFAULT_SETTINGS = {
          value = math.floor(current_settings.pattern_length),
          width = 250,
          notifier = function(value)
+           if not value then return end
            local old_length = current_settings.pattern_length
-           value = math.floor(value)
+           value = math.floor(value)  -- Ensure integer value
            current_settings.pattern_length = value
            pattern_length_text.text = string.format("%d steps", value)
            update_pattern_length(current_settings, old_length)
@@ -1268,7 +1448,8 @@ local DEFAULT_SETTINGS = {
          value = math.floor(current_settings.note_count),
          width = 250,
          notifier = function(value)
-           value = math.floor(value)
+           if not value then return end
+           value = math.floor(value)  -- Ensure integer value
            local old_count = current_settings.note_count
            current_settings.note_count = value
            note_count_text.text = string.format("%d", value)
@@ -1293,6 +1474,7 @@ local DEFAULT_SETTINGS = {
          value = current_settings.min_volume,
          width = 120,
          notifier = function(value)
+           if not value then return end
            current_settings.min_volume = value
            min_volume_text.text = string.format("%d%%", math.floor(value * 100))
            update_volume_only(current_settings)
@@ -1307,6 +1489,7 @@ local DEFAULT_SETTINGS = {
          value = current_settings.max_volume,
          width = 120,
          notifier = function(value)
+           if not value then return end
            current_settings.max_volume = value
            max_volume_text.text = string.format("%d%%", math.floor(value * 100))
            update_volume_only(current_settings)
@@ -1325,23 +1508,24 @@ local DEFAULT_SETTINGS = {
        },
        vb:valuebox {
          id = "min_octave_box",
-         min = 1,
+         min = 0,
          max = 9,
          value = current_settings.min_octave,
-         width = 120,
+         width = 55,
          notifier = function(value)
+           if not value then return end
            current_settings.min_octave = value
            update_octave_range(current_settings)
          end
        },
-       vb:text { text = " - " },
        vb:valuebox {
          id = "max_octave_box",
-         min = 1,
+         min = 0,
          max = 9,
          value = current_settings.max_octave,
-         width = 120,
+         width = 55,
          notifier = function(value)
+           if not value then return end
            current_settings.max_octave = value
            update_octave_range(current_settings)
          end
@@ -1350,8 +1534,8 @@ local DEFAULT_SETTINGS = {
          text = "-1",
          width = 30,
          notifier = function()
-           -- Ensure we don't go below 1
-           if current_settings.min_octave > 1 and current_settings.max_octave > 1 then
+           -- Ensure we don't go below 0
+           if current_settings.min_octave > 0 and current_settings.max_octave > 0 then
              current_settings.min_octave = current_settings.min_octave - 1
              current_settings.max_octave = current_settings.max_octave - 1
              vb.views.min_octave_box.value = current_settings.min_octave
@@ -1489,20 +1673,13 @@ local DEFAULT_SETTINGS = {
      return
    end
    
-   -- Create a phrase if none exists
-   if #instr.phrases == 0 then
-     instr:insert_phrase_at(1)
-   end
+   -- Ensure we have a phrase
+   if not ensure_phrase_exists(instr) then return end
    
-   local phrase = instr.phrases[1]
+   local phrase = instr.phrases[current_settings.current_phrase_index]
    local script = phrase.script
-   if not script then
-     local msg = "Phrase script is not available."
-     print(msg)
-     renoise.app():show_status(msg)
-     return
-   end
-
+   if not script then return end
+   
    -- Find current pattern and emit
    local current_pattern = {}
    local current_unit = settings.unit
@@ -1567,11 +1744,33 @@ local DEFAULT_SETTINGS = {
    -- Create a fresh ViewBuilder instance
    vb = renoise.ViewBuilder()
    
+   -- Check if current instrument has steppers, if not, Pakettify it
+   local instr = renoise.song().selected_instrument
+   if instr then
+     local has_steppers = false
+     if instr.sample_modulation_sets and #instr.sample_modulation_sets > 0 then
+       local devices = instr.sample_modulation_sets[1].devices
+       for _, dev in ipairs(devices) do
+         for _, stepper in ipairs(STEPPER_TYPES) do
+           if dev.name == stepper.name then
+             has_steppers = true
+             break
+           end
+         end
+         if has_steppers then break end
+       end
+     end
+     
+     if not has_steppers then
+       PakettiInjectDefaultXRNI()
+       renoise.app():show_status("Instrument automatically Pakettified")
+     end
+   end
+   
    -- Read current values before creating dialog
    read_current_script_values()
    
    -- Read current instrument transpose value
-   local instr = renoise.song().selected_instrument
    if instr then
      current_settings.transpose = instr.transpose
    end
@@ -1584,36 +1783,44 @@ local DEFAULT_SETTINGS = {
    )
    
    -- Update transpose display with current value
-   if vb.views.transpose_display then
+               if vb.views.transpose_display then
      vb.views.transpose_display.text = tostring(current_settings.transpose or 0)
    end
    
    -- Clean up existing observer if it exists
-   if instrument_observer and renoise.song().selected_instrument_observable:has_notifier(instrument_observer) then
-     instrument_observer:remove()
+   if instrument_observer then
+     if renoise.song().selected_instrument_observable:has_notifier(instrument_observer) then
+       renoise.song().selected_instrument_observable:remove_notifier(instrument_observer)
+     end
      instrument_observer = nil
    end
    
    -- Add new observer only if it doesn't exist
    if not instrument_observer then
-     instrument_observer = renoise.song().selected_instrument_observable:add_notifier(
-       function()
-         update_instrument_display()
-       end
-     )
+     instrument_observer = function()
+       update_instrument_display()
+     end
+     renoise.song().selected_instrument_observable:add_notifier(instrument_observer)
    end
    
    -- Add phrase observer
    local song = renoise.song()
-   if song.selected_phrase_observable:has_notifier(phrase_observer) then
-     phrase_observer:remove()
+   if phrase_observer then
+     if song.selected_phrase_observable:has_notifier(phrase_observer) then
+       song.selected_phrase_observable:remove_notifier(phrase_observer)
+     end
+     phrase_observer = nil
    end
-   phrase_observer = song.selected_phrase_observable:add_notifier(function()
-     if song.selected_instrument.selected_phrase_index then
-       current_settings.current_phrase_index = song.selected_instrument.selected_phrase_index
+   
+   phrase_observer = function()
+     -- Get the selected phrase index directly from song
+     local selected_idx = renoise.song().selected_phrase_index
+     if selected_idx and selected_idx > 0 then
+       current_settings.current_phrase_index = selected_idx
        update_phrase_display()
      end
-   end)
+   end
+   song.selected_phrase_observable:add_notifier(phrase_observer)
  end
  
  if renoise.API_VERSION >= 6.2 then 
@@ -1622,12 +1829,13 @@ local DEFAULT_SETTINGS = {
  renoise.tool():add_menu_entry{name="Phrase Script Editor:Paketti..:Enhanced Phrase Generator",invoke=function() pakettiPhraseGeneratorDialog() end}
  end
  
- 
- 
  -- Helper function to update only volume values
  function update_volume_only(settings)
    local instr = renoise.song().selected_instrument
-   if not instr or #instr.phrases == 0 then return end
+   if not instr then return end
+   
+   -- Ensure we have a phrase
+   if not ensure_phrase_exists(instr) then return end
    
    local phrase = instr.phrases[current_settings.current_phrase_index]
    local script = phrase.script
@@ -1697,7 +1905,7 @@ local DEFAULT_SETTINGS = {
  function update_unit_only(settings)
    local instr = renoise.song().selected_instrument
    if not instr or #instr.phrases == 0 then return end
-   
+    
    local phrase = instr.phrases[settings.current_phrase_index]
    local script = phrase.script
    if not script then return end
@@ -1777,7 +1985,10 @@ local DEFAULT_SETTINGS = {
  -- Helper function to update octave range
  function update_octave_range(settings)
    local instr = renoise.song().selected_instrument
-   if not instr or #instr.phrases == 0 then return end
+   if not instr then return end
+   
+   -- Ensure we have a phrase
+   if not ensure_phrase_exists(instr) then return end
    
    local phrase = instr.phrases[current_settings.current_phrase_index]
    local script = phrase.script
@@ -1851,7 +2062,10 @@ local DEFAULT_SETTINGS = {
  -- Helper function to update note count
  function update_note_count(settings, old_count)
    local instr = renoise.song().selected_instrument
-   if not instr or #instr.phrases == 0 then return end
+   if not instr then return end
+   
+   -- Ensure we have a phrase
+   if not ensure_phrase_exists(instr) then return end
    
    local phrase = instr.phrases[current_settings.current_phrase_index]
    local script = phrase.script
@@ -1868,7 +2082,7 @@ local DEFAULT_SETTINGS = {
      local emit_str = line:match('emit%s*=%s*{(.+)}')
      
      if pattern_str then
-       for num in pattern_str:gmatch("%d+") do
+       for num in pattern_str:gmatch("[01]") do
          table.insert(current_pattern, tonumber(num))
        end
      end
@@ -1924,9 +2138,8 @@ local DEFAULT_SETTINGS = {
      return
    end
    
-   -- Show status with direction indicator based on the actual change
-   local direction = settings.note_count > old_count and ">" or (settings.note_count < old_count and "<" or "")
-   renoise.app():show_status(format_note_status(emit, current_unit, direction))
+   -- Show status without direction indicators
+   renoise.app():show_status(format_note_status(emit, current_unit))
 
    -- Add auto-render if enabled
    if settings.always_render then
@@ -1950,85 +2163,7 @@ local DEFAULT_SETTINGS = {
    vb.views.phrase_selector.items = phrases
    vb.views.phrase_selector.value = current_settings.current_phrase_index
  end
- 
- -- Add function to duplicate current phrase
- function duplicate_current_phrase()
-   local instr = renoise.song().selected_instrument
-   if not instr then return end
-   
-   local current_phrase = instr.phrases[current_settings.current_phrase_index]
-   if not current_phrase then return end
-   
-   -- Create new phrase
-   local new_phrase = instr:insert_phrase_at(current_settings.current_phrase_index + 1)
-   new_phrase.name = current_phrase.name .. " (copy)"
-   new_phrase.lpb = current_phrase.lpb
-   
-   -- Copy script content
-   if current_phrase.script then
-     new_phrase.script.paragraphs = table.copy(current_phrase.script.paragraphs)
-     new_phrase.script:commit()
-   end
-   
-   -- Update UI
-   update_phrase_selector()
-   current_settings.current_phrase_index = current_settings.current_phrase_index + 1
-   vb.views.phrase_selector.value = current_settings.current_phrase_index
-   
-   renoise.app():show_status(string.format("Duplicated phrase to position %02d", current_settings.current_phrase_index))
- end
- 
- -- Add function to reverse current pattern
- function reverse_current_pattern()
-   local instr = renoise.song().selected_instrument
-   if not instr or #instr.phrases == 0 then return end
-   
-   local phrase = instr.phrases[current_settings.current_phrase_index]
-   local script = phrase.script
-   if not script then return end
-   
-   -- Find and reverse the pattern
-   local new_paragraphs = {}
-   local current_unit = ""
-   local reversed_pattern = {}
-   
-   for _, line in ipairs(script.paragraphs) do
-     local pattern_str = line:match('pattern%s*=%s*{([^}]+)}')
-     local unit_str = line:match('unit%s*=%s*"([^"]+)"')
-     
-     if pattern_str then
-       -- Extract and reverse the pattern
-       for num in pattern_str:gmatch("[01]") do
-         table.insert(reversed_pattern, 1, tonumber(num))  -- Insert at beginning to reverse
-       end
-       table.insert(new_paragraphs, string.format('  pattern = {%s},', table.concat(reversed_pattern, ",")))
-     elseif unit_str then
-       current_unit = unit_str
-       table.insert(new_paragraphs, line)
-     else
-       table.insert(new_paragraphs, line)
-     end
-   end
-   
-   script.paragraphs = new_paragraphs
-   script:commit()
-   
-   if script.compile_error ~= "" then
-     local msg = "Compile error: " .. script.compile_error
-     print(msg)
-     renoise.app():show_status(msg)
-     return
-   end
-   
-   -- Show pattern status with visualization
-   renoise.app():show_status(format_pattern_status(reversed_pattern, current_unit, "(Reversed)"))
-   
-   -- Render if auto-render is enabled
-   if current_settings.always_render then
-     render_to_pattern(script, current_settings, false)
-   end
- end
- 
+  
  -- Add helper function for rendering
  function render_to_pattern(script, settings, show_status)
    -- Only show status if explicitly requested and not in always_render mode
@@ -2132,9 +2267,7 @@ local DEFAULT_SETTINGS = {
    -- Update instrument name
    local instr = renoise.song().selected_instrument
    if instr and vb.views.instrument_name then
-     vb.views.instrument_name.text = string.format("%02d: %s", 
-       renoise.song().selected_instrument_index - 1,
-       instr.name)
+     vb.views.instrument_name.text = instr.name ~= "" and instr.name or "<No Name>"
    end
    
    if vb.views.instrument_selector then
@@ -2146,7 +2279,7 @@ local DEFAULT_SETTINGS = {
  local STEPPER_TYPES = {
    {name = "Pitch Stepper", color = {0.9, 0.3, 0.3}},
    {name = "Volume Stepper", color = {0.3, 0.9, 0.3}},
-   {name = "Pan Stepper", color = {0.3, 0.3, 0.9}},
+   {name = "Panning Stepper", color = {0.3, 0.3, 0.9}},
    {name = "Cutoff Stepper", color = {0.9, 0.9, 0.3}},
    {name = "Resonance Stepper", color = {0.9, 0.3, 0.9}},
    {name = "Drive Stepper", color = {0.3, 0.9, 0.9}}
@@ -2184,370 +2317,7 @@ local DEFAULT_SETTINGS = {
    device.external_editor_visible = not device.external_editor_visible
    renoise.app():show_status(string.format("%s visibility toggled", stepper_name))
  end
- 
- -- Modify the dialog creation function to add stepper buttons
- function create_dialog()
-   if dialog and dialog.visible then
-     return
-   end
-   
-   vb = renoise.ViewBuilder()
-   
-   local DEFAULT_MARGIN = renoise.ViewBuilder.DEFAULT_MARGIN
-   local DEFAULT_SPACING = renoise.ViewBuilder.DEFAULT_SPACING
-   local DIALOG_MARGIN = DEFAULT_MARGIN * 2
-   
-   local main_vb = vb:column {
-     margin = DIALOG_MARGIN,
-     spacing = DEFAULT_SPACING,
-     
-     -- Instrument selector row
-     vb:horizontal_aligner {
-       
-       vb:text { 
-         text = "Instrument",
-         width = 90,
-         font = "bold",
-         style = "strong"
-       },
-       vb:valuebox {
-         id = "instrument_selector",
-         min = 0,
-         max = 255,
-         value = renoise.song().selected_instrument_index - 1,
-         width = 50,
-         notifier = function(value)
-           local new_index = value + 1
-           local song = renoise.song()
-           if new_index >= 1 and new_index <= #song.instruments then
-             song.selected_instrument_index = new_index
-             update_instrument_display()
-           end
-         end
-       },
-       vb:text {
-         id = "instrument_name",
-         text = renoise.song().instruments[renoise.song().selected_instrument_index].name,
-         font = "bold"
-       },
-       vb:button {
-         text = "Pakettify",
-         tooltip = "Convert the current instrument to Paketti format",
-         notifier = function()
-           PakettiInjectDefaultXRNI()
-           update_instrument_display()
-         end
-       }
-     },
-     
-     -- Instrument transpose row
-     vb:horizontal_aligner {
-       vb:text { 
-         text = "Transpose",
-         width = 90,
-         font = "bold",
-         style = "strong"
-       },
-       vb:text {
-         id = "transpose_display",
-         text = "0",
-         width = 50,
-         font = "bold",
-         style = "strong"
-       },
-       vb:row {
-         vb:button {
-           text = "-36",
-           width = 40,
-           notifier = function()
-             local instr = renoise.song().selected_instrument
-             if instr then
-               instr.transpose = -36
-               vb.views.transpose_display.text = tostring(-36)
-             end
-           end
-         },
-         vb:button {
-           text = "-24",
-           width = 40,
-           notifier = function()
-             local instr = renoise.song().selected_instrument
-             if instr then
-               instr.transpose = -24
-               vb.views.transpose_display.text = tostring(-24)
-             end
-           end
-         },
-         vb:button {
-           text = "-12",
-           width = 40,
-           notifier = function()
-             local instr = renoise.song().selected_instrument
-             if instr then
-               -- Subtract 12 from current transpose
-               instr.transpose = instr.transpose - 12
-               vb.views.transpose_display.text = tostring(instr.transpose)
-             end
-           end
-         },
-         vb:button {
-           text = "0",
-           width = 40,
-           notifier = function()
-             local instr = renoise.song().selected_instrument
-             if instr then
-               instr.transpose = 0
-               vb.views.transpose_display.text = "0"
-             end
-           end
-         },
-         vb:button {
-           text = "+12",
-           width = 40,
-           notifier = function()
-             local instr = renoise.song().selected_instrument
-             if instr then
-               -- Add 12 to current transpose
-               instr.transpose = instr.transpose + 12
-               vb.views.transpose_display.text = tostring(instr.transpose)
-             end
-           end
-         },
-         vb:button {
-           text = "+24",
-           width = 40,
-           notifier = function()
-             local instr = renoise.song().selected_instrument
-             if instr then
-               instr.transpose = 24
-               vb.views.transpose_display.text = tostring(24)
-             end
-           end
-         },
-         vb:button {
-           text = "+36",
-           width = 40,
-           notifier = function()
-             local instr = renoise.song().selected_instrument
-             if instr then
-               instr.transpose = 36
-               vb.views.transpose_display.text = tostring(36)
-             end
-           end
-         }
-       }
-     },
-     
-     -- Stepper buttons row
-     vb:horizontal_aligner {
-       
-       vb:text {
-         text = "Steppers:",
-         width = 90,
-         font = "bold",
-         style = "strong"
-       }
-     },
-     
-     -- Add Always Render checkbox after stepper buttons
-     vb:horizontal_aligner {
-       
-       vb:text { 
-         text = "Always Render",
-         width = 90,
-         font = "bold",
-         style = "strong",
-         tooltip = "When enabled, any change will automatically render to pattern"
-       },
-       vb:checkbox {
-         id = "always_render",
-         value = current_settings.always_render,
-         notifier = function(value)
-           current_settings.always_render = value
-         end,
-         tooltip = "Enable to automatically render changes to pattern"
-       }
-     },
-     
-     -- Phrase selector and controls
-     vb:horizontal_aligner {
-       margin = DEFAULT_MARGIN,
-       spacing = DEFAULT_SPACING,
-       
-       vb:text {
-         text = "Phrase:",
-         width = 90,
-         font = "bold",
-         style = "strong"
-       },
-       
-       vb:popup {
-         id = "phrase_selector",
-         width = 150,
-         items = (function()
-           local instr = renoise.song().selected_instrument
-           if not instr then return {"None"} end
-           local phrases = {}
-           for i = 1, #instr.phrases do
-             phrases[i] = string.format("%02d: %s", i, instr.phrases[i].name)
-           end
-           return #phrases > 0 and phrases or {"None"}
-         end)(),
-         value = current_settings.current_phrase_index,
-         tooltip = "Select the phrase to edit",
-         notifier = function(idx)
-           current_settings.current_phrase_index = idx
-           update_phrase_display()
-         end
-       },
-       
-       vb:button {
-         text = "Duplicate",
-         tooltip = "Create a copy of the current phrase and start playing it",
-         notifier = function()
-           local instr = renoise.song().selected_instrument
-           if not instr then return end
-           
-           local source_phrase = instr.phrases[current_settings.current_phrase_index]
-           if not source_phrase then return end
-           
-           -- Create new phrase
-           local new_idx = #instr.phrases + 1
-           instr:insert_phrase_at(new_idx)
-           local new_phrase = instr.phrases[new_idx]
-           
-           -- Copy content
-           new_phrase.lpb = source_phrase.lpb
-           new_phrase.script.paragraphs = table.copy(source_phrase.script.paragraphs)
-           new_phrase.script:commit()
-           
-           -- Select new phrase
-           current_settings.current_phrase_index = new_idx
-           update_phrase_display()
-
-           -- Select and play the new phrase
-           instr.selected_phrase_index = new_idx
-           instr.phrase_playback_mode = renoise.Instrument.PHRASES_OFF
-           instr.phrase_playback_mode = renoise.Instrument.PHRASES_PLAY_SELECTIVE
-           
-           renoise.app():show_status(string.format("Duplicated phrase %d to %d", 
-             current_settings.current_phrase_index - 1, new_idx))
-         end
-       },
-       
-       vb:button {
-         text = "Reverse",
-         tooltip = "Reverse the current pattern",
-         notifier = function()
-           local instr = renoise.song().selected_instrument
-           if not instr or #instr.phrases == 0 then return end
-           
-           local phrase = instr.phrases[current_settings.current_phrase_index]
-           local script = phrase.script
-           if not script then return end
-           
-           -- Find and reverse the pattern
-           local new_paragraphs = {}
-           local current_unit = ""
-           local reversed_pattern = {}
-           
-           for _, line in ipairs(script.paragraphs) do
-             local pattern_str = line:match('pattern%s*=%s*{([^}]+)}')
-             local unit_str = line:match('unit%s*=%s*"([^"]+)"')
-             
-             if pattern_str then
-               -- Extract and reverse the pattern
-               for num in pattern_str:gmatch("[01]") do
-                 table.insert(reversed_pattern, 1, tonumber(num))  -- Insert at beginning to reverse
-               end
-               table.insert(new_paragraphs, string.format('  pattern = {%s},', table.concat(reversed_pattern, ",")))
-             elseif unit_str then
-               current_unit = unit_str
-               table.insert(new_paragraphs, line)
-             else
-               table.insert(new_paragraphs, line)
-             end
-           end
-           
-           script.paragraphs = new_paragraphs
-           script:commit()
-           
-           if script.compile_error ~= "" then
-             local msg = "Compile error: " .. script.compile_error
-             print(msg)
-             renoise.app():show_status(msg)
-             return
-           end
-           
-           -- Show pattern status with visualization
-           renoise.app():show_status(format_pattern_status(reversed_pattern, current_unit, "(Reversed)"))
-           
-           -- Render if auto-render is enabled
-           if current_settings.always_render then
-             render_to_pattern(script, current_settings, false)
-           end
-         end
-       }
-     },
-     
-     -- Auto render and advance options
-     vb:horizontal_aligner {
-       margin = DEFAULT_MARGIN,
-       spacing = DEFAULT_SPACING,
-       
-       vb:checkbox {
-         id = "auto_advance",
-         value = current_settings.auto_advance,
-         tooltip = "Automatically advance to next phrase after rendering",
-         notifier = function(value)
-           current_settings.auto_advance = value
-         end
-       },
-       
-       vb:text {
-         text = "Auto Advance"
-       }
-     }
-   }
-   
-   -- Add stepper buttons
-   local stepper_row = main_vb:child(2) -- Get the stepper row
-   for _, stepper in ipairs(STEPPER_TYPES) do
-     stepper_row:add_child(
-       vb:button {
-         text = stepper.name:gsub(" Stepper", ""),
-         color = stepper.color,
-         width = 70,
-         tooltip = string.format("Show/Hide %s editor", stepper.name),
-         notifier = function()
-           toggle_stepper(stepper.name)
-         end
-       }
-     )
-   end
-   
-   -- Add the rest of your existing UI elements from pakettiPhraseGeneratorDialog_content()
-   main_vb:add_child(pakettiPhraseGeneratorDialog_content())
-   
-   dialog = renoise.app():show_custom_dialog(
-     "Enhanced Phrase Generator",
-     main_vb,
-     my_keyhandler_func
-   )
-   
-   -- Initialize observers and UI state
-   setup_instrument_observer()
-   update_phrase_selector()
-   
-   -- Initialize instrument name
-   local instr = renoise.song().selected_instrument
-   if instr and vb.views.instrument_name then
-     vb.views.instrument_name.text = string.format("%02d: %s", 
-       renoise.song().selected_instrument_index - 1,
-       instr.name)
-   end
- end
- 
+  
  -- Function to reverse the current pattern
  function reverse_pattern(settings)
    local instr = renoise.song().selected_instrument
@@ -2661,4 +2431,3 @@ local DEFAULT_SETTINGS = {
      update_ui_from_settings()
    end
  end
- 
