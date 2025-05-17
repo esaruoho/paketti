@@ -2952,9 +2952,10 @@ function PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMod
   end
 end
 
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:!Preferences..:Toggle Automatically Open Selected Track Device Editors ON/OFF",invoke = PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode}
-renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Toggle Automatically Open Selected Track Device Editors ON/OFF",invoke = PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode}
-renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Toggle Automatically Open Selected Track Device Editors ON/OFF",invoke = PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:!Preferences..:Toggle Automatically Open Selected Track Device Editors On/Off",invoke = PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode}
+renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Toggle Automatically Open Selected Track Device Editors On/Off",invoke = PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode}
+renoise.tool():add_menu_entry{name="--Main Menu:Options:Toggle Automatically Open Selected Track Device Editors On/Off",invoke = PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode}
+renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Toggle Automatically Open Selected Track Device Editors On/Off",invoke = PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode}
 renoise.tool():add_keybinding{name="Global:Paketti:Toggle Auto-Open Track Devices",invoke = PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode}
 renoise.tool():add_midi_mapping{name="Paketti:Toggle Auto-Open Track Devices",invoke = PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode}
 -------

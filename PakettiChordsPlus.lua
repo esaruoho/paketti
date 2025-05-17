@@ -1163,3 +1163,256 @@ renoise.tool():add_menu_entry{name="Mixer:Paketti ChordsPlus..:Duplicate Highest
 renoise.tool():add_menu_entry{name="Mixer:Paketti ChordsPlus..:Duplicate Lowest Notes to New Track & Duplicate Instrument",invoke=function() DuplicateSpecificNotesToNewTrack("lowest", "duplicate") end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti ChordsPlus..:Duplicate Lowest Notes to New Track (Selected Instrument)",invoke=function() DuplicateSpecificNotesToNewTrack("lowest", "selected") end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti ChordsPlus..:Duplicate Lowest Notes to New Track (Original Instrument)",invoke=function() DuplicateSpecificNotesToNewTrack("lowest", "original") end}
+
+-- Function to distribute notes from a row into an arpeggio pattern
+function DistributeNotes(pattern_type)
+  local song = renoise.song()
+  local pattern = song.selected_pattern
+  local track = song.selected_track
+  local track_index = song.selected_track_index
+  local selection = song.selection_in_pattern
+  
+  -- Get the current line index
+  local current_line = song.selected_line_index
+  
+  -- Store original number of visible columns
+  local visible_columns = track.visible_note_columns
+  
+  -- Collect notes from the current row with their column information
+  local notes = {}
+  for col_idx = 1, visible_columns do
+    local note_col = pattern.tracks[track_index]:line(current_line):note_column(col_idx)
+    if not note_col.is_empty and note_col.note_value < 120 then -- Skip empty notes and note-offs
+      table.insert(notes, {
+        note_value = note_col.note_value,
+        instrument_value = note_col.instrument_value,
+        volume_value = note_col.volume_value,
+        panning_value = note_col.panning_value,
+        delay_value = note_col.delay_value,
+        column = col_idx -- Store original column
+      })
+    end
+  end
+  
+  -- If no notes or only one note found, exit
+  if #notes == 0 then
+    renoise.app():show_status("No notes found to distribute")
+    return
+  elseif #notes == 1 then
+    renoise.app():show_status("Nothing to distribute, doing nothing")
+    return
+  end
+  
+  -- Clear the original row
+  for col_idx = 1, visible_columns do
+    pattern.tracks[track_index]:line(current_line):note_column(col_idx):clear()
+  end
+  
+  -- Calculate spacing based on pattern type
+  local function get_next_spacing(index)
+    if pattern_type == "even2" then
+      return 2
+    elseif pattern_type == "even4" then
+      return 4
+    elseif pattern_type == "uneven" then
+      -- Alternate between 1 and 2 rows
+      return (index % 2 == 1) and 1 or 2
+    else -- "nextrow"
+      return 1
+    end
+  end
+  
+  -- Place notes according to the pattern
+  local current_pos = current_line
+  local max_pattern_lines = pattern.number_of_lines
+  
+  for i, note in ipairs(notes) do
+    -- Check if we're still within pattern bounds
+    if current_pos <= max_pattern_lines then
+      local target_line = pattern.tracks[track_index]:line(current_pos)
+      local note_col = target_line:note_column(note.column)
+      
+      -- Copy note data
+      note_col.note_value = note.note_value
+      note_col.instrument_value = note.instrument_value
+      note_col.volume_value = note.volume_value
+      note_col.panning_value = note.panning_value
+      note_col.delay_value = note.delay_value
+      
+      -- Calculate next position
+      local spacing = get_next_spacing(i)
+      current_pos = current_pos + spacing
+    else
+      renoise.app():show_status("Pattern end reached - some notes not placed")
+      break
+    end
+  end
+  
+  -- Show status message
+  local pattern_name = pattern_type == "even2" and "2 rows" or
+                      pattern_type == "even4" and "4 rows" or
+                      pattern_type == "uneven" and "uneven spacing" or
+                      "next row"
+  renoise.app():show_status(string.format("Notes distributed with %s spacing", pattern_name))
+end
+
+
+-- Function to distribute notes across a selection range
+function DistributeAcrossSelection(pattern_type)
+  local song = renoise.song()
+  local pattern = song.selected_pattern
+  local track = song.selected_track
+  local track_index = song.selected_track_index
+  local selection = song.selection_in_pattern
+  
+  -- Check if we have a valid selection
+  if not selection then
+    renoise.app():show_status("Please make a selection first")
+    return
+  end
+  
+  local start_line = selection.start_line
+  local end_line = selection.end_line
+  local selection_length = end_line - start_line + 1
+  
+  -- Need at least 2 lines selected
+  if selection_length < 2 then
+    renoise.app():show_status("Please select at least 2 lines")
+    return
+  end
+  
+  -- Store original number of visible columns
+  local visible_columns = track.visible_note_columns
+  
+  -- Collect notes from the first row of selection with their column information
+  local notes = {}
+  local first_line = pattern.tracks[track_index]:line(start_line)
+  for col_idx = 1, visible_columns do
+    local note_col = first_line:note_column(col_idx)
+    if not note_col.is_empty and note_col.note_value < 120 then -- Skip empty notes and note-offs
+      table.insert(notes, {
+        note_value = note_col.note_value,
+        instrument_value = note_col.instrument_value,
+        volume_value = note_col.volume_value,
+        panning_value = note_col.panning_value,
+        delay_value = note_col.delay_value,
+        column = col_idx -- Store original column
+      })
+    end
+  end
+  
+  -- If no notes or only one note found, exit
+  if #notes == 0 then
+    renoise.app():show_status("No notes found in first line to distribute")
+    return
+  elseif #notes == 1 then
+    renoise.app():show_status("Nothing to distribute, doing nothing")
+    return
+  end
+  
+  -- Clear all lines in the selection
+  for line_idx = start_line, end_line do
+    local line = pattern.tracks[track_index]:line(line_idx)
+    for col_idx = 1, visible_columns do
+      line:note_column(col_idx):clear()
+    end
+  end
+  
+  -- Calculate positions based on pattern type
+  local positions = {}
+  if pattern_type == "even" then
+    -- First note always at start
+    positions[1] = start_line
+    
+    -- Distribute remaining notes evenly
+    local step = (selection_length - 1) / (#notes - 1)
+    for i = 2, #notes do
+      local pos = start_line + math.floor((i - 1) * step + 0.5)
+      -- Ensure position is within valid range
+      positions[i] = math.max(start_line, math.min(end_line, pos))
+    end
+  elseif pattern_type == "even2" then
+    -- Distribute with 2-line spacing
+    for i = 1, #notes do
+      local pos = start_line + ((i - 1) * 2)
+      if pos <= end_line then
+        positions[i] = pos
+      else
+        break
+      end
+    end
+  elseif pattern_type == "even4" then
+    -- Distribute with 4-line spacing
+    for i = 1, #notes do
+      local pos = start_line + ((i - 1) * 4)
+      if pos <= end_line then
+        positions[i] = pos
+      else
+        break
+      end
+    end
+  elseif pattern_type == "uneven" then
+    -- First note always at start
+    positions[1] = start_line
+    
+    local remaining_space = selection_length - 1
+    local remaining_notes = #notes - 1
+    local pos = start_line
+    
+    for i = 2, #notes do
+      if i == #notes then
+        positions[i] = end_line -- Last note always at end
+      else
+        -- Add some randomness but ensure we leave room for remaining notes
+        local max_step = math.floor(remaining_space / remaining_notes * 1.5)
+        local min_step = math.max(1, math.floor(remaining_space / remaining_notes * 0.5))
+        local step = math.random(min_step, max_step)
+        pos = pos + step
+        -- Ensure position is within valid range
+        positions[i] = math.max(start_line, math.min(end_line, pos))
+        remaining_space = end_line - pos
+        remaining_notes = remaining_notes - 1
+      end
+    end
+  end
+  
+  -- Place notes according to calculated positions, maintaining their original columns
+  for i, note in ipairs(notes) do
+    if positions[i] then -- Only place notes that have valid positions
+      local target_line = pattern.tracks[track_index]:line(positions[i])
+      local note_col = target_line:note_column(note.column)
+      
+      note_col.note_value = note.note_value
+      note_col.instrument_value = note.instrument_value
+      note_col.volume_value = note.volume_value
+      note_col.panning_value = note.panning_value
+      note_col.delay_value = note.delay_value
+    end
+  end
+  
+  -- Show status message
+  local pattern_name = pattern_type == "even" and "evenly" or
+                      pattern_type == "even2" and "2 rows" or
+                      pattern_type == "even4" and "4 rows" or
+                      "unevenly"
+  renoise.app():show_status(string.format("Notes distributed with %s spacing across selection (%d lines)", 
+    pattern_name, selection_length))
+end
+
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Distribute (Even 2)",invoke=function() DistributeNotes("even2") end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Distribute (Even 4)",invoke=function() DistributeNotes("even4") end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Distribute (Uneven)",invoke=function() DistributeNotes("uneven") end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Distribute (Always Next Row)",invoke=function() DistributeNotes("nextrow") end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Distribute Across Selection (Even)",invoke=function() DistributeAcrossSelection("even") end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Distribute Across Selection (Even 2)",invoke=function() DistributeAcrossSelection("even2") end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Distribute Across Selection (Even 4)",invoke=function() DistributeAcrossSelection("even4") end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Distribute Across Selection (Uneven)",invoke=function() DistributeAcrossSelection("uneven") end}
+
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti ChordsPlus..:Distribute (Even 2)",invoke=function() DistributeNotes("even2") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Distribute (Even 4)",invoke=function() DistributeNotes("even4") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Distribute (Uneven)",invoke=function() DistributeNotes("uneven") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Distribute (Always Next Row)",invoke=function() DistributeNotes("nextrow") end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti ChordsPlus..:Distribute Across Selection (Even)",invoke=function() DistributeAcrossSelection("even") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Distribute Across Selection (Even 2)",invoke=function() DistributeAcrossSelection("even2") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Distribute Across Selection (Even 4)",invoke=function() DistributeAcrossSelection("even4") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Distribute Across Selection (Uneven)",invoke=function() DistributeAcrossSelection("uneven") end}

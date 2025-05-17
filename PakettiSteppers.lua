@@ -33,8 +33,8 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:Pitc
 renoise.tool():add_menu_entry{name="--Sample Modulation Matrix:Paketti..:PitchStepper Demo",invoke=function() pakettiPitchStepperDemo() end}
 renoise.tool():add_keybinding{name="Global:Paketti:PitchStepper Demo",invoke=function() pakettiPitchStepperDemo() end}
 ---
-function ResetAllSteppers()
-    local song=renoise.song()
+function ResetAllSteppers(clear)
+    local song = renoise.song()
     local count = 0
     local stepperTypes = {"Pitch Stepper", "Volume Stepper", "Panning Stepper", 
                          "Cutoff Stepper", "Resonance Stepper", "Drive Stepper"}
@@ -45,28 +45,40 @@ function ResetAllSteppers()
             for dev_idx, device in ipairs(devices) do
                 for _, stepperType in ipairs(stepperTypes) do
                     if device.name == stepperType then
-                        -- Clear existing points first
-                        device:clear_points()
+                        -- Reset the device parameter
+                        device.parameters[1].value = 1
                         
-                        -- Get the total number of steps from device length
-                        local total_steps = device.length
-                        local default_value = (device.name == "Volume Stepper") and 1 or 0.5
-                        local points_data = {}
-                        
-                        -- Reset ALL steps from 1 to device.length
-                        for step = 1, total_steps do
-                            table.insert(points_data, {
-                                scaling = 0,
-                                time = step,
-                                value = default_value
-                            })
-                        end
-                        
-                        device.points = points_data
-                        
-                        -- Close editor if open
-                        if device.external_editor_visible then
-                            device.external_editor_visible = false
+                        -- Only clear data if clear parameter is true
+                        if clear then
+                            -- Clear existing points first
+                            device:clear_points()
+                            
+                            -- Get the total number of steps from device length
+                            local total_steps = device.length
+                            local default_value = 0.5  -- Default for most steppers
+                            
+                            -- Set specific default values based on stepper type
+                            if device.name == "Volume Stepper" then
+                                default_value = 1
+                            elseif device.name == "Cutoff Stepper" then
+                                default_value = 1
+                            elseif device.name == "Resonance Stepper" then
+                                default_value = 0
+                            elseif device.name == "Drive Stepper" then
+                                default_value = 0
+                            end
+                            
+                            local points_data = {}
+                            -- Reset ALL steps from 1 to device.length
+                            for step = 1, total_steps do
+                                table.insert(points_data, {
+                                    scaling = 0,
+                                    time = step,
+                                    value = default_value
+                                })
+                            end
+                            
+                            device.points = points_data
                         end
                         
                         count = count + 1
@@ -77,7 +89,11 @@ function ResetAllSteppers()
     end
     
     if count > 0 then
-        renoise.app():show_status(string.format("Reset %d Stepper device(s)", count))
+        if clear then
+            renoise.app():show_status(string.format("Reset data and parameters for %d Stepper device(s)", count))
+        else
+            renoise.app():show_status(string.format("Reset parameters for %d Stepper device(s)", count))
+        end
     else 
         renoise.app():show_status("No Stepper devices found")
     end

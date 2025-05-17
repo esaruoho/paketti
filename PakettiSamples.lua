@@ -3728,7 +3728,7 @@ function saveAllSamplesToFolder()
 end
 
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Instruments..:Save All Samples to Folder...",invoke = saveAllSamplesToFolder}
-renoise.tool():add_menu_entry{name="Main Menu:File:Save All Samples to Folder...",invoke = saveAllSamplesToFolder}
+renoise.tool():add_menu_entry{name="--Main Menu:File:Save All Samples to Folder...",invoke = saveAllSamplesToFolder}
 
 
 -------
@@ -4275,7 +4275,7 @@ function pakettiShowLargestSamplesDialog()
       })
     end
     
-    dialog = renoise.app():show_custom_dialog("Show Largest Samples (Top 40)",dialog_content)
+    dialog = renoise.app():show_custom_dialog("Show Largest Samples (Top 40)",dialog_content, my_keyhandler_func)
   end
   
   pakettiShowLargestSamplesDialogDialog()

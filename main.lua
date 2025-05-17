@@ -258,6 +258,10 @@ timed_require("PakettiPhraseGenerator")
 function my_keyhandler_func(dialog, key)
   local closer = preferences.pakettiDialogClose.value
   if key.modifiers == "" and key.name == closer then
+    -- Clean up any observers that might exist
+    if dialog.cleanup_observers then
+      dialog.cleanup_observers()
+    end
     dialog:close()
     dialog=nil
     return nil
