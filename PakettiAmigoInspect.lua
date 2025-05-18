@@ -262,18 +262,31 @@ function pakettiAmigoParseJuceParams(chunk)
       os.remove(tmpbin)
 
       -- Look for JUCE state in plist
-      local juce_b64 = xmlc:match('<key>jucePluginState</key>%s*<data>(.-)</data>')
+      local juce_b64 = xmlc:match('<key>jucePluginState</key>%s*<data><!%[CDATA%[(.-)%]%]></data>') or
+                      xmlc:match('<key>jucePluginState</key>%s*<data>(.-)</data>') or
+                      xmlc:match('<key>data</key>%s*<data><!%[CDATA%[(.-)%]%]></data>') or
+                      xmlc:match('<key>data</key>%s*<data>(.-)</data>')
+      
       if not juce_b64 then
-        error("No JUCE plugin state found in plist")
+          print("Debug: XML content:")
+          print(xmlc:sub(1, 500)) -- Print first 500 chars to help diagnose
+          error("No JUCE plugin state found in plist")
       end
-
+      
       -- Decode JUCE state
-      local decoded = base64.decode(juce_b64)
-      if not decoded then
-        error("Failed to decode JUCE plugin state")
+      working_chunk = base64.decode(juce_b64)
+      if not working_chunk then
+          error("Failed to decode JUCE plugin state")
       end
-
-      working_chunk = decoded
+      
+      -- Verify we got JUCE data
+      if working_chunk:sub(1,6) ~= "PARAMS" then
+          print("Debug: First 64 bytes of decoded data:")
+          print(pakettiAmigoHexDump(working_chunk, 1, 64))
+          error("Invalid JUCE data (no PARAMS header)")
+      end
+      
+      pakettiAmigoDebug(string.format("Successfully converted binary plist to JUCE data (%d bytes)", #working_chunk))
     end)
 
     -- Clean up in case of error
@@ -1724,7 +1737,7 @@ function pakettiAmigoSetJucePath(old_chunk, new_path)
         f:write(working_chunk)
         f:close()
         
-        -- Convert to XML
+        -- Convert to XML - FIXED: changed binary1 to xml1
         local plutil_result = os.execute(('plutil -convert xml1 -o "%s" "%s"'):format(tmpxml, tmpbin))
         if plutil_result ~= 0 then
             os.remove(tmpbin)
@@ -1745,9 +1758,27 @@ function pakettiAmigoSetJucePath(old_chunk, new_path)
         os.remove(tmpxml)
         os.remove(tmpbin)
         
-        -- Extract JUCE state from XML plist
-        local juce_b64 = xmlc:match('<key>jucePluginState</key>%s*<data>(.-)</data>')
+        -- Print the XML content for debugging
+        print("Debug: Converted XML content:")
+        print(xmlc:sub(1, 500)) -- Print first 500 chars
+        
+        -- Extract JUCE state from XML plist - try both key names and both CDATA/non-CDATA formats
+        local juce_b64 = xmlc:match('<key>jucePluginState</key>%s*<data><!%[CDATA%[(.-)%]%]></data>') or
+                        xmlc:match('<key>jucePluginState</key>%s*<data>(.-)</data>') or
+                        xmlc:match('<key>data</key>%s*<data><!%[CDATA%[(.-)%]%]></data>') or
+                        xmlc:match('<key>data</key>%s*<data>(.-)</data>')
+        
         if not juce_b64 then
+            print("Debug: No direct match found, trying to parse XML structure...")
+            -- Try to find any <data> tags
+            local data_tags = {}
+            for tag in xmlc:gmatch("<data>(.-)</data>") do
+                table.insert(data_tags, tag)
+            end
+            print(string.format("Found %d <data> tags", #data_tags))
+            for i, tag in ipairs(data_tags) do
+                print(string.format("Data tag %d content preview: %s", i, tag:sub(1, 50)))
+            end
             error("No JUCE plugin state found in plist")
         end
         
@@ -1755,6 +1786,13 @@ function pakettiAmigoSetJucePath(old_chunk, new_path)
         working_chunk = base64.decode(juce_b64)
         if not working_chunk then
             error("Failed to decode JUCE plugin state")
+        end
+        
+        -- Verify we got JUCE data
+        if working_chunk:sub(1,6) ~= "PARAMS" then
+            print("Debug: First 64 bytes of decoded data:")
+            print(pakettiAmigoHexDump(working_chunk, 1, 64))
+            error("Invalid JUCE data (no PARAMS header)")
         end
         
         pakettiAmigoDebug(string.format("Successfully converted binary plist to JUCE data (%d bytes)", #working_chunk))
@@ -1767,196 +1805,152 @@ function pakettiAmigoSetJucePath(old_chunk, new_path)
         return nil, err 
     end
     
-    -- Find the pathname entry
+    -- First find and update the metadata entry if it exists
+    local metadata_entry = nil
+    local path_index = 1
+    for _, entry in ipairs(info.entries) do
+        if entry.id == "metadata" then
+            metadata_entry = entry
+            break
+        end
+    end
+    
+    -- If we found metadata, update or add the path to it
+    if metadata_entry then
+        -- Create new metadata with the path
+        local new_metadata = ""
+        local found_path = false
+        local pos = 1
+        while pos <= #metadata_entry.data do
+            local null_pos = metadata_entry.data:find("\0", pos)
+            if not null_pos then break end
+            local str = metadata_entry.data:sub(pos, null_pos - 1)
+            if str:match("%.wav$") or str:match("%.WAV$") then
+                if not found_path then
+                    -- Replace first WAV path with our new one
+                    new_metadata = new_metadata .. new_path .. "\0"
+                    found_path = true
+                else
+                    -- Keep other WAV paths
+                    new_metadata = new_metadata .. str .. "\0"
+                end
+            else
+                -- Keep non-WAV strings
+                new_metadata = new_metadata .. str .. "\0"
+            end
+            pos = null_pos + 1
+        end
+        
+        -- If we didn't find a WAV path to replace, add ours
+        if not found_path then
+            new_metadata = new_metadata .. new_path .. "\0"
+        end
+        
+        -- Update the metadata entry
+        local total_old = 8 + 2 + 2 + #metadata_entry.data
+        local start = metadata_entry.offset
+        local new_entry = metadata_entry.id .. string.rep("\0", 8 - #metadata_entry.id) ..
+                         string.char(metadata_entry.version % 256, math.floor(metadata_entry.version / 256)) ..
+                         string.char(#new_metadata % 256, math.floor(#new_metadata / 256)) ..
+                         new_metadata
+        
+        working_chunk = working_chunk:sub(1, start - 1) .. new_entry .. working_chunk:sub(start + total_old)
+    end
+    
+    -- Now find and update the pathname entry
     local found = false
     for _, entry in ipairs(info.entries) do
         if entry.id:match("pathnam?e?") then
             found = true
-            -- Compute sizes for the new entry
             local total_old = 8 + 2 + 1 + 1 + entry.length
             local start = entry.offset
             
-            -- Build new entry components
-            local id_bytes = entry.id .. string.rep("\0", 8 - #entry.id)
-            local ver_bytes = string.char(
-                entry.version % 256,
-                math.floor(entry.version / 256)
-            )
-            local len_byte = string.char(#new_path)
-            -- Always use direct path flag (0x21) when setting a new path
-            local flag_byte = string.char(0x21)
+            -- Always use direct path mode (0x21) for new paths
+            local flag_byte = string.char(0x21)  -- Direct path mode
+            local new_entry = entry.id .. string.rep("\0", 8 - #entry.id) ..
+                            string.char(entry.version % 256, math.floor(entry.version / 256)) ..
+                            string.char(#new_path) ..
+                            flag_byte ..
+                            new_path
             
-            -- Build the complete new entry
-            local new_entry = id_bytes .. ver_bytes .. len_byte .. flag_byte .. new_path
-            
-            -- Debug output
-            pakettiAmigoDebug("\nCreating new pathname entry:")
-            pakettiAmigoDebug(string.format("  Original offset: %d", start))
-            pakettiAmigoDebug(string.format("  Original length: %d", entry.length))
-            pakettiAmigoDebug(string.format("  New length: %d", #new_path))
-            pakettiAmigoDebug(string.format("  Flag: 0x21 (direct path)"))
-            pakettiAmigoDebug(string.format("  Version: %d", entry.version))
+            pakettiAmigoDebug("\nUpdating pathname entry:")
+            pakettiAmigoDebug(string.format("  Original flag: 0x%02X", entry.flag))
+            pakettiAmigoDebug(string.format("  New flag: 0x%02X (direct path)", 0x21))
+            pakettiAmigoDebug(string.format("  New path length: %d", #new_path))
             pakettiAmigoDebug(string.format("  New path: %s", new_path))
             
-            -- Splice the new entry into the chunk
-            local before = working_chunk:sub(1, start - 1)
-            local after = working_chunk:sub(start + total_old)
-            local new_chunk = before .. new_entry .. after
-            
-            pakettiAmigoDebug("\nChunk modification details:")
-            pakettiAmigoDebug(string.format("  Before section: %d bytes", #before))
-            pakettiAmigoDebug(string.format("  New entry: %d bytes", #new_entry))
-            pakettiAmigoDebug(string.format("  After section: %d bytes", #after))
-            pakettiAmigoDebug(string.format("  Original chunk: %d bytes", #working_chunk))
-            pakettiAmigoDebug(string.format("  New chunk: %d bytes", #new_chunk))
-            
-            -- Verify the new chunk
-            local verify_info, verify_err = pakettiAmigoParseJuceParams(new_chunk)
-            if not verify_info then
-                pakettiAmigoDebug("\nChunk verification failed:")
-                pakettiAmigoDebug("  Error: " .. tostring(verify_err))
-                return nil, "Failed to parse modified chunk: " .. tostring(verify_err)
-            end
-            
-            -- Find and verify the new pathname entry
-            local found_new = false
-            for _, v_entry in ipairs(verify_info.entries) do
-                if v_entry.id:match("pathnam?e?") then
-                    -- Compare only the filename part for verification
-                    local new_filename = new_path:match("[^/\\]+$") or new_path
-                    local found_filename = v_entry.path:match("[^/\\]+$") or v_entry.path
-                    
-                    pakettiAmigoDebug("\nVerifying filenames:")
-                    pakettiAmigoDebug(string.format("  Expected: %q", new_filename))
-                    pakettiAmigoDebug(string.format("  Found: %q", found_filename))
-                    
-                    if new_filename ~= found_filename then
-                        return nil, string.format("Path verification failed. Expected: %q, Got: %q",
-                            new_filename, found_filename)
-                    end
-                    found_new = true
-                    break
-                end
-            end
-            
-            if not found_new then
-                return nil, "Could not find pathname entry in modified chunk"
-            end
-            
-            -- Convert modified JUCE data back to binary plist
-            if old_chunk:sub(1,6) == "bplist" then
-                pakettiAmigoDebug("\nConverting modified JUCE data back to binary plist...")
-                
-                -- Create XML plist with the modified JUCE data
-                local plist_xml = string.format([==[<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>jucePluginState</key>
-    <data>%s</data>
-</dict>
-</plist>]==], base64.encode(new_chunk))
-                
-                -- Write XML plist
-                local tmpxml = os.tmpname() .. ".xml"
-                local tmpbin = tmpxml .. ".bin"
-                local f = io.open(tmpxml, "wb")
-                if not f then error("Failed to create temporary XML file") end
-                f:write(plist_xml)
-                f:close()
-                
-                -- Convert to binary plist
-                local plutil_result = os.execute(('plutil -convert binary1 -o "%s" "%s"'):format(tmpbin, tmpxml))
-                if plutil_result ~= 0 then
-                    os.remove(tmpxml)
-                    error("plutil conversion failed")
-                end
-                
-                -- Read binary plist
-                local bin_file = io.open(tmpbin, "rb")
-                if not bin_file then
-                    os.remove(tmpxml)
-                    os.remove(tmpbin)
-                    error("Failed to open converted binary file")
-                end
-                local bin_data = bin_file:read("*a")
-                bin_file:close()
-                
-                -- Clean up temp files
-                os.remove(tmpxml)
-                os.remove(tmpbin)
-                
-                return bin_data
-            end
-            
-            return new_chunk
+            working_chunk = working_chunk:sub(1, start - 1) .. new_entry .. working_chunk:sub(start + total_old)
+            break
         end
     end
     
-    -- If no pathname entry exists, create one at the start (after header)
+    -- If no pathname entry exists, create one using direct path mode
     if not found then
         local header = working_chunk:sub(1, 8)  -- PARAMS + version
         local rest = working_chunk:sub(9)
         
-        -- Create a new pathname entry with direct path flag (0x21)
+        -- Create new pathname entry with direct path
         local new_entry = "pathname" .. string.rep("\0", 8 - #"pathname") ..
-                         string.char(0x65, 0x00) ..  -- Version 101 (little-endian)
+                         string.char(0x65, 0x00) ..  -- Version 101
                          string.char(#new_path) ..   -- Length
                          string.char(0x21) ..        -- Direct path flag
                          new_path
         
-        local new_chunk = header .. new_entry .. rest
+        pakettiAmigoDebug("\nCreating new pathname entry:")
+        pakettiAmigoDebug(string.format("  Flag: 0x21 (direct path)"))
+        pakettiAmigoDebug(string.format("  Path length: %d", #new_path))
+        pakettiAmigoDebug(string.format("  Path: %s", new_path))
         
-        -- Convert modified JUCE data back to binary plist if needed
-        if old_chunk:sub(1,6) == "bplist" then
-            pakettiAmigoDebug("\nConverting modified JUCE data back to binary plist...")
-            
-            -- Create XML plist with the modified JUCE data
-            local plist_xml = string.format([==[<?xml version="1.0" encoding="UTF-8"?>
+        working_chunk = header .. new_entry .. rest
+    end
+    
+    -- Convert modified JUCE data back to binary plist if needed
+    if old_chunk:sub(1,6) == "bplist" then
+        pakettiAmigoDebug("\nConverting modified JUCE data back to binary plist...")
+        
+        -- Create XML plist with the modified JUCE data
+        local plist_xml = string.format([==[<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
     <key>jucePluginState</key>
     <data>%s</data>
 </dict>
-</plist>]==], base64.encode(new_chunk))
-            
-            -- Write XML plist
-            local tmpxml = os.tmpname() .. ".xml"
-            local tmpbin = tmpxml .. ".bin"
-            local f = io.open(tmpxml, "wb")
-            if not f then error("Failed to create temporary XML file") end
-            f:write(plist_xml)
-            f:close()
-            
-            -- Convert to binary plist
-            local plutil_result = os.execute(('plutil -convert binary1 -o "%s" "%s"'):format(tmpbin, tmpxml))
-            if plutil_result ~= 0 then
-                os.remove(tmpxml)
-                error("plutil conversion failed")
-            end
-            
-            -- Read binary plist
-            local bin_file = io.open(tmpbin, "rb")
-            if not bin_file then
-                os.remove(tmpxml)
-                os.remove(tmpbin)
-                error("Failed to open converted binary file")
-            end
-            local bin_data = bin_file:read("*a")
-            bin_file:close()
-            
-            -- Clean up temp files
+</plist>]==], base64.encode(working_chunk))
+        
+        -- Write XML plist
+        local tmpxml = os.tmpname() .. ".xml"
+        local tmpbin = tmpxml .. ".bin"
+        local f = io.open(tmpxml, "wb")
+        if not f then error("Failed to create temporary XML file") end
+        f:write(plist_xml)
+        f:close()
+        
+        -- Convert to binary plist
+        local plutil_result = os.execute(('plutil -convert binary1 -o "%s" "%s"'):format(tmpbin, tmpxml))
+        if plutil_result ~= 0 then
             os.remove(tmpxml)
-            os.remove(tmpbin)
-            
-            return bin_data
+            error("plutil conversion failed")
         end
         
-        return new_chunk
+        -- Read binary plist
+        local bin_file = io.open(tmpbin, "rb")
+        if not bin_file then
+            os.remove(tmpxml)
+            os.remove(tmpbin)
+            error("Failed to open converted binary file")
+        end
+        local bin_data = bin_file:read("*a")
+        bin_file:close()
+        
+        -- Clean up temp files
+        os.remove(tmpxml)
+        os.remove(tmpbin)
+        
+        return bin_data
     end
     
-    return nil, "pathname entry not found and could not create new one"
+    return working_chunk
 end
 
 -- Prompt user to set a new pathname in the active preset
@@ -1973,7 +1967,9 @@ function pakettiAmigoSetActivePathname()
     return
   end
   
-  local b64 = xml:match('<ParameterChunk><!%[CDATA%[(.-)%]%]>')
+  -- Try both CDATA and non-CDATA patterns
+  local b64 = xml:match('<ParameterChunk><!%[CDATA%[(.-)%]%]></ParameterChunk>') or
+              xml:match('<ParameterChunk>(.-)</ParameterChunk>')
   if not b64 then
     renoise.app():show_status("No <ParameterChunk> found")
     print("No <ParameterChunk> found")
@@ -1982,6 +1978,43 @@ function pakettiAmigoSetActivePathname()
   
   print("Debug: Decoding preset data...")
   local raw = base64.decode(b64)
+  if not raw then
+    renoise.app():show_status("Failed to decode base64 data")
+    print("Failed to decode base64 data")
+    return
+  end
+  print(string.format("Debug: Decoded %d bytes of raw data", #raw))
+  
+  -- If it's a binary plist, convert to XML first
+  if raw:sub(1,6) == "bplist" then
+    print("Debug: Converting binary plist to XML...")
+    local tmpbin = os.tmpname()
+    local tmpxml = tmpbin .. ".xml"
+    do 
+      local f = io.open(tmpbin, "wb")
+      if not f then
+        print("Debug: Failed to create temporary binary file")
+        return
+      end
+      f:write(raw)
+      f:close()
+    end
+    
+    local plutil_result = os.execute(('plutil -convert xml1 -o "%s" "%s"'):format(tmpxml, tmpbin))
+    if plutil_result ~= 0 then
+      print("Debug: plutil conversion failed")
+      os.remove(tmpbin)
+      return
+    end
+    
+    local xmlc = io.open(tmpxml, "r"):read("*a")
+    os.remove(tmpxml)
+    os.remove(tmpbin)
+    
+    print("Debug: Converted plist contents:")
+    print(xmlc:sub(1, 200) .. "...") -- Print first 200 chars
+  end
+  
   local new_path = renoise.app():prompt_for_filename_to_read({"*.*"}, "Select New Pathname...")
   if not new_path then return end
   
@@ -2070,11 +2103,13 @@ function pakettiAmigoSetActivePathname()
 end
 
 
+local os_name = os.getenv("OS") or os.getenv("OSTYPE") or (io.popen("uname -s"):read("*l"))
+if os_name == "MACINTOSH" or os_name == "Darwin" then
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Xperimental/Work in Progress..:Amigo..:Import Embedded Amigo (AU) WAV into Sample",invoke=function() pakettiAmigoLoadIntoSample() end }
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress..:Amigo..:Open Amigo (AU) Sample Path",invoke=function() pakettiAmigoOpenSamplePath() end }
 
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Xperimental/Work in Progress..:Amigo..:Import Embedded Amigo WAV into Sample",invoke=function() pakettiAmigoLoadIntoSample() end }
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress..:Amigo..:Open Amigo Sample Path",invoke=function() pakettiAmigoOpenSamplePath() end }
-
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Xperimental/Work in Progress..:Amigo..:Decode Active Plugin ParameterChunk",invoke=function() pakettiAmigoDecodeActiveParameterChunk() end }
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress..:Amigo..:Import Active Plugin Wavefile",invoke=function() pakettiAmigoImportWavefile() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress..:Amigo..:Set Active Plugin Pathname",invoke=function() pakettiAmigoSetActivePathname() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress..:Amigo..:Export Selected Sample to Amigo",invoke=function() pakettiAmigoExportSampleToAmigo() end}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Xperimental/Work in Progress..:Amigo..:Decode Active Plugin ParameterChunk Amigo (AU)",invoke=function() pakettiAmigoDecodeActiveParameterChunk() end }
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress..:Amigo..:Import Active Plugin Wavefile Amigo (AU)",invoke=function() pakettiAmigoImportWavefile() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress..:Amigo..:Set Active Plugin Pathname Amigo (AU)",invoke=function() pakettiAmigoSetActivePathname() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress..:Amigo..:Export Selected Sample to Amigo (AU)",invoke=function() pakettiAmigoExportSampleToAmigo() end}
+end
