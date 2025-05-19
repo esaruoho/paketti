@@ -1,7 +1,5 @@
-
-
 --[[============================================================================
-main.lua — IFF (8SVX) → WAV converter with debug printing and auto-loading into new instruments
+main.lua — IFF (8SVX/16SV) → WAV converter with debug printing and auto-loading into new instruments
 ============================================================================]]--
 
 -- Helper: debug print
@@ -37,8 +35,7 @@ local function skip_pad(f, size)
   end
 end
 
-
--- convert IFF (8SVX) or raw 8-bit sample to buffer data
+-- convert IFF (8SVX or 16SV) or raw 8-bit sample to buffer data
 function convert_iff_to_buffer(iff_path)
   debug_print("Opening IFF file:", iff_path)
   local f, err = io.open(iff_path, "rb")
@@ -49,46 +46,47 @@ function convert_iff_to_buffer(iff_path)
   -- peek header
   local header = f:read(4)
   if header ~= "FORM" then
-    -- fallback: treat as raw 8-bit PCM @ 16574 Hz (OctaMED sample rate)
+    -- fallback: raw 8-bit PCM @ 16574 Hz
     debug_print("No FORM header, falling back to raw import")
     f:seek("set", 0)
     local raw = f:read("*all")
     f:close()
-    assert(raw and #raw > 0, "Empty file in raw fallback")
 
+    assert(raw and #raw > 0, "Empty file in raw fallback")
     local buf = {}
     for i = 1, #raw do
       local b = raw:byte(i)
       local s8 = (b < 128) and b or (b - 256)
       buf[i] = s8 / 128.0
     end
-    local default_rate = 16574
-    debug_print(string.format("Imported raw %d-byte sample @ %d Hz", #raw, default_rate))
-    return buf, default_rate
+    return buf, 16574
   end
 
   -- proper IFF FORM
   local form_size = read_be_u32(f)
   local form_type = f:read(4)
-  assert(form_type == "8SVX", "Unsupported IFF type: " .. tostring(form_type))
+  assert(form_type == "8SVX" or form_type == "16SV",
+    "Unsupported IFF type: " .. tostring(form_type))
 
   local sample_rate, raw_data
   local chunk_count = 0
+
   while true do
     local hdr = f:read(4)
     if not hdr or #hdr < 4 then break end
     local size = read_be_u32(f)
     chunk_count = chunk_count + 1
-    debug_print(string.format("Chunk %d: '%s' (%d bytes)", chunk_count, hdr, size))
+    debug_print(string.format("Chunk %d: '%s' (%d bytes)",
+      chunk_count, hdr, size))
 
     if hdr == "VHDR" then
-      -- read the VHDR fields to extract the correct sample rate (UWORD at offset 12)
-      -- skip oneShotHiSamples (4 bytes), repeatHiSamples (4 bytes), samplesPerHiCycle (4 bytes)
-      f:seek("cur", 4 + 4 + 4)
+      -- skip oneShotHiSamples, repeatHiSamples, samplesPerHiCycle (3×4 bytes)
+      f:seek("cur", 12)
+      -- read 16-bit sample rate
       sample_rate = read_be_u16(f)
       debug_print("VHDR sample rate:", sample_rate)
-      -- skip remaining VHDR bytes: ctOctave (1), sCompression (1), volume (4)
-      f:seek("cur", (1 + 1 + 4))
+      -- skip ctOctave (1), sCompression (1), volume (4)
+      f:seek("cur", size - 14)
     elseif hdr == "BODY" then
       raw_data = f:read(size)
       debug_print("BODY length:", raw_data and #raw_data)
@@ -96,73 +94,95 @@ function convert_iff_to_buffer(iff_path)
       f:seek("cur", size)
       debug_print("Skipped chunk:", hdr)
     end
+
     skip_pad(f, size)
   end
+
   f:close()
+  assert(sample_rate and raw_data,
+    "Missing VHDR or BODY chunk in IFF")
 
-  assert(sample_rate and raw_data, "Missing VHDR or BODY chunk in IFF")
-  debug_print(string.format("Chunks found: %d, Sample rate: %d, Raw bytes: %d", chunk_count, sample_rate, #raw_data))
+  debug_print(string.format(
+    "Chunks found: %d, Sample rate: %d, Raw bytes: %d",
+    chunk_count, sample_rate, #raw_data))
 
+  -- Decode samples into normalized floats
   local buffer_data = {}
-  for i = 1, #raw_data do
-    local b = raw_data:byte(i)
-    local s8 = (b < 128) and b or (b - 256)
-    buffer_data[i] = s8 / 128.0
-  end
-  debug_print("Converted frames:", #buffer_data)
+  if form_type == "8SVX" then
+    for i = 1, #raw_data do
+      local b = raw_data:byte(i)
+      local s8 = (b < 128) and b or (b - 256)
+      buffer_data[i] = s8 / 128.0
+    end
 
+  else -- "16SV"
+    assert(#raw_data % 2 == 0, "Odd byte count in 16SV body")
+    local idx = 1
+    for i = 1, #raw_data, 2 do
+      local hi, lo = raw_data:byte(i, i+1)
+      local val = hi * 256 + lo
+      if val >= 0x8000 then val = val - 0x10000 end
+      buffer_data[idx] = val / 32768.0
+      idx = idx + 1
+    end
+  end
+
+  debug_print("Converted frames:", #buffer_data)
   return buffer_data, sample_rate
 end
 
--- Store failed imports for later reporting
+-- Track failed imports
 local failed_imports = {}
 
--- file-import hook
+-- File-import hook
 local function loadIFFSample(file_path)
-  local lower_path = file_path:lower()
-  if not (lower_path:match("%.iff$") or lower_path:match("%.8svx$")) then
+  local lower = file_path:lower()
+  if not (lower:match("%.iff$") or lower:match("%.8svx$")
+      or lower:match("%.16sv$")) then
     return nil
   end
 
   print("---------------------------------")
-  debug_print("Import hook triggered for:", file_path)
+  debug_print("Import hook for:", file_path)
 
   local buffer_data, sample_rate
   local ok, err = pcall(function()
     buffer_data, sample_rate = convert_iff_to_buffer(file_path)
   end)
-
   if not ok then
     failed_imports[file_path] = err
-    debug_print("Conversion failed for file:", file_path, "Error:", err)
-    print(string.format("Failed to convert IFF file: %s (Error: %s)", file_path, err))
-    renoise.app():show_status("IFF conversion failed: " .. file_path)
+    print(string.format(
+      "Failed to convert IFF file: %s (Error: %s)", file_path, err))
+    renoise.app():show_status("IFF conversion failed")
     return nil
   end
 
+  -- Insert into Renoise
   local song = renoise.song()
-  local current_idx = song.selected_instrument_index
-  if not current_idx then
-    debug_print("No instrument selected to insert after")
-    renoise.app():show_status("Select an instrument before loading IFF sample")
-    print("Failed to load IFF file: No instrument selected")
+  local idx = song.selected_instrument_index
+  if not idx then
+    renoise.app():show_status("Select an instrument first")
     return nil
   end
 
-  local new_idx = current_idx + 1
+  local new_idx = idx + 1
   song:insert_instrument_at(new_idx)
   song.selected_instrument_index = new_idx
-  debug_print("Inserted new instrument at index:", new_idx)
-
   local inst = song.instruments[new_idx]
-  local fname = filename_from_path(file_path)
-  inst.name = fname
+  local name = filename_from_path(file_path)
+  inst.name = name
   if #inst.samples < 1 then inst:insert_sample_at(1) end
   local sample = inst.samples[1]
-  sample.name = fname
+  sample.name = name
 
   local load_ok, load_err = pcall(function()
-    sample.sample_buffer:create_sample_data(sample_rate, 8, 1, #buffer_data)
+    local bit_depth = (#buffer_data > 0 and math.floor(#buffer_data / #buffer_data)) and 
+                      ((lower:match("%.16sv$") and 16) or 8) or 8
+    -- Actually pick bit-depth from form_type:
+    load_bit_depth = (lower:match("%.16sv$") and 16) or 8
+
+    sample.sample_buffer:create_sample_data(
+      sample_rate, load_bit_depth, 1, #buffer_data)
     sample.sample_buffer:prepare_sample_data_changes()
     for i = 1, #buffer_data do
       sample.sample_buffer:set_sample_data(1, i, buffer_data[i])
@@ -172,22 +192,22 @@ local function loadIFFSample(file_path)
 
   if not load_ok then
     failed_imports[file_path] = load_err
-    print(string.format("Failed to load IFF file: %s (Error: %s)", file_path, load_err))
+    print(string.format(
+      "Failed to load IFF file: %s (Error: %s)", file_path, load_err))
     song:delete_instrument_at(new_idx)
     return nil
   end
 
-  debug_print("Loaded sample into instrument [" .. new_idx .. "] sample slot 1 with name:", fname)
-  renoise.app():show_status("Loaded IFF sample into instrument " .. new_idx)
-  print(string.format("Successfully loaded IFF file: %s", file_path))
-
+  renoise.app():show_status(
+    string.format("Loaded %s at %d Hz", name, sample_rate))
+  print(string.format("Successfully loaded: %s", file_path))
   return nil
 end
 
 renoise.tool():add_file_import_hook{
-  name       = "IFF (8SVX) → WAV converter",
+  name       = "IFF (8SVX+16SV) → WAV converter",
   category   = "sample",
-  extensions = {"iff","8svx","8SVX"},
+  extensions = {"iff","8svx","8SVX","16sv","16SV"},
   invoke     = loadIFFSample
 }
 
