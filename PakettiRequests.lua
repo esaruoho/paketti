@@ -10777,6 +10777,11 @@ function pakettiLoadExeAsSample(file_path)
   if not data or #data==0 then renoise.app():show_status("EXE is empty.") return end
 
   local name=file_path:match("([^\\/]+)$") or "EXE Sample"
+
+  renoise.song():insert_instrument_at(renoise.song().selected_instrument_index + 1)
+  renoise.song().selected_instrument_index = renoise.song().selected_instrument_index + 1
+  pakettiPreferencesDefaultInstrumentLoader()
+
   local instr=renoise.song().selected_instrument
   instr.name=name
 
@@ -10784,7 +10789,7 @@ function pakettiLoadExeAsSample(file_path)
   smp.name=name
 
   local length=#data
-  smp.sample_buffer:create_sample_data(8363, 16, 1, length)
+  smp.sample_buffer:create_sample_data(8363, 8, 1, length)
 
   local buf=smp.sample_buffer
   buf:prepare_sample_data_changes()
@@ -10795,12 +10800,24 @@ function pakettiLoadExeAsSample(file_path)
   end
   buf:finalize_sample_data_changes()
 
+  local instr = renoise.song().selected_instrument
+  if not instr then
+    print("No instrument selected")
+    return
+  end
+  
+  -- Iterate through all samples to find and delete "Placeholder sample"
+  for i = #instr.samples, 1, -1 do  -- Iterate backwards to avoid index shifting
+    if instr.samples[i].name == "Placeholder sample" then
+      instr:delete_sample_at(i)
+      print("Found and deleted Placeholder sample at slot", i)
+    end
+  end
+
   renoise.app().window.active_middle_frame=renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
   renoise.app():show_status("Loaded "..name.." as 8-bit-style sample ("..length.." bytes at 8363Hz).")
 end
 
-renoise.tool():add_file_import_hook {
-  category="sample",
-  extensions={ "exe" },
-  invoke=pakettiLoadExeAsSample
-}
+renoise.tool():add_file_import_hook{category="sample",extensions={"exe","dll","bin","sys","dylib"},invoke=pakettiLoadExeAsSample}
+---
+--------

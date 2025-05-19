@@ -2708,7 +2708,7 @@ end
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Select Loop Range",invoke=function()
 select_loop_range_in_sample_editor() end}
 ----
-local function loadRandomSample(num_samples)
+function loadRandomSample(num_samples)
     -- Prompt the user to select a folder
     local folder_path = renoise.app():prompt_for_path("Select Folder Containing Audio Files")
     if not folder_path then
@@ -2777,8 +2777,8 @@ local function loadRandomSamplesIntoSingleInstrument(num_samples)
 
     renoise.song():insert_instrument_at(renoise.song().selected_instrument_index + 1)
         renoise.song().selected_instrument_index = renoise.song().selected_instrument_index + 1
-    -- Run the Paketti default instrument setup function
-    pakettiPreferencesDefaultInstrumentLoader()  -- Assuming this is a custom function you have defined
+    
+    pakettiPreferencesDefaultInstrumentLoader()  
 
     -- Get the selected instrument to load all samples into
     local instrument = renoise.song().selected_instrument

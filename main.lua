@@ -183,77 +183,6 @@ function EZMaximizeSpectrum()
   renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:EZ Maximize Spectrum",invoke=function() EZMaximizeSpectrum() end}
 end
 
-timed_require("rx")                          -- 2318 lines, 2.00 ms
-timed_require("Paketti0G01_Loader")          -- 857 lines, 4.00 ms
---if renoise_version >= 3.4 then ]]--
-timed_require("PakettieSpeak")               -- 930 lines, 4.00 ms
-timed_require("PakettiPlayerProSuite")       -- 852 lines, 3.00 ms
---else
---  print("PakettieSpeak and PakettiPlayerProSuite require Renoise v3.4 or higher")
---end  
-timed_require("PakettiChordsPlus")
-timed_require("PakettiLaunchApp")
-timed_require("PakettiSampleLoader")         -- 0 lines, 0.00 ms
-timed_require("PakettiCustomization")        -- 61 lines, 0.50 ms
-timed_require("PakettiDeviceChains")         -- 85 lines, 0.00 ms
-timed_require("base64float")                 -- 203 lines, 0.00 ms
-timed_require("PakettiLoadDevices")          -- 496 lines, 1.00 ms
-timed_require("PakettiSandbox")              -- 352 lines, 0.50 ms
-timed_require("PakettiTupletGenerator")      -- 386 lines, 0.50 ms
-timed_require("PakettiLoadPlugins")          -- 534 lines, 0.50 ms
-timed_require("PakettiPatternSequencer")     -- 47 lines, 0.50 ms
-timed_require("PakettiPatternMatrix")        -- 176 lines, 0.50 ms
-timed_require("PakettiInstrumentBox")        -- 280 lines, 0.50 ms
-timed_require("PakettiYTDLP")               -- 854 lines, 1.00 ms
-timed_require("PakettiStretch")              -- 925 lines, 1.50 ms
-timed_require("PakettiBeatDetect")           -- 396 lines, 1.00 ms
-timed_require("PakettiStacker")              -- 518 lines, 1.00 ms
-timed_require("PakettiRecorder")             -- 403 lines, 1.00 ms
-timed_require("PakettiControls")             -- 544 lines, 1.00 ms
-timed_require("PakettiKeyBindings")          -- 1443 lines, 2.00 ms
-timed_require("PakettiPhraseEditor")         -- 461 lines, 1.00 ms
-timed_require("PakettiOctaMEDSuite")         -- 601 lines, 1.00 ms
-timed_require("PakettiWavetabler")           -- 223 lines, 0.50 ms
-timed_require("PakettiAudioProcessing")      -- 1538 lines, 1.50 ms
-timed_require("PakettiPatternEditorCheatSheet") -- 953 lines, 1.00 ms
-timed_require("PakettiThemeSelector")        -- 516 lines, 4.50 ms
-timed_require("PakettiMidiPopulator")        -- 531 lines, 1.00 ms
-timed_require("PakettiImpulseTracker")       -- 2112 lines, 2.00 ms
-timed_require("PakettiGater")                -- 1233 lines, 2.50 ms
-timed_require("PakettiAutomation")           -- 2776 lines, 3.50 ms
-timed_require("PakettiUnisonGenerator")      -- 122 lines, 0.00 ms
-timed_require("PakettiMainMenuEntries")      -- 383 lines, 4.50 ms
-timed_require("PakettiMidi")                 -- 1692 lines, 5.50 ms
-timed_require("PakettiDynamicViews")         -- 703 lines, 9.00 ms
-timed_require("PakettiEightOneTwenty")       -- 1457 lines, 4.50 ms
-timed_require("PakettiExperimental_Verify")  -- 4543 lines, 8.50 ms
-timed_require("PakettiLoaders")              -- 3137 lines, 9.00 ms
-timed_require("PakettiPatternEditor")        -- 4583 lines, 11.50 ms
-timed_require("PakettiTkna")                 -- 1495 lines, 23.00 ms
-timed_require("PakettiRequests")             -- 9168 lines, 127.00 ms
-timed_require("PakettiSamples")              -- 4249 lines, 6.00 ms
-timed_require("Paketti35")
-timed_require("PakettiActionSelector")
-timed_require("Research/FormulaDeviceManual")
-timed_require("PakettiXRNSProbe")
-timed_require("PakettiAKWF")
-timed_require("PakettiSteppers")
-timed_require("PakettiREXLoader")
-timed_require("PakettiRX2Loader")
-timed_require("PakettiPTILoader")
-timed_require("PakettiSF2Loader")
-timed_require("process_slicer")
-timed_require("PakettiProcess")
-timed_require("PakettiSubColumnModifier")
-timed_require("PakettiPatternLength")
-timed_require("PakettiKeyzoneDistributor")
-timed_require("PakettiHexSliceLoop")
-timed_require("PakettiMergeInstruments")
-timed_require("PakettiBPMToMS")
-timed_require("PakettiGlobalGrooveToDelayValues")
-timed_require("PakettiAmigoInspect")
-timed_require("PakettiRePitch")
-timed_require("PakettiPhraseGenerator")
 
 function my_keyhandler_func(dialog, key)
   local closer = preferences.pakettiDialogClose.value
@@ -402,3 +331,75 @@ if not renoise.tool().app_new_document_observable:has_notifier(startup)
   else renoise.tool().app_new_document_observable:remove_notifier(startup) end  
 --------
 
+timed_require("rx")                          -- 2318 lines, 2.00 ms
+timed_require("Paketti0G01_Loader")          -- 857 lines, 4.00 ms
+--if renoise_version >= 3.4 then ]]--
+timed_require("PakettieSpeak")               -- 930 lines, 4.00 ms
+timed_require("PakettiPlayerProSuite")       -- 852 lines, 3.00 ms
+--else
+--  print("PakettieSpeak and PakettiPlayerProSuite require Renoise v3.4 or higher")
+--end  
+timed_require("PakettiChordsPlus")
+timed_require("PakettiLaunchApp")
+timed_require("PakettiSampleLoader")         -- 0 lines, 0.00 ms
+timed_require("PakettiCustomization")        -- 61 lines, 0.50 ms
+timed_require("PakettiDeviceChains")         -- 85 lines, 0.00 ms
+timed_require("base64float")                 -- 203 lines, 0.00 ms
+timed_require("PakettiLoadDevices")          -- 496 lines, 1.00 ms
+timed_require("PakettiSandbox")              -- 352 lines, 0.50 ms
+timed_require("PakettiTupletGenerator")      -- 386 lines, 0.50 ms
+timed_require("PakettiLoadPlugins")          -- 534 lines, 0.50 ms
+timed_require("PakettiPatternSequencer")     -- 47 lines, 0.50 ms
+timed_require("PakettiPatternMatrix")        -- 176 lines, 0.50 ms
+timed_require("PakettiInstrumentBox")        -- 280 lines, 0.50 ms
+timed_require("PakettiYTDLP")               -- 854 lines, 1.00 ms
+timed_require("PakettiStretch")              -- 925 lines, 1.50 ms
+timed_require("PakettiBeatDetect")           -- 396 lines, 1.00 ms
+timed_require("PakettiStacker")              -- 518 lines, 1.00 ms
+timed_require("PakettiRecorder")             -- 403 lines, 1.00 ms
+timed_require("PakettiControls")             -- 544 lines, 1.00 ms
+timed_require("PakettiKeyBindings")          -- 1443 lines, 2.00 ms
+timed_require("PakettiPhraseEditor")         -- 461 lines, 1.00 ms
+timed_require("PakettiOctaMEDSuite")         -- 601 lines, 1.00 ms
+timed_require("PakettiWavetabler")           -- 223 lines, 0.50 ms
+timed_require("PakettiAudioProcessing")      -- 1538 lines, 1.50 ms
+timed_require("PakettiPatternEditorCheatSheet") -- 953 lines, 1.00 ms
+timed_require("PakettiThemeSelector")        -- 516 lines, 4.50 ms
+timed_require("PakettiMidiPopulator")        -- 531 lines, 1.00 ms
+timed_require("PakettiImpulseTracker")       -- 2112 lines, 2.00 ms
+timed_require("PakettiGater")                -- 1233 lines, 2.50 ms
+timed_require("PakettiAutomation")           -- 2776 lines, 3.50 ms
+timed_require("PakettiUnisonGenerator")      -- 122 lines, 0.00 ms
+timed_require("PakettiMainMenuEntries")      -- 383 lines, 4.50 ms
+timed_require("PakettiMidi")                 -- 1692 lines, 5.50 ms
+timed_require("PakettiDynamicViews")         -- 703 lines, 9.00 ms
+timed_require("PakettiEightOneTwenty")       -- 1457 lines, 4.50 ms
+timed_require("PakettiExperimental_Verify")  -- 4543 lines, 8.50 ms
+timed_require("PakettiLoaders")              -- 3137 lines, 9.00 ms
+timed_require("PakettiPatternEditor")        -- 4583 lines, 11.50 ms
+timed_require("PakettiTkna")                 -- 1495 lines, 23.00 ms
+timed_require("PakettiRequests")             -- 9168 lines, 127.00 ms
+timed_require("PakettiSamples")              -- 4249 lines, 6.00 ms
+timed_require("Paketti35")
+timed_require("PakettiActionSelector")
+timed_require("Research/FormulaDeviceManual")
+timed_require("PakettiXRNSProbe")
+timed_require("PakettiAKWF")
+timed_require("PakettiSteppers")
+timed_require("PakettiREXLoader")
+timed_require("PakettiRX2Loader")
+timed_require("PakettiPTILoader")
+timed_require("PakettiSF2Loader")
+timed_require("process_slicer")
+timed_require("PakettiProcess")
+timed_require("PakettiSubColumnModifier")
+timed_require("PakettiPatternLength")
+timed_require("PakettiKeyzoneDistributor")
+timed_require("PakettiHexSliceLoop")
+timed_require("PakettiMergeInstruments")
+timed_require("PakettiBPMToMS")
+timed_require("PakettiGlobalGrooveToDelayValues")
+timed_require("PakettiAmigoInspect")
+timed_require("PakettiRePitch")
+timed_require("PakettiPhraseGenerator")
+timed_require("PakettiIFFLoader")
