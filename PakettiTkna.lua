@@ -402,7 +402,7 @@ function showAvailableRoutings()
             items = available_output_routings,
             value = selected_routing_index or 1, -- Set the popup to the current routing, or default to the first item
             width=300,
-            notifier = function(index)
+            notifier=function(index)
                 -- Update the selected index when a new item is selected
                 selected_routing_index = index
             end
@@ -411,14 +411,14 @@ function showAvailableRoutings()
             spacing=10,
             vb:button{
                 text="OK",
-                notifier = function()
+                notifier=function()
                     apply_selected_routing(selected_routing_index)
                     dialog:close()
                 end
             },
             vb:button{
                 text="Cancel",
-                notifier = function()
+                notifier=function()
                     dialog:close()
                 end
             }

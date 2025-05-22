@@ -111,7 +111,7 @@ dialog_content = vb:column{
   vb:row{
     vb:checkbox{
       value = writing_enabled,
-      notifier = function(val)
+      notifier=function(val)
         writing_enabled = val
       end
     },
@@ -320,7 +320,7 @@ function PakettiPlayerProNoteGridCreateGrid()
   grid:add_child(vb:row{
     vb:checkbox{
       value = EditStepCheckboxValue, -- Initialize checkbox
-      notifier = function(value)
+      notifier=function(value)
         EditStepCheckboxValue = value -- Update the shared value
       end
     },
@@ -340,7 +340,7 @@ function PakettiPlayerProNoteGridCreateGrid()
           text = notes[index],
           width=30,
           height = 15,
-          notifier = function()
+          notifier=function()
             local instrument_value = renoise.song().selected_instrument_index
             print("Note button clicked. Instrument Value: " .. tostring(instrument_value))
 
@@ -394,7 +394,7 @@ local EditStepCheckboxValue = false -- Initial value for EditStepCheckbox
         width=220,
         id = "effect_dialog_instrument_popup",  -- Changed ID to be unique
         value = selected_instrument_value,
-        notifier = function(value)
+        notifier=function(value)
           local instrument
           if value == 1 then
             instrument = nil
@@ -410,7 +410,7 @@ local EditStepCheckboxValue = false -- Initial value for EditStepCheckbox
       vb:button{
         text="Refresh",
         width=90,
-        notifier = function()
+        notifier=function()
           PakettiPlayerProNoteGridUpdateInstrumentPopup()
         end
       }
@@ -420,7 +420,7 @@ local EditStepCheckboxValue = false -- Initial value for EditStepCheckbox
       vb:button{
         text="Close",
         width=381,
-        notifier = function()
+        notifier=function()
           PakettiPlayerProNoteGridCloseDialog()
         end
       }
@@ -699,7 +699,7 @@ local function pakettiPlayerProCreateNoteGrid()
           text = notes[index],
           width=30,
           height = 15,
-          notifier = function()
+          notifier=function()
             local instrument_value = vb.views["effect_dialog_instrument_popup"].value - 2
             local instrument = instrument_value >= 0 and instrument_value or nil
             local effect = vb.views["effect_popup"].value > 1 and vb.views["effect_popup"].items[vb.views["effect_popup"].value] or nil
@@ -724,7 +724,7 @@ local function pakettiPlayerProCreateArgumentColumn(column_index, switch_group, 
     width=170,
     height = 20,
     value = 1, -- default to "Off"
-    notifier = function(idx)
+    notifier=function(idx)
       switch_group[column_index] = idx == 1 and "0" or string.format("%X", idx - 1)
       update_display()
     end
@@ -773,7 +773,7 @@ function pakettiPlayerProShowMainDialog()
       vb:button{
         text="Refresh",
         width=100,
-        notifier = function()
+        notifier=function()
           update_instrument_popup()
         end
       }
@@ -811,7 +811,7 @@ function pakettiPlayerProShowMainDialog()
       vb:button{
         text="Apply",
         width=100,
-        notifier = function()
+        notifier=function()
           local instrument_value = vb.views["effect_dialog_instrument_popup"].value - 2
           local instrument = instrument_value >= 0 and instrument_value or nil
           local effect_value = vb.views["effect_popup"].value
@@ -827,7 +827,7 @@ function pakettiPlayerProShowMainDialog()
       vb:button{
         text="Cancel",
         width=100,
-        notifier = function()
+        notifier=function()
           dialog:close()
           -- Clean up references
           vb = nil

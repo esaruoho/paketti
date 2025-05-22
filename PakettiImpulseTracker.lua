@@ -1654,7 +1654,7 @@ function pakettiImpulseTrackerNewSongDialog()
           items = { "Keep", "Clear" },
           value = patterns_state == "Keep" and 1 or 2,
           width=100,
-          notifier = function(value)
+          notifier=function(value)
             handle_switch_change(value, "Patterns")
           end
         }
@@ -1666,7 +1666,7 @@ function pakettiImpulseTrackerNewSongDialog()
           items = { "Keep", "Clear" },
           value = pattern_sequence_state == "Keep" and 1 or 2,
           width=100,
-          notifier = function(value)
+          notifier=function(value)
             handle_switch_change(value, "Pattern Sequence")
           end
         }
@@ -1678,7 +1678,7 @@ function pakettiImpulseTrackerNewSongDialog()
           items = { "Keep", "Clear" },
           value = instruments_state == "Keep" and 1 or 2,
           width=100,
-          notifier = function(value)
+          notifier=function(value)
             handle_switch_change(value, "Instruments")
           end
         }
@@ -1690,7 +1690,7 @@ function pakettiImpulseTrackerNewSongDialog()
           items = { "Keep", "Clear" },
           value = instrument_samples_state == "Keep" and 1 or 2,
           width=100,
-          notifier = function(value)
+          notifier=function(value)
             handle_switch_change(value, "Instrument Samples")
           end
         }
@@ -1702,7 +1702,7 @@ function pakettiImpulseTrackerNewSongDialog()
           items = { "Keep", "Clear" },
           value = instrument_midi_outs_state == "Keep" and 1 or 2,
           width=100,
-          notifier = function(value)
+          notifier=function(value)
             handle_switch_change(value, "Instrument MIDI Outs")
           end
         }
@@ -1714,7 +1714,7 @@ function pakettiImpulseTrackerNewSongDialog()
           items = { "Keep", "Clear" },
           value = instrument_plugins_state == "Keep" and 1 or 2,
           width=100,
-          notifier = function(value)
+          notifier=function(value)
             handle_switch_change(value, "Instrument Plugins")
           end
         }
@@ -1726,7 +1726,7 @@ function pakettiImpulseTrackerNewSongDialog()
           items = { "Keep", "Clear" },
           value = track_dsps_state == "Keep" and 1 or 2,
           width=100,
-          notifier = function(value)
+          notifier=function(value)
             handle_switch_change(value, "Track DSPs")
           end
         }

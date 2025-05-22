@@ -490,7 +490,7 @@ local function create_combined_dialog_content()
         max = 1,
         value = preferences.PakettiStripSilenceThreshold.value,
         width=200,
-        notifier = function(value)
+        notifier=function(value)
           threshold_label.text = string.format("%.3f%%", value * 100)
           preferences.PakettiStripSilenceThreshold.value = value
         end
@@ -499,7 +499,7 @@ local function create_combined_dialog_content()
     },
     vb:button{
       text="Strip Silence using Threshold",
-      notifier = function()
+      notifier=function()
         if preferences.PakettiStripSilenceThreshold.value == 1 then
           local choice = renoise.app():show_prompt("Warning", "Are you sure you want to remove this sample?", {"Yes", "Cancel"})
           if choice == "Yes" then
@@ -525,7 +525,7 @@ local function create_combined_dialog_content()
         max = 1,
         value = preferences.PakettiMoveSilenceThreshold.value,
         width=200,
-        notifier = function(value)
+        notifier=function(value)
           begthreshold_label.text = string.format("%.3f%%", value * 100)
           preferences.PakettiMoveSilenceThreshold.value = value
         end
@@ -534,7 +534,7 @@ local function create_combined_dialog_content()
     },
     vb:button{
       text="Move Beginning Silence to End",
-      notifier = function()
+      notifier=function()
         PakettiMoveSilence()
         renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
       end
@@ -551,7 +551,7 @@ local function create_combined_dialog_content()
   vb:row{
     vb:button{
       text="Run Recursive DC Offset x times",
-      notifier = function()
+      notifier=function()
         local count = tonumber(vb.views.slider_value.text)
         for i = 1, count do
           remove_dc_offset_recursive()
@@ -566,7 +566,7 @@ local function create_combined_dialog_content()
       max = 500,
       value = 1,
       width=200,
-      notifier = function(value)
+      notifier=function(value)
         vb.views.slider_value.text = tostring(math.floor(value))
       end
     },
@@ -607,23 +607,23 @@ vb:row{vb:button{text="Normalize Sample",notifier=function() normalize_selected_
 vb:column{style="group",margin=5,width=365,
 
       -- Phase Inversion Buttons
-      vb:row{vb:button{text="Phase Inversion", notifier = function() phase_invert_sample() set_middle_frame_focus() end},
-        vb:button{text="Phase Inversion & Audio Diff", notifier = function() phase_invert_and_diff_sample() set_middle_frame_focus() end},},
+      vb:row{vb:button{text="Phase Inversion", notifier=function() phase_invert_sample() set_middle_frame_focus() end},
+        vb:button{text="Phase Inversion & Audio Diff", notifier=function() phase_invert_and_diff_sample() set_middle_frame_focus() end},},
 
-      vb:row{vb:button{text="Invert Right, Sum Mono", notifier = function() invert_right_sum_mono() set_middle_frame_focus() end},},
+      vb:row{vb:button{text="Invert Right, Sum Mono", notifier=function() invert_right_sum_mono() set_middle_frame_focus() end},},
 
       -- Pitch Shift Buttons
       vb:row{
-        vb:valuebox{min = -100, max = 100, value = pitch_shift_amount, notifier = function(value) pitch_shift_amount = value end},
-        vb:button{text="Pitch Shift", notifier = function() pitch_shift_sample(pitch_shift_amount) set_middle_frame_focus() end},
-        vb:button{text="Pitch Shift & Audio Diff", notifier = function() pitch_shift_and_diff_sample() set_middle_frame_focus() end},
+        vb:valuebox{min = -100, max = 100, value = pitch_shift_amount, notifier=function(value) pitch_shift_amount = value end},
+        vb:button{text="Pitch Shift", notifier=function() pitch_shift_sample(pitch_shift_amount) set_middle_frame_focus() end},
+        vb:button{text="Pitch Shift & Audio Diff", notifier=function() pitch_shift_and_diff_sample() set_middle_frame_focus() end},
       },
 
-      vb:row{vb:button{text="Clip Bottom of Waveform", notifier = function() modulate_samples() set_middle_frame_focus() end},
-        vb:button{text="Modulate & Audio Diff", notifier = function() modulate_and_diff_sample() set_middle_frame_focus() end},},
+      vb:row{vb:button{text="Clip Bottom of Waveform", notifier=function() modulate_samples() set_middle_frame_focus() end},
+        vb:button{text="Modulate & Audio Diff", notifier=function() modulate_and_diff_sample() set_middle_frame_focus() end},},
 
       -- Audio Diff Button
-      vb:row{vb:button{text="Audio Diff", notifier = function() create_audio_diff_sample() set_middle_frame_focus() end},}},
+      vb:row{vb:button{text="Audio Diff", notifier=function() create_audio_diff_sample() set_middle_frame_focus() end},}},
     
     -- Resampling Section
     vb:column{style="group", margin=5,

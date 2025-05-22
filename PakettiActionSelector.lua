@@ -205,7 +205,7 @@ function pakettiActionSelectorDialog()
       vb:button{
         text="Debug All Actions",
         width=150,
-        notifier = function()
+        notifier=function()
           print("\n=== Starting Debug Test of All Actions ===\n")
           local failed_actions = {}
           
@@ -259,28 +259,28 @@ function pakettiActionSelectorDialog()
             vb:button{
         text="Save",
         width=60,
-        notifier = function()
+        notifier=function()
           ActionSelectorSaveToFile()
         end
       },
       vb:button{
         text="Load",
         width=60,
-        notifier = function()
+        notifier=function()
           ActionSelectorLoadPreferences()
         end
       },
       vb:button{
         text="Reset",
         width=60,
-        notifier = function()
+        notifier=function()
           ActionSelectorReset()
         end
       },
       vb:button{
         text="Random Fill",
         width=80,
-        notifier = function()
+        notifier=function()
           local available = {}
           for i, action in ipairs(actions) do
             table.insert(available, i)
@@ -316,7 +316,7 @@ function pakettiActionSelectorDialog()
         width=650,
         items = {"<None>"},
         value = 1,
-        notifier = function(idx)
+        notifier=function(idx)
           selected_actions[i] = idx > 1 and actions[idx - 1] or nil
           preferences.ActionSelector["Index" .. string.format("%02d", i)].value = 
             idx > 1 and (actions[idx - 1].type .. ": " .. actions[idx - 1].name .. "||" .. actions[idx - 1].invoke) or ""
@@ -325,7 +325,7 @@ function pakettiActionSelectorDialog()
       vb:button{
         text="Run",
         width=50,
-        notifier = function()
+        notifier=function()
           local action = selected_actions[i]
           if action then
             local func = loadstring("return " .. action.invoke)

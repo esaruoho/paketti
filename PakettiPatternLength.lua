@@ -310,7 +310,7 @@ function pakettiLengthDialog()
   local close_on_set_checkbox = view_builder:checkbox{
     id = "close_on_set_checkbox",
     value = false,  -- Default to false so dialog stays open
-    notifier = function()
+    notifier=function()
       -- Only refocus the textfield, don't trigger any value changes
       focus_textfield()
     end
@@ -319,7 +319,7 @@ function pakettiLengthDialog()
   -- "Cancel" button
   local cancel_button = view_builder:button{
     text="Cancel",
-    notifier = function()
+    notifier=function()
       debug_print("Cancel button: Cleaning up dialog")
       cleanup_dialog()
     end
@@ -328,7 +328,7 @@ function pakettiLengthDialog()
   -- "Set" button applies the value just like pressing Enter
   local set_button = view_builder:button{
     text="Set",
-    notifier = function()
+    notifier=function()
       if view_builder and view_builder.views.length_textfield then
         debug_print("Set button: Processing textfield value")
         local current_value = view_builder.views.length_textfield.value

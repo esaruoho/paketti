@@ -2986,7 +2986,7 @@ function pakettiUserDefinedSamplesDialog()
 
     local browse_button = vb:button{
       text="Browse",
-      notifier = function()
+      notifier=function()
         local folder_path = renoise.app():prompt_for_path("Select Folder Containing Audio Files")
         if folder_path then
           local sanitized_path = sanitizeFolderPath(folder_path)
@@ -3015,7 +3015,7 @@ function pakettiUserDefinedSamplesDialog()
       end}
     }
 
-    button_row:add_child(vb:button{text="Random Drumkit", notifier = function() 
+    button_row:add_child(vb:button{text="Random Drumkit", notifier=function() 
       local sanitized_path = sanitizeFolderPath(textfield.text)
       if sanitized_path then
         loadRandomDrumkitSamples(120, sanitized_path) 
@@ -3026,7 +3026,7 @@ function pakettiUserDefinedSamplesDialog()
 
     button_row:add_child(vb:button{
       text="Random 12",
-      notifier = function()
+      notifier=function()
         local sanitized_path = sanitizeFolderPath(textfield.text)
         if sanitized_path then
           loadRandomSamplesIntoSingleInstrument(12, sanitized_path)
@@ -3038,7 +3038,7 @@ function pakettiUserDefinedSamplesDialog()
 
     button_row:add_child(vb:button{
       text="Random 32",
-      notifier = function()
+      notifier=function()
         local sanitized_path = sanitizeFolderPath(textfield.text)
         if sanitized_path then
           loadRandomSample(32, sanitized_path)
@@ -3053,7 +3053,7 @@ function pakettiUserDefinedSamplesDialog()
 
   rows:add_child(vb:button{
     text="Save & Close",
-    notifier = function()
+    notifier=function()
       PakettiUserDefinedSamplesSavePreferences()
       renoise.app():show_status("Sample folders saved successfully.")
       dialog:close()
@@ -4197,7 +4197,7 @@ function pakettiShowLargestSamplesDialog()
         margin=0,
         vb:button{
           text="Refresh",
-          notifier = function()
+          notifier=function()
             if dialog and dialog.visible then
               dialog:close()
             end
@@ -4206,7 +4206,7 @@ function pakettiShowLargestSamplesDialog()
         },
         vb:button{
           text="Delete Unused Samples",
-          notifier = function()
+          notifier=function()
             deleteUnusedSamples(true)  -- Skip confirmation since we're in the viewer
             if dialog and dialog.visible then
               dialog:close()
@@ -4237,7 +4237,7 @@ function pakettiShowLargestSamplesDialog()
         vb:button{
           width=40,
           text="Show",
-          notifier = function()
+          notifier=function()
             local song=renoise.song()
             song.selected_instrument_index = sample.instr_idx
             song.selected_sample_index = sample.sample_idx

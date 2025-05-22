@@ -104,7 +104,7 @@ end
         id = "hex_input",
         width=50,
         value = "80",
-        notifier = function(value)
+        notifier=function(value)
             if value and value ~= "" then
                 set_sample_selection_by_hex_offset(value)
                 focus_sample_editor()
@@ -118,7 +118,7 @@ end
         width=200,
         items = {"10", "20", "40", "80"},
         value = 4, -- Default to "80"
-        notifier = function(value)
+        notifier=function(value)
             local hex_value = vb.views.hex_switch.items[value]
             vb.views.hex_input.value = hex_value
             set_sample_selection_by_hex_offset(hex_value)
@@ -142,7 +142,7 @@ end
             vb:button{
                 text="Set forward loops for all samples",
                 width=305,
-                notifier = function()
+                notifier=function()
                     set_sample_selection_by_hex_offset(vb.views.hex_input.value)
                     focus_sample_editor()
                 end

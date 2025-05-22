@@ -519,7 +519,7 @@ function create_paketti_pick_dialog()
       vb:checkbox{
         id = "randomize_checkbox",
         value = randomize_enabled,
-        notifier = function(value)
+        notifier=function(value)
           randomize_enabled = value
           save_checkbox_preference()
         end
@@ -530,7 +530,7 @@ function create_paketti_pick_dialog()
         min = 0,
         max = 100,
         value = randomize_percentage,
-        notifier = function(value)
+        notifier=function(value)
           randomize_percentage = value
           vb.views["randomize_percentage_label"].text = tostring(math.floor(value)) .. "%"
           save_checkbox_preference()
@@ -541,13 +541,13 @@ function create_paketti_pick_dialog()
     vb:row{
       vb:button{
         text="Save Slots",
-        notifier = function()
+        notifier=function()
           save_dialog_content_to_file()
         end
       },
       vb:button{
         text="Load Slots",
-        notifier = function()
+        notifier=function()
           load_dialog_content_from_file()
         end
       }
@@ -805,7 +805,7 @@ function pakettiOctaMEDNoteEchoDialog()
         min = 1,
         max = 16,
         value = preferences.pakettiOctaMEDNoteEchoDistance.value,
-        notifier = function(value)
+        notifier=function(value)
           preferences.pakettiOctaMEDNoteEchoDistance.value = value
         end
       }
@@ -816,7 +816,7 @@ function pakettiOctaMEDNoteEchoDialog()
         min = 1,
         max = 64,
         value = preferences.pakettiOctaMEDNoteEchoMin.value,
-        notifier = function(value)
+        notifier=function(value)
           preferences.pakettiOctaMEDNoteEchoMin.value = value
         end
       }
@@ -825,7 +825,7 @@ function pakettiOctaMEDNoteEchoDialog()
     vb:button{
       text="Apply",
       width=100,
-      notifier = function()
+      notifier=function()
         local distance = preferences.pakettiOctaMEDNoteEchoDistance.value
         
         -- Check if distance is valid for selection
@@ -848,7 +848,7 @@ function pakettiOctaMEDNoteEchoDialog()
       vb:button{
         text="Close",
         width=100,
-        notifier = function()
+        notifier=function()
           dialog:close()
           renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
         end

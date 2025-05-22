@@ -158,7 +158,7 @@ function pakettiKeyzoneDistributorDialog()
     max = 120, -- Allow full MIDI range per sample
     value = 1, -- Default to single key per sample
     width=50,
-    notifier = function(new_value)
+    notifier=function(new_value)
       distribute_samples(new_value, base_note_mode)
     end
   }
@@ -168,7 +168,7 @@ function pakettiKeyzoneDistributorDialog()
     return view_builder:button {
       text = tostring(value),
       width=35,
-      notifier = function()
+      notifier=function()
         keys_valuebox.value = value
         distribute_samples(value, base_note_mode)
       end
@@ -179,7 +179,7 @@ function pakettiKeyzoneDistributorDialog()
     width=300,
     items = {"Original", "Lowest Note", "Middle Note", "Highest Note"},
     value = base_note_mode,
-    notifier = function(new_mode)
+    notifier=function(new_mode)
       base_note_mode = new_mode
       -- Redistribute with current keys value but new base note mode
       distribute_samples(keys_valuebox.value, new_mode)

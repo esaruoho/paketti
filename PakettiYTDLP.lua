@@ -943,7 +943,7 @@ function PakettiYTDLPDialogContent()
           id = "search_phrase", 
           width=400,
           edit_mode = true,
-          notifier = function(value)
+          notifier=function(value)
             if value ~= "" then
               PakettiYTDLPStartYTDLP()
             end
@@ -953,7 +953,7 @@ function PakettiYTDLPDialogContent()
           id = "youtube_url",
           width=400,
           edit_mode = true,
-          notifier = function(value)
+          notifier=function(value)
             if value ~= "" then
               PakettiYTDLPStartYTDLP()
             end
@@ -966,7 +966,7 @@ function PakettiYTDLPDialogContent()
             text = preferences.PakettiYTDLP.PakettiYTDLPOutputDirectory.value
           },
           vb:button{ text="Browse", notifier = PakettiYTDLPPromptForOutputDir },
-          vb:button{ text="Open Path", notifier = function()
+          vb:button{ text="Open Path", notifier=function()
             local path = vb.views.output_dir.text
             if path and path ~= "" and path ~= "Set this yourself, please." then
               os.execute('open "' .. path .. '"')
@@ -990,7 +990,7 @@ function PakettiYTDLPDialogContent()
           min = 1,
           max = 60,
           value = preferences.PakettiYTDLP.PakettiYTDLPClipLength.value or SAMPLE_LENGTH,
-          notifier = function(value)
+          notifier=function(value)
             preferences.PakettiYTDLP.PakettiYTDLPClipLength.value = value
             PakettiYTDLPLogMessage("Saved Clip Length to " .. value)
           end
@@ -1000,7 +1000,7 @@ function PakettiYTDLPDialogContent()
           items = loop_modes,
           value = preferences.PakettiYTDLP.PakettiYTDLPLoopMode.value or 2,
           width=80,
-          notifier = function(value)
+          notifier=function(value)
             preferences.PakettiYTDLP.PakettiYTDLPLoopMode.value = value
             PakettiYTDLPLogMessage("Saved Loop Mode to " .. value)
           end
@@ -1010,7 +1010,7 @@ function PakettiYTDLPDialogContent()
           min = 1,
           max = 100,
           value = preferences.PakettiYTDLP.PakettiYTDLPAmountOfVideos.value or 1,
-          notifier = function(value)
+          notifier=function(value)
             preferences.PakettiYTDLP.PakettiYTDLPAmountOfVideos.value = value
             PakettiYTDLPLogMessage("Saved Amount of Videos to " .. value)
           end
@@ -1021,7 +1021,7 @@ function PakettiYTDLPDialogContent()
       vb:checkbox{
         id = "full_video",
         value = preferences.PakettiYTDLP.PakettiYTDLPLoadWholeVideo.value,
-        notifier = function(value)
+        notifier=function(value)
           preferences.PakettiYTDLP.PakettiYTDLPLoadWholeVideo.value = value
           if value then vb.views.clip_length.value = SAMPLE_LENGTH end
           PakettiYTDLPLogMessage("Saved Load Whole Video to " .. tostring(value))
@@ -1033,7 +1033,7 @@ function PakettiYTDLPDialogContent()
       vb:checkbox{
         id = "create_new_instrument",
         value = preferences.PakettiYTDLP.PakettiYTDLPNewInstrumentOrSameInstrument.value,
-        notifier = function(value)
+        notifier=function(value)
           preferences.PakettiYTDLP.PakettiYTDLPNewInstrumentOrSameInstrument.value = value
           PakettiYTDLPLogMessage("Saved Create New Instrument to " .. tostring(value))
         end
@@ -1046,7 +1046,7 @@ function PakettiYTDLPDialogContent()
         items = {"Off", "Save WAV", "Save FLAC"},
         value = preferences.PakettiYTDLP.PakettiYTDLPFormatToSave.value or 1,
         width=120,
-        notifier = function(value)
+        notifier=function(value)
           preferences.PakettiYTDLP.PakettiYTDLPFormatToSave.value = value
           if (value == 2 or value == 3) and (vb.views.save_path.text == "<No path set>" or vb.views.save_path.text == "") then
             PakettiYTDLPPromptForSavePath()
@@ -1073,7 +1073,7 @@ function PakettiYTDLPDialogContent()
           vb:button{
             id = "Clear_thing",
             text="Clear",
-            notifier = function() logview.text="" end
+            notifier=function() logview.text="" end
           }
         },
         logview,
@@ -1083,7 +1083,7 @@ function PakettiYTDLPDialogContent()
       vb:button{
         id = "start_button",
         text="Start",
-        notifier = function()
+        notifier=function()
           -- Disable Start if yt-dlp location is not set
           if preferences.PakettiYTDLP.PakettiYTDLPYT_DLPLocation.value == nil or preferences.PakettiYTDLP.PakettiYTDLPYT_DLPLocation.value == "" then
             PakettiYTDLPPromptForYTDLPPath()
@@ -1095,7 +1095,7 @@ function PakettiYTDLPDialogContent()
           PakettiYTDLPStartYTDLP()
         end
       },
-      vb:button{ text="Save", notifier = function()
+      vb:button{ text="Save", notifier=function()
         preferences.PakettiYTDLP.PakettiYTDLPOutputDirectory.value = vb.views.output_dir.text
         preferences.PakettiYTDLP.PakettiYTDLPClipLength.value = vb.views.clip_length.value
         preferences.PakettiYTDLP.PakettiYTDLPLoopMode.value = vb.views.loop_mode.value
@@ -1108,7 +1108,7 @@ function PakettiYTDLPDialogContent()
 
         PakettiYTDLPPrintPreferences()
       end},
-      vb:button{ text="Save & Close", notifier = function()
+      vb:button{ text="Save & Close", notifier=function()
         preferences.PakettiYTDLP.PakettiYTDLPOutputDirectory.value = vb.views.output_dir.text
         preferences.PakettiYTDLP.PakettiYTDLPClipLength.value = vb.views.clip_length.value
         preferences.PakettiYTDLP.PakettiYTDLPLoopMode.value = vb.views.loop_mode.value

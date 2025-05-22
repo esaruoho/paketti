@@ -971,7 +971,7 @@ function pakettiKeyBindingsDialog(selectedIdentifier)  -- Accept an optional par
     items = { "All", "Show without Tools", "Show Only Tools" },
     width=1100,
     value = 1,
-    notifier = function(value)
+    notifier=function(value)
       pakettiKeyBindingsUpdateList()
       if value == 1 then
         renoise.app():show_status("Now showing all KeyBindings")
@@ -1020,7 +1020,7 @@ function pakettiKeyBindingsDialog(selectedIdentifier)  -- Accept an optional par
       },
       identifier_switch,
       show_shortcuts_switch,
-vb:row{vb:button{text="Save as Textfile", notifier = function()
+vb:row{vb:button{text="Save as Textfile", notifier=function()
     local filename = renoise.app():prompt_for_filename_to_write(".txt", "Available Plugins Saver")
     if filename then
       local file, err = io.open(filename, "w")
@@ -1388,7 +1388,7 @@ function pakettiRenoiseKeyBindingsDialog(selectedIdentifier)  -- Accept an optio
     items = { "All", "Show without Tools", "Show Only Tools" },
     width=1100,
     value = 1, -- Default to "All"
-    notifier = function(value)
+    notifier=function(value)
       renoiseKeyBindingsUpdateList()
       if value == 1 then
         renoise.app():show_status("Now showing all KeyBindings")
@@ -1437,7 +1437,7 @@ function pakettiRenoiseKeyBindingsDialog(selectedIdentifier)  -- Accept an optio
       vb:row{
         vb:button{
           text="Save as Textfile",
-          notifier = function()
+          notifier=function()
             local filename = renoise.app():prompt_for_filename_to_write(".txt", "Available Plugins Saver")
             if filename then
               local file, err = io.open(filename, "w")
@@ -1740,34 +1740,34 @@ function pakettiFreeKeybindingsDialog()
   if os_name == "MACINTOSH" then
     modifier_checkboxes = {
       ctrl = {
-        box = vb:checkbox{notifier = function() update_free_list() end},
+        box = vb:checkbox{notifier=function() update_free_list() end},
         label = vb:text{text="Control"}
       },
       cmd = {
-        box = vb:checkbox{notifier = function() update_free_list() end},
+        box = vb:checkbox{notifier=function() update_free_list() end},
         label = vb:text{text="Command"}
       },
       option = {
-        box = vb:checkbox{notifier = function() update_free_list() end},
+        box = vb:checkbox{notifier=function() update_free_list() end},
         label = vb:text{text="Option"}
       },
       shift = {
-        box = vb:checkbox{notifier = function() update_free_list() end},
+        box = vb:checkbox{notifier=function() update_free_list() end},
         label = vb:text{text="Shift"}
       }
     }
   else
     modifier_checkboxes = {
       ctrl = {
-        box = vb:checkbox{notifier = function() update_free_list() end},
+        box = vb:checkbox{notifier=function() update_free_list() end},
         label = vb:text{text="Control"}
       },
       alt = {
-        box = vb:checkbox{notifier = function() update_free_list() end},
+        box = vb:checkbox{notifier=function() update_free_list() end},
         label = vb:text{text="Alt"}
       },
       shift = {
-        box = vb:checkbox{notifier = function() update_free_list() end},
+        box = vb:checkbox{notifier=function() update_free_list() end},
         label = vb:text{text="Shift"}
       }
     }
@@ -1788,7 +1788,7 @@ function pakettiFreeKeybindingsDialog()
 
   local save_button = vb:button{
     text="Save to File",
-    notifier = function()
+    notifier=function()
       local selected_modifiers = {}
       if os_name == "MACINTOSH" then
         if modifier_checkboxes.ctrl.box.value then table.insert(selected_modifiers, "Ctrl") end

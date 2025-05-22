@@ -419,7 +419,7 @@ function pakettiLoadPluginsDialog()
   local dropdown = vb:popup{
     items = dropdown_items,
     value = 1,
-    notifier = function(index)
+    notifier=function(index)
       current_plugin_type = plugin_types[index]
       updatePluginList()
     end
@@ -435,7 +435,7 @@ function pakettiLoadPluginsDialog()
       max = 100,
       value = 0,
       width=200,
-      notifier = function(value)
+      notifier=function(value)
         random_select_percentage = value
         updateRandomSelection()
       end
@@ -450,7 +450,7 @@ function pakettiLoadPluginsDialog()
     vb:checkbox{
       id = "favorites_only_checkbox",
       value = false,
-      notifier = function(value)
+      notifier=function(value)
         updateRandomSelection()
       end
     },
@@ -475,7 +475,7 @@ function pakettiLoadPluginsDialog()
         text="Select All",
         height = button_height,
         width="50%",
-        notifier = function()
+        notifier=function()
           for _, cb_info in ipairs(plugins) do
             cb_info.checkbox.value = true
           end
@@ -487,7 +487,7 @@ function pakettiLoadPluginsDialog()
         text="Reset Selection",
         height = button_height,
         width="50%",
-        notifier = function()
+        notifier=function()
           resetSelection()
           vb.views["random_select_slider"].value = 0
           vb.views["random_percentage_text"].text="None"
@@ -500,7 +500,7 @@ function pakettiLoadPluginsDialog()
         text="Load Plugin(s)",
         width="33%",
         height = button_height,
-        notifier = function()
+        notifier=function()
           if loadSelectedPlugins() then
             renoise.app():show_status("Plugins loaded.")
           else
@@ -512,7 +512,7 @@ function pakettiLoadPluginsDialog()
         text="Load Plugin(s) & Close",
         width="33%",
         height = button_height,
-        notifier = function()
+        notifier=function()
           if loadSelectedPlugins() then
             dialog:close()
             dialog = nil
@@ -526,7 +526,7 @@ function pakettiLoadPluginsDialog()
         text="Cancel",
         height = button_height,
         width="34%",
-        notifier = function()
+        notifier=function()
           dialog:close()
           dialog = nil
           current_plugin_list_content = nil

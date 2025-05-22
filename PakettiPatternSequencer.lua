@@ -41,7 +41,7 @@ function pakettiSequencerSettingsDialog()
           width = 120,
           items = naming_behavior_options,
           value = preferences.pakettiPatternSequencer.naming_behavior.value,
-          notifier = function(idx)
+          notifier=function(idx)
             preferences.pakettiPatternSequencer.naming_behavior.value = idx
           end
         }
@@ -52,7 +52,7 @@ function pakettiSequencerSettingsDialog()
         vb:textfield{
           width = 120,
           value = preferences.pakettiPatternSequencer.clone_prefix.value,
-          notifier = function(value)
+          notifier=function(value)
             preferences.pakettiPatternSequencer.clone_prefix.value = value
           end
         }
@@ -63,7 +63,7 @@ function pakettiSequencerSettingsDialog()
         vb:textfield{
           width = 120,
           value = preferences.pakettiPatternSequencer.clone_suffix.value,
-          notifier = function(value)
+          notifier=function(value)
             preferences.pakettiPatternSequencer.clone_suffix.value = value
           end
         }
@@ -72,7 +72,7 @@ function pakettiSequencerSettingsDialog()
       vb:row{
         vb:checkbox{
           value = preferences.pakettiPatternSequencer.use_numbering.value,
-          notifier = function(value)
+          notifier=function(value)
             preferences.pakettiPatternSequencer.use_numbering.value = value
           end
         },
@@ -85,7 +85,7 @@ function pakettiSequencerSettingsDialog()
           width = 100,
           items = format_options,
           value = find_in_table(format_options, preferences.pakettiPatternSequencer.numbering_format.value),
-          notifier = function(idx)
+          notifier=function(idx)
             preferences.pakettiPatternSequencer.numbering_format.value = format_options[idx]
           end
         }
@@ -97,7 +97,7 @@ function pakettiSequencerSettingsDialog()
           min = 1,
           max = 999,
           value = preferences.pakettiPatternSequencer.numbering_start.value,
-          notifier = function(value)
+          notifier=function(value)
             preferences.pakettiPatternSequencer.numbering_start.value = value
           end
         }
@@ -115,7 +115,7 @@ function pakettiSequencerSettingsDialog()
       vb:row{
         vb:checkbox{
           value = preferences.pakettiPatternSequencer.select_after_clone.value,
-          notifier = function(value)
+          notifier=function(value)
             preferences.pakettiPatternSequencer.select_after_clone.value = value
           end
         },
@@ -130,14 +130,14 @@ function pakettiSequencerSettingsDialog()
       vb:button{
         text = "OK",
         width = 100,
-        notifier = function()
+        notifier=function()
           dialog:close()
         end
       },
       vb:button{
         text = "Cancel",
         width = 100,
-        notifier = function()
+        notifier=function()
           -- Reload preferences from disk to discard changes
           preferences:load_from("preferences.xml")
           dialog:close()

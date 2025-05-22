@@ -179,7 +179,7 @@ function pakettiTupletDialog()
             id = "note_count",
             value = "3",
             width=50,
-            notifier = function(value)
+            notifier=function(value)
               validate_and_generate()
               renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
             end
@@ -194,7 +194,7 @@ function pakettiTupletDialog()
             id = "row_count",
             value = "8",
             width=50,
-            notifier = function(value)
+            notifier=function(value)
               validate_and_generate()
               renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
             end
@@ -239,7 +239,7 @@ function pakettiTupletDialog()
       vb:button{
         text="Print",
         width=60,
-        notifier = function() 
+        notifier=function() 
           local row_count = tonumber(vb.views.row_count.value) or 8
           apply_to_pattern(vb.views.pattern_view.text, row_count, vb.views)
           renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
@@ -251,7 +251,7 @@ function pakettiTupletDialog()
       vb:checkbox{
         id = "auto_print",
         value = true,
-        notifier = function()
+        notifier=function()
           renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
         end
       },
@@ -265,7 +265,7 @@ function pakettiTupletDialog()
       width=500,
       items = {"Single", "Quarter", "Triplets", "Eighth", "Quintuplets", "Sextuplets", "Septuplets", "Sixteenth"},
       value = 3,
-      notifier = function(index)
+      notifier=function(index)
         local note_counts = {1, 2, 3, 4, 5, 6, 7, 8}
         vb.views.note_count.value = tostring(note_counts[index])
         local row_count = math.max(1, tonumber(vb.views.row_count.value) or 1)
@@ -302,7 +302,7 @@ function pakettiTupletDialog()
       vb:checkbox{
         id = "delays_only",
         value = false,
-        notifier = function()
+        notifier=function()
           -- Instead of trying to call the notifier directly,
           -- we should replicate the switch's logic here
           local note_counts = {1, 2, 3, 4, 5, 6, 7, 8}
@@ -332,7 +332,7 @@ function pakettiTupletDialog()
       vb:checkbox{
         id = "auto_flood",
         value = false,
-        notifier = function()
+        notifier=function()
           renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
         end
       },
@@ -345,7 +345,7 @@ function pakettiTupletDialog()
       vb:checkbox{
         id = "jump_below",
         value = false,
-        notifier = function()
+        notifier=function()
           renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
         end
       },

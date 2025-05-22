@@ -114,7 +114,7 @@ local function PakettiPluginEditorPositionControlCreateDialog()
     min = {x = 0, y = 0},
     max = {x = 1, y = 1},
     value = {x = 0.75, y = 0.75},
-    notifier = function(value)
+    notifier=function(value)
       local x = math.floor(value.x * 1500)
       local y = math.floor((1 - value.y) * 850)
       xy_value_text.text="XY Value: x = " .. tostring(x) .. ", y = " .. tostring(y)
@@ -127,7 +127,7 @@ local function PakettiPluginEditorPositionControlCreateDialog()
       max = 1500,
       value = position.x,
       width=200,
-      notifier = function(value)
+      notifier=function(value)
         slider1_value_text.text="Slider1 Value: " .. tostring(math.floor(value))
         print("Slider 1 Value: " .. tostring(math.floor(value)))
       end
@@ -137,7 +137,7 @@ local function PakettiPluginEditorPositionControlCreateDialog()
       max = 850,
       value = position.y,
       width=200,
-      notifier = function(value)
+      notifier=function(value)
         slider2_value_text.text="Slider2 Value: " .. tostring(math.floor(value))
         print("Slider 2 Value: " .. tostring(math.floor(value)))
       end
@@ -158,28 +158,28 @@ local function PakettiPluginEditorPositionControlCreateDialog()
 
   local dump_button = vb:button{
     text="Slider Dump to External Editor Position",
-    notifier = function()
+    notifier=function()
       dump_position(sliders)
     end
   }
 
   local dump_xy_button = vb:button{
     text="XY Dump to External Editor Position",
-    notifier = function()
+    notifier=function()
       dump_position_xy(xypad)
     end
   }
 
   local set_button_200 = vb:button{
     text="Set Position to 200",
-    notifier = function()
+    notifier=function()
       set_position_and_update(200, 200)
     end
   }
 
   local set_button_500 = vb:button{
     text="Set Position to 500",
-    notifier = function()
+    notifier=function()
       set_position_and_update(500, 500)
     end
   }
@@ -555,11 +555,11 @@ local function show_dialog()
 
   dialog = renoise.app():show_custom_dialog("Wacky Filter", vb:row{
     vb:column{
-      vb:slider{ min = 0, max = 1, value = filter_params.chaos, notifier = function(v) filter_params.chaos = v end},
+      vb:slider{ min = 0, max = 1, value = filter_params.chaos, notifier=function(v) filter_params.chaos = v end},
       vb:text{text="Chaos" },
-      vb:slider{ min = 20, max = 20000, value = filter_params.cutoff, notifier = function(v) filter_params.cutoff = v end},
+      vb:slider{ min = 20, max = 20000, value = filter_params.cutoff, notifier=function(v) filter_params.cutoff = v end},
       vb:text{text="Cutoff" },
-      vb:slider{ min = 0.1, max = 10, value = filter_params.resonance, notifier = function(v) filter_params.resonance = v end},
+      vb:slider{ min = 0.1, max = 10, value = filter_params.resonance, notifier=function(v) filter_params.resonance = v end},
       vb:text{text="Resonance" },
       vb:button{ text="Process Audio", notifier = process_audio }
     }

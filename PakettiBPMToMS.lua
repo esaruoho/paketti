@@ -71,7 +71,7 @@ function pakettiBPMMSCalculator()
       vb:text{ text = "Tempo", font = "bold", style = "strong" },
       vb:valuebox {
         value = bpm, min = 20, max = 999,
-        notifier = function(val)
+        notifier=function(val)
           bpm = val
           updateDelayTexts()
         end

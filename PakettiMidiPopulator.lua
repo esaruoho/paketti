@@ -384,33 +384,33 @@ function pakettiMIDIPopulator()
       vb:popup{
         items = midi_input_devices, 
         width=200, 
-        notifier = function(value) midi_input_device[i] = midi_input_devices[value] end, 
+        notifier=function(value) midi_input_device[i] = midi_input_devices[value] end, 
         id = "midi_input_popup_" .. i,
         value = table.index_of(midi_input_devices, midi_input_device[i]) or 1
       },
       vb:popup{
         items = {"1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16"}, 
         width=50, 
-        notifier = function(value) midi_input_channel[i] = tonumber(value) end, 
+        notifier=function(value) midi_input_channel[i] = tonumber(value) end, 
         value = midi_input_channel[i] or i
       },
       vb:popup{
         items = midi_output_devices, 
         width=200, 
-        notifier = function(value) midi_output_device[i] = midi_output_devices[value] end, 
+        notifier=function(value) midi_output_device[i] = midi_output_devices[value] end, 
         id = "midi_output_popup_" .. i,
         value = table.index_of(midi_output_devices, midi_output_device[i]) or 1
       },
       vb:popup{
         items = {"1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16"}, 
         width=50, 
-        notifier = function(value) midi_output_channel[i] = tonumber(value) end, 
+        notifier=function(value) midi_output_channel[i] = tonumber(value) end, 
         value = midi_output_channel[i] or i
       },
       vb:popup{
         items = plugin_dropdown_items, 
         width=200, 
-        notifier = function(value) selected_plugin[i] = plugin_dropdown_items[value] end, 
+        notifier=function(value) selected_plugin[i] = plugin_dropdown_items[value] end, 
         id = "plugin_popup_" .. i,
         value = table.index_of(plugin_dropdown_items, selected_plugin[i]) or 1
       }
@@ -545,12 +545,12 @@ function pakettiMIDIPopulator()
       vb:button{
         text="OK", 
         width=100, 
-        notifier = function() on_ok_button_pressed(dialog_content) end
+        notifier=function() on_ok_button_pressed(dialog_content) end
       },
       vb:button{
         text="Close", 
         width=100, 
-        notifier = function() custom_dialog:close() end
+        notifier=function() custom_dialog:close() end
       },
       vb:button{
         text="Save & Close", 

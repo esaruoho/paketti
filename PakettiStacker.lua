@@ -416,7 +416,7 @@ vb:switch {
   items = switch_values,
   width=250,
   value = switch_index,
-  notifier = function(index)
+  notifier=function(index)
     local selected_value = switch_values[index]
     if selected_value ~= "OFF" then
       -- Do not revert to OFF here. Just call on_switch_changed.
@@ -429,20 +429,20 @@ vb:switch {
   end}},
    vb:row{vb:button{
         text="Proceed with Stacking",
-        notifier = function()
+        notifier=function()
           proceed_with_stacking()
         returnpe() end}},
     
     vb:row{vb:text{text="Stack Ramp",width=100,font = "bold",style = "strong",},
-      vb:button{text="Up",notifier = function() write_velocity_ramp_up()
+      vb:button{text="Up",notifier=function() write_velocity_ramp_up()
       returnpe() end},
       vb:button{
         text="Down",
-        notifier = function() write_velocity_ramp_down() 
+        notifier=function() write_velocity_ramp_down() 
         returnpe() end},
       vb:button{
         text="Random",
-        notifier = function() write_random_velocity_notes() 
+        notifier=function() write_random_velocity_notes() 
         returnpe() end}},
 vb:row{vb:text{text="Set Loop Mode",width=100, style="strong",font="bold"},
 vb:button{text="Off",notifier=function() set_loop_mode_for_selected_instrument(renoise.Sample.LOOP_MODE_OFF) end},
@@ -463,7 +463,7 @@ vb:switch {
 --  id = "instrument_pitch",
   items = {"-24", "-12", "0", "+12", "+24"},
   value = 3,
-  notifier = function(index)
+  notifier=function(index)
     -- Convert the selected index to the corresponding pitch value
     local pitch_values = {-24, -12, 0, 12, 24}
     local selected_pitch = pitch_values[index] -- Lua uses 1-based indexing for tables
@@ -475,21 +475,21 @@ vb:switch {
 vb:row{
   vb:button{
     text="Follow Pattern",
-    notifier = function()
+    notifier=function()
       if renoise.song().transport.follow_player then
         renoise.song().transport.follow_player = false
       else
         renoise.song().transport.follow_player = true
       end
     returnpe() end},
-   vb:button{text="1/8", notifier = function() jump_to_pattern_segment(1) end},
-   vb:button{text="2/8", notifier = function() jump_to_pattern_segment(2) end},
-   vb:button{text="3/8", notifier = function() jump_to_pattern_segment(3) end},
-   vb:button{text="4/8", notifier = function() jump_to_pattern_segment(4) end},
-   vb:button{text="5/8", notifier = function() jump_to_pattern_segment(5) end},
-   vb:button{text="6/8", notifier = function() jump_to_pattern_segment(6) end},
-   vb:button{text="7/8", notifier = function() jump_to_pattern_segment(7) end},
-   vb:button{text="8/8", notifier = function() jump_to_pattern_segment(8) end}}}
+   vb:button{text="1/8", notifier=function() jump_to_pattern_segment(1) end},
+   vb:button{text="2/8", notifier=function() jump_to_pattern_segment(2) end},
+   vb:button{text="3/8", notifier=function() jump_to_pattern_segment(3) end},
+   vb:button{text="4/8", notifier=function() jump_to_pattern_segment(4) end},
+   vb:button{text="5/8", notifier=function() jump_to_pattern_segment(5) end},
+   vb:button{text="6/8", notifier=function() jump_to_pattern_segment(6) end},
+   vb:button{text="7/8", notifier=function() jump_to_pattern_segment(7) end},
+   vb:button{text="8/8", notifier=function() jump_to_pattern_segment(8) end}}}
   -- Show the dialog
   dialog = renoise.app():show_custom_dialog("Paketti Stacker", dialog_content,my_keyhandler_func)
 end

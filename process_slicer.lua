@@ -116,7 +116,7 @@ function ProcessSlicer:create_dialog(title)
       id = "cancel_button",
       text="Cancel",
       width=80,
-      notifier = function()
+      notifier=function()
         self:cancel()
         if dialog and dialog.visible then
           dialog:close()

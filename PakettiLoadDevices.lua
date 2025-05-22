@@ -502,7 +502,7 @@ function pakettiLoadDevicesDialog()
   local dropdown = vb:popup{
     items = device_types,
     value = 1,
-    notifier = function(index)
+    notifier=function(index)
       current_device_type = device_types[index]
       updateDeviceList()
     end}
@@ -515,7 +515,7 @@ function pakettiLoadDevicesDialog()
         max = 100,
         value = 0,
         width=200,
-        notifier = function(value)
+        notifier=function(value)
           random_select_percentage = value
           updateRandomSelection()
         end},
@@ -523,13 +523,13 @@ function pakettiLoadDevicesDialog()
       vb:checkbox{
         id = "favorites_only_checkbox",
         value = false,
-        notifier = function() 
+        notifier=function() 
           updateRandomSelection() 
         end
       },
       vb:text{text="Favorites Only",width=70},
       vb:button{text="Select All",width=20,
-        notifier = function()
+        notifier=function()
           for _, cb_info in ipairs(checkboxes) do
             cb_info.checkbox.value = true
           end
@@ -537,7 +537,7 @@ function pakettiLoadDevicesDialog()
           vb.views["random_percentage_text"].text="All"
         end},
       vb:button{text="Reset Selection",width=20,
-        notifier = function()
+        notifier=function()
           resetSelection()
           vb.views["random_select_slider"].value = 0
           vb.views["random_percentage_text"].text="None"
@@ -547,14 +547,14 @@ function pakettiLoadDevicesDialog()
   local action_buttons = vb:column{
     vb:horizontal_aligner{width="100%",
       vb:button{text="Load Device(s)",width=60,
-        notifier = function()
+        notifier=function()
           if loadSelectedDevices() then
             renoise.app():show_status("Devices loaded.")
           end
         end
       },
       vb:button{text="Load & Close",width=60,
-        notifier = function()
+        notifier=function()
           if loadSelectedDevices() then
             custom_dialog:close()
             renoise.app():show_status("Devices loaded.")
@@ -564,7 +564,7 @@ function pakettiLoadDevicesDialog()
       vb:button{text="Add Device(s) as Shortcut(s) & MidiMappings",width=140,
         notifier = addDeviceAsShortcut},
       vb:button{text="Cancel",width=30,
-        notifier = function() custom_dialog:close() end}}}
+        notifier=function() custom_dialog:close() end}}}
         
   device_list_view = vb:column{}
   dialog_content_view = vb:column{margin=10,spacing=5,device_list_view,}
@@ -708,7 +708,7 @@ function pakettiQuickLoadDialog()
       vb:button{
         text="Load",
         width=60,
-        notifier = function()
+        notifier=function()
           local selected_name = device_items[vb.views.device_selector.value]
           local device_path = device_paths[selected_name]
           local track = renoise.song().selected_track

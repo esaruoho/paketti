@@ -1,73 +1,3 @@
---[[----------------------------------------------------------------------------
-  handle_above_effect_command
-  Handles copying/incrementing/decrementing effect from the line above.
-  @param operation: "copy", "inc", or "dec"
-----------------------------------------------------------------------------]]--
-local function handle_above_effect_command(operation)
-  local song = renoise.song()
-  local pat = song.selected_pattern
-  local track_idx = song.selected_track_index
-  local line_idx = song.selected_line_index
-  local effect_col_idx = song.selected_effect_column_index
-  
-  -- Check if we're on a note column
-  if effect_col_idx == 0 then
-    renoise.app():show_status("No effect column selected, doing nothing.")
-    return
-  end
-  
-  -- Check if we're on the first line
-  if line_idx == 1 then
-    renoise.app():show_status("Nothing above current row, doing nothing.")
-    return
-  end
-  
-  local track = pat:track(track_idx)
-  local src = track:line(line_idx-1).effect_columns[effect_col_idx]
-  
-  -- Check if there's actually an effect to copy
-  if src.number_string == "" and src.amount_string == "" then
-    renoise.app():show_status("No effect to copy from above, doing nothing.")
-    return
-  end
-  
-  local dst = track:line(line_idx).effect_columns[effect_col_idx]
-  
-  -- Always copy the effect number
-  dst.number_string = src.number_string
-  
-  if operation == "copy" then
-    dst.amount_string = src.amount_string
-  else
-    -- Handle increment/decrement
-    local num = tonumber(src.amount_string, 16)
-    if num then
-      if operation == "inc" then
-        num = math.min(num + 1, 0xFF)
-      elseif operation == "dec" then
-        num = math.max(num - 1, 0x00)
-      end
-      dst.amount_string = string.format("%02X", num)
-    end
-  end
-end
-
-renoise.tool():add_menu_entry{name="Pattern Editor:Copy Above Effect Column",invoke=function() handle_above_effect_command("copy") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Copy Above Effect Column + Increase Value",invoke=function() handle_above_effect_command("inc") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Copy Above Effect Column + Decrease Value",invoke=function() handle_above_effect_command("dec") end}
-renoise.tool():add_keybinding{name="Global:Paketti:Copy Above Effect Column",invoke=function() handle_above_effect_command("copy") end}
-renoise.tool():add_keybinding{name="Global:Paketti:Copy Above Effect Column + Increase Value",invoke=function() handle_above_effect_command("inc") end}
-renoise.tool():add_keybinding{name="Global:Paketti:Copy Above Effect Column + Decrease Value",invoke=function() handle_above_effect_command("dec") end}
-
-
-
-
-
-
-
-
-
-
 -- Function to ensure EQ10 exists on selected track and return its index
 local function ensure_eq10_exists()
   local song=renoise.song()
@@ -163,7 +93,7 @@ function pakettiEQ10XYDialog()
         width=80,
         height = 80,
         value = { x = x_value, y = y_value },
-        notifier = function(value)
+        notifier=function(value)
           -- Update frequency (X axis)
           local new_freq = freq_param.value_min + 
                          value.x * (freq_param.value_max - freq_param.value_min)
@@ -191,105 +121,11 @@ end
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:EQ10 XY Control...",invoke = pakettiEQ10XYDialog}
 renoise.tool():add_keybinding{name="Global:Paketti:Show EQ10 XY Control Dialog...",invoke = pakettiEQ10XYDialog}
 -----
-local match_editstep_enabled = false
-local last_line_index = nil
-local tick_counter = 0 -- To track the "tick-tick-tick-skip" cycle
-
--- Function to find the next valid delay value in the track
-local function find_next_delay_line(start_line_index)
-  local song=renoise.song()
-  local track = song.selected_pattern_track
-  local num_lines = song.selected_pattern.number_of_lines
-
-  for line_index = start_line_index + 1, num_lines do
-    local line = track:line(line_index)
-    if line.note_columns[1] and not line.note_columns[1].is_empty then
-      local delay_value = line.note_columns[1].delay_value
-      if delay_value == 0x00 or delay_value == 0x55 or delay_value == 0xAA then
-        return line_index
-      end
-    end
-  end
-
-  -- Wrap around: search from the top if no match is found below
-  for line_index = 1, start_line_index do
-    local line = track:line(line_index)
-    if line.note_columns[1] and not line.note_columns[1].is_empty then
-      local delay_value = line.note_columns[1].delay_value
-      if delay_value == 0x00 or delay_value == 0x55 or delay_value == 0xAA then
-        return line_index
-      end
-    end
-  end
-
-  return nil -- No valid delays found
-end
-
--- Main function to dynamically adjust editstep
-local function match_editstep_with_delay_pattern()
-  local song=renoise.song()
-  local current_line_index = song.selected_line_index
-
-  -- Only act when the selected line changes
-  if last_line_index ~= current_line_index then
-    last_line_index = current_line_index
-
-    -- Cycle through the "tick-tick-tick-skip" pattern
-    local editstep = 0
-    tick_counter = (tick_counter % 4) + 1 -- Cycle between 1-4
-
-    if tick_counter == 4 then
-      -- Skip step
-      local next_line_index = find_next_delay_line(current_line_index)
-      if next_line_index then
-        editstep = next_line_index - current_line_index
-        if editstep <= 0 then
-          -- Wrap-around case
-          editstep = (song.selected_pattern.number_of_lines - current_line_index) + next_line_index
-        end
-      else
-        -- No valid delay found, reset to default behavior
-        editstep = 1
-      end
-    else
-      -- Standard tick step
-      editstep = 1
-    end
-
-    -- Apply the editstep
-    song.transport.edit_step = editstep
-    renoise.app():show_status("EditStep set to " .. tostring(editstep) ..
-      " (Cycle position: " .. tostring(tick_counter) .. ")")
-  end
-end
-
--- Toggle the functionality on or off
-local function toggle_match_editstep()
-  match_editstep_enabled = not match_editstep_enabled
-  if match_editstep_enabled then
-    if not renoise.tool().app_idle_observable:has_notifier(match_editstep_with_delay_pattern) then
-      renoise.tool().app_idle_observable:add_notifier(match_editstep_with_delay_pattern)
-    end
-    renoise.app():show_status("Match EditStep with Delay Pattern: ENABLED")
-  else
-    if renoise.tool().app_idle_observable:has_notifier(match_editstep_with_delay_pattern) then
-      renoise.tool().app_idle_observable:remove_notifier(match_editstep_with_delay_pattern)
-    end
-    renoise.app():show_status("Match EditStep with Delay Pattern: DISABLED")
-  end
-end
-
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress..:Match EditStep with Delay Pattern",invoke=function() toggle_match_editstep() end}
-renoise.tool():add_keybinding{name="Global:Paketti:Toggle Match EditStep with Delay Pattern",invoke=function() toggle_match_editstep() end}
-
 if preferences.SelectedSampleBeatSyncLines.value == true then 
-
-for i=1,512 do
-renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Beatsync Lines to " .. i,invoke=function()SelectedSampleBeatSyncLine(i)end}
-end 
+  for i=1,512 do
+  renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Beatsync Lines to " .. i,invoke=function()SelectedSampleBeatSyncLine(i)end}
+  end 
 end
-
-
 
 function AutoAssignOutputs()
   local song=renoise.song()
@@ -344,13 +180,11 @@ function AutoAssignOutputs()
   renoise.app():show_status("FX chains assigned and outputs routed successfully.")
 end
 
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Auto Assign Outputs",invoke=AutoAssignOutputs}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Auto Assign Outputs",invoke=AutoAssignOutputs}
+renoise.tool():add_menu_entry{name="Mixing:Paketti..:Auto Assign Outputs",invoke=AutoAssignOutputs}
 
-
---AutoAssignOutputs()
-
-
-
-
+---
 -- Initialize ViewBuilder
 local vb = renoise.ViewBuilder()
 local dialog = nil  -- Initialize dialog as nil
@@ -600,7 +434,7 @@ function pakettiDeviceChainDialog()
     local textfield_xrnt = vb:textfield {
       text = get_slot_preference_xrnt(i).value or "",
       width=900,  -- Increased width as per requirement
-      notifier = function(text)
+      notifier=function(text)
         get_slot_preference_xrnt(i).value = text
       end
     }
@@ -611,24 +445,9 @@ function pakettiDeviceChainDialog()
      -- margin=2,
       vb:text{text="Load Device Chain (.XRNT) Slot" .. slot_number .. ":",width=200 },
       textfield_xrnt,
-      vb:button{
-        text="Browse",
-        notifier = function()
-          select_xrnt_file(i)
-        end
-      },
-      vb:button{
-        text="Save",
-        notifier = function()
-          save_device_chain_to_slot(i)
-        end
-      },
-      vb:button{
-        text="Load",
-        notifier = function()
-          load_device_chain_from_slot(i)
-        end
-      }
+      vb:button{text="Browse",notifier=function() select_xrnt_file(i) end},
+      vb:button{text="Save",notifier=function() save_device_chain_to_slot(i) end},
+      vb:button{text="Load",notifier=function() load_device_chain_from_slot(i) end}
     }
     slots_rows_xrnt[#slots_rows_xrnt + 1] = row_xrnt
 
@@ -636,7 +455,7 @@ function pakettiDeviceChainDialog()
     local textfield_xrni = vb:textfield {
       text = get_slot_preference_xrni(i).value or "",
       width=900,  -- Increased width as per requirement
-      notifier = function(text)
+      notifier=function(text)
         get_slot_preference_xrni(i).value = text
       end
     }
@@ -649,22 +468,12 @@ function pakettiDeviceChainDialog()
       textfield_xrni,
       vb:button{
         text="Browse",
-        notifier = function()
+        notifier=function()
           select_xrni_file(i)
         end
       },
-      vb:button{
-        text="Save",
-        notifier = function()
-          save_instrument_to_slot(i)
-        end
-      },
-      vb:button{
-        text="Load",
-        notifier = function()
-          load_instrument_from_slot(i)
-        end
-      }
+      vb:button{text="Save",notifier=function() save_instrument_to_slot(i) end},
+      vb:button{text="Load",notifier=function() load_instrument_from_slot(i) end}
     }
     slots_rows_xrni[#slots_rows_xrni + 1] = row_xrni
 
@@ -673,7 +482,7 @@ function pakettiDeviceChainDialog()
       vb:text{text="Load Both Instrument&Device Chain (.XRNI&.XRNT) Slot" .. slot_number .. ":",width=200 },
       vb:button{
         text="Load Both",
-        notifier = function()
+        notifier=function()
           load_both_from_slot(i)
         end
       }
@@ -688,33 +497,24 @@ function pakettiDeviceChainDialog()
       vb:textfield {
         text = preferences.UserDevices.Path.value ~= "" and preferences.UserDevices.Path.value or "<Not Set, Please Set>",
         width=900,  -- Increased width as per requirement
-        notifier = function(text)
+        notifier=function(text)
           preferences.UserDevices.Path.value = text
         end
       },
       vb:button{
         text="Browse",
-        notifier = function()
+        notifier=function()
           select_user_xrnt_saving_folder()
         end
       }
     },
-    vb:column{
-      vb:text{text="Load Device Chain (.XRNT) Slots (01-10)",font="bold",style="strong"},
-      unpack(slots_rows_xrnt)
-    },
-    vb:column{
-      vb:text{text="Load Instrument (.XRNI) Slots (01-10)",font="bold",style="strong"},
-      unpack(slots_rows_xrni)
-    },
-    vb:column{
-      vb:text{text="Load Both Instrument&Device Chain (.XRNI&.XRNT) Slots (01-10)",font="bold",style="strong"},
-      unpack(slots_rows_both)
-    },
+    vb:column{vb:text{text="Load Device Chain (.XRNT) Slots (01-10)",font="bold",style="strong"},unpack(slots_rows_xrnt)},
+    vb:column{vb:text{text="Load Instrument (.XRNI) Slots (01-10)",font="bold",style="strong"},unpack(slots_rows_xrni)},
+    vb:column{vb:text{text="Load Both Instrument&Device Chain (.XRNI&.XRNT) Slots (01-10)",font="bold",style="strong"},unpack(slots_rows_both)},
     vb:row{
       vb:button{
         text="Close",
-        notifier = function()
+        notifier=function()
           dialog:close()
           dialog = nil  -- Clear the dialog reference
         end
@@ -805,11 +605,8 @@ local function update_sample_volumes(x, y)
 end
 
 dialog_content = vb:column{
-  vb:xypad{
-    width=200,
-    height = 200,
-    value = {x=0.5, y=0.5},
-    notifier = function(value)
+  vb:xypad{width=200,height=200,value={x=0.5,y=0.5},
+    notifier=function(value)
       update_sample_volumes(value.x, value.y)
     end
   }
@@ -824,15 +621,7 @@ function showXyPaddialog()
 end
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress..:XY Pad Sound Mixer",invoke=function() showXyPaddialog() end}
-
-
-
-
-
-
-
-
-
+--
 
 local vb = renoise.ViewBuilder()
 local dialog = nil
@@ -995,11 +784,8 @@ end
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress..:SBx Loop Playback",invoke=showSBX_dialog}
 renoise.tool():add_keybinding{name="Global:Transport:Reset SBx and Start Playback",
-  invoke=function()
-    reset_repeat_counts()
-    renoise.song().transport:start() -- Start playback
-  end}
---]]
+  invoke=function() reset_repeat_counts() renoise.song().transport:start() end}
+
 -- Tool Initialization
   monitoring_enabled = true
 --InitSBx()
@@ -1210,9 +996,8 @@ renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Transpose
   end
 }
 ---
-local function flood_fill_column()
-
-  local song=renoise.song()
+local function pakettiFloodFillColumn(use_editstep)
+  local song = renoise.song()
   local track = song.selected_track
   local pattern_index = song.selected_pattern_index
   local pattern = song.patterns[pattern_index]
@@ -1222,6 +1007,17 @@ local function flood_fill_column()
   local cursor_pos = song.transport.edit_pos
   local sel_effect_col = song.selected_effect_column_index
   local sel_note_col = song.selected_note_column_index
+  
+  -- Get the step size if we're using editstep
+  local step_size = 1
+  if use_editstep then
+    step_size = song.transport.edit_step
+    -- If editstep is 0, treat it as regular mode (step_size = 1)
+    if step_size == 0 then
+      step_size = 1
+      use_editstep = false
+    end
+  end
 
   -- Check if we are in an effect column
   if sel_effect_col ~= 0 then
@@ -1231,8 +1027,16 @@ local function flood_fill_column()
       renoise.app():show_status("No effect to flood fill from the current row.")
       return
     end
-    -- Loop through rows from current position to the end of the pattern
-    for i = line_index + 1, #lines do
+    
+    -- Clear non-empty effect columns (starting after current row)
+    for i = line_index + 1, pattern.number_of_lines do
+      if not lines[i].effect_columns[sel_effect_col].is_empty then
+        lines[i].effect_columns[sel_effect_col]:clear()
+      end
+    end
+    
+    -- Then apply the flood fill
+    for i = line_index + step_size, #lines, step_size do
       lines[i].effect_columns[sel_effect_col]:copy_from(current_effect)
     end
 
@@ -1243,8 +1047,16 @@ local function flood_fill_column()
       renoise.app():show_status("No note to flood fill from the current row.")
       return
     end
-    -- Loop through rows from current position to the end of the pattern
-    for i = line_index + 1, #lines do
+    
+    -- Clear non-empty note columns (starting after current row)
+    for i = line_index + 1, pattern.number_of_lines do
+      if not lines[i].note_columns[sel_note_col].is_empty then
+        lines[i].note_columns[sel_note_col]:clear()
+      end
+    end
+    
+    -- Then apply the flood fill
+    for i = line_index + step_size, #lines, step_size do
       lines[i].note_columns[sel_note_col]:copy_from(current_note_col)
     end
 
@@ -1255,11 +1067,21 @@ local function flood_fill_column()
 
   -- Return focus to the pattern editor
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
-  renoise.app():show_status("Flood fill completed.")
-
+  local msg = use_editstep and "Flood fill completed (EditStep)" or "Flood fill completed"
+  renoise.app():show_status(msg)
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Flood Fill Column with Row",invoke=function() flood_fill_column() end}
+-- Regular flood fill (every line)
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Flood Fill Column with Row",
+  invoke = function() pakettiFloodFillColumn(false) end
+}
+
+-- EditStep-based flood fill
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Flood Fill Column with Row by EditStep",
+  invoke = function() pakettiFloodFillColumn(true) end
+}
 
 --------
 -- Define the path to the mixpaste.xml file within the tool's directory
@@ -4192,173 +4014,3 @@ renoise.tool():add_keybinding{name="Global:Paketti:Column Cycle Keyjazz Special 
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Column Cycle Keyjazz..:Column Cycle Keyjazz Special (" .. ccks .. ")",invoke=function() ColumnCycleKeyjazzSpecial(ccks) end}
 end
 renoise.tool():add_keybinding{name="Global:Paketti:Column Cycle Keyjazz Special (2)",invoke=function() ColumnCycleKeyjazzSpecial(2) end}
-
-
-----------------------------
---[[----------------------------------------------------------------------------
-
-Cross-fade Sample w/ Fade-In/Out
-Averages your sample with its reversed copy,
-then applies a 6-frame fade-in & fade-out.
-
-----------------------------------------------------------------------------]]--
-
-local function crossfade_with_fades()
-  local song   = renoise.song()
-  local sample = song.selected_sample
-  if not sample then
-    renoise.app():show_status("No sample selected!")
-    return
-  end
-
-  local buffer = sample.sample_buffer
-  if not buffer.has_sample_data then
-    renoise.app():show_status("Selected sample has no data!")
-    return
-  end
-
-  local n_ch         = buffer.number_of_channels
-  local n_fr         = buffer.number_of_frames
-  local fade_frames  = 6
-  local fade_range   = fade_frames - 1
-
-  -- 1) Read entire buffer into Lua
-  local orig = {}
-  for ch = 1, n_ch do
-    orig[ch] = {}
-    for i = 1, n_fr do
-      orig[ch][i] = buffer:sample_data(ch, i)
-    end
-  end
-
-  -- 2) Prepare undo/redo & UI updates
-  buffer:prepare_sample_data_changes()
-
-  -- 3) Cross-fade + fades
-  for ch = 1, n_ch do
-    for i = 1, n_fr do
-      -- cross-fade average
-      local rev_i = n_fr - i + 1
-      local avg   = (orig[ch][i] + orig[ch][rev_i]) * 0.5
-
-      -- apply fade-in/fade-out envelope
-      local factor = 1
-      if i <= fade_frames then
-        -- fade-in from 0 → 1 over fade_frames:
-        factor = (i - 1) / fade_range
-      elseif i > (n_fr - fade_frames) then
-        -- fade-out from 1 → 0 over fade_frames:
-        local k = i - (n_fr - fade_frames + 1)  -- 0..fade_range
-        factor = 1 - (k / fade_range)
-      end
-
-      buffer:set_sample_data(ch, i, avg * factor)
-    end
-  end
-
-  -- 4) Finalize changes
-  buffer:finalize_sample_data_changes()
-  renoise.app():show_status("Cross-fade + fades complete.")
-end
-
-renoise.tool():add_menu_entry{name="Sample Editor:Cross-fade Sample w/ Fade-In/Out",invoke=crossfade_with_fades}
----
-
-
---[[----------------------------------------------------------------------------
-
-Cross‐fade Loop + Explicit Edge Fades (1‐sample‐fixed end)
-1) Mirror‐average first/last 10% of loop
-2) Pre‐loop fade‐out
-3) Loop‐start fade‐in
-4) Loop‐end fade‐out (fixed)
-
-----------------------------------------------------------------------------]]--
-
-local function crossfade_loop_edges_fixed_end()
-  local song  = renoise.song()
-  local instr = song.selected_instrument
-  local idx   = song.selected_sample_index
-  if not instr or idx < 1 then
-    renoise.app():show_status("No sample selected!")
-    return
-  end
-  local sample = instr.samples[idx]
-  local ls, le = sample.loop_start, sample.loop_end
-  if not ls or not le or le <= ls then
-    renoise.app():show_status("Invalid loop region!")
-    return
-  end
-  local buf = sample.sample_buffer
-  if not buf.has_sample_data then
-    renoise.app():show_status("Sample has no data!")
-    return
-  end
-
-  local n_ch       = buf.number_of_channels
-  local region_len = le - ls + 1
-  local fade_len   = math.floor(region_len / 10)
-  if fade_len < 1 or ls - fade_len < 1 then
-    renoise.app():show_status("Loop too short or no pre‐loop space.")
-    return
-  end
-
-  -- 1) Cache loop region
-  local orig = {}
-  for ch = 1, n_ch do
-    orig[ch] = {}
-    for i = 1, region_len do
-      orig[ch][i] = buf:sample_data(ch, ls + i - 1)
-    end
-  end
-
-  buf:prepare_sample_data_changes()
-
-  -- 2) Mirror‐average first/last fade_len frames
-  for ch = 1, n_ch do
-    for i = 1, fade_len do
-      local sp = ls + i - 1
-      local ep = le - (i - 1)
-      local avg = (orig[ch][i] + orig[ch][region_len - i + 1]) * 0.5
-      buf:set_sample_data(ch, sp, avg)
-      buf:set_sample_data(ch, ep, avg)
-    end
-  end
-
-  -- 3) Pre‐loop fade‐out (before loop_start)
-  for ch = 1, n_ch do
-    for i = 1, fade_len do
-      local pos = ls - fade_len + (i - 1)
-      local env = (fade_len - i + 1) / fade_len
-      local v   = buf:sample_data(ch, pos)
-      buf:set_sample_data(ch, pos, v * env)
-    end
-  end
-
-  -- 4) Loop‐start fade‐in (after loop_start)
-  for ch = 1, n_ch do
-    for i = 1, fade_len do
-      local pos = ls + (i - 1)
-      local env = i / fade_len
-      local v   = buf:sample_data(ch, pos)
-      buf:set_sample_data(ch, pos, v * env)
-    end
-  end
-
-  -- 5) Loop‐end fade‐out (before loop_end), fixed off‐by‐one
-  for ch = 1, n_ch do
-    for i = 1, fade_len do
-      local pos = (le - fade_len) + (i +1)     -- covers [le-fade_len .. le-1]
-      local env = (fade_len - i + 1) / fade_len
-      local v   = buf:sample_data(ch, pos)
-      buf:set_sample_data(ch, pos, v * env)
-    end
-  end
-
-  buf:finalize_sample_data_changes()
-  renoise.app():show_status(
-    ("Cross‐fade loop edges + fixed end‐fade complete (%d frames)."):format(fade_len)
-  )
-end
-
-renoise.tool():add_menu_entry{name="Sample Editor:Cross-fade Loop Edges (Fixed End)",invoke=crossfade_loop_edges_fixed_end}

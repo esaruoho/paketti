@@ -127,7 +127,7 @@ local function show_merge_dialog(initial_source_index, initial_target_index)
           value = source_index,
           tostring = function(value) return toHex(value) end,
           tonumber = function(str) return tonumber(str, 16) + 1 end,
-          notifier = function(value)
+          notifier=function(value)
             source_index = value
             update_names()
           end
@@ -149,7 +149,7 @@ local function show_merge_dialog(initial_source_index, initial_target_index)
           value = target_index,
           tostring = function(value) return toHex(value) end,
           tonumber = function(str) return tonumber(str, 16) + 1 end,
-          notifier = function(value)
+          notifier=function(value)
             target_index = value
             update_names()
           end
@@ -162,7 +162,7 @@ local function show_merge_dialog(initial_source_index, initial_target_index)
     vb:button{
       text="Merge",
       width="100%",
-      notifier = function()
+      notifier=function()
         if source_index == target_index then
           renoise.app():show_error("Source and target must be different")
           return

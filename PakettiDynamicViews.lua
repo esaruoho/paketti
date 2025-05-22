@@ -372,7 +372,7 @@ local function build_property_row(vb, dv_id, property_name, label_text, items_bu
       items = items_builder(),
       bind = DynamicViewPrefs["dynamic_view" .. dv_id .. "_" .. property_name .. step],
       width=125,
-      notifier = function()
+      notifier=function()
         apply_dynamic_view_step(tonumber(dv_id), step)
         update_steps_label()
         saveDynamicViewPreferences()

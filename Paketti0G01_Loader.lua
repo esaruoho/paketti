@@ -473,7 +473,7 @@ function create_loop_mode_switch(preference)
     items = {"Off", "Forward", "Backward", "PingPong"},
     value = preference.value,
     width=400,
-    notifier = function(value)
+    notifier=function(value)
       update_loop_mode(preference, value)
     end
   }
@@ -717,7 +717,7 @@ function pakettiPreferences()
                     vb:switch{items = {"Off", "On"},
                         value = preferences.selectionNewInstrumentSelect.value and 2 or 1,
                         width=200,
-                        notifier = function(value)
+                        notifier=function(value)
                             preferences.selectionNewInstrumentSelect.value = (value == 2)
                         end}},
           vb:row{vb:text{text="Sample Interpolation",width=150},vb:switch{items={"None","Linear","Cubic","Sinc"},value=preferences.selectionNewInstrumentInterpolation.value,width=200,
@@ -766,7 +766,7 @@ function pakettiPreferences()
                     max = 10000,
                     value = preferences.pakettiRotateSampleBufferFine.value,
                     width=200,
-                    notifier = function(value)
+                    notifier=function(value)
                         value = math.floor(value)  -- Ensure integer value
                         preferences.pakettiRotateSampleBufferFine.value = value
                         fine_value_label.text = tostring(value)
@@ -783,7 +783,7 @@ function pakettiPreferences()
                     max = 10000,
                     value = preferences.pakettiRotateSampleBufferCoarse.value,
                     width=200,
-                    notifier = function(value)
+                    notifier=function(value)
                         value = math.floor(value)  -- Ensure integer value
                         preferences.pakettiRotateSampleBufferCoarse.value = value
                         coarse_value_label.text = tostring(value)
@@ -807,7 +807,7 @@ vb:row{
       max = 1,
       value = preferences.PakettiStripSilenceThreshold.value,
       width=200,
-      notifier = function(value)
+      notifier=function(value)
           threshold_label.text = string.format("%.3f%%", value * 100)
           preferences.PakettiStripSilenceThreshold.value = value
           update_strip_silence_preview(value)
@@ -823,7 +823,7 @@ vb:row{
       max = 1,
       value = preferences.PakettiMoveSilenceThreshold.value,
       width=200,
-      notifier = function(value)
+      notifier=function(value)
           begthreshold_label.text = string.format("%.3f%%", value * 100)
           preferences.PakettiMoveSilenceThreshold.value = value
           update_move_silence_preview(value)
@@ -851,7 +851,7 @@ vb:row{
                 max = 100,
                 value = math.floor(preferences.pakettiBlendValue.value),
                 width=200,
-                notifier = function(value)
+                notifier=function(value)
                   value = math.floor(value)  -- Force integer value
                   preferences.pakettiBlendValue.value = value
                   
@@ -883,7 +883,7 @@ vb:row{
                 items = dialog_close_keys,
                 value = table.find(dialog_close_keys, preferences.pakettiDialogClose.value) or 1,
                 width=200,
-                notifier = function(value)
+                notifier=function(value)
                   preferences.pakettiDialogClose.value = dialog_close_keys[value]
                 end
               },
@@ -959,7 +959,7 @@ vb:row{
                 items = filter_types,
                 value = cached_filter_index,
                 width=200,
-                notifier = function(value)
+                notifier=function(value)
                   preferences.pakettiLoaderFilterType.value = filter_types[value]
                   cached_filter_index = value -- Update the cached index
                   -- Removed print statements for performance
@@ -1078,14 +1078,14 @@ vb:row{
             text = preferences.PakettiDeviceChainPath.value,
             width=300,
             id = pakettiDeviceChainPathDisplayId,
-            notifier = function(value)
+            notifier=function(value)
                 preferences.PakettiDeviceChainPath.value = value
             end
         },
         vb:button{
             text="Browse",
             width=60,
-            notifier = function()
+            notifier=function()
                 local path = renoise.app():prompt_for_path("Select Device Chain Path")
                 if path and path ~= "" then
                     preferences.PakettiDeviceChainPath.value = path
@@ -1100,7 +1100,7 @@ vb:row{
         vb:button{
             text="Reset to Default",
             width=100,
-            notifier = function()
+            notifier=function()
                 preferences.PakettiDeviceChainPath.value = "." .. separator .. "DeviceChains" .. separator
                 vb.views[pakettiDeviceChainPathDisplayId].text="." .. separator .. "DeviceChains" .. separator
             end
@@ -1120,14 +1120,14 @@ vb:row{
             text = preferences.PakettiIRPath.value,
             width=300,
             id = pakettiIRPathDisplayId,
-            notifier = function(value)
+            notifier=function(value)
                 preferences.PakettiIRPath.value = value
             end
         },
         vb:button{
             text="Browse",
             width=60,
-            notifier = function()
+            notifier=function()
                 local path = renoise.app():prompt_for_path("Select IR Path")
                 if path and path ~= "" then
                     preferences.PakettiIRPath.value = path
@@ -1142,7 +1142,7 @@ vb:row{
         vb:button{
             text="Reset to Default",
             width=100,
-            notifier = function()
+            notifier=function()
                 preferences.PakettiIRPath.value = "." .. separator .. "IR" .. separator
                 vb.views.pakettiIRPathDisplayId.text="." .. separator .. "IR" .. separator
             end

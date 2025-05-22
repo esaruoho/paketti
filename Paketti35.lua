@@ -284,7 +284,7 @@
   local demo_chooser_view = vb:chooser{
     items = {"Blue", "Red", "Green"},
     value = demo_chooser_value,
-    notifier = function(new_value)
+    notifier=function(new_value)
       demo_chooser_value = new_value
       demo_canvas_view:update()  -- update the canvas when the chooser changes
     end
@@ -296,7 +296,7 @@
     value = demo_rotary_value,
     width=50,  -- set width and height equal for a circular appearance
     height = 50,
-    notifier = function(new_value)
+    notifier=function(new_value)
       demo_rotary_value = new_value
       demo_canvas_view:update()  -- update the canvas when the rotary changes
     end
@@ -306,7 +306,7 @@
     width= 800,  -- Increased width to display longer list of shapes
     items = demo_switch_items,
     value = demo_switch_value,
-    notifier = function(new_value)
+    notifier=function(new_value)
       demo_switch_value = new_value
       demo_canvas_view:update()  -- update the canvas when the switch selection changes
     end
@@ -318,7 +318,7 @@
     value = demo_scrollbar_value,
     width=400,
     height = 20,
-    notifier = function(new_value)
+    notifier=function(new_value)
       demo_scrollbar_value = new_value
       demo_canvas_view:update()  -- update the canvas when scrolling
     end
@@ -381,7 +381,7 @@
             text = cursor_shape,
             width=120,
             tooltip = "Click to set cursor: " .. cursor_shape,
-            notifier = function()
+            notifier=function()
               -- Set the cursor of the dialog content using its ID
               vb.views.dialog_content.cursor = cursor_shape
             end
@@ -408,7 +408,7 @@
     local reset_cursor_button = vb:button{
       text="Reset Cursor",
       width=150,
-      notifier = function()
+      notifier=function()
         -- Reset the cursor to default
         vb.views.dialog_content.cursor = "default"
       end

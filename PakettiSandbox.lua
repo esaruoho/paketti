@@ -227,7 +227,7 @@ function pakettiSpeedTempoDialog()
           value = speed,
           tostring = function(val) return string.format("%X", val) end,
           tonumber = function(val) return tonumber(val, 16) end,
-          notifier = function(val)
+          notifier=function(val)
             speed = val
             real_bpm = calculate_bpm(speed, tempo)
             vb.views.result_label.text = string.format("Speed %d Tempo %d is %.2f BPM", speed, tempo, real_bpm)
@@ -240,7 +240,7 @@ function pakettiSpeedTempoDialog()
           min = 32,
           max = 255,
           value = tempo,
-          notifier = function(val)
+          notifier=function(val)
             tempo = val
             real_bpm = calculate_bpm(speed, tempo)
             vb.views.result_label.text = string.format("Speed %d Tempo %d is %.2f BPM", speed, tempo, real_bpm)
@@ -262,7 +262,7 @@ function pakettiSpeedTempoDialog()
       vb:button{
         text="Set BPM",
         width=60,
-        notifier = function()
+        notifier=function()
           renoise.song().transport.bpm = real_bpm
           renoise.app():show_status(string.format("BPM set to %.2f", real_bpm))
         end
@@ -270,7 +270,7 @@ function pakettiSpeedTempoDialog()
       vb:button{
         text="Close",
         width=60,
-        notifier = function()
+        notifier=function()
           if dialog and dialog.visible then
             dialog:close()
             dialog = nil
@@ -424,7 +424,7 @@ function pakettiBeatStructureEditorDialog()
     return vb:button{
       text = text,
       width=60,
-      notifier = function()
+      notifier=function()
         vb.views.numerator.value = F
         vb.views.denominator.value = K
         renoise.app().window.active_middle_frame = 1
@@ -509,7 +509,7 @@ function pakettiBeatStructureEditorDialog()
           min = 1,
           max = 20,
           value = 4,
-          notifier = function() updatePreview() end
+          notifier=function() updatePreview() end
         },
         vb:text{text="Beats per Pattern:" },
         vb:valuebox{
@@ -518,7 +518,7 @@ function pakettiBeatStructureEditorDialog()
           min = 1,
           max = 20,
           value = 4,
-          notifier = function() updatePreview() end
+          notifier=function() updatePreview() end
         }
       }
     },
@@ -589,7 +589,7 @@ function pakettiBeatStructureEditorDialog()
       vb:button{
         text="Apply",
         width=90,
-        notifier = function()
+        notifier=function()
           local F = tonumber(vb.views.numerator.value)
           local K = tonumber(vb.views.denominator.value)
           

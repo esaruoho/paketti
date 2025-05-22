@@ -186,13 +186,13 @@ end
         spacing=10,
         vb:button{
             text="Load Selected Plugin",
-            notifier = function()
+            notifier=function()
                 loadSelectedPlugin()
             end
         },
         vb:button{
             text="Generate Shortcuts",
-            notifier = function()
+            notifier=function()
                 local selected_plugins_text=""
                 for _, cb_info in ipairs(checkboxes) do
                     if cb_info.checkbox.value then
@@ -207,7 +207,7 @@ end
         },
         vb:button{
             text="Cancel",
-            notifier = function() custom_dialog:close() end
+            notifier=function() custom_dialog:close() end
         }
     }
 

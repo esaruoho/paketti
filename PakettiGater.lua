@@ -66,7 +66,7 @@ local function initialize_checkboxes(count)
     checkboxes[i] = vb:checkbox{
       value = false,
       width=30,
-      notifier = function()
+      notifier=function()
         if not initializing then
           insert_commands()
         end
@@ -75,7 +75,7 @@ local function initialize_checkboxes(count)
     retrig_checkboxes[i] = vb:checkbox{
       value = false,
       width=30,
-      notifier = function()
+      notifier=function()
         if not initializing then
           insert_commands()
         end
@@ -84,7 +84,7 @@ local function initialize_checkboxes(count)
     playback_checkboxes[i] = vb:checkbox{
       value = false,
       width=30,
-      notifier = function()
+      notifier=function()
         if not initializing then
           insert_commands()
         end
@@ -96,7 +96,7 @@ local function initialize_checkboxes(count)
     panning_left_checkboxes[i] = vb:checkbox{
       value = false,
       width=30,
-      notifier = function()
+      notifier=function()
         if panning_left_checkboxes[i].value then
           panning_center_checkboxes[i].value = false
           panning_right_checkboxes[i].value = false
@@ -109,7 +109,7 @@ local function initialize_checkboxes(count)
     panning_center_checkboxes[i] = vb:checkbox{
       value = true,
       width=30,
-      notifier = function()
+      notifier=function()
         if panning_center_checkboxes[i].value then
           panning_left_checkboxes[i].value = false
           panning_right_checkboxes[i].value = false
@@ -122,7 +122,7 @@ local function initialize_checkboxes(count)
     panning_right_checkboxes[i] = vb:checkbox{
       value = false,
       width=30,
-      notifier = function()
+      notifier=function()
         if panning_right_checkboxes[i].value then
           panning_left_checkboxes[i].value = false
           panning_center_checkboxes[i].value = false
@@ -1409,7 +1409,7 @@ function pakettiGaterDialog()
       items = { "FX Column (C00)", "Volume Column", "FX Column (L00)" },
       value = 1,
       width=300,
-      notifier = function(index)
+      notifier=function(index)
         local previous_choice = column_choice
         column_choice = (index == 1) and "FX Column" or (index == 2) and "Volume Column" or "FX Column (L00)"
         
@@ -1431,7 +1431,7 @@ function pakettiGaterDialog()
         max = num_checkboxes,
         value = active_steps_volume,
         width=50,
-        notifier = function(value)
+        notifier=function(value)
           set_active_steps_volume(value)
         end
       }
@@ -1472,7 +1472,7 @@ function pakettiGaterDialog()
         value = retrig_value,
         width=50,
         tooltip = "Retrig Speed",
-        notifier = function(value)
+        notifier=function(value)
           retrig_value = value
           if not initializing then
             insert_commands()
@@ -1485,7 +1485,7 @@ function pakettiGaterDialog()
       items = { "FX Column", "Volume Column", "Panning Column" },
       value = 1,
       width=300,
-      notifier = function(index)
+      notifier=function(index)
         retrig_column_choice = (index == 1) and "FX Column" or (index == 2) and "Volume Column" or "Panning Column"
         if not initializing then
           insert_commands()
@@ -1556,7 +1556,7 @@ function pakettiGaterDialog()
       items = { "FX Column", "Panning Column" },
       value = 1,
       width=300,
-      notifier = function(index)
+      notifier=function(index)
         panning_column_choice = (index == 1) and "FX Column" or "Panning Column"
         if not initializing then
           insert_commands()
@@ -1600,7 +1600,7 @@ function pakettiGaterDialog()
       vb:text{text="Global", font="bold", style="strong"},
       vb:checkbox{
         value = auto_grab,
-        notifier = function(value)
+        notifier=function(value)
           auto_grab = value
           if value then
             previous_track_index = renoise.song().selected_track_index

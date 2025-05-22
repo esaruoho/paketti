@@ -295,26 +295,26 @@ local function pakettiThemeSelectorDialogOpen(vb)
     vb:column{
       vb:row{vb:text{id = "themes_count", text="Select Theme (" .. tostring(#themes - 1) .. ")", font = "bold" } },  -- Exclude "<No Theme Selected>"
       vb:row{
-        vb:popup{tooltip="popupp",id = "themes_popup", items = themes, value = selected_theme_index,width=300, notifier = function(index)
+        vb:popup{tooltip="popupp",id = "themes_popup", items = themes, value = selected_theme_index,width=300, notifier=function(index)
           selected_theme_index = index
           local theme_name = themes[selected_theme_index]
           pakettiThemeSelectorUpdateLoadTheme(theme_name)
         end},
-        vb:button{ text="-", tooltip="hullo hello", notifier = function()
+        vb:button{ text="-", tooltip="hullo hello", notifier=function()
           selected_theme_index = (selected_theme_index - 2) % #themes + 1
           if selected_theme_index == 1 then selected_theme_index = #themes end
           vb.views["themes_popup"].value = selected_theme_index
           local theme_name = themes[selected_theme_index]
           pakettiThemeSelectorUpdateLoadTheme(theme_name)
         end},
-        vb:button{ text="+", notifier = function()
+        vb:button{ text="+", notifier=function()
           selected_theme_index = selected_theme_index % #themes + 1
           if selected_theme_index == 1 then selected_theme_index = 2 end
           vb.views["themes_popup"].value = selected_theme_index
           local theme_name = themes[selected_theme_index]
           pakettiThemeSelectorUpdateLoadTheme(theme_name)
         end},
-        vb:button{ text="Randomize", notifier = function()
+        vb:button{ text="Randomize", notifier=function()
           local new_index = selected_theme_index
           while new_index == selected_theme_index do new_index = math.random(#themes - 1) + 1 end
           selected_theme_index = new_index
@@ -323,7 +323,7 @@ local function pakettiThemeSelectorDialogOpen(vb)
           pakettiThemeSelectorUpdateLoadTheme(theme_name)
           renoise.app():show_status("Picked a random theme at random.")
         end},
-        vb:button{ text="Add as Favorite", notifier = function()
+        vb:button{ text="Add as Favorite", notifier=function()
           local theme_name = themes[selected_theme_index] .. ".xrnc"
           renoise.app():show_status("Added (" .. theme_name .. ") to Favorites list.")
           if theme_name ~= "<No Theme Selected>.xrnc" then
@@ -335,7 +335,7 @@ local function pakettiThemeSelectorDialogOpen(vb)
       vb:row{vb:text{text="Previously Loaded Theme", font = "bold" } },
       vb:row{
         vb:text{id = "previous_theme", text = tostring(preferences.pakettiThemeSelector.PreviousSelectedTheme.value) ~= "" and tostring(preferences.pakettiThemeSelector.PreviousSelectedTheme.value) or "<None>" },
-        vb:button{ text="Load Previous Theme", notifier = function()
+        vb:button{ text="Load Previous Theme", notifier=function()
           local prev_theme = tostring(preferences.pakettiThemeSelector.PreviousSelectedTheme.value)
           if prev_theme ~= "" and prev_theme ~= "<None>" then
             local theme_path = themes_path .. prev_theme .. ".xrnc"
@@ -355,7 +355,7 @@ local function pakettiThemeSelectorDialogOpen(vb)
           end
         end},
         vb:row{
-          vb:button{ text="-", notifier = function()
+          vb:button{ text="-", notifier=function()
             local current_index = vb.views["favorites_popup"].value
             if current_index > 2 then current_index = current_index - 1 else current_index = #preferences.pakettiThemeSelector.FavoritedList end
             vb.views["favorites_popup"].value = current_index
@@ -363,7 +363,7 @@ local function pakettiThemeSelectorDialogOpen(vb)
             selected_theme_index = table.find(themes, theme_name)
             pakettiThemeSelectorUpdateLoadTheme(theme_name)
           end},
-          vb:button{ text="+", notifier = function()
+          vb:button{ text="+", notifier=function()
             local current_index = vb.views["favorites_popup"].value
             if current_index < #preferences.pakettiThemeSelector.FavoritedList then current_index = current_index + 1 else current_index = 2 end
             vb.views["favorites_popup"].value = current_index
@@ -371,7 +371,7 @@ local function pakettiThemeSelectorDialogOpen(vb)
             selected_theme_index = table.find(themes, theme_name)
             pakettiThemeSelectorUpdateLoadTheme(theme_name)
           end},
-          vb:button{ text="Randomize", notifier = function()
+          vb:button{ text="Randomize", notifier=function()
             if #preferences.pakettiThemeSelector.FavoritedList <= 1 then
               renoise.app():show_status("You currently have no Favorite Themes set.")
               return
@@ -409,7 +409,7 @@ local function pakettiThemeSelectorDialogOpen(vb)
             end
             
           end},
-          vb:button{ text="Remove Favorite", notifier = function()
+          vb:button{ text="Remove Favorite", notifier=function()
             local current_index = vb.views["favorites_popup"].value
             if current_index > 1 and current_index <= #preferences.pakettiThemeSelector.FavoritedList then
               pakettiThemeSelectorRemoveFavorite(vb, current_index)

@@ -549,7 +549,7 @@ function pakettiTimestretchDialog()
         tostring = function(value)
             return tostring(value)
         end,
-        notifier = function(new_value)
+        notifier=function(new_value)
             local current_lpb = song.transport.lpb
             local new_lpb = math.max(1, math.min(256, current_lpb + new_value))
             song.transport.lpb = new_lpb
@@ -575,7 +575,7 @@ function pakettiTimestretchDialog()
         tostring = function(value)
             return tostring(value)
         end,
-        notifier = function(new_value)
+        notifier=function(new_value)
             local current_note = note_slider.value
             local new_note = math.max(0, math.min(119, current_note + new_value))
             update_note_value(new_note)
@@ -591,7 +591,7 @@ function pakettiTimestretchDialog()
         width=50,
         tostring = function(value) return string.format("%02X", value) end,
         tonumber = function(str) return tonumber(str, 16) end,
-        notifier = function(new_value)
+        notifier=function(new_value)
             -- Update all notes in the pattern with the new instrument value
             local pattern = song.patterns[current_pattern_index]
             local track = pattern:track(song.selected_track_index)
@@ -646,7 +646,7 @@ function pakettiTimestretchDialog()
     pattern_512_mode = vb:checkbox{
         value = current_pattern_length == 512,
         width=20,
-        notifier = function(new_value)
+        notifier=function(new_value)
             print("512 Mode - New value:", new_value)
             local song=renoise.song()
             local pattern = song.patterns[current_pattern_index]
@@ -685,7 +685,7 @@ function pakettiTimestretchDialog()
     reverse_checkbox = vb:checkbox{
         value = false,
         width=20,
-        notifier = function(new_value)
+        notifier=function(new_value)
             print("Reverse - New value:", new_value)
             print("Current step_size:", step_size)
             print("Current fill_all:", fill_all)
@@ -706,7 +706,7 @@ function pakettiTimestretchDialog()
         width=300,
         items = {"Pattern Editor", "Sample Editor", "Modulation Matrix"},
         value = 1,
-        notifier = function(new_value)
+        notifier=function(new_value)
             -- 1 = Pattern Editor
             -- 2 = Sample Editor
             -- 3 = Modulation Matrix
@@ -728,7 +728,7 @@ function pakettiTimestretchDialog()
         value = 48,
         width=300,
         steps = {1, 12},  -- Small steps = 1, large steps = 12 (one octave)
-        notifier = function(new_value)
+        notifier=function(new_value)
             new_value = math.floor(new_value)
             
             -- Always update display if it exists
@@ -796,7 +796,7 @@ function pakettiTimestretchDialog()
         value = math.min(256, song.transport.bpm),
         width=300,
         steps = {1, 10},  -- Small steps = 1, large steps = 10
-        notifier = function(new_value)
+        notifier=function(new_value)
             new_value = math.floor(new_value)  -- Ensure whole number
             song.transport.bpm = new_value
             bpm_display.text = tostring(new_value)
@@ -814,7 +814,7 @@ function pakettiTimestretchDialog()
         value = math.min(256, song.transport.lpb),
         width=300,
         steps = {1, 16},  -- Small steps = 1, large steps = 16
-        notifier = function(new_value)
+        notifier=function(new_value)
             new_value = math.floor(new_value)  -- Ensure whole number
             song.transport.lpb = new_value
             lpb_display.text = tostring(new_value)
@@ -832,7 +832,7 @@ function pakettiTimestretchDialog()
         table.insert(bpm_buttons, vb:button{
             text = tostring(bpm),
             width=30,
-            notifier = function()
+            notifier=function()
                 song.transport.bpm = bpm
                 bpm_display.text = tostring(bpm)
             end
@@ -848,7 +848,7 @@ step_slider = vb:slider{
     value = 1,
     width=200,
     steps = {1, -1},  -- Small steps = 1, large steps = 1
-    notifier = function(new_value)
+    notifier=function(new_value)
         -- Force to nearest integer and clamp to valid range
         new_value = math.max(1, math.min(64, math.floor(new_value)))
         print("Changing step size to:", new_value)
@@ -964,7 +964,7 @@ step_slider = vb:slider{
         tostring = function(value)
             return tostring(value)
         end,
-        notifier = function(new_value)
+        notifier=function(new_value)
             step_slider.value = new_value
         end
     }
@@ -972,7 +972,7 @@ step_slider = vb:slider{
     fill_all_checkbox = vb:checkbox{
         value = true,
         width=20,
-        notifier = function(new_value)
+        notifier=function(new_value)
             fill_all = new_value
             print("Fill All changed to:", new_value)
             
@@ -1097,7 +1097,7 @@ step_slider = vb:slider{
     local master_write_checkbox = vb:checkbox{
         value = write_to_master,
         width=20,
-        notifier = function(new_value)
+        notifier=function(new_value)
             write_to_master = new_value
             if new_value then
                 ensure_master_track_effects()
@@ -1147,13 +1147,13 @@ step_slider = vb:slider{
             lpb_slider,
             lpb_display,
             vb:space { width=10 },
-            vb:button{ text="2",width=30, notifier = function() song.transport.lpb = 2 lpb_display.text="2" lpb_slider.value = 2 end},
-            vb:button{ text="4",width=30, notifier = function() song.transport.lpb = 4 lpb_display.text="4" lpb_slider.value = 4 end},
-            vb:button{ text="8",width=30, notifier = function() song.transport.lpb = 8 lpb_display.text="8" lpb_slider.value = 8 end},
-            vb:button{ text="16",width=30, notifier = function() song.transport.lpb = 16 lpb_display.text="16" lpb_slider.value = 16 end},
-            vb:button{ text="32",width=30, notifier = function() song.transport.lpb = 32 lpb_display.text="32" lpb_slider.value = 32 end},
-            vb:button{ text="64",width=30, notifier = function() song.transport.lpb = 64 lpb_display.text="64" lpb_slider.value = 64 end},
-            vb:button{ text="128",width=30, notifier = function() song.transport.lpb = 128 lpb_display.text="128" lpb_slider.value = 128 end}
+            vb:button{ text="2",width=30, notifier=function() song.transport.lpb = 2 lpb_display.text="2" lpb_slider.value = 2 end},
+            vb:button{ text="4",width=30, notifier=function() song.transport.lpb = 4 lpb_display.text="4" lpb_slider.value = 4 end},
+            vb:button{ text="8",width=30, notifier=function() song.transport.lpb = 8 lpb_display.text="8" lpb_slider.value = 8 end},
+            vb:button{ text="16",width=30, notifier=function() song.transport.lpb = 16 lpb_display.text="16" lpb_slider.value = 16 end},
+            vb:button{ text="32",width=30, notifier=function() song.transport.lpb = 32 lpb_display.text="32" lpb_slider.value = 32 end},
+            vb:button{ text="64",width=30, notifier=function() song.transport.lpb = 64 lpb_display.text="64" lpb_slider.value = 64 end},
+            vb:button{ text="128",width=30, notifier=function() song.transport.lpb = 128 lpb_display.text="128" lpb_slider.value = 128 end}
         },
         
         -- ComboTempo row
@@ -1164,7 +1164,7 @@ step_slider = vb:slider{
                 max = 1000,
                 value = 500,
                 width=555,
-                notifier = function(new_value)
+                notifier=function(new_value)
                     -- Calculate BPM and LPB values
                     local bpm, lpb = calculate_timing_values(new_value)
                     
@@ -1213,35 +1213,35 @@ step_slider = vb:slider{
             vb:button{
                 text="-24",
                 width=40,
-                notifier = function()
+                notifier=function()
                     update_note_value(note_slider.value - 24)
                 end
             },
             vb:button{
                 text="-12",
                 width=40,
-                notifier = function()
+                notifier=function()
                     update_note_value(note_slider.value - 12)
                 end
             },
             vb:button{
                 text="C-4",
                 width=40,
-                notifier = function()
+                notifier=function()
                     update_note_value(48)  -- C-4 is note value 48
                 end
             },
             vb:button{
                 text="+12",
                 width=40,
-                notifier = function()
+                notifier=function()
                     update_note_value(note_slider.value + 12)
                 end
             },
             vb:button{
                 text="+24",
                 width=40,
-                notifier = function()
+                notifier=function()
                     update_note_value(note_slider.value + 24)
                 end
             }
@@ -1252,7 +1252,7 @@ step_slider = vb:slider{
             vb:button{
                 text="Render",
                 width=100,
-                notifier = function()
+                notifier=function()
                     local current_bpm = song.transport.bpm
                     render_context.current_bpm = current_bpm
                     StrRender()
@@ -1269,7 +1269,7 @@ step_slider = vb:slider{
                 width=354,
                 items = {"Pattern Editor", "Sample Editor", "Modulation Matrix"},
                 value = 1,
-                notifier = function(new_value)
+                notifier=function(new_value)
                     -- 1 = Pattern Editor
                     -- 2 = Sample Editor
                     -- 3 = Modulation Matrix
@@ -1289,7 +1289,7 @@ step_slider = vb:slider{
                 id = "envelope_checkbox",
                 value = false,
                 width=20,
-                notifier = function(new_value)
+                notifier=function(new_value)
                     local instrument = renoise.song().selected_instrument
                     
                     -- Find Volume AHDSR device
@@ -1343,7 +1343,7 @@ step_slider = vb:slider{
                 max = 100,
                 value = 100,
                 width=100,
-                notifier = function(new_value)
+                notifier=function(new_value)
                     local instrument = renoise.song().selected_instrument
                     
                     -- Find Volume AHDSR device
@@ -1369,7 +1369,7 @@ step_slider = vb:slider{
                 max = 100,
                 value = 20,
                 width=300,
-                notifier = function(new_value)
+                notifier=function(new_value)
                     local instrument = renoise.song().selected_instrument
                     
                     -- Find Volume AHDSR device
@@ -1410,7 +1410,7 @@ step_slider = vb:slider{
             vb:button{
                 text="Pakettify",
                 width=60,
-                notifier = function()
+                notifier=function()
                     -- Store current view before pakettifying
                     local current_view = vb.views.switchmode.value
                     
@@ -1889,7 +1889,7 @@ end
 local master_write_checkbox = vb:checkbox{
     value = write_to_master,
     width=20,
-    notifier = function(new_value)
+    notifier=function(new_value)
         write_to_master = new_value
         if new_value then
             ensure_master_track_effects()
@@ -1946,7 +1946,7 @@ vb:checkbox{
     id = "envelope_checkbox",
     value = false,
     width=20,
-    notifier = function(new_value)
+    notifier=function(new_value)
         local instrument = renoise.song().selected_instrument
         
         -- Find Volume AHDSR device

@@ -622,7 +622,7 @@ function pakettiPatternEditorCheatsheetDialog()
   -- Randomization Preferences UI Elements
   local randomize_cb = vb:checkbox{
     value = preferences.pakettiCheatSheet.pakettiCheatSheetRandomize.value,
-    notifier = function(v)
+    notifier=function(v)
       preferences.pakettiCheatSheet.pakettiCheatSheetRandomize.value = v
      save_Cheatsheetpreferences()
     end
@@ -638,7 +638,7 @@ function pakettiPatternEditorCheatsheetDialog()
     min = 0,
     max = 1,
     value = preferences.pakettiCheatSheet.pakettiCheatSheetFillAll.value / 100,
-    notifier = function(value)
+    notifier=function(value)
       local percentage_value = math.floor(value * 100 + 0.5)
       if preferences.pakettiCheatSheet.pakettiCheatSheetFillAll.value ~= percentage_value then
         preferences.pakettiCheatSheet.pakettiCheatSheetFillAll.value = percentage_value
@@ -650,7 +650,7 @@ function pakettiPatternEditorCheatsheetDialog()
 
   local randomize_whole_track_cb = vb:checkbox{
     value = preferences.pakettiCheatSheet.pakettiCheatSheetRandomizeWholeTrack.value,
-    notifier = function(v)
+    notifier=function(v)
       preferences.pakettiCheatSheet.pakettiCheatSheetRandomizeWholeTrack.value = v
        save_Cheatsheetpreferences()
     end
@@ -658,7 +658,7 @@ function pakettiPatternEditorCheatsheetDialog()
 
   local randomizeswitch_cb = vb:checkbox{
     value = preferences.pakettiCheatSheet.pakettiCheatSheetRandomizeSwitch.value,
-    notifier = function(v)
+    notifier=function(v)
       preferences.pakettiCheatSheet.pakettiCheatSheetRandomizeSwitch.value = v
        save_Cheatsheetpreferences()
     end
@@ -666,7 +666,7 @@ function pakettiPatternEditorCheatsheetDialog()
 
   local dontoverwrite_cb = vb:checkbox{
     value = preferences.pakettiCheatSheet.pakettiCheatSheetRandomizeDontOverwrite.value,
-    notifier = function(v)
+    notifier=function(v)
       preferences.pakettiCheatSheet.pakettiCheatSheetRandomizeDontOverwrite.value = v
        save_Cheatsheetpreferences()
     end
@@ -674,7 +674,7 @@ function pakettiPatternEditorCheatsheetDialog()
 
   local only_modify_effects_cb = vb:checkbox{
     value = preferences.pakettiCheatSheet.pakettiCheatSheetOnlyModifyEffects.value,
-    notifier = function(v)
+    notifier=function(v)
       preferences.pakettiCheatSheet.pakettiCheatSheetOnlyModifyEffects.value = v
       save_Cheatsheetpreferences()
     end
@@ -682,7 +682,7 @@ function pakettiPatternEditorCheatsheetDialog()
 
   local only_modify_notes_cb = vb:checkbox{
     value = preferences.pakettiCheatSheet.pakettiCheatSheetOnlyModifyNotes.value,
-    notifier = function(v)
+    notifier=function(v)
       preferences.pakettiCheatSheet.pakettiCheatSheetOnlyModifyNotes.value = v
       save_Cheatsheetpreferences()
     end
@@ -697,7 +697,7 @@ function pakettiPatternEditorCheatsheetDialog()
     min = 0,
     max = 255,
     value = min_value,
-    notifier = function(v)
+    notifier=function(v)
       preferences.pakettiCheatSheet.pakettiCheatSheetRandomizeMin.value = v
       vb.views["min_text_unique"].text = string.format("%02X", v)
       save_Cheatsheetpreferences()
@@ -711,7 +711,7 @@ function pakettiPatternEditorCheatsheetDialog()
 
   local min_decrement_button = vb:button{
     text="<",
-    notifier = function()
+    notifier=function()
       local current_value = preferences.pakettiCheatSheet.pakettiCheatSheetRandomizeMin.value
       if current_value > 0 then
         current_value = current_value - 1
@@ -722,7 +722,7 @@ function pakettiPatternEditorCheatsheetDialog()
 
   local min_increment_button = vb:button{
     text=">",
-    notifier = function()
+    notifier=function()
       local current_value = preferences.pakettiCheatSheet.pakettiCheatSheetRandomizeMin.value
       if current_value < 255 then
         current_value = current_value + 1
@@ -740,7 +740,7 @@ function pakettiPatternEditorCheatsheetDialog()
     min = 0,
     max = 255,
     value = max_value,
-    notifier = function(v)
+    notifier=function(v)
       preferences.pakettiCheatSheet.pakettiCheatSheetRandomizeMax.value = v
       vb.views["max_text_unique"].text = string.format("%02X", v)
        save_Cheatsheetpreferences()
@@ -754,7 +754,7 @@ function pakettiPatternEditorCheatsheetDialog()
 
   local max_decrement_button = vb:button{
     text="<",
-    notifier = function()
+    notifier=function()
       local current_value = preferences.pakettiCheatSheet.pakettiCheatSheetRandomizeMax.value
       if current_value > 0 then
         current_value = current_value - 1
@@ -765,7 +765,7 @@ function pakettiPatternEditorCheatsheetDialog()
 
   local max_increment_button = vb:button{
     text=">",
-    notifier = function()
+    notifier=function()
       local current_value = preferences.pakettiCheatSheet.pakettiCheatSheetRandomizeMax.value
       if current_value < 255 then
         current_value = current_value + 1
@@ -808,7 +808,7 @@ function pakettiPatternEditorCheatsheetDialog()
       vb:button{
         text="R",
         tooltip = "Randomize Volume",
-        notifier = function()
+        notifier=function()
           randomizeNoteColumn("volume_value")
           renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
         end
@@ -819,7 +819,7 @@ function pakettiPatternEditorCheatsheetDialog()
         height = eSlider,
         min = 0,
         max = 0x80,
-        notifier = function(v)
+        notifier=function(v)
           sliderVisible("volume")
           local s = renoise.song()
           if s.selection_in_pattern then
@@ -857,7 +857,7 @@ function pakettiPatternEditorCheatsheetDialog()
       vb:button{
         text="R",
         tooltip = "Randomize Panning",
-        notifier = function()
+        notifier=function()
           randomizeNoteColumn("panning_value")
           renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
         end
@@ -868,7 +868,7 @@ function pakettiPatternEditorCheatsheetDialog()
         height = eSlider,
         min = 0,
         max = 0x80,
-        notifier = function(v)
+        notifier=function(v)
           sliderVisible("panning")
           local s = renoise.song()
           if s.selection_in_pattern then
@@ -906,7 +906,7 @@ function pakettiPatternEditorCheatsheetDialog()
       vb:button{
         text="R",
         tooltip = "Randomize Delay",
-        notifier = function()
+        notifier=function()
           randomizeNoteColumn("delay_value")
           renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
         end
@@ -917,7 +917,7 @@ function pakettiPatternEditorCheatsheetDialog()
         height = eSlider,
         min = 0,
         max = 0xFF,
-        notifier = function(v)
+        notifier=function(v)
           sliderVisible("delay")
           local s = renoise.song()
           if s.selection_in_pattern then
@@ -955,7 +955,7 @@ function pakettiPatternEditorCheatsheetDialog()
       vb:button{
         text="R",
         tooltip = "Randomize Sample FX",
-        notifier = function()
+        notifier=function()
           randomizeNoteColumn("effect_amount_value")
           renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
         end
@@ -966,7 +966,7 @@ function pakettiPatternEditorCheatsheetDialog()
         height = eSlider,
         min = 0,
         max = 0x80,
-        notifier = function(v)
+        notifier=function(v)
           sliderVisible("samplefx")
           local s = renoise.song()
           if s.selection_in_pattern then
@@ -1004,7 +1004,7 @@ function pakettiPatternEditorCheatsheetDialog()
       vb:button{
         text="R",
         tooltip = "Randomize Effect Amount",
-        notifier = function()
+        notifier=function()
           randomizeEffectAmount()
           renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
         end
@@ -1015,7 +1015,7 @@ function pakettiPatternEditorCheatsheetDialog()
         height = eSlider,
         min = 0,
         max = 0xFF,
-        notifier = function(v)
+        notifier=function(v)
           sliderVisibleEffect()
           local s = renoise.song()
           if s.selection_in_pattern then

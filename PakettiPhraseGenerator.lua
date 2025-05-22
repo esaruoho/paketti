@@ -1444,7 +1444,7 @@ end
          width = 50,
          tostring = function(value) return string.format("%02X", value) end,
          tonumber = function(str) return tonumber(str, 16) end,
-         notifier = function(value)
+         notifier=function(value)
            local new_index = value + 1
            local song = renoise.song()
            if new_index >= 1 and new_index <= #song.instruments then
@@ -1464,7 +1464,7 @@ end
        vb:button {
          text = "Unison",
          tooltip = "Generate unison samples for the current instrument",
-         notifier = function()
+         notifier=function()
            PakettiCreateUnisonSamples()
            update_instrument_display()
          end
@@ -1472,7 +1472,7 @@ end
        vb:button {
          text = "Pakettify",
          tooltip = "Convert the current instrument to Paketti format",
-         notifier = function()
+         notifier=function()
            PakettiInjectDefaultXRNI()
            update_instrument_display()
          end
@@ -1498,7 +1498,7 @@ end
          vb:button {
            text = "-36",
            width = 40,
-           notifier = function()
+           notifier=function()
              local instr = renoise.song().selected_instrument
              if instr then
                local new_value = set_transpose_safely(instr, instr.transpose - 36)
@@ -1511,7 +1511,7 @@ end
          vb:button {
            text = "-24",
            width = 40,
-           notifier = function() 
+           notifier=function() 
              local instr = renoise.song().selected_instrument
              if instr then
                local new_value = set_transpose_safely(instr, instr.transpose - 24)
@@ -1524,7 +1524,7 @@ end
        vb:button {
            text = "-12",
            width = 40,
-           notifier = function()
+           notifier=function()
              local instr = renoise.song().selected_instrument
              if instr then
                local new_value = set_transpose_safely(instr, instr.transpose - 12)
@@ -1537,7 +1537,7 @@ end
          vb:button {
            text = "0",
            width = 40,
-           notifier = function()
+           notifier=function()
              local instr = renoise.song().selected_instrument
              if instr then
                -- Always reset to 0
@@ -1551,7 +1551,7 @@ end
          vb:button {
            text = "+12",
            width = 40,
-           notifier = function()
+           notifier=function()
              local instr = renoise.song().selected_instrument
              if instr then
                local new_value = set_transpose_safely(instr, instr.transpose + 12)
@@ -1564,7 +1564,7 @@ end
          vb:button {
            text = "+24",
            width = 40,
-           notifier = function()
+           notifier=function()
              local instr = renoise.song().selected_instrument
              if instr then
                local new_value = set_transpose_safely(instr, instr.transpose + 24)
@@ -1577,7 +1577,7 @@ end
          vb:button {
            text = "+36",
            width = 40,
-           notifier = function()
+           notifier=function()
              local instr = renoise.song().selected_instrument
              if instr then
                local new_value = set_transpose_safely(instr, instr.transpose + 36)
@@ -1613,7 +1613,7 @@ end
          end)(),
          value = current_settings.current_phrase_index,
          tooltip = "Select the phrase to edit",
-         notifier = function(idx)
+         notifier=function(idx)
            current_settings.current_phrase_index = idx
            update_phrase_display()
          end
@@ -1621,7 +1621,7 @@ end
        vb:button {
          text = "Duplicate",
          tooltip = "Create a copy of the current track and instrument and start playing it",
-         notifier = function()
+         notifier=function()
            duplicateTrackAndInstrument()
            
            -- After duplication, update the UI to reflect the new instrument
@@ -1640,7 +1640,7 @@ end
        vb:button {
          text = "Reverse Triggers",
          tooltip = "Reverse the current trigger pattern",
-         notifier = function()
+         notifier=function()
            local instr = renoise.song().selected_instrument
            if not instr or #instr.phrases == 0 then return end
            
@@ -1711,7 +1711,7 @@ end
        },
        vb:checkbox {
          value = current_settings.always_render,
-         notifier = function(value)
+         notifier=function(value)
            current_settings.always_render = value
          end,
          tooltip = "Enable to automatically render changes to pattern"
@@ -1729,7 +1729,7 @@ end
        },
        vb:checkbox {
          value = current_settings.play_until_end,
-         notifier = function(value)
+         notifier=function(value)
            current_settings.play_until_end = value
            local s = renoise.song()
            local currPatt = s.selected_pattern_index
@@ -1759,7 +1759,7 @@ end
        vb:button {
          text = "Randomize All",
          tooltip = "Randomize all settings",
-         notifier = function()
+         notifier=function()
            randomize_all_settings()
            if current_settings.always_render then
              local instr = renoise.song().selected_instrument
@@ -1776,7 +1776,7 @@ end
        vb:button {
          text = "Randomize Voicings",
          tooltip = "Randomize the octaves of existing notes",
-         notifier = function()
+         notifier=function()
            randomize_voicings(current_settings)
            if current_settings.always_render then
              local instr = renoise.song().selected_instrument
@@ -1793,7 +1793,7 @@ end
        vb:button {
          text = "Randomize Velocity",
          tooltip = "Randomize the velocities of existing notes",
-         notifier = function()
+         notifier=function()
            randomize_velocity(current_settings)
            if current_settings.always_render then
              local instr = renoise.song().selected_instrument
@@ -1810,7 +1810,7 @@ end
        vb:button {
          text = "Render",
          tooltip = "Render the current phrase to pattern",
-         notifier = function()
+         notifier=function()
            local instr = renoise.song().selected_instrument
            if not instr or #instr.phrases == 0 then return end
            
@@ -1838,7 +1838,7 @@ end
          width = 150,
          steps = {1, 4},  -- Small step: 1, Big step: 4
          value = current_settings.pattern_length,
-         notifier = function(value) pattern_length_notifier(value) end
+         notifier=function(value) pattern_length_notifier(value) end
        },
        pattern_length_text
      },
@@ -1855,37 +1855,37 @@ end
          text = "Full",
          width = 60,
          tooltip = "Set all steps to trigger (1,1,1,1) with 32 steps",
-         notifier = function() handle_pattern_button("full") end
+         notifier=function() handle_pattern_button("full") end
        },
        vb:button {
          text = "Every 2nd",
          width = 60,
          tooltip = "Set pattern to trigger every 2nd step (1,0,1,0) with 32 steps",
-         notifier = function() handle_pattern_button("every2nd") end
+         notifier=function() handle_pattern_button("every2nd") end
        },
        vb:button {
          text = "Every 3rd",
          width = 60,
          tooltip = "Set pattern to trigger every 3rd step (1,0,0,1,0,0) with 24 steps",
-         notifier = function() handle_pattern_button("every3rd") end
+         notifier=function() handle_pattern_button("every3rd") end
        },
        vb:button {
          text = "Every 4th",
          width = 60,
          tooltip = "Set pattern to trigger every 4th step (1,0,0,0,1,0,0,0) with 32 steps",
-         notifier = function() handle_pattern_button("every4th") end
+         notifier=function() handle_pattern_button("every4th") end
        },
        vb:button {
          text = "Every 5th",
          width = 60,
          tooltip = "Set pattern to trigger every 5th step (1,0,0,0,0) with 30 steps",
-         notifier = function() handle_pattern_button("every5th") end
+         notifier=function() handle_pattern_button("every5th") end
        },
        vb:button {
          text = "Every 6th",
          width = 60,
          tooltip = "Set pattern to trigger every 6th step (1,0,0,0,0,0) with 30 steps",
-         notifier = function() handle_pattern_button("every6th") end
+         notifier=function() handle_pattern_button("every6th") end
        }
      },
 
@@ -1904,7 +1904,7 @@ end
          value = math.floor(current_settings.note_count),
          width = 250,
          steps = {1, 4},  -- Small step: 1, Big step: 4
-         notifier = function(value) note_count_slider_notifier(value)
+         notifier=function(value) note_count_slider_notifier(value)
          end
        
        },
@@ -1922,7 +1922,7 @@ end
        vb:button {
         text = "Reverse",
         tooltip = "Reverse the order of notes in the phrase",
-        notifier = function()
+        notifier=function()
           local instr = renoise.song().selected_instrument
           if not instr or #instr.phrases == 0 then return end
           
@@ -1996,31 +1996,31 @@ end
          text = "Random",
          width = 60,
          tooltip = "Randomize note order",
-         notifier = function() handle_note_order("random") end
+         notifier=function() handle_note_order("random") end
        },
        vb:button {
          text = "Ascending",
          width = 60,
          tooltip = "Sort notes in ascending order",
-         notifier = function() handle_note_order("ascending") end
+         notifier=function() handle_note_order("ascending") end
        },
        vb:button {
          text = "Descending",
          width = 60,
          tooltip = "Sort notes in descending order",
-         notifier = function() handle_note_order("descending") end
+         notifier=function() handle_note_order("descending") end
        },
        vb:button {
          text = "Same",
          width = 60,
          tooltip = "Set all notes to C-4",
-         notifier = function() handle_note_order("same") end
+         notifier=function() handle_note_order("same") end
        },
        vb:button {
          text = "Dedupe",
          width = 60,
          tooltip = "Remove duplicate notes",
-         notifier = function() handle_note_order("dedupe") end
+         notifier=function() handle_note_order("dedupe") end
        }
      },
 
@@ -2039,7 +2039,7 @@ end
          value = current_settings.min_volume,
          width = 120,
          steps = {0.05, 0.1},  -- Small step: 5%, Big step: 10%
-         notifier = function(value)
+         notifier=function(value)
            if not value then return end
            current_settings.min_volume = value
            min_volume_text.text = string.format("%d%%", math.floor(value * 100))
@@ -2054,7 +2054,7 @@ end
          value = current_settings.max_volume,
          width = 120,
          steps = {0.05, 0.1},  -- Small step: 5%, Big step: 10%
-         notifier = function(value)
+         notifier=function(value)
            if not value then return end
            current_settings.max_volume = value
            max_volume_text.text = string.format("%d%%", math.floor(value * 100))
@@ -2078,7 +2078,7 @@ end
          max = 9,
          value = current_settings.min_octave,
          width = 50,
-         notifier = function(value) min_octave_box_notifier(value) end
+         notifier=function(value) min_octave_box_notifier(value) end
        },
        vb:valuebox {
          id = "max_octave_box",
@@ -2086,10 +2086,10 @@ end
          max = 9,
          value = current_settings.max_octave,
          width = 55,
-         notifier = function(value) max_octave_box_notifier(value) end
+         notifier=function(value) max_octave_box_notifier(value) end
        },
-       vb:button {text = "-1",width = 30,notifier = function() shift_phrase_octaves(-1) end},
-       vb:button {text = "+1",width=30,notifier = function() shift_phrase_octaves(1) end}},
+       vb:button {text = "-1",width = 30,notifier=function() shift_phrase_octaves(-1) end},
+       vb:button {text = "+1",width=30,notifier=function() shift_phrase_octaves(1) end}},
      
      vb:row {
        vb:text { 
@@ -2103,7 +2103,7 @@ end
          width = 150,
          items = scale_display_items,
          value = table.find(SCALE_NAMES, current_settings.scale),
-         notifier = function(idx)
+         notifier=function(idx)
            local new_scale = SCALE_NAMES[idx]
            if new_scale then
              current_settings.scale = new_scale
@@ -2124,7 +2124,7 @@ end
          items = RHYTHM_UNITS,
          value = table.find(RHYTHM_UNITS, current_settings.unit) or 1,
          width = 250,
-         notifier = function(value)
+         notifier=function(value)
            current_settings.unit = RHYTHM_UNITS[value]
            update_unit_only(current_settings)
            if current_settings.always_render then
@@ -2147,7 +2147,7 @@ end
          items = {"1", "2", "3", "4", "6", "8", "12", "16"},
          value = table.find({"1", "2", "3", "4", "6", "8", "12", "16"}, tostring(current_settings.lpb)) or 4,
          width = 250,
-         notifier = function(value)
+         notifier=function(value)
            local lpb_values = {"1", "2", "3", "4", "6", "8", "12", "16"}
            current_settings.lpb = tonumber(lpb_values[value])
            local instr = renoise.song().selected_instrument
@@ -2174,7 +2174,7 @@ end
          value = current_settings.shuffle,
          width = 250,
          steps = {0.01, 0.1},  -- Small step: 1%, Big step: 10%
-         notifier = function(value)
+         notifier=function(value)
            if not value then return end
            current_settings.shuffle = value
            local instr = renoise.song().selected_instrument
@@ -2249,7 +2249,7 @@ end
                color = stepper.color,
                width = 70,
                tooltip = string.format("Show/Hide %s editor", stepper.name),
-               notifier = function()
+               notifier=function()
                  toggle_stepper(stepper.name)
                end
              }
@@ -2270,28 +2270,28 @@ end
        vb:button {
          text = "16",
          width = 50,
-         notifier = function()
+         notifier=function()
            set_all_stepper_lengths(16)
          end
        },
        vb:button {
          text = "32",
          width = 50,
-         notifier = function()
+         notifier=function()
            set_all_stepper_lengths(32)
          end
        },
        vb:button {
          text = "64",
          width = 50,
-         notifier = function()
+         notifier=function()
            set_all_stepper_lengths(64)
          end
        },
        vb:button {
          text = "128",
          width = 50,
-         notifier = function()
+         notifier=function()
            set_all_stepper_lengths(128)
          end
        }
@@ -2308,7 +2308,7 @@ end
        vb:button {
          text = "Play (Reset Steppers)",
          width = 200,
-         notifier = function()
+         notifier=function()
            -- First reset all steppers
            ResetAllSteppers()
            -- Then start playback
@@ -2332,7 +2332,7 @@ vb:row {
     items = SCALE_NAMES,
     value = table.find(SCALE_NAMES, current_settings.scale) or 1,
     width = 250,
-    notifier = function(value)
+    notifier=function(value)
       local new_scale = SCALE_NAMES[value]
       apply_global_scale(new_scale)
     end

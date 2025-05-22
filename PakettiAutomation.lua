@@ -1925,7 +1925,7 @@ function pakettiAutomationValue()
   local apply_button = vb:button{
     text="Write Automation to Current Line",
     width=180,
-    notifier = function()
+    notifier=function()
       apply_textfield_value_and_move(vb.views.value_textfield.value)
     end
   }
@@ -1933,7 +1933,7 @@ function pakettiAutomationValue()
   local follow_editstep_checkbox = vb:checkbox{
     id = "follow_editstep_checkbox",
     value = false, -- default unchecked
-    notifier = function(value)
+    notifier=function(value)
       print("Follow Editstep checkbox changed to " .. tostring(value))
       -- Re-focus the textfield when the checkbox is clicked
       vb.views.value_textfield.active = true
@@ -1946,7 +1946,7 @@ function pakettiAutomationValue()
     value = renoise.song().transport.edit_step,
     min = 0,
     max = 64,
-    notifier = function(value)
+    notifier=function(value)
       print("Edit step value changed to " .. tostring(value))
       renoise.song().transport.edit_step = value
       -- Re-focus the textfield when the valuebox value is changed
@@ -1957,7 +1957,7 @@ function pakettiAutomationValue()
 
   local close_button = vb:button{
     text="Close",
-    notifier = function()
+    notifier=function()
       if dialog and dialog.visible then
         local edit_step_observable = renoise.song().transport.edit_step_observable
         if edit_step_observable:has_notifier(edit_step_notifier_fn) then

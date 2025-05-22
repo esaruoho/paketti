@@ -1619,7 +1619,7 @@ if dialog and dialog.visible then
     vb:button{
       text="OK",
       width="50%", -- Set OK button width to 50%
-      notifier = function()
+      notifier=function()
         -- Apply changes to the output routings
         for _, entry in ipairs(dropdowns) do
           local dropdown = entry.dropdown
@@ -1636,7 +1636,7 @@ if dialog and dialog.visible then
   vb:button{
     text="Refresh",
     width="33%", -- Equal width for all buttons
-    notifier = function()
+    notifier=function()
       dialog:close()
       pakettiTrackOutputRoutingsDialog()
     end
@@ -1645,7 +1645,7 @@ if dialog and dialog.visible then
     vb:button{
       text="Cancel",
       width="50%", -- Set Cancel button width to 50%
-      notifier = function()
+      notifier=function()
         dialog:close()
       end
     }
@@ -3729,7 +3729,7 @@ function pakettiConvolverSelectionDialog(callback)
     dialog_content:add_child(sample_name_text)
     dialog_content:add_child(vb:button{
       text="Refresh",
-      notifier = function()
+      notifier=function()
         dialog:close()
         pakettiConvolverSelectionDialog(callback)
       end
@@ -3755,7 +3755,7 @@ function pakettiConvolverSelectionDialog(callback)
           convolver_count = convolver_count + 1
           button_column:add_child(vb:button{
             text = string.format("Convolver #%d Import", convolver_count),
-            notifier = function()
+            notifier=function()
               renoise.song().selected_track_index = t
               renoise.song().selected_device_index = d
               print(string.format("Importing Convolver IR from track %d, device %d", t, d))
@@ -3764,7 +3764,7 @@ function pakettiConvolverSelectionDialog(callback)
           })
           button_column:add_child(vb:button{
             text = string.format("Convolver #%d Export", convolver_count),
-            notifier = function()
+            notifier=function()
               renoise.song().selected_track_index = t
               renoise.song().selected_device_index = d
               print(string.format("Exporting Convolver IR from track %d, device %d", t, d))
@@ -3776,7 +3776,7 @@ function pakettiConvolverSelectionDialog(callback)
       row:add_child(button_column)
       row:add_child(vb:button{
         text="Insert Convolver as First",
-        notifier = function()
+        notifier=function()
           local device = track:insert_device_at("Audio/Effects/Native/Convolver", 2)
           renoise.song().selected_track_index = t
           renoise.song().selected_device_index = 2
@@ -3786,7 +3786,7 @@ function pakettiConvolverSelectionDialog(callback)
       })
       row:add_child(vb:button{
         text="Insert Convolver as Last",
-        notifier = function()
+        notifier=function()
           local device_position = #renoise.song().tracks[t].devices + 1
           local device = track:insert_device_at("Audio/Effects/Native/Convolver", device_position)
           renoise.song().selected_track_index = t
@@ -4817,7 +4817,7 @@ function pakettiTitlerDialog()
         id = "before_name_field",
         text = before_name_text,
         width=200,
-        notifier = function(text)
+        notifier=function(text)
           PakettiTitlerHandleBeforeNameChange(text)
         end
       }
@@ -4829,7 +4829,7 @@ function pakettiTitlerDialog()
         text = default_title,
         width=400,
         edit_mode = true,
-        notifier = function(text)
+        notifier=function(text)
           PakettiTitlerUpdateFilenameDisplay()
         end
       },
@@ -4913,7 +4913,7 @@ function pakettiTitlerDialog()
         id = "notes_file_field",
         text = notes_file_path,
         width=200,
-        notifier = function(text)
+        notifier=function(text)
           notes_file_path = text
           PakettiTitlerPreferencesSave()
         end
@@ -6224,7 +6224,7 @@ function pakettiUserPreferencesShowerDialog()
       vb:text{text="Show/Hide:", font="bold", style="strong" },
       vb:button{
         text="Selected Track",
-        notifier = function() 
+        notifier=function() 
           FinderShowerByPath(available_devices[device_dropdowns[i].value].path, "selected_track")
           -- Return focus to the active middle frame
           renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
@@ -6232,7 +6232,7 @@ function pakettiUserPreferencesShowerDialog()
       },
       vb:button{
         text="Master",
-        notifier = function() 
+        notifier=function() 
           FinderShowerByPath(available_devices[device_dropdowns[i].value].path, "master")
           -- Return focus to the active middle frame
           renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
@@ -6240,7 +6240,7 @@ function pakettiUserPreferencesShowerDialog()
       },
       vb:button{
         text="Clear",
-        notifier = function() 
+        notifier=function() 
           device_dropdowns[i].value = 1
           -- Return focus to the active middle frame
           renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
@@ -6253,7 +6253,7 @@ function pakettiUserPreferencesShowerDialog()
   table.insert(rows, vb:row{
     vb:button{
       text="Save",
-      notifier = function()
+      notifier=function()
         PakettiUserPreferenceSavePreferences(device_dropdowns, available_devices)
         -- Return focus to the active middle frame
         renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
@@ -6261,7 +6261,7 @@ function pakettiUserPreferencesShowerDialog()
     },
     vb:button{
       text="Close",
-      notifier = function()
+      notifier=function()
         PakettiUserPreferenceSavePreferences(device_dropdowns, available_devices)
         dialog:close()
         dialog = nil  -- Clear the dialog reference when it's closed
@@ -7053,7 +7053,7 @@ function create_sliders(row, initial_value, range, slider_set)
       min = 0,
       max = range,
       value = initial_value,
-      notifier = function(new_value)
+      notifier=function(new_value)
         -- CRITICAL: Only update pattern if we're not currently receiving
         if not is_receiving then
           print_row(slider_set, slider_set, false)
@@ -7076,7 +7076,7 @@ function create_row_controls(slider_set, initial_value, range, loop_default)
     min = 1,
     max = 16,
     value = loop_default,
-    notifier = function(value) 
+    notifier=function(value) 
       loop_values[slider_set] = value 
       -- Only update pattern if we're not receiving
       if not is_receiving then
@@ -7087,18 +7087,18 @@ function create_row_controls(slider_set, initial_value, range, loop_default)
 
   row:add_child(vb:button{
     text="Randomize",
-    notifier = function() randomize_row(slider_set) end
+    notifier=function() randomize_row(slider_set) end
   })
   
   row:add_child(vb:button{
     text="Print",
-    notifier = function() print_row(slider_set, slider_set) end
+    notifier=function() print_row(slider_set, slider_set) end
   })
 
-  row:add_child(vb:button{text="Reset",notifier = function() reset_row(slider_set) print_row(slider_set, slider_set) end})
-  row:add_child(vb:button{text="Receive",notifier = function() receive_row(slider_set, slider_set, false) end})
-  row:add_child(vb:button{text="<",notifier = function() shift_row(slider_set, "left") end})
-  row:add_child(vb:button{text=">",notifier = function() shift_row(slider_set, "right") end})
+  row:add_child(vb:button{text="Reset",notifier=function() reset_row(slider_set) print_row(slider_set, slider_set) end})
+  row:add_child(vb:button{text="Receive",notifier=function() receive_row(slider_set, slider_set, false) end})
+  row:add_child(vb:button{text="<",notifier=function() shift_row(slider_set, "left") end})
+  row:add_child(vb:button{text=">",notifier=function() shift_row(slider_set, "right") end})
 
   return row, sliders_row
 end
@@ -7511,18 +7511,18 @@ function pakettiVolDelayPanSliderDialog()
     vb:row{
       vb:checkbox{
         value = auto_grab_enabled,
-        notifier = function(value)
+        notifier=function(value)
           auto_grab_enabled = value
           renoise.app():show_status("Auto-grab " .. (value and "enabled" or "disabled"))
         end
       },
       vb:text{text="Auto-Grab", style="strong", font="bold"}},
     vb:row{ -- Print All and Randomize All buttons
-      vb:button{text="Print All",notifier = function() print_all() end},
-      vb:button{text="Randomize All",notifier = function() randomizenongroovebox_all() end},
-      vb:button{text="Grab",notifier = function() global_receive() end},
-      vb:button{text="<<",notifier = function() global_shift_left() end},
-      vb:button{text=">>",notifier = function() global_shift_right() end}
+      vb:button{text="Print All",notifier=function() print_all() end},
+      vb:button{text="Randomize All",notifier=function() randomizenongroovebox_all() end},
+      vb:button{text="Grab",notifier=function() global_receive() end},
+      vb:button{text="<<",notifier=function() global_shift_left() end},
+      vb:button{text=">>",notifier=function() global_shift_right() end}
     }
   }
 
@@ -8317,7 +8317,7 @@ function pakettiGlobalVolumeDialog()
     value = current_db_value,
     tostring = function(value) return string.format("%.1f", value) end,
     tonumber = function(str) return tonumber(str) or 0 end,
-    notifier = function(new_value)
+    notifier=function(new_value)
       update_instrument_controls(new_value)
     end
   }
@@ -8329,7 +8329,7 @@ function pakettiGlobalVolumeDialog()
     value = current_sample_db_value,
     tostring = function(value) return string.format("%.1f", value) end,
     tonumber = function(str) return tonumber(str) or 0 end,
-    notifier = function(new_value)
+    notifier=function(new_value)
       update_sample_controls(new_value)
     end
   }
@@ -8339,7 +8339,7 @@ function pakettiGlobalVolumeDialog()
     max = 0,
     value = current_db_value,
     width=250,
-    notifier = function(new_value)
+    notifier=function(new_value)
       update_instrument_controls(new_value)
     end
   }
@@ -8349,7 +8349,7 @@ function pakettiGlobalVolumeDialog()
     max = 0,
     value = current_sample_db_value,
     width=250,
-    notifier = function(new_value)
+    notifier=function(new_value)
       update_sample_controls(new_value)
     end
   }
@@ -8377,7 +8377,7 @@ function pakettiGlobalVolumeDialog()
     vb:button{
       text="Apply Volume Changes",
       width=250,
-      notifier = function()
+      notifier=function()
         if current_db_value ~= 0 then
           reduceInstrumentsVolume(-current_db_value)
         end
@@ -8566,7 +8566,7 @@ function pakettiEditStepDialog()
       active = true,
       edit_mode = true,
       value = tostring(renoise.song().transport.edit_step),
-      notifier = function(text)
+      notifier=function(text)
         local number = tonumber(text)
         if number then
           -- Cap the value at 64 if it's higher
@@ -10254,7 +10254,7 @@ function pakettiFuzzySearchTrackDialog()
     width=200,
     active = true,
     edit_mode = true,
-    notifier = function(text)
+    notifier=function(text)
       update_search_results(text)
     end
   }
@@ -10264,7 +10264,7 @@ function pakettiFuzzySearchTrackDialog()
     height = 150,
     items = {"<Empty>", "Type to search..."},
     -- Remove the notifier that was auto-selecting
-    notifier = function() end  -- Do nothing when selection changes
+    notifier=function() end  -- Do nothing when selection changes
   }
   
   local PakettiFuzzySearchDialogContent = vb:column{
@@ -10462,7 +10462,7 @@ function pakettiSwitchNoteInstrumentDialog()
           width=250,
           items = track_options,
           value = song.selected_track_index,
-          notifier = function(new_index)
+          notifier=function(new_index)
             song.selected_track_index = new_index
             show_dialog()
           end
@@ -10498,7 +10498,7 @@ function pakettiSwitchNoteInstrumentDialog()
               width=250,
               items = instrument_options,
               value = note_data.instrument + 1,
-              notifier = function(new_index)
+              notifier=function(new_index)
                 local scope_whole_song = (vb.views.scope_switch.value == 2)
                 apply_instrument_changes(note_data.note, note_data.instrument, new_index - 1, scope_whole_song)
               end

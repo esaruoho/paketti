@@ -2731,7 +2731,7 @@ function ShowRenameDialogForTrack(index)
     text = initial_name,
     width=200,
     edit_mode = true,
-    notifier = function(new_name)
+    notifier=function(new_name)
       if new_name ~= initial_name then
         rename_track_and_close(new_name)
       end
@@ -2764,7 +2764,7 @@ function ShowRenameDialogForTrack(index)
       vb:button{
         text="OK",
         width=50,
-        notifier = function() rename_track_and_close(vb.views.track_name_field.text) end
+        notifier=function() rename_track_and_close(vb.views.track_name_field.text) end
       },
       vb:button{
         text="Cancel",
@@ -6111,7 +6111,7 @@ function pakettiVolumeInterpolationLooper()
           width=250,
           items = {"Volume", "Panning", "Delay"},
           value = 1,
-          notifier = function(idx)
+          notifier=function(idx)
             current_mode = idx == 1 and "volume" or idx == 2 and "panning" or "delay"
             -- Update max value of sliders based on mode
             local max_val = current_mode == "delay" and 255 or 128  -- 128 decimal = 80 hex
@@ -6145,7 +6145,7 @@ function pakettiVolumeInterpolationLooper()
           min = 1,
           max = 512,
           value = DEFAULT_NOTES,
-          notifier = function(value)
+          notifier=function(value)
             notes_count = value
           end
         }
@@ -6159,7 +6159,7 @@ function pakettiVolumeInterpolationLooper()
           max = 128,
           value = start_val,
           width=100,
-          notifier = function(value)
+          notifier=function(value)
             start_val = value
             vb.views.start_val_display.text = formatValue(value, current_mode)
           end
@@ -6178,7 +6178,7 @@ function pakettiVolumeInterpolationLooper()
           max = 128,
           value = end_val,
           width=100,
-          notifier = function(value)
+          notifier=function(value)
             end_val = value
             vb.views.end_val_display.text = formatValue(value, current_mode)
           end
@@ -6190,7 +6190,7 @@ function pakettiVolumeInterpolationLooper()
       },
       vb:button{
         text="Print",
-        notifier = function()
+        notifier=function()
           apply_interpolation()
           renoise.app():show_status(string.format("%s interpolation applied", current_mode:upper()))
         end}},my_keyhandler_func)
@@ -6204,4 +6204,162 @@ renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Value Interpolati
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Paketti Value Interpolation Looper Dialog...",invoke = pakettiVolumeInterpolationLooper}
 
 
+
+
+--------
+--[[----------------------------------------------------------------------------
+  handle_above_effect_command
+  Handles copying/incrementing/decrementing effect from the line above.
+  @param operation: "copy", "inc", or "dec"
+----------------------------------------------------------------------------]]--
+local function handle_above_effect_command(operation)
+  local song = renoise.song()
+  local pat = song.selected_pattern
+  local track_idx = song.selected_track_index
+  local line_idx = song.selected_line_index
+  local effect_col_idx = song.selected_effect_column_index
+  
+  -- Check if we're on a note column
+  if effect_col_idx == 0 then
+    renoise.app():show_status("No effect column selected, doing nothing.")
+    return
+  end
+  
+  -- Check if we're on the first line
+  if line_idx == 1 then
+    renoise.app():show_status("Nothing above current row, doing nothing.")
+    return
+  end
+  
+  local track = pat:track(track_idx)
+  local src = track:line(line_idx-1).effect_columns[effect_col_idx]
+  
+  -- Check if there's actually an effect to copy
+  if src.number_string == "" and src.amount_string == "" then
+    renoise.app():show_status("No effect to copy from above, doing nothing.")
+    return
+  end
+  
+  local dst = track:line(line_idx).effect_columns[effect_col_idx]
+  
+  -- Always copy the effect number
+  dst.number_string = src.number_string
+  
+  if operation == "copy" then
+    dst.amount_string = src.amount_string
+  else
+    -- Handle increment/decrement
+    local num = tonumber(src.amount_string, 16)
+    if num then
+      if operation == "inc" then
+        num = math.min(num + 1, 0xFF)
+      elseif operation == "dec" then
+        num = math.max(num - 1, 0x00)
+      end
+      dst.amount_string = string.format("%02X", num)
+    end
+  end
+end
+
+renoise.tool():add_menu_entry{name="Pattern Editor:Copy Above Effect Column",invoke=function() handle_above_effect_command("copy") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Copy Above Effect Column + Increase Value",invoke=function() handle_above_effect_command("inc") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Copy Above Effect Column + Decrease Value",invoke=function() handle_above_effect_command("dec") end}
+renoise.tool():add_keybinding{name="Global:Paketti:Copy Above Effect Column",invoke=function() handle_above_effect_command("copy") end}
+renoise.tool():add_keybinding{name="Global:Paketti:Copy Above Effect Column + Increase Value",invoke=function() handle_above_effect_command("inc") end}
+renoise.tool():add_keybinding{name="Global:Paketti:Copy Above Effect Column + Decrease Value",invoke=function() handle_above_effect_command("dec") end}
+renoise.tool():add_midi_mapping{name="Global:Paketti:Copy Above Effect Column",invoke=function(message) if message:is_trigger() then handle_above_effect_command("copy") end end}
+renoise.tool():add_midi_mapping{name="Global:Paketti:Copy Above Effect Column + Increase Value",invoke=function(message) if message:is_trigger() then handle_above_effect_command("inc") end end}
+renoise.tool():add_midi_mapping{name="Global:Paketti:Copy Above Effect Column + Decrease Value",invoke=function(message) if message:is_trigger() then handle_above_effect_command("dec") end end}
+
+---
+local match_editstep_enabled = false
+local last_line_index = nil
+local tick_counter = 0 -- To track the "tick-tick-tick-skip" cycle
+
+-- Function to find the next valid delay value in the track
+local function find_next_delay_line(start_line_index)
+  local song=renoise.song()
+  local track = song.selected_pattern_track
+  local num_lines = song.selected_pattern.number_of_lines
+
+  for line_index = start_line_index + 1, num_lines do
+    local line = track:line(line_index)
+    if line.note_columns[1] and not line.note_columns[1].is_empty then
+      local delay_value = line.note_columns[1].delay_value
+      if delay_value == 0x00 or delay_value == 0x55 or delay_value == 0xAA then
+        return line_index
+      end
+    end
+  end
+
+  -- Wrap around: search from the top if no match is found below
+  for line_index = 1, start_line_index do
+    local line = track:line(line_index)
+    if line.note_columns[1] and not line.note_columns[1].is_empty then
+      local delay_value = line.note_columns[1].delay_value
+      if delay_value == 0x00 or delay_value == 0x55 or delay_value == 0xAA then
+        return line_index
+      end
+    end
+  end
+
+  return nil -- No valid delays found
+end
+
+-- Main function to dynamically adjust editstep
+local function match_editstep_with_delay_pattern()
+  local song=renoise.song()
+  local current_line_index = song.selected_line_index
+
+  -- Only act when the selected line changes
+  if last_line_index ~= current_line_index then
+    last_line_index = current_line_index
+
+    -- Cycle through the "tick-tick-tick-skip" pattern
+    local editstep = 0
+    tick_counter = (tick_counter % 4) + 1 -- Cycle between 1-4
+
+    if tick_counter == 4 then
+      -- Skip step
+      local next_line_index = find_next_delay_line(current_line_index)
+      if next_line_index then
+        editstep = next_line_index - current_line_index
+        if editstep <= 0 then
+          -- Wrap-around case
+          editstep = (song.selected_pattern.number_of_lines - current_line_index) + next_line_index
+        end
+      else
+        -- No valid delay found, reset to default behavior
+        editstep = 1
+      end
+    else
+      -- Standard tick step
+      editstep = 1
+    end
+
+    -- Apply the editstep
+    song.transport.edit_step = editstep
+    renoise.app():show_status("EditStep set to " .. tostring(editstep) ..
+      " (Cycle position: " .. tostring(tick_counter) .. ")")
+  end
+end
+
+-- Toggle the functionality on or off
+local function toggle_match_editstep()
+  match_editstep_enabled = not match_editstep_enabled
+  if match_editstep_enabled then
+    if not renoise.tool().app_idle_observable:has_notifier(match_editstep_with_delay_pattern) then
+      renoise.tool().app_idle_observable:add_notifier(match_editstep_with_delay_pattern)
+    end
+    renoise.app():show_status("Match EditStep with Delay Pattern: ENABLED")
+  else
+    if renoise.tool().app_idle_observable:has_notifier(match_editstep_with_delay_pattern) then
+      renoise.tool().app_idle_observable:remove_notifier(match_editstep_with_delay_pattern)
+    end
+    renoise.app():show_status("Match EditStep with Delay Pattern: DISABLED")
+  end
+end
+
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress..:Match EditStep with Delay Pattern",invoke=function() toggle_match_editstep() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Toggle Match EditStep with Delay Pattern",invoke=function() toggle_match_editstep() end}
 
