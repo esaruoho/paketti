@@ -207,7 +207,7 @@ end
 renoise.tool():add_file_import_hook{
   name       = "IFF (8SVX+16SV) → WAV converter",
   category   = "sample",
-  extensions = {"iff","8svx","8SVX","16sv","16SV"},
+  extensions = {"iff","8svx","16sv"},
   invoke     = loadIFFSample
 }
 

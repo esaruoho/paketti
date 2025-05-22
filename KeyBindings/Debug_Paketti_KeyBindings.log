@@ -1,20 +1,9 @@
-Debug: Total Paketti keybindings found - 4618
-0001:Global:Paketti: ∿ Set Interpolation 1 (None) Globally: <Shortcut not Assigned>
-0002:Global:Paketti: ∿ Set Interpolation 2 (Linear) Globally: <Shortcut not Assigned>
-0003:Global:Paketti: ∿ Set Interpolation 3 (Cubic) Globally: <Shortcut not Assigned>
-0004:Global:Paketti: ∿ Set Interpolation 4 (Sinc) Globally: <Shortcut not Assigned>
-0005:Global:Paketti: ∿ Set Selected Instrument Interpolation to 1 (None): <Shortcut not Assigned>
-0006:Global:Paketti: ∿ Set Selected Instrument Interpolation to 2 (Linear): <Shortcut not Assigned>
-0007:Global:Paketti: ∿ Set Selected Instrument Interpolation to 3 (Cubic): <Shortcut not Assigned>
-0008:Global:Paketti: ∿ Set Selected Instrument Interpolation to 4 (Sinc): <Shortcut not Assigned>
-0009:Global:Paketti: ∿ Set Selected Sample Interpolation to 1 (None): <Shortcut not Assigned>
-0010:Global:Paketti: ∿ Set Selected Sample Interpolation to 2 (Linear): <Shortcut not Assigned>
-0011:Global:Paketti: ∿ Set Selected Sample Interpolation to 3 (Cubic): <Shortcut not Assigned>
-0012:Global:Paketti: ∿ Set Selected Sample Interpolation to 4 (Sinc): <Shortcut not Assigned>
-0013:Pattern Editor:Paketti: ∿ Impulse Tracker ALT-X *2 (Interpolate&Clear Effect Columns): <Shortcut not Assigned>
-0014:Pattern Editor:Paketti: ∿ Interpolate Column Values (Delay): <Shortcut not Assigned>
-0015:Pattern Editor:Paketti: ∿ Interpolate Column Values (Effect): <Shortcut not Assigned>
-0016:Pattern Editor:Paketti: ∿ Interpolate Column Values (Panning): <Shortcut not Assigned>
-0017:Pattern Editor:Paketti: ∿ Interpolate Column Values (Sample FX): <Shortcut not Assigned>
-0018:Pattern Editor:Paketti: ∿ Interpolate Column Values (Volume): <Shortcut not Assigned>
-0019:Pattern Editor:Paketti: ∿ Interpolate Notes: <Shortcut not Assigned>
+Debug: Total Paketti keybindings found - 5234
+0001:Global:Paketti: ∿ Clear PitchStep Steps: Shift + Option + P
+0002:Global:Paketti: ∿ Modify PitchStep Steps (Hard Detune): Shift + Option + Command + Control + P
+0003:Global:Paketti: ∿ Modify PitchStep Steps (Minor Flurry): <Shortcut not Assigned>
+0004:Global:Paketti: ∿ Modify PitchStep Steps (Octave Up+2, Octave Down-2): Option + Command + P
+0005:Global:Paketti: ∿ Modify PitchStep Steps (Octave Up, Octave Down): Shift + Command + P
+0006:Global:Paketti: ∿ Modify PitchStep Steps (Random): Shift + Option + Command + P
+0007:Global:Paketti: ∿ PitchStepper Demo: <Shortcut not Assigned>
+0008:Global:Paketti: ∿ Show/Hide PitchStep on Selected Instrument: Option + P

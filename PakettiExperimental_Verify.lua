@@ -1,3 +1,73 @@
+--[[----------------------------------------------------------------------------
+  handle_above_effect_command
+  Handles copying/incrementing/decrementing effect from the line above.
+  @param operation: "copy", "inc", or "dec"
+----------------------------------------------------------------------------]]--
+local function handle_above_effect_command(operation)
+  local song = renoise.song()
+  local pat = song.selected_pattern
+  local track_idx = song.selected_track_index
+  local line_idx = song.selected_line_index
+  local effect_col_idx = song.selected_effect_column_index
+  
+  -- Check if we're on a note column
+  if effect_col_idx == 0 then
+    renoise.app():show_status("No effect column selected, doing nothing.")
+    return
+  end
+  
+  -- Check if we're on the first line
+  if line_idx == 1 then
+    renoise.app():show_status("Nothing above current row, doing nothing.")
+    return
+  end
+  
+  local track = pat:track(track_idx)
+  local src = track:line(line_idx-1).effect_columns[effect_col_idx]
+  
+  -- Check if there's actually an effect to copy
+  if src.number_string == "" and src.amount_string == "" then
+    renoise.app():show_status("No effect to copy from above, doing nothing.")
+    return
+  end
+  
+  local dst = track:line(line_idx).effect_columns[effect_col_idx]
+  
+  -- Always copy the effect number
+  dst.number_string = src.number_string
+  
+  if operation == "copy" then
+    dst.amount_string = src.amount_string
+  else
+    -- Handle increment/decrement
+    local num = tonumber(src.amount_string, 16)
+    if num then
+      if operation == "inc" then
+        num = math.min(num + 1, 0xFF)
+      elseif operation == "dec" then
+        num = math.max(num - 1, 0x00)
+      end
+      dst.amount_string = string.format("%02X", num)
+    end
+  end
+end
+
+renoise.tool():add_menu_entry{name="Pattern Editor:Copy Above Effect Column",invoke=function() handle_above_effect_command("copy") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Copy Above Effect Column + Increase Value",invoke=function() handle_above_effect_command("inc") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Copy Above Effect Column + Decrease Value",invoke=function() handle_above_effect_command("dec") end}
+renoise.tool():add_keybinding{name="Global:Paketti:Copy Above Effect Column",invoke=function() handle_above_effect_command("copy") end}
+renoise.tool():add_keybinding{name="Global:Paketti:Copy Above Effect Column + Increase Value",invoke=function() handle_above_effect_command("inc") end}
+renoise.tool():add_keybinding{name="Global:Paketti:Copy Above Effect Column + Decrease Value",invoke=function() handle_above_effect_command("dec") end}
+
+
+
+
+
+
+
+
+
+
 -- Function to ensure EQ10 exists on selected track and return its index
 local function ensure_eq10_exists()
   local song=renoise.song()
@@ -4125,4 +4195,170 @@ renoise.tool():add_keybinding{name="Global:Paketti:Column Cycle Keyjazz Special 
 
 
 ----------------------------
+--[[----------------------------------------------------------------------------
 
+Cross-fade Sample w/ Fade-In/Out
+Averages your sample with its reversed copy,
+then applies a 6-frame fade-in & fade-out.
+
+----------------------------------------------------------------------------]]--
+
+local function crossfade_with_fades()
+  local song   = renoise.song()
+  local sample = song.selected_sample
+  if not sample then
+    renoise.app():show_status("No sample selected!")
+    return
+  end
+
+  local buffer = sample.sample_buffer
+  if not buffer.has_sample_data then
+    renoise.app():show_status("Selected sample has no data!")
+    return
+  end
+
+  local n_ch         = buffer.number_of_channels
+  local n_fr         = buffer.number_of_frames
+  local fade_frames  = 6
+  local fade_range   = fade_frames - 1
+
+  -- 1) Read entire buffer into Lua
+  local orig = {}
+  for ch = 1, n_ch do
+    orig[ch] = {}
+    for i = 1, n_fr do
+      orig[ch][i] = buffer:sample_data(ch, i)
+    end
+  end
+
+  -- 2) Prepare undo/redo & UI updates
+  buffer:prepare_sample_data_changes()
+
+  -- 3) Cross-fade + fades
+  for ch = 1, n_ch do
+    for i = 1, n_fr do
+      -- cross-fade average
+      local rev_i = n_fr - i + 1
+      local avg   = (orig[ch][i] + orig[ch][rev_i]) * 0.5
+
+      -- apply fade-in/fade-out envelope
+      local factor = 1
+      if i <= fade_frames then
+        -- fade-in from 0 → 1 over fade_frames:
+        factor = (i - 1) / fade_range
+      elseif i > (n_fr - fade_frames) then
+        -- fade-out from 1 → 0 over fade_frames:
+        local k = i - (n_fr - fade_frames + 1)  -- 0..fade_range
+        factor = 1 - (k / fade_range)
+      end
+
+      buffer:set_sample_data(ch, i, avg * factor)
+    end
+  end
+
+  -- 4) Finalize changes
+  buffer:finalize_sample_data_changes()
+  renoise.app():show_status("Cross-fade + fades complete.")
+end
+
+renoise.tool():add_menu_entry{name="Sample Editor:Cross-fade Sample w/ Fade-In/Out",invoke=crossfade_with_fades}
+---
+
+
+--[[----------------------------------------------------------------------------
+
+Cross‐fade Loop + Explicit Edge Fades (1‐sample‐fixed end)
+1) Mirror‐average first/last 10% of loop
+2) Pre‐loop fade‐out
+3) Loop‐start fade‐in
+4) Loop‐end fade‐out (fixed)
+
+----------------------------------------------------------------------------]]--
+
+local function crossfade_loop_edges_fixed_end()
+  local song  = renoise.song()
+  local instr = song.selected_instrument
+  local idx   = song.selected_sample_index
+  if not instr or idx < 1 then
+    renoise.app():show_status("No sample selected!")
+    return
+  end
+  local sample = instr.samples[idx]
+  local ls, le = sample.loop_start, sample.loop_end
+  if not ls or not le or le <= ls then
+    renoise.app():show_status("Invalid loop region!")
+    return
+  end
+  local buf = sample.sample_buffer
+  if not buf.has_sample_data then
+    renoise.app():show_status("Sample has no data!")
+    return
+  end
+
+  local n_ch       = buf.number_of_channels
+  local region_len = le - ls + 1
+  local fade_len   = math.floor(region_len / 10)
+  if fade_len < 1 or ls - fade_len < 1 then
+    renoise.app():show_status("Loop too short or no pre‐loop space.")
+    return
+  end
+
+  -- 1) Cache loop region
+  local orig = {}
+  for ch = 1, n_ch do
+    orig[ch] = {}
+    for i = 1, region_len do
+      orig[ch][i] = buf:sample_data(ch, ls + i - 1)
+    end
+  end
+
+  buf:prepare_sample_data_changes()
+
+  -- 2) Mirror‐average first/last fade_len frames
+  for ch = 1, n_ch do
+    for i = 1, fade_len do
+      local sp = ls + i - 1
+      local ep = le - (i - 1)
+      local avg = (orig[ch][i] + orig[ch][region_len - i + 1]) * 0.5
+      buf:set_sample_data(ch, sp, avg)
+      buf:set_sample_data(ch, ep, avg)
+    end
+  end
+
+  -- 3) Pre‐loop fade‐out (before loop_start)
+  for ch = 1, n_ch do
+    for i = 1, fade_len do
+      local pos = ls - fade_len + (i - 1)
+      local env = (fade_len - i + 1) / fade_len
+      local v   = buf:sample_data(ch, pos)
+      buf:set_sample_data(ch, pos, v * env)
+    end
+  end
+
+  -- 4) Loop‐start fade‐in (after loop_start)
+  for ch = 1, n_ch do
+    for i = 1, fade_len do
+      local pos = ls + (i - 1)
+      local env = i / fade_len
+      local v   = buf:sample_data(ch, pos)
+      buf:set_sample_data(ch, pos, v * env)
+    end
+  end
+
+  -- 5) Loop‐end fade‐out (before loop_end), fixed off‐by‐one
+  for ch = 1, n_ch do
+    for i = 1, fade_len do
+      local pos = (le - fade_len) + (i +1)     -- covers [le-fade_len .. le-1]
+      local env = (fade_len - i + 1) / fade_len
+      local v   = buf:sample_data(ch, pos)
+      buf:set_sample_data(ch, pos, v * env)
+    end
+  end
+
+  buf:finalize_sample_data_changes()
+  renoise.app():show_status(
+    ("Cross‐fade loop edges + fixed end‐fade complete (%d frames)."):format(fade_len)
+  )
+end
+
+renoise.tool():add_menu_entry{name="Sample Editor:Cross-fade Loop Edges (Fixed End)",invoke=crossfade_loop_edges_fixed_end}

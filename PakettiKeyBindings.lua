@@ -882,11 +882,11 @@ function pakettiKeyBindingsUpdateList()
 
   keybinding_list.text = content
 
-  local selectedtext=""
+  local selectedText=""
   if selectedIdentifier == "All" then
-    selectedtext="For all sections, there are " .. selected_count .. " shortcuts and " .. selected_unassigned_count .. " are unassigned."
+    selectedText="For all sections, there are " .. selected_count .. " shortcuts and " .. selected_unassigned_count .. " are unassigned."
   else
-    selectedtext="For " .. selectedIdentifier .. ", there are " .. selected_count .. " shortcuts and " .. selected_unassigned_count .. " are unassigned."
+    selectedText="For " .. selectedIdentifier .. ", there are " .. selected_count .. " shortcuts and " .. selected_unassigned_count .. " are unassigned."
   end
 
   selected_shortcuts_text.text = selectedText
