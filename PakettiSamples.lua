@@ -417,8 +417,6 @@ function loadRandomDrumkitSamples(num_samples)
     return instrument
 end
 
-
-
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:Paketti PitchBend Drumkit Sample Loader (Random)",invoke=function() loadRandomDrumkitSamples(120)  end}
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti PitchBend Drumkit Sample Loader (Random)",invoke=function() loadRandomDrumkitSamples(120) end}
 renoise.tool():add_midi_mapping{name="Paketti:Midi Paketti PitchBend Drumkit Sample Loader (Random)",invoke=function(message) if message:is_trigger() then loadRandomDrumkitSamples(120)  end end}
@@ -562,14 +560,12 @@ end
 else
 renoise.app():show_status("There is no sample in the sample slot, doing nothing.")
 end
-
-
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Create New Instrument & Loop from Selection",invoke=create_new_instrument_from_selection}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Create New Instrument & Loop from Selection",invoke=create_new_instrument_from_selection}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Create New Instrument & Loop from Selection",invoke=create_new_instrument_from_selection}
-
+------
 function G01()
   local s=renoise.song()
   local currTrak=s.selected_track_index
@@ -586,13 +582,9 @@ function G01()
     line.note_columns[1].note_string="C-4"
     line.note_columns[1].instrument_value=rightinstrument
     line.effect_columns[1].number_string="0G"
-    line.effect_columns[1].amount_string="01"
-      
+    line.effect_columns[1].amount_string="01" 
   end
-
 end
-
-
 -------------
 function pitchBendMultipleSampleLoader(normalize)
   local selected_sample_filenames = renoise.app():prompt_for_multiple_filenames_to_read({"*.wav", "*.aif", "*.flac", "*.mp3", "*.aiff"}, "Paketti PitchBend Multiple Sample Loader")
@@ -662,9 +654,7 @@ renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti..:Paketti PitchBe
 renoise.tool():add_menu_entry{name="--Disk Browser Files:Paketti..:Paketti PitchBend Multiple Sample Loader",invoke=function() pitchBendMultipleSampleLoader() end}
 renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti..:Paketti PitchBend Multiple Sample Loader (Normalize)",invoke=function() pitchBendMultipleSampleLoader(true) end}
 renoise.tool():add_menu_entry{name="--Disk Browser Files:Paketti..:Fill Empty Sample Slots (Randomized Folder)",invoke=function() fillEmptySampleSlots() end}
-
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:Paketti PitchBend Multiple Sample Loader",invoke=function() pitchBendMultipleSampleLoader() end}
-
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti PitchBend Multiple Sample Loader",invoke=function() pitchBendMultipleSampleLoader() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti PitchBend Multiple Sample Loader (Normalize)",invoke=function() pitchBendMultipleSampleLoader(true) end}
 renoise.tool():add_midi_mapping{name="Paketti:Midi Paketti PitchBend Multiple Sample Loader",invoke=function(message) if message:is_trigger() then pitchBendMultipleSampleLoader() end end}
@@ -776,7 +766,6 @@ renoise.tool():add_keybinding{name="Sample Editor:Paketti:Set Loop Mode to 2 For
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Set Loop Mode to 3 Reverse",invoke=function() LoopState(3) end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Set Loop Mode to 4 PingPong",invoke=function() LoopState(4) end}
 ------------------
-
 function slicerough(changer)
 local loopstyle = preferences.WipeSlices.SliceLoopMode.value 
   local G01CurrentState = preferences._0G01_Loader.value
@@ -1006,12 +995,8 @@ renoise.tool():add_keybinding{name="Global:Paketti:Paketti Save Selected Sample 
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Save Selected Sample .FLAC",invoke=function() pakettiSaveSample("FLAC") end}
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Save..:Paketti Save Selected Sample .WAV",invoke=function() pakettiSaveSample("WAV") end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Save..:Paketti Save Selected Sample .FLAC",invoke=function() pakettiSaveSample("FLAC") end}
-
-
-
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Save..:Paketti Save Selected Sample Range .WAV",invoke=function() pakettiSaveSampleRange("WAV") end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Save..:Paketti Save Selected Sample Range .FLAC",invoke=function() pakettiSaveSampleRange("FLAC") end}
-
 renoise.tool():add_midi_mapping{name="Paketti:Midi Paketti Save Selected Sample .WAV",invoke=function(message) if message:is_trigger() then pakettiSaveSample("WAV") end end}
 renoise.tool():add_midi_mapping{name="Paketti:Midi Paketti Save Selected Sample .FLAC",invoke=function(message) if message:is_trigger() then pakettiSaveSample("FLAC") end end}
 ------------
@@ -1326,12 +1311,10 @@ end
 
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Pattern Editor..:Clean Render..:Clean Render Selected Track/Group LPB*2",invoke=function() pakettiCleanRenderSelectionLPB() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Clean Render..:Clean Render Selected Track/Group",invoke=function() pakettiCleanRenderSelection() end}
-
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Clean Render..:Clean Render Selected Track/Group LPB*2",invoke=function() pakettiCleanRenderSelectionLPB() end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Clean Render..:Clean Render Seamless Selected Track/Group",invoke=function() PakettiSeamlessCleanRenderSelection() end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Clean Render..:Clean Render Selected Track/Group LPB*2",invoke=function() pakettiCleanRenderSelectionLPB() end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Clean Render..:Clean Render Seamless Selected Track/Group",invoke=function() PakettiSeamlessCleanRenderSelection() end}
-
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Clean Render Selected Track/Group LPB*2",invoke=function() pakettiCleanRenderSelectionLPB() end}
 renoise.tool():add_keybinding{name="Mixer:Paketti:Clean Render Selected Track/Group LPB*2",invoke=function() pakettiCleanRenderSelectionLPB() end}
 ------
@@ -1532,7 +1515,6 @@ function resetSliceCounter()
 end
 
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Select Padded Slice from Current Slice",invoke=selectPaddedSliceFromCurrentSlice}
-
 -------------
 local loop_modes = {
   renoise.Sample.LOOP_MODE_OFF,
@@ -1618,23 +1600,6 @@ function PakettiReverseSampleBuffer(sample_buffer)
   end
 end
 
-  -- Supposedly slower than it should be
-  --[[
-  local temp_buffer = {}
-  for frame = 1, num_frames do
-    temp_buffer[frame] = {}
-    for channel = 1, num_channels do
-      temp_buffer[frame][channel] = sample_buffer:sample_data(channel, num_frames - frame + 1)
-    end
-  end
-
-  for frame = 1, num_frames do
-    for channel = 1, num_channels do
-      sample_buffer:set_sample_data(channel, frame, temp_buffer[frame][channel])
-    end
-  end
-end]]--
-
 function CopySampleSettings(from_sample, to_sample)
   to_sample.volume = from_sample.volume
   to_sample.panning = from_sample.panning
@@ -1682,7 +1647,6 @@ function CopySliceSettings(from_sample, to_sample)
   to_sample.new_note_action = from_sample.new_note_action
   to_sample.autoseek = from_sample.autoseek
   to_sample.autofade = from_sample.autofade
-  
   to_sample.oversample_enabled = from_sample.oversample_enabled
   to_sample.interpolation_mode = from_sample.interpolation_mode
   to_sample.name = from_sample.name
@@ -2084,13 +2048,10 @@ renoise.tool():add_keybinding{name="Sample Editor:Paketti:Rotate Sample Buffer R
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Rotate Sample Buffer Left 1000",invoke=function() rotate_sample_buffer_fixed(-1000) end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Rotate Sample Buffer Right 10000",invoke=function() rotate_sample_buffer_fixed(10000) end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Rotate Sample Buffer Left 10000",invoke=function() rotate_sample_buffer_fixed(-10000) end}
-
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Rotate Sample Buffer Right Coarse",invoke=function() rotate_sample_buffer_fixed(preferences.pakettiRotateSampleBufferCoarse.value) end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Rotate Sample Buffer Left Coarse",invoke=function() rotate_sample_buffer_fixed(-preferences.pakettiRotateSampleBufferCoarse.value) end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Rotate Sample Buffer Right Fine",invoke=function() rotate_sample_buffer_fixed(preferences.pakettiRotateSampleBufferFine.value) end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Rotate Sample Buffer Left Fine",invoke=function() rotate_sample_buffer_fixed(-preferences.pakettiRotateSampleBufferFine.value) end}
-
-
 ---------
 function filterTypeRandom()
 
@@ -2193,8 +2154,6 @@ function CleanRenderAndSaveDoneCallback()
     CleanRenderAndSaveSample(render_context.temp_file_path:match("%.%w+$"):sub(2)) -- Extract format from file extension
 end
 
-
-
 -- Function to monitor rendering progress
 function CleanRenderAndSaveMonitor()
     if renoise.song().rendering then
@@ -2252,18 +2211,15 @@ function CleanRenderAndSaveSample(format)
     renoise.app():show_status("Saved sample as " .. format .. " in " .. filename)
 end
 
--- Menu entries and keybindings
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Clean Render..:Clean Render and Save Selected Track/Group as .WAV",invoke=function() CleanRenderAndSaveSelection("WAV") end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Clean Render..:Clean Render and Save Selected Track/Group as .FLAC",invoke=function() CleanRenderAndSaveSelection("FLAC") end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Clean Render..:Clean Render and Save Selected Track/Group as .WAV",invoke=function() CleanRenderAndSaveSelection("WAV") end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Clean Render..:Clean Render and Save Selected Track/Group as .FLAC",invoke=function() CleanRenderAndSaveSelection("FLAC") end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Clean Render..:Clean Render and Save Selected Track/Group as .WAV",invoke=function() CleanRenderAndSaveSelection("WAV") end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Clean Render..:Clean Render and Save Selected Track/Group as .FLAC",invoke=function() CleanRenderAndSaveSelection("FLAC") end}
-
 renoise.tool():add_keybinding{name="Global:Paketti:Clean Render&Save Selected Track/Group (.WAV)",invoke=function() CleanRenderAndSaveSelection("WAV") end}
 renoise.tool():add_keybinding{name="Global:Paketti:Clean Render&Save Selected Track/Group (.FLAC)",invoke=function() CleanRenderAndSaveSelection("FLAC") end}
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Duplicate and Reverse Instrument",invoke=PakettiDuplicateAndReverseInstrument}
-
 ---------
 function PakettiInjectDefaultXRNI()
   local instVol = renoise.song().selected_instrument.volume
@@ -2285,7 +2241,6 @@ function PakettiInjectDefaultXRNI()
   song.selected_instrument_index = new_instrument_index
   local new_instrument = song.selected_instrument
 
-  -- First load the XRNI
   pakettiPreferencesDefaultInstrumentLoader()
   new_instrument = renoise.song().selected_instrument
 
@@ -2402,8 +2357,6 @@ end
 
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Toggle Mono Device",invoke=PakettiToggleMono}
 renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Toggle Mono Device",invoke=function() PakettiToggleMono() end}
-
-----
 -------------------
 function BeatSyncFromSelection()
   local song=renoise.song()
@@ -2428,6 +2381,7 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Smart Beatsync from Selection",invoke=function()
 BeatSyncFromSelection() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Smart Beatsync from Selection",invoke=function() BeatSyncFromSelection() end}
 --
 render_context = {
     source_track = 0,
@@ -2454,16 +2408,11 @@ function PakettiSeamlessCheckAndResizePattern()
         end
         -- Set the pattern size to the new value
     -- Call pakettiResizeAndFill() based on the original size before resizing
-    if render_context.original_pattern_size == 256 then
-        pakettiResizeAndFill(512)
-    elseif render_context.original_pattern_size == 128 then
-        pakettiResizeAndFill(256)
-    elseif render_context.original_pattern_size == 64 then
-        pakettiResizeAndFill(128)
-    elseif render_context.original_pattern_size == 32 then
-        pakettiResizeAndFill(64)
-    elseif render_context.original_pattern_size == 16 then
-        pakettiResizeAndFill(32)
+    if render_context.original_pattern_size == 256 then pakettiResizeAndFill(512)
+    elseif render_context.original_pattern_size == 128 then pakettiResizeAndFill(256)
+    elseif render_context.original_pattern_size == 64 then pakettiResizeAndFill(128)
+    elseif render_context.original_pattern_size == 32 then pakettiResizeAndFill(64)
+    elseif render_context.original_pattern_size == 16 then pakettiResizeAndFill(32)
     end end end
 
 function PakettiSeamlessRestorePatternSize()
@@ -2544,7 +2493,6 @@ function PakettiSeamlessRenderingDoneCallback()
       end
   end
 
-
     local renderedInstrument = render_context.target_instrument
 
     -- Remove the monitoring timer
@@ -2569,7 +2517,6 @@ function PakettiSeamlessRenderingDoneCallback()
     renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
 
     pakettiSampleBufferHalfSelector(1)
-
 
 renoise.song().selected_sample.loop_start=renoise.song().selected_sample.sample_buffer.selection_end
 renoise.song().selected_sample.loop_end=renoise.song().selected_sample.sample_buffer.number_of_frames
@@ -2633,7 +2580,6 @@ end
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Clean Render..:Clean Render Seamless Selected Track/Group",invoke=function() PakettiSeamlessCleanRenderSelection() end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Clean Render Seamless Selected Track/Group",invoke=function() PakettiSeamlessCleanRenderSelection() end}
 renoise.tool():add_keybinding{name="Mixer:Paketti:Clean Render Seamless Selected Track/Group",invoke=function() PakettiSeamlessCleanRenderSelection() end}
-
 --
 function PakettiFlipSample(fraction)
   local song=renoise.song()
@@ -2676,12 +2622,8 @@ function PakettiEight120fy()
   renoise.app():show_status("Base notes set to C-4 and key mapping adjusted for all samples.")
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Eight 120-fy",invoke=function() PakettiEight120fy() end}
-    
-    
-    -----
-    
-
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120 Eight 120-fy Instrument",invoke=function() PakettiEight120fy() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Paketti Groovebox 8120 Eight 120-fy Instrument",invoke=function() PakettiEight120fy() end}
 ------------   
  local function select_loop_range_in_sample_editor()
   local song=renoise.song()
@@ -2756,8 +2698,7 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Load Random Samples (32) from Path",invoke=function() loadRandomSample(32) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Load Random Samples (01) from Path",invoke=function() loadRandomSample(1) end}
-
-
+----
 local function loadRandomSamplesIntoSingleInstrument(num_samples)
     -- Prompt the user to select a folder
     local folder_path = renoise.app():prompt_for_path("Select Folder Containing Audio Files")
@@ -2803,7 +2744,6 @@ local function loadRandomSamplesIntoSingleInstrument(num_samples)
         renoise.app():show_status("Loaded file into sample slot: " .. selected_file)
     end
 instrument.name = num_samples .. " Randomized Samples"
-
 end
 
 -- Shortcut usage example
@@ -2814,15 +2754,10 @@ end}
 renoise.tool():add_keybinding{name="Global:Paketti:Load Random Samples (04) into Single Instrument (XY)",invoke=function()
 loadRandomSamplesIntoSingleInstrument(4)
 for i=1,#renoise.song().selected_instrument.samples do
-
 renoise.song().selected_instrument.samples[i].volume = 0
 end
+showXyPaddialog() end}
 
-
-showXyPaddialog()
-end}
-
-_AUTO_RELOAD_DEBUG = true
 --------
     local dialog = nil
 

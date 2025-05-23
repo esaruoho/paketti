@@ -281,12 +281,15 @@ local function pti_loadsample(filepath)
 
   -- Process slice markers. (Note: slice_count was taken from header at offset 377.)
   local slice_frames = {}
+  print(string.format("-- DEBUG: Reading slice markers from header, slice_count = %d", slice_count))
   for i = 0, slice_count - 1 do
     local offset = 280 + i * 2
     local raw_value = read_uint16_le(header, offset)
+    print(string.format("-- DEBUG: Slice %02d: offset=%d, raw_value=0x%04X (%d)", i+1, offset, raw_value, raw_value))
     if raw_value >= 0 and raw_value <= 65535 then
       local frame = math.floor((raw_value / 65535) * sample_length)
       table.insert(slice_frames, frame)
+      print(string.format("-- DEBUG: Slice %02d: calculated frame = %d", i+1, frame))
     end
   end
 
@@ -375,6 +378,7 @@ local function pti_loadsample(filepath)
   else
     -- Apply original slices if no trim is necessary
     if #slice_frames > 0 then
+      print(string.format("-- DEBUG: Applying %d slice markers without trimming", #slice_frames))
       for i, frame in ipairs(slice_frames) do
         print(string.format("-- Slice %02d at frame: %d", i, frame))
         smp:insert_slice_marker(frame + 1)
@@ -406,6 +410,7 @@ local function pti_loadsample(filepath)
   -- smp.loop_release = preferences.pakettiLoaderLoopExit.value
 
   local total_slices = #renoise.song().selected_instrument.samples[1].slice_markers
+  print(string.format("-- DEBUG: Final total slice count: %d", total_slices))
   if total_slices > 0 then
     renoise.app():show_status(string.format("PTI imported with %d slice markers", total_slices))
   else
@@ -429,3 +434,324 @@ renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti..:Import .PTI (Po
     if f and f ~= "" then pti_loadsample(f) end
   end
 }
+
+
+
+
+
+
+
+---------
+local bit = require("bit")
+
+-- Helper writers
+local function write_uint8(f, v)
+  f:write(string.char(bit.band(v, 0xFF)))
+end
+
+local function write_uint16_le(f, v)
+  f:write(string.char(
+    bit.band(v, 0xFF),
+    bit.band(bit.rshift(v, 8), 0xFF)
+  ))
+end
+
+local function write_uint32_le(f, v)
+  f:write(string.char(
+    bit.band(v, 0xFF),
+    bit.band(bit.rshift(v, 8), 0xFF),
+    bit.band(bit.rshift(v, 16), 0xFF),
+    bit.band(bit.rshift(v, 24), 0xFF)
+  ))
+end
+
+-- Build a 392-byte header according to .pti spec
+local function build_header(inst)
+  local header = string.rep("\0", 392) -- Start with 392 zero bytes
+  local pos = 1
+  
+  -- Function to write bytes at specific position
+  local function write_at(offset, data)
+    local len = #data
+    header = header:sub(1, offset-1) .. data .. header:sub(offset + len)
+  end
+  
+  -- File ID and version (offset 0-7)
+  write_at(1, "TI")                       -- offset 0-1: ASCII marker "TI"
+  write_at(3, string.char(1,0,1,5))       -- offset 2-5: version 1.0.1.5
+  write_at(7, string.char(0,1))           -- offset 6-7: flags
+  
+  -- Wavetable flag (offset 20)  
+  write_at(21, string.char(inst.is_wavetable and 1 or 0))
+  
+  -- Instrument name (offset 21-51, 31 bytes)
+  local name = (inst.name or ""):sub(1,31)
+  write_at(22, name .. string.rep("\0", 31-#name))
+  
+  -- Sample length (offset 60-63, 4 bytes little-endian)
+  local length_bytes = string.char(
+    bit.band(inst.sample_length, 0xFF),
+    bit.band(bit.rshift(inst.sample_length, 8), 0xFF),
+    bit.band(bit.rshift(inst.sample_length, 16), 0xFF),
+    bit.band(bit.rshift(inst.sample_length, 24), 0xFF)
+  )
+  write_at(61, length_bytes)
+  
+  -- Determine playback mode based on slices
+  local playback_mode = 0 -- Default: 1-Shot
+  if #(inst.slice_markers or {}) > 0 then
+    playback_mode = 4 -- Slice mode
+  end
+  
+  -- Sample playback mode (offset 76)
+  write_at(77, string.char(playback_mode))
+  
+  -- Loop points (offset 80-83)
+  local loop_start = math.floor(inst.loop_start * 65535 / inst.sample_length)
+  local loop_end = math.floor(inst.loop_end * 65535 / inst.sample_length)
+  
+  write_at(81, string.char(
+    bit.band(loop_start, 0xFF),
+    bit.band(bit.rshift(loop_start, 8), 0xFF)
+  ))
+  write_at(83, string.char(
+    bit.band(loop_end, 0xFF),
+    bit.band(bit.rshift(loop_end, 8), 0xFF)
+  ))
+  
+  -- Write slice markers (offset 280-375, 48 markers × 2 bytes each)
+  local slice_markers = inst.slice_markers or {}
+  local num_slices = math.min(48, #slice_markers)
+  
+  print(string.format("-- build_header: Writing %d slices (from %d total)", num_slices, #slice_markers))
+  
+  for i = 1, num_slices do
+    local slice_pos = slice_markers[i]
+    -- Simple proportion: frame_position / total_frames * 65535
+    local slice_value = math.floor((slice_pos / inst.sample_length) * 65535)
+    local offset = 280 + (i - 1) * 2
+    write_at(offset + 1, string.char(
+      bit.band(slice_value, 0xFF),
+      bit.band(bit.rshift(slice_value, 8), 0xFF)
+    ))
+    print(string.format("-- Export slice %02d: frame=%d/%d, value=%d (0x%04X)", 
+      i, slice_pos, inst.sample_length, slice_value, slice_value))
+  end
+  
+  -- Write slice count (offset 376)
+  write_at(377, string.char(num_slices))
+  print(string.format("-- build_header: Wrote slice count %d at offset 376", num_slices))
+  
+  return header
+end
+
+-- Write PCM data mono or stereo
+local function write_pcm(f, inst)
+  local buf = inst.sample_buffer
+  local channels = inst.channels or 1
+  
+  if channels == 2 then
+    -- For stereo: write all left channel data first, then all right channel data
+    -- This matches the format expected by the import function
+    
+    -- Write left channel block
+    for i = 1, inst.sample_length do
+      local v = buf:sample_data(1, i)
+      -- Clamp the value between -1 and 1
+      v = math.min(math.max(v, -1.0), 1.0)
+      -- Convert to 16-bit integer range
+      local int = math.floor(v * 32767)
+      -- Handle negative values
+      if int < 0 then int = int + 65536 end
+      -- Write as 16-bit LE
+      write_uint16_le(f, int)
+    end
+    
+    -- Write right channel block  
+    for i = 1, inst.sample_length do
+      local v = buf:sample_data(2, i)
+      -- Clamp the value between -1 and 1
+      v = math.min(math.max(v, -1.0), 1.0)
+      -- Convert to 16-bit integer range
+      local int = math.floor(v * 32767)
+      -- Handle negative values
+      if int < 0 then int = int + 65536 end
+      -- Write as 16-bit LE
+      write_uint16_le(f, int)
+    end
+  else
+    -- Mono: write samples sequentially
+    for i = 1, inst.sample_length do
+      local v = buf:sample_data(1, i)
+      -- Clamp the value between -1 and 1
+      v = math.min(math.max(v, -1.0), 1.0)
+      -- Convert to 16-bit integer range
+      local int = math.floor(v * 32767)
+      -- Handle negative values
+      if int < 0 then int = int + 65536 end
+      -- Write as 16-bit LE
+      write_uint16_le(f, int)
+    end
+  end
+end
+
+-- Main save
+local function pti_savesample()
+  local song = renoise.song()
+  local inst = song.selected_instrument
+  local smp = inst.samples[1]
+
+  -- Check if we have a valid instrument and sample
+  if not inst or #inst.samples == 0 then
+    renoise.app():show_error("No instrument or sample selected")
+    return
+  end
+
+  -- Prompt for save location with local variable assignment
+  local filename = renoise.app():prompt_for_filename_to_write(".pti", "Save .PTI as...")
+  if filename == "" then
+    return
+  end
+
+  print("------------")
+  print(string.format("-- PTI: Export filename: %s", filename))
+
+  -- Handle slice count limitation (max 48 in PTI format)
+  local original_slice_count = #(smp.slice_markers or {})
+  local limited_slice_count = math.min(48, original_slice_count)
+  
+  if original_slice_count > 48 then
+    print(string.format("-- NOTE: Sample has %d slices - limiting to 48 slices for PTI format", original_slice_count))
+    renoise.app():show_status(string.format("PTI format supports max 48 slices - limiting from %d", original_slice_count))
+  end
+
+  -- gather simple inst params
+  local data = {
+    name = inst.name,
+    is_wavetable = false,
+    sample_length = smp.sample_buffer.number_of_frames,
+    loop_mode = smp.loop_mode,
+    loop_start = smp.loop_start,
+    loop_end = smp.loop_end,
+    channels = smp.sample_buffer.number_of_channels,
+    slice_markers = {} -- Initialize empty slice markers table
+  }
+
+  -- Copy up to 48 slice markers
+  print(string.format("-- Copying %d slice markers from Renoise sample", limited_slice_count))
+  for i = 1, limited_slice_count do
+    data.slice_markers[i] = smp.slice_markers[i]
+    print(string.format("-- Export slice %02d: Renoise frame position = %d", i, smp.slice_markers[i]))
+  end
+
+  -- Determine playback mode
+  local playback_mode = "1-Shot"
+  if #data.slice_markers > 0 then
+    playback_mode = "Slice"
+    print("-- Sample Playback Mode: Slice (mode 4)")
+  end
+
+  print(string.format("-- Format: %s, %dHz, %d-bit, %d frames, sliceCount = %d", 
+    data.channels > 1 and "Stereo" or "Mono",
+    44100,
+    16,
+    data.sample_length,
+    limited_slice_count
+  ))
+
+  local loop_mode_names = {
+    [renoise.Sample.LOOP_MODE_OFF] = "OFF",
+    [renoise.Sample.LOOP_MODE_FORWARD] = "Forward",
+    [renoise.Sample.LOOP_MODE_REVERSE] = "Reverse",
+    [renoise.Sample.LOOP_MODE_PING_PONG] = "PingPong"
+  }
+
+  print(string.format("-- Loopmode: %s, Start: %d, End: %d, Looplength: %d",
+    loop_mode_names[smp.loop_mode] or "OFF",
+    smp.loop_start,
+    smp.loop_end,
+    smp.loop_end - smp.loop_start
+  ))
+
+  print(string.format("-- Wavetable Mode: %s", data.is_wavetable and "TRUE" or "FALSE"))
+
+  local f = io.open(filename, "wb")
+  if not f then 
+    renoise.app():show_error("Cannot write file: "..filename)
+    return 
+  end
+
+  -- Write header and get its size for verification
+  local header = build_header(data)
+  print(string.format("-- Header size: %d bytes", #header))
+  f:write(header)
+
+  -- Debug first few frames before writing
+  local buf = smp.sample_buffer
+  print("-- Sample value ranges:")
+  local min_val, max_val = 0, 0
+  for i = 1, math.min(100, data.sample_length) do
+    for ch = 1, data.channels do
+      local v = buf:sample_data(ch, i)
+      min_val = math.min(min_val, v)
+      max_val = math.max(max_val, v)
+    end
+  end
+  print(string.format("-- First 100 frames min/max: %.6f to %.6f", min_val, max_val))
+
+  -- Write PCM data
+  local pcm_start_pos = f:seek()
+  write_pcm(f, { sample_buffer = smp.sample_buffer, sample_length = data.sample_length, channels = data.channels })
+  local pcm_end_pos = f:seek()
+  local pcm_size = pcm_end_pos - pcm_start_pos
+  
+  print(string.format("-- PCM data size: %d bytes", pcm_size))
+  print(string.format("-- Total file size: %d bytes", pcm_end_pos))
+
+  f:close()
+
+  -- Show final status
+  if original_slice_count > 0 then
+    if original_slice_count > 48 then
+      renoise.app():show_status(string.format("PTI exported with 48 slices (limited from %d) in Slice mode", original_slice_count))
+    else
+      renoise.app():show_status(string.format("PTI exported with %d slices in Slice mode", original_slice_count))
+    end
+  else
+    renoise.app():show_status("PTI exported to "..filename)
+  end
+end
+
+-- Menu entries
+renoise.tool():add_menu_entry{
+  name = "Disk Browser Files:Paketti..:Export .PTI Instrument",
+  invoke = pti_savesample
+}
+
+renoise.tool():add_menu_entry{
+  name = "--Sample Editor:Paketti..:Save..:Export .PTI Instrument",
+  invoke = pti_savesample
+}
+
+renoise.tool():add_menu_entry{
+  name = "--Instrument Box:Paketti..:Save..:Export .PTI Instrument",
+  invoke = pti_savesample
+}
+
+renoise.tool():add_menu_entry{
+  name = "--Sample Navigator:Paketti..:Save..:Export .PTI Instrument",
+  invoke = pti_savesample
+}
+
+renoise.tool():add_menu_entry{
+  name = "--Sample Mappings:Paketti..:Save..:Export .PTI Instrument",
+  invoke = pti_savesample
+}
+
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:PTI Export",
+  invoke = pti_savesample
+}
+
+_AUTO_RELOAD_DEBUG = true
+

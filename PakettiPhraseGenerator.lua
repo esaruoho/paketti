@@ -1,3 +1,5 @@
+renoise.tool():add_menu_entry{name="Script Editor:Paketti..:PRINT",invoke=function() print("HEEY") end}
+ 
 local TRANSPOSE_MIN=-120
 local TRANSPOSE_MAX=120
 local is_switching_instrument=false
@@ -9,11 +11,7 @@ local function set_transpose_safely(instrument, new_value)
   instrument.transpose = new_value
   return new_value
 end
-
-_AUTO_RELOAD_DEBUG = true
   
- renoise.tool():add_menu_entry{name="Script Editor:Paketti..:PRINT",invoke=function() print("HEEY") end}
- 
  -- Constants for configuration
  local NOTE_RANGES = {
   full = {"c-4", "c#4", "d-4", "d#4", "e-4", "f-4", "f#4", "g-4", "g#4", "a-4", "a#4", "b-4", "c-5"},

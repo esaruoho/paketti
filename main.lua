@@ -1,3 +1,4 @@
+
 sampleEditor = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
 patternEditor = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 pe = patternEditor
@@ -404,3 +405,5 @@ timed_require("PakettiRePitch")
 timed_require("PakettiPhraseGenerator")
 timed_require("PakettiIFFLoader")
 timed_require("PakettiMODLoader")
+
+_AUTO_RELOAD_DEBUG = true

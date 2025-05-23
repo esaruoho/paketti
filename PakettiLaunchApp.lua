@@ -1,4 +1,3 @@
-_AUTO_RELOAD_DEBUG = true
 local dialog = nil
 local dialog_content = nil
 local vb = renoise.ViewBuilder()
