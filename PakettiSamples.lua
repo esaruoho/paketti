@@ -4623,3 +4623,78 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Slice Count From Selection",invoke=function() pakettiSlicesFromSelection() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Slice Count From Selection",invoke=function() pakettiSlicesFromSelection() end}
+
+function pakettiToggleLoopRangeSelection()
+  local song = renoise.song()
+  local sample = song.selected_sample
+  
+  if not sample or not sample.sample_buffer.has_sample_data then
+    renoise.app():show_status("No valid sample selected.")
+    return
+  end
+  
+  local buffer = sample.sample_buffer
+  local selection_start = buffer.selection_start
+  local selection_end = buffer.selection_end
+  
+  -- Check if there's a valid selection
+  if not selection_start or not selection_end or selection_start >= selection_end then
+    renoise.app():show_status("No valid selection range.")
+    return
+  end
+  
+  local current_loop_start = sample.loop_start
+  local current_loop_end = sample.loop_end
+  local current_loop_mode = sample.loop_mode
+  
+  print("Debug: selection_start=" .. selection_start .. ", selection_end=" .. selection_end)
+  print("Debug: current_loop_start=" .. current_loop_start .. ", current_loop_end=" .. current_loop_end)
+  print("Debug: current_loop_mode=" .. current_loop_mode)
+  
+  -- Check if loop points match selection
+  local loop_matches_selection = (current_loop_start == selection_start and current_loop_end == selection_end)
+  
+  if loop_matches_selection then
+    -- Loop is where selection is
+    if current_loop_mode == renoise.Sample.LOOP_MODE_OFF then
+      -- Loop is OFF but matches selection - turn it ON
+      sample.loop_mode = renoise.Sample.LOOP_MODE_FORWARD
+      renoise.app():show_status("Loop enabled (Forward mode).")
+      print("Debug: Enabled loop at selection range")
+    else
+      -- Loop is ON and matches selection - turn it OFF
+      sample.loop_mode = renoise.Sample.LOOP_MODE_OFF
+      renoise.app():show_status("Loop disabled.")
+      print("Debug: Disabled loop")
+    end
+  else
+    -- Loop doesn't match selection - move it there and enable Forward mode
+    sample.loop_start = selection_start
+    sample.loop_end = selection_end
+    sample.loop_mode = renoise.Sample.LOOP_MODE_FORWARD
+    renoise.app():show_status("Loop moved to selection and enabled (Forward mode).")
+    print("Debug: Moved loop to selection range and enabled")
+  end
+end
+
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Toggle Loop Range (Selection)",invoke=pakettiToggleLoopRangeSelection}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Toggle Loop Range (Selection)",invoke=pakettiToggleLoopRangeSelection}
+
+---
+function pakettiSampleEditorSelectionClear()
+if renoise.song().selected_sample ~= nil then 
+
+  renoise.song().selected_sample.sample_buffer.selection_range={}
+else
+  renoise.app():show_status("No sample selected.")
+end
+end
+
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Unmark / Clear Selection",invoke=pakettiSampleEditorSelectionClear}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Unmark / Clear Selection",invoke=pakettiSampleEditorSelectionClear}
+
+
+
+
+
+

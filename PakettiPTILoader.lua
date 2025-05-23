@@ -497,23 +497,38 @@ local function build_header(inst)
   )
   write_at(61, length_bytes)
   
-  -- Determine playback mode based on slices
-  local playback_mode = 0 -- Default: 1-Shot
-  if #(inst.slice_markers or {}) > 0 then
-    playback_mode = 4 -- Slice mode
+  -- Map Renoise loop mode to PTI loop mode
+  local pti_loop_mode = 0 -- Default: OFF
+  local renoise_loop_modes = {
+    [renoise.Sample.LOOP_MODE_OFF] = 0,
+    [renoise.Sample.LOOP_MODE_FORWARD] = 1,
+    [renoise.Sample.LOOP_MODE_REVERSE] = 2,
+    [renoise.Sample.LOOP_MODE_PING_PONG] = 3
+  }
+  
+  if inst.loop_mode and renoise_loop_modes[inst.loop_mode] then
+    pti_loop_mode = renoise_loop_modes[inst.loop_mode]
   end
   
-  -- Sample playback mode (offset 76)
-  write_at(77, string.char(playback_mode))
+  -- Write loop mode (offset 76, read at 77 in import)
+  write_at(77, string.char(pti_loop_mode))
+  print(string.format("-- build_header: Writing loop mode %d at offset 76", pti_loop_mode))
   
-  -- Loop points (offset 80-83)
+  -- Loop points - fix offsets to match what import expects
+  -- Import reads from offset 80 and 82, so write to offset 80 and 82
   local loop_start = math.floor(inst.loop_start * 65535 / inst.sample_length)
   local loop_end = math.floor(inst.loop_end * 65535 / inst.sample_length)
   
+  print(string.format("-- build_header: Converting loop points: start=%d->%d, end=%d->%d", 
+    inst.loop_start, loop_start, inst.loop_end, loop_end))
+  
+  -- Write loop start at offset 81 (read by read_uint16_le(header, 80))
   write_at(81, string.char(
     bit.band(loop_start, 0xFF),
     bit.band(bit.rshift(loop_start, 8), 0xFF)
   ))
+  
+  -- Write loop end at offset 83 (read by read_uint16_le(header, 82))  
   write_at(83, string.char(
     bit.band(loop_end, 0xFF),
     bit.band(bit.rshift(loop_end, 8), 0xFF)

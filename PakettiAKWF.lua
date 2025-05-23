@@ -1,4 +1,11 @@
 function load_random_akwf_sample(amount)
+  -- Ultra-random seeding using multiple entropy sources
+  math.randomseed(os.time())
+  math.random(); math.random(); math.random()
+  local extra_random = math.random(1, 999999)
+  math.randomseed(os.time() + os.clock() * 1000000 + extra_random)
+  math.random(); math.random(); math.random(); math.random(); math.random()
+  
   local tool_folder = renoise.tool().bundle_path .. "AKWF/"
   local file_path = tool_folder .. "akwf.txt"
   local wav_files = {}
@@ -13,6 +20,12 @@ function load_random_akwf_sample(amount)
   else
     renoise.app():show_status("akwf.txt not found in " .. tool_folder)
     return
+  end
+
+  -- Shuffle the wav_files array for even more randomness
+  for i = #wav_files, 2, -1 do
+    local j = math.random(1, i)
+    wav_files[i], wav_files[j] = wav_files[j], wav_files[i]
   end
 
   -- Determine the number of samples to load
@@ -34,7 +47,7 @@ function load_random_akwf_sample(amount)
     -- Calculate volume reduction factor based on the number of samples
     local volume_reduction_factor = math.min(1.0, 1 / math.sqrt(num_samples))
 
-    -- Load the specified number of samples
+    -- Load the specified number of samples (now from shuffled array)
     for i = 1, num_samples do
       local random_index = math.random(1, #wav_files)
       local selected_file = wav_files[random_index]

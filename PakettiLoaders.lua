@@ -337,6 +337,11 @@ function loadnative(effect, name, preset_path)
         if name ~= nil then
           sample_devices[checkline].display_name = name 
         end
+        
+        -- Show status message for successful load
+        local instrument_name = s.selected_instrument.name
+        local chain_name = chain.name
+        renoise.app():show_status("Loaded " .. get_device_name(effect) .. " to " .. instrument_name .. " FX Chain named: " .. chain_name)
       end
     else
       renoise.app():show_status("No sample selected.")
@@ -411,6 +416,10 @@ function loadnative(effect, name, preset_path)
       if name ~= nil then
         sdevices[checkline].display_name = name 
       end
+      
+      -- Show status message for successful load
+      local track_name = s.selected_track.name
+      renoise.app():show_status("Loaded " .. get_device_name(effect) .. " to " .. track_name)
     end
   end
 end

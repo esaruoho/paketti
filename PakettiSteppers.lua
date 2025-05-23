@@ -411,5 +411,38 @@ renoise.tool():add_keybinding{name="Global:Paketti:Show/Hide PanningStep on Sele
 
 --------
 
+function PakettiSteppersDialog()
+  if dialog and dialog.visible then
+    dialog:close()
+  end
+
+  local buttons = {}
+  for _, stepperType in pairs(STEPPER_TYPES) do
+    local buttonText = stepperType:gsub(" Stepper", "")
+    table.insert(buttons, vb:button{
+      text = buttonText,
+      pressed = function() PakettiShowStepper(stepperType) end
+    })
+  end
+
+  dialog = renoise.app():show_custom_dialog("Paketti Steppers",
+    vb:column(buttons)
+  )
+end
+
+-- Add menu entries and keybinding for the steppers dialog
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:Steppers Dialog", invoke=function() PakettiSteppersDialog() end}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Steppers Dialog", invoke=function() PakettiSteppersDialog() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Steppers Dialog", invoke=function() PakettiSteppersDialog() end}
+
+-- Add individual stepper show/hide menu entries for instrument box
+for _, stepperType in pairs(STEPPER_TYPES) do
+    local baseText = stepperType:gsub(" Stepper", "")
+    renoise.tool():add_menu_entry{
+        name = string.format("--Instrument Box:Paketti..:Show Selected Instrument %s Stepper", baseText),
+        invoke = function() PakettiShowStepper(stepperType) end
+    }
+end
+
 
 

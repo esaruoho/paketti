@@ -3825,6 +3825,9 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Generate Delay Value 
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Generate Delay Value (Notes Only, Selection)",invoke=function() GenerateDelayValueNotes("selection") end}
 
 -------
+-- Global variable to track which column cycling is active for
+local active_cycling_column = nil
+
 function pattern_line_notifier(pos)
   local s = renoise.song()
   local t = s.transport
@@ -3871,36 +3874,37 @@ function pattern_line_notifier(pos)
   s.selected_note_column_index = colnumber
 end
 
-  function startcolumncycling(number)
-    local s = renoise.song()
-    local pattern = s.patterns[s.selected_pattern_index]
-    local was_active = pattern:has_line_notifier(pattern_line_notifier)
-  
-    -- Always remove existing notifier first when changing columns
-    if number and was_active then
+function startcolumncycling(number)
+  local s = renoise.song()
+  local pattern = s.patterns[s.selected_pattern_index]
+  local was_active = pattern:has_line_notifier(pattern_line_notifier)
+
+  if number then
+    -- Store the current column before displayNoteColumn changes it
+    local original_column = s.selected_note_column_index
+    
+    -- Column-specific activation/deactivation
+    if was_active then
+      -- Cycling is currently on, turn it off
       pattern:remove_line_notifier(pattern_line_notifier)
-    end
-  
-    -- Column-specific activation
-    if number then
-      if not was_active or s.selected_note_column_index ~= number then
-        pattern:add_line_notifier(pattern_line_notifier)
-        renoise.app():show_status(number .. " Column Cycle Keyjazz On")
-      else
-        renoise.app():show_status(number .. " Column Cycle Keyjazz Off")
-      end
-    -- General toggle
+      renoise.app():show_status(number .. " Column Cycle Keyjazz Off")
     else
-      if was_active then
-        pattern:remove_line_notifier(pattern_line_notifier)
-        renoise.app():show_status("Column Cycling Off")
-      else
-        pattern:add_line_notifier(pattern_line_notifier)
-        renoise.app():show_status(s.selected_note_column_index .. " Column Cycle Keyjazz On")
-      end
+      -- Cycling is currently off, turn it on
+      pattern:add_line_notifier(pattern_line_notifier)
+      renoise.app():show_status(number .. " Column Cycle Keyjazz On")
+    end
+  else
+    -- General toggle (no specific column)
+    if was_active then
+      pattern:remove_line_notifier(pattern_line_notifier)
+      renoise.app():show_status("Column Cycling Off")
+    else
+      pattern:add_line_notifier(pattern_line_notifier)
+      renoise.app():show_status(s.selected_note_column_index .. " Column Cycle Keyjazz On")
     end
   end
-  
+end
+
 for cck=1,12 do 
 renoise.tool():add_keybinding{name="Global:Paketti:Column Cycle Keyjazz " .. formatDigits(2,cck),invoke=function() displayNoteColumn(cck) startcolumncycling(cck) end} 
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Column Cycle Keyjazz..:Column Cycle Keyjazz " .. formatDigits(2,cck),invoke=function() displayNoteColumn(cck) startcolumncycling(cck) end}
