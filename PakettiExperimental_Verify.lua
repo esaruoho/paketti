@@ -3929,3 +3929,71 @@ renoise.tool():add_keybinding{name="Global:Paketti:Column Cycle Keyjazz Special 
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Column Cycle Keyjazz..:Column Cycle Keyjazz Special (" .. ccks .. ")",invoke=function() ColumnCycleKeyjazzSpecial(ccks) end}
 end
 renoise.tool():add_keybinding{name="Global:Paketti:Column Cycle Keyjazz Special (2)",invoke=function() ColumnCycleKeyjazzSpecial(2) end}
+
+---
+-- Toggle mute state functions
+function toggleMuteSelectedTrack()
+  local track = renoise.song().selected_track
+  if track.mute_state == 1 then
+    track.mute_state = 3
+  elseif track.mute_state == 2 or track.mute_state == 3 then
+    track.mute_state = 1
+  end
+end
+
+function toggleMuteTrack(track_number)
+  local song = renoise.song()
+  if track_number <= #song.tracks then
+    local track = song.tracks[track_number]
+    if track.mute_state == 1 then
+      track.mute_state = 3
+    elseif track.mute_state == 2 or track.mute_state == 3 then
+      track.mute_state = 1
+    end
+  end
+end
+
+-- Explicit mute functions
+function muteSelectedTrack()
+  renoise.song().selected_track.mute_state = 3
+end
+
+function muteTrack(track_number)
+  local song = renoise.song()
+  if track_number <= #song.tracks then
+    song.tracks[track_number].mute_state = 3
+  end
+end
+
+-- Explicit unmute functions
+function unmuteSelectedTrack()
+  renoise.song().selected_track.mute_state = 1
+end
+
+function unmuteTrack(track_number)
+  local song = renoise.song()
+  if track_number <= #song.tracks then
+    song.tracks[track_number].mute_state = 1
+  end
+end
+
+-- Keybindings and MIDI mappings for selected track
+renoise.tool():add_keybinding{name="Global:Paketti:Toggle Mute/Unmute of Selected Track", invoke=toggleMuteSelectedTrack}
+renoise.tool():add_midi_mapping{name="Paketti:Toggle Mute/Unmute of Selected Track", invoke=function(message) if message:is_trigger() then toggleMuteSelectedTrack() end end}
+
+renoise.tool():add_keybinding{name="Global:Paketti:Mute Selected Track", invoke=muteSelectedTrack}
+renoise.tool():add_midi_mapping{name="Paketti:Mute Selected Track", invoke=function(message) if message:is_trigger() then muteSelectedTrack() end end}
+
+renoise.tool():add_keybinding{name="Global:Paketti:Unmute Selected Track", invoke=unmuteSelectedTrack}
+renoise.tool():add_midi_mapping{name="Paketti:Unmute Selected Track", invoke=function(message) if message:is_trigger() then unmuteSelectedTrack() end end}
+
+-- Keybindings and MIDI mappings for tracks 1-16
+for i = 1, 16 do
+  local track_num_str = string.format("%02d", i)
+  renoise.tool():add_keybinding{name="Global:Paketti:Toggle Mute/Unmute of Track " .. track_num_str, invoke=function() toggleMuteTrack(i) end}
+  renoise.tool():add_midi_mapping{name="Paketti:Toggle Mute/Unmute of Track " .. track_num_str, invoke=function(message) if message:is_trigger() then toggleMuteTrack(i) end end}
+  renoise.tool():add_keybinding{name="Global:Paketti:Mute Track " .. track_num_str, invoke=function() muteTrack(i) end}
+  renoise.tool():add_midi_mapping{name="Paketti:Mute Track " .. track_num_str, invoke=function(message) if message:is_trigger() then muteTrack(i) end end}
+  renoise.tool():add_keybinding{name="Global:Paketti:Unmute Track " .. track_num_str, invoke=function() unmuteTrack(i) end}
+  renoise.tool():add_midi_mapping{name="Paketti:Unmute Track " .. track_num_str, invoke=function(message) if message:is_trigger() then unmuteTrack(i) end end}
+end

@@ -10,6 +10,11 @@ local STEPPER_TYPES = {
 local vb=renoise.ViewBuilder()
 local dialog=nil
 
+local stepsize_switch = nil
+local stepper_switch = nil
+local updating_switch = false
+local updating_stepper_switch = false
+
 function pakettiPitchStepperDemo()
   if dialog and dialog.visible then
     dialog:close()
@@ -371,6 +376,106 @@ end
 
 local isPitchStepSomewhere
 
+function PakettiGetVisibleStepperStepSize()
+  local instrument = renoise.song().selected_instrument
+  
+  if not instrument or not instrument.sample_modulation_sets[1] then
+    return 64 -- default
+  end
+  
+  local devices = instrument.sample_modulation_sets[1].devices
+  local stepperTypes = {"Pitch Stepper", "Volume Stepper", "Panning Stepper", 
+                       "Cutoff Stepper", "Resonance Stepper", "Drive Stepper"}
+  
+  for _, device in ipairs(devices) do
+    for _, stepperType in ipairs(stepperTypes) do
+      if device.name == stepperType and device.external_editor_visible then
+        return device.length
+      end
+    end
+  end
+  
+  return 64 -- default if no visible stepper
+end
+
+function PakettiGetVisibleStepperType()
+  local instrument = renoise.song().selected_instrument
+  
+  if not instrument or not instrument.sample_modulation_sets[1] then
+    return 0 -- no selection
+  end
+  
+  local devices = instrument.sample_modulation_sets[1].devices
+  local stepperTypes = {"Volume Stepper", "Panning Stepper", "Pitch Stepper", 
+                       "Cutoff Stepper", "Resonance Stepper", "Drive Stepper"}
+  
+  for _, device in ipairs(devices) do
+    for i, stepperType in ipairs(stepperTypes) do
+      if device.name == stepperType and device.external_editor_visible then
+        return i
+      end
+    end
+  end
+  
+  return 0 -- no visible stepper
+end
+
+function PakettiUpdateStepSizeSwitch()
+  if stepsize_switch and not updating_switch then
+    updating_switch = true
+    local current_size = PakettiGetVisibleStepperStepSize()
+    local step_sizes = {16, 32, 64, 128, 256}
+    
+    for i, size in ipairs(step_sizes) do
+      if size == current_size then
+        stepsize_switch.value = i
+        break
+      end
+    end
+    updating_switch = false
+  end
+end
+
+function PakettiUpdateStepperSwitch()
+  if stepper_switch and not updating_stepper_switch then
+    updating_stepper_switch = true
+    local current_stepper = PakettiGetVisibleStepperType()
+    -- Convert 0-based to 1-based indexing (0 = no stepper = index 1 "Off")
+    stepper_switch.value = current_stepper + 1
+    updating_stepper_switch = false
+  end
+end
+
+function PakettiChangeVisibleStepperStepSize(step_size)
+  local instrument = renoise.song().selected_instrument
+  
+  if not instrument or not instrument.sample_modulation_sets[1] then
+    renoise.app():show_status("No valid instrument or modulation devices found.")
+    return
+  end
+  
+  local devices = instrument.sample_modulation_sets[1].devices
+  local changed_count = 0
+  local stepperTypes = {"Pitch Stepper", "Volume Stepper", "Panning Stepper", 
+                       "Cutoff Stepper", "Resonance Stepper", "Drive Stepper"}
+  
+  for _, device in ipairs(devices) do
+    for _, stepperType in ipairs(stepperTypes) do
+      if device.name == stepperType and device.external_editor_visible then
+        -- Only change the length, preserve existing data!
+        device.length = step_size
+        changed_count = changed_count + 1
+      end
+    end
+  end
+  
+  if changed_count > 0 then
+    renoise.app():show_status(string.format("Changed %d visible stepper(s) to %d steps", changed_count, step_size))
+  else
+    renoise.app():show_status("No visible steppers found")
+  end
+end
+
 function PakettiShowStepper(deviceName)
     local instrument = renoise.song().selected_instrument
     
@@ -401,6 +506,10 @@ function PakettiShowStepper(deviceName)
     
     isPitchStepSomewhere = renoise.song().selected_track_index
     renoise.app():show_status(string.format("%s visibility toggled.", deviceName))
+    
+    -- Update both switches to reflect the current state
+    PakettiUpdateStepSizeSwitch()
+    PakettiUpdateStepperSwitch()
 end
 renoise.tool():add_keybinding{name="Global:Paketti:Show/Hide PitchStep on Selected Instrument",invoke=function() PakettiShowStepper("Pitch Stepper") end}
 renoise.tool():add_keybinding{name="Global:Paketti:Show/Hide VolumeStep on Selected Instrument",invoke=function() PakettiShowStepper("Volume Stepper") end}
@@ -411,22 +520,116 @@ renoise.tool():add_keybinding{name="Global:Paketti:Show/Hide PanningStep on Sele
 
 --------
 
+function PakettiSetStepperVisible(deviceName, visible, skip_switch_update)
+    local instrument = renoise.song().selected_instrument
+    
+    if not instrument or not instrument.samples[1] then
+        if visible then
+            renoise.app():show_status("No valid Instrument/Sample selected, doing nothing.")
+        end
+        return
+    end
+    
+    if not instrument.sample_modulation_sets[1] then
+        if visible then
+            renoise.app():show_status("This Instrument has no modulation devices, doing nothing.")
+        end
+        return
+    end
+    
+    local deviceIndex = findStepperDeviceIndex(deviceName)
+    if not deviceIndex then
+        if visible then
+            renoise.app():show_status(string.format("There is no %s device in this instrument.", deviceName))
+        end
+        return
+    end
+    
+    local device = instrument.sample_modulation_sets[1].devices[deviceIndex]
+    device.external_editor_visible = visible
+    
+    -- Lock keyboard focus when opening the editor
+    if visible then
+        renoise.app().window.lock_keyboard_focus = true
+        isPitchStepSomewhere = renoise.song().selected_track_index
+    end
+    
+    -- Only update switches if not called from switch notifier
+    if not skip_switch_update then
+        PakettiUpdateStepSizeSwitch()
+        PakettiUpdateStepperSwitch()
+    else
+        -- Still update step size switch since that's independent
+        PakettiUpdateStepSizeSwitch()
+    end
+end
+
 function PakettiSteppersDialog()
   if dialog and dialog.visible then
     dialog:close()
   end
 
-  local buttons = {}
-  for _, stepperType in pairs(STEPPER_TYPES) do
-    local buttonText = stepperType:gsub(" Stepper", "")
-    table.insert(buttons, vb:button{
-      text = buttonText,
-      pressed = function() PakettiShowStepper(stepperType) end
-    })
-  end
+  -- Create stepper type switch
+  stepper_switch = vb:switch{
+    items = {"Off", "Volume", "Panning", "Pitch", "Cutoff", "Resonance", "Drive"},
+    width = 453,
+    value = 1, -- default to Off
+    notifier = function(value)
+      if not updating_stepper_switch then
+        local stepperTypes = {"Volume Stepper", "Panning Stepper", "Pitch Stepper", 
+                             "Cutoff Stepper", "Resonance Stepper", "Drive Stepper"}
+        
+        -- First hide all visible steppers
+        local instrument = renoise.song().selected_instrument
+        if instrument and instrument.sample_modulation_sets[1] then
+          local devices = instrument.sample_modulation_sets[1].devices
+          for _, device in ipairs(devices) do
+            for _, stepperType in ipairs(stepperTypes) do
+              if device.name == stepperType then
+                device.external_editor_visible = false
+              end
+            end
+          end
+        end
+        
+        -- Then show the selected stepper (if not "Off")
+        if value > 1 then
+          PakettiSetStepperVisible(stepperTypes[value - 1], true, true) -- skip_switch_update = true
+        else
+          PakettiUpdateStepSizeSwitch()
+        end
+      end
+    end
+  }
+
+  -- Create step size switch
+  stepsize_switch = vb:switch{
+    items={"16","32","64","128","256"},
+    width=300,
+    value = 3, -- default to 64
+    notifier = function(value)
+      if not updating_switch then
+        local step_sizes = {16, 32, 64, 128, 256}
+        PakettiChangeVisibleStepperStepSize(step_sizes[value])
+      end
+    end
+  }
+
+  -- Update switches to current state
+  PakettiUpdateStepperSwitch()
+  PakettiUpdateStepSizeSwitch()
 
   dialog = renoise.app():show_custom_dialog("Paketti Steppers",
-    vb:column(buttons)
+    vb:column{
+      vb:row{
+        vb:text{text = "Stepper", style="strong", font="Bold", width=70},
+        stepper_switch
+      },
+      vb:row{
+        vb:text{text = "Step Size", style="strong", font="Bold", width=70},
+        stepsize_switch
+      }
+    }, my_keyhandler_func
   )
 end
 
