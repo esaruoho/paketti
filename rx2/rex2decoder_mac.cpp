@@ -5,6 +5,27 @@
 #endif
 
 #include <cstdint>
+// Make sure REX_MAC/DREX_MAC and REX_WINDOWS/DREX_WINDOWS are defined
+#ifndef DREX_MAC
+# ifdef REX_MAC
+#  define DREX_MAC REX_MAC
+# else
+#  define DREX_MAC 1
+# endif
+#endif
+#ifndef DREX_WINDOWS
+# ifdef REX_WINDOWS
+#  define DREX_WINDOWS REX_WINDOWS
+# else
+#  define DREX_WINDOWS 0
+# endif
+#endif
+
+// Define platform integer types for the SDK
+typedef int32_t REX_int32_t;
+typedef int16_t REX_int16_t;
+typedef int8_t  REX_int8_t;
+
 #include "REX.h"
 
 #include <fstream>
@@ -12,7 +33,6 @@
 #include <vector>
 #include <sstream>
 #include <iomanip>
-#include <cassert>
 #include <cmath>
 #include <cstring>
 #include <sys/stat.h>
@@ -23,190 +43,140 @@
   #include <dlfcn.h>
 #elif defined(DREX_WINDOWS) && (DREX_WINDOWS == 1)
   #include <windows.h>
-  // Additional Windows-specific includes and stubs can be added here.
 #endif
 
 using namespace std;
 
 // ---------------------------------------------------------------------
-// Utility functions for diagnostics and file/path checking
+// WAV Writing Helper Functions (inlined to avoid external deps)
 // ---------------------------------------------------------------------
-#if defined(DREX_WINDOWS) && (DREX_WINDOWS == 1)
-// Windows versions of path routines using Win32 API.
-bool path_exists(const std::string& path) {
-    DWORD attrib = GetFileAttributesA(path.c_str());
-    return (attrib != INVALID_FILE_ATTRIBUTES);
+static void writeInt32LE(FILE* out, int32_t value) {
+    uint8_t bytes[4] = {
+        (uint8_t)( value        & 0xFF),
+        (uint8_t)((value >>  8) & 0xFF),
+        (uint8_t)((value >> 16) & 0xFF),
+        (uint8_t)((value >> 24) & 0xFF)
+    };
+    fwrite(bytes, 1, 4, out);
 }
-
-bool path_is_directory(const std::string& path) {
-    DWORD attrib = GetFileAttributesA(path.c_str());
-    return (attrib != INVALID_FILE_ATTRIBUTES &&
-            (attrib & FILE_ATTRIBUTE_DIRECTORY));
+static void writeInt16LE(FILE* out, int16_t value) {
+    uint8_t bytes[2] = {
+        (uint8_t)( value        & 0xFF),
+        (uint8_t)((value >>  8) & 0xFF)
+    };
+    fwrite(bytes, 1, 2, out);
 }
-#else
-// Unix/macOS implementations.
-bool path_exists(const std::string& path) {
-    struct stat buffer;
-    return stat(path.c_str(), &buffer) == 0;
-}
-
-bool path_is_directory(const std::string& path) {
-    struct stat buffer;
-    if (stat(path.c_str(), &buffer) != 0)
-        return false;
-    return S_ISDIR(buffer.st_mode);
-}
-#endif
-
-void print_bundle_debug(const std::string& bundle_path) {
-    cout << "--- Bundle Diagnostics ---" << endl;
-    if (!path_exists(bundle_path)) {
-        cerr << "❌ Bundle path does not exist: " << bundle_path << endl;
-        return;
-    }
-    if (!path_is_directory(bundle_path)) {
-        cerr << "❌ Bundle path is not a directory: " << bundle_path << endl;
-        return;
-    }
-#if defined(DREX_MAC) && (DREX_MAC == 1)
-    std::string dylib_path = bundle_path + "/Contents/MacOS/REX Shared Library";
-    if (!path_exists(dylib_path)) {
-        cerr << "❌ Binary not found at: " << dylib_path << endl;
-    } else {
-        cout << "✅ Found binary: " << dylib_path << endl;
-        std::string cmd = "file \"" + dylib_path + "\"";
-        cout << "→ Running: " << cmd << endl;
-        system(cmd.c_str());
-        char quarantine[1024];
-        ssize_t len = getxattr(bundle_path.c_str(), "com.apple.quarantine",
-                                 quarantine, sizeof(quarantine), 0, 0);
-        if (len > 0) {
-            cout << "⚠️  Quarantine attribute found: ";
-            cout.write(quarantine, len);
-            cout << endl;
-        } else {
-            cout << "✅ No quarantine attribute found." << endl;
-        }
-        std::string codesign_cmd = "codesign --verify --deep --verbose=4 \"" + bundle_path + "\"";
-        cout << "→ Running codesign check..." << endl;
-        system(codesign_cmd.c_str());
-    }
-#endif
-    cout << "---------------------------" << endl;
-}
-
-// ---------------------------------------------------------------------
-// WAV Writing Helper Functions (no extra printouts)
-// ---------------------------------------------------------------------
-void writeInt32LE(ofstream &out, int32_t value) {
-    char bytes[4];
-    bytes[0] = (char)(value & 0xff);
-    bytes[1] = (char)((value >> 8) & 0xff);
-    bytes[2] = (char)((value >> 16) & 0xff);
-    bytes[3] = (char)((value >> 24) & 0xff);
-    out.write(bytes, 4);
-}
-
-void writeInt16LE(ofstream &out, int16_t value) {
-    char bytes[2];
-    bytes[0] = (char)(value & 0xff);
-    bytes[1] = (char)((value >> 8) & 0xff);
-    out.write(bytes, 2);
-}
-
-void writeWav(const string &wavPath, int channels, int sampleRate, int frameCount, float** buffers) {
-    ofstream out(wavPath, ios::binary);
-    if (!out) {
-        cerr << "Failed to open WAV output file: " << wavPath << endl;
-        return;
-    }
-    int bitsPerSample = 32; // IEEE float format
-    int blockAlign = channels * (bitsPerSample / 8);
-    int byteRate = sampleRate * blockAlign;
-    int dataSize = frameCount * blockAlign;
-    int chunkSize = 36 + dataSize;
+static void writeWav(FILE* out, int frames, int channels, int bitsPerSample, int sampleRate, float** buffers) {
+    int blockAlign = channels * (bitsPerSample/8);
+    int byteRate   = sampleRate * blockAlign;
+    int dataSize   = frames * blockAlign;
     // RIFF header
-    out.write("RIFF", 4);
-    writeInt32LE(out, chunkSize);
-    out.write("WAVE", 4);
+    fwrite("RIFF",1,4,out);
+    writeInt32LE(out, 36 + dataSize);
+    fwrite("WAVE",1,4,out);
     // fmt subchunk
-    out.write("fmt ", 4);
+    fwrite("fmt ",1,4,out);
     writeInt32LE(out, 16);
-    writeInt16LE(out, 3); // IEEE float
+    writeInt16LE(out, (int16_t)1); // PCM
     writeInt16LE(out, (int16_t)channels);
     writeInt32LE(out, sampleRate);
     writeInt32LE(out, byteRate);
     writeInt16LE(out, (int16_t)blockAlign);
     writeInt16LE(out, (int16_t)bitsPerSample);
     // data subchunk
-    out.write("data", 4);
+    fwrite("data",1,4,out);
     writeInt32LE(out, dataSize);
-    // Write interleaved sample data.
-    for (int i = 0; i < frameCount; ++i) {
+    for (int i = 0; i < frames; ++i) {
         for (int ch = 0; ch < channels; ++ch) {
-            out.write(reinterpret_cast<const char*>(&buffers[ch][i]), sizeof(float));
+            float v = buffers[ch][i];
+            if (v > 1.0f)  v = 1.0f;
+            if (v < -1.0f) v = -1.0f;
+            int16_t samp = (int16_t)lrintf(v * 32767.0f);
+            writeInt16LE(out, samp);
         }
     }
-    out.close();
 }
 
 // ---------------------------------------------------------------------
-// Upsample a channel buffer from inLen frames to outLen frames using linear interpolation.
+// Diagnostics and file/path utilities
 // ---------------------------------------------------------------------
-vector<float> upsampleChannel(const vector<float>& input, int outLen) {
-    int inLen = input.size();
-    vector<float> output(outLen);
-    if (inLen < 2 || outLen < 2) {
-        output = input;
-        return output;
+#if defined(DREX_WINDOWS) && (DREX_WINDOWS == 1)
+bool path_exists(const string& path) {
+    DWORD attrib = GetFileAttributesA(path.c_str());
+    return attrib != INVALID_FILE_ATTRIBUTES;
+}
+bool path_is_directory(const string& path) {
+    DWORD attrib = GetFileAttributesA(path.c_str());
+    return (attrib != INVALID_FILE_ATTRIBUTES) && (attrib & FILE_ATTRIBUTE_DIRECTORY);
+}
+#else
+bool path_exists(const string& path) {
+    struct stat st;
+    return stat(path.c_str(), &st) == 0;
+}
+bool path_is_directory(const string& path) {
+    struct stat st;
+    if (stat(path.c_str(), &st) != 0) return false;
+    return S_ISDIR(st.st_mode);
+}
+#endif
+
+void print_bundle_debug(const string& bundle_path) {
+    cout << "--- Bundle Diagnostics ---" << endl;
+    if (!path_exists(bundle_path)) {
+        cerr << "❌ Bundle path does not exist: " << bundle_path << endl;
+        return;
     }
-    for (int i = 0; i < outLen; i++) {
-        double srcIndex = i * (double)(inLen - 1) / (double)(outLen - 1);
-        int idx0 = (int) floor(srcIndex);
-        int idx1 = (idx0 < inLen - 1) ? idx0 + 1 : idx0;
-        double frac = srcIndex - idx0;
-        output[i] = (float)((1.0 - frac) * input[idx0] + frac * input[idx1]);
+    if (!path_is_directory(bundle_path)) {
+        cerr << "❌ Not a directory: " << bundle_path << endl;
+        return;
     }
-    return output;
+#if defined(DREX_MAC) && (DREX_MAC==1)
+    string dylib = bundle_path + "/Contents/MacOS/REX Shared Library";
+    if (!path_exists(dylib)) {
+        cerr << "❌ Binary not found: " << dylib << endl;
+    } else {
+        cout << "✅ Found binary: " << dylib << endl;
+        cout << "→ file check: ";
+        system((string("file \"") + dylib + "\"").c_str());
+        char buf[1024];
+        ssize_t len = getxattr(bundle_path.c_str(), "com.apple.quarantine", buf, sizeof(buf), 0, 0);
+        if (len > 0) cout << "⚠️ Quarantine: " << string(buf, len) << endl;
+        else        cout << "✅ No quarantine." << endl;
+        cout << "→ codesign verify: ";
+        system((string("codesign --verify --deep --verbose=4 \"") + bundle_path + "\"").c_str());
+    }
+#endif
+    cout << "---------------------------" << endl;
 }
 
-// ---------------------------------------------------------------------
-// Main Program: Extract metadata, render slices individually, 
-// reconstruct full loop WAV file, output JSON, 
-// and print slice marker insertion lines at the END.
-// ---------------------------------------------------------------------
 int main(int argc, char** argv) {
-    // Updated usage: now expecting 5 arguments.
-    // For example:
-    //   ./rex2decoder input.rx2 output.wav output.txt path-to-SDK
     if (argc != 5) {
         cerr << "Usage: " << argv[0] << " input.rx2 output.wav output.txt sdk_path" << endl;
         return 1;
     }
-    const char* rx2Path = argv[1];
-    const char* wavPath = argv[2];
-    const char* jsonPath = argv[3];
-    const char* sdkPath = argv[4];
+    const char* rx2Path  = argv[1];
+    const char* wavPath  = argv[2];
+    const char* cmdPath  = argv[3];
+    const char* sdkPath  = argv[4];
 
-    // (Optional) perform diagnostics on the provided SDK bundle.
     print_bundle_debug(sdkPath);
 
-    // Read the RX2 file into memory.
-    ifstream file(rx2Path, ios::binary);
-    if (!file) {
-        cerr << "Failed to open RX2 file: " << rx2Path << endl;
+    // Read RX2 file into memory
+    ifstream in(rx2Path, ios::binary);
+    if (!in) {
+        cerr << "Failed to open RX2: " << rx2Path << endl;
         return 1;
     }
-    file.seekg(0, ios::end);
-    size_t fileSize = file.tellg();
-    file.seekg(0);
+    in.seekg(0, ios::end);
+    size_t fileSize = in.tellg();
+    in.seekg(0);
     vector<char> fileBuffer(fileSize);
-    file.read(fileBuffer.data(), fileSize);
-    file.close();
-    cout << "Loaded RX2 file: " << rx2Path << ", size: " << fileSize << " bytes" << endl;
+    in.read(fileBuffer.data(), fileSize);
+    in.close();
+    cout << "Loaded RX2: " << rx2Path << ", size: " << fileSize << " bytes" << endl;
 
-    // Initialize the REX DLL/dynamic library.
-    // Instead of a hard-coded path, we use the sdkPath from the command line.
+    // Initialize SDK
     REX::REXError initErr = REX::REXInitializeDLL_DirPath(sdkPath);
     cout << "REXInitializeDLL_DirPath returned: " << initErr << endl;
     if (initErr != REX::kREXError_NoError) {
@@ -214,222 +184,199 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    // Create a REX handle.
+    // Create REX handle
     REX::REXHandle handle = nullptr;
-    REX::REXError createErr = REX::REXCreate(&handle, fileBuffer.data(), static_cast<int>(fileSize), nullptr, nullptr);
+    REX::REXError createErr = REX::REXCreate(&handle,
+                            fileBuffer.data(), static_cast<int>(fileSize),
+                            nullptr, nullptr);
     cout << "REXCreate returned: " << createErr << ", handle: " << handle << endl;
     if (createErr != REX::kREXError_NoError || !handle) {
         cerr << "REXCreate failed or returned null handle." << endl;
         return 1;
     }
 
-    // Extract header.
+    // Extract header
     REX::REXInfo info;
     REX::REXError infoErr = REX::REXGetInfo(handle, sizeof(info), &info);
     if (infoErr != REX::kREXError_NoError) {
-        cerr << "REXGetInfo failed with error: " << infoErr << endl;
+        cerr << "REXGetInfo failed: " << infoErr << endl;
         return 1;
     }
+
+    // ---- PATCH starts here ----
+    // Force the SDK to use the RX2’s native sample rate for rendering:
+    {
+      REX::REXError rateErr = REX::REXSetOutputSampleRate(handle, info.fSampleRate);
+      if (rateErr != REX::kREXError_NoError) {
+        cerr << "❌ REXSetOutputSampleRate failed: " << rateErr << endl;
+        return 1;
+      }
+    }
+    // Re-fetch info so slice lengths etc. are computed at the correct rate:
+    infoErr = REX::REXGetInfo(handle, sizeof(info), &info);
+    if (infoErr != REX::kREXError_NoError) {
+      cerr << "REXGetInfo failed after setting sample rate: " << infoErr << endl;
+      return 1;
+    }
+    // ---- PATCH ends here ----
+
+    // Print header info
     cout << "=== Header Information ===" << endl;
     cout << "Channels:       " << info.fChannels << endl;
     cout << "Sample Rate:    " << info.fSampleRate << endl;
     cout << "Slice Count:    " << info.fSliceCount << endl;
-    double realTempo = info.fTempo / 1000.0;
-    double realOriginalTempo = info.fOriginalTempo / 1000.0;
-    cout << "Tempo:          " << info.fTempo << " (Real BPM: " << realTempo << " BPM)" << endl;
-    cout << "Original Tempo: " << info.fOriginalTempo << " (Real BPM: " << realOriginalTempo << " BPM)" << endl;
-    cout << "Loop Length (PPQ):    " << info.fPPQLength << endl;
-    cout << "Time Signature:       " << info.fTimeSignNom << "/" << info.fTimeSignDenom << endl;
-    cout << "Bit Depth:      " << info.fBitDepth << endl;
+    double realTempo       = info.fTempo / 1000.0;
+    double realOrigTempo   = info.fOriginalTempo / 1000.0;
+    cout << fixed << setprecision(3);
+    cout << "Tempo:          " << realTempo << " BPM";
+    if (info.fOriginalTempo)
+        cout << " (Original: " << realOrigTempo << " BPM)";
+    cout << endl;
+    cout << "Loop PPQ Length: " << info.fPPQLength << endl;
+    cout << "Time Signature:  " << info.fTimeSignNom << "/" << info.fTimeSignDenom << endl;
+    cout << "Bit Depth:       " << info.fBitDepth << endl;
     cout << "==========================" << endl;
 
-    // Extract creator info.
-    REX::REXCreatorInfo creator;
-    REX::REXError creatorErr = REX::REXGetCreatorInfo(handle, sizeof(creator), &creator);
-    bool hasCreatorInfo = (creatorErr == REX::kREXError_NoError);
-    if (hasCreatorInfo) {
-        cout << "=== Creator Information ===" << endl;
-        cout << "Name:       " << creator.fName << endl;
-        cout << "Copyright:  " << creator.fCopyright << endl;
-        cout << "URL:        " << creator.fURL << endl;
-        cout << "Email:      " << creator.fEmail << endl;
-        cout << "FreeText:   " << creator.fFreeText << endl;
-        cout << "===========================" << endl;
-    } else {
-        cout << "No creator information available." << endl;
-    }
-
-    // Extract slice info.
+    // Extract slice info
     vector<REX::REXSliceInfo> sliceInfos;
-    for (int i = 0; i < info.fSliceCount; i++) {
+    for (int i = 0; i < info.fSliceCount; ++i) {
         REX::REXSliceInfo slice;
         REX::REXError sliceErr = REX::REXGetSliceInfo(handle, i, sizeof(slice), &slice);
         if (sliceErr == REX::kREXError_NoError)
             sliceInfos.push_back(slice);
         else
-            cerr << "REXGetSliceInfo failed for slice index " << i 
+            cerr << "REXGetSliceInfo failed for slice " << i
                  << " with error: " << sliceErr << endl;
     }
     cout << "=== Slice Information ===" << endl;
-    for (size_t i = 0; i < sliceInfos.size(); i++) {
-        cout << "Slice " << setfill('0') << setw(3) << (i+1) << setfill(' ')
+    for (size_t i = 0; i < sliceInfos.size(); ++i) {
+        cout << "Slice " << setw(3) << (i+1)
              << ": PPQ Position = " << sliceInfos[i].fPPQPos
              << ", Sample Length = " << sliceInfos[i].fSampleLength << endl;
     }
-    cout << "=========================" << endl;
+    cout << "==========================" << endl;
 
-    // Compute full loop duration.
+    // Compute full-loop duration
     double quarters = info.fPPQLength / 15360.0;
     double duration = (60.0 / realTempo) * quarters;
-    int totalFrames = (int) round(info.fSampleRate * duration);
-    cout << "Calculated full loop duration: " << duration << " seconds, " 
-         << totalFrames << " frames." << endl;
+    int totalFrames = int(round(info.fSampleRate * duration));
+    cout << "Calculated full loop duration: " << duration
+         << " seconds, " << totalFrames << " frames." << endl;
 
-    // Compute slice marker positions.
+    // Compute slice markers
     vector<int> sliceMarkers;
-    for (size_t i = 0; i < sliceInfos.size(); i++) {
-        int marker = (int) round(((double)sliceInfos[i].fPPQPos / info.fPPQLength) * totalFrames);
+    for (auto &s : sliceInfos) {
+        int marker = int(round(double(s.fPPQPos) / info.fPPQLength * totalFrames));
         if (marker < 1) marker = 1;
         sliceMarkers.push_back(marker);
     }
 
-    // Determine base name for slice WAV files.
-    string baseName = wavPath;
-    size_t pos = baseName.find_last_of('.');
-    if (pos != string::npos)
-        baseName = baseName.substr(0, pos);
+    // Base name for slices
+    string base = wavPath;
+    if (auto p = base.find_last_of('.'); p != string::npos)
+        base.resize(p);
 
-    // Extract each slice individually and save (print one line per slice).
-    for (size_t i = 0; i < sliceInfos.size(); i++) {
-        int sliceFrameCount = sliceInfos[i].fSampleLength;
-        vector<float> sliceBufferLeft(sliceFrameCount);
-        vector<float> sliceBufferRight;
-        float* sliceChannels[2] = { nullptr, nullptr };
-        if (info.fChannels == 2) {
-            sliceBufferRight.resize(sliceFrameCount);
-            sliceChannels[0] = sliceBufferLeft.data();
-            sliceChannels[1] = sliceBufferRight.data();
-        } else {
-            sliceChannels[0] = sliceBufferLeft.data();
-            sliceChannels[1] = nullptr;
-        }
-        REX::REXError sliceRenderErr = REX::REXRenderSlice(handle, i, sliceFrameCount, sliceChannels);
-        if (sliceRenderErr == REX::kREXError_NoError) {
-            ostringstream sliceFileName;
-            sliceFileName << baseName << "_slice" << setfill('0') << setw(3) << (i+1) << ".wav";
-            float* finalChannels[2] = { sliceChannels[0], (info.fChannels == 2 ? sliceChannels[1] : sliceChannels[0]) };
-            // Write WAV file without extra printing.
-            {
-                ofstream out(sliceFileName.str(), ios::binary);
-                if (out) {
-                    int bitsPerSample = 32;
-                    int blockAlign = info.fChannels * (bitsPerSample / 8);
-                    int byteRate = info.fSampleRate * blockAlign;
-                    int dataSize = sliceFrameCount * blockAlign;
-                    int chunkSize = 36 + dataSize;
-                    out.write("RIFF", 4);
-                    writeInt32LE(out, chunkSize);
-                    out.write("WAVE", 4);
-                    out.write("fmt ", 4);
-                    writeInt32LE(out, 16);
-                    writeInt16LE(out, 3);
-                    writeInt16LE(out, (int16_t)info.fChannels);
-                    writeInt32LE(out, info.fSampleRate);
-                    writeInt32LE(out, byteRate);
-                    writeInt16LE(out, (int16_t)blockAlign);
-                    writeInt16LE(out, (int16_t)bitsPerSample);
-                    out.write("data", 4);
-                    writeInt32LE(out, dataSize);
-                    for (int j = 0; j < sliceFrameCount; j++) {
-                        for (int ch = 0; ch < info.fChannels; ch++) {
-                            out.write(reinterpret_cast<const char*>(&finalChannels[ch][j]), sizeof(float));
-                        }
-                    }
-                    out.close();
-                } else {
-                    cerr << "Failed to write slice file " << sliceFileName.str() << endl;
-                }
-            }
-            int marker = sliceMarkers[i];
-            cout << "Slice " << setfill('0') << setw(3) << (i+1) << setfill(' ')
-                 << " saved as " << sliceFileName.str()
-                 << ", marker: " << marker 
-                 << ", length: " << sliceInfos[i].fSampleLength << " frames" << endl;
-        } else {
-            cerr << "REXRenderSlice failed for slice " << (i+1) << " with error: " << sliceRenderErr << endl;
-        }
-    }
+    // Prepare Renoise commands
+    ostringstream cmdStream;
 
-    // Reconstruct full-loop audio by placing each slice into its proper position.
-    vector<float> fullLeft(totalFrames, 0.0f);
-    vector<float> fullRight;
-    if (info.fChannels == 2)
-        fullRight.resize(totalFrames, 0.0f);
-    
-    for (size_t i = 0; i < sliceInfos.size(); i++) {
-        int sliceFrameCount = sliceInfos[i].fSampleLength;
-        vector<float> sliceBufferLeft(sliceFrameCount);
-        vector<float> sliceBufferRight;
-        float* sliceChannels[2] = { nullptr, nullptr };
-        if (info.fChannels == 2) {
-            sliceBufferRight.resize(sliceFrameCount);
-            sliceChannels[0] = sliceBufferLeft.data();
-            sliceChannels[1] = sliceBufferRight.data();
-        } else {
-            sliceChannels[0] = sliceBufferLeft.data();
-            sliceChannels[1] = sliceBufferLeft.data();
-        }
-        REX::REXError sliceRenderErr = REX::REXRenderSlice(handle, i, sliceFrameCount, sliceChannels);
-        if (sliceRenderErr != REX::kREXError_NoError) {
-            cerr << "REXRenderSlice failed for slice " << (i+1) << " with error: " << sliceRenderErr << endl;
+    // Extract & write each slice
+    for (size_t i = 0; i < sliceInfos.size(); ++i) {
+        int len = sliceInfos[i].fSampleLength;
+        vector<float> left(len), right;
+        if (info.fChannels == 2) right.resize(len);
+
+        float* buffers[2] = {
+          left.data(),
+          info.fChannels == 2 ? right.data() : left.data()
+        };
+
+        REX::REXError renderErr = REX::REXRenderSlice(handle, i, len, buffers);
+        if (renderErr != REX::kREXError_NoError) {
+            cerr << "REXRenderSlice failed for slice " << (i+1)
+                 << " error: " << renderErr << endl;
             continue;
         }
-        int startSample = (int) round(((double)sliceInfos[i].fPPQPos / info.fPPQLength) * totalFrames);
-        cout << "Placing slice " << setfill('0') << setw(3) << (i+1) << setfill(' ')
-             << " at output sample index: " << startSample << endl;
-        for (int j = 0; j < sliceFrameCount; j++) {
-            if (startSample + j < totalFrames) {
-                fullLeft[startSample + j] = sliceChannels[0][j];
-                if (info.fChannels == 2)
-                    fullRight[startSample + j] = sliceChannels[1][j];
+
+        ostringstream fn;
+        fn << base << "_slice" << setw(3) << setfill('0') << (i+1) << ".wav";
+        FILE* out = fopen(fn.str().c_str(), "wb");
+        if (out) {
+            writeWav(out, len, info.fChannels, 16, info.fSampleRate, buffers);
+            fclose(out);
+            cout << "Slice " << setw(3) << (i+1)
+                 << " saved as " << fn.str()
+                 << ", marker: " << sliceMarkers[i]
+                 << ", length: " << len << " frames" << endl;
+            cmdStream << "renoise.song().selected_sample:insert_slice_marker("
+                      << sliceMarkers[i] << ")\n";
+        } else {
+            cerr << "Failed to write slice file " << fn.str() << endl;
+        }
+    }
+
+    // Write Renoise commands
+    ofstream txt(cmdPath);
+    if (txt) {
+        txt << cmdStream.str();
+        txt.close();
+        cout << "Renoise slice commands written to: " << cmdPath << endl;
+    } else {
+        cerr << "Failed to open output text file: " << cmdPath << endl;
+    }
+
+    // Reconstruct full loop
+    vector<float> fullL(totalFrames, 0.0f), fullR;
+    if (info.fChannels == 2) fullR.resize(totalFrames, 0.0f);
+
+    for (size_t i = 0; i < sliceInfos.size(); ++i) {
+        int len = sliceInfos[i].fSampleLength;
+        vector<float> left2(len), right2;
+        if (info.fChannels == 2) right2.resize(len);
+
+        float* buf2[2] = {
+          left2.data(),
+          info.fChannels == 2 ? right2.data() : left2.data()
+        };
+
+        REX::REXError renderErr = REX::REXRenderSlice(handle, i, len, buf2);
+        if (renderErr != REX::kREXError_NoError) {
+            cerr << "REXRenderSlice failed for slice " << (i+1)
+                 << " error: " << renderErr << endl;
+            continue;
+        }
+
+        int start = int(round(double(sliceInfos[i].fPPQPos)
+                        / info.fPPQLength * totalFrames));
+        cout << "Placing slice " << setw(3) << (i+1)
+             << " at output sample index: " << start << endl;
+
+        for (int j = 0; j < len; ++j) {
+            int idx = start + j;
+            if (idx < totalFrames) {
+                fullL[idx] = buf2[0][j];
+                if (info.fChannels == 2) fullR[idx] = buf2[1][j];
             }
         }
     }
-    
-    // Write the full-loop audio.
-    float* finalChannels[2] = { fullLeft.data(), (info.fChannels == 2 ? fullRight.data() : fullLeft.data()) };
-    writeWav(wavPath, info.fChannels, info.fSampleRate, totalFrames, finalChannels);
 
-    // Print slice marker insertion lines.
-    cout << "Slice marker insertion lines:" << endl;
-    for (size_t i = 0; i < sliceMarkers.size(); i++) {
-        int marker = sliceMarkers[i];
-        if (marker < 1) marker = 1;
-        cout << "renoise.song().selected_sample:insert_slice_marker(" << marker << ")" << endl;
-    }
-
-    // Build Renoise script commands output.
-    ostringstream txt;
-    for (size_t i = 0; i < sliceMarkers.size(); i++) {
-        int marker = sliceMarkers[i];
-        if (marker < 1) marker = 1;
-        txt << "renoise.song().selected_sample:insert_slice_marker(" 
-            << marker << ")\n";
-    }
-
-    // Write text file with the Renoise commands.
-    ofstream txtFile(jsonPath);
-    if (!txtFile) {
-        cerr << "Failed to open output text file: " << jsonPath << endl;
+    // Write full-loop WAV
+    ostringstream fnFull;
+    fnFull << base << "_full.wav";
+    FILE* fullOut = fopen(fnFull.str().c_str(), "wb");
+    if (fullOut) {
+        float* outs[2] = {
+          fullL.data(),
+          info.fChannels == 2 ? fullR.data() : fullL.data()
+        };
+        writeWav(fullOut, totalFrames, info.fChannels, 16, info.fSampleRate, outs);
+        fclose(fullOut);
+        cout << "Full loop -> " << fnFull.str() << endl;
     } else {
-        txtFile << txt.str();
-        txtFile.close();
-        cout << "Renoise slice commands written to: " << jsonPath << endl;
+        cerr << "Failed to write full-loop WAV: " << fnFull.str() << endl;
     }
-        
-    // Cleanup.
+
+    // Cleanup
     REX::REXDelete(&handle);
     REX::REXUninitializeDLL();
-
     return 0;
 }

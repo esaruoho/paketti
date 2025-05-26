@@ -4693,6 +4693,18 @@ end
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Unmark / Clear Selection",invoke=pakettiSampleEditorSelectionClear}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Unmark / Clear Selection",invoke=pakettiSampleEditorSelectionClear}
 
+function oneshotcontinue()
+  if renoise.song().instruments[renoise.song().selected_instrument_index].samples[renoise.song().selected_sample_index].oneshot then
+    renoise.song().instruments[renoise.song().selected_instrument_index].samples[renoise.song().selected_sample_index].oneshot = false
+    renoise.song().instruments[renoise.song().selected_instrument_index].samples[renoise.song().selected_sample_index].new_note_action = 1
+  else
+    renoise.song().instruments[renoise.song().selected_instrument_index].samples[renoise.song().selected_sample_index].oneshot = true
+    renoise.song().instruments[renoise.song().selected_instrument_index].samples[renoise.song().selected_sample_index].new_note_action = 3
+  end
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Set to One-Shot + NNA Continue", invoke=function() oneshotcontinue() end}
+
 
 
 

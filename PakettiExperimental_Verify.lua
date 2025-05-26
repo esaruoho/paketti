@@ -3991,9 +3991,9 @@ renoise.tool():add_midi_mapping{name="Paketti:Unmute Selected Track", invoke=fun
 for i = 1, 16 do
   local track_num_str = string.format("%02d", i)
   renoise.tool():add_keybinding{name="Global:Paketti:Toggle Mute/Unmute of Track " .. track_num_str, invoke=function() toggleMuteTrack(i) end}
-  renoise.tool():add_midi_mapping{name="Paketti:Toggle Mute/Unmute of Track " .. track_num_str, invoke=function(message) if message:is_trigger() then toggleMuteTrack(i) end end}
   renoise.tool():add_keybinding{name="Global:Paketti:Mute Track " .. track_num_str, invoke=function() muteTrack(i) end}
-  renoise.tool():add_midi_mapping{name="Paketti:Mute Track " .. track_num_str, invoke=function(message) if message:is_trigger() then muteTrack(i) end end}
   renoise.tool():add_keybinding{name="Global:Paketti:Unmute Track " .. track_num_str, invoke=function() unmuteTrack(i) end}
+  renoise.tool():add_midi_mapping{name="Paketti:Toggle Mute/Unmute of Track " .. track_num_str, invoke=function(message) if message:is_trigger() then toggleMuteTrack(i) end end}
+  renoise.tool():add_midi_mapping{name="Paketti:Mute Track " .. track_num_str, invoke=function(message) if message:is_trigger() then muteTrack(i) end end}
   renoise.tool():add_midi_mapping{name="Paketti:Unmute Track " .. track_num_str, invoke=function(message) if message:is_trigger() then unmuteTrack(i) end end}
 end

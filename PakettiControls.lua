@@ -751,6 +751,44 @@ end
 -- Run the function
 renoise.tool():add_keybinding{name="Global:Paketti:Switch Upper Frame (Track Scopes/Master Spectrum)",invoke=function()
 switch_upper_frame() end}
+
+--------
+function switchMiddleFrames()
+local amf=renoise.app().window.active_middle_frame
+
+local available_frames = {
+  renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR,
+  renoise.ApplicationWindow.MIDDLE_FRAME_MIXER,
+  renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_PHRASE_EDITOR,
+  renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_KEYZONES,
+  renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR,
+  renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_MODULATION,
+  renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EFFECTS,
+  renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_PLUGIN_EDITOR,
+  renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_MIDI_EDITOR
+}
+
+local max_frame = #available_frames
+
+if amf >= max_frame then
+  renoise.app().window.active_middle_frame = 1
+else
+  renoise.app().window.active_middle_frame = amf + 1
+end
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Switch Middle Frames",invoke=function() switchMiddleFrames() end}
+
+function midi_imm()
+  if renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_MIDI_EDITOR then 
+    renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+  else  
+    renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_MIDI_EDITOR
+  end
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:F4 Shift Midi Immediately", invoke=function() midi_imm() end}
+
 ----
 -- Function to duplicate the selected track and rename it
 local function duplicate_selected_track()
@@ -1517,3 +1555,29 @@ renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Delay Output..:Nudg
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Delay Output..:Nudge Delay Output Delay -10ms (Rename)",invoke=function() nudge_output_delay(-10, true) end}
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Delay Output..:Reset Delay Output Delay to 0ms (Rename)",invoke=function() reset_output_delay(true) end}
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Delay Output..:Reset Delay Output Delay to 0ms (ALL) (Rename)",invoke=function() reset_output_delayALL(true) end}
+
+-----
+
+--------
+function mapsample()
+  local song = renoise.song()
+  local sample = song.selected_sample
+  
+  if not sample then
+    renoise.app():show_status("No sample selected.")
+    return
+  end
+  
+  -- Map the sample to the entire keyboard range (C-0 to B-9)
+  sample.sample_mapping.note_range = {0, 119}
+  
+  renoise.app():show_status("Sample mapped to all keyzones (C-0 to B-9).")
+end
+
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Map Sample to All Keyzones", invoke=function() mapsample() end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Map Sample to All Keyzones", invoke=function() mapsample() end}
+renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Map Sample to All Keyzones", invoke=function() mapsample() end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Map Sample to All Keyzones", invoke=function() mapsample() end}
+renoise.tool():add_keybinding{name="Sample Keyzones:Paketti:Map Sample to All Keyzones", invoke=function() mapsample() end}
+renoise.tool():add_midi_mapping{name="Paketti:Map Sample to All Keyzones", invoke=function(message) if message:is_trigger() then mapsample() end end}
+

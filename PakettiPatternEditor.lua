@@ -86,6 +86,41 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Delay Column Decrease
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Delay Column Increase (+10)",invoke=function() delayInput(10) end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Delay Column Decrease (-10)",invoke=function() delayInput(-10) end}
 
+-- Set Delay +1 / -1 / +10 / -10 on current phrase line, display delay column
+function phraseDelayInput(chg)
+  local s = renoise.song()
+  
+  -- Check if we have a phrase selected
+  if s.selected_phrase == nil then
+    renoise.app():show_status("Please select a phrase first.")
+    return
+  end
+  
+  local d = s.selected_phrase_note_column.delay_value
+  local nc = s.selected_phrase_note_column
+  
+  -- Make delay column visible in the phrase
+  s.selected_phrase.delay_column_visible = true
+  
+  --[[nc.delay_value=(d+chg)
+  if nc.delay_value == 0 and chg < 0 then
+   move_up(chg)
+  elseif nc.delay_value == 255 and chg > 0 then
+   move_down(chg)
+  else
+  end--]]
+  
+  -- Set the new delay value with bounds checking
+  nc.delay_value = math.max(0, math.min(255, d + chg))
+end
+
+
+if renoise.API_VERSION >= 6.2 then
+renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Delay Column Increase (+1)",invoke=function() phraseDelayInput(1) end}
+renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Delay Column Decrease (-1)",invoke=function() phraseDelayInput(-1) end}
+renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Delay Column Increase (+10)",invoke=function() phraseDelayInput(10) end}
+renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Delay Column Decrease (-10)",invoke=function() phraseDelayInput(-10) end}
+end
 ----
 --Quantize +1 / -1
 function adjust_quantize(quant_delta)
@@ -6441,3 +6476,87 @@ end
 
 renoise.tool():add_keybinding{name = "Global:Paketti:Flood Fill Column with Row",invoke = function() pakettiFloodFillColumn(false) end}
 renoise.tool():add_keybinding{name = "Global:Paketti:Flood Fill Column with Row by EditStep",invoke = function() pakettiFloodFillColumn(true) end}
+
+-----
+
+-- Flexible CapsLock Pattern Generator
+-- Places OFF notes at specified intervals from current position
+function PakettiCapsLockPattern(intervals, block_size, start_offset, edit_step)
+  local s = renoise.song()
+  local currLine = s.selected_line_index
+  local currPatt = s.selected_pattern_index
+  local currTrak = s.selected_track_index
+  local pattern_lines = s.patterns[currPatt].number_of_lines
+  
+  -- Default parameters if not provided
+  intervals = intervals or {0, 3, 5, 8}  -- Default intervals from original function
+  block_size = block_size or 8           -- How far to advance between blocks
+  start_offset = start_offset or 2       -- Starting offset from current line
+  edit_step = edit_step or 3             -- Edit step to set after completion
+  
+  -- Safety check
+  if s.selected_note_column_index == nil or s.selected_note_column_index == 0 then
+    renoise.app():show_status("Please select a note column first.")
+    return
+  end
+  
+  local current_block_start = currLine + start_offset
+  local blocks_created = 0
+  
+  -- Continue until we reach the end of the pattern
+  while current_block_start <= pattern_lines do
+    -- Place OFF notes at each interval within this block
+    for _, interval in ipairs(intervals) do
+      local target_line = current_block_start + interval
+      
+      -- Check bounds
+      if target_line > 0 and target_line <= pattern_lines then
+        s.patterns[currPatt].tracks[currTrak].lines[target_line].note_columns[s.selected_note_column_index].note_string = "OFF"
+      end
+    end
+    
+    -- Move to next block
+    current_block_start = current_block_start + block_size
+    blocks_created = blocks_created + 1
+  end
+  
+  -- Set appropriate edit step
+  renoise.song().transport.edit_step = edit_step
+  
+  renoise.app():show_status(string.format("Placed OFF pattern: %d blocks, EditStep set to %d", blocks_created, edit_step))
+end
+
+-- Preset functions for common patterns
+function PakettiCapsLockPatternDefault()
+  PakettiCapsLockPattern({0, 3, 5, 8}, 8, 2, 3)  -- Original: intervals, block_size, start_offset, edit_step
+end
+
+function PakettiCapsLockPatternTight()
+  PakettiCapsLockPattern({0, 1, 2, 3}, 4, 1, 1)  -- Tighter pattern, edit_step = 1
+end
+
+function PakettiCapsLockPatternWide()
+  PakettiCapsLockPattern({0, 4, 8, 12}, 16, 2, 4)  -- Wider spacing, edit_step = 4
+end
+
+function PakettiCapsLockPatternCustom()
+  -- Uses current edit step as basis for pattern, then increments edit step by 1
+  local current_edit_step = renoise.song().transport.edit_step
+  local new_edit_step = current_edit_step + 1
+  PakettiCapsLockPattern({0, current_edit_step, current_edit_step * 2, current_edit_step * 3}, current_edit_step * 4, current_edit_step, new_edit_step)
+end
+
+-- Menu entries for easier findability
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:CapsLockChassis..:Default Pattern (2,3,5,8)", invoke=function() PakettiCapsLockPatternDefault() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:CapsLockChassis..:Tight Pattern (1,2,3,4)", invoke=function() PakettiCapsLockPatternTight() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:CapsLockChassis..:Wide Pattern (4,8,12,16)", invoke=function() PakettiCapsLockPatternWide() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:CapsLockChassis..:Custom Pattern (EditStep Based)", invoke=function() PakettiCapsLockPatternCustom() end}
+
+-- Keybindings
+renoise.tool():add_keybinding{name="Global:Paketti:CapsLockChassis (Default)", invoke=function() PakettiCapsLockPatternDefault() end}
+renoise.tool():add_keybinding{name="Global:Paketti:CapsLockChassis (Tight)", invoke=function() PakettiCapsLockPatternTight() end}
+renoise.tool():add_keybinding{name="Global:Paketti:CapsLockChassis (Wide)", invoke=function() PakettiCapsLockPatternWide() end}
+renoise.tool():add_keybinding{name="Global:Paketti:CapsLockChassis (Custom)", invoke=function() PakettiCapsLockPatternCustom() end}
+
+-- Legacy keybinding for compatibility
+renoise.tool():add_keybinding{name="Global:Paketti:CapsLockChassis", invoke=function() PakettiCapsLockPatternDefault() end}

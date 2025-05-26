@@ -405,5 +405,5 @@ timed_require("PakettiRePitch")
 timed_require("PakettiPhraseGenerator")
 timed_require("PakettiIFFLoader")
 timed_require("PakettiMODLoader")
-
+timed_require("PakettiPolyendSuite")
 _AUTO_RELOAD_DEBUG = true

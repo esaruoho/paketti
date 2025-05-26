@@ -122,7 +122,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Collapser",invoke=function(message
 --- Show or hide pattern matrix
 function showhidepatternmatrix()
 local pmi=renoise.app().window.pattern_matrix_is_visible
-  if pmi==true then pmi=false else pmi=true end
+  if pmi==true then renoise.app().window.pattern_matrix_is_visible=false else renoise.app().window.pattern_matrix_is_visible=true end
 end
 
 renoise.tool():add_midi_mapping{name="Paketti:Show/Hide Pattern Matrix x[Toggle]",invoke=function(message) if message:is_trigger() then showhidepatternmatrix() end end}
