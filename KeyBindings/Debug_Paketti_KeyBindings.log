@@ -1,9 +1,24 @@
-Debug: Total Paketti keybindings found - 5234
-0001:Global:Paketti: ∿ Clear PitchStep Steps: Shift + Option + P
-0002:Global:Paketti: ∿ Modify PitchStep Steps (Hard Detune): Shift + Option + Command + Control + P
-0003:Global:Paketti: ∿ Modify PitchStep Steps (Minor Flurry): <Shortcut not Assigned>
-0004:Global:Paketti: ∿ Modify PitchStep Steps (Octave Up+2, Octave Down-2): Option + Command + P
-0005:Global:Paketti: ∿ Modify PitchStep Steps (Octave Up, Octave Down): Shift + Command + P
-0006:Global:Paketti: ∿ Modify PitchStep Steps (Random): Shift + Option + Command + P
-0007:Global:Paketti: ∿ PitchStepper Demo: <Shortcut not Assigned>
-0008:Global:Paketti: ∿ Show/Hide PitchStep on Selected Instrument: Option + P
+Debug: Total Paketti keybindings found - 5310
+0001:Global:Paketti: ∿ KapsLock Note Off (No Step): <Shortcut not Assigned>
+0002:Global:Paketti: ∿ KapsLock Note Off (With Step): <Shortcut not Assigned>
+0003:Global:Paketti: ∿ Note Off / Caps Lock replacement: <Shortcut not Assigned>
+0004:Global:Paketti: ∿ Selected Sample Exit Loop Note-Off Off: <Shortcut not Assigned>
+0005:Global:Paketti: ∿ Selected Sample Exit Loop Note-Off On: <Shortcut not Assigned>
+0006:Global:Paketti: ∿ Selected Sample Exit Loop Note-Off Toggle: <Shortcut not Assigned>
+0007:Global:Paketti: ∿ Set Selected Sample NNA to 2 (Note-Off): <Shortcut not Assigned>
+0008:Pattern Editor:Paketti: ∿ Clever Note Off Half Before: Command + PeakedBracket
+0009:Pattern Editor:Paketti: ∿ Clever Note Off Right After: Option + PeakedBracket
+0010:Pattern Editor:Paketti: ∿ Clever Note Off Right Before: Option + Control + PeakedBracket
+0011:Pattern Editor:Paketti: ∿ Insert Random Note-Offs in Empty Rows: <Shortcut not Assigned>
+0012:Pattern Editor:Paketti: ∿ KapsLock CapsLock Caps Lock Note Off: Capital
+0013:Pattern Editor:Paketti: ∿ KapsLock Note Off (No Step): <Shortcut not Assigned>
+0014:Pattern Editor:Paketti: ∿ KapsLock Note Off (With Step): <Shortcut not Assigned>
+0015:Pattern Editor:Paketti: ∿ Note-Off Paste (from Selection): Shift + Option + Control + P
+0016:Pattern Editor:Paketti: ∿ Randomize Positions of Note-Offs: <Shortcut not Assigned>
+0017:Pattern Editor:Paketti: ∿ Toggle Note Off in All Visible Note Columns: Shift + Capital
+0018:Pattern Editor:Paketti: ∿ Toggle Note Off in Selected Tracks: Option + Capital
+0019:Pattern Editor:Paketti: ∿ Toggle Note Off on All Tracks on Current Row: Control + Capital
+0020:Phrase Editor:Paketti: ∿ KapsLock CapsLock Caps Lock Note Off: <Shortcut not Assigned>
+0021:Phrase Editor:Paketti: ∿ Toggle Note Off in All Visible Note Columns: <Shortcut not Assigned>
+0022:Phrase Editor:Paketti: ∿ Toggle Note Off in Selected Tracks: <Shortcut not Assigned>
+0023:Phrase Editor:Paketti: ∿ Toggle Note Off on All Tracks on Current Row: <Shortcut not Assigned>

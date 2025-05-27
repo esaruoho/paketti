@@ -879,7 +879,7 @@ end
 ---
 if renoise.API_VERSION >= 6.2 then 
   renoise.app().window.instrument_box_is_visible=true
-  renoise.app().window.instrument_properties_is_visible=true
+  renoise.app().window.instrument_properties_is_visible=preferences.pakettiInstrumentProperties.value
   renoise.app().window.disk_browser_is_visible=false
   renoise.app().window.instrument_properties_show_volume_transpose=true
   renoise.app().window.instrument_properties_show_trigger_options=true

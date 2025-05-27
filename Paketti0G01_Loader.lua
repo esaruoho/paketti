@@ -80,7 +80,9 @@ function create_device_entry(name, path, device_type)
   return entry
 end
 
+
 preferences = renoise.Document.create("ScriptingToolPreferences") {
+  pakettiInstrumentProperties=false,
   pakettiREXBundlePath = "." .. separator .. "rx2",
   pakettiShowSampleDetails=true,
   pakettiAlwaysOpenDSPsOnTrack=false,

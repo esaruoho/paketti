@@ -12,19 +12,49 @@ local function load_slice_markers(slice_file_path)
     return false
   end
   
+  local marker_count = 0
+  local max_markers = 255
+  local was_truncated = false
+  
   for line in file:lines() do
     -- Extract the number between parentheses, e.g. "insert_slice_marker(12345)"
     local marker = tonumber(line:match("%((%d+)%)"))
     if marker then
-      renoise.song().selected_sample:insert_slice_marker(marker)
-      print("Inserted slice marker at position", marker)
+      -- Check if we're about to exceed the 255 marker limit
+      if marker_count >= max_markers then
+        print("Warning: RX2 file contains more than " .. max_markers .. " slice markers.")
+        print("Renoise only supports up to " .. max_markers .. " slice markers per instrument.")
+        print("Skipping remaining " .. (marker_count + 1) .. "+ markers to avoid crash.")
+        was_truncated = true
+        break
+      end
+      
+      -- Use pcall to safely insert the slice marker and catch any errors
+      local success, error_msg = pcall(function()
+        renoise.song().selected_sample:insert_slice_marker(marker)
+      end)
+      
+      if success then
+        marker_count = marker_count + 1
+        print("Inserted slice marker " .. marker_count .. " at position", marker)
+      else
+        print("Error inserting slice marker at position " .. marker .. ": " .. tostring(error_msg))
+        if string.find(tostring(error_msg), "255 slice markers") or 
+           string.find(tostring(error_msg), "only up to 255") then
+          print("Reached maximum slice marker limit. Stopping import of additional markers.")
+          was_truncated = true
+          break
+        end
+        -- For other errors, continue trying to insert remaining markers
+      end
     else
       print("Warning: Could not parse marker from line:", line)
     end
   end
   
   file:close()
-  return true
+  print("Total slice markers imported: " .. marker_count)
+  return true, marker_count, was_truncated
 end
 
 --------------------------------------------------------------------------------
@@ -95,6 +125,41 @@ function rx2_loadsample(filename)
 
   print("Starting RX2 import for file:", filename)
   
+  -- Clean up any empty samples in ALL instruments before creating a new one
+  local song = renoise.song()
+  for inst_idx = 1, #song.instruments do
+    local instrument = song.instruments[inst_idx]
+    local samples_to_remove = {}
+    
+    -- Only clean up if the instrument doesn't have sliced samples
+    local has_sliced_samples = false
+    for i = 1, #instrument.samples do
+      if #instrument.samples[i].slice_markers > 0 then
+        has_sliced_samples = true
+        break
+      end
+    end
+    
+    if not has_sliced_samples then
+      for i = 1, #instrument.samples do
+        local sample = instrument.samples[i]
+        if not sample.sample_buffer.has_sample_data then
+          table.insert(samples_to_remove, i)
+          print("Found empty sample '" .. sample.name .. "' in instrument " .. inst_idx .. " at sample index " .. i .. " - marking for removal")
+        end
+      end
+      
+      -- Remove empty samples from highest index to lowest to avoid index shifting
+      for i = #samples_to_remove, 1, -1 do
+        local sample_index = samples_to_remove[i]
+        print("Removing empty sample from instrument " .. inst_idx .. " at sample index " .. sample_index)
+        instrument:delete_sample_at(sample_index)
+      end
+    else
+      print("Skipping cleanup for instrument " .. inst_idx .. " - has sliced samples")
+    end
+  end
+  
   -- Do NOT overwrite an existing instrument:
   local current_index = renoise.song().selected_instrument_index
   renoise.song():insert_instrument_at(current_index + 1)
@@ -110,7 +175,21 @@ function rx2_loadsample(filename)
   end
 
   local song=renoise.song()
+  local instrument = song.selected_instrument
+  
+  -- Ensure we're working with the first sample slot and clear any empty samples
+  song.selected_sample_index = 1
   local smp = song.selected_sample
+  
+  -- Remove any additional empty sample slots that might have been created
+  while #instrument.samples > 1 do
+    if not instrument.samples[#instrument.samples].sample_buffer.has_sample_data then
+      instrument:delete_sample_at(#instrument.samples)
+      print("Removed empty sample slot")
+    else
+      break
+    end
+  end
   
   -- Use the filename (minus the .rx2 extension) to create instrument name
   local rx2_filename_clean = filename:match("[^/\\]+$") or "RX2 Sample"
@@ -129,8 +208,10 @@ function rx2_loadsample(filename)
   end
 
 
-  local wav_output = TEMP_FOLDER .. separator .. instrument_name .. "_output.wav"
-  local txt_output = TEMP_FOLDER .. separator .. instrument_name .. "_slices.txt"
+-- Create unique temp file names to avoid conflicts between multiple imports
+local timestamp = tostring(os.time())
+local wav_output = TEMP_FOLDER .. separator .. instrument_name .. "_" .. timestamp .. ".wav"
+local txt_output = TEMP_FOLDER .. separator .. instrument_name .. "_" .. timestamp .. "_slices.txt"
 
 print (wav_output)
 print (txt_output)
@@ -182,6 +263,11 @@ end
 
   -- Load the WAV file produced by the external decoder
   print("Loading WAV file from external decoder:", wav_output)
+  
+  -- Ensure we're still working with the correct instrument and sample
+  local target_instrument_index = renoise.song().selected_instrument_index
+  local target_sample_index = renoise.song().selected_sample_index
+  
   local load_success = pcall(function()
     smp.sample_buffer:load_from(wav_output)
   end)
@@ -190,6 +276,15 @@ end
     renoise.app():show_status("RX2 Import Error: Failed to load decoded sample.")
     return false
   end
+  
+  -- Verify we're still on the correct instrument/sample after loading
+  if renoise.song().selected_instrument_index ~= target_instrument_index then
+    print("Warning: Instrument selection changed during import, restoring...")
+    renoise.song().selected_instrument_index = target_instrument_index
+    renoise.song().selected_sample_index = target_sample_index
+    smp = renoise.song().selected_sample
+  end
+  
   if not smp.sample_buffer.has_sample_data then
     print("Loaded WAV file has no sample data")
     renoise.app():show_status("RX2 Import Error: No audio data in decoded sample.")
@@ -197,13 +292,47 @@ end
   end
   print("Sample loaded successfully from external decoder")
 
+  -- Ensure we're still on the correct instrument before loading slice markers
+  renoise.song().selected_instrument_index = target_instrument_index
+  renoise.song().selected_sample_index = target_sample_index
+  
   -- Read the slice marker text file and insert the markers
-  local success = load_slice_markers(txt_output)
+  local success, marker_count, was_truncated = load_slice_markers(txt_output)
   if success then
     print("Slice markers loaded successfully from file:", txt_output)
   else
     print("Warning: Could not load slice markers from file:", txt_output)
   end
+  
+  -- Aggressive cleanup after slice loading - remove ALL empty "Sample 01" entries
+  local current_instrument = renoise.song().selected_instrument
+  print("Post-slice cleanup - instrument has " .. #current_instrument.samples .. " samples")
+  
+  local removed_count = 0
+  local i = 1
+  while i <= #current_instrument.samples do
+    local sample = current_instrument.samples[i]
+    print("Checking sample " .. i .. ": name='" .. sample.name .. "', has_data=" .. tostring(sample.sample_buffer.has_sample_data))
+    
+    if not sample.sample_buffer.has_sample_data and sample.name == "Sample 01" then
+      print("Removing empty 'Sample 01' at index " .. i)
+      current_instrument:delete_sample_at(i)
+      removed_count = removed_count + 1
+      -- Don't increment i since we just removed a sample
+    else
+      i = i + 1
+    end
+  end
+  
+  print("Removed " .. removed_count .. " empty 'Sample 01' entries")
+
+  -- Update instrument name to include slice count info if truncated
+  if was_truncated then
+    renoise.song().selected_instrument.name = rx2_basename .. " (256 slices imported)"
+    renoise.song().selected_sample.name = rx2_basename .. " (256 slices imported)"
+  end
+
+
 
   -- Set additional sample properties from preferences
   if preferences then
@@ -216,6 +345,12 @@ end
     smp.new_note_action = preferences.pakettiLoaderNNA.value
     smp.loop_release = preferences.pakettiLoaderLoopExit.value
   end
+  
+
+
+  -- Clean up temporary files to avoid conflicts with subsequent imports
+  pcall(function() os.remove(wav_output) end)
+  pcall(function() os.remove(txt_output) end)
   
   renoise.app():show_status("RX2 imported successfully with slice markers")
   return true

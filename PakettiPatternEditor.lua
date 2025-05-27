@@ -287,6 +287,8 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:KapsLock Note Off (No Step)",invoke=function() CapsLok(false) end}
 renoise.tool():add_keybinding{name="Global:Paketti:KapsLock Note Off (With Step)",invoke=function() CapsLok(true) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:KapsLock Note Off (No Step)",invoke=function() CapsLok(false) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:KapsLock Note Off (With Step)",invoke=function() CapsLok(true) end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:KapsLock CapsLock Caps Lock Note Off",invoke=function() CapsLok() end}
 renoise.tool():add_keybinding{name="Phrase Editor:Paketti:KapsLock CapsLock Caps Lock Note Off",invoke=function() CapsLok() end}
 
@@ -6560,3 +6562,80 @@ renoise.tool():add_keybinding{name="Global:Paketti:CapsLockChassis (Custom)", in
 
 -- Legacy keybinding for compatibility
 renoise.tool():add_keybinding{name="Global:Paketti:CapsLockChassis", invoke=function() PakettiCapsLockPatternDefault() end}
+
+-- Note Off Paste - copies NOTE OFFs and delay values within pattern selection
+function noteOffPaste()
+  local s = renoise.song()
+  local selection = s.selection_in_pattern
+  
+  -- Check if there's a valid pattern selection
+  if not selection then
+    renoise.app():show_status("No pattern selection found.")
+    return
+  end
+  
+  local start_line = selection.start_line
+  local end_line = selection.end_line
+  local start_track = selection.start_track
+  local end_track = selection.end_track
+  local start_column = selection.start_column
+  local end_column = selection.end_column
+  
+  -- Safety check
+  if start_line > end_line or start_track > end_track then
+    renoise.app():show_status("Invalid selection range.")
+    return
+  end
+  
+  local pattern = s.selected_pattern
+  local selected_track_index = s.selected_track_index
+  
+  -- Make sure we're not trying to copy to the same track
+  if selected_track_index >= start_track and selected_track_index <= end_track then
+    renoise.app():show_status("Cannot paste to the same track that's in the selection.")
+    return
+  end
+  
+  local source_track = pattern.tracks[start_track]  -- Use first track in selection as source
+  local target_track = pattern.tracks[selected_track_index]
+  
+  -- Get the actual track objects for visible_note_columns
+  local source_track_obj = s.tracks[start_track]
+  local target_track_obj = s.tracks[selected_track_index]
+  
+  local notes_copied = 0
+  
+  -- Iterate through the selected line range
+  for line_index = start_line, end_line do
+    local source_line = source_track.lines[line_index]
+    local target_line = target_track.lines[line_index]
+    
+    -- Process each note column in the selection
+    for col = start_column, math.min(end_column, source_track_obj.visible_note_columns) do
+      if col <= target_track_obj.visible_note_columns then
+        local source_note_col = source_line.note_columns[col]
+        local target_note_col = target_line.note_columns[col]
+        
+        -- Copy NOTE OFF
+        if source_note_col.note_string == "OFF" then
+          target_note_col.note_string = "OFF"
+          notes_copied = notes_copied + 1
+        end
+        
+        -- Copy delay value (always copy, even if 0)
+        if source_note_col.delay_value ~= target_note_col.delay_value then
+          target_note_col.delay_value = source_note_col.delay_value
+          -- Make delay column visible if we're copying delay values
+          if source_note_col.delay_value > 0 then
+            target_track_obj.delay_column_visible = true
+          end
+        end
+      end
+    end
+  end
+  
+  renoise.app():show_status(string.format("Copied %d NOTE OFFs and delay values to track %d", notes_copied, selected_track_index))
+end
+
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Note-Off Paste (from Selection)", invoke=function() noteOffPaste() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Note-Off Paste (from Selection)", invoke=function() noteOffPaste() end}
