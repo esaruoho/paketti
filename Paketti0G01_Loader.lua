@@ -80,7 +80,6 @@ function create_device_entry(name, path, device_type)
   return entry
 end
 
-
 preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiInstrumentProperties=false,
   pakettiREXBundlePath = "." .. separator .. "rx2",
@@ -694,6 +693,18 @@ function pakettiPreferences()
               vb:switch{items={"Off","On"},value=preferences.pakettiWipeExplodedTrack.value and 2 or 1,width=200,
                 notifier=function(value) preferences.pakettiWipeExplodedTrack.value=(value==2) end}
             },
+            vb:row{
+              vb:text{text="Instrument Properties",width=150},
+              vb:switch{items={"Off","On"},value=preferences.pakettiInstrumentProperties.value and 2 or 1,width=200,
+                notifier=function(value) 
+                  preferences.pakettiInstrumentProperties.value=(value==2)
+                  -- Update the instrument properties visibility immediately
+                  if renoise.API_VERSION >= 6.2 then
+                    renoise.app().window.instrument_properties_is_visible = preferences.pakettiInstrumentProperties.value
+                  end
+                end}
+            },
+            vb:row{vb:text{style="strong",text="Show/Hide Instrument Properties panel on startup and when changed"}},
             vb:row{
               vb:text{text="0G01 Loader",width=150},
               vb:switch{items={"Off","On"},value=preferences._0G01_Loader.value and 2 or 1,width=200,
