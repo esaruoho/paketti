@@ -1,20 +1,20 @@
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Samples..:Load .MOD as Sample",
   invoke=function() 
-    local file_path = renoise.app():prompt_for_filename_to_read({"*.mod"}, "Select Any File to Load as Sample")
+    local file_path = renoise.app():prompt_for_filename_to_read({"*.mod","mod.*"}, "Select Any File to Load as Sample")
     if file_path ~= "" then
       pakettiLoadExeAsSample(file_path)
       paketti_toggle_signed_unsigned() end end}
 
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Load .MOD as Sample",
   invoke=function() 
-    local file_path = renoise.app():prompt_for_filename_to_read({"*.mod"}, "Select Any File to Load as Sample")
+    local file_path = renoise.app():prompt_for_filename_to_read({"*.mod","mod.*"}, "Select Any File to Load as Sample")
     if file_path ~= "" then
       pakettiLoadExeAsSample(file_path)
       paketti_toggle_signed_unsigned() end end}
 
 
 renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Load .MOD as Sample",invoke=function() 
-    local file_path = renoise.app():prompt_for_filename_to_read({"*.mod"}, "Select Any File to Load as Sample")
+    local file_path = renoise.app():prompt_for_filename_to_read({"*.mod", "mod.*"}, "Select Any File to Load as Sample")
     if file_path ~= "" then
       pakettiLoadExeAsSample(file_path)
       paketti_toggle_signed_unsigned() end end}
@@ -22,7 +22,7 @@ renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Load .MOD as Sa
 
 renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Load .MOD as Sample",
   invoke=function() 
-    local file_path = renoise.app():prompt_for_filename_to_read({"*.mod"}, "Select Any File to Load as Sample")
+    local file_path = renoise.app():prompt_for_filename_to_read({"*.mod","mod.*"}, "Select Any File to Load as Sample")
     if file_path ~= "" then
       pakettiLoadExeAsSample(file_path)
       paketti_toggle_signed_unsigned() end end}
@@ -183,11 +183,29 @@ function load_samples_from_mod()
 
         -- set looping only if loop_length > 1
         if info.loop_length and info.loop_length > 5 then
-          samp.loop_mode  = renoise.Sample.LOOP_MODE_FORWARD
-          samp.loop_start = info.loop_start + 1
-          samp.loop_end   = info.loop_start + info.loop_length
+          local sample_length = samp.sample_buffer.number_of_frames
+          local calculated_loop_start = info.loop_start + 1
+          local calculated_loop_end = info.loop_start + info.loop_length
+          
+          -- check if loop_start is completely invalid (beyond sample length)
+          if calculated_loop_start > sample_length then
+            -- mark as invalid and don't set looping
+            samp.name = info.name .. " (invalid loopstart)"
+            ins.name = info.name .. " (invalid loopstart)"
+            samp.loop_mode = renoise.Sample.LOOP_MODE_OFF
+          else
+            -- loop_start is valid, now check loop_end
+            if calculated_loop_end > sample_length then
+              -- clamp loop_end to sample length
+              calculated_loop_end = sample_length
+            end
+            
+            samp.loop_mode = renoise.Sample.LOOP_MODE_FORWARD
+            samp.loop_start = calculated_loop_start
+            samp.loop_end = calculated_loop_end
+          end
         else
-          samp.loop_mode  = renoise.Sample.LOOP_MODE_OFF
+          samp.loop_mode = renoise.Sample.LOOP_MODE_OFF
         end
 
         renoise.app():show_status(("Loaded “%s”"):format(info.name))

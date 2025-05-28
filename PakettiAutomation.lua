@@ -3385,11 +3385,8 @@ function read_fx_to_automation()
   end
 end
 
-
-
-
-
-function snapshot_current_values_to_automation()
+----------
+function snapshot_all_devices_to_automation()
   local song=renoise.song()
   local pattern = song.selected_pattern
   local track = song.selected_track
@@ -3443,11 +3440,73 @@ function snapshot_current_values_to_automation()
   end
 end
 
+function snapshot_selected_device_to_automation()
+  local song=renoise.song()
+  local pattern = song.selected_pattern
+  local track = song.selected_track
+  local track_index = song.selected_track_index
+  local device_index = song.selected_device_index
 
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Automation..:Snapshot Current Device Values to Automation",invoke = snapshot_current_values_to_automation}
-renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Automation..:Snapshot Current Device Values to Automation",invoke = snapshot_current_values_to_automation}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Automation..:Snapshot Current Device Values to Automation",invoke = snapshot_current_values_to_automation}
-renoise.tool():add_keybinding{name="Global:Paketti:Snapshot Current Device Values to Automation",invoke = snapshot_current_values_to_automation}
+  -- Helper function to normalize value to 0-1 range
+  local function normalize_value(param)
+    return (param.value - param.value_min) / (param.value_max - param.value_min)
+  end
+
+  if device_index <= 0 or device_index > #track.devices then
+    renoise.app():show_status("No valid device selected.")
+    print("No valid device selected.")
+    return
+  end
+
+  local device = track.devices[device_index]
+  
+  -- Convert device index to FX notation (1-9, A-Y)
+  local device_char
+  if device_index <= 9 then
+    device_char = tostring(device_index)
+  else
+    -- Convert 10-35 to A-Y (25 letters)
+    device_char = string.char(string.byte("A") + device_index - 10)
+  end
+
+  print(string.format("Processing selected device %s (%d): %s", device_char, device_index, device.display_name))
+
+  local automation_count = 0
+  -- Start from 1 (including Active/Bypassed)
+  for param_index = 1, #device.parameters do
+    local param = device.parameters[param_index]
+    if param.is_automatable then
+      local automation = get_or_create_automation(param, song.selected_pattern_index, track_index)
+      local value = normalize_value(param)
+      automation:add_point_at(1, value)
+      
+      -- Set playmode using proper Renoise enum values
+      if preferences.pakettiAutomationFormat.value == 1 then
+        automation.playmode = renoise.PatternTrackAutomation.PLAYMODE_LINES
+      elseif preferences.pakettiAutomationFormat.value == 2 then
+        automation.playmode = renoise.PatternTrackAutomation.PLAYMODE_POINTS
+      else
+        automation.playmode = renoise.PatternTrackAutomation.PLAYMODE_CURVES
+      end
+      
+      automation_count = automation_count + 1
+      print(string.format("Created automation for device %s parameter %d (%s) with value %.3f", 
+                        device_char, param_index, param.name, value))
+    end
+  end
+  
+  renoise.app():show_status(string.format("Created %d automation points for device: %s", automation_count, device.display_name))
+end
+
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Automation..:Snapshot All Devices on Selected Track to Automation",invoke = snapshot_all_devices_to_automation}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Automation..:Snapshot Selected Device to Automation",invoke = snapshot_selected_device_to_automation}
+renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Automation..:Snapshot All Devices on Selected Track to Automation",invoke = snapshot_all_devices_to_automation}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Automation..:Snapshot Selected Device to Automation",invoke = snapshot_selected_device_to_automation}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Automation..:Snapshot All Devices on Selected Track to Automation",invoke = snapshot_all_devices_to_automation}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Automation..:Snapshot Selected Device to Automation",invoke = snapshot_selected_device_to_automation}
+renoise.tool():add_keybinding{name="Global:Paketti:Snapshot All Devices on Selected Track to Automation",invoke = snapshot_all_devices_to_automation}
+renoise.tool():add_keybinding{name="Global:Paketti:Snapshot Selected Device to Automation",invoke = snapshot_selected_device_to_automation}
+
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Automation..:Convert FX to Automation",invoke = read_fx_to_automation}
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Automation..:Convert FX to Automation",invoke = read_fx_to_automation}
 renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Automation..:Convert FX to Automation",invoke = read_fx_to_automation}
