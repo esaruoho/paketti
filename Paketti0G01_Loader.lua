@@ -83,7 +83,7 @@ end
 preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiInstrumentProperties=false,
   pakettiREXBundlePath = "." .. separator .. "rx2",
-  pakettiShowSampleDetails=true,
+  pakettiShowSampleDetails=false,
   pakettiAlwaysOpenDSPsOnTrack=false,
   pakettiLoaderDontCreateAutomationDevice=false,
   pakettiWipeExplodedTrack=false,

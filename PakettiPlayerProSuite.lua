@@ -107,7 +107,7 @@ end
 local separator = vb:space{width=50}
 
 dialog_content = vb:column{
-  margin=10,
+  --margin=10,
   vb:row{
     vb:checkbox{
       value = writing_enabled,
@@ -129,8 +129,8 @@ dialog_content = vb:column{
   }
 }
 ---------------
-local vb
-local dialog
+local note_grid_vb
+local note_grid_dialog
 
 local note_names = {"C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"}
 local notes = {}
@@ -142,6 +142,9 @@ end
 table.insert(notes, "000") -- Adding "---" as "000"
 table.insert(notes, "OFF")
 
+local switch_group={"0","0"}
+local volume_switch_group={"0","0"}
+
 local function PakettiPlayerProNoteGridInsertNoteInPattern(note, instrument, editstep)
   local song=renoise.song()
   local sel = song.selection_in_pattern
@@ -149,7 +152,34 @@ local function PakettiPlayerProNoteGridInsertNoteInPattern(note, instrument, edi
   local note_to_insert = note == "000" and "---" or note
   local note_column_selected = false
   local step = song.transport.edit_step -- Get the current edit step value from the transport
-print (editstep)
+
+  -- Check for valid track types first
+  local start_track, end_track
+  if sel then
+    start_track = sel.start_track
+    end_track = sel.end_track
+  else
+    start_track = song.selected_track_index
+    end_track = song.selected_track_index
+  end
+  
+  local is_valid_track = false
+  for track_index = start_track, end_track do
+    local track = song:track(track_index)
+    if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+      is_valid_track = true
+      break
+    end
+  end
+
+  if not is_valid_track then
+    renoise.app():show_status("The selected track is a Group / Master or Send, and doesn't have Note Columns. Doing nothing.")
+    return
+  end
+
+  -- Only print debug info if we have valid tracks
+  print (editstep)
+
   local function insert_note_line(line, col)
     line:note_column(col).note_string = note_to_insert
     if note == "OFF" or note == "---" or note == "000" then
@@ -170,7 +200,8 @@ print (editstep)
   local function clear_note_line(line, col)
     line:note_column(col).note_string = "---"
     line:note_column(col).instrument_string = ".."
-    print("Clearing note column on non-editstep row")
+    line:note_column(col).volume_string = ".."
+    print("Clearing note column and volume on non-editstep row")
   end
 
   if sel == nil then
@@ -183,25 +214,28 @@ print (editstep)
     end
   else
     for track_index = sel.start_track, sel.end_track do
-      local pattern_track = song.patterns[pattern_index]:track(track_index)
-      local visible_note_columns = song:track(track_index).visible_note_columns
-local step = song.transport.edit_step
-if step == 0 then
-  step = 1
-end
-      -- Iterate through the lines, insert or clear based on editstep
-      for line_index = sel.start_line, sel.end_line do
-        local line = pattern_track:line(line_index)
-        for col_index = 1, visible_note_columns do
-          if (track_index > sel.start_track) or (col_index >= sel.start_column) then
-            if col_index <= visible_note_columns then
-              if editstep and (line_index - sel.start_line) % step ~= 0 then
-                -- If editstep is true and this line doesn't match the editstep, clear it
-                clear_note_line(line, col_index)
-              else
-                -- Otherwise, insert the note
-                insert_note_line(line, col_index)
-                note_column_selected = true
+      local track = song:track(track_index)
+      if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+        local pattern_track = song.patterns[pattern_index]:track(track_index)
+        local visible_note_columns = track.visible_note_columns
+        local step = song.transport.edit_step
+        if step == 0 then
+          step = 1
+        end
+        -- Iterate through the lines, insert or clear based on editstep
+        for line_index = sel.start_line, sel.end_line do
+          local line = pattern_track:line(line_index)
+          for col_index = 1, visible_note_columns do
+            if (track_index > sel.start_track) or (col_index >= sel.start_column) then
+              if col_index <= visible_note_columns then
+                if editstep and (line_index - sel.start_line) % step ~= 0 then
+                  -- If editstep is true and this line doesn't match the editstep, clear it
+                  clear_note_line(line, col_index)
+                else
+                  -- Otherwise, insert the note
+                  insert_note_line(line, col_index)
+                  note_column_selected = true
+                end
               end
             end
           end
@@ -211,8 +245,7 @@ end
   end
 
   if not note_column_selected then
-    local message = "No Note Columns were selected, doing nothing."
-    renoise.app():show_status(message)
+    renoise.app():show_status("No Note Columns were selected, doing nothing.")
   end
 end
 
@@ -288,8 +321,8 @@ local function PakettiPlayerProNoteGridUpdateInstrumentPopup()
     local instrument = renoise.song().instruments[i + 1]
     table.insert(instrument_items, string.format("%02X: %s", i, (instrument.name or "Untitled")))
   end
-  if vb.views["instrument_popup"] then
-    vb.views["instrument_popup"].items = instrument_items
+  if note_grid_vb and note_grid_vb.views["instrument_popup"] then
+    note_grid_vb.views["instrument_popup"].items = instrument_items
   end
 end
 local EditStepCheckboxValue = false -- Shared variable to hold the checkbox state
@@ -310,44 +343,63 @@ local function PakettiPlayerProNoteGridChangeInstrument(instrument)
   PakettiPlayerProNoteGridUpdateInstrumentInPattern(instrument, editstep_enabled)
 end
 
-
-function PakettiPlayerProNoteGridCreateGrid()
-  local grid_rows = 11
-  local grid_columns = 12
-  local grid = vb:column{}
-
-  -- Add the checkbox at the top of the grid
-  grid:add_child(vb:row{
-    vb:checkbox{
-      value = EditStepCheckboxValue, -- Initialize checkbox
-      notifier=function(value)
-        EditStepCheckboxValue = value -- Update the shared value
-      end
-    },
-    vb:text{
-      text="Fill Selection with EditStep", style="strong",font="bold"
-    }
-  })
-
+-- Shared note grid configuration and creation system
+local function PakettiPlayerProCreateModularNoteGrid(vb_instance, config)
+  -- Default configuration
+  local default_config = {
+    include_editstep = false,
+    editstep_checkbox_value = false,
+    instrument_popup_id = "instrument_popup",
+    effect_popup_id = "effect_popup", 
+    effect_argument_display_id = "effect_argument_display",
+    volume_display_id = "volume_display",
+    note_click_callback = nil, -- Custom callback for note button clicks
+    grid_rows = 11,
+    grid_columns = 12,
+    button_width = 35,
+    button_height = 15
+  }
+  
+  -- Merge provided config with defaults
+  for key, value in pairs(default_config) do
+    if config[key] == nil then
+      config[key] = value
+    end
+  end
+  
+  local grid = vb_instance:column{}
+  
+  -- Add EditStep checkbox if requested
+  if config.include_editstep then
+    grid:add_child(vb_instance:row{
+      vb_instance:checkbox{
+        value = config.editstep_checkbox_value,
+        notifier = config.editstep_notifier or function(value)
+          EditStepCheckboxValue = value
+        end
+      },
+      vb_instance:text{
+        text="Fill Selection with EditStep", style="strong", font="bold"
+      }
+    })
+  end
+  
   -- Create the grid of note buttons
-  for row = 1, grid_rows do
-    local row_items = vb:row{}
-    for col = 1, grid_columns do
-      local index = (row - 1) * grid_columns + col
+  for row = 1, config.grid_rows do
+    local row_items = vb_instance:row{}
+    for col = 1, config.grid_columns do
+      local index = (row - 1) * config.grid_columns + col
       if notes[index] then
-        -- Add a button for each note in the grid
-        row_items:add_child(vb:button{
+        row_items:add_child(vb_instance:button{
           text = notes[index],
-          width=30,
-          height = 15,
-          notifier=function()
+          width = config.button_width,
+          height = config.button_height,
+          notifier = config.note_click_callback and function()
+            config.note_click_callback(notes[index], vb_instance, config)
+          end or function()
+            -- Default behavior - just insert the note
             local instrument_value = renoise.song().selected_instrument_index
-            print("Note button clicked. Instrument Value: " .. tostring(instrument_value))
-
-            -- Pass the note, instrument, and EditStepCheckboxValue to the insert function
-            PakettiPlayerProNoteGridInsertNoteInPattern(notes[index], instrument_value, EditStepCheckboxValue)
-
-            -- Return focus to the Pattern Editor
+            PakettiPlayerProNoteGridInsertNoteInPattern(notes[index], instrument_value, config.editstep_checkbox_value)
             renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
           end
         })
@@ -355,21 +407,88 @@ function PakettiPlayerProNoteGridCreateGrid()
     end
     grid:add_child(row_items)
   end
-
+  
   return grid
 end
 
-local function PakettiPlayerProNoteGridCloseDialog()
-  if dialog and dialog.visible then
-    dialog:close()
+-- Note Grid Dialog (with EditStep) - Updated to use modular system
+function PakettiPlayerProNoteGridCreateGrid()
+  local config = {
+    include_editstep = true,
+    editstep_checkbox_value = EditStepCheckboxValue,
+    editstep_notifier = function(value)
+      EditStepCheckboxValue = value
+    end,
+    note_click_callback = function(note, vb_instance, config)
+      local instrument_value = renoise.song().selected_instrument_index
+      print("Note button clicked. Instrument Value: " .. tostring(instrument_value))
+      PakettiPlayerProNoteGridInsertNoteInPattern(note, instrument_value, EditStepCheckboxValue)
+      renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+    end
+  }
+  
+  return PakettiPlayerProCreateModularNoteGrid(note_grid_vb, config)
+end
+
+-- Smart instrument popup updater function
+local function PakettiPlayerProCreateInstrumentObserver(vb_instance, popup_id, dialog_ref)
+  local function update_instrument_popup()
+    if not dialog_ref or not dialog_ref.visible then
+      return
+    end
+    
+    local instrument_items = {"<None>"}
+    for i = 0, #renoise.song().instruments - 1 do
+      local instrument = renoise.song().instruments[i + 1]
+      table.insert(instrument_items, string.format("%02X: %s", i, (instrument.name or "Untitled")))
+    end
+    
+    local popup = vb_instance.views[popup_id]
+    if popup then
+      local selected_instrument_index = renoise.song().selected_instrument_index
+      local selected_instrument_value = selected_instrument_index + 1
+      
+      popup.items = instrument_items
+      popup.value = selected_instrument_value
+      print("Updated popup " .. popup_id .. " to instrument: " .. tostring(selected_instrument_index))
+    end
   end
-  dialog = nil
+  
+  -- Check if notifier already exists, if not add it
+  if not renoise.song().selected_instrument_index_observable:has_notifier(update_instrument_popup) then
+    renoise.song().selected_instrument_index_observable:add_notifier(update_instrument_popup)
+    print("Added instrument observer for " .. popup_id)
+  end
+  
+  return update_instrument_popup
+end
+
+-- Smart cleanup function
+local function PakettiPlayerProRemoveInstrumentObserver(update_function)
+  if renoise.song().selected_instrument_index_observable:has_notifier(update_function) then
+    renoise.song().selected_instrument_index_observable:remove_notifier(update_function)
+    print("Removed instrument observer")
+  end
+end
+
+local function PakettiPlayerProNoteGridCloseDialog()
+  if note_grid_dialog and note_grid_dialog.visible then
+    note_grid_dialog:close()
+  end
+  
+  -- Clean up instrument observer
+  if note_grid_instrument_observer then
+    PakettiPlayerProRemoveInstrumentObserver(note_grid_instrument_observer)
+    note_grid_instrument_observer = nil
+  end
+  
+  note_grid_dialog = nil
   print("Dialog closed.")
   renoise.app():show_status("Closing Paketti PlayerPro Note Dialog")
 end
 
 local function PakettiPlayerProNoteGridCreateDialogContent()
-  vb = renoise.ViewBuilder()
+  note_grid_vb = renoise.ViewBuilder()
 local EditStepCheckboxValue = false -- Initial value for EditStepCheckbox
 
   local instrument_items = {"<None>"}
@@ -382,17 +501,17 @@ local EditStepCheckboxValue = false -- Initial value for EditStepCheckbox
   local selected_instrument_value = selected_instrument_index + 1
   print("Dialog opened. Selected Instrument Index: " .. tostring(selected_instrument_index) .. ", Selected Instrument Value: " .. tostring(selected_instrument_value))
 
-  return vb:column{
-    margin=10,
+  return note_grid_vb:column{
+    --margin=10,
     width="100%",
-    vb:row{
-      vb:text{
-        text="Instrument:",style="strong",font="bold"
+    note_grid_vb:row{
+      note_grid_vb:text{
+        text="Instrument",style="strong",font="bold"
       },
-      vb:popup{
+      note_grid_vb:popup{
         items = instrument_items,
-        width=220,
-        id = "effect_dialog_instrument_popup",  -- Changed ID to be unique
+        width=265,
+        id = "note_grid_instrument_popup",  -- Changed ID to be unique
         value = selected_instrument_value,
         notifier=function(value)
           local instrument
@@ -407,7 +526,7 @@ local EditStepCheckboxValue = false -- Initial value for EditStepCheckbox
           PakettiPlayerProNoteGridChangeInstrument(instrument)
         end
       },
-      vb:button{
+      note_grid_vb:button{
         text="Refresh",
         width=90,
         notifier=function()
@@ -416,10 +535,10 @@ local EditStepCheckboxValue = false -- Initial value for EditStepCheckbox
       }
     },
      PakettiPlayerProNoteGridCreateGrid(),
-    vb:row{
-      vb:button{
+    note_grid_vb:row{
+      note_grid_vb:button{
         text="Close",
-        width=381,
+        width=420,
         notifier=function()
           PakettiPlayerProNoteGridCloseDialog()
         end
@@ -428,15 +547,22 @@ local EditStepCheckboxValue = false -- Initial value for EditStepCheckbox
   }
 end
 
+-- Global variable to store the observer function
+local note_grid_instrument_observer = nil
+
 function pakettiPlayerProNoteGridShowDropdownGrid()
 renoise.app().window.active_middle_frame=1
 
-  if dialog and dialog.visible then
+  if note_grid_dialog and note_grid_dialog.visible then
     print("Dialog is visible, closing dialog.")
     PakettiPlayerProNoteGridCloseDialog()
   else
     print("Dialog is not visible, creating new dialog.")
-    dialog = renoise.app():show_custom_dialog("Player Pro Note Selector with EditStep", PakettiPlayerProNoteGridCreateDialogContent(),my_keyhandler_func)
+    note_grid_dialog = renoise.app():show_custom_dialog("Player Pro Note Selector with EditStep", PakettiPlayerProNoteGridCreateDialogContent(),my_keyhandler_func)
+    
+    -- Add instrument observer after dialog is created
+    note_grid_instrument_observer = PakettiPlayerProCreateInstrumentObserver(note_grid_vb, "note_grid_instrument_popup", note_grid_dialog)
+    
     print("Dialog opened.")
     renoise.app():show_status("Opening Paketti PlayerPro Note Dialog")
     -- Return focus to the Pattern Editor
@@ -465,7 +591,7 @@ end
 
 -- Handle scenario when the dialog is closed by other means
 renoise.app().window.active_middle_frame_observable:add_notifier(function()
-  if dialog and not dialog.visible then
+  if note_grid_dialog and not note_grid_dialog.visible then
     print("Dialog is not visible, removing reference.")
     PakettiPlayerProNoteGridCloseDialog()
     print("Reference removed.")
@@ -545,8 +671,8 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Player Pro Transpose 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Player Pro Transpose Selection or Note Column +12",invoke=function() pakettiPlayerProTranspose(12, "notecolumn") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Player Pro Transpose Selection or Note Column -12",invoke=function() pakettiPlayerProTranspose(-12, "notecolumn") end}
 --------------------
-local vb = renoise.ViewBuilder()
-local dialog
+local effect_dialog_vb = renoise.ViewBuilder()
+local effect_dialog
 
 local note_names = {"C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"}
 local notes = {}
@@ -558,51 +684,55 @@ end
 table.insert(notes, "000") -- Adding "---" as "000"
 table.insert(notes, "OFF")
 
-local switch_group={"0","0"}
-local volume_switch_group={"0","0"}
-
 local effect_descriptions = {
   "0Axy - Arpeggio (x=base note offset1, y=base note offset 2) *",
   "0Uxx - Pitch Slide up (00-FF) *",
   "0Dxx - Pitch Slide down (00-FF) *",
-  "0Mxx - Set Channel volume (00-FF)",
-  "0Cxy - Volume slicer -- x=factor (0=0.0, F=1.0), slice at tick y. *",
   "0Gxx - Glide to note with step xx (00-FF)*",
   "0Ixx - Volume Slide Up with step xx (00-64) (64x0601 or 2x0632 = slide0-full) *",
   "0Oxx - Volume Slide Down with step xx (00-64) *",
-  "0Pxx - Set Panning (00-FF) (00: left; 80: center; FF: right)",
-  "0Sxx - Trigger Sample Offset, 00 is sample start, FF is sample end. *",
-  "0Wxx - Surround Width (00-FF) *",
-  "0Bxx - Play Sample Backwards (B00) or forwards again (B01) *",
-  "0Lxx - Set track-Volume (00-FF)",
+  "0Cxy - Volume slicer -- x=factor (0=0.0, F=1.0), slice at tick y. *",
   "0Qxx - Delay notes in track-row xx ticks before playing. (00-speed)",
+  "0Mxx - Set Channel volume (00-FF)",
+  "0Sxx - Trigger Sample Offset, 00 is sample start, FF is sample end. *",
+  "0Bxx - Play Sample Backwards (B00) or forwards again (B01) *",
   "0Rxy - Retrig notes in track-row every xy ticks (x=volume; y=ticks 0 - speed) **",
+  "0Yxx - Maybe trigger line with probability xx, 00 = mutually exclusive note columns",
+  "0Zxx - Trigger Phrase xx (Phrase Number (01-7E), 00 = none, 7F = keymap)",
   "0Vxy - Set Vibrato x= speed, y= depth; x=(0-F); y=(0-F)*",
   "0Txy - Set Tremolo x= speed, y= depth",
   "0Nxy - Set Auto Pan, x= speed, y= depth",
   "0Exx - Set Active Sample Envelope's Position to Offset XX",
+  "0Lxx - Set track-Volume (00-FF)",
+  "0Pxx - Set Panning (00-FF) (00: left; 80: center; FF: right)",
+  "0Wxx - Surround Width (00-FF) *",
   "0Jxx - Set Track's Output Routing to channel XX",
-  "0Xxx - Stop all notes and FX (xx = 00), or only effect xx (xx > 00)"
+  "0Xxx - Stop all notes and FX (xx = 00), or only effect xx (xx > 00)",
+  "ZTxx - Set tempo to xx BPM (14-FF, 00 = stop song)",
+  "ZLxx - Set Lines Per Beat (LPB) to xx lines",
+  "ZKxx - Set Ticks Per Line (TPL) to xx ticks (01-10)",
+  "ZGxx - Enable (xx = 01) or disable (xx = 00) Groove",
+  "ZBxx - Break pattern and jump to line xx in next",
+  "ZDxx - Delay (pause) pattern for xx lines"
 }
 
 local function update_instrument_popup()
   local instrument_items = {"<None>"}
   for i = 0, #renoise.song().instruments - 1 do
     local instrument = renoise.song().instruments[i + 1]
-    table.insert(instrument_items, string.format("%02d: %s", i, (instrument.name or "Untitled")))
+    table.insert(instrument_items, string.format("%02X: %s", i, (instrument.name or "Untitled")))
   end
   
-  local vb = renoise.ViewBuilder()
-  local popup = dialog.views.effect_dialog_instrument_popup  -- Updated ID reference
+  local popup = effect_dialog.views.effect_dialog_instrument_popup  -- Updated ID reference
   popup.items = instrument_items
 end
 
 local function get_selected_instrument()
-  if not dialog or not dialog.visible then
+  if not effect_dialog or not effect_dialog.visible then
     return nil
   end
   
-  local popup = dialog.views.effect_dialog_instrument_popup  -- Updated ID reference
+  local popup = effect_dialog.views.effect_dialog_instrument_popup  -- Updated ID reference
   local selected_index = popup.value
   
   if selected_index == 1 then  -- "<None>" is selected
@@ -635,7 +765,31 @@ local function pakettiPlayerProInsertNoteInPattern(note, instrument, effect, eff
   local note_to_insert = note == "000" and "---" or note
   local note_column_selected = false
 
-  -- Debug logs
+  -- Check for valid track types first
+  local start_track, end_track
+  if sel then
+    start_track = sel.start_track
+    end_track = sel.end_track
+  else
+    start_track = song.selected_track_index
+    end_track = song.selected_track_index
+  end
+  
+  local is_valid_track = false
+  for track_index = start_track, end_track do
+    local track = song:track(track_index)
+    if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+      is_valid_track = true
+      break
+    end
+  end
+
+  if not is_valid_track then
+    renoise.app():show_status("The selected track is a Group / Master or Send, and doesn't have Note Columns. Doing nothing.")
+    return
+  end
+
+  -- Debug logs - only print if we have valid tracks
   print("Inserting note: " .. (note or "N/A"))
   if instrument then print("Instrument: " .. instrument) end
   if effect then print("Effect: " .. effect) end
@@ -662,16 +816,19 @@ local function pakettiPlayerProInsertNoteInPattern(note, instrument, effect, eff
     end
   else
     for track_index = sel.start_track, sel.end_track do
-      local pattern_track = song.patterns[pattern_index]:track(track_index)
-      local visible_note_columns = song:track(track_index).visible_note_columns
-      for line_index = sel.start_line, sel.end_line do
-        local line = pattern_track:line(line_index)
-        for col_index = 1, renoise.song().tracks[track_index].visible_note_columns do
-          if (track_index > sel.start_track) or (col_index >= sel.start_column) then
-            if col_index <= visible_note_columns then
-              pakettiPlayerProInsertIntoLine(line, col_index, note_to_insert, instrument, effect, effect_argument, volume)
-              note_column_selected = true
-              print("Inserted note (" .. (note_to_insert or "N/A") .. ") at track " .. track_index .. " (" .. song:track(track_index).name .. "), line " .. line_index .. ", column " .. col_index)
+      local track = song:track(track_index)
+      if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+        local pattern_track = song.patterns[pattern_index]:track(track_index)
+        local visible_note_columns = track.visible_note_columns
+        for line_index = sel.start_line, sel.end_line do
+          local line = pattern_track:line(line_index)
+          for col_index = 1, visible_note_columns do
+            if (track_index > sel.start_track) or (col_index >= sel.start_column) then
+              if col_index <= visible_note_columns then
+                pakettiPlayerProInsertIntoLine(line, col_index, note_to_insert, instrument, effect, effect_argument, volume)
+                note_column_selected = true
+                print("Inserted note (" .. (note_to_insert or "N/A") .. ") at track " .. track_index .. " (" .. track.name .. "), line " .. line_index .. ", column " .. col_index)
+              end
             end
           end
         end
@@ -680,46 +837,68 @@ local function pakettiPlayerProInsertNoteInPattern(note, instrument, effect, eff
   end
 
   if not note_column_selected then
-    local message = "No Note Columns were selected, doing nothing."
-    print(message)
-    renoise.app():show_status(message)
+    renoise.app():show_status("No Note Columns were selected, doing nothing.")
   end
 end
 
-local function pakettiPlayerProCreateNoteGrid()
-  local grid_rows = 11
-  local grid_columns = 12
-  local grid = vb:column{}
-  for row = 1, grid_rows do
-    local row_items = vb:row{}
-    for col = 1, grid_columns do
-      local index = (row - 1) * grid_columns + col
-      if notes[index] then
-        row_items:add_child(vb:button{
-          text = notes[index],
-          width=30,
-          height = 15,
-          notifier=function()
-            local instrument_value = vb.views["effect_dialog_instrument_popup"].value - 2
-            local instrument = instrument_value >= 0 and instrument_value or nil
-            local effect = vb.views["effect_popup"].value > 1 and vb.views["effect_popup"].items[vb.views["effect_popup"].value] or nil
-            local effect_argument = vb.views["effect_argument_display"].text
-            local volume = vb.views["volume_display"].text
-            pakettiPlayerProInsertNoteInPattern(notes[index], instrument, effect, effect_argument, volume)
-            print("Inserted: " .. notes[index])
-            -- Return focus to the Pattern Editor
-            renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
-          end
-        })
+-- Main Dialog Note Grid - Updated to use modular system  
+local function pakettiPlayerProCreateMainNoteGrid(main_vb)
+  local config = {
+    include_editstep = true,
+    instrument_popup_id = "main_dialog_instrument_popup",
+    effect_popup_id = "main_effect_popup",
+    effect_argument_display_id = "main_effect_argument_display",
+    volume_display_id = "main_volume_display",
+    note_click_callback = function(note, vb_instance, config)
+      local instrument_value = vb_instance.views[config.instrument_popup_id].value - 2
+      local instrument = instrument_value >= 0 and instrument_value or nil
+      
+      -- Extract effect code from selected effect description
+      local effect = nil
+      local effect_popup_value = vb_instance.views[config.effect_popup_id].value
+      if effect_popup_value > 1 then
+        local effect_description = vb_instance.views[config.effect_popup_id].items[effect_popup_value]
+        -- Extract the effect code (e.g., "0A" from "0Axy - Arpeggio...")
+        effect = string.match(effect_description, "^(%w%w)")
       end
+      
+      local effect_argument = vb_instance.views[config.effect_argument_display_id].text
+      local volume = vb_instance.views[config.volume_display_id].text
+      
+      -- Use the new function that handles both EditStep and effects/volume
+      pakettiPlayerProMainDialogInsertNoteInPattern(note, instrument, effect, effect_argument, volume, EditStepCheckboxValue)
+      
+      print("Inserted: " .. note .. " with EditStep: " .. tostring(EditStepCheckboxValue) .. ", Volume: " .. volume .. ", Effect: " .. tostring(effect))
+      renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
     end
-    grid:add_child(row_items)
-  end
-  return grid
+  }
+  
+  return PakettiPlayerProCreateModularNoteGrid(main_vb, config)
 end
+
+-- Global dialog variable for effect dialog
+local effect_fx_dialog = nil
+
+function pakettiPlayerProEffectDialog()
+  if effect_fx_dialog and effect_fx_dialog.visible then
+    effect_fx_dialog:close()
+    effect_fx_dialog = nil
+    return
+  end
+  
+  effect_fx_dialog = renoise.app():show_custom_dialog("FX", dialog_content, my_keyhandler_func)
+  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+end
+
+-- Menu registration
+renoise.tool():add_menu_entry{
+  name="Pattern Editor:Paketti..:Other Trackers..:Open Player Pro Tools Effect Dialog",
+  invoke=function() pakettiPlayerProEffectDialog() end
+}
+---------------
 
 local function pakettiPlayerProCreateArgumentColumn(column_index, switch_group, update_display)
-  return vb:switch{
+  return effect_dialog_vb:switch{
     items = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F"},
     width=170,
     height = 20,
@@ -733,104 +912,778 @@ end
 
 local function pakettiPlayerProUpdateEffectArgumentDisplay()
   local arg_display = switch_group[1] .. switch_group[2]
-  vb.views["effect_argument_display"].text = arg_display == "00" and "00" or arg_display
+  effect_dialog_vb.views["effect_argument_display"].text = arg_display == "00" and "00" or arg_display
 end
 
 local function pakettiPlayerProUpdateVolumeDisplay()
   local vol_display = volume_switch_group[1] .. volume_switch_group[2]
-  vb.views["volume_display"].text = vol_display == "00" and "00" or vol_display
+  effect_dialog_vb.views["volume_display"].text = vol_display == "00" and "00" or vol_display
 end
+
+-- Global dialog variable for main dialog
+local dialog = nil
+local main_dialog_instrument_observer = nil
 
 function pakettiPlayerProShowMainDialog()
   if dialog and dialog.visible then
+    -- Clean up observer before closing
+    if main_dialog_instrument_observer then
+      PakettiPlayerProRemoveInstrumentObserver(main_dialog_instrument_observer)
+      main_dialog_instrument_observer = nil
+    end
     dialog:close()
-    dialog_content = nil
-    vb = nil
     dialog = nil
     return
   end
 
-  -- Create new ViewBuilder instance
-  vb = renoise.ViewBuilder()
+  -- Create new ViewBuilder instance for this dialog
+  local main_vb = renoise.ViewBuilder()
 
+  -- Get the currently selected instrument to set as initial popup value
+  local selected_instrument_index = renoise.song().selected_instrument_index
+  local selected_instrument_value = selected_instrument_index + 1
+
+  -- Create effect items array with "None" as first item, then all effect descriptions
+  local effect_items = {"None"}
+  for _, description in ipairs(effect_descriptions) do
+    table.insert(effect_items, description)
+  end
+
+  -- Create instrument items array
   local instrument_items = {"<None>"}
   for i = 0, #renoise.song().instruments - 1 do
     local instrument = renoise.song().instruments[i + 1]
-    table.insert(instrument_items, string.format("%02d: %s", i, (instrument.name or "Untitled")))
+    table.insert(instrument_items, string.format("%02X: %s", i, (instrument.name or "Untitled")))
   end
 
-  local dialog_content = vb:column{
-    margin=10,
-    vb:row{
-      vb:text{
-        text="Instrument:"
+  local function update_main_instrument_popup()
+    local instrument_items = {"<None>"}
+    for i = 0, #renoise.song().instruments - 1 do
+      local instrument = renoise.song().instruments[i + 1]
+      table.insert(instrument_items, string.format("%02X: %s", i, (instrument.name or "Untitled")))
+    end
+    
+    local popup = main_vb.views["main_dialog_instrument_popup"]
+    popup.items = instrument_items
+  end
+
+  local main_switch_group = {"0","0"}
+  local main_volume_switch_group = {"0","0"}
+
+  local function pakettiPlayerProCreateMainArgumentColumn(column_index, switch_group, update_display)
+    return main_vb:switch{
+      items = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F"},
+      width=220,
+      height = 20,
+      value = 1, -- default to "0"
+      notifier=function(idx)
+        switch_group[column_index] = idx == 1 and "0" or string.format("%X", idx - 1)
+        update_display()
+      end
+    }
+  end
+
+  local function pakettiPlayerProCreateMainVolumeColumn(column_index, switch_group, update_display)
+    -- First digit (column_index 1): 0-8 only (volume max is 80 hex)
+    -- Second digit (column_index 2): 0-F full range
+    local items
+    if column_index == 1 then
+      items = {"0", "1", "2", "3", "4", "5", "6", "7", "8"}
+    else
+      items = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F"}
+    end
+    
+    return main_vb:switch{
+      items = items,
+      width=250,
+      height = 20,
+      value = 1, -- default to "0"
+      id = "volume_switch_" .. column_index,
+      notifier=function(idx)
+        if column_index == 1 then
+          -- First digit: 0-8 range
+          switch_group[column_index] = tostring(idx - 1)
+          -- If first digit is set to 8, reset second digit to 0
+          if idx - 1 == 8 then
+            switch_group[2] = "0"
+            -- Update the second switch to show 0
+            local second_switch = main_vb.views["volume_switch_2"]
+            if second_switch then
+              second_switch.value = 1 -- Index 1 corresponds to "0"
+            end
+          end
+        else
+          -- Second digit: 0-F range, but check if first digit is 8
+          if switch_group[1] == "8" and idx > 1 then
+            -- If first digit is 8, only allow 0 for second digit
+            switch_group[column_index] = "0"
+            -- Reset the switch back to 0
+            main_vb.views["volume_switch_2"].value = 1
+          else
+            switch_group[column_index] = idx == 1 and "0" or string.format("%X", idx - 1)
+          end
+        end
+        update_display()
+      end
+    }
+  end
+
+  local function pakettiPlayerProUpdateMainEffectDropdown()
+    -- Get current effect argument values
+    local arg_display = main_switch_group[1] .. main_switch_group[2]
+    
+    -- Print detailed information when effect dropdown changes
+    local song = renoise.song()
+    local sel = song.selection_in_pattern
+    local editstep_status = EditStepCheckboxValue and "ENABLED" or "DISABLED"
+    local step = song.transport.edit_step
+    
+    print("=== MAIN DIALOG EFFECT DROPDOWN CHANGED ===")
+    print("Effect Argument: " .. arg_display)
+    print("EditStep: " .. editstep_status .. " (step size: " .. step .. ")")
+    
+    -- Check for valid track types first
+    local start_track, end_track
+    if sel then
+      start_track = sel.start_track
+      end_track = sel.end_track
+    else
+      start_track = song.selected_track_index
+      end_track = song.selected_track_index
+    end
+    
+    local is_valid_track = false
+    for track_index = start_track, end_track do
+      local track = song:track(track_index)
+      if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+        is_valid_track = true
+        break
+      end
+    end
+
+    if not is_valid_track then
+      renoise.app():show_status("The selected track is a Group / Master or Send, and doesn't have Effect Columns. Doing nothing.")
+      return
+    end
+    
+    -- Get the selected effect from the popup
+    local effect = nil
+    local effect_popup_value = main_vb.views["main_effect_popup"].value
+    local write_effect_command = false
+    
+    if effect_popup_value > 1 then
+      local effect_description = effect_items[effect_popup_value]
+      -- Extract the effect code (e.g., "0A" from "0Axy - Arpeggio...")
+      effect = string.match(effect_description, "^(%w%w)")
+      write_effect_command = true
+      print("Using effect: " .. effect)
+    else
+      print("Effect dropdown is 'None' - clearing effect commands")
+    end
+    
+    local pattern_index = song.selected_pattern_index
+    local effect_column_selected = false
+    
+    if step == 0 then
+      step = 1
+    end
+    
+    local function insert_effect_line(line, col, track_idx, line_idx)
+      if write_effect_command then
+        line:effect_column(col).number_string = effect
+      end
+      line:effect_column(col).amount_string = arg_display
+      if write_effect_command then
+        print("  Set effect " .. effect .. arg_display .. " at track " .. song:track(track_idx).name .. ", line " .. line_idx .. ", column " .. col)
+      else
+        print("  Set effect argument " .. arg_display .. " at track " .. song:track(track_idx).name .. ", line " .. line_idx .. ", column " .. col)
+      end
+    end
+    
+    local function clear_effect_line(line, col)
+      line:effect_column(col).number_string = ".."
+      line:effect_column(col).amount_string = ".."
+      print("  Clearing effect column on non-editstep row")
+    end
+    
+    -- Count affected columns and tracks for status message
+    local affected_tracks = {}
+    local total_columns = 0
+    
+    if sel == nil then
+      local line = song.selected_line
+      local col = song.selected_effect_column_index
+      if col > 0 and col <= song.selected_track.visible_effect_columns then
+        insert_effect_line(line, col, song.selected_track_index, song.selected_line_index)
+        effect_column_selected = true
+        affected_tracks[song.selected_track_index] = 1
+        total_columns = 1
+      end
+    else
+      -- Use the same pattern as PakettiPatternEditorCheatSheet.lua
+      for track_index = sel.start_track, sel.end_track do
+        local track = song:pattern(pattern_index):track(track_index)
+        local trackvis = song:track(track_index)
+        if trackvis.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+          local note_columns_visible = trackvis.visible_note_columns
+          local effect_columns_visible = trackvis.visible_effect_columns
+          local total_columns_visible = note_columns_visible + effect_columns_visible
+
+          local start_column = (track_index == sel.start_track) and sel.start_column or 1
+          local end_column = (track_index == sel.end_track) and sel.end_column or total_columns_visible
+          
+          local track_columns = 0
+          for line_index = sel.start_line, sel.end_line do
+            local line = track:line(line_index)
+            for col = start_column, end_column do
+              local column_index = col - note_columns_visible
+              if col > note_columns_visible and column_index > 0 and column_index <= effect_columns_visible then
+                if EditStepCheckboxValue and (line_index - sel.start_line) % step ~= 0 then
+                  -- Clear effect on this line if EditStep is enabled and line doesn't match
+                  clear_effect_line(line, column_index)
+                  print("  Skipping line " .. line_index .. " (EditStep) - clearing effect")
+                else
+                  -- Insert effect on this line
+                  if write_effect_command then
+                    line:effect_column(column_index).number_string = effect
+                  end
+                  line:effect_column(column_index).amount_string = arg_display
+                  if write_effect_command then
+                    print("  Set effect " .. effect .. arg_display .. " at track " .. song:track(track_index).name .. ", line " .. line_index .. ", column " .. column_index)
+                  else
+                    print("  Set effect argument " .. arg_display .. " at track " .. song:track(track_index).name .. ", line " .. line_index .. ", column " .. column_index)
+                  end
+                  effect_column_selected = true
+                  -- Count each unique effect column only once per track
+                  if line_index == sel.start_line then
+                    track_columns = track_columns + 1
+                  end
+                end
+              end
+            end
+          end
+          if track_columns > 0 then
+            affected_tracks[track_index] = track_columns
+            total_columns = total_columns + track_columns
+          end
+        end
+      end
+    end
+    
+    if not effect_column_selected then
+      print("  No effect columns found - effect not applied")
+    else
+      -- Create detailed status message
+      local track_count = 0
+      local min_track = nil
+      local max_track = nil
+      for track_index, _ in pairs(affected_tracks) do
+        track_count = track_count + 1
+        if min_track == nil or track_index < min_track then
+          min_track = track_index
+        end
+        if max_track == nil or track_index > max_track then
+          max_track = track_index
+        end
+      end
+      
+      local track_range = ""
+      if track_count == 1 then
+        track_range = "Track " .. min_track
+      else
+        track_range = "Tracks " .. min_track .. "-" .. max_track
+      end
+      
+      if write_effect_command then
+        renoise.app():show_status("Wrote Effect " .. effect .. " at value " .. arg_display .. " to " .. total_columns .. " Effect Columns on " .. track_range)
+      else
+        renoise.app():show_status("Wrote Effect argument " .. arg_display .. " to " .. total_columns .. " Effect Columns on " .. track_range)
+      end
+    end
+    
+    renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+  end
+
+  local function pakettiPlayerProUpdateMainVolumeDisplay()
+    local vol_display = main_volume_switch_group[1] .. main_volume_switch_group[2]
+    main_vb.views["main_volume_display"].text = vol_display == "00" and "00" or vol_display
+    
+    -- Print detailed information when volume changes
+    local song = renoise.song()
+    local sel = song.selection_in_pattern
+    local editstep_status = EditStepCheckboxValue and "ENABLED" or "DISABLED"
+    local step = song.transport.edit_step
+    
+    print("=== MAIN DIALOG VOLUME CHANGED ===")
+    print("Volume: " .. vol_display)
+    print("EditStep: " .. editstep_status .. " (step size: " .. step .. ")")
+    
+    -- Check for valid track types first
+    local start_track, end_track
+    if sel then
+      start_track = sel.start_track
+      end_track = sel.end_track
+    else
+      start_track = song.selected_track_index
+      end_track = song.selected_track_index
+    end
+    
+    local is_valid_track = false
+    for track_index = start_track, end_track do
+      local track = song:track(track_index)
+      if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+        is_valid_track = true
+        break
+      end
+    end
+
+    if not is_valid_track then
+      renoise.app():show_status("The selected track is a Group / Master or Send, and doesn't have Note Columns. Doing nothing.")
+      return
+    end
+    
+    if sel then
+      print("Selection:")
+      print("  Tracks: " .. sel.start_track .. " to " .. sel.end_track)
+      print("  Lines: " .. sel.start_line .. " to " .. sel.end_line)
+      print("  Columns: " .. sel.start_column .. " to " .. sel.end_column)
+      local total_lines = sel.end_line - sel.start_line + 1
+      print("  Total lines: " .. total_lines)
+      
+      if EditStepCheckboxValue and step > 1 then
+        local affected_lines = 0
+        for line_index = sel.start_line, sel.end_line do
+          if (line_index - sel.start_line) % step == 0 then
+            affected_lines = affected_lines + 1
+          end
+        end
+        print("  Lines that will be affected by EditStep: " .. affected_lines .. " out of " .. total_lines)
+      end
+    else
+      print("No selection - single line/column:")
+      print("  Track: " .. song.selected_track_index .. " (" .. song.selected_track.name .. ")")
+      print("  Line: " .. song.selected_line_index)
+      print("  Column: " .. song.selected_note_column_index)
+    end
+    print("=====================================")
+    
+    -- Actually write the volume to the pattern
+    if vol_display ~= "00" then
+      print("Writing volume " .. vol_display .. " to pattern...")
+      
+      local pattern_index = song.selected_pattern_index
+      local note_column_selected = false
+      
+      if step == 0 then
+        step = 1
+      end
+      
+      local function insert_volume_line(line, col, track_idx, line_idx)
+        line:note_column(col).volume_string = vol_display
+        print("  Set volume " .. vol_display .. " at track " .. song:track(track_idx).name .. ", line " .. line_idx .. ", column " .. col)
+      end
+      
+      local function clear_volume_line(line, col)
+        line:note_column(col).volume_string = ".."
+        print("  Clearing volume column on non-editstep row")
+      end
+      
+      if sel == nil then
+        local line = song.selected_line
+        local col = song.selected_note_column_index
+        local visible_note_columns = song.selected_track.visible_note_columns
+        if col > 0 and col <= visible_note_columns then
+          insert_volume_line(line, col, song.selected_track_index, song.selected_line_index)
+          note_column_selected = true
+        end
+      else
+        for track_index = sel.start_track, sel.end_track do
+          local track = song:track(track_index)
+          if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+            local pattern_track = song.patterns[pattern_index]:track(track_index)
+            local visible_note_columns = track.visible_note_columns
+            
+            for line_index = sel.start_line, sel.end_line do
+              local line = pattern_track:line(line_index)
+              for col_index = 1, visible_note_columns do
+                if (track_index > sel.start_track) or (col_index >= sel.start_column) then
+                  if col_index <= visible_note_columns then
+                    if EditStepCheckboxValue and (line_index - sel.start_line) % step ~= 0 then
+                      -- Clear volume on this line if EditStep is enabled and line doesn't match
+                      clear_volume_line(line, col_index)
+                      print("  Skipping line " .. line_index .. " (EditStep) - clearing volume")
+                    else
+                      -- Insert volume on this line
+                      insert_volume_line(line, col_index, track_index, line_index)
+                      note_column_selected = true
+                    end
+                  end
+                end
+              end
+            end
+          end
+        end
+      end
+      
+      if not note_column_selected then
+        renoise.app():show_status("No note columns found - volume not applied")
+      else
+        -- Count the affected columns and tracks for better status message
+        local affected_tracks = {}
+        local total_columns = 0
+        
+        if sel == nil then
+          affected_tracks[song.selected_track_index] = 1
+          total_columns = 1
+        else
+          for track_index = sel.start_track, sel.end_track do
+            local track = song:track(track_index)
+            if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+              local visible_note_columns = track.visible_note_columns
+              local track_columns = 0
+              for col_index = 1, visible_note_columns do
+                if (track_index > sel.start_track) or (col_index >= sel.start_column) then
+                  track_columns = track_columns + 1
+                  total_columns = total_columns + 1
+                end
+              end
+              if track_columns > 0 then
+                affected_tracks[track_index] = track_columns
+              end
+            end
+          end
+        end
+        
+        local track_count = 0
+        local min_track = nil
+        local max_track = nil
+        for track_index, _ in pairs(affected_tracks) do
+          track_count = track_count + 1
+          if min_track == nil or track_index < min_track then
+            min_track = track_index
+          end
+          if max_track == nil or track_index > max_track then
+            max_track = track_index
+          end
+        end
+        
+        local track_range = ""
+        if track_count == 1 then
+          track_range = "Track " .. min_track
+        else
+          track_range = "Tracks " .. min_track .. "-" .. max_track
+        end
+        
+        renoise.app():show_status("Wrote Volume " .. vol_display .. " to " .. total_columns .. " Note Columns on " .. track_range)
+      end
+    end
+    
+    renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+  end
+
+  local function pakettiPlayerProUpdateMainEffectArgumentDisplay()
+    local arg_display = main_switch_group[1] .. main_switch_group[2]
+    main_vb.views["main_effect_argument_display"].text = arg_display == "00" and "00" or arg_display
+    
+    -- Print detailed information when effect changes
+    local song = renoise.song()
+    local sel = song.selection_in_pattern
+    local editstep_status = EditStepCheckboxValue and "ENABLED" or "DISABLED"
+    local step = song.transport.edit_step
+    
+    print("=== MAIN DIALOG EFFECT CHANGED ===")
+    print("Effect Argument: " .. arg_display)
+    print("EditStep: " .. editstep_status .. " (step size: " .. step .. ")")
+    
+    -- Check for valid track types first
+    local start_track, end_track
+    if sel then
+      start_track = sel.start_track
+      end_track = sel.end_track
+    else
+      start_track = song.selected_track_index
+      end_track = song.selected_track_index
+    end
+    
+    local is_valid_track = false
+    for track_index = start_track, end_track do
+      local track = song:track(track_index)
+      if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+        is_valid_track = true
+        break
+      end
+    end
+
+    if not is_valid_track then
+      renoise.app():show_status("The selected track is a Group / Master or Send, and doesn't have Effect Columns. Doing nothing.")
+      return
+    end
+    
+    if sel then
+      print("Selection:")
+      print("  Tracks: " .. sel.start_track .. " to " .. sel.end_track)
+      print("  Lines: " .. sel.start_line .. " to " .. sel.end_line)
+      print("  Columns: " .. sel.start_column .. " to " .. sel.end_column)
+      local total_lines = sel.end_line - sel.start_line + 1
+      print("  Total lines: " .. total_lines)
+      
+      if EditStepCheckboxValue and step > 1 then
+        local affected_lines = 0
+        for line_index = sel.start_line, sel.end_line do
+          if (line_index - sel.start_line) % step == 0 then
+            affected_lines = affected_lines + 1
+          end
+        end
+        print("  Lines that will be affected by EditStep: " .. affected_lines .. " out of " .. total_lines)
+      end
+    else
+      print("No selection - single line/column:")
+      print("  Track: " .. song.selected_track_index .. " (" .. song.selected_track.name .. ")")
+      print("  Line: " .. song.selected_line_index)
+      print("  Column: " .. song.selected_note_column_index)
+    end
+    print("=====================================")
+    
+    -- Actually write the effect to the pattern
+    if arg_display ~= "00" then
+      print("Writing effect argument " .. arg_display .. " to pattern...")
+      
+      -- Get the selected effect from the popup
+      local effect = nil
+      local effect_popup_value = main_vb.views["main_effect_popup"].value
+      local write_effect_command = false
+      
+      if effect_popup_value > 1 then
+        local effect_description = effect_items[effect_popup_value]
+        -- Extract the effect code (e.g., "0A" from "0Axy - Arpeggio...")
+        effect = string.match(effect_description, "^(%w%w)")
+        write_effect_command = true
+        print("Using effect: " .. effect)
+      else
+        print("Effect dropdown is 'None' - writing only effect argument values")
+      end
+      
+      local pattern_index = song.selected_pattern_index
+      local effect_column_selected = false
+      
+      if step == 0 then
+        step = 1
+      end
+      
+      local function insert_effect_line(line, col, track_idx, line_idx)
+        if write_effect_command then
+          line:effect_column(col).number_string = effect
+        end
+        line:effect_column(col).amount_string = arg_display
+        if write_effect_command then
+          print("  Set effect " .. effect .. arg_display .. " at track " .. song:track(track_idx).name .. ", line " .. line_idx .. ", column " .. col)
+        else
+          print("  Set effect argument " .. arg_display .. " at track " .. song:track(track_idx).name .. ", line " .. line_idx .. ", column " .. col)
+        end
+      end
+      
+      local function clear_effect_line(line, col)
+        line:effect_column(col).number_string = ".."
+        line:effect_column(col).amount_string = ".."
+        print("  Clearing effect column on non-editstep row")
+      end
+      
+      -- Count affected columns and tracks for status message
+      local affected_tracks = {}
+      local total_columns = 0
+      
+      if sel == nil then
+        local line = song.selected_line
+        local col = song.selected_effect_column_index
+        if col > 0 and col <= song.selected_track.visible_effect_columns then
+          insert_effect_line(line, col, song.selected_track_index, song.selected_line_index)
+          effect_column_selected = true
+          affected_tracks[song.selected_track_index] = 1
+          total_columns = 1
+        end
+      else
+        -- Use the same pattern as PakettiPatternEditorCheatSheet.lua
+        for track_index = sel.start_track, sel.end_track do
+          local track = song:pattern(pattern_index):track(track_index)
+          local trackvis = song:track(track_index)
+          if trackvis.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+            local note_columns_visible = trackvis.visible_note_columns
+            local effect_columns_visible = trackvis.visible_effect_columns
+            local total_columns_visible = note_columns_visible + effect_columns_visible
+
+            local start_column = (track_index == sel.start_track) and sel.start_column or 1
+            local end_column = (track_index == sel.end_track) and sel.end_column or total_columns_visible
+            
+            local track_columns = 0
+            for line_index = sel.start_line, sel.end_line do
+              local line = track:line(line_index)
+              for col = start_column, end_column do
+                local column_index = col - note_columns_visible
+                if col > note_columns_visible and column_index > 0 and column_index <= effect_columns_visible then
+                  if EditStepCheckboxValue and (line_index - sel.start_line) % step ~= 0 then
+                    -- Clear effect on this line if EditStep is enabled and line doesn't match
+                    clear_effect_line(line, column_index)
+                    print("  Skipping line " .. line_index .. " (EditStep) - clearing effect")
+                  else
+                    -- Insert effect on this line
+                    if write_effect_command then
+                      line:effect_column(column_index).number_string = effect
+                    end
+                    line:effect_column(column_index).amount_string = arg_display
+                    if write_effect_command then
+                      print("  Set effect " .. effect .. arg_display .. " at track " .. song:track(track_index).name .. ", line " .. line_index .. ", column " .. column_index)
+                    else
+                      print("  Set effect argument " .. arg_display .. " at track " .. song:track(track_index).name .. ", line " .. line_index .. ", column " .. column_index)
+                    end
+                    effect_column_selected = true
+                    -- Count each unique effect column only once per track
+                    if line_index == sel.start_line then
+                      track_columns = track_columns + 1
+                    end
+                  end
+                end
+              end
+            end
+            if track_columns > 0 then
+              affected_tracks[track_index] = track_columns
+              total_columns = total_columns + track_columns
+            end
+          end
+        end
+      end
+      
+      if not effect_column_selected then
+        renoise.app():show_status("No effect columns found - effect not applied")
+      else
+        -- Create detailed status message
+        local track_count = 0
+        local min_track = nil
+        local max_track = nil
+        for track_index, _ in pairs(affected_tracks) do
+          track_count = track_count + 1
+          if min_track == nil or track_index < min_track then
+            min_track = track_index
+          end
+          if max_track == nil or track_index > max_track then
+            max_track = track_index
+          end
+        end
+        
+        local track_range = ""
+        if track_count == 1 then
+          track_range = "Track " .. min_track
+        else
+          track_range = "Tracks " .. min_track .. "-" .. max_track
+        end
+        
+        if write_effect_command then
+          renoise.app():show_status("Wrote Effect " .. effect .. " at value " .. arg_display .. " to " .. total_columns .. " Effect Columns on " .. track_range)
+        else
+          renoise.app():show_status("Wrote Effect argument " .. arg_display .. " to " .. total_columns .. " Effect Columns on " .. track_range)
+        end
+      end
+    end
+    
+    renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+  end
+
+  local dialog_content = main_vb:column{
+    --margin=10,
+    main_vb:row{
+      main_vb:text{
+        text="Instrument", style="strong",font="bold",
       },
-      vb:popup{
+      main_vb:popup{
         items = instrument_items,
-        width=218,
-        id = "effect_dialog_instrument_popup",
+        width=320,
+        id = "main_dialog_instrument_popup",
+        value = selected_instrument_value,
+        notifier=function(value)
+          local instrument
+          if value == 1 then
+            instrument = nil
+            renoise.song().selected_instrument_index = nil
+          else
+            instrument = value - 1
+            renoise.song().selected_instrument_index = instrument
+          end
+          print("Main Dialog - Instrument changed to: " .. tostring(instrument))
+        end
       },
-      vb:button{
+      main_vb:button{
         text="Refresh",
         width=100,
         notifier=function()
-          update_instrument_popup()
+          update_main_instrument_popup()
         end
       }
     },
-    vb:row{
-      pakettiPlayerProCreateNoteGrid()
+    main_vb:row{
+      pakettiPlayerProCreateMainNoteGrid(main_vb)
     },
-    vb:row{
-      vb:text{
-        text="Effect:"
-      },
-      vb:popup{
-        items = {"None", "Effect 1", "Effect 2", "Effect 3"}, -- Add actual effects here
-        width=200,
-        id = "effect_popup"
+    main_vb:row{
+      main_vb:text{text="Effect", style="strong", font="bold"},
+      main_vb:popup{
+        items = effect_items,
+        width=450,
+        id = "main_effect_popup",
+        notifier = function(value)
+          pakettiPlayerProUpdateMainEffectDropdown()
+        end
       }
     },
-    vb:row{
-        vb:column{
-          vb:text{text="Volume"},
-          pakettiPlayerProCreateArgumentColumn(1, volume_switch_group, pakettiPlayerProUpdateVolumeDisplay),
-          pakettiPlayerProCreateArgumentColumn(2, volume_switch_group, pakettiPlayerProUpdateVolumeDisplay),
-          vb:text{id = "volume_display", text="00",width=40, style="strong", font="bold"},
+    main_vb:row{
+        main_vb:column{
+          main_vb:text{text="Volume", style="strong", font="bold"},
+          pakettiPlayerProCreateMainVolumeColumn(1, main_volume_switch_group, pakettiPlayerProUpdateMainVolumeDisplay),
+          pakettiPlayerProCreateMainVolumeColumn(2, main_volume_switch_group, pakettiPlayerProUpdateMainVolumeDisplay),
+          main_vb:text{id = "main_volume_display", text="00",width=40, style="strong", font="bold"},
         },
-        vb:column{},
-        vb:column{
-          vb:text{text="Effect"},
-          pakettiPlayerProCreateArgumentColumn(1, switch_group, pakettiPlayerProUpdateEffectArgumentDisplay),
-          pakettiPlayerProCreateArgumentColumn(2, switch_group, pakettiPlayerProUpdateEffectArgumentDisplay),
-          vb:text{id = "effect_argument_display", text="00",width=40, style="strong", font="bold"},
+        main_vb:column{},
+        main_vb:column{
+          main_vb:text{text="Effect", style="strong", font="bold"},
+          pakettiPlayerProCreateMainArgumentColumn(1, main_switch_group, pakettiPlayerProUpdateMainEffectArgumentDisplay),
+          pakettiPlayerProCreateMainArgumentColumn(2, main_switch_group, pakettiPlayerProUpdateMainEffectArgumentDisplay),
+          main_vb:text{id = "main_effect_argument_display", text="00",width=40, style="strong", font="bold"},
       }
     },
-    vb:row{
-      spacing=10,
-      vb:button{
+    main_vb:row{
+      --spacing=10,
+      main_vb:button{
         text="Apply",
         width=100,
         notifier=function()
-          local instrument_value = vb.views["effect_dialog_instrument_popup"].value - 2
+          local instrument_value = main_vb.views["main_dialog_instrument_popup"].value - 2
           local instrument = instrument_value >= 0 and instrument_value or nil
-          local effect_value = vb.views["effect_popup"].value
-          local effect = effect_value > 1 and vb.views["effect_popup"].items[effect_value] or nil
-          local effect_argument = vb.views["effect_argument_display"].text
-          local volume = vb.views["volume_display"].text
+          
+          -- Extract effect code from selected effect description
+          local effect = nil
+          local effect_popup_value = main_vb.views["main_effect_popup"].value
+          if effect_popup_value > 1 then
+            local effect_description = effect_items[effect_popup_value]
+            -- Extract the effect code (e.g., "0A" from "0Axy - Arpeggio...")
+            effect = string.match(effect_description, "^(%w%w)")
+          end
+          
+          local effect_argument = main_vb.views["main_effect_argument_display"].text
+          local volume = main_vb.views["main_volume_display"].text
           -- Insert all selected values
-          pakettiPlayerProInsertNoteInPattern(nil, instrument, effect, effect_argument, volume)
+          pakettiPlayerProMainDialogInsertNoteInPattern(nil, instrument, effect, effect_argument, volume, EditStepCheckboxValue)
           -- Return focus to the Pattern Editor
           renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
         end
       },
-      vb:button{
+      main_vb:button{
         text="Cancel",
         width=100,
         notifier=function()
+          -- Clean up observer before closing
+          if main_dialog_instrument_observer then
+            PakettiPlayerProRemoveInstrumentObserver(main_dialog_instrument_observer)
+            main_dialog_instrument_observer = nil
+          end
           dialog:close()
           -- Clean up references
-          vb = nil
           dialog = nil
         end
       }
@@ -838,28 +1691,126 @@ function pakettiPlayerProShowMainDialog()
   }
 
   dialog = renoise.app():show_custom_dialog("Player Pro Main Dialog", dialog_content, my_keyhandler_func)
+  
+  -- Add instrument observer after dialog is created
+  main_dialog_instrument_observer = PakettiPlayerProCreateInstrumentObserver(main_vb, "main_dialog_instrument_popup", dialog)
+  
+  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 end
 
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Other Trackers..:Open Player Pro Tools Dialog...",invoke=pakettiPlayerProShowMainDialog}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Open Player Pro Tools Dialog...",invoke=pakettiPlayerProShowMainDialog}
 
--- Global dialog variable
-local dialog = nil
+function pakettiPlayerProMainDialogInsertNoteInPattern(note, instrument, effect, effect_argument, volume, editstep_enabled)
+  local song=renoise.song()
+  local sel = song.selection_in_pattern
+  local pattern_index = song.selected_pattern_index
+  local note_to_insert = note == "000" and "---" or note
+  local note_column_selected = false
+  local step = song.transport.edit_step
 
-function pakettiPlayerProEffectDialog()
-  if dialog and dialog.visible then
-    dialog:close()
-    dialog = nil
-    return
+  if step == 0 then
+    step = 1
+  end
+
+  -- Check for valid track types first
+  local start_track, end_track
+  if sel then
+    start_track = sel.start_track
+    end_track = sel.end_track
+  else
+    start_track = song.selected_track_index
+    end_track = song.selected_track_index
   end
   
-  dialog = renoise.app():show_custom_dialog("FX", dialog_content, my_keyhandler_func)
+  local is_valid_track = false
+  for track_index = start_track, end_track do
+    local track = song:track(track_index)
+    if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+      is_valid_track = true
+      break
+    end
+  end
+
+  if not is_valid_track then
+    renoise.app():show_status("The selected track is a Group / Master or Send, and doesn't have Note Columns. Doing nothing.")
+    return
+  end
+
+  -- Only print debug info if we have valid tracks
+  print("Inserted: " .. note .. " with EditStep: " .. tostring(editstep_enabled) .. ", Volume: " .. volume .. ", Effect: " .. tostring(effect))
+
+  local function insert_note_line(line, col)
+    if note then
+      line:note_column(col).note_string = note_to_insert
+    end
+    
+    if note == "OFF" or note == "---" or note == "000" then
+      line:note_column(col).instrument_string = ".." 
+    end
+
+    if instrument ~= nil and note ~= "000" and note ~= "OFF" then
+      local instrument_actual = instrument - 1
+      local instrument_string = string.format("%02X", instrument_actual)
+      line:note_column(col).instrument_string = instrument_string
+    end
+    
+    if effect and effect ~= "None" and note ~= "---" and note ~= "OFF" then
+      line:effect_column(col).number_string = effect
+      line:effect_column(col).amount_string = effect_argument ~= "00" and effect_argument or "00"
+    end
+    
+    if volume and volume ~= "00" and note ~= "---" and note ~= "OFF" then
+      line:note_column(col).volume_string = volume
+    end
+    
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 end
 
--- Menu registration
-renoise.tool():add_menu_entry{
-  name="Pattern Editor:Paketti..:Other Trackers..:Open Player Pro Tools Effect Dialog",
-  invoke=function() pakettiPlayerProEffectDialog() end
-}
----------------
+  local function clear_note_line(line, col)
+    line:note_column(col).note_string = "---"
+    line:note_column(col).instrument_string = ".."
+    line:note_column(col).volume_string = ".."
+    print("Clearing note column and volume on non-editstep row")
+  end
+
+  if sel == nil then
+    local line = song.selected_line
+    local col = song.selected_note_column_index
+    local visible_note_columns = song.selected_track.visible_note_columns
+    if col > 0 and col <= visible_note_columns then
+      insert_note_line(line, col)
+      note_column_selected = true
+    end
+  else
+    for track_index = sel.start_track, sel.end_track do
+      local track = song:track(track_index)
+      if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+        local pattern_track = song.patterns[pattern_index]:track(track_index)
+        local visible_note_columns = track.visible_note_columns
+
+        for line_index = sel.start_line, sel.end_line do
+          local line = pattern_track:line(line_index)
+          for col_index = 1, visible_note_columns do
+            if (track_index > sel.start_track) or (col_index >= sel.start_column) then
+              if col_index <= visible_note_columns then
+                if editstep_enabled and (line_index - sel.start_line) % step ~= 0 then
+                  -- Clear effect on this line if EditStep is enabled and line doesn't match
+                  clear_note_line(line, col_index)
+                else
+                  -- Otherwise, insert the note with effects and volume
+                  insert_note_line(line, col_index)
+                  note_column_selected = true
+                end
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+
+  if not note_column_selected then
+    renoise.app():show_status("No Note Columns were selected, doing nothing.")
+  end
+end  
