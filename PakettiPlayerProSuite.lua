@@ -1267,56 +1267,54 @@ function pakettiPlayerProShowMainDialog()
     end
     print("=====================================")
     
-    -- Actually write the volume to the pattern
-    if vol_display ~= "00" then
-      print("Writing volume " .. vol_display .. " to pattern...")
-      
-      local pattern_index = song.selected_pattern_index
-      local note_column_selected = false
-      
-      if step == 0 then
-        step = 1
+    -- Actually write the volume to the pattern - removed condition that prevented "00"
+    print("Writing volume " .. vol_display .. " to pattern...")
+    
+    local pattern_index = song.selected_pattern_index
+    local note_column_selected = false
+    
+    if step == 0 then
+      step = 1
+    end
+    
+    local function insert_volume_line(line, col, track_idx, line_idx)
+      line:note_column(col).volume_string = vol_display
+      print("  Set volume " .. vol_display .. " at track " .. song:track(track_idx).name .. ", line " .. line_idx .. ", column " .. col)
+    end
+    
+    local function clear_volume_line(line, col)
+      line:note_column(col).volume_string = ".."
+      print("  Clearing volume column on non-editstep row")
+    end
+    
+    if sel == nil then
+      local line = song.selected_line
+      local col = song.selected_note_column_index
+      local visible_note_columns = song.selected_track.visible_note_columns
+      if col > 0 and col <= visible_note_columns then
+        insert_volume_line(line, col, song.selected_track_index, song.selected_line_index)
+        note_column_selected = true
       end
-      
-      local function insert_volume_line(line, col, track_idx, line_idx)
-        line:note_column(col).volume_string = vol_display
-        print("  Set volume " .. vol_display .. " at track " .. song:track(track_idx).name .. ", line " .. line_idx .. ", column " .. col)
-      end
-      
-      local function clear_volume_line(line, col)
-        line:note_column(col).volume_string = ".."
-        print("  Clearing volume column on non-editstep row")
-      end
-      
-      if sel == nil then
-        local line = song.selected_line
-        local col = song.selected_note_column_index
-        local visible_note_columns = song.selected_track.visible_note_columns
-        if col > 0 and col <= visible_note_columns then
-          insert_volume_line(line, col, song.selected_track_index, song.selected_line_index)
-          note_column_selected = true
-        end
-      else
-        for track_index = sel.start_track, sel.end_track do
-          local track = song:track(track_index)
-          if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
-            local pattern_track = song.patterns[pattern_index]:track(track_index)
-            local visible_note_columns = track.visible_note_columns
-            
-            for line_index = sel.start_line, sel.end_line do
-              local line = pattern_track:line(line_index)
-              for col_index = 1, visible_note_columns do
-                if (track_index > sel.start_track) or (col_index >= sel.start_column) then
-                  if col_index <= visible_note_columns then
-                    if EditStepCheckboxValue and (line_index - sel.start_line) % step ~= 0 then
-                      -- Clear volume on this line if EditStep is enabled and line doesn't match
-                      clear_volume_line(line, col_index)
-                      print("  Skipping line " .. line_index .. " (EditStep) - clearing volume")
-                    else
-                      -- Insert volume on this line
-                      insert_volume_line(line, col_index, track_index, line_index)
-                      note_column_selected = true
-                    end
+    else
+      for track_index = sel.start_track, sel.end_track do
+        local track = song:track(track_index)
+        if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+          local pattern_track = song.patterns[pattern_index]:track(track_index)
+          local visible_note_columns = track.visible_note_columns
+          
+          for line_index = sel.start_line, sel.end_line do
+            local line = pattern_track:line(line_index)
+            for col_index = 1, visible_note_columns do
+              if (track_index > sel.start_track) or (col_index >= sel.start_column) then
+                if col_index <= visible_note_columns then
+                  if EditStepCheckboxValue and (line_index - sel.start_line) % step ~= 0 then
+                    -- Clear volume on this line if EditStep is enabled and line doesn't match
+                    clear_volume_line(line, col_index)
+                    print("  Skipping line " .. line_index .. " (EditStep) - clearing volume")
+                  else
+                    -- Insert volume on this line
+                    insert_volume_line(line, col_index, track_index, line_index)
+                    note_column_selected = true
                   end
                 end
               end
@@ -1324,58 +1322,58 @@ function pakettiPlayerProShowMainDialog()
           end
         end
       end
+    end
+    
+    if not note_column_selected then
+      renoise.app():show_status("No note columns found - volume not applied")
+    else
+      -- Count the affected columns and tracks for better status message
+      local affected_tracks = {}
+      local total_columns = 0
       
-      if not note_column_selected then
-        renoise.app():show_status("No note columns found - volume not applied")
+      if sel == nil then
+        affected_tracks[song.selected_track_index] = 1
+        total_columns = 1
       else
-        -- Count the affected columns and tracks for better status message
-        local affected_tracks = {}
-        local total_columns = 0
-        
-        if sel == nil then
-          affected_tracks[song.selected_track_index] = 1
-          total_columns = 1
-        else
-          for track_index = sel.start_track, sel.end_track do
-            local track = song:track(track_index)
-            if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
-              local visible_note_columns = track.visible_note_columns
-              local track_columns = 0
-              for col_index = 1, visible_note_columns do
-                if (track_index > sel.start_track) or (col_index >= sel.start_column) then
-                  track_columns = track_columns + 1
-                  total_columns = total_columns + 1
-                end
+        for track_index = sel.start_track, sel.end_track do
+          local track = song:track(track_index)
+          if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+            local visible_note_columns = track.visible_note_columns
+            local track_columns = 0
+            for col_index = 1, visible_note_columns do
+              if (track_index > sel.start_track) or (col_index >= sel.start_column) then
+                track_columns = track_columns + 1
+                total_columns = total_columns + 1
               end
-              if track_columns > 0 then
-                affected_tracks[track_index] = track_columns
-              end
+            end
+            if track_columns > 0 then
+              affected_tracks[track_index] = track_columns
             end
           end
         end
-        
-        local track_count = 0
-        local min_track = nil
-        local max_track = nil
-        for track_index, _ in pairs(affected_tracks) do
-          track_count = track_count + 1
-          if min_track == nil or track_index < min_track then
-            min_track = track_index
-          end
-          if max_track == nil or track_index > max_track then
-            max_track = track_index
-          end
-        end
-        
-        local track_range = ""
-        if track_count == 1 then
-          track_range = "Track " .. min_track
-        else
-          track_range = "Tracks " .. min_track .. "-" .. max_track
-        end
-        
-        renoise.app():show_status("Wrote Volume " .. vol_display .. " to " .. total_columns .. " Note Columns on " .. track_range)
       end
+      
+      local track_count = 0
+      local min_track = nil
+      local max_track = nil
+      for track_index, _ in pairs(affected_tracks) do
+        track_count = track_count + 1
+        if min_track == nil or track_index < min_track then
+          min_track = track_index
+        end
+        if max_track == nil or track_index > max_track then
+          max_track = track_index
+        end
+      end
+      
+      local track_range = ""
+      if track_count == 1 then
+        track_range = "Track " .. min_track
+      else
+        track_range = "Tracks " .. min_track .. "-" .. max_track
+      end
+      
+      renoise.app():show_status("Wrote Volume " .. vol_display .. " to " .. total_columns .. " Note Columns on " .. track_range)
     end
     
     renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
@@ -1444,143 +1442,141 @@ function pakettiPlayerProShowMainDialog()
     end
     print("=====================================")
     
-    -- Actually write the effect to the pattern
-    if arg_display ~= "00" then
-      print("Writing effect argument " .. arg_display .. " to pattern...")
-      
-      -- Get the selected effect from the popup
-      local effect = nil
-      local effect_popup_value = main_vb.views["main_effect_popup"].value
-      local write_effect_command = false
-      
-      if effect_popup_value > 1 then
-        local effect_description = effect_items[effect_popup_value]
-        -- Extract the effect code (e.g., "0A" from "0Axy - Arpeggio...")
-        effect = string.match(effect_description, "^(%w%w)")
-        write_effect_command = true
-        print("Using effect: " .. effect)
+    -- Actually write the effect to the pattern - removed condition that prevented "00"
+    print("Writing effect argument " .. arg_display .. " to pattern...")
+    
+    -- Get the selected effect from the popup
+    local effect = nil
+    local effect_popup_value = main_vb.views["main_effect_popup"].value
+    local write_effect_command = false
+    
+    if effect_popup_value > 1 then
+      local effect_description = effect_items[effect_popup_value]
+      -- Extract the effect code (e.g., "0A" from "0Axy - Arpeggio...")
+      effect = string.match(effect_description, "^(%w%w)")
+      write_effect_command = true
+      print("Using effect: " .. effect)
+    else
+      print("Effect dropdown is 'None' - writing only effect argument values")
+    end
+    
+    local pattern_index = song.selected_pattern_index
+    local effect_column_selected = false
+    
+    if step == 0 then
+      step = 1
+    end
+    
+    local function insert_effect_line(line, col, track_idx, line_idx)
+      if write_effect_command then
+        line:effect_column(col).number_string = effect
+      end
+      line:effect_column(col).amount_string = arg_display
+      if write_effect_command then
+        print("  Set effect " .. effect .. arg_display .. " at track " .. song:track(track_idx).name .. ", line " .. line_idx .. ", column " .. col)
       else
-        print("Effect dropdown is 'None' - writing only effect argument values")
+        print("  Set effect argument " .. arg_display .. " at track " .. song:track(track_idx).name .. ", line " .. line_idx .. ", column " .. col)
       end
-      
-      local pattern_index = song.selected_pattern_index
-      local effect_column_selected = false
-      
-      if step == 0 then
-        step = 1
+    end
+    
+    local function clear_effect_line(line, col)
+      line:effect_column(col).number_string = ".."
+      line:effect_column(col).amount_string = ".."
+      print("  Clearing effect column on non-editstep row")
+    end
+    
+    -- Count affected columns and tracks for status message
+    local affected_tracks = {}
+    local total_columns = 0
+    
+    if sel == nil then
+      local line = song.selected_line
+      local col = song.selected_effect_column_index
+      if col > 0 and col <= song.selected_track.visible_effect_columns then
+        insert_effect_line(line, col, song.selected_track_index, song.selected_line_index)
+        effect_column_selected = true
+        affected_tracks[song.selected_track_index] = 1
+        total_columns = 1
       end
-      
-      local function insert_effect_line(line, col, track_idx, line_idx)
-        if write_effect_command then
-          line:effect_column(col).number_string = effect
-        end
-        line:effect_column(col).amount_string = arg_display
-        if write_effect_command then
-          print("  Set effect " .. effect .. arg_display .. " at track " .. song:track(track_idx).name .. ", line " .. line_idx .. ", column " .. col)
-        else
-          print("  Set effect argument " .. arg_display .. " at track " .. song:track(track_idx).name .. ", line " .. line_idx .. ", column " .. col)
-        end
-      end
-      
-      local function clear_effect_line(line, col)
-        line:effect_column(col).number_string = ".."
-        line:effect_column(col).amount_string = ".."
-        print("  Clearing effect column on non-editstep row")
-      end
-      
-      -- Count affected columns and tracks for status message
-      local affected_tracks = {}
-      local total_columns = 0
-      
-      if sel == nil then
-        local line = song.selected_line
-        local col = song.selected_effect_column_index
-        if col > 0 and col <= song.selected_track.visible_effect_columns then
-          insert_effect_line(line, col, song.selected_track_index, song.selected_line_index)
-          effect_column_selected = true
-          affected_tracks[song.selected_track_index] = 1
-          total_columns = 1
-        end
-      else
-        -- Use the same pattern as PakettiPatternEditorCheatSheet.lua
-        for track_index = sel.start_track, sel.end_track do
-          local track = song:pattern(pattern_index):track(track_index)
-          local trackvis = song:track(track_index)
-          if trackvis.type == renoise.Track.TRACK_TYPE_SEQUENCER then
-            local note_columns_visible = trackvis.visible_note_columns
-            local effect_columns_visible = trackvis.visible_effect_columns
-            local total_columns_visible = note_columns_visible + effect_columns_visible
+    else
+      -- Use the same pattern as PakettiPatternEditorCheatSheet.lua
+      for track_index = sel.start_track, sel.end_track do
+        local track = song:pattern(pattern_index):track(track_index)
+        local trackvis = song:track(track_index)
+        if trackvis.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+          local note_columns_visible = trackvis.visible_note_columns
+          local effect_columns_visible = trackvis.visible_effect_columns
+          local total_columns_visible = note_columns_visible + effect_columns_visible
 
-            local start_column = (track_index == sel.start_track) and sel.start_column or 1
-            local end_column = (track_index == sel.end_track) and sel.end_column or total_columns_visible
-            
-            local track_columns = 0
-            for line_index = sel.start_line, sel.end_line do
-              local line = track:line(line_index)
-              for col = start_column, end_column do
-                local column_index = col - note_columns_visible
-                if col > note_columns_visible and column_index > 0 and column_index <= effect_columns_visible then
-                  if EditStepCheckboxValue and (line_index - sel.start_line) % step ~= 0 then
-                    -- Clear effect on this line if EditStep is enabled and line doesn't match
-                    clear_effect_line(line, column_index)
-                    print("  Skipping line " .. line_index .. " (EditStep) - clearing effect")
+          local start_column = (track_index == sel.start_track) and sel.start_column or 1
+          local end_column = (track_index == sel.end_track) and sel.end_column or total_columns_visible
+          
+          local track_columns = 0
+          for line_index = sel.start_line, sel.end_line do
+            local line = track:line(line_index)
+            for col = start_column, end_column do
+              local column_index = col - note_columns_visible
+              if col > note_columns_visible and column_index > 0 and column_index <= effect_columns_visible then
+                if EditStepCheckboxValue and (line_index - sel.start_line) % step ~= 0 then
+                  -- Clear effect on this line if EditStep is enabled and line doesn't match
+                  clear_effect_line(line, column_index)
+                  print("  Skipping line " .. line_index .. " (EditStep) - clearing effect")
+                else
+                  -- Insert effect on this line
+                  if write_effect_command then
+                    line:effect_column(column_index).number_string = effect
+                  end
+                  line:effect_column(column_index).amount_string = arg_display
+                  if write_effect_command then
+                    print("  Set effect " .. effect .. arg_display .. " at track " .. song:track(track_index).name .. ", line " .. line_index .. ", column " .. column_index)
                   else
-                    -- Insert effect on this line
-                    if write_effect_command then
-                      line:effect_column(column_index).number_string = effect
-                    end
-                    line:effect_column(column_index).amount_string = arg_display
-                    if write_effect_command then
-                      print("  Set effect " .. effect .. arg_display .. " at track " .. song:track(track_index).name .. ", line " .. line_index .. ", column " .. column_index)
-                    else
-                      print("  Set effect argument " .. arg_display .. " at track " .. song:track(track_index).name .. ", line " .. line_index .. ", column " .. column_index)
-                    end
-                    effect_column_selected = true
-                    -- Count each unique effect column only once per track
-                    if line_index == sel.start_line then
-                      track_columns = track_columns + 1
-                    end
+                    print("  Set effect argument " .. arg_display .. " at track " .. song:track(track_index).name .. ", line " .. line_index .. ", column " .. column_index)
+                  end
+                  effect_column_selected = true
+                  -- Count each unique effect column only once per track
+                  if line_index == sel.start_line then
+                    track_columns = track_columns + 1
                   end
                 end
               end
             end
-            if track_columns > 0 then
-              affected_tracks[track_index] = track_columns
-              total_columns = total_columns + track_columns
-            end
+          end
+          if track_columns > 0 then
+            affected_tracks[track_index] = track_columns
+            total_columns = total_columns + track_columns
           end
         end
       end
+    end
+    
+    if not effect_column_selected then
+      renoise.app():show_status("No effect columns found - effect not applied")
+    else
+      -- Create detailed status message
+      local track_count = 0
+      local min_track = nil
+      local max_track = nil
+      for track_index, _ in pairs(affected_tracks) do
+        track_count = track_count + 1
+        if min_track == nil or track_index < min_track then
+          min_track = track_index
+        end
+        if max_track == nil or track_index > max_track then
+          max_track = track_index
+        end
+      end
       
-      if not effect_column_selected then
-        renoise.app():show_status("No effect columns found - effect not applied")
+      local track_range = ""
+      if track_count == 1 then
+        track_range = "Track " .. min_track
       else
-        -- Create detailed status message
-        local track_count = 0
-        local min_track = nil
-        local max_track = nil
-        for track_index, _ in pairs(affected_tracks) do
-          track_count = track_count + 1
-          if min_track == nil or track_index < min_track then
-            min_track = track_index
-          end
-          if max_track == nil or track_index > max_track then
-            max_track = track_index
-          end
-        end
-        
-        local track_range = ""
-        if track_count == 1 then
-          track_range = "Track " .. min_track
-        else
-          track_range = "Tracks " .. min_track .. "-" .. max_track
-        end
-        
-        if write_effect_command then
-          renoise.app():show_status("Wrote Effect " .. effect .. " at value " .. arg_display .. " to " .. total_columns .. " Effect Columns on " .. track_range)
-        else
-          renoise.app():show_status("Wrote Effect argument " .. arg_display .. " to " .. total_columns .. " Effect Columns on " .. track_range)
-        end
+        track_range = "Tracks " .. min_track .. "-" .. max_track
+      end
+      
+      if write_effect_command then
+        renoise.app():show_status("Wrote Effect " .. effect .. " at value " .. arg_display .. " to " .. total_columns .. " Effect Columns on " .. track_range)
+      else
+        renoise.app():show_status("Wrote Effect argument " .. arg_display .. " to " .. total_columns .. " Effect Columns on " .. track_range)
       end
     end
     
@@ -1814,3 +1810,28 @@ end
     renoise.app():show_status("No Note Columns were selected, doing nothing.")
   end
 end  
+
+-- MIDI Mapping for Player Pro Effect Lower Value (0-127 maps to 0-F)
+renoise.tool():add_midi_mapping{name="Paketti:Player Pro Effect Lower Value x[Knob]",
+  invoke=function(message)
+    if message:is_abs_value() then
+      -- Check if main dialog is open and has the required views
+      if dialog and dialog.visible and main_vb and main_vb.views["main_effect_argument_display"] then
+        -- Map MIDI value 0-127 to hex value 0-15 (0-F)
+        local hex_value = math.floor((message.int_value / 127) * 15)
+        local hex_string = string.format("%X", hex_value)
+        
+        -- Update the lower effect value (second digit)
+        main_switch_group[2] = hex_string
+        
+        -- Update the display
+        pakettiPlayerProUpdateMainEffectArgumentDisplay()
+        
+        -- Show status
+        renoise.app():show_status("Player Pro Effect Lower Value: " .. hex_string)
+      else
+        renoise.app():show_status("Player Pro Main Dialog is not open")
+      end
+    end
+  end
+}

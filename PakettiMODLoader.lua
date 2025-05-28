@@ -53,7 +53,7 @@ end
 function load_samples_from_mod()
   -- pick a .mod
   local mod_file = renoise.app():prompt_for_filename_to_read(
-    { "mod" }, "Load .MOD file"
+    { "*.mod","mod.*" }, "Load .MOD file"
   )
   if not mod_file then 
     renoise.app():show_status("No MOD selected.") 
