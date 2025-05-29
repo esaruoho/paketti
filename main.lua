@@ -1,4 +1,3 @@
-
 sampleEditor = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
 patternEditor = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 pe = patternEditor
@@ -230,35 +229,59 @@ end
 function PakettiGetFilesInDirectory(dir)
     local files = {}
     
+    -- Function to properly escape paths for shell commands
+    local function escape_path_for_shell(path)
+        if package.config:sub(1, 1) == "\\" then  -- Windows
+            -- For Windows, we need to escape special characters properly
+            -- Replace tildes and other special chars that could be problematic
+            path = path:gsub("~", "~")  -- Keep tildes as-is for now
+            -- Wrap in quotes and escape existing quotes
+            path = path:gsub('"', '""')  -- Escape quotes for Windows
+            return '"' .. path .. '"'
+        else  -- macOS and Linux
+            -- For Unix-like systems, escape single quotes properly
+            path = path:gsub("'", "'\"'\"'")
+            return "'" .. path .. "'"
+        end
+    end
+    
     -- Use OS-specific commands to list all files recursively
     local command
     if package.config:sub(1, 1) == "\\" then  -- Windows
-        -- Escape special characters for Windows cmd
-        local escaped_dir = dir:gsub('"', '\\"')
-        command = string.format('dir "%s" /b /s', escaped_dir)
+        -- Use robust Windows command with proper escaping
+        local escaped_dir = escape_path_for_shell(dir)
+        command = string.format('dir %s /b /s 2>nul', escaped_dir)
     else  -- macOS and Linux
-        -- Simple path escaping for macOS/Linux - just escape spaces
-        local escaped_dir = "'"..dir:gsub("'", "'\\''").."'"
-        command = string.format("find %s -type f", escaped_dir)
+        -- Use robust Unix find command with proper escaping
+        local escaped_dir = escape_path_for_shell(dir)
+        command = string.format("find %s -type f 2>/dev/null", escaped_dir)
     end
+    
+    -- Debug output for troubleshooting
+    print("PakettiGetFilesInDirectory: Executing command: " .. command)
     
     -- Execute the command and process the output
     local handle = io.popen(command)
     if handle then
         for line in handle:lines() do
-            -- Skip files in OPS7 folder and check if it's a valid audio file
-            if not line:match("OPS7") and PakettiIsValidAudioFile(line) then
+            -- Clean up the line (remove any trailing whitespace)
+            line = line:match("^%s*(.-)%s*$")
+            
+            -- Skip empty lines, files in OPS7 folder, and check if it's a valid audio file
+            if line ~= "" and not line:match("OPS7") and PakettiIsValidAudioFile(line) then
                 table.insert(files, line)
             end
         end
         local success, msg, code = handle:close()
         if not success then
-            renoise.app():show_error("Failed to close file handle: " .. tostring(msg))
+            print("Warning: Command execution had issues: " .. tostring(msg))
+            -- Don't show error to user for minor issues, just log it
         end
     else
-        renoise.app():show_error("Failed to execute directory listing command")
+        renoise.app():show_error("Failed to execute directory listing command: " .. command)
     end
     
+    print("PakettiGetFilesInDirectory: Found " .. #files .. " audio files")
     return files
 end
 ---

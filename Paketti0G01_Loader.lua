@@ -2,8 +2,6 @@ local dialog
 local vb = renoise.ViewBuilder()
 local initial_value = nil
 local dialog = nil
-local pakettiDeviceChainPathDisplayId
-local pakettiIRPathDisplayId 
 local separator = package.config:sub(1,1)  -- Gets \ for Windows, / for Unix
 
 local DEBUG = false
@@ -593,6 +591,9 @@ end
 local dialog_content = nil
 
 function pakettiPreferences()
+  local pakettiDeviceChainPathDisplayId = "pakettiDeviceChainPathDisplay_" .. tostring(math.random(2, 30000))
+local pakettiIRPathDisplayId = "pakettiIRPathDisplay_" .. tostring(math.random(2, 30000))
+
   local coarse_value_label = vb:text{
     width=50,  -- Width to accommodate values up to 10000
     text = tostring(preferences.pakettiRotateSampleBufferCoarse.value)
@@ -615,8 +616,6 @@ function pakettiPreferences()
         text = string.format("%.3f%%", preferences.PakettiMoveSilenceThreshold.value * 100),width=100
     }
 
-    local pakettiDeviceChainPathDisplayId = "pakettiDeviceChainPathDisplay_" .. tostring(math.random(2, 30000))
-
     local upperbuttonwidth=160
     if dialog and dialog.visible then
         dialog_content=nil
@@ -631,39 +630,7 @@ function pakettiPreferences()
     local pakettiDefaultDrumkitXRNIDisplayId = "pakettiDefaultDrumkitXRNIDisplay_" .. tostring(math.random(2,30000))
 
     local dialog_content = vb:column{
-      margin=10,
-      vb:horizontal_aligner{mode="distribute",
-      vb:button{text="Open Dialog of Dialogs",width="100%", notifier=function() 
-        pakettiDialogOfDialogsToggle() 
-      end}},
---[[
-      -- Full-width row for buttons wrapped in a group
-      vb:column{
-        style="group",margin=10,width="100%",
-        vb:row{
-          vb:button{text="About Paketti/Donations",width=50, notifier=function() pakettiAboutDonations() end},
-          vb:button{text="Theme Selector",width=upperbuttonwidth-100,notifier=function() pakettiThemeSelectorDialogShow() end},
-          vb:button{text="Gater",width=upperbuttonwidth-150,notifier=function()
-            local max_rows=nil
-            max_rows=renoise.song().selected_pattern.number_of_lines
-            if renoise.song() then
-              pakettiGaterDialog()
-              renoise.app().window.active_middle_frame=renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
-            end
-          end},
-          vb:button{text="Audio Processing",width=upperbuttonwidth-100,notifier=function() pakettiAudioProcessingToolsDialog() end},
-          vb:button{text="Effect CheatSheet",width=40,notifier=function() pakettiPatternEditorCheatsheetDialog() end},
-          vb:button{text="Phrase Init Dialog",width=upperbuttonwidth-100,notifier=function() pakettiPhraseSettings() end},
-          vb:button{text="Randomize Plugins/Devices",width=50, notifier=function()
-          pakettiRandomizerDialog() end},
-          vb:button{text="Configure Launch App Selection/Paths",width=50, notifier=function()
-          pakettiAppSelectionDialog() end},
-          vb:button{text="MIDI Populator",width=upperbuttonwidth-100,notifier=function() pakettiMIDIPopulator() end},
-          vb:button{text="KeyBindings",width=upperbuttonwidth-100,notifier=function() pakettiKeyBindingsDialog() end},
-          vb:button{text="Midi Mappings",width=upperbuttonwidth-100,notifier=function() pakettiMIDIMappingsDialog() end}
-        }
-      },
-]]--
+      --margin=5,
       horizontal_rule(),
       vb:row{
         vb:column{
@@ -671,11 +638,11 @@ function pakettiPreferences()
           vb:column{
             style="group",margin=10,width="100%",
             vb:text{style="strong",font="bold",text="Miscellaneous Settings"},
-            vb:row{
+            --[[vb:row{
               vb:text{text="Upper Frame",width=150},
               vb:switch{items={"Off","Scopes","Spectrum"},value=preferences.upperFramePreference.value+1,width=200,
                 notifier=function(value) preferences.upperFramePreference.value=value-1 end}
-            },
+            },]]--
             vb:row{
               vb:text{text="Selected Sample BeatSync",width=150},
               vb:switch{items={"Off","On"},value=preferences.SelectedSampleBeatSyncLines.value and 2 or 1,width=200,
@@ -1146,11 +1113,11 @@ vb:row{
                 local path = renoise.app():prompt_for_path("Select IR Path")
                 if path and path ~= "" then
                     preferences.PakettiIRPath.value = path
-                    vb.views.pakettiIRPathDisplayId.text = path
+                    vb.views[pakettiIRPathDisplayId].text = path
                 else
                     renoise.app():show_status("No path was selected, returning to default.")
                     preferences.PakettiIRPath.value = "." .. separator .. "IR" .. separator
-                    vb.views.pakettiIRPathDisplayId.text="." .. separator .. "IR" .. separator
+                    vb.views[pakettiIRPathDisplayId].text="." .. separator .. "IR" .. separator
                 end
             end
         },
@@ -1159,7 +1126,7 @@ vb:row{
             width=100,
             notifier=function()
                 preferences.PakettiIRPath.value = "." .. separator .. "IR" .. separator
-                vb.views.pakettiIRPathDisplayId.text="." .. separator .. "IR" .. separator
+                vb.views[pakettiIRPathDisplayId].text="." .. separator .. "IR" .. separator
             end
         },
         vb:button{text="Load Random IR",width=100,notifier=function()
@@ -1244,11 +1211,14 @@ horizontal_rule(),
     },
       
       vb:horizontal_aligner{mode="distribute",
-        vb:button{text="OK",width="50%",notifier=function() 
+        vb:button{text="Open Dialog of Dialogs",width="33%",notifier=function() 
+          pakettiDialogOfDialogsToggle() 
+        end},
+        vb:button{text="OK",width="33%",notifier=function() 
           preferences:save_as("preferences.xml")
           dialog:close() 
         end},
-        vb:button{text="Cancel",width="50%",notifier=function() dialog:close() end}
+        vb:button{text="Cancel",width="33%",notifier=function() dialog:close() end}
       }
     }
   
