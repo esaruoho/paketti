@@ -3,6 +3,49 @@ local separator = package.config:sub(1,1)  -- Gets \ for Windows, / for Unix
 -- Configuration for process yielding (in seconds)
 local PROCESS_YIELD_INTERVAL = 1.5  -- Adjust this value to control how often the process yields
 
+-- Frequency analysis functions (from PakettiRePitch.lua)
+local function log2(x) return math.log(x)/math.log(2) end
+local function midi2freq(x) return 440*(2^((x-69)/12)) end
+local function freq2midi(x) return 69+(12*log2(x/440)) end
+
+local function round(x)
+  if x>=0 then return math.floor(x+0.5)
+  else return math.ceil(x-0.5) end
+end
+
+local function get_note_letter(x)
+  local note=round(x)
+  local octave=math.floor((note-12)/12)
+  local letters={"C","C#","D","D#","E","F","F#","G","G#","A","A#","B"}
+  return letters[(note%12)+1]..octave
+end
+
+local function analyze_sample_selection(cycles)
+  cycles = cycles or 1  -- Default to 1 cycle if not specified
+  local s=renoise.song()
+  local smp=s.selected_sample
+  if not smp then return nil,"No sample selected." end
+  local buf=smp.sample_buffer
+  if not buf.has_sample_data then return nil,"No sample data." end
+  local sel_start=buf.selection_start
+  local sel_end=buf.selection_end
+  if sel_end<=sel_start then return nil,"Invalid selection." end
+  local frames=1+(sel_end-sel_start)
+  local rate=buf.sample_rate
+  local freq=rate/(frames/cycles)
+  local midi=freq2midi(freq)
+  local nearest=round(midi)
+  local cents=(nearest-midi)*100
+  return {
+    frames=frames,
+    freq=freq,
+    midi=midi,
+    nearest=nearest,
+    cents=cents,
+    letter=get_note_letter(midi)
+  }
+end
+
 function setSampleZoom(zoom_level)
   -- Ensure we have a valid sample selected
   local sample = renoise.song().selected_sample
@@ -3760,13 +3803,28 @@ function updateSampleSelectionInfo()
   local end_divisions = end_ms * divisions_per_ms
   local divisions_selected = ms_selected * divisions_per_ms
   
-  renoise.app():show_status(string.format(
+  -- Build the base status message
+  local status_msg = string.format(
     "Selection: %d-%d frames (%d frames total) | %.2f-%.2f ms (%.2f ms total) | %.2f-%.2f beats (%.2f total) | %.2f-%.2f divs (%.2f total)", 
     start_frame, end_frame, frames_selected,
     start_ms, end_ms, ms_selected,
     start_beats, end_beats, beats_selected,
     start_divisions, end_divisions, divisions_selected
-  ))
+  )
+  
+  -- Add frequency analysis if enabled and we have a valid selection
+  if preferences.pakettiShowSampleDetailsFrequencyAnalysis.value and frames_selected > 1 then
+    local cycles = preferences.pakettiSampleDetailsCycles.value or 1
+    local analysis = analyze_sample_selection(cycles)
+    
+    if analysis then
+      local freq_msg = string.format(" | Note: %s (%.1fHz, %+.0f¢)", 
+        analysis.letter, analysis.freq, analysis.cents)
+      status_msg = status_msg .. freq_msg
+    end
+  end
+  
+  renoise.app():show_status(status_msg)
 end
 
 -- Function to toggle the sample details display
@@ -3777,10 +3835,10 @@ function toggleSampleDetails()
     return
   end
 
-  preferences.pakettiShowSampleDetails = not preferences.pakettiShowSampleDetails
+  preferences.pakettiShowSampleDetails.value = not preferences.pakettiShowSampleDetails.value
   preferences:save_as("preferences.xml")  -- Save after toggle
   
-  if preferences.pakettiShowSampleDetails then
+  if preferences.pakettiShowSampleDetails.value then
     startSampleDetailsTimer()
     renoise.app():show_status("Sample selection info display: ON")
   else
@@ -3796,9 +3854,9 @@ renoise.app().window.active_middle_frame_observable:add_notifier(function()
   
   if was_in_sample_editor and not now_in_sample_editor then
     stopSampleDetailsTimer()
-    preferences.pakettiShowSampleDetails = false
+    preferences.pakettiShowSampleDetails.value = false
     preferences:save_as("preferences.xml")
-  elseif now_in_sample_editor and preferences.pakettiShowSampleDetails then
+  elseif now_in_sample_editor and preferences.pakettiShowSampleDetails.value then
     startSampleDetailsTimer()
   end
   
@@ -3812,7 +3870,7 @@ renoise.tool().app_release_document_observable:add_notifier(function() stopSampl
 
 -- Initialize sample details display based on preference
 function initializeSampleDetails()
-  if preferences.pakettiShowSampleDetails and isSampleEditorVisible() then
+  if preferences.pakettiShowSampleDetails.value and isSampleEditorVisible() then
     startSampleDetailsTimer()
   end
 end
@@ -4704,6 +4762,50 @@ function oneshotcontinue()
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Set to One-Shot + NNA Continue", invoke=function() oneshotcontinue() end}
+
+-- Function to toggle frequency analysis
+function toggleFrequencyAnalysis()
+  if not isSampleEditorVisible() then
+    renoise.app():show_status("Frequency analysis only available in Sample Editor")
+    return
+  end
+  
+  preferences.pakettiShowSampleDetailsFrequencyAnalysis.value = not preferences.pakettiShowSampleDetailsFrequencyAnalysis.value
+  preferences:save_as("preferences.xml")
+  
+  local status = preferences.pakettiShowSampleDetailsFrequencyAnalysis.value and "ON" or "OFF"
+  renoise.app():show_status("Frequency analysis: " .. status)
+end
+
+-- Function to cycle through common cycles values
+function cycleThroughCycles()
+  if not isSampleEditorVisible() then
+    renoise.app():show_status("Frequency analysis only available in Sample Editor")
+    return
+  end
+  
+  local common_cycles = {1, 2, 4, 8, 16}
+  local current = preferences.pakettiSampleDetailsCycles.value
+  local next_index = 1
+  
+  -- Find current index and move to next
+  for i, cycles in ipairs(common_cycles) do
+    if cycles == current then
+      next_index = (i % #common_cycles) + 1
+      break
+    end
+  end
+  
+  preferences.pakettiSampleDetailsCycles.value = common_cycles[next_index]
+  preferences:save_as("preferences.xml")
+  
+  renoise.app():show_status("Frequency analysis cycles: " .. common_cycles[next_index])
+end
+
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Toggle Frequency Analysis",invoke = toggleFrequencyAnalysis}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Cycle Frequency Analysis Cycles",invoke = cycleThroughCycles}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Toggle Frequency Analysis",invoke = toggleFrequencyAnalysis}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Cycle Frequency Analysis Cycles (1/2/4/8/16)",invoke = cycleThroughCycles}
 
 
 

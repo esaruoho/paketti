@@ -84,6 +84,8 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiInstrumentProperties=false,
   pakettiREXBundlePath = "." .. separator .. "rx2",
   pakettiShowSampleDetails=false,
+  pakettiShowSampleDetailsFrequencyAnalysis=true,
+  pakettiSampleDetailsCycles=1,
   pakettiAlwaysOpenDSPsOnTrack=false,
   pakettiLoaderDontCreateAutomationDevice=false,
   pakettiWipeExplodedTrack=false,
@@ -1189,10 +1191,10 @@ horizontal_rule(),
       vb:text{text="LFO Write Device Delete",style="strong",font="bold",width=150},
       vb:switch{
         items={"Off","On"},
-        value=preferences.PakettiLFOWriteDelete and 2 or 1,
+        value=preferences.PakettiLFOWriteDelete.value and 2 or 1,
         width=200,
         notifier=function(value)
-          preferences.PakettiLFOWriteDelete = (value == 2)
+          preferences.PakettiLFOWriteDelete.value = (value == 2)
         end
       }
     }
@@ -1200,18 +1202,44 @@ horizontal_rule(),
 
   horizontal_rule(),
   vb:column{style="group",margin=10,width="100%",
+    vb:text{text="Sample Selection Info",width=150, style="strong",font="bold"},
     vb:row{
-      vb:text{text="Show Sample Selection",width=150, style="strong",font="bold"},
+      vb:text{text="Show Sample Selection",width=150},
       vb:switch{items={"Off","On"},
-        value=preferences.pakettiShowSampleDetails and 2 or 1,
+        value=preferences.pakettiShowSampleDetails.value and 2 or 1,
         width=200,
         notifier=function(value) 
-          preferences.pakettiShowSampleDetails=(value==2)
-          print(string.format("Show Sample Selection changed to: %s", tostring(preferences.pakettiShowSampleDetails)))
+          preferences.pakettiShowSampleDetails.value=(value==2)
+          print(string.format("Show Sample Selection changed to: %s", tostring(preferences.pakettiShowSampleDetails.value)))
         end
       }
+    },
+    vb:row{
+      vb:text{text="Include Frequency Analysis",width=150},
+      vb:switch{items={"Off","On"},
+        value=preferences.pakettiShowSampleDetailsFrequencyAnalysis.value and 2 or 1,
+        width=200,
+        notifier=function(value) 
+          preferences.pakettiShowSampleDetailsFrequencyAnalysis.value=(value==2)
+        end
+      }
+    },
+    vb:row{
+      vb:text{text="Frequency Analysis Cycles",width=150},
+      vb:textfield{
+        text=tostring(preferences.pakettiSampleDetailsCycles.value),
+        width=200,
+        notifier=function(value)
+          local cycles = tonumber(value)
+          if cycles and cycles > 0 then
+            preferences.pakettiSampleDetailsCycles.value = cycles
+          end
+        end
+      }
+    },
+    vb:row{vb:text{style="strong",text="Shows detected note, frequency, and tuning offset in sample selection info"}}
   },
-},},
+},
       
     },
       

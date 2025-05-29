@@ -6639,3 +6639,77 @@ end
 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Note-Off Paste (from Selection)", invoke=function() noteOffPaste() end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Note-Off Paste (from Selection)", invoke=function() noteOffPaste() end}
+
+
+
+
+
+
+
+------
+function duplicate_selection_pro()
+  local song=renoise.song()
+  local pattern_index=song.selected_pattern_index
+  local selection=song.selection_in_pattern
+  local selection_info=selection_in_pattern_pro()
+
+  if not selection or not selection_info then
+    renoise.app():show_status("No selection in pattern to duplicate.")
+    return
+  end
+
+  local range_length=selection.end_line-selection.start_line+1
+  local total_lines=#song.patterns[pattern_index].tracks[1].lines
+  local lines_left=total_lines-selection.end_line
+  local effective_length=math.min(range_length,lines_left)
+
+  if effective_length<=0 then
+    renoise.app():show_status("Not enough space in pattern to duplicate.")
+    return
+  end
+
+  for _,track_data in ipairs(selection_info) do
+    local pattern_track=song:pattern(pattern_index):track(track_data.track_index)
+
+    for i=0,effective_length-1 do
+      local src_line_idx=selection.start_line+i
+      local tgt_line_idx=selection.end_line+1+i
+      local src_line=pattern_track:line(src_line_idx)
+      local tgt_line=pattern_track:line(tgt_line_idx)
+
+      if track_data.track_type==renoise.Track.TRACK_TYPE_SEQUENCER then
+        for _,col in ipairs(track_data.note_columns) do
+          tgt_line:note_column(col):copy_from(src_line:note_column(col))
+        end
+      end
+
+      for _,fx_col in ipairs(track_data.effect_columns) do
+        tgt_line:effect_column(fx_col):copy_from(src_line:effect_column(fx_col))
+      end
+    end
+  end
+
+  local new_start_line=selection.end_line+1
+  local new_end_line=new_start_line+effective_length-1
+
+  song.selection_in_pattern={
+    start_line=new_start_line,
+    end_line=new_end_line,
+    start_track=selection.start_track,
+    end_track=selection.end_track,
+    start_column=selection.start_column,
+    end_column=selection.end_column
+  }
+
+  local pos=song.transport.edit_pos
+  pos.line=new_start_line
+  song.transport.edit_pos=pos
+
+  if effective_length<range_length then
+    renoise.app():show_status("Duplicated "..effective_length.." of "..range_length.." rows (pattern limit).")
+  else
+    renoise.app():show_status("Selection duplicated in pattern.")
+  end
+end
+
+renoise.tool():add_keybinding {name="Global:Paketti:Duplicate Selection in Pattern",invoke=function()duplicate_selection_pro()end}

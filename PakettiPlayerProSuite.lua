@@ -923,6 +923,8 @@ end
 -- Global dialog variable for main dialog
 local dialog = nil
 local main_dialog_instrument_observer = nil
+local main_vb = nil  -- Make main_vb global
+local main_switch_group = {"0","0"}  -- Make main_switch_group global
 
 function pakettiPlayerProShowMainDialog()
   if dialog and dialog.visible then
@@ -937,7 +939,7 @@ function pakettiPlayerProShowMainDialog()
   end
 
   -- Create new ViewBuilder instance for this dialog
-  local main_vb = renoise.ViewBuilder()
+  main_vb = renoise.ViewBuilder()
 
   -- Get the currently selected instrument to set as initial popup value
   local selected_instrument_index = renoise.song().selected_instrument_index
@@ -967,11 +969,10 @@ function pakettiPlayerProShowMainDialog()
     popup.items = instrument_items
   end
 
-  local main_switch_group = {"0","0"}
   local main_volume_switch_group = {"0","0"}
 
   local function pakettiPlayerProCreateMainArgumentColumn(column_index, switch_group, update_display)
-    return main_vb:switch{
+    local switch_config = {
       items = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F"},
       width=220,
       height = 20,
@@ -981,6 +982,13 @@ function pakettiPlayerProShowMainDialog()
         update_display()
       end
     }
+    
+    -- Add ID to the lower effect value switch (column 2) so we can access it via MIDI
+    if column_index == 2 then
+      switch_config.id = "main_effect_lower_switch"
+    end
+    
+    return main_vb:switch(switch_config)
   end
 
   local function pakettiPlayerProCreateMainVolumeColumn(column_index, switch_group, update_display)
@@ -1028,7 +1036,7 @@ function pakettiPlayerProShowMainDialog()
     }
   end
 
-  local function pakettiPlayerProUpdateMainEffectDropdown()
+  function pakettiPlayerProUpdateMainEffectDropdown()
     -- Get current effect argument values
     local arg_display = main_switch_group[1] .. main_switch_group[2]
     
@@ -1379,7 +1387,7 @@ function pakettiPlayerProShowMainDialog()
     renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
   end
 
-  local function pakettiPlayerProUpdateMainEffectArgumentDisplay()
+  function pakettiPlayerProUpdateMainEffectArgumentDisplay()
     local arg_display = main_switch_group[1] .. main_switch_group[2]
     main_vb.views["main_effect_argument_display"].text = arg_display == "00" and "00" or arg_display
     
@@ -1814,24 +1822,56 @@ end
 -- MIDI Mapping for Player Pro Effect Lower Value (0-127 maps to 0-F)
 renoise.tool():add_midi_mapping{name="Paketti:Player Pro Effect Lower Value x[Knob]",
   invoke=function(message)
+    print("=== MIDI MAPPING TRIGGERED ===")
+    print("MIDI message received")
+    print("Is abs value: " .. tostring(message:is_abs_value()))
+    print("MIDI value: " .. tostring(message.int_value))
+    
     if message:is_abs_value() then
       -- Check if main dialog is open and has the required views
       if dialog and dialog.visible and main_vb and main_vb.views["main_effect_argument_display"] then
+        print("Dialog is open and views are available")
+        
         -- Map MIDI value 0-127 to hex value 0-15 (0-F)
         local hex_value = math.floor((message.int_value / 127) * 15)
         local hex_string = string.format("%X", hex_value)
         
+        print("MIDI " .. message.int_value .. " mapped to hex " .. hex_value .. " (" .. hex_string .. ")")
+        
         -- Update the lower effect value (second digit)
+        local old_value = main_switch_group[2]
         main_switch_group[2] = hex_string
+        print("Updated main_switch_group[2] from '" .. old_value .. "' to '" .. hex_string .. "'")
         
         -- Update the display
-        pakettiPlayerProUpdateMainEffectArgumentDisplay()
+        local combined = main_switch_group[1] .. main_switch_group[2]
+        print("Combined effect argument: " .. combined)
+        
+        -- Update the display text directly
+        main_vb.views["main_effect_argument_display"].text = combined
+        print("Updated display text to: " .. combined)
+        
+        -- Update the actual switch control (column 2) to show the correct selection
+        -- Switch uses 1-based indexing: hex 0=index 1, hex 1=index 2, ..., hex F=index 16
+        local switch_index = hex_value + 1
+        local switch_control = main_vb.views["main_effect_lower_switch"]
+        if switch_control then
+          switch_control.value = switch_index
+          print("Updated switch control to index " .. switch_index .. " for hex " .. hex_string)
+        else
+          print("Could not find switch control 'main_effect_lower_switch'")
+        end
         
         -- Show status
         renoise.app():show_status("Player Pro Effect Lower Value: " .. hex_string)
+        print("Status updated: Player Pro Effect Lower Value: " .. hex_string)
       else
+        print("Dialog not available - dialog: " .. tostring(dialog) .. ", visible: " .. tostring(dialog and dialog.visible) .. ", main_vb: " .. tostring(main_vb))
         renoise.app():show_status("Player Pro Main Dialog is not open")
       end
+    else
+      print("Message is not absolute value, ignoring")
     end
+    print("=== MIDI MAPPING END ===")
   end
 }
