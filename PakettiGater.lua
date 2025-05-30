@@ -22,6 +22,7 @@ local initializing = false -- Flag to control printing during initialization or 
 local auto_grab = false
 local previous_track_index = nil
 local track_notifier = nil
+local solo_mode = false
 
 -- Colors for buttons
 local normal_color = nil
@@ -597,8 +598,8 @@ local function receive_panning_checkboxes()
       elseif panning_column_choice == "Panning Column" then
         for col = 1, #source_line.note_columns do
           -- Only copy panning values, not retrig values
-          if string.sub(source_line:note_column(col).panning_string, 1, 1) ~= "R" then
-            dest_line:note_column(col).panning_string = source_line:note_column(col).panning_string
+          if string.sub(source_line.note_columns[col].panning_string, 1, 1) ~= "R" then
+            dest_line.note_columns[col].panning_string = source_line.note_columns[col].panning_string
           end
         end
       end
@@ -988,194 +989,382 @@ function insert_commands()
   suppress_status_messages = true
   
   local pattern = renoise.song().selected_pattern
-  local track = renoise.song().selected_track
-  local track_index = renoise.song().selected_track_index
-  local visible_note_columns = track.visible_note_columns
+  local selected_track_index = renoise.song().selected_track_index
+  
+  -- Function to apply gating to a specific track
+  local function apply_gating_to_track(track_index)
+    local track = pattern:track(track_index)
+    local visible_note_columns = renoise.song().tracks[track_index].visible_note_columns
 
-  -- IMPORTANT: Only clear retrig columns if we're actually writing to them
-  local retrig_is_empty = true
-  for i = 1, num_checkboxes do
-    if retrig_checkboxes[i].value then
-      retrig_is_empty = false
-      break
+    -- IMPORTANT: Only clear retrig columns if we're actually writing to them
+    local retrig_is_empty = true
+    for i = 1, num_checkboxes do
+      if retrig_checkboxes[i].value then
+        retrig_is_empty = false
+        break
+      end
+    end
+    
+    -- Only clear retrig columns if we're actually writing retrig values
+    if not retrig_is_empty then
+      if retrig_column_choice == "FX Column" then
+        for i = 1, max_rows do
+          local line = pattern:track(track_index):line(i)
+          line.effect_columns[2].number_string = ""
+          line.effect_columns[2].amount_string = ""
+        end
+      elseif retrig_column_choice == "Volume Column" then
+        -- Only clear if not used by volume gater
+        if column_choice ~= "Volume Column" then
+          for i = 1, max_rows do
+            local line = pattern:track(track_index):line(i)
+            for j = 1, visible_note_columns do
+              line:note_column(j).volume_string = ""
+            end
+          end
+        end
+      elseif retrig_column_choice == "Panning Column" then
+        -- Only clear if not used by panning gater
+        if panning_column_choice ~= "Panning Column" then
+          for i = 1, max_rows do
+            local line = pattern:track(track_index):line(i)
+            for j = 1, visible_note_columns do
+              line:note_column(j).panning_string = ""
+            end
+          end
+        end
+      end
+    end
+
+    -- Ensure effect columns are visible
+    if renoise.song().tracks[track_index].visible_effect_columns < 4 then
+      renoise.song().tracks[track_index].visible_effect_columns = 4
+    end
+
+    -- Volume handling
+    local any_checkbox_checked = false
+    for i = 1, num_checkboxes do
+      if checkboxes[i].value then
+        any_checkbox_checked = true
+        break
+      end
+    end
+
+    if any_checkbox_checked then
+      -- Only write up to active_steps_volume
+      for i = 1, active_steps_volume do
+        local line = pattern:track(track_index):line(i)
+        -- Get the actual checkbox index, looping if needed
+        local checkbox_idx = ((i - 1) % active_steps_volume) + 1
+        
+        if column_choice == "FX Column" then
+          if checkboxes[checkbox_idx].value then
+            line.effect_columns[1].number_string = "0C"
+            line.effect_columns[1].amount_string = "0F"
+          else
+            line.effect_columns[1].number_string = "0C"
+            line.effect_columns[1].amount_string = "00"
+          end
+        elseif column_choice == "Volume Column" then
+          renoise.song().tracks[track_index].volume_column_visible = true
+          for j = 1, visible_note_columns do
+            local note_column = line:note_column(j)
+            if checkboxes[checkbox_idx].value then
+              note_column.volume_string = "80"
+            else
+              note_column.volume_string = "00"
+            end
+          end
+        elseif column_choice == "FX Column (L00)" then
+          if checkboxes[checkbox_idx].value then
+            line.effect_columns[1].number_string = "0L"
+            line.effect_columns[1].amount_string = "C0"
+          else
+            line.effect_columns[1].number_string = "0L"
+            line.effect_columns[1].amount_string = "00"
+          end
+        end
+      end
+    end
+
+    -- Panning handling
+    local all_panning_center = true
+    for i = 1, num_checkboxes do
+      if panning_left_checkboxes[i].value or panning_right_checkboxes[i].value then
+        all_panning_center = false
+        break
+      end
+    end
+
+    if not all_panning_center then
+      -- Only write up to active_steps_panning
+      for i = 1, active_steps_panning do
+        local line = pattern:track(track_index):line(i)
+        -- Get the actual checkbox index, looping if needed
+        local checkbox_idx = ((i - 1) % active_steps_panning) + 1
+        
+        if panning_column_choice == "Panning Column" then
+          renoise.song().tracks[track_index].panning_column_visible = true
+          if panning_left_checkboxes[checkbox_idx].value then
+            line:note_column(1).panning_string = "00"
+          elseif panning_right_checkboxes[checkbox_idx].value then
+            line:note_column(1).panning_string = "80"
+          else
+            line:note_column(1).panning_string = "40"
+          end
+        elseif panning_column_choice == "FX Column" then
+          if panning_left_checkboxes[checkbox_idx].value then
+            line.effect_columns[4].number_string = "0P"
+            line.effect_columns[4].amount_string = "00"
+          elseif panning_right_checkboxes[checkbox_idx].value then
+            line.effect_columns[4].number_string = "0P"
+            line.effect_columns[4].amount_string = "FF"
+          else
+            line.effect_columns[4].number_string = "0P"
+            line.effect_columns[4].amount_string = "7F"
+          end
+        end
+      end
+    end
+
+    -- Retrig handling - only write if we have retrig values
+    if not retrig_is_empty then
+      -- Only write up to active_steps_retrig
+      for i = 1, active_steps_retrig do
+        local line = pattern:track(track_index):line(i)
+        -- Get the actual checkbox index, looping if needed
+        local checkbox_idx = ((i - 1) % active_steps_retrig) + 1
+
+        if retrig_checkboxes[checkbox_idx].value then
+          if retrig_column_choice == "FX Column" then
+            line.effect_columns[2].number_string = "0R"
+            line.effect_columns[2].amount_string = string.format("%02X", retrig_value)
+          elseif retrig_column_choice == "Volume Column" then
+            renoise.song().tracks[track_index].volume_column_visible = true
+            for j = 1, visible_note_columns do
+              local note_column = line:note_column(j)
+              note_column.volume_string = string.format("R%X", retrig_value)
+            end
+          elseif retrig_column_choice == "Panning Column" then
+            renoise.song().tracks[track_index].panning_column_visible = true
+            for j = 1, visible_note_columns do
+              local note_column = line:note_column(j)
+              note_column.panning_string = string.format("R%X", retrig_value)
+            end
+          end
+        end
+      end
+    end
+
+    -- Playback handling
+    local any_playback_checked = false
+    for i = 1, num_checkboxes do
+      if playback_checkboxes[i].value then
+        any_playback_checked = true
+        break
+      end
+    end
+
+    if any_playback_checked then
+      -- Only write up to active_steps_playback
+      for i = 1, active_steps_playback do
+        local line = pattern:track(track_index):line(i)
+        -- Get the actual checkbox index, looping if needed
+        local checkbox_idx = ((i - 1) % active_steps_playback) + 1
+        
+        -- Ensure the third effect column is visible
+        if renoise.song().tracks[track_index].visible_effect_columns < 3 then
+          renoise.song().tracks[track_index].visible_effect_columns = 4
+        end
+
+        if playback_checkboxes[checkbox_idx].value then
+          line.effect_columns[3].number_string = "0B"
+          line.effect_columns[3].amount_string = "00"
+        else
+          line.effect_columns[3].number_string = "0B"
+          line.effect_columns[3].amount_string = "01"
+        end
+      end
     end
   end
   
-  -- Only clear retrig columns if we're actually writing retrig values
-  if not retrig_is_empty then
-    if retrig_column_choice == "FX Column" then
-      clear_retrig()
-    elseif retrig_column_choice == "Volume Column" then
-      -- Only clear if not used by volume gater
-      if column_choice ~= "Volume Column" then
-        clear_volume_column()
-      end
-    elseif retrig_column_choice == "Panning Column" then
-      -- Only clear if not used by panning gater
-      if panning_column_choice ~= "Panning Column" then
-        clear_panning_column()
+  -- Apply gating based on solo mode
+  if solo_mode then
+    -- Apply to all tracks EXCEPT the selected one
+    for track_index = 1, #pattern.tracks do
+      if track_index ~= selected_track_index then
+        apply_gating_to_track(track_index)
       end
     end
-  end
-
-  -- Ensure effect columns are visible
-  if track.visible_effect_columns < 4 then
-    track.visible_effect_columns = 4
-  end
-
-  -- Volume handling
-  local any_checkbox_checked = false
-  for i = 1, num_checkboxes do
-    if checkboxes[i].value then
-      any_checkbox_checked = true
-      break
-    end
-  end
-
-  if any_checkbox_checked then
-    -- Only write up to active_steps_volume
-    for i = 1, active_steps_volume do
-      local line = pattern:track(track_index):line(i)
-      -- Get the actual checkbox index, looping if needed
-      local checkbox_idx = ((i - 1) % active_steps_volume) + 1
-      
-      if column_choice == "FX Column" then
-        if checkboxes[checkbox_idx].value then
-          line.effect_columns[1].number_string = "0C"
-          line.effect_columns[1].amount_string = "0F"
-        else
-          line.effect_columns[1].number_string = "0C"
-          line.effect_columns[1].amount_string = "00"
-        end
-      elseif column_choice == "Volume Column" then
-        track.volume_column_visible = true
-        for j = 1, visible_note_columns do
-          local note_column = line:note_column(j)
-          if checkboxes[checkbox_idx].value then
-            note_column.volume_string = "80"
-          else
-            note_column.volume_string = "00"
-          end
-        end
-      elseif column_choice == "FX Column (L00)" then
-        if checkboxes[checkbox_idx].value then
-          line.effect_columns[1].number_string = "0L"
-          line.effect_columns[1].amount_string = "C0"
-        else
-          line.effect_columns[1].number_string = "0L"
-          line.effect_columns[1].amount_string = "00"
-        end
+    -- After writing the pattern based on active steps, replicate to fill the rest for all tracks except selected
+    for track_index = 1, #pattern.tracks do
+      if track_index ~= selected_track_index then
+        PakettiReplicateAtCursorGaterForTrack(track_index)
       end
     end
+  else
+    -- Apply only to selected track (original behavior)
+    apply_gating_to_track(selected_track_index)
+    -- After writing the pattern based on active steps, replicate to fill the rest
+    PakettiReplicateAtCursorGater(0, "selected_track", "above_and_current")
   end
-
-  -- Panning handling
-  local all_panning_center = true
-  for i = 1, num_checkboxes do
-    if panning_left_checkboxes[i].value or panning_right_checkboxes[i].value then
-      all_panning_center = false
-      break
-    end
-  end
-
-  if not all_panning_center then
-    -- Only write up to active_steps_panning
-    for i = 1, active_steps_panning do
-      local line = pattern:track(track_index):line(i)
-      -- Get the actual checkbox index, looping if needed
-      local checkbox_idx = ((i - 1) % active_steps_panning) + 1
-      
-      if panning_column_choice == "Panning Column" then
-        renoise.song().selected_track.panning_column_visible = true
-        if panning_left_checkboxes[checkbox_idx].value then
-          line:note_column(1).panning_string = "00"
-        elseif panning_right_checkboxes[checkbox_idx].value then
-          line:note_column(1).panning_string = "80"
-        else
-          line:note_column(1).panning_string = "40"
-        end
-      elseif panning_column_choice == "FX Column" then
-        if panning_left_checkboxes[checkbox_idx].value then
-          line.effect_columns[4].number_string = "0P"
-          line.effect_columns[4].amount_string = "00"
-        elseif panning_right_checkboxes[checkbox_idx].value then
-          line.effect_columns[4].number_string = "0P"
-          line.effect_columns[4].amount_string = "FF"
-        else
-          line.effect_columns[4].number_string = "0P"
-          line.effect_columns[4].amount_string = "7F"
-        end
-      end
-    end
-  end
-
-  -- Retrig handling - only write if we have retrig values
-  if not retrig_is_empty then
-    -- Only write up to active_steps_retrig
-    for i = 1, active_steps_retrig do
-      local line = pattern:track(track_index):line(i)
-      -- Get the actual checkbox index, looping if needed
-      local checkbox_idx = ((i - 1) % active_steps_retrig) + 1
-
-      if retrig_checkboxes[checkbox_idx].value then
-        if retrig_column_choice == "FX Column" then
-          line.effect_columns[2].number_string = "0R"
-          line.effect_columns[2].amount_string = string.format("%02X", retrig_value)
-        elseif retrig_column_choice == "Volume Column" then
-          track.volume_column_visible = true
-          for j = 1, visible_note_columns do
-            local note_column = line:note_column(j)
-            note_column.volume_string = string.format("R%X", retrig_value)
-          end
-        elseif retrig_column_choice == "Panning Column" then
-          renoise.song().selected_track.panning_column_visible = true
-          for j = 1, visible_note_columns do
-            local note_column = line:note_column(j)
-            note_column.panning_string = string.format("R%X", retrig_value)
-          end
-        end
-      end
-    end
-  end
-
-  -- Playback handling
-  local any_playback_checked = false
-  for i = 1, num_checkboxes do
-    if playback_checkboxes[i].value then
-      any_playback_checked = true
-      break
-    end
-  end
-
-  if any_playback_checked then
-    -- Only write up to active_steps_playback
-    for i = 1, active_steps_playback do
-      local line = pattern:track(track_index):line(i)
-      -- Get the actual checkbox index, looping if needed
-      local checkbox_idx = ((i - 1) % active_steps_playback) + 1
-      
-      -- Ensure the third effect column is visible
-      if track.visible_effect_columns < 3 then
-        track.visible_effect_columns = 4
-      end
-
-      if playback_checkboxes[checkbox_idx].value then
-        line.effect_columns[3].number_string = "0B"
-        line.effect_columns[3].amount_string = "00"
-      else
-        line.effect_columns[3].number_string = "0B"
-        line.effect_columns[3].amount_string = "01"
-      end
-    end
-  end
-
-  -- After writing the pattern based on active steps, replicate to fill the rest
-  PakettiReplicateAtCursorGater(0, "selected_track", "above_and_current")
 
   -- Re-enable status messages and show a single message
   suppress_status_messages = false
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
-  renoise.app():show_status("Gater pattern updated")
+  if solo_mode then
+    renoise.app():show_status("Gater pattern updated (SOLO mode - all tracks except selected)")
+  else
+    renoise.app():show_status("Gater pattern updated")
+  end
+end
+
+function PakettiReplicateAtCursorGaterForTrack(track_index)
+  local song=renoise.song()
+  local pattern = song.selected_pattern
+  local pattern_length = pattern.number_of_lines
+  
+  -- IMPORTANT: We'll handle each effect type completely independently
+  
+  -- 1. Volume effects replication
+  if active_steps_volume > 0 then
+    
+    -- Clear the rest of the pattern first to avoid interference
+    for row = active_steps_volume + 1, pattern_length do
+      local line = pattern:track(track_index):line(row)
+      if column_choice == "FX Column" or column_choice == "FX Column (L00)" then
+        line.effect_columns[1].number_string = ""
+        line.effect_columns[1].amount_string = ""
+      elseif column_choice == "Volume Column" then
+        for col = 1, #line.note_columns do
+          line:note_column(col).volume_string = ""
+        end
+      end
+    end
+    
+    -- Now replicate the pattern
+    for row = active_steps_volume + 1, pattern_length do
+      local dest_line = pattern:track(track_index):line(row)
+      local source_row = ((row - 1) % active_steps_volume) + 1
+      local source_line = pattern:track(track_index):line(source_row)
+      
+      if column_choice == "FX Column" or column_choice == "FX Column (L00)" then
+        dest_line.effect_columns[1]:copy_from(source_line.effect_columns[1])
+      elseif column_choice == "Volume Column" then
+        for col = 1, #source_line.note_columns do
+          dest_line.note_columns[col].volume_string = source_line.note_columns[col].volume_string
+        end
+      end
+    end
+  end
+  
+  -- 2. Retrig effects replication
+  if active_steps_retrig > 0 then
+    
+    -- Clear the rest of the pattern first
+    for row = active_steps_retrig + 1, pattern_length do
+      local line = pattern:track(track_index):line(row)
+      if retrig_column_choice == "FX Column" then
+        line.effect_columns[2].number_string = ""
+        line.effect_columns[2].amount_string = ""
+      elseif retrig_column_choice == "Volume Column" then
+        -- Don't clear if we're also using volume column for volume gater
+        if column_choice ~= "Volume Column" then
+          for col = 1, #line.note_columns do
+            line:note_column(col).volume_string = ""
+          end
+        end
+      elseif retrig_column_choice == "Panning Column" then
+        -- Don't clear if we're also using panning column for panning gater
+        if panning_column_choice ~= "Panning Column" then
+          for col = 1, #line.note_columns do
+            line:note_column(col).panning_string = ""
+          end
+        end
+      end
+    end
+    
+    -- Now replicate the pattern
+    for row = active_steps_retrig + 1, pattern_length do
+      local dest_line = pattern:track(track_index):line(row)
+      local source_row = ((row - 1) % active_steps_retrig) + 1
+      local source_line = pattern:track(track_index):line(source_row)
+      
+      if retrig_column_choice == "FX Column" then
+        dest_line.effect_columns[2]:copy_from(source_line.effect_columns[2])
+      elseif retrig_column_choice == "Volume Column" then
+        for col = 1, #source_line.note_columns do
+          if string.sub(source_line.note_columns[col].volume_string, 1, 1) == "R" then
+            dest_line.note_columns[col].volume_string = source_line.note_columns[col].volume_string
+          end
+        end
+      elseif retrig_column_choice == "Panning Column" then
+        for col = 1, #source_line.note_columns do
+          if string.sub(source_line.note_columns[col].panning_string, 1, 1) == "R" then
+            dest_line.note_columns[col].panning_string = source_line.note_columns[col].panning_string
+          end
+        end
+      end
+    end
+  end
+  
+  -- 3. Playback effects replication
+  if active_steps_playback > 0 then
+    
+    -- Clear the rest of the pattern first
+    for row = active_steps_playback + 1, pattern_length do
+      local line = pattern:track(track_index):line(row)
+      line.effect_columns[3].number_string = ""
+      line.effect_columns[3].amount_string = ""
+    end
+    
+    -- Now replicate the pattern
+    for row = active_steps_playback + 1, pattern_length do
+      local dest_line = pattern:track(track_index):line(row)
+      local source_row = ((row - 1) % active_steps_playback) + 1
+      local source_line = pattern:track(track_index):line(source_row)
+      
+      dest_line.effect_columns[3]:copy_from(source_line.effect_columns[3])
+    end
+  end
+  
+  -- 4. Panning effects replication
+  if active_steps_panning > 0 then
+    
+    -- Clear the rest of the pattern first
+    for row = active_steps_panning + 1, pattern_length do
+      local line = pattern:track(track_index):line(row)
+      if panning_column_choice == "FX Column" then
+        line.effect_columns[4].number_string = ""
+        line.effect_columns[4].amount_string = ""
+      elseif panning_column_choice == "Panning Column" then
+        -- Don't clear if we're also using panning column for retrig
+        if retrig_column_choice ~= "Panning Column" then
+          for col = 1, #line.note_columns do
+            line:note_column(col).panning_string = ""
+          end
+        end
+      end
+    end
+    
+    -- Now replicate the pattern
+    for row = active_steps_panning + 1, pattern_length do
+      local dest_line = pattern:track(track_index):line(row)
+      local source_row = ((row - 1) % active_steps_panning) + 1
+      local source_line = pattern:track(track_index):line(source_row)
+      
+      if panning_column_choice == "FX Column" then
+        dest_line.effect_columns[4]:copy_from(source_line.effect_columns[4])
+      elseif panning_column_choice == "Panning Column" then
+        for col = 1, #source_line.note_columns do
+          -- Only copy panning values, not retrig values
+          if string.sub(source_line.note_columns[col].panning_string, 1, 1) ~= "R" then
+            dest_line.note_columns[col].panning_string = source_line.note_columns[col].panning_string
+          end
+        end
+      end
+    end
+  end
 end
 
 function PakettiReplicateAtCursorGater(transpose, tracks_option, row_option)
@@ -1620,6 +1809,16 @@ function pakettiGaterDialog()
         end
       },
       vb:text{text="Auto-Grab", style="strong", font="bold" },
+      vb:checkbox{
+        value = solo_mode,
+        notifier=function(value)
+          solo_mode = value
+          if not initializing then
+            insert_commands()
+          end
+        end
+      },
+      vb:text{text="SOLO", style="strong", font="bold", tooltip="When enabled, applies gating to ALL tracks EXCEPT the selected one" },
     
       
       vb:button{ text="<<", pressed = function()

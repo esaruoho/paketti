@@ -369,7 +369,7 @@ if not renoise.tool():has_file_import_hook("sample", { "rx2" }) then
   renoise.tool():add_file_import_hook(rx2_integration)
 end
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Format Importers..:Import .RX2",invoke=function() 
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Import .RX2",invoke=function() 
   local filename = renoise.app():prompt_for_filename_to_read({"*.RX2"}, "ReCycle .RX2 Import tool")
   if filename then rx2_loadsample(filename) end end}
 

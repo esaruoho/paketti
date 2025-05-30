@@ -522,7 +522,7 @@ end
 -- Menu Entries
 --------------------------------------------------------------------------------
 renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti..:Instruments..:File Format Importers..:Convert RX2 to PTI",
+  name = "Main Menu:Tools:Paketti..:Instruments..:File Formats..:Convert RX2 to PTI",
   invoke = rx2_to_pti_convert
 }
 

@@ -510,29 +510,51 @@ local function build_header(inst)
     pti_loop_mode = renoise_loop_modes[inst.loop_mode]
   end
   
+  -- Write playback start (offset 78-79) - set to 0 for start of sample
+  write_at(79, string.char(0, 0))
+  print("-- build_header: Writing playback start = 0 at offset 78")
+  
+  -- Write loop start at offset 81 (read by read_uint16_le(header, 80))
+  -- Use inverse of import mapping: ((frame - 1) / (sample_len - 1)) * 65533 + 1
+  local loop_start_raw = math.floor(((inst.loop_start - 1) / (inst.sample_length - 1)) * 65533) + 1
+  loop_start_raw = math.max(1, math.min(loop_start_raw, 65534))
+  write_at(81, string.char(
+    bit.band(loop_start_raw, 0xFF),
+    bit.band(bit.rshift(loop_start_raw, 8), 0xFF)
+  ))
+  
+  -- Write loop end at offset 83 (read by read_uint16_le(header, 82))  
+  -- Use inverse of import mapping: ((frame - 1) / (sample_len - 1)) * 65533 + 1
+  local loop_end_raw = math.floor(((inst.loop_end - 1) / (inst.sample_length - 1)) * 65533) + 1
+  loop_end_raw = math.max(1, math.min(loop_end_raw, 65534))
+  write_at(83, string.char(
+    bit.band(loop_end_raw, 0xFF),
+    bit.band(bit.rshift(loop_end_raw, 8), 0xFF)
+  ))
+  
+  -- Write playback end (offset 84-85) - set for better zoom if sample has loops
+  local playback_end = 65535 -- Default to full range
+  
+  -- If sample has loop points, use loop end as playback end for better zoom
+  if inst.loop_mode ~= renoise.Sample.LOOP_MODE_OFF and inst.loop_end > inst.loop_start then
+    -- Use the same inverse mapping as loop points for consistency
+    playback_end = math.floor(((inst.loop_end - 1) / (inst.sample_length - 1)) * 65535) + 0
+    playback_end = math.max(0, math.min(playback_end, 65535))
+    print(string.format("-- build_header: Using loop end for playback end: %d", playback_end))
+  end
+  
+  write_at(85, string.char(
+    bit.band(playback_end, 0xFF),
+    bit.band(bit.rshift(playback_end, 8), 0xFF)
+  ))
+  print(string.format("-- build_header: Writing playback end = %d at offset 84", playback_end))
+  
   -- Write loop mode (offset 76, read at 77 in import)
   write_at(77, string.char(pti_loop_mode))
   print(string.format("-- build_header: Writing loop mode %d at offset 76", pti_loop_mode))
   
-  -- Loop points - fix offsets to match what import expects
-  -- Import reads from offset 80 and 82, so write to offset 80 and 82
-  local loop_start = math.floor(inst.loop_start * 65535 / inst.sample_length)
-  local loop_end = math.floor(inst.loop_end * 65535 / inst.sample_length)
-  
   print(string.format("-- build_header: Converting loop points: start=%d->%d, end=%d->%d", 
-    inst.loop_start, loop_start, inst.loop_end, loop_end))
-  
-  -- Write loop start at offset 81 (read by read_uint16_le(header, 80))
-  write_at(81, string.char(
-    bit.band(loop_start, 0xFF),
-    bit.band(bit.rshift(loop_start, 8), 0xFF)
-  ))
-  
-  -- Write loop end at offset 83 (read by read_uint16_le(header, 82))  
-  write_at(83, string.char(
-    bit.band(loop_end, 0xFF),
-    bit.band(bit.rshift(loop_end, 8), 0xFF)
-  ))
+    inst.loop_start, loop_start_raw, inst.loop_end, loop_end_raw))
   
   -- Write slice markers (offset 280-375, 48 markers × 2 bytes each)
   local slice_markers = inst.slice_markers or {}
@@ -738,35 +760,13 @@ local function pti_savesample()
 end
 
 -- Menu entries
-renoise.tool():add_menu_entry{
-  name = "Disk Browser Files:Paketti..:Export .PTI Instrument",
-  invoke = pti_savesample
-}
-
-renoise.tool():add_menu_entry{
-  name = "--Sample Editor:Paketti..:Save..:Export .PTI Instrument",
-  invoke = pti_savesample
-}
-
-renoise.tool():add_menu_entry{
-  name = "--Instrument Box:Paketti..:Save..:Export .PTI Instrument",
-  invoke = pti_savesample
-}
-
-renoise.tool():add_menu_entry{
-  name = "--Sample Navigator:Paketti..:Save..:Export .PTI Instrument",
-  invoke = pti_savesample
-}
-
-renoise.tool():add_menu_entry{
-  name = "--Sample Mappings:Paketti..:Save..:Export .PTI Instrument",
-  invoke = pti_savesample
-}
-
-renoise.tool():add_keybinding{
-  name = "Global:Paketti:PTI Export",
-  invoke = pti_savesample
-}
+renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti..:Export .PTI Instrument",invoke=pti_savesample}
+renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Save..:Export .PTI Instrument",invoke=pti_savesample}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Save..:Export .PTI Instrument",invoke=pti_savesample}
+renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Save..:Export .PTI Instrument",invoke=pti_savesample}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Export .PTI Instrument",invoke=pti_savesample}
+renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti..:Save..:Export .PTI Instrument",invoke=pti_savesample}
+renoise.tool():add_keybinding{name="Global:Paketti:PTI Export",invoke = pti_savesample}
 
 _AUTO_RELOAD_DEBUG = true
 

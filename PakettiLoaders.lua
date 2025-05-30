@@ -1019,6 +1019,8 @@ function inspectEffect()
     return
   end
 
+
+  oprint (renoise.song().selected_device.active_preset_data)
   -- Print details of the selected effect
   oprint("Effect Displayname: " .. selected_device.display_name)
   oprint("Effect Name: " .. selected_device.name)
