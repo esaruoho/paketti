@@ -12,6 +12,7 @@ local dialog=nil
 
 local stepsize_switch = nil
 local stepper_switch = nil
+local stepcount_text = nil
 local updating_switch = false
 local updating_stepper_switch = false
 
@@ -424,7 +425,7 @@ function PakettiUpdateStepSizeSwitch()
   if stepsize_switch and not updating_switch then
     updating_switch = true
     local current_size = PakettiGetVisibleStepperStepSize()
-    local step_sizes = {16, 32, 64, 128, 256}
+    local step_sizes = {4, 8, 16, 32, 64, 128, 256}
     
     for i, size in ipairs(step_sizes) do
       if size == current_size then
@@ -433,6 +434,15 @@ function PakettiUpdateStepSizeSwitch()
       end
     end
     updating_switch = false
+  end
+  -- Update step count display
+  PakettiUpdateStepCountText()
+end
+
+function PakettiUpdateStepCountText()
+  if stepcount_text then
+    local current_size = PakettiGetVisibleStepperStepSize()
+    stepcount_text.text = tostring(current_size)
   end
 end
 
@@ -444,6 +454,8 @@ function PakettiUpdateStepperSwitch()
     stepper_switch.value = current_stepper + 1
     updating_stepper_switch = false
   end
+  -- Update step count display when stepper changes
+  PakettiUpdateStepCountText()
 end
 
 function PakettiChangeVisibleStepperStepSize(step_size)
@@ -604,13 +616,14 @@ function PakettiSteppersDialog()
 
   -- Create step size switch
   stepsize_switch = vb:switch{
-    items={"16","32","64","128","256"},
+    items={"4","8","16","32","64","128","256"},
     width=300,
-    value = 3, -- default to 64
+    value = 5, -- default to 64 (now at index 5)
     notifier = function(value)
       if not updating_switch then
-        local step_sizes = {16, 32, 64, 128, 256}
+        local step_sizes = {4, 8, 16, 32, 64, 128, 256}
         PakettiChangeVisibleStepperStepSize(step_sizes[value])
+        PakettiUpdateStepCountText()
       end
     end
   }
@@ -618,6 +631,9 @@ function PakettiSteppersDialog()
   -- Update switches to current state
   PakettiUpdateStepperSwitch()
   PakettiUpdateStepSizeSwitch()
+
+  -- Create step count text view
+  stepcount_text = vb:text{text = "64", style="strong", width=40}
 
   dialog = renoise.app():show_custom_dialog("Paketti Steppers",
     vb:column{
@@ -627,7 +643,29 @@ function PakettiSteppersDialog()
       },
       vb:row{
         vb:text{text = "Step Size", style="strong", font="Bold", width=70},
-        stepsize_switch
+        stepsize_switch,
+        vb:button{text = "Random Size", width=85, pressed = function() PakettiRandomizeVisibleStepperStepSize() end},
+        vb:text{text = "Steps: ", width=50},
+        stepcount_text
+      },
+      vb:row{
+        vb:text{text = "Actions", style="strong", font="Bold", width=70},
+        vb:button{text = "Clear", width=75, pressed = function() PakettiClearVisibleStepper() end},
+        vb:button{text = "0.0 (Off)", width=75, pressed = function() PakettiFillVisibleStepperOff() end},
+        vb:button{text = "0.5 (Center)", width=85, pressed = function() PakettiFillVisibleStepperMiddle() end},
+        vb:button{text = "1.0 (Full)", width=75, pressed = function() PakettiFillVisibleStepperFull() end},
+        vb:button{text = "Fluctuate", width=75, pressed = function() PakettiFillVisibleStepperFluctuate() end},
+        vb:button{text = "Humanize", width=75, pressed = function() PakettiApplyToVisibleStepper(PakettiFillStepperHumanize) end},
+        vb:button{text = "Random", width=75, pressed = function() PakettiApplyToVisibleStepper(PakettiFillStepperRandom) end}
+      },
+      vb:row{
+        vb:text{text = "", width=70},
+        vb:button{text = "Ramp Up", width=75, pressed = function() PakettiFillVisibleStepperRampUp() end},
+        vb:button{text = "Ramp Down", width=85, pressed = function() PakettiFillVisibleStepperRampDown() end},
+        vb:button{text = "Sinewave", width=75, pressed = function() PakettiFillVisibleStepperSinewave() end},
+        vb:button{text = "Squarewave", width=85, pressed = function() PakettiFillVisibleStepperSquarewave() end},
+        vb:button{text = "Mirror", width=75, pressed = function() PakettiApplyToVisibleStepper(PakettiFillStepperMirror) end},
+        vb:button{text = "Flip", width=75, pressed = function() PakettiApplyToVisibleStepper(PakettiFillStepperFlip) end}
       }
     }, my_keyhandler_func
   )
@@ -645,6 +683,573 @@ for _, stepperType in pairs(STEPPER_TYPES) do
         name = string.format("--Instrument Box:Paketti..:Show Selected Instrument %s Stepper", baseText),
         invoke = function() PakettiShowStepper(stepperType) end
     }
+end
+
+function PakettiGetVisibleStepperName()
+  local instrument = renoise.song().selected_instrument
+  
+  if not instrument or not instrument.sample_modulation_sets[1] then
+    return nil
+  end
+  
+  local devices = instrument.sample_modulation_sets[1].devices
+  local stepperTypes = {"Pitch Stepper", "Volume Stepper", "Panning Stepper", 
+                       "Cutoff Stepper", "Resonance Stepper", "Drive Stepper"}
+  
+  for _, device in ipairs(devices) do
+    for _, stepperType in ipairs(stepperTypes) do
+      if device.name == stepperType and device.external_editor_visible then
+        return stepperType
+      end
+    end
+  end
+  
+  return nil
+end
+
+function PakettiApplyToVisibleStepper(operation_func, ...)
+  local visible_stepper = PakettiGetVisibleStepperName()
+  print("=== PakettiApplyToVisibleStepper DEBUG ===")
+  print("visible_stepper found:", tostring(visible_stepper))
+  print("operation_func:", tostring(operation_func))
+  
+  if not visible_stepper then
+    print("ERROR: No stepper is currently visible")
+    renoise.app():show_status("No stepper is currently visible")
+    return
+  end
+  
+  print("About to call operation_func with:", visible_stepper)
+  operation_func(visible_stepper, ...)
+  print("=== PakettiApplyToVisibleStepper END ===")
+end
+
+function PakettiFillVisibleStepperFluctuate()
+  local visible_stepper = PakettiGetVisibleStepperName()
+  if not visible_stepper then
+    renoise.app():show_status("No stepper is currently visible")
+    return
+  end
+  
+  -- For Pitch Stepper, use minor flurry but preserve current step count
+  -- For other steppers, use gentle random variation
+  if visible_stepper == "Pitch Stepper" then
+    local instrument = renoise.song().selected_instrument
+    if instrument and instrument.sample_modulation_sets[1] then
+      local deviceIndex = findStepperDeviceIndex(visible_stepper)
+      if deviceIndex then
+        local device = instrument.sample_modulation_sets[1].devices[deviceIndex]
+        local current_step_count = device.length
+        PakettiFillPitchStepperDigits(0.015, current_step_count)
+      end
+    end
+  else
+    -- Apply gentle fluctuation for other stepper types
+    PakettiApplyToVisibleStepper(PakettiFillStepperGentleFluctuation)
+  end
+end
+
+function PakettiFillStepperGentleFluctuation(deviceName)
+  local instrument = renoise.song().selected_instrument
+  
+  if not instrument or not instrument.sample_modulation_sets[1] then
+    renoise.app():show_status("No valid instrument or modulation devices found.")
+    return
+  end
+  
+  local deviceIndex = findStepperDeviceIndex(deviceName)
+  if not deviceIndex then
+    renoise.app():show_status(string.format("There is no %s device in this instrument.", deviceName))
+    return
+  end
+  
+  local device = instrument.sample_modulation_sets[1].devices[deviceIndex]
+  
+  -- Clear existing points and fill with gentle fluctuation around center values
+  device:clear_points()
+  local points_data = {}
+  local center_value = 0.5
+  
+  -- Set appropriate center value for different stepper types
+  if deviceName == "Volume Stepper" then
+    center_value = 0.8
+  elseif deviceName == "Cutoff Stepper" then
+    center_value = 0.7
+  elseif deviceName == "Resonance Stepper" then
+    center_value = 0.3
+  elseif deviceName == "Drive Stepper" then
+    center_value = 0.2
+  end
+  
+  for i = 1, device.length do
+    local fluctuation = (math.random() - 0.5) * 0.3 -- ±15% fluctuation
+    local value = math.max(0, math.min(1, center_value + fluctuation))
+    table.insert(points_data, {
+      scaling = 0,
+      time = i,
+      value = value
+    })
+  end
+
+  device.points = points_data
+  renoise.app():show_status(string.format("%s gentle fluctuation applied successfully.", deviceName))
+end
+
+function PakettiClearVisibleStepper()
+  PakettiApplyToVisibleStepper(PakettiClearStepper)
+end
+
+function PakettiFillVisibleStepperFull()
+  PakettiApplyToVisibleStepper(PakettiFillStepperFull)
+end
+
+function PakettiFillStepperFull(deviceName)
+  local instrument = renoise.song().selected_instrument
+  
+  if not instrument or not instrument.sample_modulation_sets[1] then
+    renoise.app():show_status("No valid instrument or modulation devices found.")
+    return
+  end
+  
+  local deviceIndex = findStepperDeviceIndex(deviceName)
+  if not deviceIndex then
+    renoise.app():show_status(string.format("There is no %s device in this instrument.", deviceName))
+    return
+  end
+  
+  local device = instrument.sample_modulation_sets[1].devices[deviceIndex]
+  
+  -- Clear existing points and fill with 1.0 for all steps
+  device:clear_points()
+  local points_data = {}
+  
+  for i = 1, device.length do
+    table.insert(points_data, {
+      scaling = 0,
+      time = i,
+      value = 1.0
+    })
+  end
+
+  device.points = points_data
+  renoise.app():show_status(string.format("%s filled with 1.0 for all steps.", deviceName))
+end
+
+function PakettiFillVisibleStepperRampUp()
+  PakettiApplyToVisibleStepper(PakettiFillStepperRampUp)
+end
+
+function PakettiFillStepperRampUp(deviceName)
+  local instrument = renoise.song().selected_instrument
+  
+  if not instrument or not instrument.sample_modulation_sets[1] then
+    renoise.app():show_status("No valid instrument or modulation devices found.")
+    return
+  end
+  
+  local deviceIndex = findStepperDeviceIndex(deviceName)
+  if not deviceIndex then
+    renoise.app():show_status(string.format("There is no %s device in this instrument.", deviceName))
+    return
+  end
+  
+  local device = instrument.sample_modulation_sets[1].devices[deviceIndex]
+  
+  -- Clear existing points and fill with ramp from 0 to 1
+  device:clear_points()
+  local points_data = {}
+  
+  for i = 1, device.length do
+    local value = (i - 1) / (device.length - 1)
+    table.insert(points_data, {
+      scaling = 0,
+      time = i,
+      value = value
+    })
+  end
+
+  device.points = points_data
+  renoise.app():show_status(string.format("%s filled with ramp up (0→1).", deviceName))
+end
+
+function PakettiFillVisibleStepperRampDown()
+  PakettiApplyToVisibleStepper(PakettiFillStepperRampDown)
+end
+
+function PakettiFillStepperRampDown(deviceName)
+  local instrument = renoise.song().selected_instrument
+  
+  if not instrument or not instrument.sample_modulation_sets[1] then
+    renoise.app():show_status("No valid instrument or modulation devices found.")
+    return
+  end
+  
+  local deviceIndex = findStepperDeviceIndex(deviceName)
+  if not deviceIndex then
+    renoise.app():show_status(string.format("There is no %s device in this instrument.", deviceName))
+    return
+  end
+  
+  local device = instrument.sample_modulation_sets[1].devices[deviceIndex]
+  
+  -- Clear existing points and fill with ramp from 1 to 0
+  device:clear_points()
+  local points_data = {}
+  
+  for i = 1, device.length do
+    local value = 1.0 - ((i - 1) / (device.length - 1))
+    table.insert(points_data, {
+      scaling = 0,
+      time = i,
+      value = value
+    })
+  end
+
+  device.points = points_data
+  renoise.app():show_status(string.format("%s filled with ramp down (1→0).", deviceName))
+end
+
+function PakettiFillVisibleStepperMiddle()
+  PakettiApplyToVisibleStepper(PakettiFillStepperMiddle)
+end
+
+function PakettiFillStepperMiddle(deviceName)
+  local instrument = renoise.song().selected_instrument
+  
+  if not instrument or not instrument.sample_modulation_sets[1] then
+    renoise.app():show_status("No valid instrument or modulation devices found.")
+    return
+  end
+  
+  local deviceIndex = findStepperDeviceIndex(deviceName)
+  if not deviceIndex then
+    renoise.app():show_status(string.format("There is no %s device in this instrument.", deviceName))
+    return
+  end
+  
+  local device = instrument.sample_modulation_sets[1].devices[deviceIndex]
+  
+  -- Clear existing points and fill with 0.5 for all steps
+  device:clear_points()
+  local points_data = {}
+  
+  for i = 1, device.length do
+    table.insert(points_data, {
+      scaling = 0,
+      time = i,
+      value = 0.5
+    })
+  end
+
+  device.points = points_data
+  renoise.app():show_status(string.format("%s filled with middle (0.5) for all steps.", deviceName))
+end
+
+function PakettiFillVisibleStepperSinewave()
+  PakettiApplyToVisibleStepper(PakettiFillStepperSinewave)
+end
+
+function PakettiFillStepperSinewave(deviceName)
+  local instrument = renoise.song().selected_instrument
+  
+  if not instrument or not instrument.sample_modulation_sets[1] then
+    renoise.app():show_status("No valid instrument or modulation devices found.")
+    return
+  end
+  
+  local deviceIndex = findStepperDeviceIndex(deviceName)
+  if not deviceIndex then
+    renoise.app():show_status(string.format("There is no %s device in this instrument.", deviceName))
+    return
+  end
+  
+  local device = instrument.sample_modulation_sets[1].devices[deviceIndex]
+  
+  -- Clear existing points and fill with sine wave
+  device:clear_points()
+  local points_data = {}
+  
+  for i = 1, device.length do
+    -- Create sine wave: 0.5 + 0.5 * sin(2π * (i-1) / device.length)
+    local angle = 2 * math.pi * (i - 1) / device.length
+    local value = 0.5 + 0.5 * math.sin(angle)
+    table.insert(points_data, {
+      scaling = 0,
+      time = i,
+      value = value
+    })
+  end
+
+  device.points = points_data
+  renoise.app():show_status(string.format("%s filled with sine wave pattern.", deviceName))
+end
+
+function PakettiFillVisibleStepperSquarewave()
+  PakettiApplyToVisibleStepper(PakettiFillStepperSquarewave)
+end
+
+function PakettiFillStepperSquarewave(deviceName)
+  local instrument = renoise.song().selected_instrument
+  
+  if not instrument or not instrument.sample_modulation_sets[1] then
+    renoise.app():show_status("No valid instrument or modulation devices found.")
+    return
+  end
+  
+  local deviceIndex = findStepperDeviceIndex(deviceName)
+  if not deviceIndex then
+    renoise.app():show_status(string.format("There is no %s device in this instrument.", deviceName))
+    return
+  end
+  
+  local device = instrument.sample_modulation_sets[1].devices[deviceIndex]
+  
+  -- Clear existing points and fill with square wave (0→1 switching at midpoint)
+  device:clear_points()
+  local points_data = {}
+  local midpoint = math.ceil(device.length / 2)
+  
+  for i = 1, device.length do
+    local value = (i <= midpoint) and 0.0 or 1.0
+    table.insert(points_data, {
+      scaling = 0,
+      time = i,
+      value = value
+    })
+  end
+
+  device.points = points_data
+  renoise.app():show_status(string.format("%s filled with square wave (0→1 at midpoint).", deviceName))
+end
+
+function PakettiFillVisibleStepperOff()
+  PakettiApplyToVisibleStepper(PakettiFillStepperOff)
+end
+
+function PakettiFillStepperOff(deviceName)
+  local instrument = renoise.song().selected_instrument
+  
+  if not instrument or not instrument.sample_modulation_sets[1] then
+    renoise.app():show_status("No valid instrument or modulation devices found.")
+    return
+  end
+  
+  local deviceIndex = findStepperDeviceIndex(deviceName)
+  if not deviceIndex then
+    renoise.app():show_status(string.format("There is no %s device in this instrument.", deviceName))
+    return
+  end
+  
+  local device = instrument.sample_modulation_sets[1].devices[deviceIndex]
+  
+  -- Clear existing points and fill with 0.0 for all steps
+  device:clear_points()
+  local points_data = {}
+  
+  for i = 1, device.length do
+    table.insert(points_data, {
+      scaling = 0,
+      time = i,
+      value = 0.0
+    })
+  end
+
+  device.points = points_data
+  renoise.app():show_status(string.format("%s filled with 0.0 for all steps.", deviceName))
+end
+
+function PakettiFillStepperMirror(deviceName)
+  local instrument = renoise.song().selected_instrument
+  
+  if not instrument or not instrument.sample_modulation_sets[1] then
+    renoise.app():show_status("No valid instrument or modulation devices found.")
+    return
+  end
+  
+  local deviceIndex = findStepperDeviceIndex(deviceName)
+  if not deviceIndex then
+    renoise.app():show_status(string.format("There is no %s device in this instrument.", deviceName))
+    return
+  end
+  
+  local device = instrument.sample_modulation_sets[1].devices[deviceIndex]
+  
+  print("=== MIRROR DEBUG START ===")
+  print("Device name:", deviceName)
+  print("Device length:", device.length)
+  print("Current points count:", #device.points)
+  
+  -- Read current points and mirror all values
+  local current_points = {}
+  for i = 1, #device.points do
+    print(string.format("Original point %d: time=%s, value=%s, scaling=%s", 
+          i, tostring(device.points[i].time), tostring(device.points[i].value), tostring(device.points[i].scaling)))
+    table.insert(current_points, {
+      time = device.points[i].time,
+      value = device.points[i].value,
+      scaling = device.points[i].scaling
+    })
+  end
+  
+  print("Copied points count:", #current_points)
+  
+  -- Clear and rebuild with mirrored values
+  device:clear_points()
+  local points_data = {}
+  
+  for i = 1, #current_points do
+    local mirrored_value = 1.0 - current_points[i].value
+    local new_point = {
+      scaling = current_points[i].scaling,
+      time = current_points[i].time,
+      value = mirrored_value
+    }
+    print(string.format("Mirror point %d: time=%s, value=%s (was %s), scaling=%s", 
+          i, tostring(new_point.time), tostring(new_point.value), tostring(current_points[i].value), tostring(new_point.scaling)))
+    
+    -- Validate time before adding
+    if new_point.time and new_point.time >= 1 and new_point.time <= device.length then
+      table.insert(points_data, new_point)
+    else
+      print(string.format("ERROR: Invalid time %s for point %d (device.length=%d)", tostring(new_point.time), i, device.length))
+    end
+  end
+
+  print("Final points_data count:", #points_data)
+  print("About to set device.points...")
+  
+  device.points = points_data
+  print("=== MIRROR DEBUG END ===")
+  renoise.app():show_status(string.format("%s values mirrored (flipped around center).", deviceName))
+end
+
+function PakettiFillStepperFlip(deviceName)
+  local instrument = renoise.song().selected_instrument
+  
+  if not instrument or not instrument.sample_modulation_sets[1] then
+    renoise.app():show_status("No valid instrument or modulation devices found.")
+    return
+  end
+  
+  local deviceIndex = findStepperDeviceIndex(deviceName)
+  if not deviceIndex then
+    renoise.app():show_status(string.format("There is no %s device in this instrument.", deviceName))
+    return
+  end
+  
+  local device = instrument.sample_modulation_sets[1].devices[deviceIndex]
+  
+  print("=== FLIP DEBUG START ===")
+  print("Device name:", deviceName)
+  print("Device length:", device.length)
+  print("Current points count:", #device.points)
+  
+  -- Read current points and flip their order
+  local current_points = {}
+  for i = 1, #device.points do
+    print(string.format("Original point %d: time=%s, value=%s, scaling=%s", 
+          i, tostring(device.points[i].time), tostring(device.points[i].value), tostring(device.points[i].scaling)))
+    table.insert(current_points, {
+      time = device.points[i].time,
+      value = device.points[i].value,
+      scaling = device.points[i].scaling
+    })
+  end
+  
+  print("Copied points count:", #current_points)
+  
+  -- Clear and rebuild with flipped values
+  device:clear_points()
+  local points_data = {}
+  
+  for i = 1, #current_points do
+    -- Keep time sequential, but use values in reverse order
+    local flipped_value = current_points[#current_points - i + 1].value
+    local new_point = {
+      scaling = current_points[i].scaling,
+      time = current_points[i].time,
+      value = flipped_value
+    }
+    print(string.format("Flip point %d: time=%s, value=%s (was point %d value %s), scaling=%s", 
+          i, tostring(new_point.time), tostring(new_point.value), 
+          #current_points - i + 1, tostring(current_points[#current_points - i + 1].value), tostring(new_point.scaling)))
+    
+    -- Validate time before adding
+    if new_point.time and new_point.time >= 1 and new_point.time <= device.length then
+      table.insert(points_data, new_point)
+    else
+      print(string.format("ERROR: Invalid time %s for point %d (device.length=%d)", tostring(new_point.time), i, device.length))
+    end
+  end
+
+  print("Final points_data count:", #points_data)
+  print("About to set device.points...")
+  
+  device.points = points_data
+  print("=== FLIP DEBUG END ===")
+  renoise.app():show_status(string.format("%s step order flipped.", deviceName))
+end
+
+function PakettiFillStepperHumanize(deviceName)
+  local instrument = renoise.song().selected_instrument
+  
+  if not instrument or not instrument.sample_modulation_sets[1] then
+    renoise.app():show_status("No valid instrument or modulation devices found.")
+    return
+  end
+  
+  local deviceIndex = findStepperDeviceIndex(deviceName)
+  if not deviceIndex then
+    renoise.app():show_status(string.format("There is no %s device in this instrument.", deviceName))
+    return
+  end
+  
+  local device = instrument.sample_modulation_sets[1].devices[deviceIndex]
+  
+  -- Get existing points or create default ones if none exist
+  local existing_points = {}
+  if #device.points > 0 then
+    for _, point in ipairs(device.points) do
+      existing_points[point.time] = point.value
+    end
+  else
+    -- If no points exist, create default center values first
+    for i = 1, device.length do
+      existing_points[i] = 0.5
+    end
+  end
+  
+  -- Apply ±8% humanization to existing values
+  device:clear_points()
+  local points_data = {}
+  
+  for i = 1, device.length do
+    local original_value = existing_points[i] or 0.5
+    local variation = (math.random() - 0.5) * 0.16  -- ±8% variation
+    local humanized_value = math.max(0, math.min(1, original_value + variation))
+    
+    table.insert(points_data, {
+      scaling = 0,
+      time = i,
+      value = humanized_value
+    })
+  end
+
+  device.points = points_data
+  renoise.app():show_status(string.format("%s humanized with ±8%% variation applied successfully.", deviceName))
+end
+
+function PakettiRandomizeVisibleStepperStepSize()
+  local visible_stepper = PakettiGetVisibleStepperName()
+  if not visible_stepper then
+    renoise.app():show_status("No stepper is currently visible")
+    return
+  end
+  
+  local step_size = math.random(1, 256)
+  PakettiChangeVisibleStepperStepSize(step_size)
+  PakettiUpdateStepCountText()
+  renoise.app():show_status(string.format("Changed %s to %d steps", visible_stepper, step_size))
 end
 
 

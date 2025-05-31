@@ -979,6 +979,120 @@ function clear_effect_column_4()
   renoise.app():show_status("Cleared Effect Column 4")
 end
 
+-- Wipe gating effects from a specific track
+local function wipe_gating_effects_from_track(track_index)
+  local pattern = renoise.song().selected_pattern
+  local selected_pattern = pattern:track(track_index)
+  local track = renoise.song().tracks[track_index]
+  local visible_note_columns = track.visible_note_columns
+  
+  -- Clear volume gating effects based on column choice
+  if column_choice == "FX Column" or column_choice == "FX Column (L00)" then
+    for i = 1, max_rows do
+      local line = selected_pattern:line(i)
+      for j = 1, #line.effect_columns do
+        if line.effect_columns[j].number_string == "0C" or line.effect_columns[j].number_string == "0L" then
+          line.effect_columns[j].number_string = ""
+          line.effect_columns[j].amount_string = ""
+        end
+      end
+    end
+  elseif column_choice == "Volume Column" then
+    for i = 1, max_rows do
+      local line = selected_pattern:line(i)
+      for j = 1, visible_note_columns do
+        -- Only clear volume values, not retrig values
+        local vol_string = line:note_column(j).volume_string
+        if vol_string == "80" or vol_string == "00" then
+          line:note_column(j).volume_string = ""
+        end
+      end
+    end
+  end
+  
+  -- Clear retrig effects based on retrig column choice
+  if retrig_column_choice == "FX Column" then
+    for i = 1, max_rows do
+      local line = selected_pattern:line(i)
+      line.effect_columns[2].number_string = ""
+      line.effect_columns[2].amount_string = ""
+    end
+  elseif retrig_column_choice == "Volume Column" then
+    for i = 1, max_rows do
+      local line = selected_pattern:line(i)
+      for j = 1, visible_note_columns do
+        local vol_string = line:note_column(j).volume_string
+        if string.sub(vol_string, 1, 1) == "R" then
+          line:note_column(j).volume_string = ""
+        end
+      end
+    end
+  elseif retrig_column_choice == "Panning Column" then
+    for i = 1, max_rows do
+      local line = selected_pattern:line(i)
+      for j = 1, visible_note_columns do
+        local pan_string = line:note_column(j).panning_string
+        if string.sub(pan_string, 1, 1) == "R" then
+          line:note_column(j).panning_string = ""
+        end
+      end
+    end
+  end
+  
+  -- Clear playback effects
+  for i = 1, max_rows do
+    local line = selected_pattern:line(i)
+    if line.effect_columns[3].number_string == "0B" then
+      line.effect_columns[3].number_string = ""
+      line.effect_columns[3].amount_string = ""
+    end
+  end
+  
+  -- Clear panning effects based on panning column choice
+  if panning_column_choice == "FX Column" then
+    for i = 1, max_rows do
+      local line = selected_pattern:line(i)
+      if line.effect_columns[4] and line.effect_columns[4].number_string == "0P" then
+        line.effect_columns[4].number_string = ""
+        line.effect_columns[4].amount_string = ""
+      end
+    end
+  elseif panning_column_choice == "Panning Column" then
+    for i = 1, max_rows do
+      local line = selected_pattern:line(i)
+      for j = 1, visible_note_columns do
+        local pan_string = line:note_column(j).panning_string
+        -- Only clear panning values (00, 40, 80), not retrig values
+        if pan_string == "00" or pan_string == "40" or pan_string == "80" then
+          line:note_column(j).panning_string = ""
+        end
+      end
+    end
+  end
+end
+
+-- Wipe gating effects based on solo mode
+local function wipe_gating_effects()
+  if not renoise.song() then return end
+  
+  local pattern = renoise.song().selected_pattern
+  local selected_track_index = renoise.song().selected_track_index
+  
+  if solo_mode then
+    -- Wipe from ALL tracks EXCEPT the selected one
+    for track_index = 1, #pattern.tracks do
+      if track_index ~= selected_track_index then
+        wipe_gating_effects_from_track(track_index)
+      end
+    end
+    renoise.app():show_status("Wiped gating effects from all tracks except selected (Solo mode)")
+  else
+    -- Wipe from selected track only
+    wipe_gating_effects_from_track(selected_track_index)
+    renoise.app():show_status("Wiped gating effects from selected track")
+  end
+end
+
 -- Now modify the insert_commands function to be more efficient
 function insert_commands()
   max_rows = renoise.song().selected_pattern.number_of_lines
@@ -1202,6 +1316,96 @@ function insert_commands()
         PakettiReplicateAtCursorGaterForTrack(track_index)
       end
     end
+    
+    -- Clear all gating effects from the selected track when in solo mode
+    local selected_pattern = pattern:track(selected_track_index)
+    local selected_track = renoise.song().tracks[selected_track_index]
+    local visible_note_columns = selected_track.visible_note_columns
+    
+    -- Clear volume gating effects based on column choice
+    if column_choice == "FX Column" or column_choice == "FX Column (L00)" then
+      for i = 1, max_rows do
+        local line = selected_pattern:line(i)
+        for j = 1, #line.effect_columns do
+          if line.effect_columns[j].number_string == "0C" or line.effect_columns[j].number_string == "0L" then
+            line.effect_columns[j].number_string = ""
+            line.effect_columns[j].amount_string = ""
+          end
+        end
+      end
+    elseif column_choice == "Volume Column" then
+      for i = 1, max_rows do
+        local line = selected_pattern:line(i)
+        for j = 1, visible_note_columns do
+          -- Only clear volume values, not retrig values
+          local vol_string = line:note_column(j).volume_string
+          if vol_string == "80" or vol_string == "00" then
+            line:note_column(j).volume_string = ""
+          end
+        end
+      end
+    end
+    
+    -- Clear retrig effects based on retrig column choice
+    if retrig_column_choice == "FX Column" then
+      for i = 1, max_rows do
+        local line = selected_pattern:line(i)
+        line.effect_columns[2].number_string = ""
+        line.effect_columns[2].amount_string = ""
+      end
+    elseif retrig_column_choice == "Volume Column" then
+      for i = 1, max_rows do
+        local line = selected_pattern:line(i)
+        for j = 1, visible_note_columns do
+          local vol_string = line:note_column(j).volume_string
+          if string.sub(vol_string, 1, 1) == "R" then
+            line:note_column(j).volume_string = ""
+          end
+        end
+      end
+    elseif retrig_column_choice == "Panning Column" then
+      for i = 1, max_rows do
+        local line = selected_pattern:line(i)
+        for j = 1, visible_note_columns do
+          local pan_string = line:note_column(j).panning_string
+          if string.sub(pan_string, 1, 1) == "R" then
+            line:note_column(j).panning_string = ""
+          end
+        end
+      end
+    end
+    
+    -- Clear playback effects
+    for i = 1, max_rows do
+      local line = selected_pattern:line(i)
+      if line.effect_columns[3].number_string == "0B" then
+        line.effect_columns[3].number_string = ""
+        line.effect_columns[3].amount_string = ""
+      end
+    end
+    
+    -- Clear panning effects based on panning column choice
+    if panning_column_choice == "FX Column" then
+      for i = 1, max_rows do
+        local line = selected_pattern:line(i)
+        if line.effect_columns[4] and line.effect_columns[4].number_string == "0P" then
+          line.effect_columns[4].number_string = ""
+          line.effect_columns[4].amount_string = ""
+        end
+      end
+    elseif panning_column_choice == "Panning Column" then
+      for i = 1, max_rows do
+        local line = selected_pattern:line(i)
+        for j = 1, visible_note_columns do
+          local pan_string = line:note_column(j).panning_string
+          -- Only clear panning values (00, 40, 80), not retrig values
+          if pan_string == "00" or pan_string == "40" or pan_string == "80" then
+            line:note_column(j).panning_string = ""
+          end
+        end
+      end
+    end
+    
   else
     -- Apply only to selected track (original behavior)
     apply_gating_to_track(selected_track_index)
@@ -1786,7 +1990,7 @@ function pakettiGaterDialog()
             vb:button{ text="Receive", pressed = receive_panning_checkboxes },
     },
     vb:row{
-      vb:text{text="Global", font="bold", style="strong"},
+      --vb:text{text="Global", font="bold", style="strong"},
       vb:checkbox{
         value = auto_grab,
         notifier=function(value)
@@ -1818,7 +2022,7 @@ function pakettiGaterDialog()
           end
         end
       },
-      vb:text{text="SOLO", style="strong", font="bold", tooltip="When enabled, applies gating to ALL tracks EXCEPT the selected one" },
+      vb:text{text="Solo", style="strong", font="bold", tooltip="When enabled, applies gating to ALL tracks EXCEPT the selected one" },
     
       
       vb:button{ text="<<", pressed = function()
@@ -1839,6 +2043,7 @@ function pakettiGaterDialog()
         initializing = false
         insert_commands()  -- Single update at the end
       end},
+      vb:button{ text="Wipe", pressed = wipe_gating_effects, tooltip="Wipe gating effects: from other tracks when Solo is on, from selected track when Solo is off" },
       vb:button{ text="Global Clear", pressed = function()
         initializing = true
         -- Clear volume

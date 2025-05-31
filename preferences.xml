@@ -1,42 +1,221 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ScriptingToolPreferences doc_version="0">
+  <pakettiCheatSheet>
+    <pakettiCheatSheetRandomize>true</pakettiCheatSheetRandomize>
+    <pakettiCheatSheetRandomizeMin>239.84265734265745</pakettiCheatSheetRandomizeMin>
+    <pakettiCheatSheetRandomizeMax>255</pakettiCheatSheetRandomizeMax>
+    <pakettiCheatSheetFillAll>100</pakettiCheatSheetFillAll>
+    <pakettiCheatSheetRandomizeWholeTrack>true</pakettiCheatSheetRandomizeWholeTrack>
+    <pakettiCheatSheetRandomizeSwitch>false</pakettiCheatSheetRandomizeSwitch>
+    <pakettiCheatSheetRandomizeDontOverwrite>false</pakettiCheatSheetRandomizeDontOverwrite>
+    <pakettiCheatSheetOnlyModifyEffects>false</pakettiCheatSheetOnlyModifyEffects>
+    <pakettiCheatSheetOnlyModifyNotes>false</pakettiCheatSheetOnlyModifyNotes>
+  </pakettiCheatSheet>
+  <pakettiPhraseInitDialog>
+    <VolumeColumnVisible>false</VolumeColumnVisible>
+    <PanningColumnVisible>false</PanningColumnVisible>
+    <InstrumentColumnVisible>true</InstrumentColumnVisible>
+    <DelayColumnVisible>false</DelayColumnVisible>
+    <SampleFXColumnVisible>false</SampleFXColumnVisible>
+    <NoteColumns>4</NoteColumns>
+    <EffectColumns>0.0</EffectColumns>
+    <Shuffle>0.0</Shuffle>
+    <LPB>4</LPB>
+    <Length>64</Length>
+    <SetName>true</SetName>
+    <Name>Phraseqa</Name>
+    <Autoseek>false</Autoseek>
+    <PhraseLooping>true</PhraseLooping>
+  </pakettiPhraseInitDialog>
+  <PakettiXMLizer>
+    <pakettiCustomLFOXMLInject16/>
+    <pakettiCustomLFOXMLInject1>&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;FilterDevicePreset doc_version="14"&gt;
+  &lt;DeviceSlot type="LfoDevice"&gt;
+    &lt;IsMaximized&gt;true&lt;/IsMaximized&gt;
+    &lt;Amplitude&gt;
+      &lt;Value&gt;0.5&lt;/Value&gt;
+    &lt;/Amplitude&gt;
+    &lt;Offset&gt;
+      &lt;Value&gt;0.0&lt;/Value&gt;
+    &lt;/Offset&gt;
+    &lt;Frequency&gt;
+      &lt;Value&gt;0.93749994&lt;/Value&gt;
+    &lt;/Frequency&gt;
+    &lt;Type&gt;
+      &lt;Value&gt;4&lt;/Value&gt;
+    &lt;/Type&gt;
+    &lt;CustomEnvelope&gt;
+      &lt;PlayMode&gt;Lines&lt;/PlayMode&gt;
+      &lt;Length&gt;555&lt;/Length&gt;
+      &lt;ValueQuantum&gt;0.0&lt;/ValueQuantum&gt;
+      &lt;Polarity&gt;Unipolar&lt;/Polarity&gt;
+      &lt;Points&gt;
+        &lt;Point&gt;0,0.0,0.0&lt;/Point&gt;
+        &lt;Point&gt;24,0.405579388,0.0&lt;/Point&gt;
+        &lt;Point&gt;28,0.454077244,0.0&lt;/Point&gt;
+        &lt;Point&gt;32,0.494098693,0.0&lt;/Point&gt;
+        &lt;Point&gt;36,0.529506445,0.0&lt;/Point&gt;
+        &lt;Point&gt;40,0.565450609,0.0&lt;/Point&gt;
+        &lt;Point&gt;44,0.600858331,0.0&lt;/Point&gt;
+        &lt;Point&gt;48,0.628755391,0.0&lt;/Point&gt;
+        &lt;Point&gt;52,0.641630888,0.0&lt;/Point&gt;
+        &lt;Point&gt;56,0.623927057,0.0&lt;/Point&gt;
+        &lt;Point&gt;60,0.595493615,0.0&lt;/Point&gt;
+        &lt;Point&gt;64,0.553648055,0.0&lt;/Point&gt;
+        &lt;Point&gt;68,0.512875557,0.0&lt;/Point&gt;
+        &lt;Point&gt;72,0.46423462,0.0&lt;/Point&gt;
+        &lt;Point&gt;76,0.42006436,0.0&lt;/Point&gt;
+        &lt;Point&gt;80,0.361588001,0.0&lt;/Point&gt;
+        &lt;Point&gt;84,0.321888417,0.0&lt;/Point&gt;
+        &lt;Point&gt;88,0.287553638,0.0&lt;/Point&gt;
+        &lt;Point&gt;92,0.274678111,0.0&lt;/Point&gt;
+        &lt;Point&gt;96,0.313304722,0.0&lt;/Point&gt;
+        &lt;Point&gt;100,0.54506439,0.0&lt;/Point&gt;
+        &lt;Point&gt;104,0.608369112,0.0&lt;/Point&gt;
+        &lt;Point&gt;108,0.640021443,0.0&lt;/Point&gt;
+        &lt;Point&gt;112,0.648783982,0.0&lt;/Point&gt;
+        &lt;Point&gt;116,0.648783982,0.0&lt;/Point&gt;
+        &lt;Point&gt;120,0.64592272,0.0&lt;/Point&gt;
+        &lt;Point&gt;124,0.639055789,0.0&lt;/Point&gt;
+        &lt;Point&gt;128,0.622854054,0.0&lt;/Point&gt;
+        &lt;Point&gt;132,0.603004336,0.0&lt;/Point&gt;
+        &lt;Point&gt;136,0.581902742,0.0&lt;/Point&gt;
+        &lt;Point&gt;140,0.557582378,0.0&lt;/Point&gt;
+        &lt;Point&gt;144,0.530901372,0.0&lt;/Point&gt;
+        &lt;Point&gt;148,0.49999997,0.0&lt;/Point&gt;
+        &lt;Point&gt;152,0.463519275,0.0&lt;/Point&gt;
+        &lt;Point&gt;156,0.425607979,0.0&lt;/Point&gt;
+        &lt;Point&gt;160,0.393133014,0.0&lt;/Point&gt;
+        &lt;Point&gt;164,0.366952807,0.0&lt;/Point&gt;
+        &lt;Point&gt;168,0.353361964,0.0&lt;/Point&gt;
+        &lt;Point&gt;172,0.366952777,0.0&lt;/Point&gt;
+        &lt;Point&gt;176,0.431330472,0.0&lt;/Point&gt;
+        &lt;Point&gt;180,0.447424889,0.0&lt;/Point&gt;
+        &lt;Point&gt;184,0.459227473,0.0&lt;/Point&gt;
+        &lt;Point&gt;188,0.467811167,0.0&lt;/Point&gt;
+        &lt;Point&gt;192,0.495708168,0.0&lt;/Point&gt;
+        &lt;Point&gt;196,0.542918444,0.0&lt;/Point&gt;
+        &lt;Point&gt;200,0.591201782,0.0&lt;/Point&gt;
+        &lt;Point&gt;204,0.639485002,0.0&lt;/Point&gt;
+        &lt;Point&gt;208,0.687553763,0.0&lt;/Point&gt;
+        &lt;Point&gt;212,0.735622525,0.0&lt;/Point&gt;
+        &lt;Point&gt;216,0.779327631,0.0&lt;/Point&gt;
+        &lt;Point&gt;220,0.818669558,0.0&lt;/Point&gt;
+        &lt;Point&gt;224,0.858011484,0.0&lt;/Point&gt;
+        &lt;Point&gt;228,0.893776834,0.0&lt;/Point&gt;
+        &lt;Point&gt;232,0.925965726,0.0&lt;/Point&gt;
+        &lt;Point&gt;236,0.957796931,0.0&lt;/Point&gt;
+        &lt;Point&gt;240,0.989270389,0.0&lt;/Point&gt;
+        &lt;Point&gt;244,0.996423423,0.0&lt;/Point&gt;
+        &lt;Point&gt;248,1.0,0.0&lt;/Point&gt;
+        &lt;Point&gt;252,1.0,0.0&lt;/Point&gt;
+        &lt;Point&gt;256,1.0,0.0&lt;/Point&gt;
+        &lt;Point&gt;260,1.0,0.0&lt;/Point&gt;
+        &lt;Point&gt;264,1.0,0.0&lt;/Point&gt;
+        &lt;Point&gt;268,1.0,0.0&lt;/Point&gt;
+        &lt;Point&gt;272,0.994992852,0.0&lt;/Point&gt;
+        &lt;Point&gt;276,0.974964261,0.0&lt;/Point&gt;
+        &lt;Point&gt;280,0.946351945,0.0&lt;/Point&gt;
+        &lt;Point&gt;284,0.911301851,0.0&lt;/Point&gt;
+        &lt;Point&gt;288,0.876967072,0.0&lt;/Point&gt;
+        &lt;Point&gt;292,0.846566558,0.0&lt;/Point&gt;
+        &lt;Point&gt;296,0.818133116,0.0&lt;/Point&gt;
+        &lt;Point&gt;300,0.790236115,0.0&lt;/Point&gt;
+        &lt;Point&gt;304,0.769098639,0.0&lt;/Point&gt;
+        &lt;Point&gt;308,0.749642372,0.0&lt;/Point&gt;
+        &lt;Point&gt;312,0.729613721,0.0&lt;/Point&gt;
+        &lt;Point&gt;316,0.714592338,0.0&lt;/Point&gt;
+        &lt;Point&gt;320,0.699570835,0.0&lt;/Point&gt;
+        &lt;Point&gt;324,0.685622394,0.0&lt;/Point&gt;
+        &lt;Point&gt;328,0.671673834,0.0&lt;/Point&gt;
+        &lt;Point&gt;332,0.66051513,0.0&lt;/Point&gt;
+        &lt;Point&gt;336,0.649356425,0.0&lt;/Point&gt;
+        &lt;Point&gt;340,0.637924373,0.0&lt;/Point&gt;
+        &lt;Point&gt;344,0.626219451,0.0&lt;/Point&gt;
+        &lt;Point&gt;348,0.61451453,0.0&lt;/Point&gt;
+        &lt;Point&gt;352,0.602735996,0.0&lt;/Point&gt;
+        &lt;Point&gt;356,0.590933323,0.0&lt;/Point&gt;
+        &lt;Point&gt;360,0.580257535,0.0&lt;/Point&gt;
+        &lt;Point&gt;364,0.569384813,0.0&lt;/Point&gt;
+        &lt;Point&gt;368,0.557939887,0.0&lt;/Point&gt;
+        &lt;Point&gt;372,0.54649508,0.0&lt;/Point&gt;
+        &lt;Point&gt;376,0.535407782,0.0&lt;/Point&gt;
+        &lt;Point&gt;380,0.527897,0.0&lt;/Point&gt;
+        &lt;Point&gt;384,0.519313276,0.0&lt;/Point&gt;
+        &lt;Point&gt;388,0.494635195,0.0&lt;/Point&gt;
+        &lt;Point&gt;392,0.473175973,0.0&lt;/Point&gt;
+        &lt;Point&gt;396,0.453862697,0.0&lt;/Point&gt;
+        &lt;Point&gt;400,0.435928881,0.0&lt;/Point&gt;
+        &lt;Point&gt;404,0.419987738,0.0&lt;/Point&gt;
+        &lt;Point&gt;408,0.408798277,0.0&lt;/Point&gt;
+        &lt;Point&gt;412,0.402360499,0.0&lt;/Point&gt;
+        &lt;Point&gt;416,0.399141639,0.0&lt;/Point&gt;
+        &lt;Point&gt;420,0.407188833,0.0&lt;/Point&gt;
+        &lt;Point&gt;424,0.421673834,0.0&lt;/Point&gt;
+        &lt;Point&gt;428,0.44034335,0.0&lt;/Point&gt;
+        &lt;Point&gt;432,0.467811167,0.0&lt;/Point&gt;
+        &lt;Point&gt;436,0.491109788,0.0&lt;/Point&gt;
+        &lt;Point&gt;440,0.516308963,0.0&lt;/Point&gt;
+        &lt;Point&gt;444,0.547210276,0.0&lt;/Point&gt;
+        &lt;Point&gt;448,0.576394856,0.0&lt;/Point&gt;
+        &lt;Point&gt;452,0.60783267,0.0&lt;/Point&gt;
+        &lt;Point&gt;456,0.641630888,0.0&lt;/Point&gt;
+        &lt;Point&gt;460,0.667382002,0.0&lt;/Point&gt;
+        &lt;Point&gt;464,0.69098711,0.0&lt;/Point&gt;
+        &lt;Point&gt;468,0.703862667,0.0&lt;/Point&gt;
+        &lt;Point&gt;472,0.705293238,0.0&lt;/Point&gt;
+        &lt;Point&gt;476,0.684549332,0.0&lt;/Point&gt;
+        &lt;Point&gt;480,0.656652331,0.0&lt;/Point&gt;
+        &lt;Point&gt;484,0.628039956,0.0&lt;/Point&gt;
+        &lt;Point&gt;488,0.5994277,0.0&lt;/Point&gt;
+        &lt;Point&gt;492,0.570815444,0.0&lt;/Point&gt;
+        &lt;Point&gt;496,0.536480665,0.0&lt;/Point&gt;
+        &lt;Point&gt;500,0.518240333,0.0&lt;/Point&gt;
+        &lt;Point&gt;504,0.502861202,0.0&lt;/Point&gt;
+        &lt;Point&gt;508,0.498569369,0.0&lt;/Point&gt;
+        &lt;Point&gt;512,0.497854084,0.0&lt;/Point&gt;
+        &lt;Point&gt;516,0.498927057,0.0&lt;/Point&gt;
+        &lt;Point&gt;520,0.504291832,0.0&lt;/Point&gt;
+        &lt;Point&gt;524,0.512875557,0.0&lt;/Point&gt;
+        &lt;Point&gt;528,0.521459281,0.0&lt;/Point&gt;
+        &lt;Point&gt;532,0.530042946,0.0&lt;/Point&gt;
+        &lt;Point&gt;536,0.537553668,0.0&lt;/Point&gt;
+        &lt;Point&gt;540,0.544349074,0.0&lt;/Point&gt;
+        &lt;Point&gt;544,0.550429225,0.0&lt;/Point&gt;
+        &lt;Point&gt;548,0.553648055,0.0&lt;/Point&gt;
+        &lt;Point&gt;552,0.549356222,0.0&lt;/Point&gt;
+        &lt;Point&gt;554,0.536480665,0.0&lt;/Point&gt;
+        &lt;Point&gt;556,0.547210276,0.0&lt;/Point&gt;
+      &lt;/Points&gt;
+    &lt;/CustomEnvelope&gt;
+    &lt;CustomEnvelopeOneShot&gt;false&lt;/CustomEnvelopeOneShot&gt;
+    &lt;UseAdjustedEnvelopeLength&gt;true&lt;/UseAdjustedEnvelopeLength&gt;
+  &lt;/DeviceSlot&gt;
+&lt;/FilterDevicePreset&gt;
+</pakettiCustomLFOXMLInject1>
+    <pakettiCustomLFOXMLInject2/>
+    <pakettiCustomLFOXMLInject3/>
+    <pakettiCustomLFOXMLInject4/>
+    <pakettiCustomLFOXMLInject5/>
+    <pakettiCustomLFOXMLInject6/>
+    <pakettiCustomLFOXMLInject7/>
+    <pakettiCustomLFOXMLInject8/>
+    <pakettiCustomLFOXMLInject9/>
+    <pakettiCustomLFOXMLInject10/>
+    <pakettiCustomLFOXMLInject11/>
+    <pakettiCustomLFOXMLInject12/>
+    <pakettiCustomLFOXMLInject13/>
+    <pakettiCustomLFOXMLInject14/>
+    <pakettiCustomLFOXMLInject15/>
+  </PakettiXMLizer>
+  <pakettiTitler>
+    <textfile_path>External/wordlist.txt</textfile_path>
+    <trackTitlerDateFormat>YYYY_MM_DD</trackTitlerDateFormat>
+    <notes_file_path>External/notes.txt</notes_file_path>
+  </pakettiTitler>
   <pakettiDialogClose>donteverclose</pakettiDialogClose>
-  <UserDefinedSampleFolders08>/Users/esaruoho/Music/rMBP_2024_01_27 samples/!outsidesources/TRACKERCORPS SAMPLE PACK 2025/DRUMS &amp; PERCUSSIONS/</UserDefinedSampleFolders08>
-  <UserDefinedSampleFolders09>/Users/esaruoho/Music/rMBP_2024_01_27 samples/!outsidesources/Analog Samples/</UserDefinedSampleFolders09>
-  <UserDefinedSampleFolders10>/Users/esaruoho/Music/rMBP_2024_01_27 samples/</UserDefinedSampleFolders10>
-  <pakettieSpeak>
-    <voice>67</voice>
-    <executable>/opt/homebrew/bin/espeak-ng</executable>
-    <clear_all_samples>false</clear_all_samples>
-    <add_render_to_current_instrument>true</add_render_to_current_instrument>
-    <render_on_change>false</render_on_change>
-    <dont_pakettify>false</dont_pakettify>
-    <amplitude>5</amplitude>
-    <text>i want ppl to talk</text>
-    <word_gap>9</word_gap>
-    <capitals>83</capitals>
-    <pitch>52</pitch>
-    <speed>13</speed>
-    <language>32</language>
-  </pakettieSpeak>
-  <OctaMEDPickPutSlots>
-    <Slot07/>
-    <Slot08/>
-    <Slot09/>
-    <Slot10/>
-    <RandomizeEnabled>false</RandomizeEnabled>
-    <RandomizePercentage>10</RandomizePercentage>
-    <SetSelectedInstrument>true</SetSelectedInstrument>
-    <UseEditStep>true</UseEditStep>
-    <Slot01>--- .. .. .. .. ....||0A30|0BEF|0GAB|0FED</Slot01>
-    <Slot02>C-4 01 .. .. .. .... | D-4 01 .. .. .. .... | E-4 01 .. .. .. .... | F-4 01 .. .. .. ....||</Slot02>
-    <Slot03>--- .. .. .. .. ....||0A30|0BEF|0GAB|0FED</Slot03>
-    <Slot04/>
-    <Slot05/>
-    <Slot06/>
-  </OctaMEDPickPutSlots>
   <UserPreferences>
-    <userPreferredDeviceLoad>true</userPreferredDeviceLoad>
     <userPreferredDevice01>&lt;None&gt;</userPreferredDevice01>
     <userPreferredDevice02>&lt;None&gt;</userPreferredDevice02>
     <userPreferredDevice03>&lt;None&gt;</userPreferredDevice03>
@@ -47,33 +226,32 @@
     <userPreferredDevice08>&lt;None&gt;</userPreferredDevice08>
     <userPreferredDevice09>&lt;None&gt;</userPreferredDevice09>
     <userPreferredDevice10>&lt;None&gt;</userPreferredDevice10>
+    <userPreferredDeviceLoad>true</userPreferredDeviceLoad>
   </UserPreferences>
-  <RandomizeSettings>
-    <pakettiRandomizeSelectedDevicePercentage>100</pakettiRandomizeSelectedDevicePercentage>
-    <pakettiRandomizeSelectedDevicePercentageUserPreference1>10</pakettiRandomizeSelectedDevicePercentageUserPreference1>
-    <pakettiRandomizeSelectedDevicePercentageUserPreference2>25</pakettiRandomizeSelectedDevicePercentageUserPreference2>
-    <pakettiRandomizeSelectedDevicePercentageUserPreference3>50</pakettiRandomizeSelectedDevicePercentageUserPreference3>
-    <pakettiRandomizeSelectedDevicePercentageUserPreference4>75</pakettiRandomizeSelectedDevicePercentageUserPreference4>
-    <pakettiRandomizeSelectedDevicePercentageUserPreference5>90</pakettiRandomizeSelectedDevicePercentageUserPreference5>
-    <pakettiRandomizeAllDevicesPercentage>50</pakettiRandomizeAllDevicesPercentage>
-    <pakettiRandomizeAllDevicesPercentageUserPreference1>10</pakettiRandomizeAllDevicesPercentageUserPreference1>
-    <pakettiRandomizeAllDevicesPercentageUserPreference2>25</pakettiRandomizeAllDevicesPercentageUserPreference2>
-    <pakettiRandomizeAllDevicesPercentageUserPreference3>50</pakettiRandomizeAllDevicesPercentageUserPreference3>
-    <pakettiRandomizeAllDevicesPercentageUserPreference4>75</pakettiRandomizeAllDevicesPercentageUserPreference4>
-    <pakettiRandomizeAllDevicesPercentageUserPreference5>90</pakettiRandomizeAllDevicesPercentageUserPreference5>
-    <pakettiRandomizeSelectedPluginPercentage>78.800000000000054</pakettiRandomizeSelectedPluginPercentage>
-    <pakettiRandomizeSelectedPluginPercentageUserPreference1>10</pakettiRandomizeSelectedPluginPercentageUserPreference1>
-    <pakettiRandomizeSelectedPluginPercentageUserPreference2>20</pakettiRandomizeSelectedPluginPercentageUserPreference2>
-    <pakettiRandomizeSelectedPluginPercentageUserPreference3>30</pakettiRandomizeSelectedPluginPercentageUserPreference3>
-    <pakettiRandomizeSelectedPluginPercentageUserPreference4>40</pakettiRandomizeSelectedPluginPercentageUserPreference4>
-    <pakettiRandomizeSelectedPluginPercentageUserPreference5>50</pakettiRandomizeSelectedPluginPercentageUserPreference5>
-    <pakettiRandomizeAllPluginsPercentage>2.1806451612903226</pakettiRandomizeAllPluginsPercentage>
-    <pakettiRandomizeAllPluginsPercentageUserPreference1>10</pakettiRandomizeAllPluginsPercentageUserPreference1>
-    <pakettiRandomizeAllPluginsPercentageUserPreference2>20</pakettiRandomizeAllPluginsPercentageUserPreference2>
-    <pakettiRandomizeAllPluginsPercentageUserPreference3>30</pakettiRandomizeAllPluginsPercentageUserPreference3>
-    <pakettiRandomizeAllPluginsPercentageUserPreference4>40</pakettiRandomizeAllPluginsPercentageUserPreference4>
-    <pakettiRandomizeAllPluginsPercentageUserPreference5>50</pakettiRandomizeAllPluginsPercentageUserPreference5>
-  </RandomizeSettings>
+  <PakettiPluginLoaders>
+    <PakettiPluginLoader type="lua_model:PakettiPluginEntry">
+      <path>Audio/Generators/AU/aumu:V4vi:Manu</path>
+      <name>Vintage (AU)</name>
+    </PakettiPluginLoader>
+    <PakettiPluginLoader type="lua_model:PakettiPluginEntry">
+      <path>Audio/Generators/AU/aumu:xAXO:xlnA</path>
+      <name>XO (AU)</name>
+    </PakettiPluginLoader>
+    <PakettiPluginLoader type="lua_model:PakettiPluginEntry">
+      <path>Audio/Generators/VST/XO</path>
+      <name>XO (VST)</name>
+    </PakettiPluginLoader>
+    <PakettiPluginLoader type="lua_model:PakettiPluginEntry">
+      <path>Audio/Generators/VST3/ABCDEF019182FAEB786C6E417841584F</path>
+      <name>XO (VST3)</name>
+    </PakettiPluginLoader>
+    <PakettiPluginLoader type="lua_model:PakettiPluginEntry">
+      <path>Audio/Generators/AU/aumu:Amgo:PTNZ</path>
+      <name>Amigo (AU)</name>
+    </PakettiPluginLoader>
+  </PakettiPluginLoaders>
+  <pakettiInstrumentProperties>false</pakettiInstrumentProperties>
+  <pakettiREXBundlePath>./rx2</pakettiREXBundlePath>
   <WipeSlices>
     <WipeSlicesLoopMode>2</WipeSlicesLoopMode>
     <WipeSlicesLoopRelease>false</WipeSlicesLoopRelease>
@@ -88,33 +266,10 @@
     <SliceLoopMode>false</SliceLoopMode>
     <slicePreviousDirection>1.0</slicePreviousDirection>
   </WipeSlices>
-  <pakettiThemeSelector>
-    <PreviousSelectedTheme>Mono Blue (dblue)</PreviousSelectedTheme>
-    <RenoiseLaunchRandomLoad>false</RenoiseLaunchRandomLoad>
-    <RenoiseLaunchFavoritesLoad>false</RenoiseLaunchFavoritesLoad>
-    <FavoritedList>
-      <Favorited>&lt;No Theme Selected&gt;</Favorited>
-      <Favorited>Mono Blue (dblue)</Favorited>
-    </FavoritedList>
-  </pakettiThemeSelector>
-  <pakettiInstrumentProperties>false</pakettiInstrumentProperties>
-  <pakettiREXBundlePath>./rx2</pakettiREXBundlePath>
-  <pakettiSampleDetailsCycles>1.0</pakettiSampleDetailsCycles>
-  <pakettiShowSampleDetails>false</pakettiShowSampleDetails>
   <pakettiShowSampleDetailsFrequencyAnalysis>true</pakettiShowSampleDetailsFrequencyAnalysis>
-  <AppSelection>
-    <AppSelection2>/Applications/Ableton Live 12 Suite.app</AppSelection2>
-    <AppSelection3>/System/Applications/VoiceMemos.app</AppSelection3>
-    <AppSelection4>/System/Applications/Music.app</AppSelection4>
-    <AppSelection5>/Applications/Logic Pro.app</AppSelection5>
-    <AppSelection6>/Applications/REAPER.app</AppSelection6>
-    <SmartFoldersApp1>/Users/esaruoho/Music/samples/LogicSmartFolder/</SmartFoldersApp1>
-    <SmartFoldersApp2>/Users/esaruoho/Music/samples/RenoiseSmartFolder/</SmartFoldersApp2>
-    <SmartFoldersApp3>/Users/esaruoho/Music/samples/LiveSmartFolder/</SmartFoldersApp3>
-    <AppSelection1>/Applications/Audacity.app</AppSelection1>
-  </AppSelection>
+  <pakettiSampleDetailsCycles>1.0</pakettiSampleDetailsCycles>
   <pakettiLoaderDontCreateAutomationDevice>false</pakettiLoaderDontCreateAutomationDevice>
-  <pakettiAlwaysOpenDSPsOnTrack>false</pakettiAlwaysOpenDSPsOnTrack>
+  <pakettiWipeExplodedTrack>true</pakettiWipeExplodedTrack>
   <pakettiAutomationFormat>2</pakettiAutomationFormat>
   <pakettiAutomationWipeAfterSwitch>true</pakettiAutomationWipeAfterSwitch>
   <SelectedSampleBeatSyncLines>false</SelectedSampleBeatSyncLines>
@@ -123,12 +278,21 @@
   <pakettiOctaMEDNoteEchoMin>1.0</pakettiOctaMEDNoteEchoMin>
   <pakettiRotateSampleBufferCoarse>1612</pakettiRotateSampleBufferCoarse>
   <pakettiRotateSampleBufferFine>160</pakettiRotateSampleBufferFine>
-  <pakettiBlendValue>54</pakettiBlendValue>
-  <UserDefinedSampleFolders01/>
+  <AppSelection>
+    <AppSelection3>/System/Applications/VoiceMemos.app</AppSelection3>
+    <AppSelection4>/System/Applications/Music.app</AppSelection4>
+    <AppSelection5>/Applications/Logic Pro.app</AppSelection5>
+    <AppSelection6>/Applications/REAPER.app</AppSelection6>
+    <SmartFoldersApp1>/Users/esaruoho/Music/samples/LogicSmartFolder/</SmartFoldersApp1>
+    <SmartFoldersApp2>/Users/esaruoho/Music/samples/RenoiseSmartFolder/</SmartFoldersApp2>
+    <SmartFoldersApp3>/Users/esaruoho/Music/samples/LiveSmartFolder/</SmartFoldersApp3>
+    <AppSelection1>/Applications/Audacity.app</AppSelection1>
+    <AppSelection2>/Applications/Ableton Live 12 Suite.app</AppSelection2>
+  </AppSelection>
   <PakettiDeviceChainPath>DeviceChains/</PakettiDeviceChainPath>
-  <UserDefinedSampleFolders03/>
+  <pakettiAlwaysOpenDSPsOnTrack>false</pakettiAlwaysOpenDSPsOnTrack>
   <PakettiIRPath>/Users/esaruoho/Music/samples/~IRs/</PakettiIRPath>
-  <UserDefinedSampleFolders05/>
+  <pakettiEditMode>2</pakettiEditMode>
   <PakettiLFOWriteDelete>false</PakettiLFOWriteDelete>
   <upperFramePreference>1.0</upperFramePreference>
   <_0G01_Loader>false</_0G01_Loader>
@@ -159,46 +323,8 @@
   <pakettiPitchbendLoaderEnvelope>false</pakettiPitchbendLoaderEnvelope>
   <pakettiSlideContentAutomationToo>true</pakettiSlideContentAutomationToo>
   <pakettiDefaultXRNI>/Users/esaruoho/Library/Preferences/Renoise/V3.5.0/Scripts/Tools/org.lackluster.Paketti.xrnx/Presets/12st_Pitchbend.xrni</pakettiDefaultXRNI>
-  <PakettiYTDLP>
-    <PakettiYTDLPClipLength>10</PakettiYTDLPClipLength>
-    <PakettiYTDLPAmountOfVideos>1.0</PakettiYTDLPAmountOfVideos>
-    <PakettiYTDLPLoadWholeVideo>true</PakettiYTDLPLoadWholeVideo>
-    <PakettiYTDLPOutputDirectory>/Users/esaruoho/Music/samples/colugatest/</PakettiYTDLPOutputDirectory>
-    <PakettiYTDLPFormatToSave>1.0</PakettiYTDLPFormatToSave>
-    <PakettiYTDLPPathToSave>/Users/esaruoho/Music/samples/ytube/</PakettiYTDLPPathToSave>
-    <PakettiYTDLPNewInstrumentOrSameInstrument>true</PakettiYTDLPNewInstrumentOrSameInstrument>
-    <PakettiYTDLPYT_DLPLocation>/opt/homebrew/Cellar/yt-dlp/2025.3.31/libexec/bin/yt-dlp</PakettiYTDLPYT_DLPLocation>
-    <PakettiYTDLPLoopMode>2</PakettiYTDLPLoopMode>
-  </PakettiYTDLP>
-  <pakettiPhraseInitDialog>
-    <LPB>4</LPB>
-    <Length>64</Length>
-    <SetName>true</SetName>
-    <Name>Phraseqa</Name>
-    <Autoseek>false</Autoseek>
-    <PhraseLooping>true</PhraseLooping>
-    <VolumeColumnVisible>false</VolumeColumnVisible>
-    <PanningColumnVisible>false</PanningColumnVisible>
-    <InstrumentColumnVisible>true</InstrumentColumnVisible>
-    <DelayColumnVisible>false</DelayColumnVisible>
-    <SampleFXColumnVisible>false</SampleFXColumnVisible>
-    <NoteColumns>4</NoteColumns>
-    <EffectColumns>0.0</EffectColumns>
-    <Shuffle>0.0</Shuffle>
-  </pakettiPhraseInitDialog>
   <pakettiDefaultDrumkitXRNI>/Users/esaruoho/Library/Preferences/Renoise/V3.5.0/Scripts/Tools/org.lackluster.Paketti.xrnx/Presets/12st_Pitchbend_Drumkit_C0.xrni</pakettiDefaultDrumkitXRNI>
-  <PakettiDynamicViews/>
   <ActionSelector>
-    <Index15>Keybinding: Global:Paketti:Impulse Tracker F8 Stop Playback (Panic)||function() ImpulseTrackerStop() end</Index15>
-    <Index16>Keybinding: Pattern Matrix:Paketti:Pattern Matrix Selection Shrink||PatternMatrixShrink</Index16>
-    <Index17>Keybinding: Pattern Editor:Paketti:Set Pattern Length to LPB*016||function() setPatternLengthByLPB(16) end</Index17>
-    <Index18>Keybinding: Global:Paketti:Move Slice Start Right by 100||move_slice_start_right_100</Index18>
-    <Index19>Keybinding: Global:Paketti:Rewind Playback by 4 steps||function() upbyn(4) end</Index19>
-    <Index20>Keybinding: Global:Paketti:Set Selected Sample Mute Group to F||function() selectedSampleMuteGroup(15) end</Index20>
-    <Index21>Keybinding: Global:Paketti:Toggle Sequence Selection (All) On/Off||function() TKNAToggleSequenceSelectionAll() end</Index21>
-    <Index22>Keybinding: Pattern Editor:Paketti:ChordsPlus Transposer Selection/Row -04||function() PakettiTransposer(-4, true) end</Index22>
-    <Index23>Menu Entry: Mixer:Paketti..:Automation..:Snapshot Current Device Values to Automation||snapshot_current_values_to_automation</Index23>
-    <Index24>Menu Entry: Instrument Box:Paketti..:Record..:Paketti Overdub 12 (Metronome/No Line Input)||function() recordtocurrenttrack(true, false,12) end</Index24>
     <Index25>Menu Entry: Main Menu:View:Paketti..:Visible Columns..:Global Visible Column (Volume)||function() globalChangeVisibleColumnState("volume",true) end</Index25>
     <Index26>Keybinding: Global:Paketti:Load XRNI &amp; Disable Phrases||function() loadXRNIWipePhrasesTwo() end</Index26>
     <Index27>Menu Entry: Instrument Box:Paketti..:Paketti Stacker Dialog...||function() showStackingDialog(proceed_with_stacking, on_switch_changed, PakettiIsolateSlicesToInstrument) end</Index27>
@@ -239,45 +365,53 @@
     <Index12>Menu Entry: Pattern Sequencer:Paketti..:Sequences/Sections..:Add Current Sequence to Scheduled List||function() renoise.song().transport:add_scheduled_sequence(renoise.song().selected_sequence_index) end</Index12>
     <Index13>Menu Entry: Sample Navigator:Paketti..:Wipe&amp;Slice..:Wipe&amp;Slice (008)||function() slicerough(8) end</Index13>
     <Index14>Menu Entry: Pattern Editor:Paketti..:Delay Output..:Nudge Delay Output -10ms||function() nudge_output_delay(-10, false) end</Index14>
+    <Index15>Keybinding: Global:Paketti:Impulse Tracker F8 Stop Playback (Panic)||function() ImpulseTrackerStop() end</Index15>
+    <Index16>Keybinding: Pattern Matrix:Paketti:Pattern Matrix Selection Shrink||PatternMatrixShrink</Index16>
+    <Index17>Keybinding: Pattern Editor:Paketti:Set Pattern Length to LPB*016||function() setPatternLengthByLPB(16) end</Index17>
+    <Index18>Keybinding: Global:Paketti:Move Slice Start Right by 100||move_slice_start_right_100</Index18>
+    <Index19>Keybinding: Global:Paketti:Rewind Playback by 4 steps||function() upbyn(4) end</Index19>
+    <Index20>Keybinding: Global:Paketti:Set Selected Sample Mute Group to F||function() selectedSampleMuteGroup(15) end</Index20>
+    <Index21>Keybinding: Global:Paketti:Toggle Sequence Selection (All) On/Off||function() TKNAToggleSequenceSelectionAll() end</Index21>
+    <Index22>Keybinding: Pattern Editor:Paketti:ChordsPlus Transposer Selection/Row -04||function() PakettiTransposer(-4, true) end</Index22>
+    <Index23>Menu Entry: Mixer:Paketti..:Automation..:Snapshot Current Device Values to Automation||snapshot_current_values_to_automation</Index23>
+    <Index24>Menu Entry: Instrument Box:Paketti..:Record..:Paketti Overdub 12 (Metronome/No Line Input)||function() recordtocurrenttrack(true, false,12) end</Index24>
   </ActionSelector>
-  <pakettiTitler>
-    <textfile_path>External/wordlist.txt</textfile_path>
-    <trackTitlerDateFormat>YYYY_MM_DD</trackTitlerDateFormat>
-    <notes_file_path>External/notes.txt</notes_file_path>
-  </pakettiTitler>
-  <pakettiMidiPopulator>
-    <noteColumns>1.0</noteColumns>
-    <effectColumns>1.0</effectColumns>
-    <incomingAudio>false</incomingAudio>
-    <populateSends>true</populateSends>
-    <collapsed>false</collapsed>
-    <volumeColumn>false</volumeColumn>
-    <panningColumn>false</panningColumn>
-    <delayColumn>false</delayColumn>
-    <sampleEffectsColumn>false</sampleEffectsColumn>
-  </pakettiMidiPopulator>
-  <PakettiPluginLoaders>
-    <PakettiPluginLoader type="lua_model:PakettiPluginEntry">
-      <path>Audio/Generators/AU/aumu:V4vi:Manu</path>
-      <name>Vintage (AU)</name>
-    </PakettiPluginLoader>
-    <PakettiPluginLoader type="lua_model:PakettiPluginEntry">
-      <path>Audio/Generators/AU/aumu:xAXO:xlnA</path>
-      <name>XO (AU)</name>
-    </PakettiPluginLoader>
-    <PakettiPluginLoader type="lua_model:PakettiPluginEntry">
-      <path>Audio/Generators/VST/XO</path>
-      <name>XO (VST)</name>
-    </PakettiPluginLoader>
-    <PakettiPluginLoader type="lua_model:PakettiPluginEntry">
-      <path>Audio/Generators/VST3/ABCDEF019182FAEB786C6E417841584F</path>
-      <name>XO (VST3)</name>
-    </PakettiPluginLoader>
-    <PakettiPluginLoader type="lua_model:PakettiPluginEntry">
-      <path>Audio/Generators/AU/aumu:Amgo:PTNZ</path>
-      <name>Amigo (AU)</name>
-    </PakettiPluginLoader>
-  </PakettiPluginLoaders>
+  <pakettiPatternSequencer>
+    <numbering_start>1.0</numbering_start>
+    <select_after_clone>true</select_after_clone>
+    <clone_prefix>HH</clone_prefix>
+    <clone_suffix/>
+    <use_numbering>false</use_numbering>
+    <numbering_format>%02d</numbering_format>
+    <naming_behavior>1.0</naming_behavior>
+  </pakettiPatternSequencer>
+  <UserInstruments>
+    <Slot01>/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/DeviceChains//Slot01.xrni</Slot01>
+    <Slot02>/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/DeviceChains//Slot02.xrni</Slot02>
+    <Slot03>/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/DeviceChains//Slot03.xrni</Slot03>
+    <Slot04/>
+    <Slot05/>
+    <Slot06/>
+    <Slot07/>
+    <Slot08/>
+    <Slot09/>
+    <Slot10/>
+    <Path/>
+  </UserInstruments>
+  <UserDevices>
+    <Slot01>/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/DeviceChains/colourcopy-valhalladelay-pingpong-niceness.xrnt</Slot01>
+    <Slot02>/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/DeviceChains//Slot02.xrnt</Slot02>
+    <Slot03>/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/DeviceChains//Slot03.xrnt</Slot03>
+    <Slot04>/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/DeviceChains//Slot04.xrnt</Slot04>
+    <Slot05>/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/DeviceChains//Slot05.xrnt</Slot05>
+    <Slot06>/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/DeviceChains//Slot06.xrnt</Slot06>
+    <Slot07/>
+    <Slot08/>
+    <Slot09>/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/DeviceChains//Slot09.xrnt</Slot09>
+    <Slot10/>
+    <Path>/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/DeviceChains/</Path>
+  </UserDevices>
+  <PakettiDynamicViews/>
   <PakettiDeviceLoaders>
     <PakettiDeviceLoader type="lua_model:PakettiDeviceEntry">
       <path>Audio/Effects/Native/Stutter</path>
@@ -290,56 +424,104 @@
       <name>Transient Shaper</name>
     </PakettiDeviceLoader>
   </PakettiDeviceLoaders>
-  <UserDevices>
-    <Slot07/>
-    <Slot08/>
-    <Slot09>/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/DeviceChains//Slot09.xrnt</Slot09>
-    <Slot10/>
-    <Path>/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/DeviceChains/</Path>
-    <Slot01>/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/DeviceChains/colourcopy-valhalladelay-pingpong-niceness.xrnt</Slot01>
-    <Slot02>/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/DeviceChains//Slot02.xrnt</Slot02>
-    <Slot03>/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/DeviceChains//Slot03.xrnt</Slot03>
-    <Slot04>/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/DeviceChains//Slot04.xrnt</Slot04>
-    <Slot05>/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/DeviceChains//Slot05.xrnt</Slot05>
-    <Slot06>/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/DeviceChains//Slot06.xrnt</Slot06>
-  </UserDevices>
-  <pakettiCheatSheet>
-    <pakettiCheatSheetRandomizeWholeTrack>true</pakettiCheatSheetRandomizeWholeTrack>
-    <pakettiCheatSheetRandomizeSwitch>false</pakettiCheatSheetRandomizeSwitch>
-    <pakettiCheatSheetRandomizeDontOverwrite>false</pakettiCheatSheetRandomizeDontOverwrite>
-    <pakettiCheatSheetOnlyModifyEffects>false</pakettiCheatSheetOnlyModifyEffects>
-    <pakettiCheatSheetOnlyModifyNotes>false</pakettiCheatSheetOnlyModifyNotes>
-    <pakettiCheatSheetRandomize>true</pakettiCheatSheetRandomize>
-    <pakettiCheatSheetRandomizeMin>239.84265734265745</pakettiCheatSheetRandomizeMin>
-    <pakettiCheatSheetRandomizeMax>255</pakettiCheatSheetRandomizeMax>
-    <pakettiCheatSheetFillAll>100</pakettiCheatSheetFillAll>
-  </pakettiCheatSheet>
-  <UserInstruments>
+  <pakettiMidiPopulator>
+    <volumeColumn>false</volumeColumn>
+    <collapsed>false</collapsed>
+    <delayColumn>false</delayColumn>
+    <sampleEffectsColumn>false</sampleEffectsColumn>
+    <noteColumns>1.0</noteColumns>
+    <effectColumns>1.0</effectColumns>
+    <incomingAudio>false</incomingAudio>
+    <populateSends>true</populateSends>
+    <panningColumn>false</panningColumn>
+  </pakettiMidiPopulator>
+  <RandomizeSettings>
+    <pakettiRandomizeSelectedPluginPercentageUserPreference4>40</pakettiRandomizeSelectedPluginPercentageUserPreference4>
+    <pakettiRandomizeSelectedPluginPercentageUserPreference5>50</pakettiRandomizeSelectedPluginPercentageUserPreference5>
+    <pakettiRandomizeAllPluginsPercentage>2.1806451612903226</pakettiRandomizeAllPluginsPercentage>
+    <pakettiRandomizeAllPluginsPercentageUserPreference1>10</pakettiRandomizeAllPluginsPercentageUserPreference1>
+    <pakettiRandomizeAllPluginsPercentageUserPreference2>20</pakettiRandomizeAllPluginsPercentageUserPreference2>
+    <pakettiRandomizeAllPluginsPercentageUserPreference3>30</pakettiRandomizeAllPluginsPercentageUserPreference3>
+    <pakettiRandomizeAllPluginsPercentageUserPreference4>40</pakettiRandomizeAllPluginsPercentageUserPreference4>
+    <pakettiRandomizeAllPluginsPercentageUserPreference5>50</pakettiRandomizeAllPluginsPercentageUserPreference5>
+    <pakettiRandomizeSelectedDevicePercentage>100</pakettiRandomizeSelectedDevicePercentage>
+    <pakettiRandomizeSelectedDevicePercentageUserPreference1>10</pakettiRandomizeSelectedDevicePercentageUserPreference1>
+    <pakettiRandomizeSelectedDevicePercentageUserPreference2>25</pakettiRandomizeSelectedDevicePercentageUserPreference2>
+    <pakettiRandomizeSelectedDevicePercentageUserPreference3>50</pakettiRandomizeSelectedDevicePercentageUserPreference3>
+    <pakettiRandomizeSelectedDevicePercentageUserPreference4>75</pakettiRandomizeSelectedDevicePercentageUserPreference4>
+    <pakettiRandomizeSelectedDevicePercentageUserPreference5>90</pakettiRandomizeSelectedDevicePercentageUserPreference5>
+    <pakettiRandomizeAllDevicesPercentage>50</pakettiRandomizeAllDevicesPercentage>
+    <pakettiRandomizeAllDevicesPercentageUserPreference1>10</pakettiRandomizeAllDevicesPercentageUserPreference1>
+    <pakettiRandomizeAllDevicesPercentageUserPreference2>25</pakettiRandomizeAllDevicesPercentageUserPreference2>
+    <pakettiRandomizeAllDevicesPercentageUserPreference3>50</pakettiRandomizeAllDevicesPercentageUserPreference3>
+    <pakettiRandomizeAllDevicesPercentageUserPreference4>75</pakettiRandomizeAllDevicesPercentageUserPreference4>
+    <pakettiRandomizeAllDevicesPercentageUserPreference5>90</pakettiRandomizeAllDevicesPercentageUserPreference5>
+    <pakettiRandomizeSelectedPluginPercentage>78.800000000000054</pakettiRandomizeSelectedPluginPercentage>
+    <pakettiRandomizeSelectedPluginPercentageUserPreference1>10</pakettiRandomizeSelectedPluginPercentageUserPreference1>
+    <pakettiRandomizeSelectedPluginPercentageUserPreference2>20</pakettiRandomizeSelectedPluginPercentageUserPreference2>
+    <pakettiRandomizeSelectedPluginPercentageUserPreference3>30</pakettiRandomizeSelectedPluginPercentageUserPreference3>
+  </RandomizeSettings>
+  <PakettiYTDLP>
+    <PakettiYTDLPNewInstrumentOrSameInstrument>true</PakettiYTDLPNewInstrumentOrSameInstrument>
+    <PakettiYTDLPYT_DLPLocation>/opt/homebrew/Cellar/yt-dlp/2025.3.31/libexec/bin/yt-dlp</PakettiYTDLPYT_DLPLocation>
+    <PakettiYTDLPLoopMode>2</PakettiYTDLPLoopMode>
+    <PakettiYTDLPClipLength>10</PakettiYTDLPClipLength>
+    <PakettiYTDLPAmountOfVideos>1.0</PakettiYTDLPAmountOfVideos>
+    <PakettiYTDLPLoadWholeVideo>true</PakettiYTDLPLoadWholeVideo>
+    <PakettiYTDLPOutputDirectory>/Users/esaruoho/Music/samples/colugatest/</PakettiYTDLPOutputDirectory>
+    <PakettiYTDLPFormatToSave>1.0</PakettiYTDLPFormatToSave>
+    <PakettiYTDLPPathToSave>/Users/esaruoho/Music/samples/ytube/</PakettiYTDLPPathToSave>
+  </PakettiYTDLP>
+  <OctaMEDPickPutSlots>
+    <SetSelectedInstrument>true</SetSelectedInstrument>
+    <UseEditStep>true</UseEditStep>
+    <Slot01>--- .. .. .. .. ....||0A30|0BEF|0GAB|0FED</Slot01>
+    <Slot02>C-4 01 .. .. .. .... | D-4 01 .. .. .. .... | E-4 01 .. .. .. .... | F-4 01 .. .. .. ....||</Slot02>
+    <Slot03>--- .. .. .. .. ....||0A30|0BEF|0GAB|0FED</Slot03>
+    <Slot04/>
+    <Slot05/>
+    <Slot06/>
     <Slot07/>
     <Slot08/>
     <Slot09/>
     <Slot10/>
-    <Path/>
-    <Slot01>/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/DeviceChains//Slot01.xrni</Slot01>
-    <Slot02>/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/DeviceChains//Slot02.xrni</Slot02>
-    <Slot03>/Users/esaruoho/Library/Mobile Documents/com~apple~CloudDocs/Renoise/Tools/org.lackluster.Paketti.xrnx/DeviceChains//Slot03.xrni</Slot03>
-    <Slot04/>
-    <Slot05/>
-    <Slot06/>
-  </UserInstruments>
-  <pakettiPatternSequencer>
-    <numbering_start>1.0</numbering_start>
-    <select_after_clone>true</select_after_clone>
-    <clone_prefix>HH</clone_prefix>
-    <clone_suffix/>
-    <use_numbering>false</use_numbering>
-    <numbering_format>%02d</numbering_format>
-    <naming_behavior>1.0</naming_behavior>
-  </pakettiPatternSequencer>
-  <pakettiWipeExplodedTrack>true</pakettiWipeExplodedTrack>
-  <pakettiEditMode>2</pakettiEditMode>
+    <RandomizeEnabled>false</RandomizeEnabled>
+    <RandomizePercentage>10</RandomizePercentage>
+  </OctaMEDPickPutSlots>
+  <pakettieSpeak>
+    <render_on_change>false</render_on_change>
+    <word_gap>9</word_gap>
+    <capitals>83</capitals>
+    <pitch>52</pitch>
+    <speed>13</speed>
+    <language>32</language>
+    <voice>67</voice>
+    <text>i want ppl to talk</text>
+    <executable>/opt/homebrew/bin/espeak-ng</executable>
+    <clear_all_samples>false</clear_all_samples>
+    <add_render_to_current_instrument>true</add_render_to_current_instrument>
+    <amplitude>5</amplitude>
+    <dont_pakettify>false</dont_pakettify>
+  </pakettieSpeak>
+  <UserDefinedSampleFolders10>/Users/esaruoho/Music/rMBP_2024_01_27 samples/</UserDefinedSampleFolders10>
+  <UserDefinedSampleFolders09>/Users/esaruoho/Music/rMBP_2024_01_27 samples/!outsidesources/Analog Samples/</UserDefinedSampleFolders09>
+  <UserDefinedSampleFolders08>/Users/esaruoho/Music/rMBP_2024_01_27 samples/!outsidesources/TRACKERCORPS SAMPLE PACK 2025/DRUMS &amp; PERCUSSIONS/</UserDefinedSampleFolders08>
+  <pakettiBlendValue>54</pakettiBlendValue>
+  <pakettiShowSampleDetails>false</pakettiShowSampleDetails>
+  <pakettiThemeSelector>
+    <RenoiseLaunchFavoritesLoad>false</RenoiseLaunchFavoritesLoad>
+    <FavoritedList>
+      <Favorited>&lt;No Theme Selected&gt;</Favorited>
+      <Favorited>Mono Blue (dblue)</Favorited>
+    </FavoritedList>
+    <RenoiseLaunchRandomLoad>false</RenoiseLaunchRandomLoad>
+    <PreviousSelectedTheme>Mono Blue (dblue)</PreviousSelectedTheme>
+  </pakettiThemeSelector>
+  <UserDefinedSampleFolders01/>
   <UserDefinedSampleFolders02/>
+  <UserDefinedSampleFolders03/>
   <UserDefinedSampleFolders04/>
+  <UserDefinedSampleFolders05/>
   <UserDefinedSampleFolders06/>
   <UserDefinedSampleFolders07>/Users/esaruoho/Music/rMBP_2024_01_27 samples/!outsidesources/TRACKERCORPS SAMPLE PACK 2025/</UserDefinedSampleFolders07>
 </ScriptingToolPreferences>

@@ -1,3 +1,193 @@
+-------
+-- Function to write notes in specified order (ascending, descending, or random)
+function writeNotesMethod(method)
+  local song=renoise.song()
+  local pattern = song:pattern(song.selected_pattern_index)
+  local track = pattern:track(song.selected_track_index)
+  local instrument = song.selected_instrument
+  local current_line = song.selected_line_index
+  local selected_note_column = song.selected_note_column_index
+  
+  if not instrument or not instrument.sample_mappings[1] then
+    renoise.app():show_status("No sample mappings found for this instrument")
+    return
+  end
+  
+  -- Create a table of all mapped notes
+  local notes = {}
+  for _, mapping in ipairs(instrument.sample_mappings[1]) do
+    if mapping.note_range then
+      for i = mapping.note_range[1], mapping.note_range[2] do
+        table.insert(notes, {
+          note = i,
+          mapping = mapping
+        })
+      end
+    end
+  end
+  
+  if #notes == 0 then
+    renoise.app():show_status("No valid sample mappings found for this instrument")
+    return
+  end
+  
+  -- Sort or shuffle based on method
+  if method == "ascending" then
+    table.sort(notes, function(a, b) return a.note < b.note end)
+  elseif method == "descending" then
+    table.sort(notes, function(a, b) return a.note > b.note end)
+  elseif method == "random" then
+    -- Fisher-Yates shuffle
+    for i = #notes, 2, -1 do
+      local j = math.random(i)
+      notes[i], notes[j] = notes[j], notes[i]
+    end
+  end
+  
+  local last_note = -1
+  local last_mapping = nil
+  
+  -- Write the notes
+  for i = 1, #notes do
+    if current_line <= pattern.number_of_lines then
+      local note_column = track:line(current_line):note_column(selected_note_column)
+      note_column.note_value = notes[i].note
+      note_column.instrument_value = song.selected_instrument_index - 1
+      current_line = current_line + 1
+      last_note = notes[i].note
+      last_mapping = notes[i].mapping
+    else
+      break
+    end
+  end
+  
+  if last_note ~= -1 and last_mapping then
+    local note_name = note_value_to_string(last_note)
+    renoise.app():show_status(string.format(
+      "Wrote notes until row %d at note %s (base note: %d)", 
+      current_line - 1, 
+      note_name,
+      last_mapping.base_note
+    ))
+  end
+end
+
+-- Function to write notes in specified order with EditStep (ascending, descending, or random)
+function writeNotesMethodEditStep(method)
+  local song=renoise.song()
+  local pattern = song:pattern(song.selected_pattern_index)
+  local track = pattern:track(song.selected_track_index)
+  local instrument = song.selected_instrument
+  local current_line = song.selected_line_index
+  local selected_note_column = song.selected_note_column_index
+  local edit_step = song.transport.edit_step
+  
+  if not instrument or not instrument.sample_mappings[1] then
+    renoise.app():show_status("No sample mappings found for this instrument")
+    return
+  end
+  
+  -- Create a table of all mapped notes
+  local notes = {}
+  for _, mapping in ipairs(instrument.sample_mappings[1]) do
+    if mapping.note_range then
+      for i = mapping.note_range[1], mapping.note_range[2] do
+        table.insert(notes, {
+          note = i,
+          mapping = mapping
+        })
+      end
+    end
+  end
+  
+  if #notes == 0 then
+    renoise.app():show_status("No valid sample mappings found for this instrument")
+    return
+  end
+  
+  -- Sort or shuffle based on method
+  if method == "ascending" then
+    table.sort(notes, function(a, b) return a.note < b.note end)
+  elseif method == "descending" then
+    table.sort(notes, function(a, b) return a.note > b.note end)
+  elseif method == "random" then
+    -- Fisher-Yates shuffle
+    for i = #notes, 2, -1 do
+      local j = math.random(i)
+      notes[i], notes[j] = notes[j], notes[i]
+    end
+  end
+  
+  -- First, clear all existing notes in the selected note column from current line to end of pattern
+  for line_index = current_line, pattern.number_of_lines do
+    local note_column = track:line(line_index):note_column(selected_note_column)
+    note_column.note_value = renoise.PatternLine.EMPTY_NOTE
+    note_column.instrument_value = renoise.PatternLine.EMPTY_INSTRUMENT
+    note_column.volume_value = renoise.PatternLine.EMPTY_VOLUME
+    note_column.panning_value = renoise.PatternLine.EMPTY_PANNING
+    note_column.delay_value = renoise.PatternLine.EMPTY_DELAY
+    note_column.effect_number_value = renoise.PatternLine.EMPTY_EFFECT_NUMBER
+    note_column.effect_amount_value = renoise.PatternLine.EMPTY_EFFECT_AMOUNT
+  end
+  
+  local last_note = -1
+  local last_mapping = nil
+  local write_line = current_line
+  
+  -- Write the notes using EditStep
+  for i = 1, #notes do
+    if write_line <= pattern.number_of_lines then
+      local note_column = track:line(write_line):note_column(selected_note_column)
+      -- Write the new note
+      note_column.note_value = notes[i].note
+      note_column.instrument_value = song.selected_instrument_index - 1
+      write_line = write_line + edit_step
+      last_note = notes[i].note
+      last_mapping = notes[i].mapping
+    else
+      break
+    end
+  end
+  
+  if last_note ~= -1 and last_mapping then
+    local note_name = note_value_to_string(last_note)
+    renoise.app():show_status(string.format(
+      "Cleared and wrote notes with EditStep %d until row %d at note %s (base note: %d)", 
+      edit_step,
+      write_line - edit_step, 
+      note_name,
+      last_mapping.base_note
+    ))
+  end
+end
+
+-- Helper function to convert note value to string
+function note_value_to_string(value)
+  local notes = {"C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"}
+  local octave = math.floor(value / 12)
+  local note = notes[(value % 12) + 1]
+  return note .. octave
+end
+
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Write Notes Ascending",invoke=function() writeNotesMethod("ascending") end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Write Notes Descending",invoke=function() writeNotesMethod("descending") end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Write Notes Random",invoke=function() writeNotesMethod("random") end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Write Notes EditStep Ascending",invoke=function() writeNotesMethodEditStep("ascending") end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Write Notes EditStep Descending",invoke=function() writeNotesMethodEditStep("descending") end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Write Notes EditStep Random",invoke=function() writeNotesMethodEditStep("random") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Write Notes..:Write Notes Ascending",invoke=function() writeNotesMethod("ascending") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Write Notes..:Write Notes Descending",invoke=function() writeNotesMethod("descending") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Write Notes..:Write Notes Random",invoke=function() writeNotesMethod("random") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Write Notes..:Write Notes EditStep Ascending",invoke=function() writeNotesMethodEditStep("ascending") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Write Notes..:Write Notes EditStep Descending",invoke=function() writeNotesMethodEditStep("descending") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Write Notes..:Write Notes EditStep Random",invoke=function() writeNotesMethodEditStep("random") end}
+
+
+
+
+
+
+
 -- Function to ensure EQ10 exists on selected track and return its index
 local function ensure_eq10_exists()
   local song=renoise.song()

@@ -378,6 +378,25 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
     Slot09 = renoise.Document.ObservableString(""),
     Slot10 = renoise.Document.ObservableString("")    
   },
+  -- PakettiXMLizer Custom LFO Envelope Storage (16 slots)
+  PakettiXMLizer = {
+    pakettiCustomLFOXMLInject1 = renoise.Document.ObservableString(""),
+    pakettiCustomLFOXMLInject2 = renoise.Document.ObservableString(""),
+    pakettiCustomLFOXMLInject3 = renoise.Document.ObservableString(""),
+    pakettiCustomLFOXMLInject4 = renoise.Document.ObservableString(""),
+    pakettiCustomLFOXMLInject5 = renoise.Document.ObservableString(""),
+    pakettiCustomLFOXMLInject6 = renoise.Document.ObservableString(""),
+    pakettiCustomLFOXMLInject7 = renoise.Document.ObservableString(""),
+    pakettiCustomLFOXMLInject8 = renoise.Document.ObservableString(""),
+    pakettiCustomLFOXMLInject9 = renoise.Document.ObservableString(""),
+    pakettiCustomLFOXMLInject10 = renoise.Document.ObservableString(""),
+    pakettiCustomLFOXMLInject11 = renoise.Document.ObservableString(""),
+    pakettiCustomLFOXMLInject12 = renoise.Document.ObservableString(""),
+    pakettiCustomLFOXMLInject13 = renoise.Document.ObservableString(""),
+    pakettiCustomLFOXMLInject14 = renoise.Document.ObservableString(""),
+    pakettiCustomLFOXMLInject15 = renoise.Document.ObservableString(""),
+    pakettiCustomLFOXMLInject16 = renoise.Document.ObservableString("")
+  },
   -- Add pattern sequencer preferences section
   pakettiPatternSequencer = {
     clone_prefix = renoise.Document.ObservableString(""),
