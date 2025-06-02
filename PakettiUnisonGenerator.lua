@@ -3,13 +3,26 @@ function PakettiCreateUnisonSamples()
   local selected_instrument_index = song.selected_instrument_index
   local instrument = song.selected_instrument
 
+  -- Store current 0G01 state and temporarily disable it to prevent unwanted track creation
+  local G01CurrentState = preferences._0G01_Loader.value
+  if preferences._0G01_Loader.value == true or preferences._0G01_Loader.value == false 
+  then preferences._0G01_Loader.value = false
+  end
+  manage_sample_count_observer(preferences._0G01_Loader.value)
+
   if not instrument then
     renoise.app():show_status("No instrument selected.")
+    -- Restore 0G01 state before returning
+    preferences._0G01_Loader.value=G01CurrentState 
+    manage_sample_count_observer(preferences._0G01_Loader.value)
     return
   end
 
   if #instrument.samples == 0 then
     renoise.app():show_status("The selected instrument has no samples.")
+    -- Restore 0G01 state before returning
+    preferences._0G01_Loader.value=G01CurrentState 
+    manage_sample_count_observer(preferences._0G01_Loader.value)
     return
   end
 
@@ -17,6 +30,9 @@ function PakettiCreateUnisonSamples()
   local selected_sample_index = song.selected_sample_index
   if not selected_sample_index or selected_sample_index < 1 or selected_sample_index > #instrument.samples then
     renoise.app():show_status("No valid sample selected.")
+    -- Restore 0G01 state before returning
+    preferences._0G01_Loader.value=G01CurrentState 
+    manage_sample_count_observer(preferences._0G01_Loader.value)
     return
   end
 
@@ -173,6 +189,10 @@ print(string.format("Restored selected_phrase_index to: %d", renoise.song().sele
 
 
   renoise.app():show_status("Unison samples created successfully.")
+
+  -- Restore 0G01 state before returning
+  preferences._0G01_Loader.value=G01CurrentState 
+  manage_sample_count_observer(preferences._0G01_Loader.value)
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Unison Generator",invoke=PakettiCreateUnisonSamples}

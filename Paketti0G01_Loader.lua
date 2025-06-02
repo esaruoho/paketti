@@ -79,6 +79,7 @@ function create_device_entry(name, path, device_type)
 end
 
 preferences = renoise.Document.create("ScriptingToolPreferences") {
+  pakettifyReplaceInstrument=false,
   pakettiInstrumentProperties=false,
   pakettiREXBundlePath = "." .. separator .. "rx2",
   pakettiShowSampleDetails=false,
@@ -676,6 +677,14 @@ local pakettiIRPathDisplayId = "pakettiIRPathDisplay_" .. tostring(math.random(2
                   PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode()
                 end}
             },
+            vb:row{
+              vb:text{text="Replace Current Instrument",width=150},
+              vb:switch{items={"Off","On"},value=preferences.pakettifyReplaceInstrument.value and 2 or 1,width=200,
+                notifier=function(value) preferences.pakettifyReplaceInstrument.value=(value==2) end}
+            },
+            vb:row{vb:text{style="strong",text="Pakettification replaces current instrument instead of creating new one"}},
+            
+
             vb:row{
               vb:text{text="Wipe Exploded Track",width=150},
               vb:switch{items={"Off","On"},value=preferences.pakettiWipeExplodedTrack.value and 2 or 1,width=200,

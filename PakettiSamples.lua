@@ -2279,79 +2279,290 @@ function PakettiInjectDefaultXRNI()
     return
   end
 
-  local new_instrument_index = selected_instrument_index + 1
-  song:insert_instrument_at(new_instrument_index)
-  song.selected_instrument_index = new_instrument_index
-  local new_instrument = song.selected_instrument
+  -- Check preference to determine whether to replace current instrument or create new one
+  if preferences.pakettifyReplaceInstrument.value then
+    -- REPLACE CURRENT INSTRUMENT MODE
+    -- Store original instrument name
+    local original_name = original_instrument.name
 
-  pakettiPreferencesDefaultInstrumentLoader()
-  new_instrument = renoise.song().selected_instrument
-
-  -- Copy phrases from original instrument if any exist
-  if #original_instrument.phrases > 0 then
-    print(string.format("\nCopying %d phrases from original instrument", #original_instrument.phrases))
-    for i = 1, #original_instrument.phrases do
-      new_instrument:insert_phrase_at(i)
-      new_instrument.phrases[i]:copy_from(original_instrument.phrases[i])
-      print(string.format("Copied phrase %d: '%s' (%d lines)", 
-        i, original_instrument.phrases[i].name, #original_instrument.phrases[i].lines))
-    end
-  end
-  -- Copy the samples and their settings from the original instrument to the new instrument
-  for i = 1, #original_instrument.samples do
-    local from_sample = original_instrument.samples[i]
-    
-    -- Check if the sample has slice markers
-    if #from_sample.slice_markers > 0 then
-      local to_sample = new_instrument:sample(i)
-      local from_buffer = from_sample.sample_buffer
-      local to_sample_buffer = to_sample.sample_buffer
+    -- Store original samples data - PROPERLY copy the data, not just references
+    local original_samples_data = {}
+    for i = 1, #original_instrument.samples do
+      local from_sample = original_instrument.samples[i]
+      local sample_data = {}
       
-      to_sample_buffer:create_sample_data(
-        from_buffer.sample_rate,
-        from_buffer.bit_depth,
-        from_buffer.number_of_channels,
-        from_buffer.number_of_frames
-      )
+      -- Store slice markers
+      sample_data.slice_markers = {}
+      for _, slice_marker in ipairs(from_sample.slice_markers) do
+        table.insert(sample_data.slice_markers, slice_marker)
+      end
       
-      to_sample_buffer:prepare_sample_data_changes()
-
-      for channel = 1, from_buffer.number_of_channels do
-        for frame = 1, from_buffer.number_of_frames do
-          local sample_value = from_buffer:sample_data(channel, frame)
-          to_sample_buffer:set_sample_data(channel, frame, sample_value)
+      -- Store sample buffer data if it exists
+      if from_sample.sample_buffer.has_sample_data then
+        local from_buffer = from_sample.sample_buffer
+        sample_data.buffer_data = {
+          sample_rate = from_buffer.sample_rate,
+          bit_depth = from_buffer.bit_depth,
+          number_of_channels = from_buffer.number_of_channels,
+          number_of_frames = from_buffer.number_of_frames,
+          data = {}
+        }
+        
+        -- Copy all audio data
+        for channel = 1, from_buffer.number_of_channels do
+          sample_data.buffer_data.data[channel] = {}
+          for frame = 1, from_buffer.number_of_frames do
+            sample_data.buffer_data.data[channel][frame] = from_buffer:sample_data(channel, frame)
+          end
         end
       end
-
-      to_sample_buffer:finalize_sample_data_changes()
-
-      -- Copy slice markers
-      to_sample:clear_slice_markers()
-      for _, slice_marker in ipairs(from_sample.slice_markers) do
-        to_sample:insert_slice_marker(slice_marker)
-      end
-
-      print("Slices copied for sample #" .. i)
-    else
-      -- Copy sample properties for non-sliced samples
-      new_instrument:insert_sample_at(i)
-      local to_sample = new_instrument.samples[i]
-      to_sample:copy_from(from_sample)
-      to_sample.device_chain_index = 1 
-      print("Sample properties copied from sample #" .. i .. " of instrument index " .. selected_instrument_index)
+      
+      -- Store other sample properties
+      sample_data.name = from_sample.name
+      sample_data.transpose = from_sample.transpose
+      sample_data.fine_tune = from_sample.fine_tune
+      sample_data.volume = from_sample.volume
+      sample_data.panning = from_sample.panning
+      sample_data.beat_sync_enabled = from_sample.beat_sync_enabled
+      sample_data.beat_sync_lines = from_sample.beat_sync_lines
+      sample_data.beat_sync_mode = from_sample.beat_sync_mode
+      sample_data.autoseek = from_sample.autoseek
+      sample_data.autofade = from_sample.autofade
+      sample_data.loop_mode = from_sample.loop_mode
+      sample_data.loop_start = from_sample.loop_start
+      sample_data.loop_end = from_sample.loop_end
+      sample_data.loop_release = from_sample.loop_release
+      sample_data.new_note_action = from_sample.new_note_action
+      sample_data.oneshot = from_sample.oneshot
+      sample_data.mute_group = from_sample.mute_group
+      sample_data.interpolation_mode = from_sample.interpolation_mode
+      sample_data.oversample_enabled = from_sample.oversample_enabled
+      
+      -- Store sample mapping properties
+      sample_data.sample_mapping = {
+        base_note = from_sample.sample_mapping.base_note,
+        note_range = {from_sample.sample_mapping.note_range[1], from_sample.sample_mapping.note_range[2]},
+        velocity_range = {from_sample.sample_mapping.velocity_range[1], from_sample.sample_mapping.velocity_range[2]},
+        map_key_to_pitch = from_sample.sample_mapping.map_key_to_pitch,
+        map_velocity_to_volume = from_sample.sample_mapping.map_velocity_to_volume
+      }
+      
+      table.insert(original_samples_data, sample_data)
     end
-  end
 
-  new_instrument.name = original_instrument.name .. " (Pakettified)"
-  print("New Instrument renamed to: " .. new_instrument.name)
+    -- Store original phrases data
+    local original_phrases_data = {}
+    for i = 1, #original_instrument.phrases do
+      table.insert(original_phrases_data, original_instrument.phrases[i])
+    end
 
-  -- Apply modulation and filter settings if needed
-  if preferences.pakettiPitchbendLoaderEnvelope.value then
-    new_instrument.sample_modulation_sets[1].devices[2].is_active = true
-  end
+    -- Now load the XRNI template into the CURRENT instrument (this will overwrite it)
+    pakettiPreferencesDefaultInstrumentLoader()
+    
+    -- Refresh our reference to the current instrument
+    local current_instrument = renoise.song().selected_instrument
 
-  if preferences.pakettiLoaderFilterType.value then
-    new_instrument.sample_modulation_sets[1].filter_type = preferences.pakettiLoaderFilterType.value
+    -- Restore the original samples
+    for i = 1, #original_samples_data do
+      local sample_data = original_samples_data[i]
+      
+      -- Insert sample slot if needed
+      if i > #current_instrument.samples then
+        current_instrument:insert_sample_at(i)
+      end
+      
+      local to_sample = current_instrument.samples[i]
+      
+      -- Restore sample buffer data if it was stored
+      if sample_data.buffer_data then
+        local buffer_data = sample_data.buffer_data
+        to_sample.sample_buffer:create_sample_data(
+          buffer_data.sample_rate,
+          buffer_data.bit_depth,
+          buffer_data.number_of_channels,
+          buffer_data.number_of_frames
+        )
+        
+        to_sample.sample_buffer:prepare_sample_data_changes()
+        
+        -- Restore all audio data
+        for channel = 1, buffer_data.number_of_channels do
+          for frame = 1, buffer_data.number_of_frames do
+            to_sample.sample_buffer:set_sample_data(channel, frame, buffer_data.data[channel][frame])
+          end
+        end
+        
+        to_sample.sample_buffer:finalize_sample_data_changes()
+        print("Sample buffer data restored for sample #" .. i)
+      end
+      
+      -- Restore sample properties
+      to_sample.name = sample_data.name
+      to_sample.transpose = sample_data.transpose
+      to_sample.fine_tune = sample_data.fine_tune
+      to_sample.volume = sample_data.volume
+      to_sample.panning = sample_data.panning
+      to_sample.beat_sync_enabled = sample_data.beat_sync_enabled
+      to_sample.beat_sync_lines = sample_data.beat_sync_lines
+      to_sample.beat_sync_mode = sample_data.beat_sync_mode
+      to_sample.autoseek = sample_data.autoseek
+      to_sample.autofade = sample_data.autofade
+      to_sample.loop_mode = sample_data.loop_mode
+      to_sample.loop_start = sample_data.loop_start
+      to_sample.loop_end = sample_data.loop_end
+      to_sample.loop_release = sample_data.loop_release
+      to_sample.new_note_action = sample_data.new_note_action
+      to_sample.oneshot = sample_data.oneshot
+      to_sample.mute_group = sample_data.mute_group
+      to_sample.interpolation_mode = sample_data.interpolation_mode
+      to_sample.oversample_enabled = sample_data.oversample_enabled
+      to_sample.device_chain_index = 1
+      
+      -- Restore sample mapping properties
+      if sample_data.sample_mapping then
+        to_sample.sample_mapping.base_note = sample_data.sample_mapping.base_note
+        to_sample.sample_mapping.note_range = sample_data.sample_mapping.note_range
+        to_sample.sample_mapping.velocity_range = sample_data.sample_mapping.velocity_range
+        to_sample.sample_mapping.map_key_to_pitch = sample_data.sample_mapping.map_key_to_pitch
+        to_sample.sample_mapping.map_velocity_to_volume = sample_data.sample_mapping.map_velocity_to_volume
+        print("Sample mapping properties restored for sample #" .. i)
+      end
+      
+      -- Restore slice markers if any
+      if #sample_data.slice_markers > 0 then
+        to_sample:clear_slice_markers()
+        for _, slice_marker in ipairs(sample_data.slice_markers) do
+          to_sample:insert_slice_marker(slice_marker)
+        end
+        print("Slices restored for sample #" .. i)
+      end
+      
+      print("Sample properties restored for sample #" .. i)
+    end
+
+    -- Restore original phrases
+    if #original_phrases_data > 0 then
+      print(string.format("\nRestoring %d phrases to current instrument", #original_phrases_data))
+      for i = 1, #original_phrases_data do
+        if i > #current_instrument.phrases then
+          current_instrument:insert_phrase_at(i)
+        end
+        current_instrument.phrases[i]:copy_from(original_phrases_data[i])
+        print(string.format("Restored phrase %d: '%s' (%d lines)", 
+          i, original_phrases_data[i].name, #original_phrases_data[i].lines))
+      end
+    end
+
+    -- Restore original name with "(Pakettified)" suffix
+    current_instrument.name = original_name .. " (Pakettified)"
+    print("Instrument renamed to: " .. current_instrument.name)
+
+    -- Apply modulation and filter settings if needed
+    if preferences.pakettiPitchbendLoaderEnvelope.value then
+      current_instrument.sample_modulation_sets[1].devices[2].is_active = true
+    end
+
+    if preferences.pakettiLoaderFilterType.value then
+      current_instrument.sample_modulation_sets[1].filter_type = preferences.pakettiLoaderFilterType.value
+    end
+
+    -- Remove the placeholder sample from the last slot if it exists
+    local num_samples = #current_instrument.samples
+    if num_samples > 0 and current_instrument.samples[num_samples].name == "Placeholder sample" then
+      current_instrument:delete_sample_at(num_samples)
+      print("Removed placeholder sample from last slot")
+    end
+
+    current_instrument.sample_modulation_sets[1].name = "Pitchbend"
+    current_instrument.volume = instVol
+
+  else
+    -- CREATE NEW INSTRUMENT MODE (original behavior)
+    local new_instrument_index = selected_instrument_index + 1
+    song:insert_instrument_at(new_instrument_index)
+    song.selected_instrument_index = new_instrument_index
+    local new_instrument = song.selected_instrument
+
+    pakettiPreferencesDefaultInstrumentLoader()
+    new_instrument = renoise.song().selected_instrument
+
+    -- Copy phrases from original instrument if any exist
+    if #original_instrument.phrases > 0 then
+      print(string.format("\nCopying %d phrases from original instrument", #original_instrument.phrases))
+      for i = 1, #original_instrument.phrases do
+        new_instrument:insert_phrase_at(i)
+        new_instrument.phrases[i]:copy_from(original_instrument.phrases[i])
+        print(string.format("Copied phrase %d: '%s' (%d lines)", 
+          i, original_instrument.phrases[i].name, #original_instrument.phrases[i].lines))
+      end
+    end
+
+    -- Copy the samples and their settings from the original instrument to the new instrument
+    for i = 1, #original_instrument.samples do
+      local from_sample = original_instrument.samples[i]
+      
+      -- Check if the sample has slice markers
+      if #from_sample.slice_markers > 0 then
+        local to_sample = new_instrument:sample(i)
+        local from_buffer = from_sample.sample_buffer
+        local to_sample_buffer = to_sample.sample_buffer
+        
+        to_sample_buffer:create_sample_data(
+          from_buffer.sample_rate,
+          from_buffer.bit_depth,
+          from_buffer.number_of_channels,
+          from_buffer.number_of_frames
+        )
+        
+        to_sample_buffer:prepare_sample_data_changes()
+
+        for channel = 1, from_buffer.number_of_channels do
+          for frame = 1, from_buffer.number_of_frames do
+            local sample_value = from_buffer:sample_data(channel, frame)
+            to_sample_buffer:set_sample_data(channel, frame, sample_value)
+          end
+        end
+
+        to_sample_buffer:finalize_sample_data_changes()
+
+        -- Copy slice markers
+        to_sample:clear_slice_markers()
+        for _, slice_marker in ipairs(from_sample.slice_markers) do
+          to_sample:insert_slice_marker(slice_marker)
+        end
+
+        print("Slices copied for sample #" .. i)
+      else
+        -- Copy sample properties for non-sliced samples
+        new_instrument:insert_sample_at(i)
+        local to_sample = new_instrument.samples[i]
+        to_sample:copy_from(from_sample)
+        to_sample.device_chain_index = 1 
+        print("Sample properties copied from sample #" .. i .. " of instrument index " .. selected_instrument_index)
+      end
+    end
+
+    new_instrument.name = original_instrument.name .. " (Pakettified)"
+    print("New Instrument renamed to: " .. new_instrument.name)
+
+    -- Apply modulation and filter settings if needed
+    if preferences.pakettiPitchbendLoaderEnvelope.value then
+      new_instrument.sample_modulation_sets[1].devices[2].is_active = true
+    end
+
+    if preferences.pakettiLoaderFilterType.value then
+      new_instrument.sample_modulation_sets[1].filter_type = preferences.pakettiLoaderFilterType.value
+    end
+
+    new_instrument.sample_modulation_sets[1].name = "Pitchbend"
+    new_instrument.volume = instVol
+    
+    -- Remove the placeholder sample from the last slot
+    local num_samples = #new_instrument.samples
+    if num_samples > 0 and new_instrument.samples[num_samples].name == "Placeholder sample" then
+      new_instrument:delete_sample_at(num_samples)
+      print("Removed placeholder sample from last slot")
+    end
   end
 
   -- At the end, before returning focus:
@@ -2360,18 +2571,11 @@ function PakettiInjectDefaultXRNI()
 
   -- Return focus to the Instrument Sample Editor
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
-  new_instrument.sample_modulation_sets[1].name = "Pitchbend"
-  new_instrument.volume = instVol
-  -- Remove the placeholder sample from the last slot
-  local num_samples = #new_instrument.samples
-  if num_samples > 0 and new_instrument.samples[num_samples].name == "Placeholder sample" then
-    new_instrument:delete_sample_at(num_samples)
-    print("Removed placeholder sample from last slot")
-  end  
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Pakettify Current Instrument",invoke=function() PakettiInjectDefaultXRNI() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Pakettify Current Instrument",invoke=function() PakettiInjectDefaultXRNI() end}
+renoise.tool():add_menu_entry{name="Sample Editor Ruler:Pakettify Current Instrument",invoke=function() PakettiInjectDefaultXRNI() end}
 renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Pakettify Current Instrument",invoke=function() PakettiInjectDefaultXRNI() end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Pakettify Current Instrument",invoke=function() PakettiInjectDefaultXRNI() end}
 ---------
@@ -2545,8 +2749,8 @@ function PakettiSeamlessRenderingDoneCallback()
     PakettiSeamlessRestorePatternSize()
 
     -- Use pakettiPreferencesDefaultInstrumentLoader before loading the sample
-    pakettiPreferencesDefaultInstrumentLoader()
-
+  pakettiPreferencesDefaultInstrumentLoader()
+  
     -- Load rendered sample into the selected instrument
     local new_instrument = song:instrument(renoise.song().selected_instrument_index)
     new_instrument.samples[1].sample_buffer:load_from(render_context.temp_file_path)
@@ -2641,8 +2845,8 @@ function PakettiFlipSample(fraction)
       for i = 1, frames do
         local new_pos = (i + rotation_amount - 1 + frames) % frames + 1
         buffer:set_sample_data(c, new_pos, temp_data[i])
-      end
     end
+  end
     buffer:finalize_sample_data_changes()
 
     renoise.app():show_status("Sample flipped by fraction " .. fraction)
