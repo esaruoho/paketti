@@ -10878,3 +10878,91 @@ end
 renoise.tool():add_file_import_hook{category="sample",extensions={"exe","dll","bin","sys","dylib"},invoke=pakettiLoadExeAsSample}
 ---
 --------
+
+
+------
+function ConvertChordsToArpeggio()
+  local s = renoise.song()
+  local track_index = s.selected_track_index
+  local line_index = s.selected_line_index
+  local pattern = s.selected_pattern
+  local track = s.tracks[track_index]
+  
+  -- Make sure we have at least 3 visible note columns
+  if track.visible_note_columns < 3 then
+      renoise.app():show_status("Need at least 3 visible note columns to convert chords to arpeggio.")
+      return
+  end
+  
+  -- Get the current line
+  local line = pattern.tracks[track_index].lines[line_index]
+  
+  -- Read the 3 note columns
+  local note1 = line.note_columns[1]
+  local note2 = line.note_columns[2]
+  local note3 = line.note_columns[3]
+  
+  -- Check if we have valid notes in all 3 columns
+  if note1.is_empty or note2.is_empty or note3.is_empty then
+      renoise.app():show_status("Need notes in all 3 note columns to convert to arpeggio.")
+      return
+  end
+  
+  -- Check if any note is NOTE OFF or invalid
+  if note1.note_value >= 120 or note2.note_value >= 120 or note3.note_value >= 120 then
+      renoise.app():show_status("Cannot convert NOTE OFF or invalid notes to arpeggio.")
+      return
+  end
+  
+  print("Before sorting - Note1: " .. note1.note_value .. ", Note2: " .. note2.note_value .. ", Note3: " .. note3.note_value)
+  
+  -- FIRST: Run NoteSorterAscending function
+  NoteSorterAscending()
+  
+  -- Re-read the notes after sorting
+  note1 = line.note_columns[1]
+  note2 = line.note_columns[2] 
+  note3 = line.note_columns[3]
+  
+  print("After sorting - Note1: " .. note1.note_value .. ", Note2: " .. note2.note_value .. ", Note3: " .. note3.note_value)
+  
+  -- Calculate semitone differences from the first note
+  local base_note = note1.note_value
+  local diff2 = note2.note_value - base_note
+  local diff3 = note3.note_value - base_note
+  
+  print("Differences - Note2: +" .. diff2 .. " semitones, Note3: +" .. diff3 .. " semitones")
+  
+  -- Check if differences exceed arpeggio range (0-F = 0-15)
+  if diff2 > 15 or diff3 > 15 then
+      renoise.app():show_status("These notes are higher than the Arpeggio command lets you Arpeggiate at (0...F), doing nothing")
+      return
+  end
+  
+  -- Convert differences to hex
+  local hex2 = string.format("%X", diff2)
+  local hex3 = string.format("%X", diff3)
+  
+  print("Hex differences - Note2: " .. hex2 .. ", Note3: " .. hex3)
+  
+  -- Replace note columns 2 and 3 with NOTE OFF (120)
+  note2.note_value = 120
+  note2.instrument_string = ".."
+  note3.note_value = 120
+  note3.instrument_string = ".."
+
+  -- Make sure first effect column is visible
+  if track.visible_effect_columns < 1 then
+      track.visible_effect_columns = 1
+  end
+  
+  -- Write the arpeggio command 0A with the hex differences
+  line.effect_columns[1].number_string = "0A"
+  line.effect_columns[1].amount_string = hex2 .. hex3
+  
+  print("Written arpeggio command: 0A" .. hex2 .. hex3)
+  renoise.app():show_status("Converted chord to arpeggio: 0A" .. hex2 .. hex3)
+end
+
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Convert 3 Note Chord to Arpeggio", invoke=function() ConvertChordsToArpeggio() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Convert 3 Note Chord to Arpeggio", invoke=function() ConvertChordsToArpeggio() end}

@@ -1,16 +1,253 @@
-renoise.tool():add_menu_entry{
-  name = "Pattern Editor:Paketti..:Wipe&Slice&Write to Pattern",
-  invoke = function()
-    WipeSliceAndWrite()
-  end
-}
-renoise.tool():add_keybinding{
-  name = "Global:Paketti:Wipe&Slice&Write to Pattern",
-  invoke = function()
-    WipeSliceAndWrite()
-  end
-}
+---@diagnostic disable: need-check-nil
+local s = nil
+local d = nil
+local ticks = 20
+local devices = {}
+local filtered
+local p
 
+-- Helper function to get the best device name
+function get_device_name(device)
+  if device.display_name and device.display_name ~= "" then
+    return device.display_name
+  else
+    return device.short_name
+  end
+end
+
+function filter_inplace(arr, func)
+  local new_index = 1
+  local size_orig = #arr
+  for old_index, v in ipairs(arr) do
+    if func(v, old_index) then
+        arr[new_index] = v
+        new_index = new_index + 1
+    end
+  end
+  for i = new_index, size_orig do
+    arr[i] = nil
+  end
+  return arr
+end
+
+function index(arr, value)
+  if not value then
+    return nil
+  end
+  for k, v in pairs(arr) do
+    if v.name == value.name then
+      return k
+    end
+  end
+  return nil
+end
+
+function show_it()
+  s = renoise.song()
+  if not s or not s.selected_track_device then
+    return
+  end
+  
+  d = s.selected_track_device
+  filtered = filter_inplace(d.parameters, function(i) return i.show_in_mixer end)
+  if #filtered >= 1 and devices[d.device_path] == nil then
+    devices[d.device_path] = filtered[1]
+  end
+  if devices[d.device_path] ~= nil then
+    local param_number = index(filtered, devices[d.device_path]) or 1
+    renoise.app():show_status(get_device_name(d) .. ": " .. string.format("%02d", param_number) .. ": " .. devices[d.device_path].name .. ": " .. string.format("%.3f", devices[d.device_path].value))
+  end
+end
+
+function param_next()
+  s = renoise.song()
+  if not s or not s.selected_track_device then
+    renoise.app():show_status("No device selected")
+    return
+  end
+  
+  d = s.selected_track_device
+  local filtered = filter_inplace(d.parameters, function(i) return i.show_in_mixer end)
+  if #filtered == 0 then
+    renoise.app():show_status("No mixer parameters available")
+    return
+  end
+  
+  local current_index = index(filtered, devices[d.device_path])
+  if not current_index then
+    current_index = 0
+  end
+  
+  local n = math.min(#filtered, current_index + 1)
+  devices[d.device_path] = filtered[n]
+  renoise.app():show_status(get_device_name(d) .. ": " .. string.format("%02d", n) .. ": " .. filtered[n].name .. ": " .. string.format("%.3f", filtered[n].value))
+  print(n .. " " .. filtered[n].name)
+end
+
+function param_prev()
+  s = renoise.song()
+  if not s or not s.selected_track_device then
+    renoise.app():show_status("No device selected")
+    return
+  end
+  
+  d = s.selected_track_device
+  local filtered = filter_inplace(d.parameters, function(i) return i.show_in_mixer end)
+  if #filtered == 0 then
+    renoise.app():show_status("No mixer parameters available")
+    return
+  end
+  
+  local current_index = index(filtered, devices[d.device_path])
+  if not current_index then
+    current_index = 2
+  end
+  
+  local n = math.max(1, current_index - 1)
+  devices[d.device_path] = filtered[n]
+  renoise.app():show_status(get_device_name(d) .. ": " .. string.format("%02d", n) .. ": " .. filtered[n].name .. ": " .. string.format("%.3f", filtered[n].value))
+  print(n .. " " .. filtered[n].name)
+end
+
+function param_up()
+  s = renoise.song()
+  if not s or not s.selected_track_device then
+    renoise.app():show_status("No device selected")
+    return
+  end
+  
+  d = s.selected_track_device
+  local param = devices[d.device_path]
+  if not param then
+    renoise.app():show_status("No parameter selected for this device")
+    return
+  end
+  
+  local v = (param.value_max - param.value_min) / ticks
+  local new_value = math.min(param.value_max, param.value + v)
+  
+  -- Find parameter number in filtered list
+  local filtered = filter_inplace(d.parameters, function(i) return i.show_in_mixer end)
+  local param_number = index(filtered, param) or 1
+  
+  if new_value == param.value then
+    renoise.app():show_status(get_device_name(d) .. ": " .. string.format("%02d", param_number) .. ": " .. param.name .. ": " .. string.format("%.3f", param.value) .. " (Already at the highest value)")
+  else
+    param.value = new_value
+    renoise.app():show_status(get_device_name(d) .. ": " .. string.format("%02d", param_number) .. ": " .. param.name .. ": " .. string.format("%.3f", param.value))
+  end
+end
+
+function param_down()
+  s = renoise.song()
+  if not s or not s.selected_track_device then
+    renoise.app():show_status("No device selected")
+    return
+  end
+  
+  d = s.selected_track_device
+  local param = devices[d.device_path]
+  if not param then
+    renoise.app():show_status("No parameter selected for this device")
+    return
+  end
+  
+  local v = (param.value_max - param.value_min) / ticks
+  local new_value = math.max(param.value_min, param.value - v)
+  
+  -- Find parameter number in filtered list
+  local filtered = filter_inplace(d.parameters, function(i) return i.show_in_mixer end)
+  local param_number = index(filtered, param) or 1
+  
+  if new_value == param.value then
+    renoise.app():show_status(get_device_name(d) .. ": " .. string.format("%02d", param_number) .. ": " .. param.name .. ": " .. string.format("%.3f", param.value) .. " (Already at the lowest value)")
+  else
+    param.value = new_value
+    renoise.app():show_status(get_device_name(d) .. ": " .. string.format("%02d", param_number) .. ": " .. param.name .. ": " .. string.format("%.3f", param.value))
+  end
+end
+
+
+
+renoise.tool():add_keybinding {name="Mixer:Device:Parama Param Next Parameter",invoke = param_next}
+renoise.tool():add_keybinding {name="Mixer:Device:Parama Param Previous Parameter",invoke = param_prev}
+renoise.tool():add_keybinding {name="Mixer:Device:Parama Param Increase",invoke = param_up}
+renoise.tool():add_keybinding {name="Mixer:Device:Parama Param Decrease",invoke = param_down}
+renoise.tool():add_menu_entry {name="Mixer:Device:Parama Param Next Parameter",invoke = param_next}
+renoise.tool():add_menu_entry {name="Mixer:Device:Parama Param Previous Parameter",invoke = param_prev}
+renoise.tool():add_menu_entry {name="Mixer:Device:Parama Param Increase",invoke = param_up}
+renoise.tool():add_menu_entry {name="Mixer:Device:Parama Param Decrease",invoke = param_down}
+
+
+-- function add_param(n)
+--   renoise.tool():add_keybinding {
+--     name = "Mixer:Device:Param" .. n,
+--     invoke = function()
+--       print(n)
+--       local filtered = filter_inplace(d.parameters, function(i) return i.show_in_mixer end)
+--       print(filtered)
+--       if n < #filtered then
+--         devices[d.device_path] = filtered[n]
+--       end
+--       print(devices[d.device_path].name .. " : " .. devices[d.device_path].value)
+--       -- if #filtered > 0 then
+--       --   for _, f in pairs(filtered) do
+--       --     if f > x then
+            
+--       --     end
+--       --   end
+--       -- end
+--     end
+-- }
+-- end
+
+-- for i = 1, 10 do
+--   add_param(i)
+-- end
+
+-- Safe observable setup
+local function setup_observables()
+  local song = renoise.song()
+  if not song then
+    return
+  end
+  
+  s = song
+  
+  if song.selected_track_device_observable:has_notifier(show_it) then
+    song.selected_track_device_observable:remove_notifier(show_it)
+  end
+  song.selected_track_device_observable:add_notifier(show_it)
+  
+  if song.selected_track_observable:has_notifier(show_it) then
+    song.selected_track_observable:remove_notifier(show_it)
+  end
+  song.selected_track_observable:add_notifier(show_it)
+end
+
+-- Initialize observables if song exists
+setup_observables()
+
+renoise.tool().app_new_document_observable:add_notifier(function()
+  local song = renoise.song()
+  if song then
+    s = song
+    devices = {}
+    setup_observables()
+  end
+end)
+
+renoise.tool().app_release_document_observable:add_notifier(function()
+  devices = {}
+  s = nil
+  d = nil
+end)
+
+-----
+
+
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Wipe&Slice&Write to Pattern",invoke = function() WipeSliceAndWrite() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Wipe&Slice&Write to Pattern",invoke = function() WipeSliceAndWrite() end}
 
 function WipeSliceAndWrite()
   local s = renoise.song()
@@ -122,17 +359,9 @@ function WipeSliceAndWrite()
       s.instruments[currInst].samples[1].beat_sync_enabled = true
   end
   
-  -- Now detect the base note from the sample mapping
-  local instrument = s.instruments[currInst]
-  local base_note = 48  -- Default to C-4 if no mapping found
-  
-  -- Get the base note from the first sample's mapping
-  if instrument.samples[1] and instrument.samples[1].sample_mapping then
-      base_note = instrument.samples[1].sample_mapping.base_note
-      print("Detected base note: " .. base_note)
-  else
-      print("No sample mapping found, using default base note C-4 (" .. base_note .. ")")
-  end
+  -- Get the base note from the original sample to know where slices start
+  local base_note = s.instruments[currInst].samples[1].sample_mapping.base_note
+  local first_slice_note = base_note + 1  -- Slices start one note above base note
   
   -- Now write the notes to the pattern - one slice per row
   local track_index = s.selected_track_index
@@ -143,7 +372,7 @@ function WipeSliceAndWrite()
       track.visible_note_columns = 1
   end
   
-  print("Writing slice notes to pattern...")
+  print("Writing slice notes to pattern starting from note " .. first_slice_note .. "...")
   
   local notes_written = 0
   
@@ -153,11 +382,10 @@ function WipeSliceAndWrite()
       local note_column = pattern_line.note_columns[1]
       
       -- Calculate which note corresponds to this slice
-      -- Slices start at the base note and go up chromatically
       local slice_index = row - 1  -- Slices are 0-indexed
-      local note_value = base_note + slice_index
+      local note_value = first_slice_note + slice_index
       
-      -- Stop writing if we exceed the valid note range
+      -- Stop writing if we exceed the valid note range (B-9 = 119)
       if note_value > 119 then
           print("Reached maximum note B-9 (119), stopping at row " .. row)
           break

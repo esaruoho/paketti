@@ -5016,3 +5016,40 @@ renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Cycle Frequency Anal
 
 
 
+
+-------
+function pakettiSampleBufferCenterSelector()
+  local song=renoise.song()
+  local instrument = song.selected_instrument
+  if not instrument then
+    renoise.app():show_status("No instrument selected.")
+    return
+  end
+
+  local sample = song.selected_sample
+  if not sample then
+    renoise.app():show_status("No sample selected.")
+    return
+  end
+
+  local sample_buffer = sample.sample_buffer
+  if not sample_buffer.has_sample_data then
+    renoise.app():show_status("Sample slot exists but has no content.")
+    return
+  end
+
+  local sample_length = sample_buffer.number_of_frames
+  if sample_length <= 1 then
+    renoise.app():show_status("Sample length is too short.")
+    return
+  end
+
+  local center = math.floor(sample_length / 2)
+  sample_buffer.selection_start = center
+  sample_buffer.selection_end = center
+  renoise.app():show_status("Center of sample selected (frames " .. center .. "-" .. (center + 1) .. ").")
+end
+
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Select Center of Sample Buffer",invoke=function()pakettiSampleBufferCenterSelector()end}
+renoise.tool():add_menu_entry{name="Sample Editor Ruler:Select Center of Sample Buffer",invoke=function()pakettiSampleBufferCenterSelector()end}
+
