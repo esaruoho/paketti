@@ -8,7 +8,7 @@ local p
 
 -- Helper function to get the best device name
 function get_device_name(device)
-  if device.display_name and device.display_name ~= "" then
+  if device.display_name and device.display_name ~= "" and device.display_name ~= device.name then
     return device.display_name
   else
     return device.short_name
@@ -34,8 +34,20 @@ function index(arr, value)
   if not value then
     return nil
   end
+  
+  -- Safely get value name
+  local value_name
+  local success, result = pcall(function() return value.name end)
+  if not success then
+    return nil -- Value parameter is no longer valid
+  end
+  value_name = result
+  
   for k, v in pairs(arr) do
-    if v.name == value.name then
+    -- Safely get array item name
+    local v_name
+    local success, result = pcall(function() return v.name end)
+    if success and result == value_name then
       return k
     end
   end
@@ -54,8 +66,27 @@ function show_it()
     devices[d.device_path] = filtered[1]
   end
   if devices[d.device_path] ~= nil then
-    local param_number = index(filtered, devices[d.device_path]) or 1
-    renoise.app():show_status(get_device_name(d) .. ": " .. string.format("%02d", param_number) .. ": " .. devices[d.device_path].name .. ": " .. string.format("%.3f", devices[d.device_path].value))
+    -- Safely check if stored parameter is still valid
+    local param = devices[d.device_path]
+    local success, param_name = pcall(function() return param.name end)
+    if not success then
+      -- Parameter is no longer valid, reset to first available
+      devices[d.device_path] = filtered[1]
+      param = devices[d.device_path]
+      success, param_name = pcall(function() return param.name end)
+    end
+    
+    if success then
+      local param_number = index(filtered, param) or 1
+      local param_value
+      local value_success, value_result = pcall(function() return param.value end)
+      if value_success then
+        param_value = string.format("%.3f", value_result)
+      else
+        param_value = "N/A"
+      end
+      renoise.app():show_status(get_device_name(d) .. ": " .. string.format("%02d", param_number) .. ": " .. param_name .. ": " .. param_value)
+    end
   end
 end
 
@@ -78,7 +109,11 @@ function param_next()
     current_index = 0
   end
   
-  local n = math.min(#filtered, current_index + 1)
+  local n = current_index + 1
+  if n > #filtered then
+    n = 1  -- Wrap around to first parameter
+  end
+  
   devices[d.device_path] = filtered[n]
   renoise.app():show_status(get_device_name(d) .. ": " .. string.format("%02d", n) .. ": " .. filtered[n].name .. ": " .. string.format("%.3f", filtered[n].value))
   print(n .. " " .. filtered[n].name)
@@ -103,7 +138,11 @@ function param_prev()
     current_index = 2
   end
   
-  local n = math.max(1, current_index - 1)
+  local n = current_index - 1
+  if n < 1 then
+    n = #filtered  -- Wrap around to last parameter
+  end
+  
   devices[d.device_path] = filtered[n]
   renoise.app():show_status(get_device_name(d) .. ": " .. string.format("%02d", n) .. ": " .. filtered[n].name .. ": " .. string.format("%.3f", filtered[n].value))
   print(n .. " " .. filtered[n].name)
@@ -123,6 +162,14 @@ function param_up()
     return
   end
   
+  -- Check if parameter is still valid
+  local success, param_name = pcall(function() return param.name end)
+  if not success then
+    renoise.app():show_status("Selected parameter is no longer valid")
+    devices[d.device_path] = nil -- Clear invalid reference
+    return
+  end
+  
   local v = (param.value_max - param.value_min) / ticks
   local new_value = math.min(param.value_max, param.value + v)
   
@@ -131,10 +178,10 @@ function param_up()
   local param_number = index(filtered, param) or 1
   
   if new_value == param.value then
-    renoise.app():show_status(get_device_name(d) .. ": " .. string.format("%02d", param_number) .. ": " .. param.name .. ": " .. string.format("%.3f", param.value) .. " (Already at the highest value)")
+    renoise.app():show_status(get_device_name(d) .. ": " .. string.format("%02d", param_number) .. ": " .. param_name .. ": " .. string.format("%.3f", param.value) .. " (Already at the highest value)")
   else
     param.value = new_value
-    renoise.app():show_status(get_device_name(d) .. ": " .. string.format("%02d", param_number) .. ": " .. param.name .. ": " .. string.format("%.3f", param.value))
+    renoise.app():show_status(get_device_name(d) .. ": " .. string.format("%02d", param_number) .. ": " .. param_name .. ": " .. string.format("%.3f", param.value))
   end
 end
 
@@ -152,6 +199,14 @@ function param_down()
     return
   end
   
+  -- Check if parameter is still valid
+  local success, param_name = pcall(function() return param.name end)
+  if not success then
+    renoise.app():show_status("Selected parameter is no longer valid")
+    devices[d.device_path] = nil -- Clear invalid reference
+    return
+  end
+  
   local v = (param.value_max - param.value_min) / ticks
   local new_value = math.max(param.value_min, param.value - v)
   
@@ -160,10 +215,10 @@ function param_down()
   local param_number = index(filtered, param) or 1
   
   if new_value == param.value then
-    renoise.app():show_status(get_device_name(d) .. ": " .. string.format("%02d", param_number) .. ": " .. param.name .. ": " .. string.format("%.3f", param.value) .. " (Already at the lowest value)")
+    renoise.app():show_status(get_device_name(d) .. ": " .. string.format("%02d", param_number) .. ": " .. param_name .. ": " .. string.format("%.3f", param.value) .. " (Already at the lowest value)")
   else
     param.value = new_value
-    renoise.app():show_status(get_device_name(d) .. ": " .. string.format("%02d", param_number) .. ": " .. param.name .. ": " .. string.format("%.3f", param.value))
+    renoise.app():show_status(get_device_name(d) .. ": " .. string.format("%02d", param_number) .. ": " .. param_name .. ": " .. string.format("%.3f", param.value))
   end
 end
 
