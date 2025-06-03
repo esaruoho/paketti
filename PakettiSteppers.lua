@@ -22,6 +22,8 @@ local updating_offset_slider = false
 function pakettiPitchStepperDemo()
   if dialog and dialog.visible then
     dialog:close()
+    dialog=nil
+    return
   end
 
   PakettiShowStepper("Pitch Stepper")
@@ -582,6 +584,8 @@ end
 function PakettiSteppersDialog()
   if dialog and dialog.visible then
     dialog:close()
+    dialog=nil
+    return
   end
 
   -- Create stepper type switch
@@ -1247,37 +1251,48 @@ function PakettiFillStepperHumanize(deviceName)
   
   local device = instrument.sample_modulation_sets[1].devices[deviceIndex]
   
-  -- Get existing points or create default ones if none exist
+  -- Check if there are points to humanize
+  if #device.points == 0 then
+    renoise.app():show_status(string.format("No existing points to humanize in %s.", deviceName))
+    return
+  end
+  
+  -- Store existing valid points before clearing
   local existing_points = {}
-  if #device.points > 0 then
-    for _, point in ipairs(device.points) do
-      existing_points[point.time] = point.value
-    end
-  else
-    -- If no points exist, create default center values first
-    for i = 1, device.length do
-      existing_points[i] = 0.5
+  for _, point in ipairs(device.points) do
+    -- Only keep points with valid time values
+    if point.time >= 1 and point.time <= device.length then
+      table.insert(existing_points, {
+        time = point.time,
+        value = point.value,
+        scaling = point.scaling
+      })
     end
   end
   
-  -- Apply ±8% humanization to existing values
+  if #existing_points == 0 then
+    renoise.app():show_status(string.format("No valid points to humanize in %s.", deviceName))
+    return
+  end
+  
+  -- Apply ±2% humanization to existing points only
   device:clear_points()
   local points_data = {}
   
-  for i = 1, device.length do
-    local original_value = existing_points[i] or 0.5
-    local variation = (math.random() - 0.5) * 0.16  -- ±8% variation
+  for _, point in ipairs(existing_points) do
+    local original_value = point.value
+    local variation = (math.random() - 0.5) * 0.04  -- ±2% variation
     local humanized_value = math.max(0, math.min(1, original_value + variation))
     
     table.insert(points_data, {
-      scaling = 0,
-      time = i,
+      scaling = point.scaling,
+      time = point.time,  -- Preserve original time position
       value = humanized_value
     })
   end
 
   device.points = points_data
-  renoise.app():show_status(string.format("%s humanized with ±8%% variation applied successfully.", deviceName))
+  renoise.app():show_status(string.format("%s humanized %d existing points with ±2%% variation.", deviceName, #points_data))
 end
 
 function PakettiRandomizeVisibleStepperStepSize()
@@ -1309,20 +1324,25 @@ function PakettiFillStepperTriangle(deviceName)
   
   local device = instrument.sample_modulation_sets[1].devices[deviceIndex]
   
-  -- Clear existing points and fill with triangle wave (up then down)
+  -- Clear existing points and fill with triangle wave (0.5 → 1.0 → 0.0 → 0.5)
   device:clear_points()
   local points_data = {}
-  local midpoint = math.ceil(device.length / 2)
   
   for i = 1, device.length do
+    local phase = (i - 1) / device.length  -- 0 to 1 progress through pattern
     local value
-    if i <= midpoint then
-      -- Ramp up from 0 to 1
-      value = (i - 1) / (midpoint - 1)
+    
+    if phase <= 0.25 then
+      -- First quarter: 0.5 → 1.0
+      value = 0.5 + 2 * phase
+    elseif phase <= 0.75 then
+      -- Middle half: 1.0 → 0.0
+      value = 1.0 - 2 * (phase - 0.25)
     else
-      -- Ramp down from 1 to 0
-      value = 1.0 - ((i - midpoint) / (device.length - midpoint))
+      -- Last quarter: 0.0 → 0.5
+      value = 0.0 + 2 * (phase - 0.75)
     end
+    
     table.insert(points_data, {
       scaling = 0,
       time = i,
@@ -1331,7 +1351,7 @@ function PakettiFillStepperTriangle(deviceName)
   end
 
   device.points = points_data
-  renoise.app():show_status(string.format("%s filled with triangle wave.", deviceName))
+  renoise.app():show_status(string.format("%s filled with triangle wave (0.5→1.0→0.0→0.5).", deviceName))
 end
 
 function PakettiFillStepperSawtooth(deviceName)
@@ -1350,21 +1370,31 @@ function PakettiFillStepperSawtooth(deviceName)
   
   local device = instrument.sample_modulation_sets[1].devices[deviceIndex]
   
-  -- Clear existing points and fill with sawtooth wave (ramp up then reset)
+  -- Clear existing points and fill with sawtooth wave (0.5 → 1.0 → 0.0 → 0.5)
   device:clear_points()
   local points_data = {}
+  local midpoint = math.ceil(device.length / 2)
   
   for i = 1, device.length do
-    local value = (i - 1) / (device.length - 1)
+    local value
+    
+    if i <= midpoint then
+      -- First half: 0.5 → 1.0
+      value = 0.5 + 0.5 * ((i - 1) / (midpoint - 1))
+    else
+      -- Second half: 0.0 → 0.5
+      value = 0.0 + 0.5 * ((i - midpoint) / (device.length - midpoint))
+    end
+    
     table.insert(points_data, {
       scaling = 0,
       time = i,
-      value = value
+      value = math.max(0, math.min(1, value))
     })
   end
 
   device.points = points_data
-  renoise.app():show_status(string.format("%s filled with sawtooth wave.", deviceName))
+  renoise.app():show_status(string.format("%s filled with sawtooth wave (0.5→1.0→0.0→0.5).", deviceName))
 end
 
 function PakettiFillStepperSteps(deviceName)
@@ -1418,39 +1448,55 @@ function PakettiSmoothStepperValues(deviceName)
   
   local device = instrument.sample_modulation_sets[1].devices[deviceIndex]
   
-  -- Get existing points or create default ones if none exist
+  -- Check if there are points to smooth
+  if #device.points == 0 then
+    renoise.app():show_status(string.format("No existing points to smooth in %s.", deviceName))
+    return
+  end
+  
+  -- Store existing valid points before clearing
   local existing_points = {}
-  if #device.points > 0 then
-    for _, point in ipairs(device.points) do
-      existing_points[point.time] = point.value
-    end
-  else
-    for i = 1, device.length do
-      existing_points[i] = 0.5
+  for _, point in ipairs(device.points) do
+    -- Only keep points with valid time values
+    if point.time >= 1 and point.time <= device.length then
+      table.insert(existing_points, {
+        time = point.time,
+        value = point.value,
+        scaling = point.scaling
+      })
     end
   end
   
-  -- Apply smoothing by averaging with neighbors
+  if #existing_points == 0 then
+    renoise.app():show_status(string.format("No valid points to smooth in %s.", deviceName))
+    return
+  end
+  
+  -- Sort points by time to ensure proper order
+  table.sort(existing_points, function(a, b) return a.time < b.time end)
+  
+  -- Apply smoothing by averaging with actual neighboring points in the array
   device:clear_points()
   local points_data = {}
   
-  for i = 1, device.length do
-    local current_value = existing_points[i] or 0.5
-    local prev_value = existing_points[i - 1] or current_value
-    local next_value = existing_points[i + 1] or current_value
+  for i, point in ipairs(existing_points) do
+    local current_value = point.value
+    -- Find actual previous and next points in the array
+    local prev_value = (i > 1) and existing_points[i-1].value or current_value
+    local next_value = (i < #existing_points) and existing_points[i+1].value or current_value
     
     -- Smooth by averaging with neighbors
     local smoothed_value = (prev_value + current_value + next_value) / 3
     
     table.insert(points_data, {
-      scaling = 0,
-      time = i,
+      scaling = point.scaling,
+      time = point.time,  -- Preserve original time position
       value = math.max(0, math.min(1, smoothed_value))
     })
   end
 
   device.points = points_data
-  renoise.app():show_status(string.format("%s values smoothed with neighbor averaging.", deviceName))
+  renoise.app():show_status(string.format("%s smoothed %d existing points with neighbor averaging.", deviceName, #points_data))
 end
 
 function PakettiScaleStepperValues(deviceName, scale_factor)
@@ -1469,35 +1515,49 @@ function PakettiScaleStepperValues(deviceName, scale_factor)
   
   local device = instrument.sample_modulation_sets[1].devices[deviceIndex]
   
-  -- Get existing points
+  -- Check if there are points to scale
+  if #device.points == 0 then
+    renoise.app():show_status(string.format("No existing points to scale in %s.", deviceName))
+    return
+  end
+  
+  -- Store existing points before clearing, but only valid ones
   local existing_points = {}
-  if #device.points > 0 then
-    for _, point in ipairs(device.points) do
-      existing_points[point.time] = point.value
-    end
-  else
-    for i = 1, device.length do
-      existing_points[i] = 0.5
+  for _, point in ipairs(device.points) do
+    -- Only keep points with valid time values
+    if point.time >= 1 and point.time <= device.length then
+      table.insert(existing_points, {
+        time = point.time,
+        value = point.value,
+        scaling = point.scaling
+      })
     end
   end
   
-  -- Scale values
+  if #existing_points == 0 then
+    renoise.app():show_status(string.format("No valid points to scale in %s.", deviceName))
+    return
+  end
+  
+  -- Clear and recreate with scaled values - only valid time positions
   device:clear_points()
   local points_data = {}
   
-  for i = 1, device.length do
-    local original_value = existing_points[i] or 0.5
-    local scaled_value = math.max(0, math.min(1, original_value * scale_factor))
+  for _, point in ipairs(existing_points) do
+    local original_value = point.value
+    -- Scale relative to center: new_value = center + (original - center) * scale_factor
+    local scaled_value = 0.5 + (original_value - 0.5) * scale_factor
+    scaled_value = math.max(0, math.min(1, scaled_value))
     
     table.insert(points_data, {
-      scaling = 0,
-      time = i,
+      scaling = point.scaling,
+      time = point.time,  -- Already validated as valid
       value = scaled_value
     })
   end
-
+  
   device.points = points_data
-  renoise.app():show_status(string.format("%s values scaled by %d%%.", deviceName, math.floor(scale_factor * 100)))
+  renoise.app():show_status(string.format("%s scaled %d existing points by %d%%.", deviceName, #points_data, math.floor(scale_factor * 100)))
 end
 
 function PakettiQuantizeStepperValues(deviceName)
@@ -1575,34 +1635,78 @@ function PakettiOffsetStepperValues(deviceName, offset_amount)
   
   local device = instrument.sample_modulation_sets[1].devices[deviceIndex]
   
-  -- Get existing points
-  local existing_points = {}
-  if #device.points > 0 then
-    for _, point in ipairs(device.points) do
-      existing_points[point.time] = point.value
-    end
-  else
-    for i = 1, device.length do
-      existing_points[i] = 0.5
+  -- Check if there are points to offset
+  if #device.points == 0 then
+    renoise.app():show_status(string.format("No existing points to offset in %s.", deviceName))
+    return
+  end
+  
+  -- Check if values are already at extremes (only check existing points with valid times)
+  local valid_points = {}
+  for _, point in ipairs(device.points) do
+    if point.time >= 1 and point.time <= device.length then
+      table.insert(valid_points, point)
     end
   end
   
-  -- Offset values
+  if #valid_points == 0 then
+    renoise.app():show_status(string.format("No valid points to offset in %s.", deviceName))
+    return
+  end
+  
+  if offset_amount > 0 then
+    local all_at_max = true
+    for _, point in ipairs(valid_points) do
+      if point.value < 1.0 then
+        all_at_max = false
+        break
+      end
+    end
+    if all_at_max then
+      renoise.app():show_status(string.format("%s already at max, doing nothing.", deviceName))
+      return
+    end
+  elseif offset_amount < 0 then
+    local all_at_min = true
+    for _, point in ipairs(valid_points) do
+      if point.value > 0.0 then
+        all_at_min = false
+        break
+      end
+    end
+    if all_at_min then
+      renoise.app():show_status(string.format("%s already at min, doing nothing.", deviceName))
+      return
+    end
+  end
+  
+  -- Store existing valid points before clearing
+  local existing_points = {}
+  for _, point in ipairs(valid_points) do
+    table.insert(existing_points, {
+      time = point.time,
+      value = point.value,
+      scaling = point.scaling
+    })
+  end
+  
+  -- Clear and recreate with offset values - only valid time positions
   device:clear_points()
   local points_data = {}
   
-  for i = 1, device.length do
-    local original_value = existing_points[i] or 0.5
+  for _, point in ipairs(existing_points) do
+    local original_value = point.value
     local offset_value = math.max(0, math.min(1, original_value + offset_amount))
     
     table.insert(points_data, {
-      scaling = 0,
-      time = i,
+      scaling = point.scaling,
+      time = point.time,  -- Already validated as valid
       value = offset_value
     })
   end
-
+  
   device.points = points_data
+  renoise.app():show_status(string.format("%s offset %d existing points.", deviceName, #points_data))
 end
 
 function PakettiOffsetVisibleStepperValues(offset_amount)
@@ -1634,7 +1738,7 @@ function PakettiCopyStepperData()
   
   local device = instrument.sample_modulation_sets[1].devices[deviceIndex]
   
-  -- Copy points data
+  -- Copy exactly what exists - no filling in missing steps
   copied_stepper_data = {}
   for _, point in ipairs(device.points) do
     table.insert(copied_stepper_data, {
@@ -1644,7 +1748,7 @@ function PakettiCopyStepperData()
     })
   end
   
-  renoise.app():show_status(string.format("Copied %d points from %s", #copied_stepper_data, visible_stepper))
+  renoise.app():show_status(string.format("Copied %d points from %s (device.length: %d)", #copied_stepper_data, visible_stepper, device.length))
 end
 
 function PakettiPasteStepperData()
@@ -1672,44 +1776,37 @@ function PakettiPasteStepperData()
   end
   
   local device = instrument.sample_modulation_sets[1].devices[deviceIndex]
+  local copied_length = #copied_stepper_data
   
-  -- Clear and paste data, adjusting for current device length
+  -- FIRST: Clear the visible stepper completely
+  print(string.format("Clearing %s before pasting", visible_stepper))
   device:clear_points()
-  local points_data = {}
   
-  for i = 1, device.length do
-    -- Find corresponding copied point or interpolate
-    local source_index = math.min(#copied_stepper_data, math.max(1, math.ceil(i * #copied_stepper_data / device.length)))
-    local copied_point = copied_stepper_data[source_index]
-    
+  -- SECOND: Resize stepper to match copied data length
+  if copied_length ~= device.length then
+    print(string.format("Resizing %s from %d to %d steps to match copied data", visible_stepper, device.length, copied_length))
+    device.length = copied_length
+  end
+  
+  -- THIRD: Paste the copied data with sequential time values
+  local points_data = {}
+  for i = 1, copied_length do
+    local copied_point = copied_stepper_data[i]
     if copied_point then
       table.insert(points_data, {
         scaling = copied_point.scaling,
-        time = i,
+        time = i,  -- Use sequential time values starting from 1
         value = copied_point.value
       })
     end
   end
   
   device.points = points_data
-  renoise.app():show_status(string.format("Pasted %d points to %s", #points_data, visible_stepper))
-end
-
--- Wrapper functions for visible stepper
-function PakettiFillVisibleStepperTriangle()
-  PakettiApplyToVisibleStepper(PakettiFillStepperTriangle)
-end
-
-function PakettiFillVisibleStepperSawtooth()
-  PakettiApplyToVisibleStepper(PakettiFillStepperSawtooth)
-end
-
-function PakettiFillVisibleStepperSteps()
-  PakettiApplyToVisibleStepper(PakettiFillStepperSteps)
-end
-
-function PakettiSmoothVisibleStepperValues()
-  PakettiApplyToVisibleStepper(PakettiSmoothStepperValues)
+  
+  -- Update UI to reflect new step count
+  PakettiUpdateStepCountText()
+  
+  renoise.app():show_status(string.format("Pasted %d points to %s (cleared and resized to %d steps)", copied_length, visible_stepper, device.length))
 end
 
 function PakettiScaleVisibleStepperValues(scale_factor)
@@ -1720,10 +1817,4 @@ function PakettiScaleVisibleStepperValues(scale_factor)
   end
   PakettiScaleStepperValues(visible_stepper, scale_factor)
 end
-
-function PakettiQuantizeVisibleStepperValues()
-  PakettiApplyToVisibleStepper(PakettiQuantizeStepperValues)
-end
-
-
 

@@ -522,6 +522,14 @@ function setup_instrument_observer()
     if vb.views.instrument_name and song.selected_instrument then
       vb.views.instrument_name.text = song.selected_instrument.name ~= "" and song.selected_instrument.name or "<No Name>"
     end
+    
+    -- Update transpose display with current instrument's transpose value
+    if vb.views.transpose_display and song.selected_instrument then
+      local current_transpose = song.selected_instrument.transpose
+      vb.views.transpose_display.text = tostring(current_transpose)
+      current_settings.transpose = current_transpose
+      print("DEBUG: Updated transpose display to:", current_transpose)
+    end
 
     -- Remove notifiers to prevent feedback
     if vb.views.note_count_slider then
@@ -1487,7 +1495,7 @@ end
        },
        vb:text {
          id = "transpose_display",
-         text = "0",
+         text = tostring(renoise.song().selected_instrument.transpose),
          width = 30,
          font = "bold",
          style = "strong"
@@ -2266,6 +2274,27 @@ end
          style = "strong"
        },
        vb:button {
+         text = "2",
+         width = 50,
+         notifier=function()
+           set_all_stepper_lengths(2)
+         end
+       },
+       vb:button {
+         text = "4",
+         width = 50,
+         notifier=function()
+           set_all_stepper_lengths(4)
+         end
+       },
+       vb:button {
+         text = "8",
+         width = 50,
+         notifier=function()
+           set_all_stepper_lengths(8)
+         end
+       },
+       vb:button {
          text = "16",
          width = 50,
          notifier=function()
@@ -2291,6 +2320,13 @@ end
          width = 50,
          notifier=function()
            set_all_stepper_lengths(128)
+         end
+       },
+       vb:button {
+         text = "256",
+         width = 50,
+         notifier=function()
+           set_all_stepper_lengths(256)
          end
        }
      },

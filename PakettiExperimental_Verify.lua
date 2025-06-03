@@ -1,3 +1,508 @@
+renoise.tool():add_menu_entry{
+  name = "Pattern Editor:Paketti..:Wipe&Slice&Write to Pattern",
+  invoke = function()
+    WipeSliceAndWrite()
+  end
+}
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Wipe&Slice&Write to Pattern",
+  invoke = function()
+    WipeSliceAndWrite()
+  end
+}
+
+
+function WipeSliceAndWrite()
+  local s = renoise.song()
+  local currInst = s.selected_instrument_index
+  local pattern = s.selected_pattern
+  local num_rows = pattern.number_of_lines
+  
+  -- Check if the instrument has samples
+  if #s.instruments[currInst].samples == 0 then
+      renoise.app():show_status("No samples available in the selected instrument.")
+      return
+  end
+
+  -- Set to first sample
+  s.selected_sample_index = 1
+  local currSamp = s.selected_sample_index
+  
+  -- Check if sample has data
+  if not s.instruments[currInst].samples[1].sample_buffer.has_sample_data then
+      renoise.app():show_status("Selected sample has no audio data.")
+      return
+  end
+  
+  print("Detected " .. num_rows .. " rows in pattern")
+  
+  -- Determine the number of slices to create - limit to 255 max
+  local slice_count = num_rows
+  if slice_count > 255 then
+      slice_count = 255
+      renoise.app():show_status("Pattern has " .. num_rows .. " rows, but limiting to 255 slices due to Renoise limit.")
+  end
+  
+  -- Store original values
+  local beatsync_lines = nil
+  local dontsync = nil
+  if s.instruments[currInst].samples[1].beat_sync_enabled then
+      beatsync_lines = s.instruments[currInst].samples[1].beat_sync_lines
+  else
+      dontsync = true
+      beatsync_lines = 0
+  end
+  local currentTranspose = s.selected_sample.transpose
+
+  -- Clear existing slice markers from the first sample (wipe slices)
+  for i = #s.instruments[currInst].samples[1].slice_markers, 1, -1 do
+      s.instruments[currInst].samples[1]:delete_slice_marker(s.instruments[currInst].samples[1].slice_markers[i])
+  end
+
+  -- Insert new slice markers (mathematically even cuts)
+  local tw = s.selected_sample.sample_buffer.number_of_frames / slice_count
+  s.instruments[currInst].samples[currSamp]:insert_slice_marker(1)
+  for i = 1, slice_count - 1 do
+      s.instruments[currInst].samples[currSamp]:insert_slice_marker(tw * i)
+  end
+
+  -- Apply settings to all samples created by the slicing
+  for i, sample in ipairs(s.instruments[currInst].samples) do
+      sample.new_note_action = preferences.WipeSlices.WipeSlicesNNA.value
+      sample.oneshot = preferences.WipeSlices.WipeSlicesOneShot.value
+      sample.autoseek = preferences.WipeSlices.WipeSlicesAutoseek.value
+      sample.mute_group = preferences.WipeSlices.WipeSlicesMuteGroup.value
+
+      if dontsync then 
+          sample.beat_sync_enabled = false
+      else
+          local beat_sync_mode = preferences.WipeSlices.WipeSlicesBeatSyncMode.value
+
+          -- Validate the beat_sync_mode value
+          if beat_sync_mode < 1 or beat_sync_mode > 3 then
+              sample.beat_sync_enabled = false  -- Disable beat sync for invalid mode
+          else
+              sample.beat_sync_mode = beat_sync_mode
+
+              -- Only set beat_sync_lines if beatsynclines is valid
+              if beatsync_lines / slice_count < 1 then 
+                  sample.beat_sync_lines = beatsync_lines
+              else 
+                  sample.beat_sync_lines = beatsync_lines / slice_count
+              end
+
+              -- Enable beat sync for this sample since dontsync is false and mode is valid
+              sample.beat_sync_enabled = true
+          end
+      end
+
+      sample.loop_mode = preferences.WipeSlices.WipeSlicesLoopMode.value
+      local loopstyle = preferences.WipeSlices.SliceLoopMode.value
+      
+      if loopstyle == true then
+          if i > 1 then  -- Skip original sample
+              -- Get THIS sample's length
+              local max_loop_start = sample.sample_buffer.number_of_frames
+              -- Set loop point to middle of THIS sample
+              local slice_middle = math.floor(max_loop_start / 2)
+              sample.loop_start = slice_middle
+          end
+      end
+      
+      sample.loop_release = preferences.WipeSlices.WipeSlicesLoopRelease.value
+      sample.transpose = currentTranspose
+      sample.autofade = preferences.WipeSlices.WipeSlicesAutofade.value
+      sample.interpolation_mode = 4
+      sample.oversample_enabled = true
+  end
+
+  -- Ensure beat sync is enabled for the original sample
+  if dontsync ~= true then 
+      s.instruments[currInst].samples[1].beat_sync_lines = beatsync_lines
+      s.instruments[currInst].samples[1].beat_sync_enabled = true
+  end
+  
+  -- Now detect the base note from the sample mapping
+  local instrument = s.instruments[currInst]
+  local base_note = 48  -- Default to C-4 if no mapping found
+  
+  -- Get the base note from the first sample's mapping
+  if instrument.samples[1] and instrument.samples[1].sample_mapping then
+      base_note = instrument.samples[1].sample_mapping.base_note
+      print("Detected base note: " .. base_note)
+  else
+      print("No sample mapping found, using default base note C-4 (" .. base_note .. ")")
+  end
+  
+  -- Now write the notes to the pattern - one slice per row
+  local track_index = s.selected_track_index
+  local track = s.tracks[track_index]
+  
+  -- Make sure we have at least one visible note column
+  if track.visible_note_columns == 0 then
+      track.visible_note_columns = 1
+  end
+  
+  print("Writing slice notes to pattern...")
+  
+  local notes_written = 0
+  
+  -- Write each slice to its corresponding row
+  for row = 1, math.min(num_rows, slice_count) do
+      local pattern_line = pattern.tracks[track_index].lines[row]
+      local note_column = pattern_line.note_columns[1]
+      
+      -- Calculate which note corresponds to this slice
+      -- Slices start at the base note and go up chromatically
+      local slice_index = row - 1  -- Slices are 0-indexed
+      local note_value = base_note + slice_index
+      
+      -- Stop writing if we exceed the valid note range
+      if note_value > 119 then
+          print("Reached maximum note B-9 (119), stopping at row " .. row)
+          break
+      end
+      
+      -- Write the note
+      note_column.note_value = note_value
+      note_column.instrument_value = currInst - 1  -- Instrument indices are 0-based
+      notes_written = notes_written + 1
+      
+      print("Row " .. row .. ": wrote note " .. note_value .. " (slice " .. slice_index .. ")")
+  end
+
+  -- Show completion status
+  local sample_name = s.selected_instrument.samples[1].name
+  local num_slices = #s.instruments[currInst].samples[currSamp].slice_markers
+  
+  renoise.app():show_status(sample_name .. " now has " .. num_slices .. " slices and " .. notes_written .. " notes written to pattern.")
+  
+  print("Wipe&Slice&Write completed: " .. num_slices .. " slices created, " .. notes_written .. " notes written")
+end
+
+
+
+
+
+
+-- Hide All Unused Columns Feature
+function PakettiHideAllUnusedColumns()
+  local song = renoise.song()
+  local total_tracks_processed = 0
+  local total_columns_hidden = 0
+  
+  print("=== PAKETTI HIDE UNUSED COLUMNS DEBUG ===")
+  
+  -- Process all sequencer tracks
+  for track_index = 1, song.sequencer_track_count do
+    local track = song.tracks[track_index]
+    local track_columns_hidden = 0
+    
+    print(string.format("Processing Track %d: %s", track_index, track.name))
+    
+    -- Only process sequencer tracks
+    if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+    
+      -- Check note columns usage across all patterns
+      local note_columns_used = {}
+      for col = 1, track.max_note_columns do
+        note_columns_used[col] = false
+      end
+    
+      -- Check effect columns usage across all patterns
+      local effect_columns_used = {}
+      for col = 1, track.max_effect_columns do
+        effect_columns_used[col] = false
+      end
+    
+      -- Check special columns usage across all patterns
+      local delay_column_used = false
+      local volume_column_used = false
+      local panning_column_used = false
+      local sample_effects_column_used = false
+    
+      -- Scan all patterns for this track
+      for pattern_index = 1, #song.patterns do
+        local pattern = song.patterns[pattern_index]
+        local pattern_track = pattern.tracks[track_index]
+        
+        -- Scan all lines in this pattern
+        for line_index = 1, pattern.number_of_lines do
+          local line = pattern_track:line(line_index)
+          
+          -- Check note columns
+          for col = 1, #line.note_columns do
+            local note_col = line.note_columns[col]
+            if note_col.note_string ~= "---" or 
+               note_col.instrument_value ~= 255 or
+               note_col.volume_value ~= 255 or
+               note_col.panning_value ~= 255 or
+               note_col.delay_value ~= 0 or
+               note_col.effect_number_value ~= 0 or
+               note_col.effect_amount_value ~= 0 then
+              note_columns_used[col] = true
+            end
+            
+            -- Check special columns within note columns
+            if note_col.delay_value ~= 0 then
+              delay_column_used = true
+            end
+            if note_col.volume_value ~= 255 then
+              volume_column_used = true
+            end
+            if note_col.panning_value ~= 255 then
+              panning_column_used = true
+            end
+            if note_col.effect_number_value ~= 0 or note_col.effect_amount_value ~= 0 then
+              sample_effects_column_used = true
+            end
+          end
+          
+          -- Check effect columns
+          for col = 1, #line.effect_columns do
+            local effect_col = line.effect_columns[col]
+            if effect_col.number_string ~= "00" or effect_col.amount_value ~= 0 then
+              effect_columns_used[col] = true
+            end
+          end
+        end
+      end
+      
+      -- Now hide unused columns for this track
+      
+      -- Hide unused note columns (count from the end)
+      local last_used_note_col = 0
+      for col = track.max_note_columns, 1, -1 do
+        if note_columns_used[col] then
+          last_used_note_col = col
+          break
+        end
+      end
+      
+      if last_used_note_col < track.visible_note_columns then
+        local old_visible = track.visible_note_columns
+        track.visible_note_columns = math.max(1, last_used_note_col) -- At least 1 note column
+        local hidden = old_visible - track.visible_note_columns
+        track_columns_hidden = track_columns_hidden + hidden
+        print(string.format("  Note columns: %d -> %d (hidden %d)", old_visible, track.visible_note_columns, hidden))
+      end
+      
+      -- Hide unused effect columns (count from the end)
+      local last_used_effect_col = 0
+      for col = track.max_effect_columns, 1, -1 do
+        if effect_columns_used[col] then
+          last_used_effect_col = col
+          break
+        end
+      end
+      
+      if last_used_effect_col < track.visible_effect_columns then
+        local old_visible = track.visible_effect_columns
+        track.visible_effect_columns = last_used_effect_col
+        local hidden = old_visible - track.visible_effect_columns
+        track_columns_hidden = track_columns_hidden + hidden
+        print(string.format("  Effect columns: %d -> %d (hidden %d)", old_visible, track.visible_effect_columns, hidden))
+      end
+      
+      -- Hide unused special columns
+      if not delay_column_used and track.delay_column_visible then
+        track.delay_column_visible = false
+        track_columns_hidden = track_columns_hidden + 1
+        print("  Hidden delay column")
+      end
+      
+      if not volume_column_used and track.volume_column_visible then
+        track.volume_column_visible = false
+        track_columns_hidden = track_columns_hidden + 1
+        print("  Hidden volume column")
+      end
+      
+      if not panning_column_used and track.panning_column_visible then
+        track.panning_column_visible = false
+        track_columns_hidden = track_columns_hidden + 1
+        print("  Hidden panning column")
+      end
+      
+      if not sample_effects_column_used and track.sample_effects_column_visible then
+        track.sample_effects_column_visible = false
+        track_columns_hidden = track_columns_hidden + 1
+        print("  Hidden sample effects column")
+      end
+      
+      total_columns_hidden = total_columns_hidden + track_columns_hidden
+      total_tracks_processed = total_tracks_processed + 1
+      
+      print(string.format("  Track %d summary: %d columns hidden", track_index, track_columns_hidden))
+    end
+  end
+  
+  print(string.format("=== SUMMARY: Processed %d tracks, hidden %d total columns ===", total_tracks_processed, total_columns_hidden))
+  renoise.app():show_status(string.format("Hide Unused Columns: processed %d tracks, hidden %d columns", total_tracks_processed, total_columns_hidden))
+end
+
+function PakettiHideAllUnusedColumnsSelectedTrack()
+  local song = renoise.song()
+  local track = song.selected_track
+  local track_index = song.selected_track_index
+  
+  if track.type ~= renoise.Track.TRACK_TYPE_SEQUENCER then
+    renoise.app():show_status("Selected track is not a sequencer track")
+    return
+  end
+  
+  local track_columns_hidden = 0
+  
+  print(string.format("=== PROCESSING SELECTED TRACK %d: %s ===", track_index, track.name))
+  
+  -- Check note columns usage across all patterns
+  local note_columns_used = {}
+  for col = 1, track.max_note_columns do
+    note_columns_used[col] = false
+  end
+  
+  -- Check effect columns usage across all patterns
+  local effect_columns_used = {}
+  for col = 1, track.max_effect_columns do
+    effect_columns_used[col] = false
+  end
+  
+  -- Check special columns usage across all patterns
+  local delay_column_used = false
+  local volume_column_used = false
+  local panning_column_used = false
+  local sample_effects_column_used = false
+  
+  -- Scan all patterns for this track
+  for pattern_index = 1, #song.patterns do
+    local pattern = song.patterns[pattern_index]
+    local pattern_track = pattern.tracks[track_index]
+    
+    -- Scan all lines in this pattern
+    for line_index = 1, pattern.number_of_lines do
+      local line = pattern_track:line(line_index)
+      
+      -- Check note columns
+      for col = 1, #line.note_columns do
+        local note_col = line.note_columns[col]
+        if note_col.note_string ~= "---" or 
+           note_col.instrument_value ~= 255 or
+           note_col.volume_value ~= 255 or
+           note_col.panning_value ~= 255 or
+           note_col.delay_value ~= 0 or
+           note_col.effect_number_value ~= 0 or
+           note_col.effect_amount_value ~= 0 then
+          note_columns_used[col] = true
+        end
+        
+        -- Check special columns within note columns
+        if note_col.delay_value ~= 0 then
+          delay_column_used = true
+        end
+        if note_col.volume_value ~= 255 then
+          volume_column_used = true
+        end
+        if note_col.panning_value ~= 255 then
+          panning_column_used = true
+        end
+        if note_col.effect_number_value ~= 0 or note_col.effect_amount_value ~= 0 then
+          sample_effects_column_used = true
+        end
+      end
+      
+      -- Check effect columns
+      for col = 1, #line.effect_columns do
+        local effect_col = line.effect_columns[col]
+        if effect_col.number_string ~= "00" or effect_col.amount_value ~= 0 then
+          effect_columns_used[col] = true
+        end
+      end
+    end
+  end
+  
+  -- Now hide unused columns for this track
+  
+  -- Hide unused note columns (count from the end)
+  local last_used_note_col = 0
+  for col = track.max_note_columns, 1, -1 do
+    if note_columns_used[col] then
+      last_used_note_col = col
+      break
+    end
+  end
+  
+  if last_used_note_col < track.visible_note_columns then
+    local old_visible = track.visible_note_columns
+    track.visible_note_columns = math.max(1, last_used_note_col) -- At least 1 note column
+    local hidden = old_visible - track.visible_note_columns
+    track_columns_hidden = track_columns_hidden + hidden
+    print(string.format("Note columns: %d -> %d (hidden %d)", old_visible, track.visible_note_columns, hidden))
+  end
+  
+  -- Hide unused effect columns (count from the end)
+  local last_used_effect_col = 0
+  for col = track.max_effect_columns, 1, -1 do
+    if effect_columns_used[col] then
+      last_used_effect_col = col
+      break
+    end
+  end
+  
+  if last_used_effect_col < track.visible_effect_columns then
+    local old_visible = track.visible_effect_columns
+    track.visible_effect_columns = last_used_effect_col
+    local hidden = old_visible - track.visible_effect_columns
+    track_columns_hidden = track_columns_hidden + hidden
+    print(string.format("Effect columns: %d -> %d (hidden %d)", old_visible, track.visible_effect_columns, hidden))
+  end
+  
+  -- Hide unused special columns
+  if not delay_column_used and track.delay_column_visible then
+    track.delay_column_visible = false
+    track_columns_hidden = track_columns_hidden + 1
+    print("Hidden delay column")
+  end
+  
+  if not volume_column_used and track.volume_column_visible then
+    track.volume_column_visible = false
+    track_columns_hidden = track_columns_hidden + 1
+    print("Hidden volume column")
+  end
+  
+  if not panning_column_used and track.panning_column_visible then
+    track.panning_column_visible = false
+    track_columns_hidden = track_columns_hidden + 1
+    print("Hidden panning column")
+  end
+  
+  if not sample_effects_column_used and track.sample_effects_column_visible then
+    track.sample_effects_column_visible = false
+    track_columns_hidden = track_columns_hidden + 1
+    print("Hidden sample effects column")
+  end
+  
+  print(string.format("=== SELECTED TRACK SUMMARY: %d columns hidden ===", track_columns_hidden))
+  renoise.app():show_status(string.format("Hide Unused Columns (Selected Track): hidden %d columns", track_columns_hidden))
+end
+
+-- Add menu entries and keybindings
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Visible Columns..:Hide All Unused Columns (All Tracks)", invoke=function() PakettiHideAllUnusedColumns() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Visible Columns..:Hide All Unused Columns (Selected Track)", invoke=function() PakettiHideAllUnusedColumnsSelectedTrack() end}
+
+renoise.tool():add_keybinding{name="Global:Paketti:Hide All Unused Columns (All Tracks)", invoke=function() PakettiHideAllUnusedColumns() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Hide All Unused Columns (Selected Track)", invoke=function() PakettiHideAllUnusedColumnsSelectedTrack() end}
+
+-- Additional menu entries for different locations
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Pattern Editor..:Visible Columns..:Hide All Unused Columns (All Tracks)", invoke=function() PakettiHideAllUnusedColumns() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Visible Columns..:Hide All Unused Columns (Selected Track)", invoke=function() PakettiHideAllUnusedColumnsSelectedTrack() end}
+
+renoise.tool():add_menu_entry{name="--Main Menu:View:Paketti..:Visible Columns..:Hide All Unused Columns (All Tracks)", invoke=function() PakettiHideAllUnusedColumns() end}
+renoise.tool():add_menu_entry{name="Main Menu:View:Paketti..:Visible Columns..:Hide All Unused Columns (Selected Track)", invoke=function() PakettiHideAllUnusedColumnsSelectedTrack() end}
+
+
+
+
+
+
 -------
 -- Function to write notes in specified order (ascending, descending, or random)
 function writeNotesMethod(method)
@@ -81,6 +586,11 @@ function writeNotesMethodEditStep(method)
   local current_line = song.selected_line_index
   local selected_note_column = song.selected_note_column_index
   local edit_step = song.transport.edit_step
+  
+  -- If edit_step is 0, treat it as 1 (write to every row)
+  if edit_step == 0 then
+    edit_step = 1
+  end
   
   if not instrument or not instrument.sample_mappings[1] then
     renoise.app():show_status("No sample mappings found for this instrument")

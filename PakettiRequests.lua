@@ -7535,8 +7535,8 @@ end
 
 -- Trigger the dialog to show
 renoise.tool():add_keybinding{name="Global:Paketti:Open VolDelayPan Slider Dialog...",invoke=function() pakettiVolDelayPanSliderDialog() end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Open VolDelayPan Slider Dialog...",invoke=function() pakettiVolDelayPanSliderDialog() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti Volume/Delay/Pan Slider Controls...",invoke=function() pakettiVolDelayPanSliderDialog() end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Open VolDelayPan Slider Dialog...",invoke=function() pakettiVolDelayPanSliderDialog() end}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Paketti Volume/Delay/Pan Slider Controls...",invoke=function() pakettiVolDelayPanSliderDialog() end}
 renoise.tool():add_midi_mapping{name="Paketti:Open VolDelayPan Slider Dialog...",invoke=function(message)  if message:is_trigger() then pakettiVolDelayPanSliderDialog() end end}
 -----
 
@@ -8730,10 +8730,10 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Wipe All Automation i
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Wipe All Automation in All Tracks on Current Pattern",invoke=function() delete_automation(true, false) end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Wipe All Automation in Track on Whole Song",invoke=function() delete_automation(false, true) end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Wipe All Automation in All Tracks on Whole Song",invoke=function() delete_automation(true, true) end}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Wipe All Automation in Track on Current Pattern",invoke=function() delete_automation(false, false) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Wipe All Automation in All Tracks on Current Pattern",invoke=function() delete_automation(true, false) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Wipe All Automation in Track on Whole Song",invoke=function() delete_automation(false, true) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Wipe All Automation in All Tracks on Whole Song",invoke=function() delete_automation(true, true) end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Automation..:Wipe All Automation in Track on Current Pattern",invoke=function() delete_automation(false, false) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Automation..:Wipe All Automation in All Tracks on Current Pattern",invoke=function() delete_automation(true, false) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Automation..:Wipe All Automation in Track on Whole Song",invoke=function() delete_automation(false, true) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Automation..:Wipe All Automation in All Tracks on Whole Song",invoke=function() delete_automation(true, true) end}
 renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Wipe All Automation in Track on Current Pattern",invoke=function() delete_automation(false, false) end}
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Wipe All Automation in All Tracks on Current Pattern",invoke=function() delete_automation(true, false) end}
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Wipe All Automation in Track on Whole Song",invoke=function() delete_automation(false, true) end}
@@ -10878,4 +10878,3 @@ end
 renoise.tool():add_file_import_hook{category="sample",extensions={"exe","dll","bin","sys","dylib"},invoke=pakettiLoadExeAsSample}
 ---
 --------
-
