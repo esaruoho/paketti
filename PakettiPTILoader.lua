@@ -636,13 +636,41 @@ end
 local function pti_savesample()
   local song = renoise.song()
   local inst = song.selected_instrument
-  local smp = inst.samples[1]
-
+  
   -- Check if we have a valid instrument and sample
   if not inst or #inst.samples == 0 then
     renoise.app():show_error("No instrument or sample selected")
     return
   end
+
+  -- SLICE DETECTION: Check if samples[1] has slice markers
+  local base_sample = inst.samples[1]
+  local has_slices = base_sample and #(base_sample.slice_markers or {}) > 0
+  
+  -- Choose sample to export: samples[1] for slices, selected sample otherwise
+  local selected_sample_index = song.selected_sample_index
+  local smp
+  local export_info
+  
+  if has_slices then
+    -- For slices: always export samples[1] (the base sample with slice markers)
+    smp = base_sample
+    export_info = string.format("base sample with %d slices", #base_sample.slice_markers)
+    print(string.format("-- SLICE MODE: Exporting base sample (Sample 1) with %d slice markers", #base_sample.slice_markers))
+  else
+    -- For non-sliced: export selected sample
+    smp = inst.samples[selected_sample_index]
+    if not smp then
+      renoise.app():show_error("No sample selected")
+      return
+    end
+    export_info = string.format("Sample %d: '%s'", selected_sample_index, smp.name)
+    print(string.format("-- REGULAR MODE: Exporting selected Sample %d: '%s'", selected_sample_index, smp.name))
+  end
+
+  -- PTI FORMAT INFO: Check for multiple samples (info only)
+  local total_samples = #inst.samples
+  local has_multiple_samples = total_samples > 1
 
   -- Prompt for save location with local variable assignment
   local filename = renoise.app():prompt_for_filename_to_write(".pti", "Save .PTI as...")
@@ -652,6 +680,12 @@ local function pti_savesample()
 
   print("------------")
   print(string.format("-- PTI: Export filename: %s", filename))
+  
+  -- Print info about what's being exported
+  if has_multiple_samples and not has_slices then
+    print(string.format("-- INFO: Instrument has %d samples, exporting %s", total_samples, export_info))
+    renoise.app():show_status(string.format("PTI Export: %s", export_info))
+  end
 
   -- Handle slice count limitation (max 48 in PTI format)
   local original_slice_count = #(smp.slice_markers or {})
@@ -711,6 +745,7 @@ local function pti_savesample()
   ))
 
   print(string.format("-- Wavetable Mode: %s", data.is_wavetable and "TRUE" or "FALSE"))
+  print("-- PTI Format: Full velocity range (0-127), full key range (0-119) as per specification")
 
   local f = io.open(filename, "wb")
   if not f then 
@@ -750,12 +785,12 @@ local function pti_savesample()
   -- Show final status
   if original_slice_count > 0 then
     if original_slice_count > 48 then
-      renoise.app():show_status(string.format("PTI exported with 48 slices (limited from %d) in Slice mode", original_slice_count))
+      renoise.app():show_status(string.format("PTI exported: '%s' with 48 slices (limited from %d)", smp.name, original_slice_count))
     else
-      renoise.app():show_status(string.format("PTI exported with %d slices in Slice mode", original_slice_count))
+      renoise.app():show_status(string.format("PTI exported: '%s' with %d slices", smp.name, original_slice_count))
     end
   else
-    renoise.app():show_status("PTI exported to "..filename)
+    renoise.app():show_status(string.format("PTI exported: '%s'", smp.name))
   end
 end
 

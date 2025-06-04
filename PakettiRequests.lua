@@ -10718,6 +10718,7 @@ function paketti_build_sample_variants()
   if not instr then renoise.app():show_status("No instrument selected.") return end
   local base_idx=renoise.song().selected_sample_index
   local base=instr.samples[base_idx]
+  if not base then renoise.app():show_status("No sample selected.") return end
   if not base.sample_buffer.has_sample_data then renoise.app():show_status("Empty sample.") return end
 
   local name=base.name

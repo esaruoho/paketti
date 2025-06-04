@@ -425,15 +425,15 @@ local function setup_observables()
   song.selected_track_observable:add_notifier(show_it)
 end
 
+if renoise.song() ~= nil then 
 -- Initialize observables if song exists
-if renoise.song() then
   setup_observables()
+else return
 end
 
 renoise.tool().app_new_document_observable:add_notifier(function()
-  local song = renoise.song()
-  if song then
-    s = song
+  if renoise.song() then
+    s = renoise.song()
     devices = {}
     setup_observables()
   end
