@@ -204,6 +204,18 @@ local function loadIFFSample(file_path)
   return nil
 end
 
+-- Function to prompt for IFF file and load it
+function loadIFFSampleFromDialog()
+  local file_path = renoise.app():prompt_for_filename_to_read(
+    {"*.iff", "*.8svx", "*.16sv"}, 
+    "Load IFF Sample File"
+  )
+  
+  if file_path and file_path ~= "" then
+    loadIFFSample(file_path)
+  end
+end
+
 renoise.tool():add_file_import_hook{
   name       = "IFF (8SVX+16SV) → WAV converter",
   category   = "sample",
@@ -211,7 +223,26 @@ renoise.tool():add_file_import_hook{
   invoke     = loadIFFSample
 }
 
+-- Add menu entries and keybinding for manual file selection
+renoise.tool():add_menu_entry{
+  name = "Sample Editor:Paketti..:Load..:Load IFF Sample File...",
+  invoke = loadIFFSampleFromDialog
+}
 
+renoise.tool():add_menu_entry{
+  name = "Sample Navigator:Paketti..:Load..:Load IFF Sample File...",
+  invoke = loadIFFSampleFromDialog
+}
+
+renoise.tool():add_menu_entry{
+  name = "Sample Mappings:Paketti..:Load..:Load IFF Sample File...",
+  invoke = loadIFFSampleFromDialog
+}
+
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Load IFF Sample File...",
+  invoke = loadIFFSampleFromDialog
+}
 
 -- Helper function to get IFF files from directory
 local function getIFFFiles(dir)

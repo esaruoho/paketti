@@ -24,12 +24,8 @@ local function createProtrackerModDialog()
   
   local dialog_content = vb:column{
     margin = 10,
-    spacing = 10,
+    --spacing = 10,
     
-    vb:text{
-      text = "ProTracker MOD Modulation Effect",
-      style = "strong"
-    },
     
     vb:row{
       spacing = 10,
@@ -37,6 +33,7 @@ local function createProtrackerModDialog()
       vb:slider{
         min = 0,
         max = 127,
+        steps = {1, -1},
         value = protrackerModSpeed,
         width = 200,
         notifier = function(value)
@@ -80,7 +77,7 @@ local function createProtrackerModDialog()
   return dialog_content
 end
 
-local function processProtrackerMod()
+function processProtrackerMod()
   local song = renoise.song()
   local sample = song.selected_sample
   
@@ -161,22 +158,22 @@ function showProtrackerModDialog()
   
   -- Create and show dialog
   local content = createProtrackerModDialog()
-  protrackerModDialog = renoise.app():show_custom_dialog("ProTracker MOD Effect", content)
+  protrackerModDialog = renoise.app():show_custom_dialog("Protracker MOD Modulation Effect", content, my_keyhandler_func)
 end
 
 -- Add keybindings and menu entries
 renoise.tool():add_keybinding{
-  name = "Sample Editor:Paketti:ProTracker MOD Modulation...",
+  name = "Sample Editor:Paketti:Protracker MOD Modulation...",
   invoke = showProtrackerModDialog
 }
 
 renoise.tool():add_menu_entry{
-  name = "Sample Editor:Paketti..:Process..:ProTracker MOD Modulation...",
+  name = "Sample Editor:Paketti..:Process..:Protracker MOD Modulation...",
   invoke = showProtrackerModDialog
 }
 
 renoise.tool():add_menu_entry{
-  name = "Sample Navigator:Paketti..:Process..:ProTracker MOD Modulation...",
+  name = "Sample Navigator:Paketti..:Process..:Protracker MOD Modulation...",
   invoke = showProtrackerModDialog
 }
 
