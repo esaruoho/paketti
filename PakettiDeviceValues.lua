@@ -3,6 +3,7 @@ local s = nil
 local d = nil
 local ticks = 20
 local devices = {}
+local device_identities = {} -- Track device identity at each position
 local filtered
 local p
 local last_selected_param_name = nil
@@ -120,17 +121,49 @@ function show_it()
   filtered = filter_inplace(d.parameters, function(i) return i.show_in_mixer end)
   print("DEBUG: Device has " .. #filtered .. " mixer parameters")
   
-  -- Always try to match parameter by name first
   if #filtered >= 1 then
-    print("DEBUG: Trying to match parameter by name...")
-    local matched = try_match_parameter_by_name()
-    print("DEBUG: Parameter matching result: " .. tostring(matched))
+    local stored_param = devices[device_key]
     
-    if not matched and not devices[device_key] then
-      print("DEBUG: No match and no stored parameter, using first parameter")
-      devices[device_key] = filtered[1] -- Fallback to first parameter only if no stored parameter
+    -- Check if the device at this position is the same as last time
+    local current_device_identity = get_device_name(d) .. "_" .. #d.parameters
+    local stored_device_identity = device_identities[device_key]
+    
+    if stored_device_identity and stored_device_identity ~= current_device_identity then
+      print("DEBUG: Device at " .. device_key .. " has changed from '" .. stored_device_identity .. "' to '" .. current_device_identity .. "', clearing stored parameter")
+      devices[device_key] = nil
+      stored_param = nil
+    end
+    
+    -- Update the device identity for this position
+    device_identities[device_key] = current_device_identity
+    print("DEBUG: Device identity at " .. device_key .. ": " .. current_device_identity)
+    
+    -- Simple approach: if we have a stored parameter, verify it's still accessible
+    -- If it's not accessible or if it's from a different device, clear it and start fresh
+    if stored_param then
+      local stored_success, stored_param_name = pcall(function() return stored_param.name end)
+      if not stored_success then
+        print("DEBUG: Stored parameter is no longer accessible, clearing")
+        devices[device_key] = nil
+        stored_param = nil
+      else
+        print("DEBUG: Stored parameter '" .. stored_param_name .. "' is still accessible")
+      end
+    end
+    
+    -- If no stored parameter (or we just cleared it), try to match by name or use first parameter
+    if not stored_param then
+      print("DEBUG: No stored parameter, trying to match by name...")
+      local matched = try_match_parameter_by_name()
+      print("DEBUG: Parameter matching result: " .. tostring(matched))
+      
+      -- If no match by name, use first parameter
+      if not matched then
+        print("DEBUG: No match by name, using first parameter")
+        devices[device_key] = filtered[1]
+      end
     else
-      print("DEBUG: Have match or stored parameter, device_key stored: " .. tostring(devices[device_key] ~= nil))
+      print("DEBUG: Using stored parameter")
     end
   else
     print("DEBUG: No mixer parameters available")
@@ -252,6 +285,15 @@ function param_up()
     return
   end
   
+  -- Check if we have the right device selected - call show_it to refresh if needed
+  local current_device_identity = get_device_name(d) .. "_" .. #d.parameters
+  local stored_device_identity = device_identities[device_key]
+  
+  if not stored_device_identity or stored_device_identity ~= current_device_identity then
+    print("DEBUG: Device identity mismatch in param_up, refreshing...")
+    show_it() -- This will refresh the device state and parameter selection
+  end
+  
   local param = devices[device_key]
   if not param then
     local track_index = s.selected_track_index
@@ -297,6 +339,15 @@ function param_down()
     return
   end
   
+  -- Check if we have the right device selected - call show_it to refresh if needed
+  local current_device_identity = get_device_name(d) .. "_" .. #d.parameters
+  local stored_device_identity = device_identities[device_key]
+  
+  if not stored_device_identity or stored_device_identity ~= current_device_identity then
+    print("DEBUG: Device identity mismatch in param_down, refreshing...")
+    show_it() -- This will refresh the device state and parameter selection
+  end
+  
   local param = devices[device_key]
   if not param then
     local track_index = s.selected_track_index
@@ -329,8 +380,6 @@ function param_down()
   end
 end
 
-
-
 renoise.tool():add_keybinding {name="Mixer:Device:Parama Param Next Parameter",invoke = param_next}
 renoise.tool():add_keybinding {name="Mixer:Device:Parama Param Previous Parameter",invoke = param_prev}
 renoise.tool():add_keybinding {name="Mixer:Device:Parama Param Increase",invoke = param_up}
@@ -339,7 +388,6 @@ renoise.tool():add_menu_entry {name="Mixer:Device:Parama Param Next Parameter",i
 renoise.tool():add_menu_entry {name="Mixer:Device:Parama Param Previous Parameter",invoke = param_prev}
 renoise.tool():add_menu_entry {name="Mixer:Device:Parama Param Increase",invoke = param_up}
 renoise.tool():add_menu_entry {name="Mixer:Device:Parama Param Decrease",invoke = param_down}
-
 
 -- Helper function for direct parameter access
 function adjust_parameter_by_number(param_num, direction)
@@ -425,10 +473,6 @@ local function setup_observables()
   song.selected_track_observable:add_notifier(show_it)
 end
 
-
--- test to see if user is using the right version of Paketti
-
--- Replace lines 430-433 with this:
 local function safe_initial_setup()
   local success, song = pcall(function() return renoise.song() end)
   if success and song then
@@ -443,12 +487,14 @@ renoise.tool().app_new_document_observable:add_notifier(function()
   if renoise.song() then
     s = renoise.song()
     devices = {}
+    device_identities = {}
     setup_observables()
   end
 end)
 
 renoise.tool().app_release_document_observable:add_notifier(function()
   devices = {}
+  device_identities = {}
   s = nil
   d = nil
 end)
