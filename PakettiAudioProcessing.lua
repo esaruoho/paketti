@@ -1,3 +1,185 @@
+-- TODO:
+-- Protracker MOD
+
+-- ProTracker MOD Modulation Effect
+-- Creates a time-varying modulation effect similar to ProTracker's MOD command
+
+-- Vibrato table for modulation (32 values, similar to ProTracker)
+local vibratoTable = {
+  0, 24, 49, 74, 97, 120, 141, 161, 180, 197, 212, 224, 235, 244, 250, 253,
+  255, 253, 250, 244, 235, 224, 212, 197, 180, 161, 141, 120, 97, 74, 49, 24
+}
+
+local protrackerModDialog = nil
+local protrackerModSpeed = 0
+
+local function createProtrackerModDialog()
+  local vb = renoise.ViewBuilder()
+  
+  -- Text label for displaying the current speed value
+  local speed_label = vb:text{
+    text = string.format("%03d", protrackerModSpeed),
+    width = 40
+  }
+  
+  local dialog_content = vb:column{
+    margin = 10,
+    spacing = 10,
+    
+    vb:text{
+      text = "ProTracker MOD Modulation Effect",
+      style = "strong"
+    },
+    
+    vb:row{
+      spacing = 10,
+      vb:text{text = "Mod Speed:"},
+      vb:slider{
+        min = 0,
+        max = 127,
+        value = protrackerModSpeed,
+        width = 200,
+        notifier = function(value)
+          protrackerModSpeed = math.floor(value)
+          speed_label.text = string.format("%03d", protrackerModSpeed)
+        end
+      },
+      speed_label
+    },
+    
+    vb:row{
+      spacing = 10,
+      vb:button{
+        text = "Process",
+        width = 80,
+        notifier = function()
+          if protrackerModSpeed == 0 then
+            renoise.app():show_status("The Mod Speed must be higher than 000")
+            return
+          end
+          processProtrackerMod()
+          if protrackerModDialog and protrackerModDialog.visible then
+            protrackerModDialog:close()
+            protrackerModDialog = nil
+          end
+        end
+      },
+      vb:button{
+        text = "Cancel",
+        width = 80,
+        notifier = function()
+          if protrackerModDialog and protrackerModDialog.visible then
+            protrackerModDialog:close()
+            protrackerModDialog = nil
+          end
+        end
+      }
+    }
+  }
+  
+  return dialog_content
+end
+
+local function processProtrackerMod()
+  local song = renoise.song()
+  local sample = song.selected_sample
+  
+  if not sample or not sample.sample_buffer.has_sample_data then
+    renoise.app():show_status("No valid sample selected")
+    return
+  end
+  
+  local buffer = sample.sample_buffer
+  local sample_length = buffer.number_of_frames
+  local channels = buffer.number_of_channels
+  
+  -- Create temporary buffer to store original data
+  local temp_data = {}
+  for c = 1, channels do
+    temp_data[c] = {}
+    for f = 1, sample_length do
+      temp_data[c][f] = buffer:sample_data(c, f)
+    end
+  end
+  
+  -- Initialize modulation variables
+  local modulate_offset = 0
+  local modulate_pos = 0
+  
+  buffer:prepare_sample_data_changes()
+  
+  -- Process each frame
+  for frame = 1, sample_length do
+    -- Advance modulation position
+    modulate_pos = modulate_pos + protrackerModSpeed
+    
+    -- Calculate modulation using vibrato table (similar to original C code)
+    local mod_tmp = math.floor(modulate_pos / 4096) % 256  -- Equivalent to >> 12 & 0xFF
+    local table_index = (mod_tmp % 32) + 1  -- Lua arrays are 1-indexed
+    local mod_dat = math.floor(vibratoTable[table_index] / 4)  -- Equivalent to >> 2
+    
+    -- Calculate modulated position
+    local mod_pos
+    if (mod_tmp % 64) >= 32 then  -- Equivalent to modTmp & 32
+      mod_pos = modulate_offset - mod_dat + 2048
+    else
+      mod_pos = modulate_offset + mod_dat + 2048
+    end
+    
+    modulate_offset = mod_pos
+    
+    -- Convert to sample position and clamp
+    mod_pos = math.floor(mod_pos / 2048)  -- Equivalent to >> 11
+    mod_pos = math.max(1, math.min(mod_pos, sample_length))
+    
+    -- Copy modulated data to output buffer
+    for c = 1, channels do
+      buffer:set_sample_data(c, frame, temp_data[c][mod_pos])
+    end
+  end
+  
+  buffer:finalize_sample_data_changes()
+  
+  renoise.app():show_status("ProTracker MOD modulation applied with speed " .. protrackerModSpeed)
+  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+end
+
+function showProtrackerModDialog()
+  -- Close existing dialog if open
+  if protrackerModDialog and protrackerModDialog.visible then
+    protrackerModDialog:close()
+    protrackerModDialog = nil
+    return
+  end
+  
+  -- Check if we have a valid sample
+  local sample = renoise.song().selected_sample
+  if not sample or not sample.sample_buffer.has_sample_data then
+    renoise.app():show_status("Please select a sample with data first")
+    return
+  end
+  
+  -- Create and show dialog
+  local content = createProtrackerModDialog()
+  protrackerModDialog = renoise.app():show_custom_dialog("ProTracker MOD Effect", content)
+end
+
+-- Add keybindings and menu entries
+renoise.tool():add_keybinding{
+  name = "Sample Editor:Paketti:ProTracker MOD Modulation...",
+  invoke = showProtrackerModDialog
+}
+
+renoise.tool():add_menu_entry{
+  name = "Sample Editor:Paketti..:Process..:ProTracker MOD Modulation...",
+  invoke = showProtrackerModDialog
+}
+
+renoise.tool():add_menu_entry{
+  name = "Sample Navigator:Paketti..:Process..:ProTracker MOD Modulation...",
+  invoke = showProtrackerModDialog
+}
+
 -- TODO: Phase Shift + Pitch Shift invert mix
 
 local vb = renoise.ViewBuilder()

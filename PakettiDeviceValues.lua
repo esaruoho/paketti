@@ -425,10 +425,11 @@ local function setup_observables()
   song.selected_track_observable:add_notifier(show_it)
 end
 
-if renoise.song() ~= nil then 
--- Initialize observables if song exists
+
+-- test to see if user is using the right version of Paketti
+if renoise.song() == nil then return else 
+  -- Initialize observables if song exists
   setup_observables()
-else return
 end
 
 renoise.tool().app_new_document_observable:add_notifier(function()
