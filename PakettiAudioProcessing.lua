@@ -13,6 +13,22 @@ local vibratoTable = {
 local protrackerModDialog = nil
 local protrackerModSpeed = 0
 
+-- Key handler function for the ProTracker MOD dialog
+local function protrackerModKeyHandler(dialog, key)
+  if key.name == "return" then
+    -- Enter key pressed - trigger Process functionality
+    if protrackerModSpeed == 0 then
+      renoise.app():show_status("The Mod Speed must be higher than 000")
+      return key
+    end
+    processProtrackerMod()
+    -- Dialog stays open - don't close it
+    return key
+  end
+  -- Return key for other keys to allow normal dialog behavior
+  return key
+end
+
 local function createProtrackerModDialog()
   local vb = renoise.ViewBuilder()
   
@@ -55,10 +71,6 @@ local function createProtrackerModDialog()
             return
           end
           processProtrackerMod()
-          if protrackerModDialog and protrackerModDialog.visible then
-            protrackerModDialog:close()
-            protrackerModDialog = nil
-          end
         end
       },
       vb:button{
@@ -158,7 +170,7 @@ function showProtrackerModDialog()
   
   -- Create and show dialog
   local content = createProtrackerModDialog()
-  protrackerModDialog = renoise.app():show_custom_dialog("Protracker MOD Modulation Effect", content, my_keyhandler_func)
+  protrackerModDialog = renoise.app():show_custom_dialog("Protracker MOD Modulation Effect", content, protrackerModKeyHandler)
 end
 
 -- Add keybindings and menu entries
@@ -177,6 +189,12 @@ renoise.tool():add_menu_entry{
   invoke = showProtrackerModDialog
 }
 
+
+
+
+
+
+---------
 -- TODO: Phase Shift + Pitch Shift invert mix
 
 local vb = renoise.ViewBuilder()
