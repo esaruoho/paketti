@@ -430,4 +430,5 @@ timed_require("PakettiIFFLoader")
 timed_require("PakettiMODLoader")
 timed_require("PakettiPolyendSuite")
 timed_require("PakettiXMLizer")
+timed_require("PakettiDeviceValues")
 _AUTO_RELOAD_DEBUG = true
