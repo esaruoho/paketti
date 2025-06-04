@@ -427,10 +427,17 @@ end
 
 
 -- test to see if user is using the right version of Paketti
-if renoise.song() == nil then return else 
-  -- Initialize observables if song exists
-  setup_observables()
+
+-- Replace lines 430-433 with this:
+local function safe_initial_setup()
+  local success, song = pcall(function() return renoise.song() end)
+  if success and song then
+    setup_observables()
+  end
+  -- If no song yet, the app_new_document_observable will handle it
 end
+
+safe_initial_setup()
 
 renoise.tool().app_new_document_observable:add_notifier(function()
   if renoise.song() then
