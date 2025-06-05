@@ -4679,3 +4679,183 @@ for i = 1, 16 do
   renoise.tool():add_midi_mapping{name="Paketti:Unmute Track " .. track_num_str, invoke=function(message) if message:is_trigger() then unmuteTrack(i) end end}
 end
 
+-- Group Samples by Name to New Instruments Feature
+function PakettiGroupSamplesByName()
+  local separator = package.config:sub(1,1)  -- Gets \ for Windows, / for Unix
+  local song = renoise.song()
+  local selected_instrument_index = song.selected_instrument_index
+  local instrument = song.selected_instrument
+  
+  if not instrument or #instrument.samples == 0 then
+    renoise.app():show_status("No valid instrument with samples selected.")
+    return
+  end
+
+  -- Check if instrument has slices - we can't process sliced instruments
+  if #instrument.samples > 0 and #instrument.samples[1].slice_markers > 0 then
+    renoise.app():show_status("Cannot group slices - slices cannot be renamed. Use with multi-sample instruments only.")
+    return
+  end
+
+  -- Need at least 2 samples to group
+  if #instrument.samples < 2 then
+    renoise.app():show_status("Need at least 2 samples in instrument to group by name.")
+    return
+  end
+
+  -- Helper function to extract the base name from a sample name
+  local function extract_base_name(name)
+    -- Remove musical note names and numbers to get the base name
+    -- First remove numbers at the end
+    local base_name = name:gsub("%d+$", "")
+    -- Remove common separators at the end
+    base_name = base_name:gsub("[%s_%-%.]+$", "")
+    -- Remove musical note names (C, C#, D, D#, E, F, F#, G, G#, A, A#, B) at the end
+    base_name = base_name:gsub("%s*[CDEFGAB]#?$", "")
+    -- Remove separators again after note removal
+    base_name = base_name:gsub("[%s_%-%.]+$", "")
+    
+    if base_name == "" then
+      base_name = name -- fallback to original name if nothing left
+    end
+    return base_name
+  end
+
+  -- Helper function to create a new drumkit instrument
+  local function create_drumkit_instrument(name, index)
+    song:insert_instrument_at(index)
+    song.selected_instrument_index = index
+    
+    -- Load the default drumkit instrument template
+    local defaultInstrument = preferences.pakettiDefaultDrumkitXRNI.value
+    local fallbackInstrument = "Presets" .. separator .. "12st_Pitchbend_Drumkit_C0.xrni"
+    
+    local success, error_msg = pcall(function()
+      renoise.app():load_instrument(defaultInstrument)
+    end)
+    
+    if not success then
+      -- Try fallback
+      pcall(function()
+        renoise.app():load_instrument(renoise.tool().bundle_path .. fallbackInstrument)
+      end)
+    end
+    
+    local new_instrument = song.instruments[index]
+    
+    -- Set the instrument name
+    new_instrument.name = name
+    
+    return new_instrument
+  end
+
+  -- Helper function to copy sample to new instrument
+  local function copy_sample_to_instrument(source_sample, target_instrument, key_index)
+    local new_sample = target_instrument:insert_sample_at(#target_instrument.samples + 1)
+    
+    -- Copy the entire sample
+    new_sample:copy_from(source_sample)
+    
+    -- Set up sequential key mapping starting from C-0
+    local mapping = new_sample.sample_mapping
+    mapping.base_note = key_index -- Sequential notes starting from 0 (C-0)
+    mapping.note_range = {key_index, key_index} -- Each sample gets exactly one key
+    mapping.velocity_range = {0, 127}
+    mapping.map_velocity_to_volume = true
+    
+    return new_sample
+  end
+
+  -- Collect and group samples by base name
+  local groups = {}
+  
+  print("Processing samples from instrument: " .. instrument.name)
+  
+  for i, sample in ipairs(instrument.samples) do
+    local base_name = extract_base_name(sample.name)
+    
+    if not groups[base_name] then
+      groups[base_name] = {}
+    end
+    
+    table.insert(groups[base_name], sample)
+    
+    print(string.format("Sample %d ('%s') grouped under '%s'", i, sample.name, base_name))
+  end
+
+  -- Check if we actually have groups (more than one sample with same base name)
+  local has_groups = false
+  for group_name, group_samples in pairs(groups) do
+    if #group_samples > 1 then
+      has_groups = true
+      break
+    end
+  end
+  
+  if not has_groups then
+    renoise.app():show_status("No samples found with matching base names to group.")
+    return
+  end
+
+  -- Create drumkit instruments for each group that has more than one sample
+  local insert_index = selected_instrument_index + 1
+  local created_instruments = 0
+  
+  for group_name, group_samples in pairs(groups) do
+    if #group_samples > 1 then -- Only create instruments for groups with multiple samples
+      print(string.format("Creating drumkit instrument '%s' with %d samples", group_name, #group_samples))
+      
+      local new_instrument = create_drumkit_instrument(group_name, insert_index)
+      
+      -- Copy all samples in this group to the new instrument
+      for i, sample in ipairs(group_samples) do
+        local key_index = i - 1 -- Start from 0 (C-0), then 1 (C#-0), 2 (D-0), etc.
+        copy_sample_to_instrument(sample, new_instrument, key_index)
+      end
+      
+      -- Clear the placeholder sample that came with the drumkit template (should be at index 1)
+      if #new_instrument.samples > 1 then
+        new_instrument:delete_sample_at(1)
+      end
+      
+      insert_index = insert_index + 1
+      created_instruments = created_instruments + 1
+      
+      print(string.format("Created instrument '%s' with %d samples", group_name, #group_samples))
+    end
+  end
+
+  -- Set octave and show completion status
+  --song.transport.octave = 3
+  
+  local total_grouped_samples = 0
+  for _, group_samples in pairs(groups) do
+    if #group_samples > 1 then
+      total_grouped_samples = total_grouped_samples + #group_samples
+    end
+  end
+  
+  renoise.app():show_status(string.format(
+    "Grouped %d samples into %d drumkit instruments by name", 
+    total_grouped_samples, created_instruments
+  ))
+  
+  print(string.format("=== GROUPING COMPLETE ==="))
+  print(string.format("Source: %d samples from '%s'", #instrument.samples, instrument.name))
+  print(string.format("Created: %d drumkit instruments", created_instruments))
+  for group_name, group_samples in pairs(groups) do
+    if #group_samples > 1 then
+      print(string.format("  - '%s': %d samples", group_name, #group_samples))
+    end
+  end
+end
+
+-- Add menu entries and keybindings for the new feature
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Group Samples by Name to New Instruments", invoke=PakettiGroupSamplesByName}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:Group Samples by Name to New Instruments", invoke=PakettiGroupSamplesByName}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Group Samples by Name to New Instruments", invoke=PakettiGroupSamplesByName}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Group Samples by Name to New Instruments", invoke=PakettiGroupSamplesByName}
+renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Group Samples by Name to New Instruments", invoke=PakettiGroupSamplesByName}
+renoise.tool():add_keybinding{name="Global:Paketti:Group Samples by Name to New Instruments", invoke=PakettiGroupSamplesByName}
+renoise.tool():add_midi_mapping{name="Paketti:Group Samples by Name to New Instruments", invoke=PakettiGroupSamplesByName}
+
