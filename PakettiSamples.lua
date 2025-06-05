@@ -3911,7 +3911,7 @@ end
 
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Instruments..:Save All Samples to Folder...",invoke = saveAllSamplesToFolder}
 renoise.tool():add_menu_entry{name="--Main Menu:File:Save All Samples to Folder...",invoke = saveAllSamplesToFolder}
-
+renoise.tool():add_menu_entry{name="--Main Menu:File:Paketti..:Save All Samples to Folder...",invoke = saveAllSamplesToFolder}
 
 -------
 function showSampleSelectionInfo()
@@ -4478,6 +4478,7 @@ function pakettiShowLargestSamplesDialog()
   pakettiShowLargestSamplesDialogDialog()
 end
 renoise.tool():add_menu_entry{name="--Main Menu:File:Show Largest Samples Dialog...",invoke = pakettiShowLargestSamplesDialog}
+renoise.tool():add_menu_entry{name="--Main Menu:File:Paketti..:Show Largest Samples Dialog...",invoke = pakettiShowLargestSamplesDialog}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Show Largest Samples Dialog...",invoke = pakettiShowLargestSamplesDialog}
 renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Show Largest Samples Dialog...",invoke = pakettiShowLargestSamplesDialog}
 renoise.tool():add_keybinding{name="Global:Paketti:Show Largest Samples Dialog...",invoke = pakettiShowLargestSamplesDialog}

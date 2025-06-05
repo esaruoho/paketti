@@ -4036,6 +4036,7 @@ local s=renoise.song()
 end
 renoise.tool():add_keybinding{name="Global:Paketti:Wipe Song Patterns",invoke=function() wipeSongPattern() end}
 renoise.tool():add_menu_entry{name="Main Menu:File:Wipe Song Patterns",invoke=function() wipeSongPattern() end}
+renoise.tool():add_menu_entry{name="Main Menu:File:Paketti..:Wipe Song Patterns",invoke=function() wipeSongPattern() end}
 ----
 --]]
 function get_master_track_index()

@@ -132,7 +132,7 @@ function processProtrackerMod()
   for frame = 1, sample_length do
     -- Calculate sample read position
     local sample_read_pos = math.floor(mod_offset / 2048)  -- Equivalent to >> 11
-    sample_read_pos = math.max(1, math.min(sample_read_pos, sample_length))  -- CLAMP equivalent
+    sample_read_pos = math.max(1, math.min(sample_read_pos, sample_length))  -- CLAMP to valid Lua 1-based range
     
     -- Copy modulated data to output buffer
     for c = 1, channels do

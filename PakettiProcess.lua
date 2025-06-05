@@ -2908,7 +2908,6 @@ local function crossfade_with_fades()
   renoise.app():show_status("Cross-fade + fades complete.")
 end
 
-renoise.tool():add_menu_entry{name="Sample Editor:Process..:Cross-fade Sample w/ Fade-In/Out",invoke=crossfade_with_fades}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Cross-fade Sample w/ Fade-In/Out",invoke=crossfade_with_fades}
 
 
@@ -3008,5 +3007,4 @@ local function crossfade_loop_edges_fixed_end()
   )
 end
 
-renoise.tool():add_menu_entry{name="Sample Editor:Process..:Cross-fade Loop Edges (Fixed End)",invoke=crossfade_loop_edges_fixed_end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Cross-fade Loop Edges (Fixed End)",invoke=crossfade_loop_edges_fixed_end}

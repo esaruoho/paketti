@@ -726,7 +726,8 @@ renoise.app():load_song(renoise.app().recently_saved_song_files[1])
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Load Recently Saved Song",invoke=function() loadRecentlySavedSong() end}
-renoise.tool():add_menu_entry{name="Main Menu:File:Paketti..:Load Recently Saved Song",invoke=function() loadRecentlySavedSong() end}
+renoise.tool():add_menu_entry{name="Main Menu:File:Load Most Recently Saved Song",invoke=function() loadRecentlySavedSong() end}
+renoise.tool():add_menu_entry{name="Main Menu:File:Paketti..:Load Most Recently Saved Song",invoke=function() loadRecentlySavedSong() end}
 
 -----------
 local function switch_upper_frame()

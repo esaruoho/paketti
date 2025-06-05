@@ -7925,6 +7925,7 @@ end
 -- Call the main function
 renoise.tool():add_keybinding{name="Global:Paketti:Save Song with Timestamp",invoke=function() save_with_new_timestamp() end}
 renoise.tool():add_menu_entry{name="Main Menu:File:Save Song with Timestamp",invoke=function() save_with_new_timestamp() end}
+renoise.tool():add_menu_entry{name="Main Menu:File:Paketti..:Save Song with Timestamp",invoke=function() save_with_new_timestamp() end}
 -------
 local dialog -- Variable to track dialog visibility
 
@@ -9336,6 +9337,7 @@ end
 
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Save Unused Samples (.WAV&.XRNI)...",invoke=saveUnusedSamples}
 renoise.tool():add_menu_entry{name="--Main Menu:File:Save Unused Samples (.WAV&.XRNI)...",invoke=saveUnusedSamples}
+renoise.tool():add_menu_entry{name="--Main Menu:File:Paketti..:Save Unused Samples (.WAV&.XRNI)...",invoke=saveUnusedSamples}
 renoise.tool():add_keybinding{name="Global:Paketti:Save Unused Samples (.WAV&.XRNI)",invoke=saveUnusedSamples}
 --------
 function saveUnusedInstruments()
@@ -9400,6 +9402,7 @@ end
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Save Unused Instruments (.XRNI)...",invoke=saveUnusedInstruments}
 renoise.tool():add_menu_entry{name="Main Menu:File:Save Unused Instruments (.XRNI)...",invoke=saveUnusedInstruments}
+renoise.tool():add_menu_entry{name="Main Menu:File:Paketti..:Save Unused Instruments (.XRNI)...",invoke=saveUnusedInstruments}
 renoise.tool():add_keybinding{name="Global:Paketti:Save Unused Instruments (.XRNI)",invoke=saveUnusedInstruments}
 ----
 function deleteUnusedInstruments()
@@ -9451,6 +9454,7 @@ end
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Delete Unused Instruments...",invoke=deleteUnusedInstruments}
 renoise.tool():add_menu_entry{name="--Main Menu:File:Delete Unused Instruments...",invoke=deleteUnusedInstruments}
+renoise.tool():add_menu_entry{name="--Main Menu:File:Paketti..:Delete Unused Instruments...",invoke=deleteUnusedInstruments}
 renoise.tool():add_keybinding{name="Global:Paketti:Delete Unused Instruments",invoke=deleteUnusedInstruments}
 ---
 function findUsedSamples()
@@ -9696,7 +9700,7 @@ end
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Delete Unused Samples...",invoke=deleteUnusedSamples}
 renoise.tool():add_menu_entry{name="Main Menu:File:Delete Unused Samples...",invoke=deleteUnusedSamples}
-
+renoise.tool():add_menu_entry{name="Main Menu:File:Paketti..:Delete Unused Samples...",invoke=deleteUnusedSamples}
 renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Delete Unused Samples...",invoke=deleteUnusedSamples}
 renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti..:Delete Unused Samples...",invoke=deleteUnusedSamples}
 renoise.tool():add_keybinding{name="Global:Paketti:Delete Unused Samples",invoke=deleteUnusedSamples}
@@ -10727,6 +10731,7 @@ function paketti_build_sample_variants()
     local new=instr:insert_sample_at(#instr.samples+1)
     new:copy_from(base)
     new.name=name.." ("..label..")"
+    new.volume=0.0  -- Set volume to -INF dB so user can fade them in manually
 
     local buf=new.sample_buffer
     buf:prepare_sample_data_changes()
@@ -10763,10 +10768,7 @@ function paketti_build_sample_variants()
   renoise.app():show_status("Created 4 wrecked variants of sample: "..name)
 end
 
-renoise.tool():add_menu_entry {
-  name="Sample Editor:Paketti:Create Wrecked Sample Variants",
-  invoke=paketti_build_sample_variants
-}
+renoise.tool():add_menu_entry {name="Sample Editor:Paketti:Create Wrecked Sample Variants",invoke=paketti_build_sample_variants}
 
 ---
 -- big-endian 16-bit reader, 1-based
