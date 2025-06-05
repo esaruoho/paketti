@@ -2270,8 +2270,8 @@ function loadSequentialDrumkitSamples()
     
     -- Create progress dialog with status for all 8 parts
     local vb = renoise.ViewBuilder()
-    local DEFAULT_margin=renoise.ViewBuilder.DEFAULT_CONTROL_MARGIN
-    local DEFAULT_spacing=renoise.ViewBuilder.DEFAULT_CONTROL_SPACING
+    local DEFAULT_MARGIN=renoise.ViewBuilder.DEFAULT_CONTROL_MARGIN
+    local DEFAULT_SPACING=renoise.ViewBuilder.DEFAULT_CONTROL_SPACING
     
     local dialog_content = vb:column{
       margin=DEFAULT_MARGIN,

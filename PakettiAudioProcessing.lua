@@ -4,10 +4,16 @@
 -- ProTracker MOD Modulation Effect
 -- Creates a time-varying modulation effect similar to ProTracker's MOD command
 
--- Vibrato table for modulation (32 values, similar to ProTracker)
-local vibratoTable = {
-  0, 24, 49, 74, 97, 120, 141, 161, 180, 197, 212, 224, 235, 244, 250, 253,
-  255, 253, 250, 244, 235, 224, 212, 197, 180, 161, 141, 120, 97, 74, 49, 24
+-- Modulation table for ProTracker MOD effect (64 values)
+local modulationTable = {
+  2048, 2054, 2060, 2066, 2072, 2078, 2083, 2088,
+  2093, 2097, 2101, 2104, 2106, 2109, 2110, 2111,
+  2111, 2111, 2110, 2109, 2106, 2104, 2101, 2097,
+  2093, 2088, 2083, 2078, 2072, 2066, 2060, 2054,
+  2048, 2042, 2036, 2030, 2024, 2018, 2013, 2008,
+  2003, 1999, 1995, 1992, 1990, 1987, 1986, 1985,
+  1985, 1985, 1986, 1987, 1990, 1992, 1995, 1999,
+  2003, 2008, 2013, 2018, 2024, 2030, 2036, 2042
 }
 
 local protrackerModDialog = nil
@@ -18,11 +24,11 @@ local function protrackerModKeyHandler(dialog, key)
   if key.name == "return" then
     -- Enter key pressed - trigger Process functionality
     if protrackerModSpeed == 0 then
-      renoise.app():show_status("The Mod Speed must be higher than 000")
+      renoise.app():show_status("The Mod Speed must be non-zero")
       return key
     end
     processProtrackerMod()
-    -- Dialog stays open - don't close it
+    -- Dialog stays open - Don't close it
     return key
   end
   -- Return key for other keys to allow normal dialog behavior
@@ -34,7 +40,7 @@ local function createProtrackerModDialog()
   
   -- Text label for displaying the current speed value
   local speed_label = vb:text{
-    text = string.format("%03d", protrackerModSpeed),
+    text = string.format("%+04d", protrackerModSpeed),
     width = 40
   }
   
@@ -47,14 +53,14 @@ local function createProtrackerModDialog()
       spacing = 10,
       vb:text{text = "Mod Speed:"},
       vb:slider{
-        min = 0,
+        min = -128,
         max = 127,
         steps = {1, -1},
         value = protrackerModSpeed,
         width = 200,
         notifier = function(value)
           protrackerModSpeed = math.floor(value)
-          speed_label.text = string.format("%03d", protrackerModSpeed)
+          speed_label.text = string.format("%+04d", protrackerModSpeed)
         end
       },
       speed_label
@@ -67,7 +73,7 @@ local function createProtrackerModDialog()
         width = 80,
         notifier = function()
           if protrackerModSpeed == 0 then
-            renoise.app():show_status("The Mod Speed must be higher than 000")
+            renoise.app():show_status("The Mod Speed must be non-zero")
             return
           end
           processProtrackerMod()
@@ -98,53 +104,45 @@ function processProtrackerMod()
     return
   end
   
+  if protrackerModSpeed == 0 then
+    renoise.app():show_status("The Mod Speed must be non-zero")
+    return
+  end
+  
   local buffer = sample.sample_buffer
   local sample_length = buffer.number_of_frames
   local channels = buffer.number_of_channels
   
-  -- Create temporary buffer to store original data
-  local temp_data = {}
+  -- Create temporary buffer to store original data (make copy of sample data)
+  local sample_copy = {}
   for c = 1, channels do
-    temp_data[c] = {}
+    sample_copy[c] = {}
     for f = 1, sample_length do
-      temp_data[c][f] = buffer:sample_data(c, f)
+      sample_copy[c][f] = buffer:sample_data(c, f)
     end
   end
   
   -- Initialize modulation variables
-  local modulate_offset = 0
-  local modulate_pos = 0
+  local mod_offset = 0
+  local mod_table_offset = 0
   
   buffer:prepare_sample_data_changes()
   
-  -- Process each frame
+  -- Process each frame following the C algorithm exactly
   for frame = 1, sample_length do
-    -- Advance modulation position
-    modulate_pos = modulate_pos + protrackerModSpeed
-    
-    -- Calculate modulation using vibrato table (similar to original C code)
-    local mod_tmp = math.floor(modulate_pos / 4096) % 256  -- Equivalent to >> 12 & 0xFF
-    local table_index = (mod_tmp % 32) + 1  -- Lua arrays are 1-indexed
-    local mod_dat = math.floor(vibratoTable[table_index] / 4)  -- Equivalent to >> 2
-    
-    -- Calculate modulated position
-    local mod_pos
-    if (mod_tmp % 64) >= 32 then  -- Equivalent to modTmp & 32
-      mod_pos = modulate_offset - mod_dat + 2048
-    else
-      mod_pos = modulate_offset + mod_dat + 2048
-    end
-    
-    modulate_offset = mod_pos
-    
-    -- Convert to sample position and clamp
-    mod_pos = math.floor(mod_pos / 2048)  -- Equivalent to >> 11
-    mod_pos = math.max(1, math.min(mod_pos, sample_length))
+    -- Calculate sample read position
+    local sample_read_pos = math.floor(mod_offset / 2048)  -- Equivalent to >> 11
+    sample_read_pos = math.max(1, math.min(sample_read_pos, sample_length))  -- CLAMP equivalent
     
     -- Copy modulated data to output buffer
     for c = 1, channels do
-      buffer:set_sample_data(c, frame, temp_data[c][mod_pos])
+      buffer:set_sample_data(c, frame, sample_copy[c][sample_read_pos])
     end
+    
+    -- Update modulation variables
+    mod_table_offset = mod_table_offset + protrackerModSpeed
+    local table_index = (math.floor(mod_table_offset / 4096) % 64) + 1  -- Equivalent to (modTableOffset >> 12) & 63, +1 for Lua indexing
+    mod_offset = mod_offset + modulationTable[table_index]
   end
   
   buffer:finalize_sample_data_changes()
