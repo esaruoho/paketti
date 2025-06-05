@@ -10960,12 +10960,40 @@ function ConvertChordsToArpeggio()
       track.visible_effect_columns = 1
   end
   
-  -- Write the arpeggio command 0A with the hex differences
-  line.effect_columns[1].number_string = "0A"
-  line.effect_columns[1].amount_string = hex2 .. hex3
+  -- Write the arpeggio command starting from current line until next note
+  local arpeggio_command = "0A"
+  local arpeggio_amount = hex2 .. hex3
+  local lines_written = 0
   
-  print("Written arpeggio command: 0A" .. hex2 .. hex3)
-  renoise.app():show_status("Converted chord to arpeggio: 0A" .. hex2 .. hex3)
+  -- Start from current line and continue until we find another note or reach end of pattern
+  for current_line = line_index, pattern.number_of_lines do
+    local check_line = pattern.tracks[track_index].lines[current_line]
+    
+    -- Check if this line has any notes in visible note columns (skip the first line since we're processing it)
+    local has_note = false
+    if current_line > line_index then
+      for col = 1, track.visible_note_columns do
+        local note_col = check_line.note_columns[col]
+        if not note_col.is_empty and note_col.note_value < 120 then
+          has_note = true
+          break
+        end
+      end
+    end
+    
+    -- If we found a note on a later line, stop writing arpeggio commands
+    if has_note then
+      break
+    end
+    
+    -- Write the arpeggio command to this line
+    check_line.effect_columns[1].number_string = arpeggio_command
+    check_line.effect_columns[1].amount_string = arpeggio_amount
+    lines_written = lines_written + 1
+  end
+  
+  print("Written arpeggio command: " .. arpeggio_command .. arpeggio_amount .. " to " .. lines_written .. " lines")
+  renoise.app():show_status("Converted chord to arpeggio: " .. arpeggio_command .. arpeggio_amount .. " (written to " .. lines_written .. " lines)")
 end
 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Convert 3 Note Chord to Arpeggio", invoke=function() ConvertChordsToArpeggio() end}
