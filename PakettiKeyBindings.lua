@@ -1671,8 +1671,13 @@ function print_free_combinations()
     local free = check_free_combinations(mod_set)
     print(string.format("\nThere are %d free combinations with %s:", #free, mod_string))
     
+    -- Add section header to the file results
+    table.insert(all_results, string.format("\nThere are %d free combinations with %s:", #free, mod_string))
+    
     for _, combo in ipairs(free) do
       print("  " .. combo)
+      -- Add each combination to the file results
+      table.insert(all_results, "  " .. combo)
     end
   end  
   -- Save results to file

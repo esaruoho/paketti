@@ -10768,7 +10768,8 @@ function paketti_build_sample_variants()
   renoise.app():show_status("Created 4 wrecked variants of sample: "..name)
 end
 
-renoise.tool():add_menu_entry {name="Sample Editor:Paketti:Create Wrecked Sample Variants",invoke=paketti_build_sample_variants}
+renoise.tool():add_menu_entry {name="Sample Editor:Paketti..:Process..:Create Wrecked Sample Variants",invoke=paketti_build_sample_variants}
+renoise.tool():add_menu_entry {name="Sample Navigator:Paketti..:Process..:Create Wrecked Sample Variants",invoke=paketti_build_sample_variants}
 
 ---
 -- big-endian 16-bit reader, 1-based
