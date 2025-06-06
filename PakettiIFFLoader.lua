@@ -12,6 +12,17 @@ local function filename_from_path(path)
   return path:match("[^/\\]+$")
 end
 
+-- Utility: extract directory from path
+local function directory_from_path(path)
+  return path:match("^(.*)[/\\][^/\\]*$") or "."
+end
+
+-- Utility: change file extension
+local function change_extension(path, new_ext)
+  local name_without_ext = path:match("^(.*)%.[^.]*$") or path
+  return name_without_ext .. "." .. new_ext
+end
+
 -- read a big-endian unsigned 32-bit integer
 local function read_be_u32(f)
   local bytes = f:read(4)
@@ -223,26 +234,11 @@ renoise.tool():add_file_import_hook{
   invoke     = loadIFFSample
 }
 
--- Add menu entries and keybinding for manual file selection
-renoise.tool():add_menu_entry{
-  name = "Sample Editor:Paketti..:Load..:Load IFF Sample File...",
-  invoke = loadIFFSampleFromDialog
-}
+renoise.tool():add_menu_entry{name = "Sample Editor:Paketti..:Load..:Load IFF Sample File...",invoke = loadIFFSampleFromDialog}
+renoise.tool():add_menu_entry{name = "Sample Navigator:Paketti..:Load..:Load IFF Sample File...",invoke = loadIFFSampleFromDialog}
+renoise.tool():add_menu_entry{name = "Sample Mappings:Paketti..:Load..:Load IFF Sample File...",invoke = loadIFFSampleFromDialog}
+renoise.tool():add_keybinding{name = "Global:Paketti:Load IFF Sample File...",invoke = loadIFFSampleFromDialog}
 
-renoise.tool():add_menu_entry{
-  name = "Sample Navigator:Paketti..:Load..:Load IFF Sample File...",
-  invoke = loadIFFSampleFromDialog
-}
-
-renoise.tool():add_menu_entry{
-  name = "Sample Mappings:Paketti..:Load..:Load IFF Sample File...",
-  invoke = loadIFFSampleFromDialog
-}
-
-renoise.tool():add_keybinding{
-  name = "Global:Paketti:Load IFF Sample File...",
-  invoke = loadIFFSampleFromDialog
-}
 
 -- Helper function to get IFF files from directory
 local function getIFFFiles(dir)
@@ -344,3 +340,118 @@ function loadRandomIFF(num_samples)
 end
 
 renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Load Random 128 IFFs",invoke=function() loadRandomIFF(128) end }
+
+-- write a little-endian unsigned 32-bit integer
+local function write_le_u32(f, value)
+  local b1 = value % 256
+  local b2 = math.floor(value / 256) % 256
+  local b3 = math.floor(value / 65536) % 256
+  local b4 = math.floor(value / 16777216) % 256
+  f:write(string.char(b1, b2, b3, b4))
+end
+
+-- write a little-endian unsigned 16-bit integer
+local function write_le_u16(f, value)
+  local b1 = value % 256
+  local b2 = math.floor(value / 256) % 256
+  f:write(string.char(b1, b2))
+end
+
+-- write WAV file from buffer data
+local function write_wav_file(output_path, buffer_data, sample_rate)
+  debug_print("Writing WAV file:", output_path)
+  local f, err = io.open(output_path, "wb")
+  if not f then
+    error("Could not create WAV file: " .. err)
+  end
+
+  local num_samples = #buffer_data
+  local bits_per_sample = 16
+  local num_channels = 1
+  local byte_rate = sample_rate * num_channels * bits_per_sample / 8
+  local block_align = num_channels * bits_per_sample / 8
+  local data_size = num_samples * bits_per_sample / 8
+  local file_size = 36 + data_size
+
+  -- RIFF header
+  f:write("RIFF")
+  write_le_u32(f, file_size)
+  f:write("WAVE")
+
+  -- fmt chunk
+  f:write("fmt ")
+  write_le_u32(f, 16) -- chunk size
+  write_le_u16(f, 1)  -- PCM format
+  write_le_u16(f, num_channels)
+  write_le_u32(f, sample_rate)
+  write_le_u32(f, byte_rate)
+  write_le_u16(f, block_align)
+  write_le_u16(f, bits_per_sample)
+
+  -- data chunk
+  f:write("data")
+  write_le_u32(f, data_size)
+
+  -- write sample data (convert from normalized float to 16-bit signed int)
+  for i = 1, num_samples do
+    local sample_value = buffer_data[i]
+    -- clamp to [-1.0, 1.0] and convert to 16-bit signed integer
+    sample_value = math.max(-1.0, math.min(1.0, sample_value))
+    local int_value = math.floor(sample_value * 32767 + 0.5)
+    if int_value > 32767 then int_value = 32767 end
+    if int_value < -32768 then int_value = -32768 end
+    write_le_u16(f, int_value < 0 and (int_value + 65536) or int_value)
+  end
+
+  f:close()
+  debug_print("WAV file written successfully")
+end
+
+-- Function to convert IFF to WAV without loading into Renoise
+function convertIFFToWAV()
+  local file_path = renoise.app():prompt_for_filename_to_read(
+    {"*.iff", "*.8svx", "*.16sv"}, 
+    "Select IFF File to Convert to WAV"
+  )
+  
+  if not file_path or file_path == "" then
+    renoise.app():show_status("No file selected")
+    return
+  end
+
+  print("---------------------------------")
+  debug_print("Converting IFF to WAV:", file_path)
+
+  local buffer_data, sample_rate
+  local ok, err = pcall(function()
+    buffer_data, sample_rate = convert_iff_to_buffer(file_path)
+  end)
+
+  if not ok then
+    print(string.format("Failed to convert IFF file: %s (Error: %s)", file_path, err))
+    renoise.app():show_status("IFF conversion failed: " .. err)
+    return
+  end
+
+  -- Create output WAV path in the same directory
+  local output_path = change_extension(file_path, "wav")
+  
+  local write_ok, write_err = pcall(function()
+    write_wav_file(output_path, buffer_data, sample_rate)
+  end)
+
+  if write_ok then
+    local filename = filename_from_path(output_path)
+    renoise.app():show_status(string.format("Converted to WAV: %s", filename))
+    print(string.format("Successfully converted: %s -> %s", file_path, output_path))
+  else
+    print(string.format("Failed to write WAV file: %s (Error: %s)", output_path, write_err))
+    renoise.app():show_status("WAV write failed: " .. write_err)
+  end
+end
+
+renoise.tool():add_menu_entry{name = "Sample Editor:Paketti..:Load..:Convert IFF to WAV...",invoke = convertIFFToWAV}
+renoise.tool():add_menu_entry{name = "Sample Navigator:Paketti..:Load..:Convert IFF to WAV...",invoke = convertIFFToWAV}
+renoise.tool():add_menu_entry{name = "Sample Mappings:Paketti..:Load..:Convert IFF to WAV...",invoke = convertIFFToWAV}
+renoise.tool():add_keybinding{name = "Global:Paketti:Convert IFF to WAV...",invoke = convertIFFToWAV}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Convert IFF to WAV...",invoke=convertIFFToWAV}

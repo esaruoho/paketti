@@ -183,7 +183,6 @@ function EZMaximizeSpectrum()
   renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:EZ Maximize Spectrum",invoke=function() EZMaximizeSpectrum() end}
 end
 
-
 function my_keyhandler_func(dialog, key)
   local closer = preferences.pakettiDialogClose.value
   if key.modifiers == "" and key.name == closer then
@@ -199,9 +198,6 @@ function my_keyhandler_func(dialog, key)
   end
 end
 
-
---timed_require("PakettiXMImport")
-print(string.format("Total load time: %.3f seconds", os.clock() - init_time))
 ------------------------------------------------
 local themes_path = renoise.tool().bundle_path .. "Themes/"
 local themes = os.filenames(themes_path, "*.xrnc")
@@ -365,11 +361,9 @@ function pakettiToggleGlobalGrooveOnStartup()
 end
 
 -- Add menu entry for the global groove startup toggle
-renoise.tool():add_menu_entry{
-  name="Main Menu:Tools:Paketti..:!Preferences..:Toggle Global Groove on Startup On/Off",
-  invoke=pakettiToggleGlobalGrooveOnStartup
-}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:!Preferences..:Toggle Global Groove on Startup On/Off",invoke=pakettiToggleGlobalGrooveOnStartup}
 --------
+
 
 timed_require("rx")                          -- 2318 lines, 2.00 ms
 timed_require("Paketti0G01_Loader")          -- 857 lines, 4.00 ms
@@ -447,4 +441,6 @@ timed_require("PakettiMODLoader")
 timed_require("PakettiPolyendSuite")
 timed_require("PakettiXMLizer")
 timed_require("PakettiDeviceValues")
+print(string.format("Total load time: %.3f seconds", os.clock() - init_time))
+
 _AUTO_RELOAD_DEBUG = true
