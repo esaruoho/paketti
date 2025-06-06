@@ -355,7 +355,8 @@ local button_list = {
   {"Simple Sample Tuning Calculator", "pakettiSimpleSampleTuningDialog"},
   {"Paketti Sequencer Settings Dialog", "pakettiSequencerSettingsDialog"},
   {"Paketti Phrase Generator", "pakettiPhraseGeneratorDialog"},
-  {"Paketti Steppers Dialog", "pakettiSteppersDialog"}
+  {"Paketti Steppers Dialog", "pakettiSteppersDialog"},
+  {"Paketti Sample Adjust", "show_paketti_sample_adjust_dialog"}
 }
 
 -- Function to create buttons from the list

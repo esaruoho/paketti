@@ -4705,24 +4705,33 @@ function PakettiGroupSamplesByName()
 
   -- Helper function to extract the base name from a sample name
   local function extract_base_name(name)
-    -- Remove musical note names and numbers to get the base name
-    -- First remove numbers at the end
-    local base_name = name:gsub("%d+$", "")
-    -- Remove common separators at the end
-    base_name = base_name:gsub("[%s_%-%.]+$", "")
-    -- Remove musical note names (C, C#, D, D#, E, F, F#, G, G#, A, A#, B) at the end
-    base_name = base_name:gsub("%s*[CDEFGAB]#?$", "")
-    -- Remove separators again after note removal
-    base_name = base_name:gsub("[%s_%-%.]+$", "")
+    -- Simple approach: take the first word before any numbers, notes, or separators
+    local base_name = name
     
-    if base_name == "" then
-      base_name = name -- fallback to original name if nothing left
+    -- Extract the first word (everything before first space, number, or separator)
+    base_name = base_name:match("^([^%s%d_%-%.]+)")
+    
+    if not base_name or base_name == "" then
+      -- Fallback: take everything before first number
+      base_name = name:match("^([^%d]+)")
+      if base_name then
+        base_name = base_name:gsub("[%s_%-%.]+$", "") -- trim trailing separators
+      end
     end
+    
+    if not base_name or base_name == "" then
+      base_name = name -- ultimate fallback
+    end
+    
+    -- Convert to lowercase for consistent grouping
+    base_name = base_name:lower()
+    
+    print(string.format("  Base name extraction: '%s' -> '%s'", name, base_name))
     return base_name
   end
 
   -- Helper function to create a new drumkit instrument
-  local function create_drumkit_instrument(name, index)
+  local function create_drumkit_instrument(index)
     song:insert_instrument_at(index)
     song.selected_instrument_index = index
     
@@ -4742,19 +4751,18 @@ function PakettiGroupSamplesByName()
     end
     
     local new_instrument = song.instruments[index]
-    
-    -- Set the instrument name
-    new_instrument.name = name
-    
     return new_instrument
   end
 
   -- Helper function to copy sample to new instrument
   local function copy_sample_to_instrument(source_sample, target_instrument, key_index)
-    local new_sample = target_instrument:insert_sample_at(#target_instrument.samples + 1)
+    local insert_position = #target_instrument.samples + 1
+    print(string.format("  Inserting sample at position %d", insert_position))
+    local new_sample = target_instrument:insert_sample_at(insert_position)
     
     -- Copy the entire sample
     new_sample:copy_from(source_sample)
+    print(string.format("  Copied sample '%s' -> '%s'", source_sample.name, new_sample.name))
     
     -- Set up sequential key mapping starting from C-0
     local mapping = new_sample.sample_mapping
@@ -4803,20 +4811,33 @@ function PakettiGroupSamplesByName()
   
   for group_name, group_samples in pairs(groups) do
     if #group_samples > 1 then -- Only create instruments for groups with multiple samples
-      print(string.format("Creating drumkit instrument '%s' with %d samples", group_name, #group_samples))
+      print(string.format("Creating drumkit instrument for '%s' with %d samples", group_name, #group_samples))
       
-      local new_instrument = create_drumkit_instrument(group_name, insert_index)
+      local new_instrument = create_drumkit_instrument(insert_index)
+      
+      -- Clear only placeholder samples from the drumkit template before copying real samples
+      local deleted_count = 0
+      for i = #new_instrument.samples, 1, -1 do
+        if new_instrument.samples[i].name == "Placeholder for drumkit" then
+          print(string.format("Deleting placeholder sample: '%s'", new_instrument.samples[i].name))
+          new_instrument:delete_sample_at(i)
+          deleted_count = deleted_count + 1
+        end
+      end
+      print(string.format("Deleted %d placeholder samples, %d samples remain", deleted_count, #new_instrument.samples))
       
       -- Copy all samples in this group to the new instrument
       for i, sample in ipairs(group_samples) do
         local key_index = i - 1 -- Start from 0 (C-0), then 1 (C#-0), 2 (D-0), etc.
+        print(string.format("Copying sample %d: '%s' to key %d", i, sample.name, key_index))
         copy_sample_to_instrument(sample, new_instrument, key_index)
+        print(string.format("After copying, instrument has %d samples", #new_instrument.samples))
       end
       
-      -- Clear the placeholder sample that came with the drumkit template (should be at index 1)
-      if #new_instrument.samples > 1 then
-        new_instrument:delete_sample_at(1)
-      end
+      -- Set the instrument name AFTER all copying is complete
+      local instrument_name = string.format("%s (%d)", group_name, #group_samples)
+      new_instrument.name = instrument_name
+      print(string.format("Set final instrument name: '%s'", new_instrument.name))
       
       insert_index = insert_index + 1
       created_instruments = created_instruments + 1

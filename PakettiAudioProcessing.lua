@@ -122,17 +122,18 @@ function processProtrackerMod()
     end
   end
   
-  -- Initialize modulation variables
-  local mod_offset = 0
-  local mod_table_offset = 0
+  -- Initialize modulation variables (following C code types)
+  local mod_offset = 0          -- uint32_t equivalent
+  local mod_table_offset = 0    -- int32_t equivalent (can be negative)
   
   buffer:prepare_sample_data_changes()
   
   -- Process each frame following the C algorithm exactly
   for frame = 1, sample_length do
-    -- Calculate sample read position
-    local sample_read_pos = math.floor(mod_offset / 2048)  -- Equivalent to >> 11
-    sample_read_pos = math.max(1, math.min(sample_read_pos, sample_length))  -- CLAMP to valid Lua 1-based range
+    -- Calculate sample read position using bitshift equivalent
+    local sample_read_pos = math.floor(mod_offset / 2048)  -- Equivalent to modOffset >> 11
+    -- Only clamp upper bound as in C code, convert to 1-based indexing for Lua
+    sample_read_pos = math.max(1, math.min(sample_read_pos + 1, sample_length))  -- Ensure valid Lua array index
     
     -- Copy modulated data to output buffer
     for c = 1, channels do
@@ -141,7 +142,23 @@ function processProtrackerMod()
     
     -- Update modulation variables
     mod_table_offset = mod_table_offset + protrackerModSpeed
-    local table_index = (math.floor(mod_table_offset / 4096) % 64) + 1  -- Equivalent to (modTableOffset >> 12) & 63, +1 for Lua indexing
+    
+    -- Perform arithmetic right shift on signed mod_table_offset
+    -- For arithmetic right shift by 12 bits on potentially negative numbers
+    local shifted_offset
+    if mod_table_offset >= 0 then
+      shifted_offset = math.floor(mod_table_offset / 4096)  -- Regular division for positive
+    else
+      -- For negative numbers, arithmetic right shift preserves sign
+      shifted_offset = math.floor(mod_table_offset / 4096)
+    end
+    
+    local table_index = (shifted_offset % 64) + 1  -- Equivalent to (shifted_offset & 63) + 1 for Lua indexing
+    -- Handle negative modulo correctly
+    if table_index <= 0 then
+      table_index = table_index + 64
+    end
+    
     mod_offset = mod_offset + modulationTable[table_index]
   end
   
@@ -1770,7 +1787,7 @@ renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Experimental/WIP..:A
 --------------------------------------------------------------------------------
 -- Paketti Sample Adjust Dialog
 --------------------------------------------------------------------------------
-local sample_adjust_dialog = nil
+local dialog = nil
 
 -- Function to create the Sample Adjust dialog content
 local function create_sample_adjust_dialog_content()
@@ -1820,9 +1837,36 @@ local function create_sample_adjust_dialog_content()
   }
 
   -- Target settings
-  local target_channels = current_channels == 1 and 1 or 2
+  local target_channel_mode = current_channels == 1 and "mono" or "stereo"
   local target_rate = sample_rates[current_rate_index]
   local target_bit_depth = bit_depths[current_bit_depth_index]
+  local target_invert_mode = "none"  -- Default to no inversion
+
+  -- Create context-aware channel options
+  local channel_items, channel_modes, default_channel_value
+  if current_channels == 1 then
+    -- Mono sample: only show Mono and Stereo
+    channel_items = {"Mono", "Stereo"}
+    channel_modes = {"mono", "stereo"}
+    default_channel_value = 1
+  else
+    -- Stereo sample: show all options including blank channel modes
+    channel_items = {"Mono (Mix)", "Mono (Keep Left)", "Mono (Keep Right)", "Stereo", "Mono->Stereo (Left only)", "Mono->Stereo (Right only)"}
+    channel_modes = {"mono_mix", "mono_left", "mono_right", "stereo", "mono_to_blank_left", "mono_to_blank_right"}
+    default_channel_value = 4  -- Default to "Stereo"
+  end
+
+  -- Create context-aware invert options
+  local invert_items, invert_modes
+  if current_channels == 1 then
+    -- Mono sample: only show basic invert options
+    invert_items = {"<Do nothing>", "Invert"}
+    invert_modes = {"none", "both"}
+  else
+    -- Stereo sample: show all invert options
+    invert_items = {"<Do nothing>", "Invert Left", "Invert Right", "Invert Both"}
+    invert_modes = {"none", "left", "right", "both"}
+  end
 
   local dialog_content = vb:column{
     --margin = 10,
@@ -1836,11 +1880,11 @@ local function create_sample_adjust_dialog_content()
       --vb:text{text = "Channels:", width = 80, style = "strong", font = "bold"},
       vb:popup{
         id = "channels_popup",
-        items = {"Mono", "Stereo"},
-        value = current_channels == 1 and 1 or 2,
-        width = 70,
+        items = channel_items,
+        value = default_channel_value,
+        width = 140,
         notifier = function(value)
-          target_channels = value
+          target_channel_mode = channel_modes[value]
         end
       },
 
@@ -1864,10 +1908,19 @@ local function create_sample_adjust_dialog_content()
         notifier = function(index)
           target_bit_depth = bit_depths[index]
         end
+      },
+
+      -- Invert channels selection (same row)
+      vb:popup{
+        id = "invert_popup",
+        items = invert_items,
+        value = 1,  -- Default to "Do nothing"
+        width = 100,
+        notifier = function(value)
+          target_invert_mode = invert_modes[value]
+        end
       }
     },
-    
-    
     
     -- Process button
     vb:row{
@@ -1876,16 +1929,16 @@ local function create_sample_adjust_dialog_content()
         text = "Process",
         width = 100,
         notifier = function()
-          process_sample_adjust(target_channels, target_rate, target_bit_depth)
+          process_sample_adjust(target_channel_mode, target_rate, target_bit_depth, target_invert_mode)
         end
       },
       vb:button{
         text = "Close",
         width = 100,
         notifier = function()
-          if sample_adjust_dialog and sample_adjust_dialog.visible then
-            sample_adjust_dialog:close()
-            sample_adjust_dialog = nil
+          if dialog and dialog.visible then
+            dialog:close()
+            dialog = nil
           end
         end
       }
@@ -1895,109 +1948,223 @@ local function create_sample_adjust_dialog_content()
   return dialog_content
 end
 
--- Function to process the sample adjustments
-function process_sample_adjust(target_channels, target_rate, target_bit_depth)
+-- Master conversion function: converts sample rate, bit depth, and channels in one atomic operation
+function paketti_convert_sample(target_rate, target_bit_depth, target_channel_mode, target_invert_mode)
   local song = renoise.song()
   local sample = song.selected_sample
   local buffer = sample.sample_buffer
   
   if not sample or not buffer.has_sample_data then
     renoise.app():show_status("No valid sample selected")
-    return
+    return false
   end
   
   -- Check if this is a sliced sample
   if #sample.slice_markers > 0 then
-    renoise.app():show_status("To be implemented later, doing nothing")
-    return
+    renoise.app():show_status("Sliced samples not supported yet")
+    return false
   end
   
-  local current_channels = buffer.number_of_channels
+  -- Get current settings
   local current_rate = buffer.sample_rate
   local current_bit_depth = buffer.bit_depth
+  local current_channels = buffer.number_of_channels
+  local current_frames = buffer.number_of_frames
   
-  local changes_made = false
+  -- Handle special mono_to_blank modes for stereo samples
+  if target_channel_mode == "mono_to_blank_left" or target_channel_mode == "mono_to_blank_right" then
+    if current_channels ~= 2 then
+      renoise.app():show_status("Mono->Stereo (blank channel) modes only work with stereo samples")
+      return false
+    end
+    
+    -- Convert stereo to mono first, then to stereo with blank channel
+    local keep_channel = (target_channel_mode == "mono_to_blank_left") and 1 or 2
+    
+    -- First convert to mono by keeping the desired channel
+    local mono_data = {}
+    for f = 1, current_frames do
+      mono_data[f] = buffer:sample_data(keep_channel, f)
+    end
+    
+    -- Then create new stereo buffer
+    buffer:create_sample_data(target_rate, target_bit_depth, 2, current_frames)
+    buffer:prepare_sample_data_changes()
+    
+    for f = 1, current_frames do
+      if target_channel_mode == "mono_to_blank_left" then
+        buffer:set_sample_data(1, f, mono_data[f])  -- Original channel data
+        buffer:set_sample_data(2, f, 0)             -- Blank channel
+      else -- mono_to_blank_right
+        buffer:set_sample_data(1, f, 0)             -- Blank channel
+        buffer:set_sample_data(2, f, mono_data[f])  -- Original channel data
+      end
+    end
+    
+    buffer:finalize_sample_data_changes()
+    
+    -- Apply inversion if requested
+    apply_inversion(buffer, target_invert_mode)
+    
+    renoise.app():show_status("Sample converted to stereo with blank channel")
+    return true
+  end
   
-  -- Step 1: Handle channel conversion ONLY
+  -- Determine target channel count from mode
+  local target_channels
+  if target_channel_mode == "stereo" then
+    target_channels = 2
+  elseif target_channel_mode == "mono" then
+    target_channels = 1
+  else  -- All other mono modes
+    target_channels = 1
+  end
+  
+  -- Check if any conversion is needed
+  local current_mode = current_channels == 1 and "mono" or "stereo"
+  if target_rate == current_rate and target_bit_depth == current_bit_depth and target_channel_mode == current_mode and (target_invert_mode == "none" or not target_invert_mode) then
+    renoise.app():show_status("No conversion needed - sample already at target settings")
+    return false
+  end
+  
+  print(string.format("Converting sample: %dHz/%dbit/%dch → %dHz/%dbit/%s", 
+    current_rate, current_bit_depth, current_channels, target_rate, target_bit_depth, target_channel_mode))
+  
+  -- Calculate new frame count based on sample rate conversion
+  local rate_ratio = target_rate / current_rate
+  local target_frames = math.floor(current_frames * rate_ratio)
+  
+  -- Read all original sample data
+  local original_data = {}
+  for c = 1, current_channels do
+    original_data[c] = {}
+    for f = 1, current_frames do
+      original_data[c][f] = buffer:sample_data(c, f)
+    end
+  end
+  
+  -- Create the final target buffer with all target specifications
+  buffer:create_sample_data(target_rate, target_bit_depth, target_channels, target_frames)
+  buffer:prepare_sample_data_changes()
+  
+  -- Fill the target buffer with converted data
+  for target_frame = 1, target_frames do
+    -- Calculate source frame position for sample rate conversion
+    local source_frame_pos = (target_frame - 1) / rate_ratio + 1
+    local source_frame = math.max(1, math.min(math.floor(source_frame_pos), current_frames))
+    
+    -- Handle channel conversion
+    for target_channel = 1, target_channels do
+      local sample_value = 0
+      
+      if current_channels == 1 and target_channels == 1 then
+        -- Mono to Mono - direct copy
+        sample_value = original_data[1][source_frame]
+        
+      elseif current_channels == 1 and target_channels == 2 then
+        -- Mono to Stereo - duplicate to both channels
+        sample_value = original_data[1][source_frame]
+        
+      elseif current_channels == 2 and target_channels == 1 then
+        -- Stereo to Mono - handle different mono modes
+        if target_channel_mode == "mono" or target_channel_mode == "mono_mix" then
+          -- Mix both channels
+          sample_value = (original_data[1][source_frame] + original_data[2][source_frame]) * 0.5
+        elseif target_channel_mode == "mono_left" then
+          -- Keep only left channel
+          sample_value = original_data[1][source_frame]
+        elseif target_channel_mode == "mono_right" then
+          -- Keep only right channel
+          sample_value = original_data[2][source_frame]
+        end
+        
+      elseif current_channels == 2 and target_channels == 2 then
+        -- Stereo to Stereo - direct copy
+        sample_value = original_data[target_channel][source_frame]
+      end
+      
+      buffer:set_sample_data(target_channel, target_frame, sample_value)
+    end
+  end
+  
+  buffer:finalize_sample_data_changes()
+  
+  -- Apply inversion if requested
+  apply_inversion(buffer, target_invert_mode)
+  
+  local status_parts = {}
+  if target_rate ~= current_rate then
+    table.insert(status_parts, string.format("%dHz", target_rate))
+  end
+  if target_bit_depth ~= current_bit_depth then
+    table.insert(status_parts, string.format("%dbit", target_bit_depth))
+  end
   if target_channels ~= current_channels then
-    if current_channels == 1 and target_channels == 2 then
-      -- Mono to Stereo - use optimized function
-      convert_mono_to_stereo_optimized()
-      changes_made = true
-      print("Converted mono to stereo")
-    elseif current_channels == 2 and target_channels == 1 then
-      -- Stereo to Mono - use optimized function (mix both channels)
-      stereo_to_mono_mix_optimized()
-      changes_made = true  
-      print("Converted stereo to mono (mixed both channels)")
+    local mode_names = {
+      mono = "Mono",
+      mono_mix = "Mono (Mix)",
+      mono_left = "Mono (Left)",
+      mono_right = "Mono (Right)",
+      stereo = "Stereo"
+    }
+    table.insert(status_parts, mode_names[target_channel_mode] or target_channel_mode)
+  end
+  if target_invert_mode and target_invert_mode ~= "none" then
+    local invert_names = {
+      left = "Inverted Left",
+      right = "Inverted Right", 
+      both = "Inverted Both"
+    }
+    table.insert(status_parts, invert_names[target_invert_mode])
+  end
+  
+  local status_message = "Sample converted to " .. table.concat(status_parts, ", ")
+  renoise.app():show_status(status_message)
+  print("Conversion completed successfully!")
+  
+  return true
+end
+
+-- Helper function to apply channel inversion
+function apply_inversion(buffer, invert_mode)
+  if not invert_mode or invert_mode == "none" then
+    return  -- No inversion needed
+  end
+  
+  buffer:prepare_sample_data_changes()
+  
+  if invert_mode == "left" and buffer.number_of_channels >= 1 then
+    -- Invert left channel
+    for f = 1, buffer.number_of_frames do
+      buffer:set_sample_data(1, f, -buffer:sample_data(1, f))
     end
-    
-    -- Return early after channel conversion to avoid reference issues
-    if changes_made then
-      renoise.app():show_status(string.format("Channel conversion completed. Please run again for sample rate/bit depth changes."))
-      renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
-      return
+  elseif invert_mode == "right" and buffer.number_of_channels >= 2 then
+    -- Invert right channel
+    for f = 1, buffer.number_of_frames do
+      buffer:set_sample_data(2, f, -buffer:sample_data(2, f))
+    end
+  elseif invert_mode == "both" then
+    -- Invert all channels
+    for c = 1, buffer.number_of_channels do
+      for f = 1, buffer.number_of_frames do
+        buffer:set_sample_data(c, f, -buffer:sample_data(c, f))
+      end
     end
   end
   
-  -- Step 2: Handle sample rate and bit depth conversion (only if no channel conversion was done)
-  if target_rate ~= current_rate or target_bit_depth ~= current_bit_depth then
-    -- If only bit depth changed (same sample rate), do in-place conversion
-    if target_rate == current_rate and target_bit_depth ~= current_bit_depth then
-      -- In-place bit depth conversion
-      local num_frames = buffer.number_of_frames
-      local num_channels = buffer.number_of_channels
-      
-      -- Store original data
-      local original_data = {}
-      for c = 1, num_channels do
-        original_data[c] = {}
-        for f = 1, num_frames do
-          original_data[c][f] = buffer:sample_data(c, f)
-        end
-      end
-      
-      -- Recreate buffer with new bit depth
-      buffer:create_sample_data(current_rate, target_bit_depth, num_channels, num_frames)
-      buffer:prepare_sample_data_changes()
-      
-      -- Restore data
-      for c = 1, num_channels do
-        for f = 1, num_frames do
-          buffer:set_sample_data(c, f, original_data[c][f])
-        end
-      end
-      
-      buffer:finalize_sample_data_changes()
-      changes_made = true
-      print(string.format("Converted bit depth to %dbit", target_bit_depth))
-    else
-      -- Sample rate change or both - use existing functions
-      if target_rate >= current_rate then
-        RenderSampleAtNewRate(target_rate, target_bit_depth)
-      else
-        DestructiveResample(target_rate, target_bit_depth)
-      end
-      changes_made = true
-      print(string.format("Resampled to %dHz, %dbit", target_rate, target_bit_depth))
-    end
-  end
+  buffer:finalize_sample_data_changes()
+end
+
+-- Function to process the sample adjustments using the master conversion function
+function process_sample_adjust(target_channel_mode, target_rate, target_bit_depth, target_invert_mode)
+  local success = paketti_convert_sample(target_rate, target_bit_depth, target_channel_mode, target_invert_mode)
   
-  if changes_made then
-    renoise.app():show_status(string.format(
-      "Sample adjusted to %s, %dHz, %dbit", 
-      target_channels == 1 and "Mono" or "Stereo",
-      target_rate, 
-      target_bit_depth
-    ))
-    
+  if success then
     -- Close the dialog after successful processing
-    if sample_adjust_dialog and sample_adjust_dialog.visible then
-      sample_adjust_dialog:close()
-      sample_adjust_dialog = nil
+    if dialog and dialog.visible then
+      dialog:close()
+      dialog = nil
     end
-  else
-    renoise.app():show_status("No changes needed - sample already at target settings")
   end
   
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
@@ -2006,9 +2173,9 @@ end
 -- Function to show the Sample Adjust dialog
 function show_paketti_sample_adjust_dialog()
   -- Close existing dialog if open
-  if sample_adjust_dialog and sample_adjust_dialog.visible then
-    sample_adjust_dialog:close()
-    sample_adjust_dialog = nil
+  if dialog and dialog.visible then
+    dialog:close()
+    dialog = nil
     return
   end
   
@@ -2022,7 +2189,7 @@ function show_paketti_sample_adjust_dialog()
   -- Create and show dialog
   local content = create_sample_adjust_dialog_content()
   if content then
-    sample_adjust_dialog = renoise.app():show_custom_dialog("Paketti Sample Adjust", content)
+    dialog = renoise.app():show_custom_dialog("Paketti Sample Adjust", content, my_keyhandler_func)
   end
 end
 
