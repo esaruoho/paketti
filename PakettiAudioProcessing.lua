@@ -456,6 +456,8 @@ local function invert_right_sum_mono()
   renoise.app():show_status("Invert Right, Sum Mono applied.")
 end
 
+
+
 -- Function to perform pitch shifting and subtraction
 local function pitch_shift_sample(shift_amount)
   if shift_amount == 0 then
@@ -1764,6 +1766,272 @@ end
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Experimental/WIP..:Auto Detect Single-Cycle Loop",
   invoke = auto_detect_single_cycle_loop
 }
+
+--------------------------------------------------------------------------------
+-- Paketti Sample Adjust Dialog
+--------------------------------------------------------------------------------
+local sample_adjust_dialog = nil
+
+-- Function to create the Sample Adjust dialog content
+local function create_sample_adjust_dialog_content()
+  local vb = renoise.ViewBuilder()
+  local sample = renoise.song().selected_sample
+
+  if not sample or not sample.sample_buffer.has_sample_data then
+    renoise.app():show_status("Please select a sample with data.")
+    return nil
+  end
+
+  local buffer = sample.sample_buffer
+  local current_channels = buffer.number_of_channels
+  local current_rate = buffer.sample_rate
+  local current_bit_depth = buffer.bit_depth
+
+  -- Sample rate values matching the requested specification
+  local sample_rates = {11025, 22050, 32000, 44100, 48000, 88200, 96000, 192000}
+  local bit_depths = {8, 16, 24, 32}
+  
+  -- Find current values in the arrays for initial selection
+  local current_rate_index = 4  -- Default to 44100Hz if no match found
+  for i, rate in ipairs(sample_rates) do
+    if rate == current_rate then
+      current_rate_index = i
+      break
+    end
+  end
+  
+  local current_bit_depth_index = 2  -- Default to 16bit if no match found
+  for i, depth in ipairs(bit_depths) do
+    if depth == current_bit_depth then
+      current_bit_depth_index = i
+      break
+    end
+  end
+
+  -- Current sample info
+  local sample_info_text = vb:text{
+    text = string.format("%s - %s, %dHz, %dbit", 
+      sample.name,
+      current_channels == 1 and "Mono" or "Stereo", 
+      current_rate, 
+      current_bit_depth),
+    style = "strong", font = "bold",
+    width = 250
+  }
+
+  -- Target settings
+  local target_channels = current_channels == 1 and 1 or 2
+  local target_rate = sample_rates[current_rate_index]
+  local target_bit_depth = bit_depths[current_bit_depth_index]
+
+  local dialog_content = vb:column{
+    --margin = 10,
+    --spacing = 10,
+    
+    sample_info_text,
+    
+    
+    -- Channels selection
+    vb:row{
+      --vb:text{text = "Channels:", width = 80, style = "strong", font = "bold"},
+      vb:popup{
+        id = "channels_popup",
+        items = {"Mono", "Stereo"},
+        value = current_channels == 1 and 1 or 2,
+        width = 70,
+        notifier = function(value)
+          target_channels = value
+        end
+      },
+
+      --vb:text{text = "Sample Rate:", width = 80, style = "strong", font = "bold"},
+      vb:popup{
+        id = "rate_popup",
+        items = {"11025 Hz", "22050 Hz", "32000 Hz", "44100 Hz", "48000 Hz", "88200 Hz", "96000 Hz", "192000 Hz"},
+        value = current_rate_index,
+        width = 80,
+        notifier = function(index)
+          target_rate = sample_rates[index]
+        end
+      },
+
+      --vb:text{text = "Bit Depth:", width = 80, style = "strong", font = "bold"},
+      vb:popup{
+        id = "bitdepth_popup", 
+        items = {"8 bit", "16 bit", "24 bit", "32 bit"},
+        value = current_bit_depth_index,
+        width = 60,
+        notifier = function(index)
+          target_bit_depth = bit_depths[index]
+        end
+      }
+    },
+    
+    
+    
+    -- Process button
+    vb:row{
+      
+      vb:button{
+        text = "Process",
+        width = 100,
+        notifier = function()
+          process_sample_adjust(target_channels, target_rate, target_bit_depth)
+        end
+      },
+      vb:button{
+        text = "Close",
+        width = 100,
+        notifier = function()
+          if sample_adjust_dialog and sample_adjust_dialog.visible then
+            sample_adjust_dialog:close()
+            sample_adjust_dialog = nil
+          end
+        end
+      }
+    }
+  }
+  
+  return dialog_content
+end
+
+-- Function to process the sample adjustments
+function process_sample_adjust(target_channels, target_rate, target_bit_depth)
+  local song = renoise.song()
+  local sample = song.selected_sample
+  local buffer = sample.sample_buffer
+  
+  if not sample or not buffer.has_sample_data then
+    renoise.app():show_status("No valid sample selected")
+    return
+  end
+  
+  -- Check if this is a sliced sample
+  if #sample.slice_markers > 0 then
+    renoise.app():show_status("To be implemented later, doing nothing")
+    return
+  end
+  
+  local current_channels = buffer.number_of_channels
+  local current_rate = buffer.sample_rate
+  local current_bit_depth = buffer.bit_depth
+  
+  local changes_made = false
+  
+  -- Step 1: Handle channel conversion ONLY
+  if target_channels ~= current_channels then
+    if current_channels == 1 and target_channels == 2 then
+      -- Mono to Stereo - use optimized function
+      convert_mono_to_stereo_optimized()
+      changes_made = true
+      print("Converted mono to stereo")
+    elseif current_channels == 2 and target_channels == 1 then
+      -- Stereo to Mono - use optimized function (mix both channels)
+      stereo_to_mono_mix_optimized()
+      changes_made = true  
+      print("Converted stereo to mono (mixed both channels)")
+    end
+    
+    -- Return early after channel conversion to avoid reference issues
+    if changes_made then
+      renoise.app():show_status(string.format("Channel conversion completed. Please run again for sample rate/bit depth changes."))
+      renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+      return
+    end
+  end
+  
+  -- Step 2: Handle sample rate and bit depth conversion (only if no channel conversion was done)
+  if target_rate ~= current_rate or target_bit_depth ~= current_bit_depth then
+    -- If only bit depth changed (same sample rate), do in-place conversion
+    if target_rate == current_rate and target_bit_depth ~= current_bit_depth then
+      -- In-place bit depth conversion
+      local num_frames = buffer.number_of_frames
+      local num_channels = buffer.number_of_channels
+      
+      -- Store original data
+      local original_data = {}
+      for c = 1, num_channels do
+        original_data[c] = {}
+        for f = 1, num_frames do
+          original_data[c][f] = buffer:sample_data(c, f)
+        end
+      end
+      
+      -- Recreate buffer with new bit depth
+      buffer:create_sample_data(current_rate, target_bit_depth, num_channels, num_frames)
+      buffer:prepare_sample_data_changes()
+      
+      -- Restore data
+      for c = 1, num_channels do
+        for f = 1, num_frames do
+          buffer:set_sample_data(c, f, original_data[c][f])
+        end
+      end
+      
+      buffer:finalize_sample_data_changes()
+      changes_made = true
+      print(string.format("Converted bit depth to %dbit", target_bit_depth))
+    else
+      -- Sample rate change or both - use existing functions
+      if target_rate >= current_rate then
+        RenderSampleAtNewRate(target_rate, target_bit_depth)
+      else
+        DestructiveResample(target_rate, target_bit_depth)
+      end
+      changes_made = true
+      print(string.format("Resampled to %dHz, %dbit", target_rate, target_bit_depth))
+    end
+  end
+  
+  if changes_made then
+    renoise.app():show_status(string.format(
+      "Sample adjusted to %s, %dHz, %dbit", 
+      target_channels == 1 and "Mono" or "Stereo",
+      target_rate, 
+      target_bit_depth
+    ))
+    
+    -- Close the dialog after successful processing
+    if sample_adjust_dialog and sample_adjust_dialog.visible then
+      sample_adjust_dialog:close()
+      sample_adjust_dialog = nil
+    end
+  else
+    renoise.app():show_status("No changes needed - sample already at target settings")
+  end
+  
+  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+end
+
+-- Function to show the Sample Adjust dialog
+function show_paketti_sample_adjust_dialog()
+  -- Close existing dialog if open
+  if sample_adjust_dialog and sample_adjust_dialog.visible then
+    sample_adjust_dialog:close()
+    sample_adjust_dialog = nil
+    return
+  end
+  
+  -- Check if we have a valid sample
+  local sample = renoise.song().selected_sample
+  if not sample or not sample.sample_buffer.has_sample_data then
+    renoise.app():show_status("Please select a sample with data first")
+    return
+  end
+  
+  -- Create and show dialog
+  local content = create_sample_adjust_dialog_content()
+  if content then
+    sample_adjust_dialog = renoise.app():show_custom_dialog("Paketti Sample Adjust", content)
+  end
+end
+
+-- Add keybindings and menu entries for Sample Adjust
+renoise.tool():add_keybinding{name = "Sample Editor:Paketti:Paketti Sample Adjust Dialog...",invoke = show_paketti_sample_adjust_dialog}
+renoise.tool():add_keybinding{name = "Global:Paketti:Paketti Sample Adjust Dialog...",invoke = show_paketti_sample_adjust_dialog}
+renoise.tool():add_menu_entry{  name = "Sample Editor:Paketti..:Paketti Sample Adjust Dialog...",invoke = show_paketti_sample_adjust_dialog}
+renoise.tool():add_menu_entry{name = "Sample Navigator:Paketti..:Paketti Sample Adjust Dialog...",invoke = show_paketti_sample_adjust_dialog}
+renoise.tool():add_menu_entry{name = "Sample Mappings:Paketti..:Paketti Sample Adjust Dialog...",invoke = show_paketti_sample_adjust_dialog}
 
 
 

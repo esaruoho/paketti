@@ -58,6 +58,24 @@ local function load_slice_markers(slice_file_path)
 end
 
 --------------------------------------------------------------------------------
+-- Helper: Check if an instrument is completely empty (no samples with data)
+--------------------------------------------------------------------------------
+local function is_instrument_empty(instrument)
+  if #instrument.samples == 0 then
+    return true
+  end
+  
+  for i = 1, #instrument.samples do
+    local sample = instrument.samples[i]
+    if sample.sample_buffer.has_sample_data then
+      return false
+    end
+  end
+  
+  return true
+end
+
+--------------------------------------------------------------------------------
 -- OS-specific configuration and setup
 --------------------------------------------------------------------------------
 local function setup_os_specific_paths()
@@ -160,22 +178,47 @@ function rx2_loadsample(filename)
     end
   end
   
-  -- Do NOT overwrite an existing instrument:
+  -- Check if we're on instrument 00 (index 1) and if it's empty
   local current_index = renoise.song().selected_instrument_index
-  renoise.song():insert_instrument_at(current_index + 1)
-  renoise.song().selected_instrument_index = current_index + 1
-  print("Inserted new instrument at index:", renoise.song().selected_instrument_index)
+  local current_instrument = renoise.song().selected_instrument
+  local use_existing_instrument = false
+  
+  if current_index == 1 and is_instrument_empty(current_instrument) then
+    print("Using existing empty instrument 00 instead of creating new instrument")
+    use_existing_instrument = true
+  else
+    -- Create a new instrument as before
+    renoise.song():insert_instrument_at(current_index + 1)
+    renoise.song().selected_instrument_index = current_index + 1
+    print("Inserted new instrument at index:", renoise.song().selected_instrument_index)
+  end
 
   -- Inject the default Paketti instrument configuration if available
   if pakettiPreferencesDefaultInstrumentLoader then
-    pakettiPreferencesDefaultInstrumentLoader()
-    print("Injected Paketti default instrument configuration")
+    if not use_existing_instrument then
+      pakettiPreferencesDefaultInstrumentLoader()
+      print("Injected Paketti default instrument configuration for new instrument")
+    else
+      pakettiPreferencesDefaultInstrumentLoader()
+      print("Injected Paketti default instrument configuration for existing instrument 00")
+    end
   else
     print("pakettiPreferencesDefaultInstrumentLoader not found – skipping default configuration")
   end
 
   local song=renoise.song()
   local instrument = song.selected_instrument
+  
+  -- Ensure there's at least one sample in the instrument (only if default loader wasn't available)
+  if #instrument.samples == 0 then
+    if not pakettiPreferencesDefaultInstrumentLoader then
+      print("No default instrument loader and no samples - creating first sample")
+      instrument:insert_sample_at(1)
+    else
+      print("Warning: Default instrument loader ran but instrument still has no samples!")
+      instrument:insert_sample_at(1)
+    end
+  end
   
   -- Ensure we're working with the first sample slot and clear any empty samples
   song.selected_sample_index = 1

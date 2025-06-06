@@ -2555,3 +2555,15 @@ renoise.tool():add_midi_mapping{name="Paketti:Cycle Through Selected Track Colum
 renoise.tool():add_midi_mapping{name="Paketti:Cycle Through Selected Track Columns (Relative) x[Knob]",invoke=function(message) pakettiColumnCount(message, "current") end}
 renoise.tool():add_midi_mapping{name="Paketti:Cycle Through All Track Columns (Absolute) x[Knob]",invoke=function(message) pakettiColumnCount(message, "all") end}
 renoise.tool():add_midi_mapping{name="Paketti:Cycle Through All Track Columns (Relative) x[Knob]",invoke=function(message) pakettiColumnCount(message, "all") end}
+
+function dudeMidi(file_path)
+  renoise.app():show_status("Dude Midi")
+  print("YOO")
+end
+
+renoise.tool():add_file_import_hook{
+  name       = "MIDI IMPORT",
+  category   = "instrument",
+  extensions = {"mid"},
+  invoke     = dudeMidi
+}

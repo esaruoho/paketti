@@ -885,7 +885,8 @@ local function import_sf2(file_path)
 
             -- Loop handling
             local loop_mode = "none"
-            local loop_start_rel = hdr.loop_start - hdr.s_start
+            -- Account for the +1 offset in sample extraction (we extract from s_start+1, not s_start)
+            local loop_start_rel = hdr.loop_start - hdr.s_start + 1
             local loop_end_rel = hdr.loop_end - hdr.s_start
             local loop_length = 0
 
