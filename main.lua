@@ -188,8 +188,8 @@ function my_keyhandler_func(dialog, key)
   local closer = preferences.pakettiDialogClose.value
   if key.modifiers == "" and key.name == closer then
     -- Clean up any observers that might exist
-    if dialog.cleanup_observers then
-      dialog.cleanup_observers()
+    if cleanup_observers then
+      cleanup_observers()
     end
     dialog:close()
     dialog=nil
@@ -334,7 +334,9 @@ function startup()
    local s=renoise.song()
    local t=s.transport
       s.sequencer.keep_sequence_sorted=false
-      t.groove_enabled=true
+      if preferences.pakettiEnableGlobalGrooveOnStartup.value then
+        t.groove_enabled=true
+      end
       if preferences.pakettiThemeSelector.RenoiseLaunchRandomLoad.value then 
       pakettiThemeSelectorPickRandomThemeFromAll()
       else if preferences.pakettiThemeSelector.RenoiseLaunchFavoritesLoad.value then
@@ -353,6 +355,20 @@ end
 if not renoise.tool().app_new_document_observable:has_notifier(startup)   
   then renoise.tool().app_new_document_observable:add_notifier(startup)
   else renoise.tool().app_new_document_observable:remove_notifier(startup) end  
+
+-- Function to toggle global groove on startup preference
+function pakettiToggleGlobalGrooveOnStartup()
+  local prefs = renoise.tool().preferences
+  prefs.pakettiEnableGlobalGrooveOnStartup.value = not prefs.pakettiEnableGlobalGrooveOnStartup.value
+  local state = prefs.pakettiEnableGlobalGrooveOnStartup.value and "enabled" or "disabled"
+  renoise.app():show_status("Global Groove on startup is now " .. state .. ".")
+end
+
+-- Add menu entry for the global groove startup toggle
+renoise.tool():add_menu_entry{
+  name="Main Menu:Tools:Paketti..:!Preferences..:Toggle Global Groove on Startup On/Off",
+  invoke=pakettiToggleGlobalGrooveOnStartup
+}
 --------
 
 timed_require("rx")                          -- 2318 lines, 2.00 ms

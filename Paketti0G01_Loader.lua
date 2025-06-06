@@ -98,6 +98,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiRotateSampleBufferFine=10,
   pakettiBlendValue = 40,
   pakettiDialogClose="esc",
+  pakettiEnableGlobalGrooveOnStartup=false,
   PakettiDeviceChainPath = "." .. separator .. "DeviceChains" .. separator,
   PakettiIRPath = "." .. separator .. "IR" .. separator,
   PakettiLFOWriteDelete=true,
@@ -716,6 +717,12 @@ local pakettiIRPathDisplayId = "pakettiIRPathDisplay_" .. tostring(math.random(2
               vb:switch{items={"Off","On"},value=preferences.RandomBPM.value and 2 or 1,width=200,
                 notifier=function(value) preferences.RandomBPM.value=(value==2) update_random_bpm_preferences() end}
             },
+            vb:row{
+              vb:text{text="Global Groove on Startup",width=150},
+              vb:switch{items={"Off","On"},value=preferences.pakettiEnableGlobalGrooveOnStartup.value and 2 or 1,width=200,
+                notifier=function(value) preferences.pakettiEnableGlobalGrooveOnStartup.value=(value==2) end}
+            },
+            vb:row{vb:text{style="strong",text="Automatically enable Global Groove when creating/loading songs"}},
             vb:row{vb:text{text="Pale Green Theme",width=150},vb:button{text="Load",width=100,notifier=function() update_loadPaleGreenTheme_preferences() end} },
             vb:row{vb:text{text="Gifts: Plaid Zap .XRNI",width=150},vb:button{text="Load",width=100,notifier=function() renoise.app():load_instrument("Gifts/plaidzap.xrni") end} },
             vb:row{vb:text{text="200 Drum Machines (.zip)",width=150},vb:button{text="Open URL",width=100,notifier=function() 
