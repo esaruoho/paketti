@@ -735,6 +735,16 @@ function convertWAVToIFF()
   local target_rate = 22050
   local resampled_data = resample_buffer(buffer_data, sample_rate, target_rate)
   
+  -- Check length and truncate if necessary (IFF limit is 65535 frames)
+  if #resampled_data > 65535 then
+    debug_print(string.format("Sample too long (%d frames), truncating to 65534 frames", #resampled_data))
+    local truncated_data = {}
+    for i = 1, 65534 do
+      truncated_data[i] = resampled_data[i]
+    end
+    resampled_data = truncated_data
+  end
+  
   -- Always output as .iff extension
   local output_path = change_extension(file_path, "iff")
   
