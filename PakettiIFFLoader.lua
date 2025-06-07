@@ -731,19 +731,29 @@ function convertWAVToIFF()
     return
   end
 
+  -- Track what operations were performed
+  local operations = {}
+  
   -- Always resample to 22050 Hz
   local target_rate = 22050
   local resampled_data = resample_buffer(buffer_data, sample_rate, target_rate)
+  if sample_rate ~= target_rate then
+    table.insert(operations, string.format("resampled from %d Hz to %d Hz", sample_rate, target_rate))
+  end
   
   -- Check length and truncate if necessary (IFF limit is 65535 frames)
   if #resampled_data > 65535 then
     debug_print(string.format("Sample too long (%d frames), truncating to 65534 frames", #resampled_data))
+    table.insert(operations, string.format("truncated from %d to 65534 frames", #resampled_data))
     local truncated_data = {}
     for i = 1, 65534 do
       truncated_data[i] = resampled_data[i]
     end
     resampled_data = truncated_data
   end
+  
+  -- Always mention bit depth conversion
+  table.insert(operations, "converted to 8-bit")
   
   -- Always output as .iff extension
   local output_path = change_extension(file_path, "iff")
@@ -755,8 +765,15 @@ function convertWAVToIFF()
 
   if write_ok then
     local filename = filename_from_path(output_path)
-    renoise.app():show_status(string.format("Converted to IFF: %s (22kHz 8-bit)", filename))
-    print(string.format("Successfully converted: %s -> %s (22kHz 8-bit)", file_path, output_path))
+    local status_msg = string.format("Converted to IFF: %s", filename)
+    if #operations > 0 then
+      status_msg = status_msg .. " (" .. table.concat(operations, ", ") .. ")"
+    end
+    renoise.app():show_status(status_msg)
+    print(string.format("Successfully converted: %s -> %s", file_path, output_path))
+    if #operations > 0 then
+      print("Operations performed: " .. table.concat(operations, ", "))
+    end
   else
     print(string.format("Failed to write IFF file: %s (Error: %s)", output_path, write_err))
     renoise.app():show_status("IFF write failed: " .. write_err)
@@ -768,3 +785,133 @@ renoise.tool():add_menu_entry{name = "Sample Navigator:Paketti..:Load..:Convert 
 renoise.tool():add_menu_entry{name = "Sample Mappings:Paketti..:Load..:Convert WAV to IFF...",invoke = convertWAVToIFF}
 renoise.tool():add_keybinding{name = "Global:Paketti:Convert WAV to IFF...",invoke = convertWAVToIFF}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Convert WAV to IFF...",invoke=convertWAVToIFF}
+
+-- Function to save current selected sample as IFF (22kHz 8-bit mono .iff)
+function saveCurrentSampleAsIFF()
+  local song = renoise.song()
+  
+  -- Check if we have a selected instrument and sample
+  if not song.selected_instrument_index or song.selected_instrument_index == 0 then
+    renoise.app():show_status("No instrument selected")
+    return
+  end
+  
+  local instrument = song.selected_instrument
+  if not instrument or #instrument.samples == 0 then
+    renoise.app():show_status("No samples in selected instrument")
+    return
+  end
+  
+  if not song.selected_sample_index or song.selected_sample_index == 0 then
+    renoise.app():show_status("No sample selected")
+    return
+  end
+  
+  local sample = instrument.samples[song.selected_sample_index]
+  if not sample or not sample.sample_buffer or not sample.sample_buffer.has_sample_data then
+    renoise.app():show_status("Selected sample has no data")
+    return
+  end
+
+  -- Prompt for output file path
+  local output_path = renoise.app():prompt_for_filename_to_write(
+    {"*.iff"}, 
+    "Save Sample as IFF File"
+  )
+  
+  if not output_path or output_path == "" then
+    renoise.app():show_status("No file selected")
+    return
+  end
+  
+  -- Ensure .iff extension
+  if not output_path:lower():match("%.iff$") then
+    output_path = change_extension(output_path, "iff")
+  end
+
+  print("---------------------------------")
+  debug_print("Saving current sample as IFF (22kHz 8-bit mono):", sample.name)
+
+  local buffer = sample.sample_buffer
+  local original_rate = buffer.sample_rate
+  local original_frames = buffer.number_of_frames
+  local original_channels = buffer.number_of_channels
+  
+  debug_print(string.format("Original sample: %d Hz, %d frames, %d channels", 
+    original_rate, original_frames, original_channels))
+
+  -- Extract sample data (mix to mono if stereo)
+  local sample_data = {}
+  if original_channels == 1 then
+    -- Mono - direct copy
+    for i = 1, original_frames do
+      sample_data[i] = buffer:sample_data(1, i)
+    end
+  else
+    -- Stereo/Multi - mix to mono
+    for i = 1, original_frames do
+      local sum = 0
+      for ch = 1, original_channels do
+        sum = sum + buffer:sample_data(ch, i)
+      end
+      sample_data[i] = sum / original_channels
+    end
+  end
+
+  -- Track what operations were performed
+  local operations = {}
+  
+  -- Resample to 22050 Hz if needed
+  local target_rate = 22050
+  if original_rate ~= target_rate then
+    sample_data = resample_buffer(sample_data, original_rate, target_rate)
+    table.insert(operations, string.format("resampled from %d Hz to %d Hz", original_rate, target_rate))
+  end
+  
+  -- Check length and truncate if necessary
+  local was_truncated = false
+  if #sample_data > 65535 then
+    debug_print(string.format("Sample too long (%d frames), truncating to 65534 frames", #sample_data))
+    local truncated_data = {}
+    for i = 1, 65534 do
+      truncated_data[i] = sample_data[i]
+    end
+    sample_data = truncated_data
+    was_truncated = true
+    table.insert(operations, string.format("truncated from %d to 65534 frames", #sample_data > 65534 and #sample_data or "unknown"))
+  end
+  
+  -- Convert to mono if it was stereo
+  if original_channels > 1 then
+    table.insert(operations, string.format("converted from %d channels to mono", original_channels))
+  end
+  
+  -- Always mention bit depth conversion
+  table.insert(operations, "converted to 8-bit")
+
+  local write_ok, write_err = pcall(function()
+    write_iff_file(output_path, sample_data, target_rate, 8)
+  end)
+
+  if write_ok then
+    local filename = filename_from_path(output_path)
+    local status_msg = string.format("Saved as IFF: %s", filename)
+    if #operations > 0 then
+      status_msg = status_msg .. " (" .. table.concat(operations, ", ") .. ")"
+    end
+    renoise.app():show_status(status_msg)
+    print(string.format("Successfully saved: %s -> %s", sample.name, output_path))
+    if #operations > 0 then
+      print("Operations performed: " .. table.concat(operations, ", "))
+    end
+  else
+    print(string.format("Failed to write IFF file: %s (Error: %s)", output_path, write_err))
+    renoise.app():show_status("IFF save failed: " .. write_err)
+  end
+end
+
+renoise.tool():add_menu_entry{name = "Sample Editor:Paketti..:Save..:Save Current Sample as IFF...",invoke = saveCurrentSampleAsIFF}
+renoise.tool():add_menu_entry{name = "Sample Navigator:Paketti..:Save..:Save Current Sample as IFF...",invoke = saveCurrentSampleAsIFF}
+renoise.tool():add_menu_entry{name = "Sample Mappings:Paketti..:Save..:Save Current Sample as IFF...",invoke = saveCurrentSampleAsIFF}
+renoise.tool():add_keybinding{name = "Global:Paketti:Save Current Sample as IFF...",invoke = saveCurrentSampleAsIFF}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Save Current Sample as IFF...",invoke=saveCurrentSampleAsIFF}
