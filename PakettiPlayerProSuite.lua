@@ -603,7 +603,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Open Player Pro Note Column D
 
 PakettiPlayerProNoteGridAddNoteMenuEntries()
 --------------
-function pakettiPlayerProTranspose(steps, range)
+function pakettiPlayerProTranspose(steps, range, playback)
   local song=renoise.song()
   local selection = song.selection_in_pattern
   local pattern = song.selected_pattern
@@ -660,16 +660,31 @@ function pakettiPlayerProTranspose(steps, range)
       end
     end
   end
+  
+  -- If playback is enabled, trigger the current line
+  if playback then
+    song:trigger_pattern_line(song.selected_line_index)
+  end
 end
 
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Player Pro Transpose Selection or Row +1",invoke=function() pakettiPlayerProTranspose(1, "row") end}
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Player Pro Transpose Selection or Row -1",invoke=function() pakettiPlayerProTranspose(-1, "row") end}
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Player Pro Transpose Selection or Row +12",invoke=function() pakettiPlayerProTranspose(12, "row") end}
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Player Pro Transpose Selection or Row -12",invoke=function() pakettiPlayerProTranspose(-12, "row") end}
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Player Pro Transpose Selection or Note Column +1",invoke=function() pakettiPlayerProTranspose(1, "notecolumn") end}
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Player Pro Transpose Selection or Note Column -1",invoke=function() pakettiPlayerProTranspose(-1, "notecolumn") end}
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Player Pro Transpose Selection or Note Column +12",invoke=function() pakettiPlayerProTranspose(12, "notecolumn") end}
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Player Pro Transpose Selection or Note Column -12",invoke=function() pakettiPlayerProTranspose(-12, "notecolumn") end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Player Pro Transpose Selection or Row +1",invoke=function() pakettiPlayerProTranspose(1, "row", false) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Player Pro Transpose Selection or Row -1",invoke=function() pakettiPlayerProTranspose(-1, "row", false) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Player Pro Transpose Selection or Row +12",invoke=function() pakettiPlayerProTranspose(12, "row", false) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Player Pro Transpose Selection or Row -12",invoke=function() pakettiPlayerProTranspose(-12, "row", false) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Player Pro Transpose Selection or Note Column +1",invoke=function() pakettiPlayerProTranspose(1, "notecolumn", false) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Player Pro Transpose Selection or Note Column -1",invoke=function() pakettiPlayerProTranspose(-1, "notecolumn", false) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Player Pro Transpose Selection or Note Column +12",invoke=function() pakettiPlayerProTranspose(12, "notecolumn", false) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Player Pro Transpose Selection or Note Column -12",invoke=function() pakettiPlayerProTranspose(-12, "notecolumn", false) end}
+
+-- Transpose with Play/Audition versions
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Player Pro Transpose Selection or Row +1 with Play",invoke=function() pakettiPlayerProTranspose(1, "row", true) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Player Pro Transpose Selection or Row -1 with Play",invoke=function() pakettiPlayerProTranspose(-1, "row", true) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Player Pro Transpose Selection or Row +12 with Play",invoke=function() pakettiPlayerProTranspose(12, "row", true) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Player Pro Transpose Selection or Row -12 with Play",invoke=function() pakettiPlayerProTranspose(-12, "row", true) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Player Pro Transpose Selection or Note Column +1 with Play",invoke=function() pakettiPlayerProTranspose(1, "notecolumn", true) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Player Pro Transpose Selection or Note Column -1 with Play",invoke=function() pakettiPlayerProTranspose(-1, "notecolumn", true) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Player Pro Transpose Selection or Note Column +12 with Play",invoke=function() pakettiPlayerProTranspose(12, "notecolumn", true) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Player Pro Transpose Selection or Note Column -12 with Play",invoke=function() pakettiPlayerProTranspose(-12, "notecolumn", true) end}
 --------------------
 local effect_dialog_vb = renoise.ViewBuilder()
 local effect_dialog
