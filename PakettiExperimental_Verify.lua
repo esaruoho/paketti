@@ -1,3 +1,163 @@
+-- Create Pattern Sequencer Patterns based on Slice Count with Automatic Slice Printing
+function createPatternSequencerPatternsBasedOnSliceCount()
+  local song = renoise.song()
+  
+  -- Check if we have a selected instrument and sample
+  if not song.selected_instrument_index or song.selected_instrument_index == 0 then
+    renoise.app():show_status("No instrument selected")
+    return
+  end
+  
+  local instrument = song.selected_instrument
+  if not instrument or #instrument.samples == 0 then
+    renoise.app():show_status("No samples in selected instrument")
+    return
+  end
+  
+  if not song.selected_sample_index or song.selected_sample_index == 0 then
+    renoise.app():show_status("No sample selected")
+    return
+  end
+  
+  -- Always use the first sample (original sample) to check for slices
+  local original_sample = instrument.samples[1]
+  if not original_sample or not original_sample.sample_buffer or not original_sample.sample_buffer.has_sample_data then
+    renoise.app():show_status("First sample has no data")
+    return
+  end
+  
+  -- Check if the original sample has slices
+  if not original_sample.slice_markers or #original_sample.slice_markers == 0 then
+    renoise.app():show_status("Selected sample has no slices")
+    return
+  end
+  
+  local slice_count = #original_sample.slice_markers
+  print("Found " .. slice_count .. " slices in sample: " .. original_sample.name)
+  
+  -- Get the base note from the original sample to know where slices start
+  local base_note = original_sample.sample_mapping.base_note
+  local first_slice_note = base_note + 1  -- Slices start one note above base note
+  
+  local track_index = song.selected_track_index  
+  local current_instrument = song.selected_instrument_index - 1  -- Instrument indices are 0-based in patterns
+  
+  -- Get current selected sequence position to start inserting from
+  local current_seq_pos = song.selected_sequence_index
+  
+  -- Get the current pattern length to apply to all new patterns
+  local current_pattern = song.selected_pattern
+  local pattern_length = current_pattern.number_of_lines
+  
+  print("Creating " .. slice_count .. " patterns starting from sequence position " .. (current_seq_pos + 1))
+  print("Using pattern length: " .. pattern_length .. " lines")
+  
+  -- Create patterns for each slice
+  for slice_index = 0, slice_count - 1 do
+    local pattern
+    local result_seq_pos
+    
+    if slice_index == 0 then
+      -- First slice goes into the currently selected pattern
+      pattern = current_pattern
+      result_seq_pos = current_seq_pos
+      print("Using current pattern at sequence position " .. result_seq_pos)
+    else
+      -- Create new patterns for remaining slices
+      local insert_pos = current_seq_pos + slice_index
+      
+      local ok, seq_pos, pattern_idx = pcall(function()
+        return song.sequencer:insert_new_pattern_at(insert_pos)
+      end)
+      
+      if not ok then
+        print("Error inserting pattern at position " .. insert_pos .. ": " .. tostring(seq_pos))
+        break
+      end
+      
+      if not seq_pos then
+        print("Failed to insert pattern at position " .. insert_pos)
+        break
+      end
+      
+      result_seq_pos = seq_pos
+      print("Inserted pattern at sequence position " .. result_seq_pos)
+      
+      -- Get the pattern - use the sequencer to find the pattern index
+      local sequence_pattern_index = song.sequencer.pattern_sequence[result_seq_pos]
+      if not sequence_pattern_index then
+        print("Error: Could not find pattern in sequence at position " .. result_seq_pos)
+        break
+      end
+      
+      pattern = song.patterns[sequence_pattern_index]
+      if not pattern then
+        print("Error: Could not access pattern at index " .. sequence_pattern_index)
+        break
+      end
+    end
+    
+    local slice_name = "Slice " .. string.format("%02d", slice_index + 1)
+    
+    -- Try to get slice name from sample if available, otherwise use default
+    if slice_index < #instrument.samples - 1 then
+      local slice_sample = instrument.samples[slice_index + 2]  -- +2 because first sample is original, slices start at index 2
+      if slice_sample and slice_sample.name and slice_sample.name ~= "" then
+        slice_name = slice_sample.name
+      end
+    end
+    
+    pattern.name = slice_name
+    if slice_index > 0 then
+      pattern.number_of_lines = pattern_length
+    end
+    print("Named pattern: " .. slice_name .. " (" .. pattern_length .. " lines)")
+    
+    -- Calculate which note corresponds to this slice
+    local note_value = first_slice_note + slice_index
+    
+    -- Make sure note is within valid range
+    if note_value > 119 then  -- B-9 = 119
+      print("Warning: Note value " .. note_value .. " exceeds maximum (119), clamping to 119")
+      note_value = 119
+    end
+    
+    -- Check if the selected track is a sequencer track before writing
+    local track = song.tracks[track_index]
+    if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+      -- Write the slice note to the first row of the selected track
+      local pattern_track = pattern.tracks[track_index]
+      local pattern_line = pattern_track.lines[1]
+      local note_column = pattern_line.note_columns[1]
+      
+      -- Ensure the track has at least one visible note column
+      if track.visible_note_columns == 0 then
+        track.visible_note_columns = 1
+      end
+      
+      -- Write the note
+      note_column.note_value = note_value
+      note_column.instrument_value = current_instrument
+      
+             print("Written slice " .. (slice_index + 1) .. " (note " .. note_value .. ") to pattern " .. slice_name)
+     else
+       print("Warning: Track " .. track_index .. " is not a sequencer track, skipping note writing for slice " .. (slice_index + 1))
+     end
+  end
+  
+  -- Show completion status
+  local status_msg = string.format("Created %d patterns for %d slices from sample: %s", 
+    slice_count, slice_count, original_sample.name)
+  renoise.app():show_status(status_msg)
+  print("Pattern creation completed: " .. slice_count .. " patterns created")
+end
+
+-- Menu entry and keybinding for the new function
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Create Pattern Sequencer Patterns based on Slice Count with Automatic Slice Printing",invoke = createPatternSequencerPatternsBasedOnSliceCount}
+renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Create Pattern Sequencer Patterns based on Slice Count with Automatic Slice Printing",invoke = createPatternSequencerPatternsBasedOnSliceCount}
+renoise.tool():add_keybinding{name="Global:Paketti:Create Pattern Sequencer Patterns based on Slice Count with Automatic Slice Printing",invoke = createPatternSequencerPatternsBasedOnSliceCount}
+
+----
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Wipe&Slice&Write to Pattern",invoke = function() WipeSliceAndWrite() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Wipe&Slice&Write to Pattern",invoke = function() WipeSliceAndWrite() end}
 
