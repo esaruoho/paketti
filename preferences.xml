@@ -107,6 +107,24 @@
   <pakettiInstrumentProperties>false</pakettiInstrumentProperties>
   <PakettiStripSilenceThreshold>0.024129032258064516</PakettiStripSilenceThreshold>
   <pakettiDefaultDrumkitXRNI>/Users/esaruoho/Library/Preferences/Renoise/V3.4.4/Scripts/Tools/org.lackluster.Paketti.xrnx/Presets/12st_Pitchbend_Drumkit_C0.xrni</pakettiDefaultDrumkitXRNI>
+  <pakettiMenuConfig>
+    <MainMenuTools>true</MainMenuTools>
+    <SampleEditor>true</SampleEditor>
+    <Automation>true</Automation>
+    <TrackDSPDevice>true</TrackDSPDevice>
+    <MainMenuFile>true</MainMenuFile>
+    <PatternSequencer>true</PatternSequencer>
+    <InstrumentBox>true</InstrumentBox>
+    <PatternMatrix>true</PatternMatrix>
+    <PakettiGadgets>true</PakettiGadgets>
+    <SampleKeyzone>true</SampleKeyzone>
+    <MainMenuView>true</MainMenuView>
+    <SampleNavigator>true</SampleNavigator>
+    <DiskBrowserFiles>true</DiskBrowserFiles>
+    <PatternEditor>true</PatternEditor>
+    <PhraseEditor>true</PhraseEditor>
+    <Mixer>true</Mixer>
+  </pakettiMenuConfig>
   <pakettiPatternSequencer>
     <naming_behavior>1.0</naming_behavior>
     <clone_suffix/>
