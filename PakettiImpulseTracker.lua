@@ -1744,8 +1744,6 @@ function pakettiImpulseTrackerNewSongDialog()
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker CTRL-N New Song Dialog...",invoke=function() pakettiImpulseTrackerNewSongDialog() end}
-renoise.tool():add_menu_entry{name="Main Menu:File:Paketti New Song Dialog...",invoke=function() pakettiImpulseTrackerNewSongDialog() end}
-renoise.tool():add_menu_entry{name="Main Menu:File:Paketti..:Paketti New Song Dialog...",invoke=function() pakettiImpulseTrackerNewSongDialog() end}
 -----------------------------------------------------
 ----ALT-U
 function Deselect_All()

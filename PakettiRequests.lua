@@ -9418,8 +9418,6 @@ function deleteUnusedInstruments()
 end
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Delete Unused Instruments...",invoke=deleteUnusedInstruments}
-renoise.tool():add_menu_entry{name="--Main Menu:File:Delete Unused Instruments...",invoke=deleteUnusedInstruments}
-renoise.tool():add_menu_entry{name="--Main Menu:File:Paketti..:Delete Unused Instruments...",invoke=deleteUnusedInstruments}
 renoise.tool():add_keybinding{name="Global:Paketti:Delete Unused Instruments",invoke=deleteUnusedInstruments}
 ---
 function findUsedSamples()
@@ -9664,8 +9662,6 @@ function deleteUnusedSamples()
 end
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Delete Unused Samples...",invoke=deleteUnusedSamples}
-renoise.tool():add_menu_entry{name="Main Menu:File:Delete Unused Samples...",invoke=deleteUnusedSamples}
-renoise.tool():add_menu_entry{name="Main Menu:File:Paketti..:Delete Unused Samples...",invoke=deleteUnusedSamples}
 renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Delete Unused Samples...",invoke=deleteUnusedSamples}
 renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti..:Delete Unused Samples...",invoke=deleteUnusedSamples}
 renoise.tool():add_keybinding{name="Global:Paketti:Delete Unused Samples",invoke=deleteUnusedSamples}
