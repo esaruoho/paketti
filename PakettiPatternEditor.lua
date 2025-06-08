@@ -2334,7 +2334,7 @@ end
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Flood Fill Note and Instrument",invoke=pakettiFloodFill}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Flood Fill Note and Instrument",invoke=pakettiFloodFill}
 renoise.tool():add_midi_mapping{name="Paketti:Flood Fill Note and Instrument",invoke=pakettiFloodFill}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Note Columns..Flood Fill Note and Instrument",invoke=pakettiFloodFill}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Note Columns..:Flood Fill Note and Instrument",invoke=pakettiFloodFill}
 -----------
 -- Function to Flood Fill the track with the current note and instrument with an edit step
 function pakettiFloodFillWithEditStep()
