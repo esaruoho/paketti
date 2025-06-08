@@ -1187,12 +1187,12 @@ function PakettiYTDLPCloseDialog()
   renoise.app():show_status("Closing Paketti YT-DLP Dialog")
 end
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress..:Paketti YT-DLP Downloader...",invoke=function() pakettiYTDLPDialog() end}
+
 
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti YT-DLP Downloader",invoke=pakettiYTDLPDialog }
---renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Paketti YT-DLP Downloader...",invoke=pakettiYTDLPDialog }
---renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Paketti YT-DLP Downloader...",invoke=pakettiYTDLPDialog }
---renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Paketti YT-DLP Downloader...",invoke=pakettiYTDLPDialog }
+
+
+
 
 -- Add this function to handle process cancellation
 function PakettiYTDLPCancelProcess()

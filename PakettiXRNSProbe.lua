@@ -576,4 +576,3 @@ function MissingDeviceParameters()
     print ("renoise.song().selected_device.parameters[" .. i .. "].value=" ..renoise.song().selected_device.parameters[i].value)
   end
 end
-renoise.tool():add_menu_entry{name="--DSP Device:Paketti..:Query Missing Device for Parameters", invoke=function() MissingDeviceParameters() end}

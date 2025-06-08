@@ -16,7 +16,6 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Instrument and Select New Instrument",invoke=function() DuplicateInstrumentAndSelectNewInstrument() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Instrument and Select New Instrument (2nd)",invoke=function() DuplicateInstrumentAndSelectNewInstrument() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Instrument and Select New Instrument (3rd)",invoke=function() DuplicateInstrumentAndSelectNewInstrument() end}
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Instruments..:Duplicate Instrument and Select New Instrument",invoke=function() DuplicateInstrumentAndSelectNewInstrument() end}
 
 function duplicateSelectInstrumentToLastInstrument()
 local rs=renoise.song()
@@ -31,15 +30,12 @@ rs.selected_instrument:copy_from(src_inst)
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Instrument and Select Last Instrument",invoke=function() duplicateSelectInstrumentToLastInstrument() end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Instruments..:Duplicate Instrument and Select Last Instrument",invoke=function() duplicateSelectInstrumentToLastInstrument() end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Instruments..:Duplicate and Reverse Instrument",invoke=function() PakettiDuplicateAndReverseInstrument() end}
 
 -- auto-suspend plugin off:
 function autosuspendOFF()
 renoise.song().instruments[renoise.song().selected_instrument_index].plugin_properties.auto_suspend=false
 end
 
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Plugins/Devices..:Switch Plugin AutoSuspend Off",invoke=function() autosuspendOFF() end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Plugins/Devices..:Switch Plugin AutoSuspend Off",invoke=function() autosuspendOFF() end}
 
 -------------------------

@@ -1274,11 +1274,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Move Beginning Silence to End",inv
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Strip Silence",invoke=function() PakettiStripSilence() end}
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Process..:Move Beginning Silence to End",invoke=function() PakettiMoveSilence() end}
 
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Process..:Strip Silence",invoke=function() PakettiStripSilence() end}
-renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Process..:Move Beginning Silence to End",invoke=function() PakettiMoveSilence() end}
 
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Process..:Strip Silence",invoke=function() PakettiStripSilence() end}
-renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti..:Process..:Move Beginning Silence to End",invoke=function() PakettiMoveSilence() end}
 
 
 -----------
@@ -1355,8 +1351,8 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Move Beginning Silence to End for All Samples",invoke=function() PakettiMoveSilenceAllSamples() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Move Beginning Silence to End for All Samples",invoke=function() PakettiMoveSilenceAllSamples() end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Process..:Move Beginning Silence to End for All Samples",invoke=function() PakettiMoveSilenceAllSamples() end}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Process..:Move Beginning Silence to End for All Samples",invoke=function() PakettiMoveSilenceAllSamples() end}
+
+
 --------
 function PakettiSampleInvertEntireSample()
   local sample = renoise.song().selected_sample
@@ -1447,14 +1443,6 @@ renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Process..:Invert S
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Invert Left Channel",invoke=PakettiSampleInvertLeftChannel}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Invert Right Channel",invoke=PakettiSampleInvertRightChannel}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Invert Random Samples in Instrument",invoke=PakettiInvertRandomSamplesInInstrument}
-renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Process..:Invert Sample",invoke=PakettiSampleInvertEntireSample}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Process..:Invert Left Channel",invoke=PakettiSampleInvertLeftChannel}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Process..:Invert Right Channel",invoke=PakettiSampleInvertRightChannel}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Process..:Invert Random Samples in Instrument",invoke=PakettiInvertRandomSamplesInInstrument}
-renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti..:Process..:Invert Sample",invoke=PakettiSampleInvertEntireSample}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Process..:Invert Left Channel",invoke=PakettiSampleInvertLeftChannel}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Process..:Invert Right Channel",invoke=PakettiSampleInvertRightChannel}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Process..:Invert Random Samples in Instrument",invoke=PakettiInvertRandomSamplesInInstrument}
 ---
 function apply_fade_in_out()
   local instrument=renoise.song().selected_instrument

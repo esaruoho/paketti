@@ -692,11 +692,6 @@ if renoise.song().selected_track.type == 2 then renoise.app():show_status("*Inst
   end
 end
 
-renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti..:Paketti PitchBend Drumkit Sample Loader",invoke=function() pitchBendDrumkitLoader() end}
-renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti..:Paketti PitchBend Drumkit Sample Loader (Random)",invoke=function() loadRandomDrumkitSamples(120) end}
-renoise.tool():add_menu_entry{name="--Disk Browser Files:Paketti..:Paketti PitchBend Multiple Sample Loader",invoke=function() pitchBendMultipleSampleLoader() end}
-renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti..:Paketti PitchBend Multiple Sample Loader (Normalize)",invoke=function() pitchBendMultipleSampleLoader(true) end}
-renoise.tool():add_menu_entry{name="--Disk Browser Files:Paketti..:Fill Empty Sample Slots (Randomized Folder)",invoke=function() fillEmptySampleSlots() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:Paketti PitchBend Multiple Sample Loader",invoke=function() pitchBendMultipleSampleLoader() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti PitchBend Multiple Sample Loader",invoke=function() pitchBendMultipleSampleLoader() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti PitchBend Multiple Sample Loader (Normalize)",invoke=function() pitchBendMultipleSampleLoader(true) end}
@@ -757,11 +752,6 @@ function noteOnToNoteOff(noteoffPitch)
   renoise.song().selected_sample_index = 1
 end
 
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Copy Sample in Note-On to Note-Off Layer +24",invoke=function() noteOnToNoteOff(24) end}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Copy Sample in Note-On to Note-Off Layer +12",invoke=function() noteOnToNoteOff(12) end}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Copy Sample in Note-On to Note-Off Layer",invoke=function() noteOnToNoteOff(0) end}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Copy Sample in Note-On to Note-Off Layer -12",invoke=function() noteOnToNoteOff(-12) end}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Copy Sample in Note-On to Note-Off Layer -24",invoke=function() noteOnToNoteOff(-24) end}
 
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Copy Sample in Note-On to Note-Off Layer +24",invoke=function() noteOnToNoteOff(24) end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Copy Sample in Note-On to Note-Off Layer +12",invoke=function() noteOnToNoteOff(12) end}
@@ -769,11 +759,6 @@ renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Copy Sample in Note-
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Copy Sample in Note-On to Note-Off Layer -12",invoke=function() noteOnToNoteOff(-12) end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Copy Sample in Note-On to Note-Off Layer -24",invoke=function() noteOnToNoteOff(-24) end}
 
-renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Copy Sample in Note-On to Note-Off Layer +24",invoke=function() noteOnToNoteOff(24) end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Copy Sample in Note-On to Note-Off Layer +12",invoke=function() noteOnToNoteOff(12) end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Copy Sample in Note-On to Note-Off Layer",invoke=function() noteOnToNoteOff(0) end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Copy Sample in Note-On to Note-Off Layer -12",invoke=function() noteOnToNoteOff(-12) end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Copy Sample in Note-On to Note-Off Layer -24",invoke=function() noteOnToNoteOff(-24) end}
 -----------------------------------------------------------------------------------------------------------
 function addSampleSlot(amount)
 for i=1,amount do
@@ -784,7 +769,7 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Add Sample Slot to Instrument",invoke=function() addSampleSlot(1) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Add 84 Sample Slots to Instrument",invoke=function() addSampleSlot(84) end}
 renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Add 84 Sample Slots to Instrument",invoke=function() addSampleSlot(84) end}
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Initialize..:Add 84 Sample Slots to Instrument",invoke=function() addSampleSlot(84) end}
+
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Instruments..:Add 84 Sample Slots to Instrument",invoke=function() addSampleSlot(84) end}
 -------------------------------------------------------------------------------------------------------------------------------
 function oneshotcontinue()
@@ -995,25 +980,6 @@ renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Wipe&Slice..:Wipe&Sl
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Wipe&Slice..:Wipe&Slice (256)",invoke=function() slicerough(256) end}
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Wipe&Slice..:Wipe Slices",invoke=function() wipeslices() end}
 
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Wipe&Slice..:Wipe&Slice (002)",invoke=function() slicerough(2) end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Wipe&Slice..:Wipe&Slice (004)",invoke=function() slicerough(4) end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Wipe&Slice..:Wipe&Slice (008)",invoke=function() slicerough(8) end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Wipe&Slice..:Wipe&Slice (016)",invoke=function() slicerough(16) end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Wipe&Slice..:Wipe&Slice (032)",invoke=function() slicerough(32) end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Wipe&Slice..:Wipe&Slice (064)",invoke=function() slicerough(64) end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Wipe&Slice..:Wipe&Slice (128)",invoke=function() slicerough(128) end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Wipe&Slice..:Wipe&Slice (256)",invoke=function() slicerough(256) end}
-renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Wipe&Slice..:Wipe Slices",invoke=function() wipeslices() end}
-
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Wipe&Slice..:Wipe&Slice (002)",invoke=function() slicerough(2) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Wipe&Slice..:Wipe&Slice (004)",invoke=function() slicerough(4) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Wipe&Slice..:Wipe&Slice (008)",invoke=function() slicerough(8) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Wipe&Slice..:Wipe&Slice (016)",invoke=function() slicerough(16) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Wipe&Slice..:Wipe&Slice (032)",invoke=function() slicerough(32) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Wipe&Slice..:Wipe&Slice (064)",invoke=function() slicerough(64) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Wipe&Slice..:Wipe&Slice (128)",invoke=function() slicerough(128) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Wipe&Slice..:Wipe&Slice (256)",invoke=function() slicerough(256) end}
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Wipe&Slice..:Wipe Slices",invoke=function() wipeslices() end}
 
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Beatsync/Slices..:Double Beatsync Line",invoke=function() doubleBeatSyncLines() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Beatsync/Slices..:Halve Beatsync Line",invoke=function() halveBeatSyncLines() end}
@@ -1780,6 +1746,8 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Duplicate and Reverse Instrument",invoke=function() PakettiDuplicateAndReverseInstrument() end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Instruments..:Duplicate and Reverse Instrument",invoke=function() PakettiDuplicateAndReverseInstrument() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Instruments..:Duplicate and Reverse Instrument",invoke=function() PakettiDuplicateAndReverseInstrument() end}
+
+
 renoise.tool():add_midi_mapping{name="Paketti:Duplicate and Reverse Instrument [Trigger]",invoke=function(message) if message:is_trigger() then PakettiDuplicateAndReverseInstrument() end end}
 -----
 function pakettiSampleBufferHalfSelector(half)
@@ -2256,13 +2224,11 @@ end
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Clean Render..:Clean Render and Save Selected Track/Group as .WAV",invoke=function() CleanRenderAndSaveSelection("WAV") end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Clean Render..:Clean Render and Save Selected Track/Group as .FLAC",invoke=function() CleanRenderAndSaveSelection("FLAC") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Clean Render..:Clean Render and Save Selected Track/Group as .WAV",invoke=function() CleanRenderAndSaveSelection("WAV") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Clean Render..:Clean Render and Save Selected Track/Group as .FLAC",invoke=function() CleanRenderAndSaveSelection("FLAC") end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Clean Render..:Clean Render and Save Selected Track/Group as .WAV",invoke=function() CleanRenderAndSaveSelection("WAV") end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Clean Render..:Clean Render and Save Selected Track/Group as .FLAC",invoke=function() CleanRenderAndSaveSelection("FLAC") end}
 renoise.tool():add_keybinding{name="Global:Paketti:Clean Render&Save Selected Track/Group (.WAV)",invoke=function() CleanRenderAndSaveSelection("WAV") end}
 renoise.tool():add_keybinding{name="Global:Paketti:Clean Render&Save Selected Track/Group (.FLAC)",invoke=function() CleanRenderAndSaveSelection("FLAC") end}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Duplicate and Reverse Instrument",invoke=PakettiDuplicateAndReverseInstrument}
+
 ---------
 function PakettiInjectDefaultXRNI()
   local instVol = renoise.song().selected_instrument.volume
@@ -2576,8 +2542,8 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Pakettify Current Instrument",invoke=function() PakettiInjectDefaultXRNI() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Pakettify Current Instrument",invoke=function() PakettiInjectDefaultXRNI() end}
 renoise.tool():add_menu_entry{name="Sample Editor Ruler:Pakettify Current Instrument",invoke=function() PakettiInjectDefaultXRNI() end}
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Instruments..:Pakettify Current Instrument",invoke=function() PakettiInjectDefaultXRNI() end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Pakettify Current Instrument",invoke=function() PakettiInjectDefaultXRNI() end}
+
+
 ---------
 function PakettiToggleMono()
   local sample = renoise.song().selected_sample
@@ -2604,7 +2570,7 @@ end
 
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Toggle Mono Device",invoke=PakettiToggleMono}
 
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Plugins/Devices..:Toggle Mono Device",invoke=function() PakettiToggleMono() end}
+
 -------------------
 function BeatSyncFromSelection()
   local song=renoise.song()
@@ -3250,7 +3216,7 @@ end
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti User-Defined Sample Folders...",invoke=pakettiUserDefinedSamplesDialog}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Quick Sample Folders..:Paketti User-Defined Sample Folders...",invoke=pakettiUserDefinedSamplesDialog}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:User-Defined Sample Folders...",invoke=pakettiUserDefinedSamplesDialog}
-renoise.tool():add_menu_entry{name="--Disk Browser Files:Paketti..:User-Defined Sample Folders...",invoke=pakettiUserDefinedSamplesDialog}
+
 renoise.tool():add_keybinding{name="Global:Paketti:User-Defined Sample Folders...",invoke=pakettiUserDefinedSamplesDialog}
 -- Function to get folder path from preferences
 function getFolderPath(folderNum)
@@ -3384,14 +3350,6 @@ renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Selected Sample at 
 renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Selected Sample at -24 transpose",invoke=function() duplicate_sample_with_transpose(-24) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Selected Sample at +12 transpose",invoke=function() duplicate_sample_with_transpose(12) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Selected Sample at +24 transpose",invoke=function() duplicate_sample_with_transpose(24) end}
-renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Duplicate Selected Sample at -12 transpose",invoke=function() duplicate_sample_with_transpose(-12) end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Duplicate Selected Sample at -24 transpose",invoke=function() duplicate_sample_with_transpose(-24) end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Duplicate Selected Sample at +12 transpose",invoke=function() duplicate_sample_with_transpose(12) end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Duplicate Selected Sample at +24 transpose",invoke=function() duplicate_sample_with_transpose(24) end}
-renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti..:Duplicate Selected Sample at -12 transpose",invoke=function() duplicate_sample_with_transpose(-12) end}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Duplicate Selected Sample at -24 transpose",invoke=function() duplicate_sample_with_transpose(-24) end}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Duplicate Selected Sample at +12 transpose",invoke=function() duplicate_sample_with_transpose(12) end}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Duplicate Selected Sample at +24 transpose",invoke=function() duplicate_sample_with_transpose(24) end}
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Duplicate Selected Sample at -12 transpose",invoke=function() duplicate_sample_with_transpose(-12) end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Duplicate Selected Sample at -24 transpose",invoke=function() duplicate_sample_with_transpose(-24) end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Duplicate Selected Sample at +12 transpose",invoke=function() duplicate_sample_with_transpose(12) end}
@@ -3428,10 +3386,6 @@ renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Instruments..:Cy
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:Set Overlap Mode 0 (Play All)",invoke=function() setOverlapMode(0) end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:Set Overlap Mode 1 (Cycle)",invoke=function() setOverlapMode(1) end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:Set Overlap Mode 2 (Random)",invoke=function() setOverlapMode(2) end}
-renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti..:Cycle Overlap Mode",invoke=overlayModeCycle}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Set Overlap Mode 0 (Play All)",invoke=function() setOverlapMode(0) end}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Set Overlap Mode 1 (Cycle)",invoke=function() setOverlapMode(1) end}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Set Overlap Mode 2 (Random)",invoke=function() setOverlapMode(2) end}
 renoise.tool():add_midi_mapping{name="Paketti:Cycle Overlap Mode",invoke=function(message) if message:is_trigger() then overlayModeCycle() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Set Overlap Mode 0 (Play All)",invoke=function(message) if message:is_trigger() then setOverlapMode(0) end end}
 renoise.tool():add_midi_mapping{name="Paketti:Set Overlap Mode 1 (Cycle)",invoke=function(message) if message:is_trigger() then setOverlapMode(1) end end}
@@ -3453,7 +3407,7 @@ renoise.app():show_status("The instrument " .. renoise.song().selected_instrumen
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Set Drumkit to Overlap Random",invoke=function() DrumKitToOverlay(2) end}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Set Drumkit to Overlap Random",invoke=function() DrumKitToOverlay(2) end}
+
 renoise.tool():add_keybinding{name="Global:Paketti:Load Drumkit with Overlap Random",invoke=function() pitchBendDrumkitLoader()
 DrumKitToOverlay(2) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Load Drumkit with Overlap Cycle",invoke=function() pitchBendDrumkitLoader()
@@ -3573,27 +3527,8 @@ renoise.tool():add_keybinding{name="Global:Paketti:Duplicate All Samples at +12 
 renoise.tool():add_keybinding{name="Global:Paketti:Duplicate All Samples at +24 Transpose",invoke=function() PakettiDuplicateInstrumentSamplesWithTranspose(24) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Duplicate All Samples at +36 Transpose",invoke=function() PakettiDuplicateInstrumentSamplesWithTranspose(36) end}
 
-renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti..:Duplicate All Samples at -36 Transpose",invoke=function() PakettiDuplicateInstrumentSamplesWithTranspose(-36) end}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Duplicate All Samples at -24 Transpose",invoke=function() PakettiDuplicateInstrumentSamplesWithTranspose(-24) end}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Duplicate All Samples at -12 Transpose",invoke=function() PakettiDuplicateInstrumentSamplesWithTranspose(-12) end}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Duplicate All Samples at +12 Transpose",invoke=function() PakettiDuplicateInstrumentSamplesWithTranspose(12) end}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Duplicate All Samples at +24 Transpose",invoke=function() PakettiDuplicateInstrumentSamplesWithTranspose(24) end}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Duplicate All Samples at +36 Transpose",invoke=function() PakettiDuplicateInstrumentSamplesWithTranspose(36) end}
-
-renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Duplicate All Samples at -36 Transpose",invoke=function() PakettiDuplicateInstrumentSamplesWithTranspose(-36) end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Duplicate All Samples at -24 Transpose",invoke=function() PakettiDuplicateInstrumentSamplesWithTranspose(-24) end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Duplicate All Samples at -12 Transpose",invoke=function() PakettiDuplicateInstrumentSamplesWithTranspose(-12) end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Duplicate All Samples at +12 Transpose",invoke=function() PakettiDuplicateInstrumentSamplesWithTranspose(12) end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Duplicate All Samples at +24 Transpose",invoke=function() PakettiDuplicateInstrumentSamplesWithTranspose(24) end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Duplicate All Samples at +36 Transpose",invoke=function() PakettiDuplicateInstrumentSamplesWithTranspose(36) end}
 
 
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Duplicate All Samples at -36 Transpose",invoke=function() PakettiDuplicateInstrumentSamplesWithTranspose(-36) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Duplicate All Samples at -24 Transpose",invoke=function() PakettiDuplicateInstrumentSamplesWithTranspose(-24) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Duplicate All Samples at -12 Transpose",invoke=function() PakettiDuplicateInstrumentSamplesWithTranspose(-12) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Duplicate All Samples at +12 Transpose",invoke=function() PakettiDuplicateInstrumentSamplesWithTranspose(12) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Duplicate All Samples at +24 Transpose",invoke=function() PakettiDuplicateInstrumentSamplesWithTranspose(24) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Duplicate All Samples at +36 Transpose",invoke=function() PakettiDuplicateInstrumentSamplesWithTranspose(36) end}
 
 ----
 function add_backwards_effect_to_selection()
@@ -4476,7 +4411,7 @@ function pakettiShowLargestSamplesDialog()
   pakettiShowLargestSamplesDialogDialog()
 end
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Largest Samples Dialog...",invoke = pakettiShowLargestSamplesDialog}
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti Gadgets..:Largest Samples Dialog...",invoke = pakettiShowLargestSamplesDialog}
+
 renoise.tool():add_keybinding{name="Global:Paketti:Show Largest Samples Dialog...",invoke = pakettiShowLargestSamplesDialog}
 ---------
 -- Function to duplicate track and instrument with all settings

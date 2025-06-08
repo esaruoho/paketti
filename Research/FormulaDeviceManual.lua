@@ -355,7 +355,7 @@ function pakettiFormulaDeviceDialog()
 end
 
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Show Paketti Formula Dialog...",invoke = pakettiFormulaDeviceDialog}
-renoise.tool():add_menu_entry{name="--DSP Device:Paketti..:Show Paketti Formula Device Manual Dialog...",invoke = pakettiFormulaDeviceDialog}
+
 renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Show Paketti Formula Device Manual Dialog...",invoke = pakettiFormulaDeviceDialog}
 renoise.tool():add_keybinding{name="Global:Paketti:Show Paketti Formula Device Manual Dialog...",invoke = pakettiFormulaDeviceDialog}
 

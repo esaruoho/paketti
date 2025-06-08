@@ -311,18 +311,6 @@ renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Open Paketti Init Phra
 renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Create New Phrase using Paketti Settings",invoke=function() pakettiInitPhraseSettingsCreateNewPhrase() end}
 renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Modify Current Phrase using Paketti Settings",invoke=function() pakettiPhraseSettingsModifyCurrentPhrase() end}
 
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Phrases..:Open Paketti Init Phrase Dialog...",invoke=function() pakettiPhraseSettings() end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Phrases..:Create New Phrase using Paketti Settings",invoke=function() pakettiInitPhraseSettingsCreateNewPhrase() end}
-
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:!Preferences..:Open Paketti Init Phrase Dialog...",invoke=function() pakettiPhraseSettings() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Phrase Editor..:Open Paketti Init Phrase Dialog...",invoke=function() pakettiPhraseSettings() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Phrase Editor..:Create New Phrase using Paketti Settings",invoke=function() pakettiInitPhraseSettingsCreateNewPhrase() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Phrase Editor..:Modify Current Phrase using Paketti Settings",invoke=function() pakettiPhraseSettingsModifyCurrentPhrase() end}
-
-renoise.tool():add_menu_entry{name="--Phrase Editor:Paketti..:Open Paketti Init Phrase Dialog...",invoke=function() pakettiPhraseSettings() end}
-renoise.tool():add_menu_entry{name="Phrase Editor:Paketti..:Create New Phrase using Paketti Settings",invoke=function() pakettiInitPhraseSettingsCreateNewPhrase() end}
-renoise.tool():add_menu_entry{name="Phrase Editor:Paketti..:Modify Current Phrase using Paketti Settings",invoke=function() pakettiPhraseSettingsModifyCurrentPhrase() end}
-
 
 renoise.tool():add_midi_mapping{name="Paketti:Open Paketti Init Phrase Dialog...",invoke=function(message) if message:is_trigger() then pakettiPhraseSettings() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Create New Phrase Using Paketti Settings",invoke=function(message) if message:is_trigger() then pakettiInitPhraseSettingsCreateNewPhrase() end end}
@@ -371,7 +359,7 @@ selphra.lpb=preferences.pakettiPhraseInitDialog.LPB.value
 selphra.number_of_lines=preferences.pakettiPhraseInitDialog.Length.value
 end
 
---renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Phrases..:Create Paketti Phrase",invoke=function() createPhrase() end}
+
 --renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Create Paketti Phrase",invoke=function() createPhrase() end}
 
 --------

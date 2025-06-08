@@ -377,8 +377,7 @@ end
 -- Usage example:
 -- song.instruments[i].name = ensure_sequential_channel_prefix(song.instruments[i].name, i)
 
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Paketti Action Selector Dialog...",invoke = pakettiActionSelectorDialog}
-renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Paketti Action Selector Dialog...",invoke = pakettiActionSelectorDialog}
 
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Paketti Action Selector Dialog...",invoke = pakettiActionSelectorDialog}
+
+
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Action Selector Dialog...",invoke = pakettiActionSelectorDialog}

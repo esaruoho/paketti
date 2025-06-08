@@ -60,18 +60,10 @@ function showOnlyColumnType(column_type)
     renoise.app():show_status(message)
 end
 
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Toggle Show Only Volume Columns",invoke=function() showOnlyColumnType("volume") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Toggle Show Only Panning Columns",invoke=function() showOnlyColumnType("panning") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Toggle Show Only Delay Columns",invoke=function() showOnlyColumnType("delay") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Toggle Show Only Effect Columns",invoke=function() showOnlyColumnType("effects") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Toggle Show Only Volume Columns",invoke=function() showOnlyColumnType("volume") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Toggle Show Only Panning Columns",invoke=function() showOnlyColumnType("panning") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Toggle Show Only Delay Columns",invoke=function() showOnlyColumnType("delay") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Toggle Show Only Effect Columns",invoke=function() showOnlyColumnType("effects") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Show Only Volume Columns",invoke=function() showOnlyColumnType("volume") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Show Only Panning Columns",invoke=function() showOnlyColumnType("panning") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Show Only Delay Columns",invoke=function() showOnlyColumnType("delay") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Show Only Effect Columns",invoke=function() showOnlyColumnType("effects") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Show Only Volume Columns",invoke=function() showOnlyColumnType("volume") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Show Only Panning Columns",invoke=function() showOnlyColumnType("panning") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Show Only Delay Columns",invoke=function() showOnlyColumnType("delay") end}
@@ -156,7 +148,6 @@ function detect_zero_crossings()
     end
 end
 
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Experimental/WIP..:Detect Zero Crossings",invoke=detect_zero_crossings}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Detect Zero Crossings",invoke=detect_zero_crossings}
 
 
@@ -284,10 +275,7 @@ function pakettiSpeedTempoDialog()
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 end
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:BPM&LPB..:Paketti Speed and Tempo to BPM...",invoke=pakettiSpeedTempoDialog}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:BPM&LPB..:Paketti Speed and Tempo to BPM...",invoke=pakettiSpeedTempoDialog}
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Speed and Tempo to BPM...",invoke=pakettiSpeedTempoDialog}
-
 
 -- Function to check if values exceed Renoise limits and adjust if needed
 function adjustValuesForRenoiseLimits(F, K)
@@ -611,7 +599,6 @@ function pakettiBeatStructureEditorDialog()
   renoise.app().window.active_middle_frame = 1
 end
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti Beat Structure Editor...",invoke=pakettiBeatStructureEditorDialog}
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Beat Structure Editor...",invoke=pakettiBeatStructureEditorDialog}
 -------
 
@@ -650,9 +637,6 @@ function toggleColumns(include_sample_effects)
         "Hiding all columns across all tracks"
     renoise.app():show_status(message)
 end
-
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Toggle All Columns",invoke=function() toggleColumns(true) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Toggle All Columns (No Sample Effects)",invoke=function() toggleColumns(false) end}
 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Toggle All Columns",invoke=function() toggleColumns(true) end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Toggle All Columns (No Sample Effects)",invoke=function() toggleColumns(false) end}

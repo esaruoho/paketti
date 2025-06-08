@@ -153,13 +153,11 @@ function createPatternSequencerPatternsBasedOnSliceCount()
 end
 
 -- Menu entry and keybinding for the new function
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Create Pattern Sequencer Patterns based on Slice Count with Automatic Slice Printing",invoke = createPatternSequencerPatternsBasedOnSliceCount}
-renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Create Pattern Sequencer Patterns based on Slice Count with Automatic Slice Printing",invoke = createPatternSequencerPatternsBasedOnSliceCount}
 renoise.tool():add_keybinding{name="Global:Paketti:Create Pattern Sequencer Patterns based on Slice Count with Automatic Slice Printing",invoke = createPatternSequencerPatternsBasedOnSliceCount}
 
 ----
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Wipe&Slice&Write to Pattern",invoke = function() WipeSliceAndWrite() end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Wipe&Slice..:Wipe&Slice&Write to Pattern",invoke = function() WipeSliceAndWrite() end}
+
+
 
 renoise.tool():add_keybinding{name="Global:Paketti:Wipe&Slice&Write to Pattern",invoke = function() WipeSliceAndWrite() end}
 
@@ -626,20 +624,8 @@ function PakettiHideAllUnusedColumnsSelectedTrack()
   renoise.app():show_status(string.format("Hide Unused Columns (Selected Track): hidden %d columns", track_columns_hidden))
 end
 
--- Add menu entries and keybindings
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Visible Columns..:Hide All Unused Columns (All Tracks)", invoke=function() PakettiHideAllUnusedColumns() end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Visible Columns..:Hide All Unused Columns (Selected Track)", invoke=function() PakettiHideAllUnusedColumnsSelectedTrack() end}
-
 renoise.tool():add_keybinding{name="Global:Paketti:Hide All Unused Columns (All Tracks)", invoke=function() PakettiHideAllUnusedColumns() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Hide All Unused Columns (Selected Track)", invoke=function() PakettiHideAllUnusedColumnsSelectedTrack() end}
-
--- Additional menu entries for different locations
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Pattern Editor..:Visible Columns..:Hide All Unused Columns (All Tracks)", invoke=function() PakettiHideAllUnusedColumns() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Visible Columns..:Hide All Unused Columns (Selected Track)", invoke=function() PakettiHideAllUnusedColumnsSelectedTrack() end}
-
-
-
-
 -------
 -- Function to write notes in specified order (ascending, descending, or random)
 function writeNotesMethod(method)
@@ -822,15 +808,6 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Write Notes Random",i
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Write Notes EditStep Ascending",invoke=function() writeNotesMethodEditStep("ascending") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Write Notes EditStep Descending",invoke=function() writeNotesMethodEditStep("descending") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Write Notes EditStep Random",invoke=function() writeNotesMethodEditStep("random") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Write Notes..:Write Notes Ascending",invoke=function() writeNotesMethod("ascending") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Write Notes..:Write Notes Descending",invoke=function() writeNotesMethod("descending") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Write Notes..:Write Notes Random",invoke=function() writeNotesMethod("random") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Write Notes..:Write Notes EditStep Ascending",invoke=function() writeNotesMethodEditStep("ascending") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Write Notes..:Write Notes EditStep Descending",invoke=function() writeNotesMethodEditStep("descending") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Write Notes..:Write Notes EditStep Random",invoke=function() writeNotesMethodEditStep("random") end}
-
-
-
 
 
 
@@ -1407,7 +1384,7 @@ end
 
 add_menu_entries_and_keybindings()
 renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Device Chains..:Open Track DSP Device & Instrument Loader...",invoke=function() pakettiDeviceChainDialog() end}
-renoise.tool():add_menu_entry{name="--DSP Device:Paketti..:Device Chains..:Open Track DSP Device & Instrument Loader...",invoke=function() pakettiDeviceChainDialog() end}
+
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Paketti Track DSP Device & Instrument Loader...",invoke=function() pakettiDeviceChainDialog() end}
 
 ------------------------
@@ -4579,11 +4556,8 @@ function GenerateDelayValue(scope)
 end
 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Generate Delay Value on Note Columns",invoke=function() GenerateDelayValue("row") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Generate Delay Value on Note Columns",invoke=function() GenerateDelayValue("row") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Generate Delay Value on Entire Pattern",invoke=function() GenerateDelayValue("pattern") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Generate Delay Value on Entire Pattern",invoke=function() GenerateDelayValue("pattern") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Generate Delay Value on Selection",invoke=function() GenerateDelayValue("selection") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Generate Delay Value on Selection",invoke=function() GenerateDelayValue("selection") end}
 -------
 
 -- Function to get selected columns in the current selection
@@ -4656,11 +4630,8 @@ end
 
 -- Add new keybindings for note-specific version
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Generate Delay Value (Notes Only, Row)",invoke=function() GenerateDelayValueNotes("row") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Generate Delay Value (Notes Only, Row)",invoke=function() GenerateDelayValueNotes("row") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Generate Delay Value (Notes Only, Pattern)",invoke=function() GenerateDelayValueNotes("pattern") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Generate Delay Value (Notes Only, Pattern)",invoke=function() GenerateDelayValueNotes("pattern") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Generate Delay Value (Notes Only, Selection)",invoke=function() GenerateDelayValueNotes("selection") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Generate Delay Value (Notes Only, Selection)",invoke=function() GenerateDelayValueNotes("selection") end}
 
 -------
 -- Global variable to track which column cycling is active for
@@ -4749,7 +4720,6 @@ renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Column Cycle Keyjaz
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Start/Stop Column Cycling",invoke=function() startcolumncycling() end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Start/Stop Column Cycling",invoke=function() startcolumncycling() end}
 
 function ColumnCycleKeyjazzSpecial(number)
 displayNoteColumn(number) 
@@ -4759,8 +4729,6 @@ renoise.song().transport.edit_step=0
 renoise.song().selected_note_column_index=1
 startcolumncycling(number)
 end
-
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Column Cycle Keyjazz..:Column Cycle Keyjazz Special (2)",invoke=function() ColumnCycleKeyjazzSpecial(2) end}
 
 for ccks=3,12 do
 renoise.tool():add_keybinding{name="Global:Paketti:Column Cycle Keyjazz Special (" .. ccks .. ")",invoke=function() ColumnCycleKeyjazzSpecial(ccks) end}
@@ -5028,12 +4996,5 @@ function PakettiGroupSamplesByName()
   end
 end
 
--- Add menu entries and keybindings for the new feature
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Group Samples by Name to New Instruments", invoke=PakettiGroupSamplesByName}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:Group Samples by Name to New Instruments", invoke=PakettiGroupSamplesByName}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Group Samples by Name to New Instruments", invoke=PakettiGroupSamplesByName}
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Instruments..:Group Samples by Name to New Instruments", invoke=PakettiGroupSamplesByName}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Group Samples by Name to New Instruments", invoke=PakettiGroupSamplesByName}
 renoise.tool():add_keybinding{name="Global:Paketti:Group Samples by Name to New Instruments", invoke=PakettiGroupSamplesByName}
 renoise.tool():add_midi_mapping{name="Paketti:Group Samples by Name to New Instruments", invoke=PakettiGroupSamplesByName}
-

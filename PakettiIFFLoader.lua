@@ -339,7 +339,7 @@ function loadRandomIFF(num_samples)
   end
 end
 
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Load..:Load Random 128 IFFs",invoke=function() loadRandomIFF(128) end }
+
 
 -- write a little-endian unsigned 32-bit integer
 local function write_le_u32(f, value)
@@ -450,9 +450,8 @@ function convertIFFToWAV()
   end
 end
 
-renoise.tool():add_menu_entry{name = "Sample Editor:Paketti..:Load..:Convert IFF to WAV...",invoke = convertIFFToWAV}
+
 renoise.tool():add_menu_entry{name = "Sample Navigator:Paketti..:Load..:Convert IFF to WAV...",invoke = convertIFFToWAV}
-renoise.tool():add_menu_entry{name = "Sample Mappings:Paketti..:Load..:Convert IFF to WAV...",invoke = convertIFFToWAV}
 renoise.tool():add_keybinding{name = "Global:Paketti:Convert IFF to WAV...",invoke = convertIFFToWAV}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Convert IFF to WAV...",invoke=convertIFFToWAV}
 

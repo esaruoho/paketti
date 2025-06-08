@@ -421,7 +421,3 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File
   local filename = renoise.app():prompt_for_filename_to_read({"*.REX"}, "ReCycle .REX Import tool")
   if filename then rex_loadsample(filename) end end}
 
-  renoise.tool():add_menu_entry{name="--Disk Browser Files:Paketti..:Import .REX (ReCycle v1.0 Legacy Format)",invoke=function() 
-    local filename = renoise.app():prompt_for_filename_to_read({"*.REX"}, "ReCycle .REX Import tool")
-    if filename then rex_loadsample(filename) end end}
-  

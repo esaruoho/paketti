@@ -1932,8 +1932,6 @@ function GrooveboxShowClose()
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120",invoke=function() GrooveboxShowClose() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti Groovebox 8120...",invoke=function() GrooveboxShowClose() end}
-
 renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120",invoke=function(message)
   if message:is_trigger() then
     if dialog and dialog.visible then
@@ -2017,14 +2015,6 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Initialize for Groovebox 8120",invoke=function() 
 PakettiEightOneTwentyInit()
 end}
-
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Initialize for Groovebox 8120",invoke=function() 
-PakettiEightOneTwentyInit()
-end}
-
-
-
-
 
 -- Function to load samples sequentially from 8 folders using ProcessSlicer
 function loadSequentialDrumkitSamples()

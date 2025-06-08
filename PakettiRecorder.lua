@@ -101,7 +101,6 @@ renoise.tool():add_keybinding{name="Global:Paketti:Start Sampling and Sample Edi
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Record..:Start Sampling and Sample Editor (Record)",invoke=function() PakettiSampleAndToSampleEditor() end}  
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Record..:Start Sampling and Sample Editor (Record)",invoke=function() PakettiSampleAndToSampleEditor() end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Record..:Start Sampling and Sample Editor (Record)",invoke=function() PakettiSampleAndToSampleEditor() end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Record..:Start Sampling and Sample Editor (Record)",invoke=function() PakettiSampleAndToSampleEditor() end}
   -------
 
 -----
@@ -609,10 +608,6 @@ renoise.tool():add_menu_entry{name="Mixer:Paketti..:Record..:Paketti Overdub 12 
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Record..:Paketti Overdub 12 (No Metronome/Line Input)",invoke=function() recordtocurrenttrack(false, true,12) end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Record..:Paketti Overdub 12 (No Metronome/No Line Input)",invoke=function() recordtocurrenttrack(false, false,12) end}
 
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Record..:Paketti Overdub 12 (Metronome/Line Input)",invoke=function() recordtocurrenttrack(true, true,12) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Record..:Paketti Overdub 12 (Metronome/No Line Input)",invoke=function() recordtocurrenttrack(true, false,12) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Record..:Paketti Overdub 12 (No Metronome/Line Input)",invoke=function() recordtocurrenttrack(false, true,12) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Record..:Paketti Overdub 12 (No Metronome/No Line Input)",invoke=function() recordtocurrenttrack(false, false,12) end}
 
 renoise.tool():add_midi_mapping{name="Paketti:Paketti Overdub 12 (Metronome/Line Input)",invoke=function(message) if message:is_trigger() then recordtocurrenttrack(true, true,12) end end}
 renoise.tool():add_midi_mapping{name="Paketti:Paketti Overdub 12 (Metronome/no Line Input)",invoke=function(message) if message:is_trigger() then recordtocurrenttrack(true, false,12) end end}
@@ -631,11 +626,6 @@ renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Record..:Paketti Overdub 0
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Record..:Paketti Overdub 01 (Metronome/No Line Input)",invoke=function() recordtocurrenttrack(true, false,1) end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Record..:Paketti Overdub 01 (No Metronome/Line Input)",invoke=function() recordtocurrenttrack(false, true,1) end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Record..:Paketti Overdub 01 (No Metronome/No Line Input)",invoke=function() recordtocurrenttrack(false, false,1) end}
-
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Record..:Paketti Overdub 01 (Metronome/Line Input)",invoke=function() recordtocurrenttrack(true, true,1) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Record..:Paketti Overdub 01 (Metronome/No Line Input)",invoke=function() recordtocurrenttrack(true, false,1) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Record..:Paketti Overdub 01 (No Metronome/Line Input)",invoke=function() recordtocurrenttrack(false, true,1) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Record..:Paketti Overdub 01 (No Metronome/No Line Input)",invoke=function() recordtocurrenttrack(false, false,1) end}
 
 renoise.tool():add_midi_mapping{name="Paketti:Paketti Overdub 01 (Metronome/Line Input)",invoke=function(message) if message:is_trigger() then recordtocurrenttrack(true, true,1) end end}
 renoise.tool():add_midi_mapping{name="Paketti:Paketti Overdub 01 (Metronome/no Line Input)",invoke=function(message) if message:is_trigger() then recordtocurrenttrack(true, false,1) end end}

@@ -93,27 +93,6 @@ renoise.tool():add_keybinding{name="Global:Paketti:Load 12 AKWF Samples with Ove
 renoise.tool():add_keybinding{name="Global:Paketti:Load 12 AKWF Samples with Overlap Cycle",invoke=function() load_random_akwf_sample(12) DrumKitToOverlay(1) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Load 12 AKWF Samples",invoke=function() load_random_akwf_sample(12) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Load 02 AKWF Samples",invoke=function() load_random_akwf_sample(2) end}
-
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:AKWF..:Load Random AKWF Sample",invoke=function() load_random_akwf_sample(1) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Load Random amount (1...12) of AKWF Samples",invoke=function() load_random_akwf_sample("random") end}
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:AKWF..:Load 02 AKWF Samples",invoke=function() load_random_akwf_sample(2) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Load 05 AKWF Samples",invoke=function() load_random_akwf_sample(5) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Load 12 AKWF Samples",invoke=function() load_random_akwf_sample(12) end}
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:AKWF..:Load 05 AKWF Samples with Overlap Random",invoke=function() load_random_akwf_sample(5) DrumKitToOverlay(2) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Load 05 AKWF Samples with Overlap Cycle",invoke=function() load_random_akwf_sample(5) DrumKitToOverlay(1) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Load 12 AKWF Samples with Overlap Random",invoke=function() load_random_akwf_sample(12) DrumKitToOverlay(2) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Load 12 AKWF Samples with Overlap Cycle",invoke=function() load_random_akwf_sample(12) DrumKitToOverlay(1) end}
-
-renoise.tool():add_menu_entry{name="--Disk Browser Files:Paketti..:AKWF..:Load Random AKWF Sample",invoke=function() load_random_akwf_sample(1) end}
-renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti..:AKWF..:Load Random amount (1...12) of AKWF Samples",invoke=function() load_random_akwf_sample("random") end}
-renoise.tool():add_menu_entry{name="--Disk Browser Files:Paketti..:AKWF..:Load 02 AKWF Samples",invoke=function() load_random_akwf_sample(2) end}
-renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti..:AKWF..:Load 05 AKWF Samples",invoke=function() load_random_akwf_sample(5) end}
-renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti..:AKWF..:Load 12 AKWF Samples",invoke=function() load_random_akwf_sample(12) end}
-renoise.tool():add_menu_entry{name="--Disk Browser Files:Paketti..:AKWF..:Load 05 AKWF Samples with Overlap Random",invoke=function() load_random_akwf_sample(5) DrumKitToOverlay(2) end}
-renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti..:AKWF..:Load 05 AKWF Samples with Overlap Cycle",invoke=function() load_random_akwf_sample(5) DrumKitToOverlay(1) end}
-renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti..:AKWF..:Load 12 AKWF Samples with Overlap Random",invoke=function() load_random_akwf_sample(12) DrumKitToOverlay(2) end}
-renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti..:AKWF..:Load 12 AKWF Samples with Overlap Cycle",invoke=function() load_random_akwf_sample(12) DrumKitToOverlay(1) end}
-
 renoise.tool():add_keybinding{name="Global:Paketti:Load 04 AKWF Samples (XY)",invoke=function() pakettiLoad04AKWFSamplesXYDialog() end}
   
 function pakettiLoad04AKWFSamplesXYDialog()

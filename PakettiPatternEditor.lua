@@ -2883,7 +2883,7 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Clear/Wipe Selected Track TrackDSPs",invoke=function() wipeSelectedTrackTrackDSPs() end}
 renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Clear/Wipe Selected Track TrackDSPs",invoke=function() wipeSelectedTrackTrackDSPs() end}
-renoise.tool():add_menu_entry{name="--DSP Device:Paketti..:Clear/Wipe Selected Track TrackDSPs",invoke=function() wipeSelectedTrackTrackDSPs() end}
+
 ------
 
 -- Function to toggle note off in all visible note columns
@@ -4752,11 +4752,6 @@ renoise.tool():add_menu_entry{name="Mixer:Paketti..:Panning - Set All Tracks to 
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Panning - Set All Tracks to Hard Left",invoke=function() globalLeft() end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Panning - Set All Tracks to Hard Right",invoke=function() globalRight() end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Panning - Set All Tracks to Center",invoke=function() globalCenter() end}
-renoise.tool():add_menu_entry{name="--DSP Device:Paketti..:Panning - Set All Tracks to Hard Left",invoke=function() globalLeft() end}
-renoise.tool():add_menu_entry{name="DSP Device:Paketti..:Panning - Set All Tracks to Hard Right",invoke=function() globalRight() end}
-renoise.tool():add_menu_entry{name="DSP Device:Paketti..:Panning - Set All Tracks to Center",invoke=function() globalCenter() end}
-
-
 
 
 -------- Toggle Note Off "===" On / Off in all selected tracks within the selection or current row.
@@ -5421,8 +5416,6 @@ function deleteUnusedColumns()
   renoise.app():show_status("Unused columns have been removed")
 end
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Delete Unused Columns", invoke = deleteUnusedColumns}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delete Unused Columns", invoke = deleteUnusedColumns}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Delete Unused Columns", invoke = deleteUnusedColumns}
 
 for i=1,32 do
@@ -6144,7 +6137,7 @@ end
 
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Pattern Editor..:Value Interpolation Looper Dialog...",invoke = pakettiVolumeInterpolationLooper}
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Value Interpolation Looper Dialog...",invoke = pakettiVolumeInterpolationLooper}
-renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Value Interpolation Looper Dialog...",invoke = pakettiVolumeInterpolationLooper}
+
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Paketti Value Interpolation Looper Dialog...",invoke = pakettiVolumeInterpolationLooper}
 
 
@@ -6205,9 +6198,6 @@ local function handle_above_effect_command(operation)
   end
 end
 
-renoise.tool():add_menu_entry{name="Pattern Editor:Copy Above Effect Column",invoke=function() handle_above_effect_command("copy") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Copy Above Effect Column + Increase Value",invoke=function() handle_above_effect_command("inc") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Copy Above Effect Column + Decrease Value",invoke=function() handle_above_effect_command("dec") end}
 renoise.tool():add_keybinding{name="Global:Paketti:Copy Above Effect Column",invoke=function() handle_above_effect_command("copy") end}
 renoise.tool():add_keybinding{name="Global:Paketti:Copy Above Effect Column + Increase Value",invoke=function() handle_above_effect_command("inc") end}
 renoise.tool():add_keybinding{name="Global:Paketti:Copy Above Effect Column + Decrease Value",invoke=function() handle_above_effect_command("dec") end}

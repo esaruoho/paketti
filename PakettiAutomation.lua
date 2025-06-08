@@ -1114,27 +1114,6 @@ local menu_entries = {
   {"Track Automation:Paketti..:Automation Curves..:Selection Down->Center (Linear)", "down_center_linear"}
 }
 
-renoise.tool():add_menu_entry({name="Track Automation:Paketti..:Automation Curves..:Top to Top",
-invoke=function() apply_constant_automation_top_to_top() end})
-renoise.tool():add_menu_entry({name="Track Automation:Paketti..:Automation Curves..:Bottom to Bottom",
-invoke=function() apply_constant_automation_bottom_to_bottom() end})
-renoise.tool():add_menu_entry({name="--Track Automation:Paketti..:Automation Curves..:Selection Up (Exp)",
-invoke=function() apply_exponential_automation_curveUP() end})
-renoise.tool():add_menu_entry({name="Track Automation:Paketti..:Automation Curves..:Selection Up (Linear)",
-invoke=function() apply_selection_up_linear() end})
-renoise.tool():add_menu_entry({name="Track Automation:Paketti..:Automation Curves..:Selection Down (Exp)",
-invoke=function() apply_exponential_automation_curveDOWN() end})
-renoise.tool():add_menu_entry({name="Track Automation:Paketti..:Automation Curves..:Selection Down (Linear)",
-invoke=function() apply_selection_down_linear() end})
-renoise.tool():add_menu_entry({name="--Track Automation:Paketti..:Automation Curves..:Center to Top (Exp)",
-invoke=function() apply_exponential_automation_curve_center_to_top() end})
-renoise.tool():add_menu_entry({name="Track Automation:Paketti..:Automation Curves..:Center to Bottom (Exp)",
-invoke=function() apply_exponential_automation_curve_center_to_bottom() end})
-renoise.tool():add_menu_entry({name="Track Automation:Paketti..:Automation Curves..:Top to Center (Exp)",
-invoke=function() apply_exponential_automation_curve_top_to_center() end})
-renoise.tool():add_menu_entry({name="Track Automation:Paketti..:Automation Curves..:Bottom to Center (Exp)",
-invoke=function() apply_exponential_automation_curve_bottom_to_center() end})
-
 
 
 for _, entry in ipairs(menu_entries) do tool:add_menu_entry({name=entry[1],invoke=function() apply_linear_automation_curveCenter(entry[2]) end})
@@ -1156,8 +1135,6 @@ end
 function down_center_linear()
   apply_linear_automation_curveCenter("down_center_linear")
 end
-
-
 
 function apply_linear_automation_curveCenter(type)
   local song=renoise.song()
@@ -1194,18 +1171,6 @@ function apply_linear_automation_curveCenter(type)
     envelope:add_point_at(end_line, mid_val)
   end
 end
-
-
-
-
-
---set to center
-local renoise = renoise
-local tool = renoise.tool()
-
-tool:add_menu_entry({name="--Track Automation:Paketti..:Automation Curves..:Set to Center",
-  invoke=function() set_to_center() end
-})
 
 function set_to_center()
   local song=renoise.song()
@@ -1249,10 +1214,6 @@ local w=renoise.app().window
      end
 end
 
-renoise.tool():add_menu_entry{name="--Track Automation:Paketti..:Open External Editor for Plugin",invoke=function() openExternalInstrumentEditor() end}
-
-
-
 function AutomationDeviceShowUI()
 if renoise.song().selected_automation_device.external_editor_available ~= false then
 if renoise.song().selected_automation_device.external_editor_visible
@@ -1264,16 +1225,6 @@ else
 renoise.app():show_status("The selected automation device does not have an External Editor available, doing nothing.")
 end
 end
-
-renoise.tool():add_menu_entry{name="Track Automation List:Paketti..:Show/Hide External Editor for Device",invoke=function() AutomationDeviceShowUI() end}
-renoise.tool():add_menu_entry{name="Track Automation List:Paketti..:Show/Hide External Editor for Plugin",invoke=function() openExternalInstrumentEditor() end}
-renoise.tool():add_menu_entry{name="--Track Automation:Paketti..:Show/Hide External Editor for Device",invoke=function() AutomationDeviceShowUI() end}
-renoise.tool():add_menu_entry{name="Track Automation:Paketti..:Show/Hide External Editor for Plugin",invoke=function() openExternalInstrumentEditor() end}
-
-
-
-
-
 
 -- 
 function showAutomationHard()
@@ -1298,10 +1249,6 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Switch to Automation",invoke=function() showAutomationHard() end}
 renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Switch to Automation",invoke=function() showAutomation() end}
-
-
-
-
 
 -- Show automation (via Pattern Matrix/Pattern Editor)
 function showAutomation()
@@ -1665,7 +1612,7 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Randomize Automation Envelope",invoke=randomize_envelope}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Automation..:Randomize Automation Envelope",invoke=randomize_envelope}
-renoise.tool():add_menu_entry{name="--Track Automation:Paketti..:Randomize Automation Envelope",invoke=randomize_envelope}
+
 renoise.tool():add_midi_mapping{name="Paketti:Randomize Automation Envelope",invoke=randomize_envelope}
 
 ---
@@ -1714,9 +1661,9 @@ end
 -- Keybinding, menu, and MIDI mapping entries for the tool
 renoise.tool():add_keybinding{name="Global:Paketti:Randomize Automation Envelopes for Device",invoke=function() randomize_device_envelopes(1) end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Automation..:Randomize Automation Envelopes for Device",invoke=function() randomize_device_envelopes(1) end}
-renoise.tool():add_menu_entry{name="DSP Device:Paketti..:Randomize Automation Envelopes for Device",invoke=function() randomize_device_envelopes(1) end}
+
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Automation..:Randomize Automation Envelopes for Device",invoke=function() randomize_device_envelopes(1) end}
-renoise.tool():add_menu_entry{name="Track Automation:Paketti..:Randomize Automation Envelopes for Device",invoke=function() randomize_device_envelopes(1) end}
+
 
 renoise.tool():add_midi_mapping{name="Paketti:Randomize Automation Envelopes for Device",invoke=function() randomize_device_envelopes(1) end}
 -------
@@ -2132,8 +2079,6 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Flood Fill Automation Selection",invoke=PakettiAutomationSelectionFloodFill}
 renoise.tool():add_midi_mapping{name="Paketti:Flood Fill Automation Selection",invoke=function(message) if message:is_trigger() then PakettiAutomationSelectionFloodFill() end end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Automation..:Flood Fill Automation Selection",invoke=PakettiAutomationSelectionFloodFill}
-renoise.tool():add_menu_entry{name="--Track Automation:Paketti..:Flood Fill Automation Selection",invoke=PakettiAutomationSelectionFloodFill}
-
 ------
 function SetAutomationRangeValue(value)
   local song=renoise.song()
@@ -2186,11 +2131,6 @@ function SetAutomationRangeValue(value)
   renoise.app():show_status("Automation range set to " .. value .. ".")
   print("Set automation range from line " .. start_line .. " to " .. end_line .. " to " .. value .. ".")
 end
-
--- Menu entries, keybindings, and MIDI mappings
-renoise.tool():add_menu_entry{name="--Track Automation:Paketti..:Set Automation Range to Max (1.0)",invoke=function() SetAutomationRangeValue(1.0) end}
-renoise.tool():add_menu_entry{name="Track Automation:Paketti..:Set Automation Range to Middle (0.5)",invoke=function() SetAutomationRangeValue(0.5) end}
-renoise.tool():add_menu_entry{name="Track Automation:Paketti..:Set Automation Range to Min (0.0)",invoke=function() SetAutomationRangeValue(0.0) end}
 
 renoise.tool():add_keybinding{name="Global:Paketti:Set Automation Range to Max (1.0)",invoke=function() SetAutomationRangeValue(1.0) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set Automation Range to Middle (0.5)",invoke=function() SetAutomationRangeValue(0.5) end}
@@ -2354,10 +2294,6 @@ function ScaleAutomation(scale_factor)
 end
 
 -- Menu entries, keybindings, and MIDI mappings for scaling
-renoise.tool():add_menu_entry{name="--Track Automation:Paketti..:Scale Automation to 90%",invoke=function() ScaleAutomation(0.9) end}
-renoise.tool():add_menu_entry{name="Track Automation:Paketti..:Scale Automation to 110%",invoke=function() ScaleAutomation(1.1) end}
-renoise.tool():add_menu_entry{name="Track Automation:Paketti..:Scale Automation to 200%",invoke=function() ScaleAutomation(2.0) end}
-renoise.tool():add_menu_entry{name="Track Automation:Paketti..:Scale Automation to 50%",invoke=function() ScaleAutomation(0.5) end}
 
 renoise.tool():add_keybinding{name="Global:Paketti:Scale Automation to 90%",invoke=function() ScaleAutomation(0.9) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Scale Automation to 110%",invoke=function() ScaleAutomation(1.1) end}
@@ -2447,10 +2383,6 @@ function FlipAutomationVertical()
   print("Automation selection flipped vertically from line " .. start_line .. " to " .. end_line .. ".")
 end
 
--- Menu entries, keybindings, and MIDI mappings
-renoise.tool():add_menu_entry{name="--Track Automation:Paketti..:Flip Automation Selection Horizontally",invoke=FlipAutomationHorizontal}
-renoise.tool():add_menu_entry{name="Track Automation:Paketti..:Flip Automation Selection Vertically",invoke=FlipAutomationVertical}
-
 renoise.tool():add_keybinding{name="Global:Paketti:Flip Automation Selection Horizontally",invoke=FlipAutomationHorizontal}
 renoise.tool():add_keybinding{name="Global:Paketti:Flip Automation Selection Vertically",invoke=FlipAutomationVertical}
 
@@ -2508,12 +2440,6 @@ function add_automation_points_for_notes()
 
   renoise.app():show_status("Finished adding automation points for notes.")
 end
-
--- Execute the function
-renoise.tool():add_menu_entry{name="--Track Automation:Paketti..:Generate Automation Points from Notes in Selected Track",invoke=function()
-add_automation_points_for_notes() end}
-renoise.tool():add_menu_entry{name="--Track Automation List:Paketti..:Generate Automation Points from Notes in Selected Track",invoke=function()
-add_automation_points_for_notes() end}
 
 renoise.tool():add_keybinding{name="Global:Paketti:Generate Automation Points from Notes in Selected Track",invoke=function()
 add_automation_points_for_notes()

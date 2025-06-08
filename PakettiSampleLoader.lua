@@ -359,30 +359,6 @@ function render_group_track(render_context)
     start_rendering(render_context)
 end
 
-renoise.tool():add_menu_entry{
-    name="Pattern Editor:Paketti..:Clean Render..:Clean Render Selected Track/Group",
-    invoke=function() pakettiCleanRenderSelection(false) end
-}
-renoise.tool():add_menu_entry{
-    name="Pattern Editor:Paketti..:Clean Render..:Clean Render Selected Track/Group (WAV Only)",
-    invoke=function() 
-        print("DEBUG WAV: About to call pakettiCleanRenderSelection with true")
-        pakettiCleanRenderSelection(true) 
-    end
-}
-renoise.tool():add_menu_entry{
-    name="Mixer:Paketti..:Clean Render..:Clean Render Selected Track/Group",
-    invoke=function() pakettiCleanRenderSelection(false) end
-}
-
-renoise.tool():add_menu_entry{
-    name="Mixer:Paketti..:Clean Render..:Clean Render Selected Track/Group (WAV Only)", -- CMD-R / ⌘-R",
-    invoke=function()
-        print("DEBUG WAV: About to call pakettiCleanRenderSelection with true")
-        pakettiCleanRenderSelection(true) 
-    end
-}
-
 renoise.tool():add_keybinding{
     name="Pattern Editor:Paketti:Clean Render Selected Track/Group",
     invoke=function() pakettiCleanRenderSelection(false) end

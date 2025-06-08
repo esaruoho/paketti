@@ -161,9 +161,6 @@ local w=renoise.app().window
   if w.fullscreen==true then w.fullscreen=false else w.fullscreen=true end end
 renoise.tool():add_keybinding{name="Global:Paketti:Fullscreen (2nd)",invoke=function() SecondFullscreen() end}
 ------
-renoise.tool():add_menu_entry{name="Track Automation:Paketti..:Start/Stop Pattern Follow",invoke=function()
-local fp=renoise.song().transport.follow_player
-if not fp then fp=true else fp=false end end}
 
 renoise.tool():add_menu_entry{name="DSP Device Automation:Follow Off",invoke=function() renoise.song().transport.follow_player=false end}  
 -------
@@ -518,8 +515,7 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Select Track (Next)",invoke=function() selectNextTrack() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Select Track (Previous)",invoke=function() selectPreviousTrack() end}
-
-
+---------
 function createNewTrack()
 renoise.song():insert_track_at(renoise.song().selected_track_index+1)
 renoise.song().selected_track_index = renoise.song().selected_track_index+1
@@ -580,9 +576,7 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Select LoopBlock Backwards (Previous)",invoke=function() loopblockback() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Select LoopBlock Forwards (Next)",invoke=function() loopblockforward() end}
---------
 ---------
-
 local function PakettiSetEditStep(value)
   renoise.song().transport.edit_step=value
 end
@@ -722,7 +716,6 @@ renoise.app():load_song(renoise.app().recently_saved_song_files[1])
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Load Recently Saved Song",invoke=function() loadRecentlySavedSong() end}
-
 -----------
 local function switch_upper_frame()
   local app_window=renoise.app().window
@@ -982,11 +975,6 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Hide All Instrument Properties",invoke=function() InstrumentPropertiesControl(false) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Show All Instrument Properties",invoke=function() InstrumentPropertiesControl(true) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Instruments..:Hide All Instrument Properties",invoke=function() InstrumentPropertiesControl(false) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Instruments..:Show All Instrument Properties",invoke=function() InstrumentPropertiesControl(true) end}
-renoise.tool():add_menu_entry{name="Global:Paketti..:Instrument Properties:Hide All Properties",invoke=function() hideAllInstrumentProperties() end}
-renoise.tool():add_menu_entry{name="Global:Paketti..:Instrument Properties:Show All Properties",invoke=function() showAllInstrumentProperties() end}
-
 
 -- Ensure Disk Browser is visible before performing actions
 local function EnsureDiskBrowserVisible()
@@ -1497,44 +1485,6 @@ renoise.tool():add_keybinding{name="Global:Paketti:Nudge Delay Output Delay -05m
 renoise.tool():add_keybinding{name="Global:Paketti:Reset Nudge Delay Output Delay to 0ms (Rename)",invoke=function() reset_output_delay(true) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Reset Nudge Delay Output Delay to 0ms (ALL) (Rename)",invoke=function() reset_output_delayALL(true) end}
 
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Nudge Delay Output +01ms",invoke=function() nudge_output_delay(1, false) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Nudge Delay Output -01ms",invoke=function() nudge_output_delay(-1, false) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Nudge Delay Output +05ms",invoke=function() nudge_output_delay(5, false) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Nudge Delay Output -05ms",invoke=function() nudge_output_delay(-5, false) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Nudge Delay Output +10ms",invoke=function() nudge_output_delay(10, false) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Nudge Delay Output -10ms",invoke=function() nudge_output_delay(-10, false) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Reset Delay Output Delay to 0ms",invoke=function() reset_output_delay(false) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Reset Delay Output Delay to 0ms (ALL)",invoke=function() reset_output_delayALL(false) end}
-
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Delay Output..:Nudge Delay Output +01ms (Rename)",invoke=function() nudge_output_delay(1, true) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Nudge Delay Output -01ms (Rename)",invoke=function() nudge_output_delay(-1, true) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Nudge Delay Output +05ms (Rename)",invoke=function() nudge_output_delay(5, true) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Nudge Delay Output -05ms (Rename)",invoke=function() nudge_output_delay(-5, true) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Nudge Delay Output +10ms (Rename)",invoke=function() nudge_output_delay(10, true) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Nudge Delay Output -10ms (Rename)",invoke=function() nudge_output_delay(-10, true) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Reset Delay Output Delay to 0ms (Rename)",invoke=function() reset_output_delay(true) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Reset Delay Output Delay to 0ms (ALL) (Rename)",invoke=function() reset_output_delayALL(true) end}
-
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Nudge Delay Output Delay +01ms",invoke=function() nudge_output_delay(1, false) end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Nudge Delay Output Delay -01ms",invoke=function() nudge_output_delay(-1, false) end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Nudge Delay Output Delay +05ms",invoke=function() nudge_output_delay(5, false) end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Nudge Delay Output Delay -05ms",invoke=function() nudge_output_delay(-5, false) end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Nudge Delay Output Delay +10ms",invoke=function() nudge_output_delay(10, false) end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Nudge Delay Output Delay -10ms",invoke=function() nudge_output_delay(-10, false) end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Reset Delay Output Delay to 0ms",invoke=function() reset_output_delay(false) end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Reset Delay Output Delay to 0ms (ALL)",invoke=function() reset_output_delayALL(false) end}
-
-renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Delay Output..:Nudge Delay Output Delay +01ms (Rename)",invoke=function() nudge_output_delay(1, true) end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Nudge Delay Output Delay -01ms (Rename)",invoke=function() nudge_output_delay(-1, true) end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Nudge Delay Output Delay +05ms (Rename)",invoke=function() nudge_output_delay(5, true) end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Nudge Delay Output Delay -05ms (Rename)",invoke=function() nudge_output_delay(-5, true) end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Nudge Delay Output Delay +10ms (Rename)",invoke=function() nudge_output_delay(10, true) end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Nudge Delay Output Delay -10ms (Rename)",invoke=function() nudge_output_delay(-10, true) end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Reset Delay Output Delay to 0ms (Rename)",invoke=function() reset_output_delay(true) end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Reset Delay Output Delay to 0ms (ALL) (Rename)",invoke=function() reset_output_delayALL(true) end}
-
------
-
 --------
 function mapsample()
   local song = renoise.song()
@@ -1551,9 +1501,8 @@ function mapsample()
   renoise.app():show_status("Sample mapped to all keyzones (C-0 to B-9).")
 end
 
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Map Sample to All Keyzones", invoke=function() mapsample() end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Map Sample to All Keyzones", invoke=function() mapsample() end}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Map Sample to All Keyzones", invoke=function() mapsample() end}
+
+
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Map Sample to All Keyzones", invoke=function() mapsample() end}
 renoise.tool():add_keybinding{name="Sample Keyzones:Paketti:Map Sample to All Keyzones", invoke=function() mapsample() end}
 renoise.tool():add_midi_mapping{name="Paketti:Map Sample to All Keyzones", invoke=function(message) if message:is_trigger() then mapsample() end end}

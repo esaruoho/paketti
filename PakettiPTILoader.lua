@@ -428,19 +428,6 @@ if not renoise.tool():has_file_import_hook("sample", { "pti" }) then
   renoise.tool():add_file_import_hook(pti_integration)
 end
 
-renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti..:Import .PTI (Polyend Tracker Instrument)",
-  invoke=function()
-    local f = renoise.app():prompt_for_filename_to_read({"*.PTI"}, "Select PTI to import")
-    if f and f ~= "" then pti_loadsample(f) end
-  end
-}
-
-
-
-
-
-
-
 ---------
 local bit = require("bit")
 
@@ -633,7 +620,7 @@ local function write_pcm(f, inst)
 end
 
 -- Main save
-local function pti_savesample()
+function pti_savesample()
   local song = renoise.song()
   local inst = song.selected_instrument
   
@@ -795,9 +782,8 @@ local function pti_savesample()
 end
 
 -- Menu entries
-renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti..:Export .PTI Instrument",invoke=pti_savesample}
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Save..:Export .PTI Instrument",invoke=pti_savesample}
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Save..:Export .PTI Instrument",invoke=pti_savesample}
+
 renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Save..:Export .PTI Instrument",invoke=pti_savesample}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Export .PTI Instrument",invoke=pti_savesample}
 renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti..:Save..:Export .PTI Instrument",invoke=pti_savesample}

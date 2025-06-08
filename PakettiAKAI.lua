@@ -1039,8 +1039,8 @@ end
 
 -- Menu entries for import
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Load..:Import AKP File...",invoke = importAKPFile}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Load..:Import AKP File...",invoke = importAKPFile}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Load..:Import AKP File...",invoke = importAKPFile}
+
+
 renoise.tool():add_keybinding{name="Global:Paketti:Import AKP File...",invoke = importAKPFile}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Import AKP File...",invoke=importAKPFile}
 

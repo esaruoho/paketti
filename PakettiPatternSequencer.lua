@@ -245,12 +245,6 @@ function clone_current_sequence()
   end
 end
 
-renoise.tool():add_menu_entry{name="--Pattern Sequencer:Paketti..:Show/Hide Pattern Matrix",invoke=function() showhidepatternmatrix() end}
-renoise.tool():add_menu_entry{name="--Pattern Sequencer:Paketti..:Clone Current Sequence",invoke=clone_current_sequence}
-renoise.tool():add_menu_entry{name="--Pattern Sequencer:Paketti..:Clone and Expand Pattern to LPB*2",invoke=function() cloneAndExpandPatternToLPBDouble()end}
-renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Clone and Shrink Pattern to LPB/2",invoke=function() cloneAndShrinkPatternToLPBHalve()end}
-
-renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Clone Current Sequence",invoke=clone_current_sequence}
 renoise.tool():add_keybinding{name="Global:Paketti:Clone Current Sequence",invoke=clone_current_sequence}
 renoise.tool():add_midi_mapping{name="Paketti:Clone Current Sequence",invoke=clone_current_sequence}
 
@@ -267,11 +261,6 @@ renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Keep Sequence Sort
 if renoise.song().sequencer.keep_sequence_sorted==false then renoise.song().sequencer.keep_sequence_sorted=true else
 renoise.song().sequencer.keep_sequence_sorted=false end end}
 
-renoise.tool():add_menu_entry{name="--Pattern Sequencer:Paketti..:Keep Sequence Sorted Toggle",invoke=function() 
-if renoise.song().sequencer.keep_sequence_sorted==false then renoise.song().sequencer.keep_sequence_sorted=true else
-renoise.song().sequencer.keep_sequence_sorted=false end end}
-renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Keep Sequence Sorted False",invoke=function() renoise.song().sequencer.keep_sequence_sorted=false end}
-renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Keep Sequence Sorted True",invoke=function() renoise.song().sequencer.keep_sequence_sorted=true end}
 
 ---------
 -- Function to duplicate selected sequence range
@@ -371,8 +360,6 @@ function duplicate_selected_sequence_range()
   renoise.app():show_status(string.format("Duplicated sequence range %d-%d", start_pos, end_pos))
 end
 
-renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Duplicate Selected Sequence Range",invoke=duplicate_selected_sequence_range}
-renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Duplicate Selected Sequence Range",invoke=duplicate_selected_sequence_range}
 renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Selected Sequence Range",invoke=duplicate_selected_sequence_range}
 
 -- Function to create a section from the current selection
@@ -439,9 +426,7 @@ function create_section_from_selection()
   renoise.app():show_status(string.format("Created section '%s' from selection", new_section_name))
 end
 
--- Add menu entry and keybinding for the new function
 renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Create Section From Selection",invoke=create_section_from_selection}
-renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Sequences/Sections..:Create Section From Selection",invoke=create_section_from_selection}
 
 -- Function to navigate section sequences (next or previous)
 function navigate_section_sequence(direction)
@@ -541,38 +526,4 @@ function navigate_section_sequence(direction)
   end
 end
 
--- Wrapper functions for menu entries and keybindings
-function select_next_section_sequence()
-  navigate_section_sequence("next")
-end
-
-function select_previous_section_sequence()
-  navigate_section_sequence("previous")
-end
-
--- Add menu entries and keybindings for the section navigation
-renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Select Next Section Sequence",invoke=select_next_section_sequence}
-renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Select Previous Section Sequence",invoke=select_previous_section_sequence}
-renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Sequences/Sections..:Select Next Section Sequence",invoke=select_next_section_sequence}
-renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Sequences/Sections..:Select Previous Section Sequence",invoke=select_previous_section_sequence}
-
--- Add menu entries
-renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti..:Paketti Sequencer Settings Dialog...",
-  invoke = pakettiSequencerSettingsDialog
-}
-
--- Add menu entries and keybindings for the settings dialog
-renoise.tool():add_menu_entry{
-  name = "Pattern Sequencer:Paketti..:Paketti Sequencer Settings Dialog...",
-  invoke = pakettiSequencerSettingsDialog
-}
-
-
-
-renoise.tool():add_keybinding{
-  name = "Pattern Sequencer:Paketti:Show Paketti Sequencer Settings Dialog",
-  invoke = pakettiSequencerSettingsDialog
-}
-
-
+renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Show Paketti Sequencer Settings Dialog",invoke = pakettiSequencerSettingsDialog}

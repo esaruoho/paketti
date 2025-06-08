@@ -360,8 +360,6 @@ function pakettiToggleGlobalGrooveOnStartup()
   renoise.app():show_status("Global Groove on startup is now " .. state .. ".")
 end
 
--- Add menu entry for the global groove startup toggle
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:!Preferences..:Toggle Global Groove on Startup On/Off",invoke=pakettiToggleGlobalGrooveOnStartup}
 --------
 
 

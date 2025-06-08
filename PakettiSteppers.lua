@@ -316,7 +316,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Clear PitchStep Steps",invoke
 renoise.tool():add_keybinding{name="Global:Paketti:Modify PitchStep Steps (Octave Up+2, Octave Down-2)",invoke=function() PakettiFillPitchStepperTwoOctaves() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Modify PitchStep Steps (Minor Flurry)",invoke=function() PakettiFillPitchStepperDigits(0.015,64) end}
 
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Modify PitchStep Steps (Minor Flurry)",invoke=function() PakettiFillPitchStepperDigits(0.015,64) end}
+
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Modify PitchStep Steps (Minor Flurry)",invoke=function() PakettiFillPitchStepperDigits(0.015,64) end}    
 renoise.tool():add_menu_entry{name="Sample Modulation Matrix:Paketti..:Clear PitchStep Steps",invoke=function() PakettiClearStepper("Pitch Stepper") end}
 
@@ -718,8 +718,6 @@ end
 
 -- Add menu entries and keybinding for the steppers dialog
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:Paketti Steppers Dialog...", invoke=function() PakettiSteppersDialog() end}
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti Gadgets..:Paketti Steppers Dialog...", invoke=function() PakettiSteppersDialog() end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Steppers..:Paketti Steppers Dialog...", invoke=function() PakettiSteppersDialog() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Steppers Dialog...", invoke=function() PakettiSteppersDialog() end}
 
 -- Add individual stepper show/hide menu entries for instrument box
