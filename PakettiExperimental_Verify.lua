@@ -1021,7 +1021,7 @@ function AutoAssignOutputs()
 end
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Auto Assign Outputs",invoke=AutoAssignOutputs}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Mixer..:Auto Assign Outputs",invoke=AutoAssignOutputs}
+renoise.tool():add_menu_entry{name="---Pattern Editor:Paketti..:Tracks..:Auto Assign Outputs",invoke=AutoAssignOutputs}
 renoise.tool():add_menu_entry{name="Mixing:Paketti..:Auto Assign Outputs",invoke=AutoAssignOutputs}
 
 ---
@@ -3015,7 +3015,7 @@ function PakettiToggleSoloTracks()
 end
 
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Pattern Editor..:Toggle Solo Tracks",invoke=PakettiToggleSoloTracks}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Mixer..:Toggle Solo Tracks",invoke=PakettiToggleSoloTracks}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Tracks..:Toggle Solo Tracks",invoke=PakettiToggleSoloTracks}
 renoise.tool():add_keybinding{name="Global:Paketti:Toggle Solo Tracks",invoke=PakettiToggleSoloTracks}
 renoise.tool():add_midi_mapping{name="Paketti:Toggle Solo Tracks",invoke=PakettiToggleSoloTracks}
 
@@ -3095,7 +3095,7 @@ function set_group_mute_state(group, mute_state)
 end
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Toggle Mute Tracks",invoke=toggle_mute_tracks}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Mixer..:Toggle Mute Tracks",invoke=toggle_mute_tracks}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Tracks..:Toggle Mute Tracks",invoke=toggle_mute_tracks}
 renoise.tool():add_keybinding{name="Global:Paketti:Toggle Mute Tracks",invoke=toggle_mute_tracks}
 renoise.tool():add_midi_mapping{name="Paketti:Toggle Mute Tracks",invoke=toggle_mute_tracks}
 

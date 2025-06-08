@@ -4748,15 +4748,15 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Set All Tracks to Hard Left",invoke=function() globalLeft() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set All Tracks to Hard Right",invoke=function() globalRight() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set All Tracks to Center",invoke=function() globalCenter() end}
-renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Mixer..:Panning - Set All Tracks to Hard Left",invoke=function() globalLeft() end}
+renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Tracks..:Panning - Set All Tracks to Hard Left",invoke=function() globalLeft() end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Panning - Set All Tracks to Hard Right",invoke=function() globalRight() end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Panning - Set All Tracks to Center",invoke=function() globalCenter() end}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Mixer..:Panning - Set All Tracks to Hard Left",invoke=function() globalLeft() end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Mixer..:Panning - Set All Tracks to Hard Right",invoke=function() globalRight() end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Mixer..:Panning - Set All Tracks to Center",invoke=function() globalCenter() end}
-renoise.tool():add_menu_entry{name="--DSP Device:Paketti..:Mixer..:Panning - Set All Tracks to Hard Left",invoke=function() globalLeft() end}
-renoise.tool():add_menu_entry{name="DSP Device:Paketti..:Mixer..:Panning - Set All Tracks to Hard Right",invoke=function() globalRight() end}
-renoise.tool():add_menu_entry{name="DSP Device:Paketti..:Mixer..:Panning - Set All Tracks to Center",invoke=function() globalCenter() end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Tracks..:Panning - Set All Tracks to Hard Left",invoke=function() globalLeft() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Tracks..:Panning - Set All Tracks to Hard Right",invoke=function() globalRight() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Tracks..:Panning - Set All Tracks to Center",invoke=function() globalCenter() end}
+renoise.tool():add_menu_entry{name="--DSP Device:Paketti..:Tracks..:Panning - Set All Tracks to Hard Left",invoke=function() globalLeft() end}
+renoise.tool():add_menu_entry{name="DSP Device:Paketti..:Tracks..:Panning - Set All Tracks to Hard Right",invoke=function() globalRight() end}
+renoise.tool():add_menu_entry{name="DSP Device:Paketti..:Tracks..:Panning - Set All Tracks to Center",invoke=function() globalCenter() end}
 
 
 
