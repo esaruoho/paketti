@@ -6622,6 +6622,3 @@ end
 
 renoise.tool():add_keybinding {name="Global:Paketti:Duplicate Selection in Pattern",invoke=function()duplicate_selection_pro()end}
 
-
-
-
