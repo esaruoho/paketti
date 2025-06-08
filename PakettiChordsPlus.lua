@@ -461,9 +461,9 @@ function NoteSorterDescending()
 end
 
   renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Note Sorter (Ascending)",invoke=NoteSorterAscending}
-  renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Note Sorter (Ascending)",invoke=NoteSorterAscending}
+  renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Note Columns..:Note Sorter (Ascending)",invoke=NoteSorterAscending}
   renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Note Sorter (Descending)",invoke=NoteSorterDescending}
-  renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Note Sorter (Descending)",invoke=NoteSorterDescending}
+  renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Note Columns..:Note Sorter (Descending)",invoke=NoteSorterDescending}
 ---  
   function RandomizeVoicing()
     local song=renoise.song()
@@ -668,8 +668,8 @@ renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti ChordsPlus..:Random
   
   renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Shift Notes Right",invoke=function() ShiftNotes(1) end}
   renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Shift Notes Left",invoke=function() ShiftNotes(-1) end}
-  renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Shift Notes Right",invoke=function() ShiftNotes(1) end}
-  renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Shift Notes Left",invoke=function() ShiftNotes(-1) end}
+  renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Note Columns..:Shift Notes Right",invoke=function() ShiftNotes(1) end}
+  renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Note Columns..:Shift Notes Left",invoke=function() ShiftNotes(-1) end}
   
   
 

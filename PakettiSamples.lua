@@ -4593,7 +4593,7 @@ function duplicateTrackAndInstrument()
   renoise.app():show_status("Track and instrument duplicated successfully")
 end
 
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Track..:Duplicate Track and Instrument",invoke=duplicateTrackAndInstrument}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Tracks..:Duplicate Track and Instrument",invoke=duplicateTrackAndInstrument}
 renoise.tool():add_keybinding{name="Mixer:Paketti:Duplicate Track and Instrument",invoke=duplicateTrackAndInstrument}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Duplicate Track and Instrument",invoke=duplicateTrackAndInstrument}
 renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Track and Instrument",invoke=duplicateTrackAndInstrument}

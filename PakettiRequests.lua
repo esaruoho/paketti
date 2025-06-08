@@ -2023,7 +2023,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Track Duplicate Ins
 ------------
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Interpolate Notes",invoke=function() note_interpolation() end}
 renoise.tool():add_midi_mapping{name="Paketti:Interpolate Notes",invoke=function() note_interpolation() end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Note Columns..:Interpolate Notes",invoke=function() note_interpolation() end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Note Columns..:Interpolate Notes",invoke=function() note_interpolation() end}
 
 -- Main function for note interpolation
 function note_interpolation()
