@@ -613,7 +613,7 @@ end
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Beat Structure Editor...",invoke=pakettiBeatStructureEditorDialog}
 renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Beat Structure Editor...",invoke=pakettiBeatStructureEditorDialog}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti Tools..:Beat Structure Editor...",invoke=pakettiBeatStructureEditorDialog}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti Gadgets..:Beat Structure Editor...",invoke=pakettiBeatStructureEditorDialog}
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Beat Structure Editor...",invoke=pakettiBeatStructureEditorDialog}
 -------
 

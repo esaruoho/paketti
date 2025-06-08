@@ -1933,7 +1933,7 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120",invoke=function() GrooveboxShowClose() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti Groovebox 8120...",invoke=function() GrooveboxShowClose() end}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti Tools..:Paketti Groovebox 8120...",invoke=function() GrooveboxShowClose() end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti Gadgets..:Paketti Groovebox 8120...",invoke=function() GrooveboxShowClose() end}
 
 renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120",invoke=function(message)
   if message:is_trigger() then
