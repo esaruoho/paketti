@@ -1345,7 +1345,7 @@ then w.active_lower_frame = raw.LOWER_FRAME_TRACK_DSPS return end
     w.lock_keyboard_focus=true
     renoise.song().transport.follow_player=false end
 
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Switch to Automation",invoke=function() showAutomation() end}
+
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Switch to Automation",invoke=function() showAutomation() end}
 renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Switch to Automation",invoke=function() showAutomation() end}
 renoise.tool():add_keybinding{name="Mixer:Paketti:Switch to Automation",invoke=function() showAutomation() end}

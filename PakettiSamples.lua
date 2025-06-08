@@ -2262,7 +2262,7 @@ renoise.tool():add_menu_entry{name="Mixer:Paketti..:Clean Render..:Clean Render 
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Clean Render..:Clean Render and Save Selected Track/Group as .FLAC",invoke=function() CleanRenderAndSaveSelection("FLAC") end}
 renoise.tool():add_keybinding{name="Global:Paketti:Clean Render&Save Selected Track/Group (.WAV)",invoke=function() CleanRenderAndSaveSelection("WAV") end}
 renoise.tool():add_keybinding{name="Global:Paketti:Clean Render&Save Selected Track/Group (.FLAC)",invoke=function() CleanRenderAndSaveSelection("FLAC") end}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Duplicate and Reverse Instrument",invoke=PakettiDuplicateAndReverseInstrument}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Instrument..:Duplicate and Reverse Instrument",invoke=PakettiDuplicateAndReverseInstrument}
 ---------
 function PakettiInjectDefaultXRNI()
   local instVol = renoise.song().selected_instrument.volume
@@ -3725,7 +3725,7 @@ function add_backwards_effect_to_selection()
   end
 end
 
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Play Samples Backwards in Selection 0B00",invoke=add_backwards_effect_to_selection}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Play Samples Backwards in Selection 0B00",invoke=add_backwards_effect_to_selection}
 renoise.tool():add_keybinding{name="Global:Paketti:Play Samples Backwards in Selection 0B00",invoke=add_backwards_effect_to_selection}
 ---
 function PakettiRandomIR(ir_path)
@@ -4593,8 +4593,7 @@ function duplicateTrackAndInstrument()
   renoise.app():show_status("Track and instrument duplicated successfully")
 end
 
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Duplicate Track and Instrument",invoke=duplicateTrackAndInstrument}
-
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Track..:Duplicate Track and Instrument",invoke=duplicateTrackAndInstrument}
 renoise.tool():add_keybinding{name="Mixer:Paketti:Duplicate Track and Instrument",invoke=duplicateTrackAndInstrument}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Duplicate Track and Instrument",invoke=duplicateTrackAndInstrument}
 renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Track and Instrument",invoke=duplicateTrackAndInstrument}

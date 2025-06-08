@@ -60,18 +60,18 @@ function showOnlyColumnType(column_type)
     renoise.app():show_status(message)
 end
 
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Toggle Show Only Volume Columns",invoke=function() showOnlyColumnType("volume") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Toggle Show Only Panning Columns",invoke=function() showOnlyColumnType("panning") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Toggle Show Only Delay Columns",invoke=function() showOnlyColumnType("delay") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Toggle Show Only Effect Columns",invoke=function() showOnlyColumnType("effects") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Visible Columns..:Toggle Show Only Volume Columns",invoke=function() showOnlyColumnType("volume") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Visible Columns..:Toggle Show Only Panning Columns",invoke=function() showOnlyColumnType("panning") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Visible Columns..:Toggle Show Only Delay Columns",invoke=function() showOnlyColumnType("delay") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Visible Columns..:Toggle Show Only Effect Columns",invoke=function() showOnlyColumnType("effects") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Toggle Show Only Volume Columns",invoke=function() showOnlyColumnType("volume") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Toggle Show Only Panning Columns",invoke=function() showOnlyColumnType("panning") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Toggle Show Only Delay Columns",invoke=function() showOnlyColumnType("delay") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Toggle Show Only Effect Columns",invoke=function() showOnlyColumnType("effects") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Show Only Volume Columns",invoke=function() showOnlyColumnType("volume") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Show Only Panning Columns",invoke=function() showOnlyColumnType("panning") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Show Only Delay Columns",invoke=function() showOnlyColumnType("delay") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Show Only Effect Columns",invoke=function() showOnlyColumnType("effects") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Visible Columns..:Show Only Volume Columns",invoke=function() showOnlyColumnType("volume") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Visible Columns..:Show Only Panning Columns",invoke=function() showOnlyColumnType("panning") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Visible Columns..:Show Only Delay Columns",invoke=function() showOnlyColumnType("delay") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Visible Columns..:Show Only Effect Columns",invoke=function() showOnlyColumnType("effects") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Show Only Volume Columns",invoke=function() showOnlyColumnType("volume") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Show Only Panning Columns",invoke=function() showOnlyColumnType("panning") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Show Only Delay Columns",invoke=function() showOnlyColumnType("delay") end}
@@ -652,8 +652,8 @@ function toggleColumns(include_sample_effects)
     renoise.app():show_status(message)
 end
 
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Toggle All Columns",invoke=function() toggleColumns(true) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Toggle All Columns (No Sample Effects)",invoke=function() toggleColumns(false) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Visible Columns..:Toggle All Columns",invoke=function() toggleColumns(true) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Visible Columns..:Toggle All Columns (No Sample Effects)",invoke=function() toggleColumns(false) end}
 renoise.tool():add_menu_entry{name="Main Menu:View:Paketti..:Visible Columns..:Toggle All Columns",invoke=function() toggleColumns(true) end}
 renoise.tool():add_menu_entry{name="Main Menu:View:Paketti..:Visible Columns..:Toggle All Columns (No Sample Effects)",invoke=function() toggleColumns(false) end}
 

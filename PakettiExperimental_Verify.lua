@@ -153,12 +153,12 @@ function createPatternSequencerPatternsBasedOnSliceCount()
 end
 
 -- Menu entry and keybinding for the new function
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Create Pattern Sequencer Patterns based on Slice Count with Automatic Slice Printing",invoke = createPatternSequencerPatternsBasedOnSliceCount}
-renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Create Pattern Sequencer Patterns based on Slice Count with Automatic Slice Printing",invoke = createPatternSequencerPatternsBasedOnSliceCount}
-renoise.tool():add_keybinding{name="Global:Paketti:Create Pattern Sequencer Patterns based on Slice Count with Automatic Slice Printing",invoke = createPatternSequencerPatternsBasedOnSliceCount}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Pattern..:Create Pattern Sequencer Patterns based on Slice Count with Automatic Slice Printing",invoke = createPatternSequencerPatternsBasedOnSliceCount}
+renoise.tool():add_menu_entry{name="--Pattern Sequencer:Paketti..:Create Pattern Sequencer Patterns based on Slice Count with Automatic Slice Printing",invoke = createPatternSequencerPatternsBasedOnSliceCount}
+renoise.tool():add_keybinding{name="--Global:Paketti:Create Pattern Sequencer Patterns based on Slice Count with Automatic Slice Printing",invoke = createPatternSequencerPatternsBasedOnSliceCount}
 
 ----
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Wipe&Slice&Write to Pattern",invoke = function() WipeSliceAndWrite() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Pattern..:Wipe&Slice&Write to Pattern",invoke = function() WipeSliceAndWrite() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Wipe&Slice&Write to Pattern",invoke = function() WipeSliceAndWrite() end}
 
 function WipeSliceAndWrite()
@@ -825,12 +825,12 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Write Notes Random",i
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Write Notes EditStep Ascending",invoke=function() writeNotesMethodEditStep("ascending") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Write Notes EditStep Descending",invoke=function() writeNotesMethodEditStep("descending") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Write Notes EditStep Random",invoke=function() writeNotesMethodEditStep("random") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Write Notes..:Write Notes Ascending",invoke=function() writeNotesMethod("ascending") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Write Notes..:Write Notes Descending",invoke=function() writeNotesMethod("descending") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Write Notes..:Write Notes Random",invoke=function() writeNotesMethod("random") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Write Notes..:Write Notes EditStep Ascending",invoke=function() writeNotesMethodEditStep("ascending") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Write Notes..:Write Notes EditStep Descending",invoke=function() writeNotesMethodEditStep("descending") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Write Notes..:Write Notes EditStep Random",invoke=function() writeNotesMethodEditStep("random") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Generate&Randomize..:Write Notes..:Write Notes Ascending",invoke=function() writeNotesMethod("ascending") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Generate&Randomize..:Write Notes..:Write Notes Descending",invoke=function() writeNotesMethod("descending") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Generate&Randomize..:Write Notes..:Write Notes Random",invoke=function() writeNotesMethod("random") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Generate&Randomize..:Write Notes..:Write Notes EditStep Ascending",invoke=function() writeNotesMethodEditStep("ascending") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Generate&Randomize..:Write Notes..:Write Notes EditStep Descending",invoke=function() writeNotesMethodEditStep("descending") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Generate&Randomize..:Write Notes..:Write Notes EditStep Random",invoke=function() writeNotesMethodEditStep("random") end}
 
 
 
@@ -1021,7 +1021,7 @@ function AutoAssignOutputs()
 end
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Auto Assign Outputs",invoke=AutoAssignOutputs}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Auto Assign Outputs",invoke=AutoAssignOutputs}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Mixer..:Auto Assign Outputs",invoke=AutoAssignOutputs}
 renoise.tool():add_menu_entry{name="Mixing:Paketti..:Auto Assign Outputs",invoke=AutoAssignOutputs}
 
 ---
@@ -3015,7 +3015,7 @@ function PakettiToggleSoloTracks()
 end
 
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Pattern Editor..:Toggle Solo Tracks",invoke=PakettiToggleSoloTracks}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Toggle Solo Tracks",invoke=PakettiToggleSoloTracks}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Mixer..:Toggle Solo Tracks",invoke=PakettiToggleSoloTracks}
 renoise.tool():add_keybinding{name="Global:Paketti:Toggle Solo Tracks",invoke=PakettiToggleSoloTracks}
 renoise.tool():add_midi_mapping{name="Paketti:Toggle Solo Tracks",invoke=PakettiToggleSoloTracks}
 
@@ -3095,7 +3095,7 @@ function set_group_mute_state(group, mute_state)
 end
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Toggle Mute Tracks",invoke=toggle_mute_tracks}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Toggle Mute Tracks",invoke=toggle_mute_tracks}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Mixer..:Toggle Mute Tracks",invoke=toggle_mute_tracks}
 renoise.tool():add_keybinding{name="Global:Paketti:Toggle Mute Tracks",invoke=toggle_mute_tracks}
 renoise.tool():add_midi_mapping{name="Paketti:Toggle Mute Tracks",invoke=toggle_mute_tracks}
 
@@ -4582,11 +4582,11 @@ function GenerateDelayValue(scope)
 end
 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Generate Delay Value on Note Columns",invoke=function() GenerateDelayValue("row") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Generate Delay Value on Note Columns",invoke=function() GenerateDelayValue("row") end}
+renoise.tool():add_menu_entry{name="---Pattern Editor:Paketti..:Note Columns..:Generate Delay Value on Note Columns",invoke=function() GenerateDelayValue("row") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Generate Delay Value on Entire Pattern",invoke=function() GenerateDelayValue("pattern") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Generate Delay Value on Entire Pattern",invoke=function() GenerateDelayValue("pattern") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Note Columns..:Generate Delay Value on Entire Pattern",invoke=function() GenerateDelayValue("pattern") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Generate Delay Value on Selection",invoke=function() GenerateDelayValue("selection") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Generate Delay Value on Selection",invoke=function() GenerateDelayValue("selection") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Note Columns..:Generate Delay Value on Selection",invoke=function() GenerateDelayValue("selection") end}
 -------
 
 -- Function to get selected columns in the current selection

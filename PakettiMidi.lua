@@ -2072,7 +2072,7 @@ end
 
 renoise.tool():add_midi_mapping{name="Paketti:Write 0Sxx Command Random Slice/Offset x[Toggle]",invoke=function(message) if message:is_trigger() then write_random_slice_command() end end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Write 0Sxx Command Random Slice/Offset",invoke=function() write_random_slice_command() end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Write 0Sxx Command Random Slice/Offset",invoke=function() write_random_slice_command() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Generate&Randomize..:Write 0Sxx Command Random Slice/Offset",invoke=function() write_random_slice_command() end}
 
 -- Function to rename tracks based on actual samples being played
 function rename_tracks_by_played_samples()
@@ -2172,7 +2172,7 @@ function rename_tracks_by_played_samples()
 end
 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Rename Tracks By Played Samples",invoke=function() rename_tracks_by_played_samples() end}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Rename Tracks By Played Samples",invoke=function() rename_tracks_by_played_samples() end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Tracks..:Rename Tracks By Played Samples",invoke=function() rename_tracks_by_played_samples() end}
 renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Rename Tracks By Played Samples",invoke=function() rename_tracks_by_played_samples() end}
 -----
 -- Function to modify selected XY Pad parameter

@@ -1864,7 +1864,7 @@ function setToSelectedInstrument_DuplicateTrack()
   MarkTrackMarkPattern()
 end
 
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Duplicate Track, set to Selected Instrument",invoke=function() setToSelectedInstrument_DuplicateTrack() end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Tracks..:Duplicate Track, set to Selected Instrument",invoke=function() setToSelectedInstrument_DuplicateTrack() end}
 renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Duplicate Track, set to Selected Instrument",invoke=function() setToSelectedInstrument_DuplicateTrack() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Track, set to Selected Instrument",invoke=function() setToSelectedInstrument_DuplicateTrack() end}
 
@@ -2017,7 +2017,7 @@ function duplicateTrackDuplicateInstrument()
   end
 end
 
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Duplicate Track Duplicate Instrument",invoke=function() duplicateTrackDuplicateInstrument() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Tracks..:Duplicate Track Duplicate Instrument",invoke=function() duplicateTrackDuplicateInstrument() end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Duplicate Track Duplicate Instrument",invoke=function() duplicateTrackDuplicateInstrument() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Track Duplicate Instrument",invoke=function() duplicateTrackDuplicateInstrument() end}
 ------------
@@ -2423,8 +2423,8 @@ function create_identical_track()
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Create Identical Track",invoke=create_identical_track}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Create Phrase",invoke=function() createPhrase() end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Create Identical Track",invoke=create_identical_track}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Pattern..:Create Phrase",invoke=function() createPhrase() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Tracks..:Create Identical Track",invoke=create_identical_track}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Create Identical Track",invoke=create_identical_track}
 renoise.tool():add_keybinding{name="Mixer:Paketti:Create Identical Track",invoke=create_identical_track}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Pattern Editor..:Create Identical Track",invoke=create_identical_track}
@@ -3106,8 +3106,8 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Roll the Dice on Notes",invoke=function()
 randomize_notes_in_selection() end}
 
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Roll the Dice on Notes in Selection",invoke=function() randomize_notes_in_selection() end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Reverse Notes in Selection",invoke=PakettiReverseNotesInSelection}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Note Columns..:Roll the Dice on Notes in Selection",invoke=function() randomize_notes_in_selection() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Note Columns..:Reverse Notes in Selection",invoke=PakettiReverseNotesInSelection}
 
 
 -------
@@ -4045,8 +4045,8 @@ renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Track Properties
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Track Properties..:Increase All Track Volumes by 3dB", invoke=function() pakettiDumpAllTrackVolumes(3) end}
 renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Decrease All Track Volumes by 3dB", invoke=function() pakettiDumpAllTrackVolumes(-3) end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Increase All Track Volumes by 3dB", invoke=function() pakettiDumpAllTrackVolumes(3) end}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Decrease All Track Volumes by 3dB", invoke=function() pakettiDumpAllTrackVolumes(-3) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Increase All Track Volumes by 3dB", invoke=function() pakettiDumpAllTrackVolumes(3) end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Tracks..:Decrease All Track Volumes by 3dB", invoke=function() pakettiDumpAllTrackVolumes(-3) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Tracks..:Increase All Track Volumes by 3dB", invoke=function() pakettiDumpAllTrackVolumes(3) end}
 renoise.tool():add_keybinding{name="--Global:Paketti:Decrease All Track Volumes by 3dB", invoke=function() pakettiDumpAllTrackVolumes(-3) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Increase All Track Volumes by 3dB", invoke=function() pakettiDumpAllTrackVolumes(3) end}
 -------
@@ -4118,11 +4118,11 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:R
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Resize&Fill..:Paketti Pattern Resize and Fill 128",invoke=function() pakettiResizeAndFill(128) end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Resize&Fill..:Paketti Pattern Resize and Fill 256",invoke=function() pakettiResizeAndFill(256) end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Resize&Fill..:Paketti Pattern Resize and Fill 512",invoke=function() pakettiResizeAndFill(512) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Resize&Fill..:Paketti Pattern Resize and Fill 032",invoke=function() pakettiResizeAndFill(32) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Resize&Fill..:Paketti Pattern Resize and Fill 064",invoke=function() pakettiResizeAndFill(64) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Resize&Fill..:Paketti Pattern Resize and Fill 128",invoke=function() pakettiResizeAndFill(128) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Resize&Fill..:Paketti Pattern Resize and Fill 256",invoke=function() pakettiResizeAndFill(256) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Resize&Fill..:Paketti Pattern Resize and Fill 512",invoke=function() pakettiResizeAndFill(512) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Pattern..:Resize&Fill..:Paketti Pattern Resize and Fill 032",invoke=function() pakettiResizeAndFill(32) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Pattern..:Resize&Fill..:Paketti Pattern Resize and Fill 064",invoke=function() pakettiResizeAndFill(64) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Pattern..:Resize&Fill..:Paketti Pattern Resize and Fill 128",invoke=function() pakettiResizeAndFill(128) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Pattern..:Resize&Fill..:Paketti Pattern Resize and Fill 256",invoke=function() pakettiResizeAndFill(256) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Pattern..:Resize&Fill..:Paketti Pattern Resize and Fill 512",invoke=function() pakettiResizeAndFill(512) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Pattern Resize and Fill 032",invoke=function() pakettiResizeAndFill(32) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Pattern Resize and Fill 064",invoke=function() pakettiResizeAndFill(64) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Pattern Resize and Fill 128",invoke=function() pakettiResizeAndFill(128) end}
@@ -5252,7 +5252,7 @@ function resize_all_non_empty_patterns_to_current_pattern_length()
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Resize all non-empty Patterns to current Pattern length",invoke = resize_all_non_empty_patterns_to_current_pattern_length}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Resize all non-empty Patterns..:Resize all non-empty Patterns to current Pattern length",invoke = resize_all_non_empty_patterns_to_current_pattern_length}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Pattern..:Resize all non-empty Patterns..:Resize all non-empty Patterns to current Pattern length",invoke = resize_all_non_empty_patterns_to_current_pattern_length}
 renoise.tool():add_menu_entry{name="--Pattern Sequencer:Paketti..:Resize all non-empty Patterns..:Resize all non-empty Patterns to current Pattern length",invoke = resize_all_non_empty_patterns_to_current_pattern_length}
 renoise.tool():add_keybinding{name="Global:Paketti:Resize all non-empty Patterns to 012",invoke=function() resize_all_non_empty_patterns_to(12) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Resize all non-empty Patterns to 016",invoke=function() resize_all_non_empty_patterns_to(016) end}
@@ -5266,18 +5266,18 @@ renoise.tool():add_keybinding{name="Global:Paketti:Resize all non-empty Patterns
 renoise.tool():add_keybinding{name="Global:Paketti:Resize all non-empty Patterns to 256",invoke=function() resize_all_non_empty_patterns_to(256) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Resize all non-empty Patterns to 384",invoke=function() resize_all_non_empty_patterns_to(384) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Resize all non-empty Patterns to 512",invoke=function() resize_all_non_empty_patterns_to(512) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Resize all non-empty Patterns..:Resize all non-empty Patterns to 012",invoke=function() resize_all_non_empty_patterns_to(12) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Resize all non-empty Patterns..:Resize all non-empty Patterns to 016",invoke=function() resize_all_non_empty_patterns_to(016) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Resize all non-empty Patterns..:Resize all non-empty Patterns to 024",invoke=function() resize_all_non_empty_patterns_to(024) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Resize all non-empty Patterns..:Resize all non-empty Patterns to 032",invoke=function() resize_all_non_empty_patterns_to(032) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Resize all non-empty Patterns..:Resize all non-empty Patterns to 048",invoke=function() resize_all_non_empty_patterns_to(048) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Resize all non-empty Patterns..:Resize all non-empty Patterns to 064",invoke=function() resize_all_non_empty_patterns_to(064) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Resize all non-empty Patterns..:Resize all non-empty Patterns to 096",invoke=function() resize_all_non_empty_patterns_to(96) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Resize all non-empty Patterns..:Resize all non-empty Patterns to 128",invoke=function() resize_all_non_empty_patterns_to(128) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Resize all non-empty Patterns..:Resize all non-empty Patterns to 192",invoke=function() resize_all_non_empty_patterns_to(192) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Resize all non-empty Patterns..:Resize all non-empty Patterns to 256",invoke=function() resize_all_non_empty_patterns_to(256) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Resize all non-empty Patterns..:Resize all non-empty Patterns to 384",invoke=function() resize_all_non_empty_patterns_to(384) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Resize all non-empty Patterns..:Resize all non-empty Patterns to 512",invoke=function() resize_all_non_empty_patterns_to(512) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Pattern..:Resize all non-empty Patterns..:Resize all non-empty Patterns to 012",invoke=function() resize_all_non_empty_patterns_to(12) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Pattern..:Resize all non-empty Patterns..:Resize all non-empty Patterns to 016",invoke=function() resize_all_non_empty_patterns_to(016) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Pattern..:Resize all non-empty Patterns..:Resize all non-empty Patterns to 024",invoke=function() resize_all_non_empty_patterns_to(024) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Pattern..:Resize all non-empty Patterns..:Resize all non-empty Patterns to 032",invoke=function() resize_all_non_empty_patterns_to(032) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Pattern..:Resize all non-empty Patterns..:Resize all non-empty Patterns to 048",invoke=function() resize_all_non_empty_patterns_to(048) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Pattern..:Resize all non-empty Patterns..:Resize all non-empty Patterns to 064",invoke=function() resize_all_non_empty_patterns_to(064) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Pattern..:Resize all non-empty Patterns..:Resize all non-empty Patterns to 096",invoke=function() resize_all_non_empty_patterns_to(96) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Pattern..:Resize all non-empty Patterns..:Resize all non-empty Patterns to 128",invoke=function() resize_all_non_empty_patterns_to(128) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Pattern..:Resize all non-empty Patterns..:Resize all non-empty Patterns to 192",invoke=function() resize_all_non_empty_patterns_to(192) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Pattern..:Resize all non-empty Patterns..:Resize all non-empty Patterns to 256",invoke=function() resize_all_non_empty_patterns_to(256) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Pattern..:Resize all non-empty Patterns..:Resize all non-empty Patterns to 384",invoke=function() resize_all_non_empty_patterns_to(384) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Pattern..:Resize all non-empty Patterns..:Resize all non-empty Patterns to 512",invoke=function() resize_all_non_empty_patterns_to(512) end}
 renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Resize all non-empty Patterns..:Resize all non-empty Patterns to 012",invoke=function() resize_all_non_empty_patterns_to(012) end}
 renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Resize all non-empty Patterns..:Resize all non-empty Patterns to 016",invoke=function() resize_all_non_empty_patterns_to(016) end}
 renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Resize all non-empty Patterns..:Resize all non-empty Patterns to 024",invoke=function() resize_all_non_empty_patterns_to(024) end}
@@ -7368,9 +7368,9 @@ end
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Interpolate Column Values (Volume)",invoke=function() volume_interpolation() end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Interpolate Column Values (Delay)",invoke=function() delay_interpolation() end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Interpolate Column Values (Panning)",invoke=function() panning_interpolation() end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Interpolate Column Values (Volume)",invoke=function() volume_interpolation() end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Interpolate Column Values (Delay)",invoke=function() delay_interpolation() end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Interpolate Column Values (Panning)",invoke=function() panning_interpolation() end}
+renoise.tool():add_menu_entry{name="---Pattern Editor:Paketti..:Pattern..:Interpolate Column Values (Volume)",invoke=function() volume_interpolation() end}
+renoise.tool():add_menu_entry{name="---Pattern Editor:Paketti..:Pattern..:Interpolate Column Values (Delay)",invoke=function() delay_interpolation() end}
+renoise.tool():add_menu_entry{name="---Pattern Editor:Paketti..:Pattern..:Interpolate Column Values (Panning)",invoke=function() panning_interpolation() end}
 renoise.tool():add_midi_mapping{name="Paketti:Interpolate Column Values (Volume)",
   invoke=function(message) 
     if message:is_trigger() then volume_interpolation() end 
@@ -7472,7 +7472,7 @@ end
 
 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Interpolate Column Values (Sample FX)",invoke=function() samplefx_interpolation() end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Interpolate Column Values (Sample FX)",invoke=function() samplefx_interpolation() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Pattern..:Interpolate Column Values (Sample FX)",invoke=function() samplefx_interpolation() end}
 renoise.tool():add_midi_mapping{name="Paketti:Interpolate Column Values (Sample FX)",invoke=function(message) if message:is_trigger() then samplefx_interpolation() end  end}
 
 -- Show the GUI dialog
@@ -7535,7 +7535,7 @@ end
 
 -- Trigger the dialog to show
 renoise.tool():add_keybinding{name="Global:Paketti:Open VolDelayPan Slider Dialog...",invoke=function() pakettiVolDelayPanSliderDialog() end}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Open VolDelayPan Slider Dialog...",invoke=function() pakettiVolDelayPanSliderDialog() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti VolDelayPan Slider Dialog...",invoke=function() pakettiVolDelayPanSliderDialog() end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Paketti Volume/Delay/Pan Slider Controls...",invoke=function() pakettiVolDelayPanSliderDialog() end}
 renoise.tool():add_midi_mapping{name="Paketti:Open VolDelayPan Slider Dialog...",invoke=function(message)  if message:is_trigger() then pakettiVolDelayPanSliderDialog() end end}
 -----
@@ -8118,9 +8118,9 @@ end
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Invert Note Column Subcolumns",invoke=function() invert_content("notecolumns") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Invert Effect Column Subcolumns",invoke=function() invert_content("effectcolumns") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Invert All Subcolumns",invoke=function() invert_content("all") end}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Invert Note Column Subcolumns",invoke=function() invert_content("notecolumns") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Invert Effect Column Subcolumns",invoke=function() invert_content("effectcolumns") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Invert All Subcolumns",invoke=function() invert_content("all") end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Note Columns..:Invert Note Column Subcolumns",invoke=function() invert_content("notecolumns") end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Effect Columns..:Invert Effect Column Subcolumns",invoke=function() invert_content("effectcolumns") end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Pattern..:Invert All Subcolumns",invoke=function() invert_content("all") end}
 
 
 ---
@@ -8806,10 +8806,10 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Wipe All Effect Colum
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Wipe All Effect Columns on Selected Track on Song",invoke=function() wipe_effect_columns(false, true) end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Wipe All Effect Columns on Selected Pattern",invoke=function() wipe_effect_columns(true, false) end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Wipe All Effect Columns on Song",invoke=function() wipe_effect_columns(true, true) end}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Wipe All Effect Columns on Selected Track on Current Pattern",invoke=function() wipe_effect_columns(false, false) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Wipe All Effect Columns on Selected Track on Song",invoke=function() wipe_effect_columns(false, true) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Wipe All Effect Columns on Selected Pattern",invoke=function() wipe_effect_columns(true, false) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Wipe All Effect Columns on Song",invoke=function() wipe_effect_columns(true, true) end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Effect Columns..:Wipe All Effect Columns on Selected Track on Current Pattern",invoke=function() wipe_effect_columns(false, false) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Effect Columns..:Wipe All Effect Columns on Selected Track on Song",invoke=function() wipe_effect_columns(false, true) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Effect Columns..:Wipe All Effect Columns on Selected Pattern",invoke=function() wipe_effect_columns(true, false) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Effect Columns..:Wipe All Effect Columns on Song",invoke=function() wipe_effect_columns(true, true) end}
 
 function multiply_bpm_halve_lpb()
   local song=renoise.song()
@@ -8871,10 +8871,10 @@ function halve_bpm_multiply_lpb()
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Multiply BPM & Halve LPB",invoke=function() multiply_bpm_halve_lpb() end}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Multiply BPM & Halve LPB",invoke=function() multiply_bpm_halve_lpb() end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:BPM&LPB..:Multiply BPM & Halve LPB",invoke=function() multiply_bpm_halve_lpb() end}
 renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Multiply BPM & Halve LPB",invoke=function() multiply_bpm_halve_lpb() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Halve BPM & Multiply LPB",invoke=function() halve_bpm_multiply_lpb() end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Halve BPM & Multiply LPB",invoke=function() halve_bpm_multiply_lpb() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:BPM&LPB..:Halve BPM & Multiply LPB",invoke=function() halve_bpm_multiply_lpb() end}
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Halve BPM & Multiply LPB",invoke=function() halve_bpm_multiply_lpb() end}
 --------
 function sampleFXControls(scope, state)
@@ -8914,10 +8914,10 @@ renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Enable All Sample
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Bypass All Sample FX on Selected Instrument",invoke=function() sampleFXControls("single", false) end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Enable All Sample FX on All Instruments",invoke=function() sampleFXControls("all", true) end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Bypass All Sample FX on All Instruments",invoke=function() sampleFXControls("all", false) end}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Enable All Sample FX on Selected Instrument",invoke=function() sampleFXControls("single", true) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Bypass All Sample FX on Selected Instrument",invoke=function() sampleFXControls("single", false) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Enable All Sample FX on All Instruments",invoke=function() sampleFXControls("all", true) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Bypass All Sample FX on All Instruments",invoke=function() sampleFXControls("all", false) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Instrument..:Enable All Sample FX on Selected Instrument",invoke=function() sampleFXControls("single", true) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Instrument..:Bypass All Sample FX on Selected Instrument",invoke=function() sampleFXControls("single", false) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Instrument..:Enable All Sample FX on All Instruments",invoke=function() sampleFXControls("all", true) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Instrument..:Bypass All Sample FX on All Instruments",invoke=function() sampleFXControls("all", false) end}
 renoise.tool():add_menu_entry{name="--Sample FX Mixer:Paketti..:Enable All Sample FX on Selected Instrument",invoke=function() sampleFXControls("single", true) end}
 renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti..:Bypass All Sample FX on Selected Instrument",invoke=function() sampleFXControls("single", false) end}
 renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti..:Enable All Sample FX on All Instruments",invoke=function() sampleFXControls("all", true) end}
@@ -9145,7 +9145,7 @@ function pakettiFloodFillFromCurrentRow()
   renoise.app():show_status("Selection filled with contents of current row")
 end
 
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Flood Fill from Current Row w/ AutoArp",invoke=pakettiFloodFillFromCurrentRow}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Pattern..:Flood Fill from Current Row w/ AutoArp",invoke=pakettiFloodFillFromCurrentRow}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Flood Fill from Current Row w/ AutoArp",invoke=pakettiFloodFillFromCurrentRow}
 --------
 function findUsedInstruments()
@@ -10315,9 +10315,9 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Fuzzy Search Track",i
 renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Fuzzy Search Track",invoke = pakettiFuzzySearchTrackDialog}
 renoise.tool():add_keybinding{name="Mixer:Paketti:Fuzzy Search Track",invoke = pakettiFuzzySearchTrackDialog}
 renoise.tool():add_keybinding{name="Global:Paketti:Fuzzy Search Track",invoke = pakettiFuzzySearchTrackDialog}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Fuzzy Search Track...",invoke = pakettiFuzzySearchTrackDialog}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti Fuzzy Search Track...",invoke = pakettiFuzzySearchTrackDialog}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Fuzzy Search Track...",invoke = pakettiFuzzySearchTrackDialog}
-renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Fuzzy Search Track...",invoke = pakettiFuzzySearchTrackDialog}
+renoise.tool():add_menu_entry{name="Mixer:Paketti Fuzzy Search Track...",invoke = pakettiFuzzySearchTrackDialog}
 renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Fuzzy Search Track...",invoke = pakettiFuzzySearchTrackDialog}
 -----------
 local dialog = nil
@@ -10566,7 +10566,7 @@ function NoteToInstrumentKeyhandler(dialog,key)
   end
 end
   
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Switch Note Instrument Dialog...",invoke=pakettiSwitchNoteInstrumentDialog}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Pattern..:Switch Note Instrument Dialog...",invoke=pakettiSwitchNoteInstrumentDialog}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Switch Note Instrument Dialog...",invoke=pakettiSwitchNoteInstrumentDialog}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Switch Note Instrument Dialog...",invoke=pakettiSwitchNoteInstrumentDialog}
 ------------------------------
@@ -10997,4 +10997,4 @@ function ConvertChordsToArpeggio()
 end
 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Convert 3 Note Chord to Arpeggio", invoke=function() ConvertChordsToArpeggio() end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Convert 3 Note Chord to Arpeggio", invoke=function() ConvertChordsToArpeggio() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Note Columns..:Convert 3 Note Chord to Arpeggio", invoke=function() ConvertChordsToArpeggio() end}

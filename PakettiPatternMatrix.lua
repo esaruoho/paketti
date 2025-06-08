@@ -91,7 +91,7 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Pattern Above & Clear Muted Tracks",invoke=duplicate_pattern_and_clear_muted_above}
 renoise.tool():add_midi_mapping{name="Paketti:Duplicate Pattern Above & Clear Muted",invoke=duplicate_pattern_and_clear_muted_above}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Duplicate Pattern Above & Clear Muted",invoke=duplicate_pattern_and_clear_muted_above}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Duplicate Pattern Above & Clear Muted",invoke=duplicate_pattern_and_clear_muted_above}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Pattern..:Duplicate Pattern Above & Clear Muted",invoke=duplicate_pattern_and_clear_muted_above}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Duplicate Pattern Above & Clear Muted",invoke=duplicate_pattern_and_clear_muted_above}
 
 
@@ -162,7 +162,7 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Pattern Below & Clear Muted Tracks",invoke=duplicate_pattern_and_clear_muted}
 renoise.tool():add_midi_mapping{name="Paketti:Duplicate Pattern Below & Clear Muted",invoke=duplicate_pattern_and_clear_muted}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Duplicate Pattern Below & Clear Muted",invoke=duplicate_pattern_and_clear_muted}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Duplicate Pattern Below & Clear Muted",invoke=duplicate_pattern_and_clear_muted}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Pattern..:Duplicate Pattern Below & Clear Muted",invoke=duplicate_pattern_and_clear_muted}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Duplicate Pattern Below & Clear Muted",invoke=duplicate_pattern_and_clear_muted}
 
 
