@@ -1527,7 +1527,7 @@ end
 
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Paketti Timestretch Dialog...",invoke=pakettiTimestretchDialog}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti Gadgets..:Paketti Timestretch Dialog...",invoke=pakettiTimestretchDialog}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Paketti Timestretch Dialog...",invoke=pakettiTimestretchDialog}
+
 renoise.tool():add_keybinding{name="Global:Paketti:Timestretch Dialog...",invoke=pakettiTimestretchDialog}
 render_context = {
     source_track = 0,

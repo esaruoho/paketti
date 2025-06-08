@@ -26,6 +26,8 @@ end
 --- Pattern Editor Config
 if preferences.pakettiMenuConfig.PatternEditor then
   print ("Pattern Editor Menus Are Enabled")
+  --- Gadgets
+  renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti Gadgets..:Paketti Timestretch Dialog...",invoke=pakettiTimestretchDialog}
 end
 
 --- Main Menu Tools Config
@@ -68,28 +70,28 @@ end
 --- Main Menu File Config
 if preferences.pakettiMenuConfig.MainMenuFile then
   print ("Main Menu File Menus Are Enabled")
-  renoise.tool():add_menu_entry{name="Main Menu:File:Load Most Recently Saved Song",invoke=function() loadRecentlySavedSong() end}
 renoise.tool():add_menu_entry{name="Main Menu:File:Paketti New Song Dialog...",invoke=function() pakettiImpulseTrackerNewSongDialog() end}
+renoise.tool():add_menu_entry{name="Main Menu:File:Load Most Recently Saved Song",invoke=function() loadRecentlySavedSong() end}
 renoise.tool():add_menu_entry{name="Main Menu:File:Save (Paketti Track Dater & Titler)...",invoke=pakettiTitlerDialog}
 renoise.tool():add_menu_entry{name="Main Menu:File:Save Song with Timestamp",invoke=function() save_with_new_timestamp() end}
 renoise.tool():add_menu_entry{name="--Main Menu:File:Save All Samples to Folder...",invoke = saveAllSamplesToFolder}
-renoise.tool():add_menu_entry{name="--Main Menu:File:Largest Samples Dialog...",invoke = pakettiShowLargestSamplesDialog}
 renoise.tool():add_menu_entry{name="--Main Menu:File:Save Unused Samples (.WAV&.XRNI)...",invoke=saveUnusedSamples}
 renoise.tool():add_menu_entry{name="Main Menu:File:Save Unused Instruments (.XRNI)...",invoke=saveUnusedInstruments}
 renoise.tool():add_menu_entry{name="--Main Menu:File:Delete Unused Instruments...",invoke=deleteUnusedInstruments}
 renoise.tool():add_menu_entry{name="Main Menu:File:Delete Unused Samples...",invoke=deleteUnusedSamples}
+renoise.tool():add_menu_entry{name="--Main Menu:File:Largest Samples Dialog...",invoke = pakettiShowLargestSamplesDialog}
 
 --- File -> Paketti
 renoise.tool():add_menu_entry{name="Main Menu:File:Paketti..:Load Most Recently Saved Song",invoke=function() loadRecentlySavedSong() end}
-renoise.tool():add_menu_entry{name="Main Menu:File:Paketti..:Delete Unused Samples...",invoke=deleteUnusedSamples}
 renoise.tool():add_menu_entry{name="Main Menu:File:Paketti..:Paketti New Song Dialog...",invoke=function() pakettiImpulseTrackerNewSongDialog() end}
 renoise.tool():add_menu_entry{name="Main Menu:File:Paketti..:Paketti Track Dater & Titler...",invoke=pakettiTitlerDialog}
 renoise.tool():add_menu_entry{name="Main Menu:File:Paketti..:Save Song with Timestamp",invoke=function() save_with_new_timestamp() end}
 renoise.tool():add_menu_entry{name="--Main Menu:File:Paketti..:Save All Samples to Folder...",invoke = saveAllSamplesToFolder}
-renoise.tool():add_menu_entry{name="--Main Menu:File:Paketti..:Largest Samples Dialog...",invoke = pakettiShowLargestSamplesDialog}
 renoise.tool():add_menu_entry{name="--Main Menu:File:Paketti..:Save Unused Samples (.WAV&.XRNI)...",invoke=saveUnusedSamples}
 renoise.tool():add_menu_entry{name="Main Menu:File:Paketti..:Save Unused Instruments (.XRNI)...",invoke=saveUnusedInstruments}
 renoise.tool():add_menu_entry{name="--Main Menu:File:Paketti..:Delete Unused Instruments...",invoke=deleteUnusedInstruments}
+renoise.tool():add_menu_entry{name="Main Menu:File:Paketti..:Delete Unused Samples...",invoke=deleteUnusedSamples}
+renoise.tool():add_menu_entry{name="--Main Menu:File:Paketti..:Largest Samples Dialog...",invoke = pakettiShowLargestSamplesDialog}
 
 end
 
