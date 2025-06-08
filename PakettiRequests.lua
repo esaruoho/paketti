@@ -7535,7 +7535,7 @@ end
 
 -- Trigger the dialog to show
 renoise.tool():add_keybinding{name="Global:Paketti:Open VolDelayPan Slider Dialog...",invoke=function() pakettiVolDelayPanSliderDialog() end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti VolDelayPan Slider Dialog...",invoke=function() pakettiVolDelayPanSliderDialog() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti Tools..:VolDelayPan Slider Dialog...",invoke=function() pakettiVolDelayPanSliderDialog() end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Paketti Volume/Delay/Pan Slider Controls...",invoke=function() pakettiVolDelayPanSliderDialog() end}
 renoise.tool():add_midi_mapping{name="Paketti:Open VolDelayPan Slider Dialog...",invoke=function(message)  if message:is_trigger() then pakettiVolDelayPanSliderDialog() end end}
 -----

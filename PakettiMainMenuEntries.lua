@@ -409,6 +409,7 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Toggle Paketti Dialog of Dialogs...",invoke=function() pakettiDialogOfDialogsToggle() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti Dialog of Dialogs...",invoke=function() pakettiDialogOfDialogsToggle() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti Dialog of Dialogs...",invoke=function() pakettiDialogOfDialogsToggle() end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Paketti New Song Dialog...",invoke=function() pakettiImpulseTrackerNewSongDialog() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti Track Dater & Titler...",invoke=function() pakettiTitlerDialog() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti Theme Selector...",invoke=pakettiThemeSelectorDialogShow }
@@ -419,6 +420,13 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti Gater...",
             renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
           end
         end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti Tools..:Paketti Gater...",invoke=function()
+          local max_rows = renoise.song().selected_pattern.number_of_lines
+          if renoise.song() then
+            pakettiGaterDialog()
+            renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+          end
+        end}        
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Paketti MIDI Populator...",invoke=function() pakettiMIDIPopulator() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Track Routings...",invoke=function() pakettiTrackOutputRoutingsDialog() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Oblique Strategies...",invoke=function() create_oblique_strategies_dialog() end}
