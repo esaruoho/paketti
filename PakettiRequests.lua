@@ -10315,7 +10315,7 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Fuzzy Search Track",i
 renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Fuzzy Search Track",invoke = pakettiFuzzySearchTrackDialog}
 renoise.tool():add_keybinding{name="Mixer:Paketti:Fuzzy Search Track",invoke = pakettiFuzzySearchTrackDialog}
 renoise.tool():add_keybinding{name="Global:Paketti:Fuzzy Search Track",invoke = pakettiFuzzySearchTrackDialog}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti Fuzzy Search Track...",invoke = pakettiFuzzySearchTrackDialog}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti Gadgets..:Paketti Fuzzy Search Track...",invoke = pakettiFuzzySearchTrackDialog}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Fuzzy Search Track...",invoke = pakettiFuzzySearchTrackDialog}
 renoise.tool():add_menu_entry{name="Mixer:Paketti Fuzzy Search Track...",invoke = pakettiFuzzySearchTrackDialog}
 renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Fuzzy Search Track...",invoke = pakettiFuzzySearchTrackDialog}
