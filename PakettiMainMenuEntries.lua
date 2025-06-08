@@ -421,7 +421,7 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti Gater...",
             renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
           end
         end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti Tools..:Paketti Gater...",invoke=function()
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti Tools..:Paketti Gater...",invoke=function()
           local max_rows = renoise.song().selected_pattern.number_of_lines
           if renoise.song() then
             pakettiGaterDialog()
