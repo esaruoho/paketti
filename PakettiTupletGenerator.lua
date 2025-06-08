@@ -363,4 +363,5 @@ function pakettiTupletDialog()
 end
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress..:Paketti Tuplet Writer Dialog...",invoke=function() pakettiTupletDialog() end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti Tools..:(Xperimental) Tuplet Writer Dialog...",invoke=function() pakettiTupletDialog() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Tuplet Writer Dialog...",invoke=function() pakettiTupletDialog() end}

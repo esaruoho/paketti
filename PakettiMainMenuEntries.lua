@@ -236,6 +236,7 @@ end
 
 
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Paketti Effect Column CheatSheet...",invoke=function() pakettiPatternEditorCheatsheetDialog() end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti Tools..:Effect Column CheatSheet...",invoke=function() pakettiPatternEditorCheatsheetDialog() end}
 
 -------- Plugins/Devices
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:Load Devices...",invoke=function()
