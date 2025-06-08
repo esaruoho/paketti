@@ -5244,9 +5244,9 @@ function randomly_raise_selected_notes_one_octave(probability)
   end
 end
 
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Random..:Selected Notes Octave Up 25% Probability",invoke=function() randomly_raise_selected_notes_one_octave(0.25) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Random..:Selected Notes Octave Up 50% Probability",invoke=function() randomly_raise_selected_notes_one_octave(0.5) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Random..:Selected Notes Octave Up 75% Probability",invoke=function() randomly_raise_selected_notes_one_octave(0.75) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Generate&Randomize..:Selected Notes Octave Up 25% Probability",invoke=function() randomly_raise_selected_notes_one_octave(0.25) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Generate&Randomize..:Selected Notes Octave Up 50% Probability",invoke=function() randomly_raise_selected_notes_one_octave(0.5) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Generate&Randomize..:Selected Notes Octave Up 75% Probability",invoke=function() randomly_raise_selected_notes_one_octave(0.75) end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Random Selected Notes Octave Up 25% Probability",invoke=function() randomly_raise_selected_notes_one_octave(0.25) end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Random Selected Notes Octave Up 50% Probability",invoke=function() randomly_raise_selected_notes_one_octave(0.5) end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Random Selected Notes Octave Up 75% Probability",invoke=function() randomly_raise_selected_notes_one_octave(0.75) end}
