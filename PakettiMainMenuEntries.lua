@@ -410,7 +410,7 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Toggle Paketti Dialog of Dialogs...",invoke=function() pakettiDialogOfDialogsToggle() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti Dialog of Dialogs...",invoke=function() pakettiDialogOfDialogsToggle() end}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti Tools..:Paketti Dialog of Dialogs...",invoke=function() pakettiDialogOfDialogsToggle() end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti Gadgets..:Paketti Dialog of Dialogs...",invoke=function() pakettiDialogOfDialogsToggle() end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Paketti New Song Dialog...",invoke=function() pakettiImpulseTrackerNewSongDialog() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti Track Dater & Titler...",invoke=function() pakettiTitlerDialog() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti Theme Selector...",invoke=pakettiThemeSelectorDialogShow }
