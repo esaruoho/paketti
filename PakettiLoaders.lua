@@ -2966,7 +2966,7 @@ end
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:!Preferences..:Toggle Automatically Open Selected Track Device Editors On/Off",invoke = PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode}
 renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Toggle Automatically Open Selected Track Device Editors On/Off",invoke = PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode}
 renoise.tool():add_menu_entry{name="--Main Menu:Options:Toggle Automatically Open Selected Track Device Editors On/Off",invoke = PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode}
-renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Toggle Automatically Open Selected Track Device Editors On/Off",invoke = PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode}
+
 renoise.tool():add_keybinding{name="Global:Paketti:Toggle Auto-Open Track Devices",invoke = PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode}
 renoise.tool():add_midi_mapping{name="Paketti:Toggle Auto-Open Track Devices",invoke = PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode}
 -------
@@ -3092,7 +3092,7 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Insert Stereo -> Mono device to End of ALL DSP Chains",invoke=function() insertMonoToAllTracksEnd() end}
 renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Insert Stereo -> Mono device to End of ALL DSP Chains",invoke=function() insertMonoToAllTracksEnd() end}
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Insert Stereo -> Mono device to End of ALL DSP Chains",invoke=function() insertMonoToAllTracksEnd() end}
-renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Insert Stereo -> Mono device to End of ALL DSP Chains",invoke=function() insertMonoToAllTracksEnd() end}
+
 -----
 -- LFO Shape control functions
 local function get_lfo_device()

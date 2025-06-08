@@ -117,6 +117,6 @@ end
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti BPM to MS Delay Calculator Dialog...", invoke = pakettiBPMMSCalculator}
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:BPM&LPB..:Paketti BPM to MS Delay Calculator Dialog...", invoke = pakettiBPMMSCalculator}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Paketti BPM to MS Delay Calculator Dialog...", invoke = pakettiBPMMSCalculator}
+
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Paketti BPM to MS Delay Calculator Dialog...", invoke = pakettiBPMMSCalculator}
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti BPM to MS Delay Calculator Dialog...", invoke = pakettiBPMMSCalculator}

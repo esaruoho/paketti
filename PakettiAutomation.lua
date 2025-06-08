@@ -1134,26 +1134,7 @@ renoise.tool():add_menu_entry({name="Track Automation:Paketti..:Automation Curve
 invoke=function() apply_exponential_automation_curve_top_to_center() end})
 renoise.tool():add_menu_entry({name="Track Automation:Paketti..:Automation Curves..:Bottom to Center (Exp)",
 invoke=function() apply_exponential_automation_curve_bottom_to_center() end})
-renoise.tool():add_menu_entry({name="Pattern Matrix:Paketti..:Automation Curves..:Top to Top",
-invoke=function() apply_constant_automation_top_to_top() end})
-renoise.tool():add_menu_entry({name="Pattern Matrix:Paketti..:Automation Curves..:Bottom to Bottom",
-invoke=function() apply_constant_automation_bottom_to_bottom() end})
-renoise.tool():add_menu_entry({name="Pattern Matrix:Paketti..:Automation Curves..:Selection Up (Exp)",
-invoke=function() apply_exponential_automation_curveUP() end})
-renoise.tool():add_menu_entry({name="Pattern Matrix:Paketti..:Automation Curves..:Selection Up (Linear)",
-invoke=function() apply_selection_up_linear() end})
-renoise.tool():add_menu_entry({name="Pattern Matrix:Paketti..:Automation Curves..:Selection Down (Exp)",
-invoke=function() apply_exponential_automation_curveDOWN() end})
-renoise.tool():add_menu_entry({name="Pattern Matrix:Paketti..:Automation Curves..:Selection Down (Linear)",
-invoke=function() apply_selection_down_linear() end})
-renoise.tool():add_menu_entry({name="Pattern Matrix:Paketti..:Automation Curves..:Center to Top (Exp)",
-invoke=function() apply_exponential_automation_curve_center_to_top() end})
-renoise.tool():add_menu_entry({name="Pattern Matrix:Paketti..:Automation Curves..:Center to Bottom (Exp)",
-invoke=function() apply_exponential_automation_curve_center_to_bottom() end})
-renoise.tool():add_menu_entry({name="Pattern Matrix:Paketti..:Automation Curves..:Top to Center (Exp)",
-invoke=function() apply_exponential_automation_curve_top_to_center() end})
-renoise.tool():add_menu_entry({name="Pattern Matrix:Paketti..:Automation Curves..:Bottom to Center (Exp)",
-invoke=function() apply_exponential_automation_curve_bottom_to_center() end})
+
 
 
 for _, entry in ipairs(menu_entries) do tool:add_menu_entry({name=entry[1],invoke=function() apply_linear_automation_curveCenter(entry[2]) end})
@@ -1316,6 +1297,7 @@ renoise.app().window.active_lower_frame = renoise.ApplicationWindow.LOWER_FRAME_
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Switch to Automation",invoke=function() showAutomationHard() end}
+renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Switch to Automation",invoke=function() showAutomation() end}
 
 
 
@@ -1347,15 +1329,10 @@ then w.active_lower_frame = raw.LOWER_FRAME_TRACK_DSPS return end
 
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Switch to Automation",invoke=function() showAutomation() end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Switch to Automation",invoke=function() showAutomation() end}
-renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Switch to Automation",invoke=function() showAutomation() end}
 renoise.tool():add_keybinding{name="Mixer:Paketti:Switch to Automation",invoke=function() showAutomation() end}
-
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Show Automation",invoke=function() renoise.app().window.active_lower_frame=renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION
- end}
- renoise.tool():add_keybinding{name="Mixer:Paketti:Show Automation",invoke=function() renoise.app().window.active_lower_frame=renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION
- end}
-renoise.tool():add_keybinding{name="Instrument Box:Paketti:Show Automation",invoke=function() renoise.app().window.active_lower_frame=renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION
- end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Show Automation",invoke=function() renoise.app().window.active_lower_frame=renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION end}
+renoise.tool():add_keybinding{name="Mixer:Paketti:Show Automation",invoke=function() renoise.app().window.active_lower_frame=renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION end}
+renoise.tool():add_keybinding{name="Instrument Box:Paketti:Show Automation",invoke=function() renoise.app().window.active_lower_frame=renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION end}
 -----------
 -- Draw Automation curves, lines, within Automation Selection.
 
@@ -1510,11 +1487,6 @@ function automation_ramp_down_lin()
   apply_ramp(selected_slots, "Linear Automation Down", false, false)
 end
 
--- Optimized `menu_entry` and `key_binding` definitions for compactness
-renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Automation Curves..:Automation Ramp Up (Exp) for Pattern Matrix Selection",invoke=automation_ramp_up_exp }
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Automation Curves..:Automation Ramp Down (Exp) for Pattern Matrix Selection",invoke=automation_ramp_down_exp }
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Automation Curves..:Automation Ramp Up (Lin) for Pattern Matrix Selection",invoke=automation_ramp_up_lin }
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Automation Curves..:Automation Ramp Down (Lin) for Pattern Matrix Selection",invoke=automation_ramp_down_lin }
 
 renoise.tool():add_keybinding{name="Global:Paketti:Automation Ramp Up (Exp)",invoke=automation_ramp_up_exp }
 renoise.tool():add_keybinding{name="Global:Paketti:Automation Ramp Down (Exp)",invoke=automation_ramp_down_exp }
@@ -1626,15 +1598,6 @@ function automation_center_to_top_exp() apply_center_based_ramp(read_pattern_mat
  function automation_bottom_to_center_lin() apply_center_based_ramp(read_pattern_matrix_selection(), "Bottom to Center", true, false) end
 
 -- Register menu entries and keybindings for all 8 center-based automations
-renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Automation Curves..:Center to Top (Exp) for Pattern Matrix Selection",invoke=automation_center_to_top_exp }
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Automation Curves..:Top to Center (Exp) for Pattern Matrix Selection",invoke=automation_top_to_center_exp }
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Automation Curves..:Center to Bottom (Exp) for Pattern Matrix Selection",invoke=automation_center_to_bottom_exp }
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Automation Curves..:Bottom to Center (Exp) for Pattern Matrix Selection",invoke=automation_bottom_to_center_exp }
-
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Automation Curves..:Center to Top (Lin) for Pattern Matrix Selection",invoke=automation_center_to_top_lin }
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Automation Curves..:Top to Center (Lin) for Pattern Matrix Selection",invoke=automation_top_to_center_lin }
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Automation Curves..:Center to Bottom (Lin) for Pattern Matrix Selection",invoke=automation_center_to_bottom_lin }
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Automation Curves..:Bottom to Center (Lin) for Pattern Matrix Selection",invoke=automation_bottom_to_center_lin }
 
 renoise.tool():add_keybinding{name="Global:Paketti:Automation Center to Top (Exp)",invoke=automation_center_to_top_exp }
 renoise.tool():add_keybinding{name="Global:Paketti:Automation Top to Center (Exp)",invoke=automation_top_to_center_exp }

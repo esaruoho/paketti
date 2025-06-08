@@ -81,8 +81,6 @@ function SelectionInPatternMatrixToGroup()
 end
 
 renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Selection in Pattern Matrix to Group",invoke=function() SelectionInPatternMatrixToGroup() end}
-renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Selection in Pattern Matrix to Group",invoke=function() SelectionInPatternMatrixToGroup() end}
-
 ------------
 ------------
 function jenokiSystem(bpl,lpb,rowcount)
@@ -2167,13 +2165,13 @@ renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Pattern Editor..
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Jump to First Track In Previous Group",invoke=function() select_first_track_in_next_group(0) end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Jump to First Track In Next Group",invoke=function() select_first_track_in_next_group(1) end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Jump to First Track In Previous Group",invoke=function() select_first_track_in_next_group(0) end}
-renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Jump to First Track In Next Group",invoke=function() select_first_track_in_next_group(1) end}
-renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Jump to First Track In Previous Group",invoke=function() select_first_track_in_next_group(0) end}
 renoise.tool():add_keybinding{name="Mixer:Paketti:Jump to First Track In Next Group",invoke=function() select_first_track_in_next_group(1) end}
 renoise.tool():add_keybinding{name="Mixer:Paketti:Jump to First Track In Previous Group",invoke=function() select_first_track_in_next_group(0) end}
 renoise.tool():add_midi_mapping{name="Paketti:Jump to First Track in Next Group",invoke=function() select_first_track_in_next_group(1) end}
 renoise.tool():add_midi_mapping{name="Paketti:Jump to First Track in Previous Group",invoke=function() select_first_track_in_next_group(0) end}
-----------
+renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Jump to First Track In Next Group",invoke=function() select_first_track_in_next_group(1) end}
+renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Jump to First Track In Previous Group",invoke=function() select_first_track_in_next_group(0) end}
+
 
 function toggle_bypass_selected_device()
   local song=renoise.song()
@@ -2311,11 +2309,6 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Global Set Visible Co
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Global Set Visible Column (Delay)",invoke=function() globalChangeVisibleColumnState("delay",true) end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Global Set Visible Column (Sample Effects)",invoke=function() globalChangeVisibleColumnState("sample_effects",true) end}
 
-renoise.tool():add_menu_entry{name="Main Menu:View:Paketti..:Visible Columns..:Global Set Visible Column (Volume)",invoke=function() globalChangeVisibleColumnState("volume",true) end}
-renoise.tool():add_menu_entry{name="Main Menu:View:Paketti..:Visible Columns..:Global Set Visible Column (Panning)",invoke=function() globalChangeVisibleColumnState("panning",true) end}
-renoise.tool():add_menu_entry{name="Main Menu:View:Paketti..:Visible Columns..:Global Set Visible Column (Delay)",invoke=function() globalChangeVisibleColumnState("delay",true) end}
-renoise.tool():add_menu_entry{name="Main Menu:View:Paketti..:Visible Columns..:Global Set Visible Column (Sample Effects)",invoke=function() globalChangeVisibleColumnState("sample_effects",true) end}
-
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Pattern Editor..:Visible Columns..:Global Visible Column (All)",invoke=function() globalChangeVisibleColumnState("volume",true)
 globalChangeVisibleColumnState("panning",true) globalChangeVisibleColumnState("delay",true) globalChangeVisibleColumnState("sample_effects",true) end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Visible Columns..:Global Visible Column (None)",invoke=function() globalChangeVisibleColumnState("volume",false)
@@ -2331,19 +2324,7 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:V
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Visible Columns..:Global Visible Column (Delay)",invoke=function() globalChangeVisibleColumnState("delay",true) end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Visible Columns..:Global Visible Column (Sample Effects)",invoke=function() globalChangeVisibleColumnState("sample_effects",true) end}
 
-renoise.tool():add_menu_entry{name="--Main Menu:View:Paketti..:Visible Columns..:Global Visible Column (All)",invoke=function() globalChangeVisibleColumnState("volume",true)
-globalChangeVisibleColumnState("panning",true) globalChangeVisibleColumnState("delay",true) globalChangeVisibleColumnState("sample_effects",true) end}
-renoise.tool():add_menu_entry{name="Main Menu:View:Paketti..:Visible Columns..:Global Visible Column (None)",invoke=function() globalChangeVisibleColumnState("volume",false)
-globalChangeVisibleColumnState("panning",false) globalChangeVisibleColumnState("delay",false) globalChangeVisibleColumnState("sample_effects",false) end}
 
-renoise.tool():add_menu_entry{name="--Main Menu:View:Paketti..:Visible Columns..:Toggle Visible Column (Volume) Globally",invoke=function() globalToggleVisibleColumnState("volume") end}
-renoise.tool():add_menu_entry{name="Main Menu:View:Paketti..:Visible Columns..:Toggle Visible Column (Panning) Globally",invoke=function() globalToggleVisibleColumnState("panning") end}
-renoise.tool():add_menu_entry{name="Main Menu:View:Paketti..:Visible Columns..:Toggle Visible Column (Delay) Globally",invoke=function() globalToggleVisibleColumnState("delay") end}
-renoise.tool():add_menu_entry{name="Main Menu:View:Paketti..:Visible Columns..:Toggle Visible Column (Sample Effects) Globally",invoke=function() globalToggleVisibleColumnState("sample_effects") end}
-renoise.tool():add_menu_entry{name="--Main Menu:View:Paketti..:Visible Columns..:Global Visible Column (Volume)",invoke=function() globalChangeVisibleColumnState("volume",true) end}
-renoise.tool():add_menu_entry{name="Main Menu:View:Paketti..:Visible Columns..:Global Visible Column (Panning)",invoke=function() globalChangeVisibleColumnState("panning",true) end}
-renoise.tool():add_menu_entry{name="Main Menu:View:Paketti..:Visible Columns..:Global Visible Column (Delay)",invoke=function() globalChangeVisibleColumnState("delay",true) end}
-renoise.tool():add_menu_entry{name="Main Menu:View:Paketti..:Visible Columns..:Global Visible Column (Sample Effects)",invoke=function() globalChangeVisibleColumnState("sample_effects",true) end}
 
 -----------
 -- Create Identical Track Function
@@ -4929,9 +4910,7 @@ function pakettiTitlerDialog()
   dialog = renoise.app():show_custom_dialog("Paketti Track Dater & Titler", dialog_content, my_keyhandler_func)
 end
 
-renoise.tool():add_menu_entry{name="Main Menu:File:Paketti..:Paketti Track Dater & Titler...",invoke=pakettiTitlerDialog}
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Track Dater & Titler",invoke=pakettiTitlerDialog}
-renoise.tool():add_menu_entry{name="Main Menu:File:Save (Paketti Track Dater & Titler)...",invoke=pakettiTitlerDialog}
 ------
 renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Volume to -INF dB",
   invoke=function() 
@@ -7924,8 +7903,6 @@ end
 
 -- Call the main function
 renoise.tool():add_keybinding{name="Global:Paketti:Save Song with Timestamp",invoke=function() save_with_new_timestamp() end}
-renoise.tool():add_menu_entry{name="Main Menu:File:Save Song with Timestamp",invoke=function() save_with_new_timestamp() end}
-renoise.tool():add_menu_entry{name="Main Menu:File:Paketti..:Save Song with Timestamp",invoke=function() save_with_new_timestamp() end}
 -------
 local dialog -- Variable to track dialog visibility
 
@@ -8544,8 +8521,6 @@ end
 
 renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Pattern Matrix Selection Expand",invoke=PatternMatrixExpand }
 renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Pattern Matrix Selection Shrink",invoke=PatternMatrixShrink }
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Pattern Matrix Selection Expand",invoke=PatternMatrixExpand }
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Pattern Matrix Selection Shrink",invoke=PatternMatrixShrink }
 --------
 -- Dialog state
 local dialog = nil
@@ -8735,10 +8710,6 @@ renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Automation..:Wipe
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Automation..:Wipe All Automation in All Tracks on Current Pattern",invoke=function() delete_automation(true, false) end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Automation..:Wipe All Automation in Track on Whole Song",invoke=function() delete_automation(false, true) end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Automation..:Wipe All Automation in All Tracks on Whole Song",invoke=function() delete_automation(true, true) end}
-renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Wipe All Automation in Track on Current Pattern",invoke=function() delete_automation(false, false) end}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Wipe All Automation in All Tracks on Current Pattern",invoke=function() delete_automation(true, false) end}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Wipe All Automation in Track on Whole Song",invoke=function() delete_automation(false, true) end}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Wipe All Automation in All Tracks on Whole Song",invoke=function() delete_automation(true, true) end}
 
 function wipe_effect_columns(all_tracks, whole_song)
   local song=renoise.song()
@@ -8872,10 +8843,8 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Multiply BPM & Halve LPB",invoke=function() multiply_bpm_halve_lpb() end}
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Multiply BPM & Halve LPB",invoke=function() multiply_bpm_halve_lpb() end}
-renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Multiply BPM & Halve LPB",invoke=function() multiply_bpm_halve_lpb() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Halve BPM & Multiply LPB",invoke=function() halve_bpm_multiply_lpb() end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Halve BPM & Multiply LPB",invoke=function() halve_bpm_multiply_lpb() end}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Halve BPM & Multiply LPB",invoke=function() halve_bpm_multiply_lpb() end}
 --------
 function sampleFXControls(scope, state)
   local total_affected = 0
@@ -9336,8 +9305,6 @@ function saveUnusedSamples()
 end
 
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Save Unused Samples (.WAV&.XRNI)...",invoke=saveUnusedSamples}
-renoise.tool():add_menu_entry{name="--Main Menu:File:Save Unused Samples (.WAV&.XRNI)...",invoke=saveUnusedSamples}
-renoise.tool():add_menu_entry{name="--Main Menu:File:Paketti..:Save Unused Samples (.WAV&.XRNI)...",invoke=saveUnusedSamples}
 renoise.tool():add_keybinding{name="Global:Paketti:Save Unused Samples (.WAV&.XRNI)",invoke=saveUnusedSamples}
 --------
 function saveUnusedInstruments()
@@ -9401,8 +9368,6 @@ function saveUnusedInstruments()
 end
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Save Unused Instruments (.XRNI)...",invoke=saveUnusedInstruments}
-renoise.tool():add_menu_entry{name="Main Menu:File:Save Unused Instruments (.XRNI)...",invoke=saveUnusedInstruments}
-renoise.tool():add_menu_entry{name="Main Menu:File:Paketti..:Save Unused Instruments (.XRNI)...",invoke=saveUnusedInstruments}
 renoise.tool():add_keybinding{name="Global:Paketti:Save Unused Instruments (.XRNI)",invoke=saveUnusedInstruments}
 ----
 function deleteUnusedInstruments()
@@ -10312,13 +10277,11 @@ function pakettiFuzzySearchTrackDialog()
 end
 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Fuzzy Search Track",invoke = pakettiFuzzySearchTrackDialog}
-renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Fuzzy Search Track",invoke = pakettiFuzzySearchTrackDialog}
 renoise.tool():add_keybinding{name="Mixer:Paketti:Fuzzy Search Track",invoke = pakettiFuzzySearchTrackDialog}
 renoise.tool():add_keybinding{name="Global:Paketti:Fuzzy Search Track",invoke = pakettiFuzzySearchTrackDialog}
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Fuzzy Search Track...",invoke = pakettiFuzzySearchTrackDialog}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Fuzzy Search Track...",invoke = pakettiFuzzySearchTrackDialog}
 renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Fuzzy Search Track...",invoke = pakettiFuzzySearchTrackDialog}
-renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Fuzzy Search Track...",invoke = pakettiFuzzySearchTrackDialog}
 -----------
 local dialog = nil
 local show_dialog = nil

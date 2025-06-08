@@ -637,11 +637,6 @@ renoise.tool():add_keybinding{name="Global:Paketti:Hide All Unused Columns (Sele
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Pattern Editor..:Visible Columns..:Hide All Unused Columns (All Tracks)", invoke=function() PakettiHideAllUnusedColumns() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Visible Columns..:Hide All Unused Columns (Selected Track)", invoke=function() PakettiHideAllUnusedColumnsSelectedTrack() end}
 
-renoise.tool():add_menu_entry{name="--Main Menu:View:Paketti..:Visible Columns..:Hide All Unused Columns (All Tracks)", invoke=function() PakettiHideAllUnusedColumns() end}
-renoise.tool():add_menu_entry{name="Main Menu:View:Paketti..:Visible Columns..:Hide All Unused Columns (Selected Track)", invoke=function() PakettiHideAllUnusedColumnsSelectedTrack() end}
-
-
-
 
 
 

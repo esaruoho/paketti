@@ -250,14 +250,6 @@ renoise.tool():add_menu_entry{name="--Pattern Sequencer:Paketti..:Clone Current 
 renoise.tool():add_menu_entry{name="--Pattern Sequencer:Paketti..:Clone and Expand Pattern to LPB*2",invoke=function() cloneAndExpandPatternToLPBDouble()end}
 renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Clone and Shrink Pattern to LPB/2",invoke=function() cloneAndShrinkPatternToLPBHalve()end}
 
-renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Clone Current Sequence",invoke=clone_current_sequence}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Clone Sequence (With Automation)",invoke=function() clone_sequence_with_automation_only() end}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Clone Pattern (Without Automation)",invoke=function() clone_pattern_without_automation() end}
-renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Clone and Expand Pattern to LPB*2",invoke=function() cloneAndExpandPatternToLPBDouble()end}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Clone and Shrink Pattern to LPB/2",invoke=function() cloneAndShrinkPatternToLPBHalve()end}
-renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Duplicate Pattern Above & Clear Muted",invoke=function() duplicate_pattern_and_clear_muted_above() end}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Duplicate Pattern Below & Clear Muted",invoke=function() duplicate_pattern_and_clear_muted() end}
-renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Duplicate Track and Instrument",invoke=function() duplicateTrackAndInstrument() end}
 renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Clone Current Sequence",invoke=clone_current_sequence}
 renoise.tool():add_keybinding{name="Global:Paketti:Clone Current Sequence",invoke=clone_current_sequence}
 renoise.tool():add_midi_mapping{name="Paketti:Clone Current Sequence",invoke=clone_current_sequence}
@@ -576,10 +568,7 @@ renoise.tool():add_menu_entry{
   invoke = pakettiSequencerSettingsDialog
 }
 
-renoise.tool():add_menu_entry{
-  name = "Pattern Matrix:Paketti..:Paketti Sequencer Settings Dialog...",
-  invoke = pakettiSequencerSettingsDialog
-}
+
 
 renoise.tool():add_keybinding{
   name = "Pattern Sequencer:Paketti:Show Paketti Sequencer Settings Dialog",

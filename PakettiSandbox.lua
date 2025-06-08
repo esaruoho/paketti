@@ -612,7 +612,6 @@ function pakettiBeatStructureEditorDialog()
 end
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti Beat Structure Editor...",invoke=pakettiBeatStructureEditorDialog}
-renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Paketti Beat Structure Editor...",invoke=pakettiBeatStructureEditorDialog}
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Beat Structure Editor...",invoke=pakettiBeatStructureEditorDialog}
 -------
 
@@ -654,9 +653,6 @@ end
 
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Toggle All Columns",invoke=function() toggleColumns(true) end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Toggle All Columns (No Sample Effects)",invoke=function() toggleColumns(false) end}
-renoise.tool():add_menu_entry{name="Main Menu:View:Paketti..:Visible Columns..:Toggle All Columns",invoke=function() toggleColumns(true) end}
-renoise.tool():add_menu_entry{name="Main Menu:View:Paketti..:Visible Columns..:Toggle All Columns (No Sample Effects)",invoke=function() toggleColumns(false) end}
-
 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Toggle All Columns",invoke=function() toggleColumns(true) end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Toggle All Columns (No Sample Effects)",invoke=function() toggleColumns(false) end}

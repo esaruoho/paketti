@@ -210,8 +210,6 @@ renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Uncollapse All Tr
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Collapse All Tracks",invoke=function() Collapser() end}
 renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Uncollapse All Tracks",invoke=function() Uncollapser() end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Collapse All Tracks",invoke=function() Collapser() end}
-renoise.tool():add_menu_entry{name="--Main Menu:View:Paketti..:Visible Columns..:Uncollapse All Tracks",invoke=function() Uncollapser() end}
-renoise.tool():add_menu_entry{name="Main Menu:View:Paketti..:Visible Columns..:Collapse All Tracks",invoke=function() Collapser() end}
 
 -- Toggle CapsLock Note Off "===" On / Off.
 function CapsLok(use_editstep)
@@ -5163,8 +5161,6 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Hide All Effect Columns",invoke=function() HideAllEffectColumns() end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Effect Columns..:Hide All Effect Columns",invoke=function() HideAllEffectColumns() end}
-renoise.tool():add_menu_entry{name="--Main Menu:View:Paketti..:Visible Columns..:Hide All Effect Columns",invoke=function() HideAllEffectColumns() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Visible Columns..:Hide All Effect Columns",invoke=function() HideAllEffectColumns() end}
 
 
 function moveTrackLeft()
@@ -6149,7 +6145,6 @@ end
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Pattern Editor..:Value Interpolation Looper Dialog...",invoke = pakettiVolumeInterpolationLooper}
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Value Interpolation Looper Dialog...",invoke = pakettiVolumeInterpolationLooper}
 renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Value Interpolation Looper Dialog...",invoke = pakettiVolumeInterpolationLooper}
-renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Value Interpolation Looper Dialog...",invoke = pakettiVolumeInterpolationLooper}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Paketti Value Interpolation Looper Dialog...",invoke = pakettiVolumeInterpolationLooper}
 
 
