@@ -4659,11 +4659,11 @@ end
 
 -- Add new keybindings for note-specific version
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Generate Delay Value (Notes Only, Row)",invoke=function() GenerateDelayValueNotes("row") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Generate Delay Value (Notes Only, Row)",invoke=function() GenerateDelayValueNotes("row") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Note Columns..:Generate Delay Value (Notes Only, Row)",invoke=function() GenerateDelayValueNotes("row") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Generate Delay Value (Notes Only, Pattern)",invoke=function() GenerateDelayValueNotes("pattern") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Generate Delay Value (Notes Only, Pattern)",invoke=function() GenerateDelayValueNotes("pattern") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Note Columns..:Generate Delay Value (Notes Only, Pattern)",invoke=function() GenerateDelayValueNotes("pattern") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Generate Delay Value (Notes Only, Selection)",invoke=function() GenerateDelayValueNotes("selection") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Generate Delay Value (Notes Only, Selection)",invoke=function() GenerateDelayValueNotes("selection") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Note Columns..:Generate Delay Value (Notes Only, Selection)",invoke=function() GenerateDelayValueNotes("selection") end}
 
 -------
 -- Global variable to track which column cycling is active for
