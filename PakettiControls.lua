@@ -988,8 +988,8 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Hide All Instrument Properties",invoke=function() InstrumentPropertiesControl(false) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Show All Instrument Properties",invoke=function() InstrumentPropertiesControl(true) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Hide All Instrument Properties",invoke=function() InstrumentPropertiesControl(false) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Show All Instrument Properties",invoke=function() InstrumentPropertiesControl(true) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Instruments..:Hide All Instrument Properties",invoke=function() InstrumentPropertiesControl(false) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Instruments..:Show All Instrument Properties",invoke=function() InstrumentPropertiesControl(true) end}
 renoise.tool():add_menu_entry{name="Global:Paketti..:Instrument Properties:Hide All Properties",invoke=function() hideAllInstrumentProperties() end}
 renoise.tool():add_menu_entry{name="Global:Paketti..:Instrument Properties:Show All Properties",invoke=function() showAllInstrumentProperties() end}
 

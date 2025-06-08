@@ -349,12 +349,12 @@ for i=1, 6 do
   end
 end
 
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Paketti PitchBend Multiple Sample Loader",invoke=function() pitchBendMultipleSampleLoader() end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Paketti PitchBend Drumkit Sample Loader",invoke=function() pitchBendDrumkitLoader() end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Paketti PitchBend Drumkit Sample Loader (Random)",invoke=function() loadRandomDrumkitSamples(120) end}
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Load Drumkit with Overlap Random",invoke=function() pitchBendDrumkitLoader() DrumKitToOverlay(2) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Load Drumkit with Overlap Cycle",invoke=function() pitchBendDrumkitLoader() DrumKitToOverlay(1) end}
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Fill Empty Sample Slots (Randomized Folder)",invoke=function() fillEmptySampleSlots() end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Load..:Paketti PitchBend Multiple Sample Loader",invoke=function() pitchBendMultipleSampleLoader() end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Load..:Paketti PitchBend Drumkit Sample Loader",invoke=function() pitchBendDrumkitLoader() end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Load..:Paketti PitchBend Drumkit Sample Loader (Random)",invoke=function() loadRandomDrumkitSamples(120) end}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Load..:Load Drumkit with Overlap Random",invoke=function() pitchBendDrumkitLoader() DrumKitToOverlay(2) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Load..:Load Drumkit with Overlap Cycle",invoke=function() pitchBendDrumkitLoader() DrumKitToOverlay(1) end}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Load..:Fill Empty Sample Slots (Randomized Folder)",invoke=function() fillEmptySampleSlots() end}
 
 for i=1, 3 do
     renoise.tool():add_keybinding{name="Global:Paketti:Save Sample to Smart/Backup Folder " .. i,invoke=function() saveSampleToSmartFolder(i) end}
@@ -382,8 +382,8 @@ renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti..:Save..:Paketti S
 renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Save..:Paketti Save Selected Sample .FLAC",invoke=function() pakettiSaveSample("FLAC") end}
 renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Save..:Save All Samples to Folder...",invoke=function() saveAllSamplesToFolder() end}
 renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti..:Save..:Save All Samples to Folder...",invoke=function() saveAllSamplesToFolder() end}
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Delete Unused Instruments...",invoke=function() deleteUnusedInstruments() end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Delete Unused Samples...",invoke=function() deleteUnusedSamples() end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Instruments..:Delete Unused Instruments...",invoke=function() deleteUnusedInstruments() end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Instruments..:Delete Unused Samples...",invoke=function() deleteUnusedSamples() end}
 ----------------
 -- Function to save selected sample to the specified Smart Folder
 function saveSampleToSmartFolder(index)

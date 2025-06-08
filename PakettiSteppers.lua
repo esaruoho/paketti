@@ -717,17 +717,21 @@ function PakettiSteppersDialog()
 end
 
 -- Add menu entries and keybinding for the steppers dialog
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:Steppers Dialog", invoke=function() PakettiSteppersDialog() end}
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Steppers Dialog", invoke=function() PakettiSteppersDialog() end}
-renoise.tool():add_keybinding{name="Global:Paketti:Steppers Dialog", invoke=function() PakettiSteppersDialog() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:Paketti Steppers Dialog...", invoke=function() PakettiSteppersDialog() end}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti Gadgets..:Paketti Steppers Dialog...", invoke=function() PakettiSteppersDialog() end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Steppers..:Paketti Steppers Dialog...", invoke=function() PakettiSteppersDialog() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Steppers Dialog...", invoke=function() PakettiSteppersDialog() end}
 
 -- Add individual stepper show/hide menu entries for instrument box
+local first_stepper = true
 for _, stepperType in pairs(STEPPER_TYPES) do
     local baseText = stepperType:gsub(" Stepper", "")
+    local prefix = first_stepper and "--" or ""
     renoise.tool():add_menu_entry{
-        name = string.format("--Instrument Box:Paketti..:Show Selected Instrument %s Stepper", baseText),
+        name = string.format("%sInstrument Box:Paketti..:Steppers..:Show Selected Instrument %s Stepper", prefix, baseText),
         invoke = function() PakettiShowStepper(stepperType) end
     }
+    first_stepper = false
 end
 
 function PakettiGetVisibleStepperName()

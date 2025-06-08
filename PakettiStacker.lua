@@ -555,7 +555,7 @@ pakettiStackerDialog(proceed_with_stacking, on_switch_changed, PakettiIsolateSli
 renoise.tool():add_keybinding{name="Global:Paketti:Load&Slice&Isolate&Stack Sample",invoke=function() LoadSliceIsolateStack() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Stacker Dialog...",invoke=function() pakettiStackerDialog(proceed_with_stacking, on_switch_changed, PakettiIsolateSlicesToInstrument) end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti Stacker...",invoke=function() pakettiStackerDialog(proceed_with_stacking, on_switch_changed, PakettiIsolateSlicesToInstrument) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Paketti Stacker Dialog...",invoke=function() pakettiStackerDialog(proceed_with_stacking, on_switch_changed, PakettiIsolateSlicesToInstrument) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti Gadgets..:Paketti Stacker Dialog...",invoke=function() pakettiStackerDialog(proceed_with_stacking, on_switch_changed, PakettiIsolateSlicesToInstrument) end}
 renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Paketti Stacker Dialog...",invoke=function() pakettiStackerDialog(proceed_with_stacking, on_switch_changed, PakettiIsolateSlicesToInstrument) end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Stack All Samples in Instrument with Velocity Mapping Split",invoke=function() fix_sample_velocity_mappings() end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Paketti Stacker..:Paketti Stacker Dialog...",invoke=function() pakettiStackerDialog(proceed_with_stacking, on_switch_changed, PakettiIsolateSlicesToInstrument) end}

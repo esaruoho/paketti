@@ -930,6 +930,46 @@ function importAKPFile(file_path)
 
   local loaded_samples = 0
   
+  -- Calculate non-overlapping note ranges for keygroups
+  local keygroup_ranges = {}
+  local total_keygroups = #keygroups
+  
+  if total_keygroups > 1 then
+    -- Create sequential, non-overlapping ranges
+    local notes_per_keygroup = math.floor(120 / total_keygroups)
+    local remaining_notes = 120 % total_keygroups
+    
+    local current_note = 0
+    for kg_idx = 1, total_keygroups do
+      local range_size = notes_per_keygroup
+      if kg_idx <= remaining_notes then
+        range_size = range_size + 1
+      end
+      
+      -- For the last keygroup, adjust range to end at previous keygroup's end
+      if kg_idx == total_keygroups and kg_idx > 1 then
+        -- Make last keygroup end where the previous keygroup ends
+        local prev_range = keygroup_ranges[kg_idx - 1]
+        keygroup_ranges[kg_idx] = {
+          low = prev_range.low,
+          high = prev_range.high
+        }
+      else
+        local range_high = math.min(119, current_note + range_size - 1)
+        keygroup_ranges[kg_idx] = {
+          low = current_note,
+          high = range_high
+        }
+        current_note = range_high + 1
+      end
+      
+      debug_print("Keygroup", kg_idx, "assigned range:", keygroup_ranges[kg_idx].low .. "-" .. keygroup_ranges[kg_idx].high)
+    end
+  else
+    -- Single keygroup gets full range
+    keygroup_ranges[1] = {low = 0, high = 119}
+  end
+  
   -- Process each keygroup
   for kg_idx, keygroup in ipairs(keygroups) do
     debug_print("Processing keygroup", kg_idx, "with", #keygroup.zones, "zones")
@@ -965,30 +1005,11 @@ function importAKPFile(file_path)
           
           debug_print("Applied tuning - transpose:", total_semitone, "fine_tune:", total_fine, "pan:", zone.pan or 0.5)
           
-          -- Determine base note and range
-          local base_note, note_range_low, note_range_high
-          
-          if keygroup.low_note and keygroup.high_note and 
-             keygroup.low_note >= 0 and keygroup.high_note >= 0 and
-             keygroup.low_note <= 119 and keygroup.high_note <= 119 and
-             keygroup.low_note <= keygroup.high_note then
-            -- Use keygroup range (clamped to Renoise's 0-119 range)
-            note_range_low = math.max(0, math.min(119, keygroup.low_note))
-            note_range_high = math.max(0, math.min(119, keygroup.high_note))
-            base_note = note_range_low
-          else
-            -- Fallback to sample name parsing
-            base_note = extract_midi_note_from_name(zone.sample_name)
-            if base_note and base_note >= 0 and base_note <= 119 then
-              note_range_low = base_note
-              note_range_high = base_note
-            else
-              debug_print("Warning: Could not determine note range for", zone.sample_name)
-              note_range_low = 60  -- Default to C4
-              note_range_high = 60
-              base_note = 60
-            end
-          end
+          -- Use calculated non-overlapping range for this keygroup
+          local assigned_range = keygroup_ranges[kg_idx]
+          local note_range_low = assigned_range.low
+          local note_range_high = assigned_range.high
+          local base_note = note_range_low
           
           -- Apply sample mapping
           if sample.sample_mapping then

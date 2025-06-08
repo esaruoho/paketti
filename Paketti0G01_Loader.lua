@@ -409,6 +409,25 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
     select_after_clone = renoise.Document.ObservableBoolean(true),
     naming_behavior = renoise.Document.ObservableNumber(1)  -- 1=Use Settings, 2=Clear Name, 3=Keep Original
   },
+  -- Menu Configuration Settings
+  pakettiMenuConfig = {
+    InstrumentBox = true,
+    SampleEditor = true,
+    SampleNavigator = true,
+    SampleKeyzone = true,
+    Mixer = true,
+    PatternEditor = true,
+    MainMenuTools = true,
+    MainMenuView = true,
+    MainMenuFile = true,
+    PatternMatrix = true,
+    PatternSequencer = true,
+    PhraseEditor = true,
+    PakettiGadgets = true,
+    TrackDSPDevice = true,
+    Automation = true,
+    DiskBrowserFiles = true
+  },
 }
 
 renoise.tool().preferences = preferences

@@ -2485,7 +2485,7 @@ end
 ---------
 
 
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Randomize Selected Instrument Plugin Parameters",invoke=function()randomizeSelectedPlugin()end}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Instruments..:Randomize Selected Instrument Plugin Parameters",invoke=function()randomizeSelectedPlugin()end}
 renoise.tool():add_keybinding{name="Global:Paketti:Randomize Selected Plugin",invoke=function()randomizeSelectedPlugin()end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:Randomize Selected Instrument Plugin Parameters",invoke=function()randomizeSelectedPlugin()end}
 
@@ -2883,7 +2883,7 @@ end
 end
 
 -- Register menu entries and keybindings
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Load New Instrument with Current Slice Markers",invoke=function() loadNewWithCurrentSliceMarkers() end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Load..:Load New Instrument with Current Slice Markers",invoke=function() loadNewWithCurrentSliceMarkers() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Load New Instrument with Current Slice Markers",invoke=function() loadNewWithCurrentSliceMarkers() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Load New Instrument with Current Slice Markers",invoke=function() loadNewWithCurrentSliceMarkers() end}
 ---------
@@ -3044,7 +3044,7 @@ function XOPointCloud()
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Show XO Plugin External Editor",invoke=function() XOPointCloud() end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Show XO Plugin External Editor",invoke=function() XOPointCloud() end}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Plugins/Devices..:Show XO Plugin External Editor",invoke=function() XOPointCloud() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:Show XO Plugin External Editor",invoke=function() XOPointCloud() end}
 
 
@@ -3300,10 +3300,10 @@ renoise.tool():add_menu_entry{name="DSP Chain:Paketti..:Insert Random Device (AU
 
 renoise.tool():add_keybinding{name="Global:Paketti:Insert Random Plugin (All)", invoke=function() insertRandomPlugin(false) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Insert Random Plugin (AU Only)", invoke=function() insertRandomPlugin(true) end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:Insert Random Plugin (All)", invoke=function() insertRandomPlugin(false) end}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Plugins/Devices..:Insert Random Plugin (All)", invoke=function() insertRandomPlugin(false) end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:Insert Random Plugin (AU Only)", invoke=function() insertRandomPlugin(true) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Insert Random Plugin (All)", invoke=function() insertRandomPlugin(false) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Insert Random Plugin (AU Only)", invoke=function() insertRandomPlugin(true) end}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Plugins/Devices..:Insert Random Plugin (All)", invoke=function() insertRandomPlugin(false) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Plugins/Devices..:Insert Random Plugin (AU Only)", invoke=function() insertRandomPlugin(true) end}
 renoise.tool():add_midi_mapping{name="Paketti:Insert Random Plugin (All)", invoke=function(message) if message:is_trigger() then insertRandomPlugin(false) end end}
 renoise.tool():add_midi_mapping{name="Paketti:Insert Random Plugin (AU Only)", invoke=function(message) if message:is_trigger() then insertRandomPlugin(true) end end}
 

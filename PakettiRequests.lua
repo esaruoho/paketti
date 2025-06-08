@@ -372,8 +372,8 @@ end
 
 renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Autofade/Autoseek..:Set All Instruments All Samples Autoseek On",invoke=function() setAllInstrumentsAllSamplesAutoseek(1) end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Autofade/Autoseek..:Set All Instruments All Samples Autoseek Off",invoke=function() setAllInstrumentsAllSamplesAutoseek(0) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Autofade/Autoseek..:Set All Instruments All Samples Autoseek On",invoke=function() setAllInstrumentsAllSamplesAutoseek(1) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Autofade/Autoseek..:Set All Instruments All Samples Autoseek Off",invoke=function() setAllInstrumentsAllSamplesAutoseek(0) end}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Instruments..:Set All Instruments All Samples Autoseek On",invoke=function() setAllInstrumentsAllSamplesAutoseek(1) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Instruments..:Set All Instruments All Samples Autoseek Off",invoke=function() setAllInstrumentsAllSamplesAutoseek(0) end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Instruments..:Set All Instruments All Samples Autoseek On",invoke=function() setAllInstrumentsAllSamplesAutoseek(1) end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:Set All Instruments All Samples Autoseek Off",invoke=function() setAllInstrumentsAllSamplesAutoseek(0) end}
 
@@ -410,8 +410,8 @@ end
 
 renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Autofade/Autoseek..:Set All Instruments All Samples Autofade On",invoke=function() setAllInstrumentsAllSamplesAutofade(1) end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Autofade/Autoseek..:Set All Instruments All Samples Autofade Off",invoke=function() setAllInstrumentsAllSamplesAutofade(0) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Autofade/Autoseek..:Set All Instruments All Samples Autofade On",invoke=function() setAllInstrumentsAllSamplesAutofade(1) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Autofade/Autoseek..:Set All Instruments All Samples Autofade Off",invoke=function() setAllInstrumentsAllSamplesAutofade(0) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Instruments..:Set All Instruments All Samples Autofade On",invoke=function() setAllInstrumentsAllSamplesAutofade(1) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Instruments..:Set All Instruments All Samples Autofade Off",invoke=function() setAllInstrumentsAllSamplesAutofade(0) end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Instruments..:Set All Instruments All Samples Autofade On",invoke=function() setAllInstrumentsAllSamplesAutofade(1) end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:Set All Instruments All Samples Autofade Off",invoke=function() setAllInstrumentsAllSamplesAutofade(0) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Set All Instruments All Samples Autofade On",invoke=function() setAllInstrumentsAllSamplesAutofade(1) end}
@@ -2709,7 +2709,7 @@ end
 renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Isolate Slices or Samples to New Instruments",invoke=PakettiIsolateSlices}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Instruments..:Isolate Slices or Samples to New Instruments",invoke=PakettiIsolateSlices}
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Isolate Slices or Samples to New Instruments",invoke=PakettiIsolateSlices}
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Isolate Slices or Samples to New Instruments",invoke=PakettiIsolateSlices}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Instruments..:Isolate Slices or Samples to New Instruments",invoke=PakettiIsolateSlices}
 renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti..:Isolate Slices or Samples to New Instruments",invoke=PakettiIsolateSlices}
 renoise.tool():add_keybinding{name="Global:Paketti:Isolate Slices or Samples to New Instruments",invoke=PakettiIsolateSlices}
 renoise.tool():add_midi_mapping{name="Paketti:Isolate Slices or Samples to New Instruments",invoke=PakettiIsolateSlices}
@@ -2823,7 +2823,7 @@ function PakettiIsolateSlicesToInstrument()
   renoise.song().selected_instrument:delete_sample_at(1)
 end
 
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Isolate Slices to New Instrument as Samples",invoke=PakettiIsolateSlicesToInstrument}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Instruments..:Isolate Slices to New Instrument as Samples",invoke=PakettiIsolateSlicesToInstrument}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Isolate Slices to New Instrument as Samples",invoke=PakettiIsolateSlicesToInstrument}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Isolate Slices to New Instrument as Samples",invoke=PakettiIsolateSlicesToInstrument}
 renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Isolate Slices to New Instrument as Samples",invoke=PakettiIsolateSlicesToInstrument}
@@ -2911,7 +2911,7 @@ renoise.app():load_instrument(defaultInstrument)
   renoise.app():show_status("Sample '" .. sample.name .. "' isolated to new instrument")
 end
 
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Isolate Selected Sample to New Instrument",invoke=PakettiIsolateSelectedSampleToInstrument}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Instruments..:Isolate Selected Sample to New Instrument",invoke=PakettiIsolateSelectedSampleToInstrument}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Isolate Selected Sample to New Instrument",invoke=PakettiIsolateSelectedSampleToInstrument}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Isolate Selected Sample to New Instrument",invoke=PakettiIsolateSelectedSampleToInstrument}
 renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Isolate Selected Sample to New Instrument",invoke=PakettiIsolateSelectedSampleToInstrument}
@@ -8242,7 +8242,7 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Global Volume Reduce All Instruments by -4.5dB",invoke=function() reduceInstrumentsVolume(4.5) end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Instruments..:Global Volume Reduce All Instruments by -4.5dB",invoke=function() reduceInstrumentsVolume(4.5) end}
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Global Volume Reduce All Instruments by -4.5dB",invoke=function() reduceInstrumentsVolume(4.5) end}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Instruments..:Global Volume Reduce All Instruments by -4.5dB",invoke=function() reduceInstrumentsVolume(4.5) end}
 renoise.tool():add_midi_mapping{name="Paketti:Global Volume Reduce All Instruments by -4.5dB",invoke=function(message) if message:is_trigger() then reduceInstrumentsVolume(4.5) end end}
 
 -- Function to reduce volume of all samples in all instruments
@@ -8281,7 +8281,7 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Global Volume Reduce All Samples by -4.5dB",invoke=function() reduceSamplesVolume(4.5) end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:Global Volume Reduce All Samples by -4.5dB",invoke=function() reduceSamplesVolume(4.5) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Global Volume Reduce Reduce All Samples by -4.5dB",invoke=function() reduceSamplesVolume(4.5) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Instruments..:Global Volume Reduce Reduce All Samples by -4.5dB",invoke=function() reduceSamplesVolume(4.5) end}
 renoise.tool():add_midi_mapping{name="Paketti:Global Volume Reduce All Samples by -4.5dB",invoke=function(message) if message:is_trigger() then reduceSamplesVolume(4.5) end end}
 
 function pakettiGlobalVolumeDialog()
@@ -8396,7 +8396,7 @@ function pakettiGlobalVolumeDialog()
 end
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti Global Volume Adjustment...",invoke=function() pakettiGlobalVolumeDialog() end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Paketti Global Volume Adjustment...",invoke=function() pakettiGlobalVolumeDialog() end}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti Gadgets..:Paketti Global Volume Adjustment...",invoke=function() pakettiGlobalVolumeDialog() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Global Volume Adjustment...",invoke=function() pakettiGlobalVolumeDialog() end}
 renoise.tool():add_midi_mapping{name="Paketti:Global Volume Adjustment...",invoke=function(message) if message:is_trigger() then pakettiGlobalVolumeDialog() end end}
 -------
@@ -8910,10 +8910,10 @@ renoise.tool():add_keybinding{name="Global:Paketti:Bypass All Sample FX on Selec
 renoise.tool():add_keybinding{name="Global:Paketti:Enable All Sample FX on Selected Instrument",invoke=function() sampleFXControls("single", true) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Bypass All Sample FX on All Instruments",invoke=function() sampleFXControls("all", false) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Enable All Sample FX on All Instruments",invoke=function() sampleFXControls("all", true) end}
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Enable All Sample FX on Selected Instrument",invoke=function() sampleFXControls("single", true) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Bypass All Sample FX on Selected Instrument",invoke=function() sampleFXControls("single", false) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Enable All Sample FX on All Instruments",invoke=function() sampleFXControls("all", true) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Bypass All Sample FX on All Instruments",invoke=function() sampleFXControls("all", false) end}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Instruments..:Enable All Sample FX on Selected Instrument",invoke=function() sampleFXControls("single", true) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Instruments..:Bypass All Sample FX on Selected Instrument",invoke=function() sampleFXControls("single", false) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Instruments..:Enable All Sample FX on All Instruments",invoke=function() sampleFXControls("all", true) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Instruments..:Bypass All Sample FX on All Instruments",invoke=function() sampleFXControls("all", false) end}
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Enable All Sample FX on Selected Instrument",invoke=function() sampleFXControls("single", true) end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Bypass All Sample FX on Selected Instrument",invoke=function() sampleFXControls("single", false) end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Enable All Sample FX on All Instruments",invoke=function() sampleFXControls("all", true) end}

@@ -20,7 +20,7 @@ renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Load .MOD as Sa
       paketti_toggle_signed_unsigned() end end}
 
 
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Load .MOD as Sample",
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Load..:Load .MOD as Sample",
   invoke=function() 
     local file_path = renoise.app():prompt_for_filename_to_read({"*.mod","mod.*"}, "Select Any File to Load as Sample")
     if file_path ~= "" then
@@ -30,7 +30,7 @@ renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Load .MOD as Samp
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Samples..:Load Samples from .MOD",invoke=function() load_samples_from_mod() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Load Samples from .MOD",invoke=function() load_samples_from_mod() end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Load Samples from .MOD",invoke=function() load_samples_from_mod() end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Load Samples from .MOD",invoke=function() load_samples_from_mod() end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Load..:Load Samples from .MOD",invoke=function() load_samples_from_mod() end}
 
 -- helper to read a big-endian 16-bit word from a string at pos (1-based)
 local function read_be_u16(str, pos)

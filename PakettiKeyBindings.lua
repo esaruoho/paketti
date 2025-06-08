@@ -1072,19 +1072,13 @@ for _, menu_name in ipairs(menu_entries) do
   -- Get the correct identifier (handle special cases)
   local identifier = menu_to_identifier[menu_name] or menu_name
   
-  renoise.tool():add_menu_entry{name=menu_name .. ":Paketti..:Show Paketti KeyBindings...",invoke=function() pakettiKeyBindingsDialog(identifier) end}
-  renoise.tool():add_menu_entry{name=menu_name .. ":Paketti..:Show Renoise KeyBindings...",invoke=function() pakettiRenoiseKeyBindingsDialog(identifier) end}
+  renoise.tool():add_menu_entry{name="--" .. menu_name .. ":Paketti Gadgets..:Paketti KeyBindings Dialog...",invoke=function() pakettiKeyBindingsDialog(identifier) end}
+  renoise.tool():add_menu_entry{name=menu_name .. ":Paketti Gadgets..:Renoise KeyBindings Dialog...",invoke=function() pakettiRenoiseKeyBindingsDialog(identifier) end}
 end
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:!Preferences..:Renoise KeyBindings...",
-  invoke=function() pakettiRenoiseKeyBindingsDialog() end}
-
-renoise.tool():add_keybinding{name="Global:Paketti:Show Paketti KeyBindings Dialog...",
-  invoke=function() pakettiKeyBindingsDialog() end}
-
-renoise.tool():add_keybinding{name="Global:Paketti:Show Renoise KeyBindings Dialog...",
-  invoke=function() pakettiRenoiseKeyBindingsDialog() end}
-
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:!Preferences..:Renoise KeyBindings Dialog...",invoke=function() pakettiRenoiseKeyBindingsDialog() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Show Paketti KeyBindings Dialog...",invoke=function() pakettiKeyBindingsDialog() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Show Renoise KeyBindings Dialog...",invoke=function() pakettiRenoiseKeyBindingsDialog() end}
 -------------------------------------------
 
 local vb = renoise.ViewBuilder()

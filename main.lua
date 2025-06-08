@@ -442,6 +442,7 @@ timed_require("PakettiPolyendSuite")
 timed_require("PakettiXMLizer")
 timed_require("PakettiDeviceValues")
 timed_require("PakettiAKAI")
+timed_require("PakettiMenuConfig")
 print(string.format("Total load time: %.3f seconds", os.clock() - init_time))
 
 _AUTO_RELOAD_DEBUG = true

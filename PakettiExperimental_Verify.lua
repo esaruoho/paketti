@@ -159,6 +159,8 @@ renoise.tool():add_keybinding{name="Global:Paketti:Create Pattern Sequencer Patt
 
 ----
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Wipe&Slice&Write to Pattern",invoke = function() WipeSliceAndWrite() end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Wipe&Slice..:Wipe&Slice&Write to Pattern",invoke = function() WipeSliceAndWrite() end}
+
 renoise.tool():add_keybinding{name="Global:Paketti:Wipe&Slice&Write to Pattern",invoke = function() WipeSliceAndWrite() end}
 
 function WipeSliceAndWrite()
@@ -5035,7 +5037,7 @@ end
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Group Samples by Name to New Instruments", invoke=PakettiGroupSamplesByName}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:Group Samples by Name to New Instruments", invoke=PakettiGroupSamplesByName}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Group Samples by Name to New Instruments", invoke=PakettiGroupSamplesByName}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Group Samples by Name to New Instruments", invoke=PakettiGroupSamplesByName}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Instruments..:Group Samples by Name to New Instruments", invoke=PakettiGroupSamplesByName}
 renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Group Samples by Name to New Instruments", invoke=PakettiGroupSamplesByName}
 renoise.tool():add_keybinding{name="Global:Paketti:Group Samples by Name to New Instruments", invoke=PakettiGroupSamplesByName}
 renoise.tool():add_midi_mapping{name="Paketti:Group Samples by Name to New Instruments", invoke=PakettiGroupSamplesByName}

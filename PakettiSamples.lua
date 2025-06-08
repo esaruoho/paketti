@@ -1005,7 +1005,7 @@ renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Wipe&Slice..:Wipe
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Wipe&Slice..:Wipe&Slice (256)",invoke=function() slicerough(256) end}
 renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Wipe&Slice..:Wipe Slices",invoke=function() wipeslices() end}
 
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Wipe&Slice..:Wipe&Slice (002)",invoke=function() slicerough(2) end}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Wipe&Slice..:Wipe&Slice (002)",invoke=function() slicerough(2) end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Wipe&Slice..:Wipe&Slice (004)",invoke=function() slicerough(4) end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Wipe&Slice..:Wipe&Slice (008)",invoke=function() slicerough(8) end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Wipe&Slice..:Wipe&Slice (016)",invoke=function() slicerough(16) end}
@@ -2576,7 +2576,7 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Pakettify Current Instrument",invoke=function() PakettiInjectDefaultXRNI() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Pakettify Current Instrument",invoke=function() PakettiInjectDefaultXRNI() end}
 renoise.tool():add_menu_entry{name="Sample Editor Ruler:Pakettify Current Instrument",invoke=function() PakettiInjectDefaultXRNI() end}
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Pakettify Current Instrument",invoke=function() PakettiInjectDefaultXRNI() end}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Instruments..:Pakettify Current Instrument",invoke=function() PakettiInjectDefaultXRNI() end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Pakettify Current Instrument",invoke=function() PakettiInjectDefaultXRNI() end}
 ---------
 function PakettiToggleMono()
@@ -2603,7 +2603,8 @@ function PakettiToggleMono()
 end
 
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Toggle Mono Device",invoke=PakettiToggleMono}
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Toggle Mono Device",invoke=function() PakettiToggleMono() end}
+
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Plugins/Devices..:Toggle Mono Device",invoke=function() PakettiToggleMono() end}
 -------------------
 function BeatSyncFromSelection()
   local song=renoise.song()
@@ -3586,6 +3587,7 @@ renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Duplicate All Sam
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Duplicate All Samples at +24 Transpose",invoke=function() PakettiDuplicateInstrumentSamplesWithTranspose(24) end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Duplicate All Samples at +36 Transpose",invoke=function() PakettiDuplicateInstrumentSamplesWithTranspose(36) end}
 
+
 renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Duplicate All Samples at -36 Transpose",invoke=function() PakettiDuplicateInstrumentSamplesWithTranspose(-36) end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Duplicate All Samples at -24 Transpose",invoke=function() PakettiDuplicateInstrumentSamplesWithTranspose(-24) end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Duplicate All Samples at -12 Transpose",invoke=function() PakettiDuplicateInstrumentSamplesWithTranspose(-12) end}
@@ -3594,8 +3596,6 @@ renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Duplicate All Sampl
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Duplicate All Samples at +36 Transpose",invoke=function() PakettiDuplicateInstrumentSamplesWithTranspose(36) end}
 
 ----
-
-
 function add_backwards_effect_to_selection()
   local song=renoise.song()
   local selection = selection_in_pattern_pro()
@@ -4477,10 +4477,10 @@ function pakettiShowLargestSamplesDialog()
   
   pakettiShowLargestSamplesDialogDialog()
 end
-renoise.tool():add_menu_entry{name="--Main Menu:File:Show Largest Samples Dialog...",invoke = pakettiShowLargestSamplesDialog}
-renoise.tool():add_menu_entry{name="--Main Menu:File:Paketti..:Show Largest Samples Dialog...",invoke = pakettiShowLargestSamplesDialog}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Show Largest Samples Dialog...",invoke = pakettiShowLargestSamplesDialog}
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Show Largest Samples Dialog...",invoke = pakettiShowLargestSamplesDialog}
+renoise.tool():add_menu_entry{name="--Main Menu:File:Largest Samples Dialog...",invoke = pakettiShowLargestSamplesDialog}
+renoise.tool():add_menu_entry{name="--Main Menu:File:Paketti..:Largest Samples Dialog...",invoke = pakettiShowLargestSamplesDialog}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Largest Samples Dialog...",invoke = pakettiShowLargestSamplesDialog}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti Gadgets..:Largest Samples Dialog...",invoke = pakettiShowLargestSamplesDialog}
 renoise.tool():add_keybinding{name="Global:Paketti:Show Largest Samples Dialog...",invoke = pakettiShowLargestSamplesDialog}
 ---------
 -- Function to duplicate track and instrument with all settings
@@ -4739,11 +4739,8 @@ function pakettiSelectRandomInstrument()
 end
 
 renoise.tool():add_keybinding {name="Global:Paketti:Select Random Instrument (Sample,Plugin,MIDI)",invoke=function() pakettiSelectRandomInstrument() end}
-renoise.tool():add_menu_entry {name="Instrument Box:Paketti..:Select Random Instrument (Sample,Plugin,MIDI)",invoke=function() pakettiSelectRandomInstrument() end}
-
+renoise.tool():add_menu_entry {name="--Instrument Box:Paketti..:Select Random Instrument (Sample,Plugin,MIDI)",invoke=function() pakettiSelectRandomInstrument() end}
 -------
-
-
 function double_slices()
     local s = renoise.song()
     local currInst = s.selected_instrument_index

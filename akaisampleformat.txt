@@ -1,0 +1,431 @@
+maxim digital audiomaxim digital audio (http://www.maxim.abel.co.uk) March 2000.
+Akai sampler disk and file formats
+
+This document contains details of the floppy disk and file formats used by S-series Akai samplers from the S900 to the S6000, with some notes on MPC and other Akai formats.
+Contents
+
+Akai disk format overview
+S900, S950 disk format
+S900, S950 sample format
+S1000, S1100, S01 disk format
+S1000 sample format
+S1000 program format
+S3000 disk format
+S3000 sample format
+MPC2000 file format
+Teledisk format
+MESA file format
+S5000/S6000 sample format
+S5000/S6000 program format
+PC floppy drive programming
+This document
+ 
+
+1. Akai disk format overview
+
+Akai floppy disks are formatted as 2 sides of 80 tracks with 5 or 10 sectors per track. Each sector is 1024 bytes long, giving a total of 800k (low density) or 1600k (high density). PCs use 9 or 18 sectors of 512 bytes and will not read Akai floppies without reprogramming. As far as I can tell, Mac floppy drives can't read Akai floppy disks at all.
+Unwritten bytes on a disk are set to zero. Multi-byte values have the lsb first (little-endian). This document refers to the first byte in a block as 'byte 1', not 'byte 0'. All values are decimal unless otherwise stated.
+
+Akai hard disks and CD-ROMs use the same file format as Akai floppy disks, and virtually the same disk format.
+
+ 
+
+2. S900/S950 disk format
+
+Track 1, side 1 starts with 64 entries of 24 bytes as follows:
+   Length   Format      Description
+   -----------------------------------------------------------
+     10     ASCII       Filename
+      6                 0
+      1     ASCII       File type: 'S'=sample, 'P'=program, etc.
+      3     unsigned    File length in bytes
+      2     unsigned    Starting block on disk
+      2                 S900 ID = {0,0}
+Bytes 1536 to 3136 (1536 to 4736 for high density) contain a map of how the blocks on the disk are used, in the form of 2-byte unsigned integers. For example, if a file starts at block 5, map entry 5 may contain the value 6, indicating that the next block to read is block 6. The next block to read is then given by map entry 6. The map entry for the last block of a file contains the value 32768. Unused blocks have a map entry of zero. The first 4 blocks are needed for the file entries and map.
+Note that the S950 can use high-density disks and can read S1000 disks, but the S900 can only read S900 or S950 low-density disks.
+
+ 
+
+3. S900/S950 sample format
+
+A S900 sample file has a header of 60 bytes as follows:
+   Length   Format      Description
+   ------------------------------------------------------------
+     10     ASCII       Filename
+      6                 0
+      4     unsigned    Number of sample words
+      2     unsigned    Sample rate (Hz)
+      2     unsigned    Tuning (16ths of a semitone, C3=960)
+      2                 0 
+      1     ASCII       Loop mode (O=one-shot, L=loop, A=alt)
+      1                 0
+      4     unsigned    End marker
+      4     unsigned    Start marker
+      4     unsigned    Loop length
+     20                 140,185,0,78,0,0,0,0,0,0,0,0,0,0,224,43,38,0,0,0
+(I don't know what is held in the last 20 bytes, but the values shown seem to work).
+You can use lower case letters in filenames (not available from the front panel) but avoid unusual ASCII characters. Do not put two files with the same name on a disk!
+
+The header is followed by the (12-bit signed) sample data, packed in a very strange way: For a sample of N words, the upper 4 bits of the first byte contains the lower 4 bits of the first word. The lower 4 bits of the first byte contain the lower 4 bits of word N/2. The second byte contains the upper 8 bits of the first word. This repeats for the first N bytes, after which there are N/2 bytes containing the upper 8 bits of the last N/2 words.
+
+ 
+
+4. S1000 disk format (and S1100 and S01)
+
+With the S1000, Akai abandon ASCII (mostly) and use their own alphanumeric code, which I shall refer to as AKAII:
+    Character    ASCII       AKAII
+   ----------------------------------
+     0 - 9       48 - 57     0 - 9              
+     space       32          10
+     A - Z       65 - 90     11 - 36
+     #           35          37
+     +           43          38
+     -           45          39
+     .           46          40
+The file entries and map are in the same position as the S900, but have changed slightly:
+   Length   Format      Description
+   ----------------------------------------------------------------
+     12     AKAII       Filename
+      4                 32,32,32,32
+      1     ASCII       File type: 's'=sample, 'p'=program, etc.
+      3     unsigned    File length in bytes
+      2     unsigned    Starting block on disk
+      2                 S1000 ID = 0,3
+Empty entries also have the S1000 ID byte. Note that file types are lower-case ASCII. The map now uses a value of 19152 as an end marker, and the first five blocks (file entries and map) are marked with values of 16384.
+There is a volume label at the end of the map (byte 3136 or 4736 depending on density) consisting of a 12 byte AKAII name followed by 0,0,0,ID,0,1,1,0,0,0,50,9,12,255 where ID = 3 for the S1000.
+
+Note that the S01 uses the S1000 format for disks and samples, but with an ID of 1,0 for high density and 0,1 for low-density unused entries. The S1100 probably uses the same format with a different ID.
+
+ 
+
+5. S1000 sample format
+
+The S1000 sample file has a 150 byte header:
+   Length   Format      Description
+   --------------------------------------------------------------
+      1                 3
+      1                 Not important: 0 for 22050Hz, 1 for 44100Hz 
+      1     unsigned    MIDI root note (C3=60)
+     12     AKAII       Filename
+      1                 128
+      1     unsigned    Number of active loops
+      2                 0,0
+      1     unsigned    Loop mode: 0=in release 1=until release
+                                   2=none       3=play to end
+      1     signed      Cents tune -50...+50
+      1     signed      Semi tune  -50...+50
+      4                 0,8,2,0
+
+      4     unsigned    Number of sample words
+      4     unsigned    Start marker
+      4     unsigned    End marker
+   
+      4     unsigned    Loop 1 marker
+      2     unsigned    Loop 1 fine length   (65536ths)
+      4     unsigned    Loop 1 coarse length (words) 
+      2     unsigned    Loop 1 time          (msec. or 9999=infinite) 
+       
+     84     [as above]  Loops 2 to 8 
+  
+      4                 0,0,255,255
+      2     unsigned    Sampling frequency
+     10                 0,0,0...
+The sample data follows the header as signed 16-bit words.
+
+
+
+6. S1000 program format
+
+The S1000 program file consists of a 150-byte header followed by one or more 150-byte keygroup entries.
+Most parameters are stored as signed or unsigned single bytes.
+    byte     description                 default     range/comments
+   ---------------------------------------------------------------------------
+     1       program ID                  1
+     2-3     first keygroup address      150,0       
+     4-15    program name                10,10,10... AKAII character set
+     16      MIDI program number         0           0..127
+     17      MIDI channel                0           0..15, 255=OMNI
+     18      polyphony                   15          1..16
+     19      priority                    1           0=LOW 1=NORM 2=HIGH 3=HOLD
+     20      low key                     24          24..127
+     21      high key                    127         24..127
+     22      octave shift                0           -2..2
+     23      aux output select           255         0..7, 255=OFF
+     24      mix output level            99          0..99
+     25      mix output pan              0           -50..50
+     26      volume                      80          0..99
+     27      vel>volume                  20          -50..50
+     28      key>volume                  0           -50..50
+     29      pres>volume                 0           -50..50
+     30      pan lfo rate                50          0..99
+     31      pan lfo depth               0           0..99
+     32      pan lfo delay               0           0..99
+     33      key>pan                     0           -50..50
+     34      lfo rate                    50          0..99
+     35      lfo depth                   0           0..99
+     36      lfo delay                   0           0..99
+     37      mod>lfo depth               30          0..99
+     38      pres>lfo depth              0           0..99
+     39      vel>lfo depth               0           0..99
+     40      bend>pitch                  2           0..12 semitones
+     41      pres>pitch                  0           -12..12 semitones
+     42      keygroup crossfade          0           0=OFF 1=ON
+     43      number of keygroups         1           1..99
+     44      (internal use)              0           program number
+     45-56   key temperament C,C#,D...   0           -25..25 cents
+     57      fx output                   0           0=OFF 1=ON
+     58      mod>pan                     0           -50..50
+     59      stereo coherence            0           0=OFF 1=ON
+     60      lfo desync                  1           0=OFF 1=ON
+     61      pitch law                   0           0=LINEAR
+     62      voice re-assign             0           0=OLDEST 1=QUIETEST
+     63      softped>volume              10          0..99
+     64      softped>attack              10          0..99
+     65      softped>filt                10          0..99
+     66      tune cents                  0           -128..127 (-50..50 cents)
+     67      tune semitones              0           -50..50
+     68      key>lfo rate                0           -50..50
+     69      key>lfo depth               0           -50..50
+     70      key>lfo delay               0           -50..50
+     71      voice output scale          1           0=-6dB 1=0dB 2=+12dB
+     72      stereo output scale         0           0=0dB 1=+6dB
+     73-150  (not used)
+
+
+    byte     description                 default     range/comments
+   ---------------------------------------------------------------------------
+     1       keygroup ID                 2
+     2-3     next keygroup address       44,1        300,450,600,750.. (16-bit)         
+     4       low key                     24          24..127
+     5       high key                    127         24..127
+     6       tune cents                  0           -128..127 (-50..50 cents)
+     7       tune semitones              0           -50..50
+     8       filter                      99          0..99
+     9       key>filter                  12          0..24 semitone/oct
+     10      vel>filt                    0           -50..50
+     11      pres>filt                   0           -50..50
+     12      env2>filt                   0           -50..50
+     13      env1 attack                 0           0..99
+     14      env1 decay                  30          0..99
+     15      env1 sustain                99          0..99
+     16      env1 release                45          0..99
+     17      env1 vel>attack             0           -50..50
+     18      env1 vel>release            0           -50..50 
+     19      env1 offvel>release         0           -50..50
+     20      env1 key>dec&rel;            0           -50..50
+     21      env2 attack                 0           0..99
+     22      env2 decay                  50          0..99
+     23      env2 sustain                99          0..99
+     24      env2 release                45          0..99
+     25      env2 vel>attack             0           -50..50
+     26      env2 vel>release            0           -50..50
+     27      env2 offvel>release         0           -50..50
+     28      env2 key>dec&rel;            0           -50..50
+     29      vel>env2>filter             0           -50..50
+     30      env2>pitch                  0           -50..50
+     31      vel zone crossfade          1           0=OFF 1=ON
+     32      vel zones used              4           
+     33      (internal use)              255         
+     34      (internal use)              255         
+
+     35-46   sample 1 name               10,10,10... AKAII character set
+     47      low vel                     0           0..127
+     48      high vel                    127         0..127
+     49      tune cents                  0           -128..127 (-50..50 cents)
+     50      tune semitones              0           -50..50
+     51      loudness                    0           -50..+50
+     52      filter                      0           -50..+50
+     53      pan                         0           -50..+50
+     54      loop mode                   0           0=AS_SAMPLE 1=LOOP_IN_REL 
+                                                     2=LOOP_UNTIL_REL 3=NO_LOOP 
+                                                     4=PLAY_TO_END
+     55      (internal use)              255
+     56      (internal use)              255
+     57-58   (internal use)              44,1
+
+     59-82   [repeat 35-58 for sample 2]
+
+     83-106  [repeat 35-58 for sample 3]
+
+     107-130 [repeat 35-58 for sample 4]
+
+     131     beat detune                 0           -50..50
+     132     hold attack until loop      0           0=OFF 1=ON
+     133-136 sample 1-4 key tracking     0           0=TRACK 1=FIXED
+     137-140 sample 1-4 aux out offset   0           0..7
+     141-148 vel>sample start            0           -9999..9999 (16-bit signed)
+     149     vel>volume offset           0           -50..50
+     150     (not used)
+
+7. S3000 disk format
+
+The S3000 disk has space for file entries and map the same as for the S1000, but has a value of 255 at byte 17 signifying that these file entries will be ignored, and 512 entries starting at block 5 will be used instead. The first 17 map entries are marked with the value 16384.
+   Length   Format              Description
+   --------------------------------------------------------------------
+     12     AKAII        Filename
+      4                  0,0,0,2 (1 for low density?)
+      1     ASCII + 128  File type: 211=sample, 208=program, etc.
+      3     unsigned     File length in bytes
+      2     unsigned     Starting block on disk
+      2                  S3000 ID = 0,12 or 0,11 for low density
+The disk label is the same as the S1000 except for the S3000 ID byte. Subtracting 128 from the S3000 file type gives a set of ASCII characters shared with the earlier samplers:
+   A,O   All Settings
+   B     SysEx Data 
+   C,Y   Operating System 
+   D     Drum Triggers 
+   P     Program 
+   Q     Cue List 
+   T     Take List 
+   X     Effects Settings
+Stereo samples are stored as two separate mono files with the 11th and 12th characters of the filename set to -L or -R. The S01 and S20 use preset filenames of the form AKAI A1#.%1 where # is a hexadecimal character representing the sample number and % is S for mono and left-channel samples or R for right-channel samples.
+
+ 
+
+8. S3000 sample format
+
+The S3000 sample has a 192 byte header:
+   Length   Format              Description
+   ----------------------------------------------------------------------
+      1                         3
+      1                         Not important: 0 for 22050Hz, 1 for 44100Hz
+      1     unsigned char       MIDI root note (C3=60)
+     12     AKAII (see above)   Filename
+  
+      1                         128
+      1     unsigned char       Number of active loops
+      1     unsigned char       First active loop (0 for none)
+      1                         0
+      1                         Loop mode: 0=in release 1=until release
+                                           2=none       3=play to end
+      1     signed char         Cents tune -50...+50
+      1     signed char         Semi tune  -50...+50
+      4                         0,8,2,0
+
+      4     unsigned long int   Number of sample words
+      4     unsigned long int   Start marker (first word is 0)
+      4     unsigned long int   End marker 
+   
+      4     unsigned long int   Loop 1 marker
+      2     unsigned int        Loop 1 fine length   (65536ths)
+      4     unsigned long int   Loop 1 coarse length (words) 
+      2     unsigned int        Loop 1 time          (milliseconds) 
+       
+     84     [as above]          Loops 2 to 8 
+                                (Loop 5 marker may be 234,255,151,122)
+
+      4                         0,0,255,255 
+      2     unsigned int        Sampling frequency
+      1     signed char         Loop tune offset -50...+50
+     39                         0,0,0... 
+Sometimes the sampler will insert more blank space at the end of the header! Make sure your samples are at least a few thousand words long or they will not play correctly. The sample data follows the header as signed 16-bit words. For details of the S3000 program format see the SysEx information on Akai's web site.
+
+
+
+9. MPC-2000 file format
+
+The MPC2000 and other related models use DOS formatted disks. Samples are saved with a .SND extension and contain 16-bit signed data after a 42 byte header:
+
+   Length   Format              Description
+   ----------------------------------------------------------------------
+      2                         1,4
+     16     ASCII               Filename (without extension, space padded)
+      1                         0
+      1     unsigned char       Level 0...200 (default 100)
+      1     unsigned char       Tune -120...+120
+      1     unsigned char       Channels: 0=Mono 1=Stereo
+      4     unsigned long       Start
+      4     unsigned long       Loop End
+      4     unsigned long       End
+      4     unsigned long       Loop Length
+      1     unsigned char       Loop Mode: 0=Off 1=On
+      1     unsigned char       Beats in loop 1...16 (default 1)
+      2     unsigned short      Sampling frequency (default 44100)
+MPC2000 programs have a .PRG extension and are partially described here:
+
+   Length   Format              Description
+   ----------------------------------------------------------------------
+      2                         7,4                          
+      2     unsigned short      Number of samples 1...64
+      1                         0
+
+   Repeat for 64 samples...
+     16     ASCII               Sample Name
+      1                         0
+
+      2                         30,0
+     16     ASCII               Program Name
+     15                         0,136,120,12,45,0,20,206,50,0,35,64,0,25,0
+
+   Repeat for MIDI notes 35...98
+      1     unsigned char       Sample 0...64 (255=none)
+     24                         0,44,0,88,0,0,0,0,0,0,0,0,0,100,0,0,0,0,100,0,0,0,0,0
+ 
+    388                         6,0,100,50,100,0,0...(see .PGM file)
+
+   Repeat for Pads A01...D12
+      1     unsigned char       Note number 35...98
+10. Teledisk format
+
+Akai distribute some of their sound library in the Teledisk .TD0 format. Following a variable length header (including several null-terminated comment lines) data blocks from the floppy disk are stored sequentially. In the uncompressed format each 1024 byte block is preceded by 9 bytes of address information with an additional 4 bytes at each track boundary. Any further information on this mysterious format would be welcomed!
+
+
+
+11. MESA file format
+
+The PC Beta release of MESA uses a 'mesa' chunk following the waveform data, containing a copy of the S3000 series sample header:
+   Length   Format              Description
+   --------------------------------------------------------------------
+      4     ASCII               Chunk name 'mesa'
+      4     unsigned long int   Chunk length: 141 bytes
+    141                         S3000 sample header (see above)
+      1     0                   Padding to make chunk length even
+MESA II for PC does not use a <mesa> chunk, but uses the standard <smpl> chunk for tuning and looping information with sample start and end points stored in a <cue > chunk.
+For more information on the WAV file format see http://www.wotsit.org
+
+ 
+
+12. S5000/S6000 sample format
+
+The S5000 and S6000 can read files produced by earlier samplers, but by default use WAV files on MS-DOS formatted disks. The WAV files saved by operating system version 1.01 use standard chunks but are somewhat unconventional:
+   RIFF 'WAVE'
+     <fmt > - Describes mono or stereo 16-bit PCM (plus 2 unused bytes at end)
+     <fact> - Describes number of sample words (not actually required for PCM)
+     <smpl> - Tuning and loop information plus 18 bytes of manufacturer specific data
+     <data> - Waveform data (16-bit signed, interleaved if stereo)
+A single loop is supported, with the loop mode held in the manufacturer specific data. The <smpl> chunk is written before the <data> chunk and any other chunks are stripped off by the sampler. To ensure smooth operation filenames should be less than 20 characters with the WAV extension capitalised. The manufacturer specific data (manufacturer 71, product 94) contains the following parameters but can be omitted if not needed:
+
+   Length   Description           Default
+   ----------------------------------------------------------------------
+      2                           1,0
+      1     Original root note    60
+      1     Semitone tune +/-36   0
+      1     Fine tune     +/-50   0
+      1                           0     
+      1     Play mode             0=NO LOOPING 1=ONE SHOT 2=LOOP IN REL 3=LOOP TIL REL
+      3                           0,0,0
+      4     Start point           0
+      4     End point             (number of sample words)
+A loop tuning parameter is also stored in the above structure but is not yet implemented in the sampler operating systems.
+
+ 
+
+13. S5000/S6000 program format
+
+Program files have an .AKP extension and are described here.
+Multi files (multitimbral setups of programs) have an .AKM extension.
+Both formats are loosely based on the RIFF file format.
+
+
+
+14. PC floppy drive programming
+
+Code for the adisk4 program is provided here showing how to re-program the floppy drive for Akai disk access and includes read, write and format functions. Note that the code is primitive both in style and content! The software will work under DOS and Windows 3.x/95/98, but not NT which blocks direct disk access.
+
+Not all PCs can read all Akai disks. Some modern PCs are obviously not as "IBM Compatible" as they should be, but problems can also be caused by the long hard life many Akai floppy drives have had. Some problems can be solved by using a disk formatted in Akai format by the PC rather than the sampler.
+
+
+
+15. This document
+
+This information contained in this file was worked out by experimenting with the floppy drive parameter table until Akai disks could be read, and then examining the data of numerous disks and files, comparing the contents to the sampler's parameter settings and SysEx data. I'm happy to receive corrections or additions to include in this document.
+This document Copyright ©1995-2000 Paul Kellett (paul.kellett@maxim.abel.co.uk). You may copy and distribute it. If you develop any software based on this information please give me a credit in it (or its documentation) and send me a copy! The information in this document is believed to be correct, though is known to be incomplete and must be used entirely at your own risk.

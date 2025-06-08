@@ -339,7 +339,7 @@ function loadRandomIFF(num_samples)
   end
 end
 
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Load Random 128 IFFs",invoke=function() loadRandomIFF(128) end }
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Load..:Load Random 128 IFFs",invoke=function() loadRandomIFF(128) end }
 
 -- write a little-endian unsigned 32-bit integer
 local function write_le_u32(f, value)
