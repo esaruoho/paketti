@@ -503,7 +503,7 @@ renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Write Notes..:Write
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Write Notes..:Write Notes EditStep Random",invoke=function() writeNotesMethodEditStep("random") end}
 
 
-  renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:BPM&LPB..:Paketti Speed and Tempo to BPM...",invoke=pakettiSpeedTempoDialog}
+  renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:BPM&LPB..:Paketti Speed and Tempo to BPM Dialog...",invoke=pakettiSpeedTempoDialog}
 
   renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Copy Above Effect Column",invoke=function() handle_above_effect_command("copy") end}
   renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Copy Above Effect Column + Increase Value",invoke=function() handle_above_effect_command("inc") end}
@@ -587,7 +587,7 @@ if preferences.pakettiMenuConfig.MainMenuTools then
   renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Paketti Timestretch Dialog...",invoke=pakettiTimestretchDialog}
   renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti Stacker...",invoke=function() pakettiStackerDialog(proceed_with_stacking, on_switch_changed, PakettiIsolateSlicesToInstrument) end}
   renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti Beat Structure Editor...",invoke=pakettiBeatStructureEditorDialog}
-  renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:BPM&LPB..:Paketti Speed and Tempo to BPM...",invoke=pakettiSpeedTempoDialog}
+  renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:BPM&LPB..:Paketti Speed and Tempo to BPM Dialog...",invoke=pakettiSpeedTempoDialog}
   renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Pattern Editor..:Visible Columns..:Hide All Unused Columns (All Tracks)", invoke=function() PakettiHideAllUnusedColumns() end}
   renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Visible Columns..:Hide All Unused Columns (Selected Track)", invoke=function() PakettiHideAllUnusedColumnsSelectedTrack() end}
   renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:!Preferences..:Open Paketti Init Phrase Dialog...",invoke=function() pakettiPhraseSettings() end}

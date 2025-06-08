@@ -275,7 +275,7 @@ function pakettiSpeedTempoDialog()
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Paketti Speed and Tempo to BPM...",invoke=pakettiSpeedTempoDialog}
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Speed and Tempo to BPM Dialog...",invoke=pakettiSpeedTempoDialog}
 
 -- Function to check if values exceed Renoise limits and adjust if needed
 function adjustValuesForRenoiseLimits(F, K)
