@@ -81,6 +81,8 @@ end
 preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettifyReplaceInstrument=false,
   pakettiInstrumentProperties=false,
+  
+  pakettiDiskBrowserVisible=true,
   pakettiREXBundlePath = "." .. separator .. "rx2",
   pakettiShowSampleDetails=false,
   pakettiShowSampleDetailsFrequencyAnalysis=true,
@@ -722,6 +724,17 @@ local pakettiIRPathDisplayId = "pakettiIRPathDisplay_" .. tostring(math.random(2
                 end}
             },
             vb:row{vb:text{style="strong",text="Show/Hide Instrument Properties panel on startup and when changed"}},
+            -- Only show Disk Browser Visible switch for API version 6.2 and above
+            renoise.API_VERSION >= 6.2 and vb:row{
+              vb:text{text="Disk Browser Visible",width=150},
+              vb:switch{items={"Off","On"},value=preferences.pakettiDiskBrowserVisible.value and 2 or 1,width=200,
+                notifier=function(value) 
+                  preferences.pakettiDiskBrowserVisible.value=(value==2)
+                  -- Update the disk browser visibility immediately
+                  renoise.app().window.disk_browser_is_visible = preferences.pakettiDiskBrowserVisible.value
+                end}
+            } or vb:space{height=0},
+            renoise.API_VERSION >= 6.2 and vb:row{vb:text{style="strong",text="Show/Hide Disk Browser panel on startup and when changed"}} or vb:space{height=0},
             vb:row{
               vb:text{text="0G01 Loader",width=150},
               vb:switch{items={"Off","On"},value=preferences._0G01_Loader.value and 2 or 1,width=200,

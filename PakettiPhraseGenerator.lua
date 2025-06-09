@@ -1628,9 +1628,23 @@ end
          text = "Duplicate",
          tooltip = "Create a copy of the current track and instrument and start playing it",
          notifier=function()
-           duplicateTrackAndInstrument()
+           -- Wrap in pcall to catch phrase limit errors
+           local success, error_msg = pcall(function()
+             duplicateTrackAndInstrument()
+           end)
            
-           -- After duplication, update the UI to reflect the new instrument
+           if not success then
+             -- Check if it's the phrase limit error
+             if error_msg and error_msg:find("can only have up to 126 phrase per instrument") then
+               renoise.app():show_status("Cannot duplicate: Instrument already has maximum number of phrases (126)")
+             else
+               -- Show other errors as-is
+               renoise.app():show_status("Duplication failed: " .. tostring(error_msg))
+             end
+             return
+           end
+           
+           -- After successful duplication, update the UI to reflect the new instrument
            local song = renoise.song()
            if vb.views.instrument_selector then
              vb.views.instrument_selector.value = song.selected_instrument_index - 1
