@@ -296,7 +296,8 @@ local dialogMargin=175
   }
   
   -- Play/Stop button with dynamic text
-  local play_stop_button = vb:button{
+  local play_stop_button
+  play_stop_button = vb:button{
     text = song.transport.playing and "Stop" or "Play",
     width = dialogMargin,
     --height = 30,

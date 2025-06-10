@@ -14,10 +14,25 @@ renoise.tool():add_menu_entry{name="--Instrument Box:Paketti Gadgets..:Open Pake
 renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Steppers..:Paketti Steppers Dialog...", invoke=function() PakettiSteppersDialog() end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Phrases..:Open Paketti Init Phrase Dialog...",invoke=function() pakettiPhraseSettings() end}
 
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Create Random AKWF Wavetable (032,loop)",invoke=function() create_random_akwf_wavetable(32, true) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Create Random AKWF Wavetable (032)",invoke=function() create_random_akwf_wavetable(32, false) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Create Random AKWF Wavetable (064)",invoke=function() create_random_akwf_wavetable(64, false) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Create Random AKWF Wavetable (128)",invoke=function() create_random_akwf_wavetable(128, false) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Create Random AKWF Wavetable (256)",invoke=function() create_random_akwf_wavetable(256, false) end}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:AKWF..:Create Random AKWF Wavetable (032,loop)",invoke=function() create_random_akwf_wavetable(32, true) end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Create Random AKWF Wavetable (064,loop)",invoke=function() create_random_akwf_wavetable(64, true) end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Create Random AKWF Wavetable (128,loop)",invoke=function() create_random_akwf_wavetable(128, true) end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Create Random AKWF Wavetable (256,loop)",invoke=function() create_random_akwf_wavetable(256, true) end}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:AKWF..:Load Random AKWF Sample",invoke=function() load_random_akwf_sample(1) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Load Random amount (1...12) of AKWF Samples",invoke=function() load_random_akwf_sample("random") end}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:AKWF..:Load 02 AKWF Samples",invoke=function() load_random_akwf_sample(2) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Load 05 AKWF Samples",invoke=function() load_random_akwf_sample(5) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Load 12 AKWF Samples",invoke=function() load_random_akwf_sample(12) end}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:AKWF..:Load 05 AKWF Samples with Overlap Random",invoke=function() load_random_akwf_sample(5) DrumKitToOverlay(2) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Load 05 AKWF Samples with Overlap Cycle",invoke=function() load_random_akwf_sample(5) DrumKitToOverlay(1) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Load 12 AKWF Samples with Overlap Random",invoke=function() load_random_akwf_sample(12) DrumKitToOverlay(2) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Load 12 AKWF Samples with Overlap Cycle",invoke=function() load_random_akwf_sample(12) DrumKitToOverlay(1) end}
+
+
 
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Phrases..:Create New Phrase using Paketti Settings",invoke=function() pakettiInitPhraseSettingsCreateNewPhrase() end}
 renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Phrases..:Load XRNI & Wipe Phrases",invoke=function() loadXRNIWipePhrases() end}
@@ -70,6 +85,10 @@ renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Instruments..:Set
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Instruments..:Set All Instruments All Samples Autoseek Off",invoke=function() setAllInstrumentsAllSamplesAutoseek(0) end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Instruments..:Delete Unused Instruments...",invoke=function() deleteUnusedInstruments() end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Instruments..:Delete Unused Samples...",invoke=function() deleteUnusedSamples() end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Instruments..:Hide All Instrument Properties",invoke=function() InstrumentPropertiesControl(false) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Instruments..:Show All Instrument Properties",invoke=function() InstrumentPropertiesControl(true) end}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Instruments..:Group Samples by Name to New Instruments", invoke=PakettiGroupSamplesByName}
+
 
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Wipe&Slice..:Wipe&Slice&Write to Pattern",invoke = function() WipeSliceAndWrite() end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Wipe&Slice..:Wipe&Slice (002)",invoke=function() slicerough(2) end}
@@ -100,25 +119,6 @@ renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Duplicate All Sampl
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Duplicate All Samples at +36 Transpose",invoke=function() PakettiDuplicateInstrumentSamplesWithTranspose(36) end}
 
 
-
-
-  renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Instruments..:Hide All Instrument Properties",invoke=function() InstrumentPropertiesControl(false) end}
-  renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Instruments..:Show All Instrument Properties",invoke=function() InstrumentPropertiesControl(true) end}
-  renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Instruments..:Group Samples by Name to New Instruments", invoke=PakettiGroupSamplesByName}
-  renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Create Random AKWF Wavetable (032)",invoke=function() create_random_akwf_wavetable(32, false) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Create Random AKWF Wavetable (064)",invoke=function() create_random_akwf_wavetable(64, false) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Create Random AKWF Wavetable (128)",invoke=function() create_random_akwf_wavetable(128, false) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Create Random AKWF Wavetable (256)",invoke=function() create_random_akwf_wavetable(256, false) end}
-
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:AKWF..:Load Random AKWF Sample",invoke=function() load_random_akwf_sample(1) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Load Random amount (1...12) of AKWF Samples",invoke=function() load_random_akwf_sample("random") end}
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:AKWF..:Load 02 AKWF Samples",invoke=function() load_random_akwf_sample(2) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Load 05 AKWF Samples",invoke=function() load_random_akwf_sample(5) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Load 12 AKWF Samples",invoke=function() load_random_akwf_sample(12) end}
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:AKWF..:Load 05 AKWF Samples with Overlap Random",invoke=function() load_random_akwf_sample(5) DrumKitToOverlay(2) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Load 05 AKWF Samples with Overlap Cycle",invoke=function() load_random_akwf_sample(5) DrumKitToOverlay(1) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Load 12 AKWF Samples with Overlap Random",invoke=function() load_random_akwf_sample(12) DrumKitToOverlay(2) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Load 12 AKWF Samples with Overlap Cycle",invoke=function() load_random_akwf_sample(12) DrumKitToOverlay(1) end}
 
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Instruments..:Duplicate Instrument and Select Last Instrument",invoke=function() duplicateSelectInstrumentToLastInstrument() end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Instruments..:Duplicate and Reverse Instrument",invoke=function() PakettiDuplicateAndReverseInstrument() end}

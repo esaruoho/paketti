@@ -153,8 +153,7 @@ function JalexAdd(number)
         renoise.app():show_status(status_msg)
         renoise.song().selected_note_column_index = 1
     end
-  
-    
+      
     -- List of chord progressions, reordered logically
     local chord_list = {
         {name="ChordsPlus 3-4 (Maj)", fn=function() chordsplus(4,3) end},
@@ -232,13 +231,10 @@ function JalexAdd(number)
             invoke=chord.fn
         }
     end
-    
-    renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Next Chord in List",
-        invoke=next_chord
-    }
-    
-    renoise.tool():add_midi_mapping{name="Paketti:Chord Selector [0-127]",invoke=function(midi_message) midi_chord_mapping(midi_message.int_value) end}
-    
+
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Next Chord in List",invoke=next_chord}
+renoise.tool():add_midi_mapping{name="Paketti:Chord Selector [0-127]",invoke=function(midi_message) midi_chord_mapping(midi_message.int_value) end}
+
 -------
 
 -- Helper function to get all notes from a row and sort them
@@ -1354,4 +1350,3 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Distribute
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Distribute Across Selection (Even 2)",invoke=function() DistributeAcrossSelection("even2") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Distribute Across Selection (Even 4)",invoke=function() DistributeAcrossSelection("even4") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Distribute Across Selection (Uneven)",invoke=function() DistributeAcrossSelection("uneven") end}
-
