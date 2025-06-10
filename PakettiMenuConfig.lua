@@ -690,7 +690,7 @@ renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Rese
   renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Devices..:Move DSPs to Previous Track",invoke=function() move_dsps_to_adjacent_track(-1) end}
   renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Devices..:Move DSPs to Next Track",invoke=function() move_dsps_to_adjacent_track(1) end}
   renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Devices..:Move Selected DSP to Previous Track",invoke=function() move_selected_dsp_to_adjacent_track(-1) end}
-  renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..Devices..::Move Selected DSP to Next Track",invoke=function() move_selected_dsp_to_adjacent_track(1) end}
+  renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..Devices..:Move Selected DSP to Next Track",invoke=function() move_selected_dsp_to_adjacent_track(1) end}
   renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Tracks..:Create Group and Move DSPs",invoke=create_group_and_move_dsps}
   renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Note Columns..:Apply Note Column Sample Effects M00/MFF",invoke=function() applyNoteColumnEffects() end}
   renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Note Columns..:Clear Note Column Sample Effects M00/MFF",invoke=function() clearNoteColumnEffects() end}
