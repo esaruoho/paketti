@@ -164,7 +164,65 @@ if preferences.pakettiMenuConfig.SampleEditor then
   renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Load..:Import Akai Program...",invoke = function() importAkaiProgram() end}
   renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Export..:Export Akai Program...",invoke = function() exportAkaiProgram() end}
   renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Load..:Import S900/S950 Sample...",invoke = function() importS900Sample() end}
-  
+  renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Process..:Normalize Selected Sample or Slice",invoke=NormalizeSelectedSliceInSample}
+  renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Normalize Sample",invoke=function() normalize_selected_sample() end}
+  renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Normalize All Samples in Instrument",invoke=function() normalize_all_samples_in_instrument() end}
+  renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Normalize Selected Sample -12dB",invoke=function() normalize_and_reduce("current_sample", -12) end}
+  renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Normalize Selected Instrument -12dB (All Samples & Slices)",invoke=function() normalize_and_reduce("all_samples", -12) end}
+  renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Normalize All Instruments -12dB",invoke=function() normalize_and_reduce("all_instruments", -12) end}
+  renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Process..:Reverse Selected Sample or Slice",invoke=ReverseSelectedSliceInSample}
+  renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Process..:Convert Mono to Stereo",invoke=convert_mono_to_stereo_optimized}
+  renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Mono to Left with Blank Right",invoke=function() mono_to_blank_optimized(1, 0) end}
+  renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Mono to Right with Blank Left",invoke=function() mono_to_blank_optimized(0, 1) end}
+  renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert Stereo to Mono (Keep Left)",invoke=function() stereo_to_mono_optimized(1) end}
+  renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert Stereo to Mono (Keep Right)",invoke=function() stereo_to_mono_optimized(2) end}
+  renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Normalize Slices Independently",invoke=function() normalize_selected_sample_by_slices() end}
+  renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert Stereo to Mono (Mix Both)",invoke=stereo_to_mono_mix_optimized}
+  renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert All Samples to Mono (Keep Left)",invoke=function() convert_all_samples_to_mono("left") end}
+  renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert All Samples to Mono (Keep Right)",invoke=function() convert_all_samples_to_mono("right") end}
+  renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert All Samples to Mono (Mix Both)",invoke=function() convert_all_samples_to_mono("mix") end}
+  renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert to 8-bit", invoke=function() convert_bit_depth(8) end}
+  renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert to 16-bit", invoke=function() convert_bit_depth(16) end}
+  renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert to 24-bit", invoke=function() convert_bit_depth(24) end}
+  renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert All Samples to 8-bit", invoke=function() convert_all_samples_to_bit_depth(8) end}
+  renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert All Samples to 16-bit", invoke=function() convert_all_samples_to_bit_depth(16) end}
+  renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert All Samples to 24-bit", invoke=function() convert_all_samples_to_bit_depth(24) end}
+  renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Cross-fade Sample w/ Fade-In/Out",invoke=function() crossfade_with_fades() end}
+  renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Cross-fade Loop Edges (Fixed End)",invoke=function() crossfade_loop_edges_fixed_end() end}
+  renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Record..:Start Sampling and Sample Editor (Record)",invoke=function() PakettiSampleAndToSampleEditor() end}  
+  renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Beatsync/Slices..:Beatsync Lines Halve (All)",invoke=function() halveBeatSyncLinesAll() end}
+  renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Beatsync/Slices..:Beatsync Lines Halve (Selected Sample)",invoke=function() halveBeatSyncLinesSelected() end}
+  renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Beatsync/Slices..:Beatsync Lines Double (All)",invoke=function() doubleBeatSyncLinesAll() end}
+  renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Beatsync/Slices..:Beatsync Lines Double (Selected Sample)",invoke=function() doubleBeatSyncLinesSelected() end}
+  renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Beatsync/Slices..:Analyze Slice Markers",invoke=function() analyze_slice_markers() end}
+  renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Instruments..:Set Selected Instrument Velocity Tracking On",invoke=function()  selectedInstrumentVelocityTracking(1) end}
+  renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Instruments..:Set Selected Instrument Velocity Tracking Off",invoke=function() selectedInstrumentVelocityTracking(0) end}
+  renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Convolver..:Import Selected Sample to Convolver",invoke=function()
+    print("Importing selected sample to Convolver via Sample Editor menu entry")
+    local selected_device = renoise.song().selected_device
+    local selected_track_index = renoise.song().selected_track_index
+    local selected_device_index = renoise.song().selected_device_index
+    if not selected_device or selected_device.name ~= "Convolver" then
+      pakettiConvolverSelectionDialog(handle_convolver_action)
+      return
+    end
+    save_instrument_to_convolver(selected_device, selected_track_index, selected_device_index)
+  end}
+  renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Convolver..:Show Convolver Selection Dialog",invoke=function()
+    print("Showing Convolver Selection Dialog via Sample Editor menu")
+    pakettiConvolverSelectionDialog(handle_convolver_action)
+  end}
+  renoise.tool():add_menu_entry {name="--Sample Editor:Paketti..:Process..:Wrap Signed as Unsigned",invoke=paketti_wrap_signed_as_unsigned}
+  renoise.tool():add_menu_entry {name="Sample Editor:Paketti..:Process..:Unwrap Unsigned to Signed",invoke=paketti_unwrap_unsigned_as_signed}
+  --renoise.tool():add_menu_entry {name="Sample Editor:Paketti..:Toggle Signed/Unsigned",invoke=paketti_toggle_signed_unsigned}
+  renoise.tool():add_menu_entry {name="Sample Editor:Paketti..:Process..:Toggle Signed/Unsigned",invoke=paketti_toggle_signed_unsigned}
+  renoise.tool():add_menu_entry {name="--Sample Editor:Paketti..:Process..:Scale Signed → Unsigned",invoke=paketti_float_unsign}
+  renoise.tool():add_menu_entry {name="Sample Editor:Paketti..:Process..:Scale Unsigned → Signed",invoke=paketti_float_sign}
+  renoise.tool():add_menu_entry {name="Sample Editor:Paketti..:Process..:Create Wrecked Sample Variants",invoke=paketti_build_sample_variants}
+  renoise.tool():add_menu_entry {name="Sample Editor:Paketti..:Octatrack..:Export to Octatrack (.WAV+.OT)...",invoke = function() PakettiOTExport() end}
+  renoise.tool():add_menu_entry {name="Sample Editor:Paketti..:Octatrack..:Export to Octatrack (.OT)",invoke = function() PakettiOTExportOtOnly() end}
+  renoise.tool():add_menu_entry {name="Sample Editor:Paketti..:Octatrack..:Import Octatrack (.OT)...",invoke = function() PakettiOTImport() end}
+    
 
 end
 
@@ -389,6 +447,19 @@ renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Set Selected Instr
 renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Phrases..:Load XRNI & Disable Phrases",invoke=function() loadXRNIWipePhrasesTwo() end}
 renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Phrases..:Load XRNI & Keep Phrases",invoke=function() loadXRNIKeepPhrases() end}        
 renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti..:Isolate Slices or Samples to New Instruments",invoke=PakettiIsolateSlices}
+renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Export..:Export Current Sample as AKP...",invoke = exportCurrentSampleAsAKP}
+renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Load..:Import Any Akai Sample...",invoke = function() importAnyAkaiSample() end}
+renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Export..:Export as Akai Format...",invoke = function() exportCurrentSampleAsAkai() end}
+renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Load..:Import MPC2000 SND Sample...",invoke = function() importMPC2000Sample() end}
+renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Export..:Export MPC2000 SND Sample...",invoke = function() exportMPC2000Sample() end}
+renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Load..:Import Akai Program...",invoke = function() importAkaiProgram() end}
+renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Export..:Export Akai Program...",invoke = function() exportAkaiProgram() end}
+renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Load..:Import S900/S950 Sample...",invoke = function() importS900Sample() end}
+renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Export..:Export S900/S950 Sample...",invoke = function() exportS900Sample() end}
+renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Load..:Import S1000 Sample...",invoke = function() importS1000Sample() end}
+renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Export..:Export S1000 Sample...",invoke = function() exportS1000Sample() end}
+renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Load..:Import S3000 Sample...",invoke = function() importS3000Sample() end}
+
 
 end
 
@@ -703,6 +774,123 @@ renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Delay Output..:Rese
   renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Note Columns..:Note-Off Paste (from Selection)", invoke=function() noteOffPaste() end}
   renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Pattern..:Duplicate Pattern Above & Clear Muted",invoke=duplicate_pattern_and_clear_muted_above}
   renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Pattern..:Duplicate Pattern Below & Clear Muted",invoke=duplicate_pattern_and_clear_muted}
+  renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Note Columns..:Convert 3 Note Chord to Arpeggio", invoke=function() ConvertChordsToArpeggio() end}
+  renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Effect Columns..:B01 Reverse Sample Effect On/Off",invoke=function()
+  local s=renoise.song()
+  local nci=s.selected_note_column_index 
+  s.selected_effect_column_index=1
+  revnoter() 
+  if renoise.song().selected_track.type==2 or renoise.song().selected_track.type==3 or renoise.song().selected_track.type==4 then 
+    return
+  else 
+  s.selected_note_column_index=nci
+  --s.selected_note_column_index=1 
+  end end}
+  renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Effect Columns..:B00 Reverse Sample Effect On/Off",invoke=function() effectColumnB00()end}
+  renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Effect Columns..:L00/LC0 Volume Effect Switch",invoke=function() 
+    renoise.song().selected_effect_column_index=1
+    write_effect("0L") 
+    
+      if renoise.song().selected_track.type==2 or renoise.song().selected_track.type==3 or renoise.song().selected_track.type==4 then return
+    else renoise.song().selected_note_column_index=1 end end} 
+    renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Effect Columns..:0R(LPB) Retrig On/Off",invoke=function() 
+      renoise.song().selected_effect_column_index=1
+      writeretrig() 
+        if renoise.song().selected_track.type==2 or renoise.song().selected_track.type==3 or renoise.song().selected_track.type==4 then return
+      else renoise.song().selected_note_column_index=1 end end} 
+  renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Effect Columns..:Duplicate Effect Column Content to Pattern or Selection",invoke=pakettiDuplicateEffectColumnToPatternOrSelection}
+  renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Effect Columns..:Randomize Effect Column Parameters",invoke=pakettiRandomizeEffectColumnParameters}
+  renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Effect Columns..:Interpolate Column Values (Effect)",invoke=pakettiInterpolateEffectColumnParameters}
+  renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Note Columns..:Flood Fill Note and Instrument",invoke=pakettiFloodFill}
+  renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Note Columns..:Flood Fill Note and Instrument with EditStep",invoke=pakettiFloodFillWithEditStep}
+  renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Devices..:Enable 8 Track DSP Devices (Write to Pattern)",invoke=function() effectenablepattern()  end}
+  renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Devices..:Bypass 8 Track DSP Devices (Write to Pattern)",invoke=function() effectbypasspattern() end}
+  
+  renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Record..:Start Sampling and Sample Editor (Record)",invoke=function() PakettiSampleAndToSampleEditor() end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Record..:Paketti Overdub 12 (Metronome/Line Input)",invoke=function() recordtocurrenttrack(true, true,12) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Record..:Paketti Overdub 12 (Metronome/No Line Input)",invoke=function() recordtocurrenttrack(true, false,12) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Record..:Paketti Overdub 12 (No Metronome/Line Input)",invoke=function() recordtocurrenttrack(false, true,12) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Record..:Paketti Overdub 12 (No Metronome/No Line Input)",invoke=function() recordtocurrenttrack(false, false,12) end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Record..:Paketti Overdub 01 (Metronome/Line Input)",invoke=function() recordtocurrenttrack(true, true,1) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Record..:Paketti Overdub 01 (Metronome/No Line Input)",invoke=function() recordtocurrenttrack(true, false,1) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Record..:Paketti Overdub 01 (No Metronome/Line Input)",invoke=function() recordtocurrenttrack(false, true,1) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Record..:Paketti Overdub 01 (No Metronome/No Line Input)",invoke=function() recordtocurrenttrack(false, false,1) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Tracks..:Duplicate Track Duplicate Instrument",invoke=function() duplicateTrackDuplicateInstrument() end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Note Columns..:Interpolate Notes",invoke=function() note_interpolation() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Visible Columns..:Global Visible Column (All)",invoke=function() globalChangeVisibleColumnState("volume",true)
+globalChangeVisibleColumnState("panning",true) globalChangeVisibleColumnState("delay",true) globalChangeVisibleColumnState("sample_effects",true) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Visible Columns..:Global Visible Column (None)",invoke=function() globalChangeVisibleColumnState("volume",false)
+globalChangeVisibleColumnState("panning",false) globalChangeVisibleColumnState("delay",false) globalChangeVisibleColumnState("sample_effects",false) end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Visible Columns..:Toggle Visible Column (Volume) Globally",invoke=function() globalToggleVisibleColumnState("volume") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Visible Columns..:Toggle Visible Column (Panning) Globally",invoke=function() globalToggleVisibleColumnState("panning") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Visible Columns..:Toggle Visible Column (Delay) Globally",invoke=function() globalToggleVisibleColumnState("delay") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Visible Columns..:Toggle Visible Column (Sample Effects) Globally",invoke=function() globalToggleVisibleColumnState("sample_effects") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Visible Columns..:Global Visible Column (Volume)",invoke=function() globalChangeVisibleColumnState("volume",true) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Visible Columns..:Global Visible Column (Panning)",invoke=function() globalChangeVisibleColumnState("panning",true) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Visible Columns..:Global Visible Column (Delay)",invoke=function() globalChangeVisibleColumnState("delay",true) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Visible Columns..:Global Visible Column (Sample Effects)",invoke=function() globalChangeVisibleColumnState("sample_effects",true) end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti Gadgets..:Paketti Fuzzy Search Track...",invoke = pakettiFuzzySearchTrackDialog}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Switch Note Instrument Dialog...",invoke=pakettiSwitchNoteInstrumentDialog}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Transposer Row -03",invoke=function() PakettiTransposer(-3, false) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Transposer Row +04",invoke=function() PakettiTransposer(4, false) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Transposer Row -04",invoke=function() PakettiTransposer(-4, false) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Transposer Row +07",invoke=function() PakettiTransposer(7, false) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Transposer Row -07",invoke=function() PakettiTransposer(-7, false) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Transposer Row +11",invoke=function() PakettiTransposer(11, false) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Transposer Row -11",invoke=function() PakettiTransposer(-11, false) end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti ChordsPlus..:Transposer Selection/Row +03",invoke=function() PakettiTransposer(3, true) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Transposer Selection/Row -03",invoke=function() PakettiTransposer(-3, true) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Transposer Selection/Row +04",invoke=function() PakettiTransposer(4, true) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Transposer Selection/Row -04",invoke=function() PakettiTransposer(-4, true) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Transposer Selection/Row +07",invoke=function() PakettiTransposer(7, true) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Transposer Selection/Row -07",invoke=function() PakettiTransposer(-7, true) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Transposer Selection/Row +11",invoke=function() PakettiTransposer(11, true) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Transposer Selection/Row -11",invoke=function() PakettiTransposer(-11, true) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Basic Triads - Major (3-4)",invoke=function() chordsplus(4,3) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Basic Triads - Minor (4-3)",invoke=function() chordsplus(3,4) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Basic Triads - Augmented (4-4)",invoke=function() chordsplus(4,4) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Basic Triads - Sus2 (2-5)",invoke=function() chordsplus(2,5) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Basic Triads - Sus4 (5-2)",invoke=function() chordsplus(5,2) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Seventh - Major 7 (4-3-4)",invoke=function() chordsplus(4,3,4) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Seventh - Minor 7 (3-4-3)",invoke=function() chordsplus(3,4,3) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Seventh - Dominant 7 (4-3-3)",invoke=function() chordsplus(4,3,3) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Seventh - Minor-Major 7 (3-4-4)",invoke=function() chordsplus(3,4,4) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Ninth - Major 9 (4-3-4-3)",invoke=function() chordsplus(4,3,4,3) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Ninth - Minor 9 (3-4-3-3)",invoke=function() chordsplus(3,4,3,3) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Ninth - Major 9 Simple (4-7-3)",invoke=function() chordsplus(4,7,3) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Ninth - Minor 9 Simple (3-7-4)",invoke=function() chordsplus(3,7,4) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Added - Major Add 9 (4-3-7)",invoke=function() chordsplus(4,3,7) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Added - Minor Add 9 (3-4-7)",invoke=function() chordsplus(3,4,7) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Added - Major 6 Add 9 (4-3-2-5)",invoke=function() chordsplus(4,3,2,5) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Added - Minor 6 Add 9 (3-4-2-5)",invoke=function() chordsplus(3,4,2,5) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Added - Major 9 Add 11 (4-3-4-3-3)",invoke=function() chordsplus(4,3,4,3,3) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Augmented - Aug6 (4-4-2)",invoke=function() chordsplus(4,4,2) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Augmented - Aug7 (4-4-3)",invoke=function() chordsplus(4,4,3) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Augmented - Aug8 (4-4-4)",invoke=function() chordsplus(4,4,4) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Augmented - Aug9 (4-3-3-5)",invoke=function() chordsplus(4,3,3,5) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Augmented - Aug10 (4-4-7)",invoke=function() chordsplus(4,4,7) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Augmented - Aug11 (4-3-3-4-4)",invoke=function() chordsplus(4,3,3,4,4) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Special - Octaves (12-12-12)",invoke=function() chordsplus(12,12,12) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Special - Next Chord",invoke=next_chord }
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Special - Previous Chord",invoke=previous_chord }
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Note Columns..:Note Sorter (Ascending)",invoke=NoteSorterAscending}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Note Columns..:Note Sorter (Descending)",invoke=NoteSorterDescending}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti ChordsPlus..:Randomize Voicing for Notes in Row/Selection",invoke=function() RandomizeVoicing() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Note Columns..:Shift Notes Right",invoke=function() ShiftNotes(1) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Note Columns..:Shift Notes Left",invoke=function() ShiftNotes(-1) end}  
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti ChordsPlus..:Cycle Chord Inversion Up",invoke=function() cycle_inversion("up")
+NoteSorterAscending() end}  
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Cycle Chord Inversion Down",invoke=function() cycle_inversion("down")
+NoteSorterAscending() end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti ChordsPlus..:Random - Apply Random Chord",invoke=function() RandomChord() end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti ChordsPlus..:Extract Bassline to New Track",invoke=function() ExtractBassline() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Extract Highest Note to New Track",invoke=function() ExtractHighestNote() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Duplicate Highest Notes to New Track & Duplicate Instrument",invoke=function() DuplicateSpecificNotesToNewTrack("highest", "duplicate") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Duplicate Highest Notes to New Track (Selected Instrument)",invoke=function() DuplicateSpecificNotesToNewTrack("highest", "selected") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Duplicate Highest Notes to New Track (Original Instrument)",invoke=function() DuplicateSpecificNotesToNewTrack("highest", "original") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Duplicate Lowest Notes to New Track & Duplicate Instrument",invoke=function() DuplicateSpecificNotesToNewTrack("lowest", "duplicate") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Duplicate Lowest Notes to New Track (Selected Instrument)",invoke=function() DuplicateSpecificNotesToNewTrack("lowest", "selected") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Duplicate Lowest Notes to New Track (Original Instrument)",invoke=function() DuplicateSpecificNotesToNewTrack("lowest", "original") end}
 
 
 
@@ -1564,31 +1752,18 @@ renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti..:Import .RX2 (Re
 end 
 
 ---
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Export..:Export Current Sample as AKP...",invoke = exportCurrentSampleAsAKP}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Load..:Import Any Akai Sample...",invoke = function() importAnyAkaiSample() end}
 
 
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Export..:Export as Akai Format...",invoke = function() exportCurrentSampleAsAkai() end}
-
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Load..:Import MPC2000 SND Sample...",invoke = function() importMPC2000Sample() end}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Export..:Export MPC2000 SND Sample...",invoke = function() exportMPC2000Sample() end}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Load..:Import Akai Program...",invoke = function() importAkaiProgram() end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Export..:Export Akai Program...",invoke = function() exportAkaiProgram() end}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Export..:Export Akai Program...",invoke = function() exportAkaiProgram() end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Load..:Import S900/S950 Sample...",invoke = function() importS900Sample() end}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Load..:Import S900/S950 Sample...",invoke = function() importS900Sample() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Export..:Export S900/S950 Sample...",invoke = function() exportS900Sample() end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Export..:Export S900/S950 Sample...",invoke = function() exportS900Sample() end}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Export..:Export S900/S950 Sample...",invoke = function() exportS900Sample() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Load..:Import S1000 Sample...",invoke = function() importS1000Sample() end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Load..:Import S1000 Sample...",invoke = function() importS1000Sample() end}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Load..:Import S1000 Sample...",invoke = function() importS1000Sample() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Export..:Export S1000 Sample...",invoke = function() exportS1000Sample() end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Export..:Export S1000 Sample...",invoke = function() exportS1000Sample() end}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Export..:Export S1000 Sample...",invoke = function() exportS1000Sample() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Load..:Import S3000 Sample...",invoke = function() importS3000Sample() end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Load..:Import S3000 Sample...",invoke = function() importS3000Sample() end}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Load..:Import S3000 Sample...",invoke = function() importS3000Sample() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Export..:Export S3000 Sample...",invoke = function() exportS3000Sample() end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Export..:Export S3000 Sample...",invoke = function() exportS3000Sample() end}
 renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Export..:Export S3000 Sample...",invoke = function() exportS3000Sample() end}
@@ -1618,85 +1793,21 @@ renoise.tool():add_menu_entry{name="Mixer:Paketti..:Paketti BPM to MS Delay Calc
 
 
 renoise.tool():add_menu_entry{name="DSP Device Automation:Follow Off",invoke=function() renoise.song().transport.follow_player=false end}  renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti ChordsPlus..:Transposer Row +03",invoke=function() PakettiTransposer(3, false) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Transposer Row -03",invoke=function() PakettiTransposer(-3, false) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Transposer Row +04",invoke=function() PakettiTransposer(4, false) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Transposer Row -04",invoke=function() PakettiTransposer(-4, false) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Transposer Row +07",invoke=function() PakettiTransposer(7, false) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Transposer Row -07",invoke=function() PakettiTransposer(-7, false) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Transposer Row +11",invoke=function() PakettiTransposer(11, false) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Transposer Row -11",invoke=function() PakettiTransposer(-11, false) end}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti ChordsPlus..:Transposer Selection/Row +03",invoke=function() PakettiTransposer(3, true) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Transposer Selection/Row -03",invoke=function() PakettiTransposer(-3, true) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Transposer Selection/Row +04",invoke=function() PakettiTransposer(4, true) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Transposer Selection/Row -04",invoke=function() PakettiTransposer(-4, true) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Transposer Selection/Row +07",invoke=function() PakettiTransposer(7, true) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Transposer Selection/Row -07",invoke=function() PakettiTransposer(-7, true) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Transposer Selection/Row +11",invoke=function() PakettiTransposer(11, true) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Transposer Selection/Row -11",invoke=function() PakettiTransposer(-11, true) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Basic Triads - Major (3-4)",invoke=function() chordsplus(4,3) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Basic Triads - Minor (4-3)",invoke=function() chordsplus(3,4) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Basic Triads - Augmented (4-4)",invoke=function() chordsplus(4,4) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Basic Triads - Sus2 (2-5)",invoke=function() chordsplus(2,5) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Basic Triads - Sus4 (5-2)",invoke=function() chordsplus(5,2) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Seventh - Major 7 (4-3-4)",invoke=function() chordsplus(4,3,4) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Seventh - Minor 7 (3-4-3)",invoke=function() chordsplus(3,4,3) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Seventh - Dominant 7 (4-3-3)",invoke=function() chordsplus(4,3,3) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Seventh - Minor-Major 7 (3-4-4)",invoke=function() chordsplus(3,4,4) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Ninth - Major 9 (4-3-4-3)",invoke=function() chordsplus(4,3,4,3) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Ninth - Minor 9 (3-4-3-3)",invoke=function() chordsplus(3,4,3,3) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Ninth - Major 9 Simple (4-7-3)",invoke=function() chordsplus(4,7,3) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Ninth - Minor 9 Simple (3-7-4)",invoke=function() chordsplus(3,7,4) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Added - Major Add 9 (4-3-7)",invoke=function() chordsplus(4,3,7) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Added - Minor Add 9 (3-4-7)",invoke=function() chordsplus(3,4,7) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Added - Major 6 Add 9 (4-3-2-5)",invoke=function() chordsplus(4,3,2,5) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Added - Minor 6 Add 9 (3-4-2-5)",invoke=function() chordsplus(3,4,2,5) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Added - Major 9 Add 11 (4-3-4-3-3)",invoke=function() chordsplus(4,3,4,3,3) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Augmented - Aug6 (4-4-2)",invoke=function() chordsplus(4,4,2) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Augmented - Aug7 (4-4-3)",invoke=function() chordsplus(4,4,3) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Augmented - Aug8 (4-4-4)",invoke=function() chordsplus(4,4,4) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Augmented - Aug9 (4-3-3-5)",invoke=function() chordsplus(4,3,3,5) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Augmented - Aug10 (4-4-7)",invoke=function() chordsplus(4,4,7) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Augmented - Aug11 (4-3-3-4-4)",invoke=function() chordsplus(4,3,3,4,4) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Special - Octaves (12-12-12)",invoke=function() chordsplus(12,12,12) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Special - Next Chord",invoke=next_chord }
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Special - Previous Chord",invoke=previous_chord }
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Note Columns..:Note Sorter (Ascending)",invoke=NoteSorterAscending}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Note Columns..:Note Sorter (Descending)",invoke=NoteSorterDescending}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti ChordsPlus..:Randomize Voicing for Notes in Row/Selection",invoke=function() RandomizeVoicing() end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Note Columns..:Shift Notes Right",invoke=function() ShiftNotes(1) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Note Columns..:Shift Notes Left",invoke=function() ShiftNotes(-1) end}  
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti ChordsPlus..:Cycle Chord Inversion Up",invoke=function() cycle_inversion("up")
-NoteSorterAscending() end}  
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Cycle Chord Inversion Down",invoke=function() cycle_inversion("down")
-NoteSorterAscending() end}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti ChordsPlus..:Random - Apply Random Chord",invoke=function() RandomChord() end}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti ChordsPlus..:Extract Bassline to New Track",invoke=function() ExtractBassline() end}
-      
-    
-    renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Extract Highest Note to New Track",
-    invoke=function() ExtractHighestNote() end}
-    renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Duplicate Highest Notes to New Track & Duplicate Instrument",invoke=function() DuplicateSpecificNotesToNewTrack("highest", "duplicate") end}
-    renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Duplicate Highest Notes to New Track (Selected Instrument)",invoke=function() DuplicateSpecificNotesToNewTrack("highest", "selected") end}
-    renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Duplicate Highest Notes to New Track (Original Instrument)",invoke=function() DuplicateSpecificNotesToNewTrack("highest", "original") end}
-    renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Duplicate Lowest Notes to New Track & Duplicate Instrument",invoke=function() DuplicateSpecificNotesToNewTrack("lowest", "duplicate") end}
-    renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Duplicate Lowest Notes to New Track (Selected Instrument)",invoke=function() DuplicateSpecificNotesToNewTrack("lowest", "selected") end}
-    renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Duplicate Lowest Notes to New Track (Original Instrument)",invoke=function() DuplicateSpecificNotesToNewTrack("lowest", "original") end}
-    renoise.tool():add_menu_entry{name="Mixer:Paketti ChordsPlus..:Duplicate Highest Notes to New Track & Duplicate Instrument",invoke=function() DuplicateSpecificNotesToNewTrack("highest", "duplicate") end}
-    renoise.tool():add_menu_entry{name="Mixer:Paketti ChordsPlus..:Duplicate Highest Notes to New Track (Selected Instrument)",invoke=function() DuplicateSpecificNotesToNewTrack("highest", "selected") end}
-    renoise.tool():add_menu_entry{name="Mixer:Paketti ChordsPlus..:Duplicate Highest Notes to New Track (Original Instrument)",invoke=function() DuplicateSpecificNotesToNewTrack("highest", "original") end}
-    renoise.tool():add_menu_entry{name="Mixer:Paketti ChordsPlus..:Duplicate Lowest Notes to New Track & Duplicate Instrument",invoke=function() DuplicateSpecificNotesToNewTrack("lowest", "duplicate") end}
-    renoise.tool():add_menu_entry{name="Mixer:Paketti ChordsPlus..:Duplicate Lowest Notes to New Track (Selected Instrument)",invoke=function() DuplicateSpecificNotesToNewTrack("lowest", "selected") end}
-    renoise.tool():add_menu_entry{name="Mixer:Paketti ChordsPlus..:Duplicate Lowest Notes to New Track (Original Instrument)",invoke=function() DuplicateSpecificNotesToNewTrack("lowest", "original") end}
-    
-    renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti ChordsPlus..:Distribute (Even 2)",invoke=function() DistributeNotes("even2") end}
-    renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Distribute (Even 4)",invoke=function() DistributeNotes("even4") end}
-    renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Distribute (Uneven)",invoke=function() DistributeNotes("uneven") end}
-    renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Distribute (Always Next Row)",invoke=function() DistributeNotes("nextrow") end}
-    renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti ChordsPlus..:Distribute Across Selection (Even)",invoke=function() DistributeAcrossSelection("even") end}
-    renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Distribute Across Selection (Even 2)",invoke=function() DistributeAcrossSelection("even2") end}
-    renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Distribute Across Selection (Even 4)",invoke=function() DistributeAcrossSelection("even4") end}
-    renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Distribute Across Selection (Uneven)",invoke=function() DistributeAcrossSelection("uneven") end}
-      
+renoise.tool():add_menu_entry{name="Mixer:Paketti ChordsPlus..:Duplicate Highest Notes to New Track & Duplicate Instrument",invoke=function() DuplicateSpecificNotesToNewTrack("highest", "duplicate") end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti ChordsPlus..:Duplicate Highest Notes to New Track (Selected Instrument)",invoke=function() DuplicateSpecificNotesToNewTrack("highest", "selected") end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti ChordsPlus..:Duplicate Highest Notes to New Track (Original Instrument)",invoke=function() DuplicateSpecificNotesToNewTrack("highest", "original") end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti ChordsPlus..:Duplicate Lowest Notes to New Track & Duplicate Instrument",invoke=function() DuplicateSpecificNotesToNewTrack("lowest", "duplicate") end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti ChordsPlus..:Duplicate Lowest Notes to New Track (Selected Instrument)",invoke=function() DuplicateSpecificNotesToNewTrack("lowest", "selected") end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti ChordsPlus..:Duplicate Lowest Notes to New Track (Original Instrument)",invoke=function() DuplicateSpecificNotesToNewTrack("lowest", "original") end}
+
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti ChordsPlus..:Distribute (Even 2)",invoke=function() DistributeNotes("even2") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Distribute (Even 4)",invoke=function() DistributeNotes("even4") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Distribute (Uneven)",invoke=function() DistributeNotes("uneven") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Distribute (Always Next Row)",invoke=function() DistributeNotes("nextrow") end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti ChordsPlus..:Distribute Across Selection (Even)",invoke=function() DistributeAcrossSelection("even") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Distribute Across Selection (Even 2)",invoke=function() DistributeAcrossSelection("even2") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Distribute Across Selection (Even 4)",invoke=function() DistributeAcrossSelection("even4") end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Distribute Across Selection (Uneven)",invoke=function() DistributeAcrossSelection("uneven") end}
 
 renoise.tool():add_menu_entry {name="Mixer:Device:Parama Param Next Parameter",invoke = param_next}
 renoise.tool():add_menu_entry {name="Mixer:Device:Parama Param Previous Parameter",invoke = param_prev}
@@ -1706,8 +1817,7 @@ renoise.tool():add_menu_entry{name="Sample Editor:Paketti Gadgets..:Paketti eSpe
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Tracks..:Auto Assign Outputs",invoke=AutoAssignOutputs}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Auto Assign Outputs",invoke=AutoAssignOutputs}
 renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Device Chains..:Open Track DSP Device & Instrument Loader...",invoke=function() pakettiDeviceChainDialog() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Experimental/WIP..:Crossfade Loop",
-  invoke=function()
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Experimental/WIP..:Crossfade Loop",invoke=function()
     local crossfade_length = get_dynamic_crossfade_length()
     if crossfade_length then
       renoise.app():show_status("Using crossfade length: " .. tostring(crossfade_length))
@@ -1777,16 +1887,12 @@ renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Devices..:Insert 
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Generate&Randomize..:Write 0Sxx Command Random Slice/Offset",invoke=function() write_random_slice_command() end}
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Tracks..:Rename Tracks By Played Samples",invoke=function() rename_tracks_by_played_samples() end}
 renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Tracks..:Rename Tracks By Played Samples",invoke=function() rename_tracks_by_played_samples() end}
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Load .MOD as Sample",
-  invoke=function() 
+renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Load .MOD as Sample",invoke=function() 
     local file_path = renoise.app():prompt_for_filename_to_read({"*.mod","mod.*"}, "Select Any File to Load as Sample")
     if file_path ~= "" then
       pakettiLoadExeAsSample(file_path)
       paketti_toggle_signed_unsigned() end end}
-
-
-
-      renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Create New Instrument & Loop from Selection",invoke=create_new_instrument_from_selection}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Create New Instrument & Loop from Selection",invoke=create_new_instrument_from_selection}
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Copy Sample in Note-On to Note-Off Layer +24",invoke=function() noteOnToNoteOff(24) end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Copy Sample in Note-On to Note-Off Layer +12",invoke=function() noteOnToNoteOff(12) end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Copy Sample in Note-On to Note-Off Layer",invoke=function() noteOnToNoteOff(0) end}
@@ -1838,7 +1944,6 @@ renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Sample Loop Length N
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Sample Loop Length Previous Division",invoke=function() cycle_loop_division(false) end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Snap Loop To Nearest Row",invoke=snap_loop_to_rows}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Tracks..:Duplicate Track and Instrument",invoke=duplicateTrackAndInstrument}
-
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Duplicate Track and Instrument",invoke=duplicateTrackAndInstrument}
 renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Fill Empty Sample Slots (Randomized Folder)",invoke=function() fillEmptySampleSlots() end}
 renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti..:Fill Empty Sample Slots (Randomized Folder)",invoke=function() fillEmptySampleSlots() end}
@@ -1876,105 +1981,35 @@ renoise.tool():add_menu_entry{name="Mixer:Paketti..:Add Input Inertia Formula De
 
 renoise.tool():add_menu_entry{name="Sample Editor:Process:Paketti Simple Sample Tuning Calculator...",invoke=function() pakettiSimpleSampleTuningDialog() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Simple Sample Tuning Calculator...",invoke=function() pakettiSimpleSampleTuningDialog() end}
-
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Save..:Export .PTI Instrument",invoke=pti_savesample}
-
 renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Save..:Export .PTI Instrument",invoke=pti_savesample}
 renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti..:Save..:Export .PTI Instrument",invoke=pti_savesample}
-
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Convert RX2 to PTI",invoke=rx2_to_pti_convert}
 renoise.tool():add_menu_entry{name="Disk Browser:Paketti..:Convert RX2 to PTI",invoke=rx2_to_pti_convert}
-
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Other Trackers..:Open Player Pro Note Column Dialog...",invoke=pakettiPlayerProNoteGridShowDropdownGrid}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Other Trackers..:Open Player Pro Tools Effect Dialog",invoke=function() pakettiPlayerProEffectDialog() end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Other Trackers..:Open Player Pro Tools Dialog...",invoke=pakettiPlayerProShowMainDialog}
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Process..:Normalize Selected Sample or Slice",invoke=NormalizeSelectedSliceInSample}
 renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Process..:Normalize Selected Sample or Slice",invoke=NormalizeSelectedSliceInSample}
 renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti..:Process..:Normalize Selected Sample or Slice",invoke=NormalizeSelectedSliceInSample}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Normalize Sample",invoke=function() normalize_selected_sample() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Normalize All Samples in Instrument",invoke=function() normalize_all_samples_in_instrument() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Normalize Selected Sample -12dB",invoke=function() normalize_and_reduce("current_sample", -12) end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Normalize Selected Instrument -12dB (All Samples & Slices)",invoke=function() normalize_and_reduce("all_samples", -12) end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Normalize All Instruments -12dB",invoke=function() normalize_and_reduce("all_instruments", -12) end}
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Process..:Reverse Selected Sample or Slice",invoke=ReverseSelectedSliceInSample}
 renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Process..:Reverse Selected Sample or Slice",invoke=ReverseSelectedSliceInSample}
 renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti..:Process..:Reverse Selected Sample or Slice",invoke=ReverseSelectedSliceInSample}
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Process..:Convert Mono to Stereo",invoke=convert_mono_to_stereo_optimized}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Mono to Left with Blank Right",invoke=function() mono_to_blank_optimized(1, 0) end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Mono to Right with Blank Left",invoke=function() mono_to_blank_optimized(0, 1) end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert Stereo to Mono (Keep Left)",invoke=function() stereo_to_mono_optimized(1) end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert Stereo to Mono (Keep Right)",invoke=function() stereo_to_mono_optimized(2) end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Normalize Slices Independently",invoke=function() normalize_selected_sample_by_slices() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert Stereo to Mono (Mix Both)",invoke=stereo_to_mono_mix_optimized}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert All Samples to Mono (Keep Left)",invoke=function() convert_all_samples_to_mono("left") end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert All Samples to Mono (Keep Right)",invoke=function() convert_all_samples_to_mono("right") end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert All Samples to Mono (Mix Both)",invoke=function() convert_all_samples_to_mono("mix") end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert to 8-bit", invoke=function() convert_bit_depth(8) end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert to 16-bit", invoke=function() convert_bit_depth(16) end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert to 24-bit", invoke=function() convert_bit_depth(24) end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert All Samples to 8-bit", invoke=function() convert_all_samples_to_bit_depth(8) end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert All Samples to 16-bit", invoke=function() convert_all_samples_to_bit_depth(16) end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert All Samples to 24-bit", invoke=function() convert_all_samples_to_bit_depth(24) end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Cross-fade Sample w/ Fade-In/Out",invoke=function() crossfade_with_fades() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Cross-fade Loop Edges (Fixed End)",invoke=function() crossfade_loop_edges_fixed_end() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Record..:Start Sampling and Sample Editor (Record)",invoke=function() PakettiSampleAndToSampleEditor() end}  
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Record..:Start Sampling and Sample Editor (Record)",invoke=function() PakettiSampleAndToSampleEditor() end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Record..:Start Sampling and Sample Editor (Record)",invoke=function() PakettiSampleAndToSampleEditor() end}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Record..:Paketti Overdub 12 (Metronome/Line Input)",invoke=function() recordtocurrenttrack(true, true,12) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Record..:Paketti Overdub 12 (Metronome/No Line Input)",invoke=function() recordtocurrenttrack(true, false,12) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Record..:Paketti Overdub 12 (No Metronome/Line Input)",invoke=function() recordtocurrenttrack(false, true,12) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Record..:Paketti Overdub 12 (No Metronome/No Line Input)",invoke=function() recordtocurrenttrack(false, false,12) end}
 renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Record..:Paketti Overdub 12 (Metronome/Line Input)",invoke=function() recordtocurrenttrack(true, true,12) end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Record..:Paketti Overdub 12 (Metronome/No Line Input)",invoke=function() recordtocurrenttrack(true, false,12) end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Record..:Paketti Overdub 12 (No Metronome/Line Input)",invoke=function() recordtocurrenttrack(false, true,12) end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Record..:Paketti Overdub 12 (No Metronome/No Line Input)",invoke=function() recordtocurrenttrack(false, false,12) end}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Record..:Paketti Overdub 01 (Metronome/Line Input)",invoke=function() recordtocurrenttrack(true, true,1) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Record..:Paketti Overdub 01 (Metronome/No Line Input)",invoke=function() recordtocurrenttrack(true, false,1) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Record..:Paketti Overdub 01 (No Metronome/Line Input)",invoke=function() recordtocurrenttrack(false, true,1) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Record..:Paketti Overdub 01 (No Metronome/No Line Input)",invoke=function() recordtocurrenttrack(false, false,1) end}
 renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Record..:Paketti Overdub 01 (Metronome/Line Input)",invoke=function() recordtocurrenttrack(true, true,1) end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Record..:Paketti Overdub 01 (Metronome/No Line Input)",invoke=function() recordtocurrenttrack(true, false,1) end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Record..:Paketti Overdub 01 (No Metronome/Line Input)",invoke=function() recordtocurrenttrack(false, true,1) end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Record..:Paketti Overdub 01 (No Metronome/No Line Input)",invoke=function() recordtocurrenttrack(false, false,1) end}
 renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Autofade/Autoseek..:Set All Instruments All Samples Autoseek On",invoke=function() setAllInstrumentsAllSamplesAutoseek(1) end}
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Beatsync/Slices..:Beatsync Lines Halve (All)",invoke=function() halveBeatSyncLinesAll() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Beatsync/Slices..:Beatsync Lines Halve (Selected Sample)",invoke=function() halveBeatSyncLinesSelected() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Beatsync/Slices..:Beatsync Lines Double (All)",invoke=function() doubleBeatSyncLinesAll() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Beatsync/Slices..:Beatsync Lines Double (Selected Sample)",invoke=function() doubleBeatSyncLinesSelected() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Beatsync/Slices..:Analyze Slice Markers",invoke=function() analyze_slice_markers() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Instruments..:Set Selected Instrument Velocity Tracking On",invoke=function()  selectedInstrumentVelocityTracking(1) end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Instruments..:Set Selected Instrument Velocity Tracking Off",invoke=function() selectedInstrumentVelocityTracking(0) end}
+
+
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Tracks..:Duplicate Track, set to Selected Instrument",invoke=function() setToSelectedInstrument_DuplicateTrack() end}
 renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Tracks..:Duplicate Track, set to Selected Instrument",invoke=function() setToSelectedInstrument_DuplicateTrack() end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Tracks..:Duplicate Track Duplicate Instrument",invoke=function() duplicateTrackDuplicateInstrument() end}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Note Columns..:Interpolate Notes",invoke=function() note_interpolation() end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Visible Columns..:Global Visible Column (All)",invoke=function() globalChangeVisibleColumnState("volume",true)
-globalChangeVisibleColumnState("panning",true) globalChangeVisibleColumnState("delay",true) globalChangeVisibleColumnState("sample_effects",true) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Visible Columns..:Global Visible Column (None)",invoke=function() globalChangeVisibleColumnState("volume",false)
-globalChangeVisibleColumnState("panning",false) globalChangeVisibleColumnState("delay",false) globalChangeVisibleColumnState("sample_effects",false) end}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Visible Columns..:Toggle Visible Column (Volume) Globally",invoke=function() globalToggleVisibleColumnState("volume") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Visible Columns..:Toggle Visible Column (Panning) Globally",invoke=function() globalToggleVisibleColumnState("panning") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Visible Columns..:Toggle Visible Column (Delay) Globally",invoke=function() globalToggleVisibleColumnState("delay") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Visible Columns..:Toggle Visible Column (Sample Effects) Globally",invoke=function() globalToggleVisibleColumnState("sample_effects") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Visible Columns..:Global Visible Column (Volume)",invoke=function() globalChangeVisibleColumnState("volume",true) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Visible Columns..:Global Visible Column (Panning)",invoke=function() globalChangeVisibleColumnState("panning",true) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Visible Columns..:Global Visible Column (Delay)",invoke=function() globalChangeVisibleColumnState("delay",true) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Visible Columns..:Global Visible Column (Sample Effects)",invoke=function() globalChangeVisibleColumnState("sample_effects",true) end}
 
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Convolver..:Import Selected Sample to Convolver",invoke=function()
   print("Importing selected sample to Convolver via Mixer menu entry")
-  local selected_device = renoise.song().selected_device
-  local selected_track_index = renoise.song().selected_track_index
-  local selected_device_index = renoise.song().selected_device_index
-  if not selected_device or selected_device.name ~= "Convolver" then
-    pakettiConvolverSelectionDialog(handle_convolver_action)
-    return
-  end
-  save_instrument_to_convolver(selected_device, selected_track_index, selected_device_index)
-end}
-
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Convolver..:Import Selected Sample to Convolver",invoke=function()
-  print("Importing selected sample to Convolver via Sample Editor menu entry")
   local selected_device = renoise.song().selected_device
   local selected_track_index = renoise.song().selected_track_index
   local selected_device_index = renoise.song().selected_device_index
@@ -2000,62 +2035,12 @@ renoise.tool():add_menu_entry{name="Mixer:Paketti..:Convolver..:Show Convolver S
   print("Showing Convolver Selection Dialog via Mixer menu")
   pakettiConvolverSelectionDialog(handle_convolver_action)
 end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Convolver..:Show Convolver Selection Dialog",invoke=function()
-  print("Showing Convolver Selection Dialog via Sample Editor menu")
-  pakettiConvolverSelectionDialog(handle_convolver_action)
-end}
 
 renoise.tool():add_menu_entry{name="--Sample FX Mixer:Paketti..:Enable All Sample FX on Selected Instrument",invoke=function() sampleFXControls("single", true) end}
 renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti..:Bypass All Sample FX on Selected Instrument",invoke=function() sampleFXControls("single", false) end}
 renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti..:Enable All Sample FX on All Instruments",invoke=function() sampleFXControls("all", true) end}
 renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti..:Bypass All Sample FX on All Instruments",invoke=function() sampleFXControls("all", false) end}
-
 renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Delete Unused Samples...",invoke=deleteUnusedSamples}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Process..:Create Wrecked Sample Variants",invoke=paketti_build_sample_variants}
 renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti..:Delete Unused Samples...",invoke=deleteUnusedSamples}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti Gadgets..:Paketti Fuzzy Search Track...",invoke = pakettiFuzzySearchTrackDialog}
 renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Paketti Fuzzy Search Track...",invoke = pakettiFuzzySearchTrackDialog}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Switch Note Instrument Dialog...",invoke=pakettiSwitchNoteInstrumentDialog}
-
-renoise.tool():add_menu_entry {name="--Sample Editor:Paketti..:Process..:Wrap Signed as Unsigned",invoke=paketti_wrap_signed_as_unsigned}
-renoise.tool():add_menu_entry {name="Sample Editor:Paketti..:Process..:Unwrap Unsigned to Signed",invoke=paketti_unwrap_unsigned_as_signed}
-
---renoise.tool():add_menu_entry {name="Sample Editor:Paketti..:Toggle Signed/Unsigned",invoke=paketti_toggle_signed_unsigned}
-renoise.tool():add_menu_entry {name="Sample Editor:Paketti..:Process..:Toggle Signed/Unsigned",invoke=paketti_toggle_signed_unsigned}
-renoise.tool():add_menu_entry {name="--Sample Editor:Paketti..:Process..:Scale Signed → Unsigned",invoke=paketti_float_unsign}
-renoise.tool():add_menu_entry {name="Sample Editor:Paketti..:Process..:Scale Unsigned → Signed",invoke=paketti_float_sign}
-renoise.tool():add_menu_entry {name="Sample Editor:Paketti..:Process..:Create Wrecked Sample Variants",invoke=paketti_build_sample_variants}
-renoise.tool():add_menu_entry {name="Sample Navigator:Paketti..:Process..:Create Wrecked Sample Variants",invoke=paketti_build_sample_variants}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Note Columns..:Convert 3 Note Chord to Arpeggio", invoke=function() ConvertChordsToArpeggio() end}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Effect Columns..:B01 Reverse Sample Effect On/Off",invoke=function()
-local s=renoise.song()
-local nci=s.selected_note_column_index 
-s.selected_effect_column_index=1
-revnoter() 
-if renoise.song().selected_track.type==2 or renoise.song().selected_track.type==3 or renoise.song().selected_track.type==4 then 
-  return
-else 
-s.selected_note_column_index=nci
---s.selected_note_column_index=1 
-end end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Effect Columns..:B00 Reverse Sample Effect On/Off",invoke=function() effectColumnB00()end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Effect Columns..:L00/LC0 Volume Effect Switch",invoke=function() 
-  renoise.song().selected_effect_column_index=1
-  write_effect("0L") 
-  
-    if renoise.song().selected_track.type==2 or renoise.song().selected_track.type==3 or renoise.song().selected_track.type==4 then return
-  else renoise.song().selected_note_column_index=1 end end} 
-  renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Effect Columns..:0R(LPB) Retrig On/Off",invoke=function() 
-    renoise.song().selected_effect_column_index=1
-    writeretrig() 
-      if renoise.song().selected_track.type==2 or renoise.song().selected_track.type==3 or renoise.song().selected_track.type==4 then return
-    else renoise.song().selected_note_column_index=1 end end} 
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Effect Columns..:Duplicate Effect Column Content to Pattern or Selection",invoke=pakettiDuplicateEffectColumnToPatternOrSelection}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Effect Columns..:Randomize Effect Column Parameters",invoke=pakettiRandomizeEffectColumnParameters}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Effect Columns..:Interpolate Column Values (Effect)",invoke=pakettiInterpolateEffectColumnParameters}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Note Columns..:Flood Fill Note and Instrument",invoke=pakettiFloodFill}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Note Columns..:Flood Fill Note and Instrument with EditStep",invoke=pakettiFloodFillWithEditStep}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Devices..:Enable 8 Track DSP Devices (Write to Pattern)",invoke=function() effectenablepattern()  end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Devices..:Bypass 8 Track DSP Devices (Write to Pattern)",invoke=function() effectbypasspattern() end}
-renoise.tool():add_menu_entry {name="Sample Editor:Paketti..:Octatrack..:Export to Octatrack (.WAV+.OT)...",invoke = function() PakettiOTExport() end}
-renoise.tool():add_menu_entry {name="Sample Editor:Paketti..:Octatrack..:Export to Octatrack (.OT)",invoke = function() PakettiOTExportOtOnly() end}
-renoise.tool():add_menu_entry {name="Sample Editor:Paketti..:Octatrack..:Import Octatrack (.OT)...",invoke = function() PakettiOTImport() end}
