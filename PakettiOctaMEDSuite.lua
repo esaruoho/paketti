@@ -580,7 +580,6 @@ end
 
 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:OctaMED Pick/Put Dialog...",invoke=function() pakettiOctaMEDPickPutRowDialog() end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Other Trackers..:OctaMED Pick/Put Dialog...",invoke=function() pakettiOctaMEDPickPutRowDialog() end}
 
 ------
 -- Function to spread notes across multiple columns
@@ -733,10 +732,9 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:OctaMED Note Spread Increment",invoke=function() IncrementSpread() end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:OctaMED Note Spread Increment",invoke=function() IncrementSpread() end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Other Trackers..:OctaMED Note Spread Increment",invoke=function() IncrementSpread() end}
 renoise.tool():add_keybinding{name="Global:Paketti:OctaMED Note Spread Decrement",invoke=function() DecrementSpread() end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:OctaMED Note Spread Decrement",invoke=function() DecrementSpread() end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Other Trackers..:OctaMED Note Spread Decrement",invoke=function() DecrementSpread() end}
+
 -------
 -- Function to toggle mute state for a specific track
 function OctaMEDToggleTrackMute(track_index)
@@ -985,5 +983,5 @@ function CreateNoteEcho(distance, min_volume)
 end
 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:OctaMED Note Echo Dialog...",invoke = pakettiOctaMEDNoteEchoDialog}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Other Trackers..:OctaMED Note Echo Dialog...",invoke = pakettiOctaMEDNoteEchoDialog}
+
 ---------

@@ -1,5 +1,3 @@
-renoise.tool():add_menu_entry{name="Script Editor:Paketti..:PRINT",invoke=function() print("HEEY") end}
- 
 local TRANSPOSE_MIN=-120
 local TRANSPOSE_MAX=120
 local is_switching_instrument=false

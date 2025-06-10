@@ -215,5 +215,3 @@ end
     custom_dialog = renoise.app():show_custom_dialog("Plugin List", dialog_content)
 end
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Generate Shortcuts",invoke=show_plugin_list_dialog}
-

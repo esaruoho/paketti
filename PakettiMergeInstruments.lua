@@ -187,4 +187,3 @@ function pakettiMergeInstrumentsDialog()
   show_merge_dialog(source_index, target_index)
 end
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:Merge Instruments Dialog...",invoke=function() pakettiMergeInstrumentsDialog() end}

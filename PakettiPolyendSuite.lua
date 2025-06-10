@@ -518,16 +518,4 @@ function rx2_to_pti_convert()
   end
 end
 
---------------------------------------------------------------------------------
--- Menu Entries
---------------------------------------------------------------------------------
-renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti..:Instruments..:File Formats..:Convert RX2 to PTI",
-  invoke = rx2_to_pti_convert
-}
-
-renoise.tool():add_menu_entry{
-  name = "Disk Browser:Paketti..:Convert RX2 to PTI",
-  invoke = rx2_to_pti_convert
-}
 

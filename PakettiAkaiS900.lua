@@ -459,18 +459,10 @@ function exportS900Sample()
 end
 
 -- Menu entries
-renoise.tool():add_menu_entry{name = "Sample Editor:Paketti..:Load..:Import S900/S950 Sample...",invoke = importS900Sample}
-renoise.tool():add_menu_entry{name = "Sample Navigator:Paketti..:Load..:Import S900/S950 Sample...",invoke = importS900Sample}
-renoise.tool():add_menu_entry{name = "Sample Mappings:Paketti..:Load..:Import S900/S950 Sample...",invoke = importS900Sample}
 renoise.tool():add_keybinding{name = "Global:Paketti:Import S900/S950 Sample...",invoke = importS900Sample}
 
-renoise.tool():add_menu_entry{name = "Sample Editor:Paketti..:Export..:Export S900/S950 Sample...",invoke = exportS900Sample}
-renoise.tool():add_menu_entry{name = "Sample Navigator:Paketti..:Export..:Export S900/S950 Sample...",invoke = exportS900Sample}
-renoise.tool():add_menu_entry{name = "Sample Mappings:Paketti..:Export..:Export S900/S950 Sample...",invoke = exportS900Sample}
 renoise.tool():add_keybinding{name = "Global:Paketti:Export S900/S950 Sample...",invoke = exportS900Sample}
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Import S900/S950 Sample...",invoke=importS900Sample}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Export S900/S950 Sample...",invoke=exportS900Sample}
 
 -- File import hook for S900/S950 samples  
 local s900_integration = {

@@ -49,7 +49,7 @@ local function get_sub_column_name()
 end
 
 -- Function to show current sub-column status
-local function show_sub_column_status()
+function show_sub_column_status()
   local song=renoise.song()
   local sub_column_type = song.selected_sub_column_type
   local sub_column_name = get_sub_column_name()
@@ -337,5 +337,4 @@ renoise.tool():add_midi_mapping{name="Paketti:Sub Column Command Absolute Contro
 renoise.tool():add_midi_mapping{name="Paketti:Sub Column Command Relative Control",invoke = handle_relative_command}
 renoise.tool():add_midi_mapping{name="Paketti:Sub Column Value Absolute Control",invoke = handle_absolute_value}
 renoise.tool():add_midi_mapping{name="Paketti:Sub Column Value Relative Control",invoke = handle_relative_value}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Show Paketti Sub Column Status",invoke = show_sub_column_status}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Show Paketti Sub Column Status",invoke = show_sub_column_status}

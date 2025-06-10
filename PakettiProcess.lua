@@ -410,9 +410,6 @@ end
 
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Normalize Selected Sample or Slice",invoke=NormalizeSelectedSliceInSample}
 renoise.tool():add_keybinding{name="Global:Paketti:Normalize Selected Sample or Slice",invoke=NormalizeSelectedSliceInSample}
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Process..:Normalize Selected Sample or Slice",invoke=NormalizeSelectedSliceInSample}
-renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Process..:Normalize Selected Sample or Slice",invoke=NormalizeSelectedSliceInSample}
-renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti..:Process..:Normalize Selected Sample or Slice",invoke=NormalizeSelectedSliceInSample}
 renoise.tool():add_midi_mapping{name="Paketti:Normalize Selected Sample or Slice",invoke=function(message) if message:is_trigger() then NormalizeSelectedSliceInSample() end end}
 --------
 function normalize_all_samples_in_instrument()
@@ -497,8 +494,6 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Normalize Sample",invoke=function() normalize_selected_sample() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Normalize All Samples in Instrument",invoke=function() normalize_all_samples_in_instrument() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Normalize Sample",invoke=function() normalize_selected_sample() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Normalize All Samples in Instrument",invoke=function() normalize_all_samples_in_instrument() end}
 
 ------
 function normalize_and_reduce(scope, db_reduction)
@@ -561,9 +556,6 @@ function normalize_and_reduce(scope, db_reduction)
   end
 end
 
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Normalize Selected Sample -12dB",invoke=function() normalize_and_reduce("current_sample", -12) end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Normalize Selected Instrument -12dB (All Samples & Slices)",invoke=function() normalize_and_reduce("all_samples", -12) end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Normalize All Instruments -12dB",invoke=function() normalize_and_reduce("all_instruments", -12) end}
 
 
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Normalize Selected Sample to -12dB",invoke=function() normalize_and_reduce("current_sample", -12) end}
@@ -1053,9 +1045,6 @@ end
 
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Reverse Selected Sample or Slice",invoke=ReverseSelectedSliceInSample}
 renoise.tool():add_keybinding{name="Sample Keyzones:Paketti:Reverse Selected Sample or Slice",invoke=ReverseSelectedSliceInSample}
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Process..:Reverse Selected Sample or Slice",invoke=ReverseSelectedSliceInSample}
-renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Process..:Reverse Selected Sample or Slice",invoke=ReverseSelectedSliceInSample}
-renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti..:Process..:Reverse Selected Sample or Slice",invoke=ReverseSelectedSliceInSample}
 renoise.tool():add_midi_mapping{name="Paketti:Reverse Selected Sample or Slice",invoke=function(message) if message:is_trigger() then ReverseSelectedSliceInSample() end end}
 --------
 function normalize_selected_sample_by_slices()
@@ -1260,7 +1249,6 @@ function normalize_selected_sample_by_slices()
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Normalize Sample Slices Independently",invoke=function() normalize_selected_sample_by_slices() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Normalize Slices Independently",invoke=function() normalize_selected_sample_by_slices() end}
 
 -- Function to convert mono sample to specified channels with blank opposite channel
 function mono_to_blank(left_channel, right_channel)
@@ -1957,12 +1945,6 @@ function stereo_to_mono_optimized(keep_channel)
   slicer:start()
 end
 
--- Replace old menu entries with optimized versions
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Process..:Convert Mono to Stereo",invoke=convert_mono_to_stereo_optimized}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Mono to Left with Blank Right",invoke=function() mono_to_blank_optimized(1, 0) end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Mono to Right with Blank Left",invoke=function() mono_to_blank_optimized(0, 1) end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert Stereo to Mono (Keep Left)",invoke=function() stereo_to_mono_optimized(1) end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert Stereo to Mono (Keep Right)",invoke=function() stereo_to_mono_optimized(2) end}
 
 
 
@@ -2149,7 +2131,6 @@ function stereo_to_mono_mix_optimized()
   slicer:start()
 end
 
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert Stereo to Mono (Mix Both)",invoke=stereo_to_mono_mix_optimized}
 
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Convert Stereo to Mono (Mix Both)",invoke=stereo_to_mono_mix_optimized}
 renoise.tool():add_keybinding{name="Sample Keyzones:Paketti:Convert Stereo to Mono (Mix Both)",invoke=stereo_to_mono_mix_optimized}
@@ -2286,9 +2267,6 @@ function convert_all_samples_to_mono(mode)
   process:start()
 end
 
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert All Samples to Mono (Keep Left)",invoke=function() convert_all_samples_to_mono("left") end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert All Samples to Mono (Keep Right)",invoke=function() convert_all_samples_to_mono("right") end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert All Samples to Mono (Mix Both)",invoke=function() convert_all_samples_to_mono("mix") end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Convert All Samples to Mono (Keep Left)",invoke=function() convert_all_samples_to_mono("left") end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Convert All Samples to Mono (Keep Right)",invoke=function() convert_all_samples_to_mono("right") end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Convert All Samples to Mono (Mix Both)",invoke=function() convert_all_samples_to_mono("mix") end}
@@ -2530,9 +2508,6 @@ function convert_bit_depth(target_bits)
     slicer:start()
 end
 
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert to 8-bit", invoke=function() convert_bit_depth(8) end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert to 16-bit", invoke=function() convert_bit_depth(16) end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert to 24-bit", invoke=function() convert_bit_depth(24) end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Convert to 8-bit", invoke=function() convert_bit_depth(8) end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Convert to 16-bit", invoke=function() convert_bit_depth(16) end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Convert to 24-bit", invoke=function() convert_bit_depth(24) end}
@@ -2787,9 +2762,6 @@ function convert_all_samples_to_bit_depth(target_bits)
     slicer:start()
 end
 
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert All Samples to 8-bit", invoke=function() convert_all_samples_to_bit_depth(8) end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert All Samples to 16-bit", invoke=function() convert_all_samples_to_bit_depth(16) end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert All Samples to 24-bit", invoke=function() convert_all_samples_to_bit_depth(24) end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Convert All Samples to 8-bit", invoke=function() convert_all_samples_to_bit_depth(8) end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Convert All Samples to 16-bit", invoke=function() convert_all_samples_to_bit_depth(16) end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Convert All Samples to 24-bit", invoke=function() convert_all_samples_to_bit_depth(24) end}
@@ -2868,7 +2840,6 @@ local function crossfade_with_fades()
   renoise.app():show_status("Cross-fade + fades complete.")
 end
 
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Cross-fade Sample w/ Fade-In/Out",invoke=crossfade_with_fades}
 
 
 --[[----------------------------------------------------------------------------
@@ -2967,4 +2938,3 @@ local function crossfade_loop_edges_fixed_end()
   )
 end
 
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Cross-fade Loop Edges (Fixed End)",invoke=crossfade_loop_edges_fixed_end}

@@ -36,7 +36,6 @@ function autosuspendOFF()
 renoise.song().instruments[renoise.song().selected_instrument_index].plugin_properties.auto_suspend=false
 end
 
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Plugins/Devices..:Switch Plugin AutoSuspend Off",invoke=function() autosuspendOFF() end}
 
 -------------------------
 function selectplay(number)

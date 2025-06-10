@@ -782,11 +782,6 @@ function pti_savesample()
 end
 
 -- Menu entries
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Save..:Export .PTI Instrument",invoke=pti_savesample}
-
-renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Save..:Export .PTI Instrument",invoke=pti_savesample}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Export .PTI Instrument",invoke=pti_savesample}
-renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti..:Save..:Export .PTI Instrument",invoke=pti_savesample}
 renoise.tool():add_keybinding{name="Global:Paketti:PTI Export",invoke = pti_savesample}
 
 _AUTO_RELOAD_DEBUG = true

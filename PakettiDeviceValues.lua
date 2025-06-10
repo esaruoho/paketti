@@ -384,10 +384,6 @@ renoise.tool():add_keybinding {name="Mixer:Device:Parama Param Next Parameter",i
 renoise.tool():add_keybinding {name="Mixer:Device:Parama Param Previous Parameter",invoke = param_prev}
 renoise.tool():add_keybinding {name="Mixer:Device:Parama Param Increase",invoke = param_up}
 renoise.tool():add_keybinding {name="Mixer:Device:Parama Param Decrease",invoke = param_down}
-renoise.tool():add_menu_entry {name="Mixer:Device:Parama Param Next Parameter",invoke = param_next}
-renoise.tool():add_menu_entry {name="Mixer:Device:Parama Param Previous Parameter",invoke = param_prev}
-renoise.tool():add_menu_entry {name="Mixer:Device:Parama Param Increase",invoke = param_up}
-renoise.tool():add_menu_entry {name="Mixer:Device:Parama Param Decrease",invoke = param_down}
 
 -- Helper function for direct parameter access
 function adjust_parameter_by_number(param_num, direction)

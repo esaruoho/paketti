@@ -115,8 +115,4 @@ function pakettiBPMMSCalculator()
   dialog = renoise.app():show_custom_dialog("Paketti BPM to MS Delay Calculator Dialog", buildContent())
 end
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti BPM to MS Delay Calculator Dialog...", invoke = pakettiBPMMSCalculator}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:BPM&LPB..:Paketti BPM to MS Delay Calculator Dialog...", invoke = pakettiBPMMSCalculator}
-
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Paketti BPM to MS Delay Calculator Dialog...", invoke = pakettiBPMMSCalculator}
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti BPM to MS Delay Calculator Dialog...", invoke = pakettiBPMMSCalculator}

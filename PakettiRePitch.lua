@@ -118,8 +118,5 @@ function pakettiSimpleSampleTuningDialog()
   )
 end
 
-renoise.tool():add_menu_entry{name="Sample Editor:Process:Paketti Simple Sample Tuning Calculator...",invoke=function() pakettiSimpleSampleTuningDialog() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Simple Sample Tuning Calculator...",invoke=function() pakettiSimpleSampleTuningDialog() end}
-
 
 

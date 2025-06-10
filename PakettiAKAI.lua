@@ -469,11 +469,7 @@ function exportCurrentSampleAsAKP()
 end
 
 -- Menu entries
-renoise.tool():add_menu_entry{name = "Sample Editor:Paketti..:Export..:Export Current Sample as AKP...",invoke = exportCurrentSampleAsAKP}
-renoise.tool():add_menu_entry{name = "Sample Navigator:Paketti..:Export..:Export Current Sample as AKP...",invoke = exportCurrentSampleAsAKP}
-renoise.tool():add_menu_entry{name = "Sample Mappings:Paketti..:Export..:Export Current Sample as AKP...",invoke = exportCurrentSampleAsAKP}
 renoise.tool():add_keybinding{name = "Global:Paketti:Export Current Sample as AKP...",invoke = exportCurrentSampleAsAKP}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Export Current Sample as AKP...",invoke=exportCurrentSampleAsAKP}
 
 -- AKP IMPORT FUNCTIONS
 
@@ -1038,11 +1034,9 @@ function importAKPFile(file_path)
 end
 
 -- Menu entries for import
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Load..:Import AKP File...",invoke = importAKPFile}
 
 
 renoise.tool():add_keybinding{name="Global:Paketti:Import AKP File...",invoke = importAKPFile}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Import AKP File...",invoke=importAKPFile}
 
 -- File import hook for .akp files
 local akp_integration = {

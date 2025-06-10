@@ -26,18 +26,67 @@ function createPatternSequencerPatternsBasedOnSliceCount()
     return
   end
   
-  -- Check if the original sample has slices
+    -- Check if the original sample has slices
   if not original_sample.slice_markers or #original_sample.slice_markers == 0 then
     renoise.app():show_status("Selected sample has no slices")
     return
   end
-  
+
   local slice_count = #original_sample.slice_markers
   print("Found " .. slice_count .. " slices in sample: " .. original_sample.name)
   
-  -- Get the base note from the original sample to know where slices start
-  local base_note = original_sample.sample_mapping.base_note
-  local first_slice_note = base_note + 1  -- Slices start one note above base note
+  -- Check for disproportionately short slices and auto-fix if needed
+  local total_frames = original_sample.sample_buffer.number_of_frames
+  local slice_markers = original_sample.slice_markers
+  
+  -- Calculate length of first slice
+  local first_slice_length
+  if slice_count >= 2 then
+    first_slice_length = slice_markers[2] - slice_markers[1]
+  else
+    first_slice_length = total_frames - slice_markers[1] + 1
+  end
+  
+  -- Check if first slice is disproportionately short (less than 1/20th of total)
+  local slice_proportion = first_slice_length / total_frames
+  print("First slice length: " .. first_slice_length .. " frames (" .. string.format("%.2f%%", slice_proportion * 100) .. " of total)")
+  
+  if slice_proportion < 0.05 then  -- Less than 5% (1/20th)
+    print("First slice is very short (" .. string.format("%.2f%%", slice_proportion * 100) .. " of total)")
+    print("Running detect_first_slice_and_auto_slice to fix proportions...")
+    
+    renoise.app():show_status("Short slice detected, auto-slicing for better proportions...")
+    
+    -- Run the auto-slice function to create properly proportioned slices
+    detect_first_slice_and_auto_slice()
+    
+    -- Update our slice count after auto-slicing
+    slice_count = #original_sample.slice_markers
+    print("After auto-slicing: " .. slice_count .. " slices")
+  end
+  
+  -- Find where the first slice is actually mapped
+  local first_slice_note
+  
+  -- Check if there are slice samples (samples beyond the first one)
+  if #instrument.samples > 1 then
+    -- Get the first slice sample (index 2, since index 1 is the original sample)
+    local first_slice_sample = instrument.samples[2]
+    if first_slice_sample and first_slice_sample.sample_mapping then
+      first_slice_note = first_slice_sample.sample_mapping.base_note
+      print("Found first slice mapped at note: " .. first_slice_note)
+    else
+      -- Fallback: assume slices start one note above the original sample's base note
+      local base_note = original_sample.sample_mapping.base_note
+      first_slice_note = base_note + 1
+      print("Fallback: assuming first slice starts at note: " .. first_slice_note .. " (base_note + 1)")
+    end
+  else
+    -- No slice samples found, use original sample's base note + 1 as fallback
+    local base_note = original_sample.sample_mapping.base_note
+    first_slice_note = base_note + 1
+    print("No slice samples found, using fallback note: " .. first_slice_note)
+  end
   
   local track_index = song.selected_track_index  
   local current_instrument = song.selected_instrument_index - 1  -- Instrument indices are 0-based in patterns
@@ -152,8 +201,294 @@ function createPatternSequencerPatternsBasedOnSliceCount()
   print("Pattern creation completed: " .. slice_count .. " patterns created")
 end
 
+-- Slice to Pattern Sequencer Interface
+function showSliceToPatternSequencerInterface()
+  local song = renoise.song()
+  local vb = renoise.ViewBuilder()
+  
+  -- Get current instrument info
+  local current_instrument_slot = song.selected_instrument_index or 0
+  local current_instrument_name = "No Instrument"
+  
+  if current_instrument_slot > 0 and song.selected_instrument then
+    current_instrument_name = song.selected_instrument.name
+    if current_instrument_name == "" then 
+      current_instrument_name = "Untitled Instrument"
+    end
+  end
+  
+  -- Create UI elements
+  local instrument_info_text = vb:text{
+    text = string.format("Instrument %02d: %s", current_instrument_slot, current_instrument_name),
+    font = "bold",
+    width = 300
+  }
+  
+  local status_text = vb:text{
+    text = "Ready to process slices",
+    width = 300
+  }
+  
+  -- READ current values when opening interface
+  local current_bpm = song.transport.bpm
+  local current_lpb = song.transport.lpb
+  local current_pattern_length = song.selected_pattern.number_of_lines
+  
+  print("Interface opened - Current values:")
+  print("- BPM: " .. current_bpm)
+  print("- LPB: " .. current_lpb)
+  print("- Pattern Length: " .. current_pattern_length)
+  
+  -- Transport and pattern value boxes with PROPER ranges
+  local bpm_valuebox = vb:valuebox{
+    min = 20,
+    max = 999,
+    value = current_bpm,
+    width = 60,
+    notifier = function(value)
+      song.transport.bpm = value
+      print("MODIFIED BPM to: " .. value)
+    end
+  }
+  
+  local lpb_valuebox = vb:valuebox{
+    min = 1,
+    max = 256,
+    value = current_lpb,
+    width = 60,
+    notifier = function(value)
+      song.transport.lpb = value
+      print("MODIFIED LPB to: " .. value)
+    end
+  }
+  
+  local pattern_length_valuebox = vb:valuebox{
+    min = 1,
+    max = 512,
+    value = current_pattern_length,
+    width = 60,
+    notifier = function(value)
+      song.selected_pattern.number_of_lines = value
+      print("MODIFIED pattern length to: " .. value)
+    end
+  }
+  
+  local prepare_button = vb:button{
+    text = "1. Prepare Sample for Slicing",
+    width = 250,
+    height = 30,
+    notifier = function()
+      print("=== PREPARE SAMPLE FOR SLICING ===")
+      status_text.text = "Preparing sample for slicing..."
+      
+      -- Check if we have a valid instrument and sample
+      if not song.selected_instrument_index or song.selected_instrument_index == 0 then
+        status_text.text = "Error: No instrument selected"
+        return
+      end
+      
+      local instrument = song.selected_instrument
+      if not instrument or #instrument.samples == 0 then
+        status_text.text = "Error: No samples in selected instrument"
+        return
+      end
+      
+                    -- Run the prepare function
+       local success, error_msg = pcall(prepare_sample_for_slicing)
+       
+       if success then
+         status_text.text = "Sample prepared for slicing successfully!"
+         print("Sample preparation completed")
+         -- Start playback automatically
+         renoise.song().transport.playing = true
+         print("Started playback automatically")
+       else
+         status_text.text = "Error preparing sample: " .. tostring(error_msg)
+         print("Error in sample preparation: " .. tostring(error_msg))
+       end
+    end
+  }
+  
+  local create_patterns_button = vb:button{
+    text = "2. Create Pattern Sequencer Patterns",
+    width = 250,
+    height = 30,
+    notifier = function()
+      print("=== CREATE PATTERN SEQUENCER PATTERNS ===")
+      status_text.text = "Creating pattern sequencer patterns..."
+      
+      -- Run the pattern creation function
+      local success, error_msg = pcall(createPatternSequencerPatternsBasedOnSliceCount)
+      
+      if success then
+        status_text.text = "Pattern sequencer patterns created successfully!"
+        print("Pattern creation completed")
+      else
+        status_text.text = "Error creating patterns: " .. tostring(error_msg)
+        print("Error in pattern creation: " .. tostring(error_msg))
+      end
+    end
+  }
+  
+  local delete_patterns_button = vb:button{
+    text = "3. Delete All Pattern Sequences",
+    width = 250,
+    height = 30,
+    notifier = function()
+      print("=== DELETE ALL PATTERN SEQUENCES ===")
+      status_text.text = "Deleting all pattern sequences..."
+      
+      -- Run the delete function
+      local success, error_msg = pcall(delete_all_pattern_sequences)
+      
+      if success then
+        status_text.text = "All pattern sequences deleted successfully!"
+        print("Pattern sequence deletion completed")
+      else
+        status_text.text = "Error deleting pattern sequences: " .. tostring(error_msg)
+        print("Error in pattern sequence deletion: " .. tostring(error_msg))
+      end
+    end
+  }
+  
+  local refresh_button = vb:button{
+    text = "Refresh All Values",
+    width = 150,
+    notifier = function()
+      -- Update instrument info
+      local new_slot = song.selected_instrument_index or 0
+      local new_name = "No Instrument"
+      
+      if new_slot > 0 and song.selected_instrument then
+        new_name = song.selected_instrument.name
+        if new_name == "" then 
+          new_name = "Untitled Instrument"
+        end
+      end
+      
+      instrument_info_text.text = string.format("Instrument %02d: %s", new_slot, new_name)
+      
+      -- Update transport and pattern values
+      bpm_valuebox.value = song.transport.bpm
+      lpb_valuebox.value = song.transport.lpb
+      pattern_length_valuebox.value = song.selected_pattern.number_of_lines
+      
+      status_text.text = "All values refreshed"
+      print("Refreshed: " .. instrument_info_text.text .. ", BPM: " .. song.transport.bpm .. ", LPB: " .. song.transport.lpb .. ", Pattern: " .. song.selected_pattern.number_of_lines)
+    end
+  }
+  
+  -- Create the dialog content
+  local dialog_content = vb:column{
+    margin = 10,
+    spacing = 10,
+    
+    vb:row{
+      vb:text{text = "Slice to Pattern Sequencer Tool", font = "bold", style = "strong"}
+    },
+    
+    vb:horizontal_aligner{
+      mode = "center",
+      vb:column{
+        spacing = 5,
+        vb:row{
+          vb:text{text = "Current Instrument:", width = 120},
+          instrument_info_text
+        },
+        vb:row{
+          vb:text{text = "BPM:", width = 40},
+          bpm_valuebox,
+          vb:text{text = "LPB:", width = 40},
+          lpb_valuebox,
+          vb:text{text = "Pattern Length:", width = 90},
+          pattern_length_valuebox
+        },
+        vb:row{
+          refresh_button
+        }
+      }
+    },
+    
+    vb:horizontal_aligner{
+      mode = "center",
+      vb:column{
+        spacing = 10,
+        vb:text{text = "Workflow:", font = "bold"},
+        prepare_button,
+        vb:button{
+          text = "Select Beat Range 1.0.0 to 9.0.0",
+          width = 250,
+          height = 30,
+          notifier = function()
+            print("=== SELECT BEAT RANGE 1.0.0 TO 9.0.0 ===")
+            status_text.text = "Selecting beat range 1.0.0 to 9.0.0..."
+            
+            local success, error_msg = pcall(select_beat_range_for_verification)
+            
+            if success then
+              status_text.text = "Beat range 1.0.0 to 9.0.0 selected successfully!"
+              print("Beat range selection completed")
+            else
+              status_text.text = "Error selecting beat range: " .. tostring(error_msg)
+              print("Error in beat range selection: " .. tostring(error_msg))
+            end
+          end
+        },
+        vb:button{
+          text = "Auto-Slice every 8 beats",
+          width = 250,
+          height = 30,
+          notifier = function()
+            print("=== AUTO-SLICE EVERY 8 BEATS ===")
+            status_text.text = "Auto-slicing every 8 beats..."
+            
+            local success, error_msg = pcall(auto_slice_every_8_beats)
+            
+            if success then
+              status_text.text = "Auto-sliced every 8 beats successfully!"
+              print("Auto-slice every 8 beats completed")
+            else
+              status_text.text = "Error auto-slicing: " .. tostring(error_msg)
+              print("Error in auto-slice: " .. tostring(error_msg))
+            end
+          end
+        },
+        create_patterns_button,
+        delete_patterns_button
+      }
+    },
+    
+    vb:horizontal_aligner{
+      mode = "center",
+      vb:column{
+        spacing = 5,
+        vb:text{text = "Status:", font = "bold"},
+        status_text
+      }
+    },
+    
+    vb:horizontal_aligner{
+      mode = "center",
+      vb:text{
+        text = "Dialog stays open - use [X] to close",
+        font = "italic",
+        style = "disabled"
+      }
+    }
+  }
+  
+  -- Show the dialog
+  renoise.app():show_custom_dialog("Slice to Pattern Sequencer", dialog_content, my_keyhandler_func)
+end
+
 -- Menu entry and keybinding for the new function
 renoise.tool():add_keybinding{name="Global:Paketti:Create Pattern Sequencer Patterns based on Slice Count with Automatic Slice Printing",invoke = createPatternSequencerPatternsBasedOnSliceCount}
+renoise.tool():add_keybinding{name="Global:Paketti:Slice to Pattern Sequencer Interface",invoke = showSliceToPatternSequencerInterface}
+
+-- Add menu entries
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Slice to Pattern Sequencer Interface",invoke = showSliceToPatternSequencerInterface}
+renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Slice to Pattern Sequencer Interface",invoke = showSliceToPatternSequencerInterface}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Slice to Pattern Sequencer Interface",invoke = showSliceToPatternSequencerInterface}
 
 ----
 
@@ -932,7 +1267,6 @@ function pakettiEQ10XYDialog()
   dialog = renoise.app():show_custom_dialog("EQ10 XY Control",content,my_keyhandler_func)
 end
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:EQ10 XY Control...",invoke = pakettiEQ10XYDialog}
 renoise.tool():add_keybinding{name="Global:Paketti:Show EQ10 XY Control Dialog...",invoke = pakettiEQ10XYDialog}
 -----
 if preferences.SelectedSampleBeatSyncLines.value == true then 
@@ -994,9 +1328,6 @@ function AutoAssignOutputs()
   renoise.app():show_status("FX chains assigned and outputs routed successfully.")
 end
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Auto Assign Outputs",invoke=AutoAssignOutputs}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Auto Assign Outputs",invoke=AutoAssignOutputs}
-renoise.tool():add_menu_entry{name="Mixing:Paketti..:Auto Assign Outputs",invoke=AutoAssignOutputs}
 
 ---
 -- Initialize ViewBuilder
@@ -1383,9 +1714,8 @@ local function add_menu_entries_and_keybindings()
 end
 
 add_menu_entries_and_keybindings()
-renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Device Chains..:Open Track DSP Device & Instrument Loader...",invoke=function() pakettiDeviceChainDialog() end}
 
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Paketti Track DSP Device & Instrument Loader...",invoke=function() pakettiDeviceChainDialog() end}
+
 
 ------------------------
 local vb = renoise.ViewBuilder()
@@ -1434,7 +1764,6 @@ function showXyPaddialog()
   end
 end
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress..:XY Pad Sound Mixer",invoke=function() showXyPaddialog() end}
 --
 
 local vb = renoise.ViewBuilder()
@@ -1596,7 +1925,7 @@ function showSBX_dialog()
   dialog = renoise.app():show_custom_dialog("SBX Playback Handler", content, my_keyhandler_func)
 end
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress..:SBx Loop Playback",invoke=showSBX_dialog}
+
 renoise.tool():add_keybinding{name="Global:Transport:Reset SBx and Start Playback",
   invoke=function() reset_repeat_counts() renoise.song().transport:start() end}
 
@@ -1784,16 +2113,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Crossfade Loop",
 }
 
 
--- Menu Entry: Use the dynamic crossfade length based on selection_end
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Experimental/WIP..:Crossfade Loop",
-  invoke=function()
-    local crossfade_length = get_dynamic_crossfade_length()
-    if crossfade_length then
-      renoise.app():show_status("Using crossfade length: " .. tostring(crossfade_length))
-      crossfade_loop(crossfade_length)
-    end
-  end
-}
+
 
 renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Transpose (-64-+64)",
   invoke=function(message)
@@ -2988,8 +3308,6 @@ function PakettiToggleSoloTracks()
   end
 end
 
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Pattern Editor..:Toggle Solo Tracks",invoke=PakettiToggleSoloTracks}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Toggle Solo Tracks",invoke=PakettiToggleSoloTracks}
 renoise.tool():add_keybinding{name="Global:Paketti:Toggle Solo Tracks",invoke=PakettiToggleSoloTracks}
 renoise.tool():add_midi_mapping{name="Paketti:Toggle Solo Tracks",invoke=PakettiToggleSoloTracks}
 
@@ -3068,8 +3386,6 @@ function set_group_mute_state(group, mute_state)
   end
 end
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Toggle Mute Tracks",invoke=toggle_mute_tracks}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Toggle Mute Tracks",invoke=toggle_mute_tracks}
 renoise.tool():add_keybinding{name="Global:Paketti:Toggle Mute Tracks",invoke=toggle_mute_tracks}
 renoise.tool():add_midi_mapping{name="Paketti:Toggle Mute Tracks",invoke=toggle_mute_tracks}
 
@@ -3745,8 +4061,6 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Slide Selected Column
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Slide Selected Column Content Up",invoke=PakettiImpulseTrackerSlideUp}
 renoise.tool():add_midi_mapping{name="Paketti:Slide Selected Column Content Down",invoke=PakettiImpulseTrackerSlideDown}
 renoise.tool():add_midi_mapping{name="Paketti:Slide Selected Column Content Up",invoke=PakettiImpulseTrackerSlideUp}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Other Trackers..:Slide Selected Column Content Down",invoke=PakettiImpulseTrackerSlideDown}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Other Trackers..:Slide Selected Column Content Up",invoke=PakettiImpulseTrackerSlideUp}
 
 
 
@@ -3860,8 +4174,6 @@ function PakettiImpulseTrackerSlideTrackUp()
   PakettiImpulseTrackerSlideTrackCopyEffectColumns(first_row_effect_columns, last_line.effect_columns)
 end
 
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Other Trackers..:Slide Selected Track Content Down",invoke=PakettiImpulseTrackerSlideTrackDown}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Other Trackers..:Slide Selected Track Content Up",invoke=PakettiImpulseTrackerSlideTrackUp}
 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Slide Selected Track Content Up",invoke=PakettiImpulseTrackerSlideTrackUp}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Slide Selected Track Content Down",invoke=PakettiImpulseTrackerSlideTrackDown}
@@ -3936,11 +4248,6 @@ function openVisiblePagesToFitParameters()
   renoise.app():show_status("Preset loaded into Instr. Automation device.")
 end
 
--- Register the function to a menu entry
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:Open Visible Pages to Fit Plugin Parameter Count",invoke=openVisiblePagesToFitParameters}
-renoise.tool():add_menu_entry{name="DSP Device:Paketti..:Open Visible Pages to Fit Plugin Parameter Count",invoke=openVisiblePagesToFitParameters}
-
--- Register a keybinding for easier access (optional)
 renoise.tool():add_keybinding{name="Global:Paketti:Open Visible Pages to Fit Parameters",invoke=openVisiblePagesToFitParameters}
 
 --------------
@@ -4998,3 +5305,365 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Group Samples by Name to New Instruments", invoke=PakettiGroupSamplesByName}
 renoise.tool():add_midi_mapping{name="Paketti:Group Samples by Name to New Instruments", invoke=PakettiGroupSamplesByName}
+
+-- Pure Sinewave Generator Function
+-- Creates one complete sine wave cycle from 0.5 to 1.0 to 0.5 to 0.0 to 0.5
+-- Parameters:
+--   sample_rate: Sample rate (e.g., 44100)
+--   frequency: Frequency of the sine wave (e.g., 440 for A4)
+--   duration: Duration in seconds (optional, defaults to one cycle)
+function generatePureSinewave(sample_rate, frequency, duration)
+  sample_rate = sample_rate or 44100
+  frequency = frequency or 440
+  
+  -- Use 1024 frames for high resolution, with one complete cycle
+  local num_samples = 1024
+  local samples = {}
+  
+  print("Generating sine wave:")
+  print("- Sample rate: " .. sample_rate .. " Hz")
+  print("- Frequency: " .. frequency .. " Hz (for naming)")
+  print("- Number of samples: " .. num_samples .. " (one complete cycle, high resolution)")
+  
+  -- Generate the sine wave samples for exactly one cycle over 1024 frames
+  for i = 0, num_samples - 1 do
+    -- Calculate the phase (0 to 2*pi for one complete cycle over 1024 frames)
+    local phase = (2.0 * math.pi * i) / num_samples
+    
+    -- Calculate sine wave value (-1 to 1)
+    local sine_value = math.sin(phase)
+    
+    -- Scale and offset to go from 0.5 to 1.0 to 0.5 to 0.0 to 0.5
+    -- sine_value * 0.5 + 0.5 gives us 0.0 to 1.0 range with 0.5 center
+    local sample_value = sine_value * 0.5 + 0.5
+    
+    -- Store the sample (clamped to ensure it stays in range)
+    samples[i + 1] = math.max(0.0, math.min(1.0, sample_value))
+  end
+  
+  print("Sine wave generation completed")
+  print("Sample range: " .. string.format("%.3f", samples[1]) .. " to " .. string.format("%.3f", samples[math.floor(num_samples/2) + 1]) .. " to " .. string.format("%.3f", samples[num_samples]))
+  
+  return samples, num_samples
+end
+
+-- Function to create a sine wave sample in Renoise
+function createSinewaveSample(sample_rate, frequency, duration)
+  local song = renoise.song()
+  
+  -- Check if we have a selected instrument
+  if not song.selected_instrument_index or song.selected_instrument_index == 0 then
+    renoise.app():show_status("No instrument selected")
+    return
+  end
+  
+  local instrument = song.selected_instrument
+  if not instrument then
+    renoise.app():show_status("No instrument available")
+    return
+  end
+  
+  -- Generate the sine wave data
+  local samples, num_samples = generatePureSinewave(sample_rate, frequency, duration)
+  
+  -- Create a new sample in the instrument
+  local sample_index = #instrument.samples + 1
+  instrument:insert_sample_at(sample_index)
+  local sample = instrument.samples[sample_index]
+  
+  -- Set sample properties
+  sample.name = "Sine " .. frequency .. "Hz"
+  
+  -- Create sample buffer
+  sample.sample_buffer:create_sample_data(sample_rate, 16, 1, num_samples)
+  local buffer = sample.sample_buffer
+  
+  if buffer.has_sample_data then
+    buffer:prepare_sample_data_changes()
+    -- Write the sine wave data to the sample buffer
+    for i = 1, num_samples do
+      -- Convert 0.0-1.0 range to -1.0 to 1.0 range for sample buffer
+      local buffer_value = (samples[i] - 0.5) * 2.0
+      buffer:set_sample_data(1, i, buffer_value)
+    end
+    buffer:finalize_sample_data_changes()
+    
+    -- Set up sample mapping
+    sample.sample_mapping.base_note = 48 -- C-4
+    sample.sample_mapping.note_range = {0, 119}
+    sample.sample_mapping.velocity_range = {0, 127}
+    
+    -- Add loop from 1st frame to last frame
+    sample.loop_mode = renoise.Sample.LOOP_MODE_FORWARD
+    sample.loop_start = 1
+    sample.loop_end = buffer.number_of_frames
+    
+    -- Set instrument name
+    instrument.name = "sinewave[" .. frequency .. "hz][" .. buffer.number_of_frames .. " frames]"
+    
+    -- Go to sample editor
+    renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+    
+    print("Created sine wave sample: " .. sample.name)
+    print("Sample properties:")
+    print("- Index: " .. sample_index)
+    print("- Sample rate: " .. buffer.sample_rate .. " Hz")
+    print("- Bit depth: " .. buffer.bit_depth .. " bit")
+    print("- Channels: " .. buffer.number_of_channels)
+    print("- Length: " .. buffer.number_of_frames .. " frames")
+    print("- Loop: " .. sample.loop_start .. " to " .. sample.loop_end)
+    print("- Duration: " .. string.format("%.4f", buffer.number_of_frames / buffer.sample_rate) .. " seconds")
+    
+    renoise.app():show_status("Created sine wave sample: " .. sample.name)
+  else
+    renoise.app():show_status("Error: Could not create sample data")
+    print("Error: Sample buffer has no data")
+  end
+end
+
+-- Function to generate amplitude modulated sine wave
+function generateAmplitudeModulatedSinewave(sample_rate, frequency, modulation_multiplier, modulation_amplitude)
+  sample_rate = sample_rate or 44100
+  frequency = frequency or 440
+  modulation_multiplier = modulation_multiplier or 20
+  modulation_amplitude = modulation_amplitude or 30
+  
+  -- Use 1024 frames for high resolution, with one complete cycle
+  local num_samples = 1024
+  local samples = {}
+  
+  print("Generating amplitude modulated sine wave:")
+  print("- Sample rate: " .. sample_rate .. " Hz")
+  print("- Base frequency: " .. frequency .. " Hz (for naming)")
+  print("- Modulation: " .. modulation_multiplier .. "x faster")
+  print("- Modulation amplitude: " .. modulation_amplitude .. "%")
+  print("- Number of samples: " .. num_samples .. " (one base cycle, high resolution)")
+  
+  -- Convert amplitude percentage to decimal (0-100% -> 0.0-1.0)
+  local amp_factor = modulation_amplitude / 100.0
+  
+  -- Generate the amplitude modulated sine wave
+  for i = 0, num_samples - 1 do
+    -- Master sine wave: one complete cycle over 1024 frames
+    -- Generate directly in 0.25 to 0.75 range (centered at 0.5)
+    local master_phase = (2.0 * math.pi * i) / num_samples
+    local master_sine = math.sin(master_phase)
+    local base_sample = master_sine * 0.25 + 0.5  -- Scale to 0.25-0.75 range
+    
+    -- Modulation sine wave: faster cycles for the tiny ripples
+    local mod_phase = (2.0 * math.pi * modulation_multiplier * i) / num_samples
+    local mod_sine = math.sin(mod_phase)
+    
+    -- Apply amplitude modulation to the base sample
+    -- modulation_sine ranges from -1 to 1, so we scale it by amp_factor
+    local modulated_sample = base_sample * (1.0 + amp_factor * mod_sine)
+    
+    -- Store the sample (clamped to ensure it stays in valid range)
+    samples[i + 1] = math.max(0.0, math.min(1.0, modulated_sample))
+  end
+  
+  print("Amplitude modulated sine wave generation completed")
+  print("Sample range: " .. string.format("%.3f", samples[1]) .. " to " .. string.format("%.3f", samples[math.floor(num_samples/2) + 1]) .. " to " .. string.format("%.3f", samples[num_samples]))
+  
+  return samples, num_samples
+end
+
+-- Function to create amplitude modulated sine wave sample in Renoise
+function createAmplitudeModulatedSinewaveSample(sample_rate, frequency, modulation_multiplier, modulation_amplitude)
+  local song = renoise.song()
+  
+  -- Check if we have a selected instrument
+  if not song.selected_instrument_index or song.selected_instrument_index == 0 then
+    renoise.app():show_status("No instrument selected")
+    return
+  end
+  
+  local instrument = song.selected_instrument
+  if not instrument then
+    renoise.app():show_status("No instrument available")
+    return
+  end
+  
+  -- Generate the amplitude modulated sine wave data
+  local samples, num_samples = generateAmplitudeModulatedSinewave(sample_rate, frequency, modulation_multiplier, modulation_amplitude)
+  
+  -- Create a new sample in the instrument
+  local sample_index = #instrument.samples + 1
+  instrument:insert_sample_at(sample_index)
+  local sample = instrument.samples[sample_index]
+  
+  -- Set sample properties
+  sample.name = "AM Sine " .. frequency .. "Hz (mod " .. modulation_multiplier .. "x, amp " .. (modulation_amplitude or 30) .. "%)"
+  
+  -- Create sample buffer
+  sample.sample_buffer:create_sample_data(sample_rate, 16, 1, num_samples)
+  local buffer = sample.sample_buffer
+  
+  if buffer.has_sample_data then
+    buffer:prepare_sample_data_changes()
+    -- Write the sine wave data to the sample buffer
+    for i = 1, num_samples do
+      -- Convert 0.0-1.0 range to -1.0 to 1.0 range for sample buffer
+      local buffer_value = (samples[i] - 0.5) * 2.0
+      buffer:set_sample_data(1, i, buffer_value)
+    end
+    buffer:finalize_sample_data_changes()
+    
+    -- Set up sample mapping
+    sample.sample_mapping.base_note = 48 -- C-4
+    sample.sample_mapping.note_range = {0, 119}
+    sample.sample_mapping.velocity_range = {0, 127}
+    
+    -- Add loop from 1st frame to last frame
+    sample.loop_mode = renoise.Sample.LOOP_MODE_FORWARD
+    sample.loop_start = 1
+    sample.loop_end = buffer.number_of_frames
+    
+    -- Set instrument name
+    instrument.name = "am_sinewave[" .. frequency .. "hz][mod " .. modulation_multiplier .. "x][amp " .. (modulation_amplitude or 30) .. "%][" .. buffer.number_of_frames .. " frames]"
+    
+    -- Go to sample editor
+    renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+    
+    print("Created amplitude modulated sine wave sample: " .. sample.name)
+    renoise.app():show_status("Created AM sine wave sample: " .. sample.name)
+  else
+    renoise.app():show_status("Error: Could not create sample data")
+    print("Error: Sample buffer has no data")
+  end
+end
+
+-- Function for custom frequency sine wave generation
+function createCustomSinewave()
+  local vb = renoise.ViewBuilder()
+  local frequency_text = vb:textfield{
+    text = "440",
+    width = 80
+  }
+  
+  local dialog_content = vb:column{
+    margin = 10,
+    vb:row{
+      vb:text{text = "Enter frequency in Hz (1-20000):"}
+    },
+    vb:row{
+      frequency_text
+    },
+    vb:row{
+      vb:button{
+        text = "OK",
+        width = 80,
+        notifier = function()
+          local freq_str = frequency_text.text
+          local freq = tonumber(freq_str)
+          if freq and freq > 0 and freq <= 20000 then
+            createSinewaveSample(44100, freq, nil)
+            -- Close dialog by setting it to nil - will be handled by dialog framework
+          else
+            renoise.app():show_status("Invalid frequency. Please enter a value between 1-20000 Hz")
+          end
+        end
+      },
+      vb:button{
+        text = "Cancel",
+        width = 80,
+        notifier = function()
+          -- Cancel button - dialog will close automatically
+        end
+      }
+    }
+  }
+  
+  renoise.app():show_custom_dialog("Sine Wave Generator", dialog_content, my_keyhandler_func)
+end
+
+-- Function for custom amplitude modulated sine wave generation
+function createCustomAmplitudeModulatedSinewave()
+  local vb = renoise.ViewBuilder()
+  local frequency_text = vb:textfield{
+    text = "440",
+    width = 80
+  }
+  local modulation_text = vb:textfield{
+    text = "20",
+    width = 80
+  }
+  local amplitude_text = vb:textfield{
+    text = "30",
+    width = 80
+  }
+  
+  local dialog_content = vb:column{
+    margin = 10,
+    vb:row{
+      vb:text{text = "Enter base frequency in Hz (1-20000):"}
+    },
+    vb:row{
+      frequency_text
+    },
+    vb:row{
+      vb:text{text = "Enter modulation multiplier (1-1000):"}
+    },
+    vb:row{
+      modulation_text
+    },
+    vb:row{
+      vb:text{text = "Enter modulation amplitude % (1-100):"}
+    },
+    vb:row{
+      amplitude_text
+    },
+    vb:row{
+      vb:button{
+        text = "OK",
+        width = 80,
+        notifier = function()
+          local freq_str = frequency_text.text
+          local mod_str = modulation_text.text
+          local amp_str = amplitude_text.text
+          local freq = tonumber(freq_str)
+          local mod = tonumber(mod_str)
+          local amp = tonumber(amp_str)
+          if freq and freq > 0 and freq <= 20000 and 
+             mod and mod > 0 and mod <= 1000 and
+             amp and amp > 0 and amp <= 100 then
+            createAmplitudeModulatedSinewaveSample(44100, freq, mod, amp)
+            -- Keep dialog open for multiple generations
+            renoise.app():show_status("Generated AM sine wave: " .. freq .. "Hz, mod " .. mod .. "x, amp " .. amp .. "%")
+          else
+            renoise.app():show_status("Invalid values. Frequency: 1-20000 Hz, Modulation: 1-1000x, Amplitude: 1-100%")
+          end
+        end
+      },
+      vb:button{
+        text = "Cancel",
+        width = 80,
+        notifier = function()
+          -- Cancel button - dialog will close automatically
+        end
+      }
+    }
+  }
+  
+  renoise.app():show_custom_dialog("AM Sine Wave Generator", dialog_content, my_keyhandler_func)
+end
+
+
+renoise.tool():add_keybinding{name = "Global:Paketti:Generate Pure Sinewave 440Hz", invoke = function() createSinewaveSample(44100, 440, nil) end}
+renoise.tool():add_keybinding{name = "Global:Paketti:Generate Pure Sinewave 1000Hz", invoke = function() createSinewaveSample(44100, 1000, nil) end}
+renoise.tool():add_keybinding{name = "Global:Paketti:Generate Pure Sinewave Custom", invoke = createCustomSinewave}
+renoise.tool():add_keybinding{name = "Global:Paketti:Generate AM Sinewave 440Hz (20x mod)", invoke = function() createAmplitudeModulatedSinewaveSample(44100, 440, 20, 30) end}
+renoise.tool():add_keybinding{name = "Global:Paketti:Generate AM Sinewave 1000Hz (20x mod)", invoke = function() createAmplitudeModulatedSinewaveSample(44100, 1000, 20, 30) end}
+renoise.tool():add_keybinding{name = "Global:Paketti:Generate AM Sinewave Custom", invoke = createCustomAmplitudeModulatedSinewave}
+renoise.tool():add_menu_entry{name = "Sample Editor:Paketti..:Generate..:Pure Sinewave 440Hz",invoke = function() createSinewaveSample(44100, 440, nil) end}
+renoise.tool():add_menu_entry{name = "Sample Editor:Paketti..:Generate..:Pure Sinewave 1000Hz",invoke = function() createSinewaveSample(44100, 1000, nil) end}
+renoise.tool():add_menu_entry{name = "Sample Editor:Paketti..:Generate..:Pure Sinewave Custom Frequency",invoke = createCustomSinewave}
+renoise.tool():add_menu_entry{name = "Sample Editor:Paketti..:Generate..:AM Sinewave 440Hz (20x mod)",invoke = function() createAmplitudeModulatedSinewaveSample(44100, 440, 20, 30) end}
+renoise.tool():add_menu_entry{name = "Sample Editor:Paketti..:Generate..:AM Sinewave 1000Hz (20x mod)",invoke = function() createAmplitudeModulatedSinewaveSample(44100, 1000, 20, 30) end}
+renoise.tool():add_menu_entry{name = "Sample Editor:Paketti..:Generate..:AM Sinewave Custom",invoke = createCustomAmplitudeModulatedSinewave}
+renoise.tool():add_menu_entry{name = "Instrument Box:Paketti..:Generate..:Pure Sinewave 440Hz",invoke = function() createSinewaveSample(44100, 440, nil) end}
+renoise.tool():add_menu_entry{name = "Instrument Box:Paketti..:Generate..:Pure Sinewave 1000Hz",invoke = function() createSinewaveSample(44100, 1000, nil) end}
+renoise.tool():add_menu_entry{name = "Instrument Box:Paketti..:Generate..:Pure Sinewave Custom Frequency",invoke = createCustomSinewave}
+renoise.tool():add_menu_entry{name = "Instrument Box:Paketti..:Generate..:AM Sinewave 440Hz (20x mod)",invoke = function() createAmplitudeModulatedSinewaveSample(44100, 440, 20, 30) end}
+renoise.tool():add_menu_entry{name = "Instrument Box:Paketti..:Generate..:AM Sinewave 1000Hz (20x mod)",invoke = function() createAmplitudeModulatedSinewaveSample(44100, 1000, 20, 30) end}
+renoise.tool():add_menu_entry{name = "Instrument Box:Paketti..:Generate..:AM Sinewave Custom",invoke = createCustomAmplitudeModulatedSinewave}

@@ -200,10 +200,6 @@ function pakettiAboutDonations()
   end
 end
 
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:!!About..:About Paketti/Donations...",invoke=function() pakettiAboutDonations() end}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:!Preferences..:Open Paketti Path",invoke=function() renoise.app():open_path(renoise.tool().bundle_path)end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:Debug..:Inspect Plugin (Console)",invoke=function() inspectPlugin() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:Debug..:Inspect Selected Device (Console)",invoke=function() inspectEffect() end}
 ----------
 function randomBPM()
   local bpmList = {80, 100, 115, 123, 128, 132, 135, 138, 160}
@@ -235,35 +231,6 @@ end
 
 
 
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Paketti Effect Column CheatSheet...",invoke=function() pakettiPatternEditorCheatsheetDialog() end}
-
--------- Plugins/Devices
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:Load Devices...",invoke=function()
-pakettiLoadDevicesDialog()
-end}
-
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Pattern Editor..:Clone Current Sequence",invoke=clone_current_sequence}
-
-
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Plugins/Devices..:Debug..:List Available VST Plugins (Console)",
-    invoke=function() listByPluginType("VST") end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:Debug..:List Available AU Plugins (Console)",
-    invoke=function() listByPluginType("AU") end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:Debug..:List Available VST3 Plugins (Console)",
-    invoke=function() listByPluginType("VST3") end}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Plugins/Devices..:Debug..:List Available VST Effects (Console)",
-    invoke=function() listDevicesByType("VST") end}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Plugins/Devices..:Debug..:List Available AU Effects (Console)",
-    invoke=function() listDevicesByType("AU") end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:Debug..:List Available VST3 Effects (Console)",
-    invoke=function() listDevicesByType("VST3") end}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Plugins/Devices..:Debug..:Dump VST/VST3/AU/Native Effects (Console)",invoke=function() 
-local devices=renoise.song().tracks[renoise.song().selected_track_index].available_devices
-  for key, value in ipairs (devices) do 
-    print(key, value)
-  end
-end}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Plugins/Devices..:Debug..:Available Routings for Track...",invoke=function() showAvailableRoutings() end}
 
 -- Function to create and show the dialog with a text field.
 function squigglerdialog()
@@ -281,7 +248,6 @@ function squigglerdialog()
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:∿ Squiggly Sinewave to Clipboard (macOS)",invoke=function() squigglerdialog() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:Debug..:∿ Squiggly Sinewave to Clipboard...",invoke=function() squigglerdialog() end}
 ----------
 local vb=renoise.ViewBuilder()
 local dialog=nil
@@ -408,21 +374,3 @@ function pakettiDialogOfDialogsToggle()
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Toggle Paketti Dialog of Dialogs...",invoke=function() pakettiDialogOfDialogsToggle() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti Dialog of Dialogs...",invoke=function() pakettiDialogOfDialogsToggle() end}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Paketti New Song Dialog...",invoke=function() pakettiImpulseTrackerNewSongDialog() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti Track Dater & Titler...",invoke=function() pakettiTitlerDialog() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti Theme Selector...",invoke=pakettiThemeSelectorDialogShow }
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti Gater...",invoke=function()
-          local max_rows = renoise.song().selected_pattern.number_of_lines
-          if renoise.song() then
-            pakettiGaterDialog()
-            renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
-          end
-        end}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Paketti MIDI Populator...",invoke=function() pakettiMIDIPopulator() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Track Routings...",invoke=function() pakettiTrackOutputRoutingsDialog() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Oblique Strategies...",invoke=function() create_oblique_strategies_dialog() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti Track Renamer...",invoke=function() pakettiTrackRenamerDialog() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Paketti eSpeak Text-to-Speech...",invoke=function()pakettieSpeakDialog()end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress..:Audio Processing Tools...",invoke=function() pakettiAudioProcessingToolsDialog() end}
-

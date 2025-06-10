@@ -319,6 +319,5 @@ function pakettiGrooveToDelay()
   end
 end
 
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Convert Global Groove to Delay on Selected Track/Group",invoke=pakettiGrooveToDelay}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Convert Global Groove to Delay on Selected Track/Group",invoke=pakettiGrooveToDelay}
 renoise.tool():add_midi_mapping{name="Pattern Editor:Paketti:Convert Global Groove to Delay on Selected Track/Group",invoke=function(message) if message:is_trigger() then pakettiGrooveToDelay() end end}

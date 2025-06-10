@@ -424,9 +424,6 @@ function PakettiOTImport()
     end
 end
 
-renoise.tool():add_menu_entry {name="Sample Editor:Paketti..:Octatrack..:Export to Octatrack (.WAV+.OT)...",invoke = function() PakettiOTExport() end}
-renoise.tool():add_menu_entry {name="Sample Editor:Paketti..:Octatrack..:Export to Octatrack (.OT)",invoke = function() PakettiOTExportOtOnly() end}
-renoise.tool():add_menu_entry {name="Sample Editor:Paketti..:Octatrack..:Import Octatrack (.OT)...",invoke = function() PakettiOTImport() end}
 
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Export to Octatrack (.WAV+.OT)",invoke=function() PakettiOTExport() end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Export to Octatrack (.OT)",invoke=function() PakettiOTExportOtOnly() end}

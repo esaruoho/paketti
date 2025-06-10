@@ -404,15 +404,6 @@ function exportS3000Sample()
 end
 
 -- Menu entries
-renoise.tool():add_menu_entry{name = "Sample Editor:Paketti..:Load..:Import S3000 Sample...",invoke = importS3000Sample}
-renoise.tool():add_menu_entry{name = "Sample Navigator:Paketti..:Load..:Import S3000 Sample...",invoke = importS3000Sample}
-renoise.tool():add_menu_entry{name = "Sample Mappings:Paketti..:Load..:Import S3000 Sample...",invoke = importS3000Sample}
+renoise.tool():add_keybinding{name = "Global:Paketti:Export S3000 Sample...",invoke = exportS3000Sample}
 renoise.tool():add_keybinding{name = "Global:Paketti:Import S3000 Sample...",invoke = importS3000Sample}
 
-renoise.tool():add_menu_entry{name = "Sample Editor:Paketti..:Export..:Export S3000 Sample...",invoke = exportS3000Sample}
-renoise.tool():add_menu_entry{name = "Sample Navigator:Paketti..:Export..:Export S3000 Sample...",invoke = exportS3000Sample}
-renoise.tool():add_menu_entry{name = "Sample Mappings:Paketti..:Export..:Export S3000 Sample...",invoke = exportS3000Sample}
-renoise.tool():add_keybinding{name = "Global:Paketti:Export S3000 Sample...",invoke = exportS3000Sample}
-
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Import S3000 Sample...",invoke=importS3000Sample}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Export S3000 Sample...",invoke=exportS3000Sample} 

@@ -816,18 +816,10 @@ function exportAkaiProgram()
 end
 
 -- Menu entries
-renoise.tool():add_menu_entry{name = "Sample Editor:Paketti..:Load..:Import Akai Program...",invoke = importAkaiProgram}
-renoise.tool():add_menu_entry{name = "Sample Navigator:Paketti..:Load..:Import Akai Program...",invoke = importAkaiProgram}
-renoise.tool():add_menu_entry{name = "Sample Mappings:Paketti..:Load..:Import Akai Program...",invoke = importAkaiProgram}
 renoise.tool():add_keybinding{name = "Global:Paketti:Import Akai Program...",invoke = importAkaiProgram}
 
-renoise.tool():add_menu_entry{name = "Sample Editor:Paketti..:Export..:Export Akai Program...",invoke = exportAkaiProgram}
-renoise.tool():add_menu_entry{name = "Sample Navigator:Paketti..:Export..:Export Akai Program...",invoke = exportAkaiProgram}
-renoise.tool():add_menu_entry{name = "Sample Mappings:Paketti..:Export..:Export Akai Program...",invoke = exportAkaiProgram}
 renoise.tool():add_keybinding{name = "Global:Paketti:Export Akai Program...",invoke = exportAkaiProgram}
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Import Akai Program...",invoke=importAkaiProgram}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Export Akai Program...",invoke=exportAkaiProgram}
 
 -- File import hooks for program formats
 local program_integration = {

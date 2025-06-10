@@ -238,33 +238,6 @@ function JalexAdd(number)
     }
     
     renoise.tool():add_midi_mapping{name="Paketti:Chord Selector [0-127]",invoke=function(midi_message) midi_chord_mapping(midi_message.int_value) end}
-    renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Basic Triads - Major (3-4)",invoke=function() chordsplus(4,3) end}
-    renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Basic Triads - Minor (4-3)",invoke=function() chordsplus(3,4) end}
-    renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Basic Triads - Augmented (4-4)",invoke=function() chordsplus(4,4) end}
-    renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Basic Triads - Sus2 (2-5)",invoke=function() chordsplus(2,5) end}
-    renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Basic Triads - Sus4 (5-2)",invoke=function() chordsplus(5,2) end}
-    renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Seventh - Major 7 (4-3-4)",invoke=function() chordsplus(4,3,4) end}
-    renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Seventh - Minor 7 (3-4-3)",invoke=function() chordsplus(3,4,3) end}
-    renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Seventh - Dominant 7 (4-3-3)",invoke=function() chordsplus(4,3,3) end}
-    renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Seventh - Minor-Major 7 (3-4-4)",invoke=function() chordsplus(3,4,4) end}
-    renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Ninth - Major 9 (4-3-4-3)",invoke=function() chordsplus(4,3,4,3) end}
-    renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Ninth - Minor 9 (3-4-3-3)",invoke=function() chordsplus(3,4,3,3) end}
-    renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Ninth - Major 9 Simple (4-7-3)",invoke=function() chordsplus(4,7,3) end}
-    renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Ninth - Minor 9 Simple (3-7-4)",invoke=function() chordsplus(3,7,4) end}
-    renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Added - Major Add 9 (4-3-7)",invoke=function() chordsplus(4,3,7) end}
-    renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Added - Minor Add 9 (3-4-7)",invoke=function() chordsplus(3,4,7) end}
-    renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Added - Major 6 Add 9 (4-3-2-5)",invoke=function() chordsplus(4,3,2,5) end}
-    renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Added - Minor 6 Add 9 (3-4-2-5)",invoke=function() chordsplus(3,4,2,5) end}
-    renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Added - Major 9 Add 11 (4-3-4-3-3)",invoke=function() chordsplus(4,3,4,3,3) end}
-    renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Augmented - Aug6 (4-4-2)",invoke=function() chordsplus(4,4,2) end}
-    renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Augmented - Aug7 (4-4-3)",invoke=function() chordsplus(4,4,3) end}
-    renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Augmented - Aug8 (4-4-4)",invoke=function() chordsplus(4,4,4) end}
-    renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Augmented - Aug9 (4-3-3-5)",invoke=function() chordsplus(4,3,3,5) end}
-    renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Augmented - Aug10 (4-4-7)",invoke=function() chordsplus(4,4,7) end}
-    renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Augmented - Aug11 (4-3-3-4-4)",invoke=function() chordsplus(4,3,3,4,4) end}
-    renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Special - Octaves (12-12-12)",invoke=function() chordsplus(12,12,12) end}
-    renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Special - Next Chord",invoke=next_chord }
-    renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Special - Previous Chord",invoke=previous_chord }
     
     for i=1,12 do
         renoise.tool():add_menu_entry{name=string.format("Pattern Editor:Paketti ChordsPlus..:Add Intervals..:Add %d", i),invoke=function() JalexAdd(i) end}
@@ -461,9 +434,7 @@ function NoteSorterDescending()
 end
 
   renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Note Sorter (Ascending)",invoke=NoteSorterAscending}
-  renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Note Sorter (Ascending)",invoke=NoteSorterAscending}
   renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Note Sorter (Descending)",invoke=NoteSorterDescending}
-  renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Note Sorter (Descending)",invoke=NoteSorterDescending}
 ---  
   function RandomizeVoicing()
     local song=renoise.song()
@@ -545,7 +516,7 @@ end
 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Randomize Voicing for Notes in Row/Selection",invoke=function() RandomizeVoicing() end}
 renoise.tool():add_midi_mapping{name="Paketti:Randomize Voicing for Notes in Row/Selection",invoke=function() RandomizeVoicing() end}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti ChordsPlus..:Randomize Voicing for Notes in Row/Selection",invoke=function() RandomizeVoicing() end}
+
 ---
   -- Function to shift notes left or right
   function ShiftNotes(direction)
@@ -668,8 +639,6 @@ renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti ChordsPlus..:Random
   
   renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Shift Notes Right",invoke=function() ShiftNotes(1) end}
   renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Shift Notes Left",invoke=function() ShiftNotes(-1) end}
-  renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Shift Notes Right",invoke=function() ShiftNotes(1) end}
-  renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Shift Notes Left",invoke=function() ShiftNotes(-1) end}
   
   
 
@@ -745,10 +714,6 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Cycle Chord Inversion
 NoteSorterAscending() end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Cycle Chord Inversion Down",invoke=function() cycle_inversion("down")
 NoteSorterAscending() end}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti ChordsPlus..:Cycle Chord Inversion Up",invoke=function() cycle_inversion("up")
-NoteSorterAscending() end}  
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Cycle Chord Inversion Down",invoke=function() cycle_inversion("down")
-NoteSorterAscending() end}
   -- Function to apply a random chord from the chord_list
 function RandomChord()
   local song=renoise.song()
@@ -778,7 +743,6 @@ function RandomChord()
 end
 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Random Chord",invoke=function() RandomChord() end}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti ChordsPlus..:Random - Apply Random Chord",invoke=function() RandomChord() end}
 renoise.tool():add_midi_mapping{name="Paketti:ChordsPlus Random Chord",invoke=function(message) if message:is_trigger() then RandomChord() end end}
 
 
@@ -847,7 +811,6 @@ function ExtractBassline()
 end
 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Extract Bassline to New Track",invoke=function() ExtractBassline() end}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti ChordsPlus..:Extract Bassline to New Track",invoke=function() ExtractBassline() end}
 
   function ExtractHighestNote()
     local song=renoise.song()
@@ -914,8 +877,6 @@ renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti ChordsPlus..:Extrac
   end
   
   renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Extract Highest Note to New Track",
-    invoke=function() ExtractHighestNote() end}
-  renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Extract Highest Note to New Track",
     invoke=function() ExtractHighestNote() end}
 
     
@@ -1151,18 +1112,8 @@ renoise.tool():add_keybinding{name="Mixer:Paketti:Duplicate Highest Notes to New
 renoise.tool():add_keybinding{name="Mixer:Paketti:Duplicate Lowest Notes to New Track & Duplicate Instrument",invoke=function() DuplicateSpecificNotesToNewTrack("lowest", "duplicate") end}
 renoise.tool():add_keybinding{name="Mixer:Paketti:Duplicate Lowest Notes to New Track (Selected Instrument)",invoke=function() DuplicateSpecificNotesToNewTrack("lowest", "selected") end}
 renoise.tool():add_keybinding{name="Mixer:Paketti:Duplicate Lowest Notes to New Track (Original Instrument)",invoke=function() DuplicateSpecificNotesToNewTrack("lowest", "original") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Duplicate Highest Notes to New Track & Duplicate Instrument",invoke=function() DuplicateSpecificNotesToNewTrack("highest", "duplicate") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Duplicate Highest Notes to New Track (Selected Instrument)",invoke=function() DuplicateSpecificNotesToNewTrack("highest", "selected") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Duplicate Highest Notes to New Track (Original Instrument)",invoke=function() DuplicateSpecificNotesToNewTrack("highest", "original") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Duplicate Lowest Notes to New Track & Duplicate Instrument",invoke=function() DuplicateSpecificNotesToNewTrack("lowest", "duplicate") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Duplicate Lowest Notes to New Track (Selected Instrument)",invoke=function() DuplicateSpecificNotesToNewTrack("lowest", "selected") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Duplicate Lowest Notes to New Track (Original Instrument)",invoke=function() DuplicateSpecificNotesToNewTrack("lowest", "original") end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti ChordsPlus..:Duplicate Highest Notes to New Track & Duplicate Instrument",invoke=function() DuplicateSpecificNotesToNewTrack("highest", "duplicate") end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti ChordsPlus..:Duplicate Highest Notes to New Track (Selected Instrument)",invoke=function() DuplicateSpecificNotesToNewTrack("highest", "selected") end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti ChordsPlus..:Duplicate Highest Notes to New Track (Original Instrument)",invoke=function() DuplicateSpecificNotesToNewTrack("highest", "original") end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti ChordsPlus..:Duplicate Lowest Notes to New Track & Duplicate Instrument",invoke=function() DuplicateSpecificNotesToNewTrack("lowest", "duplicate") end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti ChordsPlus..:Duplicate Lowest Notes to New Track (Selected Instrument)",invoke=function() DuplicateSpecificNotesToNewTrack("lowest", "selected") end}
-renoise.tool():add_menu_entry{name="Mixer:Paketti ChordsPlus..:Duplicate Lowest Notes to New Track (Original Instrument)",invoke=function() DuplicateSpecificNotesToNewTrack("lowest", "original") end}
+
+
 
 -- Function to distribute notes from a row into an arpeggio pattern
 function DistributeNotes(pattern_type)
@@ -1408,11 +1359,3 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Distribute
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Distribute Across Selection (Even 4)",invoke=function() DistributeAcrossSelection("even4") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:ChordsPlus Distribute Across Selection (Uneven)",invoke=function() DistributeAcrossSelection("uneven") end}
 
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti ChordsPlus..:Distribute (Even 2)",invoke=function() DistributeNotes("even2") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Distribute (Even 4)",invoke=function() DistributeNotes("even4") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Distribute (Uneven)",invoke=function() DistributeNotes("uneven") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Distribute (Always Next Row)",invoke=function() DistributeNotes("nextrow") end}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti ChordsPlus..:Distribute Across Selection (Even)",invoke=function() DistributeAcrossSelection("even") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Distribute Across Selection (Even 2)",invoke=function() DistributeAcrossSelection("even2") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Distribute Across Selection (Even 4)",invoke=function() DistributeAcrossSelection("even4") end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti ChordsPlus..:Distribute Across Selection (Uneven)",invoke=function() DistributeAcrossSelection("uneven") end}

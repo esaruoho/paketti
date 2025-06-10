@@ -1611,7 +1611,6 @@ function randomize_envelope()
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Randomize Automation Envelope",invoke=randomize_envelope}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Automation..:Randomize Automation Envelope",invoke=randomize_envelope}
 
 renoise.tool():add_midi_mapping{name="Paketti:Randomize Automation Envelope",invoke=randomize_envelope}
 
@@ -1660,7 +1659,6 @@ end
 
 -- Keybinding, menu, and MIDI mapping entries for the tool
 renoise.tool():add_keybinding{name="Global:Paketti:Randomize Automation Envelopes for Device",invoke=function() randomize_device_envelopes(1) end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Automation..:Randomize Automation Envelopes for Device",invoke=function() randomize_device_envelopes(1) end}
 
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Automation..:Randomize Automation Envelopes for Device",invoke=function() randomize_device_envelopes(1) end}
 
@@ -1911,7 +1909,6 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Show Automation Value Dialog...",invoke=function() pakettiAutomationValue() end}
 renoise.tool():add_midi_mapping{name="Paketti:Show Automation Value Dialog...",invoke=function(message) if message:is_trigger() then pakettiAutomationValue() end end}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Automation..:Paketti Automation Value...",invoke=function() pakettiAutomationValue() end}
 ---
 local function write_automation_value(value)
   local song=renoise.song()
@@ -2078,7 +2075,6 @@ end
 -- Keybinding and menu registration
 renoise.tool():add_keybinding{name="Global:Paketti:Flood Fill Automation Selection",invoke=PakettiAutomationSelectionFloodFill}
 renoise.tool():add_midi_mapping{name="Paketti:Flood Fill Automation Selection",invoke=function(message) if message:is_trigger() then PakettiAutomationSelectionFloodFill() end end}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Automation..:Flood Fill Automation Selection",invoke=PakettiAutomationSelectionFloodFill}
 ------
 function SetAutomationRangeValue(value)
   local song=renoise.song()
@@ -2713,7 +2709,6 @@ function toggle_parameter_following()
   end
 end
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:LFO Write..:LFO Write to Selected Automation Parameter",invoke = toggle_parameter_following}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:LFO Write..:LFO Write to Selected Automation Parameter",invoke = toggle_parameter_following}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:LFO Write..:LFO Write to Selected Automation Parameter",invoke = toggle_parameter_following}
 renoise.tool():add_keybinding{name="Global:Paketti:LFO Write to Selected Automation Parameter",invoke = toggle_parameter_following}
@@ -2859,13 +2854,6 @@ function toggle_fx_amount_following(fx_command)
   end
 end
 
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:LFO Write..:LFO Write to Effect Column 1 (Amount Only)",invoke=function() toggle_fx_amount_following() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Yxx)",invoke=function() toggle_fx_amount_following("0Y") end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Sxx)",invoke=function() toggle_fx_amount_following("0S") end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Dxx)",invoke=function() toggle_fx_amount_following("0D") end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Uxx)",invoke=function() toggle_fx_amount_following("0U") end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Gxx)",invoke=function() toggle_fx_amount_following("0G") end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Rxx)",invoke=function() toggle_fx_amount_following("0R") end}
 renoise.tool():add_menu_entry{name="--Mixer:Paketti..:LFO Write..:LFO Write to Effect Column 1 (Amount Only)",invoke=function() toggle_fx_amount_following() end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Yxx)",invoke=function() toggle_fx_amount_following("0Y") end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Sxx)",invoke=function() toggle_fx_amount_following("0S") end}
@@ -2964,9 +2952,6 @@ function toggle_lpb_following(range)
   end
 end
 
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:LFO Write..:LFO Write to Phrase LPB (1-255)",invoke=function() toggle_lpb_following(255) end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:LFO Write..:LFO Write to Phrase LPB (1-127)",invoke=function() toggle_lpb_following(127) end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:LFO Write..:LFO Write to Phrase LPB (1-64)",invoke=function() toggle_lpb_following(64) end}
 renoise.tool():add_menu_entry{name="--Mixer:Paketti..:LFO Write..:LFO Write to Phrase LPB (1-255)",invoke=function() toggle_lpb_following(255) end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:LFO Write..:LFO Write to Phrase LPB (1-127)",invoke=function() toggle_lpb_following(127) end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:LFO Write..:LFO Write to Phrase LPB (1-64)",invoke=function() toggle_lpb_following(64) end}
@@ -3082,7 +3067,7 @@ function toggle_single_parameter_following()
     end
   end
 end
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:LFO Write..:Single Parameter Write to Automation",invoke = toggle_single_parameter_following}
+
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:LFO Write..:Single Parameter Write to Automation",invoke = toggle_single_parameter_following}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:LFO Write..:Single Parameter Write to Automation",invoke = toggle_single_parameter_following}
 renoise.tool():add_keybinding{name="Global:Paketti:LFO Write Single Parameter Write to Automation",invoke = toggle_single_parameter_following}
@@ -3386,9 +3371,6 @@ function snapshot_selected_device_to_automation()
   
   renoise.app():show_status(string.format("Created %d automation points for device: %s", automation_count, device.display_name))
 end
-
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Automation..:Snapshot All Devices on Selected Track to Automation",invoke = snapshot_all_devices_to_automation}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Automation..:Snapshot Selected Device to Automation",invoke = snapshot_selected_device_to_automation}
 renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Automation..:Snapshot All Devices on Selected Track to Automation",invoke = snapshot_all_devices_to_automation}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Automation..:Snapshot Selected Device to Automation",invoke = snapshot_selected_device_to_automation}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Automation..:Snapshot All Devices on Selected Track to Automation",invoke = snapshot_all_devices_to_automation}
@@ -3396,7 +3378,6 @@ renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Automation..:Snapsh
 renoise.tool():add_keybinding{name="Global:Paketti:Snapshot All Devices on Selected Track to Automation",invoke = snapshot_all_devices_to_automation}
 renoise.tool():add_keybinding{name="Global:Paketti:Snapshot Selected Device to Automation",invoke = snapshot_selected_device_to_automation}
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Automation..:Convert FX to Automation",invoke = read_fx_to_automation}
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Automation..:Convert FX to Automation",invoke = read_fx_to_automation}
 renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Automation..:Convert FX to Automation",invoke = read_fx_to_automation}
 renoise.tool():add_keybinding{name="Global:Paketti:Convert FX to Automation",invoke = read_fx_to_automation}

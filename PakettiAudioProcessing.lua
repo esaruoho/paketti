@@ -194,15 +194,6 @@ renoise.tool():add_keybinding{
   invoke = showProtrackerModDialog
 }
 
-renoise.tool():add_menu_entry{
-  name = "Sample Editor:Paketti..:Process..:Protracker MOD Modulation...",
-  invoke = showProtrackerModDialog
-}
-
-renoise.tool():add_menu_entry{
-  name = "Sample Navigator:Paketti..:Process..:Protracker MOD Modulation...",
-  invoke = showProtrackerModDialog
-}
 
 
 
@@ -1271,8 +1262,6 @@ renoise.tool():add_midi_mapping{name="Paketti:Strip Silence",invoke=function() P
 renoise.tool():add_keybinding{name="Global:Paketti:Move Beginning Silence to End",invoke=function() PakettiMoveSilence() end}
 renoise.tool():add_midi_mapping{name="Paketti:Move Beginning Silence to End",invoke=function(message) if message:is_trigger() then  PakettiMoveSilence() end end}
 
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Strip Silence",invoke=function() PakettiStripSilence() end}
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Process..:Move Beginning Silence to End",invoke=function() PakettiMoveSilence() end}
 
 
 
@@ -1350,7 +1339,6 @@ function PakettiMoveSilenceAllSamples()
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Move Beginning Silence to End for All Samples",invoke=function() PakettiMoveSilenceAllSamples() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Move Beginning Silence to End for All Samples",invoke=function() PakettiMoveSilenceAllSamples() end}
 
 
 --------
@@ -1439,10 +1427,6 @@ renoise.tool():add_keybinding{name="Sample Editor:Paketti:Invert Sample",invoke=
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Invert Left Channel",invoke=function() PakettiSampleInvertLeftChannel() end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Invert Right Channel",invoke=function() PakettiSampleInvertRightChannel() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Invert Random Samples in Instrument",invoke=PakettiInvertRandomSamplesInInstrument}
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Process..:Invert Sample",invoke=PakettiSampleInvertEntireSample}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Invert Left Channel",invoke=PakettiSampleInvertLeftChannel}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Invert Right Channel",invoke=PakettiSampleInvertRightChannel}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Invert Random Samples in Instrument",invoke=PakettiInvertRandomSamplesInInstrument}
 ---
 function apply_fade_in_out()
   local instrument=renoise.song().selected_instrument
@@ -1477,7 +1461,6 @@ renoise.song().selected_sample.sample_buffer:finalize_sample_data_changes()
 end
 
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:15 Frame Fade In & Fade Out",invoke=function() apply_fade_in_out() end}
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Process..:15 Frame Fade In & Fade Out",invoke=function() apply_fade_in_out() end}
 
 ---
 -- Function to create max amplitude DC offset kick
@@ -1517,7 +1500,6 @@ renoise.app().window.active_middle_frame=5
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Max Amp DC Offset Kick Generator",invoke=function() pakettiMaxAmplitudeDCOffsetKickCreator() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Max Amp DC Offset Kick Generator",invoke=function() pakettiMaxAmplitudeDCOffsetKickCreator() end}
 
 -- Function to apply the recursive DC offset correction algorithm
 function remove_dc_offset_recursive()
@@ -1683,7 +1665,6 @@ function auto_correlate()
   end
 end
 
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Experimental/WIP..:Auto Correlate Loop",invoke=auto_correlate}
 
 
 
@@ -1768,9 +1749,6 @@ function auto_detect_single_cycle_loop()
   renoise.app():show_status(("Loop set: %d to %d (Period: %d)"):format(loop_start, loop_end, best_period))
 end
 
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Experimental/WIP..:Auto Detect Single-Cycle Loop",
-  invoke = auto_detect_single_cycle_loop
-}
 
 --------------------------------------------------------------------------------
 -- Paketti Sample Adjust Dialog
@@ -2184,9 +2162,6 @@ end
 -- Add keybindings and menu entries for Sample Adjust
 renoise.tool():add_keybinding{name = "Sample Editor:Paketti:Paketti Sample Adjust Dialog...",invoke = show_paketti_sample_adjust_dialog}
 renoise.tool():add_keybinding{name = "Global:Paketti:Paketti Sample Adjust Dialog...",invoke = show_paketti_sample_adjust_dialog}
-renoise.tool():add_menu_entry{  name = "Sample Editor:Paketti..:Paketti Sample Adjust Dialog...",invoke = show_paketti_sample_adjust_dialog}
-renoise.tool():add_menu_entry{name = "Sample Navigator:Paketti..:Paketti Sample Adjust Dialog...",invoke = show_paketti_sample_adjust_dialog}
-renoise.tool():add_menu_entry{name = "Sample Mappings:Paketti..:Paketti Sample Adjust Dialog...",invoke = show_paketti_sample_adjust_dialog}
 
 
 

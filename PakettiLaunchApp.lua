@@ -78,24 +78,14 @@ local function create_dialog_content(closeLA_dialog)
     smart_folder_paths = {}
 
     return vb:column{
-        --margin=10,
-        --spacing=10,
-        vb:column{style="group",
+        style="group",
         width=900,
         vb:row{vb:text{text="App Selection", font="bold", style="strong"}},
-        vb:row{
-          --  spacing=10,
-            vb:button{
-                text="Browse",
-                notifier=function() appSelectionBrowseForApp(1) end
-            },
-            vb:button{
-                text="Send Selected Sample to App",
-                notifier=function() 
-                    saveSelectedSampleToTempAndOpen(preferences.AppSelection.AppSelection1.value) 
+        vb:row{vb:button{text="Browse",notifier=function() appSelectionBrowseForApp(1) end},
+            vb:button{text="Send Selected Sample to App",
+                notifier=function() saveSelectedSampleToTempAndOpen(preferences.AppSelection.AppSelection1.value) 
                 end,
-                width=200
-            },
+                width=200},
             (function()
                 local path = vb:text{
                     text=(preferences.AppSelection.AppSelection1.value ~= "" and preferences.AppSelection.AppSelection1.value or "None"),
@@ -106,18 +96,8 @@ local function create_dialog_content(closeLA_dialog)
             end)()
         },
         vb:row{
-           -- spacing=10,
-            vb:button{
-                text="Browse",
-                notifier=function() appSelectionBrowseForApp(2) end
-            },
-            vb:button{
-                text="Send Selected Sample to App",
-                notifier=function() 
-                    saveSelectedSampleToTempAndOpen(preferences.AppSelection.AppSelection2.value) 
-                end,
-                width=200
-            },
+            vb:button{text="Browse",notifier=function() appSelectionBrowseForApp(2) end},
+            vb:button{text="Send Selected Sample to App",notifier=function() saveSelectedSampleToTempAndOpen(preferences.AppSelection.AppSelection2.value) end,width=200},
             (function()
                 local path = vb:text{
                     text=(preferences.AppSelection.AppSelection2.value ~= "" and preferences.AppSelection.AppSelection2.value or "None"),
@@ -127,19 +107,9 @@ local function create_dialog_content(closeLA_dialog)
                 return path
             end)()
         },
-        vb:row{
-         --   spacing=10,
-            vb:button{
-                text="Browse",
-                notifier=function() appSelectionBrowseForApp(3) end
-            },
-            vb:button{
-                text="Send Selected Sample to App",
-                notifier=function() 
-                    saveSelectedSampleToTempAndOpen(preferences.AppSelection.AppSelection3.value) 
-                end,
-                width=200
-            },
+        vb:row{vb:button{text="Browse",notifier=function() appSelectionBrowseForApp(3) end},
+            vb:button{text="Send Selected Sample to App",notifier=function() 
+                    saveSelectedSampleToTempAndOpen(preferences.AppSelection.AppSelection3.value) end,width=200},
             (function()
                 local path = vb:text{
                     text=(preferences.AppSelection.AppSelection3.value ~= "" and preferences.AppSelection.AppSelection3.value or "None"),
@@ -147,21 +117,12 @@ local function create_dialog_content(closeLA_dialog)
                     font="bold",style="strong"}
                 app_paths[3] = path
                 return path
-            end)()
-        },
-        vb:row{
-         --   spacing=10,
-            vb:button{
-                text="Browse",
-                notifier=function() appSelectionBrowseForApp(4) end
-            },
-            vb:button{
-                text="Send Selected Sample to App",
+            end)()},
+        vb:row{vb:button{text="Browse",notifier=function() appSelectionBrowseForApp(4) end},
+            vb:button{text="Send Selected Sample to App",
                 notifier=function() 
                     saveSelectedSampleToTempAndOpen(preferences.AppSelection.AppSelection4.value) 
-                end,
-                width=200
-            },
+                end,width=200},
             (function()
                 local path = vb:text{
                     text=(preferences.AppSelection.AppSelection4.value ~= "" and preferences.AppSelection.AppSelection4.value or "None"),
@@ -169,20 +130,10 @@ local function create_dialog_content(closeLA_dialog)
                     font="bold",style="strong"}
                 app_paths[4] = path
                 return path
-            end)()
-        },
-        vb:row{
-         --   spacing=10,
-            vb:button{
-                text="Browse",
-                notifier=function() appSelectionBrowseForApp(5) end
-            },
-            vb:button{
-                text="Send Selected Sample to App",
-                notifier=function() 
-                    saveSelectedSampleToTempAndOpen(preferences.AppSelection.AppSelection5.value) 
-                end,
-                width=200
+            end)()},
+        vb:row{vb:button{text="Browse",notifier=function() appSelectionBrowseForApp(5) end},
+            vb:button{text="Send Selected Sample to App",
+                notifier=function() saveSelectedSampleToTempAndOpen(preferences.AppSelection.AppSelection5.value) end, width=200
             },
             (function()
                 local path = vb:text{
@@ -191,21 +142,14 @@ local function create_dialog_content(closeLA_dialog)
                     font="bold",style="strong"}
                 app_paths[5] = path
                 return path
-            end)()
-        },
-        vb:row{
-           -- spacing=10,
-            vb:button{
-                text="Browse",
-                notifier=function() appSelectionBrowseForApp(6) end
-            },
+            end)()},
+        vb:row{vb:button{text="Browse",notifier=function() appSelectionBrowseForApp(6) end},
             vb:button{
                 text="Send Selected Sample to App",
                 notifier=function() 
                     saveSelectedSampleToTempAndOpen(preferences.AppSelection.AppSelection6.value) 
                 end,
-                width=200
-            },
+                width=200},
             (function()
                 local path = vb:text{
                     text=(preferences.AppSelection.AppSelection6.value ~= "" and preferences.AppSelection.AppSelection6.value or "None"),
@@ -214,22 +158,11 @@ local function create_dialog_content(closeLA_dialog)
                 app_paths[6] = path
                 return path
             end)()
-        }},
-        vb:column{style="group",width=900,
+        },
         vb:row{vb:text{text="Smart Folders / Backup Folders", font="bold", style="strong"}},
         vb:row{
-         --   spacing=10,
-            vb:button{
-                text="Browse",
-                notifier=function() browseForSmartFolder(1) end
-            },
-            vb:button{
-                text="Save Selected Sample to Folder",
-                notifier=function() 
-                    saveSampleToSmartFolder(1) 
-                end,
-                width=200
-            },
+            vb:button{text="Browse",notifier=function() browseForSmartFolder(1) end},
+            vb:button{text="Save Selected Sample to Folder",notifier=function() saveSampleToSmartFolder(1) end,width=200},
             vb:button{text="Save All Samples to Folder",notifier=function() saveSamplesToSmartFolder(1) end,width=200},
             (function()
                 local path = vb:text{
@@ -239,19 +172,12 @@ local function create_dialog_content(closeLA_dialog)
                 return path
             end)()
         },
-        vb:row{
-          --  spacing=10,
-            vb:button{
-                text="Browse",
-                notifier=function() browseForSmartFolder(2) end
-            },
-            vb:button{
-                text="Save Selected Sample to Folder",
+        vb:row{vb:button{text="Browse",notifier=function() browseForSmartFolder(2) end},
+            vb:button{text="Save Selected Sample to Folder",
                 notifier=function() 
                     saveSampleToSmartFolder(2) 
                 end,
-                width=200
-            },
+                width=200},
             vb:button{
                 text="Save All Samples to Folder",
                 notifier=function() 
@@ -268,25 +194,13 @@ local function create_dialog_content(closeLA_dialog)
             end)()
         },
         vb:row{
-         --   spacing=10,
+        
             vb:button{
                 text="Browse",
                 notifier=function() browseForSmartFolder(3) end
             },
-            vb:button{
-                text="Save Selected Sample to Folder",
-                notifier=function() 
-                    saveSampleToSmartFolder(3) 
-                end,
-                width=200
-            },
-            vb:button{
-                text="Save All Samples to Folder",
-                notifier=function() 
-                    saveSamplesToSmartFolder(3) 
-                end,
-                width=200
-            },
+            vb:button{text="Save Selected Sample to Folder",notifier=function() saveSampleToSmartFolder(3) end,width=200},
+            vb:button{text="Save All Samples to Folder",notifier=function() saveSamplesToSmartFolder(3) end,width=200},
             (function()
                 local path = vb:text{
                     text=(preferences.AppSelection.SmartFoldersApp3.value ~= "" and preferences.AppSelection.SmartFoldersApp3.value or "None"),
@@ -294,10 +208,8 @@ local function create_dialog_content(closeLA_dialog)
                 smart_folder_paths[3] = path
                 return path
             end)()
-        }},
-        vb:button{
-            text="OK",
-            notifier=function()
+        },
+        vb:button{text="OK",notifier=function()
                 appSelectionUpdateMenuEntries()
                 dialog:close()
                 dialog = nil
@@ -348,7 +260,6 @@ for i=1, 6 do
       }
   end
 end
-
 
 for i=1, 3 do
     renoise.tool():add_keybinding{name="Global:Paketti:Save Sample to Smart/Backup Folder " .. i,invoke=function() saveSampleToSmartFolder(i) end}

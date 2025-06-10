@@ -196,7 +196,3 @@ print(string.format("Restored selected_phrase_index to: %d", renoise.song().sele
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Unison Generator",invoke=PakettiCreateUnisonSamples}
-renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Unison Generator",invoke=PakettiCreateUnisonSamples}
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Unison Generator",invoke=PakettiCreateUnisonSamples}
-renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti..:Unison Generator",invoke=PakettiCreateUnisonSamples}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Unison Generator",invoke=PakettiCreateUnisonSamples}

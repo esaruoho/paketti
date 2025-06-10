@@ -578,4 +578,3 @@ end
 -- Initialize preferences file and load keybindings and MIDI mappings
 loadFromPreferences()
 
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Plugins/Devices..:Load Plugins...",invoke=function() pakettiLoadPluginsDialog() end}

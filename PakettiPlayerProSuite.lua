@@ -598,7 +598,6 @@ renoise.app().window.active_middle_frame_observable:add_notifier(function()
   end
 end)
 
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Other Trackers..:Open Player Pro Note Column Dialog...",invoke=pakettiPlayerProNoteGridShowDropdownGrid}
 renoise.tool():add_keybinding{name="Global:Paketti:Open Player Pro Note Column Dialog...",invoke=pakettiPlayerProNoteGridShowDropdownGrid}
 
 PakettiPlayerProNoteGridAddNoteMenuEntries()
@@ -905,11 +904,6 @@ function pakettiPlayerProEffectDialog()
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 end
 
--- Menu registration
-renoise.tool():add_menu_entry{
-  name="Pattern Editor:Paketti..:Other Trackers..:Open Player Pro Tools Effect Dialog",
-  invoke=function() pakettiPlayerProEffectDialog() end
-}
 ---------------
 
 local function pakettiPlayerProCreateArgumentColumn(column_index, switch_group, update_display)
@@ -1717,7 +1711,6 @@ function pakettiPlayerProShowMainDialog()
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 end
 
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Other Trackers..:Open Player Pro Tools Dialog...",invoke=pakettiPlayerProShowMainDialog}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Open Player Pro Tools Dialog...",invoke=pakettiPlayerProShowMainDialog}
 
 function pakettiPlayerProMainDialogInsertNoteInPattern(note, instrument, effect, effect_argument, volume, editstep_enabled)

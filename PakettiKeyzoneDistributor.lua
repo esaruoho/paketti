@@ -231,6 +231,3 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Show Keyzone Distributor Dialog...",invoke=function() pakettiKeyzoneDistributorDialog() end}
 renoise.tool():add_midi_mapping{name="Paketti:Show Keyzone Distributor Dialog...",invoke=function(message) if message:is_trigger() then pakettiKeyzoneDistributorDialog() end end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Keyzone Distributor Dialog...",invoke=function() pakettiKeyzoneDistributorDialog() end}
-renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Keyzone Distributor Dialog...",invoke=function() pakettiKeyzoneDistributorDialog() end}
-renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti..:Keyzone Distributor Dialog...",invoke=function() pakettiKeyzoneDistributorDialog() end}

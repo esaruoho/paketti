@@ -473,22 +473,11 @@ function importMPC2000Folder()
 end
 
 -- Menu entries
-renoise.tool():add_menu_entry{name = "Sample Editor:Paketti..:Load..:Import MPC2000 SND Sample...",invoke = importMPC2000Sample}
-renoise.tool():add_menu_entry{name = "Sample Navigator:Paketti..:Load..:Import MPC2000 SND Sample...",invoke = importMPC2000Sample}
-renoise.tool():add_menu_entry{name = "Sample Mappings:Paketti..:Load..:Import MPC2000 SND Sample...",invoke = importMPC2000Sample}
 renoise.tool():add_keybinding{name = "Global:Paketti:Import MPC2000 SND Sample...",invoke = importMPC2000Sample}
 
-renoise.tool():add_menu_entry{name = "Sample Editor:Paketti..:Export..:Export MPC2000 SND Sample...",invoke = exportMPC2000Sample}
-renoise.tool():add_menu_entry{name = "Sample Navigator:Paketti..:Export..:Export MPC2000 SND Sample...",invoke = exportMPC2000Sample}
-renoise.tool():add_menu_entry{name = "Sample Mappings:Paketti..:Export..:Export MPC2000 SND Sample...",invoke = exportMPC2000Sample}
 renoise.tool():add_keybinding{name = "Global:Paketti:Export MPC2000 SND Sample...",invoke = exportMPC2000Sample}
 
-renoise.tool():add_menu_entry{name = "Sample Editor:Paketti..:Load..:Import MPC2000 SND Folder...",invoke = importMPC2000Folder}
-renoise.tool():add_menu_entry{name = "Sample Navigator:Paketti..:Load..:Import MPC2000 SND Folder...",invoke = importMPC2000Folder}
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Import MPC2000 SND Sample...",invoke=importMPC2000Sample}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Export MPC2000 SND Sample...",invoke=exportMPC2000Sample}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Import MPC2000 SND Folder...",invoke=importMPC2000Folder}
 
 -- File import hook for MPC2000 samples
 local mpc2000_integration = {

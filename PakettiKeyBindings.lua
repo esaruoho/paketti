@@ -663,11 +663,8 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti MIDI Mappings...",
   invoke=function() pakettiMIDIMappingsDialog() end}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:!Preferences..:Paketti MIDI Mappings...",
-  invoke=function() pakettiMIDIMappingsDialog() end}
+
 renoise.tool():add_keybinding{name="Global:Paketti:Generate Paketti Midi Mappings to Console",
-  invoke=function() generate_paketti_midi_mappings() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:!Preferences..:Debug..:Generate Paketti Midi Mappings to Console",
   invoke=function() generate_paketti_midi_mappings() end}
 
 
@@ -1076,7 +1073,6 @@ for _, menu_name in ipairs(menu_entries) do
   renoise.tool():add_menu_entry{name=menu_name .. ":Paketti Gadgets..:Renoise KeyBindings Dialog...",invoke=function() pakettiRenoiseKeyBindingsDialog(identifier) end}
 end
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:!Preferences..:Renoise KeyBindings Dialog...",invoke=function() pakettiRenoiseKeyBindingsDialog() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Show Paketti KeyBindings Dialog...",invoke=function() pakettiKeyBindingsDialog() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Show Renoise KeyBindings Dialog...",invoke=function() pakettiRenoiseKeyBindingsDialog() end}
 -------------------------------------------
@@ -1822,9 +1818,6 @@ function pakettiFreeKeybindingsDialog()
   -- Initial update
   update_free_list()
 end
-
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:!Preferences..:Find Free KeyBindings...",invoke=pakettiFreeKeybindingsDialog}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:!Preferences..:Debug..:Print Free KeyBindings to Terminal",invoke=print_free_combinations}
 renoise.tool():add_keybinding{name="Global:Paketti:Show Free KeyBindings Dialog...",invoke=pakettiFreeKeybindingsDialog}
 
 -- Function to normalize modifier order to match Renoise's XML format

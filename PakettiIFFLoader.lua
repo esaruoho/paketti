@@ -234,9 +234,6 @@ renoise.tool():add_file_import_hook{
   invoke     = loadIFFSample
 }
 
-renoise.tool():add_menu_entry{name = "Sample Editor:Paketti..:Load..:Load IFF Sample File...",invoke = loadIFFSampleFromDialog}
-renoise.tool():add_menu_entry{name = "Sample Navigator:Paketti..:Load..:Load IFF Sample File...",invoke = loadIFFSampleFromDialog}
-renoise.tool():add_menu_entry{name = "Sample Mappings:Paketti..:Load..:Load IFF Sample File...",invoke = loadIFFSampleFromDialog}
 renoise.tool():add_keybinding{name = "Global:Paketti:Load IFF Sample File...",invoke = loadIFFSampleFromDialog}
 
 
@@ -451,9 +448,7 @@ function convertIFFToWAV()
 end
 
 
-renoise.tool():add_menu_entry{name = "Sample Navigator:Paketti..:Load..:Convert IFF to WAV...",invoke = convertIFFToWAV}
 renoise.tool():add_keybinding{name = "Global:Paketti:Convert IFF to WAV...",invoke = convertIFFToWAV}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Convert IFF to WAV...",invoke=convertIFFToWAV}
 
 -- WAV to IFF conversion functions
 
@@ -779,11 +774,8 @@ function convertWAVToIFF()
   end
 end
 
-renoise.tool():add_menu_entry{name = "Sample Editor:Paketti..:Load..:Convert WAV to IFF...",invoke = convertWAVToIFF}
-renoise.tool():add_menu_entry{name = "Sample Navigator:Paketti..:Load..:Convert WAV to IFF...",invoke = convertWAVToIFF}
-renoise.tool():add_menu_entry{name = "Sample Mappings:Paketti..:Load..:Convert WAV to IFF...",invoke = convertWAVToIFF}
 renoise.tool():add_keybinding{name = "Global:Paketti:Convert WAV to IFF...",invoke = convertWAVToIFF}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Convert WAV to IFF...",invoke=convertWAVToIFF}
+
 
 -- Function to save current selected sample as IFF (22kHz 8-bit mono .iff)
 function saveCurrentSampleAsIFF()
@@ -909,8 +901,4 @@ function saveCurrentSampleAsIFF()
   end
 end
 
-renoise.tool():add_menu_entry{name = "Sample Editor:Paketti..:Save..:Save Current Sample as IFF...",invoke = saveCurrentSampleAsIFF}
-renoise.tool():add_menu_entry{name = "Sample Navigator:Paketti..:Save..:Save Current Sample as IFF...",invoke = saveCurrentSampleAsIFF}
-renoise.tool():add_menu_entry{name = "Sample Mappings:Paketti..:Save..:Save Current Sample as IFF...",invoke = saveCurrentSampleAsIFF}
 renoise.tool():add_keybinding{name = "Global:Paketti:Save Current Sample as IFF...",invoke = saveCurrentSampleAsIFF}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Save Current Sample as IFF...",invoke=saveCurrentSampleAsIFF}

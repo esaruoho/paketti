@@ -1472,6 +1472,7 @@ function tknaSelectTriggerLoopSection(number)
   end
 end
 
+
 -- Function to select, schedule, and loop the next occurrence of the section
 function tknaSelectScheduleLoopSection(number)
   local song=renoise.song()
@@ -1524,8 +1525,9 @@ end
 for i = 0, 64 do
   local section_id = string.format("%02d", i)
 
-  renoise.tool():add_keybinding{name="Global:Paketti:Select, Trigger and Loop Section " .. section_id,invoke=function() tknaSelectTriggerLoopSection(i) end}
-  renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Sequences/Sections..:Select, Trigger and Loop..:Select, Trigger and Loop Section " .. section_id,invoke=function() tknaSelectTriggerLoopSection(i) end}
+  renoise.tool():add_keybinding{name="Global:Paketti:Select, Trigger and Loop Section " .. section_id,
+    invoke=function() tknaSelectTriggerLoopSection(i) end
+  }
   renoise.tool():add_midi_mapping{name="Paketti:Select, Trigger and Loop Section " .. section_id,
     invoke=function(message) 
       if message:is_trigger() then
@@ -1534,11 +1536,12 @@ for i = 0, 64 do
     end
   }
 
+  
+
+
   renoise.tool():add_keybinding{name="Global:Paketti:Select, Schedule and Loop Section " .. section_id,
     invoke=function() tknaSelectScheduleLoopSection(i) end
   }
-
-  renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Sequences/Sections..:Select, Schedule and Loop..:Select, Schedule and Loop Section " .. section_id,invoke=function() tknaSelectScheduleLoopSection(i) end}
   renoise.tool():add_midi_mapping{name="Paketti:Select, Schedule and Loop Section " .. section_id,
     invoke=function(message) 
       if message:is_trigger() then
@@ -1550,7 +1553,6 @@ for i = 0, 64 do
   renoise.tool():add_keybinding{name="Global:Paketti:Select, Add to Schedule and Loop Section " .. section_id,
     invoke=function() tknaSelectAddScheduleLoopSection(i) end
   }
-  renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Sequences/Sections..:Select, Add to Schedule and Loop..:Select, Add to Schedule and Loop Section " .. section_id,invoke=function() tknaSelectAddScheduleLoopSection(i) end}
   renoise.tool():add_midi_mapping{name="Paketti:Select, Add to Schedule and Loop Section " .. section_id,
     invoke=function(message) 
       if message:is_trigger() then
@@ -1558,6 +1560,11 @@ for i = 0, 64 do
       end
     end
   }
+
+  -- Add menu entries
+  renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Sequences/Sections..:Select, Trigger and Loop..:Select, Trigger and Loop Section " .. section_id,invoke=function() tknaSelectTriggerLoopSection(i) end}
+  renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Sequences/Sections..:Select, Schedule and Loop..:Select, Schedule and Loop Section " .. section_id,invoke=function() tknaSelectScheduleLoopSection(i) end}
+  renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti..:Sequences/Sections..:Select, Add to Schedule and Loop..:Select, Add to Schedule and Loop Section " .. section_id,invoke=function() tknaSelectAddScheduleLoopSection(i) end}
 end
 -----
 -- Slice mode settings
@@ -1641,7 +1648,5 @@ end
 function slicePercussionDrumKit() sliceDrumKit("percussion") end
 function sliceTextureDrumKit() sliceDrumKit("texture") end
 
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Beatsync/Slices..:Slice Drumkit (Percussion)", invoke=slicePercussionDrumKit}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Beatsync/Slices..:Slice Drumkit (Texture)", invoke=sliceTextureDrumKit}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Slice Drumkit (Percussion)", invoke=slicePercussionDrumKit}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Slice Drumkit (Texture)", invoke=sliceTextureDrumKit}

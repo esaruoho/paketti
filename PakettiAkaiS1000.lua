@@ -453,18 +453,10 @@ function exportS1000Sample()
 end
 
 -- Menu entries
-renoise.tool():add_menu_entry{name = "Sample Editor:Paketti..:Load..:Import S1000 Sample...",invoke = importS1000Sample}
-renoise.tool():add_menu_entry{name = "Sample Navigator:Paketti..:Load..:Import S1000 Sample...",invoke = importS1000Sample}
-renoise.tool():add_menu_entry{name = "Sample Mappings:Paketti..:Load..:Import S1000 Sample...",invoke = importS1000Sample}
+renoise.tool():add_keybinding{name = "Global:Paketti:Export S1000 Sample...",invoke = exportS1000Sample}
 renoise.tool():add_keybinding{name = "Global:Paketti:Import S1000 Sample...",invoke = importS1000Sample}
 
-renoise.tool():add_menu_entry{name = "Sample Editor:Paketti..:Export..:Export S1000 Sample...",invoke = exportS1000Sample}
-renoise.tool():add_menu_entry{name = "Sample Navigator:Paketti..:Export..:Export S1000 Sample...",invoke = exportS1000Sample}
-renoise.tool():add_menu_entry{name = "Sample Mappings:Paketti..:Export..:Export S1000 Sample...",invoke = exportS1000Sample}
-renoise.tool():add_keybinding{name = "Global:Paketti:Export S1000 Sample...",invoke = exportS1000Sample}
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Import S1000 Sample...",invoke=importS1000Sample}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Export S1000 Sample...",invoke=exportS1000Sample}
 
 -- File import hook for S1000/S3000 samples
 local s1000_integration = {

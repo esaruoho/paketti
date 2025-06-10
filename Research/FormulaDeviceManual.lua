@@ -354,9 +354,7 @@ function pakettiFormulaDeviceDialog()
   retain_current_view()
 end
 
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Show Paketti Formula Dialog...",invoke = pakettiFormulaDeviceDialog}
 
-renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Show Paketti Formula Device Manual Dialog...",invoke = pakettiFormulaDeviceDialog}
 renoise.tool():add_keybinding{name="Global:Paketti:Show Paketti Formula Device Manual Dialog...",invoke = pakettiFormulaDeviceDialog}
 
 ------
@@ -376,6 +374,4 @@ function add_input_inertia()
   end
 end
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Add Input Inertia Formula Device",invoke = add_input_inertia}
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Add Input Inertia Formula Device",invoke = add_input_inertia}
 renoise.tool():add_keybinding{name="Global:Paketti:Add Input Inertia Formula Device",invoke = add_input_inertia}

@@ -327,22 +327,7 @@ function checkAkaiImportersAvailable()
 end
 
 -- Menu entries
-renoise.tool():add_menu_entry{name = "Sample Editor:Paketti..:Load..:Import Any Akai Sample...",invoke = importAnyAkaiSample}
-renoise.tool():add_menu_entry{name = "Sample Navigator:Paketti..:Load..:Import Any Akai Sample...",invoke = importAnyAkaiSample}
-renoise.tool():add_menu_entry{name = "Sample Mappings:Paketti..:Load..:Import Any Akai Sample...",invoke = importAnyAkaiSample}
 
-renoise.tool():add_menu_entry{name = "Sample Editor:Paketti..:Load..:Import Akai Folder (Batch)...",invoke = importAkaiFolderBatch}
-renoise.tool():add_menu_entry{name = "Sample Navigator:Paketti..:Load..:Import Akai Folder (Batch)...",invoke = importAkaiFolderBatch}
-
-renoise.tool():add_menu_entry{name = "Sample Editor:Paketti..:Export..:Export as Akai Format...",invoke = exportCurrentSampleAsAkai}
-renoise.tool():add_menu_entry{name = "Sample Navigator:Paketti..:Export..:Export as Akai Format...",invoke = exportCurrentSampleAsAkai}
-renoise.tool():add_menu_entry{name = "Sample Mappings:Paketti..:Export..:Export as Akai Format...",invoke = exportCurrentSampleAsAkai}
-
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Akai Formats Info...",invoke=showAkaiFormatsInfo}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Import Any Akai Sample...",invoke=importAnyAkaiSample}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Import Akai Folder (Batch)...",invoke=importAkaiFolderBatch}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Export as Akai Format...",invoke=exportCurrentSampleAsAkai}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Check Akai Importers...",invoke=checkAkaiImportersAvailable}
 
 renoise.tool():add_keybinding{name = "Global:Paketti:Import Any Akai Sample...",invoke = importAnyAkaiSample}
 renoise.tool():add_keybinding{name = "Global:Paketti:Import Akai Folder (Batch)...",invoke = importAkaiFolderBatch}

@@ -1,50 +1,50 @@
-Keybinding: Pattern Editor:Paketti:Effect Column Dxx Slide Pitch Down (+1)
-Keybinding: Pattern Editor:Paketti:Write Notes Descending
-Menu Entry: Sample Navigator:Paketti..:Process..:Invert Left Channel of Selected Sample
-Keybinding: Global:Paketti:Impulse Tracker F4 Instrument Editor
-Keybinding: Global:Paketti:Bypass All Other Track DSP Devices (Toggle)
-Keybinding: Phrase Editor:Paketti:Create New Phrase using Paketti Settings
-Keybinding: Global:Track Devices:Load GRM Reson Stereo (VST)
-Menu Entry: Main Menu:Tools:Paketti..:Delete Unused Samples...
-Menu Entry: Instrument Box:Paketti..:Paketti PitchBend Drumkit Sample Loader (Random)
-Menu Entry: Pattern Matrix:Paketti..:Selection in Pattern Matrix to Group
-Keybinding: Sample Editor:Paketti:Move Slice End Right by 500
-Menu Entry: Pattern Sequencer:Paketti..:Sequences/Sections..:Add Current Sequence to Scheduled List
-Menu Entry: Sample Navigator:Paketti..:Wipe&Slice..:Wipe&Slice (008)
-Menu Entry: Pattern Editor:Paketti..:Delay Output..:Nudge Delay Output -10ms
-Keybinding: Global:Paketti:Impulse Tracker F8 Stop Playback (Panic)
-Keybinding: Pattern Matrix:Paketti:Pattern Matrix Selection Shrink
-Keybinding: Pattern Editor:Paketti:Set Pattern Length to LPB*016
+Keybinding: Pattern Editor:Paketti:Clean Render Seamless Selected Track/Group
+Keybinding: Global:Paketti:Set Sync Mode to (Midi Clock)
+Keybinding: Global:Paketti:Impulse Tracker 8 Play Current Line & Advance by EditStep
+Keybinding: Pattern Editor:Paketti:Global Toggle Visible Column (Sample Effects)
+Keybinding: Global:Paketti:Randomize Effect Column Fill (0B00/0B01)
+Keybinding: Global:Paketti:Clone Current Pattern to Current Sequence
+Keybinding: Global:Paketti:CapsLockChassis
+Keybinding: Global:Paketti:Record+Follow+Metronome Precount 2 Bar
+Keybinding: Global:Paketti:Randomize Effect Column Fill (0D Slide Down)
+Keybinding: Global:Paketti:Hide All Instrument Properties
+Keybinding: Global:Paketti:Record & Follow Flip
+Keybinding: Global:Paketti:Set Selected Sample Panning (+0.01)
+Keybinding: Pattern Sequencer:Paketti:Keep Sequence Sorted True
+Keybinding: Sample Editor:Paketti:Create New Instrument & Loop from Selection
+Keybinding: Global:Paketti:Increase EditStep by 4
+Keybinding: Global:Paketti:Output Routing (Continual, Skip Master, Include Master in Cycle)
+Keybinding: Global:Paketti:Show Free KeyBindings Dialog...
+Keybinding: Global:Paketti:Open User Preferences Dialog...
+Keybinding: Global:Paketti:Clear/Wipe Selected Track TrackDSPs
+Keybinding: Global:Paketti:Clone and Shrink Pattern to LPB/2
+Keybinding: Global:Paketti:Clean Render&Save Selected Track/Group (.WAV)
+Keybinding: Pattern Editor:Paketti:Effect Column Uxx Slide Pitch Up (+10) (3rd)
+Keybinding: Sample Keyzones:Paketti:Delete Unused Samples
+Keybinding: Global:Paketti:Randomize Automation Envelope
+Keybinding: Global:Paketti:Impulse Tracker Pattern (Previous)
+Keybinding: Global:Paketti:Capture Nearest Instrument and Octave (jump)
+Keybinding: Pattern Editor:Paketti:Effect Column Dxx Slide Pitch Down (-1) (2nd)
+Keybinding: Sample Editor:Paketti:Rotate Sample Buffer Right 100
+Keybinding: Global:Paketti:LFO Write to Effect Column 1 (0Uxx)
 Keybinding: Global:Paketti:Move Slice Start Right by 100
-Keybinding: Global:Paketti:Rewind Playback by 4 steps
-Keybinding: Global:Paketti:Set Selected Sample Mute Group to F
-Keybinding: Global:Paketti:Toggle Sequence Selection (All) On/Off
-Keybinding: Pattern Editor:Paketti:ChordsPlus Transposer Selection/Row -04
-Menu Entry: Mixer:Paketti..:Automation..:Snapshot Current Device Values to Automation
-Menu Entry: Instrument Box:Paketti..:Record..:Paketti Overdub 12 (Metronome/No Line Input)
-Menu Entry: Main Menu:View:Paketti..:Visible Columns..:Global Visible Column (Volume)
-Keybinding: Global:Paketti:Load XRNI & Disable Phrases
-Menu Entry: Instrument Box:Paketti..:Paketti Stacker Dialog...
+Keybinding: Global:Paketti:Set Automation Range to Max (1.0)
+Keybinding: Sample Navigator:Paketti:Move Slice End Right by 300
+Keybinding: Pattern Editor:Paketti:Step by EditStep (Backwards)
+Keybinding: Phrase Editor:Paketti:Hide Current and Select Previous Column
+Keybinding: Global:Paketti:Set Selected Sample Interpolation to 2 (Linear)
+Keybinding: Sample Editor:Paketti:Move Slice Start Left by 300
+Keybinding: Global:Paketti:User-Defined Sample Folders...
+Keybinding: Pattern Matrix:Paketti:Pattern Matrix Selection Expand
+Keybinding: Global:Paketti:Load Waldorf Attack (VST)
+Keybinding: Phrase Editor:Paketti:Toggle Note Off in Selected Tracks
+Keybinding: Sample Editor:Paketti:Select Center of Sample Buffer
+Keybinding: Pattern Editor:Paketti:Set Global LPB to 256
+Keybinding: Pattern Editor:Paketti:Write Notes Ascending
+Menu Entry: Main Menu:Tools:Paketti..:!Preferences..:Change Fonts (classic)
+Keybinding: Pattern Editor:Paketti:Transpose Octave Down Note Column (Selection/Note Column)
 Keybinding: Sample Editor:Paketti:Move Slice Start Right by 300
-Menu Entry: Main Menu:Tools:Paketti..:Pattern Editor..:Toggle Mute Tracks
-Menu Entry: Instrument Box:Paketti..:Paketti Timestretch Dialog...
-Menu Entry: Mixer:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Sxx)
-Menu Entry: Main Menu:Tools:Paketti..:Plugins/Devices..:Insert Random Device (All)
-Menu Entry: Pattern Editor:Paketti..:Resize all non-empty Patterns..:Resize all non-empty Patterns to 256
-Menu Entry: Main Menu:File:Delete Unused Samples...
-Keybinding: Pattern Editor:Paketti:Player Pro Transpose Selection or Row +1
-Keybinding: Sample Editor:Paketti:Select Padded Slice (Next)
-Menu Entry: Pattern Editor:Paketti..:Wipe All Automation in Track on Current Pattern
-Menu Entry: Main Menu:Tools:Paketti..:Instruments..:Global Volume Reduce All Instruments by -4.5dB
-Keybinding: Global:Paketti:Select Sample Previous
-Menu Entry: Pattern Sequencer:Paketti..:Resize all non-empty Patterns..:Resize all non-empty Patterns to 012
-Keybinding: Global:Paketti:Write Velocity Random for Stacked Instrument
-Menu Entry: Sample Editor:Paketti..:Beatsync/Slices..:Slice Drumkit (Texture)
-Keybinding: Pattern Editor:Paketti:Set Pattern Length to 006 (006)
-Menu Entry: Sample Navigator:Paketti..:Process..:Strip Silence
-Menu Entry: Pattern Editor:Paketti ChordsPlus..:Duplicate Lowest Notes to New Track (Selected Instrument)
-Keybinding: Global:Track Devices:Load Renoise Exciter
-Menu Entry: Pattern Editor:Paketti..:Visible Columns..:Global Visible Column (Panning)
-Keybinding: Global:Paketti:Automation Top to Center (Exp)
-Menu Entry: Sample Editor:Paketti..:Paketti eSpeak Text-to-Speech...
-Menu Entry: Sample Editor:Paketti..:Beatsync/Slices..:Slice Drumkit (Percussion)
+Keybinding: Pattern Editor:Paketti:Effect Column VXy Vibrato Amount Xy (+1)
+Keybinding: Global:Paketti:Delete/Clear/Wipe Entire Row
+Keybinding: Global:Paketti:Set Selected Sample Autoseek On/Off
+Keybinding: Global:Paketti:Delete/Clear/Wipe Selected Note Column with EditStep

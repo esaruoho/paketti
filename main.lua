@@ -53,8 +53,6 @@ function align_instrument_names()
   end
 end
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress..:Align Instrument Names",invoke=function() align_instrument_names() end}
-
 function formatDigits(digits, number)
   return string.format("%0" .. digits .. "d", number)
 end
@@ -158,30 +156,7 @@ function timed_require(module_name)
 end
 print ("---------------------")
 
-local renoise_version = tonumber(string.match(renoise.RENOISE_VERSION, "(%d+%.%d+)"))
 
-if renoise_version == 2.8 then
---December 15, 2011, Renoise 2.8 only
---esaruoho
-function EZMaximizeSpectrum()
-  local s=renoise.song()
-  local t=s.transport
-  local w=renoise.app().window
-    if t.playing==false then
-       t.playing=true end
-  
-  w.disk_browser_is_expanded=true
-  w.active_upper_frame=4
-  w.upper_frame_is_visible=true
-  w.lower_frame_is_visible=false
-  renoise.app():show_status("Current BPM: " .. t.bpm .. " Current LPB: " .. t.lpb .. ". Playback started.")
-  end
-  
-  renoise.tool():add_keybinding{name="Global:Paketti:EZ Maximize Spectrum",invoke=function() EZMaximizeSpectrum() end}
-  renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:EZ Maximize Spectrum",invoke=function() EZMaximizeSpectrum() end}
-  renoise.tool():add_menu_entry{name="Mixer:EZ Maximize Spectrum",invoke=function() EZMaximizeSpectrum() end}
-  renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:EZ Maximize Spectrum",invoke=function() EZMaximizeSpectrum() end}
-end
 
 function my_keyhandler_func(dialog, key)
   local closer = preferences.pakettiDialogClose.value
@@ -441,6 +416,7 @@ timed_require("PakettiXMLizer")
 timed_require("PakettiDeviceValues")
 timed_require("PakettiAKAI")
 timed_require("PakettiMenuConfig")
+timed_require("legacy_v2_8_tools")
 print(string.format("Total load time: %.3f seconds", os.clock() - init_time))
 
 _AUTO_RELOAD_DEBUG = true

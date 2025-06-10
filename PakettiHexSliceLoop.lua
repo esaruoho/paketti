@@ -165,9 +165,6 @@ end
     focus_sample_editor()
 end
 
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Set Selection by Hex Offset...", invoke = pakettiHexOffsetDialog}
-renoise.tool():add_menu_entry{name="Sample Editor Ruler:Set Selection by Hex Offset...", invoke = pakettiHexOffsetDialog}
-
 function cut_sample_after_selection()
   local song=renoise.song()
   local sample = song.selected_sample
@@ -313,4 +310,274 @@ function cut_all_samples_in_instrument()
     
     renoise.app():show_status(string.format("Set forward loops at hex value %02X", hex_value))
     focus_sample_editor()
+end
+
+function prepare_sample_for_slicing()
+    print("--- Prepare Sample for Slicing ---")
+    
+    local song, sample = validate_sample()
+    if not song then return end
+    
+    local instrument = song.selected_instrument
+    
+    -- Step 1: Clear existing slice markers and create first slice at frame 1, second at last frame
+    local total_frames = sample.sample_buffer.number_of_frames
+    
+    -- Clear slice markers properly
+    while #sample.slice_markers > 0 do
+        sample:delete_slice_marker(sample.slice_markers[1])
+    end
+    
+    -- Add slice markers properly
+    sample:insert_slice_marker(1)  -- First slice at frame 1
+    sample:insert_slice_marker(total_frames)  -- Second slice at last frame
+    
+    print("Created first slice marker at frame 1")
+    print("Created second slice marker at frame " .. total_frames .. " (last frame)")
+    print("Now drag the second slice LEFT until loop timing is perfect!")
+    
+    -- Step 2: NOW read the first slice mapping note (after creating slices)
+    local first_slice_note = instrument.sample_mappings[1][2].base_note
+    
+    print("First slice is mapped to note: " .. first_slice_note .. " (" .. note_value_to_string(first_slice_note) .. ")")
+    print("This is the note to trigger the first slice")
+    
+    -- Step 3: Write note to LINE 1 (not current selected line)
+    local current_pattern = song.selected_pattern
+    local current_track = song.selected_track
+    
+    -- Make sure we're not on a master or send track
+    if current_track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+        local note_column = current_pattern:track(song.selected_track_index):line(1):note_column(1)  -- LINE 1, not current line
+        note_column.note_value = first_slice_note  -- Use the first slice note
+        note_column.instrument_value = song.selected_instrument_index - 1  -- 0-based
+        
+        print("Wrote " .. note_value_to_string(first_slice_note) .. " note to pattern at line 1")
+    else
+        print("Warning: Current track is not a sequencer track - cannot write note")
+    end
+    
+    -- Step 4: Focus sample editor
+    focus_sample_editor()
+    
+    renoise.app():show_status("Sample prepared! Adjust BPM/LPB/Pattern Length, then use Auto-Slice")
+    print("--- Sample Preparation Complete ---")
+    print("Next steps:")
+    print("1. Play the pattern and adjust BPM, LPB, and pattern length")
+    print("2. Make sure the sample loops perfectly")
+    print("3. Run 'Auto-Slice Using First Slice Length'")
+    print("4. Run 'Create Pattern Sequencer Patterns'")
+end
+
+function select_beat_range_for_verification()
+    print("--- Select Beat Range 1.0.0 to 9.0.0 for Verification ---")
+    
+    local song, sample = validate_sample()
+    if not song then return end
+    
+    -- Read current song timing
+    local bpm = song.transport.bpm
+    local sample_rate = sample.sample_buffer.sample_rate
+    
+    print("Current BPM: " .. bpm)
+    print("Sample Rate: " .. sample_rate .. " Hz")
+    
+    -- Calculate frame position for beat 9.0.0 (8 beats from start)
+    local seconds_per_beat = 60 / bpm
+    local total_seconds_for_8_beats = 8 * seconds_per_beat
+    local frame_position_beat_9 = math.floor(total_seconds_for_8_beats * sample_rate)
+    
+    print("Seconds per beat: " .. seconds_per_beat)
+    print("8 beats duration: " .. total_seconds_for_8_beats .. " seconds")
+    print("Frame position of beat 9.0.0: " .. frame_position_beat_9)
+    
+    -- Set sample selection from frame 1 to beat 9.0.0
+    local buffer = sample.sample_buffer
+    buffer.selection_start = 1
+    buffer.selection_end = frame_position_beat_9
+    
+    print("Set sample selection: 1 to " .. frame_position_beat_9)
+    print("Selection length: " .. frame_position_beat_9 .. " frames")
+    print("Selection duration: " .. total_seconds_for_8_beats .. " seconds")
+    
+    -- Focus sample editor
+    focus_sample_editor()
+    
+    renoise.app():show_status(string.format("Selected 1.0.0 to 9.0.0 (%d frames, %.2fs)", frame_position_beat_9, total_seconds_for_8_beats))
+    print("--- Verification Selection Complete ---")
+    print("Play this selection to verify it's exactly 8 beats (1.0.0 to 9.0.0)!")
+end
+
+function auto_slice_every_8_beats()
+    print("--- Auto-Slice every 8 beats ---")
+    
+    local song, sample = validate_sample()
+    if not song then return end
+    
+    -- Step 1: Select beat range 1.0.0 to 9.0.0 (8 beats)
+    local bpm = song.transport.bpm
+    local sample_rate = sample.sample_buffer.sample_rate
+    
+    print("Current BPM: " .. bpm)
+    print("Sample Rate: " .. sample_rate .. " Hz")
+    
+    -- Calculate frame position for beat 9.0.0 (8 beats from start)
+    local seconds_per_beat = 60 / bpm
+    local total_seconds_for_8_beats = 8 * seconds_per_beat
+    local frame_position_beat_9 = math.floor(total_seconds_for_8_beats * sample_rate)
+    
+    print("8 beats duration: " .. total_seconds_for_8_beats .. " seconds")
+    print("Frame position of beat 9.0.0: " .. frame_position_beat_9)
+    
+    -- Set sample selection from frame 1 to beat 9.0.0
+    local buffer = sample.sample_buffer
+    buffer.selection_start = 1
+    buffer.selection_end = frame_position_beat_9
+    
+    print("Set sample selection: 1 to " .. frame_position_beat_9)
+    
+    -- Step 2: Focus sample editor
+    focus_sample_editor()
+    
+    -- Step 3: Auto-slice from selection
+    print("Running pakettiSlicesFromSelection() to auto-slice every 8 beats...")
+    pakettiSlicesFromSelection()
+    
+    renoise.app():show_status(string.format("Auto-sliced every 8 beats (%d frames, %.2fs)", frame_position_beat_9, total_seconds_for_8_beats))
+    print("--- Auto-Slice every 8 beats Complete ---")
+end
+
+function delete_all_pattern_sequences()
+    print("--- Delete All Pattern Sequences ---")
+    
+    local song = renoise.song()
+    local sequencer = song.sequencer
+    local sequence_count = #sequencer.pattern_sequence
+    
+    print("Found " .. sequence_count .. " sequences in pattern sequencer")
+    
+    if sequence_count == 0 then
+        renoise.app():show_status("No sequences to delete")
+        print("No sequences found")
+        return
+    end
+    
+    -- Delete from last to first to avoid index shifting
+    for i = sequence_count, 1, -1 do
+        print("Deleting sequence at index " .. i)
+        sequencer:delete_sequence_at(i)
+    end
+    
+    local remaining_count = #sequencer.pattern_sequence
+    print("Sequences remaining after deletion: " .. remaining_count)
+    
+    renoise.app():show_status("Deleted " .. sequence_count .. " pattern sequences")
+    print("--- Delete All Pattern Sequences Complete ---")
+end
+
+function whole_hog_complete_workflow()
+    print("=== WHOLE HOG: Complete Sample to Pattern Workflow ===")
+    
+    local song, sample = validate_sample()
+    if not song then return end
+    
+    print("Step 1/3: Preparing sample for slicing...")
+    
+    -- STEP 1: Prepare sample (from prepare_sample_for_slicing)
+    local instrument = song.selected_instrument
+    local total_frames = sample.sample_buffer.number_of_frames
+    
+    -- Clear existing slice markers and create first slice at frame 1, second at last frame
+    while #sample.slice_markers > 0 do
+        sample:delete_slice_marker(sample.slice_markers[1])
+    end
+    
+    sample:insert_slice_marker(1)  -- First slice at frame 1
+    sample:insert_slice_marker(total_frames)  -- Second slice at last frame
+    
+    print("Created preparation slices at frame 1 and " .. total_frames)
+    
+    -- Read the first slice mapping note and write to pattern
+    local first_slice_note = instrument.sample_mappings[1][2].base_note
+    local current_pattern = song.selected_pattern
+    local current_track = song.selected_track
+    
+    if current_track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+        local note_column = current_pattern:track(song.selected_track_index):line(1):note_column(1)
+        note_column.note_value = first_slice_note
+        note_column.instrument_value = song.selected_instrument_index - 1
+        print("Wrote " .. note_value_to_string(first_slice_note) .. " note to pattern line 1")
+    end
+    
+    print("Step 2/3: Auto-slicing every 8 beats...")
+    
+    -- STEP 2: Auto-slice every 8 beats (from auto_slice_every_8_beats)
+    local bpm = song.transport.bpm
+    local sample_rate = sample.sample_buffer.sample_rate
+    local seconds_per_beat = 60 / bpm
+    local total_seconds_for_8_beats = 8 * seconds_per_beat
+    local frame_position_beat_9 = math.floor(total_seconds_for_8_beats * sample_rate)
+    
+    print("BPM: " .. bpm .. ", 8 beats = " .. total_seconds_for_8_beats .. "s, Frame: " .. frame_position_beat_9)
+    
+    -- Set sample selection and auto-slice
+    local buffer = sample.sample_buffer
+    buffer.selection_start = 1
+    buffer.selection_end = frame_position_beat_9
+    
+    focus_sample_editor()
+    
+    print("Running pakettiSlicesFromSelection()...")
+    pakettiSlicesFromSelection()
+    
+    print("Step 3/3: Creating pattern sequencer patterns...")
+    
+    -- STEP 3: Create pattern sequencer patterns
+    print("Running createPatternSequencerPatternsBasedOnSliceCount()...")
+    createPatternSequencerPatternsBasedOnSliceCount()
+    
+    renoise.app():show_status("WHOLE HOG Complete! Sample prepared, sliced, and patterns created")
+    print("=== WHOLE HOG COMPLETE! ===")
+    print("Sample is now ready to use with pattern sequencer!")
+end
+
+function detect_first_slice_and_auto_slice()
+    print("--- Detect First Slice and Auto-Slice ---")
+    
+    local song, sample = validate_sample()
+    if not song then return end
+    
+    local slice_markers = sample.slice_markers
+    local slice_count = #slice_markers
+    
+    -- Check if we have at least 2 slices to determine first slice length
+    if slice_count < 2 then
+        renoise.app():show_status("Need at least 2 slices to detect first slice length")
+        print("Error: Need at least 2 slices to detect first slice length")
+        return
+    end
+    
+    -- Get first slice boundaries
+    local slice1_start = slice_markers[1]
+    local slice1_end = slice_markers[2] - 1  -- End of slice 1 is start of slice 2 minus 1
+    local slice1_length = slice1_end - slice1_start + 1
+    
+    print("Detected slice 1: Start=" .. slice1_start .. ", End=" .. slice1_end .. ", Length=" .. slice1_length .. " frames")
+    
+    -- Set sample selection to first slice range
+    local buffer = sample.sample_buffer
+    buffer.selection_start = slice1_start
+    buffer.selection_end = slice1_end
+    
+    print("Set sample selection: " .. slice1_start .. " to " .. slice1_end)
+    
+    -- Focus sample editor so user can see the selection
+    focus_sample_editor()
+    
+    -- Call pakettiSlicesFromSelection to auto-slice the rest
+    print("Running pakettiSlicesFromSelection() to auto-slice remaining sample...")
+    pakettiSlicesFromSelection()
+    
+    renoise.app():show_status(string.format("Auto-sliced sample using first slice length (%d frames)", slice1_length))
+    print("--- Auto-Slice Complete ---")
 end

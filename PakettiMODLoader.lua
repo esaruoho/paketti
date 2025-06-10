@@ -1,27 +1,3 @@
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Samples..:Load .MOD as Sample",
-  invoke=function() 
-    local file_path = renoise.app():prompt_for_filename_to_read({"*.mod","mod.*"}, "Select Any File to Load as Sample")
-    if file_path ~= "" then
-      pakettiLoadExeAsSample(file_path)
-      paketti_toggle_signed_unsigned() end end}
-
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Load .MOD as Sample",
-  invoke=function() 
-    local file_path = renoise.app():prompt_for_filename_to_read({"*.mod","mod.*"}, "Select Any File to Load as Sample")
-    if file_path ~= "" then
-      pakettiLoadExeAsSample(file_path)
-      paketti_toggle_signed_unsigned() end end}
-
-
-
-
-
-
-
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Samples..:Load Samples from .MOD",invoke=function() load_samples_from_mod() end}
-
-
-
 -- helper to read a big-endian 16-bit word from a string at pos (1-based)
 local function read_be_u16(str, pos)
   local b1, b2 = str:byte(pos, pos+1)

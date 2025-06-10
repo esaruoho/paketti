@@ -40,8 +40,8 @@ function pakettiPitchStepperDemo()
     },my_keyhandler_func)
 end
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:PitchStepper Demo",invoke=function() pakettiPitchStepperDemo() end}
-renoise.tool():add_menu_entry{name="--Sample Modulation Matrix:Paketti..:PitchStepper Demo",invoke=function() pakettiPitchStepperDemo() end}
+
+
 renoise.tool():add_keybinding{name="Global:Paketti:PitchStepper Demo",invoke=function() pakettiPitchStepperDemo() end}
 ---
 function ResetAllSteppers(clear)
@@ -111,8 +111,8 @@ function ResetAllSteppers(clear)
 end
 ---
 renoise.tool():add_keybinding{name="Global:Paketti:Reset All Steppers",invoke = ResetAllSteppers}
-renoise.tool():add_menu_entry{name="--Sample Modulation Matrix:Paketti..:Reset All Steppers",invoke = ResetAllSteppers}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:Reset All Steppers",invoke = ResetAllSteppers}
+
+
 ----
 local function findStepperDeviceIndex(deviceName)
     local instrument = renoise.song().selected_instrument
@@ -305,8 +305,6 @@ for _, stepperType in pairs(STEPPER_TYPES) do
     }
 end
 
-renoise.tool():add_menu_entry{name="Sample Modulation Matrix:Paketti..:Show/Hide PitchStep on Selected Instrument",invoke=function() PakettiShowStepper("Pitch Stepper") end}
-renoise.tool():add_menu_entry{name="Sample Modulation Matrix:Paketti..:Show/Hide VolumeStep on Selected Instrument",invoke=function() PakettiShowStepper("Volume Stepper") end}
 
 renoise.tool():add_keybinding{name="Global:Paketti:Modify PitchStep Steps (Random)",invoke=function() PakettiFillStepperRandom("Pitch Stepper") end}
 renoise.tool():add_keybinding{name="Global:Paketti:Modify PitchStep Steps (Octave Up, Octave Down)",invoke=function() PakettiFillPitchStepper() end}
@@ -317,14 +315,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Modify PitchStep Steps (Octav
 renoise.tool():add_keybinding{name="Global:Paketti:Modify PitchStep Steps (Minor Flurry)",invoke=function() PakettiFillPitchStepperDigits(0.015,64) end}
 
 
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Modify PitchStep Steps (Minor Flurry)",invoke=function() PakettiFillPitchStepperDigits(0.015,64) end}    
-renoise.tool():add_menu_entry{name="Sample Modulation Matrix:Paketti..:Clear PitchStep Steps",invoke=function() PakettiClearStepper("Pitch Stepper") end}
 
-renoise.tool():add_menu_entry{name="Sample Modulation Matrix:Paketti..:Modify PitchStep Steps (Random)",invoke=function() PakettiFillStepperRandom("Pitch Stepper") end}
-renoise.tool():add_menu_entry{name="Sample Modulation Matrix:Paketti..:Modify PitchStep Steps (Octave Up, Octave Down)",invoke=function() PakettiFillPitchStepper() end}
-renoise.tool():add_menu_entry{name="Sample Modulation Matrix:Paketti..:Modify PitchStep Steps (Octave Up+2, Octave Down-2)",invoke=function() PakettiFillPitchStepperTwoOctaves() end}
-renoise.tool():add_menu_entry{name="Sample Modulation Matrix:Paketti..:Modify PitchStep Steps (Minor Flurry)",invoke=function() PakettiFillPitchStepperDigits(0.015,64) end}
-renoise.tool():add_menu_entry{name="Sample Modulation Matrix:Paketti..:Modify PitchStep Steps (Hard Detune)",invoke=function() PakettiFillPitchStepperDigits(0.05,64) end}
 
 function PakettiFillPitchStepperDigits(detune_amount, step_count)
   local instrument = renoise.song().selected_instrument
@@ -717,7 +708,6 @@ function PakettiSteppersDialog()
 end
 
 -- Add menu entries and keybinding for the steppers dialog
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:Paketti Steppers Dialog...", invoke=function() PakettiSteppersDialog() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Steppers Dialog...", invoke=function() PakettiSteppersDialog() end}
 
 -- Add individual stepper show/hide menu entries for instrument box
@@ -725,8 +715,7 @@ local first_stepper = true
 for _, stepperType in pairs(STEPPER_TYPES) do
     local baseText = stepperType:gsub(" Stepper", "")
     local prefix = first_stepper and "--" or ""
-    renoise.tool():add_menu_entry{
-        name = string.format("%sInstrument Box:Paketti..:Steppers..:Show Selected Instrument %s Stepper", prefix, baseText),
+    renoise.tool():add_menu_entry{name = string.format("%sInstrument Box:Paketti..:Steppers..:Show Selected Instrument %s Stepper", prefix, baseText),
         invoke = function() PakettiShowStepper(stepperType) end
     }
     first_stepper = false

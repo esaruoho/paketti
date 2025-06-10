@@ -407,17 +407,5 @@ local function dump_rex_structure(file_path)
   renoise.app():show_status("REX debug dump written to: " .. out_path)
 end
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Dump REX Structure to Text",
-  invoke=function()
-    local file_path = renoise.app():prompt_for_filename_to_read({ "*.rex" }, "ReCycle Legacy .REX Import Structure Dumper")
-    if file_path then
-      dump_rex_structure(file_path)
-    end
-  end
-}
 
-
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Import .REX",invoke=function() 
-  local filename = renoise.app():prompt_for_filename_to_read({"*.REX"}, "ReCycle .REX Import tool")
-  if filename then rex_loadsample(filename) end end}
 
