@@ -3,49 +3,35 @@ if preferences.pakettiMenuConfig.InstrumentBox then
   print ("Instrument Box Menus Are Enabled")
 -- Gadgets
 renoise.tool():add_menu_entry{name="--Instrument Box:Paketti Gadgets..:Largest Samples Dialog...",invoke = pakettiShowLargestSamplesDialog}
-  renoise.tool():add_menu_entry{name="--Instrument Box:Paketti Gadgets..:Paketti Stacker Dialog...",invoke=function() pakettiStackerDialog(proceed_with_stacking, on_switch_changed, PakettiIsolateSlicesToInstrument) end}
-  renoise.tool():add_menu_entry{name="--Instrument Box:Paketti Gadgets..:Paketti Timestretch Dialog...",invoke=pakettiTimestretchDialog}
-  renoise.tool():add_menu_entry{name="--Instrument Box:Paketti Gadgets..:Paketti Steppers Dialog...", invoke=function() PakettiSteppersDialog() end}
-  renoise.tool():add_menu_entry{name="--Instrument Box:Paketti Gadgets..:Paketti YT-DLP Downloader...",invoke=pakettiYTDLPDialog }
-  renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Steppers..:Paketti Steppers Dialog...", invoke=function() PakettiSteppersDialog() end}
-  renoise.tool():add_menu_entry{name="--Instrument Box:Paketti Gadgets..:Merge Instruments Dialog...",invoke=function() pakettiMergeInstrumentsDialog() end}
-  renoise.tool():add_menu_entry{name="--Instrument Box:Paketti Gadgets..:Paketti Global Volume Adjustment...",invoke=function() pakettiGlobalVolumeDialog() end}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti Gadgets..:Paketti Stacker Dialog...",invoke=function() pakettiStackerDialog(proceed_with_stacking, on_switch_changed, PakettiIsolateSlicesToInstrument) end}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti Gadgets..:Paketti Timestretch Dialog...",invoke=pakettiTimestretchDialog}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti Gadgets..:Paketti Steppers Dialog...", invoke=function() PakettiSteppersDialog() end}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti Gadgets..:Paketti YT-DLP Downloader...",invoke=pakettiYTDLPDialog }
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti Gadgets..:Merge Instruments Dialog...",invoke=function() pakettiMergeInstrumentsDialog() end}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti Gadgets..:Paketti Global Volume Adjustment...",invoke=function() pakettiGlobalVolumeDialog() end}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti Gadgets..:Open Paketti Init Phrase Dialog...",invoke=function() pakettiPhraseSettings() end}
 
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Steppers..:Paketti Steppers Dialog...", invoke=function() PakettiSteppersDialog() end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Phrases..:Open Paketti Init Phrase Dialog...",invoke=function() pakettiPhraseSettings() end}
 
-  renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Create Random AKWF Wavetable (032,loop)",invoke=function() create_random_akwf_wavetable(32, true) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Create Random AKWF Wavetable (032,loop)",invoke=function() create_random_akwf_wavetable(32, true) end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Create Random AKWF Wavetable (064,loop)",invoke=function() create_random_akwf_wavetable(64, true) end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Create Random AKWF Wavetable (128,loop)",invoke=function() create_random_akwf_wavetable(128, true) end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:AKWF..:Create Random AKWF Wavetable (256,loop)",invoke=function() create_random_akwf_wavetable(256, true) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Phrases..:Open Paketti Init Phrase Dialog...",invoke=function() pakettiPhraseSettings() end}
+
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Phrases..:Create New Phrase using Paketti Settings",invoke=function() pakettiInitPhraseSettingsCreateNewPhrase() end}
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Save..:Export .PTI Instrument",invoke=pti_savesample}
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Instruments..:Pakettify Current Instrument",invoke=function() PakettiInjectDefaultXRNI() end}
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Plugins/Devices..:Show XO Plugin External Editor",invoke=function() XOPointCloud() end}
 renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Phrases..:Load XRNI & Wipe Phrases",invoke=function() loadXRNIWipePhrases() end}
 renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Phrases..:Wipe Phrases on Selected Instrument",invoke=function() wipePhrases() end}
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Plugins/Devices..:Toggle Mono Device",invoke=function() PakettiToggleMono() end}
-
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Initialize..:Add 84 Sample Slots to Instrument",invoke=function() addSampleSlot(84) end}
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Instruments..:Global Volume Reduce All Instruments by -4.5dB",invoke=function() reduceInstrumentsVolume(4.5) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Instruments..:Set All Instruments All Samples Autofade On",invoke=function() setAllInstrumentsAllSamplesAutofade(1) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Instruments..:Set All Instruments All Samples Autofade Off",invoke=function() setAllInstrumentsAllSamplesAutofade(0) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Initialize..:12st PitchBend Instrument Init",invoke=function() pitchedInstrument(12) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Initialize..:PitchBend Drumkit Instrument Init",invoke=function() pitchedDrumkit() end}
-
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Instruments..:Isolate Slices to New Instrument as Samples",invoke=PakettiIsolateSlicesToInstrument}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Instruments..:Isolate Selected Sample to New Instrument",invoke=PakettiIsolateSelectedSampleToInstrument}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Instruments..:Global Volume Reduce Reduce All Samples by -4.5dB",invoke=function() reduceSamplesVolume(4.5) end}
-
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Instruments..:Isolate Slices or Samples to New Instruments",invoke=PakettiIsolateSlices}
-
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Instruments..:Enable All Sample FX on Selected Instrument",invoke=function() sampleFXControls("single", true) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Instruments..:Bypass All Sample FX on Selected Instrument",invoke=function() sampleFXControls("single", false) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Instruments..:Enable All Sample FX on All Instruments",invoke=function() sampleFXControls("all", true) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Instruments..:Bypass All Sample FX on All Instruments",invoke=function() sampleFXControls("all", false) end}
 --renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Phrases..:Create Paketti Phrase",invoke=function() createPhrase() end}
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Load..:Load Random 128 IFFs",invoke=function() loadRandomIFF(128) end }
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Instruments..:Randomize Selected Instrument Plugin Parameters",invoke=function()randomizeSelectedPlugin()end}
 
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Load..:Paketti PitchBend Multiple Sample Loader",invoke=function() pitchBendMultipleSampleLoader() end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Load..:Paketti PitchBend Drumkit Sample Loader",invoke=function() pitchBendDrumkitLoader() end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Load..:Paketti PitchBend Drumkit Sample Loader (Random)",invoke=function() loadRandomDrumkitSamples(120) end}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Load..:Load Drumkit with Overlap Random",invoke=function() pitchBendDrumkitLoader() DrumKitToOverlay(2) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Load..:Load Drumkit with Overlap Cycle",invoke=function() pitchBendDrumkitLoader() DrumKitToOverlay(1) end}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Load..:Fill Empty Sample Slots (Randomized Folder)",invoke=function() fillEmptySampleSlots() end}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Load..:Load Random 128 IFFs",invoke=function() loadRandomIFF(128) end }
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Load..:Load Samples from .MOD",invoke=function() load_samples_from_mod() end}
 renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Load..:Load .MOD as Sample",
   invoke=function() 
     local file_path = renoise.app():prompt_for_filename_to_read({"*.mod","mod.*"}, "Select Any File to Load as Sample")
@@ -53,7 +39,40 @@ renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Load..:Load .MOD 
       pakettiLoadExeAsSample(file_path)
       paketti_toggle_signed_unsigned() end end}
 
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Wipe&Slice..:Wipe&Slice (002)",invoke=function() slicerough(2) end}
+
+
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Save..:Export .PTI Instrument",invoke=pti_savesample}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Save..:Save Unused Samples (.WAV&.XRNI)...",invoke=function() saveUnusedSamples() end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Save..:Save Unused Instruments (.XRNI)...",invoke=function() saveUnusedInstruments() end}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Save..:Save All Samples to Folder...",invoke=function() saveAllSamplesToFolder() end}
+
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Plugins/Devices..:Show XO Plugin External Editor",invoke=function() XOPointCloud() end}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Plugins/Devices..:Toggle Mono Device",invoke=function() PakettiToggleMono() end}
+
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Initialize..:Add 84 Sample Slots to Instrument",invoke=function() addSampleSlot(84) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Initialize..:12st PitchBend Instrument Init",invoke=function() pitchedInstrument(12) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Initialize..:PitchBend Drumkit Instrument Init",invoke=function() pitchedDrumkit() end}
+
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Instruments..:Pakettify Current Instrument",invoke=function() PakettiInjectDefaultXRNI() end}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Instruments..:Global Volume Reduce All Instruments by -4.5dB",invoke=function() reduceInstrumentsVolume(4.5) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Instruments..:Set All Instruments All Samples Autofade On",invoke=function() setAllInstrumentsAllSamplesAutofade(1) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Instruments..:Set All Instruments All Samples Autofade Off",invoke=function() setAllInstrumentsAllSamplesAutofade(0) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Instruments..:Isolate Slices to New Instrument as Samples",invoke=PakettiIsolateSlicesToInstrument}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Instruments..:Isolate Selected Sample to New Instrument",invoke=PakettiIsolateSelectedSampleToInstrument}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Instruments..:Global Volume Reduce Reduce All Samples by -4.5dB",invoke=function() reduceSamplesVolume(4.5) end}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Instruments..:Isolate Slices or Samples to New Instruments",invoke=PakettiIsolateSlices}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Instruments..:Enable All Sample FX on Selected Instrument",invoke=function() sampleFXControls("single", true) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Instruments..:Bypass All Sample FX on Selected Instrument",invoke=function() sampleFXControls("single", false) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Instruments..:Enable All Sample FX on All Instruments",invoke=function() sampleFXControls("all", true) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Instruments..:Bypass All Sample FX on All Instruments",invoke=function() sampleFXControls("all", false) end}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Instruments..:Randomize Selected Instrument Plugin Parameters",invoke=function()randomizeSelectedPlugin()end}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Instruments..:Set All Instruments All Samples Autoseek On",invoke=function() setAllInstrumentsAllSamplesAutoseek(1) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Instruments..:Set All Instruments All Samples Autoseek Off",invoke=function() setAllInstrumentsAllSamplesAutoseek(0) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Instruments..:Delete Unused Instruments...",invoke=function() deleteUnusedInstruments() end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Instruments..:Delete Unused Samples...",invoke=function() deleteUnusedSamples() end}
+
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Wipe&Slice..:Wipe&Slice&Write to Pattern",invoke = function() WipeSliceAndWrite() end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Wipe&Slice..:Wipe&Slice (002)",invoke=function() slicerough(2) end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Wipe&Slice..:Wipe&Slice (004)",invoke=function() slicerough(4) end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Wipe&Slice..:Wipe&Slice (008)",invoke=function() slicerough(8) end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Wipe&Slice..:Wipe&Slice (016)",invoke=function() slicerough(16) end}
@@ -73,12 +92,6 @@ renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Record..:Paketti Ov
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Record..:Paketti Overdub 01 (No Metronome/Line Input)",invoke=function() recordtocurrenttrack(false, true,1) end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Record..:Paketti Overdub 01 (No Metronome/No Line Input)",invoke=function() recordtocurrenttrack(false, false,1) end}
 
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Load..:Load Samples from .MOD",invoke=function() load_samples_from_mod() end}
-
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Instruments..:Set All Instruments All Samples Autoseek On",invoke=function() setAllInstrumentsAllSamplesAutoseek(1) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Instruments..:Set All Instruments All Samples Autoseek Off",invoke=function() setAllInstrumentsAllSamplesAutoseek(0) end}
-
-
 renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Duplicate All Samples at -36 Transpose",invoke=function() PakettiDuplicateInstrumentSamplesWithTranspose(-36) end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Duplicate All Samples at -24 Transpose",invoke=function() PakettiDuplicateInstrumentSamplesWithTranspose(-24) end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Duplicate All Samples at -12 Transpose",invoke=function() PakettiDuplicateInstrumentSamplesWithTranspose(-12) end}
@@ -86,21 +99,6 @@ renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Duplicate All Sampl
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Duplicate All Samples at +24 Transpose",invoke=function() PakettiDuplicateInstrumentSamplesWithTranspose(24) end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Duplicate All Samples at +36 Transpose",invoke=function() PakettiDuplicateInstrumentSamplesWithTranspose(36) end}
 
-
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Save..:Save Unused Samples (.WAV&.XRNI)...",invoke=function() saveUnusedSamples() end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Save..:Save Unused Instruments (.XRNI)...",invoke=function() saveUnusedInstruments() end}
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Save..:Save All Samples to Folder...",invoke=function() saveAllSamplesToFolder() end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Instruments..:Delete Unused Instruments...",invoke=function() deleteUnusedInstruments() end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Instruments..:Delete Unused Samples...",invoke=function() deleteUnusedSamples() end}
-
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Wipe&Slice..:Wipe&Slice&Write to Pattern",invoke = function() WipeSliceAndWrite() end}
-
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Load..:Paketti PitchBend Multiple Sample Loader",invoke=function() pitchBendMultipleSampleLoader() end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Load..:Paketti PitchBend Drumkit Sample Loader",invoke=function() pitchBendDrumkitLoader() end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Load..:Paketti PitchBend Drumkit Sample Loader (Random)",invoke=function() loadRandomDrumkitSamples(120) end}
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Load..:Load Drumkit with Overlap Random",invoke=function() pitchBendDrumkitLoader() DrumKitToOverlay(2) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Load..:Load Drumkit with Overlap Cycle",invoke=function() pitchBendDrumkitLoader() DrumKitToOverlay(1) end}
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Load..:Fill Empty Sample Slots (Randomized Folder)",invoke=function() fillEmptySampleSlots() end}
 
 
 

@@ -343,7 +343,6 @@ local dialogMargin=175
          local sample = song.selected_sample
          if sample and sample.sample_buffer.has_sample_data then
            local buffer = sample.sample_buffer
-           buffer.display_start = 1
            buffer.display_length = buffer.number_of_frames
            print("Set zoom to show entire sample (" .. buffer.number_of_frames .. " frames)")
          end
