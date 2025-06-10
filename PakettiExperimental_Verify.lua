@@ -1,3 +1,6 @@
+-- At the very start of the file
+local dialog = nil  -- Proper global dialog reference
+
 -- Create Pattern Sequencer Patterns based on Slice Count with Automatic Slice Printing
 function createPatternSequencerPatternsBasedOnSliceCount()
   local song = renoise.song()
@@ -201,8 +204,17 @@ function createPatternSequencerPatternsBasedOnSliceCount()
   print("Pattern creation completed: " .. slice_count .. " patterns created")
 end
 
+
 -- Slice to Pattern Sequencer Interface
 function showSliceToPatternSequencerInterface()
+  -- First, check if dialog exists and is visible
+  if dialog and dialog.visible then
+    dialog:close()
+    dialog = nil  -- Clear the dialog reference
+    return  -- Exit the function
+  end
+
+local dialogMargin=175
   local song = renoise.song()
   local vb = renoise.ViewBuilder()
   
@@ -221,12 +233,14 @@ function showSliceToPatternSequencerInterface()
   local instrument_info_text = vb:text{
     text = string.format("Instrument %02d: %s", current_instrument_slot, current_instrument_name),
     font = "bold",
+    style="strong",
     width = 300
   }
   
   local status_text = vb:text{
     text = "Ready to process slices",
-    width = 300
+    width = 300,
+    align = "center"
   }
   
   -- READ current values when opening interface
@@ -273,10 +287,38 @@ function showSliceToPatternSequencerInterface()
     end
   }
   
+  -- Autoplay checkbox
+  local autoplay_checkbox = vb:checkbox{
+    value = true, -- Default to autoplay enabled
+    notifier = function(value)
+      print("Autoplay " .. (value and "enabled" or "disabled"))
+    end
+  }
+  
+  -- Play/Stop button with dynamic text
+  local play_stop_button = vb:button{
+    text = song.transport.playing and "Stop" or "Play",
+    width = dialogMargin,
+    --height = 30,
+    notifier = function()
+      if song.transport.playing then
+        song.transport.playing = false
+        play_stop_button.text = "Play"
+        print("Stopped playback")
+        status_text.text = "Playback stopped"
+      else
+        song.transport.playing = true
+        play_stop_button.text = "Stop"
+        print("Started playback")
+        status_text.text = "Playback started"
+      end
+    end
+  }
+  
   local prepare_button = vb:button{
-    text = "1. Prepare Sample for Slicing",
-    width = 250,
-    height = 30,
+    text = "Prepare Sample",
+    width = dialogMargin,
+    --height = 30,
     notifier = function()
       print("=== PREPARE SAMPLE FOR SLICING ===")
       status_text.text = "Preparing sample for slicing..."
@@ -297,11 +339,25 @@ function showSliceToPatternSequencerInterface()
        local success, error_msg = pcall(prepare_sample_for_slicing)
        
        if success then
+         -- Set zoom to show entire sample (maximum zoom out)
+         local sample = song.selected_sample
+         if sample and sample.sample_buffer.has_sample_data then
+           local buffer = sample.sample_buffer
+           buffer.display_start = 1
+           buffer.display_length = buffer.number_of_frames
+           print("Set zoom to show entire sample (" .. buffer.number_of_frames .. " frames)")
+         end
+         
          status_text.text = "Sample prepared for slicing successfully!"
          print("Sample preparation completed")
-         -- Start playback automatically
-         renoise.song().transport.playing = true
-         print("Started playback automatically")
+         -- Start playback only if autoplay is enabled
+         if autoplay_checkbox.value then
+           song.transport.playing = true
+           play_stop_button.text = "Stop"
+           print("Started playback automatically (autoplay enabled)")
+         else
+           print("Playback not started (autoplay disabled)")
+         end
        else
          status_text.text = "Error preparing sample: " .. tostring(error_msg)
          print("Error in sample preparation: " .. tostring(error_msg))
@@ -310,30 +366,32 @@ function showSliceToPatternSequencerInterface()
   }
   
   local create_patterns_button = vb:button{
-    text = "2. Create Pattern Sequencer Patterns",
-    width = 250,
-    height = 30,
+    text = "Create Patterns",
+    width = dialogMargin,
+    --height = 30,
     notifier = function()
       print("=== CREATE PATTERN SEQUENCER PATTERNS ===")
       status_text.text = "Creating pattern sequencer patterns..."
       
-      -- Run the pattern creation function
-      local success, error_msg = pcall(createPatternSequencerPatternsBasedOnSliceCount)
-      
-      if success then
-        status_text.text = "Pattern sequencer patterns created successfully!"
-        print("Pattern creation completed")
-      else
-        status_text.text = "Error creating patterns: " .. tostring(error_msg)
-        print("Error in pattern creation: " .. tostring(error_msg))
-      end
+             -- Run the pattern creation function
+       local success, error_msg = pcall(createPatternSequencerPatternsBasedOnSliceCount)
+       
+       if success then
+         -- Move to pattern editor after successful pattern creation
+         renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+         status_text.text = "Pattern sequencer patterns created successfully!"
+         print("Pattern creation completed - moved to pattern editor")
+       else
+         status_text.text = "Error creating patterns: " .. tostring(error_msg)
+         print("Error in pattern creation: " .. tostring(error_msg))
+       end
     end
   }
   
   local delete_patterns_button = vb:button{
-    text = "3. Delete All Pattern Sequences",
-    width = 250,
-    height = 30,
+    text = "Delete All Patterns",
+    width = dialogMargin,
+    --height = 30,
     notifier = function()
       print("=== DELETE ALL PATTERN SEQUENCES ===")
       status_text.text = "Deleting all pattern sequences..."
@@ -353,7 +411,7 @@ function showSliceToPatternSequencerInterface()
   
   local refresh_button = vb:button{
     text = "Refresh All Values",
-    width = 150,
+    width = dialogMargin,
     notifier = function()
       -- Update instrument info
       local new_slot = song.selected_instrument_index or 0
@@ -381,26 +439,25 @@ function showSliceToPatternSequencerInterface()
   -- Create the dialog content
   local dialog_content = vb:column{
     margin = 10,
-    spacing = 10,
-    
-    vb:row{
-      vb:text{text = "Slice to Pattern Sequencer Tool", font = "bold", style = "strong"}
-    },
-    
     vb:horizontal_aligner{
       mode = "center",
       vb:column{
-        spacing = 5,
+        --spacing = 5,
         vb:row{
-          vb:text{text = "Current Instrument:", width = 120},
+          vb:text{text = "Current Instrument", width = 120,font="bold",style="strong"},
           instrument_info_text
         },
         vb:row{
-          vb:text{text = "BPM:", width = 40},
+          vb:text{text = "Autoplay", width = 50, style="strong",font="bold"},
+          autoplay_checkbox,
+          play_stop_button
+        },
+        vb:row{
+          vb:text{text = "BPM", width = 30,style="strong",font="bold"},
           bpm_valuebox,
-          vb:text{text = "LPB:", width = 40},
+          vb:text{text = "LPB", width = 30, style="strong",font="bold"},
           lpb_valuebox,
-          vb:text{text = "Pattern Length:", width = 90},
+          vb:text{text = "Pattern Length", width = 90, style="strong",font="bold"},
           pattern_length_valuebox
         },
         vb:row{
@@ -409,91 +466,206 @@ function showSliceToPatternSequencerInterface()
       }
     },
     
-    vb:horizontal_aligner{
-      mode = "center",
-      vb:column{
-        spacing = 10,
-        vb:text{text = "Workflow:", font = "bold"},
-        prepare_button,
+    vb:column{
+      vb:row{
         vb:button{
-          text = "Select Beat Range 1.0.0 to 9.0.0",
-          width = 250,
-          height = 30,
-          notifier = function()
-            print("=== SELECT BEAT RANGE 1.0.0 TO 9.0.0 ===")
-            status_text.text = "Selecting beat range 1.0.0 to 9.0.0..."
-            
-            local success, error_msg = pcall(select_beat_range_for_verification)
-            
-            if success then
-              status_text.text = "Beat range 1.0.0 to 9.0.0 selected successfully!"
-              print("Beat range selection completed")
-            else
-              status_text.text = "Error selecting beat range: " .. tostring(error_msg)
-              print("Error in beat range selection: " .. tostring(error_msg))
+          text = "Wipe Slices",
+          width = dialogMargin,
+          --height = 30,
+            notifier = function()
+              print("=== WIPE SLICES ===")
+              status_text.text = "Wiping slices..."
+              
+              local success, error_msg = pcall(wipeslices)
+              
+              if success then
+                status_text.text = "Slices wiped successfully!"
+                print("Wipe slices completed")
+              else
+                status_text.text = "Error wiping slices: " .. tostring(error_msg)
+                print("Error in wipe slices: " .. tostring(error_msg))
+              end
             end
-          end
-        },
-        vb:button{
-          text = "Auto-Slice every 8 beats",
-          width = 250,
-          height = 30,
-          notifier = function()
-            print("=== AUTO-SLICE EVERY 8 BEATS ===")
-            status_text.text = "Auto-slicing every 8 beats..."
-            
-            local success, error_msg = pcall(auto_slice_every_8_beats)
-            
-            if success then
-              status_text.text = "Auto-sliced every 8 beats successfully!"
-              print("Auto-slice every 8 beats completed")
-            else
-              status_text.text = "Error auto-slicing: " .. tostring(error_msg)
-              print("Error in auto-slice: " .. tostring(error_msg))
-            end
-          end
-        },
-        create_patterns_button,
+          },
         delete_patterns_button
-      }
+      },
+      vb:space{ height=10 },
+                prepare_button,
+        vb:row{
+          vb:button{
+            text = "Select Beat Range of 4 beats",
+            width = dialogMargin,
+            --height = 30,
+            notifier = function()
+              print("=== SELECT BEAT RANGE 1.0.0 TO 5.0.0 (4 BEATS) ===")
+              status_text.text = "Selecting beat range 1.0.0 to 5.0.0..."
+              
+              -- Create 4-beat selection function inline
+              local success, error_msg = pcall(function()
+                local song, sample = validate_sample()
+                if not song then return end
+                
+                local bpm = song.transport.bpm
+                local sample_rate = sample.sample_buffer.sample_rate
+                local seconds_per_beat = 60 / bpm
+                local total_seconds_for_4_beats = 4 * seconds_per_beat
+                local frame_position_beat_5 = math.floor(total_seconds_for_4_beats * sample_rate)
+                
+                local buffer = sample.sample_buffer
+                buffer.selection_start = 1
+                buffer.selection_end = frame_position_beat_5
+                buffer.selected_channel = renoise.SampleBuffer.CHANNEL_LEFT_AND_RIGHT
+                
+                -- Set zoom to show selection + 10000 frames padding
+                local padding = 10000
+                local desired_view_length = frame_position_beat_5 + padding
+                local max_view_length = buffer.number_of_frames
+                buffer.display_length = math.min(desired_view_length, max_view_length)
+                
+                print("Selected 1.0.0 to 5.0.0 (" .. frame_position_beat_5 .. " frames, " .. total_seconds_for_4_beats .. "s)")
+                print("Set zoom: showing " .. buffer.display_length .. " frames (selection + " .. padding .. " padding)")
+                focus_sample_editor()
+              end)
+              
+              if success then
+                status_text.text = "Beat range 1.0.0 to 5.0.0 (4 beats) selected successfully!"
+                print("4-beat range selection completed")
+              else
+                status_text.text = "Error selecting 4-beat range: " .. tostring(error_msg)
+                print("Error in 4-beat range selection: " .. tostring(error_msg))
+              end
+            end
+          },
+          vb:button{
+            text = "Auto-Slice by 4 beats",
+            width = dialogMargin,
+            --height = 30,
+            notifier = function()
+              print("=== AUTO-SLICE EVERY 4 BEATS ===")
+              status_text.text = "Auto-slicing every 4 beats..."
+              
+              -- Create 4-beat auto-slice function inline
+              local success, error_msg = pcall(function()
+                local song, sample = validate_sample()
+                if not song then return end
+                
+                local bpm = song.transport.bpm
+                local sample_rate = sample.sample_buffer.sample_rate
+                local seconds_per_beat = 60 / bpm
+                local total_seconds_for_4_beats = 4 * seconds_per_beat
+                local frame_position_beat_5 = math.floor(total_seconds_for_4_beats * sample_rate)
+                
+                local buffer = sample.sample_buffer
+                buffer.selection_start = 1
+                buffer.selection_end = frame_position_beat_5
+                buffer.selected_channel = renoise.SampleBuffer.CHANNEL_LEFT_AND_RIGHT
+                
+                focus_sample_editor()
+                pakettiSlicesFromSelection()
+                
+                print("Auto-sliced every 4 beats (" .. frame_position_beat_5 .. " frames, " .. total_seconds_for_4_beats .. "s)")
+              end)
+              
+              if success then
+                status_text.text = "Auto-sliced every 4 beats successfully!"
+                print("Auto-slice every 4 beats completed")
+              else
+                status_text.text = "Error auto-slicing 4 beats: " .. tostring(error_msg)
+                print("Error in 4-beat auto-slice: " .. tostring(error_msg))
+              end
+            end
+          }
+        },
+        vb:row{
+          vb:button{
+            text = "Select Beat Range of 8 beats",
+            width = dialogMargin,
+            --height = 30,
+            notifier = function()
+              print("=== SELECT BEAT RANGE 1.0.0 TO 9.0.0 (8 BEATS) ===")
+              status_text.text = "Selecting beat range 1.0.0 to 9.0.0..."
+              
+              local success, error_msg = pcall(function()
+                select_beat_range_for_verification()
+                
+                -- Add zoom functionality for 8-beat selection
+                local song, sample = validate_sample()
+                if song then
+                  local bpm = song.transport.bpm
+                  local sample_rate = sample.sample_buffer.sample_rate
+                  local seconds_per_beat = 60 / bpm
+                  local total_seconds_for_8_beats = 8 * seconds_per_beat
+                  local frame_position_beat_9 = math.floor(total_seconds_for_8_beats * sample_rate)
+                  
+                  local buffer = sample.sample_buffer
+                  local padding = 10000
+                  local desired_view_length = frame_position_beat_9 + padding
+                  local max_view_length = buffer.number_of_frames
+                  buffer.display_length = math.min(desired_view_length, max_view_length)
+                  
+                  print("Set zoom: showing " .. buffer.display_length .. " frames (8-beat selection + " .. padding .. " padding)")
+                end
+              end)
+              
+              if success then
+                status_text.text = "Beat range 1.0.0 to 9.0.0 (8 beats) selected successfully!"
+                print("8-beat range selection completed")
+              else
+                status_text.text = "Error selecting 8-beat range: " .. tostring(error_msg)
+                print("Error in 8-beat range selection: " .. tostring(error_msg))
+              end
+            end
+          },
+          vb:button{
+            text = "Auto-Slice by 8 beats",
+            width = dialogMargin,
+            --height = 30,
+            notifier = function()
+              print("=== AUTO-SLICE EVERY 8 BEATS ===")
+              status_text.text = "Auto-slicing every 8 beats..."
+              
+              local success, error_msg = pcall(auto_slice_every_8_beats)
+              
+              if success then
+                status_text.text = "Auto-sliced every 8 beats successfully!"
+                print("Auto-slice every 8 beats completed")
+              else
+                status_text.text = "Error auto-slicing 8 beats: " .. tostring(error_msg)
+                print("Error in 8-beat auto-slice: " .. tostring(error_msg))
+              end
+            end
+          }
+        },
+        create_patterns_button
     },
     
     vb:horizontal_aligner{
       mode = "center",
       vb:column{
-        spacing = 5,
-        vb:text{text = "Status:", font = "bold"},
-        status_text
+        --spacing = 5,
+        vb:horizontal_aligner{
+          mode = "center",
+          vb:text{text = "Status:", font = "bold"},
+        },
+        vb:horizontal_aligner{
+          mode = "center",
+          status_text
+        }
       }
     },
-    
-    vb:horizontal_aligner{
-      mode = "center",
-      vb:text{
-        text = "Dialog stays open - use [X] to close",
-        font = "italic",
-        style = "disabled"
-      }
-    }
+
   }
   
-  -- Show the dialog
-  renoise.app():show_custom_dialog("Slice to Pattern Sequencer", dialog_content, my_keyhandler_func)
+  -- Show dialog and store reference
+  dialog = renoise.app():show_custom_dialog("Slice to Pattern Sequencer Dialog", dialog_content, my_keyhandler_func)
 end
 
--- Menu entry and keybinding for the new function
 renoise.tool():add_keybinding{name="Global:Paketti:Create Pattern Sequencer Patterns based on Slice Count with Automatic Slice Printing",invoke = createPatternSequencerPatternsBasedOnSliceCount}
-renoise.tool():add_keybinding{name="Global:Paketti:Slice to Pattern Sequencer Interface",invoke = showSliceToPatternSequencerInterface}
-
--- Add menu entries
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Slice to Pattern Sequencer Interface",invoke = showSliceToPatternSequencerInterface}
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Slice to Pattern Sequencer Interface",invoke = showSliceToPatternSequencerInterface}
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Slice to Pattern Sequencer Interface",invoke = showSliceToPatternSequencerInterface}
-
+renoise.tool():add_keybinding{name="Global:Paketti:Slice to Pattern Sequencer Dialog...",invoke = showSliceToPatternSequencerInterface}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Slice to Pattern Sequencer Dialog...",invoke = showSliceToPatternSequencerInterface}
+renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Slice to Pattern Sequencer Dialog...",invoke = showSliceToPatternSequencerInterface}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Slice to Pattern Sequencer Dialog...",invoke = showSliceToPatternSequencerInterface}
 ----
-
-
-
 renoise.tool():add_keybinding{name="Global:Paketti:Wipe&Slice&Write to Pattern",invoke = function() WipeSliceAndWrite() end}
 
 function WipeSliceAndWrite()

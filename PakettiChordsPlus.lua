@@ -239,10 +239,6 @@ function JalexAdd(number)
     
     renoise.tool():add_midi_mapping{name="Paketti:Chord Selector [0-127]",invoke=function(midi_message) midi_chord_mapping(midi_message.int_value) end}
     
-    for i=1,12 do
-        renoise.tool():add_menu_entry{name=string.format("Pattern Editor:Paketti ChordsPlus..:Add Intervals..:Add %d", i),invoke=function() JalexAdd(i) end}
-        renoise.tool():add_menu_entry{name=string.format("Pattern Editor:Paketti ChordsPlus..:Sub Intervals..:Sub %d", i),invoke=function() JalexAdd(-i) end}
-    end
 -------
 
 -- Helper function to get all notes from a row and sort them
