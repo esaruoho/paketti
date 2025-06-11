@@ -412,6 +412,7 @@ renoise.tool():add_keybinding{name="Sample Editor:Paketti:Normalize Selected Sam
 renoise.tool():add_keybinding{name="Global:Paketti:Normalize Selected Sample or Slice",invoke=NormalizeSelectedSliceInSample}
 renoise.tool():add_midi_mapping{name="Paketti:Normalize Selected Sample or Slice",invoke=function(message) if message:is_trigger() then NormalizeSelectedSliceInSample() end end}
 --------
+
 function normalize_all_samples_in_instrument()
   local instrument = renoise.song().selected_instrument
   if not instrument then
@@ -425,71 +426,99 @@ function normalize_all_samples_in_instrument()
     return
   end
 
-  local dialog = renoise.app():show_status("Normalizing samples...")
-  dialog:add_line("Processing samples...")
+  -- Create ProcessSlicer instance and dialog
+  local slicer = nil
+  local dialog = nil
+  local vb = nil
 
-  local process = ProcessSlicer(function()
+  -- Define the process function
+  local function process_func()
     local processed_samples = 0
     local skipped_samples = 0
 
     for sample_idx = 1, total_samples do
-      do
-        local sample = instrument.samples[sample_idx]
-        if not sample or not sample.sample_buffer.has_sample_data then
-          skipped_samples = skipped_samples + 1
-          break 
-        end
-
-        dialog:add_line(string.format("Processing sample %d of %d", sample_idx, total_samples))
-
+      local sample = instrument.samples[sample_idx]
+      
+      -- Update progress dialog
+      if dialog and dialog.visible then
+        vb.views.progress_text.text = string.format("Processing sample %d of %d", sample_idx, total_samples)
+      end
+      
+      -- Skip invalid samples
+      if not sample or not sample.sample_buffer.has_sample_data then
+        skipped_samples = skipped_samples + 1
+      else
         local buffer = sample.sample_buffer
         local num_channels = buffer.number_of_channels
         local num_frames = buffer.number_of_frames
 
+        buffer:prepare_sample_data_changes()
+        
+        -- Set the selected sample index so user can see which sample is being processed
+        renoise.song().selected_sample_index = sample_idx
+
         -- Find peak value across all channels
         local max_peak = 0
         for frame = 1, num_frames, CHUNK_SIZE do
-          local chunk_size = math.min(CHUNK_SIZE, num_frames - frame + 1)
+          local chunk_end = math.min(frame + CHUNK_SIZE - 1, num_frames)
           for channel = 1, num_channels do
-            local data = buffer:sample_data(channel, frame, frame + chunk_size - 1)
-            for i = 1, #data do
-              max_peak = math.max(max_peak, math.abs(data[i]))
+            for f = frame, chunk_end do
+              local sample_value = buffer:sample_data(channel, f)
+              max_peak = math.max(max_peak, math.abs(sample_value))
             end
           end
+          
+          if slicer:was_cancelled() then
+            buffer:finalize_sample_data_changes()
+            return
+          end
+          
           coroutine.yield()
         end
 
         -- Skip if already normalized
         if math.abs(max_peak - 1.0) < 0.0001 then
+          buffer:finalize_sample_data_changes()
           skipped_samples = skipped_samples + 1
-          break
-        end
-
-        -- Apply normalization
-        local scale = 1.0 / max_peak
-        for frame = 1, num_frames, CHUNK_SIZE do
-          local chunk_size = math.min(CHUNK_SIZE, num_frames - frame + 1)
-          for channel = 1, num_channels do
-            local data = buffer:sample_data(channel, frame, frame + chunk_size - 1)
-            for i = 1, #data do
-              data[i] = data[i] * scale
+        else
+          -- Apply normalization
+          local scale = 1.0 / max_peak
+          for frame = 1, num_frames, CHUNK_SIZE do
+            local chunk_end = math.min(frame + CHUNK_SIZE - 1, num_frames)
+            for channel = 1, num_channels do
+              for f = frame, chunk_end do
+                local sample_value = buffer:sample_data(channel, f)
+                buffer:set_sample_data(channel, f, sample_value * scale)
+              end
             end
-            buffer:set_sample_data(channel, frame, data)
+            
+            if slicer:was_cancelled() then
+              buffer:finalize_sample_data_changes()
+              return
+            end
+            
+            coroutine.yield()
           end
-          coroutine.yield()
-        end
 
-        processed_samples = processed_samples + 1
-      end -- end of do block
+          buffer:finalize_sample_data_changes()
+          processed_samples = processed_samples + 1
+        end
+      end
     end
 
-    dialog:close()
+    if dialog and dialog.visible then
+      dialog:close()
+    end
+    
     local msg = string.format("Normalized %d samples. Skipped %d samples.", 
       processed_samples, skipped_samples)
-    renoise.app():show_message(msg)
-  end)
+    renoise.app():show_status(msg)
+  end
 
-  process:start()
+  -- Create and start the ProcessSlicer
+  slicer = ProcessSlicer(process_func)
+  dialog, vb = slicer:create_dialog("Normalizing All Samples")
+  slicer:start()
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Normalize Sample",invoke=function() normalize_selected_sample() end}
@@ -555,8 +584,6 @@ function normalize_and_reduce(scope, db_reduction)
     renoise.app():show_error("Invalid processing scope!")
   end
 end
-
-
 
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Normalize Selected Sample to -12dB",invoke=function() normalize_and_reduce("current_sample", -12) end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Normalize Selected Instrument to -12dB",invoke=function() normalize_and_reduce("all_samples", -12) end}
@@ -2149,18 +2176,26 @@ function convert_all_samples_to_mono(mode)
     return
   end
 
-  local dialog = renoise.app():show_status("Converting samples to mono...")
-  dialog:add_line("Processing samples...")
+  -- Create ProcessSlicer instance and dialog
+  local slicer = nil
+  local dialog = nil
+  local vb = nil
 
-  local process = ProcessSlicer(function()
+  -- Define the process function
+  local function process_func()
     local processed_samples = 0
     local skipped_samples = 0
 
     for sample_idx = 1, total_samples do
       local sample = instrument.samples[sample_idx]
-      local should_process = true
-
+      
+      -- Update progress dialog
+      if dialog and dialog.visible then
+        vb.views.progress_text.text = string.format("Processing sample %d of %d", sample_idx, total_samples)
+      end
+      
       -- Check if we should process this sample
+      local should_process = true
       if not sample or not sample.sample_buffer.has_sample_data then
         should_process = false
       elseif sample.sample_buffer.number_of_channels ~= 2 then
@@ -2170,7 +2205,8 @@ function convert_all_samples_to_mono(mode)
       end
 
       if should_process then
-        dialog:add_line(string.format("Processing sample %d of %d", sample_idx, total_samples))
+        -- Set the selected sample index so user can see which sample is being processed
+        renoise.song().selected_sample_index = sample_idx
 
         -- Store all sample properties
         local properties = {
@@ -2203,28 +2239,38 @@ function convert_all_samples_to_mono(mode)
         local buffer = sample.sample_buffer
         local num_frames = buffer.number_of_frames
         local new_sample = instrument:insert_sample_at(sample_idx + 1)
-        new_sample.sample_buffer:create_sample_data(1, num_frames)
+        new_sample.sample_buffer:create_sample_data(buffer.sample_rate, buffer.bit_depth, 1, num_frames)
+        new_sample.sample_buffer:prepare_sample_data_changes()
 
         -- Process sample data in chunks
         for frame = 1, num_frames, CHUNK_SIZE do
-          local chunk_size = math.min(CHUNK_SIZE, num_frames - frame + 1)
-          local left_data = buffer:sample_data(1, frame, frame + chunk_size - 1)
-          local right_data = buffer:sample_data(2, frame, frame + chunk_size - 1)
-          local mono_data = {}
-
-          for i = 1, #left_data do
+          local chunk_end = math.min(frame + CHUNK_SIZE - 1, num_frames)
+          
+          for f = frame, chunk_end do
+            local left_value = buffer:sample_data(1, f)
+            local right_value = buffer:sample_data(2, f)
+            local mono_value
+            
             if mode == "left" then
-              mono_data[i] = left_data[i]
+              mono_value = left_value
             elseif mode == "right" then
-              mono_data[i] = right_data[i]
+              mono_value = right_value
             else -- mix
-              mono_data[i] = (left_data[i] + right_data[i]) * 0.5
+              mono_value = (left_value + right_value) * 0.5
             end
+            
+            new_sample.sample_buffer:set_sample_data(1, f, mono_value)
           end
-
-          new_sample.sample_buffer:set_sample_data(1, frame, mono_data)
+          
+          if slicer:was_cancelled() then
+            new_sample.sample_buffer:finalize_sample_data_changes()
+            return
+          end
+          
           coroutine.yield()
         end
+
+        new_sample.sample_buffer:finalize_sample_data_changes()
 
         -- Restore all properties
         new_sample.name = properties.name
@@ -2258,13 +2304,19 @@ function convert_all_samples_to_mono(mode)
       end
     end
 
-    dialog:close()
+    if dialog and dialog.visible then
+      dialog:close()
+    end
+    
     local msg = string.format("Converted %d samples to mono. Skipped %d samples.", 
       processed_samples, skipped_samples)
-    renoise.app():show_message(msg)
-  end)
+    renoise.app():show_status(msg)
+  end
 
-  process:start()
+  -- Create and start the ProcessSlicer
+  slicer = ProcessSlicer(process_func)
+  dialog, vb = slicer:create_dialog("Converting All Samples to Mono")
+  slicer:start()
 end
 
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Convert All Samples to Mono (Keep Left)",invoke=function() convert_all_samples_to_mono("left") end}
@@ -2937,4 +2989,5 @@ local function crossfade_loop_edges_fixed_end()
     ("Cross‐fade loop edges + fixed end‐fade complete (%d frames)."):format(fade_len)
   )
 end
+
 

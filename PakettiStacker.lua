@@ -10,7 +10,7 @@ function returnpe()
 end
 
 -- Function to set loop mode for all samples in the selected instrument
-local function set_loop_mode_for_selected_instrument(loop_mode)
+function set_loop_mode_for_selected_instrument(loop_mode)
   local song=renoise.song()
   local instrument = song.selected_instrument
 
