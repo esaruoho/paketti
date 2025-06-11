@@ -2563,12 +2563,15 @@ end
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Convert to 8-bit", invoke=function() convert_bit_depth(8) end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Convert to 16-bit", invoke=function() convert_bit_depth(16) end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Convert to 24-bit", invoke=function() convert_bit_depth(24) end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Convert to 32-bit", invoke=function() convert_bit_depth(32) end}
 renoise.tool():add_keybinding{name="Sample Keyzones:Paketti:Convert to 8-bit", invoke=function() convert_bit_depth(8) end}
 renoise.tool():add_keybinding{name="Sample Keyzones:Paketti:Convert to 16-bit", invoke=function() convert_bit_depth(16) end}
 renoise.tool():add_keybinding{name="Sample Keyzones:Paketti:Convert to 24-bit", invoke=function() convert_bit_depth(24) end}
+renoise.tool():add_keybinding{name="Sample Keyzones:Paketti:Convert to 32-bit", invoke=function() convert_bit_depth(32) end}
 renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Convert to 8-bit", invoke=function(message) if message:is_trigger() then convert_bit_depth(8) end end}
 renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Convert to 16-bit", invoke=function(message) if message:is_trigger() then convert_bit_depth(16) end end}
 renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Convert to 24-bit", invoke=function(message) if message:is_trigger() then convert_bit_depth(24) end end}
+renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Convert to 32-bit", invoke=function(message) if message:is_trigger() then convert_bit_depth(32) end end}
 
 function convert_all_samples_to_bit_depth(target_bits)
     -- Ensure a song exists
@@ -2630,22 +2633,16 @@ function convert_all_samples_to_bit_depth(target_bits)
                     sample_index, total_samples)
             end
 
-            do
-                -- Skip invalid samples
-                if not sample.sample_buffer.has_sample_data then
-                    print(string.format("Skipping sample %d: No sample data", sample_index))
-                    skipped_samples = skipped_samples + 1
-                    processed_samples = processed_samples + 1
-                    break
-                end
-
-                -- Skip if already at target bit depth
-                if sample.sample_buffer.bit_depth == target_bits then
-                    print(string.format("Skipping sample %d: Already at %d-bit", sample_index, target_bits))
-                    skipped_samples = skipped_samples + 1
-                    processed_samples = processed_samples + 1
-                    break
-                end
+            -- Skip invalid samples
+            if not sample or not sample.sample_buffer.has_sample_data then
+                print(string.format("Skipping sample %d: No sample data", sample_index))
+                skipped_samples = skipped_samples + 1
+            elseif sample.sample_buffer.bit_depth == target_bits then
+                print(string.format("Skipping sample %d: Already at %d-bit", sample_index, target_bits))
+                skipped_samples = skipped_samples + 1
+            else
+                -- Set the selected sample index so user can see which sample is being processed
+                renoise.song().selected_sample_index = sample_index
 
                 -- Store ALL sample properties
                 local properties = {
@@ -2786,13 +2783,13 @@ function convert_all_samples_to_bit_depth(target_bits)
                 new_sample.sample_mapping.map_key_to_pitch = properties.sample_mapping.map_key_to_pitch
                 new_sample.sample_mapping.map_velocity_to_volume = properties.sample_mapping.map_velocity_to_volume
 
+                
                 -- Delete the temporary sample
                 instrument:delete_sample_at(temp_sample_index)
 
                 converted_samples = converted_samples + 1
-                processed_samples = processed_samples + 1
                 print(string.format("Converted sample %d to %d-bit", sample_index, target_bits))
-            end  -- end of do block
+            end
         end
 
         if dialog and dialog.visible then
@@ -2817,12 +2814,15 @@ end
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Convert All Samples to 8-bit", invoke=function() convert_all_samples_to_bit_depth(8) end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Convert All Samples to 16-bit", invoke=function() convert_all_samples_to_bit_depth(16) end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Convert All Samples to 24-bit", invoke=function() convert_all_samples_to_bit_depth(24) end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Convert All Samples to 32-bit", invoke=function() convert_all_samples_to_bit_depth(32) end}
 renoise.tool():add_keybinding{name="Sample Keyzones:Paketti:Convert All Samples to 8-bit", invoke=function() convert_all_samples_to_bit_depth(8) end}
 renoise.tool():add_keybinding{name="Sample Keyzones:Paketti:Convert All Samples to 16-bit", invoke=function() convert_all_samples_to_bit_depth(16) end}
 renoise.tool():add_keybinding{name="Sample Keyzones:Paketti:Convert All Samples to 24-bit", invoke=function() convert_all_samples_to_bit_depth(24) end}
+renoise.tool():add_keybinding{name="Sample Keyzones:Paketti:Convert All Samples to 32-bit", invoke=function() convert_all_samples_to_bit_depth(32) end}
 renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Convert All Samples to 8-bit", invoke=function(message) if message:is_trigger() then convert_all_samples_to_bit_depth(8) end end}
 renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Convert All Samples to 16-bit", invoke=function(message) if message:is_trigger() then convert_all_samples_to_bit_depth(16) end end}
 renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Convert All Samples to 24-bit", invoke=function(message) if message:is_trigger() then convert_all_samples_to_bit_depth(24) end end}
+renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Convert All Samples to 32-bit", invoke=function(message) if message:is_trigger() then convert_all_samples_to_bit_depth(32) end end}
 
 
 -----

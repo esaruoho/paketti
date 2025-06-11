@@ -265,9 +265,11 @@ renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert Al
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert to 8-bit", invoke=function() convert_bit_depth(8) end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert to 16-bit", invoke=function() convert_bit_depth(16) end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert to 24-bit", invoke=function() convert_bit_depth(24) end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert to 32-bit", invoke=function() convert_bit_depth(32) end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert All Samples to 8-bit", invoke=function() convert_all_samples_to_bit_depth(8) end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert All Samples to 16-bit", invoke=function() convert_all_samples_to_bit_depth(16) end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert All Samples to 24-bit", invoke=function() convert_all_samples_to_bit_depth(24) end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Convert All Samples to 32-bit", invoke=function() convert_all_samples_to_bit_depth(32) end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Cross-fade Sample w/ Fade-In/Out",invoke=function() crossfade_with_fades() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Process..:Cross-fade Loop Edges (Fixed End)",invoke=function() crossfade_loop_edges_fixed_end() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Record..:Start Sampling and Sample Editor (Record)",invoke=function() PakettiSampleAndToSampleEditor() end}  
@@ -394,6 +396,7 @@ renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Process..:Normali
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Process..:Convert to 8-bit", invoke=function() convert_bit_depth(8) end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Process..:Convert to 16-bit", invoke=function() convert_bit_depth(16) end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Process..:Convert to 24-bit", invoke=function() convert_bit_depth(24) end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Process..:Convert to 32-bit", invoke=function() convert_bit_depth(32) end}
 
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Process..:Convert All Samples to Mono (Keep Left)",invoke=function() convert_all_samples_to_mono("left") end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Process..:Convert All Samples to Mono (Keep Right)",invoke=function() convert_all_samples_to_mono("right") end}
@@ -424,6 +427,7 @@ renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Load .MOD as Sa
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Process..:Convert All Samples to 8-bit", invoke=function() convert_all_samples_to_bit_depth(8) end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Process..:Convert All Samples to 16-bit", invoke=function() convert_all_samples_to_bit_depth(16) end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Process..:Convert All Samples to 24-bit", invoke=function() convert_all_samples_to_bit_depth(24) end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Process..:Convert All Samples to 32-bit", invoke=function() convert_all_samples_to_bit_depth(32) end}
 
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Process..:Strip Silence",invoke=function() PakettiStripSilence() end}
 renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Process..:Move Beginning Silence to End",invoke=function() PakettiMoveSilence() end}
@@ -528,10 +532,12 @@ renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Set Selected Sampl
 renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Process..:Convert to 8-bit", invoke=function() convert_bit_depth(8) end}
 renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Process..:Convert to 16-bit", invoke=function() convert_bit_depth(16) end}
 renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Process..:Convert to 24-bit", invoke=function() convert_bit_depth(24) end}
+renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Process..:Convert to 32-bit", invoke=function() convert_bit_depth(32) end}
 
 renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Process..:Convert All Samples to 8-bit", invoke=function() convert_all_samples_to_bit_depth(8) end}
 renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Process..:Convert All Samples to 16-bit", invoke=function() convert_all_samples_to_bit_depth(16) end}
 renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Process..:Convert All Samples to 24-bit", invoke=function() convert_all_samples_to_bit_depth(24) end}
+renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Process..:Convert All Samples to 32-bit", invoke=function() convert_all_samples_to_bit_depth(32) end}
 
 renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Process..:Convert Stereo to Mono (Mix Both)",invoke=stereo_to_mono_mix_optimized}
 
