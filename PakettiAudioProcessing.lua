@@ -1,6 +1,3 @@
--- TODO:
--- Protracker MOD
-
 -- ProTracker MOD Modulation Effect
 -- Creates a time-varying modulation effect similar to ProTracker's MOD command
 
@@ -189,10 +186,7 @@ function showProtrackerModDialog()
 end
 
 -- Add keybindings and menu entries
-renoise.tool():add_keybinding{
-  name = "Sample Editor:Paketti:Protracker MOD Modulation...",
-  invoke = showProtrackerModDialog
-}
+renoise.tool():add_keybinding{name = "Sample Editor:Paketti:Protracker MOD Modulation...",invoke = showProtrackerModDialog}
 
 
 

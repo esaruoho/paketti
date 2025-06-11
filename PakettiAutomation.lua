@@ -1656,10 +1656,8 @@ local function randomize_device_envelopes(start_param)
   renoise.app():show_status("Randomized Automation Envelopes for Each Parameter of Selected Device.")
 end
 
--- Keybinding, menu, and MIDI mapping entries for the tool
 renoise.tool():add_keybinding{name="Global:Paketti:Randomize Automation Envelopes for Device",invoke=function() randomize_device_envelopes(1) end}
 
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Automation..:Randomize Automation Envelopes for Device",invoke=function() randomize_device_envelopes(1) end}
 
 
 renoise.tool():add_midi_mapping{name="Paketti:Randomize Automation Envelopes for Device",invoke=function() randomize_device_envelopes(1) end}
@@ -2711,7 +2709,6 @@ end
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:LFO Write..:LFO Write to Selected Automation Parameter",invoke = toggle_parameter_following}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:LFO Write..:LFO Write to Selected Automation Parameter",invoke = toggle_parameter_following}
 renoise.tool():add_keybinding{name="Global:Paketti:LFO Write to Selected Automation Parameter",invoke = toggle_parameter_following}
-
 
 -- Global variables
 local is_following_to_fx = false
