@@ -1185,6 +1185,11 @@ end
 if preferences.pakettiMenuConfig.MainMenuTools then
 print ("Main Menu Tools Menus Are Enabled")
 --- Gadgets
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets..:Fuzzy Search Track...",invoke = pakettiFuzzySearchTrackDialog}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets..:Largest Samples Dialog...",invoke = pakettiShowLargestSamplesDialog}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets..:Unison Generator",invoke=PakettiCreateUnisonSamples}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets..:Show Paketti Formula Dialog...",invoke = pakettiFormulaDeviceDialog}
+
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets..:Keyzone Distributor Dialog...",invoke=function() pakettiKeyzoneDistributorDialog() end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets..:Paketti Action Selector Dialog...",invoke = pakettiActionSelectorDialog}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets..:Paketti Timestretch Dialog...",invoke=pakettiTimestretchDialog}
@@ -1196,20 +1201,20 @@ renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets..:Paketti 
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets..:Instruments:PitchStepper Demo",invoke=function() pakettiPitchStepperDemo() end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets..:Quick Load Device Dialog...", invoke=pakettiQuickLoadDialog}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets..:Paketti Sequencer Settings Dialog...",invoke = pakettiSequencerSettingsDialog}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets..:Paketti Dialog of Dialogs...",invoke=function() pakettiDialogOfDialogsToggle() end}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets..:Paketti Dialog of Dialogs...",invoke=function() pakettiDialogOfDialogsToggle() end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets..:Paketti New Song Dialog...",invoke=function() pakettiImpulseTrackerNewSongDialog() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets..:Paketti Track Dater & Titler...",invoke=function() pakettiTitlerDialog() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets..:Paketti Theme Selector...",invoke=pakettiThemeSelectorDialogShow }
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets..:Paketti Gater...",invoke=function()
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets..:Paketti Track Dater & Titler...",invoke=function() pakettiTitlerDialog() end}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets..:Paketti Theme Selector...",invoke=pakettiThemeSelectorDialogShow }
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets..:Paketti Gater...",invoke=function()
           local max_rows = renoise.song().selected_pattern.number_of_lines
           if renoise.song() then
             pakettiGaterDialog()
             renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR end end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets..:Paketti MIDI Populator...",invoke=function() pakettiMIDIPopulator() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets..:Track Routings...",invoke=function() pakettiTrackOutputRoutingsDialog() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets..:Oblique Strategies...",invoke=function() create_oblique_strategies_dialog() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets..:Paketti Track Renamer...",invoke=function() pakettiTrackRenamerDialog() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets..:Paketti eSpeak Text-to-Speech...",invoke=function()pakettieSpeakDialog()end}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets..:Track Routings...",invoke=function() pakettiTrackOutputRoutingsDialog() end}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets..:Oblique Strategies...",invoke=function() create_oblique_strategies_dialog() end}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets..:Paketti Track Renamer...",invoke=function() pakettiTrackRenamerDialog() end}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets..:Paketti eSpeak Text-to-Speech...",invoke=function()pakettieSpeakDialog()end}
     
 -- Xperimental/Work in Progress
 renoise.tool():add_menu_entry{name='Main Menu:Tools:Paketti..:Xperimental/Work in Progress..:BeatDetector Modified...',invoke=function() pakettiBeatDetectorDialog() end}
@@ -1262,13 +1267,13 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Export S3000 Sample...",invoke=function() exportS3000Sample() end}           
 
 -- Tools Preferences
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:!Preferences..:Paketti Preferences...",invoke=pakettiPreferences}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:!Preferences..:Paketti Dynamic View Preferences Dialog 1-4...", invoke=function() pakettiDynamicViewDialog(1, 4) end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:!Preferences..:Paketti Dynamic View Preferences Dialog 5-8...", invoke=function() pakettiDynamicViewDialog(5, 8) end}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:!Preferences..:Paketti MIDI Mappings...",invoke=function() pakettiMIDIMappingsDialog() end}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:!Preferences..:Toggle Automatically Open Selected Track Device Editors On/Off",invoke = PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:!Preferences..:Paketti Preferences...",invoke=pakettiPreferences}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:!Preferences..:Paketti Save Dynamic Views as a Textfile", invoke=function() save_dynamic_views_to_txt() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:!Preferences..:Paketti Load Dynamic Views from a Textfile", invoke=function() load_dynamic_views_from_txt() end}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:!Preferences..:Paketti MIDI Mappings...",invoke=function() pakettiMIDIMappingsDialog() end}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:!Preferences..:Toggle Automatically Open Selected Track Device Editors On/Off",invoke = PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode}
   
 -- Tools Plugins/Devices
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:Debug..:Show Effect Details Dialog...",invoke=function() pakettiDebugDeviceInfoDialog() end}
@@ -1449,8 +1454,6 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:
 
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Pattern Editor..:Clone Current Sequence",invoke=clone_current_sequence}
 
-
-
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Instruments..:Set All Instruments All Samples Autoseek On",invoke=function() setAllInstrumentsAllSamplesAutoseek(1) end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:Set All Instruments All Samples Autoseek Off",invoke=function() setAllInstrumentsAllSamplesAutoseek(0) end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Instruments..:Set All Instruments All Samples Autofade On",invoke=function() setAllInstrumentsAllSamplesAutofade(1) end}
@@ -1558,15 +1561,11 @@ renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Pattern Editor..
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Instruments..:Global Volume Reduce All Instruments by -4.5dB",invoke=function() reduceInstrumentsVolume(4.5) end}
 
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Save Unused Samples (.WAV&.XRNI)...",invoke=saveUnusedSamples}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Fuzzy Search Track...",invoke = pakettiFuzzySearchTrackDialog}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Plugins/Devices..:Load Plugins...",invoke=function() pakettiLoadPluginsDialog() end}renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Switch Note Instrument Dialog...",invoke=pakettiSwitchNoteInstrumentDialog}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Instruments..:Paketti PitchBend Drumkit Sample Loader",invoke=function() pitchBendDrumkitLoader() end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Instruments..:Duplicate and Reverse Instrument",invoke=function() PakettiDuplicateAndReverseInstrument() end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Instruments..:Save All Samples to Folder...",invoke = saveAllSamplesToFolder}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Largest Samples Dialog...",invoke = pakettiShowLargestSamplesDialog}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Instruments..:Fill Empty Sample Slots (Randomized Folder)",invoke=function() fillEmptySampleSlots() end}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Unison Generator",invoke=PakettiCreateUnisonSamples}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Show Paketti Formula Dialog...",invoke = pakettiFormulaDeviceDialog}
 
 
 
