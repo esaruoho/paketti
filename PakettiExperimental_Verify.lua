@@ -664,7 +664,6 @@ renoise.tool():add_keybinding{name="Global:Paketti:Create Pattern Sequencer Patt
 renoise.tool():add_keybinding{name="Global:Paketti:Slice to Pattern Sequencer Dialog...",invoke = showSliceToPatternSequencerInterface}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Slice to Pattern Sequencer Dialog...",invoke = showSliceToPatternSequencerInterface}
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Slice to Pattern Sequencer Dialog...",invoke = showSliceToPatternSequencerInterface}
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti..:Slice to Pattern Sequencer Dialog...",invoke = showSliceToPatternSequencerInterface}
 ----
 renoise.tool():add_keybinding{name="Global:Paketti:Wipe&Slice&Write to Pattern",invoke = function() WipeSliceAndWrite() end}
 

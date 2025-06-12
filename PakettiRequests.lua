@@ -6318,34 +6318,28 @@ end
 
 
 renoise.tool():add_midi_mapping{name="Paketti:Play at Random Line in Current Pattern",invoke=function(message)
-  if message:is_trigger() then setRandomLine(1) end
+  if message:is_trigger() or message:is_abs_value() then setRandomLine(1) end
 end}
 renoise.tool():add_keybinding{name="Global:Paketti:Play at Random Line in Current Pattern",invoke=function()
   setRandomLine(1)
 end}
 
 renoise.tool():add_midi_mapping{name="Paketti:Play at Random Line in Current Pattern 2",invoke=function(message)
-  if message:is_trigger() then setRandomLine(2) end
+  if message:is_trigger() or message:is_abs_value() then setRandomLine(2) end
 end}
 
 renoise.tool():add_keybinding{name="Global:Paketti:Play at Random Line in Current Pattern 2",invoke=function() setRandomLine(2) end}
 
 renoise.tool():add_midi_mapping{name="Paketti:Play at Random Line in Current Pattern 4",invoke=function(message)
-  if message:is_trigger() then setRandomLine(4) end
+  if message:is_trigger() or message:is_abs_value() then setRandomLine(4) end
 end}
 
 renoise.tool():add_keybinding{name="Global:Paketti:Play at Random Line in Current Pattern 4",invoke=function()
-  setRandomLine(4)
-end}
-
-
+  setRandomLine(4) end}
 
 renoise.tool():add_midi_mapping{name="Paketti:Play at Random Line in Current Pattern LPB",invoke=function(message)
-  if message:is_trigger() then setRandomLine("lpb") end
-end}
-renoise.tool():add_keybinding{name="Global:Paketti:Play at Random Line in Current Pattern LPB",invoke=function()
-  setRandomLine("lpb")
-end}
+  if message:is_trigger() or message:is_abs_value()then setRandomLine("lpb") end end}
+renoise.tool():add_keybinding{name="Global:Paketti:Play at Random Line in Current Pattern LPB",invoke=function() setRandomLine("lpb") end}
 
 
 
@@ -7221,52 +7215,66 @@ function ShowHideSelectedTrack(slot)
 end
 
 --
-function PakettiJumpRowsForward(jump_amount)
+function PakettiJumpRows(jump_amount, direction)
   local song=renoise.song()
   local current_pattern = song.selected_pattern
   local num_lines = current_pattern.number_of_lines
-  local new_index = (song.selected_line_index + jump_amount - 1) % num_lines + 1
-  song.selected_line_index = new_index
-  renoise.app():show_status("Jumped forward " .. jump_amount .. " rows to line " .. new_index)
+  local signed_amount = direction == "forward" and jump_amount or -jump_amount
+  
+  if song.transport.playing and song.transport.follow_player then
+    local current_pos = song.transport.playback_pos
+    local new_index = (current_pos.line + signed_amount - 1) % num_lines + 1
+    
+    -- Create new SongPos and use start_at() to jump during playback
+    local new_pos = renoise.SongPos()
+    new_pos.sequence = current_pos.sequence
+    new_pos.line = new_index
+    song.transport:start_at(new_pos)
+    
+    renoise.app():show_status("Jumped " .. direction .. " " .. jump_amount .. " rows to line " .. new_index)
+  else
+    local new_index = (song.selected_line_index + signed_amount - 1) % num_lines + 1
+    song.selected_line_index = new_index
+    renoise.app():show_status("Jumped " .. direction .. " " .. jump_amount .. " rows to line " .. new_index)
+  end
 end
 
-function PakettiJumpRowsBackward(jump_amount)
+function PakettiJumpRowsRandom(direction)
   local song=renoise.song()
   local current_pattern = song.selected_pattern
   local num_lines = current_pattern.number_of_lines
-  local new_index = (song.selected_line_index - jump_amount - 1) % num_lines + 1
-  song.selected_line_index = new_index
-  renoise.app():show_status("Jumped backward " .. jump_amount .. " rows to line " .. new_index)
-end
-
-function PakettiJumpRowsRandomForward()
-  local song=renoise.song()
-  local current_pattern = song.selected_pattern
-  local num_lines = current_pattern.number_of_lines
-  local random_index = math.random(1, num_lines)
-  song.selected_line_index = random_index
-  renoise.app():show_status("Randomly jumped to line " .. random_index)
-end
-
-function PakettiJumpRowsRandomBackward()
-  local song=renoise.song()
-  local current_pattern = song.selected_pattern
-  local num_lines = current_pattern.number_of_lines
-  local random_index = (song.selected_line_index - math.random(1, num_lines) - 1) % num_lines + 1
-  song.selected_line_index = random_index
-  renoise.app():show_status("Randomly jumped backward to line " .. random_index)
+  local random_index
+  
+  if direction == "forward" then
+    random_index = math.random(1, num_lines)
+  else -- backward
+    local current_line = (song.transport.playing and song.transport.follow_player) and song.transport.playback_pos.line or song.selected_line_index
+    random_index = (current_line - math.random(1, num_lines) - 1) % num_lines + 1
+  end
+  
+  if song.transport.playing and song.transport.follow_player then
+    -- Create new SongPos and use start_at() to jump during playback
+    local current_pos = song.transport.playback_pos
+    local new_pos = renoise.SongPos()
+    new_pos.sequence = current_pos.sequence
+    new_pos.line = random_index
+    song.transport:start_at(new_pos)
+  else
+    song.selected_line_index = random_index
+  end
+  renoise.app():show_status("Randomly jumped " .. direction .. " to line " .. random_index)
 end
 
 for i = 1, 128 do
-  renoise.tool():add_keybinding{name="Global:Paketti:Jump Forward Within Pattern by " .. formatDigits(3, i),invoke=function() PakettiJumpRowsForward(i) end}
-  renoise.tool():add_keybinding{name="Global:Paketti:Jump Backward Within Pattern by " .. formatDigits(3, i),invoke=function() PakettiJumpRowsBackward(i) end}
-  renoise.tool():add_midi_mapping{name="Paketti:Jump Forward Within Pattern by " .. formatDigits(3, i),invoke=function(message) if message:is_trigger() then PakettiJumpRowsForward(i) end end}
-  renoise.tool():add_midi_mapping{name="Paketti:Jump Backward Within Pattern by " .. formatDigits(3, i),invoke=function(message) if message:is_trigger() then PakettiJumpRowsBackward(i) end end}
+  renoise.tool():add_keybinding{name="Global:Paketti:Jump Forward Within Pattern by " .. formatDigits(3, i),invoke=function() PakettiJumpRows(i, "forward") end}
+  renoise.tool():add_keybinding{name="Global:Paketti:Jump Backward Within Pattern by " .. formatDigits(3, i),invoke=function() PakettiJumpRows(i, "backward") end}
+  renoise.tool():add_midi_mapping{name="Paketti:Jump Forward Within Pattern by " .. formatDigits(3, i),invoke=function(message) if message:is_trigger() or message:is_abs_value() then PakettiJumpRows(i, "forward") end end}
+  renoise.tool():add_midi_mapping{name="Paketti:Jump Backward Within Pattern by " .. formatDigits(3, i),invoke=function(message) if message:is_trigger() or message:is_abs_value() then PakettiJumpRows(i, "backward") end end}
 end
-renoise.tool():add_keybinding{name="Global:Paketti:Jump Forward Within Pattern by Random",invoke=function() PakettiJumpRowsRandomForward() end}
-renoise.tool():add_keybinding{name="Global:Paketti:Jump Backward Within Pattern by Random",invoke=function() PakettiJumpRowsRandomBackward() end}
-renoise.tool():add_midi_mapping{name="Paketti:Jump Forward Within Pattern by Random",invoke=function(message) if message:is_trigger() then PakettiJumpRowsRandomForward() end end}
-renoise.tool():add_midi_mapping{name="Paketti:Jump Backward Within Pattern by Random",invoke=function(message) if message:is_trigger() then PakettiJumpRowsRandomBackward() end end}
+renoise.tool():add_keybinding{name="Global:Paketti:Jump Forward Within Pattern by Random",invoke=function() PakettiJumpRowsRandom("forward") end}
+renoise.tool():add_keybinding{name="Global:Paketti:Jump Backward Within Pattern by Random",invoke=function() PakettiJumpRowsRandom("backward") end}
+renoise.tool():add_midi_mapping{name="Paketti:Jump Forward Within Pattern by Random",invoke=function(message) if message:is_trigger() or message:is_abs_value() then PakettiJumpRowsRandom("forward") end end}
+renoise.tool():add_midi_mapping{name="Paketti:Jump Backward Within Pattern by Random",invoke=function(message) if message:is_trigger() or message:is_abs_value() then PakettiJumpRowsRandom("backward") end end}
 
 local function get_total_song_rows()
   local song=renoise.song()
@@ -7305,60 +7313,68 @@ local function get_current_cumulative_position()
   return cumulative_rows + line_index
 end
 
--- Forward jump across patterns in the song
-function PakettiJumpRowsForwardInSong(jump_amount)
+-- Jump across patterns in the song
+function PakettiJumpRowsInSong(jump_amount, direction)
   local song=renoise.song()
   local current_position = get_current_cumulative_position()
   local total_rows = get_total_song_rows()
-  local target_position = math.min(current_position + jump_amount, total_rows)
+  local signed_amount = direction == "forward" and jump_amount or -jump_amount
+  local target_position = direction == "forward" and math.min(current_position + jump_amount, total_rows) or math.max(current_position - jump_amount, 1)
 
   local target_sequence, target_row = get_pattern_and_row_from_cumulative_position(target_position)
-  song.selected_sequence_index = target_sequence
-  song.selected_line_index = target_row
-  renoise.app():show_status("Jumped forward within song by " .. jump_amount .. " rows to sequence " .. target_sequence .. ", row " .. target_row)
+  
+  if song.transport.playing and song.transport.follow_player then
+    -- Create new SongPos and use start_at() to jump during playback
+    local new_pos = renoise.SongPos()
+    new_pos.sequence = target_sequence
+    new_pos.line = target_row
+    song.transport:start_at(new_pos)
+  else
+    song.selected_sequence_index = target_sequence
+    song.selected_line_index = target_row
+  end
+  renoise.app():show_status("Jumped " .. direction .. " within song by " .. jump_amount .. " rows to sequence " .. target_sequence .. ", row " .. target_row)
 end
 
--- Backward jump across patterns in the song
-function PakettiJumpRowsBackwardInSong(jump_amount)
+-- Random jump within song
+function PakettiJumpRowsRandomInSong(direction)
   local song=renoise.song()
-  local current_position = get_current_cumulative_position()
-  local target_position = math.max(current_position - jump_amount, 1)
-
-  local target_sequence, target_row = get_pattern_and_row_from_cumulative_position(target_position)
-  song.selected_sequence_index = target_sequence
-  song.selected_line_index = target_row
-  renoise.app():show_status("Jumped backward within song by " .. jump_amount .. " rows to sequence " .. target_sequence .. ", row " .. target_row)
-end
-
--- Random forward jump within song
-function PakettiJumpRowsRandomForwardInSong()
   local total_rows = get_total_song_rows()
-  local random_position = math.random(1, total_rows)
+  local random_position
+  
+  if direction == "forward" then
+    random_position = math.random(1, total_rows)
+  else -- backward
+    random_position = math.random(1, total_rows)
+    random_position = total_rows - random_position
+  end
+  
   local target_sequence, target_row = get_pattern_and_row_from_cumulative_position(random_position)
-  renoise.song().selected_sequence_index = target_sequence
-  renoise.song().selected_line_index = target_row
-  renoise.app():show_status("Randomly jumped forward within song to sequence " .. target_sequence .. ", row " .. target_row)
-end
-
--- Random backward jump within song
-function PakettiJumpRowsRandomBackwardInSong()
-  local total_rows = get_total_song_rows()
-  local random_position = math.random(1, total_rows)
-  local target_sequence, target_row = get_pattern_and_row_from_cumulative_position(total_rows - random_position)
-  renoise.song().selected_sequence_index = target_sequence
-  renoise.song().selected_line_index = target_row
-  renoise.app():show_status("Randomly jumped backward within song to sequence " .. target_sequence .. ", row " .. target_row)
+  
+  if song.transport.playing and song.transport.follow_player then
+    -- Create new SongPos and use start_at() to jump during playback
+    local new_pos = renoise.SongPos()
+    new_pos.sequence = target_sequence
+    new_pos.line = target_row
+    song.transport:start_at(new_pos)
+  else
+    song.selected_sequence_index = target_sequence
+    song.selected_line_index = target_row
+  end
+  renoise.app():show_status("Randomly jumped " .. direction .. " within song to sequence " .. target_sequence .. ", row " .. target_row)
 end
 
 for i = 1, 128 do
-  renoise.tool():add_keybinding{name="Global:Paketti:Jump Forward Within Song by " .. formatDigits(3, i),invoke=function() PakettiJumpRowsForwardInSong(i) end}
-  renoise.tool():add_keybinding{name="Global:Paketti:Jump Backward Within Song by " .. formatDigits(3, i),invoke=function() PakettiJumpRowsBackwardInSong(i) end}
-  renoise.tool():add_midi_mapping{name="Paketti:Jump Forward Within Song by " .. formatDigits(3, i),invoke=function(message) if message:is_trigger() then PakettiJumpRowsForwardInSong(i) end end}
-  renoise.tool():add_midi_mapping{name="Paketti:Jump Backward Within Song by " .. formatDigits(3, i),invoke=function(message) if message:is_trigger() then PakettiJumpRowsBackwardInSong(i) end end}
+  renoise.tool():add_keybinding{name="Global:Paketti:Jump Forward Within Song by " .. formatDigits(3, i),invoke=function() PakettiJumpRowsInSong(i, "forward") end}
+  renoise.tool():add_keybinding{name="Global:Paketti:Jump Backward Within Song by " .. formatDigits(3, i),invoke=function() PakettiJumpRowsInSong(i, "backward") end}
+  renoise.tool():add_midi_mapping{name="Paketti:Jump Forward Within Song by " .. formatDigits(3, i),invoke=function(message) if message:is_trigger() or message:is_abs_value() then PakettiJumpRowsInSong(i, "forward") end end}
+  renoise.tool():add_midi_mapping{name="Paketti:Jump Backward Within Song by " .. formatDigits(3, i),invoke=function(message) if message:is_trigger() or message:is_abs_value() then PakettiJumpRowsInSong(i, "backward") end end}
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Jump Backward Within Song by Random",invoke=function() PakettiJumpRowsRandomBackwardInSong() end}
-renoise.tool():add_midi_mapping{name="Paketti:Jump Backward Within Song by Random",invoke=function(message) if message:is_trigger() then PakettiJumpRowsRandomBackwardInSong() end end}
+renoise.tool():add_keybinding{name="Global:Paketti:Jump Forward Within Song by Random",invoke=function() PakettiJumpRowsRandomInSong("forward") end}
+renoise.tool():add_keybinding{name="Global:Paketti:Jump Backward Within Song by Random",invoke=function() PakettiJumpRowsRandomInSong("backward") end}
+renoise.tool():add_midi_mapping{name="Paketti:Jump Forward Within Song by Random",invoke=function(message) if message:is_trigger() or message:is_abs_value() then PakettiJumpRowsRandomInSong("forward") end end}
+renoise.tool():add_midi_mapping{name="Paketti:Jump Backward Within Song by Random",invoke=function(message) if message:is_trigger() or message:is_abs_value() then PakettiJumpRowsRandomInSong("backward") end end}
 
 function PopulateGainersOnEachTrack(placement)
   local song=renoise.song()

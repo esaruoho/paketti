@@ -527,3 +527,15 @@ function navigate_section_sequence(direction)
 end
 
 renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Show Paketti Sequencer Settings Dialog",invoke = pakettiSequencerSettingsDialog}
+
+for section_number = 1, 32 do
+  renoise.tool():add_keybinding{name="Global:Paketti:Select and Loop Sequence Section " .. string.format("%02d", section_number),
+    invoke=function() select_and_loop_section(section_number) end
+  }
+end
+renoise.tool():add_keybinding{name="Global:Paketti:Add Current Sequence to Scheduled List",invoke=function() renoise.song().transport:add_scheduled_sequence(renoise.song().selected_sequence_index) end}
+renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Clone Current Sequence",invoke=clone_current_sequence}
+
+renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Select Next Section Sequence",invoke=function() navigate_section_sequence("next") end}
+renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Select Previous Section Sequence",invoke=function() navigate_section_sequence("previous") end}
+renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Duplicate Selected Sequence Range",invoke=duplicate_selected_sequence_range}

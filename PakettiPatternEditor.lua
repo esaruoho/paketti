@@ -6522,3 +6522,9 @@ renoise.tool():add_keybinding {name="Global:Paketti:Duplicate Selection in Patte
 
 
 
+
+
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Increase Pattern Length by 8",invoke=function() adjust_length_by(8) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Decrease Pattern Length by 8",invoke=function() adjust_length_by(-8) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Increase Pattern Length by LPB",invoke=function() adjust_length_by("lpb") end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Decrease Pattern Length by LPB",invoke=function() adjust_length_by("-lpb") end}
