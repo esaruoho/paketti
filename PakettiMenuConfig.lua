@@ -1645,7 +1645,7 @@ renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti Gadgets..:Paketti B
 renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Devices..:Insert Stereo -> Mono device to End of ALL DSP Chains",invoke=function() insertMonoToAllTracksEnd() end}
 
 -- Pattern Matrix Automation
-renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Automation Curves..:Center to Top (Exp) for Pattern Matrix Selection",invoke=automation_center_to_top_exp }
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Automation Curves..:Center to Top (Exp) for Pattern Matrix Selection",invoke=automation_center_to_top_exp }
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Automation Curves..:Top to Center (Exp) for Pattern Matrix Selection",invoke=automation_top_to_center_exp }
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Automation Curves..:Center to Bottom (Exp) for Pattern Matrix Selection",invoke=automation_center_to_bottom_exp }
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Automation Curves..:Bottom to Center (Exp) for Pattern Matrix Selection",invoke=automation_bottom_to_center_exp }
@@ -1658,15 +1658,15 @@ renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Automation Curves..
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Automation Curves..:Automation Ramp Up (Lin) for Pattern Matrix Selection",invoke=automation_ramp_up_lin }
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Automation Curves..:Automation Ramp Down (Lin) for Pattern Matrix Selection",invoke=automation_ramp_down_lin }
 renoise.tool():add_menu_entry({name="--Pattern Matrix:Paketti..:Automation Curves..:Top to Top",invoke=function() apply_constant_automation_top_to_top() end})
-renoise.tool():add_menu_entry({name="Pattern Matrix:Paketti..:Automation Curves..:Bottom to Bottom",invoke=function() apply_constant_automation_bottom_to_bottom() end})
-renoise.tool():add_menu_entry({name="Pattern Matrix:Paketti..:Automation Curves..:Selection Up (Exp)",invoke=function() apply_exponential_automation_curveUP() end})
-renoise.tool():add_menu_entry({name="Pattern Matrix:Paketti..:Automation Curves..:Selection Up (Linear)",invoke=function() apply_selection_up_linear() end})
-renoise.tool():add_menu_entry({name="Pattern Matrix:Paketti..:Automation Curves..:Selection Down (Exp)",invoke=function() apply_exponential_automation_curveDOWN() end})
-renoise.tool():add_menu_entry({name="Pattern Matrix:Paketti..:Automation Curves..:Selection Down (Linear)",invoke=function() apply_selection_down_linear() end})
-renoise.tool():add_menu_entry({name="Pattern Matrix:Paketti..:Automation Curves..:Center to Top (Exp)",invoke=function() apply_exponential_automation_curve_center_to_top() end})
-renoise.tool():add_menu_entry({name="Pattern Matrix:Paketti..:Automation Curves..:Center to Bottom (Exp)",invoke=function() apply_exponential_automation_curve_center_to_bottom() end})
-renoise.tool():add_menu_entry({name="Pattern Matrix:Paketti..:Automation Curves..:Top to Center (Exp)",invoke=function() apply_exponential_automation_curve_top_to_center() end})
-renoise.tool():add_menu_entry({name="Pattern Matrix:Paketti..:Automation Curves..:Bottom to Center (Exp)",invoke=function() apply_exponential_automation_curve_bottom_to_center() end})
+renoise.tool():add_menu_entry({name="Pattern Matrix:Paketti..:Automation Curves..:Bottom to Bottom (One Pattern)",invoke=function() apply_constant_automation_bottom_to_bottom() end})
+renoise.tool():add_menu_entry({name="Pattern Matrix:Paketti..:Automation Curves..:Selection Up (Exp) (One Pattern)",invoke=function() apply_exponential_automation_curveUP() end})
+renoise.tool():add_menu_entry({name="Pattern Matrix:Paketti..:Automation Curves..:Selection Up (Linear) (One Pattern)",invoke=function() apply_selection_up_linear() end})
+renoise.tool():add_menu_entry({name="Pattern Matrix:Paketti..:Automation Curves..:Selection Down (Exp) (One Pattern)",invoke=function() apply_exponential_automation_curveDOWN() end})
+renoise.tool():add_menu_entry({name="Pattern Matrix:Paketti..:Automation Curves..:Selection Down (Linear) (One Pattern)",invoke=function() apply_selection_down_linear() end})
+renoise.tool():add_menu_entry({name="Pattern Matrix:Paketti..:Automation Curves..:Center to Top (Exp) (One Pattern)",invoke=function() apply_exponential_automation_curve_center_to_top() end})
+renoise.tool():add_menu_entry({name="Pattern Matrix:Paketti..:Automation Curves..:Center to Bottom (Exp) (One Pattern)",invoke=function() apply_exponential_automation_curve_center_to_bottom() end})
+renoise.tool():add_menu_entry({name="Pattern Matrix:Paketti..:Automation Curves..:Top to Center (Exp) (One Pattern)",invoke=function() apply_exponential_automation_curve_top_to_center() end})
+renoise.tool():add_menu_entry({name="Pattern Matrix:Paketti..:Automation Curves..:Bottom to Center (Exp) (One Pattern)",invoke=function() apply_exponential_automation_curve_bottom_to_center() end})
 
 -- Pattern Matrix Root
 renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Toggle Automatically Open Selected Track Device Editors On/Off",invoke = PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode}
