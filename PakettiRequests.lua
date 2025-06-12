@@ -9056,7 +9056,7 @@ function findUsedSamples()
 
   -- Additional pass: Check phrases for used notes
   for instr_idx, instrument in ipairs(song.instruments) do
-    if instrument.phrase_editor and #instrument.phrase_editor.phrases > 0 then
+    if instrument.phrases and #instrument.phrases > 0 then
       -- If instrument has any phrases at all, consider all its samples as used
       for sample_idx = 1, #instrument.samples do
         used_samples[instr_idx][sample_idx] = true
