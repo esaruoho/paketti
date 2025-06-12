@@ -10,10 +10,15 @@ local function round(x)
 end
 
 local function get_note_letter(x)
-  local note=round(x)
-  local octave=math.floor((note-12)/12)
-  local letters={"C","C#","D","D#","E","F","F#","G","G#","A","A#","B"}
-  return letters[(note%12)+1]..octave
+  local note = round(x)
+  -- MIDI note 60 is middle C (C4)
+  -- Calculate octave based on this reference point
+  local octave = math.floor((note - 12) / 12)
+  local letters = {"C","C#","D","D#","E","F","F#","G","G#","A","A#","B"}
+  -- Get the note name from the letters table
+  local note_name = letters[(note % 12) + 1]
+  -- Format the octave number without the minus sign
+  return note_name .. math.abs(octave)
 end
 
 local function analyze_sample(cycles)
@@ -43,7 +48,10 @@ end
 local function set_pitch(data)
   local smp=renoise.song().selected_sample
   local diff=round(data.midi)-60
-  smp.transpose=-diff
+  -- Clamp transpose to valid range (-120 to 120)
+  local transpose_value = -diff
+  transpose_value = math.max(-120, math.min(120, transpose_value))
+  smp.transpose = transpose_value
   -- data.cents directly tells us how many 1/128ths of a semitone we need
   local fine_tune_steps = round(data.cents)
   -- Clamp to valid range (-128 to 127)
@@ -105,7 +113,7 @@ function pakettiSimpleSampleTuningDialog()
               return
             end
             set_pitch(analysis)
-            renoise.app().window.active_middle_frame=renoise.ApplicationWindow.MIDDLE_FRAME_SAMPLE_EDITOR
+            renoise.app().window.active_middle_frame=renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
           end
         },
         vb:button{

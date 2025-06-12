@@ -9054,6 +9054,18 @@ function findUsedSamples()
     end
   end
 
+  -- Additional pass: Check phrases for used notes
+  for instr_idx, instrument in ipairs(song.instruments) do
+    if instrument.phrase_editor and #instrument.phrase_editor.phrases > 0 then
+      -- If instrument has any phrases at all, consider all its samples as used
+      for sample_idx = 1, #instrument.samples do
+        used_samples[instr_idx][sample_idx] = true
+        print(string.format("Sample %d in instrument %d is USED - instrument has phrases", 
+              sample_idx, instr_idx))
+      end
+    end
+  end
+
   -- Second pass: Check each sample's mappings
   for instr_idx, notes in pairs(used_notes) do
     local instrument = song.instruments[instr_idx]
