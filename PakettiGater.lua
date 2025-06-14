@@ -2208,6 +2208,24 @@ renoise.tool():add_keybinding{name="Global:Paketti:Paketti Gater Dialog...",invo
   end
 end}
 
+renoise.tool():add_midi_mapping{name="Paketti:Paketti Gater Dialog...",invoke=function(message)
+  if message:is_trigger() then
+  if dialog and dialog.visible then
+    -- Add cleanup code here before closing
+    if track_notifier and renoise.song().selected_track_index_observable:has_notifier(track_notifier) then
+      renoise.song().selected_track_index_observable:remove_notifier(track_notifier)
+    end
+    dialog:close()
+    dialog = nil
+    return
+  end
+  
+  max_rows = renoise.song().selected_pattern.number_of_lines
+  if renoise.song() then
+    pakettiGaterDialog()
+    renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+  end end
+end}
 
 function auto_grab_handler()
   if not auto_grab then return end

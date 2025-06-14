@@ -153,8 +153,8 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
   local current_transpose = instrument and instrument.transpose or 0
   
   local transpose_rotary = vb:rotary {
-    min = -36,
-    max = 36,
+    min = -64,
+    max = 64,
     value = current_transpose,
     width=25,
     height = 25,
@@ -1919,6 +1919,17 @@ function assign_midi_mappings()
       end}
     end
   end
+  
+  -- Sample slider MIDI mappings for each row
+  for row = 1, 8 do
+    renoise.tool():add_midi_mapping{name=string.format("Paketti:Paketti Groovebox 8120:Row%d Sample Slider", row),invoke=function(message)
+      if message:is_abs_value() and rows[row] and rows[row].slider then
+        -- Map MIDI value (0-127) to slider range (1-120)
+        local slider_value = math.floor((message.int_value / 127) * 119) + 1
+        rows[row].slider.value = slider_value
+      end
+    end}
+  end
 end
 
 assign_midi_mappings()
@@ -1932,13 +1943,7 @@ function GrooveboxShowClose()
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120",invoke=function() GrooveboxShowClose() end}
-renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120",invoke=function(message)
-  if message:is_trigger() then
-    if dialog and dialog.visible then
-      dialog:close()
-      dialog = nil
-      rows = {}
-    else pakettiEightSlotsByOneTwentyDialog() end end end}
+renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120",invoke=function(message) GrooveboxShowClose() end }
 
 function debug_instruments_and_samples()
   print("----- Debug: Instruments and Samples (Velocity 00-7F) -----")
@@ -2326,4 +2331,214 @@ function loadSequentialDrumkitSamples()
 
   -- Start by prompting for folders
   promptNextFolder()
+end
+
+-- Groovebox-specific Expand Selection Replicate function
+function PakettiGroovebox8120ExpandSelectionReplicate(track_number)
+  local s = renoise.song()
+  local original_track = s.selected_track_index
+  
+  -- If track_number is provided, switch to that track
+  if track_number then
+    if track_number <= #s.tracks and s.tracks[track_number].type == renoise.Track.TRACK_TYPE_SEQUENCER then
+      s.selected_track_index = track_number
+      Deselect_All()
+      MarkTrackMarkPattern()
+      renoise.song().selected_instrument_index = track_number
+      
+    else
+      renoise.app():show_status("Track " .. track_number .. " is not a valid sequencer track")
+      return
+    end
+  end
+  
+  local currentLine = s.selected_line_index
+  
+  if s.selection_in_pattern == nil then
+    renoise.app():show_status("Nothing selected to Expand, doing nothing.")
+    return
+  end
+  
+  local sl = s.selection_in_pattern.start_line
+  local el = s.selection_in_pattern.end_line
+  local st = s.selection_in_pattern.start_track
+  local et = s.selection_in_pattern.end_track
+  local nl = s.selected_pattern.number_of_lines
+  
+  -- Calculate the original and new selection lengths
+  local original_length = el - sl + 1
+  local new_end_line = el * 2
+  if new_end_line > nl then
+    new_end_line = nl
+  end
+  
+  -- First pass: Expand the selection
+  for tr = st, et do
+    for l = el, sl, -1 do
+      if l ~= sl then
+        local new_line = (l * 2) - sl
+        if new_line <= nl then
+          local cur_pattern = s:pattern(s.selected_pattern_index)
+          local cur_track = cur_pattern:track(tr)
+          cur_track:line(new_line):copy_from(cur_track:line(l))
+          cur_track:line(l):clear()
+          if new_line + 1 <= s.selected_pattern.number_of_lines then
+            cur_track:line(new_line + 1):clear()
+          end
+        end
+      end
+    end
+  end
+  
+  -- Update selection to include expanded area
+  local expanded_length = new_end_line - sl + 1
+  s.selection_in_pattern = {start_line=sl, start_track=st, end_track=et, end_line = new_end_line}
+  floodfill_with_selection()
+  local doiwantthis=false
+  -- Restore original track if track_number was provided
+  if track_number and original_track <= #s.tracks and doiwantthis==true then
+    s.selected_track_index = original_track
+    renoise.app():show_status(string.format("Groovebox 8120: Expanded and replicated selection on track %d", track_number))
+  else
+    renoise.app():show_status(string.format("Groovebox 8120: Expanded and replicated selection from line %d to %d", sl, nl))
+  end
+  
+  -- Sync with groovebox
+  if dialog and dialog.visible then
+    fetch_pattern()
+  end
+end
+
+-- Groovebox-specific Shrink Selection Replicate function
+function PakettiGroovebox8120ShrinkSelectionReplicate(track_number)
+  local s = renoise.song()
+  local original_track = s.selected_track_index
+  
+  -- If track_number is provided, switch to that track
+  if track_number then
+    if track_number <= #s.tracks and s.tracks[track_number].type == renoise.Track.TRACK_TYPE_SEQUENCER then
+      s.selected_track_index = track_number
+      Deselect_All()
+      MarkTrackMarkPattern()
+      renoise.song().selected_instrument_index = track_number
+      
+    else
+      renoise.app():show_status("Track " .. track_number .. " is not a valid sequencer track")
+      return
+    end
+  end
+  
+  local currentLine = s.selected_line_index
+  
+  if s.selection_in_pattern == nil then
+    renoise.app():show_status("Nothing selected to Shrink, doing nothing.")
+    return
+  else
+    local sl = s.selection_in_pattern.start_line
+    local el = s.selection_in_pattern.end_line
+    local st = s.selection_in_pattern.start_track
+    local et = s.selection_in_pattern.end_track
+    local nl = s.selected_pattern.number_of_lines
+    
+    for tr = st, et do
+      for l = sl, el, 2 do
+        if l ~= sl then
+          -- Calculate new_line as an integer
+          local new_line = math.floor(l / 2 + sl / 2)
+          
+          -- Ensure new_line is within valid range
+          if new_line >= 1 and new_line <= nl then
+            local cur_pattern = s:pattern(s.selected_pattern_index)
+            local cur_track = cur_pattern:track(tr)
+            cur_track:line(new_line):copy_from(cur_track:line(l))
+            cur_track:line(l):clear()
+            if l + 1 <= s.selected_pattern.number_of_lines then
+              cur_track:line(l + 1):clear()
+            end
+          end
+        end
+      end
+    end
+
+    -- Update selection to include shrunken area and trigger replication
+    local new_end_line = math.min(math.floor((el - sl) / 2) + sl, nl)
+    s.selection_in_pattern = {start_line=sl, start_track=st, end_track=et, end_line=new_end_line}
+    floodfill_with_selection()
+    local doiwantthis=false
+    -- Restore original track if track_number was provided
+    if track_number and original_track <= #s.tracks and doiwantthis==true then
+      s.selected_track_index = original_track
+      renoise.app():show_status(string.format("Groovebox 8120: Shrank and replicated selection on track %d", track_number))
+    else
+      renoise.app():show_status(string.format("Groovebox 8120: Shrank and replicated selection from line %d to %d", sl, nl))
+    end
+    
+    -- Sync with groovebox
+    if dialog and dialog.visible then
+      fetch_pattern()
+    end
+  end
+end
+
+-- Add MIDI mappings for groovebox-specific functions
+renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120 Expand Selection Replicate [Trigger]",invoke=function(message)
+  if message:is_trigger() then
+    PakettiGroovebox8120ExpandSelectionReplicate()
+  end
+end}
+
+renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120 Shrink Selection Replicate [Trigger]",invoke=function(message)
+  if message:is_trigger() then
+    PakettiGroovebox8120ShrinkSelectionReplicate()
+  end
+end}
+
+-- Individual track MIDI mappings for groovebox-specific functions
+for i=1,8 do
+  renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120 Expand Selection Replicate Track " .. i .. " [Trigger]",invoke=function(message)
+    if message:is_trigger() then
+      PakettiGroovebox8120ExpandSelectionReplicate(i)
+    end
+  end}
+  
+  renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120 Shrink Selection Replicate Track " .. i .. " [Trigger]",invoke=function(message)
+    if message:is_trigger() then
+      PakettiGroovebox8120ShrinkSelectionReplicate(i)
+    end
+  end}
+end
+
+-- Groovebox-specific instrument transpose function
+local function set_groovebox_instrument_transpose(instrument_index, message)
+  local song = renoise.song()
+  -- Check if the instrument exists (Lua is 1-indexed, but we receive 0-based indices)
+  local instrument = song.instruments[instrument_index + 1]
+  if not instrument then
+    renoise.app():show_status("Groovebox 8120: Instrument " .. string.format("%02d", instrument_index) .. " does not exist")
+    return
+  end
+  
+  -- Map the MIDI message value (0-127) to transpose range (-64 to 64)
+  local transpose_value = math.floor((message.int_value / 127) * 128 - 64)
+  instrument.transpose = math.max(-64, math.min(transpose_value, 64))
+  
+  -- Update groovebox rotary if dialog is open and row exists
+  if dialog and dialog.visible and rows[instrument_index + 1] and rows[instrument_index + 1].transpose_rotary then
+    rows[instrument_index + 1].transpose_rotary.value = transpose_value
+  end
+  
+  -- Select the instrument and track
+  song.selected_instrument_index = instrument_index + 1
+  song.selected_track_index = instrument_index + 1
+  
+  -- Status update for debugging
+  renoise.app():show_status("Groovebox 8120: Instrument " .. string.format("%02d", instrument_index) .. " transpose adjusted to " .. instrument.transpose)
+end
+
+-- MIDI mappings for groovebox-specific instrument transpose
+for i=0,7 do
+  renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120 Instrument 0" .. i .." Transpose (-64-+64)",
+    invoke=function(message) 
+      set_groovebox_instrument_transpose(i, message)
+    end}
 end

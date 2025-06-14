@@ -689,26 +689,30 @@ function PakettiSteppersDialog()
       },
       vb:row{
         vb:text{text = "Modifiers", style="strong", font="Bold", width=70},
-        vb:button{text = "Steps", width=75, pressed = function() PakettiApplyToVisibleStepper(PakettiFillStepperSteps) end},
-        vb:button{text = "Smooth", width=75, pressed = function() PakettiApplyToVisibleStepper(PakettiSmoothStepperValues) end},
-        vb:button{text = "Scale 50%", width=75, pressed = function() PakettiScaleVisibleStepperValues(0.5) end},
-        vb:button{text = "Scale 150%", width=85, pressed = function() PakettiScaleVisibleStepperValues(1.5) end},
-        vb:button{text = "Quantize", width=75, pressed = function() PakettiApplyToVisibleStepper(PakettiQuantizeStepperValues) end}
+        vb:button{text="Steps", width=75, pressed = function() PakettiApplyToVisibleStepper(PakettiFillStepperSteps) end},
+        vb:button{text="Smooth", width=75, pressed = function() PakettiApplyToVisibleStepper(PakettiSmoothStepperValues) end},
+        vb:button{text="Scale 50%", width=75, pressed = function() PakettiScaleVisibleStepperValues(0.5) end},
+        vb:button{text="Scale 150%", width=85, pressed = function() PakettiScaleVisibleStepperValues(1.5) end},
+        vb:button{text="Quantize", width=75, pressed = function() PakettiApplyToVisibleStepper(PakettiQuantizeStepperValues) end}
       },
       vb:row{
-        vb:text{text = "", width=70},
-        vb:button{text = "Scale 200%", width=75, pressed = function() PakettiScaleVisibleStepperValues(2.0) end},
-        vb:button{text = "Mirror", width=75, pressed = function() PakettiApplyToVisibleStepper(PakettiFillStepperMirror) end},
-        vb:button{text = "Flip", width=75, pressed = function() PakettiApplyToVisibleStepper(PakettiFillStepperFlip) end},
-        vb:button{text = "Copy", width=75, pressed = function() PakettiCopyStepperData() end},
-        vb:button{text = "Paste", width=75, pressed = function() PakettiPasteStepperData() end}
+        vb:text{text="", width=70},
+        vb:button{text="Scale 200%", width=75, pressed = function() PakettiScaleVisibleStepperValues(2.0) end},
+        vb:button{text="Mirror", width=75, pressed = function() PakettiApplyToVisibleStepper(PakettiFillStepperMirror) end},
+        vb:button{text="Flip", width=75, pressed = function() PakettiApplyToVisibleStepper(PakettiFillStepperFlip) end},
+        vb:button{text="Copy", width=75, pressed = function() PakettiCopyStepperData() end},
+        vb:button{text="Paste", width=75, pressed = function() PakettiPasteStepperData() end}
       }
     }, my_keyhandler_func
   )
 end
 
--- Add menu entries and keybinding for the steppers dialog
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Steppers Dialog...", invoke=function() PakettiSteppersDialog() end}
+renoise.tool():add_midi_mapping{name="Paketti:Paketti Steppers Dialog...",invoke=function(message) 
+  if message:is_trigger() then
+    PakettiSteppersDialog()
+  end
+end}
 
 -- Add individual stepper show/hide menu entries for instrument box
 local first_stepper = true

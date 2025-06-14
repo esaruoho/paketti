@@ -436,6 +436,17 @@ renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise Cabinet Si
 invoke=function() loadnative("Audio/Effects/Native/Cabinet Simulator") end}
 renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise Chorus",
 invoke=function() loadnative("Audio/Effects/Native/Chorus") end}
+renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise Chorus 2 as Vowel Filter",
+invoke=function() loadnative("Audio/Effects/Native/Chorus 2") 
+  renoise.song().selected_device.parameters[8].value=13
+  renoise.song().selected_device.parameters[5].value=1
+  renoise.song().selected_device.parameters[10].value=127
+  renoise.song().selected_device.display_name="Vowel Filter (Chorus 2)"
+end}
+
+
+
+
 renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise Chorus 2",
 invoke=function() loadnative("Audio/Effects/Native/Chorus 2") end}
 renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise Comb Filter 2",
@@ -1894,9 +1905,8 @@ function HideDeviceExternalEditors(device_chain)
   end
 end
 
--- Keybinding to show/hide track DSP and FX chain devices
-renoise.tool():add_keybinding{name="Global:Paketti:Show/Hide Track DSP and FX Chain Device External Editors",invoke=function()
-
+-- Function to show/hide Track DSP and FX Chain Device External Editors
+function PakettiShowHideTrackDSPAndFXChainDeviceExternalEditors()
   -- Check the middle layer
   local w = renoise.app().window
   local instrument = renoise.song().selected_instrument
@@ -1931,7 +1941,13 @@ renoise.tool():add_keybinding{name="Global:Paketti:Show/Hide Track DSP and FX Ch
       ToggleDeviceExternalEditors(selected_track)
     end
   end
+end
 
+renoise.tool():add_keybinding{name="Global:Paketti:Show/Hide Track DSP and FX Chain Device External Editors",invoke=function() PakettiShowHideTrackDSPAndFXChainDeviceExternalEditors() end}
+renoise.tool():add_midi_mapping{name="Paketti:Show/Hide Track DSP and FX Chain Device External Editors [Trigger]",invoke=function(message)
+  if message:is_trigger() then
+    PakettiShowHideTrackDSPAndFXChainDeviceExternalEditors()
+  end
 end}
 ---------------------
 

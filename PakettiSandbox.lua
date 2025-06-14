@@ -191,7 +191,15 @@ local real_bpm = tempo / (speed / 6)
 local function calculate_bpm(speed, tempo)
   -- Simple formula: if speed is 6, BPM equals tempo
   -- If speed is higher than 6, BPM is lower, if speed is lower than 6, BPM is higher
-  return tempo / (speed / 6)
+  local bpm = tempo / (speed / 6)
+  -- Check if BPM is within valid range (20 to 999)
+  if bpm < 20 or bpm > 999 then
+    return nil, {
+      string.format("Invalid BPM value '%.2f'", bpm),
+      "Valid values are (20 to 999)"
+    }
+  end
+  return bpm
 end
 
 -- GUI Dialog Function
@@ -204,37 +212,43 @@ function pakettiSpeedTempoDialog()
 
   -- Valueboxes for Speed and Tempo
   local vb = renoise.ViewBuilder()
-  local dialog_content = vb:column{
-    margin=10,
-    spacing=8,
-
+  local dialog_content = vb:column{margin=10,--spacing=8,
     vb:row{
-      --spacing=10,
       vb:column{
-        vb:text{text="Speed:" },
-        vb:valuebox{
-          min = 1,
-          max = 255,
-          value = speed,
-          tostring = function(val) return string.format("%X", val) end,
-          tonumber = function(val) return tonumber(val, 16) end,
+        vb:text{text="Speed:"},
+        vb:valuebox{min=1,max=255,value=speed,
+          tostring=function(val) return string.format("%X", val) end,
+          tonumber=function(val) return tonumber(val, 16) end,
           notifier=function(val)
             speed = val
-            real_bpm = calculate_bpm(speed, tempo)
-            vb.views.result_label.text = string.format("Speed %d Tempo %d is %.2f BPM", speed, tempo, real_bpm)
+            local calculated_bpm, error_msgs = calculate_bpm(speed, tempo)
+            real_bpm = calculated_bpm
+            vb.views.result_label.text = string.format("Speed %d Tempo %d is %.2f BPM", speed, tempo, real_bpm or 0)
+            if error_msgs then
+              vb.views.error_label1.text = error_msgs[1]
+              vb.views.error_label2.text = error_msgs[2]
+            else
+              vb.views.error_label1.text = ""
+              vb.views.error_label2.text = ""
+            end
           end
         }
       },
       vb:column{
-        vb:text{text="Tempo:" },
-        vb:valuebox{
-          min = 32,
-          max = 255,
-          value = tempo,
+        vb:text{text="Tempo:"},
+        vb:valuebox{min=32,max=255,value=tempo,
           notifier=function(val)
             tempo = val
-            real_bpm = calculate_bpm(speed, tempo)
-            vb.views.result_label.text = string.format("Speed %d Tempo %d is %.2f BPM", speed, tempo, real_bpm)
+            local calculated_bpm, error_msgs = calculate_bpm(speed, tempo)
+            real_bpm = calculated_bpm
+            vb.views.result_label.text = string.format("Speed %d Tempo %d is %.2f BPM", speed, tempo, real_bpm or 0)
+            if error_msgs then
+              vb.views.error_label1.text = error_msgs[1]
+              vb.views.error_label2.text = error_msgs[2]
+            else
+              vb.views.error_label1.text = ""
+              vb.views.error_label2.text = ""
+            end
           end
         }
       }
@@ -242,25 +256,26 @@ function pakettiSpeedTempoDialog()
 
     -- Result Display
     vb:row{
-      vb:text{
-        id = "result_label",
-        text = string.format("Speed %d Tempo %d is %.2f BPM", speed, tempo, real_bpm)
-      }
+      vb:text{id="result_label",text=string.format("Speed %d Tempo %d is %.2f BPM", speed, tempo, real_bpm)}
     },
+
+    -- Error Display (split into two rows)
+    vb:row{vb:text{id="error_label1",text="",style="strong",font="bold"}},
+    vb:row{vb:text{id="error_label2",text="",style="strong",font="bold"}},
     
     -- Set BPM Button
     vb:row{
-      vb:button{
-        text="Set BPM",
-        width=60,
+      vb:button{text="Set BPM",width=60,
         notifier=function()
+          if not real_bpm then
+            renoise.app():show_status("Cannot set BPM - value out of valid range (20 to 999)")
+            return
+          end
           renoise.song().transport.bpm = real_bpm
           renoise.app():show_status(string.format("BPM set to %.2f", real_bpm))
         end
       },
-      vb:button{
-        text="Close",
-        width=60,
+      vb:button{text="Close",width=60,
         notifier=function()
           if dialog and dialog.visible then
             dialog:close()

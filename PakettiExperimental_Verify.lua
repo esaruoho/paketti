@@ -2300,6 +2300,35 @@ renoise.tool():add_midi_mapping{name="Paketti:Midi Selected Instrument Transpose
     renoise.app():show_status("Transpose adjusted to "..instrument.transpose)
   end
 }
+
+-- Function to set transpose for a specific instrument by index
+local function set_instrument_transpose(instrument_index, message)
+  local song = renoise.song()
+  -- Check if the instrument exists (Lua is 1-indexed, but we receive 0-based indices)
+  local instrument = song.instruments[instrument_index + 1]
+  if not instrument then
+    renoise.app():show_status("Instrument " .. string.format("%02d", instrument_index) .. " does not exist")
+    return
+  end
+  
+  -- Map the MIDI message value (0-127) to transpose range (-64 to 64)
+  local transpose_value = math.floor((message.int_value / 127) * 128 - 64)
+  instrument.transpose = math.max(-64, math.min(transpose_value, 64))
+  
+  -- Status update for debugging
+  renoise.app():show_status("Instrument " .. string.format("%02d", instrument_index) .. " transpose adjusted to " .. instrument.transpose)
+end
+
+
+for i=0,7 do
+
+renoise.tool():add_midi_mapping{name="Paketti:Midi Instrument 0" .. i .." Transpose (-64-+64)",
+  invoke=function(message) set_instrument_transpose(i, message) 
+  renoise.song().selected_instrument_index=i+1
+  renoise.song().selected_track_index=i+1
+  end}
+end
+
 -- Define the path to the mixpaste.xml file within the tool's directory
 local tool_dir = renoise.tool().bundle_path
 local xml_file_path = tool_dir .. "mixpaste.xml"

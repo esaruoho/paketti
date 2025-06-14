@@ -853,8 +853,22 @@ function cpclexrep_line(track, from_line, to_line)
   end
 end
 
-function ExpandSelectionReplicate()
+function ExpandSelectionReplicate(track_number)
   local s = renoise.song()
+  local original_track = s.selected_track_index
+  
+  -- If track_number is provided, switch to that track
+  if track_number then
+    if track_number <= #s.tracks and s.tracks[track_number].type == renoise.Track.TRACK_TYPE_SEQUENCER then
+      s.selected_track_index = track_number
+      Deselect_All()
+      MarkTrackMarkPattern()
+    else
+      renoise.app():show_status("Track " .. track_number .. " is not a valid sequencer track")
+      return
+    end
+  end
+  
   local currentLine = s.selected_line_index
   
   if s.selection_in_pattern == nil then
@@ -893,10 +907,20 @@ function ExpandSelectionReplicate()
   local expanded_length = new_end_line - sl + 1
   s.selection_in_pattern = {start_line=sl, start_track=st, end_track=et, end_line = new_end_line}
 floodfill_with_selection()
-  renoise.app():show_status(string.format("Expanded and replicated selection from line %d to %d", sl, nl))
+  
+  -- Restore original track if track_number was provided
+  if track_number and original_track <= #s.tracks then
+    s.selected_track_index = original_track
+    renoise.app():show_status(string.format("Expanded and replicated selection on track %d", track_number))
+  else
+    renoise.app():show_status(string.format("Expanded and replicated selection from line %d to %d", sl, nl))
+  end
+  
+  -- Sync with groovebox if it's open
+  if dialog and dialog.visible then
+    fetch_pattern()
+  end
 end
-
-
 
 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker ALT-F Expand Selection Replicate",invoke=function() ExpandSelectionReplicate() end}
@@ -920,8 +944,22 @@ function cpclshrep_line(track, from_line, to_line)
   end
 end
 
-function ShrinkSelectionReplicate()
+function ShrinkSelectionReplicate(track_number)
   local s = renoise.song()
+  local original_track = s.selected_track_index
+  
+  -- If track_number is provided, switch to that track
+  if track_number then
+    if track_number <= #s.tracks and s.tracks[track_number].type == renoise.Track.TRACK_TYPE_SEQUENCER then
+      s.selected_track_index = track_number
+      Deselect_All()
+      MarkTrackMarkPattern()
+    else
+      renoise.app():show_status("Track " .. track_number .. " is not a valid sequencer track")
+      return
+    end
+  end
+  
   local currentLine = s.selected_line_index
   
   if s.selection_in_pattern == nil then
@@ -956,10 +994,21 @@ function ShrinkSelectionReplicate()
     local new_end_line = math.min(math.floor((el - sl) / 2) + sl, nl)
     s.selection_in_pattern = {start_line=sl, start_track=st, end_track=et, end_line=new_end_line}
     floodfill_with_selection()
-    renoise.app():show_status(string.format("Shrank and replicated selection from line %d to %d", sl, nl))
+    
+    -- Restore original track if track_number was provided
+    if track_number and original_track <= #s.tracks then
+      s.selected_track_index = original_track
+      renoise.app():show_status(string.format("Shrank and replicated selection on track %d", track_number))
+    else
+      renoise.app():show_status(string.format("Shrank and replicated selection from line %d to %d", sl, nl))
+    end
+    
+    -- Sync with groovebox if it's open
+    if dialog and dialog.visible then
+      fetch_pattern()
+    end
   end
 end
-
 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker ALT-G Shrink Selection Replicate",invoke=function() ShrinkSelectionReplicate() end}
 --------------------------------------------------------
@@ -2298,3 +2347,98 @@ renoise.app():show_status("Selected first instrument: " .. formatDigits(3,renois
 end
 
   }
+
+
+
+-- MIDI Mappings for basic functions
+renoise.tool():add_midi_mapping{name="Paketti:Expand Selection Replicate [Trigger]",invoke=function(message)
+  if message:is_trigger() then
+    ExpandSelectionReplicate()
+  end
+end}
+
+renoise.tool():add_midi_mapping{name="Paketti:Shrink Selection Replicate [Trigger]",invoke=function(message)
+  if message:is_trigger() then
+    ShrinkSelectionReplicate()
+  end
+end}
+
+-- Function to expand selection replicate on tracks 1-8
+function ExpandSelectionReplicateTracks1to8()
+  local s = renoise.song()
+  local original_track = s.selected_track_index
+  
+  for track_index = 1, 8 do
+    -- Check if track exists and is a sequencer track
+    if track_index <= #s.tracks and s.tracks[track_index].type == renoise.Track.TRACK_TYPE_SEQUENCER then
+      s.selected_track_index = track_index
+      ExpandSelectionReplicate()
+    end
+  end
+  
+  -- Restore original track selection if it's still valid
+  if original_track <= #s.tracks then
+    s.selected_track_index = original_track
+  end
+  
+  renoise.app():show_status("Expand Selection Replicate applied to tracks 1-8")
+end
+
+-- Function to shrink selection replicate on tracks 1-8
+function ShrinkSelectionReplicateTracks1to8()
+  local s = renoise.song()
+  local original_track = s.selected_track_index
+  
+  for track_index = 1, 8 do
+    -- Check if track exists and is a sequencer track
+    if track_index <= #s.tracks and s.tracks[track_index].type == renoise.Track.TRACK_TYPE_SEQUENCER then
+      s.selected_track_index = track_index
+      ShrinkSelectionReplicate()
+    end
+  end
+  
+  -- Restore original track selection if it's still valid
+  if original_track <= #s.tracks then
+    s.selected_track_index = original_track
+  end
+  
+  renoise.app():show_status("Shrink Selection Replicate applied to tracks 1-8")
+end
+
+-- MIDI Mappings for 8-track versions
+renoise.tool():add_midi_mapping{name="Paketti:Expand Selection Replicate Tracks 1-8 [Trigger]",invoke=function(message)
+  if message:is_trigger() then
+    ExpandSelectionReplicateTracks1to8()
+  end
+end}
+
+renoise.tool():add_midi_mapping{name="Paketti:Shrink Selection Replicate Tracks 1-8 [Trigger]",invoke=function(message)
+  if message:is_trigger() then
+    ShrinkSelectionReplicateTracks1to8()
+  end
+end}
+
+for i=1,8 do
+  renoise.tool():add_midi_mapping{name="Paketti:Expand Selection Replicate Track " .. i .. " [Trigger]",invoke=function(message) ExpandSelectionReplicate(i) end}
+  renoise.tool():add_midi_mapping{name="Paketti:Shrink Selection Replicate Track " .. i .. " [Trigger]",invoke=function(message) ShrinkSelectionReplicate(i) end}
+end 
+  --[[
+-- Individual track MIDI mappings for Expand Selection Replicate (8 mappings)
+renoise.tool():add_midi_mapping{name="Paketti:Expand Selection Replicate Track 2 [Trigger]",invoke=function(message) if message:is_trigger() then ExpandSelectionReplicate(2) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Expand Selection Replicate Track 3 [Trigger]",invoke=function(message) if message:is_trigger() then ExpandSelectionReplicate(3) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Expand Selection Replicate Track 4 [Trigger]",invoke=function(message) if message:is_trigger() then ExpandSelectionReplicate(4) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Expand Selection Replicate Track 5 [Trigger]",invoke=function(message) if message:is_trigger() then ExpandSelectionReplicate(5) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Expand Selection Replicate Track 6 [Trigger]",invoke=function(message) if message:is_trigger() then ExpandSelectionReplicate(6) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Expand Selection Replicate Track 7 [Trigger]",invoke=function(message) if message:is_trigger() then ExpandSelectionReplicate(7) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Expand Selection Replicate Track 8 [Trigger]",invoke=function(message) if message:is_trigger() then ExpandSelectionReplicate(8) end end}
+
+-- Individual track MIDI mappings for Shrink Selection Replicate (8 mappings)
+renoise.tool():add_midi_mapping{name="Paketti:Shrink Selection Replicate Track 2 [Trigger]",invoke=function(message) if message:is_trigger() then ShrinkSelectionReplicate(2) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Shrink Selection Replicate Track 3 [Trigger]",invoke=function(message) if message:is_trigger() then ShrinkSelectionReplicate(3) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Shrink Selection Replicate Track 4 [Trigger]",invoke=function(message) if message:is_trigger() then ShrinkSelectionReplicate(4) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Shrink Selection Replicate Track 5 [Trigger]",invoke=function(message) if message:is_trigger() then ShrinkSelectionReplicate(5) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Shrink Selection Replicate Track 6 [Trigger]",invoke=function(message) if message:is_trigger() then ShrinkSelectionReplicate(6) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Shrink Selection Replicate Track 7 [Trigger]",invoke=function(message) if message:is_trigger() then ShrinkSelectionReplicate(7) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Shrink Selection Replicate Track 8 [Trigger]",invoke=function(message) if message:is_trigger() then ShrinkSelectionReplicate(8) end end}
+
+]]--

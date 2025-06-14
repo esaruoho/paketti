@@ -1540,6 +1540,44 @@ renoise.tool():add_midi_mapping{name="Paketti:Set Repeater Value (Name Tracks) x
     end
   end}
 
+-- Function to handle repeater MIDI messages for specific tracks
+local function handle_track_repeater_midi(message, track_number, name_tracks)
+  if message:is_abs_value() then
+    renoise.song().selected_track_index = track_number
+    renoise.song().selected_instrument_index = track_number
+    local int_value = message.int_value
+    if int_value <= 5 then
+      deactivate_repeater(name_tracks)
+      return -- Exit early as it's in the OFF range
+    end
+    update_repeater_with_midi_value(int_value, name_tracks)
+  end
+end
+
+-- Track-specific repeater MIDI mappings (1-8)
+for track = 1, 8 do
+  renoise.tool():add_midi_mapping{name="Paketti:Set Repeater Value Track " .. track .. " x[Knob]",
+    invoke=function(message) handle_track_repeater_midi(message, track, false) end}
+end
+
+-- Track-specific repeater MIDI mappings with name tracks (1-8)
+for track = 1, 8 do
+  renoise.tool():add_midi_mapping{name="Paketti:Set Repeater Value (Name Tracks) Track " .. track .. " x[Knob]",
+    invoke=function(message) handle_track_repeater_midi(message, track, true) end}
+end
+
+-- Track-specific repeater MIDI mappings (1-8) (2nd)
+for track = 1, 8 do
+  renoise.tool():add_midi_mapping{name="Paketti:Set Repeater Value Track " .. track .. " x[Knob] (2nd)",
+    invoke=function(message) handle_track_repeater_midi(message, track, false) end}
+end
+
+-- Track-specific repeater MIDI mappings with name tracks (1-8) (2nd)
+for track = 1, 8 do
+  renoise.tool():add_midi_mapping{name="Paketti:Set Repeater Value (Name Tracks) Track " .. track .. " x[Knob] (2nd)",
+    invoke=function(message) handle_track_repeater_midi(message, track, true) end}
+end
+
 renoise.tool():add_midi_mapping{name="Paketti:Set Repeater Value (2nd) x[Knob]",
   invoke=function(message)
     if message:is_abs_value() then
