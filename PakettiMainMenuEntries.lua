@@ -321,7 +321,7 @@ local button_list = {
   {"Simple Sample Tuning Calculator", "pakettiSimpleSampleTuningDialog"},
   {"Paketti Sequencer Settings Dialog", "pakettiSequencerSettingsDialog"},
   {"Paketti Phrase Generator", "pakettiPhraseGeneratorDialog"},
-  {"Paketti Steppers Dialog", "pakettiSteppersDialog"},
+  {"Paketti Steppers Dialog", "PakettiSteppersDialog"},
   {"Paketti Sample Adjust", "show_paketti_sample_adjust_dialog"},
   {"Protracker MOD modulation Dialog", "showProtrackerModDialog"},
   {"Paketti Slice to Pattern Sequencer Dialog", "showSliceToPatternSequencerInterface"}

@@ -548,7 +548,7 @@ local EditStepCheckboxValue = false -- Initial value for EditStepCheckbox
 end
 
 -- Global variable to store the observer function
-local note_grid_instrument_observer = nil
+-- note_grid_instrument_observer is now declared at the top of the file
 
 function pakettiPlayerProNoteGridShowDropdownGrid()
 renoise.app().window.active_middle_frame=1

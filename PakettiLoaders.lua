@@ -438,8 +438,11 @@ renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise Chorus",
 invoke=function() loadnative("Audio/Effects/Native/Chorus") end}
 renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise Chorus 2 as Vowel Filter",
 invoke=function() loadnative("Audio/Effects/Native/Chorus 2") 
-  renoise.song().selected_device.parameters[8].value=13
+  renoise.song().selected_device.parameters[1].value=0.01
+  renoise.song().selected_device.parameters[2].value=0
+  renoise.song().selected_device.parameters[6].value=0
   renoise.song().selected_device.parameters[5].value=1
+  renoise.song().selected_device.parameters[8].value=13
   renoise.song().selected_device.parameters[10].value=127
   renoise.song().selected_device.display_name="Vowel Filter (Chorus 2)"
 end}

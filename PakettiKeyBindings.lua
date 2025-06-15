@@ -549,11 +549,11 @@ function pakettiMIDIMappingsDialog()
   local vb = renoise.ViewBuilder()
 
   -- Define dialog properties
-  local DIALOG_margin=renoise.ViewBuilder.DEFAULT_DIALOG_MARGIN
-  local CONTENT_spacing=renoise.ViewBuilder.DEFAULT_CONTROL_SPACING
+  local DIALOG_MARGIN=renoise.ViewBuilder.DEFAULT_DIALOG_MARGIN
+  local CONTENT_SPACING=renoise.ViewBuilder.DEFAULT_CONTROL_SPACING
   local MAX_ITEMS_PER_COLUMN = 41
-  local COLUMN_width=220
-  local buttonwidth=200  -- Adjustable global button width
+  local COLUMN_WIDTH=220
+  local buttonWidth=200  -- Adjustable global button width
 
   -- Create the main column for the dialog
   local dialog_content = vb:column{
@@ -1006,7 +1006,7 @@ function pakettiKeyBindingsDialog(selectedIdentifier)  -- Accept an optional par
   keybinding_list = vb:multiline_textfield { width=1100, height = 600, font = "mono" }
 
   -- Dialog title including Renoise version
-  local dialog_title = "Paketti KeyBindings for Renoise Version " .. renoise.RENOISE_VERSION
+  local dialog_title = "Paketti KeyBindings for Renoise Version v3.4.4" -- .. renoise.RENOISE_VERSION
 
   dialog = renoise.app():show_custom_dialog(dialog_title,
     vb:column{
@@ -1286,11 +1286,11 @@ function renoiseKeyBindingsUpdateList()
 
   renoise_keybinding_list.text = content
 
-  local selectedtext=""
+  local selectedText=""
   if selectedIdentifier == "All" then
-    selectedtext="For all sections, there are " .. selected_count .. " shortcuts and " .. selected_unassigned_count .. " are unassigned."
+    selectedText="For all sections, there are " .. selected_count .. " shortcuts and " .. selected_unassigned_count .. " are unassigned."
   else
-    selectedtext="For " .. selectedIdentifier .. ", there are " .. selected_count .. " shortcuts and " .. selected_unassigned_count .. " are unassigned."
+    selectedText="For " .. selectedIdentifier .. ", there are " .. selected_count .. " shortcuts and " .. selected_unassigned_count .. " are unassigned."
   end
 
   renoise_selected_shortcuts_text.text = selectedText
@@ -1412,7 +1412,7 @@ function pakettiRenoiseKeyBindingsDialog(selectedIdentifier)  -- Accept an optio
   renoise_keybinding_list = vb:multiline_textfield { width=1100, height = 600, font = "mono" }
 
   -- Dialog title including Renoise version
-  local dialog_title = "Renoise KeyBindings for Renoise Version " .. renoise.RENOISE_VERSION
+  local dialog_title = "Renoise KeyBindings for Renoise Version v3.4.4" -- .. renoise.RENOISE_VERSION
 
   renoise_dialog = renoise.app():show_custom_dialog(dialog_title,
     vb:column{
