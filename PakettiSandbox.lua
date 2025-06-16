@@ -328,13 +328,66 @@ function pakettiBpmFromSampleDialog()
         max = 256,
         value = current_lpb,
         width = 50,
-        notifier = function() update_calculation() end
+        notifier = function(value)
+          renoise.song().transport.lpb = value
+          update_calculation()
+        end
       },
       vb:button{
-        text = "Use Current",
-        width = 80,
+        text = "/2",
+        width = 30,
         notifier = function()
-          vb.views.lpb_valuebox.value = song.transport.lpb
+          local current_value = vb.views.lpb_valuebox.value
+          local new_value = math.max(1, math.floor(current_value / 2))
+          vb.views.lpb_valuebox.value = new_value
+          renoise.song().transport.lpb = new_value
+          update_calculation()
+        end
+      },
+      vb:button{
+        text = "*2",
+        width = 30,
+        notifier = function()
+          local current_value = vb.views.lpb_valuebox.value
+          local new_value = math.min(256, current_value * 2)
+          vb.views.lpb_valuebox.value = new_value
+          renoise.song().transport.lpb = new_value
+          update_calculation()
+        end
+      },
+      vb:button{
+        text = "4",
+        width = 20,
+        notifier = function()
+          vb.views.lpb_valuebox.value = 4
+          renoise.song().transport.lpb = 4
+          update_calculation()
+        end
+      },
+      vb:button{
+        text = "8",
+        width = 20,
+        notifier = function()
+          vb.views.lpb_valuebox.value = 8
+          renoise.song().transport.lpb = 8
+          update_calculation()
+        end
+      },
+      vb:button{
+        text = "16",
+        width = 20,
+        notifier = function()
+          vb.views.lpb_valuebox.value = 16
+          renoise.song().transport.lpb = 16
+          update_calculation()
+        end
+      },
+      vb:button{
+        text = "32",
+        width = 20,
+        notifier = function()
+          vb.views.lpb_valuebox.value = 32
+          renoise.song().transport.lpb = 32
           update_calculation()
         end
       }
