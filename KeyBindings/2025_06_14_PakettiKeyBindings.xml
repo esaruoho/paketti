@@ -1116,6 +1116,11 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
+          <Binding>∿ Show BPM Calculation Dialog...</Binding>
+          <Key>Control + B</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
           <Binding>∿ Paketti Speed and Tempo to BPM Dialog...</Binding>
         </KeyBinding>
         <KeyBinding>
@@ -2603,14 +2608,6 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Paketti MIDI Mappings...</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Generate Paketti Midi Mappings to Console</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
           <Binding>∿ Show Paketti KeyBindings Dialog...</Binding>
           <Key>Shift + Command + K</Key>
         </KeyBinding>
@@ -2819,7 +2816,6 @@
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Strip Silence</Binding>
-          <Key>Shift + Option + S</Key>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -2980,6 +2976,7 @@
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Impulse Tracker CTRL-N New Song Dialog...</Binding>
+          <Key>Control + N</Key>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -3252,6 +3249,7 @@
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Snapshot Selected Device to Automation</Binding>
+          <Key>Shift + Option + S</Key>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -3779,7 +3777,6 @@
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Toggle Mute/Unmute of Track 01</Binding>
-          <Key>Shift + Option + 4</Key>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -9881,6 +9878,7 @@
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Open User Preferences Dialog...</Binding>
+          <Key>Control + U</Key>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -12529,6 +12527,7 @@
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Open VolDelayPan Slider Dialog...</Binding>
+          <Key>Control + M</Key>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -17552,18 +17551,6 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Clear Panning Steps</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Clear Cutoff Steps</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Clear Drive Steps</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
           <Binding>∿ Clear Resonance Steps</Binding>
         </KeyBinding>
         <KeyBinding>
@@ -17573,6 +17560,18 @@
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Clear Volume Steps</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Clear Panning Steps</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Clear Drive Steps</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Clear Cutoff Steps</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -17606,7 +17605,6 @@
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Show/Hide PitchStep on Selected Instrument</Binding>
-          <Key>Option + P</Key>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -17848,6 +17846,39 @@
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Import AKP File...</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Verify Paketti MIDI Mappings</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Paketti MIDI Mappings (Dynamic)...</Binding>
+          <Key>Shift + Command + M</Key>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Print Active MIDI Mappings to Console</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Generate MIDI Mappings to Console</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Extract MIDI Mappings to Console</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Show MIDI Category Statistics</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Test Dynamic MIDI Mapping Detection</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Refresh MIDI Mapping Table Cache</Binding>
         </KeyBinding>
       </KeyBindings>
     </Category>
@@ -19234,10 +19265,12 @@
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ ChordPplus (Add 03)</Binding>
+          <Key>Shift + Option + 3</Key>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ ChordPplus (Add 04)</Binding>
+          <Key>Shift + Option + 4</Key>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -19809,6 +19842,7 @@
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ OctaMED Pick/Put Dialog...</Binding>
+          <Key>Option + P</Key>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -20220,6 +20254,7 @@
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Generate Delay Value on Note Columns</Binding>
+          <Key>Option + G</Key>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -21983,7 +22018,6 @@
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Convert 3 Note Chord to Arpeggio</Binding>
-          <Key>Shift + Option + 3</Key>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -22383,6 +22417,34 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
+          <Binding>∿ Calculate Selected Sample Length</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Show Selected Sample Length</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Calculate Sample Selection Length</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Calculate BPM from Sample Length</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Set BPM from Sample Length</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Show BPM Calculation Dialog...</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Debug Sample Length Precision</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
           <Binding>∿ Detect Zero Crossings</Binding>
         </KeyBinding>
         <KeyBinding>
@@ -22496,14 +22558,6 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 01 by (-32)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 01 by (+1)</Binding>
-        </KeyBinding>
-        <KeyBinding>
-          <Topic>Paketti</Topic>
           <Binding>∿ Nudge Slice 01 by (-1)</Binding>
         </KeyBinding>
         <KeyBinding>
@@ -22528,11 +22582,11 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 02 by (-32)</Binding>
+          <Binding>∿ Nudge Slice 01 by (-32)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 02 by (+1)</Binding>
+          <Binding>∿ Nudge Slice 01 by (+1)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -22560,11 +22614,11 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 03 by (-32)</Binding>
+          <Binding>∿ Nudge Slice 02 by (-32)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 03 by (+1)</Binding>
+          <Binding>∿ Nudge Slice 02 by (+1)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -22592,11 +22646,11 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 04 by (-32)</Binding>
+          <Binding>∿ Nudge Slice 03 by (-32)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 04 by (+1)</Binding>
+          <Binding>∿ Nudge Slice 03 by (+1)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -22624,11 +22678,11 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 05 by (-32)</Binding>
+          <Binding>∿ Nudge Slice 04 by (-32)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 05 by (+1)</Binding>
+          <Binding>∿ Nudge Slice 04 by (+1)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -22656,11 +22710,11 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 06 by (-32)</Binding>
+          <Binding>∿ Nudge Slice 05 by (-32)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 06 by (+1)</Binding>
+          <Binding>∿ Nudge Slice 05 by (+1)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -22688,11 +22742,11 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 07 by (-32)</Binding>
+          <Binding>∿ Nudge Slice 06 by (-32)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 07 by (+1)</Binding>
+          <Binding>∿ Nudge Slice 06 by (+1)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -22720,11 +22774,11 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 08 by (-32)</Binding>
+          <Binding>∿ Nudge Slice 07 by (-32)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 08 by (+1)</Binding>
+          <Binding>∿ Nudge Slice 07 by (+1)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -22752,11 +22806,11 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 09 by (-32)</Binding>
+          <Binding>∿ Nudge Slice 08 by (-32)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 09 by (+1)</Binding>
+          <Binding>∿ Nudge Slice 08 by (+1)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -22784,11 +22838,11 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 10 by (-32)</Binding>
+          <Binding>∿ Nudge Slice 09 by (-32)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 10 by (+1)</Binding>
+          <Binding>∿ Nudge Slice 09 by (+1)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -22816,11 +22870,11 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 11 by (-32)</Binding>
+          <Binding>∿ Nudge Slice 10 by (-32)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 11 by (+1)</Binding>
+          <Binding>∿ Nudge Slice 10 by (+1)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -22848,11 +22902,11 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 12 by (-32)</Binding>
+          <Binding>∿ Nudge Slice 11 by (-32)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 12 by (+1)</Binding>
+          <Binding>∿ Nudge Slice 11 by (+1)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -22880,11 +22934,11 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 13 by (-32)</Binding>
+          <Binding>∿ Nudge Slice 12 by (-32)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 13 by (+1)</Binding>
+          <Binding>∿ Nudge Slice 12 by (+1)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -22912,11 +22966,11 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 14 by (-32)</Binding>
+          <Binding>∿ Nudge Slice 13 by (-32)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 14 by (+1)</Binding>
+          <Binding>∿ Nudge Slice 13 by (+1)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -22944,11 +22998,11 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 15 by (-32)</Binding>
+          <Binding>∿ Nudge Slice 14 by (-32)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 15 by (+1)</Binding>
+          <Binding>∿ Nudge Slice 14 by (+1)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -22976,11 +23030,11 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 16 by (-32)</Binding>
+          <Binding>∿ Nudge Slice 15 by (-32)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 16 by (+1)</Binding>
+          <Binding>∿ Nudge Slice 15 by (+1)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -23008,11 +23062,11 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 17 by (-32)</Binding>
+          <Binding>∿ Nudge Slice 16 by (-32)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 17 by (+1)</Binding>
+          <Binding>∿ Nudge Slice 16 by (+1)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -23040,11 +23094,11 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 18 by (-32)</Binding>
+          <Binding>∿ Nudge Slice 17 by (-32)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 18 by (+1)</Binding>
+          <Binding>∿ Nudge Slice 17 by (+1)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -23072,11 +23126,11 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 19 by (-32)</Binding>
+          <Binding>∿ Nudge Slice 18 by (-32)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 19 by (+1)</Binding>
+          <Binding>∿ Nudge Slice 18 by (+1)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -23104,11 +23158,11 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 20 by (-32)</Binding>
+          <Binding>∿ Nudge Slice 19 by (-32)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 20 by (+1)</Binding>
+          <Binding>∿ Nudge Slice 19 by (+1)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -23136,11 +23190,11 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 21 by (-32)</Binding>
+          <Binding>∿ Nudge Slice 20 by (-32)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 21 by (+1)</Binding>
+          <Binding>∿ Nudge Slice 20 by (+1)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -23168,11 +23222,11 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 22 by (-32)</Binding>
+          <Binding>∿ Nudge Slice 21 by (-32)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 22 by (+1)</Binding>
+          <Binding>∿ Nudge Slice 21 by (+1)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -23200,11 +23254,11 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 23 by (-32)</Binding>
+          <Binding>∿ Nudge Slice 22 by (-32)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 23 by (+1)</Binding>
+          <Binding>∿ Nudge Slice 22 by (+1)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -23232,11 +23286,11 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 24 by (-32)</Binding>
+          <Binding>∿ Nudge Slice 23 by (-32)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 24 by (+1)</Binding>
+          <Binding>∿ Nudge Slice 23 by (+1)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -23264,11 +23318,11 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 25 by (-32)</Binding>
+          <Binding>∿ Nudge Slice 24 by (-32)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 25 by (+1)</Binding>
+          <Binding>∿ Nudge Slice 24 by (+1)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -23296,11 +23350,11 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 26 by (-32)</Binding>
+          <Binding>∿ Nudge Slice 25 by (-32)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 26 by (+1)</Binding>
+          <Binding>∿ Nudge Slice 25 by (+1)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -23328,11 +23382,11 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 27 by (-32)</Binding>
+          <Binding>∿ Nudge Slice 26 by (-32)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 27 by (+1)</Binding>
+          <Binding>∿ Nudge Slice 26 by (+1)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -23360,11 +23414,11 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 28 by (-32)</Binding>
+          <Binding>∿ Nudge Slice 27 by (-32)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 28 by (+1)</Binding>
+          <Binding>∿ Nudge Slice 27 by (+1)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -23392,11 +23446,11 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 29 by (-32)</Binding>
+          <Binding>∿ Nudge Slice 28 by (-32)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 29 by (+1)</Binding>
+          <Binding>∿ Nudge Slice 28 by (+1)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -23424,11 +23478,11 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 30 by (-32)</Binding>
+          <Binding>∿ Nudge Slice 29 by (-32)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 30 by (+1)</Binding>
+          <Binding>∿ Nudge Slice 29 by (+1)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -23456,11 +23510,11 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 31 by (-32)</Binding>
+          <Binding>∿ Nudge Slice 30 by (-32)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 31 by (+1)</Binding>
+          <Binding>∿ Nudge Slice 30 by (+1)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -23488,11 +23542,11 @@
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 32 by (-32)</Binding>
+          <Binding>∿ Nudge Slice 31 by (-32)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
-          <Binding>∿ Nudge Slice 32 by (+1)</Binding>
+          <Binding>∿ Nudge Slice 31 by (+1)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>
@@ -23517,6 +23571,14 @@
         <KeyBinding>
           <Topic>Paketti</Topic>
           <Binding>∿ Nudge Slice 32 by (+32)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Nudge Slice 32 by (-32)</Binding>
+        </KeyBinding>
+        <KeyBinding>
+          <Topic>Paketti</Topic>
+          <Binding>∿ Nudge Slice 32 by (+1)</Binding>
         </KeyBinding>
         <KeyBinding>
           <Topic>Paketti</Topic>

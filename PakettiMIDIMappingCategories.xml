@@ -1,0 +1,981 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PakettiMIDIMappingCategoryPreferences doc_version="0">
+  <show_uncategorized_only>false</show_uncategorized_only>
+  <categories>
+    <category type="lua_model:PakettiMIDICategoryEntry">
+      <name>Uncategorized</name>
+    </category>
+    <category type="lua_model:PakettiMIDICategoryEntry">
+      <name>Pattern Editor: Navigation</name>
+    </category>
+    <category type="lua_model:PakettiMIDICategoryEntry">
+      <name>Pattern Editor: Editing</name>
+    </category>
+    <category type="lua_model:PakettiMIDICategoryEntry">
+      <name>Pattern Editor: Effects</name>
+    </category>
+    <category type="lua_model:PakettiMIDICategoryEntry">
+      <name>Sample Editor: Process</name>
+    </category>
+    <category type="lua_model:PakettiMIDICategoryEntry">
+      <name>Sample Editor: Navigation</name>
+    </category>
+    <category type="lua_model:PakettiMIDICategoryEntry">
+      <name>Sample Editor: Selection</name>
+    </category>
+    <category type="lua_model:PakettiMIDICategoryEntry">
+      <name>Automation: Control</name>
+    </category>
+    <category type="lua_model:PakettiMIDICategoryEntry">
+      <name>Automation: Editing</name>
+    </category>
+    <category type="lua_model:PakettiMIDICategoryEntry">
+      <name>Playback: Control</name>
+    </category>
+    <category type="lua_model:PakettiMIDICategoryEntry">
+      <name>Playback: Recording</name>
+    </category>
+    <category type="lua_model:PakettiMIDICategoryEntry">
+      <name>Track: Navigation</name>
+    </category>
+    <category type="lua_model:PakettiMIDICategoryEntry">
+      <name>Track: Control</name>
+    </category>
+    <category type="lua_model:PakettiMIDICategoryEntry">
+      <name>Track: Effects</name>
+    </category>
+    <category type="lua_model:PakettiMIDICategoryEntry">
+      <name>Instrument: Control</name>
+    </category>
+    <category type="lua_model:PakettiMIDICategoryEntry">
+      <name>Instrument: Loading</name>
+    </category>
+    <category type="lua_model:PakettiMIDICategoryEntry">
+      <name>Sequencer: Control</name>
+    </category>
+    <category type="lua_model:PakettiMIDICategoryEntry">
+      <name>Sequencer: Navigation</name>
+    </category>
+    <category type="lua_model:PakettiMIDICategoryEntry">
+      <name>Mixer: Control</name>
+    </category>
+    <category type="lua_model:PakettiMIDICategoryEntry">
+      <name>Utility: General</name>
+    </category>
+    <category type="lua_model:PakettiMIDICategoryEntry">
+      <name>Experimental: Test</name>
+    </category>
+  </categories>
+  <auto_save_changes>true</auto_save_changes>
+  <assignments>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Chord Selector [0-127]</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:ChordsPlus Random Chord</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Randomize Automation Envelope</mapping_name>
+      <category_name>Automation: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Randomize Automation Envelopes for Device</mapping_name>
+      <category_name>Automation: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Select Automation Playmode (Next)</mapping_name>
+      <category_name>Automation: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Flood Fill Automation Selection</mapping_name>
+      <category_name>Automation: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Strip Silence</mapping_name>
+      <category_name>Sample Editor: Process</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Move Beginning Silence to End</mapping_name>
+      <category_name>Sample Editor: Process</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Rotate Sample Buffer Up/Down x[Knob]</mapping_name>
+      <category_name>Sample Editor: Process</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Rotate Sample Buffer Up x[Knob]</mapping_name>
+      <category_name>Sample Editor: Process</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Rotate Sample Buffer Up x[Trigger]</mapping_name>
+      <category_name>Sample Editor: Process</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Rotate Sample Buffer Down x[Trigger]</mapping_name>
+      <category_name>Sample Editor: Process</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Rotate Sample Buffer Down x[Knob]</mapping_name>
+      <category_name>Sample Editor: Process</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Cycle Sample Editor Tabs x[Knob]</mapping_name>
+      <category_name>Sample Editor: Navigation</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Move to Previous Track [Knob]</mapping_name>
+      <category_name>Pattern Editor: Navigation</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Move to Next Track [Knob]</mapping_name>
+      <category_name>Pattern Editor: Navigation</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Move to Next Track (Wrap) [Knob]</mapping_name>
+      <category_name>Pattern Editor: Navigation</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Move to Previous Track (Wrap) [Knob]</mapping_name>
+      <category_name>Pattern Editor: Navigation</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Slide Selected Track Content Up</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Slide Selected Column Content Down</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Slide Selected Column Content Up</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Slide Selected Track Content Down</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Scale Automation to 90%</mapping_name>
+      <category_name>Automation: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Set Automation Range to Max (1.0)</mapping_name>
+      <category_name>Automation: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Scale Automation to 110%</mapping_name>
+      <category_name>Automation: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Switch to Automation Dynamic</mapping_name>
+      <category_name>Automation: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Show Automation Value Dialog...</mapping_name>
+      <category_name>Automation: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Set Automation Range to Middle (0.5)</mapping_name>
+      <category_name>Automation: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Set Automation Range to Min (0.0)</mapping_name>
+      <category_name>Automation: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Scale Automation to 200%</mapping_name>
+      <category_name>Automation: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Scale Automation to 50%</mapping_name>
+      <category_name>Automation: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Flip Automation Selection Horizontally</mapping_name>
+      <category_name>Automation: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Flip Automation Selection Vertically</mapping_name>
+      <category_name>Automation: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Dynamic Scale Automation</mapping_name>
+      <category_name>Automation: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Select Automation Playmode (Previous)</mapping_name>
+      <category_name>Automation: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Select Automation Playmode 01 Points</mapping_name>
+      <category_name>Automation: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Select Automation Playmode 02 Lines</mapping_name>
+      <category_name>Automation: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Select Automation Playmode 03 Curves</mapping_name>
+      <category_name>Automation: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Write 0Sxx Command x[Knob]</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Write ZLxx Command x[Knob]</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Write ZTxx Command x[Knob]</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Transpose Notes in Selection/Row x[Knob]</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Write 0Sxx Command Random Slice/Offset x[Toggle]</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Automation Selection 01 Start x[Knob]</mapping_name>
+      <category_name>Automation: Control</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Automation Selection 02 End x[Knob]</mapping_name>
+      <category_name>Automation: Control</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Interpolate Notes</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Fill Effect Column with 0G01+0U00 [Trigger]</mapping_name>
+      <category_name>Pattern Editor: Uncategorized</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Cycle Through All Track Columns (Absolute) x[Knob]</mapping_name>
+      <category_name>Pattern Editor: Uncategorized</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Fill Effect Column with 0G01+0D00 [Trigger]</mapping_name>
+      <category_name>Pattern Editor: Uncategorized</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Fix C0 Panning Values</mapping_name>
+      <category_name>Pattern Editor: Uncategorized</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Clear Current Track in Pattern</mapping_name>
+      <category_name>Pattern Editor: Uncategorized</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:BPM Decrease (-0.1)</mapping_name>
+      <category_name>Playback: Uncategorized</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:BPM Decrease (-0.5)</mapping_name>
+      <category_name>Playback: Uncategorized</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:BPM Decrease (-1)</mapping_name>
+      <category_name>Playback: Uncategorized</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Jump Backward Within Pattern by Random</mapping_name>
+      <category_name>Pattern Editor: Uncategorized</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Global Volume Reduce All Samples by -4.5dB</mapping_name>
+      <category_name>Pattern Editor: Uncategorized</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Jump Forward Within Song by Random</mapping_name>
+      <category_name>Pattern Editor: Uncategorized</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:GlobalGainer Knob Control (end chain)</mapping_name>
+      <category_name>Mixer: Uncategorized</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:GlobalGainer Knob Control (start chain)</mapping_name>
+      <category_name>Mixer: Uncategorized</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Hide Current and Select Previous Column</mapping_name>
+      <category_name>Pattern Editor: Uncategorized</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Hide Track DSP Device External Editors for All Tracks</mapping_name>
+      <category_name>Utility: Uncategorized</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Columnizer Effect Amount Decrease (-1) x[Toggle]</mapping_name>
+      <category_name>Pattern Editor: Uncategorized</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:BPM Increase (+0.1)</mapping_name>
+      <category_name>Playback: Uncategorized</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Impulse Tracker F5 Start Playback x[Toggle]</mapping_name>
+      <category_name>Playback: Uncategorized</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Impulse Tracker F7 Start Playback from Cursor Row x[Toggle]</mapping_name>
+      <category_name>Pattern Editor: Uncategorized</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Find Note (Next, Track)</mapping_name>
+      <category_name>Pattern Editor: Uncategorized</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Impulse Tracker F8 Stop Playback (Panic) x[Toggle]</mapping_name>
+      <category_name>Playback: Uncategorized</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Impulse Tracker Pattern (Next) x[Toggle]</mapping_name>
+      <category_name>Playback: Uncategorized</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Impulse Tracker Pattern (Previous) x[Toggle]</mapping_name>
+      <category_name>Playback: Uncategorized</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Cycle Through Selected Track Columns (Absolute) x[Knob]</mapping_name>
+      <category_name>Pattern Editor: Uncategorized</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Cycle Through Selected Track Columns (Relative) x[Knob]</mapping_name>
+      <category_name>Pattern Editor: Uncategorized</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Cycle Through All Track Columns (Relative) x[Knob]</mapping_name>
+      <category_name>Pattern Editor: Uncategorized</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Collapser</mapping_name>
+      <category_name>Mixer: Uncategorized</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:BPM Increase (+0.5)</mapping_name>
+      <category_name>Playback: Uncategorized</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Add Current Section to Scheduled Sequences</mapping_name>
+      <category_name>Sequencer: Control</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Effect Column B00 Reverse Sample Effect On/Off</mapping_name>
+      <category_name>Pattern Editor: Uncategorized</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:BPM Increase (+1)</mapping_name>
+      <category_name>Playback: Control</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Change Selected Instrument (Next) x[Knob]</mapping_name>
+      <category_name>Instrument: Control</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Columnizer Delay Decrease (-1) x[Toggle]</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Columnizer Delay Increase (+1) x[Toggle]</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Clone Current Sequence</mapping_name>
+      <category_name>Sequencer: Control</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Interpolate Column Values (Delay)</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Interpolate Column Values (Effect)</mapping_name>
+      <category_name>Pattern Editor: Navigation</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Clear All Tracks Above Current Row</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Clear Selected Track Above Current Row</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Clear Selected Track Below Current Row</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Columnizer Effect Amount Increase (+1) x[Toggle]</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Columnizer Effect Number Decrease (-1) x[Toggle]</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Columnizer Effect Number Increase (+1) x[Toggle]</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Columnizer Volume Decrease (-1) x[Toggle]</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Columnizer Volume Increase (+1) x[Toggle]</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Columnizer Panning Decrease (-1) x[Toggle]</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Columnizer Panning Increase (+1) x[Toggle]</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Expand Selection Replicate Track 2 [Trigger]</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Expand Selection Replicate Track 3 [Trigger]</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Expand Selection Replicate Track 4 [Trigger]</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Expand Selection Replicate Track 5 [Trigger]</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Expand Selection Replicate Track 6 [Trigger]</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Expand Selection Replicate Track 7 [Trigger]</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Expand Selection Replicate Track 8 [Trigger]</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Expand Selection Replicate Tracks 1-8 [Trigger]</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Expand Selection Replicate [Trigger]</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Explode Notes to New Tracks</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Expose and Select Next Column</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Fill Effect Column with 0D00 [Trigger]</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Find Note (Next, Track, Play)</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Find Note (Previous, Pattern)</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Find Note (Previous, Pattern, Play)</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Delete/Clear/Wipe Selected Note Column x[Toggle]</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Delete/Clear/Wipe Selected Note Column with EditStep x[Toggle]</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Delete/Clear/Wipe Entire Row x[Toggle]</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Delete/Clear/Wipe Entire Row with EditStep x[Toggle]</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Delay Column (DEPRECATED) x[Slider]</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Fill Effect Column with 0U00 [Trigger]</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Find Note (Next, Pattern)</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Find Note (Next, Pattern, Play)</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Find Note (Previous, Track)</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Find Note (Previous, Track, Play)</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Flood Fill Note and Instrument</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Flood Fill Note and Instrument with EditStep</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Insert Random Delay to Selected Row</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Capture Nearest Instrument and Octave</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Interpolate Column Values (Panning)</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Interpolate Column Values (Sample FX)</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Interpolate Column Values (Volume)</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Jump Backward Within Song by Random</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Jump Forward Within Pattern by Random</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Jump to First Track in Next Group</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Jump to First Track in Previous Group</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:KapsLock Note Off (No Step) x[Trigger]</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:KapsLock Note Off (With Step) x[Trigger]</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Change 01 Volume Column Value x[Knob]</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Change 02 Panning Column Value x[Knob]</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Change 03 Delay Column Value x[Knob]</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Change 04 Sample FX Column Value x[Knob]</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Change 05 Effect Column Value x[Knob]</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Change EditStep 0-64 x[Knob]</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Change EditStep 1-64 x[Knob]</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Change LPB 1-64 x[Knob]</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Change Octave x[Knob]</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Change Pattern Row Position Direct x[Knob]</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Change Pattern Row Position x[Knob]</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Change Selected Instrument x[Knob]</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Instrument 01 Transpose (-64-+64)</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Instrument 02 Transpose (-64-+64)</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Instrument 03 Transpose (-64-+64)</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Instrument 04 Transpose (-64-+64)</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Instrument 05 Transpose (-64-+64)</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Instrument 06 Transpose (-64-+64)</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Instrument 07 Transpose (-64-+64)</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Select Group (Next)</mapping_name>
+      <category_name>Pattern Editor: Navigation</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Select Group (Previous)</mapping_name>
+      <category_name>Pattern Editor: Navigation</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Select Group Tracks x[Knob]</mapping_name>
+      <category_name>Pattern Editor: Navigation</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Change Selected Sample Loop 01 Start x[Knob]</mapping_name>
+      <category_name>Sample Editor: Selection</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Change Selected Sample Loop 02 End x[Knob]</mapping_name>
+      <category_name>Sample Editor: Selection</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Change Slice 01</mapping_name>
+      <category_name>Sample Editor: Selection</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Change Slice 32</mapping_name>
+      <category_name>Sample Editor: Selection</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Change Slice 07</mapping_name>
+      <category_name>Sample Editor: Selection</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Isolate Selected Sample to New Instrument</mapping_name>
+      <category_name>Sample Editor: Selection</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Isolate Slices or Samples to New Instruments</mapping_name>
+      <category_name>Sample Editor: Selection</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Isolate Slices to New Instrument as Samples</mapping_name>
+      <category_name>Sample Editor: Selection</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Change Slice 02</mapping_name>
+      <category_name>Sample Editor: Selection</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Select Padded Slice (Next)</mapping_name>
+      <category_name>Sample Editor: Selection</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Change Slice 15</mapping_name>
+      <category_name>Sample Editor: Selection</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Change Slice 10</mapping_name>
+      <category_name>Sample Editor: Selection</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Change Slice 20</mapping_name>
+      <category_name>Sample Editor: Selection</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Change Slice 24</mapping_name>
+      <category_name>Sample Editor: Selection</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Change Slice 04</mapping_name>
+      <category_name>Sample Editor: Selection</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Change Slice 28</mapping_name>
+      <category_name>Sample Editor: Selection</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Change Slice 03</mapping_name>
+      <category_name>Sample Editor: Selection</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Change Slice 11</mapping_name>
+      <category_name>Sample Editor: Selection</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Change Slice 09</mapping_name>
+      <category_name>Sample Editor: Selection</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Change Slice 27</mapping_name>
+      <category_name>Sample Editor: Selection</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Change Slice 30</mapping_name>
+      <category_name>Sample Editor: Selection</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Change Slice 29</mapping_name>
+      <category_name>Sample Editor: Selection</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Change Slice 05</mapping_name>
+      <category_name>Sample Editor: Selection</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Change Slice 06</mapping_name>
+      <category_name>Sample Editor: Selection</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Change Slice 08</mapping_name>
+      <category_name>Sample Editor: Selection</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Change Slice 12</mapping_name>
+      <category_name>Sample Editor: Selection</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Change Slice 13</mapping_name>
+      <category_name>Sample Editor: Selection</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Change Slice 14</mapping_name>
+      <category_name>Sample Editor: Selection</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Change Slice 16</mapping_name>
+      <category_name>Sample Editor: Selection</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Change Slice 18</mapping_name>
+      <category_name>Sample Editor: Selection</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Change Slice 19</mapping_name>
+      <category_name>Sample Editor: Selection</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Change Slice 17</mapping_name>
+      <category_name>Sample Editor: Selection</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Change Slice 22</mapping_name>
+      <category_name>Sample Editor: Selection</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Change Slice 26</mapping_name>
+      <category_name>Sample Editor: Selection</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Change Slice 31</mapping_name>
+      <category_name>Sample Editor: Selection</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Change Slice 21</mapping_name>
+      <category_name>Sample Editor: Selection</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Change Slice 23</mapping_name>
+      <category_name>Sample Editor: Selection</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Change Slice 25</mapping_name>
+      <category_name>Sample Editor: Selection</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Sample Velocity Range 7F</mapping_name>
+      <category_name>Sample Editor: Selection</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Groove Settings Groove #1 x[Knob]</mapping_name>
+      <category_name>Playback: Control</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Selected Instrument Macro 8 (PB Inertia)</mapping_name>
+      <category_name>Instrument: Control</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Selected Instrument Macro 2 (Cutoff)</mapping_name>
+      <category_name>Instrument: Control</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Selected Instrument Macro 4 (2nd) (Cutoff LfoAmp)</mapping_name>
+      <category_name>Instrument: Control</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Selected Instrument Macro 1 (2nd) (PitchBend)</mapping_name>
+      <category_name>Instrument: Control</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Selected Instrument Macro 1 (PitchBend)</mapping_name>
+      <category_name>Instrument: Control</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Selected Instrument Macro 2 (2nd) (Cutoff)</mapping_name>
+      <category_name>Instrument: Control</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Selected Instrument Macro 4 (Cutoff LfoAmp)</mapping_name>
+      <category_name>Instrument: Control</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Selected Instrument Macro 6 (Overdrive)</mapping_name>
+      <category_name>Instrument: Control</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Selected Instrument Macro 7 (ParallelCompression)</mapping_name>
+      <category_name>Instrument: Control</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Selected Instrument Transpose (-64-+64)</mapping_name>
+      <category_name>Instrument: Control</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Selected Instrument Macro 5 (2nd) (Cutoff LfoFreq)</mapping_name>
+      <category_name>Instrument: Control</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Selected Instrument Macro 3 (2nd) (Resonance)</mapping_name>
+      <category_name>Instrument: Control</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Selected Instrument Macro 6 (2nd) (Overdrive)</mapping_name>
+      <category_name>Instrument: Control</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Selected Instrument Macro 7 (2nd) (ParallelCompression)</mapping_name>
+      <category_name>Instrument: Control</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Selected Instrument Macro 3 (Resonance)</mapping_name>
+      <category_name>Instrument: Control</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Selected Instrument Macro 5 (Cutoff LfoFreq)</mapping_name>
+      <category_name>Instrument: Control</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Selected Instrument Macro 8 (2nd) (PB Inertia)</mapping_name>
+      <category_name>Instrument: Control</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Global Volume Reduce All Instruments by -4.5dB</mapping_name>
+      <category_name>Instrument: Control</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Groove Settings Groove #2 x[Knob]</mapping_name>
+      <category_name>Playback: Control</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Groove Settings Groove #2&amp;4 x[Knob]</mapping_name>
+      <category_name>Playback: Control</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Groove Settings Groove #3 x[Knob]</mapping_name>
+      <category_name>Playback: Control</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Groove Settings Groove #4 x[Knob]</mapping_name>
+      <category_name>Playback: Control</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Continue Sequence From Same Line [Set Sequence]</mapping_name>
+      <category_name>Sequencer: Control</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:EditStep Halve x[Button]</mapping_name>
+      <category_name>Pattern Editor: Navigation</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:EditStep Double x[Button]</mapping_name>
+      <category_name>Pattern Editor: Navigation</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Select Track (Next)</mapping_name>
+      <category_name>Pattern Editor: Navigation</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Select Track (Previous)</mapping_name>
+      <category_name>Pattern Editor: Navigation</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Uncollapser</mapping_name>
+      <category_name>Mixer</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Toggle Mute/Unmute of Selected Track</mapping_name>
+      <category_name>Pattern Editor: Navigation</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Toggle Mute Tracks</mapping_name>
+      <category_name>Pattern Editor: Navigation</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Toggle Solo Tracks</mapping_name>
+      <category_name>Pattern Editor: Navigation</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Toggle Edit Mode and Tint Track</mapping_name>
+      <category_name>Pattern Editor: Navigation</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Wipe&amp;Slice (004) x[Toggle]</mapping_name>
+      <category_name>Sample Editor: Process</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Wipe&amp;Slice (016) x[Toggle]</mapping_name>
+      <category_name>Sample Editor: Process</category_name>
+    </assignment>
+  </assignments>
+  <last_selected_category>All Mappings</last_selected_category>
+</PakettiMIDIMappingCategoryPreferences>

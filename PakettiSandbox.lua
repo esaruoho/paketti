@@ -1,3 +1,551 @@
+local dialog = nil
+-- Function to calculate the length of the selected sample in seconds
+function calculate_selected_sample_length()
+  local song = renoise.song()
+  
+  -- Check if there's a selected instrument
+  if not song.selected_instrument then
+    print("No instrument selected")
+    return nil, "No instrument selected"
+  end
+  
+  -- Check if there's a selected sample
+  if not song.selected_sample then
+    print("No sample selected") 
+    return nil, "No sample selected"
+  end
+  
+  local sample = song.selected_sample
+  
+  -- Check if sample has buffer (sample data)
+  if not sample.sample_buffer or not sample.sample_buffer.has_sample_data then
+    print("Sample has no data")
+    return nil, "Sample has no data"
+  end
+  
+  -- Get sample properties
+  local sample_rate = sample.sample_buffer.sample_rate
+  local number_of_frames = sample.sample_buffer.number_of_frames
+  
+  -- Calculate length in seconds
+  local length_in_seconds = number_of_frames / sample_rate
+  
+  -- Print debug information
+  print("Sample length calculation:")
+  print("  Sample rate: " .. sample_rate .. " Hz")
+  print("  Number of frames: " .. number_of_frames)
+  print("  Length: " .. string.format("%.6f", length_in_seconds) .. " seconds")
+  
+  return length_in_seconds, nil
+end
+
+-- Function to get selected sample length and display it in various formats
+function show_selected_sample_length()
+  local length_seconds, error_msg = calculate_selected_sample_length()
+  
+  if error_msg then
+    renoise.app():show_status(error_msg)
+    return
+  end
+  
+  if length_seconds then
+    -- Format the time in various ways
+    local total_seconds = math.floor(length_seconds)
+    local milliseconds = math.floor((length_seconds - total_seconds) * 1000)
+    local minutes = math.floor(total_seconds / 60)
+    local seconds_remainder = total_seconds % 60
+    
+    local time_formats = {
+      string.format("%.6f seconds", length_seconds),
+      string.format("%.3f seconds", length_seconds),
+      string.format("%d:%02d.%03d (mm:ss.ms)", minutes, seconds_remainder, milliseconds),
+      string.format("%.0f ms", length_seconds * 1000)
+    }
+    
+    local status_text = "Sample length: " .. time_formats[2]
+    renoise.app():show_status(status_text)
+    
+    print("Selected sample length:")
+    for i, format_text in ipairs(time_formats) do
+      print("  " .. format_text)
+    end
+    
+    return length_seconds
+  end
+end
+
+-- Function to calculate length of a specific sample selection/range
+function calculate_sample_selection_length()
+  local song = renoise.song()
+  
+  if not song.selected_sample or not song.selected_sample.sample_buffer then
+    return nil, "No sample selected"
+  end
+  
+  local sample = song.selected_sample
+  local buffer = sample.sample_buffer
+  
+  if not buffer.has_sample_data then
+    return nil, "Sample has no data"
+  end
+  
+  -- Get selection range
+  local selection_start = buffer.selection_start
+  local selection_end = buffer.selection_end
+  
+  -- If no selection, use entire sample
+  if selection_start == 0 and selection_end == 0 then
+    selection_start = 1
+    selection_end = buffer.number_of_frames
+  end
+  
+  local selection_frames = selection_end - selection_start + 1
+  local sample_rate = buffer.sample_rate
+  local selection_length = selection_frames / sample_rate
+  
+  print("Sample selection length calculation:")
+  print("  Selection start: " .. selection_start)
+  print("  Selection end: " .. selection_end) 
+  print("  Selection frames: " .. selection_frames)
+  print("  Sample rate: " .. sample_rate .. " Hz")
+  print("  Selection length: " .. string.format("%.6f", selection_length) .. " seconds")
+  
+  return selection_length, nil
+end
+
+-- Function to calculate BPM from sample length and beat sync
+function calculate_bpm_from_sample_beatsync()
+  local song = renoise.song()
+  
+  -- Get selected sample length
+  local length_seconds, error_msg = calculate_selected_sample_length()
+  if error_msg then
+    renoise.app():show_status(error_msg)
+    return nil, error_msg
+  end
+  
+  local sample = song.selected_sample
+  local current_lpb = song.transport.lpb
+  
+  -- Get beat_sync_lines from the sample
+  local beat_sync_lines = sample.beat_sync_lines
+  
+  -- Formula: 60 / lpb / seconds * beat_sync_lines
+  local calculated_bpm = 60 / current_lpb / length_seconds * beat_sync_lines
+  
+  print("BPM Calculation from Sample:")
+  print("  Sample length: " .. string.format("%.6f", length_seconds) .. " seconds")
+  print("  Current LPB: " .. current_lpb)
+  print("  Beat sync lines: " .. beat_sync_lines)
+  print("  Formula: 60 / " .. current_lpb .. " / " .. string.format("%.6f", length_seconds) .. " * " .. beat_sync_lines)
+  print("  Calculated BPM: " .. string.format("%.3f", calculated_bpm))
+  
+  return calculated_bpm, length_seconds, beat_sync_lines
+end
+
+-- Function to calculate and set BPM from sample beatsync
+function set_bpm_from_sample_beatsync()
+  local calculated_bpm, length_seconds, beat_sync_lines = calculate_bpm_from_sample_beatsync()
+  
+  if not calculated_bpm then
+    return
+  end
+  
+  -- Check if BPM is within valid range
+  if calculated_bpm < 20 or calculated_bpm > 999 then
+    local message = string.format("Calculated BPM %.3f is outside valid range (20-999)", calculated_bpm)
+    renoise.app():show_status(message)
+    print(message)
+    return
+  end
+  
+  local song = renoise.song()
+  local sample = song.selected_sample
+  
+  -- Set both BPM and beat sync lines
+  song.transport.bpm = calculated_bpm
+  sample.beat_sync_lines = beat_sync_lines
+  
+  local status_message = string.format("BPM set to %.3f and Beat Sync Lines set to %d (%.6fs sample)", 
+    calculated_bpm, beat_sync_lines, length_seconds)
+  renoise.app():show_status(status_message)
+  print("SUCCESS: " .. status_message)
+  
+  return calculated_bpm
+end
+
+-- Function to show BPM calculation dialog with custom beat sync lines
+function pakettiBpmFromSampleDialog()
+  local vb = renoise.ViewBuilder()
+  if dialog and dialog.visible then dialog:close() dialog=nil return end
+  
+  
+  
+  -- Get initial values
+  local length_seconds, error_msg = calculate_selected_sample_length()
+  if error_msg then
+    renoise.app():show_status(error_msg)
+    return
+  end
+  
+  local song = renoise.song()
+  local sample = song.selected_sample
+  local instrument = song.selected_instrument
+  local current_lpb = song.transport.lpb
+  local current_beat_sync = sample.beat_sync_lines
+  
+  -- Get sample name
+  local sample_name = sample.name
+  if sample_name == "" then
+    sample_name = "[Untitled Sample]"
+  end
+  
+  -- Forward declaration for update_calculation
+  local update_calculation
+  
+  -- Observer function to update dialog when selection changes
+  local function update_dialog_on_selection_change()
+    if not dialog or not dialog.visible then
+      return -- Dialog is not visible, no need to update
+    end
+    
+    -- Check if we still have valid selections
+    local current_song = renoise.song()
+    if not current_song.selected_instrument or not current_song.selected_sample then
+      return
+    end
+    
+    -- Recalculate with new selection
+    local new_length_seconds, new_error_msg = calculate_selected_sample_length()
+    if new_error_msg then
+      return -- Can't update if no valid sample
+    end
+    
+    -- Update the length value used by update_calculation
+    length_seconds = new_length_seconds
+    
+    -- Update sample name
+    local new_sample = current_song.selected_sample
+    local new_sample_name = new_sample.name
+    if new_sample_name == "" then
+      new_sample_name = "[Untitled Sample]"
+    end
+    sample_name = new_sample_name
+    
+    -- Update beat sync default
+    if vb.views and vb.views.beat_sync_valuebox then
+      vb.views.beat_sync_valuebox.value = new_sample.beat_sync_lines
+    end
+    
+    -- Trigger recalculation
+    if update_calculation then
+      update_calculation()
+    end
+  end
+  
+  update_calculation = function()
+    local beat_sync_lines = vb.views.beat_sync_valuebox.value
+    local lpb = vb.views.lpb_valuebox.value
+    local calculated_bpm = 60 / lpb / length_seconds * beat_sync_lines
+    
+    -- Always use current selected instrument index
+    local current_song = renoise.song()
+    local current_instrument_index = current_song.selected_instrument_index
+    local current_instrument = current_song.selected_instrument
+    local instrument_hex = string.format("%02X", current_instrument_index - 1)  -- Renoise uses 0-based for display
+    
+    -- Update each value individually
+    vb.views.instrument_value.text = string.format("%s (%s)", instrument_hex, current_instrument.name)
+    vb.views.sample_value.text = sample_name
+    vb.views.length_value.text = string.format("%.3f seconds", length_seconds)
+    vb.views.beatsync_value.text = tostring(beat_sync_lines)
+    vb.views.lpb_value.text = tostring(lpb)
+    vb.views.bpm_value.text = string.format("%.3f", calculated_bpm)
+    
+    -- Show warning if out of range
+    if calculated_bpm < 20 or calculated_bpm > 999 then
+      vb.views.warning_text.text = "WARNING: BPM outside valid range (20-999)!"
+    else
+      vb.views.warning_text.text = ""
+    end
+    
+    return calculated_bpm
+  end
+  
+  local function write_note_to_pattern()
+    local track = song.selected_track
+    local pattern_line = renoise.song().selected_pattern.tracks[renoise.song().selected_track_index]:line(1)
+    local note_column = pattern_line:note_column(1)
+    
+    -- Always use current selected instrument index
+    local current_song = renoise.song()
+    local current_instrument_index = current_song.selected_instrument_index
+    local current_instrument = current_song.selected_instrument
+    
+    -- Write note using sample mapping's basenote (the actual trigger note)
+    local mapping_base_note = current_instrument.sample_mappings[1][current_song.selected_sample_index].base_note
+    note_column.note_value = mapping_base_note
+    note_column.instrument_value = current_instrument_index - 1  -- 0-based for pattern data
+    
+    -- Note: Sample selection within instrument is handled by the note mapping and base_note
+    
+    return true
+  end
+  local textWidth= 110
+  local dialog_content = vb:column{
+--    margin = 10,
+    
+    vb:row{
+      vb:text{text="Beatsync",width=60,style="strong",font="bold"},
+      vb:valuebox{
+        id = "beat_sync_valuebox",
+        min = 1,
+        max = 512,
+        value = current_beat_sync,
+        width = 50,
+        notifier = function() update_calculation() end
+      },
+      vb:button{
+        text = "Set",
+        width = 40,
+        notifier = function()
+          local beat_sync_lines = vb.views.beat_sync_valuebox.value
+          local current_song = renoise.song()
+          local current_sample = current_song.selected_sample
+          current_sample.beat_sync_enabled = true
+          current_sample.beat_sync_lines = beat_sync_lines
+          renoise.app():show_status(string.format("Beat Sync enabled and set to %d lines", beat_sync_lines))
+          update_calculation()
+        end
+      }
+    },
+    
+    vb:row{
+      vb:text{text="LPB",width=60,style="strong",font="bold"},
+      vb:valuebox{
+        id = "lpb_valuebox",
+        min = 1,
+        max = 256,
+        value = current_lpb,
+        width = 50,
+        notifier = function() update_calculation() end
+      },
+      vb:button{
+        text = "Use Current",
+        width = 80,
+        notifier = function()
+          vb.views.lpb_valuebox.value = song.transport.lpb
+          update_calculation()
+        end
+      }
+    },
+    
+    -- Information display in two columns
+    
+    vb:row{
+      vb:text{text = "Instrument", width = textWidth},
+      vb:text{id = "instrument_value", text = "", style = "strong", font = "bold"}
+    },
+    vb:row{
+      vb:text{text = "Sample", width = textWidth},
+      vb:text{id = "sample_value", text = "", style = "strong", font = "bold"}
+    },
+    vb:row{
+      vb:text{text = "Length", width = textWidth},
+      vb:text{id = "length_value", text = "", style = "strong", font = "bold"}
+    },
+    vb:row{
+      vb:text{text = "Beatsync", width = textWidth},
+      vb:text{id = "beatsync_value", text = "", style = "strong", font = "bold"}
+    },
+    vb:row{
+      vb:text{text = "LPB", width = textWidth},
+      vb:text{id = "lpb_value", text = "", style = "strong", font = "bold"}
+    },
+    vb:row{
+      vb:text{text = "Calculated BPM", width = textWidth},
+      vb:text{id = "bpm_value", text = "", style = "strong", font = "bold"}
+    },
+    
+    vb:text{
+      id = "warning_text",
+      text = "",
+      style = "strong",
+      font = "bold"
+    },
+    
+    -- First row: Set BPM and Close
+    vb:row{
+      vb:button{
+        text = "Set BPM",
+        width = 80,
+        notifier = function()
+          local calculated_bpm = update_calculation()
+          if calculated_bpm >= 20 and calculated_bpm <= 999 then
+            local beat_sync_lines = vb.views.beat_sync_valuebox.value
+            local current_song = renoise.song()
+            local current_sample = current_song.selected_sample
+            current_song.transport.bpm = calculated_bpm
+            current_sample.beat_sync_enabled = true
+            current_sample.beat_sync_lines = beat_sync_lines
+            renoise.app():show_status(string.format("BPM set to %.3f, Beat Sync enabled and set to %d lines", calculated_bpm, beat_sync_lines))
+            -- DON'T close dialog anymore
+          else
+            renoise.app():show_status("Cannot set BPM - value outside valid range")
+          end
+        end
+      },
+      vb:button{
+        text = "Close",
+        width = 60,
+        notifier = function()
+          -- Remove notifiers when dialog closes via button
+          local current_song = renoise.song()
+          if current_song.selected_instrument_observable:has_notifier(update_dialog_on_selection_change) then
+            current_song.selected_instrument_observable:remove_notifier(update_dialog_on_selection_change)
+          end
+          if current_song.selected_sample_observable:has_notifier(update_dialog_on_selection_change) then
+            current_song.selected_sample_observable:remove_notifier(update_dialog_on_selection_change)
+          end
+          if dialog then dialog:close() end
+        end
+      }
+    },
+    
+    -- Second row: Combined actions
+    vb:row{
+      vb:button{
+        text = "Set BPM & Write Note",
+        width = 120,
+        notifier = function()
+          local calculated_bpm = update_calculation()
+          if calculated_bpm >= 20 and calculated_bpm <= 999 then
+            local beat_sync_lines = vb.views.beat_sync_valuebox.value
+            local current_song = renoise.song()
+            local current_sample = current_song.selected_sample
+            current_song.transport.bpm = calculated_bpm
+            current_sample.beat_sync_enabled = true
+            current_sample.beat_sync_lines = beat_sync_lines
+            write_note_to_pattern()
+            renoise.app():show_status(string.format("BPM set to %.3f, Beat Sync enabled and set to %d lines, Note written to track", calculated_bpm, beat_sync_lines))
+            -- DON'T close dialog anymore
+          else
+            renoise.app():show_status("Cannot set BPM - value outside valid range")
+          end
+        end
+      },
+      vb:button{
+        text = "Write Note & Set Beatsync",
+        width = 140,
+        notifier = function()
+          local beat_sync_lines = vb.views.beat_sync_valuebox.value
+          local current_song = renoise.song()
+          local current_sample = current_song.selected_sample
+          current_sample.beat_sync_enabled = true  -- Enable beat sync
+          current_sample.beat_sync_lines = beat_sync_lines  -- Set the lines
+          write_note_to_pattern()
+          renoise.app():show_status(string.format("Beat Sync enabled and set to %d lines, Note written to track (BPM unchanged)", beat_sync_lines))
+          -- DON'T close dialog anymore
+        end
+      }
+    }
+  }
+  
+  -- Remove existing notifiers if any
+  if song.selected_instrument_observable:has_notifier(update_dialog_on_selection_change) then
+    song.selected_instrument_observable:remove_notifier(update_dialog_on_selection_change)
+  end
+  if song.selected_sample_observable:has_notifier(update_dialog_on_selection_change) then
+    song.selected_sample_observable:remove_notifier(update_dialog_on_selection_change)
+  end
+  
+  -- Add the observers for live updating
+  song.selected_instrument_observable:add_notifier(update_dialog_on_selection_change)
+  song.selected_sample_observable:add_notifier(update_dialog_on_selection_change)
+  
+  update_calculation()  -- Initial calculation
+  dialog = renoise.app():show_custom_dialog("BPM from Sample Length", dialog_content, function(dialog, key)
+    -- Handle dialog close
+    if key and key.name == "esc" then
+      -- Remove notifiers when dialog closes
+      if song.selected_instrument_observable:has_notifier(update_dialog_on_selection_change) then
+        song.selected_instrument_observable:remove_notifier(update_dialog_on_selection_change)
+      end
+      if song.selected_sample_observable:has_notifier(update_dialog_on_selection_change) then
+        song.selected_sample_observable:remove_notifier(update_dialog_on_selection_change)
+      end
+      dialog:close()
+      return nil
+    end
+    return my_keyhandler_func(dialog, key)
+  end)
+
+end
+
+-- Function to debug sample length precision
+function debug_sample_length_precision()
+  local song = renoise.song()
+  local sample = song.selected_sample
+  
+  if not sample or not sample.sample_buffer or not sample.sample_buffer.has_sample_data then
+    print("No valid sample selected")
+    return
+  end
+  
+  local buffer = sample.sample_buffer
+  local sample_rate = buffer.sample_rate
+  local number_of_frames = buffer.number_of_frames
+  local length_in_seconds = number_of_frames / sample_rate
+  
+  print("\n=== SAMPLE LENGTH PRECISION DEBUG ===")
+  print("Sample rate: " .. sample_rate .. " Hz")
+  print("Number of frames: " .. number_of_frames)
+  print("Raw calculation: " .. number_of_frames .. " / " .. sample_rate .. " = " .. length_in_seconds)
+  print("Length (6 decimals): " .. string.format("%.6f", length_in_seconds))
+  print("Length (9 decimals): " .. string.format("%.9f", length_in_seconds))
+  
+  -- Test the exact math with your example
+  local lpb = song.transport.lpb
+  local beat_sync = sample.beat_sync_lines
+  
+  print("\n=== BPM CALCULATION TEST ===")
+  print("Current LPB: " .. lpb)
+  print("Current Beat Sync Lines: " .. beat_sync)
+  print("Formula: 60 / " .. lpb .. " / " .. string.format("%.9f", length_in_seconds) .. " * " .. beat_sync)
+  
+  local step1 = 60 / lpb
+  local step2 = step1 / length_in_seconds
+  local result = step2 * beat_sync
+  
+  print("Step 1: 60 / " .. lpb .. " = " .. string.format("%.9f", step1))
+  print("Step 2: " .. string.format("%.9f", step1) .. " / " .. string.format("%.9f", length_in_seconds) .. " = " .. string.format("%.9f", step2))
+  print("Step 3: " .. string.format("%.9f", step2) .. " * " .. beat_sync .. " = " .. string.format("%.9f", result))
+  print("Final BPM: " .. string.format("%.3f", result))
+  
+  -- Test with your exact example values
+  if beat_sync == 32 and lpb == 4 then
+    print("\n=== YOUR EXAMPLE TEST (should be 146.341) ===")
+    local expected_length = 3.28
+    local expected_bpm = 60 / 4 / expected_length * 32
+    print("Expected with 3.28s: " .. string.format("%.3f", expected_bpm))
+    print("Actual with " .. string.format("%.6f", length_in_seconds) .. "s: " .. string.format("%.3f", result))
+    print("Difference: " .. string.format("%.6f", expected_bpm - result))
+  end
+end
+
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Calculate Selected Sample Length",invoke=calculate_selected_sample_length}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Show Selected Sample Length",invoke=show_selected_sample_length}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Calculate Sample Selection Length",invoke=calculate_sample_selection_length}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Calculate BPM from Sample Length",invoke=calculate_bpm_from_sample_beatsync}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Set BPM from Sample Length",invoke=set_bpm_from_sample_beatsync}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Show BPM Calculation Dialog...",invoke=pakettiBpmFromSampleDialog}
+renoise.tool():add_keybinding{name="Global:Paketti:Show BPM Calculation Dialog...",invoke=pakettiBpmFromSampleDialog}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Debug Sample Length Precision",invoke=debug_sample_length_precision}
+
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti Gadgets..:BPM Calculation Dialog...",invoke=pakettiBpmFromSampleDialog}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Calculate BPM from Sample Length",invoke=calculate_bpm_from_sample_beatsync}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Set BPM from Sample Length",invoke=set_bpm_from_sample_beatsync}
+----------
 -- Function to toggle showing only one specific column type
 function showOnlyColumnType(column_type)
     local song=renoise.song()
@@ -149,7 +697,6 @@ function detect_zero_crossings()
 end
 
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Detect Zero Crossings",invoke=detect_zero_crossings}
-
 
 -- from Paper
 -- Rough formula i hacked up: 
@@ -655,3 +1202,4 @@ end
 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Toggle All Columns",invoke=function() toggleColumns(true) end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Toggle All Columns (No Sample Effects)",invoke=function() toggleColumns(false) end}
+
