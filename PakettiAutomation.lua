@@ -3369,9 +3369,8 @@ function snapshot_selected_device_to_automation()
 end
 renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Automation..:Snapshot All Devices on Selected Track to Automation",invoke = snapshot_all_devices_to_automation}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Automation..:Snapshot Selected Device to Automation",invoke = snapshot_selected_device_to_automation}
-renoise.tool():add_menu_entry{name="--Track Automation:Paketti..:Automation..:Snapshot All Devices on Selected Track to Automation",invoke = snapshot_all_devices_to_automation}
-renoise.tool():add_menu_entry{name="Track Automation:Paketti..:Automation..:Snapshot Selected Device to Automation",invoke = snapshot_selected_device_to_automation}
-
+renoise.tool():add_menu_entry{name="--Track Automation:Paketti..:Snapshot All Devices on Selected Track to Automation",invoke = snapshot_all_devices_to_automation}
+renoise.tool():add_menu_entry{name="Track Automation:Paketti..:Snapshot Selected Device to Automation",invoke = snapshot_selected_device_to_automation}
 
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Automation..:Snapshot All Devices on Selected Track to Automation",invoke = snapshot_all_devices_to_automation}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Automation..:Snapshot Selected Device to Automation",invoke = snapshot_selected_device_to_automation}

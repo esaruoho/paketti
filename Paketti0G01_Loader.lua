@@ -733,8 +733,8 @@ local pakettiIRPathDisplayId = "pakettiIRPathDisplay_" .. tostring(math.random(2
                   -- Update the disk browser visibility immediately
                   renoise.app().window.disk_browser_is_visible = preferences.pakettiDiskBrowserVisible.value
                 end}
-            } or vb:space{height=0},
-            renoise.API_VERSION >= 6.2 and vb:row{vb:text{style="strong",text="Show/Hide Disk Browser panel on startup and when changed"}} or vb:space{height=0},
+            } or vb:space{height=1},
+            renoise.API_VERSION >= 6.2 and vb:row{vb:text{style="strong",text="Show/Hide Disk Browser panel on startup and when changed"}} or vb:space{height=1},
             vb:row{
               vb:text{text="0G01 Loader",width=150},
               vb:switch{items={"Off","On"},value=preferences._0G01_Loader.value and 2 or 1,width=200,

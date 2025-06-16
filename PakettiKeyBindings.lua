@@ -40,636 +40,6 @@ local function sortKeybindings(filteredKeybindings)
   end)
 end
 
--- Function to extract and print MIDI mappings from required files
-function extract_midi_mappings()
-  -- Define a list of required Lua files (replace with your actual files)
-  local required_files = {
-    "Paketti0G01_Loader.lua",
-    "PakettiAudioProcessing.lua",
-    "PakettiAutomation.lua",
-    "PakettiBeatDetect.lua",
-    "PakettiChordsPlus.lua",
-    "PakettiYTDLP.lua",
-    "PakettiControls.lua",
-    "PakettiCustomization.lua",
-    "PakettiDeviceChains.lua",
-    "PakettiDynamicViews.lua",
-    "PakettiEightOneTwenty.lua",
-    "PakettieSpeak.lua",
-    "PakettiExperimental_Verify.lua",
-    "PakettiGater.lua",
-    "PakettiImpulseTracker.lua",
-    "PakettiInstrumentBox.lua",
-    "PakettiLoadDevices.lua",
-    "PakettiLoaders.lua",
-    "PakettiLoadPlugins.lua",
-    "PakettiMainMenuEntries.lua",
-    "PakettiMidi.lua",
-    "PakettiMidiPopulator.lua",
-    "PakettiOctaMEDSuite.lua",
-    "PakettiPatternEditor.lua",
-    "PakettiPatternEditorCheatSheet.lua",
-    "PakettiPatternMatrix.lua",
-    "PakettiPatternSequencer.lua",
-    "PakettiPhraseEditor.lua",
-    "PakettiPlayerProSuite.lua",
-    "PakettiRecorder.lua",
-    "PakettiRequests.lua",
-    "PakettiSampleLoader.lua",
-    "PakettiSamples.lua",
-    "PakettiSandbox.lua",
-    "PakettiStacker.lua",
-    "PakettiStretch.lua",
-    "PakettiThemeSelector.lua",
-    "PakettiTkna.lua",
-    "PakettiTupletGenerator.lua",
-    "PakettiWavetabler.lua"
-  }
-
-  -- Table to store extracted midi mappings
-  local midi_mappings = {}
-
-  -- Function to read a file and extract midi mappings
-  local function read_file_and_extract_midi_mappings(file)
-    local f = io.open(file, "r")
-    if f then
-      for line in f:lines() do
-        -- Match lines that contain "renoise.tool():add_midi_mapping"
-        local mapping = line:match('renoise.tool%(%):add_midi_mapping{name="([^"]+)"')
-        if mapping then
-          table.insert(midi_mappings, mapping)
-        end
-      end
-      f:close()
-    else
-      print("Could not open file: " .. file)
-    end
-  end
-
-  -- Iterate through each required file and extract midi mappings
-  for _, file in ipairs(required_files) do
-    read_file_and_extract_midi_mappings(file)
-  end
-
-  -- Print the midi mappings in a format ready for pasting into the list
-  print("\nPasteable Midi Mappings:\n")
-  for _, mapping in ipairs(midi_mappings) do
-    print('  "' .. mapping .. '",')
-  end
-end
-
--- Call the function to extract and print MIDI mappings
---extract_midi_mappings()
-
-
--- Define the original table of all MIDI mappings
-local PakettiMidiMappings = {
-  "Paketti:Cycle Sample Editor Tabs",
-  "Paketti:Toggle Mute Tracks",
-  "Paketti:Shift Sample Buffer Up x[Trigger]",
-  "Paketti:Shift Sample Buffer Down x[Trigger]",
-  "Paketti:Shift Sample Buffer Up x[Knob]",
-  "Paketti:Shift Sample Buffer Down x[Knob]",
-  "Paketti:Shift Sample Buffer Up/Down x[Knob]",
-  "Paketti:Toggle Solo Tracks",
-  "Paketti:Slide Selected Column Content Down",
-  "Paketti:Slide Selected Column Content Up",
-  "Paketti:Slide Selected Track Content Up",
-  "Paketti:Slide Selected Track Content Down",
-  "Paketti:Rotate Sample Buffer Content Forward [Set]",
-  "Paketti:Rotate Sample Buffer Content Backward [Set]",
-  "Paketti:Move to Next Track (Wrap) [Knob]",
-  "Paketti:Move to Previous Track (Wrap) [Knob]",
-  "Paketti:Move to Next Track [Knob]",
-  "Paketti:Move to Previous Track [Knob]",
-  "Track Devices:Paketti:Load DC Offset",
-  "Paketti:Hide Track DSP Device External Editors for All Tracks",
-  "Paketti:Set Beatsync Value x[Knob]",
-  "Paketti:Groove Settings Groove #1 x[Knob]",
-  "Paketti:Groove Settings Groove #2 x[Knob]",
-  "Paketti:Groove Settings Groove #3 x[Knob]",
-  "Paketti:Groove Settings Groove #4 x[Knob]",
-  "Paketti:Computer Keyboard Velocity Slider x[Knob]",
-  "Paketti:Change Selected Sample Volume x[Slider]",
-  "Paketti:Delay Column (DEPRECATED) x[Slider]",
-  "Paketti:Metronome On/Off x[Toggle]",
-  "Paketti:Uncollapser",
-  "Paketti:Collapser",
-  "Paketti:Show/Hide Pattern Matrix x[Toggle]",
-  "Paketti:Record and Follow x[Toggle]",
-  "Paketti:Record and Follow On/Off x[Knob]",
-  "Paketti:Record Quantize On/Off x[Toggle]",
-  "Paketti:Impulse Tracker F5 Start Playback x[Toggle]",
-  "Paketti:Impulse Tracker F8 Stop Playback (Panic) x[Toggle]",
-  "Paketti:Impulse Tracker F7 Start Playback from Cursor Row x[Toggle]",
-  "Paketti:Stop Playback (Panic) x[Toggle]",
-  "Paketti:Play Current Line & Advance by EditStep x[Toggle]",
-  "Paketti:Impulse Tracker Pattern (Next) x[Toggle]",
-  "Paketti:Impulse Tracker Pattern (Previous) x[Toggle]",
-  "Paketti:Switch to Automation",
-  "Paketti:Save Sample Range .WAV",
-  "Paketti:Save Sample Range .FLAC",
-  "Paketti:Wipe&Slice (004) x[Toggle]",
-  "Paketti:Wipe&Slice (008) x[Toggle]",
-  "Paketti:Wipe&Slice (016) x[Toggle]",
-  "Paketti:Wipe&Slice (032) x[Toggle]",
-  "Paketti:Wipe&Slice (064) x[Toggle]",
-  "Paketti:Wipe&Slice (128) x[Toggle]",
-  "Paketti:Set Delay (+1) x[Toggle]",
-  "Paketti:Set Delay (-1) x[Toggle]",
-  "Paketti:Numpad SelectPlay 0 x[Toggle]",
-  "Paketti:Numpad SelectPlay 1 x[Toggle]",
-  "Paketti:Numpad SelectPlay 2 x[Toggle]",
-  "Paketti:Numpad SelectPlay 3 x[Toggle]",
-  "Paketti:Numpad SelectPlay 4 x[Toggle]",
-  "Paketti:Numpad SelectPlay 5 x[Toggle]",
-  "Paketti:Numpad SelectPlay 6 x[Toggle]",
-  "Paketti:Numpad SelectPlay 7 x[Toggle]",
-  "Paketti:Numpad SelectPlay 8 x[Toggle]",
-  "Paketti:Capture Nearest Instrument and Octave",
-  "Paketti:Simple Play",
-  "Paketti:Columnizer Delay Increase (+1) x[Toggle]",
-  "Paketti:Columnizer Delay Decrease (-1) x[Toggle]",
-  "Paketti:Columnizer Panning Increase (+1) x[Toggle]",
-  "Paketti:Columnizer Panning Decrease (-1) x[Toggle]",
-  "Paketti:Columnizer Volume Increase (+1) x[Toggle]",
-  "Paketti:Columnizer Volume Decrease (-1) x[Toggle]",
-  "Paketti:Columnizer Effect Number Increase (+1) x[Toggle]",
-  "Paketti:Columnizer Effect Number Decrease (-1) x[Toggle]",
-  "Paketti:Columnizer Effect Amount Increase (+1) x[Toggle]",
-  "Paketti:Columnizer Effect Amount Decrease (-1) x[Toggle]",
-  "Sample Editor:Paketti:Disk Browser Focus",
-  "Pattern Editor:Paketti:Disk Browser Focus",
-  "Paketti:Change Selected Sample Loop Mode x[Knob]",
-  "Paketti:Selected Sample Loop to 1 No Loop x[On]",
-  "Paketti:Selected Sample Loop to 2 Forward x[On]",
-  "Paketti:Selected Sample Loop to 3 Backward x[On]",
-  "Paketti:Selected Sample Loop to 4 PingPong x[On]",
-  "Paketti:Selected Sample Loop to 1 No Loop x[Toggle]",
-  "Paketti:Selected Sample Loop to 2 Forward x[Toggle]",
-  "Paketti:Selected Sample Loop to 3 Backward x[Toggle]",
-  "Paketti:Selected Sample Loop to 4 PingPong x[Toggle]",
-  "Paketti:Record to Current Track x[Toggle]",
-  "Paketti:Simple Play Record Follow",
-  "Paketti:Midi Change EditStep 1-64 x[Knob]",
-  "Paketti:Midi Select Group (Previous)",
-  "Paketti:Midi Select Group (Next)",
-  "Paketti:Midi Select Track (Previous)",
-  "Paketti:Midi Select Track (Next)",
-  "Paketti:Midi Select Group Tracks x[Knob]",
-  "Paketti:Midi Change Octave x[Knob]",
-  "Paketti:Midi Change Selected Track x[Knob]",
-  "Paketti:Midi Change Selected Track DSP Device x[Knob]",
-  "Paketti:Midi Change Selected Instrument x[Knob]",
-  "Paketti:Midi Change Selected Sample Loop 01 Start x[Knob]",
-  "Paketti:Midi Change Selected Sample Loop 02 End x[Knob]",
-  "Sample Editor:Paketti:Sample Buffer Selection 01 Start x[Knob]",
-  "Sample Editor:Paketti:Sample Buffer Selection 02 End x[Knob]",
-  "Track Automation:Paketti:Midi Automation Curve Draw Selection x[Knob]",
-  "Paketti:Midi Automation Selection 01 Start x[Knob]",
-  "Paketti:Midi Automation Selection 02 End x[Knob]",
-  "Paketti:Create New Instrument & Loop from Selection",
-  "Paketti:Midi Change Sample Modulation Set Filter",
-  "Paketti:Selected Instrument Midi Program +1 (Next)",
-  "Paketti:Selected Instrument Midi Program -1 (Previous)",
-  "Paketti:Midi Change 01 Volume Column Value x[Knob]",
-  "Paketti:Midi Change 02 Panning Column Value x[Knob]",
-  "Paketti:Midi Change 03 Delay Column Value x[Knob]",
-  "Paketti:Midi Change 04 Effect Column Value x[Knob]",
-  "Paketti:EditStep Double x[Button]",
-  "Paketti:EditStep Halve x[Button]",
-  "Paketti:Set Pattern Length to 001",
-  "Paketti:Set Pattern Length to 004",
-  "Paketti:Set Pattern Length to 008",
-  "Paketti:Set Pattern Length to 016",
-  "Paketti:Set Pattern Length to 032",
-  "Paketti:Set Pattern Length to 048",
-  "Paketti:Set Pattern Length to 064",
-  "Paketti:Set Pattern Length to 096",
-  "Paketti:Set Pattern Length to 128",
-  "Paketti:Set Pattern Length to 192",
-  "Paketti:Set Pattern Length to 256",
-  "Paketti:Set Pattern Length to 384",
-  "Paketti:Set Pattern Length to 512",
-  "Paketti:Effect Column B00 Reverse Sample Effect On/Off",
-  "Paketti:Toggle Edit Mode and Tint Track",
-  "Paketti:Duplicate Effect Column Content to Pattern or Selection",
-  "Paketti:Randomize Effect Column Parameters",
-  "Paketti:Flood Fill Note and Instrument",
-  "Paketti:Flood Fill Note and Instrument with EditStep",
-  "Paketti:Paketti Track Renamer",
-  "Paketti:Clone Current Sequence",
-  "Sample Editor:Paketti:Sample Buffer Selection Halve",
-  "Sample Editor:Paketti:Sample Buffer Selection Double",
-  "Pattern Editor:Paketti:Adjust Selection ",
-  "Pattern Editor:Paketti:Wipe Selection ",
-  "Sample Editor:Paketti:Mono to Right with Blank Left",
-  "Sample Editor:Paketti:Mono to Left with Blank Right",
-  "Sample Editor:Paketti:Convert Mono to Stereo",
-  "Paketti:Note Interpolation",
-  "Paketti:Jump to First Track in Next Group",
-  "Paketti:Jump to First Track in Previous Group",
-  "Paketti:Bypass All Other Track DSP Devices (Toggle)",
-  "Paketti:Isolate Slices or Samples to New Instruments",
-  "Paketti:Octave Basenote Up",
-  "Paketti:Octave Basenote Down",
-  "Paketti:Midi Paketti PitchBend Drumkit Sample Loader",
-  "Paketti:Midi Paketti PitchBend Multiple Sample Loader",
-  "Paketti:Midi Paketti Save Selected Sample .WAV",
-  "Paketti:Midi Paketti Save Selected Sample .FLAC",
-  "Paketti:Midi Select Padded Slice (Next)",
-  "Paketti:Midi Select Padded Slice (Previous)",
-  "Paketti:Duplicate and Reverse Instrument [Trigger]",
-  "Paketti:Strip Silence",
-  "Paketti:Move Beginning Silence to End",
-  "Paketti:Continue Sequence From Same Line [Set Sequence]",
-  "Paketti:Set Current Section as Scheduled Sequence",
-  "Paketti:Add Current Section to Scheduled Sequences",
-  "Paketti:Section Loop (Next)",
-  "Paketti:Section Loop (Previous)",
-  "Paketti:Sequence Selection (Next)",
-  "Paketti:Sequence Selection (Previous)",
-  "Paketti:Sequence Loop Selection (Next)",
-  "Paketti:Sequence Loop Selection (Previous)",
-  "Paketti:Set Section Loop and Schedule Section [Knob]",
-}
-
--- Example grouped structure with direct paths
-local grouped_mappings = {
-  ["Groove Settings"] = {
-    "Paketti:Groove Settings Groove #1 x[Knob]",
-    "Paketti:Groove Settings Groove #2 x[Knob]",
-    "Paketti:Groove Settings Groove #3 x[Knob]",
-    "Paketti:Groove Settings Groove #4 x[Knob]"
-  },
-  ["Loading/Saving Samples/Instruments"] = {
-    "Paketti:Midi Paketti PitchBend Multiple Sample Loader",
-    "Paketti:Midi Paketti PitchBend Drumkit Sample Loader",
-    "Paketti:Midi Paketti Save Selected Sample .WAV",
-    "Paketti:Midi Paketti Save Selected Sample .FLAC",
-    "Paketti:Save Sample Range .WAV",
-    "Paketti:Save Sample Range .FLAC",
-    "Paketti:Send Selected Sample to AppSelection1",
-    "Paketti:Send Selected Sample to AppSelection2",
-    "Paketti:Send Selected Sample to AppSelection3",
-    "Paketti:Send Selected Sample to AppSelection4",
-    "Paketti:Send Selected Sample to AppSelection5",
-    "Paketti:Send Selected Sample to AppSelection6",
-    "Paketti:Save Sample to Smart/Backup Folder 1",
-    "Paketti:Save Sample to Smart/Backup Folder 2",
-    "Paketti:Save Sample to Smart/Backup Folder 3",
-    "Paketti:Save All Samples to Smart/Backup Folder 1",
-    "Paketti:Save All Samples to Smart/Backup Folder 2",
-    "Paketti:Save All Samples to Smart/Backup Folder 3"
-  },
-  ["Sample Editor"] = {
-    "Paketti:Shift Sample Buffer Up x[Trigger]",
-    "Paketti:Shift Sample Buffer Down x[Trigger]",
-    "Paketti:Shift Sample Buffer Up x[Knob]",
-    "Paketti:Shift Sample Buffer Down x[Knob]",
-    "Paketti:Shift Sample Buffer Up/Down x[Knob]",
-    "Paketti:Strip Silence",
-    "Paketti:Move Beginning Silence to End",
-    "Paketti:Set Beatsync Value x[Knob]",
-    "Paketti:Midi Change Sample Modulation Set Filter",
-    "Paketti:Duplicate and Reverse Instrument [Trigger]",  
-    "Paketti:Isolate Slices or Samples to New Instruments",  
-    "Paketti:Change Selected Sample Volume x[Slider]",
-    "Paketti:Change Selected Sample Loop Mode [x]Knob",
-    "Paketti:Selected Sample Loop to 1 No Loop x[On]",
-    "Paketti:Selected Sample Loop to 2 Forward x[On]",
-    "Paketti:Selected Sample Loop to 3 Backward x[On]",
-    "Paketti:Selected Sample Loop to 4 PingPong x[On]",
-    "Paketti:Selected Sample Loop to 1 No Loop x[Toggle]",
-    "Paketti:Selected Sample Loop to 2 Forward x[Toggle]",
-    "Paketti:Selected Sample Loop to 3 Backward x[Toggle]",
-    "Paketti:Selected Sample Loop to 4 PingPong x[Toggle]",
-    "Paketti:Cycle Sample Editor Tabs",
-    "Paketti:Create New Instrument & Loop from Selection",    
-    "Paketti:Midi Change Selected Sample Loop 01 Start x[Knob]",
-    "Sample Editor:Paketti:Sample Buffer Selection 01 Start x[Knob]",
-    "Sample Editor:Paketti:Sample Buffer Selection 02 End x[Knob]",
-    "Sample Editor:Paketti:Sample Buffer Selection Halve",
-    "Sample Editor:Paketti:Sample Buffer Selection Double",
-    "Sample Editor:Paketti:Mono to Right with Blank Left",
-    "Sample Editor:Paketti:Mono to Left with Blank Right",
-    "Sample Editor:Paketti:Convert Mono to Stereo",    
-    "Paketti:Midi Select Padded Slice (Next)",
-    "Paketti:Midi Select Padded Slice (Previous)",
-    "Paketti:Rotate Sample Buffer Content Forward [Set]",
-    "Paketti:Rotate Sample Buffer Content Backward [Set]",
-    "Sample Editor:Paketti:Disk Browser Focus" 
-  },
-  ["Playback Control"] = {
-    "Paketti:Impulse Tracker F5 Start Playback x[Toggle]",
-    "Paketti:Impulse Tracker F8 Stop Playback (Panic) x[Toggle]",
-    "Paketti:Impulse Tracker F7 Start Playback from Cursor Row x[Toggle]",
-    "Paketti:Simple Play",
-    "Paketti:Simple Play Record Follow",
-    "Paketti:Stop Playback (Panic) x[Toggle]",
-    "Paketti:Play Current Line & Advance by EditStep x[Toggle]",
-    "Paketti:Impulse Tracker F8 Stop Playback (Panic) x[Toggle]"
-  },
-  ["Pattern Editor"] = {
-    "Paketti:Record to Current Track x[Toggle]",
-    "Paketti:Jump to First Track in Next Group",
-    "Paketti:Jump to First Track in Previous Group",
-    "Paketti:Slide Selected Column Content Down",
-    "Paketti:Slide Selected Column Content Up",
-    "Paketti:Slide Selected Track Content Up",
-    "Paketti:Slide Selected Track Content Down",
-    "Paketti:Capture Nearest Instrument and Octave",
-    "Paketti:Flood Fill Note and Instrument",
-    "Paketti:Flood Fill Note and Instrument with EditStep",
-    "Paketti:Paketti Track Renamer",  
-    "Paketti:Duplicate Effect Column Content to Pattern or Selection",
-    "Paketti:Randomize Effect Column Parameters",
-    "Paketti:Note Interpolation",
-    "Paketti:Interpolate Effect Column Parameters",
-    "Paketti:Effect Column B00 Reverse Sample Effect On/Off",
-    "Paketti:Delay Column (DEPRECATED) x[Slider]",
-    "Paketti:Set Delay (+1) x[Toggle]",
-    "Paketti:Set Delay (-1) x[Toggle]",
-    "Paketti:Toggle Mute Tracks",
-    "Paketti:Toggle Solo Tracks",    
-    "Paketti:Uncollapser",
-    "Paketti:Collapser",
-    "Paketti:Midi Change 01 Volume Column Value x[Knob]",
-    "Paketti:Midi Change 02 Panning Column Value x[Knob]",
-    "Paketti:Midi Change 03 Delay Column Value x[Knob]",
-    "Paketti:Midi Change 04 Effect Column Value x[Knob]",
-    "Paketti:Impulse Tracker Pattern (Next) x[Toggle]",
-    "Paketti:Impulse Tracker Pattern (Previous) x[Toggle]",
-    "Pattern Editor:Paketti:Disk Browser Focus",
-    "Paketti:Columnizer Delay Increase (+1) x[Toggle]",
-    "Paketti:Columnizer Delay Decrease (-1) x[Toggle]",
-    "Paketti:Columnizer Panning Increase (+1) x[Toggle]",
-    "Paketti:Columnizer Panning Decrease (-1) x[Toggle]",
-    "Paketti:Columnizer Volume Increase (+1) x[Toggle]",
-    "Paketti:Columnizer Volume Decrease (-1) x[Toggle]",
-    "Paketti:Columnizer Effect Number Increase (+1) x[Toggle]",
-    "Paketti:Columnizer Effect Number Decrease (-1) x[Toggle]",
-    "Paketti:Columnizer Effect Amount Increase (+1) x[Toggle]",
-    "Paketti:Columnizer Effect Amount Decrease (-1) x[Toggle]",    
-    "Paketti:Set Pattern Length to 001",
-    "Paketti:Set Pattern Length to 004",
-    "Paketti:Set Pattern Length to 008",
-    "Paketti:Set Pattern Length to 016",
-    "Paketti:Set Pattern Length to 032",
-    "Paketti:Set Pattern Length to 048",
-    "Paketti:Set Pattern Length to 064",
-    "Paketti:Set Pattern Length to 096",
-    "Paketti:Set Pattern Length to 128",
-    "Paketti:Set Pattern Length to 192",
-    "Paketti:Set Pattern Length to 256",
-    "Paketti:Set Pattern Length to 384",
-    "Paketti:Set Pattern Length to 512"
-  },
-  ["Automation"] = {
-    "Paketti:Switch to Automation",
-    "Track Automation:Paketti:Midi Automation Curve Draw Selection x[Knob]",
-    "Paketti:Midi Automation Selection 01 Start x[Knob]",
-    "Paketti:Midi Automation Selection 02 End x[Knob]"
-  },  
-  ["Pattern Sequencer/Matrix"] = {
-    "Paketti:Show/Hide Pattern Matrix x[Toggle]",  
-    "Paketti:Continue Sequence From Same Line [Set Sequence]",
-    "Paketti:Set Current Section as Scheduled Sequence",
-    "Paketti:Add Current Section to Scheduled Sequences",
-    "Paketti:Section Loop (Next)",
-    "Paketti:Section Loop (Previous)",
-    "Paketti:Sequence Selection (Next)",
-    "Paketti:Sequence Selection (Previous)",
-    "Paketti:Sequence Loop Selection (Next)",
-    "Paketti:Sequence Loop Selection (Previous)",
-    "Paketti:Set Section Loop and Schedule Section [Knob]",
-    "Paketti:Clone Current Sequence"
-
-  },
-  ["Controls"] = {
-    "Paketti:Set EditStep to 00",
-    "Paketti:Midi Change EditStep 1-64 x[Knob]",
-    "Paketti:Midi Change EditStep 0-64 x[Knob]",
-    "Paketti:EditStep Double x[Button]",
-    "Paketti:EditStep Halve x[Button]",
-    "Paketti:Midi Select Group (Next)",
-    "Paketti:Midi Select Group (Previous)",
-    "Paketti:Midi Select Track (Next)",
-    "Paketti:Midi Select Track (Previous)",
-    "Paketti:Midi Select Group Tracks x[Knob]",
-    "Paketti:Move to Next Track (Wrap) [Knob]",
-    "Paketti:Move to Previous Track (Wrap) [Knob]",
-    "Paketti:Numpad SelectPlay 0 x[Toggle]",
-    "Paketti:Numpad SelectPlay 1 x[Toggle]",
-    "Paketti:Numpad SelectPlay 2 x[Toggle]",
-    "Paketti:Numpad SelectPlay 3 x[Toggle]",
-    "Paketti:Numpad SelectPlay 4 x[Toggle]",
-    "Paketti:Numpad SelectPlay 5 x[Toggle]",
-    "Paketti:Numpad SelectPlay 6 x[Toggle]",
-    "Paketti:Numpad SelectPlay 7 x[Toggle]",
-    "Paketti:Numpad SelectPlay 8 x[Toggle]",
-    "Paketti:Computer Keyboard Velocity Slider x[Knob]",
-    "Paketti:Move to Next Track [Knob]",
-    "Paketti:Move to Previous Track [Knob]",
-    "Paketti:Metronome On/Off x[Toggle]",
-    "Paketti:Record and Follow x[Toggle]",
-    "Paketti:Record and Follow On/Off x[Knob]",
-    "Paketti:Record Quantize On/Off x[Toggle]",    
-    "Paketti:Toggle Edit Mode and Tint Track",
-    "Paketti:Paketti Track Renamer",
-    "Paketti:Octave Basenote Up",
-    "Paketti:Octave Basenote Down",
-    "Paketti:Midi Change Octave x[Knob]",
-    "Paketti:Midi Change Selected Track x[Knob]",
-    "Paketti:Midi Change Selected Track DSP Device x[Knob]",
-    "Paketti:Midi Change Selected Instrument x[Knob]",
-  },
-  ["Wipe&Slice"] = {
-    "Paketti:Wipe&Slice (004) x[Toggle]",
-    "Paketti:Wipe&Slice (008) x[Toggle]",
-    "Paketti:Wipe&Slice (016) x[Toggle]",
-    "Paketti:Wipe&Slice (032) x[Toggle]",
-    "Paketti:Wipe&Slice (064) x[Toggle]",
-    "Paketti:Wipe&Slice (128) x[Toggle]",  
-  },
-  ["Track DSP Control"] = {
-    "Paketti:Bypass All Other Track DSP Devices (Toggle)",  
-    "Paketti:Hide Track DSP Device External Editors for All Tracks",  
-    "Track Devices:Paketti:Load DC Offset",
-    "Paketti:Midi Change Selected Track DSP Device x[Knob]"
-  }
-}
-
--- Determine the "Unused Mappings" by filtering out used mappings
-local used_mappings = {}
-for _, group in pairs(grouped_mappings) do
-  for _, mapping in ipairs(group) do
-    used_mappings[mapping] = true
-  end
-end
-
--- Collect unused mappings
-local unused_mappings = {}
-for _, mapping in ipairs(PakettiMidiMappings) do
-  if not used_mappings[mapping] then
-    table.insert(unused_mappings, mapping)
-  end
-end
-
--- Add "Unused Mappings" to grouped_mappings
-grouped_mappings["Unused Mappings"] = unused_mappings
-
--- Variable to store the dialog reference
-local PakettiMidiMappingDialog = nil
-
--- Function to handle key events
-function my_MidiMappingkeyhandler_func(dialog, key)
-
-local closer = preferences.pakettiDialogClose.value
-  if key.modifiers == "" and key.name == closer then
-dialog:close()
-    PakettiMidiMappingDialog = nil
-return nil
-else
-
-    return key
-end
-end
-
--- Function to create and show the MIDI mappings dialog
-function pakettiMIDIMappingsDialog()
-  -- Close the dialog if it's already open
-  if PakettiMidiMappingDialog and PakettiMidiMappingDialog.visible then
-    PakettiMidiMappingDialog:close()
-    PakettiMidiMappingDialog = nil
-    return
-  end
-
-  -- Initialize the ViewBuilder
-  local vb = renoise.ViewBuilder()
-
-  -- Define dialog properties
-  local DIALOG_MARGIN=renoise.ViewBuilder.DEFAULT_DIALOG_MARGIN
-  local CONTENT_SPACING=renoise.ViewBuilder.DEFAULT_CONTROL_SPACING
-  local MAX_ITEMS_PER_COLUMN = 41
-  local COLUMN_WIDTH=220
-  local buttonWidth=200  -- Adjustable global button width
-
-  -- Create the main column for the dialog
-  local dialog_content = vb:column{
-    margin=DIALOG_MARGIN,
-    spacing=CONTENT_SPACING,
-  }
-
-  -- Add introductory note
-  local note = vb:text{
-    text="NOTE: Open up the Renoise Midi Mappings dialog (CMD-M on macOS), click on the arrow down to show list + searchbar, then click on a button in this dialog to display it.",
-    style = "strong",
-    font="bold"
-  }
-  dialog_content:add_child(note)
-
-  -- Function to create a new column
-  local function create_new_column()
-    return vb:column{
-      spacing=CONTENT_SPACING,
-      width=COLUMN_WIDTH,
-    }
-  end
-
-  local current_row = vb:row{}
-  dialog_content:add_child(current_row)
-  local current_column = create_new_column()
-  current_row:add_child(current_column)
-  local item_count = 0
-
-  -- Optimized sorted group titles
-  local sorted_group_titles = {
-    "Playback Control",
-    "Wipe&Slice",
-    "Groove Settings",
-    "Loading/Saving Samples/Instruments",
-    "Automation",
-    "Track DSP Control",
-    "Controls",
-    "Sample Editor",
-    "Pattern Editor"
-  }
-
-  -- Add "Unused Mappings" to the list if there are any
-  if #grouped_mappings["Unused Mappings"] > 0 then
-    table.insert(sorted_group_titles, "Unused Mappings")
-  end
-
-  -- Iterate over the sorted grouped mappings and create GUI elements
-  for _, group_title in ipairs(sorted_group_titles) do
-    local mappings = grouped_mappings[group_title]
-    if mappings then
-      -- Calculate total items including the title
-      local total_items = #mappings + 1
-
-      -- Check if adding this group would exceed the max items per column
-      if item_count + total_items > MAX_ITEMS_PER_COLUMN then
-        -- Create a new column
-        current_column = create_new_column()
-        current_row:add_child(current_column)
-        item_count = 0
-      end
-
-      -- Add the group title
-      local group_title_text = vb:text{
-        text = group_title,
-        font = "bold",
-        style = "strong",
-      }
-      current_column:add_child(group_title_text)
-      item_count = item_count + 1
-
-      -- Add buttons for each mapping in the group
-      for _, mapping in ipairs(mappings) do
-        local button_text = mapping:gsub("Paketti:", ""):gsub("Track Automation:", ""):gsub("Sample Editor:", "Sample Editor:")
-        current_column:add_child(vb:button{
-          width=buttonWidth,
-          text = button_text,
-          midi_mapping = mapping
-        })
-        item_count = item_count + 1
-
-        -- Check if we need to start a new column
-        if item_count >= MAX_ITEMS_PER_COLUMN then
-          current_column = create_new_column()
-          current_row:add_child(current_column)
-          item_count = 0
-        end
-      end
-    end
-  end
-
-  PakettiMidiMappingDialog = renoise.app():show_custom_dialog("Paketti MIDI Mappings",dialog_content,
-    function(dialog, key) return my_MidiMappingkeyhandler_func(dialog, key) end
-  )
-end
-
--- Function to generate and print Paketti MIDI Mappings to console
-function generate_paketti_midi_mappings()
-  print("Paketti MIDI Mappings:")
-  for group_title, mappings in pairs(grouped_mappings) do
-    print("\n" .. group_title)
-    for _, mapping in ipairs(mappings) do
-      print("  " .. mapping)
-    end
-  end
-end
-
-renoise.tool():add_keybinding{name="Global:Paketti:Paketti MIDI Mappings...",
-  invoke=function() pakettiMIDIMappingsDialog() end}
-
-renoise.tool():add_keybinding{name="Global:Paketti:Generate Paketti Midi Mappings to Console",
-  invoke=function() generate_paketti_midi_mappings() end}
-
-
-----
-
 -- Variable declarations
 local vb = renoise.ViewBuilder()
 local dialog
@@ -688,25 +58,19 @@ local padding_number_identifier = 5  -- Padding between number and identifier
 local padding_identifier_topic = 25  -- Padding between identifier and topic
 local padding_topic_binding = 25  -- Padding between topic and binding
 
--- Function to detect OS and construct the KeyBindings.xml path
-function detectOSAndGetKeyBindingsPath()
-  local os_name = os.platform()
-  local renoise_version = renoise.RENOISE_VERSION
-  local key_bindings_path
-
-  if os_name == "WINDOWS" then
-    local home = os.getenv("USERPROFILE") or os.getenv("HOME")
-    key_bindings_path = home .. "\\AppData\\Roaming\\Renoise\\V" .. renoise_version .. "\\KeyBindings.xml"
-  elseif os_name == "MACINTOSH" then
-    local home = os.getenv("HOME")
-    key_bindings_path = home .. "/Library/Preferences/Renoise/V" .. renoise_version .. "/KeyBindings.xml"
-  else -- Assume Linux
-    local home = os.getenv("HOME")
-    key_bindings_path = home .. "/.config/Renoise/V" .. renoise_version .. "/KeyBindings.xml"
-  end
-
-  return key_bindings_path
-end
+-- Renoise dialog variables
+local renoise_dialog
+local renoise_debug_log = ""
+local renoise_suppress_debug_log
+local renoiseKeybindings = {}
+local renoise_identifier_dropdown
+local renoise_keybinding_list
+local renoise_total_shortcuts_text
+local renoise_selected_shortcuts_text
+local renoise_show_shortcuts_switch
+local renoise_show_script_filter_switch
+local renoise_search_text
+local renoise_search_textfield
 
 -- Function to replace XML encoded entities with their corresponding characters
 local function decodeXMLString(value)
@@ -717,18 +81,22 @@ local function decodeXMLString(value)
   return value:gsub("(&amp;)", replacements)
 end
 
--- Function to parse XML and find Paketti content
-function pakettiKeyBindingsParseXML(filePath)
+-- Combined function to parse XML and find keybindings based on filter type
+function parseKeyBindingsXML(filePath, filter_type)
   local fileHandle = io.open(filePath, "r")
   if not fileHandle then
-    debug_log = debug_log .. "Debug: Failed to open the file - " .. filePath .. "\n"
+    if filter_type == "paketti" then
+      debug_log = debug_log .. "Debug: Failed to open the file - " .. filePath .. "\n"
+    else
+      renoise_debug_log = renoise_debug_log .. "Debug: Failed to open the file - " .. filePath .. "\n"
+    end
     return {}
   end
 
   local content = fileHandle:read("*all")
   fileHandle:close()
 
-  local pakettiKeybindings = {}
+  local keybindings = {}
   local currentIdentifier = "nil"
 
   for categorySection in content:gmatch("<Category>(.-)</Category>") do
@@ -739,7 +107,16 @@ function pakettiKeyBindingsParseXML(filePath)
 
     for keyBindingSection in categorySection:gmatch("<KeyBinding>(.-)</KeyBinding>") do
       local topic = keyBindingSection:match("<Topic>(.-)</Topic>")
-      if topic and topic:find("Paketti") then
+      
+      -- Apply filter based on filter_type
+      local should_include = false
+      if filter_type == "paketti" then
+        should_include = topic and topic:find("Paketti")
+      elseif filter_type == "renoise" or filter_type == "all" then
+        should_include = topic ~= nil
+      end
+      
+      if should_include then
         local binding = keyBindingSection:match("<Binding>(.-)</Binding>") or "<No Binding>"
         local key = keyBindingSection:match("<Key>(.-)</Key>") or "<Shortcut not Assigned>"
 
@@ -748,13 +125,19 @@ function pakettiKeyBindingsParseXML(filePath)
         binding = decodeXMLString(binding)
         key = decodeXMLString(key)
 
-        table.insert(pakettiKeybindings, { Identifier = currentIdentifier, Topic = topic, Binding = binding, Key = key })
-        debug_log = debug_log .. "Debug: Found Paketti keybinding - " .. currentIdentifier .. ":" .. topic .. ":" .. binding .. ":" .. key .. "\n"
+        table.insert(keybindings, { Identifier = currentIdentifier, Topic = topic, Binding = binding, Key = key })
+        
+        -- Log to appropriate debug log
+        if filter_type == "paketti" then
+          debug_log = debug_log .. "Debug: Found " .. filter_type .. " keybinding - " .. currentIdentifier .. ":" .. topic .. ":" .. binding .. ":" .. key .. "\n"
+        else
+          renoise_debug_log = renoise_debug_log .. "Debug: Found " .. filter_type .. " keybinding - " .. currentIdentifier .. ":" .. topic .. ":" .. binding .. ":" .. key .. "\n"
+        end
       end
     end
   end
 
-  return pakettiKeybindings
+  return keybindings
 end
 
 -- Function to save the debug log
@@ -914,7 +297,7 @@ function pakettiKeyBindingsDialog(selectedIdentifier)  -- Accept an optional par
   end
 
   debug_log = debug_log .. "Debug: Using KeyBindings path - " .. keyBindingsPath .. "\n"
-  pakettiKeybindings = pakettiKeyBindingsParseXML(keyBindingsPath)
+  pakettiKeybindings = parseKeyBindingsXML(keyBindingsPath, "paketti")
   if not pakettiKeybindings or #pakettiKeybindings == 0 then
     renoise.app():show_status("No Paketti keybindings found.")
     debug_log = debug_log .. "Debug: Total Paketti keybindings found - 0\n"
@@ -1077,27 +460,10 @@ renoise.tool():add_keybinding{name="Global:Paketti:Show Paketti KeyBindings Dial
 renoise.tool():add_keybinding{name="Global:Paketti:Show Renoise KeyBindings Dialog...",invoke=function() pakettiRenoiseKeyBindingsDialog() end}
 -------------------------------------------
 
-local vb = renoise.ViewBuilder()
-local renoise_dialog
-local renoise_debug_log = ""
-local renoise_suppress_debug_log
-local renoiseKeybindings = {}
-local renoise_identifier_dropdown
-local renoise_keybinding_list
-local renoise_total_shortcuts_text
-local renoise_selected_shortcuts_text
-local renoise_show_shortcuts_switch
-local renoise_show_script_filter_switch
-local renoise_search_text
-local renoise_search_textfield
-local padding_number_identifier = 5  -- Padding between number and identifier
-local padding_identifier_topic = 25  -- Padding between identifier and topic
-local padding_topic_binding = 25  -- Padding between topic and binding
-
 -- Function to detect OS and construct the KeyBindings.xml path
 function detectOSAndGetKeyBindingsPath()
-  local os_name = os.platform()
-  local renoise_version = renoise.RENOISE_VERSION:match("(%d+%.%d+%.%d+)") -- This will grab just "3.5.0" from "3.5.0 b4"
+  local os_name = os.platform() 
+  local renoise_version = renoise.RENOISE_VERSION:match("(%d+%.%d+%.%d+)") -- This will grab just "3.5.0" from "3.5.0 b8"
   local key_bindings_path
 
   if os_name == "WINDOWS" then
@@ -1114,54 +480,9 @@ function detectOSAndGetKeyBindingsPath()
   return key_bindings_path
 end
 
-
--- Function to replace XML encoded entities with their corresponding characters
-local function decodeXMLString(value)
-  local replacements = {
-    ["&amp;"] = "&",
-    -- Add more replacements if needed
-  }
-  return value:gsub("(&amp;)", replacements)
-end
-
--- Function to parse XML and find Renoise content
+-- Function to parse XML for Renoise content using the combined parser
 function renoiseKeyBindingsParseXML(filePath)
-  local fileHandle = io.open(filePath, "r")
-  if not fileHandle then
-    renoise_debug_log = renoise_debug_log .. "Debug: Failed to open the file - " .. filePath .. "\n"
-    return {}
-  end
-
-  local content = fileHandle:read("*all")
-  fileHandle:close()
-
-  local renoiseKeybindings = {}
-  local currentIdentifier = "nil"
-
-  for categorySection in content:gmatch("<Category>(.-)</Category>") do
-    local identifier = categorySection:match("<Identifier>(.-)</Identifier>") or "nil"
-    if identifier ~= "nil" then
-      currentIdentifier = identifier
-    end
-
-    for keyBindingSection in categorySection:gmatch("<KeyBinding>(.-)</KeyBinding>") do
-      local topic = keyBindingSection:match("<Topic>(.-)</Topic>")
-      if topic then
-        local binding = keyBindingSection:match("<Binding>(.-)</Binding>") or "<No Binding>"
-        local key = keyBindingSection:match("<Key>(.-)</Key>") or "<Shortcut not Assigned>"
-
-        -- Decode XML entities
-        topic = decodeXMLString(topic)
-        binding = decodeXMLString(binding)
-        key = decodeXMLString(key)
-
-        table.insert(renoiseKeybindings, { Identifier = currentIdentifier, Topic = topic, Binding = binding, Key = key })
-        renoise_debug_log = renoise_debug_log .. "Debug: Found Renoise keybinding - " .. currentIdentifier .. ":" .. topic .. ":" .. binding .. ":" .. key .. "\n"
-      end
-    end
-  end
-
-  return renoiseKeybindings
+  return parseKeyBindingsXML(filePath, "renoise")
 end
 
 -- Function to save the debug log
@@ -1884,3 +1205,4 @@ function convert_key_name(key)
   end
   return table.concat(parts, " + ")
 end
+
