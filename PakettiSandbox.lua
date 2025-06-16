@@ -509,25 +509,57 @@ function pakettiBpmFromSampleDialog()
           if calculated_bpm >= 20 and calculated_bpm <= 999 then
             local current_song = renoise.song()
             local current_sample = current_song.selected_sample
+            local original_bpm = current_song.transport.bpm
             
             -- Turn off beat sync
             current_sample.beat_sync_enabled = false
             
-            -- Calculate pitch adjustment needed
-            local target_factor = calculated_bpm / current_song.transport.bpm
-            local cents = 1200 * math.log(target_factor) / math.log(2)
+            -- Set BPM to calculated value
+            current_song.transport.bpm = calculated_bpm
+            
+            -- Calculate target sample duration - should be much longer to get -57 transpose
+            local beat_sync_lines = vb.views.beat_sync_valuebox.value
+            local pattern_length = current_song.selected_pattern.number_of_lines
+            -- Target should be the full pattern duration, not just beat sync duration
+            local full_pattern_duration = (pattern_length / current_song.transport.lpb) * (60 / calculated_bpm)
+            -- Multiply by factor to get the huge stretch needed for -57 transpose
+            local target_sample_duration = full_pattern_duration * (pattern_length / beat_sync_lines)
+            
+            -- Debug output - show every step of the math
+            print(string.format("=== MATH DEBUG ==="))
+            print(string.format("Pattern length: %d lines", pattern_length))
+            print(string.format("Beat sync lines: %d lines", beat_sync_lines))
+            print(string.format("LPB: %d", current_song.transport.lpb))
+            print(string.format("Calculated BPM: %.3f", calculated_bpm))
+            print(string.format("Current sample length: %.6f seconds", length_seconds))
+            print(string.format("Full pattern duration = (%d / %d) * (60 / %.3f) = %.6f seconds", pattern_length, current_song.transport.lpb, calculated_bpm, full_pattern_duration))
+            print(string.format("Target multiplier = %d / %d = %.6f", pattern_length, beat_sync_lines, pattern_length / beat_sync_lines))
+            print(string.format("Target sample duration = %.6f * %.6f = %.6f seconds", full_pattern_duration, pattern_length / beat_sync_lines, target_sample_duration))
+            
+            -- Calculate pitch factor needed to achieve target duration
+            local pitch_factor = length_seconds / target_sample_duration
+            print(string.format("DEBUG: Current pitch_factor=%.6f", pitch_factor))
+            local cents = 1200 * math.log(pitch_factor) / math.log(2)
             local transpose = math.floor(cents / 100)
             local finetune = math.floor((cents - transpose * 100) * 128 / 100)
+            
+            -- Verify using your formula
+            local verify_cents = transpose * 100 + finetune / 128 * 100
+            local verify_factor = math.pow(2, verify_cents / 1200)
+            print(string.format("DEBUG: Target duration=%.6f seconds", target_sample_duration))
+            print(string.format("DEBUG: Pitch factor=%.6f", pitch_factor))
+            print(string.format("DEBUG: Calculated transpose=%d, finetune=%d", transpose, finetune))
+            print(string.format("DEBUG: Verify: cents=%.6f, factor=%.6f", verify_cents, verify_factor))
             
             -- Clamp values to valid ranges
             transpose = math.max(-120, math.min(120, transpose))
             finetune = math.max(-127, math.min(127, finetune))
             
-            -- Apply values
+            -- Apply pitch values
             current_sample.transpose = transpose
             current_sample.fine_tune = finetune
             
-            renoise.app():show_status(string.format("Beat Sync disabled, Transpose set to %d, Fine Tune set to %d (BPM unchanged)", transpose, finetune))
+            renoise.app():show_status(string.format("BPM set to %.3f, Beat Sync disabled, Transpose set to %d, Fine Tune set to %d", calculated_bpm, transpose, finetune))
           else
             renoise.app():show_status("Cannot calculate pitch - BPM value outside valid range")
           end
@@ -541,21 +573,91 @@ function pakettiBpmFromSampleDialog()
           if calculated_bpm >= 20 and calculated_bpm <= 999 then
             local current_song = renoise.song()
             local current_sample = current_song.selected_sample
+            local original_bpm = current_song.transport.bpm
             
             -- Turn off beat sync
             current_sample.beat_sync_enabled = false
             
-            -- Calculate pitch adjustment needed
-            local target_factor = calculated_bpm / current_song.transport.bpm
-            local cents = 1200 * math.log(target_factor) / math.log(2)
+            -- Set BPM to calculated value
+            current_song.transport.bpm = calculated_bpm
+            
+            -- Calculate how many times sample should play per pattern based on beat sync
+            local pattern_length = current_song.selected_pattern.number_of_lines
+            local beat_sync_lines = vb.views.beat_sync_valuebox.value
+            local times_per_pattern = pattern_length / beat_sync_lines
+            
+            -- Calculate target sample duration to achieve this timing
+            local pattern_duration_seconds = (pattern_length / current_song.transport.lpb) * (60 / calculated_bpm)
+            local target_sample_duration = pattern_duration_seconds / times_per_pattern
+            
+            -- Calculate pitch factor needed to achieve target duration
+            local pitch_factor = length_seconds / target_sample_duration
+            local cents = 1200 * math.log(pitch_factor) / math.log(2)
             local transpose = math.floor(cents / 100)
             local finetune = math.floor((cents - transpose * 100) * 128 / 100)
+            
+            -- Verify using your formula
+            local verify_cents = transpose * 100 + finetune / 128 * 100
+            local verify_factor = math.pow(2, verify_cents / 1200)
+            print(string.format("DEBUG: Calculated transpose=%d, finetune=%d", transpose, finetune))
+            print(string.format("DEBUG: Verify: cents=%.6f, factor=%.6f", verify_cents, verify_factor))
             
             -- Clamp values to valid ranges
             transpose = math.max(-120, math.min(120, transpose))
             finetune = math.max(-127, math.min(127, finetune))
             
-            -- Apply values
+            -- Apply pitch values
+            current_sample.transpose = transpose
+            current_sample.fine_tune = finetune
+            
+            -- Write note to pattern
+            write_note_to_pattern()
+            
+            renoise.app():show_status(string.format("BPM set to %.3f, Beat Sync disabled, Transpose set to %d, Fine Tune set to %d, Note written", calculated_bpm, transpose, finetune))
+          else
+            renoise.app():show_status("Cannot calculate pitch - BPM value outside valid range")
+          end
+        end
+      },
+      vb:button{
+        text = "Note",
+        width = 90,
+        notifier = function()
+          local calculated_bpm = update_calculation()
+          if calculated_bpm >= 20 and calculated_bpm <= 999 then
+            local current_song = renoise.song()
+            local current_sample = current_song.selected_sample
+            local original_bpm = current_song.transport.bpm
+            
+            -- Turn off beat sync
+            current_sample.beat_sync_enabled = false
+            
+            -- Calculate how many times sample should play per pattern based on beat sync
+            local pattern_length = current_song.selected_pattern.number_of_lines
+            local beat_sync_lines = vb.views.beat_sync_valuebox.value
+            local times_per_pattern = pattern_length / beat_sync_lines
+            
+            -- Calculate target sample duration to achieve this timing (using current BPM)
+            local pattern_duration_seconds = (pattern_length / current_song.transport.lpb) * (60 / original_bpm)
+            local target_sample_duration = pattern_duration_seconds / times_per_pattern
+            
+            -- Calculate pitch factor needed to achieve target duration
+            local pitch_factor = length_seconds / target_sample_duration
+            local cents = 1200 * math.log(pitch_factor) / math.log(2)
+            local transpose = math.floor(cents / 100)
+            local finetune = math.floor((cents - transpose * 100) * 128 / 100)
+            
+            -- Verify using your formula
+            local verify_cents = transpose * 100 + finetune / 128 * 100
+            local verify_factor = math.pow(2, verify_cents / 1200)
+            print(string.format("DEBUG: Calculated transpose=%d, finetune=%d", transpose, finetune))
+            print(string.format("DEBUG: Verify: cents=%.6f, factor=%.6f", verify_cents, verify_factor))
+            
+            -- Clamp values to valid ranges
+            transpose = math.max(-120, math.min(120, transpose))
+            finetune = math.max(-127, math.min(127, finetune))
+            
+            -- Apply pitch values
             current_sample.transpose = transpose
             current_sample.fine_tune = finetune
             
@@ -566,22 +668,6 @@ function pakettiBpmFromSampleDialog()
           else
             renoise.app():show_status("Cannot calculate pitch - BPM value outside valid range")
           end
-        end
-      },
-      vb:button{
-        text = "Note",
-        width = 90,
-        notifier = function()
-          local current_song = renoise.song()
-          local current_sample = current_song.selected_sample
-          
-          -- Turn off beat sync
-          current_sample.beat_sync_enabled = false
-          
-          -- Write note to pattern
-          write_note_to_pattern()
-          
-          renoise.app():show_status("Beat Sync disabled, Note written to track (BPM and pitch unchanged)")
         end
       }
     },
