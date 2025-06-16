@@ -427,11 +427,18 @@ function pakettiBpmFromSampleDialog()
       font = "bold"
     },
     
-    -- First row: Set BPM and Close
+    -- Title for Set section
+    vb:text{
+      text = "Set",
+      style = "strong",
+      font = "bold"
+    },
+    
+    -- First row: Main set buttons
     vb:row{
       vb:button{
-        text = "Set BPM",
-        width = 80,
+        text = "BPM&Beatsync",
+        width = 90,
         notifier = function()
           local calculated_bpm = update_calculation()
           if calculated_bpm >= 20 and calculated_bpm <= 999 then
@@ -442,33 +449,13 @@ function pakettiBpmFromSampleDialog()
             current_sample.beat_sync_enabled = true
             current_sample.beat_sync_lines = beat_sync_lines
             renoise.app():show_status(string.format("BPM set to %.3f, Beat Sync enabled and set to %d lines", calculated_bpm, beat_sync_lines))
-            -- DON'T close dialog anymore
           else
             renoise.app():show_status("Cannot set BPM - value outside valid range")
           end
         end
       },
       vb:button{
-        text = "Close",
-        width = 60,
-        notifier = function()
-          -- Remove notifiers when dialog closes via button
-          local current_song = renoise.song()
-          if current_song.selected_instrument_observable:has_notifier(update_dialog_on_selection_change) then
-            current_song.selected_instrument_observable:remove_notifier(update_dialog_on_selection_change)
-          end
-          if current_song.selected_sample_observable:has_notifier(update_dialog_on_selection_change) then
-            current_song.selected_sample_observable:remove_notifier(update_dialog_on_selection_change)
-          end
-          if dialog then dialog:close() end
-        end
-      }
-    },
-    
-    -- Second row: Combined actions
-    vb:row{
-      vb:button{
-        text = "Set BPM & Write Note",
+        text = "BPM&Note&Beatsync",
         width = 120,
         notifier = function()
           local calculated_bpm = update_calculation()
@@ -481,24 +468,41 @@ function pakettiBpmFromSampleDialog()
             current_sample.beat_sync_lines = beat_sync_lines
             write_note_to_pattern()
             renoise.app():show_status(string.format("BPM set to %.3f, Beat Sync enabled and set to %d lines, Note written to track", calculated_bpm, beat_sync_lines))
-            -- DON'T close dialog anymore
           else
             renoise.app():show_status("Cannot set BPM - value outside valid range")
           end
         end
       },
       vb:button{
-        text = "Write Note & Set Beatsync",
-        width = 140,
+        text = "Note&Beatsync",
+        width = 90,
         notifier = function()
           local beat_sync_lines = vb.views.beat_sync_valuebox.value
           local current_song = renoise.song()
           local current_sample = current_song.selected_sample
-          current_sample.beat_sync_enabled = true  -- Enable beat sync
-          current_sample.beat_sync_lines = beat_sync_lines  -- Set the lines
+          current_sample.beat_sync_enabled = true
+          current_sample.beat_sync_lines = beat_sync_lines
           write_note_to_pattern()
           renoise.app():show_status(string.format("Beat Sync enabled and set to %d lines, Note written to track (BPM unchanged)", beat_sync_lines))
-          -- DON'T close dialog anymore
+        end
+      }
+    },
+    
+    -- Second row: Close button
+    vb:row{
+      vb:button{
+        text = "Close",
+        width = 80,
+        notifier = function()
+          -- Remove notifiers when dialog closes via button
+          local current_song = renoise.song()
+          if current_song.selected_instrument_observable:has_notifier(update_dialog_on_selection_change) then
+            current_song.selected_instrument_observable:remove_notifier(update_dialog_on_selection_change)
+          end
+          if current_song.selected_sample_observable:has_notifier(update_dialog_on_selection_change) then
+            current_song.selected_sample_observable:remove_notifier(update_dialog_on_selection_change)
+          end
+          if dialog then dialog:close() end
         end
       }
     }
