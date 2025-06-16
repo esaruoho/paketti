@@ -429,7 +429,7 @@ function pakettiBpmFromSampleDialog()
     
     -- Title for Set section
     vb:text{
-      text = "Set",
+      text = "Set (with Beatsync)",
       style = "strong",
       font = "bold"
     },
@@ -437,8 +437,8 @@ function pakettiBpmFromSampleDialog()
     -- First row: Main set buttons
     vb:row{
       vb:button{
-        text = "BPM&Beatsync",
-        width = 90,
+        text = "BPM",
+        width = 120,
         notifier = function()
           local calculated_bpm = update_calculation()
           if calculated_bpm >= 20 and calculated_bpm <= 999 then
@@ -455,7 +455,7 @@ function pakettiBpmFromSampleDialog()
         end
       },
       vb:button{
-        text = "BPM&Note&Beatsync",
+        text = "BPM&Note",
         width = 120,
         notifier = function()
           local calculated_bpm = update_calculation()
@@ -474,7 +474,7 @@ function pakettiBpmFromSampleDialog()
         end
       },
       vb:button{
-        text = "Note&Beatsync",
+        text = "Note",
         width = 90,
         notifier = function()
           local beat_sync_lines = vb.views.beat_sync_valuebox.value
@@ -488,11 +488,105 @@ function pakettiBpmFromSampleDialog()
       }
     },
     
-    -- Second row: Close button
+    -- Title for Set section
+    vb:text{
+      text = "Set (with Pitch/Finetune)",
+      style = "strong",
+      font = "bold"
+    },
+
+    -- Second row: Pitch/Finetune buttons
+    vb:row{
+      vb:button{
+        text = "BPM",
+        width = 120,
+        notifier = function()
+          local calculated_bpm = update_calculation()
+          if calculated_bpm >= 20 and calculated_bpm <= 999 then
+            local current_song = renoise.song()
+            local current_sample = current_song.selected_sample
+            
+            -- Turn off beat sync
+            current_sample.beat_sync_enabled = false
+            
+            -- Calculate pitch adjustment needed
+            local target_factor = calculated_bpm / current_song.transport.bpm
+            local cents = 1200 * math.log(target_factor) / math.log(2)
+            local transpose = math.floor(cents / 100)
+            local finetune = math.floor((cents - transpose * 100) * 128 / 100)
+            
+            -- Clamp values to valid ranges
+            transpose = math.max(-120, math.min(120, transpose))
+            finetune = math.max(-127, math.min(127, finetune))
+            
+            -- Apply values
+            current_sample.transpose = transpose
+            current_sample.fine_tune = finetune
+            
+            renoise.app():show_status(string.format("Beat Sync disabled, Transpose set to %d, Fine Tune set to %d (BPM unchanged)", transpose, finetune))
+          else
+            renoise.app():show_status("Cannot calculate pitch - BPM value outside valid range")
+          end
+        end
+      },
+      vb:button{
+        text = "BPM&Note",
+        width = 120,
+        notifier = function()
+          local calculated_bpm = update_calculation()
+          if calculated_bpm >= 20 and calculated_bpm <= 999 then
+            local current_song = renoise.song()
+            local current_sample = current_song.selected_sample
+            
+            -- Turn off beat sync
+            current_sample.beat_sync_enabled = false
+            
+            -- Calculate pitch adjustment needed
+            local target_factor = calculated_bpm / current_song.transport.bpm
+            local cents = 1200 * math.log(target_factor) / math.log(2)
+            local transpose = math.floor(cents / 100)
+            local finetune = math.floor((cents - transpose * 100) * 128 / 100)
+            
+            -- Clamp values to valid ranges
+            transpose = math.max(-120, math.min(120, transpose))
+            finetune = math.max(-127, math.min(127, finetune))
+            
+            -- Apply values
+            current_sample.transpose = transpose
+            current_sample.fine_tune = finetune
+            
+            -- Write note to pattern
+            write_note_to_pattern()
+            
+            renoise.app():show_status(string.format("Beat Sync disabled, Transpose set to %d, Fine Tune set to %d, Note written (BPM unchanged)", transpose, finetune))
+          else
+            renoise.app():show_status("Cannot calculate pitch - BPM value outside valid range")
+          end
+        end
+      },
+      vb:button{
+        text = "Note",
+        width = 90,
+        notifier = function()
+          local current_song = renoise.song()
+          local current_sample = current_song.selected_sample
+          
+          -- Turn off beat sync
+          current_sample.beat_sync_enabled = false
+          
+          -- Write note to pattern
+          write_note_to_pattern()
+          
+          renoise.app():show_status("Beat Sync disabled, Note written to track (BPM and pitch unchanged)")
+        end
+      }
+    },
+    
+    -- Third row: Close button
     vb:row{
       vb:button{
         text = "Close",
-        width = 80,
+        width = 330,
         notifier = function()
           -- Remove notifiers when dialog closes via button
           local current_song = renoise.song()
