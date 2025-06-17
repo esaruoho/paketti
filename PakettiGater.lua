@@ -23,10 +23,21 @@ local auto_grab = false
 local previous_track_index = nil
 local track_notifier = nil
 local solo_mode = false
+local selection_only = false
+local print_once = false
 
 -- Colors for buttons
 local normal_color = nil
 local highlight_color = {0x22, 0xaa, 0xff}
+
+-- Helper function to safely switch to pattern editor only if not in sample/phrase editor
+local function safe_switch_to_pattern_editor()
+  local current_frame = renoise.app().window.active_middle_frame
+  if current_frame ~= renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR and
+     current_frame ~= renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_PHRASE_EDITOR then
+    renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+  end
+end
 
 -- Initialize buttons and checkboxes
 local buttons = {}
@@ -280,7 +291,7 @@ local function receive_volume_checkboxes()
   end
   
   initializing = false
-  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+  safe_switch_to_pattern_editor()
   renoise.app():show_status("Received Volume Gater pattern")
 end
 
@@ -416,7 +427,7 @@ local function receive_retrig_checkboxes()
   end
   
   initializing = false
-  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+  safe_switch_to_pattern_editor()
   renoise.app():show_status("Received Retrig Gater pattern")
 end
 
@@ -484,7 +495,7 @@ local function receive_playback_checkboxes()
   end
   
   initializing = false
-  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+  safe_switch_to_pattern_editor()
   renoise.app():show_status("Received Playback Gater pattern")
 end
 
@@ -607,7 +618,7 @@ local function receive_panning_checkboxes()
   end
   
   initializing = false
-  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+  safe_switch_to_pattern_editor()
   renoise.app():show_status("Received Panning Gater pattern")
 end
 
@@ -616,7 +627,7 @@ local function rand_volume_checkboxes()
 
   initializing = true  -- Prevent updates while setting values
   for i = 1, num_checkboxes do
-    checkboxes[i].value = (i <= active_steps_volume) and (math.random() > 0.5) or false
+    checkboxes[i].value = (math.random() > 0.5)
   end
   initializing = false
   insert_commands()  -- Single update at the end
@@ -628,7 +639,7 @@ local function rand_retrig_checkboxes()
 
   initializing = true  -- Prevent updates while setting values
   for i = 1, num_checkboxes do
-    retrig_checkboxes[i].value = (i <= active_steps_retrig) and (math.random() > 0.5) or false
+    retrig_checkboxes[i].value = (math.random() > 0.5)
   end
   initializing = false
   insert_commands()  -- Single update at the end
@@ -640,7 +651,7 @@ local function rand_playback_checkboxes()
 
   initializing = true  -- Prevent updates while setting values
   for i = 1, num_checkboxes do
-    playback_checkboxes[i].value = (i <= active_steps_playback) and (math.random() > 0.5) or false
+    playback_checkboxes[i].value = (math.random() > 0.5)
   end
   initializing = false
   insert_commands()  -- Single update at the end
@@ -652,16 +663,10 @@ local function rand_panning_checkboxes()
 
   initializing = true  -- Prevent updates while setting values
   for i = 1, num_checkboxes do
-    if i <= active_steps_panning then
-      local rand_choice = math.random(1, 3)
-      panning_left_checkboxes[i].value = (rand_choice == 1)
-      panning_center_checkboxes[i].value = (rand_choice == 2)
-      panning_right_checkboxes[i].value = (rand_choice == 3)
-    else
-      panning_left_checkboxes[i].value = false
-      panning_center_checkboxes[i].value = true
-      panning_right_checkboxes[i].value = false
-    end
+    local rand_choice = math.random(1, 3)
+    panning_left_checkboxes[i].value = (rand_choice == 1)
+    panning_center_checkboxes[i].value = (rand_choice == 2)
+    panning_right_checkboxes[i].value = (rand_choice == 3)
   end
   initializing = false
   insert_commands()  -- Single update at the end
@@ -772,9 +777,9 @@ local function shift_checkboxes(direction)
     end
   end
   for i = 1, num_checkboxes do
-    checkboxes[i].value = shifted[i] and i <= active_steps_volume
+    checkboxes[i].value = shifted[i]
   end
-  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+  safe_switch_to_pattern_editor()
 
   if not initializing then
     insert_commands()
@@ -796,9 +801,9 @@ local function shift_retrig_checkboxes(direction)
     end
   end
   for i = 1, num_checkboxes do
-    retrig_checkboxes[i].value = shifted[i] and i <= active_steps_retrig
+    retrig_checkboxes[i].value = shifted[i]
   end
-  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+  safe_switch_to_pattern_editor()
 
   if not initializing then
     insert_commands()
@@ -820,9 +825,9 @@ local function shift_playback_checkboxes(direction)
     end
   end
   for i = 1, num_checkboxes do
-    playback_checkboxes[i].value = shifted[i] and i <= active_steps_playback
+    playback_checkboxes[i].value = shifted[i]
   end
-  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+  safe_switch_to_pattern_editor()
 
   if not initializing then
     insert_commands()
@@ -1093,11 +1098,476 @@ local function wipe_gating_effects()
   end
 end
 
+-- Function to apply gating only to the selected range
+function apply_gating_to_selection(selection_info)
+  if not selection_info or #selection_info == 0 then return end
+  
+  local song = renoise.song()
+  local pattern = song.selected_pattern
+  local selection = song.selection_in_pattern
+  
+  -- Get selection boundaries
+  local start_line = selection.start_line
+  local end_line = selection.end_line
+  
+  -- Process each selected track
+  for _, track_info in ipairs(selection_info) do
+    local track_index = track_info.track_index
+    local track = pattern:track(track_index)
+    local visible_note_columns = song.tracks[track_index].visible_note_columns
+    
+    -- Ensure effect columns are visible
+    if song.tracks[track_index].visible_effect_columns < 4 then
+      song.tracks[track_index].visible_effect_columns = 4
+    end
+    
+    -- Apply gating effects only within the selected line range
+    for line_idx = start_line, end_line do
+      local line = track:line(line_idx)
+      
+      -- Calculate which step we're on (for pattern cycling)
+      local step_in_pattern = ((line_idx - start_line) % math.max(active_steps_volume, active_steps_retrig, active_steps_playback, active_steps_panning)) + 1
+      
+      -- Volume gating
+      local any_volume_checked = false
+      for i = 1, num_checkboxes do
+        if checkboxes[i].value then
+          any_volume_checked = true
+          break
+        end
+      end
+      
+      if any_volume_checked then
+        local vol_step = ((step_in_pattern - 1) % active_steps_volume) + 1
+        local checkbox_idx, is_silence = nil, false
+        
+        if vol_step <= 16 then
+          checkbox_idx = ((vol_step - 1) % 16) + 1
+        else
+          is_silence = true
+        end
+        
+        -- Apply volume effects to selected columns
+        if #track_info.effect_columns > 0 and (column_choice == "FX Column" or column_choice == "FX Column (L00)") then
+          if column_choice == "FX Column" then
+            if is_silence then
+              line.effect_columns[1].number_string = "0C"
+              line.effect_columns[1].amount_string = "00"
+            else
+              if checkboxes[checkbox_idx].value then
+                line.effect_columns[1].number_string = "0C"
+                line.effect_columns[1].amount_string = "0F"
+              else
+                line.effect_columns[1].number_string = "0C"
+                line.effect_columns[1].amount_string = "00"
+              end
+            end
+          elseif column_choice == "FX Column (L00)" then
+            if is_silence then
+              line.effect_columns[1].number_string = "0L"
+              line.effect_columns[1].amount_string = "00"
+            else
+              if checkboxes[checkbox_idx].value then
+                line.effect_columns[1].number_string = "0L"
+                line.effect_columns[1].amount_string = "C0"
+              else
+                line.effect_columns[1].number_string = "0L"
+                line.effect_columns[1].amount_string = "00"
+              end
+            end
+          end
+        elseif #track_info.note_columns > 0 and column_choice == "Volume Column" then
+          song.tracks[track_index].volume_column_visible = true
+          for _, col in ipairs(track_info.note_columns) do
+            local note_column = line:note_column(col)
+            if is_silence then
+              note_column.volume_string = "00"
+            else
+              if checkboxes[checkbox_idx].value then
+                note_column.volume_string = "80"
+              else
+                note_column.volume_string = "00"
+              end
+            end
+          end
+        end
+      end
+      
+      -- Retrig gating
+      local any_retrig_checked = false
+      for i = 1, num_checkboxes do
+        if retrig_checkboxes[i].value then
+          any_retrig_checked = true
+          break
+        end
+      end
+      
+      if any_retrig_checked then
+        local retrig_step = ((step_in_pattern - 1) % active_steps_retrig) + 1
+        local checkbox_idx, is_silence = nil, false
+        
+        if retrig_step <= 16 then
+          checkbox_idx = ((retrig_step - 1) % 16) + 1
+        else
+          is_silence = true
+        end
+        
+        if not is_silence and retrig_checkboxes[checkbox_idx].value then
+          if retrig_column_choice == "FX Column" and #track_info.effect_columns > 0 then
+            line.effect_columns[2].number_string = "0R"
+            line.effect_columns[2].amount_string = string.format("%02X", retrig_value)
+          elseif retrig_column_choice == "Volume Column" and #track_info.note_columns > 0 then
+            song.tracks[track_index].volume_column_visible = true
+            for _, col in ipairs(track_info.note_columns) do
+              local note_column = line:note_column(col)
+              note_column.volume_string = string.format("R%X", retrig_value)
+            end
+          elseif retrig_column_choice == "Panning Column" and #track_info.note_columns > 0 then
+            song.tracks[track_index].panning_column_visible = true
+            for _, col in ipairs(track_info.note_columns) do
+              local note_column = line:note_column(col)
+              note_column.panning_string = string.format("R%X", retrig_value)
+            end
+          end
+        end
+      end
+      
+      -- Playback gating
+      local any_playback_checked = false
+      for i = 1, num_checkboxes do
+        if playback_checkboxes[i].value then
+          any_playback_checked = true
+          break
+        end
+      end
+      
+      if any_playback_checked then
+        local playback_step = ((step_in_pattern - 1) % active_steps_playback) + 1
+        local checkbox_idx, is_silence = nil, false
+        
+        if playback_step <= 16 then
+          checkbox_idx = ((playback_step - 1) % 16) + 1
+        else
+          is_silence = true
+        end
+        
+        if #track_info.effect_columns > 0 then
+          if is_silence then
+            line.effect_columns[3].number_string = "0B"
+            line.effect_columns[3].amount_string = "01"
+          else
+            if playback_checkboxes[checkbox_idx].value then
+              line.effect_columns[3].number_string = "0B"
+              line.effect_columns[3].amount_string = "00"
+            else
+              line.effect_columns[3].number_string = "0B"
+              line.effect_columns[3].amount_string = "01"
+            end
+          end
+        end
+      end
+      
+      -- Panning gating
+      local any_panning_not_center = false
+      for i = 1, num_checkboxes do
+        if panning_left_checkboxes[i].value or panning_right_checkboxes[i].value then
+          any_panning_not_center = true
+          break
+        end
+      end
+      
+      if any_panning_not_center then
+        local panning_step = ((step_in_pattern - 1) % active_steps_panning) + 1
+        local checkbox_idx, is_silence = nil, false
+        
+        if panning_step <= 16 then
+          checkbox_idx = ((panning_step - 1) % 16) + 1
+        else
+          is_silence = true
+        end
+        
+        if panning_column_choice == "FX Column" and #track_info.effect_columns > 0 then
+          if is_silence then
+            line.effect_columns[4].number_string = "0P"
+            line.effect_columns[4].amount_string = "7F"
+          else
+            if panning_left_checkboxes[checkbox_idx].value then
+              line.effect_columns[4].number_string = "0P"
+              line.effect_columns[4].amount_string = "00"
+            elseif panning_right_checkboxes[checkbox_idx].value then
+              line.effect_columns[4].number_string = "0P"
+              line.effect_columns[4].amount_string = "FF"
+            else
+              line.effect_columns[4].number_string = "0P"
+              line.effect_columns[4].amount_string = "7F"
+            end
+          end
+        elseif panning_column_choice == "Panning Column" and #track_info.note_columns > 0 then
+          song.tracks[track_index].panning_column_visible = true
+          for _, col in ipairs(track_info.note_columns) do
+            local note_column = line:note_column(col)
+            if is_silence then
+              note_column.panning_string = "40"
+            else
+              if panning_left_checkboxes[checkbox_idx].value then
+                note_column.panning_string = "00"
+              elseif panning_right_checkboxes[checkbox_idx].value then
+                note_column.panning_string = "80"
+              else
+                note_column.panning_string = "40"
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+  
+  safe_switch_to_pattern_editor()
+  renoise.app():show_status("Applied gating to selection only")
+end
+
+-- Function to apply gating pattern once starting from current line position
+function apply_gating_print_once()
+  local song = renoise.song()
+  local pattern = song.selected_pattern
+  local start_line = song.selected_line_index
+  local track_index = song.selected_track_index
+  local track = pattern:track(track_index)
+  local visible_note_columns = song.tracks[track_index].visible_note_columns
+  
+  -- Ensure effect columns are visible
+  if song.tracks[track_index].visible_effect_columns < 4 then
+    song.tracks[track_index].visible_effect_columns = 4
+  end
+  
+  -- Determine the maximum step count we need to apply
+  local max_steps = math.max(active_steps_volume, active_steps_retrig, active_steps_playback, active_steps_panning)
+  
+  -- Apply gating effects for the pattern length starting from current position
+  for i = 1, max_steps do
+    local line_idx = start_line + i - 1
+    
+    -- Make sure we don't go beyond the pattern length
+    if line_idx > pattern.number_of_lines then
+      break
+    end
+    
+    local line = track:line(line_idx)
+    
+    -- Volume gating
+    local any_volume_checked = false
+    for j = 1, num_checkboxes do
+      if checkboxes[j].value then
+        any_volume_checked = true
+        break
+      end
+    end
+    
+    if any_volume_checked and i <= active_steps_volume then
+      local checkbox_idx, is_silence = nil, false
+      
+      if i <= 16 then
+        checkbox_idx = ((i - 1) % 16) + 1
+      else
+        is_silence = true
+      end
+      
+      if column_choice == "FX Column" then
+        if is_silence then
+          line.effect_columns[1].number_string = "0C"
+          line.effect_columns[1].amount_string = "00"
+        else
+          if checkboxes[checkbox_idx].value then
+            line.effect_columns[1].number_string = "0C"
+            line.effect_columns[1].amount_string = "0F"
+          else
+            line.effect_columns[1].number_string = "0C"
+            line.effect_columns[1].amount_string = "00"
+          end
+        end
+      elseif column_choice == "Volume Column" then
+        song.tracks[track_index].volume_column_visible = true
+        for j = 1, visible_note_columns do
+          local note_column = line:note_column(j)
+          if is_silence then
+            note_column.volume_string = "00"
+          else
+            if checkboxes[checkbox_idx].value then
+              note_column.volume_string = "80"
+            else
+              note_column.volume_string = "00"
+            end
+          end
+        end
+      elseif column_choice == "FX Column (L00)" then
+        if is_silence then
+          line.effect_columns[1].number_string = "0L"
+          line.effect_columns[1].amount_string = "00"
+        else
+          if checkboxes[checkbox_idx].value then
+            line.effect_columns[1].number_string = "0L"
+            line.effect_columns[1].amount_string = "C0"
+          else
+            line.effect_columns[1].number_string = "0L"
+            line.effect_columns[1].amount_string = "00"
+          end
+        end
+      end
+    end
+    
+    -- Retrig gating
+    local any_retrig_checked = false
+    for j = 1, num_checkboxes do
+      if retrig_checkboxes[j].value then
+        any_retrig_checked = true
+        break
+      end
+    end
+    
+    if any_retrig_checked and i <= active_steps_retrig then
+      local checkbox_idx, is_silence = nil, false
+      
+      if i <= 16 then
+        checkbox_idx = ((i - 1) % 16) + 1
+      else
+        is_silence = true
+      end
+      
+      if not is_silence and retrig_checkboxes[checkbox_idx].value then
+        if retrig_column_choice == "FX Column" then
+          line.effect_columns[2].number_string = "0R"
+          line.effect_columns[2].amount_string = string.format("%02X", retrig_value)
+        elseif retrig_column_choice == "Volume Column" then
+          song.tracks[track_index].volume_column_visible = true
+          for j = 1, visible_note_columns do
+            local note_column = line:note_column(j)
+            note_column.volume_string = string.format("R%X", retrig_value)
+          end
+        elseif retrig_column_choice == "Panning Column" then
+          song.tracks[track_index].panning_column_visible = true
+          for j = 1, visible_note_columns do
+            local note_column = line:note_column(j)
+            note_column.panning_string = string.format("R%X", retrig_value)
+          end
+        end
+      end
+    end
+    
+    -- Playback gating
+    local any_playback_checked = false
+    for j = 1, num_checkboxes do
+      if playback_checkboxes[j].value then
+        any_playback_checked = true
+        break
+      end
+    end
+    
+    if any_playback_checked and i <= active_steps_playback then
+      local checkbox_idx, is_silence = nil, false
+      
+      if i <= 16 then
+        checkbox_idx = ((i - 1) % 16) + 1
+      else
+        is_silence = true
+      end
+      
+      if is_silence then
+        line.effect_columns[3].number_string = "0B"
+        line.effect_columns[3].amount_string = "01"
+      else
+        if playback_checkboxes[checkbox_idx].value then
+          line.effect_columns[3].number_string = "0B"
+          line.effect_columns[3].amount_string = "00"
+        else
+          line.effect_columns[3].number_string = "0B"
+          line.effect_columns[3].amount_string = "01"
+        end
+      end
+    end
+    
+    -- Panning gating
+    local any_panning_not_center = false
+    for j = 1, num_checkboxes do
+      if panning_left_checkboxes[j].value or panning_right_checkboxes[j].value then
+        any_panning_not_center = true
+        break
+      end
+    end
+    
+    if any_panning_not_center and i <= active_steps_panning then
+      local checkbox_idx, is_silence = nil, false
+      
+      if i <= 16 then
+        checkbox_idx = ((i - 1) % 16) + 1
+      else
+        is_silence = true
+      end
+      
+      if panning_column_choice == "FX Column" then
+        if is_silence then
+          line.effect_columns[4].number_string = "0P"
+          line.effect_columns[4].amount_string = "7F"
+        else
+          if panning_left_checkboxes[checkbox_idx].value then
+            line.effect_columns[4].number_string = "0P"
+            line.effect_columns[4].amount_string = "00"
+          elseif panning_right_checkboxes[checkbox_idx].value then
+            line.effect_columns[4].number_string = "0P"
+            line.effect_columns[4].amount_string = "FF"
+          else
+            line.effect_columns[4].number_string = "0P"
+            line.effect_columns[4].amount_string = "7F"
+          end
+        end
+      elseif panning_column_choice == "Panning Column" then
+        song.tracks[track_index].panning_column_visible = true
+        for j = 1, visible_note_columns do
+          local note_column = line:note_column(j)
+          if is_silence then
+            note_column.panning_string = "40"
+          else
+            if panning_left_checkboxes[checkbox_idx].value then
+              note_column.panning_string = "00"
+            elseif panning_right_checkboxes[checkbox_idx].value then
+              note_column.panning_string = "80"
+            else
+              note_column.panning_string = "40"
+            end
+          end
+        end
+      end
+    end
+  end
+  
+  safe_switch_to_pattern_editor()
+  renoise.app():show_status("Applied gating pattern once from line " .. start_line)
+end
+
 -- Now modify the insert_commands function to be more efficient
 function insert_commands()
   max_rows = renoise.song().selected_pattern.number_of_lines
 
   if not renoise.song() then return end
+
+  -- Check if we're in selection_only mode
+  if selection_only then
+    local selection_info = selection_in_pattern_pro()
+    if not selection_info then
+      renoise.app():show_status("No selection found for Selection Only mode")
+      return
+    end
+    
+    -- Apply gating only to the selected range
+    apply_gating_to_selection(selection_info)
+    return
+  end
+
+  -- Check if we're in print_once mode
+  if print_once then
+    apply_gating_print_once()
+    return
+  end
 
   -- Suppress status messages during batch operations
   suppress_status_messages = true
@@ -1168,34 +1638,57 @@ function insert_commands()
       -- Only write up to active_steps_volume
       for i = 1, active_steps_volume do
         local line = pattern:track(track_index):line(i)
-        -- Get the actual checkbox index, looping if needed
-        local checkbox_idx = ((i - 1) % active_steps_volume) + 1
+        -- Get the actual checkbox index, handling extended range
+        local checkbox_idx
+        local is_silence = false
+        
+        if i <= 16 then
+          -- Steps 1-16: use checkbox pattern
+          checkbox_idx = ((i - 1) % 16) + 1
+        else
+          -- Steps 17-32: silence
+          is_silence = true  
+        end
         
         if column_choice == "FX Column" then
-          if checkboxes[checkbox_idx].value then
-            line.effect_columns[1].number_string = "0C"
-            line.effect_columns[1].amount_string = "0F"
-          else
+          if is_silence then
             line.effect_columns[1].number_string = "0C"
             line.effect_columns[1].amount_string = "00"
+          else
+            if checkboxes[checkbox_idx].value then
+              line.effect_columns[1].number_string = "0C"
+              line.effect_columns[1].amount_string = "0F"
+            else
+              line.effect_columns[1].number_string = "0C"
+              line.effect_columns[1].amount_string = "00"
+            end
           end
         elseif column_choice == "Volume Column" then
           renoise.song().tracks[track_index].volume_column_visible = true
           for j = 1, visible_note_columns do
             local note_column = line:note_column(j)
-            if checkboxes[checkbox_idx].value then
-              note_column.volume_string = "80"
-            else
+            if is_silence then
               note_column.volume_string = "00"
+            else
+              if checkboxes[checkbox_idx].value then
+                note_column.volume_string = "80"
+              else
+                note_column.volume_string = "00"
+              end
             end
           end
         elseif column_choice == "FX Column (L00)" then
-          if checkboxes[checkbox_idx].value then
-            line.effect_columns[1].number_string = "0L"
-            line.effect_columns[1].amount_string = "C0"
-          else
+          if is_silence then
             line.effect_columns[1].number_string = "0L"
             line.effect_columns[1].amount_string = "00"
+          else
+            if checkboxes[checkbox_idx].value then
+              line.effect_columns[1].number_string = "0L"
+              line.effect_columns[1].amount_string = "C0"
+            else
+              line.effect_columns[1].number_string = "0L"
+              line.effect_columns[1].amount_string = "00"
+            end
           end
         end
       end
@@ -1214,28 +1707,46 @@ function insert_commands()
       -- Only write up to active_steps_panning
       for i = 1, active_steps_panning do
         local line = pattern:track(track_index):line(i)
-        -- Get the actual checkbox index, looping if needed
-        local checkbox_idx = ((i - 1) % active_steps_panning) + 1
+        -- Get the actual checkbox index, handling extended range
+        local checkbox_idx
+        local is_silence = false
+        
+        if i <= 16 then
+          -- Steps 1-16: use checkbox pattern
+          checkbox_idx = ((i - 1) % 16) + 1
+        else
+          -- Steps 17-32: center (silence)
+          is_silence = true
+        end
         
         if panning_column_choice == "Panning Column" then
           renoise.song().tracks[track_index].panning_column_visible = true
-          if panning_left_checkboxes[checkbox_idx].value then
-            line:note_column(1).panning_string = "00"
-          elseif panning_right_checkboxes[checkbox_idx].value then
-            line:note_column(1).panning_string = "80"
-          else
+          if is_silence then
             line:note_column(1).panning_string = "40"
+          else
+            if panning_left_checkboxes[checkbox_idx].value then
+              line:note_column(1).panning_string = "00"
+            elseif panning_right_checkboxes[checkbox_idx].value then
+              line:note_column(1).panning_string = "80"
+            else
+              line:note_column(1).panning_string = "40"
+            end
           end
         elseif panning_column_choice == "FX Column" then
-          if panning_left_checkboxes[checkbox_idx].value then
-            line.effect_columns[4].number_string = "0P"
-            line.effect_columns[4].amount_string = "00"
-          elseif panning_right_checkboxes[checkbox_idx].value then
-            line.effect_columns[4].number_string = "0P"
-            line.effect_columns[4].amount_string = "FF"
-          else
+          if is_silence then
             line.effect_columns[4].number_string = "0P"
             line.effect_columns[4].amount_string = "7F"
+          else
+            if panning_left_checkboxes[checkbox_idx].value then
+              line.effect_columns[4].number_string = "0P"
+              line.effect_columns[4].amount_string = "00"
+            elseif panning_right_checkboxes[checkbox_idx].value then
+              line.effect_columns[4].number_string = "0P"
+              line.effect_columns[4].amount_string = "FF"
+            else
+              line.effect_columns[4].number_string = "0P"
+              line.effect_columns[4].amount_string = "7F"
+            end
           end
         end
       end
@@ -1246,10 +1757,19 @@ function insert_commands()
       -- Only write up to active_steps_retrig
       for i = 1, active_steps_retrig do
         local line = pattern:track(track_index):line(i)
-        -- Get the actual checkbox index, looping if needed
-        local checkbox_idx = ((i - 1) % active_steps_retrig) + 1
+        -- Get the actual checkbox index, handling extended range
+        local checkbox_idx
+        local is_silence = false
+        
+        if i <= 16 then
+          -- Steps 1-16: use checkbox pattern
+          checkbox_idx = ((i - 1) % 16) + 1
+        else
+          -- Steps 17-32: no retrig (silence)
+          is_silence = true
+        end
 
-        if retrig_checkboxes[checkbox_idx].value then
+        if not is_silence and retrig_checkboxes[checkbox_idx].value then
           if retrig_column_choice == "FX Column" then
             line.effect_columns[2].number_string = "0R"
             line.effect_columns[2].amount_string = string.format("%02X", retrig_value)
@@ -1283,20 +1803,34 @@ function insert_commands()
       -- Only write up to active_steps_playback
       for i = 1, active_steps_playback do
         local line = pattern:track(track_index):line(i)
-        -- Get the actual checkbox index, looping if needed
-        local checkbox_idx = ((i - 1) % active_steps_playback) + 1
+        -- Get the actual checkbox index, handling extended range
+        local checkbox_idx
+        local is_silence = false
+        
+        if i <= 16 then
+          -- Steps 1-16: use checkbox pattern
+          checkbox_idx = ((i - 1) % 16) + 1
+        else
+          -- Steps 17-32: normal playback (silence)
+          is_silence = true
+        end
         
         -- Ensure the third effect column is visible
         if renoise.song().tracks[track_index].visible_effect_columns < 3 then
           renoise.song().tracks[track_index].visible_effect_columns = 4
         end
 
-        if playback_checkboxes[checkbox_idx].value then
-          line.effect_columns[3].number_string = "0B"
-          line.effect_columns[3].amount_string = "00"
-        else
+        if is_silence then
           line.effect_columns[3].number_string = "0B"
           line.effect_columns[3].amount_string = "01"
+        else
+          if playback_checkboxes[checkbox_idx].value then
+            line.effect_columns[3].number_string = "0B"
+            line.effect_columns[3].amount_string = "00"
+          else
+            line.effect_columns[3].number_string = "0B"
+            line.effect_columns[3].amount_string = "01"
+          end
         end
       end
     end
@@ -1415,7 +1949,7 @@ function insert_commands()
 
   -- Re-enable status messages and show a single message
   suppress_status_messages = false
-  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+  safe_switch_to_pattern_editor()
   if solo_mode then
     renoise.app():show_status("Gater pattern updated (SOLO mode - all tracks except selected)")
   else
@@ -1779,7 +2313,7 @@ local function apply_preset(preset, is_retrig, is_playback)
 
   initializing = false
   insert_commands()
-  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+  safe_switch_to_pattern_editor()
 end
 
 -- Create the dialog
@@ -1821,7 +2355,7 @@ function pakettiGaterDialog()
       buttons[9], buttons[10], buttons[11], buttons[12], buttons[13], buttons[14], buttons[15], buttons[16],
       vb:valuebox{
         min = 1,
-        max = num_checkboxes,
+        max = 32,
         value = active_steps_volume,
         width=50,
         notifier=function(value)
@@ -1890,7 +2424,7 @@ function pakettiGaterDialog()
       retrig_buttons[9], retrig_buttons[10], retrig_buttons[11], retrig_buttons[12], retrig_buttons[13], retrig_buttons[14], retrig_buttons[15], retrig_buttons[16],
       vb:valuebox{
         min = 1,
-        max = num_checkboxes,
+        max = 32,
         value = active_steps_retrig,
         width=50,
         notifier = set_active_steps_retrig
@@ -1963,7 +2497,7 @@ function pakettiGaterDialog()
       panning_buttons[14], panning_buttons[15], panning_buttons[16],
       vb:valuebox{
         min = 1,
-        max = num_checkboxes,
+        max = 32,
         value = active_steps_panning,
         width=50,
         notifier = set_active_steps_panning
@@ -2023,7 +2557,26 @@ function pakettiGaterDialog()
         end
       },
       vb:text{text="Solo", style="strong", font="bold", tooltip="When enabled, applies gating to ALL tracks EXCEPT the selected one" },
-    
+      vb:checkbox{
+        value = selection_only,
+        notifier=function(value)
+          selection_only = value
+          if not initializing then
+            insert_commands()
+          end
+        end
+      },
+      vb:text{text="Selection Only", style="strong", font="bold", tooltip="When enabled, only applies gating to the selected range in pattern" },
+      vb:checkbox{
+        value = print_once,
+        notifier=function(value)
+          print_once = value
+          if not initializing then
+            insert_commands()
+          end
+        end
+      },
+      vb:text{text="Print Once", style="strong", font="bold", tooltip="When enabled, applies gating pattern once starting from current line position" },
       
       vb:button{ text="<<", pressed = function()
         initializing = true  -- Prevent multiple updates
@@ -2109,49 +2662,31 @@ function pakettiGaterDialog()
         initializing = true
         -- Randomize volume
         for i = 1, num_checkboxes do
-          if i <= active_steps_volume then
-            checkboxes[i].value = math.random() > 0.5
-          else
-            checkboxes[i].value = false
-          end
+          checkboxes[i].value = math.random() > 0.5
         end
         -- Randomize retrig
         for i = 1, num_checkboxes do
-          if i <= active_steps_retrig then
-            retrig_checkboxes[i].value = math.random() > 0.5
-          else
-            retrig_checkboxes[i].value = false
-          end
+          retrig_checkboxes[i].value = math.random() > 0.5
         end
         -- Randomize playback
         for i = 1, num_checkboxes do
-          if i <= active_steps_playback then
-            playback_checkboxes[i].value = math.random() > 0.5
-          else
-            playback_checkboxes[i].value = false
-          end
+          playback_checkboxes[i].value = math.random() > 0.5
         end
         -- Randomize panning
         for i = 1, num_checkboxes do
-          if i <= active_steps_panning then
-            local rand_choice = math.random(1, 3)
-            if rand_choice == 1 then
-              panning_left_checkboxes[i].value = true
-              panning_center_checkboxes[i].value = false
-              panning_right_checkboxes[i].value = false
-            elseif rand_choice == 2 then
-              panning_left_checkboxes[i].value = false
-              panning_center_checkboxes[i].value = true
-              panning_right_checkboxes[i].value = false
-            else
-              panning_left_checkboxes[i].value = false
-              panning_center_checkboxes[i].value = false
-              panning_right_checkboxes[i].value = true
-            end
-          else
+          local rand_choice = math.random(1, 3)
+          if rand_choice == 1 then
+            panning_left_checkboxes[i].value = true
+            panning_center_checkboxes[i].value = false
+            panning_right_checkboxes[i].value = false
+          elseif rand_choice == 2 then
             panning_left_checkboxes[i].value = false
             panning_center_checkboxes[i].value = true
             panning_right_checkboxes[i].value = false
+          else
+            panning_left_checkboxes[i].value = false
+            panning_center_checkboxes[i].value = false
+            panning_right_checkboxes[i].value = true
           end
         end
         initializing = false
@@ -2171,7 +2706,7 @@ function pakettiGaterDialog()
   }
 
   dialog = renoise.app():show_custom_dialog("Paketti Volume/Retrig/Playback/Panning Gater", content, my_keyhandler_func)
-  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+  safe_switch_to_pattern_editor()
 
   -- Automatically receive the current pattern state when opening the dialog
   receive_volume_checkboxes()
@@ -2204,7 +2739,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Paketti Gater Dialog...",invo
   max_rows = renoise.song().selected_pattern.number_of_lines
   if renoise.song() then
     pakettiGaterDialog()
-    renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+    safe_switch_to_pattern_editor()
   end
 end}
 
@@ -2223,7 +2758,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Paketti Gater Dialog...",invoke=fu
   max_rows = renoise.song().selected_pattern.number_of_lines
   if renoise.song() then
     pakettiGaterDialog()
-    renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+    safe_switch_to_pattern_editor()
   end end
 end}
 

@@ -1196,9 +1196,9 @@ renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets..:Paketti 
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets..:Paketti Groovebox 8120...",invoke=function() GrooveboxShowClose() end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets..:Paketti BPM to MS Delay Calculator Dialog...", invoke = pakettiBPMMSCalculator}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets..:Paketti Volume/Delay/Pan Slider Controls...",invoke=function() pakettiVolDelayPanSliderDialog() end}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets..:SlotShow..:Show/Hide User Preference Devices Master Dialog...",invoke=function() pakettiUserPreferencesShowerDialog() end}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets..:Show/Hide User Preference Devices Master Dialog...",invoke=function() pakettiUserPreferencesShowerDialog() end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets..:Paketti Tuplet Writer Dialog...",invoke=function() pakettiTupletDialog() end}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets..:Instruments:PitchStepper Demo",invoke=function() pakettiPitchStepperDemo() end}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets..:PitchStepper Demo",invoke=function() pakettiPitchStepperDemo() end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets..:Quick Load Device Dialog...", invoke=pakettiQuickLoadDialog}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets..:Paketti Sequencer Settings Dialog...",invoke = pakettiSequencerSettingsDialog}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets..:Paketti Dialog of Dialogs...",invoke=function() pakettiDialogOfDialogsToggle() end}

@@ -113,7 +113,7 @@ function calculate_sample_selection_length()
   return selection_length, nil
 end
 
--- Function to calculate BPM from sample length, beat sync, and transpose
+-- Function to calculate BPM from sample length and beat sync
 function calculate_bpm_from_sample_beatsync()
   local song = renoise.song()
   
@@ -126,16 +126,12 @@ function calculate_bpm_from_sample_beatsync()
   
   local sample = song.selected_sample
   local current_lpb = song.transport.lpb
-  local transpose = sample.transpose
-  local finetune = sample.fine_tune
-  local cents = (transpose * 100) + (finetune / 128 * 100)
-  local bpm_factor = math.pow(2, (cents / 1200))
   
   -- Get beat_sync_lines from the sample
   local beat_sync_lines = sample.beat_sync_lines
   
   -- Formula: 60 / lpb / seconds * beat_sync_lines
-  local calculated_bpm = 60 / current_lpb / length_seconds * beat_sync_lines * bpm_factor
+  local calculated_bpm = 60 / current_lpb / length_seconds * beat_sync_lines
   
   print("BPM Calculation from Sample:")
   print("  Sample length: " .. string.format("%.6f", length_seconds) .. " seconds")
@@ -522,7 +518,7 @@ function pakettiBpmFromSampleDialog()
             local pattern_length = current_song.selected_pattern.number_of_lines
             -- Target should be the full pattern duration, not just beat sync duration
             local full_pattern_duration = (pattern_length / current_song.transport.lpb) * (60 / calculated_bpm)
-            -- Multiply by factor to get the huge stretch needed for -57 transpose
+            
             local target_sample_duration = full_pattern_duration * (pattern_length / beat_sync_lines)
             
             -- Debug output - show every step of the math
