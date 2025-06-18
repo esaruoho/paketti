@@ -256,7 +256,23 @@ function pakettiBpmFromSampleDialog()
     local current_song = renoise.song()
     local current_instrument_index = current_song.selected_instrument_index
     local current_instrument = current_song.selected_instrument
+    local current_sample = current_song.selected_sample
     local instrument_hex = string.format("%02X", current_instrument_index - 1)  -- Renoise uses 0-based for display
+    
+    -- Update transpose/finetune valueboxes with current sample values
+    if vb.views.transpose_valuebox then
+      vb.views.transpose_valuebox.value = current_sample.transpose
+    end
+    if vb.views.finetune_valuebox then
+      vb.views.finetune_valuebox.value = current_sample.fine_tune
+    end
+    
+    -- Calculate pitch-compensated BPM
+    local transpose = current_sample.transpose
+    local finetune = current_sample.fine_tune
+    local cents = (transpose * 100) + (finetune / 128 * 100)
+    local bmp_factor = math.pow(2, (cents / 1200))
+    local calculated_bpm_pitch = calculated_bpm * bmp_factor
     
     -- Update each value individually
     vb.views.instrument_value.text = string.format("%s (%s)", instrument_hex, current_instrument.name)
@@ -265,9 +281,12 @@ function pakettiBpmFromSampleDialog()
     vb.views.beatsync_value.text = tostring(beat_sync_lines)
     vb.views.lpb_value.text = tostring(lpb)
     vb.views.bpm_value.text = string.format("%.3f", calculated_bpm)
+    if vb.views.bpm_pitch_value then
+      vb.views.bpm_pitch_value.text = string.format("%.3f", calculated_bpm_pitch)
+    end
     
-    -- Show warning if out of range
-    if calculated_bpm < 20 or calculated_bpm > 999 then
+    -- Show warning if out of range (check both BPM values)
+    if (calculated_bpm < 20 or calculated_bpm > 999) or (calculated_bpm_pitch < 20 or calculated_bpm_pitch > 999) then
       vb.views.warning_text.text = "WARNING: BPM outside valid range (20-999)!"
     else
       vb.views.warning_text.text = ""
@@ -431,23 +450,47 @@ function pakettiBpmFromSampleDialog()
       vb:text{id = "lpb_value", text = "", style = "strong", font = "bold"}
     },
     vb:row{
-      vb:text{text = "Calculated BPM", width = textWidth, style = "strong", font = "bold"},
+      vb:text{text = "Transpose", width = textWidth, style = "strong", font = "bold"},
+      vb:valuebox{
+        id = "transpose_valuebox",
+        min = -120,
+        max = 120,
+        value = 0,
+        width = 50,
+        notifier = function(value)
+          renoise.song().selected_sample.transpose = value
+          update_calculation()
+        end
+      }
+    },
+    vb:row{
+      vb:text{text = "Finetune", width = textWidth, style = "strong", font = "bold"},
+      vb:valuebox{
+        id = "finetune_valuebox",
+        min = -127,
+        max = 127,
+        value = 0,
+        width = 50,
+        notifier = function(value)
+          renoise.song().selected_sample.fine_tune = value
+          update_calculation()
+        end
+      }
+    },
+    vb:row{vb:text{text="Calculated BPM",width=textWidth,style="strong",font="bold"}},
+    vb:row{
+      vb:text{text = "BPM (Beatsync)", width = textWidth, style = "strong", font = "bold"},
       vb:text{id = "bpm_value", text = "", style = "strong", font = "bold"}
     },
-    
-    vb:text{
-      id = "warning_text",
-      text = "",
-      style = "strong",
-      font = "bold"
+    vb:row{
+      vb:text{text="BPM (Pitch)",width=textWidth,style="strong",font="bold"},
+      vb:text{id="bpm_pitch_value", text="",style="strong",font="bold"}
     },
+    
+    vb:text{id="warning_text",text="",style="strong",font="bold"},
     
     -- Title for Set section
-    vb:text{
-      text = "Set (with Beatsync)",
-      style = "strong",
-      font = "bold"
-    },
+    vb:text{text="Set (with Beatsync)",style="strong",font="bold"},
     
     -- First row: Main set buttons
     vb:row{
@@ -531,61 +574,38 @@ function pakettiBpmFromSampleDialog()
         text = "BPM",
         width = 123,
         notifier = function()
-          local calculated_bpm = update_calculation()
+          local current_song = renoise.song()
+          local current_sample = current_song.selected_sample
+          local beat_sync_lines = vb.views.beat_sync_valuebox.value
+          local current_lpb = current_song.transport.lpb
+          
+          -- Calculate BPM with pitch/finetune compensation
+          local transpose = current_sample.transpose
+          local finetune = current_sample.fine_tune
+          local cents = (transpose * 100) + (finetune / 128 * 100)
+          local bmp_factor = math.pow(2, (cents / 1200))
+          local calculated_bpm = 60 / current_lpb / length_seconds * beat_sync_lines * bmp_factor
+          
+          print("\n=== PITCH-COMPENSATED BPM CALCULATION DEBUG (BPM Button) ===")
+          print("Sample length: " .. string.format("%.6f", length_seconds) .. " seconds")
+          print("Beat sync lines: " .. beat_sync_lines)
+          print("LPB: " .. current_lpb)
+          print("Transpose: " .. transpose)
+          print("Finetune: " .. finetune)
+          print("Cents calculation: (" .. transpose .. " * 100) + (" .. finetune .. " / 128 * 100) = " .. string.format("%.6f", cents))
+          print("BMP factor: 2^(" .. string.format("%.6f", cents) .. "/1200) = " .. string.format("%.6f", bmp_factor))
+          print("BPM calculation: 60 / " .. current_lpb .. " / " .. string.format("%.6f", length_seconds) .. " * " .. beat_sync_lines .. " * " .. string.format("%.6f", bmp_factor))
+          print("Calculated BPM: " .. string.format("%.6f", calculated_bpm))
+          print("=== END DEBUG ===\n")
+          
           if calculated_bpm >= 20 and calculated_bpm <= 999 then
-            local current_song = renoise.song()
-            local current_sample = current_song.selected_sample
-            local original_bpm = current_song.transport.bpm
-            
             -- Turn off beat sync
             current_sample.beat_sync_enabled = false
             
-            -- Set BPM to calculated value
+            -- Set BPM to calculated value (already includes pitch compensation)
             current_song.transport.bpm = calculated_bpm
             
-            -- Calculate target sample duration - should be much longer to get -57 transpose
-            local beat_sync_lines = vb.views.beat_sync_valuebox.value
-            local pattern_length = current_song.selected_pattern.number_of_lines
-            -- Target should be the full pattern duration, not just beat sync duration
-            local full_pattern_duration = (pattern_length / current_song.transport.lpb) * (60 / calculated_bpm)
-            
-            local target_sample_duration = full_pattern_duration * (pattern_length / beat_sync_lines)
-            
-            -- Debug output - show every step of the math
-            print(string.format("=== MATH DEBUG ==="))
-            print(string.format("Pattern length: %d lines", pattern_length))
-            print(string.format("Beat sync lines: %d lines", beat_sync_lines))
-            print(string.format("LPB: %d", current_song.transport.lpb))
-            print(string.format("Calculated BPM: %.3f", calculated_bpm))
-            print(string.format("Current sample length: %.6f seconds", length_seconds))
-            print(string.format("Full pattern duration = (%d / %d) * (60 / %.3f) = %.6f seconds", pattern_length, current_song.transport.lpb, calculated_bpm, full_pattern_duration))
-            print(string.format("Target multiplier = %d / %d = %.6f", pattern_length, beat_sync_lines, pattern_length / beat_sync_lines))
-            print(string.format("Target sample duration = %.6f * %.6f = %.6f seconds", full_pattern_duration, pattern_length / beat_sync_lines, target_sample_duration))
-            
-            -- Calculate pitch factor needed to achieve target duration
-            local pitch_factor = length_seconds / target_sample_duration
-            print(string.format("DEBUG: Current pitch_factor=%.6f", pitch_factor))
-            local cents = 1200 * math.log(pitch_factor) / math.log(2)
-            local transpose = math.floor(cents / 100)
-            local finetune = math.floor((cents - transpose * 100) * 128 / 100)
-            
-            -- Verify using your formula
-            local verify_cents = transpose * 100 + finetune / 128 * 100
-            local verify_factor = math.pow(2, verify_cents / 1200)
-            print(string.format("DEBUG: Target duration=%.6f seconds", target_sample_duration))
-            print(string.format("DEBUG: Pitch factor=%.6f", pitch_factor))
-            print(string.format("DEBUG: Calculated transpose=%d, finetune=%d", transpose, finetune))
-            print(string.format("DEBUG: Verify: cents=%.6f, factor=%.6f", verify_cents, verify_factor))
-            
-            -- Clamp values to valid ranges
-            transpose = math.max(-120, math.min(120, transpose))
-            finetune = math.max(-127, math.min(127, finetune))
-            
-            -- Apply pitch values
-            current_sample.transpose = transpose
-            current_sample.fine_tune = finetune
-            
-            renoise.app():show_status(string.format("BPM set to %.3f, Beat Sync disabled, Transpose set to %d, Fine Tune set to %d", calculated_bpm, transpose, finetune))
+            renoise.app():show_status(string.format("BPM set to %.3f (with pitch compensation), Beat Sync disabled", calculated_bpm))
           else
             renoise.app():show_status("Cannot calculate pitch - BPM value outside valid range")
           end
@@ -595,12 +615,32 @@ function pakettiBpmFromSampleDialog()
         text = "BPM&Note",
         width = 123,
         notifier = function()
-          local calculated_bpm = update_calculation()
+          local current_song = renoise.song()
+          local current_sample = current_song.selected_sample
+          local beat_sync_lines = vb.views.beat_sync_valuebox.value
+          local current_lpb = current_song.transport.lpb
+          
+          -- Calculate BPM with pitch/finetune compensation
+          local transpose = current_sample.transpose
+          local finetune = current_sample.fine_tune
+          local cents = (transpose * 100) + (finetune / 128 * 100)
+                    local bmp_factor = math.pow(2, (cents / 1200))
+          local calculated_bpm = 60 / current_lpb / length_seconds * beat_sync_lines * bmp_factor
+          
+          print("\n=== PITCH-COMPENSATED BPM CALCULATION DEBUG (BPM&Note Button) ===")
+          print("Sample length: " .. string.format("%.6f", length_seconds) .. " seconds")
+          print("Beat sync lines: " .. beat_sync_lines)
+          print("LPB: " .. current_lpb)
+          print("Transpose: " .. transpose)
+          print("Finetune: " .. finetune)
+          print("Cents calculation: (" .. transpose .. " * 100) + (" .. finetune .. " / 128 * 100) = " .. string.format("%.6f", cents))
+          print("BMP factor: 2^(" .. string.format("%.6f", cents) .. "/1200) = " .. string.format("%.6f", bmp_factor))
+          print("BPM calculation: 60 / " .. current_lpb .. " / " .. string.format("%.6f", length_seconds) .. " * " .. beat_sync_lines .. " * " .. string.format("%.6f", bmp_factor))
+          print("Calculated BPM: " .. string.format("%.6f", calculated_bpm))
+          print("=== END DEBUG ===\n")
+          
           if calculated_bpm >= 20 and calculated_bpm <= 999 then
-            local current_song = renoise.song()
-            local current_sample = current_song.selected_sample
-            local original_bpm = current_song.transport.bpm
-            
+              
             -- Turn off beat sync
             current_sample.beat_sync_enabled = false
             
@@ -731,6 +771,15 @@ function pakettiBpmFromSampleDialog()
   song.selected_sample_observable:add_notifier(update_dialog_on_selection_change)
   
   update_calculation()  -- Initial calculation
+  
+  -- Set initial transpose/finetune values from current sample
+  if vb.views.transpose_valuebox then
+    vb.views.transpose_valuebox.value = sample.transpose
+  end
+  if vb.views.finetune_valuebox then
+    vb.views.finetune_valuebox.value = sample.fine_tune
+  end
+  
   dialog = renoise.app():show_custom_dialog("BPM from Sample Length", dialog_content, function(dialog, key)
     -- Handle dialog close
     if key and key.name == "esc" then
