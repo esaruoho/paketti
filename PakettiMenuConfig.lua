@@ -131,6 +131,8 @@ end
 --- Sample Editor Config
 if preferences.pakettiMenuConfig.SampleEditor then
 print ("Sample Editor Menus Are Enabled")
+renoise.tool():add_menu_entry{name="--Sample Editor:Paketti Gadgets..:BPM Calculation Dialog...",invoke=pakettiBpmFromSampleDialog}
+
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti Gadgets..:User-Defined Sample Folders...",invoke=pakettiUserDefinedSamplesDialog}
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti Gadgets..:Paketti YT-DLP Downloader...",invoke=pakettiYTDLPDialog }
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti Gadgets..:Paketti Sample Adjust Dialog...",invoke = show_paketti_sample_adjust_dialog}
@@ -782,6 +784,7 @@ end
 if preferences.pakettiMenuConfig.PatternEditor then
   
   --- Gadgets
+  renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti Gadgets..:BPM Calculation Dialog...",invoke=pakettiBpmFromSampleDialog}
   renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti Gadgets..:Paketti Beat Structure Editor...",invoke=pakettiBeatStructureEditorDialog}
   renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti Gadgets..:Paketti Timestretch Dialog...",invoke=pakettiTimestretchDialog}
   renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti Gadgets..:Paketti Groovebox 8120...",invoke=function() GrooveboxShowClose() end}  

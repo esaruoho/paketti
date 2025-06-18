@@ -319,11 +319,47 @@ function pakettiBpmFromSampleDialog()
 --    margin = 10,
     
     vb:row{
+      vb:checkbox{
+        id = "auto_set_bpm_beatsync_checkbox",
+        value = false,
+        notifier = function(value)
+          if value then
+            -- Turn off the pitch auto-set when beatsync auto-set is enabled
+            if vb.views.auto_set_bpm_pitch_checkbox then
+              vb.views.auto_set_bpm_pitch_checkbox.value = false
+            end
+            -- Auto-set BPM immediately when checkbox is turned on
+            local beat_sync_lines = vb.views.beat_sync_valuebox.value
+            local lpb = vb.views.lpb_valuebox.value
+            local calculated_bpm = 60 / lpb / length_seconds * beat_sync_lines
+            if calculated_bpm >= 20 and calculated_bpm <= 999 then
+              renoise.song().transport.bpm = calculated_bpm
+              renoise.app():show_status(string.format("Auto-set BPM (Beatsync) enabled: BPM set to %.3f", calculated_bpm))
+            else
+              renoise.app():show_status("Auto-set BPM (Beatsync) enabled: BPM outside valid range (20-999)")
+            end
+          else
+            renoise.app():show_status("Auto-set BPM (Beatsync) disabled")
+          end
+        end
+      },
+      vb:text{text = "Auto-Set BPM (Beatsync)", width = textWidth, style = "strong", font = "bold"}
+    },
+    vb:row{
       vb:text{text="Beatsync",width=60,style="strong",font="bold"},
       vb:valuebox{id = "beat_sync_valuebox",min=1,max=512,value = current_beat_sync,
         width = 50,notifier = function(value)
           update_calculation()
           renoise.song().selected_sample.beat_sync_lines = value
+          -- Auto-set BPM if beatsync checkbox is enabled
+          if vb.views.auto_set_bpm_beatsync_checkbox and vb.views.auto_set_bpm_beatsync_checkbox.value then
+            local beat_sync_lines = value
+            local lpb = vb.views.lpb_valuebox.value
+            local calculated_bpm = 60 / lpb / length_seconds * beat_sync_lines
+            if calculated_bpm >= 20 and calculated_bpm <= 999 then
+              renoise.song().transport.bpm = calculated_bpm
+            end
+          end
         end
       },
       vb:switch{
@@ -342,6 +378,15 @@ function pakettiBpmFromSampleDialog()
             renoise.song().selected_sample.beat_sync_enabled = true
             renoise.song().selected_sample.beat_sync_lines = selected_value
             renoise.app():show_status(string.format("Beatsync set to %d lines", selected_value))
+            -- Auto-set BPM if beatsync checkbox is enabled
+            if vb.views.auto_set_bpm_beatsync_checkbox and vb.views.auto_set_bpm_beatsync_checkbox.value then
+              local beat_sync_lines = selected_value
+              local lpb = vb.views.lpb_valuebox.value
+              local calculated_bpm = 60 / lpb / length_seconds * beat_sync_lines
+              if calculated_bpm >= 20 and calculated_bpm <= 999 then
+                renoise.song().transport.bpm = calculated_bpm
+              end
+            end
           end
           update_calculation()
         end
@@ -356,6 +401,15 @@ function pakettiBpmFromSampleDialog()
           renoise.song().selected_sample.beat_sync_enabled = true
           renoise.song().selected_sample.beat_sync_lines = new_value
           renoise.app():show_status(string.format("Beatsync set to %d lines", new_value))
+          -- Auto-set BPM if beatsync checkbox is enabled
+          if vb.views.auto_set_bpm_beatsync_checkbox and vb.views.auto_set_bpm_beatsync_checkbox.value then
+            local beat_sync_lines = new_value
+            local lpb = vb.views.lpb_valuebox.value
+            local calculated_bpm = 60 / lpb / length_seconds * beat_sync_lines
+            if calculated_bpm >= 20 and calculated_bpm <= 999 then
+              renoise.song().transport.bpm = calculated_bpm
+            end
+          end
           update_calculation()
         end
       },
@@ -369,6 +423,15 @@ function pakettiBpmFromSampleDialog()
           renoise.song().selected_sample.beat_sync_enabled = true
           renoise.song().selected_sample.beat_sync_lines = new_value
           renoise.app():show_status(string.format("Beatsync set to %d lines", new_value))
+          -- Auto-set BPM if beatsync checkbox is enabled
+          if vb.views.auto_set_bpm_beatsync_checkbox and vb.views.auto_set_bpm_beatsync_checkbox.value then
+            local beat_sync_lines = new_value
+            local lpb = vb.views.lpb_valuebox.value
+            local calculated_bpm = 60 / lpb / length_seconds * beat_sync_lines
+            if calculated_bpm >= 20 and calculated_bpm <= 999 then
+              renoise.song().transport.bpm = calculated_bpm
+            end
+          end
           update_calculation()
         end
       }
@@ -451,10 +514,14 @@ function pakettiBpmFromSampleDialog()
     },
     vb:row{
       vb:checkbox{
-        id = "auto_set_bpm_checkbox",
+        id = "auto_set_bpm_pitch_checkbox",
         value = false,
         notifier = function(value)
           if value then
+            -- Turn off the beatsync auto-set when pitch auto-set is enabled
+            if vb.views.auto_set_bpm_beatsync_checkbox then
+              vb.views.auto_set_bpm_beatsync_checkbox.value = false
+            end
             -- Auto-set BPM immediately when checkbox is turned on
             local beat_sync_lines = vb.views.beat_sync_valuebox.value
             local lpb = vb.views.lpb_valuebox.value
@@ -466,16 +533,16 @@ function pakettiBpmFromSampleDialog()
             local calculated_bpm_pitch = calculated_bpm * bmp_factor
             if calculated_bpm_pitch >= 20 and calculated_bpm_pitch <= 999 then
               renoise.song().transport.bpm = calculated_bpm_pitch
-              renoise.app():show_status(string.format("Auto-set BPM enabled: BPM set to %.3f", calculated_bpm_pitch))
+              renoise.app():show_status(string.format("Auto-set BPM (Pitch) enabled: BPM set to %.3f", calculated_bpm_pitch))
             else
-              renoise.app():show_status("Auto-set BPM enabled: BPM outside valid range (20-999)")
+              renoise.app():show_status("Auto-set BPM (Pitch) enabled: BPM outside valid range (20-999)")
             end
           else
-            renoise.app():show_status("Auto-set BPM disabled")
+            renoise.app():show_status("Auto-set BPM (Pitch) disabled")
           end
         end
       },
-      vb:text{text = "Auto-set BPM", width = textWidth, style = "strong", font = "bold"}
+      vb:text{text = "Auto-Set BPM (Pitch)", width = textWidth, style = "strong", font = "bold"}
     },
     vb:row{
       vb:text{text = "Transpose", width = textWidth, style = "strong", font = "bold"},
@@ -484,12 +551,12 @@ function pakettiBpmFromSampleDialog()
         min = -120,
         max = 120,
         value = 0,
-        width = 50,
+        width = 60,
         notifier = function(value)
           renoise.song().selected_sample.transpose = value
           update_calculation()
           -- Auto-set BPM if checkbox is enabled
-          if vb.views.auto_set_bpm_checkbox and vb.views.auto_set_bpm_checkbox.value then
+          if vb.views.auto_set_bpm_pitch_checkbox and vb.views.auto_set_bpm_pitch_checkbox.value then
             local beat_sync_lines = vb.views.beat_sync_valuebox.value
             local lpb = vb.views.lpb_valuebox.value
             local calculated_bpm = 60 / lpb / length_seconds * beat_sync_lines
@@ -512,7 +579,7 @@ function pakettiBpmFromSampleDialog()
           renoise.song().selected_sample.transpose = 0
           update_calculation()
           -- Auto-set BPM if checkbox is enabled
-          if vb.views.auto_set_bpm_checkbox and vb.views.auto_set_bpm_checkbox.value then
+          if vb.views.auto_set_bpm_pitch_checkbox and vb.views.auto_set_bpm_pitch_checkbox.value then
             local beat_sync_lines = vb.views.beat_sync_valuebox.value
             local lpb = vb.views.lpb_valuebox.value
             local calculated_bpm = 60 / lpb / length_seconds * beat_sync_lines
@@ -535,12 +602,12 @@ function pakettiBpmFromSampleDialog()
         min = -127,
         max = 127,
         value = 0,
-        width = 50,
+        width = 60,
         notifier = function(value)
           renoise.song().selected_sample.fine_tune = value
           update_calculation()
           -- Auto-set BPM if checkbox is enabled
-          if vb.views.auto_set_bpm_checkbox and vb.views.auto_set_bpm_checkbox.value then
+          if vb.views.auto_set_bpm_pitch_checkbox and vb.views.auto_set_bpm_pitch_checkbox.value then
             local beat_sync_lines = vb.views.beat_sync_valuebox.value
             local lpb = vb.views.lpb_valuebox.value
             local calculated_bpm = 60 / lpb / length_seconds * beat_sync_lines
@@ -563,7 +630,7 @@ function pakettiBpmFromSampleDialog()
           renoise.song().selected_sample.fine_tune = 0
           update_calculation()
           -- Auto-set BPM if checkbox is enabled
-          if vb.views.auto_set_bpm_checkbox and vb.views.auto_set_bpm_checkbox.value then
+          if vb.views.auto_set_bpm_pitch_checkbox and vb.views.auto_set_bpm_pitch_checkbox.value then
             local beat_sync_lines = vb.views.beat_sync_valuebox.value
             local lpb = vb.views.lpb_valuebox.value
             local calculated_bpm = 60 / lpb / length_seconds * beat_sync_lines
@@ -1029,19 +1096,20 @@ function convert_beatsync_to_pitch()
   renoise.app():show_status(string.format("Beatsync %d converted to Transpose %d and Finetune %d", beat_sync_lines, transpose, finetune))
 end
 
+-- TODO: figure out which ones still need to exist
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Calculate Selected Sample Length",invoke=calculate_selected_sample_length}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Show Selected Sample Length",invoke=show_selected_sample_length}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Calculate Sample Selection Length",invoke=calculate_sample_selection_length}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Calculate BPM from Sample Length",invoke=calculate_bpm_from_sample_beatsync}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Set BPM from Sample Length",invoke=set_bpm_from_sample_beatsync}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Show BPM Calculation Dialog...",invoke=pakettiBpmFromSampleDialog}
-renoise.tool():add_keybinding{name="Global:Paketti:Show BPM Calculation Dialog...",invoke=pakettiBpmFromSampleDialog}
-renoise.tool():add_keybinding{name="Sample Editor:Paketti:Convert Beatsync to Sample Pitch",invoke=convert_beatsync_to_pitch}
-renoise.tool():add_keybinding{name="Sample Editor:Paketti:Debug Sample Length Precision",invoke=debug_sample_length_precision}
-
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti Gadgets..:BPM Calculation Dialog...",invoke=pakettiBpmFromSampleDialog}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Calculate BPM from Sample Length",invoke=calculate_bpm_from_sample_beatsync}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Set BPM from Sample Length",invoke=set_bpm_from_sample_beatsync}
+
+renoise.tool():add_keybinding{name="Global:Paketti:Show BPM Calculation Dialog...",invoke=pakettiBpmFromSampleDialog}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Convert Beatsync to Sample Pitch",invoke=convert_beatsync_to_pitch}
+--renoise.tool():add_keybinding{name="Sample Editor:Paketti:Debug Sample Length Precision",invoke=debug_sample_length_precision}
+
 ----------
 -- Function to toggle showing only one specific column type
 function showOnlyColumnType(column_type)
