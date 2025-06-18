@@ -19,7 +19,7 @@ local function read_uint32_le(data, offset)
          string.byte(data, offset + 4) * 16777216
 end
 
-local function pti_loadsample(filepath)
+function pti_loadsample(filepath)
   local file = io.open(filepath, "rb")
   if not file then
     renoise.app():show_error("Cannot open file: " .. filepath)

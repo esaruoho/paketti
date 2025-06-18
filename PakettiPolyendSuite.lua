@@ -518,4 +518,271 @@ function rx2_to_pti_convert()
   end
 end
 
+--------------------------------------------------------------------------------
+-- Polyend Buddy Dialog
+-- File browser for PTI files from Polyend Tracker device
+--------------------------------------------------------------------------------
 
+local polyend_buddy_dialog = nil
+local polyend_buddy_root_path = ""
+local polyend_buddy_pti_files = {}
+
+-- Function to recursively scan folder for PTI files
+local function scan_for_pti_files(root_path)
+  local pti_files = {}
+  local separator = package.config:sub(1,1)
+  
+  local function scan_directory(path, relative_path)
+    local files = os.filenames(path, "*")
+    local dirs = os.dirnames(path)
+    
+    -- Scan files in current directory
+    for _, filename in ipairs(files) do
+      if filename:lower():match("%.pti$") then
+        local relative_file_path = relative_path == "" and filename or (relative_path .. separator .. filename)
+        local full_path = path .. separator .. filename
+        table.insert(pti_files, {
+          display_name = relative_file_path,
+          full_path = full_path
+        })
+      end
+    end
+    
+    -- Recursively scan subdirectories  
+    for _, dirname in ipairs(dirs) do
+      local sub_path = path .. separator .. dirname
+      local sub_relative = relative_path == "" and dirname or (relative_path .. separator .. dirname)
+      scan_directory(sub_path, sub_relative)
+    end
+  end
+  
+  if root_path and root_path ~= "" then
+    scan_directory(root_path, "")
+  end
+  
+  return pti_files
+end
+
+-- Function to update the dropdown with found PTI files
+local function update_pti_dropdown(vb)
+  polyend_buddy_pti_files = scan_for_pti_files(polyend_buddy_root_path)
+  
+  local dropdown_items = {"<No PTI files found>"}
+  
+  if #polyend_buddy_pti_files > 0 then
+    dropdown_items = {}
+    for _, pti_file in ipairs(polyend_buddy_pti_files) do
+      table.insert(dropdown_items, pti_file.display_name)
+    end
+    table.sort(dropdown_items)
+  end
+  
+  -- Update dropdown
+  if vb.views["pti_files_popup"] then
+    vb.views["pti_files_popup"].items = dropdown_items
+    vb.views["pti_files_popup"].value = 1
+  end
+  
+  -- Update status text
+  if vb.views["pti_count_text"] then
+    vb.views["pti_count_text"].text = string.format("Found %d PTI files", #polyend_buddy_pti_files)
+  end
+  
+  print(string.format("-- Polyend Buddy: Found %d PTI files in %s", #polyend_buddy_pti_files, polyend_buddy_root_path))
+end
+
+-- Function to create the Polyend Buddy dialog content
+local function create_polyend_buddy_dialog(vb)
+  return vb:column{
+    margin = 10,
+    spacing = 8,
+    
+    -- Title
+    vb:text{
+      text = "Polyend Buddy - PTI File Browser",
+      font = "bold"
+    },
+    
+    -- Root folder selection
+    vb:row{
+      spacing = 5,
+      vb:text{
+        text = "Root Folder:",
+        width = 80
+      },
+      vb:textfield{
+        id = "root_path_textfield",
+        text = polyend_buddy_root_path,
+        width = 400,
+        tooltip = "Path to your Polyend Tracker device or folder containing PTI files"
+      },
+      vb:button{
+        text = "Browse",
+        notifier = function()
+          local selected_path = renoise.app():prompt_for_path("Select Polyend Tracker Folder")
+          if selected_path and selected_path ~= "" then
+            polyend_buddy_root_path = selected_path
+            vb.views["root_path_textfield"].text = selected_path
+            update_pti_dropdown(vb)
+          end
+        end
+      }
+    },
+    
+    -- Status and file count
+    vb:row{
+      vb:text{
+        id = "pti_count_text",
+        text = "Found 0 PTI files",
+        font = "italic"
+      }
+    },
+    
+    -- PTI files dropdown
+    vb:row{
+      spacing = 5,
+      vb:text{
+        text = "PTI Files:",
+        width = 80
+      },
+      vb:popup{
+        id = "pti_files_popup",
+        items = {"<No PTI files found>"},
+        width = 400,
+        tooltip = "Select a PTI file to load"
+      }
+    },
+    
+    -- Action buttons
+    vb:row{
+      spacing = 10,
+      vb:button{
+        text = "Refresh",
+        tooltip = "Rescan the folder for PTI files",
+        notifier = function()
+          if polyend_buddy_root_path and polyend_buddy_root_path ~= "" then
+            update_pti_dropdown(vb)
+            renoise.app():show_status("Refreshed PTI file list")
+          else
+            renoise.app():show_status("Please select a root folder first")
+          end
+        end
+      },
+      vb:button{
+        text = "Load PTI",
+        tooltip = "Load the selected PTI file",
+        notifier = function()
+          local selected_index = vb.views["pti_files_popup"].value
+          
+          if #polyend_buddy_pti_files == 0 then
+            renoise.app():show_status("No PTI files found to load")
+            return
+          end
+          
+          if selected_index >= 1 and selected_index <= #polyend_buddy_pti_files then
+            local selected_pti = polyend_buddy_pti_files[selected_index]
+            print(string.format("-- Polyend Buddy: Loading PTI file: %s", selected_pti.full_path))
+            
+            -- Load the PTI file using the existing loader
+            pti_loadsample(selected_pti.full_path)
+            
+            renoise.app():show_status(string.format("Loaded PTI: %s", selected_pti.display_name))
+          else
+            renoise.app():show_status("Please select a valid PTI file")
+          end
+        end
+      },
+      vb:button{
+        text = "Open Folder", 
+        tooltip = "Open the selected PTI file's folder in system file browser",
+        notifier = function()
+          local selected_index = vb.views["pti_files_popup"].value
+          
+          if #polyend_buddy_pti_files == 0 then
+            renoise.app():show_status("No PTI files found")
+            return
+          end
+          
+          if selected_index >= 1 and selected_index <= #polyend_buddy_pti_files then
+            local selected_pti = polyend_buddy_pti_files[selected_index]
+            local folder_path = selected_pti.full_path:match("(.+)[/\\][^/\\]*$")
+            
+            if folder_path then
+              renoise.app():open_path(folder_path)
+            end
+          else
+            renoise.app():show_status("Please select a valid PTI file")
+          end
+        end
+      }
+    },
+    
+    -- Close button
+    vb:row{
+      vb:button{
+        text = "Close",
+        notifier = function()
+          if polyend_buddy_dialog then
+            polyend_buddy_dialog:close()
+            polyend_buddy_dialog = nil
+          end
+        end
+      }
+    }
+  }
+end
+
+-- Key handler for the Polyend Buddy dialog
+local function polyend_buddy_key_handler(dialog, key)
+  if key.modifiers == "" and key.name == "esc" then
+    dialog:close()
+    polyend_buddy_dialog = nil
+    return nil
+  else
+    return key
+  end
+end
+
+-- Main function to show the Polyend Buddy dialog
+function show_polyend_buddy_dialog()
+  -- Close existing dialog if open
+  if polyend_buddy_dialog and polyend_buddy_dialog.visible then
+    polyend_buddy_dialog:close()
+    polyend_buddy_dialog = nil
+    return
+  end
+  
+  local vb = renoise.ViewBuilder()
+  polyend_buddy_dialog = renoise.app():show_custom_dialog(
+    "Polyend Buddy", 
+    create_polyend_buddy_dialog(vb), 
+    polyend_buddy_key_handler
+  )
+  
+  -- Initial scan if path is already set
+  if polyend_buddy_root_path and polyend_buddy_root_path ~= "" then
+    update_pti_dropdown(vb)
+  end
+end
+
+--------------------------------------------------------------------------------
+-- Keybindings and Menu Entries for Polyend Buddy
+--------------------------------------------------------------------------------
+
+-- Add keybinding for Polyend Buddy dialog
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Polyend Buddy (PTI File Browser)",
+  invoke = show_polyend_buddy_dialog
+}
+
+-- Add menu entry for Polyend Buddy dialog  
+renoise.tool():add_menu_entry{
+  name = "Main Menu:Tools:Paketti..:Instruments..:File Formats..:Polyend Buddy (PTI File Browser)",
+  invoke = show_polyend_buddy_dialog
+}
+
+
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti Gadgets..:Polyend Buddy (PTI File Browser)",
+invoke=show_polyend_buddy_dialog
+
+}
