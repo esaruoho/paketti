@@ -3367,16 +3367,8 @@ function snapshot_selected_device_to_automation()
   
   renoise.app():show_status(string.format("Created %d automation points for device: %s", automation_count, device.display_name))
 end
-renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Automation..:Snapshot All Devices on Selected Track to Automation",invoke = snapshot_all_devices_to_automation}
-renoise.tool():add_menu_entry{name="Mixer:Paketti..:Automation..:Snapshot Selected Device to Automation",invoke = snapshot_selected_device_to_automation}
-renoise.tool():add_menu_entry{name="--Track Automation:Paketti..:Snapshot All Devices on Selected Track to Automation",invoke = snapshot_all_devices_to_automation}
-renoise.tool():add_menu_entry{name="Track Automation:Paketti..:Snapshot Selected Device to Automation",invoke = snapshot_selected_device_to_automation}
 
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Automation..:Snapshot All Devices on Selected Track to Automation",invoke = snapshot_all_devices_to_automation}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Automation..:Snapshot Selected Device to Automation",invoke = snapshot_selected_device_to_automation}
 renoise.tool():add_keybinding{name="Global:Paketti:Snapshot All Devices on Selected Track to Automation",invoke = snapshot_all_devices_to_automation}
 renoise.tool():add_keybinding{name="Global:Paketti:Snapshot Selected Device to Automation",invoke = snapshot_selected_device_to_automation}
 
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Automation..:Convert FX to Automation",invoke = read_fx_to_automation}
-renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Automation..:Convert FX to Automation",invoke = read_fx_to_automation}
 renoise.tool():add_keybinding{name="Global:Paketti:Convert FX to Automation",invoke = read_fx_to_automation}

@@ -32,6 +32,81 @@ local function load_slice_markers(slice_file_path)
   return true
 end
 
+function wav_loadsample(filename)
+  local selected_sample_filenames
+  
+  -- Handle both single strings and tables
+  if type(filename) == "string" then
+    selected_sample_filenames = {filename}
+  else
+    selected_sample_filenames = filename
+  end
+
+print (selected_sample_filenames[1] or "No filename")
+
+  if #selected_sample_filenames > 0 then
+    rprint(selected_sample_filenames)
+    for index, filename in ipairs(selected_sample_filenames) do
+      local next_instrument = renoise.song().selected_instrument_index + 1
+      renoise.song():insert_instrument_at(next_instrument)
+      renoise.song().selected_instrument_index = next_instrument
+
+      pakettiPreferencesDefaultInstrumentLoader()
+
+      local selected_instrument = renoise.song().selected_instrument
+      selected_instrument.name = "Pitchbend Instrument"
+      selected_instrument.macros_visible = true
+      selected_instrument.sample_modulation_sets[1].name = "Pitchbend"
+
+      if #selected_instrument.samples == 0 then
+        selected_instrument:insert_sample_at(1)
+      end
+      renoise.song().selected_sample_index = 1
+
+      local filename_only = filename:match("^.+[/\\](.+)$")
+      local instrument_slot_hex = string.format("%02X", next_instrument - 1)
+
+      if selected_instrument.samples[1].sample_buffer:load_from(filename) then
+        renoise.app():show_status("Sample " .. filename_only .. " loaded successfully.")
+        local current_sample = selected_instrument.samples[1]
+        current_sample.name = string.format("%s_%s", instrument_slot_hex, filename_only)
+        selected_instrument.name = string.format("%s_%s", instrument_slot_hex, filename_only)
+
+        current_sample.interpolation_mode = preferences.pakettiLoaderInterpolation.value
+        current_sample.oversample_enabled = preferences.pakettiLoaderOverSampling.value
+        current_sample.autofade = preferences.pakettiLoaderAutofade.value
+        current_sample.autoseek = preferences.pakettiLoaderAutoseek.value
+        current_sample.loop_mode = preferences.pakettiLoaderLoopMode.value
+        current_sample.oneshot = preferences.pakettiLoaderOneshot.value
+        current_sample.new_note_action = preferences.pakettiLoaderNNA.value
+        current_sample.loop_release = preferences.pakettiLoaderLoopExit.value
+
+        renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+        G01()
+if normalize then normalize_selected_sample() end
+
+if preferences.pakettiLoaderMoveSilenceToEnd.value ~= false then PakettiMoveSilence() end
+if preferences.pakettiLoaderNormalizeSamples.value ~= false then normalize_selected_sample() end
+if preferences.pakettiLoaderDontCreateAutomationDevice.value == false then 
+if renoise.song().selected_track.type == 2 then renoise.app():show_status("*Instr. Macro Device will not be added to the Master track.") return else
+        loadnative("Audio/Effects/Native/*Instr. Macros") 
+        local macro_device = renoise.song().selected_track:device(2)
+        macro_device.display_name = string.format("%s_%s", instrument_slot_hex, filename_only)
+        renoise.song().selected_track.devices[2].is_maximized = false
+        end
+      else
+        renoise.app():show_status("Failed to load the sample " .. filename_only)
+      end
+    else end 
+    end
+  else
+    renoise.app():show_status("No file selected.")
+  end
+end
+
+
+
+
 --------------------------------------------------------------------------------
 -- OS-specific configuration and setup
 --------------------------------------------------------------------------------
@@ -526,70 +601,164 @@ end
 local polyend_buddy_dialog = nil
 local polyend_buddy_root_path = ""
 local polyend_buddy_pti_files = {}
+local polyend_buddy_wav_files = {}
+local polyend_buddy_folders = {}
 
--- Function to recursively scan folder for PTI files
-local function scan_for_pti_files(root_path)
+-- Initialize root path from preferences
+local function initialize_polyend_root_path()
+  if preferences and preferences.PolyendRoot and preferences.PolyendRoot.value then
+    polyend_buddy_root_path = preferences.PolyendRoot.value
+  end
+end
+
+-- Function to recursively scan folder for PTI/WAV files and collect folders
+local function scan_for_pti_files_and_folders(root_path)
   local pti_files = {}
+  local wav_files = {}
+  local folders = {}
   local separator = package.config:sub(1,1)
   
   local function scan_directory(path, relative_path)
-    local files = os.filenames(path, "*")
-    local dirs = os.dirnames(path)
+    -- Check if directory exists and is accessible
+    local success, files = pcall(os.filenames, path, "*")
+    if not success then
+      print(string.format("-- Polyend Buddy: Warning - Cannot access directory: %s", path))
+      print(string.format("-- Polyend Buddy: Error details: %s", tostring(files)))
+      return
+    end
+    
+    local success2, dirs = pcall(os.dirnames, path)
+    if not success2 then
+      print(string.format("-- Polyend Buddy: Warning - Cannot list subdirectories in: %s", path))
+      dirs = {}
+    end
+    
+    print(string.format("-- Polyend Buddy: Scanning %s - found %d files, %d dirs", path, #files, #dirs))
+    
+    -- Add current directory to folders list (if not root and not hidden)
+    if relative_path ~= "" and not relative_path:match("^%.") and not relative_path:match("%..*$") then
+      table.insert(folders, {
+        display_name = relative_path,
+        full_path = path
+      })
+    end
     
     -- Scan files in current directory
     for _, filename in ipairs(files) do
+      local relative_file_path = relative_path == "" and filename or (relative_path .. separator .. filename)
+      local full_path = path .. separator .. filename
+      
       if filename:lower():match("%.pti$") then
-        local relative_file_path = relative_path == "" and filename or (relative_path .. separator .. filename)
-        local full_path = path .. separator .. filename
         table.insert(pti_files, {
           display_name = relative_file_path,
           full_path = full_path
         })
+        print(string.format("-- Polyend Buddy: Found PTI file: %s", relative_file_path))
+      elseif filename:lower():match("%.wav$") then
+        table.insert(wav_files, {
+          display_name = relative_file_path,
+          full_path = full_path
+        })
+        print(string.format("-- Polyend Buddy: Found WAV file: %s", relative_file_path))
       end
     end
     
-    -- Recursively scan subdirectories  
+    -- Recursively scan subdirectories (skip hidden/system folders)
     for _, dirname in ipairs(dirs) do
-      local sub_path = path .. separator .. dirname
-      local sub_relative = relative_path == "" and dirname or (relative_path .. separator .. dirname)
-      scan_directory(sub_path, sub_relative)
+      -- Skip hidden folders (starting with .) and common system folders
+      if not dirname:match("^%.") and 
+         dirname ~= "System Volume Information" and 
+         dirname ~= "$RECYCLE.BIN" and
+         dirname ~= "Thumbs.db" then
+        local sub_path = path .. separator .. dirname
+        local sub_relative = relative_path == "" and dirname or (relative_path .. separator .. dirname)
+        scan_directory(sub_path, sub_relative)
+      else
+        print(string.format("-- Polyend Buddy: Skipping system/hidden folder: %s", dirname))
+      end
     end
   end
   
   if root_path and root_path ~= "" then
+    -- Check if root path exists before scanning
+    local success, test_files = pcall(os.filenames, root_path, "*")
+    if not success then
+      print(string.format("-- Polyend Buddy: Error - Root path does not exist or is not accessible: %s", root_path))
+      print(string.format("-- Polyend Buddy: Error details: %s", tostring(test_files)))
+      return pti_files, folders
+    end
+    
+    print(string.format("-- Polyend Buddy: Root path accessible, found %d files", #test_files))
+    
+    -- Always add root folder as an option
+    table.insert(folders, {
+      display_name = "(Root Folder)",
+      full_path = root_path
+    })
     scan_directory(root_path, "")
   end
   
-  return pti_files
+  return pti_files, wav_files, folders
 end
 
--- Function to update the dropdown with found PTI files
+-- Function to update the dropdowns with found PTI/WAV files and folders
 local function update_pti_dropdown(vb)
-  polyend_buddy_pti_files = scan_for_pti_files(polyend_buddy_root_path)
+  polyend_buddy_pti_files, polyend_buddy_wav_files, polyend_buddy_folders = scan_for_pti_files_and_folders(polyend_buddy_root_path)
   
-  local dropdown_items = {"<No PTI files found>"}
-  
+  -- Update PTI files dropdown
+  local file_dropdown_items = {"<No PTI files found>"}
   if #polyend_buddy_pti_files > 0 then
-    dropdown_items = {}
+    file_dropdown_items = {}
     for _, pti_file in ipairs(polyend_buddy_pti_files) do
-      table.insert(dropdown_items, pti_file.display_name)
+      table.insert(file_dropdown_items, pti_file.display_name)
     end
-    table.sort(dropdown_items)
+    table.sort(file_dropdown_items)
   end
   
-  -- Update dropdown
   if vb.views["pti_files_popup"] then
-    vb.views["pti_files_popup"].items = dropdown_items
+    vb.views["pti_files_popup"].items = file_dropdown_items
     vb.views["pti_files_popup"].value = 1
+  end
+  
+  -- Update WAV files dropdown
+  local wav_dropdown_items = {"<No WAV files found>"}
+  if #polyend_buddy_wav_files > 0 then
+    wav_dropdown_items = {}
+    for _, wav_file in ipairs(polyend_buddy_wav_files) do
+      table.insert(wav_dropdown_items, wav_file.display_name)
+    end
+    table.sort(wav_dropdown_items)
+  end
+  
+  if vb.views["wav_files_popup"] then
+    vb.views["wav_files_popup"].items = wav_dropdown_items
+    vb.views["wav_files_popup"].value = 1
+  end
+  
+  -- Update folders dropdown
+  local folder_dropdown_items = {"<No folders found>"}
+  if #polyend_buddy_folders > 0 then
+    folder_dropdown_items = {}
+    for _, folder in ipairs(polyend_buddy_folders) do
+      table.insert(folder_dropdown_items, folder.display_name)
+    end
+    table.sort(folder_dropdown_items)
+  end
+  
+  if vb.views["save_folders_popup"] then
+    vb.views["save_folders_popup"].items = folder_dropdown_items
+    vb.views["save_folders_popup"].value = 1
   end
   
   -- Update status text
   if vb.views["pti_count_text"] then
-    vb.views["pti_count_text"].text = string.format("Found %d PTI files", #polyend_buddy_pti_files)
+    vb.views["pti_count_text"].text = string.format("Found %d PTI files, %d WAV files, %d folders", #polyend_buddy_pti_files, #polyend_buddy_wav_files, #polyend_buddy_folders)
   end
   
-  print(string.format("-- Polyend Buddy: Found %d PTI files in %s", #polyend_buddy_pti_files, polyend_buddy_root_path))
+  print(string.format("-- Polyend Buddy: Found %d PTI files, %d WAV files and %d folders in %s", #polyend_buddy_pti_files, #polyend_buddy_wav_files, #polyend_buddy_folders, polyend_buddy_root_path))
 end
+
+local textWidth = 130
 
 -- Function to create the Polyend Buddy dialog content
 local function create_polyend_buddy_dialog(vb)
@@ -597,19 +766,13 @@ local function create_polyend_buddy_dialog(vb)
     margin = 10,
     spacing = 8,
     
-    -- Title
-    vb:text{
-      text = "Polyend Buddy - PTI File Browser",
-      font = "bold"
-    },
     
     -- Root folder selection
     vb:row{
       spacing = 5,
       vb:text{
-        text = "Root Folder:",
-        width = 80
-      },
+        text = "Polyend Tracker Root",
+        width = textWidth, style="strong",font="bold"},
       vb:textfield{
         id = "root_path_textfield",
         text = polyend_buddy_root_path,
@@ -623,6 +786,14 @@ local function create_polyend_buddy_dialog(vb)
           if selected_path and selected_path ~= "" then
             polyend_buddy_root_path = selected_path
             vb.views["root_path_textfield"].text = selected_path
+            
+            -- Save to preferences
+            if preferences and preferences.PolyendRoot then
+              preferences.PolyendRoot.value = selected_path
+              preferences:save_as("preferences.xml")
+              print(string.format("-- Polyend Buddy: Saved root path to preferences: %s", selected_path))
+            end
+            
             update_pti_dropdown(vb)
           end
         end
@@ -634,39 +805,22 @@ local function create_polyend_buddy_dialog(vb)
       vb:text{
         id = "pti_count_text",
         text = "Found 0 PTI files",
-        font = "italic"
+        font = "italic", font="bold", style="strong"
       }
     },
     
-    -- PTI files dropdown
+    -- PTI files dropdown with Load button
     vb:row{
       spacing = 5,
       vb:text{
-        text = "PTI Files:",
-        width = 80
+        text = "PTI Files",
+        width = textWidth, style="strong",font="bold"
       },
       vb:popup{
         id = "pti_files_popup",
         items = {"<No PTI files found>"},
         width = 400,
         tooltip = "Select a PTI file to load"
-      }
-    },
-    
-    -- Action buttons
-    vb:row{
-      spacing = 10,
-      vb:button{
-        text = "Refresh",
-        tooltip = "Rescan the folder for PTI files",
-        notifier = function()
-          if polyend_buddy_root_path and polyend_buddy_root_path ~= "" then
-            update_pti_dropdown(vb)
-            renoise.app():show_status("Refreshed PTI file list")
-          else
-            renoise.app():show_status("Please select a root folder first")
-          end
-        end
       },
       vb:button{
         text = "Load PTI",
@@ -689,6 +843,104 @@ local function create_polyend_buddy_dialog(vb)
             renoise.app():show_status(string.format("Loaded PTI: %s", selected_pti.display_name))
           else
             renoise.app():show_status("Please select a valid PTI file")
+          end
+        end
+      }
+    },
+    
+    -- WAV files dropdown with Load button
+    vb:row{
+      spacing = 5,
+      vb:text{
+        text = "WAV Files",
+        width = textWidth, style="strong",font="bold"
+      },
+      vb:popup{
+        id = "wav_files_popup",
+        items = {"<No WAV files found>"},
+        width = 400,
+        tooltip = "Select a WAV file to load"
+      },
+      vb:button{
+        text = "Load WAV",
+        tooltip = "Load the selected WAV file",
+        notifier = function()
+          
+          local selected_index = vb.views["wav_files_popup"].value
+          
+          if #polyend_buddy_wav_files == 0 then
+            renoise.app():show_status("No PTI files found to load")
+            return
+          end
+          
+          if selected_index >= 1 and selected_index <= #polyend_buddy_wav_files then
+            local selected_wav = polyend_buddy_wav_files[selected_index]
+            print(string.format("-- Polyend Buddy: Loading WAV file: %s", selected_wav.full_path))
+            
+            -- Load the WAV file using the existing loader
+            wav_loadsample(selected_wav.full_path)
+            
+            renoise.app():show_status(string.format("Loaded WAV: %s", selected_wav.display_name))
+          else
+            renoise.app():show_status("Please select a valid WAV file")
+          end
+        end
+      }
+    },
+    
+    -- Save row
+    vb:row{
+      spacing = 5,
+      vb:text{
+        text = "Save",
+        width = textWidth, style="strong",font="bold"
+      },
+      vb:button{
+        text = "Save PTI",
+        tooltip = "Save current instrument/sample as PTI file",
+        notifier = function()
+          local selected_index = vb.views["save_folders_popup"].value
+          
+          if selected_index >= 1 and selected_index <= #polyend_buddy_folders then
+            local selected_folder = polyend_buddy_folders[selected_index]
+            print(string.format("-- Polyend Buddy: Reference folder: %s", selected_folder.display_name))
+            renoise.app():show_status(string.format("Save PTI - suggested folder: %s", selected_folder.display_name))
+          end
+          
+          -- Call the existing PTI save function
+          pti_savesample()
+        end
+      },
+      vb:button{
+        text = "Save WAV",
+        tooltip = "Save current instrument/sample as WAV file",
+        notifier = function()
+          local selected_index = vb.views["save_folders_popup"].value
+          
+          if selected_index >= 1 and selected_index <= #polyend_buddy_folders then
+            local selected_folder = polyend_buddy_folders[selected_index]
+            print(string.format("-- Polyend Buddy: Reference folder: %s", selected_folder.display_name))
+            renoise.app():show_status(string.format("Save WAV - suggested folder: %s", selected_folder.display_name))
+          end
+          
+          -- Call the existing WAV save function
+          pakettiSaveSample("WAV")
+        end
+      }
+    },
+    
+    -- Other action buttons
+    vb:row{
+      spacing = 10,
+      vb:button{
+        text = "Refresh",
+        tooltip = "Rescan the folder for PTI files",
+        notifier = function()
+          if polyend_buddy_root_path and polyend_buddy_root_path ~= "" then
+            update_pti_dropdown(vb)
+            renoise.app():show_status("Refreshed PTI file list")
+          else
+            renoise.app():show_status("Please select a root folder first")
           end
         end
       },
@@ -752,9 +1004,12 @@ function show_polyend_buddy_dialog()
     return
   end
   
+  -- Initialize root path from preferences
+  initialize_polyend_root_path()
+  
   local vb = renoise.ViewBuilder()
   polyend_buddy_dialog = renoise.app():show_custom_dialog(
-    "Polyend Buddy", 
+    "Polyend Buddy - PTI File Browser", 
     create_polyend_buddy_dialog(vb), 
     polyend_buddy_key_handler
   )

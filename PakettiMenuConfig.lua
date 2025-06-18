@@ -644,7 +644,10 @@ if preferences.pakettiMenuConfig.Mixer then
 
 
   renoise.tool():add_menu_entry{name="Mixer:Paketti..:Show/Hide User Preference Devices Master Dialog...",invoke=function() pakettiUserPreferencesShowerDialog() end}
-
+  renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Automation..:Snapshot All Devices on Selected Track to Automation",invoke = snapshot_all_devices_to_automation}
+  renoise.tool():add_menu_entry{name="Mixer:Paketti..:Automation..:Snapshot Selected Device to Automation",invoke = snapshot_selected_device_to_automation}
+  renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Automation..:Convert FX to Automation",invoke = read_fx_to_automation}
+  
   renoise.tool():add_menu_entry{name="Mixer:Paketti..:Duplicate Track Duplicate Instrument",invoke=function() duplicateTrackDuplicateInstrument() end}
   renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Value Interpolation Looper Dialog...",invoke = pakettiVolumeInterpolationLooper}
   renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Nudge Delay Output +01ms",invoke=function() nudge_output_delay(1, false) end}
@@ -798,6 +801,11 @@ if preferences.pakettiMenuConfig.PatternEditor then
     end
   end}
   renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti Gadgets..:(WIP) Paketti Tuplet Writer Dialog...",invoke=function() pakettiTupletDialog() end}
+
+  renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Automation..:Snapshot All Devices on Selected Track to Automation",invoke = snapshot_all_devices_to_automation}
+  renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Automation..:Snapshot Selected Device to Automation",invoke = snapshot_selected_device_to_automation}
+  renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Automation..:Convert FX to Automation",invoke = read_fx_to_automation}
+  
 
   renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Note Columns..:Generate Delay Value on Note Columns",invoke=function() GenerateDelayValue("row") end}
   renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Note Columns..:Generate Delay Value on Entire Pattern",invoke=function() GenerateDelayValue("pattern") end}
@@ -1647,7 +1655,9 @@ renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti Gadgets..:Paketti B
 -- Pattern Matrix Devices
 renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Devices..:Insert Stereo -> Mono device to End of ALL DSP Chains",invoke=function() insertMonoToAllTracksEnd() end}
 
+
 -- Pattern Matrix Automation
+renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti..:Automation..:Snapshot All Devices on Selected Track to Automation",invoke = snapshot_all_devices_to_automation}
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Automation Curves..:Center to Top (Exp) for Pattern Matrix Selection",invoke=automation_center_to_top_exp }
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Automation Curves..:Top to Center (Exp) for Pattern Matrix Selection",invoke=automation_top_to_center_exp }
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti..:Automation Curves..:Center to Bottom (Exp) for Pattern Matrix Selection",invoke=automation_center_to_bottom_exp }
@@ -1841,6 +1851,10 @@ if preferences.pakettiMenuConfig.TrackDSPDevice then
 renoise.tool():add_menu_entry{name="DSP Device Automation:Follow Off",invoke=function() renoise.song().transport.follow_player=false end}
 renoise.tool():add_menu_entry{name="DSP Device:Paketti..:Open Visible Pages to Fit Plugin Parameter Count",invoke=openVisiblePagesToFitParameters}
 
+
+renoise.tool():add_menu_entry{name="--DSP Device:Paketti..:Automation..:Snapshot All Devices on Selected Track to Automation",invoke = snapshot_all_devices_to_automation}
+renoise.tool():add_menu_entry{name="DSP Device:Paketti..:Automation..:Snapshot Selected Device to Automation",invoke = snapshot_selected_device_to_automation}
+
 renoise.tool():add_menu_entry{name="DSP Device:Paketti..:Show/Hide User Preference Devices Master Dialog...",invoke=function() pakettiUserPreferencesShowerDialog() end}
 renoise.tool():add_menu_entry{name="DSP Device:Paketti..:Populate Send Tracks for All Tracks",invoke=PakettiPopulateSendTracksAllTracks}
 renoise.tool():add_menu_entry{name="DSP Device:Paketti..:Populate Send Tracks for Selected Track",invoke=PakettiPopulateSendTracksSelectedTrack}
@@ -1893,7 +1907,11 @@ end
 --- Track Automation Config
 if preferences.pakettiMenuConfig.Automation then
   print ("Automation Menus Are Enabled")
-  renoise.tool():add_menu_entry{name="Track Automation:Paketti..:Start/Stop Pattern Follow",invoke=function() local fp=renoise.song().transport.follow_player if not fp then fp=true else fp=false end end}
+renoise.tool():add_menu_entry{name="Track Automation:Paketti..:Start/Stop Pattern Follow",invoke=function() local fp=renoise.song().transport.follow_player if not fp then fp=true else fp=false end end}
+
+renoise.tool():add_menu_entry{name="--Track Automation:Paketti..:Snapshot All Devices on Selected Track to Automation",invoke = snapshot_all_devices_to_automation}
+renoise.tool():add_menu_entry{name="Track Automation:Paketti..:Snapshot Selected Device to Automation",invoke = snapshot_selected_device_to_automation}
+
 renoise.tool():add_menu_entry({name="Track Automation:Paketti..:Automation Curves..:Top to Top",invoke=function() apply_constant_automation_top_to_top() end})
 renoise.tool():add_menu_entry({name="Track Automation:Paketti..:Automation Curves..:Bottom to Bottom",invoke=function() apply_constant_automation_bottom_to_bottom() end})
 renoise.tool():add_menu_entry({name="--Track Automation:Paketti..:Automation Curves..:Selection Up (Exp)",invoke=function() apply_exponential_automation_curveUP() end})
