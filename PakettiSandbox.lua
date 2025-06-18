@@ -450,6 +450,34 @@ function pakettiBpmFromSampleDialog()
       vb:text{id = "lpb_value", text = "", style = "strong", font = "bold"}
     },
     vb:row{
+      vb:checkbox{
+        id = "auto_set_bpm_checkbox",
+        value = false,
+        notifier = function(value)
+          if value then
+            -- Auto-set BPM immediately when checkbox is turned on
+            local beat_sync_lines = vb.views.beat_sync_valuebox.value
+            local lpb = vb.views.lpb_valuebox.value
+            local calculated_bpm = 60 / lpb / length_seconds * beat_sync_lines
+            local transpose = renoise.song().selected_sample.transpose
+            local finetune = renoise.song().selected_sample.fine_tune
+            local cents = (transpose * 100) + (finetune / 128 * 100)
+            local bmp_factor = math.pow(2, (cents / 1200))
+            local calculated_bpm_pitch = calculated_bpm * bmp_factor
+            if calculated_bpm_pitch >= 20 and calculated_bpm_pitch <= 999 then
+              renoise.song().transport.bpm = calculated_bpm_pitch
+              renoise.app():show_status(string.format("Auto-set BPM enabled: BPM set to %.3f", calculated_bpm_pitch))
+            else
+              renoise.app():show_status("Auto-set BPM enabled: BPM outside valid range (20-999)")
+            end
+          else
+            renoise.app():show_status("Auto-set BPM disabled")
+          end
+        end
+      },
+      vb:text{text = "Auto-set BPM", width = textWidth, style = "strong", font = "bold"}
+    },
+    vb:row{
       vb:text{text = "Transpose", width = textWidth, style = "strong", font = "bold"},
       vb:valuebox{
         id = "transpose_valuebox",
@@ -460,6 +488,43 @@ function pakettiBpmFromSampleDialog()
         notifier = function(value)
           renoise.song().selected_sample.transpose = value
           update_calculation()
+          -- Auto-set BPM if checkbox is enabled
+          if vb.views.auto_set_bpm_checkbox and vb.views.auto_set_bpm_checkbox.value then
+            local beat_sync_lines = vb.views.beat_sync_valuebox.value
+            local lpb = vb.views.lpb_valuebox.value
+            local calculated_bpm = 60 / lpb / length_seconds * beat_sync_lines
+            local transpose = renoise.song().selected_sample.transpose
+            local finetune = renoise.song().selected_sample.fine_tune
+            local cents = (transpose * 100) + (finetune / 128 * 100)
+            local bmp_factor = math.pow(2, (cents / 1200))
+            local calculated_bpm_pitch = calculated_bpm * bmp_factor
+            if calculated_bpm_pitch >= 20 and calculated_bpm_pitch <= 999 then
+              renoise.song().transport.bpm = calculated_bpm_pitch
+            end
+          end
+        end
+      },
+      vb:button{
+        text = "0",
+        width = 30,
+        notifier = function()
+          vb.views.transpose_valuebox.value = 0
+          renoise.song().selected_sample.transpose = 0
+          update_calculation()
+          -- Auto-set BPM if checkbox is enabled
+          if vb.views.auto_set_bpm_checkbox and vb.views.auto_set_bpm_checkbox.value then
+            local beat_sync_lines = vb.views.beat_sync_valuebox.value
+            local lpb = vb.views.lpb_valuebox.value
+            local calculated_bpm = 60 / lpb / length_seconds * beat_sync_lines
+            local transpose = renoise.song().selected_sample.transpose
+            local finetune = renoise.song().selected_sample.fine_tune
+            local cents = (transpose * 100) + (finetune / 128 * 100)
+            local bmp_factor = math.pow(2, (cents / 1200))
+            local calculated_bpm_pitch = calculated_bpm * bmp_factor
+            if calculated_bpm_pitch >= 20 and calculated_bpm_pitch <= 999 then
+              renoise.song().transport.bpm = calculated_bpm_pitch
+            end
+          end
         end
       }
     },
@@ -474,6 +539,43 @@ function pakettiBpmFromSampleDialog()
         notifier = function(value)
           renoise.song().selected_sample.fine_tune = value
           update_calculation()
+          -- Auto-set BPM if checkbox is enabled
+          if vb.views.auto_set_bpm_checkbox and vb.views.auto_set_bpm_checkbox.value then
+            local beat_sync_lines = vb.views.beat_sync_valuebox.value
+            local lpb = vb.views.lpb_valuebox.value
+            local calculated_bpm = 60 / lpb / length_seconds * beat_sync_lines
+            local transpose = renoise.song().selected_sample.transpose
+            local finetune = renoise.song().selected_sample.fine_tune
+            local cents = (transpose * 100) + (finetune / 128 * 100)
+            local bmp_factor = math.pow(2, (cents / 1200))
+            local calculated_bpm_pitch = calculated_bpm * bmp_factor
+            if calculated_bpm_pitch >= 20 and calculated_bpm_pitch <= 999 then
+              renoise.song().transport.bpm = calculated_bpm_pitch
+            end
+          end
+        end
+      },
+      vb:button{
+        text = "0",
+        width = 30,
+        notifier = function()
+          vb.views.finetune_valuebox.value = 0
+          renoise.song().selected_sample.fine_tune = 0
+          update_calculation()
+          -- Auto-set BPM if checkbox is enabled
+          if vb.views.auto_set_bpm_checkbox and vb.views.auto_set_bpm_checkbox.value then
+            local beat_sync_lines = vb.views.beat_sync_valuebox.value
+            local lpb = vb.views.lpb_valuebox.value
+            local calculated_bpm = 60 / lpb / length_seconds * beat_sync_lines
+            local transpose = renoise.song().selected_sample.transpose
+            local finetune = renoise.song().selected_sample.fine_tune
+            local cents = (transpose * 100) + (finetune / 128 * 100)
+            local bmp_factor = math.pow(2, (cents / 1200))
+            local calculated_bpm_pitch = calculated_bpm * bmp_factor
+            if calculated_bpm_pitch >= 20 and calculated_bpm_pitch <= 999 then
+              renoise.song().transport.bpm = calculated_bpm_pitch
+            end
+          end
         end
       }
     },
