@@ -301,24 +301,55 @@ function pakettiBpmFromSampleDialog()
     
     vb:row{
       vb:text{text="Beatsync",width=60,style="strong",font="bold"},
-      vb:valuebox{
-        id = "beat_sync_valuebox",
-        min = 1,
-        max = 512,
-        value = current_beat_sync,
-        width = 50,
-        notifier = function() update_calculation() end
+      vb:valuebox{id = "beat_sync_valuebox",min=1,max=512,value = current_beat_sync,
+        width = 50,notifier = function(value)
+          update_calculation()
+          renoise.song().selected_sample.beat_sync_lines = value
+        end
+      },
+      vb:switch{
+        items = {"OFF", "4", "8", "16", "32", "64", "128", "256", "512"},
+        value = 1,
+        width = 200,
+        notifier = function(index)
+          local values = {0, 4, 8, 16, 32, 64, 128, 256, 512}
+          local selected_value = values[index]
+          
+          if selected_value == 0 then
+            renoise.song().selected_sample.beat_sync_enabled = false
+            renoise.app():show_status("Beatsync deactivated")
+          else
+            vb.views.beat_sync_valuebox.value = selected_value
+            renoise.song().selected_sample.beat_sync_enabled = true
+            renoise.song().selected_sample.beat_sync_lines = selected_value
+            renoise.app():show_status(string.format("Beatsync set to %d lines", selected_value))
+          end
+          update_calculation()
+        end
       },
       vb:button{
-        text = "Set",
-        width = 40,
+        text = "/2",
+        width = 30,
         notifier = function()
-          local beat_sync_lines = vb.views.beat_sync_valuebox.value
-          local current_song = renoise.song()
-          local current_sample = current_song.selected_sample
-          current_sample.beat_sync_enabled = true
-          current_sample.beat_sync_lines = beat_sync_lines
-          renoise.app():show_status(string.format("Beat Sync enabled and set to %d lines", beat_sync_lines))
+          local current_value = vb.views.beat_sync_valuebox.value
+          local new_value = math.max(1, math.floor(current_value / 2))
+          vb.views.beat_sync_valuebox.value = new_value
+          renoise.song().selected_sample.beat_sync_enabled = true
+          renoise.song().selected_sample.beat_sync_lines = new_value
+          renoise.app():show_status(string.format("Beatsync set to %d lines", new_value))
+          update_calculation()
+        end
+      },
+      vb:button{
+        text = "*2",
+        width = 30,
+        notifier = function()
+          local current_value = vb.views.beat_sync_valuebox.value
+          local new_value = math.min(512, current_value * 2)
+          vb.views.beat_sync_valuebox.value = new_value
+          renoise.song().selected_sample.beat_sync_enabled = true
+          renoise.song().selected_sample.beat_sync_lines = new_value
+          renoise.app():show_status(string.format("Beatsync set to %d lines", new_value))
           update_calculation()
         end
       }
@@ -334,6 +365,20 @@ function pakettiBpmFromSampleDialog()
         width = 50,
         notifier = function(value)
           renoise.song().transport.lpb = value
+          renoise.app():show_status(string.format("LPB set to %d", value))
+          update_calculation()
+        end
+      },
+      vb:switch{
+        items = {"1", "2", "4", "8", "16", "24", "32", "48", "64"},
+        value = 3,
+        width = 200,
+        notifier = function(index)
+          local values = {1, 2, 4, 8, 16, 24, 32, 48, 64}
+          local selected_value = values[index]
+          vb.views.lpb_valuebox.value = selected_value
+          renoise.song().transport.lpb = selected_value
+          renoise.app():show_status(string.format("LPB set to %d", selected_value))
           update_calculation()
         end
       },
@@ -345,6 +390,7 @@ function pakettiBpmFromSampleDialog()
           local new_value = math.max(1, math.floor(current_value / 2))
           vb.views.lpb_valuebox.value = new_value
           renoise.song().transport.lpb = new_value
+          renoise.app():show_status(string.format("LPB set to %d", new_value))
           update_calculation()
         end
       },
@@ -356,42 +402,7 @@ function pakettiBpmFromSampleDialog()
           local new_value = math.min(256, current_value * 2)
           vb.views.lpb_valuebox.value = new_value
           renoise.song().transport.lpb = new_value
-          update_calculation()
-        end
-      },
-      vb:button{
-        text = "4",
-        width = 20,
-        notifier = function()
-          vb.views.lpb_valuebox.value = 4
-          renoise.song().transport.lpb = 4
-          update_calculation()
-        end
-      },
-      vb:button{
-        text = "8",
-        width = 20,
-        notifier = function()
-          vb.views.lpb_valuebox.value = 8
-          renoise.song().transport.lpb = 8
-          update_calculation()
-        end
-      },
-      vb:button{
-        text = "16",
-        width = 20,
-        notifier = function()
-          vb.views.lpb_valuebox.value = 16
-          renoise.song().transport.lpb = 16
-          update_calculation()
-        end
-      },
-      vb:button{
-        text = "32",
-        width = 20,
-        notifier = function()
-          vb.views.lpb_valuebox.value = 32
-          renoise.song().transport.lpb = 32
+          renoise.app():show_status(string.format("LPB set to %d", new_value))
           update_calculation()
         end
       }
@@ -400,27 +411,27 @@ function pakettiBpmFromSampleDialog()
     -- Information display in two columns
     
     vb:row{
-      vb:text{text = "Instrument", width = textWidth},
+      vb:text{text = "Instrument", width = textWidth, style = "strong", font = "bold"},
       vb:text{id = "instrument_value", text = "", style = "strong", font = "bold"}
     },
     vb:row{
-      vb:text{text = "Sample", width = textWidth},
+      vb:text{text = "Sample", width = textWidth, style = "strong", font = "bold"},
       vb:text{id = "sample_value", text = "", style = "strong", font = "bold"}
     },
     vb:row{
-      vb:text{text = "Length", width = textWidth},
+      vb:text{text = "Length", width = textWidth, style = "strong", font = "bold"},
       vb:text{id = "length_value", text = "", style = "strong", font = "bold"}
     },
     vb:row{
-      vb:text{text = "Beatsync", width = textWidth},
+      vb:text{text = "Beatsync", width = textWidth, style = "strong", font = "bold"},
       vb:text{id = "beatsync_value", text = "", style = "strong", font = "bold"}
     },
     vb:row{
-      vb:text{text = "LPB", width = textWidth},
+      vb:text{text = "LPB", width = textWidth, style = "strong", font = "bold"},
       vb:text{id = "lpb_value", text = "", style = "strong", font = "bold"}
     },
     vb:row{
-      vb:text{text = "Calculated BPM", width = textWidth},
+      vb:text{text = "Calculated BPM", width = textWidth, style = "strong", font = "bold"},
       vb:text{id = "bpm_value", text = "", style = "strong", font = "bold"}
     },
     
@@ -442,7 +453,7 @@ function pakettiBpmFromSampleDialog()
     vb:row{
       vb:button{
         text = "BPM",
-        width = 120,
+        width = 123,
         notifier = function()
           local calculated_bpm = update_calculation()
           if calculated_bpm >= 20 and calculated_bpm <= 999 then
@@ -460,7 +471,7 @@ function pakettiBpmFromSampleDialog()
       },
       vb:button{
         text = "BPM&Note",
-        width = 120,
+        width = 123,
         notifier = function()
           local calculated_bpm = update_calculation()
           if calculated_bpm >= 20 and calculated_bpm <= 999 then
@@ -479,7 +490,7 @@ function pakettiBpmFromSampleDialog()
       },
       vb:button{
         text = "Note",
-        width = 90,
+        width = 124,
         notifier = function()
           local beat_sync_lines = vb.views.beat_sync_valuebox.value
           local current_song = renoise.song()
@@ -488,6 +499,21 @@ function pakettiBpmFromSampleDialog()
           current_sample.beat_sync_lines = beat_sync_lines
           write_note_to_pattern()
           renoise.app():show_status(string.format("Beat Sync enabled and set to %d lines, Note written to track (BPM unchanged)", beat_sync_lines))
+        end
+      }
+    },
+    
+    -- Convert Beatsync to Pitch button
+    vb:row{
+      vb:button{
+        text = "Convert Beatsync to Pitch",
+        width = 370,
+        notifier = function()
+          -- Just call the standalone function which has all the debug output
+          convert_beatsync_to_pitch()
+          
+          -- Update the dialog after conversion
+          update_calculation()
         end
       }
     },
@@ -503,7 +529,7 @@ function pakettiBpmFromSampleDialog()
     vb:row{
       vb:button{
         text = "BPM",
-        width = 120,
+        width = 123,
         notifier = function()
           local calculated_bpm = update_calculation()
           if calculated_bpm >= 20 and calculated_bpm <= 999 then
@@ -567,7 +593,7 @@ function pakettiBpmFromSampleDialog()
       },
       vb:button{
         text = "BPM&Note",
-        width = 120,
+        width = 123,
         notifier = function()
           local calculated_bpm = update_calculation()
           if calculated_bpm >= 20 and calculated_bpm <= 999 then
@@ -621,7 +647,7 @@ function pakettiBpmFromSampleDialog()
       },
       vb:button{
         text = "Note",
-        width = 90,
+        width = 124,
         notifier = function()
           local calculated_bpm = update_calculation()
           if calculated_bpm >= 20 and calculated_bpm <= 999 then
@@ -676,7 +702,7 @@ function pakettiBpmFromSampleDialog()
     vb:row{
       vb:button{
         text = "Close",
-        width = 330,
+        width = 370,
         notifier = function()
           -- Remove notifiers when dialog closes via button
           local current_song = renoise.song()
@@ -774,6 +800,84 @@ function debug_sample_length_precision()
   end
 end
 
+-- Function to convert beatsync to pitch/finetune
+function convert_beatsync_to_pitch()
+  local current_song = renoise.song()
+  local current_sample = current_song.selected_sample
+  
+  if not current_sample or not current_sample.sample_buffer or not current_sample.sample_buffer.has_sample_data then
+    renoise.app():show_status("No valid sample selected")
+    return
+  end
+  
+  if not current_sample.beat_sync_enabled then
+    renoise.app():show_status("Beatsync is not enabled - nothing to convert")
+    return
+  end
+  
+  local beat_sync_lines = current_sample.beat_sync_lines
+  local bpm = current_song.transport.bpm
+  local lpb = current_song.transport.lpb
+  
+  -- Calculate sample length
+  local buffer = current_sample.sample_buffer
+  local sample_seconds = buffer.number_of_frames / buffer.sample_rate
+  
+  print("\n=== CONVERT BEATSYNC TO PITCH DEBUG ===")
+  print("Beat sync lines: " .. beat_sync_lines)
+  print("BPM: " .. bpm)
+  print("LPB: " .. lpb)
+  print("Sample seconds: " .. string.format("%.6f", sample_seconds))
+  print("Sample frames: " .. buffer.number_of_frames)
+  print("Sample rate: " .. buffer.sample_rate)
+  
+  -- Store original values
+  local original_transpose = current_sample.transpose
+  local original_finetune = current_sample.fine_tune
+  print("Original transpose: " .. original_transpose)
+  print("Original finetune: " .. original_finetune)
+  
+  -- Calculate how long the beatsync duration is in seconds
+  local beatsync_duration_seconds = beat_sync_lines * (60 / bpm / lpb)
+  print("Beatsync duration: " .. beat_sync_lines .. " * (60 / " .. bpm .. " / " .. lpb .. ") = " .. string.format("%.6f", beatsync_duration_seconds))
+  
+  -- The factor should be: how much faster should the sample play 
+  -- to compress its natural length into the beatsync duration
+  -- If beatsync duration is shorter, sample needs to play faster (higher pitch)
+  local factor = sample_seconds / beatsync_duration_seconds
+  print("Factor: " .. string.format("%.6f", sample_seconds) .. " / " .. string.format("%.6f", beatsync_duration_seconds) .. " = " .. string.format("%.6f", factor))
+  
+  -- Convert to transpose and finetune
+  local log_factor = math.log(factor) / math.log(2)
+  print("Log2 factor: " .. string.format("%.6f", log_factor))
+  
+  local semitones = 12 * log_factor
+  print("Semitones: 12 * " .. string.format("%.6f", log_factor) .. " = " .. string.format("%.6f", semitones))
+  
+  local transpose, finetune_fraction = math.modf(semitones)
+  local finetune = math.floor(finetune_fraction * 128)
+  
+  print("Before clamping - Transpose: " .. transpose .. ", Finetune fraction: " .. string.format("%.6f", finetune_fraction) .. ", Finetune: " .. finetune)
+  
+  -- Clamp values to valid ranges
+  transpose = math.max(-120, math.min(120, transpose))
+  finetune = math.max(-127, math.min(127, finetune))
+  
+  print("After clamping - Transpose: " .. transpose .. ", Finetune: " .. finetune)
+  
+  -- Turn off beatsync and apply pitch values
+  current_sample.beat_sync_enabled = false
+  current_sample.transpose = transpose
+  current_sample.fine_tune = finetune
+  
+  print("Applied - Beatsync enabled: " .. tostring(current_sample.beat_sync_enabled))
+  print("Applied - New transpose: " .. current_sample.transpose)
+  print("Applied - New finetune: " .. current_sample.fine_tune)
+  print("=== END DEBUG ===\n")
+  
+  renoise.app():show_status(string.format("Beatsync %d converted to Transpose %d and Finetune %d", beat_sync_lines, transpose, finetune))
+end
+
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Calculate Selected Sample Length",invoke=calculate_selected_sample_length}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Show Selected Sample Length",invoke=show_selected_sample_length}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Calculate Sample Selection Length",invoke=calculate_sample_selection_length}
@@ -781,6 +885,7 @@ renoise.tool():add_keybinding{name="Sample Editor:Paketti:Calculate BPM from Sam
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Set BPM from Sample Length",invoke=set_bpm_from_sample_beatsync}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Show BPM Calculation Dialog...",invoke=pakettiBpmFromSampleDialog}
 renoise.tool():add_keybinding{name="Global:Paketti:Show BPM Calculation Dialog...",invoke=pakettiBpmFromSampleDialog}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Convert Beatsync to Sample Pitch",invoke=convert_beatsync_to_pitch}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Debug Sample Length Precision",invoke=debug_sample_length_precision}
 
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti Gadgets..:BPM Calculation Dialog...",invoke=pakettiBpmFromSampleDialog}
@@ -857,6 +962,8 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Show Only Volume Colu
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Show Only Panning Columns",invoke=function() showOnlyColumnType("panning") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Show Only Delay Columns",invoke=function() showOnlyColumnType("delay") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Show Only Effect Columns",invoke=function() showOnlyColumnType("effects") end}
+
+
 --
 function detect_zero_crossings()
     local song=renoise.song()
