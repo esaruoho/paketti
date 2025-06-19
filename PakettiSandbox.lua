@@ -554,6 +554,13 @@ function pakettiBpmFromSampleDialog()
         width = 60,
         notifier = function(value)
           renoise.song().selected_sample.transpose = value
+          -- Update vinyl pitch slider to match (vinyl-style calculation)
+          local current_finetune = vb.views.finetune_valuebox.value
+          -- Convert transpose + finetune back to continuous vinyl position
+          local vinyl_pitch_value = (value * 255) + current_finetune
+          vinyl_pitch_value = vinyl_pitch_value / 1.5  -- Scale back down to match new scaling
+          vinyl_pitch_value = math.max(-2000, math.min(2000, vinyl_pitch_value))
+          vb.views.vinyl_pitch_slider.value = vinyl_pitch_value
           update_calculation()
           -- Auto-set BPM if checkbox is enabled
           if vb.views.auto_set_bpm_pitch_checkbox and vb.views.auto_set_bpm_pitch_checkbox.value then
@@ -577,6 +584,13 @@ function pakettiBpmFromSampleDialog()
         notifier = function()
           vb.views.transpose_valuebox.value = 0
           renoise.song().selected_sample.transpose = 0
+          -- Update vinyl pitch slider to match (vinyl-style calculation)
+          local current_finetune = vb.views.finetune_valuebox.value
+          -- Convert transpose + finetune back to continuous vinyl position
+          local vinyl_pitch_value = (0 * 255) + current_finetune
+          vinyl_pitch_value = vinyl_pitch_value / 1.5  -- Scale back down to match new scaling
+          vinyl_pitch_value = math.max(-2000, math.min(2000, vinyl_pitch_value))
+          vb.views.vinyl_pitch_slider.value = vinyl_pitch_value
           update_calculation()
           -- Auto-set BPM if checkbox is enabled
           if vb.views.auto_set_bpm_pitch_checkbox and vb.views.auto_set_bpm_pitch_checkbox.value then
@@ -605,6 +619,13 @@ function pakettiBpmFromSampleDialog()
         width = 60,
         notifier = function(value)
           renoise.song().selected_sample.fine_tune = value
+          -- Update vinyl pitch slider to match (vinyl-style calculation)
+          local current_transpose = vb.views.transpose_valuebox.value
+          -- Convert transpose + finetune back to continuous vinyl position
+          local vinyl_pitch_value = (current_transpose * 255) + value
+          vinyl_pitch_value = vinyl_pitch_value / 1.5  -- Scale back down to match new scaling
+          vinyl_pitch_value = math.max(-2000, math.min(2000, vinyl_pitch_value))
+          vb.views.vinyl_pitch_slider.value = vinyl_pitch_value
           update_calculation()
           -- Auto-set BPM if checkbox is enabled
           if vb.views.auto_set_bpm_pitch_checkbox and vb.views.auto_set_bpm_pitch_checkbox.value then
@@ -627,6 +648,111 @@ function pakettiBpmFromSampleDialog()
         width = 30,
         notifier = function()
           vb.views.finetune_valuebox.value = 0
+          renoise.song().selected_sample.fine_tune = 0
+          -- Update vinyl pitch slider to match (vinyl-style calculation)
+          local current_transpose = vb.views.transpose_valuebox.value
+          -- Convert transpose + finetune back to continuous vinyl position
+          local vinyl_pitch_value = (current_transpose * 255) + 0
+          vinyl_pitch_value = vinyl_pitch_value / 1.5  -- Scale back down to match new scaling
+          vinyl_pitch_value = math.max(-2000, math.min(2000, vinyl_pitch_value))
+          vb.views.vinyl_pitch_slider.value = vinyl_pitch_value
+          update_calculation()
+          -- Auto-set BPM if checkbox is enabled
+          if vb.views.auto_set_bpm_pitch_checkbox and vb.views.auto_set_bpm_pitch_checkbox.value then
+            local beat_sync_lines = vb.views.beat_sync_valuebox.value
+            local lpb = vb.views.lpb_valuebox.value
+            local calculated_bpm = 60 / lpb / length_seconds * beat_sync_lines
+            local transpose = renoise.song().selected_sample.transpose
+            local finetune = renoise.song().selected_sample.fine_tune
+            local cents = (transpose * 100) + (finetune / 128 * 100)
+            local bpm_factor = math.pow(2, (cents / 1200))
+            local calculated_bpm_pitch = calculated_bpm * bpm_factor
+            if calculated_bpm_pitch >= 20 and calculated_bpm_pitch <= 999 then
+              renoise.song().transport.bpm = calculated_bpm_pitch
+            end
+          end
+        end
+      }
+    },
+    
+    -- Vinyl Pitch Slider (continuous transpose + finetune control)
+    vb:row{
+      vb:text{text = "Vinyl Pitch", width = textWidth, style = "strong", font = "bold"}
+    },
+    vb:row{
+      vb:slider{
+        id = "vinyl_pitch_slider",
+        min = -2000,  -- Increased range for more fidelity
+        max = 2000,   -- Increased range for more fidelity
+        value = 0,
+        width = 340,  -- Full dialog width minus some margin
+        steps = {1, -1},  -- Fine step increments for precision
+        notifier = function(value)
+          -- Vinyl-style pitch control: continuous finetune with transpose rollover
+          -- Each step moves finetune, when finetune hits ±127 it rolls to next semitone
+          
+          -- Convert vinyl slider value to continuous finetune position
+          local total_finetune = value * 1.5  -- Scale for finer control with larger range
+          
+          -- Calculate how many complete semitone cycles we've crossed
+          local transpose = 0
+          local finetune = total_finetune
+          
+          -- Handle positive direction (going up in pitch)
+          while finetune > 127 do
+            transpose = transpose + 1
+            finetune = finetune - 255  -- Jump from +127 to -127, then continue
+          end
+          
+          -- Handle negative direction (going down in pitch)  
+          while finetune < -127 do
+            transpose = transpose - 1
+            finetune = finetune + 255  -- Jump from -127 to +127, then continue
+          end
+          
+          -- Clamp transpose to valid range
+          transpose = math.max(-120, math.min(120, transpose))
+          
+          -- If we hit transpose limits, adjust finetune accordingly
+          if transpose == -120 and finetune < -127 then
+            finetune = -127
+          elseif transpose == 120 and finetune > 127 then
+            finetune = 127
+          end
+          
+          -- Round finetune to integer
+          finetune = math.floor(finetune + 0.5)
+          
+          -- Update valueboxes and sample
+          vb.views.transpose_valuebox.value = transpose
+          vb.views.finetune_valuebox.value = finetune
+          renoise.song().selected_sample.transpose = transpose
+          renoise.song().selected_sample.fine_tune = finetune
+          
+          update_calculation()
+          
+          -- Auto-set BPM if checkbox is enabled
+          if vb.views.auto_set_bpm_pitch_checkbox and vb.views.auto_set_bpm_pitch_checkbox.value then
+            local beat_sync_lines = vb.views.beat_sync_valuebox.value
+            local lpb = vb.views.lpb_valuebox.value
+            local calculated_bpm = 60 / lpb / length_seconds * beat_sync_lines
+            local cents = (transpose * 100) + (finetune / 128 * 100)
+            local bpm_factor = math.pow(2, (cents / 1200))
+            local calculated_bpm_pitch = calculated_bpm * bpm_factor
+            if calculated_bpm_pitch >= 20 and calculated_bpm_pitch <= 999 then
+              renoise.song().transport.bpm = calculated_bpm_pitch
+            end
+          end
+        end
+      },
+      vb:button{
+        text = "0",
+        width = 30,
+        notifier = function()
+          vb.views.vinyl_pitch_slider.value = 0
+          vb.views.transpose_valuebox.value = 0
+          vb.views.finetune_valuebox.value = 0
+          renoise.song().selected_sample.transpose = 0
           renoise.song().selected_sample.fine_tune = 0
           update_calculation()
           -- Auto-set BPM if checkbox is enabled
@@ -947,6 +1073,18 @@ function pakettiBpmFromSampleDialog()
   end
   if vb.views.finetune_valuebox then
     vb.views.finetune_valuebox.value = sample.fine_tune
+  end
+  
+  -- Initialize vinyl pitch slider from current sample values
+  if vb.views.vinyl_pitch_slider then
+    -- Convert current transpose + finetune to vinyl position
+    local vinyl_pitch_value = (sample.transpose * 255) + sample.fine_tune
+    vinyl_pitch_value = vinyl_pitch_value / 1.5  -- Scale back down to match new scaling
+    -- Clamp to slider range
+    vinyl_pitch_value = math.max(-2000, math.min(2000, vinyl_pitch_value))
+    vb.views.vinyl_pitch_slider.value = vinyl_pitch_value
+    print(string.format("-- Vinyl Pitch Slider initialized: transpose=%d, finetune=%d, vinyl_value=%d", 
+      sample.transpose, sample.fine_tune, vinyl_pitch_value))
   end
   
   dialog = renoise.app():show_custom_dialog("BPM from Sample Length", dialog_content, function(dialog, key)
