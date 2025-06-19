@@ -183,6 +183,9 @@ function pakettiBpmFromSampleDialog()
   local vb = renoise.ViewBuilder()
   if dialog and dialog.visible then dialog:close() dialog=nil return end
   
+  -- Flag to prevent vinyl slider notifier from firing during initialization
+  local initializing_vinyl_slider = false
+  
   
   
   -- Get initial values
@@ -688,6 +691,11 @@ function pakettiBpmFromSampleDialog()
         width = 340,  -- Full dialog width minus some margin
         steps = {1, -1},  -- Fine step increments for precision
         notifier = function(value)
+          -- Skip notifier during initialization to prevent overwriting sample values
+          if initializing_vinyl_slider then
+            return
+          end
+          
           -- Vinyl-style pitch control: continuous finetune with transpose rollover
           -- Each step moves finetune, when finetune hits ±127 it rolls to next semitone
           
@@ -1077,6 +1085,9 @@ function pakettiBpmFromSampleDialog()
   
   -- Initialize vinyl pitch slider from current sample values
   if vb.views.vinyl_pitch_slider then
+    -- Set flag to prevent notifier from firing during initialization
+    initializing_vinyl_slider = true
+    
     -- Convert current transpose + finetune to vinyl position
     local vinyl_pitch_value = (sample.transpose * 255) + sample.fine_tune
     vinyl_pitch_value = vinyl_pitch_value / 1.5  -- Scale back down to match new scaling
@@ -1085,6 +1096,9 @@ function pakettiBpmFromSampleDialog()
     vb.views.vinyl_pitch_slider.value = vinyl_pitch_value
     print(string.format("-- Vinyl Pitch Slider initialized: transpose=%d, finetune=%d, vinyl_value=%d", 
       sample.transpose, sample.fine_tune, vinyl_pitch_value))
+    
+    -- Clear flag to allow normal operation
+    initializing_vinyl_slider = false
   end
   
   dialog = renoise.app():show_custom_dialog("BPM from Sample Length", dialog_content, function(dialog, key)
