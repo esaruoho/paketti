@@ -271,8 +271,8 @@ function pakettiBpmFromSampleDialog()
     local transpose = current_sample.transpose
     local finetune = current_sample.fine_tune
     local cents = (transpose * 100) + (finetune / 128 * 100)
-    local bmp_factor = math.pow(2, (cents / 1200))
-    local calculated_bpm_pitch = calculated_bpm * bmp_factor
+    local bpm_factor = math.pow(2, (cents / 1200))
+    local calculated_bpm_pitch = calculated_bpm * bpm_factor
     
     -- Update each value individually
     vb.views.instrument_value.text = string.format("%s (%s)", instrument_hex, current_instrument.name)
@@ -529,8 +529,8 @@ function pakettiBpmFromSampleDialog()
             local transpose = renoise.song().selected_sample.transpose
             local finetune = renoise.song().selected_sample.fine_tune
             local cents = (transpose * 100) + (finetune / 128 * 100)
-            local bmp_factor = math.pow(2, (cents / 1200))
-            local calculated_bpm_pitch = calculated_bpm * bmp_factor
+            local bpm_factor = math.pow(2, (cents / 1200))
+            local calculated_bpm_pitch = calculated_bpm * bpm_factor
             if calculated_bpm_pitch >= 20 and calculated_bpm_pitch <= 999 then
               renoise.song().transport.bpm = calculated_bpm_pitch
               renoise.app():show_status(string.format("Auto-set BPM (Pitch) enabled: BPM set to %.3f", calculated_bpm_pitch))
@@ -570,9 +570,9 @@ function pakettiBpmFromSampleDialog()
             local transpose = renoise.song().selected_sample.transpose
             local finetune = renoise.song().selected_sample.fine_tune
             local cents = (transpose * 100) + (finetune / 128 * 100)
-            local bmp_factor = math.pow(2, (cents / 1200))
-            local calculated_bpm_pitch = calculated_bpm * bmp_factor
-            if calculated_bmp_pitch >= 20 and calculated_bmp_pitch <= 999 then
+            local bpm_factor = math.pow(2, (cents / 1200))
+            local calculated_bpm_pitch = calculated_bpm * bpm_factor
+            if calculated_bpm_pitch >= 20 and calculated_bpm_pitch <= 999 then
               renoise.song().transport.bpm = calculated_bpm_pitch
             end
           end
@@ -600,10 +600,10 @@ function pakettiBpmFromSampleDialog()
             local transpose = renoise.song().selected_sample.transpose
             local finetune = renoise.song().selected_sample.fine_tune
             local cents = (transpose * 100) + (finetune / 128 * 100)
-            local bmp_factor = math.pow(2, (cents / 1200))
-            local calculated_bpm_pitch = calculated_bpm * bmp_factor
-            if calculated_bmp_pitch >= 20 and calculated_bmp_pitch <= 999 then
-              renoise.song().transport.bpm = calculated_bmp_pitch
+            local bpm_factor = math.pow(2, (cents / 1200))
+            local calculated_bpm_pitch = calculated_bpm * bpm_factor
+            if calculated_bpm_pitch >= 20 and calculated_bpm_pitch <= 999 then
+              renoise.song().transport.bpm = calculated_bpm_pitch
             end
           end
         end
@@ -635,10 +635,10 @@ function pakettiBpmFromSampleDialog()
             local transpose = renoise.song().selected_sample.transpose
             local finetune = renoise.song().selected_sample.fine_tune
             local cents = (transpose * 100) + (finetune / 128 * 100)
-            local bmp_factor = math.pow(2, (cents / 1200))
-            local calculated_bmp_pitch = calculated_bpm * bmp_factor
-            if calculated_bmp_pitch >= 20 and calculated_bmp_pitch <= 999 then
-              renoise.song().transport.bpm = calculated_bmp_pitch
+            local bpm_factor = math.pow(2, (cents / 1200))
+            local calculated_bpm_pitch = calculated_bpm * bpm_factor
+            if calculated_bpm_pitch >= 20 and calculated_bpm_pitch <= 999 then
+              renoise.song().transport.bpm = calculated_bpm_pitch
             end
           end
         end
@@ -665,8 +665,8 @@ function pakettiBpmFromSampleDialog()
             local transpose = renoise.song().selected_sample.transpose
             local finetune = renoise.song().selected_sample.fine_tune
             local cents = (transpose * 100) + (finetune / 128 * 100)
-            local bmp_factor = math.pow(2, (cents / 1200))
-            local calculated_bpm_pitch = calculated_bpm * bmp_factor
+            local bpm_factor = math.pow(2, (cents / 1200))
+            local calculated_bpm_pitch = calculated_bpm * bpm_factor
             if calculated_bpm_pitch >= 20 and calculated_bpm_pitch <= 999 then
               renoise.song().transport.bpm = calculated_bpm_pitch
             end
@@ -737,10 +737,10 @@ function pakettiBpmFromSampleDialog()
             local lpb = vb.views.lpb_valuebox.value
             local calculated_bpm = 60 / lpb / length_seconds * beat_sync_lines
             local cents = (transpose * 100) + (finetune / 128 * 100)
-            local bmp_factor = math.pow(2, (cents / 1200))
-            local calculated_bmp_pitch = calculated_bpm * bmp_factor
-            if calculated_bmp_pitch >= 20 and calculated_bmp_pitch <= 999 then
-              renoise.song().transport.bpm = calculated_bmp_pitch
+            local bpm_factor = math.pow(2, (cents / 1200))
+            local calculated_bpm_pitch = calculated_bpm * bpm_factor
+            if calculated_bpm_pitch >= 20 and calculated_bpm_pitch <= 999 then
+              renoise.song().transport.bpm = calculated_bpm_pitch
             end
           end
         end
@@ -763,10 +763,10 @@ function pakettiBpmFromSampleDialog()
             local transpose = renoise.song().selected_sample.transpose
             local finetune = renoise.song().selected_sample.fine_tune
             local cents = (transpose * 100) + (finetune / 128 * 100)
-            local bmp_factor = math.pow(2, (cents / 1200))
-            local calculated_bmp_pitch = calculated_bpm * bmp_factor
-            if calculated_bmp_pitch >= 20 and calculated_bmp_pitch <= 999 then
-              renoise.song().transport.bpm = calculated_bmp_pitch
+            local bpm_factor = math.pow(2, (cents / 1200))
+            local calculated_bpm_pitch = calculated_bpm * bpm_factor
+            if calculated_bpm_pitch >= 20 and calculated_bpm_pitch <= 999 then
+              renoise.song().transport.bpm = calculated_bpm_pitch
             end
           end
         end
@@ -878,8 +878,8 @@ function pakettiBpmFromSampleDialog()
           local transpose = current_sample.transpose
           local finetune = current_sample.fine_tune
           local cents = (transpose * 100) + (finetune / 128 * 100)
-          local bmp_factor = math.pow(2, (cents / 1200))
-          local calculated_bpm = 60 / current_lpb / length_seconds * beat_sync_lines * bmp_factor
+          local bpm_factor = math.pow(2, (cents / 1200))
+          local calculated_bpm = 60 / current_lpb / length_seconds * beat_sync_lines * bpm_factor
           
           print("\n=== PITCH-COMPENSATED BPM CALCULATION DEBUG (BPM Button) ===")
           print("Sample length: " .. string.format("%.6f", length_seconds) .. " seconds")
@@ -888,8 +888,8 @@ function pakettiBpmFromSampleDialog()
           print("Transpose: " .. transpose)
           print("Finetune: " .. finetune)
           print("Cents calculation: (" .. transpose .. " * 100) + (" .. finetune .. " / 128 * 100) = " .. string.format("%.6f", cents))
-          print("BMP factor: 2^(" .. string.format("%.6f", cents) .. "/1200) = " .. string.format("%.6f", bmp_factor))
-          print("BPM calculation: 60 / " .. current_lpb .. " / " .. string.format("%.6f", length_seconds) .. " * " .. beat_sync_lines .. " * " .. string.format("%.6f", bmp_factor))
+          print("BPM factor: 2^(" .. string.format("%.6f", cents) .. "/1200) = " .. string.format("%.6f", bpm_factor))
+          print("BPM calculation: 60 / " .. current_lpb .. " / " .. string.format("%.6f", length_seconds) .. " * " .. beat_sync_lines .. " * " .. string.format("%.6f", bpm_factor))
           print("Calculated BPM: " .. string.format("%.6f", calculated_bpm))
           print("=== END DEBUG ===\n")
           
@@ -919,8 +919,8 @@ function pakettiBpmFromSampleDialog()
           local transpose = current_sample.transpose
           local finetune = current_sample.fine_tune
           local cents = (transpose * 100) + (finetune / 128 * 100)
-                    local bmp_factor = math.pow(2, (cents / 1200))
-          local calculated_bpm = 60 / current_lpb / length_seconds * beat_sync_lines * bmp_factor
+                    local bpm_factor = math.pow(2, (cents / 1200))
+          local calculated_bpm = 60 / current_lpb / length_seconds * beat_sync_lines * bpm_factor
           
           print("\n=== PITCH-COMPENSATED BPM CALCULATION DEBUG (BPM&Note Button) ===")
           print("Sample length: " .. string.format("%.6f", length_seconds) .. " seconds")
@@ -929,8 +929,8 @@ function pakettiBpmFromSampleDialog()
           print("Transpose: " .. transpose)
           print("Finetune: " .. finetune)
           print("Cents calculation: (" .. transpose .. " * 100) + (" .. finetune .. " / 128 * 100) = " .. string.format("%.6f", cents))
-          print("BMP factor: 2^(" .. string.format("%.6f", cents) .. "/1200) = " .. string.format("%.6f", bmp_factor))
-          print("BPM calculation: 60 / " .. current_lpb .. " / " .. string.format("%.6f", length_seconds) .. " * " .. beat_sync_lines .. " * " .. string.format("%.6f", bmp_factor))
+          print("BPM factor: 2^(" .. string.format("%.6f", cents) .. "/1200) = " .. string.format("%.6f", bpm_factor))
+          print("BPM calculation: 60 / " .. current_lpb .. " / " .. string.format("%.6f", length_seconds) .. " * " .. beat_sync_lines .. " * " .. string.format("%.6f", bpm_factor))
           print("Calculated BPM: " .. string.format("%.6f", calculated_bpm))
           print("=== END DEBUG ===\n")
           
