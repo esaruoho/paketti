@@ -1975,12 +1975,12 @@ function show_sample_pitch_modifier_dialog()
   
   local textWidth = 80
   
-  -- Pitch range settings
+  -- Pitch range settings (transpose ranges)
   local pitch_ranges = {
-    {name = "Fine", range = 1000, scale = 0.75},     -- Very precise, small range
-    {name = "Normal", range = 2000, scale = 1.5},    -- Default range
-    {name = "Wide", range = 5000, scale = 3.75},     -- Wide range for big samples
-    {name = "Extreme", range = 15500, scale = 1.0}   -- Full transpose/finetune range (1:1 mapping)
+    {name = "±3", range = 3 * 128, scale = 1.0},    -- ±3 semitones
+    {name = "±12", range = 12 * 128, scale = 1.0},  -- ±12 semitones (1 octave)
+    {name = "±24", range = 24 * 128, scale = 1.0},  -- ±24 semitones (2 octaves)
+    {name = "±120", range = 120 * 128, scale = 1.0} -- ±120 semitones (full range)
   }
   local current_range_index = 2  -- Start with Normal
   
@@ -2063,7 +2063,7 @@ function show_sample_pitch_modifier_dialog()
       },
       vb:switch{
         id = "range_switch",
-        items = {"Fine", "Normal", "Wide", "Extreme"},
+        items = {"±3", "±12", "±24", "±120"},
         value = current_range_index,
         width = 200,
         notifier = function(value)
