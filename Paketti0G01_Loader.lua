@@ -83,7 +83,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   PolyendLocalPath="",
   pakettifyReplaceInstrument=false,
   pakettiInstrumentProperties=false,
-  
+  pakettiPitchSliderRange=2,
   pakettiDiskBrowserVisible=true,
   pakettiREXBundlePath = "." .. separator .. "rx2",
   pakettiShowSampleDetails=false,

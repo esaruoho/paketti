@@ -270,6 +270,7 @@ renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Instruments..:Duplic
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Instruments..:Add 84 Sample Slots to Instrument",invoke=function() addSampleSlot(84) end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Instruments..:Set Selected Instrument Velocity Tracking On",invoke=function()  selectedInstrumentVelocityTracking(1) end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Instruments..:Set Selected Instrument Velocity Tracking Off",invoke=function() selectedInstrumentVelocityTracking(0) end}
+renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Convert Beatsync to Sample Pitch",invoke=convert_beatsync_to_pitch}
 
 -- Sample Editor Experimental/WIP
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Xperimental/WIP..:Detect Zero Crossings",invoke=detect_zero_crossings}

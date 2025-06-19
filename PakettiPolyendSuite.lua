@@ -945,6 +945,96 @@ function backup_polyend_tracker()
 end
 
 --------------------------------------------------------------------------------
+-- Normalize PTI Slices Function
+-- Universal function for normalizing PTI slices with automatic save
+--------------------------------------------------------------------------------
+function normalize_pti_slices_and_save(pti_filepath, save_path, completion_callback)
+  print(string.format("-- PTI Normalize: Starting normalization for: %s", pti_filepath))
+  
+  -- Step 1: Check if PTI file exists
+  print("-- PTI Normalize: Step 1 - Checking PTI file exists...")
+  local pti_file = io.open(pti_filepath, "rb")
+  if not pti_file then
+    local error_msg = string.format("PTI file not found or not accessible:\n%s", pti_filepath)
+    renoise.app():show_error(error_msg)
+    print("-- PTI Normalize: PTI file does not exist: " .. pti_filepath)
+    if completion_callback then completion_callback(false, error_msg) end
+    return
+  end
+  pti_file:close()
+  
+  -- Step 2: Load the PTI file
+  print("-- PTI Normalize: Step 2 - Loading PTI file...")
+  pti_loadsample(pti_filepath)
+  
+  -- Check if we have a valid sample with slices
+  local song = renoise.song()
+  local sample = song.selected_sample
+  if not sample or not sample.sample_buffer or not sample.sample_buffer.has_sample_data then
+    local error_msg = "Failed to load PTI file or no sample data found"
+    renoise.app():show_error(error_msg)
+    if completion_callback then completion_callback(false, error_msg) end
+    return
+  end
+  
+  if #sample.slice_markers == 0 then
+    local error_msg = "PTI file has no slices to normalize"
+    renoise.app():show_status(error_msg)
+    print("-- PTI Normalize: PTI file has no slices - skipping normalize operation")
+    if completion_callback then completion_callback(false, error_msg) end
+    return
+  end
+  
+  print(string.format("-- PTI Normalize: Loaded PTI with %d slices", #sample.slice_markers))
+  
+  -- Step 3: Normalize slices with automatic save
+  print("-- PTI Normalize: Step 3 - Normalizing slices...")
+  renoise.app():show_status("Normalizing slices...")
+  
+  -- Call the callback-enabled normalize function
+  if normalize_selected_sample_by_slices_with_callback then
+    normalize_selected_sample_by_slices_with_callback(function(success)
+      if success then
+        print("-- PTI Normalize: Step 4 - Saving normalized PTI...")
+        renoise.app():show_status("Saving normalized PTI...")
+        
+        -- Use pti_savesample_to_path to save to the specified path
+        if pti_savesample_to_path then
+          local save_success = pti_savesample_to_path(save_path)
+          if save_success then
+            local filename = save_path:match("[^/\\]+$") or "normalized.pti"
+            renoise.app():show_status(string.format("Normalized slices and saved PTI: %s", filename))
+            print("-- PTI Normalize: Normalize slices operation completed successfully")
+            if completion_callback then completion_callback(true, filename) end
+          else
+            local error_msg = "Failed to save normalized PTI file"
+            renoise.app():show_error(error_msg)
+            print("-- PTI Normalize: Failed to save normalized PTI file")
+            if completion_callback then completion_callback(false, error_msg) end
+          end
+        else
+          -- Fallback: use regular pti_savesample and let user choose location
+          print("-- PTI Normalize: pti_savesample_to_path not found, using regular save dialog")
+          pti_savesample()
+          renoise.app():show_status("Slices normalized - PTI saved via dialog")
+          if completion_callback then completion_callback(true, "PTI saved via dialog") end
+        end
+      else
+        local error_msg = "Slice normalization was cancelled or failed"
+        renoise.app():show_error(error_msg)
+        print("-- PTI Normalize: Slice normalization failed")
+        if completion_callback then completion_callback(false, error_msg) end
+      end
+    end)
+  else
+    local error_msg = "normalize_selected_sample_by_slices_with_callback function not found"
+    renoise.app():show_error(error_msg)
+    if completion_callback then completion_callback(false, error_msg) end
+    return
+  end
+end
+
+--------------------------------------------------------------------------------
 -- PTI Analyzer Function
 -- Analyzes PTI files and displays detailed information
 --------------------------------------------------------------------------------
@@ -2057,73 +2147,11 @@ function create_polyend_buddy_dialog(vb)
             
                          
             
-            -- Step 1: Check if PTI file exists
-            print("-- Polyend Buddy: Step 1 - Checking PTI file exists...")
-            local pti_file = io.open(selected_pti.full_path, "rb")
-            if not pti_file then
-              renoise.app():show_error(string.format("PTI file not found or not accessible:\n%s", selected_pti.full_path))
-              print("-- Polyend Buddy: PTI file does not exist: " .. selected_pti.full_path)
-              return
-            end
-            pti_file:close()
+            -- Create normalized filename and call universal normalize function
+            local normalized_path = selected_pti.full_path:gsub("%.pti$", "_normalized.pti")
+            local normalized_filename = selected_pti.display_name:gsub("%.pti$", "_normalized.pti")
             
-            -- Step 2: Load the PTI file
-            print("-- Polyend Buddy: Step 2 - Loading PTI file...")
-            pti_loadsample(selected_pti.full_path)
-            
-            -- Check if we have a valid sample with slices
-            local song = renoise.song()
-            local sample = song.selected_sample
-            if not sample or not sample.sample_buffer or not sample.sample_buffer.has_sample_data then
-              renoise.app():show_error("Failed to load PTI file or no sample data found")
-              return
-            end
-            
-            if #sample.slice_markers == 0 then
-              renoise.app():show_status("PTI file has no slices to normalize")
-              print("-- Polyend Buddy: PTI file has no slices - skipping normalize operation")
-              return
-            end
-            
-            print(string.format("-- Polyend Buddy: Loaded PTI with %d slices", #sample.slice_markers))
-            
-            -- Step 3: Normalize slices
-            print("-- Polyend Buddy: Step 3 - Normalizing slices...")
-            renoise.app():show_status("Normalizing slices...")
-            
-            -- Call the existing normalize_selected_sample_by_slices function
-            if normalize_selected_sample_by_slices then
-              normalize_selected_sample_by_slices()
-              print("-- Polyend Buddy: Slice normalization completed")
-            else
-              renoise.app():show_error("normalize_selected_sample_by_slices function not found")
-              return
-            end
-            
-                         -- Step 4: Save as PTI with _normalized suffix
-             print("-- Polyend Buddy: Step 4 - Saving normalized PTI...")
-             renoise.app():show_status("Saving normalized PTI...")
-             
-             -- Create normalized filename
-             local normalized_path = selected_pti.full_path:gsub("%.pti$", "_normalized.pti")
-             local normalized_filename = selected_pti.display_name:gsub("%.pti$", "_normalized.pti")
-             
-             -- Use pti_savesample_to_path to save to the normalized path
-             if pti_savesample_to_path then
-               local success = pti_savesample_to_path(normalized_path)
-               if success then
-                 renoise.app():show_status(string.format("✅ Normalized slices and saved PTI: %s", normalized_filename))
-                 print("-- Polyend Buddy: Normalize slices operation completed successfully")
-               else
-                 renoise.app():show_error("Failed to save normalized PTI file")
-                 print("-- Polyend Buddy: Failed to save normalized PTI file")
-               end
-             else
-               -- Fallback: use regular pti_savesample and let user choose location
-               print("-- Polyend Buddy: pti_savesample_to_path not found, using regular save dialog")
-               pti_savesample()
-               renoise.app():show_status("Slices normalized - please save PTI to desired location")
-             end
+            normalize_pti_slices_and_save(selected_pti.full_path, normalized_path)
             
           else
             renoise.app():show_status("Please select a valid PTI file to normalize")
@@ -2361,75 +2389,16 @@ function create_polyend_buddy_dialog(vb)
             
             
             
-            -- Step 1: Check if PTI file exists
-            print("-- Computer PTI: Step 1 - Checking PTI file exists...")
-            local pti_file = io.open(selected_pti.full_path, "rb")
-            if not pti_file then
-              renoise.app():show_error(string.format("PTI file not found or not accessible:\n%s", selected_pti.full_path))
-              print("-- Computer PTI: PTI file does not exist: " .. selected_pti.full_path)
-              return
-            end
-            pti_file:close()
-            
-            -- Step 2: Load the PTI file
-            print("-- Computer PTI: Step 2 - Loading PTI file...")
-            pti_loadsample(selected_pti.full_path)
-            
-            -- Check if we have a valid sample with slices
-            local song = renoise.song()
-            local sample = song.selected_sample
-            if not sample or not sample.sample_buffer or not sample.sample_buffer.has_sample_data then
-              renoise.app():show_error("Failed to load PTI file or no sample data found")
-              return
-            end
-            
-            if #sample.slice_markers == 0 then
-              renoise.app():show_status("PTI file has no slices to normalize")
-              print("-- Computer PTI: PTI file has no slices - skipping normalize operation")
-              return
-            end
-            
-            print(string.format("-- Computer PTI: Loaded PTI with %d slices", #sample.slice_markers))
-            
-            -- Step 3: Normalize slices
-            print("-- Computer PTI: Step 3 - Normalizing slices...")
-            renoise.app():show_status("Normalizing slices...")
-            
-            -- Call the existing normalize_selected_sample_by_slices function
-            if normalize_selected_sample_by_slices then
-              normalize_selected_sample_by_slices()
-              print("-- Computer PTI: Slice normalization completed")
-            else
-              renoise.app():show_error("normalize_selected_sample_by_slices function not found")
-              return
-            end
-            
-            -- Step 4: Save as PTI with _normalized suffix
-            print("-- Computer PTI: Step 4 - Saving normalized PTI...")
-            renoise.app():show_status("Saving normalized PTI...")
-            
-            -- Create normalized filename
+            -- Create normalized filename and call universal normalize function
             local normalized_path = selected_pti.full_path:gsub("%.pti$", "_normalized.pti")
             local normalized_filename = selected_pti.display_name:gsub("%.pti$", "_normalized.pti")
             
-            -- Use pti_savesample_to_path to save to the normalized path
-            if pti_savesample_to_path then
-              local success = pti_savesample_to_path(normalized_path)
+            normalize_pti_slices_and_save(selected_pti.full_path, normalized_path, function(success, result)
               if success then
-                renoise.app():show_status(string.format("✅ Normalized slices and saved PTI: %s", normalized_filename))
-                print("-- Computer PTI: Normalize slices operation completed successfully")
                 -- Refresh the computer PTI dropdown to show the new file
                 update_computer_pti_dropdown(vb)
-              else
-                renoise.app():show_error("Failed to save normalized PTI file")
-                print("-- Computer PTI: Failed to save normalized PTI file")
               end
-            else
-              -- Fallback: use regular pti_savesample and let user choose location
-              print("-- Computer PTI: pti_savesample_to_path not found, using regular save dialog")
-              pti_savesample()
-              renoise.app():show_status("Slices normalized - please save PTI to desired location")
-            end
+            end)
             
           else
             renoise.app():show_status("Please select a valid computer PTI file to normalize")
@@ -2465,7 +2434,7 @@ function create_polyend_buddy_dialog(vb)
       },
       vb:button{
         text = "PTI Drumkit (Stereo)",
-        width = polyendButtonWidth + 30,
+        width = polyendButtonWidth *2,
         tooltip = "Combine all samples in current instrument into a single sliced drumkit (stereo if any sample is stereo, otherwise mono)",
         notifier = function()
           -- Call the stereo drumkit creation function
@@ -2474,7 +2443,7 @@ function create_polyend_buddy_dialog(vb)
       },
       vb:button{
         text = "PTI Drumkit (Mono)",
-        width = polyendButtonWidth + 30,
+        width = polyendButtonWidth *2,
         tooltip = "Combine all samples in current instrument into a single sliced mono drumkit (all samples converted to mono)",
         notifier = function()
           -- Call the mono drumkit creation function
@@ -2501,7 +2470,7 @@ function create_polyend_buddy_dialog(vb)
       },
       vb:button{
         text = "PTI→Normalize Slices→PTI",
-        width = polyendButtonWidth*2 + 40,
+        width = polyendButtonWidth*4,
         tooltip = "Browse for any PTI file, normalize all slices, then save with _normalized suffix",
         notifier = function()
           -- Step 1: Browse for PTI file
@@ -2519,65 +2488,14 @@ function create_polyend_buddy_dialog(vb)
           
           
           
-          -- Step 2: Check if PTI file exists
-          print("-- PTI Normalize: Step 2 - Checking PTI file exists...")
-          local pti_file = io.open(source_pti, "rb")
-          if not pti_file then
-            renoise.app():show_error(string.format("PTI file not found or not accessible:\n%s", source_pti))
-            print("-- PTI Normalize: PTI file does not exist: " .. source_pti)
-            return
-          end
-          pti_file:close()
-          
-          -- Step 3: Load the PTI file
-          print("-- PTI Normalize: Step 3 - Loading PTI file...")
-          pti_loadsample(source_pti)
-          
-          -- Check if we have a valid sample with slices
-          local song = renoise.song()
-          local sample = song.selected_sample
-          if not sample or not sample.sample_buffer or not sample.sample_buffer.has_sample_data then
-            renoise.app():show_error("Failed to load PTI file or no sample data found")
-            return
-          end
-          
-          if #sample.slice_markers == 0 then
-            renoise.app():show_status("PTI file has no slices to normalize")
-            print("-- PTI Normalize: PTI file has no slices - skipping normalize operation")
-            return
-          end
-          
-          print(string.format("-- PTI Normalize: Loaded PTI with %d slices", #sample.slice_markers))
-          
-          -- Step 4: Normalize slices
-          print("-- PTI Normalize: Step 4 - Normalizing slices...")
-          renoise.app():show_status("Normalizing slices...")
-          
-          -- Call the existing normalize_selected_sample_by_slices function
-          if normalize_selected_sample_by_slices then
-            normalize_selected_sample_by_slices()
-            print("-- PTI Normalize: Slice normalization completed")
-          else
-            renoise.app():show_error("normalize_selected_sample_by_slices function not found")
-            return
-          end
-          
-          -- Step 5: Save as PTI with _normalized suffix
-          print("-- PTI Normalize: Step 5 - Saving normalized PTI...")
-          renoise.app():show_status("Saving normalized PTI...")
-          
           -- Create normalized path in same directory as source
           local source_dir = source_pti:match("(.+)[/\\][^/\\]*$")
           local separator = package.config:sub(1,1)
           local normalized_path = source_dir .. separator .. normalized_filename
           
-          -- Use pti_savesample_to_path to save to the normalized path
-          if pti_savesample_to_path then
-            local success = pti_savesample_to_path(normalized_path)
+          -- Call universal normalize function
+          normalize_pti_slices_and_save(source_pti, normalized_path, function(success, result)
             if success then
-              renoise.app():show_status(string.format("✅ Normalized slices and saved PTI: %s", normalized_filename))
-              print("-- PTI Normalize: Normalize slices operation completed successfully")
-              
               -- Optionally open the folder containing the normalized file
               local open_folder = renoise.app():show_prompt("Normalize Complete", 
                 string.format("Normalized PTI saved successfully!\n\nFile: %s\n\nWould you like to open the folder?", normalized_filename),
@@ -2585,16 +2503,8 @@ function create_polyend_buddy_dialog(vb)
               if open_folder == "Yes" then
                 renoise.app():open_path(source_dir)
               end
-            else
-              renoise.app():show_error("Failed to save normalized PTI file")
-              print("-- PTI Normalize: Failed to save normalized PTI file")
             end
-          else
-            -- Fallback: use regular pti_savesample and let user choose location
-            print("-- PTI Normalize: pti_savesample_to_path not found, using regular save dialog")
-            pti_savesample()
-            renoise.app():show_status("Slices normalized - please save PTI to desired location")
-          end
+          end)
         end
       }
     },

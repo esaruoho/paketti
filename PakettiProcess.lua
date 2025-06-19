@@ -1074,6 +1074,218 @@ renoise.tool():add_keybinding{name="Sample Editor:Paketti:Reverse Selected Sampl
 renoise.tool():add_keybinding{name="Sample Keyzones:Paketti:Reverse Selected Sample or Slice",invoke=ReverseSelectedSliceInSample}
 renoise.tool():add_midi_mapping{name="Paketti:Reverse Selected Sample or Slice",invoke=function(message) if message:is_trigger() then ReverseSelectedSliceInSample() end end}
 --------
+-- Version with callback support for automated workflows
+function normalize_selected_sample_by_slices_with_callback(completion_callback)
+  local selected_sample = renoise.song().selected_sample
+  local last_yield_time = os.clock()
+  
+  -- Function to check if we should yield
+  local function should_yield()
+    local current_time = os.clock()
+    if current_time - last_yield_time >= PROCESS_YIELD_INTERVAL then
+      last_yield_time = current_time
+      return true
+    end
+    return false
+  end
+  
+  if not selected_sample or not selected_sample.sample_buffer or not selected_sample.sample_buffer.has_sample_data then
+    renoise.app():show_status("Normalization failed: No valid sample to normalize.")
+    if completion_callback then completion_callback(false) end
+    return
+  end
+
+  -- Check if sample has slice markers
+  if #selected_sample.slice_markers == 0 then
+    -- If no slice markers, fall back to regular normalize
+    normalize_selected_sample()
+    if completion_callback then completion_callback(true) end
+    return
+  end
+
+  local sbuf = selected_sample.sample_buffer
+  local slice_count = #selected_sample.slice_markers
+  
+  -- Create ProcessSlicer instance and dialog
+  local slicer = nil
+  local dialog = nil
+  local vb = nil
+  
+  -- Define the process function
+  local function process_func()
+    local time_start = os.clock()
+    local time_reading = 0
+    local time_processing = 0
+    local CHUNK_SIZE = 16777216  -- 16MB worth of frames
+    local total_frames = sbuf.number_of_frames
+    local total_slices = slice_count
+    local slices_processed = 0
+    
+    print(string.format("\nProcessing %d frames across %d slices", total_frames, total_slices))
+    
+    -- Prepare buffer for changes
+    sbuf:prepare_sample_data_changes()
+    
+    -- Process each slice independently
+    for slice_idx = 1, slice_count do
+      local slice_start = selected_sample.slice_markers[slice_idx]
+      local slice_end = (slice_idx < slice_count) 
+        and selected_sample.slice_markers[slice_idx + 1] - 1 
+        or sbuf.number_of_frames
+      
+      local slice_frames = slice_end - slice_start + 1
+      
+      -- Pre-allocate tables for better performance
+      local channel_peaks = {}
+      local sample_cache = {}
+      for channel = 1, sbuf.number_of_channels do
+        channel_peaks[channel] = 0
+        sample_cache[channel] = {}
+      end
+      
+      -- First pass: Find peak and cache data
+      local highest_detected = 0
+      
+      -- Process in chunks
+      for frame = slice_start, slice_end, CHUNK_SIZE do
+        local block_end = math.min(frame + CHUNK_SIZE - 1, slice_end)
+        local block_size = block_end - frame + 1
+        
+        -- Read and process each channel
+        for channel = 1, sbuf.number_of_channels do
+          local read_start = os.clock()
+          local channel_peak = 0
+          
+          -- Cache the data while finding peak
+          sample_cache[channel][frame] = {}
+          for i = 0, block_size - 1 do
+            local current_frame = frame + i
+            local sample_value = sbuf:sample_data(channel, current_frame)
+            sample_cache[channel][frame][i] = sample_value
+            local abs_value = math.abs(sample_value)
+            if abs_value > channel_peak then
+              channel_peak = abs_value
+            end
+          end
+          
+          time_reading = time_reading + (os.clock() - read_start)
+          if channel_peak > channel_peaks[channel] then
+            channel_peaks[channel] = channel_peak
+          end
+        end
+        
+        -- Calculate actual progress percentage
+        local progress = (slice_idx - 1 + (frame - slice_start) / slice_frames) / total_slices * 100
+        
+        if dialog and dialog.visible then
+          vb.views.progress_text.text = string.format("Processing %03d/%03d - %.1f%%", 
+            slice_idx, total_slices, progress)
+        end
+        
+        if slicer:was_cancelled() then
+          sbuf:finalize_sample_data_changes()
+          if completion_callback then completion_callback(false) end
+          return
+        end
+        
+        if should_yield() then
+          coroutine.yield()
+        end
+      end
+      
+      -- Find overall peak for this slice
+      for _, channel_peak in ipairs(channel_peaks) do
+        if channel_peak > highest_detected then
+          highest_detected = channel_peak
+        end
+      end
+      
+      -- Only normalize if the slice isn't silent
+      if highest_detected > 0 then
+        local scale = 1.0 / highest_detected
+        
+        -- Second pass: Apply normalization using cached data
+        for frame = slice_start, slice_end, CHUNK_SIZE do
+          local block_end = math.min(frame + CHUNK_SIZE - 1, slice_end)
+          local block_size = block_end - frame + 1
+          
+          -- Process each channel
+          for channel = 1, sbuf.number_of_channels do
+            local process_start = os.clock()
+            
+            for i = 0, block_size - 1 do
+              local current_frame = frame + i
+              -- Use cached data instead of reading from buffer again
+              local sample_value = sample_cache[channel][frame][i]
+              sbuf:set_sample_data(channel, current_frame, sample_value * scale)
+            end
+            
+            time_processing = time_processing + (os.clock() - process_start)
+          end
+          
+          -- Clear cache for this chunk to free memory
+          for channel = 1, sbuf.number_of_channels do
+            sample_cache[channel][frame] = nil
+          end
+          
+          -- Calculate actual progress percentage (50-100% range for normalization phase)
+          local progress = 50 + (slice_idx - 1 + (frame - slice_start) / slice_frames) / total_slices * 50
+          
+          if dialog and dialog.visible then
+            vb.views.progress_text.text = string.format("Normalizing %03d/%03d - %.1f%%", 
+              slice_idx, total_slices, progress)
+          end
+          
+          if slicer:was_cancelled() then
+            sbuf:finalize_sample_data_changes()
+            if completion_callback then completion_callback(false) end
+            return
+          end
+          
+          if should_yield() then
+            coroutine.yield()
+          end
+        end
+      end
+      
+      -- Clear the entire cache for this slice
+      sample_cache = nil
+      slices_processed = slices_processed + 1
+    end
+    
+    -- Finalize changes
+    sbuf:finalize_sample_data_changes()
+    
+    -- Calculate and display performance stats
+    local total_time = os.clock() - time_start
+    local frames_per_second = total_frames / total_time
+    print(string.format("\nSlice normalization complete for %d frames:", total_frames))
+    print(string.format("Total time: %.2f seconds (%.1fM frames/sec)", 
+      total_time, frames_per_second / 1000000))
+    print(string.format("Reading: %.1f%%, Processing: %.1f%%", 
+      (time_reading/total_time) * 100,
+      ((total_time - time_reading)/total_time) * 100))
+    
+    -- Close dialog when done
+    if dialog and dialog.visible then
+      dialog:close()
+    end
+    
+    renoise.app():show_status(string.format("Normalized %d slices independently", slice_count))
+    
+    -- Call completion callback
+    if completion_callback then 
+      completion_callback(true)
+    end
+  end
+  
+  -- Create and start the ProcessSlicer
+  slicer = ProcessSlicer(process_func)
+  dialog, vb = slicer:create_dialog("Normalizing Slices")
+  slicer:start()
+end
+
+--------
 function normalize_selected_sample_by_slices()
   local selected_sample = renoise.song().selected_sample
   local last_yield_time = os.clock()
