@@ -2073,8 +2073,8 @@ function show_sample_pitch_modifier_dialog()
       },
       vb:slider{
         id = "vinyl_pitch_slider",
-        min = -2000,
-        max = 2000,
+        min = -get_current_range().range,
+        max = get_current_range().range,
         value = 0,
         width = 400,  -- Slightly smaller to fit the range switch
         steps = {1, -1},
@@ -2138,7 +2138,10 @@ function show_sample_pitch_modifier_dialog()
     }
   }
   
-  -- Initialize vinyl pitch slider from current sample values
+  -- Show the dialog
+  dialog = renoise.app():show_custom_dialog("Sample Pitch Modifier", dialog_content,my_keyhandler_func)
+  
+  -- Initialize vinyl pitch slider from current sample values AFTER dialog is shown
   if vb.views.vinyl_pitch_slider then
     -- Set flag to prevent notifier from firing during initialization
     initializing_vinyl_slider = true
@@ -2156,9 +2159,6 @@ function show_sample_pitch_modifier_dialog()
     -- Clear flag to allow normal operation
     initializing_vinyl_slider = false
   end
-  
-  -- Show the dialog
-  dialog = renoise.app():show_custom_dialog("Sample Pitch Modifier", dialog_content,my_keyhandler_func)
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Sample Pitch Modifier Dialog...",invoke = show_sample_pitch_modifier_dialog}
