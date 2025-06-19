@@ -34,6 +34,13 @@ function pti_loadsample(filepath)
   local pcm_data = file:read("*a")
   file:close()
 
+  -- Validate sample length
+  if sample_length == 0 then
+    renoise.app():show_error("PTI Import Error: Sample has no audio data (0 frames)")
+    print("-- PTI: Import failed - sample_length is 0")
+    return
+  end
+
   -- Detect if PCM data is mono or stereo
   local expected_mono_bytes = sample_length * 2
   local expected_stereo_bytes = sample_length * 4
@@ -733,6 +740,171 @@ local function write_pcm(f, inst)
       write_uint16_le(f, int)
     end
   end
+end
+
+-- Main save with path parameter
+function pti_savesample_to_path(filepath)
+  local song = renoise.song()
+  local inst = song.selected_instrument
+  
+  -- Check if we have a valid instrument and sample
+  if not inst or #inst.samples == 0 then
+    renoise.app():show_error("No instrument or sample selected")
+    return false
+  end
+
+  -- SLICE DETECTION: Check if samples[1] has slice markers
+  local base_sample = inst.samples[1]
+  local has_slices = base_sample and #(base_sample.slice_markers or {}) > 0
+  
+  -- Choose sample to export: samples[1] for slices, selected sample otherwise
+  local selected_sample_index = song.selected_sample_index
+  local smp
+  local export_info
+  
+  if has_slices then
+    -- For slices: always export samples[1] (the base sample with slice markers)
+    smp = base_sample
+    export_info = string.format("base sample with %d slices", #base_sample.slice_markers)
+    print(string.format("-- SLICE MODE: Exporting base sample (Sample 1) with %d slice markers", #base_sample.slice_markers))
+  else
+    -- For non-sliced: export selected sample
+    smp = inst.samples[selected_sample_index]
+    if not smp then
+      renoise.app():show_error("No sample selected")
+      return false
+    end
+    export_info = string.format("Sample %d: '%s'", selected_sample_index, smp.name)
+    print(string.format("-- REGULAR MODE: Exporting selected Sample %d: '%s'", selected_sample_index, smp.name))
+  end
+
+  -- PTI FORMAT INFO: Check for multiple samples (info only)
+  local total_samples = #inst.samples
+  local has_multiple_samples = total_samples > 1
+
+  print("------------")
+  print(string.format("-- PTI: Export filename: %s", filepath))
+  
+  -- Print info about what's being exported
+  if has_multiple_samples and not has_slices then
+    print(string.format("-- INFO: Instrument has %d samples, exporting %s", total_samples, export_info))
+    renoise.app():show_status(string.format("PTI Export: %s", export_info))
+  end
+
+  -- Handle slice count limitation (max 48 in PTI format)
+  local original_slice_count = #(smp.slice_markers or {})
+  local limited_slice_count = math.min(48, original_slice_count)
+  
+  if original_slice_count > 48 then
+    print(string.format("-- NOTE: Sample has %d slices - limiting to 48 slices for PTI format", original_slice_count))
+    renoise.app():show_status(string.format("PTI format supports max 48 slices - limiting from %d", original_slice_count))
+  end
+
+  -- Extract filename without path and extension for PTI header name
+  local pti_name = filepath:match("([^/\\]+)%.pti$") or filepath:match("([^/\\]+)$")
+  if pti_name:match("%.pti$") then
+    pti_name = pti_name:gsub("%.pti$", "")
+  end
+  print(string.format("-- PTI Header Name: '%s' (from chosen filename)", pti_name))
+  
+  -- gather simple inst params
+  local data = {
+    name = pti_name,
+    is_wavetable = false,
+    sample_length = smp.sample_buffer.number_of_frames,
+    loop_mode = smp.loop_mode,
+    loop_start = smp.loop_start,
+    loop_end = smp.loop_end,
+    channels = smp.sample_buffer.number_of_channels,
+    slice_markers = {} -- Initialize empty slice markers table
+  }
+
+  -- Copy up to 48 slice markers
+  print(string.format("-- Copying %d slice markers from Renoise sample", limited_slice_count))
+  for i = 1, limited_slice_count do
+    data.slice_markers[i] = smp.slice_markers[i]
+    print(string.format("-- Export slice %02d: Renoise frame position = %d", i, smp.slice_markers[i]))
+  end
+
+  -- Determine playback mode
+  local playback_mode = "1-Shot"
+  if #data.slice_markers > 0 then
+    playback_mode = "Slice"
+    print("-- Sample Playback Mode: Slice (mode 4)")
+  end
+
+  print(string.format("-- Format: %s, %dHz, %d-bit, %d frames, sliceCount = %d", 
+    data.channels > 1 and "Stereo" or "Mono",
+    44100,
+    16,
+    data.sample_length,
+    limited_slice_count
+  ))
+
+  local loop_mode_names = {
+    [renoise.Sample.LOOP_MODE_OFF] = "OFF",
+    [renoise.Sample.LOOP_MODE_FORWARD] = "Forward",
+    [renoise.Sample.LOOP_MODE_REVERSE] = "Reverse",
+    [renoise.Sample.LOOP_MODE_PING_PONG] = "PingPong"
+  }
+
+  print(string.format("-- Loopmode: %s, Start: %d, End: %d, Looplength: %d",
+    loop_mode_names[smp.loop_mode] or "OFF",
+    smp.loop_start,
+    smp.loop_end,
+    smp.loop_end - smp.loop_start
+  ))
+
+  print(string.format("-- Wavetable Mode: %s", data.is_wavetable and "TRUE" or "FALSE"))
+  print("-- PTI Format: Full velocity range (0-127), full key range (0-119) as per specification")
+
+  local f = io.open(filepath, "wb")
+  if not f then 
+    renoise.app():show_error("Cannot write file: " .. filepath)
+    return false
+  end
+
+  -- Write header and get its size for verification
+  local header = buildPTIHeader(data)
+  print(string.format("-- Header size: %d bytes", #header))
+  f:write(header)
+
+  -- Debug first few frames before writing
+  local buf = smp.sample_buffer
+  print("-- Sample value ranges:")
+  local min_val, max_val = 0, 0
+  for i = 1, math.min(100, data.sample_length) do
+    for ch = 1, data.channels do
+      local v = buf:sample_data(ch, i)
+      min_val = math.min(min_val, v)
+      max_val = math.max(max_val, v)
+    end
+  end
+  print(string.format("-- First 100 frames min/max: %.6f to %.6f", min_val, max_val))
+
+  -- Write PCM data
+  local pcm_start_pos = f:seek()
+  write_pcm(f, { sample_buffer = smp.sample_buffer, sample_length = data.sample_length, channels = data.channels })
+  local pcm_end_pos = f:seek()
+  local pcm_size = pcm_end_pos - pcm_start_pos
+  
+  print(string.format("-- PCM data size: %d bytes", pcm_size))
+  print(string.format("-- Total file size: %d bytes", pcm_end_pos))
+
+  f:close()
+
+  -- Show final status
+  if original_slice_count > 0 then
+    if original_slice_count > 48 then
+      renoise.app():show_status(string.format("PTI exported: '%s' with 48 slices (limited from %d)", smp.name, original_slice_count))
+    else
+      renoise.app():show_status(string.format("PTI exported: '%s' with %d slices", smp.name, original_slice_count))
+    end
+  else
+    renoise.app():show_status(string.format("PTI exported: '%s'", smp.name))
+  end
+  
+  return true
 end
 
 -- Main save

@@ -578,18 +578,20 @@ function scan_for_pti_files_and_folders(root_path)
       local relative_file_path = relative_path == "" and filename or (relative_path .. separator .. filename)
       local full_path = path .. separator .. filename
       
-      if filename:lower():match("%.pti$") then
+      if filename:lower():match("%.pti$") and not filename:match("^%._") then
         table.insert(pti_files, {
           display_name = relative_file_path,
           full_path = full_path
         })
         print(string.format("-- Polyend Buddy: Found PTI file: %s", relative_file_path))
-      elseif filename:lower():match("%.wav$") then
+      elseif filename:lower():match("%.wav$") and not filename:match("^%._") then
         table.insert(wav_files, {
           display_name = relative_file_path,
           full_path = full_path
         })
         print(string.format("-- Polyend Buddy: Found WAV file: %s", relative_file_path))
+      elseif filename:match("^%._") then
+        print(string.format("-- Polyend Buddy: Skipping macOS metadata file: %s", relative_file_path))
       end
     end
     
@@ -651,12 +653,16 @@ function scan_computer_pti_files(path)
   
   -- Scan PTI files in directory
   for _, filename in ipairs(files) do
-    local full_path = path .. separator .. filename
-    table.insert(pti_files, {
-      display_name = filename,
-      full_path = full_path
-    })
-    print(string.format("-- Computer PTI: Found PTI file: %s", filename))
+    if not filename:match("^%._") then
+      local full_path = path .. separator .. filename
+      table.insert(pti_files, {
+        display_name = filename,
+        full_path = full_path
+      })
+      print(string.format("-- Computer PTI: Found PTI file: %s", filename))
+    else
+      print(string.format("-- Computer PTI: Skipping macOS metadata file: %s", filename))
+    end
   end
   
   -- Sort by filename
@@ -2027,7 +2033,7 @@ function create_polyend_buddy_dialog(vb)
       vb:button{
         text = "Normalize Slices", 
         width = polyendButtonWidth *2,
-        tooltip = "Load PTI file, normalize all slices, then save back as PTI (overwrites original)",
+        tooltip = "Load PTI file, normalize all slices, then save as PTI with _normalized suffix",
         notifier = function()
           -- First check if Polyend Tracker is connected
           local path_exists = check_polyend_path_exists(polyend_buddy_root_path)
@@ -2051,8 +2057,18 @@ function create_polyend_buddy_dialog(vb)
             
                          
             
-            -- Step 1: Load the PTI file
-            print("-- Polyend Buddy: Step 1 - Loading PTI file...")
+            -- Step 1: Check if PTI file exists
+            print("-- Polyend Buddy: Step 1 - Checking PTI file exists...")
+            local pti_file = io.open(selected_pti.full_path, "rb")
+            if not pti_file then
+              renoise.app():show_error(string.format("PTI file not found or not accessible:\n%s", selected_pti.full_path))
+              print("-- Polyend Buddy: PTI file does not exist: " .. selected_pti.full_path)
+              return
+            end
+            pti_file:close()
+            
+            -- Step 2: Load the PTI file
+            print("-- Polyend Buddy: Step 2 - Loading PTI file...")
             pti_loadsample(selected_pti.full_path)
             
             -- Check if we have a valid sample with slices
@@ -2071,8 +2087,8 @@ function create_polyend_buddy_dialog(vb)
             
             print(string.format("-- Polyend Buddy: Loaded PTI with %d slices", #sample.slice_markers))
             
-            -- Step 2: Normalize slices
-            print("-- Polyend Buddy: Step 2 - Normalizing slices...")
+            -- Step 3: Normalize slices
+            print("-- Polyend Buddy: Step 3 - Normalizing slices...")
             renoise.app():show_status("Normalizing slices...")
             
             -- Call the existing normalize_selected_sample_by_slices function
@@ -2084,8 +2100,8 @@ function create_polyend_buddy_dialog(vb)
               return
             end
             
-                         -- Step 3: Save as PTI with _normalized suffix
-             print("-- Polyend Buddy: Step 3 - Saving normalized PTI...")
+                         -- Step 4: Save as PTI with _normalized suffix
+             print("-- Polyend Buddy: Step 4 - Saving normalized PTI...")
              renoise.app():show_status("Saving normalized PTI...")
              
              -- Create normalized filename
@@ -2345,8 +2361,18 @@ function create_polyend_buddy_dialog(vb)
             
             
             
-            -- Step 1: Load the PTI file
-            print("-- Computer PTI: Step 1 - Loading PTI file...")
+            -- Step 1: Check if PTI file exists
+            print("-- Computer PTI: Step 1 - Checking PTI file exists...")
+            local pti_file = io.open(selected_pti.full_path, "rb")
+            if not pti_file then
+              renoise.app():show_error(string.format("PTI file not found or not accessible:\n%s", selected_pti.full_path))
+              print("-- Computer PTI: PTI file does not exist: " .. selected_pti.full_path)
+              return
+            end
+            pti_file:close()
+            
+            -- Step 2: Load the PTI file
+            print("-- Computer PTI: Step 2 - Loading PTI file...")
             pti_loadsample(selected_pti.full_path)
             
             -- Check if we have a valid sample with slices
@@ -2365,8 +2391,8 @@ function create_polyend_buddy_dialog(vb)
             
             print(string.format("-- Computer PTI: Loaded PTI with %d slices", #sample.slice_markers))
             
-            -- Step 2: Normalize slices
-            print("-- Computer PTI: Step 2 - Normalizing slices...")
+            -- Step 3: Normalize slices
+            print("-- Computer PTI: Step 3 - Normalizing slices...")
             renoise.app():show_status("Normalizing slices...")
             
             -- Call the existing normalize_selected_sample_by_slices function
@@ -2378,8 +2404,8 @@ function create_polyend_buddy_dialog(vb)
               return
             end
             
-            -- Step 3: Save as PTI with _normalized suffix
-            print("-- Computer PTI: Step 3 - Saving normalized PTI...")
+            -- Step 4: Save as PTI with _normalized suffix
+            print("-- Computer PTI: Step 4 - Saving normalized PTI...")
             renoise.app():show_status("Saving normalized PTI...")
             
             -- Create normalized filename
@@ -2493,8 +2519,18 @@ function create_polyend_buddy_dialog(vb)
           
           
           
-          -- Step 2: Load the PTI file
-          print("-- PTI Normalize: Step 1 - Loading PTI file...")
+          -- Step 2: Check if PTI file exists
+          print("-- PTI Normalize: Step 2 - Checking PTI file exists...")
+          local pti_file = io.open(source_pti, "rb")
+          if not pti_file then
+            renoise.app():show_error(string.format("PTI file not found or not accessible:\n%s", source_pti))
+            print("-- PTI Normalize: PTI file does not exist: " .. source_pti)
+            return
+          end
+          pti_file:close()
+          
+          -- Step 3: Load the PTI file
+          print("-- PTI Normalize: Step 3 - Loading PTI file...")
           pti_loadsample(source_pti)
           
           -- Check if we have a valid sample with slices
@@ -2513,8 +2549,8 @@ function create_polyend_buddy_dialog(vb)
           
           print(string.format("-- PTI Normalize: Loaded PTI with %d slices", #sample.slice_markers))
           
-          -- Step 3: Normalize slices
-          print("-- PTI Normalize: Step 2 - Normalizing slices...")
+          -- Step 4: Normalize slices
+          print("-- PTI Normalize: Step 4 - Normalizing slices...")
           renoise.app():show_status("Normalizing slices...")
           
           -- Call the existing normalize_selected_sample_by_slices function
@@ -2526,8 +2562,8 @@ function create_polyend_buddy_dialog(vb)
             return
           end
           
-          -- Step 4: Save as PTI with _normalized suffix
-          print("-- PTI Normalize: Step 3 - Saving normalized PTI...")
+          -- Step 5: Save as PTI with _normalized suffix
+          print("-- PTI Normalize: Step 5 - Saving normalized PTI...")
           renoise.app():show_status("Saving normalized PTI...")
           
           -- Create normalized path in same directory as source
