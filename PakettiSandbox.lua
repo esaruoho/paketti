@@ -1,3 +1,4 @@
+----------
 -- Function to toggle showing only one specific column type
 function showOnlyColumnType(column_type)
     local song=renoise.song()

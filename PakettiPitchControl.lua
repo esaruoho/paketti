@@ -1,5 +1,106 @@
 local dialog = nil
 
+
+-- Function to calculate length of a specific sample selection/range
+function calculate_sample_selection_length()
+  local song = renoise.song()
+  
+  if not song.selected_sample or not song.selected_sample.sample_buffer then
+    return nil, "No sample selected"
+  end
+  
+  local sample = song.selected_sample
+  local buffer = sample.sample_buffer
+  
+  if not buffer.has_sample_data then
+    return nil, "Sample has no data"
+  end
+  
+  -- Get selection range
+  local selection_start = buffer.selection_start
+  local selection_end = buffer.selection_end
+  
+  -- If no selection, use entire sample
+  if selection_start == 0 and selection_end == 0 then
+    selection_start = 1
+    selection_end = buffer.number_of_frames
+  end
+  
+  local selection_frames = selection_end - selection_start + 1
+  local sample_rate = buffer.sample_rate
+  local selection_length = selection_frames / sample_rate
+  
+  print("Sample selection length calculation:")
+  print("  Selection start: " .. selection_start)
+  print("  Selection end: " .. selection_end) 
+  print("  Selection frames: " .. selection_frames)
+  print("  Sample rate: " .. sample_rate .. " Hz")
+  print("  Selection length: " .. string.format("%.6f", selection_length) .. " seconds")
+  
+  return selection_length, nil
+end
+
+
+-- Function to calculate the length of the selected sample in seconds
+function calculate_selected_sample_length()
+  local song = renoise.song()
+  
+  -- Check if there's a selected instrument
+  if not song.selected_instrument then
+    print("No instrument selected")
+    return nil, "No instrument selected"
+  end
+  
+  -- Check if there's a selected sample
+  if not song.selected_sample then
+    print("No sample selected") 
+    return nil, "No sample selected"
+  end
+  
+  local sample = song.selected_sample
+  
+  -- Check if sample has buffer (sample data)
+  if not sample.sample_buffer or not sample.sample_buffer.has_sample_data then
+    print("Sample has no data")
+    return nil, "Sample has no data"
+  end
+  
+  -- Get sample properties
+  local sample_rate = sample.sample_buffer.sample_rate
+  local number_of_frames = sample.sample_buffer.number_of_frames
+  
+  -- Calculate length in seconds
+  local length_in_seconds = number_of_frames / sample_rate
+  
+  -- Print debug information
+  print("Sample length calculation:")
+  print("  Sample rate: " .. sample_rate .. " Hz")
+  print("  Number of frames: " .. number_of_frames)
+  print("  Length: " .. string.format("%.6f", length_in_seconds) .. " seconds")
+  
+  return length_in_seconds, nil
+end
+
+-- Function to calculate BPM from sample beatsync
+function calculate_bpm_from_sample_beatsync()
+  local length_seconds, error_msg = calculate_selected_sample_length()
+  if error_msg then
+    return nil, nil, nil
+  end
+  
+  local song = renoise.song()
+  local sample = song.selected_sample
+  local beat_sync_lines = sample.beat_sync_lines
+  local lpb = song.transport.lpb
+  
+  if beat_sync_lines <= 0 or lpb <= 0 or length_seconds <= 0 then
+    return nil, nil, nil
+  end
+  
+  local calculated_bpm = 60 / lpb / length_seconds * beat_sync_lines
+  return calculated_bpm, length_seconds, beat_sync_lines
+end
+
 -- Function to calculate and set BPM from sample beatsync
 function set_bpm_from_sample_beatsync()
   local calculated_bpm, length_seconds, beat_sync_lines = calculate_bpm_from_sample_beatsync()
@@ -1163,14 +1264,6 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Convert Beatsync to S
 renoise.tool():add_keybinding{name="Global:Paketti:Convert Beatsync to Sample Pitch",invoke=convert_beatsync_to_pitch}
 
 
--- Comprehensive BPM Calculation Debug - combines all the functionality from commented functions above
-renoise.tool():add_keybinding{name="Sample Editor:Paketti:BPM Calculation Debug (Comprehensive)",invoke=comprehensive_bpm_calculation_debug}
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:BPM Calculation Debug (Comprehensive)",invoke=comprehensive_bpm_calculation_debug}
-renoise.tool():add_keybinding{name="Global:Paketti:BPM Calculation Debug (Comprehensive)",invoke=comprehensive_bpm_calculation_debug}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:BPM Calculation Debug (Comprehensive)",invoke=comprehensive_bpm_calculation_debug}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:BPM Calculation Debug (Comprehensive)",invoke=comprehensive_bpm_calculation_debug}
-
-
 
 
 
@@ -1615,3 +1708,13 @@ function comprehensive_bpm_calculation_debug()
     beatsync_enabled = sample.beat_sync_enabled
   }
 end
+
+
+-- Comprehensive BPM Calculation Debug - combines all the functionality from commented functions above
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:BPM Calculation Debug (Comprehensive)",invoke=comprehensive_bpm_calculation_debug}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:BPM Calculation Debug (Comprehensive)",invoke=comprehensive_bpm_calculation_debug}
+renoise.tool():add_keybinding{name="Global:Paketti:BPM Calculation Debug (Comprehensive)",invoke=comprehensive_bpm_calculation_debug}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:BPM Calculation Debug (Comprehensive)",invoke=comprehensive_bpm_calculation_debug}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:BPM Calculation Debug (Comprehensive)",invoke=comprehensive_bpm_calculation_debug}
+
+
