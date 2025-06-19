@@ -1293,9 +1293,6 @@ renoise.tool():add_keybinding{name="Global:Paketti:Calculate Sample Selection Le
 renoise.tool():add_keybinding{name="Global:Paketti:Calculate BPM from Sample Length",invoke=calculate_bpm_from_sample_beatsync}
 renoise.tool():add_keybinding{name="Global:Paketti:Set BPM from Sample Length",invoke=set_bpm_from_sample_beatsync}
 renoise.tool():add_keybinding{name="Global:Paketti:Show BPM Calculation Dialog...",invoke=pakettiBpmFromSampleDialog}
-
-
-renoise.tool():add_keybinding{name="Global:Paketti:Show BPM Calculation Dialog...",invoke=pakettiBpmFromSampleDialog}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Convert Beatsync to Sample Pitch",invoke=convert_beatsync_to_pitch}
 --renoise.tool():add_keybinding{name="Sample Editor:Paketti:Debug Sample Length Precision",invoke=debug_sample_length_precision}
 
