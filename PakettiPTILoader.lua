@@ -65,7 +65,18 @@ function pti_loadsample(filepath)
 
   print(string.format("-- Format: %s, %dHz, %d-bit, %d frames, sliceCount = %d", 
     is_stereo and "Stereo" or "Mono", 44100, 16, sample_length, slice_count))
+  print(string.format("-- PTI DEBUG: About to process %d slices", slice_count))
   print(string.format("-- Stereo detected by blockwise comparison: %s", tostring(is_stereo)))
+
+  -- DEBUG: Read additional header values to compare with export
+  local playback_mode = string.byte(header, 77)
+  local volume = string.byte(header, 273)
+  local panning = string.byte(header, 277)
+  local active_slice = string.byte(header, 378)
+  local wavetable_flag = string.byte(header, 21)
+  
+  print(string.format("-- PTI IMPORT DEBUG: playback_mode=%d, volume=%d, panning=%d", playback_mode or 0, volume or 0, panning or 0))
+  print(string.format("-- PTI IMPORT DEBUG: slice_count=%d, active_slice=%d, wavetable_flag=%d", slice_count or 0, active_slice or 0, wavetable_flag or 0))
 
   buffer:prepare_sample_data_changes()
 
@@ -411,10 +422,19 @@ function pti_loadsample(filepath)
 
   local total_slices = #renoise.song().selected_instrument.samples[1].slice_markers
   print(string.format("-- DEBUG: Final total slice count: %d", total_slices))
+  print(string.format("-- DEBUG: Total samples in instrument: %d", #renoise.song().selected_instrument.samples))
+  print(string.format("-- DEBUG: Sample length after processing: %d frames", renoise.song().selected_instrument.samples[1].sample_buffer.number_of_frames))
+  
   if total_slices > 0 then
     renoise.app():show_status(string.format("PTI imported with %d slice markers", total_slices))
+    print(string.format("-- SUCCESS: PTI loaded with slices - check Sample Editor for slice markers"))
+    
+    -- Switch to Sample Editor to show the slices
+    renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+    print("-- Switched to Sample Editor to display slice markers")
   else
     renoise.app():show_status("PTI imported successfully")
+    print(string.format("-- WARNING: No slices found - this might be a non-sliced PTI file"))
   end
 end
 
@@ -452,8 +472,10 @@ local function write_uint32_le(f, v)
   ))
 end
 
--- Build a 392-byte header according to .pti spec
-local function build_header(inst)
+-- Build a 392-byte header according to .pti spec (GLOBAL)
+-- inst: instrument data table
+-- beat_slice_mode: optional boolean, if true uses Beat Slice (5) instead of Slice (4)
+function buildPTIHeader(inst, beat_slice_mode)
   local header = string.rep("\0", 392) -- Start with 392 zero bytes
   local pos = 1
   
@@ -466,10 +488,20 @@ local function build_header(inst)
   -- File ID and version (offset 0-7)
   write_at(1, "TI")                       -- offset 0-1: ASCII marker "TI"
   write_at(3, string.char(1,0,1,5))       -- offset 2-5: version 1.0.1.5
-  write_at(7, string.char(0,1))           -- offset 6-7: flags
+  write_at(6, string.char(9))             -- offset 5: format indicator (9 for working files)
+  write_at(7, string.char(1))             -- offset 6: should be 1 for working files
+  write_at(8, string.char(0))             -- offset 7: padding
   
-  -- Wavetable flag (offset 20)  
-  write_at(21, string.char(inst.is_wavetable and 1 or 0))
+  -- Additional header fields for proper PTI format (offset 8-19)
+  write_at(9, string.char(9,9,9,9))        -- offset 8-11: unknown block (9,9,9,9 for working)
+  write_at(13, string.char(116))           -- offset 12: unknown (116 for working)
+  write_at(14, string.char(1))             -- offset 13: unknown (1 for working)
+  write_at(17, string.char(1))             -- offset 16: unknown (1 for working)
+  
+  -- Wavetable flag (offset 20) - always false for sliced samples
+  local is_wavetable = inst.is_wavetable and not (inst.slice_markers and #inst.slice_markers > 0)
+  write_at(21, string.char(is_wavetable and 1 or 0))
+  print(string.format("-- buildPTIHeader: Writing wavetable flag = %s at offset 20", is_wavetable and "true" or "false"))
   
   -- Instrument name (offset 21-51, 31 bytes)
   local name = (inst.name or ""):sub(1,31)
@@ -484,87 +516,166 @@ local function build_header(inst)
   )
   write_at(61, length_bytes)
   
-  -- Map Renoise loop mode to PTI loop mode
-  local pti_loop_mode = 0 -- Default: OFF
-  local renoise_loop_modes = {
-    [renoise.Sample.LOOP_MODE_OFF] = 0,
-    [renoise.Sample.LOOP_MODE_FORWARD] = 1,
-    [renoise.Sample.LOOP_MODE_REVERSE] = 2,
-    [renoise.Sample.LOOP_MODE_PING_PONG] = 3
-  }
+  -- Additional fields for proper PTI format (offsets 56-70)
+  write_at(57, string.char(1,0,0,0))       -- offset 56-59: unknown non-zero block
+  write_at(65, string.char(0))             -- offset 64: padding  
+  write_at(66, string.char(8))             -- offset 65: wavetable window size high byte (8 = 2048)
+  write_at(69, string.char(94))            -- offset 68: wavetable total positions (94 for working)
   
-  if inst.loop_mode and renoise_loop_modes[inst.loop_mode] then
-    pti_loop_mode = renoise_loop_modes[inst.loop_mode]
+  -- Determine PTI playback mode
+  local pti_playback_mode = 0 -- Default: 1-Shot
+  
+  -- Check if sample has slices - if so, use Slice or Beat Slice mode
+  local has_slices = inst.slice_markers and #inst.slice_markers > 0
+  
+  if has_slices then
+    -- ALWAYS use Beat Slice mode (5) for any sliced sample
+    pti_playback_mode = 5 -- Beat slice - always for slices
+    print("-- buildPTIHeader: Setting playback mode to Beat Slice (5) - always for slices")
+  else
+    -- Map Renoise loop mode to PTI loop mode (for non-sliced samples)
+    local renoise_loop_modes = {
+      [renoise.Sample.LOOP_MODE_OFF] = 0,        -- 1-Shot
+      [renoise.Sample.LOOP_MODE_FORWARD] = 1,    -- Forward loop
+      [renoise.Sample.LOOP_MODE_REVERSE] = 2,    -- Backward loop
+      [renoise.Sample.LOOP_MODE_PING_PONG] = 3   -- PingPong loop
+    }
+    
+    if inst.loop_mode and renoise_loop_modes[inst.loop_mode] then
+      pti_playback_mode = renoise_loop_modes[inst.loop_mode]
+    end
   end
   
-  -- Write playback start (offset 78-79) - set to 0 for start of sample
-  write_at(79, string.char(0, 0))
-  print("-- build_header: Writing playback start = 0 at offset 78")
-  
-  -- Write loop start at offset 81 (read by read_uint16_le(header, 80))
-  -- Use inverse of import mapping: ((frame - 1) / (sample_len - 1)) * 65533 + 1
-  local loop_start_raw = math.floor(((inst.loop_start - 1) / (inst.sample_length - 1)) * 65533) + 1
-  loop_start_raw = math.max(1, math.min(loop_start_raw, 65534))
-  write_at(81, string.char(
-    bit.band(loop_start_raw, 0xFF),
-    bit.band(bit.rshift(loop_start_raw, 8), 0xFF)
-  ))
-  
-  -- Write loop end at offset 83 (read by read_uint16_le(header, 82))  
-  -- Use inverse of import mapping: ((frame - 1) / (sample_len - 1)) * 65533 + 1
-  local loop_end_raw = math.floor(((inst.loop_end - 1) / (inst.sample_length - 1)) * 65533) + 1
-  loop_end_raw = math.max(1, math.min(loop_end_raw, 65534))
-  write_at(83, string.char(
-    bit.band(loop_end_raw, 0xFF),
-    bit.band(bit.rshift(loop_end_raw, 8), 0xFF)
-  ))
-  
-  -- Write playback end (offset 84-85) - set for better zoom if sample has loops
-  local playback_end = 65535 -- Default to full range
-  
-  -- If sample has loop points, use loop end as playback end for better zoom
-  if inst.loop_mode ~= renoise.Sample.LOOP_MODE_OFF and inst.loop_end > inst.loop_start then
-    -- Use the same inverse mapping as loop points for consistency
-    playback_end = math.floor(((inst.loop_end - 1) / (inst.sample_length - 1)) * 65535) + 0
-    playback_end = math.max(0, math.min(playback_end, 65535))
-    print(string.format("-- build_header: Using loop end for playback end: %d", playback_end))
-  end
-  
-  write_at(85, string.char(
-    bit.band(playback_end, 0xFF),
-    bit.band(bit.rshift(playback_end, 8), 0xFF)
-  ))
-  print(string.format("-- build_header: Writing playback end = %d at offset 84", playback_end))
-  
-  -- Write loop mode (offset 76, read at 77 in import)
-  write_at(77, string.char(pti_loop_mode))
-  print(string.format("-- build_header: Writing loop mode %d at offset 76", pti_loop_mode))
-  
-  print(string.format("-- build_header: Converting loop points: start=%d->%d, end=%d->%d", 
-    inst.loop_start, loop_start_raw, inst.loop_end, loop_end_raw))
-  
-  -- Write slice markers (offset 280-375, 48 markers × 2 bytes each)
-  local slice_markers = inst.slice_markers or {}
-  local num_slices = math.min(48, #slice_markers)
-  
-  print(string.format("-- build_header: Writing %d slices (from %d total)", num_slices, #slice_markers))
-  
-  for i = 1, num_slices do
-    local slice_pos = slice_markers[i]
-    -- Simple proportion: frame_position / total_frames * 65535
-    local slice_value = math.floor((slice_pos / inst.sample_length) * 65535)
-    local offset = 280 + (i - 1) * 2
-    write_at(offset + 1, string.char(
-      bit.band(slice_value, 0xFF),
-      bit.band(bit.rshift(slice_value, 8), 0xFF)
+  -- Handle playback start/end and loop points based on slice vs loop mode
+  if has_slices then
+    -- SLICE MODE: Set playback to full range, ignore any loop settings
+    print("-- buildPTIHeader: SLICE MODE - ignoring loop settings, using full playback range")
+    
+    -- Write playback start (offset 78-79) - 0 for full start
+    write_at(79, string.char(0, 0))
+    print("-- buildPTIHeader: Writing playback start = 0 (slice mode)")
+    
+    -- Write loop start/end to default values (not used in slice mode but set for safety)
+    write_at(81, string.char(1, 0))  -- loop start = 1
+    write_at(83, string.char(254, 255))  -- loop end = 65534
+    print("-- buildPTIHeader: Writing default loop points (ignored in slice mode)")
+    
+    -- Write playback end (offset 84-85) - full range for slices
+    write_at(85, string.char(255, 255))  -- playback end = 65535 (full range)
+    print("-- buildPTIHeader: Writing playback end = 65535 (full range for slices)")
+    
+  else
+    -- LOOP MODE: Handle loop points properly, ignore any slice markers
+    print("-- buildPTIHeader: LOOP MODE - using loop settings, ignoring any slice markers")
+    
+    -- Write playback start (offset 78-79) - set to 0 for start of sample
+    write_at(79, string.char(0, 0))
+    print("-- buildPTIHeader: Writing playback start = 0 (loop mode)")
+    
+    -- Write loop start at offset 81 (read by read_uint16_le(header, 80))
+    -- Use inverse of import mapping: ((frame - 1) / (sample_len - 1)) * 65533 + 1
+    local loop_start_raw = math.floor(((inst.loop_start - 1) / (inst.sample_length - 1)) * 65533) + 1
+    loop_start_raw = math.max(1, math.min(loop_start_raw, 65534))
+    write_at(81, string.char(
+      bit.band(loop_start_raw, 0xFF),
+      bit.band(bit.rshift(loop_start_raw, 8), 0xFF)
     ))
-    print(string.format("-- Export slice %02d: frame=%d/%d, value=%d (0x%04X)", 
-      i, slice_pos, inst.sample_length, slice_value, slice_value))
+    
+    -- Write loop end at offset 83 (read by read_uint16_le(header, 82))  
+    -- Use inverse of import mapping: ((frame - 1) / (sample_len - 1)) * 65533 + 1
+    local loop_end_raw = math.floor(((inst.loop_end - 1) / (inst.sample_length - 1)) * 65533) + 1
+    loop_end_raw = math.max(1, math.min(loop_end_raw, 65534))
+    write_at(83, string.char(
+      bit.band(loop_end_raw, 0xFF),
+      bit.band(bit.rshift(loop_end_raw, 8), 0xFF)
+    ))
+    
+    -- Write playback end (offset 84-85) - set for better zoom if sample has loops
+    local playback_end = 65535 -- Default to full range
+    
+    -- If sample has loop points, use loop end as playback end for better zoom
+    if inst.loop_mode ~= renoise.Sample.LOOP_MODE_OFF and inst.loop_end > inst.loop_start then
+      -- Use the same inverse mapping as loop points for consistency
+      playback_end = math.floor(((inst.loop_end - 1) / (inst.sample_length - 1)) * 65535) + 0
+      playback_end = math.max(0, math.min(playback_end, 65535))
+      print(string.format("-- buildPTIHeader: Using loop end for playback end: %d", playback_end))
+    end
+    
+    write_at(85, string.char(
+      bit.band(playback_end, 0xFF),
+      bit.band(bit.rshift(playback_end, 8), 0xFF)
+    ))
+    print(string.format("-- buildPTIHeader: Writing playback end = %d at offset 84", playback_end))
+    
+    print(string.format("-- buildPTIHeader: Converting loop points: start=%d->%d, end=%d->%d", 
+      inst.loop_start, loop_start_raw, inst.loop_end, loop_end_raw))
   end
   
-  -- Write slice count (offset 376)
-  write_at(377, string.char(num_slices))
-  print(string.format("-- build_header: Wrote slice count %d at offset 376", num_slices))
+  -- Write playback mode (offset 76)
+  write_at(77, string.char(pti_playback_mode))
+  print(string.format("-- buildPTIHeader: Writing playback mode %d at offset 76", pti_playback_mode))
+  
+  -- Handle slice markers - only write if in slice mode
+  if has_slices then
+    -- Write slice markers (offset 280-375, 48 markers × 2 bytes each)
+    local slice_markers = inst.slice_markers or {}
+    local num_slices = math.min(48, #slice_markers)
+    
+    print(string.format("-- buildPTIHeader: Writing %d slices (from %d total)", num_slices, #slice_markers))
+    
+    for i = 1, num_slices do
+      local slice_pos = slice_markers[i]
+      -- Simple proportion: frame_position / total_frames * 65535
+      local slice_value = math.floor((slice_pos / inst.sample_length) * 65535)
+      local offset = 280 + (i - 1) * 2
+      write_at(offset + 1, string.char(
+        bit.band(slice_value, 0xFF),
+        bit.band(bit.rshift(slice_value, 8), 0xFF)
+      ))
+      print(string.format("-- Export slice %02d: frame=%d/%d, value=%d (0x%04X)", 
+        i, slice_pos, inst.sample_length, slice_value, slice_value))
+    end
+    
+    -- Write slice count (offset 376)
+    write_at(377, string.char(num_slices))
+    print(string.format("-- buildPTIHeader: Wrote slice count %d at offset 376", num_slices))
+    
+  else
+    -- LOOP MODE: Zero out slice data to be safe
+    print("-- buildPTIHeader: LOOP MODE - zeroing slice markers")
+    -- Zero out all slice marker positions (offset 280-375)
+    for i = 0, 47 do
+      local offset = 280 + i * 2
+      write_at(offset + 1, string.char(0, 0))
+    end
+    -- Write slice count = 0 (offset 376)
+    write_at(377, string.char(0))
+    print("-- buildPTIHeader: Wrote slice count = 0 (loop mode)")
+  end
+  
+  -- Write volume (offset 272) - 50 for working files  
+  write_at(273, string.char(50))
+  print("-- buildPTIHeader: Writing volume = 50 (working file standard) at offset 272")
+  
+  -- Write panning (offset 276) - 50 = center (0), 0-100 maps to -50/+50
+  write_at(277, string.char(50))
+  print("-- buildPTIHeader: Writing panning = 50 (center) at offset 276")
+  
+  -- Write active slice (offset 377) - which slice is selected
+  if has_slices then
+    local active_slice = math.min(4, num_slices > 0 and num_slices - 1 or 0)
+    write_at(378, string.char(active_slice))
+    print(string.format("-- buildPTIHeader: Wrote active slice %d at offset 377", active_slice))
+  end
+  
+  -- Additional missing fields for proper PTI format
+  -- Granular length (offset 378-379) - 441 = 10ms for working files
+  write_at(379, string.char(185, 1))       -- 441 as 16-bit LE (185 + 1*256 = 441)
+  print("-- buildPTIHeader: Writing granular length = 441 (10ms) at offset 378-379")
+  
+  -- Bit depth (offset 386) - 16 for working files
+  write_at(387, string.char(16))
+  print("-- buildPTIHeader: Writing bit depth = 16 at offset 386")
   
   return header
 end
@@ -683,9 +794,16 @@ function pti_savesample()
     renoise.app():show_status(string.format("PTI format supports max 48 slices - limiting from %d", original_slice_count))
   end
 
+  -- Extract filename without path and extension for PTI header name
+  local pti_name = filename:match("([^/\\]+)%.pti$") or filename:match("([^/\\]+)$")
+  if pti_name:match("%.pti$") then
+    pti_name = pti_name:gsub("%.pti$", "")
+  end
+  print(string.format("-- PTI Header Name: '%s' (from chosen filename)", pti_name))
+  
   -- gather simple inst params
   local data = {
-    name = inst.name,
+    name = pti_name,
     is_wavetable = false,
     sample_length = smp.sample_buffer.number_of_frames,
     loop_mode = smp.loop_mode,
@@ -741,7 +859,7 @@ function pti_savesample()
   end
 
   -- Write header and get its size for verification
-  local header = build_header(data)
+  local header = buildPTIHeader(data)
   print(string.format("-- Header size: %d bytes", #header))
   f:write(header)
 

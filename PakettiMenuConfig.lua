@@ -639,18 +639,35 @@ end
 --- Mixer Config
 if preferences.pakettiMenuConfig.Mixer then
   print ("Mixer Menus Are Enabled")
-  renoise.tool():add_menu_entry{name="--Mixer:Paketti Gadgets..:Paketti Action Selector Dialog...",invoke = pakettiActionSelectorDialog}
-  renoise.tool():add_menu_entry{name="--Mixer:Paketti Gadgets..:Paketti BPM to MS Delay Calculator Dialog...", invoke = pakettiBPMMSCalculator}
+renoise.tool():add_menu_entry{name="--Mixer:Paketti Gadgets..:Paketti Action Selector Dialog...",invoke = pakettiActionSelectorDialog}
+renoise.tool():add_menu_entry{name="--Mixer:Paketti Gadgets..:Paketti BPM to MS Delay Calculator Dialog...", invoke = pakettiBPMMSCalculator}
 
 
-  renoise.tool():add_menu_entry{name="Mixer:Paketti..:Show/Hide User Preference Devices Master Dialog...",invoke=function() pakettiUserPreferencesShowerDialog() end}
-  renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Automation..:Snapshot All Devices on Selected Track to Automation",invoke = snapshot_all_devices_to_automation}
-  renoise.tool():add_menu_entry{name="Mixer:Paketti..:Automation..:Snapshot Selected Device to Automation",invoke = snapshot_selected_device_to_automation}
-  renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Automation..:Convert FX to Automation",invoke = read_fx_to_automation}
-  
-  renoise.tool():add_menu_entry{name="Mixer:Paketti..:Duplicate Track Duplicate Instrument",invoke=function() duplicateTrackDuplicateInstrument() end}
-  renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Value Interpolation Looper Dialog...",invoke = pakettiVolumeInterpolationLooper}
-  renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Nudge Delay Output +01ms",invoke=function() nudge_output_delay(1, false) end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Show/Hide User Preference Devices Master Dialog...",invoke=function() pakettiUserPreferencesShowerDialog() end}
+renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Automation..:Snapshot All Devices on Selected Track to Automation",invoke = snapshot_all_devices_to_automation}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Automation..:Snapshot Selected Device to Automation",invoke = snapshot_selected_device_to_automation}
+renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Automation..:Convert FX to Automation",invoke = read_fx_to_automation}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:LFO Write..:LFO Write to Selected Automation Parameter",invoke = toggle_parameter_following}
+
+renoise.tool():add_menu_entry{name="--Mixer:Paketti..:LFO Write..:LFO Write to Phrase LPB (1-255)",invoke=function() toggle_lpb_following(255) end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:LFO Write..:LFO Write to Phrase LPB (1-127)",invoke=function() toggle_lpb_following(127) end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:LFO Write..:LFO Write to Phrase LPB (1-64)",invoke=function() toggle_lpb_following(64) end}
+
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:LFO Write..:Single Parameter Write to Automation",invoke = toggle_single_parameter_following}
+
+
+renoise.tool():add_menu_entry{name="--Mixer:Paketti..:LFO Write..:LFO Write to Effect Column 1 (Amount Only)",invoke=function() toggle_fx_amount_following() end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Yxx)",invoke=function() toggle_fx_amount_following("0Y") end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Sxx)",invoke=function() toggle_fx_amount_following("0S") end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Dxx)",invoke=function() toggle_fx_amount_following("0D") end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Uxx)",invoke=function() toggle_fx_amount_following("0U") end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Gxx)",invoke=function() toggle_fx_amount_following("0G") end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Rxx)",invoke=function() toggle_fx_amount_following("0R") end}
+
+
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Duplicate Track Duplicate Instrument",invoke=function() duplicateTrackDuplicateInstrument() end}
+renoise.tool():add_menu_entry{name="--Mixer:Paketti..:Value Interpolation Looper Dialog...",invoke = pakettiVolumeInterpolationLooper}
+renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Nudge Delay Output +01ms",invoke=function() nudge_output_delay(1, false) end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Nudge Delay Output -01ms",invoke=function() nudge_output_delay(-1, false) end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Nudge Delay Output +05ms",invoke=function() nudge_output_delay(5, false) end}
 renoise.tool():add_menu_entry{name="Mixer:Paketti..:Delay Output..:Nudge Delay Output -05ms",invoke=function() nudge_output_delay(-5, false) end}
@@ -805,6 +822,17 @@ if preferences.pakettiMenuConfig.PatternEditor then
   renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Automation..:Snapshot All Devices on Selected Track to Automation",invoke = snapshot_all_devices_to_automation}
   renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Automation..:Snapshot Selected Device to Automation",invoke = snapshot_selected_device_to_automation}
   renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:Automation..:Convert FX to Automation",invoke = read_fx_to_automation}
+  
+  renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:LFO Write..:LFO Write to Effect Column 1 (Amount Only)",invoke=function() toggle_fx_amount_following() end}
+  renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Yxx)",invoke=function() toggle_fx_amount_following("0Y") end}
+  renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Sxx)",invoke=function() toggle_fx_amount_following("0S") end}
+  renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Dxx)",invoke=function() toggle_fx_amount_following("0D") end}
+  renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Uxx)",invoke=function() toggle_fx_amount_following("0U") end}
+  renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Gxx)",invoke=function() toggle_fx_amount_following("0G") end}
+  renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:LFO Write..:LFO Write to Effect Column 1 (0Rxx)",invoke=function() toggle_fx_amount_following("0R") end}
+  renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti..:LFO Write..:LFO Write to Selected Automation Parameter",invoke = toggle_parameter_following}
+  renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:LFO Write..:Single Parameter Write to Automation",invoke = toggle_single_parameter_following}
+
   
 
   renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Note Columns..:Generate Delay Value on Note Columns",invoke=function() GenerateDelayValue("row") end}

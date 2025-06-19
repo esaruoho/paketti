@@ -80,6 +80,7 @@ end
 
 preferences = renoise.Document.create("ScriptingToolPreferences") {
   PolyendRoot="",
+  PolyendLocalPath="",
   pakettifyReplaceInstrument=false,
   pakettiInstrumentProperties=false,
   
