@@ -51,10 +51,15 @@ function pti_loadsample(filepath)
   local clean_name = get_clean_filename(filepath)
   renoise.song().selected_instrument.name = clean_name
   smp.name = clean_name
-  renoise.song().instruments[renoise.song().selected_instrument_index]
-      .sample_modulation_sets[1].name = clean_name
-  renoise.song().instruments[renoise.song().selected_instrument_index]
-      .sample_device_chains[1].name = clean_name
+  
+  -- Safely access sample_modulation_sets and sample_device_chains with nil checks
+  local selected_instrument = renoise.song().instruments[renoise.song().selected_instrument_index]
+  if selected_instrument and selected_instrument.sample_modulation_sets and #selected_instrument.sample_modulation_sets > 0 then
+    selected_instrument.sample_modulation_sets[1].name = clean_name
+  end
+  if selected_instrument and selected_instrument.sample_device_chains and #selected_instrument.sample_device_chains > 0 then
+    selected_instrument.sample_device_chains[1].name = clean_name
+  end
 
   -- Create the sample buffer using the stereo flag
   smp.sample_buffer:create_sample_data(44100, 16, is_stereo and 2 or 1, sample_length)
