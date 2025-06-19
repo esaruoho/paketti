@@ -80,27 +80,28 @@ local function distribute_samples(keys_per_sample, base_note_mode)
       local start_note = (sample_idx - 1) * keys_per_sample
       local end_note = start_note + (keys_per_sample - 1)
       
-      -- Handle the last possible mapping differently
+      -- Check if we would exceed the MIDI range
+      if start_note > 119 then
+        -- We've reached the limit, stop mapping
+        debug_print(string.format("Sample %d would start at note %d (>119), stopping", sample_idx, start_note))
+        break
+      end
+      
+      -- Clamp end_note to valid range
       if end_note > 119 then
-        -- If this is the first sample, we can't map anything
-        if sample_idx == 1 then
-          renoise.app():show_warning(string.format(
-            "Cannot map any samples: %d keys would exceed MIDI range",
-            keys_per_sample
-          ))
-          return
-        end
-        
-        -- For the last sample that would exceed the range,
-        -- fit it in the remaining space
-        if sample_idx == mapped_samples + 1 then
-          end_note = 119
-          start_note = math.max(0, mapped_samples * keys_per_sample)
-          reached_limit = true
-        else
-          -- We're done mapping
-          break
-        end
+        end_note = 119
+        reached_limit = true
+        debug_print(string.format("Sample %d end note clamped from %d to 119", sample_idx, start_note + (keys_per_sample - 1)))
+      end
+      
+      -- Ensure start_note is also within valid range (safety check)
+      start_note = math.max(0, math.min(119, start_note))
+      end_note = math.max(0, math.min(119, end_note))
+      
+      -- Ensure start_note <= end_note
+      if start_note > end_note then
+        debug_print(string.format("Sample %d: start_note (%d) > end_note (%d), skipping", sample_idx, start_note, end_note))
+        break
       end
       
       -- Get the original base note before we change anything
@@ -114,6 +115,8 @@ local function distribute_samples(keys_per_sample, base_note_mode)
       
       -- Set base note according to selected mode
       local new_base_note = get_base_note(start_note, end_note, original_base_note, base_note_mode)
+      -- Clamp base note to valid range
+      new_base_note = math.max(0, math.min(119, new_base_note))
       sample.sample_mapping.base_note = new_base_note
       
       mapped_samples = mapped_samples + 1
@@ -122,6 +125,12 @@ local function distribute_samples(keys_per_sample, base_note_mode)
         "Sample %d mapped to notes %d-%d with base note %d",
         sample_idx, start_note, end_note, new_base_note
       ))
+      
+      -- If we reached the limit, stop processing more samples
+      if reached_limit then
+        debug_print(string.format("Reached MIDI range limit at sample %d", sample_idx))
+        break
+      end
     else
       debug_print(string.format("Sample %d no longer exists, skipping", sample_idx))
     end
