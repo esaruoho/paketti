@@ -331,8 +331,7 @@ function importS1000Program(file_path)
 end
 
 function exportS1000Program()
-  local output_path = renoise.app():prompt_for_filename_to_write(
-    {"*.p"}, "Export S1000 Program"
+  local output_path = renoise.app():prompt_for_filename_to_write("*.p", "Export S1000 Program"
   )
   
   if not output_path or output_path == "" then
@@ -773,8 +772,7 @@ function importMPC2000Program(file_path)
 end
 
 function exportMPC1000Program()
-  local output_path = renoise.app():prompt_for_filename_to_write(
-    {"*.pgm"}, "Export MPC1000 Program"
+  local output_path = renoise.app():prompt_for_filename_to_write("*.pgm", "Export MPC1000 Program"
   )
   
   if not output_path or output_path == "" then
@@ -787,9 +785,7 @@ function exportMPC1000Program()
 end
 
 function exportMPC2000Program()
-  local output_path = renoise.app():prompt_for_filename_to_write(
-    {"*.pgm"}, "Export MPC2000 Program"
-  )
+  local output_path = renoise.app():prompt_for_filename_to_write("*.pgm", "Export MPC2000 Program")
   
   if not output_path or output_path == "" then
     renoise.app():show_status("No file selected")

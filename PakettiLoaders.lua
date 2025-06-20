@@ -2590,7 +2590,7 @@ function show_available_plugins_dialog()
   local multiline_field = vb:multiline_textfield { text = combined_text,width=900, height = 700 }
 
   local function save_to_file()
-    local filename = renoise.app():prompt_for_filename_to_write(".txt", "Available Plugins Saver")
+    local filename = renoise.app():(".txt", "Available Plugins Saver")
     if filename then
       local file, err = io.open(filename, "w")
       if file then

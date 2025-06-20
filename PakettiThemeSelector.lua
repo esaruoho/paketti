@@ -159,7 +159,7 @@ local function save_favorites()
     return
   end
 
-  local file_path = renoise.app():prompt_for_filename_to_write("xml", "Save Favorites")
+  local file_path = renoise.app():prompt_for_filename_to_write("*.xml", "Save Favorites")
   if not file_path then
     renoise.app():show_status("No filename was selected, did not save Paketti Theme Selector Favorites")
     return
@@ -186,7 +186,7 @@ local function save_favorites()
 end
 
 local function load_favorites(vb)
-  local file_path = renoise.app():prompt_for_filename_to_read({"xml"}, "Load Favorites")
+  local file_path = renoise.app():prompt_for_filename_to_read({"*.xml"}, "Load Favorites")
   if not file_path then
     renoise.app():show_status("No filename was selected, did not load Paketti Theme Selector Favorites")
     return

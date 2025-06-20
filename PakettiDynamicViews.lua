@@ -503,7 +503,7 @@ end
 
 -- Save Dynamic Views as .txt
 function save_dynamic_views_to_txt()
-  local file_path = renoise.app():prompt_for_filename_to_write("txt", "Save Dynamic Views as .txt")
+  local file_path = renoise.app():prompt_for_filename_to_write("*.txt", "Save Dynamic Views as .txt")
   if not file_path then return end
   
   local file = io.open(file_path, "w")
@@ -546,7 +546,7 @@ end
 
 -- Load Dynamic Views from .txt
 function load_dynamic_views_from_txt()
-  local file_path = renoise.app():prompt_for_filename_to_read({"txt"}, "Load Dynamic Views from .txt")
+  local file_path = renoise.app():prompt_for_filename_to_read({"*.txt"}, "Load Dynamic Views from .txt")
   if not file_path then return end
   
   local file = io.open(file_path, "r")

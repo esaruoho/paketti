@@ -949,7 +949,7 @@ function pti_savesample()
   local has_multiple_samples = total_samples > 1
 
   -- Prompt for save location with local variable assignment
-  local filename = renoise.app():prompt_for_filename_to_write(".pti", "Save .PTI as...")
+  local filename = renoise.app():prompt_for_filename_to_write("*.pti", "Save .PTI as...")
   if filename == "" then
     return
   end

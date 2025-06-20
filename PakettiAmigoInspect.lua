@@ -1566,7 +1566,7 @@ function pakettiAmigoImportWavefile()
     return
   end
 
-  local inpath = renoise.app():prompt_for_filename_to_read({"wav"}, "Select Wavefile to Import...")
+  local inpath = renoise.app():prompt_for_filename_to_read({"*.wav"}, "Select Wavefile to Import...")
   if not inpath then return end
 
   print("Debug: Reading WAV file...")

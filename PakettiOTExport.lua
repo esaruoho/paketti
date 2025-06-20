@@ -379,7 +379,7 @@ function PakettiOTExportOtOnly()
     print("PakettiOTExportOtOnly: All safety checks passed, proceeding with .ot export")
     
     local ot = make_ot_table(sample)
-    local filename = renoise.app():prompt_for_filename_to_write("ot", "Save .ot file...")
+    local filename = renoise.app():prompt_for_filename_to_write("*.ot", "Save .ot file...")
     
     -- Check if user cancelled the file dialog
     if not filename or filename == "" then
@@ -408,7 +408,7 @@ function PakettiOTImport()
         return
     end
     
-    local filename = renoise.app():prompt_for_filename_to_read({"ot"}, "Load .ot file...")
+    local filename = renoise.app():prompt_for_filename_to_read({"*.ot"}, "Load .ot file...")
     
     -- Check if user cancelled the file dialog
     if not filename or filename == "" then
@@ -536,7 +536,7 @@ function PakettiOTExport()
     print("PakettiOTExport: All safety checks passed, proceeding with export")
     
     local ot = make_ot_table(sample)
-    local filename = renoise.app():prompt_for_filename_to_write("wav", "Save sample...")
+    local filename = renoise.app():prompt_for_filename_to_write("*.wav", "Save sample...")
     
     -- Check if user cancelled the file dialog
     if not filename or filename == "" then

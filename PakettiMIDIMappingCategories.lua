@@ -381,7 +381,7 @@ end
 
 -- Export categories and assignments to a text file for backup/sharing
 function export_categories_to_txt()
-  local filename = renoise.app():prompt_for_filename_to_write({"*.txt"}, "Export MIDI Categories")
+  local filename = renoise.app():prompt_for_filename_to_write("*.txt", "Export MIDI Categories")
   if not filename then return end
   
   local file = io.open(filename, "w")

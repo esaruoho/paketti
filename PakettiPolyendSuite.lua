@@ -381,7 +381,7 @@ function rx2_to_pti_convert()
   print("-- Starting PTI export...")
 
   -- Prompt for PTI save location
-  local pti_filename = renoise.app():prompt_for_filename_to_write(".pti", "Save converted PTI as...")
+  local pti_filename = renoise.app():prompt_for_filename_to_write("*.pti", "Save converted PTI as...")
   if pti_filename == "" then
     print("-- PTI export cancelled by user")
     return

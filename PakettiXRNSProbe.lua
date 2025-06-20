@@ -545,7 +545,7 @@ function pakettiXRNSProbeShowDialog(mode)
         notifier=function() PakettiXRNSProbeClearText() PakettiXRNSProbeBrowseAndAnalyzeXRNS() end }) end
   table.insert(buttons, vb:button{ text="Save as .TXT", width=120,
         notifier=function()
-          local filename = renoise.app():prompt_for_filename_to_write("txt","Save Analysis as Text File")
+          local filename = renoise.app():prompt_for_filename_to_write("*.txt","Save Analysis as Text File")
           if filename then if not filename:match("%.txt$") then filename=filename..".txt" end
             local file=io.open(filename,"w") if file then file:write(results_textfield.text);file:close()
               renoise.app():show_status("Analysis saved to "..filename)

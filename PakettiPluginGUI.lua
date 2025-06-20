@@ -32,7 +32,7 @@ function show_plugin_list_dialog()
     }
 
     -- Categorize plugins for instruments and devices for effects, then sort alphabetically
-    function sortAndCategorizePlugins()
+    local function sortAndCategorizePlugins()
         for _, plugin in ipairs(available_plugins) do
             local name = pluginReadableNames[plugin] or plugin:match("([^/]+)$")
             if plugin:find("VSTi") or plugin:find("VST3") then
@@ -64,7 +64,7 @@ function show_plugin_list_dialog()
     local pluginPathMap = {} -- Mapping table for short name to original path
     local auPluginPathMap = {} -- Dedicated map for AU plugins
     
-    function populateMap()
+    local function populateMap()
     for i, plugin_info in ipairs(available_plugin_infos) do
         local shortName = plugin_info.short_name
         local originalPath = available_plugins[i] -- Assuming this is the full path or a unique identifier you need
@@ -82,7 +82,7 @@ function show_plugin_list_dialog()
     end
 
 -- Function to filter AU plugins and populate auPluginPathMap
-function filterAUPlugins()
+local function filterAUPlugins()
     for shortName, originalPath in pairs(pluginPathMap) do
         if string.find(originalPath, "AU") then
             auPluginPathMap[shortName] = originalPath

@@ -398,9 +398,7 @@ function exportCurrentSampleAsAKP()
   end
   
   -- Prompt for output file
-  local output_path = renoise.app():prompt_for_filename_to_write(
-    {"*.akp"}, 
-    "Export Sample as AKP File"
+  local output_path = renoise.app():prompt_for_filename_to_write("*.akp", "Export Sample as AKP File"
   )
   
   if not output_path or output_path == "" then
@@ -879,9 +877,7 @@ end
 -- Main AKP import function
 function importAKPFile(file_path)
   if not file_path then
-    file_path = renoise.app():prompt_for_filename_to_read(
-      {"*.akp"}, 
-      "Import AKP File"
+    file_path = renoise.app():prompt_for_filename_to_read({"*.akp"},"Import AKP File"
     )
     
     if not file_path or file_path == "" then

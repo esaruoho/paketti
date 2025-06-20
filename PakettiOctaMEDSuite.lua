@@ -416,7 +416,7 @@ end
 
 -- Function to save dialog content to a text file
 local function save_dialog_content_to_file()
-  local filename = renoise.app():prompt_for_filename_to_write(".txt", "Save Pick/Put Dialog Content")
+  local filename = renoise.app():prompt_for_filename_to_write("*.txt", "Save Pick/Put Dialog Content")
   if filename and filename ~= "" then
     local file, err = io.open(filename, "w")
     if file then

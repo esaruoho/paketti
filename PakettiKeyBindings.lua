@@ -401,7 +401,7 @@ function pakettiKeyBindingsDialog(selectedIdentifier)  -- Accept an optional par
       identifier_switch,
       show_shortcuts_switch,
 vb:row{vb:button{text="Save as Textfile", notifier=function()
-    local filename = renoise.app():prompt_for_filename_to_write(".txt", "Available Plugins Saver")
+    local filename = renoise.app():prompt_for_filename_to_write("*.txt", "Available Plugins Saver")
     if filename then
       local file, err = io.open(filename, "w")
       if file then
@@ -749,7 +749,7 @@ function pakettiRenoiseKeyBindingsDialog(selectedIdentifier)  -- Accept an optio
         vb:button{
           text="Save as Textfile",
           notifier=function()
-            local filename = renoise.app():prompt_for_filename_to_write(".txt", "Available Plugins Saver")
+            local filename = renoise.app():prompt_for_filename_to_write("*.txt", "Available Plugins Saver")
             if filename then
               local file, err = io.open(filename, "w")
               if file then

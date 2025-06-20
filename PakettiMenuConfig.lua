@@ -1306,7 +1306,7 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:R
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Resize&Fill..:Paketti Pattern Resize and Fill 512",invoke=function() pakettiResizeAndFill(512) end}
 
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Import AKP File...",invoke=importAKPFile}
+
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Automation..:Randomize Automation Envelopes for Device",invoke=function() randomize_device_envelopes(1) end}
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:LFO Write..:LFO Write to Selected Automation Parameter",invoke = toggle_parameter_following}
@@ -1356,12 +1356,12 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:Set 
 
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Import .RX2",invoke=function() 
-  local filename = renoise.app():prompt_for_filename_to_read({"*.RX2"}, "ReCycle .RX2 Import tool")
+  local filename = renoise.app():prompt_for_filename_to_read({"*.RX2","*.rx2"}, "ReCycle .RX2 Import tool")
   if filename then rx2_loadsample(filename) end end}
 
   renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Dump REX Structure to Text",
   invoke=function()
-    local file_path = renoise.app():prompt_for_filename_to_read({ "*.rex" }, "ReCycle Legacy .REX Import Structure Dumper")
+    local file_path = renoise.app():prompt_for_filename_to_read({ "*.rex","*.REX" }, "ReCycle Legacy .REX Import Structure Dumper")
     if file_path then
       dump_rex_structure(file_path)
     end
@@ -2055,3 +2055,4 @@ end
 --renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Export..:Export S1000 Sample...",invoke = function() exportS1000Sample() end}
 
 -- renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Load..:Import AKP File...",invoke = importAKPFile}
+--renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Import AKP File...",invoke=importAKPFile}

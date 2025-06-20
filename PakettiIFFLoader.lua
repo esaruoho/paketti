@@ -805,10 +805,7 @@ function saveCurrentSampleAsIFF()
   end
 
   -- Prompt for output file path
-  local output_path = renoise.app():prompt_for_filename_to_write(
-    {"*.iff"}, 
-    "Save Sample as IFF File"
-  )
+  local output_path = renoise.app():prompt_for_filename_to_write("*.iff","Save Sample as IFF File")
   
   if not output_path or output_path == "" then
     renoise.app():show_status("No file selected")

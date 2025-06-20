@@ -372,9 +372,7 @@ function exportS3000Sample()
     return
   end
   
-  local output_path = renoise.app():prompt_for_filename_to_write(
-    {"*.s"}, "Export S3000 Sample"
-  )
+  local output_path = renoise.app():prompt_for_filename_to_write("*.s", "Export S3000 Sample")
   
   if not output_path or output_path == "" then
     renoise.app():show_status("No file selected")
