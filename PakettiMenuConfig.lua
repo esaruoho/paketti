@@ -152,15 +152,8 @@ renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Load..:Load .MOD a
   if file_path ~= "" then
     pakettiLoadExeAsSample(file_path)
     paketti_toggle_signed_unsigned() end end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Load..:Import S1000 Sample...",invoke = function() importS1000Sample() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Load..:Import S3000 Sample...",invoke = function() importS3000Sample() end}
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Load..:Import AKP File...",invoke = importAKPFile}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Load..:Import Any Akai Sample...",invoke = function() importAnyAkaiSample() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Load..:Import Akai Folder (Batch)...",invoke = function() importAkaiFolderBatch() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Load..:Import MPC2000 SND Sample...",invoke = function() importMPC2000Sample() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Load..:Import MPC2000 SND Folder...",invoke = function() importMPC2000Folder() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Load..:Import Akai Program...",invoke = function() importAkaiProgram() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Load..:Import S900/S950 Sample...",invoke = function() importS900Sample() end}
+
+
 
 -- Sample Editor Save
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Save..:Paketti Save Selected Sample .WAV",invoke=function() pakettiSaveSample("WAV") end}
@@ -172,19 +165,6 @@ renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Save..:Duplicate, 
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Save..:Duplicate, Maximize, Convert to 16Bit, and Save as .FLAC",invoke=function() DuplicateMaximizeConvertAndSave("flac") end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Save..:Save Current Sample as IFF...",invoke = saveCurrentSampleAsIFF}
 
--- Sample Editor Export
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Export..:Export S900/S950 Sample...",invoke = function() exportS900Sample() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Export..:Export S1000 Sample...",invoke = function() exportS1000Sample() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Export..:Export S3000 Sample...",invoke = function() exportS3000Sample() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Export..:Export Current Sample as AKP...",invoke = exportCurrentSampleAsAKP}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Export..:Export as Akai Format...",invoke = function() exportCurrentSampleAsAkai() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Export..:Export MPC2000 SND Sample...",invoke = function() exportMPC2000Sample() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Export..:Export Akai Program...",invoke = function() exportAkaiProgram() end}
-
--- Sample Editor Octatrack
-renoise.tool():add_menu_entry {name="Sample Editor:Paketti..:Octatrack..:Export to Octatrack (.WAV+.OT)...",invoke = function() PakettiOTExport() end}
-renoise.tool():add_menu_entry {name="Sample Editor:Paketti..:Octatrack..:Export to Octatrack (.OT)",invoke = function() PakettiOTExportOtOnly() end}
-renoise.tool():add_menu_entry {name="Sample Editor:Paketti..:Octatrack..:Import Octatrack (.OT)...",invoke = function() PakettiOTImport() end}
 
 -- Sample Editor Record
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Record..:Start Sampling and Sample Editor (Record)",invoke=function() PakettiSampleAndToSampleEditor() end}  
@@ -468,21 +448,6 @@ renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Pakettify Current
 renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Isolate Slices or Samples to New Instruments",invoke=PakettiIsolateSlices}
 
 
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Export..:Export Current Sample as AKP...",invoke = exportCurrentSampleAsAKP}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Load..:Import Any Akai Sample...",invoke = function() importAnyAkaiSample() end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Load..:Import Akai Folder (Batch)...",invoke = function() importAkaiFolderBatch() end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Export..:Export as Akai Format...",invoke = function() exportCurrentSampleAsAkai() end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Load..:Import MPC2000 SND Sample...",invoke = function() importMPC2000Sample() end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Export..:Export MPC2000 SND Sample...",invoke = function() exportMPC2000Sample() end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Load..:Import MPC2000 SND Folder...",invoke = function() importMPC2000Folder() end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Load..:Import Akai Program...",invoke = function() importAkaiProgram() end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Export..:Export Akai Program...",invoke = function() exportAkaiProgram() end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Load..:Import S900/S950 Sample...",invoke = function() importS900Sample() end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Export..:Export S900/S950 Sample...",invoke = function() exportS900Sample() end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Load..:Import S1000 Sample...",invoke = function() importS1000Sample() end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Export..:Export S1000 Sample...",invoke = function() exportS1000Sample() end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Load..:Import S3000 Sample...",invoke = function() importS3000Sample() end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Export..:Export S3000 Sample...",invoke = function() exportS3000Sample() end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Process..:Protracker MOD Modulation...",invoke = showProtrackerModDialog}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Paketti Sample Adjust Dialog...",invoke = show_paketti_sample_adjust_dialog}
 renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Add 84 Sample Slots to Instrument",invoke=function() addSampleSlot(84) end}
@@ -522,13 +487,7 @@ renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti Gadgets..:Paketti 
 renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Load..:Load IFF Sample File...",invoke = loadIFFSampleFromDialog}
 renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Load..:Convert WAV to IFF...",invoke = convertWAVToIFF}
 renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Load..:Convert IFF to WAV...",invoke = convertIFFToWAV}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Load..:Import AKP File...",invoke = importAKPFile}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Load..:Import Any Akai Sample...",invoke = function() importAnyAkaiSample() end}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Load..:Import MPC2000 SND Sample...",invoke = function() importMPC2000Sample() end}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Load..:Import Akai Program...",invoke = function() importAkaiProgram() end}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Load..:Import S900/S950 Sample...",invoke = function() importS900Sample() end}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Load..:Import S1000 Sample...",invoke = function() importS1000Sample() end}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Load..:Import S3000 Sample...",invoke = function() importS3000Sample() end}
+
 
 -- Sample Mappings Save
 renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti..:Save..:Export .PTI Instrument",invoke=pti_savesample}
@@ -538,13 +497,6 @@ renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Save..:Paketti Sav
 renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti..:Save..:Save All Samples to Folder...",invoke=function() saveAllSamplesToFolder() end}
 
 -- Sample Mappings Export
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Export..:Export S3000 Sample...",invoke = function() exportS3000Sample() end}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Export..:Export Current Sample as AKP...",invoke = exportCurrentSampleAsAKP}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Export..:Export as Akai Format...",invoke = function() exportCurrentSampleAsAkai() end}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Export..:Export MPC2000 SND Sample...",invoke = function() exportMPC2000Sample() end}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Export..:Export Akai Program...",invoke = function() exportAkaiProgram() end}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Export..:Export S900/S950 Sample...",invoke = function() exportS900Sample() end}
-renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Export..:Export S1000 Sample...",invoke = function() exportS1000Sample() end}
 
 -- Sample Mappings Process
 renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Process..:Normalize Sample",invoke=function() normalize_selected_sample() end}
@@ -1252,10 +1204,16 @@ renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets..:Paketti 
             renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR end end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets..:Paketti MIDI Populator...",invoke=function() pakettiMIDIPopulator() end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets..:Track Routings...",invoke=function() pakettiTrackOutputRoutingsDialog() end}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets..:Oblique Strategies...",invoke=function() create_oblique_strategies_dialog() end}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets..:Oblique Strategies...",invoke=function() pakettiObliqueStrategiesDialog() end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets..:Paketti Track Renamer...",invoke=function() pakettiTrackRenamerDialog() end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets..:Paketti eSpeak Text-to-Speech...",invoke=function()pakettieSpeakDialog()end}
     
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Convert RX2 to PTI",invoke=rx2_to_pti_convert}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:Paketti Steppers Dialog...", invoke=function() PakettiSteppersDialog() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:Reset All Steppers",invoke = ResetAllSteppers}
+
+
+
 -- Xperimental/Work in Progress
 renoise.tool():add_menu_entry{name='Main Menu:Tools:Paketti..:Xperimental/Work in Progress..:BeatDetector Modified...',invoke=function() pakettiBeatDetectorDialog() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress..:Paketti XRNS Probe",invoke = pakettiXRNSProbeShowDialog}
@@ -1284,27 +1242,6 @@ end
 -- Main Menu Options
 renoise.tool():add_menu_entry{name="--Main Menu:Options:Toggle Automatically Open Selected Track Device Editors On/Off",invoke = PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode}
 
--- Tools Instruments
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Convert RX2 to PTI",invoke=rx2_to_pti_convert}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:Paketti Steppers Dialog...", invoke=function() PakettiSteppersDialog() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:Reset All Steppers",invoke = ResetAllSteppers}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Export Current Sample as AKP...",invoke=exportCurrentSampleAsAKP}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Akai Formats Info...",invoke=function() showAkaiFormatsInfo() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Import Any Akai Sample...",invoke=function() importAnyAkaiSample() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Import Akai Folder (Batch)...",invoke=function() importAkaiFolderBatch() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Export as Akai Format...",invoke=function() exportCurrentSampleAsAkai() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Check Akai Importers...",invoke=function() checkAkaiImportersAvailable() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Import MPC2000 SND Sample...",invoke=function() importMPC2000Sample() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Export MPC2000 SND Sample...",invoke=function() exportMPC2000Sample() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Import MPC2000 SND Folder...",invoke=function() importMPC2000Folder() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Import Akai Program...",invoke=function() importAkaiProgram() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Export Akai Program...",invoke=function() exportAkaiProgram() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Import S900/S950 Sample...",invoke=function() importS900Sample() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Export S900/S950 Sample...",invoke=function() exportS900Sample() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Import S1000 Sample...",invoke=function() importS1000Sample() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Export S1000 Sample...",invoke=function() exportS1000Sample() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Import S3000 Sample...",invoke=function() importS3000Sample() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Export S3000 Sample...",invoke=function() exportS3000Sample() end}           
 
 -- Tools Preferences
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:!Preferences..:Paketti Preferences...",invoke=pakettiPreferences}
@@ -2036,3 +1973,81 @@ renoise.tool():add_menu_entry{name="--Disk Browser Files:Paketti..:Import/Export
         paketti_toggle_signed_unsigned() end end}
 renoise.tool():add_menu_entry{name="--Disk Browser Files:Paketti..:Import/Export..:Export .PTI Instrument",invoke=pti_savesample}
 end 
+
+
+---
+--AKAI STUFF
+
+
+-- Tools Instruments
+--renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Export Current Sample as AKP...",invoke=exportCurrentSampleAsAKP}
+--renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Akai Formats Info...",invoke=function() showAkaiFormatsInfo() end}
+--renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Import Any Akai Sample...",invoke=function() importAnyAkaiSample() end}
+--renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Import Akai Folder (Batch)...",invoke=function() importAkaiFolderBatch() end}
+--renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Export as Akai Format...",invoke=function() exportCurrentSampleAsAkai() end}
+--renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Check Akai Importers...",invoke=function() checkAkaiImportersAvailable() end}
+--renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Import MPC2000 SND Sample...",invoke=function() importMPC2000Sample() end}
+--renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Export MPC2000 SND Sample...",invoke=function() exportMPC2000Sample() end}
+--renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Import MPC2000 SND Folder...",invoke=function() importMPC2000Folder() end}
+--renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Import Akai Program...",invoke=function() importAkaiProgram() end}
+--renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Export Akai Program...",invoke=function() exportAkaiProgram() end}
+--renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Import S900/S950 Sample...",invoke=function() importS900Sample() end}
+--renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Export S900/S950 Sample...",invoke=function() exportS900Sample() end}
+--renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Import S1000 Sample...",invoke=function() importS1000Sample() end}
+--renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Export S1000 Sample...",invoke=function() exportS1000Sample() end}
+--renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Import S3000 Sample...",invoke=function() importS3000Sample() end}
+--renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:File Formats..:Export S3000 Sample...",invoke=function() exportS3000Sample() end}           
+--renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Load..:Import S1000 Sample...",invoke = function() importS1000Sample() end}
+--renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Load..:Import S3000 Sample...",invoke = function() importS3000Sample() end}
+--renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Load..:Import AKP File...",invoke = importAKPFile}
+--renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Load..:Import Any Akai Sample...",invoke = function() importAnyAkaiSample() end}
+--renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Load..:Import Akai Folder (Batch)...",invoke = function() importAkaiFolderBatch() end}
+--renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Load..:Import MPC2000 SND Sample...",invoke = function() importMPC2000Sample() end}
+--renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Load..:Import MPC2000 SND Folder...",invoke = function() importMPC2000Folder() end}
+--renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Load..:Import Akai Program...",invoke = function() importAkaiProgram() end}
+--renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Load..:Import S900/S950 Sample...",invoke = function() importS900Sample() end}
+
+-- Sample Editor Export
+--renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Export..:Export S900/S950 Sample...",invoke = function() exportS900Sample() end}
+--renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Export..:Export S1000 Sample...",invoke = function() exportS1000Sample() end}
+--renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Export..:Export S3000 Sample...",invoke = function() exportS3000Sample() end}
+--renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Export..:Export Current Sample as AKP...",invoke = exportCurrentSampleAsAKP}
+--renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Export..:Export as Akai Format...",invoke = function() exportCurrentSampleAsAkai() end}
+--renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Export..:Export MPC2000 SND Sample...",invoke = function() exportMPC2000Sample() end}
+--renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Export..:Export Akai Program...",invoke = function() exportAkaiProgram() end}
+
+-- Sample Editor Octatrack
+--renoise.tool():add_menu_entry {name="Sample Editor:Paketti..:Octatrack..:Export to Octatrack (.WAV+.OT)...",invoke = function() PakettiOTExport() end}
+--renoise.tool():add_menu_entry {name="Sample Editor:Paketti..:Octatrack..:Export to Octatrack (.OT)",invoke = function() PakettiOTExportOtOnly() end}
+--renoise.tool():add_menu_entry {name="Sample Editor:Paketti..:Octatrack..:Import Octatrack (.OT)...",invoke = function() PakettiOTImport() end}
+
+--renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Export..:Export Current Sample as AKP...",invoke = exportCurrentSampleAsAKP}
+--renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Load..:Import Any Akai Sample...",invoke = function() importAnyAkaiSample() end}
+--renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Load..:Import Akai Folder (Batch)...",invoke = function() importAkaiFolderBatch() end}
+--renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Export..:Export as Akai Format...",invoke = function() exportCurrentSampleAsAkai() end}
+--renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Load..:Import MPC2000 SND Sample...",invoke = function() importMPC2000Sample() end}
+--renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Export..:Export MPC2000 SND Sample...",invoke = function() exportMPC2000Sample() end}
+--renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Load..:Import MPC2000 SND Folder...",invoke = function() importMPC2000Folder() end}
+--renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Load..:Import Akai Program...",invoke = function() importAkaiProgram() end}
+--renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Export..:Export Akai Program...",invoke = function() exportAkaiProgram() end}
+--renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Load..:Import S900/S950 Sample...",invoke = function() importS900Sample() end}
+--renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Export..:Export S900/S950 Sample...",invoke = function() exportS900Sample() end}
+--renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Load..:Import S1000 Sample...",invoke = function() importS1000Sample() end}
+--renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Export..:Export S1000 Sample...",invoke = function() exportS1000Sample() end}
+--renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Load..:Import S3000 Sample...",invoke = function() importS3000Sample() end}
+--renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Export..:Export S3000 Sample...",invoke = function() exportS3000Sample() end}
+
+--renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Load..:Import AKP File...",invoke = importAKPFile}
+--renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Load..:Import Any Akai Sample...",invoke = function() importAnyAkaiSample() end}
+--renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Load..:Import MPC2000 SND Sample...",invoke = function() importMPC2000Sample() end}
+--renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Load..:Import Akai Program...",invoke = function() importAkaiProgram() end}
+--renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Load..:Import S900/S950 Sample...",invoke = function() importS900Sample() end}
+--renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Load..:Import S1000 Sample...",invoke = function() importS1000Sample() end}
+--renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Load..:Import S3000 Sample...",invoke = function() importS3000Sample() end}
+--renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Export..:Export S3000 Sample...",invoke = function() exportS3000Sample() end}
+--renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Export..:Export Current Sample as AKP...",invoke = exportCurrentSampleAsAKP}
+--renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Export..:Export as Akai Format...",invoke = function() exportCurrentSampleAsAkai() end}
+--renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Export..:Export MPC2000 SND Sample...",invoke = function() exportMPC2000Sample() end}
+--renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Export..:Export Akai Program...",invoke = function() exportAkaiProgram() end}
+--renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Export..:Export S900/S950 Sample...",invoke = function() exportS900Sample() end}
+--renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Export..:Export S1000 Sample...",invoke = function() exportS1000Sample() end}

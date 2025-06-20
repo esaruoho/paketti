@@ -500,6 +500,411 @@ function rx2_to_pti_convert()
 end
 
 --------------------------------------------------------------------------------
+-- Firmware Download Functions
+-- Advanced firmware download and extraction functionality
+--------------------------------------------------------------------------------
+
+-- Function to download and extract firmware
+function download_and_extract_firmware(device_name, download_url)
+  print(string.format("-- Firmware Download: Starting download for %s", device_name))
+  print(string.format("-- Firmware Download: URL: %s", download_url))
+  
+  -- Get temporary directory
+  local TEMP_FOLDER = "/tmp"
+  local os_name = os.platform()
+  if os_name == "MACINTOSH" then
+    TEMP_FOLDER = os.getenv("TMPDIR") or "/tmp"
+  elseif os_name == "WINDOWS" then
+    TEMP_FOLDER = os.getenv("TEMP") or "C:\\temp"
+  end
+  
+  -- Create device-specific temp folder
+  local device_folder_name = device_name:lower():gsub("%+", "plus"):gsub("%s", "_") .. "_firmware"
+  local device_temp_folder = TEMP_FOLDER .. package.config:sub(1,1) .. device_folder_name
+  
+  -- Extract filename from URL
+  local filename = download_url:match("([^/]+%.zip)$") or "firmware.zip"
+  local download_path = device_temp_folder .. package.config:sub(1,1) .. filename
+  local extract_path = device_temp_folder .. package.config:sub(1,1) .. "extracted"
+  
+  print(string.format("-- Firmware Download: Device folder: %s", device_temp_folder))
+  print(string.format("-- Firmware Download: Download path: %s", download_path))
+  print(string.format("-- Firmware Download: Extract path: %s", extract_path))
+  
+  -- Create temp directories
+  local mkdir_cmd
+  if os_name == "WINDOWS" then
+    mkdir_cmd = string.format('mkdir "%s" 2>nul & mkdir "%s" 2>nul', device_temp_folder, extract_path)
+  else
+    mkdir_cmd = string.format('mkdir -p "%s" && mkdir -p "%s"', device_temp_folder, extract_path)
+  end
+  
+  local mkdir_result = os.execute(mkdir_cmd)
+  print(string.format("-- Firmware Download: Created directories (result: %s)", tostring(mkdir_result)))
+  
+  -- Download the firmware file
+  renoise.app():show_status("Downloading firmware... Please wait...")
+  
+  local download_cmd
+  if os_name == "MACINTOSH" or os_name == "LINUX" then
+    -- Use curl on Unix systems
+    download_cmd = string.format('curl -L -o "%s" "%s"', download_path, download_url)
+  elseif os_name == "WINDOWS" then
+    -- Use PowerShell on Windows
+    download_cmd = string.format('powershell -Command "Invoke-WebRequest -Uri \'%s\' -OutFile \'%s\'"', download_url, download_path)
+  else
+    renoise.app():show_error("Unsupported operating system for firmware download")
+    return false
+  end
+  
+  print(string.format("-- Firmware Download: Download command: %s", download_cmd))
+  local download_result = os.execute(download_cmd)
+  
+  if download_result ~= 0 then
+    renoise.app():show_error(string.format("Failed to download firmware (exit code: %d)", download_result))
+    return false
+  end
+  
+  -- Verify download
+  local download_file = io.open(download_path, "rb")
+  if not download_file then
+    renoise.app():show_error("Download failed - file not found")
+    return false
+  end
+  download_file:seek("end")
+  local file_size = download_file:seek()
+  download_file:close()
+  
+  print(string.format("-- Firmware Download: Downloaded %d bytes", file_size))
+  
+  if file_size < 1000 then
+    renoise.app():show_error("Download failed - file too small (likely download error)")
+    return false
+  end
+  
+  -- Extract the ZIP file
+  renoise.app():show_status("Extracting firmware...")
+  
+  local extract_cmd
+  if os_name == "MACINTOSH" or os_name == "LINUX" then
+    -- Use unzip on Unix systems
+    extract_cmd = string.format('cd "%s" && unzip -o "%s"', extract_path, download_path)
+  elseif os_name == "WINDOWS" then
+    -- Use PowerShell on Windows
+    extract_cmd = string.format('powershell -Command "Expand-Archive -Path \'%s\' -DestinationPath \'%s\' -Force"', download_path, extract_path)
+  end
+  
+  print(string.format("-- Firmware Download: Extract command: %s", extract_cmd))
+  local extract_result = os.execute(extract_cmd)
+  
+  if extract_result ~= 0 then
+    print(string.format("-- Firmware Download: Extract failed (exit code: %d), but opening download folder anyway", extract_result))
+    -- Still open the folder even if extraction failed
+    renoise.app():open_path(device_temp_folder)
+    renoise.app():show_status(string.format("Firmware downloaded to: %s (extraction may have failed)", device_temp_folder))
+    return device_temp_folder
+  end
+  
+  -- Success - ask user what to do next
+  renoise.app():show_status(string.format("Firmware downloaded and extracted successfully"))
+  print(string.format("-- Firmware Download: Success! Firmware extracted to: %s", extract_path))
+  
+  return extract_path
+end
+
+-- Function to scrape firmware download URL from Polyend website
+function scrape_firmware_url(device_name, page_url)
+  print(string.format("-- Firmware Scraper: Scraping %s firmware URL from: %s", device_name, page_url))
+  
+  -- Get temporary directory for HTML download
+  local TEMP_FOLDER = "/tmp"
+  local os_name = os.platform()
+  if os_name == "MACINTOSH" then
+    TEMP_FOLDER = os.getenv("TMPDIR") or "/tmp"
+  elseif os_name == "WINDOWS" then
+    TEMP_FOLDER = os.getenv("TEMP") or "C:\\temp"
+  end
+  
+  local html_file = TEMP_FOLDER .. package.config:sub(1,1) .. "polyend_page.html"
+  
+  -- Download the HTML page with proper browser headers to bypass Cloudflare
+  local download_cmd
+  if os_name == "MACINTOSH" or os_name == "LINUX" then
+    -- Use curl with browser-like headers and automatic decompression
+    download_cmd = string.format('curl -s -L --compressed -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" -H "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8" -H "Accept-Language: en-US,en;q=0.5" -H "Connection: keep-alive" -H "Upgrade-Insecure-Requests: 1" -o "%s" "%s"', html_file, page_url)
+  elseif os_name == "WINDOWS" then
+    -- Use PowerShell with browser-like headers
+    download_cmd = string.format('powershell -Command "$headers = @{\'User-Agent\'=\'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36\'; \'Accept\'=\'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8\'}; Invoke-WebRequest -Uri \'%s\' -OutFile \'%s\' -Headers $headers"', page_url, html_file)
+  else
+    renoise.app():show_error("Unsupported operating system for web scraping")
+    return nil
+  end
+  
+  print(string.format("-- Firmware Scraper: Download command: %s", download_cmd))
+  
+  -- Add a small delay to appear more human-like
+  if os_name == "MACINTOSH" or os_name == "LINUX" then
+    os.execute("sleep 1")
+  elseif os_name == "WINDOWS" then
+    os.execute("timeout /t 1 /nobreak >nul 2>&1")
+  end
+  
+  local result = os.execute(download_cmd)
+  
+  if result ~= 0 then
+    print(string.format("-- Firmware Scraper: Failed to download page (exit code: %d)", result))
+    return nil
+  end
+  
+  -- Read and parse the HTML file
+  local file = io.open(html_file, "r")
+  if not file then
+    print("-- Firmware Scraper: Failed to open downloaded HTML file")
+    return nil
+  end
+  
+  local html_content = file:read("*all")
+  file:close()
+  
+  -- Clean up temp file
+  os.remove(html_file)
+  
+  print(string.format("-- Firmware Scraper: Downloaded %d bytes of HTML", #html_content))
+  
+  -- Debug: Save HTML content to file for inspection
+  local debug_file = TEMP_FOLDER .. package.config:sub(1,1) .. "polyend_debug.html"
+  local debug_f = io.open(debug_file, "w")
+  if debug_f then
+    debug_f:write(html_content)
+    debug_f:close()
+    print(string.format("-- Firmware Scraper: DEBUG - Saved HTML to: %s", debug_file))
+  end
+  
+  -- Debug: Show first 500 characters of HTML
+  print("-- Firmware Scraper: DEBUG - First 500 chars of HTML:")
+  print(string.sub(html_content, 1, 500))
+  print("-- Firmware Scraper: DEBUG - End of HTML preview")
+  
+  -- Parse HTML to find firmware download link
+  -- Look for patterns like: href="https://polyend-website.fra1.digitaloceanspaces.com/wp-content/uploads/.../TrackerPlus_X.X.X.zip"
+  -- or similar patterns for different devices
+  
+  local firmware_patterns = {
+    -- Tracker+ patterns
+    'href="(https://[^"]*TrackerPlus[^"]*%.zip)"',
+    'href="(https://[^"]*Tracker%+[^"]*%.zip)"',
+    'href="(https://[^"]*tracker[_%-]?plus[^"]*%.zip)"',
+    'href="(https://[^"]*tracker%+[^"]*%.zip)"',
+    -- Tracker patterns (but not Tracker+ or TrackerMini)
+    'href="(https://[^"]*Tracker[^Plus][^Mini][^"]*%.zip)"',
+    'href="(https://[^"]*tracker[^plus][^mini][^"]*%.zip)"',
+    -- Mini patterns
+    'href="(https://[^"]*TrackerMini[^"]*%.zip)"',
+    'href="(https://[^"]*Tracker[_%-]?Mini[^"]*%.zip)"',
+    'href="(https://[^"]*Mini[^"]*%.zip)"',
+    'href="(https://[^"]*mini[^"]*%.zip)"',
+    'href="(https://[^"]*tracker[_%-]?mini[^"]*%.zip)"'
+  }
+  
+  -- Try each pattern to find a firmware download URL
+  print("-- Firmware Scraper: DEBUG - Testing patterns...")
+  for i, pattern in ipairs(firmware_patterns) do
+    print(string.format("-- Firmware Scraper: DEBUG - Pattern %d: %s", i, pattern))
+    local url = html_content:match(pattern)
+    if url then
+      print(string.format("-- Firmware Scraper: Found firmware URL with pattern %d: %s", i, url))
+      return url
+    else
+      print(string.format("-- Firmware Scraper: DEBUG - Pattern %d: NO MATCH", i))
+    end
+  end
+  
+  -- Debug: Look for any ZIP files at all
+  print("-- Firmware Scraper: DEBUG - Looking for any ZIP files...")
+  local all_zips = {}
+  for zip_url in html_content:gmatch('href="([^"]*%.zip)"') do
+    table.insert(all_zips, zip_url)
+    print(string.format("-- Firmware Scraper: DEBUG - Found ZIP: %s", zip_url))
+  end
+  
+  if #all_zips == 0 then
+    print("-- Firmware Scraper: DEBUG - No ZIP files found at all!")
+  else
+    print(string.format("-- Firmware Scraper: DEBUG - Found %d total ZIP files", #all_zips))
+  end
+  
+  -- Debug: Look for any download links
+  print("-- Firmware Scraper: DEBUG - Looking for any download links...")
+  local download_count = 0
+  for download_link in html_content:gmatch('href="([^"]*download[^"]*)"') do
+    download_count = download_count + 1
+    print(string.format("-- Firmware Scraper: DEBUG - Download link %d: %s", download_count, download_link))
+    if download_count >= 5 then -- Limit output
+      print("-- Firmware Scraper: DEBUG - (showing first 5 download links only)")
+      break
+    end
+  end
+  
+  -- If no specific pattern matches, look for any ZIP file from polyend domains
+  local generic_url = html_content:match('href="(https://polyend[^"]*%.zip)"')
+  if generic_url then
+    print(string.format("-- Firmware Scraper: Found generic firmware URL: %s", generic_url))
+    return generic_url
+  end
+  
+  print("-- Firmware Scraper: No firmware download URL found")
+  return nil
+end
+
+--------------------------------------------------------------------------------
+-- Copy Firmware to Polyend Device Function
+-- Copies firmware files from temp folder to Polyend Tracker /Firmware folder
+--------------------------------------------------------------------------------
+function copy_firmware_to_device(firmware_folder_path, device_name)
+  print(string.format("-- Copy Firmware: Starting copy to device for %s", device_name))
+  print(string.format("-- Copy Firmware: Source folder: %s", firmware_folder_path))
+  
+  -- First check if Polyend Tracker is connected
+  local path_exists = check_polyend_path_exists(polyend_buddy_root_path)
+  if not path_exists then
+    renoise.app():show_error("⚠️ Polyend Tracker not connected!\n\nPlease:\n1. Connect your Polyend Tracker\n2. Set it to USB Storage Mode\n3. Press Refresh in Polyend Buddy to reconnect")
+    print("-- Copy Firmware: Polyend Tracker not accessible: " .. (polyend_buddy_root_path or ""))
+    return false
+  end
+  
+  -- Check if firmware folder exists on device, create if needed
+  local separator = package.config:sub(1,1)
+  local device_firmware_path = polyend_buddy_root_path .. separator .. "Firmware"
+  
+  -- Check if Firmware folder exists
+  local firmware_folder_exists = check_polyend_path_exists(device_firmware_path)
+  if not firmware_folder_exists then
+    print("-- Copy Firmware: Creating Firmware folder on device: " .. device_firmware_path)
+    
+    -- Try to create the Firmware folder
+    local os_name = os.platform()
+    local mkdir_cmd
+    if os_name == "WINDOWS" then
+      mkdir_cmd = string.format('mkdir "%s"', device_firmware_path)
+    else
+      mkdir_cmd = string.format('mkdir -p "%s"', device_firmware_path)
+    end
+    
+    local mkdir_result = os.execute(mkdir_cmd)
+    if mkdir_result ~= 0 then
+      renoise.app():show_error("Failed to create Firmware folder on Polyend Tracker:\n" .. device_firmware_path)
+      print("-- Copy Firmware: Failed to create Firmware folder")
+      return false
+    end
+    
+    print("-- Copy Firmware: Successfully created Firmware folder")
+  else
+    print("-- Copy Firmware: Firmware folder already exists on device")
+  end
+  
+  -- Get list of files in source firmware folder
+  local success, firmware_files = pcall(os.filenames, firmware_folder_path, "*")
+  if not success or not firmware_files then
+    renoise.app():show_error("Cannot read firmware files from:\n" .. firmware_folder_path)
+    print("-- Copy Firmware: Cannot read source firmware files")
+    return false
+  end
+  
+  print(string.format("-- Copy Firmware: Found %d files to copy", #firmware_files))
+  
+  -- Check for existing firmware files and ask about overwrite
+  local existing_files = {}
+  for _, filename in ipairs(firmware_files) do
+    local dest_file_path = device_firmware_path .. separator .. filename
+    local file_exists = io.open(dest_file_path, "rb")
+    if file_exists then
+      file_exists:close()
+      table.insert(existing_files, filename)
+    end
+  end
+  
+  if #existing_files > 0 then
+    local overwrite_msg = string.format("The following firmware files already exist on the device:\n\n%s\n\nDo you want to overwrite them?", 
+      table.concat(existing_files, "\n"))
+    local overwrite = renoise.app():show_prompt("Firmware Files Exist", overwrite_msg, {"Yes", "No"})
+    if overwrite == "No" then
+      print("-- Copy Firmware: User cancelled - files already exist")
+      return false
+    end
+  end
+  
+  -- Copy all files
+  local copied_count = 0
+  local failed_count = 0
+  
+  for _, filename in ipairs(firmware_files) do
+    local source_file_path = firmware_folder_path .. separator .. filename
+    local dest_file_path = device_firmware_path .. separator .. filename
+    
+    print(string.format("-- Copy Firmware: Copying %s...", filename))
+    
+    -- Copy the file
+    local copy_success, error_msg = pcall(function()
+      -- Read source file
+      local source_file = io.open(source_file_path, "rb")
+      if not source_file then
+        error("Cannot open source file: " .. source_file_path)
+      end
+      
+      local file_data = source_file:read("*all")
+      source_file:close()
+      
+      if not file_data or #file_data == 0 then
+        error("Source file is empty or unreadable: " .. filename)
+      end
+      
+      -- Write to destination
+      local dest_file = io.open(dest_file_path, "wb")
+      if not dest_file then
+        error("Cannot create destination file: " .. dest_file_path)
+      end
+      
+      dest_file:write(file_data)
+      dest_file:close()
+      
+      print(string.format("-- Copy Firmware: Successfully copied %s (%d bytes)", filename, #file_data))
+    end)
+    
+    if copy_success then
+      copied_count = copied_count + 1
+    else
+      failed_count = failed_count + 1
+      print(string.format("-- Copy Firmware: Failed to copy %s: %s", filename, error_msg or "Unknown error"))
+    end
+  end
+  
+  -- Report results
+  if copied_count > 0 and failed_count == 0 then
+    local success_message = string.format("✅ Firmware copied to device successfully!\n\n%s firmware files copied to:\n%s\n\nFiles copied: %d", 
+      device_name, device_firmware_path, copied_count)
+    renoise.app():show_message(success_message)
+    renoise.app():show_status(string.format("%s firmware copied to device (%d files)", device_name, copied_count))
+    print(string.format("-- Copy Firmware: Success! Copied %d files to device", copied_count))
+    
+    -- Optionally open the device firmware folder
+    local open_folder = renoise.app():show_prompt("Firmware Copy Complete", 
+      "Firmware copied to device successfully!\n\nWould you like to open the device Firmware folder?",
+      {"Yes", "No"})
+    if open_folder == "Yes" then
+      renoise.app():open_path(device_firmware_path)
+    end
+    
+    return true
+  else
+    local error_message = string.format("❌ Firmware copy failed!\n\nCopied: %d files\nFailed: %d files\n\nPlease check:\n• Device has enough free space\n• You have write permissions\n• Device connection is stable", 
+      copied_count, failed_count)
+    renoise.app():show_error(error_message)
+    print(string.format("-- Copy Firmware: Copy completed with errors - %d copied, %d failed", copied_count, failed_count))
+    return false
+  end
+end
+
+--------------------------------------------------------------------------------
 -- Polyend Buddy Dialog
 -- File browser for PTI files from Polyend Tracker device
 --------------------------------------------------------------------------------
@@ -2541,6 +2946,106 @@ function create_polyend_buddy_dialog(vb)
         notifier = function()
           -- Call the backup function
           backup_polyend_tracker()
+        end
+      }
+    },
+    
+    -- Firmware row
+    vb:row{
+      
+      vb:text{
+        text = "Firmware",
+        width = textWidth, style="strong",font="bold"
+      },
+      vb:popup{
+        id = "firmware_device_popup",
+        items = {"Tracker+", "Tracker", "Mini"},
+        value = 1,
+        width = polyendButtonWidth*2,
+        tooltip = "Select which Polyend device to get firmware for"
+      },
+      vb:button{
+        text = "Open Downloads",
+        width = polyendButtonWidth*2,
+        tooltip = "Open the firmware downloads page for the selected device",
+        notifier = function()
+          local selected_device = vb.views["firmware_device_popup"].value
+          local firmware_urls = {
+            "https://polyend.com/downloads/tracker-plus-downloads/",  -- Tracker+
+            "https://polyend.com/downloads/tracker-downloads/",       -- Tracker
+            "https://polyend.com/downloads/tracker-mini-downloads/"   -- Mini
+          }
+          
+          local url = firmware_urls[selected_device]
+          if url then
+            print(string.format("-- Polyend Buddy: Opening firmware downloads page: %s", url))
+            renoise.app():open_url(url)
+            renoise.app():show_status("Opened firmware downloads page in browser")
+          else
+            renoise.app():show_status("Error: Invalid device selection")
+          end
+        end
+      },
+      vb:button{
+        text = "Download Firmware",
+        width = polyendButtonWidth*2,
+        tooltip = "Automatically find, download and extract the latest firmware for the selected device",
+        notifier = function()
+          local selected_device = vb.views["firmware_device_popup"].value
+          local device_names = {"Tracker+", "Tracker", "Mini"}
+          local firmware_urls = {
+            "https://polyend.com/downloads/tracker-plus-downloads/",  -- Tracker+
+            "https://polyend.com/downloads/tracker-downloads/",       -- Tracker
+            "https://polyend.com/downloads/tracker-mini-downloads/"   -- Mini
+          }
+          
+          local device_name = device_names[selected_device]
+          local page_url = firmware_urls[selected_device]
+          
+          if not device_name or not page_url then
+            renoise.app():show_status("Error: Invalid device selection")
+            return
+          end
+          
+          print(string.format("-- Polyend Buddy: Starting automatic firmware download for %s", device_name))
+          renoise.app():show_status(string.format("Searching for %s firmware...", device_name))
+          
+          -- Scrape the download URL from the page
+          local download_url = scrape_firmware_url(device_name, page_url)
+          
+          if not download_url then
+            -- Fallback: open the downloads page if scraping failed
+            renoise.app():show_error(string.format("Could not automatically find %s firmware download URL.\n\nOpening downloads page instead.", device_name))
+            renoise.app():open_url(page_url)
+            return
+          end
+          
+          -- Download and extract the firmware
+          local firmware_path = download_and_extract_firmware(device_name, download_url)
+          
+          if not firmware_path then
+            -- Fallback: open the downloads page if download failed
+            renoise.app():show_error(string.format("Firmware download failed for %s.\n\nOpening downloads page for manual download.", device_name))
+            renoise.app():open_url(page_url)
+          else
+            -- Success! Ask user what to do next
+            local user_choice = renoise.app():show_prompt("Firmware Downloaded", 
+              string.format("%s firmware downloaded and extracted successfully!\n\nWhat would you like to do next?", device_name),
+              {"Open in Temp Folder", "Send to Polyend Device", "Cancel"})
+            
+            if user_choice == "Open in Temp Folder" then
+              -- Open the temp folder (original behavior)
+              renoise.app():open_path(firmware_path)
+              print(string.format("-- Firmware Download: User chose to open temp folder: %s", firmware_path))
+            elseif user_choice == "Send to Polyend Device" then
+              -- Copy firmware to Polyend device
+              print(string.format("-- Firmware Download: User chose to send to device"))
+              copy_firmware_to_device(firmware_path, device_name)
+            else
+              -- User cancelled, do nothing
+              print("-- Firmware Download: User cancelled post-download action")
+            end
+          end
         end
       }
     },

@@ -357,7 +357,7 @@ local function bytes_to_hexstr(data)
   return table.concat(out)
 end
 
-local function dump_rex_structure(file_path)
+function dump_rex_structure(file_path)
   local f = io.open(file_path, "rb")
   if not f then
     renoise.app():show_status("Could not open file: " .. file_path)

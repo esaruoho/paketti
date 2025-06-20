@@ -348,6 +348,7 @@ timed_require("PakettiPlayerProSuite")       -- 852 lines, 3.00 ms
 --end  
 timed_require("PakettiChordsPlus")
 timed_require("PakettiLaunchApp")
+timed_require("PakettiPluginGUI")
 timed_require("PakettiSampleLoader")         -- 0 lines, 0.00 ms
 timed_require("PakettiCustomization")        -- 61 lines, 0.50 ms
 timed_require("PakettiDeviceChains")         -- 85 lines, 0.00 ms
@@ -414,7 +415,7 @@ timed_require("PakettiMODLoader")
 timed_require("PakettiPolyendSuite")
 timed_require("PakettiXMLizer")
 timed_require("PakettiDeviceValues")
-timed_require("PakettiAKAI")
+--timed_require("PakettiAKAI")
 
 timed_require("PakettiMIDIMappings")
 timed_require("PakettiMIDIMappingCategories")
