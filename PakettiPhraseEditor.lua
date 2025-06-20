@@ -360,7 +360,7 @@ selphra.number_of_lines=preferences.pakettiPhraseInitDialog.Length.value
 end
 
 
---renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Create Paketti Phrase",invoke=function() createPhrase() end}
+--renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Create Paketti Phrase",invoke=function() createPhrase() end}
 
 --------
 function phraseEditorVisible()
@@ -590,8 +590,8 @@ function observe_phrase_playhead()
   end
 end
 
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Phrase Editor..:Phrase Follow Pattern Playback Hack",invoke=observe_phrase_playhead}
-renoise.tool():add_menu_entry{name="--Phrase Editor:Paketti..:Phrase Follow Pattern Playback Hack",invoke=observe_phrase_playhead}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Phrase Editor:Phrase Follow Pattern Playback Hack",invoke=observe_phrase_playhead}
+renoise.tool():add_menu_entry{name="--Phrase Editor:Paketti:Phrase Follow Pattern Playback Hack",invoke=observe_phrase_playhead}
 renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Toggle Phrase Follow Pattern Playback Hack",invoke=observe_phrase_playhead}
 renoise.tool():add_keybinding{name="Global:Paketti:Toggle Phrase Follow Pattern Playback Hack",invoke=observe_phrase_playhead}
 ---

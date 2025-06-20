@@ -1120,10 +1120,10 @@ local tool = renoise.tool()
 
 
 local menu_entries = {
-  {"--Track Automation:Paketti..:Automation Curves..:Selection Center->Up (Linear)", "center_up_linear"},
-  {"Track Automation:Paketti..:Automation Curves..:Selection Center->Down (Linear)", "center_down_linear"},
-  {"Track Automation:Paketti..:Automation Curves..:Selection Up->Center (Linear)", "up_center_linear"},
-  {"Track Automation:Paketti..:Automation Curves..:Selection Down->Center (Linear)", "down_center_linear"}
+  {"--Track Automation:Paketti:Automation Curves:Selection Center->Up (Linear)", "center_up_linear"},
+  {"Track Automation:Paketti:Automation Curves:Selection Center->Down (Linear)", "center_down_linear"},
+  {"Track Automation:Paketti:Automation Curves:Selection Up->Center (Linear)", "up_center_linear"},
+  {"Track Automation:Paketti:Automation Curves:Selection Down->Center (Linear)", "down_center_linear"}
 }
 
 
@@ -1963,9 +1963,9 @@ for i = 0, 1, 0.1 do
 renoise.tool():add_keybinding{name="Global:Paketti:Write Automation Value " .. formatted_value,invoke=function() write_automation_value(tonumber(formatted_value)) end}
 if i == 0 then
 
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Automation..:Write Automation Value " .. formatted_value,invoke=function() write_automation_value(tonumber(formatted_value)) end}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Automation:Write Automation Value " .. formatted_value,invoke=function() write_automation_value(tonumber(formatted_value)) end}
 else
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Automation..:Write Automation Value " .. formatted_value,invoke=function() write_automation_value(tonumber(formatted_value)) end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Automation:Write Automation Value " .. formatted_value,invoke=function() write_automation_value(tonumber(formatted_value)) end}
 end
 end
 -----------------

@@ -294,14 +294,14 @@ function Experimental()
     check_and_execute(config_path, bash_script)
 end
 
---renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Experimental (macOS Only) Config.XML overwriter (Destructive)",invoke=function() Experimental() end}
+--renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Experimental (macOS Only) Config.XML overwriter (Destructive)",invoke=function() Experimental() end}
 ]]--
 
---renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:writeToClipboard",invoke=function() 
+--renoise.tool():add_menu_entry{name="Instrument Box:Paketti:writeToClipboard",invoke=function() 
 --writeToClipboard(for key, value in ipairs (devices) do  print(key, value)
 --end}
 
---renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Dump VST/AU/Native Effects to Clipboard",invoke=function() 
+--renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Dump VST/AU/Native Effects to Clipboard",invoke=function() 
 --) end}
 --------
 ---------------------------------------------------------------------------------------------------
@@ -387,8 +387,8 @@ function terminalApp(scriptPath)
     os.execute(command)
 end
 
-renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti..:Run Experimental Script",invoke=function() terminalApp("/Users/esaruoho/macOS_EnableScriptingTools.sh") end}
-renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti..:Open macOS Terminal",invoke=function() launchApp("open -a Terminal.app") end}
+renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti:Run Experimental Script",invoke=function() terminalApp("/Users/esaruoho/macOS_EnableScriptingTools.sh") end}
+renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti:Open macOS Terminal",invoke=function() launchApp("open -a Terminal.app") end}
 ]]--
 ------
 --[[
@@ -566,7 +566,7 @@ local function show_dialog()
   }, my_keyhandler_func)
 end
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Xperimental/Work in Progress..:Wacky Filter",invoke=show_dialog}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/Work in Progress:Wacky Filter",invoke=show_dialog}
 
 --[[
 local sample_buffer_notifier = nil
@@ -682,8 +682,8 @@ renoise.tool().app_release_document_observable:add_notifier(function()
     last_buffer_size = nil
 end)
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Sample Settings:Enable Auto Settings",invoke = enable_auto_settings}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Sample Settings:Disable Auto Settings",invoke = disable_auto_settings}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Sample Settings:Enable Auto Settings",invoke = enable_auto_settings}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Sample Settings:Disable Auto Settings",invoke = disable_auto_settings}
     ]]--
 
     --[[renoise.tool():add_keybinding{name="Global:Paketti:Hide EditStep Dialog",

@@ -1,6 +1,6 @@
 Debug: Total Paketti keybindings found - 4843
-0001:Global:Paketti: ∿ Show Paketti Preferences...: Shift + Command + Comma
-0002:Global:Paketti: ∿ Paketti eSpeak Text-to-Speech Dialog...: Control + E
+0001:Global:Paketti: ∿ Show Paketti Preferences.: Shift + Command + Comma
+0002:Global:Paketti: ∿ Paketti eSpeak Text-to-Speech Dialog.: Control + E
 0003:Global:Paketti: ∿ Paketti eSpeak Generate Sample: <Shortcut not Assigned>
 0004:Global:Paketti: ∿ Paketti eSpeak Generate Selection: <Shortcut not Assigned>
 0005:Global:Paketti: ∿ Paketti eSpeak Generate Row 00: <Shortcut not Assigned>
@@ -36,7 +36,7 @@ Debug: Total Paketti keybindings found - 4843
 0035:Global:Paketti: ∿ Paketti eSpeak Generate Row 30: <Shortcut not Assigned>
 0036:Global:Paketti: ∿ Paketti eSpeak Generate Row 31: <Shortcut not Assigned>
 0037:Global:Paketti: ∿ Paketti eSpeak Refresh: <Shortcut not Assigned>
-0038:Global:Paketti: ∿ Open Player Pro Note Column Dialog...: Option + E
+0038:Global:Paketti: ∿ Open Player Pro Note Column Dialog.: Option + E
 0039:Global:Paketti: ∿ Send Selected Sample to AppSelection1: <Shortcut not Assigned>
 0040:Global:Paketti: ∿ Send Selected Sample to AppSelection2: <Shortcut not Assigned>
 0041:Global:Paketti: ∿ Send Selected Sample to AppSelection3: <Shortcut not Assigned>
@@ -49,7 +49,7 @@ Debug: Total Paketti keybindings found - 4843
 0048:Global:Paketti: ∿ Save All Samples to Smart/Backup Folder 1: <Shortcut not Assigned>
 0049:Global:Paketti: ∿ Save All Samples to Smart/Backup Folder 2: <Shortcut not Assigned>
 0050:Global:Paketti: ∿ Save All Samples to Smart/Backup Folder 3: <Shortcut not Assigned>
-0051:Global:Paketti: ∿ Configure Launch App Selection...: <Shortcut not Assigned>
+0051:Global:Paketti: ∿ Configure Launch App Selection.: <Shortcut not Assigned>
 0052:Global:Paketti: ∿ Create New Track&Load Random Device Chain/Preset: <Shortcut not Assigned>
 0053:Global:Paketti: ∿ Load Device Chain EQ10 Macro Experimental: Shift + Q
 0054:Global:Paketti: ∿ Load Device Chain SimpleSend: <Shortcut not Assigned>
@@ -61,11 +61,11 @@ Debug: Total Paketti keybindings found - 4843
 0060:Global:Paketti: ∿ Load Device Chain Low - High Cut (flat) (NPC1): <Shortcut not Assigned>
 0061:Global:Paketti: ∿ Load Device (Native) (Hidden) Stutter: <Shortcut not Assigned>
 0062:Global:Paketti: ∿ Load Device (AudioUnit) Transient Shaper: Shift + E
-0063:Global:Paketti: ∿ Quick Load Device Dialog...: <Shortcut not Assigned>
-0064:Global:Paketti: ∿ Show BPM Calculation Dialog...: Control + B
-0065:Global:Paketti: ∿ Paketti Speed and Tempo to BPM Dialog...: <Shortcut not Assigned>
-0066:Global:Paketti: ∿ Paketti Beat Structure Editor...: <Shortcut not Assigned>
-0067:Global:Paketti: ∿ Paketti Tuplet Writer Dialog...: <Shortcut not Assigned>
+0063:Global:Paketti: ∿ Quick Load Device Dialog.: <Shortcut not Assigned>
+0064:Global:Paketti: ∿ Show BPM Calculation Dialog.: Control + B
+0065:Global:Paketti: ∿ Paketti Speed and Tempo to BPM Dialog.: <Shortcut not Assigned>
+0066:Global:Paketti: ∿ Paketti Beat Structure Editor.: <Shortcut not Assigned>
+0067:Global:Paketti: ∿ Paketti Tuplet Writer Dialog.: <Shortcut not Assigned>
 0068:Global:Paketti: ∿ Load Plugin Vintage (AU): Shift + Control + V
 0069:Global:Paketti: ∿ Load Plugin XO (AU): <Shortcut not Assigned>
 0070:Global:Paketti: ∿ Load Plugin XO (VST): <Shortcut not Assigned>
@@ -144,14 +144,14 @@ Debug: Total Paketti keybindings found - 4843
 0143:Global:Paketti: ∿ Select Chunk E0: <Shortcut not Assigned>
 0144:Global:Paketti: ∿ Select Chunk F0: <Shortcut not Assigned>
 0145:Global:Paketti: ∿ Paketti YT-DLP Downloader: <Shortcut not Assigned>
-0146:Global:Paketti: ∿ Timestretch Dialog...: <Shortcut not Assigned>
-0147:Global:Paketti: ∿ BeatDetector Modified...: <Shortcut not Assigned>
+0146:Global:Paketti: ∿ Timestretch Dialog.: <Shortcut not Assigned>
+0147:Global:Paketti: ∿ BeatDetector Modified.: <Shortcut not Assigned>
 0148:Global:Paketti: ∿ Stack All Samples in Instrument with Velocity Mapping Split: <Shortcut not Assigned>
 0149:Global:Paketti: ∿ Write Velocity Ramp Up for Stacked Instrument: <Shortcut not Assigned>
 0150:Global:Paketti: ∿ Write Velocity Ramp Down for Stacked Instrument: <Shortcut not Assigned>
 0151:Global:Paketti: ∿ Write Velocity Random for Stacked Instrument: <Shortcut not Assigned>
 0152:Global:Paketti: ∿ Load&Slice&Isolate&Stack Sample: <Shortcut not Assigned>
-0153:Global:Paketti: ∿ Paketti Stacker Dialog...: Shift + Control + P
+0153:Global:Paketti: ∿ Paketti Stacker Dialog.: Shift + Control + P
 0154:Global:Paketti: ∿ Contour Shuttle Record On/Off: <Shortcut not Assigned>
 0155:Global:Paketti: ∿ Start Sampling and Sample Editor (Record): <Shortcut not Assigned>
 0156:Global:Paketti: ∿ Paketti Overdub 12 (No Metronome/No Line Input): Command + Minus
@@ -427,10 +427,10 @@ Debug: Total Paketti keybindings found - 4843
 0426:Global:Paketti: ∿ Nudge Delay Output Delay -05ms (Rename): <Shortcut not Assigned>
 0427:Global:Paketti: ∿ Reset Nudge Delay Output Delay to 0ms (Rename): <Shortcut not Assigned>
 0428:Global:Paketti: ∿ Reset Nudge Delay Output Delay to 0ms (ALL) (Rename): <Shortcut not Assigned>
-0429:Global:Paketti: ∿ Show Paketti KeyBindings Dialog...: Shift + Command + K
-0430:Global:Paketti: ∿ Show Renoise KeyBindings Dialog...: <Shortcut not Assigned>
-0431:Global:Paketti: ∿ Show Free KeyBindings Dialog...: <Shortcut not Assigned>
-0432:Global:Paketti: ∿ Open Paketti Init Phrase Dialog...: Command + I
+0429:Global:Paketti: ∿ Show Paketti KeyBindings Dialog.: Shift + Command + K
+0430:Global:Paketti: ∿ Show Renoise KeyBindings Dialog.: <Shortcut not Assigned>
+0431:Global:Paketti: ∿ Show Free KeyBindings Dialog.: <Shortcut not Assigned>
+0432:Global:Paketti: ∿ Open Paketti Init Phrase Dialog.: Command + I
 0433:Global:Paketti: ∿ Create New Phrase using Paketti Settings: <Shortcut not Assigned>
 0434:Global:Paketti: ∿ Modify Current Phrase using Paketti Settings: <Shortcut not Assigned>
 0435:Global:Paketti: ∿ Phrase Editor Visible: <Shortcut not Assigned>
@@ -476,7 +476,7 @@ Debug: Total Paketti keybindings found - 4843
 0475:Global:Paketti: ∿ Create Random AKWF Wavetable (256,loop): <Shortcut not Assigned>
 0476:Global:Paketti: ∿ Next Wavetable Cycle: <Shortcut not Assigned>
 0477:Global:Paketti: ∿ Previous Wavetable Cycle: Control + W
-0478:Global:Paketti: ∿ Paketti Audio Processing Tools Dialog...: Control + A
+0478:Global:Paketti: ∿ Paketti Audio Processing Tools Dialog.: Control + A
 0479:Global:Paketti: ∿ Strip Silence: Shift + Option + S
 0480:Global:Paketti: ∿ Move Beginning Silence to End: <Shortcut not Assigned>
 0481:Global:Paketti: ∿ Move Beginning Silence to End for All Samples: <Shortcut not Assigned>
@@ -484,12 +484,12 @@ Debug: Total Paketti keybindings found - 4843
 0483:Global:Paketti: ∿ Invert Random Samples in Instrument: <Shortcut not Assigned>
 0484:Global:Paketti: ∿ Max Amp DC Offset Kick Generator: <Shortcut not Assigned>
 0485:Global:Paketti: ∿ Diagonal Line to 16800 length Sample: <Shortcut not Assigned>
-0486:Global:Paketti: ∿ Paketti Sample Adjust Dialog...: <Shortcut not Assigned>
+0486:Global:Paketti: ∿ Paketti Sample Adjust Dialog.: <Shortcut not Assigned>
 0487:Global:Paketti: ∿ Pattern Effect Command CheatSheet: F1
-0488:Global:Paketti Theme Selector: ∿ Open Paketti Theme Selector Dialog...: <Shortcut not Assigned>
+0488:Global:Paketti Theme Selector: ∿ Open Paketti Theme Selector Dialog.: <Shortcut not Assigned>
 0489:Global:Paketti Theme Selector: ∿ Pick a Random Theme (All): Shift + Option + Control + Comma
 0490:Global:Paketti Theme Selector: ∿ Pick a Random Theme (Favorites): Shift + Control + Comma
-0491:Global:Paketti: ∿ Paketti MIDI Populator Dialog...: <Shortcut not Assigned>
+0491:Global:Paketti: ∿ Paketti MIDI Populator Dialog.: <Shortcut not Assigned>
 0492:Global:Paketti: ∿ Impulse Tracker F2 Pattern Editor: <Shortcut not Assigned>
 0493:Global:Paketti: ∿ Impulse Tracker F2 Pattern Editor ONLY: <Shortcut not Assigned>
 0494:Global:Paketti: ∿ Impulse Tracker F2 Pattern Editor Mini: <Shortcut not Assigned>
@@ -515,12 +515,12 @@ Debug: Total Paketti keybindings found - 4843
 0514:Global:Paketti: ∿ Impulse Tracker 8 Play Current Line & Advance by EditStep: <Shortcut not Assigned>
 0515:Global:Paketti: ∿ Impulse Tracker 8 Play Current Line Only: <Shortcut not Assigned>
 0516:Global:Paketti: ∿ Impulse Tracker ALT-F10 (Solo Toggle): <Shortcut not Assigned>
-0517:Global:Paketti: ∿ Impulse Tracker CTRL-N New Song Dialog...: <Shortcut not Assigned>
+0517:Global:Paketti: ∿ Impulse Tracker CTRL-N New Song Dialog.: <Shortcut not Assigned>
 0518:Global:Paketti: ∿ Impulse Tracker ALT-U Unmark Selection: <Shortcut not Assigned>
 0519:Global:Paketti: ∿ Impulse Tracker ALT-U Unmark Selection (2nd): <Shortcut not Assigned>
 0520:Global:Paketti: ∿ Impulse Tracker ALT-Y Swap Block: Command + Y
 0521:Global:Paketti: ∿ Select First Instrument Box Slot: Shift + Option + Control + 1
-0522:Global:Paketti: ∿ Paketti Gater Dialog...: Control + G
+0522:Global:Paketti: ∿ Paketti Gater Dialog.: Control + G
 0523:Global:Paketti: ∿ Paketti Automation: Option + T
 0524:Global:Paketti: ∿ Switch to Automation: <Shortcut not Assigned>
 0525:Global:Paketti: ∿ Automation Ramp Up (Exp): <Shortcut not Assigned>
@@ -538,7 +538,7 @@ Debug: Total Paketti keybindings found - 4843
 0537:Global:Paketti: ∿ Randomize Automation Envelope: Shift + Option + R
 0538:Global:Paketti: ∿ Randomize Automation Envelopes for Device: Option + Command + R
 0539:Global:Paketti: ∿ Switch to Automation Dynamic: A
-0540:Global:Paketti: ∿ Show Automation Value Dialog...: Shift + Option + A
+0540:Global:Paketti: ∿ Show Automation Value Dialog.: Shift + Option + A
 0541:Global:Paketti: ∿ Write Automation Value 0.0: <Shortcut not Assigned>
 0542:Global:Paketti: ∿ Write Automation Value 0.1: <Shortcut not Assigned>
 0543:Global:Paketti: ∿ Write Automation Value 0.2: <Shortcut not Assigned>
@@ -584,7 +584,7 @@ Debug: Total Paketti keybindings found - 4843
 0583:Global:Paketti: ∿ Convert FX to Automation: <Shortcut not Assigned>
 0584:Global:Paketti: ∿ Paketti Unison Generator: Option + U
 0585:Global:Paketti: ∿ ∿ Squiggly Sinewave to Clipboard (macOS): <Shortcut not Assigned>
-0586:Global:Paketti: ∿ Toggle Paketti Dialog of Dialogs...: Option + F1
+0586:Global:Paketti: ∿ Toggle Paketti Dialog of Dialogs.: Option + F1
 0587:Global:Paketti: ∿ Selected Instrument Midi Program +1 (Next): <Shortcut not Assigned>
 0588:Global:Paketti: ∿ Selected Instrument Midi Program -1 (Previous): <Shortcut not Assigned>
 0589:Global:Paketti: ∿ Cycle Paketti Dynamic View 01: F2
@@ -595,16 +595,16 @@ Debug: Total Paketti keybindings found - 4843
 0594:Global:Paketti: ∿ Cycle Paketti Dynamic View 06: <Shortcut not Assigned>
 0595:Global:Paketti: ∿ Cycle Paketti Dynamic View 07: <Shortcut not Assigned>
 0596:Global:Paketti: ∿ Cycle Paketti Dynamic View 08: <Shortcut not Assigned>
-0597:Global:Paketti: ∿ Paketti Dynamic View Preferences Dialog 1-4...: <Shortcut not Assigned>
-0598:Global:Paketti: ∿ Paketti Dynamic View Preferences Dialog 5-8...: <Shortcut not Assigned>
+0597:Global:Paketti: ∿ Paketti Dynamic View Preferences Dialog 1-4.: <Shortcut not Assigned>
+0598:Global:Paketti: ∿ Paketti Dynamic View Preferences Dialog 5-8.: <Shortcut not Assigned>
 0599:Global:Paketti: ∿ Paketti Groovebox 8120: Option + 8
 0600:Global:Paketti: ∿ Initialize for Groovebox 8120: <Shortcut not Assigned>
 0601:Global:Paketti: ∿ Create Pattern Sequencer Patterns based on Slice Count with Automatic Slice Printing: <Shortcut not Assigned>
-0602:Global:Paketti: ∿ Slice to Pattern Sequencer Dialog...: <Shortcut not Assigned>
+0602:Global:Paketti: ∿ Slice to Pattern Sequencer Dialog.: <Shortcut not Assigned>
 0603:Global:Paketti: ∿ Wipe&Slice&Write to Pattern: Shift + Option + 0
 0604:Global:Paketti: ∿ Hide All Unused Columns (All Tracks): <Shortcut not Assigned>
 0605:Global:Paketti: ∿ Hide All Unused Columns (Selected Track): <Shortcut not Assigned>
-0606:Global:Paketti: ∿ Show EQ10 XY Control Dialog...: <Shortcut not Assigned>
+0606:Global:Paketti: ∿ Show EQ10 XY Control Dialog.: <Shortcut not Assigned>
 0607:Global:Paketti: ∿ Load Device Chain (.XRNT) Slot 01: <Shortcut not Assigned>
 0608:Global:Paketti: ∿ Load Device Chain (.XRNT) Slot 02: <Shortcut not Assigned>
 0609:Global:Paketti: ∿ Load Device Chain (.XRNT) Slot 03: <Shortcut not Assigned>
@@ -838,7 +838,7 @@ Debug: Total Paketti keybindings found - 4843
 0837:Global:Paketti: ∿ Insert Stereo -&gt; Mono device to End of Master: <Shortcut not Assigned>
 0838:Global:Paketti: ∿ Hide Track DSP Device External Editors for All Tracks: Command + H
 0839:Global:Paketti: ∿ Show/Hide Track DSP and FX Chain Device External Editors: Shift + Command + H
-0840:Global:Paketti: ∿ Randomize Devices and Plugins Dialog...: <Shortcut not Assigned>
+0840:Global:Paketti: ∿ Randomize Devices and Plugins Dialog.: <Shortcut not Assigned>
 0841:Global:Paketti: ∿ Randomize Selected Device with User1 (%): <Shortcut not Assigned>
 0842:Global:Paketti: ∿ Randomize Selected Device with User2 (%): <Shortcut not Assigned>
 0843:Global:Paketti: ∿ Randomize Selected Device with User3 (%): <Shortcut not Assigned>
@@ -2007,7 +2007,7 @@ Debug: Total Paketti keybindings found - 4843
 2006:Global:Paketti: ∿ Pattern Resize and Fill 128: <Shortcut not Assigned>
 2007:Global:Paketti: ∿ Pattern Resize and Fill 256: <Shortcut not Assigned>
 2008:Global:Paketti: ∿ Pattern Resize and Fill 512: <Shortcut not Assigned>
-2009:Global:Paketti: ∿ Open Oblique Strategies Dialog...: Control + O
+2009:Global:Paketti: ∿ Open Oblique Strategies Dialog.: Control + O
 2010:Global:Paketti: ∿ Shuffle Oblique Strategies Cards: <Shortcut not Assigned>
 2011:Global:Paketti: ∿ Paketti Track Dater & Titler: <Shortcut not Assigned>
 2012:Global:Paketti: ∿ Set Selected Sample Volume to -INF dB: <Shortcut not Assigned>
@@ -2112,8 +2112,8 @@ Debug: Total Paketti keybindings found - 4843
 2111:Global:Paketti: ∿ Double Double BPM: <Shortcut not Assigned>
 2112:Global:Paketti: ∿ Jump to Sends: <Shortcut not Assigned>
 2113:Global:Paketti: ∿ Master TDR Kotelnikov Show/Hide: <Shortcut not Assigned>
-2114:Global:Paketti: ∿ Show/Hide User Preference Devices Master Dialog...: <Shortcut not Assigned>
-2115:Global:Paketti: ∿ Open User Preferences Dialog...: <Shortcut not Assigned>
+2114:Global:Paketti: ∿ Show/Hide User Preference Devices Master Dialog.: <Shortcut not Assigned>
+2115:Global:Paketti: ∿ Open User Preferences Dialog.: <Shortcut not Assigned>
 2116:Global:Paketti: ∿ Show/Hide Slot 01 on Master: <Shortcut not Assigned>
 2117:Global:Paketti: ∿ Show/Hide Slot 01 on Selected Track: <Shortcut not Assigned>
 2118:Global:Paketti: ∿ Show/Hide Slot 02 on Master: <Shortcut not Assigned>
@@ -2775,7 +2775,7 @@ Debug: Total Paketti keybindings found - 4843
 2774:Global:Paketti: ∿ Play at Row 509 (1FD): <Shortcut not Assigned>
 2775:Global:Paketti: ∿ Play at Row 510 (1FE): <Shortcut not Assigned>
 2776:Global:Paketti: ∿ Play at Row 511 (1FF): <Shortcut not Assigned>
-2777:Global:Paketti: ∿ Open VolDelayPan Slider Dialog...: <Shortcut not Assigned>
+2777:Global:Paketti: ∿ Open VolDelayPan Slider Dialog.: <Shortcut not Assigned>
 2778:Global:Paketti: ∿ Wipe All Columns of Selected Track: <Shortcut not Assigned>
 2779:Global:Paketti: ∿ Set Interpolation 1 (None) Globally: <Shortcut not Assigned>
 2780:Global:Paketti: ∿ Set Interpolation 2 (Linear) Globally: <Shortcut not Assigned>
@@ -3334,12 +3334,12 @@ Debug: Total Paketti keybindings found - 4843
 3333:Global:Paketti: ∿ Add Gainer B to Selected Track: <Shortcut not Assigned>
 3334:Global:Paketti: ∿ Flip Gainers A/B: <Shortcut not Assigned>
 3335:Global:Paketti: ∿ Save Song with Timestamp: <Shortcut not Assigned>
-3336:Global:Paketti: ∿ Open Offset Dialog...: <Shortcut not Assigned>
+3336:Global:Paketti: ∿ Open Offset Dialog.: <Shortcut not Assigned>
 3337:Global:Paketti: ∿ Wipe Random Notes: <Shortcut not Assigned>
 3338:Global:Paketti: ∿ Global Volume Reduce All Instruments by -4.5dB: <Shortcut not Assigned>
 3339:Global:Paketti: ∿ Global Volume Reduce All Samples by -4.5dB: <Shortcut not Assigned>
-3340:Global:Paketti: ∿ Global Volume Adjustment...: <Shortcut not Assigned>
-3341:Global:Paketti: ∿ Show EditStep Dialog...: <Shortcut not Assigned>
+3340:Global:Paketti: ∿ Global Volume Adjustment.: <Shortcut not Assigned>
+3341:Global:Paketti: ∿ Show EditStep Dialog.: <Shortcut not Assigned>
 3342:Global:Paketti: ∿ Multiply BPM & Halve LPB: <Shortcut not Assigned>
 3343:Global:Paketti: ∿ Halve BPM & Multiply LPB: <Shortcut not Assigned>
 3344:Global:Paketti: ∿ Bypass All Sample FX on Selected Instrument: <Shortcut not Assigned>
@@ -3398,7 +3398,7 @@ Debug: Total Paketti keybindings found - 4843
 3397:Global:Paketti: ∿ Load Random Samples (01) from Path: <Shortcut not Assigned>
 3398:Global:Paketti: ∿ Load Random Samples (12) into Single Instrument: Shift + Option + 1
 3399:Global:Paketti: ∿ Load Random Samples (04) into Single Instrument (XY): <Shortcut not Assigned>
-3400:Global:Paketti: ∿ User-Defined Sample Folders...: Shift + Command + U
+3400:Global:Paketti: ∿ User-Defined Sample Folders.: Shift + Command + U
 3401:Global:Paketti: ∿ Quick Folder 01 Open Folder: <Shortcut not Assigned>
 3402:Global:Paketti: ∿ Quick Folder 01 Random Drumkit: <Shortcut not Assigned>
 3403:Global:Paketti: ∿ Quick Folder 01 Random 12: <Shortcut not Assigned>
@@ -3457,7 +3457,7 @@ Debug: Total Paketti keybindings found - 4843
 3456:Global:Paketti: ∿ Duplicate All Samples at +24 Transpose: <Shortcut not Assigned>
 3457:Global:Paketti: ∿ Duplicate All Samples at +36 Transpose: <Shortcut not Assigned>
 3458:Global:Paketti: ∿ Play Samples Backwards in Selection 0B00: <Shortcut not Assigned>
-3459:Global:Paketti: ∿ Show Largest Samples Dialog...: <Shortcut not Assigned>
+3459:Global:Paketti: ∿ Show Largest Samples Dialog.: <Shortcut not Assigned>
 3460:Global:Paketti: ∿ Duplicate Track and Instrument: <Shortcut not Assigned>
 3461:Global:Paketti: ∿ Fill Empty Sample Slots (Randomized Folder): <Shortcut not Assigned>
 3462:Global:Paketti: ∿ Select Random Instrument (Sample,Plugin,MIDI): Shift + Option + Q
@@ -3465,8 +3465,8 @@ Debug: Total Paketti keybindings found - 4843
 3464:Global:Paketti: ∿ Halve Slice Count: <Shortcut not Assigned>
 3465:Global:Paketti: ∿ Slice Count From Selection: <Shortcut not Assigned>
 3466:Global:Paketti: ∿ Set to One-Shot + NNA Continue: Shift + Option + C
-3467:Global:Paketti: ∿ Paketti Action Selector Dialog...: <Shortcut not Assigned>
-3468:Global:Paketti: ∿ Show Paketti Formula Device Manual Dialog...: Shift + Option + F
+3467:Global:Paketti: ∿ Paketti Action Selector Dialog.: <Shortcut not Assigned>
+3468:Global:Paketti: ∿ Show Paketti Formula Device Manual Dialog.: Shift + Option + F
 3469:Global:Paketti: ∿ Add Input Inertia Formula Device: <Shortcut not Assigned>
 3470:Global:Paketti: ∿ Paketti XRNS Probe: <Shortcut not Assigned>
 3471:Global:Paketti: ∿ Load Random AKWF Sample: Shift + Command + 1
@@ -3499,19 +3499,19 @@ Debug: Total Paketti keybindings found - 4843
 3498:Global:Paketti: ∿ Show/Hide ResonanceStep on Selected Instrument: <Shortcut not Assigned>
 3499:Global:Paketti: ∿ Show/Hide DriveStep on Selected Instrument: <Shortcut not Assigned>
 3500:Global:Paketti: ∿ Show/Hide PanningStep on Selected Instrument: <Shortcut not Assigned>
-3501:Global:Paketti: ∿ Paketti Steppers Dialog...: Control + D
+3501:Global:Paketti: ∿ Paketti Steppers Dialog.: Control + D
 3502:Global:Paketti: ∿ PTI Export: Option + Control + P
 3503:Global:Paketti: ∿ Normalize Selected Sample or Slice: Command + N
 3504:Global:Paketti: ∿ Normalize Sample: <Shortcut not Assigned>
 3505:Global:Paketti: ∿ Normalize All Samples in Instrument: <Shortcut not Assigned>
 3506:Global:Paketti: ∿ Normalize Sample Slices Independently: Shift + Command + N
-3507:Global:Paketti: ∿ Show Pattern/Phrase Length Dialog...: <Shortcut not Assigned>
-3508:Global:Paketti: ∿ Show Keyzone Distributor Dialog...: <Shortcut not Assigned>
-3509:Global:Paketti: ∿ Paketti BPM to MS Delay Calculator Dialog...: <Shortcut not Assigned>
-3510:Global:Paketti: ∿ Load IFF Sample File...: <Shortcut not Assigned>
-3511:Global:Paketti: ∿ Convert IFF to WAV...: <Shortcut not Assigned>
-3512:Global:Paketti: ∿ Convert WAV to IFF...: <Shortcut not Assigned>
-3513:Global:Paketti: ∿ Save Current Sample as IFF...: <Shortcut not Assigned>
+3507:Global:Paketti: ∿ Show Pattern/Phrase Length Dialog.: <Shortcut not Assigned>
+3508:Global:Paketti: ∿ Show Keyzone Distributor Dialog.: <Shortcut not Assigned>
+3509:Global:Paketti: ∿ Paketti BPM to MS Delay Calculator Dialog.: <Shortcut not Assigned>
+3510:Global:Paketti: ∿ Load IFF Sample File.: <Shortcut not Assigned>
+3511:Global:Paketti: ∿ Convert IFF to WAV.: <Shortcut not Assigned>
+3512:Global:Paketti: ∿ Convert WAV to IFF.: <Shortcut not Assigned>
+3513:Global:Paketti: ∿ Save Current Sample as IFF.: <Shortcut not Assigned>
 3514:Global:Paketti: ∿ Apply Custom LFO Preset 1: <Shortcut not Assigned>
 3515:Global:Paketti: ∿ Apply Custom LFO Preset 2: <Shortcut not Assigned>
 3516:Global:Paketti: ∿ Apply Custom LFO Preset 3: <Shortcut not Assigned>
@@ -3550,10 +3550,10 @@ Debug: Total Paketti keybindings found - 4843
 3549:Global:Paketti: ∿ Load LFO from Slot 15: <Shortcut not Assigned>
 3550:Global:Paketti: ∿ Store Current LFO to Slot 16: <Shortcut not Assigned>
 3551:Global:Paketti: ∿ Load LFO from Slot 16: <Shortcut not Assigned>
-3552:Global:Paketti: ∿ Export Current Sample as AKP...: <Shortcut not Assigned>
-3553:Global:Paketti: ∿ Import AKP File...: <Shortcut not Assigned>
+3552:Global:Paketti: ∿ Export Current Sample as AKP.: <Shortcut not Assigned>
+3553:Global:Paketti: ∿ Import AKP File.: <Shortcut not Assigned>
 3554:Global:Paketti: ∿ Verify Paketti MIDI Mappings: <Shortcut not Assigned>
-3555:Global:Paketti: ∿ Paketti MIDI Mappings (Dynamic)...: Shift + Command + M
+3555:Global:Paketti: ∿ Paketti MIDI Mappings (Dynamic).: Shift + Command + M
 3556:Global:Paketti: ∿ Print Active MIDI Mappings to Console: <Shortcut not Assigned>
 3557:Global:Paketti: ∿ Generate MIDI Mappings to Console: <Shortcut not Assigned>
 3558:Global:Paketti: ∿ Extract MIDI Mappings to Console: <Shortcut not Assigned>
@@ -3576,7 +3576,7 @@ Debug: Total Paketti keybindings found - 4843
 3575:Pattern Editor:Paketti: ∿ Player Pro Transpose Selection or Note Column -1 with Play: <Shortcut not Assigned>
 3576:Pattern Editor:Paketti: ∿ Player Pro Transpose Selection or Note Column +12 with Play: <Shortcut not Assigned>
 3577:Pattern Editor:Paketti: ∿ Player Pro Transpose Selection or Note Column -12 with Play: <Shortcut not Assigned>
-3578:Pattern Editor:Paketti: ∿ Open Player Pro Tools Dialog...: Option + W
+3578:Pattern Editor:Paketti: ∿ Open Player Pro Tools Dialog.: Option + W
 3579:Pattern Editor:Paketti: ∿ ChordPplus (Add 01): <Shortcut not Assigned>
 3580:Pattern Editor:Paketti: ∿ ChordPplus (Add 02): <Shortcut not Assigned>
 3581:Pattern Editor:Paketti: ∿ ChordPplus (Add 03): <Shortcut not Assigned>
@@ -3719,7 +3719,7 @@ Debug: Total Paketti keybindings found - 4843
 3718:Pattern Editor:Paketti: ∿ OctaMED Put Slot 09: <Shortcut not Assigned>
 3719:Pattern Editor:Paketti: ∿ OctaMED Pick Slot 10: <Shortcut not Assigned>
 3720:Pattern Editor:Paketti: ∿ OctaMED Put Slot 10: <Shortcut not Assigned>
-3721:Pattern Editor:Paketti: ∿ OctaMED Pick/Put Dialog...: <Shortcut not Assigned>
+3721:Pattern Editor:Paketti: ∿ OctaMED Pick/Put Dialog.: <Shortcut not Assigned>
 3722:Pattern Editor:Paketti: ∿ OctaMED Note Spread 01: <Shortcut not Assigned>
 3723:Pattern Editor:Paketti: ∿ OctaMED Note Spread 02: <Shortcut not Assigned>
 3724:Pattern Editor:Paketti: ∿ OctaMED Note Spread 03: <Shortcut not Assigned>
@@ -3750,7 +3750,7 @@ Debug: Total Paketti keybindings found - 4843
 3749:Pattern Editor:Paketti: ∿ OctaMED Toggle Mute Track 14: <Shortcut not Assigned>
 3750:Pattern Editor:Paketti: ∿ OctaMED Toggle Mute Track 15: <Shortcut not Assigned>
 3751:Pattern Editor:Paketti: ∿ OctaMED Toggle Mute Track 16: <Shortcut not Assigned>
-3752:Pattern Editor:Paketti: ∿ OctaMED Note Echo Dialog...: <Shortcut not Assigned>
+3752:Pattern Editor:Paketti: ∿ OctaMED Note Echo Dialog.: <Shortcut not Assigned>
 3753:Pattern Editor:Paketti: ∿ Impulse Tracker ALT-D Double Select: <Shortcut not Assigned>
 3754:Pattern Editor:Paketti: ∿ Impulse Tracker ALT-D Double Select W/ Automation: Command + D
 3755:Pattern Editor:Paketti: ∿ Set Note to Octave 0 with EditStep: <Shortcut not Assigned>
@@ -4061,7 +4061,7 @@ Debug: Total Paketti keybindings found - 4843
 4060:Pattern Editor:Paketti: ∿ Flood Fill Note and Instrument every 62 step: <Shortcut not Assigned>
 4061:Pattern Editor:Paketti: ∿ Flood Fill Note and Instrument every 63 step: <Shortcut not Assigned>
 4062:Pattern Editor:Paketti: ∿ Flood Fill Note and Instrument every 64 step: <Shortcut not Assigned>
-4063:Pattern Editor:Paketti: ∿ Paketti Track Renamer Dialog...: <Shortcut not Assigned>
+4063:Pattern Editor:Paketti: ∿ Paketti Track Renamer Dialog.: <Shortcut not Assigned>
 4064:Pattern Editor:Paketti: ∿ Select Last Track: <Shortcut not Assigned>
 4065:Pattern Editor:Paketti: ∿ Toggle Note Off in All Visible Note Columns: Shift + Capital
 4066:Pattern Editor:Paketti: ∿ Toggle Note Off on All Tracks on Current Row: Control + Capital
@@ -4179,7 +4179,7 @@ Debug: Total Paketti keybindings found - 4843
 4178:Pattern Editor:Paketti: ∿ Apply Note Column Sample Effects M00/MFF: <Shortcut not Assigned>
 4179:Pattern Editor:Paketti: ∿ Clear Note Column Sample Effects M00/MFF: <Shortcut not Assigned>
 4180:Pattern Editor:Paketti: ∿ Toggle Template Mode: <Shortcut not Assigned>
-4181:Pattern Editor:Paketti: ∿ Paketti Value Interpolation Looper Dialog...: Control + V
+4181:Pattern Editor:Paketti: ∿ Paketti Value Interpolation Looper Dialog.: Control + V
 4182:Pattern Editor:Paketti: ∿ Note-Off Paste (from Selection): Shift + Option + Control + P
 4183:Pattern Editor:Paketti: ∿ Increase Pattern Length by 8: <Shortcut not Assigned>
 4184:Pattern Editor:Paketti: ∿ Decrease Pattern Length by 8: <Shortcut not Assigned>
@@ -4242,25 +4242,25 @@ Debug: Total Paketti keybindings found - 4843
 4241:Pattern Editor:Paketti: ∿ Randomize Positions of Note-Offs: <Shortcut not Assigned>
 4242:Pattern Editor:Paketti: ∿ Flood Fill from Current Row w/ AutoArp: <Shortcut not Assigned>
 4243:Pattern Editor:Paketti: ∿ Fuzzy Search Track: <Shortcut not Assigned>
-4244:Pattern Editor:Paketti: ∿ Switch Note Instrument Dialog...: <Shortcut not Assigned>
+4244:Pattern Editor:Paketti: ∿ Switch Note Instrument Dialog.: <Shortcut not Assigned>
 4245:Pattern Editor:Paketti: ∿ Convert 3 Note Chord to Arpeggio: Shift + Option + 3
 4246:Pattern Editor:Paketti: ∿ Clean Render Selected Track/Group LPB*2: <Shortcut not Assigned>
 4247:Pattern Editor:Paketti: ∿ Clean Render Seamless Selected Track/Group: <Shortcut not Assigned>
 4248:Pattern Editor:Paketti: ∿ Show Paketti Sub Column Status: <Shortcut not Assigned>
-4249:Pattern Editor:Paketti: ∿ Show Pattern Length Dialog...: <Shortcut not Assigned>
+4249:Pattern Editor:Paketti: ∿ Show Pattern Length Dialog.: <Shortcut not Assigned>
 4250:Pattern Editor:Paketti: ∿ Convert Global Groove to Delay on Selected Track/Group: <Shortcut not Assigned>
 4251:Sample Editor:Paketti: ∿ Calculate Selected Sample Length: <Shortcut not Assigned>
 4252:Sample Editor:Paketti: ∿ Show Selected Sample Length: <Shortcut not Assigned>
 4253:Sample Editor:Paketti: ∿ Calculate Sample Selection Length: <Shortcut not Assigned>
 4254:Sample Editor:Paketti: ∿ Calculate BPM from Sample Length: <Shortcut not Assigned>
 4255:Sample Editor:Paketti: ∿ Set BPM from Sample Length: <Shortcut not Assigned>
-4256:Sample Editor:Paketti: ∿ Show BPM Calculation Dialog...: <Shortcut not Assigned>
+4256:Sample Editor:Paketti: ∿ Show BPM Calculation Dialog.: <Shortcut not Assigned>
 4257:Sample Editor:Paketti: ∿ Convert Beatsync to Sample Pitch: <Shortcut not Assigned>
 4258:Sample Editor:Paketti: ∿ Debug Sample Length Precision: <Shortcut not Assigned>
 4259:Sample Editor:Paketti: ∿ Detect Zero Crossings: <Shortcut not Assigned>
 4260:Sample Editor:Paketti: ∿ Map Sample to All Keyzones: <Shortcut not Assigned>
 4261:Sample Editor:Paketti: ∿ Phrase Editor Visible: <Shortcut not Assigned>
-4262:Sample Editor:Paketti: ∿ Protracker MOD Modulation...: Option + M
+4262:Sample Editor:Paketti: ∿ Protracker MOD Modulation.: Option + M
 4263:Sample Editor:Paketti: ∿ Phase Inversion: <Shortcut not Assigned>
 4264:Sample Editor:Paketti: ∿ Phase Inversion & Audio Diff: <Shortcut not Assigned>
 4265:Sample Editor:Paketti: ∿ Pitch Shift: <Shortcut not Assigned>
@@ -4273,7 +4273,7 @@ Debug: Total Paketti keybindings found - 4843
 4272:Sample Editor:Paketti: ∿ Invert Left Channel: <Shortcut not Assigned>
 4273:Sample Editor:Paketti: ∿ Invert Right Channel: <Shortcut not Assigned>
 4274:Sample Editor:Paketti: ∿ 15 Frame Fade In & Fade Out: <Shortcut not Assigned>
-4275:Sample Editor:Paketti: ∿ Paketti Sample Adjust Dialog...: <Shortcut not Assigned>
+4275:Sample Editor:Paketti: ∿ Paketti Sample Adjust Dialog.: <Shortcut not Assigned>
 4276:Sample Editor:Paketti: ∿ Rotate Sample Buffer Upwards: Shift + Control + Up
 4277:Sample Editor:Paketti: ∿ Rotate Sample Buffer Downwards: Shift + Control + Down
 4278:Sample Editor:Paketti: ∿ Set Selected Sample Loop 1 (Off): <Shortcut not Assigned>
@@ -4674,7 +4674,7 @@ Debug: Total Paketti keybindings found - 4843
 4673:Mixer:Paketti: ∿ Show Automation: <Shortcut not Assigned>
 4674:Mixer:Paketti: ∿ Paketti Pattern Doubler: Command + Grave
 4675:Mixer:Paketti: ∿ Paketti Pattern Halver: Shift + Command + Grave
-4676:Mixer:Paketti: ∿ Paketti Track Renamer Dialog...: <Shortcut not Assigned>
+4676:Mixer:Paketti: ∿ Paketti Track Renamer Dialog.: <Shortcut not Assigned>
 4677:Mixer:Paketti: ∿ Move DSPs to Previous Track: Command + Control + Left
 4678:Mixer:Paketti: ∿ Move DSPs to Next Track: Command + Control + Right
 4679:Mixer:Paketti: ∿ Move Selected DSP to Previous Track: Shift + Control + Left
@@ -4697,13 +4697,13 @@ Debug: Total Paketti keybindings found - 4843
 4696:Pattern Sequencer:Paketti: ∿ Select Previous Section Sequence: <Shortcut not Assigned>
 4697:Pattern Sequencer:Paketti: ∿ Duplicate Selected Sequence Range: <Shortcut not Assigned>
 4698:Pattern Matrix:Paketti: ∿ Switch to Automation: <Shortcut not Assigned>
-4699:Pattern Matrix:Paketti: ∿ Paketti Track Renamer Dialog...: <Shortcut not Assigned>
+4699:Pattern Matrix:Paketti: ∿ Paketti Track Renamer Dialog.: <Shortcut not Assigned>
 4700:Pattern Matrix:Paketti: ∿ Selection in Pattern Matrix to Group: <Shortcut not Assigned>
 4701:Pattern Matrix:Paketti: ∿ Jump to First Track In Next Group: <Shortcut not Assigned>
 4702:Pattern Matrix:Paketti: ∿ Jump to First Track In Previous Group: <Shortcut not Assigned>
 4703:Pattern Matrix:Paketti: ∿ Pattern Matrix Selection Expand: <Shortcut not Assigned>
 4704:Pattern Matrix:Paketti: ∿ Pattern Matrix Selection Shrink: <Shortcut not Assigned>
-4705:Phrase Editor:Paketti: ∿ Open Paketti Init Phrase Dialog...: <Shortcut not Assigned>
+4705:Phrase Editor:Paketti: ∿ Open Paketti Init Phrase Dialog.: <Shortcut not Assigned>
 4706:Phrase Editor:Paketti: ∿ Create New Phrase using Paketti Settings: <Shortcut not Assigned>
 4707:Phrase Editor:Paketti: ∿ Modify Current Phrase using Paketti Settings: <Shortcut not Assigned>
 4708:Phrase Editor:Paketti: ∿ Record+Follow Off: <Shortcut not Assigned>
@@ -4815,7 +4815,7 @@ Debug: Total Paketti keybindings found - 4843
 4814:Phrase Editor:Paketti: ∿ Set Quantization to 30: <Shortcut not Assigned>
 4815:Phrase Editor:Paketti: ∿ Set Quantization to 31: <Shortcut not Assigned>
 4816:Phrase Editor:Paketti: ∿ Set Quantization to 32: <Shortcut not Assigned>
-4817:Phrase Editor:Paketti: ∿ Show Phrase Length Dialog...: <Shortcut not Assigned>
+4817:Phrase Editor:Paketti: ∿ Show Phrase Length Dialog.: <Shortcut not Assigned>
 4818:Phrase Editor:Paketti: ∿ Decrease Phrase Length by 8: <Shortcut not Assigned>
 4819:Phrase Editor:Paketti: ∿ Increase Phrase Length by LPB: <Shortcut not Assigned>
 4820:Phrase Editor:Paketti: ∿ Decrease Phrase Length by LPB: <Shortcut not Assigned>

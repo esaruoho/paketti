@@ -2172,7 +2172,7 @@ renoise.tool():add_keybinding{name = "Global:Paketti:Extract MIDI Mappings to Co
 renoise.tool():add_keybinding{name = "Global:Paketti:Show MIDI Category Statistics",invoke = show_category_statistics}
 renoise.tool():add_keybinding{name = "Global:Paketti:Test Dynamic MIDI Mapping Detection",invoke = test_dynamic_mapping_detection}
 renoise.tool():add_keybinding{name = "Global:Paketti:Refresh MIDI Mapping Table Cache",invoke = refresh_mapping_table_cache}
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti..:!Preferences..:Paketti MIDI Mappings (Dynamic)...",invoke = function() pakettiMIDIMappingsDialog() end}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:!Preferences:Paketti MIDI Mappings (Dynamic)...",invoke = function() pakettiMIDIMappingsDialog() end}
 
 
 

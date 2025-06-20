@@ -279,7 +279,7 @@ end
 
 for i = 1, 11 do
   renoise.tool():add_keybinding{name=string.format("Sample Editor:Paketti:Set Sample Zoom " .. formatDigits(2,i) .. "x"),invoke=function() setSampleZoom(i) end}
-  renoise.tool():add_menu_entry{name=string.format("Sample Editor:Paketti..:Set Sample Zoom..:Zoom " .. formatDigits(2,i) .. "x"),invoke=function() setSampleZoom(i) end}
+  renoise.tool():add_menu_entry{name=string.format("Sample Editor:Paketti:Set Sample Zoom:Zoom " .. formatDigits(2,i) .. "x"),invoke=function() setSampleZoom(i) end}
 end
 ---------
 function setSampleZoomFromMidi(midi_value)
@@ -3404,7 +3404,7 @@ local function createFolderActions(folderNum)
   local folderName = string.format("Folder %02d", folderNum)
   
   -- Open Folder
-  renoise.tool():add_menu_entry{name=string.format("Main Menu:Tools:Paketti..:Quick Sample Folders..:%s:Open Folder", folderName), invoke=function() 
+  renoise.tool():add_menu_entry{name=string.format("Main Menu:Tools:Paketti:Quick Sample Folders:%s:Open Folder", folderName), invoke=function() 
     if folderPath and folderPath ~= "" then
       renoise.app():open_path(folderPath)
     else
@@ -3413,7 +3413,7 @@ local function createFolderActions(folderNum)
   end}
   
   -- Random Drumkit
-  renoise.tool():add_menu_entry{name=string.format("Main Menu:Tools:Paketti..:Quick Sample Folders..:%s:Random Drumkit", folderName), invoke=function()
+  renoise.tool():add_menu_entry{name=string.format("Main Menu:Tools:Paketti:Quick Sample Folders:%s:Random Drumkit", folderName), invoke=function()
     if folderPath and folderPath ~= "" then
       renoise.app():show_status("Loading Random Drumkit from " .. folderPath)
       loadRandomDrumkitSamples(120, folderPath)
@@ -3423,7 +3423,7 @@ local function createFolderActions(folderNum)
   end}
   
   -- Random 12
-  renoise.tool():add_menu_entry{name=string.format("Main Menu:Tools:Paketti..:Quick Sample Folders..:%s:Random 12", folderName), invoke=function()
+  renoise.tool():add_menu_entry{name=string.format("Main Menu:Tools:Paketti:Quick Sample Folders:%s:Random 12", folderName), invoke=function()
     if folderPath and folderPath ~= "" then
       renoise.app():show_status("Loading Random 12 samples from " .. folderPath)
       loadRandomSamplesIntoSingleInstrument(12, folderPath)
@@ -3433,7 +3433,7 @@ local function createFolderActions(folderNum)
   end}
   
   -- Random 32
-  renoise.tool():add_menu_entry{name=string.format("Main Menu:Tools:Paketti..:Quick Sample Folders..:%s:Random 32", folderName), invoke=function()
+  renoise.tool():add_menu_entry{name=string.format("Main Menu:Tools:Paketti:Quick Sample Folders:%s:Random 32", folderName), invoke=function()
     if folderPath and folderPath ~= "" then
       renoise.app():show_status("Loading Random 32 instruments from " .. folderPath)
       loadRandomSample(32, folderPath)

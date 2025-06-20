@@ -41,7 +41,7 @@ Keybinding: Phrase Editor:Paketti:Toggle Note Off in Selected Tracks
 Keybinding: Sample Editor:Paketti:Select Center of Sample Buffer
 Keybinding: Pattern Editor:Paketti:Set Global LPB to 256
 Keybinding: Pattern Editor:Paketti:Write Notes Ascending
-Menu Entry: Main Menu:Tools:Paketti..:!Preferences..:Change Fonts (classic)
+Menu Entry: Main Menu:Tools:Paketti:!Preferences:Change Fonts (classic)
 Keybinding: Pattern Editor:Paketti:Transpose Octave Down Note Column (Selection/Note Column)
 Keybinding: Sample Editor:Paketti:Move Slice Start Right by 300
 Keybinding: Pattern Editor:Paketti:Effect Column VXy Vibrato Amount Xy (+1)

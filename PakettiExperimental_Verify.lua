@@ -662,8 +662,8 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Create Pattern Sequencer Patterns based on Slice Count with Automatic Slice Printing",invoke = createPatternSequencerPatternsBasedOnSliceCount}
 renoise.tool():add_keybinding{name="Global:Paketti:Slice to Pattern Sequencer Dialog...",invoke = showSliceToPatternSequencerInterface}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Slice to Pattern Sequencer Dialog...",invoke = showSliceToPatternSequencerInterface}
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti..:Slice to Pattern Sequencer Dialog...",invoke = showSliceToPatternSequencerInterface}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Slice to Pattern Sequencer Dialog...",invoke = showSliceToPatternSequencerInterface}
+renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Slice to Pattern Sequencer Dialog...",invoke = showSliceToPatternSequencerInterface}
 ----
 renoise.tool():add_keybinding{name="Global:Paketti:Wipe&Slice&Write to Pattern",invoke = function() WipeSliceAndWrite() end}
 
@@ -1848,8 +1848,8 @@ local function add_menu_entries_and_keybindings()
   for i = 1, 10 do
     local slot_number = string.format("%02d", i)
 
-    local menu_entry_name_xrnt = "Mixer:Paketti..:Device Chains..:Load Device Chain (.XRNT) Slot" .. slot_number
-    local menu_entry_name2_xrnt = "DSP Device:Paketti..:Device Chains..:Load Device Chain (.XRNT) Slot" .. slot_number
+    local menu_entry_name_xrnt = "Mixer:Paketti:Device Chains:Load Device Chain (.XRNT) Slot" .. slot_number
+    local menu_entry_name2_xrnt = "DSP Device:Paketti:Device Chains:Load Device Chain (.XRNT) Slot" .. slot_number
     local key_binding_name_xrnt = "Global:Paketti:Load Device Chain (.XRNT) Slot " .. slot_number
 
     renoise.tool():add_menu_entry{name=menu_entry_name_xrnt,invoke=function() load_device_chain_from_slot(i) end}
@@ -1861,8 +1861,8 @@ local function add_menu_entries_and_keybindings()
   for i = 1, 10 do
     local slot_number = string.format("%02d", i)
 
-    local menu_entry_name_xrni = "Mixer:Paketti..:Device Chains..:Load Instrument (.XRNI) Slot" .. slot_number
-    local menu_entry_name2_xrni = "DSP Device:Paketti..:Device Chains..:Load Instrument (.XRNI) Slot" .. slot_number
+    local menu_entry_name_xrni = "Mixer:Paketti:Device Chains:Load Instrument (.XRNI) Slot" .. slot_number
+    local menu_entry_name2_xrni = "DSP Device:Paketti:Device Chains:Load Instrument (.XRNI) Slot" .. slot_number
     local key_binding_name_xrni = "Global:Paketti:Load Instrument (.XRNI) Slot " .. slot_number
 
     renoise.tool():add_menu_entry{name=menu_entry_name_xrni,invoke=function() load_instrument_from_slot(i) end}
@@ -1874,8 +1874,8 @@ local function add_menu_entries_and_keybindings()
   for i = 1, 10 do
     local slot_number = string.format("%02d", i)
 
-    local menu_entry_name_load_both = "Mixer:Paketti..:Device Chains..:Load Both Instrument&Device Chain (.XRNI&.XRNT) Slot" .. slot_number
-    local menu_entry_name2_load_both = "DSP Device:Paketti..:Device Chains..:Load Both Instrument&Device Chain (.XRNI&.XRNT) Slot" .. slot_number
+    local menu_entry_name_load_both = "Mixer:Paketti:Device Chains:Load Both Instrument&Device Chain (.XRNI&.XRNT) Slot" .. slot_number
+    local menu_entry_name2_load_both = "DSP Device:Paketti:Device Chains:Load Both Instrument&Device Chain (.XRNI&.XRNT) Slot" .. slot_number
     local key_binding_name_load_both = "Global:Paketti:Load Both Instrument&Device Chain (.XRNI&.XRNT) Slot " .. slot_number
 
     renoise.tool():add_menu_entry{name=menu_entry_name_load_both,invoke=function() load_both_from_slot(i) end}
@@ -4677,7 +4677,7 @@ local s=renoise.song()
 end
 renoise.tool():add_keybinding{name="Global:Paketti:Wipe Song Patterns",invoke=function() wipeSongPattern() end}
 renoise.tool():add_menu_entry{name="Main Menu:File:Wipe Song Patterns",invoke=function() wipeSongPattern() end}
-renoise.tool():add_menu_entry{name="Main Menu:File:Paketti..:Wipe Song Patterns",invoke=function() wipeSongPattern() end}
+renoise.tool():add_menu_entry{name="Main Menu:File:Paketti:Wipe Song Patterns",invoke=function() wipeSongPattern() end}
 ----
 --]]
 function get_master_track_index()
@@ -5223,7 +5223,7 @@ end
 
 for cck=1,12 do 
 renoise.tool():add_keybinding{name="Global:Paketti:Column Cycle Keyjazz " .. formatDigits(2,cck),invoke=function() displayNoteColumn(cck) startcolumncycling(cck) end} 
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Column Cycle Keyjazz..:Column Cycle Keyjazz " .. formatDigits(2,cck),invoke=function() displayNoteColumn(cck) startcolumncycling(cck) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Column Cycle Keyjazz:Column Cycle Keyjazz " .. formatDigits(2,cck),invoke=function() displayNoteColumn(cck) startcolumncycling(cck) end}
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Start/Stop Column Cycling",invoke=function() startcolumncycling() end}
@@ -5239,7 +5239,7 @@ end
 
 for ccks=3,12 do
 renoise.tool():add_keybinding{name="Global:Paketti:Column Cycle Keyjazz Special (" .. ccks .. ")",invoke=function() ColumnCycleKeyjazzSpecial(ccks) end}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Column Cycle Keyjazz..:Column Cycle Keyjazz Special (" .. ccks .. ")",invoke=function() ColumnCycleKeyjazzSpecial(ccks) end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Column Cycle Keyjazz:Column Cycle Keyjazz Special (" .. ccks .. ")",invoke=function() ColumnCycleKeyjazzSpecial(ccks) end}
 end
 renoise.tool():add_keybinding{name="Global:Paketti:Column Cycle Keyjazz Special (2)",invoke=function() ColumnCycleKeyjazzSpecial(2) end}
 
@@ -5855,15 +5855,15 @@ renoise.tool():add_keybinding{name = "Global:Paketti:Generate Pure Sinewave Cust
 renoise.tool():add_keybinding{name = "Global:Paketti:Generate AM Sinewave 440Hz (20x mod)", invoke = function() createAmplitudeModulatedSinewaveSample(44100, 440, 20, 30) end}
 renoise.tool():add_keybinding{name = "Global:Paketti:Generate AM Sinewave 1000Hz (20x mod)", invoke = function() createAmplitudeModulatedSinewaveSample(44100, 1000, 20, 30) end}
 renoise.tool():add_keybinding{name = "Global:Paketti:Generate AM Sinewave Custom", invoke = createCustomAmplitudeModulatedSinewave}
-renoise.tool():add_menu_entry{name = "Sample Editor:Paketti..:Generate..:Pure Sinewave 440Hz",invoke = function() createSinewaveSample(44100, 440, nil) end}
-renoise.tool():add_menu_entry{name = "Sample Editor:Paketti..:Generate..:Pure Sinewave 1000Hz",invoke = function() createSinewaveSample(44100, 1000, nil) end}
-renoise.tool():add_menu_entry{name = "Sample Editor:Paketti..:Generate..:Pure Sinewave Custom Frequency",invoke = createCustomSinewave}
-renoise.tool():add_menu_entry{name = "Sample Editor:Paketti..:Generate..:AM Sinewave 440Hz (20x mod)",invoke = function() createAmplitudeModulatedSinewaveSample(44100, 440, 20, 30) end}
-renoise.tool():add_menu_entry{name = "Sample Editor:Paketti..:Generate..:AM Sinewave 1000Hz (20x mod)",invoke = function() createAmplitudeModulatedSinewaveSample(44100, 1000, 20, 30) end}
-renoise.tool():add_menu_entry{name = "Sample Editor:Paketti..:Generate..:AM Sinewave Custom",invoke = createCustomAmplitudeModulatedSinewave}
-renoise.tool():add_menu_entry{name = "Instrument Box:Paketti..:Generate..:Pure Sinewave 440Hz",invoke = function() createSinewaveSample(44100, 440, nil) end}
-renoise.tool():add_menu_entry{name = "Instrument Box:Paketti..:Generate..:Pure Sinewave 1000Hz",invoke = function() createSinewaveSample(44100, 1000, nil) end}
-renoise.tool():add_menu_entry{name = "Instrument Box:Paketti..:Generate..:Pure Sinewave Custom Frequency",invoke = createCustomSinewave}
-renoise.tool():add_menu_entry{name = "Instrument Box:Paketti..:Generate..:AM Sinewave 440Hz (20x mod)",invoke = function() createAmplitudeModulatedSinewaveSample(44100, 440, 20, 30) end}
-renoise.tool():add_menu_entry{name = "Instrument Box:Paketti..:Generate..:AM Sinewave 1000Hz (20x mod)",invoke = function() createAmplitudeModulatedSinewaveSample(44100, 1000, 20, 30) end}
-renoise.tool():add_menu_entry{name = "Instrument Box:Paketti..:Generate..:AM Sinewave Custom",invoke = createCustomAmplitudeModulatedSinewave}
+renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Generate:Pure Sinewave 440Hz",invoke = function() createSinewaveSample(44100, 440, nil) end}
+renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Generate:Pure Sinewave 1000Hz",invoke = function() createSinewaveSample(44100, 1000, nil) end}
+renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Generate:Pure Sinewave Custom Frequency",invoke = createCustomSinewave}
+renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Generate:AM Sinewave 440Hz (20x mod)",invoke = function() createAmplitudeModulatedSinewaveSample(44100, 440, 20, 30) end}
+renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Generate:AM Sinewave 1000Hz (20x mod)",invoke = function() createAmplitudeModulatedSinewaveSample(44100, 1000, 20, 30) end}
+renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Generate:AM Sinewave Custom",invoke = createCustomAmplitudeModulatedSinewave}
+renoise.tool():add_menu_entry{name = "Instrument Box:Paketti:Generate:Pure Sinewave 440Hz",invoke = function() createSinewaveSample(44100, 440, nil) end}
+renoise.tool():add_menu_entry{name = "Instrument Box:Paketti:Generate:Pure Sinewave 1000Hz",invoke = function() createSinewaveSample(44100, 1000, nil) end}
+renoise.tool():add_menu_entry{name = "Instrument Box:Paketti:Generate:Pure Sinewave Custom Frequency",invoke = createCustomSinewave}
+renoise.tool():add_menu_entry{name = "Instrument Box:Paketti:Generate:AM Sinewave 440Hz (20x mod)",invoke = function() createAmplitudeModulatedSinewaveSample(44100, 440, 20, 30) end}
+renoise.tool():add_menu_entry{name = "Instrument Box:Paketti:Generate:AM Sinewave 1000Hz (20x mod)",invoke = function() createAmplitudeModulatedSinewaveSample(44100, 1000, 20, 30) end}
+renoise.tool():add_menu_entry{name = "Instrument Box:Paketti:Generate:AM Sinewave Custom",invoke = createCustomAmplitudeModulatedSinewave}

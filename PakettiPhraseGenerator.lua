@@ -2550,7 +2550,7 @@ end
  if renoise.API_VERSION >= 6.2 then 
  renoise.tool():add_menu_entry{name="Main Menu:Tools:Enhanced Phrase Generator",invoke=function() pakettiPhraseGeneratorDialog() end}
  renoise.tool():add_keybinding{name="Global:Tools:Enhanced Phrase Generator",invoke=function() pakettiPhraseGeneratorDialog() end}
- renoise.tool():add_menu_entry{name="Phrase Script Editor:Paketti..:Enhanced Phrase Generator",invoke=function() pakettiPhraseGeneratorDialog() end}
+ renoise.tool():add_menu_entry{name="Phrase Script Editor:Paketti:Enhanced Phrase Generator",invoke=function() pakettiPhraseGeneratorDialog() end}
  end
  
  -- Helper function to update only volume values

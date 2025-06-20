@@ -1709,14 +1709,14 @@ end
 -- Define the menu entries, keybindings, and MIDI mappings for the different adjustments
 local function add_tool_entries(column_type, adjustment)
   local adj_str = (adjustment > 0) and "+" .. adjustment or tostring(adjustment)
-  renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Note Columns..:Adjust Selection " .. column_type:gsub("^%l", string.upper) .. " Column " .. adj_str,invoke=function() adjust_column(column_type, adjustment) end}
+  renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Note Columns:Adjust Selection " .. column_type:gsub("^%l", string.upper) .. " Column " .. adj_str,invoke=function() adjust_column(column_type, adjustment) end}
   renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Adjust Selection " .. column_type:gsub("^%l", string.upper) .. " Column (" .. adj_str .. ")",invoke=function() adjust_column(column_type, adjustment) end}
   renoise.tool():add_midi_mapping{name="Pattern Editor:Paketti:Adjust Selection " .. column_type:gsub("^%l", string.upper) .. " Column (" .. adj_str .. ")",invoke=function() adjust_column(column_type, adjustment) end}
 end
 
 -- Define the menu entries, keybindings, and MIDI mappings for wiping the columns
 local function add_wipe_entries(column_type)
-  renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Note Columns..:Wipe Selection " .. column_type:gsub("^%l", string.upper) .. " Column",invoke=function() adjust_column(column_type, 0) end}
+  renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Note Columns:Wipe Selection " .. column_type:gsub("^%l", string.upper) .. " Column",invoke=function() adjust_column(column_type, 0) end}
   renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Wipe Selection " .. column_type:gsub("^%l", string.upper) .. " Column",invoke=function() adjust_column(column_type, 0) end}
   renoise.tool():add_midi_mapping{name="Paketti:Clear/Wipe Selection " .. column_type:gsub("^%l", string.upper) .. " Column",invoke=function() adjust_column(column_type, 0) end}
 end
@@ -3071,15 +3071,15 @@ for interval = MIN_SHIFT, MAX_SHIFT do
   if interval ~= 0 then
     local shift_label = (interval > 0) and ("+" .. interval) or tostring(interval)
 
-    -- Define menu labels under "Main Menu:Tools:Paketti..:Pattern Editor..:"
-    local menu_label_all_main = "Main Menu:Tools:Paketti..:Pattern Editor..:Basenote..:Basenote Shift " .. shift_label .. " (All Instruments)"
-    local menu_label_current_main = "Main Menu:Tools:Paketti..:Pattern Editor..:Basenote..:Basenote Shift " .. shift_label .. " (Selected Instrument)"
-    local key_label_all_main = "Sample Mappings:Paketti..:Basenote..:Basenote Shift " .. shift_label .. " (All Instruments)"
-    local key_label_current_main = "Sample Mappings:Paketti..:Basenote..:Basenote Shift " .. shift_label .. " (Selected Instrument)"
+    -- Define menu labels under "Main Menu:Tools:Paketti:Pattern Editor:"
+    local menu_label_all_main = "Main Menu:Tools:Paketti:Pattern Editor:Basenote:Basenote Shift " .. shift_label .. " (All Instruments)"
+    local menu_label_current_main = "Main Menu:Tools:Paketti:Pattern Editor:Basenote:Basenote Shift " .. shift_label .. " (Selected Instrument)"
+    local key_label_all_main = "Sample Mappings:Paketti:Basenote:Basenote Shift " .. shift_label .. " (All Instruments)"
+    local key_label_current_main = "Sample Mappings:Paketti:Basenote:Basenote Shift " .. shift_label .. " (Selected Instrument)"
     
-    -- Define menu labels under "Pattern Editor:Paketti..:"
-    local menu_label_all_pattern = "Sample Editor:Paketti..:Basenote..:Basenote Shift " .. shift_label .. " (All Instruments)"
-    local menu_label_current_pattern = "Sample Editor:Paketti..:Basenote..:Basenote Shift " .. shift_label .. " (Selected Instrument)"
+    -- Define menu labels under "Pattern Editor:Paketti:"
+    local menu_label_all_pattern = "Sample Editor:Paketti:Basenote:Basenote Shift " .. shift_label .. " (All Instruments)"
+    local menu_label_current_pattern = "Sample Editor:Paketti:Basenote:Basenote Shift " .. shift_label .. " (Selected Instrument)"
     
     -- Define unique identifiers for keybindings
     local keybinding_label_all = "Global:Paketti:Basenote Shift " .. shift_label .. " (All Instruments)"
@@ -3089,7 +3089,7 @@ for interval = MIN_SHIFT, MAX_SHIFT do
     local midi_mapping_all = "Paketti:Basenote Shift " .. shift_label .. " (All Instruments)"
     local midi_mapping_current = "Paketti:Basenote Shift " .. shift_label .. " (Selected Instrument)"
 
-    -- Add menu entries under "Main Menu:Tools:Paketti..:Pattern Editor..:"
+    -- Add menu entries under "Main Menu:Tools:Paketti:Pattern Editor:"
     renoise.tool():add_menu_entry{name=menu_label_all_main,invoke=function() PakettiBaseNoteShifter(interval, "all") end}    
     renoise.tool():add_menu_entry{name=key_label_current_main,invoke=function() PakettiBaseNoteShifter(interval, "current") end}
     renoise.tool():add_menu_entry{name=key_label_all_main,invoke=function() PakettiBaseNoteShifter(interval, "all") end}
@@ -3163,8 +3163,8 @@ for interval = MIN_SHIFT, MAX_SHIFT do
     local shift_label = (interval > 0) and ("+" .. interval) or tostring(interval)
     
     -- Define labels for "All Instruments"
-    local menu_label_all_main = "Main Menu:Tools:Paketti..:Instruments..:Transpose..:Transpose Shift " .. shift_label .. " (All Instruments)"
-    local menu_label_all_pattern = "Sample Editor:Paketti..:Transpose..:Transpose Shift " .. shift_label .. " (All Instruments)"
+    local menu_label_all_main = "Main Menu:Tools:Paketti:Instruments:Transpose:Transpose Shift " .. shift_label .. " (All Instruments)"
+    local menu_label_all_pattern = "Sample Editor:Paketti:Transpose:Transpose Shift " .. shift_label .. " (All Instruments)"
     local keybinding_label_all = "Global:Paketti:Transpose Shift " .. shift_label .. " (All Instruments)"
     local midi_mapping_all = "Paketti:Transpose Shift " .. shift_label .. " (All Instruments)"
 
@@ -3180,8 +3180,8 @@ for interval = MIN_SHIFT, MAX_SHIFT do
   if interval ~= 0 then
     local shift_label = (interval > 0) and ("+" .. interval) or tostring(interval)
     
-    local menu_label_current_main = "Main Menu:Tools:Paketti..:Instruments..:Transpose..:Transpose Shift " .. shift_label .. " (Selected Instrument)"
-    local menu_label_current_pattern = "Sample Editor:Paketti..:Transpose..:Transpose Shift " .. shift_label .. " (Selected Instrument)"
+    local menu_label_current_main = "Main Menu:Tools:Paketti:Instruments:Transpose:Transpose Shift " .. shift_label .. " (Selected Instrument)"
+    local menu_label_current_pattern = "Sample Editor:Paketti:Transpose:Transpose Shift " .. shift_label .. " (Selected Instrument)"
     local keybinding_label_current = "Global:Paketti:Transpose Shift " .. shift_label .. " (Selected Instrument)"
     local midi_mapping_current = "Paketti:Transpose Shift " .. shift_label .. " (Selected Instrument)"
 
@@ -5939,11 +5939,11 @@ renoise.tool():add_keybinding{name="Global:Paketti:Open User Preferences Dialog.
 
 for i = 1, 10 do
   local slot = string.format("%02d", i)
-  renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:SlotShow..:Show/Hide Slot " .. slot .. " on Master",
+  renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Plugins/Devices:SlotShow:Show/Hide Slot " .. slot .. " on Master",
     invoke=function() FinderShowerByPath(preferences.UserPreferences["userPreferredDevice" .. slot].value, "master") end
   }
 
-  renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Plugins/Devices..:SlotShow..:Show/Hide Slot " .. slot .. " on Selected Track",
+  renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Plugins/Devices:SlotShow:Show/Hide Slot " .. slot .. " on Selected Track",
     invoke=function() FinderShowerByPath(preferences.UserPreferences["userPreferredDevice" .. slot].value, "selected_track") end
   }
 
@@ -9481,10 +9481,10 @@ end
 -- Direction and scope enums
 local DIRECTION = { PREVIOUS = 1, NEXT = 2 }
 local SCOPE = { TRACK = 1, PATTERN = 2 }
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Find Note (Next, Track)",invoke=function() GotoNote(DIRECTION.NEXT, SCOPE.TRACK) end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Find Note (Previous, Track)",invoke=function() GotoNote(DIRECTION.PREVIOUS, SCOPE.TRACK) end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Find Note (Next, Pattern)",invoke=function() GotoNote(DIRECTION.NEXT, SCOPE.PATTERN) end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Find Note (Previous, Pattern)",invoke=function() GotoNote(DIRECTION.PREVIOUS, SCOPE.PATTERN) end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Find Note (Next, Track)",invoke=function() GotoNote(DIRECTION.NEXT, SCOPE.TRACK) end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Find Note (Previous, Track)",invoke=function() GotoNote(DIRECTION.PREVIOUS, SCOPE.TRACK) end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Find Note (Next, Pattern)",invoke=function() GotoNote(DIRECTION.NEXT, SCOPE.PATTERN) end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Find Note (Previous, Pattern)",invoke=function() GotoNote(DIRECTION.PREVIOUS, SCOPE.PATTERN) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Find Note (Next, Track)",invoke=function() GotoNote(DIRECTION.NEXT, SCOPE.TRACK) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Find Note (Previous, Track)",invoke=function() GotoNote(DIRECTION.PREVIOUS, SCOPE.TRACK) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Find Note (Next, Pattern)",invoke=function() GotoNote(DIRECTION.NEXT, SCOPE.PATTERN) end}
@@ -9496,10 +9496,10 @@ renoise.tool():add_midi_mapping{name="Paketti:Find Note (Previous, Pattern)",inv
 
 -- Add playback versions if API supports it
 if renoise.API_VERSION >= 6.2 then
-  renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Find Note (Next, Track, Play)",invoke=function() GotoNote(DIRECTION.NEXT, SCOPE.TRACK, true) end}
-  renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Find Note (Previous, Track, Play)",invoke=function() GotoNote(DIRECTION.PREVIOUS, SCOPE.TRACK, true) end}
-  renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Find Note (Next, Pattern, Play)",invoke=function() GotoNote(DIRECTION.NEXT, SCOPE.PATTERN, true) end}
-  renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Find Note (Previous, Pattern, Play)",invoke=function() GotoNote(DIRECTION.PREVIOUS, SCOPE.PATTERN, true) end}
+  renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Find Note (Next, Track, Play)",invoke=function() GotoNote(DIRECTION.NEXT, SCOPE.TRACK, true) end}
+  renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Find Note (Previous, Track, Play)",invoke=function() GotoNote(DIRECTION.PREVIOUS, SCOPE.TRACK, true) end}
+  renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Find Note (Next, Pattern, Play)",invoke=function() GotoNote(DIRECTION.NEXT, SCOPE.PATTERN, true) end}
+  renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Find Note (Previous, Pattern, Play)",invoke=function() GotoNote(DIRECTION.PREVIOUS, SCOPE.PATTERN, true) end}
   renoise.tool():add_keybinding{name="Global:Paketti:Find Note (Next, Track, Play)",invoke=function() GotoNote(DIRECTION.NEXT, SCOPE.TRACK, true) end}
   renoise.tool():add_keybinding{name="Global:Paketti:Find Note (Previous, Track, Play)",invoke=function() GotoNote(DIRECTION.PREVIOUS, SCOPE.TRACK, true) end}
   renoise.tool():add_keybinding{name="Global:Paketti:Find Note (Next, Pattern, Play)",invoke=function() GotoNote(DIRECTION.NEXT, SCOPE.PATTERN, true) end}

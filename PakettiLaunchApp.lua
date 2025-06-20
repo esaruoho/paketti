@@ -240,12 +240,12 @@ for i=1, 6 do
               saveSelectedSampleToTempAndOpen(app_path)
           end
       }
-      renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Launch App..:Send Selected Sample to AppSelection" .. i,
+      renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Launch App:Send Selected Sample to AppSelection" .. i,
           invoke=function()
               saveSelectedSampleToTempAndOpen(app_path)
           end
       }
-      renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Launch App..:Send Selected Sample to AppSelection" .. i,
+      renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Launch App:Send Selected Sample to AppSelection" .. i,
           invoke=function()
               saveSelectedSampleToTempAndOpen(app_path)
           end
@@ -263,17 +263,17 @@ end
 
 for i=1, 3 do
     renoise.tool():add_keybinding{name="Global:Paketti:Save Sample to Smart/Backup Folder " .. i,invoke=function() saveSampleToSmartFolder(i) end}
-    renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Save..:Save Sample to Smart/Backup Folder " .. i,invoke=function() saveSampleToSmartFolder(i) end}
-    renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Save..:Save Sample to Smart/Backup Folder " .. i,invoke=function() saveSampleToSmartFolder(i) end}
-    renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Save..:Save Sample to Smart/Backup Folder " .. i,invoke=function() saveSampleToSmartFolder(i) end}
+    renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Save:Save Sample to Smart/Backup Folder " .. i,invoke=function() saveSampleToSmartFolder(i) end}
+    renoise.tool():add_menu_entry{name="Sample Mappings:Paketti:Save:Save Sample to Smart/Backup Folder " .. i,invoke=function() saveSampleToSmartFolder(i) end}
+    renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Save:Save Sample to Smart/Backup Folder " .. i,invoke=function() saveSampleToSmartFolder(i) end}
     renoise.tool():add_midi_mapping{name="Paketti:Save Sample to Smart/Backup Folder " .. i,invoke=function(message) if message:is_trigger() then saveSampleToSmartFolder(i) end end}
 end
 
 for i=1, 3 do
     renoise.tool():add_keybinding{name="Global:Paketti:Save All Samples to Smart/Backup Folder " .. i,invoke=function() saveSamplesToSmartFolder(i) end}
-    renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Save..:Save All Samples to Smart/Backup Folder " .. i,invoke=function() saveSamplesToSmartFolder(i) end}
-    renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Save..:Save All Samples to Smart/Backup Folder " .. i,invoke=function() saveSamplesToSmartFolder(i) end}
-    renoise.tool():add_menu_entry{name="Instrument Box:Paketti..:Save..:Save All Samples to Smart/Backup Folder " .. i,invoke=function() saveSamplesToSmartFolder(i) end}
+    renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Save:Save All Samples to Smart/Backup Folder " .. i,invoke=function() saveSamplesToSmartFolder(i) end}
+    renoise.tool():add_menu_entry{name="Sample Mappings:Paketti:Save:Save All Samples to Smart/Backup Folder " .. i,invoke=function() saveSamplesToSmartFolder(i) end}
+    renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Save:Save All Samples to Smart/Backup Folder " .. i,invoke=function() saveSamplesToSmartFolder(i) end}
     renoise.tool():add_midi_mapping{name="Paketti:Save All Samples to Smart/Backup Folder " .. i,invoke=function(message)
     if message:is_trigger() then saveSamplesToSmartFolder(i) end end}
 end
@@ -411,27 +411,27 @@ function appSelectionCreateMenuEntries()
 local prefix = (i == 1) and "--" or ""  -- Add prefix only for first item
   
 local app_name = app_path:match("([^/\\]+)%.app$") or app_path:match("([^/\\]+)$")
-      local menu_entry_name = "Instrument Box:Paketti..:Launch App..:Launch App "..i.." "..app_name
+      local menu_entry_name = "Instrument Box:Paketti:Launch App:Launch App "..i.." "..app_name
       if not renoise.tool():has_menu_entry(menu_entry_name) then
         renoise.tool():add_menu_entry{name=menu_entry_name,invoke=function() appSelectionLaunchApp(app_path) end}
         table.insert(added_menu_entries, menu_entry_name)
       end
 
-      menu_entry_name = "Main Menu:Tools:Paketti..:Launch App..:Launch App "..i.." "..app_name
+      menu_entry_name = "Main Menu:Tools:Paketti:Launch App:Launch App "..i.." "..app_name
       if not renoise.tool():has_menu_entry(menu_entry_name) then
         renoise.tool():add_menu_entry{name=menu_entry_name,
           invoke=function() appSelectionLaunchApp(app_path) end
         }
         table.insert(added_menu_entries, menu_entry_name)
       end
-      menu_entry_name = "Sample Navigator:Paketti..:Launch App..:Launch App "..i.." "..app_name
+      menu_entry_name = "Sample Navigator:Paketti:Launch App:Launch App "..i.." "..app_name
       if not renoise.tool():has_menu_entry(menu_entry_name) then
         renoise.tool():add_menu_entry{name=menu_entry_name,
           invoke=function() appSelectionLaunchApp(app_path) end
         }
         table.insert(added_menu_entries, menu_entry_name)
       end
-      menu_entry_name = "Sample Editor:Paketti..:Launch App..:Launch App "..i.." "..app_name
+      menu_entry_name = "Sample Editor:Paketti:Launch App:Launch App "..i.." "..app_name
       if not renoise.tool():has_menu_entry(menu_entry_name) then
         renoise.tool():add_menu_entry{name=menu_entry_name,
           invoke=function() appSelectionLaunchApp(app_path) end
@@ -443,10 +443,10 @@ local app_name = app_path:match("([^/\\]+)%.app$") or app_path:match("([^/\\]+)$
 
   -- If no app selections are set, show the app selection dialog
   if not apps_present then
-    renoise.app():show_status("No apps have been configured in Paketti..:Launch App..:Configure Launch App Selection, cannot populate Menu.")
+    renoise.app():show_status("No apps have been configured in Paketti:Launch App:Configure Launch App Selection, cannot populate Menu.")
   end
 
-  local configure_entry_name="--Instrument Box:Paketti..:Launch App..:Configure Launch App Selection..."
+  local configure_entry_name="--Instrument Box:Paketti:Launch App:Configure Launch App Selection..."
   if not renoise.tool():has_menu_entry(configure_entry_name) then
     renoise.tool():add_menu_entry{name=configure_entry_name,
       invoke=pakettiAppSelectionDialog
@@ -454,7 +454,7 @@ local app_name = app_path:match("([^/\\]+)%.app$") or app_path:match("([^/\\]+)$
     table.insert(added_menu_entries, configure_entry_name)
   end
 
-  configure_entry_name="--Main Menu:Tools:Paketti..:Launch App..:Configure Launch App Selection..."
+  configure_entry_name="--Main Menu:Tools:Paketti:Launch App:Configure Launch App Selection..."
   if not renoise.tool():has_menu_entry(configure_entry_name) then
     renoise.tool():add_menu_entry{name=configure_entry_name,
       invoke=pakettiAppSelectionDialog
@@ -462,14 +462,14 @@ local app_name = app_path:match("([^/\\]+)%.app$") or app_path:match("([^/\\]+)$
     table.insert(added_menu_entries, configure_entry_name)
   end
 
-  configure_entry_name="--Sample Navigator:Paketti..:Launch App..:Configure Launch App Selection..."
+  configure_entry_name="--Sample Navigator:Paketti:Launch App:Configure Launch App Selection..."
   if not renoise.tool():has_menu_entry(configure_entry_name) then
     renoise.tool():add_menu_entry{name=configure_entry_name,
       invoke=pakettiAppSelectionDialog
     }
     table.insert(added_menu_entries, configure_entry_name)
   end  
-  configure_entry_name="--Sample Editor:Paketti..:Launch App..:Configure Launch App Selection..."
+  configure_entry_name="--Sample Editor:Paketti:Launch App:Configure Launch App Selection..."
   if not renoise.tool():has_menu_entry(configure_entry_name) then
     renoise.tool():add_menu_entry{name=configure_entry_name,
       invoke=pakettiAppSelectionDialog

@@ -429,7 +429,7 @@ vb:row{vb:button{text="Save as Textfile", notifier=function()
   pakettiKeyBindingsSaveDebugLog(pakettiKeybindings, false)
 end
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:!Preferences..:Paketti KeyBindings...",invoke=function() pakettiKeyBindingsDialog() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Paketti KeyBindings...",invoke=function() pakettiKeyBindingsDialog() end}
 -- Single list of valid menu locations (using correct menu paths)
 local menu_entries = {
   "Track Automation",  -- This will map to "Automation"
@@ -452,8 +452,8 @@ for _, menu_name in ipairs(menu_entries) do
   -- Get the correct identifier (handle special cases)
   local identifier = menu_to_identifier[menu_name] or menu_name
   
-  renoise.tool():add_menu_entry{name="--" .. menu_name .. ":Paketti Gadgets..:Paketti KeyBindings Dialog...",invoke=function() pakettiKeyBindingsDialog(identifier) end}
-  renoise.tool():add_menu_entry{name=menu_name .. ":Paketti Gadgets..:Renoise KeyBindings Dialog...",invoke=function() pakettiRenoiseKeyBindingsDialog(identifier) end}
+  renoise.tool():add_menu_entry{name="--" .. menu_name .. ":Paketti Gadgets:Paketti KeyBindings Dialog...",invoke=function() pakettiKeyBindingsDialog(identifier) end}
+  renoise.tool():add_menu_entry{name=menu_name .. ":Paketti Gadgets:Renoise KeyBindings Dialog...",invoke=function() pakettiRenoiseKeyBindingsDialog(identifier) end}
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Show Paketti KeyBindings Dialog...",invoke=function() pakettiKeyBindingsDialog() end}
@@ -797,9 +797,9 @@ local renoise_identifiers = {
 }
 
 for _, identifier in ipairs(renoise_identifiers) do
-  renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:!Preferences..:Renoise KeyBindings..:" .. identifier,
+  renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Renoise KeyBindings:" .. identifier,
     invoke=function() pakettiRenoiseKeyBindingsDialog(identifier) end}
-  renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:!Preferences..:Paketti KeyBindings..:" .. identifier,
+  renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Paketti KeyBindings:" .. identifier,
     invoke=function() pakettiKeyBindingsDialog(identifier) end}  
 end
 

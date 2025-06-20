@@ -3267,7 +3267,7 @@ for _, row_opt in ipairs(row_options) do
     local replicate_function = create_column_replicate_function(transpose_opt.value, row_opt.value)
     
     -- For note columns
-    local note_menu_entry_name = "Pattern Editor:Paketti..:Replicate..:Replicate Note/FX Column " .. row_opt.name .. " " .. transpose_opt.name
+    local note_menu_entry_name = "Pattern Editor:Paketti:Replicate:Replicate Note/FX Column " .. row_opt.name .. " " .. transpose_opt.name
     renoise.tool():add_menu_entry{name=note_menu_entry_name,invoke=replicate_function}
     
     local note_keybinding_name = "Pattern Editor:Paketti:Replicate Note/FX Column " .. row_opt.name .. " " .. transpose_opt.name
@@ -3580,7 +3580,7 @@ for _, tracks_opt in ipairs(tracks_options) do
       local replicate_function = create_replicate_function(transpose_opt.value, tracks_opt.value, row_opt.value)
 
       -- Pattern Editor entries (always add these)
-      local menu_entry_name = "Pattern Editor:Paketti..:Replicate..:Replicate " .. tracks_opt.name .. " " .. row_opt.name .. " " .. transpose_opt.name
+      local menu_entry_name = "Pattern Editor:Paketti:Replicate:Replicate " .. tracks_opt.name .. " " .. row_opt.name .. " " .. transpose_opt.name
       renoise.tool():add_menu_entry{name=menu_entry_name,invoke=replicate_function}
       
       local keybinding_name = "Pattern Editor:Paketti:Replicate " .. tracks_opt.name .. " " .. row_opt.name .. " " .. transpose_opt.name
@@ -3596,7 +3596,7 @@ for _, tracks_opt in ipairs(tracks_options) do
       -- Add Phrase Editor entries only for "selected_track" option
       -- since phrases don't have multiple tracks
       if renoise.API_VERSION >= 6.2 and tracks_opt.value == "selected_track" then
-        local phrase_menu_entry_name = "Phrase Editor:Paketti..:Replicate..:Replicate " .. row_opt.name .. " " .. transpose_opt.name
+        local phrase_menu_entry_name = "Phrase Editor:Paketti:Replicate:Replicate " .. row_opt.name .. " " .. transpose_opt.name
         renoise.tool():add_menu_entry{name=phrase_menu_entry_name,invoke=replicate_function}
         
         local phrase_keybinding_name = "Phrase Editor:Paketti:Replicate " .. row_opt.name .. " " .. transpose_opt.name

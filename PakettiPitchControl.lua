@@ -1250,11 +1250,11 @@ end
 -- TODO: figure out which ones still need to exist
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Set BPM from Sample Length",invoke=set_bpm_from_sample_beatsync}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Show BPM Calculation Dialog...",invoke=pakettiBpmFromSampleDialog}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Set BPM from Sample Length",invoke=set_bpm_from_sample_beatsync}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Set BPM from Sample Length",invoke=set_bpm_from_sample_beatsync}
 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Set BPM from Sample Length",invoke=set_bpm_from_sample_beatsync}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Show BPM Calculation Dialog...",invoke=pakettiBpmFromSampleDialog}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Set BPM from Sample Length",invoke=set_bpm_from_sample_beatsync}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Set BPM from Sample Length",invoke=set_bpm_from_sample_beatsync}
 
 renoise.tool():add_keybinding{name="Global:Paketti:Set BPM from Sample Length",invoke=set_bpm_from_sample_beatsync}
 renoise.tool():add_keybinding{name="Global:Paketti:Show BPM Calculation Dialog...",invoke=pakettiBpmFromSampleDialog}
@@ -1505,8 +1505,8 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Sample Pitch Modifier Dialog...",invoke = show_sample_pitch_modifier_dialog}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Sample Pitch Modifier Dialog...",invoke = show_sample_pitch_modifier_dialog}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti Gadgets..:Sample Pitch Modifier Dialog...",invoke = show_sample_pitch_modifier_dialog}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Instruments..:Sample Pitch Modifier Dialog...",invoke = show_sample_pitch_modifier_dialog}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti Gadgets:Sample Pitch Modifier Dialog...",invoke = show_sample_pitch_modifier_dialog}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Sample Pitch Modifier Dialog...",invoke = show_sample_pitch_modifier_dialog}
 
 -- Comprehensive BPM Calculation Debug Function
 -- Combines all debug and calculation functionality into one comprehensive tool
@@ -1713,7 +1713,7 @@ end
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:BPM Calculation Debug (Comprehensive)",invoke=comprehensive_bpm_calculation_debug}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:BPM Calculation Debug (Comprehensive)",invoke=comprehensive_bpm_calculation_debug}
 renoise.tool():add_keybinding{name="Global:Paketti:BPM Calculation Debug (Comprehensive)",invoke=comprehensive_bpm_calculation_debug}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:BPM Calculation Debug (Comprehensive)",invoke=comprehensive_bpm_calculation_debug}
-renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:BPM Calculation Debug (Comprehensive)",invoke=comprehensive_bpm_calculation_debug}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:BPM Calculation Debug (Comprehensive)",invoke=comprehensive_bpm_calculation_debug}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:BPM Calculation Debug (Comprehensive)",invoke=comprehensive_bpm_calculation_debug}
 
 

@@ -2538,8 +2538,8 @@ renoise.tool():add_keybinding{name="Sample Keyzones:Paketti:Convert All Samples 
 renoise.tool():add_keybinding{name="Sample Keyzones:Paketti:Convert All Samples to Mono (Keep Right)",invoke=function() convert_all_samples_to_mono("right") end}
 renoise.tool():add_keybinding{name="Sample Keyzones:Paketti:Convert All Samples to Mono (Mix Both)",invoke=function() convert_all_samples_to_mono("mix") end}
 renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Convert All Samples to Mono (Keep Left)",invoke=function() convert_all_samples_to_mono("left") end}
-renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Process..:Convert All Samples to Mono (Keep Right)",invoke=function() convert_all_samples_to_mono("right") end}
-renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Process..:Convert All Samples to Mono (Mix Both)",invoke=function() convert_all_samples_to_mono("mix") end}
+renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Process:Convert All Samples to Mono (Keep Right)",invoke=function() convert_all_samples_to_mono("right") end}
+renoise.tool():add_midi_mapping{name="Sample Editor:Paketti:Process:Convert All Samples to Mono (Mix Both)",invoke=function() convert_all_samples_to_mono("mix") end}
 
 function convert_bit_depth(target_bits)
     -- Ensure a song exists

@@ -580,12 +580,12 @@ local function PakettiPlayerProNoteGridAddNoteMenuEntries()
   for _, range in ipairs(note_ranges) do
     for i = range.range_start, range.range_end do
       if notes[i] then
-        renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Other Trackers..:Note Dropdown.."..range.name..":"..notes[i],
+        renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Other Trackers:Note Dropdown.."..range.name..":"..notes[i],
           invoke=function() PakettiPlayerProNoteGridInsertNoteInPattern(notes[i], renoise.song().selected_instrument_index) end}
       end
     end
-    renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Other Trackers..:Note Dropdown.."..range.name..":000",invoke=function() PakettiPlayerProNoteGridInsertNoteInPattern("000", renoise.song().selected_instrument_index) end}
-    renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Other Trackers..:Note Dropdown.."..range.name..":OFF",invoke=function() PakettiPlayerProNoteGridInsertNoteInPattern("OFF", renoise.song().selected_instrument_index) end}
+    renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Other Trackers:Note Dropdown.."..range.name..":000",invoke=function() PakettiPlayerProNoteGridInsertNoteInPattern("000", renoise.song().selected_instrument_index) end}
+    renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Other Trackers:Note Dropdown.."..range.name..":OFF",invoke=function() PakettiPlayerProNoteGridInsertNoteInPattern("OFF", renoise.song().selected_instrument_index) end}
   end
 end
 

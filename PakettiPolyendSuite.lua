@@ -3165,12 +3165,12 @@ renoise.tool():add_keybinding{
 
 -- Add menu entry for Polyend Buddy dialog  
 renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti..:Instruments..:File Formats..:Polyend Buddy (PTI File Browser)",
+  name = "Main Menu:Tools:Paketti:Instruments:File Formats:Polyend Buddy (PTI File Browser)",
   invoke = show_polyend_buddy_dialog
 }
 
 
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti Gadgets..:Polyend Buddy (PTI File Browser)",
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti Gadgets:Polyend Buddy (PTI File Browser)",
 invoke=show_polyend_buddy_dialog
 
 }

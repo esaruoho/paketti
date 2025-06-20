@@ -706,7 +706,7 @@ end
 for i=1, 12 do
   renoise.tool():add_keybinding{name="Global:Paketti:OctaMED Note Spread " .. formatDigits(2, i),invoke=function() NoteSpread(i) end}
   renoise.tool():add_keybinding{name="Pattern Editor:Paketti:OctaMED Note Spread " .. formatDigits(2, i),invoke=function() NoteSpread(i) end}
-  renoise.tool():add_menu_entry{name="Pattern Editor:Paketti..:Other Trackers..:OctaMED Note Spread " .. formatDigits(2, i),invoke=function() NoteSpread(i) end}
+  renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Other Trackers:OctaMED Note Spread " .. formatDigits(2, i),invoke=function() NoteSpread(i) end}
 end
 
 -- Add this at the top of your file with other global variables
