@@ -436,7 +436,6 @@ renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Process..:Move 
 
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Process..:Move Beginning Silence to End for All Samples",invoke=function() PakettiMoveSilenceAllSamples() end}
 
-renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Load..:Import AKP File...",invoke = importAKPFile}
 
 renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti..:Copy Sample in Note-On to Note-Off Layer +24",invoke=function() noteOnToNoteOff(24) end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Copy Sample in Note-On to Note-Off Layer +12",invoke=function() noteOnToNoteOff(12) end}
@@ -2054,3 +2053,5 @@ end
 --renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Export..:Export Akai Program...",invoke = function() exportAkaiProgram() end}
 --renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Export..:Export S900/S950 Sample...",invoke = function() exportS900Sample() end}
 --renoise.tool():add_menu_entry{name="Sample Mappings:Paketti..:Export..:Export S1000 Sample...",invoke = function() exportS1000Sample() end}
+
+-- renoise.tool():add_menu_entry{name="Sample Navigator:Paketti..:Load..:Import AKP File...",invoke = importAKPFile}
