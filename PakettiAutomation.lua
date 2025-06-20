@@ -5,6 +5,18 @@ paketti_automation2_device = nil
 
 PakettiAutomationDoofer = false
 
+-- Helper function to safely clear automation range (swap if from_time > to_time) - ONLY for flood fill
+local function safe_clear_range_flood_fill(envelope, from_time, to_time)
+  if from_time > to_time then
+    -- Swap the values if from_time is greater than to_time
+    from_time, to_time = to_time, from_time
+    print(string.format("Swapped clear_range parameters: from_time=%.2f, to_time=%.2f", from_time, to_time))
+  end
+  if from_time < to_time then
+    envelope:clear_range(from_time, to_time)
+  end
+end
+
 -- Utility Functions
 local function set_edit_mode(value)
   local song=renoise.song()
@@ -1614,7 +1626,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Randomize Automation Envelope
 renoise.tool():add_midi_mapping{name="Paketti:Randomize Automation Envelope",invoke=randomize_envelope}
 
 ---
-local function randomize_device_envelopes(start_param)
+function randomize_device_envelopes(start_param)
   local song=renoise.song()
   local selected_device = song.selected_track.devices[song.selected_device_index]
 
@@ -2011,7 +2023,7 @@ function PakettiAutomationSelectionFloodFill()
   selected_points[#selected_points] = last_point
 
   -- Clear all automation after the selection ends
-  envelope:clear_range(end_line + 1, pattern_length)
+  safe_clear_range_flood_fill(envelope, end_line + 1, pattern_length)
   print("Cleared automation points after line " .. end_line .. ".")
   print("------")
 

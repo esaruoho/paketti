@@ -1497,10 +1497,13 @@ renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Pattern Editor..
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Pattern Length Decrease by 8",invoke=function() adjust_length_by(-8) end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Pattern Length Increase by LPB",invoke=function() adjust_length_by("lpb") end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Pattern Length Decrease by LPB",invoke=function() adjust_length_by("-lpb") end}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Phrase Editor..:Phrase Length Increase by 8",invoke=function() adjust_length_by(8) end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Phrase Editor..:Phrase Length Decrease by 8",invoke=function() adjust_length_by(-8) end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Phrase Editor..:Phrase Length Increase by LPB",invoke=function() adjust_length_by("lpb") end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Phrase Editor..:Phrase Length Decrease by LPB",invoke=function() adjust_length_by("-lpb") end}
+-- Phrase Editor entries require API 6.2+
+if (renoise.API_VERSION >= 6.2) then
+  renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Phrase Editor..:Phrase Length Increase by 8",invoke=function() adjust_length_by(8) end}
+  renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Phrase Editor..:Phrase Length Decrease by 8",invoke=function() adjust_length_by(-8) end}
+  renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Phrase Editor..:Phrase Length Increase by LPB",invoke=function() adjust_length_by("lpb") end}
+  renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Phrase Editor..:Phrase Length Decrease by LPB",invoke=function() adjust_length_by("-lpb") end}
+end
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti..:Pattern Editor..:Collapse All Tracks",invoke=function() Collapser() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Pattern Editor..:Uncollapse All Tracks",invoke=function() Uncollapser() end}
 

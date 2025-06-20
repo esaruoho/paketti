@@ -5519,7 +5519,7 @@ local function apply_triplet_pattern_with_shifting()
 end
 
 -- Main function to detect note spacing and apply the appropriate triplet pattern logic
-local function detect_and_apply_triplet_pattern()
+function detect_and_apply_triplet_pattern()
     local song = get_song()
     song.selected_track.delay_column_visible = true
 

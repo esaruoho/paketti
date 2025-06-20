@@ -55,11 +55,17 @@ local function get_context_lpb()
 end
 
 -- Helper function to adjust pattern or phrase length by a relative amount
-local function adjust_length_by(amount)
+function adjust_length_by(amount)
   local song=renoise.song()
   local current_length
   local new_length
   local is_pattern_editor = is_in_pattern_editor()
+  
+  -- Check if we're trying to use phrase editor functionality without API 6.2+
+  if not is_pattern_editor and renoise.API_VERSION < 6.2 then
+    renoise.app():show_status("Phrase Editor functionality not available before Renoise API v6.2")
+    return
+  end
   
   -- If not in pattern editor, check if we're in phrase editor with valid phrase
   if not is_pattern_editor and not is_in_phrase_editor() then
@@ -370,8 +376,11 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Show Pattern Length D
 renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Show Phrase Length Dialog...",invoke=function() pakettiLengthDialog() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Show Pattern/Phrase Length Dialog...",invoke=function() pakettiLengthDialog() end}
 renoise.tool():add_midi_mapping{name="Paketti:Show Pattern/Phrase Length Dialog...",invoke=function(message) if message:is_trigger() then pakettiLengthDialog() end end}
-renoise.tool():add_keybinding{name="--Phrase Editor:Paketti:Increase Phrase Length by 8",invoke=function() adjust_length_by(8) end}
-renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Decrease Phrase Length by 8",invoke=function() adjust_length_by(-8) end}
-renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Increase Phrase Length by LPB",invoke=function() adjust_length_by("lpb") end}
-renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Decrease Phrase Length by LPB",invoke=function() adjust_length_by("-lpb") end}
+-- Phrase Editor keybindings require API 6.2+
+if (renoise.API_VERSION >= 6.2) then
+  renoise.tool():add_keybinding{name="--Phrase Editor:Paketti:Increase Phrase Length by 8",invoke=function() adjust_length_by(8) end}
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Decrease Phrase Length by 8",invoke=function() adjust_length_by(-8) end}
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Increase Phrase Length by LPB",invoke=function() adjust_length_by("lpb") end}
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Decrease Phrase Length by LPB",invoke=function() adjust_length_by("-lpb") end}
+end
 

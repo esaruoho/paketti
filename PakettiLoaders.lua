@@ -2486,7 +2486,7 @@ function randomizeSelectedPlugin()
   local song=renoise.song()
   local instrument = renoise.song().selected_instrument 
 
-  if not instrument or not instrument.plugin_properties then
+  if not instrument or not instrument.plugin_properties or not instrument.plugin_properties.plugin_device then
     renoise.app():show_status("The currently selected Instrument does not have a plugin loaded.")
     return
   end
@@ -2543,7 +2543,7 @@ end
 
 
 -------
-local function show_available_plugins_dialog()
+function show_available_plugins_dialog()
 
   -- Declare my_dialog before use
   local my_dialog

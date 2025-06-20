@@ -13,6 +13,13 @@ local function read_dword(data, pos)
 end
 
 function rex_loadsample(filename)
+  -- Check if filename is nil or empty (user cancelled dialog)
+  if not filename or filename == "" then
+    dprint("REX import cancelled - no file selected")
+    renoise.app():show_status("REX import cancelled - no file selected")
+    return false
+  end
+  
   dprint("Starting REX import for file:", filename)
   
   local song=renoise.song()

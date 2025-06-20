@@ -981,6 +981,13 @@ renoise.tool():add_keybinding{name="Sample Editor:Paketti:Set Loop Mode to 3 Rev
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Set Loop Mode to 4 PingPong",invoke=function() LoopState(4) end}
 ------------------
 function slicerough(changer)
+-- Limit changer to 255 (Renoise's maximum slice marker limit)
+if changer > 255 then
+    print("-- Wipe&Slice: Limited slice count from " .. changer .. " to 255 (Renoise maximum)")
+    renoise.app():show_status("Limited to 255 slices (Renoise maximum)")
+    changer = 255
+end
+
 local loopstyle = preferences.WipeSlices.SliceLoopMode.value 
   local G01CurrentState = preferences._0G01_Loader.value
     if preferences._0G01_Loader.value == true or preferences._0G01_Loader.value == false 
@@ -3479,7 +3486,7 @@ end
 ------
 
 
-local function duplicate_sample_with_transpose(transpose_amount)
+function duplicate_sample_with_transpose(transpose_amount)
   local song=renoise.song()
   local instrument = song.selected_instrument
   local selected_sample_index = song.selected_sample_index

@@ -42,7 +42,7 @@ function set_loop_mode_for_selected_instrument(loop_mode)
 
   local mode_name = loop_mode_names[loop_mode] or "Unknown"
   renoise.app():show_status("Loop mode set to " .. mode_name .. " for " .. num_samples .. " samples.")
-  returnpe()
+  --returnpe()
 end
 
 -- Fix velocity mappings of all samples in the selected instrument and disable vel->vol

@@ -740,7 +740,7 @@ function pakettiPatternHalver()
       end
 
       -- Clear existing points and add scaled points
-      automation:clear_points()
+      automation.points = {}
       for _, point in ipairs(new_points) do
         automation:add_point_at(point.time, point.value)
       end
@@ -6200,7 +6200,7 @@ local function match_editstep_with_delay_pattern()
 end
 
 -- Toggle the functionality on or off
-local function toggle_match_editstep()
+function toggle_match_editstep()
   match_editstep_enabled = not match_editstep_enabled
   if match_editstep_enabled then
     if not renoise.tool().app_idle_observable:has_notifier(match_editstep_with_delay_pattern) then

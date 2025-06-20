@@ -550,7 +550,7 @@ function pakettiMIDIPopulator()
       vb:button{
         text="Close", 
         width=100, 
-        notifier=function() custom_dialog:close() end
+        notifier=function() dialog:close() end
       },
       vb:button{
         text="Save & Close", 
