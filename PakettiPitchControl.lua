@@ -1306,14 +1306,13 @@ function show_sample_pitch_modifier_dialog()
     {name = "±12", range = 12 * 128, scale = 1.0},  -- ±12 semitones (1 octave)
     {name = "±24", range = 24 * 128, scale = 1.0},  -- ±24 semitones (2 octaves)
     {name = "±120", range = 120 * 128, scale = 1.0}, -- ±120 semitones (full range)
-    {name = "Legacy", range = 2000, scale = 1.5}    -- Legacy ±2000 with 1.5 scale
   }
   -- Load range from preferences, default to ±12 (index 2) if not set
   local current_range_index = 2  -- Default: ±12 (Normal)
   if preferences and preferences.pakettiPitchSliderRange and preferences.pakettiPitchSliderRange.value then
     current_range_index = preferences.pakettiPitchSliderRange.value
-    -- Clamp to valid range (1-5)
-    current_range_index = math.max(1, math.min(5, current_range_index))
+    -- Clamp to valid range (1-4)
+    current_range_index = math.max(1, math.min(4, current_range_index))
     print(string.format("-- Sample Pitch Modifier: Loaded pitch slider range from preferences: %d (%s)", 
       current_range_index, pitch_ranges[current_range_index].name))
   else
@@ -1399,7 +1398,7 @@ function show_sample_pitch_modifier_dialog()
       },
       vb:switch{
         id = "range_switch",
-        items = {"±3", "±12", "±24", "±120", "Legacy"},
+        items = {"±3", "±12", "±24", "±120"},
         value = current_range_index,
         width = 250,
         notifier = function(value)
