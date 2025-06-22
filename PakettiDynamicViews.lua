@@ -504,7 +504,11 @@ function pakettiDynamicViewDialog(start_dv, end_dv)
   end
 
   dialog_content = build_dialog_interface(vb, start_dv, end_dv, closeDV_dialog)
-  dialog = renoise.app():show_custom_dialog("Paketti Dynamic View Preferences Dialog " .. start_dv .. "-" .. end_dv, dialog_content, my_keyhandler_func, function()
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) dialog = value end
+  )
+  dialog = renoise.app():show_custom_dialog("Paketti Dynamic View Preferences Dialog " .. start_dv .. "-" .. end_dv, dialog_content, keyhandler, function()
     -- Save settings when the dialog is closed
     saveDynamicViewPreferences()
     dialog:close()

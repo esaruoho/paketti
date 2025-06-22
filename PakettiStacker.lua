@@ -474,7 +474,11 @@ vb:row{
    vb:button{text="7/8", notifier=function() jump_to_pattern_segment(7) end},
    vb:button{text="8/8", notifier=function() jump_to_pattern_segment(8) end}}}
   -- Show the dialog
-  dialog = renoise.app():show_custom_dialog("Paketti Stacker", dialog_content,my_keyhandler_func)
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) dialog = value end
+  )
+  dialog = renoise.app():show_custom_dialog("Paketti Stacker", dialog_content, keyhandler)
 end
 
   function proceed_with_stacking()

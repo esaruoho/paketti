@@ -177,7 +177,11 @@ local function show_merge_dialog(initial_source_index, initial_target_index)
     }
   }
   
-  dialog = renoise.app():show_custom_dialog("Merge Instruments", content, my_keyhandler_func)
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) dialog = value end
+  )
+  dialog = renoise.app():show_custom_dialog("Merge Instruments", content, keyhandler)
 end
 
 function pakettiMergeInstrumentsDialog()

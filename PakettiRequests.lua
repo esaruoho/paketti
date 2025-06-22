@@ -5942,7 +5942,11 @@ function pakettiUserPreferencesShowerDialog()
       end
     }
   })
-  dialog = renoise.app():show_custom_dialog("Paketti User Preferences for Show/Hide Slots",vb:column(rows),my_userPrefskeyhandler_func)
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) dialog = value end
+  )
+  dialog = renoise.app():show_custom_dialog("Paketti User Preferences for Show/Hide Slots",vb:column(rows),keyhandler)
 
   -- After opening the dialog, set the focus back to the active middle frame
   renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
@@ -7155,7 +7159,11 @@ function pakettiVolDelayPanSliderDialog()
   -- Focus on the middle frame when dialog opens
   renoise.app().window.active_middle_frame = 1
 
-  dialog = renoise.app():show_custom_dialog("Paketti Volume/Delay/Pan Slider Controls", content, my_keyhandler_func)
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) dialog = value end
+  )
+  dialog = renoise.app():show_custom_dialog("Paketti Volume/Delay/Pan Slider Controls", content, keyhandler)
   renoise.app().window.active_middle_frame=1
 end
 
@@ -7656,7 +7664,11 @@ function pakettiOffsetDialog()
     vb:button{ text="Change Sample Buffer",width=160, notifier=apply_offset }
   }
 
-  dialog = renoise.app():show_custom_dialog("Offset Sample Buffer", content, my_keyhandler_func)
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) dialog = value end
+  )
+  dialog = renoise.app():show_custom_dialog("Offset Sample Buffer", content, keyhandler)
       renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
 
 end
@@ -8023,7 +8035,11 @@ function pakettiGlobalVolumeDialog()
     }
   }
   
-  dialog = renoise.app():show_custom_dialog("Global Instrument/Sample Volume Adjustment",dialog_content, my_keyhandler_func)
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) dialog = value end
+  )
+  dialog = renoise.app():show_custom_dialog("Global Instrument/Sample Volume Adjustment",dialog_content, keyhandler)
 end
 
 

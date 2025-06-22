@@ -1847,7 +1847,11 @@ function pakettiDeviceChainDialog()
     }
   }
 
-  dialog = renoise.app():show_custom_dialog("Paketti Device Chain & Instrument Dialog", content, my_keyhandler_func)
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) dialog = value end
+  )
+  dialog = renoise.app():show_custom_dialog("Paketti Device Chain & Instrument Dialog", content, keyhandler)
 end
 
 -- Function to add menu entries and key bindings grouped by functionality

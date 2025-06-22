@@ -929,24 +929,6 @@ vb:row{
               },
               blend_value_label
             },},
-            horizontal_rule(),
-
-            vb:column{
-              style="group",margin=10,-- width="100%",
-            -- Create the dropdown menu row
-            vb:row{
-              vb:text{text="Dialog Close Key",width=150, style="strong",font="bold"},
-              vb:popup{
-                items = dialog_close_keys,
-                value = table.find(dialog_close_keys, preferences.pakettiDialogClose.value) or 1,
-                width=200,
-                notifier=function(value)
-                  preferences.pakettiDialogClose.value = dialog_close_keys[value]
-                end
-              },
-            
-                  },
-                },
           horizontal_rule(),
           vb:column{
             style="group",margin=10,width="100%",
@@ -972,11 +954,7 @@ vb:row{
                 notifier=function(value)
                   preferences.pakettiAutomationWipeAfterSwitch.value = (value == 2)
                 end
-              }
-            }
-          
-                        }                },
-
+              }}}},
         -- Column 2
         vb:column{
           style="group",margin=5,width=600,
@@ -1124,10 +1102,25 @@ vb:row{
             vb:row{vb:text{text="Slice Loop EndHalf",width=150},vb:switch{items={"Off","On"},value=preferences.WipeSlices.SliceLoopMode.value and 2 or 1,width=200,
           notifier=function(value) preferences.WipeSlices.SliceLoopMode.value=(value==2) end}
           },
-        },
-    horizontal_rule(),
-    vb:column{
-      style="group",margin=10,width="100%",
+          },
+  horizontal_rule(),
+  vb:column{
+    style="group",margin=10,width="100%",
+    vb:row{
+      vb:text{text="Dialog Close Key",width=150, style="strong",font="bold"},
+      vb:popup{
+        items = dialog_close_keys,
+        value = table.find(dialog_close_keys, preferences.pakettiDialogClose.value) or 1,
+        width=200,
+        notifier=function(value)
+          preferences.pakettiDialogClose.value = dialog_close_keys[value]
+        end
+      },
+    },
+  },
+  horizontal_rule(),
+  vb:column{
+    style="group",margin=10,width="100%",
     vb:text{style="strong", font="bold", text="Random Device Chain Loader Path"},
     
     vb:row{
@@ -1244,7 +1237,7 @@ horizontal_rule(),
 
   horizontal_rule(),
   vb:column{style="group",margin=10,width="100%",
-    vb:text{text="Sample Selection Info",width=150, style="strong",font="bold"},
+    vb:text{text="Sample Selection Info (Shows detected note, frequency, and tuning offset in sample selection info)",width=150, style="strong",font="bold"},
     vb:row{
       vb:text{text="Show Sample Selection",width=150},
       vb:switch{items={"Off","On"},
@@ -1279,7 +1272,6 @@ horizontal_rule(),
         end
       }
     },
-    vb:row{vb:text{style="strong",text="Shows detected note, frequency, and tuning offset in sample selection info"}}
   },
 },
       
@@ -1299,7 +1291,12 @@ horizontal_rule(),
   
 
     
-    dialog = renoise.app():show_custom_dialog("Paketti Preferences", dialog_content, my_keyhandler_func)
+    -- Create keyhandler that can manage dialog variable
+    local keyhandler = create_keyhandler_for_dialog(
+      function() return dialog end,
+      function(value) dialog = value end
+    )
+    dialog = renoise.app():show_custom_dialog("Paketti Preferences", dialog_content, keyhandler)
 end
 
 function on_sample_count_change()

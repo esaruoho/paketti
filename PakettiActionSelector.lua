@@ -358,8 +358,12 @@ function pakettiActionSelectorDialog()
   -- Load initial values from preferences
   ActionSelectorLoadPreferences()
   
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) dialog = value end
+  )
   dialog = renoise.app():show_custom_dialog(string.format("Paketti Action Selector (%d actions available)", #actions),
-    dialog_content, my_keyhandler_func)
+    dialog_content, keyhandler)
 
 --  if renoise.app().window.active_middle_frame==1 then
 ---  renoise.app().window.active_middle_frame=1 end

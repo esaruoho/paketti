@@ -290,7 +290,11 @@ function pakettiPhraseSettings()
         vb:button{text="Cancel",width=100, notifier=function()
           dialog:close()
           dialog = nil
-        end}}}, my_keyhandler_func)
+        end}}},
+    create_keyhandler_for_dialog(
+      function() return dialog end,
+      function(value) dialog = value end
+    ))
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Open Paketti Init Phrase Dialog...",invoke=function() pakettiPhraseSettings() end}

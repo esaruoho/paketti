@@ -195,8 +195,16 @@ vb:horizontal_aligner{mode="distribute",
     vb:button{text="Cancel",notifier=function() dialog:close() end}}}
 
 function pakettiAboutDonations()
-  if dialog and dialog.visible then dialog:close() else
-  dialog = renoise.app():show_custom_dialog("About Paketti / Donations, written by Esa Juhani Ruoho (C) 2009-2025", dialog_content, my_keyhandler_func)
+  if dialog and dialog.visible then 
+    dialog:close() 
+    dialog = nil
+  else
+    -- Create keyhandler that can manage dialog variable
+    local keyhandler = create_keyhandler_for_dialog(
+      function() return dialog end,
+      function(value) dialog = value end
+    )
+    dialog = renoise.app():show_custom_dialog("About Paketti / Donations, written by Esa Juhani Ruoho (C) 2009-2025", dialog_content, keyhandler)
   end
 end
 
@@ -252,13 +260,18 @@ function squigglerdialog()
     }
   }
   
-  dialog = renoise.app():show_custom_dialog("Copy the Squiggler to your clipboard", content, my_keyhandler_func)
+  -- Create keyhandler that can manage dialog variable
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) dialog = value end
+  )
+  dialog = renoise.app():show_custom_dialog("Copy the Squiggler to your clipboard", content, keyhandler)
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:∿ Squiggly Sinewave to Clipboard (macOS)",invoke=function() squigglerdialog() end}
 ----------
 local vb=renoise.ViewBuilder()
-local dialog=nil
+local dialog_of_dialogs=nil
 
 local button_list = {
   {"About Paketti/Donations", "pakettiAboutDonations"},
@@ -377,13 +390,18 @@ function pakettiDialogOfDialogs()
 end
 
 function pakettiDialogOfDialogsToggle()
-  if dialog and dialog.visible then
-    dialog:close()
-    dialog = nil
+  if dialog_of_dialogs and dialog_of_dialogs.visible then
+    dialog_of_dialogs:close()
+    dialog_of_dialogs = nil
   else
     -- Count the number of dialogs in button_list
     local dialog_count = #button_list
-    dialog = renoise.app():show_custom_dialog(string.format("Paketti Dialog of Dialogs (%d)", dialog_count), pakettiDialogOfDialogs(), my_keyhandler_func)
+    -- Create keyhandler that can manage dialog_of_dialogs variable
+    local keyhandler = create_keyhandler_for_dialog(
+      function() return dialog_of_dialogs end,
+      function(value) dialog_of_dialogs = value end
+    )
+    dialog_of_dialogs = renoise.app():show_custom_dialog(string.format("Paketti Dialog of Dialogs (%d)", dialog_count), pakettiDialogOfDialogs(), keyhandler)
   end
 end
 

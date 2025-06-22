@@ -157,16 +157,38 @@ end
 print ("---------------------")
 
 
+-- Helper function to create a keyhandler that can manage a specific dialog variable
+function create_keyhandler_for_dialog(dialog_var_getter, dialog_var_setter)
+  return function(dialog, key)
+    local closer = preferences.pakettiDialogClose.value
+    print("Key handler called - key.name: '" .. tostring(key.name) .. "', key.modifiers: '" .. tostring(key.modifiers) .. "', closer: '" .. tostring(closer) .. "'")
+    
+    if key.modifiers == "" and key.name == closer then
+      -- Clean up any observers that might exist
+      if cleanup_observers then
+        cleanup_observers()
+      end
+      dialog:close()
+      dialog_var_setter(nil)  -- Set the dialog variable to nil
+      return nil
+    else
+      return key
+    end
+  end
+end
 
+-- Legacy function for backwards compatibility
 function my_keyhandler_func(dialog, key)
   local closer = preferences.pakettiDialogClose.value
+  print("Key handler called - key.name: '" .. tostring(key.name) .. "', key.modifiers: '" .. tostring(key.modifiers) .. "', closer: '" .. tostring(closer) .. "'")
+  
   if key.modifiers == "" and key.name == closer then
     -- Clean up any observers that might exist
+    print("YO i got " .. closer)
     if cleanup_observers then
       cleanup_observers()
     end
     dialog:close()
-    dialog=nil
     return nil
   else
     return key

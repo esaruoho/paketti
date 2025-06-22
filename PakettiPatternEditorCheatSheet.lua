@@ -1056,7 +1056,11 @@ function pakettiPatternEditorCheatsheetDialog()
   local left_column=vb:column{effect_buttons,randomize_section}
   local dialog_content=vb:row{left_column,sliders}
 
-  dialog = a:show_custom_dialog("Paketti Pattern Effect Command CheatSheet", dialog_content, my_keyhandler_func)
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) dialog = value end
+  )
+  dialog = a:show_custom_dialog("Paketti Pattern Effect Command CheatSheet", dialog_content, keyhandler)
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 end
 

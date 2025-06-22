@@ -1789,7 +1789,11 @@ function pakettiImpulseTrackerNewSongDialog()
   }
 
   -- Open the new dialog and assign it to the 'dialog' variable
-  dialog = renoise.app():show_custom_dialog("New Song", dialog_content, my_keyhandler_func)
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) dialog = value end
+  )
+  dialog = renoise.app():show_custom_dialog("New Song", dialog_content, keyhandler)
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker CTRL-N New Song Dialog...",invoke=function() pakettiImpulseTrackerNewSongDialog() end}

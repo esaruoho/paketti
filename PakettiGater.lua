@@ -2705,7 +2705,12 @@ function pakettiGaterDialog()
     }
   }
 
-  dialog = renoise.app():show_custom_dialog("Paketti Volume/Retrig/Playback/Panning Gater", content, my_keyhandler_func)
+  -- Create keyhandler that can manage dialog variable
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) dialog = value end
+  )
+  dialog = renoise.app():show_custom_dialog("Paketti Volume/Retrig/Playback/Panning Gater", content, keyhandler)
   safe_switch_to_pattern_editor()
 
   -- Automatically receive the current pattern state when opening the dialog

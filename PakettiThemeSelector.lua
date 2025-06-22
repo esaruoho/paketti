@@ -446,7 +446,12 @@ function pakettiThemeSelectorDialogShow()
   end
   
   local vb = renoise.ViewBuilder()
-  dialog = renoise.app():show_custom_dialog("Paketti Theme Selector", pakettiThemeSelectorDialogOpen(vb), my_keyhandler_func)
+  -- Create keyhandler that can manage dialog variable
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) dialog = value end
+  )
+  dialog = renoise.app():show_custom_dialog("Paketti Theme Selector", pakettiThemeSelectorDialogOpen(vb), keyhandler)
   pakettiThemeSelectorUpdateFavoritesDropdown(vb)
 end
 

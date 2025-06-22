@@ -419,7 +419,11 @@ vb:row{vb:button{text="Save as Textfile", notifier=function()
       keybinding_list,
       selected_shortcuts_text,
       total_shortcuts_text
-    },my_keyhandler_func)
+    },
+    create_keyhandler_for_dialog(
+      function() return dialog end,
+      function(value) dialog = value end
+    ))
 
   -- Initial list update
   pakettiKeyBindingsUpdateList()
@@ -767,7 +771,11 @@ function pakettiRenoiseKeyBindingsDialog(selectedIdentifier)  -- Accept an optio
       renoise_search_textfield,
       renoise_keybinding_list,
       renoise_selected_shortcuts_text,
-      renoise_total_shortcuts_text},my_keyhandler_func)
+      renoise_total_shortcuts_text},
+    create_keyhandler_for_dialog(
+      function() return dialog end,
+      function(value) dialog = value end
+    ))
 
   -- Initial list update
   renoiseKeyBindingsUpdateList()
@@ -1143,7 +1151,11 @@ function pakettiFreeKeybindingsDialog()
   dialog_content:add_child(results_view)
   
   -- Show dialog
-  dialog = renoise.app():show_custom_dialog("Free Keybindings Finder", dialog_content, my_keyhandler_func)
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) dialog = value end
+  )
+  dialog = renoise.app():show_custom_dialog("Free Keybindings Finder", dialog_content, keyhandler)
   
   -- Initial update
   update_free_list()

@@ -1189,7 +1189,11 @@ function pakettiDebugPluginInfoDialog()
   vb.views.plugins_list.items = popup_items
 
   -- Dialog management
-  dialog = renoise.app():show_custom_dialog("Plugin Details", dialog_content, my_keyhandler_func)
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) dialog = value end
+  )
+  dialog = renoise.app():show_custom_dialog("Plugin Details", dialog_content, keyhandler)
 end
 -----
 
@@ -1333,7 +1337,11 @@ function pakettiDebugDeviceInfoDialog()
   }
 
   -- Show dialog
-  dialog = renoise.app():show_custom_dialog("Effect Details", dialog_content, my_keyhandler_func)
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) dialog = value end
+  )
+  dialog = renoise.app():show_custom_dialog("Effect Details", dialog_content, keyhandler)
 end
 
 -- Modulation Device Loader Shortcut Generator
@@ -2462,7 +2470,11 @@ vb:horizontal_aligner{
     }
   }
 
-  dialog = renoise.app():show_custom_dialog("Randomize Devices and Plugins", dialog_content, my_keyhandler_func)
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) dialog = value end
+  )
+  dialog = renoise.app():show_custom_dialog("Randomize Devices and Plugins", dialog_content, keyhandler)
 
 song.selected_instrument_observable:add_notifier(function()
   local new_instrument = song.selected_instrument
@@ -2617,8 +2629,12 @@ local dialog
   local save_button = vb:button{ text="Save as textfile", notifier = save_to_file }
 
   -- Create the dialog
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) dialog = value end
+  )
   dialog = renoise.app():show_custom_dialog("Debug: Available Plugin Information", vb:column{
-    multiline_field,save_button},my_keyhandler_func)
+    multiline_field,save_button},keyhandler)
 
 end
 

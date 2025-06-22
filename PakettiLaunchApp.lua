@@ -225,10 +225,14 @@ function pakettiAppSelectionDialog()
         return
     end    
 
+    local keyhandler = create_keyhandler_for_dialog(
+        function() return dialog end,
+        function(value) dialog = value end
+    )
     dialog = renoise.app():show_custom_dialog("App Selection & Smart Folders / Backup Folders", create_dialog_content(function()
         dialog:close()
         appSelectionUpdateMenuEntries() 
-    end), my_keyhandler_func)
+    end), keyhandler)
 end
 
 for i=1, 6 do

@@ -6061,7 +6061,12 @@ function pakettiVolumeInterpolationLooper()
         notifier=function()
           apply_interpolation()
           renoise.app():show_status(string.format("%s interpolation applied", current_mode:upper()))
-        end}},my_keyhandler_func)
+        end}
+    },
+    create_keyhandler_for_dialog(
+      function() return dialog end,
+      function(value) dialog = value end
+    ))
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 end
 

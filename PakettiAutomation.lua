@@ -1886,6 +1886,10 @@ function pakettiAutomationValue()
     end
   }
 
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) dialog = value end
+  )
   dialog = renoise.app():show_custom_dialog("Set Automation Value",
     vb:column{
       margin=10,
@@ -1902,7 +1906,7 @@ function pakettiAutomationValue()
       vb:row{
         close_button,
       }
-    },my_keyhandler_func)
+    },keyhandler)
 
     -- Add the edit step notifier after dialog is created
     local edit_step_observable = renoise.song().transport.edit_step_observable

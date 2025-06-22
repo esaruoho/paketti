@@ -28,6 +28,10 @@ function pakettiPitchStepperDemo()
 
   PakettiShowStepper("Pitch Stepper")
 
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) dialog = value end
+  )
   dialog=renoise.app():show_custom_dialog("PitchStepper Demo",
     vb:column{
       vb:button{text="Show PitchStepper",pressed=function() PakettiShowStepper("Pitch Stepper") end},
@@ -37,7 +41,7 @@ function pakettiPitchStepperDemo()
       vb:button{text="Clear Pitch Stepper",pressed=function() PakettiClearStepper("Pitch Stepper") end},
       vb:button{text="Fill with Digits (0.05, 64)",pressed=function() PakettiFillPitchStepperDigits(0.05,64) end},
       vb:button{text="Fill with Digits (0.015, 64)",pressed=function() PakettiFillPitchStepperDigits(0.015,64) end},
-    },my_keyhandler_func)
+    },keyhandler)
 end
 
 
