@@ -11,7 +11,7 @@ local POLYEND_SAVE_PATH_ERROR_MSG = "If saving to Polyend device:\n• Connect y
 local POLYEND_DEVICE_NOT_CONNECTED_TITLE = "Polyend device not connected!"
 
 -- Dialog reference and variables for Polyend Buddy (to be refactored to use preferences directly)
-local polyend_buddy_dialog = nil
+local dialog = nil
 local polyend_buddy_root_path = ""
 local polyend_buddy_pti_files = {}
 local polyend_buddy_wav_files = {}
@@ -3839,9 +3839,9 @@ function create_polyend_buddy_dialog(vb)
         text = "Close",
         width = polyendButtonWidth*2,
         notifier = function()
-          if polyend_buddy_dialog then
-            polyend_buddy_dialog:close()
-            polyend_buddy_dialog = nil
+            if dialog then
+    dialog:close()
+    dialog = nil
           end
         end
       }
@@ -3861,7 +3861,7 @@ end
 local function polyend_buddy_key_handler(dialog, key)
   if key.modifiers == "" and key.name == "esc" then
     dialog:close()
-    polyend_buddy_dialog = nil
+    dialog = nil
     return nil
   else
     return key
@@ -3871,9 +3871,9 @@ end
 -- Main function to show the Polyend Buddy dialog
 function show_polyend_buddy_dialog()
   -- Close existing dialog if open
-  if polyend_buddy_dialog and polyend_buddy_dialog.visible then
-    polyend_buddy_dialog:close()
-    polyend_buddy_dialog = nil
+  if dialog and dialog.visible then
+    dialog:close()
+    dialog = nil
     return
   end
   
@@ -3883,7 +3883,7 @@ function show_polyend_buddy_dialog()
   initialize_save_paths()
   
   local vb = renoise.ViewBuilder()
-  polyend_buddy_dialog = renoise.app():show_custom_dialog(
+  dialog = renoise.app():show_custom_dialog(
     "Polyend Buddy - PTI File Browser", 
     create_polyend_buddy_dialog(vb), 
     polyend_buddy_key_handler

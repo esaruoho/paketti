@@ -3583,11 +3583,20 @@ function create_instrument_from_convolver(convolver_device, track_index, device_
   print(string.format("Exported '%s' of length %d, sample rate %d, stereo: %s to new instrument", sample_name, num_frames, sample_rate, tostring(stereo)))
 end
 
+-- Global dialog reference for Convolver toggle behavior
+local dialog = nil
+
 -- Function to show the GUI for selecting or adding a Convolver device
 function pakettiConvolverSelectionDialog(callback)
+  -- Check if dialog is already open and close it
+  if dialog and dialog.visible then
+    dialog:close()
+    dialog = nil
+    return
+  end
+  
   print("Showing Convolver selection dialog")
   local vb = renoise.ViewBuilder()
-  local dialog
   local function create_dialog_content()
     local dialog_content = vb:column{}
     local sample_name_text = vb:text{
@@ -3598,7 +3607,7 @@ function pakettiConvolverSelectionDialog(callback)
     dialog_content:add_child(vb:button{
       text="Refresh",
       notifier=function()
-        dialog:close()
+          dialog:close()
         pakettiConvolverSelectionDialog(callback)
       end
     })
@@ -4430,6 +4439,13 @@ end
 
 -- Function to show the date & title dialog
 function pakettiTitlerDialog()
+  -- Check if dialog is already open and close it
+  if dialog and dialog.visible then
+    dialog:close()
+    dialog = nil
+    return
+  end
+  
   vb = renoise.ViewBuilder()
   local date = PakettiTitlerGetFormattedDate()
   local default_title = ""
@@ -7598,7 +7614,7 @@ end
 -- Function to show the offset dialog with slider, switch, and button
 function pakettiOffsetDialog()
   if dialog and dialog.visible then
-    dialog:close() -- Close if already open
+    dialog:close()
     return
   end
 
@@ -7889,9 +7905,18 @@ renoise.tool():add_keybinding{name="Global:Paketti:Global Volume Reduce All Samp
 
 renoise.tool():add_midi_mapping{name="Paketti:Global Volume Reduce All Samples by -4.5dB",invoke=function(message) if message:is_trigger() then reduceSamplesVolume(4.5) end end}
 
+-- Global dialog reference for toggle behavior
+local dialog = nil
+
 function pakettiGlobalVolumeDialog()
+  -- Check if dialog is already open and close it
+  if dialog and dialog.visible then
+    dialog:close()
+    dialog = nil
+    return
+  end
+  
   local vb = renoise.ViewBuilder()
-  local dialog = nil
   local current_db_value = 0
   local current_sample_db_value = 0
   
@@ -7992,6 +8017,7 @@ function pakettiGlobalVolumeDialog()
         end
         if dialog and dialog.visible then
           dialog:close()
+          dialog = nil
         end
       end
     }
@@ -8156,6 +8182,8 @@ local vb = nil
 -- Create and show the dialog
 function pakettiEditStepDialog()
   if dialog and dialog.visible then
+    dialog:close()
+    dialog = nil
     return
   end
 
@@ -8180,6 +8208,7 @@ function pakettiEditStepDialog()
           if number >= 0 then
             renoise.song().transport.edit_step = number
             dialog:close()
+            dialog = nil
           end
         end
       end
@@ -9764,10 +9793,10 @@ local function fuzzy_match(pattern, str)
 end
 
 -- Track fuzzy search dialog
-local track_search_dialog = nil
+local dialog = nil
 function pakettiFuzzySearchTrackDialog()
-  if track_search_dialog and track_search_dialog.visible then
-    track_search_dialog:close()
+  if dialog and dialog.visible then
+    dialog:close()
     return
   end
   
@@ -9783,7 +9812,7 @@ function pakettiFuzzySearchTrackDialog()
     if actual_index > 0 and actual_index <= #matched_tracks then
       local selected = matched_tracks[actual_index]
       renoise.song().selected_track_index = selected.index
-      track_search_dialog:close()
+      dialog:close()
     end
   end
 
@@ -9803,7 +9832,7 @@ function pakettiFuzzySearchTrackDialog()
     -- If exactly one match is found, select it and close immediately
     if #matched_tracks == 1 then
       renoise.song().selected_track_index = matched_tracks[1].index
-      track_search_dialog:close()
+      dialog:close()
       return
     end
     
@@ -9851,7 +9880,7 @@ function pakettiFuzzySearchTrackDialog()
     results_listbox
   }
    
-  track_search_dialog = renoise.app():show_custom_dialog("Paketti Fuzzy Search Track",PakettiFuzzySearchDialogContent,
+  dialog = renoise.app():show_custom_dialog("Paketti Fuzzy Search Track",PakettiFuzzySearchDialogContent,
     function(dialog, key)
       local closer = preferences.pakettiDialogClose.value
       if key.name == closer then
@@ -9988,11 +10017,15 @@ function track_change_handler()
   end
 end
 
-function pakettiSwitchNoteInstrumentDialog()
-  local dialog = nil
+-- Global dialog reference for Switch Note Instrument toggle behavior
+local dialog = nil
 
+function pakettiSwitchNoteInstrumentDialog()
+  -- Check if dialog is already open and close it
   if dialog and dialog.visible then
     dialog:close()
+    dialog = nil
+    return
   end
 
   local song=renoise.song()
@@ -10127,7 +10160,7 @@ function NoteToInstrumentKeyhandler(dialog,key)
       song.selected_pattern_index_observable:remove_notifier(show_dialog)
     end
     dialog:close()
-    dialog = nil
+    switch_note_dialog = nil
     return nil
   else
     return key

@@ -1367,10 +1367,19 @@ local function normalize_gain(gain)
   return math.max(0, math.min(1, normalized))
 end
 
+-- Global dialog reference for EQ10 XY toggle behavior
+local dialog = nil
+
 -- Function to create the EQ10 dialog
 function pakettiEQ10XYDialog()
+  -- Check if dialog is already open and close it
+  if dialog and dialog.visible then
+    dialog:close()
+    dialog = nil
+    return
+  end
+  
   local vb = renoise.ViewBuilder()
-  local dialog = nil
   
   -- Ensure EQ10 exists and get its index
   local eq10_index = ensure_eq10_exists()
@@ -1379,13 +1388,13 @@ function pakettiEQ10XYDialog()
   -- Create single row of XY pads
   local content = vb:column{
     margin=5,
-    spacing=5
+    --spacing=5
   }
   
   -- Create the single row for all XY pads
   local row_content = vb:row{
     margin=5,
-    spacing=10
+   -- spacing=10
   }
   
   -- Add all 10 bands
@@ -1727,10 +1736,10 @@ local function load_both_from_slot(slot_number)
   end
 end
 
--- Function to show the Paketti Device Chain Dialog with XRNI functionality
 function pakettiDeviceChainDialog()
   if dialog and dialog.visible then
-    dialog:show()
+    dialog:close()
+    dialog = nil
     return
   end
 
@@ -1838,7 +1847,6 @@ function pakettiDeviceChainDialog()
     }
   }
 
-  -- Create and show the dialog
   dialog = renoise.app():show_custom_dialog("Paketti Device Chain & Instrument Dialog", content, my_keyhandler_func)
 end
 

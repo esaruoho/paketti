@@ -13,7 +13,7 @@ local modulationTable = {
   2003, 2008, 2013, 2018, 2024, 2030, 2036, 2042
 }
 
-local protrackerModDialog = nil
+local dialog = nil
 local protrackerModSpeed = 0
 
 -- Key handler function for the ProTracker MOD dialog
@@ -80,9 +80,9 @@ local function createProtrackerModDialog()
         text = "Cancel",
         width = 80,
         notifier = function()
-          if protrackerModDialog and protrackerModDialog.visible then
-            protrackerModDialog:close()
-            protrackerModDialog = nil
+          if dialog and dialog.visible then
+            dialog:close()
+            dialog = nil
           end
         end
       }
@@ -167,9 +167,9 @@ end
 
 function showProtrackerModDialog()
   -- Close existing dialog if open
-  if protrackerModDialog and protrackerModDialog.visible then
-    protrackerModDialog:close()
-    protrackerModDialog = nil
+  if dialog and dialog.visible then
+    dialog:close()
+    dialog = nil
     return
   end
   
@@ -182,7 +182,7 @@ function showProtrackerModDialog()
   
   -- Create and show dialog
   local content = createProtrackerModDialog()
-  protrackerModDialog = renoise.app():show_custom_dialog("Protracker MOD Modulation Effect", content, protrackerModKeyHandler)
+  dialog = renoise.app():show_custom_dialog("Protracker MOD Modulation Effect", content, protrackerModKeyHandler)
 end
 
 -- Add keybindings and menu entries

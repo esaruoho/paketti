@@ -66,6 +66,9 @@ for i = 1, dynamic_views_count do
   last_cycled_time[i] = 0
 end
 
+-- Global dialog variable to track open dialogs
+local dialog = nil
+
 -- Path to preferences file for saving/loading
 local prefs_file = renoise.tool().bundle_path .. "preferencesDynamicView.xml"
 
@@ -483,13 +486,20 @@ end
 
 -- Dialog setup for dynamic views
 function pakettiDynamicViewDialog(start_dv, end_dv)
+  -- Check if dialog is already open and close it
+  if dialog and dialog.visible then
+    dialog:close()
+    dialog = nil
+    return
+  end
+
   local vb = renoise.ViewBuilder()
   local dialog_content
-  local dialog
 
   local function closeDV_dialog()
     if dialog and dialog.visible then
       dialog:close()
+      dialog = nil
     end
   end
 
@@ -497,6 +507,8 @@ function pakettiDynamicViewDialog(start_dv, end_dv)
   dialog = renoise.app():show_custom_dialog("Paketti Dynamic View Preferences Dialog " .. start_dv .. "-" .. end_dv, dialog_content, my_keyhandler_func, function()
     -- Save settings when the dialog is closed
     saveDynamicViewPreferences()
+    dialog:close()
+    dialog = nil  -- Clear reference when dialog closes
     renoise.app():show_status("Settings saved.")
   end)
 end

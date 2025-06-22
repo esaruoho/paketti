@@ -366,12 +366,14 @@ makeBeatDetector_gui = vb:column{
 
 -- Prepare and show dialog
 function pakettiBeatDetectorDialog()
+  -- Check if dialog is already open and close it
   if dialog and dialog.visible then
-    dialog:show()
+    dialog:close()
+    dialog = nil
     return
-  else
-    dialog = renoise.app():show_custom_dialog('BeatDetector Modified v0.354', makeBeatDetector_gui, my_keyhandler_func)
   end
+  
+  dialog = renoise.app():show_custom_dialog('BeatDetector Modified v0.354', makeBeatDetector_gui, my_keyhandler_func)
 end
 
 renoise.tool():add_keybinding{name='Global:Paketti:BeatDetector Modified...',invoke=function() pakettiBeatDetectorDialog() end}

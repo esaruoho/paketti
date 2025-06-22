@@ -4,7 +4,7 @@ local deviceReadableNames = {}
 local addedKeyBindings = {}
 local current_device_type = "Native"
 local device_types = {"Native", "VST", "VST3", "AudioUnit", "LADSPA", "DSSI"}
-local custom_dialog
+local dialog
 local dialog_content_view
 local device_list_view
 local current_device_list_content = nil
@@ -475,9 +475,9 @@ end
 function pakettiLoadDevicesDialog()
 
   -- Add dialog management from plugins version
-  if custom_dialog and custom_dialog.visible then
-    custom_dialog:close()
-    custom_dialog = nil
+  if dialog and dialog.visible then
+    dialog:close()
+    dialog = nil
     current_device_list_content = nil
     return
   end
@@ -556,7 +556,7 @@ function pakettiLoadDevicesDialog()
       vb:button{text="Load & Close",width=60,
         notifier=function()
           if loadSelectedDevices() then
-            custom_dialog:close()
+            dialog:close()
             renoise.app():show_status("Devices loaded.")
           end
         end
@@ -564,7 +564,7 @@ function pakettiLoadDevicesDialog()
       vb:button{text="Add Device(s) as Shortcut(s) & MidiMappings",width=140,
         notifier = addDeviceAsShortcut},
       vb:button{text="Cancel",width=30,
-        notifier=function() custom_dialog:close() end}}}
+        notifier=function() dialog:close() end}}}
         
   device_list_view = vb:column{}
   dialog_content_view = vb:column{margin=10,spacing=5,device_list_view,}
@@ -575,20 +575,20 @@ function pakettiLoadDevicesDialog()
       vb:text{text="Device Type: ", font="bold",style="strong"},
       dropdown,action_buttons,random_selection_controls},dialog_content_view}
 
-  custom_dialog = renoise.app():show_custom_dialog("Load Device(s)", dialog_content, my_keyhandler_func)
+  dialog = renoise.app():show_custom_dialog("Load Device(s)", dialog_content, my_keyhandler_func)
 
   updateDeviceList()
 end
 
 loadDeviceFromPreferences()
 -------
-local custom_dialog = nil  -- Keep track of dialog state
+local dialog = nil  -- Keep track of dialog state
 
 function pakettiQuickLoadDialog()
   -- Toggle dialog if it exists
-  if custom_dialog and custom_dialog.visible then
-    custom_dialog:close()
-    custom_dialog = nil
+  if dialog and dialog.visible then
+    dialog:close()
+    dialog = nil
     return
   end
 
@@ -759,13 +759,13 @@ function pakettiQuickLoadDialog()
   }
   
   -- Create dialog
-  custom_dialog = renoise.app():show_custom_dialog("Paketti Quick Load Device", 
+  dialog = renoise.app():show_custom_dialog("Paketti Quick Load Device", 
     content,
     function(dialog, key)
       local closer = preferences.pakettiDialogClose.value
       if key.modifiers == "" and key.name == closer then
         dialog:close()
-        custom_dialog = nil
+        dialog = nil
         return nil
       else
         return key

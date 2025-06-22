@@ -1699,8 +1699,10 @@ end
 
 -- Paketti Groovebox 8120 Dialog
 function pakettiEightSlotsByOneTwentyDialog()
+  -- Check if dialog is already open and close it
   if dialog and dialog.visible then
-    dialog:show()
+    dialog:close()
+    dialog = nil
     return
   end
 

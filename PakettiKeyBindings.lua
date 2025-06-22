@@ -59,7 +59,7 @@ local padding_identifier_topic = 25  -- Padding between identifier and topic
 local padding_topic_binding = 25  -- Padding between topic and binding
 
 -- Renoise dialog variables
-local renoise_dialog
+local dialog
 local renoise_debug_log = ""
 local renoise_suppress_debug_log
 local renoiseKeybindings = {}
@@ -626,8 +626,8 @@ end
 -- Main function to display the Renoise keybindings dialog
 function pakettiRenoiseKeyBindingsDialog(selectedIdentifier)  -- Accept an optional parameter
   -- Check if the dialog is already visible and close it
-  if renoise_dialog and renoise_dialog.visible then
-    renoise_dialog:close()
+  if dialog and dialog.visible then
+    dialog:close()
     return
   end
 
@@ -735,7 +735,7 @@ function pakettiRenoiseKeyBindingsDialog(selectedIdentifier)  -- Accept an optio
   -- Dialog title including Renoise version
   local dialog_title = "Renoise KeyBindings for Renoise Version v3.4.4" -- .. renoise.RENOISE_VERSION
 
-  renoise_dialog = renoise.app():show_custom_dialog(dialog_title,
+  dialog = renoise.app():show_custom_dialog(dialog_title,
     vb:column{
       margin=10,
       vb:text{
@@ -999,8 +999,17 @@ function print_free_combinations()
   end
 end
 
+-- Global dialog reference for toggle behavior
+local dialog = nil
+
 -- Function to show the free keybindings dialog
 function pakettiFreeKeybindingsDialog()
+  -- Check if dialog is already open and close it
+  if dialog and dialog.visible then
+    dialog:close()
+    dialog = nil
+    return
+  end
   local vb = renoise.ViewBuilder()
   local dialog_content = vb:column{
     margin=renoise.ViewBuilder.DEFAULT_DIALOG_MARGIN,
@@ -1134,7 +1143,7 @@ function pakettiFreeKeybindingsDialog()
   dialog_content:add_child(results_view)
   
   -- Show dialog
-  renoise.app():show_custom_dialog("Free Keybindings Finder", dialog_content)
+  dialog = renoise.app():show_custom_dialog("Free Keybindings Finder", dialog_content, my_keyhandler_func)
   
   -- Initial update
   update_free_list()

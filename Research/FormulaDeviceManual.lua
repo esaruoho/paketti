@@ -193,9 +193,11 @@ function pakettiFormulaDeviceDialog()
   -- Select the Formula device
   renoise.song().selected_device_index = formula_index
 
-  -- Close existing dialog if it's open
+  -- Check if dialog is already open and close it (toggle behavior)
   if dialog and dialog.visible then
     dialog:close()
+    dialog = nil
+    return
   end
 
   local vb = renoise.ViewBuilder()

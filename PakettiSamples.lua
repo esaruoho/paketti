@@ -4441,10 +4441,19 @@ end
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Snap Loop To Nearest Row",invoke=snap_loop_to_rows}
 
 ---------
+-- Global dialog reference for Show Largest Samples toggle behavior
+local dialog = nil
+
 function pakettiShowLargestSamplesDialog()
+  -- Check if dialog is already open and close it
+  if dialog and dialog.visible then
+    dialog:close()
+    dialog = nil
+    return
+  end
+  
   local song=renoise.song()
   local vb = renoise.ViewBuilder()
-  local dialog = nil
   local used_samples = nil
   
   local function collect_samples()

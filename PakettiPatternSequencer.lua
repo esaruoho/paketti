@@ -1,10 +1,19 @@
 -- Get preferences from the tool
 local preferences = renoise.tool().preferences
 
+-- Global dialog reference for Sequencer Settings toggle behavior
+local dialog = nil
+
 -- Function to show the settings dialog
 function pakettiSequencerSettingsDialog()
+  -- Check if dialog is already open and close it
+  if dialog and dialog.visible then
+    dialog:close()
+    dialog = nil
+    return
+  end
+  
   local vb = renoise.ViewBuilder()
-  local dialog = nil
   
   -- Define format options table
   local format_options = { "%d", "%02d", "%03d" }

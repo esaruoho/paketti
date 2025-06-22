@@ -1683,10 +1683,10 @@ function pakettiImpulseTrackerNewSongDialog()
         margin=10,
     vb:text{text="New Song ... with",font="bold",style="strong",align="center"},
     -- "Set all to" switch   
-    vb:space {height=10},
-    vb:column{style="border",margin=10,
+    vb:space {height=5},
+    vb:column{style="panel",margin=10,
    vb:row{
-      vb:text{text="Set all to",width=180},
+      vb:text{text="Set all to",width=180,style="strong",font="bold"},
       vb:switch {
         id = "set_all_switch",
         items = { "Keep", "Clear" },
@@ -1697,7 +1697,7 @@ function pakettiImpulseTrackerNewSongDialog()
     },
     vb:space { height = 10 },
       vb:row{
-        vb:text{text="Patterns",width=180},
+        vb:text{text="Patterns",width=180,style="strong",font="bold"},
         vb:switch {
           id = "patterns_switch",
           items = { "Keep", "Clear" },
@@ -1709,7 +1709,7 @@ function pakettiImpulseTrackerNewSongDialog()
         }
       },
       vb:row{
-        vb:text{text="Pattern Sequence",width=180},
+        vb:text{text="Pattern Sequence",width=180,style="strong",font="bold"},
         vb:switch {
           id = "pattern_sequence_switch",
           items = { "Keep", "Clear" },
@@ -1721,7 +1721,7 @@ function pakettiImpulseTrackerNewSongDialog()
         }
       },
       vb:row{
-        vb:text{text="Instruments",width=180},
+        vb:text{text="Instruments",width=180,style="strong",font="bold"},
         vb:switch {
           id = "instruments_switch",
           items = { "Keep", "Clear" },
@@ -1733,7 +1733,7 @@ function pakettiImpulseTrackerNewSongDialog()
         }
       },
       vb:row{
-        vb:text{text="Instrument Samples",width=180},
+        vb:text{text="Instrument Samples",width=180,style="strong",font="bold"},
         vb:switch {
           id = "instrument_samples_switch",
           items = { "Keep", "Clear" },
@@ -1745,7 +1745,7 @@ function pakettiImpulseTrackerNewSongDialog()
         }
       },
       vb:row{
-        vb:text{text="Instrument MIDI Outs",width=180},
+        vb:text{text="Instrument MIDI Outs",width=180,style="strong",font="bold"},
         vb:switch {
           id = "instrument_midi_outs_switch",
           items = { "Keep", "Clear" },
@@ -1757,7 +1757,7 @@ function pakettiImpulseTrackerNewSongDialog()
         }
       },
       vb:row{
-        vb:text{text="Instrument Plugins",width=180},
+        vb:text{text="Instrument Plugins",width=180,style="strong",font="bold"},
         vb:switch {
           id = "instrument_plugins_switch",
           items = { "Keep", "Clear" },
@@ -1769,7 +1769,7 @@ function pakettiImpulseTrackerNewSongDialog()
         }
       },
       vb:row{
-        vb:text{text="Track DSPs",width=180},
+        vb:text{text="Track DSPs",width=180,style="strong",font="bold"},
         vb:switch {
           id = "track_dsps_switch",
           items = { "Keep", "Clear" },

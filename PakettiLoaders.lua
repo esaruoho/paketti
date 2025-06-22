@@ -2151,7 +2151,17 @@ function toggleAllExternalPluginEditorsInSong()
   renoise.app():show_status("Toggled all external editors for all plugins in the song")
 end
 
+-- Global dialog reference for Randomizer toggle behavior
+local dialog = nil
+
 function pakettiRandomizerDialog()
+  -- Check if dialog is already open and close it
+  if dialog and dialog.visible then
+    dialog:close()
+    dialog = nil
+    return
+  end
+  
   local vb = renoise.ViewBuilder()
   local song=renoise.song()
   local device = song.selected_device
@@ -2452,11 +2462,11 @@ vb:horizontal_aligner{
     }
   }
 
-  local dialog = renoise.app():show_custom_dialog("Randomize Devices and Plugins", dialog_content, my_keyhandler_func)
+  dialog = renoise.app():show_custom_dialog("Randomize Devices and Plugins", dialog_content, my_keyhandler_func)
 
 song.selected_instrument_observable:add_notifier(function()
   local new_instrument = song.selected_instrument
-  if dialog and dialog.visible then
+      if dialog and dialog.visible then
     if new_instrument and renoise.song().instruments[renoise.song().selected_instrument_index].name ~= "" then
       -- Ensure plugin_properties exist and the plugin is loaded
       if new_instrument.plugin_properties and new_instrument.plugin_properties.plugin_loaded then
@@ -2545,11 +2555,11 @@ end
 -------
 function show_available_plugins_dialog()
 
-  -- Declare my_dialog before use
-  local my_dialog
+  -- Declare dialog before use
+local dialog
 
   -- Avoid multiple dialogs
-  if my_dialog and my_dialog.visible then my_dialog:close() end
+  if dialog and dialog.visible then dialog:close() end
 
   -- Access available devices and device infos directly
   local devices = renoise.song().selected_track.available_devices
@@ -2607,7 +2617,7 @@ function show_available_plugins_dialog()
   local save_button = vb:button{ text="Save as textfile", notifier = save_to_file }
 
   -- Create the dialog
-  my_dialog = renoise.app():show_custom_dialog("Debug: Available Plugin Information", vb:column{
+  dialog = renoise.app():show_custom_dialog("Debug: Available Plugin Information", vb:column{
     multiline_field,save_button},my_keyhandler_func)
 
 end

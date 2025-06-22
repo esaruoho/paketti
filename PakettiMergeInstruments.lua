@@ -83,10 +83,12 @@ local function toHex(num)
   return string.format("%02X", num-1)
 end
 
+-- Global dialog reference for toggle behavior
+local dialog = nil
+
 -- Function to show the merge instruments dialog
 local function show_merge_dialog(initial_source_index, initial_target_index)
   local vb = renoise.ViewBuilder()
-  local dialog
   local song=renoise.song()
   
   local source_index = initial_source_index or 1
@@ -169,15 +171,23 @@ local function show_merge_dialog(initial_source_index, initial_target_index)
         end
         if PakettiMergeInstruments(source_index, target_index) then
           dialog:close()
+          dialog = nil
         end
       end
     }
   }
   
-  dialog = renoise.app():show_custom_dialog("Merge Instruments", content)
+  dialog = renoise.app():show_custom_dialog("Merge Instruments", content, my_keyhandler_func)
 end
 
 function pakettiMergeInstrumentsDialog()
+  -- Check if dialog is already open and close it
+  if dialog and dialog.visible then
+    dialog:close()
+    dialog = nil
+    return
+  end
+  
   local song=renoise.song()
   local target_index = song.selected_instrument_index
   local source_index = target_index - 1

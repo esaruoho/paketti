@@ -775,8 +775,14 @@ for i = 1, 16 do
 end
 -------
 function pakettiOctaMEDNoteEchoDialog()
+  -- Check if dialog is already open and close it
+  if dialog and dialog.visible then
+    dialog:close()
+    dialog = nil
+    return
+  end
+  
   local vb = renoise.ViewBuilder()
-  local dialog = nil
   
   -- Get selection info
   local selection = renoise.song().selection_in_pattern

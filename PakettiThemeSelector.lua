@@ -1,5 +1,4 @@
 local dialog
-local custom_dialog
 local os_name = os.platform()
 local preferences = renoise.tool().preferences
 local temporary_selected_theme
@@ -88,12 +87,12 @@ local function pakettiThemeSelectorRefreshThemes(vb)
 end
 
 local function pakettiThemeSelectorDialogClose(vb)
-  if custom_dialog and custom_dialog.visible then
+  if dialog and dialog.visible then
     if temporary_selected_theme then
       preferences.pakettiThemeSelector.PreviousSelectedTheme.value = temporary_selected_theme
       vb.views["previous_theme"].text = temporary_selected_theme  -- Update UI
     end
-    custom_dialog:close()
+    dialog:close()
     save_preferences()
     if vb.views["launch_randomrandom_checkbox"] then
       preferences.pakettiThemeSelector.RenoiseLaunchRandomLoad.value = vb.views["launch_randomrandom_checkbox"].value
@@ -439,18 +438,16 @@ local function pakettiThemeSelectorDialogOpen(vb)
 end
 
 function pakettiThemeSelectorDialogShow()
-  local vb = renoise.ViewBuilder()
-
- if custom_dialog and custom_dialog.visible then
-    -- Step 2: If it's open, close it
-    custom_dialog:close()
-    custom_dialog = nil  -- Reset the dialog reference
+  -- Check if dialog is already open and close it
+  if dialog and dialog.visible then
+    dialog:close()
+    dialog = nil
     return
-  else
-
-  custom_dialog = renoise.app():show_custom_dialog("Paketti Theme Selector", pakettiThemeSelectorDialogOpen(vb), my_keyhandler_func)
+  end
+  
+  local vb = renoise.ViewBuilder()
+  dialog = renoise.app():show_custom_dialog("Paketti Theme Selector", pakettiThemeSelectorDialogOpen(vb), my_keyhandler_func)
   pakettiThemeSelectorUpdateFavoritesDropdown(vb)
-end
 end
 
 function pakettiThemeSelectorPickRandomThemeFromFavoritesNoGUI()

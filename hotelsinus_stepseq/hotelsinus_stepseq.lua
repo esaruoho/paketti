@@ -35,7 +35,7 @@ local matrix_container = nil
 local all_checkboxes = {}
 
 -- Global dialog reference to close it when switching step counts
-local current_dialog = nil
+local dialog = nil
 
 -- Dynamic UI sizing constants
 local CHECKBOX_SIZE = 28 -- 1.75x larger (16 * 1.75 = 28)
@@ -397,7 +397,7 @@ end
 ----------------------
 
 -- Create the main step sequencer dialog
-local function createStepSequencerDialog()
+function createStepSequencerDialog()
   if renoise.song() == nil then 
     print("No song loaded - cannot create Step Sequencer")
     return 
@@ -438,8 +438,8 @@ local function createStepSequencerDialog()
       color = STEP_COUNT == 16 and {0x22 / 255, 0xaa / 255, 0xff / 255} or nil,
       pressed = function()
         STEP_COUNT = 16
-        if current_dialog then
-          current_dialog:close()  -- Close the current dialog first
+        if dialog then
+          dialog:close()  -- Close the current dialog first
         end
         createStepSequencerDialog()  -- Recreate dialog with new step count
       end
@@ -451,8 +451,8 @@ local function createStepSequencerDialog()
       color = STEP_COUNT == 32 and {0x22 / 255, 0xaa / 255, 0xff / 255} or nil,
       pressed = function()
         STEP_COUNT = 32
-        if current_dialog then
-          current_dialog:close()  -- Close the current dialog first
+        if dialog then
+          dialog:close()  -- Close the current dialog first
         end
         createStepSequencerDialog()  -- Recreate dialog with new step count
       end
@@ -628,8 +628,8 @@ local function createStepSequencerDialog()
 
   -- Show the dialog
   local dialog_title = "Step Sequencer - " .. track_count .. " Tracks"
-  current_dialog = renoise.app():show_custom_dialog(dialog_title, dialog_content, my_keyhandler_func)
-  local result = current_dialog
+  dialog = renoise.app():show_custom_dialog(dialog_title, dialog_content, my_keyhandler_func)
+  local result = dialog
 
   if result then
     print("Step Sequencer dialog confirmed")

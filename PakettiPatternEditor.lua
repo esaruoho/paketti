@@ -2656,6 +2656,13 @@ local vb = renoise.ViewBuilder()
 
 -- Function to show the track renamer dialog
 function pakettiTrackRenamerDialog()
+  -- Check if dialog is already open and close it
+  if dialog and dialog.visible then
+    dialog:close()
+    dialog = nil
+    return
+  end
+  
   -- Get the current selection in the pattern
   local selection = renoise.song().selection_in_pattern
   selected_tracks = {}
@@ -5868,10 +5875,10 @@ renoise.tool().app_idle_observable:add_notifier(check_for_note_input)
 
 
 
-local velocity_dialog = nil
+local dialog = nil
 function pakettiVolumeInterpolationLooper()
-  if velocity_dialog and velocity_dialog.visible then
-    velocity_dialog:close()
+  if dialog and dialog.visible then
+    dialog:close()
     return
   end
 
@@ -5963,7 +5970,7 @@ function pakettiVolumeInterpolationLooper()
     end
   end
 
-  velocity_dialog = renoise.app():show_custom_dialog("Paketti Value Interpolation Looper",
+  dialog = renoise.app():show_custom_dialog("Paketti Value Interpolation Looper",
     vb:column{
       width=250,
       vb:row{

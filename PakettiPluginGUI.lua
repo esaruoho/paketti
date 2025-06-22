@@ -2,7 +2,7 @@ function show_plugin_list_dialog()
     local vb = renoise.ViewBuilder()
 
     local checkboxes = {}
-    local custom_dialog
+    local dialog
 
     -- Fetch plugin and device information
     local instrument = renoise.song().selected_instrument
@@ -200,18 +200,18 @@ end
                     end
                 end
                 
-                custom_dialog:close()
+                dialog:close()
                 
                 renoise.app():show_message("Selected Plugins:\n" .. selected_plugins_text)
             end
         },
         vb:button{
             text="Cancel",
-            notifier=function() custom_dialog:close() end
+            notifier=function() dialog:close() end
         }
     }
 
     local dialog_content = vb:column{action_buttons, plugin_lists }
-    custom_dialog = renoise.app():show_custom_dialog("Plugin List", dialog_content)
+    dialog = renoise.app():show_custom_dialog("Plugin List", dialog_content)
 end
 

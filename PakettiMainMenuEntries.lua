@@ -232,19 +232,27 @@ end
 
 
 
+-- Global dialog reference for Squiggler toggle behavior
+local dialog = nil
+
 -- Function to create and show the dialog with a text field.
 function squigglerdialog()
+  -- Check if dialog is already open and close it
+  if dialog and dialog.visible then
+    dialog:close()
+    dialog = nil
+    return
+  end
+  
   local vb = renoise.ViewBuilder()
   local content = vb:column{
-    margin=10,
     vb:textfield {
       value = "∿",
       edit_mode = true
     }
   }
   
-  -- Using a local variable for 'dialog' to limit its scope to this function.
-  local dialog = renoise.app():show_custom_dialog("Copy the Squiggler to your clipboard", content, my_keyhandler_func)
+  dialog = renoise.app():show_custom_dialog("Copy the Squiggler to your clipboard", content, my_keyhandler_func)
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:∿ Squiggly Sinewave to Clipboard (macOS)",invoke=function() squigglerdialog() end}
@@ -324,7 +332,11 @@ local button_list = {
   {"Paketti Steppers Dialog", "PakettiSteppersDialog"},
   {"Paketti Sample Adjust", "show_paketti_sample_adjust_dialog"},
   {"Protracker MOD modulation Dialog", "showProtrackerModDialog"},
-  {"Paketti Slice to Pattern Sequencer Dialog", "showSliceToPatternSequencerInterface"}
+  {"Paketti Slice to Pattern Sequencer Dialog", "showSliceToPatternSequencerInterface"},
+  {"Paketti Polyend Buddy", "show_polyend_buddy_dialog"},
+  {"Paketti Sample Pitch Modifier Dialog", "show_sample_pitch_modifier_dialog"},
+  {"BPM From Sample Length", "pakettiBpmFromSampleDialog"},
+  {"Hotelsinus Stepsequencer","createStepSequencerDialog"}
 }
 
 -- Function to create buttons from the list

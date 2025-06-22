@@ -698,6 +698,13 @@ end
 
 -- Function to show custom time signature dialog
 function pakettiBeatStructureEditorDialog()
+  -- Check if dialog is already open and close it
+  if dialog and dialog.visible then
+    dialog:close()
+    dialog = nil
+    return
+  end
+  
   local vb = renoise.ViewBuilder()
   
   local DIALOG_MARGIN = renoise.ViewBuilder.DEFAULT_DIALOG_MARGIN
@@ -889,8 +896,7 @@ function pakettiBeatStructureEditorDialog()
   
   printTimeSignatureInfo()  -- Add this before showing the dialog
   updatePreview()  -- Initial preview update
-  local dialog=renoise.app():show_custom_dialog("Beat Structure Editor",dialog_content,
-  my_keyhandler_func)
+  dialog = renoise.app():show_custom_dialog("Beat Structure Editor",dialog_content,my_keyhandler_func)
   renoise.app().window.active_middle_frame = 1
 end
 

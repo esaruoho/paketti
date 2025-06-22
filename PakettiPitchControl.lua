@@ -324,9 +324,7 @@ function pakettiBpmFromSampleDialog()
     return true
   end
   local textWidth= 110
-  local dialog_content = vb:column{
---    margin = 10,
-    
+  local dialog_content = vb:column{    
     vb:row{
       vb:checkbox{
         id = "auto_set_bpm_beatsync_checkbox",

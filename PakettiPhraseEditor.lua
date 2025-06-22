@@ -1,5 +1,5 @@
 -- Ensure the dialog is initialized
-local pakettiInitPhraseSettingsDialog = nil
+local dialog = nil
 
 -- Function to load preferences
 local function loadPreferences()
@@ -85,23 +85,13 @@ function pakettiPhraseSettingsModifyCurrentPhrase()
   end
 end
 
--- Function to handle key events for the dialog (including closing it)
-function pakettiPhraseSettingsKeyHandler(dialog, key)
-local closer = preferences.pakettiDialogClose.value
-  if key.modifiers == "" and key.name == closer then
-    dialog:close()
-    pakettiInitPhraseSettingsDialog = nil
-    return nil
-else
-    return key
-  end
-end
+
 
 -- Function to show the PakettiInitPhraseSettingsDialog
 function pakettiPhraseSettings()
-  if pakettiInitPhraseSettingsDialog and pakettiInitPhraseSettingsDialog.visible then
-    pakettiInitPhraseSettingsDialog:close()
-    pakettiInitPhraseSettingsDialog = nil
+  if dialog and dialog.visible then
+    dialog:close()
+    dialog = nil
     return
   end
 
@@ -111,7 +101,7 @@ function pakettiPhraseSettings()
     preferences.pakettiPhraseInitDialog.Name.value = phrase.name
   end
 
-  pakettiInitPhraseSettingsDialog = renoise.app():show_custom_dialog("Paketti Phrase Default Settings Dialog",
+  dialog = renoise.app():show_custom_dialog("Paketti Phrase Default Settings Dialog",
     vb:column{
       margin=10,
       
@@ -298,32 +288,21 @@ function pakettiPhraseSettings()
           savePreferences()
         end},
         vb:button{text="Cancel",width=100, notifier=function()
-          pakettiInitPhraseSettingsDialog:close()
-          pakettiInitPhraseSettingsDialog = nil
-        end}}}, pakettiPhraseSettingsKeyHandler)
+          dialog:close()
+          dialog = nil
+        end}}}, my_keyhandler_func)
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Open Paketti Init Phrase Dialog...",invoke=function() pakettiPhraseSettings() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Create New Phrase using Paketti Settings",invoke=function() pakettiInitPhraseSettingsCreateNewPhrase() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Modify Current Phrase using Paketti Settings",invoke=function() pakettiPhraseSettingsModifyCurrentPhrase() end}
-
 renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Open Paketti Init Phrase Dialog...",invoke=function() pakettiPhraseSettings() end}
 renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Create New Phrase using Paketti Settings",invoke=function() pakettiInitPhraseSettingsCreateNewPhrase() end}
 renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Modify Current Phrase using Paketti Settings",invoke=function() pakettiPhraseSettingsModifyCurrentPhrase() end}
-
-
 renoise.tool():add_midi_mapping{name="Paketti:Open Paketti Init Phrase Dialog...",invoke=function(message) if message:is_trigger() then pakettiPhraseSettings() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Create New Phrase Using Paketti Settings",invoke=function(message) if message:is_trigger() then pakettiInitPhraseSettingsCreateNewPhrase() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Modify Current Phrase Using Paketti Settings",invoke=function(message) if message:is_trigger() then pakettiPhraseSettingsModifyCurrentPhrase() end end}
-
-
-
-
 ------------------------------------------------
-
-
-
-
 function RecordFollowOffPhrase()
 local t=renoise.song().transport
 t.follow_player=false
