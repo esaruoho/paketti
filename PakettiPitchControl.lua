@@ -1300,6 +1300,15 @@ function show_sample_pitch_modifier_dialog()
   
   local textWidth = 80
   
+  -- Load preference for minimized layout
+  local use_small_layout = true  -- Default: true (current compact layout)
+  if preferences and preferences.MinimizedPitchControlSmall and preferences.MinimizedPitchControlSmall.value ~= nil then
+    use_small_layout = preferences.MinimizedPitchControlSmall.value
+    print("-- Sample Pitch Modifier: Loaded layout preference: " .. tostring(use_small_layout))
+  else
+    print("-- Sample Pitch Modifier: Using default small layout")
+  end
+  
   -- Pitch range settings (transpose ranges)
   local pitch_ranges = {
     {name = "±3", range = 3 * 128, scale = 1.0},    -- ±3 semitones
@@ -1351,9 +1360,11 @@ function show_sample_pitch_modifier_dialog()
     end
   end
 
-  local dialog_content = vb:column{
-    -- Single minimal row: Transpose, Finetune, Range Switch, Slider
-    vb:row{
+  local dialog_content = vb:column{}
+  
+  if use_small_layout then
+    -- Small layout: Everything in one row (current behavior)
+    dialog_content:add_child(vb:row{
       vb:text{text = "Transpose", style = "strong", font = "bold"},
       vb:valuebox{
         id = "transpose_valuebox",
@@ -1400,7 +1411,7 @@ function show_sample_pitch_modifier_dialog()
         id = "range_switch",
         items = {"±3", "±12", "±24", "±120"},
         value = current_range_index,
-        width = 250,
+        width = 150,
         notifier = function(value)
           current_range_index = value
           update_slider_range()
@@ -1477,11 +1488,141 @@ function show_sample_pitch_modifier_dialog()
           updating_from_vinyl_slider = false
         end
       }
-    }
-  }
+    })
+  else
+    -- Large layout: Controls on first row, slider on second row taking full width
+    dialog_content:add_child(vb:row{
+      vb:text{text = "Transpose", style = "strong", font = "bold"},
+      vb:valuebox{
+        id = "transpose_valuebox",
+        min = -120,
+        max = 120,
+        value = sample.transpose,
+        width = 60,
+        notifier = function(value)
+          renoise.song().selected_sample.transpose = value
+          -- Update vinyl pitch slider to match (vinyl-style calculation) - only if not updating from vinyl slider
+          if not updating_from_vinyl_slider and not initializing_vinyl_slider then
+            local current_finetune = vb.views.finetune_valuebox.value
+            local range_settings = get_current_range()
+            -- Convert transpose + finetune back to continuous vinyl position
+            local vinyl_pitch_value = (value * 128) + current_finetune
+            vinyl_pitch_value = vinyl_pitch_value / range_settings.scale
+            vinyl_pitch_value = math.max(-range_settings.range, math.min(range_settings.range, vinyl_pitch_value))
+            vb.views.vinyl_pitch_slider.value = vinyl_pitch_value
+          end
+        end
+      },
+      vb:text{text = "Finetune", style = "strong", font = "bold"},
+      vb:valuebox{
+        id = "finetune_valuebox",
+        min = -127,
+        max = 127,
+        value = sample.fine_tune,
+        width = 60,
+        notifier = function(value)
+          renoise.song().selected_sample.fine_tune = value
+          -- Update vinyl pitch slider to match (vinyl-style calculation) - only if not updating from vinyl slider
+          if not updating_from_vinyl_slider and not initializing_vinyl_slider then
+            local current_transpose = vb.views.transpose_valuebox.value
+            local range_settings = get_current_range()
+            -- Convert transpose + finetune back to continuous vinyl position
+            local vinyl_pitch_value = (current_transpose * 128) + value
+            vinyl_pitch_value = vinyl_pitch_value / range_settings.scale
+            vinyl_pitch_value = math.max(-range_settings.range, math.min(range_settings.range, vinyl_pitch_value))
+            vb.views.vinyl_pitch_slider.value = vinyl_pitch_value
+          end
+        end
+      },
+      vb:switch{
+        id = "range_switch",
+        items = {"±3", "±12", "±24", "±120"},
+        value = current_range_index,
+        width = 150,
+        notifier = function(value)
+          current_range_index = value
+          update_slider_range()
+          -- Save to preferences
+          if preferences and preferences.pakettiPitchSliderRange then
+            preferences.pakettiPitchSliderRange.value = value
+            preferences:save_as("preferences.xml")
+            print(string.format("-- Sample Pitch Modifier: Saved pitch slider range to preferences: %d (%s)", 
+              value, pitch_ranges[value].name))
+          end
+        end
+      }
+    })
+    
+    -- Second row: Full-width slider
+    dialog_content:add_child(vb:row{
+      vb:slider{
+        id = "vinyl_pitch_slider",
+        min = -get_current_range().range,
+        max = get_current_range().range,
+        value = 0,
+        width = 392,  -- Match combined width of controls above
+        steps = {1, -1},
+        notifier = function(value)
+          -- Skip notifier during initialization to prevent overwriting sample values
+          if initializing_vinyl_slider then
+            return
+          end
+          
+          -- Set flag to prevent feedback loop when updating valueboxes
+          updating_from_vinyl_slider = true
+          
+          -- Vinyl-style pitch control: continuous finetune with transpose rollover
+          -- Each step moves finetune, when finetune hits ±127 it rolls to next semitone
+          
+          -- Get current range settings
+          local range_settings = get_current_range()
+          
+          -- Convert vinyl slider value to continuous finetune position
+          local total_finetune = value * range_settings.scale
+          
+          -- Calculate how many complete semitone cycles we've crossed
+          local transpose = 0
+          local finetune = total_finetune
+          
+          -- Handle positive direction (going up in pitch)
+          while finetune > 127 do
+            transpose = transpose + 1
+            finetune = finetune - 128  -- Wrap from +127 to 0, then continue
+          end
+          
+          -- Handle negative direction (going down in pitch)  
+          while finetune < -127 do
+            transpose = transpose - 1
+            finetune = finetune + 128  -- Wrap from -127 to 0, then continue
+          end
+          
+          -- Clamp transpose to valid range
+          transpose = math.max(-120, math.min(120, transpose))
+          
+          -- If we hit transpose limits, adjust finetune accordingly
+          if transpose == -120 and finetune < -127 then
+            finetune = -127
+          elseif transpose == 120 and finetune > 127 then
+            finetune = 127
+          end
+          
+          -- Round finetune to integer
+          finetune = math.floor(finetune + 0.5)
+          
+          -- Update valueboxes and sample
+          vb.views.transpose_valuebox.value = transpose
+          vb.views.finetune_valuebox.value = finetune
+          renoise.song().selected_sample.transpose = transpose
+          renoise.song().selected_sample.fine_tune = finetune
+          
+          -- Clear flag to allow normal operation
+          updating_from_vinyl_slider = false
+        end
+      }
+    })
+  end
   
-  -- Show the dialog
-  dialog = renoise.app():show_custom_dialog("Sample Pitch Modifier", dialog_content,my_keyhandler_func)
+  dialog = renoise.app():show_custom_dialog("Sample Pitch Modifier Dialog", dialog_content,my_keyhandler_func)
   
   -- Initialize vinyl pitch slider from current sample values AFTER dialog is shown
   if vb.views.vinyl_pitch_slider then
@@ -1503,10 +1644,38 @@ function show_sample_pitch_modifier_dialog()
   end
 end
 
+function toggle_sample_pitch_modifier_dialog_size()
+  -- Initialize preferences if they don't exist
+  if not preferences then
+    preferences = renoise.Document.create("PakettiPreferences") {}
+  end
+  
+  -- Initialize the specific preference if it doesn't exist
+  if not preferences.MinimizedPitchControlSmall then
+    preferences:add_property("MinimizedPitchControlSmall", renoise.Document.ObservableBoolean(true))
+  end
+  
+  -- Toggle the preference
+  local current_value = preferences.MinimizedPitchControlSmall.value
+  local new_value = not current_value
+  preferences.MinimizedPitchControlSmall.value = new_value
+  
+  -- Save preferences
+  preferences:save_as("preferences.xml")
+  
+  -- Provide feedback
+  local size_name = new_value and "Small (compact)" or "Large (slider on separate row)"
+  local status_message = string.format("Sample Pitch Modifier Dialog size changed to: %s", size_name)
+  renoise.app():show_status(status_message)
+  print("-- " .. status_message)
+end
+
 renoise.tool():add_keybinding{name="Global:Paketti:Sample Pitch Modifier Dialog...",invoke = show_sample_pitch_modifier_dialog}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Sample Pitch Modifier Dialog...",invoke = show_sample_pitch_modifier_dialog}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti Gadgets:Sample Pitch Modifier Dialog...",invoke = show_sample_pitch_modifier_dialog}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Sample Pitch Modifier Dialog...",invoke = show_sample_pitch_modifier_dialog}
+
+renoise.tool():add_keybinding{name="Global:Paketti:Sample Pitch Modifier Dialog Size Toggle",invoke = toggle_sample_pitch_modifier_dialog_size}
 
 -- Comprehensive BPM Calculation Debug Function
 -- Combines all debug and calculation functionality into one comprehensive tool

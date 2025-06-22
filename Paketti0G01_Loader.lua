@@ -79,8 +79,14 @@ function create_device_entry(name, path, device_type)
 end
 
 preferences = renoise.Document.create("ScriptingToolPreferences") {
+  MinimizedPitchControlSmall=false,
   PolyendRoot="",
   PolyendLocalPath="",
+  PolyendLocalBackupPath="",
+  PolyendUseLocalBackup=false,
+  PolyendPTISavePath="",
+  PolyendWAVSavePath="",
+  PolyendUseSavePaths=true,
   pakettifyReplaceInstrument=false,
   pakettiInstrumentProperties=false,
   pakettiPitchSliderRange=2,

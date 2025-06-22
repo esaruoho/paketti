@@ -548,9 +548,8 @@ function loadRandomDrumkitSamples(num_samples)
     local instrument_slot_hex = string.format("%02X", song.selected_instrument_index - 1)
     instrument.name = instrument_slot_hex .. "_Drumkit"
 
-    -- Limit the number of samples to load to 120
-    local max_samples = 120
-    local num_samples_to_load = math.min(#sample_files, max_samples)
+    -- Limit the number of samples to load to the requested amount
+    local num_samples_to_load = math.min(#sample_files, num_samples)
 
     -- Create a table to store failed loads
     local failed_loads = {}

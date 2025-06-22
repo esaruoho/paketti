@@ -1953,7 +1953,7 @@ local function modify_filter_type(midi_value)
   end
 end
 
-renoise.tool():add_midi_mapping{name="Paketti:Selected Track Dev Analog Filter Filter Type",
+renoise.tool():add_midi_mapping{name="Paketti:Selected Track Dev Analog_Filter Filter Type",
   invoke=function(message)
     if message:is_abs_value() then
       modify_filter_type(message.int_value)
