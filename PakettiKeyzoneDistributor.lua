@@ -196,6 +196,10 @@ function pakettiKeyzoneDistributorDialog()
   }
   
   -- Create the dialog
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) dialog = value end
+  )
   dialog = renoise.app():show_custom_dialog("Paketti Keyzone Distributor",
     view_builder:column {
       --margin=10,
@@ -234,7 +238,7 @@ function pakettiKeyzoneDistributorDialog()
         },
         base_note_switch
       }
-    }
+    }, keyhandler
   )
 end
 

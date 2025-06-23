@@ -325,7 +325,7 @@ local function create_button_list()
     {"Track Renamer", "pakettiTrackRenamerDialog"},
     {"Track Dater / Titler", "pakettiTitlerDialog"},
     {"Paketti Action Selector", "pakettiActionSelectorDialog"},
-    {"Squiggler", "squigglerdialog"},
+    {"Debug: Squiggler", "squigglerdialog"},
     {"Paketti Groovebox 8120", "pakettiEightSlotsByOneTwentyDialog"},
     {"Midi Mappings", "pakettiMIDIMappingsDialog"},
     {"BeatDetector", "pakettiBeatDetectorDialog"},
@@ -356,7 +356,6 @@ local function create_button_list()
     {"XY Pad Sound Mixer", "showXyPaddialog"},
     {"SBX Playback Handler", "showSBX_dialog"},
     {"Paketti Sample Adjust", "show_paketti_sample_adjust_dialog"},
-    {"Plugin List", "pakettiPluginListDialog"},
   }
   
   -- Add API 6.2+ specific dialogs only if supported

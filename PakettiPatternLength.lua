@@ -344,6 +344,10 @@ function pakettiLengthDialog()
   }
 
   -- Show the custom dialog with context-aware title
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) dialog = value end
+  )
   dialog = renoise.app():show_custom_dialog(is_pattern_editor and "Set Pattern Length" or "Set Phrase Length",
     view_builder:column{
       --margin=10,
@@ -351,7 +355,7 @@ function pakettiLengthDialog()
       view_builder:row{ length_textfield, view_builder:text{ text=" lines" } },
       view_builder:row{ view_builder:text{ text="Close on Set" }, close_on_set_checkbox },
       view_builder:row{ cancel_button, set_button }
-    }
+    }, keyhandler
   )
 
   -- Add appropriate change observer based on context

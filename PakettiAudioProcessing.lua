@@ -17,7 +17,15 @@ local dialog = nil
 local protrackerModSpeed = 0
 
 -- Key handler function for the ProTracker MOD dialog
-local function protrackerModKeyHandler(dialog, key)
+local function protrackerModKeyHandler(dialog_ref, key)
+  -- Check for close key first
+  local closer = preferences.pakettiDialogClose.value
+  if key.modifiers == "" and key.name == closer then
+    dialog_ref:close()
+    dialog = nil
+    return nil
+  end
+  
   if key.name == "return" then
     -- Enter key pressed - trigger Process functionality
     if protrackerModSpeed == 0 then

@@ -812,12 +812,6 @@ function createMatrixOverview()
   local dialog_content = vb:vertical_aligner {
    -- spacing = 5,
     margin = 10,
-    vb:text { 
-      text = "Matrix Overview", 
-      font = "big", 
-      style = "strong"
-    },
-    vb:space { height = 5 },
     createMatrixGrid(song)
   }
 

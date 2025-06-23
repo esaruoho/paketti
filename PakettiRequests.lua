@@ -10184,7 +10184,7 @@ function pakettiSwitchNoteInstrumentDialog()
   renoise.app().window.active_middle_frame = patternEditor
 end
 
-function NoteToInstrumentKeyhandler(dialog,key)
+function NoteToInstrumentKeyhandler(dialog_ref,key)
   local closer = preferences.pakettiDialogClose.value
   if key.modifiers == "" and key.name == closer then
     local song=renoise.song()
@@ -10195,8 +10195,8 @@ function NoteToInstrumentKeyhandler(dialog,key)
     if song.selected_pattern_index_observable:has_notifier(show_dialog) then
       song.selected_pattern_index_observable:remove_notifier(show_dialog)
     end
-    dialog:close()
-    switch_note_dialog = nil
+    dialog_ref:close()
+    dialog = nil
     return nil
   else
     return key
