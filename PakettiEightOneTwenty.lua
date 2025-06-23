@@ -1754,7 +1754,11 @@ function pakettiEightSlotsByOneTwentyDialog()
     row_elements.update_sample_name_label()
   end
   debug_instruments_and_samples()
-  dialog = renoise.app():show_custom_dialog("Paketti Groovebox 8120", dc, my_keyhandler_func)
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) dialog = value end
+  )
+  dialog = renoise.app():show_custom_dialog("Paketti Groovebox 8120", dc, keyhandler)
 end
 
 
@@ -2300,7 +2304,11 @@ function loadSequentialDrumkitSamples()
     })
     
     -- Show dialog
-    dialog = renoise.app():show_custom_dialog("Paketti Groovebox 8120 Sequential Load Progress Dialog", dialog_content)
+    local keyhandler = create_keyhandler_for_dialog(
+      function() return dialog end,
+      function(value) dialog = value end
+    )
+    dialog = renoise.app():show_custom_dialog("Paketti Groovebox 8120 Sequential Load Progress Dialog", dialog_content, keyhandler)
     
     -- Start processing
     slicer:start()

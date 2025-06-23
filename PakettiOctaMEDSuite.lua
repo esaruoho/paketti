@@ -463,7 +463,11 @@ function pakettiOctaMEDPickPutRowDialog()
     dialog:close()
     dialog = nil
   else
-    dialog = renoise.app():show_custom_dialog("Paketti OctaMED Pick/Put",create_paketti_pick_dialog(),my_keyhandler_func)
+    local keyhandler = create_keyhandler_for_dialog(
+      function() return dialog end,
+      function(value) dialog = value end
+    )
+    dialog = renoise.app():show_custom_dialog("Paketti OctaMED Pick/Put",create_paketti_pick_dialog(),keyhandler)
   end
   load_slots_from_preferences()
 
@@ -860,7 +864,11 @@ function pakettiOctaMEDNoteEchoDialog()
     
   }
   
-  dialog = renoise.app():show_custom_dialog("OctaMED Note Echo",dialog_content,my_keyhandler_func)
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) dialog = value end
+  )
+  dialog = renoise.app():show_custom_dialog("OctaMED Note Echo",dialog_content,keyhandler)
   
   -- Return focus to pattern editor immediately after showing dialog
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR

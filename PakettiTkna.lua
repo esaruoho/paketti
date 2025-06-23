@@ -426,7 +426,11 @@ function showAvailableRoutings()
     }
 
     -- Show the dialog
-    dialog = renoise.app():show_custom_dialog("Output Routing for Selected Track", dialog_content, my_keyhandler_func)
+    local keyhandler = create_keyhandler_for_dialog(
+      function() return dialog end,
+      function(value) dialog = value end
+    )
+    dialog = renoise.app():show_custom_dialog("Output Routing for Selected Track", dialog_content, keyhandler)
 end
 
 

@@ -2535,10 +2535,14 @@ end
   local dialog_content = pakettiPhraseGeneratorDialog_content(vb)
   
   -- Create dialog
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) dialog = value end
+  )
   dialog = renoise.app():show_custom_dialog(
     "Paketti Phrase Generator",
     dialog_content,
-    my_keyhandler_func
+    keyhandler
   )
   
   -- Only set up observers if we have a valid song and dialog

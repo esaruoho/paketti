@@ -657,7 +657,11 @@ local dialogMargin=175
   }
   
   -- Show dialog and store reference
-  dialog = renoise.app():show_custom_dialog("Slice to Pattern Sequencer Dialog", dialog_content, my_keyhandler_func)
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) dialog = value end
+  )
+  dialog = renoise.app():show_custom_dialog("Slice to Pattern Sequencer Dialog", dialog_content, keyhandler)
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Create Pattern Sequencer Patterns based on Slice Count with Automatic Slice Printing",invoke = createPatternSequencerPatternsBasedOnSliceCount}
@@ -1444,7 +1448,11 @@ function pakettiEQ10XYDialog()
   end
   
   content:add_child(row_content)
-  dialog = renoise.app():show_custom_dialog("EQ10 XY Control",content,my_keyhandler_func)
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) dialog = value end
+  )
+  dialog = renoise.app():show_custom_dialog("EQ10 XY Control",content,keyhandler)
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Show EQ10 XY Control Dialog...",invoke = pakettiEQ10XYDialog}
@@ -1943,7 +1951,11 @@ function showXyPaddialog()
   if dialog and dialog.visible then
     dialog:close()
   else
-    dialog = renoise.app():show_custom_dialog("XY Pad Sound Mixer", dialog_content, my_keyhandler_func)
+    local keyhandler = create_keyhandler_for_dialog(
+      function() return dialog end,
+      function(value) dialog = value end
+    )
+    dialog = renoise.app():show_custom_dialog("XY Pad Sound Mixer", dialog_content, keyhandler)
   end
 end
 
@@ -2105,7 +2117,11 @@ function showSBX_dialog()
       end
     }
   }
-  dialog = renoise.app():show_custom_dialog("SBX Playback Handler", content, my_keyhandler_func)
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) dialog = value end
+  )
+  dialog = renoise.app():show_custom_dialog("SBX Playback Handler", content, keyhandler)
 end
 
 
@@ -2948,6 +2964,10 @@ local function show_paketti_sample_rotator_dialog()
     return
   end
 
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) dialog = value end
+  )
   dialog = renoise.app():show_custom_dialog("Paketti XYPad Sample Rotator",
     vb:column{
       vb:row{
@@ -2976,7 +2996,7 @@ local function show_paketti_sample_rotator_dialog()
           max = 1.0,
           value = initial_position,
           notifier = on_horizontal_slider_change
-        }}},my_keyhandler_func
+        }}}, keyhandler
   )
 end
 
@@ -5786,7 +5806,11 @@ function createCustomSinewave()
     }
   }
   
-  renoise.app():show_custom_dialog("Sine Wave Generator", dialog_content, my_keyhandler_func)
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) dialog = value end
+  )
+  renoise.app():show_custom_dialog("Sine Wave Generator", dialog_content, keyhandler)
 end
 
 -- Function for custom amplitude modulated sine wave generation
@@ -5857,7 +5881,11 @@ function createCustomAmplitudeModulatedSinewave()
     }
   }
   
-  renoise.app():show_custom_dialog("AM Sine Wave Generator", dialog_content, my_keyhandler_func)
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) dialog = value end
+  )
+  renoise.app():show_custom_dialog("AM Sine Wave Generator", dialog_content, keyhandler)
 end
 
 

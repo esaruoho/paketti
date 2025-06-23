@@ -557,7 +557,11 @@ function pakettiXRNSProbeShowDialog(mode)
     vb:horizontal_aligner{ spacing=4, unpack(buttons) },
     vb:multiline_textfield{ id="results", width=777, height=888, font="mono" }
   }
-  dialog = renoise.app():show_custom_dialog("Paketti XRNS Probe", dialog_content)
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) dialog = value end
+  )
+  dialog = renoise.app():show_custom_dialog("Paketti XRNS Probe", dialog_content, keyhandler)
   results_textfield = vb.views.results
   if mode=="Browse" and show_browse then PakettiXRNSProbeBrowseAndAnalyzeXRNS() else PakettiXRNSProbeAnalyzeCurrentSong() end
 end

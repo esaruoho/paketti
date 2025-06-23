@@ -355,7 +355,11 @@ function pakettiTupletDialog()
     }
   }
     
-  dialog = renoise.app():show_custom_dialog("Paketti Tuplet Writer",dialog_content,my_keyhandler_func)
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) dialog = value end
+  )
+  dialog = renoise.app():show_custom_dialog("Paketti Tuplet Writer",dialog_content,keyhandler)
   
   -- Set focus to note count field
   vb.views.note_count.active = true

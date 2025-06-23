@@ -1147,21 +1147,22 @@ function pakettiBpmFromSampleDialog()
     initializing_vinyl_slider = false
   end
   
-  dialog = renoise.app():show_custom_dialog("BPM from Sample Length", dialog_content, function(dialog, key)
-    -- Handle dialog close
-    if key and key.name == "esc" then
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) 
+      dialog = value
       -- Remove notifiers when dialog closes
-      if song.selected_instrument_observable:has_notifier(update_dialog_on_selection_change) then
-        song.selected_instrument_observable:remove_notifier(update_dialog_on_selection_change)
+      if value == nil then
+        if song.selected_instrument_observable:has_notifier(update_dialog_on_selection_change) then
+          song.selected_instrument_observable:remove_notifier(update_dialog_on_selection_change)
+        end
+        if song.selected_sample_observable:has_notifier(update_dialog_on_selection_change) then
+          song.selected_sample_observable:remove_notifier(update_dialog_on_selection_change)
+        end
       end
-      if song.selected_sample_observable:has_notifier(update_dialog_on_selection_change) then
-        song.selected_sample_observable:remove_notifier(update_dialog_on_selection_change)
-      end
-      dialog:close()
-      return nil
     end
-    return my_keyhandler_func(dialog, key)
-  end)
+  )
+  dialog = renoise.app():show_custom_dialog("BPM from Sample Length", dialog_content, keyhandler)
 
 end
 
@@ -1620,7 +1621,11 @@ function show_sample_pitch_modifier_dialog()
     })
   end
   
-  dialog = renoise.app():show_custom_dialog("Sample Pitch Modifier Dialog", dialog_content,my_keyhandler_func)
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) dialog = value end
+  )
+  dialog = renoise.app():show_custom_dialog("Sample Pitch Modifier Dialog", dialog_content, keyhandler)
   
   -- Initialize vinyl pitch slider from current sample values AFTER dialog is shown
   if vb.views.vinyl_pitch_slider then

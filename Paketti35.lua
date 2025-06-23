@@ -599,7 +599,11 @@
   end
 
   local dialog_content = create_dialog()
-  local dialog = renoise.app():show_custom_dialog("GUI Demo", dialog_content, my_keyhandler_func)
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) dialog = value end
+  )
+  local dialog = renoise.app():show_custom_dialog("GUI Demo", dialog_content, keyhandler)
   -- Reset cursor when dialog is closed
   renoise.tool().app_release_document_observable:add_notifier(function()
     if dialog_content then

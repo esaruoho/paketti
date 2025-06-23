@@ -976,7 +976,11 @@ function pakettiAudioProcessingToolsDialog()
   -- Create the dialog content
   local content = create_combined_dialog_content()
   if content then
-    dialog = renoise.app():show_custom_dialog("Paketti Audio Processing Tools", content, my_keyhandler_func)
+    local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) dialog = value end
+  )
+  dialog = renoise.app():show_custom_dialog("Paketti Audio Processing Tools", content, keyhandler)
   else
     renoise.app():show_status("A sample must be selected.")
     
@@ -2149,7 +2153,11 @@ function show_paketti_sample_adjust_dialog()
   -- Create and show dialog
   local content = create_sample_adjust_dialog_content()
   if content then
-    dialog = renoise.app():show_custom_dialog("Paketti Sample Adjust", content, my_keyhandler_func)
+    local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) dialog = value end
+  )
+  dialog = renoise.app():show_custom_dialog("Paketti Sample Adjust", content, keyhandler)
   end
 end
 

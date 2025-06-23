@@ -212,6 +212,10 @@ end
     }
 
     local dialog_content = vb:column{action_buttons, plugin_lists }
-    dialog = renoise.app():show_custom_dialog("Plugin List", dialog_content)
+    local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) dialog = value end
+  )
+  dialog = renoise.app():show_custom_dialog("Plugin List", dialog_content, keyhandler)
 end
 

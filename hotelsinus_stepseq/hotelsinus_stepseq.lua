@@ -2,9 +2,7 @@
 -- Creates a step sequencer interface with checkboxes for each track
 local vb = renoise.ViewBuilder()
 
-function my_keyhandler_func(dialog, key)
-    return key
-end
+-- Removed old keyhandler function - now using standardized system
 
 
 -- Table with note names for display
@@ -824,8 +822,12 @@ function createMatrixOverview()
   }
 
   -- Display window
-  local result = renoise.app():show_custom_dialog(dialog_title, dialog_content, my_keyhandler_func)
-  renoise.app().active_middle_frame=renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) dialog = value end
+  )
+  local result = renoise.app():show_custom_dialog(dialog_title, dialog_content, keyhandler)
+  renoise.app().window.active_middle_frame=renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 
   
   if result then

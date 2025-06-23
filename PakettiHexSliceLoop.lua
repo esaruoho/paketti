@@ -161,7 +161,11 @@ end
         return key
     end
     
-    dialog = renoise.app():show_custom_dialog("Set Selection by Hex Offset", dialog_content, my_keyhandler_func) --key_handler)
+    local keyhandler = create_keyhandler_for_dialog(
+        function() return dialog end,
+        function(value) dialog = value end
+    )
+    dialog = renoise.app():show_custom_dialog("Set Selection by Hex Offset", dialog_content, keyhandler) --key_handler)
     focus_sample_editor()
 end
 

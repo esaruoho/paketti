@@ -707,7 +707,11 @@ function PakettiSteppersDialog()
         vb:button{text="Copy", width=75, pressed = function() PakettiCopyStepperData() end},
         vb:button{text="Paste", width=75, pressed = function() PakettiPasteStepperData() end}
       }
-    }, my_keyhandler_func
+    },
+    create_keyhandler_for_dialog(
+      function() return dialog end,
+      function(value) dialog = value end
+    )
   )
 end
 

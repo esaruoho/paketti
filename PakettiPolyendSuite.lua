@@ -3857,17 +3857,6 @@ function create_polyend_buddy_dialog(vb)
   }
 end
 
--- Key handler for the Polyend Buddy dialog
-local function polyend_buddy_key_handler(dialog, key)
-  if key.modifiers == "" and key.name == "esc" then
-    dialog:close()
-    dialog = nil
-    return nil
-  else
-    return key
-  end
-end
-
 -- Main function to show the Polyend Buddy dialog
 function show_polyend_buddy_dialog()
   -- Close existing dialog if open
@@ -3883,10 +3872,14 @@ function show_polyend_buddy_dialog()
   initialize_save_paths()
   
   local vb = renoise.ViewBuilder()
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) dialog = value end
+  )
   dialog = renoise.app():show_custom_dialog(
     "Polyend Buddy - PTI File Browser", 
     create_polyend_buddy_dialog(vb), 
-    polyend_buddy_key_handler
+    keyhandler
   )
   
   -- Check connection status on startup

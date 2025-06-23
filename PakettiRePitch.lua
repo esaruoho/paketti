@@ -67,6 +67,10 @@ function pakettiSimpleSampleTuningDialog()
     width=300,
     text="Note: \nFinetune: \nMIDI: "
   }
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) dialog = value end
+  )
   dialog=renoise.app():show_custom_dialog(
     "Paketti Simple Sample Tuning Calculator",
     vb:column{
@@ -122,7 +126,7 @@ function pakettiSimpleSampleTuningDialog()
         }
       }
     },
-    my_keyhandler_func
+    keyhandler
   )
 end
 

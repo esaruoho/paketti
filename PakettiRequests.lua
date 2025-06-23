@@ -1614,7 +1614,11 @@ if dialog and dialog.visible then
   })
 
   -- Show the dialog
-  dialog = renoise.app():show_custom_dialog("Track Output Routings", content, my_keyhandler_func)
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) dialog = value end
+  )
+  dialog = renoise.app():show_custom_dialog("Track Output Routings", content, keyhandler)
 end
 ------------
 -- Function to adjust the delay, panning, or volume column within the selected area in the pattern editor
@@ -3676,7 +3680,11 @@ function pakettiConvolverSelectionDialog(callback)
     end
     return dialog_content
   end
-  dialog = renoise.app():show_custom_dialog("Load, Import/Export Convolver Device", create_dialog_content(), my_keyhandler_func)
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) dialog = value end
+  )
+  dialog = renoise.app():show_custom_dialog("Load, Import/Export Convolver Device", create_dialog_content(), keyhandler)
 end
 
 function handle_convolver_action(device, track_index, device_index, action)
@@ -4256,7 +4264,11 @@ function pakettiObliqueStrategiesDialog()
     }
   }
   
-  dialog = renoise.app():show_custom_dialog("Oblique Strategies", dialog_content, my_keyhandler_func)
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) dialog = value end
+  )
+  dialog = renoise.app():show_custom_dialog("Oblique Strategies", dialog_content, keyhandler)
 end
 
 function shuffle_oblique_strategies()
@@ -4694,7 +4706,11 @@ function pakettiTitlerDialog()
   -- Initialize filename display
   PakettiTitlerUpdateFilenameDisplay()
 
-  dialog = renoise.app():show_custom_dialog("Paketti Track Dater & Titler", dialog_content, my_keyhandler_func)
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) dialog = value end
+  )
+  dialog = renoise.app():show_custom_dialog("Paketti Track Dater & Titler", dialog_content, keyhandler)
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Track Dater & Titler",invoke=pakettiTitlerDialog}
@@ -8231,7 +8247,11 @@ function pakettiEditStepDialog()
     }
   }
 
-  dialog = renoise.app():show_custom_dialog("Set EditStep&Enter",dialog_content,my_keyhandler_func)
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) dialog = value end
+  )
+  dialog = renoise.app():show_custom_dialog("Set EditStep&Enter",dialog_content,keyhandler)
 end
 
 --[[

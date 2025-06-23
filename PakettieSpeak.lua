@@ -691,7 +691,11 @@ end
 
 function PakettieSpeakShowGUI()
   local gui = PakettieSpeakMakeGUI()
-  dialog = renoise.app():show_custom_dialog("Paketti eSpeak Text-to-Speech", gui, PakettieSpeakKeyHandlerFunc)
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) dialog = value end
+  )
+  dialog = renoise.app():show_custom_dialog("Paketti eSpeak Text-to-Speech", gui, keyhandler)
   PakettieSpeakUpdateLineCount() -- Update line count when showing the dialog
 end
 

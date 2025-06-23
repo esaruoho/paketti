@@ -921,7 +921,11 @@ function pakettiMIDIMappingsDialog()
       }
     }
     
-    cat_dialog = renoise.app():show_custom_dialog("Category Management", cat_content)
+    local keyhandler = create_keyhandler_for_dialog(
+    function() return cat_dialog end,
+    function(value) cat_dialog = value end
+  )
+  cat_dialog = renoise.app():show_custom_dialog("Category Management", cat_content, keyhandler)
   end
 
   -- Simple rebuild approach - close and reopen with proper cleanup
@@ -1108,7 +1112,11 @@ function pakettiMIDIMappingsDialog()
       }
     }
     
-    assignment_dialog = renoise.app():show_custom_dialog("Assign Category", assign_content)
+    local keyhandler = create_keyhandler_for_dialog(
+      function() return assignment_dialog end,
+      function(value) assignment_dialog = value end
+    )
+    assignment_dialog = renoise.app():show_custom_dialog("Assign Category", assign_content, keyhandler)
   end
 
   -- Original function to build mappings display (only called once)

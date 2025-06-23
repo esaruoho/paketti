@@ -565,7 +565,11 @@ renoise.app().window.active_middle_frame=1
     --PakettiPlayerProNoteGridCloseDialog()
   else
     print("Dialog is not visible, creating new dialog.")
-    dialog = renoise.app():show_custom_dialog("Player Pro Note Selector with EditStep", PakettiPlayerProNoteGridCreateDialogContent(),my_keyhandler_func)
+    local keyhandler = create_keyhandler_for_dialog(
+      function() return dialog end,
+      function(value) dialog = value end
+    )
+    dialog = renoise.app():show_custom_dialog("Player Pro Note Selector with EditStep", PakettiPlayerProNoteGridCreateDialogContent(),keyhandler)
     
     -- Add instrument observer after dialog is created
     note_grid_instrument_observer = PakettiPlayerProCreateInstrumentObserver(note_grid_vb, "note_grid_instrument_popup", dialog)
@@ -908,7 +912,11 @@ function pakettiPlayerProEffectDialog()
   end
   
   dialog_initializing = true  -- Set flag before dialog creation
-  effect_dialog = renoise.app():show_custom_dialog("FX", dialog_content, my_keyhandler_func)
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return effect_dialog end,
+    function(value) effect_dialog = value end
+  )
+  effect_dialog = renoise.app():show_custom_dialog("FX", dialog_content, keyhandler)
   dialog_initializing = false  -- Clear flag after dialog is created
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 end
@@ -1717,7 +1725,11 @@ function pakettiPlayerProShowMainDialog()
     }
   }
 
-  dialog = renoise.app():show_custom_dialog("Player Pro Main Dialog", dialog_content, my_keyhandler_func)
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) dialog = value end
+  )
+  dialog = renoise.app():show_custom_dialog("Player Pro Main Dialog", dialog_content, keyhandler)
   
   -- Add instrument observer after dialog is created
   main_dialog_instrument_observer = PakettiPlayerProCreateInstrumentObserver(main_vb, "main_dialog_instrument_popup", dialog)

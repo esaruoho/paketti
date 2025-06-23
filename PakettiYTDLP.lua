@@ -1160,7 +1160,11 @@ function pakettiYTDLPDialog()
     PakettiYTDLPCloseDialog()
   else
     dialog_content = PakettiYTDLPDialogContent()
-    dialog = renoise.app():show_custom_dialog("Paketti YT-DLP Downloader", dialog_content, PakettiYTDLPKeyHandlerFunc)
+    local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) dialog = value end
+  )
+  dialog = renoise.app():show_custom_dialog("Paketti YT-DLP Downloader", dialog_content, keyhandler)
     PakettiYTDLPLogMessage("YT-DLP Downloader Initialized and ready to go.")
   end
 end

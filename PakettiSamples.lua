@@ -3176,6 +3176,7 @@ local function loadRandomSamplesIntoSingleInstrument(num_samples, folder_path)
     instrument:delete_sample_at(1)  -- Clear any default sample slot
 
     -- Load the specified number of samples into new slots within the same instrument
+    local first_sample_name = nil
     for i = 1, num_samples do
         -- Select a random file from the list
         local random_index = math.random(1, #wav_files)
@@ -3191,9 +3192,20 @@ local function loadRandomSamplesIntoSingleInstrument(num_samples, folder_path)
         -- Set the sample name to the file name
         sample.name = file_name
         
+        -- Store the first sample name for single sample instruments
+        if i == 1 then
+            first_sample_name = file_name
+        end
+        
         renoise.app():show_status("Loaded file into sample slot: " .. selected_file)
     end
-    renoise.song().selected_instrument.name = "12 Randomized Samples"
+    
+    -- Set instrument name based on number of samples
+    if num_samples == 1 then
+        renoise.song().selected_instrument.name = first_sample_name
+    else
+        renoise.song().selected_instrument.name = string.format("%02d Randomized Samples", num_samples)
+    end
 end
 
 -- Function to load random samples into separate instruments
@@ -3348,6 +3360,18 @@ function pakettiUserDefinedSamplesDialog()
     end})
 
     button_row:add_child(vb:button{
+      text="Random 01",
+      notifier=function()
+        local sanitized_path = sanitizeFolderPath(textfield.text)
+        if sanitized_path then
+          loadRandomSamplesIntoSingleInstrument(1, sanitized_path)
+        else
+          renoise.app():show_warning("The folder path appears to be invalid or inaccessible.")
+        end
+      end
+    })
+
+    button_row:add_child(vb:button{
       text="Random 12",
       notifier=function()
         local sanitized_path = sanitizeFolderPath(textfield.text)
@@ -3384,7 +3408,11 @@ function pakettiUserDefinedSamplesDialog()
     end
   })
 
-  dialog = renoise.app():show_custom_dialog("Paketti User-Defined Sample Folders", rows, my_keyhandler_func)
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) dialog = value end
+  )
+  dialog = renoise.app():show_custom_dialog("Paketti User-Defined Sample Folders", rows, keyhandler)
 end
 
 
@@ -3416,6 +3444,16 @@ local function createFolderActions(folderNum)
     if folderPath and folderPath ~= "" then
       renoise.app():show_status("Loading Random Drumkit from " .. folderPath)
       loadRandomDrumkitSamples(120, folderPath)
+    else
+      renoise.app():show_status(folderName .. " path is not defined")
+    end
+  end}
+  
+  -- Random 01
+  renoise.tool():add_menu_entry{name=string.format("Main Menu:Tools:Paketti:Quick Sample Folders:%s:Random 01", folderName), invoke=function()
+    if folderPath and folderPath ~= "" then
+      renoise.app():show_status("Loading Random 01 sample from " .. folderPath)
+      loadRandomSamplesIntoSingleInstrument(1, folderPath)
     else
       renoise.app():show_status(folderName .. " path is not defined")
     end
@@ -3459,6 +3497,15 @@ local function createFolderActions(folderNum)
     end
   end}
   
+  renoise.tool():add_keybinding{name=string.format("Global:Paketti:Quick Folder %02d Random 01", folderNum), invoke=function()
+    if folderPath and folderPath ~= "" then
+      renoise.app():show_status("Loading Random 01 samples from " .. folderPath)
+      loadRandomSamplesIntoSingleInstrument(1, folderPath)
+    else
+      renoise.app():show_status(folderName .. " path is not defined")
+    end
+  end}
+
   renoise.tool():add_keybinding{name=string.format("Global:Paketti:Quick Folder %02d Random 12", folderNum), invoke=function()
     if folderPath and folderPath ~= "" then
       renoise.app():show_status("Loading Random 12 samples from " .. folderPath)
@@ -4577,7 +4624,11 @@ function pakettiShowLargestSamplesDialog()
       })
     end
     
-    dialog = renoise.app():show_custom_dialog("Show Largest Samples (Top 40)",dialog_content, my_keyhandler_func)
+    local keyhandler = create_keyhandler_for_dialog(
+      function() return dialog end,
+      function(value) dialog = value end
+    )
+    dialog = renoise.app():show_custom_dialog("Show Largest Samples (Top 40)",dialog_content, keyhandler)
   end
   
   pakettiShowLargestSamplesDialogDialog()

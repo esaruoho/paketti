@@ -220,7 +220,11 @@ local function PakettiPluginEditorPositionControlShowDialog()
   
   position = PakettiPluginEditorPositionControlGetPluginEditorPosition() or {x = 0, y = 0}
 
-  dialog = renoise.app():show_custom_dialog("Plugin Editor Position", PakettiPluginEditorPositionControlCreateDialog(), my_keyhandler_func)
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) dialog = value end
+  )
+  dialog = renoise.app():show_custom_dialog("Plugin Editor Position", PakettiPluginEditorPositionControlCreateDialog(), keyhandler)
 end
 
 local function PakettiPluginEditorPositionControlShowInitialDialog()
@@ -507,14 +511,7 @@ local filter_params = {
   resonance = 0.7
 }
 
--- Function to close dialog with '!'
-local function my_keyhandler_func(dialog_key)
-  if dialog_key.name == "exclamation" and
-     not (dialog_key.modifiers == "shift" or dialog_key.modifiers == "control" or dialog_key.modifiers == "alt") then
-    dialog:close()
-    renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
-  end
-end
+-- Removed old keyhandler function - now using standardized system
 
 -- Function to export, process, and reimport audio
 local function process_audio()
@@ -553,6 +550,10 @@ local function show_dialog()
     return
   end
 
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) dialog = value end
+  )
   dialog = renoise.app():show_custom_dialog("Wacky Filter", vb:row{
     vb:column{
       vb:slider{ min = 0, max = 1, value = filter_params.chaos, notifier=function(v) filter_params.chaos = v end},
@@ -563,7 +564,7 @@ local function show_dialog()
       vb:text{text="Resonance" },
       vb:button{ text="Process Audio", notifier = process_audio }
     }
-  }, my_keyhandler_func)
+  }, keyhandler)
 end
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/Work in Progress:Wacky Filter",invoke=show_dialog}

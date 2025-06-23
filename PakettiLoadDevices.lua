@@ -575,7 +575,11 @@ function pakettiLoadDevicesDialog()
       vb:text{text="Device Type: ", font="bold",style="strong"},
       dropdown,action_buttons,random_selection_controls},dialog_content_view}
 
-  dialog = renoise.app():show_custom_dialog("Load Device(s)", dialog_content, my_keyhandler_func)
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) dialog = value end
+  )
+  dialog = renoise.app():show_custom_dialog("Load Device(s)", dialog_content, keyhandler)
 
   updateDeviceList()
 end

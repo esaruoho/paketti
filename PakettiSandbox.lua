@@ -566,7 +566,11 @@ function pakettiSpeedTempoDialog()
     }
   }
 
-  dialog = renoise.app():show_custom_dialog("Speed and Tempo to BPM",dialog_content,my_keyhandler_func)
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) dialog = value end
+  )
+  dialog = renoise.app():show_custom_dialog("Speed and Tempo to BPM",dialog_content,keyhandler)
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 end
 
@@ -896,7 +900,11 @@ function pakettiBeatStructureEditorDialog()
   
   printTimeSignatureInfo()  -- Add this before showing the dialog
   updatePreview()  -- Initial preview update
-  dialog = renoise.app():show_custom_dialog("Beat Structure Editor",dialog_content,my_keyhandler_func)
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) dialog = value end
+  )
+  dialog = renoise.app():show_custom_dialog("Beat Structure Editor",dialog_content,keyhandler)
   renoise.app().window.active_middle_frame = 1
 end
 

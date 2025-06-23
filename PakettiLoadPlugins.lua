@@ -557,7 +557,11 @@ function pakettiLoadPluginsDialog()
     dialog_content_view
   }
 
-  dialog = renoise.app():show_custom_dialog("Load Plugin(s)", dialog_content, my_pluginLoaderkeyhandlerfunc)
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) dialog = value end
+  )
+  dialog = renoise.app():show_custom_dialog("Load Plugin(s)", dialog_content, keyhandler)
 
   -- Initial Update
   updatePluginList()

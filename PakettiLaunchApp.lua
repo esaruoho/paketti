@@ -288,7 +288,8 @@ function saveSampleToSmartFolder(index)
     local smart_folder_path = preferences.AppSelection["SmartFoldersApp"..index].value
     if smart_folder_path == "" then
         renoise.app():show_status("Please set the Smart Folder path for " .. index)
-        renoise.app():show_custom_dialog("Set Smart Folder Path", create_dialog_content())
+        local keyhandler = create_keyhandler_for_dialog()
+        renoise.app():show_custom_dialog("Set Smart Folder Path", create_dialog_content(), keyhandler)
         return
     end
 
@@ -322,7 +323,8 @@ function saveSamplesToSmartFolder(index)
     local smart_folder_path = preferences.AppSelection["SmartFoldersApp"..index].value
     if smart_folder_path == "" then
         renoise.app():show_status("Please set the Smart Folder path for " .. index)
-        renoise.app():show_custom_dialog("Set Smart Folder Path", create_dialog_content())
+        local keyhandler = create_keyhandler_for_dialog()
+        renoise.app():show_custom_dialog("Set Smart Folder Path", create_dialog_content(), keyhandler)
         return
     end
 

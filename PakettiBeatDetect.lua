@@ -373,7 +373,11 @@ function pakettiBeatDetectorDialog()
     return
   end
   
-  dialog = renoise.app():show_custom_dialog('BeatDetector Modified v0.354', makeBeatDetector_gui, my_keyhandler_func)
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) dialog = value end
+  )
+  dialog = renoise.app():show_custom_dialog('BeatDetector Modified v0.354', makeBeatDetector_gui, keyhandler)
 end
 
 renoise.tool():add_keybinding{name='Global:Paketti:BeatDetector Modified...',invoke=function() pakettiBeatDetectorDialog() end}
