@@ -5907,3 +5907,93 @@ renoise.tool():add_menu_entry{name = "Instrument Box:Paketti:Generate:Pure Sinew
 renoise.tool():add_menu_entry{name = "Instrument Box:Paketti:Generate:AM Sinewave 440Hz (20x mod)",invoke = function() createAmplitudeModulatedSinewaveSample(44100, 440, 20, 30) end}
 renoise.tool():add_menu_entry{name = "Instrument Box:Paketti:Generate:AM Sinewave 1000Hz (20x mod)",invoke = function() createAmplitudeModulatedSinewaveSample(44100, 1000, 20, 30) end}
 renoise.tool():add_menu_entry{name = "Instrument Box:Paketti:Generate:AM Sinewave Custom",invoke = createCustomAmplitudeModulatedSinewave}
+
+-- Delete Slice Markers in Sample Selection
+function pakettiDeleteSliceMarkersInSelection()
+  local song = renoise.song()
+  
+  -- Check if there's a sample selected
+  if not song.selected_sample then
+    renoise.app():show_status("No sample selected")
+    return
+  end
+  
+  local sample = song.selected_sample
+  
+  -- Check if sample has a buffer
+  if not sample.sample_buffer then
+    renoise.app():show_status("Selected sample has no buffer")
+    return
+  end
+  
+  local buffer = sample.sample_buffer
+  
+  -- Check if there's a selection in the sample buffer
+  if not buffer.has_sample_data then
+    renoise.app():show_status("Sample buffer has no data")
+    return
+  end
+  
+  -- Get selection range
+  local selection_start = buffer.selection_start
+  local selection_end = buffer.selection_end
+  
+  -- Check if there's actually a selection
+  if selection_start == 0 and selection_end == 0 then
+    renoise.app():show_status("No selection in sample buffer")
+    return
+  end
+  
+  -- Check if there are slice markers
+  if #sample.slice_markers == 0 then
+    renoise.app():show_status("No slice markers found in sample")
+    return
+  end
+  
+  print("Selection range: " .. selection_start .. " to " .. selection_end)
+  print("Found " .. #sample.slice_markers .. " slice markers")
+  
+  -- Count markers that will be deleted
+  local markers_to_delete = {}
+  for i = 1, #sample.slice_markers do
+    local marker_pos = sample.slice_markers[i]
+    print("Checking slice marker " .. i .. " at position " .. marker_pos .. " against selection " .. selection_start .. " to " .. selection_end)
+    if marker_pos >= selection_start and marker_pos <= selection_end then
+      table.insert(markers_to_delete, marker_pos)  -- Store position, not index!
+      print("Slice marker at position " .. marker_pos .. " is within selection - WILL DELETE")
+    else
+      print("Slice marker at position " .. marker_pos .. " is outside selection - KEEPING")
+    end
+  end
+  
+  if #markers_to_delete == 0 then
+    renoise.app():show_status("No slice markers found within selection range")
+    return
+  end
+  
+  print("About to delete " .. #markers_to_delete .. " slice markers")
+  
+  -- Delete markers by position (API expects sample position, not index!)
+  for i = 1, #markers_to_delete do
+    local marker_pos = markers_to_delete[i]
+    print("Attempting to delete slice marker at sample position: " .. marker_pos)
+    sample:delete_slice_marker(marker_pos)
+    print("Successfully deleted slice marker at position: " .. marker_pos)
+  end
+  
+  renoise.app():show_status("Deleted " .. #markers_to_delete .. " slice markers from selection")
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Delete Slice Markers in Selection",invoke=function() pakettiDeleteSliceMarkersInSelection() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Delete Slice Markers in Selection",invoke=function() pakettiDeleteSliceMarkersInSelection() end}
+renoise.tool():add_menu_entry{name="Sample Editor Ruler:Delete Slice Markers in Selection",invoke=function() pakettiDeleteSliceMarkersInSelection() end}
+
+-- Add MIDI mapping
+renoise.tool():add_midi_mapping{
+  name="Paketti:Delete Slice Markers in Selection",
+  invoke=function(message)
+    if message:is_trigger() then
+      pakettiDeleteSliceMarkersInSelection()
+    end
+  end
+}

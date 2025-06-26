@@ -2204,7 +2204,7 @@ end}
 local already_interpolated = false
 
 -- Main function triggered by the keybinding
-local function alt_x_functionality()
+local function alt_x_functionality(mode)
   local s = renoise.song()
 
   -- Retrieve selection bounds
@@ -2221,125 +2221,634 @@ local function alt_x_functionality()
   local start_column = selection.start_column
   local end_column = selection.end_column
 
+  -- Only work on single track selections
+  if start_track ~= end_track then
+    renoise.app():show_status("ALT-X interpolation only works on single track selections.")
+    return
+  end
+
   -- Get current track and pattern
-  local track_index = s.selected_track_index
+  local track_index = start_track
   local track = s:track(track_index)
   local pattern_track = s:pattern(s.selected_pattern_index):track(track_index)
 
   -- Retrieve visible columns
   local visible_note_columns = track.visible_note_columns
   local visible_effect_columns = track.visible_effect_columns
+  local volume_column_visible = track.volume_column_visible
+  local panning_column_visible = track.panning_column_visible
+  local delay_column_visible = track.delay_column_visible
+  local sample_effects_column_visible = track.sample_effects_column_visible
 
-  -- Calculate effect column bounds for the selected area
-  local effect_column_start = math.max(1, start_column - visible_note_columns)
-  local effect_column_end = math.min(visible_effect_columns, end_column - visible_note_columns)
-
-  -- Function to calculate interpolation values
-  local function calculate_interpolation_values()
-    local first_effect_line = pattern_track:line(start_line).effect_columns
-    local last_effect_line = pattern_track:line(end_line).effect_columns
-    local interpolated_values = {}
-
-    for i = effect_column_start, effect_column_end do
-      local first_value = tonumber(first_effect_line[i].amount_value)
-      local last_value = tonumber(last_effect_line[i].amount_value)
-      if first_value and last_value then
-        interpolated_values[i] = {}
-        for line_index = start_line, end_line do
-          local t = (line_index - start_line) / (end_line - start_line)
-          local interpolated_value = math.floor(first_value + t * (last_value - first_value))
-          interpolated_values[i][line_index] = interpolated_value
-        end
-      end
+  -- Determine what type of columns we're working with
+  local note_column_range = {}
+  local effect_column_range = {}
+  
+  -- Calculate note column ranges (volume, panning, delay, sample effects)
+  for col = start_column, end_column do
+    if col <= visible_note_columns then
+      table.insert(note_column_range, col)
+    elseif col > visible_note_columns then
+      table.insert(effect_column_range, col - visible_note_columns)
     end
+  end
 
+  -- Function to convert hex string to number
+  local function hex_string_to_number(hex_string)
+    if hex_string == ".." or hex_string == "" then
+      return nil
+    end
+    return tonumber(hex_string, 16)  -- Convert hex string to number
+  end
+
+  -- Function to convert number back to hex value (for writing back to Renoise)
+  local function number_to_hex_value(number)
+    return math.floor(math.max(0, math.min(255, number)))
+  end
+
+  -- Function to number_to_hex
+  local function number_to_hex(number)
+    return math.floor(math.max(0, math.min(255, number)))
+  end
+
+  -- Function to calculate interpolation values for note columns
+  local function calculate_note_column_interpolation()
+    local interpolated_values = {volume = {}, panning = {}, delay = {}, sample_effects = {}}
+    
+    for _, note_col in ipairs(note_column_range) do
+      local first_line = pattern_track:line(start_line).note_columns[note_col]
+      local last_line = pattern_track:line(end_line).note_columns[note_col]
+      
+                    -- Volume column interpolation
+       if volume_column_visible then
+         local first_vol = hex_string_to_number(first_line.volume_string)
+         local last_vol = hex_string_to_number(last_line.volume_string)
+         
+         if first_vol ~= nil and last_vol ~= nil then
+           interpolated_values.volume[note_col] = {}
+           for line_index = start_line, end_line do
+             local t = (end_line == start_line) and 0 or (line_index - start_line) / (end_line - start_line)
+             local interpolated_value = number_to_hex_value(first_vol + t * (last_vol - first_vol))
+             interpolated_values.volume[note_col][line_index] = interpolated_value
+           end
+         end
+       end
+      
+                    -- Panning column interpolation
+       if panning_column_visible then
+         local first_pan = hex_string_to_number(first_line.panning_string)
+         local last_pan = hex_string_to_number(last_line.panning_string)
+         if first_pan ~= nil and last_pan ~= nil then
+           interpolated_values.panning[note_col] = {}
+           for line_index = start_line, end_line do
+             local t = (end_line == start_line) and 0 or (line_index - start_line) / (end_line - start_line)
+             local interpolated_value = number_to_hex_value(first_pan + t * (last_pan - first_pan))
+             interpolated_values.panning[note_col][line_index] = interpolated_value
+           end
+         end
+       end
+      
+                    -- Delay column interpolation
+       if delay_column_visible then
+         local first_delay = hex_string_to_number(first_line.delay_string)
+         local last_delay = hex_string_to_number(last_line.delay_string)
+         if first_delay ~= nil and last_delay ~= nil then
+           interpolated_values.delay[note_col] = {}
+           for line_index = start_line, end_line do
+             local t = (end_line == start_line) and 0 or (line_index - start_line) / (end_line - start_line)
+             local interpolated_value = number_to_hex_value(first_delay + t * (last_delay - first_delay))
+             interpolated_values.delay[note_col][line_index] = interpolated_value
+           end
+         end
+       end
+      
+                    -- Sample effects column interpolation
+       if sample_effects_column_visible then
+         local first_fx = hex_string_to_number(first_line.effect_amount_string)
+         local last_fx = hex_string_to_number(last_line.effect_amount_string)
+         if first_fx ~= nil and last_fx ~= nil then
+           interpolated_values.sample_effects[note_col] = {}
+           for line_index = start_line, end_line do
+             local t = (end_line == start_line) and 0 or (line_index - start_line) / (end_line - start_line)
+             local interpolated_value = number_to_hex_value(first_fx + t * (last_fx - first_fx))
+             interpolated_values.sample_effects[note_col][line_index] = interpolated_value
+           end
+         end
+       end
+    end
+    
     return interpolated_values
   end
 
-  -- Function to read current pattern content in selection
-  local function read_current_content()
-    local current_values = {}
-
-    for i = effect_column_start, effect_column_end do
-      current_values[i] = {}
-      for line_index = start_line, end_line do
-        local line = pattern_track:line(line_index)
-        local effect_column = line:effect_column(i)
-        current_values[i][line_index] = tonumber(effect_column.amount_value) or -1
+  -- Function to calculate interpolation values for effect columns
+  local function calculate_effect_column_interpolation()
+    local interpolated_values = {}
+    
+    for _, effect_col in ipairs(effect_column_range) do
+      if effect_col <= visible_effect_columns then
+        local first_effect = pattern_track:line(start_line).effect_columns[effect_col]
+        local last_effect = pattern_track:line(end_line).effect_columns[effect_col]
+        
+                          local first_value = hex_string_to_number(first_effect.amount_string)
+         local last_value = hex_string_to_number(last_effect.amount_string)
+         
+         if first_value ~= nil and last_value ~= nil then
+           interpolated_values[effect_col] = {}
+           for line_index = start_line, end_line do
+             local t = (end_line == start_line) and 0 or (line_index - start_line) / (end_line - start_line)
+             local interpolated_value = number_to_hex_value(first_value + t * (last_value - first_value))
+             interpolated_values[effect_col][line_index] = interpolated_value
+           end
+         end
       end
     end
+    
+    return interpolated_values
+  end
 
+  -- Function to read current note column content
+  local function read_current_note_content()
+    local current_values = {volume = {}, panning = {}, delay = {}, sample_effects = {}}
+    
+    for _, note_col in ipairs(note_column_range) do
+      current_values.volume[note_col] = {}
+      current_values.panning[note_col] = {}
+      current_values.delay[note_col] = {}
+      current_values.sample_effects[note_col] = {}
+      
+      for line_index = start_line, end_line do
+        local line = pattern_track:line(line_index)
+        local note_column = line.note_columns[note_col]
+        
+        current_values.volume[note_col][line_index] = hex_string_to_number(note_column.volume_string) or -1
+        current_values.panning[note_col][line_index] = hex_string_to_number(note_column.panning_string) or -1
+        current_values.delay[note_col][line_index] = hex_string_to_number(note_column.delay_string) or -1
+        current_values.sample_effects[note_col][line_index] = hex_string_to_number(note_column.effect_amount_string) or -1
+      end
+    end
+    
     return current_values
   end
 
-  -- Function to compare current content with calculated interpolation
-  local function content_matches_interpolation(current_values, interpolated_values)
-    for i = effect_column_start, effect_column_end do
-      if interpolated_values[i] then
+  -- Function to read current effect column content
+  local function read_current_effect_content()
+    local current_values = {}
+    
+    for _, effect_col in ipairs(effect_column_range) do
+      if effect_col <= visible_effect_columns then
+        current_values[effect_col] = {}
         for line_index = start_line, end_line do
-          if current_values[i][line_index] ~= interpolated_values[i][line_index] then
-            return false -- If any value differs, it's not a match
+          local line = pattern_track:line(line_index)
+          local effect_column = line.effect_columns[effect_col]
+          current_values[effect_col][line_index] = hex_string_to_number(effect_column.amount_string) or -1
+        end
+      end
+    end
+    
+    return current_values
+  end
+
+  -- Function to compare note column content
+  local function note_content_matches_interpolation(current_values, interpolated_values)
+    for col_type, col_data in pairs(interpolated_values) do
+      for note_col, line_data in pairs(col_data) do
+        if current_values[col_type] and current_values[col_type][note_col] then
+          for line_index, value in pairs(line_data) do
+            if current_values[col_type][note_col][line_index] ~= value then
+              return false
+            end
           end
         end
       end
     end
-    return true -- All values match
+    return true
   end
 
-  -- Function to interpolate effect columns
-  local function apply_interpolation(interpolated_values)
-    local first_effect_line = pattern_track:line(start_line).effect_columns
-
-    for i = effect_column_start, effect_column_end do
-      if interpolated_values[i] then
-        for line_index = start_line, end_line do
-          local line = pattern_track:line(line_index)
-          line.effect_columns[i].number_value = first_effect_line[i].number_value
-          line.effect_columns[i].amount_value = interpolated_values[i][line_index]
+  -- Function to compare effect column content
+  local function effect_content_matches_interpolation(current_values, interpolated_values)
+    for effect_col, line_data in pairs(interpolated_values) do
+      if current_values[effect_col] then
+        for line_index, value in pairs(line_data) do
+          if current_values[effect_col][line_index] ~= value then
+            return false
+          end
         end
       end
     end
-
-    renoise.app():show_status("Effect column parameters interpolated.")
-    already_interpolated = true -- Mark as interpolated
+    return true
   end
 
-  -- Function to wipe effect columns
+  -- Function to apply note column interpolation
+  local function apply_note_interpolation(interpolated_values)
+    local first_line = pattern_track:line(start_line)
+    local status_parts = {}
+    
+    for col_type, col_data in pairs(interpolated_values) do
+      for note_col, line_data in pairs(col_data) do
+        for line_index, value in pairs(line_data) do
+          local line = pattern_track:line(line_index)
+          local note_column = line.note_columns[note_col]
+          
+          if col_type == "volume" then
+            note_column.volume_value = value
+            if not table.find(status_parts, "Volume") then table.insert(status_parts, "Volume") end
+          elseif col_type == "panning" then
+            note_column.panning_value = value
+            if not table.find(status_parts, "Panning") then table.insert(status_parts, "Panning") end
+          elseif col_type == "delay" then
+            note_column.delay_value = value
+            if not table.find(status_parts, "Delay") then table.insert(status_parts, "Delay") end
+          elseif col_type == "sample_effects" then
+            note_column.effect_number_string = first_line.note_columns[note_col].effect_number_string
+            note_column.effect_amount_value = value
+            if not table.find(status_parts, "Sample Effects") then table.insert(status_parts, "Sample Effects") end
+          end
+        end
+      end
+    end
+    
+    if #status_parts > 0 then
+      renoise.app():show_status(table.concat(status_parts, ", ") .. " interpolated.")
+    end
+  end
+
+  -- Function to apply effect column interpolation
+  local function apply_effect_interpolation(interpolated_values)
+    local first_effect_line = pattern_track:line(start_line).effect_columns
+    
+         for effect_col, line_data in pairs(interpolated_values) do
+       for line_index, value in pairs(line_data) do
+         local line = pattern_track:line(line_index)
+         line.effect_columns[effect_col].number_string = first_effect_line[effect_col].number_string
+         line.effect_columns[effect_col].amount_value = value
+       end
+     end
+    
+    renoise.app():show_status("Effect columns interpolated.")
+  end
+
+  -- Function to clear note columns
+  local function clear_note_columns()
+    local status_parts = {}
+    
+    for line_index = start_line, end_line do
+      local line = pattern_track:line(line_index)
+      for _, note_col in ipairs(note_column_range) do
+        local note_column = line.note_columns[note_col]
+        
+                 if volume_column_visible and hex_string_to_number(note_column.volume_string) then
+           note_column.volume_string = ".."
+           if not table.find(status_parts, "Volume") then table.insert(status_parts, "Volume") end
+         end
+         if panning_column_visible and hex_string_to_number(note_column.panning_string) then
+           note_column.panning_string = ".."
+           if not table.find(status_parts, "Panning") then table.insert(status_parts, "Panning") end
+         end
+         if delay_column_visible and hex_string_to_number(note_column.delay_string) then
+           note_column.delay_string = ".."
+           if not table.find(status_parts, "Delay") then table.insert(status_parts, "Delay") end
+         end
+         if sample_effects_column_visible and hex_string_to_number(note_column.effect_amount_string) then
+           note_column.effect_number_string = ".."
+           note_column.effect_amount_string = ".."
+           if not table.find(status_parts, "Sample Effects") then table.insert(status_parts, "Sample Effects") end
+         end
+      end
+    end
+    
+    if #status_parts > 0 then
+      renoise.app():show_status(table.concat(status_parts, ", ") .. " cleared.")
+    end
+  end
+
+  -- Function to clear effect columns
   local function clear_effect_columns()
     for line_index = start_line, end_line do
       local line = pattern_track:line(line_index)
-      if not line.is_empty then
-        for effect_column_index = effect_column_start, effect_column_end do
-          line:effect_column(effect_column_index):clear()
+      for _, effect_col in ipairs(effect_column_range) do
+        if effect_col <= visible_effect_columns then
+          line.effect_columns[effect_col]:clear()
         end
       end
     end
     renoise.app():show_status("Effect columns cleared.")
-    already_interpolated = false -- Reset flag after clearing
   end
 
-  -- Main logic:
-  -- 1. Read the current content in the selection
-  -- 2. Calculate the interpolation
-  -- 3. If the content matches the interpolation, wipe it; otherwise, interpolate
-
-  local current_values = read_current_content()
-  local interpolated_values = calculate_interpolation_values()
-
-  if content_matches_interpolation(current_values, interpolated_values) then
-    -- If the content matches the interpolation, wipe it
-    clear_effect_columns()
+  -- Main logic based on mode
+  if mode == "volume" then
+    -- Volume column mode - only work with note columns for volume
+    local has_note_columns = #note_column_range > 0
+    
+    if not has_note_columns then
+      renoise.app():show_status("No note columns selected for volume interpolation.")
+      return
+    end
+    
+    if not volume_column_visible then
+      renoise.app():show_status("Volume column is not visible.")
+      return
+    end
+    
+    local current_note_values = read_current_note_content()
+    local interpolated_note_values = calculate_note_column_interpolation()
+    
+    -- Check if any volume interpolation data exists
+    local has_volume_data = false
+    
+    for note_col, line_data in pairs(interpolated_note_values.volume) do
+      if next(line_data) then
+        has_volume_data = true
+        break
+      end
+    end
+    
+    if has_volume_data then
+      -- Create volume-only interpolation data
+      local volume_only_interpolation = {volume = interpolated_note_values.volume}
+      if note_content_matches_interpolation(current_note_values, volume_only_interpolation) then
+        -- Clear only volume columns
+        for line_index = start_line, end_line do
+          local line = pattern_track:line(line_index)
+          for _, note_col in ipairs(note_column_range) do
+            local note_column = line.note_columns[note_col]
+            if hex_string_to_number(note_column.volume_string) then
+              note_column.volume_string = ".."
+            end
+          end
+        end
+        renoise.app():show_status("Volume columns cleared.")
+      else
+        -- Apply only volume interpolation
+        for note_col, line_data in pairs(interpolated_note_values.volume) do
+          for line_index, value in pairs(line_data) do
+            local line = pattern_track:line(line_index)
+            local note_column = line.note_columns[note_col]
+            note_column.volume_value = value
+          end
+        end
+        renoise.app():show_status("Volume columns interpolated.")
+      end
+    else
+      renoise.app():show_status("No volume data to interpolate between.")
+    end
+    
+  elseif mode == "panning" then
+    -- Panning column mode - only work with note columns for panning
+    local has_note_columns = #note_column_range > 0
+    
+    if not has_note_columns then
+      renoise.app():show_status("No note columns selected for panning interpolation.")
+      return
+    end
+    
+    if not panning_column_visible then
+      renoise.app():show_status("Panning column is not visible.")
+      return
+    end
+    
+    local current_note_values = read_current_note_content()
+    local interpolated_note_values = calculate_note_column_interpolation()
+    
+    -- Check if any panning interpolation data exists
+    local has_panning_data = false
+    for note_col, line_data in pairs(interpolated_note_values.panning) do
+      if next(line_data) then
+        has_panning_data = true
+        break
+      end
+    end
+    
+    if has_panning_data then
+      -- Create panning-only interpolation data
+      local panning_only_interpolation = {panning = interpolated_note_values.panning}
+      if note_content_matches_interpolation(current_note_values, panning_only_interpolation) then
+        -- Clear only panning columns
+        for line_index = start_line, end_line do
+          local line = pattern_track:line(line_index)
+          for _, note_col in ipairs(note_column_range) do
+            local note_column = line.note_columns[note_col]
+            if hex_string_to_number(note_column.panning_string) then
+              note_column.panning_string = ".."
+            end
+          end
+        end
+        renoise.app():show_status("Panning columns cleared.")
+      else
+        -- Apply only panning interpolation
+        for note_col, line_data in pairs(interpolated_note_values.panning) do
+          for line_index, value in pairs(line_data) do
+            local line = pattern_track:line(line_index)
+            local note_column = line.note_columns[note_col]
+            note_column.panning_value = value
+          end
+        end
+        renoise.app():show_status("Panning columns interpolated.")
+      end
+    else
+      renoise.app():show_status("No panning data to interpolate between.")
+    end
+    
+  elseif mode == "delay" then
+    -- Delay column mode - only work with note columns for delay
+    local has_note_columns = #note_column_range > 0
+    
+    if not has_note_columns then
+      renoise.app():show_status("No note columns selected for delay interpolation.")
+      return
+    end
+    
+    if not delay_column_visible then
+      renoise.app():show_status("Delay column is not visible.")
+      return
+    end
+    
+    local current_note_values = read_current_note_content()
+    local interpolated_note_values = calculate_note_column_interpolation()
+    
+    -- Check if any delay interpolation data exists
+    local has_delay_data = false
+    for note_col, line_data in pairs(interpolated_note_values.delay) do
+      if next(line_data) then
+        has_delay_data = true
+        break
+      end
+    end
+    
+    if has_delay_data then
+      -- Create delay-only interpolation data
+      local delay_only_interpolation = {delay = interpolated_note_values.delay}
+      if note_content_matches_interpolation(current_note_values, delay_only_interpolation) then
+        -- Clear only delay columns
+        for line_index = start_line, end_line do
+          local line = pattern_track:line(line_index)
+          for _, note_col in ipairs(note_column_range) do
+            local note_column = line.note_columns[note_col]
+            if hex_string_to_number(note_column.delay_string) then
+              note_column.delay_string = ".."
+            end
+          end
+        end
+        renoise.app():show_status("Delay columns cleared.")
+      else
+        -- Apply only delay interpolation
+        for note_col, line_data in pairs(interpolated_note_values.delay) do
+          for line_index, value in pairs(line_data) do
+            local line = pattern_track:line(line_index)
+            local note_column = line.note_columns[note_col]
+            note_column.delay_value = value
+          end
+        end
+        renoise.app():show_status("Delay columns interpolated.")
+      end
+    else
+      renoise.app():show_status("No delay data to interpolate between.")
+    end
+    
+  elseif mode == "sample_effect" then
+    -- Sample effect mode - only work with note columns for sample effects
+    local has_note_columns = #note_column_range > 0
+    
+    if not has_note_columns then
+      renoise.app():show_status("No note columns selected for sample effect interpolation.")
+      return
+    end
+    
+    if not sample_effects_column_visible then
+      renoise.app():show_status("Sample effects column is not visible.")
+      return
+    end
+    
+    local current_note_values = read_current_note_content()
+    local interpolated_note_values = calculate_note_column_interpolation()
+    
+    -- Check if any sample effect interpolation data exists
+    local has_sample_effect_data = false
+    for note_col, line_data in pairs(interpolated_note_values.sample_effects) do
+      if next(line_data) then
+        has_sample_effect_data = true
+        break
+      end
+    end
+    
+    if has_sample_effect_data then
+      -- Create sample effect-only interpolation data
+      local sample_effect_only_interpolation = {sample_effects = interpolated_note_values.sample_effects}
+      if note_content_matches_interpolation(current_note_values, sample_effect_only_interpolation) then
+        -- Clear only sample effect columns
+        for line_index = start_line, end_line do
+          local line = pattern_track:line(line_index)
+          for _, note_col in ipairs(note_column_range) do
+            local note_column = line.note_columns[note_col]
+            if hex_string_to_number(note_column.effect_amount_string) then
+              note_column.effect_number_string = ".."
+              note_column.effect_amount_string = ".."
+            end
+          end
+        end
+        renoise.app():show_status("Sample effect columns cleared.")
+      else
+        -- Apply only sample effect interpolation
+        local first_line = pattern_track:line(start_line)
+        for note_col, line_data in pairs(interpolated_note_values.sample_effects) do
+          for line_index, value in pairs(line_data) do
+            local line = pattern_track:line(line_index)
+            local note_column = line.note_columns[note_col]
+            note_column.effect_number_value = first_line.note_columns[note_col].effect_number_value
+            note_column.effect_amount_value = value
+          end
+        end
+        renoise.app():show_status("Sample effect columns interpolated.")
+      end
+    else
+      renoise.app():show_status("No sample effect data to interpolate between.")
+    end
+    
+  elseif mode == "effect" then
+    -- Effect column mode - only work with effect columns
+    local has_effect_columns = #effect_column_range > 0
+    
+    if not has_effect_columns then
+      renoise.app():show_status("No effect columns selected for effect interpolation.")
+      return
+    end
+    
+    local current_effect_values = read_current_effect_content()
+    local interpolated_effect_values = calculate_effect_column_interpolation()
+    
+    if next(interpolated_effect_values) then
+      if effect_content_matches_interpolation(current_effect_values, interpolated_effect_values) then
+        clear_effect_columns()
+      else
+        apply_effect_interpolation(interpolated_effect_values)
+      end
+    else
+      renoise.app():show_status("No effect data to interpolate between.")
+    end
+    
   else
-    -- Otherwise, apply the interpolation
-    apply_interpolation(interpolated_values)
+    renoise.app():show_status("Invalid mode for ALT-X functionality.")
   end
 
   -- After the script is run, set focus back to the middle frame
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 end
 
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker ALT-X *2 (Interpolate&Clear Effect Columns)",
-  invoke=function() alt_x_functionality() end}
+-- Smart ALT-X function that auto-detects the column type
+local function smart_alt_x_functionality()
+  local s = renoise.song()
+  local sub_column_type = s.selected_sub_column_type
+  
+  -- Sub-column types from PakettiSubColumnModifier:
+  -- 1 = "Note", 2 = "Instrument Number", 3 = "Volume", 4 = "Panning", 5 = "Delay"
+  -- 6 = "Sample Effect Number", 7 = "Sample Effect Amount", 8 = "Effect Number", 9 = "Effect Amount"
+  
+  local mode = nil
+  local column_name = ""
+  
+  if sub_column_type == 3 then
+    -- Volume column
+    mode = "volume"
+    column_name = "Volume"
+  elseif sub_column_type == 4 then
+    -- Panning column
+    mode = "panning"
+    column_name = "Panning"
+  elseif sub_column_type == 5 then
+    -- Delay column
+    mode = "delay"
+    column_name = "Delay"
+  elseif sub_column_type == 6 or sub_column_type == 7 then
+    -- Sample Effect Number or Amount
+    mode = "sample_effect"
+    column_name = "Sample Effect"
+  elseif sub_column_type == 8 or sub_column_type == 9 then
+    -- Effect Number or Amount
+    mode = "effect"
+    column_name = "Effect"
+  elseif sub_column_type == 1 or sub_column_type == 2 then
+    -- Note or Instrument Number - default to effect column
+    mode = "effect"
+    column_name = "Effect (default for Note/Instrument column)"
+  else
+    renoise.app():show_status("ALT-X interpolation not supported for this column type.")
+    return
+  end
+  
+  print("Smart ALT-X detected: " .. column_name .. " column (sub-column type " .. sub_column_type .. ")")
+  alt_x_functionality(mode)
+end
+
+-- Smart ALT-X keybinding that auto-detects column type
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker ALT-X Smart (Auto-detect Column)",
+  invoke=function() smart_alt_x_functionality() end}
+
+-- Volume column interpolation keybinding
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker ALT-X Volume Column (Interpolate&Clear)",
+  invoke=function() alt_x_functionality("volume") end}
+
+-- Effect column interpolation keybinding  
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker ALT-X Effect Column (Interpolate&Clear)",
+  invoke=function() alt_x_functionality("effect") end}
 
 
   renoise.tool():add_keybinding{name="Global:Paketti:Select First Instrument Box Slot", invoke=function()

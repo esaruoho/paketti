@@ -495,7 +495,6 @@ end
   -- showAutomation()
 end
 
-
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti PitchBend Drumkit Sample Loader",invoke=function() pitchBendDrumkitLoader() end}
 renoise.tool():add_midi_mapping{name="Paketti:Midi Paketti PitchBend Drumkit Sample Loader",invoke=function(message) if message:is_trigger() then pitchBendDrumkitLoader() end end}
 
@@ -3459,6 +3458,16 @@ local function createFolderActions(folderNum)
     end
   end}
   
+  -- Random 01 to Pattern
+  renoise.tool():add_menu_entry{name=string.format("Main Menu:Tools:Paketti:Quick Sample Folders:%s:Random 01 Sample to Pattern", folderName), invoke=function()
+    if folderPath and folderPath ~= "" then
+      renoise.app():show_status("Loading Random 01 sample to pattern from " .. folderPath)
+      loadRandomSampleToPattern(folderPath)
+    else
+      renoise.app():show_status(folderName .. " path is not defined")
+    end
+  end}
+  
   -- Random 12
   renoise.tool():add_menu_entry{name=string.format("Main Menu:Tools:Paketti:Quick Sample Folders:%s:Random 12", folderName), invoke=function()
     if folderPath and folderPath ~= "" then
@@ -3501,6 +3510,15 @@ local function createFolderActions(folderNum)
     if folderPath and folderPath ~= "" then
       renoise.app():show_status("Loading Random 01 samples from " .. folderPath)
       loadRandomSamplesIntoSingleInstrument(1, folderPath)
+    else
+      renoise.app():show_status(folderName .. " path is not defined")
+    end
+  end}
+  
+  renoise.tool():add_keybinding{name=string.format("Global:Paketti:Quick Folder %02d Random 01 Sample to Pattern", folderNum), invoke=function()
+    if folderPath and folderPath ~= "" then
+      renoise.app():show_status("Loading Random 01 sample to pattern from " .. folderPath)
+      loadRandomSampleToPattern(folderPath)
     else
       renoise.app():show_status(folderName .. " path is not defined")
     end
@@ -5196,3 +5214,95 @@ function pakettiSampleBufferCenterSelector()
 end
 
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Select Center of Sample Buffer",invoke=function()pakettiSampleBufferCenterSelector()end}
+
+-- Function to load a random sample directly into the pattern at cursor position
+function loadRandomSampleToPattern(folder_path)
+  local song = renoise.song()
+  
+  -- Check if we have a valid song
+  if not song then
+    renoise.app():show_status("No song loaded")
+    return
+  end
+  
+  -- Check if current track is a sequencer track
+  local current_track = song.selected_track
+  if current_track.type ~= renoise.Track.TRACK_TYPE_SEQUENCER then
+    renoise.app():show_status("Current track is not a sequencer track, can't write")
+    return
+  end
+  
+  -- Check if a note column is selected
+  if song.selected_note_column_index == 0 then
+    renoise.app():show_status("No note column selected, can't write")
+    return
+  end
+  
+  -- Get folder path
+  if not folder_path or folder_path == "" then
+    renoise.app():show_status("Folder path is not defined")
+    return
+  end
+  
+  -- Get all valid audio files in the specified directory
+  local wav_files = PakettiGetFilesInDirectory(folder_path)
+  
+  -- Check if there are files to choose from
+  if #wav_files == 0 then
+    renoise.app():show_status("No audio files found in the selected folder")
+    return
+  end
+  
+  -- Select a random file
+  local random_index = math.random(1, #wav_files)
+  local selected_file = wav_files[random_index]
+  local file_name = selected_file:match("([^/\\]+)%.%w+$")
+  
+  -- Create new instrument and load the sample
+  song:insert_instrument_at(song.selected_instrument_index + 1)
+  song.selected_instrument_index = song.selected_instrument_index + 1
+  
+  pakettiPreferencesDefaultInstrumentLoader()
+  
+  local instrument = song.selected_instrument
+  instrument:delete_sample_at(1)  -- Clear default sample slot
+  
+  local sample = instrument:insert_sample_at(1)
+  sample.sample_buffer:load_from(selected_file)
+  sample.name = file_name
+  instrument.name = file_name
+  
+  -- Get current pattern position
+  local current_track_index = song.selected_track_index
+  local current_line_index = song.selected_line_index
+  local current_note_column_index = song.selected_note_column_index
+  local current_pattern_index = song.selected_pattern_index
+  
+  -- Get the pattern line and note column
+  local pattern = song:pattern(current_pattern_index)
+  local pattern_track = pattern:track(current_track_index)
+  local pattern_line = pattern_track:line(current_line_index)
+  local note_column = pattern_line:note_column(current_note_column_index)
+  
+  -- Write the note into the pattern
+  note_column.note_value = 48  -- C-4
+  note_column.instrument_value = song.selected_instrument_index - 1  -- 0-based instrument index
+  note_column.volume_value = song.transport.keyboard_velocity
+
+  renoise.app():show_status("Loaded random sample '" .. file_name .. "' and placed note at current position")
+  print("Random sample loaded: " .. selected_file)
+  print("Note placed at Track " .. current_track_index .. ", Line " .. current_line_index .. ", Column " .. current_note_column_index)
+end
+
+-- Function to prompt for folder and load random sample to pattern
+function loadRandomSampleToPatternDialog()
+  local folder_path = renoise.app():prompt_for_path("Select Folder Containing Audio Files")
+  if folder_path then
+    loadRandomSampleToPattern(folder_path)
+  end
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Load Random Sample to Pattern (from Dialog)", invoke=loadRandomSampleToPatternDialog}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Load Random Sample to Pattern (from Dialog)", invoke=loadRandomSampleToPatternDialog}
+
+
