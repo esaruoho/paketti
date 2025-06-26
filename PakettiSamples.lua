@@ -2571,7 +2571,15 @@ function PakettiInjectDefaultXRNI()
       
       -- Restore slice markers if any
       if #sample_data.slice_markers > 0 then
-        to_sample:clear_slice_markers()
+        -- Clear existing slice markers (no clear_slice_markers function exists!)
+        print("Clearing " .. #to_sample.slice_markers .. " existing slice markers")
+        while #to_sample.slice_markers > 0 do
+          local marker_pos = to_sample.slice_markers[1]
+          print("Deleting slice marker at position: " .. marker_pos)
+          to_sample:delete_slice_marker(marker_pos)
+        end
+        
+        -- Insert new slice markers
         for _, slice_marker in ipairs(sample_data.slice_markers) do
           to_sample:insert_slice_marker(slice_marker)
         end
@@ -2594,9 +2602,15 @@ function PakettiInjectDefaultXRNI()
       end
     end
 
+    -- Copy instrument-level properties
+    current_instrument.transpose = original_data.transpose
+    current_instrument.volume = original_data.volume
+    
     -- Restore original name with "(Pakettified)" suffix
     current_instrument.name = original_name .. " (Pakettified)"
     print("Instrument renamed to: " .. current_instrument.name)
+    print("Debug: original_name was: " .. original_name)
+    print("Debug: Restored instrument transpose: " .. original_data.transpose)
 
     -- Apply modulation and filter settings if needed
     if preferences.pakettiPitchbendLoaderEnvelope.value then
@@ -2626,6 +2640,7 @@ function PakettiInjectDefaultXRNI()
 
     pakettiPreferencesDefaultInstrumentLoader()
     new_instrument = renoise.song().selected_instrument
+    print("Debug: Instrument name after loading preset: " .. new_instrument.name)
 
     -- Copy phrases from original instrument if any exist
     if #original_instrument.phrases > 0 then
@@ -2667,24 +2682,82 @@ function PakettiInjectDefaultXRNI()
         to_sample_buffer:finalize_sample_data_changes()
 
         -- Copy slice markers
-        to_sample:clear_slice_markers()
+        -- Clear existing slice markers (no clear_slice_markers function exists!)
+        print("Clearing " .. #to_sample.slice_markers .. " existing slice markers from destination sample")
+        while #to_sample.slice_markers > 0 do
+          local marker_pos = to_sample.slice_markers[1]
+          print("Deleting slice marker at position: " .. marker_pos)
+          to_sample:delete_slice_marker(marker_pos)
+        end
+        
+        -- Insert slice markers from source sample
         for _, slice_marker in ipairs(from_sample.slice_markers) do
           to_sample:insert_slice_marker(slice_marker)
         end
 
-        print("Slices copied for sample #" .. i)
+        -- Copy basic sample properties for sliced samples (no sample mappings!)
+        to_sample.name = from_sample.name
+        to_sample.transpose = from_sample.transpose
+        to_sample.fine_tune = from_sample.fine_tune
+        to_sample.volume = from_sample.volume
+        to_sample.panning = from_sample.panning
+        to_sample.beat_sync_enabled = from_sample.beat_sync_enabled
+        to_sample.beat_sync_lines = from_sample.beat_sync_lines
+        to_sample.beat_sync_mode = from_sample.beat_sync_mode
+        to_sample.autoseek = from_sample.autoseek
+        to_sample.autofade = from_sample.autofade
+        to_sample.loop_mode = from_sample.loop_mode
+        to_sample.loop_start = from_sample.loop_start
+        to_sample.loop_end = from_sample.loop_end
+        to_sample.loop_release = from_sample.loop_release
+        to_sample.new_note_action = from_sample.new_note_action
+        to_sample.oneshot = from_sample.oneshot
+        to_sample.mute_group = from_sample.mute_group
+        to_sample.interpolation_mode = from_sample.interpolation_mode
+        to_sample.oversample_enabled = from_sample.oversample_enabled
+        to_sample.device_chain_index = 1
+
+        print("Slices copied for sample #" .. i .. " - name: " .. to_sample.name)
+        
+        -- Now copy properties for each slice alias (samples 2, 3, 4, etc.)
+        for slice_idx = 2, #original_instrument.samples do
+          local from_slice = original_instrument.samples[slice_idx]
+          local to_slice = new_instrument.samples[slice_idx]
+          
+          if to_slice then
+            -- Copy ALL slice-specific properties (these are NOT read-only)
+            to_slice.transpose = from_slice.transpose
+            to_slice.fine_tune = from_slice.fine_tune
+            to_slice.volume = from_slice.volume
+            to_slice.panning = from_slice.panning
+            to_slice.beat_sync_enabled = from_slice.beat_sync_enabled
+            to_slice.beat_sync_lines = from_slice.beat_sync_lines
+            to_slice.beat_sync_mode = from_slice.beat_sync_mode
+            to_slice.autoseek = from_slice.autoseek
+            to_slice.autofade = from_slice.autofade
+            to_slice.loop_mode = from_slice.loop_mode
+            to_slice.loop_start = from_slice.loop_start
+            to_slice.loop_end = from_slice.loop_end
+            to_slice.loop_release = from_slice.loop_release
+            to_slice.new_note_action = from_slice.new_note_action
+            to_slice.oneshot = from_slice.oneshot
+            to_slice.mute_group = from_slice.mute_group
+            to_slice.interpolation_mode = from_slice.interpolation_mode
+            to_slice.oversample_enabled = from_slice.oversample_enabled
+            print("Copied ALL properties for slice #" .. slice_idx .. " (transpose: " .. from_slice.transpose .. ", fine_tune: " .. from_slice.fine_tune .. ", loop_mode: " .. from_slice.loop_mode .. ", autofade: " .. tostring(from_slice.autofade) .. ")")
+          end
+        end
+        
+        -- STOP HERE - we've processed the master sample and all its slices
+        break
       else
         -- Copy sample properties for non-sliced samples
-        new_instrument:insert_sample_at(i)
-        local to_sample = new_instrument.samples[i]
+        local to_sample = new_instrument:sample(i)
         to_sample:copy_from(from_sample)
         to_sample.device_chain_index = 1 
         print("Sample properties copied from sample #" .. i .. " of instrument index " .. selected_instrument_index)
       end
     end
-
-    new_instrument.name = original_instrument.name .. " (Pakettified)"
-    print("New Instrument renamed to: " .. new_instrument.name)
 
     -- Apply modulation and filter settings if needed
     if preferences.pakettiPitchbendLoaderEnvelope.value then
@@ -2704,6 +2777,16 @@ function PakettiInjectDefaultXRNI()
       new_instrument:delete_sample_at(num_samples)
       print("Removed placeholder sample from last slot")
     end
+
+    -- Copy instrument-level properties
+    new_instrument.transpose = original_instrument.transpose
+    new_instrument.volume = original_instrument.volume
+    
+    -- Set instrument name LAST to ensure it's not overridden
+    new_instrument.name = original_instrument.name .. " (Pakettified)"
+    print("New Instrument renamed to: " .. new_instrument.name)
+    print("Debug: original_instrument.name was: " .. original_instrument.name)
+    print("Debug: Copied instrument transpose: " .. original_instrument.transpose)
   end
 
   -- At the end, before returning focus:

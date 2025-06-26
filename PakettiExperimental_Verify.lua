@@ -5984,6 +5984,7 @@ function pakettiDeleteSliceMarkersInSelection()
   renoise.app():show_status("Deleted " .. #markers_to_delete .. " slice markers from selection")
 end
 
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Delete Slice Markers in Selection",invoke=function() pakettiDeleteSliceMarkersInSelection() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Delete Slice Markers in Selection",invoke=function() pakettiDeleteSliceMarkersInSelection() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Delete Slice Markers in Selection",invoke=function() pakettiDeleteSliceMarkersInSelection() end}
 renoise.tool():add_menu_entry{name="Sample Editor Ruler:Delete Slice Markers in Selection",invoke=function() pakettiDeleteSliceMarkersInSelection() end}
