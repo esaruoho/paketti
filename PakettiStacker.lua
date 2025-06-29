@@ -410,11 +410,23 @@ vb:switch {
       on_switch_changed("OFF")
     end
   end}},
-   vb:row{vb:button{
-        text="Proceed with Stacking",
-        notifier=function()
-          proceed_with_stacking()
-        returnpe() end}},
+   vb:row{
+        vb:button{
+            text="Proceed with Stacking",
+            width=150,
+            notifier=function()
+                proceed_with_stacking()
+                returnpe() 
+            end
+        },
+        vb:button{
+            text="Auto Stack from Pattern",
+            width=150,
+            notifier=function()
+                auto_stack_from_existing_pattern()
+            end
+        }
+    },
     
     vb:row{vb:text{text="Stack Ramp",width=100,font = "bold",style = "strong",},
       vb:button{text="Up",notifier=function() write_velocity_ramp_up()
@@ -520,6 +532,117 @@ end
       sample.sample_mapping.velocity_range = {velocity, velocity} -- Each slice gets exactly one velocity
     end
   end
+
+function auto_stack_from_existing_pattern()
+    print("--- Auto Stack from Existing Pattern ---")
+    
+    local song = renoise.song()
+    local current_track_index = song.selected_track_index
+    local current_pattern = song.selected_pattern
+    local current_track_data = current_pattern:track(current_track_index)
+    local original_instrument_index = song.selected_instrument_index
+    
+    -- 1. ANALYZE: Read the current track's pattern data
+    local slice_sequence = {}
+    print("Analyzing pattern data on track " .. current_track_index)
+    
+    local current_track = song.selected_track
+    local visible_note_columns = current_track.visible_note_columns
+    
+    for line_index = 1, current_pattern.number_of_lines do
+        local line = current_track_data:line(line_index)
+        for col = 1, visible_note_columns do
+            local note_col = line:note_column(col)
+            if not note_col.is_empty and note_col.instrument_value == (original_instrument_index - 1) then
+                -- Found a note using current instrument - record the slice info
+                local slice_info = {
+                    line = line_index,
+                    column = col,
+                    note_value = note_col.note_value,
+                    volume = note_col.volume_value,
+                    delay = note_col.delay_value,
+                    panning = note_col.panning_value,
+                    effect_number = note_col.effect_number_value,
+                    effect_amount = note_col.effect_amount_value
+                }
+                table.insert(slice_sequence, slice_info)
+                print("Found slice at line " .. line_index .. ", note " .. note_col.note_value .. " (" .. note_value_to_string(note_col.note_value) .. ")")
+            end
+        end
+    end
+    
+    if #slice_sequence == 0 then
+        renoise.app():show_status("No notes found using current instrument on this track")
+        print("Error: No notes found using current instrument")
+        return
+    end
+    
+    print("Found " .. #slice_sequence .. " notes to convert")
+    
+    -- 2. STACK: Check if we need to isolate slices first, or just stack existing samples
+    local instrument = song:instrument(original_instrument_index)
+    local has_slices = instrument.samples[1] and instrument.samples[1].slice_markers and #instrument.samples[1].slice_markers > 0
+    
+    if has_slices then
+        print("Found slices - running isolation...")
+        PakettiIsolateSlicesToInstrument() -- Creates individual samples from slices
+        -- After isolation, we need to get the NEW instrument that was created
+        instrument = song.selected_instrument -- Get the newly created instrument
+        original_instrument_index = song.selected_instrument_index -- Update to new instrument index
+    end
+    
+    -- Set up simple velocity mapping for all samples
+    print("Setting up velocity mapping...")
+    local samples = instrument.samples
+    local num_samples = #samples
+    
+    for i = 1, num_samples do
+        local sample = samples[i]
+        local velocity = i -- Sample 1 = velocity 1, Sample 2 = velocity 2, etc.
+        
+        sample.sample_mapping.map_velocity_to_volume = false
+        sample.sample_mapping.base_note = 48 -- C-4
+        sample.sample_mapping.note_range = {0, 119}
+        sample.sample_mapping.velocity_range = {velocity, velocity} -- Each sample gets exactly one velocity
+        
+        print("Sample " .. i .. " mapped to velocity " .. velocity)
+    end
+    
+    -- 3. CREATE: New track
+    print("Creating new track...")
+    song:insert_track_at(current_track_index + 1)
+    song.selected_track_index = current_track_index + 1
+    
+    -- 4. TRANSLATE: Convert slice sequence to velocity sequence on new track
+    print("Translating slice notes to velocity notes...")
+    local new_track_data = current_pattern:track(song.selected_track_index)
+    
+    for _, slice_info in ipairs(slice_sequence) do
+        local line = new_track_data:line(slice_info.line)
+        local note_col = line:note_column(slice_info.column)
+        
+        -- Calculate velocity based on original note value (C-0 = velocity 1, C#0 = velocity 2, etc.)
+        local velocity = slice_info.note_value + 1 -- Convert 0-based note to 1-based velocity
+        velocity = math.min(127, velocity) -- Cap at 127
+        
+        -- Write note with velocity = slice mapping
+        note_col.note_value = 48 -- C-4 base note for stacked instrument
+        note_col.instrument_value = original_instrument_index - 1 -- Use the original (now stacked) instrument
+        note_col.volume_value = velocity -- Velocity triggers the right sample
+        note_col.delay_value = slice_info.delay
+        note_col.panning_value = slice_info.panning
+        note_col.effect_number_value = slice_info.effect_number
+        note_col.effect_amount_value = slice_info.effect_amount
+        
+        print("Converted " .. note_value_to_string(slice_info.note_value) .. " to velocity " .. velocity)
+    end
+    
+    renoise.app():show_status("Auto-stacked! " .. #slice_sequence .. " slice notes → velocity-mapped samples on new track")
+    print("--- Auto Stack Complete ---")
+    returnpe()
+end
+
+
 
 function LoadSliceIsolateStack()
   -- Initial Operations

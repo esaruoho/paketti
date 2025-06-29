@@ -37,7 +37,9 @@ end
    enigmatic = {"c-4", "db4", "e-4", "f#4", "g#4", "a#4", "b-4", "c-5"},
    neapolitan = {"c-4", "db4", "eb4", "f-4", "g-4", "ab4", "b-4", "c-5"},
    prometheus = {"c-4", "d-4", "e-4", "f#4", "a-4", "bb4", "c-5"},
-   algerian = {"c-4", "db4", "e-4", "f-4", "gb4", "ab4", "b-4", "c-5"}
+   algerian = {"c-4", "db4", "e-4", "f-4", "gb4", "ab4", "b-4", "c-5"},
+   blue1 = {"c-4", "d-4", "d#4", "f-4", "g-4", "a#4", "c-5"},
+   blue2 = {"c-4", "d-4", "d#4", "f-4", "g-4", "g#4", "a#4", "c-5"}
  }
  
  local SCALE_NAMES = {
@@ -46,7 +48,7 @@ end
    "dorian", "phrygian", "lydian", "mixolydian", "locrian",
    "whole_tone", "diminished", "persian", "japanese", "gamelan",
    "hungarian", "romanian", "spanish", "enigmatic", "neapolitan",
-   "prometheus", "algerian"
+   "prometheus", "algerian", "blue1", "blue2"
  }
  
  local SCALE_DISPLAY_NAMES = {
@@ -75,7 +77,9 @@ end
    enigmatic = "Enigmatic (C)",
    neapolitan = "Neapolitan Minor (C)",
    prometheus = "Prometheus (C)",
-   algerian = "Algerian (C)"
+   algerian = "Algerian (C)",
+   blue1 = "Blue1 (C D D# F G A# C)",
+   blue2 = "Blue2 (C D D# F G G# A# C)"
  }
  
  local RHYTHM_UNITS = {"1/1", "1/2", "1/4", "1/8", "1/16", "1/32", "1/64"}
@@ -345,8 +349,8 @@ local DEFAULT_SETTINGS = {
           if note_name and current_octave then
             -- Clean up note name
             note_name = note_name:gsub("%-$", "")
-            -- Clamp octave to new range
-            local new_octave = math.max(current_settings.min_octave, math.min(current_settings.max_octave, current_octave))
+            -- Randomly assign new octave within range
+            local new_octave = math.random(current_settings.min_octave, current_settings.max_octave)
             local new_key = note_name .. new_octave
             table.insert(notes, {key=new_key, volume=tonumber(vol)})
           end
@@ -433,8 +437,8 @@ function max_octave_box_notifier(value)
           if note_name and current_octave then
             -- Clean up note name
             note_name = note_name:gsub("%-$", "")
-            -- Clamp octave to new range
-            local new_octave = math.max(current_settings.min_octave, math.min(current_settings.max_octave, current_octave))
+            -- Randomly assign new octave within range
+            local new_octave = math.random(current_settings.min_octave, current_settings.max_octave)
             local new_key = note_name .. new_octave
             table.insert(notes, {key=new_key, volume=tonumber(vol)})
           end

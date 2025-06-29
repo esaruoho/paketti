@@ -1,6 +1,8 @@
--- Helper functions
--- Dialog tracking variable
 local dialog = nil
+
+-- LFO follow variables
+local lfo_follow_timer = nil
+local lfo_follow_active = false
 
 function focus_sample_editor()
     renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
@@ -83,6 +85,283 @@ function set_sample_selection_by_hex_offset(hex_value)
     focus_sample_editor()
 end
 
+function set_all_samples_loop_off()
+    local song=renoise.song()
+    local instrument = song.selected_instrument
+    if not instrument then
+        renoise.app():show_status("No instrument selected")
+        return
+    end
+
+    local samples_processed = 0
+    
+    -- Process ALL samples in the instrument (including master sample for sliced instruments)
+    for i = 1, #instrument.samples do
+        local sample = instrument.samples[i]
+        if sample then
+            sample.loop_mode = renoise.Sample.LOOP_MODE_OFF
+            samples_processed = samples_processed + 1
+            print("Set loop mode OFF for sample #" .. i .. " (" .. sample.name .. ")")
+        end
+    end
+    
+    renoise.app():show_status(string.format("Set loop mode to OFF for %d samples/slices", samples_processed))
+    print("Set loop mode to OFF for " .. samples_processed .. " samples/slices in instrument")
+end
+
+function set_all_samples_loop_by_midi_value(midi_value)
+    print("--- MIDI Loop Control: " .. midi_value .. " ---")
+    
+    local song = renoise.song()
+    local instrument = song.selected_instrument
+    if not instrument then
+        renoise.app():show_status("No instrument selected")
+        print("Error: No instrument selected")
+        return
+    end
+    
+    -- Convert MIDI value (0-127) to percentage (0-100)
+    local percentage = (midi_value / 127) * 100
+    print("MIDI value " .. midi_value .. " = " .. string.format("%.2f%%", percentage))
+    
+    -- Check if first sample has slice markers
+    local has_slice_markers = instrument.samples[1] and 
+                            instrument.samples[1].slice_markers and 
+                            #instrument.samples[1].slice_markers > 0
+    
+    local samples_processed = 0
+    
+    -- Process all samples in the instrument
+    for i = 1, #instrument.samples do
+        -- Skip first sample if there are slice markers
+        if has_slice_markers and i == 1 then
+            print("Skipping first sample (has slice markers)")
+        else
+            local sample = instrument.samples[i]
+            if sample and sample.sample_buffer.has_sample_data then
+                local buffer = sample.sample_buffer
+                local total_frames = buffer.number_of_frames
+                
+                -- Calculate target frame based on percentage
+                local target_frame = math.floor((percentage / 100) * total_frames)
+                target_frame = math.max(1, target_frame)
+                
+                -- Set loop points and forward loop mode
+                sample.loop_start = 1
+                sample.loop_end = target_frame
+                sample.loop_mode = renoise.Sample.LOOP_MODE_FORWARD
+                
+                samples_processed = samples_processed + 1
+                print("Sample " .. i .. " (" .. sample.name .. "): loop end set to frame " .. target_frame .. "/" .. total_frames)
+            end
+        end
+    end
+    
+    renoise.app():show_status(string.format("MIDI: Set %d samples to %.2f%% loop (CC: %d)", samples_processed, percentage, midi_value))
+    print("Processed " .. samples_processed .. " samples")
+    print("--- MIDI Loop Control Complete ---")
+end
+
+function set_sample_selection_by_percentage(percentage)
+    local song=renoise.song()
+    local instrument = song.selected_instrument
+    if not instrument then
+        renoise.app():show_status("No instrument selected")
+        return
+    end
+
+    -- Check if first sample has slice markers
+    local has_slice_markers = instrument.samples[1] and 
+                            instrument.samples[1].slice_markers and 
+                            #instrument.samples[1].slice_markers > 0
+
+    local samples_processed = 0
+    
+    -- Process all samples in the instrument
+    for i = 1, #instrument.samples do
+        -- Skip first sample if there are slice markers
+        if has_slice_markers and i == 1 then
+            -- do nothing for the first sample
+        else
+            local sample = instrument.samples[i]
+            if sample and sample.sample_buffer.has_sample_data then
+                local buffer = sample.sample_buffer
+                local total_frames = buffer.number_of_frames
+                
+                -- Calculate target frame based on percentage
+                local target_frame = math.floor((percentage / 100) * total_frames)
+                
+                -- Ensure minimum of 1 frame
+                target_frame = math.max(1, target_frame)
+                
+                -- Set selection range and loop points
+                buffer.selection_start = 1
+                buffer.selection_end = target_frame
+                sample.loop_start = 1
+                sample.loop_end = target_frame
+                sample.loop_mode = renoise.Sample.LOOP_MODE_FORWARD
+                samples_processed = samples_processed + 1
+                print("Set " .. percentage .. "% loop for sample #" .. i .. " (" .. sample.name .. ") - " .. target_frame .. " frames")
+            end
+        end
+    end
+    
+    renoise.app():show_status(string.format("Set %d%% loops for %d samples/slices", percentage, samples_processed))
+    print("Set " .. percentage .. "% loops for " .. samples_processed .. " samples/slices in instrument")
+end
+
+function find_lfo_writer_device()
+    local song = renoise.song()
+    local selected_track = song.selected_track
+    
+    -- Look for Sample Loop LFO Writer device on selected track
+    for i, device in ipairs(selected_track.devices) do
+        if device.display_name == "Sample Loop LFO Writer" then
+            return device
+        end
+    end
+    
+    return nil
+end
+
+function find_lfo_writer_device_index(track)
+    -- Look for Sample Loop LFO Writer device index on specified track
+    for i, device in ipairs(track.devices) do
+        if device.display_name == "Sample Loop LFO Writer" then
+            return i
+        end
+    end
+    
+    return nil
+end
+
+function get_lfo_value()
+    -- Look for Writer LFO device and read its amplitude parameter
+    local song = renoise.song()
+    local selected_track = song.selected_track
+    
+    for i, device in ipairs(selected_track.devices) do
+        if device.display_name == "Sample Loop LFO Writer" then
+            -- Get the Amplitude parameter (parameter 4) from the Sample Loop LFO Writer
+            if device.parameters[4] then
+                return device.parameters[4].value
+            end
+        end
+    end
+    
+    return nil
+end
+
+function lfo_follow_update()
+    if not lfo_follow_active then
+        return
+    end
+    
+    local lfo_value = get_lfo_value()
+    if lfo_value then
+        -- Convert LFO value (0.0-1.0) to percentage (0-100)
+        local percentage = lfo_value * 100
+        
+        -- Update the dialog if it exists
+        if dialog and dialog.visible then
+            local vb = renoise.ViewBuilder()
+            if vb.views.percentage_slider then
+                vb.views.percentage_slider.value = percentage
+                vb.views.percentage_text.text = string.format("%.4f%%", percentage)
+            end
+        end
+        
+        -- Apply the percentage to samples
+        set_sample_selection_by_percentage(percentage)
+    end
+end
+
+function start_lfo_follow()
+    local lfo_device = find_lfo_writer_device()
+    if not lfo_device then
+        -- Create Sample Loop LFO Writer device if it doesn't exist
+        local song = renoise.song()
+        local selected_track = song.selected_track
+        
+        print("No Sample Loop LFO Writer found, creating one...")
+        print("Selected track index: " .. song.selected_track_index)
+        print("Selected track type: " .. selected_track.type)
+        print("Current device count: " .. #selected_track.devices)
+        
+        -- Check if track can have devices
+        if selected_track.type ~= renoise.Track.TRACK_TYPE_SEQUENCER then
+            renoise.app():show_status("Cannot add LFO to this track type - select a sequencer track")
+            print("Error: Cannot add devices to track type " .. selected_track.type)
+            if dialog and dialog.visible then
+                dialog.views.lfo_follow_checkbox.value = false
+            end
+            return
+        end
+        
+        -- Try to create LFO Writer and Source devices
+        local success, error_msg = pcall(function()
+            -- Create Writer first
+            local writer_device = selected_track:insert_device_at("Audio/Effects/Native/*LFO", 2)
+            writer_device.display_name = "Sample Loop LFO Writer"
+            
+            -- Create Source and connect to Writer
+            local source_device = selected_track:insert_device_at("Audio/Effects/Native/*LFO", 2)
+            source_device.display_name = "Sample Loop LFO Source"
+            
+            -- Connect Source to Writer's Amplitude parameter (parameter 4)
+            local writer_index = find_lfo_writer_device_index(selected_track)
+            if writer_index then
+                source_device.parameters[2].value = writer_index - 1  -- Device index (0-based)
+                source_device.parameters[3].value = 4  -- Amplitude parameter
+                source_device.parameters[4].show_in_mixer = true
+                source_device.parameters[5].show_in_mixer = true
+                source_device.parameters[6].show_in_mixer = true
+                print("Connected Source LFO to Writer LFO amplitude parameter")
+            end
+            
+            -- Make Writer amplitude parameter visible in mixer so we can read from it
+            writer_device.parameters[4].show_in_mixer = true
+            writer_device.parameters[5].show_in_mixer = true
+            writer_device.parameters[6].show_in_mixer = true
+            
+            lfo_device = writer_device
+            print("Successfully created LFO Source->Writer chain at position 2")
+        end)
+        
+        if not success then
+            renoise.app():show_status("Failed to create LFO device: " .. tostring(error_msg))
+            print("Error creating LFO device: " .. tostring(error_msg))
+            if dialog and dialog.visible then
+                dialog.views.lfo_follow_checkbox.value = false
+            end
+            return
+        end
+        
+        renoise.app():show_status("Created Sample Loop LFO Writer device")
+        print("Created Sample Loop LFO Writer device on selected track")
+    end
+    
+    lfo_follow_active = true
+    
+    -- Create timer that updates every 50ms (20 times per second)
+    lfo_follow_timer = renoise.tool():add_timer(lfo_follow_update, 50)
+    
+    renoise.app():show_status("Started following Sample Loop LFO Writer device")
+    print("Started Sample Loop LFO follow mode")
+end
+
+function stop_lfo_follow()
+    lfo_follow_active = false
+    
+    if lfo_follow_timer then
+        renoise.tool():remove_timer(lfo_follow_timer)
+        lfo_follow_timer = nil
+    end
+    
+    renoise.app():show_status("Stopped following Sample Loop LFO Writer device")
+    print("Stopped Sample Loop LFO follow mode")
+end
+
 function pakettiHexOffsetDialog()
 if dialog and dialog.visible then
     dialog:close()
@@ -114,14 +393,27 @@ end
     
     -- Create switch for quick hex values
     local hex_switch = vb:switch {
-        id = "hex_switch",
+        id="hex_switch",
         width=200,
-        items = {"10", "20", "40", "80"},
-        value = 4, -- Default to "80"
+        items = {"05","10", "20", "40", "80", "Off"},
+        value = 5, -- Default to "80"
         notifier=function(value)
             local hex_value = vb.views.hex_switch.items[value]
-            vb.views.hex_input.value = hex_value
-            set_sample_selection_by_hex_offset(hex_value)
+            if hex_value == "Off" then
+                -- Set slider to 100% first, then turn loops OFF
+                vb.views.percentage_slider.value = 100
+                vb.views.percentage_text.text = "100.0000%"
+                vb.views.hex_input.value = "Off"
+                set_all_samples_loop_off()
+            else
+                vb.views.hex_input.value = hex_value
+                -- Convert hex to percentage (0x00-0xFF maps to 0-100%)
+                local hex_num = tonumber(hex_value, 16)
+                local percentage = (hex_num / 255) * 100
+                vb.views.percentage_slider.value = percentage
+                vb.views.percentage_text.text = string.format("%.4f%%", percentage)
+                set_sample_selection_by_hex_offset(hex_value)
+            end
             focus_sample_editor()
         end
     }
@@ -130,13 +422,41 @@ end
         margin=5,
         spacing=5,
         
+        vb:row{vb:text{text="Hex value",width=80,style="strong",font="bold"},hex_input},
+        vb:row{vb:text{text="Quick select",width=80,style="strong",font="bold"},hex_switch},
         vb:row{
-            vb:text{text="Hex value:" },
-            hex_input
+            vb:text{text="Percentage",width=80,style="strong",font="bold"},
+            vb:slider{
+                id="percentage_slider",
+                min=0,
+                max=100,
+                value=50,
+                width=150,
+                notifier=function(value)
+                    vb.views.percentage_text.text = string.format("%.4f%%", value)
+                    set_sample_selection_by_percentage(value)
+                    focus_sample_editor()
+                end
+            },
+            vb:text{
+                id="percentage_text",
+                text="50.0000%",
+                width=60
+            }
         },
         vb:row{
-            vb:text{text="Quick select:" },
-            hex_switch
+            vb:checkbox{
+                id="lfo_follow_checkbox",
+                value=false,
+                notifier=function(value)
+                    if value then
+                        start_lfo_follow()
+                    else
+                        stop_lfo_follow()
+                    end
+                end
+            },
+            vb:text{text="Follow LFO Device",style="strong",font="bold"},
         },
         vb:row{
             vb:button{
@@ -585,3 +905,13 @@ function detect_first_slice_and_auto_slice()
     renoise.app():show_status(string.format("Auto-sliced sample using first slice length (%d frames)", slice1_length))
     print("--- Auto-Slice Complete ---")
 end
+
+-- MIDI Mapping for Sample Loop Control
+renoise.tool():add_midi_mapping{
+    name="Paketti:Sample Loop Control (CC 0-127 to 0-100%) x[Knob]",
+    invoke=function(message)
+        if message.int_value then
+            set_all_samples_loop_by_midi_value(message.int_value)
+        end
+    end
+}

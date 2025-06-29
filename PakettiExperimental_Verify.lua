@@ -5986,15 +5986,15 @@ end
 
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Delete Slice Markers in Selection",invoke=function() pakettiDeleteSliceMarkersInSelection() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Delete Slice Markers in Selection",invoke=function() pakettiDeleteSliceMarkersInSelection() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti..:Delete Slice Markers in Selection",invoke=function() pakettiDeleteSliceMarkersInSelection() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Delete Slice Markers in Selection",invoke=function() pakettiDeleteSliceMarkersInSelection() end}
 renoise.tool():add_menu_entry{name="Sample Editor Ruler:Delete Slice Markers in Selection",invoke=function() pakettiDeleteSliceMarkersInSelection() end}
 
--- Add MIDI mapping
-renoise.tool():add_midi_mapping{
-  name="Paketti:Delete Slice Markers in Selection",
+
+renoise.tool():add_midi_mapping{name="Paketti:Delete Slice Markers in Selection",
   invoke=function(message)
     if message:is_trigger() then
       pakettiDeleteSliceMarkersInSelection()
     end
   end
 }
+

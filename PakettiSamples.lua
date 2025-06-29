@@ -885,6 +885,8 @@ if renoise.song().selected_track.type == 2 then renoise.app():show_status("*Inst
 end
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti PitchBend Multiple Sample Loader",invoke=function() pitchBendMultipleSampleLoader() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti PitchBend Multiple Sample Loader (Normalize)",invoke=function() pitchBendMultipleSampleLoader(true) end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Paketti PitchBend Multiple Sample Loader",invoke=function() pitchBendMultipleSampleLoader() end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Paketti PitchBend Multiple Sample Loader (Normalize)",invoke=function() pitchBendMultipleSampleLoader(true) end}
 renoise.tool():add_midi_mapping{name="Paketti:Midi Paketti PitchBend Multiple Sample Loader",invoke=function(message) if message:is_trigger() then pitchBendMultipleSampleLoader() end end}
 -----------
 function noteOnToNoteOff(noteoffPitch)
@@ -5387,5 +5389,56 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Load Random Sample to Pattern (from Dialog)", invoke=loadRandomSampleToPatternDialog}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Load Random Sample to Pattern (from Dialog)", invoke=loadRandomSampleToPatternDialog}
+
+
+
+
+function isolate_slices_play_all_together()
+  print("--- Isolate Slices - Play All Together ---")
+  
+  local song = renoise.song()
+  local original_instrument_index = song.selected_instrument_index
+  local instrument = song:instrument(original_instrument_index)
+  
+  -- Check if we have slices
+  local has_slices = instrument.samples[1] and instrument.samples[1].slice_markers and #instrument.samples[1].slice_markers > 0
+  
+  if not has_slices then
+      renoise.app():show_status("No slices found in selected instrument")
+      print("Error: No slices found in selected instrument")
+      return
+  end
+  
+  print("Found slices - running isolation...")
+  PakettiIsolateSlicesToInstrument() -- Creates individual samples from slices
+  
+  -- Get the newly created instrument
+  local new_instrument = song.selected_instrument
+  local samples = new_instrument.samples
+  local num_samples = #samples
+  
+  print("Setting up simultaneous play mapping for " .. num_samples .. " samples...")
+  
+  -- Set up each sample to play across the entire keyboard (0-119)
+  for i = 1, num_samples do
+      local sample = samples[i]
+      
+      sample.sample_mapping.map_velocity_to_volume = false
+      sample.sample_mapping.base_note = 48 -- C-4
+      sample.sample_mapping.note_range = {0, 119} -- Full keyboard range
+      sample.sample_mapping.velocity_range = {1, 127} -- Full velocity range
+      
+      print("Sample " .. i .. " (" .. sample.name .. ") mapped to full keyboard")
+  end
+  
+  renoise.app():show_status("Created simultaneous play instrument - " .. num_samples .. " samples play together")
+  print("--- All slices now play simultaneously across full keyboard ---")
+  returnpe()
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Isolate Slices - Play All Together",invoke=function() isolate_slices_play_all_together() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Isolate Slices - Play All Together",invoke=function() isolate_slices_play_all_together() end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Isolate Slices - Play All Together",invoke=function() isolate_slices_play_all_together() end}
+
 
 
