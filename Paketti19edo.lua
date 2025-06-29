@@ -1,12 +1,71 @@
--- Paketti 19edo Tuning System
--- Reads notes from note column 1 and writes 19edo tuning effects to effect column 1
+-- Paketti User-Set Tuning System
+-- Reads notes from note columns and writes tuning effects to sample effects
 
 local tuning_data = {}
-local tuning_file_path = "tunings/19edo.txt"
+local tuning_files = {}
+local tuning_dialog = nil  -- Dialog reference for tuning selection
 
--- Function to load 19edo tuning data from file
-function load_19edo_tuning_data()
+
+
+-- Add preference for auto-input tuning (only if it doesn't exist)
+if not renoise.tool().preferences.AutoInputTuning then
+    renoise.tool().preferences:add_property("AutoInputTuning", "false")
+end
+
+-- Add preference for auto-input tuning file (only if it doesn't exist)
+if not renoise.tool().preferences.UserSetTunings then
+    renoise.tool().preferences:add_property("UserSetTunings", "")
+end
+
+-- Auto-input tuning state
+local auto_input_enabled = false
+local pattern_notifier = nil
+local last_cursor_pos = nil
+local last_pattern_hash = nil
+local last_logged_position = nil
+
+-- Function to scan tunings folder for available tuning files
+function scan_tuning_files()
+    tuning_files = {}
+    local tunings_path = renoise.tool().bundle_path .. "tunings/"
+    
+    -- Try to list files in tunings directory
+    local success, files = pcall(function()
+        return os.filenames(tunings_path, "*.txt")
+    end)
+    
+    if success and files then
+        for _, filename in ipairs(files) do
+            table.insert(tuning_files, "tunings/" .. filename)
+        end
+    else
+        -- Fallback: add known tuning files
+        table.insert(tuning_files, "tunings/19edo.txt")
+    end
+    
+    print("Found " .. #tuning_files .. " tuning files")
+    return tuning_files
+end
+
+-- Function to load tuning data from user-selected file
+function load_tuning_data(use_auto_input_pref)
     tuning_data = {}
+    
+    local tuning_pref
+    if use_auto_input_pref then
+        tuning_pref = renoise.tool().preferences.UserSetTunings
+    else
+        tuning_pref = renoise.tool().preferences.UserSetTuning
+    end
+    
+    if not tuning_pref then
+        return false
+    end
+    
+    local tuning_file_path = tuning_pref.value
+    if not tuning_file_path or tuning_file_path == "" then
+        return false
+    end
     
     local file_path = renoise.tool().bundle_path .. tuning_file_path
     local file = io.open(file_path, "r")
@@ -17,14 +76,14 @@ function load_19edo_tuning_data()
         return false
     end
     
-    print("Loading 19edo tuning data from: " .. file_path)
+    print("Loading tuning data from: " .. file_path)
     
     for line in file:lines() do
         -- Parse line format: "1   A2"
-        local midi_num, edo_note = line:match("^(%d+)%s+(%S+)$")
-        if midi_num and edo_note then
-            tuning_data[tonumber(midi_num)] = edo_note
-            print("DEBUG: Loaded MIDI " .. midi_num .. " -> " .. edo_note)
+        local midi_num, tuning_note = line:match("^(%d+)%s+(%S+)$")
+        if midi_num and tuning_note then
+            tuning_data[tonumber(midi_num)] = tuning_note
+            print("DEBUG: Loaded MIDI " .. midi_num .. " -> " .. tuning_note)
         end
     end
     
@@ -32,8 +91,8 @@ function load_19edo_tuning_data()
     
     local count = 0
     for _ in pairs(tuning_data) do count = count + 1 end
-    print("Loaded " .. count .. " 19edo tuning entries")
-    renoise.app():show_status("Loaded " .. count .. " 19edo tuning entries")
+    print("Loaded " .. count .. " tuning entries")
+    renoise.app():show_status("Loaded " .. count .. " tuning entries")
     
     return true
 end
@@ -77,13 +136,124 @@ function note_string_to_midi_number(note_string)
     return file_midi_number
 end
 
--- Function to get 19edo tuning for a MIDI note number
-function get_19edo_tuning(midi_number)
+-- Function to get tuning for a MIDI note number
+function get_tuning(midi_number)
     if not midi_number or not tuning_data[midi_number] then
         return nil
     end
     
     return tuning_data[midi_number]
+end
+
+-- Function to show tuning selection dialog
+function show_tuning_selection_dialog()
+    scan_tuning_files()
+    
+    if #tuning_files == 0 then
+        renoise.app():show_status("No tuning files found in tunings/ folder")
+        return false
+    end
+    
+    local vb = renoise.ViewBuilder()
+    local tuning_pref = renoise.tool().preferences.UserSetTunings
+    local current_tuning = tuning_pref and tuning_pref.value or ""
+    local current_display = current_tuning ~= "" and current_tuning or "<None>"
+    
+    -- Create display names for popup
+    local display_names = {"<None>"}
+    local selected_index = 1
+    
+    for i, file_path in ipairs(tuning_files) do
+        local display_name = file_path:match("tunings/(.+)%.txt$") or file_path
+        table.insert(display_names, display_name)
+        if file_path == current_tuning then
+            selected_index = i + 1
+        end
+    end
+    
+    local dialog_content = vb:column {
+        margin = 10,
+        spacing = 5,
+        
+        vb:text {
+            text = "Select Tuning System:",
+            style = "strong"
+        },
+        
+        vb:popup {
+            id = "tuning_popup",
+            items = display_names,
+            value = selected_index,
+            width = 200
+        },
+        
+        vb:row {
+            spacing = 10,
+            vb:button {
+                text = "OK",
+                width = 80,
+                notifier = function()
+                    local popup_value = vb.views.tuning_popup.value
+                    
+                    -- Ensure preference exists
+                    if not renoise.tool().preferences.UserSetTunings then
+                        renoise.tool().preferences:add_property("UserSetTunings", "")
+                    end
+                    
+                    if popup_value == 1 then
+                        -- <None> selected
+                        renoise.tool().preferences.UserSetTunings.value = ""
+                        print("DEBUG: Set tuning preference to empty")
+                    else
+                        -- Tuning file selected
+                        local selected_file = tuning_files[popup_value - 1]
+                        renoise.tool().preferences.UserSetTunings.value = selected_file
+                        
+                        print("DEBUG: Set tuning preference to: " .. selected_file)
+                    end
+                    
+                    -- Clear cached tuning data so it reloads
+                    tuning_data = {}
+                    
+                    -- Show informative status message
+                    local status_msg
+                    if popup_value == 1 then
+                        status_msg = "Tuning system cleared"
+                    else
+                        local file_display = selected_file:match("tunings/(.+)%.txt$") or selected_file
+                        status_msg = "Tuning system set to: " .. file_display
+                    end
+                    renoise.app():show_status(status_msg)
+                    
+                    if tuning_dialog and tuning_dialog.visible then
+                        tuning_dialog:close()
+                    end
+                    tuning_dialog = nil
+                end
+            },
+            
+            vb:button {
+                text = "Cancel",
+                width = 80,
+                notifier = function()
+                    if tuning_dialog and tuning_dialog.visible then
+                        tuning_dialog:close()
+                    end
+                    tuning_dialog = nil
+                end
+            }
+        }
+    }
+    
+    -- Check if dialog is already open and close it
+    if tuning_dialog and tuning_dialog.visible then
+        tuning_dialog:close()
+    end
+    
+    -- Show dialog and store reference
+    tuning_dialog = renoise.app():show_custom_dialog("Paketti Tuning Selection", dialog_content)
+    
+    return true
 end
 
 -- Function to convert 19edo note to hex value
@@ -123,27 +293,29 @@ function edo_note_to_hex(edo_note)
     return hex_string
 end
 
--- Function to write 19edo tuning to effect column
-function write_19edo_effect(track, pattern_line, edo_note)
-    if not track or not pattern_line or not edo_note then
+-- Function to write tuning to note column sample effect
+function write_tuning_effect(track, note_column, tuning_note)
+    if not track or not note_column or not tuning_note then
         return false
     end
     
-    -- Write to effect column 1 (index 1 in Lua, 0-based in Renoise)
-    if pattern_line.effect_columns and pattern_line.effect_columns[1] then
-        -- Write the 19edo note name to effect number field and "00" to amount
-        pattern_line.effect_columns[1].number_string = edo_note
-        pattern_line.effect_columns[1].amount_string = "00"
-        
-        print("DEBUG: Wrote effect " .. edo_note .. "00 for " .. edo_note)
-        return true
-    end
+    -- Write the tuning note name directly to note column's sample effect
+    note_column.effect_number_string = tuning_note
+    note_column.effect_amount_string = "00"
     
-    return false
+    print("DEBUG: Wrote sample effect " .. tuning_note .. "00 for " .. tuning_note)
+    return true
 end
 
--- Main function to process selected track with 19edo tuning
-function apply_19edo_tuning_to_track()
+-- Main function to process selected track with user-set tuning
+function apply_tuning_to_track()
+    -- Check if tuning preference exists and is set, show dialog if not
+    local tuning_pref = renoise.tool().preferences.UserSetTuning
+    if not tuning_pref or tuning_pref.value == "" then
+        show_tuning_selection_dialog()
+        return
+    end
+    
     local song = renoise.song()
     local selected_track = song.selected_track
     local pattern_index = song.selected_pattern_index
@@ -152,9 +324,14 @@ function apply_19edo_tuning_to_track()
     
     print("DEBUG: Processing track " .. song.selected_track_index .. " in pattern " .. pattern_index)
     
+    -- Make Sample FX Column visible on selected track
+    selected_track.sample_effects_column_visible = true
+    print("DEBUG: Made Sample FX Column visible on track")
+    
     -- Load tuning data if not already loaded
     if not next(tuning_data) then
-        if not load_19edo_tuning_data() then
+        if not load_tuning_data() then
+            renoise.app():show_status("Failed to load tuning data")
             return
         end
     end
@@ -166,41 +343,49 @@ function apply_19edo_tuning_to_track()
     for line_index = 1, total_lines do
         local pattern_line = track_pattern:line(line_index)
         
-        -- Check note column 1
-        if pattern_line.note_columns and pattern_line.note_columns[1] then
-            local note_column = pattern_line.note_columns[1]
-            local note_string = note_column.note_string
-            
-            if note_string and note_string ~= "---" and note_string ~= "" then
-                print("DEBUG: Processing line " .. line_index .. " with note " .. note_string)
+        -- Check all note columns in this line
+        if pattern_line.note_columns then
+            for col_index = 1, #pattern_line.note_columns do
+                local note_column = pattern_line.note_columns[col_index]
+                local note_string = note_column.note_string
                 
-                -- Convert note to MIDI number
-                local midi_number = note_string_to_midi_number(note_string)
-                if midi_number then
-                    -- Get 19edo tuning
-                    local edo_note = get_19edo_tuning(midi_number)
-                    if edo_note then
-                        -- Write to effect column 1
-                        if write_19edo_effect(selected_track, pattern_line, edo_note) then
-                            processed_count = processed_count + 1
-                            print("Line " .. line_index .. ": " .. note_string .. " -> " .. edo_note)
+                if note_string and note_string ~= "---" and note_string ~= "" then
+                    print("DEBUG: Processing line " .. line_index .. " column " .. col_index .. " with note " .. note_string)
+                    
+                    -- Convert note to MIDI number
+                    local midi_number = note_string_to_midi_number(note_string)
+                    if midi_number then
+                        -- Get tuning
+                        local tuning_note = get_tuning(midi_number)
+                        if tuning_note then
+                            -- Write to note column's sample effect
+                            if write_tuning_effect(selected_track, note_column, tuning_note) then
+                                processed_count = processed_count + 1
+                                print("Line " .. line_index .. " Col " .. col_index .. ": " .. note_string .. " -> " .. tuning_note)
+                            end
+                        else
+                            print("DEBUG: No tuning found for MIDI number " .. midi_number)
                         end
                     else
-                        print("DEBUG: No 19edo tuning found for MIDI number " .. midi_number)
+                        print("DEBUG: Could not convert note " .. note_string .. " to MIDI number")
                     end
-                else
-                    print("DEBUG: Could not convert note " .. note_string .. " to MIDI number")
                 end
             end
         end
     end
     
-    renoise.app():show_status("Applied 19edo tuning to " .. processed_count .. " notes")
-    print("Applied 19edo tuning to " .. processed_count .. " notes out of " .. total_lines .. " lines")
+    renoise.app():show_status("Applied tuning to " .. processed_count .. " notes")
+    print("Applied tuning to " .. processed_count .. " notes out of " .. total_lines .. " lines")
 end
 
--- Function to clear 19edo effects from selected track
-function clear_19edo_effects_from_track()
+-- Function to clear tuning effects from selected track
+function clear_tuning_effects_from_track()
+    -- Check if tuning preference exists and is set, show dialog if not
+    local tuning_pref = renoise.tool().preferences.UserSetTuning
+    if not tuning_pref or tuning_pref.value == "" then
+        show_tuning_selection_dialog()
+        return
+    end
     local song = renoise.song()
     local pattern_index = song.selected_pattern_index
     local pattern = song:pattern(pattern_index)
@@ -212,44 +397,260 @@ function clear_19edo_effects_from_track()
     for line_index = 1, #track_pattern.lines do
         local pattern_line = track_pattern:line(line_index)
         
-        -- Check effect column 1 for "19" effects
-        if pattern_line.effect_columns and pattern_line.effect_columns[1] then
-            local effect_column = pattern_line.effect_columns[1]
-            if effect_column.number_string == "19" then
-                effect_column.number_string = ""
-                effect_column.amount_string = ""
-                cleared_count = cleared_count + 1
+        -- Check all note columns for sample effects
+        if pattern_line.note_columns then
+            for col_index = 1, #pattern_line.note_columns do
+                local note_column = pattern_line.note_columns[col_index]
+                -- Clear any sample effect (since we're using tuning note names)
+                if note_column.effect_number_string ~= "" then
+                    note_column.effect_number_string = ""
+                    note_column.effect_amount_string = ""
+                    cleared_count = cleared_count + 1
+                end
             end
         end
     end
     
-    renoise.app():show_status("Cleared " .. cleared_count .. " 19edo effects")
-    print("Cleared " .. cleared_count .. " 19edo effects from track")
+    renoise.app():show_status("Cleared " .. cleared_count .. " sample effects")
+    print("Cleared " .. cleared_count .. " sample effects from track")
 end
 
--- Initialize tuning data on load
-load_19edo_tuning_data()
+-- Auto-input tuning functions
+function auto_apply_tuning_to_note(track_index, line_index, note_column_index)
+    -- Check if auto-input is enabled and tuning is set
+    if not auto_input_enabled then
+        print("DEBUG: Auto-input not enabled")
+        return
+    end
+    
+    local tuning_pref = renoise.tool().preferences.UserSetTunings
+    if not tuning_pref or tuning_pref.value == "" then
+        print("DEBUG: No tuning preference set, value: '" .. (tuning_pref and tuning_pref.value or "nil") .. "'")
+        return
+    end
+    
+    print("DEBUG: Auto-applying tuning using file: " .. tuning_pref.value)
+    
+    -- Load tuning data if not already loaded
+    if not next(tuning_data) then
+        if not load_tuning_data(true) then
+            return
+        end
+    end
+    
+    local song = renoise.song()
+    local track = song.tracks[track_index]
+    local pattern_index = song.selected_pattern_index
+    local pattern = song:pattern(pattern_index)
+    local track_pattern = pattern:track(track_index)
+    
+    if not track_pattern or not track_pattern.lines[line_index] then
+        return
+    end
+    
+    local pattern_line = track_pattern.lines[line_index]
+    if not pattern_line.note_columns or not pattern_line.note_columns[note_column_index] then
+        return
+    end
+    
+    local note_column = pattern_line.note_columns[note_column_index]
+    local note_string = note_column.note_string
+    
+    if note_string and note_string ~= "---" and note_string ~= "" and note_string ~= "OFF" then
+        -- Make Sample FX Column visible on track
+        track.sample_effects_column_visible = true
+        
+        -- Convert note to MIDI number
+        local midi_number = note_string_to_midi_number(note_string)
+        if midi_number then
+            -- Get tuning
+            local tuning_note = get_tuning(midi_number)
+            if tuning_note then
+                -- Write to note column's sample effect
+                if write_tuning_effect(track, note_column, tuning_note) then
+                    print("Auto-tuning: " .. note_string .. " -> " .. tuning_note .. " (Track " .. track_index .. ", Line " .. line_index .. ", Col " .. note_column_index .. ")")
+                end
+            end
+        end
+    end
+end
 
--- Menu entries
-renoise.tool():add_menu_entry {
-    name = "Pattern Editor:Paketti..:19edo:Apply 19edo Tuning to Selected Track",
-    invoke = apply_19edo_tuning_to_track
-}
+function auto_input_idle_notifier()
+    -- Check if auto-input is enabled
+    if not auto_input_enabled then
+        return
+    end
+    
+    local song = renoise.song()
+    if not song or not song.selected_track then
+        return
+    end
+    
+    -- Get current cursor position
+    local pos = song.transport.edit_pos
+    local track_index = song.selected_track_index
+    local line_index = pos.line
+    local note_column_index = song.selected_note_column_index
+    
+    -- Create position hash for comparison
+    local current_pos = track_index .. ":" .. line_index .. ":" .. note_column_index
+    
+    local should_check = false
+    local reason = ""
+    
+    -- Check if cursor moved to a new position OR if we're on the same position (for editstep=0)
+    if current_pos ~= last_cursor_pos then
+        last_cursor_pos = current_pos
+        should_check = true
+        reason = "cursor moved"
+        print("DEBUG: Cursor moved to position " .. current_pos)
+    else
+        -- Also check current position for notes without tuning (for editstep=0 case)
+        should_check = true
+        reason = "checking current position"
+    end
+    
+    if should_check then
+        -- Check if there's a note at the current position
+        local pattern = song:pattern(song.selected_pattern_index)
+        local track_pattern = pattern:track(track_index)
+        
+        if track_pattern and track_pattern.lines[line_index] then
+            local pattern_line = track_pattern.lines[line_index]
+            if pattern_line.note_columns and pattern_line.note_columns[note_column_index] then
+                local note_column = pattern_line.note_columns[note_column_index]
+                local note_string = note_column.note_string
+                
+                -- If there's a note and no tuning effect yet, apply tuning
+                if note_string and note_string ~= "---" and note_string ~= "" and note_string ~= "OFF" then
+                    if reason == "cursor moved" then
+                        print("DEBUG: POSITION " .. current_pos .. " - Found NOTE: " .. note_string .. ", effect_number: '" .. (note_column.effect_number_string or "") .. "', effect_amount: '" .. (note_column.effect_amount_string or "") .. "'")
+                        last_logged_position = current_pos
+                    end
+                    
+                    if note_column.effect_number_string == "" or note_column.effect_number_string == "00" then
+                        print("DEBUG: POSITION " .. current_pos .. " - APPLYING TUNING to note " .. note_string .. " (" .. reason .. ")")
+                        auto_apply_tuning_to_note(track_index, line_index, note_column_index)
+                        last_logged_position = current_pos
+                    else
+                        -- Only log "already has effect" once per position
+                        if current_pos ~= last_logged_position then
+                            print("DEBUG: POSITION " .. current_pos .. " - Note " .. note_string .. " already has effect: '" .. note_column.effect_number_string .. "'")
+                            last_logged_position = current_pos
+                        end
+                    end
+                else
+                    if reason == "cursor moved" then
+                        print("DEBUG: POSITION " .. current_pos .. " - No note (found: " .. (note_string or "nil") .. ")")
+                        last_logged_position = current_pos
+                    end
+                end
+            end
+        end
+    end
+end
 
-renoise.tool():add_menu_entry {
-    name = "Pattern Editor:Paketti..:19edo:Clear 19edo Effects from Selected Track", 
-    invoke = clear_19edo_effects_from_track
-}
+function enable_auto_input_tuning()
+    if auto_input_enabled then
+        return -- Already enabled
+    end
+    
+    auto_input_enabled = true
+    renoise.tool().preferences.AutoInputTuning.value = "true"
+    
+    -- Make Sample FX Column visible on selected track
+    local song = renoise.song()
+    if song and song.selected_track then
+        song.selected_track.sample_effects_column_visible = true
+        print("DEBUG: Made Sample FX Column visible on track")
+    end
+    
+    -- Add idle notifier for polling cursor position
+    if not renoise.tool():has_timer(auto_input_idle_notifier) then
+        renoise.tool():add_timer(auto_input_idle_notifier, 50) -- Check every 50ms
+    end
+    
+    -- Reset cursor tracking
+    last_cursor_pos = nil
+    
+    -- Show informative status with tuning file name
+    local tuning_pref = renoise.tool().preferences.UserSetTunings
+    local file_display = "Unknown"
+    if tuning_pref and tuning_pref.value ~= "" then
+        file_display = tuning_pref.value:match("tunings/(.+)%.txt$") or tuning_pref.value
+    end
+    
+    renoise.app():show_status("Auto-Input Tuning: " .. file_display .. " Enabled")
+    print("Auto-Input Tuning enabled with file: " .. file_display)
+end
 
--- Keybindings
-renoise.tool():add_keybinding {
-    name = "Pattern Editor:Paketti:Apply 19edo Tuning to Selected Track",
-    invoke = apply_19edo_tuning_to_track
-}
+function disable_auto_input_tuning()
+    if not auto_input_enabled then
+        return -- Already disabled
+    end
+    
+    auto_input_enabled = false
+    renoise.tool().preferences.AutoInputTuning.value = "false"
+    
+    -- Remove idle timer
+    if renoise.tool():has_timer(auto_input_idle_notifier) then
+        renoise.tool():remove_timer(auto_input_idle_notifier)
+    end
+    
+    -- Reset cursor tracking
+    last_cursor_pos = nil
+    
+    -- Show informative status with tuning file name
+    local tuning_pref = renoise.tool().preferences.UserSetTunings
+    local file_display = "Unknown"
+    if tuning_pref and tuning_pref.value ~= "" then
+        file_display = tuning_pref.value:match("tunings/(.+)%.txt$") or tuning_pref.value
+    end
+    
+    renoise.app():show_status("Auto-Input Tuning: " .. file_display .. " Disabled")
+    print("Auto-Input Tuning disabled for file: " .. file_display)
+end
 
-renoise.tool():add_keybinding {
-    name = "Pattern Editor:Paketti:Clear 19edo Effects from Selected Track",
-    invoke = clear_19edo_effects_from_track
-}
+function toggle_auto_input_tuning()
+    -- Check if tuning preference exists and is set
+    local tuning_pref = renoise.tool().preferences.UserSetTunings
+    if not tuning_pref or tuning_pref.value == "" then
+        renoise.app():show_status("Please set a tuning system first")
+        show_tuning_selection_dialog()
+        return
+    end
+    
+    if auto_input_enabled then
+        disable_auto_input_tuning()
+    else
+        enable_auto_input_tuning()
+    end
+end
 
-print("Paketti 19edo Tuning System loaded") 
+-- Initialize auto-input state from preferences
+function initialize_auto_input_tuning()
+    local auto_pref = renoise.tool().preferences.AutoInputTuning
+    if auto_pref and auto_pref.value == "true" then
+        enable_auto_input_tuning()
+    else
+        disable_auto_input_tuning()
+    end
+end
+
+-- Initialize on tool startup
+renoise.tool().app_new_document_observable:add_notifier(initialize_auto_input_tuning)
+if renoise.song() then
+    initialize_auto_input_tuning()
+end
+
+-- Menu entries and keybindings
+renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti:Tuning:Apply User-Set Tuning to Selected Track",invoke = apply_tuning_to_track}
+renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti:Tuning:Clear Tuning Effects from Selected Track", invoke = clear_tuning_effects_from_track}
+renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti:Tuning:User-Set Tuning Preferences Dialog...", invoke = show_tuning_selection_dialog}
+renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti:Tuning:Toggle Auto-Input Tuning", invoke = toggle_auto_input_tuning}
+
+renoise.tool():add_keybinding {name = "Pattern Editor:Paketti:Apply User-Set Tuning to Selected Track",invoke = apply_tuning_to_track}
+renoise.tool():add_keybinding {name = "Pattern Editor:Paketti:Clear Tuning Effects from Selected Track",invoke = clear_tuning_effects_from_track}
+renoise.tool():add_keybinding {name = "Pattern Editor:Paketti:User-Set Tuning Preferences Dialog",invoke = show_tuning_selection_dialog}
+renoise.tool():add_keybinding {name = "Pattern Editor:Paketti:Toggle Auto-Input Tuning",invoke = toggle_auto_input_tuning}
+

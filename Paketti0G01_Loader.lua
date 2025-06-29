@@ -79,6 +79,8 @@ function create_device_entry(name, path, device_type)
 end
 
 preferences = renoise.Document.create("ScriptingToolPreferences") {
+  UserSetTunings="",
+  AutoInputTuning="false",
   MinimizedPitchControlSmall=false,
   PolyendRoot="",
   PolyendLocalPath="",
