@@ -831,9 +831,9 @@ function createMatrixOverview()
   end
 end
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Hotelsinus:Matrix Overview",invoke = function() createMatrixOverview() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Hotelsinus:Matrix Overview",invoke = function() createMatrixOverview() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Hotelsinus Matrix Overview", invoke = function() createMatrixOverview() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Hotelsinus:Step Sequencer",invoke = function() createStepSequencerDialog() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Hotelsinus:Step Sequencer",invoke = function() createStepSequencerDialog() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Hotelsinus Step Sequencer",invoke=function() createStepSequencerDialog() end}
 
 
