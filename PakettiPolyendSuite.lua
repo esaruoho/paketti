@@ -18,6 +18,10 @@ local polyend_buddy_wav_files = {}
 local polyend_buddy_folders = {}
 local computer_pti_path = ""
 local computer_pti_files = {}
+local computer_backup_files = {}
+
+-- Global refresh function for operations outside dialog context
+local polyend_refresh_callback = nil
 
 -- Helper function to get current Polyend root path from preferences
 local function get_polyend_root_path()
@@ -114,7 +118,7 @@ local function generate_unique_filename(base_path)
 end
 
 -- Helper function to auto-save drumkit using save paths
-local function auto_save_drumkit_if_enabled(drumkit_type)
+local function auto_save_drumkit_if_enabled(drumkit_type, vb)
   if get_use_save_paths() and get_pti_save_path() ~= "" then
     local pti_save_path = get_pti_save_path()
     local path_exists = check_polyend_path_exists(pti_save_path)
@@ -132,10 +136,16 @@ local function auto_save_drumkit_if_enabled(drumkit_type)
       if pti_savesample_to_path then
         local success = pti_savesample_to_path(unique_path)
         if success then
-          renoise.app():show_status(string.format("%s drumkit auto-saved to: %s", drumkit_type, final_filename))
-          
           -- Create local backup copy if enabled
           create_local_backup_copy(unique_path, "Drumkit_" .. drumkit_type)
+          
+          -- Refresh the dropdowns to show the new file
+          if vb then
+            update_pti_dropdown(vb)
+            update_computer_backup_dropdown(vb)
+          end
+          
+          renoise.app():show_status(string.format("%s drumkit saved to %s", drumkit_type, unique_path))
           
           return true
         else
@@ -729,14 +739,20 @@ function rx2_to_pti_convert()
   -- Show final status
   print("-- RX2 to PTI conversion completed successfully!")
   local final_filename = pti_filename:match("[^/\\]+$") or "converted.pti"
+  
+  -- Refresh the dropdown to show the new file
+  if polyend_refresh_callback then
+    polyend_refresh_callback()
+  end
+  
   if original_slice_count > 0 then
           if original_slice_count > 48 then
-        renoise.app():show_status(string.format("RX2 converted to PTI: %s with 48 slices (limited from %d)", final_filename, original_slice_count))
+        renoise.app():show_status(string.format("RX2 converted to PTI saved to %s with 48 slices (limited from %d)", pti_filename, original_slice_count))
       else
-        renoise.app():show_status(string.format("RX2 converted to PTI: %s with %d slices", final_filename, original_slice_count))
+        renoise.app():show_status(string.format("RX2 converted to PTI saved to %s with %d slices", pti_filename, original_slice_count))
       end
     else
-      renoise.app():show_status(string.format("RX2 converted to PTI: %s", final_filename))
+      renoise.app():show_status(string.format("RX2 converted to PTI saved to %s", pti_filename))
     end
 end
 
@@ -1322,12 +1338,52 @@ function scan_computer_pti_files(path)
     end
   end
   
-  -- Sort by filename
+  -- Sort by filename (case-insensitive)
   table.sort(pti_files, function(a, b)
-    return a.display_name < b.display_name
+    return a.display_name:lower() < b.display_name:lower()
   end)
   
   return pti_files
+end
+
+-- Function to scan local backup path for PTI files
+function scan_computer_backup_files(path)
+  local backup_files = {}
+  local separator = package.config:sub(1,1)
+  
+  if not path or path == "" then
+    return backup_files
+  end
+  
+  -- Check if directory exists and is accessible
+  local success, files = pcall(os.filenames, path, "*.pti")
+  if not success then
+    print(string.format("-- Local Backup: Warning - Cannot access directory: %s", path))
+    return backup_files
+  end
+  
+  print(string.format("-- Local Backup: Scanning %s - found %d PTI files", path, #files))
+  
+  -- Scan PTI files in directory
+  for _, filename in ipairs(files) do
+    if not filename:match("^%._") then
+      local full_path = path .. separator .. filename
+      table.insert(backup_files, {
+        display_name = filename,
+        full_path = full_path
+      })
+      print(string.format("-- Local Backup: Found PTI file: %s", filename))
+    else
+      print(string.format("-- Local Backup: Skipping macOS metadata file: %s", filename))
+    end
+  end
+  
+  -- Sort by filename (case-insensitive)
+  table.sort(backup_files, function(a, b)
+    return a.display_name:lower() < b.display_name:lower()
+  end)
+  
+  return backup_files
 end
 
 -- Function to update the dropdowns with found PTI/WAV files and folders
@@ -1371,9 +1427,9 @@ function update_pti_dropdown(vb)
   -- Update PTI files dropdown
   local file_dropdown_items = {"<No PTI files found, connect device in USB Storage Mode and press Refresh>"}
   if #polyend_buddy_pti_files > 0 then
-    -- Sort the actual file array by display_name first
+    -- Sort the actual file array by display_name first (case-insensitive)
     table.sort(polyend_buddy_pti_files, function(a, b)
-      return a.display_name < b.display_name
+      return a.display_name:lower() < b.display_name:lower()
     end)
     
     -- Then create dropdown items in the same order
@@ -1392,9 +1448,9 @@ function update_pti_dropdown(vb)
   -- Update WAV files dropdown
   local wav_dropdown_items = {"<No WAV files found, connect device in USB Storage Mode and press Refresh>"}
   if #polyend_buddy_wav_files > 0 then
-    -- Sort the actual file array by display_name first
+    -- Sort the actual file array by display_name first (case-insensitive)
     table.sort(polyend_buddy_wav_files, function(a, b)
-      return a.display_name < b.display_name
+      return a.display_name:lower() < b.display_name:lower()
     end)
     
     -- Then create dropdown items in the same order
@@ -1413,9 +1469,9 @@ function update_pti_dropdown(vb)
   -- Update folders dropdown
   local folder_dropdown_items = {"<No folders found, " .. POLYEND_DEVICE_NOT_CONNECTED_MSG:lower() .. ">"}
   if #polyend_buddy_folders > 0 then
-    -- Sort the actual folder array by display_name first
+    -- Sort the actual folder array by display_name first (case-insensitive)
     table.sort(polyend_buddy_folders, function(a, b)
-      return a.display_name < b.display_name
+      return a.display_name:lower() < b.display_name:lower()
     end)
     
     -- Then create dropdown items in the same order
@@ -1481,6 +1537,46 @@ function update_computer_pti_dropdown(vb)
   end
   
   print(string.format("-- Local PTI: Found %d PTI files in %s", #computer_pti_files, computer_pti_path))
+end
+
+-- Function to update the local backup dropdown
+function update_computer_backup_dropdown(vb)
+  -- Check if path exists first
+  local backup_path = get_computer_backup_path()
+  local path_exists = check_polyend_path_exists(backup_path)
+  
+  if not path_exists then
+    -- Clear data
+    computer_backup_files = {}
+    
+    -- Set dropdown to empty state
+    if vb.views["computer_backup_popup"] then
+      vb.views["computer_backup_popup"].items = {"<Set Local Backup Path>"}
+      vb.views["computer_backup_popup"].value = 1
+    end
+    
+    print(string.format("-- Local Backup: Path not accessible: %s", backup_path or ""))
+    return
+  end
+  
+  -- Path exists, scan for PTI files
+  computer_backup_files = scan_computer_backup_files(backup_path)
+  
+  -- Update local backup files dropdown
+  local dropdown_items = {"<No PTI files found>"}
+  if #computer_backup_files > 0 then
+    dropdown_items = {}
+    for _, backup_file in ipairs(computer_backup_files) do
+      table.insert(dropdown_items, backup_file.display_name)
+    end
+  end
+  
+  if vb.views["computer_backup_popup"] then
+    vb.views["computer_backup_popup"].items = dropdown_items
+    vb.views["computer_backup_popup"].value = 1
+  end
+  
+  print(string.format("-- Local Backup: Found %d PTI files in %s", #computer_backup_files, backup_path))
 end
 
 --------------------------------------------------------------------------------
@@ -1673,6 +1769,11 @@ function normalize_pti_slices_and_save(pti_filepath, save_path, completion_callb
             
             -- Create local backup copy if enabled
             create_local_backup_copy(save_path, "Normalize")
+            
+            -- Trigger global refresh if available (from dialog context)
+            if polyend_refresh_callback then
+              polyend_refresh_callback()
+            end
             
             renoise.app():show_status(string.format("Normalized slices and saved PTI: %s", filename))
             print("-- PTI Normalize: Normalize slices operation completed successfully")
@@ -1970,8 +2071,13 @@ function dump_pti_to_device()
       local success_message = string.format("PTI file copied successfully!\n\nFile: %s\nSize: %d bytes (%.2f KB)\nDestination: %s", 
         pti_filename, copied_size, copied_size / 1024, destination_folder)
       renoise.app():show_message(success_message)
-      renoise.app():show_status(string.format("PTI copied to Polyend device: %s", pti_filename))
+      renoise.app():show_status(string.format("PTI copied to %s", destination_path))
       print("-- Dump PTI to Device: Copy operation completed successfully")
+      
+      -- Refresh the dropdown to show the new file
+      if polyend_refresh_callback then
+        polyend_refresh_callback()
+      end
       
       -- Optionally open the destination folder
       local open_folder = renoise.app():show_prompt("Copy Complete", 
@@ -2114,68 +2220,21 @@ end
 -- Combines all samples in current instrument into a single sliced drumkit sample
 --------------------------------------------------------------------------------
 
--- Stereo version - converts to stereo if any sample is stereo, otherwise mono
-function save_pti_as_drumkit_stereo(skip_save_prompt)
+-- Deprecated ProcessSlicer function (now integrated into main functions)
+function save_pti_as_drumkit_stereo_ProcessSlicer(skip_save_prompt)
+  -- Deprecated: Use save_pti_as_drumkit_stereo() instead (now includes ProcessSlicer by default)
+  save_pti_as_drumkit_stereo(skip_save_prompt)
+end
+
+-- Worker function for ProcessSlicer stereo drumkit
+function save_pti_as_drumkit_stereo_Worker(source_instrument, num_samples, skip_save_prompt)
   local song = renoise.song()
-  local source_instrument = song.selected_instrument
-  
-  -- Safety check: ensure we have an instrument
-  if not source_instrument then
-    renoise.app():show_error("No instrument selected")
-    return
-  end
-  
-  -- Safety check: ensure we have samples
-  if #source_instrument.samples == 0 then
-    renoise.app():show_error("Selected instrument has no samples")
-    return
-  end
-  
-  -- Safety check: abort if first sample has slices (indicates sliced instrument)
-  if #source_instrument.samples[1].slice_markers > 0 then
-    renoise.app():show_error("Cannot create drumkit from sliced instrument.\nPlease select an instrument with individual samples in separate slots.")
-    return
-  end
   
   print("-- Save PTI as Drumkit: Starting drumkit creation from instrument: " .. source_instrument.name)
-  
-  -- Determine how many samples to process (max 48)
-  local num_samples = math.min(48, #source_instrument.samples)
-  print(string.format("-- Save PTI as Drumkit: Source instrument has %d total samples", #source_instrument.samples))
   print(string.format("-- Save PTI as Drumkit: Will process %d samples (max 48)", num_samples))
   
-  -- Debug: List all sample slots and their status with names
-  print("-- Save PTI as Drumkit: Sample Analysis:")
-  for i = 1, num_samples do
-    local sample = source_instrument.samples[i]
-    if sample then
-      if sample.sample_buffer.has_sample_data then
-        print(string.format("-- Save PTI as Drumkit: Slot %02d: '%s' - %d frames, %d channels, %.1fkHz, %dbit", 
-          i, sample.name or "Unnamed", sample.sample_buffer.number_of_frames, sample.sample_buffer.number_of_channels, 
-          sample.sample_buffer.sample_rate, sample.sample_buffer.bit_depth))
-      else
-        print(string.format("-- Save PTI as Drumkit: Slot %02d: '%s' - EMPTY (no sample data)", i, sample.name or "Unnamed"))
-      end
-    else
-      print(string.format("-- Save PTI as Drumkit: Slot %02d: NULL - no sample object", i))
-    end
-  end
-  
-  -- Create new instrument for the drumkit
-  local new_instrument_index = song.selected_instrument_index + 1
-  song:insert_instrument_at(new_instrument_index)
-  song.selected_instrument_index = new_instrument_index
-  local drumkit_instrument = song.selected_instrument
-  
-  -- Set drumkit instrument name
-  drumkit_instrument.name = "Drumkit Combo of Instrument " .. source_instrument.name
-  print("-- Save PTI as Drumkit: Created new instrument: " .. drumkit_instrument.name)
-  
-  -- Create working copies of samples and normalize them
-  local processed_samples = {}
+  -- Detect if any sample is stereo
   local has_stereo = false
-  
-  -- First pass: detect if any sample is stereo
   local stereo_samples = {}
   for i = 1, num_samples do
     local sample = source_instrument.samples[i]
@@ -2187,15 +2246,27 @@ function save_pti_as_drumkit_stereo(skip_save_prompt)
   
   local target_channels = has_stereo and 2 or 1
   print(string.format("-- Save PTI as Drumkit: Target format: %s, 44100Hz, 16-bit", target_channels == 2 and "Stereo" or "Mono"))
-  if #stereo_samples > 0 then
-    print(string.format("-- Save PTI as Drumkit: Found stereo samples in slots: %s", table.concat(stereo_samples, ", ")))
-  end
   
-  -- Second pass: process and normalize all samples
+  -- Create new instrument for the drumkit
+  local new_instrument_index = song.selected_instrument_index + 1
+  song:insert_instrument_at(new_instrument_index)
+  song.selected_instrument_index = new_instrument_index
+  local drumkit_instrument = song.selected_instrument
+  drumkit_instrument.name = "Drumkit Combo of Instrument " .. source_instrument.name
+  
+  -- Process samples with progress updates
+  local processed_samples = {}
   local processed_count = 0
   local skipped_count = 0
   
   for i = 1, num_samples do
+    -- Update progress with better visibility
+    local progress_msg = string.format("PTI Smart: Processing sample %d/%d...", i, num_samples)
+    renoise.app():show_status(progress_msg)
+    print(string.format("-- Save PTI as Drumkit: Processing sample %d/%d (slot %02d)...", i, num_samples, i))
+    
+    -- Note: ProcessSlicer cancellation is handled automatically by the framework
+    
     local sample = source_instrument.samples[i]
     if sample and sample.sample_buffer.has_sample_data then
       print(string.format("-- Save PTI as Drumkit: Processing slot %02d...", i))
@@ -2216,10 +2287,14 @@ function save_pti_as_drumkit_stereo(skip_save_prompt)
       )
       temp_sample.sample_buffer:prepare_sample_data_changes()
       
-      -- Copy sample data
+      -- Copy sample data (yield periodically for UI responsiveness)
       for ch = 1, sample.sample_buffer.number_of_channels do
         for frame = 1, sample.sample_buffer.number_of_frames do
           temp_sample.sample_buffer:set_sample_data(ch, frame, sample.sample_buffer:sample_data(ch, frame))
+          -- Yield every 1000 frames to maintain UI responsiveness
+          if frame % 1000 == 0 then
+            coroutine.yield()
+          end
         end
       end
       temp_sample.sample_buffer:finalize_sample_data_changes()
@@ -2227,42 +2302,19 @@ function save_pti_as_drumkit_stereo(skip_save_prompt)
       -- Remove loops
       temp_sample.loop_mode = renoise.Sample.LOOP_MODE_OFF
       
+      -- Convert to 44.1kHz 16-bit if needed
       local original_rate = temp_sample.sample_buffer.sample_rate
       local original_bit = temp_sample.sample_buffer.bit_depth
       local original_channels = temp_sample.sample_buffer.number_of_channels
-      
-      print(string.format("-- Save PTI as Drumkit: Processing slot %02d '%s': %d frames, %d channels, %.1fkHz, %dbit", 
-        i, sample.name or "Unnamed", temp_sample.sample_buffer.number_of_frames, original_channels, 
-        original_rate, original_bit))
-      
-      -- Check if rate/bit conversion is needed (NEVER convert channels with process_sample_adjust)
       local needs_rate_bit_conversion = (original_rate ~= 44100) or (original_bit ~= 16)
       
       if needs_rate_bit_conversion then
-        print(string.format("-- Save PTI as Drumkit: Converting slot %02d: %.1fkHz/%dbit → 44.1kHz/16bit (keeping %d channels)", 
-          i, original_rate, original_bit, original_channels))
         song.selected_sample_index = 1
-        -- Convert numeric channel count to string mode for paketti_convert_sample
         local channel_mode = (original_channels == 2) and "stereo" or "mono"
         process_sample_adjust(channel_mode, 44100, 16, "none")
-        
-        print(string.format("-- Save PTI as Drumkit: After rate/bit conversion - slot %02d: %d frames, %d channels, %.1fkHz, %dbit", 
-          i, temp_sample.sample_buffer.number_of_frames, temp_sample.sample_buffer.number_of_channels, 
-          temp_sample.sample_buffer.sample_rate, temp_sample.sample_buffer.bit_depth))
-      else
-        print(string.format("-- Save PTI as Drumkit: No rate/bit conversion needed for slot %02d (already 44.1kHz/16bit)", i))
       end
       
-      -- Channel conversion will be handled manually during buffer copying
-      local final_channels = temp_sample.sample_buffer.number_of_channels
-      if final_channels ~= target_channels then
-        print(string.format("-- Save PTI as Drumkit: Will convert channels %d→%d during buffer copy (process_sample_adjust is broken for channels)", 
-          final_channels, target_channels))
-      else
-        print(string.format("-- Save PTI as Drumkit: Channel count matches target (%d channels)", final_channels))
-      end
-      
-      -- Store processed sample data
+      -- Store processed sample data (yield periodically)
       local processed_buffer = temp_sample.sample_buffer
       processed_samples[i] = {
         frames = processed_buffer.number_of_frames,
@@ -2270,11 +2322,15 @@ function save_pti_as_drumkit_stereo(skip_save_prompt)
         data = {}
       }
       
-      -- Copy processed data
+      -- Copy processed data with yielding for UI responsiveness
       for ch = 1, processed_buffer.number_of_channels do
         processed_samples[i].data[ch] = {}
         for frame = 1, processed_buffer.number_of_frames do
           processed_samples[i].data[ch][frame] = processed_buffer:sample_data(ch, frame)
+          -- Yield every 500 frames during data copying
+          if frame % 500 == 0 then
+            coroutine.yield()
+          end
         end
       end
       
@@ -2286,50 +2342,40 @@ function save_pti_as_drumkit_stereo(skip_save_prompt)
       song.selected_instrument_index = new_instrument_index
     else
       skipped_count = skipped_count + 1
-      if sample then
-        print(string.format("-- Save PTI as Drumkit: ✗ Skipping slot %02d: no sample data", i))
-      else
-        print(string.format("-- Save PTI as Drumkit: ✗ Skipping slot %02d: no sample object", i))
-      end
-      -- Don't add to processed_samples - this will skip empty slots
+      print(string.format("-- Save PTI as Drumkit: ✗ Skipping slot %02d: no sample data", i))
     end
+    
+    -- Yield after each sample to maintain UI responsiveness
+    coroutine.yield()
   end
   
+  -- Calculate total length and create combined sample
+  renoise.app():show_status("PTI Smart: Creating combined sample...")
   print(string.format("-- Save PTI as Drumkit: Processing summary: %d processed, %d skipped", processed_count, skipped_count))
   
-  -- Calculate total length for combined sample
   local total_frames = 0
   local slice_positions = {}
   local valid_samples = {}
   
-  -- Build array of only valid samples and calculate positions
   for i = 1, num_samples do
     if processed_samples[i] then
       table.insert(valid_samples, processed_samples[i])
-      table.insert(slice_positions, total_frames + 1)  -- Slice at start of each sample (1-based)
+      table.insert(slice_positions, total_frames + 1)
       total_frames = total_frames + processed_samples[i].frames
     end
   end
   
-  print(string.format("-- Save PTI as Drumkit: Total combined length: %d frames (%.2f seconds)", total_frames, total_frames / 44100.0))
-  print(string.format("-- Save PTI as Drumkit: Will create %d slices", #slice_positions))
-  
-  -- Debug: Show slice positions
-  for i = 1, #slice_positions do
-    local slice_time = (slice_positions[i] - 1) / 44100.0
-    print(string.format("-- Save PTI as Drumkit: Slice %02d at frame %d (%.3fs)", i, slice_positions[i], slice_time))
-  end
-  
   -- Create the combined sample buffer
   if drumkit_instrument.samples[1] then
-    drumkit_instrument:delete_sample_at(1)  -- Remove default empty sample
+    drumkit_instrument:delete_sample_at(1)
   end
   
   local combined_sample = drumkit_instrument:insert_sample_at(1)
   combined_sample.sample_buffer:create_sample_data(44100, 16, target_channels, total_frames)
   combined_sample.sample_buffer:prepare_sample_data_changes()
   
-  -- Copy all processed samples into the combined buffer
+  -- Copy all processed samples into the combined buffer (with yielding)
+  renoise.app():show_status("PTI Smart: Combining samples into drumkit...")
   local current_position = 1
   for i = 1, #valid_samples do
     local sample_data = valid_samples[i]
@@ -2337,16 +2383,12 @@ function save_pti_as_drumkit_stereo(skip_save_prompt)
       for ch = 1, target_channels do
         local source_value = 0.0
         if sample_data.channels == target_channels then
-          -- Same channel count: direct copy
           source_value = sample_data.data[ch][frame]
         elseif sample_data.channels == 1 and target_channels == 2 then
-          -- Mono to stereo: copy mono data to both channels
           source_value = sample_data.data[1][frame]
         elseif sample_data.channels == 2 and target_channels == 1 then
-          -- Stereo to mono: mix both channels (shouldn't happen in our case)
           source_value = (sample_data.data[1][frame] + sample_data.data[2][frame]) / 2
         else
-          -- Fallback: use channel 1 or zero
           if sample_data.channels >= 1 then
             source_value = sample_data.data[1][frame]
           else
@@ -2355,111 +2397,109 @@ function save_pti_as_drumkit_stereo(skip_save_prompt)
         end
         combined_sample.sample_buffer:set_sample_data(ch, current_position + frame - 1, source_value)
       end
+      -- Yield every 1000 frames during combination
+      if frame % 1000 == 0 then
+        coroutine.yield()
+      end
     end
     current_position = current_position + sample_data.frames
-    print(string.format("-- Save PTI as Drumkit: Copied sample %d at position %d (%d frames, %d→%d channels)", i, slice_positions[i], sample_data.frames, sample_data.channels, target_channels))
   end
   
   combined_sample.sample_buffer:finalize_sample_data_changes()
-  
-  -- Set sample name
   combined_sample.name = drumkit_instrument.name
   
   -- Insert slice markers
+  renoise.app():show_status("PTI Smart: Creating slice markers...")
   for i = 1, #slice_positions do
     combined_sample:insert_slice_marker(slice_positions[i])
-    print(string.format("-- Save PTI as Drumkit: Inserted slice marker %d at frame %d", i, slice_positions[i]))
+    -- Yield every 10 slices
+    if i % 10 == 0 then
+      coroutine.yield()
+    end
   end
   
-  -- Select the combined sample
   song.selected_sample_index = 1
   
-  renoise.app():show_status(string.format("Drumkit created with %d slices from %d samples", #slice_positions, num_samples))
+  renoise.app():show_status(string.format("PTI Smart Drumkit created: %d slices, %s", #slice_positions, target_channels == 2 and "Stereo" or "Mono"))
   print("-- Save PTI as Drumkit: Drumkit creation completed successfully")
   
-  -- Only prompt to save if not skipping the prompt
+  -- Save PTI file (skip prompt if requested)
   if not skip_save_prompt then
-    local save_pti = renoise.app():show_prompt("Drumkit Created", 
-      string.format("Drumkit created successfully with %d slices!\n\nWould you like to save it as a PTI file now?", #slice_positions),
-      {"Yes", "No"})
-    
-    if save_pti == "Yes" then
-      pti_savesample()
-    end
+    pti_savesample()
   end
 end
 
--- Mono version - converts all samples to mono
-function save_pti_as_drumkit_mono(skip_save_prompt)
+-- Stereo version - converts to stereo if any sample is stereo, otherwise mono (ProcessSlicer integrated)
+function save_pti_as_drumkit_stereo(skip_save_prompt)
   local song = renoise.song()
   local source_instrument = song.selected_instrument
   
-  -- Safety check: ensure we have an instrument
+  -- Safety checks
   if not source_instrument then
     renoise.app():show_error("No instrument selected")
     return
   end
   
-  -- Safety check: ensure we have samples
   if #source_instrument.samples == 0 then
     renoise.app():show_error("Selected instrument has no samples")
     return
   end
   
-  -- Safety check: abort if first sample has slices (indicates sliced instrument)
   if #source_instrument.samples[1].slice_markers > 0 then
     renoise.app():show_error("Cannot create drumkit from sliced instrument.\nPlease select an instrument with individual samples in separate slots.")
     return
   end
   
-  print("-- Save PTI as Drumkit (Mono): Starting mono drumkit creation from instrument: " .. source_instrument.name)
-  
   -- Determine how many samples to process (max 48)
   local num_samples = math.min(48, #source_instrument.samples)
-  print(string.format("-- Save PTI as Drumkit (Mono): Source instrument has %d total samples", #source_instrument.samples))
-  print(string.format("-- Save PTI as Drumkit (Mono): Will process %d samples (max 48)", num_samples))
   
-  -- Debug: List all sample slots and their status with names
-  print("-- Save PTI as Drumkit (Mono): Sample Analysis:")
-  for i = 1, num_samples do
-    local sample = source_instrument.samples[i]
-    if sample then
-      if sample.sample_buffer.has_sample_data then
-        print(string.format("-- Save PTI as Drumkit (Mono): Slot %02d: '%s' - %d frames, %d channels, %.1fkHz, %dbit", 
-          i, sample.name or "Unnamed", sample.sample_buffer.number_of_frames, sample.sample_buffer.number_of_channels, 
-          sample.sample_buffer.sample_rate, sample.sample_buffer.bit_depth))
-      else
-        print(string.format("-- Save PTI as Drumkit (Mono): Slot %02d: '%s' - EMPTY (no sample data)", i, sample.name or "Unnamed"))
-      end
-    else
-      print(string.format("-- Save PTI as Drumkit (Mono): Slot %02d: NULL - no sample object", i))
-    end
-  end
+  -- Create ProcessSlicer and start the process
+  local process_slicer = ProcessSlicer(function()
+    save_pti_as_drumkit_stereo_Worker(source_instrument, num_samples, skip_save_prompt)
+  end)
+  
+  local dialog, vb = process_slicer:create_dialog("Creating Polyend Drumkit...")
+  process_slicer:start()
+end
+
+-- Deprecated ProcessSlicer function (now integrated into main functions)
+function save_pti_as_drumkit_mono_ProcessSlicer(skip_save_prompt)
+  -- Deprecated: Use save_pti_as_drumkit_mono() instead (now includes ProcessSlicer by default)
+  save_pti_as_drumkit_mono(skip_save_prompt)
+end
+
+-- Worker function for ProcessSlicer mono drumkit
+function save_pti_as_drumkit_mono_Worker(source_instrument, num_samples, skip_save_prompt)
+  local song = renoise.song()
+  
+  print("-- Save PTI as Drumkit: Starting mono drumkit creation from instrument: " .. source_instrument.name)
+  print(string.format("-- Save PTI as Drumkit: Will process %d samples (max 48)", num_samples))
   
   -- Create new instrument for the drumkit
   local new_instrument_index = song.selected_instrument_index + 1
   song:insert_instrument_at(new_instrument_index)
   song.selected_instrument_index = new_instrument_index
   local drumkit_instrument = song.selected_instrument
-  
-  -- Set drumkit instrument name
   drumkit_instrument.name = "Mono Drumkit Combo of Instrument " .. source_instrument.name
-  print("-- Save PTI as Drumkit (Mono): Created new instrument: " .. drumkit_instrument.name)
   
-  -- Create working copies of samples and normalize them
-  local processed_samples = {}
   local target_channels = 1  -- Always mono for this version
+  print("-- Save PTI as Drumkit: Target format: Mono, 44100Hz, 16-bit")
   
-  print(string.format("-- Save PTI as Drumkit (Mono): Target format: Mono, 44100Hz, 16-bit"))
-  
-  -- Process all samples
+  -- Process samples with progress updates
+  local processed_samples = {}
   local processed_count = 0
   local skipped_count = 0
   
   for i = 1, num_samples do
+    -- Update progress with better visibility
+    local progress_msg = string.format("PTI Mono: Processing sample %d/%d...", i, num_samples)
+    renoise.app():show_status(progress_msg)
+    print(string.format("-- Save PTI as Drumkit (Mono): Processing sample %d/%d (slot %02d)...", i, num_samples, i))
+    
+    -- Note: ProcessSlicer cancellation is handled automatically by the framework
+    
     local sample = source_instrument.samples[i]
     if sample and sample.sample_buffer.has_sample_data then
-      print(string.format("-- Save PTI as Drumkit (Mono): Processing slot %02d...", i))
       
       -- Create temporary instrument to hold processed sample
       local temp_instrument_index = song.selected_instrument_index + 1
@@ -2477,10 +2517,14 @@ function save_pti_as_drumkit_mono(skip_save_prompt)
       )
       temp_sample.sample_buffer:prepare_sample_data_changes()
       
-      -- Copy sample data
+      -- Copy sample data (yield periodically for UI responsiveness)
       for ch = 1, sample.sample_buffer.number_of_channels do
         for frame = 1, sample.sample_buffer.number_of_frames do
           temp_sample.sample_buffer:set_sample_data(ch, frame, sample.sample_buffer:sample_data(ch, frame))
+          -- Yield every 1000 frames to maintain UI responsiveness
+          if frame % 1000 == 0 then
+            coroutine.yield()
+          end
         end
       end
       temp_sample.sample_buffer:finalize_sample_data_changes()
@@ -2488,32 +2532,19 @@ function save_pti_as_drumkit_mono(skip_save_prompt)
       -- Remove loops
       temp_sample.loop_mode = renoise.Sample.LOOP_MODE_OFF
       
+      -- Convert to mono 44.1kHz 16-bit
       local original_rate = temp_sample.sample_buffer.sample_rate
       local original_bit = temp_sample.sample_buffer.bit_depth
       local original_channels = temp_sample.sample_buffer.number_of_channels
-      
-      print(string.format("-- Save PTI as Drumkit (Mono): Processing slot %02d '%s': %d frames, %d channels, %.1fkHz, %dbit", 
-        i, sample.name or "Unnamed", temp_sample.sample_buffer.number_of_frames, original_channels, 
-        original_rate, original_bit))
-      
-      -- Check if any conversion is needed (always convert to mono)
       local needs_conversion = (original_rate ~= 44100) or (original_bit ~= 16) or (original_channels ~= 1)
       
       if needs_conversion then
-        print(string.format("-- Save PTI as Drumkit (Mono): Converting slot %02d: %.1fkHz/%dbit/%dch → 44.1kHz/16bit/1ch", 
-          i, original_rate, original_bit, original_channels))
         song.selected_sample_index = 1
-        -- Always convert to mono for this version
+        -- Force mono conversion regardless of original format
         process_sample_adjust("mono", 44100, 16, "none")
-        
-        print(string.format("-- Save PTI as Drumkit (Mono): After conversion - slot %02d: %d frames, %d channels, %.1fkHz, %dbit", 
-          i, temp_sample.sample_buffer.number_of_frames, temp_sample.sample_buffer.number_of_channels, 
-          temp_sample.sample_buffer.sample_rate, temp_sample.sample_buffer.bit_depth))
-      else
-        print(string.format("-- Save PTI as Drumkit (Mono): No conversion needed for slot %02d (already 44.1kHz/16bit/1ch)", i))
       end
       
-      -- Store processed sample data
+      -- Store processed sample data (yield periodically)
       local processed_buffer = temp_sample.sample_buffer
       processed_samples[i] = {
         frames = processed_buffer.number_of_frames,
@@ -2521,105 +2552,130 @@ function save_pti_as_drumkit_mono(skip_save_prompt)
         data = {}
       }
       
-      -- Copy processed data
+      -- Copy processed data with yielding for UI responsiveness
       for ch = 1, processed_buffer.number_of_channels do
         processed_samples[i].data[ch] = {}
         for frame = 1, processed_buffer.number_of_frames do
           processed_samples[i].data[ch][frame] = processed_buffer:sample_data(ch, frame)
+          -- Yield every 500 frames during data copying
+          if frame % 500 == 0 then
+            coroutine.yield()
+          end
         end
       end
       
       processed_count = processed_count + 1
-      print(string.format("-- Save PTI as Drumkit (Mono): ✓ Successfully processed slot %02d: %d frames, %d channels", i, processed_samples[i].frames, processed_samples[i].channels))
+      print(string.format("-- Save PTI as Drumkit: ✓ Successfully processed slot %02d: %d frames, %d channels", i, processed_samples[i].frames, processed_samples[i].channels))
       
       -- Clean up temp instrument
       song:delete_instrument_at(temp_instrument_index)
       song.selected_instrument_index = new_instrument_index
     else
       skipped_count = skipped_count + 1
-      if sample then
-        print(string.format("-- Save PTI as Drumkit (Mono): ✗ Skipping slot %02d: no sample data", i))
-      else
-        print(string.format("-- Save PTI as Drumkit (Mono): ✗ Skipping slot %02d: no sample object", i))
-      end
-      -- Don't add to processed_samples - this will skip empty slots
+      print(string.format("-- Save PTI as Drumkit: ✗ Skipping slot %02d: no sample data", i))
     end
+    
+    -- Yield after each sample to maintain UI responsiveness
+    coroutine.yield()
   end
   
-  print(string.format("-- Save PTI as Drumkit (Mono): Processing summary: %d processed, %d skipped", processed_count, skipped_count))
+  -- Calculate total length and create combined sample
+  renoise.app():show_status("PTI Mono: Creating combined sample...")
+  print(string.format("-- Save PTI as Drumkit: Processing summary: %d processed, %d skipped", processed_count, skipped_count))
   
-  -- Calculate total length for combined sample
   local total_frames = 0
   local slice_positions = {}
   local valid_samples = {}
   
-  -- Build array of only valid samples and calculate positions
   for i = 1, num_samples do
     if processed_samples[i] then
       table.insert(valid_samples, processed_samples[i])
-      table.insert(slice_positions, total_frames + 1)  -- Slice at start of each sample (1-based)
+      table.insert(slice_positions, total_frames + 1)
       total_frames = total_frames + processed_samples[i].frames
     end
   end
   
-  print(string.format("-- Save PTI as Drumkit (Mono): Total combined length: %d frames (%.2f seconds)", total_frames, total_frames / 44100.0))
-  print(string.format("-- Save PTI as Drumkit (Mono): Will create %d slices", #slice_positions))
-  
-  -- Debug: Show slice positions
-  for i = 1, #slice_positions do
-    local slice_time = (slice_positions[i] - 1) / 44100.0
-    print(string.format("-- Save PTI as Drumkit (Mono): Slice %02d at frame %d (%.3fs)", i, slice_positions[i], slice_time))
-  end
-  
   -- Create the combined sample buffer
   if drumkit_instrument.samples[1] then
-    drumkit_instrument:delete_sample_at(1)  -- Remove default empty sample
+    drumkit_instrument:delete_sample_at(1)
   end
   
   local combined_sample = drumkit_instrument:insert_sample_at(1)
   combined_sample.sample_buffer:create_sample_data(44100, 16, target_channels, total_frames)
   combined_sample.sample_buffer:prepare_sample_data_changes()
   
-  -- Copy all processed samples into the combined buffer
+  -- Copy all processed samples into the combined buffer (with yielding)
+  renoise.app():show_status("PTI Mono: Combining samples into drumkit...")
   local current_position = 1
   for i = 1, #valid_samples do
     local sample_data = valid_samples[i]
     for frame = 1, sample_data.frames do
-      -- For mono target, always use channel 1 (mix if source was stereo)
+      -- For mono target, always use channel 1 (already converted to mono above)
       local source_value = sample_data.data[1][frame]
       combined_sample.sample_buffer:set_sample_data(1, current_position + frame - 1, source_value)
+      -- Yield every 1000 frames during combination
+      if frame % 1000 == 0 then
+        coroutine.yield()
+      end
     end
     current_position = current_position + sample_data.frames
-    print(string.format("-- Save PTI as Drumkit (Mono): Copied sample %d at position %d (%d frames, %d→%d channels)", i, slice_positions[i], sample_data.frames, sample_data.channels, target_channels))
   end
   
   combined_sample.sample_buffer:finalize_sample_data_changes()
-  
-  -- Set sample name
   combined_sample.name = drumkit_instrument.name
   
   -- Insert slice markers
+  renoise.app():show_status("PTI Mono: Creating slice markers...")
   for i = 1, #slice_positions do
     combined_sample:insert_slice_marker(slice_positions[i])
-    print(string.format("-- Save PTI as Drumkit (Mono): Inserted slice marker %d at frame %d", i, slice_positions[i]))
-  end
-  
-  -- Select the combined sample
-  song.selected_sample_index = 1
-  
-  renoise.app():show_status(string.format("Mono drumkit created with %d slices from %d samples", #slice_positions, num_samples))
-  print("-- Save PTI as Drumkit (Mono): Mono drumkit creation completed successfully")
-  
-  -- Only prompt to save if not skipping the prompt
-  if not skip_save_prompt then
-    local save_pti = renoise.app():show_prompt("Mono Drumkit Created", 
-      string.format("Mono drumkit created successfully with %d slices!\n\nWould you like to save it as a PTI file now?", #slice_positions),
-      {"Yes", "No"})
-    
-    if save_pti == "Yes" then
-      pti_savesample()
+    -- Yield every 10 slices
+    if i % 10 == 0 then
+      coroutine.yield()
     end
   end
+  
+  song.selected_sample_index = 1
+  
+  renoise.app():show_status(string.format("PTI Mono: Drumkit created with %d slices", #slice_positions))
+  print("-- Save PTI as Drumkit: Mono drumkit creation completed successfully")
+  
+  -- Save PTI file (skip prompt if requested)
+  if not skip_save_prompt then
+    pti_savesample()
+  end
+end
+
+-- Mono version - converts all samples to mono (ProcessSlicer integrated)
+function save_pti_as_drumkit_mono(skip_save_prompt)
+  local song = renoise.song()
+  local source_instrument = song.selected_instrument
+  
+  -- Safety checks
+  if not source_instrument then
+    renoise.app():show_error("No instrument selected")
+    return
+  end
+  
+  if #source_instrument.samples == 0 then
+    renoise.app():show_error("Selected instrument has no samples")
+    return
+  end
+  
+  if #source_instrument.samples[1].slice_markers > 0 then
+    renoise.app():show_error("Cannot create drumkit from sliced instrument.\nPlease select an instrument with individual samples in separate slots.")
+    return
+  end
+  
+  -- Determine how many samples to process (max 48)
+  local num_samples = math.min(48, #source_instrument.samples)
+  
+  -- Create ProcessSlicer and start the process
+  local process_slicer = ProcessSlicer(function()
+    save_pti_as_drumkit_mono_Worker(source_instrument, num_samples, skip_save_prompt)
+  end)
+  
+  local dialog, vb = process_slicer:create_dialog("Creating Polyend Mono Drumkit...")
+  process_slicer:start()
 end
 
 local textWidth = 130
@@ -2836,7 +2892,12 @@ function create_polyend_buddy_dialog(vb)
             local base_path = selected_pti.full_path:gsub("%.pti$", "_normalized.pti")
             local normalized_path = generate_unique_filename(base_path)
             
-            normalize_pti_slices_and_save(selected_pti.full_path, normalized_path)
+            normalize_pti_slices_and_save(selected_pti.full_path, normalized_path, function(success, result)
+              if success then
+                -- Refresh the Polyend device dropdown to show the new file
+                update_pti_dropdown(vb)
+              end
+            end)
             
           else
             renoise.app():show_status("Please select a valid PTI file to normalize")
@@ -3249,6 +3310,8 @@ function create_polyend_buddy_dialog(vb)
               preferences:save_as("preferences.xml")
               print(string.format("-- Polyend Buddy: Saved local backup path to preferences: %s", selected_path))
             end
+            
+            update_computer_backup_dropdown(vb)
           end
         end
       },
@@ -3270,6 +3333,106 @@ function create_polyend_buddy_dialog(vb)
           
           renoise.app():open_path(polyend_computer_backup_path)
           renoise.app():show_status("Opened local backup folder.")
+        end
+      }
+    },
+    
+    -- Local backup files dropdown with Send button
+    vb:row{
+      vb:text{
+        text = "Local Backup Files",
+        width = textWidth, style="strong",font="bold"
+      },
+      vb:popup{
+        id = "computer_backup_popup",
+        items = {"<Set Local Backup Path>"},
+        width = 400,
+        tooltip = "Select a PTI file from your local backup folder to send to device"
+      },
+      vb:button{
+        text = "Send to Device",
+        width = polyendButtonWidth*2,
+        tooltip = "Send the selected backup PTI file directly to Polyend device (choose destination folder)",
+        notifier = function()
+          local selected_index = vb.views["computer_backup_popup"].value
+          
+          if #computer_backup_files == 0 then
+            renoise.app():show_status("No local backup files found - set Local Backup Path first")
+            return
+          end
+          
+          if selected_index >= 1 and selected_index <= #computer_backup_files then
+            local selected_backup = computer_backup_files[selected_index]
+            local dropdown_display_name = vb.views["computer_backup_popup"].items[selected_index]
+            print(string.format("-- Local Backup: Selected dropdown item #%d: '%s'", selected_index, dropdown_display_name))
+            print(string.format("-- Local Backup: Sending PTI file: %s", selected_backup.full_path))
+            
+            -- Send the PTI file to device
+            send_computer_pti_to_device(selected_backup.full_path)
+            
+            renoise.app():show_status(string.format("Sent backup PTI to device: %s", selected_backup.display_name))
+          else
+            renoise.app():show_status("Please select a valid local backup file")
+          end
+        end
+      },
+      vb:button{
+        text = "Analyze", 
+        width = polyendButtonWidth,
+        tooltip = "Analyze the selected local backup PTI file and show detailed information (slices, format, etc.)",
+        notifier = function()
+          local selected_index = vb.views["computer_backup_popup"].value
+          
+          if #computer_backup_files == 0 then
+            renoise.app():show_status("No local backup files found to analyze - set Local Backup Path first")
+            return
+          end
+          
+          if selected_index >= 1 and selected_index <= #computer_backup_files then
+            local selected_backup = computer_backup_files[selected_index]
+            local dropdown_display_name = vb.views["computer_backup_popup"].items[selected_index]
+            print(string.format("-- Local Backup: Analyzing PTI file: %s", selected_backup.full_path))
+            
+            -- Analyze the PTI file
+            analyze_pti_file(selected_backup.full_path)
+            
+            renoise.app():show_status(string.format("Analyzed backup PTI: %s", selected_backup.display_name))
+          else
+            renoise.app():show_status("Please select a valid local backup file to analyze")
+          end
+        end
+      },
+      vb:button{
+        text = "Normalize Slices", 
+        width = polyendButtonWidth *2,
+        tooltip = "Load local backup PTI file, normalize all slices, then save as PTI with _normalized suffix",
+        notifier = function()
+          local selected_index = vb.views["computer_backup_popup"].value
+          
+          if #computer_backup_files == 0 then
+            renoise.app():show_status("No local backup files found to normalize - set Local Backup Path first")
+            return
+          end
+          
+          if selected_index >= 1 and selected_index <= #computer_backup_files then
+            local selected_backup = computer_backup_files[selected_index]
+            local dropdown_display_name = vb.views["computer_backup_popup"].items[selected_index]
+            print(string.format("-- Local Backup: Normalizing slices in PTI file: %s", selected_backup.full_path))
+            
+            -- Create normalized filename in same directory as source file
+            local base_path = selected_backup.full_path:gsub("%.pti$", "_normalized.pti")
+            local normalized_path = generate_unique_filename(base_path)
+            
+            normalize_pti_slices_and_save(selected_backup.full_path, normalized_path, function(success, result)
+              if success then
+                -- Refresh the local backup dropdown to show the new file
+                update_computer_backup_dropdown(vb)
+              end
+            end)
+            
+          else
+            renoise.app():show_status("Please select a valid local backup file to normalize")
+          end
         end
       }
     },
@@ -3342,7 +3505,11 @@ function create_polyend_buddy_dialog(vb)
                 -- Create local backup copy if enabled
                 create_local_backup_copy(unique_path, "Save_PTI")
                 
-                renoise.app():show_status(string.format("PTI saved to: %s", final_filename))
+                -- Refresh the dropdowns to show the new file
+                update_pti_dropdown(vb)
+                update_computer_backup_dropdown(vb)
+                
+                renoise.app():show_status(string.format("PTI saved to %s", unique_path))
               else
                 renoise.app():show_error("Failed to save PTI file")
               end
@@ -3398,7 +3565,11 @@ function create_polyend_buddy_dialog(vb)
               -- Create local backup copy if enabled
               create_local_backup_copy(unique_path, "Save_WAV")
               
-              renoise.app():show_status(string.format("WAV saved to: %s", final_filename))
+              -- Refresh the dropdowns to show the new file
+              update_pti_dropdown(vb)
+              update_computer_backup_dropdown(vb)
+              
+              renoise.app():show_status(string.format("WAV saved to %s", unique_path))
             else
               renoise.app():show_error("Failed to save WAV file: " .. (error_msg or "Unknown error"))
             end
@@ -3431,7 +3602,7 @@ function create_polyend_buddy_dialog(vb)
           
           -- Auto-save if save paths are enabled, otherwise user already handled saving via prompt
           if use_save_paths then
-            auto_save_drumkit_if_enabled("Stereo")
+            auto_save_drumkit_if_enabled("Stereo", vb)
           end
         end
       },
@@ -3458,7 +3629,7 @@ function create_polyend_buddy_dialog(vb)
           
           -- Auto-save if save paths are enabled, otherwise user already handled saving via prompt
           if use_save_paths then
-            auto_save_drumkit_if_enabled("Mono")
+            auto_save_drumkit_if_enabled("Mono", vb)
           end
         end
       }
@@ -3557,7 +3728,11 @@ function create_polyend_buddy_dialog(vb)
           
           -- Auto-save if save paths are enabled, otherwise user already handled saving via prompt
           if use_save_paths then
-            auto_save_drumkit_if_enabled("Mono")
+            auto_save_drumkit_if_enabled("Mono", nil)
+            -- Trigger global refresh if available (from dialog context)
+            if polyend_refresh_callback then
+              polyend_refresh_callback()
+            end
           end
         end
       },
@@ -3587,7 +3762,11 @@ function create_polyend_buddy_dialog(vb)
           
           -- Auto-save if save paths are enabled, otherwise user already handled saving via prompt
           if use_save_paths then
-            auto_save_drumkit_if_enabled("Stereo")
+            auto_save_drumkit_if_enabled("Stereo", nil)
+            -- Trigger global refresh if available (from dialog context)
+            if polyend_refresh_callback then
+              polyend_refresh_callback()
+            end
           end
         end
       },
@@ -3626,9 +3805,16 @@ function create_polyend_buddy_dialog(vb)
               
               -- Auto-save if save paths are enabled, otherwise user already handled saving via prompt
               if use_save_paths then
-                auto_save_drumkit_if_enabled("Mono")
+                auto_save_drumkit_if_enabled("Mono", nil)
+                -- Trigger global refresh if available (from dialog context)
+                if polyend_refresh_callback then
+                  polyend_refresh_callback()
               end
             end
+            end
+          end
+          if renoise.tool():has_timer(timer_function) then
+            renoise.tool():remove_timer(timer_function)
           end
           renoise.tool():add_timer(timer_function, 500) -- Check every 500ms
         end
@@ -3668,9 +3854,16 @@ function create_polyend_buddy_dialog(vb)
               
               -- Auto-save if save paths are enabled, otherwise user already handled saving via prompt
               if use_save_paths then
-                auto_save_drumkit_if_enabled("Stereo")
+                auto_save_drumkit_if_enabled("Stereo", nil)
+                -- Trigger global refresh if available (from dialog context)
+                if polyend_refresh_callback then
+                  polyend_refresh_callback()
               end
             end
+            end
+          end
+          if renoise.tool():has_timer(timer_function) then
+            renoise.tool():remove_timer(timer_function)
           end
           renoise.tool():add_timer(timer_function, 500) -- Check every 500ms
         end
@@ -3824,6 +4017,8 @@ function create_polyend_buddy_dialog(vb)
           if polyend_buddy_root_path and polyend_buddy_root_path ~= "" then
             print("-- Polyend Buddy: Refreshing connection...")
             update_pti_dropdown(vb)
+            update_computer_pti_dropdown(vb)
+            update_computer_backup_dropdown(vb)
             -- Status message is handled by update_pti_dropdown
           else
             renoise.app():show_status("Please select a root folder first")
@@ -3842,6 +4037,7 @@ function create_polyend_buddy_dialog(vb)
             if dialog then
     dialog:close()
     dialog = nil
+    polyend_refresh_callback = nil  -- Clear global refresh callback
           end
         end
       }
@@ -3872,6 +4068,14 @@ function show_polyend_buddy_dialog()
   initialize_save_paths()
   
   local vb = renoise.ViewBuilder()
+  
+  -- Set up global refresh callback for operations outside dialog context
+  polyend_refresh_callback = function()
+    update_pti_dropdown(vb)
+    update_computer_pti_dropdown(vb)
+    update_computer_backup_dropdown(vb)
+  end
+  
   local keyhandler = create_keyhandler_for_dialog(
     function() return dialog end,
     function(value) dialog = value end
@@ -3882,15 +4086,40 @@ function show_polyend_buddy_dialog()
     keyhandler
   )
   
-  -- Check connection status on startup
+  -- Check connection status on startup with retry logic
   if polyend_buddy_root_path and polyend_buddy_root_path ~= "" then
     local path_exists = check_polyend_path_exists(polyend_buddy_root_path)
     if path_exists then
       update_pti_dropdown(vb)
     else
-      -- Show disconnected status on startup - don't update dropdown, keep default message
+      -- First attempt failed, show status and try once more after 1 second
+      renoise.app():show_status("Polyend device not found - retrying in 1 second...")
+      print("-- Polyend Buddy: Polyend device not connected at startup, retrying in 1 second...")
+      
+      -- Add timer for single retry attempt
+      local retry_timer = function()
+        -- Remove this timer (single use only)
+        if renoise.tool():has_timer(retry_timer) then
+          renoise.tool():remove_timer(retry_timer)
+        end
+        
+        local path_exists_retry = check_polyend_path_exists(polyend_buddy_root_path)
+        if path_exists_retry then
+          print("-- Polyend Buddy: Device found on retry!")
+          update_pti_dropdown(vb)
+          renoise.app():show_status("Polyend device connected")
+        else
+          -- Final failure after retry
       renoise.app():show_status(POLYEND_DEVICE_NOT_CONNECTED_TITLE .. " - check path: " .. polyend_buddy_root_path)
-      print("-- Polyend Buddy: Polyend device not connected at startup")
+          print("-- Polyend Buddy: Polyend device still not connected after retry")
+        end
+      end
+      
+      -- Set timer for 1 second retry (check if exists first)
+      if renoise.tool():has_timer(retry_timer) then
+        renoise.tool():remove_timer(retry_timer)
+      end
+      renoise.tool():add_timer(retry_timer, 1000)
     end
   else
     -- No path configured - don't update dropdown, keep default message
@@ -3907,6 +4136,19 @@ function show_polyend_buddy_dialog()
     end
   else
     print("-- Local PTI: No local PTI path configured")
+  end
+  
+  -- Check local backup path on startup
+  local backup_path = get_computer_backup_path()
+  if backup_path and backup_path ~= "" then
+    local backup_path_exists = check_polyend_path_exists(backup_path)
+    if backup_path_exists then
+      update_computer_backup_dropdown(vb)
+    else
+      print("-- Local Backup: Local backup path not accessible at startup: " .. backup_path)
+    end
+  else
+    print("-- Local Backup: No local backup path configured")
   end
 end
 

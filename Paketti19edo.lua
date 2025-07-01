@@ -316,7 +316,16 @@ function apply_tuning_to_track()
         return
     end
     
-    local song = renoise.song()
+    local song
+    local success, error_msg = pcall(function()
+        song = renoise.song()
+    end)
+    
+    if not success or not song then
+        renoise.app():show_status("No song available")
+        return
+    end
+    
     local selected_track = song.selected_track
     local pattern_index = song.selected_pattern_index
     local pattern = song:pattern(pattern_index)
@@ -386,7 +395,16 @@ function clear_tuning_effects_from_track()
         show_tuning_selection_dialog()
         return
     end
-    local song = renoise.song()
+    local song
+    local success, error_msg = pcall(function()
+        song = renoise.song()
+    end)
+    
+    if not success or not song then
+        renoise.app():show_status("No song available")
+        return
+    end
+    
     local pattern_index = song.selected_pattern_index
     local pattern = song:pattern(pattern_index)
     local track_pattern = pattern:track(song.selected_track_index)
@@ -438,7 +456,16 @@ function auto_apply_tuning_to_note(track_index, line_index, note_column_index)
         end
     end
     
-    local song = renoise.song()
+    local song
+    local success, error_msg = pcall(function()
+        song = renoise.song()
+    end)
+    
+    if not success or not song then
+        print("DEBUG: No song available for auto-tuning")
+        return
+    end
+    
     local track = song.tracks[track_index]
     local pattern_index = song.selected_pattern_index
     local pattern = song:pattern(pattern_index)
@@ -481,8 +508,13 @@ function auto_input_idle_notifier()
         return
     end
     
-    local song = renoise.song()
-    if not song or not song.selected_track then
+    -- Safe song access with error handling
+    local song
+    local success, error_msg = pcall(function()
+        song = renoise.song()
+    end)
+    
+    if not success or not song or not song.selected_track then
         return
     end
     
@@ -559,8 +591,12 @@ function enable_auto_input_tuning()
     renoise.tool().preferences.AutoInputTuning.value = "true"
     
     -- Make Sample FX Column visible on selected track
-    local song = renoise.song()
-    if song and song.selected_track then
+    local song
+    local success, error_msg = pcall(function()
+        song = renoise.song()
+    end)
+    
+    if success and song and song.selected_track then
         song.selected_track.sample_effects_column_visible = true
         print("DEBUG: Made Sample FX Column visible on track")
     end
@@ -639,8 +675,18 @@ end
 
 -- Initialize on tool startup
 renoise.tool().app_new_document_observable:add_notifier(initialize_auto_input_tuning)
-if renoise.song() then
-    initialize_auto_input_tuning()
+
+-- Safe initialization - only initialize if song is available
+local function safe_initialize()
+    if renoise.song() then
+        initialize_auto_input_tuning()
+    end
+end
+
+-- Use pcall to safely check for song availability during module loading
+local success, error_msg = pcall(safe_initialize)
+if not success then
+    print("Paketti19edo: Deferred initialization - will initialize when song is loaded")
 end
 
 -- Menu entries and keybindings
