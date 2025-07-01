@@ -2,6 +2,12 @@ local TRANSPOSE_MIN=-120
 local TRANSPOSE_MAX=120
 local is_switching_instrument=false
 
+-- Future-proof variables for phrase script syntax
+local PHRASE_RETURN_TYPE = "pattern"
+local PHRASE_PATTERN_FIELD = "pulse"
+local PHRASE_EVENT_FIELD = "event"
+local PHRASE_UNIT_FIELD = "unit"
+
 local function set_transpose_safely(instrument, new_value)
   if not instrument then return end
   -- Clamp value between min and max
@@ -330,9 +336,9 @@ local DEFAULT_SETTINGS = {
     local notes = {}
     
     for _, line in ipairs(phrase.script.paragraphs) do
-      local pattern_str = line:match('pattern%s*=%s*{([^}]+)}')
-      local unit_str = line:match('unit%s*=%s*"([^"]+)"')
-      local emit_str = line:match('emit%s*=%s*{(.+)}')
+      local pattern_str = line:match(PHRASE_PATTERN_FIELD .. '%s*=%s*{([^}]+)}')
+      local unit_str = line:match(PHRASE_UNIT_FIELD .. '%s*=%s*"([^"]+)"')
+      local emit_str = line:match(PHRASE_EVENT_FIELD .. '%s*=%s*{(.+)}')
       
       if pattern_str then
         for num in pattern_str:gmatch("[01]") do
@@ -366,9 +372,9 @@ local DEFAULT_SETTINGS = {
     
     -- Rebuild script with new notes
     phrase.script.paragraphs = {
-      "return rhythm {",
-      string.format('  unit = "%s",', current_unit),
-      string.format("  pattern = {%s},", table.concat(current_pattern, ",")),
+      "return " .. PHRASE_RETURN_TYPE .. " {",
+      string.format('  ' .. PHRASE_UNIT_FIELD .. ' = "%s",', current_unit),
+      string.format("  " .. PHRASE_PATTERN_FIELD .. " = {%s},", table.concat(current_pattern, ",")),
       format_emit_line(emit_strings),
       "}",
       build_comment_line(current_settings)
@@ -418,9 +424,9 @@ function max_octave_box_notifier(value)
     local notes = {}
     
     for _, line in ipairs(phrase.script.paragraphs) do
-      local pattern_str = line:match('pattern%s*=%s*{([^}]+)}')
-      local unit_str = line:match('unit%s*=%s*"([^"]+)"')
-      local emit_str = line:match('emit%s*=%s*{(.+)}')
+      local pattern_str = line:match(PHRASE_PATTERN_FIELD .. '%s*=%s*{([^}]+)}')
+      local unit_str = line:match(PHRASE_UNIT_FIELD .. '%s*=%s*"([^"]+)"')
+      local emit_str = line:match(PHRASE_EVENT_FIELD .. '%s*=%s*{(.+)}')
       
       if pattern_str then
         for num in pattern_str:gmatch("[01]") do
@@ -454,9 +460,9 @@ function max_octave_box_notifier(value)
     
     -- Rebuild script with new notes
     phrase.script.paragraphs = {
-      "return rhythm {",
-      string.format('  unit = "%s",', current_unit),
-      string.format("  pattern = {%s},", table.concat(current_pattern, ",")),
+      "return " .. PHRASE_RETURN_TYPE .. " {",
+      string.format('  ' .. PHRASE_UNIT_FIELD .. ' = "%s",', current_unit),
+      string.format("  " .. PHRASE_PATTERN_FIELD .. " = {%s},", table.concat(current_pattern, ",")),
       format_emit_line(emit_strings),
       "}",
       build_comment_line(current_settings)
@@ -703,7 +709,7 @@ function close_dialog()
       if script then
         -- Parse existing emit section to preserve notes
         for _, line in ipairs(script.paragraphs) do
-          local emit_str = line:match('emit%s*=%s*{(.+)}')
+          local emit_str = line:match(PHRASE_EVENT_FIELD .. '%s*=%s*{(.+)}')
           if emit_str then
             -- Extract existing notes and volumes
             for key, vol in emit_str:gmatch('key%s*=%s*"([^"]+)",?%s*volume%s*=%s*([%d%.]+)') do
@@ -739,9 +745,9 @@ function close_dialog()
   local pattern = pattern_override or generate_musical_pattern(settings.pattern_length)
 
   return {
-    "return rhythm {",
-    string.format('  unit = "%s",', current_settings.unit),
-    string.format("  pattern = {%s},", table.concat(pattern, ",")),
+    "return " .. PHRASE_RETURN_TYPE .. " {",
+    string.format('  ' .. PHRASE_UNIT_FIELD .. ' = "%s",', current_settings.unit),
+    string.format("  " .. PHRASE_PATTERN_FIELD .. " = {%s},", table.concat(pattern, ",")),
     format_emit_line(emit_strings),
     "}",
     build_comment_line(current_settings)
@@ -753,7 +759,7 @@ end
   -- Format: --scale --unit --octaves min-max --velocity min-max
   local comment_parts = {
     settings.scale or "major",
-    string.format("unit %s", settings.unit or "1/16"),
+    string.format(PHRASE_UNIT_FIELD .. " %s", settings.unit or "1/16"),
     string.format("octRange %d %d", settings.min_octave or 3, settings.max_octave or 6),
     string.format("volRange %d %d", math.floor((settings.min_volume or 0.6) * 100), math.floor((settings.max_volume or 1.0) * 100))
   }
@@ -781,8 +787,8 @@ function parse_phrase_comment(comment)
     if not part:find("%s") and table.find(SCALE_NAMES, part) then
       settings.scale = part
     -- Parse unit
-    elseif part:match("^unit%s+") then
-      local unit = part:match("unit%s+([^%s]+)")
+    elseif part:match("^" .. PHRASE_UNIT_FIELD .. "%s+") then
+      local unit = part:match(PHRASE_UNIT_FIELD .. "%s+([^%s]+)")
       if table.find(RHYTHM_UNITS, unit) then
         settings.unit = unit
       end
@@ -849,7 +855,7 @@ end
    if script then
      -- First look for unit value
      for _, line in ipairs(script.paragraphs) do
-       local unit_match = line:match('unit%s*=%s*"([^"]+)"')
+       local unit_match = line:match(PHRASE_UNIT_FIELD .. '%s*=%s*"([^"]+)"')
        if unit_match then
          current_settings.unit = unit_match
          print("Reading unit from script:", current_settings.unit)
@@ -962,7 +968,7 @@ end
    local found_emit = false
    
    for _, line in ipairs(script.paragraphs) do
-     if line:match("^%s*emit%s*=") then
+     if line:match("^%s*" .. PHRASE_EVENT_FIELD .. "%s*=") then
        table.insert(new_paragraphs, generate_notes_only(settings))
        found_emit = true
      else
@@ -1091,9 +1097,9 @@ end
    local existing_notes = {}
    
    for _, line in ipairs(script.paragraphs) do
-     local pattern_str = line:match('pattern%s*=%s*{([^}]+)}')
-     local unit_str = line:match('unit%s*=%s*"([^"]+)"')
-     local emit_str = line:match('emit%s*=%s*{(.+)}')
+     local pattern_str = line:match(PHRASE_PATTERN_FIELD .. '%s*=%s*{([^}]+)}')
+     local unit_str = line:match(PHRASE_UNIT_FIELD .. '%s*=%s*"([^"]+)"')
+     local emit_str = line:match(PHRASE_EVENT_FIELD .. '%s*=%s*{(.+)}')
      
      if pattern_str then
        for num in pattern_str:gmatch("[01]") do
@@ -1217,7 +1223,7 @@ end
      if script then
        local existing_notes = {}
        for _, line in ipairs(script.paragraphs) do
-         local emit_str = line:match('emit%s*=%s*{(.+)}')
+         local emit_str = line:match(PHRASE_EVENT_FIELD .. '%s*=%s*{(.+)}')
          if emit_str then
            for key, vol in emit_str:gmatch('key%s*=%s*"([^"]+)",?%s*volume%s*=%s*([%d%.]+)') do
              table.insert(existing_notes, {key=key, volume=tonumber(vol)})
@@ -1253,9 +1259,9 @@ end
    local existing_notes = {}
   
    for _, line in ipairs(script.paragraphs) do
-     local pattern_str = line:match('pattern%s*=%s*{([^}]+)}')
-     local unit_str = line:match('unit%s*=%s*"([^"]+)"')
-     local emit_str = line:match('emit%s*=%s*{(.+)}')
+     local pattern_str = line:match(PHRASE_PATTERN_FIELD .. '%s*=%s*{([^}]+)}')
+     local unit_str = line:match(PHRASE_UNIT_FIELD .. '%s*=%s*"([^"]+)"')
+     local emit_str = line:match(PHRASE_EVENT_FIELD .. '%s*=%s*{(.+)}')
     
      if pattern_str then
        for num in pattern_str:gmatch("[01]") do
@@ -1288,9 +1294,9 @@ end
   
    -- Rebuild script with comment
    script.paragraphs = {
-     "return rhythm {",
-     string.format('  unit = "%s",', current_unit),
-     string.format("  pattern = {%s},", table.concat(current_pattern, ",")),
+     "return " .. PHRASE_RETURN_TYPE .. " {",
+     string.format('  ' .. PHRASE_UNIT_FIELD .. ' = "%s",', current_unit),
+     string.format("  " .. PHRASE_PATTERN_FIELD .. " = {%s},", table.concat(current_pattern, ",")),
      format_emit_line(existing_notes),
      "}",
      build_comment_line(current_settings)
@@ -1677,16 +1683,16 @@ end
            local current_emit = ""
            
            for _, line in ipairs(script.paragraphs) do
-             local pattern_str = line:match('pattern%s*=%s*{([^}]+)}')
-             local unit_str = line:match('unit%s*=%s*"([^"]+)"')
-             local emit_str = line:match('emit%s*=%s*{(.+)}')
+             local pattern_str = line:match(PHRASE_PATTERN_FIELD .. '%s*=%s*{([^}]+)}')
+             local unit_str = line:match(PHRASE_UNIT_FIELD .. '%s*=%s*"([^"]+)"')
+             local emit_str = line:match(PHRASE_EVENT_FIELD .. '%s*=%s*{(.+)}')
              
              if pattern_str then
                -- Extract and reverse the pattern
                for num in pattern_str:gmatch("[01]") do
                  table.insert(reversed_pattern, 1, tonumber(num))  -- Insert at beginning to reverse
                end
-               table.insert(new_paragraphs, string.format('  pattern = {%s},', table.concat(reversed_pattern, ",")))
+               table.insert(new_paragraphs, string.format('  ' .. PHRASE_PATTERN_FIELD .. ' = {%s},', table.concat(reversed_pattern, ",")))
              elseif unit_str then
                -- Keep track of the current unit
                current_unit = unit_str
@@ -1958,9 +1964,9 @@ end
           local notes = {}
           
           for _, line in ipairs(script.paragraphs) do
-            local pattern_str = line:match('pattern%s*=%s*{([^}]+)}')
-            local unit_str = line:match('unit%s*=%s*"([^"]+)"')
-            local emit_str = line:match('emit%s*=%s*{(.+)}')
+            local pattern_str = line:match(PHRASE_PATTERN_FIELD .. '%s*=%s*{([^}]+)}')
+            local unit_str = line:match(PHRASE_UNIT_FIELD .. '%s*=%s*"([^"]+)"')
+            local emit_str = line:match(PHRASE_EVENT_FIELD .. '%s*=%s*{(.+)}')
             
             if pattern_str then
               -- Keep pattern unchanged
@@ -2212,9 +2218,9 @@ end
                local notes = {}
                
                for _, line in ipairs(phrase.script.paragraphs) do
-                 local pattern_str = line:match('pattern%s*=%s*{([^}]+)}')
-                 local unit_str = line:match('unit%s*=%s*"([^"]+)"')
-                 local emit_str = line:match('emit%s*=%s*{(.+)}')
+                 local pattern_str = line:match(PHRASE_PATTERN_FIELD .. '%s*=%s*{([^}]+)}')
+                 local unit_str = line:match(PHRASE_UNIT_FIELD .. '%s*=%s*"([^"]+)"')
+                 local emit_str = line:match(PHRASE_EVENT_FIELD .. '%s*=%s*{(.+)}')
                  
                  if pattern_str then
                    for num in pattern_str:gmatch("[01]") do
@@ -2230,9 +2236,9 @@ end
                end
                
                phrase.script.paragraphs = {
-                 "return rhythm {",
-                 string.format('  unit = "%s",', current_unit),
-                 string.format("  pattern = {%s},", table.concat(current_pattern, ",")),
+                 "return " .. PHRASE_RETURN_TYPE .. " {",
+                 string.format('  ' .. PHRASE_UNIT_FIELD .. ' = "%s",', current_unit),
+                 string.format("  " .. PHRASE_PATTERN_FIELD .. " = {%s},", table.concat(current_pattern, ",")),
                  format_emit_line(notes),
                  "}",
                  build_comment_line(current_settings)
@@ -2468,9 +2474,9 @@ function live_code(settings)
   local existing_notes = {}
   
   for _, line in ipairs(script.paragraphs) do
-    local pattern_str = line:match('pattern%s*=%s*{([^}]+)}')
-    local unit_str = line:match('unit%s*=%s*"([^"]+)"')
-    local emit_str = line:match('emit%s*=%s*{(.+)}')
+    local pattern_str = line:match(PHRASE_PATTERN_FIELD .. '%s*=%s*{([^}]+)}')
+    local unit_str = line:match(PHRASE_UNIT_FIELD .. '%s*=%s*"([^"]+)"')
+    local emit_str = line:match(PHRASE_EVENT_FIELD .. '%s*=%s*{(.+)}')
     
     if pattern_str then
       for num in pattern_str:gmatch("[01]") do
@@ -2578,9 +2584,9 @@ end
    local existing_notes = {}
    
    for _, line in ipairs(script.paragraphs) do
-     local pattern_str = line:match('pattern%s*=%s*{([^}]+)}')
-     local unit_str = line:match('unit%s*=%s*"([^"]+)"')
-     local emit_str = line:match('emit%s*=%s*{(.+)}')
+     local pattern_str = line:match(PHRASE_PATTERN_FIELD .. '%s*=%s*{([^}]+)}')
+     local unit_str = line:match(PHRASE_UNIT_FIELD .. '%s*=%s*"([^"]+)"')
+     local emit_str = line:match(PHRASE_EVENT_FIELD .. '%s*=%s*{(.+)}')
      
      if pattern_str then
        for num in pattern_str:gmatch("[01]") do
@@ -2639,8 +2645,8 @@ end
    local current_scale = settings.scale
    
    for _, line in ipairs(script.paragraphs) do
-     local pattern_str = line:match('pattern%s*=%s*{([^}]+)}')
-     local emit_str = line:match('emit%s*=%s*{(.+)}')
+     local pattern_str = line:match(PHRASE_PATTERN_FIELD .. '%s*=%s*{([^}]+)}')
+     local emit_str = line:match(PHRASE_EVENT_FIELD .. '%s*=%s*{(.+)}')
      
      if pattern_str then
        for num in pattern_str:gmatch("%d+") do
@@ -2725,9 +2731,9 @@ end
    end
    
    for _, line in ipairs(script.paragraphs) do
-     local pattern_str = line:match('pattern%s*=%s*{([^}]+)}')
-     local unit_str = line:match('unit%s*=%s*"([^"]+)"')
-     local emit_str = line:match('emit%s*=%s*{(.+)}')
+     local pattern_str = line:match(PHRASE_PATTERN_FIELD .. '%s*=%s*{([^}]+)}')
+     local unit_str = line:match(PHRASE_UNIT_FIELD .. '%s*=%s*"([^"]+)"')
+     local emit_str = line:match(PHRASE_EVENT_FIELD .. '%s*=%s*{(.+)}')
      
      if pattern_str then
        for num in pattern_str:gmatch("[01]") do
@@ -2799,9 +2805,9 @@ end
    local current_unit = current_settings.unit
    
    for _, line in ipairs(script.paragraphs) do
-     local pattern_str = line:match('pattern%s*=%s*{([^}]+)}')
-     local unit_str = line:match('unit%s*=%s*"([^"]+)"')
-     local emit_str = line:match('emit%s*=%s*{(.+)}')
+     local pattern_str = line:match(PHRASE_PATTERN_FIELD .. '%s*=%s*{([^}]+)}')
+     local unit_str = line:match(PHRASE_UNIT_FIELD .. '%s*=%s*"([^"]+)"')
+     local emit_str = line:match(PHRASE_EVENT_FIELD .. '%s*=%s*{(.+)}')
      
      if pattern_str then
        for num in pattern_str:gmatch("[01]") do
@@ -2835,9 +2841,9 @@ end
    
    -- Rebuild script with preserved pattern and compact emit formatting
    local new_paragraphs = {
-     "return rhythm {",
-     string.format('  unit = "%s",', current_unit),
-     string.format("  pattern = {%s},", table.concat(current_pattern, ",")),
+     "return " .. PHRASE_RETURN_TYPE .. " {",
+     string.format('  ' .. PHRASE_UNIT_FIELD .. ' = "%s",', current_unit),
+     string.format("  " .. PHRASE_PATTERN_FIELD .. " = {%s},", table.concat(current_pattern, ",")),
      format_emit_line(emit),
      "}",
      build_comment_line(current_settings)
@@ -3041,9 +3047,9 @@ end
    local existing_notes = {}
    
    for _, line in ipairs(script.paragraphs) do
-     local pattern_str = line:match('pattern%s*=%s*{([^}]+)}')
-     local unit_str = line:match('unit%s*=%s*"([^"]+)"')
-     local emit_str = line:match('emit%s*=%s*{(.+)}')
+     local pattern_str = line:match(PHRASE_PATTERN_FIELD .. '%s*=%s*{([^}]+)}')
+     local unit_str = line:match(PHRASE_UNIT_FIELD .. '%s*=%s*"([^"]+)"')
+     local emit_str = line:match(PHRASE_EVENT_FIELD .. '%s*=%s*{(.+)}')
      
      if pattern_str then
        for num in pattern_str:gmatch("[01]") do
@@ -3072,9 +3078,9 @@ end
    
    -- Rebuild script with reversed pattern
    script.paragraphs = {
-     "return rhythm {",
-     string.format('  unit = "%s",', current_unit),
-     string.format("  pattern = {%s},", table.concat(reversed_pattern, ",")),
+     "return " .. PHRASE_RETURN_TYPE .. " {",
+     string.format('  ' .. PHRASE_UNIT_FIELD .. ' = "%s",', current_unit),
+     string.format("  " .. PHRASE_PATTERN_FIELD .. " = {%s},", table.concat(reversed_pattern, ",")),
      format_emit_line(notes),
      "}",
      build_comment_line(current_settings)
@@ -3142,9 +3148,9 @@ function apply_global_scale(new_scale)
           local existing_notes = {}
           
           for _, line in ipairs(script.paragraphs) do
-            local pattern_str = line:match('pattern%s*=%s*{([^}]+)}')
-            local unit_str = line:match('unit%s*=%s*"([^"]+)"')
-            local emit_str = line:match('emit%s*=%s*{(.+)}')
+            local pattern_str = line:match(PHRASE_PATTERN_FIELD .. '%s*=%s*{([^}]+)}')
+            local unit_str = line:match(PHRASE_UNIT_FIELD .. '%s*=%s*"([^"]+)"')
+            local emit_str = line:match(PHRASE_EVENT_FIELD .. '%s*=%s*{(.+)}')
             
             if pattern_str then
               for num in pattern_str:gmatch("[01]") do
@@ -3275,9 +3281,9 @@ function reorder_notes(order_type)
   local had_duplicates = false  -- Moved declaration here
   
   for _, line in ipairs(phrase.script.paragraphs) do
-    local pattern_str = line:match('pattern%s*=%s*{([^}]+)}')
-    local unit_str = line:match('unit%s*=%s*"([^"]+)"')
-    local emit_str = line:match('emit%s*=%s*{(.+)}')
+    local pattern_str = line:match(PHRASE_PATTERN_FIELD .. '%s*=%s*{([^}]+)}')
+    local unit_str = line:match(PHRASE_UNIT_FIELD .. '%s*=%s*"([^"]+)"')
+    local emit_str = line:match(PHRASE_EVENT_FIELD .. '%s*=%s*{(.+)}')
     
     if pattern_str then
       for num in pattern_str:gmatch("[01]") do
@@ -3362,9 +3368,9 @@ function reorder_notes(order_type)
   
   -- Update script with new note order but preserve pattern
   local new_paragraphs = {
-    "return rhythm {",
-    string.format('  unit = "%s",', current_unit),
-    string.format("  pattern = {%s},", table.concat(current_pattern, ",")),
+    "return " .. PHRASE_RETURN_TYPE .. " {",
+    string.format('  ' .. PHRASE_UNIT_FIELD .. ' = "%s",', current_unit),
+    string.format("  " .. PHRASE_PATTERN_FIELD .. " = {%s},", table.concat(current_pattern, ",")),
     format_emit_line(notes),
     "}",
     build_comment_line(current_settings)
@@ -3523,9 +3529,9 @@ end
 -- Helper function to rebuild script with comment
 function rebuild_script(script, settings, pattern, emit_strings)
   script.paragraphs = {
-    "return rhythm {",
-    string.format('  unit = "%s",', settings.unit),
-    string.format("  pattern = {%s},", table.concat(pattern, ",")),
+    "return " .. PHRASE_RETURN_TYPE .. " {",
+    string.format('  ' .. PHRASE_UNIT_FIELD .. ' = "%s",', settings.unit),
+    string.format("  " .. PHRASE_PATTERN_FIELD .. " = {%s},", table.concat(pattern, ",")),
     format_emit_line(emit_strings),
     "}",
     build_comment_line(settings)
@@ -3611,8 +3617,8 @@ function handle_pattern_button(pattern_type)
   local current_unit = current_settings.unit
   
   for _, line in ipairs(script.paragraphs) do
-    local emit_str = line:match('emit%s*=%s*{(.+)}')
-    local unit_str = line:match('unit%s*=%s*"([^"]+)"')
+    local emit_str = line:match(PHRASE_EVENT_FIELD .. '%s*=%s*{(.+)}')
+    local unit_str = line:match(PHRASE_UNIT_FIELD .. '%s*=%s*"([^"]+)"')
     
     if unit_str then
       current_unit = unit_str
@@ -3627,9 +3633,9 @@ function handle_pattern_button(pattern_type)
   
   -- Generate new script with updated pattern
   local new_paragraphs = {
-    "return rhythm {",
-    string.format('  unit = "%s",', current_unit),
-    string.format("  pattern = {%s},", table.concat(new_pattern, ",")),
+    "return " .. PHRASE_RETURN_TYPE .. " {",
+    string.format('  ' .. PHRASE_UNIT_FIELD .. ' = "%s",', current_unit),
+    string.format("  " .. PHRASE_PATTERN_FIELD .. " = {%s},", table.concat(new_pattern, ",")),
     format_emit_line(existing_notes),
     "}",
     build_comment_line(current_settings)
@@ -3678,9 +3684,9 @@ function handle_scale_change(new_scale)
   local existing_notes = {}
   
   for _, line in ipairs(script.paragraphs) do
-    local pattern_str = line:match('pattern%s*=%s*{([^}]+)}')
-    local unit_str = line:match('unit%s*=%s*"([^"]+)"')
-    local emit_str = line:match('emit%s*=%s*{(.+)}')
+    local pattern_str = line:match(PHRASE_PATTERN_FIELD .. '%s*=%s*{([^}]+)}')
+    local unit_str = line:match(PHRASE_UNIT_FIELD .. '%s*=%s*"([^"]+)"')
+    local emit_str = line:match(PHRASE_EVENT_FIELD .. '%s*=%s*{(.+)}')
     
     if pattern_str then
       for num in pattern_str:gmatch("[01]") do
@@ -3752,9 +3758,9 @@ function handle_note_order(order_type)
   local had_duplicates = false  -- Moved declaration here
   
   for _, line in ipairs(phrase.script.paragraphs) do
-    local pattern_str = line:match('pattern%s*=%s*{([^}]+)}')
-    local unit_str = line:match('unit%s*=%s*"([^"]+)"')
-    local emit_str = line:match('emit%s*=%s*{(.+)}')
+    local pattern_str = line:match(PHRASE_PATTERN_FIELD .. '%s*=%s*{([^}]+)}')
+    local unit_str = line:match(PHRASE_UNIT_FIELD .. '%s*=%s*"([^"]+)"')
+    local emit_str = line:match(PHRASE_EVENT_FIELD .. '%s*=%s*{(.+)}')
     
     if pattern_str then
       for num in pattern_str:gmatch("[01]") do
@@ -3839,9 +3845,9 @@ function handle_note_order(order_type)
   
   -- Update script with new note order but preserve pattern
   local new_paragraphs = {
-    "return rhythm {",
-    string.format('  unit = "%s",', current_unit),
-    string.format("  pattern = {%s},", table.concat(current_pattern, ",")),
+    "return " .. PHRASE_RETURN_TYPE .. " {",
+    string.format('  ' .. PHRASE_UNIT_FIELD .. ' = "%s",', current_unit),
+    string.format("  " .. PHRASE_PATTERN_FIELD .. " = {%s},", table.concat(current_pattern, ",")),
     format_emit_line(notes),
     "}",
     build_comment_line(current_settings)
@@ -3873,7 +3879,7 @@ function read_pattern_length_from_script(script)
   if not script then return nil end
   
   for _, line in ipairs(script.paragraphs) do
-    local pattern_str = line:match('pattern%s*=%s*{([^}]+)}')
+    local pattern_str = line:match(PHRASE_PATTERN_FIELD .. '%s*=%s*{([^}]+)}')
     if pattern_str then
       local count = 0
       for num in pattern_str:gmatch("[01]") do
@@ -4133,9 +4139,9 @@ function read_phrase_settings()
   -- Read script settings
   if phrase.script then
     for _, line in ipairs(phrase.script.paragraphs) do
-      local pattern_str = line:match('pattern%s*=%s*{([^}]+)}')
-      local unit_str = line:match('unit%s*=%s*"([^"]+)"')
-      local emit_str = line:match('emit%s*=%s*{(.+)}')
+      local pattern_str = line:match(PHRASE_PATTERN_FIELD .. '%s*=%s*{([^}]+)}')
+      local unit_str = line:match(PHRASE_UNIT_FIELD .. '%s*=%s*"([^"]+)"')
+      local emit_str = line:match(PHRASE_EVENT_FIELD .. '%s*=%s*{(.+)}')
       
       if pattern_str then
         -- Count pattern length from existing pattern
@@ -4185,7 +4191,7 @@ function read_phrase_settings()
         end
         
         -- Parse unit
-        local unit = last_line:match("unit%s+([^%s%-]+)")
+        local unit = last_line:match(PHRASE_UNIT_FIELD .. "%s+([^%s%-]+)")
         if unit and table.find(RHYTHM_UNITS, unit) then
           current_settings.unit = unit
         end
@@ -4220,9 +4226,9 @@ function update_pattern_length(settings_or_length, old_length)
   local emit_strings = {}
   
   for _, line in ipairs(script.paragraphs) do
-    local pattern_str = line:match('pattern%s*=%s*{([^}]+)}')
-    local unit_str = line:match('unit%s*=%s*"([^"]+)"')
-    local emit_str = line:match('emit%s*=%s*{(.+)}')
+    local pattern_str = line:match(PHRASE_PATTERN_FIELD .. '%s*=%s*{([^}]+)}')
+    local unit_str = line:match(PHRASE_UNIT_FIELD .. '%s*=%s*"([^"]+)"')
+    local emit_str = line:match(PHRASE_EVENT_FIELD .. '%s*=%s*{(.+)}')
     
     if pattern_str then
       for num in pattern_str:gmatch("[01]") do
@@ -4257,9 +4263,9 @@ function update_pattern_length(settings_or_length, old_length)
   
   -- Rebuild script with new pattern length
   script.paragraphs = {
-    "return rhythm {",
-    string.format('  unit = "%s",', current_unit),
-    string.format("  pattern = {%s},", table.concat(new_pattern, ",")),
+    "return " .. PHRASE_RETURN_TYPE .. " {",
+    string.format('  ' .. PHRASE_UNIT_FIELD .. ' = "%s",', current_unit),
+    string.format("  " .. PHRASE_PATTERN_FIELD .. " = {%s},", table.concat(new_pattern, ",")),
     format_emit_line(emit_strings),
     "}",
     build_comment_line(current_settings)
@@ -4350,9 +4356,9 @@ function update_notes_for_octave_range(settings)
   local existing_comment = ""
   
   for _, line in ipairs(phrase.script.paragraphs) do
-    local pattern_str = line:match('pattern%s*=%s*{([^}]+)}')
-    local unit_str = line:match('unit%s*=%s*"([^"]+)"')
-    local emit_str = line:match('emit%s*=%s*{(.+)}')
+    local pattern_str = line:match(PHRASE_PATTERN_FIELD .. '%s*=%s*{([^}]+)}')
+    local unit_str = line:match(PHRASE_UNIT_FIELD .. '%s*=%s*"([^"]+)"')
+    local emit_str = line:match(PHRASE_EVENT_FIELD .. '%s*=%s*{(.+)}')
     
     if pattern_str then
       for num in pattern_str:gmatch("[01]") do
@@ -4384,9 +4390,9 @@ function update_notes_for_octave_range(settings)
   
   -- Update script with adjusted notes and comment
   local new_paragraphs = {
-    "return rhythm {",
-    string.format('  unit = "%s",', current_unit),
-    string.format("  pattern = {%s},", table.concat(current_pattern, ",")),
+    "return " .. PHRASE_RETURN_TYPE .. " {",
+    string.format('  ' .. PHRASE_UNIT_FIELD .. ' = "%s",', current_unit),
+    string.format("  " .. PHRASE_PATTERN_FIELD .. " = {%s},", table.concat(current_pattern, ",")),
     format_emit_line(notes),
     "}",
     comment
@@ -4420,9 +4426,9 @@ function adjust_note_octaves(script, min_oct, max_oct)
   local notes = {}
   
   for _, line in ipairs(script.paragraphs) do
-    local pattern_str = line:match('pattern%s*=%s*{([^}]+)}')
-    local unit_str = line:match('unit%s*=%s*"([^"]+)"')
-    local emit_str = line:match('emit%s*=%s*{(.+)}')
+    local pattern_str = line:match(PHRASE_PATTERN_FIELD .. '%s*=%s*{([^}]+)}')
+    local unit_str = line:match(PHRASE_UNIT_FIELD .. '%s*=%s*"([^"]+)"')
+    local emit_str = line:match(PHRASE_EVENT_FIELD .. '%s*=%s*{(.+)}')
     
     if pattern_str then
       for num in pattern_str:gmatch("[01]") do
@@ -4453,9 +4459,9 @@ function adjust_note_octaves(script, min_oct, max_oct)
   
   -- Update script paragraphs through proper methods
   local new_paragraphs = {
-    "return rhythm {",
-    string.format('  unit = "%s",', current_unit),
-    string.format("  pattern = {%s},", table.concat(current_pattern, ",")),
+    "return " .. PHRASE_RETURN_TYPE .. " {",
+    string.format('  ' .. PHRASE_UNIT_FIELD .. ' = "%s",', current_unit),
+    string.format("  " .. PHRASE_PATTERN_FIELD .. " = {%s},", table.concat(current_pattern, ",")),
     format_emit_line(notes),
     "}",
     build_comment_line(current_settings)
@@ -4467,9 +4473,9 @@ end
 
 -- Single source of truth for emit line formatting
 function format_emit_line(notes)
-  -- If notes is empty, return empty emit line
+  -- If notes is empty, return empty event line
   if not notes or #notes == 0 then
-    return "  emit = {}"
+    return "  " .. PHRASE_EVENT_FIELD .. " = {}"
   end
 
   -- Format each note entry without spaces
@@ -4487,7 +4493,7 @@ function format_emit_line(notes)
   end
   
   -- Join all entries without spaces
-  return string.format("  emit={%s}", table.concat(emit_entries, ","))
+  return string.format("  " .. PHRASE_EVENT_FIELD .. "={%s}", table.concat(emit_entries, ","))
 end
 
 -- Helper function to shift all notes in phrase by octaves
@@ -4504,9 +4510,9 @@ function shift_phrase_octaves(octave_shift)
   local notes = {}
   
   for _, line in ipairs(phrase.script.paragraphs) do
-    local pattern_str = line:match('pattern%s*=%s*{([^}]+)}')
-    local unit_str = line:match('unit%s*=%s*"([^"]+)"')
-    local emit_str = line:match('emit%s*=%s*{(.+)}')
+    local pattern_str = line:match(PHRASE_PATTERN_FIELD .. '%s*=%s*{([^}]+)}')
+    local unit_str = line:match(PHRASE_UNIT_FIELD .. '%s*=%s*"([^"]+)"')
+    local emit_str = line:match(PHRASE_EVENT_FIELD .. '%s*=%s*{(.+)}')
     
     if pattern_str then
       for num in pattern_str:gmatch("[01]") do
@@ -4548,9 +4554,9 @@ function shift_phrase_octaves(octave_shift)
   
   -- Rebuild script with shifted notes and updated comment
   local new_paragraphs = {
-    "return rhythm {",
-    string.format('  unit = "%s",', current_unit),
-    string.format("  pattern = {%s},", table.concat(current_pattern, ",")),
+    "return " .. PHRASE_RETURN_TYPE .. " {",
+    string.format('  ' .. PHRASE_UNIT_FIELD .. ' = "%s",', current_unit),
+    string.format("  " .. PHRASE_PATTERN_FIELD .. " = {%s},", table.concat(current_pattern, ",")),
     format_emit_line(notes),
     "}",
     build_comment_line(current_settings)

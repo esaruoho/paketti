@@ -1913,46 +1913,19 @@ function PakettiOTDrumkitSmart()
     end
   end
   
-  -- Create ProcessSlicer and start the process with efficient batching
+  local dialog, vb
+  
+  -- Create ProcessSlicer with worker function that has access to dialog and vb
   local process_slicer = ProcessSlicer(function()
-    PakettiOTDrumkitSmart_Worker_Efficient(source_instrument, num_samples)
+    PakettiOTDrumkitSmart_Worker_Efficient(source_instrument, num_samples, dialog, vb)
   end)
   
-    -- Add callback to show export dialog after completion
-  process_slicer.on_complete = function()
-    -- Show export dialog after ProcessSlicer dialog closes
-    local export_dialog_timer = function()
-      -- Get the created drumkit info for the dialog
-      local song = renoise.song()
-      local current_instrument = song.selected_instrument
-      local current_sample = song.selected_sample
-      
-      if current_sample and #current_sample.slice_markers > 0 then
-        local slice_count = #current_sample.slice_markers
-        local is_stereo = current_sample.sample_buffer.number_of_channels == 2
-        
-        local export_result = renoise.app():show_prompt("Octatrack Drumkit Created", 
-          string.format("Octatrack drumkit created successfully!\n\n• %d slices\n• Format: %s, 44.1kHz, 16-bit\n\nExport to Octatrack files (.wav + .ot)?", 
-            slice_count, is_stereo and "Stereo" or "Mono"),
-          {"Export", "Keep Only"})
-        
-        if export_result == "Export" then
-          PakettiOTExport()
-        end
-      end
-      
-      renoise.tool():remove_timer(export_dialog_timer)
-    end
-    
-    renoise.tool():add_timer(export_dialog_timer, 100)
-  end
-  
-  local dialog, vb = process_slicer:create_dialog("Creating Octatrack Drumkit...")
+  dialog, vb = process_slicer:create_dialog("Creating Octatrack Drumkit...")
   process_slicer:start()
 end
 
 -- Efficient worker function for ProcessSlicer (Smart version) - yields every 20 samples
-function PakettiOTDrumkitSmart_Worker_Efficient(source_instrument, num_samples)
+function PakettiOTDrumkitSmart_Worker_Efficient(source_instrument, num_samples, dialog, vb)
   local song = renoise.song()
   
   print("-- OT Drumkit Smart: Starting drumkit creation from instrument: " .. source_instrument.name)
@@ -1985,7 +1958,10 @@ function PakettiOTDrumkitSmart_Worker_Efficient(source_instrument, num_samples)
   local skipped_count = 0
   
   for i = 1, num_samples do
-    -- Update progress with better visibility
+    -- Update progress dialog and status
+    if dialog and dialog.visible then
+      vb.views.progress_text.text = string.format("Processing sample %d/%d...", i, num_samples)
+    end
     local progress_msg = string.format("OT Smart: Processing sample %d/%d...", i, num_samples)
     renoise.app():show_status(progress_msg)
     print(string.format("-- OT Drumkit Smart: Processing sample %d/%d (slot %02d)...", i, num_samples, i))
@@ -2098,6 +2074,9 @@ function PakettiOTDrumkitSmart_Worker_Efficient(source_instrument, num_samples)
   combined_sample.sample_buffer:prepare_sample_data_changes()
   
   -- Copy all processed samples into the combined buffer
+  if dialog and dialog.visible then
+    vb.views.progress_text.text = "Combining samples into drumkit..."
+  end
   renoise.app():show_status("OT Smart: Combining samples into drumkit...")
   local current_position = 1
   for i = 1, #valid_samples do
@@ -2133,6 +2112,9 @@ function PakettiOTDrumkitSmart_Worker_Efficient(source_instrument, num_samples)
   combined_sample.name = drumkit_instrument.name
   
   -- Insert slice markers
+  if dialog and dialog.visible then
+    vb.views.progress_text.text = "Creating slice markers..."
+  end
   renoise.app():show_status("OT Smart: Creating slice markers...")
   for i = 1, #slice_positions do
     combined_sample:insert_slice_marker(slice_positions[i])
@@ -2140,11 +2122,27 @@ function PakettiOTDrumkitSmart_Worker_Efficient(source_instrument, num_samples)
   
   song.selected_sample_index = 1
   
+  -- Close dialog
+  if dialog and dialog.visible then
+    dialog:close()
+  end
+  
+  renoise.app():show_status(string.format("OT Smart: Drumkit completed - %d slices, %s", #slice_positions, target_channels == 2 and "Stereo" or "Mono"))
   print("-- OT Drumkit Smart: Drumkit creation completed successfully")
+  
+  -- Show export dialog
+  local export_result = renoise.app():show_prompt("Octatrack Drumkit Created", 
+    string.format("Octatrack drumkit created successfully!\n\n• %d slices\n• Format: %s, 44.1kHz, 16-bit\n\nExport to Octatrack files (.wav + .ot)?", 
+      #slice_positions, target_channels == 2 and "Stereo" or "Mono"),
+    {"Export", "Keep Only"})
+  
+  if export_result == "Export" then
+    PakettiOTExport()
+  end
 end
 
 -- Efficient worker function for ProcessSlicer (Mono version) - yields every 20 samples
-function PakettiOTDrumkitMono_Worker_Efficient(source_instrument, num_samples)
+function PakettiOTDrumkitMono_Worker_Efficient(source_instrument, num_samples, dialog, vb)
   local song = renoise.song()
   
   print("-- OT Drumkit Mono: Starting mono drumkit creation from instrument: " .. source_instrument.name)
@@ -2166,7 +2164,10 @@ function PakettiOTDrumkitMono_Worker_Efficient(source_instrument, num_samples)
   local skipped_count = 0
   
   for i = 1, num_samples do
-    -- Update progress with better visibility
+    -- Update progress dialog and status
+    if dialog and dialog.visible then
+      vb.views.progress_text.text = string.format("Processing sample %d/%d...", i, num_samples)
+    end
     local progress_msg = string.format("OT Mono: Processing sample %d/%d...", i, num_samples)
     renoise.app():show_status(progress_msg)
     print(string.format("-- OT Drumkit Mono: Processing sample %d/%d (slot %02d)...", i, num_samples, i))
@@ -2308,6 +2309,9 @@ function PakettiOTDrumkitMono_Worker_Efficient(source_instrument, num_samples)
   combined_sample.sample_buffer:prepare_sample_data_changes()
   
   -- Copy all processed samples into the combined buffer
+  if dialog and dialog.visible then
+    vb.views.progress_text.text = "Combining samples into drumkit..."
+  end
   renoise.app():show_status("OT Mono: Combining samples into drumkit...")
   local current_position = 1
   for i = 1, #valid_samples do
@@ -2329,6 +2333,9 @@ function PakettiOTDrumkitMono_Worker_Efficient(source_instrument, num_samples)
   combined_sample.name = drumkit_instrument.name
   
   -- Insert slice markers
+  if dialog and dialog.visible then
+    vb.views.progress_text.text = "Creating slice markers..."
+  end
   renoise.app():show_status("OT Mono: Creating slice markers...")
   for i = 1, #slice_positions do
     combined_sample:insert_slice_marker(slice_positions[i])
@@ -2336,7 +2343,23 @@ function PakettiOTDrumkitMono_Worker_Efficient(source_instrument, num_samples)
   
   song.selected_sample_index = 1
   
+  -- Close dialog
+  if dialog and dialog.visible then
+    dialog:close()
+  end
+  
+  renoise.app():show_status(string.format("OT Mono: Drumkit completed - %d slices", #slice_positions))
   print("-- OT Drumkit Mono: Mono drumkit creation completed successfully")
+  
+  -- Show export dialog
+  local export_result = renoise.app():show_prompt("Octatrack Mono Drumkit Created", 
+    string.format("Octatrack mono drumkit created successfully!\n\n• %d slices\n• Format: Mono, 44.1kHz, 16-bit\n\nExport to Octatrack files (.wav + .ot)?", 
+      #slice_positions),
+    {"Export", "Keep Only"})
+  
+  if export_result == "Export" then
+    PakettiOTExport()
+  end
 end
 
 -- Legacy Smart version without ProcessSlicer (keeping for reference)
@@ -2669,40 +2692,14 @@ function PakettiOTDrumkitMono()
     end
   end
   
-  -- Create ProcessSlicer and start the process with efficient batching
+  local dialog, vb
+  
+  -- Create ProcessSlicer with worker function that has access to dialog and vb
   local process_slicer = ProcessSlicer(function()
-    PakettiOTDrumkitMono_Worker_Efficient(source_instrument, num_samples)
+    PakettiOTDrumkitMono_Worker_Efficient(source_instrument, num_samples, dialog, vb)
   end)
   
-  -- Add callback to show export dialog after completion
-  process_slicer.on_complete = function()
-    -- Show export dialog after ProcessSlicer dialog closes
-    local export_dialog_timer = function()
-      -- Get the created drumkit info for the dialog
-      local song = renoise.song()
-      local current_instrument = song.selected_instrument
-      local current_sample = song.selected_sample
-      
-      if current_sample and #current_sample.slice_markers > 0 then
-        local slice_count = #current_sample.slice_markers
-        
-        local export_result = renoise.app():show_prompt("Octatrack Mono Drumkit Created", 
-          string.format("Octatrack mono drumkit created successfully!\n\n• %d slices\n• Format: Mono, 44.1kHz, 16-bit\n\nExport to Octatrack files (.wav + .ot)?", 
-            slice_count),
-          {"Export", "Keep Only"})
-        
-        if export_result == "Export" then
-          PakettiOTExport()
-        end
-      end
-      
-      renoise.tool():remove_timer(export_dialog_timer)
-    end
-    
-    renoise.tool():add_timer(export_dialog_timer, 100)
-  end
-  
-  local dialog, vb = process_slicer:create_dialog("Creating Octatrack Mono Drumkit...")
+  dialog, vb = process_slicer:create_dialog("Creating Octatrack Mono Drumkit...")
   process_slicer:start()
 end
 
@@ -3265,5 +3262,444 @@ function PakettiOTRestoreFromBackup()
     else
         renoise.app():show_error("Restoration Failed", "Could not restore file from backup.")
   end
+end
+
+-- Function to create drumkit where all slices play to the end of the full sample
+function PakettiOTDrumkitPlayToEnd()
+  local song = renoise.song()
+  local source_instrument = song.selected_instrument
+  
+  -- Safety checks
+  if not source_instrument then
+    renoise.app():show_error("No instrument selected")
+    return
+  end
+  
+  if #source_instrument.samples == 0 then
+    renoise.app():show_error("Selected instrument has no samples")
+    return
+  end
+  
+  if #source_instrument.samples[1].slice_markers > 0 then
+    renoise.app():show_error("Cannot create drumkit from sliced instrument.\nPlease select an instrument with individual samples in separate slots.")
+    return
+  end
+  
+  -- Determine how many samples to process (max 64 for Octatrack)
+  local num_samples = math.min(64, #source_instrument.samples)
+  
+  -- Warn if there are more than 64 samples
+  if #source_instrument.samples > 64 then
+    local result = renoise.app():show_prompt("Octatrack Slice Limit", 
+        "Instrument has " .. #source_instrument.samples .. " samples, but Octatrack only supports 64 slices.\n" ..
+        "Only the first 64 samples will be processed.\n\nContinue?", 
+        {"Continue", "Cancel"})
+    if result == "Cancel" then
+      renoise.app():show_status("Drumkit creation cancelled")
+      return
+    end
+  end
+  
+  local dialog, vb
+  
+  -- Create ProcessSlicer with worker function
+  local process_slicer = ProcessSlicer(function()
+    PakettiOTDrumkitPlayToEnd_Worker(source_instrument, num_samples, dialog, vb)
+  end)
+  
+  dialog, vb = process_slicer:create_dialog("Creating Play-To-End Octatrack Drumkit...")
+  process_slicer:start()
+end
+
+-- Worker function for play-to-end drumkit generation
+function PakettiOTDrumkitPlayToEnd_Worker(source_instrument, num_samples, dialog, vb)
+  local song = renoise.song()
+  
+  print("-- OT Drumkit PlayToEnd: Starting play-to-end drumkit creation from instrument: " .. source_instrument.name)
+  print(string.format("-- OT Drumkit PlayToEnd: Will process %d samples (all slices play to end)", num_samples))
+  
+  -- Detect if any sample is stereo
+  local has_stereo = false
+  local stereo_samples = {}
+  for i = 1, num_samples do
+    local sample = source_instrument.samples[i]
+    if sample and sample.sample_buffer.has_sample_data and sample.sample_buffer.number_of_channels == 2 then
+      has_stereo = true
+      table.insert(stereo_samples, i)
+    end
+  end
+  
+  local target_channels = has_stereo and 2 or 1
+  print(string.format("-- OT Drumkit PlayToEnd: Target format: %s, 44100Hz, 16-bit", target_channels == 2 and "Stereo" or "Mono"))
+  
+  -- Create new instrument for the drumkit
+  local new_instrument_index = song.selected_instrument_index + 1
+  song:insert_instrument_at(new_instrument_index)
+  song.selected_instrument_index = new_instrument_index
+  local drumkit_instrument = song.selected_instrument
+  drumkit_instrument.name = "OT PlayToEnd Drumkit of " .. source_instrument.name
+  
+  -- Process samples with progress updates
+  local processed_samples = {}
+  local processed_count = 0
+  local skipped_count = 0
+  
+  for i = 1, num_samples do
+    -- Update progress
+    if dialog and dialog.visible then
+      vb.views.progress_text.text = string.format("Processing sample %d/%d...", i, num_samples)
+    end
+    renoise.app():show_status(string.format("OT PlayToEnd: Processing sample %d/%d...", i, num_samples))
+    print(string.format("-- OT Drumkit PlayToEnd: Processing slot %02d/%02d...", i, num_samples))
+    
+    local sample = source_instrument.samples[i]
+    if sample and sample.sample_buffer.has_sample_data then
+      
+      -- Create temporary instrument to hold processed sample
+      local temp_instrument_index = song.selected_instrument_index + 1
+      song:insert_instrument_at(temp_instrument_index)
+      song.selected_instrument_index = temp_instrument_index
+      local temp_instrument = song.selected_instrument
+      
+      -- Copy sample to temp instrument
+      local temp_sample = temp_instrument:insert_sample_at(1)
+      temp_sample.sample_buffer:create_sample_data(
+        sample.sample_buffer.sample_rate,
+        sample.sample_buffer.bit_depth,
+        sample.sample_buffer.number_of_channels,
+        sample.sample_buffer.number_of_frames
+      )
+      temp_sample.sample_buffer:prepare_sample_data_changes()
+      
+      -- Copy sample data
+      for ch = 1, sample.sample_buffer.number_of_channels do
+        for frame = 1, sample.sample_buffer.number_of_frames do
+          temp_sample.sample_buffer:set_sample_data(ch, frame, sample.sample_buffer:sample_data(ch, frame))
+        end
+      end
+      temp_sample.sample_buffer:finalize_sample_data_changes()
+      
+      -- Remove loops for clean drumkit sounds
+      temp_sample.loop_mode = renoise.Sample.LOOP_MODE_OFF
+      
+      -- Convert to 44.1kHz 16-bit if needed
+      local original_rate = temp_sample.sample_buffer.sample_rate
+      local original_bit = temp_sample.sample_buffer.bit_depth
+      local needs_conversion = (original_rate ~= 44100) or (original_bit ~= 16)
+      
+      if needs_conversion then
+        song.selected_sample_index = 1
+        local success = pcall(function()
+          RenderSampleAtNewRate(44100, 16)
+          temp_sample = temp_instrument.samples[1]
+        end)
+        if not success then
+          print(string.format("-- OT Drumkit PlayToEnd: Conversion failed for slot %02d, using original", i))
+        end
+      end
+      
+      -- Store processed sample data
+      local processed_buffer = temp_sample.sample_buffer
+      processed_samples[i] = {
+        frames = processed_buffer.number_of_frames,
+        channels = processed_buffer.number_of_channels,
+        data = {}
+      }
+      
+      -- Copy processed data
+      for ch = 1, processed_buffer.number_of_channels do
+        processed_samples[i].data[ch] = {}
+        for frame = 1, processed_buffer.number_of_frames do
+          processed_samples[i].data[ch][frame] = processed_buffer:sample_data(ch, frame)
+        end
+      end
+      
+      processed_count = processed_count + 1
+      print(string.format("-- OT Drumkit PlayToEnd: ✓ Successfully processed slot %02d: %d frames, %d channels", i, processed_samples[i].frames, processed_samples[i].channels))
+      
+      -- Clean up temp instrument
+      song:delete_instrument_at(temp_instrument_index)
+      song.selected_instrument_index = new_instrument_index
+    else
+      skipped_count = skipped_count + 1
+      print(string.format("-- OT Drumkit PlayToEnd: ✗ Skipping slot %02d: no sample data", i))
+    end
+    
+    -- Yield every 20 samples
+    if i % 20 == 0 then
+      coroutine.yield()
+    end
+  end
+  
+  -- Calculate total length and create combined sample (normal concatenation)
+  renoise.app():show_status("OT PlayToEnd: Creating combined sample...")
+  print(string.format("-- OT Drumkit PlayToEnd: Processing summary: %d processed, %d skipped", processed_count, skipped_count))
+  
+  local total_frames = 0
+  local slice_positions = {}
+  local valid_samples = {}
+  
+  -- Build array of only valid samples and calculate slice start positions
+  for i = 1, num_samples do
+    if processed_samples[i] then
+      table.insert(valid_samples, processed_samples[i])
+      table.insert(slice_positions, total_frames + 1)  -- Slice starts at beginning of each sample (1-based)
+      total_frames = total_frames + processed_samples[i].frames
+    end
+  end
+  
+  print(string.format("-- OT Drumkit PlayToEnd: Total combined length: %d frames (%.2f seconds)", total_frames, total_frames / 44100.0))
+  print(string.format("-- OT Drumkit PlayToEnd: Will create %d slices, all ending at frame %d", #slice_positions, total_frames))
+  
+  -- Create the combined sample buffer (normal concatenation)
+  if drumkit_instrument.samples[1] then
+    drumkit_instrument:delete_sample_at(1)
+  end
+  
+  local combined_sample = drumkit_instrument:insert_sample_at(1)
+  combined_sample.sample_buffer:create_sample_data(44100, 16, target_channels, total_frames)
+  combined_sample.sample_buffer:prepare_sample_data_changes()
+  
+  -- Copy all processed samples into the combined buffer (normal concatenation)
+  if dialog and dialog.visible then
+    vb.views.progress_text.text = "Combining samples into drumkit..."
+  end
+  renoise.app():show_status("OT PlayToEnd: Combining samples into drumkit...")
+  local current_position = 1
+  for i = 1, #valid_samples do
+    local sample_data = valid_samples[i]
+    for frame = 1, sample_data.frames do
+      for ch = 1, target_channels do
+        local source_value = 0.0
+        if sample_data.channels == target_channels then
+          source_value = sample_data.data[ch][frame]
+        elseif sample_data.channels == 1 and target_channels == 2 then
+          source_value = sample_data.data[1][frame]
+        elseif sample_data.channels == 2 and target_channels == 1 then
+          source_value = (sample_data.data[1][frame] + sample_data.data[2][frame]) / 2
+        else
+          if sample_data.channels >= 1 then
+            source_value = sample_data.data[1][frame]
+          else
+            source_value = 0.0
+          end
+        end
+        combined_sample.sample_buffer:set_sample_data(ch, current_position + frame - 1, source_value)
+      end
+    end
+    current_position = current_position + sample_data.frames
+    
+    -- Yield every 10 samples during combination
+    if i % 10 == 0 then
+      coroutine.yield()
+    end
+  end
+  
+  combined_sample.sample_buffer:finalize_sample_data_changes()
+  combined_sample.name = drumkit_instrument.name
+  
+  -- Insert slice markers at normal positions (where each sample starts)
+  if dialog and dialog.visible then
+    vb.views.progress_text.text = "Creating slice markers..."
+  end
+  renoise.app():show_status("OT PlayToEnd: Creating slice markers...")
+  for i = 1, #slice_positions do
+    combined_sample:insert_slice_marker(slice_positions[i])
+  end
+  
+  song.selected_sample_index = 1
+  
+  -- Store special metadata for play-to-end export behavior
+  -- We'll modify the sample name to include a flag that the OT export should handle specially
+  local original_name = combined_sample.name
+  combined_sample.name = original_name .. " [PLAYTOEND]"
+  
+  -- Close dialog
+  if dialog and dialog.visible then
+    dialog:close()
+  end
+  
+  renoise.app():show_status(string.format("OT PlayToEnd: Drumkit completed - %d slices, all play to end", #slice_positions))
+  print("-- OT Drumkit PlayToEnd: Play-to-end drumkit creation completed successfully")
+  print(string.format("-- OT Drumkit PlayToEnd: All slices will end at frame %d when exported to .ot", total_frames - 1))
+  
+  -- Show export dialog
+  local export_result = renoise.app():show_prompt("Play-To-End Octatrack Drumkit Created", 
+    string.format("Play-to-end Octatrack drumkit created!\n\n• %d slices\n• All slices play to the end of the sample\n• Format: %s, 44.1kHz, 16-bit\n• Total length: %.2f seconds\n\nExport to Octatrack files (.wav + .ot)?", 
+      #slice_positions, target_channels == 2 and "Stereo" or "Mono", total_frames / 44100.0),
+    {"Export", "Keep Only"})
+  
+  if export_result == "Export" then
+    PakettiOTExportPlayToEnd()
+  end
+end
+
+-- Modified export function for play-to-end drumkits
+function PakettiOTExportPlayToEnd()
+  local song = renoise.song()
+  local sample = song.selected_sample
+  
+  if not sample or not sample.sample_buffer.has_sample_data then
+    renoise.app():show_error("No valid sample selected")
+    return
+  end
+  
+  -- Check if this is a play-to-end drumkit
+  if not sample.name:match("%[PLAYTOEND%]") then
+    renoise.app():show_error("Selected sample is not a play-to-end drumkit.\nUse regular OT Export for normal samples.")
+    return
+  end
+  
+  print("-- OT Export PlayToEnd: Exporting play-to-end drumkit")
+  
+  -- Clean up the sample name for export
+  local clean_name = sample.name:gsub(" %[PLAYTOEND%]", "")
+  local temp_name = sample.name
+  sample.name = clean_name
+  
+  -- Get the total sample length (this will be the end point for ALL slices)
+  local total_frames = sample.sample_buffer.number_of_frames
+  local slice_count = #sample.slice_markers
+  
+  print(string.format("-- OT Export PlayToEnd: Total frames: %d, Slice count: %d", total_frames, slice_count))
+  print(string.format("-- OT Export PlayToEnd: All slices will end at frame %d (0-based: %d)", total_frames, total_frames - 1))
+  
+  -- Create custom .ot data where all slice end points = total_frames - 1
+  local ot = make_ot_table_play_to_end(sample, total_frames - 1)  -- 0-based for Octatrack
+  
+  local filename = renoise.app():prompt_for_filename_to_write("*.wav", "Save play-to-end drumkit...")
+  
+  if not filename or filename == "" then
+    sample.name = temp_name  -- Restore original name
+    renoise.app():show_status("Export cancelled")
+    return
+  end
+  
+  -- Export .ot file with custom slice end points
+  write_ot_file(filename, ot)
+  
+  -- Export .wav file
+  local wav_filename = filename
+  local base_name = filename:match("(.+)%..+$") or filename
+  if not filename:match("%.wav$") then
+    wav_filename = base_name .. ".wav"
+  end
+  
+  sample.sample_buffer:save_as(wav_filename, "wav")
+  
+  -- Restore original name
+  sample.name = temp_name
+  
+  local ot_path = base_name .. ".ot"
+  renoise.app():show_status("Exported play-to-end drumkit: " .. ot_path .. " + " .. wav_filename)
+  print("-- OT Export PlayToEnd: Export completed successfully")
+end
+
+-- Modified make_ot_table function for play-to-end drumkits
+function make_ot_table_play_to_end(sample, end_frame)
+  local sample_buffer = sample.sample_buffer
+  local slice_count = table.getn(sample.slice_markers)
+  local sample_len = sample_buffer.number_of_frames
+  
+  print(string.format("-- OT Export PlayToEnd: Creating .ot table with all slice ends = %d", end_frame))
+  
+  -- Use regular metadata extraction but override slice end points
+  local sample_rate = sample.sample_buffer.sample_rate
+  local bpm = renoise.song().transport.bpm
+  
+  -- Try to extract OT metadata from sample name
+  local tempo_value, trim_loop_value, loop_len_value, stretch_value, loop_value, gain_value
+  
+  -- Try newest format first, then fallback
+  local t_val, tl_val, ll_val, s_val, l_val, g_val, te_val, e_val = sample.name:match("OT%[T(%d+):TL(%d+):LL(%d+):S(%d+):L(%d+):G(%d+):TE(%d+):E=([%d,]*)%]")
+  
+  if not t_val then
+    t_val, tl_val, ll_val, s_val, l_val, g_val, e_val = sample.name:match("OT%[T(%d+):TL(%d+):LL(%d+):S(%d+):L(%d+):G(%d+):E=([%d,]*)%]")
+  end
+  
+  if not t_val then
+    t_val, tl_val, ll_val, s_val, l_val, g_val = sample.name:match("OT%[T(%d+):TL(%d+):LL(%d+):S(%d+):L(%d+):G(%d+)%]")
+  end
+  
+  if t_val then
+    tempo_value = tonumber(t_val)
+    trim_loop_value = tonumber(tl_val)
+    loop_len_value = tonumber(ll_val)
+    stretch_value = tonumber(s_val)
+    loop_value = tonumber(l_val)
+    gain_value = tonumber(g_val)
+    print("-- OT Export PlayToEnd: Using stored OT metadata")
+  else
+    -- Fallback calculations
+    tempo_value = math.floor(bpm * 24)
+    local bars = math.floor(((bpm * sample_len) / (sample_rate * 60.0 * 4)) + 0.5)
+    trim_loop_value = bars * 25
+    loop_len_value = trim_loop_value
+    stretch_value = 0
+    loop_value = 0
+    gain_value = 48
+    print("-- OT Export PlayToEnd: Using calculated values")
+  end
+  
+  -- Limit slice count to 64
+  local export_slice_count = math.min(slice_count, 64)
+  
+  local ot = {}
+  
+  -- Insert header and unknown
+  for k, v in ipairs(header) do
+    table.insert(ot, v)
+  end
+  for k, v in ipairs(unknown) do
+    table.insert(ot, v)
+  end
+  
+  -- Main parameters
+  table.insert(ot, tempo_value)
+  table.insert(ot, trim_loop_value)
+  table.insert(ot, loop_len_value)
+  table.insert(ot, stretch_value)
+  table.insert(ot, loop_value)
+  table.insert(ot, gain_value)
+  table.insert(ot, 0xFF)  -- quantize
+  table.insert(ot, 0x00)  -- trim_start
+  table.insert(ot, sample_len)  -- trim_end (total sample length)
+  table.insert(ot, 0x00)  -- loop_point
+  
+  -- Process slices with custom end points
+  for k = 1, export_slice_count do
+    local v = sample.slice_markers[k]
+    
+    -- Convert from 1-based (Renoise) to 0-based (Octatrack) indexing
+    local s_start = (k == 1) and 0 or (v - 1)
+    local s_end = end_frame  -- ALL slices end at the same point!
+    
+    print(string.format("-- OT Export PlayToEnd: Slice %d: start=%d, end=%d (plays to end)", k, s_start, s_end))
+    
+    table.insert(ot, s_start)     -- start_point
+    table.insert(ot, s_end)       -- end_point (always the same!)
+    table.insert(ot, 0xFFFFFFFF)  -- loop_point
+  end
+  
+  -- slice_count
+  table.insert(ot, export_slice_count)
+  
+  return ot
+end
+
+-- Add convenience function with same name format
+function drumkit64playtoend()
+  PakettiOTDrumkitPlayToEnd()
+end
+
+-- Add menu entries
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Octatrack:Generate Drumkit (Play to End)",invoke=function() PakettiOTDrumkitPlayToEnd() end}
+renoise.tool():add_menu_entry{name="Sample Mappings:Paketti:Octatrack:Generate .ot Drumkit (Play to End)",invoke=function() PakettiOTDrumkitPlayToEnd() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Octatrack:Generate Drumkit (Play to End)",invoke=function() PakettiOTDrumkitPlayToEnd() end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Octatrack Generate Drumkit (Play to End)",invoke=function() PakettiOTDrumkitPlayToEnd() end}
+
+-- Convenience function that can be called directly
+function drumkit64playtoend()
+  PakettiOTDrumkitPlayToEnd()
 end
 

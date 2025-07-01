@@ -484,7 +484,7 @@ function DoubleSelect()
         end
 
         -- Prepare the new selection
-        renoise.song().selection_in_phrase = {
+        local new_selection = {
           start_line   = renoise.song().selected_phrase_line_index,
           end_line     = new_end_line,
           start_column = 1,
@@ -492,7 +492,7 @@ function DoubleSelect()
         }
 
         -- Assign the new selection and print the assigned values
-        --s.selection_in_phrase = new_selection
+        renoise.song().selection_in_phrase = new_selection
         print("Assigned selection_in_phrase:")
         print(selection_to_string(s.selection_in_phrase))
 

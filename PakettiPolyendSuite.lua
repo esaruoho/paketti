@@ -2227,7 +2227,7 @@ function save_pti_as_drumkit_stereo_ProcessSlicer(skip_save_prompt)
 end
 
 -- Worker function for ProcessSlicer stereo drumkit
-function save_pti_as_drumkit_stereo_Worker(source_instrument, num_samples, skip_save_prompt)
+function save_pti_as_drumkit_stereo_Worker(source_instrument, num_samples, skip_save_prompt, dialog, vb)
   local song = renoise.song()
   
   print("-- Save PTI as Drumkit: Starting drumkit creation from instrument: " .. source_instrument.name)
@@ -2260,7 +2260,10 @@ function save_pti_as_drumkit_stereo_Worker(source_instrument, num_samples, skip_
   local skipped_count = 0
   
   for i = 1, num_samples do
-    -- Update progress with better visibility
+    -- Update progress dialog and status
+    if dialog and dialog.visible then
+      vb.views.progress_text.text = string.format("Processing sample %d/%d...", i, num_samples)
+    end
     local progress_msg = string.format("PTI Smart: Processing sample %d/%d...", i, num_samples)
     renoise.app():show_status(progress_msg)
     print(string.format("-- Save PTI as Drumkit: Processing sample %d/%d (slot %02d)...", i, num_samples, i))
@@ -2350,6 +2353,9 @@ function save_pti_as_drumkit_stereo_Worker(source_instrument, num_samples, skip_
   end
   
   -- Calculate total length and create combined sample
+  if dialog and dialog.visible then
+    vb.views.progress_text.text = "Creating combined sample..."
+  end
   renoise.app():show_status("PTI Smart: Creating combined sample...")
   print(string.format("-- Save PTI as Drumkit: Processing summary: %d processed, %d skipped", processed_count, skipped_count))
   
@@ -2375,6 +2381,9 @@ function save_pti_as_drumkit_stereo_Worker(source_instrument, num_samples, skip_
   combined_sample.sample_buffer:prepare_sample_data_changes()
   
   -- Copy all processed samples into the combined buffer (with yielding)
+  if dialog and dialog.visible then
+    vb.views.progress_text.text = "Combining samples into drumkit..."
+  end
   renoise.app():show_status("PTI Smart: Combining samples into drumkit...")
   local current_position = 1
   for i = 1, #valid_samples do
@@ -2409,6 +2418,9 @@ function save_pti_as_drumkit_stereo_Worker(source_instrument, num_samples, skip_
   combined_sample.name = drumkit_instrument.name
   
   -- Insert slice markers
+  if dialog and dialog.visible then
+    vb.views.progress_text.text = "Creating slice markers..."
+  end
   renoise.app():show_status("PTI Smart: Creating slice markers...")
   for i = 1, #slice_positions do
     combined_sample:insert_slice_marker(slice_positions[i])
@@ -2419,6 +2431,11 @@ function save_pti_as_drumkit_stereo_Worker(source_instrument, num_samples, skip_
   end
   
   song.selected_sample_index = 1
+  
+  -- Close dialog
+  if dialog and dialog.visible then
+    dialog:close()
+  end
   
   renoise.app():show_status(string.format("PTI Smart Drumkit created: %d slices, %s", #slice_positions, target_channels == 2 and "Stereo" or "Mono"))
   print("-- Save PTI as Drumkit: Drumkit creation completed successfully")
@@ -2453,12 +2470,14 @@ function save_pti_as_drumkit_stereo(skip_save_prompt)
   -- Determine how many samples to process (max 48)
   local num_samples = math.min(48, #source_instrument.samples)
   
+  local dialog, vb
+  
   -- Create ProcessSlicer and start the process
   local process_slicer = ProcessSlicer(function()
-    save_pti_as_drumkit_stereo_Worker(source_instrument, num_samples, skip_save_prompt)
+    save_pti_as_drumkit_stereo_Worker(source_instrument, num_samples, skip_save_prompt, dialog, vb)
   end)
   
-  local dialog, vb = process_slicer:create_dialog("Creating Polyend Drumkit...")
+  dialog, vb = process_slicer:create_dialog("Creating Polyend Drumkit...")
   process_slicer:start()
 end
 
@@ -2469,7 +2488,7 @@ function save_pti_as_drumkit_mono_ProcessSlicer(skip_save_prompt)
 end
 
 -- Worker function for ProcessSlicer mono drumkit
-function save_pti_as_drumkit_mono_Worker(source_instrument, num_samples, skip_save_prompt)
+function save_pti_as_drumkit_mono_Worker(source_instrument, num_samples, skip_save_prompt, dialog, vb)
   local song = renoise.song()
   
   print("-- Save PTI as Drumkit: Starting mono drumkit creation from instrument: " .. source_instrument.name)
@@ -2491,7 +2510,10 @@ function save_pti_as_drumkit_mono_Worker(source_instrument, num_samples, skip_sa
   local skipped_count = 0
   
   for i = 1, num_samples do
-    -- Update progress with better visibility
+    -- Update progress dialog and status
+    if dialog and dialog.visible then
+      vb.views.progress_text.text = string.format("Processing sample %d/%d...", i, num_samples)
+    end
     local progress_msg = string.format("PTI Mono: Processing sample %d/%d...", i, num_samples)
     renoise.app():show_status(progress_msg)
     print(string.format("-- Save PTI as Drumkit (Mono): Processing sample %d/%d (slot %02d)...", i, num_samples, i))
@@ -2605,6 +2627,9 @@ function save_pti_as_drumkit_mono_Worker(source_instrument, num_samples, skip_sa
   combined_sample.sample_buffer:prepare_sample_data_changes()
   
   -- Copy all processed samples into the combined buffer (with yielding)
+  if dialog and dialog.visible then
+    vb.views.progress_text.text = "Combining samples into drumkit..."
+  end
   renoise.app():show_status("PTI Mono: Combining samples into drumkit...")
   local current_position = 1
   for i = 1, #valid_samples do
@@ -2625,6 +2650,9 @@ function save_pti_as_drumkit_mono_Worker(source_instrument, num_samples, skip_sa
   combined_sample.name = drumkit_instrument.name
   
   -- Insert slice markers
+  if dialog and dialog.visible then
+    vb.views.progress_text.text = "Creating slice markers..."
+  end
   renoise.app():show_status("PTI Mono: Creating slice markers...")
   for i = 1, #slice_positions do
     combined_sample:insert_slice_marker(slice_positions[i])
@@ -2635,6 +2663,11 @@ function save_pti_as_drumkit_mono_Worker(source_instrument, num_samples, skip_sa
   end
   
   song.selected_sample_index = 1
+  
+  -- Close dialog
+  if dialog and dialog.visible then
+    dialog:close()
+  end
   
   renoise.app():show_status(string.format("PTI Mono: Drumkit created with %d slices", #slice_positions))
   print("-- Save PTI as Drumkit: Mono drumkit creation completed successfully")
@@ -2669,12 +2702,14 @@ function save_pti_as_drumkit_mono(skip_save_prompt)
   -- Determine how many samples to process (max 48)
   local num_samples = math.min(48, #source_instrument.samples)
   
+  local dialog, vb
+  
   -- Create ProcessSlicer and start the process
   local process_slicer = ProcessSlicer(function()
-    save_pti_as_drumkit_mono_Worker(source_instrument, num_samples, skip_save_prompt)
+    save_pti_as_drumkit_mono_Worker(source_instrument, num_samples, skip_save_prompt, dialog, vb)
   end)
   
-  local dialog, vb = process_slicer:create_dialog("Creating Polyend Mono Drumkit...")
+  dialog, vb = process_slicer:create_dialog("Creating Polyend Mono Drumkit...")
   process_slicer:start()
 end
 
