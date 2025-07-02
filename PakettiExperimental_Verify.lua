@@ -5998,3 +5998,139 @@ renoise.tool():add_midi_mapping{name="Paketti:Delete Slice Markers in Selection"
   end
 }
 
+-- Function to create MIDI Control device from text file with CC mappings
+function PakettiCreateMIDIControlFromTextFile()
+  local song = renoise.song()
+  
+  print("-- MIDI Control Text: Starting MIDI Control device creation from text file")
+  
+  -- First, prompt for the text file
+  local selected_textfile = renoise.app():prompt_for_filename_to_read("*.txt", "Load Textfile with CC Mappings")
+  
+  if not selected_textfile or selected_textfile == "" then
+    renoise.app():show_status("No text file selected, cancelling operation")
+    return
+  end
+  
+  print("-- MIDI Control Text: Selected file: " .. selected_textfile)
+  
+  -- Read and parse the text file
+  local cc_mappings = {}
+  local file = io.open(selected_textfile, "r")
+  
+  if not file then
+    renoise.app():show_error("Could not open text file: " .. selected_textfile)
+    return
+  end
+  
+  local line_count = 0
+  for line in file:lines() do
+    line_count = line_count + 1
+    if line_count > 34 then
+      print("-- MIDI Control Text: Warning - more than 34 lines in file, ignoring excess lines")
+      break
+    end
+    
+    -- Parse line format: "54 Cutoff" or "127 SomethingElse"
+    local cc_number, cc_name = line:match("^(%d+)%s+(.+)$")
+    
+    if cc_number and cc_name then
+      cc_number = tonumber(cc_number)
+      if cc_number >= 0 and cc_number <= 127 then
+        table.insert(cc_mappings, {cc = cc_number, name = cc_name})
+        print(string.format("-- MIDI Control Text: Parsed CC %d = %s", cc_number, cc_name))
+      else
+        print(string.format("-- MIDI Control Text: Warning - invalid CC number %d on line %d", cc_number, line_count))
+      end
+    else
+      print(string.format("-- MIDI Control Text: Warning - could not parse line %d: %s", line_count, line))
+    end
+  end
+  
+  file:close()
+  
+  if #cc_mappings == 0 then
+    renoise.app():show_error("No valid CC mappings found in text file")
+    return
+  end
+  
+  print(string.format("-- MIDI Control Text: Successfully parsed %d CC mappings", #cc_mappings))
+  
+  -- Load the MIDI Control device
+  print("-- MIDI Control Text: Loading *Instr. MIDI Control device...")
+  loadnative("Audio/Effects/Native/*Instr. MIDI Control")
+  
+  -- Give the device a moment to load
+  renoise.app():show_status("Loading MIDI Control device...")
+  
+  -- Generate the XML preset with our CC mappings
+  local xml_content = generate_midi_control_xml(cc_mappings)
+  
+  -- Apply the XML to the device
+  local device = nil
+  if renoise.app().window.active_middle_frame == 7 or renoise.app().window.active_middle_frame == 6 then
+    -- Sample FX chain
+    device = song.selected_sample_device
+  else
+    -- Track DSP chain
+    device = song.selected_device
+  end
+  
+  if device and device.name == "*Instr. MIDI Control" then
+    device.active_preset_data = xml_content
+    device.display_name = "MIDI Control from " .. selected_textfile:match("([^/\\]+)$")
+    print("-- MIDI Control Text: Successfully applied CC mappings to device")
+    renoise.app():show_status(string.format("MIDI Control device created with %d CC mappings", #cc_mappings))
+  else
+    renoise.app():show_error("Failed to find or load MIDI Control device")
+  end
+end
+
+-- Helper function to generate the MIDI Control device XML
+function generate_midi_control_xml(cc_mappings)
+  local xml_lines = {}
+  
+  -- XML header
+  table.insert(xml_lines, '<?xml version="1.0" encoding="UTF-8"?>')
+  table.insert(xml_lines, '<FilterDevicePreset doc_version="12">')
+  table.insert(xml_lines, '  <DeviceSlot type="MidiControlDevice">')
+  table.insert(xml_lines, '    <IsMaximized>true</IsMaximized>')
+  
+  -- Generate 35 controllers (0-34)
+  for i = 0, 34 do
+    local mapping = cc_mappings[i + 1] -- Lua is 1-based, controllers are 0-based
+    
+    if mapping then
+      -- Use the mapping from text file
+      table.insert(xml_lines, string.format('    <ControllerValue%d>', i))
+      table.insert(xml_lines, '      <Value>0.0</Value>')
+      table.insert(xml_lines, string.format('    </ControllerValue%d>', i))
+      table.insert(xml_lines, string.format('    <ControllerNumber%d>%d</ControllerNumber%d>', i, mapping.cc, i))
+             table.insert(xml_lines, string.format('    <ControllerName%d>%s</ControllerName%d>', i, mapping.name, i))
+       table.insert(xml_lines, string.format('    <ControllerType%d>CC</ControllerType%d>', i, i))
+     else
+       -- Default empty controller
+       table.insert(xml_lines, string.format('    <ControllerValue%d>', i))
+       table.insert(xml_lines, '      <Value>0.0</Value>')
+       table.insert(xml_lines, string.format('    </ControllerValue%d>', i))
+       table.insert(xml_lines, string.format('    <ControllerNumber%d>-1</ControllerNumber%d>', i, i))
+       table.insert(xml_lines, string.format('    <ControllerName%d>Untitled</ControllerName%d>', i, i))
+       table.insert(xml_lines, string.format('    <ControllerType%d>CC</ControllerType%d>', i, i))
+     end
+   end
+   
+   -- XML footer
+   table.insert(xml_lines, '    <VisiblePages>3</VisiblePages>')
+   table.insert(xml_lines, '  </DeviceSlot>')
+   table.insert(xml_lines, '</FilterDevicePreset>')
+   
+   return table.concat(xml_lines, '\n')
+ end
+ 
+ -- Menu entries for the new function
+ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Experimental..:Create MIDI Control from Text File", invoke=function() PakettiCreateMIDIControlFromTextFile() end}
+ renoise.tool():add_menu_entry{name="DSP Device:Paketti..:Experimental..:Create MIDI Control from Text File", invoke=function() PakettiCreateMIDIControlFromTextFile() end}
+ renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti..:Experimental..:Create MIDI Control from Text File", invoke=function() PakettiCreateMIDIControlFromTextFile() end}
+ renoise.tool():add_menu_entry{name="Mixer:Paketti..:Experimental..:Create MIDI Control from Text File", invoke=function() PakettiCreateMIDIControlFromTextFile() end}
+ 
+ renoise.tool():add_keybinding{name="Global:Paketti:Create MIDI Control from Text File", invoke=function() PakettiCreateMIDIControlFromTextFile() end}

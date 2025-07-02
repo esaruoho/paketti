@@ -3687,10 +3687,6 @@ function make_ot_table_play_to_end(sample, end_frame)
   return ot
 end
 
--- Add convenience function with same name format
-function drumkit64playtoend()
-  PakettiOTDrumkitPlayToEnd()
-end
 
 -- Add menu entries
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Octatrack:Generate Drumkit (Play to End)",invoke=function() PakettiOTDrumkitPlayToEnd() end}
@@ -3698,8 +3694,4 @@ renoise.tool():add_menu_entry{name="Sample Mappings:Paketti:Octatrack:Generate .
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Octatrack:Generate Drumkit (Play to End)",invoke=function() PakettiOTDrumkitPlayToEnd() end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Octatrack Generate Drumkit (Play to End)",invoke=function() PakettiOTDrumkitPlayToEnd() end}
 
--- Convenience function that can be called directly
-function drumkit64playtoend()
-  PakettiOTDrumkitPlayToEnd()
-end
 

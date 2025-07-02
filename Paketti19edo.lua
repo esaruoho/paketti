@@ -55,7 +55,7 @@ function load_tuning_data(use_auto_input_pref)
     if use_auto_input_pref then
         tuning_pref = renoise.tool().preferences.UserSetTunings
     else
-        tuning_pref = renoise.tool().preferences.UserSetTuning
+        tuning_pref = renoise.tool().preferences.UserSetTunings
     end
     
     if not tuning_pref then
@@ -67,11 +67,20 @@ function load_tuning_data(use_auto_input_pref)
         return false
     end
     
-    local file_path = renoise.tool().bundle_path .. tuning_file_path
+    local file_path
+    -- Check if it's a custom file path (absolute path) or built-in tuning file
+    if tuning_file_path:match("^tunings/") then
+        -- Built-in tuning file
+        file_path = renoise.tool().bundle_path .. tuning_file_path
+    else
+        -- Custom file path (assume it's already absolute)
+        file_path = tuning_file_path
+    end
+    
     local file = io.open(file_path, "r")
     
     if not file then
-        renoise.app():show_status("Error: Could not open " .. tuning_file_path)
+        renoise.app():show_status("Error: Could not open " .. (tuning_file_path:match("([^/\\]+)$") or tuning_file_path))
         print("Error: Could not open file at " .. file_path)
         return false
     end
@@ -92,7 +101,9 @@ function load_tuning_data(use_auto_input_pref)
     local count = 0
     for _ in pairs(tuning_data) do count = count + 1 end
     print("Loaded " .. count .. " tuning entries")
-    renoise.app():show_status("Loaded " .. count .. " tuning entries")
+    
+    local file_display = tuning_file_path:match("tunings/(.+)%.txt$") or tuning_file_path:match("([^/\\]+)$") or tuning_file_path
+    renoise.app():show_status("Loaded " .. count .. " tuning entries from " .. file_display)
     
     return true
 end
@@ -162,6 +173,7 @@ function show_tuning_selection_dialog()
     -- Create display names for popup
     local display_names = {"<None>"}
     local selected_index = 1
+    local custom_file_path = ""  -- Store custom file path
     
     for i, file_path in ipairs(tuning_files) do
         local display_name = file_path:match("tunings/(.+)%.txt$") or file_path
@@ -169,6 +181,14 @@ function show_tuning_selection_dialog()
         if file_path == current_tuning then
             selected_index = i + 1
         end
+    end
+    
+    -- Check if current tuning is a custom file (not in tunings folder)
+    if current_tuning ~= "" and not current_tuning:match("^tunings/") then
+        custom_file_path = current_tuning
+        local custom_display = current_tuning:match("([^/\\]+)$") or current_tuning
+        table.insert(display_names, "Custom: " .. custom_display)
+        selected_index = #display_names
     end
     
     local dialog_content = vb:column {
@@ -184,16 +204,90 @@ function show_tuning_selection_dialog()
             id = "tuning_popup",
             items = display_names,
             value = selected_index,
-            width = 200
+            width = 300
         },
         
         vb:row {
             spacing = 10,
             vb:button {
+                text = "Set",
+                width = 80,
+                notifier = function()
+                    local popup_value = vb.views.tuning_popup.value
+                    local selected_file = ""  -- Declare selected_file at proper scope
+                    
+                    -- Ensure preference exists
+                    if not renoise.tool().preferences.UserSetTunings then
+                        renoise.tool().preferences:add_property("UserSetTunings", "")
+                    end
+                    
+                    if popup_value == 1 then
+                        -- <None> selected
+                        renoise.app():show_status("Please select a tuning system first")
+                        return
+                    elseif popup_value <= #tuning_files + 1 then
+                        -- Built-in tuning file selected
+                        selected_file = tuning_files[popup_value - 1]
+                        renoise.tool().preferences.UserSetTunings.value = selected_file
+                        print("DEBUG: Set tuning preference to: " .. selected_file)
+                    else
+                        -- Custom file selected
+                        selected_file = custom_file_path
+                        renoise.tool().preferences.UserSetTunings.value = selected_file
+                        print("DEBUG: Set tuning preference to custom file: " .. selected_file)
+                    end
+                    
+                    -- Clear cached tuning data so it reloads
+                    tuning_data = {}
+                    
+                    -- Apply tuning immediately
+                    apply_tuning_to_track_immediate()
+                end
+            },
+            
+            vb:button {
+                text = "Browse...",
+                width = 80,
+                notifier = function()
+                    local filename = renoise.app():prompt_for_filename_to_read({"*.txt"}, "Select custom tuning file...")
+                    
+                    if filename and filename ~= "" then
+                        custom_file_path = filename
+                        local custom_display = filename:match("([^/\\]+)$") or filename
+                        
+                        -- Add or update custom entry in popup
+                        local custom_entry_name = "Custom: " .. custom_display
+                        local found_custom = false
+                        
+                        -- Check if custom entry already exists and update it
+                        for i, name in ipairs(display_names) do
+                            if name:match("^Custom: ") then
+                                display_names[i] = custom_entry_name
+                                found_custom = true
+                                break
+                            end
+                        end
+                        
+                        -- Add new custom entry if not found
+                        if not found_custom then
+                            table.insert(display_names, custom_entry_name)
+                        end
+                        
+                        -- Update popup items and select the custom entry
+                        vb.views.tuning_popup.items = display_names
+                        vb.views.tuning_popup.value = #display_names
+                        
+                        renoise.app():show_status("Selected custom tuning file: " .. custom_display)
+                    end
+                end
+            },
+            
+            vb:button {
                 text = "OK",
                 width = 80,
                 notifier = function()
                     local popup_value = vb.views.tuning_popup.value
+                    local selected_file = ""  -- Declare selected_file at proper scope
                     
                     -- Ensure preference exists
                     if not renoise.tool().preferences.UserSetTunings then
@@ -204,12 +298,16 @@ function show_tuning_selection_dialog()
                         -- <None> selected
                         renoise.tool().preferences.UserSetTunings.value = ""
                         print("DEBUG: Set tuning preference to empty")
-                    else
-                        -- Tuning file selected
-                        local selected_file = tuning_files[popup_value - 1]
+                    elseif popup_value <= #tuning_files + 1 then
+                        -- Built-in tuning file selected
+                        selected_file = tuning_files[popup_value - 1]
                         renoise.tool().preferences.UserSetTunings.value = selected_file
-                        
                         print("DEBUG: Set tuning preference to: " .. selected_file)
+                    else
+                        -- Custom file selected
+                        selected_file = custom_file_path
+                        renoise.tool().preferences.UserSetTunings.value = selected_file
+                        print("DEBUG: Set tuning preference to custom file: " .. selected_file)
                     end
                     
                     -- Clear cached tuning data so it reloads
@@ -220,7 +318,7 @@ function show_tuning_selection_dialog()
                     if popup_value == 1 then
                         status_msg = "Tuning system cleared"
                     else
-                        local file_display = selected_file:match("tunings/(.+)%.txt$") or selected_file
+                        local file_display = selected_file:match("tunings/(.+)%.txt$") or selected_file:match("([^/\\]+)$") or selected_file
                         status_msg = "Tuning system set to: " .. file_display
                     end
                     renoise.app():show_status(status_msg)
@@ -299,18 +397,115 @@ function write_tuning_effect(track, note_column, tuning_note)
         return false
     end
     
+    -- Check if there's existing sample effect content
+    local existing_effect = note_column.effect_number_string
+    local existing_amount = note_column.effect_amount_string
+    local had_existing = (existing_effect and existing_effect ~= "" and existing_effect ~= "00") or 
+                        (existing_amount and existing_amount ~= "" and existing_amount ~= "00")
+    
     -- Write the tuning note name directly to note column's sample effect
     note_column.effect_number_string = tuning_note
     note_column.effect_amount_string = "00"
     
-    print("DEBUG: Wrote sample effect " .. tuning_note .. "00 for " .. tuning_note)
+    if had_existing then
+        print("DEBUG: Overwrote existing sample effect " .. (existing_effect or "00") .. (existing_amount or "00") .. " with " .. tuning_note .. "00")
+    else
+        print("DEBUG: Wrote sample effect " .. tuning_note .. "00 for " .. tuning_note)
+    end
     return true
+end
+
+-- Immediate apply function for the Set button (no dialog checks)
+function apply_tuning_to_track_immediate()
+    local song
+    local success, error_msg = pcall(function()
+        song = renoise.song()
+    end)
+    
+    if not success or not song then
+        renoise.app():show_status("No song available")
+        return
+    end
+    
+    local selected_track = song.selected_track
+    local pattern_index = song.selected_pattern_index
+    local pattern = song:pattern(pattern_index)
+    local track_pattern = pattern:track(song.selected_track_index)
+    
+    print("DEBUG: Immediately applying tuning to track " .. song.selected_track_index .. " in pattern " .. pattern_index)
+    
+    -- Make Sample FX Column visible on selected track
+    selected_track.sample_effects_column_visible = true
+    print("DEBUG: Made Sample FX Column visible on track")
+    
+    -- Load tuning data if not already loaded
+    if not next(tuning_data) then
+        if not load_tuning_data() then
+            renoise.app():show_status("Failed to load tuning data")
+            return
+        end
+    end
+    
+    local processed_count = 0
+    local overwritten_count = 0
+    local total_lines = #track_pattern.lines
+    
+    -- Process each line in the track pattern
+    for line_index = 1, total_lines do
+        local pattern_line = track_pattern:line(line_index)
+        
+        -- Check all note columns in this line
+        if pattern_line.note_columns then
+            for col_index = 1, #pattern_line.note_columns do
+                local note_column = pattern_line.note_columns[col_index]
+                local note_string = note_column.note_string
+                
+                if note_string and note_string ~= "---" and note_string ~= "" then
+                    print("DEBUG: Processing line " .. line_index .. " column " .. col_index .. " with note " .. note_string)
+                    
+                    -- Check if there's existing sample effect content
+                    local existing_effect = note_column.effect_number_string
+                    local existing_amount = note_column.effect_amount_string
+                    local had_existing = (existing_effect and existing_effect ~= "" and existing_effect ~= "00") or 
+                                        (existing_amount and existing_amount ~= "" and existing_amount ~= "00")
+                    
+                    -- Convert note to MIDI number
+                    local midi_number = note_string_to_midi_number(note_string)
+                    if midi_number then
+                        -- Get tuning
+                        local tuning_note = get_tuning(midi_number)
+                        if tuning_note then
+                            -- Write to note column's sample effect
+                            if write_tuning_effect(selected_track, note_column, tuning_note) then
+                                processed_count = processed_count + 1
+                                if had_existing then
+                                    overwritten_count = overwritten_count + 1
+                                end
+                                print("Line " .. line_index .. " Col " .. col_index .. ": " .. note_string .. " -> " .. tuning_note)
+                            end
+                        else
+                            print("DEBUG: No tuning found for MIDI number " .. midi_number)
+                        end
+                    else
+                        print("DEBUG: Could not convert note " .. note_string .. " to MIDI number")
+                    end
+                end
+            end
+        end
+    end
+    
+    local status_msg = "Applied tuning to " .. processed_count .. " notes"
+    if overwritten_count > 0 then
+        status_msg = status_msg .. " (overwrote " .. overwritten_count .. " existing sample effects)"
+    end
+    renoise.app():show_status(status_msg)
+    print("Applied tuning to " .. processed_count .. " notes out of " .. total_lines .. " lines. Overwrote " .. overwritten_count .. " existing effects.")
 end
 
 -- Main function to process selected track with user-set tuning
 function apply_tuning_to_track()
     -- Check if tuning preference exists and is set, show dialog if not
-    local tuning_pref = renoise.tool().preferences.UserSetTuning
+    local tuning_pref = renoise.tool().preferences.UserSetTunings
     if not tuning_pref or tuning_pref.value == "" then
         show_tuning_selection_dialog()
         return
@@ -390,7 +585,7 @@ end
 -- Function to clear tuning effects from selected track
 function clear_tuning_effects_from_track()
     -- Check if tuning preference exists and is set, show dialog if not
-    local tuning_pref = renoise.tool().preferences.UserSetTuning
+    local tuning_pref = renoise.tool().preferences.UserSetTunings
     if not tuning_pref or tuning_pref.value == "" then
         show_tuning_selection_dialog()
         return
@@ -553,24 +748,17 @@ function auto_input_idle_notifier()
                 local note_column = pattern_line.note_columns[note_column_index]
                 local note_string = note_column.note_string
                 
-                -- If there's a note and no tuning effect yet, apply tuning
+                -- If there's a note, apply tuning (overwrites any existing effects)
                 if note_string and note_string ~= "---" and note_string ~= "" and note_string ~= "OFF" then
                     if reason == "cursor moved" then
                         print("DEBUG: POSITION " .. current_pos .. " - Found NOTE: " .. note_string .. ", effect_number: '" .. (note_column.effect_number_string or "") .. "', effect_amount: '" .. (note_column.effect_amount_string or "") .. "'")
                         last_logged_position = current_pos
                     end
                     
-                    if note_column.effect_number_string == "" or note_column.effect_number_string == "00" then
-                        print("DEBUG: POSITION " .. current_pos .. " - APPLYING TUNING to note " .. note_string .. " (" .. reason .. ")")
-                        auto_apply_tuning_to_note(track_index, line_index, note_column_index)
-                        last_logged_position = current_pos
-                    else
-                        -- Only log "already has effect" once per position
-                        if current_pos ~= last_logged_position then
-                            print("DEBUG: POSITION " .. current_pos .. " - Note " .. note_string .. " already has effect: '" .. note_column.effect_number_string .. "'")
-                            last_logged_position = current_pos
-                        end
-                    end
+                    -- Always apply tuning, overwriting any existing effects
+                    print("DEBUG: POSITION " .. current_pos .. " - APPLYING TUNING to note " .. note_string .. " (" .. reason .. ")")
+                    auto_apply_tuning_to_note(track_index, line_index, note_column_index)
+                    last_logged_position = current_pos
                 else
                     if reason == "cursor moved" then
                         print("DEBUG: POSITION " .. current_pos .. " - No note (found: " .. (note_string or "nil") .. ")")
