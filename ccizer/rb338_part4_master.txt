@@ -1,0 +1,16 @@
+7 MasterLevel
+94 PCFPattern
+95 PCFMode
+96 PCFFreq
+97 PCFQ
+98 PCFAmount
+99 PCFDecay
+100 DelaySteps
+101 DelayTripletMode
+102 DelayPan
+103 DelayFeedback
+104 DistShape
+105 DistAmount
+106 CompRatio
+107 CompThreshold
+108 ShuffleAmount

@@ -1,14 +1,16 @@
 local bit = require("bit")
 
-local function get_clean_filename(filepath)
+function get_clean_filename(filepath)
   local filename = filepath:match("[^/\\]+$")
   if filename then 
-    return filename:gsub("%.pti$", "") 
+    -- Handle both PTI and MTI files
+    local clean = filename:gsub("%.pti$", ""):gsub("%.mti$", "")
+    return clean
   end
-  return "PTI Sample"
+  return "Sample"
 end
 
-local function read_uint16_le(data, offset)
+function read_uint16_le(data, offset)
   return string.byte(data, offset + 1) + string.byte(data, offset + 2) * 256
 end
 
@@ -450,6 +452,7 @@ function pti_loadsample(filepath)
   end
 end
 
+-- Separate the hooks - PTI only now
 local pti_integration = {
   category = "sample",
   extensions = { "pti" },
@@ -458,6 +461,295 @@ local pti_integration = {
 
 if not renoise.tool():has_file_import_hook("sample", { "pti" }) then
   renoise.tool():add_file_import_hook(pti_integration)
+end
+
+-- New MTI loader function
+function find_corresponding_wav(mti_filepath)
+  local mti_dir = mti_filepath:match("^(.*[/\\])")
+  local mti_filename = mti_filepath:match("([^/\\]+)%.mti$")
+  
+  if not mti_filename then
+    return nil
+  end
+  
+  print(string.format("-- MTI: Looking for WAV file for: %s", mti_filename))
+  
+  -- Pattern 1: Extract number from instrument_33 or instrument33 patterns
+  local inst_num = mti_filename:match("^instrument_?(%d+)$")
+  if inst_num then
+    local wav_filename = string.format("inst%s.wav", inst_num)
+    local wav_path = mti_dir .. wav_filename
+    print(string.format("-- MTI: Checking same folder: %s", wav_path))
+    
+    if io.exists(wav_path) then
+      print(string.format("-- MTI: Found WAV file: %s", wav_path))
+      return wav_path
+    end
+  end
+  
+  -- Pattern 2: If MTI is in instruments/ folder (case-insensitive), look in ../Samples/
+  if mti_dir:match("[Ii]nstruments[/\\]?$") then
+    local samples_dir = mti_dir:gsub("[Ii]nstruments[/\\]?$", "Samples/")
+    print(string.format("-- MTI: Samples directory: %s", samples_dir))
+    
+    if inst_num then
+      local wav_filename = string.format("inst%s.wav", inst_num)
+      local wav_path = samples_dir .. wav_filename
+      print(string.format("-- MTI: Checking Samples folder: %s", wav_path))
+      
+      if io.exists(wav_path) then
+        print(string.format("-- MTI: Found WAV file in Samples: %s", wav_path))
+        return wav_path
+      end
+    end
+    
+    -- Also try other common patterns in Samples folder
+    local base_patterns = {
+      string.format("instr%s.wav", inst_num or ""),
+      string.format("instrument%s.wav", inst_num or ""),
+      string.format("inst_%s.wav", inst_num or ""),
+      string.format("instrument_%s.wav", inst_num or ""),
+      mti_filename .. ".wav",
+      mti_filename:gsub("instrument_?", "inst") .. ".wav"
+    }
+    
+    for _, pattern in ipairs(base_patterns) do
+      if pattern ~= ".wav" and pattern ~= "inst.wav" then -- Skip empty patterns
+        local wav_path = samples_dir .. pattern
+        print(string.format("-- MTI: Checking pattern: %s", wav_path))
+        
+        if io.exists(wav_path) then
+          print(string.format("-- MTI: Found WAV file with pattern: %s", wav_path))
+          return wav_path
+        end
+      end
+    end
+  end
+  
+  -- Pattern 3: Try common variations in same folder
+  local variations = {
+    mti_filename:gsub("instrument_?", "inst") .. ".wav",
+    mti_filename .. ".wav",
+    "inst" .. (inst_num or "") .. ".wav",
+    "inst_" .. (inst_num or "") .. ".wav"
+  }
+  
+  for _, variation in ipairs(variations) do
+    local wav_path = mti_dir .. variation
+    print(string.format("-- MTI: Checking variation: %s", wav_path))
+    
+    if io.exists(wav_path) then
+      print(string.format("-- MTI: Found WAV file: %s", wav_path))
+      return wav_path
+    end
+  end
+  
+  print("-- MTI: No corresponding WAV file found")
+  return nil
+end
+
+function mti_loadsample(filepath)
+  print("------------")
+  print(string.format("-- MTI: Import filename: %s", filepath))
+  
+  -- Find the corresponding WAV file
+  local wav_path = find_corresponding_wav(filepath)
+  
+  if not wav_path then
+    renoise.app():show_error("MTI Import Error: Cannot find corresponding WAV file for " .. filepath)
+    return
+  end
+  
+  print(string.format("-- MTI: Loading audio from: %s", wav_path))
+  
+  -- Create new instrument and load the WAV file
+  local song = renoise.song()
+  song:insert_instrument_at(song.selected_instrument_index + 1)
+  song.selected_instrument_index = song.selected_instrument_index + 1
+  
+  -- Apply Paketti defaults first
+  pakettiPreferencesDefaultInstrumentLoader()
+  
+  local instrument = song.selected_instrument
+  local sample = instrument.samples[1]
+  
+  -- Load the WAV file into the sample buffer
+  local success, load_result = pcall(function()
+    return sample.sample_buffer:load_from(wav_path)
+  end)
+  
+  if not success or not load_result then
+    renoise.app():show_error("MTI Import Error: Failed to load WAV file: " .. wav_path)
+    return
+  end
+  
+  -- Now we have the WAV loaded, let's try to parse the MTI file for additional settings
+  local mti_file = io.open(filepath, "rb")
+  if not mti_file then
+    renoise.app():show_warning("MTI Import Warning: Cannot read MTI file for settings: " .. filepath)
+    return
+  end
+  
+  local mti_data = mti_file:read("*a")
+  mti_file:close()
+  
+  -- Get the clean filename for naming
+  local clean_name = get_clean_filename(filepath)
+  
+  -- Apply the name to the instrument and sample
+  instrument.name = clean_name
+  sample.name = clean_name
+  
+  -- Parse MTI file format 
+  print(string.format("-- MTI: Parsing header for slice and loop information (file size: %d bytes)", #mti_data))
+  
+  if #mti_data >= 392 then
+    -- MTI format analysis from hex dumps:
+    -- Files start with "TI" (54 49) at offset 0
+    -- Look for actual slice count in MTI format
+    
+    local slice_count = 0
+    
+    -- Check the filename embedded in the MTI to see if it suggests slicing
+    local filename_start = 21 -- Based on hex dumps, filename starts around offset 21
+    local embedded_filename = ""
+    for i = filename_start, math.min(filename_start + 30, #mti_data) do
+      local byte_val = string.byte(mti_data, i)
+      if byte_val == 0 then break end
+      if byte_val >= 32 and byte_val <= 126 then -- Printable ASCII
+        embedded_filename = embedded_filename .. string.char(byte_val)
+      end
+    end
+    
+    print(string.format("-- MTI: Embedded filename: '%s'", embedded_filename))
+    
+    -- For now, most MTI files seem to be single samples, not sliced
+    -- Only attempt slicing if the filename suggests it (contains numbers, "slice", etc.)
+    if embedded_filename:match("%d+") or embedded_filename:lower():match("slice") or embedded_filename:lower():match("chop") then
+      print("-- MTI: Filename suggests possible slicing, checking for slice data...")
+      
+      -- Try PTI-style slice count as fallback
+      local pti_style_slice_count = string.byte(mti_data, 377)
+      if pti_style_slice_count > 0 and pti_style_slice_count <= 16 then
+        slice_count = pti_style_slice_count
+        print(string.format("-- MTI: Using PTI-style slice count: %d", slice_count))
+      end
+    else
+      print("-- MTI: Filename suggests single sample, skipping slice detection")
+    end
+    
+    -- Process slice data if we found a valid slice count
+     
+         if slice_count > 0 then
+      print(string.format("-- MTI: Attempting to read %d slices", slice_count))
+      local slice_frames = {}
+      local sample_length = sample.sample_buffer.number_of_frames
+      
+      -- Try PTI-style slice reading 
+      for i = 0, slice_count - 1 do
+        local offset = 280 + i * 2
+        if offset + 1 <= #mti_data then
+          local raw_value = read_uint16_le(mti_data, offset)
+          if raw_value > 0 and raw_value <= 65535 then -- Only accept non-zero values
+            local frame = math.floor((raw_value / 65535) * sample_length)
+            if frame > 0 and frame < sample_length then -- Valid frame range
+              table.insert(slice_frames, frame)
+              print(string.format("-- MTI: Found slice at frame %d", frame))
+            end
+          end
+        end
+      end
+       
+      if #slice_frames > 0 then
+        table.sort(slice_frames)
+        
+        -- Apply slice markers to the loaded sample
+        local actually_applied = 0
+        
+        for i, frame in ipairs(slice_frames) do
+          if frame > 1 and frame < sample_length then
+            sample:insert_slice_marker(frame)
+            actually_applied = actually_applied + 1
+            print(string.format("-- MTI: Applied slice %02d at frame: %d", actually_applied, frame))
+          end
+        end
+         
+         -- Apply Paketti preferences to slices
+         for i = 1, #sample.slice_markers do
+           local slice_sample = instrument.samples[i + 1]
+           if slice_sample then
+             slice_sample.oversample_enabled = preferences.pakettiLoaderOverSampling.value
+             slice_sample.autofade = preferences.pakettiLoaderAutofade.value
+             slice_sample.autoseek = preferences.pakettiLoaderAutoseek.value
+             slice_sample.interpolation_mode = preferences.pakettiLoaderInterpolation.value
+             slice_sample.oneshot = preferences.pakettiLoaderOneshot.value
+             slice_sample.new_note_action = preferences.pakettiLoaderNNA.value
+           end
+         end
+         
+         print(string.format("-- MTI: Applied %d slice markers to sample (found %d potential slices)", actually_applied, #slice_frames))
+         if actually_applied > 0 then
+           renoise.app():show_status(string.format("MTI imported: %s with %d slices (from %s)", clean_name, actually_applied, wav_path:match("([^/\\]+)$")))
+         else
+           renoise.app():show_status(string.format("MTI imported: %s (no valid slices found, from %s)", clean_name, wav_path:match("([^/\\]+)$")))
+         end
+       else
+         print("-- MTI: No valid slice markers found")
+         renoise.app():show_status(string.format("MTI imported: %s (from %s)", clean_name, wav_path:match("([^/\\]+)$")))
+       end
+     else
+       print("-- MTI: No slice count indicator found")
+       renoise.app():show_status(string.format("MTI imported: %s (from %s)", clean_name, wav_path:match("([^/\\]+)$")))
+     end
+    
+    -- Read and apply loop information (same logic as PTI)
+    local loop_mode_byte = string.byte(mti_data, 77)
+    local loop_start_raw = read_uint16_le(mti_data, 80)
+    local loop_end_raw = read_uint16_le(mti_data, 82)
+    
+    local loop_modes = {
+      [0] = renoise.Sample.LOOP_MODE_OFF,
+      [1] = renoise.Sample.LOOP_MODE_FORWARD,
+      [2] = renoise.Sample.LOOP_MODE_REVERSE,
+      [3] = renoise.Sample.LOOP_MODE_PING_PONG
+    }
+    
+    if loop_modes[loop_mode_byte] then
+      local sample_length = sample.sample_buffer.number_of_frames
+      local function map_loop_point(value, sample_len)
+        value = math.max(1, math.min(value, 65534))
+        return math.max(1, math.min(math.floor(((value - 1) / 65533) * (sample_len - 1)) + 1, sample_len))
+      end
+      
+      local loop_start_frame = map_loop_point(loop_start_raw, sample_length)
+      local loop_end_frame = map_loop_point(loop_end_raw, sample_length)
+      loop_end_frame = math.max(loop_start_frame + 1, math.min(loop_end_frame, sample_length))
+      
+      sample.loop_mode = loop_modes[loop_mode_byte]
+      sample.loop_start = loop_start_frame
+      sample.loop_end = loop_end_frame
+      
+      local loop_mode_names = { [0] = "OFF", [1] = "Forward", [2] = "Reverse", [3] = "PingPong" }
+      print(string.format("-- MTI: Applied loop mode: %s, Start: %d, End: %d", 
+        loop_mode_names[loop_mode_byte] or "OFF", loop_start_frame, loop_end_frame))
+    end
+  else
+    print(string.format("-- MTI: Header too small (%d bytes), skipping slice/loop parsing", #mti_data))
+    renoise.app():show_status(string.format("MTI imported: %s (from %s)", clean_name, wav_path:match("([^/\\]+)$")))
+  end
+  
+  print("-- MTI: Import complete")
+end
+
+-- New MTI integration hook
+local mti_integration = {
+  category = "sample",
+  extensions = { "mti" },
+  invoke = mti_loadsample
+}
+
+if not renoise.tool():has_file_import_hook("sample", { "mti" }) then
+  renoise.tool():add_file_import_hook(mti_integration)
 end
 
 ---------

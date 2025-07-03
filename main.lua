@@ -447,14 +447,26 @@ timed_require("PakettiTuningDisplay")
 timed_require("PakettiOTExport")
 timed_require("PakettiOctaCycle")
 timed_require("PakettiOTSTRDImporter")
+timed_require("PakettiCCizerLoader")
 
-
+-- Polyend functionality toggle
+local PolyendYes = false
+PolyendYes = true
+-- Conditional Polyend functionality loading
+if PolyendYes then
+  timed_require("PakettiPolyendPatternData")
+end
 
 --always have this at the end: PakettiMenuConfig MUST be at the end. otherwise there will be errors.
 timed_require("PakettiMenuConfig")
 print(string.format("Total load time: %.3f seconds", os.clock() - init_time))
 
 _AUTO_RELOAD_DEBUG = true
+
+
+
+
+
 
 
 
