@@ -834,6 +834,91 @@ end
 end
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker ALT-G Shrink Selection",invoke=function() ShrinkSelection() end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Impulse Tracker ALT-G Shrink Selection Twice",invoke=function() ShrinkSelection() ShrinkSelection() end}
+
+-- Phrase Editor versions (API 6.2+)
+if renoise.API_VERSION >= 6.2 then
+  -- Helper function for phrase line operations
+  function cpclex_phrase_line(from_line, to_line)
+    local s = renoise.song()
+    local phrase = s.selected_phrase
+    if not phrase then
+      renoise.app():show_status("No phrase selected.")
+      return
+    end
+    phrase:line(to_line):copy_from(phrase:line(from_line))
+    phrase:line(from_line):clear()
+    if to_line + 1 <= phrase.number_of_lines then
+      phrase:line(to_line + 1):clear()
+    end
+  end
+
+  function cpclsh_phrase_line(from_line, to_line)
+    local s = renoise.song()
+    local phrase = s.selected_phrase
+    if not phrase then
+      renoise.app():show_status("No phrase selected.")
+      return
+    end
+    phrase:line(to_line):copy_from(phrase:line(from_line))
+    phrase:line(from_line):clear()
+    if from_line + 1 <= phrase.number_of_lines then
+      phrase:line(from_line + 1):clear()
+    end
+  end
+
+  function ExpandSelectionPhrase()
+    local s = renoise.song()
+    local phrase = s.selected_phrase
+    if not phrase then
+      renoise.app():show_status("No phrase selected.")
+      return
+    end
+    
+    if s.selection_in_phrase == nil then
+      renoise.app():show_status("Nothing selected to Expand in phrase, doing nothing.")
+      return
+    else  
+      local sl = s.selection_in_phrase.start_line
+      local el = s.selection_in_phrase.end_line
+      local nl = phrase.number_of_lines
+      
+      for l = el, sl, -1 do
+        if l ~= sl and l * 2 - sl <= nl then
+          cpclex_phrase_line(l, l * 2 - sl)
+        end
+      end
+    end
+  end
+
+  function ShrinkSelectionPhrase()
+    local s = renoise.song()
+    local phrase = s.selected_phrase
+    if not phrase then
+      renoise.app():show_status("No phrase selected.")
+      return
+    end
+    
+    if s.selection_in_phrase == nil then
+      renoise.app():show_status("Nothing selected to Shrink in phrase, doing nothing.")
+      return
+    else
+      local sl = s.selection_in_phrase.start_line
+      local el = s.selection_in_phrase.end_line
+      
+      for l = sl, el, 2 do
+        if l ~= sl then
+          cpclsh_phrase_line(l, l / 2 + sl / 2)
+        end
+      end
+    end
+  end
+
+  -- Keybindings for Phrase Editor
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Impulse Tracker ALT-F Expand Selection",invoke=function() ExpandSelectionPhrase() end}
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Impulse Tracker ALT-F Expand Selection Twice",invoke=function() ExpandSelectionPhrase() ExpandSelectionPhrase() end}
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Impulse Tracker ALT-G Shrink Selection",invoke=function() ShrinkSelectionPhrase() end}
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Impulse Tracker ALT-G Shrink Selection Twice",invoke=function() ShrinkSelectionPhrase() ShrinkSelectionPhrase() end}
+end
 --------------------------------------------------------
 -- Renamed helper function to cpclexrep_line
 function cpclexrep_line(track, from_line, to_line)

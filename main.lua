@@ -443,7 +443,7 @@ timed_require("PakettiMIDIMappingCategories")
 timed_require("legacy_v2_8_tools")
 timed_require("PakettiPitchControl")
 timed_require("hotelsinus_stepseq/hotelsinus_stepseq")
-timed_require("Paketti19edo")
+timed_require("PakettiTuningDisplay")
 timed_require("PakettiOTExport")
 timed_require("PakettiOctaCycle")
 timed_require("PakettiOTSTRDImporter")
@@ -455,6 +455,9 @@ timed_require("PakettiMenuConfig")
 print(string.format("Total load time: %.3f seconds", os.clock() - init_time))
 
 _AUTO_RELOAD_DEBUG = true
+
+
+
 
 
 

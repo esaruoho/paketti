@@ -6005,7 +6005,7 @@ function PakettiCreateMIDIControlFromTextFile()
   print("-- MIDI Control Text: Starting MIDI Control device creation from text file")
   
   -- First, prompt for the text file
-  local selected_textfile = renoise.app():prompt_for_filename_to_read("*.txt", "Load Textfile with CC Mappings")
+  local selected_textfile = renoise.app():prompt_for_filename_to_read({"*.txt"}, "Load Textfile with CC Mappings")
   
   if not selected_textfile or selected_textfile == "" then
     renoise.app():show_status("No text file selected, cancelling operation")
@@ -6078,9 +6078,12 @@ function PakettiCreateMIDIControlFromTextFile()
   
   if device and device.name == "*Instr. MIDI Control" then
     device.active_preset_data = xml_content
-    device.display_name = "MIDI Control from " .. selected_textfile:match("([^/\\]+)$")
-    print("-- MIDI Control Text: Successfully applied CC mappings to device")
-    renoise.app():show_status(string.format("MIDI Control device created with %d CC mappings", #cc_mappings))
+    -- Extract filename without path and extension
+    local filename = selected_textfile:match("([^/\\]+)$")  -- Get filename from path
+    local name_without_ext = filename:match("^(.+)%..+$") or filename  -- Remove extension, fallback to full filename
+    device.display_name = name_without_ext
+    print("-- MIDI Control Text: Successfully applied CC mappings to device with name: " .. name_without_ext)
+    renoise.app():show_status(string.format("MIDI Control device '%s' created with %d CC mappings", name_without_ext, #cc_mappings))
   else
     renoise.app():show_error("Failed to find or load MIDI Control device")
   end

@@ -18,6 +18,7 @@ local updating_stepper_switch = false
 local copied_stepper_data = nil
 local offset_slider = nil
 local updating_offset_slider = false
+local global_stepcount_valuebox = nil
 
 function pakettiPitchStepperDemo()
   if dialog and dialog.visible then
@@ -129,6 +130,56 @@ local function findStepperDeviceIndex(deviceName)
         end
     end
     return nil
+end
+
+-- Helper functions for Global StepCount
+function PakettiGetGlobalStepCount()
+  local value = preferences.PakettiSteppersGlobalStepCount.value
+  if value == nil or value == "" then
+    return 16 -- default value
+  end
+  local numValue = tonumber(value)
+  return numValue and numValue or 16
+end
+
+function PakettiSetGlobalStepCount(stepCount)
+  if stepCount >= 1 and stepCount <= 256 then
+    preferences.PakettiSteppersGlobalStepCount.value = tostring(stepCount)
+  end
+end
+
+function PakettiApplyGlobalStepCountToAllSteppers()
+  local global_step_count = PakettiGetGlobalStepCount()
+  local instrument = renoise.song().selected_instrument
+  
+  if not instrument or not instrument.sample_modulation_sets[1] then
+    renoise.app():show_status("No valid instrument or modulation devices found.")
+    return
+  end
+  
+  local devices = instrument.sample_modulation_sets[1].devices
+  local changed_count = 0
+  local stepperTypes = {"Pitch Stepper", "Volume Stepper", "Panning Stepper", 
+                       "Cutoff Stepper", "Resonance Stepper", "Drive Stepper"}
+  
+  for _, device in ipairs(devices) do
+    for _, stepperType in ipairs(stepperTypes) do
+      if device.name == stepperType then
+        -- Change the length to global step count
+        device.length = global_step_count
+        changed_count = changed_count + 1
+      end
+    end
+  end
+  
+  if changed_count > 0 then
+    renoise.app():show_status(string.format("Applied global step count %d to %d stepper(s)", global_step_count, changed_count))
+    -- Update the dialog displays
+    PakettiUpdateStepSizeSwitch()
+    PakettiUpdateStepCountText()
+  else
+    renoise.app():show_status("No stepper devices found in current instrument")
+  end
 end
 ---
 function PakettiFillStepperRandom(deviceName)
@@ -514,6 +565,9 @@ function PakettiShowStepper(deviceName)
     -- Lock keyboard focus when opening the editor
     if not was_visible then
         renoise.app().window.lock_keyboard_focus = true
+        -- Apply global step count when showing a stepper
+        local global_step_count = PakettiGetGlobalStepCount()
+        device.length = global_step_count
     end
     
     isPitchStepSomewhere = renoise.song().selected_track_index
@@ -564,6 +618,9 @@ function PakettiSetStepperVisible(deviceName, visible, skip_switch_update)
     if visible then
         renoise.app().window.lock_keyboard_focus = true
         isPitchStepSomewhere = renoise.song().selected_track_index
+        -- Apply global step count when making a stepper visible
+        local global_step_count = PakettiGetGlobalStepCount()
+        device.length = global_step_count
     end
     
     -- Only update switches if not called from switch notifier
@@ -637,6 +694,18 @@ function PakettiSteppersDialog()
   -- Create step count text view
   stepcount_text = vb:text{text = "64", style="strong", width=40}
 
+  -- Create global step count valuebox
+  global_stepcount_valuebox = vb:valuebox{
+    min = 1,
+    max = 256,
+    value = PakettiGetGlobalStepCount(),
+    width = 80,
+    notifier = function(value)
+      PakettiSetGlobalStepCount(value)
+      PakettiApplyGlobalStepCountToAllSteppers()
+    end
+  }
+
   -- Create offset slider
   offset_slider = vb:slider{
     min = -0.5,
@@ -659,6 +728,11 @@ function PakettiSteppersDialog()
       vb:row{
         vb:text{text = "Stepper", style="strong", font="Bold", width=70},
         stepper_switch
+      },
+      vb:row{
+        vb:text{text = "Global Steps", style="strong", font="Bold", width=70},
+        global_stepcount_valuebox,
+        vb:text{text = "Auto-applied to ALL steppers", width=200}
       },
       vb:row{
         vb:text{text = "Step Size", style="strong", font="Bold", width=70},
