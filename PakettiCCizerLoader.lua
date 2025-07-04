@@ -118,8 +118,9 @@ local function load_ccizer_file(filepath)
     return mappings
 end
 
--- Helper function to generate the MIDI Control device XML
-local function generate_midi_control_xml(cc_mappings)
+-- SHARED: Helper function to generate the MIDI Control device XML
+-- This function is used by both CCizer Loader and MIDI Populator
+function paketti_generate_midi_control_xml(cc_mappings)
     local xml_lines = {}
     
     -- Calculate visible pages based on number of mappings
@@ -181,6 +182,8 @@ local function generate_midi_control_xml(cc_mappings)
     return table.concat(xml_lines, '\n')
 end
 
+
+
 -- Create MIDI Control device from CCizer mappings
 local function apply_ccizer_mappings(mappings, filename)
     if not mappings or #mappings == 0 then
@@ -201,7 +204,7 @@ local function apply_ccizer_mappings(mappings, filename)
     renoise.app():show_status("Loading MIDI Control device...")
     
     -- Generate the XML preset with our CC mappings
-    local xml_content = generate_midi_control_xml(mappings)
+    local xml_content = paketti_generate_midi_control_xml(mappings)
     
     -- Apply the XML to the device
     local device = nil
@@ -504,7 +507,7 @@ function PakettiCreateMIDIControlFromTextFile()
     renoise.app():show_status("Loading MIDI Control device...")
     
     -- Generate the XML preset with our CC mappings
-    local xml_content = generate_midi_control_xml(cc_mappings)
+    local xml_content = paketti_generate_midi_control_xml(cc_mappings)
     
     -- Apply the XML to the device
     local device = nil
@@ -538,73 +541,346 @@ function PakettiCreateMIDIControlFromTextFile()
     end
   end
   
-  -- Helper function to generate the MIDI Control device XML
-  function generate_midi_control_xml(cc_mappings)
-    local xml_lines = {}
-    
-    -- Calculate visible pages based on number of mappings
-    -- Each page typically shows ~4-5 controllers, so we calculate needed pages
-    local num_mappings = #cc_mappings
-    local visible_pages = 3 -- Default minimum
-    
-    if num_mappings > 15 then
-        visible_pages = 5
-    end
-    if num_mappings > 20 then
-        visible_pages = 6
-    end
-    if num_mappings > 25 then
-        visible_pages = 7
-    end
-    if num_mappings > 30 then
-        visible_pages = 8
-    end
-    
-    -- XML header
-    table.insert(xml_lines, '<?xml version="1.0" encoding="UTF-8"?>')
-    table.insert(xml_lines, '<FilterDevicePreset doc_version="12">')
-    table.insert(xml_lines, '  <DeviceSlot type="MidiControlDevice">')
-    table.insert(xml_lines, '    <IsMaximized>true</IsMaximized>')
-    
-    -- Generate 35 controllers (0-34)
-    for i = 0, 34 do
-      local mapping = cc_mappings[i + 1] -- Lua is 1-based, controllers are 0-based
-      
-             if mapping then
-         -- Use the mapping from text file
-         table.insert(xml_lines, string.format('    <ControllerValue%d>', i))
-         if mapping.type == "PB" then
-             table.insert(xml_lines, '      <Value>63.5</Value>') -- Center value for pitchbend
-         else
-             table.insert(xml_lines, '      <Value>0.0</Value>')
-         end
-         table.insert(xml_lines, string.format('    </ControllerValue%d>', i))
-         table.insert(xml_lines, string.format('    <ControllerNumber%d>%d</ControllerNumber%d>', i, mapping.cc, i))
-               table.insert(xml_lines, string.format('    <ControllerName%d>%s</ControllerName%d>', i, mapping.name, i))
-         table.insert(xml_lines, string.format('    <ControllerType%d>%s</ControllerType%d>', i, mapping.type or "CC", i))
-       else
-         -- Default empty controller
-         table.insert(xml_lines, string.format('    <ControllerValue%d>', i))
-         table.insert(xml_lines, '      <Value>0.0</Value>')
-         table.insert(xml_lines, string.format('    </ControllerValue%d>', i))
-         table.insert(xml_lines, string.format('    <ControllerNumber%d>-1</ControllerNumber%d>', i, i))
-         table.insert(xml_lines, string.format('    <ControllerName%d>Untitled</ControllerName%d>', i, i))
-         table.insert(xml_lines, string.format('    <ControllerType%d>CC</ControllerType%d>', i, i))
-       end
-     end
-     
-     -- XML footer with calculated visible pages
-     table.insert(xml_lines, string.format('    <VisiblePages>%d</VisiblePages>', visible_pages))
-     table.insert(xml_lines, '  </DeviceSlot>')
-     table.insert(xml_lines, '</FilterDevicePreset>')
-     
-     return table.concat(xml_lines, '\n')
-   end
+
    
    -- Menu entries for the new function
-   renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Experimental..:Create MIDI Control from Text File", invoke=function() PakettiCreateMIDIControlFromTextFile() end}
-   renoise.tool():add_menu_entry{name="DSP Device:Paketti..:Experimental..:Create MIDI Control from Text File", invoke=function() PakettiCreateMIDIControlFromTextFile() end}
-   renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti..:Experimental..:Create MIDI Control from Text File", invoke=function() PakettiCreateMIDIControlFromTextFile() end}
-   renoise.tool():add_menu_entry{name="Mixer:Paketti..:Experimental..:Create MIDI Control from Text File", invoke=function() PakettiCreateMIDIControlFromTextFile() end}
+   renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Experimental:Create MIDI Control from Text File", invoke=function() PakettiCreateMIDIControlFromTextFile() end}
+   renoise.tool():add_menu_entry{name="DSP Device:Paketti:Experimental:Create MIDI Control from Text File", invoke=function() PakettiCreateMIDIControlFromTextFile() end}
+   renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti:Experimental:Create MIDI Control from Text File", invoke=function() PakettiCreateMIDIControlFromTextFile() end}
+   renoise.tool():add_menu_entry{name="Mixer:Paketti:Experimental:Create MIDI Control from Text File", invoke=function() PakettiCreateMIDIControlFromTextFile() end}
    
    renoise.tool():add_keybinding{name="Global:Paketti:Create MIDI Control from Text File", invoke=function() PakettiCreateMIDIControlFromTextFile() end}
+
+-- Function to apply CCizer mappings to the currently selected device
+local function apply_ccizer_to_selected_device(mappings, filename)
+    if not mappings or #mappings == 0 then
+        renoise.app():show_warning("No valid MIDI CC mappings found in file")
+        return
+    end
+
+    local selected_device = renoise.song().selected_device
+    
+    if not selected_device then
+        renoise.app():show_status("No device has been selected. Please select a *Instr. MIDI Control device and try again.")
+        return
+    end
+    
+    if selected_device.name ~= "*Instr. MIDI Control" then
+        renoise.app():show_status("Selected device is not a *Instr. MIDI Control device. Please select a *Instr. MIDI Control device and try again.")
+        return
+    end
+
+    print("-- CCizer: Applying CCizer mappings to selected device")
+    print(string.format("-- CCizer: Using %d / %d CC mappings", #mappings, MAX_CC_LIMIT))
+    
+    -- Generate the XML preset with our CC mappings
+    local xml_content = paketti_generate_midi_control_xml(mappings)
+    
+    -- Apply the XML to the selected device
+    selected_device.active_preset_data = xml_content
+    selected_device.display_name = filename
+    
+    print("-- CCizer: Successfully applied CC mappings to selected device with name: " .. filename)
+    
+    -- Create status message with CC count information
+    local status_message = string.format("Applied CCizer '%s' with %d/%d CC mappings to selected device", filename, #mappings, MAX_CC_LIMIT)
+    if #mappings == MAX_CC_LIMIT then
+        status_message = status_message .. " (max reached)"
+    else
+        status_message = status_message .. string.format(" (%d slots available)", MAX_CC_LIMIT - #mappings)
+    end
+    
+    renoise.app():show_status(status_message)
+end
+
+-- Function to load a specific CCizer file to selected device
+local function load_ccizer_file_to_selected_device(ccizer_filename)
+    local ccizer_files = scan_ccizer_files()
+    local target_file = nil
+    
+    for _, file in ipairs(ccizer_files) do
+        if file.name == ccizer_filename then
+            target_file = file
+            break
+        end
+    end
+    
+    if not target_file then
+        renoise.app():show_status("CCizer file '" .. ccizer_filename .. "' not found in ccizer folder")
+        return
+    end
+    
+    local mappings = load_ccizer_file(target_file.full_path)
+    if mappings then
+        apply_ccizer_to_selected_device(mappings, target_file.display_name)
+    end
+end
+
+-- Function to show CCizer dialog that targets selected device
+function PakettiCCizerLoaderToSelectedDevice()
+    local selected_device = renoise.song().selected_device
+    
+    if not selected_device then
+        renoise.app():show_status("No device has been selected. Please select a *Instr. MIDI Control device and try again.")
+        return
+    end
+    
+    if selected_device.name ~= "*Instr. MIDI Control" then
+        renoise.app():show_status("Selected device is not a *Instr. MIDI Control device. Please select a *Instr. MIDI Control device and try again.")
+        return
+    end
+
+    if dialog and dialog.visible then
+        dialog:close()
+        return
+    end
+    
+    local vb = renoise.ViewBuilder()
+    local files = scan_ccizer_files()
+    
+    if #files == 0 then
+        renoise.app():show_error("No CCizer files found in: " .. get_ccizer_folder())
+        return
+    end
+    
+    -- Create file list for popup
+    local file_items = {}
+    for _, file in ipairs(files) do
+        table.insert(file_items, file.display_name)
+    end
+    
+    local selected_file_index = 1
+    
+    local selected_file_info = vb:text{
+        text = "Loading...",
+        width = 400
+    }
+    
+    -- Function to update file info with CC count
+    local function update_selected_file_info(file_index)
+        if files[file_index] then
+            local mappings = load_ccizer_file(files[file_index].full_path)
+            if mappings then
+                local info_text = string.format("%s (%d/%d CCs)", 
+                    files[file_index].display_name, #mappings, MAX_CC_LIMIT)
+                if #mappings == MAX_CC_LIMIT then
+                    info_text = info_text .. " - MAX REACHED"
+                elseif #mappings > 0 then
+                    info_text = info_text .. string.format(" - %d slots available", MAX_CC_LIMIT - #mappings)
+                end
+                selected_file_info.text = info_text
+            else
+                selected_file_info.text = files[file_index].display_name .. " - ERROR LOADING"
+            end
+        else
+            selected_file_info.text = "None"
+        end
+    end
+    
+    local content = vb:column{
+        margin = 10,
+        
+        vb:text{
+            text = "Loading CCizer file to SELECTED *Instr. MIDI Control device:",
+            font = "bold",
+            style = "strong"
+        },
+        
+        vb:text{
+            text = "Selected Device: " .. selected_device.display_name,
+            font = "bold"
+        },
+        
+        vb:row{
+            vb:text{text = "CCizer File", width = 100, font = "bold", style = "strong"},
+            vb:popup{
+                id = "ccizer_file_popup",
+                items = file_items,
+                value = selected_file_index,
+                width = 300,
+                notifier = function(value)
+                    selected_file_index = value
+                    update_selected_file_info(value)
+                end
+            },
+            vb:button{
+                text = "Browse",
+                width = 80,
+                notifier = function()
+                    local selected_textfile = renoise.app():prompt_for_filename_to_read({"*.txt"}, "Load CCizer Text File")
+                    if selected_textfile and selected_textfile ~= "" then
+                        local mappings = load_ccizer_file(selected_textfile)
+                        if mappings then
+                            local filename = selected_textfile:match("([^/\\]+)$")
+                            local name_without_ext = filename:match("^(.+)%..+$") or filename
+                            apply_ccizer_to_selected_device(mappings, name_without_ext)
+                            dialog:close()
+                            dialog = nil
+                        end
+                    end
+                end
+            }
+        },
+        
+        vb:row{
+            vb:text{text = "Selected", width = 100, font = "bold", style = "strong"},
+            selected_file_info
+        },
+        
+        vb:text{
+            text = "CCizer files contain MIDI CC to parameter mappings.",
+            width = 400
+        },
+        
+        vb:horizontal_aligner{
+            vb:button{
+                text = "Open Path",
+                width = bottomButtonWidth,
+                notifier = function()
+                    renoise.app():open_path(get_ccizer_folder())
+                end
+            },
+            
+            vb:button{
+                text = "Preview",
+                width = bottomButtonWidth,
+                notifier = function()
+                    if files[selected_file_index] then
+                        local mappings = load_ccizer_file(files[selected_file_index].full_path)
+                        if mappings then
+                            local preview = string.format("Preview of %s\n", files[selected_file_index].display_name)
+                            preview = preview .. string.format("Valid CC mappings: %d / %d (max for MIDI Control device)\n\n", #mappings, MAX_CC_LIMIT)
+                            
+                            if #mappings == MAX_CC_LIMIT then
+                                preview = preview .. "⚠️ Reached maximum CC limit for MIDI Control device\n\n"
+                            elseif #mappings > 0 then
+                                preview = preview .. string.format("✓ Can add %d more CC mappings\n\n", MAX_CC_LIMIT - #mappings)
+                            end
+                            
+                            for i, mapping in ipairs(mappings) do
+                                if mapping.type == "PB" then
+                                    preview = preview .. string.format("PB -> %s\n", mapping.name)
+                                else
+                                    preview = preview .. string.format("CC %d -> %s\n", mapping.cc, mapping.name)
+                                end
+                            end
+                            renoise.app():show_message(preview)
+                        end
+                    end
+                end
+            },
+            
+            vb:button{
+                text = "Apply to Selected Device",
+                width = bottomButtonWidth + 20,
+                notifier = function()
+                    if files[selected_file_index] then
+                        local mappings = load_ccizer_file(files[selected_file_index].full_path)
+                        if mappings then
+                            apply_ccizer_to_selected_device(mappings, files[selected_file_index].display_name)
+                            dialog:close()
+                            dialog = nil
+                        end
+                    end
+                end
+            },
+            
+            vb:button{
+                text = "Cancel",
+                width = bottomButtonWidth,
+                notifier = function()
+                    dialog:close()
+                    dialog = nil
+                end
+            }
+        }
+    }
+    
+    -- Update the selected file info for the default selection
+    update_selected_file_info(selected_file_index)
+        
+    dialog = renoise.app():show_custom_dialog("CCizer TXT->Selected Device Loader", content, my_keyhandler_func)
+end
+
+-- Generate menu entries for actual CCizer files found in ccizer folder
+local function create_ccizer_menu_entries()
+    local ccizer_files = scan_ccizer_files()
+    
+    -- Limit to first 10 files to avoid menu bloat
+    local max_files = math.min(#ccizer_files, 10)
+    
+    for i = 1, max_files do
+        local file = ccizer_files[i]
+        local display_name = file.display_name -- Already has .txt removed
+        local filename = file.name -- Full filename with .txt
+        
+        renoise.tool():add_menu_entry{
+            name = "DSP Device:Paketti:CCizer:Load " .. display_name .. " to Selected Device",
+            invoke = function() load_ccizer_file_to_selected_device(filename) end
+        }
+        renoise.tool():add_menu_entry{
+            name = "Sample FX Mixer:Paketti:CCizer:Load " .. display_name .. " to Selected Device", 
+            invoke = function() load_ccizer_file_to_selected_device(filename) end
+        }
+        renoise.tool():add_menu_entry{
+            name = "Mixer:Paketti:CCizer:Load " .. display_name .. " to Selected Device",
+            invoke = function() load_ccizer_file_to_selected_device(filename) end
+        }
+    end
+end
+
+-- Create the dynamic menu entries
+create_ccizer_menu_entries()
+
+-- Function to load any CCizer file to selected device via file browser
+local function load_ccizer_file_browse_to_selected_device()
+    local selected_device = renoise.song().selected_device
+    
+    if not selected_device then
+        renoise.app():show_status("No device has been selected. Please select a *Instr. MIDI Control device and try again.")
+        return
+    end
+    
+    if selected_device.name ~= "*Instr. MIDI Control" then
+        renoise.app():show_status("Selected device is not a *Instr. MIDI Control device. Please select a *Instr. MIDI Control device and try again.")
+        return
+    end
+
+    local selected_textfile = renoise.app():prompt_for_filename_to_read({"*.txt"}, "Load CCizer Text File to Selected Device")
+    if selected_textfile and selected_textfile ~= "" then
+        local mappings = load_ccizer_file(selected_textfile)
+        if mappings then
+            local filename = selected_textfile:match("([^/\\]+)$")
+            local name_without_ext = filename:match("^(.+)%..+$") or filename
+            apply_ccizer_to_selected_device(mappings, name_without_ext)
+        end
+    end
+end
+
+-- Menu entry for CCizer dialog that targets selected device
+renoise.tool():add_menu_entry{
+    name = "DSP Device:Paketti:CCizer:Open CCizer Dialog, load to Selected Device",
+    invoke = PakettiCCizerLoaderToSelectedDevice
+}
+renoise.tool():add_menu_entry{
+    name = "Sample FX Mixer:Paketti:CCizer:Open CCizer Dialog, load to Selected Device", 
+    invoke = PakettiCCizerLoaderToSelectedDevice
+}
+renoise.tool():add_menu_entry{
+    name = "Mixer:Paketti:CCizer:Open CCizer Dialog, load to Selected Device",
+    invoke = PakettiCCizerLoaderToSelectedDevice
+}
+
+-- Menu entry for loading any CCizer file via file browser
+renoise.tool():add_menu_entry{
+    name = "DSP Device:Paketti:CCizer:Load from File to Selected Device",
+    invoke = load_ccizer_file_browse_to_selected_device
+}
+renoise.tool():add_menu_entry{
+    name = "Sample FX Mixer:Paketti:CCizer:Load from File to Selected Device", 
+    invoke = load_ccizer_file_browse_to_selected_device
+}
+renoise.tool():add_menu_entry{
+    name = "Mixer:Paketti:CCizer:Load from File to Selected Device",
+    invoke = load_ccizer_file_browse_to_selected_device
+}

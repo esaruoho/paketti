@@ -4132,7 +4132,8 @@ function show_polyend_buddy_dialog()
       print("-- Polyend Buddy: Polyend device not connected at startup, retrying in 1 second...")
       
       -- Add timer for single retry attempt
-      local retry_timer = function()
+      local retry_timer
+      retry_timer = function()
         -- Remove this timer (single use only)
         if renoise.tool():has_timer(retry_timer) then
           renoise.tool():remove_timer(retry_timer)
@@ -4189,5 +4190,5 @@ end
 
 --------------------------------------------------------------------------------
 renoise.tool():add_keybinding{name="Global:Paketti:Polyend Buddy (PTI File Browser)",invoke = show_polyend_buddy_dialog}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:File Formats:Polyend Buddy (PTI File Browser)",invoke = show_polyend_buddy_dialog}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti Gadgets:Polyend Buddy (PTI File Browser)",invoke=show_polyend_buddy_dialog}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/Work in Progress:Polyend:Polyend Buddy (PTI File Browser)",invoke = show_polyend_buddy_dialog}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Xperimental/Work in Progress:Polyend:Polyend Buddy (PTI File Browser)",invoke=show_polyend_buddy_dialog}

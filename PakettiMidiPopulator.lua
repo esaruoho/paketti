@@ -1,10 +1,12 @@
 -- Ensure the renoise API is available
 local vb = renoise.ViewBuilder()
-local midi_input_devices, midi_output_devices, plugin_dropdown_items, available_plugins
+local midi_input_devices, midi_output_devices, plugin_dropdown_items, available_plugins, ccizer_files, ccizer_dropdown_items
 local dialog_content
 local dialog=nil
 
 local prefs = renoise.tool().preferences
+local separator = package.config:sub(1,1)
+local MAX_CC_LIMIT = 35 -- Maximum CC mappings for MIDI Control device
 
 -- Preferences for storing selected values
 local midi_input_device = {}
@@ -12,7 +14,186 @@ local midi_input_channel = {}
 local midi_output_device = {}
 local midi_output_channel = {}
 local selected_plugin = {}
+local selected_ccizer_file = {}
+local selected_ccizer_file_paths = {} -- Store custom file paths for browsed files
 local open_external_editor = false
+
+-- Helper function for table indexing
+function table.index_of(tab, val)
+  for index, value in ipairs(tab) do
+    if value == val then
+      return index
+    end
+  end
+  return nil
+end
+
+-- Get path to ccizer folder
+local function get_ccizer_folder()
+    return renoise.tool().bundle_path .. "ccizer" .. separator
+end
+
+-- Scan for available CCizer files
+local function scan_ccizer_files()
+    local ccizer_path = get_ccizer_folder()
+    local files = {}
+    
+    -- Try to get .txt files from the ccizer folder
+    local success, result = pcall(function()
+        return os.filenames(ccizer_path, "*.txt")
+    end)
+    
+    if success and result then
+        for _, filename in ipairs(result) do
+            -- Extract just the filename without path
+            local clean_name = filename:match("[^"..separator.."]+$")
+            if clean_name then
+                table.insert(files, {
+                    name = clean_name,
+                    display_name = clean_name:gsub("%.txt$", ""), -- Remove .txt extension for display
+                    full_path = ccizer_path .. clean_name
+                })
+            end
+        end
+    end
+    
+    -- Sort files alphabetically
+    table.sort(files, function(a, b) return a.display_name:lower() < b.display_name:lower() end)
+    
+    return files
+end
+
+-- Load and parse a CCizer file
+local function load_ccizer_file(filepath)
+    local file = io.open(filepath, "r")
+    if not file then
+        renoise.app():show_error("Cannot open CCizer file: " .. filepath)
+        return nil
+    end
+    
+    local mappings = {}
+    local line_count = 0
+    local valid_cc_count = 0
+    
+    for line in file:lines() do
+        line_count = line_count + 1
+        line = line:match("^%s*(.-)%s*$") -- Trim whitespace
+        
+        if line and line ~= "" and not line:match("^#") then -- Skip empty lines and comments
+            -- Check for Pitchbend first
+            local pb_name = line:match("^PB%s+(.+)$")
+            if pb_name then
+                valid_cc_count = valid_cc_count + 1
+                
+                -- Check if we're exceeding the MIDI Control device limit
+                if valid_cc_count > MAX_CC_LIMIT then
+                    print(string.format("-- CCizer: Warning - CC mapping #%d exceeds MIDI Control device limit of %d CCs, ignoring excess mappings", valid_cc_count, MAX_CC_LIMIT))
+                    break
+                end
+                
+                table.insert(mappings, {
+                    cc = -1,
+                    name = pb_name,
+                    type = "PB"
+                })
+                print(string.format("-- CCizer: Valid PB mapping #%d: PB -> %s", valid_cc_count, pb_name))
+            else
+                -- Regular CC parsing
+                local cc_number, parameter_name = line:match("^(%d+)%s+(.+)$")
+                if cc_number and parameter_name then
+                    local cc_num = tonumber(cc_number)
+                    if cc_num and cc_num >= 0 and cc_num <= 127 then
+                        valid_cc_count = valid_cc_count + 1
+                        
+                        -- Check if we're exceeding the MIDI Control device limit
+                        if valid_cc_count > MAX_CC_LIMIT then
+                            print(string.format("-- CCizer: Warning - CC mapping #%d exceeds MIDI Control device limit of %d CCs, ignoring excess mappings", valid_cc_count, MAX_CC_LIMIT))
+                            break
+                        end
+                        
+                        table.insert(mappings, {
+                            cc = cc_num,
+                            name = parameter_name,
+                            type = "CC"
+                        })
+                        print(string.format("-- CCizer: Valid CC mapping #%d: CC %d -> %s", valid_cc_count, cc_num, parameter_name))
+                    else
+                        print(string.format("-- CCizer: Warning - invalid CC number %d on line %d (must be 0-127)", cc_num or -1, line_count))
+                    end
+                else
+                    print(string.format("-- CCizer: Warning - could not parse line %d: %s", line_count, line))
+                end
+            end
+        end
+    end
+    
+    file:close()
+    
+    local status_message = string.format("-- CCizer: Loaded %d valid MIDI CC mappings from %s", #mappings, filepath)
+    if #mappings == MAX_CC_LIMIT then
+        status_message = status_message .. string.format(" (reached maximum limit of %d CCs)", MAX_CC_LIMIT)
+    elseif #mappings > 0 then
+        status_message = status_message .. string.format(" (can add %d more CCs)", MAX_CC_LIMIT - #mappings)
+    end
+    
+    print(status_message)
+    return mappings
+end
+
+
+
+-- Create MIDI Control device from CCizer mappings
+local function apply_ccizer_mappings(mappings, filename)
+    if not mappings or #mappings == 0 then
+        renoise.app():show_warning("No valid MIDI CC mappings found in file")
+        return
+    end
+    
+    local song = renoise.song()
+    
+    print("-- CCizer: Creating MIDI Control device from CCizer mappings")
+    print(string.format("-- CCizer: Using %d / %d CC mappings", #mappings, MAX_CC_LIMIT))
+    
+    -- Load the MIDI Control device
+    print("-- CCizer: Loading *Instr. MIDI Control device...")
+    loadnative("Audio/Effects/Native/*Instr. MIDI Control")
+    
+    -- Give the device a moment to load
+    renoise.app():show_status("Loading MIDI Control device...")
+    
+    -- Generate the XML preset with our CC mappings
+    local xml_content = paketti_generate_midi_control_xml(mappings)
+    
+    -- Apply the XML to the device
+    local device = nil
+    if renoise.app().window.active_middle_frame == 7 or renoise.app().window.active_middle_frame == 6 then
+        -- Sample FX chain
+        device = song.selected_sample_device
+    else
+        -- Track DSP chain
+        device = song.selected_device
+    end
+    
+    if device and device.name == "*Instr. MIDI Control" then
+        device.active_preset_data = xml_content
+        -- Use CCizer filename as device name
+        local name_without_ext = filename:match("^(.+)%..+$") or filename
+        device.display_name = name_without_ext
+        print("-- CCizer: Successfully applied CC mappings to device with name: " .. name_without_ext)
+        
+        -- Create status message with CC count information
+        local status_message = string.format("MIDI Control device '%s' created with %d/%d CC mappings", name_without_ext, #mappings, MAX_CC_LIMIT)
+        if #mappings == MAX_CC_LIMIT then
+            status_message = status_message .. " (max reached)"
+        else
+            status_message = status_message .. string.format(" (%d slots available)", MAX_CC_LIMIT - #mappings)
+        end
+        
+        renoise.app():show_status(status_message)
+    else
+        renoise.app():show_error("Failed to find or load MIDI Control device")
+    end
+end
 
 -- Initialize variables when needed
 local function initialize_variables()
@@ -45,6 +226,21 @@ local function initialize_variables()
       table.insert(plugin_dropdown_items, "VST3: " .. plugin_info.short_name)
     end
   end
+
+  -- Scan for CCizer files
+  ccizer_files = scan_ccizer_files()
+  ccizer_dropdown_items = {"<None>"}
+  for _, file in ipairs(ccizer_files) do
+    table.insert(ccizer_dropdown_items, file.display_name)
+  end
+  
+  -- Add browse option
+  table.insert(ccizer_dropdown_items, "<Browse>")
+  
+  -- Ensure there's at least one item in the list
+  if #ccizer_dropdown_items < 2 then
+    table.insert(ccizer_dropdown_items, "No CCizer files found")
+  end
   
   for i = 1, 16 do
     midi_input_device[i] = midi_input_devices[1]
@@ -52,6 +248,7 @@ local function initialize_variables()
     midi_output_device[i] = midi_output_devices[1]
     midi_output_channel[i] = i
     selected_plugin[i] = plugin_dropdown_items[1]
+    selected_ccizer_file[i] = ccizer_dropdown_items[1]
   end
 end
 
@@ -93,6 +290,9 @@ local function MidiInitChannelTrackInstrument(track_index)
   local midi_out_device = midi_output_device[track_index]
   local midi_out_channel = midi_output_channel[track_index]
   local plugin = selected_plugin[track_index]
+  local ccizer_file = selected_ccizer_file[track_index]
+  
+
   local note_columns = note_columns_switch.value
   local effect_columns = effect_columns_switch.value
   local delay_column = (delay_column_switch.value == 2)
@@ -245,6 +445,94 @@ local function MidiInitChannelTrackInstrument(track_index)
       end
     end
   end
+
+  -- Apply CCizer mappings if a CCizer file is selected
+  if ccizer_file and ccizer_file ~= "<None>" and ccizer_file ~= "No CCizer files found" and ccizer_file ~= "<Browse>" then
+    print(string.format("-- CCizer: Track %d selected CCizer file: '%s'", track_index, ccizer_file))
+    
+    -- Check if this is a custom browsed file first
+    local ccizer_file_path = nil
+    local ccizer_display_name = ccizer_file
+    
+    -- Check if this is a browsed file (format: [filename])
+    local browsed_name = ccizer_file:match("^%[(.+)%]$")
+    if browsed_name and selected_ccizer_file_paths and selected_ccizer_file_paths[track_index] then
+      -- Use the custom browsed file path
+      ccizer_file_path = selected_ccizer_file_paths[track_index]
+      ccizer_display_name = browsed_name
+      print(string.format("-- CCizer: Using browsed file: '%s' -> '%s'", ccizer_display_name, ccizer_file_path))
+    else
+      -- Find the CCizer file info from scanned files
+      local ccizer_file_info = nil
+      for _, file in ipairs(ccizer_files) do
+        if file.display_name == ccizer_file then
+          ccizer_file_info = file
+          break
+        end
+      end
+      
+      if ccizer_file_info then
+        ccizer_file_path = ccizer_file_info.full_path
+        ccizer_display_name = ccizer_file_info.display_name
+        print(string.format("-- CCizer: Using scanned file: '%s' -> '%s'", ccizer_display_name, ccizer_file_path))
+      else
+        print(string.format("-- CCizer ERROR: Could not find CCizer file info for '%s'", ccizer_file))
+        print("-- CCizer ERROR: Available CCizer files:")
+        for i, file in ipairs(ccizer_files) do
+          print(string.format("  [%d] '%s' -> '%s'", i, file.display_name, file.name))
+        end
+      end
+    end
+    
+    if ccizer_file_path then
+      local mappings = load_ccizer_file(ccizer_file_path)
+      if mappings then
+        print(string.format("-- CCizer: Successfully loaded %d mappings for track %d", #mappings, track_index))
+        print(string.format("-- CCizer: Loading *Instr. MIDI Control device for track %d", track_index))
+        
+        -- Ensure correct track is selected before loading device
+        renoise.song().selected_track_index = track_index
+        -- Load the *Instr. MIDI Control device
+        print("-- CCizer: Loading *Instr. MIDI Control device...")
+        loadnative("Audio/Effects/Native/*Instr. MIDI Control")
+        
+        -- Get the device that was just loaded (loadnative sets selected_device)
+        local instr_midi_control_device = renoise.song().selected_device
+        
+        if instr_midi_control_device and instr_midi_control_device.name == "*Instr. MIDI Control" then
+          -- Set the instrument parameter to point to the correct instrument
+          if #instr_midi_control_device.parameters > 0 then
+            instr_midi_control_device.parameters[1].value = track_index - 1
+          end
+          
+          -- Generate and apply the CCizer mappings
+          local xml_content = paketti_generate_midi_control_xml(mappings)
+          
+          -- Apply the preset data
+          instr_midi_control_device.active_preset_data = xml_content
+          
+          -- Set the device name to the CCizer file display name
+          instr_midi_control_device.display_name = ccizer_display_name
+          print(string.format("-- CCizer: Successfully applied %d CC mappings from '%s' to track %d", #mappings, ccizer_display_name, track_index))
+          
+          -- Show status with CC count information
+          local status_message = string.format("MIDI Control device '%s' created with %d/%d CC mappings on track %d", ccizer_display_name, #mappings, MAX_CC_LIMIT, track_index)
+          if #mappings == MAX_CC_LIMIT then
+              status_message = status_message .. " (max reached)"
+          else
+              status_message = status_message .. string.format(" (%d slots available)", MAX_CC_LIMIT - #mappings)
+          end
+          renoise.app():show_status(status_message)
+        else
+          print(string.format("-- CCizer ERROR: Failed to load *Instr. MIDI Control device for track %d", track_index))
+        end
+      else
+        print(string.format("-- CCizer ERROR: Failed to load mappings from '%s'", ccizer_file_path))
+      end
+    else
+      print(string.format("-- CCizer ERROR: No file path found for '%s'", ccizer_file))
+    end
+  end
 end
 
 local function on_midi_input_switch_changed(value)
@@ -383,33 +671,74 @@ function pakettiMIDIPopulator()
       vb:text{text="Track " .. i .. ":",width=100},
       vb:popup{
         items = midi_input_devices, 
-        width=200, 
+        width=150, 
         notifier=function(value) midi_input_device[i] = midi_input_devices[value] end, 
         id = "midi_input_popup_" .. i,
         value = table.index_of(midi_input_devices, midi_input_device[i]) or 1
       },
       vb:popup{
         items = {"1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16"}, 
-        width=50, 
+        width=40, 
         notifier=function(value) midi_input_channel[i] = tonumber(value) end, 
         value = midi_input_channel[i] or i
       },
       vb:popup{
         items = midi_output_devices, 
-        width=200, 
+        width=150, 
         notifier=function(value) midi_output_device[i] = midi_output_devices[value] end, 
         id = "midi_output_popup_" .. i,
         value = table.index_of(midi_output_devices, midi_output_device[i]) or 1
       },
       vb:popup{
         items = {"1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16"}, 
-        width=50, 
+        width=40, 
         notifier=function(value) midi_output_channel[i] = tonumber(value) end, 
         value = midi_output_channel[i] or i
       },
       vb:popup{
+        items = ccizer_dropdown_items, 
+        width=150, 
+        notifier=function(value) 
+          local selected_item = ccizer_dropdown_items[value]
+          if selected_item == "<Browse>" then
+            -- Open file browser for this track
+            local selected_textfile = renoise.app():prompt_for_filename_to_read({"*.txt"}, "MIDI Channel " .. string.format("%02d", i) .. " - Load CCizer Text File")
+            if selected_textfile and selected_textfile ~= "" then
+              local filename = selected_textfile:match("([^/\\]+)$")
+              local name_without_ext = filename:match("^(.+)%..+$") or filename
+              selected_ccizer_file[i] = "[" .. name_without_ext .. "]"
+              
+              -- Store the file path for later use
+              if not selected_ccizer_file_paths then
+                selected_ccizer_file_paths = {}
+              end
+              selected_ccizer_file_paths[i] = selected_textfile
+              
+              -- Add the browsed file to dropdown items and select it
+              local browse_display = "[" .. name_without_ext .. "]"
+              if not table.index_of(ccizer_dropdown_items, browse_display) then
+                table.insert(ccizer_dropdown_items, #ccizer_dropdown_items, browse_display) -- Insert before <Browse>
+                vb.views["ccizer_popup_" .. i].items = ccizer_dropdown_items
+              end
+              vb.views["ccizer_popup_" .. i].value = table.index_of(ccizer_dropdown_items, browse_display)
+              print(string.format("-- CCizer: Track %d will use custom file: %s", i, name_without_ext))
+            else
+              -- User cancelled, reset to <None>
+              vb.views["ccizer_popup_" .. i].value = 1
+              selected_ccizer_file[i] = ccizer_dropdown_items[1]
+              print(string.format("-- CCizer: Track %d browse cancelled, reset to <None>", i))
+            end
+          else
+            selected_ccizer_file[i] = selected_item
+            print(string.format("-- CCizer: Track %d selected: '%s'", i, selected_item))
+          end
+        end, 
+        id = "ccizer_popup_" .. i,
+        value = table.index_of(ccizer_dropdown_items, selected_ccizer_file[i]) or 1
+      },
+      vb:popup{
         items = plugin_dropdown_items, 
-        width=200, 
+        width=150, 
         notifier=function(value) selected_plugin[i] = plugin_dropdown_items[value] end, 
         id = "plugin_popup_" .. i,
         value = table.index_of(plugin_dropdown_items, selected_plugin[i]) or 1
@@ -568,13 +897,4 @@ function pakettiMIDIPopulator()
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti MIDI Populator Dialog...",invoke=function() pakettiMIDIPopulator() end}
-
-function table.index_of(tab, val)
-  for index, value in ipairs(tab) do
-    if value == val then
-      return index
-    end
-  end
-  return nil
-end
 
