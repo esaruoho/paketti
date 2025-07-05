@@ -5969,7 +5969,7 @@ function pakettiUserPreferencesShowerDialog()
 end
 
 
-renoise.tool():add_keybinding{name="Global:Paketti:Show/Hide User Preference Devices Master Dialog...",invoke=function() pakettiUserPreferencesShowerDialog() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Show/Hide User Preference Devices Master Dialog (SlotShow)...",invoke=function() pakettiUserPreferencesShowerDialog() end}
 
 renoise.tool():add_keybinding{name="Global:Paketti:Open User Preferences Dialog...",invoke=function() pakettiUserPreferencesShowerDialog() end}
 

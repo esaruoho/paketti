@@ -595,7 +595,7 @@ renoise.tool():add_menu_entry{name="--Mixer:Paketti Gadgets:Paketti Action Selec
 renoise.tool():add_menu_entry{name="--Mixer:Paketti Gadgets:Paketti BPM to MS Delay Calculator Dialog...", invoke = pakettiBPMMSCalculator}
 
 
-renoise.tool():add_menu_entry{name="Mixer:Paketti:Show/Hide User Preference Devices Master Dialog...",invoke=function() pakettiUserPreferencesShowerDialog() end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti:Show/Hide User Preference Devices Master Dialog (SlotShow)...",invoke=function() pakettiUserPreferencesShowerDialog() end}
 renoise.tool():add_menu_entry{name="--Mixer:Paketti:Automation:Snapshot All Devices on Selected Track to Automation",invoke = snapshot_all_devices_to_automation}
 renoise.tool():add_menu_entry{name="Mixer:Paketti:Automation:Snapshot Selected Device to Automation",invoke = snapshot_selected_device_to_automation}
 renoise.tool():add_menu_entry{name="--Mixer:Paketti:Automation:Convert FX to Automation",invoke = read_fx_to_automation}
@@ -1187,7 +1187,7 @@ renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets:Paketti Ti
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets:Paketti Groovebox 8120...",invoke=function() GrooveboxShowClose() end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets:Paketti BPM to MS Delay Calculator Dialog...", invoke = pakettiBPMMSCalculator}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets:Paketti Volume/Delay/Pan Slider Controls...",invoke=function() pakettiVolDelayPanSliderDialog() end}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets:Show/Hide User Preference Devices Master Dialog...",invoke=function() pakettiUserPreferencesShowerDialog() end}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets:Show/Hide User Preference Devices Master Dialog (SlotShow)...",invoke=function() pakettiUserPreferencesShowerDialog() end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets:Paketti Tuplet Writer Dialog...",invoke=function() pakettiTupletDialog() end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets:PitchStepper Demo",invoke=function() pakettiPitchStepperDemo() end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets:Quick Load Device Dialog...", invoke=pakettiQuickLoadDialog}
@@ -1252,6 +1252,9 @@ renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:!Preferences:Paket
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:!Preferences:Toggle Automatically Open Selected Track Device Editors On/Off",invoke = PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode}
   
 -- Tools Plugins/Devices
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Plugins/Devices:SlotShow:Show/Hide User Preference Devices Master Dialog (SlotShow)...",invoke=function() pakettiUserPreferencesShowerDialog() end}
+
+
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Plugins/Devices:Debug:Show Effect Details Dialog...",invoke=function() pakettiDebugDeviceInfoDialog() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Plugins/Devices:Expose/Hide Selected Track ALL Device Parameters",invoke=function() exposeHideParametersInMixer() end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Plugins/Devices:Hide Track DSP Device External Editors for All Tracks",invoke=function() hide_all_external_editors() end}
@@ -1823,7 +1826,7 @@ renoise.tool():add_menu_entry{name="DSP Device:Paketti:Open Visible Pages to Fit
 renoise.tool():add_menu_entry{name="--DSP Device:Paketti:Automation:Snapshot All Devices on Selected Track to Automation",invoke = snapshot_all_devices_to_automation}
 renoise.tool():add_menu_entry{name="DSP Device:Paketti:Automation:Snapshot Selected Device to Automation",invoke = snapshot_selected_device_to_automation}
 
-renoise.tool():add_menu_entry{name="DSP Device:Paketti:Show/Hide User Preference Devices Master Dialog...",invoke=function() pakettiUserPreferencesShowerDialog() end}
+renoise.tool():add_menu_entry{name="DSP Device:Paketti:Show/Hide User Preference Devices Master Dialog (SlotShow)...",invoke=function() pakettiUserPreferencesShowerDialog() end}
 renoise.tool():add_menu_entry{name="DSP Device:Paketti:Populate Send Tracks for All Tracks",invoke=PakettiPopulateSendTracksAllTracks}
 renoise.tool():add_menu_entry{name="DSP Device:Paketti:Populate Send Tracks for Selected Track",invoke=PakettiPopulateSendTracksSelectedTrack}
 renoise.tool():add_menu_entry{name="DSP Device:Paketti:Quick Load Device Dialog...", invoke=pakettiQuickLoadDialog}
