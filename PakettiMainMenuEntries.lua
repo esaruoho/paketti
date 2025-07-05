@@ -27,11 +27,7 @@ end
 
 -- Build donation rows dynamically
 local donation_rows = {}
-print("DEBUG: Starting to build donation rows...")
-print("DEBUG: Total donations:", #donations)
-
 for i, donation in ipairs(donations) do
-  print("DEBUG: Processing donation", i, ":", donation[2], donation[3])
   local date = donation[1]
   local person = donation[2]
   local amount = donation[3]
@@ -43,8 +39,6 @@ for i, donation in ipairs(donations) do
       table.insert(links, donation[j])
     end
   end
-  
-  print("DEBUG: Found", #links, "links for", person)
   
   -- Create link buttons dynamically
   local link_buttons = {}
@@ -71,10 +65,7 @@ for i, donation in ipairs(donations) do
   end
   
   table.insert(donation_rows, vb:row(row_content))
-  print("DEBUG: Added row for", person, "- total rows now:", #donation_rows)
 end
-
-print("DEBUG: Finished building donation rows. Total rows:", #donation_rows)
 
 -- Build donation section dynamically
 local donation_section = {
@@ -112,7 +103,7 @@ local dialog_content = vb:column{
 
   vb:text{text="Ideas provided by:", style = "strong", font = "bold"},
   vb:multiline_textfield{width=textfield_width, height = 80, text = 
-  "tkna, Nate Schmold, Casiino, Royal Sexton, Bovaflux, Xerxes, ViZiON, Satoi, Kaneel, Subi, MigloJE, Yalk DX, Michael Langer, Christopher Jooste, Zoey Samples, Avaruus, Pieter Koenekoop, Widgetphreak, Bálint Magyar, Mick Rippon, MMD (Mr. Mark Dollin), ne7, renoize-user, Dionysis, untilde, Greystar, Kaidiak, sousândrade, senseiprod, Brandon Hale, dmt, Diigitae, Dávid Halmi (Nagz), tEiS, Floppi J, Aleksi Eeben, fuzzy, Jalex, Mike Pehel, grymmjack, Mister Garbanzo, tdel, Jek, Mezzguru, Run Anymore, gentleclockdivider, Aaron Munson (Ilkae), pr0t0type, Joonas Holmén (JouluPam), Ugly Cry, NPC1, Vulkan, super_lsd, sodiufas, amenburoda, davide, Hyena lord, zolipapa420, Amethyst, JTPE, Cosmic Ollie, Newtined, Kusoipilled, Spencer Williams (spnw), RENEGADE ANDROiD and many others."},
+  "tkna, Nate Schmold, Casiino, Royal Sexton, Bovaflux, Xerxes, ViZiON, Satoi, Kaneel, Subi, MigloJE, Yalk DX, Michael Langer, Christopher Jooste, Zoey Samples, Avaruus, Pieter Koenekoop, Widgetphreak, Bálint Magyar, Mick Rippon, MMD (Mr. Mark Dollin), ne7, renoize-user, Dionysis, untilde, Greystar, Kaidiak, sousândrade, senseiprod, Brandon Hale, dmt, Diigitae, Dávid Halmi (Nagz), tEiS, Floppi J, Aleksi Eeben, fuzzy, Jalex, Mike Pehel, grymmjack, Mister Garbanzo, tdel, Jek, Mezzguru, Run Anymore, gentleclockdivider, Aaron Munson (Ilkae), pr0t0type, Joonas Holmén (JouluPam), Ugly Cry, NPC1, Vulkan, super_lsd, sodiufas, amenburoda, davide, Hyena lord, zolipapa420, Amethyst, JTPE, Cosmic Ollie, Newtined, Kusoipilled, Spencer Williams (spnw), RENEGADE ANDROiD, Phill Tew and many others."},
 
   vb:text{text="Who made it possible:", style = "strong", font = "bold"},
   vb:multiline_textfield{width=textfield_width, height = 40, text="Thanks to @lpn (Brothomstates) for suggesting that I could pick up and learn LUA, that it would not be beyond me. Really appreciate your (sometimes misplaced and ahead-of-time) faith in me. And thanks for the inspiration."},
@@ -375,3 +366,5 @@ function pakettiDialogOfDialogsToggle()
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Toggle Paketti Dialog of Dialogs...",invoke=function() pakettiDialogOfDialogsToggle() end}
+
+

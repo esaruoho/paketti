@@ -1,3 +1,248 @@
+-- Additive Record Follow Pattern Tool
+additive_record_follow = {
+  is_active = false,
+  last_pattern_index = 0,
+  observer = nil,
+  dialog = nil
+}
+
+function additive_record_follow:toggle()
+  if self.is_active then
+    self:deactivate()
+  else
+    self:activate()
+  end
+end
+
+function additive_record_follow:activate()
+  local song = renoise.song()
+  local transport = song.transport
+  
+  -- Store current pattern index AND pattern length for reuse
+  self.last_pattern_index = song.selected_pattern_index
+  self.base_pattern_length = song.patterns[song.selected_pattern_index].number_of_lines
+  
+  -- Set up transport settings (F5-style playback start)
+  local startpos = transport.playback_pos
+  
+  -- Panic first to ensure clean state
+  if transport.playing then 
+    transport:panic() 
+    ResetAllSteppers() 
+  end
+  
+  -- Set playback position to current sequence, line 1 (for jamming)
+  startpos.line = 1
+  -- Keep current sequence position (don't change startpos.sequence)
+  transport.playback_pos = startpos
+  
+  -- Configure transport settings (but NOT follow_player yet)
+  transport.edit_mode = true
+  transport.wrapped_pattern_edit = false
+  transport.loop_pattern = false
+  transport.loop_block_enabled = false
+  
+  -- Add delay after panic (like F5)
+  local start_time = os.clock()
+  while (os.clock() - start_time < 0.225) do
+    -- Delay the start after panic
+  end
+  
+  -- Start playback from the set position FIRST
+  transport:start_at(startpos)
+  
+  -- THEN enable follow_player to avoid jumping to playhead position
+  transport.follow_player = true
+  
+  -- Add observer for pattern changes
+  if not song.selected_pattern_index_observable:has_notifier(self.on_pattern_change) then
+    song.selected_pattern_index_observable:add_notifier(self.on_pattern_change)
+  end
+  
+  -- IMMEDIATELY add a new pattern with same length at next sequence position
+  local sequencer = song.sequencer
+  local current_seq_pos = transport.playback_pos.sequence
+  local new_pattern_index = sequencer:insert_new_pattern_at(current_seq_pos + 1)
+  
+  -- Set the new pattern's length to match the original pattern
+  song.patterns[new_pattern_index].number_of_lines = self.base_pattern_length
+  
+  self.is_active = true
+  renoise.app():show_status("Additive Record Follow Pattern: ACTIVE - Added " .. self.base_pattern_length .. "-line pattern #" .. new_pattern_index)
+  print("Additive Record Follow Pattern: ACTIVATED - Added " .. self.base_pattern_length .. "-line pattern #" .. new_pattern_index .. " at position " .. (current_seq_pos + 1))
+end
+
+function additive_record_follow:deactivate()
+  local song = renoise.song()
+  
+  -- Remove observer
+  if song.selected_pattern_index_observable:has_notifier(self.on_pattern_change) then
+    song.selected_pattern_index_observable:remove_notifier(self.on_pattern_change)
+  end
+  
+  self.is_active = false
+  renoise.app():show_status("Additive Record Follow Pattern: INACTIVE")
+  print("Additive Record Follow Pattern: DEACTIVATED")
+end
+
+function additive_record_follow:on_pattern_change()
+  print("DEBUG: Pattern change detected, is_active =", additive_record_follow.is_active)
+  
+  if not additive_record_follow.is_active then
+    print("DEBUG: Tool is not active, ignoring pattern change")
+    return
+  end
+  
+  local song = renoise.song()
+  local current_pattern_index = song.selected_pattern_index
+  
+  print("DEBUG: Current pattern index:", current_pattern_index, "Last:", additive_record_follow.last_pattern_index)
+  
+  -- Only add if we've actually changed patterns
+  if current_pattern_index ~= additive_record_follow.last_pattern_index then
+    additive_record_follow.last_pattern_index = current_pattern_index
+    
+    -- Find where we are in the sequence
+    local sequencer = song.sequencer
+    local current_seq_pos = song.transport.playback_pos.sequence
+    
+    print("DEBUG: About to insert new " .. additive_record_follow.base_pattern_length .. "-line pattern at position", current_seq_pos + 1)
+    
+    -- Insert new pattern with same length after current position
+    local new_pattern_index = sequencer:insert_new_pattern_at(current_seq_pos + 1)
+    song.patterns[new_pattern_index].number_of_lines = additive_record_follow.base_pattern_length
+    
+    print("Additive Record Follow Pattern: Added " .. additive_record_follow.base_pattern_length .. "-line pattern #" .. new_pattern_index .. " at sequence position " .. (current_seq_pos + 1))
+    renoise.app():show_status("Added " .. additive_record_follow.base_pattern_length .. "-line pattern #" .. new_pattern_index)
+  else
+    print("DEBUG: Pattern index unchanged, not adding new pattern")
+  end
+end
+
+
+
+function additive_record_follow:show_dialog()
+  if self.dialog and self.dialog.visible then
+    self.dialog:close()
+    self.dialog = nil
+    return
+  end
+  
+  local vb = renoise.ViewBuilder()
+  
+  local dialog_content = vb:column{
+    margin = 10,
+    spacing = 10,
+    
+    vb:text{
+      text = "Additive Record Follow Pattern",
+      font = "bold"
+    },
+    
+    vb:text{
+      text = "Automatically adds new patterns with the same\nlength when you switch patterns during recording."
+    },
+    
+    vb:horizontal_aligner{
+      mode = "center",
+      vb:button{
+        text = self.is_active and "Deactivate" or "Activate",
+        width = 100,
+        notifier = function()
+          self:toggle()
+          if self.dialog and self.dialog.visible then
+            self.dialog:close()
+            self.dialog = nil
+          end
+        end
+      }
+    },
+    
+    vb:horizontal_aligner{
+      mode = "center",
+      vb:text{
+        text = "Status: ",
+        font = "bold"
+      },
+      vb:text{
+        text = self.is_active and "ACTIVE" or "INACTIVE",
+        style = self.is_active and "strong" or "normal"
+      }
+    },
+    
+          vb:text{
+        text = "When active:\n• Follow Player: ON\n• Edit Mode: ON\n• Pattern Loop: OFF\n• Playback starts from current sequence, line 1\n• New patterns inherit original pattern length"
+      }
+  }
+  
+  -- Create keyhandler that can manage dialog variable
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return self.dialog end,
+    function(value) self.dialog = value end
+  )
+  
+  self.dialog = renoise.app():show_custom_dialog(
+    "Additive Record Follow Pattern", 
+    dialog_content, 
+    keyhandler
+  )
+end
+
+-- Simple toggle function without dialog
+function pakettiAdditiveRecordFollowToggle()
+  additive_record_follow:toggle()
+end
+
+-- Add menu entries and keybindings
+renoise.tool():add_menu_entry{
+  name = "Main Menu:Tools:Paketti:Pattern/Phrase:Additive Record Follow Pattern (Dialog)",
+  invoke = function() additive_record_follow:show_dialog() end
+}
+
+renoise.tool():add_menu_entry{
+  name = "Main Menu:Tools:Paketti:Pattern/Phrase:Additive Record Follow Pattern (Toggle)",
+  invoke = function() pakettiAdditiveRecordFollowToggle() end
+}
+
+renoise.tool():add_menu_entry{
+  name = "Pattern Editor:Pattern/Phrase:Additive Record Follow Pattern (Dialog)",
+  invoke = function() additive_record_follow:show_dialog() end
+}
+
+renoise.tool():add_menu_entry{
+  name = "Pattern Editor:Pattern/Phrase:Additive Record Follow Pattern (Toggle)",
+  invoke = function() pakettiAdditiveRecordFollowToggle() end
+}
+
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Toggle Additive Record Follow Pattern",
+  invoke = function() pakettiAdditiveRecordFollowToggle() end
+}
+
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Additive Record Follow Pattern (Dialog)",
+  invoke = function() additive_record_follow:show_dialog() end
+}
+
+-- Cleanup on song change
+renoise.tool().app_release_document_observable:add_notifier(function()
+  if additive_record_follow.is_active then
+    additive_record_follow:deactivate()
+  end
+  if additive_record_follow.dialog and additive_record_follow.dialog.visible then
+    additive_record_follow.dialog:close()
+    additive_record_follow.dialog = nil
+  end
+end)
+
+
+
+
+
+
+
+
+--------
 -- At the very start of the file
 local dialog = nil  -- Proper global dialog reference
 
