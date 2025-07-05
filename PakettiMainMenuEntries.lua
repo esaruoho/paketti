@@ -17,7 +17,7 @@ local donations = {
   {"2024-12-25", "tkna | TAKAHASHI Naoki", 100.00, {"tkna", "https://tkna.work"}, {"1/a", "https://one-over-a.com"}, {"Ittteki", "https://ittteki.com"}},
   {"2025-03-26", "Brandon Hale", 20.61, {"bthale", "https://bthale.com"}, {"YouTube", "https://www.youtube.com/@brandonhale7574"}},
   {"2025-05-29", "JTPE", 6.08, {"Bandcamp", "https://plugexpert.bandcamp.com/music"}},
-  {"2025-07-05", "Antti Hyypio", 4.48},
+  {"2025-07-05", "Antti Hyypiö", 4.48},
 }
 
 local total_amount = 0
