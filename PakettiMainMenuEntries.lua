@@ -110,7 +110,7 @@ local dialog_content = vb:column{
 
   vb:text{text="Kudos:", style = "strong", font = "bold"},
   vb:multiline_textfield{width=textfield_width, height = 60, text = 
-  "Massive kudos to martblek for allowing me to take his abandoned ReSpeak tool and make it into Paketti eSpeak Text-to-Speech, Kaidiak for donating ClippyClip device, and also for smdkun for letting me tweak their KeyBind Visualizer code and incorporate it into Paketti further down the line. mxb for the original ReCycle import code which i heavily reworked. Jaap3 for the work reverse-engineering the PTI format."},
+  "Massive kudos to martblek for allowing me to take his abandoned ReSpeak tool and make it into Paketti eSpeak Text-to-Speech, Kaidiak for donating ClippyClip device, and also for smdkun for letting me tweak their KeyBind Visualizer code and incorporate it into Paketti further down the line. mxb for the original ReCycle import code which i heavily reworked. Jaap3 for the work reverse-engineering the PTI format. Also many thanks to Phill Tew for the idea for the Additive Record Follow Pattern!"},
 
   vb:horizontal_aligner{mode = "distribute", vb:text{text="Talk about Paketti", style = "strong", font = "bold"}},
   vb:horizontal_aligner{
