@@ -16,13 +16,90 @@ local donations = {
   {"2024-12-19", "c0der9", 4.23, {"Codingplace.de","https://codingplace.de"}},
   {"2024-12-25", "tkna | TAKAHASHI Naoki", 100.00, {"tkna", "https://tkna.work"}, {"1/a", "https://one-over-a.com"}, {"Ittteki", "https://ittteki.com"}},
   {"2025-03-26", "Brandon Hale", 20.61, {"bthale", "https://bthale.com"}, {"YouTube", "https://www.youtube.com/@brandonhale7574"}},
-  {"2025-05-29", "JTPE", 6.08, {"Bandcamp", "https://plugexpert.bandcamp.com/music"}}
+  {"2025-05-29", "JTPE", 6.08, {"Bandcamp", "https://plugexpert.bandcamp.com/music"}},
+  {"2025-07-05", "Antti Hyypio", 4.48},
 }
 
 local total_amount = 0
 for _, donation in ipairs(donations) do
   total_amount = total_amount + donation[3]
 end
+
+-- Build donation rows dynamically
+local donation_rows = {}
+print("DEBUG: Starting to build donation rows...")
+print("DEBUG: Total donations:", #donations)
+
+for i, donation in ipairs(donations) do
+  print("DEBUG: Processing donation", i, ":", donation[2], donation[3])
+  local date = donation[1]
+  local person = donation[2]
+  local amount = donation[3]
+  local links = {}
+  
+  -- Collect all links starting from index 4
+  for j = 4, #donation do
+    if donation[j] and type(donation[j]) == "table" and #donation[j] == 2 then
+      table.insert(links, donation[j])
+    end
+  end
+  
+  print("DEBUG: Found", #links, "links for", person)
+  
+  -- Create link buttons dynamically
+  local link_buttons = {}
+  for _, link in ipairs(links) do
+    table.insert(link_buttons, vb:button{
+      text = link[1], 
+      notifier = function() renoise.app():open_url(link[2]) end
+    })
+  end
+  
+  -- Create the row
+  local row_content = {
+    vb:text{text = date, width = 70},
+    vb:text{text = person, width = 150},
+    vb:text{text = string.format("%.2f", amount) .. "€", width = 50, font = "bold"}
+  }
+  
+  -- Add link buttons if any exist
+  if #link_buttons > 0 then
+    table.insert(row_content, vb:horizontal_aligner{
+      mode = "left",
+      unpack(link_buttons)
+    })
+  end
+  
+  table.insert(donation_rows, vb:row(row_content))
+  print("DEBUG: Added row for", person, "- total rows now:", #donation_rows)
+end
+
+print("DEBUG: Finished building donation rows. Total rows:", #donation_rows)
+
+-- Build donation section dynamically
+local donation_section = {
+  width="100%",
+  style = "group", 
+  margin=5,
+  vb:horizontal_aligner{mode="distribute",
+    vb:text{text="Donations:", style = "strong", font = "bold"}},
+  vb:row{
+    vb:text{text="Date",width=70}, 
+    vb:text{text="Person",width=150}, 
+    vb:text{text="Amount",width=50}, 
+    vb:text{text="Links",width=100}
+  }
+}
+
+-- Insert donation rows one by one
+for i, row in ipairs(donation_rows) do
+  table.insert(donation_section, row)
+end
+
+-- Add final elements
+table.insert(donation_section, vb:space{height = 5})
+table.insert(donation_section, vb:horizontal_aligner{mode="distribute",
+  vb:text{text="Total: " .. string.format("%.2f", total_amount) .. "€", font = "bold"}})
 
 -- Create dialog content
 local dialog_content = vb:column{
@@ -53,133 +130,8 @@ local dialog_content = vb:column{
     vb:button{text="Email", notifier=function() renoise.app():open_url("mailto:esaruoho@icloud.com") end}
   },
 
-  -- Grouped donation section
-  vb:column{width="100%",
-    style = "group", 
-    margin=5,
-vb:horizontal_aligner{mode="distribute",
-    vb:text{text="Donations:", style = "strong", font = "bold"}},
-    vb:row{
-      vb:text{text="Date",width=70}, 
-      vb:text{text="Person",width=150}, 
-      vb:text{text="Amount",width=50}, 
-      vb:text{text="Links",width=100}
-    },
-
-    -- Manually create and add each donation row
-    vb:row{
-      vb:text{text = donations[0+1][1],width=70},
-      vb:text{text = donations[0+1][2],width=150},
-      vb:text{text = string.format("%.2f", donations[0+1][3]).."€",width=50, font = "bold"},
-      vb:horizontal_aligner{mode = "left",
-      vb:button{text = donations[0+1][4][1], notifier=function() renoise.app():open_url(donations[0+1][4][2]) end},
-      vb:button{text = donations[0+1][5][1], notifier=function() renoise.app():open_url(donations[0+1][5][2]) end},
-      vb:button{text = donations[0+1][6][1], notifier=function() renoise.app():open_url(donations[0+1][6][2]) end}
-      }
-    },
-    vb:row{
-      vb:text{text = donations[1+1][1],width=70},
-      vb:text{text = donations[1+1][2],width=150},
-      vb:text{text = string.format("%.2f", donations[1+1][3]).."€",width=50, font = "bold"},
-      vb:horizontal_aligner{mode = "left",
-      vb:button{text = donations[1+1][4][1], notifier=function() renoise.app():open_url(donations[1+1][4][2]) end}
-      }
-    },
-    vb:row{
-      vb:text{text = donations[2+1][1],width=70},
-      vb:text{text = donations[2+1][2],width=150},
-      vb:text{text = string.format("%.2f", donations[2+1][3]).."€",width=50, font = "bold"},
-      vb:horizontal_aligner{mode = "left",
-      vb:button{text = donations[2+1][4][1], notifier=function() renoise.app():open_url(donations[2+1][4][2]) end}
-      }
-    },
-    vb:row{
-      vb:text{text = donations[3+1][1],width=70},
-      vb:text{text = donations[3+1][2],width=150},
-      vb:text{text = string.format("%.2f", donations[3+1][3]).."€",width=50, font = "bold"},
-      vb:horizontal_aligner{mode = "left",
-      vb:button{text = donations[3+1][4][1], notifier=function() renoise.app():open_url(donations[3+1][4][2]) end}
-      }
-    },
-    vb:row{
-      vb:text{text = donations[4+1][1],width=70},
-      vb:text{text = donations[4+1][2],width=150},
-      vb:text{text = string.format("%.2f", donations[4+1][3]).."€",width=50, font = "bold"},
-      vb:horizontal_aligner{mode = "left",
-      vb:button{text = donations[4+1][4][1], notifier=function() renoise.app():open_url(donations[4+1][4][2]) end}
-      }
-    },
-    vb:row{
-      vb:text{text = donations[5+1][1],width=70},
-      vb:text{text = donations[5+1][2],width=150},
-      vb:text{text = string.format("%.2f", donations[5+1][3]).."€",width=50, font = "bold"},
-      vb:horizontal_aligner{mode = "left",
-      vb:button{text = donations[5+1][4][1], notifier=function() renoise.app():open_url(donations[5+1][4][2]) end}
-      }
-    },
-    vb:row{
-      vb:text{text = donations[6+1][1],width=70},
-      vb:text{text = donations[6+1][2],width=150},
-      vb:text{text = string.format("%.2f", donations[6+1][3]).."€",width=50, font = "bold"}
-    },
-    vb:row{
-      vb:text{text = donations[7+1][1],width=70},
-      vb:text{text = donations[7+1][2],width=150},
-      vb:text{text = string.format("%.2f", donations[7+1][3]).."€",width=50, font = "bold"},
-      vb:horizontal_aligner{mode = "left",
-      vb:button{text = donations[7+1][4][1], notifier=function() renoise.app():open_url(donations[7+1][4][2]) end}}
-    },
-    vb:row{
-      vb:text{text = donations[8+1][1],width=70},
-      vb:text{text = donations[8+1][2],width=150},
-      vb:text{text = string.format("%.2f", donations[8+1][3]).."€",width=50, font = "bold"},
-      vb:horizontal_aligner{mode = "left",
-      vb:button{text = donations[8+1][4][1], notifier=function() renoise.app():open_url(donations[8+1][4][2]) end}}
-    },    
-    vb:row{
-      vb:text{text = donations[9+1][1],width=70},
-      vb:text{text = donations[9+1][2],width=150},
-      vb:text{text = string.format("%.2f", donations[9+1][3]).."€",width=50, font = "bold"},
-      vb:horizontal_aligner{mode = "left",
-      vb:button{text = donations[9+1][4][1], notifier=function() renoise.app():open_url(donations[9+1][4][2]) end},
-      vb:button{text = donations[9+1][5][1], notifier=function() renoise.app():open_url(donations[9+1][5][2]) end},
-      vb:button{text = donations[9+1][6][1], notifier=function() renoise.app():open_url(donations[9+1][6][2]) end}}
-    },   
-    vb:row{
-      vb:text{text = donations[10+1][1],width=70},
-      vb:text{text = donations[10+1][2],width=150},
-      vb:text{text = string.format("%.2f", donations[10+1][3]).."€",width=50, font = "bold"},
-      vb:horizontal_aligner{mode = "left",
-      vb:button{text = donations[10+1][4][1], notifier=function() renoise.app():open_url(donations[10+1][4][2]) end}}
-    },       
-    vb:row{
-      vb:text{text = donations[11+1][1],width=70},
-      vb:text{text = donations[11+1][2],width=150},
-      vb:text{text = string.format("%.2f", donations[11+1][3]).."€",width=50, font = "bold"},
-      vb:horizontal_aligner{mode = "left",
-      vb:button{text = donations[11+1][4][1], notifier=function() renoise.app():open_url(donations[11+1][4][2]) end},
-      vb:button{text = donations[11+1][5][1], notifier=function() renoise.app():open_url(donations[11+1][5][2]) end},
-      vb:button{text = donations[11+1][6][1], notifier=function() renoise.app():open_url(donations[11+1][6][2]) end}}
-    }, 
-    vb:row{
-      vb:text{text = donations[12+1][1],width=70},
-      vb:text{text = donations[12+1][2],width=150},
-      vb:text{text = string.format("%.2f", donations[12+1][3]).."€",width=50, font = "bold"},
-      vb:horizontal_aligner{mode = "left",
-      vb:button{text = donations[12+1][4][1], notifier=function() renoise.app():open_url(donations[12+1][4][2]) end},
-      vb:button{text = donations[12+1][5][1], notifier=function() renoise.app():open_url(donations[12+1][5][2]) end}}
-    },
-    vb:row{
-      vb:text{text = donations[13+1][1],width=70},
-      vb:text{text = donations[13+1][2],width=150},
-      vb:text{text = string.format("%.2f", donations[13+1][3]).."€",width=50, font = "bold"},
-      vb:horizontal_aligner{mode = "left",
-      vb:button{text = donations[13+1][4][1], notifier=function() renoise.app():open_url(donations[13+1][4][2]) end}}
-    },
-    vb:space{height = 5},
-    vb:horizontal_aligner{mode="distribute",
-    vb:text{text="Total: " .. string.format("%.2f", total_amount) .. "€", font = "bold"}}
-  },
+  -- Insert donation section
+  vb:column(donation_section),
   vb:horizontal_aligner{mode="distribute",vb:text{text="Support Paketti",style="strong",font="bold"}},
   vb:horizontal_aligner{mode="distribute",
     vb:button{text="Become a Patron at Patreon",notifier=function() renoise.app():open_url("https://patreon.com/esaruoho") end},
