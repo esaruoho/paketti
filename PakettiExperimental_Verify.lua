@@ -54,11 +54,6 @@ function additive_record_follow:activate()
   -- THEN enable follow_player to avoid jumping to playhead position
   transport.follow_player = true
   
-  -- Add observer for pattern changes
-  if not song.selected_pattern_index_observable:has_notifier(self.on_pattern_change) then
-    song.selected_pattern_index_observable:add_notifier(self.on_pattern_change)
-  end
-  
   -- IMMEDIATELY add a new pattern with same length at next sequence position
   local sequencer = song.sequencer
   local current_seq_pos = transport.playback_pos.sequence
@@ -66,6 +61,14 @@ function additive_record_follow:activate()
   
   -- Set the new pattern's length to match the original pattern
   song.patterns[new_pattern_index].number_of_lines = self.base_pattern_length
+  
+  -- Update last pattern index to current after insertion
+  self.last_pattern_index = song.selected_pattern_index
+  
+  -- Add observer for pattern changes AFTER initial insertion
+  if not song.selected_pattern_index_observable:has_notifier(self.on_pattern_change) then
+    song.selected_pattern_index_observable:add_notifier(self.on_pattern_change)
+  end
   
   self.is_active = true
   renoise.app():show_status("Additive Record Follow Pattern: ACTIVE - Added " .. self.base_pattern_length .. "-line pattern #" .. new_pattern_index)
@@ -108,9 +111,22 @@ function additive_record_follow:on_pattern_change()
     
     print("DEBUG: About to insert new " .. additive_record_follow.base_pattern_length .. "-line pattern at position", current_seq_pos + 1)
     
+    -- Temporarily remove observer to prevent feedback loop
+    if song.selected_pattern_index_observable:has_notifier(additive_record_follow.on_pattern_change) then
+      song.selected_pattern_index_observable:remove_notifier(additive_record_follow.on_pattern_change)
+    end
+    
     -- Insert new pattern with same length after current position
     local new_pattern_index = sequencer:insert_new_pattern_at(current_seq_pos + 1)
     song.patterns[new_pattern_index].number_of_lines = additive_record_follow.base_pattern_length
+    
+    -- Re-add observer after insertion
+    if not song.selected_pattern_index_observable:has_notifier(additive_record_follow.on_pattern_change) then
+      song.selected_pattern_index_observable:add_notifier(additive_record_follow.on_pattern_change)
+    end
+    
+    -- Update last pattern index to the new one (since insert_new_pattern_at probably switched to it)
+    additive_record_follow.last_pattern_index = song.selected_pattern_index
     
     print("Additive Record Follow Pattern: Added " .. additive_record_follow.base_pattern_length .. "-line pattern #" .. new_pattern_index .. " at sequence position " .. (current_seq_pos + 1))
     renoise.app():show_status("Added " .. additive_record_follow.base_pattern_length .. "-line pattern #" .. new_pattern_index)
