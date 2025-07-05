@@ -1,0 +1,117 @@
+{
+  "name": "DigiChain",
+  "short_name": "DigiChain",
+  "description": "DigiChain makes the creation of sample chains as easy as possible; Edit, trim, reverse, crush, join, slice, convert; Drag-and-drop uncompressed wav, aif (OP-1 Field/OP-Z), flac, or syx (MachineDrum) audio files and converts them to wav files for transfer via the Elektron Transfer app, or to aif files for use on Teenage Engineering OP-1 Field / OP-Z, or record from direct playback with pop markers. Include slice data as cue markers for use on DirtyWave M8, or export with a .ot file for direct use on Octatrack. Converted files can also be joined together without, or with padding to work better with the 1.5 firmware Digitakt slice grids. Files are generated at the chosen session sample rate and bit depth. All processing is done in the browser, on *your* computer, no data is sent to a server, and there is no, and never will be any user tracking. The app is provided for use as is, with no warranty and no accountability if *you* choose to overwrite source files with those generated.",
+  "icons": [
+    {
+      "src": "android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "theme_color": "#202124",
+  "background_color": "#202124",
+  "start_url": "https://digichain-latest.brianbar.net/",
+  "display": "standalone",
+  "cache": [
+    "/index.html",
+    "/main.css",
+    "/main.js",
+    "/editor.js",
+    "/resources.js",
+    "/settings.js",
+    "/jszip.js",
+    "/msgpack.min.js"
+  ],
+  "dir": "auto",
+  "lang": "en",
+  "orientation": "landscape",
+  "categories": [
+    "music",
+    "utilities"
+  ],
+  "display_override": [
+    "window-controls-overlay"
+  ],
+  "file_handlers": [
+    {
+      "action": "/",
+      "accept": {
+        "audio/wav": [
+          ".wav"
+        ],
+        "audio/x-wav": [
+          ".wav"
+        ],
+        "audio/mp4": [
+          ".m4a"
+        ],
+        "audio/ogg": [
+          ".ogg"
+        ],
+        "application/ogg": [
+          ".ogg"
+        ],
+        "audio/webm": [
+          ".webm"
+        ],
+        "audio/aif": [
+          ".aif"
+        ],
+        "audio/flac": [
+          ".flac"
+        ]
+      }
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "Screenshot 2023-05-22 213801.png",
+      "sizes": "1280x721",
+      "type": "image/png",
+      "platform": "wide"
+    },
+    {
+      "src": "Screenshot 2023-05-22 213838.png",
+      "sizes": "1286x727",
+      "type": "image/png",
+      "platform": "wide"
+    },
+    {
+      "src": "Screenshot 2023-05-22 213932.png",
+      "sizes": "1278x717",
+      "type": "image/png",
+      "platform": "wide"
+    },
+    {
+      "src": "Screenshot 2023-05-22 214010.png",
+      "sizes": "1280x722",
+      "type": "image/png",
+      "platform": "wide"
+    },
+    {
+      "src": "Screenshot 2023-05-22 214039.png",
+      "sizes": "1280x722",
+      "type": "image/png",
+      "platform": "wide"
+    },
+    {
+      "src": "Screenshot 2023-05-22 214102.png",
+      "sizes": "1278x719",
+      "type": "image/png",
+      "platform": "wide"
+    },
+    {
+      "src": "Screenshot 2023-05-22 214119.png",
+      "sizes": "1281x719",
+      "type": "image/png",
+      "platform": "wide"
+    }
+  ]
+}

@@ -370,7 +370,6 @@ timed_require("PakettiPlayerProSuite")       -- 852 lines, 3.00 ms
 --end  
 timed_require("PakettiChordsPlus")
 timed_require("PakettiLaunchApp")
-timed_require("PakettiPluginGUI")
 timed_require("PakettiSampleLoader")         -- 0 lines, 0.00 ms
 timed_require("PakettiCustomization")        -- 61 lines, 0.50 ms
 timed_require("PakettiDeviceChains")         -- 85 lines, 0.00 ms
@@ -448,6 +447,10 @@ timed_require("PakettiOTExport")
 timed_require("PakettiOctaCycle")
 timed_require("PakettiOTSTRDImporter")
 timed_require("PakettiCCizerLoader")
+timed_require("PakettiDigitakt")
+timed_require("PakettiM8Export")
+timed_require("PakettiOP1Export")
+
 
 -- Polyend functionality toggle
 local PolyendYes = false
@@ -462,6 +465,7 @@ timed_require("PakettiMenuConfig")
 print(string.format("Total load time: %.3f seconds", os.clock() - init_time))
 
 _AUTO_RELOAD_DEBUG = true
+
 
 
 
