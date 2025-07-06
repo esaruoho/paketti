@@ -871,3 +871,152 @@ renoise.tool():add_menu_entry{name = "Mixer:Paketti:CCizer:Open CCizer Dialog", 
 renoise.tool():add_menu_entry{name = "DSP Device:Paketti:CCizer:Load from File", invoke = load_ccizer_file_browse_to_selected_device}
 renoise.tool():add_menu_entry{name = "Sample FX Mixer:Paketti:CCizer:Load from File", invoke = load_ccizer_file_browse_to_selected_device}
 renoise.tool():add_menu_entry{name = "Mixer:Paketti:CCizer:Load from File", invoke = load_ccizer_file_browse_to_selected_device}
+
+-- COMPREHENSIVE RECURSIVE RENOISE API EXPLORER
+-- This explores EVERY SINGLE subobject, property, method in the entire Renoise API
+function paketti_debug_dump_complete_renoise_api()
+  print("=== COMPREHENSIVE RECURSIVE RENOISE API EXPLORATION ===")
+  
+  local explored_count = 0
+  local max_objects = 500 -- Prevent runaway
+  local visited = {} -- Prevent circular references
+  
+  -- Function to recursively explore any object using oprint()
+  local function explore_object(obj, path, max_depth, current_depth)
+    current_depth = current_depth or 0
+    max_depth = max_depth or 8
+    
+    if current_depth >= max_depth or explored_count >= max_objects then
+      return
+    end
+    
+    if visited[obj] then
+      return
+    end
+    
+    visited[obj] = true
+    explored_count = explored_count + 1
+    
+    print(string.format("\n%s==== %s ====", string.rep("  ", current_depth), path))
+    oprint(obj)
+    
+    -- Try to find and explore all sub-objects
+    local obj_type = type(obj)
+    
+    if obj_type == "userdata" or obj_type == "table" then
+      -- Try to explore common properties that might be objects
+      local properties_to_explore = {
+        -- Window/UI objects
+        "window", "dialog", "dialogs", "view", "frame", "panel",
+        -- Song structure objects  
+        "instruments", "phrases", "samples", "tracks", "patterns", "devices",
+        "sequencer", "transport", "selection_in_pattern", "selection_in_phrase",
+        -- Device/plugin objects
+        "plugin_device", "plugin_properties", "parameters", "presets",
+        "midi_input_properties", "midi_output_properties", "macros",
+        -- Sample objects
+        "sample_buffer", "sample_mapping", "sample_modulation_sets", "sample_device_chains",
+        -- Pattern objects
+        "lines", "automation", "pattern_track", "pattern_tracks",
+        -- Script objects
+        "script", "phrase_script", "lua_script"
+      }
+      
+      for _, prop in ipairs(properties_to_explore) do
+        local success, sub_obj = pcall(function() return obj[prop] end)
+        if success and sub_obj and not visited[sub_obj] then
+          explore_object(sub_obj, path .. "." .. prop, max_depth, current_depth + 1)
+        end
+      end
+      
+      -- Try to explore numbered array elements
+      for i = 1, 10 do
+        local success, sub_obj = pcall(function() return obj[i] end)
+        if success and sub_obj and not visited[sub_obj] then
+          explore_object(sub_obj, path .. "[" .. i .. "]", max_depth, current_depth + 1)
+        end
+      end
+    end
+  end
+  
+  local song = renoise.song()
+  local app = renoise.app()
+  
+  -- Start comprehensive exploration
+  print("=== EXPLORING renoise.app() AND ALL SUBOBJECTS ===")
+  explore_object(app, "renoise.app()", 6)
+  
+  print("\n=== EXPLORING renoise.song() AND ALL SUBOBJECTS ===")
+  explore_object(song, "renoise.song()", 6)
+  
+  -- Deep dive into specific areas that might have editor controls
+  print("\n=== DEEP DIVE: INSTRUMENT HIERARCHY ===")
+  if #song.instruments > 0 then
+    local instrument = song.instruments[1]
+    explore_object(instrument, "song.instruments[1]", 4)
+    
+    if #instrument.phrases > 0 then
+      for i = 1, math.min(3, #instrument.phrases) do
+        local phrase = instrument.phrases[i]
+        explore_object(phrase, string.format("song.instruments[1].phrases[%d]", i), 3)
+      end
+    end
+    
+    if #instrument.samples > 0 then
+      for i = 1, math.min(3, #instrument.samples) do
+        local sample = instrument.samples[i]
+        explore_object(sample, string.format("song.instruments[1].samples[%d]", i), 3)
+      end
+    end
+  end
+  
+  print("\n=== DEEP DIVE: TRACK HIERARCHY ===")
+  if #song.tracks > 0 then
+    for i = 1, math.min(3, #song.tracks) do
+      local track = song.tracks[i]
+      explore_object(track, string.format("song.tracks[%d]", i), 3)
+      
+      if #track.devices > 0 then
+        for j = 1, math.min(2, #track.devices) do
+          local device = track.devices[j]
+          explore_object(device, string.format("song.tracks[%d].devices[%d]", i, j), 2)
+        end
+      end
+    end
+  end
+  
+  print("\n=== DEEP DIVE: PATTERN HIERARCHY ===")
+  if #song.patterns > 0 then
+    for i = 1, math.min(3, #song.patterns) do
+      local pattern = song.patterns[i]
+      explore_object(pattern, string.format("song.patterns[%d]", i), 3)
+      
+      if pattern.tracks and #pattern.tracks > 0 then
+        for j = 1, math.min(2, #pattern.tracks) do
+          local pattern_track = pattern.tracks[j]
+          explore_object(pattern_track, string.format("song.patterns[%d].tracks[%d]", i, j), 2)
+        end
+      end
+    end
+  end
+  
+  print(string.format("\n=== COMPREHENSIVE EXPLORATION COMPLETE ==="))
+  print(string.format("Total objects explored: %d", explored_count))
+  print("Search the output above for ANY method or property related to:")
+  print("- editor_visible, script_editor, phrase_editor")
+  print("- show_, hide_, toggle_, open_, close_")
+  print("- window, dialog, frame, panel visibility")
+  print("- ANY function that might control UI state")
+  
+  renoise.app():show_message(string.format("Comprehensive Renoise API exploration complete!\n\n" ..
+    "Explored %d objects recursively.\n" ..
+    "Check terminal for EVERYTHING in the Renoise API.\n" ..
+    "Search for editor/visible/show/hide/toggle methods!", explored_count))
+end
+
+-- Add debug menu entry
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:!Debug:Dump Complete Renoise API", invoke = paketti_debug_dump_complete_renoise_api}
+
+
+
+
