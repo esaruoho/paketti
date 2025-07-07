@@ -596,7 +596,7 @@ local function saveAndDisplayBitmap(bitmap, base_filename, vb_views)
     return false, "No bitmap to save"
   end
   
-  local filename = base_filename .. ".bmp"
+  local filename = base_filename
   
   if BMPSave(bitmap, filename) then
     -- Get the absolute path of where we saved it
@@ -750,7 +750,7 @@ function pakettiSampleVisualizerDialog()
   local sample = song.selected_sample
   
   if not sample or not sample.sample_buffer.has_sample_data then
-    renoise.app():show_warning("No sample data available for visualization")
+    renoise.app():show_status("No sample data available for visualization")
     return
   end
   
@@ -761,9 +761,7 @@ function pakettiSampleVisualizerDialog()
   local current_bitmap = nil
   local last_saved_file = nil
   local last_saved_path = nil
-  local temp_filename = string.format("temp_sample_%s_%d", 
-    sample.name:gsub("[^%w_-]", "_"), 
-    os.time())
+  local temp_filename = os.tmpname() .. ".bmp"
   
   -- Create initial bitmap
   current_bitmap = createSampleBitmap(sample.sample_buffer, bitmap_width, bitmap_height)
@@ -783,59 +781,46 @@ function pakettiSampleVisualizerDialog()
   
   -- Create info text
   local buffer = sample.sample_buffer
+  local channel_text = buffer.number_of_channels == 1 and "Mono" or "Stereo"
+  local total_seconds = buffer.number_of_frames / buffer.sample_rate
+  local minutes = math.floor(total_seconds / 60)
+  local seconds = math.floor(total_seconds % 60)
   local info_text = string.format(
-    "Sample: %s\nFrames: %d\nChannels: %d\nSample Rate: %d Hz\nLength: %.2f seconds",
+    "%s, %d Hz, %d-bit, %s, %d:%02d seconds (%d Frames)",
     sample.name,
-    buffer.number_of_frames,
-    buffer.number_of_channels,
     buffer.sample_rate,
-    buffer.number_of_frames / buffer.sample_rate
+    buffer.bit_depth,
+    channel_text,
+    minutes,
+    seconds,
+    buffer.number_of_frames
   )
   
   sample_viz_dialog = renoise.app():show_custom_dialog(
-    "Paketti Sample Visualizer",
-    vb:column{
-      margin = 10,
-      spacing = 10,
-      
-      vb:row{
-        vb:text{
-          text = "Sample Waveform Visualization",
-          font = "bold",
-          style = "strong"
-        }
-      },
-      
-      vb:row{
-        vb:text{
-          text = info_text,
-          width = sampleWidth
-        }
-      },
-      
-      -- Actual bitmap display!
-      vb:row{
-        vb:column{
+    string.format("Paketti Sample Visualizer (%dx%d)", bitmap_width, bitmap_height),
+          vb:column{
+        margin = 10,
+        
+        
+        vb:row{
           vb:text{
-            text = string.format("Sample Waveform (%dx%d pixels)", bitmap_width, bitmap_height),
-            style = "strong"
-          },
-          vb:bitmap{
-            bitmap = initial_file,
-            mode = "plain",
-            id = "bitmap_display"
+            text = info_text,
+            width = sampleWidth
           }
-        }
-      },
+        },
       
-      -- Color legend and info
-      vb:row{
-        vb:text{
-          text = "🟢 Green=Waveform • ⚫ Dark Gray=Reference Lines • ⚫ Black=Background • 🔴 Red=Enhanced marker\nRefresh=Update for current sample • Enhanced=Add red marker + basic frequency estimate",
-          width = sampleWidth,
-          style = "disabled"
-        }
-      },
+              -- Actual bitmap display!
+        vb:row{
+          vb:column{
+            vb:bitmap{
+              bitmap = initial_file,
+              mode = "plain",
+              id = "bitmap_display"
+            }
+          }
+        },
+      
+      
       
       vb:row{
         vb:text{
@@ -858,9 +843,7 @@ function pakettiSampleVisualizerDialog()
                 current_bitmap = createSampleBitmap(current_sample.sample_buffer, bitmap_width, bitmap_height)
                 if current_bitmap then
                   -- Save and update display
-                  local refresh_filename = string.format("temp_sample_%s_refresh_%d", 
-                    current_sample.name:gsub("[^%w_-]", "_"), 
-                    os.time())
+                  local refresh_filename = os.tmpname() .. ".bmp"
                   local success, filename, filepath = saveAndDisplayBitmap(current_bitmap, refresh_filename, vb.views)
                   if success then
                     last_saved_path = filepath
@@ -889,9 +872,7 @@ function pakettiSampleVisualizerDialog()
                 current_bitmap = createEnhancedSampleBitmap(current_sample.sample_buffer, bitmap_width, bitmap_height)
                 if current_bitmap then
                   -- Save and update display
-                  local enhanced_filename = string.format("temp_sample_%s_enhanced_%d", 
-                    current_sample.name:gsub("[^%w_-]", "_"), 
-                    os.time())
+                  local enhanced_filename = os.tmpname() .. ".bmp"
                   local success, filename, filepath = saveAndDisplayBitmap(current_bitmap, enhanced_filename, vb.views)
                   if success then
                     last_saved_path = filepath
@@ -989,14 +970,7 @@ function pakettiSampleVisualizerDialog()
         }
       },
       
-      vb:row{
-        vb:text{
-          text = "Platform Support: Linux, macOS, Windows (integrated bitmap functions)\nBitmap is displayed above AND saved to disk. Use 'Open Path' for saved files.",
-          width = sampleWidth,
-          font = "italic",
-          style = "disabled"
-        }
-      }
+      
     }
   )
   
@@ -1016,32 +990,565 @@ function pakettiSampleVisualizerDialog()
   end
 end
 
--- Menu entries
-renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:Sample:Visualize Sample (Bitmap)",
-  invoke = pakettiSampleVisualizerDialog
-}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Sample:Visualize Sample (Bitmap)",invoke = pakettiSampleVisualizerDialog}
+renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Visualize Sample (Bitmap)",invoke = pakettiSampleVisualizerDialog}
+renoise.tool():add_menu_entry{name = "--Sample Editor Ruler:Visualize Sample (Bitmap)",invoke = pakettiSampleVisualizerDialog}
+renoise.tool():add_keybinding{name = "Global:Paketti:Sample Visualizer (Bitmap)",invoke = pakettiSampleVisualizerDialog}
+renoise.tool():add_midi_mapping{name = "Paketti:Sample Visualizer (Bitmap)",invoke = function(message) if message:is_trigger() then pakettiSampleVisualizerDialog() end  end}
 
-renoise.tool():add_menu_entry{
-  name = "Sample Editor:Paketti:Visualize Sample (Bitmap)",
-  invoke = pakettiSampleVisualizerDialog
-}
+-- ======================================
+-- Paketti Instrument MetaInfo
+-- ======================================
+-- Comprehensive instrument metadata viewing and editing
 
--- Keybinding
-renoise.tool():add_keybinding{
-  name = "Global:Paketti:Sample Visualizer (Bitmap)",
-  invoke = pakettiSampleVisualizerDialog
-}
+local instrument_info_dialog = nil
 
--- MIDI mapping
-renoise.tool():add_midi_mapping{
-  name = "Paketti:Sample Visualizer (Bitmap)",
-  invoke = function(message) 
-    if message:is_trigger() then 
-      pakettiSampleVisualizerDialog() 
-    end 
+-- Quick instrument info status
+function pakettiInstrumentInfoStatus()
+  local song = renoise.song()
+  local instr = song.selected_instrument
+  
+  if not instr then
+    renoise.app():show_status("No instrument selected")
+    return
   end
-}
+  
+  local phrase_count = #instr.phrases
+  local memory_usage = 0
+  local slice_count = 0
+  local real_sample_count = 0
+  
+  -- Calculate total memory usage, real sample count, and slice count
+  for i, sample in ipairs(instr.samples) do
+    if sample.sample_buffer.has_sample_data then
+      -- Only count memory for non-slice-alias samples to avoid double counting
+      if not sample.is_slice_alias then
+        local frames = sample.sample_buffer.number_of_frames
+        local channels = sample.sample_buffer.number_of_channels
+        local bit_depth = sample.sample_buffer.bit_depth
+        memory_usage = memory_usage + (frames * channels * (bit_depth / 8))
+        real_sample_count = real_sample_count + 1
+      end
+    else
+      -- Count samples without data as real samples too
+      if not sample.is_slice_alias then
+        real_sample_count = real_sample_count + 1
+      end
+    end
+    -- Count slices (only from first sample to avoid counting aliases)
+    if i == 1 and sample.slice_markers then
+      slice_count = #sample.slice_markers
+    end
+  end
+  
+  -- Format memory usage
+  local memory_text = ""
+  if memory_usage > 1024 * 1024 then
+    memory_text = string.format("%.1f MB", memory_usage / (1024 * 1024))
+  elseif memory_usage > 1024 then
+    memory_text = string.format("%.1f KB", memory_usage / 1024)
+  else
+    memory_text = string.format("%d bytes", memory_usage)
+  end
+  
+  -- Get selected sample info
+  local selected_sample = song.selected_sample
+  local selected_sample_info = ""
+  local selected_slice_info = ""
+  
+  if selected_sample and selected_sample.sample_buffer.has_sample_data then
+    local sel_frames = selected_sample.sample_buffer.number_of_frames
+    local sel_channels = selected_sample.sample_buffer.number_of_channels
+    local sel_memory = sel_frames * sel_channels * (selected_sample.sample_buffer.bit_depth / 8)
+    
+    local sel_memory_text = ""
+    if sel_memory > 1024 * 1024 then
+      sel_memory_text = string.format("%.1f MB", sel_memory / (1024 * 1024))
+    elseif sel_memory > 1024 then
+      sel_memory_text = string.format("%.1f KB", sel_memory / 1024)
+    else
+      sel_memory_text = string.format("%d bytes", sel_memory)
+    end
+    
+    selected_sample_info = string.format(", Selected: %s", sel_memory_text)
+    
+    -- Check if selected sample is a slice alias
+    if selected_sample.is_slice_alias and instr.samples[1] and instr.samples[1].slice_markers then
+      local slice_index = song.selected_sample_index - 1 -- slice aliases start from sample 2
+      if slice_index >= 1 and slice_index <= #instr.samples[1].slice_markers then
+        selected_slice_info = string.format(" (Slice %d)", slice_index)
+      end
+    end
+  end
+  
+  -- Get comments (if any)
+  local comments_text = ""
+  if #instr.comments > 0 then
+    local first_comment = instr.comments[1] or ""
+    if #first_comment > 30 then
+      comments_text = " [" .. first_comment:sub(1, 30) .. "...]"
+    elseif #first_comment > 0 then
+      comments_text = " [" .. first_comment .. "]"
+    end
+  end
+  
+  -- Build status text with better slice handling
+  local sample_slice_text = ""
+  if slice_count > 0 then
+    -- When slices are present, emphasize the relationship
+    if real_sample_count == 1 then
+      sample_slice_text = string.format("%d sample with %d slices", real_sample_count, slice_count)
+    else
+      sample_slice_text = string.format("%d samples with %d slices", real_sample_count, slice_count)
+    end
+  else
+    -- No slices, just show sample count
+    sample_slice_text = string.format("%d samples", real_sample_count)
+  end
+  
+  local status_text = string.format("%s: %s, %d phrases, %s%s%s%s", 
+    instr.name, sample_slice_text, phrase_count, memory_text, selected_sample_info, selected_slice_info, comments_text)
+  
+  renoise.app():show_status(status_text)
+  print("-- Paketti Instrument Info: " .. status_text)
+end
+
+-- Full instrument info dialog
+function pakettiInstrumentInfoDialog()
+  if instrument_info_dialog and instrument_info_dialog.visible then 
+    instrument_info_dialog:close() 
+    return 
+  end
+  
+  local song = renoise.song()
+  local instr = song.selected_instrument
+  
+  if not instr then
+    renoise.app():show_status("No instrument selected")
+    return
+  end
+  
+  local vb = renoise.ViewBuilder()
+  local dialog_width = 600
+  local dialog_height = preferences.pakettiInstrumentInfoDialogHeight.value
+  -- Calculate proportional heights based on total dialog height
+  local comments_height = math.max(80, math.floor(dialog_height * 0.25))  -- 25% of dialog height, min 80
+  local sample_details_height = math.max(120, math.floor(dialog_height * 0.4))  -- 40% of dialog height, min 120
+  
+  -- Calculate instrument statistics
+  local phrase_count = #instr.phrases
+  local memory_usage = 0
+  local sample_details = {}
+  local slice_count = 0
+  local real_sample_count = 0
+  
+  for i, sample in ipairs(instr.samples) do
+    if sample.sample_buffer.has_sample_data then
+      local frames = sample.sample_buffer.number_of_frames
+      local channels = sample.sample_buffer.number_of_channels
+      local bit_depth = sample.sample_buffer.bit_depth
+      local sample_rate = sample.sample_buffer.sample_rate
+      local duration = frames / sample_rate
+      local sample_memory = frames * channels * (bit_depth / 8)
+      
+      -- Only count memory for non-slice-alias samples to avoid double counting
+      if not sample.is_slice_alias then
+        memory_usage = memory_usage + sample_memory
+        real_sample_count = real_sample_count + 1
+      end
+      
+      local channel_text = channels == 1 and "Mono" or "Stereo"
+      local minutes = math.floor(duration / 60)
+      local seconds = math.floor(duration % 60)
+      
+      -- Add slice information for sample details
+      local slice_info = ""
+      if sample.slice_markers and #sample.slice_markers > 0 then
+        slice_info = string.format(", %d slices", #sample.slice_markers)
+        if i == 1 then slice_count = #sample.slice_markers end
+      elseif sample.is_slice_alias then
+        slice_info = " (slice alias)"
+      end
+      
+      table.insert(sample_details, string.format("%02d: %s, %d Hz, %d-bit, %s, %d:%02d (%d frames)%s", 
+        i, sample.name, sample_rate, bit_depth, channel_text, minutes, seconds, frames, slice_info))
+    else
+      -- Count samples without data as real samples too (if not slice aliases)
+      if not sample.is_slice_alias then
+        real_sample_count = real_sample_count + 1
+      end
+      table.insert(sample_details, string.format("%02d: %s (no data)", i, sample.name))
+    end
+  end
+  
+  -- Format memory usage
+  local memory_text = ""
+  if memory_usage > 1024 * 1024 then
+    memory_text = string.format("%.2f MB", memory_usage / (1024 * 1024))
+  elseif memory_usage > 1024 then
+    memory_text = string.format("%.2f KB", memory_usage / 1024)
+  else
+    memory_text = string.format("%d bytes", memory_usage)
+  end
+  
+  -- Get current comments
+  local current_comments = table.concat(instr.comments, "\n")
+  
+  -- MIDI output info
+  local midi_device = instr.midi_output_properties.device_name
+  local midi_channel = instr.midi_output_properties.channel
+  local midi_info = string.format("Device: %s, Channel: %d", 
+    midi_device == "" and "None" or midi_device, midi_channel)
+  
+  -- Selected sample info
+  local selected_sample = song.selected_sample
+  local selected_info = "None selected"
+  if selected_sample and selected_sample.sample_buffer.has_sample_data then
+    local sel_frames = selected_sample.sample_buffer.number_of_frames
+    local sel_channels = selected_sample.sample_buffer.number_of_channels
+    local sel_memory = sel_frames * sel_channels * (selected_sample.sample_buffer.bit_depth / 8)
+    local sel_duration = sel_frames / selected_sample.sample_buffer.sample_rate
+    
+    local sel_memory_text = ""
+    if sel_memory > 1024 * 1024 then
+      sel_memory_text = string.format("%.1f MB", sel_memory / (1024 * 1024))
+    elseif sel_memory > 1024 then
+      sel_memory_text = string.format("%.1f KB", sel_memory / 1024)
+    else
+      sel_memory_text = string.format("%d bytes", sel_memory)
+    end
+    
+    local sel_minutes = math.floor(sel_duration / 60)
+    local sel_seconds = math.floor(sel_duration % 60)
+    local sel_channel_text = sel_channels == 1 and "Mono" or "Stereo"
+    
+    local slice_info = ""
+    if selected_sample.is_slice_alias and instr.samples[1] and instr.samples[1].slice_markers then
+      local slice_index = song.selected_sample_index - 1
+      if slice_index >= 1 and slice_index <= #instr.samples[1].slice_markers then
+        slice_info = string.format(" (Slice %d)", slice_index)
+      end
+    end
+    
+    selected_info = string.format("#%d: %s, %s, %d:%02d, %s%s", 
+      song.selected_sample_index, selected_sample.name, sel_channel_text, 
+      sel_minutes, sel_seconds, sel_memory_text, slice_info)
+  end
+  
+  instrument_info_dialog = renoise.app():show_custom_dialog(
+    string.format("Instrument MetaInfo - %s", instr.name),
+    vb:column{
+      margin = 10,
+      
+      
+      -- Basic info
+      vb:row{
+        vb:text{
+          text = string.format("Instrument: %s", instr.name),
+          font = "bold",
+          width = dialog_width
+        }
+      },
+      
+      vb:row{
+        vb:text{
+          text = slice_count > 0 and 
+            (real_sample_count == 1 and 
+              string.format("%d sample with %d slices, %d phrases, Memory: %s", 
+                real_sample_count, slice_count, phrase_count, memory_text) or
+              string.format("%d samples with %d slices, %d phrases, Memory: %s", 
+                real_sample_count, slice_count, phrase_count, memory_text)) or
+            string.format("%d samples, %d phrases, Memory: %s", 
+              real_sample_count, phrase_count, memory_text),
+          width = dialog_width
+        }
+      },
+      
+      vb:row{
+        vb:text{
+          text = string.format("MIDI Output: %s", midi_info),
+          width = dialog_width
+        }
+      },
+      
+      vb:row{
+        vb:text{
+          text = string.format("Selected Sample: %s", selected_info),
+          width = dialog_width
+        }
+      },
+      
+      -- Comments section
+      vb:row{
+        vb:text{
+          text = "Comments:",
+          style = "strong"
+        }
+      },
+      
+      vb:row{
+        vb:multiline_textfield{
+          text = current_comments,
+          width = dialog_width,
+          height = comments_height,
+          id = "comments_field"
+        }
+      },
+      
+
+      
+      -- Sample details
+      vb:row{
+        vb:text{
+          text = "Sample Details:",
+          style = "strong"
+        }
+      },
+      
+      vb:row{
+        vb:multiline_text{
+          text = real_sample_count > 0 and table.concat(sample_details, "\n") or "No samples",
+          width = dialog_width,
+          height = sample_details_height,
+          font = "mono"
+        }
+      },
+      
+      -- Buttons
+      vb:horizontal_aligner{
+        mode = "center",
+        vb:row{
+          vb:button{
+            text = "Save Changes",
+            width = 100,
+            notifier = function()
+              -- Save comments
+              local new_comments = vb.views.comments_field.text
+              local comment_lines = {}
+              for line in new_comments:gmatch("[^\r\n]+") do
+                table.insert(comment_lines, line)
+              end
+              instr.comments = comment_lines
+              
+              renoise.app():show_status("Instrument metadata saved")
+              print("-- Paketti Instrument MetaInfo: Saved metadata for " .. instr.name)
+              instrument_info_dialog:close()
+            end
+          },
+          
+          vb:button{
+            text = "Refresh",
+            width = 100,
+            notifier = function()
+              instrument_info_dialog:close()
+              pakettiInstrumentInfoDialog()
+            end
+          },
+          
+          vb:button{
+            text = "Close",
+            width = 100,
+            notifier = function()
+              instrument_info_dialog:close()
+            end
+          }
+        }
+      }
+    }
+  )
+  
+  print("-- Paketti Instrument MetaInfo: Dialog opened for " .. instr.name)
+end
+
+-- Set configurable height for instrument metainfo dialog
+function pakettiSetInstrumentInfoDialogHeight()
+  local current_height = preferences.pakettiInstrumentInfoDialogHeight.value
+  
+  local vb = renoise.ViewBuilder()
+  local height_dialog = nil
+  
+  height_dialog = renoise.app():show_custom_dialog(
+    "Set Instrument MetaInfo Dialog Height",
+    vb:column{
+      margin = 10,
+      spacing = 10,
+      
+      vb:row{
+        vb:text{
+          text = "Configure the height of the Instrument MetaInfo dialog:",
+          style = "strong"
+        }
+      },
+      
+      vb:row{
+        vb:text{
+          text = string.format("Current height: %d pixels", current_height)
+        }
+      },
+      
+      vb:row{
+        vb:text{
+          text = "New height:"
+        },
+        vb:valuebox{
+          min = 400,
+          max = 1200,
+          value = current_height,
+          width = 80,
+          id = "height_valuebox"
+        }
+      },
+      
+      vb:row{
+        vb:text{
+          text = "Recommended: 750 pixels (default), 600 for smaller screens, 900+ for large displays",
+          font = "italic"
+        }
+      },
+      
+      vb:horizontal_aligner{
+        mode = "center",
+        vb:row{
+          vb:button{
+            text = "Apply",
+            width = 80,
+            notifier = function()
+              local new_height = vb.views.height_valuebox.value
+              preferences.pakettiInstrumentInfoDialogHeight.value = new_height
+              preferences:save_as("preferences.xml")
+              
+              renoise.app():show_status(string.format("Instrument MetaInfo dialog height set to %d pixels", new_height))
+              print(string.format("-- Paketti: Instrument MetaInfo dialog height set to %d pixels", new_height))
+              
+              height_dialog:close()
+            end
+          },
+          
+          vb:button{
+            text = "Cancel",
+            width = 80,
+            notifier = function()
+              height_dialog:close()
+            end
+          }
+        }
+      }
+    }
+  )
+end
+
+-- Menu entries
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Instrument:Show Instrument Info (Status)",invoke = pakettiInstrumentInfoStatus}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Instrument:Show Instrument Info (Dialog)",invoke = pakettiInstrumentInfoDialog}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Instrument:Set Instrument Info Dialog Height",invoke = pakettiSetInstrumentInfoDialogHeight}
+
+renoise.tool():add_menu_entry{name = "Instrument Box:Paketti:Show Instrument Info (Status)",invoke = pakettiInstrumentInfoStatus}
+renoise.tool():add_menu_entry{name = "Instrument Box:Paketti:Show Instrument Info (Dialog)",invoke = pakettiInstrumentInfoDialog}
+renoise.tool():add_menu_entry{name = "Instrument Box:Paketti:Set Instrument Info Dialog Height",invoke = pakettiSetInstrumentInfoDialogHeight}
+
+renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Show Instrument Info (Status)",invoke = pakettiInstrumentInfoStatus}
+renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Show Instrument Info (Dialog)",invoke = pakettiInstrumentInfoDialog}
+renoise.tool():add_menu_entry{name = "--Sample Editor Ruler:Show Instrument Info (Status)",invoke = pakettiInstrumentInfoStatus}
+renoise.tool():add_menu_entry{name = "--Sample Editor Ruler:Show Instrument Info (Dialog)",invoke = pakettiInstrumentInfoDialog}
+
+-- Keybindings
+renoise.tool():add_keybinding{name = "Global:Paketti:Show Instrument Info (Status)",invoke = pakettiInstrumentInfoStatus}
+renoise.tool():add_keybinding{name = "Global:Paketti:Show Instrument Info (Dialog)",invoke = pakettiInstrumentInfoDialog}
+renoise.tool():add_keybinding{name = "Global:Paketti:Set Instrument Info Dialog Height",invoke = pakettiSetInstrumentInfoDialogHeight}
+
+-- MIDI mappings
+renoise.tool():add_midi_mapping{name = "Paketti:Show Instrument Info (Status)",invoke = function(message) if message:is_trigger() then pakettiInstrumentInfoStatus() end  end}
+renoise.tool():add_midi_mapping{name = "Paketti:Show Instrument Info (Dialog)",invoke = function(message) if message:is_trigger() then pakettiInstrumentInfoDialog() end  end}
+renoise.tool():add_midi_mapping{name = "Paketti:Set Instrument Info Dialog Height",invoke = function(message) if message:is_trigger() then pakettiSetInstrumentInfoDialogHeight() end  end}
+
+
+-- Set MIDI output globally to each instrument
+function pakettiSetMidiOutputGlobally()
+  local song = renoise.song()
+  
+  -- Get available MIDI devices
+  local midi_devices = renoise.Midi.available_output_devices()
+  
+  if #midi_devices == 0 then
+    renoise.app():show_warning("No MIDI output devices available")
+    return
+  end
+  
+  -- Create device selection dialog
+  local vb = renoise.ViewBuilder()
+  local device_dialog = nil
+  
+  device_dialog = renoise.app():show_custom_dialog(
+    "Select MIDI Output Device",
+    vb:column{
+      margin = 10,
+      spacing = 10,
+      
+      vb:row{
+        vb:text{
+          text = "Select MIDI device to assign to all instruments:",
+          style = "strong"
+        }
+      },
+      
+      vb:row{
+        vb:popup{
+          items = midi_devices,
+          width = 300,
+          id = "device_popup"
+        }
+      },
+      
+      vb:row{
+        vb:text{
+          text = string.format("This will affect %d instrument(s)", #song.instruments)
+        }
+      },
+      
+      vb:horizontal_aligner{
+        mode = "center",
+        vb:row{
+          vb:button{
+            text = "Apply",
+            width = 80,
+            notifier = function()
+              local selected_device = midi_devices[vb.views.device_popup.value]
+              local instruments_affected = 0
+              
+              for i, instr in ipairs(song.instruments) do
+                if instr.midi_output_properties.device_name ~= selected_device then
+                  instr.midi_output_properties.device_name = selected_device
+                  instruments_affected = instruments_affected + 1
+                end
+              end
+              
+              renoise.app():show_status(string.format("Set MIDI output '%s' for %d instrument(s)", 
+                selected_device, instruments_affected))
+              print(string.format("-- Paketti MIDI Output: Set '%s' for %d instruments", 
+                selected_device, instruments_affected))
+              
+              device_dialog:close()
+            end
+          },
+          
+          vb:button{
+            text = "Cancel",
+            width = 80,
+            notifier = function()
+              device_dialog:close()
+            end
+          }
+        }
+      }
+    }
+  )
+end
+
+-- Add MIDI global function to appropriate menu sections
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Global:Set MIDI Output for All Instruments",invoke = pakettiSetMidiOutputGlobally}
+renoise.tool():add_menu_entry{name = "Instrument Box:Paketti:Set MIDI Output for All Instruments",invoke = pakettiSetMidiOutputGlobally}
+renoise.tool():add_keybinding{name = "Global:Paketti:Set MIDI Output for All Instruments",invoke = pakettiSetMidiOutputGlobally}
+renoise.tool():add_midi_mapping{name = "Paketti:Set MIDI Output for All Instruments",invoke = function(message) if message:is_trigger() then pakettiSetMidiOutputGlobally() end  end}
 
 -- ======================================
 -- Paketti Phrase Looping Batch Operations
@@ -1457,4 +1964,55 @@ renoise.tool():add_midi_mapping{
     end 
   end
 }
+
+-- Reset basenotes to lowest note range for all samples in selected instrument
+function pakettiResetBasenotesToLowestNoteRange()
+  local song = renoise.song()
+  local instr = song.selected_instrument
+  
+  if not instr then
+    renoise.app():show_warning("No instrument selected")
+    return
+  end
+  
+  if #instr.samples == 0 then
+    renoise.app():show_status("No samples in selected instrument")
+    return
+  end
+  
+  local samples_modified = 0
+  
+  for idx = 1, #instr.samples do
+    local sample = instr.samples[idx]
+    local smap = sample.sample_mapping
+    
+    -- Check if base note is different from note range start
+    if smap.base_note ~= smap.note_range[1] then
+      smap.base_note = smap.note_range[1]
+      samples_modified = samples_modified + 1
+      print(string.format("-- Paketti Basenote Reset: Sample '%s' base note set to %d", sample.name, smap.base_note))
+    end
+  end
+  
+  if samples_modified > 0 then
+    renoise.app():show_status(string.format("Reset %d basenote(s) in instrument '%s'", samples_modified, instr.name))
+    print(string.format("-- Paketti Basenote Reset: Reset %d basenote(s) in instrument '%s'", samples_modified, instr.name))
+  else
+    renoise.app():show_status("All basenotes already aligned with note ranges")
+    print("-- Paketti Basenote Reset: No basenotes needed adjustment")
+  end
+end
+
+-- Menu entries for basenote reset
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Global:Reset Basenote to Lowest Note Range",invoke = pakettiResetBasenotesToLowestNoteRange}
+renoise.tool():add_menu_entry{name = "Instrument Box:Paketti:Reset Basenote to Lowest Note Range",invoke = pakettiResetBasenotesToLowestNoteRange}
+renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Reset Basenote to Lowest Note Range",invoke = pakettiResetBasenotesToLowestNoteRange}
+
+-- Keybinding
+renoise.tool():add_keybinding{name = "Global:Paketti:Reset Basenote to Lowest Note Range",invoke = pakettiResetBasenotesToLowestNoteRange}
+
+-- MIDI mapping
+renoise.tool():add_midi_mapping{name = "Paketti:Reset Basenote to Lowest Note Range",invoke = function(message) if message:is_trigger() then pakettiResetBasenotesToLowestNoteRange() end end}
+
+
 

@@ -50,6 +50,148 @@ local function get_base_note(start_note, end_note, original_base_note, base_note
   end
 end
 
+-- Store original positions for transpose calculation
+local original_positions = {}
+
+-- Function to store original keyzone positions
+local function store_original_positions()
+  local instrument = renoise.song().selected_instrument
+  if not instrument or #instrument.samples == 0 then
+    return
+  end
+  
+  original_positions = {}
+  for idx, sample in ipairs(instrument.samples) do
+    local smap = sample.sample_mapping
+    original_positions[idx] = {
+      base_note = smap.base_note,
+      note_range = {smap.note_range[1], smap.note_range[2]}
+    }
+  end
+  debug_print("Stored original positions for " .. #original_positions .. " samples")
+end
+
+-- Function to transpose from original positions (not cumulative)
+local function transpose_keyzones(transpose_by)
+  local instrument = renoise.song().selected_instrument
+  
+  if not instrument or #instrument.samples == 0 then
+    return
+  end
+  
+  if #original_positions == 0 then
+    store_original_positions()
+  end
+  
+  debug_print(string.format("Transposing %d samples by %d semitones from original", #instrument.samples, transpose_by))
+  
+  local samples_transposed = 0
+  local samples_clamped = 0
+  local clamp_info = {}
+  
+  for idx, sample in ipairs(instrument.samples) do
+    if original_positions[idx] then
+      local smap = sample.sample_mapping
+      local orig = original_positions[idx]
+      
+      local new_base_note = orig.base_note + transpose_by
+      local new_note_range_start = orig.note_range[1] + transpose_by
+      local new_note_range_end = orig.note_range[2] + transpose_by
+      
+      -- Clamp to MIDI range (0-119) instead of skipping
+      local clamped_base_note = math.max(0, math.min(119, new_base_note))
+      local clamped_range_start = math.max(0, math.min(119, new_note_range_start))
+      local clamped_range_end = math.max(0, math.min(119, new_note_range_end))
+      
+      -- Ensure range is valid (start <= end)
+      if clamped_range_start > clamped_range_end then
+        clamped_range_end = clamped_range_start
+      end
+      
+      -- Track if any clamping occurred
+      local was_clamped = (clamped_base_note ~= new_base_note) or 
+                         (clamped_range_start ~= new_note_range_start) or 
+                         (clamped_range_end ~= new_note_range_end)
+      
+      -- Apply the (possibly clamped) values
+      smap.base_note = clamped_base_note
+      smap.note_range = {clamped_range_start, clamped_range_end}
+      samples_transposed = samples_transposed + 1
+      
+      if was_clamped then
+        samples_clamped = samples_clamped + 1
+        table.insert(clamp_info, string.format("Sample %d clamped to %d-%d", idx, clamped_range_start, clamped_range_end))
+        debug_print(string.format("Sample %d clamped to notes %d-%d (base: %d)", idx, clamped_range_start, clamped_range_end, clamped_base_note))
+      else
+        debug_print(string.format("Sample %d transposed to notes %d-%d (base: %d)", idx, clamped_range_start, clamped_range_end, clamped_base_note))
+      end
+    end
+  end
+  
+  -- Show meaningful status message
+  if samples_clamped > 0 then
+    renoise.app():show_status(string.format("Transposed %d samples by %d semitones (%d clamped to MIDI limits)", 
+      samples_transposed, transpose_by, samples_clamped))
+    print(string.format("-- Paketti Transpose: %d samples clamped to MIDI range (0-119)", samples_clamped))
+  elseif samples_transposed > 0 then
+    renoise.app():show_status(string.format("Transposed %d samples by %d semitones", samples_transposed, transpose_by))
+  else
+    renoise.app():show_status("No samples to transpose")
+  end
+end
+
+-- Function to distribute samples across velocity layers
+local function distribute_velocity_layers(first_is_loudest, min_velocity, max_velocity, layer_count)
+  local instrument = renoise.song().selected_instrument
+  
+  if not instrument or #instrument.samples == 0 then
+    return
+  end
+  
+  local custom_count = layer_count or #instrument.samples
+  debug_print(string.format("Distributing %d samples across velocity layers (count: %d)", #instrument.samples, custom_count))
+  
+  -- Scale function for velocity ranges
+  local function scale_value(value, in_min, in_max, out_min, out_max)
+    return (((value - in_min) * (out_max / (in_max - in_min) - (out_min / (in_max - in_min)))) + out_min)
+  end
+  
+  for idx = 1, #instrument.samples do
+    local idx_custom = idx
+    if custom_count then
+      idx_custom = idx % custom_count
+      if idx_custom == 0 then
+        idx_custom = custom_count
+      end
+    end
+    
+    local sample = instrument.samples[idx]
+    local smap = sample.sample_mapping
+    
+    local vel_from, vel_to
+    if first_is_loudest then
+      vel_from = (128 / custom_count) * (idx_custom - 1)   
+      vel_to = ((128 / custom_count) * idx_custom) - 1
+    else
+      vel_from = (128 / custom_count) * (custom_count - idx_custom)
+      vel_to = (128 / custom_count) * (custom_count - (idx_custom - 1)) - 1
+    end
+    
+    vel_from = scale_value(vel_from, 0, 128, min_velocity, max_velocity)
+    vel_to = scale_value(vel_to, 0, 128, min_velocity, max_velocity)
+    
+    -- Clamp to valid velocity range
+    vel_from = math.max(0, math.min(127, math.floor(vel_from)))
+    vel_to = math.max(0, math.min(127, math.floor(vel_to)))
+    
+    smap.velocity_range = {vel_from, vel_to}
+    
+    debug_print(string.format("Sample %d velocity range: %d-%d", idx, vel_from, vel_to))
+  end
+  
+  renoise.app():show_status(string.format("Distributed %d samples across velocity layers", #instrument.samples))
+end
+
 -- Function to distribute samples across keyzones
 local function distribute_samples(keys_per_sample, base_note_mode)
   local instrument = renoise.song().selected_instrument
@@ -66,6 +208,9 @@ local function distribute_samples(keys_per_sample, base_note_mode)
     renoise.app():show_warning("No samples in instrument!")
     return
   end
+  
+  -- Clear original positions when distributing fresh
+  original_positions = {}
   
   debug_print(string.format("Distributing %d samples with %d keys each", num_samples, keys_per_sample))
   
@@ -136,6 +281,9 @@ local function distribute_samples(keys_per_sample, base_note_mode)
     end
   end
   
+  -- Store the new positions as original for transpose
+  store_original_positions()
+  
   -- Show appropriate status message
   if reached_limit then
     renoise.app():show_status(string.format(
@@ -161,6 +309,22 @@ function pakettiKeyzoneDistributorDialog()
   view_builder = renoise.ViewBuilder()
   
   local base_note_mode = BASE_NOTE_MODES.MIDDLE -- Default mode
+  local enhanced_mode = false -- Default to simple mode
+  
+  -- Enhanced mode variables
+  local transpose_value = 0
+  local velocity_enabled = false
+  local first_is_loudest = true
+  local min_velocity = 0
+  local max_velocity = 127
+  local layer_count = nil -- nil means use all samples
+  
+  -- Function to update velocity layers automatically
+  local function update_velocity_layers()
+    if velocity_enabled then
+      distribute_velocity_layers(first_is_loudest, min_velocity, max_velocity, layer_count)
+    end
+  end
   
   local keys_valuebox = view_builder:valuebox {
     min = 1,
@@ -195,6 +359,162 @@ function pakettiKeyzoneDistributorDialog()
     end
   }
   
+  -- Enhanced controls (initially hidden)
+  local enhanced_controls = view_builder:column {
+    id = "enhanced_section",
+    visible = false,
+    
+    view_builder:row {
+      view_builder:text {
+        text = "─── Transpose ───",
+        style = "strong",
+        width = 200
+      }
+    },
+    
+    view_builder:row {
+      view_builder:text {
+        width = 140,
+        text = "Transpose by",
+        font = "bold",
+        style = "strong",
+      },
+              view_builder:valuebox {
+          min = -60,
+          max = 60,
+          value = 0,
+          width = 50,
+          id = "transpose_valuebox",
+          notifier = function(new_value)
+            transpose_value = new_value
+          end
+        },
+        view_builder:button {
+          text = "Apply",
+          width = 60,
+          notifier = function()
+            transpose_keyzones(transpose_value)
+          end
+        },
+      view_builder:text {
+        text = "semitones"
+      }
+    },
+    
+    view_builder:row {
+      view_builder:text {
+        text = "─── Velocity Layers ───",
+        style = "strong",
+        width = 200
+      }
+    },
+    
+    view_builder:row {
+      view_builder:checkbox {
+        value = false,
+        id = "velocity_checkbox",
+        notifier = function(value)
+          velocity_enabled = value
+          update_velocity_layers()
+        end
+      },
+      view_builder:text {
+        text = "Enable velocity distribution"
+      }
+    },
+    
+    view_builder:row {
+      view_builder:text {
+        width = 140,
+        text = "Direction",
+        font = "bold",
+        style = "strong",
+      },
+      view_builder:switch {
+        items = {"First Loudest", "First Softest"},
+        value = 1,
+        width = 200,
+        notifier = function(value)
+          first_is_loudest = (value == 1)
+          update_velocity_layers()
+        end
+      }
+    },
+    
+    view_builder:row {
+      view_builder:text {
+        width = 140,
+        text = "Velocity range",
+        font = "bold", 
+        style = "strong",
+      },
+      view_builder:valuebox {
+        min = 0,
+        max = 127,
+        value = 0,
+        width = 50,
+        notifier = function(value)
+          min_velocity = value
+          update_velocity_layers()
+        end
+      },
+      view_builder:text { text = "to" },
+      view_builder:valuebox {
+        min = 0,
+        max = 127,
+        value = 127,
+        width = 50,
+        notifier = function(value)
+          max_velocity = value
+          update_velocity_layers()
+        end
+      }
+    },
+    
+    view_builder:row {
+      view_builder:text {
+        width = 140,
+        text = "Layer count",
+        font = "bold",
+        style = "strong",
+      },
+      view_builder:switch {
+        items = {"All Samples", "Custom"},
+        value = 1,
+        width = 150,
+        notifier = function(value)
+          layer_count = (value == 1) and nil or 4
+          update_velocity_layers()
+        end
+      },
+      view_builder:valuebox {
+        min = 1,
+        max = 16,
+        value = 4,
+        width = 50,
+        visible = false,
+        id = "layer_count_valuebox",
+        notifier = function(value)
+          if layer_count then
+            layer_count = value
+            update_velocity_layers()
+          end
+        end
+      }
+    },
+
+  }
+  
+  -- Enhanced mode toggle
+  local enhanced_checkbox = view_builder:checkbox {
+    value = false,
+    notifier = function(value)
+      enhanced_mode = value
+      enhanced_controls.visible = value
+      debug_print("Enhanced mode: " .. tostring(value))
+    end
+  }
+  
   -- Create the dialog
   local keyhandler = create_keyhandler_for_dialog(
     function() return dialog end,
@@ -202,8 +522,7 @@ function pakettiKeyzoneDistributorDialog()
   )
   dialog = renoise.app():show_custom_dialog("Paketti Keyzone Distributor",
     view_builder:column {
-      --margin=10,
-      --spacing=6,
+      -- Original interface (always visible)
       view_builder:row {
         view_builder:text {
           width=140,
@@ -237,7 +556,19 @@ function pakettiKeyzoneDistributorDialog()
           style="strong",
         },
         base_note_switch
-      }
+      },
+      
+      -- Enhanced mode toggle
+      view_builder:row {
+        enhanced_checkbox,
+        view_builder:text {
+          text = "Enhanced Mode (Transpose & Velocity)",
+          style = "strong"
+        }
+      },
+      
+      -- Enhanced controls (hidden by default)
+      enhanced_controls
     }, keyhandler
   )
 end
