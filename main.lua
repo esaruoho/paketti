@@ -450,6 +450,7 @@ timed_require("PakettiCCizerLoader")
 timed_require("PakettiDigitakt")
 timed_require("PakettiM8Export")
 timed_require("PakettiOP1Export")
+timed_require("PakettiForeignSnippets")
 
 
 -- Polyend functionality toggle

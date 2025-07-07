@@ -80,6 +80,7 @@ end
 
 preferences = renoise.Document.create("ScriptingToolPreferences") {
   paketti_auto_hide_disk_browser = false,
+  pakettiRePitchEnhanced = false,
   PakettiSteppersGlobalStepCount="16",
   UserSetTunings="",
   AutoInputTuning="false",
