@@ -79,6 +79,7 @@ function create_device_entry(name, path, device_type)
 end
 
 preferences = renoise.Document.create("ScriptingToolPreferences") {
+  paketti_auto_hide_disk_browser = false,
   PakettiSteppersGlobalStepCount="16",
   UserSetTunings="",
   AutoInputTuning="false",
