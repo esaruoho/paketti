@@ -497,13 +497,33 @@ function App:do_transfer()
   local instr_named_after_sample = false 
 
 
+  -- Debug: Show current preference values
+  TRACE("=== AUTO-TRANSFER DEBUG ===")
+  TRACE("SononymphAutotransfercreateslot.value =", self.preferences.SononymphAutotransfercreateslot.value)
+  TRACE("SononymphAutotransfercreatenew.value =", self.preferences.SononymphAutotransfercreatenew.value)
+
   if self.preferences.SononymphAutotransfercreateslot.value then
-  renoise.song().selected_instrument:insert_sample_at(#renoise.song().selected_instrument.samples+1)
-  renoise.song().selected_sample_index = #renoise.song().selected_instrument.samples
+    TRACE("Taking CREATE SLOT path...")
+    renoise.song().selected_instrument:insert_sample_at(#renoise.song().selected_instrument.samples+1)
+    renoise.song().selected_sample_index = #renoise.song().selected_instrument.samples
   elseif self.preferences.SononymphAutotransfercreatenew.value then
-  renoise.song():insert_instrument_at(renoise.song().selected_instrument_index+1)
-  renoise.song().selected_instrument_index = renoise.song().selected_instrument_index + 1
-end
+    TRACE("Taking CREATE NEW INSTRUMENT path...")
+    renoise.song():insert_instrument_at(renoise.song().selected_instrument_index+1)
+    renoise.song().selected_instrument_index = renoise.song().selected_instrument_index + 1
+    
+    -- Inject Paketti default XRNI when creating new instrument
+    TRACE("Auto-transfer creating new instrument - injecting Paketti XRNI...")
+    if pakettiPreferencesDefaultInstrumentLoader then
+      TRACE("Paketti injection function found, calling...")
+      pakettiPreferencesDefaultInstrumentLoader()
+      TRACE("Paketti injection completed")
+    else
+      TRACE("ERROR: pakettiPreferencesDefaultInstrumentLoader function not found!")
+      renoise.app():show_status("WARNING: Paketti XRNI injection function not available")
+    end
+  else
+    TRACE("Taking DEFAULT path (load to existing sample)...")
+  end
   
   local sample,instr = rns.selected_sample,rns.selected_instrument 
 
@@ -1058,11 +1078,18 @@ function App:load_selected_sample_from_sononym(show_prompt)
       rns:insert_instrument_at(rns.selected_instrument_index + 1)
       rns.selected_instrument_index = rns.selected_instrument_index + 1
       
-      -- Insert a new sample slot in the new instrument
-      rns.selected_instrument:insert_sample_at(1)
-      rns.selected_sample_index = 1
+      -- Inject Paketti default XRNI instrument
+      TRACE("Attempting to call pakettiPreferencesDefaultInstrumentLoader...")
+      if pakettiPreferencesDefaultInstrumentLoader then
+        TRACE("Function exists, calling it...")
+        pakettiPreferencesDefaultInstrumentLoader()
+        TRACE("Function call completed")
+      else
+        TRACE("ERROR: pakettiPreferencesDefaultInstrumentLoader function not found!")
+        renoise.app():show_status("WARNING: Paketti XRNI injection function not available")
+      end
       
-      -- Load the sample into the new sample slot
+      -- Load the sample into the first sample slot (overwriting the placeholder)
       local sample = rns.selected_instrument.samples[1]
       sample.sample_buffer:load_from(full_path)
       
