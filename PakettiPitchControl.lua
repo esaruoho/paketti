@@ -81,7 +81,7 @@ function calculate_selected_sample_length()
   return length_in_seconds, nil
 end
 
--- Function to calculate BPM from sample length, beatsync, and transpose
+-- Function to calculate BPM from sample beatsync
 function calculate_bpm_from_sample_beatsync()
   local length_seconds, error_msg = calculate_selected_sample_length()
   if error_msg then
@@ -97,12 +97,7 @@ function calculate_bpm_from_sample_beatsync()
     return nil, nil, nil
   end
   
-  local transpose = sample.transpose
-  local finetune = sample.fine_tune
-  local cents = (transpose * 100) + (finetune / 128 * 100)
-  local bpm_factor = math.pow(2, (cents / 1200))
-  local calculated_bpm = 60 / lpb / length_seconds * beat_sync_lines * bpm_factor
-
+  local calculated_bpm = 60 / lpb / length_seconds * beat_sync_lines
   return calculated_bpm, length_seconds, beat_sync_lines
 end
 

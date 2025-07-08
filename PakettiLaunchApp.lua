@@ -398,6 +398,13 @@ function appSelectionRemoveMenuEntries()
 end
 function appSelectionCreateMenuEntries()
   local preferences = renoise.tool().preferences
+  
+  -- Safety check: ensure AppSelection preferences exist
+  if not preferences.AppSelection then
+    print("WARNING: AppSelection preferences not found, skipping menu creation")
+    return
+  end
+  
   local app_selections = {
     preferences.AppSelection.AppSelection1 and preferences.AppSelection.AppSelection1.value or "",
     preferences.AppSelection.AppSelection2 and preferences.AppSelection.AppSelection2.value or "",

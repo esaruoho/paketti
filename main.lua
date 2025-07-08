@@ -451,7 +451,7 @@ timed_require("PakettiDigitakt")
 timed_require("PakettiM8Export")
 timed_require("PakettiOP1Export")
 timed_require("PakettiForeignSnippets")
-
+timed_require("Sononymph/AppMain")
 
 -- Polyend functionality toggle
 local PolyendYes = false
@@ -466,6 +466,8 @@ timed_require("PakettiMenuConfig")
 print(string.format("Total load time: %.3f seconds", os.clock() - init_time))
 
 _AUTO_RELOAD_DEBUG = true
+
+
 
 
 

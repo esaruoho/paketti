@@ -444,6 +444,15 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
     Automation = true,
     DiskBrowserFiles = true
   },
+  SononymphAutostart = false,
+  SononymphAutotransfercreatenew = false,
+  SononymphAutotransfercreateslot = false,
+  SononymphPollingInterval = 1,
+  SononymphPathToExe = "",
+  SononymphPathToConfig = "",
+  SononymphShowTransferWarning = true,
+  SononymphShowSearchWarning = true,
+  SononymphShowPrefs = true,
 }
 
 renoise.tool().preferences = preferences
@@ -456,6 +465,22 @@ AppSelection = renoise.tool().preferences.AppSelection
 RandomizeSettings = renoise.tool().preferences.RandomizeSettings
 PakettiYTDLP = renoise.tool().preferences.PakettiYTDLP
 DynamicViewPrefs = renoise.tool().preferences.PakettiDynamicViews
+
+-- Safety check: ensure AppSelection is properly initialized
+if not AppSelection then
+  print("WARNING: AppSelection preferences not loaded properly, initializing defaults")
+  AppSelection = {
+    AppSelection1 = { value = "" },
+    AppSelection2 = { value = "" },
+    AppSelection3 = { value = "" },
+    AppSelection4 = { value = "" },
+    AppSelection5 = { value = "" },
+    AppSelection6 = { value = "" },
+    SmartFoldersApp1 = { value = "" },
+    SmartFoldersApp2 = { value = "" },
+    SmartFoldersApp3 = { value = "" }
+  }
+end
 
 -- Add pattern sequencer preferences accessor
 PatternSequencer = renoise.tool().preferences.pakettiPatternSequencer
