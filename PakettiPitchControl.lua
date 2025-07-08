@@ -81,7 +81,7 @@ function calculate_selected_sample_length()
   return length_in_seconds, nil
 end
 
--- Function to calculate BPM from sample length, beat sync, and transpose
+-- Function to calculate BPM from sample length, beatsync, and transpose
 function calculate_bpm_from_sample_beatsync()
   local length_seconds, error_msg = calculate_selected_sample_length()
   if error_msg then
