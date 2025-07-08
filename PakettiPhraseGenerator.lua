@@ -2550,7 +2550,7 @@ end
     function(value) dialog = value end
   )
   dialog = renoise.app():show_custom_dialog(
-    "Paketti Phrase Generator",
+    "Paketti Enhanced Phrase Generator",
     dialog_content,
     keyhandler
   )
