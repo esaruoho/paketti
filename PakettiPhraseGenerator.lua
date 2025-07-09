@@ -1,3 +1,7 @@
+-- Enhanced Phrase Generator - Depends on PakettiSteppers.lua for shared stepper dialog content
+-- This creates a DRY (Don't Repeat Yourself) approach where stepper modifications
+-- in PakettiSteppers.lua automatically appear in this Enhanced Phrase Generator
+
 local TRANSPOSE_MIN=-120
 local TRANSPOSE_MAX=120
 local is_switching_instrument=false
@@ -501,6 +505,95 @@ function note_count_slider_notifier(value)
     vb.views.note_count_text.text = string.format("%02d notes", value)
   end
   update_note_count(current_settings, old_count)
+end
+
+function shuffle_slider_notifier(value)
+  if not value then return end
+  current_settings.shuffle = value
+  local instr = renoise.song().selected_instrument
+  if instr and #instr.phrases > 0 then
+    local phrase = instr.phrases[current_settings.current_phrase_index]
+    phrase.shuffle = value
+    
+    -- Update script with new shuffle value in comment
+    if phrase.script then
+      -- Extract current pattern and notes
+      local current_pattern = {}
+      local current_unit = current_settings.unit
+      local notes = {}
+      
+      for _, line in ipairs(phrase.script.paragraphs) do
+        local pattern_str = line:match(PHRASE_PATTERN_FIELD .. '%s*=%s*{([^}]+)}')
+        local unit_str = line:match(PHRASE_UNIT_FIELD .. '%s*=%s*"([^"]+)"')
+        local emit_str = line:match(PHRASE_EVENT_FIELD .. '%s*=%s*{(.+)}')
+        
+        if pattern_str then
+          for num in pattern_str:gmatch("[01]") do
+            table.insert(current_pattern, tonumber(num))
+          end
+        end
+        if unit_str then current_unit = unit_str end
+        if emit_str then
+          for key, vol in emit_str:gmatch('key%s*=%s*"([^"]+)",?%s*volume%s*=%s*([%d%.]+)') do
+            table.insert(notes, {key=key, volume=tonumber(vol)})
+          end
+        end
+      end
+      
+      phrase.script.paragraphs = {
+        "return " .. PHRASE_RETURN_TYPE .. " {",
+        string.format('  ' .. PHRASE_UNIT_FIELD .. ' = "%s",', current_unit),
+        string.format("  " .. PHRASE_PATTERN_FIELD .. " = {%s},", table.concat(current_pattern, ",")),
+        format_emit_line(notes),
+        "}",
+        build_comment_line(current_settings)
+      }
+      phrase.script:commit()
+    end
+  end
+  
+  if vb.views.shuffle_text then
+    -- Round to nearest percent
+    vb.views.shuffle_text.text = string.format("%d%%", math.floor(value * 100 + 0.5))
+  end
+end
+
+function min_volume_slider_notifier(value)
+  if not value then return end
+  current_settings.min_volume = value
+  if vb.views.min_volume_text then
+    vb.views.min_volume_text.text = string.format("%d%%", math.floor(value * 100))
+  end
+  update_volume_only(current_settings)
+end
+
+function max_volume_slider_notifier(value)
+  if not value then return end
+  current_settings.max_volume = value
+  if vb.views.max_volume_text then
+    vb.views.max_volume_text.text = string.format("%d%%", math.floor(value * 100))
+  end
+  update_volume_only(current_settings)
+end
+
+function pattern_length_slider_notifier(value)
+  if not value then return end
+  -- Ensure integer value
+  value = math.floor(tonumber(value) or 1)
+  if value < 1 then value = 1 end
+  if value > 32 then value = 32 end
+  
+  -- Store old length and update current settings
+  local old_length = current_settings.pattern_length
+  current_settings.pattern_length = value
+  
+  -- Update text display
+  if vb.views.pattern_length_text then
+    vb.views.pattern_length_text.text = string.format("%02d steps", value)
+  end
+  
+  -- Update pattern length using the robust implementation
+  update_pattern_length(current_settings, old_length)
 end
 
 function setup_instrument_observer()
@@ -2257,143 +2350,29 @@ end
          text=string.format("%d%%", math.floor((current_settings.shuffle or 0.0) * 100 + 0.5)),
          font="bold",style="strong"}},
 
-     -- Stepper buttons row
+     -- Global scale controls
      vb:row {
        vb:text { 
-         text = "Steppers",
+         text = "Global Scale",
          width = 90,
          font = "bold",
-         style = "strong"
+         style = "strong",
+         tooltip = "Change scale for all extPhrases in all instruments"
        },
-       
-       vb:row {         
-         -- Add buttons for each stepper type
-         (function()
-           local buttons = {}
-           for i = 1, #STEPPER_TYPES do
-             local stepper = STEPPER_TYPES[i]
-             buttons[i] = vb:button {
-               text = stepper.name:gsub(" Stepper", ""),
-               color = stepper.color,
-               width = 70,
-               tooltip = string.format("Show/Hide %s editor", stepper.name),
-               notifier=function()
-                 toggle_stepper(stepper.name)
-               end
-             }
-           end
-           return unpack(buttons)
-         end)()
-       }
-     },
-
-     -- Add stepper length controls
-     vb:row {
-       vb:text {
-         text = "Step Length",
-         width = 90,
-         font = "bold",
-         style = "strong"
-       },
-       vb:button {
-         text = "2",
-         width = 50,
-         notifier=function()
-           set_all_stepper_lengths(2)
-         end
-       },
-       vb:button {
-         text = "4",
-         width = 50,
-         notifier=function()
-           set_all_stepper_lengths(4)
-         end
-       },
-       vb:button {
-         text = "8",
-         width = 50,
-         notifier=function()
-           set_all_stepper_lengths(8)
-         end
-       },
-       vb:button {
-         text = "16",
-         width = 50,
-         notifier=function()
-           set_all_stepper_lengths(16)
-         end
-       },
-       vb:button {
-         text = "32",
-         width = 50,
-         notifier=function()
-           set_all_stepper_lengths(32)
-         end
-       },
-       vb:button {
-         text = "64",
-         width = 50,
-         notifier=function()
-           set_all_stepper_lengths(64)
-         end
-       },
-       vb:button {
-         text = "128",
-         width = 50,
-         notifier=function()
-           set_all_stepper_lengths(128)
-         end
-       },
-       vb:button {
-         text = "256",
-         width = 50,
-         notifier=function()
-           set_all_stepper_lengths(256)
+       vb:popup {
+         id = "global_scale_popup",
+         items = SCALE_NAMES,
+         value = table.find(SCALE_NAMES, current_settings.scale) or 1,
+         width = 250,
+         notifier=function(value)
+           local new_scale = SCALE_NAMES[value]
+           apply_global_scale(new_scale)
          end
        }
      },
 
-     -- Add playback control with stepper reset
-     vb:row {
-       vb:text {
-         text = "Playback",
-         width = 90,
-         font = "bold",
-         style = "strong"
-       },
-       vb:button {
-         text = "Play (Reset Steppers)",
-         width = 200,
-         notifier=function()
-           -- First reset all steppers
-           ResetAllSteppers()
-           -- Then start playback
-           renoise.song().transport:start(renoise.Transport.PLAYMODE_RESTART_PATTERN)
-         end
-       }
-     },
-
-     -- Add this at the end of pakettiPhraseGeneratorDialog_content(), just before the final closing brace
--- Global scale controls
-vb:row {
-  vb:text { 
-    text = "Global Scale",
-    width = 90,
-    font = "bold",
-    style = "strong",
-    tooltip = "Change scale for all extPhrases in all instruments"
-  },
-  vb:popup {
-    id = "global_scale_popup",
-    items = SCALE_NAMES,
-    value = table.find(SCALE_NAMES, current_settings.scale) or 1,
-    width = 250,
-    notifier=function(value)
-      local new_scale = SCALE_NAMES[value]
-      apply_global_scale(new_scale)
-    end
-  }
-}
+     -- Paketti Steppers Dialog Content
+     PakettiCreateStepperDialogContent(vb)
 
    }
  end

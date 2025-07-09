@@ -6409,3 +6409,17 @@ renoise.tool():add_midi_mapping{
 
 -- ======================================
 
+
+function pakettiListInstalledTools()
+  for i=1,#renoise.app().installed_tools do oprint (renoise.app().installed_tools[i].name) end
+end
+
+
+
+renoise.tool():add_keybinding{name="Global:Paketti:List of Installed Tools", invoke=function()
+  pakettiListInstalledTools()
+end }
+
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:List of Installed Tools", invoke=function()
+  pakettiListInstalledTools()
+end }

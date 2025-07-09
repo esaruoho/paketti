@@ -633,13 +633,10 @@ function PakettiSetStepperVisible(deviceName, visible, skip_switch_update)
     end
 end
 
-function PakettiSteppersDialog()
-  if dialog and dialog.visible then
-    dialog:close()
-    dialog=nil
-    return
-  end
-
+-- Add this function before the PakettiSteppersDialog function
+function PakettiCreateStepperDialogContent(vb_instance)
+  local vb = vb_instance or renoise.ViewBuilder()
+  
   -- Create stepper type switch
   stepper_switch = vb:switch{
     items = {"Off", "Volume", "Panning", "Pitch", "Cutoff", "Resonance", "Drive"},
@@ -723,65 +720,89 @@ function PakettiSteppersDialog()
     end
   }
 
-  dialog = renoise.app():show_custom_dialog("Paketti Steppers",
-    vb:column{
-      vb:row{
-        vb:text{text = "Stepper", style="strong", font="Bold", width=70},
-        stepper_switch
-      },
-      vb:row{
-        vb:text{text = "Global Steps", style="strong", font="Bold", width=70},
-        global_stepcount_valuebox,
-        vb:text{text = "Auto-applied to ALL steppers", width=200}
-      },
-      vb:row{
-        vb:text{text = "Step Size", style="strong", font="Bold", width=70},
-        stepsize_switch,
-        vb:button{text = "Random Size", width=85, pressed = function() PakettiRandomizeVisibleStepperStepSize() end},
-        vb:text{text = "Steps: ", width=50},
-        stepcount_text
-      },
-      vb:row{
-        vb:text{text = "Offset", style="strong", font="Bold", width=70},
-        offset_slider,
-        vb:text{text = "← Down | Up →", width=100}
-      },
-      vb:row{
-        vb:text{text = "Actions", style="strong", font="Bold", width=70},
-        vb:button{text = "Clear", width=75, pressed = function() PakettiClearVisibleStepper() end},
-        vb:button{text = "0.0 (Off)", width=75, pressed = function() PakettiFillVisibleStepperOff() end},
-        vb:button{text = "0.5 (Center)", width=85, pressed = function() PakettiFillVisibleStepperMiddle() end},
-        vb:button{text = "1.0 (Full)", width=75, pressed = function() PakettiFillVisibleStepperFull() end},
-        vb:button{text = "Fluctuate", width=75, pressed = function() PakettiFillVisibleStepperFluctuate() end},
-        vb:button{text = "Humanize", width=75, pressed = function() PakettiApplyToVisibleStepper(PakettiFillStepperHumanize) end},
-        vb:button{text = "Random", width=75, pressed = function() PakettiApplyToVisibleStepper(PakettiFillStepperRandom) end}
-      },
-      vb:row{
-        vb:text{text = "Waveforms", style="strong", font="Bold", width=70},
-        vb:button{text = "Ramp Up", width=75, pressed = function() PakettiFillVisibleStepperRampUp() end},
-        vb:button{text = "Ramp Down", width=85, pressed = function() PakettiFillVisibleStepperRampDown() end},
-        vb:button{text = "Sinewave", width=75, pressed = function() PakettiFillVisibleStepperSinewave() end},
-        vb:button{text = "Squarewave", width=85, pressed = function() PakettiFillVisibleStepperSquarewave() end},
-        vb:button{text = "Triangle", width=75, pressed = function() PakettiApplyToVisibleStepper(PakettiFillStepperTriangle) end},
-        vb:button{text = "Sawtooth", width=75, pressed = function() PakettiApplyToVisibleStepper(PakettiFillStepperSawtooth) end}
-      },
-      vb:row{
-        vb:text{text = "Modifiers", style="strong", font="Bold", width=70},
-        vb:button{text="Steps", width=75, pressed = function() PakettiApplyToVisibleStepper(PakettiFillStepperSteps) end},
-        vb:button{text="Smooth", width=75, pressed = function() PakettiApplyToVisibleStepper(PakettiSmoothStepperValues) end},
-        vb:button{text="Scale 50%", width=75, pressed = function() PakettiScaleVisibleStepperValues(0.5) end},
-        vb:button{text="Scale 150%", width=85, pressed = function() PakettiScaleVisibleStepperValues(1.5) end},
-        vb:button{text="Quantize", width=75, pressed = function() PakettiApplyToVisibleStepper(PakettiQuantizeStepperValues) end}
-      },
-      vb:row{
-        vb:text{text="", width=70},
-        vb:button{text="Scale 200%", width=75, pressed = function() PakettiScaleVisibleStepperValues(2.0) end},
-        vb:button{text="Mirror", width=75, pressed = function() PakettiApplyToVisibleStepper(PakettiFillStepperMirror) end},
-        vb:button{text="Flip", width=75, pressed = function() PakettiApplyToVisibleStepper(PakettiFillStepperFlip) end},
-        vb:button{text="Copy", width=75, pressed = function() PakettiCopyStepperData() end},
-        vb:button{text="Paste", width=75, pressed = function() PakettiPasteStepperData() end}
-      }
+  -- Return the stepper dialog content
+  return vb:column{
+    vb:row{
+      vb:text{text = "Stepper", style="strong", font="Bold", width=70},
+      stepper_switch
     },
+    vb:row{
+      vb:text{text = "Global Steps", style="strong", font="Bold", width=70},
+      global_stepcount_valuebox,
+      vb:text{text = "Auto-applied to ALL steppers", width=200}
+    },
+    vb:row{
+      vb:text{text = "Step Size", style="strong", font="Bold", width=70},
+      stepsize_switch,
+      vb:button{text = "Random Size", width=85, pressed = function() PakettiRandomizeVisibleStepperStepSize() end},
+      vb:text{text = "Steps: ", width=50},
+      stepcount_text
+    },
+    vb:row{
+      vb:text{text = "Offset", style="strong", font="Bold", width=70},
+      offset_slider,
+      vb:text{text = "← Down | Up →", width=100}
+    },
+    vb:row{
+      vb:text{text = "Actions", style="strong", font="Bold", width=70},
+      vb:button{text = "Clear", width=75, pressed = function() PakettiClearVisibleStepper() end},
+      vb:button{text = "0.0 (Off)", width=75, pressed = function() PakettiFillVisibleStepperOff() end},
+      vb:button{text = "0.5 (Center)", width=85, pressed = function() PakettiFillVisibleStepperMiddle() end},
+      vb:button{text = "1.0 (Full)", width=75, pressed = function() PakettiFillVisibleStepperFull() end},
+      vb:button{text = "Fluctuate", width=75, pressed = function() PakettiFillVisibleStepperFluctuate() end},
+      vb:button{text = "Humanize", width=75, pressed = function() PakettiApplyToVisibleStepper(PakettiFillStepperHumanize) end},
+      vb:button{text = "Random", width=75, pressed = function() PakettiApplyToVisibleStepper(PakettiFillStepperRandom) end}
+    },
+    vb:row{
+      vb:text{text = "Waveforms", style="strong", font="Bold", width=70},
+      vb:button{text = "Ramp Up", width=75, pressed = function() PakettiFillVisibleStepperRampUp() end},
+      vb:button{text = "Ramp Down", width=85, pressed = function() PakettiFillVisibleStepperRampDown() end},
+      vb:button{text = "Sinewave", width=75, pressed = function() PakettiFillVisibleStepperSinewave() end},
+      vb:button{text = "Squarewave", width=85, pressed = function() PakettiFillVisibleStepperSquarewave() end},
+      vb:button{text = "Triangle", width=75, pressed = function() PakettiApplyToVisibleStepper(PakettiFillStepperTriangle) end},
+      vb:button{text = "Sawtooth", width=75, pressed = function() PakettiApplyToVisibleStepper(PakettiFillStepperSawtooth) end}
+    },
+    vb:row{
+      vb:text{text = "Modifiers", style="strong", font="Bold", width=70},
+      vb:button{text="Steps", width=75, pressed = function() PakettiApplyToVisibleStepper(PakettiFillStepperSteps) end},
+      vb:button{text="Smooth", width=75, pressed = function() PakettiApplyToVisibleStepper(PakettiSmoothStepperValues) end},
+      vb:button{text="Scale 50%", width=75, pressed = function() PakettiScaleVisibleStepperValues(0.5) end},
+      vb:button{text="Scale 150%", width=85, pressed = function() PakettiScaleVisibleStepperValues(1.5) end},
+      vb:button{text="Quantize", width=75, pressed = function() PakettiApplyToVisibleStepper(PakettiQuantizeStepperValues) end}
+    },
+    vb:row{
+      vb:text{text="", width=70},
+      vb:button{text="Scale 200%", width=75, pressed = function() PakettiScaleVisibleStepperValues(2.0) end},
+      vb:button{text="Mirror", width=75, pressed = function() PakettiApplyToVisibleStepper(PakettiFillStepperMirror) end},
+      vb:button{text="Flip", width=75, pressed = function() PakettiApplyToVisibleStepper(PakettiFillStepperFlip) end},
+      vb:button{text="Copy", width=75, pressed = function() PakettiCopyStepperData() end},
+      vb:button{text="Paste", width=75, pressed = function() PakettiPasteStepperData() end}
+    },
+    vb:row{
+      vb:text{text = "Reset", style="strong", font="Bold", width=70},
+      vb:button{
+        text = "Reset All Steppers",
+        width = 200,
+        notifier = function()
+          -- First reset all steppers
+          ResetAllSteppers()
+          -- Then start playback
+          renoise.song().transport:start(renoise.Transport.PLAYMODE_RESTART_PATTERN)
+        end
+      }
+    }
+  }
+end
+
+function PakettiSteppersDialog()
+  if dialog and dialog.visible then
+    dialog:close()
+    dialog=nil
+    return
+  end
+
+  dialog = renoise.app():show_custom_dialog("Paketti Steppers",
+    PakettiCreateStepperDialogContent(vb),
     create_keyhandler_for_dialog(
       function() return dialog end,
       function(value) dialog = value end
