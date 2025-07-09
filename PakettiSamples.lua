@@ -3376,6 +3376,8 @@ local function loadRandomDrumkitSamples(num_samples, folder_path)
 end
 
 -- Main dialog function
+local dialog = nil  -- Add proper dialog variable declaration for User-Defined Samples Dialog
+
 function pakettiUserDefinedSamplesDialog()
   if dialog and dialog.visible then
     dialog:close()
@@ -4942,13 +4944,13 @@ renoise.tool():add_keybinding{name="Global:Paketti:Fill Empty Sample Slots (Rand
 function sanitizeFolderPath(path)
   if not path then return nil end
   
-  -- Normalize path separators
-  local sanitized = path:gsub([[\]], [[/]])
+  -- Don't modify the original path - keep native separators
+  local sanitized = path
   
-  -- Remove any trailing slashes
-  sanitized = sanitized:gsub("/*$", "")
+  -- Remove any trailing slashes/backslashes
+  sanitized = sanitized:gsub("[/\\]*$", "")
   
-  -- Check if the path exists
+  -- Check if the path exists using the original path format
   if not os.rename(sanitized, sanitized) then
     print("-- Paketti Debug: Path does not exist:", sanitized)
     return nil

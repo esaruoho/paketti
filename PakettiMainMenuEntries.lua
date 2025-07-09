@@ -303,7 +303,7 @@ local function create_button_list()
   
   -- Add API 6.2+ specific dialogs only if supported
   if renoise.API_VERSION >= 6.2 then
-    table.insert(buttons, {"GUI Demo", "pakettiGUIDemo"})
+    table.insert(buttons, {"V3.5 GUI Demo", "pakettiGUIDemo"})
     table.insert(buttons, {"Paketti Enhanced Phrase Generator", "pakettiPhraseGeneratorDialog"})
   end
   

@@ -31,7 +31,7 @@ renoise.tool().app_new_document_observable:add_notifier(pakettiAutoHideDiskBrows
 
 -- Menu entries
 renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:Experimental:Auto-Hide Disk Browser on Song Load",
+  name = "Main Menu:Tools:Paketti:Xperimental/Work in Progress:Auto-Hide Disk Browser on Song Load",
   invoke = pakettiAutoHideDiskBrowserToggle,
   selected = pakettiAutoHideDiskBrowserIsEnabled
 }
@@ -990,8 +990,8 @@ function pakettiSampleVisualizerDialog()
   end
 end
 
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Sample:Visualize Sample (Bitmap)",invoke = pakettiSampleVisualizerDialog}
-renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Visualize Sample (Bitmap)",invoke = pakettiSampleVisualizerDialog}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Xperimental/Work in Progress:Visualize Sample (Bitmap)",invoke = pakettiSampleVisualizerDialog}
+renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Xperimental/Work in Progress:Visualize Sample (Bitmap)",invoke = pakettiSampleVisualizerDialog}
 renoise.tool():add_menu_entry{name = "--Sample Editor Ruler:Visualize Sample (Bitmap)",invoke = pakettiSampleVisualizerDialog}
 renoise.tool():add_keybinding{name = "Global:Paketti:Sample Visualizer (Bitmap)",invoke = pakettiSampleVisualizerDialog}
 renoise.tool():add_midi_mapping{name = "Paketti:Sample Visualizer (Bitmap)",invoke = function(message) if message:is_trigger() then pakettiSampleVisualizerDialog() end  end}
@@ -1438,9 +1438,9 @@ function pakettiSetInstrumentInfoDialogHeight()
 end
 
 -- Menu entries
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Instrument:Show Instrument Info (Status)",invoke = pakettiInstrumentInfoStatus}
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Instrument:Show Instrument Info (Dialog)",invoke = pakettiInstrumentInfoDialog}
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Instrument:Set Instrument Info Dialog Height",invoke = pakettiSetInstrumentInfoDialogHeight}
+renoise.tool():add_menu_entry{name = "--Main Menu:Tools:Paketti:Instruments:Show Instrument Info (Status)",invoke = pakettiInstrumentInfoStatus}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Instruments:Show Instrument Info (Dialog)",invoke = pakettiInstrumentInfoDialog}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Instruments:Set Instrument Info Dialog Height",invoke = pakettiSetInstrumentInfoDialogHeight}
 
 renoise.tool():add_menu_entry{name = "Instrument Box:Paketti:Show Instrument Info (Status)",invoke = pakettiInstrumentInfoStatus}
 renoise.tool():add_menu_entry{name = "Instrument Box:Paketti:Show Instrument Info (Dialog)",invoke = pakettiInstrumentInfoDialog}
@@ -1545,7 +1545,7 @@ function pakettiSetMidiOutputGlobally()
 end
 
 -- Add MIDI global function to appropriate menu sections
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Global:Set MIDI Output for All Instruments",invoke = pakettiSetMidiOutputGlobally}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Instruments:Set MIDI Output for All Instruments",invoke = pakettiSetMidiOutputGlobally}
 renoise.tool():add_menu_entry{name = "Instrument Box:Paketti:Set MIDI Output for All Instruments",invoke = pakettiSetMidiOutputGlobally}
 renoise.tool():add_keybinding{name = "Global:Paketti:Set MIDI Output for All Instruments",invoke = pakettiSetMidiOutputGlobally}
 renoise.tool():add_midi_mapping{name = "Paketti:Set MIDI Output for All Instruments",invoke = function(message) if message:is_trigger() then pakettiSetMidiOutputGlobally() end  end}
@@ -1621,22 +1621,22 @@ end
 
 -- Menu entries
 renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:Phrases:Disable Looping in All Phrases",
+  name = "Main Menu:Tools:Paketti:Phrase Editor:Disable Looping in All Phrases",
   invoke = pakettiDisableAllPhraseLooping
 }
 
 renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:Phrases:Enable Looping in All Phrases",
+  name = "Main Menu:Tools:Paketti:Phrase Editor:Enable Looping in All Phrases",
   invoke = pakettiEnableAllPhraseLooping
 }
 
 renoise.tool():add_menu_entry{
-  name = "Instrument Box:Paketti:Phrases:Disable Looping in All Phrases",
+  name = "Instrument Box:Paketti:Phrase Editor:Disable Looping in All Phrases",
   invoke = pakettiDisableAllPhraseLooping
 }
 
 renoise.tool():add_menu_entry{
-  name = "Instrument Box:Paketti:Phrases:Enable Looping in All Phrases",
+  name = "Instrument Box:Paketti:Phrase Editor:Enable Looping in All Phrases",
   invoke = pakettiEnableAllPhraseLooping
 }
 
@@ -2229,7 +2229,7 @@ end
 
 -- Menu entries
 renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:Samples:UIOWA Sample Importer",
+  name = "--Main Menu:Tools:Paketti:Samples:UIOWA Sample Importer",
   invoke = pakettiUIowaImporter
 }
 
@@ -2239,22 +2239,22 @@ renoise.tool():add_menu_entry{
 }
 
 renoise.tool():add_menu_entry{
-  name = "Instrument Box:Paketti:UIOWA Sample Importer",
+  name = "--Instrument Box:Paketti:Load:UIOWA Sample Importer",
   invoke = pakettiUIowaImporter
 }
 
 renoise.tool():add_menu_entry{
-  name = "Instrument Box:Paketti:UIOWA Sample Processor",
+  name = "Instrument Box:Paketti:Load:UIOWA Sample Processor",
   invoke = pakettiUIowaProcessor
 }
 
 renoise.tool():add_menu_entry{
-  name = "Sample Editor:Paketti:UIOWA Sample Importer",
+  name = "--Sample Editor:Paketti:Load:UIOWA Sample Importer",
   invoke = pakettiUIowaImporter
 }
 
 renoise.tool():add_menu_entry{
-  name = "Sample Editor:Paketti:UIOWA Sample Processor",
+  name = "Sample Editor:Paketti:Load:UIOWA Sample Processor",
   invoke = pakettiUIowaProcessor
 }
 

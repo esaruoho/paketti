@@ -603,7 +603,7 @@
     function() return dialog end,
     function(value) dialog = value end
   )
-  local dialog = renoise.app():show_custom_dialog("GUI Demo", dialog_content, keyhandler)
+  local dialog = renoise.app():show_custom_dialog("V3.5 GUI Demo", dialog_content, keyhandler)
   -- Reset cursor when dialog is closed
   renoise.tool().app_release_document_observable:add_notifier(function()
     if dialog_content then
@@ -945,4 +945,56 @@ renoise.tool():add_midi_mapping{name="Paketti:Metronome Volume x[Knob]",invoke=f
 
     renoise.tool():add_keybinding{name="Global:Paketti:Set Metronome Volume to (0) Silence",
       invoke=function() setMetronomeVolume(0) end}  
+
+-- Midi Input Octave Follow Functions
+function setMidiInputOctaveFollow(enabled)
+  renoise.song().transport.octave_enabled = enabled
+  local status_message = enabled and "Midi Input Octave Follow Enabled" or "Midi Input Octave Follow Disabled"
+  renoise.app():show_status(status_message)
+end
+
+function toggleMidiInputOctaveFollow()
+  local current_state = renoise.song().transport.octave_enabled
+  setMidiInputOctaveFollow(not current_state)
+end
+
+-- Menu entries
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:V3.5:Midi Input Octave Follow Enable", invoke=function() setMidiInputOctaveFollow(true) end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:V3.5:Midi Input Octave Follow Disable", invoke=function() setMidiInputOctaveFollow(false) end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:V3.5:Midi Input Octave Follow Toggle", invoke=function() toggleMidiInputOctaveFollow() end}
+
+-- Keybindings
+renoise.tool():add_keybinding{name="Global:Paketti:Midi Input Octave Follow Enable", invoke=function() setMidiInputOctaveFollow(true) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Midi Input Octave Follow Disable", invoke=function() setMidiInputOctaveFollow(false) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Midi Input Octave Follow Toggle", invoke=function() toggleMidiInputOctaveFollow() end}
+
+-- MIDI mappings
+renoise.tool():add_midi_mapping{name="Paketti:Midi Input Octave Follow Enable x[Trigger]", 
+  invoke=function(message) 
+    if message:is_trigger() then 
+      setMidiInputOctaveFollow(true) 
+    end 
+  end}
+
+renoise.tool():add_midi_mapping{name="Paketti:Midi Input Octave Follow Disable x[Trigger]", 
+  invoke=function(message) 
+    if message:is_trigger() then 
+      setMidiInputOctaveFollow(false) 
+    end 
+  end}
+
+renoise.tool():add_midi_mapping{name="Paketti:Midi Input Octave Follow Toggle x[Toggle]", 
+  invoke=function(message) 
+    if message:is_trigger() then 
+      toggleMidiInputOctaveFollow() 
+    end 
+  end}
+
+renoise.tool():add_midi_mapping{name="Paketti:Midi Input Octave Follow x[Button]", 
+  invoke=function(message) 
+    if message:is_abs_value() then 
+      setMidiInputOctaveFollow(message.int_value > 0) 
+    end 
+  end}
+
 end

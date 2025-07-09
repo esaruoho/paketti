@@ -504,8 +504,9 @@ invoke=function() loadnative("Audio/Effects/Native/Repeater",nil,"./Presets/Pake
 if renoise.API_VERSION >= 6.2 then
 renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise Notepad",
 invoke=function() loadnative("Audio/Effects/Native/Notepad") end}
+renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise Splitter",
+invoke=function() loadnative("Audio/Effects/Native/Splitter") end}
 end
-
 
 renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise Reverb",
 invoke=function() loadnative("Audio/Effects/Native/Reverb") end}

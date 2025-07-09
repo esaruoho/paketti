@@ -217,7 +217,6 @@ local function createControlBoxes(row, pattern, track_index)
       end
       local note_name = note_names[new_value + 1] or ("Note " .. new_value)
       print("Track " .. track_index .. " note changed to: " .. note_name)
-      refreshMatrixView()
     end
   }
   
@@ -239,7 +238,6 @@ local function createControlBoxes(row, pattern, track_index)
         end
       end
       print("Track " .. track_index .. " instrument changed to: " .. new_value .. " (internal: " .. (new_value - 1) .. ")")
-      refreshMatrixView()
     end
   }
 
@@ -261,7 +259,6 @@ local function createControlBoxes(row, pattern, track_index)
         end
       end
       print("Track " .. track_index .. " volume changed to: " .. new_value)
-      refreshMatrixView()
     end
   }
 
@@ -310,8 +307,7 @@ local function createStepCheckboxes(row, pattern, track_index)
           print("Step " .. i .. " deactivated on track " .. track_index)
         end
         
-        -- Refresh matrix view after note change
-        refreshMatrixView()
+        -- Matrix will update automatically via its own timer (if running)
       end
     }
     
@@ -350,9 +346,6 @@ local function createDeleteButton(row, pattern, track_index, checkboxes)
       end
       
       print("Track " .. track_index .. " cleared")
-      
-      -- Refresh matrix view after clearing track
-      refreshMatrixView()
     end
   }
 
@@ -463,9 +456,6 @@ function createStepSequencerDialog()
           end
         end
         
-        -- Refresh matrix view
-        refreshMatrixView()
-        
         print("Pattern data fetched and UI updated")
       end
     },
@@ -501,11 +491,11 @@ function createStepSequencerDialog()
   dialog_content:add_child(vb:space { height = 10 })
 
   -- Add Pattern Overview
-  dialog_content:add_child(vb:text { text = "Pattern Overview", font = "bold", style = "strong" })
+  dialog_content:add_child(vb:text { text = "Current Pattern Overview", font = "bold", style = "strong" })
   
-  -- Create matrix overview grid with height limit (Bug 1 fix)
-  matrix_container = vb:column {
-    height = 100,  -- Limit height to prevent dialog from becoming too large
+  -- Create matrix overview grid
+  local matrix_container = vb:column {
+    height = 50,  -- Smaller height since we only show current pattern
     style = "group",
     margin = 3
   }
@@ -598,9 +588,6 @@ function createStepSequencerDialog()
         end
       end
       print("All tracks cleared")
-      
-      -- Refresh matrix view after clearing all tracks
-      refreshMatrixView()
     end
   })
   
@@ -643,75 +630,79 @@ end
 -- Matrix Overview Functions
 -- Shows which tracks have data across all patterns in the song
 
--- Global storage for matrix bitmap references for live updates
-local matrix_bitmaps = {}
+-- Global storage for matrix grid container
+local matrix_grid_container = nil
 
--- Function to refresh the matrix overview
+-- Global references for UI elements that need updating
+local matrix_pattern_label = nil
+local matrix_track_bitmaps = {}
+
+-- Function to refresh the current pattern matrix
 function refreshMatrixView()
-  if renoise.song() == nil then return end
+  if renoise.song() == nil or not matrix_track_bitmaps then return end
   
   local song = renoise.song()
-  print("Refreshing matrix overview")
+  local current_pattern_index = song.selected_pattern_index
+  local pattern = song:pattern(current_pattern_index)
   
-  -- Update existing bitmap elements instead of recreating everything
-  for pattern_idx, pattern_bitmaps in pairs(matrix_bitmaps) do
-    local pattern = song:pattern(pattern_idx)
-    
-    for track_index, bitmap in pairs(pattern_bitmaps) do
-      if song:track(track_index).type == renoise.Track.TRACK_TYPE_SEQUENCER then
-        local track_has_data = false
-        
-        -- Check if track has data
-        for line_index, line in ipairs(pattern:track(track_index).lines) do
-          local line_empty = true
-          for _, note_column in ipairs(line.note_columns) do
-            if not note_column.is_empty then
-              line_empty = false
-              break
-            end
-          end
-          if not line_empty then
-            track_has_data = true
+  -- Update pattern label
+  if matrix_pattern_label then
+    matrix_pattern_label.text = "P" .. string.format("%02d", current_pattern_index)
+  end
+  
+  -- Update each track bitmap
+  for track_index, bitmap in pairs(matrix_track_bitmaps) do
+    if track_index <= #song.tracks and song:track(track_index).type == renoise.Track.TRACK_TYPE_SEQUENCER then
+      local track_has_data = false
+      
+      -- Check if track has data
+      for line_index, line in ipairs(pattern:track(track_index).lines) do
+        local line_empty = true
+        for _, note_column in ipairs(line.note_columns) do
+          if not note_column.is_empty then
+            line_empty = false
             break
           end
         end
-        
-        -- Update bitmap
-        local new_bitmap = track_has_data and "hotelsinus_stepseq/default_8x8.png" or "hotelsinus_stepseq/default_8x8_none.png"
-        bitmap.bitmap = new_bitmap
+        if not line_empty then
+          track_has_data = true
+          break
+        end
       end
+      
+      -- Update bitmap
+      local new_bitmap = track_has_data and "hotelsinus_stepseq/default_8x8.png" or "hotelsinus_stepseq/default_8x8_none.png"
+      bitmap.bitmap = new_bitmap
+      
+      -- Update tooltip
+      local track_name = song:track(track_index).name
+      bitmap.tooltip = "Pattern " .. current_pattern_index .. ", Track " .. track_index .. " (" .. track_name .. ")"
     end
   end
-  
-  print("Matrix bitmaps updated")
 end
 
--- Create matrix grid component for embedding in main dialog
+-- Create matrix grid component for CURRENT PATTERN ONLY
 function createMatrixGrid(song)
   if song == nil then 
-    print("No song loaded - cannot create Matrix Grid")
     return nil
   end
   
-  print("Creating Matrix Grid for " .. #song.sequencer.pattern_sequence .. " patterns")
-
-  -- Create columns and buttons based on tracks and patterns
-  local row_elements = {}  -- Rows
-  local num_tracks = #song.tracks
-
-  -- Create header row with track labels first (Bug 5 fix - ensure consistent alignment)
+  -- Get current pattern only
+  local pattern = song:pattern(song.selected_pattern_index)
+  
+  -- Create header row with track labels
   local header_row = vb:row {
-    spacing = 1  -- Small spacing for readability
+    spacing = 1
   }
   
-  header_row:add_child(vb:text { text = "Ptn", width = 25, font = "bold", align = "center" })
+  header_row:add_child(vb:text { text = "Track", width = 40, font = "bold", align = "center" })
   
   -- Only show headers for sequencer tracks
   for track_index, track in ipairs(song.tracks) do
     if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
       header_row:add_child(vb:text {
         text = tostring(track_index),
-        width = 10,  -- Slightly wider for better spacing
+        width = 10,
         font = "mono",
         align = "center",
         tooltip = "Track " .. track_index .. " (" .. track.name .. ")"
@@ -719,121 +710,161 @@ function createMatrixGrid(song)
     end
   end
   
-  table.insert(row_elements, header_row)
+  -- Create data row for current pattern
+  local data_row = vb:row {
+    spacing = 1
+  }
+  
+  -- Add pattern label (store reference for updates)
+  matrix_pattern_label = vb:text {
+    text = "P" .. string.format("%02d", song.selected_pattern_index),
+    width = 40,
+    font = "mono",
+    align = "center"
+  }
+  data_row:add_child(matrix_pattern_label)
+  
+  -- Initialize storage
+  matrix_track_bitmaps = {}
+  
+  -- Check each track for data (only sequencer tracks)
+  for track_index, track in ipairs(song.tracks) do
+    if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+      local track_has_data = false
+      local track_bitmap = "hotelsinus_stepseq/default_8x8_none.png"
 
-  -- Initialize matrix_bitmaps storage
-  matrix_bitmaps = {}
-
-  -- Process all patterns
-  for _, pattern_index in ipairs(song.sequencer.pattern_sequence) do
-    local row = vb:row {  -- Row
-      spacing = 1  -- Small spacing to match header
-    }
-
-    -- Get current pattern object
-    local pattern = song:pattern(pattern_index)
-
-    -- Add pattern number label
-    row:add_child(vb:text {
-      text = "P" .. string.format("%02d", pattern_index),
-      width = 25,
-      font = "mono",
-      align = "center"
-    })
-
-    -- Initialize pattern entry in matrix_bitmaps
-    if not matrix_bitmaps[pattern_index] then
-      matrix_bitmaps[pattern_index] = {}
-    end
-
-    -- Check each track separately for data (only sequencer tracks)
-    for track_index, track in ipairs(song.tracks) do
-      if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
-        local track_has_data = false
-        local track_bitmap = "hotelsinus_stepseq/default_8x8_none.png"  -- Default "no data" bitmap
-
-        for line_index, line in ipairs(pattern:track(track_index).lines) do
-          local line_empty = true  -- No data in this specific line
-          for _, note_column in ipairs(line.note_columns) do
-            if not note_column.is_empty then
-              line_empty = false  -- There is data in the given line
-              break
-            end
-          end
-          if not line_empty then
-            track_has_data = true
-            track_bitmap = "hotelsinus_stepseq/default_8x8.png"  -- There is data on the track
+      for line_index, line in ipairs(pattern:track(track_index).lines) do
+        local line_empty = true
+        for _, note_column in ipairs(line.note_columns) do
+          if not note_column.is_empty then
+            line_empty = false
             break
           end
         end
-
-        -- Create bitmap element
-        local bitmap_element = vb:bitmap {
-          bitmap = track_bitmap,
-          width = 8,
-          height = 8,
-          tooltip = "Pattern " .. pattern_index .. ", Track " .. track_index .. " (" .. track.name .. ")"
-        }
-
-        -- Store bitmap reference for updates
-        matrix_bitmaps[pattern_index][track_index] = bitmap_element
-
-        -- Add bitmap with container for consistent spacing
-        local bitmap_container = vb:horizontal_aligner {
-          width = 10,  -- Same width as header
-          bitmap_element
-        }
-        row:add_child(bitmap_container)
+        if not line_empty then
+          track_has_data = true
+          track_bitmap = "hotelsinus_stepseq/default_8x8.png"
+          break
+        end
       end
-    end
 
-    table.insert(row_elements, row)
+      -- Create bitmap element
+      local bitmap_element = vb:bitmap {
+        bitmap = track_bitmap,
+        width = 8,
+        height = 8,
+        tooltip = "Pattern " .. song.selected_pattern_index .. ", Track " .. track_index .. " (" .. track.name .. ")"
+      }
+
+      -- Store bitmap reference for updates
+      matrix_track_bitmaps[track_index] = bitmap_element
+
+      -- Add bitmap with container for consistent spacing
+      local bitmap_container = vb:horizontal_aligner {
+        width = 10,
+        bitmap_element
+      }
+      data_row:add_child(bitmap_container)
+    end
   end
 
-  -- Create compact matrix area
-  local matrix_scroller = vb:vertical_aligner {
-    spacing = 1,
-    vb:vertical_aligner(row_elements)
+  -- Create simple matrix area
+  local matrix_content = vb:column {
+    spacing = 2,
+    header_row,
+    data_row
   }
 
-  return matrix_scroller
+  return matrix_content
 end
+
+-- Global reference for standalone matrix dialog
+local matrix_dialog = nil
+local matrix_update_timer = nil
+local current_pattern_index = nil
 
 -- Create the standalone matrix overview dialog (for menu/keybinding)
 function createMatrixOverview()
+  -- Close existing dialog if open
+  if matrix_dialog and matrix_dialog.visible then
+    matrix_dialog:close()
+    matrix_dialog = nil
+  end
+  
   if renoise.song() == nil then 
-    print("No song loaded - cannot create Matrix Overview")
     return 
   end
   
   local song = renoise.song()
-  local dialog_title = "Matrix Overview - Pattern Data Visualization"
+  local dialog_title = "Current Pattern Overview"
   
-  local dialog_content = vb:vertical_aligner {
-   -- spacing = 5,
-    margin = 10,
-    createMatrixGrid(song)
+  -- Initialize current pattern tracking
+  current_pattern_index = song.selected_pattern_index
+  
+  -- Create container for the matrix grid that can be rebuilt
+  matrix_grid_container = vb:column {
+    margin = 3
   }
+  
+  -- Initialize the grid
+  local initial_grid = createMatrixGrid(song)
+  if initial_grid then
+    matrix_grid_container:add_child(initial_grid)
+  end
+
+  local dialog_content = vb:column {
+    margin = 10,
+    matrix_grid_container
+  }
+
+  -- Simple update function that just refreshes the UI
+  local function updateMatrix()
+    if not matrix_dialog or not matrix_dialog.visible then return end
+    if not renoise.song() then return end
+    
+    local new_pattern_index = renoise.song().selected_pattern_index
+    
+    -- Update current pattern tracking
+    current_pattern_index = new_pattern_index
+    
+    -- Just refresh the existing UI - it handles pattern changes automatically
+    refreshMatrixView()
+  end
 
   -- Display window
   local keyhandler = create_keyhandler_for_dialog(
-    function() return dialog end,
-    function(value) dialog = value end
+    function() return matrix_dialog end,
+    function(value) 
+      matrix_dialog = value 
+      if not value then
+        -- Dialog closed, stop timer and clear references
+        if matrix_update_timer then
+          matrix_update_timer:stop()
+          matrix_update_timer = nil
+        end
+        
+                 -- Clear global matrix references
+         matrix_grid_container = nil
+         matrix_track_bitmaps = {}
+         matrix_pattern_label = nil
+         current_pattern_index = nil
+      end
+    end
   )
-  local result = renoise.app():show_custom_dialog(dialog_title, dialog_content, keyhandler)
-  renoise.app().window.active_middle_frame=renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
-
   
-  if result then
-    print("Matrix Overview dialog confirmed")
-  else
-    print("Matrix Overview dialog closed")
+  matrix_dialog = renoise.app():show_custom_dialog(dialog_title, dialog_content, keyhandler)
+  
+  -- Start timer after dialog is created
+  if matrix_dialog then
+    matrix_update_timer = renoise.tool():add_timer(updateMatrix, 250)
   end
+  
+  renoise.app().window.active_middle_frame=renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 end
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Hotelsinus:Matrix Overview",invoke = function() createMatrixOverview() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/Work in Progress:Hotelsinus Matrix Overview",invoke = function() createMatrixOverview() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/Work in Progress:Hotelsinus Step Sequencer",invoke = function() createStepSequencerDialog() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Hotelsinus Matrix Overview", invoke = function() createMatrixOverview() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Hotelsinus:Step Sequencer",invoke = function() createStepSequencerDialog() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Hotelsinus Step Sequencer",invoke=function() createStepSequencerDialog() end}
 
 

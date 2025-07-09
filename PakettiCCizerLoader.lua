@@ -542,14 +542,14 @@ function PakettiCreateMIDIControlFromTextFile()
   end
   
 
-   
+   --[[
    -- Menu entries for the new function
-   renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Experimental:Create MIDI Control from Text File", invoke=function() PakettiCreateMIDIControlFromTextFile() end}
+   renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental:Create MIDI Control from Text File", invoke=function() PakettiCreateMIDIControlFromTextFile() end}
    renoise.tool():add_menu_entry{name="DSP Device:Paketti:Experimental:Create MIDI Control from Text File", invoke=function() PakettiCreateMIDIControlFromTextFile() end}
    renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti:Experimental:Create MIDI Control from Text File", invoke=function() PakettiCreateMIDIControlFromTextFile() end}
    renoise.tool():add_menu_entry{name="Mixer:Paketti:Experimental:Create MIDI Control from Text File", invoke=function() PakettiCreateMIDIControlFromTextFile() end}
    renoise.tool():add_keybinding{name="Global:Paketti:Create MIDI Control from Text File", invoke=function() PakettiCreateMIDIControlFromTextFile() end}
-
+]]--
 -- Function to apply CCizer mappings to the currently selected device (or create new one if needed)
 local function apply_ccizer_to_selected_device(mappings, filename)
     if not mappings or #mappings == 0 then
@@ -1015,7 +1015,7 @@ function paketti_debug_dump_complete_renoise_api()
 end
 
 -- Add debug menu entry
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:!Debug:Dump Complete Renoise API", invoke = paketti_debug_dump_complete_renoise_api}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:!Preferences:Debug:Dump Complete Renoise API", invoke = paketti_debug_dump_complete_renoise_api}
 
 
 

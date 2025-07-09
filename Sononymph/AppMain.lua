@@ -103,30 +103,30 @@ renoise.tool():add_keybinding{name="Global:Sononymph:Search Selected Sample in S
 renoise.tool():add_keybinding{name="Global:Sononymph:Load Selected Sample from Sononym (Prompt) [Trigger]", invoke = function() start(false) if app then app:load_selected_sample_from_sononym(true) end end}
 renoise.tool():add_keybinding{name="Global:Sononymph:Load Selected Sample from Sononym (No Prompt) [Trigger]", invoke = function() start(false) if app then app:load_selected_sample_from_sononym(false) end end}
 
-renoise.tool():add_menu_entry{name="Instrument Box:Sononymph:Open Sononymph Dialog...", invoke = function() start(true) end}
-renoise.tool():add_menu_entry{name="--Instrument Box:Sononymph:Toggle Sononym Auto-Transfer", invoke = function() start(false) if app then app:toggle_live_transfer() end end}
-renoise.tool():add_menu_entry{name="Instrument Box:Sononymph:Search Selected Sample in Sononym", invoke = search_selected_sample}
-renoise.tool():add_menu_entry{name="Instrument Box:Sononymph:Load Selected Sample from Sononym (Prompt)", invoke = function() start(false) if app then app:load_selected_sample_from_sononym(true) end end}
-renoise.tool():add_menu_entry{name="Instrument Box:Sononymph:Load Selected Sample from Sononym (No Prompt)", invoke = function() start(false) if app then app:load_selected_sample_from_sononym(false) end end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti Gadgets:Sononymph Dialog...", invoke = function() start(true) end}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti:Samples:Sononymph:Toggle Sononym Auto-Transfer", invoke = function() start(false) if app then app:toggle_live_transfer() end end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Samples:Sononymph:Search Selected Sample in Sononym", invoke = search_selected_sample}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Samples:Sononymph:Load Selected Sample from Sononym (Prompt)", invoke = function() start(false) if app then app:load_selected_sample_from_sononym(true) end end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Samples:Sononymph:Load Selected Sample from Sononym (No Prompt)", invoke = function() start(false) if app then app:load_selected_sample_from_sononym(false) end end}
 
-renoise.tool():add_menu_entry{name="Sample Editor:Sononymph:Open Sononymph Dialog...", invoke = function() start(true) end}
-renoise.tool():add_menu_entry{name="--Sample Editor:Sononymph:Toggle Sononym Auto-Transfer", invoke = function() start(false) if app then app:toggle_live_transfer() end end}
-renoise.tool():add_menu_entry{name="Sample Editor:Sononymph:Search Selected Sample in Sononym", invoke = search_selected_sample}
-renoise.tool():add_menu_entry{name="Sample Editor:Sononymph:Load Selected Sample from Sononym (Prompt)", invoke = function() start(false) if app then app:load_selected_sample_from_sononym(true) end end}
-renoise.tool():add_menu_entry{name="Sample Editor:Sononymph:Load Selected Sample from Sononym (No Prompt)", invoke = function() start(false) if app then app:load_selected_sample_from_sononym(false) end end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti Gadgets:Sononymph Dialog...", invoke = function() start(true) end}
+renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Samples:Sononymph:Toggle Sononym Auto-Transfer", invoke = function() start(false) if app then app:toggle_live_transfer() end end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Samples:Sononymph:Search Selected Sample in Sononym", invoke = search_selected_sample}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Samples:Sononymph:Load Selected Sample from Sononym (Prompt)", invoke = function() start(false) if app then app:load_selected_sample_from_sononym(true) end end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Samples:Sononymph:Load Selected Sample from Sononym (No Prompt)", invoke = function() start(false) if app then app:load_selected_sample_from_sononym(false) end end}
 
-renoise.tool():add_menu_entry{name="Sample Navigator:Sononymph:Open Sononymph Dialog...", invoke = function() start(true) end}
-renoise.tool():add_menu_entry{name="--Sample Navigator:Sononymph:Toggle Sononym Auto-Transfer", invoke = function() start(false) if app then app:toggle_live_transfer() end end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Sononymph:Search Selected Sample in Sononym", invoke = search_selected_sample}
-renoise.tool():add_menu_entry{name="Sample Navigator:Sononymph:Load Selected Sample to Selected Slot", invoke = function() start(false) if app then app:load_selected_sample_to_selected_slot() end end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Sononymph:Load Selected Sample from Sononym (Prompt)", invoke = function() start(false) if app then app:load_selected_sample_from_sononym(true) end end}
-renoise.tool():add_menu_entry{name="Sample Navigator:Sononymph:Load Selected Sample from Sononym (No Prompt)", invoke = function() start(false) if app then app:load_selected_sample_from_sononym(false) end end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti Gadgets:Sononymph Dialog...", invoke = function() start(true) end}
+renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti:Samples:Sononymph:Toggle Sononym Auto-Transfer", invoke = function() start(false) if app then app:toggle_live_transfer() end end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Samples:Sononymph:Search Selected Sample in Sononym", invoke = search_selected_sample}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Samples:Sononymph:Load Selected Sample to Selected Slot", invoke = function() start(false) if app then app:load_selected_sample_to_selected_slot() end end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Samples:Sononymph:Load Selected Sample from Sononym (Prompt)", invoke = function() start(false) if app then app:load_selected_sample_from_sononym(true) end end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Samples:Sononymph:Load Selected Sample from Sononym (No Prompt)", invoke = function() start(false) if app then app:load_selected_sample_from_sononym(false) end end}
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Sononymph:Open Sononymph Dialog...", invoke = function() start(true) end}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Sononymph:Toggle Sononym Auto-Transfer", invoke = function() start(false) if app then app:toggle_live_transfer() end end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Sononymph:Search Selected Sample in Sononym", invoke = search_selected_sample}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Sononymph:Load Selected Sample from Sononym (Prompt)", invoke = function() start(false) if app then app:load_selected_sample_from_sononym(true) end end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Sononymph:Load Selected Sample from Sononym (No Prompt)", invoke = function() start(false) if app then app:load_selected_sample_from_sononym(false) end end}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets:Sononymph Dialog...", invoke = function() start(true) end}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Samples:Sononymph:Toggle Sononym Auto-Transfer", invoke = function() start(false) if app then app:toggle_live_transfer() end end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Samples:Sononymph:Search Selected Sample in Sononym", invoke = search_selected_sample}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Samples:Sononymph:Load Selected Sample from Sononym (Prompt)", invoke = function() start(false) if app then app:load_selected_sample_from_sononym(true) end end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Samples:Sononymph:Load Selected Sample from Sononym (No Prompt)", invoke = function() start(false) if app then app:load_selected_sample_from_sononym(false) end end}
 
 -- Random sample menu entry (COMMENTED OUT - flip_a_coin function not yet supported by Sononym)
 --[[
@@ -161,8 +161,8 @@ renoise.tool():add_keybinding{
 ---------------------------------------------------------------------------------------------------
 -- tool menu entries
 function register_tool_menu()
-  local str_name = "Main Menu:Tools:Sononymph:Sononymph..."
-  local str_name_active = "Main Menu:Tools:Sononymph:Sononymph (active)..."
+  local str_name = "Main Menu:Tools:Paketti:Samples:Sononymph:Sononymph..."
+  local str_name_active = "Main Menu:Tools:Paketti:Samples:Sononymph:Sononymph (active)..."
 
   if renoise.tool():has_menu_entry(str_name) then
     renoise.tool():remove_menu_entry(str_name)

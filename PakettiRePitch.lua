@@ -526,10 +526,6 @@ function pakettiSimpleSampleTuningDialog()
   update_algorithm_switch()
 end
 
--- =========================================
--- MENU ENTRIES & KEYBINDINGS
--- =========================================
-
 -- Function to toggle algorithm preference from menu
 function pakettiRePitchToggleAlgorithm()
   if preferences then
@@ -549,7 +545,7 @@ end
 
 -- Menu entries
 renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:Sample:Pitch Analysis Algorithm:Enhanced (Whodis-based)",
+  name = "Main Menu:Tools:Paketti:Samples:Pitch Analysis Algorithm:Enhanced (Whodis-based)",
   invoke = function() 
     if preferences then 
       preferences.pakettiRePitchEnhanced = true
@@ -560,7 +556,7 @@ renoise.tool():add_menu_entry{
 }
 
 renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:Sample:Pitch Analysis Algorithm:Original (Simple)",
+  name = "Main Menu:Tools:Paketti:Samples:Pitch Analysis Algorithm:Original (Simple)",
   invoke = function() 
     if preferences then 
       preferences.pakettiRePitchEnhanced = false

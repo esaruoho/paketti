@@ -743,20 +743,21 @@ end
 -- Register keybindings and menu entries for hardcoded presets
 for i = 1, 6 do
   renoise.tool():add_keybinding{name="Global:Paketti:Apply Custom LFO Preset " .. i, invoke=function() pakettiApplyCustomLFO(i) end}
-  renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Custom LFO Envelopes:Apply Custom LFO Preset " .. i, invoke=function() pakettiApplyCustomLFO(i) end}
+  renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Apply Custom LFO Preset " .. i, invoke=function() pakettiApplyCustomLFO(i) end}
   renoise.tool():add_menu_entry{name="DSP Device:Paketti:Custom LFO Envelopes:Apply Custom LFO Preset " .. i, invoke=function() pakettiApplyCustomLFO(i) end}
 end
 
 -- Register menu entries for storing
 for i = 1, 16 do
-  renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Custom LFO Envelopes:Store Current LFO to Slot " .. i, invoke=function() pakettiStoreCustomLFO(i) end}
+  renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Store Current LFO to Slot " .. i, invoke=function() pakettiStoreCustomLFO(i) end}
   renoise.tool():add_menu_entry{name="DSP Device:Paketti:Custom LFO Envelopes:Store Current LFO to Slot " .. i, invoke=function() pakettiStoreCustomLFO(i) end}
 end
 
 -- Register menu entries for loading
 for i = 1, 16 do
-  renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Custom LFO Envelopes:Load LFO from Slot " .. i, invoke=function() pakettiLoadCustomLFO(i) end}
-  renoise.tool():add_menu_entry{name="DSP Device:Paketti:Custom LFO Envelopes:Load LFO from Slot " .. i, invoke=function() pakettiLoadCustomLFO(i) end}
+  local menu_prefix = (i == 1) and "--" or ""
+  renoise.tool():add_menu_entry{name=menu_prefix .. "Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Load LFO from Slot " .. i, invoke=function() pakettiLoadCustomLFO(i) end}
+  renoise.tool():add_menu_entry{name=menu_prefix .. "DSP Device:Paketti:Custom LFO Envelopes:Load LFO from Slot " .. i, invoke=function() pakettiLoadCustomLFO(i) end}
 end
 
 -- Register keybindings for slots
@@ -765,4 +766,4 @@ for i = 1, 16 do
   renoise.tool():add_keybinding{name="Global:Paketti:Load LFO from Slot " .. i, invoke=function() pakettiLoadCustomLFO(i) end}
 end
 
-print("PakettiXMLizer: Loaded with 6 hardcoded presets and 16 custom LFO slots available")
+--print("PakettiXMLizer: Loaded with 6 hardcoded presets and 16 custom LFO slots available")

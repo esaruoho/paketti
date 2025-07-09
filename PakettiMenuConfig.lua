@@ -1180,6 +1180,8 @@ renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets:Fuzzy Sear
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets:Largest Samples Dialog...",invoke = pakettiShowLargestSamplesDialog}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets:Unison Generator",invoke=PakettiCreateUnisonSamples}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets:Show Paketti Formula Dialog...",invoke = pakettiFormulaDeviceDialog}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets:Paketti Stacker...",invoke=function() pakettiStackerDialog(proceed_with_stacking, on_switch_changed, PakettiIsolateSlicesToInstrument) end}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets:Paketti Beat Structure Editor...",invoke=pakettiBeatStructureEditorDialog}
 
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets:Keyzone Distributor Dialog...",invoke=function() pakettiKeyzoneDistributorDialog() end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets:Paketti Action Selector Dialog...",invoke = pakettiActionSelectorDialog}
@@ -1188,8 +1190,6 @@ renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets:Paketti Gr
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets:Paketti BPM to MS Delay Calculator Dialog...", invoke = pakettiBPMMSCalculator}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets:Paketti Volume/Delay/Pan Slider Controls...",invoke=function() pakettiVolDelayPanSliderDialog() end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets:Show/Hide User Preference Devices Master Dialog (SlotShow)...",invoke=function() pakettiUserPreferencesShowerDialog() end}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets:Paketti Tuplet Writer Dialog...",invoke=function() pakettiTupletDialog() end}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets:PitchStepper Demo",invoke=function() pakettiPitchStepperDemo() end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets:Quick Load Device Dialog...", invoke=pakettiQuickLoadDialog}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets:Paketti Sequencer Settings Dialog...",invoke = pakettiSequencerSettingsDialog}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets:Paketti Dialog of Dialogs...",invoke=function() pakettiDialogOfDialogsToggle() end}
@@ -1225,6 +1225,8 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/Work in 
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Xperimental/Work in Progress:Match Effect Column EditStep with Note Placement",invoke=function() toggle_match_editstep_effect() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/Work in Progress:Match Note Column EditStep with Note Placement",invoke=function() toggle_match_editstep_note() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/Work in Progress:Match EditStep with Delay Pattern",invoke=function() toggle_match_editstep() end}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Xperimental/Work in Progress:Paketti Tuplet Writer Dialog...",invoke=function() pakettiTupletDialog() end}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Xperimental/Work in Progress:PitchStepper Demo",invoke=function() pakettiPitchStepperDemo() end}
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/Work in Progress:Audio Processing Tools...",invoke=function() pakettiAudioProcessingToolsDialog() end}
 local os_name = os.getenv("OS") or os.getenv("OSTYPE") or (io.popen("uname -s"):read("*l"))
@@ -1272,15 +1274,13 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Show 
 
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Merge Instruments Dialog...",invoke=function() pakettiMergeInstrumentsDialog() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Samples:Load Samples from .MOD",invoke=function() load_samples_from_mod() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:File Formats:Load Samples from .MOD",invoke=function() load_samples_from_mod() end}
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Paketti Offset Dialog...",invoke=pakettiOffsetDialog }
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Samples:Paketti Offset Dialog...",invoke=pakettiOffsetDialog }
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Replace FC with 0L",invoke=function() ReplaceLegacyEffect("FC", "0L") end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Group Samples by Name to New Instruments", invoke=PakettiGroupSamplesByName}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Delete Unused Columns", invoke = deleteUnusedColumns}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Toggle Global Groove on Startup On/Off",invoke=pakettiToggleGlobalGrooveOnStartup}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Paketti Stacker...",invoke=function() pakettiStackerDialog(proceed_with_stacking, on_switch_changed, PakettiIsolateSlicesToInstrument) end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Paketti Beat Structure Editor...",invoke=pakettiBeatStructureEditorDialog}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:BPM&LPB:Paketti Speed and Tempo to BPM Dialog...",invoke=pakettiSpeedTempoDialog}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Pattern Editor:Visible Columns:Hide All Unused Columns (All Tracks)", invoke=function() PakettiHideAllUnusedColumns() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Visible Columns:Hide All Unused Columns (Selected Track)", invoke=function() PakettiHideAllUnusedColumnsSelectedTrack() end}
@@ -1485,13 +1485,11 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Plugins/Devices:Expo
 end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Global Volume Reduce All Samples by -4.5dB",invoke=function() reduceSamplesVolume(4.5) end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Paketti Global Volume Adjustment...",invoke=function() pakettiGlobalVolumeDialog() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Save Unused Instruments (.XRNI)...",invoke=saveUnusedInstruments}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Save Unused Instruments (.XRNI)...",invoke=saveUnusedInstruments}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Delete Unused Instruments...",invoke=deleteUnusedInstruments}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Delete Unused Samples...",invoke=deleteUnusedSamples}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Duplicate Pattern Above & Clear Muted",invoke=duplicate_pattern_and_clear_muted_above}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Duplicate Pattern Below & Clear Muted",invoke=duplicate_pattern_and_clear_muted}
-
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Generate Shortcuts",invoke=function() show_plugin_list_dialog() end}
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:File Formats:Export .PTI Instrument",invoke=pti_savesample}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern/Phrase Length Dialog...",invoke=function() pakettiLengthDialog() end}
@@ -1529,7 +1527,7 @@ renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Plugins/Devices:De
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Plugins/Devices:Expose/Hide Selected Device Parameters in Mixer",invoke=function() exposeHideParametersInMixer() end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Plugins/Devices:Randomize Devices and Plugins Dialog...",invoke=function() pakettiRandomizerDialog() end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Plugins/Devices:Debug:Dump VST/VST3/AU/LADSPA/DSSI/Native Effects to Dialog...",invoke=function() show_available_plugins_dialog() end}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Samples:Load .MOD as Sample",
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Instruments:File Formats:Load .MOD as Sample",
   invoke=function() 
     local file_path = renoise.app():prompt_for_filename_to_read({"*.mod","mod.*"}, "Select Any File to Load as Sample")
     if file_path ~= "" then
