@@ -6423,3 +6423,258 @@ end }
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:List of Installed Tools", invoke=function()
   pakettiListInstalledTools()
 end }
+
+-- ======================================
+-- DetectBitDepth Integration (danoise)
+-- ======================================
+
+-- Core bit depth detection function (based on danoise's DetectBitDepth.lua)
+function PakettiDetectBitDepthGetBitDepth(sample)
+  local function PakettiDetectBitDepthReverse(t)
+    local nt = {}
+    local size = #t + 1
+    for k,v in ipairs(t) do
+      nt[size - k] = v
+    end
+    return nt
+  end
+  
+  local function PakettiDetectBitDepthToBits(num)
+    local t = {}
+    while num > 0 do
+      local rest = num % 2
+      t[#t + 1] = rest
+      num = (num - rest) / 2
+    end
+    t = PakettiDetectBitDepthReverse(t)
+    return t
+  end
+  
+  -- Variables and calculations
+  local bit_depth = 0
+  local sample_max = math.pow(2, 32) / 2
+  local buffer = sample.sample_buffer
+  
+  -- If we have sample data to analyze
+  if (buffer.has_sample_data) then
+    local channels = buffer.number_of_channels
+    local frames = buffer.number_of_frames
+    
+    -- For each frame
+    for f = 1, frames do
+      -- For each channel
+      for c = 1, channels do
+        -- Convert float to 32-bit unsigned int
+        local s = (1 + buffer:sample_data(c, f)) * sample_max
+        
+        -- Measure bits used
+        local bits = PakettiDetectBitDepthToBits(s)
+        for b = 1, #bits do
+          if bits[b] == 1 then
+            if b > bit_depth then
+              bit_depth = b
+            end
+          end
+        end
+      end
+    end
+  end
+  
+  return bit_depth
+end
+
+-- Simple status display function
+function pakettiDetectBitDepthStatus()
+  local song = renoise.song()
+  local sample = song.selected_sample
+  
+  if not sample then
+    renoise.app():show_status("No sample selected")
+    return
+  end
+  
+  if not sample.sample_buffer.has_sample_data then
+    renoise.app():show_status("Selected sample has no sample data")
+    return
+  end
+  
+  local bit_depth = PakettiDetectBitDepthGetBitDepth(sample)
+  local sample_name = sample.name and sample.name ~= "" and sample.name or "Unnamed Sample"
+  
+  renoise.app():show_status(string.format('%s appears to be %d-bit', sample_name, bit_depth))
+  print(string.format('Sample "%s" appears to be %d-bit!', sample_name, bit_depth))
+end
+
+-- Dialog with detailed information
+function pakettiDetectBitDepthDialog()
+  local song = renoise.song()
+  local sample = song.selected_sample
+  
+  if not sample then
+    renoise.app():show_status("No sample selected")
+    return
+  end
+  
+  if not sample.sample_buffer.has_sample_data then
+    renoise.app():show_status("Selected sample has no sample data")
+    return
+  end
+  
+  local bit_depth = PakettiDetectBitDepthGetBitDepth(sample)
+  local sample_name = sample.name and sample.name ~= "" and sample.name or "Unnamed Sample"
+  local buffer = sample.sample_buffer
+  
+  local vb = renoise.ViewBuilder()
+  
+  local dialog_content = vb:column{
+    margin = 10,
+    spacing = 10,
+    
+    vb:text{
+      text = "Bit Depth Detection Results",
+      font = "bold"
+    },
+    
+    vb:horizontal_aligner{
+      mode = "left",
+      vb:column{
+        spacing = 5,
+        
+        vb:row{
+          vb:text{text = "Sample Name:", font = "bold", width = 120},
+          vb:text{text = sample_name, width = 250}
+        },
+        
+        vb:row{
+          vb:text{text = "Detected Bit Depth:", font = "bold", width = 120},
+          vb:text{text = string.format("%d-bit", bit_depth), style = "strong", width = 250}
+        },
+        
+        vb:row{
+          vb:text{text = "Sample Rate:", font = "bold", width = 120},
+          vb:text{text = string.format("%d Hz", buffer.sample_rate), width = 250}
+        },
+        
+        vb:row{
+          vb:text{text = "Channels:", font = "bold", width = 120},
+          vb:text{text = string.format("%d", buffer.number_of_channels), width = 250}
+        },
+        
+        vb:row{
+          vb:text{text = "Frames:", font = "bold", width = 120},
+          vb:text{text = string.format("%d", buffer.number_of_frames), width = 250}
+        },
+        
+        vb:row{
+          vb:text{text = "Duration:", font = "bold", width = 120},
+          vb:text{text = string.format("%.2f seconds", buffer.number_of_frames / buffer.sample_rate), width = 250}
+        }
+      }
+    },
+    
+    vb:space{height = 10},
+    
+    vb:text{
+      text = "This analysis examines the actual bit usage in the sample data\nto determine the effective bit depth.",
+      style = "body"
+    },
+    
+    vb:horizontal_aligner{
+      mode = "center",
+      vb:button{
+        text = "Close",
+        width = 80,
+        notifier = function()
+          if detect_bit_depth_dialog and detect_bit_depth_dialog.visible then
+            detect_bit_depth_dialog:close()
+            detect_bit_depth_dialog = nil
+          end
+        end
+      }
+    }
+  }
+  
+  -- Create keyhandler for the dialog
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return detect_bit_depth_dialog end,
+    function(value) detect_bit_depth_dialog = value end
+  )
+  
+  detect_bit_depth_dialog = renoise.app():show_custom_dialog(
+    "Bit Depth Detection - " .. sample_name,
+    dialog_content,
+    keyhandler
+  )
+end
+
+-- Global dialog variable
+local detect_bit_depth_dialog = nil
+
+-- Cleanup on song change
+renoise.tool().app_release_document_observable:add_notifier(function()
+  if detect_bit_depth_dialog and detect_bit_depth_dialog.visible then
+    detect_bit_depth_dialog:close()
+    detect_bit_depth_dialog = nil
+  end
+end)
+
+-- Menu entries
+renoise.tool():add_menu_entry{
+  name = "Main Menu:Tools:Paketti:Sample Analysis:Detect Bit Depth (Status)",
+  invoke = pakettiDetectBitDepthStatus
+}
+
+renoise.tool():add_menu_entry{
+  name = "Main Menu:Tools:Paketti:Sample Analysis:Detect Bit Depth (Dialog)",
+  invoke = pakettiDetectBitDepthDialog
+}
+
+renoise.tool():add_menu_entry{
+  name = "Sample Editor:Paketti:Sample Analysis:Detect Bit Depth (Status)",
+  invoke = pakettiDetectBitDepthStatus
+}
+
+renoise.tool():add_menu_entry{
+  name = "Sample Editor:Paketti:Sample Analysis:Detect Bit Depth (Dialog)",
+  invoke = pakettiDetectBitDepthDialog
+}
+
+renoise.tool():add_menu_entry{
+  name = "Instrument Box:Paketti:Sample Analysis:Detect Bit Depth (Status)",
+  invoke = pakettiDetectBitDepthStatus
+}
+
+renoise.tool():add_menu_entry{
+  name = "Instrument Box:Paketti:Sample Analysis:Detect Bit Depth (Dialog)",
+  invoke = pakettiDetectBitDepthDialog
+}
+
+-- Keybindings
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Detect Bit Depth (Status)",
+  invoke = pakettiDetectBitDepthStatus
+}
+
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Detect Bit Depth (Dialog)",
+  invoke = pakettiDetectBitDepthDialog
+}
+
+-- MIDI mappings
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Detect Bit Depth (Status)",
+  invoke = function(message) 
+    if message:is_trigger() then 
+      pakettiDetectBitDepthStatus() 
+    end 
+  end
+}
+
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Detect Bit Depth (Dialog)",
+  invoke = function(message) 
+    if message:is_trigger() then 
+      pakettiDetectBitDepthDialog() 
+    end 
+  end
+}

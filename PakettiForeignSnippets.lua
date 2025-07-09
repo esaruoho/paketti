@@ -2014,5 +2014,1128 @@ renoise.tool():add_keybinding{name = "Global:Paketti:Reset Basenote to Lowest No
 -- MIDI mapping
 renoise.tool():add_midi_mapping{name = "Paketti:Reset Basenote to Lowest Note Range",invoke = function(message) if message:is_trigger() then pakettiResetBasenotesToLowestNoteRange() end end}
 
+-- ======================================
+-- Paketti UIOWA Sample Processing
+-- ======================================
+-- Based on danoise UIOWA_Importer.lua - for University of Iowa Musical Instrument Samples
+
+-- Note name translation table (UIOWA format to Renoise format)
+local UIOWA_NOTE_TRANSLATION = {
+  {source = "C", target = "C"},
+  {source = "Db", target = "C#"},
+  {source = "D", target = "D"},
+  {source = "Eb", target = "D#"},
+  {source = "E", target = "E"},
+  {source = "F", target = "F"},
+  {source = "Gb", target = "F#"},
+  {source = "G", target = "G"},
+  {source = "Ab", target = "G#"},
+  {source = "A", target = "A"},
+  {source = "Bb", target = "A#"},
+  {source = "B", target = "B"}
+}
+
+-- Convert UIOWA note format to MIDI note number
+local function pakettiUIowaGetMidiNoteFromPattern(note_pattern)
+  for _, translation in ipairs(UIOWA_NOTE_TRANSLATION) do
+    -- Look for pattern like "C4", "Db5", etc.
+    local note_match = note_pattern:match(translation.source .. "(%d+)")
+    if note_match then
+      local octave = tonumber(note_match)
+      if octave and octave >= 0 and octave <= 10 then
+        -- Find the semitone offset for this note
+        local semitone = 0
+        for i, trans in ipairs(UIOWA_NOTE_TRANSLATION) do
+          if trans.source == translation.source then
+            semitone = i - 1  -- C=0, C#=1, D=2, etc.
+            break
+          end
+        end
+        
+        local midi_note = octave * 12 + semitone
+        -- Clamp to valid MIDI range
+        midi_note = math.max(0, math.min(119, midi_note))
+        return midi_note, string.format("%s%d", translation.target, octave)
+      end
+    end
+  end
+  return nil, nil
+end
+
+-- Process existing samples in selected instrument for UIOWA patterns
+function pakettiUIowaProcessor()
+  local song = renoise.song()
+  local instr = song.selected_instrument
+  
+  if not instr then
+    renoise.app():show_warning("No instrument selected")
+    return
+  end
+  
+  if #instr.samples == 0 then
+    renoise.app():show_status("No samples in selected instrument")
+    return
+  end
+  
+  local processed_count = 0
+  local skipped_count = 0
+  local pattern_info = {}
+  
+  for idx = 1, #instr.samples do
+    local sample = instr.samples[idx]
+    local smap = sample.sample_mapping
+    local sample_name = sample.name
+    
+    -- Try to find UIOWA note pattern in sample name
+    local midi_note, note_name = pakettiUIowaGetMidiNoteFromPattern(sample_name)
+    
+    if midi_note then
+      -- Set the keyzone mapping
+      smap.base_note = midi_note
+      smap.note_range = {midi_note, midi_note}
+      
+      processed_count = processed_count + 1
+      table.insert(pattern_info, string.format("Sample '%s' -> %s (MIDI %d)", sample_name, note_name, midi_note))
+      print(string.format("-- Paketti UIOWA Processor: Sample '%s' mapped to %s (MIDI note %d)", sample_name, note_name, midi_note))
+    else
+      skipped_count = skipped_count + 1
+      print(string.format("-- Paketti UIOWA Processor: No UIOWA pattern found in '%s'", sample_name))
+    end
+  end
+  
+  if processed_count > 0 then
+    renoise.app():show_status(string.format("UIOWA Processor: Mapped %d sample(s), skipped %d in '%s'", processed_count, skipped_count, instr.name))
+    print(string.format("-- Paketti UIOWA Processor: Successfully processed %d samples, skipped %d samples", processed_count, skipped_count))
+    
+    -- Show detailed mapping info
+    for _, info in ipairs(pattern_info) do
+      print("-- " .. info)
+    end
+  else
+    renoise.app():show_status("No UIOWA note patterns found in sample names")
+    print("-- Paketti UIOWA Processor: No UIOWA patterns detected. Expected patterns: C4, Db5, F#3, etc.")
+  end
+end
+
+-- Import UIOWA samples with automatic keyzone mapping
+function pakettiUIowaImporter()
+  -- Prompt for multiple sample files
+  local file_paths = renoise.app():prompt_for_multiple_filenames_to_read(
+    {"*.wav", "*.aif", "*.aiff", "*.flac", "*.ogg"}, 
+    "Select UIOWA Sample Files"
+  )
+  
+  if not file_paths or #file_paths == 0 then
+    renoise.app():show_status("No files selected")
+    return
+  end
+  
+  local song = renoise.song()
+  
+  -- Create new instrument for UIOWA samples
+  song:insert_instrument_at(song.selected_instrument_index + 1)
+  song.selected_instrument_index = song.selected_instrument_index + 1
+  
+  -- Initialize with Paketti default instrument configuration
+  pakettiPreferencesDefaultInstrumentLoader()
+  
+  local instr = song.selected_instrument
+  local original_name = instr.name ~= "" and instr.name or "Untitled"
+  instr.name = original_name .. " (UIOWA Import)"
+  
+  local imported_count = 0
+  local skipped_count = 0
+  local total_files = #file_paths
+  local mapping_info = {}
+  
+  for i, file_path in ipairs(file_paths) do
+    renoise.app():show_status(string.format("UIOWA Import: Loading file %d of %d", i, total_files))
+    
+    -- Extract filename for pattern detection
+    local filename = file_path:match("([^\\/]+)$") or ""
+    local sample_name = filename:match("(.+)%..+$") or filename  -- Remove extension
+    
+    -- Try to detect UIOWA pattern
+    local midi_note, note_name = pakettiUIowaGetMidiNoteFromPattern(sample_name)
+    
+    if midi_note then
+      -- Load the sample
+      local sample_loaded = false
+      local sample = nil
+      
+      -- Try to load the sample file
+      pcall(function()
+        if #instr.samples == 1 and not instr.samples[1].sample_buffer.has_sample_data then
+          -- Replace empty first sample
+          sample = instr.samples[1]
+          sample.sample_buffer:load_from(file_path)
+        else
+          -- Insert new sample
+          sample = instr:insert_sample_at(#instr.samples + 1)
+          sample.sample_buffer:load_from(file_path)
+        end
+        sample_loaded = true
+      end)
+      
+      if sample_loaded and sample then
+        -- Set sample name and keyzone mapping
+        sample.name = sample_name
+        local smap = sample.sample_mapping
+        smap.base_note = midi_note
+        smap.note_range = {midi_note, midi_note}
+        
+        imported_count = imported_count + 1
+        table.insert(mapping_info, string.format("'%s' -> %s (MIDI %d)", sample_name, note_name, midi_note))
+        print(string.format("-- Paketti UIOWA Importer: Loaded '%s' as %s (MIDI note %d)", filename, note_name, midi_note))
+      else
+        skipped_count = skipped_count + 1
+        print(string.format("-- Paketti UIOWA Importer: Failed to load file '%s'", filename))
+      end
+    else
+      skipped_count = skipped_count + 1
+      print(string.format("-- Paketti UIOWA Importer: No UIOWA pattern in filename '%s'", filename))
+    end
+  end
+  
+  -- Clean up empty samples if any
+  for sample_index = #instr.samples, 1, -1 do
+    if not instr.samples[sample_index].sample_buffer.has_sample_data then
+      instr:delete_sample_at(sample_index)
+    end
+  end
+  
+  -- Update instrument name with more info
+  if imported_count > 0 then
+    instr.name = string.format("%s (%d samples)", original_name .. " (UIOWA Import)", imported_count)
+    
+    -- Switch to keyzone view to show the results
+    renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_KEYZONES
+    
+    renoise.app():show_status(string.format("UIOWA Import: Loaded %d sample(s), skipped %d, mapped automatically", imported_count, skipped_count))
+    print(string.format("-- Paketti UIOWA Importer: Import complete - %d samples loaded and mapped, %d skipped", imported_count, skipped_count))
+    
+    -- Show mapping details
+    print("-- Paketti UIOWA Importer: Keyzone mappings:")
+    for _, info in ipairs(mapping_info) do
+      print("--   " .. info)
+    end
+    
+    print("-- Paketti UIOWA Importer: Supported patterns: C4, Db5, F#3, Bb2, etc. (note + octave)")
+  else
+    renoise.app():show_warning("No UIOWA samples could be imported. Check filename patterns (e.g., 'Flute_C4.wav')")
+    print("-- Paketti UIOWA Importer: No samples imported. Expected filename patterns like 'Instrument_C4.wav', 'Piano_Db5.aif', etc.")
+  end
+end
+
+-- Menu entries
+renoise.tool():add_menu_entry{
+  name = "Main Menu:Tools:Paketti:Samples:UIOWA Sample Importer",
+  invoke = pakettiUIowaImporter
+}
+
+renoise.tool():add_menu_entry{
+  name = "Main Menu:Tools:Paketti:Samples:UIOWA Sample Processor",
+  invoke = pakettiUIowaProcessor
+}
+
+renoise.tool():add_menu_entry{
+  name = "Instrument Box:Paketti:UIOWA Sample Importer",
+  invoke = pakettiUIowaImporter
+}
+
+renoise.tool():add_menu_entry{
+  name = "Instrument Box:Paketti:UIOWA Sample Processor",
+  invoke = pakettiUIowaProcessor
+}
+
+renoise.tool():add_menu_entry{
+  name = "Sample Editor:Paketti:UIOWA Sample Importer",
+  invoke = pakettiUIowaImporter
+}
+
+renoise.tool():add_menu_entry{
+  name = "Sample Editor:Paketti:UIOWA Sample Processor",
+  invoke = pakettiUIowaProcessor
+}
+
+-- Keybindings
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:UIOWA Sample Importer",
+  invoke = pakettiUIowaImporter
+}
+
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:UIOWA Sample Processor",
+  invoke = pakettiUIowaProcessor
+}
+
+-- MIDI mappings
+renoise.tool():add_midi_mapping{
+  name = "Paketti:UIOWA Sample Importer",
+  invoke = function(message) 
+    if message:is_trigger() then 
+      pakettiUIowaImporter() 
+    end 
+  end
+}
+
+renoise.tool():add_midi_mapping{
+  name = "Paketti:UIOWA Sample Processor",
+  invoke = function(message) 
+    if message:is_trigger() then 
+      pakettiUIowaProcessor() 
+    end 
+  end
+}
+
+-- ======================================
+-- Paketti Experimental/Work in Progress Tools
+-- ======================================
+-- Based on various danoise scripts - experimental features for testing
+
+-- ======================================
+-- Paketti Sample Trimmer
+-- ======================================
+-- Based on danoise Trimmer.lua - trim samples to loop points or selection
+
+-- Trim a single sample based on mode
+local function pakettiTrimSample(instr, sample_idx, mode)
+  local sample = instr.samples[sample_idx]
+  if not sample then
+    print("-- Paketti Trimmer: Could not locate sample at index " .. sample_idx)
+    return false, "Sample not found"
+  end
+  
+  local sbuf = sample.sample_buffer
+  if not sbuf.has_sample_data then
+    print(string.format("-- Paketti Trimmer: Sample '%s' has no sample data", sample.name))
+    return false, "No sample data"
+  end
+  
+  if sbuf.read_only then
+    print(string.format("-- Paketti Trimmer: Sample '%s' is read-only (sliced?)", sample.name))
+    return false, "Sample is read-only"
+  end
+  
+  local trim_start, trim_end
+  
+  if mode == "loop" then
+    if sample.loop_mode == renoise.Sample.LOOP_MODE_OFF then
+      print(string.format("-- Paketti Trimmer: Sample '%s' has no loop defined", sample.name))
+      return false, "No loop defined"
+    end
+    trim_start = sample.loop_start - 1
+    trim_end = sample.loop_end - 1
+  elseif mode == "selection" then
+    if sbuf.selection_start == 0 or sbuf.selection_end == 0 then
+      print(string.format("-- Paketti Trimmer: Sample '%s' has no selection", sample.name))
+      return false, "No selection defined"
+    end
+    trim_start = sbuf.selection_start - 1
+    trim_end = sbuf.selection_end - 1
+  else
+    return false, "Unsupported trim mode"
+  end
+  
+  -- Validate trim points
+  if trim_start < 0 or trim_end <= trim_start or trim_end > sbuf.number_of_frames then
+    print(string.format("-- Paketti Trimmer: Invalid trim points for '%s': %d to %d (max %d)", 
+      sample.name, trim_start, trim_end, sbuf.number_of_frames))
+    return false, "Invalid trim points"
+  end
+  
+  print(string.format("-- Paketti Trimmer: Trimming sample '%s' from frame %d to %d", 
+    sample.name, trim_start, trim_end))
+  
+  -- Create a new sample (duplicate first)
+  local new_sample = instr:insert_sample_at(sample_idx)
+  local new_sbuf = new_sample.sample_buffer
+  
+  new_sample:copy_from(sample)
+  
+  local sample_rate = sbuf.sample_rate
+  local bit_depth = sbuf.bit_depth
+  local num_channels = sbuf.number_of_channels
+  local num_frames = 1 + trim_end - trim_start
+  
+  new_sbuf:create_sample_data(sample_rate, bit_depth, num_channels, num_frames)
+  
+  -- Copy the trimmed portion
+  for chan_idx = 1, sbuf.number_of_channels do
+    for frame_idx = 1, num_frames do
+      new_sbuf:set_sample_data(chan_idx, frame_idx,
+        sbuf:sample_data(chan_idx, frame_idx + trim_start))
+    end
+  end
+  
+  -- Update loop markers if we were trimming by loop
+  if mode == "loop" then
+    new_sample.loop_start = 1
+    new_sample.loop_end = num_frames
+  end
+  
+  -- Remove original sample
+  instr:delete_sample_at(sample_idx + 1)
+  
+  print(string.format("-- Paketti Trimmer: Successfully trimmed '%s' to %d frames", 
+    sample.name, num_frames))
+  return true, "Trim successful"
+end
+
+-- Trim selected sample to loop points
+function pakettiTrimSelectedSampleToLoop()
+  local song = renoise.song()
+  local instr = song.selected_instrument
+  local sample_idx = song.selected_sample_index
+  
+  if not instr then
+    renoise.app():show_warning("No instrument selected")
+    return
+  end
+  
+  local success, message = pakettiTrimSample(instr, sample_idx, "loop")
+  if success then
+    renoise.app():show_status(string.format("Trimmed sample to loop points: %s", message))
+  else
+    renoise.app():show_status(string.format("Trim failed: %s", message))
+  end
+end
+
+-- Trim selected sample to selection
+function pakettiTrimSelectedSampleToSelection()
+  local song = renoise.song()
+  local instr = song.selected_instrument
+  local sample_idx = song.selected_sample_index
+  
+  if not instr then
+    renoise.app():show_warning("No instrument selected")
+    return
+  end
+  
+  local success, message = pakettiTrimSample(instr, sample_idx, "selection")
+  if success then
+    renoise.app():show_status(string.format("Trimmed sample to selection: %s", message))
+  else
+    renoise.app():show_status(string.format("Trim failed: %s", message))
+  end
+end
+
+-- Trim all samples in instrument to their loop points
+function pakettiTrimAllSamplesToLoop()
+  local song = renoise.song()
+  local instr = song.selected_instrument
+  
+  if not instr then
+    renoise.app():show_warning("No instrument selected")
+    return
+  end
+  
+  if #instr.samples == 0 then
+    renoise.app():show_status("No samples in instrument")
+    return
+  end
+  
+  local trimmed_count = 0
+  local skipped_count = 0
+  
+  -- Work backwards to avoid index shifting issues
+  for sample_idx = #instr.samples, 1, -1 do
+    local success, message = pakettiTrimSample(instr, sample_idx, "loop")
+    if success then
+      trimmed_count = trimmed_count + 1
+    else
+      skipped_count = skipped_count + 1
+    end
+  end
+  
+  renoise.app():show_status(string.format("Trim complete: %d samples trimmed, %d skipped", 
+    trimmed_count, skipped_count))
+  print(string.format("-- Paketti Trimmer: Batch trim complete - %d trimmed, %d skipped", 
+    trimmed_count, skipped_count))
+end
+
+-- ======================================
+-- Paketti Sample Renamer
+-- ======================================
+-- Based on danoise Renamer.lua - rename samples with note names or GM drum names
+
+-- Note names array
+local PAKETTI_NOTE_ARRAY = { "C-","C#","D-","D#","E-","F-","F#","G-","G#","A-","A#","B-" }
+
+-- GM Drum Kit mapping (MIDI note to drum name)
+local PAKETTI_GMKIT_ARRAY = {
+  [35]="Acoustic_Bass_Drum",  [36]="Bass_Drum_1",       [37]="Side_Stick",        [38]="Acoustic_Snare",
+  [39]="Hand_Clap",           [40]="Electric_Snare",    [41]="Low_Floor_Tom",     [42]="Closed_Hi_Hat",
+  [43]="High_Floor_Tom",      [44]="Pedal_Hi_Hat",      [45]="Low_Tom",           [46]="Open_Hi_Hat",
+  [47]="Low_Mid_Tom",         [48]="Hi_Mid_Tom",        [49]="Crash_Cymbal_1",   [50]="High_Tom",
+  [51]="Ride_Cymbal_1",       [52]="Chinese_Cymbal",    [53]="Ride_Bell",         [54]="Tambourine",
+  [55]="Splash_Cymbal",       [56]="Cowbell",           [57]="Crash_Cymbal_2",   [58]="Vibraslap",
+  [59]="Ride_Cymbal_2",       [60]="Hi_Bongo",          [61]="Low_Bongo",         [62]="Mute_Hi_Conga",
+  [63]="Open_Hi_Conga",       [64]="Low_Conga",         [65]="High_Timbale",      [66]="Low_Timbale",
+  [67]="High_Agogo",          [68]="Low_Agogo",         [69]="Cabasa",            [70]="Maracas",
+  [71]="Short_Whistle",       [72]="Long_Whistle",      [73]="Short_Guiro",       [74]="Long_Guiro",
+  [75]="Claves",              [76]="Hi_Wood_Block",     [77]="Low_Wood_Block",    [78]="Mute_Cuica",
+  [79]="Open_Cuica",          [80]="Mute_Triangle",     [81]="Open_Triangle"
+}
+
+-- Convert MIDI note number to note name
+local function pakettiNoteValueToString(val)
+  if not val then
+    return "Unknown"
+  elseif val == 120 then
+    return "OFF"
+  elseif val == 121 then
+    return "---"
+  elseif val == 0 then
+    return "C-0"
+  else
+    local oct = math.floor(val/12)
+    local note = PAKETTI_NOTE_ARRAY[(val%12)+1]
+    return string.format("%s%s", note, oct)
+  end
+end
+
+-- Rename samples with note names (melodic instruments)
+function pakettiRenameSamplesWithNoteNames()
+  local song = renoise.song()
+  local instr = song.selected_instrument
+  
+  if not instr then
+    renoise.app():show_warning("No instrument selected")
+    return
+  end
+  
+  if #instr.samples == 0 then
+    renoise.app():show_status("No samples in instrument")
+    return
+  end
+  
+  local instrument_name = instr.name ~= "" and instr.name or "Instrument"
+  local renamed_count = 0
+  
+  for idx, sample in ipairs(instr.samples) do
+    local smap = sample.sample_mapping
+    local base_note = smap.base_note
+    local note_name = pakettiNoteValueToString(base_note)
+    local new_name = string.format("%s_%s", instrument_name, note_name)
+    
+    if sample.name ~= new_name then
+      sample.name = new_name
+      renamed_count = renamed_count + 1
+      print(string.format("-- Paketti Renamer: Sample %d renamed to '%s'", idx, new_name))
+    end
+  end
+  
+  renoise.app():show_status(string.format("Renamed %d sample(s) with note names in '%s'", 
+    renamed_count, instrument_name))
+  print(string.format("-- Paketti Renamer: Completed note naming - %d samples renamed", renamed_count))
+end
+
+-- Rename samples with GM drum names (drum kits)
+function pakettiRenameSamplesWithDrumNames()
+  local song = renoise.song()
+  local instr = song.selected_instrument
+  
+  if not instr then
+    renoise.app():show_warning("No instrument selected")
+    return
+  end
+  
+  if #instr.samples == 0 then
+    renoise.app():show_status("No samples in instrument")
+    return
+  end
+  
+  local instrument_name = instr.name ~= "" and instr.name or "Drumkit"
+  local renamed_count = 0
+  local unknown_count = 0
+  
+  for idx, sample in ipairs(instr.samples) do
+    local smap = sample.sample_mapping
+    local base_note = smap.base_note
+    local drum_name = PAKETTI_GMKIT_ARRAY[base_note] or "Unknown_Drum"
+    local new_name = string.format("%s_%s", drum_name, instrument_name)
+    
+    if sample.name ~= new_name then
+      sample.name = new_name
+      renamed_count = renamed_count + 1
+      
+      if drum_name == "Unknown_Drum" then
+        unknown_count = unknown_count + 1
+      end
+      
+      print(string.format("-- Paketti Renamer: Sample %d (note %d) renamed to '%s'", 
+        idx, base_note, new_name))
+    end
+  end
+  
+  local status_msg = string.format("Renamed %d sample(s) with drum names in '%s'", 
+    renamed_count, instrument_name)
+  if unknown_count > 0 then
+    status_msg = status_msg .. string.format(" (%d unknown drums)", unknown_count)
+  end
+  
+  renoise.app():show_status(status_msg)
+  print(string.format("-- Paketti Renamer: Completed drum naming - %d samples renamed, %d unknown", 
+    renamed_count, unknown_count))
+end
+
+-- ======================================
+-- Paketti Kontakt Export
+-- ======================================
+-- Based on danoise KontaktExport.lua - format filenames for Kontakt sampler export
+
+function pakettiKontaktExportSamples()
+  local song = renoise.song()
+  local instr = song.selected_instrument
+  
+  if not instr then
+    renoise.app():show_warning("No instrument selected")
+    return
+  end
+  
+  if #instr.samples == 0 then
+    renoise.app():show_status("No samples in instrument")
+    return
+  end
+  
+  -- Prompt for output folder
+  local output_folder = renoise.app():prompt_for_path("Select folder for Kontakt export")
+  if not output_folder or output_folder == "" then
+    renoise.app():show_status("Export cancelled")
+    return
+  end
+  
+  -- Ensure folder ends with separator
+  if not output_folder:match("[/\\]$") then
+    output_folder = output_folder .. "/"
+  end
+  
+  local exported_count = 0
+  local skipped_count = 0
+  
+  for sample_idx, sample in ipairs(instr.samples) do
+    if sample.sample_buffer.has_sample_data then
+      local original_name = sample.name
+      
+      -- Apply Kontakt formatting to filename
+      -- Input: "VST: iblit (PwmBass 1)_0x7F_C-3"
+      -- Output: "VST_iblit_PwmBass_1_127_C3"
+      local kontakt_filename = original_name:gsub("(.*)_(0x%x%x)_([A-Z])-?(#?%d)", function(a, b, c, d)
+        -- Clean up the main part
+        a = a:gsub(":", "")           -- Remove colons
+        a = a:gsub("[%(%)]", "")      -- Remove parentheses  
+        a = a:gsub("%s", "_")         -- Replace spaces with underscores
+        
+        -- Convert hex velocity to decimal
+        local velocity_decimal = string.format("%d", tonumber(b))
+        
+        -- Remove dash from note name (C-3 becomes C3)
+        local note_name = c .. d
+        
+        return a .. "_" .. velocity_decimal .. "_" .. note_name
+      end)
+      
+      -- If no pattern matched, clean up the filename anyway
+      if kontakt_filename == original_name then
+        kontakt_filename = original_name:gsub(":", "")
+        kontakt_filename = kontakt_filename:gsub("[%(%)]", "")
+        kontakt_filename = kontakt_filename:gsub("%s", "_")
+        kontakt_filename = kontakt_filename:gsub("[^%w_%-]", "_")  -- Replace non-alphanumeric with underscore
+      end
+      
+      -- Ensure .wav extension
+      if not kontakt_filename:match("%.wav$") then
+        kontakt_filename = kontakt_filename .. ".wav"
+      end
+      
+      local export_path = output_folder .. kontakt_filename
+      
+      -- Set current sample for export
+      song.selected_sample_index = sample_idx
+      
+      -- Export the sample
+      local success = pcall(function()
+        renoise.app():save_instrument_sample(export_path)
+      end)
+      
+      if success then
+        exported_count = exported_count + 1
+        print(string.format("-- Paketti Kontakt Export: '%s' -> '%s'", original_name, kontakt_filename))
+      else
+        skipped_count = skipped_count + 1
+        print(string.format("-- Paketti Kontakt Export: Failed to export '%s'", original_name))
+      end
+    else
+      skipped_count = skipped_count + 1
+      print(string.format("-- Paketti Kontakt Export: Skipped '%s' (no sample data)", sample.name))
+    end
+  end
+  
+  renoise.app():show_status(string.format("Kontakt Export: %d samples exported, %d skipped to '%s'", 
+    exported_count, skipped_count, output_folder))
+  print(string.format("-- Paketti Kontakt Export: Complete - %d exported, %d skipped", 
+    exported_count, skipped_count))
+end
+
+-- ======================================
+-- Menu Entries for Experimental/Work in Progress Tools
+-- ======================================
+
+-- Sample Trimmer
+renoise.tool():add_menu_entry{
+  name = "Main Menu:Tools:Paketti:Xperimental/Work in Progress:Sample Trimmer:Trim Selected Sample to Loop Points",
+  invoke = pakettiTrimSelectedSampleToLoop
+}
+
+renoise.tool():add_menu_entry{
+  name = "Main Menu:Tools:Paketti:Xperimental/Work in Progress:Sample Trimmer:Trim Selected Sample to Selection",
+  invoke = pakettiTrimSelectedSampleToSelection
+}
+
+renoise.tool():add_menu_entry{
+  name = "Main Menu:Tools:Paketti:Xperimental/Work in Progress:Sample Trimmer:Trim All Samples to Loop Points",
+  invoke = pakettiTrimAllSamplesToLoop
+}
+
+renoise.tool():add_menu_entry{
+  name = "Sample Editor:Paketti:Xperimental/Work in Progress:Sample Trimmer:Trim Selected Sample to Loop Points",
+  invoke = pakettiTrimSelectedSampleToLoop
+}
+
+renoise.tool():add_menu_entry{
+  name = "Sample Editor:Paketti:Xperimental/Work in Progress:Sample Trimmer:Trim Selected Sample to Selection",
+  invoke = pakettiTrimSelectedSampleToSelection
+}
+
+renoise.tool():add_menu_entry{
+  name = "Sample Editor:Paketti:Xperimental/Work in Progress:Sample Trimmer:Trim All Samples to Loop Points",
+  invoke = pakettiTrimAllSamplesToLoop
+}
+
+-- Sample Renamer
+renoise.tool():add_menu_entry{
+  name = "Main Menu:Tools:Paketti:Xperimental/Work in Progress:Sample Renamer:Rename with Note Names (Melodic)",
+  invoke = pakettiRenameSamplesWithNoteNames
+}
+
+renoise.tool():add_menu_entry{
+  name = "Main Menu:Tools:Paketti:Xperimental/Work in Progress:Sample Renamer:Rename with Drum Names (GM Kit)",
+  invoke = pakettiRenameSamplesWithDrumNames
+}
+
+renoise.tool():add_menu_entry{
+  name = "Instrument Box:Paketti:Xperimental/Work in Progress:Sample Renamer:Rename with Note Names (Melodic)",
+  invoke = pakettiRenameSamplesWithNoteNames
+}
+
+renoise.tool():add_menu_entry{
+  name = "Instrument Box:Paketti:Xperimental/Work in Progress:Sample Renamer:Rename with Drum Names (GM Kit)",
+  invoke = pakettiRenameSamplesWithDrumNames
+}
+
+-- Kontakt Export
+renoise.tool():add_menu_entry{
+  name = "Main Menu:Tools:Paketti:Xperimental/Work in Progress:Kontakt Export:Export Samples for Kontakt",
+  invoke = pakettiKontaktExportSamples
+}
+
+renoise.tool():add_menu_entry{
+  name = "Instrument Box:Paketti:Xperimental/Work in Progress:Kontakt Export:Export Samples for Kontakt",
+  invoke = pakettiKontaktExportSamples
+}
+
+renoise.tool():add_menu_entry{
+  name = "Sample Editor:Paketti:Xperimental/Work in Progress:Kontakt Export:Export Samples for Kontakt",
+  invoke = pakettiKontaktExportSamples
+}
+
+-- ======================================
+-- Keybindings for Experimental Tools
+-- ======================================
+
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Trim Selected Sample to Loop Points",
+  invoke = pakettiTrimSelectedSampleToLoop
+}
+
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Trim Selected Sample to Selection", 
+  invoke = pakettiTrimSelectedSampleToSelection
+}
+
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Rename Samples with Note Names",
+  invoke = pakettiRenameSamplesWithNoteNames
+}
+
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Rename Samples with Drum Names",
+  invoke = pakettiRenameSamplesWithDrumNames
+}
+
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Export Samples for Kontakt",
+  invoke = pakettiKontaktExportSamples
+}
+
+-- ======================================
+-- MIDI Mappings for Experimental Tools  
+-- ======================================
+
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Trim Selected Sample to Loop Points",
+  invoke = function(message) 
+    if message:is_trigger() then 
+      pakettiTrimSelectedSampleToLoop() 
+    end 
+  end
+}
+
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Rename Samples with Note Names",
+  invoke = function(message) 
+    if message:is_trigger() then 
+      pakettiRenameSamplesWithNoteNames() 
+    end 
+  end
+}
+
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Export Samples for Kontakt",
+  invoke = function(message) 
+    if message:is_trigger() then 
+      pakettiKontaktExportSamples() 
+    end 
+  end
+}
+
+-- ======================================
+-- Paketti Sample Sorter
+-- ======================================
+-- Based on danoise Samplesort.lua - sort samples by different criteria
+
+-- Sort samples by name (alphabetical)
+function pakettiSortSamplesByName()
+  local song = renoise.song()
+  local instr = song.selected_instrument
+  
+  if not instr then
+    renoise.app():show_warning("No instrument selected")
+    return
+  end
+  
+  if #instr.samples < 2 then
+    renoise.app():show_status("Need at least 2 samples to sort")
+    return
+  end
+  
+  -- Create array of sample data with indices
+  local sample_data = {}
+  for idx = 1, #instr.samples do
+    table.insert(sample_data, {
+      index = idx,
+      name = instr.samples[idx].name,
+      sample = instr.samples[idx]
+    })
+  end
+  
+  -- Sort by name
+  table.sort(sample_data, function(a, b)
+    return a.name < b.name
+  end)
+  
+  -- Reorder samples based on sorted indices
+  local sorted_samples = {}
+  for i, data in ipairs(sample_data) do
+    table.insert(sorted_samples, data.sample)
+  end
+  
+  -- Clear existing samples and add sorted ones
+  for i = #instr.samples, 1, -1 do
+    instr:delete_sample_at(i)
+  end
+  
+  for i, sample in ipairs(sorted_samples) do
+    local new_sample = instr:insert_sample_at(i)
+    new_sample:copy_from(sample)
+  end
+  
+  renoise.app():show_status(string.format("Sorted %d samples by name in '%s'", #sorted_samples, instr.name))
+  print(string.format("-- Paketti Sample Sorter: Sorted %d samples by name", #sorted_samples))
+end
+
+-- Sort samples by base note (MIDI note number)
+function pakettiSortSamplesByBaseNote()
+  local song = renoise.song()
+  local instr = song.selected_instrument
+  
+  if not instr then
+    renoise.app():show_warning("No instrument selected")
+    return
+  end
+  
+  if #instr.samples < 2 then
+    renoise.app():show_status("Need at least 2 samples to sort")
+    return
+  end
+  
+  -- Create array of sample data with indices
+  local sample_data = {}
+  for idx = 1, #instr.samples do
+    table.insert(sample_data, {
+      index = idx,
+      base_note = instr.samples[idx].sample_mapping.base_note,
+      name = instr.samples[idx].name,
+      sample = instr.samples[idx]
+    })
+  end
+  
+  -- Sort by base note (ascending)
+  table.sort(sample_data, function(a, b)
+    if a.base_note == b.base_note then
+      return a.name < b.name  -- Secondary sort by name if same base note
+    end
+    return a.base_note < b.base_note
+  end)
+  
+  -- Reorder samples based on sorted indices
+  local sorted_samples = {}
+  for i, data in ipairs(sample_data) do
+    table.insert(sorted_samples, data.sample)
+  end
+  
+  -- Clear existing samples and add sorted ones
+  for i = #instr.samples, 1, -1 do
+    instr:delete_sample_at(i)
+  end
+  
+  for i, sample in ipairs(sorted_samples) do
+    local new_sample = instr:insert_sample_at(i)
+    new_sample:copy_from(sample)
+  end
+  
+  renoise.app():show_status(string.format("Sorted %d samples by base note in '%s'", #sorted_samples, instr.name))
+  print(string.format("-- Paketti Sample Sorter: Sorted %d samples by base note", #sorted_samples))
+end
+
+-- Sort samples by velocity range (lowest velocity first)
+function pakettiSortSamplesByVelocity()
+  local song = renoise.song()
+  local instr = song.selected_instrument
+  
+  if not instr then
+    renoise.app():show_warning("No instrument selected")
+    return
+  end
+  
+  if #instr.samples < 2 then
+    renoise.app():show_status("Need at least 2 samples to sort")
+    return
+  end
+  
+  -- Create array of sample data with indices
+  local sample_data = {}
+  for idx = 1, #instr.samples do
+    local velocity_range = instr.samples[idx].sample_mapping.velocity_range
+    table.insert(sample_data, {
+      index = idx,
+      velocity_low = velocity_range[1],
+      velocity_high = velocity_range[2],
+      name = instr.samples[idx].name,
+      sample = instr.samples[idx]
+    })
+  end
+  
+  -- Sort by velocity range (ascending by low velocity, then high velocity)
+  table.sort(sample_data, function(a, b)
+    if a.velocity_low == b.velocity_low then
+      if a.velocity_high == b.velocity_high then
+        return a.name < b.name  -- Tertiary sort by name
+      end
+      return a.velocity_high < b.velocity_high  -- Secondary sort by high velocity
+    end
+    return a.velocity_low < b.velocity_low  -- Primary sort by low velocity
+  end)
+  
+  -- Reorder samples based on sorted indices
+  local sorted_samples = {}
+  for i, data in ipairs(sample_data) do
+    table.insert(sorted_samples, data.sample)
+  end
+  
+  -- Clear existing samples and add sorted ones
+  for i = #instr.samples, 1, -1 do
+    instr:delete_sample_at(i)
+  end
+  
+  for i, sample in ipairs(sorted_samples) do
+    local new_sample = instr:insert_sample_at(i)
+    new_sample:copy_from(sample)
+  end
+  
+  renoise.app():show_status(string.format("Sorted %d samples by velocity in '%s'", #sorted_samples, instr.name))
+  print(string.format("-- Paketti Sample Sorter: Sorted %d samples by velocity", #sorted_samples))
+end
+
+-- Sort samples by combined criteria: Base Note -> Velocity -> Name
+function pakettiSortSamplesByMultipleCriteria()
+  local song = renoise.song()
+  local instr = song.selected_instrument
+  
+  if not instr then
+    renoise.app():show_warning("No instrument selected")
+    return
+  end
+  
+  if #instr.samples < 2 then
+    renoise.app():show_status("Need at least 2 samples to sort")
+    return
+  end
+  
+  -- Create array of sample data with indices
+  local sample_data = {}
+  for idx = 1, #instr.samples do
+    local velocity_range = instr.samples[idx].sample_mapping.velocity_range
+    table.insert(sample_data, {
+      index = idx,
+      base_note = instr.samples[idx].sample_mapping.base_note,
+      velocity_low = velocity_range[1],
+      name = instr.samples[idx].name,
+      sample = instr.samples[idx]
+    })
+  end
+  
+  -- Sort by multiple criteria: Base Note -> Velocity -> Name
+  table.sort(sample_data, function(a, b)
+    if a.base_note == b.base_note then
+      if a.velocity_low == b.velocity_low then
+        return a.name < b.name  -- Tertiary sort by name
+      end
+      return a.velocity_low < b.velocity_low  -- Secondary sort by velocity
+    end
+    return a.base_note < b.base_note  -- Primary sort by base note
+  end)
+  
+  -- Reorder samples based on sorted indices
+  local sorted_samples = {}
+  for i, data in ipairs(sample_data) do
+    table.insert(sorted_samples, data.sample)
+  end
+  
+  -- Clear existing samples and add sorted ones
+  for i = #instr.samples, 1, -1 do
+    instr:delete_sample_at(i)
+  end
+  
+  for i, sample in ipairs(sorted_samples) do
+    local new_sample = instr:insert_sample_at(i)
+    new_sample:copy_from(sample)
+  end
+  
+  renoise.app():show_status(string.format("Sorted %d samples by base note -> velocity -> name in '%s'", #sorted_samples, instr.name))
+  print(string.format("-- Paketti Sample Sorter: Sorted %d samples by multiple criteria", #sorted_samples))
+end
+
+-- ======================================
+-- Menu Entries for Sample Sorter
+-- ======================================
+
+-- Sample Sorter
+renoise.tool():add_menu_entry{
+  name = "Main Menu:Tools:Paketti:Xperimental/Work in Progress:Sample Sorter:Sort by Name",
+  invoke = pakettiSortSamplesByName
+}
+
+renoise.tool():add_menu_entry{
+  name = "Main Menu:Tools:Paketti:Xperimental/Work in Progress:Sample Sorter:Sort by Base Note",
+  invoke = pakettiSortSamplesByBaseNote
+}
+
+renoise.tool():add_menu_entry{
+  name = "Main Menu:Tools:Paketti:Xperimental/Work in Progress:Sample Sorter:Sort by Velocity",
+  invoke = pakettiSortSamplesByVelocity
+}
+
+renoise.tool():add_menu_entry{
+  name = "Main Menu:Tools:Paketti:Xperimental/Work in Progress:Sample Sorter:Sort by Note->Velocity->Name",
+  invoke = pakettiSortSamplesByMultipleCriteria
+}
+
+renoise.tool():add_menu_entry{
+  name = "Instrument Box:Paketti:Xperimental/Work in Progress:Sample Sorter:Sort by Name",
+  invoke = pakettiSortSamplesByName
+}
+
+renoise.tool():add_menu_entry{
+  name = "Instrument Box:Paketti:Xperimental/Work in Progress:Sample Sorter:Sort by Base Note",
+  invoke = pakettiSortSamplesByBaseNote
+}
+
+renoise.tool():add_menu_entry{
+  name = "Instrument Box:Paketti:Xperimental/Work in Progress:Sample Sorter:Sort by Velocity",
+  invoke = pakettiSortSamplesByVelocity
+}
+
+renoise.tool():add_menu_entry{
+  name = "Instrument Box:Paketti:Xperimental/Work in Progress:Sample Sorter:Sort by Note->Velocity->Name",
+  invoke = pakettiSortSamplesByMultipleCriteria
+}
+
+-- ======================================
+-- Keybindings for Sample Sorter
+-- ======================================
+
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Sort Samples by Name",
+  invoke = pakettiSortSamplesByName
+}
+
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Sort Samples by Base Note",
+  invoke = pakettiSortSamplesByBaseNote
+}
+
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Sort Samples by Velocity",
+  invoke = pakettiSortSamplesByVelocity
+}
+
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Sort Samples by Multiple Criteria",
+  invoke = pakettiSortSamplesByMultipleCriteria
+}
+
+-- ======================================
+-- MIDI Mappings for Sample Sorter
+-- ======================================
+
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Sort Samples by Name",
+  invoke = function(message) 
+    if message:is_trigger() then 
+      pakettiSortSamplesByName() 
+    end 
+  end
+}
+
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Sort Samples by Base Note",
+  invoke = function(message) 
+    if message:is_trigger() then 
+      pakettiSortSamplesByBaseNote() 
+    end 
+  end
+}
+
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Sort Samples by Multiple Criteria",
+  invoke = function(message) 
+    if message:is_trigger() then 
+      pakettiSortSamplesByMultipleCriteria() 
+    end 
+  end
+}
+
 
 
