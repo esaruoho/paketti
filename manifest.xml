@@ -9,7 +9,7 @@
   <Category>Workflow</Category>
   <Description>Shortcuts, midimappings, menu entries for sample modification, clean rendering, ImpulseTracker shortcuts, Pattern Editor features, loading VST,VST3,AudioUnit devices, etc.</Description>
   <Homepage>https://patreon.com/esaruoho</Homepage>
-  <CoverPath>toolspath/paketti_cover.png</CoverPath>
+  <CoverPath>./toolspath/paketti_cover.png</CoverPath>
   <Repository>https://github.com/esaruoho/paketti</Repository>
   <Donate>https://www.paypal.com/donate/?hosted_button_id=PHZ9XDQZ46UR8</Donate>
   <Documentation>https://esaruoho.github.io/paketti-manual/</Documentation>
