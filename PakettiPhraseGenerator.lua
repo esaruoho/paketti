@@ -171,8 +171,8 @@ local DEFAULT_SETTINGS = {
  }
  
  local dialog = nil
- local vb = nil  -- ViewBuilder instance
- local current_settings = table.copy(DEFAULT_SETTINGS)
+local vb = nil  -- ViewBuilder instance
+local current_settings = table.copy(DEFAULT_SETTINGS)
  
  -- Create scale display items array
  local scale_display_items = {}
@@ -1141,22 +1141,8 @@ end
        update_phrase_display()
      end
      
-     -- Add phrase trigger to pattern if first line is empty
-     local s = renoise.song()
-     local currPatt = s.selected_pattern_index
-     local currTrak = s.selected_track_index
-     local line = s.patterns[currPatt].tracks[currTrak].lines[1]
-     local note_col = line.note_columns[s.selected_note_column_index]
-     
-     if note_col.is_empty then
-       note_col.note_string = "C-4"
-       note_col.instrument_value = s.selected_instrument_index - 1  -- -1 because Renoise uses 0-based indexing for instrument_value
-       -- Only add 0G01 if Play Until End is enabled
-       if current_settings.play_until_end then
-         line.effect_columns[1].number_string = "0G"
-         line.effect_columns[1].amount_string = "01"
-       end
-     end
+     -- Add phrase trigger to pattern
+     ensure_pattern_trigger()
      
      return true
    else
@@ -1167,6 +1153,42 @@ end
      end
    end
    return true
+ end
+ 
+ -- New function to ensure the pattern has the proper phrase trigger
+ function ensure_pattern_trigger()
+   local s = renoise.song()
+   local currPatt = s.selected_pattern_index
+   local currTrak = s.selected_track_index
+   local line = s.patterns[currPatt].tracks[currTrak].lines[1]
+   local note_col = line.note_columns[s.selected_note_column_index]
+   
+   -- Always ensure there's a C-4 note trigger when working with phrases
+   if note_col.is_empty then
+     note_col.note_string = "C-4"
+     note_col.instrument_value = s.selected_instrument_index - 1  -- -1 because Renoise uses 0-based indexing for instrument_value
+     print("DEBUG: Added C-4 note trigger to pattern at line 1")
+   else
+     -- If there's already a note but no instrument, set the instrument
+     if note_col.instrument_value == 255 then  -- 255 = empty instrument
+       note_col.instrument_value = s.selected_instrument_index - 1
+       print("DEBUG: Set instrument for existing note in pattern")
+     end
+   end
+   
+   -- Handle 0G01 effect based on Play Until End setting
+   if current_settings.play_until_end then
+     line.effect_columns[1].number_string = "0G"
+     line.effect_columns[1].amount_string = "01"
+     print("DEBUG: Added 0G01 effect for Play Until End")
+   else
+     -- Only remove 0G01 if it's currently there
+     if line.effect_columns[1].number_string == "0G" and line.effect_columns[1].amount_string == "01" then
+       line.effect_columns[1].number_string = "00"
+       line.effect_columns[1].amount_string = "00"
+       print("DEBUG: Removed 0G01 effect")
+     end
+   end
  end
  
  -- Add this function for velocity randomization
@@ -1612,6 +1634,8 @@ end
                if vb.views.transpose_display then
                  vb.views.transpose_display.text = tostring(new_value)
                end
+               -- Ensure pattern has proper trigger note
+               ensure_pattern_trigger()
              end
            end
          },
@@ -1625,6 +1649,8 @@ end
                if vb.views.transpose_display then
                  vb.views.transpose_display.text = tostring(new_value)
                end
+               -- Ensure pattern has proper trigger note
+               ensure_pattern_trigger()
              end
          end
        },
@@ -1638,6 +1664,8 @@ end
                if vb.views.transpose_display then
                  vb.views.transpose_display.text = tostring(new_value)
                end
+               -- Ensure pattern has proper trigger note
+               ensure_pattern_trigger()
              end
            end
          },
@@ -1652,6 +1680,8 @@ end
                if vb.views.transpose_display then
                  vb.views.transpose_display.text = tostring(new_value)
                end
+               -- Ensure pattern has proper trigger note
+               ensure_pattern_trigger()
              end
            end
          },
@@ -1665,6 +1695,8 @@ end
                if vb.views.transpose_display then
                  vb.views.transpose_display.text = tostring(new_value)
                end
+               -- Ensure pattern has proper trigger note
+               ensure_pattern_trigger()
              end
            end
          },
@@ -1678,6 +1710,8 @@ end
                if vb.views.transpose_display then
                  vb.views.transpose_display.text = tostring(new_value)
                end
+               -- Ensure pattern has proper trigger note
+               ensure_pattern_trigger()
              end
            end
          },
@@ -1691,6 +1725,8 @@ end
                if vb.views.transpose_display then
                  vb.views.transpose_display.text = tostring(new_value)
                end
+               -- Ensure pattern has proper trigger note
+               ensure_pattern_trigger()
              end
            end
          }
@@ -1744,6 +1780,21 @@ end
              end
              return
            end
+           
+           -- Auto-enable "Always Render" and "Play Until End" after successful duplication
+           current_settings.always_render = true
+           current_settings.play_until_end = true
+           
+           -- Update the checkboxes in the UI to reflect the new settings
+           if vb.views.always_render_checkbox then
+             vb.views.always_render_checkbox.value = true
+           end
+           if vb.views.play_until_end_checkbox then
+             vb.views.play_until_end_checkbox.value = true
+           end
+           
+           -- Ensure pattern trigger is updated with the new settings
+           ensure_pattern_trigger()
            
            -- After successful duplication, update the UI to reflect the new instrument
            local song = renoise.song()
@@ -1831,6 +1882,7 @@ end
          tooltip = "When enabled, any change will automatically render to pattern"
        },
        vb:checkbox {
+         id = "always_render_checkbox",
          value = current_settings.always_render,
          notifier=function(value)
            current_settings.always_render = value
@@ -1849,24 +1901,15 @@ end
          tooltip = "When enabled, adds 0G01 effect to make phrase play until end"
        },
        vb:checkbox {
+         id = "play_until_end_checkbox",
          value = current_settings.play_until_end,
          notifier=function(value)
            current_settings.play_until_end = value
            local s = renoise.song()
-           local currPatt = s.selected_pattern_index
-           local currTrak = s.selected_track_index
            local currLine = s.selected_line_index
-           local line = s.patterns[currPatt].tracks[currTrak].lines[1]
            
-           if value then
-             -- Add 0G01 effect
-             line.effect_columns[1].number_string = "0G"
-             line.effect_columns[1].amount_string = "01"
-           else
-             -- Remove 0G01 effect
-             line.effect_columns[1].number_string = "00"
-             line.effect_columns[1].amount_string = "00"
-           end
+           -- Use the new function to handle pattern trigger updates
+           ensure_pattern_trigger()
            
            -- Restore cursor position
            s.selected_line_index = currLine
@@ -1937,6 +1980,9 @@ end
            
            local phrase = instr.phrases[current_settings.current_phrase_index]
            if not phrase or not phrase.script then return end
+           
+           -- Ensure pattern has proper trigger note before rendering
+           ensure_pattern_trigger()
            
            -- For explicit Render button, always show status
            render_to_pattern(phrase.script, current_settings, true)
@@ -2497,6 +2543,9 @@ function live_code(settings)
     return
   end
   
+  -- Ensure pattern has proper trigger note
+  ensure_pattern_trigger()
+  
   -- Show status with both scale change and mapped notes
   local note_status = format_note_status(mapped_notes)
   renoise.app():show_status(note_status)
@@ -2837,6 +2886,9 @@ end
      renoise.app():show_status(msg)
      return
    end
+   
+   -- Ensure pattern has proper trigger note
+   ensure_pattern_trigger()
    
    -- Show status without direction indicators
    renoise.app():show_status(format_note_status(emit, current_unit))

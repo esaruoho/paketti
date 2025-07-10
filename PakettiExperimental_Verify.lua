@@ -148,13 +148,6 @@ function additive_record_follow:show_dialog()
   
   local dialog_content = vb:column{
     margin = 10,
-    spacing = 10,
-    
-    vb:text{
-      text = "Additive Record Follow Pattern",
-      font = "bold"
-    },
-    
     vb:text{
       text = "Automatically adds new patterns with the same\nlength when you switch patterns during recording."
     },

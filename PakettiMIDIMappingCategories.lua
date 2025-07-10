@@ -109,9 +109,7 @@ end
 function load_category_preferences()
   if io.exists(CATEGORIES_FILE) then
     category_preferences:load_from(CATEGORIES_FILE)
-    print("MIDI mapping categories loaded from: " .. CATEGORIES_FILE)
   else
-    print("No existing categories file found, using defaults")
     initialize_default_categories()
   end
 end
@@ -472,4 +470,4 @@ end
 -- Initialize on load
 load_category_preferences()
 
-print("PakettiMIDIMappingCategories.lua loaded - Category management system ready!") 
+ 

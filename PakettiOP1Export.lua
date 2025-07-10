@@ -661,4 +661,4 @@ if not renoise.tool():has_file_import_hook("sample", { "aif", "aiff" }) then
   renoise.tool():add_file_import_hook(aif_integration)
 end
 ]]--
-print("PakettiOP1Export: Teenage Engineering OP-1 export tool loaded") 
+ 

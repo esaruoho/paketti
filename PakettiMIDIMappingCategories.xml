@@ -1,72 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <PakettiMIDIMappingCategoryPreferences doc_version="0">
-  <show_uncategorized_only>false</show_uncategorized_only>
-  <categories>
-    <category type="lua_model:PakettiMIDICategoryEntry">
-      <name>Uncategorized</name>
-    </category>
-    <category type="lua_model:PakettiMIDICategoryEntry">
-      <name>Pattern Editor: Navigation</name>
-    </category>
-    <category type="lua_model:PakettiMIDICategoryEntry">
-      <name>Pattern Editor: Editing</name>
-    </category>
-    <category type="lua_model:PakettiMIDICategoryEntry">
-      <name>Pattern Editor: Effects</name>
-    </category>
-    <category type="lua_model:PakettiMIDICategoryEntry">
-      <name>Sample Editor: Process</name>
-    </category>
-    <category type="lua_model:PakettiMIDICategoryEntry">
-      <name>Sample Editor: Navigation</name>
-    </category>
-    <category type="lua_model:PakettiMIDICategoryEntry">
-      <name>Sample Editor: Selection</name>
-    </category>
-    <category type="lua_model:PakettiMIDICategoryEntry">
-      <name>Automation: Control</name>
-    </category>
-    <category type="lua_model:PakettiMIDICategoryEntry">
-      <name>Automation: Editing</name>
-    </category>
-    <category type="lua_model:PakettiMIDICategoryEntry">
-      <name>Playback: Control</name>
-    </category>
-    <category type="lua_model:PakettiMIDICategoryEntry">
-      <name>Playback: Recording</name>
-    </category>
-    <category type="lua_model:PakettiMIDICategoryEntry">
-      <name>Track: Navigation</name>
-    </category>
-    <category type="lua_model:PakettiMIDICategoryEntry">
-      <name>Track: Control</name>
-    </category>
-    <category type="lua_model:PakettiMIDICategoryEntry">
-      <name>Track: Effects</name>
-    </category>
-    <category type="lua_model:PakettiMIDICategoryEntry">
-      <name>Instrument: Control</name>
-    </category>
-    <category type="lua_model:PakettiMIDICategoryEntry">
-      <name>Instrument: Loading</name>
-    </category>
-    <category type="lua_model:PakettiMIDICategoryEntry">
-      <name>Sequencer: Control</name>
-    </category>
-    <category type="lua_model:PakettiMIDICategoryEntry">
-      <name>Sequencer: Navigation</name>
-    </category>
-    <category type="lua_model:PakettiMIDICategoryEntry">
-      <name>Mixer: Control</name>
-    </category>
-    <category type="lua_model:PakettiMIDICategoryEntry">
-      <name>Utility: General</name>
-    </category>
-    <category type="lua_model:PakettiMIDICategoryEntry">
-      <name>Experimental: Test</name>
-    </category>
-  </categories>
-  <auto_save_changes>true</auto_save_changes>
   <assignments>
     <assignment type="lua_model:PakettiMIDIAssignmentEntry">
       <mapping_name>Paketti:Chord Selector [0-127]</mapping_name>
@@ -976,6 +909,860 @@
       <mapping_name>Paketti:Wipe&amp;Slice (016) x[Toggle]</mapping_name>
       <category_name>Sample Editor: Process</category_name>
     </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 06</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 07</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 00</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 23</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 01</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 10</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 02</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 03</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 04</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 05</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 08</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 09</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 11</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 12</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 13</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 15</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 38</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 14</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 17</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 20</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 16</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 18</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 19</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 21</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 22</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 24</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 25</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 26</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 51</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 18</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 27</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 36</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 23</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 28</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 53</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 29</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 52</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 04</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 08</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 32</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 36</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 47</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 16</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 30</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 60</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 39</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 28</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 14</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 57</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 05</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 19</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 03</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 56</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 45</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 31</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 33</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 34</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 35</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 37</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 39</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 40</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 41</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 42</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 43</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 44</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 46</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 62</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 48</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 49</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 50</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 54</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 55</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 58</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 59</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 61</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 62</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Bypass All Other Track DSP Devices (Toggle)</mapping_name>
+      <category_name>Track: Effects</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Bypass All Devices on All Tracks</mapping_name>
+      <category_name>Track: Effects</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Insert Random Plugin (All)</mapping_name>
+      <category_name>Instrument: Loading</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Insert Random Plugin (AU Only)</mapping_name>
+      <category_name>Instrument: Loading</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Load DC Offset</mapping_name>
+      <category_name>Track: Effects</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Load Renoise Maximizer to Master Track</mapping_name>
+      <category_name>Track: Effects</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Change All Samples Device Chain (Direct) x[Knob]</mapping_name>
+      <category_name>Instrument: Configuration</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Change All Samples Device Chain (Scaled) x[Knob]</mapping_name>
+      <category_name>Instrument: Configuration</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Change Selected Sample Device Chain (Direct) x[Knob]</mapping_name>
+      <category_name>Instrument: Configuration</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Change Selected Sample Device Chain (Scaled) x[Knob]</mapping_name>
+      <category_name>Instrument: Configuration</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Change Selected Sample Loop Mode x[Knob]</mapping_name>
+      <category_name>Instrument: Configuration</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Change Selected Sample Volume x[Slider]</mapping_name>
+      <category_name>Instrument: Configuration</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Cycle Overlap Mode</mapping_name>
+      <category_name>Instrument: Configuration</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Duplicate and Reverse Instrument [Trigger]</mapping_name>
+      <category_name>Instrument: Control</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Duplicate Selected Sample at +12 transpose</mapping_name>
+      <category_name>Instrument: Control</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Duplicate Selected Sample at +24 transpose</mapping_name>
+      <category_name>Instrument: Control</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Duplicate Selected Sample at -12 transpose</mapping_name>
+      <category_name>Instrument: Control</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Duplicate Selected Sample at -24 transpose</mapping_name>
+      <category_name>Instrument: Control</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Insert Random Device (All)</mapping_name>
+      <category_name>Track: Effects</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Insert Inverter Device to TrackDSP/SampleFX</mapping_name>
+      <category_name>Track: Effects</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Insert Random Device (AU/Native Only)</mapping_name>
+      <category_name>Track: Effects</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Change Master Output Routings</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Master Track Output Routing 63</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 00</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 01</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 02</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 06</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 07</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 09</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 10</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 11</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 12</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 13</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 15</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 17</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 20</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 21</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 22</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 24</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 25</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 26</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 27</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 63</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 59</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 60</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 61</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 31</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 52</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 29</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 30</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 32</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 33</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 42</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 53</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 57</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 46</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 44</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 34</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 37</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 48</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 49</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 50</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 54</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 55</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 56</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 35</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 40</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 43</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 38</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 45</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 58</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 41</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 47</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Set Selected Track Output Routing 51</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Normalize All Instruments to -12dB</mapping_name>
+      <category_name>Sample Editor: Process</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Normalize Selected Instrument to -12dB</mapping_name>
+      <category_name>Sample Editor: Process</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Sample Zoom (1x-11x) [Knob]</mapping_name>
+      <category_name>Sample Editor: Process</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Normalize Selected Sample or Slice</mapping_name>
+      <category_name>Sample Editor: Process</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Select Padded Slice (Previous)</mapping_name>
+      <category_name>Sample Editor: Process</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Delete Slice Markers in Selection</mapping_name>
+      <category_name>Sample Editor: Process</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Generate Automation Points from Notes in Selected Track</mapping_name>
+      <category_name>Automation: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Map Sample to All Keyzones</mapping_name>
+      <category_name>Instrument: Configuration</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Change Sample Modulation Set Filter</mapping_name>
+      <category_name>Instrument: Configuration</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Change Selected Track Output Routings</mapping_name>
+      <category_name>Mixer: Output Routings</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Change Selected Instrument (Previous) x[Knob]</mapping_name>
+      <category_name>Instrument: Control</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Group Samples by Name to New Instruments</mapping_name>
+      <category_name>Instrument: Control</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Paketti PitchBend Drumkit Sample Loader</mapping_name>
+      <category_name>Instrument: Control</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Paketti PitchBend Drumkit Sample Loader (Random)</mapping_name>
+      <category_name>Instrument: Control</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Paketti PitchBend Multiple Sample Loader</mapping_name>
+      <category_name>Instrument: Control</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Paketti Save Selected Sample .FLAC</mapping_name>
+      <category_name>Instrument: Control</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Paketti Save Selected Sample .WAV</mapping_name>
+      <category_name>Instrument: Control</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Clear All Tracks Below Current Row</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Create New Instrument &amp; Loop from Selection</mapping_name>
+      <category_name>Instrument: Control</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Create New Phrase Using Paketti Settings</mapping_name>
+      <category_name>Instrument: Control</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Insert Random Panning to Selected Row</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Insert Random Volume to Selected Row</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Change Selected Track x[Knob]</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Modify Current Phrase Using Paketti Settings</mapping_name>
+      <category_name>Pattern Editor: Editing</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Normalize Selected Sample to -12dB</mapping_name>
+      <category_name>Sample Editor: Process</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Paketti Gater Dialog...</mapping_name>
+      <category_name>Paketti Gadgets: General</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Global Volume Adjustment...</mapping_name>
+      <category_name>Paketti Gadgets: General</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Paketti Dynamic View Preferences Dialog 1-4...</mapping_name>
+      <category_name>Paketti Gadgets: General</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Open Paketti Init Phrase Dialog...</mapping_name>
+      <category_name>Paketti Gadgets: General</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Open VolDelayPan Slider Dialog...</mapping_name>
+      <category_name>Paketti Gadgets: General</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Paketti Dynamic View Preferences Dialog 5-8...</mapping_name>
+      <category_name>Paketti Gadgets: General</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Paketti Groovebox 8120</mapping_name>
+      <category_name>Paketti Gadgets: General</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Metronome On/Off x[Toggle]</mapping_name>
+      <category_name>Playback: Control</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Metronome Volume x[Knob]</mapping_name>
+      <category_name>Playback: Control</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Input Octave Follow Disable x[Trigger]</mapping_name>
+      <category_name>Playback: Control</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Input Octave Follow Enable x[Trigger]</mapping_name>
+      <category_name>Playback: Control</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Midi Input Octave Follow Toggle x[Toggle]</mapping_name>
+      <category_name>Playback: Control</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Paketti Groovebox 8120 Expand Selection Replicate Track 1 [Trigger]</mapping_name>
+      <category_name>Paketti Gadgets: Groovebox8120</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Paketti Groovebox 8120 Expand Selection Replicate Track 2 [Trigger]</mapping_name>
+      <category_name>Paketti Gadgets: Groovebox8120</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Paketti Groovebox 8120 Expand Selection Replicate Track 3 [Trigger]</mapping_name>
+      <category_name>Paketti Gadgets: Groovebox8120</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Paketti Groovebox 8120 Expand Selection Replicate Track 4 [Trigger]</mapping_name>
+      <category_name>Paketti Gadgets: Groovebox8120</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Paketti Groovebox 8120 Expand Selection Replicate Track 5 [Trigger]</mapping_name>
+      <category_name>Paketti Gadgets: Groovebox8120</category_name>
+    </assignment>
+    <assignment type="lua_model:PakettiMIDIAssignmentEntry">
+      <mapping_name>Paketti:Paketti Groovebox 8120 Expand Selection Replicate Track 6 [Trigger]</mapping_name>
+      <category_name>Paketti Gadgets: Groovebox8120</category_name>
+    </assignment>
   </assignments>
   <last_selected_category>All Mappings</last_selected_category>
+  <show_uncategorized_only>false</show_uncategorized_only>
+  <categories>
+    <category type="lua_model:PakettiMIDICategoryEntry">
+      <name>Uncategorized</name>
+    </category>
+    <category type="lua_model:PakettiMIDICategoryEntry">
+      <name>Pattern Editor: Navigation</name>
+    </category>
+    <category type="lua_model:PakettiMIDICategoryEntry">
+      <name>Pattern Editor: Editing</name>
+    </category>
+    <category type="lua_model:PakettiMIDICategoryEntry">
+      <name>Pattern Editor: Effects</name>
+    </category>
+    <category type="lua_model:PakettiMIDICategoryEntry">
+      <name>Sample Editor: Process</name>
+    </category>
+    <category type="lua_model:PakettiMIDICategoryEntry">
+      <name>Sample Editor: Navigation</name>
+    </category>
+    <category type="lua_model:PakettiMIDICategoryEntry">
+      <name>Sample Editor: Selection</name>
+    </category>
+    <category type="lua_model:PakettiMIDICategoryEntry">
+      <name>Automation: Control</name>
+    </category>
+    <category type="lua_model:PakettiMIDICategoryEntry">
+      <name>Automation: Editing</name>
+    </category>
+    <category type="lua_model:PakettiMIDICategoryEntry">
+      <name>Playback: Control</name>
+    </category>
+    <category type="lua_model:PakettiMIDICategoryEntry">
+      <name>Playback: Recording</name>
+    </category>
+    <category type="lua_model:PakettiMIDICategoryEntry">
+      <name>Track: Navigation</name>
+    </category>
+    <category type="lua_model:PakettiMIDICategoryEntry">
+      <name>Track: Control</name>
+    </category>
+    <category type="lua_model:PakettiMIDICategoryEntry">
+      <name>Track: Effects</name>
+    </category>
+    <category type="lua_model:PakettiMIDICategoryEntry">
+      <name>Instrument: Control</name>
+    </category>
+    <category type="lua_model:PakettiMIDICategoryEntry">
+      <name>Instrument: Loading</name>
+    </category>
+    <category type="lua_model:PakettiMIDICategoryEntry">
+      <name>Sequencer: Control</name>
+    </category>
+    <category type="lua_model:PakettiMIDICategoryEntry">
+      <name>Sequencer: Navigation</name>
+    </category>
+    <category type="lua_model:PakettiMIDICategoryEntry">
+      <name>Mixer: Control</name>
+    </category>
+    <category type="lua_model:PakettiMIDICategoryEntry">
+      <name>Utility: General</name>
+    </category>
+    <category type="lua_model:PakettiMIDICategoryEntry">
+      <name>Experimental: Test</name>
+    </category>
+    <category type="lua_model:PakettiMIDICategoryEntry">
+      <name>Mixer: Output Routings</name>
+    </category>
+    <category type="lua_model:PakettiMIDICategoryEntry">
+      <name>Instrument: Configuration</name>
+    </category>
+    <category type="lua_model:PakettiMIDICategoryEntry">
+      <name>Paketti Gadgets: General</name>
+    </category>
+    <category type="lua_model:PakettiMIDICategoryEntry">
+      <name>Paketti Gadgets: Tools</name>
+    </category>
+    <category type="lua_model:PakettiMIDICategoryEntry">
+      <name>Paketti Gadgets: Groovebox8120</name>
+    </category>
+  </categories>
+  <auto_save_changes>true</auto_save_changes>
 </PakettiMIDIMappingCategoryPreferences>

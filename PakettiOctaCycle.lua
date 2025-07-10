@@ -728,13 +728,10 @@ renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti:Octatrack:Generate
 renoise.tool():add_menu_entry{name="Sample Mappings:Paketti:Octatrack:Quick OctaCycle (C, Oct 1-7)",invoke=function() PakettiOctaCycleQuick() end}
 renoise.tool():add_menu_entry{name="Sample Mappings:Paketti:Octatrack:Export OctaCycle to Octatrack",invoke=function() PakettiOctaCycleExport() end}
 
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Octatrack:Generate OctaCycle...",invoke=function() PakettiOctaCycle() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Octatrack:Quick OctaCycle (C, Oct 1-7)",invoke=function() PakettiOctaCycleQuick() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Octatrack:Export OctaCycle to Octatrack",invoke=function() PakettiOctaCycleExport() end}
 
 -- Keybindings
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Generate OctaCycle for Octatrack",invoke=function() PakettiOctaCycle() end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Quick OctaCycle for Octatrack",invoke=function() PakettiOctaCycleQuick() end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Export OctaCycle to Octatrack",invoke=function() PakettiOctaCycleExport() end}
 
-print("PakettiOctaCycle.lua loaded - Generate multiple octave versions of single-cycle waveforms for Octatrack") 
+ 

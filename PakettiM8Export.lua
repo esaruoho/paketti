@@ -873,4 +873,4 @@ if not renoise.tool():has_file_import_hook("sample", { "m8i" }) then
   renoise.tool():add_file_import_hook(m8i_integration)
 end
 
-print("PakettiM8Export: DirtyWave M8 sample chain export/import tool loaded") 
+ 

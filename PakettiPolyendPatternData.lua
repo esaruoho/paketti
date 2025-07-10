@@ -1054,13 +1054,7 @@ function PakettiPolyendPatternBrowser()
     pattern_dialog = renoise.app():show_custom_dialog("Polyend Pattern Browser", content)
 end
 
--- Initialize the module
-function PakettiPolyendPatternDataInit()
-    print("Polyend Pattern Data initialized")
-end
 
--- Initialize the module
-PakettiPolyendPatternDataInit()
 
 -- Menu entries and keybindings
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/Work in Progress:Polyend:Pattern Browser", invoke=PakettiPolyendPatternBrowser}
@@ -1080,91 +1074,63 @@ renoise.tool():add_keybinding{name="Global:Paketti:Import Polyend Pattern Tracks
 
 -- Direct MTP file import function for drag-and-drop
 local function mtp_import_hook(filename)
-    print("=== MTP HOOK TRIGGERED ===")
-    print("Filename:", tostring(filename))
-    
     if not filename then
-        print("ERROR: No filename provided!")
         renoise.app():show_error("MTP Import Error: No filename provided!")
         return false
     end
     
-    print("Starting MTP import for file:", filename)
-    
     -- Check if file exists
     local file_test = io.open(filename, "rb")
     if not file_test then
-        print("ERROR: Cannot open file:", filename)
         renoise.app():show_error("Cannot open MTP file: " .. filename)
         return false
     end
     file_test:close()
-    print("File exists and is readable")
     
     -- Read the pattern file
-    print("Attempting to read pattern file...")
     local pattern_data = read_pattern_file(filename)
     if not pattern_data then
-        print("ERROR: Failed to read pattern data")
         renoise.app():show_error("Failed to read MTP pattern file: " .. filename)
         return false
     end
     
-    print("Pattern data read successfully:")
-    print("  Track count:", pattern_data.track_count)
-    print("  Version:", pattern_data.version)
-    
     local song = renoise.song()
     local current_pattern_index = song.selected_pattern_index
-    print("Current pattern index:", current_pattern_index)
-    print("Available tracks:", #song.tracks)
     
     -- Create default 1:1 track mapping
     local track_mapping = {}
     for track_idx = 1, pattern_data.track_count do
         track_mapping[track_idx] = math.min(track_idx, #song.tracks)
-        print("  Track mapping:", track_idx, "->", track_mapping[track_idx])
     end
     
     -- Import the pattern
-    print("Attempting to import pattern...")
     local success = import_pattern_to_renoise(pattern_data, current_pattern_index, track_mapping, filename)
     
     if success then
         local filename_only = filename:match("[^/\\]+$") or "pattern"
-        print("SUCCESS: Pattern imported successfully")
         renoise.app():show_status(string.format("MTP pattern imported: %s (%d tracks)", filename_only, pattern_data.track_count))
         return true
     else
-        print("ERROR: import_pattern_to_renoise failed")
         renoise.app():show_error("Failed to import MTP pattern: " .. filename)
         return false
     end
 end
 
 -- Register the file import hook for MTP files
-print("=== REGISTERING MTP HOOK ===")
 local mtp_integration = {
     category = "sample",  -- Changed from "other" to "sample" like RX2
     extensions = { "mtp" },
     invoke = mtp_import_hook
 }
 
-print("Hook definition:", mtp_integration.category, table.concat(mtp_integration.extensions, ", "))
-
 -- Check if hook already exists
 local has_hook = renoise.tool():has_file_import_hook("sample", { "mtp" })
-print("Hook already exists:", has_hook)
 
 if not has_hook then
     local success, error_msg = pcall(function()
         renoise.tool():add_file_import_hook(mtp_integration)
     end)
-    if success then
-        print("MTP file import hook registered successfully")
-    else
-        print("ERROR registering hook:", error_msg)
+    if not success then
+        renoise.app():show_error("ERROR registering MTP hook: " .. tostring(error_msg))
     end
-else
-    print("MTP hook already registered")
 end 

@@ -22,7 +22,6 @@ local function pakettiAutoHideDiskBrowserNewDocumentHandler()
   if preferences.paketti_auto_hide_disk_browser then
     -- Hide the disk browser when a new song is loaded
     renoise.app().window.disk_browser_is_visible = false
-    print("-- Paketti Auto-Hide Disk Browser: Disk browser hidden on song load")
   end
 end
 

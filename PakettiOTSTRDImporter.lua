@@ -673,7 +673,7 @@ local strd_integration = {
 
 if not renoise.tool():has_file_import_hook("song", { "strd", "work" }) then
   renoise.tool():add_file_import_hook(strd_integration)
-  print("PakettiOTSTRDImporter: Drag & drop support enabled for .strd/.work files")
+  
 end
 
 ----------------------------------------------------------------------
@@ -689,4 +689,4 @@ renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Octatrack:Import S
 -- Keybinding
 renoise.tool():add_keybinding{name="Global:Paketti:Octatrack Import STRD Bank",invoke=function() PakettiOTSTRDImporter() end}
 
-print("PakettiOTSTRDImporter.lua loaded - Import Octatrack .strd/.work files with drag & drop support") 
+ 

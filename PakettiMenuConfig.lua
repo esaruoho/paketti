@@ -1208,6 +1208,66 @@ renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets:Paketti Tr
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets:Paketti eSpeak Text-to-Speech...",invoke=function()pakettieSpeakDialog()end}
     
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:File Formats:Convert RX2 to PTI",invoke=rx2_to_pti_convert}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:File Formats:Export .PTI Instrument",invoke=pti_savesample}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Instruments:File Formats:Load .MOD as Sample",
+  invoke=function() 
+    local file_path = renoise.app():prompt_for_filename_to_read({"*.mod","mod.*"}, "Select Any File to Load as Sample")
+    if file_path ~= "" then
+      pakettiLoadExeAsSample(file_path)
+      paketti_toggle_signed_unsigned() end end}
+
+      
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Instruments:File Formats:Octatrack:Generate OctaCycle...",invoke=function() PakettiOctaCycle() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:File Formats:Octatrack:Quick OctaCycle (C, Oct 1-7)",invoke=function() PakettiOctaCycleQuick() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:File Formats:Octatrack:Export OctaCycle to Octatrack",invoke=function() PakettiOctaCycleExport() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:File Formats:Octatrack:Export (.WAV+.ot)",invoke=function() PakettiOTExport() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:File Formats:Octatrack:Export (.ot only)",invoke=function() PakettiOTExportOtOnly() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:File Formats:Octatrack:Import (.ot)",invoke=function() PakettiOTImport() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:File Formats:Octatrack:Debug (.ot)",invoke=function() PakettiOTDebugDialog() end}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Instruments:File Formats:Octatrack:Generate Drumkit (Smart Mono/Stereo)",invoke=function() PakettiOTDrumkitSmart() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:File Formats:Octatrack:Generate Drumkit (Force Mono)",invoke=function() PakettiOTDrumkitMono() end}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Instruments:File Formats:Octatrack:Set Loop to Slice",invoke=function() PakettiOTSetLoopToSlice() end}
+
+
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:File Formats:Load Samples from .MOD",invoke=function() load_samples_from_mod() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:File Formats:Convert IFF to WAV...",invoke=convertIFFToWAV}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:File Formats:Convert WAV to IFF...",invoke=convertWAVToIFF}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:File Formats:Save Current Sample as IFF...",invoke=saveCurrentSampleAsIFF}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:File Formats:Import .RX2",invoke=function() 
+  local filename = renoise.app():prompt_for_filename_to_read({"*.RX2","*.rx2"}, "ReCycle .RX2 Import tool")
+  if filename then rx2_loadsample(filename) end end}
+
+  renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:File Formats:Dump REX Structure to Text",
+  invoke=function()
+    local file_path = renoise.app():prompt_for_filename_to_read({ "*.rex","*.REX" }, "ReCycle Legacy .REX Import Structure Dumper")
+    if file_path then
+      dump_rex_structure(file_path)
+    end
+  end
+  
+}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:File Formats:Import .REX",invoke=function() 
+  local filename = renoise.app():prompt_for_filename_to_read({"*.REX"}, "ReCycle .REX Import tool")
+  if filename then rex_loadsample(filename) end end}
+
+
+
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:File Formats:Import .SF2 (Single XRNI per Preset)",
+  invoke=function()
+    local f = renoise.app():prompt_for_filename_to_read({"*.sf2"}, "Select SF2 to import")
+    if f and f ~= "" then import_sf2(f) end
+  end
+}
+
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:File Formats:Import .SF2 (Multitimbral)",
+  invoke=function()
+    local f = renoise.app():prompt_for_filename_to_read({"*.sf2"}, "Select SF2 to import (multitimbral)")
+    if f and f ~= "" then import_sf2_multitimbral(f) end
+  end
+}
+
+
+
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Paketti Steppers Dialog...", invoke=function() PakettiSteppersDialog() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Reset All Steppers",invoke = ResetAllSteppers}
 
@@ -1274,7 +1334,6 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Show 
 
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Merge Instruments Dialog...",invoke=function() pakettiMergeInstrumentsDialog() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:File Formats:Load Samples from .MOD",invoke=function() load_samples_from_mod() end}
 
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Samples:Paketti Offset Dialog...",invoke=pakettiOffsetDialog }
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Replace FC with 0L",invoke=function() ReplaceLegacyEffect("FC", "0L") end}
@@ -1337,9 +1396,6 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Auto Assign Outputs"
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Toggle Mute Tracks",invoke=toggle_mute_tracks}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Plugins/Devices:Open Visible Pages to Fit Plugin Parameter Count",invoke=openVisiblePagesToFitParameters}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Add Input Inertia Formula Device",invoke = add_input_inertia}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:File Formats:Convert IFF to WAV...",invoke=convertIFFToWAV}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:File Formats:Convert WAV to IFF...",invoke=convertWAVToIFF}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:File Formats:Save Current Sample as IFF...",invoke=saveCurrentSampleAsIFF}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Instruments:Cycle Overlap Mode",invoke=overlayModeCycle}
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Paketti PitchBend Drumkit Sample Loader (Random)",invoke=function() loadRandomDrumkitSamples(120)  end}
@@ -1358,20 +1414,6 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Set Over
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Set Overlap Mode 2 (Random)",invoke=function() setOverlapMode(2) end}
 
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:File Formats:Import .RX2",invoke=function() 
-  local filename = renoise.app():prompt_for_filename_to_read({"*.RX2","*.rx2"}, "ReCycle .RX2 Import tool")
-  if filename then rx2_loadsample(filename) end end}
-
-  renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:File Formats:Dump REX Structure to Text",
-  invoke=function()
-    local file_path = renoise.app():prompt_for_filename_to_read({ "*.rex","*.REX" }, "ReCycle Legacy .REX Import Structure Dumper")
-    if file_path then
-      dump_rex_structure(file_path)
-    end
-  end
-  
-}
-
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Debug:Generate Paketti Midi Mappings to Console",
   invoke=function() generate_paketti_midi_mappings() end}
 
@@ -1382,25 +1424,7 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Debug:P
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Explode Notes to New Tracks",invoke=function() explode_notes_to_tracks() end}
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:File Formats:Import .REX",invoke=function() 
-  local filename = renoise.app():prompt_for_filename_to_read({"*.REX"}, "ReCycle .REX Import tool")
-  if filename then rex_loadsample(filename) end end}
 
-
-
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:File Formats:Import .SF2 (Single XRNI per Preset)",
-  invoke=function()
-    local f = renoise.app():prompt_for_filename_to_read({"*.sf2"}, "Select SF2 to import")
-    if f and f ~= "" then import_sf2(f) end
-  end
-}
-
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:File Formats:Import .SF2 (Multitimbral)",
-  invoke=function()
-    local f = renoise.app():prompt_for_filename_to_read({"*.sf2"}, "Select SF2 to import (multitimbral)")
-    if f and f ~= "" then import_sf2_multitimbral(f) end
-  end
-}
 
 
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Paketti Effect Column CheatSheet...",invoke=function() pakettiPatternEditorCheatsheetDialog() end}
@@ -1491,7 +1515,7 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Delete Unused Sample
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Duplicate Pattern Above & Clear Muted",invoke=duplicate_pattern_and_clear_muted_above}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Duplicate Pattern Below & Clear Muted",invoke=duplicate_pattern_and_clear_muted}
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:File Formats:Export .PTI Instrument",invoke=pti_savesample}
+
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern/Phrase Length Dialog...",invoke=function() pakettiLengthDialog() end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Pattern Editor:Pattern Length Increase by 8",invoke=function() adjust_length_by(8) end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Pattern Length Decrease by 8",invoke=function() adjust_length_by(-8) end}
@@ -1527,12 +1551,7 @@ renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Plugins/Devices:De
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Plugins/Devices:Expose/Hide Selected Device Parameters in Mixer",invoke=function() exposeHideParametersInMixer() end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Plugins/Devices:Randomize Devices and Plugins Dialog...",invoke=function() pakettiRandomizerDialog() end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Plugins/Devices:Debug:Dump VST/VST3/AU/LADSPA/DSSI/Native Effects to Dialog...",invoke=function() show_available_plugins_dialog() end}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Instruments:File Formats:Load .MOD as Sample",
-  invoke=function() 
-    local file_path = renoise.app():prompt_for_filename_to_read({"*.mod","mod.*"}, "Select Any File to Load as Sample")
-    if file_path ~= "" then
-      pakettiLoadExeAsSample(file_path)
-      paketti_toggle_signed_unsigned() end end}
+
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Pattern Editor:Duplicate Effect Column Content to Pattern or Selection",invoke=pakettiDuplicateEffectColumnToPatternOrSelection}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Pattern Editor:Value Interpolation Looper Dialog...",invoke = pakettiVolumeInterpolationLooper}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Pattern Editor:Catch Octave",invoke = toggle_catch_octave}

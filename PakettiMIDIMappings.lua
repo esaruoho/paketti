@@ -725,7 +725,8 @@ function pakettiMIDIMappingsDialog()
   local category_filter = nil
   local edit_mode_switch = nil
   local assignment_mode = false
-  local selected_mapping_for_assignment = nil
+  local assignment_main_category_selector = nil
+  local assignment_sub_category_selector = nil
 
   -- Function to create the category management dialog
   local function show_category_management_dialog()
@@ -939,6 +940,8 @@ function pakettiMIDIMappingsDialog()
     if rows_per_column_filter then dialog_state.rows_per_column_value = rows_per_column_filter.value end
     if edit_mode_switch then dialog_state.edit_mode_value = edit_mode_switch.value end
     
+    -- Note: assignment_controls_row will be recreated when dialog reopens
+    
     -- Auto-reset alphabet filter to "All Mappings" when selecting specific categories
     if category_filter then
       local category_name = category_filter.items[category_filter.value]
@@ -1016,108 +1019,7 @@ function pakettiMIDIMappingsDialog()
 
 
 
-  -- Function to create assignment dialog with simple single dropdown
-  local function create_simple_assignment_dialog(mapping, button_text, current_cat)
-    local assign_vb = renoise.ViewBuilder()
-    local assignment_dialog = nil
-    
-    -- Get all categories (both main and sub-categories) in one flat list
-    local all_categories = get_all_categories()
-    local main_categories = get_main_categories()
-    
-    -- Create a combined list: each main category followed by its sub-categories
-    local category_items = {}
-    
-    -- For each main category, add it followed by its sub-categories
-    for _, main_cat in ipairs(main_categories) do
-      table.insert(category_items, main_cat)
-      
-      -- Add sub-categories for this main category
-      for _, full_cat in ipairs(all_categories) do
-        if full_cat:find(":") then  -- Only sub-categories (contain ":")
-          local main_part = full_cat:match("^([^:]+):")
-          if main_part == main_cat then
-            table.insert(category_items, full_cat)
-          end
-        end
-      end
-    end
-    
-    -- Find current selection index - prefer last assigned category over current mapping category
-    local preferred_category = dialog_state.last_assigned_category
-    local current_index = 1
-    
-    -- First try to find the last assigned category
-    for i, cat in ipairs(category_items) do
-      if cat == preferred_category then
-        current_index = i
-        break
-      end
-    end
-    
-    -- If last assigned category not found, fall back to current mapping category
-    if current_index == 1 and current_cat ~= "Uncategorized" then
-      for i, cat in ipairs(category_items) do
-        if cat == current_cat then
-          current_index = i
-          break
-        end
-      end
-    end
-    
-    local category_selector = assign_vb:popup{
-      items = category_items,
-      value = current_index,
-      width = 300  -- Wider to accommodate longer category names
-    }
-    
-    local assign_content = assign_vb:column{
-      margin = 10,
-      spacing = 5,
-      assign_vb:text{text = "Assign Category", style = "strong"},
-      assign_vb:text{text = "Mapping: " .. button_text, font = "italic"},
-      assign_vb:text{text = "Current: " .. current_cat, font = "italic"},
-      assign_vb:row{
-        assign_vb:text{text = "Category:", width = 80},
-        category_selector
-      },
-      assign_vb:row{
-        assign_vb:button{
-          text = "Assign",
-          width = 80,
-          notifier = function()
-            local selected_category = category_items[category_selector.value]
-            
-            local success, msg = assign_mapping_to_category(mapping, selected_category)
-            if success then
-              -- Remember this category for next assignment
-              dialog_state.last_assigned_category = selected_category
-              save_dialog_state()
-              
-              renoise.app():show_status("Assigned to: " .. selected_category)
-              rebuild_mappings_display()
-              if assignment_dialog then assignment_dialog:close() end
-            else
-              renoise.app():show_error(msg)
-            end
-          end
-        },
-        assign_vb:button{
-          text = "Cancel",
-          width = 80,
-          notifier = function()
-            if assignment_dialog then assignment_dialog:close() end
-          end
-        }
-      }
-    }
-    
-    local keyhandler = create_keyhandler_for_dialog(
-      function() return assignment_dialog end,
-      function(value) assignment_dialog = value end
-    )
-    assignment_dialog = renoise.app():show_custom_dialog("Assign Category", assign_content, keyhandler)
-  end
+
 
   -- Original function to build mappings display (only called once)
   local function build_initial_mappings_display()
@@ -1361,111 +1263,44 @@ function pakettiMIDIMappingsDialog()
               color = button_color,
               notifier = function()
                 if assignment_mode and edit_mode_switch.value == 2 then
-                  -- Assignment mode: show hierarchical category selector
-                  selected_mapping_for_assignment = mapping
+                  -- Assignment mode: instant assignment using persistent dropdowns
+                  local selected_main = main_categories[assignment_main_category_selector.value]
+                  local selected_sub = assignment_sub_category_selector.items[assignment_sub_category_selector.value]
+                  local full_category = get_full_category_name(selected_main, selected_sub)
                   
-                  local current_cat = get_mapping_category(mapping)
-                  local current_main = "Uncategorized"
-                  local current_sub = "Uncategorized"
-                  
-                  -- Parse current category
-                  if current_cat ~= "Uncategorized" then
-                    local main_part, sub_part = current_cat:match("^([^:]+):%s*(.+)")
-                    if main_part and sub_part then
-                      current_main = main_part
-                      current_sub = sub_part
+                  local success, msg = assign_mapping_to_category(mapping, full_category)
+                  if success then
+                    -- Remember this category for future use
+                    dialog_state.last_assigned_category = full_category
+                    save_dialog_state()
+                    
+                    renoise.app():show_status("✅ " .. button_text:sub(1,30) .. "... → " .. selected_main .. ":" .. selected_sub)
+                    
+                    -- Check if we need to rebuild the display
+                    local current_filter = category_filter.items[category_filter.value]
+                    local needs_rebuild = false
+                    
+                    -- Always rebuild if we're showing uncategorized (item will disappear)
+                    if current_filter and current_filter:find("Show Uncategorized") then
+                      needs_rebuild = true
                     end
-                  end
-                  
-                  local assign_vb = renoise.ViewBuilder()
-                  local assignment_dialog = nil
-                  
-                  -- Get main categories
-                  local main_categories = get_main_categories()
-                  local main_index = 1
-                  for j, cat in ipairs(main_categories) do
-                    if cat == current_main then
-                      main_index = j
-                      break
+                    
+                    -- Rebuild if we're showing "All Mappings" to update button colors
+                    if current_filter and current_filter:find("All Mappings") then
+                      needs_rebuild = true
                     end
-                  end
-                  
-                  local main_category_selector = assign_vb:popup{
-                    items = main_categories,
-                    value = main_index,
-                    width = 200
-                  }
-                  
-                  -- Get initial sub-categories
-                  local initial_sub_categories = get_sub_categories(current_main)
-                  local sub_index = 1
-                  for j, cat in ipairs(initial_sub_categories) do
-                    if cat == current_sub then
-                      sub_index = j
-                      break
+                    
+                    -- Rebuild if we're showing the specific category the item was assigned to
+                    if current_filter and (current_filter:find(selected_main) or current_filter == selected_main) then
+                      needs_rebuild = true
                     end
+                    
+                    if needs_rebuild then
+                      rebuild_mappings_display()
+                    end
+                  else
+                    renoise.app():show_error(msg)
                   end
-                  
-                  local sub_category_selector = assign_vb:popup{
-                    items = initial_sub_categories,
-                    value = sub_index,
-                    width = 200
-                  }
-                  
-                  -- Update sub-categories when main category changes
-                  -- Note: Cannot assign notifier after popup creation - this causes errors in Renoise
-                  -- main_category_selector.notifier = function(value)
-                  --   local selected_main = main_categories[value]
-                  --   local sub_cats = get_sub_categories(selected_main)
-                  --   sub_category_selector.items = sub_cats
-                  --   sub_category_selector.value = 1
-                  -- end
-                  
-                  local assign_content = assign_vb:column{
-                    margin = 10,
-                    spacing = 5,
-                    assign_vb:text{text = "Assign Category", style = "strong"},
-                    assign_vb:text{text = "Mapping: " .. button_text, font = "italic"},
-                    assign_vb:text{text = "Current: " .. current_cat, font = "italic"},
-                    assign_vb:row{
-                      assign_vb:text{text = "Main Category:", width = 100},
-                      main_category_selector
-                    },
-                    assign_vb:row{
-                      assign_vb:text{text = "Sub Category:", width = 100},
-                      sub_category_selector
-                    },
-                    assign_vb:row{
-                      assign_vb:button{
-                        text = "Assign",
-                        width = 80,
-                        notifier = function()
-                          local selected_main = main_categories[main_category_selector.value]
-                          local selected_sub = sub_category_selector.items[sub_category_selector.value]
-                          local full_category = get_full_category_name(selected_main, selected_sub)
-                          
-                          local success, msg = assign_mapping_to_category(mapping, full_category)
-                          if success then
-                            renoise.app():show_status("Assigned to: " .. full_category)
-                            rebuild_mappings_display()
-                            if assignment_dialog then assignment_dialog:close() end
-                          else
-                            renoise.app():show_error(msg)
-                          end
-                        end
-                      },
-                      assign_vb:button{
-                        text = "Cancel",
-                        width = 80,
-                        notifier = function()
-                          if assignment_dialog then assignment_dialog:close() end
-                        end
-                      }
-                    }
-                  }
-                  
-                  -- Use the simple assignment dialog function
-                  create_simple_assignment_dialog(mapping, button_text, current_cat)
                 else
                   -- View Mode: execute the actual function behind the MIDI mapping
                   local success = execute_midi_mapping_function(mapping)
@@ -1507,111 +1342,45 @@ function pakettiMIDIMappingsDialog()
               color = button_color,
               notifier = function()
                 if assignment_mode and edit_mode_switch.value == 2 then
-                  -- Assignment mode: show hierarchical category selector
-                  selected_mapping_for_assignment = mapping
+                  -- Assignment mode: instant assignment using persistent dropdowns
+                  local current_main_categories = get_main_categories()
+                  local selected_main = current_main_categories[assignment_main_category_selector.value]
+                  local selected_sub = assignment_sub_category_selector.items[assignment_sub_category_selector.value]
+                  local full_category = get_full_category_name(selected_main, selected_sub)
                   
-                  local current_cat = get_mapping_category(mapping)
-                  local current_main = "Uncategorized"
-                  local current_sub = "Uncategorized"
-                  
-                  -- Parse current category
-                  if current_cat ~= "Uncategorized" then
-                    local main_part, sub_part = current_cat:match("^([^:]+):%s*(.+)")
-                    if main_part and sub_part then
-                      current_main = main_part
-                      current_sub = sub_part
+                  local success, msg = assign_mapping_to_category(mapping, full_category)
+                  if success then
+                    -- Remember this category for future use
+                    dialog_state.last_assigned_category = full_category
+                    save_dialog_state()
+                    
+                    renoise.app():show_status("✅ " .. button_text:sub(1,30) .. "... → " .. selected_main .. ":" .. selected_sub)
+                    
+                    -- Check if we need to rebuild the display
+                    local current_filter = category_filter.items[category_filter.value]
+                    local needs_rebuild = false
+                    
+                    -- Always rebuild if we're showing uncategorized (item will disappear)
+                    if current_filter and current_filter:find("Show Uncategorized") then
+                      needs_rebuild = true
                     end
-                  end
-                  
-                  local assign_vb = renoise.ViewBuilder()
-                  local assignment_dialog = nil
-                  
-                  -- Get main categories
-                  local main_categories = get_main_categories()
-                  local main_index = 1
-                  for j, cat in ipairs(main_categories) do
-                    if cat == current_main then
-                      main_index = j
-                      break
+                    
+                    -- Rebuild if we're showing "All Mappings" to update button colors
+                    if current_filter and current_filter:find("All Mappings") then
+                      needs_rebuild = true
                     end
-                  end
-                  
-                  local main_category_selector = assign_vb:popup{
-                    items = main_categories,
-                    value = main_index,
-                    width = 200
-                  }
-                  
-                  -- Get initial sub-categories
-                  local initial_sub_categories = get_sub_categories(current_main)
-                  local sub_index = 1
-                  for j, cat in ipairs(initial_sub_categories) do
-                    if cat == current_sub then
-                      sub_index = j
-                      break
+                    
+                    -- Rebuild if we're showing the specific category the item was assigned to
+                    if current_filter and (current_filter:find(selected_main) or current_filter == selected_main) then
+                      needs_rebuild = true
                     end
+                    
+                    if needs_rebuild then
+                      rebuild_mappings_display()
+                    end
+                  else
+                    renoise.app():show_error(msg)
                   end
-                  
-                  local sub_category_selector = assign_vb:popup{
-                    items = initial_sub_categories,
-                    value = sub_index,
-                    width = 200
-                  }
-                  
-                  -- Update sub-categories when main category changes
-                  -- Note: Cannot assign notifier after popup creation - this causes errors in Renoise
-                  -- main_category_selector.notifier = function(value)
-                  --   local selected_main = main_categories[value]
-                  --   local sub_cats = get_sub_categories(selected_main)
-                  --   sub_category_selector.items = sub_cats
-                  --   sub_category_selector.value = 1
-                  -- end
-                  
-                  local assign_content = assign_vb:column{
-                    margin = 10,
-                    spacing = 5,
-                    assign_vb:text{text = "Assign Category", style = "strong"},
-                    assign_vb:text{text = "Mapping: " .. button_text, font = "italic"},
-                    assign_vb:text{text = "Current: " .. current_cat, font = "italic"},
-                    assign_vb:row{
-                      assign_vb:text{text = "Main Category:", width = 100},
-                      main_category_selector
-                    },
-                    assign_vb:row{
-                      assign_vb:text{text = "Sub Category:", width = 100},
-                      sub_category_selector
-                    },
-                    assign_vb:row{
-                      assign_vb:button{
-                        text = "Assign",
-                        width = 80,
-                        notifier = function()
-                          local selected_main = main_categories[main_category_selector.value]
-                          local selected_sub = sub_category_selector.items[sub_category_selector.value]
-                          local full_category = get_full_category_name(selected_main, selected_sub)
-                          
-                          local success, msg = assign_mapping_to_category(mapping, full_category)
-                          if success then
-                            renoise.app():show_status("Assigned to: " .. full_category)
-                            rebuild_mappings_display()
-                            if assignment_dialog then assignment_dialog:close() end
-                          else
-                            renoise.app():show_error(msg)
-                          end
-                        end
-                      },
-                      assign_vb:button{
-                        text = "Cancel",
-                        width = 80,
-                        notifier = function()
-                          if assignment_dialog then assignment_dialog:close() end
-                        end
-                      }
-                    }
-                  }
-                  
-                  -- Use the simple assignment dialog function
-                  create_simple_assignment_dialog(mapping, button_text, current_cat)
                 else
                   -- View Mode: execute the actual function behind the MIDI mapping
                   local success = execute_midi_mapping_function(mapping)
@@ -1742,12 +1511,12 @@ function pakettiMIDIMappingsDialog()
       
       -- Show helpful status messages
       if value == 2 then
-        renoise.app():show_status("EDIT MODE: Click any MIDI mapping button to assign it to a category")
+        renoise.app():show_status("EDIT MODE: Set target category below, then click mappings to assign instantly")
       else
         renoise.app():show_status("VIEW MODE: Click MIDI mapping buttons to use them normally")
       end
       
-      -- Rebuild to update button behavior
+      -- Rebuild to update button behavior and show/hide assignment controls
       rebuild_mappings_display()
     end
   }
@@ -1756,9 +1525,90 @@ function pakettiMIDIMappingsDialog()
   -- Set assignment_mode based on current switch value
   assignment_mode = (dialog_state.edit_mode_value == 2)
   
+  -- Create assignment category controls (for edit mode)
+  local assignment_controls_row = nil
+  
+  -- Get main categories for assignment
+  local main_categories = get_main_categories()
+  
+  -- Find index of last assigned category for default selection
+  local default_main_index = 1
+  local default_sub_index = 1
+  local last_assigned = dialog_state.last_assigned_category
+  
+  if last_assigned and last_assigned ~= "Uncategorized" then
+    local main_part = last_assigned:match("^([^:]+):")
+    if main_part then
+      for i, cat in ipairs(main_categories) do
+        if cat == main_part then
+          default_main_index = i
+          break
+        end
+      end
+      local sub_categories = get_sub_categories(main_part)
+      local sub_part = last_assigned:match("^[^:]+:%s*(.+)")
+      if sub_part then
+        for i, cat in ipairs(sub_categories) do
+          if cat == sub_part then
+            default_sub_index = i
+            break
+          end
+        end
+      end
+    end
+  end
+  
+  -- Create sub-category selector first (needed for main category notifier)
+  local initial_sub_categories = get_sub_categories(main_categories[default_main_index])
+  assignment_sub_category_selector = vb:popup{
+    items = initial_sub_categories,
+    value = math.min(default_sub_index, #initial_sub_categories),
+    width = 200
+  }
+  
+  -- Create main category selector with notifier to update sub-categories
+  assignment_main_category_selector = vb:popup{
+    items = main_categories,
+    value = default_main_index,
+    width = 200,
+    notifier = function(value)
+      local selected_main = main_categories[value]
+      local sub_cats = get_sub_categories(selected_main)
+      assignment_sub_category_selector.items = sub_cats
+      assignment_sub_category_selector.value = 1
+    end
+  }
+  
+  -- Create the assignment controls row (initially hidden)
+  assignment_controls_row = vb:row{
+    spacing = 10,
+    visible = assignment_mode,
+    vb:text{text = "Target Category:", style = "strong"},
+    vb:text{text = "Main:"},
+    assignment_main_category_selector,
+    vb:text{text = "Sub:"},
+    assignment_sub_category_selector,
+    vb:button{
+      text = "Quick: Uncategorized",
+      width = 120,
+      notifier = function()
+        -- Set both dropdowns to Uncategorized
+        for i, cat in ipairs(main_categories) do
+          if cat == "Uncategorized" then
+            assignment_main_category_selector.value = i
+            local sub_cats = get_sub_categories("Uncategorized")
+            assignment_sub_category_selector.items = sub_cats
+            assignment_sub_category_selector.value = 1
+            break
+          end
+        end
+      end
+    }
+  }
+  
   -- Show initial status message
   if assignment_mode then
-    renoise.app():show_status("EDIT MODE: Click any MIDI mapping button to assign it to a category")
+    renoise.app():show_status("EDIT MODE: Set target category below, then click mappings to assign instantly")
   end
   
   -- Add refresh button
@@ -1804,6 +1654,7 @@ function pakettiMIDIMappingsDialog()
   
   dialog_content:add_child(filter_controls_row)
   dialog_content:add_child(display_controls_row)
+  dialog_content:add_child(assignment_controls_row)
   print("DEBUG: Added control rows")
 
   -- Function to create a new column
@@ -1922,7 +1773,7 @@ function pakettiMIDIMappingsDialog()
       
       -- Add assignment mode info
       if assignment_mode and edit_mode_switch.value == 2 then
-        status_text = status_text .. " [ASSIGNMENT MODE: Click mappings to categorize]"
+        status_text = status_text .. " [ASSIGNMENT MODE: Set target category above, then click mappings]"
       end
       
       local status_label = vb:text{
@@ -2184,4 +2035,5 @@ renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:!Preferences:Paket
 
 
 
-print("PakettiMIDIMappings.lua loaded - Dynamic MIDI mapping discovery ready!") 
+ 
+

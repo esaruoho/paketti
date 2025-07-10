@@ -484,6 +484,53 @@ renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise LofiMat 2"
 invoke=function() loadnative("Audio/Effects/Native/LofiMat 2") end}
 renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise Maximizer",
 invoke=function() loadnative("Audio/Effects/Native/Maximizer") end}
+
+-- Function to specifically load Maximizer to Master track
+function loadMasterMaximizer()
+  local s = renoise.song()
+  local w = renoise.app().window
+  
+  -- Find and select the Master track
+  local master_track = nil
+  for i = 1, #s.tracks do
+    if s.tracks[i].type == renoise.Track.TRACK_TYPE_MASTER then
+      master_track = s.tracks[i]
+      s.selected_track_index = i
+      break
+    end
+  end
+  
+  if not master_track then
+    renoise.app():show_status("Master track not found")
+    return
+  end
+  
+  -- Set up UI
+  w.lower_frame_is_visible = true
+  w.active_lower_frame = 1
+  
+  local devices = master_track.devices
+  local checkline = #devices + 1 -- Always add at the end for Master track
+  
+  -- Insert the Maximizer device
+  master_track:insert_device_at("Audio/Effects/Native/Maximizer", checkline)
+  s.selected_device_index = checkline
+  
+  -- Configure the newly added Maximizer
+  if devices[checkline] and devices[checkline].name == "Maximizer" then
+    local device = devices[checkline]
+    device.parameters[1].show_in_mixer = true -- Show the main parameter in mixer
+    
+    renoise.app():show_status("Loaded Maximizer to Master track")
+  else
+    renoise.app():show_status("Failed to load Maximizer to Master track")
+  end
+end
+
+renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise Maximizer to Master Track",
+invoke=function() loadMasterMaximizer() end}
+renoise.tool():add_midi_mapping{name="Paketti:Load Renoise Maximizer to Master Track",
+invoke=function(message) if message:is_trigger() then loadMasterMaximizer() end end}
 renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise Mixer EQ",
 invoke=function() loadnative("Audio/Effects/Native/Mixer EQ") end}
 renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise mpReverb 2",
