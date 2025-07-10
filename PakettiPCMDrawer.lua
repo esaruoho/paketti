@@ -30,6 +30,7 @@ local show_sample_points = true
 local wavetable_waves = {}
 local current_wave_index = 1
 local wavetable_size = 64
+local wavetable_canvas_width = 1024
 
 -- Initialize wavetable with one wave
 table.insert(wavetable_waves, {data = table.create(), name = "Wave 1"})
@@ -83,9 +84,27 @@ local function bezier_interpolate(p0, p1, p2, p3, t)
   return mt3 * p0 + 3 * mt2 * t * p1 + 3 * mt * t2 * p2 + t3 * p3
 end
 
+-- Hex editor functions (need to be defined before mouse handler)
+local function update_hex_display()
+  if not hex_buttons then return end
+  for i = 1, wave_size do
+    if hex_buttons[i] then
+      hex_buttons[i].text = string.format("%04X", wave_data[i])
+    end
+  end
+end
+
+local function highlight_sample(idx)
+  -- Note: TextFields don't have a color property according to the API,
+  -- so we only track the selected sample index for waveform visualization
+  if idx >= 1 and idx <= wave_size then
+    selected_sample_index = idx
+  end
+end
+
 -- Canvas rendering function with zoom, pan, and interpolation
 local function render_waveform(ctx)
-  local w, h = ctx.size.width, ctx.size.height
+  local w, h = wavetable_canvas_width, ctx.size.height  -- Use configurable width
   ctx:clear_rect(0, 0, w, h)
 
   -- Calculate visible range based on zoom and pan
@@ -122,31 +141,40 @@ local function render_waveform(ctx)
   ctx:line_to(w, center_y)
   ctx:stroke()
 
-  -- Draw waveform based on interpolation mode
+    -- Draw waveform interpolated across full canvas width
   ctx.stroke_color = {0, 255, 0, 255}
   ctx.line_width = 2
   ctx:begin_path()
 
+  -- Always interpolate across the full canvas width
+  local total_pixels = w
+  
   if interpolation_mode == "linear" then
-    -- Linear interpolation (original method)
-    for i = visible_start, visible_end do
-      local x = ((i - visible_start) / (visible_samples - 1)) * w
-      local y = h - (wave_data[i] / 65535 * h)
-      if i == visible_start then
+    -- Linear interpolation across full canvas width
+    for pixel = 0, total_pixels - 1 do
+      local sample_pos = visible_start + (pixel / (total_pixels - 1)) * (visible_samples - 1)
+      local i = math.floor(sample_pos)
+      local frac = sample_pos - i
+      local i1 = math.max(1, math.min(wave_size, i))
+      local i2 = math.max(1, math.min(wave_size, i + 1))
+      
+      -- Linear interpolation between samples
+      local interp_value = wave_data[i1] + frac * (wave_data[i2] - wave_data[i1])
+      
+      local x = pixel
+      local y = h - (interp_value / 65535 * h)
+      
+      if pixel == 0 then
         ctx:move_to(x, y)
       else
         ctx:line_to(x, y)
       end
     end
   else
-    -- Smooth interpolation modes
-    local steps_per_sample = math.max(4, math.floor(w / visible_samples))
-    local total_steps = visible_samples * steps_per_sample
-    
-    for step = 0, total_steps do
-      local t = step / total_steps
-      local sample_pos = visible_start + t * (visible_samples - 1)
-      local x = (step / total_steps) * w
+    -- Smooth interpolation modes across full canvas width
+    for pixel = 0, total_pixels - 1 do
+      local sample_pos = visible_start + (pixel / (total_pixels - 1)) * (visible_samples - 1)
+      local x = pixel
       local y
       
       if interpolation_mode == "cubic" then
@@ -172,7 +200,7 @@ local function render_waveform(ctx)
         y = h - (math.max(0, math.min(65535, interp_value)) / 65535 * h)
       end
       
-      if step == 0 then
+      if pixel == 0 then
         ctx:move_to(x, y)
       else
         ctx:line_to(x, y)
@@ -185,7 +213,8 @@ local function render_waveform(ctx)
   if show_sample_points and zoom_factor >= 2.0 then
     ctx.fill_color = {0, 200, 0, 255}
     for i = visible_start, visible_end do
-      local x = ((i - visible_start) / (visible_samples - 1)) * w
+      local sample_in_visible = i - visible_start
+      local x = (sample_in_visible / (visible_samples - 1)) * w
       local y = h - (wave_data[i] / 65535 * h)
       ctx:begin_path()
       ctx:arc(x, y, 3, 0, math.pi * 2, false)
@@ -195,7 +224,8 @@ local function render_waveform(ctx)
 
   -- Selected sample highlight
   if selected_sample_index > 0 and selected_sample_index >= visible_start and selected_sample_index <= visible_end then
-    local x = ((selected_sample_index - visible_start) / (visible_samples - 1)) * w
+    local sample_in_visible = selected_sample_index - visible_start
+    local x = (sample_in_visible / (visible_samples - 1)) * w
     local y = h - (wave_data[selected_sample_index] / 65535 * h)
     
     -- Draw vertical line
@@ -221,29 +251,85 @@ end
 
 -- Mouse handler with zoom and pan support
 local function handle_mouse(ev)
-  local w = waveform_canvas.width
+  local w = wavetable_canvas_width  -- Use configurable width
   local h = waveform_canvas.height
   local visible_start = math.max(1, math.floor(pan_offset + 1))
   local visible_end = math.min(wave_size, math.floor(pan_offset + wave_size / zoom_factor))
   local visible_samples = visible_end - visible_start + 1
   
-  local rel_x = ev.x / w
-  local rel_y = ev.y / h
+  local rel_x = ev.position.x / w
+  local rel_y = ev.position.y / h
   local idx = math.floor(visible_start + rel_x * (visible_samples - 1))
   
   if idx >= 1 and idx <= wave_size then
     selected_sample_index = idx
     
-    -- Update sample value when drawing
-    if ev.buttons == 1 then
+    -- Handle different mouse events for proper dragging
+    if ev.type == "down" and ev.button == "left" then
       is_drawing = true
       wave_data[idx] = math.floor((1 - rel_y) * 65535)
       waveform_canvas:update()
       update_hex_display()
       highlight_sample(idx)
-    elseif ev.buttons == 0 and not is_drawing then
+    elseif ev.type == "move" and is_drawing then
+      -- Continue drawing while dragging
+      wave_data[idx] = math.floor((1 - rel_y) * 65535)
+      waveform_canvas:update()
+      update_hex_display()
+      highlight_sample(idx)
+    elseif ev.type == "up" and ev.button == "left" then
+      is_drawing = false
+    elseif ev.type == "move" and not is_drawing then
+      -- Just highlight when hovering without drawing
       highlight_sample(idx)
     end
+  end
+  
+  -- Stop drawing if mouse moves outside the valid range
+  if (idx < 1 or idx > wave_size) and ev.type == "up" then
+    is_drawing = false
+  end
+end
+
+-- Keyboard handler for arrow key controls
+local function handle_keyboard(dialog, key)
+  if selected_sample_index > 0 and selected_sample_index <= wave_size then
+    if key.name == "up" then
+      wave_data[selected_sample_index] = math.min(65535, wave_data[selected_sample_index] + 1000)
+      waveform_canvas:update()
+      update_hex_display()
+      return nil  -- Consume the key
+    elseif key.name == "down" then
+      wave_data[selected_sample_index] = math.max(0, wave_data[selected_sample_index] - 1000)
+      waveform_canvas:update()
+      update_hex_display()
+      return nil  -- Consume the key
+    elseif key.name == "left" then
+      selected_sample_index = math.max(1, selected_sample_index - 1)
+      waveform_canvas:update()
+      update_hex_display()
+      highlight_sample(selected_sample_index)
+      return nil  -- Consume the key
+    elseif key.name == "right" then
+      selected_sample_index = math.min(wave_size, selected_sample_index + 1)
+      waveform_canvas:update()
+      update_hex_display()
+      highlight_sample(selected_sample_index)
+      return nil  -- Consume the key
+    end
+  end
+  
+  -- Default key handling
+  local closer = "esc"
+  if preferences and preferences.pakettiDialogClose then
+    closer = preferences.pakettiDialogClose.value
+  end
+  if key.modifiers == "" and key.name == closer then
+    dialog:close()
+    pcm_dialog = nil
+    return nil
+  else
+    return key
   end
 end
 
@@ -277,47 +363,36 @@ local function pan_right()
   update_all_displays()
 end
 
--- Hex editor functions
-local function update_hex_display()
-  if not hex_buttons then return end
-  for i = 1, wave_size do
-    if hex_buttons[i] then
-      hex_buttons[i].text = string.format("%04X", wave_data[i])
-    end
-  end
-end
 
-local function highlight_sample(idx)
-  if not hex_buttons then return end
-  
-  for i = 1, wave_size do
-    if hex_buttons[i] then
-      hex_buttons[i].color = nil
-    end
-  end
-  
-  if idx >= 1 and idx <= wave_size and hex_buttons[idx] then
-    hex_buttons[idx].color = {255, 100, 100}
-  end
-end
 
-local function edit_hex_sample(idx)
-  local current_value = string.format("%04X", wave_data[idx])
-  local result = renoise.app():show_prompt("Edit Sample Value", 
-    string.format("Enter hex value for sample %d (0000-FFFF):", idx), current_value)
+local function edit_hex_sample(idx, new_value)
+  local value = tonumber(new_value, 16)
   
-  if result and result ~= "" then
-    local value = tonumber(result, 16)
-    if value and value >= 0 and value <= 65535 then
-      wave_data[idx] = value
-      selected_sample_index = idx
-      waveform_canvas:update()
-      update_hex_display()
-      highlight_sample(idx)
+  -- If not a valid hex number, try to extract valid hex characters
+  if not value then
+    -- Remove any non-hex characters and try again
+    local cleaned = new_value:upper():gsub("[^0-9A-F]", "")
+    if cleaned == "" then
+      value = 0
     else
-      renoise.app():show_error("Invalid hex value! Must be between 0000 and FFFF")
+      value = tonumber(cleaned, 16) or 0
     end
   end
+  
+  -- Clamp to valid range (0000-FFFF)
+  value = math.max(0, math.min(65535, value))
+  
+  wave_data[idx] = value
+  selected_sample_index = idx
+  
+  -- Update the textfield to show the clamped value
+  if hex_buttons[idx] then
+    hex_buttons[idx].text = string.format("%04X", value)
+  end
+  
+  waveform_canvas:update()
+  update_hex_display()
+  highlight_sample(idx)
 end
 
 -- WAV file format functions
@@ -378,6 +453,8 @@ local function save_wave_bin()
     else
       renoise.app():show_error("Could not save BIN file")
     end
+  else
+    renoise.app():show_status("Save BIN cancelled")
   end
 end
 
@@ -405,6 +482,8 @@ local function save_wave_wav()
     else
       renoise.app():show_error("Could not save WAV file")
     end
+  else
+    renoise.app():show_status("Save WAV cancelled")
   end
 end
 
@@ -461,6 +540,8 @@ local function load_wave()
     else
       renoise.app():show_error("Could not read file")
     end
+  else
+    renoise.app():show_status("Load wave cancelled")
   end
 end
 
@@ -516,18 +597,37 @@ local function save_wavetable()
 end
 
 local function export_to_sample()
-  local inst = renoise.song().selected_instrument
-  if not inst:sample(1) then inst:insert_sample_at(1) end
+  local song = renoise.song()
+  local inst = song.selected_instrument
+  
+  -- Check if instrument has samples or plugins, if so create new instrument
+  if #inst.samples > 0 or inst.plugin_properties.plugin_loaded then
+    song:insert_instrument_at(song.selected_instrument_index + 1)
+    song.selected_instrument_index = song.selected_instrument_index + 1
+    inst = song.selected_instrument
+  end
+  
+  -- Create sample slot if it doesn't exist
+  if #inst.samples == 0 then
+    inst:insert_sample_at(1)
+  end
+  
   local sample = inst:sample(1)
   local buffer = sample.sample_buffer
-  buffer:create_sample_data(44100, 1, wave_size)
+  buffer:create_sample_data(44100, 16, 1, wave_size)
+  buffer:prepare_sample_data_changes()
   for i = 1, wave_size do
     buffer:set_sample_data(1, i, (wave_data[i] - 32768) / 32768)
   end
+  buffer:finalize_sample_data_changes()
+  
+  sample.name = string.format("PCM_Wave_%d", wave_size)
+  inst.name = string.format("PCM_Wave_%d", wave_size)
+  
   renoise.app():show_status("Wave exported to selected instrument")
 end
 
--- Rebuild hex editor display (compact version)
+-- Rebuild hex editor display (compact version with textfields)
 local function rebuild_hex_editor()
   hex_buttons = {}
   local hex_columns = {}
@@ -548,14 +648,14 @@ local function rebuild_hex_editor()
     for col = 1, items_per_row do
       local idx = offset + col
       if idx <= wave_size and idx <= max_rows * items_per_row then
-        local hex_btn = vb:button{
+        local hex_field = vb:textfield{
           text = string.format("%04X", wave_data[idx]),
           width = 38,
-          height = 18,
-          notifier = function() edit_hex_sample(idx) end
+          --font = "mono",
+          notifier = function(new_value) edit_hex_sample(idx, new_value) end
         }
-        hex_buttons[idx] = hex_btn
-        hex_row:add_child(hex_btn)
+        hex_buttons[idx] = hex_field
+        hex_row:add_child(hex_field)
       end
     end
     
@@ -611,11 +711,12 @@ end
 -- Main dialog function
 function show_pcm_dialog()
   waveform_canvas = vb:canvas{
-    width = 800,
+    width = wavetable_canvas_width,
     height = 200,
     mode = "plain",
     render = render_waveform,
-    mouse_handler = handle_mouse
+    mouse_handler = handle_mouse,
+    mouse_events = {"down", "up", "move"}
   }
   
   generate_waveform("sine")
@@ -629,35 +730,29 @@ function show_pcm_dialog()
   local dialog_content = vb:column{
     margin = 10,
     spacing = 10,
-    
-    vb:text{
-      text = "Paketti Advanced PCM Wave Editor",
-      style = "strong",
-      font = "big"
-    },
-    
-    -- Main controls row
-    vb:row{
+        
+        -- Main controls row
+  vb:row{
       spacing = 10,
-      vb:text{ text = "Waveform:" },
-      vb:popup{
-        items = {"sine", "square", "saw", "triangle", "noise"},
-        value = 1,
-        notifier = function(idx)
-          local types = {"sine", "square", "saw", "triangle", "noise"}
-          generate_waveform(types[idx])
+    vb:text{ text = "Waveform" },
+    vb:popup{
+      items = {"sine", "square", "saw", "triangle", "noise"},
+      value = 1,
+      notifier = function(idx)
+        local types = {"sine", "square", "saw", "triangle", "noise"}
+        generate_waveform(types[idx])
           update_all_displays()
-        end
-      },
-      vb:text{ text = "Samples:" },
-      vb:popup{
+      end
+    },
+    vb:text{ text = "Samples" },
+    vb:popup{
         items = {"32", "64", "128", "256", "512", "1024"},
-        value = 2,
-        notifier = function(idx)
+      value = 2,
+      notifier = function(idx)
           change_wave_size(wave_size_options[idx])
         end
       },
-      vb:text{ text = "Interpolation:" },
+      vb:text{ text = "Interpolation" },
       vb:popup{
         items = {"Linear", "Cubic", "Bezier"},
         value = 1,
@@ -665,9 +760,22 @@ function show_pcm_dialog()
           local modes = {"linear", "cubic", "bezier"}
           interpolation_mode = modes[idx]
           update_all_displays()
-        end
-      }
+      end
     },
+    vb:text{ text = "Canvas Width" },
+    vb:valuebox{
+      min = 256,
+      max = 2048,
+      value = wavetable_canvas_width,
+      notifier = function(value)
+        wavetable_canvas_width = value
+        if pcm_dialog then
+          pcm_dialog:close()
+        end
+        show_pcm_dialog()
+      end
+    }
+  },
     
     -- Zoom controls row
     vb:row{
@@ -699,7 +807,7 @@ function show_pcm_dialog()
         margin = 5,
         width = 350,
         vb:text{
-          text = "Hex Editor (Click to edit)",
+          text = "Hex Editor (Type to edit)",
           style = "strong"
         },
         hex_editor_content
@@ -715,6 +823,11 @@ function show_pcm_dialog()
           style = "strong"
         },
         vb:button{
+          text = "Load Wave File",
+          width = 150,
+          notifier = load_wave
+        },
+        vb:button{
           text = "Export to Sample Slot",
           width = 150,
           notifier = export_to_sample
@@ -728,11 +841,6 @@ function show_pcm_dialog()
           text = "Save as .WAV File", 
           width = 150,
           notifier = save_wave_wav
-        },
-        vb:button{
-          text = "Load Wave File",
-          width = 150,
-          notifier = load_wave
         }
       },
       
@@ -768,21 +876,7 @@ function show_pcm_dialog()
     }
   }
   
-  local function keyhandler(dialog, key)
-    local closer = "esc"
-    if preferences and preferences.pakettiDialogClose then
-      closer = preferences.pakettiDialogClose.value
-    end
-    if key.modifiers == "" and key.name == closer then
-      dialog:close()
-      pcm_dialog = nil
-      return nil
-    else
-      return key
-    end
-  end
-  
-  pcm_dialog = renoise.app():show_custom_dialog(DIALOG_TITLE, dialog_content, keyhandler)
+  pcm_dialog = renoise.app():show_custom_dialog(DIALOG_TITLE, dialog_content, handle_keyboard)
   update_all_displays()
 end
 
@@ -790,5 +884,4 @@ end
 renoise.tool():add_menu_entry{name = "--Main Menu:Tools:Paketti:Xperimental/Work in Progress:Advanced PCM Wave Editor...",invoke = show_pcm_dialog}
 
 renoise.tool():add_keybinding{name = "Global:Paketti:Show Advanced PCM Wave Editor",invoke = show_pcm_dialog}
-
 

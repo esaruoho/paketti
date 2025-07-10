@@ -6407,3 +6407,166 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:List of Installed Tools", invoke=function() pakettiListInstalledTools() end }
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Debug:List of Installed Tools", invoke=function() pakettiListInstalledTools() end }
+
+
+-- Match Effect Column to Current Row (Forward Only)
+-- If current row has Y30, all other Yxx commands from current row to end of pattern become Y30
+
+function PakettiMatchEffectColumnToCurrentRowForward()
+  local song = renoise.song()
+  local track_index = song.selected_track_index
+  local track = song:track(track_index)
+  
+  -- Check if we're in a sequencer track
+  if track.type ~= renoise.Track.TRACK_TYPE_SEQUENCER then
+    renoise.app():show_status("This function only works on sequencer tracks")
+    return
+  end
+  
+  -- Determine which effect column to use
+  local target_effect_column_index = song.selected_effect_column_index
+  local current_effect_column = nil
+  
+  -- If no effect column is selected, use the first one
+  if not target_effect_column_index or target_effect_column_index == 0 then
+    target_effect_column_index = 1
+  end
+  
+  -- Get the effect column from current line
+  current_effect_column = song.selected_line:effect_column(target_effect_column_index)
+  
+  if not current_effect_column or current_effect_column.is_empty then
+    renoise.app():show_status(string.format("No effect in column %d of current row", target_effect_column_index))
+    return
+  end
+  
+  local target_command = current_effect_column.number_string
+  local target_value = current_effect_column.amount_value
+  
+  if target_command == "00" then
+    renoise.app():show_status("Current effect column is empty")
+    return
+  end
+  
+  local matches_found = 0
+  
+  -- Only work in current pattern, from current line to end
+  local current_pattern = song:pattern(song.selected_pattern_index)
+  local pattern_track = current_pattern:track(track_index)
+  local current_line_index = song.selected_line_index
+  local lines = current_pattern.number_of_lines
+  
+  -- Check each line from current line to end of pattern
+  for line_index = current_line_index + 1, lines do
+    local line = pattern_track:line(line_index)
+    
+    -- Only check the specific effect column index that was selected
+    if target_effect_column_index <= track.visible_effect_columns then
+      local effect_column = line:effect_column(target_effect_column_index)
+      
+      if effect_column and not effect_column.is_empty then
+        -- If this effect column has the same command but different value
+        if effect_column.number_string == target_command and 
+           effect_column.amount_value ~= target_value then
+          
+          -- Change it to match the target value
+          effect_column.amount_value = target_value
+          matches_found = matches_found + 1
+        end
+      end
+    end
+  end
+  
+  if matches_found > 0 then
+    renoise.app():show_status(string.format("Matched %d instances of %s to %s%02X in effect column %d (forward only)", 
+      matches_found, target_command, target_command, target_value, target_effect_column_index))
+  else
+    renoise.app():show_status(string.format("No other instances of %s found in effect column %d (forward only)", target_command, target_effect_column_index))
+  end
+  
+  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+end
+
+-- Match Effect Column to Current Row (All Rows)
+-- If current row has Y30, all other Yxx commands in current pattern become Y30
+
+function PakettiMatchEffectColumnToCurrentRowAll()
+  local song = renoise.song()
+  local track_index = song.selected_track_index
+  local track = song:track(track_index)
+  
+  -- Check if we're in a sequencer track
+  if track.type ~= renoise.Track.TRACK_TYPE_SEQUENCER then
+    renoise.app():show_status("This function only works on sequencer tracks")
+    return
+  end
+  
+  -- Determine which effect column to use
+  local target_effect_column_index = song.selected_effect_column_index
+  local current_effect_column = nil
+  
+  -- If no effect column is selected, use the first one
+  if not target_effect_column_index or target_effect_column_index == 0 then
+    target_effect_column_index = 1
+  end
+  
+  -- Get the effect column from current line
+  current_effect_column = song.selected_line:effect_column(target_effect_column_index)
+  
+  if not current_effect_column or current_effect_column.is_empty then
+    renoise.app():show_status(string.format("No effect in column %d of current row", target_effect_column_index))
+    return
+  end
+  
+  local target_command = current_effect_column.number_string
+  local target_value = current_effect_column.amount_value
+  
+  if target_command == "00" then
+    renoise.app():show_status("Current effect column is empty")
+    return
+  end
+  
+  local matches_found = 0
+  
+  -- Only work in current pattern, all rows
+  local current_pattern = song:pattern(song.selected_pattern_index)
+  local pattern_track = current_pattern:track(track_index)
+  local lines = current_pattern.number_of_lines
+  
+  -- Check each line in the current pattern (all rows)
+  for line_index = 1, lines do
+    local line = pattern_track:line(line_index)
+    
+    -- Only check the specific effect column index that was selected
+    if target_effect_column_index <= track.visible_effect_columns then
+      local effect_column = line:effect_column(target_effect_column_index)
+      
+      if effect_column and not effect_column.is_empty then
+        -- If this effect column has the same command but different value
+        if effect_column.number_string == target_command and 
+           effect_column.amount_value ~= target_value then
+          
+          -- Change it to match the target value
+          effect_column.amount_value = target_value
+          matches_found = matches_found + 1
+        end
+      end
+    end
+  end
+  
+  if matches_found > 0 then
+    renoise.app():show_status(string.format("Matched %d instances of %s to %s%02X in effect column %d (all rows)", 
+      matches_found, target_command, target_command, target_value, target_effect_column_index))
+  else
+    renoise.app():show_status(string.format("No other instances of %s found in effect column %d (all rows)", target_command, target_effect_column_index))
+  end
+  
+  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+end
+
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern Editor:Match Effect Column to Current Row (Forward)",invoke = PakettiMatchEffectColumnToCurrentRowForward}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern Editor:Match Effect Column to Current Row (All Rows)",invoke = PakettiMatchEffectColumnToCurrentRowAll}
+renoise.tool():add_keybinding{name = "Global:Paketti:Match Effect Column to Current Row (Forward)",invoke = PakettiMatchEffectColumnToCurrentRowForward}
+renoise.tool():add_keybinding{name = "Global:Paketti:Match Effect Column to Current Row (All Rows)",invoke = PakettiMatchEffectColumnToCurrentRowAll}
+renoise.tool():add_midi_mapping{name = "Paketti:Match Effect Column to Current Row (Forward)",invoke = PakettiMatchEffectColumnToCurrentRowForward}
+renoise.tool():add_midi_mapping{name = "Paketti:Match Effect Column to Current Row (All Rows)",invoke = PakettiMatchEffectColumnToCurrentRowAll}

@@ -1067,3 +1067,189 @@ end
 -- Keybinding to open the CheatSheet
 renoise.tool():add_keybinding{name="Global:Paketti:Pattern Effect Command CheatSheet",invoke=pakettiPatternEditorCheatsheetDialog}
 
+
+
+
+-----------
+-- Minimized Cheatsheet for Pattern Effects
+local mini_dialog = nil
+
+-- Effects list from the full cheatsheet
+local mini_effects = {
+  {"0A", "-Axy", "Set arpeggio, x/y = first/second note offset in semitones"},
+  {"0U", "-Uxx", "Slide Pitch up by xx 1/16ths of a semitone"},
+  {"0D", "-Dxx", "Slide Pitch down by xx 1/16ths of a semitone"},
+  {"0G", "-Gxx", "Glide towards given note by xx 1/16ths of a semitone"},
+  {"0I", "-Ixx", "Fade Volume in by xx volume units"},
+  {"0O", "-Oxx", "Fade Volume out by xx volume units"},
+  {"0C", "-Cxy", "Cut volume to x after y ticks (x = volume factor: 0=0%, F=100%)"},
+  {"0Q", "-Qxx", "Delay note by xx ticks"},
+  {"0M", "-Mxx", "Set note volume to xx"},
+  {"0S", "-Sxx", "Trigger sample slice number xx or offset xx"},
+  {"0B", "-Bxx", "Play Sample Backwards (B00) or forwards again (B01)"},
+  {"0R", "-Rxy", "Retrigger line every y ticks with volume factor x"},
+  {"0Y", "-Yxx", "Maybe trigger line with probability xx, 00 = mutually exclusive note columns"},
+  {"0Z", "-Zxx", "Trigger Phrase xx (Phrase Number (01-7E), 00 = none, 7F = keymap)"},
+  {"0V", "-Vxy", "Set Vibrato x = speed, y = depth; x=(0-F); y=(0-F)"},
+  {"0T", "-Txy", "Set Tremolo x = speed, y = depth"},
+  {"0N", "-Nxy", "Set Auto Pan, x = speed, y = depth"},
+  {"0E", "-Exx", "Set Active Sample Envelope's Position to Offset XX"},
+  {"0L", "-Lxx", "Set Track Volume Level, 00 = -INF, FF = +3dB"},
+  {"0P", "-Pxx", "Set Track Pan, 00 = full left, 80 = center, FF = full right"},
+  {"0W", "-Wxx", "Set Track Surround Width, 00 = Min, FF = Max"},
+  {"0J", "-Jxx", "Set Track Routing, 01 upwards = hardware channels, FF downwards = parent groups"},
+  {"0X", "-Xxx", "Stop all notes and FX (xx = 00), or only effect xx (xx > 00)"},
+  {"ZT", "ZTxx", "Set tempo to xx BPM (14-FF, 00 = stop song)"},
+  {"ZL", "ZLxx", "Set Lines Per Beat (LPB) to xx lines"},
+  {"ZK", "ZKxx", "Set Ticks Per Line (TPL) to xx ticks (01-10)"},
+  {"ZG", "ZGxx", "Enable (xx = 01) or disable (xx = 00) Groove"},
+  {"ZB", "ZBxx", "Break pattern and jump to line xx in next"},
+  {"ZD", "ZDxx", "Delay (pause) pattern for xx lines"}
+}
+
+-- Apply effect command and value directly to all selected effect columns
+local function apply_mini_effect_direct(effect_command, hex_value)
+  sliderVisibleEffect()
+  local s = renoise.song()
+  if s.selection_in_pattern then
+    for t = s.selection_in_pattern.start_track, s.selection_in_pattern.end_track do
+      local track = s:track(t)
+      if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+        local note_columns_visible = track.visible_note_columns
+        local effect_columns_visible = track.visible_effect_columns
+        local total_columns_visible = note_columns_visible + effect_columns_visible
+        local start_column = (t == s.selection_in_pattern.start_track) and s.selection_in_pattern.start_column or note_columns_visible + 1
+        local end_column = (t == s.selection_in_pattern.end_track) and s.selection_in_pattern.end_column or total_columns_visible
+        for i = s.selection_in_pattern.start_line, s.selection_in_pattern.end_line do
+          for col = start_column, end_column do
+            local column_index = col - note_columns_visible
+            if column_index > 0 and column_index <= effect_columns_visible then
+              local effect_column = s:pattern(s.selected_pattern_index):track(t):line(i):effect_column(column_index)
+              if effect_column then
+                effect_column.number_string = effect_command
+                effect_column.amount_value = hex_value
+              end
+            end
+          end
+        end
+      end
+    end
+  else
+    if s.selected_effect_column then
+      s.selected_effect_column.number_string = effect_command
+      s.selected_effect_column.amount_value = hex_value
+    elseif s.selected_line then
+      s.selected_line.effect_columns[1].number_string = effect_command
+      s.selected_line.effect_columns[1].amount_value = hex_value
+    end
+  end
+  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+end
+
+-- Persistent state for mini cheatsheet
+local mini_selected_effect_index = 1
+local mini_hex_value = 128  -- Start at 0x80 (50%)
+
+function show_mini_cheatsheet()
+  local vb = renoise.ViewBuilder()
+  
+  if mini_dialog and mini_dialog.visible then
+    mini_dialog:close()
+    return
+  end
+
+  -- Create dropdown items
+  local dropdown_items = {}
+  for i, effect in ipairs(mini_effects) do
+    dropdown_items[i] = effect[2] .. " - " .. effect[3]
+  end
+
+  local selected_effect_index = mini_selected_effect_index
+  local hex_value = mini_hex_value
+
+  local percentage_text = vb:text{
+    text = string.format("%d%% Fill (0x%02X)", math.floor((hex_value / 255) * 100), hex_value)
+  }
+
+  -- Apply random effect
+  local function apply_random_effect()
+    local random_index = math.random(1, #mini_effects)
+    selected_effect_index = random_index
+    mini_selected_effect_index = random_index  -- Update persistent state
+    local selected_effect = mini_effects[selected_effect_index]
+    apply_mini_effect_direct(selected_effect[1], hex_value)
+    renoise.app():show_status(string.format("Random effect: %s", selected_effect[2]))
+    -- Update the dropdown to show the randomly selected effect
+    if mini_dialog and mini_dialog.visible then
+      mini_dialog:close()
+      show_mini_cheatsheet()
+    end
+  end
+
+  local dialog_content = vb:column{
+    margin = 10,
+    
+    vb:row{
+      spacing = 10,
+      vb:popup{
+        items = dropdown_items,
+        value = selected_effect_index,
+        width = 350,
+        notifier = function(index)
+          selected_effect_index = index
+          mini_selected_effect_index = index  -- Update persistent state
+          -- Apply effect when dropdown changes
+          local selected_effect = mini_effects[selected_effect_index]
+          apply_mini_effect_direct(selected_effect[1], hex_value)
+        end
+      },
+      vb:button{
+        text = "Random",
+        width = 60,
+        notifier = apply_random_effect
+      }
+    },
+    
+    vb:row{
+      spacing = 10,
+      vb:slider{
+        width = 200,
+        min = 0,
+        max = 255,
+        value = hex_value,
+        notifier = function(value)
+          hex_value = math.floor(value + 0.5)
+          mini_hex_value = hex_value  -- Update persistent state
+          local percentage = math.floor((hex_value / 255) * 100)
+          percentage_text.text = string.format("%d%% Fill (0x%02X)", percentage, hex_value)
+          -- Apply effect in real-time
+          local selected_effect = mini_effects[selected_effect_index]
+          apply_mini_effect_direct(selected_effect[1], hex_value)
+        end
+      },
+      percentage_text
+    }
+  }
+
+  local function keyhandler(dialog, key)
+    local closer = "esc"
+    if preferences and preferences.pakettiDialogClose then
+      closer = preferences.pakettiDialogClose.value
+    end
+    if key.modifiers == "" and key.name == closer then
+      dialog:close()
+      mini_dialog = nil
+      return nil
+    else
+      return key
+    end
+  end
+
+  mini_dialog = renoise.app():show_custom_dialog("Paketti Minimize Cheatsheet", dialog_content, keyhandler)
+end
+
+-- Add menu entry and keybinding for minimized cheatsheet
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern Editor:Paketti Cheatsheet Minimize...", invoke = show_mini_cheatsheet}
+renoise.tool():add_keybinding{name = "Global:Paketti:Show Minimize Cheatsheet", invoke = show_mini_cheatsheet}
+
+
