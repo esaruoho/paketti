@@ -1157,24 +1157,44 @@ end
  
  -- New function to ensure the pattern has the proper phrase trigger
  function ensure_pattern_trigger()
-   local s = renoise.song()
-   local currPatt = s.selected_pattern_index
-   local currTrak = s.selected_track_index
-   local line = s.patterns[currPatt].tracks[currTrak].lines[1]
-   local note_col = line.note_columns[s.selected_note_column_index]
-   
-   -- Always ensure there's a C-4 note trigger when working with phrases
-   if note_col.is_empty then
-     note_col.note_string = "C-4"
-     note_col.instrument_value = s.selected_instrument_index - 1  -- -1 because Renoise uses 0-based indexing for instrument_value
-     print("DEBUG: Added C-4 note trigger to pattern at line 1")
-   else
-     -- If there's already a note but no instrument, set the instrument
-     if note_col.instrument_value == 255 then  -- 255 = empty instrument
-       note_col.instrument_value = s.selected_instrument_index - 1
-       print("DEBUG: Set instrument for existing note in pattern")
-     end
-   end
+  local s = renoise.song()
+  local currPatt = s.selected_pattern_index
+  local currTrak = s.selected_track_index
+  local track = s:track(currTrak)
+  
+  -- Check if we're on a sequencer track (not group, master, or send)
+  if track.type ~= renoise.Track.TRACK_TYPE_SEQUENCER then
+    renoise.app():show_status("Not a note column track - select a sequencer track")
+    return
+  end
+  
+  local line = s.patterns[currPatt].tracks[currTrak].lines[1]
+  
+  -- Ensure we have a valid note column index, default to 1 if invalid
+  local note_col_index = s.selected_note_column_index
+  if not note_col_index or note_col_index <= 0 then
+    note_col_index = 1
+  end
+  
+  -- Get the note column and ensure it exists
+  local note_col = line.note_columns[note_col_index]
+  if not note_col then
+    renoise.app():show_status("No valid note column found")
+    return
+  end
+  
+  -- Always ensure there's a C-4 note trigger when working with phrases
+  if note_col.is_empty then
+    note_col.note_string = "C-4"
+    note_col.instrument_value = s.selected_instrument_index - 1  -- -1 because Renoise uses 0-based indexing for instrument_value
+    print("DEBUG: Added C-4 note trigger to pattern at line 1")
+  else
+    -- If there's already a note but no instrument, set the instrument
+    if note_col.instrument_value == 255 then  -- 255 = empty instrument
+      note_col.instrument_value = s.selected_instrument_index - 1
+      print("DEBUG: Set instrument for existing note in pattern")
+    end
+  end
    
    -- Handle 0G01 effect based on Play Until End setting
    if current_settings.play_until_end then
