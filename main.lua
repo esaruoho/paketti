@@ -461,6 +461,11 @@ if PolyendYes then
   timed_require("PakettiPolyendPatternData")
 end
 
+
+if renoise.API_VERSION >= 6.2 then
+  timed_require("PakettiPCMDrawer")
+end
+
 --always have this at the end: PakettiMenuConfig MUST be at the end. otherwise there will be errors.
 timed_require("PakettiMenuConfig")
 print(string.format("Total load time: %.3f seconds", os.clock() - init_time))

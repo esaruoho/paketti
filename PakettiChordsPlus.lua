@@ -23,6 +23,11 @@ function JalexAdd(number)
         renoise.app():show_status("Cannot go higher than B-9.") 
         return 
     end
+    
+    if originalNote + number < 0 then
+        renoise.app():show_status("Cannot go lower than C-0.") 
+        return 
+    end
 
     renoise.song().selected_pattern.tracks[renoise.song().selected_track_index].lines[renoise.song().selected_line_index].note_columns[renoise.song().selected_note_column_index + 1].note_value = originalNote + number
     renoise.song().selected_pattern.tracks[renoise.song().selected_track_index].lines[renoise.song().selected_line_index].note_columns[renoise.song().selected_note_column_index + 1].instrument_value = originalInstrument

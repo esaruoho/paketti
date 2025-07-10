@@ -727,6 +727,7 @@ function pakettiMIDIMappingsDialog()
   local assignment_mode = false
   local assignment_main_category_selector = nil
   local assignment_sub_category_selector = nil
+  local selected_mappings = {}  -- Track selected mappings for batch operations
 
   -- Function to create the category management dialog
   local function show_category_management_dialog()
@@ -1256,21 +1257,37 @@ function pakettiMIDIMappingsDialog()
             local current_category = get_mapping_category(mapping)
             local button_color = get_button_color_for_category(current_category)
             
-            local button = vb:button{
-              width = optimal_button_width,
-              text = button_text,
-              midi_mapping = mapping,
-              color = button_color,
-              notifier = function()
-                if assignment_mode and edit_mode_switch.value == 2 then
-                  -- Assignment mode: instant assignment using persistent dropdowns
+            -- Create button row with optional checkbox for edit mode
+            local button_row = nil
+            if assignment_mode and edit_mode_switch.value == 2 then
+              -- Edit mode: checkbox + button
+              local checkbox = vb:checkbox{
+                value = selected_mappings[mapping] or false,
+                notifier = function(value)
+                  selected_mappings[mapping] = value
+                  local count = 0
+                  for _ in pairs(selected_mappings) do
+                    if selected_mappings[_] then count = count + 1 end
+                  end
+                  if count > 0 then
+                    renoise.app():show_status(string.format("Selected %d mappings for batch processing", count))
+                  end
+                end
+              }
+              
+              local button = vb:button{
+                width = optimal_button_width - 30, -- Smaller to fit checkbox
+                text = button_text,
+                midi_mapping = mapping,
+                color = button_color,
+                notifier = function()
+                  -- Single assignment mode
                   local selected_main = main_categories[assignment_main_category_selector.value]
                   local selected_sub = assignment_sub_category_selector.items[assignment_sub_category_selector.value]
                   local full_category = get_full_category_name(selected_main, selected_sub)
                   
                   local success, msg = assign_mapping_to_category(mapping, full_category)
                   if success then
-                    -- Remember this category for future use
                     dialog_state.last_assigned_category = full_category
                     save_dialog_state()
                     
@@ -1280,17 +1297,14 @@ function pakettiMIDIMappingsDialog()
                     local current_filter = category_filter.items[category_filter.value]
                     local needs_rebuild = false
                     
-                    -- Always rebuild if we're showing uncategorized (item will disappear)
                     if current_filter and current_filter:find("Show Uncategorized") then
                       needs_rebuild = true
                     end
                     
-                    -- Rebuild if we're showing "All Mappings" to update button colors
                     if current_filter and current_filter:find("All Mappings") then
                       needs_rebuild = true
                     end
                     
-                    -- Rebuild if we're showing the specific category the item was assigned to
                     if current_filter and (current_filter:find(selected_main) or current_filter == selected_main) then
                       needs_rebuild = true
                     end
@@ -1301,8 +1315,22 @@ function pakettiMIDIMappingsDialog()
                   else
                     renoise.app():show_error(msg)
                   end
-                else
-                  -- View Mode: execute the actual function behind the MIDI mapping
+                end
+              }
+              
+              button_row = vb:row{
+                spacing = 2,
+                checkbox,
+                button
+              }
+            else
+              -- View mode: just button
+              button_row = vb:button{
+                width = optimal_button_width,
+                text = button_text,
+                midi_mapping = mapping,
+                color = button_color,
+                notifier = function()
                   local success = execute_midi_mapping_function(mapping)
                   if success then
                     renoise.app():show_status("Executed: " .. button_text)
@@ -1310,11 +1338,11 @@ function pakettiMIDIMappingsDialog()
                     renoise.app():show_status("Could not execute: " .. button_text)
                   end
                 end
-              end
-            }
+              }
+            end
             
             if columns[current_column] then
-              columns[current_column]:add_child(button)
+              columns[current_column]:add_child(button_row)
               current_row_in_column = current_row_in_column + 1
             end
           end
@@ -1335,14 +1363,31 @@ function pakettiMIDIMappingsDialog()
             local current_category = get_mapping_category(mapping)
             local button_color = get_button_color_for_category(current_category)
             
-            local button = vb:button{
-              width = optimal_button_width,
-              text = button_text,
-              midi_mapping = mapping,
-              color = button_color,
-              notifier = function()
-                if assignment_mode and edit_mode_switch.value == 2 then
-                  -- Assignment mode: instant assignment using persistent dropdowns
+            -- Create button row with optional checkbox for edit mode
+            local button_row = nil
+            if assignment_mode and edit_mode_switch.value == 2 then
+              -- Edit mode: checkbox + button
+              local checkbox = vb:checkbox{
+                value = selected_mappings[mapping] or false,
+                notifier = function(value)
+                  selected_mappings[mapping] = value
+                  local count = 0
+                  for _ in pairs(selected_mappings) do
+                    if selected_mappings[_] then count = count + 1 end
+                  end
+                  if count > 0 then
+                    renoise.app():show_status(string.format("Selected %d mappings for batch processing", count))
+                  end
+                end
+              }
+              
+              local button = vb:button{
+                width = optimal_button_width - 30, -- Smaller to fit checkbox
+                text = button_text,
+                midi_mapping = mapping,
+                color = button_color,
+                notifier = function()
+                  -- Single assignment mode
                   local current_main_categories = get_main_categories()
                   local selected_main = current_main_categories[assignment_main_category_selector.value]
                   local selected_sub = assignment_sub_category_selector.items[assignment_sub_category_selector.value]
@@ -1350,7 +1395,6 @@ function pakettiMIDIMappingsDialog()
                   
                   local success, msg = assign_mapping_to_category(mapping, full_category)
                   if success then
-                    -- Remember this category for future use
                     dialog_state.last_assigned_category = full_category
                     save_dialog_state()
                     
@@ -1360,17 +1404,14 @@ function pakettiMIDIMappingsDialog()
                     local current_filter = category_filter.items[category_filter.value]
                     local needs_rebuild = false
                     
-                    -- Always rebuild if we're showing uncategorized (item will disappear)
                     if current_filter and current_filter:find("Show Uncategorized") then
                       needs_rebuild = true
                     end
                     
-                    -- Rebuild if we're showing "All Mappings" to update button colors
                     if current_filter and current_filter:find("All Mappings") then
                       needs_rebuild = true
                     end
                     
-                    -- Rebuild if we're showing the specific category the item was assigned to
                     if current_filter and (current_filter:find(selected_main) or current_filter == selected_main) then
                       needs_rebuild = true
                     end
@@ -1381,8 +1422,22 @@ function pakettiMIDIMappingsDialog()
                   else
                     renoise.app():show_error(msg)
                   end
-                else
-                  -- View Mode: execute the actual function behind the MIDI mapping
+                end
+              }
+              
+              button_row = vb:row{
+                spacing = 2,
+                checkbox,
+                button
+              }
+            else
+              -- View mode: just button
+              button_row = vb:button{
+                width = optimal_button_width,
+                text = button_text,
+                midi_mapping = mapping,
+                color = button_color,
+                notifier = function()
                   local success = execute_midi_mapping_function(mapping)
                   if success then
                     renoise.app():show_status("Executed: " .. button_text)
@@ -1390,13 +1445,13 @@ function pakettiMIDIMappingsDialog()
                     renoise.app():show_status("Could not execute: " .. button_text)
                   end
                 end
-              end
-            }
+              }
+            end
             
             -- Determine which column this button goes in (fill columns sequentially)
             local col_index = math.ceil(i / max_items_per_column)
             if columns[col_index] then
-              columns[col_index]:add_child(button)
+              columns[col_index]:add_child(button_row)
             else
               print("DEBUG: Column index out of range:", col_index, "for item", i)
             end
@@ -1580,29 +1635,187 @@ function pakettiMIDIMappingsDialog()
   }
   
   -- Create the assignment controls row (initially hidden)
-  assignment_controls_row = vb:row{
-    spacing = 10,
+  assignment_controls_row = vb:column{
+    spacing = 5,
     visible = assignment_mode,
-    vb:text{text = "Target Category:", style = "strong"},
-    vb:text{text = "Main:"},
-    assignment_main_category_selector,
-    vb:text{text = "Sub:"},
-    assignment_sub_category_selector,
-    vb:button{
-      text = "Quick: Uncategorized",
-      width = 120,
-      notifier = function()
-        -- Set both dropdowns to Uncategorized
-        for i, cat in ipairs(main_categories) do
-          if cat == "Uncategorized" then
-            assignment_main_category_selector.value = i
-            local sub_cats = get_sub_categories("Uncategorized")
-            assignment_sub_category_selector.items = sub_cats
-            assignment_sub_category_selector.value = 1
-            break
+    
+    -- Category selection row
+    vb:row{
+      spacing = 10,
+      vb:text{text = "Target Category:", style = "strong"},
+      vb:text{text = "Main:"},
+      assignment_main_category_selector,
+      vb:text{text = "Sub:"},
+      assignment_sub_category_selector,
+      vb:button{
+        text = "Quick: Uncategorized",
+        width = 120,
+        notifier = function()
+          -- Set both dropdowns to Uncategorized
+          for i, cat in ipairs(main_categories) do
+            if cat == "Uncategorized" then
+              assignment_main_category_selector.value = i
+              local sub_cats = get_sub_categories("Uncategorized")
+              assignment_sub_category_selector.items = sub_cats
+              assignment_sub_category_selector.value = 1
+              break
+            end
           end
         end
-      end
+      }
+    },
+    
+    -- Batch processing row
+    vb:row{
+      spacing = 10,
+      vb:text{text = "Batch Processing:", style = "strong"},
+      vb:button{
+        text = "Select All",
+        width = 80,
+        notifier = function()
+          -- Get currently visible mappings using the same logic as display
+          local active_mappings = update_paketti_midi_mappings()
+          local category_filter_display_name = category_filter.items[category_filter.value]
+          local category_filter_name = category_filter_display_name
+          
+          if category_filter_display_name then
+            local extracted_name = category_filter_display_name:match("^(.+) %(%d+%)$")
+            if extracted_name then
+              category_filter_name = extracted_name
+            end
+            if category_filter_name:find("All Mappings") then
+              category_filter_name = "All Mappings"
+            elseif category_filter_name:find("Show Uncategorized") then
+              category_filter_name = "Show Uncategorized"
+            end
+          end
+          
+          local category_filtered_mappings = {}
+          if category_filter_name == "All Mappings" then
+            category_filtered_mappings = active_mappings or {}
+          elseif category_filter_name == "Show Uncategorized" then
+            category_filtered_mappings = get_uncategorized_mappings(active_mappings or {})
+          else
+            local main_categories = get_main_categories()
+            local is_main_category = false
+            for _, main_cat in ipairs(main_categories) do
+              if main_cat == category_filter_name then
+                is_main_category = true
+                break
+              end
+            end
+            
+            if is_main_category then
+              for _, mapping in ipairs(active_mappings or {}) do
+                local mapping_category = get_mapping_category(mapping)
+                local main_part = mapping_category:match("^([^:]+):")
+                if main_part == category_filter_name then
+                  table.insert(category_filtered_mappings, mapping)
+                end
+              end
+            else
+              category_filtered_mappings = get_mappings_for_category(category_filter_name, active_mappings or {})
+            end
+          end
+          
+          local mappings_to_show = {}
+          if alphabet_filter.value == 1 then
+            mappings_to_show = category_filtered_mappings
+          else
+            local ranges = {
+              [2] = {string.byte('A'), string.byte('F')},
+              [3] = {string.byte('G'), string.byte('M')},
+              [4] = {string.byte('N'), string.byte('S')},
+              [5] = {string.byte('T'), string.byte('Z')}
+            }
+            local range = ranges[alphabet_filter.value]
+            if range then
+              for _, mapping in ipairs(category_filtered_mappings) do
+                local clean_name = mapping:gsub("^[^:]*:", ""):gsub("^%s*", "")
+                local first_byte = string.byte(string.upper(clean_name:sub(1,1)))
+                if first_byte >= range[1] and first_byte <= range[2] then
+                  table.insert(mappings_to_show, mapping)
+                end
+              end
+            end
+          end
+          
+          -- Apply items per page limit
+          local items_per_page_options = {25, 50, 75, 100, 125, 150, 200, 250, 300, 350, 400}
+          local max_items_to_show = items_per_page_options[items_per_page_filter.value]
+          local items_to_show = math.min(#mappings_to_show, max_items_to_show)
+          
+          -- Select all visible mappings
+          local count = 0
+          for i = 1, items_to_show do
+            local mapping = mappings_to_show[i]
+            if mapping then
+              selected_mappings[mapping] = true
+              count = count + 1
+            end
+          end
+          
+          rebuild_mappings_display()
+          renoise.app():show_status(string.format("Selected all %d visible mappings", count))
+        end
+      },
+      vb:button{
+        text = "Clear Selection",
+        width = 100,
+        notifier = function()
+          selected_mappings = {}
+          rebuild_mappings_display()
+          renoise.app():show_status("Cleared all selections")
+        end
+      },
+      vb:button{
+        text = "Move Checked",
+        width = 100,
+        notifier = function()
+          local selected_count = 0
+          local selected_list = {}
+          
+          -- Count and collect selected mappings
+          for mapping_name, is_selected in pairs(selected_mappings) do
+            if is_selected then
+              selected_count = selected_count + 1
+              table.insert(selected_list, mapping_name)
+            end
+          end
+          
+          if selected_count == 0 then
+            renoise.app():show_status("No mappings selected for batch processing")
+            return
+          end
+          
+          -- Get target category
+          local selected_main = main_categories[assignment_main_category_selector.value]
+          local selected_sub = assignment_sub_category_selector.items[assignment_sub_category_selector.value]
+          local full_category = get_full_category_name(selected_main, selected_sub)
+          
+          -- Process batch assignment
+          local success_count = 0
+          for _, mapping_name in ipairs(selected_list) do
+            local success, msg = assign_mapping_to_category(mapping_name, full_category)
+            if success then
+              success_count = success_count + 1
+            else
+              print("Failed to assign " .. mapping_name .. ": " .. msg)
+            end
+          end
+          
+          -- Clear selections and remember category
+          selected_mappings = {}
+          dialog_state.last_assigned_category = full_category
+          save_dialog_state()
+          
+          -- Always rebuild after batch operations
+          rebuild_mappings_display()
+          
+          renoise.app():show_status(string.format("✅ Batch moved %d/%d mappings to %s:%s", 
+            success_count, selected_count, selected_main, selected_sub))
+        end
+      }
     }
   }
   
