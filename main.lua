@@ -386,9 +386,10 @@ timed_require("PakettiStretch")              -- 925 lines, 1.50 ms
 timed_require("PakettiBeatDetect")           -- 396 lines, 1.00 ms
 timed_require("PakettiStacker")              -- 518 lines, 1.00 ms
 timed_require("PakettiRecorder")             -- 403 lines, 1.00 ms
-timed_require("PakettiControls")             -- 544 lines, 1.00 ms
+
 timed_require("PakettiKeyBindings")          -- 1443 lines, 2.00 ms
 timed_require("PakettiPhraseEditor")         -- 461 lines, 1.00 ms
+timed_require("PakettiControls")             -- 544 lines, 1.00 ms
 timed_require("PakettiOctaMEDSuite")         -- 601 lines, 1.00 ms
 timed_require("PakettiWavetabler")           -- 223 lines, 0.50 ms
 timed_require("PakettiAudioProcessing")      -- 1538 lines, 1.50 ms

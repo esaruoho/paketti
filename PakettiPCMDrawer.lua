@@ -63,12 +63,13 @@ local wavetable_canvas_width = 1024
 local hex_editor_page = 0
 local hex_samples_per_page = 128  -- 8 rows × 16 columns = 128 samples per page
 local hex_items_per_row = 16
+local hex_textfield_width = 32  -- Width of hex editor textfields
 
 -- Initialize empty wavetable (no default wave)
 -- wavetable_waves starts empty - waves are added when user clicks "Add Current to Wavetable"
 
 -- Generate basic waveforms
-local function generate_waveform(type, target_data, size)
+function PCMDrawerGenerateWaveform(type, target_data, size)
   target_data = target_data or wave_data
   size = size or wave_size
   
@@ -99,7 +100,7 @@ local function generate_waveform(type, target_data, size)
 end
 
 -- Cubic interpolation function
-local function cubic_interpolate(y0, y1, y2, y3, mu)
+function PCMDrawerCubicInterpolate(y0, y1, y2, y3, mu)
   local mu2 = mu * mu
   local a0 = y3 - y2 - y0 + y1
   local a1 = y0 - y1 - a0
@@ -109,7 +110,7 @@ local function cubic_interpolate(y0, y1, y2, y3, mu)
 end
 
 -- Bezier curve interpolation
-local function bezier_interpolate(p0, p1, p2, p3, t)
+function PCMDrawerBezierInterpolate(p0, p1, p2, p3, t)
   local t2 = t * t
   local t3 = t2 * t
   local mt = 1 - t
@@ -119,7 +120,7 @@ local function bezier_interpolate(p0, p1, p2, p3, t)
 end
 
 -- Hex editor functions (need to be defined before mouse handler)
-local function update_hex_display()
+function PCMDrawerUpdateHexDisplay()
   if not hex_buttons then return end
   
   -- Only update buttons that exist on current page - selective updates only
@@ -134,7 +135,7 @@ local function update_hex_display()
   end
 end
 
-local function highlight_sample(idx)
+function PCMDrawerHighlightSample(idx)
   -- Note: TextFields don't have a color property according to the API,
   -- so we only track the selected sample index for waveform visualization
   if idx >= 1 and idx <= wave_size then
@@ -146,7 +147,7 @@ local function highlight_sample(idx)
 end
 
 -- Canvas rendering function with zoom, pan, and interpolation
-local function render_waveform(ctx)
+function PCMDrawerRenderWaveform(ctx)
   local w, h = wavetable_canvas_width, ctx.size.height  -- Use configurable width
   ctx:clear_rect(0, 0, w, h)
 
@@ -226,7 +227,7 @@ local function render_waveform(ctx)
         local i1 = math.max(1, math.min(wave_size, i))
         local i2 = math.max(1, math.min(wave_size, i + 1))
         local i3 = math.max(1, math.min(wave_size, i + 2))
-        local interp_value = cubic_interpolate(wave_data[i0], wave_data[i1], wave_data[i2], wave_data[i3], frac)
+        local interp_value = PCMDrawerCubicInterpolate(wave_data[i0], wave_data[i1], wave_data[i2], wave_data[i3], frac)
         y = h - (math.max(0, math.min(65535, interp_value)) / 65535 * h)
         
       elseif canvas_interpolation_mode == "bezier" then
@@ -237,7 +238,7 @@ local function render_waveform(ctx)
         local i2 = math.max(1, math.min(wave_size, i + 1))
         local control1 = wave_data[i1] + (i1 > 1 and (wave_data[i1] - wave_data[i1-1]) * 0.3 or 0)
         local control2 = wave_data[i2] - (i2 < wave_size and (wave_data[i2+1] - wave_data[i2]) * 0.3 or 0)
-        local interp_value = bezier_interpolate(wave_data[i1], control1, control2, wave_data[i2], frac)
+        local interp_value = PCMDrawerBezierInterpolate(wave_data[i1], control1, control2, wave_data[i2], frac)
         y = h - (math.max(0, math.min(65535, interp_value)) / 65535 * h)
       else
         -- Fallback to linear if unknown mode
@@ -328,7 +329,7 @@ local function render_waveform(ctx)
 end
 
 -- Draw a line between two sample points to prevent gaps during fast mouse movement
-local function draw_line_between_samples(start_idx, start_value, end_idx, end_value)
+function PCMDrawerDrawLineBetweenSamples(start_idx, start_value, end_idx, end_value)
   if start_idx == end_idx then
     wave_data[start_idx] = end_value
     return
@@ -350,7 +351,7 @@ local function draw_line_between_samples(start_idx, start_value, end_idx, end_va
 end
 
 -- Mouse handler with zoom and pan support
-local function handle_mouse(ev)
+function PCMDrawerHandleMouse(ev)
   local w = wavetable_canvas_width  -- Use configurable width
   local h = waveform_canvas.height
   local visible_start = math.max(1, math.floor(pan_offset + 1))
@@ -373,14 +374,14 @@ local function handle_mouse(ev)
       last_mouse_x = ev.position.x
       last_mouse_y = ev.position.y
       waveform_canvas:update()
-      update_hex_display()
-      highlight_sample(idx)
+      PCMDrawerUpdateHexDisplay()
+      PCMDrawerHighlightSample(idx)
     elseif ev.type == "move" and is_drawing then
       -- Continue drawing while dragging with interpolation to prevent gaps
       if last_sample_index > 0 and last_sample_index ~= idx then
         -- Draw line between last position and current position
         local last_value = math.floor((1 - (last_mouse_y / h)) * 65535)
-        draw_line_between_samples(last_sample_index, last_value, idx, current_value)
+        PCMDrawerDrawLineBetweenSamples(last_sample_index, last_value, idx, current_value)
       else
         -- Just set current sample if no previous position or same position
         wave_data[idx] = current_value
@@ -390,8 +391,8 @@ local function handle_mouse(ev)
       last_mouse_x = ev.position.x
       last_mouse_y = ev.position.y
       waveform_canvas:update()
-      update_hex_display()
-      highlight_sample(idx)
+      PCMDrawerUpdateHexDisplay()
+      PCMDrawerHighlightSample(idx)
     elseif ev.type == "up" and ev.button == "left" then
       is_drawing = false
       last_sample_index = -1
@@ -399,7 +400,7 @@ local function handle_mouse(ev)
       last_mouse_y = -1
     elseif ev.type == "move" and not is_drawing then
       -- Just highlight when hovering without drawing
-      highlight_sample(idx)
+      PCMDrawerHighlightSample(idx)
     end
   else
     -- Mouse is outside valid sample range
@@ -422,7 +423,7 @@ local function handle_mouse(ev)
 end
 
 -- Keyboard handler for arrow key controls
-local function handle_keyboard(dialog, key)
+function PCMDrawerHandleKeyboard(dialog, key)
   if selected_sample_index > 0 and selected_sample_index <= wave_size then
     if key.name == "up" then
       -- Modify samples around cursor position based on cursor width
@@ -435,7 +436,7 @@ local function handle_keyboard(dialog, key)
       end
       
       waveform_canvas:update()
-      update_hex_display()
+      PCMDrawerUpdateHexDisplay()
       return nil  -- Consume the key
     elseif key.name == "down" then
       -- Modify samples around cursor position based on cursor width
@@ -448,19 +449,19 @@ local function handle_keyboard(dialog, key)
       end
       
       waveform_canvas:update()
-      update_hex_display()
+      PCMDrawerUpdateHexDisplay()
       return nil  -- Consume the key
     elseif key.name == "left" then
       selected_sample_index = math.max(1, selected_sample_index - 1)
       waveform_canvas:update()
-      update_hex_display()
-      highlight_sample(selected_sample_index)
+      PCMDrawerUpdateHexDisplay()
+      PCMDrawerHighlightSample(selected_sample_index)
       return nil  -- Consume the key
     elseif key.name == "right" then
       selected_sample_index = math.min(wave_size, selected_sample_index + 1)
       waveform_canvas:update()
-      update_hex_display()
-      highlight_sample(selected_sample_index)
+      PCMDrawerUpdateHexDisplay()
+      PCMDrawerHighlightSample(selected_sample_index)
       return nil  -- Consume the key
     end
   end
@@ -480,12 +481,12 @@ local function handle_keyboard(dialog, key)
 end
 
 -- Selection operation functions
-local function has_selection()
+function PCMDrawerHasSelection()
   return selection_start > 0 and selection_end > 0 and selection_start <= selection_end
 end
 
-local function get_selection_info()
-  if not has_selection() then
+function PCMDrawerGetSelectionInfo()
+  if not PCMDrawerHasSelection() then
     return "No selection"
   end
   local count = selection_end - selection_start + 1
@@ -493,57 +494,57 @@ local function get_selection_info()
 end
 
 -- Update all displays function (moved before functions that use it)
-local function update_all_displays()
+function PCMDrawerUpdateAllDisplays()
   if waveform_canvas then
     waveform_canvas:update()
   end
-  update_hex_display()
+  PCMDrawerUpdateHexDisplay()
   -- Note: No longer updating selection info since we removed selection UI
 end
 
-local function clear_selection()
+function PCMDrawerClearSelection()
   selection_start = -1
   selection_end = -1
-  update_all_displays()
+  PCMDrawerUpdateAllDisplays()
 end
 
-local function select_all()
+function PCMDrawerSelectAll()
   selection_start = 1
   selection_end = wave_size
-  update_all_displays()
+  PCMDrawerUpdateAllDisplays()
 end
 
 -- Zoom functions
-local function zoom_in()
+function PCMDrawerZoomIn()
   zoom_factor = math.min(max_zoom, zoom_factor * 1.5)
   pan_offset = math.max(0, math.min(wave_size - wave_size/zoom_factor, pan_offset))
-  update_all_displays()
+  PCMDrawerUpdateAllDisplays()
 end
 
-local function zoom_out()
+function PCMDrawerZoomOut()
   zoom_factor = math.max(min_zoom, zoom_factor / 1.5)
   pan_offset = math.max(0, math.min(wave_size - wave_size/zoom_factor, pan_offset))
-  update_all_displays()
+  PCMDrawerUpdateAllDisplays()
 end
 
-local function zoom_fit()
+function PCMDrawerZoomFit()
   zoom_factor = 1.0
   pan_offset = 0
-  update_all_displays()
+  PCMDrawerUpdateAllDisplays()
 end
 
 -- Pan functions
-local function pan_left()
+function PCMDrawerPanLeft()
   pan_offset = math.max(0, pan_offset - wave_size / zoom_factor * 0.1)
-  update_all_displays()
+  PCMDrawerUpdateAllDisplays()
 end
 
-local function pan_right()
+function PCMDrawerPanRight()
   pan_offset = math.min(wave_size - wave_size/zoom_factor, pan_offset + wave_size / zoom_factor * 0.1)
-  update_all_displays()
+  PCMDrawerUpdateAllDisplays()
 end
 
-local function edit_hex_sample(idx, new_value)
+function PCMDrawerEditHexSample(idx, new_value)
   local value = tonumber(new_value, 16)
   
   -- If not a valid hex number, try to extract valid hex characters
@@ -569,12 +570,12 @@ local function edit_hex_sample(idx, new_value)
   end
   
   waveform_canvas:update()
-  update_hex_display()
-  highlight_sample(idx)
+  PCMDrawerUpdateHexDisplay()
+  PCMDrawerHighlightSample(idx)
 end
 
 -- WAV file format functions
-local function create_wav_header(sample_rate, num_channels, num_samples, bits_per_sample)
+function PCMDrawerCreateWavHeader(sample_rate, num_channels, num_samples, bits_per_sample)
   local byte_rate = sample_rate * num_channels * bits_per_sample / 8
   local block_align = num_channels * bits_per_sample / 8
   local data_size = num_samples * num_channels * bits_per_sample / 8
@@ -614,7 +615,7 @@ local function create_wav_header(sample_rate, num_channels, num_samples, bits_pe
 end
 
 -- Enhanced save functions
-local function save_wave_bin()
+function PCMDrawerSaveWaveBin()
   local suggested_name = string.format("waveform_%dsamples.bin", wave_size)
   local filename = renoise.app():prompt_for_filename_to_write(".bin", suggested_name)
   
@@ -636,7 +637,7 @@ local function save_wave_bin()
   end
 end
 
-local function save_wave_wav()
+function PCMDrawerSaveWaveWav()
   local suggested_name = string.format("waveform_%dsamples.wav", wave_size)
   local filename = renoise.app():prompt_for_filename_to_write(".wav", suggested_name)
   
@@ -644,7 +645,7 @@ local function save_wave_wav()
     local file = io.open(filename, "wb")
     if file then
       -- Write WAV header
-      local header = create_wav_header(44100, 1, wave_size, 16)
+      local header = PCMDrawerCreateWavHeader(44100, 1, wave_size, 16)
       file:write(header)
       
       -- Write PCM data (convert from unsigned 16-bit to signed 16-bit)
@@ -665,7 +666,7 @@ local function save_wave_wav()
   end
 end
 
-local function load_wave()
+function PCMDrawerLoadWave()
   local filename = renoise.app():prompt_for_filename_to_read({"*.raw", "*.bin", "*.wav"}, "Load Wave File")
   
   if filename then
@@ -709,7 +710,7 @@ local function load_wave()
           end
         end
         selected_sample_index = -1
-        zoom_fit()
+        PCMDrawerZoomFit()
         renoise.app():show_status("Wave loaded: " .. filename)
       else
         renoise.app():show_error(string.format("Invalid file size! Expected at least %d bytes, got %d", 
@@ -724,7 +725,7 @@ local function load_wave()
 end
 
 -- Wavetable functions
-local function export_wavetable_to_sample()
+function PCMDrawerExportWavetableToSample()
   if #wavetable_waves == 0 then
     renoise.app():show_error("No waves in wavetable to export")
     return
@@ -794,7 +795,7 @@ local function export_wavetable_to_sample()
   renoise.app():show_status(string.format("Wavetable exported: %d waves as separate sample slots with %s interpolation", #wavetable_waves, sample_interpolation_mode))
 end
 
-local function add_wavetable_wave()
+function PCMDrawerAddWavetableWave()
   -- Check if we've reached the maximum of 12 waves
   if #wavetable_waves >= 12 then
     renoise.app():show_status("Maximum wavetable size reached (12 waves)")
@@ -822,11 +823,11 @@ local function add_wavetable_wave()
   
   -- Update the wavetable count display without rebuilding the entire dialog
   if wavetable_count_text then
-    wavetable_count_text.text = string.format("Waves: %d/12", #wavetable_waves)
+    wavetable_count_text.text = string.format("Wavetable Tools (%d/12)", #wavetable_waves)
   end
 end
 
-local function generate_random_waveform()
+function PCMDrawerGenerateRandomWaveform()
   -- MAXIMUM RANDOMNESS - Multiple entropy sources and chaos
   local chaos_seed = os.time() + math.floor(os.clock() * 1000000) + wave_size + (selected_sample_index or 0)
   
@@ -1189,12 +1190,12 @@ local function generate_random_waveform()
   if waveform_canvas then
     waveform_canvas:update()
   end
-  update_hex_display()
+  PCMDrawerUpdateHexDisplay()
   
   renoise.app():show_status("Generated " .. status_text .. " (click-free)")
 end
 
-local function create_12_random_instrument()
+function PCMDrawerCreate12RandomInstrument()
   -- Clear existing wavetable
   wavetable_waves = {}
   
@@ -1211,7 +1212,7 @@ local function create_12_random_instrument()
   -- Generate 12 random waveforms and add them to wavetable
   for wave_num = 1, 12 do
     -- Generate random waveform
-    generate_random_waveform()
+    PCMDrawerGenerateRandomWaveform()
     
     -- Add current waveform to wavetable
     local new_wave = {data = table.create(), name = string.format("Random_%02d", wave_num)}
@@ -1233,7 +1234,7 @@ local function create_12_random_instrument()
   
   -- Update the wavetable count display
   if wavetable_count_text then
-    wavetable_count_text.text = string.format("Waves: %d/12", #wavetable_waves)
+    wavetable_count_text.text = string.format("Wavetable Tools (%d/12)", #wavetable_waves)
   end
   
   -- Export the wavetable to instrument (now using the pre-created instrument)
@@ -1292,7 +1293,7 @@ local function create_12_random_instrument()
   renoise.app():show_status("Created 12 Random Instrument with wavetable (12 waves)")
 end
 
-local function save_wavetable()
+function PCMDrawerSaveWavetable()
   if #wavetable_waves == 0 then
     renoise.app():show_error("No waves in wavetable to save")
     return
@@ -1305,7 +1306,7 @@ local function save_wavetable()
     local file = io.open(filename, "wb")
     if file then
       local total_samples = #wavetable_waves * wave_size  -- Use wave_size (512) not wavetable_size
-      local header = create_wav_header(44100, 1, total_samples, 16)
+      local header = PCMDrawerCreateWavHeader(44100, 1, total_samples, 16)
       file:write(header)
       
       -- Write all waves sequentially
@@ -1328,7 +1329,7 @@ local function save_wavetable()
   end
 end
 
-local function export_to_sample()
+function PCMDrawerExportToSample()
   local song = renoise.song()
   local inst = song.selected_instrument
   
@@ -1386,7 +1387,7 @@ local function export_to_sample()
 end
 
 -- Remaining selection operation functions
-local function invert_selection()
+function PCMDrawerInvertSelection()
   -- Preserve cursor position
   local saved_cursor = selected_sample_index
   
@@ -1398,12 +1399,15 @@ local function invert_selection()
   -- Restore cursor position
   selected_sample_index = saved_cursor
   
-  update_all_displays()
+  PCMDrawerUpdateAllDisplays()
   renoise.app():show_status("Inverted entire waveform")
 end
 
-local function normalize_selection()
-  if not has_selection() then
+function PCMDrawerNormalizeSelection()
+  -- Preserve cursor position
+  local saved_cursor = selected_sample_index
+  
+  if not PCMDrawerHasSelection() then
     -- Normalize whole waveform if no selection
     local min_val = 65535
     local max_val = 0
@@ -1414,6 +1418,7 @@ local function normalize_selection()
     
     -- Avoid division by zero
     if max_val == min_val then
+      selected_sample_index = saved_cursor
       renoise.app():show_status("Waveform has no dynamic range to normalize")
       return
     end
@@ -1424,7 +1429,9 @@ local function normalize_selection()
       wave_data[i] = math.floor(((wave_data[i] - min_val) / range) * 65535)
     end
     
-    update_all_displays()
+    -- Restore cursor position
+    selected_sample_index = saved_cursor
+    PCMDrawerUpdateAllDisplays()
     renoise.app():show_status("Normalized entire waveform")
     return
   end
@@ -1449,11 +1456,11 @@ local function normalize_selection()
     wave_data[i] = math.floor(((wave_data[i] - min_val) / range) * 65535)
   end
   
-  update_all_displays()
+  PCMDrawerUpdateAllDisplays()
   renoise.app():show_status(string.format("Normalized samples %d-%d", selection_start, selection_end))
 end
 
-local function fade_in_selection()
+function PCMDrawerFadeInSelection()
   -- Preserve cursor position
   local saved_cursor = selected_sample_index
   
@@ -1467,11 +1474,11 @@ local function fade_in_selection()
   -- Restore cursor position
   selected_sample_index = saved_cursor
   
-  update_all_displays()
+  PCMDrawerUpdateAllDisplays()
   renoise.app():show_status("Fade in applied to entire waveform")
 end
 
-local function fade_out_selection()
+function PCMDrawerFadeOutSelection()
   -- Preserve cursor position
   local saved_cursor = selected_sample_index
   
@@ -1485,11 +1492,11 @@ local function fade_out_selection()
   -- Restore cursor position
   selected_sample_index = saved_cursor
   
-  update_all_displays()
+  PCMDrawerUpdateAllDisplays()
   renoise.app():show_status("Fade out applied to entire waveform")
 end
 
-local function silence_selection()
+function PCMDrawerSilenceSelection()
   -- Preserve cursor position
   local saved_cursor = selected_sample_index
   
@@ -1501,11 +1508,11 @@ local function silence_selection()
   -- Restore cursor position
   selected_sample_index = saved_cursor
   
-  update_all_displays()
+  PCMDrawerUpdateAllDisplays()
   renoise.app():show_status("Silenced entire waveform")
 end
 
-local function reverse_selection()
+function PCMDrawerReverseSelection()
   -- Preserve cursor position
   local saved_cursor = selected_sample_index
   
@@ -1521,12 +1528,12 @@ local function reverse_selection()
   -- Restore cursor position
   selected_sample_index = saved_cursor
   
-  update_all_displays()
+  PCMDrawerUpdateAllDisplays()
   renoise.app():show_status("Reversed entire waveform")
 end
 
 -- Rebuild hex editor display (scrollable version for large samples)
-local function rebuild_hex_editor()
+function PCMDrawerRebuildHexEditor()
   hex_buttons = {}
   local hex_columns = {}
   
@@ -1539,10 +1546,10 @@ local function rebuild_hex_editor()
   
   -- Navigation header
   local nav_row = vb:row{
-    spacing = 5,
+    --spacing = 5,
     vb:text{
       text = string.format("Samples %d-%d of %d", start_sample, end_sample, wave_size),
-      width = 150,
+      width = 180,
       font = "bold"
     },
     vb:button{
@@ -1552,7 +1559,7 @@ local function rebuild_hex_editor()
       notifier = function()
         hex_editor_page = 0
         if pcm_dialog then pcm_dialog:close() end
-        show_pcm_dialog()
+        PCMDrawerShowPcmDialog()
       end
     },
     vb:button{
@@ -1562,7 +1569,7 @@ local function rebuild_hex_editor()
       notifier = function()
         hex_editor_page = math.max(0, hex_editor_page - 1)
         if pcm_dialog then pcm_dialog:close() end
-        show_pcm_dialog()
+        PCMDrawerShowPcmDialog()
       end
     },
     vb:text{
@@ -1576,7 +1583,7 @@ local function rebuild_hex_editor()
       notifier = function()
         hex_editor_page = math.min(total_pages - 1, hex_editor_page + 1)
         if pcm_dialog then pcm_dialog:close() end
-        show_pcm_dialog()
+        PCMDrawerShowPcmDialog()
       end
     },
     vb:button{
@@ -1586,7 +1593,7 @@ local function rebuild_hex_editor()
       notifier = function()
         hex_editor_page = total_pages - 1
         if pcm_dialog then pcm_dialog:close() end
-        show_pcm_dialog()
+        PCMDrawerShowPcmDialog()
       end
     }
   }
@@ -1614,9 +1621,9 @@ local function rebuild_hex_editor()
       if absolute_idx <= end_sample then
         local hex_field = vb:textfield{
           text = string.format("%04X", wave_data[absolute_idx]),
-          width = 38,
+          width = hex_textfield_width,
           notifier = function(new_value) 
-            edit_hex_sample(absolute_idx, new_value) 
+            PCMDrawerEditHexSample(absolute_idx, new_value) 
           end
         }
         hex_buttons[absolute_idx] = hex_field
@@ -1630,7 +1637,7 @@ local function rebuild_hex_editor()
   return hex_columns
 end
 
-local function reset_wave_editor()
+function PCMDrawerResetWaveEditor()
   dialog_initialized = false
   selection_start = -1
   selection_end = -1
@@ -1643,7 +1650,7 @@ end
 
 
 
-local function change_wave_size(new_size)
+function PCMDrawerChangeWaveSize(new_size)
   local old_size = wave_size
   local old_data = wave_data
   wave_size = new_size
@@ -1679,22 +1686,22 @@ local function change_wave_size(new_size)
   
   -- Clear selection if it's outside new range
   if selection_start > wave_size or selection_end > wave_size then
-    clear_selection()
+    PCMDrawerClearSelection()
   end
   
-  zoom_fit()
+  PCMDrawerZoomFit()
   
   -- Rebuild hex editor and update displays without closing dialog
   if pcm_dialog then
     pcm_dialog:close()
-    show_pcm_dialog()
+    PCMDrawerShowPcmDialog()
   end
   
   renoise.app():show_status(string.format("Wave size changed to %d samples (interpolated)", wave_size))
 end
 
 -- Main dialog function
-function show_pcm_dialog()
+function PCMDrawerShowPcmDialog()
   -- Set flag to prevent dropdown from triggering during rebuild
   dialog_rebuilding = true
   
@@ -1705,18 +1712,18 @@ function show_pcm_dialog()
     width = wavetable_canvas_width,
     height = 200,
     mode = "plain",
-    render = render_waveform,
-    mouse_handler = handle_mouse,
+    render = PCMDrawerRenderWaveform,
+    mouse_handler = PCMDrawerHandleMouse,
     mouse_events = {"down", "up", "move"}
   }
 
   -- Only generate initial waveform on first dialog opening
   if not dialog_initialized then
-    generate_waveform("sine")
+    PCMDrawerGenerateWaveform("sine")
     dialog_initialized = true
   end
   
-  local hex_editor_rows = rebuild_hex_editor()
+  local hex_editor_rows = PCMDrawerRebuildHexEditor()
   local hex_editor_content = vb:column{ spacing = 2 }
   for _, row in ipairs(hex_editor_rows) do
     hex_editor_content:add_child(row)
@@ -1724,15 +1731,17 @@ function show_pcm_dialog()
 
   -- Create selection info view
   selection_info_view = vb:text{
-    text = get_selection_info(),
+    text = PCMDrawerGetSelectionInfo(),
     width = 200,
     height = 20
   }
   
   -- Create wavetable count text element
   wavetable_count_text = vb:text{
-    text = string.format("Waves: %d/12", #wavetable_waves),
-    width = 150
+    text = string.format("Wavetable Tools (%d/12)", #wavetable_waves),
+    width = 180,
+    style = "strong",
+    font = "bold"
   }
   
   -- Create cursor width slider
@@ -1755,13 +1764,13 @@ function show_pcm_dialog()
     width = 50
   }
   
-  local dialog_content = vb:column{
+  local dialog_content = vb:column{ -- DIALOG_CONTENT STARTS
     margin = 10,
-    spacing = 10,
+    --spacing = 10,
         
         -- Main controls row
-  vb:row{
-      spacing = 10,
+  vb:row{ -- MAIN_CONTROLS_ROW STARTS
+      --spacing = 10,
     vb:text{ text = "Waveform", style = "strong" },
     vb:popup{
       items = {"sine", "square", "saw", "triangle", "noise"},
@@ -1772,21 +1781,21 @@ function show_pcm_dialog()
           return
         end
         local types = {"sine", "square", "saw", "triangle", "noise"}
-        generate_waveform(types[idx], nil, wave_size)
+        PCMDrawerGenerateWaveform(types[idx], nil, wave_size)
         selected_sample_index = -1
         selection_start = -1
         selection_end = -1
         if waveform_canvas then
           waveform_canvas:update()
         end
-        update_hex_display()
+        PCMDrawerUpdateHexDisplay()
       end
     },
     vb:button{
       text = "Random",
       width = 50,
       tooltip = "Generate random mixed waveform",
-      notifier = generate_random_waveform
+      notifier = PCMDrawerGenerateRandomWaveform
     },
           vb:text{ text = "Samples", style = "strong" },
     vb:popup{
@@ -1801,7 +1810,7 @@ function show_pcm_dialog()
         return 5 -- Default to 512 if not found
       end)(),
       notifier = function(idx)
-          change_wave_size(wave_size_options[idx])
+          PCMDrawerChangeWaveSize(wave_size_options[idx])
         end
       },
       vb:text{ text = "Sample Interpolation", style = "strong" },
@@ -1819,237 +1828,197 @@ function show_pcm_dialog()
           sample_oversample_enabled = value
         end
       },
-      vb:text{ text = "Oversampling", style = "strong" }
-    },
-    
-    -- Cursor step control row
-    vb:row{
-      spacing = 5,
-      vb:text{ text = "Cursor Width:", style = "strong" },
+      vb:text{ text = "Oversampling", style = "strong" },
+      vb:text{ text = "| Cursor Width", style = "strong" },
       cursor_step_slider,
-      cursor_step_text
-    },
-    --[[
-    -- Zoom controls row
-    vb:row{
-      spacing = 5,
-      vb:text{ text = "Zoom/Pan:" },
-      vb:button{ text = "Zoom In", width = 60, notifier = zoom_in },
-      vb:button{ text = "Zoom Out", width = 60, notifier = zoom_out },
-      vb:button{ text = "Fit", width = 40, notifier = zoom_fit },
-      vb:button{ text = "← Pan", width = 50, notifier = pan_left },
-      vb:button{ text = "Pan →", width = 50, notifier = pan_right },
-      vb:checkbox{
-        value = show_sample_points,
-        notifier = function(value)
-          show_sample_points = value
-          update_all_displays()
-        end
-      },
-      vb:text{ text = "Show Points" }
-    },
-    ]]--
-    -- Canvas interpolation controls row
-    vb:row{
-      spacing = 5,
-      vb:text{ text = "Canvas Display:" },
+      cursor_step_text,
+      vb:text{ text = "Canvas Display", style = "strong" },
       vb:popup{
         items = {"Linear", "Cubic", "Bezier"},
         value = 1,
         notifier = function(idx)
           local modes = {"linear", "cubic", "bezier"}
           canvas_interpolation_mode = modes[idx]
-          update_all_displays()
+          PCMDrawerUpdateAllDisplays()
         end
-      },
-      vb:text{ text = "Interpolation" }
-    },
+      }
+    }, -- MAIN_CONTROLS_ROW ENDS
     
     vb:text{
-      text = "💡 Click/drag to draw • Arrow keys to edit selected sample",
+      text = "Click/drag to draw • Arrow keys to edit selected frame",
       font = "italic",
       width = 1024
     },
     
     waveform_canvas,
     
-    vb:row{
-      spacing = 10,
-      
+    vb:row{ -- HEX_EDITOR_ROW STARTS
       -- Hex editor column
-      vb:column{
+      vb:column{ -- HEX_EDITOR_COLUMN STARTS
         style = "group",
         margin = 5,
         width = 1024,
-        vb:text{
-          text = "Hex Editor (Type to edit)",
-          style = "strong"
-        },
-        hex_editor_content
-      },
-    },
+        vb:horizontal_aligner{ -- HEX_ALIGNER STARTS
+          mode = "center",
+          vb:column{ -- HEX_INNER_COLUMN STARTS
+            vb:text{
+              text = "Hex Editor (Type to edit)",
+              style = "strong"
+            },
+            hex_editor_content
+          } -- HEX_INNER_COLUMN ENDS
+        } -- HEX_ALIGNER ENDS
+      }, -- HEX_EDITOR_COLUMN ENDS
+    }, -- HEX_EDITOR_ROW ENDS
     
-    vb:row{
-      spacing = 10,
-      
-      -- Selection Tools column
-      vb:column{
+    vb:horizontal_aligner{ -- TOOLS_ALIGNER STARTS
+      mode = "center",
+      vb:row{ -- TOOLS_ROW STARTS
+      vb:column{ -- SAMPLE_TOOLS_COLUMN STARTS
         style = "group",
         margin = 5,
-        spacing = 5,
         vb:text{
           text = "Sample Tools",
-          style = "strong"
+          style = "strong",font="bold"
         },
 
         vb:row{
-          spacing = 5,
           vb:button{
             text = "Invert",
-            width = 60,
+            width = 70,
             tooltip = "Flip waveform upside down",
-            notifier = invert_selection
+            notifier = PCMDrawerInvertSelection
           },
           vb:button{
             text = "Normalize",
             width = 70,
             tooltip = "Scale to full range (whole wave if no selection)",
-            notifier = normalize_selection
+            notifier = PCMDrawerNormalizeSelection
           }
         },
         vb:row{
-          spacing = 5,
+          --spacing = 5,
           vb:button{
             text = "Fade In",
-            width = 60,
+            width = 70,
             tooltip = "Fade from silence to full",
-            notifier = fade_in_selection
+            notifier = PCMDrawerFadeInSelection
           },
           vb:button{
             text = "Fade Out",
-            width = 60,
+            width = 70,
             tooltip = "Fade from full to silence",
-            notifier = fade_out_selection
+            notifier = PCMDrawerFadeOutSelection
           }
         },
         vb:row{
-          spacing = 5,
+          --spacing = 5,
           vb:button{
             text = "Silence",
-            width = 60,
+            width = 70,
             tooltip = "Set to center (silence)",
-            notifier = silence_selection
+            notifier = PCMDrawerSilenceSelection
           },
           vb:button{
             text = "Reverse",
-            width = 60,
+            width = 70,
             tooltip = "Reverse sample order",
-            notifier = reverse_selection
+            notifier = PCMDrawerReverseSelection
           }
         }
-      },
+      }, -- SAMPLE_TOOLS_COLUMN ENDS
       
       -- Export Tools column
-      vb:column{
+      vb:column{ -- EXPORT_TOOLS_COLUMN STARTS
         style = "group",
         margin = 5,
-        spacing = 5,
         vb:text{
           text = "Export Tools",
-          style = "strong"
+          style = "strong", font="bold"
         },
         vb:button{
           text = "Load Wave File",
-          width = 150,
-          notifier = load_wave
+          width = 180,
+          notifier = PCMDrawerLoadWave
         },
         vb:button{
           text = "Export to Sample Slot",
-          width = 150,
-          notifier = export_to_sample
+          width = 180,
+          notifier = PCMDrawerExportToSample
         },
         vb:button{
           text = "Save as .BIN File",
-          width = 150,
-          notifier = save_wave_bin
+          width = 180,
+          notifier = PCMDrawerSaveWaveBin
         },
         vb:button{
           text = "Save as .WAV File", 
-          width = 150,
-          notifier = save_wave_wav
+          width = 180,
+          notifier = PCMDrawerSaveWaveWav
         }
-      },
+      }, -- EXPORT_TOOLS_COLUMN ENDS
       
       -- Wavetable column
-      vb:column{
+      vb:column{ -- WAVETABLE_COLUMN STARTS
         style = "group",
         margin = 5,
-        spacing = 5,
-        vb:text{
-          text = "Wavetable Tools",
-          style = "strong"
-        },
         wavetable_count_text,
         vb:button{
           text = "Add Current to Wavetable",
-          width = 150,
-          notifier = add_wavetable_wave
+          width = 180,
+          notifier = PCMDrawerAddWavetableWave
         },
         vb:button{
           text = "Create 12 Random Instrument",
-          width = 150,
+          width = 180,
           tooltip = "Generate 12 random waveforms and create instrument",
-          notifier = create_12_random_instrument
+          notifier = PCMDrawerCreate12RandomInstrument
         },
         vb:button{
           text = "Export Wavetable to Sample",
-          width = 150,
-          notifier = export_wavetable_to_sample
+          width = 180,
+          notifier = PCMDrawerExportWavetableToSample
         },
         vb:button{
           text = "Save Wavetable (.WAV)",
-          width = 150,
-          notifier = save_wavetable
-        },
-        vb:text{
-          text = "Wavetables are collections of\nsingle-cycle waveforms used\nfor wavetable synthesis.\nEach wave becomes one\nframe in the wavetable.",
-          width = 150,
-          height = 80
+          width = 180,
+          notifier = PCMDrawerSaveWavetable
         }
-      }
-    }
-  }
+      } -- WAVETABLE_COLUMN ENDS
+    } -- TOOLS_ROW ENDS
+  } -- TOOLS_ALIGNER ENDS
+  } -- DIALOG_CONTENT ENDS
   
-  pcm_dialog = renoise.app():show_custom_dialog(DIALOG_TITLE, dialog_content, handle_keyboard)
-  update_all_displays()
+  pcm_dialog = renoise.app():show_custom_dialog(DIALOG_TITLE, dialog_content, PCMDrawerHandleKeyboard)
+  PCMDrawerUpdateAllDisplays()
   
   -- Clear the rebuilding flag after dialog is fully created
   dialog_rebuilding = false
 end
 
 -- Enhanced menu entry with reset option
-local function show_pcm_dialog_fresh()
+function PCMDrawerShowPcmDialogFresh()
   if pcm_dialog and pcm_dialog.visible then
     pcm_dialog:close()
   end
-  reset_wave_editor()
-  show_pcm_dialog()
+  PCMDrawerResetWaveEditor()
+  PCMDrawerShowPcmDialog()
 end
 
 -- Menu entry and keybinding
 renoise.tool():add_menu_entry{
   name = "--Main Menu:Tools:Paketti:Xperimental/Work in Progress:Advanced PCM Wave Editor...",
-  invoke = show_pcm_dialog
+  invoke = PCMDrawerShowPcmDialog
 }
 
 renoise.tool():add_menu_entry{
   name = "Main Menu:Tools:Paketti:Xperimental/Work in Progress:Advanced PCM Wave Editor (Fresh)...",
-  invoke = show_pcm_dialog_fresh
+  invoke = PCMDrawerShowPcmDialogFresh
 }
 
 renoise.tool():add_keybinding{
   name = "Global:Paketti:Show Advanced PCM Wave Editor",
-  invoke = show_pcm_dialog
+  invoke = PCMDrawerShowPcmDialog
 }
 
 

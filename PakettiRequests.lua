@@ -10620,5 +10620,22 @@ function ConvertChordsToArpeggio()
 end
 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Convert 3 Note Chord to Arpeggio", invoke=function() ConvertChordsToArpeggio() end}
+---
 
+function PakettiKeepSequenceSorted(state)
+  -- Sets the Keep Sequence Sorted state to true(on) or false(off)
+  renoise.song().sequencer.keep_sequence_sorted=state
+
+  -- Depending on what the state was, show a different status message.
+  if state == true then 
+    renoise.app():show_status("Keep Sequence Sorted: Enabled")
+  else
+    renoise.app():show_status("Keep Sequence Sorted: Disabled")
+  end
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Keep Sequence Sorted On", invoke=function() PakettiKeepSequenceSorted(true) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Keep Sequence Sorted Off", invoke=function() PakettiKeepSequenceSorted(false) end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Keep Sequence Sorted On", invoke=function() PakettiKeepSequenceSorted(true) end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Keep Sequence Sorted Off", invoke=function() PakettiKeepSequenceSorted(false) end}
 

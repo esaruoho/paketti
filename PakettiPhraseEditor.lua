@@ -462,6 +462,8 @@ renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Phrase Halver (Joule) 
 ----------
 local last_pattern_pos = 1  -- Start at 1, not 0
 local current_section = 0
+local phrase_follow_enabled = false  -- Track phrase follow state
+local current_cycle = 0  -- Track current cycle for phrase follow
 
 local function phrase_follow_notifier()
   if renoise.song().transport.playing then
