@@ -4771,6 +4771,23 @@ function duplicateTrackAndInstrument()
   local track_index = song.selected_track_index
   local selected_track = song:track(track_index)
   
+  -- Protection: Check if current track is a send track (or master/group track)
+  if selected_track.type ~= renoise.Track.TRACK_TYPE_SEQUENCER then
+    local track_type_name = ""
+    if selected_track.type == renoise.Track.TRACK_TYPE_SEND then
+      track_type_name = "send"
+    elseif selected_track.type == renoise.Track.TRACK_TYPE_MASTER then
+      track_type_name = "master"
+    elseif selected_track.type == renoise.Track.TRACK_TYPE_GROUP then
+      track_type_name = "group"
+    else
+      track_type_name = "non-sequencer"
+    end
+    
+    renoise.app():show_status("Cannot duplicate " .. track_type_name .. " tracks. Please select a sequencer track.")
+    return
+  end
+  
   -- First, duplicate the instrument
   local instrument_index = song.selected_instrument_index
   local original_instrument = song.instruments[instrument_index]
