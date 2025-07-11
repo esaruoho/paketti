@@ -828,26 +828,30 @@ function PCMDrawerAddWavetableWave()
 end
 
 function PCMDrawerGenerateRandomWaveform()
-  -- MAXIMUM RANDOMNESS - Multiple entropy sources and chaos
-  local chaos_seed = os.time() + math.floor(os.clock() * 1000000) + wave_size + (selected_sample_index or 0)
+  local max_attempts = 5  -- Maximum attempts to generate a good waveform
+  local attempt = 1
   
-  -- Add more entropy from system state
-  chaos_seed = chaos_seed + #wavetable_waves * 1337 + cursor_width * 42 + cursor_step_size
+  while attempt <= max_attempts do
+    -- MAXIMUM RANDOMNESS - Multiple entropy sources and chaos
+    local chaos_seed = os.time() + math.floor(os.clock() * 1000000) + wave_size + (selected_sample_index or 0) + attempt * 54321
+    
+    -- Add more entropy from system state
+    chaos_seed = chaos_seed + #wavetable_waves * 1337 + cursor_width * 42 + cursor_step_size
+    
+    -- Random seed the seed with itself (recursive randomness)
+    for chaos_round = 1, math.random(3, 8) do
+      math.randomseed(chaos_seed + chaos_round * 12345)
+      chaos_seed = chaos_seed + math.random(1, 999999)
+    end
+    
+    -- Final seed with accumulated chaos
+    math.randomseed(chaos_seed)
+    
+    -- Warm up with random number of calls
+    for i = 1, math.random(5, 15) do math.random() end
   
-  -- Random seed the seed with itself (recursive randomness)
-  for chaos_round = 1, math.random(3, 8) do
-    math.randomseed(chaos_seed + chaos_round * 12345)
-    chaos_seed = chaos_seed + math.random(1, 999999)
-  end
-  
-  -- Final seed with accumulated chaos
-  math.randomseed(chaos_seed)
-  
-  -- Warm up with random number of calls
-  for i = 1, math.random(5, 15) do math.random() end
-  
-  -- Randomly choose generation method (now with 5 methods)
-  local method = math.random(1, 5)
+  -- Randomly choose generation method (now with 6 methods)
+  local method = math.random(1, 6)
   local status_text = ""
   
   if method == 1 then
@@ -979,7 +983,7 @@ function PCMDrawerGenerateRandomWaveform()
     end
     status_text = string.format("Bezier curve (%d control points)", num_points)
   
-  else
+  elseif method == 4 then
     -- Method 4: Fractal/chaos waveform
     local chaos_factor = math.random() * 1.2 + 0.05
     local seed_value = (math.random() * 2 - 1) * math.random(0.5, 2.0)
@@ -1016,9 +1020,8 @@ function PCMDrawerGenerateRandomWaveform()
     local chaos_names = {"Logistic", "Sine", "Tent"}
     status_text = string.format("Chaotic waveform (%s, chaos:%.2f, feedback:%.2f)", 
       chaos_names[chaos_type], chaos_factor, feedback)
-  end
   
-  if method == 5 then
+  elseif method == 5 then
     -- Method 5: ULTIMATE CHAOS - Hybrid of all methods with random switching
     local method_switches = {}
     for i = 1, wave_size do
@@ -1098,10 +1101,33 @@ function PCMDrawerGenerateRandomWaveform()
       wave_data[i] = math.max(0, math.min(65535, wave_data[i]))
     end
     status_text = string.format("ULTIMATE CHAOS (hybrid switching, %d methods)", num_points)
+  
+  else
+    -- Method 6: Spectral/Additive synthesis with random partials
+    local num_partials = math.random(3, 16)
+    local fundamental_freq = math.random(0.5, 4.0)
+    
+    for i = 1, wave_size do
+      local phase = (i - 1) / wave_size
+      local value = 0
+      
+      -- Generate random partials with varying amplitudes and frequencies
+      for partial = 1, num_partials do
+        local freq_ratio = partial * math.random(0.8, 1.2)  -- Slightly detuned harmonics
+        local amplitude = math.random(0.1, 1.0) / partial  -- Decreasing amplitude
+        local phase_offset = math.random() * math.pi * 2
+        
+        value = value + math.sin(phase * math.pi * 2 * fundamental_freq * freq_ratio + phase_offset) * amplitude
+      end
+      
+      wave_data[i] = math.floor((value * 32767 / num_partials) + 32768)
+      wave_data[i] = math.max(0, math.min(65535, wave_data[i]))
+    end
+    status_text = string.format("Spectral synthesis (%d partials, fund:%.1f)", num_partials, fundamental_freq)
   end
   
   -- RANDOM POST-PROCESSING CHAOS
-  local post_fx = math.random(1, 6)
+  local post_fx = math.random(1, 7)
   if post_fx == 1 then
     -- Random bit crushing
     local bit_crush = math.random(8, 15)
@@ -1158,30 +1184,155 @@ function PCMDrawerGenerateRandomWaveform()
       end
     end
     status_text = status_text .. " + PhaseDistort"
+  elseif post_fx == 6 then
+    -- Chebyshev polynomial waveshaping
+    local order = math.random(2, 6)  -- Use 2nd to 6th order Chebyshev polynomials
+    local drive = math.random(0.5, 2.0)
+    for i = 1, wave_size do
+      local normalized = (wave_data[i] - 32768) / 32768  -- Convert to -1 to 1 range
+      normalized = math.max(-1, math.min(1, normalized * drive))  -- Apply drive and clamp
+      
+      local shaped
+      if order == 2 then
+        -- T2(x) = 2x^2 - 1
+        shaped = 2 * normalized * normalized - 1
+      elseif order == 3 then
+        -- T3(x) = 4x^3 - 3x
+        shaped = 4 * normalized * normalized * normalized - 3 * normalized
+      elseif order == 4 then
+        -- T4(x) = 8x^4 - 8x^2 + 1
+        local x2 = normalized * normalized
+        shaped = 8 * x2 * x2 - 8 * x2 + 1
+      elseif order == 5 then
+        -- T5(x) = 16x^5 - 20x^3 + 5x
+        local x2 = normalized * normalized
+        local x3 = x2 * normalized
+        shaped = 16 * x3 * x2 - 20 * x3 + 5 * normalized
+      else -- order == 6
+        -- T6(x) = 32x^6 - 48x^4 + 18x^2 - 1
+        local x2 = normalized * normalized
+        local x4 = x2 * x2
+        shaped = 32 * x4 * x2 - 48 * x4 + 18 * x2 - 1
+      end
+      
+      -- Clamp result and convert back to 0-65535 range
+      shaped = math.max(-1, math.min(1, shaped))
+      wave_data[i] = math.floor(shaped * 32768 + 32768)
+    end
+    status_text = status_text .. string.format(" + Chebyshev T%d", order)
   end
-  -- post_fx == 6 means no post-processing (clean)
+  -- post_fx == 7 means no post-processing (clean)
+  
+  -- Debug: Check waveform energy before click-free processing
+  local energy_before = 0
+  local min_val = 65535
+  local max_val = 0
+  for i = 1, wave_size do
+    local deviation = math.abs(wave_data[i] - 32768)
+    energy_before = energy_before + deviation
+    min_val = math.min(min_val, wave_data[i])
+    max_val = math.max(max_val, wave_data[i])
+  end
+  local range_before = max_val - min_val
+  local avg_energy_before = energy_before / wave_size
   
   -- Post-process to ensure click-free looping: force first and last samples to center (0.5)
   local center_value = 32768  -- Center value (0.5 in normalized range)
-  wave_data[1] = center_value
-  wave_data[wave_size] = center_value
   
-  -- Optionally smooth the transition to center for the first few and last few samples
-  local smooth_samples = math.min(8, math.floor(wave_size / 16))  -- Smooth up to 8 samples or 1/16th of wave
-  
-  -- Smooth start: gradually transition from center to generated values
-  for i = 2, smooth_samples + 1 do
-    local blend = (i - 1) / smooth_samples
-    local original_value = wave_data[i]
-    wave_data[i] = math.floor(center_value + (original_value - center_value) * blend)
+  -- Only apply click-free processing if waveform has sufficient energy
+  if avg_energy_before > 1000 and range_before > 2000 then
+    -- Store original first and last values for gentler processing
+    local original_first = wave_data[1]
+    local original_last = wave_data[wave_size]
+    
+    -- Gentle click-free: blend towards center instead of forcing to center
+    local blend_factor = 0.3  -- Only blend 30% towards center
+    wave_data[1] = math.floor(original_first + (center_value - original_first) * blend_factor)
+    wave_data[wave_size] = math.floor(original_last + (center_value - original_last) * blend_factor)
+    
+    -- Much gentler smoothing - only 2-3 samples maximum
+    local smooth_samples = math.min(2, math.floor(wave_size / 64))  -- Much less aggressive
+    
+    if smooth_samples > 0 then
+      -- Gentle smooth start
+      for i = 2, smooth_samples + 1 do
+        local blend = (i - 1) / smooth_samples * 0.2  -- Very gentle blending
+        local original_value = wave_data[i]
+        wave_data[i] = math.floor(original_value + (center_value - original_value) * blend)
+      end
+      
+      -- Gentle smooth end
+      for i = wave_size - smooth_samples, wave_size - 1 do
+        local blend = (wave_size - i) / smooth_samples * 0.2  -- Very gentle blending
+        local original_value = wave_data[i]
+        wave_data[i] = math.floor(original_value + (center_value - original_value) * blend)
+      end
+    end
   end
   
-  -- Smooth end: gradually transition from generated values to center
-  for i = wave_size - smooth_samples, wave_size - 1 do
-    local blend = (wave_size - i) / smooth_samples
-    local original_value = wave_data[i]
-    wave_data[i] = math.floor(center_value + (original_value - center_value) * blend)
+  -- Debug: Check waveform energy after processing
+  local energy_after = 0
+  local min_val_after = 65535
+  local max_val_after = 0
+  for i = 1, wave_size do
+    local deviation = math.abs(wave_data[i] - 32768)
+    energy_after = energy_after + deviation
+    min_val_after = math.min(min_val_after, wave_data[i])
+    max_val_after = math.max(max_val_after, wave_data[i])
   end
+  local range_after = max_val_after - min_val_after
+  local avg_energy_after = energy_after / wave_size
+  
+  -- Debug output for boring waveforms
+  -- Check for "envelope-only" waveforms (mostly flat with just edge fades)
+  local middle_start = math.floor(wave_size * 0.2)  -- Skip first 20%
+  local middle_end = math.floor(wave_size * 0.8)    -- Skip last 20%
+  local middle_variation = 0
+  local middle_samples = middle_end - middle_start + 1
+  
+  -- Check variation in the middle 60% of the waveform
+  for i = middle_start, middle_end do
+    local deviation = math.abs(wave_data[i] - 32768)
+    middle_variation = middle_variation + deviation
+  end
+  local avg_middle_variation = middle_variation / middle_samples
+  
+  -- Check if waveform is mostly flat in the middle (boring envelope-only shape)
+  local is_boring = avg_middle_variation < 200 or range_after < 1000
+  
+  if is_boring or avg_energy_after < 500 then
+    print("DEBUG: BORING/DEAD WAVEFORM DETECTED!")
+    print("  Attempt:", attempt)
+    print("  Method:", method)
+    print("  Post-FX:", post_fx)
+    print("  Energy before:", string.format("%.1f", avg_energy_before))
+    print("  Energy after:", string.format("%.1f", avg_energy_after))
+    print("  Range before:", range_before)
+    print("  Range after:", range_after)
+    print("  Middle variation:", string.format("%.1f", avg_middle_variation))
+    print("  Status:", status_text)
+    print("  First 10 samples:", wave_data[1], wave_data[2], wave_data[3], wave_data[4], wave_data[5], wave_data[6], wave_data[7], wave_data[8], wave_data[9], wave_data[10])
+    print("  Middle 10 samples:", wave_data[math.floor(wave_size*0.4)], wave_data[math.floor(wave_size*0.45)], wave_data[math.floor(wave_size*0.5)], wave_data[math.floor(wave_size*0.55)], wave_data[math.floor(wave_size*0.6)])
+    print("  Last 10 samples:", wave_data[wave_size-9], wave_data[wave_size-8], wave_data[wave_size-7], wave_data[wave_size-6], wave_data[wave_size-5], wave_data[wave_size-4], wave_data[wave_size-3], wave_data[wave_size-2], wave_data[wave_size-1], wave_data[wave_size])
+    
+    -- If this is a boring waveform and we haven't reached max attempts, try again
+    if attempt < max_attempts then
+      print("  Retrying generation... (attempt " .. (attempt + 1) .. "/" .. max_attempts .. ")")
+      attempt = attempt + 1
+      -- Continue the while loop to try again
+    else
+      print("  Max attempts reached, keeping this waveform")
+      break  -- Exit the while loop
+    end
+  else
+    -- Good waveform generated, exit the while loop
+    if attempt > 1 then
+      print("DEBUG: Good waveform generated on attempt " .. attempt)
+    end
+    break
+  end
+  
+  end  -- End of while loop
   
   selected_sample_index = -1
   selection_start = -1
@@ -1193,6 +1344,399 @@ function PCMDrawerGenerateRandomWaveform()
   PCMDrawerUpdateHexDisplay()
   
   renoise.app():show_status("Generated " .. status_text .. " (click-free)")
+end
+
+-- Enhanced version with entropy control and forced method selection for wavetable generation
+function PCMDrawerGenerateRandomWaveformWithEntropy(entropy_seed, forced_method)
+  -- Use provided entropy seed for consistent but diverse randomization
+  math.randomseed(entropy_seed)
+  
+  -- Warm up with entropy-specific number of calls
+  for i = 1, (entropy_seed % 20) + 5 do 
+    math.random() 
+  end
+  
+  -- Use forced method to ensure diversity across wavetable
+  local method = forced_method or math.random(1, 6)
+  local status_text = ""
+  
+  if method == 1 then
+    -- Method 1: CHAOTIC mix of basic waveforms with random frequencies
+    local num_oscillators = math.random(1, 8)
+    local sine_amp = math.random() > math.random() and (math.random() * math.random(0.5, 2.0)) or 0
+    local square_amp = math.random() > math.random() and (math.random() * math.random(0.3, 1.5)) or 0
+    local triangle_amp = math.random() > math.random() and (math.random() * math.random(0.4, 1.8)) or 0
+    local saw_amp = math.random() > math.random() and (math.random() * math.random(0.2, 1.2)) or 0
+    local noise_amp = math.random() > math.random() and (math.random() * math.random(0.1, 0.8)) or 0
+    
+    local sine_freq = math.random() * 4 + 0.5
+    local square_freq = math.random() * 6 + 0.25
+    local triangle_freq = math.random() * 5 + 0.33
+    local saw_freq = math.random() * 7 + 0.1
+    
+    local total_amp = sine_amp + square_amp + triangle_amp + saw_amp + noise_amp
+    if total_amp == 0 then sine_amp = 0.5 end
+    
+    for i = 1, wave_size do
+      local phase = (i - 1) / wave_size
+      local value = 0
+      
+      if sine_amp > 0 then
+        for osc = 1, num_oscillators do
+          local freq = sine_freq * math.random(0.5, 2.0)
+          local phase_shift = math.random() * math.pi * 2
+          value = value + math.sin(phase * math.pi * 2 * freq + phase_shift) * (sine_amp / num_oscillators)
+        end
+      end
+      if square_amp > 0 then
+        local square_phase = phase * square_freq
+        local square = (square_phase % 1 < math.random(0.2, 0.8)) and 1 or -1
+        value = value + square * square_amp
+      end
+      if triangle_amp > 0 then
+        local tri_phase = (phase * triangle_freq) % 1
+        local triangle
+        local peak_pos = math.random(0.2, 0.8)
+        if tri_phase < peak_pos then
+          triangle = (tri_phase / peak_pos) * 2 - 1
+        else
+          triangle = 1 - ((tri_phase - peak_pos) / (1 - peak_pos)) * 2
+        end
+        value = value + triangle * triangle_amp
+      end
+      if saw_amp > 0 then
+        local saw_phase = (phase * saw_freq) % 1
+        local saw = (saw_phase * 2 - 1)
+        if math.random() > 0.5 then saw = -saw end
+        value = value + saw * saw_amp
+      end
+      if noise_amp > 0 then
+        local noise = (math.random() * 2 - 1)
+        if math.random() > 0.5 then
+          noise = noise * (1 - phase * math.random(0.5, 1.0))
+        end
+        value = value + noise * noise_amp
+      end
+      
+      if total_amp > 0 then
+        value = value / total_amp
+      end
+      wave_data[i] = math.floor((value * 32767) + 32768)
+      wave_data[i] = math.max(0, math.min(65535, wave_data[i]))
+    end
+    status_text = string.format("Random mix (s:%.1f sq:%.1f tri:%.1f saw:%.1f n:%.1f)", 
+      sine_amp, square_amp, triangle_amp, saw_amp, noise_amp)
+  
+  elseif method == 2 then
+    -- Method 2: Harmonic series with random harmonics
+    local fundamental = math.random(1, 6)
+    local harmonics = {}
+    for h = 1, 12 do
+      local prob = math.random(0.4, 0.8) - (h * 0.05)
+      harmonics[h] = math.random() > prob and (math.random() * (1.2 - h * 0.08) / h) or 0
+    end
+    
+    for i = 1, wave_size do
+      local phase = (i - 1) / wave_size
+      local value = 0
+      for h = 1, 12 do
+        if harmonics[h] > 0 then
+          value = value + math.sin(phase * math.pi * 2 * h * fundamental) * harmonics[h]
+        end
+      end
+      wave_data[i] = math.floor((value * 32767) + 32768)
+      wave_data[i] = math.max(0, math.min(65535, wave_data[i]))
+    end
+    
+    local active_harmonics = 0
+    for h = 1, 12 do
+      if harmonics[h] > 0 then active_harmonics = active_harmonics + 1 end
+    end
+    status_text = string.format("Harmonic series (fund:%d, %d harmonics)", fundamental, active_harmonics)
+  
+  elseif method == 3 then
+    -- Method 3: Bezier curve with random control points
+    local control_points = {}
+    local num_points = math.random(3, 15)
+    for p = 1, num_points do
+      local range = math.random(0.5, 2.0)
+      control_points[p] = (math.random() * 2 - 1) * range
+    end
+    
+    for i = 1, wave_size do
+      local t = (i - 1) / (wave_size - 1)
+      local segment = t * (num_points - 1)
+      local seg_idx = math.floor(segment)
+      local seg_t = segment - seg_idx
+      
+      local value
+      if seg_idx >= num_points - 1 then
+        value = control_points[num_points]
+      else
+        value = control_points[seg_idx + 1] + seg_t * (control_points[seg_idx + 2] - control_points[seg_idx + 1])
+      end
+      
+      wave_data[i] = math.floor((value * 32767) + 32768)
+      wave_data[i] = math.max(0, math.min(65535, wave_data[i]))
+    end
+    status_text = string.format("Bezier curve (%d control points)", num_points)
+  
+  elseif method == 4 then
+    -- Method 4: Fractal/chaos waveform
+    local chaos_factor = math.random() * 1.2 + 0.05
+    local seed_value = (math.random() * 2 - 1) * math.random(0.5, 2.0)
+    local feedback = math.random() * 1.2 + 0.05
+    local chaos_type = math.random(1, 3)
+    
+    for i = 1, wave_size do
+      local phase = (i - 1) / wave_size
+      
+      if chaos_type == 1 then
+        seed_value = chaos_factor * seed_value * (1 - seed_value) + feedback * math.sin(phase * math.pi * 2)
+      elseif chaos_type == 2 then
+        seed_value = math.sin(seed_value * chaos_factor * math.pi) + feedback * math.cos(phase * math.pi * 4)
+      else
+        if seed_value < 0.5 then
+          seed_value = chaos_factor * seed_value + feedback * math.sin(phase * math.pi * 6)
+        else
+          seed_value = chaos_factor * (1 - seed_value) + feedback * math.cos(phase * math.pi * 3)
+        end
+      end
+      
+      seed_value = math.max(-2, math.min(2, seed_value))
+      
+      local value = seed_value
+      wave_data[i] = math.floor((value * 32767) + 32768)
+      wave_data[i] = math.max(0, math.min(65535, wave_data[i]))
+    end
+    
+    local chaos_names = {"Logistic", "Sine", "Tent"}
+    status_text = string.format("Chaotic waveform (%s, chaos:%.2f, feedback:%.2f)", 
+      chaos_names[chaos_type], chaos_factor, feedback)
+  
+  elseif method == 5 then
+    -- Method 5: ULTIMATE CHAOS - Hybrid of all methods with random switching
+    local method_switches = {}
+    for i = 1, wave_size do
+      method_switches[i] = math.random(1, 4)
+    end
+    
+    local sine_amp = math.random() * 2
+    local square_amp = math.random() * 1.5
+    local triangle_amp = math.random() * 1.8
+    local saw_amp = math.random() * 1.2
+    local noise_amp = math.random() * 0.8
+    
+    local fundamental = math.random(1, 8)
+    local harmonics = {}
+    for h = 1, 16 do
+      harmonics[h] = math.random() > 0.5 and (math.random() * 2 / h) or 0
+    end
+    
+    local control_points = {}
+    local num_points = math.random(5, 20)
+    for p = 1, num_points do
+      control_points[p] = (math.random() * 4 - 2)
+    end
+    
+    local chaos_factor = math.random() * 2 + 0.1
+    local seed_value = math.random() * 4 - 2
+    local feedback = math.random() * 2 + 0.1
+    
+    for i = 1, wave_size do
+      local phase = (i - 1) / wave_size
+      local value = 0
+      local current_method = method_switches[i]
+      
+      if current_method == 1 then
+        value = math.sin(phase * math.pi * 2 * math.random(0.5, 8)) * sine_amp * math.random(0.5, 1.5)
+        value = value + ((phase * math.random(2, 10)) % 1 < 0.5 and 1 or -1) * square_amp * math.random(0.3, 1.2)
+        value = value + (math.random() * 2 - 1) * noise_amp * math.random(0.1, 0.9)
+      elseif current_method == 2 then
+        for h = 1, math.random(3, 12) do
+          if harmonics[h] and harmonics[h] > 0 then
+            value = value + math.sin(phase * math.pi * 2 * h * fundamental * math.random(0.8, 1.2)) * harmonics[h]
+          end
+        end
+      elseif current_method == 3 then
+        local t = phase
+        local segment = t * (num_points - 1)
+        local seg_idx = math.floor(segment)
+        local seg_t = segment - seg_idx
+        if seg_idx >= num_points - 1 then
+          value = control_points[num_points] or 0
+        else
+          local p1 = control_points[seg_idx + 1] or 0
+          local p2 = control_points[seg_idx + 2] or 0
+          value = p1 + seg_t * (p2 - p1)
+        end
+        value = value * math.random(0.5, 2.0)
+      else
+        seed_value = math.sin(seed_value * chaos_factor * math.pi * math.random(0.5, 2.0)) + 
+                    feedback * math.cos(phase * math.pi * math.random(2, 12))
+        seed_value = math.max(-3, math.min(3, seed_value))
+        value = seed_value
+      end
+      
+      if math.random() > 0.7 then
+        local contamination = math.sin(phase * math.pi * math.random(4, 32)) * math.random(0.1, 0.5)
+        value = value + contamination
+      end
+      
+      wave_data[i] = math.floor((value * 16383) + 32768)
+      wave_data[i] = math.max(0, math.min(65535, wave_data[i]))
+    end
+    status_text = string.format("ULTIMATE CHAOS (hybrid switching, %d methods)", num_points)
+  
+  else
+    -- Method 6: Spectral/Additive synthesis with random partials
+    local num_partials = math.random(3, 16)
+    local fundamental_freq = math.random(0.5, 4.0)
+    
+    for i = 1, wave_size do
+      local phase = (i - 1) / wave_size
+      local value = 0
+      
+      for partial = 1, num_partials do
+        local freq_ratio = partial * math.random(0.8, 1.2)
+        local amplitude = math.random(0.1, 1.0) / partial
+        local phase_offset = math.random() * math.pi * 2
+        
+        value = value + math.sin(phase * math.pi * 2 * fundamental_freq * freq_ratio + phase_offset) * amplitude
+      end
+      
+      wave_data[i] = math.floor((value * 32767 / num_partials) + 32768)
+      wave_data[i] = math.max(0, math.min(65535, wave_data[i]))
+    end
+    status_text = string.format("Spectral synthesis (%d partials, fund:%.1f)", num_partials, fundamental_freq)
+  end
+  
+  -- Reduced post-processing for wavetables (less aggressive smoothing)
+  local post_fx = math.random(1, 9)  -- Increased chance of no post-processing
+  if post_fx == 1 then
+    local bit_crush = math.random(8, 15)
+    local crush_factor = math.pow(2, 16 - bit_crush)
+    for i = 1, wave_size do
+      wave_data[i] = math.floor(wave_data[i] / crush_factor) * crush_factor
+    end
+    status_text = status_text .. " + BitCrush"
+  elseif post_fx == 2 then
+    local drive = math.random(1.5, 4.0)
+    for i = 1, wave_size do
+      local normalized = (wave_data[i] - 32768) / 32768
+      normalized = math.tanh(normalized * drive) / drive
+      wave_data[i] = math.floor(normalized * 32768 + 32768)
+    end
+    status_text = status_text .. " + Distortion"
+  elseif post_fx == 3 then
+    local fm_freq = math.random(0.5, 8.0)
+    local fm_depth = math.random(0.1, 0.8)
+    for i = 1, wave_size do
+      local phase = (i - 1) / wave_size
+      local fm_mod = math.sin(phase * math.pi * 2 * fm_freq) * fm_depth
+      local mod_phase = phase + fm_mod
+      if mod_phase >= 0 and mod_phase <= 1 then
+        local mod_idx = math.floor(mod_phase * (wave_size - 1)) + 1
+        if mod_idx >= 1 and mod_idx <= wave_size then
+          wave_data[i] = (wave_data[i] + wave_data[mod_idx]) / 2
+        end
+      end
+    end
+    status_text = status_text .. " + FM"
+  elseif post_fx == 4 then
+    -- Chebyshev polynomial waveshaping
+    local order = math.random(2, 6)  -- Use 2nd to 6th order Chebyshev polynomials
+    local drive = math.random(0.5, 2.0)
+    for i = 1, wave_size do
+      local normalized = (wave_data[i] - 32768) / 32768  -- Convert to -1 to 1 range
+      normalized = math.max(-1, math.min(1, normalized * drive))  -- Apply drive and clamp
+      
+      local shaped
+      if order == 2 then
+        -- T2(x) = 2x^2 - 1
+        shaped = 2 * normalized * normalized - 1
+      elseif order == 3 then
+        -- T3(x) = 4x^3 - 3x
+        shaped = 4 * normalized * normalized * normalized - 3 * normalized
+      elseif order == 4 then
+        -- T4(x) = 8x^4 - 8x^2 + 1
+        local x2 = normalized * normalized
+        shaped = 8 * x2 * x2 - 8 * x2 + 1
+      elseif order == 5 then
+        -- T5(x) = 16x^5 - 20x^3 + 5x
+        local x2 = normalized * normalized
+        local x3 = x2 * normalized
+        shaped = 16 * x3 * x2 - 20 * x3 + 5 * normalized
+      else -- order == 6
+        -- T6(x) = 32x^6 - 48x^4 + 18x^2 - 1
+        local x2 = normalized * normalized
+        local x4 = x2 * x2
+        shaped = 32 * x4 * x2 - 48 * x4 + 18 * x2 - 1
+      end
+      
+      -- Clamp result and convert back to 0-65535 range
+      shaped = math.max(-1, math.min(1, shaped))
+      wave_data[i] = math.floor(shaped * 32768 + 32768)
+    end
+    status_text = status_text .. string.format(" + Chebyshev T%d", order)
+  end
+  -- post_fx 5-9 means no post-processing (higher chance of clean waveforms)
+  
+  -- Less aggressive click-free processing for wavetables
+  local center_value = 32768
+  
+  -- Check waveform energy before processing
+  local energy_check = 0
+  local min_check = 65535
+  local max_check = 0
+  for i = 1, wave_size do
+    local deviation = math.abs(wave_data[i] - 32768)
+    energy_check = energy_check + deviation
+    min_check = math.min(min_check, wave_data[i])
+    max_check = math.max(max_check, wave_data[i])
+  end
+  local range_check = max_check - min_check
+  local avg_energy_check = energy_check / wave_size
+  
+  -- Only apply click-free processing if waveform has sufficient energy
+  if avg_energy_check > 1000 and range_check > 2000 then
+    -- Store original values
+    local original_first = wave_data[1]
+    local original_last = wave_data[wave_size]
+    
+    -- Very gentle click-free: only blend 20% towards center for wavetables
+    local blend_factor = 0.2
+    wave_data[1] = math.floor(original_first + (center_value - original_first) * blend_factor)
+    wave_data[wave_size] = math.floor(original_last + (center_value - original_last) * blend_factor)
+    
+    -- Ultra-minimal smoothing (only 1-2 samples)
+    local smooth_samples = math.min(1, math.floor(wave_size / 128))
+    
+    if smooth_samples > 0 then
+      for i = 2, smooth_samples + 1 do
+        local blend = (i - 1) / smooth_samples * 0.1  -- Ultra-gentle blending
+        local original_value = wave_data[i]
+        wave_data[i] = math.floor(original_value + (center_value - original_value) * blend)
+      end
+      
+      for i = wave_size - smooth_samples, wave_size - 1 do
+        local blend = (wave_size - i) / smooth_samples * 0.1  -- Ultra-gentle blending
+        local original_value = wave_data[i]
+        wave_data[i] = math.floor(original_value + (center_value - original_value) * blend)
+      end
+    end
+  end
+  
+  selected_sample_index = -1
+  selection_start = -1
+  selection_end = -1
+  
+  if waveform_canvas then
+    waveform_canvas:update()
+  end
+  PCMDrawerUpdateHexDisplay()
+  
+  renoise.app():show_status("Generated " .. status_text .. " (entropy: " .. tostring(entropy_seed % 10000) .. ")")
 end
 
 function PCMDrawerCreate12RandomInstrument()
@@ -1209,10 +1753,19 @@ function PCMDrawerCreate12RandomInstrument()
   -- Apply Paketti default instrument configuration
   pakettiPreferencesDefaultInstrumentLoader()
   
+  -- Create a base entropy pool for this batch to ensure diversity
+  local base_entropy = os.time() * 1000 + math.floor(os.clock() * 1000000)
+  
   -- Generate 12 random waveforms and add them to wavetable
   for wave_num = 1, 12 do
-    -- Generate random waveform
-    PCMDrawerGenerateRandomWaveform()
+    -- Add significant entropy per wave to ensure diversity
+    local wave_entropy = base_entropy + (wave_num * 98765) + math.random(1, 999999)
+    
+    -- Force different method selection per wave for guaranteed diversity
+    local forced_method = ((wave_num - 1) % 6) + 1  -- Cycle through methods 1-6
+    
+    -- Generate random waveform with wave-specific entropy
+    PCMDrawerGenerateRandomWaveformWithEntropy(wave_entropy, forced_method)
     
     -- Add current waveform to wavetable
     local new_wave = {data = table.create(), name = string.format("Random_%02d", wave_num)}
@@ -1227,6 +1780,11 @@ function PCMDrawerCreate12RandomInstrument()
     
     -- Update progress
     renoise.app():show_status(string.format("Generating random wavetable... %d/12", wave_num))
+    
+    -- Small delay to ensure entropy changes between iterations
+    for delay = 1, 1000 do
+      math.random() -- Burn some cycles and advance RNG state
+    end
   end
   
   -- Restore the selection position

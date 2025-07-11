@@ -1147,7 +1147,7 @@ function create_new_instrument_with_current_phrase()
     script = rebuild_script(script, current_settings, pattern, emit_strings)
     script:commit()
     
-    renoise.app():show_status("Created new instrument due to 119 phrase limit")
+    renoise.app():show_status("Created new instrument due to 126 phrase limit")
     return true
   end
   
@@ -1198,7 +1198,7 @@ function create_new_instrument_with_current_phrase()
   -- Add phrase trigger to pattern
   ensure_pattern_trigger()
   
-  renoise.app():show_status(string.format("Created new instrument '%s' due to 119 phrase limit", new_instr.name))
+  renoise.app():show_status(string.format("Created new instrument '%s' due to 126 phrase limit", new_instr.name))
   return true
 end
 
@@ -1208,13 +1208,7 @@ function ensure_phrase_exists(instr)
   
   -- Create a phrase if none exists
   if #instr.phrases == 0 then
-    -- Check if we can add a phrase (max 119 phrases per instrument)
-    if instr:can_insert_phrase_at(1) == false then
-      -- We've hit the 119 phrase limit, create a new instrument with just the current phrase
-      print("DEBUG: Hit 119 phrase limit, creating new instrument with current phrase")
-      return create_new_instrument_with_current_phrase()
-    end
-    
+    -- We have no phrases, so we can definitely create one (since 0 < 126)
     print("DEBUG: Creating new phrase with LPB:", current_settings.lpb, "and unit:", current_settings.unit)
     instr:insert_phrase_at(1)
     current_settings.current_phrase_index = 1
@@ -3580,7 +3574,7 @@ function render_to_pattern(script, settings, show_status)
           update_ui_from_settings()
         else
           -- We've reached the end of existing phrases, try to create a new one
-          if instr:can_insert_phrase_at(#instr.phrases + 1) then
+          if #instr.phrases < 126 then
             -- We can create a new phrase
             local new_phrase_index = #instr.phrases + 1
             instr:insert_phrase_at(new_phrase_index)
@@ -3613,8 +3607,8 @@ function render_to_pattern(script, settings, show_status)
             
             print("DEBUG: Auto-advance created new phrase", new_phrase_index)
           else
-            -- We've hit the 119 phrase limit, create new instrument with current phrase
-            print("DEBUG: Auto-advance hit 119 phrase limit, creating new instrument")
+            -- We've hit the 126 phrase limit, create new instrument with current phrase
+            print("DEBUG: Auto-advance hit 126 phrase limit, creating new instrument")
             create_new_instrument_with_current_phrase()
           end
         end

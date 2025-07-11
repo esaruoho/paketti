@@ -349,7 +349,7 @@ end
 function phraseEditorVisible()
   local s=renoise.song()
 --If no Phrase in instrument, create phrase, otherwise do nothing.
-if s.instruments[s.selected_instrument_index]:can_insert_phrase_at(1) == true then
+if #s.instruments[s.selected_instrument_index].phrases == 0 then
 s.instruments[s.selected_instrument_index]:insert_phrase_at(1) end
 
 --Select created phrase.
