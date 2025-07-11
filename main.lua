@@ -371,7 +371,7 @@ timed_require("PakettiPlayerProSuite")       -- 852 lines, 3.00 ms
 timed_require("PakettiChordsPlus")
 timed_require("PakettiLaunchApp")
 timed_require("PakettiSampleLoader")         -- 0 lines, 0.00 ms
-timed_require("PakettiCustomization")        -- 61 lines, 0.50 ms
+--timed_require("PakettiCustomization")        -- 61 lines, 0.50 ms
 timed_require("PakettiDeviceChains")         -- 85 lines, 0.00 ms
 timed_require("base64float")                 -- 203 lines, 0.00 ms
 timed_require("PakettiLoadDevices")          -- 496 lines, 1.00 ms
@@ -461,10 +461,12 @@ if PolyendYes then
   timed_require("PakettiPolyendPatternData")
 end
 
-
 if renoise.API_VERSION >= 6.2 then
   timed_require("PakettiPCMDrawer")
+  timed_require("PakettiZyklusMPS1")
 end
+
+
 
 --always have this at the end: PakettiMenuConfig MUST be at the end. otherwise there will be errors.
 timed_require("PakettiMenuConfig")

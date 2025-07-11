@@ -37,7 +37,7 @@ function JalexAdd(number)
     end
     
     for i=1,12 do
-      renoise.tool():add_keybinding{name=string.format("Pattern Editor:Paketti:ChordPplus (Add %02d)", i),
+      renoise.tool():add_keybinding{name=string.format("Pattern Editor:Paketti:Chordsplus (Add %02d)", i),
         invoke=function() JalexAdd(i) end
       }
     end

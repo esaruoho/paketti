@@ -958,12 +958,11 @@ function toggleMidiInputOctaveFollow()
   setMidiInputOctaveFollow(not current_state)
 end
 
--- Menu entries
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:V3.5:Midi Input Octave Follow Enable", invoke=function() setMidiInputOctaveFollow(true) end}
+
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:V3.5:Midi Input Octave Follow Enable", invoke=function() setMidiInputOctaveFollow(true) end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:V3.5:Midi Input Octave Follow Disable", invoke=function() setMidiInputOctaveFollow(false) end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:V3.5:Midi Input Octave Follow Toggle", invoke=function() toggleMidiInputOctaveFollow() end}
 
--- Keybindings
 renoise.tool():add_keybinding{name="Global:Paketti:Midi Input Octave Follow Enable", invoke=function() setMidiInputOctaveFollow(true) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Midi Input Octave Follow Disable", invoke=function() setMidiInputOctaveFollow(false) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Midi Input Octave Follow Toggle", invoke=function() toggleMidiInputOctaveFollow() end}

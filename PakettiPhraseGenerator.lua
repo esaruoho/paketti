@@ -1111,49 +1111,147 @@ end
   return status
 end
 
-  -- Helper function to ensure phrase exists
- function ensure_phrase_exists(instr)
-   if not instr then return false end
-   
-   -- Create a phrase if none exists
-   if #instr.phrases == 0 then
-     print("DEBUG: Creating new phrase with LPB:", current_settings.lpb, "and unit:", current_settings.unit)
-     instr:insert_phrase_at(1)
-     current_settings.current_phrase_index = 1
-     -- Select the newly created phrase using the correct API
-     renoise.song().selected_phrase_index = 1
-     
-     -- Set name with extPhrase prefix
-     local phrase = instr.phrases[1]
-     phrase.name = string.format("extPhrase_%02d", 1)
-     print("DEBUG: Set new phrase name to", phrase.name)
-     -- Set initial LPB
-     phrase.lpb = current_settings.lpb
-     print("DEBUG: Set new phrase LPB to", current_settings.lpb)
-     -- Create initial script with default values
-     local script = phrase.script
-     local pattern = generate_musical_pattern(current_settings.pattern_length)
-     local emit_strings = {}
-     script = rebuild_script(script, current_settings, pattern, emit_strings)
-     script:commit()
-     -- Update UI
-     if dialog and dialog.visible then
-       update_phrase_display()
-     end
-     
-     -- Add phrase trigger to pattern
-     ensure_pattern_trigger()
-     
-     return true
-   else
-     -- If we have phrases but none is selected, select the first one
-     if renoise.song().selected_phrase_index == 0 or not renoise.song().selected_phrase then
-       renoise.song().selected_phrase_index = 1
-       current_settings.current_phrase_index = 1
-     end
-   end
-   return true
- end
+  -- Helper function to create new instrument with current phrase when hitting 119 limit
+function create_new_instrument_with_current_phrase()
+  local song = renoise.song()
+  local old_instr = song.selected_instrument
+  
+  -- Get current phrase data before creating new instrument
+  local current_phrase = nil
+  if old_instr and #old_instr.phrases > 0 and current_settings.current_phrase_index <= #old_instr.phrases then
+    current_phrase = old_instr.phrases[current_settings.current_phrase_index]
+  end
+  
+  if not current_phrase then
+    renoise.app():show_status("No current phrase to preserve - creating empty instrument")
+    -- Create new instrument and add empty phrase
+    local new_instr_index = song:insert_instrument_at(song.selected_instrument_index + 1)
+    song.selected_instrument_index = new_instr_index
+    local new_instr = song.selected_instrument
+    new_instr.name = old_instr.name .. " (Clean)"
+    
+    -- Create first phrase
+    new_instr:insert_phrase_at(1)
+    current_settings.current_phrase_index = 1
+    song.selected_phrase_index = 1
+    
+    -- Set name with extPhrase prefix
+    local phrase = new_instr.phrases[1]
+    phrase.name = string.format("extPhrase_%02d", 1)
+    phrase.lpb = current_settings.lpb
+    
+    -- Create initial script with default values
+    local script = phrase.script
+    local pattern = generate_musical_pattern(current_settings.pattern_length)
+    local emit_strings = {}
+    script = rebuild_script(script, current_settings, pattern, emit_strings)
+    script:commit()
+    
+    renoise.app():show_status("Created new instrument due to 119 phrase limit")
+    return true
+  end
+  
+  -- Store current phrase data
+  local phrase_name = current_phrase.name
+  local phrase_lpb = current_phrase.lpb
+  local phrase_script_content = {}
+  for i, para in ipairs(current_phrase.script.paragraphs) do
+    phrase_script_content[i] = para
+  end
+  
+  -- Create new instrument after current one
+  local new_instr_index = song:insert_instrument_at(song.selected_instrument_index + 1)
+  song.selected_instrument_index = new_instr_index
+  local new_instr = song.selected_instrument
+  new_instr.name = old_instr.name .. " (Clean)"
+  
+  -- Create first phrase in new instrument
+  new_instr:insert_phrase_at(1)
+  current_settings.current_phrase_index = 1
+  song.selected_phrase_index = 1
+  
+  -- Copy phrase data to new instrument
+  local new_phrase = new_instr.phrases[1]
+  new_phrase.name = phrase_name
+  new_phrase.lpb = phrase_lpb
+  
+  -- Copy script content
+  new_phrase.script.paragraphs = phrase_script_content
+  new_phrase.script:commit()
+  
+  -- Update UI if dialog is open
+  if dialog and dialog.visible then
+    -- Update instrument selector
+    if vb.views.instrument_selector then
+      vb.views.instrument_selector.value = new_instr_index - 1
+    end
+    
+    -- Update displays
+    update_instrument_display()
+    update_phrase_display()
+    
+    -- Read current script values and update UI
+    read_current_script_values()
+    update_ui_from_settings()
+  end
+  
+  -- Add phrase trigger to pattern
+  ensure_pattern_trigger()
+  
+  renoise.app():show_status(string.format("Created new instrument '%s' due to 119 phrase limit", new_instr.name))
+  return true
+end
+
+-- Helper function to ensure phrase exists
+function ensure_phrase_exists(instr)
+  if not instr then return false end
+  
+  -- Create a phrase if none exists
+  if #instr.phrases == 0 then
+    -- Check if we can add a phrase (max 119 phrases per instrument)
+    if instr:can_insert_phrase_at(1) == false then
+      -- We've hit the 119 phrase limit, create a new instrument with just the current phrase
+      print("DEBUG: Hit 119 phrase limit, creating new instrument with current phrase")
+      return create_new_instrument_with_current_phrase()
+    end
+    
+    print("DEBUG: Creating new phrase with LPB:", current_settings.lpb, "and unit:", current_settings.unit)
+    instr:insert_phrase_at(1)
+    current_settings.current_phrase_index = 1
+    -- Select the newly created phrase using the correct API
+    renoise.song().selected_phrase_index = 1
+    
+    -- Set name with extPhrase prefix
+    local phrase = instr.phrases[1]
+    phrase.name = string.format("extPhrase_%02d", 1)
+    print("DEBUG: Set new phrase name to", phrase.name)
+    -- Set initial LPB
+    phrase.lpb = current_settings.lpb
+    print("DEBUG: Set new phrase LPB to", current_settings.lpb)
+    -- Create initial script with default values
+    local script = phrase.script
+    local pattern = generate_musical_pattern(current_settings.pattern_length)
+    local emit_strings = {}
+    script = rebuild_script(script, current_settings, pattern, emit_strings)
+    script:commit()
+    -- Update UI
+    if dialog and dialog.visible then
+      update_phrase_display()
+    end
+    
+    -- Add phrase trigger to pattern
+    ensure_pattern_trigger()
+    
+    return true
+  else
+    -- If we have phrases but none is selected, select the first one
+    if renoise.song().selected_phrase_index == 0 or not renoise.song().selected_phrase then
+      renoise.song().selected_phrase_index = 1
+      current_settings.current_phrase_index = 1
+    end
+  end
+  return true
+end
  
  -- New function to ensure the pattern has the proper phrase trigger
  function ensure_pattern_trigger()
@@ -3470,14 +3568,56 @@ function render_to_pattern(script, settings, show_status)
     -- If auto-advance is enabled and render was successful, move to next phrase
     if settings.auto_advance then
       local instr = renoise.song().selected_instrument
-      if instr and settings.current_phrase_index < #instr.phrases then
-        settings.current_phrase_index = settings.current_phrase_index + 1
-        if vb and vb.views.phrase_selector then
-          vb.views.phrase_selector.value = settings.current_phrase_index
+      if instr then
+        if settings.current_phrase_index < #instr.phrases then
+          -- Move to next existing phrase
+          settings.current_phrase_index = settings.current_phrase_index + 1
+          if vb and vb.views.phrase_selector then
+            vb.views.phrase_selector.value = settings.current_phrase_index
+          end
+          -- Update UI to show new phrase's settings
+          read_current_script_values()
+          update_ui_from_settings()
+        else
+          -- We've reached the end of existing phrases, try to create a new one
+          if instr:can_insert_phrase_at(#instr.phrases + 1) then
+            -- We can create a new phrase
+            local new_phrase_index = #instr.phrases + 1
+            instr:insert_phrase_at(new_phrase_index)
+            settings.current_phrase_index = new_phrase_index
+            renoise.song().selected_phrase_index = new_phrase_index
+            
+            -- Set name with extPhrase prefix
+            local phrase = instr.phrases[new_phrase_index]
+            phrase.name = string.format("extPhrase_%02d", new_phrase_index)
+            phrase.lpb = settings.lpb
+            
+            -- Create initial script with current settings
+            local script = phrase.script
+            local pattern = generate_musical_pattern(settings.pattern_length)
+            local emit_strings = {}
+            script = rebuild_script(script, settings, pattern, emit_strings)
+            script:commit()
+            
+            -- Update UI
+            if vb and vb.views.phrase_selector then
+              vb.views.phrase_selector.value = settings.current_phrase_index
+            end
+            if dialog and dialog.visible then
+              update_phrase_display()
+            end
+            
+            -- Update UI to show new phrase's settings
+            read_current_script_values()
+            update_ui_from_settings()
+            
+            print("DEBUG: Auto-advance created new phrase", new_phrase_index)
+          else
+            -- We've hit the 119 phrase limit, create new instrument with current phrase
+            print("DEBUG: Auto-advance hit 119 phrase limit, creating new instrument")
+            create_new_instrument_with_current_phrase()
+          end
         end
-        -- Update UI to show new phrase's settings
-        read_current_script_values()
-        update_ui_from_settings()
       end
     end
     
