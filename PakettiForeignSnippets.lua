@@ -18,6 +18,7 @@ function pakettiAutoHideDiskBrowserIsEnabled()
 end
 
 -- Notification handler for when new song is loaded
+--[[
 local function pakettiAutoHideDiskBrowserNewDocumentHandler()
   if preferences.paketti_auto_hide_disk_browser then
     -- Hide the disk browser when a new song is loaded
@@ -27,6 +28,7 @@ end
 
 -- Add notification for new document/song loads
 renoise.tool().app_new_document_observable:add_notifier(pakettiAutoHideDiskBrowserNewDocumentHandler)
+]]--
 
 -- Menu entries
 renoise.tool():add_menu_entry{

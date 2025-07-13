@@ -453,7 +453,7 @@ timed_require("PakettiM8Export")
 timed_require("PakettiOP1Export")
 timed_require("PakettiForeignSnippets")
 timed_require("Sononymph/AppMain")
-
+timed_require("PakettiChebyshevWaveshaper")
 -- Polyend functionality toggle
 local PolyendYes = false
 PolyendYes = true
@@ -463,9 +463,12 @@ if PolyendYes then
 end
 
 if renoise.API_VERSION >= 6.2 then
-  timed_require("PakettiPCMDrawer")
-  timed_require("PakettiZyklusMPS1")
+  timed_require("PakettiPCMWriter")
+  --timed_require("PakettiZyklusMPS1")
+  timed_require("PakettiCanvasExperiments")
 end
+
+
 
 
 
