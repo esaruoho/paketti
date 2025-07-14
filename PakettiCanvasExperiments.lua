@@ -28,6 +28,8 @@ local current_drawing_parameter = nil
 -- Track information for current device
 local current_track_index = nil
 local current_track_name = nil
+-- Remember previous device index for smart restoration
+local previous_device_index = nil
 -- Randomization strength slider
 local randomize_strength = 50  -- Default 50%
 local randomize_slider_view = nil
@@ -488,6 +490,12 @@ function PakettiCanvasExperimentsRefreshDevice()
   
   print("=== Device Selection Changed ===")
   
+  -- Remember the current device index before it potentially gets lost
+  if song.selected_device_index then
+    previous_device_index = song.selected_device_index
+    print("DEBUG: Remembering previous device index: " .. previous_device_index)
+  end
+  
   -- Clear current drawing state when device changes
   current_drawing_parameter = nil
   mouse_is_down = false
@@ -497,20 +505,71 @@ function PakettiCanvasExperimentsRefreshDevice()
   -- Check if we have a selected device
   local selected_device = song.selected_device
   if not selected_device then
-    print("DEBUG: No device selected")
-    current_device = nil
-    device_parameters = {}
-    parameter_width = 0
+    print("DEBUG: No device selected - trying to restore previous device position")
     
-    -- Update status text
-    if status_text_view then
-      status_text_view.text = "No device selected"
+         -- Try to restore to previous device position if we remember it
+     local found_device = nil
+     if previous_device_index then
+       local current_track = song.selected_track
+       if current_track and #current_track.devices > 0 then
+         -- Smart device selection: try to stay close to where we were
+         local target_device_index
+         if previous_device_index <= #current_track.devices then
+           -- Previous index still exists, use it
+           target_device_index = previous_device_index
+         else
+           -- Previous index is too high, go to the last available device (not device 1!)
+           target_device_index = #current_track.devices
+         end
+         
+         print("DEBUG: Smart restore - was on device " .. previous_device_index .. ", now going to device " .. target_device_index .. " (available: " .. #current_track.devices .. ")")
+         
+         song.selected_device_index = target_device_index
+         found_device = song.selected_device
+         selected_device = found_device
+         
+         if found_device then
+           print("DEBUG: Successfully restored to device: " .. (found_device.display_name or "Unknown") .. " at index " .. target_device_index)
+         end
+       end
+     end
+    
+    -- If restoration failed, search for any available device
+    if not found_device then
+      print("DEBUG: Device restoration failed - searching for available devices")
+      for track_index = 1, #song.tracks do
+        local track = song.tracks[track_index]
+        if #track.devices > 0 then
+          -- Set the selected track first
+          song.selected_track_index = track_index
+          -- Then set the device index within that track
+          song.selected_device_index = 1
+          -- Get the device reference after setting the selection
+          found_device = song.selected_device
+          selected_device = found_device
+          print("DEBUG: Auto-selected device: " .. (found_device.display_name or "Unknown") .. " on track " .. track_index)
+          break
+        end
+      end
     end
     
-    if canvas_experiments_canvas then
-      canvas_experiments_canvas:update()
+    -- If no devices found at all, then show "no device selected"
+    if not found_device then
+      print("DEBUG: No devices found in entire song")
+      current_device = nil
+      device_parameters = {}
+      parameter_width = 0
+      
+      -- Update status text
+      if status_text_view then
+        status_text_view.text = "No device selected"
+      end
+      
+      if canvas_experiments_canvas then
+        canvas_experiments_canvas:update()
+      end
+      return
     end
-    return
   end
   
   print("DEBUG: New selected device:")
@@ -583,24 +642,26 @@ function PakettiCanvasExperimentsInit()
   -- Check if we have a selected device
   local selected_device = song.selected_device
   if not selected_device then
-    print("DEBUG: No device selected - searching for first device")
+    print("DEBUG: No device selected - searching for available devices")
     
-    -- Find the first device in the song
-    local first_device = nil
-    for track_index = 1, #song.tracks do
-      local track = song.tracks[track_index]
-      if #track.devices > 0 then
-        first_device = track.devices[1]
-        -- Set the selected track and device
-        song.selected_track_index = track_index
-        song.selected_device = first_device
-        selected_device = first_device
-        print("DEBUG: Auto-selected first device: " .. (first_device.display_name or "Unknown") .. " on track " .. track_index)
-        break
-      end
-    end
+         -- Find any available device in the song
+     local found_device = nil
+     for track_index = 1, #song.tracks do
+       local track = song.tracks[track_index]
+       if #track.devices > 0 then
+         -- Set the selected track first
+         song.selected_track_index = track_index
+         -- Then set the device index within that track
+         song.selected_device_index = 1
+         -- Get the device reference after setting the selection
+         found_device = song.selected_device
+         selected_device = found_device
+         print("DEBUG: Auto-selected device: " .. (found_device.display_name or "Unknown") .. " on track " .. track_index)
+         break
+       end
+     end
     
-    if not first_device then
+    if not found_device then
       print("DEBUG: No devices found in entire song")
       renoise.app():show_status("No devices found in song. Please add a device to a track.")
       return

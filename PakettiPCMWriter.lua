@@ -1,8 +1,5 @@
--- Advanced PCM Writer with Zoom, Interpolation, and Multiple File Formats
--- Features: .bin/.wav export, zoom/scroll, interpolation smoothing, wavetable support
-
 local vb = renoise.ViewBuilder()
-local DIALOG_TITLE = "Paketti Advanced PCM Writer"
+local DIALOG_TITLE = "Paketti PCM Writer"
 
 -- Editor state
 local wave_size_options = {16, 32, 64, 128, 256, 512, 1024}
@@ -44,6 +41,7 @@ local dialog_rebuilding = false  -- Flag to prevent dropdown from triggering dur
 local hex_field_has_focus = false  -- Track if a hex field has focus
 local updating_hex_display = false  -- Flag to prevent cascading cursor updates
 local hide_hex_editor = false  -- Flag to hide/show hex editor
+local hideChebyshev = true  -- Flag to hide/show Chebyshev controls
 
 -- UI element references for dynamic updates
 local wavetable_count_text = nil
@@ -84,12 +82,14 @@ local wavetable_waves = {}
 local current_wave_index = 1
 local wavetable_size = 512  -- Match the main wave editor size
 local wavetable_canvas_width = 1024
+local wt_buttonwidth = 200
 
 -- Hex editor state
 local hex_editor_page = 0
 local hex_samples_per_page = 128  -- 8 rows × 16 columns = 128 samples per page
 local hex_items_per_row = 16
-local hex_textfield_width = 32  -- Width of hex editor textfields
+local hex_textfield_width = 32  -- Width of hex editor textfields (matches canvas width)
+local tool_button_width = 60   -- Standard width for all tool buttons
 
 -- Initialize empty wavetable (no default wave)
 -- wavetable_waves starts empty - waves are added when user clicks "Add Current to Wavetable"
@@ -343,19 +343,23 @@ function PCMWriterGenerateParametricShape()
       local facets = math.max(1, shape_segments)
       local facet_phase = (shifted_phase * facets) % 1
       
-      -- Proper diamond shape that starts and ends at 0
-      if facet_phase < 0.25 then
+      -- Apply asymmetry to peak position (0.25 = centered, asymmetry shifts this)
+      local peak_pos = 0.25 + (shape_asymmetry - 1.0) * 0.125  -- Range: 0.125 to 0.375
+      local valley_pos = 0.75 + (shape_asymmetry - 1.0) * 0.125  -- Range: 0.625 to 0.875
+      
+      -- Diamond shape with asymmetric peak position
+      if facet_phase < peak_pos then
         -- Rising edge: 0 to 1
-        value = facet_phase * 4
+        value = facet_phase / peak_pos
       elseif facet_phase < 0.5 then
         -- Falling edge: 1 to 0
-        value = 1 - (facet_phase - 0.25) * 4
-      elseif facet_phase < 0.75 then
+        value = 1 - (facet_phase - peak_pos) / (0.5 - peak_pos)
+      elseif facet_phase < valley_pos then
         -- Falling edge: 0 to -1
-        value = -(facet_phase - 0.5) * 4
+        value = -(facet_phase - 0.5) / (valley_pos - 0.5)
       else
         -- Rising edge: -1 to 0
-        value = -1 + (facet_phase - 0.75) * 4
+        value = -1 + (facet_phase - valley_pos) / (1.0 - valley_pos)
       end
       -- Value is already in -1..1 range
       
@@ -364,31 +368,37 @@ function PCMWriterGenerateParametricShape()
       local peaks = math.max(1, shape_segments)
       local peak_phase = (shifted_phase * peaks) % 1
       
-      -- Double diamond: two peaks per cycle, starts at 0
-      if peak_phase < 0.125 then
+      -- Apply asymmetry to peak positions  
+      local peak1_pos = 0.125 + (shape_asymmetry - 1.0) * 0.0625  -- Range: 0.0625 to 0.1875
+      local peak2_pos = 0.375 + (shape_asymmetry - 1.0) * 0.0625  -- Range: 0.3125 to 0.4375
+      local valley1_pos = 0.625 + (shape_asymmetry - 1.0) * 0.0625  -- Range: 0.5625 to 0.6875
+      local valley2_pos = 0.875 + (shape_asymmetry - 1.0) * 0.0625  -- Range: 0.8125 to 0.9375
+      
+      -- Double diamond with asymmetric peak positions
+      if peak_phase < peak1_pos then
         -- Rising to first peak
-        value = peak_phase * 8
+        value = peak_phase / peak1_pos
       elseif peak_phase < 0.25 then
         -- Falling from first peak
-        value = 1 - (peak_phase - 0.125) * 8
-      elseif peak_phase < 0.375 then
+        value = 1 - (peak_phase - peak1_pos) / (0.25 - peak1_pos)
+      elseif peak_phase < peak2_pos then
         -- Rising to second peak  
-        value = (peak_phase - 0.25) * 8
+        value = (peak_phase - 0.25) / (peak2_pos - 0.25)
       elseif peak_phase < 0.5 then
         -- Falling from second peak
-        value = 1 - (peak_phase - 0.375) * 8
-      elseif peak_phase < 0.625 then
+        value = 1 - (peak_phase - peak2_pos) / (0.5 - peak2_pos)
+      elseif peak_phase < valley1_pos then
         -- Falling to first valley
-        value = -(peak_phase - 0.5) * 8
+        value = -(peak_phase - 0.5) / (valley1_pos - 0.5)
       elseif peak_phase < 0.75 then
         -- Rising from first valley
-        value = -1 + (peak_phase - 0.625) * 8
-      elseif peak_phase < 0.875 then
+        value = -1 + (peak_phase - valley1_pos) / (0.75 - valley1_pos)
+      elseif peak_phase < valley2_pos then
         -- Falling to second valley
-        value = -(peak_phase - 0.75) * 8
+        value = -(peak_phase - 0.75) / (valley2_pos - 0.75)
       else
         -- Rising from second valley back to 0
-        value = -1 + (peak_phase - 0.875) * 8
+        value = -1 + (peak_phase - valley2_pos) / (1.0 - valley2_pos)
       end
       -- Value is already in -1..1 range
       
@@ -415,36 +425,44 @@ function PCMWriterGenerateParametricShape()
       -- Value is already in -1..1 range
       
     elseif shape_type == "pentagon" or shape_type == "hexagon" then
-      -- Use shape_segments parameter for number of sides
-      local segments = {}
-      for seg = 0, shape_segments do
-        local seg_phase = seg / shape_segments
-        local seg_value = math.sin(seg_phase * math.pi * 2) * (seg % 2 == 0 and 1 or 0.5)
-        table.insert(segments, {seg_phase, seg_value})
-      end
+      -- Use shape_segments parameter for number of repetitions across the wave
+      local repetitions = math.max(1, shape_segments)
+      local rep_phase = (shifted_phase * repetitions) % 1
       
-      -- Find which segment we're in using shifted_phase
-      for seg = 1, #segments - 1 do
-        local start_phase = segments[seg][1]
-        local end_phase = segments[seg + 1][1]
-        if shifted_phase >= start_phase and shifted_phase <= end_phase then
-          local seg_progress = (shifted_phase - start_phase) / (end_phase - start_phase)
-          local start_val = segments[seg][2]
-          local end_val = segments[seg + 1][2]
-          value = start_val + seg_progress * (end_val - start_val)
-          break
-        end
-      end
+      -- Base number of sides (5 for pentagon, 6 for hexagon)
+      local sides = (shape_type == "pentagon") and 5 or 6
+      
+      -- Create polygon with asymmetry affecting the vertex positions
+      local seg_per_side = 1.0 / sides
+      local current_side = math.floor(rep_phase / seg_per_side)
+      local side_progress = (rep_phase % seg_per_side) / seg_per_side
+      
+      -- Apply asymmetry by shifting vertex positions
+      local asymmetry_shift = (shape_asymmetry - 1.0) * 0.2  -- Range: -0.2 to +0.2
+      
+      -- Calculate vertex values with asymmetry
+      local vertex_angle = (current_side + asymmetry_shift) * (math.pi * 2 / sides)
+      local next_vertex_angle = (current_side + 1 + asymmetry_shift) * (math.pi * 2 / sides)
+      
+      local vertex_value = math.sin(vertex_angle)
+      local next_vertex_value = math.sin(next_vertex_angle)
+      
+      -- Interpolate between vertices
+      value = vertex_value + side_progress * (next_vertex_value - vertex_value)
       
     elseif shape_type == "exp_diamond" then
       -- Use shape_segments for faceting with exponential curve
       local facets = math.max(1, shape_segments)
       local facet_phase = (shifted_phase * facets) % 1
+      
+      -- Apply asymmetry to peak position
+      local peak_pos = 0.5 + (shape_asymmetry - 1.0) * 0.25  -- Range: 0.25 to 0.75
+      
       local curved_phase = math.pow(facet_phase, shape_curve)
-      if curved_phase < 0.5 then
-        value = curved_phase * 2
+      if curved_phase < peak_pos then
+        value = curved_phase / peak_pos
       else
-        value = 2 - curved_phase * 2
+        value = 1 - (curved_phase - peak_pos) / (1.0 - peak_pos)
       end
       value = value * 2 - 1
       
@@ -452,27 +470,35 @@ function PCMWriterGenerateParametricShape()
       -- Use shape_segments for faceting with logarithmic curve
       local facets = math.max(1, shape_segments)
       local facet_phase = (shifted_phase * facets) % 1
+      
+      -- Apply asymmetry to peak position
+      local peak_pos = 0.5 + (shape_asymmetry - 1.0) * 0.25  -- Range: 0.25 to 0.75
+      
       local curved_phase = math.log(facet_phase * (math.exp(shape_curve) - 1) + 1) / shape_curve
-      if curved_phase < 0.5 then
-        value = curved_phase * 2
+      if curved_phase < peak_pos then
+        value = curved_phase / peak_pos
       else
-        value = 2 - curved_phase * 2
+        value = 1 - (curved_phase - peak_pos) / (1.0 - peak_pos)
       end
       value = value * 2 - 1
       
     elseif shape_type == "fractal_diamond" then
       -- Use shape_segments for fractal iterations
       local iterations = math.max(1, shape_segments)
+      
+      -- Apply asymmetry to peak position for all fractal layers
+      local peak_pos = 0.5 + (shape_asymmetry - 1.0) * 0.25  -- Range: 0.25 to 0.75
+      
       value = 0
       for iter = 1, iterations do
         local freq = math.pow(2, iter - 1)
         local amp = 1 / iter
         local fractal_phase = (shifted_phase * freq) % 1
         local diamond_wave
-        if fractal_phase < 0.5 then
-          diamond_wave = fractal_phase * 2
+        if fractal_phase < peak_pos then
+          diamond_wave = fractal_phase / peak_pos
         else
-          diamond_wave = 2 - fractal_phase * 2
+          diamond_wave = 1 - (fractal_phase - peak_pos) / (1.0 - peak_pos)
         end
         value = value + diamond_wave * amp
       end
@@ -1583,18 +1609,19 @@ function PCMWriterHandleMouse(ev)
     return
   end
   
-  -- Check if mouse is within canvas bounds (for other events)
-  local mouse_in_bounds = ev.position.x >= 0 and ev.position.x < w and 
-                         ev.position.y >= 0 and ev.position.y < h
+  -- Extended dragging area: 20 pixels above and below the canvas for safe drawing
+  local drag_margin = 20
+  local mouse_in_extended_bounds = ev.position.x >= 0 and ev.position.x < w and 
+                                   ev.position.y >= -drag_margin and ev.position.y < h + drag_margin
   
-  -- Handle mouse outside canvas bounds - reset drawing state
-  if not mouse_in_bounds then
+  -- Handle mouse outside extended bounds - reset drawing state
+  if not mouse_in_extended_bounds then
     if is_drawing then
       is_drawing = false
       last_sample_index = -1
       last_mouse_x = -1
       last_mouse_y = -1
-      print("Drawing stopped: mouse outside canvas bounds")
+      print("Drawing stopped: mouse outside extended canvas bounds")
     end
     
     -- Always handle mouse up, even outside bounds
@@ -1605,11 +1632,16 @@ function PCMWriterHandleMouse(ev)
       last_mouse_y = -1
     end
     
-    return  -- Exit early if mouse is outside canvas
+    return  -- Exit early if mouse is outside extended canvas
   end
   
+  -- Mouse is within extended bounds - continue processing
   local rel_x = ev.position.x / w
-  local rel_y = ev.position.y / h
+  
+  -- Always clamp Y position to canvas bounds for drawing calculations
+  -- This ensures drawing values stay valid even when mouse is in safe area
+  local clamped_y = math.max(0, math.min(h, ev.position.y))
+  local rel_y = clamped_y / h
   
   -- Fixed calculation to properly map mouse position to sample index
   -- Map the full canvas width to the full range of visible samples
@@ -1631,57 +1663,56 @@ function PCMWriterHandleMouse(ev)
   -- Clamp idx to valid range (this should not be needed but keeping as safety)
   idx = math.max(1, math.min(wave_size, idx))
   
-  if idx >= 1 and idx <= wave_size then
-    local current_value = math.floor((1 - rel_y) * 65535)
-    current_value = math.max(0, math.min(65535, current_value))  -- Clamp value
-    
-    -- Simple drawing mode only - no shift+drag selection
-    if ev.type == "down" and ev.button == "left" then
-      hex_field_has_focus = false  -- Reset hex focus when clicking canvas
-      selected_sample_index = idx  -- Move red cursor to click position
-      print("DEBUG: Canvas clicked - forcing hex_field_has_focus to false")
-      is_drawing = true
-      local target_data = PCMWriterGetCurrentWaveData()
+  -- Calculate current value based on clamped Y position
+  local current_value = math.floor((1 - rel_y) * 65535)
+  current_value = math.max(0, math.min(65535, current_value))  -- Clamp value
+  
+  -- Handle drawing events - now works in extended bounds with clamped Y values
+  if ev.type == "down" and ev.button == "left" then
+    hex_field_has_focus = false  -- Reset hex focus when clicking canvas
+    selected_sample_index = idx  -- Move red cursor to click position
+    print("DEBUG: Canvas clicked - forcing hex_field_has_focus to false")
+    is_drawing = true
+    local target_data = PCMWriterGetCurrentWaveData()
+    target_data[idx] = current_value
+    PCMWriterUpdateCrossfadedWave()
+    last_sample_index = idx
+    last_mouse_x = ev.position.x
+    last_mouse_y = clamped_y  -- Store clamped Y for interpolation
+    waveform_canvas:update()
+    PCMWriterUpdateHexDisplay()
+    PCMWriterUpdateLiveSample()  -- Update live sample when drawing
+    PCMWriterHighlightSample(idx)
+  elseif ev.type == "move" and is_drawing then
+    -- Continue drawing while dragging with interpolation to prevent gaps
+    local target_data = PCMWriterGetCurrentWaveData()
+    if last_sample_index > 0 and last_sample_index ~= idx then
+      -- Draw line between last position and current position
+      local last_value = math.floor((1 - (last_mouse_y / h)) * 65535)
+      last_value = math.max(0, math.min(65535, last_value))  -- Clamp last value
+      PCMWriterDrawLineBetweenSamples(last_sample_index, last_value, idx, current_value, target_data)
+    else
+      -- Just set current sample if no previous position or same position
       target_data[idx] = current_value
-      PCMWriterUpdateCrossfadedWave()
-      last_sample_index = idx
-      last_mouse_x = ev.position.x
-      last_mouse_y = ev.position.y
-      waveform_canvas:update()
-      PCMWriterUpdateHexDisplay()
-      PCMWriterUpdateLiveSample()  -- Update live sample when drawing
-      PCMWriterHighlightSample(idx)
-    elseif ev.type == "move" and is_drawing then
-      -- Continue drawing while dragging with interpolation to prevent gaps
-      local target_data = PCMWriterGetCurrentWaveData()
-      if last_sample_index > 0 and last_sample_index ~= idx then
-        -- Draw line between last position and current position
-        local last_value = math.floor((1 - (last_mouse_y / h)) * 65535)
-        last_value = math.max(0, math.min(65535, last_value))  -- Clamp last value
-        PCMWriterDrawLineBetweenSamples(last_sample_index, last_value, idx, current_value, target_data)
-      else
-        -- Just set current sample if no previous position or same position
-        target_data[idx] = current_value
-      end
-      PCMWriterUpdateCrossfadedWave()
-      
-      last_sample_index = idx
-      last_mouse_x = ev.position.x
-      last_mouse_y = ev.position.y
-      selected_sample_index = idx  -- Move red cursor while dragging
-      waveform_canvas:update()
-      PCMWriterUpdateHexDisplay()
-      PCMWriterUpdateLiveSample()  -- Update live sample when dragging
-      PCMWriterHighlightSample(idx)
-    elseif ev.type == "up" and ev.button == "left" then
-      is_drawing = false
-      last_sample_index = -1
-      last_mouse_x = -1
-      last_mouse_y = -1
-    elseif ev.type == "move" and not is_drawing then
-      -- Don't change selected_sample_index when just hovering
-      -- Just update the canvas to show hover position visually if needed
     end
+    PCMWriterUpdateCrossfadedWave()
+    
+    last_sample_index = idx
+    last_mouse_x = ev.position.x
+    last_mouse_y = clamped_y  -- Store clamped Y for interpolation
+    selected_sample_index = idx  -- Move red cursor while dragging
+    waveform_canvas:update()
+    PCMWriterUpdateHexDisplay()
+    PCMWriterUpdateLiveSample()  -- Update live sample when dragging
+    PCMWriterHighlightSample(idx)
+  elseif ev.type == "up" and ev.button == "left" then
+    is_drawing = false
+    last_sample_index = -1
+    last_mouse_x = -1
+    last_mouse_y = -1
+  elseif ev.type == "move" and not is_drawing then
+    -- Don't change selected_sample_index when just hovering
+    -- Just update the canvas to show hover position visually if needed
   end
   
   -- Always handle mouse up to ensure drawing state is reset
@@ -3599,7 +3630,8 @@ function PCMWriterCreate12RandomInstrument()
   renoise.app():show_status("Created 12 Random A+B Crossfade Instrument (12 crossfaded waves)")
   
   -- Return focus to Renoise main window
-  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+--  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+  renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
 end
 
 function PCMWriterCreate12ChebyshevInstrument()
@@ -3737,7 +3769,8 @@ function PCMWriterCreate12ChebyshevInstrument()
   renoise.app():show_status("Created 12 Chebyshev Instrument with wavetable (12 waves)")
   
   -- Return focus to Renoise main window
-  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+--  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+  renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
 end
 
 function PCMWriterSaveWavetable()
@@ -4560,6 +4593,127 @@ end
 local live_pickup_mode = false
 local live_pickup_sample = nil
 local live_pickup_instrument = nil
+local live_pickup_sample_index = -1
+local live_pickup_instrument_index = -1
+
+-- Live Pickup Mode sample change notification
+local function update_dialog_on_selection_change()
+  if not live_pickup_mode or not pcm_dialog or not pcm_dialog.visible then
+    return
+  end
+  
+  local song = renoise.song()
+  if not song.selected_instrument or not song.selected_sample then
+    return
+  end
+  
+  local new_sample = song.selected_sample
+  local new_instrument = song.selected_instrument
+  
+  -- Check if we actually changed to a different sample (using indices instead of object comparison)
+  local new_sample_index = song.selected_sample_index
+  local new_instrument_index = song.selected_instrument_index
+  
+  if live_pickup_sample and live_pickup_instrument and 
+     new_sample_index == live_pickup_sample_index and 
+     new_instrument_index == live_pickup_instrument_index then
+    return
+  end
+  
+  -- Only auto-load if the sample has data
+  if not new_sample.sample_buffer.has_sample_data then
+    return
+  end
+  
+  -- Load the new sample into the PCM Writer
+  print("-- Live Pickup Mode: Auto-loading new sample: " .. new_sample.name)
+  PCMWriterLoadSampleToWaveform()
+  
+  -- Update tracking variables
+  live_pickup_sample = new_sample
+  live_pickup_instrument = new_instrument
+  live_pickup_sample_index = new_sample_index
+  live_pickup_instrument_index = new_instrument_index
+  
+  print("-- Live Pickup Mode: Successfully loaded " .. new_sample.name)
+end
+
+-- Tool idle notifier to clean up sample notifier when dialog is closed by other means
+function cleanup_on_dialog_close()
+  if not pcm_dialog or not pcm_dialog.visible then
+    cleanup_sample_notifier()
+    if renoise.tool().app_idle_observable:has_notifier(cleanup_on_dialog_close) then
+      renoise.tool().app_idle_observable:remove_notifier(cleanup_on_dialog_close)
+    end
+  end
+end
+
+-- Helper function to clean up sample change notifier
+local function cleanup_sample_notifier()
+  local song = renoise.song()
+  if song.selected_sample_observable:has_notifier(update_dialog_on_selection_change) then
+    song.selected_sample_observable:remove_notifier(update_dialog_on_selection_change)
+  end
+end
+
+
+
+function PCMWriterLoadSampleToWaveform()
+  local song = renoise.song()
+  local inst = song.selected_instrument
+  local sample = song.selected_sample
+  
+  if not inst or not sample then
+    renoise.app():show_warning("No instrument or sample selected")
+    return
+  end
+  
+  if not sample.sample_buffer.has_sample_data then
+    renoise.app():show_warning("Selected sample has no data")
+    return
+  end
+  
+  local buffer = sample.sample_buffer
+  local num_frames = buffer.number_of_frames
+  local num_channels = buffer.number_of_channels
+  
+  -- If sample is longer than wave_size, we'll take the first wave_size samples
+  local samples_to_load = math.min(num_frames, wave_size)
+  
+  print(string.format("-- PCM Writer: Loading %d frames from sample '%s' into current wave %s", 
+    samples_to_load, sample.name, current_wave_edit))
+  
+  -- Get current wave data array
+  local target_data = PCMWriterGetCurrentWaveData()
+  
+  -- Load sample data into current wave
+  for i = 1, samples_to_load do
+    -- Get sample value (use first channel for mono compatibility)
+    local sample_value = buffer:sample_data(1, i)
+    
+    -- Convert from normalized float (-1.0 to 1.0) to 16-bit unsigned (0-65535)
+    local converted_value = math.floor((sample_value + 1.0) * 32767.5)
+    converted_value = math.max(0, math.min(65535, converted_value))
+    
+    target_data[i] = converted_value
+  end
+  
+  -- Fill remaining slots with center value if sample was shorter than wave_size
+  if samples_to_load < wave_size then
+    for i = samples_to_load + 1, wave_size do
+      target_data[i] = 32768  -- Center value (silence)
+    end
+  end
+  
+  -- Update displays
+  PCMWriterUpdateCrossfadedWave()
+  PCMWriterUpdateAllDisplays()
+  
+  local status_msg = string.format("Loaded %d frames from sample '%s' into Wave %s", 
+    samples_to_load, sample.name, current_wave_edit)
+  renoise.app():show_status(status_msg)
+  print("-- PCM Writer: " .. status_msg)
+end
 
 function PCMWriterLoadCurrentSample()
   local song = renoise.song()
@@ -4638,6 +4792,8 @@ function PCMWriterLoadCurrentSample()
     live_pickup_mode = true
     live_pickup_sample = sample
     live_pickup_instrument = inst
+    live_pickup_sample_index = song.selected_sample_index
+    live_pickup_instrument_index = song.selected_instrument_index
     
     -- Reset editor state
     selected_sample_index = -1
@@ -4654,8 +4810,8 @@ function PCMWriterLoadCurrentSample()
     renoise.app():show_status("Live Pickup Mode: No samples found, created new " .. wave_size .. " frame sample for live editing (Wave " .. current_wave_edit .. "). Start drawing!")
     
     -- Focus back to sample editor
-    renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
-    
+  --  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+    renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
     return
   end
   
@@ -4740,6 +4896,8 @@ function PCMWriterLoadCurrentSample()
   live_pickup_mode = true
   live_pickup_sample = sample
   live_pickup_instrument = inst
+  live_pickup_sample_index = song.selected_sample_index
+  live_pickup_instrument_index = song.selected_instrument_index
   
   -- Reset editor state
   selected_sample_index = -1
@@ -4762,7 +4920,8 @@ function PCMWriterLoadCurrentSample()
   renoise.app():show_status("Live Pickup Mode: Loaded " .. num_frames .. " frame sample for live editing (Wave " .. current_wave_edit .. ")")
   
   -- Focus back to sample editor
-  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+  --   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+  renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
 end
 
 function PCMWriterUpdateLiveSample()
@@ -4816,6 +4975,7 @@ end
 function PCMWriterShowPcmDialog()
   -- If dialog is already open, close it (toggle behavior)
   if pcm_dialog and pcm_dialog.visible then
+    cleanup_sample_notifier()
     pcm_dialog:close()
     pcm_dialog = nil
     return
@@ -4889,51 +5049,12 @@ function PCMWriterShowPcmDialog()
     margin = 10,
     --spacing = 10,
         
-        -- Main controls row 1
-  vb:row{ -- MAIN_CONTROLS_ROW_1 STARTS
-      --spacing = 10,
+        -- Main controls row 1: Waveform selection
+  vb:row{ -- WAVEFORM_ROW STARTS
     vb:text{ text = "Waveform", style = "strong" },
-    vb:popup{
-      items = {"sine", "square", "saw", "saw_reverse", "triangle", "pulse_25", "pulse_10", 
-               "double_sine", "half_sine", "abs_sine", "exp_curve", "log_curve", 
-               "stepped", "ziggurat", "trapezoid", "chirp", "morph", "harmonic_5th", "harmonic_3rd", 
-               "organ", "metallic", "vocal", "digital", "wobble",
-               "doubletriangle", "asym_diamond", "exp_diamond", "log_diamond", "fractal_diamond", 
-               "bezier_diamond", "harmonic_diamond", "pentagon", "hexagon", "crystal", "zigzag", "staircase", 
-               "recursive_triangle", "star_5", "star_8", "spiral", "heart", "butterfly",
-               "morph_sine", "morph_triangle", "morph_pulse", "morph_saw", "morph_diode", "morph_gauss", 
-               "morph_chebyshev", "morph_chirp", "noise", "pink_noise", "morph_white_noise", "morph_pink_noise", "morph_brown_noise"},
-      value = 1,
-      id = "waveform_popup",
-      notifier = function(idx)
-        -- Don't generate waveform if dialog is being rebuilt
-        if dialog_rebuilding then
-          return
-        end
-        local types = {"sine", "square", "saw", "saw_reverse", "triangle", "pulse_25", "pulse_10", 
-                       "double_sine", "half_sine", "abs_sine", "exp_curve", "log_curve", 
-                       "stepped", "ziggurat", "trapezoid", "chirp", "morph", "harmonic_5th", "harmonic_3rd", 
-                       "organ", "metallic", "vocal", "digital", "wobble",
-                       "doubletriangle", "asym_diamond", "exp_diamond", "log_diamond", "fractal_diamond", 
-                       "bezier_diamond", "harmonic_diamond", "pentagon", "hexagon", "crystal", "zigzag", "staircase", 
-                       "recursive_triangle", "star_5", "star_8", "spiral", "heart", "butterfly",
-                       "morph_sine", "morph_triangle", "morph_pulse", "morph_saw", "morph_diode", "morph_gauss", 
-                       "morph_chebyshev", "morph_chirp", "noise", "pink_noise", "morph_white_noise", "morph_pink_noise", "morph_brown_noise"}
-        current_waveform_type = types[idx]  -- Track current waveform type
-        PCMWriterGenerateWaveform(current_waveform_type, nil, wave_size)
-        selected_sample_index = -1
-        selection_start = -1
-        selection_end = -1
-        if waveform_canvas then
-          waveform_canvas:update()
-        end
-        PCMWriterUpdateHexDisplay()
-        PCMWriterUpdateLiveSample()  -- Live update sample when generating waveform
-      end
-    },
     vb:button{
-      text = "Previous",
-      width = 60,
+      text = "<",
+      width = 20,
       tooltip = "Previous waveform",
       notifier = function()
         local popup = vb.views.waveform_popup
@@ -4966,9 +5087,49 @@ function PCMWriterShowPcmDialog()
         end
       end
     },
+
+    vb:popup{
+      items = {"sine", "square", "saw", "saw_reverse", "triangle", "pulse_25", "pulse_10", 
+               "double_sine", "half_sine", "abs_sine", "exp_curve", "log_curve", 
+               "stepped", "ziggurat", "trapezoid", "chirp", "morph", "harmonic_5th", "harmonic_3rd", 
+               "organ", "metallic", "vocal", "digital", "wobble",
+               "doubletriangle", "asym_diamond", "exp_diamond", "log_diamond", "fractal_diamond", 
+               "bezier_diamond", "harmonic_diamond", "pentagon", "hexagon", "crystal", "zigzag", "staircase", 
+               "recursive_triangle", "star_5", "star_8", "spiral", "heart", "butterfly",
+               "morph_sine", "morph_triangle", "morph_pulse", "morph_saw", "morph_diode", "morph_gauss", 
+               "morph_chebyshev", "morph_chirp", "noise", "pink_noise", "morph_white_noise", "morph_pink_noise", "morph_brown_noise"},
+      value = 1,
+      width=150,
+      id = "waveform_popup",
+      notifier = function(idx)
+        -- Don't generate waveform if dialog is being rebuilt
+        if dialog_rebuilding then
+          return
+        end
+        local types = {"sine", "square", "saw", "saw_reverse", "triangle", "pulse_25", "pulse_10", 
+                       "double_sine", "half_sine", "abs_sine", "exp_curve", "log_curve", 
+                       "stepped", "ziggurat", "trapezoid", "chirp", "morph", "harmonic_5th", "harmonic_3rd", 
+                       "organ", "metallic", "vocal", "digital", "wobble",
+                       "doubletriangle", "asym_diamond", "exp_diamond", "log_diamond", "fractal_diamond", 
+                       "bezier_diamond", "harmonic_diamond", "pentagon", "hexagon", "crystal", "zigzag", "staircase", 
+                       "recursive_triangle", "star_5", "star_8", "spiral", "heart", "butterfly",
+                       "morph_sine", "morph_triangle", "morph_pulse", "morph_saw", "morph_diode", "morph_gauss", 
+                       "morph_chebyshev", "morph_chirp", "noise", "pink_noise", "morph_white_noise", "morph_pink_noise", "morph_brown_noise"}
+        current_waveform_type = types[idx]  -- Track current waveform type
+        PCMWriterGenerateWaveform(current_waveform_type, nil, wave_size)
+        selected_sample_index = -1
+        selection_start = -1
+        selection_end = -1
+        if waveform_canvas then
+          waveform_canvas:update()
+        end
+        PCMWriterUpdateHexDisplay()
+        PCMWriterUpdateLiveSample()  -- Live update sample when generating waveform
+      end
+    },
     vb:button{
-      text = "Next",
-      width = 60,
+      text = ">",
+      width = 20,
       tooltip = "Next waveform",
       notifier = function()
         local popup = vb.views.waveform_popup
@@ -5012,8 +5173,12 @@ function PCMWriterShowPcmDialog()
       width = 70,
       tooltip = "Cycle through geometric shapes",
       notifier = PCMWriterCycleGeometricShape
-    },
-          vb:text{ text = "Samples", style = "strong" },
+    }
+  }, -- WAVEFORM_ROW ENDS
+
+  -- Main controls row 2: Sample settings
+  vb:row{ -- SAMPLE_SETTINGS_ROW STARTS
+    vb:text{ text = "Samples", style = "strong" },
     vb:popup{
       width=55,
         items = {"16", "32", "64", "128", "256", "512", "1024"},
@@ -5058,21 +5223,11 @@ function PCMWriterShowPcmDialog()
           end
         end
       },
-      vb:text{ text = "Hide HEX Editor", style = "strong" },
+      vb:text{ text = "Hide Hex", style = "strong" },
       vb:text{ text = "| Cursor Width", style = "strong" },
       cursor_step_slider,
-      cursor_step_text,
-      --[[vb:text{ text = "Canvas Display", style = "strong" },
-      vb:popup{
-        items = {"Linear", "Cubic", "Bezier"},
-        value = 1,
-        notifier = function(idx)
-          local modes = {"linear", "cubic", "bezier"}
-          canvas_interpolation_mode = modes[idx]
-          PCMWriterUpdateAllDisplays()
-        end
-      }]]--
-    }, -- MAIN_CONTROLS_ROW_1 ENDS
+      cursor_step_text
+    }, -- SAMPLE_SETTINGS_ROW ENDS
     
     -- Shape parameters row 2
     vb:row{ -- SHAPE_PARAMS_ROW STARTS
@@ -5101,6 +5256,10 @@ function PCMWriterShowPcmDialog()
           if current_waveform_type == "geometric" then
             -- Regenerate geometric shape with new parameters
             PCMWriterGenerateParametricShape()
+            -- Explicitly update canvas
+            if waveform_canvas then
+              waveform_canvas:update()
+            end
             renoise.app():show_status(string.format("Asymmetry: %.2f (geometric shape: %s)", shape_asymmetry, geometric_shapes[current_geometric_index]))
           else
             -- Don't regenerate - just update parameter and preserve current waveform
@@ -5249,8 +5408,8 @@ function PCMWriterShowPcmDialog()
       }
     }, -- WAVE_AB_ROW ENDS
     
-    -- Chebyshev controls row  
-    vb:row{ -- CHEBYSHEV_ROW STARTS
+    -- Chebyshev controls row (conditional)
+    not hideChebyshev and vb:row{ -- CHEBYSHEV_ROW STARTS
       vb:text{ text = "Chebyshev:", style = "strong" },
       vb:popup{
         items = {"T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8"},
@@ -5294,15 +5453,13 @@ function PCMWriterShowPcmDialog()
         end
       },
       vb:text{ text = string.format("%.1f%%", chebyshev_mix * 100), id = "cheby_mix_value", width = 40 }
-    }, -- CHEBYSHEV_ROW ENDS
-    
+    } or vb:space{}, -- CHEBYSHEV_ROW ENDS
+    waveform_canvas,
     vb:text{
-      text = "Click/drag to draw • Arrow keys to edit selected frame",
+      text = "Click/drag to draw • Arrow keys up/down to edit selected frame, shift-up/down for faster, keys left/right to select a different frame, shift-left/right for faster.",
       font = "italic",
       width = 1024
     },
-    
-    waveform_canvas,
     
     -- Conditionally show hex editor based on hide_hex_editor flag
     not hide_hex_editor and vb:row{ -- HEX_EDITOR_ROW STARTS
@@ -5310,7 +5467,7 @@ function PCMWriterShowPcmDialog()
       vb:column{ -- HEX_EDITOR_COLUMN STARTS
         style = "group",
         margin = 5,
-        width = 1024,
+        width = wavetable_canvas_width +5,  -- Use same variable as canvas
         vb:horizontal_aligner{ -- HEX_ALIGNER STARTS
           mode = "center",
           vb:column{ -- HEX_INNER_COLUMN STARTS
@@ -5325,16 +5482,14 @@ function PCMWriterShowPcmDialog()
     } or vb:space{}, -- HEX_EDITOR_ROW ENDS
     
     vb:horizontal_aligner{ -- TOOLS_ALIGNER STARTS
-      mode = "center",
-      vb:row{ -- TOOLS_ROW STARTS
+      mode = "distribute",
       vb:column{ -- SAMPLE_TOOLS_COLUMN STARTS
         style = "group",
         margin = 5,
         vb:text{
           text = "Sample Tools",
-          style = "strong",font="bold"
+          style = "strong", font="bold"
         },
-
         vb:row{
           vb:button{
             text = "Invert",
@@ -5350,7 +5505,6 @@ function PCMWriterShowPcmDialog()
           }
         },
         vb:row{
-          --spacing = 5,
           vb:button{
             text = "Fade In",
             width = 70,
@@ -5365,7 +5519,6 @@ function PCMWriterShowPcmDialog()
           }
         },
         vb:row{
-          --spacing = 5,
           vb:button{
             text = "Silence",
             width = 70,
@@ -5380,33 +5533,6 @@ function PCMWriterShowPcmDialog()
           }
         },
         vb:row{
-          vb:button{
-            text = "DC Offset",
-            width = 140,
-            tooltip = "Remove DC offset (center waveform to 0.5)",
-            notifier = PCMWriterRemoveDCOffset
-          }
-        },
-        vb:row{
-          vb:button{
-            text = "Scale 50%",
-            width = 70,
-            tooltip = "Scale waveform to 50% amplitude",
-            notifier = function()
-              local saved_cursor = selected_sample_index
-              local target_data = PCMWriterGetCurrentWaveData()
-              for i = 1, wave_size do
-                local center = 32768
-                local deviation = target_data[i] - center
-                target_data[i] = center + math.floor(deviation * 0.5)
-              end
-              selected_sample_index = saved_cursor
-              PCMWriterUpdateCrossfadedWave()
-              PCMWriterUpdateLiveSample()  -- Live update sample when scaling
-              PCMWriterUpdateAllDisplays()
-              renoise.app():show_status("Scaled waveform to 50% to Wave " .. current_wave_edit)
-            end
-          },
           vb:button{
             text = "Scale 150%",
             width = 70,
@@ -5425,124 +5551,164 @@ function PCMWriterShowPcmDialog()
               PCMWriterUpdateAllDisplays()
               renoise.app():show_status("Scaled waveform to 150% to Wave " .. current_wave_edit)
             end
+          },
+          vb:button{
+            text = "Scale 50%",
+            width = 70,
+            tooltip = "Scale waveform to 50% amplitude",
+            notifier = function()
+              local saved_cursor = selected_sample_index
+              local target_data = PCMWriterGetCurrentWaveData()
+              for i = 1, wave_size do
+                local center = 32768
+                local deviation = target_data[i] - center
+                target_data[i] = center + math.floor(deviation * 0.5)
+              end
+              selected_sample_index = saved_cursor
+              PCMWriterUpdateCrossfadedWave()
+              PCMWriterUpdateLiveSample()  -- Live update sample when scaling
+              PCMWriterUpdateAllDisplays()
+              renoise.app():show_status("Scaled waveform to 50% to Wave " .. current_wave_edit)
+            end
           }
         },
         vb:button{
-          text = "Live Pickup Mode",
+          text = "Pickup Wave",
           width = 140,
-          tooltip = "Load current sample into editor for live editing",
+          tooltip = "Load current sample into waveform editor",
           notifier = function()
-            PCMWriterLoadCurrentSample()
+            PCMWriterLoadSampleToWaveform()
           end
         },
-
+        vb:row{
+          vb:button{
+            text = "Live Pickup Mode",
+            width = 140,
+            tooltip = "Load current sample into editor for live editing",
+            notifier = function()
+              PCMWriterLoadCurrentSample()
+            end
+          }
+        }
       }, -- SAMPLE_TOOLS_COLUMN ENDS
-      
-      -- Export Tools column
       vb:column{ -- EXPORT_TOOLS_COLUMN STARTS
         style = "group",
         margin = 5,
         vb:text{
           text = "Export Tools",
           style = "strong", font="bold"
-        },
+        },vb:row{
         vb:button{
           text = "Load Wave File",
-          width = 180,
+          width = 140,
           notifier = PCMWriterLoadWave
         },
         vb:button{
           text = "Load CSV File",
-          width = 180,
+          width = 140,
           tooltip = "Load CSV with hex values (0000-FFFF)",
           notifier = PCMWriterLoadCSV
-        },
+        },},
         vb:button{
           text = "Export to Sample Slot",
-          width = 180,
+          width = 140+140,
           tooltip = "Export crossfaded result (purple line)",
           notifier = PCMWriterExportToSample
         },
+        vb:row{
         vb:button{
           text = "Export A to Sample Slot",
-          width = 180,
+          width = 140,
           tooltip = "Export Wave A only (red line)",
           notifier = PCMWriterExportWaveAToSample
         },
         vb:button{
           text = "Export B to Sample Slot",
-          width = 180,
+          width = 140,
           tooltip = "Export Wave B only (blue line)",
           notifier = PCMWriterExportWaveBToSample
-        },
+        }},
         vb:button{
           text = "Random Export to Slot",
-          width = 180,
+          width = 280,
           tooltip = "Generate random waveform and export to sample slot",
           notifier = PCMWriterRandomExportToSlot
         },
+        vb:row{
         vb:button{
           text = "Save as .BIN File",
-          width = 180,
+          width = 140,
           notifier = PCMWriterSaveWaveBin
         },
         vb:button{
           text = "Save as .WAV File", 
-          width = 180,
+          width = 140,
           notifier = PCMWriterSaveWaveWav
-        },
+        },},
         vb:button{
           text = "Save as .CSV File",
-          width = 180,
+          width = 280,
           tooltip = "Save as CSV with hex values",
           notifier = PCMWriterSaveCSV
         }
       }, -- EXPORT_TOOLS_COLUMN ENDS
-      
-      -- Wavetable column
+
       vb:column{ -- WAVETABLE_COLUMN STARTS
         style = "group",
         margin = 5,
         wavetable_count_text,
         vb:button{
           text = "Add Current to Wavetable",
-          width = 180,
+          width = wt_buttonwidth,
           notifier = PCMWriterAddWavetableWave
         },
         vb:button{
           text = "Create 12 Random Instrument",
-          width = 180,
+          width = wt_buttonwidth,
           tooltip = "Generate 12 random waveforms and create instrument",
           notifier = PCMWriterCreate12RandomInstrument
         },
-        vb:button{
+        not hideChebyshev and vb:button{
           text = "Random 12 Chebyshev",
-          width = 180,
+          width = wt_buttonwidth,
           tooltip = "Generate 12 Chebyshev-processed waveforms and create instrument",
           notifier = PCMWriterCreate12ChebyshevInstrument
-        },
-
+        } or vb:space{},
         vb:button{
           text = "Export Wavetable to Sample",
-          width = 180,
+          width = wt_buttonwidth,
           notifier = PCMWriterExportWavetableToSample
         },
         vb:button{
           text = "Save Wavetable (.WAV)",
-          width = 180,
+          width = wt_buttonwidth,
           notifier = PCMWriterSaveWavetable
-        }
+        },
       } -- WAVETABLE_COLUMN ENDS
-    } -- TOOLS_ROW ENDS
-  } -- TOOLS_ALIGNER ENDS
+    } -- TOOLS_ALIGNER ENDS
   } -- DIALOG_CONTENT ENDS
+
+
   
   pcm_dialog = renoise.app():show_custom_dialog(DIALOG_TITLE, dialog_content, PCMWriterHandleKeyboard)
+  
+  -- Add sample change notifier for Live Pickup Mode (like other working tools)
+  local song = renoise.song()
+  if song.selected_sample_observable:has_notifier(update_dialog_on_selection_change) then
+    song.selected_sample_observable:remove_notifier(update_dialog_on_selection_change)
+  end
+  song.selected_sample_observable:add_notifier(update_dialog_on_selection_change)
+  
+  -- Add idle notifier for cleanup when dialog is closed by other means
+  if not renoise.tool().app_idle_observable:has_notifier(cleanup_on_dialog_close) then
+    renoise.tool().app_idle_observable:add_notifier(cleanup_on_dialog_close)
+  end
+  
   PCMWriterUpdateAllDisplays()
   
   -- Clear the rebuilding flag after dialog is fully created
   dialog_rebuilding = false
 end
 
-renoise.tool():add_menu_entry{name = "--Main Menu:Tools:Paketti:Xperimental/Work in Progress:Advanced PCM Writer...",invoke = PCMWriterShowPcmDialog}
-renoise.tool():add_keybinding{name = "Global:Paketti:Show Advanced PCM Writer",invoke = PCMWriterShowPcmDialog}
+renoise.tool():add_menu_entry{name = "--Main Menu:Tools:Paketti:Xperimental/Work in Progress:Paketti PCM Writer...",invoke = PCMWriterShowPcmDialog}
+renoise.tool():add_keybinding{name = "Global:Paketti:Show Paketti PCM Writer...",invoke = PCMWriterShowPcmDialog}
