@@ -333,46 +333,86 @@ function PCMWriterGenerateParametricShape()
   
   for i = 1, wave_size do
     local phase = (i - 1) / wave_size
-    local shifted_phase = (phase + 0.25) % 1  -- Shift to start at middle value (0.5)
+    -- Phase shift to start at zero-crossing (middle value 0.5 in 16-bit range)
+    -- For diamond shapes, we want to start where value = 0 in -1..1 range
+    local shifted_phase = phase  -- No phase shift initially - let's see actual shape behavior
     local value = 0
     
     if shape_type == "diamond" then
-      -- Use shape_segments for faceting - segments creates multiple facets around the diamond
+      -- Use shape_segments for faceting - multiple diamonds across the wave
       local facets = math.max(1, shape_segments)
       local facet_phase = (shifted_phase * facets) % 1
-      local facet_sharpness = shape_asymmetry * 0.4 + 0.1
-      if facet_phase < facet_sharpness then
-        value = facet_phase / facet_sharpness
-      elseif facet_phase < (1 - facet_sharpness) then
-        value = 1
+      
+      -- Proper diamond shape that starts and ends at 0
+      if facet_phase < 0.25 then
+        -- Rising edge: 0 to 1
+        value = facet_phase * 4
+      elseif facet_phase < 0.5 then
+        -- Falling edge: 1 to 0
+        value = 1 - (facet_phase - 0.25) * 4
+      elseif facet_phase < 0.75 then
+        -- Falling edge: 0 to -1
+        value = -(facet_phase - 0.5) * 4
       else
-        value = (1 - facet_phase) / facet_sharpness
+        -- Rising edge: -1 to 0
+        value = -1 + (facet_phase - 0.75) * 4
       end
-      value = value * 2 - 1
+      -- Value is already in -1..1 range
       
     elseif shape_type == "double_diamond" then
       -- Use shape_segments for number of peaks across the wave
       local peaks = math.max(1, shape_segments)
       local peak_phase = (shifted_phase * peaks) % 1
-      if peak_phase < 0.5 then
-        value = peak_phase * 2
+      
+      -- Double diamond: two peaks per cycle, starts at 0
+      if peak_phase < 0.125 then
+        -- Rising to first peak
+        value = peak_phase * 8
+      elseif peak_phase < 0.25 then
+        -- Falling from first peak
+        value = 1 - (peak_phase - 0.125) * 8
+      elseif peak_phase < 0.375 then
+        -- Rising to second peak  
+        value = (peak_phase - 0.25) * 8
+      elseif peak_phase < 0.5 then
+        -- Falling from second peak
+        value = 1 - (peak_phase - 0.375) * 8
+      elseif peak_phase < 0.625 then
+        -- Falling to first valley
+        value = -(peak_phase - 0.5) * 8
+      elseif peak_phase < 0.75 then
+        -- Rising from first valley
+        value = -1 + (peak_phase - 0.625) * 8
+      elseif peak_phase < 0.875 then
+        -- Falling to second valley
+        value = -(peak_phase - 0.75) * 8
       else
-        value = 2 - peak_phase * 2
+        -- Rising from second valley back to 0
+        value = -1 + (peak_phase - 0.875) * 8
       end
-      value = value * 2 - 1
+      -- Value is already in -1..1 range
       
     elseif shape_type == "asym_diamond" then
       -- Use shape_segments for faceting while keeping asymmetry for peak position
       local facets = math.max(1, shape_segments)
       local facet_phase = (shifted_phase * facets) % 1
-      local peak_pos = shape_asymmetry
+      local peak_pos = shape_asymmetry * 0.5  -- Peak position in first half (0 to 0.5)
       
+      -- Asymmetric diamond that starts and ends at 0
       if facet_phase < peak_pos then
+        -- Rising edge: 0 to 1
         value = facet_phase / peak_pos
+      elseif facet_phase < 0.5 then
+        -- Falling edge: 1 to 0
+        value = 1 - (facet_phase - peak_pos) / (0.5 - peak_pos)
+      elseif facet_phase < (0.5 + peak_pos) then
+        -- Falling edge: 0 to -1
+        value = -(facet_phase - 0.5) / peak_pos
       else
-        value = (1 - facet_phase) / (1 - peak_pos)
+        -- Rising edge: -1 to 0
+        value = -1 + (facet_phase - 0.5 - peak_pos) / (0.5 - peak_pos)
       end
-      value = value * 2 - 1
+      -- Value is already in -1..1 range
       
     elseif shape_type == "pentagon" or shape_type == "hexagon" then
       -- Use shape_segments parameter for number of sides
@@ -383,7 +423,7 @@ function PCMWriterGenerateParametricShape()
         table.insert(segments, {seg_phase, seg_value})
       end
       
-      -- Find which segment we're in
+      -- Find which segment we're in using shifted_phase
       for seg = 1, #segments - 1 do
         local start_phase = segments[seg][1]
         local end_phase = segments[seg + 1][1]
@@ -581,13 +621,21 @@ function PCMWriterGenerateParametricShape()
       value = math.sin(t) * butterfly_r / 5  -- Convert polar to y-value
       
     else
-      -- Default to regular diamond for any unhandled shapes
-      if shifted_phase < 0.5 then
-        value = shifted_phase * 2
+      -- Default to regular diamond: starts at 0, peaks at 0.25, back to 0 at 0.5, valley at 0.75, back to 0 at 1.0
+      if shifted_phase < 0.25 then
+        -- Rising edge: 0 to 1
+        value = shifted_phase * 4
+      elseif shifted_phase < 0.5 then
+        -- Falling edge: 1 to 0
+        value = 1 - (shifted_phase - 0.25) * 4
+      elseif shifted_phase < 0.75 then
+        -- Falling edge: 0 to -1
+        value = -(shifted_phase - 0.5) * 4
       else
-        value = 2 - shifted_phase * 2
+        -- Rising edge: -1 to 0
+        value = -1 + (shifted_phase - 0.75) * 4
       end
-      value = value * 2 - 1
+      -- Value is already in -1..1 range
     end
     
     -- Convert from -1..1 to 0..65535
@@ -1562,9 +1610,25 @@ function PCMWriterHandleMouse(ev)
   
   local rel_x = ev.position.x / w
   local rel_y = ev.position.y / h
-  local idx = math.floor(visible_start + rel_x * (visible_samples - 1))
   
-  -- Clamp idx to valid range
+  -- Fixed calculation to properly map mouse position to sample index
+  -- Map the full canvas width to the full range of visible samples
+  local sample_in_visible_range = math.floor(rel_x * visible_samples) + 1
+  
+  -- Ensure we can reach the last sample when clicking at the right edge
+  if sample_in_visible_range > visible_samples then
+    sample_in_visible_range = visible_samples
+  end
+  
+  local idx = visible_start + sample_in_visible_range - 1
+  
+  -- Debug output for troubleshooting last frame issue
+  if ev.type == "down" and ev.button == "left" then
+    print(string.format("DEBUG: Mouse click - x=%d, rel_x=%.3f, visible_range=%d-%d, sample_in_range=%d, final_idx=%d, wave_size=%d", 
+      ev.position.x, rel_x, visible_start, visible_end, sample_in_visible_range, idx, wave_size))
+  end
+  
+  -- Clamp idx to valid range (this should not be needed but keeping as safety)
   idx = math.max(1, math.min(wave_size, idx))
   
   if idx >= 1 and idx <= wave_size then
@@ -5047,10 +5111,11 @@ function PCMWriterShowPcmDialog()
       vb:text{ text = string.format("%.2f", shape_asymmetry), id = "asym_value", width = 40 },
       vb:text{ text = "Segments", style = "normal" },
       vb:slider{
-        min = 3,
+        min = 1,
         max = 64,
         value = shape_segments,
         width = 120,  -- Much larger slider
+        steps = {1, -1},  -- Step by 1 for proper integer increments
         notifier = function(value)
           shape_segments = math.floor(value)
           hex_field_has_focus = false

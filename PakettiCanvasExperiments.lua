@@ -455,14 +455,7 @@ end
 
 -- Generate dynamic status text
 function PakettiCanvasExperimentsGetStatusText()
-  -- If we're currently drawing a parameter, show parameter details
-  if current_drawing_parameter and mouse_is_down then
-    local param_info = current_drawing_parameter
-    return string.format("Parameter %d: %s = %.3f", 
-      param_info.index, param_info.name, param_info.parameter.value)
-  end
-  
-  -- Otherwise show normal device info
+  -- Always show base device info
   if not current_device then
     return "No device selected"
   end
@@ -475,8 +468,18 @@ function PakettiCanvasExperimentsGetStatusText()
   local track_number = tostring(song.selected_track_index)
   local track_name = song.selected_track.name
   
-  return string.format("Track %s / %s [%s] / %d parameters", 
+  local base_text = string.format("Track %s / %s [%s] / %d parameters", 
     track_number, track_name, device_name, param_count)
+  
+  -- If we have a current parameter (drawing or just selected), append parameter details
+  if current_drawing_parameter then
+    local param_info = current_drawing_parameter
+    local param_text = string.format(" - Parameter %d: %s = %.3f", 
+      param_info.index, param_info.name, param_info.parameter.value)
+    return base_text .. param_text
+  end
+  
+  return base_text
 end
 
 -- Refresh device parameters when device selection changes
@@ -689,13 +692,13 @@ function PakettiCanvasExperimentsHandleMouse(ev)
     if ev.type == "up" then
       print("DEBUG: Mouse up outside canvas - STOP DRAWING")
       mouse_is_down = false
-      current_drawing_parameter = nil
+      -- Don't clear current_drawing_parameter - keep it visible after release
       last_mouse_x = -1
       last_mouse_y = -1
       if canvas_experiments_canvas then
         canvas_experiments_canvas:update()
       end
-      -- Update status text back to normal
+      -- Update status text to show the parameter info (without "drawing" indication)
       if status_text_view then
         status_text_view.text = PakettiCanvasExperimentsGetStatusText()
       end
@@ -723,14 +726,14 @@ function PakettiCanvasExperimentsHandleMouse(ev)
   elseif ev.type == "up" then
     print("DEBUG: Mouse up - STOP DRAWING")
     mouse_is_down = false
-    current_drawing_parameter = nil
+    -- Don't clear current_drawing_parameter - keep it visible after release
     -- Clear mouse tracking and update canvas to hide cursor
     last_mouse_x = -1
     last_mouse_y = -1
     if canvas_experiments_canvas then
       canvas_experiments_canvas:update()
     end
-    -- Update status text back to normal
+    -- Update status text to show the parameter info (without "drawing" indication)
     if status_text_view then
       status_text_view.text = PakettiCanvasExperimentsGetStatusText()
     end
@@ -743,12 +746,12 @@ function PakettiCanvasExperimentsHandleMouse(ev)
         PakettiCanvasExperimentsHandleMouseInput(x, y)
       else
         print("DEBUG: Mouse drag outside content area - tracking cursor but not applying changes")
-        current_drawing_parameter = nil
+        -- Keep current_drawing_parameter visible even when outside content area
         -- Still update the canvas to show cursor movement
         if canvas_experiments_canvas then
           canvas_experiments_canvas:update()
         end
-        -- Update status text back to normal when outside content area
+        -- Update status text to show the parameter info
         if status_text_view then
           status_text_view.text = PakettiCanvasExperimentsGetStatusText()
         end
@@ -1082,11 +1085,11 @@ function PakettiCanvasExperimentsCreateDialog()
     -- Control buttons
     vb:row {
       vb:button {
-        text = "Open External Editor",
+        text = "Toggle External Editor",
         width = 150,
         notifier = function()
           if current_device then
-            current_device.external_editor_visible = true
+            current_device.external_editor_visible = not current_device.external_editor_visible
           end
         end
       },
