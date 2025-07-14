@@ -1,5 +1,47 @@
 local vb = renoise.ViewBuilder()
-local DIALOG_TITLE = "Paketti PCM Writer"
+local DIALOG_TITLE = "Paketti Single Cycle Waveform Writer"
+
+-- Debug print function
+local _DEBUG = true
+local function dprint(...) if _DEBUG then print("PCM Debug:", ...) end end
+
+-- ========================================
+-- COLOR CONSTANTS - All canvas colors organized in one place
+-- ========================================
+-- Format: {red, green, blue, alpha} where values are 0-255
+
+-- Canvas grid and reference lines
+local COLOR_GRID_LINES = {0, 64, 0, 255}           -- Dark green grid lines
+local COLOR_ZERO_LINE = {128, 128, 128, 255}       -- Gray center line
+
+-- Wave A colors (Red theme)
+local COLOR_WAVE_A_ACTIVE = {255, 0, 0, 255}       -- Bright red when editing Wave A
+local COLOR_WAVE_A_INACTIVE = {255, 0, 0, 180}     -- Transparent red when not editing Wave A
+
+-- Wave B colors (Blue theme)
+local COLOR_WAVE_B_ACTIVE = {0, 100, 255, 255}     -- Bright blue when editing Wave B
+local COLOR_WAVE_B_INACTIVE = {0, 100, 255, 180}   -- Transparent blue when not editing Wave B
+
+-- Crossfaded result waveform (Purple theme) - MAIN RESULT LINE
+local COLOR_CROSSFADED_WAVEFORM = {255, 64, 255, 200}  -- Bright pink-purple (was {128, 0, 255, 200})
+
+-- Sample point visualization
+local COLOR_SAMPLE_POINTS = {0, 200, 0, 255}       -- Bright green sample dots
+
+-- Selected sample highlighting
+local COLOR_SELECTED_LINE = {255, 0, 0, 180}       -- Red line for selected sample
+local COLOR_SELECTED_POINT = {255, 0, 0, 255}      -- Red dot for selected sample
+
+-- Selection overlay
+local COLOR_SELECTION_BACKGROUND = {0, 150, 255, 60}   -- Light blue selection background
+local COLOR_SELECTION_BORDERS = {0, 150, 255, 200}     -- Blue selection borders
+
+-- UI info display
+local COLOR_ZOOM_INFO = {255, 255, 255, 200}       -- White text for zoom info
+
+-- Button colors (Wave A/B edit buttons)
+local COLOR_BUTTON_ACTIVE = {0, 255, 0}            -- Green when active
+local COLOR_BUTTON_INACTIVE = {128, 128, 128}      -- Gray when inactive
 
 -- Editor state
 local wave_size_options = {16, 32, 64, 128, 256, 512, 1024}
@@ -74,7 +116,7 @@ local show_sample_points = true
 local canvas_interpolation_mode = "linear" -- "linear", "cubic", "bezier" for canvas display
 
 -- Sample export settings (separate from canvas display)
-local sample_interpolation_mode = "linear" -- "none", "linear", "cubic", "sinc"
+local sample_interpolation_mode = "sinc" -- "none", "linear", "cubic", "sinc"
 local sample_oversample_enabled = true
 
 -- Wavetable state
@@ -1336,7 +1378,7 @@ function PCMWriterRenderWaveform(ctx)
 
 
   -- Draw grid
-  ctx.stroke_color = {0, 64, 0, 255}
+  ctx.stroke_color = COLOR_GRID_LINES
   ctx.line_width = 1
   for i = 0, 10 do
     local x = (i / 10) * w
@@ -1354,7 +1396,7 @@ function PCMWriterRenderWaveform(ctx)
   end
 
   -- Draw zero line (center)
-  ctx.stroke_color = {128, 128, 128, 255}
+  ctx.stroke_color = COLOR_ZERO_LINE
   ctx.line_width = 1
   local center_y = h / 2
   ctx:begin_path()
@@ -1366,11 +1408,11 @@ function PCMWriterRenderWaveform(ctx)
   -- Wave A (always RED)
   if current_wave_edit == "A" then
     -- Currently editing Wave A - draw it thick red
-    ctx.stroke_color = {255, 0, 0, 255}
+    ctx.stroke_color = COLOR_WAVE_A_ACTIVE
     ctx.line_width = 2
   else
     -- Not editing Wave A - draw it thin red
-    ctx.stroke_color = {255, 0, 0, 180}
+    ctx.stroke_color = COLOR_WAVE_A_INACTIVE
     ctx.line_width = 1
   end
   ctx:begin_path()
@@ -1394,11 +1436,11 @@ function PCMWriterRenderWaveform(ctx)
   -- Wave B (always BLUE)
   if current_wave_edit == "B" then
     -- Currently editing Wave B - draw it thick blue
-    ctx.stroke_color = {0, 100, 255, 255}
+    ctx.stroke_color = COLOR_WAVE_B_ACTIVE
     ctx.line_width = 2
   else
     -- Not editing Wave B - draw it thin blue
-    ctx.stroke_color = {0, 100, 255, 180}
+    ctx.stroke_color = COLOR_WAVE_B_INACTIVE
     ctx.line_width = 1
   end
   ctx:begin_path()
@@ -1420,7 +1462,7 @@ function PCMWriterRenderWaveform(ctx)
   ctx:stroke()
   
   -- Draw crossfaded waveform (PURPLE for crossfade result)
-  ctx.stroke_color = {128, 0, 255, 200}
+  ctx.stroke_color = COLOR_CROSSFADED_WAVEFORM
   ctx.line_width = 4  -- Twice as thick to emphasize the final result
   ctx:begin_path()
 
@@ -1495,7 +1537,7 @@ function PCMWriterRenderWaveform(ctx)
 
   -- Draw sample points if enabled and zoomed in enough
   if show_sample_points and zoom_factor >= 2.0 then
-    ctx.fill_color = {0, 200, 0, 255}
+    ctx.fill_color = COLOR_SAMPLE_POINTS
     for i = visible_start, visible_end do
       local sample_in_visible = i - visible_start
       local x = (sample_in_visible / (visible_samples - 1)) * w
@@ -1516,7 +1558,7 @@ function PCMWriterRenderWaveform(ctx)
     local y = h - (target_data[selected_sample_index] / 65535 * h)
     
     -- Draw vertical line
-    ctx.stroke_color = {255, 0, 0, 180}
+    ctx.stroke_color = COLOR_SELECTED_LINE
     ctx.line_width = 2
     ctx:begin_path()
     ctx:move_to(x, 0)
@@ -1524,7 +1566,7 @@ function PCMWriterRenderWaveform(ctx)
     ctx:stroke()
     
     -- Draw selected point
-    ctx.fill_color = {255, 0, 0, 255}
+    ctx.fill_color = COLOR_SELECTED_POINT
     ctx:begin_path()
     ctx:arc(x, y, 5, 0, math.pi * 2, false)
     ctx:fill()
@@ -1542,13 +1584,13 @@ function PCMWriterRenderWaveform(ctx)
       local end_x = (end_in_visible / (visible_samples - 1)) * w
       
       -- Draw selection background
-      ctx.fill_color = {0, 150, 255, 60}
+      ctx.fill_color = COLOR_SELECTION_BACKGROUND
       ctx:begin_path()
       ctx:rect(start_x, 0, end_x - start_x, h)
       ctx:fill()
       
       -- Draw selection borders
-      ctx.stroke_color = {0, 150, 255, 200}
+      ctx.stroke_color = COLOR_SELECTION_BORDERS
       ctx.line_width = 2
       ctx:begin_path()
       ctx:move_to(start_x, 0)
@@ -1560,7 +1602,7 @@ function PCMWriterRenderWaveform(ctx)
   end
 
   -- Draw zoom info
-  ctx.fill_color = {255, 255, 255, 200}
+  ctx.fill_color = COLOR_ZOOM_INFO
   local zoom_text = string.format("Zoom: %.1fx | Samples: %d-%d", zoom_factor, visible_start, visible_end)
   -- Note: Canvas doesn't support text, so we'll show this in status instead
 end
@@ -2120,105 +2162,222 @@ function PCMWriterLoadCSV()
       local content = file:read("*a")
       file:close()
       
-      -- Parse CSV content
-      local values = {}
-      local line_count = 0
+      -- Check if this is the new format (has "Complete State" in header)
+      local is_new_format = content:match("Complete State") ~= nil
       
-      -- Split by lines and process each line
-      for line in content:gmatch("[^\r\n]+") do
-        line_count = line_count + 1
+      if is_new_format then
+        -- Parse new format with Wave A, Wave B, and crossfade amount
+        local wave_a_values = {}
+        local wave_b_values = {}
+        local loaded_crossfade = 0.5
+        local loaded_current_edit = "A"
         
-        -- Skip empty lines
-        if line:match("%S") then
-          -- Split by comma, semicolon, or tab
-          for value in line:gmatch("[^,;%s\t]+") do
-            -- Clean up the value (remove quotes, spaces)
-            value = value:gsub("^%s*[\"']?", ""):gsub("[\"']?%s*$", "")
-            
-            -- Try to parse as hex first (with or without 0x prefix)
-            local hex_value = nil
-            if value:match("^0[xX]") then
-              -- Has 0x prefix
-              hex_value = tonumber(value, 16)
-            elseif value:match("^[0-9A-Fa-f]+$") then
-              -- Pure hex digits
-              hex_value = tonumber(value, 16)
-            else
-              -- Try as decimal
-              hex_value = tonumber(value)
-            end
-            
+        -- Extract Wave A data
+        local wave_a_section = content:match("-- Wave A Data:.-\n(.-)\n%-%- Wave B Data:")
+        if wave_a_section then
+          for value in wave_a_section:gmatch("[^,;%s\t\n]+") do
+            local hex_value = tonumber(value, 16)
             if hex_value then
-              -- Clamp to valid range (0000-FFFF)
               hex_value = math.max(0, math.min(65535, hex_value))
-              table.insert(values, hex_value)
+              table.insert(wave_a_values, hex_value)
             end
           end
         end
-      end
-      
-      -- Check if we have valid data
-      if #values == 0 then
-        renoise.app():show_status("No valid numeric values found in CSV file")
-        return
-      end
-      
-      -- Check if the number of values matches supported wave sizes
-      local valid_sizes = {16, 32, 64, 128, 256, 512, 1024}
-      local csv_size = #values
-      local size_match = false
-      
-      for _, size in ipairs(valid_sizes) do
-        if csv_size == size then
-          size_match = true
-          break
-        end
-      end
-      
-      if not size_match then
-        local size_list = table.concat(valid_sizes, ", ")
-        renoise.app():show_status(string.format("CSV contains %d values. Supported sizes: %s", csv_size, size_list))
-        return
-      end
-      
-      -- If CSV size doesn't match current wave size, change wave size
-      if csv_size ~= wave_size then
-        wave_size = csv_size
-        wave_data = table.create()
         
-        -- Rebuild dialog with new size
-        if pcm_dialog then
-          pcm_dialog:close()
+        -- Extract Wave B data
+        local wave_b_section = content:match("-- Wave B Data:.-\n(.-)\n%-%- Crossfade Amount:")
+        if wave_b_section then
+          for value in wave_b_section:gmatch("[^,;%s\t\n]+") do
+            local hex_value = tonumber(value, 16)
+            if hex_value then
+              hex_value = math.max(0, math.min(65535, hex_value))
+              table.insert(wave_b_values, hex_value)
+            end
+          end
         end
+        
+        -- Extract crossfade amount
+        local crossfade_section = content:match("-- Crossfade Amount:.-\n([%d%.]+)")
+        if crossfade_section then
+          loaded_crossfade = tonumber(crossfade_section) or 0.5
+          loaded_crossfade = math.max(0, math.min(1, loaded_crossfade))
+        end
+        
+        -- Extract current wave edit
+        local current_edit_section = content:match("-- Current Wave Edit:.-\n([AB])")
+        if current_edit_section then
+          loaded_current_edit = current_edit_section
+        end
+        
+        -- Validate data
+        if #wave_a_values == 0 or #wave_b_values == 0 or #wave_a_values ~= #wave_b_values then
+          renoise.app():show_status("Invalid CSV format: missing or mismatched wave data")
+          return
+        end
+        
+        local csv_size = #wave_a_values
+        local valid_sizes = {16, 32, 64, 128, 256, 512, 1024}
+        local size_match = false
+        
+        for _, size in ipairs(valid_sizes) do
+          if csv_size == size then
+            size_match = true
+            break
+          end
+        end
+        
+        if not size_match then
+          local size_list = table.concat(valid_sizes, ", ")
+          renoise.app():show_status(string.format("CSV contains %d values. Supported sizes: %s", csv_size, size_list))
+          return
+        end
+        
+        -- Store current dialog state
+        local dialog_was_visible = pcm_dialog and pcm_dialog.visible
+        
+        -- If CSV size doesn't match current wave size, change wave size
+        if csv_size ~= wave_size then
+          wave_size = csv_size
+          wave_data = table.create()
+          wave_data_a = table.create()
+          wave_data_b = table.create()
+          
+          -- Initialize arrays with proper size
+          for i = 1, wave_size do
+            wave_data[i] = 32768
+            wave_data_a[i] = 32768
+            wave_data_b[i] = 32768
+          end
+          
+          -- Rebuild dialog with new size
+          if pcm_dialog then
+            pcm_dialog:close()
+          end
+        end
+        
+        -- Load the complete state
+        for i = 1, csv_size do
+          wave_data_a[i] = wave_a_values[i]
+          wave_data_b[i] = wave_b_values[i]
+        end
+        
+        -- Restore crossfade amount and current wave edit
+        crossfade_amount = loaded_crossfade
+        current_wave_edit = loaded_current_edit
+        
+        -- Update crossfaded wave
+        PCMWriterUpdateCrossfadedWave()
+        
+        -- Update UI crossfade slider if dialog is open
+        if pcm_dialog and pcm_dialog.visible then
+          local crossfade_slider = vb.views.crossfade_slider
+          local crossfade_display = vb.views.crossfade_value
+          if crossfade_slider then crossfade_slider.value = crossfade_amount end
+          if crossfade_display then crossfade_display.text = string.format("%.1f%%", crossfade_amount * 100) end
+        end
+        
+        -- Reset editor state
+        selected_sample_index = -1
+        selection_start = -1
+        selection_end = -1
+        PCMWriterZoomFit()
+        
+        -- Show dialog if it was closed due to size change
+        if not pcm_dialog or not pcm_dialog.visible then
+          if dialog_was_visible then
+            PCMWriterShowPcmDialog()
+          end
+        end
+        
+        -- Force canvas update with delay to ensure proper initialization
+        if waveform_canvas then
+          waveform_canvas:update()
+        end
+        
+        -- Update all displays
+        PCMWriterUpdateAllDisplays()
+        
+        -- Additional forced update after a brief delay to ensure canvas is properly refreshed
+        renoise.tool():add_timer(function()
+          if waveform_canvas then
+            waveform_canvas:update()
+          end
+          PCMWriterUpdateHexDisplay()
+        end, 100)  -- 100ms delay
+        
+        renoise.app():show_status(string.format("Complete wave state loaded: %d samples, %.1f%% crossfade, Wave %s", csv_size, loaded_crossfade * 100, loaded_current_edit))
+        
+      else
+        -- Handle old format (backwards compatibility)
+        local values = {}
+        
+        -- Split by lines and process each line
+        for line in content:gmatch("[^\r\n]+") do
+          -- Skip empty lines and comments
+          if line:match("%S") and not line:match("^%s*%-%-") then
+            -- Split by comma, semicolon, or tab
+            for value in line:gmatch("[^,;%s\t]+") do
+              -- Clean up the value (remove quotes, spaces)
+              value = value:gsub("^%s*[\"']?", ""):gsub("[\"']?%s*$", "")
+              
+              -- Try to parse as hex first (with or without 0x prefix)
+              local hex_value = nil
+              if value:match("^0[xX]") then
+                -- Has 0x prefix
+                hex_value = tonumber(value, 16)
+              elseif value:match("^[0-9A-Fa-f]+$") then
+                -- Pure hex digits
+                hex_value = tonumber(value, 16)
+              else
+                -- Try as decimal
+                hex_value = tonumber(value)
+              end
+              
+              if hex_value then
+                -- Clamp to valid range (0000-FFFF)
+                hex_value = math.max(0, math.min(65535, hex_value))
+                table.insert(values, hex_value)
+              end
+            end
+          end
+        end
+        
+        -- Check if we have valid data
+        if #values == 0 then
+          renoise.app():show_status("No valid numeric values found in CSV file")
+          return
+        end
+        
+        -- Check if the number of values matches supported wave sizes
+        local valid_sizes = {16, 32, 64, 128, 256, 512, 1024}
+        local csv_size = #values
+        local size_match = false
+        
+        for _, size in ipairs(valid_sizes) do
+          if csv_size == size then
+            size_match = true
+            break
+          end
+        end
+        
+        if not size_match then
+          local size_list = table.concat(valid_sizes, ", ")
+          renoise.app():show_status(string.format("CSV contains %d values. Supported sizes: %s", csv_size, size_list))
+          return
+        end
+        
+        -- Load old format into current wave
+        local target_data = PCMWriterGetCurrentWaveData()
+        for i = 1, csv_size do
+          target_data[i] = values[i]
+        end
+        
+        -- Update crossfaded wave
+        PCMWriterUpdateCrossfadedWave()
+        
+        renoise.app():show_status(string.format("Legacy CSV loaded into Wave %s: %d values", current_wave_edit, csv_size))
       end
       
-      -- Load the CSV values into target wave
-      local target_data = PCMWriterGetCurrentWaveData()
-      for i = 1, csv_size do
-        target_data[i] = values[i]
-      end
-      
-      -- Update crossfaded wave
-      PCMWriterUpdateCrossfadedWave()
-      
-      -- Reset editor state
-      selected_sample_index = -1
-      selection_start = -1
-      selection_end = -1
-      PCMWriterZoomFit()
-      
-      -- Update displays
-      if waveform_canvas then
-        waveform_canvas:update()
-      end
-      PCMWriterUpdateHexDisplay()
-      
-      -- Show dialog if it was closed due to size change
-      if not pcm_dialog or not pcm_dialog.visible then
-        PCMWriterShowPcmDialog()
-      end
-      
-      renoise.app():show_status(string.format("CSV loaded: %d values from %s", csv_size, filename))
     else
       renoise.app():show_status("Could not read CSV file")
     end
@@ -2234,13 +2393,17 @@ function PCMWriterSaveCSV()
   if filename then
     local file = io.open(filename, "w")
     if file then
-      -- Write CSV header
-      file:write("-- PCM Wave Data (Hex format: 0000-FFFF)\n")
+      -- Write CSV header with complete state info
+      file:write("-- PCM Wave Data (Complete State)\n")
       file:write("-- Wave Size: " .. wave_size .. " samples\n")
+      file:write("-- Crossfade Amount: " .. crossfade_amount .. " (" .. string.format("%.1f%% A + %.1f%% B", (1-crossfade_amount)*100, crossfade_amount*100) .. ")\n")
+      file:write("-- Current Wave Edit: " .. current_wave_edit .. "\n")
+      file:write("--\n")
       
-      -- Write values in rows of 16 (like hex editor)
+      -- Write Wave A data
+      file:write("-- Wave A Data:\n")
       for i = 1, wave_size do
-        file:write(string.format("%04X", wave_data[i]))
+        file:write(string.format("%04X", wave_data_a[i]))
         
         if i % 16 == 0 then
           file:write("\n")  -- New line every 16 values
@@ -2254,8 +2417,33 @@ function PCMWriterSaveCSV()
         file:write("\n")
       end
       
+      -- Write Wave B data
+      file:write("-- Wave B Data:\n")
+      for i = 1, wave_size do
+        file:write(string.format("%04X", wave_data_b[i]))
+        
+        if i % 16 == 0 then
+          file:write("\n")  -- New line every 16 values
+        elseif i < wave_size then
+          file:write(",")  -- Comma separator
+        end
+      end
+      
+      -- Add final newline if needed
+      if wave_size % 16 ~= 0 then
+        file:write("\n")
+      end
+      
+      -- Write crossfade amount
+      file:write("-- Crossfade Amount:\n")
+      file:write(string.format("%.6f\n", crossfade_amount))
+      
+      -- Write current wave edit
+      file:write("-- Current Wave Edit:\n")
+      file:write(current_wave_edit .. "\n")
+      
       file:close()
-      renoise.app():show_status("Wave saved as CSV: " .. filename)
+      renoise.app():show_status("Complete wave state saved as CSV: " .. filename)
     else
       renoise.app():show_status("Could not save CSV file")
     end
@@ -4638,6 +4826,14 @@ local function update_dialog_on_selection_change()
   print("-- Live Pickup Mode: Successfully loaded " .. new_sample.name)
 end
 
+-- Helper function to clean up sample change notifier
+local function cleanup_sample_notifier()
+  local song = renoise.song()
+  if song.selected_sample_observable:has_notifier(update_dialog_on_selection_change) then
+    song.selected_sample_observable:remove_notifier(update_dialog_on_selection_change)
+  end
+end
+
 -- Tool idle notifier to clean up sample notifier when dialog is closed by other means
 function cleanup_on_dialog_close()
   if not pcm_dialog or not pcm_dialog.visible then
@@ -4647,16 +4843,6 @@ function cleanup_on_dialog_close()
     end
   end
 end
-
--- Helper function to clean up sample change notifier
-local function cleanup_sample_notifier()
-  local song = renoise.song()
-  if song.selected_sample_observable:has_notifier(update_dialog_on_selection_change) then
-    song.selected_sample_observable:remove_notifier(update_dialog_on_selection_change)
-  end
-end
-
-
 
 function PCMWriterLoadSampleToWaveform()
   local song = renoise.song()
@@ -5198,7 +5384,7 @@ function PCMWriterShowPcmDialog()
       vb:text{ text = "Sample Interpolation", style = "strong" },
       vb:popup{
         items = {"None", "Linear", "Cubic", "Sinc"},
-        value = 2,
+        value = 4,
         width=66,
         notifier = function(idx)
           local modes = {"none", "linear", "cubic", "sinc"}
@@ -5325,7 +5511,7 @@ function PCMWriterShowPcmDialog()
       vb:button{
         text = "Edit A",
         width = 50,
-        color = current_wave_edit == "A" and {0, 255, 0} or {128, 128, 128},
+        color = current_wave_edit == "A" and COLOR_BUTTON_ACTIVE or COLOR_BUTTON_INACTIVE,
         tooltip = "Edit Wave A",
         notifier = function()
           local saved_cursor_pos = selected_sample_index
@@ -5335,8 +5521,8 @@ function PCMWriterShowPcmDialog()
           if pcm_dialog and pcm_dialog.visible then
             local edit_a_btn = vb.views.edit_a_btn
             local edit_b_btn = vb.views.edit_b_btn
-            if edit_a_btn then edit_a_btn.color = {0, 255, 0} end
-            if edit_b_btn then edit_b_btn.color = {128, 128, 128} end
+            if edit_a_btn then edit_a_btn.color = COLOR_BUTTON_ACTIVE end
+            if edit_b_btn then edit_b_btn.color = COLOR_BUTTON_INACTIVE end
           end
           -- Preserve cursor position during wave switch
           selected_sample_index = saved_cursor_pos
@@ -5352,7 +5538,7 @@ function PCMWriterShowPcmDialog()
       vb:button{
         text = "Edit B",
         width = 50,
-        color = current_wave_edit == "B" and {0, 255, 0} or {128, 128, 128},
+        color = current_wave_edit == "B" and COLOR_BUTTON_ACTIVE or COLOR_BUTTON_INACTIVE,
         tooltip = "Edit Wave B",
         notifier = function()
           local saved_cursor_pos = selected_sample_index
@@ -5362,8 +5548,8 @@ function PCMWriterShowPcmDialog()
           if pcm_dialog and pcm_dialog.visible then
             local edit_a_btn = vb.views.edit_a_btn
             local edit_b_btn = vb.views.edit_b_btn
-            if edit_a_btn then edit_a_btn.color = {128, 128, 128} end
-            if edit_b_btn then edit_b_btn.color = {0, 255, 0} end
+            if edit_a_btn then edit_a_btn.color = COLOR_BUTTON_INACTIVE end
+            if edit_b_btn then edit_b_btn.color = COLOR_BUTTON_ACTIVE end
           end
           -- Preserve cursor position during wave switch
           selected_sample_index = saved_cursor_pos
@@ -5710,5 +5896,276 @@ function PCMWriterShowPcmDialog()
   dialog_rebuilding = false
 end
 
-renoise.tool():add_menu_entry{name = "--Main Menu:Tools:Paketti:Xperimental/Work in Progress:Paketti PCM Writer...",invoke = PCMWriterShowPcmDialog}
-renoise.tool():add_keybinding{name = "Global:Paketti:Show Paketti PCM Writer...",invoke = PCMWriterShowPcmDialog}
+-- CSV file hook for PCM Writer
+function csv_load_to_pcm_writer(filename)
+  -- Check if filename is nil or empty (user cancelled dialog)
+  if not filename or filename == "" then
+    dprint("CSV import cancelled - no file selected")
+    renoise.app():show_status("CSV import cancelled - no file selected")
+    return false
+  end
+  
+  dprint("Starting CSV import for PCM Writer, file:", filename)
+  
+  -- Open PCM Writer dialog if it's not already open
+  if not pcm_dialog or not pcm_dialog.visible then
+    dprint("Opening PCM Writer dialog")
+    PCMWriterShowPcmDialog()
+  end
+  
+  -- Load the CSV file directly (modified version of PCMWriterLoadCSV)
+  local file = io.open(filename, "r")
+  if not file then
+    dprint("ERROR: Cannot open CSV file")
+    renoise.app():show_status("CSV Import Error: Cannot open file.")
+    return false
+  end
+  
+  local content = file:read("*a")
+  file:close()
+  dprint("Read CSV file, size:", #content, "bytes")
+  
+  -- Check if this is the new format (has "Complete State" in header)
+  local is_new_format = content:match("Complete State") ~= nil
+  
+  if is_new_format then
+    -- Use the existing new format parsing logic
+    dprint("Detected new format CSV with complete state")
+    
+    -- Parse new format with Wave A, Wave B, and crossfade amount
+    local wave_a_values = {}
+    local wave_b_values = {}
+    local loaded_crossfade = 0.5
+    local loaded_current_edit = "A"
+    
+    -- Extract Wave A data
+    local wave_a_section = content:match("-- Wave A Data:.-\n(.-)\n%-%- Wave B Data:")
+    if wave_a_section then
+      for value in wave_a_section:gmatch("[^,;%s\t\n]+") do
+        local hex_value = tonumber(value, 16)
+        if hex_value then
+          hex_value = math.max(0, math.min(65535, hex_value))
+          table.insert(wave_a_values, hex_value)
+        end
+      end
+    end
+    
+    -- Extract Wave B data
+    local wave_b_section = content:match("-- Wave B Data:.-\n(.-)\n%-%- Crossfade Amount:")
+    if wave_b_section then
+      for value in wave_b_section:gmatch("[^,;%s\t\n]+") do
+        local hex_value = tonumber(value, 16)
+        if hex_value then
+          hex_value = math.max(0, math.min(65535, hex_value))
+          table.insert(wave_b_values, hex_value)
+        end
+      end
+    end
+    
+    -- Extract crossfade amount
+    local crossfade_section = content:match("-- Crossfade Amount:.-\n([%d%.]+)")
+    if crossfade_section then
+      loaded_crossfade = tonumber(crossfade_section) or 0.5
+      loaded_crossfade = math.max(0, math.min(1, loaded_crossfade))
+    end
+    
+    -- Extract current wave edit
+    local current_edit_section = content:match("-- Current Wave Edit:.-\n([AB])")
+    if current_edit_section then
+      loaded_current_edit = current_edit_section
+    end
+    
+    -- Validate data
+    if #wave_a_values == 0 or #wave_b_values == 0 or #wave_a_values ~= #wave_b_values then
+      renoise.app():show_status("Invalid CSV format: missing or mismatched wave data")
+      return false
+    end
+    
+    local csv_size = #wave_a_values
+    local valid_sizes = {16, 32, 64, 128, 256, 512, 1024}
+    local size_match = false
+    
+    for _, size in ipairs(valid_sizes) do
+      if csv_size == size then
+        size_match = true
+        break
+      end
+    end
+    
+    if not size_match then
+      local size_list = table.concat(valid_sizes, ", ")
+      renoise.app():show_status(string.format("CSV contains %d values. Supported sizes: %s", csv_size, size_list))
+      return false
+    end
+    
+    -- Apply the loaded state to PCM Writer
+    -- Store current dialog state
+    local dialog_was_visible = pcm_dialog and pcm_dialog.visible
+    
+    -- If CSV size doesn't match current wave size, change wave size
+    if csv_size ~= wave_size then
+      wave_size = csv_size
+      wave_data = table.create()
+      wave_data_a = table.create()
+      wave_data_b = table.create()
+      
+      -- Initialize arrays with proper size
+      for i = 1, wave_size do
+        wave_data[i] = 32768
+        wave_data_a[i] = 32768
+        wave_data_b[i] = 32768
+      end
+      
+      -- Rebuild dialog with new size
+      if pcm_dialog then
+        pcm_dialog:close()
+      end
+    end
+    
+    -- Load the complete state
+    for i = 1, csv_size do
+      wave_data_a[i] = wave_a_values[i]
+      wave_data_b[i] = wave_b_values[i]
+    end
+    
+    -- Restore crossfade amount and current wave edit
+    crossfade_amount = loaded_crossfade
+    current_wave_edit = loaded_current_edit
+    
+    -- Update crossfaded wave
+    PCMWriterUpdateCrossfadedWave()
+    
+    -- Update UI crossfade slider if dialog is open
+    if pcm_dialog and pcm_dialog.visible then
+      local crossfade_slider = vb.views.crossfade_slider
+      local crossfade_display = vb.views.crossfade_value
+      if crossfade_slider then crossfade_slider.value = crossfade_amount end
+      if crossfade_display then crossfade_display.text = string.format("%.1f%%", crossfade_amount * 100) end
+    end
+    
+    -- Reset editor state
+    selected_sample_index = -1
+    selection_start = -1
+    selection_end = -1
+    PCMWriterZoomFit()
+    
+    -- Show dialog if it was closed due to size change
+    if not pcm_dialog or not pcm_dialog.visible then
+      if dialog_was_visible then
+        PCMWriterShowPcmDialog()
+      end
+    end
+    
+    -- Force canvas update with delay to ensure proper initialization
+    if waveform_canvas then
+      waveform_canvas:update()
+    end
+    
+    -- Update all displays
+    PCMWriterUpdateAllDisplays()
+    
+    -- Additional forced update after a brief delay to ensure canvas is properly refreshed
+    renoise.tool():add_timer(function()
+      if waveform_canvas then
+        waveform_canvas:update()
+      end
+      PCMWriterUpdateHexDisplay()
+    end, 100)  -- 100ms delay
+    
+    renoise.app():show_status(string.format("Complete wave state loaded: %d samples, %.1f%% crossfade, Wave %s", csv_size, loaded_crossfade * 100, loaded_current_edit))
+    
+  else
+    -- Handle old format (backwards compatibility) - simple hex values
+    dprint("Detected legacy format CSV with simple hex values")
+    local values = {}
+    
+    -- Split by lines and process each line
+    for line in content:gmatch("[^\r\n]+") do
+      -- Skip empty lines and comments
+      if line:match("%S") and not line:match("^%s*%-%-") then
+        -- Split by comma, semicolon, or tab
+        for value in line:gmatch("[^,;%s\t]+") do
+          -- Clean up the value (remove quotes, spaces)
+          value = value:gsub("^%s*[\"']?", ""):gsub("[\"']?%s*$", "")
+          
+          -- Try to parse as hex first (with or without 0x prefix)
+          local hex_value = nil
+          if value:match("^0[xX]") then
+            -- Has 0x prefix
+            hex_value = tonumber(value, 16)
+          elseif value:match("^[0-9A-Fa-f]+$") then
+            -- Pure hex digits
+            hex_value = tonumber(value, 16)
+          else
+            -- Try as decimal
+            hex_value = tonumber(value)
+          end
+          
+          if hex_value then
+            -- Clamp to valid range (0000-FFFF)
+            hex_value = math.max(0, math.min(65535, hex_value))
+            table.insert(values, hex_value)
+          end
+        end
+      end
+    end
+    
+    -- Check if we have valid data
+    if #values == 0 then
+      renoise.app():show_status("No valid numeric values found in CSV file")
+      return false
+    end
+    
+    -- Check if the number of values matches supported wave sizes
+    local valid_sizes = {16, 32, 64, 128, 256, 512, 1024}
+    local csv_size = #values
+    local size_match = false
+    
+    for _, size in ipairs(valid_sizes) do
+      if csv_size == size then
+        size_match = true
+        break
+      end
+    end
+    
+    if not size_match then
+      local size_list = table.concat(valid_sizes, ", ")
+      renoise.app():show_status(string.format("CSV contains %d values. Supported sizes: %s", csv_size, size_list))
+      return false
+    end
+    
+    -- Load old format into current wave
+    local target_data = PCMWriterGetCurrentWaveData()
+    for i = 1, csv_size do
+      target_data[i] = values[i]
+    end
+    
+    -- Update crossfaded wave
+    PCMWriterUpdateCrossfadedWave()
+    
+    renoise.app():show_status(string.format("Legacy CSV loaded into Wave %s: %d values", current_wave_edit, csv_size))
+  end
+  
+  dprint("CSV import completed successfully")
+  return true
+end
+
+-- CSV file hook integration
+local csv_integration = {
+  category = "sample",
+  extensions = { "csv" },
+  invoke = csv_load_to_pcm_writer
+}
+
+if not renoise.tool():has_file_import_hook("sample", { "csv" }) then
+  renoise.tool():add_file_import_hook(csv_integration)
+end
+
+
+
+
+
+renoise.tool():add_menu_entry{name = "--Main Menu:Tools:Paketti:Xperimental/Work in Progress:Paketti Single Cycle Waveform Writer...",invoke = PCMWriterShowPcmDialog}
+renoise.tool():add_menu_entry{name = "--Sample Editor:Paketti Gadgets:Paketti Single Cycle Waveform Writer...",invoke = PCMWriterShowPcmDialog}
+renoise.tool():add_keybinding{name = "Global:Paketti:Show Paketti Single Cycle Waveform Writer...",invoke = PCMWriterShowPcmDialog}
+

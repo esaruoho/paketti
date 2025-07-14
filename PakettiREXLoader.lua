@@ -414,5 +414,3 @@ function dump_rex_structure(file_path)
   renoise.app():show_status("REX debug dump written to: " .. out_path)
 end
 
-
-
