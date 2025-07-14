@@ -333,12 +333,13 @@ function PCMWriterGenerateParametricShape()
   
   for i = 1, wave_size do
     local phase = (i - 1) / wave_size
+    local shifted_phase = (phase + 0.25) % 1  -- Shift to start at middle value (0.5)
     local value = 0
     
     if shape_type == "diamond" then
       -- Use shape_segments for faceting - segments creates multiple facets around the diamond
       local facets = math.max(1, shape_segments)
-      local facet_phase = (phase * facets) % 1
+      local facet_phase = (shifted_phase * facets) % 1
       local facet_sharpness = shape_asymmetry * 0.4 + 0.1
       if facet_phase < facet_sharpness then
         value = facet_phase / facet_sharpness
@@ -352,7 +353,7 @@ function PCMWriterGenerateParametricShape()
     elseif shape_type == "double_diamond" then
       -- Use shape_segments for number of peaks across the wave
       local peaks = math.max(1, shape_segments)
-      local peak_phase = (phase * peaks) % 1
+      local peak_phase = (shifted_phase * peaks) % 1
       if peak_phase < 0.5 then
         value = peak_phase * 2
       else
@@ -363,7 +364,7 @@ function PCMWriterGenerateParametricShape()
     elseif shape_type == "asym_diamond" then
       -- Use shape_segments for faceting while keeping asymmetry for peak position
       local facets = math.max(1, shape_segments)
-      local facet_phase = (phase * facets) % 1
+      local facet_phase = (shifted_phase * facets) % 1
       local peak_pos = shape_asymmetry
       
       if facet_phase < peak_pos then
@@ -386,8 +387,8 @@ function PCMWriterGenerateParametricShape()
       for seg = 1, #segments - 1 do
         local start_phase = segments[seg][1]
         local end_phase = segments[seg + 1][1]
-        if phase >= start_phase and phase <= end_phase then
-          local seg_progress = (phase - start_phase) / (end_phase - start_phase)
+        if shifted_phase >= start_phase and shifted_phase <= end_phase then
+          local seg_progress = (shifted_phase - start_phase) / (end_phase - start_phase)
           local start_val = segments[seg][2]
           local end_val = segments[seg + 1][2]
           value = start_val + seg_progress * (end_val - start_val)
@@ -398,7 +399,7 @@ function PCMWriterGenerateParametricShape()
     elseif shape_type == "exp_diamond" then
       -- Use shape_segments for faceting with exponential curve
       local facets = math.max(1, shape_segments)
-      local facet_phase = (phase * facets) % 1
+      local facet_phase = (shifted_phase * facets) % 1
       local curved_phase = math.pow(facet_phase, shape_curve)
       if curved_phase < 0.5 then
         value = curved_phase * 2
@@ -410,7 +411,7 @@ function PCMWriterGenerateParametricShape()
     elseif shape_type == "log_diamond" then
       -- Use shape_segments for faceting with logarithmic curve
       local facets = math.max(1, shape_segments)
-      local facet_phase = (phase * facets) % 1
+      local facet_phase = (shifted_phase * facets) % 1
       local curved_phase = math.log(facet_phase * (math.exp(shape_curve) - 1) + 1) / shape_curve
       if curved_phase < 0.5 then
         value = curved_phase * 2
@@ -426,7 +427,7 @@ function PCMWriterGenerateParametricShape()
       for iter = 1, iterations do
         local freq = math.pow(2, iter - 1)
         local amp = 1 / iter
-        local fractal_phase = (phase * freq) % 1
+        local fractal_phase = (shifted_phase * freq) % 1
         local diamond_wave
         if fractal_phase < 0.5 then
           diamond_wave = fractal_phase * 2
@@ -444,7 +445,7 @@ function PCMWriterGenerateParametricShape()
       for level = 1, levels do
         local freq = math.pow(2, level - 1)
         local amp = 1 / level
-        local triangle_phase = (phase * freq) % 1
+        local triangle_phase = (shifted_phase * freq) % 1
         local triangle_wave
         if triangle_phase < 0.5 then
           triangle_wave = triangle_phase * 4 - 1
@@ -458,7 +459,7 @@ function PCMWriterGenerateParametricShape()
     elseif shape_type == "star_5" or shape_type == "star_8" then
       -- Use shape_segments for number of star points
       local points = math.max(3, shape_segments)
-      local angle = phase * math.pi * 2
+      local angle = shifted_phase * math.pi * 2
       local star_phase = (angle * points / (math.pi * 2)) % 2
       if star_phase < 1 then
         -- Outer point
@@ -472,14 +473,14 @@ function PCMWriterGenerateParametricShape()
     elseif shape_type == "spiral" then
       -- Use shape_segments for number of spiral turns
       local turns = math.max(1, shape_segments)
-      local spiral_angle = phase * math.pi * 2 * turns
-      local radius = phase * shape_asymmetry + (1 - shape_asymmetry) * 0.5
+      local spiral_angle = shifted_phase * math.pi * 2 * turns
+      local radius = shifted_phase * shape_asymmetry + (1 - shape_asymmetry) * 0.5
       value = radius * math.sin(spiral_angle)
       
     elseif shape_type == "bezier_diamond" then
       -- Use shape_segments for number of bezier control points
       local control_points = math.max(3, shape_segments)
-      local segment = phase * (control_points - 1)
+      local segment = shifted_phase * (control_points - 1)
       local seg_idx = math.floor(segment)
       local seg_t = segment - seg_idx
       
@@ -508,7 +509,7 @@ function PCMWriterGenerateParametricShape()
       for h = 1, harmonics do
         local harmonic_amp = 1 / h
         local harmonic_freq = h
-        local harmonic_phase = (phase * harmonic_freq) % 1
+        local harmonic_phase = (shifted_phase * harmonic_freq) % 1
         local diamond_wave
         if harmonic_phase < 0.5 then
           diamond_wave = harmonic_phase * 2
@@ -522,7 +523,7 @@ function PCMWriterGenerateParametricShape()
     elseif shape_type == "crystal" then
       -- Use shape_segments parameter for number of facets
       local facets = shape_segments
-      local facet_phase = (phase * facets) % 1
+      local facet_phase = (shifted_phase * facets) % 1
       local facet_value
       local facet_sharpness = shape_asymmetry * 0.4 + 0.1  -- 0.1 to 0.5
       if facet_phase < facet_sharpness then
@@ -537,7 +538,7 @@ function PCMWriterGenerateParametricShape()
     elseif shape_type == "zigzag" then
       -- Use shape_segments for number of zigs
       local zigs = math.max(1, shape_segments)
-      local zig_phase = (phase * zigs) % 1
+      local zig_phase = (shifted_phase * zigs) % 1
       local zig_sharpness = shape_asymmetry
       if zig_phase < zig_sharpness then
         value = zig_phase / zig_sharpness
@@ -549,13 +550,13 @@ function PCMWriterGenerateParametricShape()
     elseif shape_type == "staircase" then
       -- Use shape_segments for number of steps
       local steps = math.max(1, shape_segments)
-      local step_phase = math.floor(phase * steps) / steps
+      local step_phase = math.floor(shifted_phase * steps) / steps
       value = step_phase * 2 - 1
       
     elseif shape_type == "heart" then
       -- Use shape_segments for heart detail/complexity
       local complexity = math.max(1, shape_segments)
-      local t = phase * math.pi * 2
+      local t = shifted_phase * math.pi * 2
       local heart_x = 16 * math.pow(math.sin(t), 3)
       local heart_y = 13 * math.cos(t) - 5 * math.cos(2 * t) - 2 * math.cos(3 * t) - math.cos(4 * t)
       
@@ -569,7 +570,7 @@ function PCMWriterGenerateParametricShape()
     elseif shape_type == "butterfly" then
       -- Use shape_segments for butterfly wing detail
       local wing_detail = math.max(1, shape_segments)
-      local t = phase * math.pi * 2
+      local t = shifted_phase * math.pi * 2
       local butterfly_r = math.exp(math.cos(t)) - 2 * math.cos(4 * t) + math.pow(math.sin(t / 12), 5)
       
       -- Add wing detail with higher harmonics
@@ -581,10 +582,10 @@ function PCMWriterGenerateParametricShape()
       
     else
       -- Default to regular diamond for any unhandled shapes
-      if phase < 0.5 then
-        value = phase * 2
+      if shifted_phase < 0.5 then
+        value = shifted_phase * 2
       else
-        value = 2 - phase * 2
+        value = 2 - shifted_phase * 2
       end
       value = value * 2 - 1
     end
@@ -5047,7 +5048,7 @@ function PCMWriterShowPcmDialog()
       vb:text{ text = "Segments", style = "normal" },
       vb:slider{
         min = 3,
-        max = 16,
+        max = 64,
         value = shape_segments,
         width = 120,  -- Much larger slider
         notifier = function(value)
