@@ -82,7 +82,7 @@ local selection_info_view = nil
 local dialog_rebuilding = false  -- Flag to prevent dropdown from triggering during rebuild
 local hex_field_has_focus = false  -- Track if a hex field has focus
 local updating_hex_display = false  -- Flag to prevent cascading cursor updates
-local hide_hex_editor = false  -- Flag to hide/show hex editor
+local hide_hex_editor = false  -- Flag to hide/show hex editor (will be loaded from preferences)
 local hideChebyshev = true  -- Flag to hide/show Chebyshev controls
 
 -- UI element references for dynamic updates
@@ -5167,6 +5167,11 @@ function PCMWriterShowPcmDialog()
     return
   end
   
+  -- Load hex editor visibility preference
+  if preferences and preferences.singlewaveformwriterhex then
+    hide_hex_editor = not preferences.singlewaveformwriterhex.value
+  end
+  
   -- Set flag to prevent dropdown from triggering during rebuild
   dialog_rebuilding = true
   
@@ -5402,6 +5407,10 @@ function PCMWriterShowPcmDialog()
         value = hide_hex_editor,
         notifier = function(value)
           hide_hex_editor = value
+          -- Save preference (inverted because checkbox is "Hide Hex")
+          if preferences and preferences.singlewaveformwriterhex then
+            preferences.singlewaveformwriterhex.value = not value
+          end
           -- Rebuild dialog to show/hide hex editor
           if pcm_dialog then
             pcm_dialog:close()
