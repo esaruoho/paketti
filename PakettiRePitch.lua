@@ -352,7 +352,7 @@ function pakettiSimpleSampleTuningDialog()
     function(value) dialog = value end
   )
   dialog=renoise.app():show_custom_dialog(
-    "Paketti Simple Sample Tuning Calculator",
+    "Paketti Sample Cycle Tuning Calculator",
     vb:column{
       margin=10,
       vb:row{
@@ -538,15 +538,15 @@ function pakettiQuickInstrumentTuning()
   --enoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
 end
 
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Simple Sample Tuning Calculator...",invoke = pakettiSimpleSampleTuningDialog}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Quick Selected Sample Tuning",invoke = pakettiQuickSelectedSampleTuning}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Quick Selected Instrument Tuning",invoke = pakettiQuickInstrumentTuning}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Samples:Simple Sample Tuning Calculator...",invoke = pakettiSimpleSampleTuningDialog}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Samples:Quick Selected Sample Tuning",invoke = pakettiQuickSelectedSampleTuning}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Samples:Quick Selected Instrument Tuning",invoke = pakettiQuickInstrumentTuning}
-renoise.tool():add_keybinding{name="Global:Paketti:Simple Sample Tuning Calculator...",invoke = pakettiSimpleSampleTuningDialog}
-renoise.tool():add_keybinding{name="Global:Paketti:Quick Selected Sample Tuning",invoke = pakettiQuickSelectedSampleTuning}
-renoise.tool():add_keybinding{name="Global:Paketti:Quick Selected Instrument Tuning",invoke = pakettiQuickInstrumentTuning}
-renoise.tool():add_keybinding{name="Sample Editor:Paketti:Simple Sample Tuning Calculator...",invoke = pakettiSimpleSampleTuningDialog}
-renoise.tool():add_keybinding{name="Sample Editor:Paketti:Quick Selected Sample Tuning",invoke = pakettiQuickSelectedSampleTuning}
-renoise.tool():add_keybinding{name="Sample Editor:Paketti:Quick Selected Instrument Tuning",invoke = pakettiQuickInstrumentTuning}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Sample Cycle Tuning Calculator...",invoke = pakettiSimpleSampleTuningDialog}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Selected Sample 1 Cycle Tuning",invoke = pakettiQuickSelectedSampleTuning}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Selected Instrument 1 Cycle Tuning",invoke = pakettiQuickInstrumentTuning}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Samples:Sample Cycle Tuning Calculator...",invoke = pakettiSimpleSampleTuningDialog}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Samples:Selected Sample 1 Cycle Tuning",invoke = pakettiQuickSelectedSampleTuning}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Samples:Selected Instrument 1 Cycle Tuning",invoke = pakettiQuickInstrumentTuning}
+renoise.tool():add_keybinding{name="Global:Paketti:Sample Cycle Tuning Calculator...",invoke = pakettiSimpleSampleTuningDialog}
+renoise.tool():add_keybinding{name="Global:Paketti:Selected Sample 1 Cycle Tuning",invoke = pakettiQuickSelectedSampleTuning}
+renoise.tool():add_keybinding{name="Global:Paketti:Selected Instrument 1 Cycle Tuning",invoke = pakettiQuickInstrumentTuning}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Sample Cycle Tuning Calculator...",invoke = pakettiSimpleSampleTuningDialog}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Selected Sample 1 Cycle Tuning",invoke = pakettiQuickSelectedSampleTuning}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Selected Instrument 1 Cycle Tuning",invoke = pakettiQuickInstrumentTuning}
