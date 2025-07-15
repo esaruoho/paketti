@@ -1,0 +1,75 @@
+--------------------------------------------------------------------------
+                          XI format description
+                   (FastTracker II Extended Instrument)
+          reverse engineered by KB / The Obsessed Maniacs / Reflex
+                Changed for PsyTexx by Alex Zolotov (2007)
+                Edited for Samplicity by Andrew Magalich (2012)
+--------------------------------------------------------------------------
+C = Chars, B = Byte, W = Word, D = Double word
+
+Pos(h) Len(h) Len(d)  Meaning
+-------------------------------------------------------------- file header
+0000   C15    C21     "Extended Instrument: "
+0015   C16    C22     Instrument name, padded w/ spaces
+
+002b   B01    B01     $1a
+002c   C14    C20     Tracker name, padded w/ spaces
+0040   W02    W02     Version Number (current $0102)
+                      ($5050 - PsyTexx instrument)
+
+-------------------------------------------------------------- inst header
+0042   B60    B96     Sample number for notes 1..96
+
+00a2   B30    B48     12 volume envelope points:
+                      +0 Time index for Point 1 (ticks since note)
+                      +2 Volume for Point 1     (00..40)
+                      +4 Time index for Point 2
+                      +6 Volume for Point 2
+                      [...]
+00d2   B30    B48     12 panning envelope points
+                      (Same structure as volume envelope)
+
+0102   B01            Number of volume points
+0103   B01            Number of panning points
+0104   B01            Volume sustain point
+0105   B01            Volume loop start point
+0106   B01            Volume loop end point
+0107   B01            Panning sustain point
+0108   B01            Panning loop start point
+0109   B01            Panning loop end point
+010a   B01            Volume type;   b0=on, b1=sustain, b2=loop
+010b   B01            Panning type;  b0=on, b1=sustain, b2=loop
+
+010c   B01            Vibrato type
+010d   B01            Vibrato sweep
+010e   B01            Vibrato depth
+010f   B01            Vibrato rate
+
+0110   W02            Volume fadeout (0..fff)
+0112   B16    B22     ????? (Zeroes or extened info for PsyTexx (vol,finetune,pan,relative,flags))
+
+0128   W02            Number of Samples
+
+---------------------------------------------------------- sample headers
+
+012a   D04            Sample Length
+012e   D04            Sample loop start
+0132   D04            Sample loop length
+0136   B01            Volume
+0137   B01            Finetune (signed)
+0138   B01            Sample Type; b0,1=loop: 0=none 1=fwd 2=bidi
+                                   b4 = 16bit sample
+                                   b6 = two channels (stereo) [PsyTexx feature]
+0139   B01            Panning (unsigned)
+013A   B01            Relative Note (signed, 00=C-4 NOPE IT'S C6) (call it Transpose)
+013B   B01            Sample Name Length
+013C   C16    C22     Sample Name, padded w/ zeroes
+
+And so on w/ samples 1 to x
+Length: $28 (40) bytes for each sample
+
+------------------------------------------------------------- sample data
+
+$012a+(number of samples)*$28 : sample data for all samples in delta values
+                                (signed)
+
