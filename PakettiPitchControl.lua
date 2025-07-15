@@ -1226,8 +1226,8 @@ function convert_beatsync_to_pitch()
   
   local semitones = 12 * log_factor
   print("Semitones: 12 * " .. string.format("%.6f", log_factor) .. " = " .. string.format("%.6f", semitones))
-  
-  local transpose, finetune_fraction = math.modf(semitones)
+  local semitones_quantized = math.floor(semitones * 128 + 0.5) / 128 -- This gives a minor accuracy increase in the next step
+  local transpose, finetune_fraction = math.modf(semitones_quantized)
   local finetune = math.floor(finetune_fraction * 128)
   
   print("Before clamping - Transpose: " .. transpose .. ", Finetune fraction: " .. string.format("%.6f", finetune_fraction) .. ", Finetune: " .. finetune)
@@ -1809,7 +1809,8 @@ function comprehensive_bpm_calculation_debug()
     -- Convert to transpose and finetune
     local log_factor = math.log(factor) / math.log(2)
     local semitones = 12 * log_factor
-    local transpose, finetune_fraction = math.modf(semitones)
+    local semitones_quantized = math.floor(semitones * 128 + 0.5) / 128 -- This gives a minor accuracy increase in the next step
+    local transpose, finetune_fraction = math.modf(semitones_quantized)
     local finetune = math.floor(finetune_fraction * 128)
     
     print("   Log2 factor: " .. string.format("%.6f", log_factor))
