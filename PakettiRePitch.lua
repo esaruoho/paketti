@@ -430,7 +430,7 @@ function pakettiSimpleSampleTuningDialog()
               
               -- Always apply the tuning - no safeguards for single-cycle work
               set_pitch(analysis)
-              renoise.app().window.active_middle_frame=renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+              --renoise.app().window.active_middle_frame=renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
             end
           end
         },
@@ -455,7 +455,98 @@ function pakettiSimpleSampleTuningDialog()
   perform_calculation()
 end
 
+-- Quick Selected Sample Tuning (1 cycle, no dialog)
+function pakettiQuickSelectedSampleTuning()
+  -- Check if there's a song and sample first
+  local song = renoise.song()
+  if not song then
+    renoise.app():show_status("There is no song loaded, not calculating anything.")
+    return
+  end
+  
+  if not song.selected_sample then
+    renoise.app():show_status("There is no sample, not calculating anything.")
+    return
+  end
+  
+  -- Analyze with 1 cycle
+  local res, err = analyze_sample(1)
+  if not res then
+    local error_msg = err or "Analysis failed"
+    renoise.app():show_status("Quick tuning failed: " .. error_msg)
+    return
+  end
+  
+  -- Apply the tuning immediately
+  set_pitch(res)
+  
+  -- Show feedback about what was applied
+  local status = string.format("Quick tuned sample to %s (%+.0f cents) - T:%d, F:%d", 
+    res.letter, res.cents, -round(res.midi - 60), 
+    round(-res.cents * 1.275))
+  renoise.app():show_status(status)
+  
+  -- Focus sample editor
+  --renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+end
+
+-- Quick Instrument Tuning (all samples, 1 cycle each, no dialog)
+function pakettiQuickInstrumentTuning()
+  -- Check if there's a song first
+  local song = renoise.song()
+  if not song then
+    renoise.app():show_status("There is no song loaded, not calculating anything.")
+    return
+  end
+  
+  -- Run batch analysis with 1 cycle
+  local batch_results = batch_analyze_instrument(1)
+  if batch_results.error then
+    renoise.app():show_status("Quick instrument tuning failed: " .. batch_results.error)
+    return
+  end
+  
+  if batch_results.total_samples == 0 then
+    renoise.app():show_status("No samples found in instrument")
+    return
+  end
+  
+  -- Apply corrections to samples that need tuning
+  local original_sample_index = song.selected_sample_index
+  local corrected_count = 0
+  local skipped_count = 0
+  
+  for _, sample_result in ipairs(batch_results.samples) do
+    if sample_result.needs_tuning then
+      -- Select the sample and apply correction
+      song.selected_sample_index = sample_result.index
+      set_pitch(sample_result.analysis)
+      corrected_count = corrected_count + 1
+    else
+      skipped_count = skipped_count + 1
+    end
+  end
+  
+  -- Restore original sample selection
+  song.selected_sample_index = original_sample_index
+  
+  local status = string.format("Quick instrument tuning: %d samples corrected, %d skipped (well-tuned)", 
+    corrected_count, skipped_count)
+  renoise.app():show_status(status)
+  
+  -- Focus sample editor
+  --enoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+end
+
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Simple Sample Tuning Calculator...",invoke = pakettiSimpleSampleTuningDialog}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Quick Selected Sample Tuning",invoke = pakettiQuickSelectedSampleTuning}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Quick Instrument Tuning",invoke = pakettiQuickInstrumentTuning}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Samples:Simple Sample Tuning Calculator...",invoke = pakettiSimpleSampleTuningDialog}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Samples:Quick Selected Sample Tuning",invoke = pakettiQuickSelectedSampleTuning}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Samples:Quick Instrument Tuning",invoke = pakettiQuickInstrumentTuning}
 renoise.tool():add_keybinding{name="Global:Paketti:Simple Sample Tuning Calculator...",invoke = pakettiSimpleSampleTuningDialog}
+renoise.tool():add_keybinding{name="Global:Paketti:Quick Selected Sample Tuning",invoke = pakettiQuickSelectedSampleTuning}
+renoise.tool():add_keybinding{name="Global:Paketti:Quick Instrument Tuning",invoke = pakettiQuickInstrumentTuning}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Simple Sample Tuning Calculator...",invoke = pakettiSimpleSampleTuningDialog}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Quick Selected Sample Tuning",invoke = pakettiQuickSelectedSampleTuning}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Quick Instrument Tuning",invoke = pakettiQuickInstrumentTuning}
