@@ -108,8 +108,13 @@ end
 -- =========================================
 function analyze_sample(cycles)
   local s=renoise.song()
+  if not s then return nil,"No song loaded." end
+  
   local smp=s.selected_sample
+  if not smp then return nil,"No sample selected." end
+  
   local buf=smp.sample_buffer
+  if not buf then return nil,"Sample has no buffer." end
   if not buf.has_sample_data then return nil,"No sample data." end
   local sel_start=buf.selection_start
   local sel_end=buf.selection_end
@@ -137,7 +142,27 @@ end
 
 local function batch_analyze_instrument(cycles)
   local song = renoise.song()
+  if not song then 
+    return {
+      samples = {},
+      total_samples = 0,
+      needs_tuning = 0,
+      well_tuned = 0,
+      error = "No song loaded"
+    }
+  end
+  
   local instrument = song.selected_instrument
+  if not instrument then
+    return {
+      samples = {},
+      total_samples = 0,
+      needs_tuning = 0,
+      well_tuned = 0,
+      error = "No instrument selected"
+    }
+  end
+  
   local results = {
     samples = {},
     total_samples = 0,
@@ -145,7 +170,8 @@ local function batch_analyze_instrument(cycles)
     well_tuned = 0
   }
   
-  if not instrument or #instrument.samples == 0 then
+  if #instrument.samples == 0 then
+    results.error = "No samples in instrument"
     return results
   end
   
@@ -190,11 +216,8 @@ local function batch_analyze_instrument(cycles)
           needs_tuning = cents_deviation > 2
         })
         
-        print(string.format("-- Batch Analysis: Sample %d (%s): %s, %s cents", 
-          i, sample.name, analysis.letter, 
-          analysis.cent_direction and 
-            (analysis.cent_direction .. " " .. math.abs(analysis.cents)) or 
-            string.format("%.2f", analysis.cents)))
+        print(string.format("-- Batch Analysis: Sample %d (%s): %s, %+.0f cents", 
+          i, sample.name, analysis.letter, analysis.cents))
       else
         print(string.format("-- Batch Analysis: Sample %d (%s): Analysis failed - %s", 
           i, sample.name, err or "unknown error"))
@@ -245,6 +268,85 @@ function pakettiSimpleSampleTuningDialog()
     text="Note: \nFinetune: \nMIDI: "
   }
   
+  -- Function to perform calculation
+  local function perform_calculation()
+    -- Check if there's a song and sample first
+    local song = renoise.song()
+    if not song then
+      txt.text = "Error: No song loaded."
+      renoise.app():show_status("There is no song loaded, not calculating anything.")
+      return
+    end
+    
+    if not song.selected_sample then
+      txt.text = "Error: No sample selected.\nPlease select a sample first."
+      renoise.app():show_status("There is no sample, not calculating anything.")
+      return
+    end
+    
+    local cycles=tonumber(vb.views.cycles.text)
+    if not cycles or cycles<=0 then
+      txt.text = "Error: Invalid cycle count.\nPlease enter a valid number."
+      renoise.app():show_status("Enter valid number of cycles.")
+      return
+    end
+    
+    local is_batch = vb.views.batch_checkbox.value
+    if is_batch then
+      -- Batch process all samples in instrument
+      batch_results = batch_analyze_instrument(cycles)
+      if batch_results.error then
+        txt.text = "Batch Error: " .. batch_results.error
+        renoise.app():show_status(batch_results.error)
+        return
+      end
+      if batch_results.total_samples > 0 then
+        analysis = nil  -- Clear single analysis
+        local summary = string.format("Batch Analysis Complete:\n%d samples analyzed\n%d need tuning (>2 cents)\n%d already well-tuned", 
+          batch_results.total_samples, batch_results.needs_tuning, batch_results.well_tuned)
+        
+        -- Add details about samples that need tuning
+        if batch_results.needs_tuning > 0 then
+          summary = summary .. "\n\nSamples needing tuning:"
+          for _, sample_result in ipairs(batch_results.samples) do
+            if sample_result.needs_tuning then
+                             local cents_text = string.format("%+.1f", sample_result.analysis.cents)
+              summary = summary .. string.format("\n%d. %s: %s (%s cents)", 
+                sample_result.index, sample_result.name, sample_result.analysis.letter, cents_text)
+            end
+          end
+        end
+        
+        txt.text = summary
+      else
+        txt.text = "No samples found in instrument"
+        renoise.app():show_status("No samples found in instrument")
+      end
+    else
+      -- Single sample analysis
+      local res,err=analyze_sample(cycles)
+      if not res then
+        local error_msg = err or "Analysis failed"
+        txt.text = "Error: " .. error_msg
+        renoise.app():show_status(error_msg)
+        return
+      end
+      analysis=res
+      batch_results = {}  -- Clear batch results
+      
+      -- Display analysis results
+      local display_text = "Note: "..res.letter.." ("..string.format("%.2f",res.freq).." Hz)"
+      
+      -- Display cents with proper +/- notation
+      display_text = display_text .. 
+        "\nFinetune: " .. string.format("%+.0f", res.cents) .. " cents"
+      
+      display_text = display_text .. "\nMIDI: "..string.format("%.2f",res.midi)
+        
+      txt.text = display_text
+    end
+  end
+  
   local keyhandler = create_keyhandler_for_dialog(
     function() return dialog end,
     function(value) dialog = value end
@@ -254,7 +356,7 @@ function pakettiSimpleSampleTuningDialog()
     vb:column{
       margin=10,
       vb:row{
-        vb:text{text="Cycles", width=80,style="strong",font="bold"},
+        vb:text{text="Cycle Count", width=80,style="strong",font="bold"},
         vb:textfield{
           width=40,
           text="1",
@@ -262,78 +364,8 @@ function pakettiSimpleSampleTuningDialog()
         },
         vb:button{
           text="Calculate",
-          notifier=function()
-            local cycles=tonumber(vb.views.cycles.text)
-            if not cycles or cycles<=0 then
-              renoise.app():show_status("Enter valid number of cycles.")
-              return
-            end
-            
-            local is_batch = vb.views.batch_checkbox.value
-            if is_batch then
-              -- Batch process all samples in instrument
-              batch_results = batch_analyze_instrument(cycles)
-              if batch_results.total_samples > 0 then
-                analysis = nil  -- Clear single analysis
-                local summary = string.format("Batch Analysis Complete:\n%d samples analyzed\n%d need tuning (>2 cents)\n%d already well-tuned", 
-                  batch_results.total_samples, batch_results.needs_tuning, batch_results.well_tuned)
-                
-                -- Add details about samples that need tuning
-                if batch_results.needs_tuning > 0 then
-                  summary = summary .. "\n\nSamples needing tuning:"
-                  for _, sample_result in ipairs(batch_results.samples) do
-                    if sample_result.needs_tuning then
-                      local cents_text = sample_result.analysis.cent_direction and 
-                        (sample_result.analysis.cent_direction .. " " .. math.abs(sample_result.analysis.cents)) or
-                        string.format("%.1f", sample_result.analysis.cents)
-                      summary = summary .. string.format("\n%d. %s: %s (%s cents)", 
-                        sample_result.index, sample_result.name, sample_result.analysis.letter, cents_text)
-                    end
-                  end
-                end
-                
-                txt.text = summary
-              else
-                txt.text = "No samples found in instrument"
-              end
-            else
-              -- Single sample analysis
-              local res,err=analyze_sample(cycles)
-              if not res then
-                renoise.app():show_status(err)
-                return
-              end
-              analysis=res
-              batch_results = {}  -- Clear batch results
-              
-              -- Display analysis results
-              local display_text = "Note: "..res.letter.." ("..string.format("%.2f",res.freq).." Hz)"
-              
-              -- Display cents with direction
-              if res.cent_direction then
-                display_text = display_text .. 
-                  "\nFinetune: " .. res.cent_direction .. " " .. string.format("%.0f",math.abs(res.cents)) .. " cents"
-              else
-                display_text = display_text .. 
-                  "\nFinetune: "..string.format("%.2f",res.cents).." cents"
-              end
-              
-              display_text = display_text .. "\nMIDI: "..string.format("%.2f",res.midi)
-                
-              txt.text = display_text
-            end
-          end
-        }
-      },
-      vb:row{
-        vb:checkbox{
-          value=false,
-          id="batch_checkbox"
+          notifier=perform_calculation
         },
-        vb:text{text="Batch / All Samples in Instrument",style="strong"}
-      },
-      vb:row{txt},
-      vb:row{
         vb:button{
           text="Set Pitch",
           id="set_pitch_button",
@@ -396,13 +428,7 @@ function pakettiSimpleSampleTuningDialog()
                 return
               end
               
-              -- Check if sample is actually close to standard pitch (within ±2 cents)
-              local cents_deviation = math.abs(analysis.cents)
-              if cents_deviation <= 2 then
-                renoise.app():show_status("Sample is already well-tuned (within ±2 cents).")
-                return
-              end
-              
+              -- Always apply the tuning - no safeguards for single-cycle work
               set_pitch(analysis)
               renoise.app().window.active_middle_frame=renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
             end
@@ -412,30 +438,24 @@ function pakettiSimpleSampleTuningDialog()
           text="Close",
           notifier=function() dialog:close() end
         }
-      }
+      },
+      vb:row{
+        vb:checkbox{
+          value=false,
+          id="batch_checkbox"
+        },
+        vb:text{text="Batch / All Samples in Instrument",style="strong"}
+      },
+      vb:row{txt}
     },
     keyhandler
   )
+  
+  -- Automatically perform 1-cycle calculation when dialog opens
+  perform_calculation()
 end
 
--- Menu entries
-renoise.tool():add_menu_entry{
-  name = "Sample Editor:Paketti:Simple Sample Tuning Calculator...",
-  invoke = pakettiSimpleSampleTuningDialog
-}
-
-renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:Samples:Simple Sample Tuning Calculator...",
-  invoke = pakettiSimpleSampleTuningDialog
-}
-
--- Keybindings
-renoise.tool():add_keybinding{
-  name = "Global:Paketti:Simple Sample Tuning Calculator...",
-  invoke = pakettiSimpleSampleTuningDialog
-}
-
-renoise.tool():add_keybinding{
-  name = "Sample Editor:Paketti:Simple Sample Tuning Calculator...",
-  invoke = pakettiSimpleSampleTuningDialog
-}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Simple Sample Tuning Calculator...",invoke = pakettiSimpleSampleTuningDialog}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Samples:Simple Sample Tuning Calculator...",invoke = pakettiSimpleSampleTuningDialog}
+renoise.tool():add_keybinding{name="Global:Paketti:Simple Sample Tuning Calculator...",invoke = pakettiSimpleSampleTuningDialog}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Simple Sample Tuning Calculator...",invoke = pakettiSimpleSampleTuningDialog}
