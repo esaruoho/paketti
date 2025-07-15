@@ -137,10 +137,10 @@ renoise.tool():add_menu_entry{name="--Sample Editor:Paketti Gadgets:User-Defined
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti Gadgets:Paketti YT-DLP Downloader...",invoke=pakettiYTDLPDialog }
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti Gadgets:Paketti Sample Adjust Dialog...",invoke = show_paketti_sample_adjust_dialog}
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti Gadgets:Set Selection by Hex Offset Dialog...", invoke = pakettiHexOffsetDialog}
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti Gadgets:Simple Sample Tuning Calculator...",invoke=function() pakettiSimpleSampleTuningDialog() end}
+renoise.tool():add_menu_entry{name="--Sample Editor:Paketti Gadgets:Sample Cycle Tuning Calculator...",invoke=function() pakettiSimpleSampleTuningDialog() end}
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti Gadgets:Unison Generator Dialog",invoke=PakettiCreateUnisonSamples}
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti Gadgets:Paketti eSpeak Text-to-Speech...",invoke=function() pakettieSpeakDialog() end}
-renoise.tool():add_menu_entry{name="Sample Editor:Process:Paketti Simple Sample Tuning Calculator...",invoke=function() pakettiSimpleSampleTuningDialog() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Process:Paketti Sample Cycle Tuning Calculator...",invoke=function() pakettiSimpleSampleTuningDialog() end}
 
 -- Sample Editor Load
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Load:Convert IFF to WAV...",invoke = convertIFFToWAV}

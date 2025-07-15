@@ -264,7 +264,7 @@ function pakettiSimpleSampleTuningDialog()
   local analysis = nil
   local batch_results = {}
   local txt=vb:text{
-    width=350,
+    width=250,style="strong",font="bold",
     text="Note: \nFinetune: \nMIDI: "
   }
   

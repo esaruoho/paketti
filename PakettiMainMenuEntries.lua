@@ -284,7 +284,7 @@ local function create_button_list()
     {"Debug: Available Device Information", "pakettiDebugDeviceInfoDialog"},
     {"AKWF Load 04 Samples (XY)", "pakettiLoad04AKWFSamplesXYDialog"},
     {"BPM to MS Delay Calculator", "pakettiBPMMSCalculator"},
-    {"Simple Sample Tuning Calculator", "pakettiSimpleSampleTuningDialog"},
+    {"Sample Cycle Tuning Calculator", "pakettiSimpleSampleTuningDialog"},
     {"Paketti Sequencer Settings Dialog", "pakettiSequencerSettingsDialog"},
     {"Paketti Steppers Dialog", "PakettiSteppersDialog"},
     {"Protracker MOD modulation Dialog", "showProtrackerModDialog"},
