@@ -1,33 +1,14 @@
 local dialog=nil
 
--- =========================================
--- ORIGINAL ALGORITHM (Simple/Fast)
--- =========================================
-local function log2(x) return math.log(x)/math.log(2) end
-local function midi2freq(x) return 440*(2^((x-69)/12)) end
-local function freq2midi(x) return 69+(12*log2(x/440)) end
-
 local function round(x)
   if x>=0 then return math.floor(x+0.5)
   else return math.ceil(x-0.5) end
 end
 
-local function get_note_letter(x)
-  local note = round(x)
-  -- MIDI note 60 is middle C (C4)
-  -- Calculate octave based on this reference point
-  local octave = math.floor((note - 12) / 12)
-  local letters = {"C","C#","D","D#","E","F","F#","G","G#","A","A#","B"}
-  -- Get the note name from the letters table
-  local note_name = letters[(note % 12) + 1]
-  -- Format the octave number without the minus sign
-  return note_name .. math.abs(octave)
-end
-
 -- =========================================
--- ENHANCED ALGORITHM (Whodis-based/Precise)
+-- FREQUENCY TO NOTE ANALYSIS
 -- =========================================
-local function enhanced_frequency_to_note_analysis(frequency)
+local function frequency_to_note_analysis(frequency)
   local A4 = 440.0
   local A4_INDEX = 57
   
@@ -123,7 +104,7 @@ local function enhanced_frequency_to_note_analysis(frequency)
 end
 
 -- =========================================
--- ANALYSIS FUNCTION (with algorithm selection)
+-- ANALYSIS FUNCTION
 -- =========================================
 function analyze_sample(cycles)
   local s=renoise.song()
@@ -137,40 +118,17 @@ function analyze_sample(cycles)
   local rate=buf.sample_rate
   local freq=rate/(frames/cycles)
   
-  -- Check if enhanced algorithm is enabled (with fallback to original)
-  local use_enhanced = false
-  if preferences and preferences.pakettiRePitchEnhanced ~= nil then
-    use_enhanced = preferences.pakettiRePitchEnhanced
-  end
-  
-  if use_enhanced then
-    -- Use enhanced whodis-based algorithm
-    local enhanced_result = enhanced_frequency_to_note_analysis(freq)
-    return {
-      frames=frames,
-      freq=freq,
-      midi=enhanced_result.midi_note + 12, -- Convert to standard MIDI system (C4=60)
-      nearest=enhanced_result.midi_note + 12,
-      cents=enhanced_result.cents,
-      letter=enhanced_result.note_name,
-      algorithm="Enhanced",
-      cent_direction=enhanced_result.side == 0 and "minus" or "plus"
-    }
-  else
-    -- Use original simple algorithm
-    local midi=freq2midi(freq)
-    local nearest=round(midi)
-    local cents=(nearest-midi)*100
-    return {
-      frames=frames,
-      freq=freq,
-      midi=midi,
-      nearest=nearest,
-      cents=cents,
-      letter=get_note_letter(midi),
-      algorithm="Original"
-    }
-  end
+  -- Use frequency to note analysis
+  local result = frequency_to_note_analysis(freq)
+  return {
+    frames=frames,
+    freq=freq,
+    midi=result.midi_note + 12, -- Convert to standard MIDI system (C4=60)
+    nearest=result.midi_note + 12,
+    cents=result.cents,
+    letter=result.note_name,
+    cent_direction=result.side == 0 and "minus" or "plus"
+  }
 end
 
 -- =========================================
@@ -258,7 +216,6 @@ local function set_pitch(data)
   transpose_value = math.max(-120, math.min(120, transpose_value))
   smp.transpose = transpose_value
   
-  -- Handle both original and enhanced algorithm cents
   -- We always want to CORRECT the pitch, so negate the detected deviation
   local cents_value = -data.cents  -- Negate to correct the detected deviation
   
@@ -269,8 +226,8 @@ local function set_pitch(data)
   smp.fine_tune = fine_tune_steps
   
   -- Show feedback about what was set
-  local status = string.format("Set transpose: %d, fine tune: %d (%s algorithm)", 
-    transpose_value, fine_tune_steps, data.algorithm or "Unknown")
+  local status = string.format("Set transpose: %d, fine tune: %d", 
+    transpose_value, fine_tune_steps)
   renoise.app():show_status(status)
   print("-- Paketti RePitch: " .. status)
   print("-- Paketti RePitch Debug: detected cents = " .. tostring(data.cents) .. 
@@ -285,14 +242,8 @@ function pakettiSimpleSampleTuningDialog()
   local batch_results = {}
   local txt=vb:text{
     width=350,
-    text="Note: \nFinetune: \nMIDI: \nAlgorithm: "
+    text="Note: \nFinetune: \nMIDI: "
   }
-  
-  -- Function to update algorithm switch
-  local function update_algorithm_switch()
-    local use_enhanced = preferences and preferences.pakettiRePitchEnhanced or false
-    vb.views.algorithm_switch.value = use_enhanced and 2 or 1
-  end
   
   local keyhandler = create_keyhandler_for_dialog(
     function() return dialog end,
@@ -302,59 +253,6 @@ function pakettiSimpleSampleTuningDialog()
     "Paketti Simple Sample Tuning Calculator",
     vb:column{
       margin=10,
-      vb:row{
-        vb:text{text="Algorithm:",width=80, font="bold",style="strong"},
-        vb:switch{
-          items={"Original","Enhanced"},
-          value=1,
-          width=120,
-          id="algorithm_switch",
-          notifier=function(value)
-            if preferences then
-              preferences.pakettiRePitchEnhanced = (value == 2)
-              local algorithm_name = preferences.pakettiRePitchEnhanced and "Enhanced" or "Original"
-              renoise.app():show_status("Algorithm switched to " .. algorithm_name)
-              
-              -- Auto-recalculate if we have valid cycles
-              local cycles_text = vb.views.cycles.text
-              local cycles = tonumber(cycles_text)
-              if cycles and cycles > 0 then
-                local res, err = analyze_sample(cycles)
-                if res then
-                  analysis = res
-                  
-                  -- Update display with new algorithm results
-                  local display_text = "Note: "..res.letter.." ("..string.format("%.2f",res.freq).." Hz)"
-                  
-                  if res.cent_direction then
-                    -- Enhanced algorithm with directional cents
-                    display_text = display_text .. 
-                      "\nFinetune: " .. res.cent_direction .. " " .. string.format("%.0f",math.abs(res.cents)) .. " cents"
-                  else
-                    -- Original algorithm
-                    display_text = display_text .. 
-                      "\nFinetune: "..string.format("%.2f",res.cents).." cents"
-                  end
-                  
-                  display_text = display_text .. 
-                    "\nMIDI: "..string.format("%.2f",res.midi) ..
-                    "\nAlgorithm: " .. (res.algorithm or "Unknown")
-                    
-                  txt.text = display_text
-                else
-                  -- Clear analysis if recalculation failed
-                  analysis = nil
-                  txt.text = "Note: \nFinetune: \nMIDI: \nAlgorithm: "
-                end
-              else
-                -- Clear previous analysis if no valid cycles
-                analysis = nil
-                txt.text = "Note: \nFinetune: \nMIDI: \nAlgorithm: "
-              end
-            end
-          end
-        }
-      },
       vb:row{
         vb:text{text="Cycles", width=80,style="strong",font="bold"},
         vb:textfield{
@@ -408,22 +306,19 @@ function pakettiSimpleSampleTuningDialog()
               analysis=res
               batch_results = {}  -- Clear batch results
               
-              -- Enhanced display for new algorithm
+              -- Display analysis results
               local display_text = "Note: "..res.letter.." ("..string.format("%.2f",res.freq).." Hz)"
               
+              -- Display cents with direction
               if res.cent_direction then
-                -- Enhanced algorithm with directional cents
                 display_text = display_text .. 
                   "\nFinetune: " .. res.cent_direction .. " " .. string.format("%.0f",math.abs(res.cents)) .. " cents"
               else
-                -- Original algorithm
                 display_text = display_text .. 
                   "\nFinetune: "..string.format("%.2f",res.cents).." cents"
               end
               
-              display_text = display_text .. 
-                "\nMIDI: "..string.format("%.2f",res.midi) ..
-                "\nAlgorithm: " .. (res.algorithm or "Unknown")
+              display_text = display_text .. "\nMIDI: "..string.format("%.2f",res.midi)
                 
               txt.text = display_text
             end
@@ -521,71 +416,26 @@ function pakettiSimpleSampleTuningDialog()
     },
     keyhandler
   )
-  
-  -- Initialize the algorithm switch
-  update_algorithm_switch()
-end
-
--- Function to toggle algorithm preference from menu
-function pakettiRePitchToggleAlgorithm()
-  if preferences then
-    preferences.pakettiRePitchEnhanced = not preferences.pakettiRePitchEnhanced
-    local algorithm_name = preferences.pakettiRePitchEnhanced and "Enhanced (Whodis-based)" or "Original (Simple)"
-    renoise.app():show_status("Paketti RePitch Algorithm: " .. algorithm_name)
-    print("-- Paketti RePitch: Algorithm switched to " .. algorithm_name)
-  else
-    renoise.app():show_warning("Preferences not available")
-  end
-end
-
--- Check if algorithm is enhanced (for menu checkmark)
-function pakettiRePitchIsEnhanced()
-  return preferences and preferences.pakettiRePitchEnhanced or false
 end
 
 -- Menu entries
 renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:Samples:Pitch Analysis Algorithm:Enhanced (Whodis-based)",
-  invoke = function() 
-    if preferences then 
-      preferences.pakettiRePitchEnhanced = true
-      renoise.app():show_status("Paketti RePitch: Enhanced algorithm enabled")
-    end
-  end,
-  selected = function() return pakettiRePitchIsEnhanced() end
+  name = "Sample Editor:Paketti:Simple Sample Tuning Calculator...",
+  invoke = pakettiSimpleSampleTuningDialog
 }
 
 renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:Samples:Pitch Analysis Algorithm:Original (Simple)",
-  invoke = function() 
-    if preferences then 
-      preferences.pakettiRePitchEnhanced = false
-      renoise.app():show_status("Paketti RePitch: Original algorithm enabled")
-    end
-  end,
-  selected = function() return not pakettiRePitchIsEnhanced() end
-}
-
-renoise.tool():add_menu_entry{
-  name = "Sample Editor:Paketti:Pitch Analysis Algorithm:Toggle Enhanced/Original",
-  invoke = pakettiRePitchToggleAlgorithm
+  name = "Main Menu:Tools:Paketti:Samples:Simple Sample Tuning Calculator...",
+  invoke = pakettiSimpleSampleTuningDialog
 }
 
 -- Keybindings
 renoise.tool():add_keybinding{
-  name = "Global:Paketti:Toggle RePitch Algorithm (Enhanced/Original)",
-  invoke = pakettiRePitchToggleAlgorithm
+  name = "Global:Paketti:Simple Sample Tuning Calculator...",
+  invoke = pakettiSimpleSampleTuningDialog
 }
 
--- MIDI mapping
-renoise.tool():add_midi_mapping{
-  name = "Paketti:Toggle RePitch Algorithm",
-  invoke = function(message) 
-    if message:is_trigger() then 
-      pakettiRePitchToggleAlgorithm() 
-    end 
-  end
+renoise.tool():add_keybinding{
+  name = "Sample Editor:Paketti:Simple Sample Tuning Calculator...",
+  invoke = pakettiSimpleSampleTuningDialog
 }
-
-
-

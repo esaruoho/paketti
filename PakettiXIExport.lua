@@ -37,52 +37,99 @@ local function write_string_fixed(file, str, length)
   file:write(padded)
 end
 
+-- Signed 16-bit little-endian writer for FT2-style delta data (Lua 5.1 compatible)
+local function write_signed_word_le(file, val)
+  -- Convert to unsigned 16-bit representation (Lua 5.1 compatible)
+  local s = val % 65536  -- Equivalent to val & 0xFFFF
+  if val < 0 then
+    s = 65536 + val  -- Handle negative values
+  end
+  
+  -- Split into low and high bytes (Lua 5.1 compatible)
+  local low_byte = s % 256  -- Equivalent to s & 0xFF
+  local high_byte = math.floor(s / 256) % 256  -- Equivalent to (s >> 8) & 0xFF
+  
+  file:write(string.char(low_byte, high_byte))
+end
+
 -- XI format constants (from xi.c)
 local XI_ENV_ENABLED = 0x01
 local XI_ENV_SUSTAIN = 0x02
 local XI_ENV_LOOP = 0x04
 
--- Convert Renoise sample to raw PCM data (NO delta encoding for FT2!)
+-- Convert Renoise sample to FT2-style delta-compressed 16-bit PCM
 local function convert_sample_data(sample)
   dprint("Converting sample: " .. (sample.name or "Unnamed"))
-  
-  if not sample.sample_buffer then
-    dprint("  No sample buffer!")
-    return {}
-  end
-  
-  if not sample.sample_buffer.has_sample_data then
-    dprint("  Sample buffer has no data!")
-    return {}
-  end
-  
+
   local buffer = sample.sample_buffer
+  if not buffer or not buffer.has_sample_data then
+    dprint("  No sample data!")
+    return {}
+  end
+
   local num_frames = buffer.number_of_frames
   local num_channels = buffer.number_of_channels
-  local pcm_data = {}
-  
+  local is_stereo = (num_channels == 2)
+  local delta_data = {}
+
   dprint("  Frames: " .. num_frames .. ", Channels: " .. num_channels)
-  
-  -- Convert to raw signed 16-bit PCM (interleaved for stereo)
-  for frame = 1, num_frames do
-    for channel = 1, num_channels do
-      -- Get float sample (-1.0 to 1.0) and convert to signed 16-bit
-      local float_sample = buffer:sample_data(channel, frame)
-      local sample_value = math.floor(float_sample * 32767 + 0.5)
-      sample_value = math.max(-32768, math.min(32767, sample_value))
-      
-      -- Store as raw PCM (no delta encoding)
-      table.insert(pcm_data, sample_value)
+
+  -- Helper to convert float [-1.0, 1.0] to signed 16-bit
+  local function float_to_int16(val)
+    local s = math.floor(val * 32767 + 0.5)
+    return math.max(-32768, math.min(32767, s))
+  end
+
+  -- Mono: delta encode directly
+  if not is_stereo then
+    local prev = 0
+    for i = 1, num_frames do
+      local s = float_to_int16(buffer:sample_data(1, i))
+      local delta = s - prev
+      table.insert(delta_data, delta)
+      prev = s
       
       -- Debug first few values
-      if frame <= 3 and channel == 1 then
-        dprint("    Frame " .. frame .. " Ch" .. channel .. ": float=" .. float_sample .. " -> pcm=" .. sample_value)
+      if i <= 3 then
+        dprint("    Frame " .. i .. ": sample=" .. s .. " -> delta=" .. delta)
       end
     end
+    dprint("  Converted mono sample: " .. #delta_data .. " delta values")
+    return delta_data
   end
-  
-  dprint("  Converted to " .. #pcm_data .. " raw PCM values")
-  return pcm_data
+
+  -- Stereo: process Left then Right as separate blocks (FT2-style)
+  local left_block = {}
+  local right_block = {}
+
+  -- Left channel delta block
+  do
+    local prev = 0
+    for i = 1, num_frames do
+      local s = float_to_int16(buffer:sample_data(1, i))
+      local delta = s - prev
+      table.insert(left_block, delta)
+      prev = s
+    end
+  end
+
+  -- Right channel delta block
+  do
+    local prev = 0
+    for i = 1, num_frames do
+      local s = float_to_int16(buffer:sample_data(2, i))
+      local delta = s - prev
+      table.insert(right_block, delta)
+      prev = s
+    end
+  end
+
+  -- Concatenate blocks: [L0, L1, ..., Ln, R0, R1, ..., Rn]
+  for _, d in ipairs(left_block) do table.insert(delta_data, d) end
+  for _, d in ipairs(right_block) do table.insert(delta_data, d) end
+
+  dprint("  Converted stereo sample: " .. #delta_data .. " delta values (L+R)")
+  return delta_data
 end
 
 -- Create sample mapping - export ALL samples in instrument
@@ -284,6 +331,10 @@ function PakettiXIExport()
   end
   
   dprint("Exporting: " .. filename)
+  dprint("=== EXPORT SCOPE CLARIFICATION ===")
+  dprint("EXPORTING: ENTIRE INSTRUMENT (not just selected sample)")
+  dprint("Instrument name: '" .. (instrument.name or "[Unnamed]") .. "'")
+  dprint("Total samples in instrument: " .. #instrument.samples)
   
   -- Create sample mapping (following xi.c)
   local snum, xi_invmap, xi_nalloc = create_sample_mapping(instrument)
@@ -429,28 +480,81 @@ function PakettiXIExport()
     local is_16bit = true  -- Always export as 16-bit
     local is_stereo = (num_channels > 1)
     
-    -- Calculate loop info
+    -- === ANALYZE AND DEBUG SAMPLE INFO IN DETAIL ===
+    dprint("=== SAMPLE " .. k .. " ANALYSIS ===")
+    dprint("  Sample index: " .. sample_idx .. " (0-based: " .. k .. ")")
+    dprint("  Sample name: '" .. (sample.name or "[Unnamed]") .. "'")
+    
+    -- Check if sample has data
+    if not buffer then
+      dprint("  ❌ ERROR: Sample has no buffer!")
+    elseif not buffer.has_sample_data then
+      dprint("  ❌ WARNING: Sample buffer exists but has no audio data!")
+    else
+      dprint("  ✅ Sample has audio data")
+      dprint("  Sample frames: " .. buffer.number_of_frames)
+      dprint("  Sample rate: " .. buffer.sample_rate .. " Hz")
+      dprint("  Channels: " .. buffer.number_of_channels)
+      dprint("  Bit depth: " .. buffer.bit_depth .. " bit")
+    end
+    
+    -- Analyze loop settings in detail
     local loop_start = 0
     local loop_length = 0
     local sample_type = 0
     
-    if sample.loop_mode ~= renoise.Sample.LOOP_MODE_OFF then
-      loop_start = (sample.loop_start or 1) - 1  -- Convert to 0-based
-      local loop_end = sample.loop_end or sample_length
-      loop_length = loop_end - loop_start
-      
-      if sample.loop_mode == renoise.Sample.LOOP_MODE_FORWARD then
-        sample_type = sample_type + 1
-      elseif sample.loop_mode == renoise.Sample.LOOP_MODE_REVERSE then
-        sample_type = sample_type + 2
-      end
+    local loop_mode = sample.loop_mode
+    dprint("  Loop mode enum: " .. tostring(loop_mode))
+    
+    if loop_mode == renoise.Sample.LOOP_MODE_FORWARD then
+      sample_type = sample_type + 1
+      dprint("  Loop mode: FORWARD")
+    elseif loop_mode == renoise.Sample.LOOP_MODE_REVERSE then
+      sample_type = sample_type + 2
+      dprint("  Loop mode: REVERSE")
+    elseif loop_mode == renoise.Sample.LOOP_MODE_PING_PONG then
+      sample_type = sample_type + 3
+      dprint("  Loop mode: PING-PONG")
+    else
+      dprint("  Loop mode: OFF")
     end
     
-    -- Convert and store sample data first to get accurate length
-    local pcm_data = convert_sample_data(sample)
+    if loop_mode ~= renoise.Sample.LOOP_MODE_OFF then
+      local loop_start_frame = sample.loop_start or 1
+      local loop_end_frame = sample.loop_end or (buffer and buffer.number_of_frames or 0)
+      loop_start = (loop_start_frame - 1) * num_channels * 2  -- Convert to byte offset
+      loop_length = ((loop_end_frame - loop_start_frame) + 1) * num_channels * 2
+      
+      dprint("  Loop start frame: " .. loop_start_frame)
+      dprint("  Loop end frame: " .. loop_end_frame)
+      dprint("  Loop length frames: " .. ((loop_end_frame - loop_start_frame) + 1))
+      dprint("  Loop start bytes: " .. loop_start)
+      dprint("  Loop length bytes: " .. loop_length)
+    else
+      dprint("  No loop - start: 0, length: 0")
+    end
     
-    -- Calculate actual sample length in bytes (FT2 expects exact byte count)
-    sample_length = #pcm_data * 2  -- 2 bytes per 16-bit sample
+    -- Show other sample properties
+    dprint("  Volume: " .. (sample.volume or 1.0))
+    dprint("  Panning: " .. (sample.panning or 0.5))
+    dprint("  Transpose: " .. (sample.transpose or 0))
+    dprint("  Fine tune: " .. (sample.fine_tune or 0))
+    
+    -- Convert and store sample data first to get accurate length
+    dprint("  Converting sample data...")
+    local delta_data
+    
+    if not buffer or not buffer.has_sample_data then
+      dprint("  ❌ SKIPPING sample conversion - no audio data!")
+      -- Create empty delta data for samples with no audio
+      delta_data = {}
+      sample_length = 0
+    else
+      dprint("  ✅ PROCEEDING with sample conversion...")
+      delta_data = convert_sample_data(sample)
+      sample_length = #delta_data * 2  -- 2 bytes per 16-bit sample
+      dprint("  Converted " .. #delta_data .. " delta values, " .. sample_length .. " bytes")
+    end
     
     -- Set sample type flags
     if is_16bit then
@@ -461,18 +565,25 @@ function PakettiXIExport()
       sample_type = sample_type + 0x20
     end
     
-    -- Calculate loop points in bytes (not samples)
-    if sample.loop_mode ~= renoise.Sample.LOOP_MODE_OFF then
-      loop_start = ((sample.loop_start or 1) - 1) * num_channels * 2  -- Convert to byte offset
-      local loop_end_frame = sample.loop_end or buffer.number_of_frames
-      loop_length = ((loop_end_frame - (sample.loop_start or 1)) + 1) * num_channels * 2
-    end
+    dprint("  Final sample type flags: " .. sample_type)
     
     -- Get sample name and ensure it fits (NO LENGTH BYTE!)
     local sample_name = sample.name or ""
     if #sample_name > 22 then
       sample_name = sample_name:sub(1, 22)
     end
+    
+    -- Show final header values before writing
+    dprint("  === FINAL HEADER VALUES ===")
+    dprint("  Sample length (bytes): " .. sample_length)
+    dprint("  Loop start (bytes): " .. loop_start)
+    dprint("  Loop length (bytes): " .. loop_length)
+    dprint("  Volume (0-64): " .. math.floor((sample.volume or 1.0) * 64))
+    dprint("  Fine tune: " .. (sample.fine_tune or 0))
+    dprint("  Sample type: " .. sample_type)
+    dprint("  Panning (0-255): " .. math.floor((sample.panning or 0.5) * 255))
+    dprint("  Transpose: " .. (sample.transpose or 0))
+    dprint("  Sample name: '" .. sample_name .. "' (length: " .. #sample_name .. ")")
     
     -- Write sample header (exactly 40 bytes, no sample name length!)
     write_dword_le(file, sample_length)  -- samplen (4 bytes)
@@ -486,38 +597,33 @@ function PakettiXIExport()
     write_byte(file, 0)  -- reserved byte (1 byte) - NO SAMPLE NAME LENGTH!
     write_string_fixed(file, sample_name, 22)  -- name[22] (22 bytes, zero-padded)
     
-    -- Store the PCM data (already converted above)
-    table.insert(sample_data_list, pcm_data)
+    -- Store the delta data (already converted above)
+    table.insert(sample_data_list, delta_data)
     
-    dprint("Sample " .. k .. ": " .. sample_length .. " bytes, type=" .. sample_type)
+    dprint("Sample " .. k .. " header written: " .. sample_length .. " bytes, type=" .. sample_type)
+    dprint("=== END SAMPLE " .. k .. " ANALYSIS ===\n")
   end
   
-  -- Write sample data (raw PCM, no delta encoding for FT2!)
+  -- Write sample data (FT2-style delta encoding)
   dprint("=== WRITING SAMPLE DATA ===")
   local total_bytes_written = 0
   
-  for k, pcm_data in ipairs(sample_data_list) do
-    local sample_bytes = #pcm_data * 2  -- 2 bytes per 16-bit sample
+  for k, delta_data in ipairs(sample_data_list) do
+    local sample_bytes = #delta_data * 2  -- 2 bytes per 16-bit sample
     total_bytes_written = total_bytes_written + sample_bytes
-    dprint("Writing sample data " .. (k-1) .. ": " .. #pcm_data .. " values (" .. sample_bytes .. " bytes)")
+    dprint("Writing sample data " .. (k-1) .. ": " .. #delta_data .. " values (" .. sample_bytes .. " bytes)")
     
-    if #pcm_data == 0 then
+    if #delta_data == 0 then
       dprint("  WARNING: Sample " .. (k-1) .. " has no data!")
     end
     
-    for i, pcm_value in ipairs(pcm_data) do
-      -- Write as signed 16-bit little-endian (raw PCM for FT2)
-      local clamped = math.max(-32768, math.min(32767, pcm_value))
-      -- Convert signed 16-bit to unsigned 16-bit representation for storage
-      local unsigned_value = clamped
-      if unsigned_value < 0 then
-        unsigned_value = 0x10000 + unsigned_value  -- Two's complement conversion
-      end
-      write_word_le(file, unsigned_value)
+    for i, delta_value in ipairs(delta_data) do
+      -- Write as signed 16-bit little-endian (FT2-style delta encoding)
+      write_signed_word_le(file, delta_value)
       
       -- Debug first few values
       if i <= 3 then
-        dprint("    Value " .. i .. ": pcm=" .. pcm_value .. " -> clamped=" .. clamped .. " -> unsigned=" .. unsigned_value)
+        dprint("    Value " .. i .. ": delta=" .. delta_value)
       end
     end
   end
@@ -533,9 +639,9 @@ function PakettiXIExport()
   dprint("Export complete: " .. #instrument.samples .. " samples, " .. xi_nalloc .. " used")
   dprint("=== FT2-COMPATIBLE EXPORT FIXES APPLIED ===")
   dprint("✅ No sample name length byte (removed)")
-  dprint("✅ Raw PCM data (no delta encoding)")
-  dprint("✅ Interleaved stereo channels")
-  dprint("✅ Correct sample length calculations")
+  dprint("✅ FT2-style delta encoding (corrected)")
+  dprint("✅ Stereo L+R block layout (not interleaved)")
+  dprint("✅ Signed 16-bit little-endian sample data")
   dprint("✅ Standard 40-byte sample headers")
 end
 
