@@ -5268,6 +5268,10 @@ function PCMWriterLoadCurrentSample()
     return
   end
   
+  -- Check if wave size needs to change
+  local old_wave_size = wave_size
+  local wave_size_changed = (num_frames ~= wave_size)
+  
   -- Set wave size to match sample
   wave_size = num_frames
   wave_data = table.create()
@@ -5335,8 +5339,8 @@ function PCMWriterLoadCurrentSample()
   end
   PCMWriterUpdateHexDisplay()
   
-  -- Rebuild dialog if needed to show new wave size
-  if pcm_dialog then
+  -- Only rebuild dialog if wave size actually changed
+  if wave_size_changed and pcm_dialog then
     pcm_dialog:close()
     PCMWriterShowPcmDialog()
   end
@@ -5649,8 +5653,9 @@ function PCMWriterShowPcmDialog()
           if preferences and preferences.singlewaveformwriterhex then
             preferences.singlewaveformwriterhex.value = not value
           end
-          -- Rebuild dialog to show/hide hex editor
+          -- Rebuild dialog to show/hide hex editor (required by Renoise UI limitations)
           if pcm_dialog then
+            renoise.app():show_status("Rebuilding dialog to " .. (hide_hex_editor and "hide" or "show") .. " hex editor...")
             pcm_dialog:close()
             PCMWriterShowPcmDialog()
           end

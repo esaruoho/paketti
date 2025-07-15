@@ -1894,4 +1894,3 @@ renoise.tool():add_keybinding{name="Global:Paketti:BPM Calculation Debug (Compre
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:BPM Calculation Debug (Comprehensive)",invoke=comprehensive_bpm_calculation_debug}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:BPM Calculation Debug (Comprehensive)",invoke=comprehensive_bpm_calculation_debug}
 
-
