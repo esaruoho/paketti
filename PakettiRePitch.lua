@@ -540,13 +540,13 @@ end
 
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Simple Sample Tuning Calculator...",invoke = pakettiSimpleSampleTuningDialog}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Quick Selected Sample Tuning",invoke = pakettiQuickSelectedSampleTuning}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Quick Instrument Tuning",invoke = pakettiQuickInstrumentTuning}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Quick Selected Instrument Tuning",invoke = pakettiQuickInstrumentTuning}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Samples:Simple Sample Tuning Calculator...",invoke = pakettiSimpleSampleTuningDialog}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Samples:Quick Selected Sample Tuning",invoke = pakettiQuickSelectedSampleTuning}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Samples:Quick Instrument Tuning",invoke = pakettiQuickInstrumentTuning}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Samples:Quick Selected Instrument Tuning",invoke = pakettiQuickInstrumentTuning}
 renoise.tool():add_keybinding{name="Global:Paketti:Simple Sample Tuning Calculator...",invoke = pakettiSimpleSampleTuningDialog}
 renoise.tool():add_keybinding{name="Global:Paketti:Quick Selected Sample Tuning",invoke = pakettiQuickSelectedSampleTuning}
-renoise.tool():add_keybinding{name="Global:Paketti:Quick Instrument Tuning",invoke = pakettiQuickInstrumentTuning}
+renoise.tool():add_keybinding{name="Global:Paketti:Quick Selected Instrument Tuning",invoke = pakettiQuickInstrumentTuning}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Simple Sample Tuning Calculator...",invoke = pakettiSimpleSampleTuningDialog}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Quick Selected Sample Tuning",invoke = pakettiQuickSelectedSampleTuning}
-renoise.tool():add_keybinding{name="Sample Editor:Paketti:Quick Instrument Tuning",invoke = pakettiQuickInstrumentTuning}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Quick Selected Instrument Tuning",invoke = pakettiQuickInstrumentTuning}
