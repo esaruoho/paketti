@@ -5,6 +5,151 @@ local DIALOG_TITLE = "Paketti Single Cycle Waveform Writer"
 local _DEBUG = true
 local function dprint(...) if _DEBUG then print("PCM Debug:", ...) end end
 
+-- AUTOMATIC PITCH CORRECTION FEATURE:
+-- All sample exports now include automatic pitch correction using danoise's frequency analysis algorithm.
+-- Single-cycle waveforms are analyzed for their fundamental frequency and automatically corrected
+-- to the nearest musical note with proper transpose and fine-tune values.
+-- Correction is only applied if deviation is >2 cents to avoid unnecessary micro-adjustments.
+
+-- ========================================
+-- HEADLESS PITCH CORRECTION (danoise algorithm)
+-- ========================================
+
+local function round(x)
+  if x>=0 then return math.floor(x+0.5)
+  else return math.ceil(x-0.5) end
+end
+
+-- Headless frequency to note analysis (extracted from PakettiRePitch)
+local function frequency_to_note_analysis(frequency)
+  local A4 = 440.0
+  local A4_INDEX = 57
+  
+  -- Full MIDI range C0-B9
+  local notes = {
+    "C0","C#0","D0","D#0","E0","F0","F#0","G0","G#0","A0","A#0","B0",
+    "C1","C#1","D1","D#1","E1","F1","F#1","G1","G#1","A1","A#1","B1",
+    "C2","C#2","D2","D#2","E2","F2","F#2","G2","G#2","A2","A#2","B2",
+    "C3","C#3","D3","D#3","E3","F3","F#3","G3","G#3","A3","A#3","B3",
+    "C4","C#4","D4","D#4","E4","F4","F#4","G4","G#4","A4","A#4","B4",
+    "C5","C#5","D5","D#5","E5","F5","F5","G5","G#5","A5","A#5","B5",
+    "C6","C#6","D6","D#6","E6","F6","F#6","G6","G#6","A6","A#6","B6",
+    "C7","C#7","D7","D#7","E7","F7","F#7","G7","G#7","A7","A#7","B7",
+    "C8","C#8","D8","D#8","E8","F8","F#8","G8","G#8","A8","A#8","B8",
+    "C9","C#9","D9","D#9","E9","F9","F#9","G9","G#9","A9","A#9","B9"
+  }
+  
+  local pow = function(a,b) return a ^ b end
+  
+  local MINUS = 0
+  local PLUS = 1
+  
+  local r = pow(2.0, 1.0/12.0)  -- More precise semitone ratio
+  local cent = pow(2.0, 1.0/1200.0)  -- Precise cent calculations
+  local r_index = 1
+  local cent_index = 0
+  local side
+  local working_freq = A4
+  
+  if frequency >= working_freq then
+    -- Higher than or equal to A4
+    while frequency >= r * working_freq do
+      working_freq = r * working_freq
+      r_index = r_index + 1
+    end
+    while frequency > cent * working_freq do
+      working_freq = cent * working_freq
+      cent_index = cent_index + 1
+    end
+    if (cent * working_freq - frequency) < (frequency - working_freq) then
+      cent_index = cent_index + 1
+    end
+    if cent_index > 50 then  -- Use 50 cents as threshold for rounding to next semitone
+      r_index = r_index + 1
+      cent_index = 100 - cent_index
+      side = MINUS
+    else
+      side = PLUS
+    end
+  else
+    -- Lower than A4
+    while frequency <= working_freq / r do
+      working_freq = working_freq / r
+      r_index = r_index - 1
+    end
+    while frequency < working_freq / cent do
+      working_freq = working_freq / cent
+      cent_index = cent_index + 1
+    end
+    if (frequency - working_freq / cent) < (working_freq - frequency) then
+      cent_index = cent_index + 1
+    end
+    if cent_index >= 50 then  -- Use 50 cents as threshold for rounding to next semitone
+      r_index = r_index - 1
+      cent_index = 100 - cent_index
+      side = PLUS
+    else
+      side = MINUS
+    end
+  end
+  
+  -- Calculate MIDI note number
+  local midi_note = A4_INDEX + r_index - 1  -- Convert to 0-based indexing
+  
+  -- Get note name
+  local note_name = "C4"  -- Default fallback
+  if midi_note >= 0 and midi_note < #notes then
+    note_name = notes[midi_note + 1]  -- Convert back to 1-based indexing
+  end
+  
+  -- Calculate signed cents
+  local signed_cents = cent_index
+  if side == MINUS then
+    signed_cents = -signed_cents
+  end
+  
+  return {
+    note_name = note_name,
+    midi_note = midi_note,
+    cents = signed_cents,
+    side = side
+  }
+end
+
+-- Headless pitch correction calculator
+local function calculate_pitch_correction(sample_rate, wave_length_frames, cycles)
+  cycles = cycles or 1  -- Default to 1 cycle
+  
+  -- Calculate frequency from wave data
+  local freq = sample_rate / (wave_length_frames / cycles)
+  
+  -- Analyze the frequency
+  local result = frequency_to_note_analysis(freq)
+  
+  -- Calculate pitch correction values
+  local midi_note = result.midi_note + 12  -- Convert to standard MIDI system (C4=60)
+  local diff = round(midi_note) - 60  -- Difference from C4
+  
+  -- Calculate transpose (clamp to valid range)
+  local transpose_value = -diff
+  transpose_value = math.max(-120, math.min(120, transpose_value))
+  
+  -- Calculate fine tune correction (negate to correct the detected deviation)
+  local cents_value = -result.cents
+  local fine_tune_steps = round(cents_value * 1.275)  -- Scale: 255 steps / 200 cents = 1.275
+  fine_tune_steps = math.max(-128, math.min(127, fine_tune_steps))
+  
+  return {
+    frequency = freq,
+    note_name = result.note_name,
+    midi_note = midi_note,
+    cents = result.cents,
+    transpose = transpose_value,
+    fine_tune = fine_tune_steps,
+    cent_direction = result.side == 0 and "minus" or "plus"
+  }
+end
+
 -- ========================================
 -- COLOR CONSTANTS - All canvas colors organized in one place
 -- ========================================
@@ -2513,14 +2658,30 @@ function PCMWriterExportWavetableToSample()
     end
     
     sample.oversample_enabled = sample_oversample_enabled
+    
+    -- AUTOMATIC PITCH CORRECTION using danoise algorithm
+    local pitch_correction = calculate_pitch_correction(44100, wave_size, 1)
+    
+    -- Only apply correction if deviation is significant (>2 cents)
+    local cents_deviation = math.abs(pitch_correction.cents)
+    if cents_deviation > 2 then
+      sample.transpose = pitch_correction.transpose
+      sample.fine_tune = pitch_correction.fine_tune
+      
+      -- Update sample name to include pitch correction info
+      local correction_status = string.format(" -> Auto-tuned to %s (T:%d, F:%d)", 
+        pitch_correction.note_name, pitch_correction.transpose, pitch_correction.fine_tune)
+      
+      sample.name = sample.name .. correction_status
+    end
   end
   
-  inst.name = string.format("PCM Wavetable (%d waves, %d frames)", #wavetable_waves, wave_size)
+  inst.name = string.format("PCM Wavetable (%d waves, %d frames) + Auto-Pitch", #wavetable_waves, wave_size)
   
   -- Select the first sample
   song.selected_sample_index = 1
   
-  renoise.app():show_status(string.format("Wavetable exported: %d waves as separate sample slots with %s interpolation", #wavetable_waves, sample_interpolation_mode))
+  renoise.app():show_status(string.format("Wavetable exported: %d waves as separate sample slots with %s interpolation, auto-pitch correction", #wavetable_waves, sample_interpolation_mode))
 end
 
 function PCMWriterAddWavetableWave()
@@ -3791,8 +3952,24 @@ function PCMWriterCreate12RandomInstrument()
     
     sample.oversample_enabled = sample_oversample_enabled
     
+    -- AUTOMATIC PITCH CORRECTION using danoise algorithm
+    local pitch_correction = calculate_pitch_correction(44100, wave_size, 1)
+    
+    -- Only apply correction if deviation is significant (>2 cents)
+    local cents_deviation = math.abs(pitch_correction.cents)
+    if cents_deviation > 2 then
+      sample.transpose = pitch_correction.transpose
+      sample.fine_tune = pitch_correction.fine_tune
+      
+      -- Update sample name to include pitch correction info
+      local correction_status = string.format(" -> Auto-tuned to %s (T:%d, F:%d)", 
+        pitch_correction.note_name, pitch_correction.transpose, pitch_correction.fine_tune)
+      
+      sample.name = sample.name .. correction_status
+    end
+    
     -- Update progress with crossfade info
-    renoise.app():show_status(string.format("Random A+B crossfade %d/12 (X%.0f%%)", wave_num, crossfade_amount * 100))
+    renoise.app():show_status(string.format("Random A+B crossfade %d/12 (X%.0f%%), auto-pitch correction", wave_num, crossfade_amount * 100))
     
     -- Small delay to ensure entropy changes between iterations
     for delay = 1, 1000 do
@@ -3810,12 +3987,12 @@ function PCMWriterCreate12RandomInstrument()
   end
   PCMWriterUpdateHexDisplay()
   
-  inst.name = string.format("PCM Random A+B Crossfade (%d waves, %d frames)", 12, wave_size)
+  inst.name = string.format("PCM Random A+B Crossfade (%d waves, %d frames) + Auto-Pitch", 12, wave_size)
   
   -- Select the first sample
   song.selected_sample_index = 1
   
-  renoise.app():show_status("Created 12 Random A+B Crossfade Instrument (12 crossfaded waves)")
+  renoise.app():show_status("Created 12 Random A+B Crossfade Instrument (12 crossfaded waves) with auto-pitch correction")
   
   -- Return focus to Renoise main window
 --  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
@@ -4071,6 +4248,33 @@ function PCMWriterExportToSample()
   sample.loop_start = 1
   sample.loop_end = wave_size
   
+  -- AUTOMATIC PITCH CORRECTION using danoise algorithm
+  print("DEBUG: Applying automatic pitch correction...")
+  local pitch_correction = calculate_pitch_correction(44100, wave_size, 1)
+  
+  -- Only apply correction if deviation is significant (>2 cents)
+  local cents_deviation = math.abs(pitch_correction.cents)
+  if cents_deviation > 2 then
+    sample.transpose = pitch_correction.transpose
+    sample.fine_tune = pitch_correction.fine_tune
+    
+    print(string.format("DEBUG: Auto-corrected pitch: %s (%.1f Hz) -> transpose: %d, fine_tune: %d (%.1f cents %s)", 
+      pitch_correction.note_name, pitch_correction.frequency, 
+      pitch_correction.transpose, pitch_correction.fine_tune,
+      cents_deviation, pitch_correction.cent_direction))
+    
+    -- Update status to include pitch correction info
+    local correction_status = string.format(" -> Auto-tuned to %s (T:%d, F:%d)", 
+      pitch_correction.note_name, pitch_correction.transpose, pitch_correction.fine_tune)
+    
+    sample.name = sample.name .. correction_status
+    inst.name = inst.name .. correction_status
+  else
+    print(string.format("DEBUG: Sample already well-tuned: %s (%.1f Hz, %.1f cents %s)", 
+      pitch_correction.note_name, pitch_correction.frequency,
+      cents_deviation, pitch_correction.cent_direction))
+  end
+  
   -- Set interpolation mode based on sample export settings
   if sample_interpolation_mode == "linear" then
     sample.interpolation_mode = renoise.Sample.INTERPOLATE_LINEAR
@@ -4091,7 +4295,7 @@ function PCMWriterExportToSample()
   PCMWriterRemovePlaceholderSamples(inst, sample_slot)
   
   print("DEBUG: Export completed successfully")
-  renoise.app():show_status(string.format("Crossfaded wave exported (X%.0f%%) with %s interpolation and oversampling %s", crossfade_amount * 100, sample_interpolation_mode, sample_oversample_enabled and "enabled" or "disabled"))
+  renoise.app():show_status(string.format("Crossfaded wave exported (X%.0f%%) with %s interpolation, oversampling %s, auto-pitch correction", crossfade_amount * 100, sample_interpolation_mode, sample_oversample_enabled and "enabled" or "disabled"))
 end
 
 function PCMWriterRandomExportToSlot()
@@ -4146,6 +4350,23 @@ function PCMWriterExportWaveAToSample()
   sample.loop_start = 1
   sample.loop_end = wave_size
   
+  -- AUTOMATIC PITCH CORRECTION using danoise algorithm
+  local pitch_correction = calculate_pitch_correction(44100, wave_size, 1)
+  
+  -- Only apply correction if deviation is significant (>2 cents)
+  local cents_deviation = math.abs(pitch_correction.cents)
+  if cents_deviation > 2 then
+    sample.transpose = pitch_correction.transpose
+    sample.fine_tune = pitch_correction.fine_tune
+    
+    -- Update status to include pitch correction info
+    local correction_status = string.format(" -> Auto-tuned to %s (T:%d, F:%d)", 
+      pitch_correction.note_name, pitch_correction.transpose, pitch_correction.fine_tune)
+    
+    sample.name = sample.name .. correction_status
+    inst.name = inst.name .. correction_status
+  end
+  
   -- Set interpolation mode
   if sample_interpolation_mode == "linear" then
     sample.interpolation_mode = renoise.Sample.INTERPOLATE_LINEAR
@@ -4164,7 +4385,7 @@ function PCMWriterExportWaveAToSample()
   -- Remove all placeholder samples if they exist
   PCMWriterRemovePlaceholderSamples(inst, sample_slot)
   
-  renoise.app():show_status(string.format("Wave A exported with %s interpolation and oversampling %s", sample_interpolation_mode, sample_oversample_enabled and "enabled" or "disabled"))
+  renoise.app():show_status(string.format("Wave A exported with %s interpolation, oversampling %s, auto-pitch correction", sample_interpolation_mode, sample_oversample_enabled and "enabled" or "disabled"))
 end
 
 function PCMWriterExportWaveBToSample()
@@ -4209,6 +4430,23 @@ function PCMWriterExportWaveBToSample()
   sample.loop_start = 1
   sample.loop_end = wave_size
   
+  -- AUTOMATIC PITCH CORRECTION using danoise algorithm
+  local pitch_correction = calculate_pitch_correction(44100, wave_size, 1)
+  
+  -- Only apply correction if deviation is significant (>2 cents)
+  local cents_deviation = math.abs(pitch_correction.cents)
+  if cents_deviation > 2 then
+    sample.transpose = pitch_correction.transpose
+    sample.fine_tune = pitch_correction.fine_tune
+    
+    -- Update status to include pitch correction info
+    local correction_status = string.format(" -> Auto-tuned to %s (T:%d, F:%d)", 
+      pitch_correction.note_name, pitch_correction.transpose, pitch_correction.fine_tune)
+    
+    sample.name = sample.name .. correction_status
+    inst.name = inst.name .. correction_status
+  end
+  
   -- Set interpolation mode
   if sample_interpolation_mode == "linear" then
     sample.interpolation_mode = renoise.Sample.INTERPOLATE_LINEAR
@@ -4227,7 +4465,7 @@ function PCMWriterExportWaveBToSample()
   -- Remove all placeholder samples if they exist
   PCMWriterRemovePlaceholderSamples(inst, sample_slot)
   
-  renoise.app():show_status(string.format("Wave B exported with %s interpolation and oversampling %s", sample_interpolation_mode, sample_oversample_enabled and "enabled" or "disabled"))
+  renoise.app():show_status(string.format("Wave B exported with %s interpolation, oversampling %s, auto-pitch correction", sample_interpolation_mode, sample_oversample_enabled and "enabled" or "disabled"))
 end
 
 -- Remaining selection operation functions
@@ -4850,12 +5088,12 @@ function PCMWriterLoadSampleToWaveform()
   local sample = song.selected_sample
   
   if not inst or not sample then
-    renoise.app():show_warning("No instrument or sample selected")
+    renoise.app():show_status("No instrument or sample selected")
     return
   end
   
   if not sample.sample_buffer.has_sample_data then
-    renoise.app():show_warning("Selected sample has no data")
+    renoise.app():show_status("Selected sample has no data")
     return
   end
   
