@@ -238,10 +238,10 @@ local function set_pitch(data)
   -- Calculate base transpose
   local transpose_value = -diff
   
-  -- Double the ratio if ping-pong loop (like spnw's approach)
+  -- Add +12 semitones (1 octave) for ping-pong loop (as spnw suggests)
   if smp.loop_mode == renoise.Sample.LOOP_MODE_PING_PONG then
-    transpose_value = transpose_value * 2
-    print("-- Paketti RePitch: Detected ping-pong loop, doubling transpose correction")
+    transpose_value = transpose_value + 12
+    print("-- Paketti RePitch: Detected ping-pong loop, adding +12 semitones to transpose")
   end
   
   -- Clamp transpose to valid range (-120 to 120)
@@ -250,11 +250,6 @@ local function set_pitch(data)
   
   -- We always want to CORRECT the pitch, so negate the detected deviation
   local cents_value = -data.cents  -- Negate to correct the detected deviation
-  
-  -- Double cents correction for ping-pong too
-  if smp.loop_mode == renoise.Sample.LOOP_MODE_PING_PONG then
-    cents_value = cents_value * 2
-  end
   
   -- Convert cents to fine tune steps (Renoise: -128 to 127 = 255 steps for 200 cents)
   local fine_tune_steps = round(cents_value * 1.275)  -- Scale: 255 steps / 200 cents = 1.275
