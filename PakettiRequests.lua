@@ -6388,6 +6388,19 @@ elseif not renoise.song().transport.playing then
   local curr_pos=s.transport.edit_pos
   local num_lines=s.selected_pattern.number_of_lines
   local step=t.edit_step
+  
+  -- Store current sync mode
+  local original_sync_mode = t.sync_mode
+  local sync_mode_changed = false
+  
+  -- If using Jack or Ableton Link, temporarily switch to Internal
+  if original_sync_mode == renoise.Transport.SYNC_MODE_JACK or 
+     original_sync_mode == renoise.Transport.SYNC_MODE_ABLETON_LINK then
+    t.sync_mode = renoise.Transport.SYNC_MODE_INTERNAL
+    sync_mode_changed = true
+    local sync_name = (original_sync_mode == renoise.Transport.SYNC_MODE_JACK) and "Jack" or "Ableton Link"
+    print("-- Paketti: Temporarily disabled " .. sync_name .. " for Play at Row")
+  end
     
   renoise.song().transport.follow_player = false
   
@@ -6402,13 +6415,39 @@ elseif not renoise.song().transport.playing then
   
   -- Stop playback immediately after playing the line
   t:stop()
+  
+  -- Restore original sync mode if it was changed
+  if sync_mode_changed then
+    t.sync_mode = original_sync_mode
+    local sync_name = (original_sync_mode == renoise.Transport.SYNC_MODE_JACK) and "Jack" or "Ableton Link"
+    print("-- Paketti: Restored " .. sync_name .. " sync mode")
+  end
+  
 renoise.song().selected_line_index=number
 return
 else
+  -- Store current sync mode for when transport is already playing
+  local t = renoise.song().transport
+  local original_sync_mode = t.sync_mode
+  local sync_mode_changed = false
+  
+  -- If using Jack or Ableton Link, temporarily switch to Internal
+  if original_sync_mode == renoise.Transport.SYNC_MODE_JACK or 
+     original_sync_mode == renoise.Transport.SYNC_MODE_ABLETON_LINK then
+    t.sync_mode = renoise.Transport.SYNC_MODE_INTERNAL
+    sync_mode_changed = true
+    local sync_name = (original_sync_mode == renoise.Transport.SYNC_MODE_JACK) and "Jack" or "Ableton Link"
+    print("-- Paketti: Temporarily disabled " .. sync_name .. " for Play at Row")
+  end
 
-
-renoise.song().transport:start_at(number)
-
+  renoise.song().transport:start_at(number)
+  
+  -- Restore original sync mode if it was changed
+  if sync_mode_changed then
+    t.sync_mode = original_sync_mode
+    local sync_name = (original_sync_mode == renoise.Transport.SYNC_MODE_JACK) and "Jack" or "Ableton Link"
+    print("-- Paketti: Restored " .. sync_name .. " sync mode")
+  end
 end
 end
 
