@@ -766,4 +766,154 @@ for i = 1, 16 do
   renoise.tool():add_keybinding{name="Global:Paketti:Load LFO from Slot " .. i, invoke=function() pakettiLoadCustomLFO(i) end}
 end
 
+-- Function to double LFO envelope resolution by duplicating each point
+function pakettiDoubleLFOResolution()
+  local device = renoise.song().selected_device
+  
+  -- Check if LFO device is selected
+  if not device or not is_lfo_device(device) then
+    renoise.app():show_status("PakettiXMLizer: Please select an LFO device first")
+    print("PakettiXMLizer: Error - No LFO device selected")
+    return
+  end
+  
+  local xml_data = device.active_preset_data
+  if not xml_data or xml_data == "" then
+    renoise.app():show_status("PakettiXMLizer: No LFO preset data found")
+    print("PakettiXMLizer: Error - No preset data in LFO device")
+    return
+  end
+  
+  print("=== DEBUG: Original XML Data ===")
+  print(xml_data)
+  print("=== END Original XML ===")
+  
+  -- Extract envelope length first
+  local current_length = 4  -- default
+  local length_match = xml_data:match("<Length>(%d+)</Length>")
+  if length_match then
+    current_length = tonumber(length_match)
+  end
+  print("=== DEBUG: Current envelope length: " .. current_length .. " ===")
+  
+  -- Extract only points within the current length range
+  local points = {}
+  local point_count = 0
+  
+  print("=== DEBUG: Extracting Points (within length range 0-" .. (current_length-1) .. ") ===")
+  for point_line in xml_data:gmatch("<Point>([^<]+)</Point>") do
+    print("Found point line: " .. point_line)
+    local step, value, scaling = point_line:match("([^,]+),([^,]+),([^,]+)")
+    if step and value and scaling then
+      local step_num = tonumber(step)
+      local point = {
+        step = step_num,
+        value = tonumber(value), 
+        scaling = tonumber(scaling)
+      }
+      
+      -- Only include points within the current length range
+      if step_num < current_length then
+        point_count = point_count + 1
+        table.insert(points, point)
+        print(string.format("Included point %d: step=%d, value=%g, scaling=%g", point_count, point.step, point.value, point.scaling))
+      else
+        print(string.format("Skipped point beyond length: step=%d (length=%d)", step_num, current_length))
+      end
+    else
+      print("Failed to parse point: " .. point_line)
+    end
+  end
+  print("=== END Extracting Points ===")
+  
+  if point_count == 0 then
+    renoise.app():show_status("PakettiXMLizer: No envelope points found in LFO")
+    print("PakettiXMLizer: Error - No envelope points found")
+    return
+  end
+  
+  -- Check if doubling would exceed limits
+  local new_point_count = point_count * 2
+  if new_point_count > 1024 then
+    renoise.app():show_status(string.format("PakettiXMLizer: Can't double - %d points would exceed 1024 limit", new_point_count))
+    print(string.format("PakettiXMLizer: Error - Doubling %d points would create %d points (exceeds 1024 limit)", point_count, new_point_count))
+    return
+  end
+  
+  -- Check if doubling step positions would exceed 1024 limit
+  local max_doubled_step = points[#points].step * 2 + 1
+  if max_doubled_step > 1024 then
+    renoise.app():show_status(string.format("PakettiXMLizer: Can't double - max step %d would exceed 1024 limit", max_doubled_step))
+    print(string.format("PakettiXMLizer: Error - Doubling max step position %d would create step %d (exceeds 1024 limit)", points[#points].step, max_doubled_step))
+    return
+  end
+  
+  print(string.format("PakettiXMLizer: Doubling LFO resolution from %d to %d points", point_count, new_point_count))
+  
+  -- Create doubled points by duplicating each point in sequence
+  local doubled_points = {}
+  print("=== DEBUG: Creating Doubled Points ===")
+  for i, point in ipairs(points) do
+    local new_step_1 = (point.step * 2)
+    local new_step_2 = (point.step * 2) + 1
+    
+    -- Add first duplicate
+    local dup1 = {
+      step = new_step_1,
+      value = point.value,
+      scaling = point.scaling
+    }
+    table.insert(doubled_points, dup1)
+    print(string.format("Added duplicate 1 of point at step %d: new_step=%d, value=%g", point.step, dup1.step, dup1.value))
+    
+    -- Add second duplicate
+    local dup2 = {
+      step = new_step_2,
+      value = point.value,
+      scaling = point.scaling
+    }
+    table.insert(doubled_points, dup2)
+    print(string.format("Added duplicate 2 of point at step %d: new_step=%d, value=%g", point.step, dup2.step, dup2.value))
+  end
+  print("=== END Creating Doubled Points ===")
+  
+  -- Rebuild the points XML section
+  print("=== DEBUG: Building New XML Points ===")
+  local new_points_xml = ""
+  for i, point in ipairs(doubled_points) do
+    local point_xml = string.format("        <Point>%d,%g,%g</Point>\n", 
+      point.step, point.value, point.scaling)
+    new_points_xml = new_points_xml .. point_xml
+    print(string.format("Point %d XML: %s", i, point_xml:gsub("\n", "")))
+  end
+  print("=== Complete New Points XML ===")
+  print(new_points_xml)
+  print("=== END New Points XML ===")
+  
+  -- Replace the points section in the original XML
+  print("=== DEBUG: Replacing XML Points Section ===")
+  local new_xml = xml_data:gsub("<Points>.-</Points>", 
+    "<Points>\n" .. new_points_xml .. "      </Points>", 1)
+  
+  -- CRITICAL FIX: Double the Length field (envelope duration/resolution)
+  local new_length = current_length * 2
+  print(string.format("=== DEBUG: Doubling Length from %d to %d ===", current_length, new_length))
+  new_xml = new_xml:gsub("<Length>.-</Length>", "<Length>" .. new_length .. "</Length>", 1)
+  
+  print("=== DEBUG: Final XML ===")
+  print(new_xml)
+  print("=== END Final XML ===")
+  
+  -- Inject the modified XML back to the device
+  device.active_preset_data = new_xml
+  
+  renoise.app():show_status(string.format("✅ PakettiXMLizer: Doubled LFO resolution %d→%d points", point_count, new_point_count))
+  print(string.format("PakettiXMLizer: Successfully doubled LFO resolution from %d to %d points", point_count, new_point_count))
+end
+
+-- Register keybinding and menu entries for Double LFO Resolution
+renoise.tool():add_keybinding{name="Global:Paketti:Double LFO Envelope Resolution", invoke=pakettiDoubleLFOResolution}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Double LFO Envelope Resolution", invoke=pakettiDoubleLFOResolution}
+renoise.tool():add_menu_entry{name="--DSP Device:Paketti:Custom LFO Envelopes:Double LFO Envelope Resolution", invoke=pakettiDoubleLFOResolution}
+
 --print("PakettiXMLizer: Loaded with 6 hardcoded presets and 16 custom LFO slots available")
