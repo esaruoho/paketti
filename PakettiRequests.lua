@@ -6379,7 +6379,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Play at Random Line in Curren
 
 
 
-function playAtRow(number)
+function playAtRow(number, linkmode)
 if number > renoise.song().selected_pattern.number_of_lines then
 renoise.app():show_status("There is no such row " .. number .. " in the selected pattern, which has " .. renoise.song().selected_pattern.number_of_lines .. " lines, doing nothing.")
 elseif not renoise.song().transport.playing then
@@ -6393,13 +6393,17 @@ elseif not renoise.song().transport.playing then
   local original_sync_mode = t.sync_mode
   local sync_mode_changed = false
   
-  -- If using Jack or Ableton Link, temporarily switch to Internal
+  -- If using Jack or Ableton Link, switch to Internal
   if original_sync_mode == renoise.Transport.SYNC_MODE_JACK or 
      original_sync_mode == renoise.Transport.SYNC_MODE_ABLETON_LINK then
     t.sync_mode = renoise.Transport.SYNC_MODE_INTERNAL
     sync_mode_changed = true
     local sync_name = (original_sync_mode == renoise.Transport.SYNC_MODE_JACK) and "Jack" or "Ableton Link"
-    print("-- Paketti: Temporarily disabled " .. sync_name .. " for Play at Row")
+    if linkmode then
+      print("-- Paketti: Temporarily disabled " .. sync_name .. " for Play at Row")
+    else
+      print("-- Paketti: Switched from " .. sync_name .. " to Internal for Play at Row")
+    end
   end
     
   renoise.song().transport.follow_player = false
@@ -6416,8 +6420,8 @@ elseif not renoise.song().transport.playing then
   -- Stop playback immediately after playing the line
   t:stop()
   
-  -- Restore original sync mode if it was changed
-  if sync_mode_changed then
+  -- Restore original sync mode if it was changed and linkmode is true
+  if sync_mode_changed and linkmode then
     t.sync_mode = original_sync_mode
     local sync_name = (original_sync_mode == renoise.Transport.SYNC_MODE_JACK) and "Jack" or "Ableton Link"
     print("-- Paketti: Restored " .. sync_name .. " sync mode")
@@ -6431,19 +6435,23 @@ else
   local original_sync_mode = t.sync_mode
   local sync_mode_changed = false
   
-  -- If using Jack or Ableton Link, temporarily switch to Internal
+  -- If using Jack or Ableton Link, switch to Internal
   if original_sync_mode == renoise.Transport.SYNC_MODE_JACK or 
      original_sync_mode == renoise.Transport.SYNC_MODE_ABLETON_LINK then
     t.sync_mode = renoise.Transport.SYNC_MODE_INTERNAL
     sync_mode_changed = true
     local sync_name = (original_sync_mode == renoise.Transport.SYNC_MODE_JACK) and "Jack" or "Ableton Link"
-    print("-- Paketti: Temporarily disabled " .. sync_name .. " for Play at Row")
+    if linkmode then
+      print("-- Paketti: Temporarily disabled " .. sync_name .. " for Play at Row")
+    else
+      print("-- Paketti: Switched from " .. sync_name .. " to Internal for Play at Row")
+    end
   end
 
   renoise.song().transport:start_at(number)
   
-  -- Restore original sync mode if it was changed
-  if sync_mode_changed then
+  -- Restore original sync mode if it was changed and linkmode is true
+  if sync_mode_changed and linkmode then
     t.sync_mode = original_sync_mode
     local sync_name = (original_sync_mode == renoise.Transport.SYNC_MODE_JACK) and "Jack" or "Ableton Link"
     print("-- Paketti: Restored " .. sync_name .. " sync mode")
@@ -6455,9 +6463,13 @@ for i=0,511 do
 local formatnumber = string.format("%03d",i)
 local hexnumber = string.format("%03X", i)
 renoise.tool():add_keybinding{name="Global:Paketti:Play at Row " .. formatnumber .. " (" .. hexnumber .. ")",invoke=function()
-playAtRow(i+1) end}
+playAtRow(i+1, true) end}
 renoise.tool():add_midi_mapping{name="Paketti:Play at Row " .. formatnumber .. " (" .. hexnumber .. ")",invoke=function()
-playAtRow(i+1) end}
+playAtRow(i+1, true) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Play at Row " .. formatnumber .. " (" .. hexnumber .. ") Force Internal",invoke=function()
+playAtRow(i+1, false) end}
+renoise.tool():add_midi_mapping{name="Paketti:Play at Row " .. formatnumber .. " (" .. hexnumber .. ") Force Internal",invoke=function()
+playAtRow(i+1, false) end}
 end
 ---------
 local dialog = nil
