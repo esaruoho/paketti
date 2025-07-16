@@ -129,12 +129,89 @@ renoise.tool():add_midi_mapping{name="Paketti:Midi Change Master Output Routings
   end
 }
 
+-- Cycle Selected Track Output Routing +1/-1
+function cycleSelectedTrackOutputRouting(direction)
+  local track = renoise.song().selected_track
+  local available_routings = track.available_output_routings
+  local total_routings = #available_routings
+  
+  -- Check if there's only one routing available
+  if total_routings <= 1 then
+    renoise.app():show_status("There are no channels to move to")
+    return
+  end
+  
+  -- Find current routing index
+  local current_index = 1
+  for i = 1, total_routings do
+    if available_routings[i] == track.output_routing then
+      current_index = i
+      break
+    end
+  end
+  
+  -- Calculate new index with wrapping
+  local new_index = current_index + direction
+  if new_index > total_routings then
+    new_index = 1  -- Wrap to first
+  elseif new_index < 1 then
+    new_index = total_routings  -- Wrap to last
+  end
+  
+  -- Set new routing
+  track.output_routing = available_routings[new_index]
+  renoise.app():show_status("Selected Track Output: " .. available_routings[new_index] .. " (" .. new_index .. "/" .. total_routings .. ")")
+end
+
+-- Cycle Master Track Output Routing +1/-1
+function cycleMasterTrackOutputRouting(direction)
+  local song = renoise.song()
+  local master_track = song:track(song.sequencer_track_count + 1)
+  local available_routings = master_track.available_output_routings
+  local total_routings = #available_routings
+  
+  -- Check if there's only one routing available
+  if total_routings <= 1 then
+    renoise.app():show_status("There are no channels to move to")
+    return
+  end
+  
+  -- Find current routing index
+  local current_index = 1
+  for i = 1, total_routings do
+    if available_routings[i] == master_track.output_routing then
+      current_index = i
+      break
+    end
+  end
+  
+  -- Calculate new index with wrapping
+  local new_index = current_index + direction
+  if new_index > total_routings then
+    new_index = 1  -- Wrap to first
+  elseif new_index < 1 then
+    new_index = total_routings  -- Wrap to last
+  end
+  
+  -- Set new routing
+  master_track.output_routing = available_routings[new_index]
+  renoise.app():show_status("Master Track Output: " .. available_routings[new_index] .. " (" .. new_index .. "/" .. total_routings .. ")")
+end
 
 
+renoise.tool():add_keybinding{name="Global:Paketti:Selected Track Output Routing +1", invoke=function() cycleSelectedTrackOutputRouting(1) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Selected Track Output Routing -1", invoke=function() cycleSelectedTrackOutputRouting(-1) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Master Track Output Routing +1", invoke=function() cycleMasterTrackOutputRouting(1) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Master Track Output Routing -1", invoke=function() cycleMasterTrackOutputRouting(-1) end}
+renoise.tool():add_midi_mapping{name="Paketti:Selected Track Output Routing +1 x[Trigger]", invoke=function(message) if message:is_trigger() then cycleSelectedTrackOutputRouting(1) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Selected Track Output Routing -1 x[Trigger]", invoke=function(message) if message:is_trigger() then cycleSelectedTrackOutputRouting(-1) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Master Track Output Routing +1 x[Trigger]", invoke=function(message) if message:is_trigger() then cycleMasterTrackOutputRouting(1) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Master Track Output Routing -1 x[Trigger]", invoke=function(message) if message:is_trigger() then cycleMasterTrackOutputRouting(-1) end end}
 
 
+--
 
--- All of these have been requested by tkna91 via 
+-- All of these have been requested by tkna91 via GitHub or Discord
 function loopReleaseToggle()
 if renoise.song().selected_sample.loop_release
 then renoise.song().selected_sample.loop_release=false 
