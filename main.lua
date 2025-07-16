@@ -453,6 +453,7 @@ timed_require("PakettiDigitakt")
 timed_require("PakettiM8Export")
 timed_require("PakettiOP1Export")
 timed_require("PakettiForeignSnippets")
+timed_require("PakettiManualSlicer")
 timed_require("Sononymph/AppMain")
 timed_require("PakettiChebyshevWaveshaper")
 -- Polyend functionality toggle

@@ -1,3 +1,6 @@
+
+
+
 -- PakettiPolyendSuite.lua
 -- RX2 to PTI Conversion Tool
 -- Combines RX2 loading with PTI export functionality
@@ -22,6 +25,10 @@ local computer_backup_files = {}
 
 -- Global refresh function for operations outside dialog context
 local polyend_refresh_callback = nil
+
+-- UI visibility state tracking
+local save_paths_section_visible = false
+local backup_section_visible = false
 
 -- Helper function to get current Polyend root path from preferences
 local function get_polyend_root_path()
@@ -137,7 +144,9 @@ local function auto_save_drumkit_if_enabled(drumkit_type, vb)
         local success = pti_savesample_to_path(unique_path)
         if success then
           -- Create local backup copy if enabled
-          create_local_backup_copy(unique_path, "Drumkit_" .. drumkit_type)
+          if create_local_backup_copy then
+            create_local_backup_copy(unique_path, "Drumkit_" .. drumkit_type)
+          end
           
           -- Refresh the dropdowns to show the new file
           if vb then
@@ -734,7 +743,9 @@ function rx2_to_pti_convert()
   f:close()
 
   -- Create local backup copy if enabled
-  create_local_backup_copy(pti_filename, "RX2_Convert")
+  if create_local_backup_copy then
+    create_local_backup_copy(pti_filename, "RX2_Convert")
+  end
 
   -- Show final status
   print("-- RX2 to PTI conversion completed successfully!")
@@ -1201,6 +1212,25 @@ function initialize_save_paths()
   polyend_use_save_paths = get_use_save_paths()
   polyend_computer_backup_path = get_computer_backup_path()
   polyend_use_computer_backup = get_use_computer_backup()
+  
+  -- Initialize visibility states
+  save_paths_section_visible = polyend_use_save_paths
+  backup_section_visible = polyend_use_computer_backup
+end
+
+-- Function to update section visibility in the dialog
+local function update_section_visibility(vb)
+  if vb and vb.views then
+    -- Update save paths section visibility
+    if vb.views["save_paths_section"] then
+      vb.views["save_paths_section"].visible = save_paths_section_visible
+    end
+    
+    -- Update backup section visibility  
+    if vb.views["backup_section"] then
+      vb.views["backup_section"].visible = backup_section_visible
+    end
+  end
 end
 
 -- Function to check if the Polyend device path exists
@@ -1306,39 +1336,79 @@ function scan_for_pti_files_and_folders(root_path)
   return pti_files, wav_files, folders
 end
 
--- Function to scan local PTI path for PTI files
-function scan_computer_pti_files(path)
+-- Function to scan local PTI path for PTI and WAV files (recursively)
+function scan_computer_pti_files(root_path)
   local pti_files = {}
   local separator = package.config:sub(1,1)
   
-  if not path or path == "" then
+  if not root_path or root_path == "" then
     return pti_files
   end
   
-  -- Check if directory exists and is accessible
-  local success, files = pcall(os.filenames, path, "*.pti")
-  if not success then
-    print(string.format("-- Local PTI: Warning - Cannot access directory: %s", path))
-    return pti_files
-  end
-  
-  print(string.format("-- Local PTI: Scanning %s - found %d PTI files", path, #files))
-  
-  -- Scan PTI files in directory
-  for _, filename in ipairs(files) do
-    if not filename:match("^%._") then
+  local function scan_directory(path, relative_path)
+    -- Check if directory exists and is accessible
+    local success, files = pcall(os.filenames, path, "*")
+    if not success then
+      print(string.format("-- Local PTI: Warning - Cannot access directory: %s", path))
+      print(string.format("-- Local PTI: Error details: %s", tostring(files)))
+      return
+    end
+    
+    local success2, dirs = pcall(os.dirnames, path)
+    if not success2 then
+      print(string.format("-- Local PTI: Warning - Cannot list subdirectories in: %s", path))
+      dirs = {}
+    end
+    
+    print(string.format("-- Local PTI: Scanning %s - found %d files, %d dirs", path, #files, #dirs))
+    
+    -- Scan files in current directory
+    for _, filename in ipairs(files) do
+      local relative_file_path = relative_path == "" and filename or (relative_path .. separator .. filename)
       local full_path = path .. separator .. filename
-      table.insert(pti_files, {
-        display_name = filename,
-        full_path = full_path
-      })
-      print(string.format("-- Local PTI: Found PTI file: %s", filename))
-    else
-      print(string.format("-- Local PTI: Skipping macOS metadata file: %s", filename))
+      
+             if (filename:lower():match("%.pti$") or filename:lower():match("%.wav$")) and not filename:match("^%._") then
+         table.insert(pti_files, {
+           display_name = relative_file_path,
+           full_path = full_path
+         })
+         local file_type = filename:lower():match("%.pti$") and "PTI" or "WAV"
+         print(string.format("-- Local PTI: Found %s file: %s", file_type, relative_file_path))
+       elseif filename:match("^%._") then
+         print(string.format("-- Local PTI: Skipping macOS metadata file: %s", relative_file_path))
+       end
+    end
+    
+    -- Recursively scan subdirectories (skip hidden/system folders)
+    for _, dirname in ipairs(dirs) do
+      -- Skip hidden folders (starting with .) and common system folders
+      if not dirname:match("^%.") and 
+         dirname ~= "System Volume Information" and 
+         dirname ~= "$RECYCLE.BIN" and
+         dirname ~= "Thumbs.db" then
+        local sub_path = path .. separator .. dirname
+        local sub_relative = relative_path == "" and dirname or (relative_path .. separator .. dirname)
+        scan_directory(sub_path, sub_relative)
+      else
+        print(string.format("-- Local PTI: Skipping system/hidden folder: %s", dirname))
+      end
     end
   end
   
-  -- Sort by filename (case-insensitive)
+  -- Check if root path exists before scanning
+  local success, test_files = pcall(os.filenames, root_path, "*")
+  if not success then
+    print(string.format("-- Local PTI: Error - Root path does not exist or is not accessible: %s", root_path))
+    print(string.format("-- Local PTI: Error details: %s", tostring(test_files)))
+    return pti_files
+  end
+  
+  print(string.format("-- Local PTI: Root path accessible, found %d files", #test_files))
+  
+  -- Start recursive scanning
+  scan_directory(root_path, "")
+  
+  -- Sort by display name (case-insensitive)
   table.sort(pti_files, function(a, b)
     return a.display_name:lower() < b.display_name:lower()
   end)
@@ -1346,39 +1416,79 @@ function scan_computer_pti_files(path)
   return pti_files
 end
 
--- Function to scan local backup path for PTI files
-function scan_computer_backup_files(path)
+-- Function to scan local backup path for PTI and WAV files (recursively)
+function scan_computer_backup_files(root_path)
   local backup_files = {}
   local separator = package.config:sub(1,1)
   
-  if not path or path == "" then
+  if not root_path or root_path == "" then
     return backup_files
   end
   
-  -- Check if directory exists and is accessible
-  local success, files = pcall(os.filenames, path, "*.pti")
-  if not success then
-    print(string.format("-- Local Backup: Warning - Cannot access directory: %s", path))
-    return backup_files
-  end
-  
-  print(string.format("-- Local Backup: Scanning %s - found %d PTI files", path, #files))
-  
-  -- Scan PTI files in directory
-  for _, filename in ipairs(files) do
-    if not filename:match("^%._") then
+  local function scan_directory(path, relative_path)
+    -- Check if directory exists and is accessible
+    local success, files = pcall(os.filenames, path, "*")
+    if not success then
+      print(string.format("-- Local Backup: Warning - Cannot access directory: %s", path))
+      print(string.format("-- Local Backup: Error details: %s", tostring(files)))
+      return
+    end
+    
+    local success2, dirs = pcall(os.dirnames, path)
+    if not success2 then
+      print(string.format("-- Local Backup: Warning - Cannot list subdirectories in: %s", path))
+      dirs = {}
+    end
+    
+    print(string.format("-- Local Backup: Scanning %s - found %d files, %d dirs", path, #files, #dirs))
+    
+    -- Scan files in current directory
+    for _, filename in ipairs(files) do
+      local relative_file_path = relative_path == "" and filename or (relative_path .. separator .. filename)
       local full_path = path .. separator .. filename
-      table.insert(backup_files, {
-        display_name = filename,
-        full_path = full_path
-      })
-      print(string.format("-- Local Backup: Found PTI file: %s", filename))
-    else
-      print(string.format("-- Local Backup: Skipping macOS metadata file: %s", filename))
+      
+      if (filename:lower():match("%.pti$") or filename:lower():match("%.wav$")) and not filename:match("^%._") then
+        table.insert(backup_files, {
+          display_name = relative_file_path,
+          full_path = full_path
+        })
+        local file_type = filename:lower():match("%.pti$") and "PTI" or "WAV"
+        print(string.format("-- Local Backup: Found %s file: %s", file_type, relative_file_path))
+      elseif filename:match("^%._") then
+        print(string.format("-- Local Backup: Skipping macOS metadata file: %s", relative_file_path))
+      end
+    end
+    
+    -- Recursively scan subdirectories (skip hidden/system folders)
+    for _, dirname in ipairs(dirs) do
+      -- Skip hidden folders (starting with .) and common system folders
+      if not dirname:match("^%.") and 
+         dirname ~= "System Volume Information" and 
+         dirname ~= "$RECYCLE.BIN" and
+         dirname ~= "Thumbs.db" then
+        local sub_path = path .. separator .. dirname
+        local sub_relative = relative_path == "" and dirname or (relative_path .. separator .. dirname)
+        scan_directory(sub_path, sub_relative)
+      else
+        print(string.format("-- Local Backup: Skipping system/hidden folder: %s", dirname))
+      end
     end
   end
   
-  -- Sort by filename (case-insensitive)
+  -- Check if root path exists before scanning
+  local success, test_files = pcall(os.filenames, root_path, "*")
+  if not success then
+    print(string.format("-- Local Backup: Error - Root path does not exist or is not accessible: %s", root_path))
+    print(string.format("-- Local Backup: Error details: %s", tostring(test_files)))
+    return backup_files
+  end
+  
+  print(string.format("-- Local Backup: Root path accessible, found %d files", #test_files))
+  
+  -- Start recursive scanning
+  scan_directory(root_path, "")
+  
+  -- Sort by display name (case-insensitive)
   table.sort(backup_files, function(a, b)
     return a.display_name:lower() < b.display_name:lower()
   end)
@@ -1523,7 +1633,7 @@ function update_computer_pti_dropdown(vb)
   computer_pti_files = scan_computer_pti_files(computer_pti_path)
   
   -- Update local PTI files dropdown
-  local dropdown_items = {"<No PTI files found>"}
+  local dropdown_items = {"<No PTI/WAV files found>"}
   if #computer_pti_files > 0 then
     dropdown_items = {}
     for _, pti_file in ipairs(computer_pti_files) do
@@ -1563,7 +1673,7 @@ function update_computer_backup_dropdown(vb)
   computer_backup_files = scan_computer_backup_files(backup_path)
   
   -- Update local backup files dropdown
-  local dropdown_items = {"<No PTI files found>"}
+  local dropdown_items = {"<No PTI/WAV files found>"}
   if #computer_backup_files > 0 then
     dropdown_items = {}
     for _, backup_file in ipairs(computer_backup_files) do
@@ -1675,18 +1785,45 @@ function backup_polyend_tracker()
   local verification_success = false
   local file_count = 0
   
+  -- Function to recursively count all files in backup directory
+  local function count_files_recursive(path)
+    local total_files = 0
+    local separator = package.config:sub(1,1)
+    
+    local success, files = pcall(os.filenames, path, "*")
+    if success and files then
+      total_files = total_files + #files
+      
+      local success2, dirs = pcall(os.dirnames, path)
+      if success2 and dirs then
+        for _, dirname in ipairs(dirs) do
+          -- Skip hidden folders and system folders
+          if not dirname:match("^%.") and 
+             dirname ~= "System Volume Information" and 
+             dirname ~= "$RECYCLE.BIN" and
+             dirname ~= "Thumbs.db" then
+            local sub_path = path .. separator .. dirname
+            total_files = total_files + count_files_recursive(sub_path)
+          end
+        end
+      end
+    end
+    
+    return total_files
+  end
+  
   if backup_successful then
     local verify_success, verify_files = pcall(os.filenames, full_backup_path, "*")
     if verify_success and verify_files then
-      file_count = #verify_files
+      file_count = count_files_recursive(full_backup_path)
       verification_success = (file_count > 0)
-      print(string.format("-- Backup Polyend device: Verification found %d files in backup", file_count))
+      print(string.format("-- Backup Polyend device: Verification found %d total files in backup (recursive count)", file_count))
     end
   end
   
   -- Report results
   if backup_successful and verification_success then
-    local success_message = string.format("Polyend device backup completed successfully!\n\nBackup folder: %s\nBackup location: %s\nFiles backed up: %d+", 
+    local success_message = string.format("Polyend device backup completed successfully!\n\nBackup folder: %s\nBackup location: %s\nFiles backed up: %d", 
       final_backup_folder, full_backup_path, file_count)
     renoise.app():show_message(success_message)
     print("-- Backup Polyend device: Backup completed successfully")
@@ -1768,7 +1905,9 @@ function normalize_pti_slices_and_save(pti_filepath, save_path, completion_callb
             local filename = save_path:match("[^/\\]+$") or "normalized.pti"
             
             -- Create local backup copy if enabled
-            create_local_backup_copy(save_path, "Normalize")
+            if create_local_backup_copy then
+              create_local_backup_copy(save_path, "Normalize")
+            end
             
             -- Trigger global refresh if available (from dialog context)
             if polyend_refresh_callback then
@@ -2197,10 +2336,8 @@ function send_computer_pti_to_device(pti_filepath)
       local copied_size = verify_file:seek()
       verify_file:close()
       
-      local success_message = string.format("✅ PTI file sent to device successfully!\n\nFile: %s\nSize: %d bytes (%.2f KB)\nDestination: %s", 
-        final_filename, copied_size, copied_size / 1024, destination_folder)
-      renoise.app():show_message(success_message)
-      renoise.app():show_status(string.format("PTI sent to Polyend device: %s", final_filename))
+      renoise.app():show_status(string.format("✅ PTI sent to device: %s (%.2f KB) → %s", 
+        final_filename, copied_size / 1024, destination_folder:match("[^/\\]+$") or destination_folder))
       print("-- Send Local PTI: Send operation completed successfully")
     else
       renoise.app():show_error("Copy appeared successful but cannot verify destination file")
@@ -3026,111 +3163,7 @@ function create_polyend_buddy_dialog(vb)
 
     },
     
-    -- Save paths configuration
-    vb:row{
-      vb:text{
-        text = "PTI Save Folder",
-        width = textWidth, style="strong",font="bold"
-      },
-      vb:textfield{
-        id = "pti_save_path_textfield",
-        text = polyend_pti_save_path ~= "" and polyend_pti_save_path or "<Set this Default Folder to save PTI files to your Polyend device>",
-        width = 400,
-        tooltip = "Default folder for saving PTI files"
-      },
-      vb:button{
-        text = "Browse",
-        width = polyendButtonWidth,
-        notifier = function()
-          local selected_path = renoise.app():prompt_for_path("Select PTI Save Folder")
-          if selected_path and selected_path ~= "" then
-            polyend_pti_save_path = selected_path
-            vb.views["pti_save_path_textfield"].text = selected_path
-            
-            -- Save to preferences
-            if preferences and preferences.PolyendPTISavePath then
-              preferences.PolyendPTISavePath.value = selected_path
-              preferences:save_as("preferences.xml")
-              print(string.format("-- Polyend Buddy: Saved PTI save path to preferences: %s", selected_path))
-            end
-          end
-        end
-      },
-      vb:button{
-        text = "Open Path",
-        width = polyendButtonWidth,
-        tooltip = "Open the PTI save folder in system file browser",
-        notifier = function()
-          if not polyend_pti_save_path or polyend_pti_save_path == "" then
-            renoise.app():show_status("Please configure PTI save path first.")
-            return
-          end
-          
-          local path_exists = check_polyend_path_exists(polyend_pti_save_path)
-          if not path_exists then
-            renoise.app():show_status("⚠️ PTI save path not accessible - check path")
-            return
-          end
-          
-          renoise.app():open_path(polyend_pti_save_path)
-          renoise.app():show_status("Opened PTI save folder")
-        end
-      }
-    },
-    
-    -- WAV save path configuration
-    vb:row{
-      vb:text{
-        text = "WAV Save Folder",
-        width = textWidth, style="strong",font="bold"
-      },
-      vb:textfield{
-        id = "wav_save_path_textfield",
-        text = polyend_wav_save_path ~= "" and polyend_wav_save_path or "<Set this Default Folder to save WAV files to your Polyend device>",
-        width = 400,
-        tooltip = "Default folder for saving WAV files"
-      },
-      vb:button{
-        text = "Browse",
-        width = polyendButtonWidth,
-        notifier = function()
-          local selected_path = renoise.app():prompt_for_path("Select WAV Save Folder")
-          if selected_path and selected_path ~= "" then
-            polyend_wav_save_path = selected_path
-            vb.views["wav_save_path_textfield"].text = selected_path
-            
-            -- Save to preferences
-            if preferences and preferences.PolyendWAVSavePath then
-              preferences.PolyendWAVSavePath.value = selected_path
-              preferences:save_as("preferences.xml")
-              print(string.format("-- Polyend Buddy: Saved WAV save path to preferences: %s", selected_path))
-            end
-          end
-        end
-      },
-      vb:button{
-        text = "Open Path",
-        width = polyendButtonWidth,
-        tooltip = "Open the WAV save folder in system file browser",
-        notifier = function()
-          if not polyend_wav_save_path or polyend_wav_save_path == "" then
-            renoise.app():show_status("Please configure WAV save path first.")
-            return
-          end
-          
-          local path_exists = check_polyend_path_exists(polyend_wav_save_path)
-          if not path_exists then
-            renoise.app():show_status("⚠️ WAV save path not accessible - check path")
-            return
-          end
-          
-          renoise.app():open_path(polyend_wav_save_path)
-          renoise.app():show_status("Opened WAV save folder")
-        end
-      }
-    },
-    
-    -- Use save paths checkbox
+    -- Use save paths checkbox (moved above the folders)
     vb:row{
       vb:text{
         text = "",
@@ -3142,17 +3175,130 @@ function create_polyend_buddy_dialog(vb)
         tooltip = "Use configured save paths instead of prompting for location",
         notifier = function(value)
           polyend_use_save_paths = value
+          save_paths_section_visible = value
           -- Save to preferences
           if preferences and preferences.PolyendUseSavePaths then
             preferences.PolyendUseSavePaths.value = value
             preferences:save_as("preferences.xml")
             print(string.format("-- Polyend Buddy: Saved use save paths preference: %s", tostring(value)))
           end
+          -- Update section visibility
+          update_section_visibility(vb)
         end
       },
       vb:text{
-        text = "Use Save Paths (saves to configured folders above on device)",
+        text = "Use Save Paths (saves to configured folders on device)",
         font = "bold", style="strong"
+      }
+    },
+    
+    -- Save paths configuration section (collapsible)
+    vb:column{
+      id = "save_paths_section",
+      visible = save_paths_section_visible,
+      
+      -- PTI Save path configuration
+      vb:row{
+        vb:text{
+          text = "PTI Save Folder",
+          width = textWidth, style="strong",font="bold"
+        },
+        vb:textfield{
+          id = "pti_save_path_textfield",
+          text = polyend_pti_save_path ~= "" and polyend_pti_save_path or "<Set this Default Folder to save PTI files to your Polyend device>",
+          width = 400,
+          tooltip = "Default folder for saving PTI files"
+        },
+        vb:button{
+          text = "Browse",
+          width = polyendButtonWidth,
+          notifier = function()
+            local selected_path = renoise.app():prompt_for_path("Select PTI Save Folder")
+            if selected_path and selected_path ~= "" then
+              polyend_pti_save_path = selected_path
+              vb.views["pti_save_path_textfield"].text = selected_path
+              
+              -- Save to preferences
+              if preferences and preferences.PolyendPTISavePath then
+                preferences.PolyendPTISavePath.value = selected_path
+                preferences:save_as("preferences.xml")
+                print(string.format("-- Polyend Buddy: Saved PTI save path to preferences: %s", selected_path))
+              end
+            end
+          end
+        },
+        vb:button{
+          text = "Open Path",
+          width = polyendButtonWidth,
+          tooltip = "Open the PTI save folder in system file browser",
+          notifier = function()
+            if not polyend_pti_save_path or polyend_pti_save_path == "" then
+              renoise.app():show_status("Please configure PTI save path first.")
+              return
+            end
+            
+            local path_exists = check_polyend_path_exists(polyend_pti_save_path)
+            if not path_exists then
+              renoise.app():show_status("⚠️ PTI save path not accessible - check path")
+              return
+            end
+            
+            renoise.app():open_path(polyend_pti_save_path)
+            renoise.app():show_status("Opened PTI save folder")
+          end
+        }
+      },
+      
+      -- WAV save path configuration
+      vb:row{
+        vb:text{
+          text = "WAV Save Folder",
+          width = textWidth, style="strong",font="bold"
+        },
+        vb:textfield{
+          id = "wav_save_path_textfield",
+          text = polyend_wav_save_path ~= "" and polyend_wav_save_path or "<Set this Default Folder to save WAV files to your Polyend device>",
+          width = 400,
+          tooltip = "Default folder for saving WAV files"
+        },
+        vb:button{
+          text = "Browse",
+          width = polyendButtonWidth,
+          notifier = function()
+            local selected_path = renoise.app():prompt_for_path("Select WAV Save Folder")
+            if selected_path and selected_path ~= "" then
+              polyend_wav_save_path = selected_path
+              vb.views["wav_save_path_textfield"].text = selected_path
+              
+              -- Save to preferences
+              if preferences and preferences.PolyendWAVSavePath then
+                preferences.PolyendWAVSavePath.value = selected_path
+                preferences:save_as("preferences.xml")
+                print(string.format("-- Polyend Buddy: Saved WAV save path to preferences: %s", selected_path))
+              end
+            end
+          end
+        },
+        vb:button{
+          text = "Open Path",
+          width = polyendButtonWidth,
+          tooltip = "Open the WAV save folder in system file browser",
+          notifier = function()
+            if not polyend_wav_save_path or polyend_wav_save_path == "" then
+              renoise.app():show_status("Please configure WAV save path first.")
+              return
+            end
+            
+            local path_exists = check_polyend_path_exists(polyend_wav_save_path)
+            if not path_exists then
+              renoise.app():show_status("⚠️ WAV save path not accessible - check path")
+              return
+            end
+            
+            renoise.app():open_path(polyend_wav_save_path)
+            renoise.app():show_status("Opened WAV save folder")
+          end
+        }
       }
     },
     
@@ -3219,19 +3365,19 @@ function create_polyend_buddy_dialog(vb)
     -- Local PTI files dropdown with Send button
     vb:row{
       vb:text{
-        text = "Local PTI Files",
+        text = "Local PTI/WAV Files",
         width = textWidth, style="strong",font="bold"
       },
       vb:popup{
         id = "computer_pti_popup",
         items = {"<Set Local PTI Path>"},
         width = 400,
-        tooltip = "Select a PTI file from your local folder to send to device"
+        tooltip = "Select a PTI or WAV file from your local folder to send to device"
       },
       vb:button{
         text = "Send to Device",
         width = polyendButtonWidth*2,
-        tooltip = "Send the selected PTI file directly to Polyend device (choose destination folder)",
+        tooltip = "Send the selected PTI or WAV file directly to Polyend device (choose destination folder)",
         notifier = function()
           local selected_index = vb.views["computer_pti_popup"].value
           
@@ -3318,161 +3464,7 @@ function create_polyend_buddy_dialog(vb)
       }
     },
     
-    -- Local backup path configuration
-    vb:row{
-      vb:text{
-        text = "Local Backup Path",
-        width = textWidth, style="strong",font="bold"
-      },
-      vb:textfield{
-        id = "computer_backup_path_textfield",
-        text = polyend_computer_backup_path ~= "" and polyend_computer_backup_path or "<Set this Local Folder for saving processed files to>",
-        width = 400,
-        tooltip = "Default folder for backing up Polyend device to local storage"
-      },
-      vb:button{
-        text = "Browse",
-        width = polyendButtonWidth,
-        notifier = function()
-          local selected_path = renoise.app():prompt_for_path("Select Local Backup Folder")
-          if selected_path and selected_path ~= "" then
-            polyend_computer_backup_path = selected_path
-            vb.views["computer_backup_path_textfield"].text = selected_path
-            
-            -- Save to preferences
-            if preferences and preferences.PolyendLocalBackupPath then
-              preferences.PolyendLocalBackupPath.value = selected_path
-              preferences:save_as("preferences.xml")
-              print(string.format("-- Polyend Buddy: Saved local backup path to preferences: %s", selected_path))
-            end
-            
-            update_computer_backup_dropdown(vb)
-          end
-        end
-      },
-      vb:button{
-        text = "Open Path",
-        width = polyendButtonWidth,
-        tooltip = "Open the local backup folder in system file browser",
-        notifier = function()
-          if not polyend_computer_backup_path or polyend_computer_backup_path == "" then
-            renoise.app():show_status("Please configure local backup path first.")
-            return
-          end
-          
-          local path_exists = check_polyend_path_exists(polyend_computer_backup_path)
-          if not path_exists then
-            renoise.app():show_status("⚠️ Local backup path not accessible - check path.")
-            return
-          end
-          
-          renoise.app():open_path(polyend_computer_backup_path)
-          renoise.app():show_status("Opened local backup folder.")
-        end
-      }
-    },
-    
-    -- Local backup files dropdown with Send button
-    vb:row{
-      vb:text{
-        text = "Local Backup Files",
-        width = textWidth, style="strong",font="bold"
-      },
-      vb:popup{
-        id = "computer_backup_popup",
-        items = {"<Set Local Backup Path>"},
-        width = 400,
-        tooltip = "Select a PTI file from your local backup folder to send to device"
-      },
-      vb:button{
-        text = "Send to Device",
-        width = polyendButtonWidth*2,
-        tooltip = "Send the selected backup PTI file directly to Polyend device (choose destination folder)",
-        notifier = function()
-          local selected_index = vb.views["computer_backup_popup"].value
-          
-          if #computer_backup_files == 0 then
-            renoise.app():show_status("No local backup files found - set Local Backup Path first")
-            return
-          end
-          
-          if selected_index >= 1 and selected_index <= #computer_backup_files then
-            local selected_backup = computer_backup_files[selected_index]
-            local dropdown_display_name = vb.views["computer_backup_popup"].items[selected_index]
-            print(string.format("-- Local Backup: Selected dropdown item #%d: '%s'", selected_index, dropdown_display_name))
-            print(string.format("-- Local Backup: Sending PTI file: %s", selected_backup.full_path))
-            
-            -- Send the PTI file to device
-            send_computer_pti_to_device(selected_backup.full_path)
-            
-            renoise.app():show_status(string.format("Sent backup PTI to device: %s", selected_backup.display_name))
-          else
-            renoise.app():show_status("Please select a valid local backup file")
-          end
-        end
-      },
-      vb:button{
-        text = "Analyze", 
-        width = polyendButtonWidth,
-        tooltip = "Analyze the selected local backup PTI file and show detailed information (slices, format, etc.)",
-        notifier = function()
-          local selected_index = vb.views["computer_backup_popup"].value
-          
-          if #computer_backup_files == 0 then
-            renoise.app():show_status("No local backup files found to analyze - set Local Backup Path first")
-            return
-          end
-          
-          if selected_index >= 1 and selected_index <= #computer_backup_files then
-            local selected_backup = computer_backup_files[selected_index]
-            local dropdown_display_name = vb.views["computer_backup_popup"].items[selected_index]
-            print(string.format("-- Local Backup: Analyzing PTI file: %s", selected_backup.full_path))
-            
-            -- Analyze the PTI file
-            analyze_pti_file(selected_backup.full_path)
-            
-            renoise.app():show_status(string.format("Analyzed backup PTI: %s", selected_backup.display_name))
-          else
-            renoise.app():show_status("Please select a valid local backup file to analyze")
-          end
-        end
-      },
-      vb:button{
-        text = "Normalize Slices", 
-        width = polyendButtonWidth *2,
-        tooltip = "Load local backup PTI file, normalize all slices, then save as PTI with _normalized suffix",
-        notifier = function()
-          local selected_index = vb.views["computer_backup_popup"].value
-          
-          if #computer_backup_files == 0 then
-            renoise.app():show_status("No local backup files found to normalize - set Local Backup Path first")
-            return
-          end
-          
-          if selected_index >= 1 and selected_index <= #computer_backup_files then
-            local selected_backup = computer_backup_files[selected_index]
-            local dropdown_display_name = vb.views["computer_backup_popup"].items[selected_index]
-            print(string.format("-- Local Backup: Normalizing slices in PTI file: %s", selected_backup.full_path))
-            
-            -- Create normalized filename in same directory as source file
-            local base_path = selected_backup.full_path:gsub("%.pti$", "_normalized.pti")
-            local normalized_path = generate_unique_filename(base_path)
-            
-            normalize_pti_slices_and_save(selected_backup.full_path, normalized_path, function(success, result)
-              if success then
-                -- Refresh the local backup dropdown to show the new file
-                update_computer_backup_dropdown(vb)
-              end
-            end)
-            
-          else
-            renoise.app():show_status("Please select a valid local backup file to normalize")
-          end
-        end
-      }
-    },
-    
-    -- Use local backup checkbox
+    -- Use local backup checkbox (moved above the backup section)
     vb:row{
       vb:text{
         text = "",
@@ -3484,17 +3476,180 @@ function create_polyend_buddy_dialog(vb)
         tooltip = "Automatically create backup copies of saved PTI/WAV files in the local backup folder",
         notifier = function(value)
           polyend_use_computer_backup = value
+          backup_section_visible = value
           -- Save to preferences
           if preferences and preferences.PolyendUseLocalBackup then
             preferences.PolyendUseLocalBackup.value = value
             preferences:save_as("preferences.xml")
             print(string.format("-- Polyend Buddy: Saved use local backup preference: %s", tostring(value)))
           end
+          -- Update section visibility
+          update_section_visibility(vb)
         end
       },
       vb:text{
         text = "Auto-Backup Files (creates backup copies of saved PTI/WAV files)",
         font = "bold", style="strong"
+      }
+    },
+    
+    -- Local backup section (collapsible)
+    vb:column{
+      id = "backup_section",
+      visible = backup_section_visible,
+      
+      -- Local backup path configuration
+      vb:row{
+        vb:text{
+          text = "Local Backup Path",
+          width = textWidth, style="strong",font="bold"
+        },
+        vb:textfield{
+          id = "computer_backup_path_textfield",
+          text = polyend_computer_backup_path ~= "" and polyend_computer_backup_path or "<Set this Local Folder for saving processed files to>",
+          width = 400,
+          tooltip = "Default folder for backing up Polyend device to local storage"
+        },
+        vb:button{
+          text = "Browse",
+          width = polyendButtonWidth,
+          notifier = function()
+            local selected_path = renoise.app():prompt_for_path("Select Local Backup Folder")
+            if selected_path and selected_path ~= "" then
+              polyend_computer_backup_path = selected_path
+              vb.views["computer_backup_path_textfield"].text = selected_path
+              
+              -- Save to preferences
+              if preferences and preferences.PolyendLocalBackupPath then
+                preferences.PolyendLocalBackupPath.value = selected_path
+                preferences:save_as("preferences.xml")
+                print(string.format("-- Polyend Buddy: Saved local backup path to preferences: %s", selected_path))
+              end
+              
+              update_computer_backup_dropdown(vb)
+            end
+          end
+        },
+        vb:button{
+          text = "Open Path",
+          width = polyendButtonWidth,
+          tooltip = "Open the local backup folder in system file browser",
+          notifier = function()
+            if not polyend_computer_backup_path or polyend_computer_backup_path == "" then
+              renoise.app():show_status("Please configure local backup path first.")
+              return
+            end
+            
+            local path_exists = check_polyend_path_exists(polyend_computer_backup_path)
+            if not path_exists then
+              renoise.app():show_status("⚠️ Local backup path not accessible - check path.")
+              return
+            end
+            
+            renoise.app():open_path(polyend_computer_backup_path)
+            renoise.app():show_status("Opened local backup folder.")
+          end
+        }
+      },
+      
+      -- Local backup files dropdown with Send button
+      vb:row{
+        vb:text{
+          text = "Local Backup Files",
+          width = textWidth, style="strong",font="bold"
+        },
+        vb:popup{
+          id = "computer_backup_popup",
+          items = {"<Set Local Backup Path>"},
+          width = 400,
+          tooltip = "Select a PTI or WAV file from your local backup folder to send to device"
+        },
+        vb:button{
+          text = "Send to Device",
+          width = polyendButtonWidth*2,
+          tooltip = "Send the selected backup PTI or WAV file directly to Polyend device (choose destination folder)",
+          notifier = function()
+            local selected_index = vb.views["computer_backup_popup"].value
+            
+            if #computer_backup_files == 0 then
+              renoise.app():show_status("No local backup files found - set Local Backup Path first")
+              return
+            end
+            
+            if selected_index >= 1 and selected_index <= #computer_backup_files then
+              local selected_backup = computer_backup_files[selected_index]
+              local dropdown_display_name = vb.views["computer_backup_popup"].items[selected_index]
+              print(string.format("-- Local Backup: Selected dropdown item #%d: '%s'", selected_index, dropdown_display_name))
+              print(string.format("-- Local Backup: Sending PTI file: %s", selected_backup.full_path))
+              
+              -- Send the PTI file to device
+              send_computer_pti_to_device(selected_backup.full_path)
+              
+              renoise.app():show_status(string.format("Sent backup PTI to device: %s", selected_backup.display_name))
+            else
+              renoise.app():show_status("Please select a valid local backup file")
+            end
+          end
+        },
+        vb:button{
+          text = "Analyze", 
+          width = polyendButtonWidth,
+          tooltip = "Analyze the selected local backup PTI file and show detailed information (slices, format, etc.)",
+          notifier = function()
+            local selected_index = vb.views["computer_backup_popup"].value
+            
+            if #computer_backup_files == 0 then
+              renoise.app():show_status("No local backup files found to analyze - set Local Backup Path first")
+              return
+            end
+            
+            if selected_index >= 1 and selected_index <= #computer_backup_files then
+              local selected_backup = computer_backup_files[selected_index]
+              local dropdown_display_name = vb.views["computer_backup_popup"].items[selected_index]
+              print(string.format("-- Local Backup: Analyzing PTI file: %s", selected_backup.full_path))
+              
+              -- Analyze the PTI file
+              analyze_pti_file(selected_backup.full_path)
+              
+              renoise.app():show_status(string.format("Analyzed backup PTI: %s", selected_backup.display_name))
+            else
+              renoise.app():show_status("Please select a valid local backup file to analyze")
+            end
+          end
+        },
+        vb:button{
+          text = "Normalize Slices", 
+          width = polyendButtonWidth *2,
+          tooltip = "Load local backup PTI file, normalize all slices, then save as PTI with _normalized suffix",
+          notifier = function()
+            local selected_index = vb.views["computer_backup_popup"].value
+            
+            if #computer_backup_files == 0 then
+              renoise.app():show_status("No local backup files found to normalize - set Local Backup Path first")
+              return
+            end
+            
+            if selected_index >= 1 and selected_index <= #computer_backup_files then
+              local selected_backup = computer_backup_files[selected_index]
+              local dropdown_display_name = vb.views["computer_backup_popup"].items[selected_index]
+              print(string.format("-- Local Backup: Normalizing slices in PTI file: %s", selected_backup.full_path))
+              
+              -- Create normalized filename in same directory as source file
+              local base_path = selected_backup.full_path:gsub("%.pti$", "_normalized.pti")
+              local normalized_path = generate_unique_filename(base_path)
+              
+              normalize_pti_slices_and_save(selected_backup.full_path, normalized_path, function(success, result)
+                if success then
+                  -- Refresh the local backup dropdown to show the new file
+                  update_computer_backup_dropdown(vb)
+                end
+              end)
+              
+            else
+              renoise.app():show_status("Please select a valid local backup file to normalize")
+            end
+          end
+        }
       }
     },
     
@@ -3538,7 +3693,9 @@ function create_polyend_buddy_dialog(vb)
               local success = pti_savesample_to_path(unique_path)
               if success then
                 -- Create local backup copy if enabled
-                create_local_backup_copy(unique_path, "Save_PTI")
+                if create_local_backup_copy then
+                  create_local_backup_copy(unique_path, "Save_PTI")
+                end
                 
                 -- Refresh the dropdowns to show the new file
                 update_pti_dropdown(vb)
@@ -3598,7 +3755,9 @@ function create_polyend_buddy_dialog(vb)
             
             if success then
               -- Create local backup copy if enabled
-              create_local_backup_copy(unique_path, "Save_WAV")
+              if create_local_backup_copy then
+                create_local_backup_copy(unique_path, "Save_WAV")
+              end
               
               -- Refresh the dropdowns to show the new file
               update_pti_dropdown(vb)
@@ -4041,6 +4200,26 @@ function create_polyend_buddy_dialog(vb)
       }
     },
     
+    -- Palettes row
+    vb:row{
+      
+      vb:text{
+        text = "Sample Packs",
+        width = textWidth, style="strong",font="bold"
+      },
+      vb:button{
+        text = "Open Polyend Palettes / Sample Packs",
+        width = polyendButtonWidth*6,
+        tooltip = "Open the Polyend Palettes sample packs store in your browser",
+        notifier = function()
+          local palettes_url = "https://polyend.com/palettes/"
+          print(string.format("-- Polyend Buddy: Opening Palettes store: %s", palettes_url))
+          renoise.app():open_url(palettes_url)
+          renoise.app():show_status("Opened Polyend Palettes sample packs store in browser")
+        end
+      }
+    },
+    
     -- Other action buttons
     vb:row{
       
@@ -4109,6 +4288,7 @@ function show_polyend_buddy_dialog()
     update_pti_dropdown(vb)
     update_computer_pti_dropdown(vb)
     update_computer_backup_dropdown(vb)
+    update_section_visibility(vb)
   end
   
   local keyhandler = create_keyhandler_for_dialog(
