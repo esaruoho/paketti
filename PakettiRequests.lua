@@ -6472,6 +6472,272 @@ renoise.tool():add_midi_mapping{name="Paketti:Play at Row " .. formatnumber .. "
 playAtRow(i+1, false) end}
 end
 ---------
+
+-- Humanize Function - Randomizes delay, volume, and pan for selected notes
+function humanizeSelection(delay_amount, volume_amount, pan_amount)
+  local song = renoise.song()
+  local selection = selection_in_pattern_pro()
+  
+  if not selection then
+    renoise.app():show_status("No selection found")
+    return
+  end
+  
+  -- Get line boundaries directly from the current selection
+  local pattern_selection = song.selection_in_pattern
+  local start_line = pattern_selection.start_line
+  local end_line = pattern_selection.end_line
+  
+  local pattern = song.selected_pattern
+  local changes_made = 0
+  
+  -- First pass: Make columns visible on all selected tracks
+  for _, track_info in ipairs(selection) do
+    local track_index = track_info.track_index
+    local track = song:track(track_index)
+    
+    -- Only process sequencer tracks
+    if track.type == renoise.Track.TRACK_TYPE_SEQUENCER and track.visible_note_columns > 0 then
+      -- Always make delay column visible (delay is always applied)
+      track.delay_column_visible = true
+      
+      -- Make volume column visible if affecting volume
+      if volume_amount > 0 then
+        track.volume_column_visible = true
+      end
+      
+      -- Make panning column visible if affecting pan
+      if pan_amount > 0 then
+        track.panning_column_visible = true
+      end
+    end
+  end
+  
+  -- Second pass: Process each track in the selection
+  for _, track_info in ipairs(selection) do
+    local track_index = track_info.track_index
+    local track = song:track(track_index)
+    
+    -- Only process sequencer tracks
+    if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+      
+      local pattern_track = pattern:track(track_index)
+      local note_columns = track_info.note_columns
+      
+      -- Process each line in selection
+      for line_index = start_line, end_line do
+        if line_index <= pattern.number_of_lines then
+          local pattern_line = pattern_track:line(line_index)
+          
+          -- Process each note column in this track's selection
+          for _, col_index in ipairs(note_columns) do
+          local note_column = pattern_line.note_columns[col_index]
+          
+          -- Only humanize if there's a note
+          if note_column.note_value <= 119 then  -- Valid note (not empty/off)
+            local current_delay = note_column.delay_value
+            local new_delay = current_delay
+            
+            -- Humanize delay: randomize ± delay_amount
+            local change = math.random(-delay_amount, delay_amount)
+            new_delay = current_delay + change
+            
+            -- Clamp to valid range (0-255)
+            new_delay = math.max(0, math.min(255, new_delay))
+            note_column.delay_value = new_delay
+            changes_made = changes_made + 1
+            
+            -- Humanize volume if requested
+            if volume_amount > 0 and note_column.volume_value <= 127 then
+              local volume_change = math.random(-volume_amount, volume_amount)
+              local new_volume = note_column.volume_value + volume_change
+              new_volume = math.max(0, math.min(127, new_volume))
+              note_column.volume_value = new_volume
+            end
+            
+            -- Humanize pan if requested
+            if pan_amount > 0 and note_column.panning_value <= 127 then
+              local pan_change = math.random(-pan_amount, pan_amount)
+              local new_pan = note_column.panning_value + pan_change
+              new_pan = math.max(0, math.min(127, new_pan))
+              note_column.panning_value = new_pan
+            end
+          end
+        end
+      end
+    end
+  end
+  
+    renoise.app():show_status(string.format("Humanized %d notes (Delay: %d, Volume: %d, Pan: %d)",
+    changes_made, delay_amount, volume_amount, pan_amount))
+end
+end
+
+-- Humanize Dialog
+local humanize_dialog = nil
+
+function showHumanizeDialog()
+  -- If dialog is already open, close it
+  if humanize_dialog and humanize_dialog.visible then
+    humanize_dialog:close()
+    humanize_dialog = nil
+    return
+  end
+  
+  local vb = renoise.ViewBuilder()
+  local delay_amount = 10
+  local volume_amount = 5
+  local pan_amount = 8
+  local affect_delay = true
+  local affect_volume = true
+  local affect_pan = true
+  
+  local dialog_content = vb:column{
+    margin = 10,
+    
+    vb:row{
+      vb:text{text = "Humanize Delay", width = 120, font="bold", style="strong"},
+      vb:checkbox{
+        id = "affect_delay_checkbox",
+        value = true,
+        notifier = function(value)
+          affect_delay = value
+        end
+      },
+      vb:slider{
+        id = "delay_amount_slider",
+        min = 1, max = 30, value = delay_amount,
+        width = 150,
+        notifier = function(value)
+          delay_amount = value
+          vb.views.delay_amount_text.text = string.format("%d ticks", value)
+        end
+      },
+      vb:text{
+        id = "delay_amount_text",
+        text = string.format("%d ticks", delay_amount),
+        width = 60
+      }
+    },
+    
+    vb:row{
+      vb:text{text = "Humanize Volume", width = 120, font="bold", style="strong"},
+      vb:checkbox{
+        id = "affect_volume_checkbox",
+        value = true,
+        notifier = function(value)
+          affect_volume = value
+        end
+      },
+      vb:slider{
+        id = "volume_amount_slider",
+        min = 1, max = 20, value = volume_amount,
+        width = 150,
+        notifier = function(value)
+          volume_amount = value
+          vb.views.volume_amount_text.text = string.format("%d units", value)
+        end
+      },
+      vb:text{
+        id = "volume_amount_text",
+        text = string.format("%d units", volume_amount),
+        width = 60
+      }
+    },
+    
+    vb:row{
+      vb:text{text = "Humanize Panning", width = 120, font="bold", style="strong"},
+      vb:checkbox{
+        id = "affect_pan_checkbox",
+        value = true,
+        notifier = function(value)
+          affect_pan = value
+        end
+      },
+      vb:slider{
+        id = "pan_amount_slider",
+        min = 1, max = 20, value = pan_amount,
+        width = 150,
+        notifier = function(value)
+          pan_amount = value
+          vb.views.pan_amount_text.text = string.format("%d units", value)
+        end
+      },
+      vb:text{
+        id = "pan_amount_text",
+        text = string.format("%d units", pan_amount),
+        width = 60
+      }
+          },
+      
+    vb:row{
+      vb:button{
+        text = "Humanize",
+        width = 80,
+        notifier = function()
+          local del_amount = affect_delay and delay_amount or 0
+          local vol_amount = affect_volume and volume_amount or 0
+          local pan_amount_val = affect_pan and pan_amount or 0
+          humanizeSelection(del_amount, vol_amount, pan_amount_val)
+        end
+      },
+      vb:button{
+        text = "Close",
+        width = 80,
+        notifier = function()
+          if humanize_dialog and humanize_dialog.visible then
+            humanize_dialog:close()
+            humanize_dialog = nil
+          end
+        end
+      }
+    }
+  }
+  
+  humanize_dialog = renoise.app():show_custom_dialog("Humanize Selection", dialog_content, my_keyhandler_func)
+  renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
+end
+
+-- Register humanize functions
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Humanize Selection...", invoke = showHumanizeDialog}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern:Humanize Selection...", invoke = showHumanizeDialog}
+
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Humanize Selection...", invoke = showHumanizeDialog}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Quick Humanize 5", invoke = function() humanizeSelection(5, 3, 5) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Quick Humanize 10", invoke = function() humanizeSelection(10, 5, 8) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Quick Humanize 20", invoke = function() humanizeSelection(20, 8, 12) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Quick Humanize Random", invoke = function() 
+  local random_delay = math.random(5, 25)
+  local random_volume = math.random(3, 10)
+  local random_pan = math.random(5, 15)
+  humanizeSelection(random_delay, random_volume, random_pan)
+end}
+
+renoise.tool():add_keybinding{name="Global:Paketti:Humanize Selection...", invoke = showHumanizeDialog}
+renoise.tool():add_keybinding{name="Global:Paketti:Quick Humanize 5", invoke = function() humanizeSelection(5, 3, 5) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Quick Humanize 10", invoke = function() humanizeSelection(10, 5, 8) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Quick Humanize 20", invoke = function() humanizeSelection(20, 8, 12) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Quick Humanize Random", invoke = function() 
+  local random_delay = math.random(5, 25)
+  local random_volume = math.random(3, 10)
+  local random_pan = math.random(5, 15)
+  humanizeSelection(random_delay, random_volume, random_pan)
+end}
+
+-- MIDI mappings for quick humanize
+renoise.tool():add_midi_mapping{name="Paketti:Quick Humanize 5 x[Trigger]", invoke = function(message) if message:is_trigger() then humanizeSelection(5, 3, 5) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Quick Humanize 10 x[Trigger]", invoke = function(message) if message:is_trigger() then humanizeSelection(10, 5, 8) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Quick Humanize 20 x[Trigger]", invoke = function(message) if message:is_trigger() then humanizeSelection(20, 8, 12) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Quick Humanize Random x[Trigger]", invoke = function(message) 
+  if message:is_trigger() then 
+    local random_delay = math.random(5, 25)
+    local random_volume = math.random(3, 10)
+    local random_pan = math.random(5, 15)
+    humanizeSelection(random_delay, random_volume, random_pan)
+  end 
+end}
+
+---------
 local dialog = nil
 local vb = renoise.ViewBuilder()
 local global_slider_width=20
