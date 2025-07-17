@@ -456,6 +456,8 @@ timed_require("PakettiForeignSnippets")
 timed_require("PakettiManualSlicer")
 timed_require("Sononymph/AppMain")
 timed_require("PakettiChebyshevWaveshaper")
+timed_require("PakettiMetricModulation")
+
 -- Polyend functionality toggle
 local PolyendYes = false
 PolyendYes = true

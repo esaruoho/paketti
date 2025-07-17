@@ -30,26 +30,11 @@ local function set_edit_mode(value)
   end
 end
 
--- Local variable to track recording state
+-- Local variables to track recording state and position
 local is_recording_active = false
-
-local function set_sample_record(value)
-  if value > 80 then
-    if not is_recording_active then
-      -- Start recording
-      renoise.app().window.sample_record_dialog_is_visible = true
-      renoise.song().transport:start_stop_sample_recording()
-      is_recording_active = true -- Update the state to indicate recording is active
-    end
-  else
-    if is_recording_active then
-      renoise.song().transport:start_stop_sample_recording()
-      is_recording_active = false -- Update the state to indicate recording has stopped
-    end
-  end
-  
-  renoise.app().window.active_middle_frame = 1
-end
+local recording_start_line = 1
+local recording_start_pattern = 1
+local recording_start_track = 1
 
 
 local function set_pattern_length(value)
@@ -342,7 +327,7 @@ local function inject_xml_to_doofer2(device)
     </Macro4>
     <Macro5>
       <Value>0.0</Value>
-      <Name>Placeholder2</Name>
+      <Name>PHRLPB1-32</Name>
       <Mappings>
         <Mapping>
           <DestDeviceIndex>0</DestDeviceIndex>
@@ -502,32 +487,91 @@ function monitor_doofer2_macros(device)
 
   -- Macro 2 -> Sample Record
   local function macro2_notifier()
+    local song=renoise.song()
     local value=device.parameters[2].value
-    set_sample_record(value)
-    renoise.song().selected_track_index = 1
-
-
-      local s=renoise.song()
-  local currTrak=s.selected_track_index
-  local currPatt=s.selected_pattern_index
-  local rightinstrument=nil
-  local rightinstrument=renoise.song().selected_instrument_index-1
-
-  if preferences._0G01_Loader.value then
-    local new_track_index = currTrak + 1
-    s:insert_track_at(new_track_index)
-    s.selected_track_index = new_track_index
-    currTrak = new_track_index
-    local line=s.patterns[currPatt].tracks[currTrak].lines[1]
-    line.note_columns[1].note_string="C-4"
-    line.note_columns[1].instrument_value=rightinstrument
-    line.effect_columns[1].number_string="0G"
-    line.effect_columns[1].amount_string="01"
-      
-  end
-
     
+    -- Disable sync recording
+    song.transport.sample_recording_sync_enabled = false
     
+    if value > 80 then
+      if not is_recording_active then
+        -- Start recording
+        renoise.app().window.sample_record_dialog_is_visible = true
+        
+        -- Record current position
+        recording_start_line = song.selected_line_index
+        recording_start_pattern = song.selected_pattern_index
+        recording_start_track = song.selected_track_index
+        
+        print(string.format("=== RECORDING STARTED ==="))
+        print(string.format("Track: %d, Pattern: %d, Line: %d", recording_start_track, recording_start_pattern, recording_start_line))
+        print(string.format("Selected Instrument: %d", song.selected_instrument_index))
+        print(string.format("0G01 Mode: %s", preferences._0G01_Loader.value and "ON" or "OFF"))
+        
+        song.transport:start_sample_recording()
+        is_recording_active = true
+      end
+    else
+      if is_recording_active then
+        -- Stop recording
+        song.transport:stop_sample_recording()
+        is_recording_active = false
+        
+        print(string.format("=== RECORDING STOPPED ==="))
+        
+        -- Place C-4 note at recording start position
+        local rightinstrument = song.selected_instrument_index - 1
+        
+        if recording_start_track <= song.sequencer_track_count then
+          -- Recording started on a valid sequencer track
+          if preferences._0G01_Loader.value then
+            -- 0G01 version: Create new sequencer track and place C-4 + 0G01 at recording start position
+            local new_track_index = song.sequencer_track_count + 1
+            song:insert_track_at(new_track_index)
+            local line = song.patterns[recording_start_pattern].tracks[new_track_index].lines[recording_start_line]
+            line.note_columns[1].note_string = "C-4"
+            line.note_columns[1].instrument_value = rightinstrument
+            line.effect_columns[1].number_string = "0G"
+            line.effect_columns[1].amount_string = "01"
+            print(string.format("0G01 MODE: Created new track %d", new_track_index))
+            print(string.format("Note placed: C-4 + 0G01 with instrument %02X", rightinstrument))
+            print(string.format("Location: Track %d, Pattern %d, Line %d", new_track_index, recording_start_pattern, recording_start_line))
+          else
+            -- Simple version: Place C-4 at recording start position on existing track
+            local line = song.patterns[recording_start_pattern].tracks[recording_start_track].lines[recording_start_line]
+            line.note_columns[1].note_string = "C-4"
+            line.note_columns[1].instrument_value = rightinstrument
+            print(string.format("SIMPLE MODE: Note placed on existing track"))
+            print(string.format("Note placed: C-4 with instrument %02X", rightinstrument))
+            print(string.format("Location: Track %d, Pattern %d, Line %d", recording_start_track, recording_start_pattern, recording_start_line))
+          end
+        else
+          -- Recording started on non-sequencer track (master/send/group) - create new track
+          print(string.format("Recording started on non-sequencer track %d (max: %d) - creating new track", recording_start_track, song.sequencer_track_count))
+          local new_track_index = song.sequencer_track_count + 1
+          song:insert_track_at(new_track_index)
+          local line = song.patterns[recording_start_pattern].tracks[new_track_index].lines[recording_start_line]
+          line.note_columns[1].note_string = "C-4"
+          line.note_columns[1].instrument_value = rightinstrument
+          
+          if preferences._0G01_Loader.value then
+            line.effect_columns[1].number_string = "0G"
+            line.effect_columns[1].amount_string = "01"
+            print(string.format("NEW TRACK MODE (0G01): Created track %d with C-4 + 0G01", new_track_index))
+          else
+            print(string.format("NEW TRACK MODE: Created track %d with C-4", new_track_index))
+          end
+          print(string.format("Note placed: C-4 with instrument %02X", rightinstrument))
+          print(string.format("Location: Track %d, Pattern %d, Line %d", new_track_index, recording_start_pattern, recording_start_line))
+        end
+        
+        -- Always return to master track for doofer control
+        local master_track_index = song.sequencer_track_count + 1
+        song.selected_track_index = master_track_index
+        print(string.format("Returned to master track: %d", master_track_index))
+        print(string.format("========================"))
+      end
+    end
   end
 
   -- Macro 3 -> Pattern Length
@@ -571,10 +615,14 @@ local function macro5_notifier()
 end
 
 
-  -- Macro 6 -> Placeholder2
+  -- Macro 6 -> Phrase LPB
   local function macro6_notifier()
+    local song=renoise.song()
     local value=device.parameters[6].value
-    placeholder_notifier(2, value)
+    if song.selected_phrase_index ~= nil and song.selected_phrase ~= nil then
+      local lpb_value = math.floor((value/100) * (32-1) + 1)
+      song.selected_phrase.lpb = lpb_value
+    end
   end
 
   -- Macro 7 -> Placeholder3

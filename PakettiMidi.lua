@@ -2602,3 +2602,203 @@ renoise.tool():add_file_import_hook{
   extensions = {"mid"},
   invoke     = dudeMidi
 }
+
+-----------------------------------------------------------------------
+-- Standalone Sampling & Pattern Writing Implementation
+-----------------------------------------------------------------------
+
+-- Sample recording position tracking
+local paketti_recording_start_track = nil
+local paketti_recording_start_pattern = nil
+local paketti_recording_start_line = nil
+local paketti_note_already_placed = false
+  
+-- Core sampling functions
+function paketti_start_sample_recording()
+  local song = renoise.song()
+  
+  print("DEBUG: Start function called, current recording state:", song.transport.sample_recording)
+  
+  if song.transport.sample_recording then
+    print("Sampling already active, ignoring start request")
+    return
+  end
+
+  -- Capture the current position when recording starts
+  paketti_recording_start_track = song.selected_track_index
+  paketti_recording_start_pattern = song.selected_pattern_index
+  paketti_recording_start_line = song.selected_line_index
+  paketti_note_already_placed = false
+  
+  print(string.format("Recording start position captured: Track %d, Pattern %d, Line %d", 
+    paketti_recording_start_track, paketti_recording_start_pattern, paketti_recording_start_line))
+  
+  renoise.app().window.sample_record_dialog_is_visible = true
+  
+  -- Check prerequisites
+  print("DEBUG: Selected instrument index:", song.selected_instrument_index)
+  print("DEBUG: Instrument exists:", song.selected_instrument ~= nil)
+  if song.selected_instrument then
+    print("DEBUG: Instrument has samples:", #song.selected_instrument.samples)
+    if #song.selected_instrument.samples > 0 then
+      local sample = song.selected_instrument.samples[song.selected_sample_index]
+      if sample and sample.sample_buffer.has_sample_data then
+        print("DEBUG: Selected sample has data, creating new sample")
+        song.selected_instrument:insert_sample_at(song.selected_sample_index + 1)
+        song.selected_sample_index = song.selected_sample_index + 1
+      else
+        print("DEBUG: Selected sample is empty, can record into it")
+      end
+    else
+      print("DEBUG: No samples, will create one")
+    end
+  end
+  
+  -- Disable sync and start recording
+  song.transport.sample_recording_sync_enabled = false
+  
+  print("DEBUG: About to call start_sample_recording()")
+  song.transport:start_sample_recording()
+  print("DEBUG: Called start_sample_recording()")
+  renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
+  print("DEBUG: After start_sample_recording(), state is now:", song.transport.sample_recording)
+  
+  renoise.app():show_status("Sampling started")
+  print("Sampling started")
+end
+
+function paketti_stop_sample_recording()
+  local song = renoise.song()
+  
+  print("DEBUG: Stop function called, recording state:", song.transport.sample_recording)
+  
+  -- Stop recording if it's still active
+  if song.transport.sample_recording then
+    song.transport:stop_sample_recording()
+    print("Sampling stopped")
+  else
+    print("Sampling was already stopped")
+  end
+  
+  -- Always try to place note if we have a captured position
+  if paketti_recording_start_track and paketti_recording_start_pattern and paketti_recording_start_line then
+    print("DEBUG: Have captured position, placing note")
+    paketti_place_recording_note()
+    paketti_note_already_placed = true
+    renoise.app():show_status("Sampling stopped and trigger placed")
+  else
+    print("DEBUG: No captured position available")
+    renoise.app():show_status("Sampling stopped (no position captured)")
+  end
+end
+
+function paketti_place_recording_note()
+  local song = renoise.song()
+  local current_track_index = song.selected_track_index
+  local target_track_index = paketti_recording_start_track
+  local target_pattern_index = paketti_recording_start_pattern
+  local target_line_index = paketti_recording_start_line
+  
+  print(string.format("Placing note at recorded position: Track %d, Pattern %d, Line %d", 
+    target_track_index, target_pattern_index, target_line_index))
+  
+  -- Determine target track based on recording start track type
+  local start_track = song.tracks[target_track_index]
+  if start_track.type ~= renoise.Track.TRACK_TYPE_SEQUENCER then
+    -- If recording started on non-sequencer track, create new sequencer track
+    song:insert_track_at(song.sequencer_track_count + 1)
+    target_track_index = song.sequencer_track_count
+    print(string.format("Created new sequencer track at index: %d", target_track_index))
+  end
+  
+  -- Switch to target pattern and line
+  song.selected_pattern_index = target_pattern_index
+  song.selected_line_index = target_line_index
+  song.selected_track_index = target_track_index
+  
+  -- Get the target line and first note column
+  local pattern = song:pattern(target_pattern_index)
+  local track = pattern:track(target_track_index)
+  local line = track:line(target_line_index)
+  local note_column = line:note_column(1)
+  
+  -- Make sure note column is visible
+  song.tracks[target_track_index].visible_note_columns = math.max(1, song.tracks[target_track_index].visible_note_columns)
+  
+  -- Always place C-4 note + 0G01 command
+  note_column.note_value = 48 -- C-4
+  note_column.instrument_value = song.selected_instrument_index
+  
+  -- Place 0G01 command in effect column
+  song.tracks[target_track_index].visible_effect_columns = math.max(1, song.tracks[target_track_index].visible_effect_columns)
+  local effect_column = line:effect_column(1)
+  effect_column.number_string = "0G"
+  effect_column.amount_string = "01"
+  
+  print(string.format("Placed C-4 + 0G01 at Track %d, Line %d", target_track_index, target_line_index))
+end
+
+function paketti_toggle_sample_recording()
+  print("DEBUG: Toggle function entry")
+  
+  local success, error_msg = pcall(function()
+    local song = renoise.song()
+    
+    print("DEBUG: Toggle called, recording state:", song.transport.sample_recording)
+    
+    if song.transport.sample_recording then
+      print("DEBUG: Calling stop function")
+      paketti_stop_sample_recording()
+    else
+      print("DEBUG: Calling start function")
+      paketti_start_sample_recording()
+    end
+  end)
+  
+  if not success then
+    print("ERROR in toggle function:", error_msg)
+    renoise.app():show_status("Error in sampling toggle: " .. tostring(error_msg))
+  end
+  
+  -- Safety check: if we're exiting and recording is still active, force stop and place note
+  local song = renoise.song()
+  if song.transport.sample_recording then
+    print("DEBUG: Safety check - recording still active at function exit, forcing stop")
+    song.transport:stop_sample_recording()
+    
+    -- Only place note if we haven't already done it
+    if not paketti_note_already_placed and paketti_recording_start_track and paketti_recording_start_pattern and paketti_recording_start_line then
+      print("DEBUG: Safety check - placing note that wasn't placed yet")
+      paketti_place_recording_note()
+      renoise.app():show_status("Sampling force-stopped and trigger placed")
+    else
+      print("DEBUG: Safety check - note already placed or no position captured")
+    end
+  end
+  
+  print("DEBUG: Toggle function exit")
+end
+
+function paketti_handle_sample_recording_knob(midi_message)
+  if midi_message:is_abs_value() then
+    local song = renoise.song()
+    local value = midi_message.int_value
+    
+    if value >= 64 then
+      -- High values (64-127) start recording
+      if not song.transport.sample_recording then
+        paketti_start_sample_recording()
+      end
+    else
+      -- Low values (0-63) stop recording
+      if song.transport.sample_recording then
+        paketti_stop_sample_recording()
+      end
+    end
+  end
+end
+
+renoise.tool():add_midi_mapping{name = "Paketti:Toggle Sampling & Write Trigger to Pattern x[Toggle]",invoke = function(message) if message:is_trigger() then paketti_toggle_sample_recording() end end}
+renoise.tool():add_midi_mapping{name = "Paketti:Sampling & Pattern Writing Control x[Knob]",invoke = function(message) paketti_handle_sample_recording_knob(message) end}
+renoise.tool():add_keybinding{name = "Global:Paketti:Toggle Sampling & Write Trigger to Pattern",invoke = function() paketti_toggle_sample_recording() end}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti..:Sample Recording:Toggle Sampling & Write Trigger to Pattern",invoke = function() paketti_toggle_sample_recording() end}
