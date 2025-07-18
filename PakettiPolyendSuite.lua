@@ -1154,15 +1154,13 @@ function copy_firmware_to_device(firmware_folder_path, device_name)
   
   -- Report results
   if copied_count > 0 and failed_count == 0 then
-    local success_message = string.format("✅ Firmware copied to device successfully!\n\n%s firmware files copied to:\n%s\n\nFiles copied: %d", 
-      device_name, device_firmware_path, copied_count)
-    renoise.app():show_message(success_message)
     renoise.app():show_status(string.format("%s firmware copied to device (%d files)", device_name, copied_count))
     print(string.format("-- Copy Firmware: Success! Copied %d files to device", copied_count))
     
-    -- Optionally open the device firmware folder
+    -- Show success and ask about opening folder in one dialog
     local open_folder = renoise.app():show_prompt("Firmware Copy Complete", 
-      "Firmware copied to device successfully!\n\nWould you like to open the device Firmware folder?",
+      string.format("Firmware copied to device successfully!\n\n%s firmware files copied to:\n%s\n\nFiles copied: %d\n\nWould you like to open the device Firmware folder?", 
+        device_name, device_firmware_path, copied_count),
       {"Yes", "No"})
     if open_folder == "Yes" then
       renoise.app():open_path(device_firmware_path)
@@ -1823,15 +1821,13 @@ function backup_polyend_tracker()
   
   -- Report results
   if backup_successful and verification_success then
-    local success_message = string.format("Polyend device backup completed successfully!\n\nBackup folder: %s\nBackup location: %s\nFiles backed up: %d", 
-      final_backup_folder, full_backup_path, file_count)
-    renoise.app():show_message(success_message)
     print("-- Backup Polyend device: Backup completed successfully")
     print("-- Backup location: " .. full_backup_path)
     
-    -- Optionally open the backup folder in system file browser
+    -- Show success and ask about opening folder in one dialog
     local open_folder = renoise.app():show_prompt("Backup Complete", 
-      "Polyend device backup completed successfully!\n\nWould you like to open the backup folder?",
+      string.format("Polyend device backup completed successfully!\n\nBackup folder: %s\nBackup location: %s\nFiles backed up: %d\n\nWould you like to open the backup folder?", 
+        final_backup_folder, full_backup_path, file_count),
       {"Yes", "No"})
     if open_folder == "Yes" then
       renoise.app():open_path(backup_destination)
@@ -2207,9 +2203,6 @@ function dump_pti_to_device()
       local copied_size = verify_file:seek()
       verify_file:close()
       
-      local success_message = string.format("PTI file copied successfully!\n\nFile: %s\nSize: %d bytes (%.2f KB)\nDestination: %s", 
-        pti_filename, copied_size, copied_size / 1024, destination_folder)
-      renoise.app():show_message(success_message)
       renoise.app():show_status(string.format("PTI copied to %s", destination_path))
       print("-- Dump PTI to Device: Copy operation completed successfully")
       
@@ -2218,9 +2211,10 @@ function dump_pti_to_device()
         polyend_refresh_callback()
       end
       
-      -- Optionally open the destination folder
+      -- Show success and ask about opening folder in one dialog
       local open_folder = renoise.app():show_prompt("Copy Complete", 
-        "PTI file copied successfully!\n\nWould you like to open the destination folder?",
+        string.format("PTI file copied successfully!\n\nFile: %s\nSize: %d bytes (%.2f KB)\nDestination: %s\n\nWould you like to open the destination folder?", 
+          pti_filename, copied_size, copied_size / 1024, destination_folder),
         {"Yes", "No"})
       if open_folder == "Yes" then
         renoise.app():open_path(destination_folder)
@@ -2336,7 +2330,7 @@ function send_computer_pti_to_device(pti_filepath)
       local copied_size = verify_file:seek()
       verify_file:close()
       
-      renoise.app():show_status(string.format("✅ PTI sent to device: %s (%.2f KB) → %s", 
+      renoise.app():show_status(string.format("PTI sent to device: %s (%.2f KB) → %s", 
         final_filename, copied_size / 1024, destination_folder:match("[^/\\]+$") or destination_folder))
       print("-- Send Local PTI: Send operation completed successfully")
     else

@@ -207,9 +207,9 @@ function apply_metric_modulation(new_bpm, create_new_pattern, target_lpb)
   song.transport.lpb = target_lpb
   
   if target_lpb ~= current_lpb then
-    renoise.app():show_status(string.format("Applied LPB modulation: %s BPM/%d LPB → %s BPM/%d LPB", format_bpm(current_bpm), current_lpb, format_bpm(new_bpm), target_lpb))
+    renoise.app():show_status(string.format("Applied LPB modulation: %sBPM/%dLPB → %sBPM/%dLPB", format_bpm(current_bpm), current_lpb, format_bpm(new_bpm), target_lpb))
   else
-    renoise.app():show_status(string.format("Applied metric modulation: %s BPM → %s BPM", format_bpm(current_bpm), format_bpm(new_bpm)))
+    renoise.app():show_status(string.format("Applied metric modulation: %sBPM→%sBPM", format_bpm(current_bpm), format_bpm(new_bpm)))
   end
   
   return new_bpm
@@ -231,7 +231,7 @@ function generate_suggestions()
       if new_bpm >= 20 and new_bpm <= 999 then
         table.insert(suggestions, {
           type = "LPB",
-          description = string.format("%d LPB → %d LPB", current_lpb, target_lpb),
+          description = string.format("%dLPB→%dLPB", current_lpb, target_lpb),
           current_bpm = current_bpm,
           new_bpm = new_bpm,
           ratio = string.format("%d:%d", current_lpb, target_lpb)
@@ -350,28 +350,28 @@ function refresh_dialog_data()
   
   -- Update pattern analysis display
   if dialog and vb.views.pattern_info then
-    vb.views.pattern_info.text = string.format("Current Pattern: %s BPM, %d LPB", format_bpm(mm_state.current_bpm), mm_state.current_lpb)
+    vb.views.pattern_info.text = string.format("Current Pattern: %sBPM, %dLPB", format_bpm(mm_state.current_bpm), mm_state.current_lpb)
   end
   
   -- Update note value displays
   if dialog then
     if vb.views.eighth_note_display then
-      vb.views.eighth_note_display.text = string.format("%s BPM", format_bpm(mm_state.current_bpm * 2))
+      vb.views.eighth_note_display.text = string.format("%sBPM", format_bpm(mm_state.current_bpm * 2))
     end
     if vb.views.dotted_eighth_note_display then
-      vb.views.dotted_eighth_note_display.text = string.format("%s BPM", format_bpm(mm_state.current_bpm / 0.75))
+      vb.views.dotted_eighth_note_display.text = string.format("%sBPM", format_bpm(mm_state.current_bpm / 0.75))
     end
     if vb.views.quarter_note_display then
-      vb.views.quarter_note_display.text = string.format("%s BPM", format_bpm(mm_state.current_bpm))
+      vb.views.quarter_note_display.text = string.format("%sBPM", format_bpm(mm_state.current_bpm))
     end
     if vb.views.dotted_quarter_note_display then
-      vb.views.dotted_quarter_note_display.text = string.format("%s BPM", format_bpm(mm_state.current_bpm / 1.5))
+      vb.views.dotted_quarter_note_display.text = string.format("%sBPM", format_bpm(mm_state.current_bpm / 1.5))
     end
     if vb.views.half_note_display then
-      vb.views.half_note_display.text = string.format("%s BPM", format_bpm(mm_state.current_bpm / 2))
+      vb.views.half_note_display.text = string.format("%sBPM", format_bpm(mm_state.current_bpm / 2))
     end
     if vb.views.dotted_half_note_display then
-      vb.views.dotted_half_note_display.text = string.format("%s BPM", format_bpm(mm_state.current_bpm / 3))
+      vb.views.dotted_half_note_display.text = string.format("%sBPM", format_bpm(mm_state.current_bpm / 3))
     end
   end
   
@@ -408,6 +408,9 @@ function show_metric_modulation_dialog()
   mm_state.current_bpm = song.transport.bpm
   mm_state.current_lpb = song.transport.lpb
   
+  -- Store valuebox reference for transport observable
+  local bpm_valuebox = nil
+  
   -- Smart target LPB initialization: read current transport.lpb and set logical next target
   local current_transport_lpb = song.transport.lpb
   local smart_target_lpb = current_transport_lpb + 2  -- Common progression: +2
@@ -438,6 +441,24 @@ function show_metric_modulation_dialog()
       text = string.format("Current Pattern: %sBPM, %dLPB", format_bpm(mm_state.current_bpm), mm_state.current_lpb),
       style = "strong",
       font = "bold"},
+      
+    -- BPM Control section  
+    vb:row {
+      vb:text { text = "Tempo", font = "bold", style = "strong" },
+      (function()
+        bpm_valuebox = vb:valuebox {
+          id = "main_bpm_valuebox",
+          value = mm_state.current_bpm, min = 20, max = 999,
+          notifier = function(val)
+            song.transport.bpm = val
+            mm_state.current_bpm = val
+            refresh_dialog_data()
+          end
+        }
+        return bpm_valuebox
+      end)(),
+      vb:text { text = "BPM", font = "bold", style = "strong" }
+    },
         
     -- Metric modulation section (single row) - Column alignment: 140 + 80 + 60 + 200
     vb:row {
@@ -475,18 +496,24 @@ function show_metric_modulation_dialog()
       vb:text { text = "", width = 140 }, -- spacer
       vb:text { text = "Adjust:", width = 80 },
       vb:row {
-        spacing = 2,
+        
         vb:button {
           text = "-",
           width = 25,
           notifier = function()
-            print("-- Metric Modulation: LPB - button clicked, current target_lpb:", mm_state.target_lpb)
+            -- FIRST: Refresh current song data
+            local song = renoise.song()
+            mm_state.current_bpm = song.transport.bpm
+            mm_state.current_lpb = song.transport.lpb
+            print("-- LPB Adjust: Refreshed current song data - BPM:", format_bpm(mm_state.current_bpm), "LPB:", mm_state.current_lpb)
+            
+            print("-- LPB Adjust: - button clicked, current target_lpb:", mm_state.target_lpb)
             if mm_state.target_lpb > 1 then
               mm_state.target_lpb = mm_state.target_lpb - 1
-              print("-- Metric Modulation: LPB decreased to:", mm_state.target_lpb)
-              update_lpb_calculation_display()
+              print("-- LPB Adjust: LPB decreased to:", mm_state.target_lpb)
+              refresh_dialog_data()
             else
-              print("-- Metric Modulation: LPB already at minimum (1), cannot decrease")
+              print("-- LPB Adjust: LPB already at minimum (1), cannot decrease")
             end
           end
         },
@@ -494,13 +521,19 @@ function show_metric_modulation_dialog()
           text = "+",
           width = 25,
           notifier = function()
-            print("-- Metric Modulation: LPB + button clicked, current target_lpb:", mm_state.target_lpb)
+            -- FIRST: Refresh current song data
+            local song = renoise.song()
+            mm_state.current_bpm = song.transport.bpm
+            mm_state.current_lpb = song.transport.lpb
+            print("-- LPB Adjust: Refreshed current song data - BPM:", format_bpm(mm_state.current_bpm), "LPB:", mm_state.current_lpb)
+            
+            print("-- LPB Adjust: + button clicked, current target_lpb:", mm_state.target_lpb)
             if mm_state.target_lpb < 32 then
               mm_state.target_lpb = mm_state.target_lpb + 1
-              print("-- Metric Modulation: LPB increased to:", mm_state.target_lpb)
-              update_lpb_calculation_display()
+              print("-- LPB Adjust: LPB increased to:", mm_state.target_lpb)
+              refresh_dialog_data()
             else
-              print("-- Metric Modulation: LPB already at maximum (32), cannot increase")
+              print("-- LPB Adjust: LPB already at maximum (32), cannot increase")
             end
           end}}},
     
@@ -515,20 +548,30 @@ function show_metric_modulation_dialog()
       notifier = function(value)
         local ratio = common_ratios[value]
         if ratio then
+          -- FIRST: Refresh current song data
+          local song = renoise.song()
+          mm_state.current_bpm = song.transport.bpm
+          mm_state.current_lpb = song.transport.lpb
+          print("-- Quick Ratio: Refreshed current song data - BPM:", format_bpm(mm_state.current_bpm), "LPB:", mm_state.current_lpb)
+          
+          -- THEN: Set the ratio
           mm_state.ratio_numerator = ratio.num
           mm_state.ratio_denominator = ratio.den
-          update_calculation_display()
+          print("-- Quick Ratio: Selected ratio", ratio.num .. ":" .. ratio.den, "(" .. ratio.desc .. ")")
+          
+          -- Update all displays with fresh data
+          refresh_dialog_data()
         end
       end
     },
     
     -- Quick ratio descriptions
     vb:text { id = "ratio_descriptions",
-      text = "4:3 (4/4 to 3/4 feel), 3:2 (Triplet feel), 2:3 (Reverse triplet), 5:4 (Complex polyrhythm)",width=600},
+      text = "4:3 (4/4 to 3/4 feel), 3:2 (Triplet feel), 2:3 (Reverse triplet), 5:4 (Complex polyrhythm)"},
 vb:text {id="ratio_descriptions2",
-text="4:5 (Reverse complex), 6:4 (3/4 to 4/4 feel), 8:6 (4/4 to 6/8 feel), 6:8 (6/8 to 4/4 feel)",width=600},
+text="4:5 (Reverse complex), 6:4 (3/4 to 4/4 feel), 8:6 (4/4 to 6/8 feel), 6:8 (6/8 to 4/4 feel)"},
 vb:text{id="ratio_descriptions3",
-text="7:4 (Odd time signature), 4:7 (Reverse odd time)",width=600},
+text="7:4 (Odd time signature), 4:7 (Reverse odd time)"},
 
     -- Note Value Calculator section
     vb:text { text = "Note Value Calculator", font="bold",style = "strong" },    
@@ -658,9 +701,12 @@ text="7:4 (Odd time signature), 4:7 (Reverse odd time)",width=600},
       vb:checkbox {id = "create_new_pattern",value = true},
       vb:text { text = "Create new pattern", style = "strong", font = "bold", width=metricWidth }},
     vb:row {
+      vb:checkbox {id = "alter_beatsync", value = false},
+      vb:text { text = "Alter Global Beatsync with Modulation", style = "strong", font = "bold", width=metricWidth + 100 }},
+    vb:row {
       vb:button {
         text = "Advanced Subdivision Calculator",
-        width = metricWidth + 20,
+        width = 240,
         notifier = function()
           print("-- Metric Modulation: Opening subdivision calculator dialog")
           show_subdivision_calculator_dialog()
@@ -671,7 +717,7 @@ text="7:4 (Odd time signature), 4:7 (Reverse odd time)",width=600},
     vb:row {
       vb:button {
         text = "Apply Modulation",
-        width = 120,
+        width = 240,
         notifier = function()
           local song = renoise.song()
           local current_lpb = song.transport.lpb
@@ -687,12 +733,22 @@ text="7:4 (Odd time signature), 4:7 (Reverse odd time)",width=600},
             print("-- Apply Modulation: Using RATIO modulation (ratio", mm_state.ratio_numerator .. ":" .. mm_state.ratio_denominator .. ")")
             local new_bpm = calculate_metric_modulation(mm_state.current_bpm, mm_state.ratio_numerator, mm_state.ratio_denominator)
             apply_metric_modulation(new_bpm, vb.views.create_new_pattern.value)
+            
+            -- Adjust beatsync if checkbox is enabled
+            if vb.views.alter_beatsync and vb.views.alter_beatsync.value then
+              adjust_global_beatsync(mm_state.current_bpm, new_bpm, current_lpb, current_lpb, "ratio")
+            end
           elseif mm_state.target_lpb ~= current_lpb then
             -- Target LPB is different - apply LPB modulation
             print("-- Apply Modulation: Using LPB modulation (LPB", current_lpb, "→", mm_state.target_lpb .. ")")
             local applied_target_lpb = mm_state.target_lpb
             local new_bpm = calculate_lpb_modulation(mm_state.current_bpm, mm_state.current_lpb, mm_state.target_lpb)
             apply_metric_modulation(new_bpm, vb.views.create_new_pattern.value, mm_state.target_lpb)
+            
+            -- Adjust beatsync if checkbox is enabled
+            if vb.views.alter_beatsync and vb.views.alter_beatsync.value then
+              adjust_global_beatsync(mm_state.current_bpm, new_bpm, current_lpb, applied_target_lpb, "lpb")
+            end
             
             -- Auto-increment target LPB for next modulation (smart workflow)
             local next_lpb = applied_target_lpb + 2  -- Common LPB progression: 4→6→8→10→12→14→16
@@ -720,21 +776,17 @@ text="7:4 (Odd time signature), 4:7 (Reverse odd time)",width=600},
           refresh_dialog_data()
         end
       },
-      vb:button {
-        text = "Preview",
-        width = 80,
-        notifier = preview_metric_modulation}}},
   
     -- Advanced Subdivision Calculator (hidden by default)
     vb:column {
       id = "subdivision_section",
       visible = mm_state.show_subdivisions,
-      spacing = 5,
+      
       vb:text { text = "Advanced Subdivision Calculator", font="bold",style = "strong" },
       
       -- Create rows for all subdivisions
       vb:column {
-        spacing = 2,
+        
         -- Quarter Note
         vb:row {
           vb:text { text = "♩", font = "big", style = "strong", width = 25 },
@@ -784,18 +836,24 @@ text="7:4 (Odd time signature), 4:7 (Reverse odd time)",width=600},
             width = 80}}
       }
     }
-  
-  
-  dialog = renoise.app():show_custom_dialog("Paketti Metric Modulation Calculator", dialog_content)
-end
+}
+}
 
--- Preview metric modulation without applying
-function preview_metric_modulation()
-  local song = renoise.song()
-  local ratio_bpm = calculate_metric_modulation(mm_state.current_bpm, mm_state.ratio_numerator, mm_state.ratio_denominator)
-  local lpb_bpm = calculate_lpb_modulation(mm_state.current_bpm, mm_state.current_lpb, mm_state.target_lpb)
+  dialog = renoise.app():show_custom_dialog("Paketti Metric Modulation Calculator", dialog_content, my_keyhandler_func)
   
-  renoise.app():show_status(string.format("Preview - Ratio: %s BPM | LPB %d: %s BPM", format_bpm(ratio_bpm), mm_state.target_lpb, format_bpm(lpb_bpm)))
+  -- Add transport BPM observable to update when Renoise BPM changes
+  local function update_from_transport()
+    local new_bpm = song.transport.bpm
+    if new_bpm ~= mm_state.current_bpm then
+      mm_state.current_bpm = new_bpm
+      if bpm_valuebox then bpm_valuebox.value = mm_state.current_bpm end
+      refresh_dialog_data()
+    end
+  end
+  
+  song.transport.bpm_observable:add_notifier(update_from_transport)
+  
+  renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
 end
 
 
@@ -819,7 +877,7 @@ function quick_lpb_modulation(target_lpb)
   
   apply_metric_modulation(new_bpm, true, target_lpb)
   
-  renoise.app():show_status(string.format("LPB modulation applied: %d→%d LPB, %.1f→%.1f BPM", 
+  renoise.app():show_status(string.format("LPB modulation applied: %d→%dLPB, %.1f→%.1fBPM", 
     current_lpb, target_lpb, current_bpm, new_bpm))
 end
 
@@ -839,6 +897,64 @@ end
 
 function convert_3_to_4_feel()
   quick_metric_modulation(3, 4)
+end
+
+-- Adjust beatsync values for all instruments when modulation is applied
+function adjust_global_beatsync(old_bpm, new_bpm, old_lpb, new_lpb, modulation_type)
+  local song = renoise.song()
+  print("-- Beatsync Adjustment: Starting global beatsync adjustment")
+  print("-- Beatsync Adjustment:", modulation_type, "modulation", old_bpm, "BPM →", new_bpm, "BPM,", old_lpb, "LPB →", new_lpb, "LPB")
+  
+  local adjustment_ratio
+  
+  if modulation_type == "ratio" then
+    -- Ratio modulation: only BPM changes, LPB stays same
+    adjustment_ratio = new_bpm / old_bpm
+    print("-- Beatsync Adjustment: Ratio modulation, BPM ratio =", adjustment_ratio)
+  elseif modulation_type == "lpb" then
+    -- LPB modulation: BPM and LPB change but musical tempo stays the same
+    -- Beatsync should NOT be adjusted because quarter note speed is unchanged
+    print("-- Beatsync Adjustment: LPB modulation detected - skipping beatsync adjustment (musical tempo unchanged)")
+    return
+  else
+    print("-- Beatsync Adjustment: Unknown modulation type, skipping")
+    return
+  end
+  
+  local adjusted_count = 0
+  
+  -- Only adjust for common musical ratios - no arbitrary math!
+  -- Beatsync should change by the same ratio as tempo to maintain musical timing
+  local beatsync_multiplier = adjustment_ratio
+  print("-- Beatsync Adjustment: Tempo ratio", adjustment_ratio, "→ beatsync multiplier", beatsync_multiplier)
+  
+  -- Scan all instruments and samples
+  for inst_idx, instrument in ipairs(song.instruments) do
+    if instrument and #instrument.samples > 0 then
+      for sample_idx, sample in ipairs(instrument.samples) do
+        if sample and sample.beat_sync_enabled then
+          local old_beatsync = sample.beat_sync_lines
+          
+          -- Apply musical beatsync multiplier
+          local new_beatsync = math.floor(old_beatsync * beatsync_multiplier + 0.5)
+          
+          -- Clamp to valid range (1-512)
+          new_beatsync = math.max(1, math.min(512, new_beatsync))
+          
+          if new_beatsync ~= old_beatsync then
+            sample.beat_sync_lines = new_beatsync
+            adjusted_count = adjusted_count + 1
+            print("-- Beatsync Adjustment: Instrument", inst_idx, "Sample", sample_idx, ":", old_beatsync, "→", new_beatsync, "lines (musical ratio)")
+          end
+        end
+      end
+    end
+  end
+  
+  print("-- Beatsync Adjustment: Adjusted", adjusted_count, "beat-synced samples")
+  if adjusted_count > 0 then
+    renoise.app():show_status(string.format("Adjusted %d beat-synced samples (ratio: %.3f)", adjusted_count, adjustment_ratio))
+  end
 end
 
 -- Menu entries
@@ -922,21 +1038,10 @@ renoise.tool():add_midi_mapping{
 }
 
 -- Menu entries for subdivision calculator
-renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti..:Metric Modulation:Advanced Subdivision Calculator",
-  invoke = function() show_subdivision_calculator_dialog() end
-}
-
-renoise.tool():add_menu_entry{
-  name = "Pattern Editor:Paketti:Advanced Subdivision Calculator",
-  invoke = function() show_subdivision_calculator_dialog() end
-}
-
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti..:Metric Modulation:Advanced Subdivision Calculator",invoke = function() show_subdivision_calculator_dialog() end}
+renoise.tool():add_menu_entry{name = "Pattern Editor:Paketti:Advanced Subdivision Calculator",invoke = function() show_subdivision_calculator_dialog() end}
 -- Keybinding for subdivision calculator
-renoise.tool():add_keybinding{
-  name = "Global:Paketti:Advanced Subdivision Calculator",
-  invoke = function() show_subdivision_calculator_dialog() end
-}
+renoise.tool():add_keybinding{name = "Global:Paketti:Advanced Subdivision Calculator",invoke = function() show_subdivision_calculator_dialog() end}
 
 -- Advanced: Real-time metric ratio control via MIDI knob
 renoise.tool():add_midi_mapping{
@@ -960,7 +1065,6 @@ renoise.tool():add_midi_mapping{
 -- Create separate subdivision calculator dialog
 function show_subdivision_calculator_dialog()
   local song = renoise.song()
-  local current_bpm = song.transport.bpm
   
   -- Close existing subdivision dialog if open
   if subdivision_dialog and subdivision_dialog.visible then
@@ -970,8 +1074,12 @@ function show_subdivision_calculator_dialog()
   end
   
   local vb = renoise.ViewBuilder()
+  local current_bpm = song.transport.bpm
   
   print("-- Subdivision Calculator: Opening dialog with BPM:", format_bpm(current_bpm))
+  
+  -- Track transport BPM changes
+  local bpm_observable = nil
   
   -- Calculate all subdivision BPMs (matching percuss.io exactly)
   local subdivisions = {
@@ -990,50 +1098,77 @@ function show_subdivision_calculator_dialog()
     {name = "♬ Sixteenth Note Sextuplet", notes_per_beat = 6}
   }
   
-  local subdivision_rows = {}
-  
-  -- Calculate notes per minute from current quarter note BPM
-  local notes_per_minute = current_bpm * 1  -- quarter note = 1 notes_per_beat
-  print("-- Subdivision Calculator: Notes per minute:", notes_per_minute)
-  
+  -- Create text views for BPM values so they can be updated
+  local text_views = {}
   for i, sub in ipairs(subdivisions) do
-    -- beatsPerMinute = notesPerMinute / notesPerBeat (percuss.io formula)
-    local subdivision_bpm = notes_per_minute / sub.notes_per_beat
-    print("-- Subdivision Calculator:", sub.name, "=", format_bpm(subdivision_bpm), "BPM", "(notes_per_beat:", sub.notes_per_beat, ")")
+    text_views[i] = vb:text { text = "", width = 100, style = "strong", font = "bold" }
+  end
+  
+  -- Store valuebox reference for transport observable
+  local bpm_valuebox = nil
+  
+  local function updateSubdivisionTexts()
+    local notes_per_minute = current_bpm * 1  -- quarter note = 1 notes_per_beat
+    print("-- Subdivision Calculator: Notes per minute:", notes_per_minute)
     
-          table.insert(subdivision_rows, vb:row {
-        vb:text { text = sub.name, width = 220, style = "strong", font = "bold" },
-        vb:text { text = string.format("%s BPM", format_bpm(subdivision_bpm)), width = 100, style = "strong" },
+    for i, sub in ipairs(subdivisions) do
+      local subdivision_bpm = notes_per_minute / sub.notes_per_beat
+      text_views[i].text = string.format("%sBPM", format_bpm(subdivision_bpm))
+      print("-- Subdivision Calculator:", sub.name, "=", format_bpm(subdivision_bpm), "BPM", "(notes_per_beat:", sub.notes_per_beat, ")")
+    end
+  end
+  
+  local function buildContent()
+    local rows = {}
+    
+    bpm_valuebox = vb:valuebox {
+      value = current_bpm, min = 20, max = 999,
+      notifier = function(val)
+        song.transport.bpm = val
+        current_bpm = val
+        updateSubdivisionTexts()
+      end
+    }
+    
+    table.insert(rows, vb:row {
+      vb:text { text = "Tempo", font = "bold", style = "strong" },
+      bpm_valuebox,
+      vb:text { text = "BPM", font = "bold", style = "strong" }
+    })
+    
+    table.insert(rows, vb:space { height = 8 })
+    table.insert(rows, vb:text { text = "Click 'Set' to change song BPM to that subdivision value", style = "normal" })
+    
+    for i, sub in ipairs(subdivisions) do
+      -- Split note symbol and text for better alignment
+      local symbol, text = sub.name:match("^([♩♪♬%.]+)%s(.+)$")
+      if not symbol then
+        symbol = sub.name:sub(1, 2)  -- fallback
+        text = sub.name:sub(4)
+      end
+      
+      table.insert(rows, vb:row {
+        vb:text { text = symbol, width = 30, style = "strong", font = "bold" },
+        vb:text { text = text, width = 190, style = "strong", font = "bold" },
+        text_views[i],
         vb:button {
           text = "Set",
           width = 60,
           notifier = function()
+            local notes_per_minute = current_bpm * 1
+            local subdivision_bpm = notes_per_minute / sub.notes_per_beat
             local new_bpm = validate_bpm(subdivision_bpm)
             song.transport.bpm = new_bpm
+            current_bpm = new_bpm
+            updateSubdivisionTexts()
             renoise.app():show_status(string.format("Song BPM set to %s (%s)", format_bpm(new_bpm), sub.name))
             print("-- Subdivision Calculator: Set BPM to", format_bpm(new_bpm), "for", sub.name)
-            
-            -- Refresh subdivision dialog if still open
-            if subdivision_dialog and subdivision_dialog.visible then
-              subdivision_dialog:close()
-              show_subdivision_calculator_dialog()
-            end
           end
         }
       })
-  end
-  
-  local dialog_content = vb:column {
-    margin = 10,
-    spacing = 5,
-    vb:text { 
-      text = string.format("Subdivision Calculator - Current: %s BPM", format_bpm(current_bpm)), 
-      font = "bold", 
-      style = "strong" 
-    },
-    vb:text { text = "Click 'Set' to change song BPM to that subdivision value", style = "normal" },
-    vb:column { spacing = 3, table.unpack(subdivision_rows) },
-    vb:button {
+    end
+    
+    table.insert(rows, vb:button {
       text = "Close",
       notifier = function()
         if subdivision_dialog and subdivision_dialog.visible then
@@ -1041,9 +1176,30 @@ function show_subdivision_calculator_dialog()
           subdivision_dialog = nil
         end
       end
-    }
-  }
+    })
+    
+    updateSubdivisionTexts()
+    
+    return vb:column { margin = 10, table.unpack(rows) }
+  end
   
-  subdivision_dialog = renoise.app():show_custom_dialog("Advanced Subdivision Calculator (13 Subdivisions)", dialog_content)
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return subdivision_dialog end,
+    function(value) subdivision_dialog = value end
+  )
+  subdivision_dialog = renoise.app():show_custom_dialog("Advanced Subdivision Calculator (13 Subdivisions)", buildContent(), keyhandler)
+  
+  -- Add transport BPM observable to update when Renoise BPM changes
+  local function update_from_transport()
+    local new_bpm = song.transport.bpm
+    if new_bpm ~= current_bpm then
+      current_bpm = new_bpm
+      if bpm_valuebox then bpm_valuebox.value = current_bpm end
+      updateSubdivisionTexts()
+    end
+  end
+  
+  song.transport.bpm_observable:add_notifier(update_from_transport)
+  
   print("-- Subdivision Calculator: Dialog opened successfully")
 end

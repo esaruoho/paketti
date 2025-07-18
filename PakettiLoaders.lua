@@ -490,12 +490,11 @@ function loadMasterMaximizer()
   local s = renoise.song()
   local w = renoise.app().window
   
-  -- Find and select the Master track
+  -- Find the Master track (no need to select it)
   local master_track = nil
   for i = 1, #s.tracks do
     if s.tracks[i].type == renoise.Track.TRACK_TYPE_MASTER then
       master_track = s.tracks[i]
-      s.selected_track_index = i
       break
     end
   end
@@ -512,9 +511,8 @@ function loadMasterMaximizer()
   local devices = master_track.devices
   local checkline = #devices + 1 -- Always add at the end for Master track
   
-  -- Insert the Maximizer device
+  -- Insert the Maximizer device directly to master track
   master_track:insert_device_at("Audio/Effects/Native/Maximizer", checkline)
-  s.selected_device_index = checkline
   
   -- Configure the newly added Maximizer
   if devices[checkline] and devices[checkline].name == "Maximizer" then
