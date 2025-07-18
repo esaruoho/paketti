@@ -322,14 +322,23 @@ end
 
 function update_lpb_calculation_display()
   if dialog then
+    print("-- Metric Modulation: Updating LPB display, target_lpb:", mm_state.target_lpb)
     if vb.views.lpb_display then
       vb.views.lpb_display.text = string.format("%d", mm_state.target_lpb)
+      print("-- Metric Modulation: Updated lpb_display to:", mm_state.target_lpb)
+    else
+      print("-- Metric Modulation: ERROR - lpb_display view not found!")
     end
     if vb.views.lpb_result then
       local new_bpm = calculate_lpb_modulation(mm_state.current_bpm, mm_state.current_lpb, mm_state.target_lpb)
-      vb.views.lpb_result.text = string.format("(%sBPM → %sBPM)", 
+      vb.views.lpb_result.text = string.format("(%sBPM→%sBPM)", 
         format_bpm(mm_state.current_bpm), format_bpm(new_bpm))
+      print("-- Metric Modulation: Updated lpb_result to:", vb.views.lpb_result.text)
+    else
+      print("-- Metric Modulation: ERROR - lpb_result view not found!")
     end
+  else
+    print("-- Metric Modulation: ERROR - dialog not found!")
   end
 end
 
@@ -393,11 +402,20 @@ function show_metric_modulation_dialog()
   end
   
   -- Create fresh ViewBuilder instance to avoid ID conflicts
-  local vb = renoise.ViewBuilder()
+  vb = renoise.ViewBuilder()  -- Make vb global so update functions can access it
   
   local song = renoise.song()
   mm_state.current_bpm = song.transport.bpm
   mm_state.current_lpb = song.transport.lpb
+  
+  -- Smart target LPB initialization: read current transport.lpb and set logical next target
+  local current_transport_lpb = song.transport.lpb
+  local smart_target_lpb = current_transport_lpb + 2  -- Common progression: +2
+  if smart_target_lpb > 32 then
+    smart_target_lpb = 4  -- Reset to 4 if over limit
+  end
+  mm_state.target_lpb = smart_target_lpb
+  print("-- Metric Modulation: Dialog opened at LPB", current_transport_lpb, "- set smart target LPB to", smart_target_lpb)
   
   local analysis = analyze_pattern_selection()
   local suggestions = generate_suggestions()
@@ -462,9 +480,13 @@ function show_metric_modulation_dialog()
           text = "-",
           width = 25,
           notifier = function()
+            print("-- Metric Modulation: LPB - button clicked, current target_lpb:", mm_state.target_lpb)
             if mm_state.target_lpb > 1 then
               mm_state.target_lpb = mm_state.target_lpb - 1
+              print("-- Metric Modulation: LPB decreased to:", mm_state.target_lpb)
               update_lpb_calculation_display()
+            else
+              print("-- Metric Modulation: LPB already at minimum (1), cannot decrease")
             end
           end
         },
@@ -472,9 +494,13 @@ function show_metric_modulation_dialog()
           text = "+",
           width = 25,
           notifier = function()
+            print("-- Metric Modulation: LPB + button clicked, current target_lpb:", mm_state.target_lpb)
             if mm_state.target_lpb < 32 then
               mm_state.target_lpb = mm_state.target_lpb + 1
+              print("-- Metric Modulation: LPB increased to:", mm_state.target_lpb)
               update_lpb_calculation_display()
+            else
+              print("-- Metric Modulation: LPB already at maximum (32), cannot increase")
             end
           end}}},
     
@@ -498,11 +524,11 @@ function show_metric_modulation_dialog()
     
     -- Quick ratio descriptions
     vb:text { id = "ratio_descriptions",
-      text = "4:3 (4/4 to 3/4 feel)  3:2 (Triplet feel)  2:3 (Reverse triplet)  5:4 (Complex polyrhythm)",width=600},
+      text = "4:3 (4/4 to 3/4 feel), 3:2 (Triplet feel), 2:3 (Reverse triplet), 5:4 (Complex polyrhythm)",width=600},
 vb:text {id="ratio_descriptions2",
-text="4:5 (Reverse complex)  6:4 (3/4 to 4/4 feel)  8:6 (4/4 to 6/8 feel)  6:8 (6/8 to 4/4 feel)",width=600},
+text="4:5 (Reverse complex), 6:4 (3/4 to 4/4 feel), 8:6 (4/4 to 6/8 feel), 6:8 (6/8 to 4/4 feel)",width=600},
 vb:text{id="ratio_descriptions3",
-text="  7:4 (Odd time signature)  4:7 (Reverse odd time)",width=600},
+text="7:4 (Odd time signature), 4:7 (Reverse odd time)",width=600},
 
     -- Note Value Calculator section
     vb:text { text = "Note Value Calculator", font="bold",style = "strong" },    
@@ -650,15 +676,46 @@ text="  7:4 (Odd time signature)  4:7 (Reverse odd time)",width=600},
           local song = renoise.song()
           local current_lpb = song.transport.lpb
           
-          -- Check if user wants LPB modulation (target LPB different from current)
-          if mm_state.target_lpb ~= current_lpb then
-            -- Apply LPB modulation
-            local new_bpm = calculate_lpb_modulation(mm_state.current_bpm, mm_state.current_lpb, mm_state.target_lpb)
-            apply_metric_modulation(new_bpm, vb.views.create_new_pattern.value, mm_state.target_lpb)
-          else
-            -- Apply ratio modulation (keep current LPB)
+          print("-- Apply Modulation: Current LPB =", current_lpb, "| Target LPB =", mm_state.target_lpb)
+          print("-- Apply Modulation: Current ratio =", mm_state.ratio_numerator .. ":" .. mm_state.ratio_denominator)
+          
+          -- Simple modulation choice: ratio if changed from default, otherwise LPB
+          local ratio_changed = not (mm_state.ratio_numerator == 4 and mm_state.ratio_denominator == 3)
+          
+          if ratio_changed then
+            -- User selected a ratio - apply ratio modulation
+            print("-- Apply Modulation: Using RATIO modulation (ratio", mm_state.ratio_numerator .. ":" .. mm_state.ratio_denominator .. ")")
             local new_bpm = calculate_metric_modulation(mm_state.current_bpm, mm_state.ratio_numerator, mm_state.ratio_denominator)
             apply_metric_modulation(new_bpm, vb.views.create_new_pattern.value)
+          elseif mm_state.target_lpb ~= current_lpb then
+            -- Target LPB is different - apply LPB modulation
+            print("-- Apply Modulation: Using LPB modulation (LPB", current_lpb, "→", mm_state.target_lpb .. ")")
+            local applied_target_lpb = mm_state.target_lpb
+            local new_bpm = calculate_lpb_modulation(mm_state.current_bpm, mm_state.current_lpb, mm_state.target_lpb)
+            apply_metric_modulation(new_bpm, vb.views.create_new_pattern.value, mm_state.target_lpb)
+            
+            -- Auto-increment target LPB for next modulation (smart workflow)
+            local next_lpb = applied_target_lpb + 2  -- Common LPB progression: 4→6→8→10→12→14→16
+            if next_lpb <= 32 then
+              mm_state.target_lpb = next_lpb
+              print("-- Metric Modulation: Auto-incremented target LPB from", applied_target_lpb, "to", next_lpb, "for next modulation")
+            else
+              mm_state.target_lpb = 4  -- Reset to 4 if we hit the limit
+              print("-- Metric Modulation: Target LPB hit limit, reset to 4")
+            end
+          else
+            -- No changes detected
+            print("-- Apply Modulation: No modulation needed (ratio at default, target LPB = current LPB)")
+            renoise.app():show_status("No modulation changes detected")
+          end
+          
+          -- Reset quick ratio switch to default (prevents sticking)
+          if vb.views.ratio_switch then
+            vb.views.ratio_switch.value = 1  -- Reset to first ratio (4:3)
+            mm_state.ratio_numerator = 4
+            mm_state.ratio_denominator = 3
+            print("-- Apply Modulation: Reset quick ratio switch to default (4:3)")
+            update_calculation_display()  -- Update the ratio display
           end
           refresh_dialog_data()
         end
