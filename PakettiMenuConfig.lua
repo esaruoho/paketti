@@ -594,6 +594,8 @@ if preferences.pakettiMenuConfig.Mixer then
 renoise.tool():add_menu_entry{name="--Mixer:Paketti Gadgets:Paketti Action Selector Dialog...",invoke = pakettiActionSelectorDialog}
 renoise.tool():add_menu_entry{name="--Mixer:Paketti Gadgets:Paketti BPM to MS Delay Calculator Dialog...", invoke = pakettiBPMMSCalculator}
 
+renoise.tool():add_menu_entry{name="--Mixer:Paketti:Inspect Selected Device",invoke=function() inspectEffect() end}
+
 
 renoise.tool():add_menu_entry{name="Mixer:Paketti:Show/Hide User Preference Devices Master Dialog (SlotShow)...",invoke=function() pakettiUserPreferencesShowerDialog() end}
 renoise.tool():add_menu_entry{name="--Mixer:Paketti:Automation:Snapshot All Devices on Selected Track to Automation",invoke = snapshot_all_devices_to_automation}

@@ -290,11 +290,33 @@ function loadnative(effect, name, preset_path)
         return
       end
 
-      -- Adjust checkline for #Send and #Multiband Send devices
+      -- Smart Send device insertion logic for sample FX chain (only when loading at END is selected)
       local device_name = get_device_name(effect)
-      if device_name == "#Send" or device_name == "#Multiband Send" then
-        checkline = #sample_devices + 1
+      if preferences.pakettiLoadOrder.value then
+        -- If we're not loading a Send device, check if we need to insert before existing Sends
+        if device_name ~= "#Send" and device_name ~= "#Multiband Send" then
+          -- Find the first Send device at the end of the chain
+          local first_send_index = nil
+          for i = #sample_devices, 2, -1 do -- Start from end, go backwards, skip sample mixer (index 1)
+            local dev_name = sample_devices[i].name
+            if dev_name == "#Send" or dev_name == "#Multiband Send" then
+              first_send_index = i -- Keep updating to find the FIRST Send in the sequence
+            else
+              break -- Stop when we find a non-Send device
+            end
+          end
+          
+          -- If we found Sends at the end, insert before the first one in that sequence
+          if first_send_index then
+            checkline = first_send_index
+          end
+          -- Otherwise checkline remains as calculated above (end position)
+        else
+          -- We're loading a Send device, always put it at the end
+          checkline = #sample_devices + 1
+        end
       end
+      -- When loading at beginning, don't modify checkline - use the calculated position
 
       chain:insert_device_at(effect, checkline)
       sample_devices = chain.devices
@@ -375,10 +397,32 @@ function loadnative(effect, name, preset_path)
       return
     end
 
-    -- Adjust checkline for #Send and #Multiband Send devices
-    if device_name == "#Send" or device_name == "#Multiband Send" then
-      checkline = #sdevices + 1
+    -- Smart Send device insertion logic (only when loading at END is selected)
+    if preferences.pakettiLoadOrder.value then
+      -- If we're not loading a Send device, check if we need to insert before existing Sends
+      if device_name ~= "#Send" and device_name ~= "#Multiband Send" then
+        -- Find the first Send device at the end of the chain
+        local first_send_index = nil
+        for i = #sdevices, 2, -1 do -- Start from end, go backwards, skip track vol/pan (index 1)
+          local dev_name = sdevices[i].name
+          if dev_name == "#Send" or dev_name == "#Multiband Send" then
+            first_send_index = i -- Keep updating to find the FIRST Send in the sequence
+          else
+            break -- Stop when we find a non-Send device
+          end
+        end
+        
+        -- If we found Sends at the end, insert before the first one in that sequence
+        if first_send_index then
+          checkline = first_send_index
+        end
+        -- Otherwise checkline remains as calculated above (end position)
+      else
+        -- We're loading a Send device, always put it at the end
+        checkline = #sdevices + 1
+      end
     end
+    -- When loading at beginning, don't modify checkline - use the calculated position
 
     s.selected_track:insert_device_at(effect, checkline)
     s.selected_device_index = checkline
@@ -513,6 +557,9 @@ function loadMasterMaximizer()
   
   -- Insert the Maximizer device directly to master track
   master_track:insert_device_at("Audio/Effects/Native/Maximizer", checkline)
+  
+  -- Refresh the devices array to include the newly inserted device
+  devices = master_track.devices
   
   -- Configure the newly added Maximizer
   if devices[checkline] and devices[checkline].name == "Maximizer" then
@@ -664,6 +711,27 @@ function loadvst(vstname, name, preset_path)
       
       checkline = math.min(checkline, #devices + 1)
 
+      -- Smart Send device insertion logic for sample FX chain (only when loading at END is selected)
+      if preferences.pakettiLoadOrder.value then
+        -- VST devices are never Send devices, so always check if we need to insert before existing Sends
+        local first_send_index = nil
+        for i = #devices, 2, -1 do -- Start from end, go backwards, skip sample mixer (index 1)
+          local dev_name = devices[i].name
+          if dev_name == "#Send" or dev_name == "#Multiband Send" then
+            first_send_index = i -- Keep updating to find the FIRST Send in the sequence
+          else
+            break -- Stop when we find a non-Send device
+          end
+        end
+        
+        -- If we found Sends at the end, insert before the first one in that sequence
+        if first_send_index then
+          checkline = first_send_index
+        end
+        -- Otherwise checkline remains as calculated above (end position)
+      end
+      -- When loading at beginning, don't modify checkline - use the calculated position
+
       chain:insert_device_at(vstname, checkline)
       local inserted_device = chain.devices[checkline]
 
@@ -747,6 +815,27 @@ function loadvst(vstname, name, preset_path)
       checkline = (table.count(devices)) < 2 and 2 or (devices[2] and devices[2].name == "#Line Input" and 3 or 2)
     end
     checkline = math.min(checkline, #devices + 1)
+
+    -- Smart Send device insertion logic for VST devices (only when loading at END is selected)
+    if preferences.pakettiLoadOrder.value then
+      -- VST devices are never Send devices, so always check if we need to insert before existing Sends
+      local first_send_index = nil
+      for i = #devices, 2, -1 do -- Start from end, go backwards, skip track vol/pan (index 1)
+        local dev_name = devices[i].name
+        if dev_name == "#Send" or dev_name == "#Multiband Send" then
+          first_send_index = i -- Keep updating to find the FIRST Send in the sequence
+        else
+          break -- Stop when we find a non-Send device
+        end
+      end
+      
+      -- If we found Sends at the end, insert before the first one in that sequence
+      if first_send_index then
+        checkline = first_send_index
+      end
+      -- Otherwise checkline remains as calculated above (end position)
+    end
+    -- When loading at beginning, don't modify checkline - use the calculated position
 
     -- Insert device into track
     s.selected_track:insert_device_at(vstname, checkline)
@@ -1092,6 +1181,76 @@ function inspectEffect()
       selected_device.name .. ": " .. i .. ": " .. selected_device.parameters[i].name .. ": " ..
       "renoise.song().selected_device.parameters[" .. i .. "].value=" .. selected_device.parameters[i].value
     )
+  end
+  
+  -- Output parameters that are exposed in Mixer
+  oprint("")
+  oprint("Exposed Parameters:")
+  local mixer_params = {}
+  for i = 1, #selected_device.parameters do
+    if selected_device.parameters[i].show_in_mixer then
+      table.insert(mixer_params, {index = i, name = selected_device.parameters[i].name})
+      oprint(selected_device.name .. " " .. i .. " " .. selected_device.parameters[i].name)
+    end
+  end
+  
+  if #mixer_params == 0 then
+    oprint("  No parameters are currently exposed in Mixer")
+  else
+    oprint("")
+    oprint("Copy-Pasteable Commands:")
+    for _, param in ipairs(mixer_params) do
+      oprint("renoise.song().selected_device.parameters[" .. param.index .. "].show_in_mixer=true")
+    end
+    
+    oprint("")
+    oprint("Device State Information:")
+    oprint("Device display name: " .. selected_device.display_name)
+    oprint("Device is maximized: " .. tostring(selected_device.is_maximized))
+    oprint("External editor available: " .. tostring(selected_device.external_editor_available))
+    if selected_device.external_editor_available then
+      oprint("External editor visible: " .. tostring(selected_device.external_editor_visible))
+    end
+    
+    oprint("")
+    oprint("Complete Device Recreation Workflow:")
+    oprint('-- 1. Load Device (with Line Input protection)')
+    if selected_device.device_path:find("Native/") then
+      oprint('loadnative("' .. selected_device.device_path .. '")')
+    else
+      oprint('loadvst("' .. selected_device.device_path .. '")')
+    end
+    
+    -- Generate XML with current device state
+    local xml_data = selected_device.active_preset_data
+    if xml_data and xml_data ~= "" then
+      oprint('-- 2. Inject Current Device State XML')
+      oprint('local device_xml = [=[' .. xml_data .. ']=]')
+      oprint('renoise.song().selected_device.active_preset_data = device_xml')
+    else
+      oprint('-- 2. No preset data available for XML injection')
+    end
+    
+    oprint('-- 3. Set Mixer Parameter Visibility')
+    for _, param in ipairs(mixer_params) do
+      oprint('renoise.song().selected_device.parameters[' .. param.index .. '].show_in_mixer = true')
+    end
+    
+    oprint('-- 4. Set Device Maximized State')
+    oprint('renoise.song().selected_device.is_maximized = ' .. tostring(selected_device.is_maximized))
+    
+    oprint('-- 5. Set External Editor State')
+    if selected_device.external_editor_available then
+      oprint('renoise.song().selected_device.external_editor_visible = ' .. tostring(selected_device.external_editor_visible))
+    else
+      oprint('-- External editor not available for this device')
+    end
+    
+    oprint('-- 6. Set Device Display Name')
+    oprint('renoise.song().selected_device.display_name = "' .. selected_device.display_name .. '"')
+    
+    oprint("")
+    oprint("Total parameters exposed in Mixer: " .. #mixer_params)
   end
 end
 

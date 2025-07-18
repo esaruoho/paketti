@@ -911,9 +911,465 @@ function pakettiDoubleLFOResolution()
   print(string.format("PakettiXMLizer: Successfully doubled LFO resolution from %d to %d points", point_count, new_point_count))
 end
 
+-- Function to halve LFO envelope resolution by keeping every second point
+function pakettiHalveLFOResolution()
+  local device = renoise.song().selected_device
+  
+  -- Check if LFO device is selected
+  if not device or not is_lfo_device(device) then
+    renoise.app():show_status("PakettiXMLizer: Please select an LFO device first")
+    print("PakettiXMLizer: Error - No LFO device selected")
+    return
+  end
+  
+  local xml_data = device.active_preset_data
+  if not xml_data or xml_data == "" then
+    renoise.app():show_status("PakettiXMLizer: No LFO preset data found")
+    print("PakettiXMLizer: Error - No preset data in LFO device")
+    return
+  end
+  
+  print("=== DEBUG: Original XML Data ===")
+  print(xml_data)
+  print("=== END Original XML ===")
+  
+  -- Extract envelope length first
+  local current_length = 4  -- default
+  local length_match = xml_data:match("<Length>(%d+)</Length>")
+  if length_match then
+    current_length = tonumber(length_match)
+  end
+  print("=== DEBUG: Current envelope length: " .. current_length .. " ===")
+  
+  -- Extract all points within the current length range
+  local points = {}
+  local point_count = 0
+  
+  print("=== DEBUG: Extracting Points (within length range 0-" .. (current_length-1) .. ") ===")
+  for point_line in xml_data:gmatch("<Point>([^<]+)</Point>") do
+    print("Found point line: " .. point_line)
+    local step, value, scaling = point_line:match("([^,]+),([^,]+),([^,]+)")
+    if step and value and scaling then
+      local step_num = tonumber(step)
+      local point = {
+        step = step_num,
+        value = tonumber(value), 
+        scaling = tonumber(scaling)
+      }
+      
+      -- Only include points within the current length range
+      if step_num < current_length then
+        point_count = point_count + 1
+        table.insert(points, point)
+        print(string.format("Included point %d: step=%d, value=%g, scaling=%g", point_count, point.step, point.value, point.scaling))
+      else
+        print(string.format("Skipped point beyond length: step=%d (length=%d)", step_num, current_length))
+      end
+    else
+      print("Failed to parse point: " .. point_line)
+    end
+  end
+  print("=== END Extracting Points ===")
+  
+  if point_count == 0 then
+    renoise.app():show_status("PakettiXMLizer: No envelope points found in LFO")
+    print("PakettiXMLizer: Error - No envelope points found")
+    return
+  end
+  
+  if point_count < 2 then
+    renoise.app():show_status("PakettiXMLizer: Need at least 2 points to halve resolution")
+    print("PakettiXMLizer: Error - Need at least 2 points to halve")
+    return
+  end
+  
+  -- Keep only points at even step positions and renumber them
+  local halved_points = {}
+  local new_point_count = 0
+  
+  print("=== DEBUG: Creating Halved Points (keeping every second point) ===")
+  for i, point in ipairs(points) do
+    -- Keep only points where the original step position is even
+    if point.step % 2 == 0 then
+      new_point_count = new_point_count + 1
+      local halved_point = {
+        step = point.step / 2,  -- Halve the step position
+        value = point.value,
+        scaling = point.scaling
+      }
+      table.insert(halved_points, halved_point)
+      print(string.format("Kept point at original step %d → new step %d, value=%g", point.step, halved_point.step, halved_point.value))
+    else
+      print(string.format("Skipped point at odd step %d, value=%g", point.step, point.value))
+    end
+  end
+  print("=== END Creating Halved Points ===")
+  
+  if new_point_count == 0 then
+    renoise.app():show_status("PakettiXMLizer: No even-step points found to keep")
+    print("PakettiXMLizer: Error - No even-step points found")
+    return
+  end
+  
+  print(string.format("PakettiXMLizer: Halving LFO resolution from %d to %d points", point_count, new_point_count))
+  
+  -- Rebuild the points XML section
+  print("=== DEBUG: Building New XML Points ===")
+  local new_points_xml = ""
+  for i, point in ipairs(halved_points) do
+    local point_xml = string.format("        <Point>%d,%g,%g</Point>\n", 
+      point.step, point.value, point.scaling)
+    new_points_xml = new_points_xml .. point_xml
+    print(string.format("Point %d XML: %s", i, point_xml:gsub("\n", "")))
+  end
+  print("=== Complete New Points XML ===")
+  print(new_points_xml)
+  print("=== END New Points XML ===")
+  
+  -- Replace the points section in the original XML
+  print("=== DEBUG: Replacing XML Points Section ===")
+  local new_xml = xml_data:gsub("<Points>.-</Points>", 
+    "<Points>\n" .. new_points_xml .. "      </Points>", 1)
+  
+  -- CRITICAL: Halve the Length field (envelope duration/resolution)
+  local new_length = math.floor(current_length / 2)
+  if new_length < 1 then new_length = 1 end  -- Ensure minimum length of 1
+  print(string.format("=== DEBUG: Halving Length from %d to %d ===", current_length, new_length))
+  new_xml = new_xml:gsub("<Length>.-</Length>", "<Length>" .. new_length .. "</Length>", 1)
+  
+  print("=== DEBUG: Final XML ===")
+  print(new_xml)
+  print("=== END Final XML ===")
+  
+  -- Inject the modified XML back to the device
+  device.active_preset_data = new_xml
+  
+  renoise.app():show_status(string.format("✅ PakettiXMLizer: Halved LFO resolution %d→%d points", point_count, new_point_count))
+  print(string.format("PakettiXMLizer: Successfully halved LFO resolution from %d to %d points", point_count, new_point_count))
+end
+
 -- Register keybinding and menu entries for Double LFO Resolution
 renoise.tool():add_keybinding{name="Global:Paketti:Double LFO Envelope Resolution", invoke=pakettiDoubleLFOResolution}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Double LFO Envelope Resolution", invoke=pakettiDoubleLFOResolution}
 renoise.tool():add_menu_entry{name="--DSP Device:Paketti:Custom LFO Envelopes:Double LFO Envelope Resolution", invoke=pakettiDoubleLFOResolution}
 
---print("PakettiXMLizer: Loaded with 6 hardcoded presets and 16 custom LFO slots available")
+-- Register keybinding and menu entries for Halve LFO Resolution
+renoise.tool():add_keybinding{name="Global:Paketti:Halve LFO Envelope Resolution", invoke=pakettiHalveLFOResolution}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Halve LFO Envelope Resolution", invoke=pakettiHalveLFOResolution}
+renoise.tool():add_menu_entry{name="DSP Device:Paketti:Custom LFO Envelopes:Halve LFO Envelope Resolution", invoke=pakettiHalveLFOResolution}
+
+-- Paketti LFO External Editor Toggle with Auto-Custom Mode
+-- Toggle external editor visibility for selected device and force LFO to Custom mode
+function pakettiToggleLFOExternalEditor()
+  local song = renoise.song()
+  local selected_device = song.selected_device
+  
+  -- Check if any device is selected
+  if not selected_device then
+    renoise.app():show_status("No device selected - please select a device with external editor support")
+    print("-- Paketti LFO External Editor: No device selected")
+    return
+  end
+  
+  -- Get device information the Paketti way
+  local device_path = selected_device.device_path
+  print("-- Paketti LFO External Editor: Checking device:", device_path)
+  
+  -- Check if external editor is available
+  if not selected_device.external_editor_available then
+    renoise.app():show_status(string.format("Device '%s' does not support external editor", device_path))
+    print("-- Paketti LFO External Editor: Device", device_path, "does not support external editor")
+    return
+  end
+  
+  -- Check current visibility state and toggle
+  local current_state = selected_device.external_editor_visible
+  local new_state = not current_state
+  
+  print("-- Paketti LFO External Editor: Current state:", current_state, "→ New state:", new_state)
+  
+  -- Special handling for LFO devices - force to Custom mode when opening external editor
+  if device_path:find("LFO") and new_state then
+    print("-- Paketti LFO External Editor: LFO device detected, forcing to Custom mode")
+    
+    -- Get current XML data
+    local current_xml = selected_device.active_preset_data
+    if current_xml and current_xml ~= "" then
+      -- Modify existing XML to set Type to 4 (Custom) while preserving everything else
+      local modified_xml = current_xml:gsub("<Type>%s*<Value>%d+</Value>%s*</Type>", "<Type>\n      <Value>4</Value>\n    </Type>")
+      selected_device.active_preset_data = modified_xml
+      print("-- Paketti LFO External Editor: Forced existing LFO to Custom mode (Type 4)")
+    else
+      print("-- Paketti LFO External Editor: No existing preset data, LFO probably already in Custom mode")
+    end
+  end
+  
+  -- Apply the toggle
+  selected_device.external_editor_visible = new_state
+  
+  -- Provide user feedback
+  local state_text = new_state and "OPENED" or "CLOSED"
+  local status_message = string.format("External editor %s for '%s'", state_text, device_path)
+  
+  renoise.app():show_status(status_message)
+  print("-- Paketti LFO External Editor:", status_message)
+  
+  -- Special handling for LFO devices
+  if device_path:find("LFO") then
+    print("-- Paketti LFO External Editor: LFO device detected, external editor", state_text:lower())
+    if new_state then
+      renoise.app():show_status("LFO external editor opened - edit Custom envelope curves and modulation settings")
+    else
+      renoise.app():show_status("LFO external editor closed")
+    end
+  end
+end
+
+-- Advanced function to check and report all devices with external editor support
+function pakettiListDevicesWithExternalEditor()
+  local song = renoise.song()
+  local devices_with_editor = {}
+  local total_devices = 0
+  
+  -- Check all tracks for devices
+  for track_index, track in ipairs(song.tracks) do
+    for device_index, device in ipairs(track.devices) do
+      total_devices = total_devices + 1
+      if device.external_editor_available then
+        table.insert(devices_with_editor, {
+          track = track_index,
+          device = device_index,
+          path = device.device_path,
+          visible = device.external_editor_visible
+        })
+      end
+    end
+  end
+  
+  print("-- Paketti LFO External Editor: Scanned", total_devices, "devices")
+  print("-- Paketti LFO External Editor: Found", #devices_with_editor, "devices with external editor support:")
+  
+  if #devices_with_editor == 0 then
+    renoise.app():show_status("No devices with external editor support found in current song")
+    return
+  end
+  
+  for _, dev_info in ipairs(devices_with_editor) do
+    local status = dev_info.visible and "OPEN" or "CLOSED"
+    print(string.format("-- Track %02d Device %02d: %s - %s", 
+      dev_info.track, dev_info.device, dev_info.path, status))
+  end
+  
+  renoise.app():show_status(string.format("Found %d devices with external editor support (see console for details)", #devices_with_editor))
+end
+
+-- Menu entries
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Device:Toggle LFO/Device External Editor", invoke = pakettiToggleLFOExternalEditor}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Device:List Devices with External Editor Support", invoke = pakettiListDevicesWithExternalEditor}
+renoise.tool():add_menu_entry{name = "Mixer:Paketti:Toggle LFO/Device External Editor", invoke = pakettiToggleLFOExternalEditor}
+
+-- Keybindings  
+renoise.tool():add_keybinding{name = "Global:Paketti:Toggle LFO/Device External Editor", invoke = pakettiToggleLFOExternalEditor}
+renoise.tool():add_keybinding{name = "Global:Paketti:List Devices with External Editor Support", invoke = pakettiListDevicesWithExternalEditor}
+
+-- MIDI mappings
+renoise.tool():add_midi_mapping{name = "Paketti:Toggle LFO/Device External Editor", invoke = function(message) 
+  if message:is_trigger() then 
+    pakettiToggleLFOExternalEditor() 
+  end 
+end}
+
+renoise.tool():add_midi_mapping{name = "Paketti:List Devices with External Editor Support", invoke = function(message) 
+  if message:is_trigger() then 
+    pakettiListDevicesWithExternalEditor() 
+  end 
+end}
+
+-- Quick LFO Custom Editor - Load LFO, set to Custom, open external editor
+-- Toggle functionality: shows/hides external editor if LFO in custom mode is selected
+-- Full loadnative compatibility: handles both track devices and sample FX chains
+function pakettiQuickLFOCustomEditor()
+  local song = renoise.song()
+  local window = renoise.app().window
+  local effect = "Audio/Effects/Native/*LFO"
+  
+  print("-- Paketti Quick LFO Custom Editor: Starting...")
+  
+  -- Handle middle frame switching (same as loadnative)
+  if window.active_middle_frame == 6 then
+    window.active_middle_frame = 7
+  end
+  
+  -- Check if currently selected device is an LFO in custom mode
+  local current_device = nil
+  local is_sample_fx = false
+  
+  if window.active_middle_frame == 7 then
+    -- Sample FX Chain mode
+    local chain = song.selected_sample_device_chain
+    if chain and chain.devices[song.selected_sample_device_index] then
+      current_device = chain.devices[song.selected_sample_device_index]
+      is_sample_fx = true
+    end
+  else
+    -- Track device mode
+    local selected_track = song.selected_track
+    if selected_track.devices[song.selected_device_index] then
+      current_device = selected_track.devices[song.selected_device_index]
+      is_sample_fx = false
+    end
+  end
+  
+  -- Check if current device is LFO in custom mode
+  if current_device and current_device.device_path == "Audio/Effects/Native/*LFO" then
+    local is_custom_mode = current_device.parameters[7].value == 4
+    
+    if is_custom_mode then
+      -- Toggle external editor visibility
+      if current_device.external_editor_available then
+        local was_visible = current_device.external_editor_visible
+        current_device.external_editor_visible = not was_visible
+        
+        if current_device.external_editor_visible then
+          print("-- Paketti Quick LFO Custom Editor: Showed external editor for existing LFO")
+          renoise.app():show_status("Quick LFO Custom Editor: Showed external editor")
+        else
+          print("-- Paketti Quick LFO Custom Editor: Hid external editor for existing LFO")
+          renoise.app():show_status("Quick LFO Custom Editor: Hid external editor")
+        end
+        return
+      else
+        print("-- Paketti Quick LFO Custom Editor: External editor not available for current LFO")
+        renoise.app():show_status("Quick LFO Custom Editor: External editor not available")
+        return
+      end
+    else
+      -- LFO is selected but not in custom mode - set to custom and show editor
+      print("-- Paketti Quick LFO Custom Editor: LFO selected but not in custom mode, setting to custom")
+      current_device.parameters[7].value = 4
+      
+      if current_device.external_editor_available then
+        current_device.external_editor_visible = true
+        print("-- Paketti Quick LFO Custom Editor: Set existing LFO to custom mode and opened external editor")
+        renoise.app():show_status("Quick LFO Custom Editor: Set to custom mode, opened external editor")
+      else
+        print("-- Paketti Quick LFO Custom Editor: Set to custom mode (external editor not available)")
+        renoise.app():show_status("Quick LFO Custom Editor: Set to custom mode (external editor not available)")
+      end
+      return
+    end
+  end
+  
+  -- No LFO device selected or current device is not LFO - create new LFO
+  print("-- Paketti Quick LFO Custom Editor: No LFO selected, creating new LFO device")
+  
+  local lfo_device = nil
+  local checkline = nil
+  
+  -- Sample FX Chain loading (same logic as loadnative)
+  if window.active_middle_frame == 7 then
+    print("-- Paketti Quick LFO Custom Editor: Sample FX Chain mode detected")
+    
+    local chain = song.selected_sample_device_chain
+    local chain_index = song.selected_sample_device_chain_index
+    
+    if chain == nil or chain_index == 0 then
+      song.selected_instrument:insert_sample_device_chain_at(1)
+      chain = song.selected_sample_device_chain
+      chain_index = 1
+    end
+    
+    if chain then
+      local sample_devices = chain.devices
+      if preferences.pakettiLoadOrder.value then
+        -- Load at end of chain
+        checkline = #sample_devices + 1
+      else
+        -- Load at start (after input device if present)
+        checkline = (table.count(sample_devices)) < 2 and 2 or (sample_devices[2] and sample_devices[2].name == "#Line Input" and 3 or 2)
+      end
+      checkline = math.min(checkline, #sample_devices + 1)
+      
+      print("-- Paketti Quick LFO Custom Editor: Loading LFO to sample FX chain at position", checkline)
+      
+      -- Insert LFO device into sample FX chain
+      chain:insert_device_at(effect, checkline)
+      sample_devices = chain.devices
+      
+      if sample_devices[checkline] then
+        lfo_device = sample_devices[checkline]
+        song.selected_sample_device_index = checkline
+        
+        local instrument_name = song.selected_instrument.name
+        local chain_name = chain.name
+        print("-- Paketti Quick LFO Custom Editor: Loaded LFO to", instrument_name, "FX Chain:", chain_name)
+      end
+    else
+      renoise.app():show_status("No sample selected.")
+      return
+    end
+    
+  else
+    -- Track device loading (original logic)
+    print("-- Paketti Quick LFO Custom Editor: Track device mode detected")
+    
+    local selected_track = song.selected_track
+    local devices = selected_track.devices
+    
+    if preferences.pakettiLoadOrder.value then
+      -- Load at end of track devices
+      checkline = #devices + 1
+    else
+      -- Load at start (after input device if present, after line input if present)
+      checkline = (table.count(devices)) < 2 and 2 or (devices[2] and devices[2].name == "#Line Input" and 3 or 2)
+    end
+    checkline = math.min(checkline, #devices + 1)
+    
+    print("-- Paketti Quick LFO Custom Editor: Loading LFO to track at position", checkline)
+    
+    -- Insert LFO device to track
+    selected_track:insert_device_at(effect, checkline)
+    song.selected_device_index = checkline
+    lfo_device = selected_track.devices[checkline]
+    
+    -- Show mixer frame for device control
+    window.lower_frame_is_visible = true
+    window.active_lower_frame = 1
+  end
+  
+  -- Verify LFO device loaded successfully
+  if not lfo_device or lfo_device.device_path ~= "Audio/Effects/Native/*LFO" then
+    renoise.app():show_status("Failed to load LFO device")
+    print("-- Paketti Quick LFO Custom Editor: Error - Failed to load LFO device")
+    return
+  end
+  
+  print("-- Paketti Quick LFO Custom Editor: LFO device loaded successfully")
+  
+  -- Step 3: Set LFO to Custom mode (parameter 7, value 4)
+  lfo_device.parameters[7].value = 4
+  print("-- Paketti Quick LFO Custom Editor: Set LFO to Custom mode")
+  
+  -- Step 4: Open external editor
+  if lfo_device.external_editor_available then
+    lfo_device.external_editor_visible = true
+    print("-- Paketti Quick LFO Custom Editor: Opened external editor")
+    renoise.app():show_status("Quick LFO Custom Editor: Loaded LFO, set to Custom mode, opened external editor")
+  else
+    print("-- Paketti Quick LFO Custom Editor: Warning - External editor not available")
+    renoise.app():show_status("Quick LFO Custom Editor: LFO loaded and set to Custom mode (external editor not available)")
+  end
+  
+  print("-- Paketti Quick LFO Custom Editor: Complete!")
+end
+
+-- Register the unified function
+renoise.tool():add_keybinding{name = "Global:Paketti:Quick LFO Custom Editor", invoke = pakettiQuickLFOCustomEditor}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Device:Quick LFO Custom Editor", invoke = pakettiQuickLFOCustomEditor}
+renoise.tool():add_menu_entry{name = "Mixer:Paketti:Quick LFO Custom Editor", invoke = pakettiQuickLFOCustomEditor}
+renoise.tool():add_midi_mapping{name = "Paketti:Quick LFO Custom Editor", invoke = function(message) 
+  if message:is_trigger() then 
+    pakettiQuickLFOCustomEditor() 
+  end 
+end}
+

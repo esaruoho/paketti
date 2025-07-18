@@ -6570,3 +6570,5 @@ renoise.tool():add_keybinding{name = "Global:Paketti:Match Effect Column to Curr
 renoise.tool():add_keybinding{name = "Global:Paketti:Match Effect Column to Current Row (All Rows)",invoke = PakettiMatchEffectColumnToCurrentRowAll}
 renoise.tool():add_midi_mapping{name = "Paketti:Match Effect Column to Current Row (Forward)",invoke = PakettiMatchEffectColumnToCurrentRowForward}
 renoise.tool():add_midi_mapping{name = "Paketti:Match Effect Column to Current Row (All Rows)",invoke = PakettiMatchEffectColumnToCurrentRowAll}
+
+  
