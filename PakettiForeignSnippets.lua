@@ -1573,7 +1573,7 @@ function pakettiDisableAllPhraseLooping()
   
   local disabled_count = 0
   for i, phrase in ipairs(instr.phrases) do
-    if phrase.mapping.looping then
+    if phrase.mapping and phrase.mapping.looping then
       phrase.mapping.looping = false
       disabled_count = disabled_count + 1
     end
@@ -1605,7 +1605,7 @@ function pakettiEnableAllPhraseLooping()
   
   local enabled_count = 0
   for i, phrase in ipairs(instr.phrases) do
-    if not phrase.mapping.looping then
+    if phrase.mapping and not phrase.mapping.looping then
       phrase.mapping.looping = true
       enabled_count = enabled_count + 1
     end
