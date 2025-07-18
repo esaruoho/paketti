@@ -470,6 +470,7 @@ if renoise.API_VERSION >= 6.2 then
   timed_require("PakettiPCMWriter")
   --timed_require("PakettiZyklusMPS1")
   timed_require("PakettiCanvasExperiments")
+  timed_require("PakettiNotepadRun")
 end
 
 

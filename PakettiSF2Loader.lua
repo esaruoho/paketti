@@ -891,15 +891,35 @@ local function import_sf2(file_path)
             local loop_length = 0
 
             if not is_drumkit then
-                if loop_start_rel <= 0 then loop_start_rel = 1 end
-                if loop_end_rel > #sample_data then loop_end_rel = #sample_data end
+                                 -- BUGFIX: Respect SampleModes parameter (54) for loop detection
+                 -- SF2 SampleModes: 0=No loop, 1=Continuous loop, 3=Loop until release (bidirectional)
+                 local sample_mode = inst_zone_params[54] or zone_params[54]
+                 if sample_mode == 1 then -- Continuous loop
+                    if loop_start_rel <= 0 then loop_start_rel = 1 end
+                    if loop_end_rel > #sample_data then loop_end_rel = #sample_data end
 
-                if loop_end_rel > loop_start_rel then
-                    reno_smp.loop_mode = renoise.Sample.LOOP_MODE_FORWARD
-                    reno_smp.loop_start = loop_start_rel
-                    reno_smp.loop_end = loop_end_rel
-                    loop_mode = frames < 512 and "forced" or "normal"
-                    loop_length = loop_end_rel - loop_start_rel
+                    if loop_end_rel > loop_start_rel then
+                        reno_smp.loop_mode = renoise.Sample.LOOP_MODE_FORWARD
+                        reno_smp.loop_start = loop_start_rel
+                        reno_smp.loop_end = loop_end_rel
+                        loop_mode = frames < 512 and "forced" or "normal"
+                        loop_length = loop_end_rel - loop_start_rel
+                    else
+                        reno_smp.loop_mode = renoise.Sample.LOOP_MODE_OFF
+                    end
+                                 elseif sample_mode == 3 then -- Loop until release (bidirectional)
+                     if loop_start_rel <= 0 then loop_start_rel = 1 end
+                     if loop_end_rel > #sample_data then loop_end_rel = #sample_data end
+ 
+                     if loop_end_rel > loop_start_rel then
+                         reno_smp.loop_mode = renoise.Sample.LOOP_MODE_PING_PONG
+                        reno_smp.loop_start = loop_start_rel
+                        reno_smp.loop_end = loop_end_rel
+                        loop_mode = frames < 512 and "forced" or "normal"
+                        loop_length = loop_end_rel - loop_start_rel
+                    else
+                        reno_smp.loop_mode = renoise.Sample.LOOP_MODE_OFF
+                    end
                 else
                     reno_smp.loop_mode = renoise.Sample.LOOP_MODE_OFF
                 end
@@ -938,6 +958,14 @@ local function import_sf2(file_path)
 
             -- Apply the key range to the sample mapping
             local base_note = hdr.orig_pitch or 60
+            
+            -- BUGFIX: Check for OverridingRootKey parameter (58) which should override original pitch
+            local override_root_key = inst_zone_params[58] or zone_params[58]
+            if override_root_key then
+                base_note = override_root_key
+                dprint("Using OverridingRootKey:", override_root_key, "instead of original pitch:", hdr.orig_pitch)
+            end
+            
             -- Clamp base_note to valid range (0-108, where 108 is C-9)
             base_note = math.min(108, math.max(0, base_note))
             reno_smp.sample_mapping.base_note = base_note
@@ -998,6 +1026,77 @@ reno_smp.sample_mapping.velocity_range = { vel_low, vel_high }
             -- Apply all values to the sample
             reno_smp.transpose = coarse_tune
             reno_smp.fine_tune = fine_tune
+
+            -- BUGFIX: Apply SF2 volume envelope parameters to Renoise AHDSR device
+            local has_envelope_params = false
+            local vol_attack = inst_zone_params[34] or zone_params[34]
+            local vol_hold = inst_zone_params[35] or zone_params[35] 
+            local vol_decay = inst_zone_params[36] or zone_params[36]
+            local vol_sustain = inst_zone_params[37] or zone_params[37]
+            local vol_release = inst_zone_params[38] or zone_params[38]
+
+            if vol_attack or vol_hold or vol_decay or vol_sustain or vol_release then
+                has_envelope_params = true
+                dprint("Applying SF2 volume envelope to sample:", reno_smp.name)
+                
+                -- Get or create Volume AHDSR device for this sample
+                local ahdsr_device = setup_volume_ahdsr_device(r_inst, sample_slot)
+                
+                if ahdsr_device then
+                    -- Convert and apply envelope parameters
+                    if vol_attack then
+                        local attack_seconds = timecents_to_seconds(vol_attack)
+                        if attack_seconds then
+                            local attack_param = map_envelope_time(attack_seconds)
+                            if attack_param then
+                                ahdsr_device.parameters[2].value = attack_param -- Attack parameter
+                                dprint("  Attack:", vol_attack, "->", attack_seconds, "s ->", attack_param)
+                            end
+                        end
+                    end
+                    
+                    if vol_hold then
+                        local hold_seconds = timecents_to_seconds(vol_hold)
+                        if hold_seconds then
+                            local hold_param = map_envelope_time(hold_seconds)
+                            if hold_param then
+                                ahdsr_device.parameters[3].value = hold_param -- Hold parameter
+                                dprint("  Hold:", vol_hold, "->", hold_seconds, "s ->", hold_param)
+                            end
+                        end
+                    end
+                    
+                    if vol_decay then
+                        local decay_seconds = timecents_to_seconds(vol_decay)
+                        if decay_seconds then
+                            local decay_param = map_envelope_time(decay_seconds)
+                            if decay_param then
+                                ahdsr_device.parameters[4].value = decay_param -- Decay parameter
+                                dprint("  Decay:", vol_decay, "->", decay_seconds, "s ->", decay_param)
+                            end
+                        end
+                    end
+                    
+                    if vol_sustain then
+                        local sustain_level = sustain_cb_to_level(vol_sustain)
+                        if sustain_level then
+                            ahdsr_device.parameters[5].value = sustain_level -- Sustain parameter
+                            dprint("  Sustain:", vol_sustain, "cB ->", sustain_level)
+                        end
+                    end
+                    
+                    if vol_release then
+                        local release_seconds = timecents_to_seconds(vol_release)
+                        if release_seconds then
+                            local release_param = map_envelope_time(release_seconds)
+                            if release_param then
+                                ahdsr_device.parameters[6].value = release_param -- Release parameter
+                                dprint("  Release:", vol_release, "->", release_seconds, "s ->", release_param)
+                            end
+                        end
+                    end
+                end
+            end
 
             -- After first sample import, check for and remove placeholder if it exists
             if not is_drumkit and is_first_overwritten then
