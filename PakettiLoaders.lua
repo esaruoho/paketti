@@ -1185,73 +1185,74 @@ function inspectEffect()
   
   -- Output parameters that are exposed in Mixer
   oprint("")
-  oprint("Exposed Parameters:")
+  oprint("-- Exposed Parameters:")
   local mixer_params = {}
   for i = 1, #selected_device.parameters do
     if selected_device.parameters[i].show_in_mixer then
       table.insert(mixer_params, {index = i, name = selected_device.parameters[i].name})
-      oprint(selected_device.name .. " " .. i .. " " .. selected_device.parameters[i].name)
+      oprint("--   " .. selected_device.name .. " " .. i .. " " .. selected_device.parameters[i].name)
     end
   end
   
   if #mixer_params == 0 then
-    oprint("  No parameters are currently exposed in Mixer")
+    oprint("--   No parameters are currently exposed in Mixer")
   else
     oprint("")
     oprint("Copy-Pasteable Commands:")
     for _, param in ipairs(mixer_params) do
       oprint("renoise.song().selected_device.parameters[" .. param.index .. "].show_in_mixer=true")
     end
-    
-    oprint("")
-    oprint("Device State Information:")
-    oprint("Device display name: " .. selected_device.display_name)
-    oprint("Device is maximized: " .. tostring(selected_device.is_maximized))
-    oprint("External editor available: " .. tostring(selected_device.external_editor_available))
-    if selected_device.external_editor_available then
-      oprint("External editor visible: " .. tostring(selected_device.external_editor_visible))
-    end
-    
-    oprint("")
-    oprint("Complete Device Recreation Workflow:")
-    oprint('-- 1. Load Device (with Line Input protection)')
-    if selected_device.device_path:find("Native/") then
-      oprint('loadnative("' .. selected_device.device_path .. '")')
-    else
-      oprint('loadvst("' .. selected_device.device_path .. '")')
-    end
-    
-    -- Generate XML with current device state
-    local xml_data = selected_device.active_preset_data
-    if xml_data and xml_data ~= "" then
-      oprint('-- 2. Inject Current Device State XML')
-      oprint('local device_xml = [=[' .. xml_data .. ']=]')
-      oprint('renoise.song().selected_device.active_preset_data = device_xml')
-    else
-      oprint('-- 2. No preset data available for XML injection')
-    end
-    
-    oprint('-- 3. Set Mixer Parameter Visibility')
-    for _, param in ipairs(mixer_params) do
-      oprint('renoise.song().selected_device.parameters[' .. param.index .. '].show_in_mixer = true')
-    end
-    
-    oprint('-- 4. Set Device Maximized State')
-    oprint('renoise.song().selected_device.is_maximized = ' .. tostring(selected_device.is_maximized))
-    
-    oprint('-- 5. Set External Editor State')
-    if selected_device.external_editor_available then
-      oprint('renoise.song().selected_device.external_editor_visible = ' .. tostring(selected_device.external_editor_visible))
-    else
-      oprint('-- External editor not available for this device')
-    end
-    
-    oprint('-- 6. Set Device Display Name')
-    oprint('renoise.song().selected_device.display_name = "' .. selected_device.display_name .. '"')
-    
-    oprint("")
-    oprint("Total parameters exposed in Mixer: " .. #mixer_params)
   end
+  
+  -- Device State Information and Workflow (always show regardless of mixer params)
+  oprint("")
+  oprint("Device State Information:")
+  oprint("Device display name: " .. selected_device.display_name)
+  oprint("Device is maximized: " .. tostring(selected_device.is_maximized))
+  oprint("External editor available: " .. tostring(selected_device.external_editor_available))
+  if selected_device.external_editor_available then
+    oprint("External editor visible: " .. tostring(selected_device.external_editor_visible))
+  end
+  
+  oprint("")
+  oprint("Complete Device Recreation Workflow:")
+  oprint('-- 1. Load Device (with Line Input protection)')
+  if selected_device.device_path:find("Native/") then
+    oprint('loadnative("' .. selected_device.device_path .. '")')
+  else
+    oprint('loadvst("' .. selected_device.device_path .. '")')
+  end
+  
+  -- Generate XML with current device state
+  local xml_data = selected_device.active_preset_data
+  if xml_data and xml_data ~= "" then
+    oprint('-- 2. Inject Current Device State XML')
+    oprint('local device_xml = [=[' .. xml_data .. ']=]')
+    oprint('renoise.song().selected_device.active_preset_data = device_xml')
+  else
+    oprint('-- 2. No preset data available for XML injection')
+  end
+  
+  oprint('-- 3. Set Mixer Parameter Visibility')
+  for _, param in ipairs(mixer_params) do
+    oprint('renoise.song().selected_device.parameters[' .. param.index .. '].show_in_mixer = true')
+  end
+  
+  oprint('-- 4. Set Device Maximized State')
+  oprint('renoise.song().selected_device.is_maximized = ' .. tostring(selected_device.is_maximized))
+  
+  oprint('-- 5. Set External Editor State')
+  if selected_device.external_editor_available then
+    oprint('renoise.song().selected_device.external_editor_visible = ' .. tostring(selected_device.external_editor_visible))
+  else
+    oprint('-- External editor not available for this device')
+  end
+  
+  oprint('-- 6. Set Device Display Name')
+  oprint('renoise.song().selected_device.display_name = "' .. selected_device.display_name .. '"')
+  
+  oprint("")
+  oprint("-- Total parameters exposed in Mixer: " .. #mixer_params)
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Inspect Selected Device",invoke=function() inspectEffect() end}
