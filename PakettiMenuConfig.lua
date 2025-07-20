@@ -1,6 +1,16 @@
+-- Debug flag for menu loading messages
+local PakettiMenuDebug = false
+
+-- Debug print function
+local function debugPrint(message)
+  if PakettiMenuDebug then
+    print(message)
+  end
+end
+
 --- Instrument Box Config
 if preferences.pakettiMenuConfig.InstrumentBox then
-  print ("Instrument Box Menus Are Enabled")
+  debugPrint("Instrument Box Menus Are Enabled")
 -- Gadgets
 renoise.tool():add_menu_entry{name="--Instrument Box:Paketti Gadgets:Paketti eSpeak Text-to-Speech...",invoke=function()pakettieSpeakDialog()end}
 renoise.tool():add_menu_entry{name="--Instrument Box:Paketti Gadgets:Largest Samples Dialog...",invoke = pakettiShowLargestSamplesDialog}
@@ -130,7 +140,7 @@ end
 
 --- Sample Editor Config
 if preferences.pakettiMenuConfig.SampleEditor then
-print ("Sample Editor Menus Are Enabled")
+  debugPrint("Sample Editor Menus Are Enabled")
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti Gadgets:BPM Calculation Dialog...",invoke=pakettiBpmFromSampleDialog}
 
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti Gadgets:User-Defined Sample Folders...",invoke=pakettiUserDefinedSamplesDialog}
@@ -333,7 +343,7 @@ end
 
 --- Sample Navigator Config
 if preferences.pakettiMenuConfig.SampleNavigator then
-print ("Sample Navigator Menus Are Enabled")
+  debugPrint("Sample Navigator Menus Are Enabled")
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Group Samples by Name to New Instruments", invoke=PakettiGroupSamplesByName}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Map Sample to All Keyzones", invoke=function() mapsample() end}
 renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti:Set Instrument Transpose -24",invoke=function() renoise.song().selected_instrument.transpose=renoise.song().selected_instrument.transpose-24 end}
@@ -476,7 +486,7 @@ end
 
 --- Sample Keyzone Config
 if preferences.pakettiMenuConfig.SampleKeyzone then
-print ("Sample Keyzone Menus Are Enabled")
+debugPrint("Sample Keyzone Menus Are Enabled")
 renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti Gadgets:Paketti Sample Adjust Dialog...",invoke = show_paketti_sample_adjust_dialog}
 renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti Gadgets:Unison Generator",invoke=PakettiCreateUnisonSamples}
 renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti Gadgets:Keyzone Distributor Dialog...",invoke=function() pakettiKeyzoneDistributorDialog() end}
@@ -590,7 +600,7 @@ end
 
 --- Mixer Config
 if preferences.pakettiMenuConfig.Mixer then
-  print ("Mixer Menus Are Enabled")
+  debugPrint("Mixer Menus Are Enabled")
 renoise.tool():add_menu_entry{name="--Mixer:Paketti Gadgets:Paketti Action Selector Dialog...",invoke = pakettiActionSelectorDialog}
 renoise.tool():add_menu_entry{name="--Mixer:Paketti Gadgets:Paketti BPM to MS Delay Calculator Dialog...", invoke = pakettiBPMMSCalculator}
 
@@ -1169,14 +1179,14 @@ for i=1,12 do
 end
 
 
-  print ("Pattern Editor Menus Are Enabled")
+  debugPrint("Pattern Editor Menus Are Enabled")
   
 
 end
 
 --- Main Menu Tools Config
 if preferences.pakettiMenuConfig.MainMenuTools then
-print ("Main Menu Tools Menus Are Enabled")
+debugPrint("Main Menu Tools Menus Are Enabled")
 --- Gadgets
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets:Fuzzy Search Track...",invoke = pakettiFuzzySearchTrackDialog}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets:Largest Samples Dialog...",invoke = pakettiShowLargestSamplesDialog}
@@ -1601,12 +1611,12 @@ renoise.tool():add_menu_entry{name="Main Menu:View:Paketti:Visible Columns:Globa
 globalChangeVisibleColumnState("panning",false) globalChangeVisibleColumnState("delay",false) globalChangeVisibleColumnState("sample_effects",false) end}
 
 
-  print ("Main Menu View Menus Are Enabled")
+  debugPrint("Main Menu View Menus Are Enabled")
 end
 
 --- Main Menu File Config
 if preferences.pakettiMenuConfig.MainMenuFile then
-  print ("Main Menu File Menus Are Enabled")
+  debugPrint("Main Menu File Menus Are Enabled")
 renoise.tool():add_menu_entry{name="Main Menu:File:Paketti New Song Dialog...",invoke=function() pakettiImpulseTrackerNewSongDialog() end}
 renoise.tool():add_menu_entry{name="Main Menu:File:Load Most Recently Saved Song",invoke=function() loadRecentlySavedSong() end}
 renoise.tool():add_menu_entry{name="Main Menu:File:Save (Paketti Track Dater & Titler)...",invoke=pakettiTitlerDialog}
@@ -1729,12 +1739,12 @@ renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Record:Paketti Overdu
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Record:Paketti Overdub 01 (No Metronome/No Line Input)",invoke=function() recordtocurrenttrack(false, false,12) end}
 
 
-print ("Pattern Matrix Menus Are Enabled")
+debugPrint("Pattern Matrix Menus Are Enabled")
 end
 
 --- Pattern Sequencer Config
 if preferences.pakettiMenuConfig.PatternSequencer then
-  print ("Pattern Sequencer Menus Are Enabled")
+  debugPrint("Pattern Sequencer Menus Are Enabled")
 -- gadgets
 
 renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti Gadgets:Paketti Sequencer Settings Dialog...",invoke = pakettiSequencerSettingsDialog}
@@ -1794,7 +1804,7 @@ end
 
 --- Phrase Editor Config
 if preferences.pakettiMenuConfig.PhraseEditor then
-  print ("Phrase Editor Menus Are Enabled")
+  debugPrint("Phrase Editor Menus Are Enabled")
 renoise.tool():add_menu_entry{name="--Phrase Editor:Paketti:Open Paketti Init Phrase Dialog...",invoke=function() pakettiPhraseSettings() end}
 renoise.tool():add_menu_entry{name="Phrase Editor:Paketti:Create New Phrase using Paketti Settings",invoke=function() pakettiInitPhraseSettingsCreateNewPhrase() end}
 renoise.tool():add_menu_entry{name="Phrase Editor:Paketti:Modify Current Phrase using Paketti Settings",invoke=function() pakettiPhraseSettingsModifyCurrentPhrase() end}
@@ -1822,12 +1832,12 @@ end
 
 --- Paketti Gadgets Config
 if preferences.pakettiMenuConfig.PakettiGadgets then
-  print ("Paketti Gadgets Menus Are Enabled")
+  debugPrint("Paketti Gadgets Menus Are Enabled")
 end
 
 --- Track DSP Chain Config
 if preferences.pakettiMenuConfig.TrackDSPChain then
-  print ("Track DSP Chain Menus Are Enabled")
+  debugPrint("Track DSP Chain Menus Are Enabled")
   renoise.tool():add_menu_entry{name="DSP Chain:Paketti:Populate Send Tracks for All Tracks",invoke=PakettiPopulateSendTracksAllTracks}
   renoise.tool():add_menu_entry{name="DSP Chain:Paketti:Populate Send Tracks for Selected Track",invoke=PakettiPopulateSendTracksSelectedTrack}
   renoise.tool():add_menu_entry{name="DSP Chain:Paketti:Insert Random Device (All)", invoke=function() insertRandomDevice(false) end}
@@ -1837,7 +1847,7 @@ end
 
 --- Track DSP Device Config
 if preferences.pakettiMenuConfig.TrackDSPDevice then
-  print ("Track DSP Device Menus Are Enabled")
+  debugPrint("Track DSP Device Menus Are Enabled")
 renoise.tool():add_menu_entry{name="DSP Device Automation:Follow Off",invoke=function() renoise.song().transport.follow_player=false end}
 renoise.tool():add_menu_entry{name="DSP Device:Paketti:Open Visible Pages to Fit Plugin Parameter Count",invoke=openVisiblePagesToFitParameters}
 
@@ -1896,7 +1906,7 @@ end
 
 --- Track Automation Config
 if preferences.pakettiMenuConfig.Automation then
-  print ("Automation Menus Are Enabled")
+  debugPrint("Automation Menus Are Enabled")
 renoise.tool():add_menu_entry{name="Track Automation:Paketti:Start/Stop Pattern Follow",invoke=function() local fp=renoise.song().transport.follow_player if not fp then fp=true else fp=false end end}
 
 renoise.tool():add_menu_entry{name="--Track Automation:Paketti:Snapshot All Devices on Selected Track to Automation",invoke = snapshot_all_devices_to_automation}
@@ -1938,7 +1948,7 @@ end
 
 --- Disk Browser Files Config
 if preferences.pakettiMenuConfig.DiskBrowserFiles then
-print ("Disk Browser Files Menus Are Enabled")
+debugPrint("Disk Browser Files Menus Are Enabled")
 renoise.tool():add_menu_entry{name="--Disk Browser Files:Paketti Gadgets:Paketti Stacker Dialog...",invoke=function() pakettiStackerDialog(proceed_with_stacking, on_switch_changed, PakettiIsolateSlicesToInstrument) end}
 renoise.tool():add_menu_entry{name="--Disk Browser Files:Paketti Gadgets:User-Defined Sample Folders...",invoke=pakettiUserDefinedSamplesDialog}
 renoise.tool():add_menu_entry{name="--Disk Browser:Paketti Gadgets:Paketti Dialog of Dialogs...",invoke=function() pakettiDialogOfDialogsToggle() end}
