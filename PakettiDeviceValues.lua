@@ -1,4 +1,5 @@
 ---@diagnostic disable: need-check-nil
+local deviceValuesDebug = false
 local s = nil
 local d = nil
 local ticks = 20
@@ -82,44 +83,44 @@ function index(arr, value)
 end
 
 function show_it()
-  print("DEBUG: show_it() called")
+  if deviceValuesDebug then print("DEBUG: show_it() called") end
   
   -- First, remember the current parameter from whatever device is currently selected
   local song = renoise.song()
   if song and song.selected_device then
     local current_key = song.selected_track_index .. "_" .. song.selected_device_index
-    print("DEBUG: Current device key: " .. current_key)
+    if deviceValuesDebug then print("DEBUG: Current device key: " .. current_key) end
     
     if devices[current_key] then
       local success, param_name = pcall(function() return devices[current_key].name end)
       if success then
         last_selected_param_name = param_name
-        print("DEBUG: Remembered current parameter '" .. param_name .. "' from " .. current_key .. " before device change")
+        if deviceValuesDebug then print("DEBUG: Remembered current parameter '" .. param_name .. "' from " .. current_key .. " before device change") end
       else
-        print("DEBUG: Failed to get parameter name from " .. current_key)
+        if deviceValuesDebug then print("DEBUG: Failed to get parameter name from " .. current_key) end
       end
     else
-      print("DEBUG: No stored parameter for " .. current_key)
+      if deviceValuesDebug then print("DEBUG: No stored parameter for " .. current_key) end
     end
   else
-    print("DEBUG: No song or selected device")
+    if deviceValuesDebug then print("DEBUG: No song or selected device") end
   end
   
   if not refresh_device_state() then
-    print("DEBUG: refresh_device_state failed in show_it")
+    if deviceValuesDebug then print("DEBUG: refresh_device_state failed in show_it") end
     return
   end
   
   local device_key = get_device_key()
   if not device_key then
-    print("DEBUG: No device key in show_it")
+    if deviceValuesDebug then print("DEBUG: No device key in show_it") end
     return
   end
   
-  print("DEBUG: Processing device at " .. device_key)
+  if deviceValuesDebug then print("DEBUG: Processing device at " .. device_key) end
   
   filtered = filter_inplace(d.parameters, function(i) return i.show_in_mixer end)
-  print("DEBUG: Device has " .. #filtered .. " mixer parameters")
+  if deviceValuesDebug then print("DEBUG: Device has " .. #filtered .. " mixer parameters") end
   
   if #filtered >= 1 then
     local stored_param = devices[device_key]
@@ -129,44 +130,44 @@ function show_it()
     local stored_device_identity = device_identities[device_key]
     
     if stored_device_identity and stored_device_identity ~= current_device_identity then
-      print("DEBUG: Device at " .. device_key .. " has changed from '" .. stored_device_identity .. "' to '" .. current_device_identity .. "', clearing stored parameter")
+      if deviceValuesDebug then print("DEBUG: Device at " .. device_key .. " has changed from '" .. stored_device_identity .. "' to '" .. current_device_identity .. "', clearing stored parameter") end
       devices[device_key] = nil
       stored_param = nil
     end
     
     -- Update the device identity for this position
     device_identities[device_key] = current_device_identity
-    print("DEBUG: Device identity at " .. device_key .. ": " .. current_device_identity)
+    if deviceValuesDebug then print("DEBUG: Device identity at " .. device_key .. ": " .. current_device_identity) end
     
     -- Simple approach: if we have a stored parameter, verify it's still accessible
     -- If it's not accessible or if it's from a different device, clear it and start fresh
     if stored_param then
       local stored_success, stored_param_name = pcall(function() return stored_param.name end)
       if not stored_success then
-        print("DEBUG: Stored parameter is no longer accessible, clearing")
+        if deviceValuesDebug then print("DEBUG: Stored parameter is no longer accessible, clearing") end
         devices[device_key] = nil
         stored_param = nil
       else
-        print("DEBUG: Stored parameter '" .. stored_param_name .. "' is still accessible")
+        if deviceValuesDebug then print("DEBUG: Stored parameter '" .. stored_param_name .. "' is still accessible") end
       end
     end
     
     -- If no stored parameter (or we just cleared it), try to match by name or use first parameter
     if not stored_param then
-      print("DEBUG: No stored parameter, trying to match by name...")
+      if deviceValuesDebug then print("DEBUG: No stored parameter, trying to match by name...") end
       local matched = try_match_parameter_by_name()
-      print("DEBUG: Parameter matching result: " .. tostring(matched))
+      if deviceValuesDebug then print("DEBUG: Parameter matching result: " .. tostring(matched)) end
       
       -- If no match by name, use first parameter
       if not matched then
-        print("DEBUG: No match by name, using first parameter")
+        if deviceValuesDebug then print("DEBUG: No match by name, using first parameter") end
         devices[device_key] = filtered[1]
       end
     else
-      print("DEBUG: Using stored parameter")
+      if deviceValuesDebug then print("DEBUG: Using stored parameter") end
     end
   else
-    print("DEBUG: No mixer parameters available")
+    if deviceValuesDebug then print("DEBUG: No mixer parameters available") end
   end
   
   if devices[device_key] ~= nil then
@@ -175,7 +176,7 @@ function show_it()
     local success, param_name = pcall(function() return param.name end)
     if not success then
       -- Parameter is no longer valid, reset to first available
-      print("DEBUG: Stored parameter is invalid, resetting to first")
+      if deviceValuesDebug then print("DEBUG: Stored parameter is invalid, resetting to first") end
       devices[device_key] = filtered[1]
       param = devices[device_key]
       success, param_name = pcall(function() return param.name end)
@@ -190,13 +191,13 @@ function show_it()
       else
         param_value = "N/A"
       end
-      print("DEBUG: Final result - showing parameter '" .. param_name .. "' at position " .. param_number)
+      if deviceValuesDebug then print("DEBUG: Final result - showing parameter '" .. param_name .. "' at position " .. param_number) end
       renoise.app():show_status(get_device_name(d) .. ": " .. string.format("%02d", param_number) .. ": " .. param_name .. ": " .. param_value)
     else
-      print("DEBUG: Still failed to get parameter name after reset")
+      if deviceValuesDebug then print("DEBUG: Still failed to get parameter name after reset") end
     end
   else
-    print("DEBUG: No parameter stored for device " .. device_key .. " after processing")
+    if deviceValuesDebug then print("DEBUG: No parameter stored for device " .. device_key .. " after processing") end
   end
 end
 
@@ -233,7 +234,7 @@ function param_next()
   local track_index = s.selected_track_index
   local device_index = s.selected_device_index
   renoise.app():show_status("TRACK " .. string.format("%02d", track_index) .. ": Device " .. string.format("%02d", device_index) .. ": " .. get_device_name(d) .. ": " .. string.format("%02d", n) .. ": " .. filtered[n].name .. ": " .. string.format("%.3f", filtered[n].value))
-  print("TRACK " .. string.format("%02d", track_index) .. ": Device " .. string.format("%02d", device_index) .. ": " .. get_device_name(d) .. ": " .. string.format("%02d", n) .. ": " .. filtered[n].name .. ": " .. string.format("%.3f", filtered[n].value))
+  if deviceValuesDebug then print("TRACK " .. string.format("%02d", track_index) .. ": Device " .. string.format("%02d", device_index) .. ": " .. get_device_name(d) .. ": " .. string.format("%02d", n) .. ": " .. filtered[n].name .. ": " .. string.format("%.3f", filtered[n].value)) end
 end
 
 function param_prev()
@@ -269,7 +270,7 @@ function param_prev()
   local track_index = s.selected_track_index
   local device_index = s.selected_device_index
   renoise.app():show_status("TRACK " .. string.format("%02d", track_index) .. ": Device " .. string.format("%02d", device_index) .. ": " .. get_device_name(d) .. ": " .. string.format("%02d", n) .. ": " .. filtered[n].name .. ": " .. string.format("%.3f", filtered[n].value))
-  print("TRACK " .. string.format("%02d", track_index) .. ": Device " .. string.format("%02d", device_index) .. ": " .. get_device_name(d) .. ": " .. string.format("%02d", n) .. ": " .. filtered[n].name .. ": " .. string.format("%.3f", filtered[n].value))
+  if deviceValuesDebug then print("TRACK " .. string.format("%02d", track_index) .. ": Device " .. string.format("%02d", device_index) .. ": " .. get_device_name(d) .. ": " .. string.format("%02d", n) .. ": " .. filtered[n].name .. ": " .. string.format("%.3f", filtered[n].value)) end
 end
 
 function param_up()
@@ -290,7 +291,7 @@ function param_up()
   local stored_device_identity = device_identities[device_key]
   
   if not stored_device_identity or stored_device_identity ~= current_device_identity then
-    print("DEBUG: Device identity mismatch in param_up, refreshing...")
+    if deviceValuesDebug then print("DEBUG: Device identity mismatch in param_up, refreshing...") end
     show_it() -- This will refresh the device state and parameter selection
   end
   
@@ -298,7 +299,7 @@ function param_up()
   if not param then
     local track_index = s.selected_track_index
     local device_index = s.selected_device_index
-    print("DEBUG: No parameter stored for TRACK " .. string.format("%02d", track_index) .. ": Device " .. string.format("%02d", device_index) .. ": " .. get_device_name(d))
+    if deviceValuesDebug then print("DEBUG: No parameter stored for TRACK " .. string.format("%02d", track_index) .. ": Device " .. string.format("%02d", device_index) .. ": " .. get_device_name(d)) end
     renoise.app():show_status("No parameter selected for this device")
     return
   end
@@ -344,7 +345,7 @@ function param_down()
   local stored_device_identity = device_identities[device_key]
   
   if not stored_device_identity or stored_device_identity ~= current_device_identity then
-    print("DEBUG: Device identity mismatch in param_down, refreshing...")
+    if deviceValuesDebug then print("DEBUG: Device identity mismatch in param_down, refreshing...") end
     show_it() -- This will refresh the device state and parameter selection
   end
   
@@ -352,7 +353,7 @@ function param_down()
   if not param then
     local track_index = s.selected_track_index
     local device_index = s.selected_device_index
-    print("DEBUG: No parameter stored for TRACK " .. string.format("%02d", track_index) .. ": Device " .. string.format("%02d", device_index) .. ": " .. get_device_name(d))
+    if deviceValuesDebug then print("DEBUG: No parameter stored for TRACK " .. string.format("%02d", track_index) .. ": Device " .. string.format("%02d", device_index) .. ": " .. get_device_name(d)) end
     renoise.app():show_status("No parameter selected for this device")
     return
   end
@@ -512,37 +513,37 @@ end
 
 -- Helper function to try matching parameter by name on track change
 function try_match_parameter_by_name()
-  print("DEBUG: try_match_parameter_by_name() called")
-  print("DEBUG: last_selected_param_name = " .. (last_selected_param_name or "nil"))
+  if deviceValuesDebug then print("DEBUG: try_match_parameter_by_name() called") end
+  if deviceValuesDebug then print("DEBUG: last_selected_param_name = " .. (last_selected_param_name or "nil")) end
   
   if not last_selected_param_name then
-    print("DEBUG: No last selected parameter name, exiting")
+    if deviceValuesDebug then print("DEBUG: No last selected parameter name, exiting") end
     return false
   end
   
   if not refresh_device_state() then
-    print("DEBUG: refresh_device_state failed")
+    if deviceValuesDebug then print("DEBUG: refresh_device_state failed") end
     return false
   end
   
   local device_key = get_device_key()
   if not device_key then
-    print("DEBUG: No device key")
+    if deviceValuesDebug then print("DEBUG: No device key") end
     return false
   end
   
-  print("DEBUG: Looking for parameter '" .. last_selected_param_name .. "' on device at " .. device_key)
+  if deviceValuesDebug then print("DEBUG: Looking for parameter '" .. last_selected_param_name .. "' on device at " .. device_key) end
   
   -- Look for parameter with the same name
   local filtered = filter_inplace(d.parameters, function(i) return i.show_in_mixer end)
-  print("DEBUG: Device has " .. #filtered .. " mixer parameters")
+  if deviceValuesDebug then print("DEBUG: Device has " .. #filtered .. " mixer parameters") end
   
   for i, param in ipairs(filtered) do
     local success, param_name = pcall(function() return param.name end)
     if success then
-      print("DEBUG: Parameter " .. i .. ": " .. param_name)
+      if deviceValuesDebug then print("DEBUG: Parameter " .. i .. ": " .. param_name) end
       if param_name == last_selected_param_name then
-        print("DEBUG: Found matching parameter '" .. param_name .. "'!")
+        if deviceValuesDebug then print("DEBUG: Found matching parameter '" .. param_name .. "'!") end
         
         -- Always switch to the matching parameter if we find it
         local current_param = devices[device_key]
@@ -550,36 +551,36 @@ function try_match_parameter_by_name()
         
         if not current_param then
           should_switch = true
-          print("DEBUG: No current parameter stored, switching to matched parameter")
+          if deviceValuesDebug then print("DEBUG: No current parameter stored, switching to matched parameter") end
         else
           -- Check if the stored parameter is different or invalid
           local stored_success, stored_param_name = pcall(function() return current_param.name end)
           if not stored_success then
             should_switch = true
-            print("DEBUG: Stored parameter is invalid, switching to matched parameter")
+            if deviceValuesDebug then print("DEBUG: Stored parameter is invalid, switching to matched parameter") end
           elseif stored_param_name ~= param_name then
             should_switch = true
-            print("DEBUG: Stored parameter '" .. stored_param_name .. "' != '" .. param_name .. "', switching")
+            if deviceValuesDebug then print("DEBUG: Stored parameter '" .. stored_param_name .. "' != '" .. param_name .. "', switching") end
           else
-            print("DEBUG: Already have the right parameter stored, no switch needed")
+            if deviceValuesDebug then print("DEBUG: Already have the right parameter stored, no switch needed") end
           end
         end
         
         if should_switch then
           devices[device_key] = param
-          print("DEBUG: Successfully switched to parameter '" .. param_name .. "' at " .. device_key)
+          if deviceValuesDebug then print("DEBUG: Successfully switched to parameter '" .. param_name .. "' at " .. device_key) end
           return true
         else
-          print("DEBUG: No switch was needed")
+          if deviceValuesDebug then print("DEBUG: No switch was needed") end
           return true
         end
       end
     else
-      print("DEBUG: Failed to get name for parameter " .. i)
+      if deviceValuesDebug then print("DEBUG: Failed to get name for parameter " .. i) end
     end
   end
   
-  print("DEBUG: No matching parameter found for '" .. last_selected_param_name .. "'")
+  if deviceValuesDebug then print("DEBUG: No matching parameter found for '" .. last_selected_param_name .. "'") end
   return false
 end
 
