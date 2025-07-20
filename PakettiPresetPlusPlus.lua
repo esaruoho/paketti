@@ -144,6 +144,7 @@ function inspectTrackDeviceChain()
     -- Calculate correct insertion position and set placeholder
     local placeholder_index = #actual_devices - i
     oprint('renoise.song().selected_track.devices[base_index + ' .. placeholder_index .. '].display_name = "PAKETTI_PLACEHOLDER_' .. string.format("%03d", i) .. '"')
+    oprint('print("DEBUG: Loaded device ' .. i .. ' (' .. device.name .. ') at slot " .. (base_index + ' .. placeholder_index .. ') .. " with placeholder PAKETTI_PLACEHOLDER_' .. string.format("%03d", i) .. '")')
     oprint("")
   end
   
@@ -157,25 +158,37 @@ function inspectTrackDeviceChain()
     oprint("-- Configure device " .. i .. ": " .. device.name .. " (" .. device.display_name .. ")")
     oprint("for i, device in ipairs(renoise.song().selected_track.devices) do")
     oprint('  if device.display_name == "' .. placeholder .. '" then')
+    oprint('    print("DEBUG: Configuring device ' .. i .. ' (' .. device.name .. ') found at index " .. i)')
     
     -- Set mixer parameter visibility
+    local mixer_param_count = 0
     for j, param in ipairs(device.parameters) do
       if param.show_in_mixer then
+        mixer_param_count = mixer_param_count + 1
         oprint('    device.parameters[' .. j .. '].show_in_mixer = true')
       end
+    end
+    
+    if mixer_param_count > 0 then
+      oprint('    print("DEBUG: Set ' .. mixer_param_count .. ' mixer parameters visible")')
+    else
+      oprint('    print("DEBUG: No mixer parameters to set")')
     end
     
     -- Set device properties
     oprint('    device.display_name = "' .. device.display_name .. '"')
     oprint('    device.is_maximized = ' .. tostring(device.is_maximized))
     oprint('    device.is_active = ' .. tostring(device.is_active))
+    oprint('    print("DEBUG: Set device properties - name: ' .. device.display_name .. ', maximized: ' .. tostring(device.is_maximized) .. ', active: ' .. tostring(device.is_active) .. '")')
     
     -- External editor state (ALWAYS generate safe code)
+    oprint('    print("DEBUG: Checking external editor availability before XML injection: " .. tostring(device.external_editor_available))')
     oprint('    if device.external_editor_available then')
     if device.external_editor_available then
       oprint('      device.external_editor_visible = ' .. tostring(device.external_editor_visible))
+      oprint('      print("DEBUG: Set external editor visible to ' .. tostring(device.external_editor_visible) .. '")')
     else
-      oprint('      -- Device has no external editor')
+      oprint('      print("DEBUG: Device has no external editor before XML injection")')
     end
     oprint('    end')
     
@@ -196,16 +209,33 @@ function inspectTrackDeviceChain()
       oprint("-- Inject XML for device " .. i .. ": " .. device.name)
       oprint("for i, device in ipairs(renoise.song().selected_track.devices) do")
       oprint('  if device.display_name == "' .. placeholder .. '" then')
+      oprint('    print("DEBUG: Starting XML injection for device ' .. i .. ' (' .. device.name .. ')")')
       oprint('    device.active_preset_data = [=[' .. device.active_preset_data .. ']=]')
+      oprint('    print("DEBUG: XML injection completed for device ' .. i .. '")')
+      oprint('    print("DEBUG: External editor now available: " .. tostring(device.external_editor_available))')
+      oprint('    if device.external_editor_available then')
+      oprint('      print("DEBUG: SUCCESS - XML injection enabled external editor for device ' .. i .. '")')
+      oprint('    else')
+      oprint('      print("DEBUG: WARNING - XML injection did not enable external editor for device ' .. i .. '")')
+      oprint('    end')
       oprint('    break')
       oprint('  end')
       oprint('end')
+      oprint("")
+    else
+      oprint("-- No XML data for device " .. i .. ": " .. device.name)
+      oprint('print("DEBUG: No XML data available for device ' .. i .. ' (' .. device.name .. ')")')
       oprint("")
     end
   end
   
   oprint("-- TRACK DEVICE CHAIN RECREATION COMPLETE")
   oprint("-- Total devices processed: " .. #actual_devices)
+  oprint("")
+  oprint("-- Final verification:")
+  for i, device in ipairs(actual_devices) do
+    oprint('print("DEBUG: Final check - Device ' .. i .. ' (' .. device.name .. ') should be at track position " .. (#renoise.song().selected_track.devices - ' .. (#actual_devices - i) .. '))')
+  end
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Inspect Track Device Chain",invoke=function() inspectTrackDeviceChain() end}

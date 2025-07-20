@@ -1071,5 +1071,3 @@ if not renoise.tool():has_file_import_hook("sample", { "txt" }) then
   renoise.tool():add_file_import_hook(txt_integration)
 end
 
-_AUTO_RELOAD_DEBUG = function() end
-

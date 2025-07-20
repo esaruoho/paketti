@@ -866,8 +866,3 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/Work in 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/Work in Progress:Hotelsinus Step Sequencer",invoke = function() createStepSequencerDialog() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Hotelsinus Matrix Overview", invoke = function() createMatrixOverview() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Hotelsinus Step Sequencer",invoke=function() createStepSequencerDialog() end}
-
-
-
-
-_AUTO_RELOAD_DEBUG = true

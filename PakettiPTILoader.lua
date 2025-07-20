@@ -1372,5 +1372,4 @@ end
 -- Menu entries
 renoise.tool():add_keybinding{name="Global:Paketti:PTI Export",invoke = pti_savesample}
 
-_AUTO_RELOAD_DEBUG = true
 
