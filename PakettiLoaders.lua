@@ -233,7 +233,7 @@ s.selected_instrument.active_tab=2
 end
 renoise.tool():add_keybinding{name="Global:Paketti:Load Waldorf Attack (VST)",invoke=function() LoadAttack() end}
 -----------------------------------------------------------------------------------------------------
-function loadnative(effect, name, preset_path)
+function loadnative(effect, name, preset_path, force_insertion_order)
   local checkline=nil
   local s=renoise.song()
   local w=renoise.app().window
@@ -275,7 +275,10 @@ function loadnative(effect, name, preset_path)
 
     if chain then
       local sample_devices = chain.devices
-      if preferences.pakettiLoadOrder.value then
+      -- Determine insertion behavior: use override if provided, otherwise follow preferences
+      local load_at_end = force_insertion_order ~= nil and force_insertion_order or preferences.pakettiLoadOrder.value
+      
+      if load_at_end then
         -- Load at end of chain
         checkline = #sample_devices + 1
       else
@@ -292,7 +295,7 @@ function loadnative(effect, name, preset_path)
 
       -- Smart Send device insertion logic for sample FX chain (only when loading at END is selected)
       local device_name = get_device_name(effect)
-      if preferences.pakettiLoadOrder.value then
+      if load_at_end then
         -- If we're not loading a Send device, check if we need to insert before existing Sends
         if device_name ~= "#Send" and device_name ~= "#Multiband Send" then
           -- Find the first Send device at the end of the chain
@@ -371,7 +374,10 @@ function loadnative(effect, name, preset_path)
 
   else
     local sdevices = s.selected_track.devices
-    if preferences.pakettiLoadOrder.value then
+    -- Determine insertion behavior: use override if provided, otherwise follow preferences
+    local load_at_end = force_insertion_order ~= nil and force_insertion_order or preferences.pakettiLoadOrder.value
+    
+    if load_at_end then
       -- Load at end of track devices
       checkline = #sdevices + 1
     else
@@ -398,7 +404,7 @@ function loadnative(effect, name, preset_path)
     end
 
     -- Smart Send device insertion logic (only when loading at END is selected)
-    if preferences.pakettiLoadOrder.value then
+    if load_at_end then
       -- If we're not loading a Send device, check if we need to insert before existing Sends
       if device_name ~= "#Send" and device_name ~= "#Multiband Send" then
         -- Find the first Send device at the end of the chain
@@ -672,7 +678,7 @@ renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise (Hidden) S
 -- TAL Reverb 4 Plugin opens with massive-ish Reverb
 -- ValhallaDSP ValhallaVintageVerb opens with 50% Wet instead of 100% Wet, and a long tail
 -- And each line input will become first.
-function loadvst(vstname, name, preset_path)
+function loadvst(vstname, name, preset_path, force_insertion_order)
   local s = renoise.song()
   local raw = renoise.app().window
   local checkline = nil
@@ -701,7 +707,10 @@ function loadvst(vstname, name, preset_path)
 
     if chain then
       local devices = chain.devices
-      if preferences.pakettiLoadOrder.value then
+      -- Determine insertion behavior: use override if provided, otherwise follow preferences
+      local load_at_end = force_insertion_order ~= nil and force_insertion_order or preferences.pakettiLoadOrder.value
+      
+      if load_at_end then
         -- Load at end of chain
         checkline = #devices + 1
       else
@@ -712,7 +721,7 @@ function loadvst(vstname, name, preset_path)
       checkline = math.min(checkline, #devices + 1)
 
       -- Smart Send device insertion logic for sample FX chain (only when loading at END is selected)
-      if preferences.pakettiLoadOrder.value then
+      if load_at_end then
         -- VST devices are never Send devices, so always check if we need to insert before existing Sends
         local first_send_index = nil
         for i = #devices, 2, -1 do -- Start from end, go backwards, skip sample mixer (index 1)
@@ -807,7 +816,10 @@ function loadvst(vstname, name, preset_path)
   else
     -- Track device handling
     local devices = s.selected_track.devices
-    if preferences.pakettiLoadOrder.value then
+    -- Determine insertion behavior: use override if provided, otherwise follow preferences
+    local load_at_end = force_insertion_order ~= nil and force_insertion_order or preferences.pakettiLoadOrder.value
+    
+    if load_at_end then
       -- Load at end of track devices
       checkline = #devices + 1
     else
@@ -817,7 +829,7 @@ function loadvst(vstname, name, preset_path)
     checkline = math.min(checkline, #devices + 1)
 
     -- Smart Send device insertion logic for VST devices (only when loading at END is selected)
-    if preferences.pakettiLoadOrder.value then
+    if load_at_end then
       -- VST devices are never Send devices, so always check if we need to insert before existing Sends
       local first_send_index = nil
       for i = #devices, 2, -1 do -- Start from end, go backwards, skip track vol/pan (index 1)

@@ -105,7 +105,10 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Inspect Selected Device",invoke=function() inspectEffect() end}
 
-function inspectTrackDeviceChain()
+function inspectTrackDeviceChain(debug_mode)
+  -- Set to true for debug output, false for clean script generation
+  local generate_debug_prints = debug_mode ~= false  -- Default to true unless explicitly set to false
+  
   local track = renoise.song().selected_track
   local devices = track.devices
   
@@ -120,16 +123,20 @@ function inspectTrackDeviceChain()
   for i = 2, #devices do  -- Start from index 2 to skip Track Vol/Pan
     table.insert(actual_devices, devices[i])
   end
-  
+  oprint ("--------------------------")
+  oprint ("--------------------------")
+  oprint ("--------------------------")
+  oprint ("--------------------------")
+  oprint ("--------------------------")
   oprint("-- === TRACK DEVICE CHAIN RECREATION ===")
   oprint("-- Track: " .. track.name)
   oprint("-- Total devices (excluding Track Vol/Pan): " .. #actual_devices)
+  oprint("-- Debug prints: " .. tostring(generate_debug_prints))
   
   -- PHASE 1: Load All Devices (with Placeholders) - REVERSE ORDER
   oprint("")
   oprint("-- PHASE 1: Load All Devices (with Placeholders) - REVERSE ORDER")
   oprint("-- Loading LAST device first, then second-last, etc. to maintain correct order")
-  oprint("local base_index = #renoise.song().selected_track.devices + 1")
   oprint("")
   
   -- Load devices in REVERSE order (last first, first last) with placeholders
@@ -137,110 +144,191 @@ function inspectTrackDeviceChain()
     local device = actual_devices[i]
     oprint("-- Loading device " .. i .. ": " .. device.name .. " (" .. device.display_name .. ")")
     if device.device_path:find("Native/") then
-      oprint('loadnative("' .. device.device_path .. '")')
+      oprint('loadnative("' .. device.device_path .. '", nil, nil, false)')
     else
-      oprint('loadvst("' .. device.device_path .. '")')  
+      oprint('loadvst("' .. device.device_path .. '", nil, nil, false)')  
     end
-    -- Calculate correct insertion position and set placeholder
-    local placeholder_index = #actual_devices - i
-    oprint('renoise.song().selected_track.devices[base_index + ' .. placeholder_index .. '].display_name = "PAKETTI_PLACEHOLDER_' .. string.format("%03d", i) .. '"')
-    oprint('print("DEBUG: Loaded device ' .. i .. ' (' .. device.name .. ') at slot " .. (base_index + ' .. placeholder_index .. ') .. " with placeholder PAKETTI_PLACEHOLDER_' .. string.format("%03d", i) .. '")')
+    -- Set placeholder on the currently selected device (just loaded)
+    oprint('renoise.song().selected_device.display_name = "PAKETTI_PLACEHOLDER_' .. string.format("%03d", i) .. '"')
+    if generate_debug_prints then
+      oprint('print("DEBUG: Loaded device ' .. i .. ' (' .. device.name .. ') with placeholder PAKETTI_PLACEHOLDER_' .. string.format("%03d", i) .. '")')
+    end
     oprint("")
   end
   
-  -- PHASE 2: Configure Devices Using Placeholders
-  oprint("-- PHASE 2: Configure Devices Using Placeholders")
+  -- PHASE 2: Apply XML to ALL devices (Last to First)
+  oprint("-- PHASE 2: Apply XML to ALL devices (Last to First)")
   oprint("")
   
-  for i, device in ipairs(actual_devices) do
-    local placeholder = "PAKETTI_PLACEHOLDER_" .. string.format("%03d", i)
-    
-    oprint("-- Configure device " .. i .. ": " .. device.name .. " (" .. device.display_name .. ")")
-    oprint("for i, device in ipairs(renoise.song().selected_track.devices) do")
-    oprint('  if device.display_name == "' .. placeholder .. '" then')
-    oprint('    print("DEBUG: Configuring device ' .. i .. ' (' .. device.name .. ') found at index " .. i)')
-    
-    -- Set mixer parameter visibility
-    local mixer_param_count = 0
-    for j, param in ipairs(device.parameters) do
-      if param.show_in_mixer then
-        mixer_param_count = mixer_param_count + 1
-        oprint('    device.parameters[' .. j .. '].show_in_mixer = true')
-      end
-    end
-    
-    if mixer_param_count > 0 then
-      oprint('    print("DEBUG: Set ' .. mixer_param_count .. ' mixer parameters visible")')
-    else
-      oprint('    print("DEBUG: No mixer parameters to set")')
-    end
-    
-    -- Set device properties
-    oprint('    device.display_name = "' .. device.display_name .. '"')
-    oprint('    device.is_maximized = ' .. tostring(device.is_maximized))
-    oprint('    device.is_active = ' .. tostring(device.is_active))
-    oprint('    print("DEBUG: Set device properties - name: ' .. device.display_name .. ', maximized: ' .. tostring(device.is_maximized) .. ', active: ' .. tostring(device.is_active) .. '")')
-    
-    -- External editor state (ALWAYS generate safe code)
-    oprint('    print("DEBUG: Checking external editor availability before XML injection: " .. tostring(device.external_editor_available))')
-    oprint('    if device.external_editor_available then')
-    if device.external_editor_available then
-      oprint('      device.external_editor_visible = ' .. tostring(device.external_editor_visible))
-      oprint('      print("DEBUG: Set external editor visible to ' .. tostring(device.external_editor_visible) .. '")')
-    else
-      oprint('      print("DEBUG: Device has no external editor before XML injection")')
-    end
-    oprint('    end')
-    
-    oprint('    break')
-    oprint('  end')
-    oprint('end')
-    oprint("")
-  end
-  
-  -- PHASE 3: XML Injection (FINAL)
-  oprint("-- PHASE 3: XML Injection (FINAL)")
-  oprint("")
-  
-  for i, device in ipairs(actual_devices) do
+  for i = #actual_devices, 1, -1 do
+    local device = actual_devices[i]
     local placeholder = "PAKETTI_PLACEHOLDER_" .. string.format("%03d", i)
     
     if device.active_preset_data and device.active_preset_data ~= "" then
-      oprint("-- Inject XML for device " .. i .. ": " .. device.name)
+      oprint("-- Apply XML for device " .. i .. ": " .. device.name)
       oprint("for i, device in ipairs(renoise.song().selected_track.devices) do")
       oprint('  if device.display_name == "' .. placeholder .. '" then')
-      oprint('    print("DEBUG: Starting XML injection for device ' .. i .. ' (' .. device.name .. ')")')
+      if generate_debug_prints then
+        oprint('    print("DEBUG: Starting XML injection for device ' .. i .. ' (' .. device.name .. ')")')
+      end
       oprint('    device.active_preset_data = [=[' .. device.active_preset_data .. ']=]')
-      oprint('    print("DEBUG: XML injection completed for device ' .. i .. '")')
-      oprint('    print("DEBUG: External editor now available: " .. tostring(device.external_editor_available))')
-      oprint('    if device.external_editor_available then')
-      oprint('      print("DEBUG: SUCCESS - XML injection enabled external editor for device ' .. i .. '")')
-      oprint('    else')
-      oprint('      print("DEBUG: WARNING - XML injection did not enable external editor for device ' .. i .. '")')
-      oprint('    end')
+      if generate_debug_prints then
+        oprint('    print("DEBUG: XML injection completed for device ' .. i .. '")')
+      end
       oprint('    break')
       oprint('  end')
       oprint('end')
       oprint("")
     else
       oprint("-- No XML data for device " .. i .. ": " .. device.name)
-      oprint('print("DEBUG: No XML data available for device ' .. i .. ' (' .. device.name .. ')")')
       oprint("")
     end
+  end
+  
+  -- PHASE 3: Apply Parameters to ALL devices (Last to First)
+  oprint("-- PHASE 3: Apply Parameters to ALL devices (Last to First)")
+  oprint("")
+  
+  for i = #actual_devices, 1, -1 do
+    local device = actual_devices[i]
+    local placeholder = "PAKETTI_PLACEHOLDER_" .. string.format("%03d", i)
+    
+    -- Check if device has any parameter values to set
+    local has_params = false
+    for j, param in ipairs(device.parameters) do
+      if param.value ~= param.value_default then
+        has_params = true
+        break
+      end
+    end
+    
+    if has_params then
+      oprint("-- Apply parameters for device " .. i .. ": " .. device.name)
+      oprint("for i, device in ipairs(renoise.song().selected_track.devices) do")
+      oprint('  if device.display_name == "' .. placeholder .. '" then')
+      for j, param in ipairs(device.parameters) do
+        if param.value ~= param.value_default then
+          oprint('    device.parameters[' .. j .. '].value = ' .. param.value)
+        end
+      end
+             if generate_debug_prints then
+         oprint('    print("DEBUG: Applied parameters for device ' .. i .. '")')
+       end
+       oprint('    break')
+       oprint('  end')
+       oprint('end')
+      oprint("")
+    else
+      oprint("-- No parameters to set for device " .. i .. ": " .. device.name)
+      oprint("")
+    end
+  end
+  
+  -- PHASE 4: Apply Mixer Visibility to ALL devices (Last to First)
+  oprint("-- PHASE 4: Apply Mixer Visibility to ALL devices (Last to First)")
+  oprint("")
+  
+  for i = #actual_devices, 1, -1 do
+    local device = actual_devices[i]
+    local placeholder = "PAKETTI_PLACEHOLDER_" .. string.format("%03d", i)
+    
+    local mixer_param_count = 0
+    for j, param in ipairs(device.parameters) do
+      if param.show_in_mixer then
+        mixer_param_count = mixer_param_count + 1
+      end
+    end
+    
+    if mixer_param_count > 0 then
+      oprint("-- Apply mixer visibility for device " .. i .. ": " .. device.name)
+      oprint("for i, device in ipairs(renoise.song().selected_track.devices) do")
+      oprint('  if device.display_name == "' .. placeholder .. '" then')
+      for j, param in ipairs(device.parameters) do
+        if param.show_in_mixer then
+          oprint('    device.parameters[' .. j .. '].show_in_mixer = true')
+        end
+      end
+             if generate_debug_prints then
+         oprint('    print("DEBUG: Set ' .. mixer_param_count .. ' mixer parameters visible for device ' .. i .. '")')
+       end
+       oprint('    break')
+       oprint('  end')
+       oprint('end')
+      oprint("")
+    else
+      oprint("-- No mixer parameters to set for device " .. i .. ": " .. device.name)
+      oprint("")
+    end
+  end
+  
+  -- PHASE 5: Apply Device Properties to ALL devices (Last to First)
+  oprint("-- PHASE 5: Apply Device Properties to ALL devices (Last to First)")
+  oprint("")
+  
+  for i = #actual_devices, 1, -1 do
+    local device = actual_devices[i]
+    local placeholder = "PAKETTI_PLACEHOLDER_" .. string.format("%03d", i)
+    
+    oprint("-- Apply properties for device " .. i .. ": " .. device.name)
+    oprint("for i, device in ipairs(renoise.song().selected_track.devices) do")
+    oprint('  if device.display_name == "' .. placeholder .. '" then')
+    
+    -- Check if this is an LFO device with parameters (routing connections)
+    local is_lfo_with_params = false
+    if device.name == "*LFO" then
+      -- Check if device has any parameter values set (indicating routing)
+      for j, param in ipairs(device.parameters) do
+        if param.value ~= param.value_default then
+          is_lfo_with_params = true
+          break
+        end
+      end
+    end
+    
+    -- Only set display_name if it's NOT an LFO with parameters (routing connections)
+    if not is_lfo_with_params then
+      oprint('    device.display_name = "' .. device.display_name .. '"')
+    else
+      oprint('    -- Skipping display_name change for LFO with routing parameters to preserve connections')
+    end
+    
+    oprint('    device.is_maximized = ' .. tostring(device.is_maximized))
+    oprint('    device.is_active = ' .. tostring(device.is_active))
+    if device.external_editor_available then
+      oprint('    if device.external_editor_available then')
+      oprint('      device.external_editor_visible = ' .. tostring(device.external_editor_visible))
+      oprint('    end')
+    end
+    if generate_debug_prints then
+      oprint('    print("DEBUG: Applied properties for device ' .. i .. '")')
+    end
+    oprint('    break')
+    oprint('  end')
+    oprint('end')
+    oprint("")
   end
   
   oprint("-- TRACK DEVICE CHAIN RECREATION COMPLETE")
   oprint("-- Total devices processed: " .. #actual_devices)
   oprint("")
-  oprint("-- Final verification:")
-  for i, device in ipairs(actual_devices) do
-    oprint('print("DEBUG: Final check - Device ' .. i .. ' (' .. device.name .. ') should be at track position " .. (#renoise.song().selected_track.devices - ' .. (#actual_devices - i) .. '))')
+  if generate_debug_prints then
+    oprint("-- Final verification:")
+    for i, device in ipairs(actual_devices) do
+      oprint('print("DEBUG: Final check - Device ' .. i .. ' (' .. device.name .. ') should be at track position " .. (#renoise.song().selected_track.devices - ' .. (#actual_devices - i) .. '))')
+    end
   end
 end
 
+function inspectTrackDeviceChainClean()
+  inspectTrackDeviceChain(false)  -- Generate clean script without debug prints
+end
+
 renoise.tool():add_keybinding{name="Global:Paketti:Inspect Track Device Chain",invoke=function() inspectTrackDeviceChain() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Inspect Track Device Chain (Clean)",invoke=function() inspectTrackDeviceChainClean() end}
 renoise.tool():add_menu_entry{name="--DSP Chain:Paketti:Inspect Track Device Chain", invoke = inspectTrackDeviceChain}
+renoise.tool():add_menu_entry{name="--DSP Chain:Paketti:Inspect Track Device Chain (Clean)", invoke = inspectTrackDeviceChainClean}
 renoise.tool():add_menu_entry{name="--Mixer:Paketti:Inspect Track Device Chain", invoke = inspectTrackDeviceChain}
+renoise.tool():add_menu_entry{name="--Mixer:Paketti:Inspect Track Device Chain (Clean)", invoke = inspectTrackDeviceChainClean}
 
 
 
@@ -298,69 +386,131 @@ renoise.tool():add_keybinding{name="Global:Paketti:Hipass (Preset++)", invoke = 
 
 
 
-function heyYo()
+function inspectTrackDeviceChainTEST()
 
+--------------------------
+--------------------------
+--------------------------
+--------------------------
 -- === TRACK DEVICE CHAIN RECREATION ===
 -- Track: 8120_03[016]
 -- Total devices (excluding Track Vol/Pan): 3
 -- PHASE 1: Load All Devices (with Placeholders) - REVERSE ORDER
 -- Loading LAST device first, then second-last, etc. to maintain correct order
-local base_index = #renoise.song().selected_track.devices + 1
 -- Loading device 3: Maximizer (Maximizer)
-loadnative("Audio/Effects/Native/Maximizer")
-renoise.song().selected_track.devices[base_index + 0].display_name = "PAKETTI_PLACEHOLDER_003"
-print("DEBUG: Loaded device at position " .. (base_index + 0) .. " with placeholder PAKETTI_PLACEHOLDER_003")
+loadnative("Audio/Effects/Native/Maximizer", nil, nil, false)
+renoise.song().selected_device.display_name = "PAKETTI_PLACEHOLDER_003"
+print("DEBUG: Loaded device 3 (Maximizer) with placeholder PAKETTI_PLACEHOLDER_003")
 -- Loading device 2: *LFO (*LFO (2))
-loadnative("Audio/Effects/Native/*LFO")
-renoise.song().selected_track.devices[base_index + 1].display_name = "PAKETTI_PLACEHOLDER_002"
-print("DEBUG: Loaded device at position " .. (base_index + 1) .. " with placeholder PAKETTI_PLACEHOLDER_002")
+loadnative("Audio/Effects/Native/*LFO", nil, nil, false)
+renoise.song().selected_device.display_name = "PAKETTI_PLACEHOLDER_002"
+print("DEBUG: Loaded device 2 (*LFO) with placeholder PAKETTI_PLACEHOLDER_002")
 -- Loading device 1: *LFO (*LFO)
-loadnative("Audio/Effects/Native/*LFO")
-renoise.song().selected_track.devices[base_index + 2].display_name = "PAKETTI_PLACEHOLDER_001"
-print("DEBUG: Loaded device at position " .. (base_index + 2) .. " with placeholder PAKETTI_PLACEHOLDER_001")
--- PHASE 2: Set Parameters and Device States
--- Configure device 1: *LFO (*LFO)
-for i, device in ipairs(renoise.song().selected_track.devices) do
-  if device.display_name == "PAKETTI_PLACEHOLDER_001" then
-    print("DEBUG: Found placeholder PAKETTI_PLACEHOLDER_001 at device index " .. i .. ", configuring as *LFO")
-    -- No parameters exposed in mixer
-    device.display_name = "*LFO"
-    device.is_maximized = true
-    device.is_active = true
-    device.external_editor_visible = false
-    break
-  end
-end
--- Configure device 2: *LFO (*LFO (2))
-for i, device in ipairs(renoise.song().selected_track.devices) do
-  if device.display_name == "PAKETTI_PLACEHOLDER_002" then
-    print("DEBUG: Found placeholder PAKETTI_PLACEHOLDER_002 at device index " .. i .. ", configuring as *LFO (2)")
-    device.parameters[4].show_in_mixer = true
-    device.display_name = "*LFO (2)"
-    device.is_maximized = true
-    device.is_active = true
-    -- LFO devices don't have external editors, skip this
-    break
-  end
-end
--- Configure device 3: Maximizer (Maximizer)
+loadnative("Audio/Effects/Native/*LFO", nil, nil, false)
+renoise.song().selected_device.display_name = "PAKETTI_PLACEHOLDER_001"
+print("DEBUG: Loaded device 1 (*LFO) with placeholder PAKETTI_PLACEHOLDER_001")
+-- PHASE 2: Apply XML to ALL devices (Last to First)
+-- Apply XML for device 3: Maximizer
 for i, device in ipairs(renoise.song().selected_track.devices) do
   if device.display_name == "PAKETTI_PLACEHOLDER_003" then
-    print("DEBUG: Found placeholder PAKETTI_PLACEHOLDER_003 at device index " .. i .. ", configuring as Maximizer")
-    device.parameters[1].show_in_mixer = true
-    device.parameters[5].show_in_mixer = true
-    device.display_name = "Maximizer"
-    device.is_maximized = true
-    device.is_active = true
-    -- External editor not available
+    print("DEBUG: Starting XML injection for device 3 (Maximizer)")
+    device.active_preset_data = [=[<?xml version="1.0" encoding="UTF-8"?>
+<FilterDevicePreset doc_version="14">
+  <DeviceSlot type="MaximizerDevice">
+    <IsMaximized>true</IsMaximized>
+    <InputGain>
+      <Value>9.69028282</Value>
+    </InputGain>
+    <Threshold>
+      <Value>-0.0199999996</Value>
+    </Threshold>
+    <TransientRelease>
+      <Value>1.0</Value>
+    </TransientRelease>
+    <LongTermRelease>
+      <Value>80</Value>
+    </LongTermRelease>
+    <Ceiling>
+      <Value>0.0</Value>
+    </Ceiling>
+  </DeviceSlot>
+</FilterDevicePreset>
+]=]
+    print("DEBUG: XML injection completed for device 3")
     break
   end
 end
--- PHASE 3: XML Injection (FINAL)
--- Inject XML for device 1: *LFO
+-- Apply XML for device 2: *LFO
+for i, device in ipairs(renoise.song().selected_track.devices) do
+  if device.display_name == "PAKETTI_PLACEHOLDER_002" then
+    print("DEBUG: Starting XML injection for device 2 (*LFO)")
+    device.active_preset_data = [=[<?xml version="1.0" encoding="UTF-8"?>
+<FilterDevicePreset doc_version="14">
+  <DeviceSlot type="LfoDevice">
+    <IsMaximized>true</IsMaximized>
+    <Amplitude>
+      <Value>0.30647099</Value>
+    </Amplitude>
+    <Offset>
+      <Value>0.0</Value>
+    </Offset>
+    <Frequency>
+      <Value>1.44000101</Value>
+    </Frequency>
+    <Type>
+      <Value>4</Value>
+    </Type>
+    <CustomEnvelope>
+      <PlayMode>Lines</PlayMode>
+      <Length>64</Length>
+      <ValueQuantum>0.0</ValueQuantum>
+      <Polarity>Unipolar</Polarity>
+      <Points>
+        <Point>0,0.0,0.0</Point>
+        <Point>6,0.169527903,0.0</Point>
+        <Point>8,0.293991417,0.0</Point>
+        <Point>10,0.306866944,0.0</Point>
+        <Point>12,0.212446347,0.0</Point>
+        <Point>14,0.197424889,0.0</Point>
+        <Point>16,0.221030042,0.0</Point>
+        <Point>18,0.358369112,0.0</Point>
+        <Point>20,0.328326166,0.0</Point>
+        <Point>22,0.276824027,0.0</Point>
+        <Point>24,0.2360515,0.0</Point>
+        <Point>26,0.240343347,0.0</Point>
+        <Point>28,0.317596555,0.0</Point>
+        <Point>30,0.285407722,0.0</Point>
+        <Point>32,0.278969944,0.0</Point>
+        <Point>34,0.28111589,0.0</Point>
+        <Point>36,0.296137333,0.0</Point>
+        <Point>38,0.313304722,0.0</Point>
+        <Point>40,0.540772557,0.0</Point>
+        <Point>42,0.568669558,0.0</Point>
+        <Point>44,0.551502168,0.0</Point>
+        <Point>46,0.521459222,0.0</Point>
+        <Point>48,0.504291832,0.0</Point>
+        <Point>50,0.497854084,0.0</Point>
+        <Point>52,0.506437778,0.0</Point>
+        <Point>54,0.542918444,0.0</Point>
+        <Point>56,0.568669558,0.0</Point>
+        <Point>58,0.538626611,0.0</Point>
+        <Point>60,0.497854084,0.0</Point>
+        <Point>63,1.0,0.0</Point>
+      </Points>
+    </CustomEnvelope>
+    <CustomEnvelopeOneShot>false</CustomEnvelopeOneShot>
+    <UseAdjustedEnvelopeLength>true</UseAdjustedEnvelopeLength>
+  </DeviceSlot>
+</FilterDevicePreset>
+]=]
+    print("DEBUG: XML injection completed for device 2")
+    break
+  end
+end
+-- Apply XML for device 1: *LFO
 for i, device in ipairs(renoise.song().selected_track.devices) do
   if device.display_name == "PAKETTI_PLACEHOLDER_001" then
-    print("DEBUG: Injecting XML for PAKETTI_PLACEHOLDER_001 -> *LFO")
+    print("DEBUG: Starting XML injection for device 1 (*LFO)")
     device.active_preset_data = [=[<?xml version="1.0" encoding="UTF-8"?>
 <FilterDevicePreset doc_version="14">
   <DeviceSlot type="LfoDevice">
@@ -421,120 +571,106 @@ for i, device in ipairs(renoise.song().selected_track.devices) do
   </DeviceSlot>
 </FilterDevicePreset>
 ]=]
+    print("DEBUG: XML injection completed for device 1")
     break
   end
 end
--- Inject XML for device 2: *LFO
-for i, device in ipairs(renoise.song().selected_track.devices) do
-  if device.display_name == "PAKETTI_PLACEHOLDER_002" then
-    print("DEBUG: Injecting XML for PAKETTI_PLACEHOLDER_002 -> *LFO (2)")
-    device.active_preset_data = [=[<?xml version="1.0" encoding="UTF-8"?>
-<FilterDevicePreset doc_version="14">
-  <DeviceSlot type="LfoDevice">
-    <IsMaximized>true</IsMaximized>
-    <Amplitude>
-      <Value>0.371529877</Value>
-    </Amplitude>
-    <Offset>
-      <Value>0.0</Value>
-    </Offset>
-    <Frequency>
-      <Value>1.44000101</Value>
-    </Frequency>
-    <Type>
-      <Value>4</Value>
-    </Type>
-    <CustomEnvelope>
-      <PlayMode>Lines</PlayMode>
-      <Length>64</Length>
-      <ValueQuantum>0.0</ValueQuantum>
-      <Polarity>Unipolar</Polarity>
-      <Points>
-        <Point>0,0.0,0.0</Point>
-        <Point>6,0.169527903,0.0</Point>
-        <Point>8,0.293991417,0.0</Point>
-        <Point>10,0.306866944,0.0</Point>
-        <Point>12,0.212446347,0.0</Point>
-        <Point>14,0.197424889,0.0</Point>
-        <Point>16,0.221030042,0.0</Point>
-        <Point>18,0.358369112,0.0</Point>
-        <Point>20,0.328326166,0.0</Point>
-        <Point>22,0.276824027,0.0</Point>
-        <Point>24,0.2360515,0.0</Point>
-        <Point>26,0.240343347,0.0</Point>
-        <Point>28,0.317596555,0.0</Point>
-        <Point>30,0.285407722,0.0</Point>
-        <Point>32,0.278969944,0.0</Point>
-        <Point>34,0.28111589,0.0</Point>
-        <Point>36,0.296137333,0.0</Point>
-        <Point>38,0.313304722,0.0</Point>
-        <Point>40,0.540772557,0.0</Point>
-        <Point>42,0.568669558,0.0</Point>
-        <Point>44,0.551502168,0.0</Point>
-        <Point>46,0.521459222,0.0</Point>
-        <Point>48,0.504291832,0.0</Point>
-        <Point>50,0.497854084,0.0</Point>
-        <Point>52,0.506437778,0.0</Point>
-        <Point>54,0.542918444,0.0</Point>
-        <Point>56,0.568669558,0.0</Point>
-        <Point>58,0.538626611,0.0</Point>
-        <Point>60,0.497854084,0.0</Point>
-        <Point>63,1.0,0.0</Point>
-      </Points>
-    </CustomEnvelope>
-    <CustomEnvelopeOneShot>false</CustomEnvelopeOneShot>
-    <UseAdjustedEnvelopeLength>true</UseAdjustedEnvelopeLength>
-  </DeviceSlot>
-</FilterDevicePreset>
-]=]
-    break
-  end
-end
--- Inject XML for device 3: Maximizer
+-- PHASE 3: Apply Parameters to ALL devices (Last to First)
+-- Apply parameters for device 3: Maximizer
 for i, device in ipairs(renoise.song().selected_track.devices) do
   if device.display_name == "PAKETTI_PLACEHOLDER_003" then
-    print("DEBUG: Injecting XML for PAKETTI_PLACEHOLDER_003 -> Maximizer")
-    device.active_preset_data = [=[<?xml version="1.0" encoding="UTF-8"?>
-<FilterDevicePreset doc_version="14">
-  <DeviceSlot type="MaximizerDevice">
-    <IsMaximized>true</IsMaximized>
-    <InputGain>
-      <Value>8.52731228</Value>
-    </InputGain>
-    <Threshold>
-      <Value>-0.0199999996</Value>
-    </Threshold>
-    <TransientRelease>
-      <Value>1.0</Value>
-    </TransientRelease>
-    <LongTermRelease>
-      <Value>80</Value>
-    </LongTermRelease>
-    <Ceiling>
-      <Value>0.0</Value>
-    </Ceiling>
-  </DeviceSlot>
-</FilterDevicePreset>
-]=]
+    device.parameters[1].value = 9.9192905426025
+    print("DEBUG: Applied parameters for device 3")
+    break
+  end
+end
+-- Apply parameters for device 2: *LFO
+for i, device in ipairs(renoise.song().selected_track.devices) do
+  if device.display_name == "PAKETTI_PLACEHOLDER_002" then
+    device.parameters[2].value = 3
+    device.parameters[3].value = 1
+    device.parameters[4].value = 0.30524969100952
+    device.parameters[6].value = 1.4400010108948
+    device.parameters[7].value = 4
+    print("DEBUG: Applied parameters for device 2")
+    break
+  end
+end
+-- Apply parameters for device 1: *LFO
+for i, device in ipairs(renoise.song().selected_track.devices) do
+  if device.display_name == "PAKETTI_PLACEHOLDER_001" then
+    device.parameters[2].value = 2
+    device.parameters[3].value = 4
+    device.parameters[6].value = 1.8583753108978
+    device.parameters[7].value = 4
+    print("DEBUG: Applied parameters for device 1")
+    break
+  end
+end
+-- PHASE 4: Apply Mixer Visibility to ALL devices (Last to First)
+-- Apply mixer visibility for device 3: Maximizer
+for i, device in ipairs(renoise.song().selected_track.devices) do
+  if device.display_name == "PAKETTI_PLACEHOLDER_003" then
+    device.parameters[1].show_in_mixer = true
+    device.parameters[5].show_in_mixer = true
+    print("DEBUG: Set 2 mixer parameters visible for device 3")
+    break
+  end
+end
+-- Apply mixer visibility for device 2: *LFO
+for i, device in ipairs(renoise.song().selected_track.devices) do
+  if device.display_name == "PAKETTI_PLACEHOLDER_002" then
+    device.parameters[4].show_in_mixer = true
+    print("DEBUG: Set 1 mixer parameters visible for device 2")
+    break
+  end
+end
+-- No mixer parameters to set for device 1: *LFO
+-- PHASE 5: Apply Device Properties to ALL devices (Last to First)
+-- Apply properties for device 3: Maximizer
+for i, device in ipairs(renoise.song().selected_track.devices) do
+  if device.display_name == "PAKETTI_PLACEHOLDER_003" then
+    device.display_name = "Maximizer"
+    device.is_maximized = true
+    device.is_active = true
+    print("DEBUG: Applied properties for device 3")
+    break
+  end
+end
+-- Apply properties for device 2: *LFO
+for i, device in ipairs(renoise.song().selected_track.devices) do
+  if device.display_name == "PAKETTI_PLACEHOLDER_002" then
+    device.display_name = "*LFO (2)"
+    device.is_maximized = true
+    device.is_active = true
+    if device.external_editor_available then
+      device.external_editor_visible = false
+    end
+    print("DEBUG: Applied properties for device 2")
+    break
+  end
+end
+-- Apply properties for device 1: *LFO
+for i, device in ipairs(renoise.song().selected_track.devices) do
+  if device.display_name == "PAKETTI_PLACEHOLDER_001" then
+    device.display_name = "*LFO"
+    device.is_maximized = true
+    device.is_active = true
+    if device.external_editor_available then
+      device.external_editor_visible = false
+    end
+    print("DEBUG: Applied properties for device 1")
     break
   end
 end
 -- TRACK DEVICE CHAIN RECREATION COMPLETE
 -- Total devices processed: 3
--- EXPECTED FINAL DEVICE ORDER:
--- Device 1: *LFO (*LFO)
--- Device 2: *LFO (*LFO (2))
--- Device 3: Maximizer (Maximizer)
--- ⚠️  IMPORTANT LIMITATION NOTICE ⚠️
--- This script recreates device presets but NOT parameter routing/connections.
--- If your original chain had LFO→Device parameter routing, you'll need to:
--- 1. Look for *Hydra devices (parameter routing)
--- 2. Check for *Instr. Macros connections
--- 3. Manually reconnect LFO outputs to target device inputs
--- 4. Check pattern automation that may link parameters
--- ? ROUTING LIKELY MISSING: Found LFO devices but no routing devices!
--- Your original chain probably used parameter connections not captured here.
+-- Final verification:
+print("DEBUG: Final check - Device 1 (*LFO) should be at track position " .. (#renoise.song().selected_track.devices - 2))
+print("DEBUG: Final check - Device 2 (*LFO) should be at track position " .. (#renoise.song().selected_track.devices - 1))
+print("DEBUG: Final check - Device 3 (Maximizer) should be at track position " .. (#renoise.song().selected_track.devices - 0))
+
 end
 
-heyYo()
+--inspectTrackDeviceChainTEST()
 

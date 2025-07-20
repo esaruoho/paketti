@@ -115,4 +115,3 @@ renoise.tool():add_midi_mapping{name = "Paketti:Run Notepad Device Code", invoke
   end 
 end}
 
-print("PakettiNotepadRun.lua loaded - Turn your Notepad devices into runnable Lua scripts!") 
