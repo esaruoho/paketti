@@ -488,7 +488,7 @@ for i, device in ipairs(renoise.song().selected_track.devices) do
     device.is_maximized = true
     device.is_active = true
     if device.external_editor_available then
-      device.external_editor_visible = false
+      device.external_editor_visible = true
     end
     break
   end

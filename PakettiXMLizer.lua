@@ -1541,58 +1541,65 @@ function pakettiSlapbackLFOEnvelope()
     return
   end
   
-  -- Extract original length
-  local current_length = 4
-  local length_match = xml_data:match("<Length>(%d+)</Length>")
-  if length_match then
-    current_length = tonumber(length_match)
-  end
+  print("=== SLAPBACK DEBUG START ===")
   
-  -- Extract points
-  local points = {}
+  -- Extract ALL existing points (ignore length restrictions for now)
+  local original_values = {}
+  local original_scaling = {}
+  
   for point_line in xml_data:gmatch("<Point>([^<]+)</Point>") do
     local step, value, scaling = point_line:match("([^,]+),([^,]+),([^,]+)")
     if step and value and scaling then
-      local step_num = tonumber(step)
-      if step_num < current_length then
-        table.insert(points, {
-          step = step_num,
-          value = tonumber(value),
-          scaling = tonumber(scaling)
-        })
-      end
+      table.insert(original_values, tonumber(value))
+      table.insert(original_scaling, tonumber(scaling))
+      print(string.format("Original point: step=%s, value=%g, scaling=%g", step, tonumber(value), tonumber(scaling)))
     end
   end
   
-  if #points == 0 then
+  if #original_values == 0 then
     renoise.app():show_status("PakettiXMLizer: No envelope points found")
     return
   end
   
+  print(string.format("Found %d original points", #original_values))
+  
   -- Check if slapback would exceed limits
-  local new_point_count = #points * 2
-  local new_length = current_length * 2
-  if new_point_count > 1024 or new_length > 1024 then
-    renoise.app():show_status("PakettiXMLizer: Slapback would exceed 1024 point/length limit")
+  local new_point_count = #original_values * 2
+  if new_point_count > 1024 then
+    renoise.app():show_status("PakettiXMLizer: Slapback would exceed 1024 point limit")
     return
   end
   
-  -- Create slapback: original + reversed
+  -- Create slapback: [THIS][SIHT] - original values + reversed values
   local slapback_points = {}
   
-  -- Add original points
-  for _, point in ipairs(points) do
+  -- Add original points at sequential steps 0, 1, 2, 3, 4...
+  for i, value in ipairs(original_values) do
+    local point = {
+      step = i - 1,  -- 0-based indexing
+      value = value,
+      scaling = original_scaling[i]
+    }
     table.insert(slapback_points, point)
+    print(string.format("Slapback original: step=%d, value=%g", point.step, point.value))
   end
   
-  -- Add reversed points starting after original
-  for i = #points, 1, -1 do
-    table.insert(slapback_points, {
-      step = current_length + (#points - i),
-      value = points[i].value,
-      scaling = points[i].scaling
-    })
+  -- Add reversed points at sequential steps after original
+  for i = #original_values, 1, -1 do
+    local point = {
+      step = #original_values + (#original_values - i),  -- Continue sequential numbering
+      value = original_values[i],
+      scaling = original_scaling[i]
+    }
+    table.insert(slapback_points, point)
+    print(string.format("Slapback reversed: step=%d, value=%g (from original index %d)", point.step, point.value, i))
   end
+  
+  print(string.format("Total slapback points: %d", #slapback_points))
+  
+  -- Set new length to accommodate all slapback points
+  local new_length = #slapback_points
+  print(string.format("New length: %d", new_length))
   
   -- Rebuild points XML
   local new_points_xml = ""
@@ -1600,12 +1607,14 @@ function pakettiSlapbackLFOEnvelope()
     new_points_xml = new_points_xml .. string.format("        <Point>%d,%g,%g</Point>\n", point.step, point.value, point.scaling)
   end
   
-  -- Replace points and double length in XML
+  print("=== SLAPBACK DEBUG END ===")
+  
+  -- Replace points and length in XML
   local new_xml = xml_data:gsub("<Points>.-</Points>", "<Points>\n" .. new_points_xml .. "      </Points>", 1)
   new_xml = new_xml:gsub("<Length>.-</Length>", "<Length>" .. new_length .. "</Length>", 1)
   device.active_preset_data = new_xml
   
-  renoise.app():show_status("✅ PakettiXMLizer: Created LFO slapback effect")
+  renoise.app():show_status(string.format("✅ PakettiXMLizer: Created LFO slapback %d→%d points", #original_values, #slapback_points))
 end
 
 -- Function to set all LFO envelope values to center (0.5)
