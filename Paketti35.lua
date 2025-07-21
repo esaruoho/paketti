@@ -662,7 +662,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Trigger Pattern Line Scrub (CC)",
 }
 
 -- Create 512 individual trigger functions with their own MIDI mappings and shortcuts
-for i = 1, 512 do
+for i=1,512 do
   local hex_number = string.format("%02X", i - 1)
   
   renoise.tool():add_keybinding{name=string.format("Global:Paketti:Trigger Pattern Line %03d (%s)", i, hex_number),

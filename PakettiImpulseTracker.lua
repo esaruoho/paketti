@@ -3030,12 +3030,26 @@ function PakettiPatternToSampleRenderComplete(temp_path, pattern_index)
     sample.name = string.format("Pattern %02d Render", pattern_index)
     instrument.name = string.format("Pattern %02d Render", pattern_index)
     
-    -- Configure sample settings
-    sample.loop_mode = renoise.Sample.LOOP_MODE_OFF
-    sample.interpolation_mode = renoise.Sample.INTERPOLATE_CUBIC
-    sample.oversample_enabled = false
-    sample.oneshot = false
-    sample.new_note_action = renoise.Sample.NEW_NOTE_ACTION_NOTE_CUT
+    -- Apply Paketti loader preferences if available
+    if preferences and preferences.pakettiLoaderAutofade then
+      sample.autofade = preferences.pakettiLoaderAutofade.value
+      sample.autoseek = preferences.pakettiLoaderAutoseek.value
+      sample.loop_mode = preferences.pakettiLoaderLoopMode.value
+      sample.interpolation_mode = preferences.pakettiLoaderInterpolation.value
+      sample.oversample_enabled = preferences.pakettiLoaderOverSampling.value
+      sample.oneshot = preferences.pakettiLoaderOneshot.value
+      sample.new_note_action = preferences.pakettiLoaderNNA.value
+      sample.loop_release = preferences.pakettiLoaderLoopExit.value
+      print("DEBUG: Applied Paketti loader preferences")
+    else
+      -- Fallback to sensible defaults if preferences not available
+      sample.loop_mode = renoise.Sample.LOOP_MODE_OFF
+      sample.interpolation_mode = renoise.Sample.INTERPOLATE_CUBIC
+      sample.oversample_enabled = false
+      sample.oneshot = false
+      sample.new_note_action = renoise.Sample.NEW_NOTE_ACTION_NOTE_CUT
+      print("DEBUG: Applied fallback sample settings")
+    end
     
     print("DEBUG: Sample properties configured")
     
@@ -3068,7 +3082,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker CTRL-O Patter
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Impulse Tracker CTRL-O Pattern to Sample", invoke = PakettiImpulseTrackerPatternToSample}
 renoise.tool():add_midi_mapping{name="Paketti:Impulse Tracker CTRL-O Pattern to Sample [Trigger]",invoke=function(message) if message:is_trigger() then PakettiImpulseTrackerPatternToSample() end end}
 
-
+--
 
 -- MIDI Mappings for basic functions
 renoise.tool():add_midi_mapping{name="Paketti:Expand Selection Replicate [Trigger]",invoke=function(message)

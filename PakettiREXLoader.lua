@@ -118,7 +118,7 @@ function rex_loadsample(filename)
   local header_offset = rex_start + 1032
   local slice_offsets = {}
   local seen = {}
-  for i = 1, 256 do
+  for i=1,256 do
     if header_offset + 3 > #data then break end
     local offs = read_dword(data, header_offset)
     if offs == 0 or seen[offs] then break end
@@ -395,7 +395,7 @@ function dump_rex_structure(file_path)
   local pos = rex_offset + 1032
   local seen_offsets = {}
 
-  for i = 1, 256 do
+  for i=1,256 do
     if pos + 11 > #d then break end
     local slice_offset = read_dword(d, pos)
     local chunk_hex = d:sub(pos, pos + 11)

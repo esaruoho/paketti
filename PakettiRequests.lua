@@ -4966,7 +4966,7 @@ local function SetSampleSlotVelocity(sample_slot_number, velocity)
                                          mapping.velocity_range[2]))
 end
 
-  for i = 1, 32 do
+  for i=1,32 do
       local sample_slot_name = formatDigits(2, i)
       renoise.tool():add_keybinding{name="Global:Paketti:Set Sample Slot " .. sample_slot_name .. " Velocity to 00",
         invoke=function() SetSampleSlotVelocity(i, 0) end}
@@ -5973,7 +5973,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Show/Hide User Preference Dev
 
 renoise.tool():add_keybinding{name="Global:Paketti:Open User Preferences Dialog...",invoke=function() pakettiUserPreferencesShowerDialog() end}
 
-for i = 1, 10 do
+for i=1,10 do
   local slot = string.format("%02d", i)
   renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Plugins/Devices:SlotShow:Show/Hide Slot " .. slot .. " on Master",
     invoke=function() FinderShowerByPath(preferences.UserPreferences["userPreferredDevice" .. slot].value, "master") end
@@ -7014,7 +7014,7 @@ end
 
 function create_sliders(row, initial_value, range, slider_set)
   local slider_row = {}
-  for i = 1, 16 do
+  for i=1,16 do
     local slider = vb:minislider {
       width=global_slider_width,
       height = global_slider_height,
@@ -7622,7 +7622,7 @@ function PakettiJumpRowsRandom(direction)
   renoise.app():show_status("Randomly jumped " .. direction .. " to line " .. random_index)
 end
 
-for i = 1, 128 do
+for i=1,128 do
   renoise.tool():add_keybinding{name="Global:Paketti:Jump Forward Within Pattern by " .. formatDigits(3, i),invoke=function() PakettiJumpRows(i, "forward") end}
   renoise.tool():add_keybinding{name="Global:Paketti:Jump Backward Within Pattern by " .. formatDigits(3, i),invoke=function() PakettiJumpRows(i, "backward") end}
   renoise.tool():add_midi_mapping{name="Paketti:Jump Forward Within Pattern by " .. formatDigits(3, i),invoke=function(message) if message:is_trigger() or message:is_abs_value() then PakettiJumpRows(i, "forward") end end}
@@ -7721,7 +7721,7 @@ function PakettiJumpRowsRandomInSong(direction)
   renoise.app():show_status("Randomly jumped " .. direction .. " within song to sequence " .. target_sequence .. ", row " .. target_row)
 end
 
-for i = 1, 128 do
+for i=1,128 do
   renoise.tool():add_keybinding{name="Global:Paketti:Jump Forward Within Song by " .. formatDigits(3, i),invoke=function() PakettiJumpRowsInSong(i, "forward") end}
   renoise.tool():add_keybinding{name="Global:Paketti:Jump Backward Within Song by " .. formatDigits(3, i),invoke=function() PakettiJumpRowsInSong(i, "backward") end}
   renoise.tool():add_midi_mapping{name="Paketti:Jump Forward Within Song by " .. formatDigits(3, i),invoke=function(message) if message:is_trigger() or message:is_abs_value() then PakettiJumpRowsInSong(i, "forward") end end}

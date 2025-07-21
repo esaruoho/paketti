@@ -120,8 +120,10 @@ function inspectTrackDeviceChain(debug_mode)
   
   -- Get actual devices (skip Track Vol/Pan at index 1)
   local actual_devices = {}
+  local original_display_names = {}  -- Store original display names
   for i = 2, #devices do  -- Start from index 2 to skip Track Vol/Pan
     table.insert(actual_devices, devices[i])
+    original_display_names[#actual_devices] = devices[i].display_name  -- Store original name
   end
   oprint ("--------------------------")
   oprint ("--------------------------")
@@ -273,23 +275,16 @@ function inspectTrackDeviceChain(debug_mode)
     oprint("for i, device in ipairs(renoise.song().selected_track.devices) do")
     oprint('  if device.display_name == "' .. placeholder .. '" then')
     
-    -- Check if this is an LFO device with parameters (routing connections)
-    local is_lfo_with_params = false
-    if device.name == "*LFO" then
-      -- Check if device has any parameter values set (indicating routing)
-      for j, param in ipairs(device.parameters) do
-        if param.value ~= param.value_default then
-          is_lfo_with_params = true
-          break
-        end
-      end
-    end
+    -- Smart display name restoration: preserve custom names, allow default names to be auto-renamed
+    local original_name = original_display_names[i]
+    local is_default_lfo_name = (original_name == "*LFO" or original_name:match("^%*LFO %(%d+%)$"))
     
-    -- Only set display_name if it's NOT an LFO with parameters (routing connections)
-    if not is_lfo_with_params then
-      oprint('    device.display_name = "' .. device.display_name .. '"')
+    if not is_default_lfo_name then
+      -- Custom name (like "LFOEnvelopePan") - always restore it
+      oprint('    device.display_name = "' .. original_name .. '"')
     else
-      oprint('    -- Skipping display_name change for LFO with routing parameters to preserve connections')
+      -- Default name (like "*LFO" or "*LFO (2)") - let parameters/routing rename it
+      oprint('    -- Keeping default LFO name "' .. original_name .. '" - allowing parameter-based renaming')
     end
     
     oprint('    device.is_maximized = ' .. tostring(device.is_maximized))
@@ -384,6 +379,128 @@ renoise.tool():add_keybinding{name="DSP Device:Paketti:Hipass (Preset++)", invok
 renoise.tool():add_keybinding{name="Mixer:Paketti:Hipass (Preset++)", invoke = HipassPlusPlus}
 renoise.tool():add_keybinding{name="Global:Paketti:Hipass (Preset++)", invoke = HipassPlusPlus}
 
+
+function LFOEnvelopePanPresetPlusPlus()
+-- === TRACK DEVICE CHAIN RECREATION ===
+-- Track: Track 06
+-- Total devices (excluding Track Vol/Pan): 1
+-- Debug prints: false
+-- PHASE 1: Load All Devices (with Placeholders) - REVERSE ORDER
+-- Loading LAST device first, then second-last, etc. to maintain correct order
+-- Loading device 1: *LFO (LFOEnvelopePan)
+loadnative("Audio/Effects/Native/*LFO", nil, nil, false)
+renoise.song().selected_device.display_name = "PAKETTI_PLACEHOLDER_001"
+-- PHASE 2: Apply XML to ALL devices (Last to First)
+-- Apply XML for device 1: *LFO
+for i, device in ipairs(renoise.song().selected_track.devices) do
+  if device.display_name == "PAKETTI_PLACEHOLDER_001" then
+    device.active_preset_data = [=[<?xml version="1.0" encoding="UTF-8"?>
+<FilterDevicePreset doc_version="14">
+  <DeviceSlot type="LfoDevice">
+    <IsMaximized>true</IsMaximized>
+    <Amplitude>
+      <Value>1.0</Value>
+    </Amplitude>
+    <Offset>
+      <Value>0.0</Value>
+    </Offset>
+    <Frequency>
+      <Value>0.0292968769</Value>
+    </Frequency>
+    <Type>
+      <Value>4</Value>
+    </Type>
+    <CustomEnvelope>
+      <PlayMode>Lines</PlayMode>
+      <Length>1024</Length>
+      <ValueQuantum>0.0</ValueQuantum>
+      <Polarity>Unipolar</Polarity>
+      <Points>
+        <Point>0,0.5,0.0</Point>
+        <Point>1,0.5,0.0</Point>
+        <Point>2,0.5,0.0</Point>
+        <Point>3,0.5,0.0</Point>
+        <Point>4,0.5,0.0</Point>
+        <Point>5,0.5,0.0</Point>
+        <Point>6,0.5,0.0</Point>
+        <Point>7,0.5,0.0</Point>
+        <Point>8,0.5,0.0</Point>
+        <Point>9,0.5,0.0</Point>
+        <Point>10,0.5,0.0</Point>
+        <Point>11,0.5,0.0</Point>
+        <Point>12,0.5,0.0</Point>
+        <Point>13,0.5,0.0</Point>
+        <Point>14,0.5,0.0</Point>
+        <Point>15,0.5,0.0</Point>
+        <Point>1008,0.501805007,0.0</Point>
+        <Point>1009,0.501805007,0.0</Point>
+        <Point>1010,0.501805007,0.0</Point>
+        <Point>1011,0.501805007,0.0</Point>
+        <Point>1012,0.501805007,0.0</Point>
+        <Point>1013,0.501805007,0.0</Point>
+        <Point>1014,0.501805007,0.0</Point>
+        <Point>1015,0.501805007,0.0</Point>
+        <Point>1016,0.501805007,0.0</Point>
+        <Point>1017,0.501805007,0.0</Point>
+        <Point>1018,0.501805007,0.0</Point>
+        <Point>1019,0.501805007,0.0</Point>
+        <Point>1020,0.501805007,0.0</Point>
+        <Point>1021,0.501805007,0.0</Point>
+        <Point>1022,0.501805007,0.0</Point>
+        <Point>1023,0.501805007,0.0</Point>
+      </Points>
+    </CustomEnvelope>
+    <CustomEnvelopeOneShot>false</CustomEnvelopeOneShot>
+    <UseAdjustedEnvelopeLength>true</UseAdjustedEnvelopeLength>
+  </DeviceSlot>
+</FilterDevicePreset>
+]=]
+    break
+  end
+end
+-- PHASE 3: Apply Parameters to ALL devices (Last to First)
+-- Apply parameters for device 1: *LFO
+for i, device in ipairs(renoise.song().selected_track.devices) do
+  if device.display_name == "PAKETTI_PLACEHOLDER_001" then
+    device.parameters[2].value = 0
+    device.parameters[3].value = 1
+    device.parameters[4].value = 1
+    device.parameters[6].value = 0.029296876862645
+    device.parameters[7].value = 4
+    break
+  end
+end
+-- PHASE 4: Apply Mixer Visibility to ALL devices (Last to First)
+-- Apply mixer visibility for device 1: *LFO
+for i, device in ipairs(renoise.song().selected_track.devices) do
+  if device.display_name == "PAKETTI_PLACEHOLDER_001" then
+    device.parameters[4].show_in_mixer = true
+    device.parameters[5].show_in_mixer = true
+    device.parameters[6].show_in_mixer = true
+    break
+  end
+end
+-- PHASE 5: Apply Device Properties to ALL devices (Last to First)
+-- Apply properties for device 1: *LFO
+for i, device in ipairs(renoise.song().selected_track.devices) do
+  if device.display_name == "PAKETTI_PLACEHOLDER_001" then
+    device.display_name = "LFOEnvelopePan"
+    device.is_maximized = true
+    device.is_active = true
+    if device.external_editor_available then
+      device.external_editor_visible = false
+    end
+    break
+  end
+end
+-- TRACK DEVICE CHAIN RECREATION COMPLETE
+-- Total devices processed: 1
+
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:LFOEnvelopePan (Preset++)", invoke = LFOEnvelopePanPresetPlusPlus}
+renoise.tool():add_menu_entry{name="--DSP Device:Paketti:Preset++:LFOEnvelopePan", invoke = LFOEnvelopePanPresetPlusPlus}
+renoise.tool():add_menu_entry{name="--Mixer:Paketti:Preset++:LFOEnvelopePan", invoke = LFOEnvelopePanPresetPlusPlus}
 
 
 function inspectTrackDeviceChainTEST()
@@ -673,4 +790,5 @@ print("DEBUG: Final check - Device 3 (Maximizer) should be at track position " .
 end
 
 --inspectTrackDeviceChainTEST()
+
 

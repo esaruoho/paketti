@@ -1399,7 +1399,7 @@ function PakettiRandomizeVisibleStepperStepSize()
     return
   end
   
-  local step_size = math.random(1, 256)
+  local step_size = math.random(1,256)
   PakettiChangeVisibleStepperStepSize(step_size)
   PakettiUpdateStepCountText()
   renoise.app():show_status(string.format("Changed %s to %d steps", visible_stepper, step_size))

@@ -1373,3 +1373,665 @@ renoise.tool():add_midi_mapping{name = "Paketti:Quick LFO Custom Editor", invoke
   end 
 end}
 
+-- Function to scale LFO envelope values around center (0.5)
+function pakettiScaleLFOEnvelope(scale_factor)
+  local device = renoise.song().selected_device
+  
+  if not device or not is_lfo_device(device) then
+    renoise.app():show_status("PakettiXMLizer: Please select an LFO device first")
+    return
+  end
+  
+  local xml_data = device.active_preset_data
+  if not xml_data or xml_data == "" then
+    renoise.app():show_status("PakettiXMLizer: No LFO preset data found")
+    return
+  end
+  
+  -- Extract points
+  local points = {}
+  for point_line in xml_data:gmatch("<Point>([^<]+)</Point>") do
+    local step, value, scaling = point_line:match("([^,]+),([^,]+),([^,]+)")
+    if step and value and scaling then
+      local original_value = tonumber(value)
+      -- Scale relative to center: new_value = center + (original - center) * scale_factor
+      local scaled_value = 0.5 + (original_value - 0.5) * scale_factor
+      scaled_value = math.max(0, math.min(1, scaled_value))
+      
+      table.insert(points, {
+        step = tonumber(step),
+        value = scaled_value,
+        scaling = tonumber(scaling)
+      })
+    end
+  end
+  
+  if #points == 0 then
+    renoise.app():show_status("PakettiXMLizer: No envelope points found")
+    return
+  end
+  
+  -- Rebuild points XML
+  local new_points_xml = ""
+  for _, point in ipairs(points) do
+    new_points_xml = new_points_xml .. string.format("        <Point>%d,%g,%g</Point>\n", point.step, point.value, point.scaling)
+  end
+  
+  -- Replace points in XML
+  local new_xml = xml_data:gsub("<Points>.-</Points>", "<Points>\n" .. new_points_xml .. "      </Points>", 1)
+  device.active_preset_data = new_xml
+  
+  renoise.app():show_status(string.format("✅ PakettiXMLizer: Scaled LFO envelope by %d%%", math.floor(scale_factor * 100)))
+end
+
+-- Function to flip/reverse LFO envelope point order
+function pakettiFlipLFOEnvelope()
+  local device = renoise.song().selected_device
+  
+  if not device or not is_lfo_device(device) then
+    renoise.app():show_status("PakettiXMLizer: Please select an LFO device first")
+    return
+  end
+  
+  local xml_data = device.active_preset_data
+  if not xml_data or xml_data == "" then
+    renoise.app():show_status("PakettiXMLizer: No LFO preset data found")
+    return
+  end
+  
+  -- Extract points
+  local points = {}
+  for point_line in xml_data:gmatch("<Point>([^<]+)</Point>") do
+    local step, value, scaling = point_line:match("([^,]+),([^,]+),([^,]+)")
+    if step and value and scaling then
+      table.insert(points, {
+        step = tonumber(step),
+        value = tonumber(value),
+        scaling = tonumber(scaling)
+      })
+    end
+  end
+  
+  if #points == 0 then
+    renoise.app():show_status("PakettiXMLizer: No envelope points found")
+    return
+  end
+  
+  -- Flip: keep time sequential, but use values in reverse order
+  local flipped_points = {}
+  for i = 1, #points do
+    table.insert(flipped_points, {
+      step = points[i].step,
+      value = points[#points - i + 1].value,
+      scaling = points[i].scaling
+    })
+  end
+  
+  -- Rebuild points XML
+  local new_points_xml = ""
+  for _, point in ipairs(flipped_points) do
+    new_points_xml = new_points_xml .. string.format("        <Point>%d,%g,%g</Point>\n", point.step, point.value, point.scaling)
+  end
+  
+  -- Replace points in XML
+  local new_xml = xml_data:gsub("<Points>.-</Points>", "<Points>\n" .. new_points_xml .. "      </Points>", 1)
+  device.active_preset_data = new_xml
+  
+  renoise.app():show_status("✅ PakettiXMLizer: Flipped LFO envelope point order")
+end
+
+-- Function to invert/mirror LFO envelope values
+function pakettiInvertLFOEnvelope()
+  local device = renoise.song().selected_device
+  
+  if not device or not is_lfo_device(device) then
+    renoise.app():show_status("PakettiXMLizer: Please select an LFO device first")
+    return
+  end
+  
+  local xml_data = device.active_preset_data
+  if not xml_data or xml_data == "" then
+    renoise.app():show_status("PakettiXMLizer: No LFO preset data found")
+    return
+  end
+  
+  -- Extract points and invert values
+  local points = {}
+  for point_line in xml_data:gmatch("<Point>([^<]+)</Point>") do
+    local step, value, scaling = point_line:match("([^,]+),([^,]+),([^,]+)")
+    if step and value and scaling then
+      table.insert(points, {
+        step = tonumber(step),
+        value = 1.0 - tonumber(value),  -- Invert around center
+        scaling = tonumber(scaling)
+      })
+    end
+  end
+  
+  if #points == 0 then
+    renoise.app():show_status("PakettiXMLizer: No envelope points found")
+    return
+  end
+  
+  -- Rebuild points XML
+  local new_points_xml = ""
+  for _, point in ipairs(points) do
+    new_points_xml = new_points_xml .. string.format("        <Point>%d,%g,%g</Point>\n", point.step, point.value, point.scaling)
+  end
+  
+  -- Replace points in XML
+  local new_xml = xml_data:gsub("<Points>.-</Points>", "<Points>\n" .. new_points_xml .. "      </Points>", 1)
+  device.active_preset_data = new_xml
+  
+  renoise.app():show_status("✅ PakettiXMLizer: Inverted LFO envelope values")
+end
+
+-- Function to create slapback effect (original + reversed)
+function pakettiSlapbackLFOEnvelope()
+  local device = renoise.song().selected_device
+  
+  if not device or not is_lfo_device(device) then
+    renoise.app():show_status("PakettiXMLizer: Please select an LFO device first")
+    return
+  end
+  
+  local xml_data = device.active_preset_data
+  if not xml_data or xml_data == "" then
+    renoise.app():show_status("PakettiXMLizer: No LFO preset data found")
+    return
+  end
+  
+  -- Extract original length
+  local current_length = 4
+  local length_match = xml_data:match("<Length>(%d+)</Length>")
+  if length_match then
+    current_length = tonumber(length_match)
+  end
+  
+  -- Extract points
+  local points = {}
+  for point_line in xml_data:gmatch("<Point>([^<]+)</Point>") do
+    local step, value, scaling = point_line:match("([^,]+),([^,]+),([^,]+)")
+    if step and value and scaling then
+      local step_num = tonumber(step)
+      if step_num < current_length then
+        table.insert(points, {
+          step = step_num,
+          value = tonumber(value),
+          scaling = tonumber(scaling)
+        })
+      end
+    end
+  end
+  
+  if #points == 0 then
+    renoise.app():show_status("PakettiXMLizer: No envelope points found")
+    return
+  end
+  
+  -- Check if slapback would exceed limits
+  local new_point_count = #points * 2
+  local new_length = current_length * 2
+  if new_point_count > 1024 or new_length > 1024 then
+    renoise.app():show_status("PakettiXMLizer: Slapback would exceed 1024 point/length limit")
+    return
+  end
+  
+  -- Create slapback: original + reversed
+  local slapback_points = {}
+  
+  -- Add original points
+  for _, point in ipairs(points) do
+    table.insert(slapback_points, point)
+  end
+  
+  -- Add reversed points starting after original
+  for i = #points, 1, -1 do
+    table.insert(slapback_points, {
+      step = current_length + (#points - i),
+      value = points[i].value,
+      scaling = points[i].scaling
+    })
+  end
+  
+  -- Rebuild points XML
+  local new_points_xml = ""
+  for _, point in ipairs(slapback_points) do
+    new_points_xml = new_points_xml .. string.format("        <Point>%d,%g,%g</Point>\n", point.step, point.value, point.scaling)
+  end
+  
+  -- Replace points and double length in XML
+  local new_xml = xml_data:gsub("<Points>.-</Points>", "<Points>\n" .. new_points_xml .. "      </Points>", 1)
+  new_xml = new_xml:gsub("<Length>.-</Length>", "<Length>" .. new_length .. "</Length>", 1)
+  device.active_preset_data = new_xml
+  
+  renoise.app():show_status("✅ PakettiXMLizer: Created LFO slapback effect")
+end
+
+-- Function to set all LFO envelope values to center (0.5)
+function pakettiCenterLFOEnvelope()
+  local device = renoise.song().selected_device
+  
+  if not device or not is_lfo_device(device) then
+    renoise.app():show_status("PakettiXMLizer: Please select an LFO device first")
+    return
+  end
+  
+  local xml_data = device.active_preset_data
+  if not xml_data or xml_data == "" then
+    renoise.app():show_status("PakettiXMLizer: No LFO preset data found")
+    return
+  end
+  
+  -- Set all points to center value
+  local points = {}
+  for point_line in xml_data:gmatch("<Point>([^<]+)</Point>") do
+    local step, value, scaling = point_line:match("([^,]+),([^,]+),([^,]+)")
+    if step and value and scaling then
+      table.insert(points, {
+        step = tonumber(step),
+        value = 0.5,
+        scaling = tonumber(scaling)
+      })
+    end
+  end
+  
+  if #points == 0 then
+    renoise.app():show_status("PakettiXMLizer: No envelope points found")
+    return
+  end
+  
+  -- Rebuild points XML
+  local new_points_xml = ""
+  for _, point in ipairs(points) do
+    new_points_xml = new_points_xml .. string.format("        <Point>%d,%g,%g</Point>\n", point.step, point.value, point.scaling)
+  end
+  
+  -- Replace points in XML
+  local new_xml = xml_data:gsub("<Points>.-</Points>", "<Points>\n" .. new_points_xml .. "      </Points>", 1)
+  device.active_preset_data = new_xml
+  
+  renoise.app():show_status("✅ PakettiXMLizer: Set LFO envelope to center (0.5)")
+end
+
+-- Function to set all LFO envelope values to minimum (0.0)
+function pakettiMinLFOEnvelope()
+  local device = renoise.song().selected_device
+  
+  if not device or not is_lfo_device(device) then
+    renoise.app():show_status("PakettiXMLizer: Please select an LFO device first")
+    return
+  end
+  
+  local xml_data = device.active_preset_data
+  if not xml_data or xml_data == "" then
+    renoise.app():show_status("PakettiXMLizer: No LFO preset data found")
+    return
+  end
+  
+  -- Set all points to minimum value
+  local points = {}
+  for point_line in xml_data:gmatch("<Point>([^<]+)</Point>") do
+    local step, value, scaling = point_line:match("([^,]+),([^,]+),([^,]+)")
+    if step and value and scaling then
+      table.insert(points, {
+        step = tonumber(step),
+        value = 0.0,
+        scaling = tonumber(scaling)
+      })
+    end
+  end
+  
+  if #points == 0 then
+    renoise.app():show_status("PakettiXMLizer: No envelope points found")
+    return
+  end
+  
+  -- Rebuild points XML
+  local new_points_xml = ""
+  for _, point in ipairs(points) do
+    new_points_xml = new_points_xml .. string.format("        <Point>%d,%g,%g</Point>\n", point.step, point.value, point.scaling)
+  end
+  
+  -- Replace points in XML
+  local new_xml = xml_data:gsub("<Points>.-</Points>", "<Points>\n" .. new_points_xml .. "      </Points>", 1)
+  device.active_preset_data = new_xml
+  
+  renoise.app():show_status("✅ PakettiXMLizer: Set LFO envelope to minimum (0.0)")
+end
+
+-- Function to set all LFO envelope values to maximum (1.0)
+function pakettiMaxLFOEnvelope()
+  local device = renoise.song().selected_device
+  
+  if not device or not is_lfo_device(device) then
+    renoise.app():show_status("PakettiXMLizer: Please select an LFO device first")
+    return
+  end
+  
+  local xml_data = device.active_preset_data
+  if not xml_data or xml_data == "" then
+    renoise.app():show_status("PakettiXMLizer: No LFO preset data found")
+    return
+  end
+  
+  -- Set all points to maximum value
+  local points = {}
+  for point_line in xml_data:gmatch("<Point>([^<]+)</Point>") do
+    local step, value, scaling = point_line:match("([^,]+),([^,]+),([^,]+)")
+    if step and value and scaling then
+      table.insert(points, {
+        step = tonumber(step),
+        value = 1.0,
+        scaling = tonumber(scaling)
+      })
+    end
+  end
+  
+  if #points == 0 then
+    renoise.app():show_status("PakettiXMLizer: No envelope points found")
+    return
+  end
+  
+  -- Rebuild points XML
+  local new_points_xml = ""
+  for _, point in ipairs(points) do
+    new_points_xml = new_points_xml .. string.format("        <Point>%d,%g,%g</Point>\n", point.step, point.value, point.scaling)
+  end
+  
+  -- Replace points in XML
+  local new_xml = xml_data:gsub("<Points>.-</Points>", "<Points>\n" .. new_points_xml .. "      </Points>", 1)
+  device.active_preset_data = new_xml
+  
+  renoise.app():show_status("✅ PakettiXMLizer: Set LFO envelope to maximum (1.0)")
+end
+
+-- Function to randomize LFO envelope values
+function pakettiRandomizeLFOEnvelope()
+  local device = renoise.song().selected_device
+  
+  if not device or not is_lfo_device(device) then
+    renoise.app():show_status("PakettiXMLizer: Please select an LFO device first")
+    return
+  end
+  
+  local xml_data = device.active_preset_data
+  if not xml_data or xml_data == "" then
+    renoise.app():show_status("PakettiXMLizer: No LFO preset data found")
+    return
+  end
+  
+  -- Randomize all point values
+  local points = {}
+  for point_line in xml_data:gmatch("<Point>([^<]+)</Point>") do
+    local step, value, scaling = point_line:match("([^,]+),([^,]+),([^,]+)")
+    if step and value and scaling then
+      table.insert(points, {
+        step = tonumber(step),
+        value = math.random(),
+        scaling = tonumber(scaling)
+      })
+    end
+  end
+  
+  if #points == 0 then
+    renoise.app():show_status("PakettiXMLizer: No envelope points found")
+    return
+  end
+  
+  -- Rebuild points XML
+  local new_points_xml = ""
+  for _, point in ipairs(points) do
+    new_points_xml = new_points_xml .. string.format("        <Point>%d,%g,%g</Point>\n", point.step, point.value, point.scaling)
+  end
+  
+  -- Replace points in XML
+  local new_xml = xml_data:gsub("<Points>.-</Points>", "<Points>\n" .. new_points_xml .. "      </Points>", 1)
+  device.active_preset_data = new_xml
+  
+  renoise.app():show_status("✅ PakettiXMLizer: Randomized LFO envelope values")
+end
+
+-- Function to humanize LFO envelope with ±2% variation
+function pakettiHumanizeLFOEnvelope()
+  local device = renoise.song().selected_device
+  
+  if not device or not is_lfo_device(device) then
+    renoise.app():show_status("PakettiXMLizer: Please select an LFO device first")
+    return
+  end
+  
+  local xml_data = device.active_preset_data
+  if not xml_data or xml_data == "" then
+    renoise.app():show_status("PakettiXMLizer: No LFO preset data found")
+    return
+  end
+  
+  -- Apply ±2% humanization to existing values
+  local points = {}
+  for point_line in xml_data:gmatch("<Point>([^<]+)</Point>") do
+    local step, value, scaling = point_line:match("([^,]+),([^,]+),([^,]+)")
+    if step and value and scaling then
+      local original_value = tonumber(value)
+      local variation = (math.random() - 0.5) * 0.04  -- ±2% variation
+      local humanized_value = math.max(0, math.min(1, original_value + variation))
+      
+      table.insert(points, {
+        step = tonumber(step),
+        value = humanized_value,
+        scaling = tonumber(scaling)
+      })
+    end
+  end
+  
+  if #points == 0 then
+    renoise.app():show_status("PakettiXMLizer: No envelope points found")
+    return
+  end
+  
+  -- Rebuild points XML
+  local new_points_xml = ""
+  for _, point in ipairs(points) do
+    new_points_xml = new_points_xml .. string.format("        <Point>%d,%g,%g</Point>\n", point.step, point.value, point.scaling)
+  end
+  
+  -- Replace points in XML
+  local new_xml = xml_data:gsub("<Points>.-</Points>", "<Points>\n" .. new_points_xml .. "      </Points>", 1)
+  device.active_preset_data = new_xml
+  
+  renoise.app():show_status("✅ PakettiXMLizer: Humanized LFO envelope with ±2% variation")
+end
+
+-- Register keybindings and menu entries for all new LFO envelope functions
+renoise.tool():add_keybinding{name="Global:Paketti:Custom LFO Envelope Scale 50%", invoke=function() pakettiScaleLFOEnvelope(0.5) end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Scale 50%", invoke=function() pakettiScaleLFOEnvelope(0.5) end}
+renoise.tool():add_menu_entry{name="DSP Device:Paketti:Custom LFO Envelopes:Scale 50%", invoke=function() pakettiScaleLFOEnvelope(0.5) end}
+
+renoise.tool():add_keybinding{name="Global:Paketti:Custom LFO Envelope Scale 150%", invoke=function() pakettiScaleLFOEnvelope(1.5) end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Scale 150%", invoke=function() pakettiScaleLFOEnvelope(1.5) end}
+renoise.tool():add_menu_entry{name="DSP Device:Paketti:Custom LFO Envelopes:Scale 150%", invoke=function() pakettiScaleLFOEnvelope(1.5) end}
+
+renoise.tool():add_keybinding{name="Global:Paketti:Custom LFO Envelope Scale FLIP", invoke=pakettiFlipLFOEnvelope}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Flip", invoke=pakettiFlipLFOEnvelope}
+renoise.tool():add_menu_entry{name="DSP Device:Paketti:Custom LFO Envelopes:Flip", invoke=pakettiFlipLFOEnvelope}
+
+renoise.tool():add_keybinding{name="Global:Paketti:Custom LFO Envelope Scale Invert", invoke=pakettiInvertLFOEnvelope}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Invert", invoke=pakettiInvertLFOEnvelope}
+renoise.tool():add_menu_entry{name="DSP Device:Paketti:Custom LFO Envelopes:Invert", invoke=pakettiInvertLFOEnvelope}
+
+renoise.tool():add_keybinding{name="Global:Paketti:Custom LFO Envelope Scale Mirror", invoke=pakettiInvertLFOEnvelope}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Mirror", invoke=pakettiInvertLFOEnvelope}
+renoise.tool():add_menu_entry{name="DSP Device:Paketti:Custom LFO Envelopes:Mirror", invoke=pakettiInvertLFOEnvelope}
+
+renoise.tool():add_keybinding{name="Global:Paketti:Custom LFO Envelope Scale Slapback", invoke=pakettiSlapbackLFOEnvelope}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Slapback", invoke=pakettiSlapbackLFOEnvelope}
+renoise.tool():add_menu_entry{name="DSP Device:Paketti:Custom LFO Envelopes:Slapback", invoke=pakettiSlapbackLFOEnvelope}
+
+renoise.tool():add_keybinding{name="Global:Paketti:Custom LFO Envelope Scale Center", invoke=pakettiCenterLFOEnvelope}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Center", invoke=pakettiCenterLFOEnvelope}
+renoise.tool():add_menu_entry{name="DSP Device:Paketti:Custom LFO Envelopes:Center", invoke=pakettiCenterLFOEnvelope}
+
+renoise.tool():add_keybinding{name="Global:Paketti:Custom LFO Envelope Scale Min", invoke=pakettiMinLFOEnvelope}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Min", invoke=pakettiMinLFOEnvelope}
+renoise.tool():add_menu_entry{name="DSP Device:Paketti:Custom LFO Envelopes:Min", invoke=pakettiMinLFOEnvelope}
+
+renoise.tool():add_keybinding{name="Global:Paketti:Custom LFO Envelope Scale Max", invoke=pakettiMaxLFOEnvelope}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Max", invoke=pakettiMaxLFOEnvelope}
+renoise.tool():add_menu_entry{name="DSP Device:Paketti:Custom LFO Envelopes:Max", invoke=pakettiMaxLFOEnvelope}
+
+renoise.tool():add_keybinding{name="Global:Paketti:Custom LFO Envelope Scale Randomize", invoke=pakettiRandomizeLFOEnvelope}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Randomize", invoke=pakettiRandomizeLFOEnvelope}
+renoise.tool():add_menu_entry{name="DSP Device:Paketti:Custom LFO Envelopes:Randomize", invoke=pakettiRandomizeLFOEnvelope}
+
+renoise.tool():add_keybinding{name="Global:Paketti:Custom LFO Envelope Scale Humanize", invoke=pakettiHumanizeLFOEnvelope}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:Humanize", invoke=pakettiHumanizeLFOEnvelope}
+renoise.tool():add_menu_entry{name="DSP Device:Paketti:Custom LFO Envelopes:Humanize", invoke=pakettiHumanizeLFOEnvelope}
+
+-- LFO Envelope Editor Dialog
+local lfo_vb = renoise.ViewBuilder()
+local lfo_dialog = nil
+
+function pakettiLFOEnvelopeEditorDialog()
+  if lfo_dialog and lfo_dialog.visible then
+    lfo_dialog:close()
+    lfo_dialog = nil
+    return
+  end
+
+  -- Create fresh ViewBuilder to avoid ID conflicts
+  lfo_vb = renoise.ViewBuilder()
+
+  local dialog_content = lfo_vb:column{
+    margin = 4,
+    spacing = 4,
+    
+    lfo_vb:text{
+      text = "Paketti LFO Envelope Editor",
+      style = "strong",
+      font = "big"
+    },
+    
+    lfo_vb:text{
+      text = "Select an LFO device first, then use these envelope transformations:",
+      style = "normal"
+    },
+    
+    lfo_vb:row{
+      lfo_vb:text{text = "Resolution:", style = "strong", width = 80},
+      lfo_vb:button{
+        text = "Double Resolution",
+        width = 120,
+        pressed = function() pakettiDoubleLFOResolution() end
+      },
+      lfo_vb:button{
+        text = "Halve Resolution", 
+        width = 120,
+        pressed = function() pakettiHalveLFOResolution() end
+      }
+    },
+    
+    lfo_vb:row{
+      lfo_vb:text{text = "Scale:", style = "strong", width = 80},
+      lfo_vb:button{
+        text = "Scale 50%",
+        width = 120,
+        pressed = function() pakettiScaleLFOEnvelope(0.5) end
+      },
+      lfo_vb:button{
+        text = "Scale 150%",
+        width = 120,
+        pressed = function() pakettiScaleLFOEnvelope(1.5) end
+      }
+    },
+    
+    lfo_vb:row{
+      lfo_vb:text{text = "Transform:", style = "strong", width = 80},
+      lfo_vb:button{
+        text = "Flip",
+        width = 80,
+        pressed = function() pakettiFlipLFOEnvelope() end
+      },
+      lfo_vb:button{
+        text = "Invert",
+        width = 80,
+        pressed = function() pakettiInvertLFOEnvelope() end
+      },
+      lfo_vb:button{
+        text = "Slapback",
+        width = 80,
+        pressed = function() pakettiSlapbackLFOEnvelope() end
+      }
+    },
+    
+    lfo_vb:row{
+      lfo_vb:text{text = "Fill:", style = "strong", width = 80},
+      lfo_vb:button{
+        text = "Center",
+        width = 80,
+        pressed = function() pakettiCenterLFOEnvelope() end
+      },
+      lfo_vb:button{
+        text = "Min (0.0)",
+        width = 80,
+        pressed = function() pakettiMinLFOEnvelope() end
+      },
+      lfo_vb:button{
+        text = "Max (1.0)",
+        width = 80,
+        pressed = function() pakettiMaxLFOEnvelope() end
+      }
+    },
+    
+    lfo_vb:row{
+      lfo_vb:text{text = "Generate:", style = "strong", width = 80},
+      lfo_vb:button{
+        text = "Randomize",
+        width = 120,
+        pressed = function() pakettiRandomizeLFOEnvelope() end
+      },
+      lfo_vb:button{
+        text = "Humanize",
+        width = 120,
+        pressed = function() pakettiHumanizeLFOEnvelope() end
+      }
+    },
+    
+    lfo_vb:row{
+      lfo_vb:text{text = "Quick:", style = "strong", width = 80},
+      lfo_vb:button{
+        text = "Load LFO Device",
+        width = 120,
+        pressed = function() 
+          ensure_lfo_device_selected()
+          pakettiToggleLFOExternalEditor()
+        end
+      },
+      lfo_vb:button{
+        text = "Toggle Editor",
+        width = 120,
+        pressed = function() pakettiToggleLFOExternalEditor() end
+      }
+    }
+  }
+
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return lfo_dialog end,
+    function(value) lfo_dialog = value end
+  )
+
+  lfo_dialog = renoise.app():show_custom_dialog("Paketti LFO Envelope Editor", dialog_content, keyhandler)
+  
+  -- Set focus to Renoise after opening
+  renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
+end
+
+-- Register the dialog
+renoise.tool():add_keybinding{name="Global:Paketti:LFO Envelope Editor Dialog", invoke=pakettiLFOEnvelopeEditorDialog}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Custom LFO Envelopes:LFO Envelope Editor...", invoke=pakettiLFOEnvelopeEditorDialog}
+renoise.tool():add_menu_entry{name="--DSP Device:Paketti:Custom LFO Envelopes:LFO Envelope Editor...", invoke=pakettiLFOEnvelopeEditorDialog}
+renoise.tool():add_midi_mapping{name="Paketti:LFO Envelope Editor Dialog", invoke=function(message) 
+  if message:is_trigger() then 
+    pakettiLFOEnvelopeEditorDialog() 
+  end 
+end}
+
