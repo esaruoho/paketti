@@ -1557,8 +1557,6 @@ renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker ALT-F10 (Solo
 -----------
 -----------
 -----------
------------
------------
 local vb = renoise.ViewBuilder()
 local dialog = nil  -- Declare dialog variable
 
@@ -2945,6 +2943,130 @@ renoise.app():show_status("Selected first instrument: " .. formatDigits(3,renois
 end
 
   }
+
+-- Pattern to Sample (CTRL-O) - Render current pattern to new sample
+function PakettiImpulseTrackerPatternToSample()
+  local song = renoise.song()
+  local pattern_index = song.selected_pattern_index
+  local pattern = song:pattern(pattern_index)
+  
+  print("DEBUG: Starting Pattern to Sample render")
+  print("DEBUG: Pattern " .. pattern_index .. " - " .. pattern.number_of_lines .. " lines")
+  
+  -- Create temporary file path (simpler approach for CoreAudio compatibility)
+  local temp_filename = "paketti_pattern_render_" .. os.time() .. ".wav"
+  local temp_path = renoise.tool().bundle_path .. temp_filename
+  print("DEBUG: Temp file path: " .. temp_path)
+  
+  -- Setup render options for current pattern
+  local render_options = {
+    sample_rate = 44100,
+    bit_depth = 16,
+    interpolation = "precise",
+    priority = "high",
+    start_pos = renoise.SongPos(song.selected_sequence_index, 1),
+    end_pos = renoise.SongPos(song.selected_sequence_index, pattern.number_of_lines)
+  }
+  
+  print("DEBUG: Render options setup - sequence " .. song.selected_sequence_index .. ", lines 1-" .. pattern.number_of_lines)
+  
+  -- Render the pattern
+  print("STATUS: Rendering pattern " .. pattern_index .. " to sample...")
+  
+  -- Use completion callback like Clean Render does - called only when render is completely finished
+  local success, error_message = song:render(render_options, temp_path, function()
+    -- This callback is called when render is COMPLETELY finished (like in Clean Render)
+    PakettiPatternToSampleRenderComplete(temp_path, pattern_index)
+  end)
+  
+  if not success then
+    print("ERROR: Render failed: " .. (error_message or "unknown error"))
+    renoise.app():show_status("Pattern render failed: " .. (error_message or "unknown error"))
+    return
+  end
+  
+  print("DEBUG: Render started, waiting for completion callback...")
+end
+
+-- Completion callback called when render is completely finished
+function PakettiPatternToSampleRenderComplete(temp_path, pattern_index)
+  print("DEBUG: Render completion callback triggered - file should be ready")
+  
+  local song = renoise.song()
+  
+  -- Create new instrument
+  song:insert_instrument_at(song.selected_instrument_index + 1)
+  song.selected_instrument_index = song.selected_instrument_index + 1
+  local instrument = song.selected_instrument
+  
+  -- Apply Paketti default instrument configuration if available
+  if pakettiPreferencesDefaultInstrumentLoader then
+    print("DEBUG: Applying default instrument configuration")
+    pakettiPreferencesDefaultInstrumentLoader()
+    instrument = song.selected_instrument
+  end
+  
+  -- Clear default sample if present
+  if #instrument.samples > 0 then
+    print("DEBUG: Clearing default sample")
+    instrument:delete_sample_at(1)
+  end
+  
+  -- Load rendered file as sample
+  print("DEBUG: Loading rendered file as sample")
+  instrument:insert_sample_at(1)
+  local sample = instrument.samples[1]
+  
+  -- File should be completely ready now since callback is only called when render is done
+  local sample_buffer = sample.sample_buffer
+  local load_success, load_error = pcall(function()
+    return sample_buffer:load_from(temp_path)
+  end)
+  
+  if load_success then
+    print("DEBUG: Sample loaded successfully")
+    
+    -- Set sample properties
+    sample.name = string.format("Pattern %02d Render", pattern_index)
+    instrument.name = string.format("Pattern %02d Render", pattern_index)
+    
+    -- Configure sample settings
+    sample.loop_mode = renoise.Sample.LOOP_MODE_OFF
+    sample.interpolation_mode = renoise.Sample.INTERPOLATE_CUBIC
+    sample.oversample_enabled = false
+    sample.oneshot = false
+    sample.new_note_action = renoise.Sample.NEW_NOTE_ACTION_NOTE_CUT
+    
+    print("DEBUG: Sample properties configured")
+    
+    -- Clean up temporary file
+    os.remove(temp_path)
+    print("DEBUG: Temporary file cleaned up")
+    
+    -- Success message
+    local status_msg = string.format("Pattern %d rendered to new instrument/sample (%d samples, %.1fs)", 
+      pattern_index, sample_buffer.number_of_frames, sample_buffer.number_of_frames / sample_buffer.sample_rate)
+    
+    print("STATUS: " .. status_msg)
+    renoise.app():show_status(status_msg)
+    
+  else
+    print("ERROR: Failed to load rendered file as sample: " .. tostring(load_error))
+    renoise.app():show_status("Failed to load rendered audio as sample")
+    
+    -- Clean up temporary file
+    os.remove(temp_path)
+    
+    -- Remove empty instrument
+    if #instrument.samples == 0 then
+      song:delete_instrument_at(song.selected_instrument_index)
+    end
+  end
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Impulse Tracker CTRL-O Pattern to Sample", invoke = PakettiImpulseTrackerPatternToSample}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Impulse Tracker CTRL-O Pattern to Sample", invoke = PakettiImpulseTrackerPatternToSample}
+renoise.tool():add_midi_mapping{name="Paketti:Impulse Tracker CTRL-O Pattern to Sample [Trigger]",invoke=function(message) if message:is_trigger() then PakettiImpulseTrackerPatternToSample() end end}
 
 
 

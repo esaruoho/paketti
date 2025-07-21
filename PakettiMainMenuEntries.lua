@@ -19,6 +19,7 @@ local donations = {
   {"2025-05-29", "JTPE", 6.08, {"Bandcamp", "https://plugexpert.bandcamp.com/music"}},
   {"2025-07-05", "Antti Hyypiö", 4.48},
   {"2025-07-17", "Helge H.", 47.95, {"YouTube","https://www.youtube.com/@HeiniGurke"}, {"Weizenkeim","https://planet.weizenkeim.org/"}},
+  {"2025-07-21", "Jussi R.", 60.00},
 }
 
 local total_amount = 0
@@ -96,10 +97,8 @@ table.insert(donation_section, vb:horizontal_aligner{mode="distribute",
 -- Create dialog content
 local dialog_content = vb:column{
   margin=10,
-  spacing=5,
-
   vb:text{text="Thanks for the support / assistance:", style = "strong", font = "bold"},
-  vb:multiline_textfield{width=textfield_width, height = 40, text = 
+  vb:multiline_textfield{width=textfield_width, height=40,text= 
   "dBlue, danoise, cortex, pandabot, ffx, Joule, Avaruus, astu/flo, syflom, Protman, vV, Bantai, taktik, Snowrobot, MXB, Jenoki, Kmaki, aleksip, Unless, martblek, schmuzoo, Sandroid, ylmrx, onetwentyeight and the whole Renoise community."},
 
   vb:text{text="Ideas provided by:", style = "strong", font = "bold"},
@@ -116,10 +115,10 @@ local dialog_content = vb:column{
   vb:horizontal_aligner{mode = "distribute", vb:text{text="Talk about Paketti", style = "strong", font = "bold"}},
   vb:horizontal_aligner{
     mode = "distribute",
-    vb:button{text="Paketti GitHub", notifier=function() renoise.app():open_url("https://github.com/esaruoho/org.lackluster.Paketti.xrnx") end},
-    vb:button{text="Paketti Discord", notifier=function() renoise.app():open_url("https://discord.gg/Qex7k5j4wG") end},
-    vb:button{text="Paketti Renoise Forum Thread", notifier=function() renoise.app():open_url("https://forum.renoise.com/t/new-tool-3-1-pakettir3/35848/88") end},
-    vb:button{text="Email", notifier=function() renoise.app():open_url("mailto:esaruoho@icloud.com") end}
+    vb:button{text="Paketti GitHub", width=200,notifier=function() renoise.app():open_url("https://github.com/esaruoho/org.lackluster.Paketti.xrnx") end},
+    vb:button{text="Paketti Discord", width=200,notifier=function() renoise.app():open_url("https://discord.gg/Qex7k5j4wG") end},
+    vb:button{text="Paketti Renoise Forum Thread", width=200,notifier=function() renoise.app():open_url("https://forum.renoise.com/t/new-tool-3-1-pakettir3/35848/88") end},
+    vb:button{text="Email", width=200,notifier=function() renoise.app():open_url("mailto:esaruoho@icloud.com") end}
   },
 
   -- Insert donation section
@@ -133,10 +132,10 @@ local dialog_content = vb:column{
     vb:button{text="Onetime purchase from Gumroad",notifier=function() renoise.app():open_url("https://lackluster.gumroad.com/l/paketti") end},
     vb:button{text="Purchase Music via Bandcamp",notifier=function() renoise.app():open_url("http://lackluster.bandcamp.com/") end},
     vb:button{text="Linktr.ee", notifier=function() renoise.app():open_url("https://linktr.ee/esaruoho") end}},
-  vb:space{height = 20},
+  vb:space{height = 5},
   vb:horizontal_aligner{mode="distribute",
-    vb:button{text="OK",notifier=function() dialog:close() end},
-    vb:button{text="Cancel",notifier=function() dialog:close() end}}}
+    vb:button{text="OK",width=300,notifier=function() dialog:close() end},
+    vb:button{text="Cancel",width=300,notifier=function() dialog:close() end}}}
 
 function pakettiAboutDonations()
   if dialog and dialog.visible then 

@@ -458,6 +458,7 @@ timed_require("Sononymph/AppMain")
 timed_require("PakettiChebyshevWaveshaper")
 timed_require("PakettiMetricModulation")
 timed_require("PakettiPresetPlusPlus")
+timed_require("PakettiWTImport")
 
 -- Polyend functionality toggle
 local PolyendYes = false

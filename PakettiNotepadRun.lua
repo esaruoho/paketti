@@ -109,9 +109,5 @@ renoise.tool():add_menu_entry{name = "--DSP Device:Paketti:Run Notepad Device Co
 renoise.tool():add_menu_entry{name = "--Mixer:Paketti:Run Notepad Device Code", invoke = pakettiNotepadRun}
 
 -- MIDI mapping
-renoise.tool():add_midi_mapping{name = "Paketti:Run Notepad Device Code", invoke = function(message) 
-  if message:is_trigger() then 
-    pakettiNotepadRun() 
-  end 
-end}
+renoise.tool():add_midi_mapping{name = "Paketti:Run Notepad Device Code", invoke = function(message) if message:is_trigger() then pakettiNotepadRun() end  end}
 

@@ -2531,6 +2531,630 @@ function PCMWriterLoadCSV()
   end
 end
 
+-- .WT Import functions for PCM Writer
+-- Based on PakettiWTImport.lua parsing logic
+
+local function PCMWriterReadUint32LE(file)
+  local b1, b2, b3, b4 = file:read(1), file:read(1), file:read(1), file:read(1)
+  if not b1 or not b2 or not b3 or not b4 then
+    error("Unexpected end of file while reading uint32")
+  end
+  local bytes = {b1:byte(), b2:byte(), b3:byte(), b4:byte()}
+  return bytes[1] + (bytes[2] * 256) + (bytes[3] * 65536) + (bytes[4] * 16777216)
+end
+
+local function PCMWriterReadUint16LE(file)
+  local b1, b2 = file:read(1), file:read(1)
+  if not b1 or not b2 then
+    error("Unexpected end of file while reading uint16")
+  end
+  local bytes = {b1:byte(), b2:byte()}
+  return bytes[1] + (bytes[2] * 256)
+end
+
+local function PCMWriterReadInt16LE(file)
+  local value = PCMWriterReadUint16LE(file)
+  if value >= 32768 then
+    return value - 65536
+  end
+  return value
+end
+
+-- Bit operations for Lua 5.1 compatibility
+local function PCMWriterBand(a, b)
+  local result = 0
+  local bitval = 1
+  while a > 0 and b > 0 do
+    if a % 2 == 1 and b % 2 == 1 then
+      result = result + bitval
+    end
+    bitval = bitval * 2
+    a = math.floor(a / 2)
+    b = math.floor(b / 2)
+  end
+  return result
+end
+
+local function PCMWriterBor(a, b)
+  local result = 0
+  local bitval = 1
+  while a > 0 or b > 0 do
+    if a % 2 == 1 or b % 2 == 1 then
+      result = result + bitval
+    end
+    bitval = bitval * 2
+    a = math.floor(a / 2)
+    b = math.floor(b / 2)
+  end
+  return result
+end
+
+local function PCMWriterLshift(a, b)
+  return a * (2 ^ b)
+end
+
+local function PCMWriterRshift(a, b)
+  return math.floor(a / (2 ^ b))
+end
+
+local function PCMWriterReadFloat32LE(file)
+  local b1, b2, b3, b4 = file:read(1), file:read(1), file:read(1), file:read(1)
+  if not b1 or not b2 or not b3 or not b4 then
+    error("Unexpected end of file while reading float32")
+  end
+  local bytes = {b1:byte(), b2:byte(), b3:byte(), b4:byte()}
+  
+  -- Convert bytes to float32 (IEEE 754) - simplified approach
+  local sign = PCMWriterBand(bytes[4], 0x80) ~= 0
+  local exponent = PCMWriterBor(PCMWriterLshift(PCMWriterBand(bytes[4], 0x7F), 1), PCMWriterRshift(bytes[3], 7))
+  local mantissa = PCMWriterBor(PCMWriterBor(PCMWriterLshift(PCMWriterBand(bytes[3], 0x7F), 16), PCMWriterLshift(bytes[2], 8)), bytes[1])
+  
+  if exponent == 0 then
+    if mantissa == 0 then
+      return sign and -0.0 or 0.0
+    else
+      -- Denormalized number
+      local value = mantissa * math.pow(2, -149)
+      return sign and -value or value
+    end
+  elseif exponent == 255 then
+    if mantissa == 0 then
+      return sign and -math.huge or math.huge
+    else
+      return 0/0 -- NaN
+    end
+  else
+    -- Normalized number
+    local value = (1 + mantissa * math.pow(2, -23)) * math.pow(2, exponent - 127)
+    return sign and -value or value
+  end
+end
+
+function PCMWriterParseWavetableFile(filepath)
+  local file = io.open(filepath, "rb")
+  if not file then
+    print("ERROR: Could not open .WT file: " .. filepath)
+    return nil
+  end
+  
+  print("DEBUG: Parsing .WT file for PCM Writer: " .. filepath)
+  
+  -- Wrap parsing in pcall for error handling
+  local success, result = pcall(function()
+    -- Read header: 'vawt' as big-endian
+    local header = file:read(4)
+    if header ~= "vawt" then
+      file:close()
+      print("ERROR: Invalid .WT file: missing 'vawt' header")
+      return nil
+    end
+    print("DEBUG: Valid 'vawt' header found")
+    
+    -- Read wave_size (little-endian uint32)
+    local wt_wave_size = PCMWriterReadUint32LE(file)
+    print("DEBUG: WT Wave size: " .. wt_wave_size)
+    
+    -- Read wave_count (little-endian uint16)
+    local wave_count = PCMWriterReadUint16LE(file)
+    print("DEBUG: WT Wave count: " .. wave_count)
+    
+    -- Read flags (little-endian uint16)
+    local flags = PCMWriterReadUint16LE(file)
+    print("DEBUG: WT Flags: " .. string.format("0x%04X", flags))
+    
+    local is_sample = PCMWriterBand(flags, 0x0001) ~= 0
+    local is_looped = PCMWriterBand(flags, 0x0002) ~= 0
+    local is_int16 = PCMWriterBand(flags, 0x0004) ~= 0
+    local use_full_range = PCMWriterBand(flags, 0x0008) ~= 0
+    local has_metadata = PCMWriterBand(flags, 0x0010) ~= 0
+    
+    print("DEBUG: WT Format: " .. (is_int16 and "int16" or "float32"))
+    
+    -- Read wave data - we only need first and last waves
+    local waves = {}
+    
+    for wave = 1, wave_count do
+      waves[wave] = {}
+      for sample = 1, wt_wave_size do
+        if is_int16 then
+          local value = PCMWriterReadInt16LE(file)
+          if use_full_range then
+            -- Full 16-bit range: -32768 to 32767 maps to -1.0 to ~1.0
+            waves[wave][sample] = value / 32768.0
+          else
+            -- 15-bit range (-6 dBFS peak): -16384 to 16383 maps to -0.5 to ~0.5
+            waves[wave][sample] = value / 32768.0
+          end
+        else
+          -- Float32 format
+          waves[wave][sample] = PCMWriterReadFloat32LE(file)
+        end
+      end
+    end
+    
+    return {
+      wave_size = wt_wave_size,
+      wave_count = wave_count,
+      waves = waves
+    }
+  end)
+  
+  file:close()
+  
+  if not success then
+    print("ERROR: Error parsing .WT file: " .. tostring(result))
+    return nil
+  end
+  
+  return result
+end
+
+function PCMWriterImportWTToWaves()
+  local file_path = renoise.app():prompt_for_filename_to_read({"*.wt", "*.*"}, "Import .WT for PCM Writer")
+  
+  if file_path == "" then
+    return
+  end
+  
+  local wt_data = PCMWriterParseWavetableFile(file_path)
+  if not wt_data then
+    renoise.app():show_status("Failed to parse .WT file")
+    return
+  end
+  
+  print("DEBUG: Importing .WT - " .. wt_data.wave_count .. " waves, " .. wt_data.wave_size .. " samples each")
+  
+  -- Check if WT wave size matches any of our supported sizes
+  local valid_sizes = {16, 32, 64, 128, 256, 512, 1024}
+  local size_match = false
+  for _, size in ipairs(valid_sizes) do
+    if wt_data.wave_size == size then
+      size_match = true
+      break
+    end
+  end
+  
+  if not size_match then
+    local size_list = table.concat(valid_sizes, ", ")
+    renoise.app():show_status(string.format("WT wave size %d not supported. Use: %s", wt_data.wave_size, size_list))
+    return
+  end
+  
+  -- Change PCM Writer wave size if needed
+  local dialog_was_visible = pcm_dialog and pcm_dialog.visible
+  local wave_size_changed = false
+  if wt_data.wave_size ~= wave_size then
+    print("DEBUG: Changing PCM Writer wave size from " .. wave_size .. " to " .. wt_data.wave_size)
+    wave_size_changed = true
+    -- Manually change wave size without calling PCMWriterChangeWaveSize to avoid dialog rebuild
+    wave_size = wt_data.wave_size
+    wave_data = table.create()
+    wave_data_a = table.create()
+    wave_data_b = table.create()
+    
+    -- Initialize arrays with proper size (we'll overwrite them with WT data)
+    for i = 1, wave_size do
+      wave_data[i] = 32768
+      wave_data_a[i] = 32768
+      wave_data_b[i] = 32768
+    end
+    
+    print("DEBUG: Wave size changed to " .. wave_size .. ", continuing with WT import")
+  end
+  
+  -- Get first and last waves
+  local first_wave = wt_data.waves[1]
+  local last_wave = wt_data.waves[wt_data.wave_count]
+  
+  -- Convert and load first wave to Wave A
+  print("DEBUG: Loading first wave (wave 1) to Wave A")
+  for i = 1, wave_size do
+    -- Convert from float (-1.0 to 1.0) to PCM Writer format (0-65535)
+    local value = first_wave[i]
+    local pcm_value = math.floor((value + 1.0) * 32767.5)
+    pcm_value = math.max(0, math.min(65535, pcm_value))
+    wave_data_a[i] = pcm_value
+  end
+  print("DEBUG: Wave A loaded - sample 1 value: " .. wave_data_a[1] .. ", sample " .. wave_size .. " value: " .. wave_data_a[wave_size])
+  
+  -- Convert and load last wave to Wave B  
+  print("DEBUG: Loading last wave (wave " .. wt_data.wave_count .. ") to Wave B")
+  for i = 1, wave_size do
+    -- Convert from float (-1.0 to 1.0) to PCM Writer format (0-65535)
+    local value = last_wave[i]
+    local pcm_value = math.floor((value + 1.0) * 32767.5)
+    pcm_value = math.max(0, math.min(65535, pcm_value))
+    wave_data_b[i] = pcm_value
+  end
+  print("DEBUG: Wave B loaded - sample 1 value: " .. wave_data_b[1] .. ", sample " .. wave_size .. " value: " .. wave_data_b[wave_size])
+  
+  -- Update crossfaded wave
+  PCMWriterUpdateCrossfadedWave()
+  
+  -- Reset editor state
+  selected_sample_index = -1
+  selection_start = -1
+  selection_end = -1
+  
+  -- Rebuild dialog if wave size changed (required for proper hex editor and UI updates)
+  if wave_size_changed and dialog_was_visible then
+    print("DEBUG: Rebuilding dialog due to wave size change")
+    if pcm_dialog then
+      pcm_dialog:close()
+      PCMWriterShowPcmDialog()
+    end
+  else
+    -- Update displays only if dialog wasn't rebuilt
+    print("DEBUG: Updating displays without rebuilding dialog")
+    PCMWriterZoomFit()
+    PCMWriterUpdateAllDisplays()
+  end
+  
+  -- Extract filename for status
+  local filename = file_path:match("([^/\\]+)$") or "Wavetable"
+  
+  print("STATUS: Imported .WT to PCM Writer")
+  renoise.app():show_status(string.format("Imported %s: Wave 1→A, Wave %d→B (%d samples)", 
+    filename, wt_data.wave_count, wt_data.wave_size))
+end
+
+function PCMWriterImportWTAndLivePickup()
+  local file_path = renoise.app():prompt_for_filename_to_read({"*.wt", "*.*"}, "Import .WT and Enable Live Pickup")
+  
+  if file_path == "" then
+    return
+  end
+  
+  print("DEBUG: Starting .WT and Live Pickup import")
+  
+  -- Import the full wavetable to instrument using existing function
+  local success = wt_loadsample(file_path)
+  if not success then
+    renoise.app():show_status("Failed to import .WT file to instrument")
+    return
+  end
+  
+  -- Get the newly created instrument and sample
+  local song = renoise.song()
+  local instrument = song.selected_instrument
+  local sample = song.selected_sample
+  
+  if not instrument or not sample or #instrument.samples == 0 then
+    renoise.app():show_status("No instrument or sample found after .WT import")
+    return
+  end
+  
+  print("DEBUG: .WT imported successfully, enabling live pickup mode")
+  
+  -- Open PCM Writer dialog if not already open
+  if not pcm_dialog or not pcm_dialog.visible then
+    print("DEBUG: Opening PCM Writer dialog")
+    PCMWriterShowPcmDialog()
+  end
+  
+  -- Load the first sample into PCM Writer using live pickup
+  PCMWriterLoadSampleToWaveform()
+  
+  -- Extract filename for status
+  local filename = file_path:match("([^/\\]+)$") or "Wavetable"
+  
+  print("STATUS: .WT imported and Live Pickup enabled")
+  renoise.app():show_status(string.format("Imported %s to instrument + Live Pickup on first sample", filename))
+end
+
+-- Morph export functions
+function PCMWriterGenerateMorphSequence(wave_a, wave_b, steps)
+  local morph_waves = {}
+  
+  print("DEBUG: Generating " .. steps .. " morph steps between Wave A and Wave B")
+  
+  for step = 1, steps do
+    -- Calculate crossfade amount (0.0 to 1.0)
+    local crossfade = (step - 1) / (steps - 1)
+    
+    local morph_wave = {}
+    for i = 1, wave_size do
+      -- Crossfade between Wave A and Wave B
+      local value_a = wave_a[i]
+      local value_b = wave_b[i]
+      local morphed_value = math.floor(value_a * (1 - crossfade) + value_b * crossfade)
+      morphed_value = math.max(0, math.min(65535, morphed_value))
+      morph_wave[i] = morphed_value
+    end
+    
+    morph_waves[step] = {
+      data = morph_wave,
+      crossfade = crossfade,
+      name = string.format("Morph %03d (%.1f%%)", step, crossfade * 100)
+    }
+  end
+  
+  print("DEBUG: Generated " .. #morph_waves .. " morph waves")
+  return morph_waves
+end
+
+function PCMWriterExportMorphToInstrument()
+  local song = renoise.song()
+  local inst = song.selected_instrument
+  
+  -- Check if instrument has samples or plugins, if so create new instrument
+  if #inst.samples > 0 or inst.plugin_properties.plugin_loaded then
+    song:insert_instrument_at(song.selected_instrument_index + 1)
+    song.selected_instrument_index = song.selected_instrument_index + 1
+    inst = song.selected_instrument
+    -- Apply Paketti default instrument configuration
+    if pakettiPreferencesDefaultInstrumentLoader then
+      pakettiPreferencesDefaultInstrumentLoader()
+      inst = song.selected_instrument
+    end
+  elseif #inst.samples == 0 and not inst.plugin_properties.plugin_loaded then
+    print("DEBUG: Empty instrument - applying pakettiPreferencesDefaultInstrumentLoader")
+    if pakettiPreferencesDefaultInstrumentLoader then
+      pakettiPreferencesDefaultInstrumentLoader()
+      inst = song.selected_instrument
+    end
+  end
+  
+  -- Generate 127 morph steps
+  local morph_waves = PCMWriterGenerateMorphSequence(wave_data_a, wave_data_b, 127)
+  
+  print("DEBUG: Creating instrument with " .. #morph_waves .. " morphed samples")
+  
+  -- Create sample slots for each morph step
+  for wave_idx, wave in ipairs(morph_waves) do
+    -- Create sample slot
+    if #inst.samples < wave_idx then
+      inst:insert_sample_at(wave_idx)
+    end
+    
+    local sample = inst:sample(wave_idx)
+    local buffer = sample.sample_buffer
+    
+    -- Create sample data for this morph step
+    buffer:create_sample_data(44100, 16, 1, wave_size)
+    buffer:prepare_sample_data_changes()
+    
+    -- Write this wave's data
+    for i = 1, wave_size do
+      buffer:set_sample_data(1, i, (wave.data[i] - 32768) / 32768)
+    end
+    buffer:finalize_sample_data_changes()
+    
+    -- Set sample properties
+    sample.name = wave.name
+    
+    -- Enable loop mode for each sample
+    sample.loop_mode = renoise.Sample.LOOP_MODE_FORWARD
+    sample.loop_start = 1
+    sample.loop_end = wave_size
+    
+    -- Set interpolation
+    if sample_interpolation_mode == "linear" then
+      sample.interpolation_mode = renoise.Sample.INTERPOLATE_LINEAR
+    elseif sample_interpolation_mode == "cubic" then
+      sample.interpolation_mode = renoise.Sample.INTERPOLATE_CUBIC
+    elseif sample_interpolation_mode == "sinc" then
+      sample.interpolation_mode = renoise.Sample.INTERPOLATE_SINC
+    elseif sample_interpolation_mode == "none" then
+      sample.interpolation_mode = renoise.Sample.INTERPOLATE_NONE
+    else
+      sample.interpolation_mode = renoise.Sample.INTERPOLATE_LINEAR -- default
+    end
+    
+    sample.oversample_enabled = sample_oversample_enabled
+    
+    -- AUTOMATIC PITCH CORRECTION using danoise algorithm
+    local pitch_correction = calculate_pitch_correction(44100, wave_size, 1)
+    
+    -- Only apply correction if deviation is significant (>2 cents)
+    local cents_deviation = math.abs(pitch_correction.cents)
+    if cents_deviation > 2 then
+      sample.fine_tune = pitch_correction.fine_tune
+      sample.transpose = pitch_correction.transpose
+      print("DEBUG: Applied pitch correction to sample " .. wave_idx .. " - Fine: " .. pitch_correction.fine_tune .. ", Transpose: " .. pitch_correction.transpose)
+    end
+  end
+  
+  inst.name = string.format("PCM Morph A→B (%d waves, %d frames)", #morph_waves, wave_size)
+  
+  -- Select the first sample
+  song.selected_sample_index = 1
+  
+  print("STATUS: Exported morph to instrument")
+  renoise.app():show_status("Created morph instrument with " .. #morph_waves .. " samples (A→B transition)")
+end
+
+-- Helper function for .WT export (reusing logic from PakettiWTImport.lua)
+local function PCMWriterWriteUint32LE(file, value)
+  local b1 = value % 256
+  local b2 = math.floor(value / 256) % 256
+  local b3 = math.floor(value / 65536) % 256
+  local b4 = math.floor(value / 16777216) % 256
+  file:write(string.char(b1, b2, b3, b4))
+end
+
+local function PCMWriterWriteUint16LE(file, value)
+  local b1 = value % 256
+  local b2 = math.floor(value / 256) % 256
+  file:write(string.char(b1, b2))
+end
+
+local function PCMWriterWriteFloat32LE(file, value)
+  -- Convert float32 to bytes (simplified IEEE 754)
+  if value == 0.0 then
+    file:write(string.char(0, 0, 0, 0))
+    return
+  end
+  
+  local sign = value < 0 and 1 or 0
+  value = math.abs(value)
+  
+  if value == math.huge then
+    -- Infinity
+    local b4 = sign == 1 and 0xFF or 0x7F
+    file:write(string.char(0, 0, 0x80, b4))
+    return
+  end
+  
+  -- Normalize to get exponent and mantissa
+  local exponent = 127
+  while value >= 2.0 do
+    value = value / 2.0
+    exponent = exponent + 1
+  end
+  while value < 1.0 and value > 0.0 do
+    value = value * 2.0
+    exponent = exponent - 1
+  end
+  
+  -- Clamp exponent
+  if exponent < 0 then
+    exponent = 0
+    value = 0
+  elseif exponent > 255 then
+    exponent = 255
+    value = 0
+  end
+  
+  local mantissa = math.floor((value - 1.0) * 8388608) -- 2^23
+  mantissa = math.max(0, math.min(8388607, mantissa))
+  
+  local b1 = mantissa % 256
+  local b2 = math.floor(mantissa / 256) % 256
+  local b3 = math.floor(mantissa / 65536) % 128 + (exponent % 2) * 128
+  local b4 = math.floor(exponent / 2) + sign * 128
+  
+  file:write(string.char(b1, b2, b3, b4))
+end
+
+function PCMWriterExportMorphToWT(morph_waves, filepath)
+  local file = io.open(filepath, "wb")
+  if not file then
+    print("ERROR: Could not create .WT file: " .. filepath)
+    return false
+  end
+  
+  print("DEBUG: Exporting " .. #morph_waves .. " morph waves to .WT format")
+  
+  -- Write header: 'vawt' as big-endian
+  file:write("vawt")
+  
+  -- Write wave_size (little-endian uint32)
+  PCMWriterWriteUint32LE(file, wave_size)
+  
+  -- Write wave_count (little-endian uint16)
+  PCMWriterWriteUint16LE(file, #morph_waves)
+  
+  -- Write flags (little-endian uint16)
+  local flags = 0
+  -- flags = flags + 0x0001 -- is_sample (usually false for wavetables)
+  flags = flags + 0x0002 -- is_looped (wavetables should be looped)
+  -- flags = flags + 0x0004 -- is_int16 (we'll use float32)
+  -- flags = flags + 0x0008 -- use_full_range (can be enabled if needed)
+  flags = flags + 0x0010 -- has_metadata
+  
+  PCMWriterWriteUint16LE(file, flags)
+  print("DEBUG: WT Flags: " .. string.format("0x%04X", flags))
+  
+  -- Write wave data (float32 format)
+  print("DEBUG: Writing wave data (float32 format)")
+  for wave_idx = 1, #morph_waves do
+    for sample_idx = 1, wave_size do
+      -- Convert from PCM Writer format (0-65535) to float32 (-1.0 to 1.0)
+      local pcm_value = morph_waves[wave_idx].data[sample_idx]
+      local float_value = (pcm_value - 32768) / 32768
+      PCMWriterWriteFloat32LE(file, float_value)
+    end
+  end
+  
+  -- Write metadata
+  local metadata = string.format("PCM Writer Morph A→B (%d waves, %d samples)", #morph_waves, wave_size)
+  file:write(metadata)
+  file:write(string.char(0)) -- Null terminator
+  print("DEBUG: Wrote metadata: " .. metadata)
+  
+  file:close()
+  
+  print("STATUS: Exported morph to .WT format")
+  return true
+end
+
+function PCMWriterExportMorphToWTFile()
+  -- Generate 127 morph steps
+  local morph_waves = PCMWriterGenerateMorphSequence(wave_data_a, wave_data_b, 127)
+  
+  -- Prompt for filename
+  local suggested_name = string.format("pcm_morph_%dsamples.wt", wave_size)
+  local file_path = renoise.app():prompt_for_filename_to_write("wt", suggested_name)
+  
+  if file_path == "" then
+    return
+  end
+  
+  -- Add .wt extension if not present
+  if not file_path:match("%.wt$") then
+    file_path = file_path .. ".wt"
+  end
+  
+  local success = PCMWriterExportMorphToWT(morph_waves, file_path)
+  
+  if success then
+    renoise.app():show_status("Exported morph to .WT: " .. file_path)
+  else
+    renoise.app():show_status("Failed to export morph to .WT")
+  end
+end
+
+function PCMWriterExportMorphToInstrumentAndWT()
+  -- First export to instrument
+  PCMWriterExportMorphToInstrument()
+  
+  -- Then export to .WT
+  local morph_waves = PCMWriterGenerateMorphSequence(wave_data_a, wave_data_b, 127)
+  
+  -- Prompt for .WT filename
+  local suggested_name = string.format("pcm_morph_%dsamples.wt", wave_size)
+  local file_path = renoise.app():prompt_for_filename_to_write("wt", suggested_name)
+  
+  if file_path == "" then
+    renoise.app():show_status("Instrument created, .WT export cancelled")
+    return
+  end
+  
+  -- Add .wt extension if not present
+  if not file_path:match("%.wt$") then
+    file_path = file_path .. ".wt"
+  end
+  
+  local success = PCMWriterExportMorphToWT(morph_waves, file_path)
+  
+  if success then
+    renoise.app():show_status("Exported morph to instrument + .WT: " .. file_path)
+  else
+    renoise.app():show_status("Exported morph to instrument, .WT export failed")
+  end
+end
+
 function PCMWriterSaveCSV()
   local suggested_name = string.format("waveform_%dsamples.csv", wave_size)
   local filename = renoise.app():prompt_for_filename_to_write(".csv", suggested_name)
@@ -6047,6 +6671,19 @@ function PCMWriterShowPcmDialog()
           tooltip = "Load CSV with hex values (0000-FFFF)",
           notifier = PCMWriterLoadCSV
         },},
+        vb:row{
+        vb:button{
+          text = "Import .WT",
+          width = 140,
+          tooltip = "Import wavetable: first wave → Wave A, last wave → Wave B",
+          notifier = PCMWriterImportWTToWaves
+        },
+        vb:button{
+          text = ".WT and Live Pickup",
+          width = 140,
+          tooltip = "Import full .WT to instrument, enable live pickup on first sample",
+          notifier = PCMWriterImportWTAndLivePickup
+        },},
         vb:button{
           text = "Export to Sample Slot",
           width = 140+140,
@@ -6121,6 +6758,28 @@ function PCMWriterShowPcmDialog()
           text = "Save Wavetable (.WAV)",
           width = wt_buttonwidth,
           notifier = PCMWriterSaveWavetable
+        },
+        vb:text{
+          text = "Morph Export:",
+          style = "strong", font="bold"
+        },
+        vb:button{
+          text = "Export Morph to Instrument",
+          width = wt_buttonwidth,
+          tooltip = "Create 127 samples morphing from Wave A to Wave B",
+          notifier = PCMWriterExportMorphToInstrument
+        },
+        vb:button{
+          text = "Export Morph to Instrument & .WT",
+          width = wt_buttonwidth,
+          tooltip = "Create 127 sample instrument + export as .WT file",
+          notifier = PCMWriterExportMorphToInstrumentAndWT
+        },
+        vb:button{
+          text = "Export Morph to .WT",
+          width = wt_buttonwidth,
+          tooltip = "Export 127 morph steps as .WT wavetable file",
+          notifier = PCMWriterExportMorphToWTFile
         },
       } -- WAVETABLE_COLUMN ENDS
     } -- TOOLS_ALIGNER ENDS
