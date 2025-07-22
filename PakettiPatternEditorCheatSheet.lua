@@ -1253,3 +1253,184 @@ renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern Editor:Pak
 renoise.tool():add_keybinding{name = "Global:Paketti:Show Minimize Cheatsheet", invoke = show_mini_cheatsheet}
 
 
+-- Pattern Effect/Note Column Status Monitor
+local status_monitor_enabled = false
+
+-- Function to get effect description from our effects table
+local function get_effect_description(effect_number)
+  for _, effect_data in ipairs(effects) do
+    if effect_data[1] == effect_number then
+      return effect_data[2], effect_data[3]  -- Returns display name and description
+    end
+  end
+  return nil, nil
+end
+
+-- Function to show status for current selection
+local function show_current_status()
+  if not status_monitor_enabled then return end
+  
+  local song = renoise.song()
+  local status_text = ""
+  
+  -- Check if we're in an effect column
+  if song.selected_effect_column_index > 0 then
+    local effect_column = song.selected_effect_column
+    if effect_column and not effect_column.is_empty then
+      local effect_number = effect_column.number_string
+      local effect_value = effect_column.amount_value
+      local display_name, description = get_effect_description(effect_number)
+      
+      if display_name and description then
+        status_text = string.format("Effect: %s (0x%02X/255) - %s", 
+                                   display_name, effect_value, description)
+      else
+        status_text = string.format("Effect: %s (0x%02X/255) - Unknown effect", 
+                                   effect_number, effect_value)
+      end
+    else
+      status_text = "Effect Column: Empty"
+    end
+    
+  -- Check if we're in a note column
+  elseif song.selected_note_column_index > 0 then
+    local note_column = song.selected_note_column
+    if note_column then
+      local parts = {}
+      
+      -- Note information
+      if note_column.note_value ~= renoise.PatternLine.EMPTY_NOTE then
+        if note_column.note_string == "OFF" then
+          table.insert(parts, "Note: OFF")
+        else
+          table.insert(parts, string.format("Note: %s", note_column.note_string))
+        end
+      end
+      
+      -- Instrument information
+      if note_column.instrument_value ~= renoise.PatternLine.EMPTY_INSTRUMENT then
+        table.insert(parts, string.format("Instr: %02X", note_column.instrument_value))
+      end
+      
+      -- Volume information
+      if note_column.volume_value ~= renoise.PatternLine.EMPTY_VOLUME then
+        local vol_percent = math.floor((note_column.volume_value / 0x80) * 100)
+        table.insert(parts, string.format("Vol: 0x%02X (%d%%)", note_column.volume_value, vol_percent))
+      end
+      
+      -- Panning information
+      if note_column.panning_value ~= renoise.PatternLine.EMPTY_PANNING then
+        local pan_percent = math.floor((note_column.panning_value / 0x80) * 100)
+        local pan_desc = "Center"
+        if note_column.panning_value < 0x40 then
+          pan_desc = "Left"
+        elseif note_column.panning_value > 0x40 then
+          pan_desc = "Right"
+        end
+        table.insert(parts, string.format("Pan: 0x%02X (%s)", note_column.panning_value, pan_desc))
+      end
+      
+      -- Delay information
+      if note_column.delay_value ~= renoise.PatternLine.EMPTY_DELAY then
+        table.insert(parts, string.format("Delay: 0x%02X", note_column.delay_value))
+      end
+      
+      -- Sample FX information
+      if note_column.effect_number_value ~= renoise.PatternLine.EMPTY_EFFECT_NUMBER or
+         note_column.effect_amount_value ~= renoise.PatternLine.EMPTY_EFFECT_AMOUNT then
+        local fx_num = string.format("%02X", note_column.effect_number_value)
+        table.insert(parts, string.format("SampleFX: %s (0x%02X)", fx_num, note_column.effect_amount_value))
+      end
+      
+      if #parts > 0 then
+        status_text = "Note Column: " .. table.concat(parts, ", ")
+      else
+        status_text = "Note Column: Empty"
+      end
+    end
+  else
+    status_text = "Pattern Editor: No column selected"
+  end
+  
+  renoise.app():show_status(status_text)
+end
+
+-- Variables for tracking position changes (like in PakettiTuningDisplay.lua)
+local last_status_position = nil
+
+-- Timer function for monitoring pattern editor status (based on PakettiTuningDisplay.lua approach)
+local function status_monitor_timer()
+  if not status_monitor_enabled then
+    return
+  end
+  
+  -- Safe song access with error handling
+  local song
+  local success, error_msg = pcall(function()
+    song = renoise.song()
+  end)
+  
+  if not success or not song then
+    return
+  end
+  
+  -- Get current position (track, line, note column, effect column)
+  local track_index = song.selected_track_index
+  local line_index = song.selected_line_index
+  local note_column_index = song.selected_note_column_index
+  local effect_column_index = song.selected_effect_column_index
+  local pattern_index = song.selected_pattern_index
+  
+  -- Create position hash for comparison
+  local current_position = string.format("%d:%d:%d:%d:%d", 
+    track_index, line_index, note_column_index, effect_column_index, pattern_index)
+  
+  -- Only update if position changed
+  if current_position ~= last_status_position then
+    last_status_position = current_position
+    show_current_status()
+  end
+end
+
+-- Function to start status monitoring
+local function start_status_monitor()
+  if not renoise.tool():has_timer(status_monitor_timer) then
+    renoise.tool():add_timer(status_monitor_timer, 100) -- Check every 100ms
+    print("Status Monitor: Timer started (100ms interval)")
+  end
+end
+
+-- Function to stop status monitoring  
+local function stop_status_monitor()
+  if renoise.tool():has_timer(status_monitor_timer) then
+    renoise.tool():remove_timer(status_monitor_timer)
+    print("Status Monitor: Timer stopped")
+  end
+  last_status_position = nil
+end
+
+-- Function to toggle status monitor
+function toggle_pattern_status_monitor()
+  status_monitor_enabled = not status_monitor_enabled
+  
+  if status_monitor_enabled then
+    start_status_monitor()
+    show_current_status()  -- Show initial status
+    renoise.app():show_status("Pattern Status Monitor: ON - Effect/Note column info will be shown")
+  else
+    stop_status_monitor()
+    renoise.app():show_status("Pattern Status Monitor: OFF")
+  end
+end
+
+-- Clean up timer when tool is unloaded
+renoise.tool().app_release_document_observable:add_notifier(function()
+  stop_status_monitor()
+end)
+
+-- Add keybinding and menu entry for status monitor toggle
+renoise.tool():add_keybinding{name="Global:Paketti:Toggle Pattern Status Monitor", invoke=toggle_pattern_status_monitor}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Toggle Pattern Status Monitor", invoke=toggle_pattern_status_monitor}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Toggle Pattern Status Monitor", invoke=toggle_pattern_status_monitor}
+
+
