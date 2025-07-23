@@ -623,7 +623,7 @@ end
 
 
 if renoise.API_VERSION >= 6.2 then 
-  renoise.app().window.instrument_box_is_visible=true
+--[[  renoise.app().window.instrument_box_is_visible=true
   -- Handle instrument properties visibility: 0=Do Nothing, 1=Hide, 2=Show
   if preferences.pakettiInstrumentProperties.value == 1 then
     renoise.app().window.instrument_properties_is_visible = false
@@ -641,6 +641,7 @@ if renoise.API_VERSION >= 6.2 then
   renoise.app().window.instrument_properties_show_midi_program=true
   renoise.app().window.instrument_properties_show_macros=true
   renoise.app().window.instrument_properties_show_phrases=true  
+]]--
 
 -- MIDI CC knob implementation for smooth pattern line scrubbing
 function TriggerPatternLineMidiValue(midi_value)
