@@ -3,51 +3,82 @@
 -- Automatically hides the disk browser when a new song is loaded
 ----------------------------------------------------
 
--- Function to toggle the auto-hide disk browser setting
+-- Function to cycle through disk browser auto control settings
 function pakettiAutoHideDiskBrowserToggle()
-  preferences.paketti_auto_hide_disk_browser = not preferences.paketti_auto_hide_disk_browser
+  -- Initialize preference if it doesn't exist
+  if not preferences.paketti_auto_disk_browser_mode then
+    preferences.paketti_auto_disk_browser_mode = 0  -- Default: Do Nothing
+  end
   
-  local status = preferences.paketti_auto_hide_disk_browser and "ENABLED" or "DISABLED"
-  renoise.app():show_status("Auto-Hide Disk Browser: " .. status)
-  print("-- Paketti Auto-Hide Disk Browser: " .. status)
+  -- Cycle through three modes: 0=Do Nothing, 1=Hide, 2=Show
+  preferences.paketti_auto_disk_browser_mode = (preferences.paketti_auto_disk_browser_mode + 1) % 3
+  
+  local mode_names = {"Do Nothing", "Hide on Song Load", "Show on Song Load"}
+  local status = mode_names[preferences.paketti_auto_disk_browser_mode + 1]
+  
+  renoise.app():show_status("Auto Disk Browser Control: " .. status)
+  print("-- Paketti Auto Disk Browser Control: " .. status)
 end
 
--- Function to check if auto-hide is enabled (for menu checkmark)
+-- Function to get current disk browser mode name (for menu display)
+function pakettiAutoHideDiskBrowserGetModeName()
+  -- Initialize preference if it doesn't exist
+  if not preferences.paketti_auto_disk_browser_mode then
+    preferences.paketti_auto_disk_browser_mode = 0  -- Default: Do Nothing
+  end
+  
+  local mode_names = {"Do Nothing", "Hide on Song Load", "Show on Song Load"}
+  return mode_names[preferences.paketti_auto_disk_browser_mode + 1]
+end
+
+-- Function to check if auto-hide is enabled (for menu checkmark) - kept for compatibility
 function pakettiAutoHideDiskBrowserIsEnabled()
-  return preferences.paketti_auto_hide_disk_browser == true
+  if not preferences.paketti_auto_disk_browser_mode then
+    preferences.paketti_auto_disk_browser_mode = 0  -- Default: Do Nothing
+  end
+  return preferences.paketti_auto_disk_browser_mode ~= 0  -- Show checkmark if not "Do Nothing"
 end
 
 -- Notification handler for when new song is loaded
---[[
-local function pakettiAutoHideDiskBrowserNewDocumentHandler()
-  if preferences.paketti_auto_hide_disk_browser then
+local function pakettiAutoDiskBrowserNewDocumentHandler()
+  -- Initialize preference if it doesn't exist
+  if not preferences.paketti_auto_disk_browser_mode then
+    preferences.paketti_auto_disk_browser_mode = 0  -- Default: Do Nothing
+  end
+  
+  if preferences.paketti_auto_disk_browser_mode == 1 then
     -- Hide the disk browser when a new song is loaded
     renoise.app().window.disk_browser_is_visible = false
+    print("-- Paketti Auto Disk Browser: Hidden disk browser on song load")
+  elseif preferences.paketti_auto_disk_browser_mode == 2 then
+    -- Show the disk browser when a new song is loaded
+    renoise.app().window.disk_browser_is_visible = true
+    print("-- Paketti Auto Disk Browser: Shown disk browser on song load")
   end
+  -- Mode 0 (Do Nothing) - no action taken
 end
 
 -- Add notification for new document/song loads
-renoise.tool().app_new_document_observable:add_notifier(pakettiAutoHideDiskBrowserNewDocumentHandler)
-]]--
+renoise.tool().app_new_document_observable:add_notifier(pakettiAutoDiskBrowserNewDocumentHandler)
 
 -- Menu entries
 renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:Xperimental/Work in Progress:Auto-Hide Disk Browser on Song Load",
+  name = "Main Menu:Tools:Paketti:Xperimental/Work in Progress:Auto Control Disk Browser on Song Load",
   invoke = pakettiAutoHideDiskBrowserToggle,
   selected = pakettiAutoHideDiskBrowserIsEnabled
 }
 
 renoise.tool():add_menu_entry{
-  name = "Disk Browser:Paketti:Auto-Hide Disk Browser on Song Load",
+  name = "Disk Browser:Paketti:Auto Control Disk Browser on Song Load",
   invoke = pakettiAutoHideDiskBrowserToggle,
   selected = pakettiAutoHideDiskBrowserIsEnabled
 }
 
-renoise.tool():add_keybinding{name = "Global:Paketti:Auto-Hide Disk Browser on Song Load",invoke = pakettiAutoHideDiskBrowserToggle}
+renoise.tool():add_keybinding{name = "Global:Paketti:Auto Control Disk Browser on Song Load",invoke = pakettiAutoHideDiskBrowserToggle}
 
 -- MIDI mapping
 renoise.tool():add_midi_mapping{
-  name = "Paketti:Auto-Hide Disk Browser on Song Load",
+  name = "Paketti:Auto Control Disk Browser on Song Load",
   invoke = function(message) 
     if message:is_trigger() then 
       pakettiAutoHideDiskBrowserToggle() 
@@ -1620,7 +1651,115 @@ function pakettiEnableAllPhraseLooping()
   end
 end
 
+-- Toggle looping for the currently selected phrase
+function pakettiToggleSelectedPhraseLooping()
+  local song = renoise.song()
+  local instr = song.selected_instrument
+  
+  if not instr then
+    renoise.app():show_warning("No instrument selected")
+    return
+  end
+  
+  if #instr.phrases == 0 then
+    renoise.app():show_status("No phrases in selected instrument")
+    return
+  end
+  
+  local phrase_index = song.selected_phrase_index
+  if phrase_index == 0 or phrase_index > #instr.phrases then
+    renoise.app():show_status("No phrase selected or invalid phrase index")
+    return
+  end
+  
+  local phrase = instr.phrases[phrase_index]
+  if not phrase.mapping then
+    renoise.app():show_status("Selected phrase has no mapping")
+    return
+  end
+  
+  -- Toggle the looping state
+  phrase.mapping.looping = not phrase.mapping.looping
+  
+  local status = phrase.mapping.looping and "enabled" or "disabled"
+  renoise.app():show_status(string.format("Phrase #%d looping %s in '%s'", phrase_index, status, instr.name))
+  print(string.format("-- Paketti Phrase Looping: Phrase #%d looping %s in '%s'", phrase_index, status, instr.name))
+end
+
+-- Enable looping in all phrases globally (across all instruments)
+function pakettiEnableAllPhraseLoopingGlobally()
+  local song = renoise.song()
+  local instruments_affected = 0
+  local phrases_enabled = 0
+  
+  for instr_idx, instr in ipairs(song.instruments) do
+    if #instr.phrases > 0 then
+      local instrument_had_changes = false
+      
+      for phrase_idx, phrase in ipairs(instr.phrases) do
+        if phrase.mapping and not phrase.mapping.looping then
+          phrase.mapping.looping = true
+          phrases_enabled = phrases_enabled + 1
+          instrument_had_changes = true
+        end
+      end
+      
+      if instrument_had_changes then
+        instruments_affected = instruments_affected + 1
+        print(string.format("-- Paketti Phrase Looping Global: Enabled looping in phrases of instrument #%d '%s'", instr_idx, instr.name))
+      end
+    end
+  end
+  
+  if phrases_enabled > 0 then
+    renoise.app():show_status(string.format("Globally enabled looping in %d phrase(s) across %d instrument(s)", phrases_enabled, instruments_affected))
+    print(string.format("-- Paketti Phrase Looping Global: Enabled looping in %d phrases across %d instruments", phrases_enabled, instruments_affected))
+  else
+    renoise.app():show_status("All phrases already had looping enabled globally")
+    print("-- Paketti Phrase Looping Global: All phrases already had looping enabled")
+  end
+end
+
+-- Disable looping in all phrases globally (across all instruments)
+function pakettiDisableAllPhraseLoopingGlobally()
+  local song = renoise.song()
+  local instruments_affected = 0
+  local phrases_disabled = 0
+  
+  for instr_idx, instr in ipairs(song.instruments) do
+    if #instr.phrases > 0 then
+      local instrument_had_changes = false
+      
+      for phrase_idx, phrase in ipairs(instr.phrases) do
+        if phrase.mapping and phrase.mapping.looping then
+          phrase.mapping.looping = false
+          phrases_disabled = phrases_disabled + 1
+          instrument_had_changes = true
+        end
+      end
+      
+      if instrument_had_changes then
+        instruments_affected = instruments_affected + 1
+        print(string.format("-- Paketti Phrase Looping Global: Disabled looping in phrases of instrument #%d '%s'", instr_idx, instr.name))
+      end
+    end
+  end
+  
+  if phrases_disabled > 0 then
+    renoise.app():show_status(string.format("Globally disabled looping in %d phrase(s) across %d instrument(s)", phrases_disabled, instruments_affected))
+    print(string.format("-- Paketti Phrase Looping Global: Disabled looping in %d phrases across %d instruments", phrases_disabled, instruments_affected))
+  else
+    renoise.app():show_status("No phrases had looping enabled globally")
+    print("-- Paketti Phrase Looping Global: No phrases had looping enabled")
+  end
+end
+
 -- Menu entries
+renoise.tool():add_menu_entry{
+  name = "Main Menu:Tools:Paketti:Phrase Editor:Toggle Selected Phrase Looping",
+  invoke = pakettiToggleSelectedPhraseLooping
+}
+
 renoise.tool():add_menu_entry{
   name = "Main Menu:Tools:Paketti:Phrase Editor:Disable Looping in All Phrases",
   invoke = pakettiDisableAllPhraseLooping
@@ -1629,6 +1768,21 @@ renoise.tool():add_menu_entry{
 renoise.tool():add_menu_entry{
   name = "Main Menu:Tools:Paketti:Phrase Editor:Enable Looping in All Phrases",
   invoke = pakettiEnableAllPhraseLooping
+}
+
+renoise.tool():add_menu_entry{
+  name = "--Main Menu:Tools:Paketti:Phrase Editor:Enable Looping in All Phrases Globally",
+  invoke = pakettiEnableAllPhraseLoopingGlobally
+}
+
+renoise.tool():add_menu_entry{
+  name = "Main Menu:Tools:Paketti:Phrase Editor:Disable Looping in All Phrases Globally",
+  invoke = pakettiDisableAllPhraseLoopingGlobally
+}
+
+renoise.tool():add_menu_entry{
+  name = "Instrument Box:Paketti:Phrase Editor:Toggle Selected Phrase Looping",
+  invoke = pakettiToggleSelectedPhraseLooping
 }
 
 renoise.tool():add_menu_entry{
@@ -1642,6 +1796,21 @@ renoise.tool():add_menu_entry{
 }
 
 renoise.tool():add_menu_entry{
+  name = "--Instrument Box:Paketti:Phrase Editor:Enable Looping in All Phrases Globally",
+  invoke = pakettiEnableAllPhraseLoopingGlobally
+}
+
+renoise.tool():add_menu_entry{
+  name = "Instrument Box:Paketti:Phrase Editor:Disable Looping in All Phrases Globally",
+  invoke = pakettiDisableAllPhraseLoopingGlobally
+}
+
+renoise.tool():add_menu_entry{
+  name = "Phrase Editor:Paketti:Toggle Selected Phrase Looping",
+  invoke = pakettiToggleSelectedPhraseLooping
+}
+
+renoise.tool():add_menu_entry{
   name = "Phrase Editor:Paketti:Disable Looping in All Phrases",
   invoke = pakettiDisableAllPhraseLooping
 }
@@ -1651,7 +1820,22 @@ renoise.tool():add_menu_entry{
   invoke = pakettiEnableAllPhraseLooping
 }
 
+renoise.tool():add_menu_entry{
+  name = "--Phrase Editor:Paketti:Enable Looping in All Phrases Globally",
+  invoke = pakettiEnableAllPhraseLoopingGlobally
+}
+
+renoise.tool():add_menu_entry{
+  name = "Phrase Editor:Paketti:Disable Looping in All Phrases Globally",
+  invoke = pakettiDisableAllPhraseLoopingGlobally
+}
+
 -- Keybindings
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Toggle Selected Phrase Looping",
+  invoke = pakettiToggleSelectedPhraseLooping
+}
+
 renoise.tool():add_keybinding{
   name = "Global:Paketti:Disable Looping in All Phrases",
   invoke = pakettiDisableAllPhraseLooping
@@ -1663,6 +1847,21 @@ renoise.tool():add_keybinding{
 }
 
 renoise.tool():add_keybinding{
+  name = "Global:Paketti:Enable Looping in All Phrases Globally",
+  invoke = pakettiEnableAllPhraseLoopingGlobally
+}
+
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Disable Looping in All Phrases Globally",
+  invoke = pakettiDisableAllPhraseLoopingGlobally
+}
+
+renoise.tool():add_keybinding{
+  name = "Phrase Editor:Paketti:Toggle Selected Phrase Looping",
+  invoke = pakettiToggleSelectedPhraseLooping
+}
+
+renoise.tool():add_keybinding{
   name = "Phrase Editor:Paketti:Disable Looping in All Phrases",
   invoke = pakettiDisableAllPhraseLooping
 }
@@ -1672,7 +1871,26 @@ renoise.tool():add_keybinding{
   invoke = pakettiEnableAllPhraseLooping
 }
 
+renoise.tool():add_keybinding{
+  name = "Phrase Editor:Paketti:Enable Looping in All Phrases Globally",
+  invoke = pakettiEnableAllPhraseLoopingGlobally
+}
+
+renoise.tool():add_keybinding{
+  name = "Phrase Editor:Paketti:Disable Looping in All Phrases Globally",
+  invoke = pakettiDisableAllPhraseLoopingGlobally
+}
+
 -- MIDI mappings
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Toggle Selected Phrase Looping",
+  invoke = function(message) 
+    if message:is_trigger() then 
+      pakettiToggleSelectedPhraseLooping() 
+    end 
+  end
+}
+
 renoise.tool():add_midi_mapping{
   name = "Paketti:Disable Looping in All Phrases",
   invoke = function(message) 
@@ -1687,6 +1905,24 @@ renoise.tool():add_midi_mapping{
   invoke = function(message) 
     if message:is_trigger() then 
       pakettiEnableAllPhraseLooping() 
+    end 
+  end
+}
+
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Enable Looping in All Phrases Globally",
+  invoke = function(message) 
+    if message:is_trigger() then 
+      pakettiEnableAllPhraseLoopingGlobally() 
+    end 
+  end
+}
+
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Disable Looping in All Phrases Globally",
+  invoke = function(message) 
+    if message:is_trigger() then 
+      pakettiDisableAllPhraseLoopingGlobally() 
     end 
   end
 }

@@ -80,7 +80,7 @@ end
 
 preferences = renoise.Document.create("ScriptingToolPreferences") {
   singlewaveformwriterhex=true,
-  paketti_auto_hide_disk_browser = false,
+  paketti_auto_disk_browser_mode = 0,  -- 0=Do Nothing, 1=Hide, 2=Show
   pakettiRePitchEnhanced = false,
   PakettiSteppersGlobalStepCount="16",
   UserSetTunings="",
@@ -725,13 +725,14 @@ local pakettiIRPathDisplayId = "pakettiIRPathDisplay_" .. tostring(math.random(2
               vb:text{text="Upper Frame",width=150},
               vb:switch{items={"Off","Scopes","Spectrum"},value=preferences.upperFramePreference.value+1,width=200,
                 notifier=function(value) preferences.upperFramePreference.value=value-1 end}
-            },]]--
+            },
+            vb:row{vb:text{style="strong",text="Whether F2,F3,F4,F11 change the Upper Frame Scope state or not"}},            
+            ]]--
             vb:row{
               vb:text{text="Selected Sample BeatSync",width=150},
               vb:switch{items={"Off","On"},value=preferences.SelectedSampleBeatSyncLines.value and 2 or 1,width=200,
                 notifier=function(value) preferences.SelectedSampleBeatSyncLines.value=(value==2) end}
             },
-            vb:row{vb:text{style="strong",text="Whether F2,F3,F4,F11 change the Upper Frame Scope state or not"}},
             vb:row{
               vb:text{text="Always Open Track DSPs",width=150},
               vb:switch{items={"Off","On"},value=preferences.pakettiAlwaysOpenDSPsOnTrack.value and 2 or 1,width=200,
@@ -776,6 +777,16 @@ local pakettiIRPathDisplayId = "pakettiIRPathDisplay_" .. tostring(math.random(2
                 end}
             } or vb:space{height=1},
             renoise.API_VERSION >= 6.2 and vb:row{vb:text{style="strong",text="Show/Hide Disk Browser panel on startup and when changed"}} or vb:space{height=1},
+            renoise.API_VERSION >= 6.2 and vb:row{
+              vb:text{text="Auto Control Disk Browser",width=150},
+              vb:switch{items={"Do Nothing","Hide on Song Load","Show on Song Load"},value=preferences.paketti_auto_disk_browser_mode.value+1,width=300,
+                notifier=function(value) 
+                  preferences.paketti_auto_disk_browser_mode.value=(value-1)
+                  local mode_names = {"Do Nothing", "Hide on Song Load", "Show on Song Load"}
+                  renoise.app():show_status("Auto Disk Browser Control: " .. mode_names[value])
+                end}
+            } or vb:space{height=1},
+            renoise.API_VERSION >= 6.2 and vb:row{vb:text{style="strong",text="Automatically control Disk Browser visibility when new songs are loaded"}} or vb:space{height=1},
             vb:row{
               vb:text{text="0G01 Loader",width=150},
               vb:switch{items={"Off","On"},value=preferences._0G01_Loader.value and 2 or 1,width=200,
@@ -788,7 +799,7 @@ local pakettiIRPathDisplayId = "pakettiIRPathDisplay_" .. tostring(math.random(2
             vb:row{
               vb:text{text="Random BPM",width=150},
               vb:switch{items={"Off","On"},value=preferences.RandomBPM.value and 2 or 1,width=200,
-                notifier=function(value) preferences.RandomBPM.value=(value==2) update_random_bpm_preferences() end}
+                notifier=function(value) preferences.RandomBPM.value=(value==2) end}
             },
             vb:row{
               vb:text{text="Global Groove on Startup",width=150},
