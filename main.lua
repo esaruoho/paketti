@@ -407,6 +407,7 @@ timed_require("PakettiBeatDetect")           -- 396 lines, 1.00 ms
 timed_require("PakettiStacker")              -- 518 lines, 1.00 ms
 timed_require("PakettiRecorder")             -- 403 lines, 1.00 ms
 
+timed_require("PakettiFuzzySearchUtil")      -- New fuzzy search utility
 timed_require("PakettiKeyBindings")          -- 1443 lines, 2.00 ms
 timed_require("PakettiPhraseEditor")         -- 461 lines, 1.00 ms
 timed_require("PakettiControls")             -- 544 lines, 1.00 ms

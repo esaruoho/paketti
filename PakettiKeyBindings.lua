@@ -1,3 +1,6 @@
+-- Load the fuzzy search utility
+require("PakettiFuzzySearchUtil")
+
 -- Define the mapping between menu names and their corresponding identifiers
 local menu_to_identifier = {
   ["Track Automation"] = "Automation",
@@ -192,32 +195,31 @@ function pakettiKeyBindingsUpdateList()
 
   local filteredKeybindings = {}
 
+  -- First filter by identifier selection and count totals
+  local selectedKeybindings = {}
   for _, binding in ipairs(pakettiKeybindings) do
     local isSelected = (selectedIdentifier == "All") or (binding.Identifier == selectedIdentifier)
-    -- Normalize to lowercase for case-insensitive search
-    local topic_lower = binding.Topic:lower()
-    local binding_lower = binding.Binding:lower()
-    local identifier_lower = binding.Identifier:lower()
-
-    -- Display all entries if searchQuery is empty, otherwise match the query
-    local matchesSearch = true
-    for word in searchQuery:gmatch("%S+") do
-      if not (topic_lower:find(word) or binding_lower:find(word) or identifier_lower:find(word) or binding.Key:lower():find(word)) then
-        matchesSearch = false
-        break
-      end
+    
+    -- Count all bindings for total statistics
+    count = count + 1
+    if binding.Key == "<Shortcut not Assigned>" then
+      unassigned_count = unassigned_count + 1
     end
+    
+    if isSelected then
+      table.insert(selectedKeybindings, binding)
+    end
+  end
 
+  -- Apply fuzzy search filtering
+  local searchFilteredKeybindings = PakettiFuzzySearchKeybindings(selectedKeybindings, searchQuery)
+
+  for _, binding in ipairs(searchFilteredKeybindings) do
     -- Check if the entry should be included based on the scriptFilter
     local isScript = binding.Binding:find("∿") ~= nil
     local matchesScriptFilter = (scriptFilter == 1) or (scriptFilter == 2 and not isScript) or (scriptFilter == 3 and isScript)
 
-    if isSelected and matchesSearch and matchesScriptFilter then
-      -- Count unassigned regardless of show_unassigned_only
-      if binding.Key == "<Shortcut not Assigned>" then
-        unassigned_count = unassigned_count + 1
-      end
-
+    if matchesScriptFilter then
       -- Filter based on the selected option (Show All, Show without Shortcuts, Show with Shortcuts)
       if (showUnassignedOnly and binding.Key == "<Shortcut not Assigned>") or
          (showAssignedOnly and binding.Key ~= "<Shortcut not Assigned>") or
@@ -232,7 +234,6 @@ function pakettiKeyBindingsUpdateList()
         selected_count = selected_count + 1
       end
     end
-    count = count + 1
   end
 
   sortKeybindings(filteredKeybindings)
@@ -541,32 +542,31 @@ function renoiseKeyBindingsUpdateList()
 
   local filteredKeybindings = {}
 
+  -- First filter by identifier selection and count totals
+  local selectedKeybindings = {}
   for _, binding in ipairs(renoiseKeybindings) do
     local isSelected = (selectedIdentifier == "All") or (binding.Identifier == selectedIdentifier)
-    -- Normalize to lowercase for case-insensitive search
-    local topic_lower = binding.Topic:lower()
-    local binding_lower = binding.Binding:lower()
-    local identifier_lower = binding.Identifier:lower()
-
-    -- Display all entries if searchQuery is empty, otherwise match the query
-    local matchesSearch = true
-    for word in searchQuery:gmatch("%S+") do
-      if not (topic_lower:find(word) or binding_lower:find(word) or identifier_lower:find(word) or binding.Key:lower():find(word)) then
-        matchesSearch = false
-        break
-      end
+    
+    -- Count all bindings for total statistics
+    count = count + 1
+    if binding.Key == "<Shortcut not Assigned>" then
+      unassigned_count = unassigned_count + 1
     end
+    
+    if isSelected then
+      table.insert(selectedKeybindings, binding)
+    end
+  end
 
+  -- Apply fuzzy search filtering
+  local searchFilteredKeybindings = PakettiFuzzySearchKeybindings(selectedKeybindings, searchQuery)
+
+  for _, binding in ipairs(searchFilteredKeybindings) do
     -- Check if the entry should be included based on the scriptFilter
     local isScript = binding.Binding:find("∿") ~= nil
     local matchesScriptFilter = (scriptFilter == 1) or (scriptFilter == 2 and not isScript) or (scriptFilter == 3 and isScript)
 
-    if isSelected and matchesSearch and matchesScriptFilter then
-      -- Count unassigned regardless of show_unassigned_only
-      if binding.Key == "<Shortcut not Assigned>" then
-        unassigned_count = unassigned_count + 1
-      end
-
+    if matchesScriptFilter then
       -- Filter based on the selected option (Show All, Show without Shortcuts, Show with Shortcuts)
       if (showUnassignedOnly and binding.Key == "<Shortcut not Assigned>") or
          (showAssignedOnly and binding.Key ~= "<Shortcut not Assigned>") or
@@ -581,7 +581,6 @@ function renoiseKeyBindingsUpdateList()
         selected_count = selected_count + 1
       end
     end
-    count = count + 1
   end
 
   sortKeybindings(filteredKeybindings)

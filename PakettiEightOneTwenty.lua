@@ -1,6 +1,13 @@
 -- Paketti Groovebox 8120 Script
 
-
+-- Configuration: Maximum steps per row (16 or 32)
+local MAX_STEPS = 16  -- Can be changed dynamically via UI switch
+--
+-- NOTE: Step mode can be changed dynamically:
+-- 1. Use the "16 Steps / 32 Steps" switch in the groovebox interface
+-- 2. The UI will automatically recreate with the new step count
+-- 3. All checkboxes, buttons, and step logic will adapt
+-- 4. Pattern writing and fetching will work with the selected step count
 
 -- Add this line right after stored_step_counts
 local sequential_load_current_row = 1
@@ -38,7 +45,7 @@ end
 -- Function to get step count from track name
 local function getStepsFromTrackName(track_name)
   local steps = track_name:match("%[(%d+)%]")
-  return steps and tonumber(steps) or 16 -- Default to 16 if no steps found
+  return steps and tonumber(steps) or MAX_STEPS -- Default to MAX_STEPS if no steps found
 end
 
 
@@ -127,10 +134,10 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
   -- Store instrument_popup in row_elements immediately
   row_elements.instrument_popup = instrument_popup
 
-  -- Create Number Buttons (1-16)
+  -- Create Number Buttons (1-MAX_STEPS)
   local number_buttons = {}
-  for i = 1, 16 do
-    local is_highlight = (i == 1 or i == 5 or i == 9 or i == 13)
+  for i = 1, MAX_STEPS do
+    local is_highlight = (i == 1 or i == 5 or i == 9 or i == 13 or i == 17 or i == 21 or i == 25 or i == 29)
     number_buttons[i] = vb:button{
       text = string.format("%02d", i),
       width=30,
@@ -250,10 +257,10 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
   row_elements.output_delay_slider = output_delay_slider
   row_elements.output_delay_value_label = output_delay_value_label
 
-  -- Create Note Checkboxes (1-16)
+  -- Create Note Checkboxes (1-MAX_STEPS)
   local checkboxes = {}
   local checkbox_row_elements = {}
-  for i = 1, 16 do
+  for i = 1, MAX_STEPS do
     checkboxes[i] = vb:checkbox{
       value = false,
       width=30,
@@ -297,7 +304,7 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
   local valuebox = vb:valuebox{
     min = 1,
     max = 512,
-    value = 16,  -- Default to 16, will be updated in initialize_row()
+    value = MAX_STEPS,  -- Default to MAX_STEPS, will be updated in initialize_row()
     width=55,
     notifier=function(value)
       if not row_elements.updating_steps then
@@ -326,10 +333,10 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
   table.insert(checkbox_row_elements, valuebox)
   table.insert(checkbox_row_elements, sample_name_label)
 
-    -- Create Yxx Checkboxes (1-16)
+    -- Create Yxx Checkboxes (1-MAX_STEPS)
     local yxx_checkboxes = {}
     local yxx_checkbox_row_elements = {}
-    for i = 1, 16 do
+    for i = 1, MAX_STEPS do
       yxx_checkboxes[i] = vb:checkbox{
         value = false,
         width=30,
@@ -556,8 +563,8 @@ function row_elements.print_to_pattern()
     effect_column:clear()
   end
 
-  -- Only write notes to the first 16 steps
-  for line = 1, math.min(16, steps) do
+  -- Only write notes to the first MAX_STEPS steps
+  for line = 1, math.min(MAX_STEPS, steps) do
     local note_checkbox_value = checkboxes[line].value
     local yxx_checkbox_value = yxx_checkboxes[line].value
     local note_line = track_in_pattern:line(line).note_columns[1]
@@ -581,7 +588,7 @@ function row_elements.print_to_pattern()
     local full_repeats = math.floor(pattern_length / steps)
     for repeat_num = 1, full_repeats - 1 do
       local start_line = repeat_num * steps + 1
-      for line = 1, math.min(16, steps) do
+      for line = 1, math.min(MAX_STEPS, steps) do
         local source_line = track_in_pattern:line(line)
         local dest_line = track_in_pattern:line(start_line + line - 1)
         dest_line.note_columns[1]:copy_from(source_line.note_columns[1])
@@ -637,7 +644,7 @@ end
     row_elements.updating_checkboxes = true
     row_elements.updating_yxx_checkboxes = true
 
-    for i = 1, 16 do
+    for i = 1, MAX_STEPS do
       checkboxes[i].active = false
       checkboxes[i].value = false
       yxx_checkboxes[i].active = false
@@ -646,7 +653,7 @@ end
 
     local yxx_value_found = false
 
-    for line = 1, math.min(line_count, 16) do
+    for line = 1, math.min(line_count, MAX_STEPS) do
       local note_line = pattern.tracks[track_index].lines[line].note_columns[1]
       local effect_column = pattern.tracks[track_index].lines[line].effect_columns[1]
       if note_line and note_line.note_string == "C-4" then
@@ -690,7 +697,7 @@ end
   end
 
     local instrument_used = nil
-    for line = 1, math.min(line_count, 16) do
+    for line = 1, math.min(line_count, MAX_STEPS) do
       local note_line = pattern.tracks[track_index].lines[line].note_columns[1]
       if note_line and not note_line.is_empty and note_line.note_string ~= '---' then
         instrument_used = note_line.instrument_value
@@ -708,7 +715,7 @@ end
     row_elements.updating_checkboxes = false
     row_elements.updating_yxx_checkboxes = false
 
-    for i = 1, 16 do
+    for i = 1, MAX_STEPS do
       checkboxes[i].active = true
       yxx_checkboxes[i].active = true
     end
@@ -743,7 +750,7 @@ end
       local track = renoise.song().tracks[track_index]
       if not track.name:match("^8120_%d+%[%d+%]$") then
         local base_name = string.format("8120_%02d", track_index)
-        track.name = string.format("%s[016]", base_name)  -- Initialize with 16 steps
+        track.name = string.format("%s[%03d]", base_name, MAX_STEPS)  -- Initialize with MAX_STEPS
       end
     else
       renoise.app():show_warning("Selected track does not exist.")
@@ -808,7 +815,7 @@ end
     if initializing then return end
     row_elements.updating_checkboxes = true
     row_elements.updating_yxx_checkboxes = true
-    for i = 1, 16 do
+    for i = 1, MAX_STEPS do
       checkboxes[i].value = math.random() >= 0.5
       yxx_checkboxes[i].value = math.random() >= 0.5
     end
@@ -916,12 +923,12 @@ end
           row_elements.updating_yxx_checkboxes = true
           local first_note_value = checkboxes[1].value
           local first_yxx_value = yxx_checkboxes[1].value
-          for i = 1, 15 do
+          for i = 1, MAX_STEPS - 1 do
             checkboxes[i].value = checkboxes[i + 1].value
             yxx_checkboxes[i].value = yxx_checkboxes[i + 1].value
           end
-          checkboxes[16].value = first_note_value
-          yxx_checkboxes[16].value = first_yxx_value
+          checkboxes[MAX_STEPS].value = first_note_value
+          yxx_checkboxes[MAX_STEPS].value = first_yxx_value
           row_elements.print_to_pattern()
           row_elements.updating_checkboxes = false
           row_elements.updating_yxx_checkboxes = false
@@ -934,9 +941,9 @@ end
           if initializing then return end
           row_elements.updating_checkboxes = true
           row_elements.updating_yxx_checkboxes = true
-          local last_note_value = checkboxes[16].value
-          local last_yxx_value = yxx_checkboxes[16].value
-          for i = 16, 2, -1 do
+          local last_note_value = checkboxes[MAX_STEPS].value
+          local last_yxx_value = yxx_checkboxes[MAX_STEPS].value
+          for i = MAX_STEPS, 2, -1 do
             checkboxes[i].value = checkboxes[i - 1].value
             yxx_checkboxes[i].value = yxx_checkboxes[i - 1].value
           end
@@ -954,7 +961,7 @@ end
           if initializing then return end
           row_elements.updating_checkboxes = true
           row_elements.updating_yxx_checkboxes = true
-          for i = 1, 16 do
+          for i = 1, MAX_STEPS do
             checkboxes[i].value = false
             yxx_checkboxes[i].value = false
           end
@@ -997,10 +1004,10 @@ end
         if renoise.song().tracks[track_index] then
           -- Preserve the 8120 track name format
           local track = renoise.song().tracks[track_index]
-          if not track.name:match("^8120_%d+%[%d+%]$") then
-            local base_name = string.format("8120_%02d", track_index)
-            track.name = string.format("%s[016]", base_name)  -- Initialize with 16 steps
-          end
+                if not track.name:match("^8120_%d+%[%d+%]$") then
+        local base_name = string.format("8120_%02d", track_index)
+        track.name = string.format("%s[%03d]", base_name, MAX_STEPS)  -- Initialize with MAX_STEPS
+      end
   
   -- Add automation device if enabled in preferences
   if preferences.pakettiLoaderDontCreateAutomationDevice.value == false then
@@ -1140,8 +1147,32 @@ local randomize_all_yxx_button = vb:button{
 
 
 
+  -- Create step mode switch
+  local step_mode_switch = vb:switch{
+    items = {"16 Steps", "32 Steps"},
+    width = 150,
+    value = (MAX_STEPS == 32) and 2 or 1,
+    notifier = function(value)
+      local new_max_steps = (value == 2) and 32 or 16
+      if new_max_steps ~= MAX_STEPS then
+        MAX_STEPS = new_max_steps
+        -- Close and reopen dialog with new step count
+        if dialog and dialog.visible then
+          dialog:close()
+          dialog = nil
+          rows = {}
+          -- Reopen immediately with new settings
+          pakettiEightSlotsByOneTwentyDialog()
+        end
+        renoise.app():show_status("Switched to " .. new_max_steps .. " steps mode")
+      end
+    end
+  }
+
   global_controls = vb:column{
     vb:row{
+      step_mode_switch,
+      vb:text{text=" | ", font = "bold", style = "strong"},
       play_checkbox, vb:text{text="Play", font = "bold", style = "strong",width=30},
       follow_checkbox, vb:text{text="Follow", font = "bold", style = "strong",width=50},
       vb:button{text="/2", notifier = divide_bpm},
@@ -1209,6 +1240,10 @@ local randomize_all_yxx_button = vb:button{
 
   -- Create Global Step Buttons
   local step_values = {"1", "2", "4", "6", "8", "12", "16", "24", "32", "48", "64", "128", "192", "256", "384", "512", "<<", ">>"}
+  -- Add 32 to default step values if MAX_STEPS is 32
+  if MAX_STEPS == 32 and not table.find(step_values, "32") then
+    -- 32 is already in the list, so no need to add it
+  end
   global_step_buttons = vb:row{}
   for _, step in ipairs(step_values) do
     global_step_buttons:add_child(vb:button{
@@ -1222,12 +1257,12 @@ local randomize_all_yxx_button = vb:button{
             row_elements.updating_yxx_checkboxes = true
             local first_note_value = row_elements.checkboxes[1].value
             local first_yxx_value = row_elements.yxx_checkboxes[1].value
-            for i = 1, 15 do
+            for i = 1, MAX_STEPS - 1 do
               row_elements.checkboxes[i].value = row_elements.checkboxes[i + 1].value
               row_elements.yxx_checkboxes[i].value = row_elements.yxx_checkboxes[i + 1].value
             end
-            row_elements.checkboxes[16].value = first_note_value
-            row_elements.yxx_checkboxes[16].value = first_yxx_value
+            row_elements.checkboxes[MAX_STEPS].value = first_note_value
+            row_elements.yxx_checkboxes[MAX_STEPS].value = first_yxx_value
             row_elements.print_to_pattern()
             row_elements.updating_checkboxes = false
             row_elements.updating_yxx_checkboxes = false
@@ -1237,9 +1272,9 @@ local randomize_all_yxx_button = vb:button{
           for _, row_elements in ipairs(rows) do
             row_elements.updating_checkboxes = true
             row_elements.updating_yxx_checkboxes = true
-            local last_note_value = row_elements.checkboxes[16].value
-            local last_yxx_value = row_elements.yxx_checkboxes[16].value
-            for i = 16, 2, -1 do
+            local last_note_value = row_elements.checkboxes[MAX_STEPS].value
+            local last_yxx_value = row_elements.yxx_checkboxes[MAX_STEPS].value
+            for i = MAX_STEPS, 2, -1 do
               row_elements.checkboxes[i].value = row_elements.checkboxes[i - 1].value
               row_elements.yxx_checkboxes[i].value = row_elements.yxx_checkboxes[i - 1].value
             end
@@ -1299,13 +1334,13 @@ function fetch_pattern()
     local yxx_value_found = false
 
     -- First clear all checkboxes
-    for i = 1, 16 do
+    for i = 1, MAX_STEPS do
       row_elements.checkboxes[i].value = false
       row_elements.yxx_checkboxes[i].value = false
     end
 
-    -- Now fetch the actual pattern content for the first 16 steps
-    for line = 1, math.min(line_count, 16) do
+    -- Now fetch the actual pattern content for the first MAX_STEPS steps
+    for line = 1, math.min(line_count, MAX_STEPS) do
       local note_line = track_in_pattern:line(line).note_columns[1]
       local effect_column = track_in_pattern:line(line).effect_columns[1]
       if note_line and note_line.note_string == "C-4" then
@@ -1474,15 +1509,15 @@ function random_gate()
     -- Update both track name and valuebox
     local track_index = track_indices[row_elements.track_popup.value]
     local track = renoise.song():track(track_index)
-    updateTrackNameWithSteps(track, 16)  -- Set track name to 16 steps
-    row_elements.valuebox.value = 16     -- Set valuebox to 16
+    updateTrackNameWithSteps(track, MAX_STEPS)  -- Set track name to MAX_STEPS steps
+    row_elements.valuebox.value = MAX_STEPS     -- Set valuebox to MAX_STEPS
   end
 
   -- Prepare all changes in memory first
   local checkbox_states = {}
   -- Remove yxx_states as we don't want to randomize Yxx checkboxes
   
-  for i = 1, 16 do
+  for i = 1, MAX_STEPS do
     local selected_row = math.random(1, #rows)
     for row_index = 1, #rows do
       if not checkbox_states[row_index] then 
@@ -1495,7 +1530,7 @@ function random_gate()
 
   -- Apply all changes at once
   for row_index, row_elements in ipairs(rows) do
-    for i = 1, 16 do
+    for i = 1, MAX_STEPS do
       row_elements.checkboxes[i].value = checkbox_states[row_index][i]
       -- Leave Yxx checkboxes unchanged
     end
@@ -1508,7 +1543,7 @@ function random_gate()
     row_elements.print_to_pattern()
   end
 
-  renoise.app():show_status("Step count reset to 16, random gate pattern applied.")
+  renoise.app():show_status("Step count reset to " .. MAX_STEPS .. ", random gate pattern applied.")
   --renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 end
 
@@ -1520,7 +1555,7 @@ function clear_all()
     row_elements.updating_yxx_checkboxes = true
     local checkboxes = row_elements.checkboxes
     local yxx_checkboxes = row_elements.yxx_checkboxes
-    for i = 1, 16 do
+    for i = 1, MAX_STEPS do
       checkboxes[i].value = false
       yxx_checkboxes[i].value = false
     end
@@ -1538,7 +1573,7 @@ function fill_empty_steps(probability)
   for _, row_elements in ipairs(rows) do
     row_elements.updating_checkboxes = true
     row_elements.updating_yxx_checkboxes = true
-    for i = 1, 16 do
+    for i = 1, MAX_STEPS do
       if not row_elements.checkboxes[i].value then
         row_elements.checkboxes[i].value = math.random() < probability
       end
@@ -1599,7 +1634,7 @@ function randomize_all()
   
   -- Then do all randomization
   for _, row_elements in ipairs(rows) do
-    for i = 1, 16 do
+    for i = 1, MAX_STEPS do
       row_elements.checkboxes[i].value = math.random() >= 0.5
       row_elements.yxx_checkboxes[i].value = math.random() >= 0.5
     end
@@ -1713,6 +1748,22 @@ function pakettiEightSlotsByOneTwentyDialog()
 
   ensure_instruments_exist()  -- Ensure at least 8 instruments exist
   PakettiEightOneTwentyInit()
+  
+  -- Update groovebox tracks that are using old default (16) to new default (MAX_STEPS)
+  -- This preserves custom step counts while updating old defaults
+  if MAX_STEPS ~= 16 then
+    for i = 1, math.min(8, #renoise.song().tracks) do
+      local track = renoise.song():track(i)
+      if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+        -- Only update tracks that have exactly [016] (old default) to new default
+        if track.name:match("^8120_%d+%[016%]$") then
+          local base_name = string.format("8120_%02d", i)
+          track.name = string.format("%s[%03d]", base_name, MAX_STEPS)
+          print(string.format("Updated track %d from [016] to [%03d]", i, MAX_STEPS))
+        end
+      end
+    end
+  end
 
 
   -- Now rebuild track_names and track_indices
@@ -1813,12 +1864,12 @@ function assign_midi_mappings()
             row_elements.updating_yxx_checkboxes = true
             local first_note_value = row_elements.checkboxes[1].value
             local first_yxx_value = row_elements.yxx_checkboxes[1].value
-            for i = 1, 15 do
+            for i = 1, MAX_STEPS - 1 do
               row_elements.checkboxes[i].value = row_elements.checkboxes[i + 1].value
               row_elements.yxx_checkboxes[i].value = row_elements.yxx_checkboxes[i + 1].value
             end
-            row_elements.checkboxes[16].value = first_note_value
-            row_elements.yxx_checkboxes[16].value = first_yxx_value
+            row_elements.checkboxes[MAX_STEPS].value = first_note_value
+            row_elements.yxx_checkboxes[MAX_STEPS].value = first_yxx_value
             row_elements.print_to_pattern()
             row_elements.updating_checkboxes = false
             row_elements.updating_yxx_checkboxes = false
@@ -1828,9 +1879,9 @@ function assign_midi_mappings()
           for _, row_elements in ipairs(rows) do
             row_elements.updating_checkboxes = true
             row_elements.updating_yxx_checkboxes = true
-            local last_note_value = row_elements.checkboxes[16].value
-            local last_yxx_value = row_elements.yxx_checkboxes[16].value
-            for i = 16, 2, -1 do
+            local last_note_value = row_elements.checkboxes[MAX_STEPS].value
+            local last_yxx_value = row_elements.yxx_checkboxes[MAX_STEPS].value
+            for i = MAX_STEPS, 2, -1 do
               row_elements.checkboxes[i].value = row_elements.checkboxes[i - 1].value
               row_elements.yxx_checkboxes[i].value = row_elements.yxx_checkboxes[i - 1].value
             end
@@ -1850,7 +1901,7 @@ function assign_midi_mappings()
   end
 
   for row = 1, 8 do
-    for step = 1, 16 do
+    for step = 1, MAX_STEPS do
       renoise.tool():add_midi_mapping{name=string.format("Paketti:Paketti Groovebox 8120:Row%d Step%d", row, step),invoke=function(message)
         if message:is_trigger() then
           local row_elements = rows[row]
@@ -1871,12 +1922,12 @@ function assign_midi_mappings()
               row_elements.updating_yxx_checkboxes = true
               local first_note_value = row_elements.checkboxes[1].value
               local first_yxx_value = row_elements.yxx_checkboxes[1].value
-              for i = 1, 15 do
+              for i = 1, MAX_STEPS - 1 do
                 row_elements.checkboxes[i].value = row_elements.checkboxes[i + 1].value
                 row_elements.yxx_checkboxes[i].value = row_elements.yxx_checkboxes[i + 1].value
               end
-              row_elements.checkboxes[16].value = first_note_value
-              row_elements.yxx_checkboxes[16].value = first_yxx_value
+              row_elements.checkboxes[MAX_STEPS].value = first_note_value
+              row_elements.yxx_checkboxes[MAX_STEPS].value = first_yxx_value
               row_elements.print_to_pattern()
               row_elements.updating_checkboxes = false
               row_elements.updating_yxx_checkboxes = false
@@ -1884,9 +1935,9 @@ function assign_midi_mappings()
             elseif btn == ">" then
               row_elements.updating_checkboxes = true
               row_elements.updating_yxx_checkboxes = true
-              local last_note_value = row_elements.checkboxes[16].value
-              local last_yxx_value = row_elements.yxx_checkboxes[16].value
-              for i = 16, 2, -1 do
+              local last_note_value = row_elements.checkboxes[MAX_STEPS].value
+              local last_yxx_value = row_elements.yxx_checkboxes[MAX_STEPS].value
+              for i = MAX_STEPS, 2, -1 do
                 row_elements.checkboxes[i].value = row_elements.checkboxes[i - 1].value
                 row_elements.yxx_checkboxes[i].value = row_elements.yxx_checkboxes[i - 1].value
               end
@@ -1899,7 +1950,7 @@ function assign_midi_mappings()
             elseif btn == "Clear" then
               row_elements.updating_checkboxes = true
               row_elements.updating_yxx_checkboxes = true
-              for i = 1, 16 do
+              for i = 1, MAX_STEPS do
                 row_elements.checkboxes[i].value = false
                 row_elements.yxx_checkboxes[i].value = false
               end
@@ -1942,6 +1993,22 @@ function assign_midi_mappings()
 end
 
 assign_midi_mappings()
+
+-- Add MIDI mapping for step mode switch
+renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120:Toggle Step Mode (16/32)",invoke=function(message)
+  if message:is_trigger() then
+    -- Toggle between 16 and 32 steps
+    MAX_STEPS = (MAX_STEPS == 16) and 32 or 16
+    -- If dialog is open, refresh it
+    if dialog and dialog.visible then
+      dialog:close()
+      dialog = nil
+      rows = {}
+      pakettiEightSlotsByOneTwentyDialog()
+    end
+    renoise.app():show_status("Toggled to " .. MAX_STEPS .. " steps mode")
+  end
+end}
 
 function GrooveboxShowClose()
   if dialog and dialog.visible then
@@ -2006,7 +2073,7 @@ function PakettiEightOneTwentyInit()
   while sequencer_tracks < 8 do
     local next_track_number = sequencer_tracks + 1
     song:insert_track_at(next_track_number)
-    song:track(next_track_number).name = string.format("8120_%02d[016]", next_track_number)
+    song:track(next_track_number).name = string.format("8120_%02d[%03d]", next_track_number, MAX_STEPS)
     sequencer_tracks = sequencer_tracks + 1
   end
 
@@ -2017,7 +2084,7 @@ function PakettiEightOneTwentyInit()
       -- Only change name if it doesn't match our format
       if not track.name:match("^8120_%d+%[%d+%]$") then
         local base_name = string.format("8120_%02d", i)
-        track.name = string.format("%s[016]", base_name)  -- Initialize with 16 steps
+        track.name = string.format("%s[%03d]", base_name, MAX_STEPS)  -- Initialize with MAX_STEPS
       end
     end
   end

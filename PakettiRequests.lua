@@ -10181,33 +10181,8 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Flip Devices 1&2 On/Off",invoke=function() toggle_two_devices(1, 2) end}
 
 ----------
--- Fuzzy search function
-local function fuzzy_match(pattern, str)
-  pattern = string.lower(pattern)
-  str = string.lower(str)
-  
-  local pattern_len = #pattern
-  local str_len = #str
-  local j = 1
-  
-  for i = 1, pattern_len do
-    local pattern_char = pattern:sub(i,i)
-    local found = false
-    
-    while j <= str_len do
-      if pattern_char == str:sub(j,j) then
-        found = true
-        j = j + 1
-        break
-      end
-      j = j + 1
-    end
-    
-    if not found then return false end
-  end
-  
-  return true
-end
+-- Load the fuzzy search utility
+require("PakettiFuzzySearchUtil")
 
 -- Track fuzzy search dialog
 local dialog = nil
@@ -10237,14 +10212,13 @@ function pakettiFuzzySearchTrackDialog()
     matched_tracks = {}
     local song=renoise.song()
     
+    -- Use the new fuzzy search utility for tracks
+    local track_list = {}
     for i = 1, #song.tracks do
-      if fuzzy_match(search_text, song.tracks[i].name) then
-        table.insert(matched_tracks, {
-          index = i,
-          name = song.tracks[i].name
-        })
-      end
+      table.insert(track_list, {index = i, name = song.tracks[i].name})
     end
+    
+    matched_tracks = PakettiFuzzySearchTracks(track_list, search_text)
     
     -- If exactly one match is found, select it and close immediately
     if #matched_tracks == 1 then
