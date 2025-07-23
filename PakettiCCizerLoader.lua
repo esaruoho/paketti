@@ -124,22 +124,13 @@ function paketti_generate_midi_control_xml(cc_mappings)
     local xml_lines = {}
     
     -- Calculate visible pages based on number of mappings
-    -- Each page typically shows ~4-5 controllers, so we calculate needed pages
+    -- Each page typically shows ~5 controllers, so we calculate needed pages
     local num_mappings = #cc_mappings
-    local visible_pages = 3 -- Default minimum
+    local controllers_per_page = 5
+    local visible_pages = math.max(1, math.ceil(num_mappings / controllers_per_page))
     
-    if num_mappings > 15 then
-        visible_pages = 5
-    end
-    if num_mappings > 20 then
-        visible_pages = 6
-    end
-    if num_mappings > 25 then
-        visible_pages = 7
-    end
-    if num_mappings > 30 then
-        visible_pages = 8
-    end
+    -- Ensure we don't exceed reasonable page limits for the MIDI Control device
+    visible_pages = math.min(visible_pages, 8)
     
     -- XML header
     table.insert(xml_lines, '<?xml version="1.0" encoding="UTF-8"?>')

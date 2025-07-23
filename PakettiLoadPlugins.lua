@@ -19,9 +19,198 @@ local current_plugin_list_content = nil  -- Variable to keep track of current co
 -- Variable for random selection percentage
 local random_select_percentage = 0  -- Initialized to 0%
 
+-- CCizer integration variables
+local separator = package.config:sub(1,1)
+local ccizer_files = {}
+local selected_ccizer_index = 1
+local auto_apply_ccizer = false
+
 
 if not preferences.PakettiPluginLoaders then
   preferences.PakettiPluginLoaders = renoise.Document.DocumentList()
+end
+
+-- ===== CCIZER INTEGRATION FUNCTIONS =====
+
+-- Get path to ccizer folder
+local function get_ccizer_folder()
+    return renoise.tool().bundle_path .. "ccizer" .. separator
+end
+
+-- Scan for available CCizer files
+local function scan_ccizer_files()
+    local ccizer_path = get_ccizer_folder()
+    local files = {}
+    
+    -- Try to get .txt files from the ccizer folder
+    local success, result = pcall(function()
+        return os.filenames(ccizer_path, "*.txt")
+    end)
+    
+    if success and result then
+        for _, filename in ipairs(result) do
+            -- Extract just the filename without path
+            local clean_name = filename:match("[^"..separator.."]+$")
+            if clean_name then
+                table.insert(files, {
+                    name = clean_name,
+                    display_name = clean_name:gsub("%.txt$", ""), -- Remove .txt extension for display
+                    full_path = ccizer_path .. clean_name
+                })
+            end
+        end
+    end
+    
+    -- Sort files alphabetically and add "None" option at the beginning
+    table.sort(files, function(a, b) return a.display_name:lower() < b.display_name:lower() end)
+    table.insert(files, 1, {name = "None", display_name = "None", full_path = ""})
+    
+    return files
+end
+
+-- Load and parse a CCizer file (simplified from PakettiCCizerLoader.lua)
+local function load_ccizer_file_for_plugin(filepath)
+    if not filepath or filepath == "" then
+        return nil
+    end
+    
+    local file = io.open(filepath, "r")
+    if not file then
+        print("-- Plugin+CCizer: Cannot open CCizer file: " .. filepath)
+        return nil
+    end
+    
+    local mappings = {}
+    local line_count = 0
+    local valid_cc_count = 0
+    local MAX_CC_LIMIT = 35
+    
+    for line in file:lines() do
+        line_count = line_count + 1
+        line = line:match("^%s*(.-)%s*$") -- Trim whitespace
+        
+        if line and line ~= "" and not line:match("^#") then -- Skip empty lines and comments
+            -- Check for Pitchbend first
+            local pb_name = line:match("^PB%s+(.+)$")
+            if pb_name then
+                valid_cc_count = valid_cc_count + 1
+                if valid_cc_count <= MAX_CC_LIMIT then
+                    table.insert(mappings, {cc = -1, name = pb_name, type = "PB"})
+                    print(string.format("-- Plugin+CCizer: Valid PB mapping #%d: PB -> %s", valid_cc_count, pb_name))
+                end
+            else
+                -- Regular CC parsing
+                local cc_number, parameter_name = line:match("^(%d+)%s+(.+)$")
+                if cc_number and parameter_name then
+                    local cc_num = tonumber(cc_number)
+                    if cc_num and cc_num >= 0 and cc_num <= 127 then
+                        valid_cc_count = valid_cc_count + 1
+                        if valid_cc_count <= MAX_CC_LIMIT then
+                            table.insert(mappings, {cc = cc_num, name = parameter_name, type = "CC"})
+                            print(string.format("-- Plugin+CCizer: Valid CC mapping #%d: CC %d -> %s", valid_cc_count, cc_num, parameter_name))
+                        end
+                    end
+                end
+            end
+        end
+    end
+    
+    file:close()
+    print(string.format("-- Plugin+CCizer: Loaded %d valid MIDI CC mappings from %s", #mappings, filepath))
+    return mappings
+end
+
+-- Enhanced auto-detect CCizer file based on plugin name
+local function auto_detect_ccizer_file(plugin_name)
+  if not plugin_name then return nil end
+  
+  -- Normalize plugin name: remove common prefixes/suffixes and convert to lowercase
+  local plugin_normalized = plugin_name:lower()
+  -- Remove common plugin suffixes/prefixes
+  plugin_normalized = plugin_normalized:gsub("%s*vst[23]?$", "")
+  plugin_normalized = plugin_normalized:gsub("%s*au$", "")
+  plugin_normalized = plugin_normalized:gsub("%s*audiounit$", "")
+  plugin_normalized = plugin_normalized:gsub("^vst:?%s*", "")
+  plugin_normalized = plugin_normalized:gsub("^au:?%s*", "")
+  plugin_normalized = plugin_normalized:gsub("^audiounit:?%s*", "")
+  plugin_normalized = plugin_normalized:match("^%s*(.-)%s*$") -- trim spaces
+  
+  -- Try exact matches first, then increasingly flexible partial matches
+  for _, file in ipairs(ccizer_files) do
+    if file.display_name ~= "None" then
+      local ccizer_lower = file.display_name:lower()
+      
+      -- Remove common suffixes from CCizer filename
+      local ccizer_normalized = ccizer_lower:gsub("macros?$", ""):gsub("controls?$", ""):gsub("ccs?$", "")
+      ccizer_normalized = ccizer_normalized:match("^%s*(.-)%s*$") -- trim spaces
+      
+      -- 1. Exact match (normalized)
+      if ccizer_normalized == plugin_normalized then
+        print(string.format("-- Plugin+CCizer: Auto-detected exact match: '%s' -> '%s'", plugin_name, file.display_name))
+        return file
+      end
+      
+      -- 2. Plugin name starts with ccizer name (e.g., "Surge XT" matches "surge")
+      if plugin_normalized:find("^" .. ccizer_normalized) then
+        print(string.format("-- Plugin+CCizer: Auto-detected prefix match: '%s' -> '%s'", plugin_name, file.display_name))
+        return file
+      end
+      
+      -- 3. CCizer name starts with plugin name (e.g., "surgemacros" matches "Surge")
+      if ccizer_normalized:find("^" .. plugin_normalized) then
+        print(string.format("-- Plugin+CCizer: Auto-detected prefix match: '%s' -> '%s'", plugin_name, file.display_name))
+        return file
+      end
+      
+      -- 4. Fallback: partial match anywhere in the name
+      if plugin_normalized:find(ccizer_normalized, 1, true) or ccizer_normalized:find(plugin_normalized, 1, true) then
+        print(string.format("-- Plugin+CCizer: Auto-detected partial match: '%s' -> '%s'", plugin_name, file.display_name))
+        return file
+      end
+    end
+  end
+  
+  return nil
+end
+
+-- Apply CCizer mappings after loading plugin
+local function apply_ccizer_after_plugin_load(ccizer_file, plugin_name)
+    if not ccizer_file or ccizer_file.display_name == "None" then
+        return
+    end
+    
+    local mappings = load_ccizer_file_for_plugin(ccizer_file.full_path)
+    if not mappings or #mappings == 0 then
+        print("-- Plugin+CCizer: No valid CCizer mappings found")
+        return
+    end
+    
+    print(string.format("-- Plugin+CCizer: Applying %d CCizer mappings for plugin '%s'", #mappings, plugin_name))
+    
+    -- Load MIDI Control device and apply mappings (reuse function from PakettiCCizerLoader.lua)
+    loadnative("Audio/Effects/Native/*Instr. MIDI Control")
+    
+    -- Small delay to ensure device loads
+    renoise.app():show_status("Applying CCizer mappings...")
+    
+    -- Generate the XML preset with our CC mappings
+    local xml_content = paketti_generate_midi_control_xml(mappings)
+    
+    -- Apply the XML to the device
+    local song = renoise.song()
+    local device = song.selected_device
+    
+    if device and device.name == "*Instr. MIDI Control" then
+        device.active_preset_data = xml_content
+        device.display_name = ccizer_file.display_name
+        
+        local status_message = string.format("Plugin '%s' loaded with CCizer '%s' (%d/%d CCs)", 
+            plugin_name, ccizer_file.display_name, #mappings, 35)
+        renoise.app():show_status(status_message)
+        print("-- Plugin+CCizer: " .. status_message)
+    else
+        print("-- Plugin+CCizer: Failed to find MIDI Control device")
+    end
 end
 
 
@@ -81,8 +270,8 @@ function loadFromPreferences()
 end
 
 
--- Load Plugin Function
-function loadPlugin(pluginPath)
+-- Enhanced Load Plugin Function with optional CCizer integration
+function loadPlugin(pluginPath, apply_ccizer_file, plugin_display_name)
   local selected_index = renoise.song().selected_instrument_index
   local currentView = renoise.app().window.active_middle_frame
   renoise.song():insert_instrument_at(renoise.song().selected_instrument_index + 1)
@@ -100,6 +289,12 @@ function loadPlugin(pluginPath)
   if new_instrument.plugin_properties.plugin_device and new_instrument.plugin_properties.plugin_device.external_editor_available then
     new_instrument.plugin_properties.plugin_device.external_editor_visible = true
   end
+  
+  -- Apply CCizer mappings if requested
+  if apply_ccizer_file then
+    apply_ccizer_after_plugin_load(apply_ccizer_file, plugin_display_name or "Unknown Plugin")
+  end
+  
   -- openVisiblePagesToFitParameters()  -- Uncomment if you have this function defined elsewhere
 end
 
@@ -113,7 +308,7 @@ local function isAnyPluginSelected()
   return false
 end
 
--- Load Selected Plugins
+-- Load Selected Plugins with CCizer integration
 local function loadSelectedPlugins()
   if not isAnyPluginSelected() then
     renoise.app():show_status("Nothing was selected, doing nothing.")
@@ -123,14 +318,35 @@ local function loadSelectedPlugins()
   for _, cb_info in ipairs(plugins) do
     if cb_info.checkbox.value then
       local pluginPath = cb_info.path
+      local pluginName = cb_info.name
       print("Loading Plugin:", pluginPath)
-      loadPlugin(pluginPath)
+      
+      -- Determine CCizer file to apply
+      local ccizer_to_apply = nil
+      
+      if selected_ccizer_index > 1 and ccizer_files[selected_ccizer_index] then
+        -- Manual override: use specifically selected CCizer file for ALL plugins
+        ccizer_to_apply = ccizer_files[selected_ccizer_index]
+        print(string.format("-- Plugin+CCizer: Manual override - applying %s for plugin %s", ccizer_to_apply.display_name, pluginName))
+      elseif auto_apply_ccizer then
+        -- Auto-apply mode: try to find matching CCizer file
+        local auto_detected = auto_detect_ccizer_file(pluginName)
+        if auto_detected then
+          ccizer_to_apply = auto_detected
+          print(string.format("-- Plugin+CCizer: Auto-detected and shooting in %s for plugin %s", auto_detected.display_name, pluginName))
+        else
+          print(string.format("-- Plugin+CCizer: No matching CCizer file found for plugin %s", pluginName))
+        end
+      end
+      
+      -- Load plugin with optional CCizer
+      loadPlugin(pluginPath, ccizer_to_apply, pluginName)
     end
   end
   return true  -- Indicate that plugins were loaded
 end
 
--- Add as Shortcut
+-- Enhanced Add as Shortcut with CCizer Integration
 local function addAsShortcut()
   if not isAnyPluginSelected() then
     renoise.app():show_status("Nothing was selected, doing nothing.")
@@ -156,33 +372,66 @@ local function addAsShortcut()
 
         local pluginName = cb_info.name
         local entryName = pluginName .. plugin_type
+        
+        -- Determine CCizer file for this plugin (same logic as loading)
+        local ccizer_to_apply = nil
+        local ccizer_suffix = ""
+        
+        if selected_ccizer_index > 1 and ccizer_files[selected_ccizer_index] then
+          -- Manual override: use specifically selected CCizer file
+          ccizer_to_apply = ccizer_files[selected_ccizer_index]
+          ccizer_suffix = " + " .. ccizer_to_apply.display_name
+          print(string.format("-- Plugin+CCizer Shortcut: Manual override - will apply %s for plugin %s", ccizer_to_apply.display_name, pluginName))
+        elseif auto_apply_ccizer then
+          -- Auto-apply mode: try to find matching CCizer file
+          local auto_detected = auto_detect_ccizer_file(pluginName)
+          if auto_detected then
+            ccizer_to_apply = auto_detected
+            ccizer_suffix = " + " .. auto_detected.display_name
+            print(string.format("-- Plugin+CCizer Shortcut: Auto-detected %s for plugin %s", auto_detected.display_name, pluginName))
+          end
+        end
+        
+        -- Update entry name to include CCizer info
+        local final_entry_name = entryName .. ccizer_suffix
 
         -- Ensure pluginName and entryName are not nil
         if pluginName and entryName then
           -- Check if we've already added this entry
-          if not addedEntries[entryName] then
+          if not addedEntries[final_entry_name] then
+            -- Create the shortcut function that loads plugin + CCizer
+            local shortcut_function = function()
+              loadPlugin(cb_info.path, ccizer_to_apply, pluginName)
+            end
+            
             -- Attempt to add the keybinding and midi mapping
             local success, err = pcall(function()
-              renoise.tool():add_keybinding{name="Global:Paketti:Load Plugin " .. entryName,
-                invoke=function() loadPlugin(cb_info.path) end
+              renoise.tool():add_keybinding{name="Global:Paketti:Load Plugin " .. final_entry_name,
+                invoke=shortcut_function
               }
-              renoise.tool():add_midi_mapping{name="Paketti:Load Plugin " .. entryName,
+              renoise.tool():add_midi_mapping{name="Paketti:Load Plugin " .. final_entry_name,
                 invoke=function(message)
                   if message:is_trigger() then
-                    loadPlugin(cb_info.path)
+                    shortcut_function()
                   end
                 end
               }
             end)
 
             if success then
-              addedEntries[entryName] = true
-              saveToPreferences(entryName, cb_info.path)
+              addedEntries[final_entry_name] = true
+              -- Save to preferences with CCizer info
+              saveToPreferences(final_entry_name, cb_info.path)
+              
+              local status_msg = ccizer_to_apply and
+                string.format("Added shortcut: '%s' (Plugin + CCizer)", final_entry_name) or
+                string.format("Added shortcut: '%s' (Plugin only)", final_entry_name)
+              print("-- Plugin+CCizer Shortcut: " .. status_msg)
             else
-              print("Could not add entry for", cb_info.name .. plugin_type, "Error:", err)
+              print("Could not add entry for", final_entry_name, "Error:", err)
             end
           else
-            print("Entry for", cb_info.name .. plugin_type, "already added.")
+            print("Entry for", final_entry_name, "already added.")
           end
         else
           print("Error: Missing pluginName or entryName for plugin.")
@@ -196,7 +445,7 @@ local function addAsShortcut()
     end
   end
 
-  renoise.app():show_status("Plugins added. Open Settings -> Keys and MIDI Mappings to manage your shortcuts.")
+  renoise.app():show_status("Plugin shortcuts added with CCizer integration. Check Settings -> Keys and MIDI Mappings.")
 end
 
 
@@ -409,6 +658,11 @@ function pakettiLoadPluginsDialog()
   plugins = {}
   random_select_percentage = 0  -- Reset the random selection percentage
   current_plugin_list_content = nil  -- Reset current content
+  
+  -- Initialize CCizer integration
+  ccizer_files = scan_ccizer_files()
+  selected_ccizer_index = 1  -- Default to "None"
+  auto_apply_ccizer = true  -- Default to auto-apply mode
 
   -- Dropdown Menu
   local dropdown_items = {}
@@ -458,13 +712,94 @@ function pakettiLoadPluginsDialog()
   
   }
 
+  -- CCizer Integration Controls
+  local ccizer_file_items = {}
+  for _, file in ipairs(ccizer_files) do
+    table.insert(ccizer_file_items, file.display_name)
+  end
+  
+  local ccizer_controls = vb:column{
+    spacing=5,
+    vb:text{text="CCizer MIDI Mapping Integration:", style="strong", font="bold"},
+    vb:row{
+      spacing=10,
+      vb:text{text="CCizer File:", width=100},
+      vb:popup{
+        id = "ccizer_popup",
+        items = ccizer_file_items,
+        value = selected_ccizer_index,
+        width = 300,
+        notifier = function(index)
+          selected_ccizer_index = index
+          if index > 1 then
+            auto_apply_ccizer = false  -- Disable auto mode when manually selecting
+            vb.views["auto_ccizer_checkbox"].value = false
+          end
+        end
+      },
+             vb:text{
+         id = "ccizer_info_text",
+         text = string.format("(%d CCizer files found)", math.max(0, #ccizer_files - 1)),
+         font = "italic",
+         width = 100
+       },
+       vb:button{
+         text = "Browse...",
+         width = 80,
+         notifier = function()
+           local selected_file = renoise.app():prompt_for_filename_to_read({"*.txt"}, "Select CCizer File")
+           if selected_file and selected_file ~= "" then
+             local filename = selected_file:match("([^/\\]+)$")
+             local display_name = filename:gsub("%.txt$", "")
+             
+             -- Add to ccizer_files temporarily
+             local custom_file = {
+               name = filename,
+               display_name = display_name .. " (Custom)",
+               full_path = selected_file
+             }
+             
+             -- Add to the list and update UI
+             table.insert(ccizer_files, custom_file)
+             table.insert(ccizer_file_items, custom_file.display_name)
+             vb.views["ccizer_popup"].items = ccizer_file_items
+             vb.views["ccizer_popup"].value = #ccizer_files  -- Select the new file
+             selected_ccizer_index = #ccizer_files
+             auto_apply_ccizer = false
+             vb.views["auto_ccizer_checkbox"].value = false
+           end
+         end
+       }
+    },
+         vb:row{
+       spacing=10,
+       vb:checkbox{
+         id = "auto_ccizer_checkbox",
+         value = auto_apply_ccizer,
+         notifier = function(value)
+           auto_apply_ccizer = value
+           if value then
+             selected_ccizer_index = 1  -- Reset to "None" when enabling auto mode
+             vb.views["ccizer_popup"].value = 1
+           end
+         end
+       },
+       vb:text{text="Auto-apply matching CCizer files (enabled by default)", width=400},
+     },
+     vb:text{
+       text="Automatically shoots in matching CCizer files (e.g., 'Surge' plugin → 'surgemacros.txt'). Uncheck to disable.",
+       font="italic",
+       width=500
+     }
+  }
+
   -- Action Buttons
   local button_height = renoise.ViewBuilder.DEFAULT_DIALOG_BUTTON_HEIGHT
   local action_buttons = vb:column{
     uniform = true,
     width="100%",
     vb:button{
-      text="Add Plugin(s) as Shortcut(s) & MIDI Mappings",
+      text="Add Plugin(s) + CCizer as Shortcut(s) & MIDI Mappings",
       height = button_height,
       width="100%",
       notifier = addAsShortcut
@@ -544,6 +879,7 @@ function pakettiLoadPluginsDialog()
     spacing=5,
     plugin_list_view,
     random_selection_controls,
+    ccizer_controls,
     action_buttons
   }
 

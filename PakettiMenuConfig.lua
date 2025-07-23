@@ -1456,12 +1456,14 @@ renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Paketti Effect Col
 -------- Plugins/Devices
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:!!About:About Paketti/Donations...",invoke=function() pakettiAboutDonations() end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:!Preferences:Open Paketti Path",invoke=function() renoise.app():open_path(renoise.tool().bundle_path)end}
+
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Plugins/Devices:Load Plugins...",invoke=function() pakettiLoadPluginsDialog() end}renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Switch Note Instrument Dialog...",invoke=pakettiSwitchNoteInstrumentDialog}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Plugins/Devices:Load Devices...",invoke=function() pakettiLoadDevicesDialog() end}
+
+
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Plugins/Devices:Debug:Inspect Plugin (Console)",invoke=function() inspectPlugin() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Plugins/Devices:Debug:Inspect Selected Device (Console)",invoke=function() inspectEffect() end}
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Plugins/Devices:Load Devices...",invoke=function()
-pakettiLoadDevicesDialog()
-end}
 
 
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Plugins/Devices:Debug:List Available VST Plugins (Console)",invoke=function() listByPluginType("VST") end}
@@ -1584,7 +1586,7 @@ renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Pattern Editor:Cre
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Instruments:Global Volume Reduce All Instruments by -4.5dB",invoke=function() reduceInstrumentsVolume(4.5) end}
 
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Save Unused Samples (.WAV&.XRNI)...",invoke=saveUnusedSamples}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Plugins/Devices:Load Plugins...",invoke=function() pakettiLoadPluginsDialog() end}renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Switch Note Instrument Dialog...",invoke=pakettiSwitchNoteInstrumentDialog}
+
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Instruments:Paketti PitchBend Drumkit Sample Loader",invoke=function() pitchBendDrumkitLoader() end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Instruments:Duplicate and Reverse Instrument",invoke=function() PakettiDuplicateAndReverseInstrument() end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Instruments:Save All Samples to Folder...",invoke = saveAllSamplesToFolder}
