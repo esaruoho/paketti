@@ -2801,4 +2801,4 @@ end
 renoise.tool():add_midi_mapping{name = "Paketti:Toggle Sampling & Write Trigger to Pattern x[Toggle]",invoke = function(message) if message:is_trigger() then paketti_toggle_sample_recording() end end}
 renoise.tool():add_midi_mapping{name = "Paketti:Sampling & Pattern Writing Control x[Knob]",invoke = function(message) paketti_handle_sample_recording_knob(message) end}
 renoise.tool():add_keybinding{name = "Global:Paketti:Toggle Sampling & Write Trigger to Pattern",invoke = function() paketti_toggle_sample_recording() end}
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti..:Sample Recording:Toggle Sampling & Write Trigger to Pattern",invoke = function() paketti_toggle_sample_recording() end}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Xperimental/Work in Progress:Sample Recording:Toggle Sampling & Write Trigger to Pattern",invoke = function() paketti_toggle_sample_recording() end}

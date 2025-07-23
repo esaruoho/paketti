@@ -793,6 +793,15 @@ function pakettiPatternEditorCheatsheetDialog()
         Cheatsheetclear_effect_columns()
       end
     },
+    vb:button{
+      text="Mini Cheatsheet",
+      tooltip = "Open the minimized cheatsheet dialog",
+      width=globalwidth,
+      pressed = function()
+        show_mini_cheatsheet()
+        renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+      end
+    },
     vb:button{text="Close",width=globalwidth, pressed = function()
       dialog:close()
       renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR

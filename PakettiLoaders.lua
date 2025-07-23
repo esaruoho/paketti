@@ -293,31 +293,29 @@ function loadnative(effect, name, preset_path, force_insertion_order)
         return
       end
 
-      -- Smart Send device insertion logic for sample FX chain (only when loading at END is selected)
+      -- Special handling for Send devices: ALWAYS load at the end regardless of preference
       local device_name = get_device_name(effect)
-      if load_at_end then
-        -- If we're not loading a Send device, check if we need to insert before existing Sends
-        if device_name ~= "#Send" and device_name ~= "#Multiband Send" then
-          -- Find the first Send device at the end of the chain
-          local first_send_index = nil
-          for i = #sample_devices, 2, -1 do -- Start from end, go backwards, skip sample mixer (index 1)
-            local dev_name = sample_devices[i].name
-            if dev_name == "#Send" or dev_name == "#Multiband Send" then
-              first_send_index = i -- Keep updating to find the FIRST Send in the sequence
-            else
-              break -- Stop when we find a non-Send device
-            end
+      if device_name == "#Send" or device_name == "#Multiband Send" then
+        -- Send devices ALWAYS go at the end
+        checkline = #sample_devices + 1
+      elseif load_at_end then
+        -- Smart insertion logic for non-Send devices when loading at END
+        -- Find the first Send device at the end of the chain
+        local first_send_index = nil
+        for i = #sample_devices, 2, -1 do -- Start from end, go backwards, skip sample mixer (index 1)
+          local dev_name = sample_devices[i].name
+          if dev_name == "#Send" or dev_name == "#Multiband Send" then
+            first_send_index = i -- Keep updating to find the FIRST Send in the sequence
+          else
+            break -- Stop when we find a non-Send device
           end
-          
-          -- If we found Sends at the end, insert before the first one in that sequence
-          if first_send_index then
-            checkline = first_send_index
-          end
-          -- Otherwise checkline remains as calculated above (end position)
-        else
-          -- We're loading a Send device, always put it at the end
-          checkline = #sample_devices + 1
         end
+        
+        -- If we found Sends at the end, insert before the first one in that sequence
+        if first_send_index then
+          checkline = first_send_index
+        end
+        -- Otherwise checkline remains as calculated above (end position)
       end
       -- When loading at beginning, don't modify checkline - use the calculated position
 
@@ -403,30 +401,28 @@ function loadnative(effect, name, preset_path, force_insertion_order)
       return
     end
 
-    -- Smart Send device insertion logic (only when loading at END is selected)
-    if load_at_end then
-      -- If we're not loading a Send device, check if we need to insert before existing Sends
-      if device_name ~= "#Send" and device_name ~= "#Multiband Send" then
-        -- Find the first Send device at the end of the chain
-        local first_send_index = nil
-        for i = #sdevices, 2, -1 do -- Start from end, go backwards, skip track vol/pan (index 1)
-          local dev_name = sdevices[i].name
-          if dev_name == "#Send" or dev_name == "#Multiband Send" then
-            first_send_index = i -- Keep updating to find the FIRST Send in the sequence
-          else
-            break -- Stop when we find a non-Send device
-          end
+    -- Special handling for Send devices: ALWAYS load at the end regardless of preference
+    if device_name == "#Send" or device_name == "#Multiband Send" then
+      -- Send devices ALWAYS go at the end
+      checkline = #sdevices + 1
+    elseif load_at_end then
+      -- Smart insertion logic for non-Send devices when loading at END
+      -- Find the first Send device at the end of the chain
+      local first_send_index = nil
+      for i = #sdevices, 2, -1 do -- Start from end, go backwards, skip track vol/pan (index 1)
+        local dev_name = sdevices[i].name
+        if dev_name == "#Send" or dev_name == "#Multiband Send" then
+          first_send_index = i -- Keep updating to find the FIRST Send in the sequence
+        else
+          break -- Stop when we find a non-Send device
         end
-        
-        -- If we found Sends at the end, insert before the first one in that sequence
-        if first_send_index then
-          checkline = first_send_index
-        end
-        -- Otherwise checkline remains as calculated above (end position)
-      else
-        -- We're loading a Send device, always put it at the end
-        checkline = #sdevices + 1
       end
+      
+      -- If we found Sends at the end, insert before the first one in that sequence
+      if first_send_index then
+        checkline = first_send_index
+      end
+      -- Otherwise checkline remains as calculated above (end position)
     end
     -- When loading at beginning, don't modify checkline - use the calculated position
 
@@ -720,9 +716,9 @@ function loadvst(vstname, name, preset_path, force_insertion_order)
       
       checkline = math.min(checkline, #devices + 1)
 
-      -- Smart Send device insertion logic for sample FX chain (only when loading at END is selected)
+      -- Smart Send device insertion logic for sample FX chain  
       if load_at_end then
-        -- VST devices are never Send devices, so always check if we need to insert before existing Sends
+        -- When loading at end, check if we need to insert before existing Sends
         local first_send_index = nil
         for i = #devices, 2, -1 do -- Start from end, go backwards, skip sample mixer (index 1)
           local dev_name = devices[i].name
@@ -828,9 +824,9 @@ function loadvst(vstname, name, preset_path, force_insertion_order)
     end
     checkline = math.min(checkline, #devices + 1)
 
-    -- Smart Send device insertion logic for VST devices (only when loading at END is selected)
+    -- Smart Send device insertion logic for VST devices
     if load_at_end then
-      -- VST devices are never Send devices, so always check if we need to insert before existing Sends
+      -- When loading at end, check if we need to insert before existing Sends
       local first_send_index = nil
       for i = #devices, 2, -1 do -- Start from end, go backwards, skip track vol/pan (index 1)
         local dev_name = devices[i].name
@@ -2110,6 +2106,9 @@ renoise.tool():add_keybinding{name="Global:Paketti:Randomize All Plugins in Song
 
 -- Function to randomize parameters of the selected device by a given intensity
 function randomizeSelectedDeviceFromGUI(intensity)
+  -- Initialize random seed for true randomness
+  math.randomseed(os.time())
+  
   local song=renoise.song()
   local device = song.selected_device
 
@@ -2136,6 +2135,9 @@ end
 
 -- Function to randomize parameters of all devices on the selected track by a given intensity
 function randomizeAllDevicesOnTrack(intensity)
+  -- Initialize random seed for true randomness
+  math.randomseed(os.time())
+  
   local song=renoise.song()
   local track = song.selected_track
 
@@ -2165,6 +2167,9 @@ end
 
 -- Function to randomize parameters of the selected instrument plugin by a given intensity
 function randomizeSelectedPluginFromGUI(intensity)
+  -- Initialize random seed for true randomness
+  math.randomseed(os.time())
+  
   local song=renoise.song()
   local instrument = song.selected_instrument
 
@@ -2192,6 +2197,9 @@ end
 
 -- Function to randomize parameters of all plugins in the song by a given intensity
 function randomizeAllPluginsInSong(intensity)
+  -- Initialize random seed for true randomness
+  math.randomseed(os.time())
+  
   local song=renoise.song()
   for _, instrument in ipairs(song.instruments) do
     if instrument.plugin_properties.plugin_loaded then
@@ -2625,6 +2633,9 @@ renoise.tool():add_keybinding{name="Global:Paketti:Randomize Selected Plugin",in
 
 -- Function to randomize parameters of the selected plugin
 function randomizeSelectedPlugin()
+  -- Initialize random seed for true randomness
+  math.randomseed(os.time())
+  
   local song=renoise.song()
   local instrument = renoise.song().selected_instrument 
 
@@ -2653,6 +2664,9 @@ renoise.tool():add_keybinding{name="Global:Paketti:Randomize Selected Device",in
 
 -- Function to randomize parameters of the selected device
 function randomize_selected_device()
+  -- Initialize random seed for true randomness
+  math.randomseed(os.time())
+  
   local song=renoise.song()
   local device = nil
 
@@ -2972,16 +2986,28 @@ if #selected_sample.slice_markers == 0 then
         end
       end
 
-      -- Apply the valid slice markers and copy general sample settings
+      -- Apply the valid slice markers first
       new_sample.slice_markers=valid_markers
+      
+      -- Copy general sample settings to the main sample
       CopySampleSettings(originalSample.samples[1],renoise.song().selected_instrument.samples[1])
 
-      -- Copy slice settings for each individual slice sample
-      for i=2, #originalSample.samples do  -- Slices start at index 2
-        CopySliceSettings(originalSample.samples[i],renoise.song().selected_instrument.samples[i])
+      -- Wait for Renoise to create slice samples, then copy slice settings
+      local timer_func
+      timer_func = function()
+        -- Now copy slice settings for each individual slice sample (created by Renoise after applying slice markers)
+        for i=2, #originalSample.samples do  -- Slices start at index 2
+          if renoise.song().selected_instrument.samples[i] then
+            CopySliceSettings(originalSample.samples[i],renoise.song().selected_instrument.samples[i])
+          end
+        end
+        
+        -- Remove this timer after execution
+        renoise.tool():remove_timer(timer_func)
+        
+        renoise.app():show_status("Slice markers and all sample & slice settings applied to the newly loaded sample.")
       end
-
-      renoise.app():show_status("Slice markers and all sample & slice settings applied to the newly loaded sample.")
+      renoise.tool():add_timer(timer_func, 100) -- 100ms delay to let Renoise create slice samples
     else
       renoise.app():show_status("No new sample loaded; settings not applied.")
     end
@@ -3062,13 +3088,16 @@ function PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMod
       renoise.song().selected_track_index_observable:remove_notifier(PakettiTrackIndexChanged)
     end
 
-    -- Do NOT close any currently open editors
+    -- Close external device editors on the currently selected track only
+    HideDeviceExternalEditors(renoise.song().selected_track)
+    
     current_track_index = nil
   end
 end
 
 
-renoise.tool():add_keybinding{name="Global:Paketti:Toggle Auto-Open Track Devices",invoke = PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode}
+--renoise.tool():add_keybinding{name="Global:Paketti:Toggle Auto-Open Track Devices",invoke = PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode}
+renoise.tool():add_keybinding{name="Global:Paketti:Toggle Automatically Open Selected Track Device Editors On/Off",invoke = PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode}
 renoise.tool():add_midi_mapping{name="Paketti:Toggle Auto-Open Track Devices",invoke = PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode}
 -------
 function XOPointCloud()
@@ -3395,8 +3424,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Insert Random Plugin (AU Only
 renoise.tool():add_midi_mapping{name="Paketti:Insert Random Plugin (All)", invoke=function(message) if message:is_trigger() then insertRandomPlugin(false) end end}
 renoise.tool():add_midi_mapping{name="Paketti:Insert Random Plugin (AU Only)", invoke=function(message) if message:is_trigger() then insertRandomPlugin(true) end end}
 
-local auto_open_mode = false
-local current_track_index = nil
+-- Removed duplicate auto_open_mode declaration - using the one from line 3012
 
 -- Function to explicitly set the automatic mode state
 function PakettiSetAutomaticOpenState(should_be_on)
@@ -3421,10 +3449,15 @@ function PakettiSetAutomaticOpenState(should_be_on)
         renoise.song().selected_track_index_observable:remove_notifier(PakettiTrackIndexChanged)
       end
 
-      -- Do NOT close any currently open editors
+      -- Close external device editors on the currently selected track only
+      HideDeviceExternalEditors(renoise.song().selected_track)
+      
       current_track_index = nil
       
       renoise.app():show_status("Automatically Open Selected Track Devices: OFF")
     end
   end
 end
+
+
+

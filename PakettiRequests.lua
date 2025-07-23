@@ -2546,33 +2546,68 @@ function PakettiIsolateSlices()
   end
 
   -- Helper function to create a new instrument with given sample data
-  local function create_new_instrument(sample, start_frame, end_frame, name_suffix, index)
+  local function create_new_instrument(master_sample, start_frame, end_frame, name_suffix, index, slice_sample)
     song:insert_instrument_at(index)
     song.selected_instrument_index = index
     pakettiPreferencesDefaultInstrumentLoader()
     local new_instrument = song.instruments[index]
-    new_instrument.name = instrument.name .. " (" .. sample.name .. ")" .. name_suffix
+    new_instrument.name = instrument.name .. " (" .. master_sample.name .. ")" .. name_suffix
 
     new_instrument:insert_sample_at(1)
     local new_sample = new_instrument.samples[1]
-    new_sample.name = sample.name .. name_suffix
+    new_sample.name = master_sample.name .. name_suffix
 
     local slice_length = end_frame - start_frame + 1
     new_sample.sample_buffer:create_sample_data(
-      sample.sample_buffer.sample_rate,
-      sample.sample_buffer.bit_depth,
-      sample.sample_buffer.number_of_channels,
+      master_sample.sample_buffer.sample_rate,
+      master_sample.sample_buffer.bit_depth,
+      master_sample.sample_buffer.number_of_channels,
       slice_length
     )
     new_sample.sample_buffer:prepare_sample_data_changes()
 
-    for ch = 1, sample.sample_buffer.number_of_channels do
+    for ch = 1, master_sample.sample_buffer.number_of_channels do
       for frame = 1, slice_length do
-        new_sample.sample_buffer:set_sample_data(ch, frame, sample.sample_buffer:sample_data(ch, start_frame + frame - 1))
+        new_sample.sample_buffer:set_sample_data(ch, frame, master_sample.sample_buffer:sample_data(ch, start_frame + frame - 1))
       end
     end
 
     new_sample.sample_buffer:finalize_sample_data_changes()
+    
+    -- Copy slice-specific sample properties from the slice sample (not master sample)
+    if slice_sample then
+      -- Copy ALL properties from the slice sample
+      new_sample.autofade = slice_sample.autofade
+      new_sample.autoseek = slice_sample.autoseek
+      new_sample.loop_mode = slice_sample.loop_mode
+      new_sample.loop_start = slice_sample.loop_start
+      new_sample.loop_end = slice_sample.loop_end
+      new_sample.beat_sync_mode = slice_sample.beat_sync_mode
+      new_sample.beat_sync_lines = slice_sample.beat_sync_lines
+      new_sample.fine_tune = slice_sample.fine_tune
+      new_sample.volume = slice_sample.volume
+      new_sample.panning = slice_sample.panning
+      new_sample.new_note_action = slice_sample.new_note_action
+      new_sample.mute_group = slice_sample.mute_group
+      new_sample.oversample_enabled = slice_sample.oversample_enabled
+      new_sample.interpolation_mode = slice_sample.interpolation_mode
+    else
+      -- Fallback: copy from master sample (for non-sliced samples)
+      new_sample.autofade = master_sample.autofade
+      new_sample.autoseek = master_sample.autoseek
+      new_sample.loop_mode = master_sample.loop_mode
+      new_sample.loop_start = master_sample.loop_start
+      new_sample.loop_end = master_sample.loop_end
+      new_sample.beat_sync_mode = master_sample.beat_sync_mode
+      new_sample.beat_sync_lines = master_sample.beat_sync_lines
+      new_sample.fine_tune = master_sample.fine_tune
+      new_sample.volume = master_sample.volume
+      new_sample.panning = master_sample.panning
+      new_sample.new_note_action = master_sample.new_note_action
+      new_sample.mute_group = master_sample.mute_group
+      new_sample.oversample_enabled = master_sample.oversample_enabled
+      new_sample.interpolation_mode = master_sample.interpolation_mode
+    end
   end
 
   local sample = instrument.samples[1]
@@ -2584,7 +2619,9 @@ function PakettiIsolateSlices()
       local slice_length = slice_end - slice_start + 1
 
       if slice_length > 0 then
-        create_new_instrument(sample, slice_start, slice_end, " (S#" .. string.format("%02X", i) .. ")", insert_index)
+        -- Pass the slice sample (samples[i+1]) to get correct slice settings
+        local slice_sample = instrument.samples[i + 1]
+        create_new_instrument(sample, slice_start, slice_end, " (S#" .. string.format("%02X", i) .. ")", insert_index, slice_sample)
         insert_index = insert_index + 1
       else
         renoise.app():show_status("Invalid slice length calculated.")
@@ -2595,7 +2632,7 @@ function PakettiIsolateSlices()
   else
     for i = 1, #instrument.samples do
       local sample = instrument.samples[i]
-      create_new_instrument(sample, 1, sample.sample_buffer.number_of_frames, " (Sample " .. string.format("%02X", i) .. ")", insert_index)
+      create_new_instrument(sample, 1, sample.sample_buffer.number_of_frames, " (Sample " .. string.format("%02X", i) .. ")", insert_index, nil)
       insert_index = insert_index + 1
     end
     song.selected_instrument_index = selected_instrument_index + selected_sample_index
@@ -2636,43 +2673,61 @@ function PakettiIsolateSlicesToInstrument()
   end
 
   -- Helper function to create a new sample with given sample data
-  local function create_new_sample(new_instrument, sample, start_frame, end_frame, sample_name)
+  local function create_new_sample(new_instrument, master_sample, start_frame, end_frame, sample_name, slice_sample)
     local new_sample = new_instrument:insert_sample_at(#new_instrument.samples + 1)
     new_sample.name = sample_name
 
     local slice_length = end_frame - start_frame + 1
     new_sample.sample_buffer:create_sample_data(
-      sample.sample_buffer.sample_rate,
-      sample.sample_buffer.bit_depth,
-      sample.sample_buffer.number_of_channels,
+      master_sample.sample_buffer.sample_rate,
+      master_sample.sample_buffer.bit_depth,
+      master_sample.sample_buffer.number_of_channels,
       slice_length
     )
     new_sample.sample_buffer:prepare_sample_data_changes()
 
-    for ch = 1, sample.sample_buffer.number_of_channels do
+    for ch = 1, master_sample.sample_buffer.number_of_channels do
       for frame = 1, slice_length do
-        new_sample.sample_buffer:set_sample_data(ch, frame, sample.sample_buffer:sample_data(ch, start_frame + frame - 1))
+        new_sample.sample_buffer:set_sample_data(ch, frame, master_sample.sample_buffer:sample_data(ch, start_frame + frame - 1))
       end
     end
 
     new_sample.sample_buffer:finalize_sample_data_changes()
 
-    -- Copy additional sample properties
-    new_sample.autofade = sample.autofade
-    new_sample.autoseek = sample.autoseek
-    new_sample.loop_mode = sample.loop_mode
- --   new_sample.loop_start = sample.loop_start -- i had to comment these away because they don't work
- --   new_sample.loop_end = sample.loop_end
-    new_sample.beat_sync_mode = sample.beat_sync_mode
-    new_sample.beat_sync_lines = sample.beat_sync_lines
-    new_sample.fine_tune = sample.fine_tune
-    new_sample.volume = sample.volume
-    new_sample.panning = sample.panning
-    new_sample.new_note_action = sample.new_note_action
-    new_sample.mute_group = sample.mute_group
-    new_sample.new_note_action = sample.new_note_action
-    new_sample.oversample_enabled = sample.oversample_enabled
-    new_sample.interpolation_mode = sample.interpolation_mode
+    -- Copy slice-specific sample properties from the slice sample (not master sample)
+    if slice_sample then
+      -- Copy ALL properties from the slice sample
+      new_sample.autofade = slice_sample.autofade
+      new_sample.autoseek = slice_sample.autoseek
+      new_sample.loop_mode = slice_sample.loop_mode
+      new_sample.loop_start = slice_sample.loop_start
+      new_sample.loop_end = slice_sample.loop_end
+      new_sample.beat_sync_mode = slice_sample.beat_sync_mode
+      new_sample.beat_sync_lines = slice_sample.beat_sync_lines
+      new_sample.fine_tune = slice_sample.fine_tune
+      new_sample.volume = slice_sample.volume
+      new_sample.panning = slice_sample.panning
+      new_sample.new_note_action = slice_sample.new_note_action
+      new_sample.mute_group = slice_sample.mute_group
+      new_sample.oversample_enabled = slice_sample.oversample_enabled
+      new_sample.interpolation_mode = slice_sample.interpolation_mode
+    else
+      -- Fallback: copy from master sample (for non-sliced samples)
+      new_sample.autofade = master_sample.autofade
+      new_sample.autoseek = master_sample.autoseek
+      new_sample.loop_mode = master_sample.loop_mode
+      new_sample.loop_start = master_sample.loop_start
+      new_sample.loop_end = master_sample.loop_end
+      new_sample.beat_sync_mode = master_sample.beat_sync_mode
+      new_sample.beat_sync_lines = master_sample.beat_sync_lines
+      new_sample.fine_tune = master_sample.fine_tune
+      new_sample.volume = master_sample.volume
+      new_sample.panning = master_sample.panning
+      new_sample.new_note_action = master_sample.new_note_action
+      new_sample.mute_group = master_sample.mute_group
+      new_sample.oversample_enabled = master_sample.oversample_enabled
+      new_sample.interpolation_mode = master_sample.interpolation_mode
+    end
   end
 
   local sample = instrument.samples[1]
@@ -2687,7 +2742,9 @@ function PakettiIsolateSlicesToInstrument()
 
       if slice_length > 0 then
         local sample_name = "Slice " .. string.format("%02X", i)
-        create_new_sample(new_instrument, sample, slice_start, slice_end, sample_name)
+        -- Pass the slice sample (samples[i+1]) to get correct slice settings
+        local slice_sample = instrument.samples[i + 1]
+        create_new_sample(new_instrument, sample, slice_start, slice_end, sample_name, slice_sample)
       else
         renoise.app():show_status("Invalid slice length calculated.")
         return
@@ -2700,7 +2757,7 @@ function PakettiIsolateSlicesToInstrument()
       local sample = instrument.samples[i]
       -- Create a new instrument for each sample
       local new_instrument = create_new_instrumentWithSlices(" (Sample " .. string.format("%02X", i) .. ")", insert_index)
-      create_new_sample(new_instrument, sample, 1, sample.sample_buffer.number_of_frames, sample.name)
+      create_new_sample(new_instrument, sample, 1, sample.sample_buffer.number_of_frames, sample.name, nil)
       insert_index = insert_index + 1
     end
     song.selected_instrument_index = selected_instrument_index + selected_sample_index
@@ -6675,6 +6732,13 @@ function showHumanizeDialog()
         text = "Humanize",
         width = 80,
         notifier = function()
+          -- Double-check selection before processing
+          local current_selection = selection_in_pattern_pro()
+          if not current_selection then
+            renoise.app():show_status("No selection found! Please select some pattern data first.")
+            return
+          end
+          
           local del_amount = affect_delay and delay_amount or 0
           local vol_amount = affect_volume and volume_amount or 0
           local pan_amount_val = affect_pan and pan_amount or 0
@@ -6700,7 +6764,7 @@ end
 
 -- Register humanize functions
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Humanize Selection...", invoke = showHumanizeDialog}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern:Humanize Selection...", invoke = showHumanizeDialog}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Pattern Editor:Humanize Selection...", invoke = showHumanizeDialog}
 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Humanize Selection...", invoke = showHumanizeDialog}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Quick Humanize 5", invoke = function() humanizeSelection(5, 3, 5) end}

@@ -1616,6 +1616,9 @@ renoise.tool():add_keybinding{name="Global:Paketti:Automation Center to Bottom (
 renoise.tool():add_keybinding{name="Global:Paketti:Automation Bottom to Center (Lin)",invoke=automation_bottom_to_center_lin }
 
 function randomize_envelope()
+  -- Initialize random seed for true randomness
+  math.randomseed(os.time())
+  
   local song=renoise.song()
   local automation_parameter = song.selected_automation_parameter
   

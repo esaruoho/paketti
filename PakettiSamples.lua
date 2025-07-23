@@ -1799,9 +1799,28 @@ function CopySampleSettings(from_sample, to_sample)
 
   if from_sample.sample_buffer.has_sample_data and from_sample.loop_mode ~= renoise.Sample.LOOP_MODE_OFF then
     to_sample.loop_mode = from_sample.loop_mode
-    if from_sample.loop_start > 0 and from_sample.loop_end > from_sample.loop_start then
-      to_sample.loop_start = from_sample.loop_start
-      to_sample.loop_end = from_sample.loop_end
+    if from_sample.loop_start > 0 and from_sample.loop_end > from_sample.loop_start and to_sample.sample_buffer.has_sample_data then
+      local source_length = from_sample.sample_buffer.number_of_frames
+      local dest_length = to_sample.sample_buffer.number_of_frames
+      
+      if source_length > 0 then
+        -- Calculate proportional loop points to maintain relative loop position
+        local loop_start_ratio = from_sample.loop_start / source_length
+        local loop_end_ratio = from_sample.loop_end / source_length
+        
+        local scaled_loop_start = math.max(1, math.floor(loop_start_ratio * dest_length))
+        local scaled_loop_end = math.max(scaled_loop_start + 1, math.floor(loop_end_ratio * dest_length))
+        
+        -- Ensure loop_end doesn't exceed sample length
+        scaled_loop_end = math.min(scaled_loop_end, dest_length)
+        
+        to_sample.loop_start = scaled_loop_start
+        to_sample.loop_end = scaled_loop_end
+      else
+        -- Fallback to safe defaults
+        to_sample.loop_start = 1
+        to_sample.loop_end = dest_length
+      end
     end
   else
     to_sample.loop_mode = renoise.Sample.LOOP_MODE_OFF
@@ -1817,6 +1836,11 @@ function CopySampleSettings(from_sample, to_sample)
 end
 
 function CopySliceSettings(from_sample, to_sample)
+  -- Safety check for nil parameters
+  if not from_sample or not to_sample then
+    return
+  end
+  
   to_sample.volume = from_sample.volume
   to_sample.panning = from_sample.panning
   to_sample.transpose = from_sample.transpose
@@ -1827,8 +1851,35 @@ function CopySliceSettings(from_sample, to_sample)
   to_sample.oneshot = from_sample.oneshot
   to_sample.loop_release = from_sample.loop_release
   to_sample.loop_mode = from_sample.loop_mode
-  to_sample.loop_start = from_sample.loop_start
-  to_sample.loop_end = from_sample.loop_end
+  
+  -- Scale loop points proportionally to maintain relative loop position
+  if from_sample.loop_mode ~= renoise.Sample.LOOP_MODE_OFF and to_sample.sample_buffer.has_sample_data and from_sample.sample_buffer.has_sample_data then
+    local source_length = from_sample.sample_buffer.number_of_frames
+    local dest_length = to_sample.sample_buffer.number_of_frames
+    
+    if source_length > 0 then
+      -- Calculate proportional loop points (e.g., if loop was in "endhalf", keep it in endhalf)
+      local loop_start_ratio = from_sample.loop_start / source_length
+      local loop_end_ratio = from_sample.loop_end / source_length
+      
+      local scaled_loop_start = math.max(1, math.floor(loop_start_ratio * dest_length))
+      local scaled_loop_end = math.max(scaled_loop_start + 1, math.floor(loop_end_ratio * dest_length))
+      
+      -- Ensure loop_end doesn't exceed sample length
+      scaled_loop_end = math.min(scaled_loop_end, dest_length)
+      
+      to_sample.loop_start = scaled_loop_start
+      to_sample.loop_end = scaled_loop_end
+    else
+      -- Fallback to safe defaults
+      to_sample.loop_start = 1
+      to_sample.loop_end = dest_length
+    end
+  else
+    -- If no valid loop data or loop mode is off, set safe defaults
+    to_sample.loop_start = 1
+    to_sample.loop_end = to_sample.sample_buffer.has_sample_data and to_sample.sample_buffer.number_of_frames or 1
+  end
   to_sample.mute_group = from_sample.mute_group
   to_sample.new_note_action = from_sample.new_note_action
   to_sample.autoseek = from_sample.autoseek
@@ -3704,6 +3755,203 @@ renoise.tool():add_midi_mapping{name="Paketti:Duplicate Selected Sample at -12 t
 renoise.tool():add_midi_mapping{name="Paketti:Duplicate Selected Sample at -24 transpose",invoke=function(message) if message:is_trigger() then duplicate_sample_with_transpose(-24) end end}
 renoise.tool():add_midi_mapping{name="Paketti:Duplicate Selected Sample at +12 transpose",invoke=function(message) if message:is_trigger() then duplicate_sample_with_transpose(12) end end}
 renoise.tool():add_midi_mapping{name="Paketti:Duplicate Selected Sample at +24 transpose",invoke=function(message) if message:is_trigger() then duplicate_sample_with_transpose(24) end end}
+
+-- Octave Slammer (-3 +3 octaves): Creates 6 copies of the selected sample at -3, -2, -1, +1, +2, +3 octaves
+function PakettiOctaveSlammer3()
+  local song = renoise.song()
+  local instrument = song.selected_instrument
+  local selected_sample_index = song.selected_sample_index
+
+  if not instrument then
+    renoise.app():show_status("No instrument selected.")
+    return
+  end
+
+  if not selected_sample_index or selected_sample_index < 1 or selected_sample_index > #instrument.samples then
+    renoise.app():show_status("No valid sample selected.")
+    return
+  end
+
+  -- Get the selected sample
+  local original_sample = instrument.samples[selected_sample_index]
+  
+  -- Store original volume for calculations
+  local original_volume = original_sample.volume
+  
+  -- Set volumes so total combined volume = 100% with frequency balance
+  original_sample.volume = original_volume * 0.35
+  
+  -- Octave transpositions: -3, -2, -1, +1, +2, +3 octaves (in semitones)
+  local octave_transpositions = {-36, -24, -12, 12, 24, 36}
+  local octave_names = {"-3oct", "-2oct", "-1oct", "+1oct", "+2oct", "+3oct"}
+  -- Frequency-balanced volumes: lower octaves louder (warm), higher octaves quieter (shrill)
+  local octave_volumes = {0.18, 0.15, 0.12, 0.10, 0.06, 0.04}
+  
+  -- Insert new samples after the current one
+  local insert_index = selected_sample_index + 1
+  
+  for i = 1, #octave_transpositions do
+    local transpose_amount = octave_transpositions[i]
+    local octave_name = octave_names[i]
+    local octave_volume = octave_volumes[i]
+    
+    -- Insert new sample slot
+    instrument:insert_sample_at(insert_index)
+    local new_sample = instrument.samples[insert_index]
+    
+    -- Copy sample buffer data
+    new_sample:copy_from(original_sample)
+    
+    -- Copy all sample settings (finetune, loop mode, loop points, volume, pan, etc.)
+    CopySampleSettings(original_sample, new_sample)
+    
+    -- Set the transpose and rename the sample
+    new_sample.transpose = original_sample.transpose + transpose_amount
+    new_sample.name = original_sample.name .. " " .. octave_name
+    
+    -- Set frequency-balanced volume (lower octaves louder, higher octaves quieter)
+    new_sample.volume = original_volume * octave_volume
+    
+    -- Move to next insert position
+    insert_index = insert_index + 1
+  end
+
+  renoise.app():show_status("Octave Slammer (-3 +3 octaves): Created 6 octave copies of '" .. original_sample.name .. "'")
+end
+
+-- Octave Slammer (-2 +2 octaves): Creates 4 copies of the selected sample at -2, -1, +1, +2 octaves
+function PakettiOctaveSlammer2()
+  local song = renoise.song()
+  local instrument = song.selected_instrument
+  local selected_sample_index = song.selected_sample_index
+
+  if not instrument then
+    renoise.app():show_status("No instrument selected.")
+    return
+  end
+
+  if not selected_sample_index or selected_sample_index < 1 or selected_sample_index > #instrument.samples then
+    renoise.app():show_status("No valid sample selected.")
+    return
+  end
+
+  -- Get the selected sample
+  local original_sample = instrument.samples[selected_sample_index]
+  
+  -- Store original volume for calculations
+  local original_volume = original_sample.volume
+  
+  -- Set volumes so total combined volume = 100% with frequency balance
+  original_sample.volume = original_volume * 0.40
+  
+  -- Octave transpositions: -2, -1, +1, +2 octaves (in semitones)
+  local octave_transpositions = {-24, -12, 12, 24}
+  local octave_names = {"-2oct", "-1oct", "+1oct", "+2oct"}
+  -- Frequency-balanced volumes: lower octaves louder (warm), higher octaves quieter (shrill)
+  local octave_volumes = {0.25, 0.20, 0.10, 0.05}
+  
+  -- Insert new samples after the current one
+  local insert_index = selected_sample_index + 1
+  
+  for i = 1, #octave_transpositions do
+    local transpose_amount = octave_transpositions[i]
+    local octave_name = octave_names[i]
+    local octave_volume = octave_volumes[i]
+    
+    -- Insert new sample slot
+    instrument:insert_sample_at(insert_index)
+    local new_sample = instrument.samples[insert_index]
+    
+    -- Copy sample buffer data
+    new_sample:copy_from(original_sample)
+    
+    -- Copy all sample settings (finetune, loop mode, loop points, volume, pan, etc.)
+    CopySampleSettings(original_sample, new_sample)
+    
+    -- Set the transpose and rename the sample
+    new_sample.transpose = original_sample.transpose + transpose_amount
+    new_sample.name = original_sample.name .. " " .. octave_name
+    
+    -- Set frequency-balanced volume (lower octaves louder, higher octaves quieter)
+    new_sample.volume = original_volume * octave_volume
+    
+    -- Move to next insert position
+    insert_index = insert_index + 1
+  end
+
+  renoise.app():show_status("Octave Slammer (-2 +2 octaves): Created 4 octave copies of '" .. original_sample.name .. "'")
+end
+
+-- Octave Slammer (-1 +1 octaves): Creates 2 copies of the selected sample at -1, +1 octaves
+function PakettiOctaveSlammer1()
+  local song = renoise.song()
+  local instrument = song.selected_instrument
+  local selected_sample_index = song.selected_sample_index
+
+  if not instrument then
+    renoise.app():show_status("No instrument selected.")
+    return
+  end
+
+  if not selected_sample_index or selected_sample_index < 1 or selected_sample_index > #instrument.samples then
+    renoise.app():show_status("No valid sample selected.")
+    return
+  end
+
+  -- Get the selected sample
+  local original_sample = instrument.samples[selected_sample_index]
+  
+  -- Store original volume for calculations
+  local original_volume = original_sample.volume
+  
+  -- Set volumes so total combined volume = 100% with frequency balance
+  original_sample.volume = original_volume * 0.40
+  
+  -- Octave transpositions: -1, +1 octaves (in semitones)
+  local octave_transpositions = {-12, 12}
+  local octave_names = {"-1oct", "+1oct"}
+  -- Frequency-balanced volumes: lower octave louder (warm), higher octave quieter (shrill)
+  local octave_volumes = {0.35, 0.25}
+  
+  -- Insert new samples after the current one
+  local insert_index = selected_sample_index + 1
+  
+  for i = 1, #octave_transpositions do
+    local transpose_amount = octave_transpositions[i]
+    local octave_name = octave_names[i]
+    local octave_volume = octave_volumes[i]
+    
+    -- Insert new sample slot
+    instrument:insert_sample_at(insert_index)
+    local new_sample = instrument.samples[insert_index]
+    
+    -- Copy sample buffer data
+    new_sample:copy_from(original_sample)
+    
+    -- Copy all sample settings (finetune, loop mode, loop points, volume, pan, etc.)
+    CopySampleSettings(original_sample, new_sample)
+    
+    -- Set the transpose and rename the sample
+    new_sample.transpose = original_sample.transpose + transpose_amount
+    new_sample.name = original_sample.name .. " " .. octave_name
+    
+    -- Set frequency-balanced volume (lower octaves louder, higher octaves quieter)
+    new_sample.volume = original_volume * octave_volume
+    
+    -- Move to next insert position
+    insert_index = insert_index + 1
+  end
+
+  renoise.app():show_status("Octave Slammer (-1 +1 octaves): Created 2 octave copies of '" .. original_sample.name .. "'")
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Octave Slammer (-3 +3 octaves)",invoke=PakettiOctaveSlammer3}
+renoise.tool():add_keybinding{name="Global:Paketti:Octave Slammer (-2 +2 octaves)",invoke=PakettiOctaveSlammer2}
+renoise.tool():add_keybinding{name="Global:Paketti:Octave Slammer (-1 +1 octaves)",invoke=PakettiOctaveSlammer1}
+
+renoise.tool():add_midi_mapping{name="Paketti:Octave Slammer (-3 +3 octaves)",invoke=function(message) if message:is_trigger() then PakettiOctaveSlammer3() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Octave Slammer (-2 +2 octaves)",invoke=function(message) if message:is_trigger() then PakettiOctaveSlammer2() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Octave Slammer (-1 +1 octaves)",invoke=function(message) if message:is_trigger() then PakettiOctaveSlammer1() end end}
 --------
 -- Function to set overlap mode
 function setOverlapMode(mode)

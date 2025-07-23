@@ -1757,6 +1757,9 @@ end
 
 -- Function to randomize LFO envelope values
 function pakettiRandomizeLFOEnvelope()
+  -- Initialize random seed for true randomness
+  math.randomseed(os.time())
+  
   local device = renoise.song().selected_device
   
   if not device or not is_lfo_device(device) then
@@ -1803,6 +1806,9 @@ end
 
 -- Function to humanize LFO envelope with ±2% variation
 function pakettiHumanizeLFOEnvelope()
+  -- Initialize random seed for true randomness
+  math.randomseed(os.time())
+  
   local device = renoise.song().selected_device
   
   if not device or not is_lfo_device(device) then

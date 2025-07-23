@@ -231,13 +231,24 @@ function pakettiThemeSelectorUpdateFavoritesDropdown(vb)
 end
 
 local function pakettiThemeSelectorPickRandomThemeFromAll()
-  local new_index = selected_theme_index
-  while new_index == selected_theme_index do
+  -- Initialize random seed for true randomness
+  math.randomseed(os.time())
+  
+  local new_index
+  
+  -- If we have a current theme and more than 1 theme, avoid repeating it
+  if selected_theme_index and #themes > 1 then
+    repeat
+      new_index = math.random(#themes - 1) + 1
+    until new_index ~= selected_theme_index
+  else
+    -- First time or only one theme - just pick random
     new_index = math.random(#themes - 1) + 1
   end
+  
   selected_theme_index = new_index
   pakettiThemeSelectorUpdateLoadTheme(themes[selected_theme_index])
-  renoise.app():show_status("Picked a random theme from all themes. " .. themes[selected_theme_index])
+  renoise.app():show_status("Picked a random theme from all themes: " .. themes[selected_theme_index])
 end
 
 local function pakettiThemeSelectorPickRandomThemeFromFavorites(vb)
@@ -250,11 +261,17 @@ local function pakettiThemeSelectorPickRandomThemeFromFavorites(vb)
     renoise.app():show_status("You only have 1 favorite, cannot randomize.")
     return
   end
+  
+  -- Initialize random seed for true randomness
+  math.randomseed(os.time())
+  
   local current_index = vb.views["favorites_popup"].value or 2
-  local new_index = current_index
-  while new_index == current_index do 
-    new_index = math.random(2, #preferences.pakettiThemeSelector.FavoritedList) 
-  end
+  local new_index
+  
+  repeat
+    new_index = math.random(2, #preferences.pakettiThemeSelector.FavoritedList)
+  until new_index ~= current_index
+  
   vb.views["favorites_popup"].value = new_index
   local random_theme = preferences.pakettiThemeSelector.FavoritedList[new_index]
   local theme_name = tostring(random_theme)  -- Convert ObservableString to string
@@ -314,8 +331,18 @@ local function pakettiThemeSelectorDialogOpen(vb)
           pakettiThemeSelectorUpdateLoadTheme(theme_name)
         end},
         vb:button{ text="Randomize", notifier=function()
-          local new_index = selected_theme_index
-          while new_index == selected_theme_index do new_index = math.random(#themes - 1) + 1 end
+          -- Initialize random seed for true randomness
+          math.randomseed(os.time())
+          
+          local new_index
+          if #themes > 1 then
+            repeat
+              new_index = math.random(#themes - 1) + 1
+            until new_index ~= selected_theme_index
+          else
+            new_index = math.random(#themes - 1) + 1
+          end
+          
           selected_theme_index = new_index
           vb.views["themes_popup"].value = selected_theme_index
           local theme_name = themes[selected_theme_index]
@@ -379,34 +406,29 @@ local function pakettiThemeSelectorDialogOpen(vb)
               renoise.app():show_status("You only have 1 favorite, cannot randomize.")
               return
             end
+            
+            -- Initialize random seed for true randomness
+            math.randomseed(os.time())
+            
             local current_index = vb.views["favorites_popup"] and vb.views["favorites_popup"].value or 2
-            local new_index = current_index
-            while new_index == current_index do new_index = math.random(2, #preferences.pakettiThemeSelector.FavoritedList) end
+            local new_index
+            
+            repeat
+              new_index = math.random(2, #preferences.pakettiThemeSelector.FavoritedList)
+            until new_index ~= current_index
+            
             vb.views["favorites_popup"].value = new_index
             local random_theme = preferences.pakettiThemeSelector.FavoritedList[new_index]
             local theme_name = tostring(random_theme)
-  --          selected_theme_index = table.find(themes, theme_name)
-            local thisisthetheme=theme_name
-            print ("Theme you picked is: " .. thisisthetheme)
---            pakettiThemeSelectorUpdateLoadTheme(thisisthetheme)
-            temporary_selected_theme = thisisthetheme
-  local current_index = math.random(2, #preferences.pakettiThemeSelector.FavoritedList)
-  local random_theme = preferences.pakettiThemeSelector.FavoritedList[current_index]
-
-  local cleaned_theme_name = tostring(random_theme)
-
-  selected_theme_index = table.find(themes, cleaned_theme_name)
-
-  if selected_theme_index then
-    local filename = themes[selected_theme_index]
-
-    local full_path = themes_path .. filename
-    renoise.app():load_theme(full_path)
-    renoise.app():show_status("Randomized a theme out of your favorite list.")
-  else
-    renoise.app():show_status("Selected theme not found.")            
-            end
             
+            selected_theme_index = table.find(themes, theme_name)
+            if selected_theme_index then
+              local full_path = themes_path .. themes[selected_theme_index]
+              renoise.app():load_theme(full_path)
+              renoise.app():show_status("Randomized a theme out of your favorite list: " .. theme_name)
+            else
+              renoise.app():show_status("Selected theme not found: " .. theme_name)
+            end
           end},
           vb:button{ text="Remove Favorite", notifier=function()
             local current_index = vb.views["favorites_popup"].value
@@ -456,9 +478,9 @@ function pakettiThemeSelectorDialogShow()
 end
 
 function pakettiThemeSelectorPickRandomThemeFromFavoritesNoGUI()
-local themes_path = renoise.tool().bundle_path .. "Themes/"
-local themes = os.filenames(themes_path, "*.xrnc")
-local selected_theme_index = nil
+  local themes_path = renoise.tool().bundle_path .. "Themes/"
+  local themes = os.filenames(themes_path, "*.xrnc")
+  local selected_theme_index = nil
 
   if #preferences.pakettiThemeSelector.FavoritedList <= 1 then
     renoise.app():show_status("You currently have no Favorite Themes set.")
@@ -469,6 +491,9 @@ local selected_theme_index = nil
     return
   end
 
+  -- Initialize random seed for true randomness
+  math.randomseed(os.time())
+
   local current_index = math.random(2, #preferences.pakettiThemeSelector.FavoritedList)
   local random_theme = preferences.pakettiThemeSelector.FavoritedList[current_index]
 
@@ -477,11 +502,9 @@ local selected_theme_index = nil
   selected_theme_index = table.find(themes, cleaned_theme_name)
 
   if cleaned_theme_name then
---    local filename = themes[selected_theme_index]
-
     local full_path = themes_path .. cleaned_theme_name .. ".xrnc"
     renoise.app():load_theme(full_path)
-    renoise.app():show_status("Randomized a theme out of your favorite list. " .. cleaned_theme_name)
+    renoise.app():show_status("Randomized a theme out of your favorite list: " .. cleaned_theme_name)
   else
     renoise.app():show_status("Selected theme not found.")
   end

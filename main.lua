@@ -288,26 +288,46 @@ function pakettiThemeSelectorRenoiseStartFavorites()
     return
   end
 
+  -- Initialize random seed for true randomness
+  math.randomseed(os.time())
+  
   local current_index = math.random(2, #preferences.pakettiThemeSelector.FavoritedList)
   local random_theme = preferences.pakettiThemeSelector.FavoritedList[current_index]
 
   local cleaned_theme_name = tostring(random_theme):match(".*%. (.+)") or tostring(random_theme)
   selected_theme_index = table.find(themes, cleaned_theme_name)
 
-renoise.app():load_theme(themes_path .. tostring(random_theme) .. ".xrnc")
-renoise.app():show_status("Randomized a theme out of your favorite list. " .. tostring(random_theme))
+  renoise.app():load_theme(themes_path .. tostring(random_theme) .. ".xrnc")
+  renoise.app():show_status("Randomized a theme out of your favorite list: " .. tostring(random_theme))
 end
 
 function pakettiThemeSelectorPickRandomThemeFromAll()
-local themes_path = renoise.tool().bundle_path .. "Themes/"
-local themes = os.filenames(themes_path, "*.xrnc")
-  local new_index = selected_theme_index
-  while new_index == selected_theme_index do
-    new_index = math.random(#themes - 1) + 1
+  local themes_path = renoise.tool().bundle_path .. "Themes/"
+  local themes = os.filenames(themes_path, "*.xrnc")
+  
+  -- Initialize random seed based on current time for true randomness
+  math.randomseed(os.time())
+  
+  if #themes == 0 then
+    renoise.app():show_status("No themes found in Themes folder.")
+    return
   end
+  
+  local new_index
+  
+  -- If we have a current theme and more than 1 theme, avoid repeating it
+  if selected_theme_index and #themes > 1 then
+    repeat
+      new_index = math.random(#themes)
+    until new_index ~= selected_theme_index
+  else
+    -- First time or only one theme - just pick random
+    new_index = math.random(#themes)
+  end
+  
   selected_theme_index = new_index
   renoise.app():load_theme(themes_path .. themes[selected_theme_index])
-  renoise.app():show_status("Picked a random theme from all themes. " .. themes[selected_theme_index])
+  renoise.app():show_status("Picked a random theme from all themes: " .. themes[selected_theme_index])
 end
 
 --local PakettiAutomationDoofer=false
@@ -459,6 +479,7 @@ timed_require("PakettiChebyshevWaveshaper")
 timed_require("PakettiMetricModulation")
 timed_require("PakettiPresetPlusPlus")
 timed_require("PakettiWTImport")
+timed_require("PakettiXRNIT")
 
 -- Polyend functionality toggle
 local PolyendYes = false

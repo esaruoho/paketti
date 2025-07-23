@@ -1999,8 +1999,10 @@ function paketti_convert_sample(target_rate, target_bit_depth, target_channel_mo
     return false
   end
   
-  print(string.format("Converting sample: %dHz/%dbit/%dch → %dHz/%dbit/%s", 
-    current_rate, current_bit_depth, current_channels, target_rate, target_bit_depth, target_channel_mode))
+  -- Display proper channel names for readability
+  local current_channel_name = (current_channels == 1) and "mono" or "stereo"
+  print(string.format("Converting sample: %dHz/%dbit/%s → %dHz/%dbit/%s", 
+    current_rate, current_bit_depth, current_channel_name, target_rate, target_bit_depth, target_channel_mode))
   
   -- Calculate new frame count based on sample rate conversion
   local rate_ratio = target_rate / current_rate

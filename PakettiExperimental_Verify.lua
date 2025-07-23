@@ -696,7 +696,6 @@ local dialogMargin=175
     vb:horizontal_aligner{
       mode = "center",
       vb:column{
-        --spacing = 5,
         vb:row{
           vb:text{text = "Current Instrument", width = 120,font="bold",style="strong"},
           instrument_info_text
@@ -896,7 +895,6 @@ local dialogMargin=175
     vb:horizontal_aligner{
       mode = "center",
       vb:column{
-        --spacing = 5,
         vb:horizontal_aligner{
           mode = "center",
           vb:text{text = "Status:", font = "bold"},
@@ -1772,394 +1770,6 @@ end
 
 
 ---
--- Initialize ViewBuilder
-local vb = renoise.ViewBuilder()
-local dialog = nil  -- Initialize dialog as nil
-
--- Tables to hold references to textfields for XRNT and XRNI slots
-local slot_path_views_xrnt = {}
-local slot_path_views_xrni = {}
-
--- Reference to the folder path textfield
-local folder_path_view = nil
-
--- Helper functions to get slot preferences
-local function get_slot_preference_xrnt(slot_number)
-  return preferences.UserDevices["Slot" .. string.format("%02d", slot_number)]
-end
-
-local function get_slot_preference_xrni(slot_number)
-  return preferences.UserInstruments["Slot" .. string.format("%02d", slot_number)]
-end
-
--- Function to select the User XRNT Saving Folder
-local function select_user_xrnt_saving_folder()
-  local selected_folder = renoise.app():prompt_for_path("Select User-defined Saving Folder")
-  if selected_folder then
-    preferences.UserDevices.Path.value = selected_folder
-    if folder_path_view then
-      folder_path_view.text = preferences.UserDevices.Path.value
-    end
-    renoise.app():show_status("Saving folder set to: " .. selected_folder)
-  end
-end
-
--- Function to save a device chain to a XRNT slot
-local function save_device_chain_to_slot(slot_number)
-  if preferences.UserDevices.Path.value == "" then
-    renoise.app():show_status("Please set the User XRNT Saving Folder first.")
-    return
-  end
-
-  local file_name = "Slot" .. string.format("%02d", slot_number) .. ".xrnt"
-  local full_path = preferences.UserDevices.Path.value .. "/" .. file_name
-
-  local success, err = pcall(function()
-    renoise.app():save_track_device_chain(full_path)
-  end)
-
-  if success then
-    get_slot_preference_xrnt(slot_number).value = full_path
-    if slot_path_views_xrnt[slot_number] then
-      slot_path_views_xrnt[slot_number].text = full_path
-    end
-    renoise.app():show_status("Device chain saved to Slot " .. string.format("%02d", slot_number))
-  else
-    renoise.app():show_status("Failed to save device chain to Slot " .. string.format("%02d", slot_number) .. ": " .. tostring(err))
-  end
-end
-
--- Function to load a device chain from a XRNT slot
-local function load_device_chain_from_slot(slot_number)
-  local file_path = get_slot_preference_xrnt(slot_number).value
-  if file_path == "" then
-    renoise.app():show_status("No XRNT file set for Slot " .. string.format("%02d", slot_number))
-    return
-  end
-
-  local file = io.open(file_path, "r")
-  if not file then
-    renoise.app():show_status("File not found: " .. file_path)
-    return
-  else
-    file:close()
-  end
-
-  local success, err = pcall(function()
-    renoise.app():load_track_device_chain(file_path)
-  end)
-
-  if success then
-    renoise.app():show_status("Device chain loaded from Slot " .. string.format("%02d", slot_number))
-  else
-    renoise.app():show_status("Failed to load device chain from Slot " .. string.format("%02d", slot_number) .. ": " .. tostring(err))
-  end
-end
-
--- Function to select a XRNT file for a slot
-local function select_xrnt_file(slot_number)
-  local file = renoise.app():prompt_for_filename_to_read({"*.xrnt"}, "Select XRNT File")
-  if file then
-    get_slot_preference_xrnt(slot_number).value = file
-    if slot_path_views_xrnt[slot_number] then
-      slot_path_views_xrnt[slot_number].text = file
-    end
-    renoise.app():show_status("XRNT file set for Slot " .. string.format("%02d", slot_number))
-  end
-end
-
--- Function to save an instrument to a XRNI slot
-local function save_instrument_to_slot(slot_number)
-  if preferences.UserDevices.Path.value == "" then
-    renoise.app():show_status("Please set the User XRNT Saving Folder first.")
-    return
-  end
-
-  local file_name = "Slot" .. string.format("%02d", slot_number) .. ".xrni"
-  local full_path = preferences.UserDevices.Path.value .. "/" .. file_name
-
-  local selected_instrument = renoise.song().selected_instrument
-  if not selected_instrument then
-    renoise.app():show_status("No instrument selected to save.")
-    return
-  end
-
-  local success, err = pcall(function()
-    renoise.app():save_instrument(full_path)
-  end)
-
-  if success then
-    get_slot_preference_xrni(slot_number).value = full_path
-    if slot_path_views_xrni[slot_number] then
-      slot_path_views_xrni[slot_number].text = full_path
-    end
-    renoise.app():show_status("Instrument saved to Slot " .. string.format("%02d", slot_number))
-  else
-    renoise.app():show_status("Failed to save instrument to Slot " .. string.format("%02d", slot_number) .. ": " .. tostring(err))
-  end
-end
-
--- Function to load an instrument from a XRNI slot
-local function load_instrument_from_slot(slot_number)
-  local file_path = get_slot_preference_xrni(slot_number).value
-  if file_path == "" then
-    renoise.app():show_status("No XRNI file set for Slot " .. string.format("%02d", slot_number))
-    return
-  end
-
-  local file = io.open(file_path, "r")
-  if not file then
-    renoise.app():show_status("File not found: " .. file_path)
-    return
-  else
-    file:close()
-  end
-
-  local success, err = pcall(function()
-renoise.song():insert_instrument_at(renoise.song().selected_instrument_index+1)
-renoise.song().selected_instrument_index=renoise.song().selected_instrument_index+1
-    renoise.app():load_instrument(file_path)
-  end)
-
-  if success then
-    renoise.app():show_status("Instrument loaded from Slot " .. string.format("%02d", slot_number))
-  else
-    renoise.app():show_status("Failed to load instrument from Slot " .. string.format("%02d", slot_number) .. ": " .. tostring(err))
-  end
-end
-
--- Function to select a XRNI file for a slot
-local function select_xrni_file(slot_number)
-  local file = renoise.app():prompt_for_filename_to_read({"*.xrni"}, "Select XRNI File")
-  if file then
-    get_slot_preference_xrni(slot_number).value = file
-    if slot_path_views_xrni[slot_number] then
-      slot_path_views_xrni[slot_number].text = file
-    end
-    renoise.app():show_status("XRNI file set for Slot " .. string.format("%02d", slot_number))
-  end
-end
-
--- Function to load both XRNI and XRNT from a slot
-local function load_both_from_slot(slot_number)
-  -- Load XRNI
-  local xrni_path = get_slot_preference_xrni(slot_number).value
-  if xrni_path == "" then
-    renoise.app():show_status("No XRNI file set for Slot " .. string.format("%02d", slot_number))
-    return
-  end
-
-  -- Load XRNT
-  local xrnt_path = get_slot_preference_xrnt(slot_number).value
-  if xrnt_path == "" then
-    renoise.app():show_status("No XRNT file set for Slot " .. string.format("%02d", slot_number))
-    return
-  end
-
-  -- Validate XRNI file
-  local xrni_file = io.open(xrni_path, "r")
-  if not xrni_file then
-    renoise.app():show_status("XRNI file not found: " .. xrni_path)
-    return
-  else
-    xrni_file:close()
-  end
-
-  -- Validate XRNT file
-  local xrnt_file = io.open(xrnt_path, "r")
-  if not xrnt_file then
-    renoise.app():show_status("XRNT file not found: " .. xrnt_path)
-    return
-  else
-    xrnt_file:close()
-  end
-
-  -- Load XRNI
-  local success_xrni, err_xrni = pcall(function()
-    renoise.song():insert_instrument_at(renoise.song().selected_instrument_index+1)
-    renoise.song().selected_instrument_index=renoise.song().selected_instrument_index+1
-    renoise.app():load_instrument(xrni_path)
-  end)
-
-  if not success_xrni then
-    renoise.app():show_status("Failed to load Instrument (.XRNI) from Slot " .. string.format("%02d", slot_number) .. ": " .. tostring(err_xrni))
-    return
-  end
-
-  -- Load XRNT
-  local success_xrnt, err_xrnt = pcall(function()
-    renoise.app():load_track_device_chain(xrnt_path)
-  end)
-
-  if success_xrnt then
-    renoise.app():show_status("Both Instrument (.XRNI) and Device Chain (.XRNT) loaded from Slot " .. string.format("%02d", slot_number))
-  else
-    renoise.app():show_status("Instrument (.XRNI) loaded from Slot " .. string.format("%02d", slot_number) .. " but failed to load Device Chain (.XRNT): " .. tostring(err_xrnt))
-  end
-end
-
-function pakettiDeviceChainDialog()
-  if dialog and dialog.visible then
-    dialog:close()
-    dialog = nil
-    return
-  end
-
-  -- Reset the references
-  slot_path_views_xrnt = {}
-  slot_path_views_xrni = {}
-  folder_path_view = nil
-
-  local slots_rows_xrnt = {}
-  local slots_rows_xrni = {}
-  local slots_rows_both = {}
-
-  for i = 1, 10 do
-    local slot_number = string.format("%02d", i)
-
-    -- Create XRNT textfield and store it
-    local textfield_xrnt = vb:textfield {
-      text = get_slot_preference_xrnt(i).value or "",
-      width=900,  -- Increased width as per requirement
-      notifier=function(text)
-        get_slot_preference_xrnt(i).value = text
-      end
-    }
-    slot_path_views_xrnt[i] = textfield_xrnt
-
-    -- XRNT Row
-    local row_xrnt = vb:row{
-     -- margin=2,
-      vb:text{text="Load Device Chain (.XRNT) Slot" .. slot_number .. ":",width=200 },
-      textfield_xrnt,
-      vb:button{text="Browse",notifier=function() select_xrnt_file(i) end},
-      vb:button{text="Save",notifier=function() save_device_chain_to_slot(i) end},
-      vb:button{text="Load",notifier=function() load_device_chain_from_slot(i) end}
-    }
-    slots_rows_xrnt[#slots_rows_xrnt + 1] = row_xrnt
-
-    -- Create XRNI textfield and store it
-    local textfield_xrni = vb:textfield {
-      text = get_slot_preference_xrni(i).value or "",
-      width=900,  -- Increased width as per requirement
-      notifier=function(text)
-        get_slot_preference_xrni(i).value = text
-      end
-    }
-    slot_path_views_xrni[i] = textfield_xrni
-
-    -- XRNI Row
-    local row_xrni = vb:row{
-    --  margin=2,
-      vb:text{text="Load Instrument (.XRNI) Slot" .. slot_number .. ":",width=200 },
-      textfield_xrni,
-      vb:button{
-        text="Browse",
-        notifier=function()
-          select_xrni_file(i)
-        end
-      },
-      vb:button{text="Save",notifier=function() save_instrument_to_slot(i) end},
-      vb:button{text="Load",notifier=function() load_instrument_from_slot(i) end}
-    }
-    slots_rows_xrni[#slots_rows_xrni + 1] = row_xrni
-
-    -- Both XRNI&XRNT Row
-    local row_both = vb:row{
-      vb:text{text="Load Both Instrument&Device Chain (.XRNI&.XRNT) Slot" .. slot_number .. ":",width=200 },
-      vb:button{
-        text="Load Both",
-        notifier=function()
-          load_both_from_slot(i)
-        end
-      }
-    }
-    slots_rows_both[#slots_rows_both + 1] = row_both
-  end
-
-  -- Define the content of the dialog
-  local content = vb:column{
-    vb:row{
-      vb:text{text="User XRNT/XRNI Save Folder:",width=200},
-      vb:textfield {
-        text = preferences.UserDevices.Path.value ~= "" and preferences.UserDevices.Path.value or "<Not Set, Please Set>",
-        width=900,  -- Increased width as per requirement
-        notifier=function(text)
-          preferences.UserDevices.Path.value = text
-        end
-      },
-      vb:button{
-        text="Browse",
-        notifier=function()
-          select_user_xrnt_saving_folder()
-        end
-      }
-    },
-    vb:column{vb:text{text="Load Device Chain (.XRNT) Slots (01-10)",font="bold",style="strong"},unpack(slots_rows_xrnt)},
-    vb:column{vb:text{text="Load Instrument (.XRNI) Slots (01-10)",font="bold",style="strong"},unpack(slots_rows_xrni)},
-    vb:column{vb:text{text="Load Both Instrument&Device Chain (.XRNI&.XRNT) Slots (01-10)",font="bold",style="strong"},unpack(slots_rows_both)},
-    vb:row{
-      vb:button{
-        text="Close",
-        notifier=function()
-          dialog:close()
-          dialog = nil  -- Clear the dialog reference
-        end
-      }
-    }
-  }
-
-  local keyhandler = create_keyhandler_for_dialog(
-    function() return dialog end,
-    function(value) dialog = value end
-  )
-  dialog = renoise.app():show_custom_dialog("Paketti Device Chain & Instrument Dialog", content, keyhandler)
-end
-
--- Function to add menu entries and key bindings grouped by functionality
-local function add_menu_entries_and_keybindings()
-  -- Load Device Chain (.XRNT) Slots 01-10
-  for i = 1, 10 do
-    local slot_number = string.format("%02d", i)
-
-    local menu_entry_name_xrnt = "Mixer:Paketti:Device Chains:Load Device Chain (.XRNT) Slot" .. slot_number
-    local menu_entry_name2_xrnt = "DSP Device:Paketti:Device Chains:Load Device Chain (.XRNT) Slot" .. slot_number
-    local key_binding_name_xrnt = "Global:Paketti:Load Device Chain (.XRNT) Slot " .. slot_number
-
-    renoise.tool():add_menu_entry{name=menu_entry_name_xrnt,invoke=function() load_device_chain_from_slot(i) end}
-    renoise.tool():add_menu_entry{name=menu_entry_name2_xrnt,invoke=function() load_device_chain_from_slot(i) end}
-    renoise.tool():add_keybinding{name=key_binding_name_xrnt,invoke=function() load_device_chain_from_slot(i) end}
-  end
-
-  -- Load Instrument (.XRNI) Slots 01-10
-  for i = 1, 10 do
-    local slot_number = string.format("%02d", i)
-
-    local menu_entry_name_xrni = "Mixer:Paketti:Device Chains:Load Instrument (.XRNI) Slot" .. slot_number
-    local menu_entry_name2_xrni = "DSP Device:Paketti:Device Chains:Load Instrument (.XRNI) Slot" .. slot_number
-    local key_binding_name_xrni = "Global:Paketti:Load Instrument (.XRNI) Slot " .. slot_number
-
-    renoise.tool():add_menu_entry{name=menu_entry_name_xrni,invoke=function() load_instrument_from_slot(i) end}
-    renoise.tool():add_menu_entry{name=menu_entry_name2_xrni,invoke=function() load_instrument_from_slot(i) end}
-    renoise.tool():add_keybinding{name=key_binding_name_xrni,invoke=function() load_instrument_from_slot(i) end}
-  end
-
-  -- Load Both Instrument&Device Chain (.XRNI&.XRNT) Slots 01-10
-  for i = 1, 10 do
-    local slot_number = string.format("%02d", i)
-
-    local menu_entry_name_load_both = "Mixer:Paketti:Device Chains:Load Both Instrument&Device Chain (.XRNI&.XRNT) Slot" .. slot_number
-    local menu_entry_name2_load_both = "DSP Device:Paketti:Device Chains:Load Both Instrument&Device Chain (.XRNI&.XRNT) Slot" .. slot_number
-    local key_binding_name_load_both = "Global:Paketti:Load Both Instrument&Device Chain (.XRNI&.XRNT) Slot " .. slot_number
-
-    renoise.tool():add_menu_entry{name=menu_entry_name_load_both,invoke=function() load_both_from_slot(i) end}
-    renoise.tool():add_menu_entry{name=menu_entry_name2_load_both,invoke=function() load_both_from_slot(i) end}
-    renoise.tool():add_keybinding{name=key_binding_name_load_both,invoke=function() load_both_from_slot(i) end}
-  end
-end
-
-add_menu_entries_and_keybindings()
-
 
 
 ------------------------
@@ -6571,4 +6181,165 @@ renoise.tool():add_keybinding{name = "Global:Paketti:Match Effect Column to Curr
 renoise.tool():add_midi_mapping{name = "Paketti:Match Effect Column to Current Row (Forward)",invoke = PakettiMatchEffectColumnToCurrentRowForward}
 renoise.tool():add_midi_mapping{name = "Paketti:Match Effect Column to Current Row (All Rows)",invoke = PakettiMatchEffectColumnToCurrentRowAll}
 
+-- Fit Sample Offset to Pattern
+-- Calculates sample length and spreads 0Sxx commands from 0S00 to 0SFE across pattern length
+-- This makes the sample play from beginning to end across the entire pattern
+-- Parameters:
+--   headless: if true, automatically clears track without prompting user
+function PakettiFitSampleOffsetToPattern(headless)
+  headless = headless or false  -- Default to interactive mode
+  
+  local song = renoise.song()
+  
+  -- Check if there's a selected sample
+  if not song.selected_sample or not song.selected_sample.sample_buffer.has_sample_data then
+    renoise.app():show_status("No sample selected or sample has no data")
+    print("ERROR: No sample selected or sample has no data")
+    return
+  end
+  
+  -- Check if there's a selected track
+  if not song.selected_track then
+    renoise.app():show_status("No track selected")
+    print("ERROR: No track selected")
+    return
+  end
+  
+  local sample = song.selected_sample
+  local sample_frames = sample.sample_buffer.number_of_frames
+  local sample_rate = sample.sample_buffer.sample_rate
+  local sample_duration = sample_frames / sample_rate
+  
+  local pattern_index = song.selected_pattern_index
+  local pattern = song:pattern(pattern_index)
+  local track_index = song.selected_track_index
+  local pattern_track = pattern:track(track_index)
+  local pattern_length = pattern.number_of_lines
+  
+  local mode_text = headless and " (Headless)" or ""
+  print(string.format("=== Fit Sample Offset to Pattern%s ===", mode_text))
+  print(string.format("Sample: '%s'", sample.name or "Unnamed"))
+  print(string.format("Sample length: %d frames (%.2f seconds at %.1fkHz)", sample_frames, sample_duration, sample_rate/1000))
+  print(string.format("Pattern: %d (length: %d rows)", pattern_index, pattern_length))
+  print(string.format("Track: %d ('%s')", track_index, song.selected_track.name or "Unnamed"))
+  
+  -- CRITICAL: Check for existing note to hijack BEFORE any clearing operations!
+  local current_line = song.selected_line
+  local hijack_note_value = nil
+  local hijack_instrument_value = nil
+  local hijack_note_string = "C-4"  -- Default fallback
+  
+  -- Look for existing note in current row BEFORE clearing
+  for col = 1, song.selected_track.visible_note_columns do
+    local note_column = current_line.note_columns[col]
+    if note_column.note_value ~= renoise.PatternLine.EMPTY_NOTE and 
+       note_column.note_string ~= "OFF" and 
+       note_column.note_value < 120 then
+      hijack_note_value = note_column.note_value
+      hijack_note_string = note_column.note_string
+      -- Use existing instrument if present, otherwise use selected instrument
+      if note_column.instrument_value ~= renoise.PatternLine.EMPTY_INSTRUMENT then
+        hijack_instrument_value = note_column.instrument_value
+      else
+        hijack_instrument_value = song.selected_instrument_index - 1
+      end
+      print(string.format("HIJACK: Found existing note %s (value %d) with instrument %02X on current row", 
+        hijack_note_string, hijack_note_value, hijack_instrument_value))
+      break
+    end
+  end
+  
+  -- Fallback to C-4 if no note found
+  if not hijack_note_value then
+    hijack_note_value = 48  -- C-4
+    hijack_instrument_value = song.selected_instrument_index - 1
+    print("HIJACK: No existing note found, using default C-4")
+  end
+  
+  local should_clear = false
+  
+  if headless then
+    -- Headless mode: automatically clear track
+    should_clear = true
+    print("Headless mode: automatically clearing track data...")
+  else
+    -- Interactive mode: ask user
+    -- Use the already-detected hijack note for the prompt
+    local prompt_note = hijack_note_string
+    if hijack_note_value == 48 and hijack_note_string == "C-4" then
+      prompt_note = "C-4 (default)"
+    else
+      prompt_note = hijack_note_string .. " (hijacked from current row)"
+    end
+    
+    local clear_track = renoise.app():show_prompt("Fit Sample Offset to Pattern", 
+      string.format("This will write 0Sxx commands from 0S00 to 0SFE across %d rows.\n\nSample: %s (%d frames, %.2fs)\nNote: %s\n\nClear existing track data first?", 
+        pattern_length, sample.name or "Unnamed", sample_frames, sample_duration, prompt_note),
+      {"Clear & Write", "Overwrite Only", "Cancel"})
+    
+    if clear_track == "Cancel" then
+      renoise.app():show_status("Operation cancelled")
+      return
+    end
+    
+    should_clear = (clear_track == "Clear & Write")
+  end
+  
+  -- Clear track if requested/required
+  if should_clear then
+    print("Clearing existing track data...")
+    for row = 1, pattern_length do
+      local line = pattern_track:line(row)
+      line:clear()
+    end
+  end
+
+  
+  -- Use even distribution formula: (row - 1) × (255 ÷ pattern_length)
+  local sxx_max = 0xFF -- Maximum possible Sxx value (255 in decimal)
+  
+  print(string.format("Writing 0Sxx commands across %d rows using hijacked note %s...", pattern_length, hijack_note_string))
+  
+  -- Write 0Sxx commands across the pattern
+  for row = 1, pattern_length do
+    -- Calculate which Sxx value for this row
+    -- Use formula: (row - 1) × (255 ÷ pattern_length) for even distribution
+    local sxx_value = math.floor((row - 1) * (255 / pattern_length))
+    sxx_value = math.max(0, math.min(sxx_value, 254)) -- Cap at SFE (254)
+    
+    -- Format as hex string for the S command
+    local sxx_string = string.format("%02X", sxx_value)
+    
+    -- Write to the pattern
+    local line = pattern_track:line(row)
+    
+    -- Set the 0S command in effect column 1
+    line.effect_columns[1].number_string = "0S"
+    line.effect_columns[1].amount_string = sxx_string
+    
+    -- Trigger the hijacked note to play the sample
+    line.note_columns[1].note_value = hijack_note_value
+    line.note_columns[1].instrument_value = hijack_instrument_value
+    
+    -- Debug output for first few and last few rows
+    if row <= 5 or row > pattern_length - 5 then
+      print(string.format("Row %03d: %s + 0S%s (%.1f%% through sample)", row, hijack_note_string, sxx_string, (row - 1) / (pattern_length - 1) * 100))
+    elseif row == 6 then
+      print("... (middle rows) ...")
+    end
+  end
+  
+  -- Show completion message
+  local success_msg = string.format("✓ Fit Sample Offset completed: %s + 0S00-0S%02X across %d rows", hijack_note_string, sxx_max - 1, pattern_length)
+  renoise.app():show_status(success_msg)
+  print(success_msg)
+  print(string.format("Sample will play from start to just before end across pattern length using hijacked note %s", hijack_note_string))
+  print("=====================================")
+end
+
+renoise.tool():add_menu_entry{name = "Pattern Editor:Paketti:Fit Sample Offset to Pattern (0Sxx)",invoke = function() PakettiFitSampleOffsetToPattern(false) end}
+renoise.tool():add_menu_entry{name = "Pattern Editor:Paketti:Fit Sample Offset to Pattern (0Sxx Headless)",invoke = function() PakettiFitSampleOffsetToPattern(true) end}
+
+renoise.tool():add_keybinding{name = "Pattern Editor:Paketti:Fit Sample Offset to Pattern (0Sxx)",invoke = function() PakettiFitSampleOffsetToPattern(false) end}
+renoise.tool():add_keybinding{name = "Pattern Editor:Paketti:Fit Sample Offset to Pattern (0Sxx Headless)",invoke = function() PakettiFitSampleOffsetToPattern(true) end}
   

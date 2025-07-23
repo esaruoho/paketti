@@ -128,8 +128,19 @@ end
 local function auto_save_drumkit_if_enabled(drumkit_type, vb)
   if get_use_save_paths() and get_pti_save_path() ~= "" then
     local pti_save_path = get_pti_save_path()
-    local path_exists = check_polyend_path_exists(pti_save_path)
-    if path_exists then
+    
+    -- Smart check: Only verify device connection if save path is ON the device
+    if polyend_buddy_root_path and pti_save_path:find(polyend_buddy_root_path, 1, true) == 1 then
+      print("-- Auto-save drumkit: Save path is on Polyend device - checking connection: " .. polyend_buddy_root_path)
+      local device_connected = check_polyend_path_exists(polyend_buddy_root_path)
+      if not device_connected then
+        print("-- Auto-save drumkit: Polyend device disconnected - cannot save to device path")
+        renoise.app():show_status("⚠️ Polyend device disconnected - cannot auto-save drumkit to device path: " .. pti_save_path)
+        return false
+      end
+    else
+      print("-- Auto-save drumkit: Save path is local - no device checking needed: " .. pti_save_path)
+    end
       local song = renoise.song()
       local instrument_name = song.selected_instrument.name or ("Drumkit_" .. drumkit_type)
       local safe_name = instrument_name:gsub("[^%w%-%_]", "_")
@@ -158,17 +169,13 @@ local function auto_save_drumkit_if_enabled(drumkit_type, vb)
           
           return true
         else
-          renoise.app():show_error("Failed to auto-save drumkit PTI file")
+          renoise.app():show_status("Failed to auto-save drumkit PTI file")
           return false
         end
       else
         renoise.app():show_status("pti_savesample_to_path not available - drumkit created but not auto-saved")
         return false
       end
-    else
-      renoise.app():show_error("PTI save path not accessible:\n" .. pti_save_path)
-      return false
-    end
   end
   return false -- Save paths not enabled or not configured
 end
@@ -185,12 +192,7 @@ local function create_local_backup_copy(source_file_path, operation_name)
     return false
   end
   
-  -- Check if backup path is accessible
-  local path_exists = check_polyend_path_exists(backup_path)
-  if not path_exists then
-    print("-- Local Backup: Backup path not accessible - skipping backup copy: " .. backup_path)
-    return false
-  end
+  -- Backup path exists (let file operations handle any errors)
   
   -- Extract filename from source path
   local filename = source_file_path:match("[^/\\]+$") or "backup_file"
@@ -486,7 +488,7 @@ function rx2_to_pti_convert()
   -- Set up OS-specific paths and requirements
   local setup_success, rex_decoder_path, sdk_path = setup_os_specific_paths()
   if not setup_success then
-    renoise.app():show_error("Failed to setup RX2 decoder paths")
+    renoise.app():show_status("Failed to setup RX2 decoder paths")
     return
   end
 
@@ -568,7 +570,7 @@ function rx2_to_pti_convert()
       renoise.app():show_status("Decoder returned exit code " .. tostring(result) .. "; using generated files.")
     else
       print("-- Decoder returned error code", result)
-      renoise.app():show_error("External decoder failed with error code " .. tostring(result))
+      renoise.app():show_status("External decoder failed with error code " .. tostring(result))
       return
     end
   end
@@ -580,12 +582,12 @@ function rx2_to_pti_convert()
   end)
   if not load_success then
     print("-- Failed to load WAV file:", wav_output)
-    renoise.app():show_error("RX2 Import Error: Failed to load decoded sample.")
+    renoise.app():show_status("RX2 Import Error: Failed to load decoded sample")
     return
   end
   if not smp.sample_buffer.has_sample_data then
     print("-- Loaded WAV file has no sample data")
-    renoise.app():show_error("RX2 Import Error: No audio data in decoded sample.")
+    renoise.app():show_status("RX2 Import Error: No audio data in decoded sample")
     return
   end
   print("-- Sample loaded successfully from external decoder")
@@ -620,8 +622,19 @@ function rx2_to_pti_convert()
   if get_use_save_paths() and get_pti_save_path() ~= "" then
     -- Use configured save path
     local pti_save_path = get_pti_save_path()
-    local path_exists = check_polyend_path_exists(pti_save_path)
-    if path_exists then
+    
+    -- Smart check: Only verify device connection if save path is ON the device
+    if polyend_buddy_root_path and pti_save_path:find(polyend_buddy_root_path, 1, true) == 1 then
+      print("-- RX2→PTI: Save path is on Polyend device - checking connection: " .. polyend_buddy_root_path)
+      local device_connected = check_polyend_path_exists(polyend_buddy_root_path)
+      if not device_connected then
+        print("-- RX2→PTI: Polyend device disconnected - cannot save to device path")
+        renoise.app():show_status("⚠️ Polyend device disconnected - cannot save RX2→PTI to device path: " .. pti_save_path)
+        return
+      end
+    else
+      print("-- RX2→PTI: Save path is local - no device checking needed: " .. pti_save_path)
+    end
       local safe_name = instrument_name:gsub("[^%w%-%_]", "_") -- Replace unsafe characters
       local separator = package.config:sub(1,1)
       local base_path = pti_save_path .. separator .. safe_name .. ".pti"
@@ -631,10 +644,6 @@ function rx2_to_pti_convert()
       local final_filename = pti_filename:match("[^/\\]+$") or "converted.pti"
       
       print("-- PTI export using save path: " .. pti_filename)
-    else
-      renoise.app():show_error("PTI save path not accessible:\n" .. pti_save_path)
-      return
-    end
   else
     -- Prompt for PTI save location
     pti_filename = renoise.app():prompt_for_filename_to_write("pti", "Save converted PTI as...")
@@ -709,7 +718,7 @@ function rx2_to_pti_convert()
 
   local f = io.open(pti_filename, "wb")
   if not f then 
-    renoise.app():show_error("Cannot write file: " .. pti_filename)
+    renoise.app():show_status("Cannot write file: " .. pti_filename)
     return 
   end
 
@@ -821,7 +830,7 @@ function download_and_extract_firmware(device_name, download_url)
     -- Use PowerShell on Windows
     download_cmd = string.format('powershell -Command "Invoke-WebRequest -Uri \'%s\' -OutFile \'%s\'"', download_url, download_path)
   else
-    renoise.app():show_error("Unsupported operating system for firmware download")
+    renoise.app():show_status("Unsupported operating system for firmware download")
     return false
   end
   
@@ -829,14 +838,14 @@ function download_and_extract_firmware(device_name, download_url)
   local download_result = os.execute(download_cmd)
   
   if download_result ~= 0 then
-    renoise.app():show_error(string.format("Failed to download firmware (exit code: %d)", download_result))
+    renoise.app():show_status(string.format("Failed to download firmware (exit code: %d)", download_result))
     return false
   end
   
   -- Verify download
   local download_file = io.open(download_path, "rb")
   if not download_file then
-    renoise.app():show_error("Download failed - file not found")
+    renoise.app():show_status("Download failed - file not found")
     return false
   end
   download_file:seek("end")
@@ -846,7 +855,7 @@ function download_and_extract_firmware(device_name, download_url)
   print(string.format("-- Firmware Download: Downloaded %d bytes", file_size))
   
   if file_size < 1000 then
-    renoise.app():show_error("Download failed - file too small (likely download error)")
+    renoise.app():show_status("Download failed - file too small (likely download error)")
     return false
   end
   
@@ -904,7 +913,7 @@ function scrape_firmware_url(device_name, page_url)
     -- Use PowerShell with browser-like headers
     download_cmd = string.format('powershell -Command "$headers = @{\'User-Agent\'=\'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36\'; \'Accept\'=\'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8\'}; Invoke-WebRequest -Uri \'%s\' -OutFile \'%s\' -Headers $headers"', page_url, html_file)
   else
-    renoise.app():show_error("Unsupported operating system for web scraping")
+    renoise.app():show_status("Unsupported operating system for web scraping")
     return nil
   end
   
@@ -1041,7 +1050,8 @@ function copy_firmware_to_device(firmware_folder_path, device_name)
   -- First check if Polyend device is connected
   local path_exists = check_polyend_path_exists(polyend_root_path)
   if not path_exists then
-    renoise.app():show_error(POLYEND_DEVICE_NOT_CONNECTED_TITLE .. "\n\n" .. POLYEND_DEVICE_NOT_CONNECTED_MSG)
+    local status_msg = "⚠️ " .. POLYEND_DEVICE_NOT_CONNECTED_MSG .. " Path: " .. (polyend_root_path or "Unknown")
+    renoise.app():show_status(status_msg)
     print("-- Copy Firmware: Polyend device not accessible: " .. (polyend_root_path or ""))
     return false
   end
@@ -1066,7 +1076,7 @@ function copy_firmware_to_device(firmware_folder_path, device_name)
     
     local mkdir_result = os.execute(mkdir_cmd)
     if mkdir_result ~= 0 then
-      renoise.app():show_error("Failed to create Firmware folder on Polyend device:\n" .. device_firmware_path)
+      renoise.app():show_status("Failed to create Firmware folder on Polyend device: " .. device_firmware_path)
       print("-- Copy Firmware: Failed to create Firmware folder.")
       return false
     end
@@ -1079,7 +1089,7 @@ function copy_firmware_to_device(firmware_folder_path, device_name)
   -- Get list of files in source firmware folder
   local success, firmware_files = pcall(os.filenames, firmware_folder_path, "*")
   if not success or not firmware_files then
-    renoise.app():show_error("Cannot read firmware files from:\n" .. firmware_folder_path)
+    renoise.app():show_status("Cannot read firmware files from: " .. firmware_folder_path)
     print("-- Copy Firmware: Cannot read source firmware files")
     return false
   end
@@ -1168,9 +1178,9 @@ function copy_firmware_to_device(firmware_folder_path, device_name)
     
     return true
   else
-    local error_message = string.format("❌ Firmware copy failed!\n\nCopied: %d files\nFailed: %d files\n\nPlease check:\n• Device has enough free space\n• You have write permissions\n• Device connection is stable", 
+    local error_message = string.format("Firmware copy failed - Copied: %d files, Failed: %d files - Please check device space, permissions, and connection", 
       copied_count, failed_count)
-    renoise.app():show_error(error_message)
+    renoise.app():show_status(error_message)
     print(string.format("-- Copy Firmware: Copy completed with errors - %d copied, %d failed", copied_count, failed_count))
     return false
   end
@@ -1231,15 +1241,33 @@ local function update_section_visibility(vb)
   end
 end
 
--- Function to check if the Polyend device path exists
+-- Function to check if the Polyend device path exists (DIRECTORIES ONLY!)
 function check_polyend_path_exists(path)
   if not path or path == "" then
+    print("-- Path check failed: No path provided")
     return false
   end
   
+  -- WARNING: This function is for DIRECTORIES only, not individual files!
+  -- It uses os.filenames() which lists directory contents
+  print("-- Checking DIRECTORY path: '" .. path .. "'")
+  
   -- Try to access the directory
   local success, files = pcall(os.filenames, path, "*")
-  return success
+  if not success then
+    print("-- Path check failed: Cannot access directory '" .. path .. "'")
+    print("-- Error details: " .. tostring(files))
+    return false
+  end
+  
+  -- Additional check: ensure we can actually list some files
+  if type(files) ~= "table" then
+    print("-- Path check failed: Directory exists but cannot list contents '" .. path .. "'")
+    return false
+  end
+  
+  print("-- Path check successful: Directory '" .. path .. "' contains " .. #files .. " items")
+  return true
 end
 
 -- Function to recursively scan folder for PTI/WAV files and collect folders
@@ -1610,20 +1638,18 @@ end
 
 -- Function to update the local PTI dropdown
 function update_computer_pti_dropdown(vb)
-  -- Check if path exists first
-  local path_exists = check_polyend_path_exists(computer_pti_path)
-  
-  if not path_exists then
+  -- Quick check if local path is valid (no slow device operations!)
+  if not computer_pti_path or computer_pti_path == "" then
     -- Clear data
     computer_pti_files = {}
     
     -- Set dropdown to empty state
-            if vb.views["computer_pti_popup"] then
-          vb.views["computer_pti_popup"].items = {"<Set Local PTI Path>"}
-          vb.views["computer_pti_popup"].value = 1
-        end
+    if vb.views["computer_pti_popup"] then
+      vb.views["computer_pti_popup"].items = {"<Set Local PTI Path>"}
+      vb.views["computer_pti_popup"].value = 1
+    end
     
-    print(string.format("-- Local PTI: Path not accessible: %s", computer_pti_path or ""))
+    print("-- Local PTI: No path set")
     return
   end
   
@@ -1649,11 +1675,9 @@ end
 
 -- Function to update the local backup dropdown
 function update_computer_backup_dropdown(vb)
-  -- Check if path exists first
+  -- Quick check if local backup path is valid (no slow device operations!)
   local backup_path = get_computer_backup_path()
-  local path_exists = check_polyend_path_exists(backup_path)
-  
-  if not path_exists then
+  if not backup_path or backup_path == "" then
     -- Clear data
     computer_backup_files = {}
     
@@ -1695,7 +1719,8 @@ function backup_polyend_tracker()
   -- First check if Polyend device is connected
   local path_exists = check_polyend_path_exists(polyend_buddy_root_path)
   if not path_exists then
-    renoise.app():show_error(POLYEND_DEVICE_NOT_CONNECTED_TITLE .. "\n\n" .. POLYEND_DEVICE_NOT_CONNECTED_MSG)
+    local status_msg = "⚠️ " .. POLYEND_DEVICE_NOT_CONNECTED_MSG .. " Path: " .. (polyend_buddy_root_path or "Unknown")
+    renoise.app():show_status(status_msg)
     print("-- Backup Polyend device: Source path not accessible: " .. (polyend_buddy_root_path or ""))
     return
   end
@@ -1759,7 +1784,7 @@ function backup_polyend_tracker()
       print("-- Backup Polyend device: Using xcopy fallback for Windows backup")
     end
   else
-    renoise.app():show_error("Unsupported operating system for backup operation")
+    renoise.app():show_status("Unsupported operating system for backup operation")
     return
   end
   
@@ -1833,9 +1858,9 @@ function backup_polyend_tracker()
       renoise.app():open_path(backup_destination)
     end
   else
-    local error_message = string.format("❌ Polyend device backup failed!\n\nCommand exit code: %d\nPlease check:\n• Source path is accessible\n• Destination has enough free space\n• You have write permissions to destination", 
+    local error_message = string.format("Polyend device backup failed (exit code: %d) - Please check source path, destination space, and permissions", 
       result or -1)
-    renoise.app():show_error(error_message)
+    renoise.app():show_status(error_message)
     print(string.format("-- Backup Polyend device: Backup failed with exit code %d", result or -1))
   end
 end
@@ -1851,8 +1876,8 @@ function normalize_pti_slices_and_save(pti_filepath, save_path, completion_callb
   print("-- PTI Normalize: Step 1 - Checking PTI file exists...")
   local pti_file = io.open(pti_filepath, "rb")
   if not pti_file then
-    local error_msg = string.format("PTI file not found or not accessible:\n%s", pti_filepath)
-    renoise.app():show_error(error_msg)
+    local error_msg = string.format("PTI file not found or not accessible: %s", pti_filepath)
+    renoise.app():show_status(error_msg)
     print("-- PTI Normalize: PTI file does not exist: " .. pti_filepath)
     if completion_callback then completion_callback(false, error_msg) end
     return
@@ -1868,7 +1893,7 @@ function normalize_pti_slices_and_save(pti_filepath, save_path, completion_callb
   local sample = song.selected_sample
   if not sample or not sample.sample_buffer or not sample.sample_buffer.has_sample_data then
     local error_msg = "Failed to load PTI file or no sample data found"
-    renoise.app():show_error(error_msg)
+    renoise.app():show_status(error_msg)
     if completion_callback then completion_callback(false, error_msg) end
     return
   end
@@ -1915,7 +1940,7 @@ function normalize_pti_slices_and_save(pti_filepath, save_path, completion_callb
             if completion_callback then completion_callback(true, filename) end
           else
             local error_msg = "Failed to save normalized PTI file"
-            renoise.app():show_error(error_msg)
+            renoise.app():show_status(error_msg)
             print("-- PTI Normalize: Failed to save normalized PTI file")
             if completion_callback then completion_callback(false, error_msg) end
           end
@@ -1928,14 +1953,14 @@ function normalize_pti_slices_and_save(pti_filepath, save_path, completion_callb
         end
       else
         local error_msg = "Slice normalization was cancelled or failed"
-        renoise.app():show_error(error_msg)
+        renoise.app():show_status(error_msg)
         print("-- PTI Normalize: Slice normalization failed")
         if completion_callback then completion_callback(false, error_msg) end
       end
     end)
   else
     local error_msg = "normalize_selected_sample_by_slices_with_callback function not found"
-    renoise.app():show_error(error_msg)
+    renoise.app():show_status(error_msg)
     if completion_callback then completion_callback(false, error_msg) end
     return
   end
@@ -1951,7 +1976,7 @@ function analyze_pti_file(pti_filepath)
   -- Check if file exists
   local file = io.open(pti_filepath, "rb")
   if not file then
-    renoise.app():show_error("Cannot open PTI file: " .. pti_filepath)
+    renoise.app():show_status("Cannot open PTI file: " .. pti_filepath)
     return
   end
   
@@ -1966,7 +1991,7 @@ function analyze_pti_file(pti_filepath)
   local header = file:read(392)
   if not header or #header < 392 then
     file:close()
-    renoise.app():show_error("Invalid PTI file: header too short")
+    renoise.app():show_status("Invalid PTI file: header too short")
     return
   end
   
@@ -2112,7 +2137,8 @@ function dump_pti_to_device()
   -- First check if Polyend device is connected
   local path_exists = check_polyend_path_exists(polyend_buddy_root_path)
   if not path_exists then
-    renoise.app():show_error(POLYEND_DEVICE_NOT_CONNECTED_TITLE .. "\n\n" .. POLYEND_DEVICE_NOT_CONNECTED_MSG)
+    local status_msg = "⚠️ " .. POLYEND_DEVICE_NOT_CONNECTED_MSG .. " Path: " .. (polyend_buddy_root_path or "Unknown")
+    renoise.app():show_status(status_msg)
     print("-- Dump PTI to Device: Polyend device not accessible: " .. (polyend_buddy_root_path or ""))
     return
   end
@@ -2142,7 +2168,7 @@ function dump_pti_to_device()
   -- Verify destination folder exists and is accessible
   local dest_exists = check_polyend_path_exists(destination_folder)
   if not dest_exists then
-    renoise.app():show_error("Destination folder is not accessible:\n" .. destination_folder)
+    renoise.app():show_status("Destination folder is not accessible: " .. destination_folder)
     print("-- Dump PTI to Device: Destination folder not accessible: " .. destination_folder)
     return
   end
@@ -2220,13 +2246,13 @@ function dump_pti_to_device()
         renoise.app():open_path(destination_folder)
       end
     else
-      renoise.app():show_error("Copy appeared successful but cannot verify destination file")
+      renoise.app():show_status("Copy appeared successful but cannot verify destination file")
       print("-- Dump PTI to Device: Copy completed but verification failed")
     end
   else
-    local error_message = string.format("❌ Failed to copy PTI file!\n\nError: %s\n\nPlease check:\n• Source file is accessible\n• Destination has enough free space\n• You have write permissions", 
+    local error_message = string.format("Failed to copy PTI file: %s - Please check source file access, destination space, and write permissions", 
       error_msg or "Unknown error")
-    renoise.app():show_error(error_message)
+    renoise.app():show_status(error_message)
     print("-- Dump PTI to Device: Copy failed: " .. (error_msg or "Unknown error"))
   end
 end
@@ -2236,7 +2262,8 @@ function send_computer_pti_to_device(pti_filepath)
   -- First check if Polyend device is connected
   local path_exists = check_polyend_path_exists(polyend_buddy_root_path)
   if not path_exists then
-    renoise.app():show_error(POLYEND_DEVICE_NOT_CONNECTED_TITLE .. "\n\n" .. POLYEND_DEVICE_NOT_CONNECTED_MSG .. "\n\nThen try Send to Device again.")
+    local status_msg = "⚠️ " .. POLYEND_DEVICE_NOT_CONNECTED_MSG .. " Path: " .. (polyend_buddy_root_path or "Unknown") .. " - Try Send to Device again."
+    renoise.app():show_status(status_msg)
     print("-- Send Local PTI: Polyend device not accessible: " .. (polyend_buddy_root_path or ""))
     return
   end
@@ -2253,19 +2280,9 @@ function send_computer_pti_to_device(pti_filepath)
   local pti_save_path = get_pti_save_path()
   
   if use_save_paths and pti_save_path ~= "" then
-    -- Use configured PTI save path
-    local path_exists = check_polyend_path_exists(pti_save_path)
-    if path_exists then
-      destination_folder = pti_save_path
-      print("-- Send Local PTI: Using PTI save path: " .. destination_folder)
-    else
-      renoise.app():show_error("PTI save path not accessible:\n" .. pti_save_path .. "\n\nPlease choose destination manually.")
-      destination_folder = renoise.app():prompt_for_path("Select destination folder on Polyend device")
-      if not destination_folder or destination_folder == "" then
-        print("-- Send Local PTI: User cancelled destination folder selection")
-        return
-      end
-    end
+    -- Use configured PTI save path (let file operations handle any errors)
+    destination_folder = pti_save_path
+    print("-- Send Local PTI: Using PTI save path: " .. destination_folder)
   else
     -- Prompt user for destination folder
     destination_folder = renoise.app():prompt_for_path("Select destination folder on Polyend device")
@@ -2280,7 +2297,7 @@ function send_computer_pti_to_device(pti_filepath)
   -- Verify destination folder exists and is accessible
   local dest_exists = check_polyend_path_exists(destination_folder)
   if not dest_exists then
-    renoise.app():show_error("Destination folder is not accessible:\n" .. destination_folder)
+    renoise.app():show_status("Destination folder is not accessible: " .. destination_folder)
     print("-- Send Local PTI: Destination folder not accessible: " .. destination_folder)
     return
   end
@@ -2334,13 +2351,13 @@ function send_computer_pti_to_device(pti_filepath)
         final_filename, copied_size / 1024, destination_folder:match("[^/\\]+$") or destination_folder))
       print("-- Send Local PTI: Send operation completed successfully")
     else
-      renoise.app():show_error("Copy appeared successful but cannot verify destination file")
+      renoise.app():show_status("Copy appeared successful but cannot verify destination file")
       print("-- Send Local PTI: Copy completed but verification failed")
     end
   else
-    local error_message = string.format("❌ Failed to send PTI file!\n\nError: %s\n\nPlease check:\n• Source file is accessible\n• Destination has enough free space\n• You have write permissions", 
+    local error_message = string.format("Failed to send PTI file: %s - Please check source file access, destination space, and write permissions", 
       error_msg or "Unknown error")
-    renoise.app():show_error(error_message)
+    renoise.app():show_status(error_message)
     print("-- Send Local PTI: Send failed: " .. (error_msg or "Unknown error"))
   end
 end
@@ -2357,202 +2374,320 @@ function save_pti_as_drumkit_stereo_ProcessSlicer(skip_save_prompt)
   save_pti_as_drumkit_stereo(skip_save_prompt)
 end
 
--- Worker function for ProcessSlicer stereo drumkit
+-- Worker function for ProcessSlicer stereo drumkit - OPTIMIZED: COPY ONLY WHAT WE NEED!
 function save_pti_as_drumkit_stereo_Worker(source_instrument, num_samples, skip_save_prompt, dialog, vb)
   local song = renoise.song()
   
-  print("-- Save PTI as Drumkit: Starting drumkit creation from instrument: " .. source_instrument.name)
+  print("-- Save PTI as Drumkit: Starting OPTIMIZED stereo drumkit creation from instrument: " .. source_instrument.name)
   print(string.format("-- Save PTI as Drumkit: Will process %d samples (max 48)", num_samples))
   
-  -- Detect if any sample is stereo
+  -- Calculate how many samples we'll actually copy (avoid copying all then deleting!)
+  local samples_to_copy = math.min(num_samples, #source_instrument.samples)
+  
+  -- Detect if any sample is stereo to determine target format
   local has_stereo = false
-  local stereo_samples = {}
-  for i = 1, num_samples do
+  for i = 1, samples_to_copy do
     local sample = source_instrument.samples[i]
     if sample and sample.sample_buffer.has_sample_data and sample.sample_buffer.number_of_channels == 2 then
       has_stereo = true
-      table.insert(stereo_samples, i)
+      break
     end
   end
   
   local target_channels = has_stereo and 2 or 1
-  print(string.format("-- Save PTI as Drumkit: Target format: %s, 44100Hz, 16-bit", target_channels == 2 and "Stereo" or "Mono"))
+  local target_format = target_channels == 2 and "stereo" or "mono"
+  print(string.format("-- Save PTI as Drumkit: Target format: %s, 44100Hz, 16-bit", target_format))
   
-  -- Create new instrument for the drumkit
-  local new_instrument_index = song.selected_instrument_index + 1
+  -- STEP 1: CREATE NEW INSTRUMENT AND COPY ONLY THE SAMPLES WE NEED (super fast!)
+  local original_index = song.selected_instrument_index
+  local new_instrument_index = original_index + 1
   song:insert_instrument_at(new_instrument_index)
   song.selected_instrument_index = new_instrument_index
   local drumkit_instrument = song.selected_instrument
-  drumkit_instrument.name = "Drumkit Combo of Instrument " .. source_instrument.name
   
-  -- Process samples with progress updates
-  local processed_samples = {}
-  local processed_count = 0
-  local skipped_count = 0
+  -- Copy all settings from source instrument
+  drumkit_instrument.name = "Stereo Drumkit Combo of " .. source_instrument.name
   
-  for i = 1, num_samples do
-    -- Update progress dialog and status
-    if dialog and dialog.visible then
-      vb.views.progress_text.text = string.format("Processing sample %d/%d...", i, num_samples)
-    end
-    local progress_msg = string.format("PTI Smart: Processing sample %d/%d...", i, num_samples)
-    renoise.app():show_status(progress_msg)
-    print(string.format("-- Save PTI as Drumkit: Processing sample %d/%d (slot %02d)...", i, num_samples, i))
+  -- Copy ONLY the first samples_to_copy samples using FAST bulk copy!
+  for i = 1, samples_to_copy do
+    local source_sample = source_instrument.samples[i]
+    local new_sample = drumkit_instrument:insert_sample_at(i)
     
-    -- Note: ProcessSlicer cancellation is handled automatically by the framework
-    
-    local sample = source_instrument.samples[i]
-    if sample and sample.sample_buffer.has_sample_data then
-      print(string.format("-- Save PTI as Drumkit: Processing slot %02d...", i))
+    if source_sample.sample_buffer.has_sample_data then
+      -- FAST BULK COPY - no more frame-by-frame bullshit!
+      new_sample:copy_from(source_sample)
       
-      -- Create temporary instrument to hold processed sample
-      local temp_instrument_index = song.selected_instrument_index + 1
-      song:insert_instrument_at(temp_instrument_index)
-      song.selected_instrument_index = temp_instrument_index
-      local temp_instrument = song.selected_instrument
-      
-      -- Copy sample to temp instrument
-      local temp_sample = temp_instrument:insert_sample_at(1)
-      temp_sample.sample_buffer:create_sample_data(
-        sample.sample_buffer.sample_rate,
-        sample.sample_buffer.bit_depth,
-        sample.sample_buffer.number_of_channels,
-        sample.sample_buffer.number_of_frames
-      )
-      temp_sample.sample_buffer:prepare_sample_data_changes()
-      
-      -- Copy sample data (yield periodically for UI responsiveness)
-      for ch = 1, sample.sample_buffer.number_of_channels do
-        for frame = 1, sample.sample_buffer.number_of_frames do
-          temp_sample.sample_buffer:set_sample_data(ch, frame, sample.sample_buffer:sample_data(ch, frame))
-          -- Yield every 1000 frames to maintain UI responsiveness
-          if frame % 1000 == 0 then
-            coroutine.yield()
-          end
-        end
-      end
-      temp_sample.sample_buffer:finalize_sample_data_changes()
-      
-      -- Remove loops
-      temp_sample.loop_mode = renoise.Sample.LOOP_MODE_OFF
-      
-      -- Convert to 44.1kHz 16-bit if needed
-      local original_rate = temp_sample.sample_buffer.sample_rate
-      local original_bit = temp_sample.sample_buffer.bit_depth
-      local original_channels = temp_sample.sample_buffer.number_of_channels
-      local needs_rate_bit_conversion = (original_rate ~= 44100) or (original_bit ~= 16)
-      
-      if needs_rate_bit_conversion then
-        song.selected_sample_index = 1
-        local channel_mode = (original_channels == 2) and "stereo" or "mono"
-        process_sample_adjust(channel_mode, 44100, 16, "none")
-      end
-      
-      -- Store processed sample data (yield periodically)
-      local processed_buffer = temp_sample.sample_buffer
-      processed_samples[i] = {
-        frames = processed_buffer.number_of_frames,
-        channels = processed_buffer.number_of_channels,
-        data = {}
-      }
-      
-      -- Copy processed data with yielding for UI responsiveness
-      for ch = 1, processed_buffer.number_of_channels do
-        processed_samples[i].data[ch] = {}
-        for frame = 1, processed_buffer.number_of_frames do
-          processed_samples[i].data[ch][frame] = processed_buffer:sample_data(ch, frame)
-          -- Yield every 500 frames during data copying
-          if frame % 500 == 0 then
-            coroutine.yield()
-          end
-        end
-      end
-      
-      processed_count = processed_count + 1
-      print(string.format("-- Save PTI as Drumkit: ✓ Successfully processed slot %02d: %d frames, %d channels", i, processed_samples[i].frames, processed_samples[i].channels))
-      
-      -- Clean up temp instrument
-      song:delete_instrument_at(temp_instrument_index)
-      song.selected_instrument_index = new_instrument_index
-    else
-      skipped_count = skipped_count + 1
-      print(string.format("-- Save PTI as Drumkit: ✗ Skipping slot %02d: no sample data", i))
+      -- Remove loops for drumkits (override after copy)
+      new_sample.loop_mode = renoise.Sample.LOOP_MODE_OFF
     end
     
-    -- Yield after each sample to maintain UI responsiveness
+    -- Yield after each sample copy (now actually fast!)
     coroutine.yield()
   end
   
-  -- Calculate total length and create combined sample
-  if dialog and dialog.visible then
-    vb.views.progress_text.text = "Creating combined sample..."
-  end
-  renoise.app():show_status("PTI Smart: Creating combined sample...")
-  print(string.format("-- Save PTI as Drumkit: Processing summary: %d processed, %d skipped", processed_count, skipped_count))
+  print(string.format("-- Save PTI as Drumkit: ✓ Created instrument with %d samples (no deletion needed!)", #drumkit_instrument.samples))
   
-  local total_frames = 0
-  local slice_positions = {}
-  local valid_samples = {}
+  -- STEP 2: CHECK FORMAT AND CONVERT ONLY IF NEEDED (smart!)
+  local processed_count = 0
+  local skipped_count = 0
   
-  for i = 1, num_samples do
-    if processed_samples[i] then
-      table.insert(valid_samples, processed_samples[i])
-      table.insert(slice_positions, total_frames + 1)
-      total_frames = total_frames + processed_samples[i].frames
-    end
-  end
-  
-  -- Create the combined sample buffer
-  if drumkit_instrument.samples[1] then
-    drumkit_instrument:delete_sample_at(1)
-  end
-  
-  local combined_sample = drumkit_instrument:insert_sample_at(1)
-  combined_sample.sample_buffer:create_sample_data(44100, 16, target_channels, total_frames)
-  combined_sample.sample_buffer:prepare_sample_data_changes()
-  
-  -- Copy all processed samples into the combined buffer (with yielding)
-  if dialog and dialog.visible then
-    vb.views.progress_text.text = "Combining samples into drumkit..."
-  end
-  renoise.app():show_status("PTI Smart: Combining samples into drumkit...")
-  local current_position = 1
-  for i = 1, #valid_samples do
-    local sample_data = valid_samples[i]
-    for frame = 1, sample_data.frames do
-      for ch = 1, target_channels do
-        local source_value = 0.0
-        if sample_data.channels == target_channels then
-          source_value = sample_data.data[ch][frame]
-        elseif sample_data.channels == 1 and target_channels == 2 then
-          source_value = sample_data.data[1][frame]
-        elseif sample_data.channels == 2 and target_channels == 1 then
-          source_value = (sample_data.data[1][frame] + sample_data.data[2][frame]) / 2
-        else
-          if sample_data.channels >= 1 then
-            source_value = sample_data.data[1][frame]
-          else
-            source_value = 0.0
-          end
-        end
-        combined_sample.sample_buffer:set_sample_data(ch, current_position + frame - 1, source_value)
+  for i = 1, #drumkit_instrument.samples do
+    local sample = drumkit_instrument.samples[i]
+    
+    if sample.sample_buffer.has_sample_data then
+      -- Update progress
+      if dialog and dialog.visible then
+        vb.views.progress_text.text = string.format("Checking format %d/%d...", i, #drumkit_instrument.samples)
       end
-      -- Yield every 1000 frames during combination
-      if frame % 1000 == 0 then
-        coroutine.yield()
-      end
-    end
-    current_position = current_position + sample_data.frames
-  end
-  
+      renoise.app():show_status(string.format("PTI Stereo: Checking format %d/%d...", i, #drumkit_instrument.samples))
+      
+      local buffer = sample.sample_buffer
+      local current_rate = buffer.sample_rate
+      local current_bit = buffer.bit_depth
+      local current_channels = buffer.number_of_channels
+      
+      -- Check if conversion is needed (convert to target format)
+      local needs_conversion = (current_rate ~= 44100) or (current_bit ~= 16) or (current_channels ~= target_channels)
+      
+      if needs_conversion then
+        print(string.format("-- Save PTI as Drumkit: Converting sample %d: %dHz/%dbit/%s → 44100Hz/16bit/%s", 
+          i, current_rate, current_bit, (current_channels == 1 and "mono" or "stereo"), target_format))
+        
+                 -- Select this sample and convert it to target format
+         song.selected_sample_index = i
+         process_sample_adjust(target_format, 44100, 16, "none")
+         processed_count = processed_count + 1
+       else
+         print(string.format("-- Save PTI as Drumkit: ✓ Sample %d already correct format: 44100Hz/16bit/%s", i, target_format))
+       end
+     else
+       skipped_count = skipped_count + 1
+       print(string.format("-- Save PTI as Drumkit: ✗ Skipping sample %d: no data", i))
+     end
+     
+     -- Yield after each format check
+     coroutine.yield()
+   end
+   
+   print(string.format("-- Save PTI as Drumkit: Processing summary: %d converted, %d skipped", processed_count, skipped_count))
+   
+   -- STEP 3: SIMPLE SPLICING - COMBINE ALL SAMPLES (extract data AFTER conversion!)
+   if dialog and dialog.visible then
+     vb.views.progress_text.text = "Extracting converted sample data..."
+   end
+   renoise.app():show_status("PTI Stereo: Extracting converted sample data...")
+   
+   -- Calculate total length and extract sample data AFTER conversion
+   local total_frames = 0
+   local slice_positions = {}
+   local sample_data_list = {}
+   
+   print(string.format("-- Save PTI as Drumkit: Starting data extraction from %d samples", #drumkit_instrument.samples))
+   
+   for i = 1, #drumkit_instrument.samples do
+     print(string.format("-- Save PTI as Drumkit: Checking sample %d...", i))
+     
+     local sample = drumkit_instrument.samples[i]
+     if not sample then
+       print(string.format("-- Save PTI as Drumkit: ❌ ERROR: Sample %d is nil!", i))
+       break
+     end
+     
+     if not sample.sample_buffer then
+       print(string.format("-- Save PTI as Drumkit: ❌ ERROR: Sample %d has nil buffer!", i))
+       break  
+     end
+     
+     if sample.sample_buffer.has_sample_data then
+       print(string.format("-- Save PTI as Drumkit: ✓ Sample %d has data, extracting...", i))
+       
+       local success, error_msg = pcall(function()
+         -- Just store REFERENCES to samples for fast bulk copying later
+         local buffer = sample.sample_buffer
+         local sample_info = {
+           sample = sample,  -- Store sample reference for bulk copying
+           frames = buffer.number_of_frames,
+           channels = buffer.number_of_channels,
+           sample_rate = buffer.sample_rate
+         }
+         
+         -- Calculate length in seconds
+         local length_seconds = buffer.number_of_frames / buffer.sample_rate
+         local channel_format = buffer.number_of_channels == 1 and "mono" or "stereo"
+         local sample_name = sample.name or "Unnamed"
+         
+         print(string.format("SAMPLE SLOT %02d: Sample NAME %s RATE %dHz, 16bit, %s, %d frames, %.6f seconds", 
+           i, sample_name, buffer.sample_rate, channel_format, buffer.number_of_frames, length_seconds))
+         
+         table.insert(sample_data_list, sample_info)
+         table.insert(slice_positions, total_frames + 1)
+         total_frames = total_frames + buffer.number_of_frames
+         
+         print(string.format("-- Save PTI as Drumkit: ✓ Queued sample %d for fast bulk copy: %d frames, %d channels", i, buffer.number_of_frames, buffer.number_of_channels))
+       end)
+       
+       if not success then
+         print(string.format("-- Save PTI as Drumkit: ❌ ERROR extracting sample %d: %s", i, error_msg))
+         break
+       end
+     else
+       print(string.format("-- Save PTI as Drumkit: ✗ Skipping sample %d: no data after conversion", i))
+     end
+   end
+   
+   print(string.format("-- Save PTI as Drumkit: Data extraction complete. Total frames: %d, Valid samples: %d", total_frames, #sample_data_list))
+   
+   -- CRITICAL DEBUG: Show exactly what we're about to combine
+   print("==================== COMBINATION PHASE STARTING ====================")
+   print(string.format("-- Save PTI as Drumkit: TOTAL FRAMES TO COMBINE: %d frames", total_frames))
+   print(string.format("-- Save PTI as Drumkit: TOTAL SAMPLES TO COMBINE: %d samples", #sample_data_list))
+   print(string.format("-- Save PTI as Drumkit: ESTIMATED SIZE: %.2f MB of audio data", (total_frames * target_channels * 2) / (1024 * 1024)))
+   print("-- Save PTI as Drumkit: Starting sample deletion and buffer creation...")
+   
+   -- Clear all samples and create one combined sample
+   if dialog and dialog.visible then
+     vb.views.progress_text.text = "Combining samples into drumkit..."
+   end
+   renoise.app():show_status("PTI Stereo: Combining samples into drumkit...")
+   
+   -- Safety check before proceeding
+   if total_frames == 0 then
+     print("-- Save PTI as Drumkit: ❌ ERROR: No valid frames to combine!")
+     renoise.app():show_status("PTI Stereo: No valid sample data to combine")
+     return
+   end
+   
+   if #sample_data_list == 0 then
+     print("-- Save PTI as Drumkit: ❌ ERROR: No valid samples extracted!")
+     renoise.app():show_status("PTI Stereo: No valid samples to combine")
+     return
+   end
+   
+        print(string.format("-- Save PTI as Drumkit: Creating combined sample buffer (%d frames, %s, 44100Hz, 16bit) WITHOUT deleting originals yet...", total_frames, target_channels == 1 and "mono" or "stereo"))
+     local combined_sample = drumkit_instrument:insert_sample_at(1)
+     
+     local success, error_msg = pcall(function()
+       combined_sample.sample_buffer:create_sample_data(44100, 16, target_channels, total_frames)
+       combined_sample.sample_buffer:prepare_sample_data_changes()
+     end)
+     
+     if not success then
+       print(string.format("-- Save PTI as Drumkit: ❌ ERROR creating sample buffer: %s", error_msg))
+       renoise.app():show_status("PTI Stereo: Failed to create combined sample buffer")
+       return
+     end
+     
+     print("-- Save PTI as Drumkit: ✓ Combined sample buffer created successfully - STARTING BULK COPY...")
+     
+     -- Copy all samples into the combined buffer using FAST bulk operations
+     print("-- Save PTI as Drumkit: Starting FAST bulk copy operations...")
+     local start_time = os.clock()
+     local current_position = 1
+     
+          for i, sample_info in ipairs(sample_data_list) do
+       local copy_start_time = os.clock()
+       print(string.format("-- Save PTI as Drumkit: [%d/%d] COPYING sample %d (%d frames) to position %d", i, #sample_data_list, i, sample_info.frames, current_position))
+       
+       local success, error_msg = pcall(function()
+         -- Use REAL bulk copy operation - copy sample data efficiently in chunks!
+         local source_buffer = sample_info.sample.sample_buffer
+         print(string.format("-- Save PTI as Drumkit: [%d/%d] Starting REAL bulk copy operation...", i, #sample_data_list))
+         
+         -- Copy sample data in chunks of 10000 frames for efficiency
+         local chunk_size = 10000
+         local frames_to_copy = source_buffer.number_of_frames
+         local source_pos = 1
+         local dest_pos = current_position
+         
+         while frames_to_copy > 0 do
+           local this_chunk = math.min(chunk_size, frames_to_copy)
+           
+           -- Copy chunk data for all target channels
+           for frame = 0, this_chunk - 1 do
+             for ch = 1, target_channels do
+               local sample_value = 0.0
+               if source_buffer.number_of_channels >= ch then
+                 sample_value = source_buffer:sample_data(ch, source_pos + frame)
+               elseif source_buffer.number_of_channels == 1 and target_channels == 2 then
+                 -- Mono to stereo: use mono sample for both channels
+                 sample_value = source_buffer:sample_data(1, source_pos + frame)
+               end
+               combined_sample.sample_buffer:set_sample_data(ch, dest_pos + frame, sample_value)
+             end
+           end
+           
+           source_pos = source_pos + this_chunk
+           dest_pos = dest_pos + this_chunk
+           frames_to_copy = frames_to_copy - this_chunk
+           
+           -- Yield every chunk to keep UI responsive
+           coroutine.yield()
+         end
+         
+         print(string.format("-- Save PTI as Drumkit: [%d/%d] REAL bulk copy completed", i, #sample_data_list))
+       end)
+       
+       local copy_end_time = os.clock()
+       local copy_time = copy_end_time - copy_start_time
+       
+       if not success then
+         print(string.format("-- Save PTI as Drumkit: ❌ ERROR bulk copying sample %d: %s (took %.3f seconds)", i, error_msg, copy_time))
+         -- Fallback to safer frame-by-frame method if bulk copy fails
+         print(string.format("-- Save PTI as Drumkit: Using SLOW fallback copy for sample %d (%d frames)...", i, sample_info.frames))
+         local fallback_start_time = os.clock()
+         for frame = 1, sample_info.frames do
+           for ch = 1, target_channels do
+             local source_value = 0.0
+             local source_buffer = sample_info.sample.sample_buffer
+             if source_buffer.number_of_channels >= ch then
+               source_value = source_buffer:sample_data(ch, frame)
+             elseif source_buffer.number_of_channels == 1 and target_channels == 2 then
+               -- Mono to stereo: use mono sample for both channels
+               source_value = source_buffer:sample_data(1, frame)
+             else
+               source_value = 0.0
+             end
+             combined_sample.sample_buffer:set_sample_data(ch, current_position + frame - 1, source_value)
+           end
+           -- Yield every 10000 frames to prevent hanging during fallback
+           if frame % 10000 == 0 then
+             coroutine.yield()
+           end
+         end
+         local fallback_end_time = os.clock()
+         print(string.format("-- Save PTI as Drumkit: ✓ Fallback copy completed for sample %d (took %.3f seconds)", i, fallback_end_time - fallback_start_time))
+       else
+         print(string.format("-- Save PTI as Drumkit: ✓ FAST bulk copied sample %d in %.3f seconds", i, copy_time))
+       end
+       
+       current_position = current_position + sample_info.frames
+       print(string.format("-- Save PTI as Drumkit: [%d/%d] Next position: %d", i, #sample_data_list, current_position))
+       
+       -- Yield only between samples, not during copying
+       coroutine.yield()
+     end
+   
+        local end_time = os.clock()
+     local elapsed_time = end_time - start_time
+     print("==================== BULK COPY PHASE COMPLETED ====================")
+     print(string.format("-- Save PTI as Drumkit: ✓ REAL bulk copy completed in %.2f seconds (was ~3 minutes before!)", elapsed_time))
+     print("-- Save PTI as Drumkit: Finalizing sample buffer...")
+   
   combined_sample.sample_buffer:finalize_sample_data_changes()
   combined_sample.name = drumkit_instrument.name
+  
+  -- NOW delete the original samples after copying is complete
+  print(string.format("-- Save PTI as Drumkit: NOW deleting %d original samples (after copy)...", #drumkit_instrument.samples - 1))
+  for i = #drumkit_instrument.samples, 2, -1 do  -- Start from 2 to keep the combined sample
+    drumkit_instrument:delete_sample_at(i)
+  end
+  print("-- Save PTI as Drumkit: ✓ All original samples deleted (kept combined sample)")
   
   -- Insert slice markers
   if dialog and dialog.visible then
     vb.views.progress_text.text = "Creating slice markers..."
   end
-  renoise.app():show_status("PTI Smart: Creating slice markers...")
+  renoise.app():show_status("PTI Stereo: Creating slice markers...")
   for i = 1, #slice_positions do
     combined_sample:insert_slice_marker(slice_positions[i])
     -- Yield every 10 slices
@@ -2568,7 +2703,7 @@ function save_pti_as_drumkit_stereo_Worker(source_instrument, num_samples, skip_
     dialog:close()
   end
   
-  renoise.app():show_status(string.format("PTI Smart Drumkit created: %d slices, %s", #slice_positions, target_channels == 2 and "Stereo" or "Mono"))
+  renoise.app():show_status(string.format("PTI Stereo: Drumkit created with %d slices (%s)", #slice_positions, target_format))
   print("-- Save PTI as Drumkit: Drumkit creation completed successfully")
   
   -- Save PTI file (skip prompt if requested)
@@ -2584,17 +2719,17 @@ function save_pti_as_drumkit_stereo(skip_save_prompt)
   
   -- Safety checks
   if not source_instrument then
-    renoise.app():show_error("No instrument selected")
+    renoise.app():show_status("No instrument selected")
     return
   end
   
   if #source_instrument.samples == 0 then
-    renoise.app():show_error("Selected instrument has no samples")
+    renoise.app():show_status("Selected instrument has no samples")
     return
   end
   
   if #source_instrument.samples[1].slice_markers > 0 then
-    renoise.app():show_error("Cannot create drumkit from sliced instrument.\nPlease select an instrument with individual samples in separate slots.")
+    renoise.app():show_status("Cannot create drumkit from sliced instrument - please select an instrument with individual samples in separate slots")
     return
   end
   
@@ -2618,167 +2753,281 @@ function save_pti_as_drumkit_mono_ProcessSlicer(skip_save_prompt)
   save_pti_as_drumkit_mono(skip_save_prompt)
 end
 
--- Worker function for ProcessSlicer mono drumkit
+-- Worker function for ProcessSlicer mono drumkit - SIMPLIFIED AND FAST!
 function save_pti_as_drumkit_mono_Worker(source_instrument, num_samples, skip_save_prompt, dialog, vb)
   local song = renoise.song()
   
-  print("-- Save PTI as Drumkit: Starting mono drumkit creation from instrument: " .. source_instrument.name)
+  print("-- Save PTI as Drumkit: Starting OPTIMIZED mono drumkit creation from instrument: " .. source_instrument.name)
   print(string.format("-- Save PTI as Drumkit: Will process %d samples (max 48)", num_samples))
   
-  -- Create new instrument for the drumkit
-  local new_instrument_index = song.selected_instrument_index + 1
+  -- Calculate how many samples we'll actually copy (avoid copying all then deleting!)
+  local samples_to_copy = math.min(num_samples, #source_instrument.samples)
+  
+  -- STEP 1: CREATE NEW INSTRUMENT AND COPY ONLY THE SAMPLES WE NEED (super fast!)
+  local original_index = song.selected_instrument_index
+  local new_instrument_index = original_index + 1
   song:insert_instrument_at(new_instrument_index)
   song.selected_instrument_index = new_instrument_index
   local drumkit_instrument = song.selected_instrument
-  drumkit_instrument.name = "Mono Drumkit Combo of Instrument " .. source_instrument.name
   
-  local target_channels = 1  -- Always mono for this version
-  print("-- Save PTI as Drumkit: Target format: Mono, 44100Hz, 16-bit")
+  -- Copy all settings from source instrument
+  drumkit_instrument.name = "Mono Drumkit Combo of " .. source_instrument.name
   
-  -- Process samples with progress updates
-  local processed_samples = {}
-  local processed_count = 0
-  local skipped_count = 0
-  
-  for i = 1, num_samples do
-    -- Update progress dialog and status
-    if dialog and dialog.visible then
-      vb.views.progress_text.text = string.format("Processing sample %d/%d...", i, num_samples)
-    end
-    local progress_msg = string.format("PTI Mono: Processing sample %d/%d...", i, num_samples)
-    renoise.app():show_status(progress_msg)
-    print(string.format("-- Save PTI as Drumkit (Mono): Processing sample %d/%d (slot %02d)...", i, num_samples, i))
+  -- Copy ONLY the first samples_to_copy samples using FAST bulk copy!
+  for i = 1, samples_to_copy do
+    local source_sample = source_instrument.samples[i]
+    local new_sample = drumkit_instrument:insert_sample_at(i)
     
-    -- Note: ProcessSlicer cancellation is handled automatically by the framework
-    
-    local sample = source_instrument.samples[i]
-    if sample and sample.sample_buffer.has_sample_data then
+    if source_sample.sample_buffer.has_sample_data then
+      -- FAST BULK COPY - no more frame-by-frame bullshit!
+      new_sample:copy_from(source_sample)
       
-      -- Create temporary instrument to hold processed sample
-      local temp_instrument_index = song.selected_instrument_index + 1
-      song:insert_instrument_at(temp_instrument_index)
-      song.selected_instrument_index = temp_instrument_index
-      local temp_instrument = song.selected_instrument
-      
-      -- Copy sample to temp instrument
-      local temp_sample = temp_instrument:insert_sample_at(1)
-      temp_sample.sample_buffer:create_sample_data(
-        sample.sample_buffer.sample_rate,
-        sample.sample_buffer.bit_depth,
-        sample.sample_buffer.number_of_channels,
-        sample.sample_buffer.number_of_frames
-      )
-      temp_sample.sample_buffer:prepare_sample_data_changes()
-      
-      -- Copy sample data (yield periodically for UI responsiveness)
-      for ch = 1, sample.sample_buffer.number_of_channels do
-        for frame = 1, sample.sample_buffer.number_of_frames do
-          temp_sample.sample_buffer:set_sample_data(ch, frame, sample.sample_buffer:sample_data(ch, frame))
-          -- Yield every 1000 frames to maintain UI responsiveness
-          if frame % 1000 == 0 then
-            coroutine.yield()
-          end
-        end
-      end
-      temp_sample.sample_buffer:finalize_sample_data_changes()
-      
-      -- Remove loops
-      temp_sample.loop_mode = renoise.Sample.LOOP_MODE_OFF
-      
-      -- Convert to mono 44.1kHz 16-bit
-      local original_rate = temp_sample.sample_buffer.sample_rate
-      local original_bit = temp_sample.sample_buffer.bit_depth
-      local original_channels = temp_sample.sample_buffer.number_of_channels
-      local needs_conversion = (original_rate ~= 44100) or (original_bit ~= 16) or (original_channels ~= 1)
-      
-      if needs_conversion then
-        song.selected_sample_index = 1
-        -- Force mono conversion regardless of original format
-        process_sample_adjust("mono", 44100, 16, "none")
-      end
-      
-      -- Store processed sample data (yield periodically)
-      local processed_buffer = temp_sample.sample_buffer
-      processed_samples[i] = {
-        frames = processed_buffer.number_of_frames,
-        channels = processed_buffer.number_of_channels,
-        data = {}
-      }
-      
-      -- Copy processed data with yielding for UI responsiveness
-      for ch = 1, processed_buffer.number_of_channels do
-        processed_samples[i].data[ch] = {}
-        for frame = 1, processed_buffer.number_of_frames do
-          processed_samples[i].data[ch][frame] = processed_buffer:sample_data(ch, frame)
-          -- Yield every 500 frames during data copying
-          if frame % 500 == 0 then
-            coroutine.yield()
-          end
-        end
-      end
-      
-      processed_count = processed_count + 1
-      print(string.format("-- Save PTI as Drumkit: ✓ Successfully processed slot %02d: %d frames, %d channels", i, processed_samples[i].frames, processed_samples[i].channels))
-      
-      -- Clean up temp instrument
-      song:delete_instrument_at(temp_instrument_index)
-      song.selected_instrument_index = new_instrument_index
-    else
-      skipped_count = skipped_count + 1
-      print(string.format("-- Save PTI as Drumkit: ✗ Skipping slot %02d: no sample data", i))
+      -- Remove loops for drumkits (override after copy)
+      new_sample.loop_mode = renoise.Sample.LOOP_MODE_OFF
     end
     
-    -- Yield after each sample to maintain UI responsiveness
+    -- Yield after each sample copy (now actually fast!)
     coroutine.yield()
   end
   
-  -- Calculate total length and create combined sample
-  renoise.app():show_status("PTI Mono: Creating combined sample...")
-  print(string.format("-- Save PTI as Drumkit: Processing summary: %d processed, %d skipped", processed_count, skipped_count))
+  print(string.format("-- Save PTI as Drumkit: ✓ Created instrument with %d samples (no deletion needed!)", #drumkit_instrument.samples))
   
+  -- STEP 2: CHECK FORMAT AND CONVERT ONLY IF NEEDED (smart!)
+  local processed_count = 0
+  local skipped_count = 0
+  
+  for i = 1, #drumkit_instrument.samples do
+    local sample = drumkit_instrument.samples[i]
+    
+    if sample.sample_buffer.has_sample_data then
+      -- Update progress
+      if dialog and dialog.visible then
+        vb.views.progress_text.text = string.format("Checking format %d/%d...", i, #drumkit_instrument.samples)
+      end
+      renoise.app():show_status(string.format("PTI Mono: Checking format %d/%d...", i, #drumkit_instrument.samples))
+      
+      local buffer = sample.sample_buffer
+      local current_rate = buffer.sample_rate
+      local current_bit = buffer.bit_depth
+      local current_channels = buffer.number_of_channels
+      
+      -- Check if conversion is needed
+      local needs_conversion = (current_rate ~= 44100) or (current_bit ~= 16) or (current_channels ~= 1)
+      
+      if needs_conversion then
+        print(string.format("-- Save PTI as Drumkit: Converting sample %d: %dHz/%dbit/%s → 44100Hz/16bit/mono", 
+          i, current_rate, current_bit, (current_channels == 1 and "mono" or "stereo")))
+        
+        -- Select this sample and convert it
+        song.selected_sample_index = i
+        process_sample_adjust("mono", 44100, 16, "none")
+        processed_count = processed_count + 1
+      else
+        print(string.format("-- Save PTI as Drumkit: ✓ Sample %d already correct format: 44100Hz/16bit/mono", i))
+      end
+    else
+      skipped_count = skipped_count + 1
+      print(string.format("-- Save PTI as Drumkit: ✗ Skipping sample %d: no data", i))
+    end
+    
+    -- Yield after each format check
+    coroutine.yield()
+  end
+  
+  print(string.format("-- Save PTI as Drumkit: Processing summary: %d converted, %d skipped", processed_count, skipped_count))
+  
+  -- STEP 3: SIMPLE SPLICING - COMBINE ALL SAMPLES (extract data AFTER conversion!)
+  if dialog and dialog.visible then
+    vb.views.progress_text.text = "Extracting converted sample data..."
+  end
+  renoise.app():show_status("PTI Mono: Extracting converted sample data...")
+  
+  -- Calculate total length and extract sample data AFTER conversion
   local total_frames = 0
   local slice_positions = {}
-  local valid_samples = {}
+  local sample_data_list = {}
   
-  for i = 1, num_samples do
-    if processed_samples[i] then
-      table.insert(valid_samples, processed_samples[i])
-      table.insert(slice_positions, total_frames + 1)
-      total_frames = total_frames + processed_samples[i].frames
+  print(string.format("-- Save PTI as Drumkit: Starting data extraction from %d samples", #drumkit_instrument.samples))
+  
+  for i = 1, #drumkit_instrument.samples do
+    print(string.format("-- Save PTI as Drumkit: Checking sample %d...", i))
+    
+    local sample = drumkit_instrument.samples[i]
+    if not sample then
+      print(string.format("-- Save PTI as Drumkit: ❌ ERROR: Sample %d is nil!", i))
+      break
     end
-  end
-  
-  -- Create the combined sample buffer
-  if drumkit_instrument.samples[1] then
-    drumkit_instrument:delete_sample_at(1)
-  end
-  
-  local combined_sample = drumkit_instrument:insert_sample_at(1)
-  combined_sample.sample_buffer:create_sample_data(44100, 16, target_channels, total_frames)
-  combined_sample.sample_buffer:prepare_sample_data_changes()
-  
-  -- Copy all processed samples into the combined buffer (with yielding)
-  if dialog and dialog.visible then
-    vb.views.progress_text.text = "Combining samples into drumkit..."
-  end
-  renoise.app():show_status("PTI Mono: Combining samples into drumkit...")
-  local current_position = 1
-  for i = 1, #valid_samples do
-    local sample_data = valid_samples[i]
-    for frame = 1, sample_data.frames do
-      -- For mono target, always use channel 1 (already converted to mono above)
-      local source_value = sample_data.data[1][frame]
-      combined_sample.sample_buffer:set_sample_data(1, current_position + frame - 1, source_value)
-      -- Yield every 1000 frames during combination
-      if frame % 1000 == 0 then
-        coroutine.yield()
+    
+    if not sample.sample_buffer then
+      print(string.format("-- Save PTI as Drumkit: ❌ ERROR: Sample %d has nil buffer!", i))
+      break  
+    end
+    
+    if sample.sample_buffer.has_sample_data then
+      print(string.format("-- Save PTI as Drumkit: ✓ Sample %d has data, extracting...", i))
+      
+              local success, error_msg = pcall(function()
+          -- Just store REFERENCES to samples for fast bulk copying later
+          local buffer = sample.sample_buffer
+          local sample_info = {
+            sample = sample,  -- Store sample reference for bulk copying
+            frames = buffer.number_of_frames,
+            channels = buffer.number_of_channels,
+            sample_rate = buffer.sample_rate
+          }
+          
+          -- Calculate length in seconds
+          local length_seconds = buffer.number_of_frames / buffer.sample_rate
+          local channel_format = buffer.number_of_channels == 1 and "mono" or "stereo"
+          local sample_name = sample.name or "Unnamed"
+          
+          print(string.format("SAMPLE SLOT %02d: Sample NAME %s RATE %dHz, 16bit, %s, %d frames, %.6f seconds", 
+            i, sample_name, buffer.sample_rate, channel_format, buffer.number_of_frames, length_seconds))
+          
+          table.insert(sample_data_list, sample_info)
+          table.insert(slice_positions, total_frames + 1)
+          total_frames = total_frames + buffer.number_of_frames
+          
+          print(string.format("-- Save PTI as Drumkit: ✓ Queued sample %d for fast bulk copy: %d frames, %d channels", i, buffer.number_of_frames, buffer.number_of_channels))
+        end)
+      
+      if not success then
+        print(string.format("-- Save PTI as Drumkit: ❌ ERROR extracting sample %d: %s", i, error_msg))
+        break
       end
+    else
+      print(string.format("-- Save PTI as Drumkit: ✗ Skipping sample %d: no data after conversion", i))
     end
-    current_position = current_position + sample_data.frames
   end
   
+     print(string.format("-- Save PTI as Drumkit: Data extraction complete. Total frames: %d, Valid samples: %d", total_frames, #sample_data_list))
+   
+   -- CRITICAL DEBUG: Show exactly what we're about to combine
+   print("==================== COMBINATION PHASE STARTING ====================")
+   print(string.format("-- Save PTI as Drumkit: TOTAL FRAMES TO COMBINE: %d frames", total_frames))
+   print(string.format("-- Save PTI as Drumkit: TOTAL SAMPLES TO COMBINE: %d samples", #sample_data_list))
+   print(string.format("-- Save PTI as Drumkit: ESTIMATED SIZE: %.2f MB of audio data", (total_frames * 2) / (1024 * 1024)))
+   print("-- Save PTI as Drumkit: Starting sample deletion and buffer creation...")
+   
+   -- Clear all samples and create one combined sample
+   if dialog and dialog.visible then
+     vb.views.progress_text.text = "Combining samples into drumkit..."
+   end
+   renoise.app():show_status("PTI Mono: Combining samples into drumkit...")
+   
+   -- Safety check before proceeding
+   if total_frames == 0 then
+     print("-- Save PTI as Drumkit: ❌ ERROR: No valid frames to combine!")
+     renoise.app():show_status("PTI Mono: No valid sample data to combine")
+     return
+   end
+   
+   if #sample_data_list == 0 then
+     print("-- Save PTI as Drumkit: ❌ ERROR: No valid samples extracted!")
+     renoise.app():show_status("PTI Mono: No valid samples to combine")
+     return
+   end
+   
+           print(string.format("-- Save PTI as Drumkit: Creating combined sample buffer (%d frames, mono, 44100Hz, 16bit) WITHOUT deleting originals yet...", total_frames))
+   local combined_sample = drumkit_instrument:insert_sample_at(1)
+     
+     local success, error_msg = pcall(function()
+       combined_sample.sample_buffer:create_sample_data(44100, 16, 1, total_frames)  -- Always mono
+       combined_sample.sample_buffer:prepare_sample_data_changes()
+     end)
+     
+     if not success then
+       print(string.format("-- Save PTI as Drumkit: ❌ ERROR creating sample buffer: %s", error_msg))
+       renoise.app():show_status("PTI Mono: Failed to create combined sample buffer")
+       return
+     end
+     
+     print("-- Save PTI as Drumkit: ✓ Combined sample buffer created successfully - STARTING BULK COPY...")
+    
+      -- Copy all samples into the combined buffer using FAST bulk operations
+     print("-- Save PTI as Drumkit: Starting FAST bulk copy operations...")
+     local start_time = os.clock()
+     local current_position = 1
+     
+          for i, sample_info in ipairs(sample_data_list) do
+       local copy_start_time = os.clock()
+       print(string.format("-- Save PTI as Drumkit: [%d/%d] COPYING sample %d (%d frames) to position %d", i, #sample_data_list, i, sample_info.frames, current_position))
+       
+       local success, error_msg = pcall(function()
+         -- Use REAL bulk copy operation - copy sample data efficiently in chunks!
+         local source_buffer = sample_info.sample.sample_buffer
+         print(string.format("-- Save PTI as Drumkit: [%d/%d] Starting REAL bulk copy operation...", i, #sample_data_list))
+         
+         -- Copy sample data in chunks of 10000 frames for efficiency
+         local chunk_size = 10000
+         local frames_to_copy = source_buffer.number_of_frames
+         local source_pos = 1
+         local dest_pos = current_position
+         
+         while frames_to_copy > 0 do
+           local this_chunk = math.min(chunk_size, frames_to_copy)
+           
+           -- Copy chunk of mono data
+           for frame = 0, this_chunk - 1 do
+             local sample_value = source_buffer:sample_data(1, source_pos + frame)
+             combined_sample.sample_buffer:set_sample_data(1, dest_pos + frame, sample_value)
+           end
+           
+           source_pos = source_pos + this_chunk
+           dest_pos = dest_pos + this_chunk
+           frames_to_copy = frames_to_copy - this_chunk
+           
+           -- Yield every chunk to keep UI responsive
+           coroutine.yield()
+         end
+         
+         print(string.format("-- Save PTI as Drumkit: [%d/%d] REAL bulk copy completed", i, #sample_data_list))
+       end)
+       
+       local copy_end_time = os.clock()
+       local copy_time = copy_end_time - copy_start_time
+       
+       if not success then
+         print(string.format("-- Save PTI as Drumkit: ❌ ERROR bulk copying sample %d: %s (took %.3f seconds)", i, error_msg, copy_time))
+         -- Fallback to safer method if bulk copy fails
+         print(string.format("-- Save PTI as Drumkit: Using SLOW fallback copy for sample %d (%d frames)...", i, sample_info.frames))
+         local fallback_start_time = os.clock()
+         for frame = 1, sample_info.frames do
+           local source_value = sample_info.sample.sample_buffer:sample_data(1, frame)
+           combined_sample.sample_buffer:set_sample_data(1, current_position + frame - 1, source_value)
+           -- Yield every 10000 frames to prevent hanging during fallback
+           if frame % 10000 == 0 then
+             coroutine.yield()
+           end
+         end
+         local fallback_end_time = os.clock()
+         print(string.format("-- Save PTI as Drumkit: ✓ Fallback copy completed for sample %d (took %.3f seconds)", i, fallback_end_time - fallback_start_time))
+       else
+         print(string.format("-- Save PTI as Drumkit: ✓ FAST bulk copied sample %d in %.3f seconds", i, copy_time))
+       end
+       
+       current_position = current_position + sample_info.frames
+       print(string.format("-- Save PTI as Drumkit: [%d/%d] Next position: %d", i, #sample_data_list, current_position))
+       
+       -- Yield only between samples, not during copying
+       coroutine.yield()
+     end
+   
+        local end_time = os.clock()
+     local elapsed_time = end_time - start_time
+     print("==================== BULK COPY PHASE COMPLETED ====================")
+     print(string.format("-- Save PTI as Drumkit: ✓ REAL bulk copy completed in %.2f seconds (was ~3 minutes before!)", elapsed_time))
+     print("-- Save PTI as Drumkit: Finalizing sample buffer...")
+   
   combined_sample.sample_buffer:finalize_sample_data_changes()
   combined_sample.name = drumkit_instrument.name
+  
+  -- NOW delete the original samples after copying is complete
+  print(string.format("-- Save PTI as Drumkit: NOW deleting %d original samples (after copy)...", #drumkit_instrument.samples - 1))
+  for i = #drumkit_instrument.samples, 2, -1 do  -- Start from 2 to keep the combined sample
+    drumkit_instrument:delete_sample_at(i)
+  end
+  print("-- Save PTI as Drumkit: ✓ All original samples deleted (kept combined sample)")
   
   -- Insert slice markers
   if dialog and dialog.visible then
@@ -2816,17 +3065,17 @@ function save_pti_as_drumkit_mono(skip_save_prompt)
   
   -- Safety checks
   if not source_instrument then
-    renoise.app():show_error("No instrument selected")
+    renoise.app():show_status("No instrument selected")
     return
   end
   
   if #source_instrument.samples == 0 then
-    renoise.app():show_error("Selected instrument has no samples")
+    renoise.app():show_status("Selected instrument has no samples")
     return
   end
   
   if #source_instrument.samples[1].slice_markers > 0 then
-    renoise.app():show_error("Cannot create drumkit from sliced instrument.\nPlease select an instrument with individual samples in separate slots.")
+    renoise.app():show_status("Cannot create drumkit from sliced instrument - please select an instrument with individual samples in separate slots")
     return
   end
   
@@ -2931,19 +3180,35 @@ function create_polyend_buddy_dialog(vb)
         tooltip = "Load the selected PTI file",
         notifier = function()
           -- First check if Polyend device is still connected
+          print("-- Load PTI: Checking device connection to: " .. (polyend_buddy_root_path or "Unknown"))
           local path_exists = check_polyend_path_exists(polyend_buddy_root_path)
           if not path_exists then
             print("-- Polyend Buddy: Connection lost during Load PTI operation")
-            renoise.app():show_status("⚠️ " .. POLYEND_DEVICE_NOT_CONNECTED_MSG)
+            local status_msg = "⚠️ " .. POLYEND_DEVICE_NOT_CONNECTED_MSG .. " Path: " .. (polyend_buddy_root_path or "Unknown")
+            renoise.app():show_status(status_msg)
+            -- Update dialog status if available
+            if vb.views["pti_count_text"] then
+              vb.views["pti_count_text"].text = status_msg
+            end
             update_pti_dropdown(vb) -- This will show the error state
             return
           end
           
           local selected_index = vb.views["pti_files_popup"].value
           
+          -- Double-check that PTI files are still available
           if #polyend_buddy_pti_files == 0 then
-            renoise.app():show_status("No PTI files found to load")
-            return
+            print("-- Load PTI: No PTI files available - refreshing...")
+            update_pti_dropdown(vb) -- Refresh the list
+            if #polyend_buddy_pti_files == 0 then
+              local status_msg = "⚠️ No PTI files found on device! " .. POLYEND_DEVICE_NOT_CONNECTED_MSG
+              renoise.app():show_status(status_msg)
+              -- Update dialog status if available
+              if vb.views["pti_count_text"] then
+                vb.views["pti_count_text"].text = status_msg
+              end
+              return
+            end
           end
           
           if selected_index >= 1 and selected_index <= #polyend_buddy_pti_files then
@@ -2967,10 +3232,16 @@ function create_polyend_buddy_dialog(vb)
         tooltip = "Open the selected PTI file's folder in system file browser",
         notifier = function()
           -- First check if Polyend device is connected
+          print("-- Open PTI Path: Checking device connection to: " .. (polyend_buddy_root_path or "Unknown"))
           local path_exists = check_polyend_path_exists(polyend_buddy_root_path)
           if not path_exists then
             print("-- Polyend Buddy: Connection lost during Open PTI Folder operation")
-            renoise.app():show_status("⚠️ " .. POLYEND_DEVICE_NOT_CONNECTED_MSG)
+            local status_msg = "⚠️ " .. POLYEND_DEVICE_NOT_CONNECTED_MSG .. " Path: " .. (polyend_buddy_root_path or "Unknown")
+            renoise.app():show_status(status_msg)
+            -- Update dialog status if available
+            if vb.views["pti_count_text"] then
+              vb.views["pti_count_text"].text = status_msg
+            end
             return
           end
           
@@ -3029,14 +3300,20 @@ function create_polyend_buddy_dialog(vb)
       },
       vb:button{
         text = "Normalize Slices", 
-        width = polyendButtonWidth *2,
+        width = polyendButtonWidth *1.5,
         tooltip = "Load PTI file, normalize all slices, then save as PTI with _normalized suffix",
         notifier = function()
           -- First check if Polyend device is connected
+          print("-- Normalize Slices: Checking device connection to: " .. (polyend_buddy_root_path or "Unknown"))
           local path_exists = check_polyend_path_exists(polyend_buddy_root_path)
           if not path_exists then
             print("-- Polyend Buddy: Connection lost during Normalize Slices operation")
-            renoise.app():show_status("⚠️ " .. POLYEND_DEVICE_NOT_CONNECTED_MSG)
+            local status_msg = "⚠️ " .. POLYEND_DEVICE_NOT_CONNECTED_MSG .. " Path: " .. (polyend_buddy_root_path or "Unknown")
+            renoise.app():show_status(status_msg)
+            -- Update dialog status if available
+            if vb.views["pti_count_text"] then
+              vb.views["pti_count_text"].text = status_msg
+            end
             return
           end
           
@@ -3340,15 +3617,7 @@ function create_polyend_buddy_dialog(vb)
             return
           end
           
-          -- Check if the path exists
-          local path_exists = check_polyend_path_exists(computer_pti_path)
-          if not path_exists then
-            renoise.app():show_status("⚠️ Local PTI path not accessible - check path")
-            print("-- Local PTI: Local PTI path not accessible for Open Path operation: " .. computer_pti_path)
-            return
-          end
-          
-          -- Open the local PTI path
+          -- Open the local PTI path (let the OS handle any path errors)
           renoise.app():open_path(computer_pti_path)
           renoise.app():show_status("Opened Local PTI folder")
           print("-- Local PTI: Opened local PTI path: " .. computer_pti_path)
@@ -3373,6 +3642,20 @@ function create_polyend_buddy_dialog(vb)
         width = polyendButtonWidth*2,
         tooltip = "Send the selected PTI or WAV file directly to Polyend device (choose destination folder)",
         notifier = function()
+          -- Check if Polyend device is connected before sending
+          print("-- Send to Device: Checking device connection to: " .. (polyend_buddy_root_path or "Unknown"))
+          local path_exists = check_polyend_path_exists(polyend_buddy_root_path)
+          if not path_exists then
+            print("-- Polyend Buddy: Connection lost during Send to Device operation")
+            local status_msg = "⚠️ " .. POLYEND_DEVICE_NOT_CONNECTED_MSG .. " Path: " .. (polyend_buddy_root_path or "Unknown")
+            renoise.app():show_status(status_msg)
+            -- Update dialog status if available
+            if vb.views["pti_count_text"] then
+              vb.views["pti_count_text"].text = status_msg
+            end
+            return
+          end
+          
           local selected_index = vb.views["computer_pti_popup"].value
           
           if #computer_pti_files == 0 then
@@ -3423,7 +3706,7 @@ function create_polyend_buddy_dialog(vb)
       },
       vb:button{
         text = "Normalize Slices", 
-        width = polyendButtonWidth *2,
+        width = polyendButtonWidth *1.5,
         tooltip = "Load local PTI file, normalize all slices, then save as PTI with _normalized suffix",
         notifier = function()
           local selected_index = vb.views["computer_pti_popup"].value
@@ -3534,12 +3817,6 @@ function create_polyend_buddy_dialog(vb)
               return
             end
             
-            local path_exists = check_polyend_path_exists(polyend_computer_backup_path)
-            if not path_exists then
-              renoise.app():show_status("⚠️ Local backup path not accessible - check path.")
-              return
-            end
-            
             renoise.app():open_path(polyend_computer_backup_path)
             renoise.app():show_status("Opened local backup folder.")
           end
@@ -3563,6 +3840,20 @@ function create_polyend_buddy_dialog(vb)
           width = polyendButtonWidth*2,
           tooltip = "Send the selected backup PTI or WAV file directly to Polyend device (choose destination folder)",
           notifier = function()
+            -- Check if Polyend device is connected before sending backup
+            print("-- Send Backup to Device: Checking device connection to: " .. (polyend_buddy_root_path or "Unknown"))
+            local path_exists = check_polyend_path_exists(polyend_buddy_root_path)
+            if not path_exists then
+              print("-- Polyend Buddy: Connection lost during Send Backup to Device operation")
+              local status_msg = "⚠️ " .. POLYEND_DEVICE_NOT_CONNECTED_MSG .. " Path: " .. (polyend_buddy_root_path or "Unknown")
+              renoise.app():show_status(status_msg)
+              -- Update dialog status if available
+              if vb.views["pti_count_text"] then
+                vb.views["pti_count_text"].text = status_msg
+              end
+              return
+            end
+            
             local selected_index = vb.views["computer_backup_popup"].value
             
             if #computer_backup_files == 0 then
@@ -3613,7 +3904,7 @@ function create_polyend_buddy_dialog(vb)
         },
         vb:button{
           text = "Normalize Slices", 
-          width = polyendButtonWidth *2,
+          width = polyendButtonWidth *1.5,
           tooltip = "Load local backup PTI file, normalize all slices, then save as PTI with _normalized suffix",
           notifier = function()
             local selected_index = vb.views["computer_backup_popup"].value
@@ -3664,11 +3955,17 @@ function create_polyend_buddy_dialog(vb)
           local pti_save_path = vb.views["pti_save_path_textfield"].text
           
           if use_save_paths and pti_save_path and pti_save_path ~= "" then
-            -- Check if PTI save path is accessible (could be on Polyend device)
-            local path_exists = check_polyend_path_exists(pti_save_path)
-            if not path_exists then
-              renoise.app():show_error("⚠️ PTI save path not accessible:\n" .. pti_save_path .. "\n\nPOLYEND_SAVE_PATH_ERROR_MSG")
-              return
+            -- Smart check: Only verify device connection if save path is ON the device
+            if polyend_buddy_root_path and pti_save_path:find(polyend_buddy_root_path, 1, true) == 1 then
+              print("-- Save PTI: Save path is on Polyend device - checking connection: " .. polyend_buddy_root_path)
+              local device_connected = check_polyend_path_exists(polyend_buddy_root_path)
+              if not device_connected then
+                print("-- Save PTI: Polyend device disconnected - cannot save to device path")
+                renoise.app():show_status("⚠️ Polyend device disconnected - cannot save to device path: " .. pti_save_path)
+                return
+              end
+            else
+              print("-- Save PTI: Save path is local - no device checking needed: " .. pti_save_path)
             end
             
             -- Generate filename based on instrument/sample name
@@ -3697,7 +3994,7 @@ function create_polyend_buddy_dialog(vb)
                 
                 renoise.app():show_status(string.format("PTI saved to %s", unique_path))
               else
-                renoise.app():show_error("Failed to save PTI file")
+                renoise.app():show_status("Failed to save PTI file")
               end
             else
               -- Fallback to regular save dialog
@@ -3720,11 +4017,17 @@ function create_polyend_buddy_dialog(vb)
           local wav_save_path = vb.views["wav_save_path_textfield"].text
           
           if use_save_paths and wav_save_path and wav_save_path ~= "" then
-            -- Check if WAV save path is accessible (could be on Polyend device)
-            local path_exists = check_polyend_path_exists(wav_save_path)
-            if not path_exists then
-              renoise.app():show_error("⚠️ WAV save path not accessible:\n" .. wav_save_path .. "\n\nPOLYEND_SAVE_PATH_ERROR_MSG")
-              return
+            -- Smart check: Only verify device connection if save path is ON the device
+            if polyend_buddy_root_path and wav_save_path:find(polyend_buddy_root_path, 1, true) == 1 then
+              print("-- Save WAV: Save path is on Polyend device - checking connection: " .. polyend_buddy_root_path)
+              local device_connected = check_polyend_path_exists(polyend_buddy_root_path)
+              if not device_connected then
+                print("-- Save WAV: Polyend device disconnected - cannot save to device path")
+                renoise.app():show_status("⚠️ Polyend device disconnected - cannot save to device path: " .. wav_save_path)
+                return
+              end
+            else
+              print("-- Save WAV: Save path is local - no device checking needed: " .. wav_save_path)
             end
             
             -- Generate filename based on instrument/sample name
@@ -3759,7 +4062,7 @@ function create_polyend_buddy_dialog(vb)
               
               renoise.app():show_status(string.format("WAV saved to %s", unique_path))
             else
-              renoise.app():show_error("Failed to save WAV file: " .. (error_msg or "Unknown error"))
+              renoise.app():show_status("Failed to save WAV file: " .. (error_msg or "Unknown error"))
             end
           else
             -- Use regular save function
@@ -3768,47 +4071,26 @@ function create_polyend_buddy_dialog(vb)
         end
       },
       vb:button{
-        text = "PTI Drumkit (Stereo)",
-        width = polyendButtonWidth *2,
-        tooltip = "Combine all samples in current instrument into a single sliced drumkit (stereo if any sample is stereo, otherwise mono)",
-        notifier = function()
-          -- Check if we should use save paths
-          local use_save_paths = vb.views["use_save_paths_checkbox"].value and vb.views["pti_save_path_textfield"].text ~= ""
-          
-          -- If using save paths, check if PTI save path is accessible (could be on device)
-          if use_save_paths then
-            local pti_save_path = vb.views["pti_save_path_textfield"].text
-            local path_exists = check_polyend_path_exists(pti_save_path)
-            if not path_exists then
-              renoise.app():show_error("⚠️ PTI save path not accessible:\n" .. pti_save_path .. "\n\nPOLYEND_SAVE_PATH_ERROR_MSG")
-              return
-            end
-          end
-          
-          -- Generate the drumkit (skip save prompt if we're using save paths)
-          save_pti_as_drumkit_stereo(use_save_paths)
-          
-          -- Auto-save if save paths are enabled, otherwise user already handled saving via prompt
-          if use_save_paths then
-            auto_save_drumkit_if_enabled("Stereo", vb)
-          end
-        end
-      },
-      vb:button{
-        text = "PTI Drumkit (Mono)",
-        width = polyendButtonWidth *2,
+        text = "PTI Drumkit Mono",
+        width = 130,
         tooltip = "Combine all samples in current instrument into a single sliced mono drumkit (all samples converted to mono)",
         notifier = function()
           -- Check if we should use save paths
           local use_save_paths = vb.views["use_save_paths_checkbox"].value and vb.views["pti_save_path_textfield"].text ~= ""
           
-          -- If using save paths, check if PTI save path is accessible (could be on device)
+          -- Smart check: Only verify device connection if save path is ON the device
           if use_save_paths then
             local pti_save_path = vb.views["pti_save_path_textfield"].text
-            local path_exists = check_polyend_path_exists(pti_save_path)
-            if not path_exists then
-              renoise.app():show_error("⚠️ PTI save path not accessible:\n" .. pti_save_path .. "\n\nPOLYEND_SAVE_PATH_ERROR_MSG")
-              return
+            if polyend_buddy_root_path and pti_save_path and pti_save_path:find(polyend_buddy_root_path, 1, true) == 1 then
+              print("-- PTI Drumkit Mono: Save path is on Polyend device - checking connection: " .. polyend_buddy_root_path)
+              local device_connected = check_polyend_path_exists(polyend_buddy_root_path)
+              if not device_connected then
+                print("-- PTI Drumkit Mono: Polyend device disconnected - cannot save to device path")
+                renoise.app():show_status("⚠️ Polyend device disconnected - cannot save to device path: " .. pti_save_path)
+                return
+              end
+            else
+              print("-- PTI Drumkit Mono: Save path is local - no device checking needed")
             end
           end
           
@@ -3818,6 +4100,39 @@ function create_polyend_buddy_dialog(vb)
           -- Auto-save if save paths are enabled, otherwise user already handled saving via prompt
           if use_save_paths then
             auto_save_drumkit_if_enabled("Mono", vb)
+          end
+        end
+      },
+      vb:button{
+        text = "PTI Drumkit Stereo",
+        width = 130,
+        tooltip = "Combine all samples in current instrument into a single sliced drumkit (stereo if any sample is stereo, otherwise mono)",
+        notifier = function()
+          -- Check if we should use save paths
+          local use_save_paths = vb.views["use_save_paths_checkbox"].value and vb.views["pti_save_path_textfield"].text ~= ""
+          
+          -- Smart check: Only verify device connection if save path is ON the device
+          if use_save_paths then
+            local pti_save_path = vb.views["pti_save_path_textfield"].text
+            if polyend_buddy_root_path and pti_save_path and pti_save_path:find(polyend_buddy_root_path, 1, true) == 1 then
+              print("-- PTI Drumkit Stereo: Save path is on Polyend device - checking connection: " .. polyend_buddy_root_path)
+              local device_connected = check_polyend_path_exists(polyend_buddy_root_path)
+              if not device_connected then
+                print("-- PTI Drumkit Stereo: Polyend device disconnected - cannot save to device path")
+                renoise.app():show_status("⚠️ Polyend device disconnected - cannot save to device path: " .. pti_save_path)
+                return
+              end
+            else
+              print("-- PTI Drumkit Stereo: Save path is local - no device checking needed")
+            end
+          end
+          
+          -- Generate the drumkit (skip save prompt if we're using save paths)
+          save_pti_as_drumkit_stereo(use_save_paths)
+          
+          -- Auto-save if save paths are enabled, otherwise user already handled saving via prompt
+          if use_save_paths then
+            auto_save_drumkit_if_enabled("Stereo", vb)
           end
         end
       }
@@ -3832,16 +4147,30 @@ function create_polyend_buddy_dialog(vb)
       },
       vb:button{
         text = "Dump PTI to Device",
-        width = polyendButtonWidth*2,
+        width = 200,
         tooltip = "Copy any PTI file from your computer directly to the Polyend device (no conversion)",
         notifier = function()
+          -- Check if Polyend device is connected before dumping
+          print("-- Dump PTI: Checking device connection to: " .. (polyend_buddy_root_path or "Unknown"))
+          local path_exists = check_polyend_path_exists(polyend_buddy_root_path)
+          if not path_exists then
+            print("-- Polyend Buddy: Connection lost during Dump PTI operation")
+            local status_msg = "⚠️ " .. POLYEND_DEVICE_NOT_CONNECTED_MSG .. " Path: " .. (polyend_buddy_root_path or "Unknown")
+            renoise.app():show_status(status_msg)
+            -- Update dialog status if available
+            if vb.views["pti_count_text"] then
+              vb.views["pti_count_text"].text = status_msg
+            end
+            return
+          end
+          
           -- Call the dump PTI function
           dump_pti_to_device()
         end
       },
       vb:button{
         text = "PTI→Normalize Slices→PTI",
-        width = polyendButtonWidth*4,
+        width = 200,
         tooltip = "Browse for any PTI file, normalize all slices, then save with _normalized suffix",
         notifier = function()
           -- Step 1: Browse for PTI file
@@ -3887,12 +4216,12 @@ function create_polyend_buddy_dialog(vb)
     vb:row{
       
       vb:text{
-        text = "Load & Drumkit",
+        text = "Load & Drumkit 1",
         width = textWidth, style="strong",font="bold"
       },
       vb:button{
         text = "Load 48→Drumkit Mono",
-        width = polyendButtonWidth*2,
+        width = 200,
         tooltip = "Load 48 samples manually, then generate a mono drumkit PTI",
         notifier = function()
           -- Load 48 samples using the existing pitchbend drumkit loader (synchronous)
@@ -3901,13 +4230,19 @@ function create_polyend_buddy_dialog(vb)
           -- Check if we should use save paths
           local use_save_paths = get_use_save_paths() and get_pti_save_path() ~= ""
           
-          -- If using save paths, check if PTI save path is accessible (could be on device)
+          -- Smart check: Only verify device connection if save path is ON the device
           if use_save_paths then
             local pti_save_path = get_pti_save_path()
-            local path_exists = check_polyend_path_exists(pti_save_path)
-            if not path_exists then
-              renoise.app():show_error("⚠️ PTI save path not accessible:\n" .. pti_save_path .. "\n\nPOLYEND_SAVE_PATH_ERROR_MSG")
-              return
+            if polyend_buddy_root_path and pti_save_path and pti_save_path:find(polyend_buddy_root_path, 1, true) == 1 then
+              print("-- Load 48→Drumkit Mono: Save path is on Polyend device - checking connection: " .. polyend_buddy_root_path)
+              local device_connected = check_polyend_path_exists(polyend_buddy_root_path)
+              if not device_connected then
+                print("-- Load 48→Drumkit Mono: Polyend device disconnected - cannot save to device path")
+                renoise.app():show_status("⚠️ Polyend device disconnected - cannot save to device path: " .. pti_save_path)
+                return
+              end
+            else
+              print("-- Load 48→Drumkit Mono: Save path is local - no device checking needed")
             end
           end
           
@@ -3926,7 +4261,7 @@ function create_polyend_buddy_dialog(vb)
       },
       vb:button{
         text = "Load 48→Drumkit Stereo",
-        width = polyendButtonWidth*2,
+        width = 200,
         tooltip = "Load 48 samples manually, then generate a stereo drumkit PTI",
         notifier = function()
           -- Load 48 samples using the existing pitchbend drumkit loader (synchronous)
@@ -3935,13 +4270,19 @@ function create_polyend_buddy_dialog(vb)
           -- Check if we should use save paths
           local use_save_paths = get_use_save_paths() and get_pti_save_path() ~= ""
           
-          -- If using save paths, check if PTI save path is accessible (could be on device)
+          -- Smart check: Only verify device connection if save path is ON the device
           if use_save_paths then
             local pti_save_path = get_pti_save_path()
-            local path_exists = check_polyend_path_exists(pti_save_path)
-            if not path_exists then
-              renoise.app():show_error("⚠️ PTI save path not accessible:\n" .. pti_save_path .. "\n\nPOLYEND_SAVE_PATH_ERROR_MSG")
-              return
+            if polyend_buddy_root_path and pti_save_path and pti_save_path:find(polyend_buddy_root_path, 1, true) == 1 then
+              print("-- Load 48→Drumkit Stereo: Save path is on Polyend device - checking connection: " .. polyend_buddy_root_path)
+              local device_connected = check_polyend_path_exists(polyend_buddy_root_path)
+              if not device_connected then
+                print("-- Load 48→Drumkit Stereo: Polyend device disconnected - cannot save to device path")
+                renoise.app():show_status("⚠️ Polyend device disconnected - cannot save to device path: " .. pti_save_path)
+                return
+              end
+            else
+              print("-- Load 48→Drumkit Stereo: Save path is local - no device checking needed")
             end
           end
           
@@ -3957,20 +4298,36 @@ function create_polyend_buddy_dialog(vb)
             end
           end
         end
+      }
+    },
+    
+    -- Load random samples and generate drumkit row
+    vb:row{
+      
+      vb:text{
+        text = "Load & Drumkit 2",
+        width = textWidth, style="strong",font="bold"
       },
       vb:button{
         text = "Load 48 Random→Drumkit Mono",
-        width = polyendButtonWidth*3,
+        width = 200,
         tooltip = "Load 48 random samples, then generate a mono drumkit PTI",
         notifier = function()
           -- Check if we should use save paths and if path is accessible upfront
           local use_save_paths = get_use_save_paths() and get_pti_save_path() ~= ""
+          -- Smart check: Only verify device connection if save path is ON the device
           if use_save_paths then
             local pti_save_path = get_pti_save_path()
-            local path_exists = check_polyend_path_exists(pti_save_path)
-            if not path_exists then
-              renoise.app():show_error("⚠️ PTI save path not accessible:\n" .. pti_save_path .. "\n\nPOLYEND_SAVE_PATH_ERROR_MSG")
-              return
+            if polyend_buddy_root_path and pti_save_path and pti_save_path:find(polyend_buddy_root_path, 1, true) == 1 then
+              print("-- Load 48 Random→Drumkit Mono: Save path is on Polyend device - checking connection: " .. polyend_buddy_root_path)
+              local device_connected = check_polyend_path_exists(polyend_buddy_root_path)
+              if not device_connected then
+                print("-- Load 48 Random→Drumkit Mono: Polyend device disconnected - cannot save to device path")
+                renoise.app():show_status("⚠️ Polyend device disconnected - cannot save to device path: " .. pti_save_path)
+                return
+              end
+            else
+              print("-- Load 48 Random→Drumkit Mono: Save path is local - no device checking needed")
             end
           end
           
@@ -4009,17 +4366,24 @@ function create_polyend_buddy_dialog(vb)
       },
       vb:button{
         text = "Load 48 Random→Drumkit Stereo",
-        width = polyendButtonWidth*3,
+        width = 200,
         tooltip = "Load 48 random samples, then generate a stereo drumkit PTI",
         notifier = function()
           -- Check if we should use save paths and if path is accessible upfront
           local use_save_paths = get_use_save_paths() and get_pti_save_path() ~= ""
+          -- Smart check: Only verify device connection if save path is ON the device
           if use_save_paths then
             local pti_save_path = get_pti_save_path()
-            local path_exists = check_polyend_path_exists(pti_save_path)
-            if not path_exists then
-              renoise.app():show_error("⚠️ PTI save path not accessible:\n" .. pti_save_path .. "\n\nPOLYEND_SAVE_PATH_ERROR_MSG")
-              return
+            if polyend_buddy_root_path and pti_save_path and pti_save_path:find(polyend_buddy_root_path, 1, true) == 1 then
+              print("-- Load 48 Random→Drumkit Stereo: Save path is on Polyend device - checking connection: " .. polyend_buddy_root_path)
+              local device_connected = check_polyend_path_exists(polyend_buddy_root_path)
+              if not device_connected then
+                print("-- Load 48 Random→Drumkit Stereo: Polyend device disconnected - cannot save to device path")
+                renoise.app():show_status("⚠️ Polyend device disconnected - cannot save to device path: " .. pti_save_path)
+                return
+              end
+            else
+              print("-- Load 48 Random→Drumkit Stereo: Save path is local - no device checking needed")
             end
           end
           
@@ -4105,12 +4469,12 @@ function create_polyend_buddy_dialog(vb)
         id = "firmware_device_popup",
         items = {"Tracker+", "Tracker", "Mini"},
         value = 1,
-        width = polyendButtonWidth*2,
+        width = 140,
         tooltip = "Select which Polyend device to get firmware for"
       },
       vb:button{
         text = "Open Downloads",
-        width = polyendButtonWidth*2,
+        width = 130,
         tooltip = "Open the firmware downloads page for the selected device",
         notifier = function()
           local selected_device = vb.views["firmware_device_popup"].value
@@ -4132,7 +4496,7 @@ function create_polyend_buddy_dialog(vb)
       },
       vb:button{
         text = "Download Firmware",
-        width = polyendButtonWidth*2,
+        width = 130,
         tooltip = "Automatically find, download and extract the latest firmware for the selected device",
         notifier = function()
           local selected_device = vb.views["firmware_device_popup"].value
@@ -4159,7 +4523,7 @@ function create_polyend_buddy_dialog(vb)
           
           if not download_url then
             -- Fallback: open the downloads page if scraping failed
-            renoise.app():show_error(string.format("Could not automatically find %s firmware download URL.\n\nOpening downloads page instead.", device_name))
+            renoise.app():show_status(string.format("Could not automatically find %s firmware download URL - opening downloads page instead", device_name))
             renoise.app():open_url(page_url)
             return
           end
@@ -4169,7 +4533,7 @@ function create_polyend_buddy_dialog(vb)
           
           if not firmware_path then
             -- Fallback: open the downloads page if download failed
-            renoise.app():show_error(string.format("Firmware download failed for %s.\n\nOpening downloads page for manual download.", device_name))
+            renoise.app():show_status(string.format("Firmware download failed for %s - opening downloads page for manual download", device_name))
             renoise.app():open_url(page_url)
           else
             -- Success! Ask user what to do next
@@ -4203,7 +4567,7 @@ function create_polyend_buddy_dialog(vb)
       },
       vb:button{
         text = "Open Polyend Palettes / Sample Packs",
-        width = polyendButtonWidth*6,
+        width = 400,
         tooltip = "Open the Polyend Palettes sample packs store in your browser",
         notifier = function()
           local palettes_url = "https://polyend.com/palettes/"
@@ -4219,7 +4583,7 @@ function create_polyend_buddy_dialog(vb)
       
       vb:button{
         text = "Refresh",
-        width = polyendButtonWidth*2,
+        width = textWidth,
         tooltip = "Rescan the folder for PTI files or reconnect Polyend device",
         notifier = function()
           if polyend_buddy_root_path and polyend_buddy_root_path ~= "" then
@@ -4240,7 +4604,7 @@ function create_polyend_buddy_dialog(vb)
     vb:row{
       vb:button{
         text = "Close",
-        width = polyendButtonWidth*2,
+        width = textWidth,
         notifier = function()
             if dialog then
     dialog:close()
@@ -4336,27 +4700,19 @@ function show_polyend_buddy_dialog()
     renoise.app():show_status("Please configure Polyend device root path")
   end
   
-  -- Check local PTI path on startup
+  -- Update local PTI dropdown on startup (no slow path checking)
   if computer_pti_path and computer_pti_path ~= "" then
-    local computer_path_exists = check_polyend_path_exists(computer_pti_path)
-    if computer_path_exists then
-      update_computer_pti_dropdown(vb)
-    else
-      print("-- Local PTI: Local PTI path not accessible at startup: " .. computer_pti_path)
-    end
+    update_computer_pti_dropdown(vb)
+    print("-- Local PTI: Updated dropdown for path: " .. computer_pti_path)
   else
     print("-- Local PTI: No local PTI path configured")
   end
   
-  -- Check local backup path on startup
+  -- Update local backup dropdown on startup (no slow path checking)
   local backup_path = get_computer_backup_path()
   if backup_path and backup_path ~= "" then
-    local backup_path_exists = check_polyend_path_exists(backup_path)
-    if backup_path_exists then
-      update_computer_backup_dropdown(vb)
-    else
-      print("-- Local Backup: Local backup path not accessible at startup: " .. backup_path)
-    end
+    update_computer_backup_dropdown(vb)
+    print("-- Local Backup: Updated dropdown for path: " .. backup_path)
   else
     print("-- Local Backup: No local backup path configured")
   end

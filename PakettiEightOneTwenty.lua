@@ -7,6 +7,9 @@ local sequential_load_current_row = 1
 
 -- "Random" keybinding: Selects a random sample and mutes others
 function sample_random()
+  -- Initialize random seed for true randomness
+  math.randomseed(os.time())
+  
   local song=renoise.song()
   local ing = song.selected_instrument
 

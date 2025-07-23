@@ -389,7 +389,7 @@ function pakettiKeyBindingsDialog(selectedIdentifier)  -- Accept an optional par
   keybinding_list = vb:multiline_textfield { width=1100, height = 600, font = "mono" }
 
   -- Dialog title including Renoise version
-  local dialog_title = "Paketti KeyBindings for Renoise Version v3.4.4" -- .. renoise.RENOISE_VERSION
+  local dialog_title = "Paketti KeyBindings for Renoise Version " .. renoise.RENOISE_VERSION
 
   dialog = renoise.app():show_custom_dialog(dialog_title,
     vb:column{
@@ -737,7 +737,7 @@ function pakettiRenoiseKeyBindingsDialog(selectedIdentifier)  -- Accept an optio
   renoise_keybinding_list = vb:multiline_textfield { width=1100, height = 600, font = "mono" }
 
   -- Dialog title including Renoise version
-  local dialog_title = "Renoise KeyBindings for Renoise Version v3.4.4" -- .. renoise.RENOISE_VERSION
+  local dialog_title = "Renoise KeyBindings for Renoise Version " .. renoise.RENOISE_VERSION
 
   dialog = renoise.app():show_custom_dialog(dialog_title,
     vb:column{

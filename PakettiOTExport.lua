@@ -1721,9 +1721,9 @@ function PakettiOTDrumkitMono_Worker(source_instrument, num_samples)
             temp_sample = temp_instrument.samples[1]
           end
           
-          -- Then convert to mono if needed
+          -- Then convert to mono if needed using FAST BULK operations
           if temp_sample.sample_buffer.number_of_channels == 2 then
-            -- Manual stereo to mono conversion
+            -- Fast stereo to mono conversion using chunked operations
             local stereo_buffer = temp_sample.sample_buffer
             local mono_frames = stereo_buffer.number_of_frames
             
@@ -1732,16 +1732,20 @@ function PakettiOTDrumkitMono_Worker(source_instrument, num_samples)
             mono_sample.sample_buffer:create_sample_data(44100, 16, 1, mono_frames)
             mono_sample.sample_buffer:prepare_sample_data_changes()
             
-            -- Mix stereo to mono
-            for frame = 1, mono_frames do
-              local left = stereo_buffer:sample_data(1, frame)
-              local right = stereo_buffer:sample_data(2, frame)
-              local mono_value = (left + right) / 2
-              mono_sample.sample_buffer:set_sample_data(1, frame, mono_value)
-              -- Yield every 1000 frames during conversion
-              if frame % 1000 == 0 then
-                coroutine.yield()
+            -- Mix stereo to mono in chunks
+            local chunk_size = 10000
+            local pos = 1
+            while pos <= mono_frames do
+              local this_chunk = math.min(chunk_size, mono_frames - pos + 1)
+              for frame = 0, this_chunk - 1 do
+                local left = stereo_buffer:sample_data(1, pos + frame)
+                local right = stereo_buffer:sample_data(2, pos + frame)
+                local mono_value = (left + right) / 2
+                mono_sample.sample_buffer:set_sample_data(1, pos + frame, mono_value)
               end
+              pos = pos + this_chunk
+              -- Yield every chunk to keep UI responsive
+              coroutine.yield()
             end
             
             mono_sample.sample_buffer:finalize_sample_data_changes()
@@ -1978,10 +1982,19 @@ function PakettiOTDrumkitSmart_Worker_Efficient(source_instrument, num_samples, 
       )
       temp_sample.sample_buffer:prepare_sample_data_changes()
       
-      -- Copy sample data
+      -- Copy sample data in efficient chunks
       for ch = 1, sample.sample_buffer.number_of_channels do
-        for frame = 1, sample.sample_buffer.number_of_frames do
-          temp_sample.sample_buffer:set_sample_data(ch, frame, sample.sample_buffer:sample_data(ch, frame))
+        local chunk_size = 10000
+        local total_frames = sample.sample_buffer.number_of_frames
+        local pos = 1
+        while pos <= total_frames do
+          local this_chunk = math.min(chunk_size, total_frames - pos + 1)
+          for frame = 0, this_chunk - 1 do
+            temp_sample.sample_buffer:set_sample_data(ch, pos + frame, sample.sample_buffer:sample_data(ch, pos + frame))
+          end
+          pos = pos + this_chunk
+          -- Yield every chunk to keep UI responsive
+          coroutine.yield()
         end
       end
       temp_sample.sample_buffer:finalize_sample_data_changes()
@@ -2066,40 +2079,62 @@ function PakettiOTDrumkitSmart_Worker_Efficient(source_instrument, num_samples, 
   combined_sample.sample_buffer:create_sample_data(44100, 16, target_channels, total_frames)
   combined_sample.sample_buffer:prepare_sample_data_changes()
   
-  -- Copy all processed samples into the combined buffer
+  -- Copy all processed samples into the combined buffer using FAST BULK operations
   if dialog and dialog.visible then
     vb.views.progress_text.text = "Combining samples into drumkit..."
   end
-  renoise.app():show_status("OT Smart: Combining samples into drumkit...")
+  renoise.app():show_status("OT Smart: Fast bulk combining samples...")
+  local start_time = os.clock()
+  
   local current_position = 1
   for i = 1, #valid_samples do
     local sample_data = valid_samples[i]
-    for frame = 1, sample_data.frames do
-      for ch = 1, target_channels do
-        local source_value = 0.0
-        if sample_data.channels == target_channels then
-          source_value = sample_data.data[ch][frame]
-        elseif sample_data.channels == 1 and target_channels == 2 then
-          source_value = sample_data.data[1][frame]
-        elseif sample_data.channels == 2 and target_channels == 1 then
-          source_value = (sample_data.data[1][frame] + sample_data.data[2][frame]) / 2
-        else
-          if sample_data.channels >= 1 then
-            source_value = sample_data.data[1][frame]
-          else
-            source_value = 0.0
-          end
-        end
-        combined_sample.sample_buffer:set_sample_data(ch, current_position + frame - 1, source_value)
-      end
-    end
-    current_position = current_position + sample_data.frames
+    print(string.format("-- OT Drumkit Smart: Fast bulk combining sample %d/%d (%d frames)", i, #valid_samples, sample_data.frames))
     
-    -- Yield every 10 samples during combination
-    if i % 10 == 0 then
+    -- Copy frames in chunks of 10000 for efficiency
+    local chunk_size = 10000
+    local frames_to_copy = sample_data.frames
+    local source_pos = 1
+    local dest_pos = current_position
+    
+    while frames_to_copy > 0 do
+      local this_chunk = math.min(chunk_size, frames_to_copy)
+      
+      -- Copy chunk data for all target channels
+      for frame = 0, this_chunk - 1 do
+        for ch = 1, target_channels do
+          local source_value = 0.0
+          if sample_data.channels == target_channels then
+            source_value = sample_data.data[ch][source_pos + frame]
+          elseif sample_data.channels == 1 and target_channels == 2 then
+            source_value = sample_data.data[1][source_pos + frame]
+          elseif sample_data.channels == 2 and target_channels == 1 then
+            source_value = (sample_data.data[1][source_pos + frame] + sample_data.data[2][source_pos + frame]) / 2
+          else
+            if sample_data.channels >= 1 then
+              source_value = sample_data.data[1][source_pos + frame]
+            else
+              source_value = 0.0
+            end
+          end
+          combined_sample.sample_buffer:set_sample_data(ch, dest_pos + frame - 1, source_value)
+        end
+      end
+      
+      source_pos = source_pos + this_chunk
+      dest_pos = dest_pos + this_chunk
+      frames_to_copy = frames_to_copy - this_chunk
+      
+      -- Yield every chunk to keep UI responsive
       coroutine.yield()
     end
+    
+    current_position = current_position + sample_data.frames
+    print(string.format("-- OT Drumkit Smart: ✓ Sample %d combined successfully", i))
   end
+  
+  local end_time = os.clock()
+  print(string.format("-- OT Drumkit Smart: ✓ FAST bulk combining completed in %.2f seconds", end_time - start_time))
   
   combined_sample.sample_buffer:finalize_sample_data_changes()
   combined_sample.name = drumkit_instrument.name
@@ -2301,26 +2336,48 @@ function PakettiOTDrumkitMono_Worker_Efficient(source_instrument, num_samples, d
   combined_sample.sample_buffer:create_sample_data(44100, 16, target_channels, total_frames)
   combined_sample.sample_buffer:prepare_sample_data_changes()
   
-  -- Copy all processed samples into the combined buffer
+  -- Copy all processed samples into the combined buffer using FAST BULK operations
   if dialog and dialog.visible then
     vb.views.progress_text.text = "Combining samples into drumkit..."
   end
-  renoise.app():show_status("OT Mono: Combining samples into drumkit...")
+  renoise.app():show_status("OT Mono: Fast bulk combining samples...")
+  local start_time = os.clock()
+  
   local current_position = 1
   for i = 1, #valid_samples do
     local sample_data = valid_samples[i]
-    for frame = 1, sample_data.frames do
-      -- For mono target, always use channel 1 (already converted to mono above)
-      local source_value = sample_data.data[1][frame]
-      combined_sample.sample_buffer:set_sample_data(1, current_position + frame - 1, source_value)
-    end
-    current_position = current_position + sample_data.frames
+    print(string.format("-- OT Drumkit Mono: Fast bulk combining sample %d/%d (%d frames)", i, #valid_samples, sample_data.frames))
     
-    -- Yield every 10 samples during combination
-    if i % 10 == 0 then
+    -- Copy frames in chunks of 10000 for efficiency
+    local chunk_size = 10000
+    local frames_to_copy = sample_data.frames
+    local source_pos = 1
+    local dest_pos = current_position
+    
+    while frames_to_copy > 0 do
+      local this_chunk = math.min(chunk_size, frames_to_copy)
+      
+      -- Copy chunk data for mono channel
+      for frame = 0, this_chunk - 1 do
+        -- For mono target, always use channel 1 (already converted to mono above)
+        local source_value = sample_data.data[1][source_pos + frame]
+        combined_sample.sample_buffer:set_sample_data(1, dest_pos + frame - 1, source_value)
+      end
+      
+      source_pos = source_pos + this_chunk
+      dest_pos = dest_pos + this_chunk
+      frames_to_copy = frames_to_copy - this_chunk
+      
+      -- Yield every chunk to keep UI responsive
       coroutine.yield()
     end
+    
+    current_position = current_position + sample_data.frames
+    print(string.format("-- OT Drumkit Mono: ✓ Sample %d combined successfully", i))
   end
+  
+  local end_time = os.clock()
+  print(string.format("-- OT Drumkit Mono: ✓ FAST bulk combining completed in %.2f seconds", end_time - start_time))
   
   combined_sample.sample_buffer:finalize_sample_data_changes()
   combined_sample.name = drumkit_instrument.name
@@ -2591,35 +2648,58 @@ function PakettiOTDrumkitSmart_Legacy()
   combined_sample.sample_buffer:create_sample_data(44100, 16, target_channels, total_frames)
   combined_sample.sample_buffer:prepare_sample_data_changes()
   
-  -- Copy all processed samples into the combined buffer
+  -- Copy all processed samples into the combined buffer using FAST BULK operations
+  local start_time = os.clock()
   local current_position = 1
   for i = 1, #valid_samples do
     local sample_data = valid_samples[i]
-    for frame = 1, sample_data.frames do
-      for ch = 1, target_channels do
-        local source_value = 0.0
-        if sample_data.channels == target_channels then
-          -- Same channel count: direct copy
-          source_value = sample_data.data[ch][frame]
-        elseif sample_data.channels == 1 and target_channels == 2 then
-          -- Mono to stereo: copy mono data to both channels
-          source_value = sample_data.data[1][frame]
-        elseif sample_data.channels == 2 and target_channels == 1 then
-          -- Stereo to mono: mix both channels
-          source_value = (sample_data.data[1][frame] + sample_data.data[2][frame]) / 2
-        else
-          -- Fallback: use channel 1 or zero
-          if sample_data.channels >= 1 then
-            source_value = sample_data.data[1][frame]
+    print(string.format("-- OT Drumkit Smart Legacy: Fast bulk combining sample %d/%d (%d frames)", i, #valid_samples, sample_data.frames))
+    
+    -- Copy frames in chunks of 10000 for efficiency
+    local chunk_size = 10000
+    local frames_to_copy = sample_data.frames
+    local source_pos = 1
+    local dest_pos = current_position
+    
+    while frames_to_copy > 0 do
+      local this_chunk = math.min(chunk_size, frames_to_copy)
+      
+      -- Copy chunk data for all target channels
+      for frame = 0, this_chunk - 1 do
+        for ch = 1, target_channels do
+          local source_value = 0.0
+          if sample_data.channels == target_channels then
+            -- Same channel count: direct copy
+            source_value = sample_data.data[ch][source_pos + frame]
+          elseif sample_data.channels == 1 and target_channels == 2 then
+            -- Mono to stereo: copy mono data to both channels
+            source_value = sample_data.data[1][source_pos + frame]
+          elseif sample_data.channels == 2 and target_channels == 1 then
+            -- Stereo to mono: mix both channels
+            source_value = (sample_data.data[1][source_pos + frame] + sample_data.data[2][source_pos + frame]) / 2
           else
-            source_value = 0.0
+            -- Fallback: use channel 1 or zero
+            if sample_data.channels >= 1 then
+              source_value = sample_data.data[1][source_pos + frame]
+            else
+              source_value = 0.0
+            end
           end
+          combined_sample.sample_buffer:set_sample_data(ch, dest_pos + frame - 1, source_value)
         end
-        combined_sample.sample_buffer:set_sample_data(ch, current_position + frame - 1, source_value)
       end
+      
+      source_pos = source_pos + this_chunk
+      dest_pos = dest_pos + this_chunk
+      frames_to_copy = frames_to_copy - this_chunk
     end
+    
     current_position = current_position + sample_data.frames
+    print(string.format("-- OT Drumkit Smart Legacy: ✓ Sample %d combined successfully", i))
   end
+  
+  local end_time = os.clock()
+  print(string.format("-- OT Drumkit Smart Legacy: ✓ FAST bulk combining completed in %.2f seconds", end_time - start_time))
   
   combined_sample.sample_buffer:finalize_sample_data_changes()
   
@@ -2946,17 +3026,40 @@ function PakettiOTDrumkitMono_Legacy()
   combined_sample.sample_buffer:create_sample_data(44100, 16, target_channels, total_frames)
   combined_sample.sample_buffer:prepare_sample_data_changes()
   
-  -- Copy all processed samples into the combined buffer
+  -- Copy all processed samples into the combined buffer using FAST BULK operations
+  local start_time = os.clock()
   local current_position = 1
   for i = 1, #valid_samples do
     local sample_data = valid_samples[i]
-    for frame = 1, sample_data.frames do
-      -- For mono target, always use channel 1 (already converted to mono above)
-      local source_value = sample_data.data[1][frame]
-      combined_sample.sample_buffer:set_sample_data(1, current_position + frame - 1, source_value)
+    print(string.format("-- OT Drumkit Mono Legacy: Fast bulk combining sample %d/%d (%d frames)", i, #valid_samples, sample_data.frames))
+    
+    -- Copy frames in chunks of 10000 for efficiency
+    local chunk_size = 10000
+    local frames_to_copy = sample_data.frames
+    local source_pos = 1
+    local dest_pos = current_position
+    
+    while frames_to_copy > 0 do
+      local this_chunk = math.min(chunk_size, frames_to_copy)
+      
+      -- Copy chunk data for mono channel
+      for frame = 0, this_chunk - 1 do
+        -- For mono target, always use channel 1 (already converted to mono above)
+        local source_value = sample_data.data[1][source_pos + frame]
+        combined_sample.sample_buffer:set_sample_data(1, dest_pos + frame - 1, source_value)
+      end
+      
+      source_pos = source_pos + this_chunk
+      dest_pos = dest_pos + this_chunk
+      frames_to_copy = frames_to_copy - this_chunk
     end
+    
     current_position = current_position + sample_data.frames
+    print(string.format("-- OT Drumkit Mono Legacy: ✓ Sample %d combined successfully", i))
   end
+  
+  local end_time = os.clock()
+  print(string.format("-- OT Drumkit Mono Legacy: ✓ FAST bulk combining completed in %.2f seconds", end_time - start_time))
   
   combined_sample.sample_buffer:finalize_sample_data_changes()
   
@@ -3453,40 +3556,62 @@ function PakettiOTDrumkitPlayToEnd_Worker(source_instrument, num_samples, dialog
   combined_sample.sample_buffer:create_sample_data(44100, 16, target_channels, total_frames)
   combined_sample.sample_buffer:prepare_sample_data_changes()
   
-  -- Copy all processed samples into the combined buffer (normal concatenation)
+  -- Copy all processed samples into the combined buffer using FAST BULK operations (normal concatenation)
   if dialog and dialog.visible then
     vb.views.progress_text.text = "Combining samples into drumkit..."
   end
-  renoise.app():show_status("OT PlayToEnd: Combining samples into drumkit...")
+  renoise.app():show_status("OT PlayToEnd: Fast bulk combining samples...")
+  local start_time = os.clock()
+  
   local current_position = 1
   for i = 1, #valid_samples do
     local sample_data = valid_samples[i]
-    for frame = 1, sample_data.frames do
-      for ch = 1, target_channels do
-        local source_value = 0.0
-        if sample_data.channels == target_channels then
-          source_value = sample_data.data[ch][frame]
-        elseif sample_data.channels == 1 and target_channels == 2 then
-          source_value = sample_data.data[1][frame]
-        elseif sample_data.channels == 2 and target_channels == 1 then
-          source_value = (sample_data.data[1][frame] + sample_data.data[2][frame]) / 2
-        else
-          if sample_data.channels >= 1 then
-            source_value = sample_data.data[1][frame]
-          else
-            source_value = 0.0
-          end
-        end
-        combined_sample.sample_buffer:set_sample_data(ch, current_position + frame - 1, source_value)
-      end
-    end
-    current_position = current_position + sample_data.frames
+    print(string.format("-- OT Drumkit PlayToEnd: Fast bulk combining sample %d/%d (%d frames)", i, #valid_samples, sample_data.frames))
     
-    -- Yield every 10 samples during combination
-    if i % 10 == 0 then
+    -- Copy frames in chunks of 10000 for efficiency
+    local chunk_size = 10000
+    local frames_to_copy = sample_data.frames
+    local source_pos = 1
+    local dest_pos = current_position
+    
+    while frames_to_copy > 0 do
+      local this_chunk = math.min(chunk_size, frames_to_copy)
+      
+      -- Copy chunk data for all target channels
+      for frame = 0, this_chunk - 1 do
+        for ch = 1, target_channels do
+          local source_value = 0.0
+          if sample_data.channels == target_channels then
+            source_value = sample_data.data[ch][source_pos + frame]
+          elseif sample_data.channels == 1 and target_channels == 2 then
+            source_value = sample_data.data[1][source_pos + frame]
+          elseif sample_data.channels == 2 and target_channels == 1 then
+            source_value = (sample_data.data[1][source_pos + frame] + sample_data.data[2][source_pos + frame]) / 2
+          else
+            if sample_data.channels >= 1 then
+              source_value = sample_data.data[1][source_pos + frame]
+            else
+              source_value = 0.0
+            end
+          end
+          combined_sample.sample_buffer:set_sample_data(ch, dest_pos + frame - 1, source_value)
+        end
+      end
+      
+      source_pos = source_pos + this_chunk
+      dest_pos = dest_pos + this_chunk
+      frames_to_copy = frames_to_copy - this_chunk
+      
+      -- Yield every chunk to keep UI responsive
       coroutine.yield()
     end
+    
+    current_position = current_position + sample_data.frames
+    print(string.format("-- OT Drumkit PlayToEnd: ✓ Sample %d combined successfully", i))
   end
+  
+  local end_time = os.clock()
+  print(string.format("-- OT Drumkit PlayToEnd: ✓ FAST bulk combining completed in %.2f seconds", end_time - start_time))
   
   combined_sample.sample_buffer:finalize_sample_data_changes()
   combined_sample.name = drumkit_instrument.name

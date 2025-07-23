@@ -625,6 +625,9 @@ end
 local function rand_volume_checkboxes()
   if not renoise.song() then return end
 
+  -- Initialize random seed for true randomness
+  math.randomseed(os.time())
+
   initializing = true  -- Prevent updates while setting values
   for i = 1, num_checkboxes do
     checkboxes[i].value = (math.random() > 0.5)
@@ -636,6 +639,9 @@ end
 -- Randomize Retrig checkboxes
 local function rand_retrig_checkboxes()
   if not renoise.song() then return end
+
+  -- Initialize random seed for true randomness
+  math.randomseed(os.time())
 
   initializing = true  -- Prevent updates while setting values
   for i = 1, num_checkboxes do
@@ -649,6 +655,9 @@ end
 local function rand_playback_checkboxes()
   if not renoise.song() then return end
 
+  -- Initialize random seed for true randomness
+  math.randomseed(os.time())
+
   initializing = true  -- Prevent updates while setting values
   for i = 1, num_checkboxes do
     playback_checkboxes[i].value = (math.random() > 0.5)
@@ -660,6 +669,9 @@ end
 -- Randomize Panning checkboxes
 local function rand_panning_checkboxes()
   if not renoise.song() then return end
+
+  -- Initialize random seed for true randomness
+  math.randomseed(os.time())
 
   initializing = true  -- Prevent updates while setting values
   for i = 1, num_checkboxes do
@@ -2659,6 +2671,9 @@ function pakettiGaterDialog()
       end},
 
       vb:button{ text="Global Random", pressed = function()
+        -- Initialize random seed for true randomness
+        math.randomseed(os.time())
+        
         initializing = true
         -- Randomize volume
         for i = 1, num_checkboxes do

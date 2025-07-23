@@ -31,6 +31,7 @@ PakettiLoadDeviceChain("DeviceChains/eq10macrotest.xrnt")
 end}
 
 function PakettiLoadDeviceChain(chainName) renoise.app():load_track_device_chain(chainName) end
+
 function PakettiLoadDevicePreset(chainName) renoise.app():load_track_device_preset(chainName) end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Load Device Chain SimpleSend",invoke=function()

@@ -321,6 +321,9 @@ renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Duplicate Selected S
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Duplicate Selected Sample at -24 transpose",invoke=function() duplicate_sample_with_transpose(-24) end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Duplicate Selected Sample at +12 transpose",invoke=function() duplicate_sample_with_transpose(12) end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Duplicate Selected Sample at +24 transpose",invoke=function() duplicate_sample_with_transpose(24) end}
+renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Octave Slammer (-3 +3 octaves)",invoke=PakettiOctaveSlammer3}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Octave Slammer (-2 +2 octaves)",invoke=PakettiOctaveSlammer2}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Octave Slammer (-1 +1 octaves)",invoke=PakettiOctaveSlammer1}
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Sample Loop Halve",invoke=function() adjust_loop_range(0.5) end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Sample Loop Double",invoke=function() adjust_loop_range(2) end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Sample Loop Length Next Division",invoke=function() cycle_loop_division(true) end}
@@ -379,6 +382,9 @@ renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti:Duplicate Selecte
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Duplicate Selected Sample at -24 transpose",invoke=function() duplicate_sample_with_transpose(-24) end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Duplicate Selected Sample at +12 transpose",invoke=function() duplicate_sample_with_transpose(12) end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Duplicate Selected Sample at +24 transpose",invoke=function() duplicate_sample_with_transpose(24) end}
+renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti:Octave Slammer (-3 +3 octaves)",invoke=PakettiOctaveSlammer3}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Octave Slammer (-2 +2 octaves)",invoke=PakettiOctaveSlammer2}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Octave Slammer (-1 +1 octaves)",invoke=PakettiOctaveSlammer1}
 
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Wipe&Slice:Wipe&Slice (002)",invoke=function() slicerough(2) end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Wipe&Slice:Wipe&Slice (004)",invoke=function() slicerough(4) end}
@@ -573,6 +579,9 @@ renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti:Duplicate Selected
 renoise.tool():add_menu_entry{name="Sample Mappings:Paketti:Duplicate Selected Sample at -24 transpose",invoke=function() duplicate_sample_with_transpose(-24) end}
 renoise.tool():add_menu_entry{name="Sample Mappings:Paketti:Duplicate Selected Sample at +12 transpose",invoke=function() duplicate_sample_with_transpose(12) end}
 renoise.tool():add_menu_entry{name="Sample Mappings:Paketti:Duplicate Selected Sample at +24 transpose",invoke=function() duplicate_sample_with_transpose(24) end}
+renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti:Octave Slammer (-3 +3 octaves)",invoke=PakettiOctaveSlammer3}
+renoise.tool():add_menu_entry{name="Sample Mappings:Paketti:Octave Slammer (-2 +2 octaves)",invoke=PakettiOctaveSlammer2}
+renoise.tool():add_menu_entry{name="Sample Mappings:Paketti:Octave Slammer (-1 +1 octaves)",invoke=PakettiOctaveSlammer1}
 renoise.tool():add_menu_entry{name="--Sample Mappings:Paketti:Cycle Overlap Mode",invoke=overlayModeCycle}
 renoise.tool():add_menu_entry{name="Sample Mappings:Paketti:Set Overlap Mode 0 (Play All)",invoke=function() setOverlapMode(0) end}
 renoise.tool():add_menu_entry{name="Sample Mappings:Paketti:Set Overlap Mode 1 (Cycle)",invoke=function() setOverlapMode(1) end}
@@ -1528,7 +1537,7 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Dupli
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Duplicate Pattern Below & Clear Muted",invoke=duplicate_pattern_and_clear_muted}
 
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern/Phrase Length Dialog...",invoke=function() pakettiLengthDialog() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:Pattern/Phrase Length Dialog...",invoke=function() pakettiLengthDialog() end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Pattern Editor:Pattern Length Increase by 8",invoke=function() adjust_length_by(8) end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Pattern Length Decrease by 8",invoke=function() adjust_length_by(-8) end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Pattern Length Increase by LPB",invoke=function() adjust_length_by("lpb") end}
@@ -1911,6 +1920,9 @@ renoise.tool():add_menu_entry{name="Track Automation:Paketti:Start/Stop Pattern 
 
 renoise.tool():add_menu_entry{name="--Track Automation:Paketti:Snapshot All Devices on Selected Track to Automation",invoke = snapshot_all_devices_to_automation}
 renoise.tool():add_menu_entry{name="Track Automation:Paketti:Snapshot Selected Device to Automation",invoke = snapshot_selected_device_to_automation}
+
+
+renoise.tool():add_menu_entry{name="--Track Automation:Paketti Gadgets:Paketti Automation Value...",invoke=function() pakettiAutomationValue() end}
 
 renoise.tool():add_menu_entry({name="Track Automation:Paketti:Automation Curves:Top to Top",invoke=function() apply_constant_automation_top_to_top() end})
 renoise.tool():add_menu_entry({name="Track Automation:Paketti:Automation Curves:Bottom to Bottom",invoke=function() apply_constant_automation_bottom_to_bottom() end})
