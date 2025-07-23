@@ -332,6 +332,100 @@ end
 
 --local PakettiAutomationDoofer=false
 
+-- Function to generate bell curve BPM around 120 (range 60-220, step 5)
+function pakettiGenerateBellCurveBPM()
+  -- Generate 6 random numbers and average them for bell curve approximation
+  local sum = 0
+  for i = 1, 6 do
+    sum = sum + math.random()
+  end
+  local normalized = sum / 6  -- Now we have a value roughly 0-1 with bell curve distribution
+  
+  -- Map to BPM range 60-220 with center at 120
+  local range = 220 - 60  -- 160
+  local center = 120
+  local half_range = range / 2  -- 80
+  
+  -- Convert normalized (0-1) to (-1 to 1) centered distribution
+  local centered = (normalized - 0.5) * 2
+  
+  -- Apply to center point with scaling
+  local bpm = center + (centered * half_range)
+  
+  -- Clamp to valid range and round to nearest 5
+  bpm = math.max(60, math.min(220, bpm))
+  bpm = math.floor(bpm / 5 + 0.5) * 5
+  
+  return bpm
+end
+
+-- Function to detect if this is a fresh new song (not a loaded song)
+-- Used by app_new_document_observable to distinguish File->New vs File->Load
+function pakettiIsNewSong()
+  local song = renoise.song()
+  
+  -- Check for new song characteristics (not loaded from file)
+  local is_new = true
+  
+  -- Primary check: loaded songs have filenames, new songs don't
+  if song.file_name ~= "" then
+    is_new = false
+  end
+  
+  -- Secondary check: if instrument slots have samples loaded
+  for i = 1, math.min(8, #song.instruments) do  -- Check first 8 instruments
+    local instrument = song.instruments[i]
+    if #instrument.samples > 0 then
+      -- Check if any sample has actual content
+      for _, sample in ipairs(instrument.samples) do
+        if sample.sample_buffer.has_sample_data then
+          is_new = false
+          break
+        end
+      end
+      if not is_new then break end
+    end
+  end
+  
+  -- Tertiary check: if pattern has been modified (contains notes)
+  local pattern = song:pattern(1)
+  for track_idx = 1, math.min(4, #song.tracks) do  -- Check first few tracks
+    local track = pattern:track(track_idx)
+    for line_idx = 1, math.min(64, pattern.number_of_lines) do
+      local line = track:line(line_idx)
+      for _, note_col in ipairs(line.note_columns) do
+        if not note_col.is_empty then
+          is_new = false
+          break
+        end
+      end
+      if not is_new then break end
+    end
+    if not is_new then break end
+  end
+  
+  -- Quaternary check: if tracks have DSP devices beyond Vol/Pan/Width
+  for i = 1, math.min(8, #song.tracks) do  -- Check first 8 tracks
+    local track = song:track(i)
+    if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+      -- Check if track has more than 1 DSP device (first is always Vol/Pan/Width)
+      if #track.devices > 1 then
+        is_new = false
+        break
+      end
+    end
+  end
+  
+  -- Quinternary check: if song has been playing (edit position moved)  
+  if song.transport.edit_pos.line > 1 then
+    is_new = false
+  end
+  
+  -- Note: BPM check removed as suggested - don't check if BPM is default
+  
+  return is_new
+end
+
 function startup()  
   if preferences.pakettiAlwaysOpenDSPsOnTrack.value then
     PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode()
@@ -350,6 +444,9 @@ function startup()
       if preferences.pakettiEnableGlobalGrooveOnStartup.value then
         t.groove_enabled=true
       end
+      
+
+      
       if preferences.pakettiThemeSelector.RenoiseLaunchRandomLoad.value then 
       pakettiThemeSelectorPickRandomThemeFromAll()
       else if preferences.pakettiThemeSelector.RenoiseLaunchFavoritesLoad.value then
@@ -365,9 +462,29 @@ function startup()
 else end
 end
 
+-- Function to handle BPM randomization on new documents
+-- This is called by app_new_document_observable for both new and loaded songs
+function handleNewDocument()
+  -- Only randomize BPM for fresh new songs, not loaded songs
+  -- Uses pakettiIsNewSong() to distinguish between File->New vs File->Load
+  if preferences.pakettiRandomizeBPMOnNewSong.value and pakettiIsNewSong() then
+    math.randomseed(os.time())  -- Seed randomizer
+    local random_bpm = pakettiGenerateBellCurveBPM()
+    renoise.song().transport.bpm = random_bpm
+    renoise.app():show_status(string.format("Paketti: Randomized BPM to %d (new song created)", random_bpm))
+  end
+end
+
+
+
 if not renoise.tool().app_new_document_observable:has_notifier(startup)   
   then renoise.tool().app_new_document_observable:add_notifier(startup)
-  else renoise.tool().app_new_document_observable:remove_notifier(startup) end  
+  else renoise.tool().app_new_document_observable:remove_notifier(startup) end
+
+-- Add BPM randomization handler to new document observable
+if not renoise.tool().app_new_document_observable:has_notifier(handleNewDocument)   
+  then renoise.tool().app_new_document_observable:add_notifier(handleNewDocument)
+  else renoise.tool().app_new_document_observable:remove_notifier(handleNewDocument) end  
 
 -- Function to toggle global groove on startup preference
 function pakettiToggleGlobalGrooveOnStartup()
@@ -375,6 +492,22 @@ function pakettiToggleGlobalGrooveOnStartup()
   prefs.pakettiEnableGlobalGrooveOnStartup.value = not prefs.pakettiEnableGlobalGrooveOnStartup.value
   local state = prefs.pakettiEnableGlobalGrooveOnStartup.value and "enabled" or "disabled"
   renoise.app():show_status("Global Groove on startup is now " .. state .. ".")
+end
+
+-- Function to toggle BPM randomization on new songs
+function pakettiToggleRandomizeBPMOnNewSong()
+  local prefs = renoise.tool().preferences
+  prefs.pakettiRandomizeBPMOnNewSong.value = not prefs.pakettiRandomizeBPMOnNewSong.value
+  local state = prefs.pakettiRandomizeBPMOnNewSong.value and "enabled" or "disabled"
+  renoise.app():show_status("BPM randomization on new songs is now " .. state .. ".")
+end
+
+-- Function to manually randomize BPM (for testing or manual use)
+function pakettiRandomizeBPMNow()
+  math.randomseed(os.time())
+  local random_bpm = pakettiGenerateBellCurveBPM()
+  renoise.song().transport.bpm = random_bpm
+  renoise.app():show_status(string.format("Paketti: Manually randomized BPM to %d", random_bpm))
 end
 
 --------

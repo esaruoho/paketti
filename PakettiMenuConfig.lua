@@ -1361,6 +1361,9 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Repla
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Group Samples by Name to New Instruments", invoke=PakettiGroupSamplesByName}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Delete Unused Columns", invoke = deleteUnusedColumns}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Toggle Global Groove on Startup On/Off",invoke=pakettiToggleGlobalGrooveOnStartup}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Toggle BPM Randomization on New Songs On/Off",invoke=pakettiToggleRandomizeBPMOnNewSong}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Song:BPM&LPB:Randomize BPM Now (60-220, Bell Curve)",invoke=pakettiRandomizeBPMNow}
+renoise.tool():add_keybinding{name="Global:Paketti:Randomize BPM Now (60-220, Bell Curve)",invoke=pakettiRandomizeBPMNow}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:BPM&LPB:Paketti Speed and Tempo to BPM Dialog...",invoke=pakettiSpeedTempoDialog}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Pattern Editor:Visible Columns:Hide All Unused Columns (All Tracks)", invoke=function() PakettiHideAllUnusedColumns() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Visible Columns:Hide All Unused Columns (Selected Track)", invoke=function() PakettiHideAllUnusedColumnsSelectedTrack() end}

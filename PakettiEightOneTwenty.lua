@@ -1214,15 +1214,7 @@ local randomize_all_yxx_button = vb:button{
     vb:button{
       text="Sequential Load",
       notifier=function()
-        -- Load samples for all 8 rows in sequence using browse_instrument
-        for i = 1, 8 do
-          local row_elements = rows[i]
-          if row_elements then
-            renoise.app():show_status("Loading samples for row " .. i)
-            row_elements.browse_instrument()
-          end
-        end
-        renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+        loadSequentialSamplesWithFolderPrompts()
       end
     },
     vb:button{
@@ -2096,6 +2088,203 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Initialize for Groovebox 8120",invoke=function() 
 PakettiEightOneTwentyInit()
 end}
+
+-- Function to load samples sequentially from 8 folders with nice prompts (regular samples)
+function loadSequentialSamplesWithFolderPrompts()
+  local folders = {}
+  local current_folder = 1
+  local dialog = nil
+  local status_labels = {}
+  
+  -- Helper function to get just filename from path
+  local function getFilename(filepath)
+    return filepath:match("([^/\\]+)%.%w+$") or filepath:match("([^/\\]+)$") or filepath
+  end
+  
+  -- Function to process a single instrument (regular sample loading)
+  local function processInstrument(instrument_index, folder_path)
+    local song = renoise.song()
+    song.selected_track_index = instrument_index
+    song.selected_instrument_index = instrument_index
+    local instrument = song.selected_instrument
+    
+    -- Get all valid audio files in the directory
+    local sample_files = PakettiGetFilesInDirectory(folder_path)
+    if #sample_files == 0 then
+      return false, "No audio files found in folder " .. folder_path
+    end
+
+    -- Clear existing samples
+    for i = #instrument.samples, 1, -1 do
+      instrument:delete_sample_at(i)
+    end
+    
+    -- Load up to 120 samples from the folder
+    local max_samples = 120
+    local num_samples_to_load = math.min(#sample_files, max_samples)
+    
+    for i = 1, num_samples_to_load do
+      local selected_file = sample_files[i]
+      
+      instrument:insert_sample_at(i)
+      local sample_buffer = instrument.samples[i].sample_buffer
+      
+      if sample_buffer then
+        local success = pcall(function()
+          sample_buffer:load_from(selected_file)
+          instrument.samples[i].name = getFilename(selected_file)
+          -- Set basic mapping
+          instrument.samples[i].sample_mapping.base_note = 48
+          instrument.samples[i].sample_mapping.note_range = {0, 119}
+        end)
+        
+        if not success then
+          print(string.format("Failed to load sample %d: %s", i, selected_file))
+        end
+      end
+      
+      -- Update status display
+      if dialog and dialog.visible and status_labels[instrument_index] then
+        local display_name = getFilename(selected_file)
+        if #display_name > 60 then
+          display_name = display_name:sub(1, 57) .. "..."
+        end
+        status_labels[instrument_index].text = string.format("Part %d/8: Loading sample %03d/%03d: %s", 
+          instrument_index, i, num_samples_to_load, display_name)
+      end
+      
+      if i % 5 == 0 then
+        coroutine.yield()
+      end
+    end
+    
+    -- Set instrument name
+    local folder_name = getFilename(folder_path)
+    instrument.name = string.format("8120_%02d %s", instrument_index, folder_name)
+    
+    return true
+  end
+
+  -- Main processing function
+  local function process()
+    renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+
+    for i = 1, 8 do
+      -- Update status to show which part is processing
+      for j = i + 1, 8 do
+        if status_labels[j] then
+          local folder_name = getFilename(folders[j])
+          status_labels[j].text = string.format("Part %d/8: Queued - Loading from %s", j, folder_name)
+        end
+      end
+      
+      local success, error = processInstrument(i, folders[i])
+      if not success then
+        print(error)
+      end
+      
+      coroutine.yield()
+    end
+    
+    -- Close dialog and finish up
+    if dialog and dialog.visible then
+      dialog:close()
+    end
+    
+    -- Apply final settings and update UI
+    for i = 1, 8 do
+      local instrument = renoise.song():instrument(i)
+      if instrument and #instrument.samples > 0 then
+        -- Set first sample to full velocity range, others to 0-0
+        for sample_idx, sample in ipairs(instrument.samples) do
+          sample.sample_mapping.velocity_range = {0, 0}
+        end
+        instrument.samples[1].sample_mapping.velocity_range = {0, 127}
+      end
+    end
+    
+    update_instrument_list_and_popups()
+    renoise.app():show_status("Sequential loading completed - All instruments loaded")
+  end
+
+  -- Function to start the processing
+  local function startProcessing()
+    -- Create ProcessSlicer
+    local slicer = ProcessSlicer(process)
+    
+    -- Create progress dialog with status for all 8 parts
+    local vb = renoise.ViewBuilder()
+    local DEFAULT_MARGIN = renoise.ViewBuilder.DEFAULT_CONTROL_MARGIN
+    local DEFAULT_SPACING = renoise.ViewBuilder.DEFAULT_CONTROL_SPACING
+    
+    local dialog_content = vb:column{
+      margin = DEFAULT_MARGIN,
+      spacing = DEFAULT_SPACING,
+    }
+    
+    -- Add status labels for all 8 parts
+    for i = 1, 8 do
+      local folder_name = getFilename(folders[i])
+      local status_label = vb:text{
+        text = string.format("Part %d/8: Queued - Loading from %s", i, folder_name),
+        font = "bold",
+        style = "strong"
+      }
+      status_labels[i] = status_label
+      dialog_content:add_child(status_label)
+    end
+    
+    dialog_content:add_child(vb:button{
+      text = "Cancel",
+      width = 80,
+      notifier = function()
+        slicer:cancel()
+        if dialog and dialog.visible then
+          dialog:close()
+        end
+        renoise.app():show_status("Sequential loading cancelled by user")
+      end
+    })
+    
+    -- Show dialog
+    local keyhandler = create_keyhandler_for_dialog(
+      function() return dialog end,
+      function(value) dialog = value end
+    )
+    dialog = renoise.app():show_custom_dialog("Paketti Groovebox 8120 Sequential Load Progress", dialog_content, keyhandler)
+    
+    -- Start processing
+    slicer:start()
+  end
+
+  -- Function to prompt for next folder
+  local function promptNextFolder()
+    local folder_path = renoise.app():prompt_for_path(string.format("Select folder %d of 8 for sequential loading", current_folder))
+    if folder_path then
+      folders[current_folder] = folder_path
+      local folder_name = getFilename(folder_path)
+      renoise.app():show_status(string.format("Selected folder %d/8: %s", current_folder, folder_name))
+      current_folder = current_folder + 1
+      if current_folder <= 8 then
+        return promptNextFolder()
+      else
+        -- All folders selected, start processing
+        renoise.app():show_status("All folders selected, starting sequential load...")
+        startProcessing()
+      end
+    else
+      -- User cancelled folder selection
+      if dialog and dialog.visible then
+        dialog:close()
+      end
+      renoise.app():show_status("Sequential loading cancelled - folder selection aborted")
+      return
+    end
+  end
+
+  -- Start by prompting for folders
+  promptNextFolder()
+end
 
 -- Function to load samples sequentially from 8 folders using ProcessSlicer
 function loadSequentialDrumkitSamples()
