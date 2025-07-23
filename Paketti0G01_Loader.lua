@@ -94,7 +94,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   PolyendWAVSavePath="",
   PolyendUseSavePaths=true,
   pakettifyReplaceInstrument=false,
-  pakettiInstrumentProperties=false,
+  pakettiInstrumentProperties=0,  -- 0=Do Nothing, 1=Hide, 2=Show
   pakettiPitchSliderRange=2,
   pakettiDiskBrowserVisible=true,
   pakettiREXBundlePath = "." .. separator .. "rx2",
@@ -756,16 +756,23 @@ local pakettiIRPathDisplayId = "pakettiIRPathDisplay_" .. tostring(math.random(2
             },
             vb:row{
               vb:text{text="Instrument Properties",width=150},
-              vb:switch{items={"Off","On"},value=preferences.pakettiInstrumentProperties.value and 2 or 1,width=200,
+              vb:switch{items={"Do Nothing","Hide","Show"},value=preferences.pakettiInstrumentProperties.value+1,width=300,
                 notifier=function(value) 
-                  preferences.pakettiInstrumentProperties.value=(value==2)
+                  preferences.pakettiInstrumentProperties.value=(value-1)
                   -- Update the instrument properties visibility immediately
                   if renoise.API_VERSION >= 6.2 then
-                    renoise.app().window.instrument_properties_is_visible = preferences.pakettiInstrumentProperties.value
+                    if preferences.pakettiInstrumentProperties.value == 1 then
+                      renoise.app().window.instrument_properties_is_visible = false
+                    elseif preferences.pakettiInstrumentProperties.value == 2 then
+                      renoise.app().window.instrument_properties_is_visible = true
+                    end
+                    -- Mode 0 (Do Nothing) - no immediate action taken
                   end
+                  local mode_names = {"Do Nothing", "Hide", "Show"}
+                  renoise.app():show_status("Instrument Properties Control: " .. mode_names[value])
                 end}
             },
-            vb:row{vb:text{style="strong",text="Show/Hide Instrument Properties panel on startup and when changed"}},
+            vb:row{vb:text{style="strong",text="Control Instrument Properties panel visibility on startup and when changed"}},
             -- Only show Disk Browser Visible switch for API version 6.2 and above
             renoise.API_VERSION >= 6.2 and vb:row{
               vb:text{text="Disk Browser Visible",width=150},
