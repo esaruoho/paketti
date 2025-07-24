@@ -1606,42 +1606,12 @@ end
 for i = 0, 64 do
   local section_id = string.format("%02d", i)
 
-  renoise.tool():add_keybinding{name="Global:Paketti:Select, Trigger and Loop Section " .. section_id,
-    invoke=function() tknaSelectTriggerLoopSection(i) end
-  }
-  renoise.tool():add_midi_mapping{name="Paketti:Select, Trigger and Loop Section " .. section_id,
-    invoke=function(message) 
-      if message:is_trigger() then
-        tknaSelectTriggerLoopSection(i)
-      end
-    end
-  }
-
-  
-
-
-  renoise.tool():add_keybinding{name="Global:Paketti:Select, Schedule and Loop Section " .. section_id,
-    invoke=function() tknaSelectScheduleLoopSection(i) end
-  }
-  renoise.tool():add_midi_mapping{name="Paketti:Select, Schedule and Loop Section " .. section_id,
-    invoke=function(message) 
-      if message:is_trigger() then
-        tknaSelectScheduleLoopSection(i)
-      end
-    end
-  }
-
-  renoise.tool():add_keybinding{name="Global:Paketti:Select, Add to Schedule and Loop Section " .. section_id,
-    invoke=function() tknaSelectAddScheduleLoopSection(i) end
-  }
-  renoise.tool():add_midi_mapping{name="Paketti:Select, Add to Schedule and Loop Section " .. section_id,
-    invoke=function(message) 
-      if message:is_trigger() then
-        tknaSelectAddScheduleLoopSection(i)
-      end
-    end
-  }
-
+  renoise.tool():add_keybinding{name="Global:Paketti:Select, Trigger and Loop Section " .. section_id,invoke=function() tknaSelectTriggerLoopSection(i) end}
+  renoise.tool():add_midi_mapping{name="Paketti:Select, Trigger and Loop Section " .. section_id,invoke=function(message) if message:is_trigger() then tknaSelectTriggerLoopSection(i) end end}
+  renoise.tool():add_keybinding{name="Global:Paketti:Select, Schedule and Loop Section " .. section_id,invoke=function() tknaSelectScheduleLoopSection(i) end}
+  renoise.tool():add_midi_mapping{name="Paketti:Select, Schedule and Loop Section " .. section_id,invoke=function(message) if message:is_trigger() then tknaSelectScheduleLoopSection(i) end end}
+  renoise.tool():add_keybinding{name="Global:Paketti:Select, Add to Schedule and Loop Section " .. section_id,invoke=function() tknaSelectAddScheduleLoopSection(i) end}
+  renoise.tool():add_midi_mapping{name="Paketti:Select, Add to Schedule and Loop Section " .. section_id,invoke=function(message) if message:is_trigger() then tknaSelectAddScheduleLoopSection(i) end end}
   renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Sequences/Sections:Select, Trigger and Loop:Select, Trigger and Loop Section " .. section_id,invoke=function() tknaSelectTriggerLoopSection(i) end}
   renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Sequences/Sections:Select, Schedule and Loop:Select, Schedule and Loop Section " .. section_id,invoke=function() tknaSelectScheduleLoopSection(i) end}
   renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Sequences/Sections:Select, Add to Schedule and Loop:Select, Add to Schedule and Loop Section " .. section_id,invoke=function() tknaSelectAddScheduleLoopSection(i) end}
@@ -1730,3 +1700,72 @@ function sliceTextureDrumKit() sliceDrumKit("texture") end
 
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Slice Drumkit (Percussion)", invoke=slicePercussionDrumKit}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Slice Drumkit (Texture)", invoke=sliceTextureDrumKit}
+
+
+
+
+-------
+-- Function to double the LPB value
+function PakettiLPBDouble()
+  local song=renoise.song()
+  local current_lpb=song.transport.lpb
+  
+  if current_lpb >= 128 then
+    if current_lpb * 2 > 256 then
+      renoise.app():show_status("LPB Cannot be doubled to over 256")
+      return
+    end
+  end
+  
+  local new_lpb=current_lpb*2
+  song.transport.lpb=new_lpb
+  renoise.app():show_status("Doubled LPB from "..current_lpb.." to "..new_lpb)
+--  renoise.app().window.active_middle_frame=renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+end
+
+-- Function to halve the LPB value
+function PakettiLPBHalve()
+  local song=renoise.song()
+  local current_lpb=song.transport.lpb
+  
+  if current_lpb == 1 then
+    renoise.app():show_status("LPB cannot be smaller than 1")
+    return
+  end
+  
+  if current_lpb % 2 ~= 0 then
+    renoise.app():show_status("LPB is odd number, cannot halve LPB.")
+    return
+  end
+  
+  local new_lpb=math.floor(current_lpb/2)
+  song.transport.lpb=new_lpb
+  renoise.app():show_status("Halved LPB from "..current_lpb.." to "..new_lpb)
+--  renoise.app().window.active_middle_frame=renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Double LPB",invoke=function() PakettiLPBDouble() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Halve LPB",invoke=function() PakettiLPBHalve() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Double Double LPB",invoke=function() PakettiLPBDouble() PakettiLPBDouble() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Halve Halve LPB",invoke=function() PakettiLPBHalve() PakettiLPBHalve() end}
+
+function halve_bpm()
+  local song=renoise.song()
+  local current_bpm=song.transport.bpm
+  local new_bpm=math.max(current_bpm/2,20)
+  song.transport.bpm=new_bpm
+  renoise.app():show_status("BPM halved from "..current_bpm.." to "..new_bpm)
+end
+
+function double_bpm()
+  local song=renoise.song()
+  local current_bpm=song.transport.bpm
+  local new_bpm=math.min(current_bpm*2,999)
+  song.transport.bpm=new_bpm
+  renoise.app():show_status("BPM doubled from "..current_bpm.." to "..new_bpm)
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Halve BPM",invoke=function() halve_bpm() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Double BPM",invoke=function() double_bpm() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Halve Halve BPM",invoke=function() halve_bpm() halve_bpm() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Double Double BPM",invoke=function() double_bpm() double_bpm() end}

@@ -542,3 +542,38 @@ renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Clone Current Sequ
 renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Select Next Section Sequence",invoke=function() navigate_section_sequence("next") end}
 renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Select Previous Section Sequence",invoke=function() navigate_section_sequence("previous") end}
 renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Duplicate Selected Sequence Range",invoke=duplicate_selected_sequence_range}
+
+-------
+function PakettiKeepSequenceSorted(state)
+  -- Handle toggle case
+  if state == "toggle" then
+    if renoise.song().sequencer.keep_sequence_sorted == false then
+      state = true
+    else
+      state = false
+    end
+  end
+  
+  -- Sets the Keep Sequence Sorted state to true(on) or false(off)
+  renoise.song().sequencer.keep_sequence_sorted = state
+
+  -- Depending on what the state was, show a different status message.
+  if state == true then 
+    renoise.app():show_status("Keep Sequence Sorted: Enabled")
+  else
+    renoise.app():show_status("Keep Sequence Sorted: Disabled")
+  end
+end
+
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Keep Sequence Sorted On", invoke=function() PakettiKeepSequenceSorted(true) end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Keep Sequence Sorted Off", invoke=function() PakettiKeepSequenceSorted(false) end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Keep Sequence Sorted Toggle", invoke=function() PakettiKeepSequenceSorted("toggle") end}
+renoise.tool():add_keybinding{name="Global:Paketti:Keep Sequence Sorted On", invoke=function() PakettiKeepSequenceSorted(true) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Keep Sequence Sorted Off", invoke=function() PakettiKeepSequenceSorted(false) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Keep Sequence Sorted Toggle", invoke=function() PakettiKeepSequenceSorted("toggle") end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Keep Sequence Sorted Off", invoke=function() PakettiKeepSequenceSorted(false) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Keep Sequence Sorted On", invoke=function() PakettiKeepSequenceSorted(true) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Keep Sequence Sorted Toggle", invoke=function() PakettiKeepSequenceSorted("toggle") end}
+renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Keep Sequence Sorted Off", invoke=function() PakettiKeepSequenceSorted(false) end}
+renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Keep Sequence Sorted On", invoke=function() PakettiKeepSequenceSorted(true) end}
+renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Keep Sequence Sorted Toggle", invoke=function() PakettiKeepSequenceSorted("toggle") end}

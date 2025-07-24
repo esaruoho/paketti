@@ -1160,3 +1160,52 @@ renoise.tool():add_keybinding{name="Sample Editor:Paketti:Map Sample to All Keyz
 renoise.tool():add_keybinding{name="Sample Keyzones:Paketti:Map Sample to All Keyzones", invoke=function() mapsample() end}
 renoise.tool():add_midi_mapping{name="Paketti:Map Sample to All Keyzones", invoke=function(message) if message:is_trigger() then mapsample() end end}
 
+
+
+
+
+------
+function PlayCurrentLineAdvance(direction)
+  local s=renoise.song()
+  local num_lines=s.selected_pattern.number_of_lines
+  local sli = s.selected_line_index
+    
+  renoise.song().transport.follow_player = false
+  
+  if renoise.API_VERSION >= 6.2 then
+    -- v3.5 method: Clean, immediate line triggering
+    s:trigger_pattern_line(sli)
+  else
+    -- Legacy method for older versions
+    local t = s.transport
+    t:start_at(sli)
+    local start_time = os.clock()
+    while (os.clock() - start_time < 0.05) do
+      -- Minimum delay to allow the line to play correctly
+    end
+    t:stop()
+  end
+  
+  -- Adjust the selected line index based on the direction
+  if direction == 1 then
+    -- Forward movement
+    if s.selected_line_index + direction > num_lines then
+      s.selected_line_index = 1
+    else
+      s.selected_line_index = s.selected_line_index + direction
+    end
+  elseif direction == -1 then
+    -- Backward movement
+    if s.selected_line_index + direction < 1 then
+      s.selected_line_index = num_lines
+    else
+      s.selected_line_index = s.selected_line_index + direction
+    end
+  elseif direction == "random" then
+      s.selected_line_index = math.random(1, num_lines)
+  end
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Play Current Line&Step Forwards",invoke=function() PlayCurrentLineAdvance(1) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Play Current Line&Step Backwards",invoke=function() PlayCurrentLineAdvance(-1) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Play Current Line&Step Random",invoke=function() PlayCurrentLineAdvance("random") end}

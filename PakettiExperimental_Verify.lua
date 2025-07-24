@@ -1,3 +1,60 @@
+function paketti_build_sample_variants()
+  local instr=renoise.song().selected_instrument
+  if not instr then renoise.app():show_status("No instrument selected.") return end
+  local base_idx=renoise.song().selected_sample_index
+  local base=instr.samples[base_idx]
+  if not base then renoise.app():show_status("No sample selected.") return end
+  if not base.sample_buffer.has_sample_data then renoise.app():show_status("Empty sample.") return end
+
+  local name=base.name
+
+  local function clone_and_process(label, transform)
+    local new=instr:insert_sample_at(#instr.samples+1)
+    new:copy_from(base)
+    new.name=name.." ("..label..")"
+    new.volume=0.0  -- Set volume to -INF dB so user can fade them in manually
+
+    local buf=new.sample_buffer
+    buf:prepare_sample_data_changes()
+    for c=1,buf.number_of_channels do
+      for f=1,buf.number_of_frames do
+        local val=buf:sample_data(c,f)
+        buf:set_sample_data(c,f,math.max(-1.0,math.min(1.0,transform(val))))
+      end
+    end
+    buf:finalize_sample_data_changes()
+  end
+
+  clone_and_process("wrapped", function(val)
+    local i16=math.floor(val*32768)
+    local u16=(i16+65536)%65536
+    return ((u16/65535)*2.0)-1.0
+  end)
+
+  clone_and_process("unwrapped", function(val)
+    local u16=math.floor(((val+1.0)*0.5)*65535)
+    local i16=(u16>=32768) and (u16-65536) or u16
+    return i16/32768
+  end)
+
+  clone_and_process("scaled unsigned", function(val)
+    return (val+1.0)*0.5
+  end)
+
+  clone_and_process("scaled signed", function(val)
+    return (val*2.0)-1.0
+  end)
+
+  renoise.app().window.active_middle_frame=renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+  renoise.app():show_status("Created 4 wrecked variants of sample: "..name)
+end
+
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Build Sample Variants", invoke=paketti_build_sample_variants}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Build Sample Variants", invoke=paketti_build_sample_variants}
+
+
+
+---
 -- Additive Record Follow Pattern Tool
 additive_record_follow = {
   is_active = false,
@@ -1714,64 +1771,6 @@ if preferences.SelectedSampleBeatSyncLines.value == true then
   renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Sample Beatsync Lines to " .. i,invoke=function()SelectedSampleBeatSyncLine(i)end}
   end 
 end
-
-function AutoAssignOutputs()
-  local song=renoise.song()
-  local instrument = song.selected_instrument
-  local samples = instrument.samples
-  local sample_device_chains = instrument.sample_device_chains
-  local available_outputs = sample_device_chains[1] 
-    and sample_device_chains[1].available_output_routings 
-    or {}
-
-  -- Ensure sufficient output routings exist
-  if #available_outputs < 2 then
-    renoise.app():show_status("Not enough available output routings.")
-    return
-  end
-
-  -- Determine the starting chain index based on pre-existing chains
-  local pre_existing_chains = #sample_device_chains
-  local start_chain_index = math.max(pre_existing_chains + 1, 1)
-  if pre_existing_chains >= 2 then
-    start_chain_index = 3
-  elseif pre_existing_chains == 1 then
-    start_chain_index = 2
-  end
-
-  -- Calculate the required number of chains (one per sample)
-  local required_chains = start_chain_index + #samples - 1
-
-  -- Add new chains if necessary
-  for i = pre_existing_chains + 1, required_chains do
-    instrument:insert_sample_device_chain_at(i)
-  end
-
-  -- Assign output routings and name the chains
-  for i = 1, #samples do
-    local chain_index = start_chain_index + i - 1
-    local routing_index = (i - 1) % (#available_outputs - 1) + 2 -- Skip "Current Track"
-
-    -- Fetch the chain
-    local chain = sample_device_chains[chain_index]
-    if not chain then
-      renoise.app():show_status("Failed to fetch FX chain at index: " .. tostring(chain_index))
-      return
-    end
-
-    -- Assign output routing and name the chain
-    local routing_name = available_outputs[routing_index]
-    chain.output_routing = routing_name
-    chain.name = routing_name
-  end
-
-  renoise.app():show_status("FX chains assigned and outputs routed successfully.")
-end
-
-
----
-
-
 ------------------------
 local vb = renoise.ViewBuilder()
 local dialog = nil
@@ -6343,3 +6342,8 @@ renoise.tool():add_menu_entry{name = "Pattern Editor:Paketti:Fit Sample Offset t
 renoise.tool():add_keybinding{name = "Pattern Editor:Paketti:Fit Sample Offset to Pattern (0Sxx)",invoke = function() PakettiFitSampleOffsetToPattern(false) end}
 renoise.tool():add_keybinding{name = "Pattern Editor:Paketti:Fit Sample Offset to Pattern (0Sxx Headless)",invoke = function() PakettiFitSampleOffsetToPattern(true) end}
   
+
+
+
+
+---

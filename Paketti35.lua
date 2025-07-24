@@ -660,13 +660,7 @@ function TriggerPatternLineMidiValue(midi_value)
   end
 end
 
-renoise.tool():add_midi_mapping{name="Paketti:Trigger Pattern Line Scrub (CC)",
-  invoke=function(message)
-    if message.boolean_value then
-      TriggerPatternLineMidiValue(message.value)
-    end
-  end
-}
+renoise.tool():add_midi_mapping{name="Paketti:Trigger Pattern Line Scrub (CC)",invoke=function(message) if message.boolean_value then TriggerPatternLineMidiValue(message.value) end end}
 
 -- Create 512 individual trigger functions with their own MIDI mappings and shortcuts
 for i=1,512 do

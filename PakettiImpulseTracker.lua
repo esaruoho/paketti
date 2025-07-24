@@ -3176,3 +3176,140 @@ renoise.tool():add_midi_mapping{name="Paketti:Shrink Selection Replicate Track 7
 renoise.tool():add_midi_mapping{name="Paketti:Shrink Selection Replicate Track 8 [Trigger]",invoke=function(message) if message:is_trigger() then ShrinkSelectionReplicate(8) end end}
 
 ]]--
+
+----
+
+function paketti_wrap_signed_as_unsigned()
+  local instr=renoise.song().selected_instrument
+  if not instr or #instr.samples==0 then renoise.app():show_status("No sample found.") return end
+  local smp=instr.samples[renoise.song().selected_sample_index]
+  if not smp.sample_buffer.has_sample_data then renoise.app():show_status("Empty sample buffer.") return end
+
+  local buf=smp.sample_buffer
+  buf:prepare_sample_data_changes()
+  for c=1,buf.number_of_channels do
+    for f=1,buf.number_of_frames do
+      local val=buf:sample_data(c,f)
+      local i16=math.floor(val*32768)
+      local u16=(i16+65536)%65536
+      local out=((u16/65535)*2.0)-1.0
+      buf:set_sample_data(c,f,math.max(-1.0,math.min(1.0,out)))
+    end
+  end
+  buf:finalize_sample_data_changes()
+
+  renoise.app().window.active_middle_frame=renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+  renoise.app():show_status("Wrapped signed buffer as unsigned. You wanted broken? You got it.")
+end
+
+function paketti_unwrap_unsigned_as_signed()
+  local instr=renoise.song().selected_instrument
+  if not instr or #instr.samples==0 then renoise.app():show_status("No sample found.") return end
+  local smp=instr.samples[renoise.song().selected_sample_index]
+  if not smp.sample_buffer.has_sample_data then renoise.app():show_status("Empty sample buffer.") return end
+
+  local buf=smp.sample_buffer
+  buf:prepare_sample_data_changes()
+  for c=1,buf.number_of_channels do
+    for f=1,buf.number_of_frames do
+      local val=buf:sample_data(c,f)
+      local u16=math.floor(((val+1.0)*0.5)*65535)
+      local i16=(u16>=32768) and (u16-65536) or u16
+      local out=i16/32768
+      buf:set_sample_data(c,f,math.max(-1.0,math.min(1.0,out)))
+    end
+  end
+  buf:finalize_sample_data_changes()
+
+  renoise.app().window.active_middle_frame=renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+  renoise.app():show_status("Unwrapped unsigned values back to signed.")
+end
+
+renoise.tool():add_keybinding {name="Sample Editor:Paketti:Wrap Signed as Unsigned",invoke=paketti_wrap_signed_as_unsigned}
+renoise.tool():add_keybinding {name="Sample Editor:Paketti:Unwrap Unsigned to Signed",invoke=paketti_unwrap_unsigned_as_signed}
+
+function paketti_toggle_signed_unsigned()
+  local instr=renoise.song().selected_instrument
+  if not instr or #instr.samples==0 then renoise.app():show_status("No sample found.") return end
+  local smp=instr.samples[renoise.song().selected_sample_index]
+  if not smp.sample_buffer.has_sample_data then renoise.app():show_status("Empty sample buffer.") return end
+
+  local buf=smp.sample_buffer
+  local frames=math.min(512, buf.number_of_frames)
+  local avg=0
+  for f=1,frames do
+    avg=avg+buf:sample_data(1,f)
+  end
+  avg=avg/frames
+
+  local unwrap=(avg>0.25) -- if mean is high, likely unsigned-wrap
+
+  buf:prepare_sample_data_changes()
+  for c=1,buf.number_of_channels do
+    for f=1,buf.number_of_frames do
+      local val=buf:sample_data(c,f)
+      local out
+      if unwrap then
+        local u16=math.floor(((val+1.0)*0.5)*65535)
+        local i16=(u16>=32768) and (u16-65536) or u16
+        out=i16/32768
+      else
+        local i16=math.floor(val*32768)
+        local u16=(i16+65536)%65536
+        out=((u16/65535)*2.0)-1.0
+      end
+      buf:set_sample_data(c,f,math.max(-1.0,math.min(1.0,out)))
+    end
+  end
+  buf:finalize_sample_data_changes()
+
+  renoise.app().window.active_middle_frame=renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+  local msg=unwrap and "Unwrapped unsigned to signed." or "Wrapped signed to unsigned."
+  renoise.app():show_status(msg)
+end
+
+
+renoise.tool():add_keybinding {name="Sample Editor:Paketti:Toggle Signed/Unsigned",invoke=paketti_toggle_signed_unsigned}
+
+
+--
+function paketti_float_unsign()
+  local instr=renoise.song().selected_instrument
+  if not instr or #instr.samples==0 then renoise.app():show_status("No sample found.") return end
+  local smp=instr.samples[1]
+  if not smp.sample_buffer.has_sample_data then renoise.app():show_status("Empty sample buffer.") return end
+
+  local buf=smp.sample_buffer
+  buf:prepare_sample_data_changes()
+  for c=1,buf.number_of_channels do
+    for f=1,buf.number_of_frames do
+      local val=buf:sample_data(c,f)
+      buf:set_sample_data(c,f,(val+1.0)*0.5)
+    end
+  end
+  buf:finalize_sample_data_changes()
+
+  renoise.app().window.active_middle_frame=renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+  renoise.app():show_status("Sample scaled: signed → unsigned.")
+end
+
+function paketti_float_sign()
+  local instr=renoise.song().selected_instrument
+  if not instr or #instr.samples==0 then renoise.app():show_status("No sample found.") return end
+  local smp=instr.samples[1]
+  if not smp.sample_buffer.has_sample_data then renoise.app():show_status("Empty sample buffer.") return end
+
+  local buf=smp.sample_buffer
+  buf:prepare_sample_data_changes()
+  for c=1,buf.number_of_channels do
+    for f=1,buf.number_of_frames do
+      local val=buf:sample_data(c,f)
+      buf:set_sample_data(c,f,(val*2.0)-1.0)
+    end
+  end
+  buf:finalize_sample_data_changes()
+
+  renoise.app().window.active_middle_frame=renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+  renoise.app():show_status("Sample scaled: unsigned → signed.")
+end
+

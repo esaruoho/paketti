@@ -694,3 +694,50 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Sample Settings:Disa
     end
   end
 } ]]--
+
+
+--[[
+function ReplaceLegacyEffect(old_effect, new_effect)
+  local song=renoise.song()
+  local pattern_count = #song.patterns
+  local changes_made = 0
+  
+  -- Iterate through all patterns
+  for pattern_index = 1, pattern_count do
+    local pattern = song:pattern(pattern_index)
+    local track_count = #pattern.tracks
+    
+    -- Iterate through all tracks in pattern
+    for track_index = 1, track_count do
+      local track = pattern:track(track_index)
+      local line_count = pattern.number_of_lines
+      
+      -- Iterate through all lines in track
+      for line_index = 1, line_count do
+        local line = track:line(line_index)
+        
+        -- Check effect columns
+        for effect_column_index = 1, #line.effect_columns do
+          local effect_column = line.effect_columns[effect_column_index]
+          
+          -- Check if effect number matches old_effect and replace with new_effect
+          if effect_column.number_string == old_effect then
+            effect_column.number_string = new_effect
+            changes_made = changes_made + 1
+          end
+        end
+      end
+    end
+  end
+  
+  -- Show status message with number of changes made
+  if changes_made > 0 then
+    renoise.app():show_status(string.format("Replaced %d instances of %s with %s", changes_made, old_effect, new_effect))
+  else
+    renoise.app():show_status(string.format("No %s effects found to replace", old_effect))
+  end
+end
+
+
+renoise.tool():add_keybinding{name="Global:Paketti:Replace FC with 0L",invoke=function() ReplaceLegacyEffect("FC", "0L") end}
+]]--

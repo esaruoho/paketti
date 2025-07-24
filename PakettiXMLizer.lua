@@ -1,3 +1,73 @@
+-- Function to toggle the MuteSource value in the XML data
+function SendMuteKeepReverser()
+  -- Define the XML data with MuteSource as false
+  local xml_data_false = [[
+  <?xml version="1.0" encoding="UTF-8"?>
+  <FilterDevicePreset doc_version="13">
+    <DeviceSlot type="SendDevice">
+      <IsMaximized>true</IsMaximized>
+      <SendAmount>
+        <Value>0.0</Value>
+      </SendAmount>
+      <SendPan>
+        <Value>0.5</Value>
+      </SendPan>
+      <DestSendTrack>
+        <Value>0.0</Value>
+      </DestSendTrack>
+      <MuteSource>false</MuteSource>
+      <SmoothParameterChanges>true</SmoothParameterChanges>
+      <ApplyPostVolume>true</ApplyPostVolume>
+    </DeviceSlot>
+  </FilterDevicePreset>
+  ]]
+
+  -- Define the XML data with MuteSource as true
+  local xml_data_true = [[
+  <?xml version="1.0" encoding="UTF-8"?>
+  <FilterDevicePreset doc_version="13">
+    <DeviceSlot type="SendDevice">
+      <IsMaximized>true</IsMaximized>
+      <SendAmount>
+        <Value>0.0</Value>
+      </SendAmount>
+      <SendPan>
+        <Value>0.5</Value>
+      </SendPan>
+      <DestSendTrack>
+        <Value>0.0</Value>
+      </DestSendTrack>
+      <MuteSource>true</MuteSource>
+      <SmoothParameterChanges>true</SmoothParameterChanges>
+      <ApplyPostVolume>true</ApplyPostVolume>
+    </DeviceSlot>
+  </FilterDevicePreset>
+  ]]
+
+  -- Read the current active preset data
+  local active_preset_data = renoise.song().selected_track.devices[2].active_preset_data
+
+  -- Determine the current state of MuteSource in active_preset_data
+  local mute_source_current = string.match(active_preset_data, "<MuteSource>(.-)</MuteSource>")
+
+  -- Toggle the MuteSource value
+  if mute_source_current == "true" then
+    active_preset_data = xml_data_false
+  else
+    active_preset_data = xml_data_true
+  end
+
+  -- Set the modified XML data back to the active preset
+  renoise.song().selected_track.devices[2].active_preset_data = active_preset_data
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Send Reverser",invoke=function() SendMuteKeepReverser() end}
+
+
+
+
+
+
 -- PakettiXMLizer.lua
 -- Custom LFO Preset System for Renoise with 16 preference-stored slots
 -- Uses XML injection via device.active_preset_data

@@ -562,7 +562,9 @@ timed_require("PakettiExperimental_Verify")  -- 4543 lines, 8.50 ms
 timed_require("PakettiLoaders")              -- 3137 lines, 9.00 ms
 timed_require("PakettiPatternEditor")        -- 4583 lines, 11.50 ms
 timed_require("PakettiTkna")                 -- 1495 lines, 23.00 ms
+print ("REQUESTS LOADING")
 timed_require("PakettiRequests")             -- 9168 lines, 127.00 ms
+print ("REQUESTS LOADED")
 timed_require("PakettiSamples")              -- 4249 lines, 6.00 ms
 timed_require("Paketti35")
 timed_require("PakettiActionSelector")
@@ -614,6 +616,10 @@ timed_require("PakettiMetricModulation")
 timed_require("PakettiPresetPlusPlus")
 timed_require("PakettiWTImport")
 timed_require("PakettiXRNIT")
+timed_require("PakettiImport")
+timed_require("PakettiClearance")
+timed_require("PakettiRoutings")
+timed_require("PakettiViews")
 
 -- Polyend functionality toggle
 local PolyendYes = false
@@ -639,31 +645,6 @@ timed_require("PakettiMenuConfig")
 print(string.format("Total load time: %.3f seconds", os.clock() - init_time))
 
 _AUTO_RELOAD_DEBUG = true
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
