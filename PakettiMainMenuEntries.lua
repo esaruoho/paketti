@@ -308,8 +308,42 @@ local function create_button_list()
   if renoise.API_VERSION >= 6.2 then
     table.insert(buttons, {"V3.5 GUI Demo", "pakettiGUIDemo"})
     table.insert(buttons, {"Paketti Enhanced Phrase Generator", "pakettiPhraseGeneratorDialog"})
+    table.insert(buttons, {"Chebyshev Polynomial Waveshaper", "show_chebyshev_waveshaper"})
+    table.insert(buttons, {"Paketti Selected Device Parameter Editor", "PakettiCanvasExperimentsInit"})
+  
   end
   
+  -- **ALL MISSING DIALOGS ADDED (FROM COMPREHENSIVE GREP):**
+  table.insert(buttons, {"Digitakt Sample Chain", "PakettiDigitaktDialog"})
+  table.insert(buttons, {"LFO Envelope Editor", "pakettiLFOEnvelopeEditorDialog"})
+  table.insert(buttons, {"Wavetable", "show_wavetable_dialog"})
+  table.insert(buttons, {"CCizer TXT->CC Loader", "pakettiCCizerTXTCCDialog"})
+  table.insert(buttons, {"CCizer TXT->MIDI Control Loader", "pakettiCCizerTXTMIDIDialog"})
+  table.insert(buttons, {"Metric Modulation Calculator", "pakettiMetricModulationDialog"})
+  table.insert(buttons, {"Advanced Subdivision Calculator", "pakettiAdvancedSubdivisionDialog"})
+  table.insert(buttons, {"OctaCycle Generator", "pakettiOctaCycleDialog"})
+  table.insert(buttons, {"Track Mapping", "showTrackMappingDialog"})
+  table.insert(buttons, {"Polyend Pattern Browser", "showPolyendPatternBrowser"})
+  table.insert(buttons, {"Humanize Selection", "pakettiHumanizeDialog"})
+  table.insert(buttons, {"Paketti XYPad Sample Rotator", "pakettiXYPadSampleRotatorDialog"})
+  table.insert(buttons, {"Octatrack .OT File Analysis", "pakettiOTFileAnalysisDialog"})
+  table.insert(buttons, {"Offset Sample Buffer", "pakettiOffsetSampleBufferDialog"})
+  table.insert(buttons, {"Set EditStep&Enter", "pakettiEditStepEnterDialog"})
+  table.insert(buttons, {"Player Pro Note Selector", "pakettiPlayerProNoteGridShowDropdownGrid"})
+  table.insert(buttons, {"Player Pro FX Dialog", "pakettiPlayerProEffectDialog"})
+  table.insert(buttons, {"Paketti Minimize Cheatsheet", "pakettiMinimizeCheatsheetDialog"})
+  table.insert(buttons, {"Category Management (MIDI)", "pakettiCategoryManagementDialog"})
+  table.insert(buttons, {"Paketti PCM Writer", "PCMWriterDialog"})
+  table.insert(buttons, {"Sample Visualizer", "show_sample_visualizer"})
+  table.insert(buttons, {"Instrument Info", "show_instrument_info_dialog"})
+  table.insert(buttons, {"Sononymph", "show_sononymph_dialog"})
+  table.insert(buttons, {"Plugin Editor Position", "show_plugin_editor_position_dialog"})
+  table.insert(buttons, {"Paketti RePitch", "show_paketti_repitch_dialog"})
+  table.insert(buttons, {"Switch Note Instrument Dialog", "pakettiSwitchNoteInstrumentDialog"})
+  table.insert(buttons, {"Set Smart Folder Path", "pakettiSetSmartFolderPathDialog"})
+  table.insert(buttons, {"Plugin Details", "pakettiPluginDetailsDialog"})
+  table.insert(buttons, {"Effect Details", "pakettiEffectDetailsDialog"})
+  table.insert(buttons, {"Set Pattern/Phrase Length", "pakettiPatternPhraseLength"})  
   return buttons
 end
 
