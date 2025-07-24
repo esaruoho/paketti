@@ -40,13 +40,11 @@ function JalexAdd(number)
       renoise.tool():add_keybinding{name=string.format("Pattern Editor:Paketti:Chordsplus (Add %02d)", i),
         invoke=function() JalexAdd(i) end
       }
-    end
-    
-    for i=1,12 do
       renoise.tool():add_keybinding{name=string.format("Pattern Editor:Paketti:ChordsPlus (Sub %02d)", i),
         invoke=function() JalexAdd(-i) end
       }
     end
+    
 
     function chordsplus(number1, number2, number3, number4, number5, number6)
         -- Check if there's a valid note (notes are 0-119, 120 is OFF, 121 is ---)

@@ -630,21 +630,11 @@ function PakettiCanvasExperimentsRefreshDevice()
        end
      end
     
-    -- If restoration failed, search for any available device
+    -- If restoration failed, DON'T force track changes - just work with current track
     if not found_device then
-      for track_index = 1, #song.tracks do
-        local track = song.tracks[track_index]
-        if #track.devices > 0 then
-          -- Set the selected track first
-          song.selected_track_index = track_index
-          -- Then set the device index within that track
-          song.selected_device_index = 1
-          -- Get the device reference after setting the selection
-          found_device = song.selected_device
-                 selected_device = found_device
-       break
-        end
-      end
+      print("DEVICE_ERROR: No device found - working with current track state without forcing changes")
+      -- Don't force track selection changes - let user control track selection
+      selected_device = nil
     end
     
     -- If no devices found at all, then show "no device selected"
@@ -756,24 +746,12 @@ function PakettiCanvasExperimentsInit()
   if not selected_device then
     print("DEVICE_ERROR: No device selected - searching for available devices")
     
-         -- Find any available device in the song
-     local found_device = nil
-     for track_index = 1, #song.tracks do
-       local track = song.tracks[track_index]
-       if #track.devices > 0 then
-         -- Set the selected track first
-         song.selected_track_index = track_index
-         -- Then set the device index within that track
-         song.selected_device_index = 1
-         -- Get the device reference after setting the selection
-         found_device = song.selected_device
-         selected_device = found_device
-         break
-       end
-     end
+         -- Don't force track changes - work with current track state
+     print("INIT: No device selected - working with current track without forcing changes")
+           selected_device = nil
     
-    if not found_device then
-      print("DEVICE_ERROR: No devices found in entire song")
+    if not selected_device then
+      print("INIT: No device available - dialog will open with empty state")
       -- Continue anyway - let the dialog open with no device state
       current_device = nil
       device_parameters = {}
@@ -1333,21 +1311,28 @@ end
 
 -- Key handler function to pass keys back to Renoise
 function my_keyhandler_func(dialog, key)
-  -- Pass all keys back to Renoise so normal shortcuts work
+  -- CRITICAL: Pass ALL keys back to Renoise so normal shortcuts work
+  -- This ensures track selection, navigation, and all other Renoise shortcuts work normally
+  print("KEYHANDLER: Passing key '" .. tostring(key.name) .. "' back to Renoise")
   return key
 end
 
 -- Clean up observers when dialog closes
 function PakettiCanvasExperimentsCleanup()
+  print("CLEANUP: Starting aggressive cleanup to restore normal Renoise operation")
+  
   -- CRITICAL: Turn off automation sync to stop all automation writing
   follow_automation = false
   
-  -- Remove device selection observer
+  -- AGGRESSIVELY remove device selection observer with multiple attempts
   if device_selection_notifier then
-    local song = renoise.song()
-    if song and song.selected_device_observable then
-      song.selected_device_observable:remove_notifier(device_selection_notifier)
-    end
+    pcall(function()
+      local song = renoise.song()
+      if song and song.selected_device_observable then
+        song.selected_device_observable:remove_notifier(device_selection_notifier)
+        print("CLEANUP: ✅ Removed device selection observer")
+      end
+    end)
     device_selection_notifier = nil
   end
   
@@ -1356,6 +1341,14 @@ function PakettiCanvasExperimentsCleanup()
   
   -- AGGRESSIVELY remove canvas update timer
   RemoveCanvasUpdateTimer()
+  
+  -- FORCE RESET Renoise state that might have been hijacked
+  pcall(function()
+    local song = renoise.song()
+    -- Restore normal follow player setting (don't force it to false)
+    -- song.transport.follow_player = true  -- Let user control this
+    print("CLEANUP: ✅ Reset Renoise transport state")
+  end)
   
   -- Clear all references
   canvas_experiments_dialog = nil
@@ -1377,6 +1370,8 @@ function PakettiCanvasExperimentsCleanup()
   parameter_values_B = {}
   crossfade_amount = 0.0
   current_edit_mode = "A"
+  
+  print("CLEANUP: ✅ Canvas Dialog cleanup complete")
 end
 
 -- Create the main dialog
@@ -1670,6 +1665,18 @@ function PakettiCanvasExperimentsCreateDialog()
     dialog_content,
     my_keyhandler_func
   )
+  
+  -- CRITICAL: Ensure cleanup happens when dialog is closed by user clicking X
+  if canvas_experiments_dialog then
+    -- Add close notifier to ensure cleanup
+    pcall(function()
+      -- This ensures cleanup even if user closes dialog with X button
+      canvas_experiments_dialog.closed_observable:add_notifier(function()
+        print("DIALOG_CLOSE: User closed dialog - running cleanup")
+        PakettiCanvasExperimentsCleanup()
+      end)
+    end)
+  end
   
   canvas_experiments_canvas = vb.views.canvas_experiments_canvas
   status_text_view = vb.views.status_text_view
@@ -2242,17 +2249,34 @@ if canvas_experiments_dialog or device_parameter_observers or canvas_update_time
   PakettiCanvasExperimentsCleanup()
 end
 
--- Menu entries
-renoise.tool():add_menu_entry {
-  name = "Main Menu:Tools:Paketti Selected Device Parameter Editor",
-  invoke = PakettiCanvasExperimentsInit
-}
+-- EMERGENCY RESET: Function to force-reset everything if user gets stuck
+function PakettiCanvasExperimentsEmergencyReset()
+  print("EMERGENCY_RESET: Force resetting all Canvas Dialog state")
+  
+  -- Force close dialog
+  if canvas_experiments_dialog then
+    pcall(function() canvas_experiments_dialog:close() end)
+  end
+  
+  -- Aggressive cleanup
+  PakettiCanvasExperimentsCleanup()
+  
+  -- Clear any remaining global state
+  pcall(function()
+    -- Reset any potential stuck automation state
+    follow_automation = false
+    automation_reading_enabled = true
+    parameter_being_drawn = nil
+    
+    -- Clear all observers aggressively
+    device_parameter_observers = {}
+    device_selection_notifier = nil
+    canvas_update_timer = nil
+  end)
+  
+  renoise.app():show_status("EMERGENCY RESET: Canvas Dialog state cleared")
+  print("EMERGENCY_RESET: Complete")
+end
 
-renoise.tool():add_keybinding {
-  name = "Global:Paketti:Paketti Selected Device Parameter Editor",
-  invoke = PakettiCanvasExperimentsInit
-}
-
-
-
-
+renoise.tool():add_menu_entry {name = "Main Menu:Tools:Paketti Selected Device Parameter Editor",invoke = PakettiCanvasExperimentsInit}
+renoise.tool():add_keybinding {name = "Global:Paketti:Paketti Selected Device Parameter Editor",invoke = PakettiCanvasExperimentsInit}

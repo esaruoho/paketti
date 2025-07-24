@@ -575,12 +575,6 @@ function clear_columns()
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 end
 
-for i = 1, 10 do
-  renoise.tool():add_keybinding{name="Pattern Editor:Paketti:OctaMED Pick Slot "..formatDigits(2,i),invoke=function() pick_note_instrument(i) end}
-  renoise.tool():add_keybinding{name="Pattern Editor:Paketti:OctaMED Put Slot "..formatDigits(2,i),invoke=function() put_from_preferences(i) end}
-  renoise.tool():add_midi_mapping{name="Paketti:OctaMED Pick Slot "..formatDigits(2,i),invoke=function() pick_note_instrument(i) end}
-  renoise.tool():add_midi_mapping{name="Paketti:OctaMED Put Slot "..formatDigits(2,i),invoke=function() put_from_preferences(i) end}
-end
 
 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:OctaMED Pick/Put Dialog...",invoke=function() pakettiOctaMEDPickPutRowDialog() end}
@@ -764,19 +758,6 @@ function OctaMEDToggleTrackMute(track_index)
   renoise.app():show_status(status .. " " ..renoise.song().tracks[track_index].name)
 end
 
-for i = 1, 16 do
-  renoise.tool():add_keybinding{name=string.format("Global:Paketti:OctaMED Toggle Mute Track %02d", i),invoke=function() OctaMEDToggleTrackMute(i) end}
-  renoise.tool():add_keybinding{name=string.format("Pattern Editor:Paketti:OctaMED Toggle Mute Track %02d", i),invoke=function() OctaMEDToggleTrackMute(i) end}
-  renoise.tool():add_keybinding{name=string.format("Mixer:Paketti:OctaMED Toggle Mute Track %02d", i),invoke=function() OctaMEDToggleTrackMute(i) end}
-  renoise.tool():add_keybinding{name=string.format("Phrase Editor:Paketti:OctaMED Toggle Mute Track %02d", i),invoke=function() OctaMEDToggleTrackMute(i) end}  
-  renoise.tool():add_midi_mapping{name=string.format("Paketti:OctaMED Toggle Mute Track %02d", i),
-    invoke=function(message)
-      if message:is_trigger() then
-        OctaMEDToggleTrackMute(i)
-      end
-    end
-  }
-end
 -------
 function pakettiOctaMEDNoteEchoDialog()
   -- Check if dialog is already open and close it
@@ -999,3 +980,23 @@ end
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:OctaMED Note Echo Dialog...",invoke = pakettiOctaMEDNoteEchoDialog}
 
 ---------
+
+
+-- Combined loop: OctaMED operations for 1-10 (Pick/Put) and 1-16 (Toggle Mute)
+for i = 1, 16 do
+  if i <= 10 then
+    -- Operations that need 1-10 only (Pick/Put Slot)
+    renoise.tool():add_keybinding{name="Pattern Editor:Paketti:OctaMED Pick Slot "..formatDigits(2,i),invoke=function() pick_note_instrument(i) end}
+    renoise.tool():add_keybinding{name="Pattern Editor:Paketti:OctaMED Put Slot "..formatDigits(2,i),invoke=function() put_from_preferences(i) end}
+    renoise.tool():add_midi_mapping{name="Paketti:OctaMED Pick Slot "..formatDigits(2,i),invoke=function() pick_note_instrument(i) end}
+    renoise.tool():add_midi_mapping{name="Paketti:OctaMED Put Slot "..formatDigits(2,i),invoke=function() put_from_preferences(i) end}
+  end
+  
+  -- Operations that need 1-16 (Toggle Mute Track)
+  renoise.tool():add_keybinding{name=string.format("Global:Paketti:OctaMED Toggle Mute Track %02d", i),invoke=function() OctaMEDToggleTrackMute(i) end}
+  renoise.tool():add_keybinding{name=string.format("Pattern Editor:Paketti:OctaMED Toggle Mute Track %02d", i),invoke=function() OctaMEDToggleTrackMute(i) end}
+  renoise.tool():add_keybinding{name=string.format("Mixer:Paketti:OctaMED Toggle Mute Track %02d", i),invoke=function() OctaMEDToggleTrackMute(i) end}
+  renoise.tool():add_keybinding{name=string.format("Phrase Editor:Paketti:OctaMED Toggle Mute Track %02d", i),invoke=function() OctaMEDToggleTrackMute(i) end}  
+  renoise.tool():add_midi_mapping{name=string.format("Paketti:OctaMED Toggle Mute Track %02d", i),invoke=function(message) if message:is_trigger() then OctaMEDToggleTrackMute(i) end end}
+end
+
