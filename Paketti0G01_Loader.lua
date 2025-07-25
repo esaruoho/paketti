@@ -820,12 +820,12 @@ local pakettiIRPathDisplayId = "pakettiIRPathDisplay_" .. tostring(math.random(2
                 notifier=function(value) preferences.pakettiRandomizeBPMOnNewSong.value=(value==2) end}
             },
             vb:row{vb:text{style="strong",text="Randomly set BPM (60-220) with bell curve around 120 for new songs (not loaded from file)"}},
-            vb:row{vb:text{text="Pale Green Theme",width=150},vb:button{text="Load",width=100,notifier=function() update_loadPaleGreenTheme_preferences() end} },
-            vb:row{vb:text{text="Gifts: Plaid Zap .XRNI",width=150},vb:button{text="Load",width=100,notifier=function() renoise.app():load_instrument("Gifts/plaidzap.xrni") end} },
-            vb:row{vb:text{text="200 Drum Machines (.zip)",width=150},vb:button{text="Open URL",width=100,notifier=function() 
-            renoise.app():open_url("http://www.hexawe.net/mess/200.Drum.Machines/") end}}},
-    horizontal_rule(),
-            vb:column{style = "group", margin=10,width="100%",
+            vb:row{
+            vb:button{text="Load Pale Green Theme",width=150,notifier=function() update_loadPaleGreenTheme_preferences() end},
+            vb:button{text="Load Plaid Zap .XRNI",width=150,notifier=function() renoise.app():load_instrument("Gifts/plaidzap.xrni") end},
+            vb:button{text="Load 200 Drum Machines (.zip)",width=150,notifier=function() 
+            renoise.app():open_url("http://www.hexawe.net/mess/200.Drum.Machines/") end}
+            },
                 vb:row{vb:text{text="Create New Instrument & Loop from Selection", font="bold",style = "strong"}},
                 vb:row{vb:text{text="Select Newly Created",width=150},
                     vb:switch{items = {"Off", "On"},
@@ -847,11 +847,8 @@ local pakettiIRPathDisplayId = "pakettiIRPathDisplay_" .. tostring(math.random(2
               notifier=function(value) 
               preferences.selectionNewInstrumentAutofade.value=(value==2) 
               end}
-            }},
+            },
           -- Render Settings wrapped in group
-          horizontal_rule(),
-          vb:column{
-            style="group",margin=10,width="100%",
             vb:text{style="strong",font="bold",text="Render Settings"}, -- Applied bold and strong
             vb:row{vb:text{text="Sample Rate",width=150},vb:switch{items={"22050","44100","48000","88200","96000","192000"},value=find_sample_rate_index(preferences.renderSampleRate.value),width=300,
               notifier=function(value) preferences.renderSampleRate.value=sample_rates[value] end}
@@ -864,15 +861,8 @@ local pakettiIRPathDisplayId = "pakettiIRPathDisplay_" .. tostring(math.random(2
             },
             vb:row{vb:text{text="DC Offset",width=150},vb:switch{items={"Off","On"},value=preferences.RenderDCOffset.value and 2 or 1,width=300,
               notifier=function(value) preferences.RenderDCOffset.value=(value==2) end}
-            }            
-          },
-
-          horizontal_rule(),
-          vb:column{
-            style = "group", margin=10,width="100%",
+            },
             vb:text{style = "strong", font = "bold", text="Rotate Sample Buffer Settings"},
-            
-            -- Fine control
             vb:row{
                 vb:text{text="Fine Control",width=150},
                 vb:slider{
@@ -888,8 +878,6 @@ local pakettiIRPathDisplayId = "pakettiIRPathDisplay_" .. tostring(math.random(2
                 },
                 fine_value_label
             },
-            
-            -- Coarse control
             vb:row{
                 vb:text{text="Coarse Control",width=150},
                 vb:slider{
@@ -904,13 +892,7 @@ local pakettiIRPathDisplayId = "pakettiIRPathDisplay_" .. tostring(math.random(2
                     end
                 },
                 coarse_value_label
-            }
-        },
-        horizontal_rule(),
-
-        horizontal_rule(),
-        vb:column{
-          style="group",margin=10,width="100%",
+            },
           vb:text{style="strong",font="bold",text="Strip Silence Settings"}, -- Applied bold and strong
 
 -- Modify the silence settings sliders
@@ -946,12 +928,7 @@ vb:row{
   begthreshold_label,
       
 
-    },},
-
-          -- Edit Mode Coloring wrapped in group
-          horizontal_rule(),
-          vb:column{
-            style="group",margin=10,width="100%",
+    },
             vb:text{style="strong",font="bold",text="Edit Mode Colouring"}, -- Applied bold and strong
             vb:row{vb:text{text="Edit Mode",width=150},vb:switch{items={"None","Selected Track","All Tracks"},value=preferences.pakettiEditMode.value,width=300,
               notifier=function(value) preferences.pakettiEditMode.value=value end}
@@ -985,10 +962,7 @@ vb:row{
                 end
               },
               blend_value_label
-            },},
-          horizontal_rule(),
-          vb:column{
-            style="group",margin=10,width="100%",
+            },
             vb:text{style="strong",font="bold",text="Effect Column->Automation Settings"},
             vb:row{
               vb:text{text="Format",width=150},
@@ -1127,14 +1101,7 @@ vb:row{
               
               -- Save preferences immediately
               preferences:save_as("preferences.xml")
-            end} }
-          },
---]]
-          
-          -- Wipe & Slice Settings wrapped in group
-          horizontal_rule(),
-          vb:column{
-            style="group",margin=10,width="100%",
+            end} },
             vb:text{style="strong",font="bold",text="Wipe & Slices Settings"},
             vb:row{vb:text{text="Slice Loop Mode",width=150},create_loop_mode_switch(preferences.WipeSlices.WipeSlicesLoopMode) },
             vb:row{vb:text{text="Slice Loop Release/Exit Mode",width=150},vb:checkbox{value=preferences.WipeSlices.WipeSlicesLoopRelease.value,notifier=function(value) preferences.WipeSlices.WipeSlicesLoopRelease.value=value end} },
@@ -1159,10 +1126,6 @@ vb:row{
             vb:row{vb:text{text="Slice Loop EndHalf",width=150},vb:switch{items={"Off","On"},value=preferences.WipeSlices.SliceLoopMode.value and 2 or 1,width=200,
           notifier=function(value) preferences.WipeSlices.SliceLoopMode.value=(value==2) end}
           },
-          },
-  horizontal_rule(),
-  vb:column{
-    style="group",margin=10,width="100%",
     vb:row{
       vb:text{text="Dialog Close Key",width=150, style="strong",font="bold"},
       vb:popup{
@@ -1174,12 +1137,7 @@ vb:row{
         end
       },
     },
-  },
-  horizontal_rule(),
-  vb:column{
-    style="group",margin=10,width="100%",
     vb:text{style="strong", font="bold", text="Random Device Chain Loader Path"},
-    
     vb:row{
         vb:textfield{
             text = preferences.PakettiDeviceChainPath.value,
@@ -1216,12 +1174,7 @@ vb:row{
             PakettiRandomDeviceChain(preferences.PakettiDeviceChainPath.value)
         end}
     },
-  },
-  horizontal_rule(),
-  vb:column{
-    style="group",margin=10,width="100%",
     vb:text{style="strong", font="bold", text="Random IR Loader Path"},
-
     vb:row{
         vb:textfield{
             text = preferences.PakettiIRPath.value,
@@ -1258,11 +1211,6 @@ vb:row{
             PakettiRandomIR(preferences.PakettiIRPath.value)
         end}
     },
-  
-  },
-  horizontal_rule(),
-
-vb:column{style="group",margin=10,width="100%",
   vb:row{
     vb:text{text="Device Load Order", style="strong",font="bold",width=150},
     vb:switch{
@@ -1275,10 +1223,6 @@ vb:column{style="group",margin=10,width="100%",
       end
     }
   },
-},
-
-horizontal_rule(),
-  vb:column{style="group",margin=10,width="100%",
     vb:row{
       vb:text{text="LFO Write Device Delete",style="strong",font="bold",width=150},
       vb:switch{
@@ -1289,11 +1233,7 @@ horizontal_rule(),
           preferences.PakettiLFOWriteDelete.value = (value == 2)
         end
       }
-    }
-  },
-
-  horizontal_rule(),
-  vb:column{style="group",margin=10,width="100%",
+    },
     vb:text{text="Sample Selection Info (Shows detected note, frequency, and tuning offset in sample selection info)",width=150, style="strong",font="bold"},
     vb:row{
       vb:text{text="Show Sample Selection",width=150},
