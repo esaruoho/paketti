@@ -1238,3 +1238,7 @@ local function map_envelope_time(seconds)
     -- Renoise's envelope time parameters are mapped 0-1 to 0-20 seconds
     return math.min(1, math.max(0, seconds / 20))
 end
+
+
+
+

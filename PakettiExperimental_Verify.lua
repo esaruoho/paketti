@@ -6350,7 +6350,8 @@ renoise.tool():add_keybinding{name = "Pattern Editor:Paketti:Fit Sample Offset t
 
 
 --------
--- Play Current Line in Phrase
+--------
+-- Play Current Line in Phrase (CORRECTED)
 function PakettiPlayCurrentLineInPhrase()
   -- Ensure we're in phrase editor
   if renoise.app().window.active_middle_frame ~= 
@@ -6373,93 +6374,57 @@ function PakettiPlayCurrentLineInPhrase()
   end
   
   -- Get current cursor position in phrase
-  local current_line = song.transport.edit_pos.line
+  local current_line = song.selected_phrase_line_index
   
-  -- Clamp to phrase bounds
-  current_line = math.max(1, math.min(current_line, phrase.number_of_lines))
-  
-  local phrase_line = phrase:line(current_line)
-  local notes_triggered = 0
-  local instrument = song.selected_instrument
-  
-  if not instrument then
-    renoise.app():show_status("No instrument selected")
+  -- Check if current line exists
+  if current_line > phrase.number_of_lines then
+    renoise.app():show_status("Invalid phrase line index")
     return
   end
   
-  -- Trigger all notes on current line
-  for col = 1, phrase.visible_note_columns do
-    local note_col = phrase_line.note_columns[col]
-    
-    if not note_col.is_empty and note_col.note_value < 120 then
-      local note = note_col.note_value
-      local velocity = note_col.volume_value ~= renoise.PatternLineVolumeColumn.EMPTY_VOLUME 
-                      and note_col.volume_value or 127
-      
-      -- Apply phrase key tracking if set to transpose mode
-      if phrase.key_tracking == renoise.InstrumentPhrase.KEY_TRACKING_TRANSPOSE then
-        note = note + (phrase.base_note - 48)  -- C-4 is 48
-        -- Ensure note stays within valid range
-        note = math.max(0, math.min(119, note))
-      end
-      
-      -- Handle sample triggering for phrases (instrument column refers to samples)
-      if note_col.instrument_value ~= renoise.PatternLine.EMPTY_INSTRUMENT then
-        local sample_index = note_col.instrument_value + 1
-        local sample = instrument.samples[sample_index]
-        if sample and sample.sample_buffer.has_sample_data then
-          -- Trigger specific sample
-          instrument:trigger_note(note, velocity, sample_index)
-        else
-          -- Fallback to instrument trigger
-          instrument:trigger_note(note, velocity)
-        end
-      else
-        -- No specific sample, trigger instrument normally
-        instrument:trigger_note(note, velocity)
-      end
-      
-      notes_triggered = notes_triggered + 1
-      
-      print(string.format("Triggered note %d (col %d) with velocity %d", note, col, velocity))
-    end
+  -- Get the phrase line
+  local phrase_line = phrase:line(current_line)
+  
+  if phrase_line.is_empty then
+    renoise.app():show_status("Current phrase line is empty")
+    return
   end
   
-  if notes_triggered > 0 then
-    renoise.app():show_status(string.format("Played %d notes from phrase line %d", 
-                             notes_triggered, current_line))
-    print(string.format("PakettiPlayCurrentLineInPhrase: Played %d notes from line %d", 
-                       notes_triggered, current_line))
+  -- Build temporary pattern with the phrase line content
+  local temp_pattern = song:pattern(song.selected_pattern_index)
+  local temp_track = temp_pattern:track(song.selected_track_index)
+  local temp_line = temp_track:line(song.selected_line_index)
+  
+  -- Copy phrase line content to pattern for playback
+  temp_line:copy_from(phrase_line)
+  
+  -- Play the line using the standard pattern trigger
+  if renoise.API_VERSION >= 6.2 then
+    song:trigger_pattern_line(song.selected_line_index)
   else
-    renoise.app():show_status("No notes to play on current phrase line")
-    print("PakettiPlayCurrentLineInPhrase: No notes found on current line")
+    local t = song.transport
+    t:start_at(song.selected_line_index)
+    local start_time = os.clock()
+    while (os.clock() - start_time < 0.4) do
+      -- Wait for playback
+    end
+    t:stop()
   end
+  
+  renoise.app():show_status("Played phrase line " .. current_line)
 end
 
--- Add menu entries
-renoise.tool():add_menu_entry{
-  name="Phrase Editor:Paketti:Play Current Line in Phrase",
-  invoke=function() PakettiPlayCurrentLineInPhrase() end
-}
+-- Menu entries
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Phrase Editor:Play Current Line in Phrase", invoke = PakettiPlayCurrentLineInPhrase}
+renoise.tool():add_menu_entry{name="Phrase Editor:Paketti:Play Current Line in Phrase", invoke = PakettiPlayCurrentLineInPhrase}
 
-renoise.tool():add_menu_entry{
-  name="Main Menu:Tools:Paketti:Pattern/Phrase:Play Current Line in Phrase",
-  invoke=function() PakettiPlayCurrentLineInPhrase() end
-}
+-- Keybindings  
+renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Play Current Line in Phrase", invoke = PakettiPlayCurrentLineInPhrase}
+renoise.tool():add_keybinding{name="Global:Paketti:Play Current Line in Phrase", invoke = PakettiPlayCurrentLineInPhrase}
 
--- Add keybindings
-renoise.tool():add_keybinding{
-  name="Phrase Editor:Paketti:Play Current Line in Phrase",
-  invoke=function() PakettiPlayCurrentLineInPhrase() end
-}
-
-renoise.tool():add_keybinding{
-  name="Global:Paketti:Play Current Line in Phrase",
-  invoke=function() PakettiPlayCurrentLineInPhrase() end
-}
-
--- Add MIDI mapping
-renoise.tool():add_midi_mapping{
-  name="Paketti:Play Current Line in Phrase",
-  invoke=function() PakettiPlayCurrentLineInPhrase() end
-}
+-- MIDI Mapping
+renoise.tool():add_midi_mapping{name="Paketti:Play Current Line in Phrase [Trigger]", invoke = function(message) 
+  if message:is_trigger() then 
+    PakettiPlayCurrentLineInPhrase() 
+  end 
+end}

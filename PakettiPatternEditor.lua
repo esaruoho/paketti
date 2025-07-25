@@ -6540,3 +6540,153 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Increase Pattern Leng
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Decrease Pattern Length by 8",invoke=function() adjust_length_by(-8) end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Increase Pattern Length by LPB",invoke=function() adjust_length_by("lpb") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Decrease Pattern Length by LPB",invoke=function() adjust_length_by("-lpb") end}
+
+--------------------------------------------------------------------------------
+-- Audition Current Line on Pattern Row Change Toggle (V6.2+ only)
+--------------------------------------------------------------------------------
+if renoise.API_VERSION >= 6.2 then
+  -- Global state for the audition feature
+  local audition_on_line_change_enabled = false
+  local last_audition_pos = nil
+  
+  -- Save/restore state variables
+  local saved_playback_pos = nil
+  local saved_playing = false
+  local saved_follow_player = nil
+  local saved_edit_mode = nil
+
+  -- Timer function that monitors cursor position changes
+  local function audition_idle_notifier()
+    -- Check if audition is enabled
+    if not audition_on_line_change_enabled then
+      return
+    end
+    
+    -- Safe song access with error handling
+    local song
+    local success, error_msg = pcall(function()
+      song = renoise.song()
+    end)
+    
+    if not success or not song or not song.selected_track then
+      return
+    end
+    
+    -- Only audition if we're in pattern editor
+    if renoise.app().window.active_middle_frame ~= renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR then
+      return
+    end
+    
+    -- Get current cursor position
+    local pos = song.transport.edit_pos
+    local track_index = song.selected_track_index
+    local line_index = pos.line
+    local note_column_index = song.selected_note_column_index
+    
+    -- Create position hash for comparison
+    local current_pos = track_index .. ":" .. line_index .. ":" .. note_column_index
+    
+    -- Check if cursor moved to a new position
+    if current_pos ~= last_audition_pos then
+      last_audition_pos = current_pos
+      
+      -- Use the V6.2 API to trigger the current line (works because we stopped playback)
+      song:trigger_pattern_line(line_index)
+    end
+  end
+
+  -- Function to toggle the audition feature on/off
+  function PakettiToggleAuditionCurrentLineOnRowChange()
+    if audition_on_line_change_enabled then
+      -- Turn OFF: Restore everything
+      audition_on_line_change_enabled = false
+      
+      -- Remove timer
+      if renoise.tool():has_timer(audition_idle_notifier) then
+        renoise.tool():remove_timer(audition_idle_notifier)
+      end
+      
+      local song = renoise.song()
+      
+      -- Restore edit mode
+      if saved_edit_mode ~= nil then
+        song.transport.edit_mode = saved_edit_mode
+        saved_edit_mode = nil
+      end
+      
+      -- Restore follow player
+      if saved_follow_player ~= nil then
+        song.transport.follow_player = saved_follow_player
+        saved_follow_player = nil
+      end
+      
+      -- Resume playback from saved position if it was playing
+      if saved_playing and saved_playback_pos then
+        song.transport:start_at(saved_playback_pos)
+      end
+      
+      -- Show appropriate status message based on whether playback was restored
+      local status_msg = saved_playing and "Audition Mode: OFF (Playback Restored)" or "Audition Mode: OFF"
+      
+      -- Clear saved state
+      saved_playback_pos = nil
+      saved_playing = false
+      last_audition_pos = nil
+      
+      renoise.app():show_status(status_msg)
+    else
+      -- Turn ON: Save state and stop playback
+      audition_on_line_change_enabled = true
+      
+      local song = renoise.song()
+      local transport = song.transport
+      
+      -- Save current state
+      saved_playback_pos = transport.playback_pos
+      saved_playing = transport.playing
+      saved_follow_player = transport.follow_player
+      saved_edit_mode = transport.edit_mode
+      
+      -- Stop playback and set up for audition
+      if saved_playing then
+        transport:stop()
+      end
+      transport.edit_mode = true
+      transport.follow_player = false
+      
+      -- Add timer for monitoring cursor position
+      if not renoise.tool():has_timer(audition_idle_notifier) then
+        renoise.tool():add_timer(audition_idle_notifier, 50)
+      end
+      
+      -- Reset cursor tracking
+      last_audition_pos = nil
+      
+      local status_msg = saved_playing and "Audition Mode: ON (Playback Paused)" or "Audition Mode: ON"
+      renoise.app():show_status(status_msg)
+    end
+  end
+
+  -- Add keybinding for the toggle
+  renoise.tool():add_keybinding{
+    name="Global:Paketti:Toggle Audition Current Line on Pattern Row Change",
+    invoke=function() PakettiToggleAuditionCurrentLineOnRowChange() end
+  }
+
+  -- Add menu entry
+  renoise.tool():add_menu_entry{
+    name="Pattern Editor:Paketti:Toggle Audition Current Line on Pattern Row Change",
+    invoke=function() PakettiToggleAuditionCurrentLineOnRowChange() end
+  }
+
+  -- Add MIDI mapping for the toggle
+  renoise.tool():add_midi_mapping{
+    name="Paketti:Toggle Audition Current Line on Pattern Row Change x[Toggle]",
+    invoke=function(message) 
+      if message:is_trigger() then 
+        PakettiToggleAuditionCurrentLineOnRowChange() 
+      end 
+    end
+  }
+end
+-- If API < 6.2, don't create any menu entries, keybindings, or MIDI mappings at all

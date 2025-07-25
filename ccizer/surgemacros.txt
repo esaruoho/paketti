@@ -6,3 +6,7 @@
 46 Macro6
 47 Macro7
 48 Macro8
+PB Pitchbend
+1 Mod
+7 Volume
+10 Pan

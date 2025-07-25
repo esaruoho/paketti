@@ -550,10 +550,6 @@ function loadMasterMaximizer()
     return
   end
   
-  -- Set up UI
-  w.lower_frame_is_visible = true
-  w.active_lower_frame = 1
-  
   local devices = master_track.devices
   local checkline = #devices + 1 -- Always add at the end for Master track
   
