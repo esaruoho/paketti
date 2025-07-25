@@ -1604,8 +1604,8 @@ function pakettiDisableAllPhraseLooping()
   
   local disabled_count = 0
   for i, phrase in ipairs(instr.phrases) do
-    if phrase.mapping and phrase.mapping.looping then
-      phrase.mapping.looping = false
+    if phrase.looping then
+      phrase.looping = false
       disabled_count = disabled_count + 1
     end
   end
@@ -1636,8 +1636,8 @@ function pakettiEnableAllPhraseLooping()
   
   local enabled_count = 0
   for i, phrase in ipairs(instr.phrases) do
-    if phrase.mapping and not phrase.mapping.looping then
-      phrase.mapping.looping = true
+    if not phrase.looping then
+      phrase.looping = true
       enabled_count = enabled_count + 1
     end
   end
@@ -1693,8 +1693,8 @@ function pakettiEnableAllPhraseLoopingGlobally()
       local instrument_had_changes = false
       
       for phrase_idx, phrase in ipairs(instr.phrases) do
-        if phrase.mapping and not phrase.mapping.looping then
-          phrase.mapping.looping = true
+        if not phrase.looping then
+          phrase.looping = true
           phrases_enabled = phrases_enabled + 1
           instrument_had_changes = true
         end
@@ -1727,8 +1727,8 @@ function pakettiDisableAllPhraseLoopingGlobally()
       local instrument_had_changes = false
       
       for phrase_idx, phrase in ipairs(instr.phrases) do
-        if phrase.mapping and phrase.mapping.looping then
-          phrase.mapping.looping = false
+        if phrase.looping then
+          phrase.looping = false
           phrases_disabled = phrases_disabled + 1
           instrument_had_changes = true
         end
