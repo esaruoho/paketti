@@ -1807,8 +1807,8 @@ function selectedTrackToMonoAndHardLeft()
   local mono_active = insertOrToggleMonoDevice(track)
   
   if mono_active then
-    track.postfx_panning.value = 0.0  -- Hard left
-    track.prefx_panning.value = 0.0   -- Hard left
+    track.prefx_panning.value = 0.5   -- CENTER: proper stereo signal to Mono device
+    track.postfx_panning.value = 0.0  -- Hard left: final output direction
     renoise.app():show_status("Selected Track: Mono ON, Hard Left")
   else
     renoise.app():show_status("Selected Track: Mono OFF")
@@ -1821,8 +1821,8 @@ function selectedTrackToMonoAndHardRight()
   local mono_active = insertOrToggleMonoDevice(track)
   
   if mono_active then
-    track.postfx_panning.value = 1.0  -- Hard right
-    track.prefx_panning.value = 1.0   -- Hard right
+    track.prefx_panning.value = 0.5   -- CENTER: proper stereo signal to Mono device
+    track.postfx_panning.value = 1.0  -- Hard right: final output direction
     renoise.app():show_status("Selected Track: Mono ON, Hard Right")
   else
     renoise.app():show_status("Selected Track: Mono OFF")
@@ -1836,8 +1836,8 @@ function masterTrackToMonoAndHardLeft()
   local mono_active = insertOrToggleMonoDevice(masterTrack)
   
   if mono_active then
+    masterTrack.prefx_panning.value = 0.5   -- Hard left
     masterTrack.postfx_panning.value = 0.0  -- Hard left
-    masterTrack.prefx_panning.value = 0.0   -- Hard left
     renoise.app():show_status("Master Track: Mono ON, Hard Left")
   else
     renoise.app():show_status("Master Track: Mono OFF")
@@ -1851,8 +1851,8 @@ function masterTrackToMonoAndHardRight()
   local mono_active = insertOrToggleMonoDevice(masterTrack)
   
   if mono_active then
+    masterTrack.prefx_panning.value = 0.5   -- Hard right
     masterTrack.postfx_panning.value = 1.0  -- Hard right
-    masterTrack.prefx_panning.value = 1.0   -- Hard right
     renoise.app():show_status("Master Track: Mono ON, Hard Right")
   else
     renoise.app():show_status("Master Track: Mono OFF")
