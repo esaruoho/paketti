@@ -1769,3 +1769,109 @@ renoise.tool():add_keybinding{name="Global:Paketti:Halve BPM",invoke=function() 
 renoise.tool():add_keybinding{name="Global:Paketti:Double BPM",invoke=function() double_bpm() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Halve Halve BPM",invoke=function() halve_bpm() halve_bpm() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Double Double BPM",invoke=function() double_bpm() double_bpm() end}
+
+--------
+-- Studio Session Workflow: Make track mono and set hard left/right panning
+-- For treating stereo output as two mono channels to output to two amplifiers
+
+-- Helper function to insert or toggle mono device for a specific track
+function insertOrToggleMonoDevice(track)
+  local mono_device_index = nil
+  
+  -- Check for existing "Mono" device in the track
+  for i = 2, #track.devices do
+    if track.devices[i].display_name == "Mono" then
+      mono_device_index = i
+      break
+    end
+  end
+  
+  if mono_device_index then
+    -- Toggle existing Mono device state
+    local mono_device = track:device(mono_device_index)
+    mono_device.is_active = not mono_device.is_active
+    return mono_device.is_active
+  else
+    -- Insert new Mono device (Stereo Expander configured as Mono) at the end of DSP chain
+    local mono_device = track:insert_device_at("Audio/Effects/Native/Stereo Expander", #track.devices + 1)
+    mono_device.display_name = "Mono"
+    mono_device.parameters[1].value = 0
+    mono_device.is_maximized = false
+    return true
+  end
+end
+
+-- Selected Track to Mono and Hard Left
+function selectedTrackToMonoAndHardLeft()
+  local track = renoise.song().selected_track
+  local mono_active = insertOrToggleMonoDevice(track)
+  
+  if mono_active then
+    track.postfx_panning.value = 0.0  -- Hard left
+    track.prefx_panning.value = 0.0   -- Hard left
+    renoise.app():show_status("Selected Track: Mono ON, Hard Left")
+  else
+    renoise.app():show_status("Selected Track: Mono OFF")
+  end
+end
+
+-- Selected Track to Mono and Hard Right
+function selectedTrackToMonoAndHardRight()
+  local track = renoise.song().selected_track
+  local mono_active = insertOrToggleMonoDevice(track)
+  
+  if mono_active then
+    track.postfx_panning.value = 1.0  -- Hard right
+    track.prefx_panning.value = 1.0   -- Hard right
+    renoise.app():show_status("Selected Track: Mono ON, Hard Right")
+  else
+    renoise.app():show_status("Selected Track: Mono OFF")
+  end
+end
+
+-- Master Track to Mono and Hard Left
+function masterTrackToMonoAndHardLeft()
+  local song = renoise.song()
+  local masterTrack = song:track(song.sequencer_track_count + 1)
+  local mono_active = insertOrToggleMonoDevice(masterTrack)
+  
+  if mono_active then
+    masterTrack.postfx_panning.value = 0.0  -- Hard left
+    masterTrack.prefx_panning.value = 0.0   -- Hard left
+    renoise.app():show_status("Master Track: Mono ON, Hard Left")
+  else
+    renoise.app():show_status("Master Track: Mono OFF")
+  end
+end
+
+-- Master Track to Mono and Hard Right
+function masterTrackToMonoAndHardRight()
+  local song = renoise.song()
+  local masterTrack = song:track(song.sequencer_track_count + 1)
+  local mono_active = insertOrToggleMonoDevice(masterTrack)
+  
+  if mono_active then
+    masterTrack.postfx_panning.value = 1.0  -- Hard right
+    masterTrack.prefx_panning.value = 1.0   -- Hard right
+    renoise.app():show_status("Master Track: Mono ON, Hard Right")
+  else
+    renoise.app():show_status("Master Track: Mono OFF")
+  end
+end
+
+-- Add keybindings for the new studio session workflow functions
+renoise.tool():add_keybinding{name="Global:Paketti:Selected Track to Mono and Hard Left",invoke=function() selectedTrackToMonoAndHardLeft() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Selected Track to Mono and Hard Right",invoke=function() selectedTrackToMonoAndHardRight() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Master Track to Mono and Hard Left",invoke=function() masterTrackToMonoAndHardLeft() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Master Track to Mono and Hard Right",invoke=function() masterTrackToMonoAndHardRight() end}
+
+renoise.tool():add_menu_entry{name="Mixer:Paketti:TKNA:Selected Track to Mono and Hard Left",invoke=function() selectedTrackToMonoAndHardLeft() end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti:TKNA:Selected Track to Mono and Hard Right",invoke=function() selectedTrackToMonoAndHardRight() end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti:TKNA:Master Track to Mono and Hard Left",invoke=function() masterTrackToMonoAndHardLeft() end}
+renoise.tool():add_menu_entry{name="Mixer:Paketti:TKNA:Master Track to Mono and Hard Right",invoke=function() masterTrackToMonoAndHardRight() end}
+
+-- Add MIDI mappings for the new studio session workflow functions
+renoise.tool():add_midi_mapping{name="Paketti:Selected Track to Mono and Hard Left",invoke=function(message) if message:is_trigger() then selectedTrackToMonoAndHardLeft() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Selected Track to Mono and Hard Right",invoke=function(message) if message:is_trigger() then selectedTrackToMonoAndHardRight() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Master Track to Mono and Hard Left",invoke=function(message) if message:is_trigger() then masterTrackToMonoAndHardLeft() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Master Track to Mono and Hard Right",invoke=function(message) if message:is_trigger() then masterTrackToMonoAndHardRight() end end}

@@ -1673,15 +1673,11 @@ function pakettiToggleSelectedPhraseLooping()
   end
   
   local phrase = instr.phrases[phrase_index]
-  if not phrase.mapping then
-    renoise.app():show_status("Selected phrase has no mapping")
-    return
-  end
   
-  -- Toggle the looping state
-  phrase.mapping.looping = not phrase.mapping.looping
+  -- Toggle the looping state directly on the phrase
+  phrase.looping = not phrase.looping
   
-  local status = phrase.mapping.looping and "enabled" or "disabled"
+  local status = phrase.looping and "enabled" or "disabled"
   renoise.app():show_status(string.format("Phrase #%d looping %s in '%s'", phrase_index, status, instr.name))
   print(string.format("-- Paketti Phrase Looping: Phrase #%d looping %s in '%s'", phrase_index, status, instr.name))
 end

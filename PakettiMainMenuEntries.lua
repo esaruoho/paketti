@@ -347,9 +347,21 @@ local function create_button_list()
   return buttons
 end
 
--- Function to create buttons from the list
-function pakettiDialogOfDialogs()
+-- Function to create buttons from the list with optional filtering
+function pakettiDialogOfDialogs(search_query)
+  search_query = search_query or ""
   local button_list = create_button_list()  -- Get current button list
+  
+  -- Apply fuzzy search filtering if search query is provided
+  if search_query ~= "" then
+    button_list = PakettiFuzzySearchUtil(button_list, search_query, {
+      search_type = "substring",
+      field_extractor = function(button_def)
+        return {button_def[1]} -- Search in button name only
+      end
+    })
+  end
+  
   local buttons_per_row = 7
   local rows = {}
   local current_row = {}
@@ -377,6 +389,38 @@ function pakettiDialogOfDialogs()
   
   return vb:column{
     margin=5,
+    vb:text{text="Search:", font="bold"},
+    vb:textfield{
+      id="search_field",
+      width=400,
+      notifier=function(text)
+        -- Recreate the dialog content with filtered results
+        local filtered_content = pakettiDialogOfDialogs(text)
+        if dialog_of_dialogs and dialog_of_dialogs.visible then
+          -- Get button list for count
+          local current_list = create_button_list()
+          if text ~= "" then
+            current_list = PakettiFuzzySearchUtil(current_list, text, {
+              search_type = "substring",
+              field_extractor = function(button_def)
+                return {button_def[1]} -- Search in button name only
+              end
+            })
+          end
+          local dialog_count = #current_list
+          -- Update dialog title and content
+          dialog_of_dialogs:close()
+          dialog_of_dialogs = renoise.app():show_custom_dialog(
+            string.format("Paketti Dialog of Dialogs (%d)", dialog_count), 
+            filtered_content, 
+            create_keyhandler_for_dialog(
+              function() return dialog_of_dialogs end,
+              function(value) dialog_of_dialogs = value end
+            )
+          )
+        end
+      end
+    },
     vb:column{
       style = "group",
       margin=5,
