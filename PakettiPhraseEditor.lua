@@ -639,3 +639,179 @@ renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Decrease Delay -1",inv
 renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Increase Delay +10",invoke=function() Phrplusdelay(10) end}
 renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Decrease Delay -10",invoke=function() Phrplusdelay(-10) end}
 ---------------------------------------------------------------------------------------------------------
+
+----
+-- Helper function for phrase line operations (replicate version)
+function cpclex_phrase_line_replicate(from_line, to_line)
+  local s = renoise.song()
+  local phrase = s.selected_phrase
+  if not phrase then
+    renoise.app():show_status("No phrase selected.")
+    return
+  end
+  phrase:line(to_line):copy_from(phrase:line(from_line))
+  phrase:line(from_line):clear()
+  if to_line + 1 <= phrase.number_of_lines then
+    phrase:line(to_line + 1):clear()
+  end
+end
+
+function cpclsh_phrase_line_replicate(from_line, to_line)
+  local s = renoise.song()
+  local phrase = s.selected_phrase
+  if not phrase then
+    renoise.app():show_status("No phrase selected.")
+    return
+  end
+  phrase:line(to_line):copy_from(phrase:line(from_line))
+  phrase:line(from_line):clear()
+  if from_line + 1 <= phrase.number_of_lines then
+    phrase:line(from_line + 1):clear()
+  end
+end
+
+-- Phrase version of floodfill with selection
+function floodfill_phrase_with_selection()
+  local s = renoise.song()
+  local phrase = s.selected_phrase
+  
+  if not phrase then
+    renoise.app():show_status("No phrase selected.")
+    return
+  end
+  
+  if s.selection_in_phrase == nil then
+    renoise.app():show_status("Nothing selected to fill phrase with.")
+    return
+  end
+  
+  local sl = s.selection_in_phrase.start_line
+  local el = s.selection_in_phrase.end_line
+  local sc = s.selection_in_phrase.start_column
+  local ec = s.selection_in_phrase.end_column
+  local nl = phrase.number_of_lines
+  
+  local selection_length = el - sl + 1
+  local current_line = el + 1
+  
+  -- Fill the rest of the phrase with the selection pattern
+  while current_line <= nl do
+    local remaining_lines = nl - current_line + 1
+    local lines_to_copy = math.min(selection_length, remaining_lines)
+    
+    for i = 1, lines_to_copy do
+      local source_line = sl + (i - 1)
+      local target_line = current_line + (i - 1)
+      
+      if target_line <= nl then
+        phrase:line(target_line):copy_from(phrase:line(source_line))
+      end
+    end
+    
+    current_line = current_line + lines_to_copy
+  end
+end
+
+function ExpandSelectionReplicatePhrase()
+  local s = renoise.song()
+  local phrase = s.selected_phrase
+  
+  if not phrase then
+    renoise.app():show_status("No phrase selected.")
+    return
+  end
+  
+  if s.selection_in_phrase == nil then
+    renoise.app():show_status("Nothing selected to Expand in phrase.")
+    return
+  end
+  
+  local sl = s.selection_in_phrase.start_line
+  local el = s.selection_in_phrase.end_line
+  local sc = s.selection_in_phrase.start_column
+  local ec = s.selection_in_phrase.end_column
+  local nl = phrase.number_of_lines
+  
+  -- Calculate the original and new selection lengths
+  local original_length = el - sl + 1
+  local new_end_line = el * 2
+  if new_end_line > nl then
+    new_end_line = nl
+  end
+  
+  -- First pass: Expand the selection
+  for l = el, sl, -1 do
+    if l ~= sl then
+      local new_line = (l * 2) - sl
+      if new_line <= nl then
+        cpclex_phrase_line_replicate(l, new_line)
+      end
+    end
+  end
+  
+  -- Update selection to include expanded area
+  s.selection_in_phrase = {
+    start_line = sl,
+    end_line = new_end_line,
+    start_column = sc,
+    end_column = ec
+  }
+  
+  -- Fill the rest of the phrase
+  floodfill_phrase_with_selection()
+  
+  renoise.app():show_status(string.format("Expanded and replicated selection in phrase from line %d to %d", sl, nl))
+end
+
+function ShrinkSelectionReplicatePhrase()
+  local s = renoise.song()
+  local phrase = s.selected_phrase
+  
+  if not phrase then
+    renoise.app():show_status("No phrase selected.")
+    return
+  end
+  
+  if s.selection_in_phrase == nil then
+    renoise.app():show_status("Nothing selected to Shrink in phrase.")
+    return
+  end
+  
+  local sl = s.selection_in_phrase.start_line
+  local el = s.selection_in_phrase.end_line
+  local sc = s.selection_in_phrase.start_column
+  local ec = s.selection_in_phrase.end_column
+  local nl = phrase.number_of_lines
+  
+  for l = sl, el, 2 do
+    if l ~= sl then
+      -- Calculate new_line as an integer
+      local new_line = math.floor(l / 2 + sl / 2)
+      
+      -- Ensure new_line is within valid range
+      if new_line >= 1 and new_line <= nl then
+        cpclsh_phrase_line_replicate(l, new_line)
+      end
+    end
+  end
+  
+  -- Update selection to include shrunken area
+  local new_end_line = math.min(math.floor((el - sl) / 2) + sl, nl)
+  s.selection_in_phrase = {
+    start_line = sl,
+    end_line = new_end_line,
+    start_column = sc,
+    end_column = ec
+  }
+  
+  -- Fill the rest of the phrase
+  floodfill_phrase_with_selection()
+  
+  renoise.app():show_status(string.format("Shrank and replicated selection in phrase from line %d to %d", sl, nl))
+end
+
+-- Keybindings for Phrase Editor Replicate versions (API 6.2+)
+if renoise.API_VERSION >= 6.2 then
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Impulse Tracker ALT-F Expand Selection Replicate",invoke=function() ExpandSelectionReplicatePhrase() end}
+  renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Impulse Tracker ALT-G Shrink Selection Replicate",invoke=function() ShrinkSelectionReplicatePhrase() end}
+end
