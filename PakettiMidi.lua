@@ -2802,3 +2802,131 @@ renoise.tool():add_midi_mapping{name = "Paketti:Toggle Sampling & Write Trigger 
 renoise.tool():add_midi_mapping{name = "Paketti:Sampling & Pattern Writing Control x[Knob]",invoke = function(message) paketti_handle_sample_recording_knob(message) end}
 renoise.tool():add_keybinding{name = "Global:Paketti:Toggle Sampling & Write Trigger to Pattern",invoke = function() paketti_toggle_sample_recording() end}
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Xperimental/Work in Progress:Sample Recording:Toggle Sampling & Write Trigger to Pattern",invoke = function() paketti_toggle_sample_recording() end}
+
+-----------------------------------------------------------------------
+-- All Tracks Repeater Management Functions
+-----------------------------------------------------------------------
+
+-- Function to toggle all Repeater devices on all tracks (deactivate/activate)
+function paketti_deactivate_all_repeaters()
+  local song = renoise.song()
+  local repeaters_found = 0
+  local repeaters_active = 0
+  
+  -- First pass: count total Repeaters and how many are active
+  for track_index = 1, #song.tracks do
+    local track = song.tracks[track_index]
+    
+    for device_index, device in ipairs(track.devices) do
+      if device.display_name == "Repeater" then
+        repeaters_found = repeaters_found + 1
+        if device.is_active then
+          repeaters_active = repeaters_active + 1
+        end
+      end
+    end
+  end
+  
+  if repeaters_found == 0 then
+    renoise.app():show_status("No Repeater devices found on any track")
+    return
+  end
+  
+  -- Determine action: if any are active, deactivate all; if none are active, activate all
+  local should_activate = (repeaters_active == 0)
+  local repeaters_changed = 0
+  
+  -- Second pass: toggle the Repeaters
+  for track_index = 1, #song.tracks do
+    local track = song.tracks[track_index]
+    
+    for device_index, device in ipairs(track.devices) do
+      if device.display_name == "Repeater" then
+        if should_activate then
+          if not device.is_active then
+            device.is_active = true
+            repeaters_changed = repeaters_changed + 1
+          end
+        else
+          if device.is_active then
+            device.is_active = false
+            repeaters_changed = repeaters_changed + 1
+          end
+        end
+      end
+    end
+  end
+  
+  if should_activate then
+    renoise.app():show_status(string.format("Activated %d/%d Repeater devices across all tracks", 
+      repeaters_changed, repeaters_found))
+    print(string.format("Activated %d/%d Repeaters", repeaters_changed, repeaters_found))
+  else
+    renoise.app():show_status(string.format("Deactivated %d/%d Repeater devices across all tracks", 
+      repeaters_changed, repeaters_found))
+    print(string.format("Deactivated %d/%d Repeaters", repeaters_changed, repeaters_found))
+  end
+end
+
+-- Function to delete all Repeater devices from all tracks
+function paketti_delete_all_repeaters()
+  local song = renoise.song()
+  local repeaters_deleted = 0
+  
+  -- Iterate through all tracks
+  for track_index = 1, #song.tracks do
+    local track = song.tracks[track_index]
+    
+    -- Search for Repeater devices on this track (iterate backwards to handle index shifts)
+    for device_index = #track.devices, 1, -1 do
+      local device = track.devices[device_index]
+      if device.display_name == "Repeater" then
+        track:delete_device_at(device_index)
+        repeaters_deleted = repeaters_deleted + 1
+      end
+    end
+  end
+  
+  if repeaters_deleted == 0 then
+    renoise.app():show_status("No Repeater devices found to delete")
+  else
+    renoise.app():show_status(string.format("Deleted %d Repeater devices from all tracks", repeaters_deleted))
+  end
+  
+  print(string.format("Deleted %d Repeater devices from all tracks", repeaters_deleted))
+end
+
+-- MIDI mappings for Repeater management
+renoise.tool():add_midi_mapping{name="Paketti:Deactivate All Repeaters on All Tracks x[Toggle]",
+  invoke=function(message) 
+    if message:is_trigger() then 
+      paketti_deactivate_all_repeaters() 
+    end 
+  end
+}
+
+renoise.tool():add_midi_mapping{name="Paketti:Delete All Repeaters from All Tracks x[Toggle]",
+  invoke=function(message) 
+    if message:is_trigger() then 
+      paketti_delete_all_repeaters() 
+    end 
+  end
+}
+
+-- Keyboard shortcuts for Repeater management
+renoise.tool():add_keybinding{name="Global:Paketti:Deactivate All Repeaters on All Tracks",
+  invoke=function() paketti_deactivate_all_repeaters() end
+}
+
+renoise.tool():add_keybinding{name="Global:Paketti:Delete All Repeaters from All Tracks",
+  invoke=function() paketti_delete_all_repeaters() end
+}
+
+-- Menu entries for Repeater management
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Track/Devices:Deactivate All Repeaters on All Tracks",
+  invoke=function() paketti_deactivate_all_repeaters() end
+}
+
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Track/Devices:Delete All Repeaters from All Tracks",
+  invoke=function() paketti_delete_all_repeaters() end
+}

@@ -6590,8 +6590,10 @@ if renoise.API_VERSION >= 6.2 then
     if current_pos ~= last_audition_pos then
       last_audition_pos = current_pos
       
-      -- Use the V6.2 API to trigger the current line (works because we stopped playback)
-      song:trigger_pattern_line(line_index)
+      -- Only trigger if playback is stopped (API requirement)
+      if not song.transport.playing then
+        song:trigger_pattern_line(line_index)
+      end
     end
   end
 

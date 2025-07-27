@@ -871,12 +871,21 @@ function update_wavetable_dialog_simple()
     
     if vb.views.wt_knob then
       ignore_knob_change = true
-      vb.views.wt_knob.min = 1
-      vb.views.wt_knob.max = sample_count
-      vb.views.wt_knob.value = 1
+      if sample_count > 0 then
+        vb.views.wt_knob.min = 1
+        vb.views.wt_knob.max = sample_count
+        vb.views.wt_knob.value = 1
+        vb.views.wt_knob.active = true
+        print("STATUS: Knob updated to 1-" .. sample_count .. " via vb.views")
+      else
+        vb.views.wt_knob.min = 1
+        vb.views.wt_knob.max = 1
+        vb.views.wt_knob.value = 1
+        vb.views.wt_knob.active = false
+        print("STATUS: Knob disabled - no samples in instrument")
+      end
       ignore_knob_change = false
       current_sample_count = sample_count
-      print("STATUS: Knob updated to 1-" .. sample_count .. " via vb.views")
     else
       print("ERROR: vb.views.wt_knob not found")
     end

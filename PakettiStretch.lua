@@ -1540,234 +1540,24 @@ render_context = {
     on_render_complete = nil
 }
 
--- Variable to store the original solo and mute states
-local track_states = {}
-
--- Function to initiate rendering
-function Strstart_rendering()
-    local song=renoise.song()
-    local render_priority = "high"
-    local selected_track = song.selected_track
-
-    -- Add DC Offset if enabled in preferences
-    if preferences.RenderDCOffset.value then
-        local has_dc_offset = false
-        for _, device in ipairs(selected_track.devices) do
-            if device.display_name == "Render DC Offset" then
-                has_dc_offset = true
-                break
-            end
-        end
-        
-        if not has_dc_offset then
-            loadnative("Audio/Effects/Native/DC Offset","Render DC Offset")
-            local dc_offset_device = selected_track.devices[#selected_track.devices]
-            if dc_offset_device.display_name == "Render DC Offset" then
-                dc_offset_device.parameters[2].value = 1
-            end
-        end
-    end    
-    local song=renoise.song()
-    print("AT Strstart_rendering BEFORE SET - Transport BPM:", song.transport.bpm)
-    print("AT Strstart_rendering BEFORE SET - Context BPM:", render_context.current_bpm)
-    
-    local render_priority = "high"
-    local selected_track = song.selected_track
-
-    for _, device in ipairs(selected_track.devices) do
-        if device.name == "#Line Input" then
-            render_priority = "realtime"
-            break
-        end
-    end
-
-    -- Explicitly set the BPM to the captured value before rendering
-    song.transport.bpm = render_context.current_bpm
-    print("AT Strstart_rendering AFTER SET - Transport BPM:", song.transport.bpm)
-
-    -- Set up rendering options
-    local render_options = {
-        sample_rate = preferences.renderSampleRate.value,
-        bit_depth = preferences.renderBitDepth.value,
-        interpolation = "precise",
-        priority = render_priority,
-        start_pos = renoise.SongPos(song.selected_sequence_index, 1),
-        end_pos = renoise.SongPos(song.selected_sequence_index, song.patterns[song.selected_pattern_index].number_of_lines),
-    }
-
-    -- Save current solo and mute states of all tracks
-    track_states = {}
-    render_context.num_tracks_before = #song.tracks  -- Save the number of tracks before rendering
-    for i, track in ipairs(song.tracks) do
-        track_states[i] = {
-            solo_state = track.solo_state,
-            mute_state = track.mute_state
-        }
-    end
-
-    -- Solo the selected track and unsolo others
-    for i, track in ipairs(song.tracks) do
-        track.solo_state = false
-    end
-    song.tracks[song.selected_track_index].solo_state = true
-
-    -- Set render context
-    render_context.source_track = song.selected_track_index
-    render_context.target_track = render_context.source_track + 1
-    render_context.target_instrument = song.selected_instrument_index + 1
-    render_context.temp_file_path = os.tmpname() .. ".wav"
-
-    -- Start rendering
-    local success, error_message = song:render(render_options, render_context.temp_file_path, Strrendering_done_callback)
-    if not success then
-        print("Rendering failed: " .. error_message)
-    else
-        -- Start a timer to monitor rendering progress
-        renoise.tool():add_timer(Strmonitor_rendering, 500)
-    end
-end
-
--- Callback function that gets called when rendering is complete
-function Strrendering_done_callback()
-    local song=renoise.song()
-    local renderTrack = render_context.source_track
-
-    -- Remove DC Offset if it was added (FIRST, before other operations)
-    if preferences.RenderDCOffset.value then
-        local original_track = song:track(renderTrack)
-        local last_device = original_track.devices[#original_track.devices]
-        if last_device.display_name == "Render DC Offset" then
-            original_track:delete_device_at(#original_track.devices)
-        end
-    end
-
-    local song=renoise.song()
-    
-    -- Remove any reference to target_track = source_track + 1
-    render_context.target_track = render_context.source_track  -- Stay on same track
-    
-    -- Get the captured BPM
-    local bpm = render_context.current_bpm
-    
-    -- Get the current note from the pattern
-    local pattern = song.patterns[song.selected_pattern_index]
-    local track = pattern:track(song.selected_track_index)
-    local note_val = track:line(1).note_columns[1].note_value
-    local note = note_val % 12
-    local octave = math.floor(note_val / 12)
-    local note_names = {"C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"}
-    
-    -- Format: "BPM note"
-    local renderName = string.format("%dBPM %dLPB %s%d", bpm, song.transport.lpb, note_names[note + 1], octave)
-
-    -- Restore the original solo and mute states
-    for i = 1, render_context.num_tracks_before do
-        if track_states[i] then
-            song.tracks[i].solo_state = track_states[i].solo_state
-            song.tracks[i].mute_state = track_states[i].mute_state
-        end
-    end
-
-    -- Load default instrument
-    pakettiPreferencesDefaultInstrumentLoader()
-
-    -- Add *Instr. Macros to Rendered Track
-    local new_instrument = song:instrument(song.selected_instrument_index)
-
-    -- Load Sample into New Instrument Sample Buffer
-    new_instrument.samples[1].sample_buffer:load_from(render_context.temp_file_path)
-    os.remove(render_context.temp_file_path)
-
-    -- Only rename the instrument and its sample, not the track
-    new_instrument.samples[1].name = renderName
-    new_instrument.name = renderName
-    new_instrument.samples[1].autofade = true
-if preferences.pakettiLoaderDontCreateAutomationDevice.value == false then 
-    -- Add *Instr. Macros to selected Track
-    loadnative("Audio/Effects/Native/*Instr. Macros")
-    song.selected_track.devices[2].is_maximized = false
-end
-    if song.transport.edit_mode then
-        song.transport.edit_mode = false
-        song.transport.edit_mode = true
-    else
-        song.transport.edit_mode = true
-        song.transport.edit_mode = false
-    end
-    renoise.song().selected_track.mute_state = 1
-    for i=1,#song.tracks do
-        renoise.song().tracks[i].mute_state=1
-    end 
 
 
-end
 
--- Function to monitor rendering progress
-function Strmonitor_rendering()
-    if renoise.song().rendering then
-        local progress = renoise.song().rendering_progress
-        print("Rendering in progress: " .. (progress * 100) .. "% complete")
-    else
-        -- Remove the monitoring timer once rendering is complete or if it wasn't started
-        renoise.tool():remove_timer(Strmonitor_rendering)
-        print("Rendering not in progress or already completed.")
-    end
-end
 
--- Function to handle rendering for a group track
-function Strrender_group_track()
-    local song=renoise.song()
-    local group_track_index = song.selected_track_index
-    local group_track = song:track(group_track_index)
 
-    -- Get the member track indices
-    local child_track_indices = group_track.members
 
-    -- Save current solo and mute states
-    track_states = {}
-    render_context.num_tracks_before = #song.tracks  -- Save the number of tracks before rendering
-    for i, track in ipairs(song.tracks) do
-        track_states[i] = {
-            solo_state = track.solo_state,
-            mute_state = track.mute_state
-        }
-    end
 
-    -- Unsolo all tracks
-    for i, track in ipairs(song.tracks) do
-        track.solo_state = false
-    end
-
-    -- Solo each track in the group
-    for _, idx in ipairs(child_track_indices) do
-        song.tracks[idx].solo_state = true
-    end
-
-    -- Start rendering
-    Strstart_rendering()
-end
 
 function StrRender()
     local song=renoise.song()
-    local renderTrack = render_context.source_track  -- This is set when we start working with the track
-    local renderedInstrument = song.selected_instrument_index + 1
+    local current_bpm = render_context.current_bpm or song.transport.bpm
     
     print("AT StrRender - Transport BPM:", song.transport.bpm)
-    print("AT StrRender - Context BPM:", render_context.current_bpm)
+    print("AT StrRender - Context BPM:", current_bpm)
 
-    -- Select the correct track before rendering
-    song.selected_track_index = renderTrack
-
-    -- Create New Instrument
-    song:insert_instrument_at(renderedInstrument)
-    song.selected_instrument_index = renderedInstrument
-
-    -- Check if the selected track is a group track
-    if song:track(renderTrack).type == renoise.Track.TRACK_TYPE_GROUP then
-        Strrender_group_track()
-    else
-        Strstart_rendering()
-    end
+    -- Use unified render function with timestretch mode
+    -- muteOriginal=false, justwav=true, newtrack=false, timestretch_mode=true, current_bpm=current_bpm
+    pakettiCleanRenderSelection(false, true, false, true, current_bpm)
 end
 
 -- Improved time resolution calculation
