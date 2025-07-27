@@ -177,6 +177,7 @@ function create_keyhandler_for_dialog(dialog_var_getter, dialog_var_setter)
   end
 end
 
+
 -- Legacy function for backwards compatibility
 function my_keyhandler_func(dialog, key)
   local closer = preferences.pakettiDialogClose.value

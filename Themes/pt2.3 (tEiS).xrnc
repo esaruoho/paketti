@@ -52,8 +52,8 @@
   <Pattern_CenterBar_Font>16,32,112</Pattern_CenterBar_Font>
   <Pattern_CenterBar_Back_StandBy>96,96,96</Pattern_CenterBar_Back_StandBy>
   <Pattern_CenterBar_Font_StandBy>32,128,192</Pattern_CenterBar_Font_StandBy>
-  <Pattern_Selection>57,101,115</Pattern_Selection>
-  <Pattern_StandBy_Selection>65,79,89</Pattern_StandBy_Selection>
+  <Pattern_Selection>86,100,192</Pattern_Selection>
+  <Pattern_StandBy_Selection>35,66,160</Pattern_StandBy_Selection>
   <Pattern_Mute_State>54,158,179</Pattern_Mute_State>
   <Automation_Grid>102,102,102</Automation_Grid>
   <Automation_Line_Edge>240,240,0</Automation_Line_Edge>

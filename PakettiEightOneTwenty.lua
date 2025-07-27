@@ -1800,7 +1800,7 @@ function pakettiEightSlotsByOneTwentyDialog()
     row_elements.update_sample_name_label()
   end
   debug_instruments_and_samples()
-  local keyhandler = create_keyhandler_for_dialog(
+    local keyhandler = create_keyhandler_for_dialog(
     function() return dialog end,
     function(value) dialog = value end
   )
