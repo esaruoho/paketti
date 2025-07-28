@@ -149,6 +149,9 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   selectionNewInstrumentAutoseek=false,
   pakettiPitchbendLoaderEnvelope=false,
   pakettiSlideContentAutomationToo=true,
+  pakettiUnisonDetune=25,
+  pakettiUnisonDetuneFluctuation=true,
+  pakettiUnisonDetuneHardSync=false,
   pakettiDefaultXRNI = renoise.tool().bundle_path .. "Presets" .. separator .. "12st_Pitchbend.xrni",
   pakettiDefaultDrumkitXRNI = renoise.tool().bundle_path .. "Presets" .. separator .. "12st_Pitchbend_Drumkit_C0.xrni",
   ActionSelector = {
@@ -674,6 +677,21 @@ end
 local dialog_content = nil
 
 function pakettiPreferences()
+  -- Initialize unison detune preferences if nil
+  if preferences.pakettiUnisonDetune.value == nil then
+    preferences.pakettiUnisonDetune.value = 25
+  end
+  -- Clamp unison detune to new maximum of 96
+  if preferences.pakettiUnisonDetune.value > 96 then
+    preferences.pakettiUnisonDetune.value = 96
+  end
+  if preferences.pakettiUnisonDetuneFluctuation.value == nil then
+    preferences.pakettiUnisonDetuneFluctuation.value = true
+  end
+  if preferences.pakettiUnisonDetuneHardSync.value == nil then
+    preferences.pakettiUnisonDetuneHardSync.value = false
+  end
+
   local pakettiDeviceChainPathDisplayId = "pakettiDeviceChainPathDisplay_" .. tostring(math.random(2, 30000))
 local pakettiIRPathDisplayId = "pakettiIRPathDisplay_" .. tostring(math.random(2, 30000))
 
@@ -685,6 +703,11 @@ local pakettiIRPathDisplayId = "pakettiIRPathDisplay_" .. tostring(math.random(2
   local fine_value_label = vb:text{
     width=50,  -- Width to accommodate values up to 10000
     text = tostring(preferences.pakettiRotateSampleBufferFine.value)
+  }
+
+  local unison_detune_value_label = vb:text{
+    width=50,
+    text = tostring(preferences.pakettiUnisonDetune.value)
   }
 
   local threshold_label = vb:text{
@@ -1269,6 +1292,161 @@ vb:row{
         end
       }
     },
+    vb:text{style="strong",font="bold",text="Unison Generator Settings"},
+    vb:row{
+        vb:text{text="Unison Detune",width=150},
+        vb:slider{
+            min = 0,
+            max = 96,
+            value = preferences.pakettiUnisonDetune.value,
+            width=200,
+            notifier=function(value)
+                value = math.floor(value)  -- Ensure integer value
+                preferences.pakettiUnisonDetune.value = value
+                unison_detune_value_label.text = tostring(value)
+                
+                -- Smart update: if current instrument is a unison instrument, update live
+                local song = renoise.song()
+                if song and song.selected_instrument and song.selected_instrument.name:find("Unison") then
+                    local instrument = song.selected_instrument
+                    if #instrument.samples >= 8 then
+                        -- Get the original fine tune value from the first sample
+                        local original_fine_tune = instrument.samples[1].fine_tune
+                        
+                        -- Update samples 2-8 with new detune values
+                        for i = 2, 8 do
+                            local sample = instrument.samples[i]
+                            if sample then
+                                local detune_offset = 0
+                                -- Calculate detune offset based on hard sync and fluctuation settings
+                                if preferences.pakettiUnisonDetuneHardSync.value then
+                                    -- Hard sync: alternating -value, +value, -value, +value...
+                                    detune_offset = (i % 2 == 0) and -value or value
+                                elseif preferences.pakettiUnisonDetuneFluctuation.value then
+                                    -- Random fluctuation between -value and +value
+                                    detune_offset = math.random(-value, value)
+                                else
+                                    -- Fixed detune values distributed evenly
+                                    local detune_step = value / 4  -- Spread across 7 samples (2-8)
+                                    local sample_offset = i - 5  -- Center around sample 5, so: -3,-2,-1,0,1,2,3
+                                    detune_offset = math.floor(sample_offset * detune_step)
+                                end
+                                -- Apply offset to original fine tune, clamping to valid range
+                                sample.fine_tune = math.max(-127, math.min(127, original_fine_tune + detune_offset))
+                                -- Update sample name to reflect new detune value
+                                local original_name = sample.name:gsub("%s*%(Unison.*$", "")
+                                local panning_label = sample.panning == 0 and "50L" or "50R"
+                                sample.name = string.format("%s (Unison %d [%d] (%s))", original_name:gsub("%(Unison.*%)%s*", ""), i - 1, sample.fine_tune, panning_label)
+                            end
+                        end
+                        local mode = preferences.pakettiUnisonDetuneHardSync.value and "hard sync" or (preferences.pakettiUnisonDetuneFluctuation.value and "random" or "fixed")
+                        renoise.app():show_status(string.format("Updated unison detune to ±%d (%s) for current instrument", value, mode))
+                    end
+                end
+            end
+        },
+        unison_detune_value_label
+    },
+    vb:row{
+        vb:text{text="Random Fluctuation",width=150},
+        vb:checkbox{
+            value=preferences.pakettiUnisonDetuneFluctuation.value,
+            notifier=function(value)
+                preferences.pakettiUnisonDetuneFluctuation.value = value
+                
+                -- Smart update: if current instrument is a unison instrument, update live
+                local song = renoise.song()
+                if song and song.selected_instrument and song.selected_instrument.name:find("Unison") then
+                    local instrument = song.selected_instrument
+                    if #instrument.samples >= 8 then
+                        local detune_value = preferences.pakettiUnisonDetune.value
+                        -- Get the original fine tune value from the first sample
+                        local original_fine_tune = instrument.samples[1].fine_tune
+                        
+                        -- Update samples 2-8 with new detune method
+                        for i = 2, 8 do
+                            local sample = instrument.samples[i]
+                            if sample then
+                                local detune_offset = 0
+                                -- Calculate detune offset based on hard sync and fluctuation settings
+                                if preferences.pakettiUnisonDetuneHardSync.value then
+                                    -- Hard sync: alternating -value, +value, -value, +value...
+                                    detune_offset = (i % 2 == 0) and -detune_value or detune_value
+                                elseif value then
+                                    -- Random fluctuation between -value and +value
+                                    detune_offset = math.random(-detune_value, detune_value)
+                                else
+                                    -- Fixed detune values distributed evenly
+                                    local detune_step = detune_value / 4  -- Spread across 7 samples (2-8)
+                                    local sample_offset = i - 5  -- Center around sample 5, so: -3,-2,-1,0,1,2,3
+                                    detune_offset = math.floor(sample_offset * detune_step)
+                                end
+                                -- Apply offset to original fine tune, clamping to valid range
+                                sample.fine_tune = math.max(-127, math.min(127, original_fine_tune + detune_offset))
+                                -- Update sample name to reflect new detune value
+                                local original_name = sample.name:gsub("%s*%(Unison.*$", "")
+                                local panning_label = sample.panning == 0 and "50L" or "50R"
+                                sample.name = string.format("%s (Unison %d [%d] (%s))", original_name:gsub("%(Unison.*%)%s*", ""), i - 1, sample.fine_tune, panning_label)
+                            end
+                        end
+                        local mode = value and "random" or "fixed"
+                        renoise.app():show_status(string.format("Switched to %s detune mode for current unison instrument", mode))
+                    end
+                end
+            end
+        }
+    },
+    vb:row{
+        vb:text{text="Hard Sync",width=150},
+        vb:checkbox{
+            value=preferences.pakettiUnisonDetuneHardSync.value,
+            notifier=function(value)
+                preferences.pakettiUnisonDetuneHardSync.value = value
+                
+                -- Smart update: if current instrument is a unison instrument, update live
+                local song = renoise.song()
+                if song and song.selected_instrument and song.selected_instrument.name:find("Unison") then
+                    local instrument = song.selected_instrument
+                    if #instrument.samples >= 8 then
+                        local detune_value = preferences.pakettiUnisonDetune.value
+                        -- Get the original fine tune value from the first sample
+                        local original_fine_tune = instrument.samples[1].fine_tune
+                        
+                        -- Update samples 2-8 with new detune method
+                        for i = 2, 8 do
+                            local sample = instrument.samples[i]
+                            if sample then
+                                local detune_offset = 0
+                                -- Calculate detune offset based on hard sync and fluctuation settings
+                                if value then
+                                    -- Hard sync: alternating -value, +value, -value, +value...
+                                    detune_offset = (i % 2 == 0) and -detune_value or detune_value
+                                elseif preferences.pakettiUnisonDetuneFluctuation.value then
+                                    -- Random fluctuation between -value and +value
+                                    detune_offset = math.random(-detune_value, detune_value)
+                                else
+                                    -- Fixed detune values distributed evenly
+                                    local detune_step = detune_value / 4  -- Spread across 7 samples (2-8)
+                                    local sample_offset = i - 5  -- Center around sample 5, so: -3,-2,-1,0,1,2,3
+                                    detune_offset = math.floor(sample_offset * detune_step)
+                                end
+                                -- Apply offset to original fine tune, clamping to valid range
+                                sample.fine_tune = math.max(-127, math.min(127, original_fine_tune + detune_offset))
+                                -- Update sample name to reflect new detune value
+                                local original_name = sample.name:gsub("%s*%(Unison.*$", "")
+                                local panning_label = sample.panning == 0 and "50L" or "50R"
+                                sample.name = string.format("%s (Unison %d [%d] (%s))", original_name:gsub("%(Unison.*%)%s*", ""), i - 1, sample.fine_tune, panning_label)
+                            end
+                        end
+                        local mode = value and "hard sync" or (preferences.pakettiUnisonDetuneFluctuation.value and "random" or "fixed")
+                        renoise.app():show_status(string.format("Switched to %s detune mode for current unison instrument", mode))
+                    end
+                end
+            end
+        }
+    },
+         vb:row{vb:text{style="strong",text="Controls the detune range (±) used by the Unison Generator. Hard Sync: alternating ±max values."}},
+         vb:row{vb:text{style="strong",text="Live-updates currently selected unison instrument."}},
   },
 },
       

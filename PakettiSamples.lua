@@ -1771,6 +1771,209 @@ end
 
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Select First Half of Sample Buffer",invoke=function()pakettiSampleBufferHalfSelector(1)end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Select Second Half of Sample Buffer",invoke=function()pakettiSampleBufferHalfSelector(2)end}
+
+function pakettiSampleBufferFlipSelection(direction)
+  local song=renoise.song()
+  local instrument = song.selected_instrument
+  if not instrument then
+    renoise.app():show_status("No instrument selected.")
+    return
+  end
+
+  local sample = song.selected_sample
+  if not sample then
+    renoise.app():show_status("No sample selected.")
+    return
+  end
+
+  local sample_buffer = sample.sample_buffer
+  if not sample_buffer.has_sample_data then
+    renoise.app():show_status("Sample slot exists but has no content.")
+    return
+  end
+
+  local sample_length = sample_buffer.number_of_frames
+  if sample_length <= 1 then
+    renoise.app():show_status("Sample length is too short.")
+    return
+  end
+
+  -- Get current selection
+  local current_start = sample_buffer.selection_start
+  local current_end = sample_buffer.selection_end
+
+  -- Check if there's a valid selection
+  if current_start == 1 and current_end == sample_length - 1 then
+    renoise.app():show_status("Cannot flip: entire sample is selected.")
+    return
+  end
+
+  if current_start >= current_end then
+    renoise.app():show_status("Cannot flip: no valid selection range.")
+    return
+  end
+
+  -- Calculate selection length
+  local selection_length = current_end - current_start + 1
+  local new_start, new_end
+  local was_adjusted = false
+  local direction_text = direction == -1 and "back" or "forward"
+
+  if direction == -1 then
+    -- Flip backward
+    new_start = current_start - selection_length
+    new_end = current_start - 1
+    
+    -- Handle edge case where new selection would go before start of sample
+    if new_start < 1 then
+      new_start = 1
+      new_end = current_start - 1
+      was_adjusted = true
+      if new_end < 1 then
+        renoise.app():show_status("Cannot flip back: selection is already at the beginning.")
+        return
+      end
+    end
+  else
+    -- Flip forward
+    new_start = current_end + 1
+    new_end = new_start + selection_length - 1
+    
+    -- Handle edge case where new selection would go beyond end of sample
+    if new_end > sample_length - 1 then
+      new_end = sample_length - 1
+      new_start = new_end - selection_length + 1
+      was_adjusted = true
+      if new_start <= current_end then
+        renoise.app():show_status("Cannot flip forward: selection is already at the end.")
+        return
+      end
+    end
+  end
+
+  -- Set the new selection
+  sample_buffer.selection_start = new_start
+  sample_buffer.selection_end = new_end
+  
+  -- Show appropriate status message
+  local frames_moved = direction == -1 and (current_start - new_end - 1) or (new_start - current_end - 1)
+  if was_adjusted then
+    local adjustment_text = direction == -1 and "start at frame 1" or ("end at frame " .. (sample_length - 1))
+    renoise.app():show_status(string.format("Flipped sample buffer selection %s by %d frames (adjusted to %s): %d-%d to %d-%d", 
+      direction_text, frames_moved, adjustment_text, current_start, current_end, new_start, new_end))
+  else
+    renoise.app():show_status(string.format("Flipped sample buffer selection %s by %d frames: %d-%d to %d-%d", 
+      direction_text, frames_moved, current_start, current_end, new_start, new_end))
+  end
+end
+
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Flip Sample Buffer Selection Back",invoke=function()pakettiSampleBufferFlipSelection(-1)end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Flip Sample Buffer Selection Forward",invoke=function()pakettiSampleBufferFlipSelection(1)end}
+renoise.tool():add_midi_mapping{name="Paketti:Flip Sample Buffer Selection Back [Trigger]",invoke=function(message) if message:is_trigger() then pakettiSampleBufferFlipSelection(-1) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Flip Sample Buffer Selection Forward [Trigger]",invoke=function(message) if message:is_trigger() then pakettiSampleBufferFlipSelection(1) end end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Flip Sample Buffer Selection Back",invoke=function()pakettiSampleBufferFlipSelection(-1)end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Flip Sample Buffer Selection Forward",invoke=function()pakettiSampleBufferFlipSelection(1)end}
+renoise.tool():add_menu_entry{name="--Sample Editor Ruler:Flip Sample Buffer Selection Back",invoke=function()pakettiSampleBufferFlipSelection(-1)end}
+renoise.tool():add_menu_entry{name="--Sample Editor Ruler:Flip Sample Buffer Selection Forward",invoke=function()pakettiSampleBufferFlipSelection(1)end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Flip Sample Buffer Selection Back",invoke=function()pakettiSampleBufferFlipSelection(-1)end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Flip Sample Buffer Selection Forward",invoke=function()pakettiSampleBufferFlipSelection(1)end}
+
+function pakettiDetectAndSelectSilenceInZoom()
+  local song=renoise.song()
+  local instrument = song.selected_instrument
+  if not instrument then
+    renoise.app():show_status("No instrument selected.")
+    return
+  end
+
+  local sample = song.selected_sample
+  if not sample then
+    renoise.app():show_status("No sample selected.")
+    return
+  end
+
+  local sample_buffer = sample.sample_buffer
+  if not sample_buffer.has_sample_data then
+    renoise.app():show_status("Sample slot exists but has no content.")
+    return
+  end
+
+  -- Get the current display range (what's visible in zoom)
+  local display_range = sample_buffer.display_range
+  local start_frame = display_range[1]
+  local end_frame = math.min(display_range[2], sample_buffer.number_of_frames)
+  local channels = sample_buffer.number_of_channels
+  
+  -- Define silence threshold (about -60dB)
+  local silence_threshold = 0.001
+  
+  -- Find all silence regions in the visible range
+  local silence_regions = {}
+  local in_silence = false
+  local silence_start = 0
+  
+  for frame = start_frame, end_frame do
+    local is_silent = true
+    for channel = 1, channels do
+      if math.abs(sample_buffer:sample_data(channel, frame)) > silence_threshold then
+        is_silent = false
+        break
+      end
+    end
+    
+    if is_silent and not in_silence then
+      in_silence = true
+      silence_start = frame
+    elseif not is_silent and in_silence then
+      in_silence = false
+      local silence_length = frame - silence_start
+      table.insert(silence_regions, {silence_start, frame - 1, silence_length})
+    end
+  end
+  
+  -- If we ended in silence, add final region
+  if in_silence then
+    local silence_length = end_frame - silence_start + 1
+    table.insert(silence_regions, {silence_start, end_frame, silence_length})
+  end
+  
+  if #silence_regions == 0 then
+    renoise.app():show_status("No silence detected in current zoom level.")
+    return
+  end
+  
+  -- Find the longest silence region
+  local longest_silence = silence_regions[1]
+  for i = 2, #silence_regions do
+    if silence_regions[i][3] > longest_silence[3] then
+      longest_silence = silence_regions[i]
+    end
+  end
+  
+  -- Check if detected silence matches current selection
+  local current_start = sample_buffer.selection_start
+  local current_end = sample_buffer.selection_end
+  
+  if current_start == longest_silence[1] and current_end == longest_silence[2] then
+    -- Same selection, clear it
+    sample_buffer.selection_range = {1, 1}
+    renoise.app():show_status("Selection cleared.")
+  else
+    -- Different selection, set new one
+    sample_buffer.selection_range = {longest_silence[1], longest_silence[2]}
+    
+    local silence_duration_ms = (longest_silence[3] / sample_buffer.sample_rate) * 1000
+    renoise.app():show_status(string.format("Selected silence: frames %d-%d (%d frames, %.1fms) in zoom range %d-%d", 
+      longest_silence[1], longest_silence[2], longest_silence[3], silence_duration_ms, start_frame, end_frame))
+  end
+end
+
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Detect and Select Silence in Zoom",invoke=function()pakettiDetectAndSelectSilenceInZoom()end}
+renoise.tool():add_midi_mapping{name="Paketti:Detect and Select Silence in Zoom [Trigger]",invoke=function(message) if message:is_trigger() then pakettiDetectAndSelectSilenceInZoom() end end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Detect and Select Silence in Zoom",invoke=function()pakettiDetectAndSelectSilenceInZoom()end}
+renoise.tool():add_menu_entry{name="--Sample Editor Ruler:Detect and Select Silence in Zoom",invoke=function()pakettiDetectAndSelectSilenceInZoom()end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Detect and Select Silence in Zoom",invoke=function()pakettiDetectAndSelectSilenceInZoom()end}
+
 -------
 function pakettiSaveSampleRange(format)
   local song=renoise.song()
@@ -2069,7 +2272,7 @@ function PakettiInjectDefaultXRNI()
   print(string.format("\nStoring original selected_phrase_index: %d", original_phrase_index))
 
   if not original_instrument or #original_instrument.samples == 0 then
-    renoise.app():show_status("No instrument or samples selected.")
+    renoise.app():show_status("No instrument or samples selected, nothing to Pakettify.")
     return
   end
 
@@ -2452,6 +2655,79 @@ function PakettiInjectDefaultXRNI()
     print("New Instrument renamed to: " .. new_instrument.name)
     print("Debug: original_instrument.name was: " .. original_instrument.name)
     print("Debug: Copied instrument transpose: " .. original_instrument.transpose)
+    
+    -- UPDATE ALL PATTERN NOTES TO REFERENCE NEW INSTRUMENT
+    print("Updating all pattern notes from instrument " .. selected_instrument_index .. " to " .. new_instrument_index)
+    local notes_updated = 0
+    local old_instr_value = selected_instrument_index - 1  -- Convert to 0-based for pattern data
+    local new_instr_value = new_instrument_index - 1      -- Convert to 0-based for pattern data
+    
+    for pattern_index = 1, #song.patterns do
+      local pattern = song.patterns[pattern_index]
+      for track_index = 1, #pattern.tracks do
+        local track = pattern.tracks[track_index]
+        for line_index = 1, #track.lines do
+          local line = track.lines[line_index]
+          -- Check all note columns
+          for note_column_index = 1, #line.note_columns do
+            local note_column = line.note_columns[note_column_index]
+            if not note_column.is_empty and note_column.instrument_value == old_instr_value then
+              note_column.instrument_value = new_instr_value
+              notes_updated = notes_updated + 1
+            end
+          end
+          -- Check all effect columns for instrument effect commands (if any)
+          for effect_column_index = 1, #line.effect_columns do
+            local effect_column = line.effect_columns[effect_column_index]
+            if not effect_column.is_empty then
+              -- Check for instrument effect commands like Ixx (instrument change)
+              if effect_column.number_string == "0I" and effect_column.amount_value == old_instr_value then
+                effect_column.amount_value = new_instr_value
+                notes_updated = notes_updated + 1
+              end
+            end
+          end
+        end
+      end
+      
+      -- Note: The above pattern loop already processes all pattern tracks and their note columns,
+      -- so we don't need a separate loop here. PatternTrack objects don't have a 'type' property.
+    end
+    
+    -- Update phrase patterns within instruments
+    for instr_index = 1, #song.instruments do
+      local instrument = song.instruments[instr_index]
+      for phrase_index = 1, #instrument.phrases do
+        local phrase = instrument.phrases[phrase_index]
+        for line_index = 1, #phrase.lines do
+          local line = phrase.lines[line_index]
+          for note_column_index = 1, #line.note_columns do
+            local note_column = line.note_columns[note_column_index]
+            if not note_column.is_empty and note_column.instrument_value == old_instr_value then
+              note_column.instrument_value = new_instr_value
+              notes_updated = notes_updated + 1
+            end
+          end
+          for effect_column_index = 1, #line.effect_columns do
+            local effect_column = line.effect_columns[effect_column_index]
+            if not effect_column.is_empty then
+              if effect_column.number_string == "0I" and effect_column.amount_value == old_instr_value then
+                effect_column.amount_value = new_instr_value
+                notes_updated = notes_updated + 1
+              end
+            end
+          end
+        end
+      end
+    end
+    
+    if notes_updated > 0 then
+      print("Successfully updated " .. notes_updated .. " note references from old instrument to new pakettified instrument")
+      renoise.app():show_status("Pakettified instrument created. Updated " .. notes_updated .. " note references.")
+    else
+      print("No note references found to update")
+      renoise.app():show_status("Pakettified instrument created (no existing notes to update)")
+    end
   end
 
   -- At the end, before returning focus:
@@ -5132,6 +5408,7 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Isolate Slices - Play All Together",invoke=function() isolate_slices_play_all_together() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Isolate Slices - Play All Together",invoke=function() isolate_slices_play_all_together() end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Isolate Slices - Play All Together",invoke=function() isolate_slices_play_all_together() end}
+
 
 
 

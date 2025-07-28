@@ -1,6 +1,14 @@
 local vb = renoise.ViewBuilder()
 local DIALOG_TITLE = "Paketti Single Cycle Waveform Writer"
 
+-- Live Pickup Mode - Load current sample into editor
+local live_pickup_mode = false
+local live_pickup_sample = nil
+local live_pickup_instrument = nil
+local live_pickup_sample_index = -1
+local live_pickup_instrument_index = -1
+
+
 -- Debug print function
 local _DEBUG = true
 local function dprint(...) if _DEBUG then print("PCM Debug:", ...) end end
@@ -2894,6 +2902,16 @@ function PCMWriterGenerateMorphSequence(wave_a, wave_b, steps)
 end
 
 function PCMWriterExportMorphToInstrument()
+  -- Disable live pickup mode to prevent data loss
+  if live_pickup_mode then
+    live_pickup_mode = false
+    live_pickup_sample = nil
+    live_pickup_instrument = nil
+    live_pickup_sample_index = -1
+    live_pickup_instrument_index = -1
+    renoise.app():show_status("Live pickup mode disabled for safe export")
+  end
+  
   local song = renoise.song()
   local inst = song.selected_instrument
   
@@ -3126,6 +3144,16 @@ function PCMWriterExportMorphToWTFile()
 end
 
 function PCMWriterExportMorphToInstrumentAndWT()
+  -- Disable live pickup mode to prevent data loss
+  if live_pickup_mode then
+    live_pickup_mode = false
+    live_pickup_sample = nil
+    live_pickup_instrument = nil
+    live_pickup_sample_index = -1
+    live_pickup_instrument_index = -1
+    renoise.app():show_status("Live pickup mode disabled for safe export")
+  end
+  
   -- First export to instrument
   PCMWriterExportMorphToInstrument()
   
@@ -3223,89 +3251,222 @@ end
 
 -- Wavetable functions
 function PCMWriterExportWavetableToSample()
+  -- Disable live pickup mode to prevent data loss/crashes
+  if live_pickup_mode then
+    live_pickup_mode = false
+    live_pickup_sample = nil
+    live_pickup_instrument = nil
+    live_pickup_sample_index = -1
+    live_pickup_instrument_index = -1
+    renoise.app():show_status("Live pickup mode disabled for safe export")
+  end
+  
   if #wavetable_waves == 0 then
     renoise.app():show_status("No waves in wavetable to export")
     return
   end
   
+  -- Validate wave_size to prevent crashes
+  if not wave_size or wave_size <= 0 or wave_size > 1048576 then
+    renoise.app():show_status("Invalid wave size: " .. tostring(wave_size) .. ". Cannot export.")
+    return
+  end
+  
+  -- User feedback: Starting export
+  renoise.app():show_status("Exporting wavetable to samples...")
+  
+  -- Debug info for developers
+  print("DEBUG: Starting wavetable export - waves:", #wavetable_waves, "wave_size:", wave_size)
+  
   local song = renoise.song()
   local inst = song.selected_instrument
   
+  -- CRITICAL: Clear sample buffer state to prevent conflicts with new sample creation
+  local original_instrument_index = song.selected_instrument_index
+  local original_sample_index = song.selected_sample_index
+  
+  print("DEBUG: Original instrument index:", original_instrument_index, "sample index:", original_sample_index)
+  print("DEBUG: Original instrument has", #inst.samples, "samples")
+  
   -- Check if instrument has samples or plugins, if so create new instrument
   if #inst.samples > 0 or inst.plugin_properties.plugin_loaded then
+    -- Clear any sample editor selection before creating new instrument
+    if renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR then
+      renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+      print("DEBUG: Switched away from sample editor to prevent state conflicts")
+    end
+    
+    -- Create new instrument and switch to it
     song:insert_instrument_at(song.selected_instrument_index + 1)
     song.selected_instrument_index = song.selected_instrument_index + 1
     inst = song.selected_instrument
+    
+    print("DEBUG: Created new instrument at index:", song.selected_instrument_index)
+    
     -- Apply Paketti default instrument configuration
     pakettiPreferencesDefaultInstrumentLoader()
+  else
+    print("DEBUG: Using existing empty instrument")
   end
+  
+  -- Force garbage collection to clear any lingering references
+  collectgarbage("collect")
+  
+  -- Refresh instrument reference after all changes
+  inst = song.selected_instrument
+  print("DEBUG: Final instrument validation - index:", song.selected_instrument_index, "samples:", #inst.samples)
   
   -- Create separate sample slots for each wave (up to 12)
   for wave_idx, wave in ipairs(wavetable_waves) do
-    -- Create sample slot
-    if #inst.samples < wave_idx then
-      inst:insert_sample_at(wave_idx)
+    -- Safety check: don't exceed reasonable sample slot limits
+    if wave_idx > 255 then
+      print("DEBUG: Stopping at wave", wave_idx, "- too many samples")
+      break
     end
     
-    local sample = inst:sample(wave_idx)
-    local buffer = sample.sample_buffer
-    
-    -- Create sample data for this single wave
-    buffer:create_sample_data(44100, 16, 1, wave_size)
-    buffer:prepare_sample_data_changes()
-    
-    -- Write this wave's data
-    for i = 1, wave_size do
-      buffer:set_sample_data(1, i, (wave.data[i] - 32768) / 32768)
+    -- User feedback: show progress
+    if wave_idx == 1 or wave_idx % 3 == 0 or wave_idx == #wavetable_waves then
+      renoise.app():show_status(string.format("Processing wave %d/%d...", wave_idx, #wavetable_waves))
     end
-    buffer:finalize_sample_data_changes()
     
-    -- Set sample properties
-    sample.name = string.format("PCM Wave %02d (%d frames)", wave_idx, wave_size)
+    print("DEBUG: Processing wave", wave_idx, "of", #wavetable_waves)
     
-    -- Enable loop mode for each sample
-    sample.loop_mode = renoise.Sample.LOOP_MODE_FORWARD
-    sample.loop_start = 1
-    sample.loop_end = wave_size
-    
-    -- Set interpolation
-    if sample_interpolation_mode == "linear" then
-      sample.interpolation_mode = renoise.Sample.INTERPOLATE_LINEAR
-    elseif sample_interpolation_mode == "cubic" then
-      sample.interpolation_mode = renoise.Sample.INTERPOLATE_CUBIC
-    elseif sample_interpolation_mode == "sinc" then
-      sample.interpolation_mode = renoise.Sample.INTERPOLATE_SINC
-    elseif sample_interpolation_mode == "none" then
-      sample.interpolation_mode = renoise.Sample.INTERPOLATE_NONE
+    -- Validate wave data before processing
+    if wave and wave.data and #wave.data == wave_size then
+             -- Create sample slot with error handling
+       local sample_creation_success, sample_error = pcall(function()
+         if #inst.samples < wave_idx then
+           inst:insert_sample_at(wave_idx)
+         end
+       end)
+       
+       if not sample_creation_success then
+         print("DEBUG: Failed to create sample slot", wave_idx, ":", tostring(sample_error))
+       else
+         -- Get fresh references to avoid stale state
+         inst = song.selected_instrument  -- Refresh instrument reference
+         local sample = inst:sample(wave_idx)
+         
+         -- Validate sample exists and is accessible
+         if not sample then
+           print("DEBUG: Sample slot", wave_idx, "not accessible after creation")
+         else
+           local buffer = sample.sample_buffer
+           
+           -- Extra validation: ensure this sample slot is properly initialized
+           if not buffer then
+             print("DEBUG: Sample buffer not available for slot", wave_idx)
+           else
+             print("DEBUG: Sample slot", wave_idx, "created successfully")
+             
+             -- Create sample data for this single wave with additional error handling
+             local success, error_msg = pcall(function()
+               -- Validate parameters before calling create_sample_data
+               local sample_rate = 44100
+               local bit_depth = 16
+               local channels = 1
+               local frames = wave_size
+               
+               print("DEBUG: About to call create_sample_data - rate:", sample_rate, "bits:", bit_depth, "channels:", channels, "frames:", frames)
+               
+               -- Extra validation
+               if frames <= 0 or frames > 1048576 then
+                 error("Invalid frame count: " .. tostring(frames))
+               end
+               if sample_rate <= 0 or sample_rate > 192000 then
+                 error("Invalid sample rate: " .. tostring(sample_rate))
+               end
+               
+               buffer:create_sample_data(sample_rate, bit_depth, channels, frames)
+               buffer:prepare_sample_data_changes()
+               
+               -- Write this wave's data
+               for i = 1, wave_size do
+                 local sample_value = wave.data[i]
+                 if sample_value and type(sample_value) == "number" then
+                   local normalized_value = (sample_value - 32768) / 32768
+                   -- Clamp to valid range
+                   normalized_value = math.max(-1.0, math.min(1.0, normalized_value))
+                   buffer:set_sample_data(1, i, normalized_value)
+                 else
+                   buffer:set_sample_data(1, i, 0) -- Default to silence for missing data
+                 end
+               end
+               buffer:finalize_sample_data_changes()
+             end)
+             
+             if success then
+               -- Double-check that sample is still valid before setting properties
+               if sample and sample.sample_buffer and sample.sample_buffer.has_sample_data then
+                 -- Set sample properties
+                 sample.name = string.format("PCM Wave %02d (%d frames)", wave_idx, wave_size)
+                 
+                 -- Enable loop mode for each sample
+                 sample.loop_mode = renoise.Sample.LOOP_MODE_FORWARD
+                 sample.loop_start = 1
+                 sample.loop_end = wave_size
+                 
+                 -- Set interpolation
+                 if sample_interpolation_mode == "linear" then
+                   sample.interpolation_mode = renoise.Sample.INTERPOLATE_LINEAR
+                 elseif sample_interpolation_mode == "cubic" then
+                   sample.interpolation_mode = renoise.Sample.INTERPOLATE_CUBIC
+                 elseif sample_interpolation_mode == "sinc" then
+                   sample.interpolation_mode = renoise.Sample.INTERPOLATE_SINC
+                 elseif sample_interpolation_mode == "none" then
+                   sample.interpolation_mode = renoise.Sample.INTERPOLATE_NONE
+                 else
+                   sample.interpolation_mode = renoise.Sample.INTERPOLATE_LINEAR -- default
+                 end
+                 
+                 sample.oversample_enabled = sample_oversample_enabled
+                 
+                 -- AUTOMATIC PITCH CORRECTION using danoise algorithm
+                 local pitch_correction = calculate_pitch_correction(44100, wave_size, 1)
+                 
+                 -- Only apply correction if deviation is significant (>2 cents)
+                 local cents_deviation = math.abs(pitch_correction.cents)
+                 if cents_deviation > 2 then
+                   sample.transpose = pitch_correction.transpose
+                   sample.fine_tune = pitch_correction.fine_tune
+                   
+                   -- Update sample name to include pitch correction info
+                   local correction_status = string.format(" -> Auto-tuned to %s (T:%d, F:%d)", 
+                     pitch_correction.note_name, pitch_correction.transpose, pitch_correction.fine_tune)
+                   
+                   sample.name = sample.name .. correction_status
+                 end
+               else
+                 print("DEBUG: Sample became invalid after creation for wave", wave_idx)
+               end
+               
+               print("DEBUG: Completed wave", wave_idx, "of", #wavetable_waves)
+               
+               -- Force garbage collection between samples to free memory
+               collectgarbage("collect")
+             else
+               print("DEBUG: Failed to create sample", wave_idx, ":", tostring(error_msg))
+             end
+           end
+         end
+       end
     else
-      sample.interpolation_mode = renoise.Sample.INTERPOLATE_LINEAR -- default
-    end
-    
-    sample.oversample_enabled = sample_oversample_enabled
-    
-    -- AUTOMATIC PITCH CORRECTION using danoise algorithm
-    local pitch_correction = calculate_pitch_correction(44100, wave_size, 1)
-    
-    -- Only apply correction if deviation is significant (>2 cents)
-    local cents_deviation = math.abs(pitch_correction.cents)
-    if cents_deviation > 2 then
-      sample.transpose = pitch_correction.transpose
-      sample.fine_tune = pitch_correction.fine_tune
-      
-      -- Update sample name to include pitch correction info
-      local correction_status = string.format(" -> Auto-tuned to %s (T:%d, F:%d)", 
-        pitch_correction.note_name, pitch_correction.transpose, pitch_correction.fine_tune)
-      
-      sample.name = sample.name .. correction_status
+      print("DEBUG: Invalid wave data at index", wave_idx, "- skipping")
     end
   end
   
   inst.name = string.format("PCM Wavetable (%d waves, %d frames) + Auto-Pitch", #wavetable_waves, wave_size)
   
-  -- Select the first sample
-  song.selected_sample_index = 1
+  -- Select the first sample only if samples were created
+  if #inst.samples > 0 then
+    song.selected_sample_index = 1
+    print("DEBUG: Selected first sample")
+  else
+    print("DEBUG: No samples were created - cannot select sample index")
+  end
   
-  renoise.app():show_status(string.format("Wavetable exported: %d waves as separate sample slots with %s interpolation, auto-pitch correction", #wavetable_waves, sample_interpolation_mode))
+  renoise.app():show_status(string.format("Wavetable exported: %d waves created", #wavetable_waves))
+  print("DEBUG: Export completed with", sample_interpolation_mode, "interpolation and auto-pitch correction")
 end
 
 function PCMWriterAddWavetableWave()
@@ -5639,12 +5800,6 @@ function PCMWriterChangeWaveSize(new_size)
   renoise.app():show_status(string.format("Wave size changed to %d samples (interpolated)", wave_size))
 end
 
--- Live Pickup Mode - Load current sample into editor
-local live_pickup_mode = false
-local live_pickup_sample = nil
-local live_pickup_instrument = nil
-local live_pickup_sample_index = -1
-local live_pickup_instrument_index = -1
 
 -- Live Pickup Mode sample change notification
 local function update_dialog_on_selection_change()

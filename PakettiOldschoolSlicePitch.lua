@@ -82,22 +82,31 @@ function detectGapsInSample()
   return gaps
 end
 
-function fillGapWithReversedAudio(gap_start, gap_end)
+function fillGapWithReversedAudio(gap_start, gap_end, is_last_slice)
   local song = renoise.song()
   local instrument = song.selected_instrument
   local sample = instrument.samples[song.selected_sample_index]
   local buffer = sample.sample_buffer
   
-  local gap_length = gap_end - gap_start + 1
-  local copy_start = math.max(1, gap_start - gap_length)
-  local copy_end = gap_start - 1
+  -- Configurable fadeout length (in frames) - adjust this value for testing
+  local fadeout_frames = 15  -- Try 5, 10, or 15 frames
+  is_last_slice = is_last_slice or false  -- Default to false if not specified
   
-  if copy_start >= copy_end then
+  local gap_length = gap_end - gap_start + 1
+  local channels = buffer.number_of_channels
+  
+  -- Simple approach: take exactly gap_length frames from right before the gap
+  local copy_end = gap_start - 1
+  local copy_start = math.max(1, copy_end - gap_length + 1)
+  
+  if copy_start > copy_end then
     renoise.app():show_status("Not enough audio before gap to fill")
     return
   end
   
-  local channels = buffer.number_of_channels
+  -- Debug: Print what we're copying
+  print("Debug: Gap from", gap_start, "to", gap_end, "length:", gap_length)
+  print("Debug: Copying from", copy_start, "to", copy_end, "length:", copy_end - copy_start + 1)
   
   -- Fill gap directly in the SAME sample buffer with REVERSED audio
   for channel = 1, channels do
@@ -112,7 +121,26 @@ function fillGapWithReversedAudio(gap_start, gap_end)
     end
   end
   
-  renoise.app():show_status("Gap filled with reversed audio")
+  -- Apply fadeout to the end of the filled gap ONLY if this is the last slice
+  if is_last_slice then
+    local fadeout_start = math.max(gap_start, gap_end - fadeout_frames + 1)
+    local actual_fadeout_length = gap_end - fadeout_start + 1
+    
+    for channel = 1, channels do
+      for i = 0, actual_fadeout_length - 1 do
+        local target_frame = fadeout_start + i
+        if target_frame <= gap_end then
+          local fade_factor = 1.0 - (i / actual_fadeout_length)  -- Linear fadeout from 1.0 to 0.0
+          local current_value = buffer:sample_data(channel, target_frame)
+          buffer:set_sample_data(channel, target_frame, current_value * fade_factor)
+        end
+      end
+    end
+    
+    renoise.app():show_status(string.format("Gap filled with reversed audio + %d frame fadeout", actual_fadeout_length))
+  else
+    renoise.app():show_status("Gap filled with reversed audio")
+  end
 end
 
 function fillGapWithCopiedAudio(gap_start, gap_end)
@@ -146,6 +174,75 @@ function fillGapWithCopiedAudio(gap_start, gap_end)
   end
   
   renoise.app():show_status("Gap filled with copied audio (no reversal)")
+end
+
+function fillGapWithPingPongLoop(gap_start, gap_end, is_last_slice)
+  local song = renoise.song()
+  local instrument = song.selected_instrument
+  local sample = instrument.samples[song.selected_sample_index]
+  local buffer = sample.sample_buffer
+  
+  -- Configurable fadeout length (in frames) - adjust this value for testing
+  local fadeout_frames = 15  -- Try 5, 10, or 15 frames
+  is_last_slice = is_last_slice or false  -- Default to false if not specified
+  
+  local gap_length = gap_end - gap_start + 1
+  local pingpong_length = math.floor(gap_length / 2)  -- Half the length of the slice
+  local copy_start = math.max(1, gap_start - pingpong_length)
+  local copy_end = gap_start - 1
+  
+  if copy_start >= copy_end or pingpong_length <= 0 then
+    renoise.app():show_status("Not enough audio before gap for pingpong loop")
+    return
+  end
+  
+  local channels = buffer.number_of_channels
+  
+  -- Fill gap with pingpong loop (forward, backward, forward, backward...)
+  for channel = 1, channels do
+    for i = 0, gap_length - 1 do
+      local target_frame = gap_start + i
+      
+      -- Calculate which "cycle" we're in (each cycle is 2 * pingpong_length)
+      local cycle_position = i % (pingpong_length * 2)
+      local source_frame
+      
+      if cycle_position < pingpong_length then
+        -- Forward phase: play from start to end
+        source_frame = copy_start + cycle_position
+      else
+        -- Backward phase: play from end to start
+        local backward_position = cycle_position - pingpong_length
+        source_frame = copy_end - backward_position
+      end
+      
+      if source_frame >= copy_start and source_frame <= copy_end and target_frame <= gap_end then
+        local sample_value = buffer:sample_data(channel, source_frame)
+        buffer:set_sample_data(channel, target_frame, sample_value)
+      end
+    end
+  end
+  
+  -- Apply fadeout to the end of the filled gap ONLY if this is the last slice
+  if is_last_slice then
+    local fadeout_start = math.max(gap_start, gap_end - fadeout_frames + 1)
+    local actual_fadeout_length = gap_end - fadeout_start + 1
+    
+    for channel = 1, channels do
+      for i = 0, actual_fadeout_length - 1 do
+        local target_frame = fadeout_start + i
+        if target_frame <= gap_end then
+          local fade_factor = 1.0 - (i / actual_fadeout_length)  -- Linear fadeout from 1.0 to 0.0
+          local current_value = buffer:sample_data(channel, target_frame)
+          buffer:set_sample_data(channel, target_frame, current_value * fade_factor)
+        end
+      end
+    end
+    
+    renoise.app():show_status(string.format("Gap filled with pingpong loop + %d frame fadeout", actual_fadeout_length))
+  else
+    renoise.app():show_status("Gap filled with pingpong loop")
+  end
 end
 
 function pakettiOldschoolSlicePitchDetectGaps()
@@ -188,7 +285,7 @@ function pakettiOldschoolSlicePitchFillSelectedGap()
   local gap_start = sample.sample_buffer.selection_range[1]
   local gap_end = sample.sample_buffer.selection_range[2]
   
-  fillGapWithReversedAudio(gap_start, gap_end)
+  fillGapWithReversedAudio(gap_start, gap_end, true)  -- Single gap is considered "last"
 end
 
 function pakettiOldschoolSlicePitchFillSelectedGapCopied()
@@ -219,6 +316,34 @@ function pakettiOldschoolSlicePitchFillSelectedGapCopied()
   fillGapWithCopiedAudio(gap_start, gap_end)
 end
 
+function pakettiOldschoolSlicePitchFillSelectedGapPingPong()
+  local song = renoise.song()
+  local instrument = song.selected_instrument
+  
+  if not instrument or #instrument.samples == 0 then
+    renoise.app():show_status("No sample selected")
+    return
+  end
+  
+  local sample = instrument.samples[song.selected_sample_index]
+  if not sample.sample_buffer or not sample.sample_buffer.has_sample_data then
+    renoise.app():show_status("No sample data found")
+    return
+  end
+  
+  -- Check if there's a selection in the sample editor
+  if not sample.sample_buffer.selection_range or 
+     sample.sample_buffer.selection_range[1] == sample.sample_buffer.selection_range[2] then
+    renoise.app():show_status("Please select the gap range in sample editor first")
+    return
+  end
+  
+  local gap_start = sample.sample_buffer.selection_range[1]
+  local gap_end = sample.sample_buffer.selection_range[2]
+  
+  fillGapWithPingPongLoop(gap_start, gap_end, true)  -- Single gap is considered "last"
+end
+
 function pakettiOldschoolSlicePitchFillAllGaps()
   local gaps = detectGapsInSample()
   if not gaps then return end
@@ -234,8 +359,9 @@ function pakettiOldschoolSlicePitchFillAllGaps()
   -- Fill all gaps in the new sample
   for i = #gaps, 1, -1 do -- Reverse order to maintain frame positions
     local gap = gaps[i]
+    local is_last_slice = (i == 1)  -- The last gap to be processed (first in reverse order)
     song.selected_sample_index = song.selected_sample_index
-    fillGapWithReversedAudio(gap.start_frame, gap.end_frame)
+    fillGapWithReversedAudio(gap.start_frame, gap.end_frame, is_last_slice)
   end
   
   new_sample.name = sample.name .. " (All Gaps Filled)"
@@ -267,7 +393,35 @@ function pakettiOldschoolSlicePitchFillAllGapsCopied()
   renoise.app():show_status(string.format("Filled %d gaps with copied audio", #gaps))
 end
 
-function pakettiSlicesToPattern()
+function pakettiOldschoolSlicePitchFillAllGapsPingPong()
+  local gaps = detectGapsInSample()
+  if not gaps then return end
+  
+  local song = renoise.song()
+  local instrument = song.selected_instrument
+  local sample = instrument.samples[song.selected_sample_index]
+  
+  -- Create new sample for the result
+  local new_sample = instrument:insert_sample_at(song.selected_sample_index + 1)
+  new_sample:copy_from(sample)
+  
+  -- Update to work with the new sample
+  song.selected_sample_index = song.selected_sample_index + 1
+  
+  -- Fill all gaps in the new sample (work backwards to maintain positions)
+  for i = #gaps, 1, -1 do
+    local gap = gaps[i]
+    local is_last_slice = (i == 1)  -- The last gap to be processed (first in reverse order)
+    fillGapWithPingPongLoop(gap.start_frame, gap.end_frame, is_last_slice)
+  end
+  
+  new_sample.name = sample.name .. " (All Gaps Filled PingPong)"
+  renoise.app():show_status(string.format("Filled %d gaps with pingpong loops", #gaps))
+end
+
+function pakettiSlicesToPattern(start_from_first_row)
+  start_from_first_row = start_from_first_row or false  -- Default to current row behavior
+  
   local song = renoise.song()
   local instrument = song.selected_instrument
   
@@ -332,7 +486,7 @@ function pakettiSlicesToPattern()
   end
   
   -- Clear pattern first
-  local start_line = song.selected_line_index
+  local start_line = start_from_first_row and 1 or song.selected_line_index
   for line_idx = start_line, math.min(start_line + pattern_lines - 1, pattern_lines) do
     local line = pattern:track(song.selected_track_index):line(line_idx)
     if line.note_columns[1] then
@@ -424,8 +578,9 @@ function pakettiSlicesToPattern()
     end
   end
   
-  renoise.app():show_status(string.format("Placed %d slices in pattern from line %d", 
-    #slice_markers - 1, start_line))
+  local mode_text = start_from_first_row and "(from first row)" or "(from current row)"
+  renoise.app():show_status(string.format("Placed %d slices in pattern from line %d %s", 
+    #slice_markers - 1, start_line, mode_text))
 end
 
 function pakettiSlicesToPhrase(add_trigger_note)
@@ -628,7 +783,7 @@ function pakettiOldschoolSlicePitchWorkflow(use_reversed_audio)
   
   -- Step 2: Output slices to pattern
   print("Debug: Outputting slices to pattern")
-  pakettiSlicesToPattern()
+  pakettiSlicesToPattern(true)  -- Start from first row in workflow
   
   -- Step 3: Select track content and render to WAV file using Paketti Clean Render
   local pattern = song.selected_pattern
@@ -689,15 +844,18 @@ function pakettiOldschoolSlicePitchWorkflow(use_reversed_audio)
         end
       end
       
-      local fill_method = use_reversed_audio and "reversed" or "copied"
+      local fill_method = use_reversed_audio == "reversed" and "reversed" or (use_reversed_audio == "pingpong" and "pingpong" or "copied")
       print("Debug: Now filling gaps with " .. fill_method .. " audio")
       
       -- Fill all gaps in reverse order to maintain frame positions
       for i = #gaps, 1, -1 do
         local gap = gaps[i]
+        local is_last_slice = (i == 1)  -- The last gap to be processed (first in reverse order)
         print("Debug: Filling gap", i, "from", gap.start_frame, "to", gap.end_frame)
-        if use_reversed_audio then
-          fillGapWithReversedAudio(gap.start_frame, gap.end_frame)
+        if use_reversed_audio == "reversed" then
+          fillGapWithReversedAudio(gap.start_frame, gap.end_frame, is_last_slice)
+        elseif use_reversed_audio == "pingpong" then
+          fillGapWithPingPongLoop(gap.start_frame, gap.end_frame, is_last_slice)
         else
           fillGapWithCopiedAudio(gap.start_frame, gap.end_frame)
         end
@@ -776,23 +934,48 @@ renoise.tool():add_menu_entry {
 }
 
 renoise.tool():add_menu_entry {
+  name = "Sample Editor:Paketti..:Oldschool Slice Pitch:Fill Selected Gap (PingPong)",
+  invoke = pakettiOldschoolSlicePitchFillSelectedGapPingPong
+}
+
+renoise.tool():add_menu_entry {
+  name = "Sample Editor:Paketti..:Oldschool Slice Pitch:Fill All Gaps (PingPong)",
+  invoke = pakettiOldschoolSlicePitchFillAllGapsPingPong
+}
+
+renoise.tool():add_menu_entry {
   name = "Pattern Editor:Paketti..:Oldschool Slice Pitch Workflow (Reversed)",
-  invoke = function() pakettiOldschoolSlicePitchWorkflow(true) end
+  invoke = function() pakettiOldschoolSlicePitchWorkflow("reversed") end
 }
 
 renoise.tool():add_menu_entry {
   name = "Pattern Editor:Paketti..:Oldschool Slice Pitch Workflow (Copied)",
-  invoke = function() pakettiOldschoolSlicePitchWorkflow(false) end
+  invoke = function() pakettiOldschoolSlicePitchWorkflow("copied") end
 }
 
 renoise.tool():add_menu_entry {
-  name = "Pattern Editor:Paketti..:Slices to Pattern",
-  invoke = pakettiSlicesToPattern
+  name = "Pattern Editor:Paketti..:Oldschool Slice Pitch Workflow (PingPong)",
+  invoke = function() pakettiOldschoolSlicePitchWorkflow("pingpong") end
 }
 
 renoise.tool():add_menu_entry {
-  name = "Sample Editor:Paketti..:Slices to Pattern", 
-  invoke = pakettiSlicesToPattern
+  name = "Pattern Editor:Paketti..:Slices to Pattern (from first row)",
+  invoke = function() pakettiSlicesToPattern(true) end
+}
+
+renoise.tool():add_menu_entry {
+  name = "Pattern Editor:Paketti..:Slices to Pattern (from current row)",
+  invoke = function() pakettiSlicesToPattern(false) end
+}
+
+renoise.tool():add_menu_entry {
+  name = "Sample Editor:Paketti..:Slices to Pattern (from first row)", 
+  invoke = function() pakettiSlicesToPattern(true) end
+}
+
+renoise.tool():add_menu_entry {
+  name = "Sample Editor:Paketti..:Slices to Pattern (from current row)", 
+  invoke = function() pakettiSlicesToPattern(false) end
 }
 
 renoise.tool():add_menu_entry {
@@ -842,23 +1025,48 @@ renoise.tool():add_keybinding {
 }
 
 renoise.tool():add_keybinding {
+  name = "Sample Editor:Paketti:Fill Selected Gap (PingPong)",
+  invoke = pakettiOldschoolSlicePitchFillSelectedGapPingPong
+}
+
+renoise.tool():add_keybinding {
+  name = "Sample Editor:Paketti:Fill All Gaps (PingPong)",
+  invoke = pakettiOldschoolSlicePitchFillAllGapsPingPong
+}
+
+renoise.tool():add_keybinding {
   name = "Pattern Editor:Paketti:Oldschool Slice Pitch Workflow (Reversed)",
-  invoke = function() pakettiOldschoolSlicePitchWorkflow(true) end
+  invoke = function() pakettiOldschoolSlicePitchWorkflow("reversed") end
 }
 
 renoise.tool():add_keybinding {
   name = "Pattern Editor:Paketti:Oldschool Slice Pitch Workflow (Copied)",
-  invoke = function() pakettiOldschoolSlicePitchWorkflow(false) end
+  invoke = function() pakettiOldschoolSlicePitchWorkflow("copied") end
 }
 
 renoise.tool():add_keybinding {
-  name = "Pattern Editor:Paketti:Slices to Pattern",
-  invoke = pakettiSlicesToPattern
+  name = "Pattern Editor:Paketti:Oldschool Slice Pitch Workflow (PingPong)",
+  invoke = function() pakettiOldschoolSlicePitchWorkflow("pingpong") end
 }
 
 renoise.tool():add_keybinding {
-  name = "Sample Editor:Paketti:Slices to Pattern",
-  invoke = pakettiSlicesToPattern
+  name = "Pattern Editor:Paketti:Slices to Pattern (from first row)",
+  invoke = function() pakettiSlicesToPattern(true) end
+}
+
+renoise.tool():add_keybinding {
+  name = "Pattern Editor:Paketti:Slices to Pattern (from current row)",
+  invoke = function() pakettiSlicesToPattern(false) end
+}
+
+renoise.tool():add_keybinding {
+  name = "Sample Editor:Paketti:Slices to Pattern (from first row)",
+  invoke = function() pakettiSlicesToPattern(true) end
+}
+
+renoise.tool():add_keybinding {
+  name = "Sample Editor:Paketti:Slices to Pattern (from current row)",
+  invoke = function() pakettiSlicesToPattern(false) end
 }
 
 renoise.tool():add_keybinding {
@@ -879,4 +1087,25 @@ renoise.tool():add_keybinding {
 renoise.tool():add_keybinding {
   name = "Sample Editor:Paketti:Slices to Phrase (phrase only)",
   invoke = function() pakettiSlicesToPhrase(false) end
+} 
+
+-- MIDI Mappings
+renoise.tool():add_midi_mapping {
+  name = "Paketti:Slices to Pattern (from first row)",
+  invoke = function(message) if message:is_trigger() then pakettiSlicesToPattern(true) end end
+}
+
+renoise.tool():add_midi_mapping {
+  name = "Paketti:Slices to Pattern (from current row)", 
+  invoke = function(message) if message:is_trigger() then pakettiSlicesToPattern(false) end end
+}
+
+renoise.tool():add_midi_mapping {
+  name = "Paketti:Slices to Phrase (with trigger)",
+  invoke = function(message) if message:is_trigger() then pakettiSlicesToPhrase(true) end end
+}
+
+renoise.tool():add_midi_mapping {
+  name = "Paketti:Slices to Phrase (phrase only)",
+  invoke = function(message) if message:is_trigger() then pakettiSlicesToPhrase(false) end end
 } 

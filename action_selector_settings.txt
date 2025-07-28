@@ -1,50 +1,50 @@
-Keybinding: Pattern Editor:Paketti:Clean Render Seamless Selected Track/Group
-Keybinding: Global:Paketti:Set Sync Mode to (Midi Clock)
-Keybinding: Global:Paketti:Impulse Tracker 8 Play Current Line & Advance by EditStep
-Keybinding: Pattern Editor:Paketti:Global Toggle Visible Column (Sample Effects)
-Keybinding: Global:Paketti:Randomize Effect Column Fill (0B00/0B01)
-Keybinding: Global:Paketti:Clone Current Pattern to Current Sequence
-Keybinding: Global:Paketti:CapsLockChassis
-Keybinding: Global:Paketti:Record+Follow+Metronome Precount 2 Bar
+Keybinding: Pattern Editor:Paketti:ChordsPlus Transposer Row -11
+Keybinding: Global:Paketti:Set Selected Sample Velocity Tracking On
+Keybinding: Global:Paketti:Generate Pure Sinewave 440Hz
+Keybinding: Pattern Editor:Paketti:Impulse Tracker ALT-D Double Select
+Keybinding: Global:Paketti:Play at Random Line in Current Pattern 2
+Keybinding: Global:Paketti:BPM Increase (+0.1)
+Keybinding: Global:Paketti:Add New Phrase
+Keybinding: Global:Paketti:Randomize Effect Column Smatter (0D Slide Down)
+Keybinding: Global:Paketti:Play at Random Line in Current Pattern 4
+Keybinding: Global:Paketti:Fullscreen (2nd)
 Keybinding: Global:Paketti:Randomize Effect Column Fill (0D Slide Down)
-Keybinding: Global:Paketti:Hide All Instrument Properties
-Keybinding: Global:Paketti:Record & Follow Flip
-Keybinding: Global:Paketti:Set Selected Sample Panning (+0.01)
-Keybinding: Pattern Sequencer:Paketti:Keep Sequence Sorted True
+Keybinding: Global:Paketti:Set Selected Sample Loop Release On/Off
+Keybinding: Phrase Editor:Paketti:Decrease Delay -10
 Keybinding: Sample Editor:Paketti:Create New Instrument & Loop from Selection
-Keybinding: Global:Paketti:Increase EditStep by 4
-Keybinding: Global:Paketti:Output Routing (Continual, Skip Master, Include Master in Cycle)
-Keybinding: Global:Paketti:Show Free KeyBindings Dialog...
-Keybinding: Global:Paketti:Open User Preferences Dialog...
-Keybinding: Global:Paketti:Clear/Wipe Selected Track TrackDSPs
-Keybinding: Global:Paketti:Clone and Shrink Pattern to LPB/2
-Keybinding: Global:Paketti:Clean Render&Save Selected Track/Group (.WAV)
-Keybinding: Pattern Editor:Paketti:Effect Column Uxx Slide Pitch Up (+10) (3rd)
-Keybinding: Sample Keyzones:Paketti:Delete Unused Samples
-Keybinding: Global:Paketti:Randomize Automation Envelope
-Keybinding: Global:Paketti:Impulse Tracker Pattern (Previous)
-Keybinding: Global:Paketti:Capture Nearest Instrument and Octave (jump)
-Keybinding: Pattern Editor:Paketti:Effect Column Dxx Slide Pitch Down (-1) (2nd)
-Keybinding: Sample Editor:Paketti:Rotate Sample Buffer Right 100
-Keybinding: Global:Paketti:LFO Write to Effect Column 1 (0Uxx)
-Keybinding: Global:Paketti:Move Slice Start Right by 100
-Keybinding: Global:Paketti:Set Automation Range to Max (1.0)
-Keybinding: Sample Navigator:Paketti:Move Slice End Right by 300
-Keybinding: Pattern Editor:Paketti:Step by EditStep (Backwards)
-Keybinding: Phrase Editor:Paketti:Hide Current and Select Previous Column
-Keybinding: Global:Paketti:Set Selected Sample Interpolation to 2 (Linear)
-Keybinding: Sample Editor:Paketti:Move Slice Start Left by 300
-Keybinding: Global:Paketti:User-Defined Sample Folders...
-Keybinding: Pattern Matrix:Paketti:Pattern Matrix Selection Expand
-Keybinding: Global:Paketti:Load Waldorf Attack (VST)
+Keybinding: Global:Paketti:Impulse Tracker ALT-Y Swap Block
+Keybinding: Global:Paketti:Move Track Left
+Keybinding: Global:Paketti:Set Selected Sample Volume to -INF dB
+Keybinding: Global:Paketti:Move Slice Start Left by 100
+Keybinding: Global:Paketti:BPM Decrease (-5)
+Keybinding: Global:Paketti:Bypass All Sample FX on Selected Instrument
+Keybinding: Global:Paketti:BPM Decrease (-0.5)
+Keybinding: Pattern Editor:Paketti:Effect Column Uxx Slide Pitch Up (+1) (2nd)
+Keybinding: Sample Editor:Process:Recursive Remove DC Offset Random Times
+Keybinding: Global:Paketti:Play at 100% Speed (Song BPM)
+Keybinding: Global:Paketti:Impulse Tracker 8 Play Current Line Only
+Keybinding: Global:Paketti:Automation Bottom to Center (Exp)
+Keybinding: Pattern Editor:Paketti:Effect Column Dxx Slide Pitch Down (+1) (2nd)
+Keybinding: Sample Editor:Paketti:Rotate Sample Buffer Left 10000
+Keybinding: Global:Paketti:Isolate Slices or Samples to New Instruments
+Keybinding: Global:Paketti:Loop Set Percussion
+Keybinding: Global:Paketti:Selected Instrument Midi Program +1 (Next)
+Keybinding: Sample Navigator:Paketti:Move Slice End Right by 100
+Keybinding: Pattern Editor:Paketti:Toggle All Columns
+Keybinding: Phrase Editor:Paketti:Impulse Tracker ALT-F Expand Selection Twice
+Keybinding: Global:Paketti:Set Selected Sample Beatsync Line (+1)
+Keybinding: Sample Editor:Paketti:Move Slice End Right by 500
+Keybinding: Global:Paketti:Toggle Keyboard Velocity
+Keybinding: Pattern Sequencer:Paketti:Keep Sequence Sorted On
+Keybinding: Global:Paketti:LFO Write to Phrase LPB (1-127)
 Keybinding: Phrase Editor:Paketti:Toggle Note Off in Selected Tracks
-Keybinding: Sample Editor:Paketti:Select Center of Sample Buffer
-Keybinding: Pattern Editor:Paketti:Set Global LPB to 256
-Keybinding: Pattern Editor:Paketti:Write Notes Ascending
-Menu Entry: Main Menu:Tools:Paketti:!Preferences:Change Fonts (classic)
-Keybinding: Pattern Editor:Paketti:Transpose Octave Down Note Column (Selection/Note Column)
-Keybinding: Sample Editor:Paketti:Move Slice Start Right by 300
-Keybinding: Pattern Editor:Paketti:Effect Column VXy Vibrato Amount Xy (+1)
-Keybinding: Global:Paketti:Delete/Clear/Wipe Entire Row
-Keybinding: Global:Paketti:Set Selected Sample Autoseek On/Off
-Keybinding: Global:Paketti:Delete/Clear/Wipe Selected Note Column with EditStep
+Keybinding: Sample Editor:Paketti:Sample Loop Halve
+Keybinding: Pattern Editor:Paketti:Set Pattern Length to 006 (006)
+Keybinding: Pattern Matrix:Paketti:Jump to First Track In Next Group
+Menu Entry: Main Menu:File:Wipe Song Patterns
+Keybinding: Pattern Editor:Paketti:Wipe All Automation in Track on Current Pattern
+Keybinding: Sample Editor:Paketti:Move Slice Start Left by 500
+Keybinding: Pattern Editor:Paketti:Effect Column Uxx Slide Pitch Up (-10)
+Keybinding: Global:Paketti:Copy Above Effect Column + Decrease Value
+Keybinding: Global:Paketti:Set Selected Instrument Panning 1.0 (Right)
+Keybinding: Global:Paketti:Create New Phrase using Paketti Settings

@@ -1,4 +1,4 @@
-Debug: Total Paketti keybindings found - 6125
+Debug: Total Paketti keybindings found - 6133
 0001:Global:Paketti: ∿ Show Paketti Preferences...: Shift + Command + Comma
 0002:Global:Paketti: ∿ Paketti eSpeak Text-to-Speech Dialog...: Control + E
 0003:Global:Paketti: ∿ Paketti eSpeak Generate Sample: <Shortcut not Assigned>
@@ -4543,11 +4543,11 @@ Debug: Total Paketti keybindings found - 6125
 4542:Global:Paketti: ∿ Load 04 AKWF Samples (XY): <Shortcut not Assigned>
 4543:Global:Paketti: ∿ PitchStepper Demo: <Shortcut not Assigned>
 4544:Global:Paketti: ∿ Reset All Steppers: <Shortcut not Assigned>
-4545:Global:Paketti: ∿ Clear Panning Steps: <Shortcut not Assigned>
-4546:Global:Paketti: ∿ Clear Cutoff Steps: <Shortcut not Assigned>
-4547:Global:Paketti: ∿ Clear Resonance Steps: <Shortcut not Assigned>
-4548:Global:Paketti: ∿ Clear Pitch Steps: <Shortcut not Assigned>
-4549:Global:Paketti: ∿ Clear Volume Steps: <Shortcut not Assigned>
+4545:Global:Paketti: ∿ Clear Cutoff Steps: <Shortcut not Assigned>
+4546:Global:Paketti: ∿ Clear Resonance Steps: <Shortcut not Assigned>
+4547:Global:Paketti: ∿ Clear Pitch Steps: <Shortcut not Assigned>
+4548:Global:Paketti: ∿ Clear Volume Steps: <Shortcut not Assigned>
+4549:Global:Paketti: ∿ Clear Panning Steps: <Shortcut not Assigned>
 4550:Global:Paketti: ∿ Clear Drive Steps: <Shortcut not Assigned>
 4551:Global:Paketti: ∿ Modify PitchStep Steps (Random): Shift + Option + Command + P
 4552:Global:Paketti: ∿ Modify PitchStep Steps (Octave Up, Octave Down): <Shortcut not Assigned>
@@ -5473,654 +5473,662 @@ Debug: Total Paketti keybindings found - 6125
 5472:Pattern Editor:Paketti: ∿ Render Pattern Selection (Mute + New Track): <Shortcut not Assigned>
 5473:Pattern Editor:Paketti: ∿ Oldschool Slice Pitch Workflow (Reversed): <Shortcut not Assigned>
 5474:Pattern Editor:Paketti: ∿ Oldschool Slice Pitch Workflow (Copied): <Shortcut not Assigned>
-5475:Pattern Editor:Paketti: ∿ Slices to Pattern: <Shortcut not Assigned>
-5476:Pattern Editor:Paketti: ∿ Slices to Phrase (with trigger): <Shortcut not Assigned>
-5477:Pattern Editor:Paketti: ∿ Slices to Phrase (phrase only): <Shortcut not Assigned>
-5478:Sample Editor:Paketti: ∿ Detect Zero Crossings: <Shortcut not Assigned>
-5479:Sample Editor:Paketti: ∿ Phrase Editor Visible: <Shortcut not Assigned>
-5480:Sample Editor:Paketti: ∿ Map Sample to All Keyzones: <Shortcut not Assigned>
-5481:Sample Editor:Paketti: ∿ Protracker MOD Modulation...: Option + M
-5482:Sample Editor:Paketti: ∿ Phase Inversion: <Shortcut not Assigned>
-5483:Sample Editor:Paketti: ∿ Phase Inversion & Audio Diff: <Shortcut not Assigned>
-5484:Sample Editor:Paketti: ∿ Pitch Shift: <Shortcut not Assigned>
-5485:Sample Editor:Paketti: ∿ Pitch Shift & Audio Diff: <Shortcut not Assigned>
-5486:Sample Editor:Paketti: ∿ Clip bottom of waveform: <Shortcut not Assigned>
-5487:Sample Editor:Paketti: ∿ Modulate & Audio Diff: <Shortcut not Assigned>
-5488:Sample Editor:Paketti: ∿ Invert Right, Sum Mono: <Shortcut not Assigned>
-5489:Sample Editor:Paketti: ∿ Audio Diff: <Shortcut not Assigned>
-5490:Sample Editor:Paketti: ∿ Invert Sample: <Shortcut not Assigned>
-5491:Sample Editor:Paketti: ∿ Invert Left Channel: <Shortcut not Assigned>
-5492:Sample Editor:Paketti: ∿ Invert Right Channel: <Shortcut not Assigned>
-5493:Sample Editor:Paketti: ∿ 15 Frame Fade In & Fade Out: <Shortcut not Assigned>
-5494:Sample Editor:Paketti: ∿ Paketti Sample Adjust Dialog...: <Shortcut not Assigned>
-5495:Sample Editor:Paketti: ∿ Wrap Signed as Unsigned: <Shortcut not Assigned>
-5496:Sample Editor:Paketti: ∿ Unwrap Unsigned to Signed: <Shortcut not Assigned>
-5497:Sample Editor:Paketti: ∿ Toggle Signed/Unsigned: Option + Command + A
-5498:Sample Editor:Paketti: ∿ Rotate Sample Buffer Upwards: Shift + Control + Up
-5499:Sample Editor:Paketti: ∿ Rotate Sample Buffer Downwards: Shift + Control + Down
-5500:Sample Editor:Paketti: ∿ Delete Slice Markers in Selection: <Shortcut not Assigned>
-5501:Sample Editor:Paketti: ∿ Set Selected Sample Loop 1 (Off): <Shortcut not Assigned>
-5502:Sample Editor:Paketti: ∿ Set Selected Sample Loop 2 (Forward): <Shortcut not Assigned>
-5503:Sample Editor:Paketti: ∿ Set Selected Sample Loop 3 (Backward): <Shortcut not Assigned>
-5504:Sample Editor:Paketti: ∿ Set Selected Sample Loop 4 (PingPong): <Shortcut not Assigned>
-5505:Sample Editor:Paketti: ∿ Slice Drumkit (Percussion): <Shortcut not Assigned>
-5506:Sample Editor:Paketti: ∿ Slice Drumkit (Texture): <Shortcut not Assigned>
-5507:Sample Editor:Paketti: ∿ Sample Buffer Selection Halve: <Shortcut not Assigned>
-5508:Sample Editor:Paketti: ∿ Sample Buffer Selection Double: <Shortcut not Assigned>
-5509:Sample Editor:Paketti: ∿ Move Slice Start Left by 10: Control + Left
-5510:Sample Editor:Paketti: ∿ Move Slice Start Right by 10: Control + Right
-5511:Sample Editor:Paketti: ∿ Move Slice End Left by 10: Command + Left
-5512:Sample Editor:Paketti: ∿ Move Slice End Right by 10: Command + Right
-5513:Sample Editor:Paketti: ∿ Move Slice Start Left by 100: Shift + Control + Left
-5514:Sample Editor:Paketti: ∿ Move Slice Start Right by 100: Shift + Control + Right
-5515:Sample Editor:Paketti: ∿ Move Slice End Left by 100: Shift + Command + Left
-5516:Sample Editor:Paketti: ∿ Move Slice End Right by 100: Shift + Command + Right
-5517:Sample Editor:Paketti: ∿ Move Slice Start Left by 300: <Shortcut not Assigned>
-5518:Sample Editor:Paketti: ∿ Move Slice Start Right by 300: <Shortcut not Assigned>
-5519:Sample Editor:Paketti: ∿ Move Slice End Left by 300: <Shortcut not Assigned>
-5520:Sample Editor:Paketti: ∿ Move Slice End Right by 300: <Shortcut not Assigned>
-5521:Sample Editor:Paketti: ∿ Move Slice Start Left by 500: <Shortcut not Assigned>
-5522:Sample Editor:Paketti: ∿ Move Slice Start Right by 500: <Shortcut not Assigned>
-5523:Sample Editor:Paketti: ∿ Move Slice End Left by 500: <Shortcut not Assigned>
-5524:Sample Editor:Paketti: ∿ Move Slice End Right by 500: <Shortcut not Assigned>
-5525:Sample Editor:Paketti: ∿ Duplicate Sample Range, Mute Original: <Shortcut not Assigned>
-5526:Sample Editor:Paketti: ∿ Duplicate, Maximize, 16bit, and Save as WAV: <Shortcut not Assigned>
-5527:Sample Editor:Paketti: ∿ Duplicate, Maximize, 16bit, and Save as FLAC: <Shortcut not Assigned>
-5528:Sample Editor:Paketti: ∿ Offset Sample Buffer by -0.5: <Shortcut not Assigned>
-5529:Sample Editor:Paketti: ∿ Multiply Sample Buffer by 0.5: <Shortcut not Assigned>
-5530:Sample Editor:Paketti: ∿ Nudge Slice 01 by (+10): <Shortcut not Assigned>
-5531:Sample Editor:Paketti: ∿ Nudge Slice 01 by (-10): <Shortcut not Assigned>
-5532:Sample Editor:Paketti: ∿ Nudge Slice 01 by (+16): <Shortcut not Assigned>
-5533:Sample Editor:Paketti: ∿ Nudge Slice 01 by (-16): <Shortcut not Assigned>
-5534:Sample Editor:Paketti: ∿ Nudge Slice 01 by (+32): <Shortcut not Assigned>
-5535:Sample Editor:Paketti: ∿ Nudge Slice 01 by (-32): <Shortcut not Assigned>
-5536:Sample Editor:Paketti: ∿ Nudge Slice 01 by (+1): <Shortcut not Assigned>
-5537:Sample Editor:Paketti: ∿ Nudge Slice 01 by (-1): <Shortcut not Assigned>
-5538:Sample Editor:Paketti: ∿ Nudge Slice 02 by (+10): <Shortcut not Assigned>
-5539:Sample Editor:Paketti: ∿ Nudge Slice 02 by (-10): <Shortcut not Assigned>
-5540:Sample Editor:Paketti: ∿ Nudge Slice 02 by (+16): <Shortcut not Assigned>
-5541:Sample Editor:Paketti: ∿ Nudge Slice 02 by (-16): <Shortcut not Assigned>
-5542:Sample Editor:Paketti: ∿ Nudge Slice 02 by (+32): <Shortcut not Assigned>
-5543:Sample Editor:Paketti: ∿ Nudge Slice 02 by (-32): <Shortcut not Assigned>
-5544:Sample Editor:Paketti: ∿ Nudge Slice 02 by (+1): <Shortcut not Assigned>
-5545:Sample Editor:Paketti: ∿ Nudge Slice 02 by (-1): <Shortcut not Assigned>
-5546:Sample Editor:Paketti: ∿ Nudge Slice 03 by (+10): <Shortcut not Assigned>
-5547:Sample Editor:Paketti: ∿ Nudge Slice 03 by (-10): <Shortcut not Assigned>
-5548:Sample Editor:Paketti: ∿ Nudge Slice 03 by (+16): <Shortcut not Assigned>
-5549:Sample Editor:Paketti: ∿ Nudge Slice 03 by (-16): <Shortcut not Assigned>
-5550:Sample Editor:Paketti: ∿ Nudge Slice 03 by (+32): <Shortcut not Assigned>
-5551:Sample Editor:Paketti: ∿ Nudge Slice 03 by (-32): <Shortcut not Assigned>
-5552:Sample Editor:Paketti: ∿ Nudge Slice 03 by (+1): <Shortcut not Assigned>
-5553:Sample Editor:Paketti: ∿ Nudge Slice 03 by (-1): <Shortcut not Assigned>
-5554:Sample Editor:Paketti: ∿ Nudge Slice 04 by (+10): <Shortcut not Assigned>
-5555:Sample Editor:Paketti: ∿ Nudge Slice 04 by (-10): <Shortcut not Assigned>
-5556:Sample Editor:Paketti: ∿ Nudge Slice 04 by (+16): <Shortcut not Assigned>
-5557:Sample Editor:Paketti: ∿ Nudge Slice 04 by (-16): <Shortcut not Assigned>
-5558:Sample Editor:Paketti: ∿ Nudge Slice 04 by (+32): <Shortcut not Assigned>
-5559:Sample Editor:Paketti: ∿ Nudge Slice 04 by (-32): <Shortcut not Assigned>
-5560:Sample Editor:Paketti: ∿ Nudge Slice 04 by (+1): <Shortcut not Assigned>
-5561:Sample Editor:Paketti: ∿ Nudge Slice 04 by (-1): <Shortcut not Assigned>
-5562:Sample Editor:Paketti: ∿ Nudge Slice 05 by (+10): <Shortcut not Assigned>
-5563:Sample Editor:Paketti: ∿ Nudge Slice 05 by (-10): <Shortcut not Assigned>
-5564:Sample Editor:Paketti: ∿ Nudge Slice 05 by (+16): <Shortcut not Assigned>
-5565:Sample Editor:Paketti: ∿ Nudge Slice 05 by (-16): <Shortcut not Assigned>
-5566:Sample Editor:Paketti: ∿ Nudge Slice 05 by (+32): <Shortcut not Assigned>
-5567:Sample Editor:Paketti: ∿ Nudge Slice 05 by (-32): <Shortcut not Assigned>
-5568:Sample Editor:Paketti: ∿ Nudge Slice 05 by (+1): <Shortcut not Assigned>
-5569:Sample Editor:Paketti: ∿ Nudge Slice 05 by (-1): <Shortcut not Assigned>
-5570:Sample Editor:Paketti: ∿ Nudge Slice 06 by (+10): <Shortcut not Assigned>
-5571:Sample Editor:Paketti: ∿ Nudge Slice 06 by (-10): <Shortcut not Assigned>
-5572:Sample Editor:Paketti: ∿ Nudge Slice 06 by (+16): <Shortcut not Assigned>
-5573:Sample Editor:Paketti: ∿ Nudge Slice 06 by (-16): <Shortcut not Assigned>
-5574:Sample Editor:Paketti: ∿ Nudge Slice 06 by (+32): <Shortcut not Assigned>
-5575:Sample Editor:Paketti: ∿ Nudge Slice 06 by (-32): <Shortcut not Assigned>
-5576:Sample Editor:Paketti: ∿ Nudge Slice 06 by (+1): <Shortcut not Assigned>
-5577:Sample Editor:Paketti: ∿ Nudge Slice 06 by (-1): <Shortcut not Assigned>
-5578:Sample Editor:Paketti: ∿ Nudge Slice 07 by (+10): <Shortcut not Assigned>
-5579:Sample Editor:Paketti: ∿ Nudge Slice 07 by (-10): <Shortcut not Assigned>
-5580:Sample Editor:Paketti: ∿ Nudge Slice 07 by (+16): <Shortcut not Assigned>
-5581:Sample Editor:Paketti: ∿ Nudge Slice 07 by (-16): <Shortcut not Assigned>
-5582:Sample Editor:Paketti: ∿ Nudge Slice 07 by (+32): <Shortcut not Assigned>
-5583:Sample Editor:Paketti: ∿ Nudge Slice 07 by (-32): <Shortcut not Assigned>
-5584:Sample Editor:Paketti: ∿ Nudge Slice 07 by (+1): <Shortcut not Assigned>
-5585:Sample Editor:Paketti: ∿ Nudge Slice 07 by (-1): <Shortcut not Assigned>
-5586:Sample Editor:Paketti: ∿ Nudge Slice 08 by (+10): <Shortcut not Assigned>
-5587:Sample Editor:Paketti: ∿ Nudge Slice 08 by (-10): <Shortcut not Assigned>
-5588:Sample Editor:Paketti: ∿ Nudge Slice 08 by (+16): <Shortcut not Assigned>
-5589:Sample Editor:Paketti: ∿ Nudge Slice 08 by (-16): <Shortcut not Assigned>
-5590:Sample Editor:Paketti: ∿ Nudge Slice 08 by (+32): <Shortcut not Assigned>
-5591:Sample Editor:Paketti: ∿ Nudge Slice 08 by (-32): <Shortcut not Assigned>
-5592:Sample Editor:Paketti: ∿ Nudge Slice 08 by (+1): <Shortcut not Assigned>
-5593:Sample Editor:Paketti: ∿ Nudge Slice 08 by (-1): <Shortcut not Assigned>
-5594:Sample Editor:Paketti: ∿ Nudge Slice 09 by (+10): <Shortcut not Assigned>
-5595:Sample Editor:Paketti: ∿ Nudge Slice 09 by (-10): <Shortcut not Assigned>
-5596:Sample Editor:Paketti: ∿ Nudge Slice 09 by (+16): <Shortcut not Assigned>
-5597:Sample Editor:Paketti: ∿ Nudge Slice 09 by (-16): <Shortcut not Assigned>
-5598:Sample Editor:Paketti: ∿ Nudge Slice 09 by (+32): <Shortcut not Assigned>
-5599:Sample Editor:Paketti: ∿ Nudge Slice 09 by (-32): <Shortcut not Assigned>
-5600:Sample Editor:Paketti: ∿ Nudge Slice 09 by (+1): <Shortcut not Assigned>
-5601:Sample Editor:Paketti: ∿ Nudge Slice 09 by (-1): <Shortcut not Assigned>
-5602:Sample Editor:Paketti: ∿ Nudge Slice 10 by (+10): <Shortcut not Assigned>
-5603:Sample Editor:Paketti: ∿ Nudge Slice 10 by (-10): <Shortcut not Assigned>
-5604:Sample Editor:Paketti: ∿ Nudge Slice 10 by (+16): <Shortcut not Assigned>
-5605:Sample Editor:Paketti: ∿ Nudge Slice 10 by (-16): <Shortcut not Assigned>
-5606:Sample Editor:Paketti: ∿ Nudge Slice 10 by (+32): <Shortcut not Assigned>
-5607:Sample Editor:Paketti: ∿ Nudge Slice 10 by (-32): <Shortcut not Assigned>
-5608:Sample Editor:Paketti: ∿ Nudge Slice 10 by (+1): <Shortcut not Assigned>
-5609:Sample Editor:Paketti: ∿ Nudge Slice 10 by (-1): <Shortcut not Assigned>
-5610:Sample Editor:Paketti: ∿ Nudge Slice 11 by (+10): <Shortcut not Assigned>
-5611:Sample Editor:Paketti: ∿ Nudge Slice 11 by (-10): <Shortcut not Assigned>
-5612:Sample Editor:Paketti: ∿ Nudge Slice 11 by (+16): <Shortcut not Assigned>
-5613:Sample Editor:Paketti: ∿ Nudge Slice 11 by (-16): <Shortcut not Assigned>
-5614:Sample Editor:Paketti: ∿ Nudge Slice 11 by (+32): <Shortcut not Assigned>
-5615:Sample Editor:Paketti: ∿ Nudge Slice 11 by (-32): <Shortcut not Assigned>
-5616:Sample Editor:Paketti: ∿ Nudge Slice 11 by (+1): <Shortcut not Assigned>
-5617:Sample Editor:Paketti: ∿ Nudge Slice 11 by (-1): <Shortcut not Assigned>
-5618:Sample Editor:Paketti: ∿ Nudge Slice 12 by (+10): <Shortcut not Assigned>
-5619:Sample Editor:Paketti: ∿ Nudge Slice 12 by (-10): <Shortcut not Assigned>
-5620:Sample Editor:Paketti: ∿ Nudge Slice 12 by (+16): <Shortcut not Assigned>
-5621:Sample Editor:Paketti: ∿ Nudge Slice 12 by (-16): <Shortcut not Assigned>
-5622:Sample Editor:Paketti: ∿ Nudge Slice 12 by (+32): <Shortcut not Assigned>
-5623:Sample Editor:Paketti: ∿ Nudge Slice 12 by (-32): <Shortcut not Assigned>
-5624:Sample Editor:Paketti: ∿ Nudge Slice 12 by (+1): <Shortcut not Assigned>
-5625:Sample Editor:Paketti: ∿ Nudge Slice 12 by (-1): <Shortcut not Assigned>
-5626:Sample Editor:Paketti: ∿ Nudge Slice 13 by (+10): <Shortcut not Assigned>
-5627:Sample Editor:Paketti: ∿ Nudge Slice 13 by (-10): <Shortcut not Assigned>
-5628:Sample Editor:Paketti: ∿ Nudge Slice 13 by (+16): <Shortcut not Assigned>
-5629:Sample Editor:Paketti: ∿ Nudge Slice 13 by (-16): <Shortcut not Assigned>
-5630:Sample Editor:Paketti: ∿ Nudge Slice 13 by (+32): <Shortcut not Assigned>
-5631:Sample Editor:Paketti: ∿ Nudge Slice 13 by (-32): <Shortcut not Assigned>
-5632:Sample Editor:Paketti: ∿ Nudge Slice 13 by (+1): <Shortcut not Assigned>
-5633:Sample Editor:Paketti: ∿ Nudge Slice 13 by (-1): <Shortcut not Assigned>
-5634:Sample Editor:Paketti: ∿ Nudge Slice 14 by (+10): <Shortcut not Assigned>
-5635:Sample Editor:Paketti: ∿ Nudge Slice 14 by (-10): <Shortcut not Assigned>
-5636:Sample Editor:Paketti: ∿ Nudge Slice 14 by (+16): <Shortcut not Assigned>
-5637:Sample Editor:Paketti: ∿ Nudge Slice 14 by (-16): <Shortcut not Assigned>
-5638:Sample Editor:Paketti: ∿ Nudge Slice 14 by (+32): <Shortcut not Assigned>
-5639:Sample Editor:Paketti: ∿ Nudge Slice 14 by (-32): <Shortcut not Assigned>
-5640:Sample Editor:Paketti: ∿ Nudge Slice 14 by (+1): <Shortcut not Assigned>
-5641:Sample Editor:Paketti: ∿ Nudge Slice 14 by (-1): <Shortcut not Assigned>
-5642:Sample Editor:Paketti: ∿ Nudge Slice 15 by (+10): <Shortcut not Assigned>
-5643:Sample Editor:Paketti: ∿ Nudge Slice 15 by (-10): <Shortcut not Assigned>
-5644:Sample Editor:Paketti: ∿ Nudge Slice 15 by (+16): <Shortcut not Assigned>
-5645:Sample Editor:Paketti: ∿ Nudge Slice 15 by (-16): <Shortcut not Assigned>
-5646:Sample Editor:Paketti: ∿ Nudge Slice 15 by (+32): <Shortcut not Assigned>
-5647:Sample Editor:Paketti: ∿ Nudge Slice 15 by (-32): <Shortcut not Assigned>
-5648:Sample Editor:Paketti: ∿ Nudge Slice 15 by (+1): <Shortcut not Assigned>
-5649:Sample Editor:Paketti: ∿ Nudge Slice 15 by (-1): <Shortcut not Assigned>
-5650:Sample Editor:Paketti: ∿ Nudge Slice 16 by (+10): <Shortcut not Assigned>
-5651:Sample Editor:Paketti: ∿ Nudge Slice 16 by (-10): <Shortcut not Assigned>
-5652:Sample Editor:Paketti: ∿ Nudge Slice 16 by (+16): <Shortcut not Assigned>
-5653:Sample Editor:Paketti: ∿ Nudge Slice 16 by (-16): <Shortcut not Assigned>
-5654:Sample Editor:Paketti: ∿ Nudge Slice 16 by (+32): <Shortcut not Assigned>
-5655:Sample Editor:Paketti: ∿ Nudge Slice 16 by (-32): <Shortcut not Assigned>
-5656:Sample Editor:Paketti: ∿ Nudge Slice 16 by (+1): <Shortcut not Assigned>
-5657:Sample Editor:Paketti: ∿ Nudge Slice 16 by (-1): <Shortcut not Assigned>
-5658:Sample Editor:Paketti: ∿ Nudge Slice 17 by (+10): <Shortcut not Assigned>
-5659:Sample Editor:Paketti: ∿ Nudge Slice 17 by (-10): <Shortcut not Assigned>
-5660:Sample Editor:Paketti: ∿ Nudge Slice 17 by (+16): <Shortcut not Assigned>
-5661:Sample Editor:Paketti: ∿ Nudge Slice 17 by (-16): <Shortcut not Assigned>
-5662:Sample Editor:Paketti: ∿ Nudge Slice 17 by (+32): <Shortcut not Assigned>
-5663:Sample Editor:Paketti: ∿ Nudge Slice 17 by (-32): <Shortcut not Assigned>
-5664:Sample Editor:Paketti: ∿ Nudge Slice 17 by (+1): <Shortcut not Assigned>
-5665:Sample Editor:Paketti: ∿ Nudge Slice 17 by (-1): <Shortcut not Assigned>
-5666:Sample Editor:Paketti: ∿ Nudge Slice 18 by (+10): <Shortcut not Assigned>
-5667:Sample Editor:Paketti: ∿ Nudge Slice 18 by (-10): <Shortcut not Assigned>
-5668:Sample Editor:Paketti: ∿ Nudge Slice 18 by (+16): <Shortcut not Assigned>
-5669:Sample Editor:Paketti: ∿ Nudge Slice 18 by (-16): <Shortcut not Assigned>
-5670:Sample Editor:Paketti: ∿ Nudge Slice 18 by (+32): <Shortcut not Assigned>
-5671:Sample Editor:Paketti: ∿ Nudge Slice 18 by (-32): <Shortcut not Assigned>
-5672:Sample Editor:Paketti: ∿ Nudge Slice 18 by (+1): <Shortcut not Assigned>
-5673:Sample Editor:Paketti: ∿ Nudge Slice 18 by (-1): <Shortcut not Assigned>
-5674:Sample Editor:Paketti: ∿ Nudge Slice 19 by (+10): <Shortcut not Assigned>
-5675:Sample Editor:Paketti: ∿ Nudge Slice 19 by (-10): <Shortcut not Assigned>
-5676:Sample Editor:Paketti: ∿ Nudge Slice 19 by (+16): <Shortcut not Assigned>
-5677:Sample Editor:Paketti: ∿ Nudge Slice 19 by (-16): <Shortcut not Assigned>
-5678:Sample Editor:Paketti: ∿ Nudge Slice 19 by (+32): <Shortcut not Assigned>
-5679:Sample Editor:Paketti: ∿ Nudge Slice 19 by (-32): <Shortcut not Assigned>
-5680:Sample Editor:Paketti: ∿ Nudge Slice 19 by (+1): <Shortcut not Assigned>
-5681:Sample Editor:Paketti: ∿ Nudge Slice 19 by (-1): <Shortcut not Assigned>
-5682:Sample Editor:Paketti: ∿ Nudge Slice 20 by (+10): <Shortcut not Assigned>
-5683:Sample Editor:Paketti: ∿ Nudge Slice 20 by (-10): <Shortcut not Assigned>
-5684:Sample Editor:Paketti: ∿ Nudge Slice 20 by (+16): <Shortcut not Assigned>
-5685:Sample Editor:Paketti: ∿ Nudge Slice 20 by (-16): <Shortcut not Assigned>
-5686:Sample Editor:Paketti: ∿ Nudge Slice 20 by (+32): <Shortcut not Assigned>
-5687:Sample Editor:Paketti: ∿ Nudge Slice 20 by (-32): <Shortcut not Assigned>
-5688:Sample Editor:Paketti: ∿ Nudge Slice 20 by (+1): <Shortcut not Assigned>
-5689:Sample Editor:Paketti: ∿ Nudge Slice 20 by (-1): <Shortcut not Assigned>
-5690:Sample Editor:Paketti: ∿ Nudge Slice 21 by (+10): <Shortcut not Assigned>
-5691:Sample Editor:Paketti: ∿ Nudge Slice 21 by (-10): <Shortcut not Assigned>
-5692:Sample Editor:Paketti: ∿ Nudge Slice 21 by (+16): <Shortcut not Assigned>
-5693:Sample Editor:Paketti: ∿ Nudge Slice 21 by (-16): <Shortcut not Assigned>
-5694:Sample Editor:Paketti: ∿ Nudge Slice 21 by (+32): <Shortcut not Assigned>
-5695:Sample Editor:Paketti: ∿ Nudge Slice 21 by (-32): <Shortcut not Assigned>
-5696:Sample Editor:Paketti: ∿ Nudge Slice 21 by (+1): <Shortcut not Assigned>
-5697:Sample Editor:Paketti: ∿ Nudge Slice 21 by (-1): <Shortcut not Assigned>
-5698:Sample Editor:Paketti: ∿ Nudge Slice 22 by (+10): <Shortcut not Assigned>
-5699:Sample Editor:Paketti: ∿ Nudge Slice 22 by (-10): <Shortcut not Assigned>
-5700:Sample Editor:Paketti: ∿ Nudge Slice 22 by (+16): <Shortcut not Assigned>
-5701:Sample Editor:Paketti: ∿ Nudge Slice 22 by (-16): <Shortcut not Assigned>
-5702:Sample Editor:Paketti: ∿ Nudge Slice 22 by (+32): <Shortcut not Assigned>
-5703:Sample Editor:Paketti: ∿ Nudge Slice 22 by (-32): <Shortcut not Assigned>
-5704:Sample Editor:Paketti: ∿ Nudge Slice 22 by (+1): <Shortcut not Assigned>
-5705:Sample Editor:Paketti: ∿ Nudge Slice 22 by (-1): <Shortcut not Assigned>
-5706:Sample Editor:Paketti: ∿ Nudge Slice 23 by (+10): <Shortcut not Assigned>
-5707:Sample Editor:Paketti: ∿ Nudge Slice 23 by (-10): <Shortcut not Assigned>
-5708:Sample Editor:Paketti: ∿ Nudge Slice 23 by (+16): <Shortcut not Assigned>
-5709:Sample Editor:Paketti: ∿ Nudge Slice 23 by (-16): <Shortcut not Assigned>
-5710:Sample Editor:Paketti: ∿ Nudge Slice 23 by (+32): <Shortcut not Assigned>
-5711:Sample Editor:Paketti: ∿ Nudge Slice 23 by (-32): <Shortcut not Assigned>
-5712:Sample Editor:Paketti: ∿ Nudge Slice 23 by (+1): <Shortcut not Assigned>
-5713:Sample Editor:Paketti: ∿ Nudge Slice 23 by (-1): <Shortcut not Assigned>
-5714:Sample Editor:Paketti: ∿ Nudge Slice 24 by (+10): <Shortcut not Assigned>
-5715:Sample Editor:Paketti: ∿ Nudge Slice 24 by (-10): <Shortcut not Assigned>
-5716:Sample Editor:Paketti: ∿ Nudge Slice 24 by (+16): <Shortcut not Assigned>
-5717:Sample Editor:Paketti: ∿ Nudge Slice 24 by (-16): <Shortcut not Assigned>
-5718:Sample Editor:Paketti: ∿ Nudge Slice 24 by (+32): <Shortcut not Assigned>
-5719:Sample Editor:Paketti: ∿ Nudge Slice 24 by (-32): <Shortcut not Assigned>
-5720:Sample Editor:Paketti: ∿ Nudge Slice 24 by (+1): <Shortcut not Assigned>
-5721:Sample Editor:Paketti: ∿ Nudge Slice 24 by (-1): <Shortcut not Assigned>
-5722:Sample Editor:Paketti: ∿ Nudge Slice 25 by (+10): <Shortcut not Assigned>
-5723:Sample Editor:Paketti: ∿ Nudge Slice 25 by (-10): <Shortcut not Assigned>
-5724:Sample Editor:Paketti: ∿ Nudge Slice 25 by (+16): <Shortcut not Assigned>
-5725:Sample Editor:Paketti: ∿ Nudge Slice 25 by (-16): <Shortcut not Assigned>
-5726:Sample Editor:Paketti: ∿ Nudge Slice 25 by (+32): <Shortcut not Assigned>
-5727:Sample Editor:Paketti: ∿ Nudge Slice 25 by (-32): <Shortcut not Assigned>
-5728:Sample Editor:Paketti: ∿ Nudge Slice 25 by (+1): <Shortcut not Assigned>
-5729:Sample Editor:Paketti: ∿ Nudge Slice 25 by (-1): <Shortcut not Assigned>
-5730:Sample Editor:Paketti: ∿ Nudge Slice 26 by (+10): <Shortcut not Assigned>
-5731:Sample Editor:Paketti: ∿ Nudge Slice 26 by (-10): <Shortcut not Assigned>
-5732:Sample Editor:Paketti: ∿ Nudge Slice 26 by (+16): <Shortcut not Assigned>
-5733:Sample Editor:Paketti: ∿ Nudge Slice 26 by (-16): <Shortcut not Assigned>
-5734:Sample Editor:Paketti: ∿ Nudge Slice 26 by (+32): <Shortcut not Assigned>
-5735:Sample Editor:Paketti: ∿ Nudge Slice 26 by (-32): <Shortcut not Assigned>
-5736:Sample Editor:Paketti: ∿ Nudge Slice 26 by (+1): <Shortcut not Assigned>
-5737:Sample Editor:Paketti: ∿ Nudge Slice 26 by (-1): <Shortcut not Assigned>
-5738:Sample Editor:Paketti: ∿ Nudge Slice 27 by (+10): <Shortcut not Assigned>
-5739:Sample Editor:Paketti: ∿ Nudge Slice 27 by (-10): <Shortcut not Assigned>
-5740:Sample Editor:Paketti: ∿ Nudge Slice 27 by (+16): <Shortcut not Assigned>
-5741:Sample Editor:Paketti: ∿ Nudge Slice 27 by (-16): <Shortcut not Assigned>
-5742:Sample Editor:Paketti: ∿ Nudge Slice 27 by (+32): <Shortcut not Assigned>
-5743:Sample Editor:Paketti: ∿ Nudge Slice 27 by (-32): <Shortcut not Assigned>
-5744:Sample Editor:Paketti: ∿ Nudge Slice 27 by (+1): <Shortcut not Assigned>
-5745:Sample Editor:Paketti: ∿ Nudge Slice 27 by (-1): <Shortcut not Assigned>
-5746:Sample Editor:Paketti: ∿ Nudge Slice 28 by (+10): <Shortcut not Assigned>
-5747:Sample Editor:Paketti: ∿ Nudge Slice 28 by (-10): <Shortcut not Assigned>
-5748:Sample Editor:Paketti: ∿ Nudge Slice 28 by (+16): <Shortcut not Assigned>
-5749:Sample Editor:Paketti: ∿ Nudge Slice 28 by (-16): <Shortcut not Assigned>
-5750:Sample Editor:Paketti: ∿ Nudge Slice 28 by (+32): <Shortcut not Assigned>
-5751:Sample Editor:Paketti: ∿ Nudge Slice 28 by (-32): <Shortcut not Assigned>
-5752:Sample Editor:Paketti: ∿ Nudge Slice 28 by (+1): <Shortcut not Assigned>
-5753:Sample Editor:Paketti: ∿ Nudge Slice 28 by (-1): <Shortcut not Assigned>
-5754:Sample Editor:Paketti: ∿ Nudge Slice 29 by (+10): <Shortcut not Assigned>
-5755:Sample Editor:Paketti: ∿ Nudge Slice 29 by (-10): <Shortcut not Assigned>
-5756:Sample Editor:Paketti: ∿ Nudge Slice 29 by (+16): <Shortcut not Assigned>
-5757:Sample Editor:Paketti: ∿ Nudge Slice 29 by (-16): <Shortcut not Assigned>
-5758:Sample Editor:Paketti: ∿ Nudge Slice 29 by (+32): <Shortcut not Assigned>
-5759:Sample Editor:Paketti: ∿ Nudge Slice 29 by (-32): <Shortcut not Assigned>
-5760:Sample Editor:Paketti: ∿ Nudge Slice 29 by (+1): <Shortcut not Assigned>
-5761:Sample Editor:Paketti: ∿ Nudge Slice 29 by (-1): <Shortcut not Assigned>
-5762:Sample Editor:Paketti: ∿ Nudge Slice 30 by (+10): <Shortcut not Assigned>
-5763:Sample Editor:Paketti: ∿ Nudge Slice 30 by (-10): <Shortcut not Assigned>
-5764:Sample Editor:Paketti: ∿ Nudge Slice 30 by (+16): <Shortcut not Assigned>
-5765:Sample Editor:Paketti: ∿ Nudge Slice 30 by (-16): <Shortcut not Assigned>
-5766:Sample Editor:Paketti: ∿ Nudge Slice 30 by (+32): <Shortcut not Assigned>
-5767:Sample Editor:Paketti: ∿ Nudge Slice 30 by (-32): <Shortcut not Assigned>
-5768:Sample Editor:Paketti: ∿ Nudge Slice 30 by (+1): <Shortcut not Assigned>
-5769:Sample Editor:Paketti: ∿ Nudge Slice 30 by (-1): <Shortcut not Assigned>
-5770:Sample Editor:Paketti: ∿ Nudge Slice 31 by (+10): <Shortcut not Assigned>
-5771:Sample Editor:Paketti: ∿ Nudge Slice 31 by (-10): <Shortcut not Assigned>
-5772:Sample Editor:Paketti: ∿ Nudge Slice 31 by (+16): <Shortcut not Assigned>
-5773:Sample Editor:Paketti: ∿ Nudge Slice 31 by (-16): <Shortcut not Assigned>
-5774:Sample Editor:Paketti: ∿ Nudge Slice 31 by (+32): <Shortcut not Assigned>
-5775:Sample Editor:Paketti: ∿ Nudge Slice 31 by (-32): <Shortcut not Assigned>
-5776:Sample Editor:Paketti: ∿ Nudge Slice 31 by (+1): <Shortcut not Assigned>
-5777:Sample Editor:Paketti: ∿ Nudge Slice 31 by (-1): <Shortcut not Assigned>
-5778:Sample Editor:Paketti: ∿ Nudge Slice 32 by (+10): <Shortcut not Assigned>
-5779:Sample Editor:Paketti: ∿ Nudge Slice 32 by (-10): <Shortcut not Assigned>
-5780:Sample Editor:Paketti: ∿ Nudge Slice 32 by (+16): <Shortcut not Assigned>
-5781:Sample Editor:Paketti: ∿ Nudge Slice 32 by (-16): <Shortcut not Assigned>
-5782:Sample Editor:Paketti: ∿ Nudge Slice 32 by (+32): <Shortcut not Assigned>
-5783:Sample Editor:Paketti: ∿ Nudge Slice 32 by (-32): <Shortcut not Assigned>
-5784:Sample Editor:Paketti: ∿ Nudge Slice 32 by (+1): <Shortcut not Assigned>
-5785:Sample Editor:Paketti: ∿ Nudge Slice 32 by (-1): <Shortcut not Assigned>
-5786:Sample Editor:Paketti: ∿ Set Sample Zoom 01x: <Shortcut not Assigned>
-5787:Sample Editor:Paketti: ∿ Set Sample Zoom 02x: <Shortcut not Assigned>
-5788:Sample Editor:Paketti: ∿ Set Sample Zoom 03x: <Shortcut not Assigned>
-5789:Sample Editor:Paketti: ∿ Set Sample Zoom 04x: <Shortcut not Assigned>
-5790:Sample Editor:Paketti: ∿ Set Sample Zoom 05x: <Shortcut not Assigned>
-5791:Sample Editor:Paketti: ∿ Set Sample Zoom 06x: <Shortcut not Assigned>
-5792:Sample Editor:Paketti: ∿ Set Sample Zoom 07x: <Shortcut not Assigned>
-5793:Sample Editor:Paketti: ∿ Set Sample Zoom 08x: <Shortcut not Assigned>
-5794:Sample Editor:Paketti: ∿ Set Sample Zoom 09x: <Shortcut not Assigned>
-5795:Sample Editor:Paketti: ∿ Set Sample Zoom 10x: <Shortcut not Assigned>
-5796:Sample Editor:Paketti: ∿ Set Sample Zoom 11x: <Shortcut not Assigned>
-5797:Sample Editor:Paketti: ∿ Create New Instrument & Loop from Selection: <Shortcut not Assigned>
-5798:Sample Editor:Paketti: ∿ Paketti PitchBend Multiple Sample Loader: <Shortcut not Assigned>
-5799:Sample Editor:Paketti: ∿ Paketti PitchBend Multiple Sample Loader (Normalize): <Shortcut not Assigned>
-5800:Sample Editor:Paketti: ∿ Set Loop Mode to 1 Off: <Shortcut not Assigned>
-5801:Sample Editor:Paketti: ∿ Set Loop Mode to 2 Forward: <Shortcut not Assigned>
-5802:Sample Editor:Paketti: ∿ Set Loop Mode to 3 Reverse: <Shortcut not Assigned>
-5803:Sample Editor:Paketti: ∿ Set Loop Mode to 4 PingPong: <Shortcut not Assigned>
-5804:Sample Editor:Paketti: ∿ Select Padded Slice (Next): <Shortcut not Assigned>
-5805:Sample Editor:Paketti: ∿ Select Padded Slice (Previous): <Shortcut not Assigned>
-5806:Sample Editor:Paketti: ∿ Select Padded Slice from Current Slice: <Shortcut not Assigned>
-5807:Sample Editor:Paketti: ∿ Select First Half of Sample Buffer: Option + Left
-5808:Sample Editor:Paketti: ∿ Select Second Half of Sample Buffer: Option + Right
-5809:Sample Editor:Paketti: ∿ Rotate Sample Buffer Right 10: <Shortcut not Assigned>
-5810:Sample Editor:Paketti: ∿ Rotate Sample Buffer Left 10: <Shortcut not Assigned>
-5811:Sample Editor:Paketti: ∿ Rotate Sample Buffer Right 100: <Shortcut not Assigned>
-5812:Sample Editor:Paketti: ∿ Rotate Sample Buffer Left 100: <Shortcut not Assigned>
-5813:Sample Editor:Paketti: ∿ Rotate Sample Buffer Right 1000: Command + Control + Left
-5814:Sample Editor:Paketti: ∿ Rotate Sample Buffer Left 1000: Command + Control + Right
-5815:Sample Editor:Paketti: ∿ Rotate Sample Buffer Right 10000: <Shortcut not Assigned>
-5816:Sample Editor:Paketti: ∿ Rotate Sample Buffer Left 10000: <Shortcut not Assigned>
-5817:Sample Editor:Paketti: ∿ Rotate Sample Buffer Right Coarse: <Shortcut not Assigned>
-5818:Sample Editor:Paketti: ∿ Rotate Sample Buffer Left Coarse: <Shortcut not Assigned>
-5819:Sample Editor:Paketti: ∿ Rotate Sample Buffer Right Fine: <Shortcut not Assigned>
-5820:Sample Editor:Paketti: ∿ Rotate Sample Buffer Left Fine: <Shortcut not Assigned>
-5821:Sample Editor:Paketti: ∿ Toggle Mono Device: <Shortcut not Assigned>
-5822:Sample Editor:Paketti: ∿ Flip Sample by 1/4: <Shortcut not Assigned>
-5823:Sample Editor:Paketti: ∿ Flip Sample by 1/2: <Shortcut not Assigned>
-5824:Sample Editor:Paketti: ∿ Flip Sample by 1/8: <Shortcut not Assigned>
-5825:Sample Editor:Paketti: ∿ Flip Sample by 1/16: <Shortcut not Assigned>
-5826:Sample Editor:Paketti: ∿ Select Loop Range: Shift + Option + Command + S
-5827:Sample Editor:Paketti: ∿ Show Selection Info: <Shortcut not Assigned>
-5828:Sample Editor:Paketti: ∿ Toggle Sample Selection Info: <Shortcut not Assigned>
-5829:Sample Editor:Paketti: ∿ Sample Loop Halve: <Shortcut not Assigned>
-5830:Sample Editor:Paketti: ∿ Sample Loop Double: <Shortcut not Assigned>
-5831:Sample Editor:Paketti: ∿ Sample Loop Length Next Division: <Shortcut not Assigned>
-5832:Sample Editor:Paketti: ∿ Sample Loop Length Previous Division: <Shortcut not Assigned>
-5833:Sample Editor:Paketti: ∿ Snap Loop To Nearest Row: <Shortcut not Assigned>
-5834:Sample Editor:Paketti: ∿ Toggle Loop Range (Selection): Command + L
-5835:Sample Editor:Paketti: ∿ Unmark / Clear Selection: Command + U
-5836:Sample Editor:Paketti: ∿ Toggle Frequency Analysis: <Shortcut not Assigned>
-5837:Sample Editor:Paketti: ∿ Cycle Frequency Analysis Cycles: <Shortcut not Assigned>
-5838:Sample Editor:Paketti: ∿ Select Center of Sample Buffer: <Shortcut not Assigned>
-5839:Sample Editor:Paketti: ∿ Normalize Selected Sample or Slice: <Shortcut not Assigned>
-5840:Sample Editor:Paketti: ∿ Normalize Selected Sample to -12dB: <Shortcut not Assigned>
-5841:Sample Editor:Paketti: ∿ Normalize Selected Instrument to -12dB: <Shortcut not Assigned>
-5842:Sample Editor:Paketti: ∿ Normalize All Instruments to -12dB: <Shortcut not Assigned>
-5843:Sample Editor:Paketti: ∿ Reverse Selected Sample or Slice: Command + R
-5844:Sample Editor:Paketti: ∿ Convert Mono to Stereo: <Shortcut not Assigned>
-5845:Sample Editor:Paketti: ∿ Mono to Left with Blank Right: <Shortcut not Assigned>
-5846:Sample Editor:Paketti: ∿ Mono to Right with Blank Left: <Shortcut not Assigned>
-5847:Sample Editor:Paketti: ∿ Convert Stereo to Mono (Keep Left): <Shortcut not Assigned>
-5848:Sample Editor:Paketti: ∿ Convert Stereo to Mono (Keep Right): <Shortcut not Assigned>
-5849:Sample Editor:Paketti: ∿ Convert Stereo to Mono (Mix Both): <Shortcut not Assigned>
-5850:Sample Editor:Paketti: ∿ Convert All Samples to Mono (Keep Left): <Shortcut not Assigned>
-5851:Sample Editor:Paketti: ∿ Convert All Samples to Mono (Keep Right): <Shortcut not Assigned>
-5852:Sample Editor:Paketti: ∿ Convert All Samples to Mono (Mix Both): <Shortcut not Assigned>
-5853:Sample Editor:Paketti: ∿ Convert to 8-bit: <Shortcut not Assigned>
-5854:Sample Editor:Paketti: ∿ Convert to 16-bit: <Shortcut not Assigned>
-5855:Sample Editor:Paketti: ∿ Convert to 24-bit: <Shortcut not Assigned>
-5856:Sample Editor:Paketti: ∿ Convert to 32-bit: <Shortcut not Assigned>
-5857:Sample Editor:Paketti: ∿ Convert All Samples to 8-bit: <Shortcut not Assigned>
-5858:Sample Editor:Paketti: ∿ Convert All Samples to 16-bit: <Shortcut not Assigned>
-5859:Sample Editor:Paketti: ∿ Convert All Samples to 24-bit: <Shortcut not Assigned>
-5860:Sample Editor:Paketti: ∿ Convert All Samples to 32-bit: <Shortcut not Assigned>
-5861:Sample Editor:Paketti: ∿ Sample Cycle Tuning Calculator...: <Shortcut not Assigned>
-5862:Sample Editor:Paketti: ∿ Selected Sample 1 Cycle Tuning: <Shortcut not Assigned>
-5863:Sample Editor:Paketti: ∿ Selected Instrument 1 Cycle Tuning: <Shortcut not Assigned>
-5864:Sample Editor:Paketti: ∿ Set BPM from Sample Length: <Shortcut not Assigned>
-5865:Sample Editor:Paketti: ∿ Show BPM Calculation Dialog...: <Shortcut not Assigned>
-5866:Sample Editor:Paketti: ∿ Convert Beatsync to Sample Pitch: <Shortcut not Assigned>
-5867:Sample Editor:Paketti: ∿ Sample Pitch Modifier Dialog...: <Shortcut not Assigned>
-5868:Sample Editor:Paketti: ∿ BPM Calculation Debug (Comprehensive): <Shortcut not Assigned>
-5869:Sample Editor:Paketti: ∿ Export to Octatrack (.WAV+.ot): <Shortcut not Assigned>
-5870:Sample Editor:Paketti: ∿ Export to Octatrack (.ot): <Shortcut not Assigned>
-5871:Sample Editor:Paketti: ∿ Import Octatrack (.ot): <Shortcut not Assigned>
-5872:Sample Editor:Paketti: ∿ Debug Octatrack (.ot): <Shortcut not Assigned>
-5873:Sample Editor:Paketti: ∿ Octatrack Generate Drumkit (Smart Mono/Stereo): <Shortcut not Assigned>
-5874:Sample Editor:Paketti: ∿ Octatrack Generate Drumkit (Force Mono): <Shortcut not Assigned>
-5875:Sample Editor:Paketti: ∿ Octatrack Set .ot Loop to Slice: <Shortcut not Assigned>
-5876:Sample Editor:Paketti: ∿ Octatrack Generate Drumkit (Play to End): <Shortcut not Assigned>
-5877:Sample Editor:Paketti: ∿ Generate OctaCycle for Octatrack: <Shortcut not Assigned>
-5878:Sample Editor:Paketti: ∿ Quick OctaCycle for Octatrack: <Shortcut not Assigned>
-5879:Sample Editor:Paketti: ∿ Export OctaCycle to Octatrack: <Shortcut not Assigned>
-5880:Sample Editor:Paketti: ∿ Copy Current Loop Points to All Compatible Instruments: <Shortcut not Assigned>
-5881:Sample Editor:Paketti: ∿ Copy Current Sample Loop Points to All Samples: <Shortcut not Assigned>
-5882:Sample Editor:Paketti: ∿ Fit Slices to Longest Slice with Power of 2 Padding: <Shortcut not Assigned>
-5883:Sample Editor:Paketti: ∿ Show Chebyshev Polynomial Waveshaper: <Shortcut not Assigned>
-5884:Sample Editor:Paketti: ∿ Detect Gaps in Sample: <Shortcut not Assigned>
-5885:Sample Editor:Paketti: ∿ Fill Selected Gap (Reversed): <Shortcut not Assigned>
-5886:Sample Editor:Paketti: ∿ Fill Selected Gap (Copied): <Shortcut not Assigned>
-5887:Sample Editor:Paketti: ∿ Fill All Gaps (Reversed): <Shortcut not Assigned>
-5888:Sample Editor:Paketti: ∿ Fill All Gaps (Copied): <Shortcut not Assigned>
-5889:Sample Editor:Paketti: ∿ Slices to Pattern: <Shortcut not Assigned>
-5890:Sample Editor:Paketti: ∿ Slices to Phrase (with trigger): <Shortcut not Assigned>
-5891:Sample Editor:Paketti: ∿ Slices to Phrase (phrase only): <Shortcut not Assigned>
-5892:Mixer:Paketti: ∿ Duplicate Highest Notes to New Track & Duplicate Instrument: <Shortcut not Assigned>
-5893:Mixer:Paketti: ∿ Duplicate Highest Notes to New Track (Selected Instrument): <Shortcut not Assigned>
-5894:Mixer:Paketti: ∿ Duplicate Highest Notes to New Track (Original Instrument): <Shortcut not Assigned>
-5895:Mixer:Paketti: ∿ Duplicate Lowest Notes to New Track & Duplicate Instrument: <Shortcut not Assigned>
-5896:Mixer:Paketti: ∿ Duplicate Lowest Notes to New Track (Selected Instrument): <Shortcut not Assigned>
-5897:Mixer:Paketti: ∿ Duplicate Lowest Notes to New Track (Original Instrument): <Shortcut not Assigned>
-5898:Mixer:Paketti: ∿ Capture Nearest Instrument and Octave (nojump): <Shortcut not Assigned>
-5899:Mixer:Paketti: ∿ Capture Nearest Instrument and Octave (jump): <Shortcut not Assigned>
-5900:Mixer:Paketti: ∿ OctaMED Toggle Mute Track 01: <Shortcut not Assigned>
-5901:Mixer:Paketti: ∿ OctaMED Toggle Mute Track 02: <Shortcut not Assigned>
-5902:Mixer:Paketti: ∿ OctaMED Toggle Mute Track 03: <Shortcut not Assigned>
-5903:Mixer:Paketti: ∿ OctaMED Toggle Mute Track 04: <Shortcut not Assigned>
-5904:Mixer:Paketti: ∿ OctaMED Toggle Mute Track 05: <Shortcut not Assigned>
-5905:Mixer:Paketti: ∿ OctaMED Toggle Mute Track 06: <Shortcut not Assigned>
-5906:Mixer:Paketti: ∿ OctaMED Toggle Mute Track 07: <Shortcut not Assigned>
-5907:Mixer:Paketti: ∿ OctaMED Toggle Mute Track 08: <Shortcut not Assigned>
-5908:Mixer:Paketti: ∿ OctaMED Toggle Mute Track 09: <Shortcut not Assigned>
-5909:Mixer:Paketti: ∿ OctaMED Toggle Mute Track 10: <Shortcut not Assigned>
-5910:Mixer:Paketti: ∿ OctaMED Toggle Mute Track 11: <Shortcut not Assigned>
-5911:Mixer:Paketti: ∿ OctaMED Toggle Mute Track 12: <Shortcut not Assigned>
-5912:Mixer:Paketti: ∿ OctaMED Toggle Mute Track 13: <Shortcut not Assigned>
-5913:Mixer:Paketti: ∿ OctaMED Toggle Mute Track 14: <Shortcut not Assigned>
-5914:Mixer:Paketti: ∿ OctaMED Toggle Mute Track 15: <Shortcut not Assigned>
-5915:Mixer:Paketti: ∿ OctaMED Toggle Mute Track 16: <Shortcut not Assigned>
-5916:Mixer:Paketti: ∿ To Pattern Editor: <Shortcut not Assigned>
-5917:Mixer:Paketti: ∿ Impulse Tracker Home *2 behaviour: Option + Up
-5918:Mixer:Paketti: ∿ Impulse Tracker End *2 behaviour: Option + Down
-5919:Mixer:Paketti: ∿ Impulse Tracker Alt-Right Move Forwards One Channel (Wrap): Option + Right
-5920:Mixer:Paketti: ∿ Impulse Tracker Alt-Left Move Backwards One Channel (Wrap): Option + Left
-5921:Mixer:Paketti: ∿ Impulse Tracker Alt-Right Move Forwards One Channel: <Shortcut not Assigned>
-5922:Mixer:Paketti: ∿ Impulse Tracker Alt-Left Move Backwards One Channel: <Shortcut not Assigned>
-5923:Mixer:Paketti: ∿ Switch to Automation: <Shortcut not Assigned>
-5924:Mixer:Paketti: ∿ Show Automation: <Shortcut not Assigned>
-5925:Mixer:Paketti: ∿ Paketti Pattern Doubler: Command + Grave
-5926:Mixer:Paketti: ∿ Paketti Pattern Halver: Shift + Command + Grave
-5927:Mixer:Paketti: ∿ Paketti Track Renamer Dialog...: <Shortcut not Assigned>
-5928:Mixer:Paketti: ∿ Move DSPs to Previous Track: Command + Control + Left
-5929:Mixer:Paketti: ∿ Move DSPs to Next Track: Command + Control + Right
-5930:Mixer:Paketti: ∿ Move Selected DSP to Previous Track: Shift + Control + Left
-5931:Mixer:Paketti: ∿ Move Selected DSP to Next Track: Shift + Control + Right
-5932:Mixer:Paketti: ∿ Create Group and Move DSPs: Shift + Control + G
-5933:Mixer:Paketti: ∿ Jump to First Track In Next Group: <Shortcut not Assigned>
-5934:Mixer:Paketti: ∿ Jump to First Track In Previous Group: <Shortcut not Assigned>
-5935:Mixer:Paketti: ∿ Create Identical Track: <Shortcut not Assigned>
-5936:Mixer:Paketti: ∿ Fuzzy Search Track: <Shortcut not Assigned>
-5937:Mixer:Paketti: ∿ Duplicate Track and Instrument: Command + D
-5938:Mixer:Paketti: ∿ Hipass (Preset++): Shift + Option + H
-5939:Mixer:Paketti: ∿ Clean Render Selected Track/Group: <Shortcut not Assigned>
-5940:Mixer:Paketti: ∿ Clean Render Selected Track/Group (WAV Only): Command + R
-5941:Mixer:Paketti: ∿ Clean Render Selected Track/Group LPB*2: <Shortcut not Assigned>
-5942:Mixer:Paketti: ∿ Clean Render Seamless Selected Track/Group: <Shortcut not Assigned>
-5943:Pattern Sequencer:Paketti: ∿ Create Section From Selection: <Shortcut not Assigned>
-5944:Pattern Sequencer:Paketti: ∿ Show Paketti Sequencer Settings Dialog: <Shortcut not Assigned>
-5945:Pattern Sequencer:Paketti: ∿ Clone Current Sequence: <Shortcut not Assigned>
-5946:Pattern Sequencer:Paketti: ∿ Select Next Section Sequence: <Shortcut not Assigned>
-5947:Pattern Sequencer:Paketti: ∿ Select Previous Section Sequence: <Shortcut not Assigned>
-5948:Pattern Sequencer:Paketti: ∿ Duplicate Selected Sequence Range: <Shortcut not Assigned>
-5949:Pattern Sequencer:Paketti: ∿ Keep Sequence Sorted Off: <Shortcut not Assigned>
-5950:Pattern Sequencer:Paketti: ∿ Keep Sequence Sorted On: <Shortcut not Assigned>
-5951:Pattern Sequencer:Paketti: ∿ Keep Sequence Sorted Toggle: <Shortcut not Assigned>
-5952:Pattern Matrix:Paketti: ∿ Switch to Automation: <Shortcut not Assigned>
-5953:Pattern Matrix:Paketti: ∿ Paketti Track Renamer Dialog...: <Shortcut not Assigned>
-5954:Pattern Matrix:Paketti: ∿ Selection in Pattern Matrix to Group: <Shortcut not Assigned>
-5955:Pattern Matrix:Paketti: ∿ Jump to First Track In Next Group: <Shortcut not Assigned>
-5956:Pattern Matrix:Paketti: ∿ Jump to First Track In Previous Group: <Shortcut not Assigned>
-5957:Pattern Matrix:Paketti: ∿ Pattern Matrix Selection Expand: <Shortcut not Assigned>
-5958:Pattern Matrix:Paketti: ∿ Pattern Matrix Selection Shrink: <Shortcut not Assigned>
-5959:Phrase Editor:Paketti: ∿ Open Paketti Init Phrase Dialog...: <Shortcut not Assigned>
-5960:Phrase Editor:Paketti: ∿ Create New Phrase using Paketti Settings: <Shortcut not Assigned>
-5961:Phrase Editor:Paketti: ∿ Modify Current Phrase using Paketti Settings: <Shortcut not Assigned>
-5962:Phrase Editor:Paketti: ∿ Record+Follow Off: <Shortcut not Assigned>
-5963:Phrase Editor:Paketti: ∿ Phrase Editor Visible: <Shortcut not Assigned>
-5964:Phrase Editor:Paketti: ∿ Init Phrase Settings: <Shortcut not Assigned>
-5965:Phrase Editor:Paketti: ∿ Paketti Phrase Doubler: <Shortcut not Assigned>
-5966:Phrase Editor:Paketti: ∿ Paketti Phrase Doubler (2nd): <Shortcut not Assigned>
-5967:Phrase Editor:Paketti: ∿ Phrase Halver (Joule): <Shortcut not Assigned>
-5968:Phrase Editor:Paketti: ∿ Phrase Halver (Joule) (2nd): <Shortcut not Assigned>
-5969:Phrase Editor:Paketti: ∿ Toggle Phrase Follow Pattern Playback Hack: <Shortcut not Assigned>
-5970:Phrase Editor:Paketti: ∿ Increase Delay +1: <Shortcut not Assigned>
-5971:Phrase Editor:Paketti: ∿ Decrease Delay -1: <Shortcut not Assigned>
-5972:Phrase Editor:Paketti: ∿ Increase Delay +10: <Shortcut not Assigned>
-5973:Phrase Editor:Paketti: ∿ Decrease Delay -10: <Shortcut not Assigned>
-5974:Phrase Editor:Paketti: ∿ Impulse Tracker ALT-F Expand Selection Replicate: Shift + Command + F
-5975:Phrase Editor:Paketti: ∿ Impulse Tracker ALT-G Shrink Selection Replicate: Shift + Command + G
-5976:Phrase Editor:Paketti: ∿ OctaMED Toggle Mute Track 01: <Shortcut not Assigned>
-5977:Phrase Editor:Paketti: ∿ OctaMED Toggle Mute Track 02: <Shortcut not Assigned>
-5978:Phrase Editor:Paketti: ∿ OctaMED Toggle Mute Track 03: <Shortcut not Assigned>
-5979:Phrase Editor:Paketti: ∿ OctaMED Toggle Mute Track 04: <Shortcut not Assigned>
-5980:Phrase Editor:Paketti: ∿ OctaMED Toggle Mute Track 05: <Shortcut not Assigned>
-5981:Phrase Editor:Paketti: ∿ OctaMED Toggle Mute Track 06: <Shortcut not Assigned>
-5982:Phrase Editor:Paketti: ∿ OctaMED Toggle Mute Track 07: <Shortcut not Assigned>
-5983:Phrase Editor:Paketti: ∿ OctaMED Toggle Mute Track 08: <Shortcut not Assigned>
-5984:Phrase Editor:Paketti: ∿ OctaMED Toggle Mute Track 09: <Shortcut not Assigned>
-5985:Phrase Editor:Paketti: ∿ OctaMED Toggle Mute Track 10: <Shortcut not Assigned>
-5986:Phrase Editor:Paketti: ∿ OctaMED Toggle Mute Track 11: <Shortcut not Assigned>
-5987:Phrase Editor:Paketti: ∿ OctaMED Toggle Mute Track 12: <Shortcut not Assigned>
-5988:Phrase Editor:Paketti: ∿ OctaMED Toggle Mute Track 13: <Shortcut not Assigned>
-5989:Phrase Editor:Paketti: ∿ OctaMED Toggle Mute Track 14: <Shortcut not Assigned>
-5990:Phrase Editor:Paketti: ∿ OctaMED Toggle Mute Track 15: <Shortcut not Assigned>
-5991:Phrase Editor:Paketti: ∿ OctaMED Toggle Mute Track 16: <Shortcut not Assigned>
-5992:Phrase Editor:Paketti: ∿ Impulse Tracker ALT-D Double Select: Command + D
-5993:Phrase Editor:Paketti: ∿ Impulse Tracker ALT-F Expand Selection: Command + F
-5994:Phrase Editor:Paketti: ∿ Impulse Tracker ALT-F Expand Selection Twice: <Shortcut not Assigned>
-5995:Phrase Editor:Paketti: ∿ Impulse Tracker ALT-G Shrink Selection: Command + G
-5996:Phrase Editor:Paketti: ∿ Impulse Tracker ALT-G Shrink Selection Twice: <Shortcut not Assigned>
-5997:Phrase Editor:Paketti: ∿ Impulse Tracker Home *2 behaviour: Option + Up
-5998:Phrase Editor:Paketti: ∿ Impulse Tracker Home *2 behaviour (2nd): <Shortcut not Assigned>
-5999:Phrase Editor:Paketti: ∿ Impulse Tracker End *2 behaviour: Option + Down
-6000:Phrase Editor:Paketti: ∿ Impulse Tracker End *2 behaviour (2nd): <Shortcut not Assigned>
-6001:Phrase Editor:Paketti: ∿ Impulse Tracker ALT-U Unmark Selection: <Shortcut not Assigned>
-6002:Phrase Editor:Paketti: ∿ Impulse Tracker ALT-U Unmark Selection (2nd): <Shortcut not Assigned>
-6003:Phrase Editor:Paketti: ∿ Play Current Line in Phrase: <Shortcut not Assigned>
-6004:Phrase Editor:Paketti: ∿ Delay Column Increase (+1): <Shortcut not Assigned>
-6005:Phrase Editor:Paketti: ∿ Delay Column Decrease (-1): <Shortcut not Assigned>
-6006:Phrase Editor:Paketti: ∿ Delay Column Increase (+10): <Shortcut not Assigned>
-6007:Phrase Editor:Paketti: ∿ Delay Column Decrease (-10): <Shortcut not Assigned>
-6008:Phrase Editor:Paketti: ∿ KapsLock CapsLock Caps Lock Note Off: Capital
-6009:Phrase Editor:Paketti: ∿ Set Phrase Length to 001 (001): <Shortcut not Assigned>
-6010:Phrase Editor:Paketti: ∿ Set Phrase Length to 004 (004): Control + 1
-6011:Phrase Editor:Paketti: ∿ Set Phrase Length to 006 (006): <Shortcut not Assigned>
-6012:Phrase Editor:Paketti: ∿ Set Phrase Length to 008 (008): Control + 2
-6013:Phrase Editor:Paketti: ∿ Set Phrase Length to 012 (00C): <Shortcut not Assigned>
-6014:Phrase Editor:Paketti: ∿ Set Phrase Length to 016 (010): Control + 3
-6015:Phrase Editor:Paketti: ∿ Set Phrase Length to 024 (018): <Shortcut not Assigned>
-6016:Phrase Editor:Paketti: ∿ Set Phrase Length to 032 (020): Control + 4
-6017:Phrase Editor:Paketti: ∿ Set Phrase Length to 048 (030): <Shortcut not Assigned>
-6018:Phrase Editor:Paketti: ∿ Set Phrase Length to 064 (040): Control + 5
-6019:Phrase Editor:Paketti: ∿ Set Phrase Length to 096 (060): <Shortcut not Assigned>
-6020:Phrase Editor:Paketti: ∿ Set Phrase Length to 128 (080): Control + 6
-6021:Phrase Editor:Paketti: ∿ Set Phrase Length to 192 (0C0): <Shortcut not Assigned>
-6022:Phrase Editor:Paketti: ∿ Set Phrase Length to 256 (100): Control + 7
-6023:Phrase Editor:Paketti: ∿ Set Phrase Length to 384 (180): <Shortcut not Assigned>
-6024:Phrase Editor:Paketti: ∿ Set Phrase Length to 512 (200): Control + 8
-6025:Phrase Editor:Paketti: ∿ Set Phrase LPB to 001: <Shortcut not Assigned>
-6026:Phrase Editor:Paketti: ∿ Set Phrase LPB to 002: <Shortcut not Assigned>
-6027:Phrase Editor:Paketti: ∿ Set Phrase LPB to 003: <Shortcut not Assigned>
-6028:Phrase Editor:Paketti: ∿ Set Phrase LPB to 004: <Shortcut not Assigned>
-6029:Phrase Editor:Paketti: ∿ Set Phrase LPB to 005: <Shortcut not Assigned>
-6030:Phrase Editor:Paketti: ∿ Set Phrase LPB to 006: <Shortcut not Assigned>
-6031:Phrase Editor:Paketti: ∿ Set Phrase LPB to 007: <Shortcut not Assigned>
-6032:Phrase Editor:Paketti: ∿ Set Phrase LPB to 008: <Shortcut not Assigned>
-6033:Phrase Editor:Paketti: ∿ Set Phrase LPB to 009: <Shortcut not Assigned>
-6034:Phrase Editor:Paketti: ∿ Set Phrase LPB to 010: <Shortcut not Assigned>
-6035:Phrase Editor:Paketti: ∿ Set Phrase LPB to 011: <Shortcut not Assigned>
-6036:Phrase Editor:Paketti: ∿ Set Phrase LPB to 012: <Shortcut not Assigned>
-6037:Phrase Editor:Paketti: ∿ Set Phrase LPB to 013: <Shortcut not Assigned>
-6038:Phrase Editor:Paketti: ∿ Set Phrase LPB to 014: <Shortcut not Assigned>
-6039:Phrase Editor:Paketti: ∿ Set Phrase LPB to 015: <Shortcut not Assigned>
-6040:Phrase Editor:Paketti: ∿ Set Phrase LPB to 016: <Shortcut not Assigned>
-6041:Phrase Editor:Paketti: ∿ Set Phrase LPB to 024: <Shortcut not Assigned>
-6042:Phrase Editor:Paketti: ∿ Set Phrase LPB to 032: <Shortcut not Assigned>
-6043:Phrase Editor:Paketti: ∿ Set Phrase LPB to 048: <Shortcut not Assigned>
-6044:Phrase Editor:Paketti: ∿ Set Phrase LPB to 064: <Shortcut not Assigned>
-6045:Phrase Editor:Paketti: ∿ Set Phrase LPB to 128: <Shortcut not Assigned>
-6046:Phrase Editor:Paketti: ∿ Set Phrase LPB to 256: <Shortcut not Assigned>
-6047:Phrase Editor:Paketti: ∿ Toggle Note Off in All Visible Note Columns: <Shortcut not Assigned>
-6048:Phrase Editor:Paketti: ∿ Toggle Note Off on All Tracks on Current Row: <Shortcut not Assigned>
-6049:Phrase Editor:Paketti: ∿ Replicate Above Current Row (-12): <Shortcut not Assigned>
-6050:Phrase Editor:Paketti: ∿ Replicate Above Current Row (-1): <Shortcut not Assigned>
-6051:Phrase Editor:Paketti: ∿ Replicate Above Current Row : <Shortcut not Assigned>
-6052:Phrase Editor:Paketti: ∿ Replicate Above Current Row (+1): <Shortcut not Assigned>
-6053:Phrase Editor:Paketti: ∿ Replicate Above Current Row (+12): <Shortcut not Assigned>
-6054:Phrase Editor:Paketti: ∿ Replicate Above + Current (-12): <Shortcut not Assigned>
-6055:Phrase Editor:Paketti: ∿ Replicate Above + Current (-1): <Shortcut not Assigned>
-6056:Phrase Editor:Paketti: ∿ Replicate Above + Current : <Shortcut not Assigned>
-6057:Phrase Editor:Paketti: ∿ Replicate Above + Current (+1): <Shortcut not Assigned>
-6058:Phrase Editor:Paketti: ∿ Replicate Above + Current (+12): <Shortcut not Assigned>
-6059:Phrase Editor:Paketti: ∿ Toggle Note Off in Selected Tracks: <Shortcut not Assigned>
-6060:Phrase Editor:Paketti: ∿ Set Quantization to 01: <Shortcut not Assigned>
-6061:Phrase Editor:Paketti: ∿ Set Quantization to 02: <Shortcut not Assigned>
-6062:Phrase Editor:Paketti: ∿ Set Quantization to 03: <Shortcut not Assigned>
-6063:Phrase Editor:Paketti: ∿ Set Quantization to 04: <Shortcut not Assigned>
-6064:Phrase Editor:Paketti: ∿ Set Quantization to 05: <Shortcut not Assigned>
-6065:Phrase Editor:Paketti: ∿ Set Quantization to 06: <Shortcut not Assigned>
-6066:Phrase Editor:Paketti: ∿ Set Quantization to 07: <Shortcut not Assigned>
-6067:Phrase Editor:Paketti: ∿ Set Quantization to 08: <Shortcut not Assigned>
-6068:Phrase Editor:Paketti: ∿ Set Quantization to 09: <Shortcut not Assigned>
-6069:Phrase Editor:Paketti: ∿ Set Quantization to 10: <Shortcut not Assigned>
-6070:Phrase Editor:Paketti: ∿ Set Quantization to 11: <Shortcut not Assigned>
-6071:Phrase Editor:Paketti: ∿ Set Quantization to 12: <Shortcut not Assigned>
-6072:Phrase Editor:Paketti: ∿ Set Quantization to 13: <Shortcut not Assigned>
-6073:Phrase Editor:Paketti: ∿ Set Quantization to 14: <Shortcut not Assigned>
-6074:Phrase Editor:Paketti: ∿ Set Quantization to 15: <Shortcut not Assigned>
-6075:Phrase Editor:Paketti: ∿ Set Quantization to 16: <Shortcut not Assigned>
-6076:Phrase Editor:Paketti: ∿ Set Quantization to 17: <Shortcut not Assigned>
-6077:Phrase Editor:Paketti: ∿ Set Quantization to 18: <Shortcut not Assigned>
-6078:Phrase Editor:Paketti: ∿ Set Quantization to 19: <Shortcut not Assigned>
-6079:Phrase Editor:Paketti: ∿ Set Quantization to 20: <Shortcut not Assigned>
-6080:Phrase Editor:Paketti: ∿ Set Quantization to 21: <Shortcut not Assigned>
-6081:Phrase Editor:Paketti: ∿ Set Quantization to 22: <Shortcut not Assigned>
-6082:Phrase Editor:Paketti: ∿ Set Quantization to 23: <Shortcut not Assigned>
-6083:Phrase Editor:Paketti: ∿ Set Quantization to 24: <Shortcut not Assigned>
-6084:Phrase Editor:Paketti: ∿ Set Quantization to 25: <Shortcut not Assigned>
-6085:Phrase Editor:Paketti: ∿ Set Quantization to 26: <Shortcut not Assigned>
-6086:Phrase Editor:Paketti: ∿ Set Quantization to 27: <Shortcut not Assigned>
-6087:Phrase Editor:Paketti: ∿ Set Quantization to 28: <Shortcut not Assigned>
-6088:Phrase Editor:Paketti: ∿ Set Quantization to 29: <Shortcut not Assigned>
-6089:Phrase Editor:Paketti: ∿ Set Quantization to 30: <Shortcut not Assigned>
-6090:Phrase Editor:Paketti: ∿ Set Quantization to 31: <Shortcut not Assigned>
-6091:Phrase Editor:Paketti: ∿ Set Quantization to 32: <Shortcut not Assigned>
-6092:Phrase Editor:Paketti: ∿ Expose and Select Next Column: Shift + Command + Right
-6093:Phrase Editor:Paketti: ∿ Hide Current and Select Previous Column: Shift + Command + Left
-6094:Phrase Editor:Paketti: ∿ Show Phrase Length Dialog...: <Shortcut not Assigned>
-6095:Phrase Editor:Paketti: ∿ Decrease Phrase Length by 8: <Shortcut not Assigned>
-6096:Phrase Editor:Paketti: ∿ Increase Phrase Length by LPB: <Shortcut not Assigned>
-6097:Phrase Editor:Paketti: ∿ Decrease Phrase Length by LPB: <Shortcut not Assigned>
-6098:Phrase Editor:Paketti: ∿ Toggle Selected Phrase Looping: <Shortcut not Assigned>
-6099:Phrase Editor:Paketti: ∿ Disable Looping in All Phrases: <Shortcut not Assigned>
-6100:Phrase Editor:Paketti: ∿ Enable Looping in All Phrases: <Shortcut not Assigned>
-6101:Phrase Editor:Paketti: ∿ Enable Looping in All Phrases Globally: <Shortcut not Assigned>
-6102:Phrase Editor:Paketti: ∿ Disable Looping in All Phrases Globally: <Shortcut not Assigned>
-6103:Instrument Box:Paketti: ∿ Show Automation: <Shortcut not Assigned>
-6104:Sample Keyzones:Paketti: ∿ Map Sample to All Keyzones: <Shortcut not Assigned>
-6105:Sample Keyzones:Paketti: ∿ Reverse Selected Sample or Slice: Command + R
-6106:Sample Keyzones:Paketti: ∿ Convert Mono to Stereo: <Shortcut not Assigned>
-6107:Sample Keyzones:Paketti: ∿ Mono to Left with Blank Right: <Shortcut not Assigned>
-6108:Sample Keyzones:Paketti: ∿ Mono to Right with Blank Left: <Shortcut not Assigned>
-6109:Sample Keyzones:Paketti: ∿ Convert Stereo to Mono (Keep Left): <Shortcut not Assigned>
-6110:Sample Keyzones:Paketti: ∿ Convert Stereo to Mono (Keep Right): <Shortcut not Assigned>
-6111:Sample Keyzones:Paketti: ∿ Convert Stereo to Mono (Mix Both): <Shortcut not Assigned>
-6112:Sample Keyzones:Paketti: ∿ Convert All Samples to Mono (Keep Left): <Shortcut not Assigned>
-6113:Sample Keyzones:Paketti: ∿ Convert All Samples to Mono (Keep Right): <Shortcut not Assigned>
-6114:Sample Keyzones:Paketti: ∿ Convert All Samples to Mono (Mix Both): <Shortcut not Assigned>
-6115:Sample Keyzones:Paketti: ∿ Convert to 8-bit: <Shortcut not Assigned>
-6116:Sample Keyzones:Paketti: ∿ Convert to 16-bit: <Shortcut not Assigned>
-6117:Sample Keyzones:Paketti: ∿ Convert to 24-bit: <Shortcut not Assigned>
-6118:Sample Keyzones:Paketti: ∿ Convert to 32-bit: <Shortcut not Assigned>
-6119:Sample Keyzones:Paketti: ∿ Convert All Samples to 8-bit: <Shortcut not Assigned>
-6120:Sample Keyzones:Paketti: ∿ Convert All Samples to 16-bit: <Shortcut not Assigned>
-6121:Sample Keyzones:Paketti: ∿ Convert All Samples to 24-bit: <Shortcut not Assigned>
-6122:Sample Keyzones:Paketti: ∿ Convert All Samples to 32-bit: <Shortcut not Assigned>
-6123:Sample Keyzones:Paketti: ∿ Delete Unused Samples: <Shortcut not Assigned>
-6124:Automation:Paketti: ∿ Impulse Tracker ALT-D Double Select W/ Automation: Command + D
-6125:Automation:Paketti: ∿ Impulse Tracker ALT-U Unmark Selection: <Shortcut not Assigned>
+5475:Pattern Editor:Paketti: ∿ Oldschool Slice Pitch Workflow (PingPong): <Shortcut not Assigned>
+5476:Pattern Editor:Paketti: ∿ Slices to Pattern (from first row): <Shortcut not Assigned>
+5477:Pattern Editor:Paketti: ∿ Slices to Pattern (from current row): <Shortcut not Assigned>
+5478:Pattern Editor:Paketti: ∿ Slices to Phrase (with trigger): <Shortcut not Assigned>
+5479:Pattern Editor:Paketti: ∿ Slices to Phrase (phrase only): <Shortcut not Assigned>
+5480:Sample Editor:Paketti: ∿ Detect Zero Crossings: <Shortcut not Assigned>
+5481:Sample Editor:Paketti: ∿ Phrase Editor Visible: <Shortcut not Assigned>
+5482:Sample Editor:Paketti: ∿ Map Sample to All Keyzones: <Shortcut not Assigned>
+5483:Sample Editor:Paketti: ∿ Protracker MOD Modulation...: Option + M
+5484:Sample Editor:Paketti: ∿ Phase Inversion: <Shortcut not Assigned>
+5485:Sample Editor:Paketti: ∿ Phase Inversion & Audio Diff: <Shortcut not Assigned>
+5486:Sample Editor:Paketti: ∿ Pitch Shift: <Shortcut not Assigned>
+5487:Sample Editor:Paketti: ∿ Pitch Shift & Audio Diff: <Shortcut not Assigned>
+5488:Sample Editor:Paketti: ∿ Clip bottom of waveform: <Shortcut not Assigned>
+5489:Sample Editor:Paketti: ∿ Modulate & Audio Diff: <Shortcut not Assigned>
+5490:Sample Editor:Paketti: ∿ Invert Right, Sum Mono: <Shortcut not Assigned>
+5491:Sample Editor:Paketti: ∿ Audio Diff: <Shortcut not Assigned>
+5492:Sample Editor:Paketti: ∿ Invert Sample: <Shortcut not Assigned>
+5493:Sample Editor:Paketti: ∿ Invert Left Channel: <Shortcut not Assigned>
+5494:Sample Editor:Paketti: ∿ Invert Right Channel: <Shortcut not Assigned>
+5495:Sample Editor:Paketti: ∿ 15 Frame Fade In & Fade Out: <Shortcut not Assigned>
+5496:Sample Editor:Paketti: ∿ Paketti Sample Adjust Dialog...: <Shortcut not Assigned>
+5497:Sample Editor:Paketti: ∿ Wrap Signed as Unsigned: <Shortcut not Assigned>
+5498:Sample Editor:Paketti: ∿ Unwrap Unsigned to Signed: <Shortcut not Assigned>
+5499:Sample Editor:Paketti: ∿ Toggle Signed/Unsigned: Option + Command + A
+5500:Sample Editor:Paketti: ∿ Rotate Sample Buffer Upwards: Shift + Control + Up
+5501:Sample Editor:Paketti: ∿ Rotate Sample Buffer Downwards: Shift + Control + Down
+5502:Sample Editor:Paketti: ∿ Delete Slice Markers in Selection: <Shortcut not Assigned>
+5503:Sample Editor:Paketti: ∿ Set Selected Sample Loop 1 (Off): <Shortcut not Assigned>
+5504:Sample Editor:Paketti: ∿ Set Selected Sample Loop 2 (Forward): <Shortcut not Assigned>
+5505:Sample Editor:Paketti: ∿ Set Selected Sample Loop 3 (Backward): <Shortcut not Assigned>
+5506:Sample Editor:Paketti: ∿ Set Selected Sample Loop 4 (PingPong): <Shortcut not Assigned>
+5507:Sample Editor:Paketti: ∿ Slice Drumkit (Percussion): <Shortcut not Assigned>
+5508:Sample Editor:Paketti: ∿ Slice Drumkit (Texture): <Shortcut not Assigned>
+5509:Sample Editor:Paketti: ∿ Sample Buffer Selection Halve: <Shortcut not Assigned>
+5510:Sample Editor:Paketti: ∿ Sample Buffer Selection Double: <Shortcut not Assigned>
+5511:Sample Editor:Paketti: ∿ Move Slice Start Left by 10: Control + Left
+5512:Sample Editor:Paketti: ∿ Move Slice Start Right by 10: Control + Right
+5513:Sample Editor:Paketti: ∿ Move Slice End Left by 10: Command + Left
+5514:Sample Editor:Paketti: ∿ Move Slice End Right by 10: Command + Right
+5515:Sample Editor:Paketti: ∿ Move Slice Start Left by 100: Shift + Control + Left
+5516:Sample Editor:Paketti: ∿ Move Slice Start Right by 100: Shift + Control + Right
+5517:Sample Editor:Paketti: ∿ Move Slice End Left by 100: Shift + Command + Left
+5518:Sample Editor:Paketti: ∿ Move Slice End Right by 100: Shift + Command + Right
+5519:Sample Editor:Paketti: ∿ Move Slice Start Left by 300: <Shortcut not Assigned>
+5520:Sample Editor:Paketti: ∿ Move Slice Start Right by 300: <Shortcut not Assigned>
+5521:Sample Editor:Paketti: ∿ Move Slice End Left by 300: <Shortcut not Assigned>
+5522:Sample Editor:Paketti: ∿ Move Slice End Right by 300: <Shortcut not Assigned>
+5523:Sample Editor:Paketti: ∿ Move Slice Start Left by 500: <Shortcut not Assigned>
+5524:Sample Editor:Paketti: ∿ Move Slice Start Right by 500: <Shortcut not Assigned>
+5525:Sample Editor:Paketti: ∿ Move Slice End Left by 500: <Shortcut not Assigned>
+5526:Sample Editor:Paketti: ∿ Move Slice End Right by 500: <Shortcut not Assigned>
+5527:Sample Editor:Paketti: ∿ Duplicate Sample Range, Mute Original: <Shortcut not Assigned>
+5528:Sample Editor:Paketti: ∿ Duplicate, Maximize, 16bit, and Save as WAV: <Shortcut not Assigned>
+5529:Sample Editor:Paketti: ∿ Duplicate, Maximize, 16bit, and Save as FLAC: <Shortcut not Assigned>
+5530:Sample Editor:Paketti: ∿ Offset Sample Buffer by -0.5: <Shortcut not Assigned>
+5531:Sample Editor:Paketti: ∿ Multiply Sample Buffer by 0.5: <Shortcut not Assigned>
+5532:Sample Editor:Paketti: ∿ Nudge Slice 01 by (+1): <Shortcut not Assigned>
+5533:Sample Editor:Paketti: ∿ Nudge Slice 01 by (-1): <Shortcut not Assigned>
+5534:Sample Editor:Paketti: ∿ Nudge Slice 01 by (+10): <Shortcut not Assigned>
+5535:Sample Editor:Paketti: ∿ Nudge Slice 01 by (-10): <Shortcut not Assigned>
+5536:Sample Editor:Paketti: ∿ Nudge Slice 01 by (+16): <Shortcut not Assigned>
+5537:Sample Editor:Paketti: ∿ Nudge Slice 01 by (-16): <Shortcut not Assigned>
+5538:Sample Editor:Paketti: ∿ Nudge Slice 01 by (+32): <Shortcut not Assigned>
+5539:Sample Editor:Paketti: ∿ Nudge Slice 01 by (-32): <Shortcut not Assigned>
+5540:Sample Editor:Paketti: ∿ Nudge Slice 02 by (+1): <Shortcut not Assigned>
+5541:Sample Editor:Paketti: ∿ Nudge Slice 02 by (-1): <Shortcut not Assigned>
+5542:Sample Editor:Paketti: ∿ Nudge Slice 02 by (+10): <Shortcut not Assigned>
+5543:Sample Editor:Paketti: ∿ Nudge Slice 02 by (-10): <Shortcut not Assigned>
+5544:Sample Editor:Paketti: ∿ Nudge Slice 02 by (+16): <Shortcut not Assigned>
+5545:Sample Editor:Paketti: ∿ Nudge Slice 02 by (-16): <Shortcut not Assigned>
+5546:Sample Editor:Paketti: ∿ Nudge Slice 02 by (+32): <Shortcut not Assigned>
+5547:Sample Editor:Paketti: ∿ Nudge Slice 02 by (-32): <Shortcut not Assigned>
+5548:Sample Editor:Paketti: ∿ Nudge Slice 03 by (+1): <Shortcut not Assigned>
+5549:Sample Editor:Paketti: ∿ Nudge Slice 03 by (-1): <Shortcut not Assigned>
+5550:Sample Editor:Paketti: ∿ Nudge Slice 03 by (+10): <Shortcut not Assigned>
+5551:Sample Editor:Paketti: ∿ Nudge Slice 03 by (-10): <Shortcut not Assigned>
+5552:Sample Editor:Paketti: ∿ Nudge Slice 03 by (+16): <Shortcut not Assigned>
+5553:Sample Editor:Paketti: ∿ Nudge Slice 03 by (-16): <Shortcut not Assigned>
+5554:Sample Editor:Paketti: ∿ Nudge Slice 03 by (+32): <Shortcut not Assigned>
+5555:Sample Editor:Paketti: ∿ Nudge Slice 03 by (-32): <Shortcut not Assigned>
+5556:Sample Editor:Paketti: ∿ Nudge Slice 04 by (+1): <Shortcut not Assigned>
+5557:Sample Editor:Paketti: ∿ Nudge Slice 04 by (-1): <Shortcut not Assigned>
+5558:Sample Editor:Paketti: ∿ Nudge Slice 04 by (+10): <Shortcut not Assigned>
+5559:Sample Editor:Paketti: ∿ Nudge Slice 04 by (-10): <Shortcut not Assigned>
+5560:Sample Editor:Paketti: ∿ Nudge Slice 04 by (+16): <Shortcut not Assigned>
+5561:Sample Editor:Paketti: ∿ Nudge Slice 04 by (-16): <Shortcut not Assigned>
+5562:Sample Editor:Paketti: ∿ Nudge Slice 04 by (+32): <Shortcut not Assigned>
+5563:Sample Editor:Paketti: ∿ Nudge Slice 04 by (-32): <Shortcut not Assigned>
+5564:Sample Editor:Paketti: ∿ Nudge Slice 05 by (+1): <Shortcut not Assigned>
+5565:Sample Editor:Paketti: ∿ Nudge Slice 05 by (-1): <Shortcut not Assigned>
+5566:Sample Editor:Paketti: ∿ Nudge Slice 05 by (+10): <Shortcut not Assigned>
+5567:Sample Editor:Paketti: ∿ Nudge Slice 05 by (-10): <Shortcut not Assigned>
+5568:Sample Editor:Paketti: ∿ Nudge Slice 05 by (+16): <Shortcut not Assigned>
+5569:Sample Editor:Paketti: ∿ Nudge Slice 05 by (-16): <Shortcut not Assigned>
+5570:Sample Editor:Paketti: ∿ Nudge Slice 05 by (+32): <Shortcut not Assigned>
+5571:Sample Editor:Paketti: ∿ Nudge Slice 05 by (-32): <Shortcut not Assigned>
+5572:Sample Editor:Paketti: ∿ Nudge Slice 06 by (+1): <Shortcut not Assigned>
+5573:Sample Editor:Paketti: ∿ Nudge Slice 06 by (-1): <Shortcut not Assigned>
+5574:Sample Editor:Paketti: ∿ Nudge Slice 06 by (+10): <Shortcut not Assigned>
+5575:Sample Editor:Paketti: ∿ Nudge Slice 06 by (-10): <Shortcut not Assigned>
+5576:Sample Editor:Paketti: ∿ Nudge Slice 06 by (+16): <Shortcut not Assigned>
+5577:Sample Editor:Paketti: ∿ Nudge Slice 06 by (-16): <Shortcut not Assigned>
+5578:Sample Editor:Paketti: ∿ Nudge Slice 06 by (+32): <Shortcut not Assigned>
+5579:Sample Editor:Paketti: ∿ Nudge Slice 06 by (-32): <Shortcut not Assigned>
+5580:Sample Editor:Paketti: ∿ Nudge Slice 07 by (+1): <Shortcut not Assigned>
+5581:Sample Editor:Paketti: ∿ Nudge Slice 07 by (-1): <Shortcut not Assigned>
+5582:Sample Editor:Paketti: ∿ Nudge Slice 07 by (+10): <Shortcut not Assigned>
+5583:Sample Editor:Paketti: ∿ Nudge Slice 07 by (-10): <Shortcut not Assigned>
+5584:Sample Editor:Paketti: ∿ Nudge Slice 07 by (+16): <Shortcut not Assigned>
+5585:Sample Editor:Paketti: ∿ Nudge Slice 07 by (-16): <Shortcut not Assigned>
+5586:Sample Editor:Paketti: ∿ Nudge Slice 07 by (+32): <Shortcut not Assigned>
+5587:Sample Editor:Paketti: ∿ Nudge Slice 07 by (-32): <Shortcut not Assigned>
+5588:Sample Editor:Paketti: ∿ Nudge Slice 08 by (+1): <Shortcut not Assigned>
+5589:Sample Editor:Paketti: ∿ Nudge Slice 08 by (-1): <Shortcut not Assigned>
+5590:Sample Editor:Paketti: ∿ Nudge Slice 08 by (+10): <Shortcut not Assigned>
+5591:Sample Editor:Paketti: ∿ Nudge Slice 08 by (-10): <Shortcut not Assigned>
+5592:Sample Editor:Paketti: ∿ Nudge Slice 08 by (+16): <Shortcut not Assigned>
+5593:Sample Editor:Paketti: ∿ Nudge Slice 08 by (-16): <Shortcut not Assigned>
+5594:Sample Editor:Paketti: ∿ Nudge Slice 08 by (+32): <Shortcut not Assigned>
+5595:Sample Editor:Paketti: ∿ Nudge Slice 08 by (-32): <Shortcut not Assigned>
+5596:Sample Editor:Paketti: ∿ Nudge Slice 09 by (+1): <Shortcut not Assigned>
+5597:Sample Editor:Paketti: ∿ Nudge Slice 09 by (-1): <Shortcut not Assigned>
+5598:Sample Editor:Paketti: ∿ Nudge Slice 09 by (+10): <Shortcut not Assigned>
+5599:Sample Editor:Paketti: ∿ Nudge Slice 09 by (-10): <Shortcut not Assigned>
+5600:Sample Editor:Paketti: ∿ Nudge Slice 09 by (+16): <Shortcut not Assigned>
+5601:Sample Editor:Paketti: ∿ Nudge Slice 09 by (-16): <Shortcut not Assigned>
+5602:Sample Editor:Paketti: ∿ Nudge Slice 09 by (+32): <Shortcut not Assigned>
+5603:Sample Editor:Paketti: ∿ Nudge Slice 09 by (-32): <Shortcut not Assigned>
+5604:Sample Editor:Paketti: ∿ Nudge Slice 10 by (+1): <Shortcut not Assigned>
+5605:Sample Editor:Paketti: ∿ Nudge Slice 10 by (-1): <Shortcut not Assigned>
+5606:Sample Editor:Paketti: ∿ Nudge Slice 10 by (+10): <Shortcut not Assigned>
+5607:Sample Editor:Paketti: ∿ Nudge Slice 10 by (-10): <Shortcut not Assigned>
+5608:Sample Editor:Paketti: ∿ Nudge Slice 10 by (+16): <Shortcut not Assigned>
+5609:Sample Editor:Paketti: ∿ Nudge Slice 10 by (-16): <Shortcut not Assigned>
+5610:Sample Editor:Paketti: ∿ Nudge Slice 10 by (+32): <Shortcut not Assigned>
+5611:Sample Editor:Paketti: ∿ Nudge Slice 10 by (-32): <Shortcut not Assigned>
+5612:Sample Editor:Paketti: ∿ Nudge Slice 11 by (+1): <Shortcut not Assigned>
+5613:Sample Editor:Paketti: ∿ Nudge Slice 11 by (-1): <Shortcut not Assigned>
+5614:Sample Editor:Paketti: ∿ Nudge Slice 11 by (+10): <Shortcut not Assigned>
+5615:Sample Editor:Paketti: ∿ Nudge Slice 11 by (-10): <Shortcut not Assigned>
+5616:Sample Editor:Paketti: ∿ Nudge Slice 11 by (+16): <Shortcut not Assigned>
+5617:Sample Editor:Paketti: ∿ Nudge Slice 11 by (-16): <Shortcut not Assigned>
+5618:Sample Editor:Paketti: ∿ Nudge Slice 11 by (+32): <Shortcut not Assigned>
+5619:Sample Editor:Paketti: ∿ Nudge Slice 11 by (-32): <Shortcut not Assigned>
+5620:Sample Editor:Paketti: ∿ Nudge Slice 12 by (+1): <Shortcut not Assigned>
+5621:Sample Editor:Paketti: ∿ Nudge Slice 12 by (-1): <Shortcut not Assigned>
+5622:Sample Editor:Paketti: ∿ Nudge Slice 12 by (+10): <Shortcut not Assigned>
+5623:Sample Editor:Paketti: ∿ Nudge Slice 12 by (-10): <Shortcut not Assigned>
+5624:Sample Editor:Paketti: ∿ Nudge Slice 12 by (+16): <Shortcut not Assigned>
+5625:Sample Editor:Paketti: ∿ Nudge Slice 12 by (-16): <Shortcut not Assigned>
+5626:Sample Editor:Paketti: ∿ Nudge Slice 12 by (+32): <Shortcut not Assigned>
+5627:Sample Editor:Paketti: ∿ Nudge Slice 12 by (-32): <Shortcut not Assigned>
+5628:Sample Editor:Paketti: ∿ Nudge Slice 13 by (+1): <Shortcut not Assigned>
+5629:Sample Editor:Paketti: ∿ Nudge Slice 13 by (-1): <Shortcut not Assigned>
+5630:Sample Editor:Paketti: ∿ Nudge Slice 13 by (+10): <Shortcut not Assigned>
+5631:Sample Editor:Paketti: ∿ Nudge Slice 13 by (-10): <Shortcut not Assigned>
+5632:Sample Editor:Paketti: ∿ Nudge Slice 13 by (+16): <Shortcut not Assigned>
+5633:Sample Editor:Paketti: ∿ Nudge Slice 13 by (-16): <Shortcut not Assigned>
+5634:Sample Editor:Paketti: ∿ Nudge Slice 13 by (+32): <Shortcut not Assigned>
+5635:Sample Editor:Paketti: ∿ Nudge Slice 13 by (-32): <Shortcut not Assigned>
+5636:Sample Editor:Paketti: ∿ Nudge Slice 14 by (+1): <Shortcut not Assigned>
+5637:Sample Editor:Paketti: ∿ Nudge Slice 14 by (-1): <Shortcut not Assigned>
+5638:Sample Editor:Paketti: ∿ Nudge Slice 14 by (+10): <Shortcut not Assigned>
+5639:Sample Editor:Paketti: ∿ Nudge Slice 14 by (-10): <Shortcut not Assigned>
+5640:Sample Editor:Paketti: ∿ Nudge Slice 14 by (+16): <Shortcut not Assigned>
+5641:Sample Editor:Paketti: ∿ Nudge Slice 14 by (-16): <Shortcut not Assigned>
+5642:Sample Editor:Paketti: ∿ Nudge Slice 14 by (+32): <Shortcut not Assigned>
+5643:Sample Editor:Paketti: ∿ Nudge Slice 14 by (-32): <Shortcut not Assigned>
+5644:Sample Editor:Paketti: ∿ Nudge Slice 15 by (+1): <Shortcut not Assigned>
+5645:Sample Editor:Paketti: ∿ Nudge Slice 15 by (-1): <Shortcut not Assigned>
+5646:Sample Editor:Paketti: ∿ Nudge Slice 15 by (+10): <Shortcut not Assigned>
+5647:Sample Editor:Paketti: ∿ Nudge Slice 15 by (-10): <Shortcut not Assigned>
+5648:Sample Editor:Paketti: ∿ Nudge Slice 15 by (+16): <Shortcut not Assigned>
+5649:Sample Editor:Paketti: ∿ Nudge Slice 15 by (-16): <Shortcut not Assigned>
+5650:Sample Editor:Paketti: ∿ Nudge Slice 15 by (+32): <Shortcut not Assigned>
+5651:Sample Editor:Paketti: ∿ Nudge Slice 15 by (-32): <Shortcut not Assigned>
+5652:Sample Editor:Paketti: ∿ Nudge Slice 16 by (+1): <Shortcut not Assigned>
+5653:Sample Editor:Paketti: ∿ Nudge Slice 16 by (-1): <Shortcut not Assigned>
+5654:Sample Editor:Paketti: ∿ Nudge Slice 16 by (+10): <Shortcut not Assigned>
+5655:Sample Editor:Paketti: ∿ Nudge Slice 16 by (-10): <Shortcut not Assigned>
+5656:Sample Editor:Paketti: ∿ Nudge Slice 16 by (+16): <Shortcut not Assigned>
+5657:Sample Editor:Paketti: ∿ Nudge Slice 16 by (-16): <Shortcut not Assigned>
+5658:Sample Editor:Paketti: ∿ Nudge Slice 16 by (+32): <Shortcut not Assigned>
+5659:Sample Editor:Paketti: ∿ Nudge Slice 16 by (-32): <Shortcut not Assigned>
+5660:Sample Editor:Paketti: ∿ Nudge Slice 17 by (+1): <Shortcut not Assigned>
+5661:Sample Editor:Paketti: ∿ Nudge Slice 17 by (-1): <Shortcut not Assigned>
+5662:Sample Editor:Paketti: ∿ Nudge Slice 17 by (+10): <Shortcut not Assigned>
+5663:Sample Editor:Paketti: ∿ Nudge Slice 17 by (-10): <Shortcut not Assigned>
+5664:Sample Editor:Paketti: ∿ Nudge Slice 17 by (+16): <Shortcut not Assigned>
+5665:Sample Editor:Paketti: ∿ Nudge Slice 17 by (-16): <Shortcut not Assigned>
+5666:Sample Editor:Paketti: ∿ Nudge Slice 17 by (+32): <Shortcut not Assigned>
+5667:Sample Editor:Paketti: ∿ Nudge Slice 17 by (-32): <Shortcut not Assigned>
+5668:Sample Editor:Paketti: ∿ Nudge Slice 18 by (+1): <Shortcut not Assigned>
+5669:Sample Editor:Paketti: ∿ Nudge Slice 18 by (-1): <Shortcut not Assigned>
+5670:Sample Editor:Paketti: ∿ Nudge Slice 18 by (+10): <Shortcut not Assigned>
+5671:Sample Editor:Paketti: ∿ Nudge Slice 18 by (-10): <Shortcut not Assigned>
+5672:Sample Editor:Paketti: ∿ Nudge Slice 18 by (+16): <Shortcut not Assigned>
+5673:Sample Editor:Paketti: ∿ Nudge Slice 18 by (-16): <Shortcut not Assigned>
+5674:Sample Editor:Paketti: ∿ Nudge Slice 18 by (+32): <Shortcut not Assigned>
+5675:Sample Editor:Paketti: ∿ Nudge Slice 18 by (-32): <Shortcut not Assigned>
+5676:Sample Editor:Paketti: ∿ Nudge Slice 19 by (+1): <Shortcut not Assigned>
+5677:Sample Editor:Paketti: ∿ Nudge Slice 19 by (-1): <Shortcut not Assigned>
+5678:Sample Editor:Paketti: ∿ Nudge Slice 19 by (+10): <Shortcut not Assigned>
+5679:Sample Editor:Paketti: ∿ Nudge Slice 19 by (-10): <Shortcut not Assigned>
+5680:Sample Editor:Paketti: ∿ Nudge Slice 19 by (+16): <Shortcut not Assigned>
+5681:Sample Editor:Paketti: ∿ Nudge Slice 19 by (-16): <Shortcut not Assigned>
+5682:Sample Editor:Paketti: ∿ Nudge Slice 19 by (+32): <Shortcut not Assigned>
+5683:Sample Editor:Paketti: ∿ Nudge Slice 19 by (-32): <Shortcut not Assigned>
+5684:Sample Editor:Paketti: ∿ Nudge Slice 20 by (+1): <Shortcut not Assigned>
+5685:Sample Editor:Paketti: ∿ Nudge Slice 20 by (-1): <Shortcut not Assigned>
+5686:Sample Editor:Paketti: ∿ Nudge Slice 20 by (+10): <Shortcut not Assigned>
+5687:Sample Editor:Paketti: ∿ Nudge Slice 20 by (-10): <Shortcut not Assigned>
+5688:Sample Editor:Paketti: ∿ Nudge Slice 20 by (+16): <Shortcut not Assigned>
+5689:Sample Editor:Paketti: ∿ Nudge Slice 20 by (-16): <Shortcut not Assigned>
+5690:Sample Editor:Paketti: ∿ Nudge Slice 20 by (+32): <Shortcut not Assigned>
+5691:Sample Editor:Paketti: ∿ Nudge Slice 20 by (-32): <Shortcut not Assigned>
+5692:Sample Editor:Paketti: ∿ Nudge Slice 21 by (+1): <Shortcut not Assigned>
+5693:Sample Editor:Paketti: ∿ Nudge Slice 21 by (-1): <Shortcut not Assigned>
+5694:Sample Editor:Paketti: ∿ Nudge Slice 21 by (+10): <Shortcut not Assigned>
+5695:Sample Editor:Paketti: ∿ Nudge Slice 21 by (-10): <Shortcut not Assigned>
+5696:Sample Editor:Paketti: ∿ Nudge Slice 21 by (+16): <Shortcut not Assigned>
+5697:Sample Editor:Paketti: ∿ Nudge Slice 21 by (-16): <Shortcut not Assigned>
+5698:Sample Editor:Paketti: ∿ Nudge Slice 21 by (+32): <Shortcut not Assigned>
+5699:Sample Editor:Paketti: ∿ Nudge Slice 21 by (-32): <Shortcut not Assigned>
+5700:Sample Editor:Paketti: ∿ Nudge Slice 22 by (+1): <Shortcut not Assigned>
+5701:Sample Editor:Paketti: ∿ Nudge Slice 22 by (-1): <Shortcut not Assigned>
+5702:Sample Editor:Paketti: ∿ Nudge Slice 22 by (+10): <Shortcut not Assigned>
+5703:Sample Editor:Paketti: ∿ Nudge Slice 22 by (-10): <Shortcut not Assigned>
+5704:Sample Editor:Paketti: ∿ Nudge Slice 22 by (+16): <Shortcut not Assigned>
+5705:Sample Editor:Paketti: ∿ Nudge Slice 22 by (-16): <Shortcut not Assigned>
+5706:Sample Editor:Paketti: ∿ Nudge Slice 22 by (+32): <Shortcut not Assigned>
+5707:Sample Editor:Paketti: ∿ Nudge Slice 22 by (-32): <Shortcut not Assigned>
+5708:Sample Editor:Paketti: ∿ Nudge Slice 23 by (+1): <Shortcut not Assigned>
+5709:Sample Editor:Paketti: ∿ Nudge Slice 23 by (-1): <Shortcut not Assigned>
+5710:Sample Editor:Paketti: ∿ Nudge Slice 23 by (+10): <Shortcut not Assigned>
+5711:Sample Editor:Paketti: ∿ Nudge Slice 23 by (-10): <Shortcut not Assigned>
+5712:Sample Editor:Paketti: ∿ Nudge Slice 23 by (+16): <Shortcut not Assigned>
+5713:Sample Editor:Paketti: ∿ Nudge Slice 23 by (-16): <Shortcut not Assigned>
+5714:Sample Editor:Paketti: ∿ Nudge Slice 23 by (+32): <Shortcut not Assigned>
+5715:Sample Editor:Paketti: ∿ Nudge Slice 23 by (-32): <Shortcut not Assigned>
+5716:Sample Editor:Paketti: ∿ Nudge Slice 24 by (+1): <Shortcut not Assigned>
+5717:Sample Editor:Paketti: ∿ Nudge Slice 24 by (-1): <Shortcut not Assigned>
+5718:Sample Editor:Paketti: ∿ Nudge Slice 24 by (+10): <Shortcut not Assigned>
+5719:Sample Editor:Paketti: ∿ Nudge Slice 24 by (-10): <Shortcut not Assigned>
+5720:Sample Editor:Paketti: ∿ Nudge Slice 24 by (+16): <Shortcut not Assigned>
+5721:Sample Editor:Paketti: ∿ Nudge Slice 24 by (-16): <Shortcut not Assigned>
+5722:Sample Editor:Paketti: ∿ Nudge Slice 24 by (+32): <Shortcut not Assigned>
+5723:Sample Editor:Paketti: ∿ Nudge Slice 24 by (-32): <Shortcut not Assigned>
+5724:Sample Editor:Paketti: ∿ Nudge Slice 25 by (+1): <Shortcut not Assigned>
+5725:Sample Editor:Paketti: ∿ Nudge Slice 25 by (-1): <Shortcut not Assigned>
+5726:Sample Editor:Paketti: ∿ Nudge Slice 25 by (+10): <Shortcut not Assigned>
+5727:Sample Editor:Paketti: ∿ Nudge Slice 25 by (-10): <Shortcut not Assigned>
+5728:Sample Editor:Paketti: ∿ Nudge Slice 25 by (+16): <Shortcut not Assigned>
+5729:Sample Editor:Paketti: ∿ Nudge Slice 25 by (-16): <Shortcut not Assigned>
+5730:Sample Editor:Paketti: ∿ Nudge Slice 25 by (+32): <Shortcut not Assigned>
+5731:Sample Editor:Paketti: ∿ Nudge Slice 25 by (-32): <Shortcut not Assigned>
+5732:Sample Editor:Paketti: ∿ Nudge Slice 26 by (+1): <Shortcut not Assigned>
+5733:Sample Editor:Paketti: ∿ Nudge Slice 26 by (-1): <Shortcut not Assigned>
+5734:Sample Editor:Paketti: ∿ Nudge Slice 26 by (+10): <Shortcut not Assigned>
+5735:Sample Editor:Paketti: ∿ Nudge Slice 26 by (-10): <Shortcut not Assigned>
+5736:Sample Editor:Paketti: ∿ Nudge Slice 26 by (+16): <Shortcut not Assigned>
+5737:Sample Editor:Paketti: ∿ Nudge Slice 26 by (-16): <Shortcut not Assigned>
+5738:Sample Editor:Paketti: ∿ Nudge Slice 26 by (+32): <Shortcut not Assigned>
+5739:Sample Editor:Paketti: ∿ Nudge Slice 26 by (-32): <Shortcut not Assigned>
+5740:Sample Editor:Paketti: ∿ Nudge Slice 27 by (+1): <Shortcut not Assigned>
+5741:Sample Editor:Paketti: ∿ Nudge Slice 27 by (-1): <Shortcut not Assigned>
+5742:Sample Editor:Paketti: ∿ Nudge Slice 27 by (+10): <Shortcut not Assigned>
+5743:Sample Editor:Paketti: ∿ Nudge Slice 27 by (-10): <Shortcut not Assigned>
+5744:Sample Editor:Paketti: ∿ Nudge Slice 27 by (+16): <Shortcut not Assigned>
+5745:Sample Editor:Paketti: ∿ Nudge Slice 27 by (-16): <Shortcut not Assigned>
+5746:Sample Editor:Paketti: ∿ Nudge Slice 27 by (+32): <Shortcut not Assigned>
+5747:Sample Editor:Paketti: ∿ Nudge Slice 27 by (-32): <Shortcut not Assigned>
+5748:Sample Editor:Paketti: ∿ Nudge Slice 28 by (+1): <Shortcut not Assigned>
+5749:Sample Editor:Paketti: ∿ Nudge Slice 28 by (-1): <Shortcut not Assigned>
+5750:Sample Editor:Paketti: ∿ Nudge Slice 28 by (+10): <Shortcut not Assigned>
+5751:Sample Editor:Paketti: ∿ Nudge Slice 28 by (-10): <Shortcut not Assigned>
+5752:Sample Editor:Paketti: ∿ Nudge Slice 28 by (+16): <Shortcut not Assigned>
+5753:Sample Editor:Paketti: ∿ Nudge Slice 28 by (-16): <Shortcut not Assigned>
+5754:Sample Editor:Paketti: ∿ Nudge Slice 28 by (+32): <Shortcut not Assigned>
+5755:Sample Editor:Paketti: ∿ Nudge Slice 28 by (-32): <Shortcut not Assigned>
+5756:Sample Editor:Paketti: ∿ Nudge Slice 29 by (+1): <Shortcut not Assigned>
+5757:Sample Editor:Paketti: ∿ Nudge Slice 29 by (-1): <Shortcut not Assigned>
+5758:Sample Editor:Paketti: ∿ Nudge Slice 29 by (+10): <Shortcut not Assigned>
+5759:Sample Editor:Paketti: ∿ Nudge Slice 29 by (-10): <Shortcut not Assigned>
+5760:Sample Editor:Paketti: ∿ Nudge Slice 29 by (+16): <Shortcut not Assigned>
+5761:Sample Editor:Paketti: ∿ Nudge Slice 29 by (-16): <Shortcut not Assigned>
+5762:Sample Editor:Paketti: ∿ Nudge Slice 29 by (+32): <Shortcut not Assigned>
+5763:Sample Editor:Paketti: ∿ Nudge Slice 29 by (-32): <Shortcut not Assigned>
+5764:Sample Editor:Paketti: ∿ Nudge Slice 30 by (+1): <Shortcut not Assigned>
+5765:Sample Editor:Paketti: ∿ Nudge Slice 30 by (-1): <Shortcut not Assigned>
+5766:Sample Editor:Paketti: ∿ Nudge Slice 30 by (+10): <Shortcut not Assigned>
+5767:Sample Editor:Paketti: ∿ Nudge Slice 30 by (-10): <Shortcut not Assigned>
+5768:Sample Editor:Paketti: ∿ Nudge Slice 30 by (+16): <Shortcut not Assigned>
+5769:Sample Editor:Paketti: ∿ Nudge Slice 30 by (-16): <Shortcut not Assigned>
+5770:Sample Editor:Paketti: ∿ Nudge Slice 30 by (+32): <Shortcut not Assigned>
+5771:Sample Editor:Paketti: ∿ Nudge Slice 30 by (-32): <Shortcut not Assigned>
+5772:Sample Editor:Paketti: ∿ Nudge Slice 31 by (+1): <Shortcut not Assigned>
+5773:Sample Editor:Paketti: ∿ Nudge Slice 31 by (-1): <Shortcut not Assigned>
+5774:Sample Editor:Paketti: ∿ Nudge Slice 31 by (+10): <Shortcut not Assigned>
+5775:Sample Editor:Paketti: ∿ Nudge Slice 31 by (-10): <Shortcut not Assigned>
+5776:Sample Editor:Paketti: ∿ Nudge Slice 31 by (+16): <Shortcut not Assigned>
+5777:Sample Editor:Paketti: ∿ Nudge Slice 31 by (-16): <Shortcut not Assigned>
+5778:Sample Editor:Paketti: ∿ Nudge Slice 31 by (+32): <Shortcut not Assigned>
+5779:Sample Editor:Paketti: ∿ Nudge Slice 31 by (-32): <Shortcut not Assigned>
+5780:Sample Editor:Paketti: ∿ Nudge Slice 32 by (+1): <Shortcut not Assigned>
+5781:Sample Editor:Paketti: ∿ Nudge Slice 32 by (-1): <Shortcut not Assigned>
+5782:Sample Editor:Paketti: ∿ Nudge Slice 32 by (+10): <Shortcut not Assigned>
+5783:Sample Editor:Paketti: ∿ Nudge Slice 32 by (-10): <Shortcut not Assigned>
+5784:Sample Editor:Paketti: ∿ Nudge Slice 32 by (+16): <Shortcut not Assigned>
+5785:Sample Editor:Paketti: ∿ Nudge Slice 32 by (-16): <Shortcut not Assigned>
+5786:Sample Editor:Paketti: ∿ Nudge Slice 32 by (+32): <Shortcut not Assigned>
+5787:Sample Editor:Paketti: ∿ Nudge Slice 32 by (-32): <Shortcut not Assigned>
+5788:Sample Editor:Paketti: ∿ Set Sample Zoom 01x: <Shortcut not Assigned>
+5789:Sample Editor:Paketti: ∿ Set Sample Zoom 02x: <Shortcut not Assigned>
+5790:Sample Editor:Paketti: ∿ Set Sample Zoom 03x: <Shortcut not Assigned>
+5791:Sample Editor:Paketti: ∿ Set Sample Zoom 04x: <Shortcut not Assigned>
+5792:Sample Editor:Paketti: ∿ Set Sample Zoom 05x: <Shortcut not Assigned>
+5793:Sample Editor:Paketti: ∿ Set Sample Zoom 06x: <Shortcut not Assigned>
+5794:Sample Editor:Paketti: ∿ Set Sample Zoom 07x: <Shortcut not Assigned>
+5795:Sample Editor:Paketti: ∿ Set Sample Zoom 08x: <Shortcut not Assigned>
+5796:Sample Editor:Paketti: ∿ Set Sample Zoom 09x: <Shortcut not Assigned>
+5797:Sample Editor:Paketti: ∿ Set Sample Zoom 10x: <Shortcut not Assigned>
+5798:Sample Editor:Paketti: ∿ Set Sample Zoom 11x: <Shortcut not Assigned>
+5799:Sample Editor:Paketti: ∿ Create New Instrument & Loop from Selection: <Shortcut not Assigned>
+5800:Sample Editor:Paketti: ∿ Paketti PitchBend Multiple Sample Loader: <Shortcut not Assigned>
+5801:Sample Editor:Paketti: ∿ Paketti PitchBend Multiple Sample Loader (Normalize): <Shortcut not Assigned>
+5802:Sample Editor:Paketti: ∿ Set Loop Mode to 1 Off: <Shortcut not Assigned>
+5803:Sample Editor:Paketti: ∿ Set Loop Mode to 2 Forward: <Shortcut not Assigned>
+5804:Sample Editor:Paketti: ∿ Set Loop Mode to 3 Reverse: <Shortcut not Assigned>
+5805:Sample Editor:Paketti: ∿ Set Loop Mode to 4 PingPong: <Shortcut not Assigned>
+5806:Sample Editor:Paketti: ∿ Select Padded Slice (Next): <Shortcut not Assigned>
+5807:Sample Editor:Paketti: ∿ Select Padded Slice (Previous): <Shortcut not Assigned>
+5808:Sample Editor:Paketti: ∿ Select Padded Slice from Current Slice: <Shortcut not Assigned>
+5809:Sample Editor:Paketti: ∿ Select First Half of Sample Buffer: <Shortcut not Assigned>
+5810:Sample Editor:Paketti: ∿ Select Second Half of Sample Buffer: <Shortcut not Assigned>
+5811:Sample Editor:Paketti: ∿ Flip Sample Buffer Selection Back: Option + Left
+5812:Sample Editor:Paketti: ∿ Flip Sample Buffer Selection Forward: Option + Right
+5813:Sample Editor:Paketti: ∿ Detect and Select Silence in Zoom: Option + S
+5814:Sample Editor:Paketti: ∿ Rotate Sample Buffer Right 10: <Shortcut not Assigned>
+5815:Sample Editor:Paketti: ∿ Rotate Sample Buffer Left 10: <Shortcut not Assigned>
+5816:Sample Editor:Paketti: ∿ Rotate Sample Buffer Right 100: <Shortcut not Assigned>
+5817:Sample Editor:Paketti: ∿ Rotate Sample Buffer Left 100: <Shortcut not Assigned>
+5818:Sample Editor:Paketti: ∿ Rotate Sample Buffer Right 1000: Command + Control + Left
+5819:Sample Editor:Paketti: ∿ Rotate Sample Buffer Left 1000: Command + Control + Right
+5820:Sample Editor:Paketti: ∿ Rotate Sample Buffer Right 10000: <Shortcut not Assigned>
+5821:Sample Editor:Paketti: ∿ Rotate Sample Buffer Left 10000: <Shortcut not Assigned>
+5822:Sample Editor:Paketti: ∿ Rotate Sample Buffer Right Coarse: <Shortcut not Assigned>
+5823:Sample Editor:Paketti: ∿ Rotate Sample Buffer Left Coarse: <Shortcut not Assigned>
+5824:Sample Editor:Paketti: ∿ Rotate Sample Buffer Right Fine: <Shortcut not Assigned>
+5825:Sample Editor:Paketti: ∿ Rotate Sample Buffer Left Fine: <Shortcut not Assigned>
+5826:Sample Editor:Paketti: ∿ Toggle Mono Device: <Shortcut not Assigned>
+5827:Sample Editor:Paketti: ∿ Flip Sample by 1/4: <Shortcut not Assigned>
+5828:Sample Editor:Paketti: ∿ Flip Sample by 1/2: <Shortcut not Assigned>
+5829:Sample Editor:Paketti: ∿ Flip Sample by 1/8: <Shortcut not Assigned>
+5830:Sample Editor:Paketti: ∿ Flip Sample by 1/16: <Shortcut not Assigned>
+5831:Sample Editor:Paketti: ∿ Select Loop Range: Shift + Option + Command + S
+5832:Sample Editor:Paketti: ∿ Show Selection Info: <Shortcut not Assigned>
+5833:Sample Editor:Paketti: ∿ Toggle Sample Selection Info: <Shortcut not Assigned>
+5834:Sample Editor:Paketti: ∿ Sample Loop Halve: <Shortcut not Assigned>
+5835:Sample Editor:Paketti: ∿ Sample Loop Double: <Shortcut not Assigned>
+5836:Sample Editor:Paketti: ∿ Sample Loop Length Next Division: <Shortcut not Assigned>
+5837:Sample Editor:Paketti: ∿ Sample Loop Length Previous Division: <Shortcut not Assigned>
+5838:Sample Editor:Paketti: ∿ Snap Loop To Nearest Row: <Shortcut not Assigned>
+5839:Sample Editor:Paketti: ∿ Toggle Loop Range (Selection): Command + L
+5840:Sample Editor:Paketti: ∿ Unmark / Clear Selection: Command + U
+5841:Sample Editor:Paketti: ∿ Toggle Frequency Analysis: <Shortcut not Assigned>
+5842:Sample Editor:Paketti: ∿ Cycle Frequency Analysis Cycles: <Shortcut not Assigned>
+5843:Sample Editor:Paketti: ∿ Select Center of Sample Buffer: <Shortcut not Assigned>
+5844:Sample Editor:Paketti: ∿ Normalize Selected Sample or Slice: <Shortcut not Assigned>
+5845:Sample Editor:Paketti: ∿ Normalize Selected Sample to -12dB: <Shortcut not Assigned>
+5846:Sample Editor:Paketti: ∿ Normalize Selected Instrument to -12dB: <Shortcut not Assigned>
+5847:Sample Editor:Paketti: ∿ Normalize All Instruments to -12dB: <Shortcut not Assigned>
+5848:Sample Editor:Paketti: ∿ Reverse Selected Sample or Slice: Command + R
+5849:Sample Editor:Paketti: ∿ Convert Mono to Stereo: <Shortcut not Assigned>
+5850:Sample Editor:Paketti: ∿ Mono to Left with Blank Right: <Shortcut not Assigned>
+5851:Sample Editor:Paketti: ∿ Mono to Right with Blank Left: <Shortcut not Assigned>
+5852:Sample Editor:Paketti: ∿ Convert Stereo to Mono (Keep Left): <Shortcut not Assigned>
+5853:Sample Editor:Paketti: ∿ Convert Stereo to Mono (Keep Right): <Shortcut not Assigned>
+5854:Sample Editor:Paketti: ∿ Convert Stereo to Mono (Mix Both): <Shortcut not Assigned>
+5855:Sample Editor:Paketti: ∿ Convert All Samples to Mono (Keep Left): <Shortcut not Assigned>
+5856:Sample Editor:Paketti: ∿ Convert All Samples to Mono (Keep Right): <Shortcut not Assigned>
+5857:Sample Editor:Paketti: ∿ Convert All Samples to Mono (Mix Both): <Shortcut not Assigned>
+5858:Sample Editor:Paketti: ∿ Convert to 8-bit: <Shortcut not Assigned>
+5859:Sample Editor:Paketti: ∿ Convert to 16-bit: <Shortcut not Assigned>
+5860:Sample Editor:Paketti: ∿ Convert to 24-bit: <Shortcut not Assigned>
+5861:Sample Editor:Paketti: ∿ Convert to 32-bit: <Shortcut not Assigned>
+5862:Sample Editor:Paketti: ∿ Convert All Samples to 8-bit: <Shortcut not Assigned>
+5863:Sample Editor:Paketti: ∿ Convert All Samples to 16-bit: <Shortcut not Assigned>
+5864:Sample Editor:Paketti: ∿ Convert All Samples to 24-bit: <Shortcut not Assigned>
+5865:Sample Editor:Paketti: ∿ Convert All Samples to 32-bit: <Shortcut not Assigned>
+5866:Sample Editor:Paketti: ∿ Sample Cycle Tuning Calculator...: <Shortcut not Assigned>
+5867:Sample Editor:Paketti: ∿ Selected Sample 1 Cycle Tuning: <Shortcut not Assigned>
+5868:Sample Editor:Paketti: ∿ Selected Instrument 1 Cycle Tuning: <Shortcut not Assigned>
+5869:Sample Editor:Paketti: ∿ Set BPM from Sample Length: <Shortcut not Assigned>
+5870:Sample Editor:Paketti: ∿ Show BPM Calculation Dialog...: <Shortcut not Assigned>
+5871:Sample Editor:Paketti: ∿ Convert Beatsync to Sample Pitch: <Shortcut not Assigned>
+5872:Sample Editor:Paketti: ∿ Sample Pitch Modifier Dialog...: <Shortcut not Assigned>
+5873:Sample Editor:Paketti: ∿ BPM Calculation Debug (Comprehensive): <Shortcut not Assigned>
+5874:Sample Editor:Paketti: ∿ Export to Octatrack (.WAV+.ot): <Shortcut not Assigned>
+5875:Sample Editor:Paketti: ∿ Export to Octatrack (.ot): <Shortcut not Assigned>
+5876:Sample Editor:Paketti: ∿ Import Octatrack (.ot): <Shortcut not Assigned>
+5877:Sample Editor:Paketti: ∿ Debug Octatrack (.ot): <Shortcut not Assigned>
+5878:Sample Editor:Paketti: ∿ Octatrack Generate Drumkit (Smart Mono/Stereo): <Shortcut not Assigned>
+5879:Sample Editor:Paketti: ∿ Octatrack Generate Drumkit (Force Mono): <Shortcut not Assigned>
+5880:Sample Editor:Paketti: ∿ Octatrack Set .ot Loop to Slice: <Shortcut not Assigned>
+5881:Sample Editor:Paketti: ∿ Octatrack Generate Drumkit (Play to End): <Shortcut not Assigned>
+5882:Sample Editor:Paketti: ∿ Generate OctaCycle for Octatrack: <Shortcut not Assigned>
+5883:Sample Editor:Paketti: ∿ Quick OctaCycle for Octatrack: <Shortcut not Assigned>
+5884:Sample Editor:Paketti: ∿ Export OctaCycle to Octatrack: <Shortcut not Assigned>
+5885:Sample Editor:Paketti: ∿ Copy Current Loop Points to All Compatible Instruments: <Shortcut not Assigned>
+5886:Sample Editor:Paketti: ∿ Copy Current Sample Loop Points to All Samples: <Shortcut not Assigned>
+5887:Sample Editor:Paketti: ∿ Fit Slices to Longest Slice with Power of 2 Padding: <Shortcut not Assigned>
+5888:Sample Editor:Paketti: ∿ Show Chebyshev Polynomial Waveshaper: <Shortcut not Assigned>
+5889:Sample Editor:Paketti: ∿ Detect Gaps in Sample: <Shortcut not Assigned>
+5890:Sample Editor:Paketti: ∿ Fill Selected Gap (Reversed): <Shortcut not Assigned>
+5891:Sample Editor:Paketti: ∿ Fill Selected Gap (Copied): <Shortcut not Assigned>
+5892:Sample Editor:Paketti: ∿ Fill All Gaps (Reversed): <Shortcut not Assigned>
+5893:Sample Editor:Paketti: ∿ Fill All Gaps (Copied): <Shortcut not Assigned>
+5894:Sample Editor:Paketti: ∿ Fill Selected Gap (PingPong): <Shortcut not Assigned>
+5895:Sample Editor:Paketti: ∿ Fill All Gaps (PingPong): <Shortcut not Assigned>
+5896:Sample Editor:Paketti: ∿ Slices to Pattern (from first row): <Shortcut not Assigned>
+5897:Sample Editor:Paketti: ∿ Slices to Pattern (from current row): <Shortcut not Assigned>
+5898:Sample Editor:Paketti: ∿ Slices to Phrase (with trigger): <Shortcut not Assigned>
+5899:Sample Editor:Paketti: ∿ Slices to Phrase (phrase only): <Shortcut not Assigned>
+5900:Mixer:Paketti: ∿ Duplicate Highest Notes to New Track & Duplicate Instrument: <Shortcut not Assigned>
+5901:Mixer:Paketti: ∿ Duplicate Highest Notes to New Track (Selected Instrument): <Shortcut not Assigned>
+5902:Mixer:Paketti: ∿ Duplicate Highest Notes to New Track (Original Instrument): <Shortcut not Assigned>
+5903:Mixer:Paketti: ∿ Duplicate Lowest Notes to New Track & Duplicate Instrument: <Shortcut not Assigned>
+5904:Mixer:Paketti: ∿ Duplicate Lowest Notes to New Track (Selected Instrument): <Shortcut not Assigned>
+5905:Mixer:Paketti: ∿ Duplicate Lowest Notes to New Track (Original Instrument): <Shortcut not Assigned>
+5906:Mixer:Paketti: ∿ Capture Nearest Instrument and Octave (nojump): <Shortcut not Assigned>
+5907:Mixer:Paketti: ∿ Capture Nearest Instrument and Octave (jump): <Shortcut not Assigned>
+5908:Mixer:Paketti: ∿ OctaMED Toggle Mute Track 01: <Shortcut not Assigned>
+5909:Mixer:Paketti: ∿ OctaMED Toggle Mute Track 02: <Shortcut not Assigned>
+5910:Mixer:Paketti: ∿ OctaMED Toggle Mute Track 03: <Shortcut not Assigned>
+5911:Mixer:Paketti: ∿ OctaMED Toggle Mute Track 04: <Shortcut not Assigned>
+5912:Mixer:Paketti: ∿ OctaMED Toggle Mute Track 05: <Shortcut not Assigned>
+5913:Mixer:Paketti: ∿ OctaMED Toggle Mute Track 06: <Shortcut not Assigned>
+5914:Mixer:Paketti: ∿ OctaMED Toggle Mute Track 07: <Shortcut not Assigned>
+5915:Mixer:Paketti: ∿ OctaMED Toggle Mute Track 08: <Shortcut not Assigned>
+5916:Mixer:Paketti: ∿ OctaMED Toggle Mute Track 09: <Shortcut not Assigned>
+5917:Mixer:Paketti: ∿ OctaMED Toggle Mute Track 10: <Shortcut not Assigned>
+5918:Mixer:Paketti: ∿ OctaMED Toggle Mute Track 11: <Shortcut not Assigned>
+5919:Mixer:Paketti: ∿ OctaMED Toggle Mute Track 12: <Shortcut not Assigned>
+5920:Mixer:Paketti: ∿ OctaMED Toggle Mute Track 13: <Shortcut not Assigned>
+5921:Mixer:Paketti: ∿ OctaMED Toggle Mute Track 14: <Shortcut not Assigned>
+5922:Mixer:Paketti: ∿ OctaMED Toggle Mute Track 15: <Shortcut not Assigned>
+5923:Mixer:Paketti: ∿ OctaMED Toggle Mute Track 16: <Shortcut not Assigned>
+5924:Mixer:Paketti: ∿ To Pattern Editor: <Shortcut not Assigned>
+5925:Mixer:Paketti: ∿ Impulse Tracker Home *2 behaviour: Option + Up
+5926:Mixer:Paketti: ∿ Impulse Tracker End *2 behaviour: Option + Down
+5927:Mixer:Paketti: ∿ Impulse Tracker Alt-Right Move Forwards One Channel (Wrap): Option + Right
+5928:Mixer:Paketti: ∿ Impulse Tracker Alt-Left Move Backwards One Channel (Wrap): Option + Left
+5929:Mixer:Paketti: ∿ Impulse Tracker Alt-Right Move Forwards One Channel: <Shortcut not Assigned>
+5930:Mixer:Paketti: ∿ Impulse Tracker Alt-Left Move Backwards One Channel: <Shortcut not Assigned>
+5931:Mixer:Paketti: ∿ Switch to Automation: <Shortcut not Assigned>
+5932:Mixer:Paketti: ∿ Show Automation: <Shortcut not Assigned>
+5933:Mixer:Paketti: ∿ Paketti Pattern Doubler: Command + Grave
+5934:Mixer:Paketti: ∿ Paketti Pattern Halver: Shift + Command + Grave
+5935:Mixer:Paketti: ∿ Paketti Track Renamer Dialog...: <Shortcut not Assigned>
+5936:Mixer:Paketti: ∿ Move DSPs to Previous Track: Command + Control + Left
+5937:Mixer:Paketti: ∿ Move DSPs to Next Track: Command + Control + Right
+5938:Mixer:Paketti: ∿ Move Selected DSP to Previous Track: Shift + Control + Left
+5939:Mixer:Paketti: ∿ Move Selected DSP to Next Track: Shift + Control + Right
+5940:Mixer:Paketti: ∿ Create Group and Move DSPs: Shift + Control + G
+5941:Mixer:Paketti: ∿ Jump to First Track In Next Group: <Shortcut not Assigned>
+5942:Mixer:Paketti: ∿ Jump to First Track In Previous Group: <Shortcut not Assigned>
+5943:Mixer:Paketti: ∿ Create Identical Track: <Shortcut not Assigned>
+5944:Mixer:Paketti: ∿ Fuzzy Search Track: <Shortcut not Assigned>
+5945:Mixer:Paketti: ∿ Duplicate Track and Instrument: Command + D
+5946:Mixer:Paketti: ∿ Hipass (Preset++): Shift + Option + H
+5947:Mixer:Paketti: ∿ Clean Render Selected Track/Group: <Shortcut not Assigned>
+5948:Mixer:Paketti: ∿ Clean Render Selected Track/Group (WAV Only): Command + R
+5949:Mixer:Paketti: ∿ Clean Render Selected Track/Group LPB*2: <Shortcut not Assigned>
+5950:Mixer:Paketti: ∿ Clean Render Seamless Selected Track/Group: <Shortcut not Assigned>
+5951:Pattern Sequencer:Paketti: ∿ Create Section From Selection: <Shortcut not Assigned>
+5952:Pattern Sequencer:Paketti: ∿ Show Paketti Sequencer Settings Dialog: <Shortcut not Assigned>
+5953:Pattern Sequencer:Paketti: ∿ Clone Current Sequence: <Shortcut not Assigned>
+5954:Pattern Sequencer:Paketti: ∿ Select Next Section Sequence: <Shortcut not Assigned>
+5955:Pattern Sequencer:Paketti: ∿ Select Previous Section Sequence: <Shortcut not Assigned>
+5956:Pattern Sequencer:Paketti: ∿ Duplicate Selected Sequence Range: <Shortcut not Assigned>
+5957:Pattern Sequencer:Paketti: ∿ Keep Sequence Sorted Off: <Shortcut not Assigned>
+5958:Pattern Sequencer:Paketti: ∿ Keep Sequence Sorted On: <Shortcut not Assigned>
+5959:Pattern Sequencer:Paketti: ∿ Keep Sequence Sorted Toggle: <Shortcut not Assigned>
+5960:Pattern Matrix:Paketti: ∿ Switch to Automation: <Shortcut not Assigned>
+5961:Pattern Matrix:Paketti: ∿ Paketti Track Renamer Dialog...: <Shortcut not Assigned>
+5962:Pattern Matrix:Paketti: ∿ Selection in Pattern Matrix to Group: <Shortcut not Assigned>
+5963:Pattern Matrix:Paketti: ∿ Jump to First Track In Next Group: <Shortcut not Assigned>
+5964:Pattern Matrix:Paketti: ∿ Jump to First Track In Previous Group: <Shortcut not Assigned>
+5965:Pattern Matrix:Paketti: ∿ Pattern Matrix Selection Expand: <Shortcut not Assigned>
+5966:Pattern Matrix:Paketti: ∿ Pattern Matrix Selection Shrink: <Shortcut not Assigned>
+5967:Phrase Editor:Paketti: ∿ Open Paketti Init Phrase Dialog...: <Shortcut not Assigned>
+5968:Phrase Editor:Paketti: ∿ Create New Phrase using Paketti Settings: <Shortcut not Assigned>
+5969:Phrase Editor:Paketti: ∿ Modify Current Phrase using Paketti Settings: <Shortcut not Assigned>
+5970:Phrase Editor:Paketti: ∿ Record+Follow Off: <Shortcut not Assigned>
+5971:Phrase Editor:Paketti: ∿ Phrase Editor Visible: <Shortcut not Assigned>
+5972:Phrase Editor:Paketti: ∿ Init Phrase Settings: <Shortcut not Assigned>
+5973:Phrase Editor:Paketti: ∿ Paketti Phrase Doubler: <Shortcut not Assigned>
+5974:Phrase Editor:Paketti: ∿ Paketti Phrase Doubler (2nd): <Shortcut not Assigned>
+5975:Phrase Editor:Paketti: ∿ Phrase Halver (Joule): <Shortcut not Assigned>
+5976:Phrase Editor:Paketti: ∿ Phrase Halver (Joule) (2nd): <Shortcut not Assigned>
+5977:Phrase Editor:Paketti: ∿ Toggle Phrase Follow Pattern Playback Hack: <Shortcut not Assigned>
+5978:Phrase Editor:Paketti: ∿ Increase Delay +1: <Shortcut not Assigned>
+5979:Phrase Editor:Paketti: ∿ Decrease Delay -1: <Shortcut not Assigned>
+5980:Phrase Editor:Paketti: ∿ Increase Delay +10: <Shortcut not Assigned>
+5981:Phrase Editor:Paketti: ∿ Decrease Delay -10: <Shortcut not Assigned>
+5982:Phrase Editor:Paketti: ∿ Impulse Tracker ALT-F Expand Selection Replicate: Shift + Command + F
+5983:Phrase Editor:Paketti: ∿ Impulse Tracker ALT-G Shrink Selection Replicate: Shift + Command + G
+5984:Phrase Editor:Paketti: ∿ OctaMED Toggle Mute Track 01: <Shortcut not Assigned>
+5985:Phrase Editor:Paketti: ∿ OctaMED Toggle Mute Track 02: <Shortcut not Assigned>
+5986:Phrase Editor:Paketti: ∿ OctaMED Toggle Mute Track 03: <Shortcut not Assigned>
+5987:Phrase Editor:Paketti: ∿ OctaMED Toggle Mute Track 04: <Shortcut not Assigned>
+5988:Phrase Editor:Paketti: ∿ OctaMED Toggle Mute Track 05: <Shortcut not Assigned>
+5989:Phrase Editor:Paketti: ∿ OctaMED Toggle Mute Track 06: <Shortcut not Assigned>
+5990:Phrase Editor:Paketti: ∿ OctaMED Toggle Mute Track 07: <Shortcut not Assigned>
+5991:Phrase Editor:Paketti: ∿ OctaMED Toggle Mute Track 08: <Shortcut not Assigned>
+5992:Phrase Editor:Paketti: ∿ OctaMED Toggle Mute Track 09: <Shortcut not Assigned>
+5993:Phrase Editor:Paketti: ∿ OctaMED Toggle Mute Track 10: <Shortcut not Assigned>
+5994:Phrase Editor:Paketti: ∿ OctaMED Toggle Mute Track 11: <Shortcut not Assigned>
+5995:Phrase Editor:Paketti: ∿ OctaMED Toggle Mute Track 12: <Shortcut not Assigned>
+5996:Phrase Editor:Paketti: ∿ OctaMED Toggle Mute Track 13: <Shortcut not Assigned>
+5997:Phrase Editor:Paketti: ∿ OctaMED Toggle Mute Track 14: <Shortcut not Assigned>
+5998:Phrase Editor:Paketti: ∿ OctaMED Toggle Mute Track 15: <Shortcut not Assigned>
+5999:Phrase Editor:Paketti: ∿ OctaMED Toggle Mute Track 16: <Shortcut not Assigned>
+6000:Phrase Editor:Paketti: ∿ Impulse Tracker ALT-D Double Select: Command + D
+6001:Phrase Editor:Paketti: ∿ Impulse Tracker ALT-F Expand Selection: Command + F
+6002:Phrase Editor:Paketti: ∿ Impulse Tracker ALT-F Expand Selection Twice: <Shortcut not Assigned>
+6003:Phrase Editor:Paketti: ∿ Impulse Tracker ALT-G Shrink Selection: Command + G
+6004:Phrase Editor:Paketti: ∿ Impulse Tracker ALT-G Shrink Selection Twice: <Shortcut not Assigned>
+6005:Phrase Editor:Paketti: ∿ Impulse Tracker Home *2 behaviour: Option + Up
+6006:Phrase Editor:Paketti: ∿ Impulse Tracker Home *2 behaviour (2nd): <Shortcut not Assigned>
+6007:Phrase Editor:Paketti: ∿ Impulse Tracker End *2 behaviour: Option + Down
+6008:Phrase Editor:Paketti: ∿ Impulse Tracker End *2 behaviour (2nd): <Shortcut not Assigned>
+6009:Phrase Editor:Paketti: ∿ Impulse Tracker ALT-U Unmark Selection: <Shortcut not Assigned>
+6010:Phrase Editor:Paketti: ∿ Impulse Tracker ALT-U Unmark Selection (2nd): <Shortcut not Assigned>
+6011:Phrase Editor:Paketti: ∿ Play Current Line in Phrase: <Shortcut not Assigned>
+6012:Phrase Editor:Paketti: ∿ Delay Column Increase (+1): <Shortcut not Assigned>
+6013:Phrase Editor:Paketti: ∿ Delay Column Decrease (-1): <Shortcut not Assigned>
+6014:Phrase Editor:Paketti: ∿ Delay Column Increase (+10): <Shortcut not Assigned>
+6015:Phrase Editor:Paketti: ∿ Delay Column Decrease (-10): <Shortcut not Assigned>
+6016:Phrase Editor:Paketti: ∿ KapsLock CapsLock Caps Lock Note Off: Capital
+6017:Phrase Editor:Paketti: ∿ Set Phrase Length to 001 (001): <Shortcut not Assigned>
+6018:Phrase Editor:Paketti: ∿ Set Phrase Length to 004 (004): Control + 1
+6019:Phrase Editor:Paketti: ∿ Set Phrase Length to 006 (006): <Shortcut not Assigned>
+6020:Phrase Editor:Paketti: ∿ Set Phrase Length to 008 (008): Control + 2
+6021:Phrase Editor:Paketti: ∿ Set Phrase Length to 012 (00C): <Shortcut not Assigned>
+6022:Phrase Editor:Paketti: ∿ Set Phrase Length to 016 (010): Control + 3
+6023:Phrase Editor:Paketti: ∿ Set Phrase Length to 024 (018): <Shortcut not Assigned>
+6024:Phrase Editor:Paketti: ∿ Set Phrase Length to 032 (020): Control + 4
+6025:Phrase Editor:Paketti: ∿ Set Phrase Length to 048 (030): <Shortcut not Assigned>
+6026:Phrase Editor:Paketti: ∿ Set Phrase Length to 064 (040): Control + 5
+6027:Phrase Editor:Paketti: ∿ Set Phrase Length to 096 (060): <Shortcut not Assigned>
+6028:Phrase Editor:Paketti: ∿ Set Phrase Length to 128 (080): Control + 6
+6029:Phrase Editor:Paketti: ∿ Set Phrase Length to 192 (0C0): <Shortcut not Assigned>
+6030:Phrase Editor:Paketti: ∿ Set Phrase Length to 256 (100): Control + 7
+6031:Phrase Editor:Paketti: ∿ Set Phrase Length to 384 (180): <Shortcut not Assigned>
+6032:Phrase Editor:Paketti: ∿ Set Phrase Length to 512 (200): Control + 8
+6033:Phrase Editor:Paketti: ∿ Set Phrase LPB to 001: <Shortcut not Assigned>
+6034:Phrase Editor:Paketti: ∿ Set Phrase LPB to 002: <Shortcut not Assigned>
+6035:Phrase Editor:Paketti: ∿ Set Phrase LPB to 003: <Shortcut not Assigned>
+6036:Phrase Editor:Paketti: ∿ Set Phrase LPB to 004: <Shortcut not Assigned>
+6037:Phrase Editor:Paketti: ∿ Set Phrase LPB to 005: <Shortcut not Assigned>
+6038:Phrase Editor:Paketti: ∿ Set Phrase LPB to 006: <Shortcut not Assigned>
+6039:Phrase Editor:Paketti: ∿ Set Phrase LPB to 007: <Shortcut not Assigned>
+6040:Phrase Editor:Paketti: ∿ Set Phrase LPB to 008: <Shortcut not Assigned>
+6041:Phrase Editor:Paketti: ∿ Set Phrase LPB to 009: <Shortcut not Assigned>
+6042:Phrase Editor:Paketti: ∿ Set Phrase LPB to 010: <Shortcut not Assigned>
+6043:Phrase Editor:Paketti: ∿ Set Phrase LPB to 011: <Shortcut not Assigned>
+6044:Phrase Editor:Paketti: ∿ Set Phrase LPB to 012: <Shortcut not Assigned>
+6045:Phrase Editor:Paketti: ∿ Set Phrase LPB to 013: <Shortcut not Assigned>
+6046:Phrase Editor:Paketti: ∿ Set Phrase LPB to 014: <Shortcut not Assigned>
+6047:Phrase Editor:Paketti: ∿ Set Phrase LPB to 015: <Shortcut not Assigned>
+6048:Phrase Editor:Paketti: ∿ Set Phrase LPB to 016: <Shortcut not Assigned>
+6049:Phrase Editor:Paketti: ∿ Set Phrase LPB to 024: <Shortcut not Assigned>
+6050:Phrase Editor:Paketti: ∿ Set Phrase LPB to 032: <Shortcut not Assigned>
+6051:Phrase Editor:Paketti: ∿ Set Phrase LPB to 048: <Shortcut not Assigned>
+6052:Phrase Editor:Paketti: ∿ Set Phrase LPB to 064: <Shortcut not Assigned>
+6053:Phrase Editor:Paketti: ∿ Set Phrase LPB to 128: <Shortcut not Assigned>
+6054:Phrase Editor:Paketti: ∿ Set Phrase LPB to 256: <Shortcut not Assigned>
+6055:Phrase Editor:Paketti: ∿ Toggle Note Off in All Visible Note Columns: <Shortcut not Assigned>
+6056:Phrase Editor:Paketti: ∿ Toggle Note Off on All Tracks on Current Row: <Shortcut not Assigned>
+6057:Phrase Editor:Paketti: ∿ Replicate Above Current Row (-12): <Shortcut not Assigned>
+6058:Phrase Editor:Paketti: ∿ Replicate Above Current Row (-1): <Shortcut not Assigned>
+6059:Phrase Editor:Paketti: ∿ Replicate Above Current Row : <Shortcut not Assigned>
+6060:Phrase Editor:Paketti: ∿ Replicate Above Current Row (+1): <Shortcut not Assigned>
+6061:Phrase Editor:Paketti: ∿ Replicate Above Current Row (+12): <Shortcut not Assigned>
+6062:Phrase Editor:Paketti: ∿ Replicate Above + Current (-12): <Shortcut not Assigned>
+6063:Phrase Editor:Paketti: ∿ Replicate Above + Current (-1): <Shortcut not Assigned>
+6064:Phrase Editor:Paketti: ∿ Replicate Above + Current : <Shortcut not Assigned>
+6065:Phrase Editor:Paketti: ∿ Replicate Above + Current (+1): <Shortcut not Assigned>
+6066:Phrase Editor:Paketti: ∿ Replicate Above + Current (+12): <Shortcut not Assigned>
+6067:Phrase Editor:Paketti: ∿ Toggle Note Off in Selected Tracks: <Shortcut not Assigned>
+6068:Phrase Editor:Paketti: ∿ Set Quantization to 01: <Shortcut not Assigned>
+6069:Phrase Editor:Paketti: ∿ Set Quantization to 02: <Shortcut not Assigned>
+6070:Phrase Editor:Paketti: ∿ Set Quantization to 03: <Shortcut not Assigned>
+6071:Phrase Editor:Paketti: ∿ Set Quantization to 04: <Shortcut not Assigned>
+6072:Phrase Editor:Paketti: ∿ Set Quantization to 05: <Shortcut not Assigned>
+6073:Phrase Editor:Paketti: ∿ Set Quantization to 06: <Shortcut not Assigned>
+6074:Phrase Editor:Paketti: ∿ Set Quantization to 07: <Shortcut not Assigned>
+6075:Phrase Editor:Paketti: ∿ Set Quantization to 08: <Shortcut not Assigned>
+6076:Phrase Editor:Paketti: ∿ Set Quantization to 09: <Shortcut not Assigned>
+6077:Phrase Editor:Paketti: ∿ Set Quantization to 10: <Shortcut not Assigned>
+6078:Phrase Editor:Paketti: ∿ Set Quantization to 11: <Shortcut not Assigned>
+6079:Phrase Editor:Paketti: ∿ Set Quantization to 12: <Shortcut not Assigned>
+6080:Phrase Editor:Paketti: ∿ Set Quantization to 13: <Shortcut not Assigned>
+6081:Phrase Editor:Paketti: ∿ Set Quantization to 14: <Shortcut not Assigned>
+6082:Phrase Editor:Paketti: ∿ Set Quantization to 15: <Shortcut not Assigned>
+6083:Phrase Editor:Paketti: ∿ Set Quantization to 16: <Shortcut not Assigned>
+6084:Phrase Editor:Paketti: ∿ Set Quantization to 17: <Shortcut not Assigned>
+6085:Phrase Editor:Paketti: ∿ Set Quantization to 18: <Shortcut not Assigned>
+6086:Phrase Editor:Paketti: ∿ Set Quantization to 19: <Shortcut not Assigned>
+6087:Phrase Editor:Paketti: ∿ Set Quantization to 20: <Shortcut not Assigned>
+6088:Phrase Editor:Paketti: ∿ Set Quantization to 21: <Shortcut not Assigned>
+6089:Phrase Editor:Paketti: ∿ Set Quantization to 22: <Shortcut not Assigned>
+6090:Phrase Editor:Paketti: ∿ Set Quantization to 23: <Shortcut not Assigned>
+6091:Phrase Editor:Paketti: ∿ Set Quantization to 24: <Shortcut not Assigned>
+6092:Phrase Editor:Paketti: ∿ Set Quantization to 25: <Shortcut not Assigned>
+6093:Phrase Editor:Paketti: ∿ Set Quantization to 26: <Shortcut not Assigned>
+6094:Phrase Editor:Paketti: ∿ Set Quantization to 27: <Shortcut not Assigned>
+6095:Phrase Editor:Paketti: ∿ Set Quantization to 28: <Shortcut not Assigned>
+6096:Phrase Editor:Paketti: ∿ Set Quantization to 29: <Shortcut not Assigned>
+6097:Phrase Editor:Paketti: ∿ Set Quantization to 30: <Shortcut not Assigned>
+6098:Phrase Editor:Paketti: ∿ Set Quantization to 31: <Shortcut not Assigned>
+6099:Phrase Editor:Paketti: ∿ Set Quantization to 32: <Shortcut not Assigned>
+6100:Phrase Editor:Paketti: ∿ Expose and Select Next Column: Shift + Command + Right
+6101:Phrase Editor:Paketti: ∿ Hide Current and Select Previous Column: Shift + Command + Left
+6102:Phrase Editor:Paketti: ∿ Show Phrase Length Dialog...: <Shortcut not Assigned>
+6103:Phrase Editor:Paketti: ∿ Decrease Phrase Length by 8: <Shortcut not Assigned>
+6104:Phrase Editor:Paketti: ∿ Increase Phrase Length by LPB: <Shortcut not Assigned>
+6105:Phrase Editor:Paketti: ∿ Decrease Phrase Length by LPB: <Shortcut not Assigned>
+6106:Phrase Editor:Paketti: ∿ Toggle Selected Phrase Looping: <Shortcut not Assigned>
+6107:Phrase Editor:Paketti: ∿ Disable Looping in All Phrases: <Shortcut not Assigned>
+6108:Phrase Editor:Paketti: ∿ Enable Looping in All Phrases: <Shortcut not Assigned>
+6109:Phrase Editor:Paketti: ∿ Enable Looping in All Phrases Globally: <Shortcut not Assigned>
+6110:Phrase Editor:Paketti: ∿ Disable Looping in All Phrases Globally: <Shortcut not Assigned>
+6111:Instrument Box:Paketti: ∿ Show Automation: <Shortcut not Assigned>
+6112:Sample Keyzones:Paketti: ∿ Map Sample to All Keyzones: <Shortcut not Assigned>
+6113:Sample Keyzones:Paketti: ∿ Reverse Selected Sample or Slice: Command + R
+6114:Sample Keyzones:Paketti: ∿ Convert Mono to Stereo: <Shortcut not Assigned>
+6115:Sample Keyzones:Paketti: ∿ Mono to Left with Blank Right: <Shortcut not Assigned>
+6116:Sample Keyzones:Paketti: ∿ Mono to Right with Blank Left: <Shortcut not Assigned>
+6117:Sample Keyzones:Paketti: ∿ Convert Stereo to Mono (Keep Left): <Shortcut not Assigned>
+6118:Sample Keyzones:Paketti: ∿ Convert Stereo to Mono (Keep Right): <Shortcut not Assigned>
+6119:Sample Keyzones:Paketti: ∿ Convert Stereo to Mono (Mix Both): <Shortcut not Assigned>
+6120:Sample Keyzones:Paketti: ∿ Convert All Samples to Mono (Keep Left): <Shortcut not Assigned>
+6121:Sample Keyzones:Paketti: ∿ Convert All Samples to Mono (Keep Right): <Shortcut not Assigned>
+6122:Sample Keyzones:Paketti: ∿ Convert All Samples to Mono (Mix Both): <Shortcut not Assigned>
+6123:Sample Keyzones:Paketti: ∿ Convert to 8-bit: <Shortcut not Assigned>
+6124:Sample Keyzones:Paketti: ∿ Convert to 16-bit: <Shortcut not Assigned>
+6125:Sample Keyzones:Paketti: ∿ Convert to 24-bit: <Shortcut not Assigned>
+6126:Sample Keyzones:Paketti: ∿ Convert to 32-bit: <Shortcut not Assigned>
+6127:Sample Keyzones:Paketti: ∿ Convert All Samples to 8-bit: <Shortcut not Assigned>
+6128:Sample Keyzones:Paketti: ∿ Convert All Samples to 16-bit: <Shortcut not Assigned>
+6129:Sample Keyzones:Paketti: ∿ Convert All Samples to 24-bit: <Shortcut not Assigned>
+6130:Sample Keyzones:Paketti: ∿ Convert All Samples to 32-bit: <Shortcut not Assigned>
+6131:Sample Keyzones:Paketti: ∿ Delete Unused Samples: <Shortcut not Assigned>
+6132:Automation:Paketti: ∿ Impulse Tracker ALT-D Double Select W/ Automation: Command + D
+6133:Automation:Paketti: ∿ Impulse Tracker ALT-U Unmark Selection: <Shortcut not Assigned>

@@ -2302,7 +2302,7 @@ local function apply_preset(preset, is_retrig, is_playback)
   elseif preset == "every_fourth" then
     preset_state = {1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0}
   elseif preset == "jaguar" then
-    preset_state = {1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0}
+    preset_state = {1,0,1,0,1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0}
   elseif preset == "caapi" then
     preset_state = {1,0,1,0,1,0,1,0,1,1,1,0,1,1,1,0}
   elseif preset == "none" then

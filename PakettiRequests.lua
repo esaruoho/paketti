@@ -692,6 +692,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Select Group (Next)",invoke=f
 renoise.tool():add_keybinding{name="Global:Paketti:Select Group (Previous)",invoke=function() selectPreviousGroupTrack() end}
 ------
 renoise.tool():add_keybinding{name="Global:Paketti:Delete/Clear/Wipe Entire Row",invoke=function() renoise.song().selected_line:clear() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Delete/Clear/Wipe Entire Row",invoke=function() renoise.song().selected_line:clear() end}
 renoise.tool():add_midi_mapping{name="Paketti:Delete/Clear/Wipe Entire Row x[Toggle]",
   invoke=function(message) if message:is_trigger() then clear_current_line() end end}
 
@@ -749,6 +750,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Delete/Clear/Wipe Selected Note Co
   end
   
 renoise.tool():add_keybinding{name="Global:Paketti:Delete/Clear/Wipe Entire Row with EditStep",invoke=function() PakettiDeleteClearWipeEntireRowWithEditStep() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Delete/Clear/Wipe Entire Row with EditStep",invoke=function() PakettiDeleteClearWipeEntireRowWithEditStep() end}
 renoise.tool():add_midi_mapping{name="Paketti:Delete/Clear/Wipe Entire Row with EditStep x[Toggle]",invoke=function(message) if message:is_trigger() then PakettiDeleteClearWipeEntireRowWithEditStep() end end}
 
 
@@ -762,8 +764,8 @@ end
 renoise.tool():add_midi_mapping{name="Paketti:Delete/Clear/Wipe Selected Note Column x[Toggle]",
 invoke=function(message) if message:is_trigger() then SelectedNoteColumnClear() end end}
 
-renoise.tool():add_keybinding{name="Global:Paketti:Delete/Clear/Wipe Selected Note Column",
-invoke=function() SelectedNoteColumnClear() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Delete/Clear/Wipe Selected Note Column",invoke=function() SelectedNoteColumnClear() end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Delete/Clear/Wipe Selected Note Column",invoke=function() SelectedNoteColumnClear() end}
 
 
 renoise.tool():add_keybinding{name="Global:Paketti:Delete/Clear/Wipe Selected Note Column with EditStep", 

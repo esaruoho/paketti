@@ -708,7 +708,7 @@ function pakettiMIDIMappingsDialog()
   print("DEBUG: Created dialog_content")
 
   -- Add introductory note
-  local note = vb:text{text="NOTE: This dialog shows DYNAMICALLY DISCOVERED MIDI mappings from your Lua files. Open Renoise's MIDI Mappings dialog (CMD-M), click arrow down to show list + searchbar, then click the buttons below.\n\n✅ NEW: Filter by Category • Switch to Edit Mode to assign mappings to categories • Colored buttons = categorized",style="strong",font="bold"}
+  local note = vb:text{text="NOTE: This dialog shows DYNAMICALLY DISCOVERED MIDI mappings from your Lua files. Open Renoise's MIDI Mappings dialog (CMD-M), click arrow down to show list + searchbar, then click the buttons below.\n\nNEW: Filter by Category • Switch to Edit Mode to assign mappings to categories • Colored buttons = categorized",style="strong",font="bold"}
   dialog_content:add_child(note)
   print("DEBUG: Added note")
 

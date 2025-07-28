@@ -1196,8 +1196,6 @@ function show_mini_cheatsheet()
   end
 
   local dialog_content = vb:column{
-    margin = 10,
-    
     vb:row{
       spacing = 10,
       vb:popup{

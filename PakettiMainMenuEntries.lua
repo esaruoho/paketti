@@ -348,9 +348,11 @@ local function create_button_list()
 end
 
 -- Function to create buttons from the list with optional filtering
-function pakettiDialogOfDialogs(search_query)
+function pakettiDialogOfDialogs(search_query, custom_keyhandler)
   search_query = search_query or ""
+  local vb = renoise.ViewBuilder()  -- Create fresh ViewBuilder instance to avoid ID conflicts
   local button_list = create_button_list()  -- Get current button list
+  local total_count = #button_list  -- Store total count for display
   
   -- Apply fuzzy search filtering if search query is provided
   if search_query ~= "" then
@@ -361,6 +363,8 @@ function pakettiDialogOfDialogs(search_query)
       end
     })
   end
+  
+  local filtered_count = #button_list  -- Count after filtering
   
   local buttons_per_row = 7
   local rows = {}
@@ -388,38 +392,60 @@ function pakettiDialogOfDialogs(search_query)
   end
   
   return vb:column{
-    margin=5,
+    
     vb:text{text="Search:", font="bold"},
-    vb:textfield{
-      id="search_field",
-      width=400,
-      notifier=function(text)
-        -- Recreate the dialog content with filtered results
-        local filtered_content = pakettiDialogOfDialogs(text)
-        if dialog_of_dialogs and dialog_of_dialogs.visible then
-          -- Get button list for count
-          local current_list = create_button_list()
-          if text ~= "" then
-            current_list = PakettiFuzzySearchUtil(current_list, text, {
-              search_type = "substring",
-              field_extractor = function(button_def)
-                return {button_def[1]} -- Search in button name only
-              end
-            })
-          end
-          local dialog_count = #current_list
-          -- Update dialog title and content
-          dialog_of_dialogs:close()
-          dialog_of_dialogs = renoise.app():show_custom_dialog(
-            string.format("Paketti Dialog of Dialogs (%d)", dialog_count), 
-            filtered_content, 
-            create_keyhandler_for_dialog(
-              function() return dialog_of_dialogs end,
-              function(value) dialog_of_dialogs = value end
+    vb:row{
+      vb:textfield{
+        id="search_field",
+        width=350,
+        notifier=function(text)
+          -- Recreate the dialog content with filtered results
+          local filtered_content = pakettiDialogOfDialogs(text, custom_keyhandler)
+          if dialog_of_dialogs and dialog_of_dialogs.visible then
+            -- Get button list for count
+            local total_list = create_button_list()
+            local total_count = #total_list
+            local current_list = total_list
+            if text ~= "" then
+              current_list = PakettiFuzzySearchUtil(current_list, text, {
+                search_type = "substring",
+                field_extractor = function(button_def)
+                  return {button_def[1]} -- Search in button name only
+                end
+              })
+            end
+            local filtered_count = #current_list
+            -- Update dialog title and content with "X out of Y" format
+            local title = text ~= "" and 
+              string.format("Paketti Dialog of Dialogs (%d out of %d)", filtered_count, total_count) or
+              string.format("Paketti Dialog of Dialogs (%d)", total_count)
+            dialog_of_dialogs:close()
+            dialog_of_dialogs = renoise.app():show_custom_dialog(
+              title, 
+              filtered_content, 
+              custom_keyhandler
             )
-          )
+          end
         end
-      end
+      },
+      vb:button{
+        text="Reset",
+        width=50,
+        notifier=function()
+          -- Reset to show all items
+          local all_button_list = create_button_list()
+          local all_dialog_count = #all_button_list
+          local reset_content = pakettiDialogOfDialogs("", custom_keyhandler)
+          if dialog_of_dialogs and dialog_of_dialogs.visible then
+            dialog_of_dialogs:close()
+            dialog_of_dialogs = renoise.app():show_custom_dialog(
+              string.format("Paketti Dialog of Dialogs (%d)", all_dialog_count), 
+              reset_content, 
+              custom_keyhandler
+            )
+          end
+        end
+      }
     },
     vb:column{
       style = "group",
@@ -437,12 +463,45 @@ function pakettiDialogOfDialogsToggle()
     -- Count the number of dialogs in current button_list
     local button_list = create_button_list()
     local dialog_count = #button_list
-    -- Create keyhandler that can manage dialog_of_dialogs variable
-    local keyhandler = create_keyhandler_for_dialog(
-      function() return dialog_of_dialogs end,
-      function(value) dialog_of_dialogs = value end
-    )
-    dialog_of_dialogs = renoise.app():show_custom_dialog(string.format("Paketti Dialog of Dialogs (%d)", dialog_count), pakettiDialogOfDialogs(), keyhandler)
+    
+    -- Create custom keyhandler for dialog of dialogs
+    local keyhandler
+    keyhandler = function(dialog, key)
+      local closer = preferences.pakettiDialogClose.value
+      
+      -- Handle Enter key to reset search when field is empty
+      if key.modifiers == "" and key.name == "return" then
+        -- Get the search field through the global dialog reference
+        if dialog_of_dialogs and dialog_of_dialogs.visible then
+          local search_field = dialog_of_dialogs:view_by_id("search_field")
+          if search_field and search_field.text == "" then
+            -- Search field is empty, reset to show all items
+            local all_button_list = create_button_list()
+            local all_dialog_count = #all_button_list
+            local reset_content = pakettiDialogOfDialogs("", keyhandler)
+            dialog_of_dialogs:close()
+            dialog_of_dialogs = renoise.app():show_custom_dialog(
+              string.format("Paketti Dialog of Dialogs (%d)", all_dialog_count), 
+              reset_content, 
+              keyhandler
+            )
+            return nil
+          end
+        end
+        return key
+      end
+      
+      -- Handle close key (escape, etc.)
+      if key.modifiers == "" and key.name == closer then
+        dialog:close()
+        dialog_of_dialogs = nil
+        return nil
+      else
+        return key
+      end
+    end
+    
+    dialog_of_dialogs = renoise.app():show_custom_dialog(string.format("Paketti Dialog of Dialogs (%d)", dialog_count), pakettiDialogOfDialogs("", keyhandler), keyhandler)
   end
 end
 
