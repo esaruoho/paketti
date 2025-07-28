@@ -1162,6 +1162,12 @@ local mini_hex_value = 128  -- Start at 0x80 (50%)
 function show_mini_cheatsheet()
   local vb = renoise.ViewBuilder()
   
+  -- Close the full cheatsheet if it's open
+  if dialog and dialog.visible then
+    dialog:close()
+    dialog = nil
+  end
+  
   if mini_dialog and mini_dialog.visible then
     mini_dialog:close()
     return
@@ -1201,7 +1207,7 @@ function show_mini_cheatsheet()
       vb:popup{
         items = dropdown_items,
         value = selected_effect_index,
-        width = 350,
+        width = 450,
         notifier = function(index)
           selected_effect_index = index
           mini_selected_effect_index = index  -- Update persistent state
@@ -1214,6 +1220,18 @@ function show_mini_cheatsheet()
         text = "Random",
         width = 60,
         notifier = apply_random_effect
+      },
+      vb:button{
+        text = "Maximize",
+        width = 70,
+        notifier = function()
+          -- Close mini dialog and open full cheatsheet
+          if mini_dialog and mini_dialog.visible then
+            mini_dialog:close()
+            mini_dialog = nil
+          end
+          pakettiPatternEditorCheatsheetDialog()
+        end
       }
     },
     

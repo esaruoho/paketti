@@ -105,7 +105,7 @@ local dialog_content = vb:column{
   vb:text{text="Ideas provided by:", style = "strong", font = "bold"},
   vb:multiline_textfield{width=textfield_width, height = 80, text = 
   -- IDEAS
-  "tkna, Nate Schmold, Casiino, Royal Sexton, Bovaflux, Xerxes, ViZiON, Satoi, Kaneel, Subi, MigloJE, Yalk DX, Michael Langer, Christopher Jooste, Zoey Samples, Avaruus, Pieter Koenekoop, Widgetphreak, Bálint Magyar, Mick Rippon, MMD (Mr. Mark Dollin), ne7, renoize-user, Dionysis, untilde, Greystar, Kaidiak, sousândrade, senseiprod, Brandon Hale, dmt, Diigitae, Dávid Halmi (Nagz), tEiS, Floppi J, Aleksi Eeben, fuzzy, Jalex, Mike Pehel, grymmjack, Mister Garbanzo, tdel, Jek, Mezzguru, Run Anymore, gentleclockdivider, Aaron Munson (Ilkae), pr0t0type, Joonas Holmén (JouluPam), Ugly Cry, NPC1, Vulkan, super_lsd, sodiufas, amenburoda, davide, Hyena lord, zolipapa420, Amethyst, JTPE, Cosmic Ollie, Newtined, Kusoipilled, Spencer Williams (spnw), RENEGADE ANDROiD, Phill Tew, croay, ishineee, user22c, Helge H., ShasuraMk2 and many others."},
+  "tkna, Nate Schmold, Casiino, Royal Sexton, Bovaflux, Xerxes, ViZiON, Satoi, Kaneel, Subi, MigloJE, Yalk DX, Michael Langer, Christopher Jooste, Zoey Samples, Avaruus, Pieter Koenekoop, Widgetphreak, Bálint Magyar, Mick Rippon, MMD (Mr. Mark Dollin), ne7, renoize-user, Dionysis, untilde, Greystar, Kaidiak, sousândrade, senseiprod, Brandon Hale, dmt, Diigitae, Dávid Halmi (Nagz), tEiS, Floppi J, Aleksi Eeben, fuzzy, Jalex, Mike Pehel, grymmjack, Mister Garbanzo, tdel, Jek, Mezzguru, Run Anymore, gentleclockdivider, Aaron Munson (Ilkae), pr0t0type, Joonas Holmén (JouluPam), Ugly Cry, NPC1, Vulkan, super_lsd, sodiufas, amenburoda, davide, Hyena lord, zolipapa420, Amethyst, JTPE, Cosmic Ollie, Newtined, Kusoipilled, Spencer Williams (spnw), RENEGADE ANDROiD, Phill Tew, croay, ishineee, user22c, Helge H., ShasuraMk2, Mastrcode, Cthonic and many others."},
 
   vb:text{text="Who made it possible:", style = "strong", font = "bold"},
   vb:multiline_textfield{width=textfield_width, height = 40, text="Thanks to @lpn (Brothomstates) for suggesting that I could pick up and learn LUA, that it would not be beyond me. Really appreciate your (sometimes misplaced and ahead-of-time) faith in me. And thanks for the inspiration."},
@@ -393,11 +393,14 @@ function pakettiDialogOfDialogs(search_query, custom_keyhandler)
   
   return vb:column{
     
-    vb:text{text="Search:", font="bold"},
+
     vb:row{
+      vb:text{text="Search:", width=30,font="bold", style="strong"},
       vb:textfield{
         id="search_field",
         width=350,
+        edit_mode = true,
+        text = search_query,
         notifier=function(text)
           -- Recreate the dialog content with filtered results
           local filtered_content = pakettiDialogOfDialogs(text, custom_keyhandler)
@@ -468,28 +471,6 @@ function pakettiDialogOfDialogsToggle()
     local keyhandler
     keyhandler = function(dialog, key)
       local closer = preferences.pakettiDialogClose.value
-      
-      -- Handle Enter key to reset search when field is empty
-      if key.modifiers == "" and key.name == "return" then
-        -- Get the search field through the global dialog reference
-        if dialog_of_dialogs and dialog_of_dialogs.visible then
-          local search_field = dialog_of_dialogs:view_by_id("search_field")
-          if search_field and search_field.text == "" then
-            -- Search field is empty, reset to show all items
-            local all_button_list = create_button_list()
-            local all_dialog_count = #all_button_list
-            local reset_content = pakettiDialogOfDialogs("", keyhandler)
-            dialog_of_dialogs:close()
-            dialog_of_dialogs = renoise.app():show_custom_dialog(
-              string.format("Paketti Dialog of Dialogs (%d)", all_dialog_count), 
-              reset_content, 
-              keyhandler
-            )
-            return nil
-          end
-        end
-        return key
-      end
       
       -- Handle close key (escape, etc.)
       if key.modifiers == "" and key.name == closer then

@@ -982,7 +982,7 @@ end
       },
       --mute_checkbox,vb:text{text="Mute", font = "bold", style = "strong",width=30},
         instrument_popup,
-        vb:button{text="Browse", notifier = row_elements.browse_instrument},
+        vb:button{text="Load", notifier = row_elements.browse_instrument},
         vb:button{text="RandomLoad", notifier=function() 
         local track_popup_value = row_elements.track_popup.value
         local instrument_popup_value = row_index  -- Set instrument based on row number
@@ -1903,7 +1903,7 @@ function assign_midi_mappings()
         end
       end}
     end
-    local buttons = {"<", ">", "Clear", "Randomize", "Browse", "Show", "Random", "Automation", "Reverse"}
+    local buttons = {"<", ">", "Clear", "Randomize", "Load", "Show", "Random", "Automation", "Reverse"}
     for _, btn in ipairs(buttons) do
       renoise.tool():add_midi_mapping{name=string.format("Paketti:Paketti Groovebox 8120:Row%d %s", row, btn),invoke=function(message)
         if message:is_trigger() then
@@ -1953,7 +1953,7 @@ function assign_midi_mappings()
             elseif btn == "Randomize" then
               row_elements.randomize()
               renoise.app():show_status(string.format("Row %d: Steps randomized.", row))
-            elseif btn == "Browse" then
+            elseif btn == "Load" then
               row_elements.browse_instrument()
             elseif btn == "Show" then
               row_elements.select_instrument()

@@ -5216,18 +5216,6 @@ local function writeEffectToPattern(effect_string, first_row_effect)
     -- If first_row_effect is specified, use it for the first row
     if line_index == 1 and first_row_effect then
       effect = first_row_effect
-    else
-      -- For other rows, check if there's existing content
-      local current_number = effect_column.number_string
-      local current_amount = effect_column.amount_string
-      
-      -- If there's an existing effect with a value
-      if (current_number == "0D" or current_number == "0U") and 
-         current_amount ~= "00" then
-        -- Keep the amount but switch D/U if needed
-        local new_number = effect:sub(1,2)  -- Get the new effect type (0D or 0U)
-        effect = new_number .. current_amount
-      end
     end
     
     -- Parse the effect string (format: "0D00")

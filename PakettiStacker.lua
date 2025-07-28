@@ -1,8 +1,8 @@
 local vb = renoise.ViewBuilder()
 
-
 local dialog = nil
 local dialog_content = nil
+local steppers_expanded = false  -- Track steppers section visibility
 
 
 function returnpe()
@@ -331,6 +331,35 @@ renoise.tool():add_keybinding{name="Global:Paketti:Write Velocity Ramp Up for St
 renoise.tool():add_keybinding{name="Global:Paketti:Write Velocity Ramp Down for Stacked Instrument",invoke=function() write_velocity_ramp_down() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Write Velocity Random for Stacked Instrument",invoke=function() write_random_velocity_notes() end}
 
+-- NOTE: Using existing PakettiDuplicateInstrumentSamplesWithTranspose() from PakettiSamples.lua
+-- (Keybindings already exist there too - no need to duplicate!)
+
+-- Function to set volume for all samples with specific transpose (using PakettiSamples.lua naming convention)
+function set_volume_for_transpose(transpose_value, volume)
+  local song = renoise.song()
+  local instrument = song.selected_instrument
+  
+  if not instrument then
+    return
+  end
+  
+  -- Build the PakettiProcessed pattern that matches PakettiSamples.lua naming
+  local transpose_pattern = "PakettiProcessed" .. (transpose_value >= 0 and "+" or "") .. transpose_value
+  
+  local affected_count = 0
+  for _, sample in ipairs(instrument.samples) do
+    -- Check if sample name contains the PakettiProcessed transpose pattern
+    if sample.name:find(transpose_pattern, 1, true) then -- true = plain text search, not pattern
+      sample.volume = volume
+      affected_count = affected_count + 1
+    end
+  end
+  
+  if affected_count > 0 then
+    renoise.app():show_status(string.format("Set volume %.2f for %d samples with %s", volume, affected_count, transpose_pattern))
+  end
+end
+
 function on_switch_changed(selected_value)
   local instrument = renoise.song().selected_instrument
   local num_samples = #instrument.samples
@@ -387,6 +416,19 @@ function pakettiStackerDialog(proceed_with_stacking, on_switch_changed, PakettiI
     if dialog and dialog.visible then
       dialog:close()
       dialog = nil
+    end
+  end
+
+  -- Function to update steppers section visibility
+  local function update_steppers_visibility()
+    local steppers_content = vb.views["steppers_content"]
+    if steppers_content then
+      steppers_content.visible = steppers_expanded
+    end
+    
+    local toggle_button = vb.views["steppers_toggle"]
+    if toggle_button then
+      toggle_button.text = steppers_expanded and "▾" or "▴"
     end
   end
 
@@ -484,13 +526,88 @@ vb:row{
    vb:button{text="5/8", notifier=function() jump_to_pattern_segment(5) end},
    vb:button{text="6/8", notifier=function() jump_to_pattern_segment(6) end},
    vb:button{text="7/8", notifier=function() jump_to_pattern_segment(7) end},
-   vb:button{text="8/8", notifier=function() jump_to_pattern_segment(8) end}}}
+   vb:button{text="8/8", notifier=function() jump_to_pattern_segment(8) end}},
+
+-- Sample Duplication with Transpose (DRY approach)
+vb:row{vb:text{text="Duplicate Samples",width=100,font="bold",style="strong"}},
+vb:row(function()
+  local buttons = {}
+  local transpose_values = {-36, -24, -12, 12, 24, 36}
+  for _, transpose_value in ipairs(transpose_values) do
+    table.insert(buttons, vb:button{
+      text = string.format("%+d", transpose_value),
+      width = 40,
+      notifier = function() PakettiDuplicateInstrumentSamplesWithTranspose(transpose_value) end
+    })
+  end
+  return buttons
+end()),
+
+-- Volume Controls for Transposed Samples (DRY approach)
+vb:row{vb:text{text="Transpose Volumes",width=100,font="bold",style="strong"}},
+vb:row(function()
+  local controls = {}
+  local transpose_values = {-36, -24, -12}
+  for _, transpose_value in ipairs(transpose_values) do
+    table.insert(controls, vb:text{text = string.format("%+d:", transpose_value), width = 25})
+    table.insert(controls, vb:slider{
+      min = 0, max = 1, value = 1, width = 60,
+      notifier = function(value) set_volume_for_transpose(transpose_value, value) end
+    })
+  end
+  return controls
+end()),
+vb:row(function()
+  local controls = {}
+  local transpose_values = {12, 24, 36}
+  for _, transpose_value in ipairs(transpose_values) do
+    table.insert(controls, vb:text{text = string.format("%+d:", transpose_value), width = 25})
+    table.insert(controls, vb:slider{
+      min = 0, max = 1, value = 1, width = 60,
+      notifier = function(value) set_volume_for_transpose(transpose_value, value) end
+    })
+  end
+  return controls
+end()),
+   
+   -- Expandable Paketti Steppers Section
+   vb:row{
+     vb:button{
+       id = "steppers_toggle",
+       text = "▴", -- Start collapsed
+       width = 22,
+       notifier = function()
+         steppers_expanded = not steppers_expanded
+         update_steppers_visibility()
+       end
+     },
+     vb:text{
+       text = "Show Paketti Steppers Dialog Content",
+       style = "strong",
+       font = "bold",
+       width = 300
+     }
+   },
+   
+   -- Collapsible Steppers Content
+   vb:column{
+     id = "steppers_content",
+     style = "group",
+     margin = 6,
+     visible = false, -- Start hidden
+     
+     -- Include the Paketti Steppers dialog content using DRY principle
+     PakettiCreateStepperDialogContent(vb)
+   }}
   -- Show the dialog
   local keyhandler = create_keyhandler_for_dialog(
     function() return dialog end,
     function(value) dialog = value end
   )
   dialog = renoise.app():show_custom_dialog("Paketti Stacker", dialog_content, keyhandler)
+  
+  -- Initialize steppers section visibility
+  update_steppers_visibility()
 end
 
   function proceed_with_stacking()

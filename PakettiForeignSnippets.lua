@@ -771,10 +771,237 @@ local function createEnhancedSampleBitmap(sample_buffer, width, height)
   return bitmap
 end
 
+-- Canvas-based sample visualization (adapted from PakettiChebyshevWaveshaper.lua)
+local sample_viz_waveform_cache = nil
+local sample_viz_canvas_width = 1024
+local sample_viz_canvas_height = 512
+local sample_viz_dialog = nil
+local sample_viz_vb = nil
+local sample_viz_observables = {}
+
+-- Cache sample waveform data for canvas display
+local function cache_sample_viz_waveform()
+  local sample = renoise.song().selected_sample
+  if not sample or not sample.sample_buffer or not sample.sample_buffer.has_sample_data then
+    return false
+  end
+  
+  local buffer = sample.sample_buffer
+  local num_frames = buffer.number_of_frames
+  local num_channels = buffer.number_of_channels
+  
+  -- Cache waveform (downsample to canvas width for performance)
+  sample_viz_waveform_cache = {}
+  for pixel = 1, sample_viz_canvas_width do
+    local frame_pos = math.floor((pixel - 1) / (sample_viz_canvas_width - 1) * (num_frames - 1)) + 1
+    frame_pos = math.max(1, math.min(num_frames, frame_pos))
+    
+    -- Average all channels
+    local sample_value = 0
+    for channel = 1, num_channels do
+      sample_value = sample_value + buffer:sample_data(channel, frame_pos)
+    end
+    sample_value = sample_value / num_channels
+    
+    sample_viz_waveform_cache[pixel] = sample_value
+  end
+  
+  return true
+end
+
+-- Update sample dropdown with current instrument's samples
+local function update_sample_dropdown()
+  if not sample_viz_vb or not sample_viz_vb.views.sample_dropdown then
+    return
+  end
+  
+  local instrument = renoise.song().selected_instrument
+  if not instrument then
+    sample_viz_vb.views.sample_dropdown.items = {"No instrument selected"}
+    sample_viz_vb.views.sample_dropdown.value = 1
+    return
+  end
+  
+  local sample_names = {}
+  for i, sample in ipairs(instrument.samples) do
+    local name = sample.name ~= "" and sample.name or string.format("Sample %02d", i)
+    table.insert(sample_names, name)
+  end
+  
+  if #sample_names == 0 then
+    sample_viz_vb.views.sample_dropdown.items = {"No samples in instrument"}
+    sample_viz_vb.views.sample_dropdown.value = 1
+  else
+    sample_viz_vb.views.sample_dropdown.items = sample_names
+    -- Set to currently selected sample
+    local selected_sample_index = renoise.song().selected_sample_index
+    sample_viz_vb.views.sample_dropdown.value = math.min(selected_sample_index, #sample_names)
+  end
+end
+
+-- Refresh visualization for current selection
+local function refresh_sample_visualization()
+  if not sample_viz_dialog or not sample_viz_dialog.visible then
+    return
+  end
+  
+  -- Update sample dropdown
+  update_sample_dropdown()
+  
+  -- Update sample info
+  local current_sample = renoise.song().selected_sample
+  if current_sample and current_sample.sample_buffer.has_sample_data then
+    local buffer = current_sample.sample_buffer
+    local channel_text = buffer.number_of_channels == 1 and "Mono" or "Stereo"
+    local total_seconds = buffer.number_of_frames / buffer.sample_rate
+    local minutes = math.floor(total_seconds / 60)
+    local seconds = math.floor(total_seconds % 60)
+    local new_info_text = string.format(
+      "%s, %d Hz, %d-bit, %s, %d:%02d seconds (%d Frames)",
+      current_sample.name,
+      buffer.sample_rate,
+      buffer.bit_depth,
+      channel_text,
+      minutes,
+      seconds,
+      buffer.number_of_frames
+    )
+    
+    -- Update info text
+    if sample_viz_vb and sample_viz_vb.views.sample_info_text then
+      sample_viz_vb.views.sample_info_text.text = new_info_text
+    end
+    
+    -- Refresh canvas
+    if cache_sample_viz_waveform() then
+      if sample_viz_vb and sample_viz_vb.views.waveform_canvas then
+        sample_viz_vb.views.waveform_canvas:update()
+      end
+    end
+  else
+    -- No valid sample
+    if sample_viz_vb and sample_viz_vb.views.sample_info_text then
+      sample_viz_vb.views.sample_info_text.text = "No valid sample data"
+    end
+  end
+end
+
+-- Set up observables for automatic updates
+local function setup_sample_viz_observables()
+  -- Clear existing observables
+  for _, observable in ipairs(sample_viz_observables) do
+    if observable.remove_notifier then
+      pcall(function() observable.remove_notifier(refresh_sample_visualization) end)
+    end
+  end
+  sample_viz_observables = {}
+  
+  -- Add notifiers for selection changes
+  if renoise.song().selected_instrument_observable then
+    renoise.song().selected_instrument_observable:add_notifier(refresh_sample_visualization)
+    table.insert(sample_viz_observables, renoise.song().selected_instrument_observable)
+  end
+  
+  if renoise.song().selected_sample_observable then
+    renoise.song().selected_sample_observable:add_notifier(refresh_sample_visualization)
+    table.insert(sample_viz_observables, renoise.song().selected_sample_observable)
+  end
+end
+
+-- Clean up observables
+local function cleanup_sample_viz_observables()
+  for _, observable in ipairs(sample_viz_observables) do
+    if observable.remove_notifier then
+      pcall(function() observable.remove_notifier(refresh_sample_visualization) end)
+    end
+  end
+  sample_viz_observables = {}
+end
+
+-- Render sample visualization canvas
+local function render_sample_viz_canvas(ctx)
+  local w, h = sample_viz_canvas_width, sample_viz_canvas_height
+  ctx:clear_rect(0, 0, w, h)
+  
+  -- Draw background with subtle gradient
+  ctx:set_fill_linear_gradient(0, 0, 0, h)
+  ctx:add_fill_color_stop(0, {25, 25, 35, 255})
+  ctx:add_fill_color_stop(1, {15, 15, 25, 255})
+  ctx:begin_path()
+  ctx:rect(0, 0, w, h)
+  ctx:fill()
+  
+  -- Draw grid
+  ctx.stroke_color = {40, 40, 50, 255}
+  ctx.line_width = 1
+  for i = 0, 10 do
+    local x = (i / 10) * w
+    ctx:begin_path()
+    ctx:move_to(x, 0)
+    ctx:line_to(x, h)
+    ctx:stroke()
+  end
+  for i = 0, 8 do
+    local y = (i / 8) * h
+    ctx:begin_path()
+    ctx:move_to(0, y)
+    ctx:line_to(w, y)
+    ctx:stroke()
+  end
+  
+  -- Draw center line (zero)
+  ctx.stroke_color = {120, 120, 140, 255}
+  ctx.line_width = 2
+  local center_y = h / 2
+  ctx:begin_path()
+  ctx:move_to(0, center_y)
+  ctx:line_to(w, center_y)
+  ctx:stroke()
+  
+  -- Draw amplitude markers
+  ctx.stroke_color = {60, 60, 80, 255}
+  ctx.line_width = 1
+  for i = 1, 4 do
+    local y_pos = center_y + (i * center_y / 4)
+    ctx:begin_path()
+    ctx:move_to(0, y_pos)
+    ctx:line_to(w, y_pos)
+    ctx:stroke()
+    
+    y_pos = center_y - (i * center_y / 4)
+    ctx:begin_path()
+    ctx:move_to(0, y_pos)
+    ctx:line_to(w, y_pos)
+    ctx:stroke()
+  end
+  
+  -- Draw waveform (if cached)
+  if sample_viz_waveform_cache then
+    ctx.stroke_color = {100, 255, 150, 255}
+    ctx.line_width = 2
+    ctx:begin_path()
+    
+    for pixel = 1, #sample_viz_waveform_cache do
+      local x = (pixel - 1) / (#sample_viz_waveform_cache - 1) * w
+      local y = center_y - (sample_viz_waveform_cache[pixel] * center_y * 0.9) -- 0.9 for margin
+      
+      if pixel == 1 then
+        ctx:move_to(x, y)
+      else
+        ctx:line_to(x, y)
+      end
+    end
+    ctx:stroke()
+  end
+end
+
 -- Main sample visualizer dialog
 function pakettiSampleVisualizerDialog()
   if sample_viz_dialog and sample_viz_dialog.visible then 
-    sample_viz_dialog:close() 
+    cleanup_sample_viz_observables()
+    sample_viz_dialog:close()
+    sample_viz_dialog = nil
+    sample_viz_vb = nil
     return 
   end
   
@@ -786,30 +1013,14 @@ function pakettiSampleVisualizerDialog()
     return
   end
   
-  local vb = renoise.ViewBuilder()
-  local bitmap_width = 1024
-  local sampleWidth = 1024
-  local bitmap_height = 512
-  local current_bitmap = nil
-  local last_saved_file = nil
-  local last_saved_path = nil
-  local temp_filename = os.tmpname() .. ".bmp"
+  sample_viz_vb = renoise.ViewBuilder()
+  local sampleWidth = sample_viz_canvas_width
   
-  -- Create initial bitmap
-  current_bitmap = createSampleBitmap(sample.sample_buffer, bitmap_width, bitmap_height)
-  
-  if not current_bitmap then
-    renoise.app():show_warning("Failed to create sample bitmap")
+  -- Cache sample waveform data
+  if not cache_sample_viz_waveform() then
+    renoise.app():show_warning("Failed to cache sample waveform data")
     return
   end
-  
-  -- Save initial bitmap for display
-  local success, initial_file, initial_path = saveAndDisplayBitmap(current_bitmap, temp_filename, nil)
-  if not success then
-    renoise.app():show_warning("Failed to save initial bitmap for display")
-    return
-  end
-  last_saved_path = initial_path
   
   -- Create info text
   local buffer = sample.sample_buffer
@@ -829,174 +1040,83 @@ function pakettiSampleVisualizerDialog()
   )
   
   sample_viz_dialog = renoise.app():show_custom_dialog(
-    string.format("Paketti Sample Visualizer (%dx%d)", bitmap_width, bitmap_height),
-          vb:column{
+    string.format("Paketti Sample Visualizer (%dx%d) - Canvas Mode", sample_viz_canvas_width, sample_viz_canvas_height),
+          sample_viz_vb:column{
         margin = 10,
         
-        
-        vb:row{
-          vb:text{
+        sample_viz_vb:row{
+          sample_viz_vb:text{
+            id = "sample_info_text", 
             text = info_text,
             width = sampleWidth
           }
         },
+        
+        -- Sample selection dropdown
+        sample_viz_vb:row{
+          sample_viz_vb:text{
+            text = "Sample:",
+            style = "strong",
+            font = "bold",
+            width = 60
+          },
+          sample_viz_vb:popup{
+            id = "sample_dropdown",
+            items = {"Loading..."},
+            width = sampleWidth - 70,
+            notifier = function(index)
+              -- Change selected sample based on dropdown
+              local instrument = renoise.song().selected_instrument
+              if instrument and instrument.samples[index] then
+                renoise.song().selected_sample_index = index
+                -- refresh_sample_visualization will be called automatically via observable
+              end
+            end
+          }
+        },
       
-              -- Actual bitmap display!
-        vb:row{
-          vb:column{
-            vb:bitmap{
-              bitmap = initial_file,
+        -- Canvas-based waveform display
+        sample_viz_vb:row{
+          sample_viz_vb:column{
+            sample_viz_vb:canvas{
+              width = sample_viz_canvas_width,
+              height = sample_viz_canvas_height,
               mode = "plain",
-              id = "bitmap_display"
+              render = render_sample_viz_canvas,
+              id = "waveform_canvas"
             }
           }
         },
       
+        sample_viz_vb:row{
+          sample_viz_vb:text{
+            text = "Canvas-based sample visualization with automatic updates",
+            width = sampleWidth,
+            font = "italic"
+          }
+        },
       
-      
-      vb:row{
-        vb:text{
-          text = string.format("Save Path: %s\nLast Saved: %s", initial_path or "Unknown", initial_file),
-          width = sampleWidth,
-          id = "save_path_text"
-        }
-      },
-      
-      vb:horizontal_aligner{
+      sample_viz_vb:horizontal_aligner{
         mode = "center",
-        vb:row{
-          vb:button{
-            text = "Refresh",
-            width = 80,
-            tooltip = "Update visualization for currently selected sample",
+        sample_viz_vb:row{
+          sample_viz_vb:button{
+            text = "Manual Refresh",
+            width = 100,
+            tooltip = "Manually update visualization (auto-updates are enabled)",
             notifier = function()
-              local current_sample = renoise.song().selected_sample
-              if current_sample and current_sample.sample_buffer.has_sample_data then
-                current_bitmap = createSampleBitmap(current_sample.sample_buffer, bitmap_width, bitmap_height)
-                if current_bitmap then
-                  -- Save and update display
-                  local refresh_filename = os.tmpname() .. ".bmp"
-                  local success, filename, filepath = saveAndDisplayBitmap(current_bitmap, refresh_filename, vb.views)
-                  if success then
-                    last_saved_path = filepath
-                    vb.views.save_path_text.text = string.format("Save Path: %s\nLast Saved: %s", filepath or "Unknown", filename)
-                    renoise.app():show_status("Sample bitmap refreshed and displayed")
-                    print("-- Paketti Sample Visualizer: Bitmap refreshed and displayed")
-                  else
-                    renoise.app():show_warning("Failed to update bitmap display")
-                  end
-                else
-                  renoise.app():show_warning("Failed to refresh bitmap")
-                end
-              else
-                renoise.app():show_warning("No sample data to refresh")
-              end
+              refresh_sample_visualization()
+              renoise.app():show_status("Canvas visualization manually refreshed")
             end
           },
-          --[[
-          vb:button{
-            text = "Enhanced",
-            width = 80,
-            tooltip = "Adds red marker and basic frequency estimation (console output only)",
-            notifier = function()
-              local current_sample = renoise.song().selected_sample
-              if current_sample and current_sample.sample_buffer.has_sample_data then
-                current_bitmap = createEnhancedSampleBitmap(current_sample.sample_buffer, bitmap_width, bitmap_height)
-                if current_bitmap then
-                  -- Save and update display
-                  local enhanced_filename = os.tmpname() .. ".bmp"
-                  local success, filename, filepath = saveAndDisplayBitmap(current_bitmap, enhanced_filename, vb.views)
-                  if success then
-                    last_saved_path = filepath
-                    vb.views.save_path_text.text = string.format("Save Path: %s\nLast Saved: %s", filepath or "Unknown", filename)
-                    renoise.app():show_status("Enhanced sample bitmap with red marker and basic frequency estimation created")
-                    print("-- Paketti Sample Visualizer: Enhanced bitmap with red marker created")
-                  else
-                    renoise.app():show_warning("Failed to update enhanced bitmap display")
-                  end
-                else
-                  renoise.app():show_warning("Failed to create enhanced bitmap")
-                end
-              else
-                renoise.app():show_warning("No sample data for enhanced visualization")
-              end
-            end
-          },
-          ]]--
-          vb:button{
-            text = "Save File",
-            width = 80,
-            tooltip = "Save current visualization as BMP file to disk",
-            notifier = function()
-              if current_bitmap then
-                local filename = string.format("sample_%s_%d", 
-                  sample.name:gsub("[^%w_-]", "_"), 
-                  os.time())
-                
-                -- Use integrated BMPSave function
-                local success, saved_filename, saved_path = saveAndDisplayBitmap(current_bitmap, filename, nil)
-                if success then
-                  last_saved_file = saved_filename
-                  last_saved_path = saved_path
-                  vb.views.save_path_text.text = string.format("Save Path: %s\nLast Saved: %s", saved_path or "Unknown", saved_filename)
-                  renoise.app():show_status(string.format("Bitmap saved as %s", saved_filename))
-                  print(string.format("-- Paketti Sample Visualizer: Saved bitmap as %s in %s", saved_filename, saved_path or "unknown location"))
-                else
-                  renoise.app():show_warning("Failed to save bitmap file")
-                  print("-- Paketti Sample Visualizer: Failed to save bitmap file")
-                end
-              else
-                renoise.app():show_warning("No bitmap to save")
-              end
-            end
-          },
-          
-          vb:button{
-            text = "Open Path",
-            width = 80,
-            tooltip = "Open folder containing saved BMP files in your file explorer",
-            notifier = function()
-              if last_saved_path and last_saved_path ~= "" then
-                -- Try to open the directory in file explorer
-                local command = ""
-                if os.platform then
-                  if os.platform() == "WINDOWS" then
-                    command = string.format('start "" "%s"', last_saved_path)
-                  elseif os.platform() == "MACINTOSH" then
-                    command = string.format('open "%s"', last_saved_path)
-                  else -- Linux
-                    command = string.format('xdg-open "%s"', last_saved_path)
-                  end
-                else
-                  -- Fallback detection
-                  if package.config:sub(1,1) == '\\' then
-                    -- Windows
-                    command = string.format('start "" "%s"', last_saved_path)
-                  else
-                    -- Unix-like (macOS/Linux)
-                    command = string.format('open "%s" 2>/dev/null || xdg-open "%s"', last_saved_path, last_saved_path)
-                  end
-                end
-                
-                if command ~= "" then
-                  os.execute(command)
-                  renoise.app():show_status(string.format("Opened directory: %s", last_saved_path))
-                  print(string.format("-- Paketti Sample Visualizer: Opened directory: %s", last_saved_path))
-                else
-                  renoise.app():show_warning("Cannot open directory on this platform")
-                end
-              else
-                renoise.app():show_warning("No saved files yet - save a file first, then use Open Path")
-              end
-            end
-          },
-          
-          vb:button{
+          sample_viz_vb:button{
             text = "Close",
             width = 80,
             tooltip = "Close the sample visualizer dialog",
             notifier = function()
+              cleanup_sample_viz_observables()
               sample_viz_dialog:close()
+              sample_viz_dialog = nil
+              sample_viz_vb = nil
             end
           }
         }
@@ -1006,27 +1126,27 @@ function pakettiSampleVisualizerDialog()
     }
   )
   
-  print("-- Paketti Sample Visualizer: Dialog opened")
-  print(string.format("-- Paketti Sample Visualizer: Created %dx%d bitmap for sample '%s'", 
-    bitmap_width, bitmap_height, sample.name))
-  print("-- Paketti Sample Visualizer: Displaying bitmap directly in dialog (Renoise supports BMP/PNG/TIF)")
+  -- Set up automatic updates via observables
+  setup_sample_viz_observables()
   
-  -- Show save path info
-  print(string.format("-- Paketti Sample Visualizer: BMP files will be saved to: %s", initial_path or "Unknown"))
+  -- Initial refresh to populate dropdown and ensure everything is up to date
+  refresh_sample_visualization()
   
-  -- Show bitmap info
-  local bitmap_info = BMPGetInfo(current_bitmap)
-  if bitmap_info then
-    print(string.format("-- Paketti Sample Visualizer: Bitmap info - %d total pixels, %d bytes", 
-      bitmap_info.pixels, bitmap_info.size_bytes))
-  end
+  print("-- Paketti Sample Visualizer: Canvas-based dialog opened with auto-updates")
+  print(string.format("-- Paketti Sample Visualizer: Created %dx%d canvas visualization for sample '%s'", 
+    sample_viz_canvas_width, sample_viz_canvas_height, sample.name))
+  print("-- Paketti Sample Visualizer: Using real-time canvas rendering with observable-based auto-updates")
+  
+  -- Show canvas info
+  print(string.format("-- Paketti Sample Visualizer: Canvas displays waveform with %d cached sample points", 
+    sample_viz_waveform_cache and #sample_viz_waveform_cache or 0))
 end
 
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Xperimental/Work in Progress:Visualize Sample (Bitmap)",invoke = pakettiSampleVisualizerDialog}
-renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Xperimental/Work in Progress:Visualize Sample (Bitmap)",invoke = pakettiSampleVisualizerDialog}
-renoise.tool():add_menu_entry{name = "--Sample Editor Ruler:Visualize Sample (Bitmap)",invoke = pakettiSampleVisualizerDialog}
-renoise.tool():add_keybinding{name = "Global:Paketti:Sample Visualizer (Bitmap)",invoke = pakettiSampleVisualizerDialog}
-renoise.tool():add_midi_mapping{name = "Paketti:Sample Visualizer (Bitmap)",invoke = function(message) if message:is_trigger() then pakettiSampleVisualizerDialog() end  end}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Xperimental/Work in Progress:Visualize Sample (Canvas)",invoke = pakettiSampleVisualizerDialog}
+renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Xperimental/Work in Progress:Visualize Sample (Canvas)",invoke = pakettiSampleVisualizerDialog}
+renoise.tool():add_menu_entry{name = "--Sample Editor Ruler:Visualize Sample (Canvas)",invoke = pakettiSampleVisualizerDialog}
+renoise.tool():add_keybinding{name = "Global:Paketti:Sample Visualizer (Canvas)",invoke = pakettiSampleVisualizerDialog}
+renoise.tool():add_midi_mapping{name = "Paketti:Sample Visualizer (Canvas)",invoke = function(message) if message:is_trigger() then pakettiSampleVisualizerDialog() end  end}
 
 -- ======================================
 -- Paketti Instrument MetaInfo
