@@ -3730,6 +3730,13 @@ function PakettiDuplicateInstrumentSamplesWithTranspose(transpose_amount)
       end
     end
   end
+  
+  -- Check if this specific transpose already exists
+  local requested_transpose = (transpose_amount >= 0 and "+" or "") .. transpose_amount
+  if seen_transposes[requested_transpose] then
+    renoise.app():show_status(string.format("Samples with transpose %s already exist.", requested_transpose))
+    return
+  end
 
   -- Calculate volume reduction (gradual curve to -9dB at 6 sets)
   local new_total_sets = processed_sets + 1

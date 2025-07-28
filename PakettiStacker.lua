@@ -1,7 +1,267 @@
 local dialog = nil
 local dialog_content = nil
 local steppers_expanded = false  -- Track steppers section visibility
+local volumeSliderWidth = 314
 
+-- Volume Canvas Variables (for v6.2+ API)
+local volume_canvas = nil
+local volume_canvas_width = 400
+local volume_canvas_height = 150
+local volume_bars = {-36, -24, -12, 0, 12, 24, 36}
+local volume_values = {1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0}  -- Default volumes
+local mouse_is_down = false
+local canvas_content_margin = 10
+
+-- No debug mode - show canvas for v6.2+, sliders for older versions
+
+-- API Version Detection
+local function is_canvas_api_available()
+  return renoise.API_VERSION >= 6.2
+end
+
+-- Volume dB conversion
+local function linear_to_db(linear_value)
+  if linear_value <= 0 then
+    return "INF"  -- Return string for -infinity
+  else
+    return string.format("%.2f", 20 * math.log10(linear_value))
+  end
+end
+
+-- Volume label text elements (for legacy slider mode)
+local volume_labels = {}
+
+-- Volume slider elements (for direct access)
+local volume_sliders = {}
+
+-- Track which transpose levels have samples available
+local transpose_availability = {false, false, false, false, false, false, false}  -- -36, -24, -12, 0, +12, +24, +36
+
+-- Observable for instrument changes
+local instrument_observable = nil
+
+-- User preference for volume controls (for v6.2+ users)
+local prefer_sliders_over_canvas = false
+
+-- Check which transpose levels have samples
+local function update_transpose_availability()
+  local song = renoise.song()
+  local instrument = song.selected_instrument
+  
+  if not instrument then
+    -- Reset all to false if no instrument
+    for i = 1, 7 do
+      transpose_availability[i] = false
+    end
+    return
+  end
+  
+  -- Reset availability
+  for i = 1, 7 do
+    transpose_availability[i] = false
+  end
+  
+  -- Check for original samples (transpose 0)
+  for _, sample in ipairs(instrument.samples) do
+    if not sample.name:match("PakettiProcessed[%+%-]%d+") then
+      transpose_availability[4] = true  -- Index 4 = transpose 0
+      break
+    end
+  end
+  
+  -- Check for processed samples
+  for _, sample in ipairs(instrument.samples) do
+    if sample.name:find("PakettiProcessed-36", 1, true) then
+      transpose_availability[1] = true  -- Index 1 = -36
+    elseif sample.name:find("PakettiProcessed-24", 1, true) then
+      transpose_availability[2] = true  -- Index 2 = -24
+    elseif sample.name:find("PakettiProcessed-12", 1, true) then
+      transpose_availability[3] = true  -- Index 3 = -12
+    elseif sample.name:find("PakettiProcessed+12", 1, true) then
+      transpose_availability[5] = true  -- Index 5 = +12
+    elseif sample.name:find("PakettiProcessed+24", 1, true) then
+      transpose_availability[6] = true  -- Index 6 = +24
+    elseif sample.name:find("PakettiProcessed+36", 1, true) then
+      transpose_availability[7] = true  -- Index 7 = +36
+    end
+  end
+end
+
+-- Update volume controls when instrument changes
+local function update_volume_controls_for_instrument()
+  local song = renoise.song()
+  local instrument = song.selected_instrument
+  
+  if not instrument then
+    return
+  end
+  
+  -- Read actual sample volumes from the current instrument and update volume_values
+  for i = 1, 7 do
+    local transpose_value = volume_bars[i]
+    local found_volume = 1.0  -- Default
+    
+    if transpose_value == 0 then
+      -- Handle original samples (no PakettiProcessed in name)
+      for _, sample in ipairs(instrument.samples) do
+        if not sample.name:match("PakettiProcessed[%+%-]%d+") then
+          found_volume = sample.volume
+          break
+        end
+      end
+    else
+      -- Handle transposed samples (with PakettiProcessed pattern)
+      local transpose_pattern = "PakettiProcessed" .. (transpose_value >= 0 and "+" or "") .. transpose_value
+      
+      for _, sample in ipairs(instrument.samples) do
+        if sample.name:find(transpose_pattern, 1, true) then
+          found_volume = sample.volume
+          break
+        end
+      end
+    end
+    
+    volume_values[i] = found_volume
+  end
+  
+  if is_canvas_api_available() and not prefer_sliders_over_canvas then
+    update_transpose_availability()
+    if volume_canvas then
+      volume_canvas:update()
+    end
+  end
+  
+  -- Update slider labels to match actual volumes (if sliders are visible)
+  if (not is_canvas_api_available() or prefer_sliders_over_canvas) and volume_labels and #volume_labels > 0 then
+    for i = 1, 7 do
+      if volume_labels[i] then
+        local db_val = linear_to_db(volume_values[i])
+        volume_labels[i].text = db_val == "INF" and "-INF" or (db_val .. "dB")
+      end
+    end
+  end
+end
+
+-- Volume Canvas Drawing Function
+function PakettiStackerDrawVolumeCanvas(ctx)
+  local w, h = volume_canvas_width, volume_canvas_height
+  
+  -- Clear canvas
+  ctx:clear_rect(0, 0, w, h)
+  
+  -- Calculate bar dimensions
+  local bar_width = (w - canvas_content_margin * 2) / #volume_bars
+  local bar_height = h - canvas_content_margin * 2
+  
+  for i, transpose_value in ipairs(volume_bars) do
+    local x = canvas_content_margin + (i - 1) * bar_width
+    local y = canvas_content_margin
+    local volume = volume_values[i]
+    local is_available = transpose_availability[i]
+    
+    -- Draw bar background (changes based on availability)
+    if is_available then
+      ctx.fill_color = {64, 32, 96, 255}  -- Deep purple background for available
+    else
+      ctx.fill_color = {32, 32, 32, 255}  -- Dark background for unavailable
+    end
+    ctx:fill_rect(x + 2, y, bar_width - 4, bar_height)
+    
+    -- Draw volume level (bright, only if samples are available)
+    if is_available then
+      local fill_height = bar_height * volume
+      local fill_y = y + bar_height - fill_height
+      
+      -- Color based on transpose value (brighter when available)
+      if transpose_value < 0 then
+        ctx.fill_color = {255, 100, 100, 255}  -- Red for negative
+      elseif transpose_value == 0 then
+        ctx.fill_color = {100, 255, 100, 255}  -- Green for original
+      else
+        ctx.fill_color = {100, 100, 255, 255}  -- Blue for positive
+      end
+      
+      ctx:fill_rect(x + 2, fill_y, bar_width - 4, fill_height)
+    end
+    
+    -- Draw bar outline (changes based on availability)
+    if is_available then
+      ctx.stroke_color = {160, 120, 200, 255}  -- Lighter purple outline for available
+    else
+      ctx.stroke_color = {80, 80, 80, 255}     -- Darker outline for unavailable
+    end
+    ctx.line_width = 1
+    ctx:stroke_rect(x + 2, y, bar_width - 4, bar_height)
+    
+    -- Draw transpose label (brighter if available)
+    if is_available then
+      ctx.stroke_color = {255, 255, 255, 255}  -- Bright white for available
+    else
+      ctx.stroke_color = {128, 128, 128, 255}  -- Dimmed for unavailable
+    end
+    ctx.line_width = 1
+    local label_x = x + bar_width / 2 - 8
+    local label_y = y + bar_height + 15
+    
+    -- Simple text rendering using lines (since we can't use real text)
+    local label = tostring(transpose_value)
+    if transpose_value > 0 then label = "+" .. label end
+    -- Draw simple tick mark for now
+    ctx:begin_path()
+    ctx:move_to(label_x, label_y - 5)
+    ctx:line_to(label_x, label_y + 5)
+    ctx:stroke()
+  end
+end
+
+-- Volume Canvas Mouse Handler
+function PakettiStackerHandleVolumeMouse(ev)
+  local w, h = volume_canvas_width, volume_canvas_height
+  
+  if ev.type == "down" then
+    mouse_is_down = true
+  elseif ev.type == "up" then
+    mouse_is_down = false
+    return
+  elseif ev.type == "exit" then
+    mouse_is_down = false
+    return
+  end
+  
+  if mouse_is_down or ev.type == "down" then
+    local bar_width = (w - canvas_content_margin * 2) / #volume_bars
+    local bar_height = h - canvas_content_margin * 2
+    
+    -- Find which bar was clicked
+    local bar_index = math.floor((ev.position.x - canvas_content_margin) / bar_width) + 1
+    
+    if bar_index >= 1 and bar_index <= #volume_bars then
+      -- Calculate volume based on Y position
+      local y_in_bar = ev.position.y - canvas_content_margin
+      local volume = 1.0 - (y_in_bar / bar_height)
+      volume = math.max(0.0, math.min(1.0, volume))  -- Clamp 0-1
+      
+      -- Update volume value
+      volume_values[bar_index] = volume
+      
+      -- Update the corresponding sample volumes
+      local transpose_value = volume_bars[bar_index]
+      set_volume_for_transpose(transpose_value, volume)
+      
+      -- Update volume labels  
+      if volume_labels[bar_index] then
+        local db_val = linear_to_db(volume)
+        volume_labels[bar_index].text = db_val == "INF" and "-INF" or (db_val .. "dB")
+      end
+      
+      -- Update availability and refresh canvas
+      update_transpose_availability()
+      if volume_canvas then
+        volume_canvas:update()
+      end
+    end
+  end
+end
 
 function returnpe()
     renoise.app().window.active_middle_frame=renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
@@ -41,6 +301,45 @@ function set_loop_mode_for_selected_instrument(loop_mode)
   local mode_name = loop_mode_names[loop_mode] or "Unknown"
   renoise.app():show_status("Loop mode set to " .. mode_name .. " for " .. num_samples .. " samples.")
   --returnpe()
+end
+
+-- Function to set loop length for all samples in the selected instrument
+function set_loop_length_for_selected_instrument(length_type)
+  local song = renoise.song()
+  local instrument = song.selected_instrument
+  
+  if not instrument then
+    renoise.app():show_status("No instrument selected.")
+    return
+  end
+  
+  if #instrument.samples == 0 then
+    renoise.app():show_status("No samples in the selected instrument.")
+    return
+  end
+  
+  local samples_processed = 0
+  
+  for _, sample in ipairs(instrument.samples) do
+    if sample.sample_buffer.has_sample_data then
+      local total_frames = sample.sample_buffer.number_of_frames
+      
+      if length_type == "full" then
+        -- Set loop to full sample (first frame to last frame)
+        sample.loop_start = 1
+        sample.loop_end = total_frames
+      elseif length_type == "half" then
+        -- Set loop to second half of sample (half point to end)
+        local half_point = math.floor(total_frames / 2)
+        sample.loop_start = half_point
+        sample.loop_end = total_frames
+      end
+      
+      samples_processed = samples_processed + 1
+    end
+  end
+  
+  renoise.app():show_status(string.format("Loop length set to %s for %d samples.", length_type, samples_processed))
 end
 
 -- Fix velocity mappings of all samples in the selected instrument and disable vel->vol
@@ -341,20 +640,34 @@ function set_volume_for_transpose(transpose_value, volume)
     return
   end
   
-  -- Build the PakettiProcessed pattern that matches PakettiSamples.lua naming
-  local transpose_pattern = "PakettiProcessed" .. (transpose_value >= 0 and "+" or "") .. transpose_value
-  
   local affected_count = 0
-  for _, sample in ipairs(instrument.samples) do
-    -- Check if sample name contains the PakettiProcessed transpose pattern
-    if sample.name:find(transpose_pattern, 1, true) then -- true = plain text search, not pattern
-      sample.volume = volume
-      affected_count = affected_count + 1
-    end
-  end
   
-  if affected_count > 0 then
-    renoise.app():show_status(string.format("Set volume %.2f for %d samples with %s", volume, affected_count, transpose_pattern))
+  if transpose_value == 0 then
+    -- Handle original samples (no PakettiProcessed in name)
+    for _, sample in ipairs(instrument.samples) do
+      if not sample.name:match("PakettiProcessed[%+%-]%d+") then
+        sample.volume = volume
+        affected_count = affected_count + 1
+      end
+    end
+    
+    if affected_count == 0 then
+      renoise.app():show_status("No original samples found")
+    end
+  else
+    -- Handle transposed samples (with PakettiProcessed pattern)
+    local transpose_pattern = "PakettiProcessed" .. (transpose_value >= 0 and "+" or "") .. transpose_value
+    
+    for _, sample in ipairs(instrument.samples) do
+      if sample.name:find(transpose_pattern, 1, true) then -- true = plain text search, not pattern
+        sample.volume = volume
+        affected_count = affected_count + 1
+      end
+    end
+    
+    if affected_count == 0 then
+      renoise.app():show_status(string.format("No samples found with pattern '%s'", transpose_pattern))
+    end
   end
 end
 
@@ -396,7 +709,6 @@ end
 
 function pakettiStackerDialog(proceed_with_stacking, on_switch_changed, PakettiIsolateSlicesToInstrument)
   if dialog and dialog.visible then
-    print ("BLAA")
   dialog:close()
   dialog = nil
   dialog_content = nil
@@ -419,16 +731,242 @@ function pakettiStackerDialog(proceed_with_stacking, on_switch_changed, PakettiI
     end
   end
 
-  -- Steppers integration temporarily removed to fix ViewBuilder conflicts
+  -- Create volume canvas (if v6.2+ API available and user doesn't prefer sliders)
+  if is_canvas_api_available() then
+    volume_canvas = vb:canvas{
+      width = volume_canvas_width,
+      height = volume_canvas_height,
+      mode = "plain",
+      render = PakettiStackerDrawVolumeCanvas,
+      mouse_handler = PakettiStackerHandleVolumeMouse,
+      mouse_events = {"down", "up", "move", "exit"}
+    }
+  end
+  
+  -- Create volume label text elements (always needed for slider functionality)
+  for i = 1, 7 do
+    local db_val = linear_to_db(volume_values[i])
+    volume_labels[i] = vb:text{
+      text = db_val == "INF" and "-INF" or (db_val .. "dB"),
+      font = "mono",
+      width = 60
+    }
+  end
+
+  -- Create steppers UI elements without IDs to avoid conflicts
+  local steppers_toggle_button = vb:button{
+    text = "▴", -- Start collapsed
+    width = 22,
+    notifier = function()
+      steppers_expanded = not steppers_expanded
+      update_steppers_visibility()
+    end
+  }
+  
+  local steppers_content_column = vb:column{
+    style = "group",
+    margin = 6,
+    visible = false, -- Start hidden
+    
+    -- Include the Paketti Steppers dialog content using DRY principle
+    PakettiCreateStepperDialogContent(vb)
+  }
+  
+  -- Function to update steppers section visibility
+  function update_steppers_visibility()
+    steppers_content_column.visible = steppers_expanded
+    steppers_toggle_button.text = steppers_expanded and "▾" or "▴"
+  end
+
+  -- Create volume control elements first
+  local canvas_title_button, canvas_row, slider_title_button, slider_rows
+
+  -- Initialize volume values by reading actual sample volumes
+  update_volume_controls_for_instrument()
+
+  -- Create notifier functions for volume sliders
+  local function create_volume_notifier(transpose_value, label_index)
+    return function(value)
+      -- Update the volume_values array
+      volume_values[label_index] = value
+      
+      -- Update sample volume
+      set_volume_for_transpose(transpose_value, value)
+      
+      -- Update volume label
+      if volume_labels[label_index] then
+        local db_val = linear_to_db(value)
+        volume_labels[label_index].text = db_val == "INF" and "-INF" or (db_val .. "dB")
+      end
+      
+      -- Update canvas if available and update transpose availability  
+      if is_canvas_api_available() then
+        update_transpose_availability()
+        if volume_canvas then
+          volume_canvas:update()
+        end
+      end
+    end
+  end
+
+  if is_canvas_api_available() then
+    canvas_title_button = vb:button{
+      text="Transpose Volume Bars - Click to Switch to Sliders",
+      width=400,
+      notifier=function() 
+        canvas_title_button.visible = false
+        canvas_row.visible = false
+        slider_title_button.visible = true
+        for _, row in ipairs(slider_rows) do
+          row.visible = true
+        end
+        -- Update slider values and labels to match current volume_values
+        for i = 1, 7 do
+          if volume_sliders[i] then
+            volume_sliders[i].value = volume_values[i]
+          end
+          if volume_labels[i] then
+            local db_val = linear_to_db(volume_values[i])
+            volume_labels[i].text = db_val == "INF" and "-INF" or (db_val .. "dB")
+          end
+        end
+      end
+    }
+    
+    canvas_row = vb:row{volume_canvas}
+    
+    slider_title_button = vb:button{
+      text="Transpose Volume Sliders - Click to Switch to Canvas", 
+      width=400,
+      visible=false,
+      notifier=function()
+        canvas_title_button.visible = true
+        canvas_row.visible = true
+        slider_title_button.visible = false
+        for _, row in ipairs(slider_rows) do
+          row.visible = false
+        end
+        -- Update canvas to reflect current volume_values
+        update_transpose_availability()
+        if volume_canvas then
+          volume_canvas:update()
+        end
+      end
+    }
+    
+    -- Create slider elements and store references
+    volume_sliders[1] = vb:slider{min=0, max=1, value=volume_values[1], width=volumeSliderWidth, notifier=create_volume_notifier(-36, 1)}
+    volume_sliders[2] = vb:slider{min=0, max=1, value=volume_values[2], width=volumeSliderWidth, notifier=create_volume_notifier(-24, 2)}
+    volume_sliders[3] = vb:slider{min=0, max=1, value=volume_values[3], width=volumeSliderWidth, notifier=create_volume_notifier(-12, 3)}
+    volume_sliders[4] = vb:slider{min=0, max=1, value=volume_values[4], width=volumeSliderWidth, notifier=create_volume_notifier(0, 4)}
+    volume_sliders[5] = vb:slider{min=0, max=1, value=volume_values[5], width=volumeSliderWidth, notifier=create_volume_notifier(12, 5)}
+    volume_sliders[6] = vb:slider{min=0, max=1, value=volume_values[6], width=volumeSliderWidth, notifier=create_volume_notifier(24, 6)}
+    volume_sliders[7] = vb:slider{min=0, max=1, value=volume_values[7], width=volumeSliderWidth, notifier=create_volume_notifier(36, 7)}
+    
+    slider_rows = {
+      vb:row{
+        vb:text{text="-36", font="mono", width=25},
+        volume_sliders[1],
+        volume_labels[1],
+        visible=false
+      },
+      vb:row{
+        vb:text{text="-24", font="mono", width=25},
+        volume_sliders[2],
+        volume_labels[2],
+        visible=false
+      },
+      vb:row{
+        vb:text{text="-12", font="mono", width=25},
+        volume_sliders[3],
+        volume_labels[3],
+        visible=false
+      },
+      vb:row{
+        vb:text{text=" 0 ", font="mono", width=25},
+        volume_sliders[4],
+        volume_labels[4],
+        visible=false
+      },
+      vb:row{
+        vb:text{text="+12", font="mono", width=25},
+        volume_sliders[5],
+        volume_labels[5],
+        visible=false
+      },
+      vb:row{
+        vb:text{text="+24", font="mono", width=25},
+        volume_sliders[6],
+        volume_labels[6],
+        visible=false
+      },
+      vb:row{
+        vb:text{text="+36", font="mono", width=25},
+        volume_sliders[7],
+        volume_labels[7],
+        visible=false
+      }
+    }
+  else
+    -- Legacy API - no toggle functionality  
+    slider_title_button = vb:text{text="Transpose Volume Sliders",width=200,font="bold",style="strong"}
+    
+    -- Create slider elements and store references  
+    volume_sliders[1] = vb:slider{min=0, max=1, value=volume_values[1], width=volumeSliderWidth, notifier=create_volume_notifier(-36, 1)}
+    volume_sliders[2] = vb:slider{min=0, max=1, value=volume_values[2], width=volumeSliderWidth, notifier=create_volume_notifier(-24, 2)}
+    volume_sliders[3] = vb:slider{min=0, max=1, value=volume_values[3], width=volumeSliderWidth, notifier=create_volume_notifier(-12, 3)}
+    volume_sliders[4] = vb:slider{min=0, max=1, value=volume_values[4], width=volumeSliderWidth, notifier=create_volume_notifier(0, 4)}
+    volume_sliders[5] = vb:slider{min=0, max=1, value=volume_values[5], width=volumeSliderWidth, notifier=create_volume_notifier(12, 5)}
+    volume_sliders[6] = vb:slider{min=0, max=1, value=volume_values[6], width=volumeSliderWidth, notifier=create_volume_notifier(24, 6)}
+    volume_sliders[7] = vb:slider{min=0, max=1, value=volume_values[7], width=volumeSliderWidth, notifier=create_volume_notifier(36, 7)}
+    
+    slider_rows = {
+      vb:row{
+        vb:text{text="-36", font="mono", width=25},
+        volume_sliders[1],
+        volume_labels[1]
+      },
+      vb:row{
+        vb:text{text="-24", font="mono", width=25},
+        volume_sliders[2],
+        volume_labels[2]
+      },
+      vb:row{
+        vb:text{text="-12", font="mono", width=25},
+        volume_sliders[3],
+        volume_labels[3]
+      },
+      vb:row{
+        vb:text{text=" 0 ", font="mono", width=25},
+        volume_sliders[4],
+        volume_labels[4]
+      },
+      vb:row{
+        vb:text{text="+12", font="mono", width=25},
+        volume_sliders[5],
+        volume_labels[5]
+      },
+      vb:row{
+        vb:text{text="+24", font="mono", width=25},
+        volume_sliders[6],
+        volume_labels[6]
+      },
+      vb:row{
+        vb:text{text="+36", font="mono", width=25},
+        volume_sliders[7],
+        volume_labels[7]
+      }
+    }
+  end
 
   -- Dialog Content Definition
   local dialog_content = vb:column{
-    vb:row{vb:button{text="Browse",notifier=function() pitchBendMultipleSampleLoader() end}},
+    vb:row{vb:button{text="Load Sample to Stack",width=400,notifier=function() pitchBendMultipleSampleLoader() end}},
     vb:row{vb:text{text="Set Slice Count",width=100,style = "strong",font = "bold"},
 vb:switch {
 --  id="wipeslice",
   items = switch_values,
-  width=250,
+  width=300,
   value = switch_index,
   notifier=function(index)
     local selected_value = switch_values[index]
@@ -444,7 +982,7 @@ vb:switch {
    vb:row{
         vb:button{
             text="Proceed with Stacking",
-            width=150,
+            width=200,
             notifier=function()
                 proceed_with_stacking()
                 returnpe() 
@@ -452,7 +990,7 @@ vb:switch {
         },
         vb:button{
             text="Auto Stack from Pattern",
-            width=150,
+            width=200,
             notifier=function()
                 auto_stack_from_existing_pattern()
             end
@@ -460,32 +998,40 @@ vb:switch {
     },
     
     vb:row{vb:text{text="Stack Ramp",width=100,font = "bold",style = "strong",},
-      vb:button{text="Up",notifier=function() write_velocity_ramp_up()
+      vb:button{text="Up",width=100,notifier=function() write_velocity_ramp_up()
       returnpe() end},
       vb:button{
         text="Down",
+        width=100,
         notifier=function() write_velocity_ramp_down() 
         returnpe() end},
       vb:button{
         text="Random",
+        width=100,
         notifier=function() write_random_velocity_notes() 
         returnpe() end}},
+-- Loop Length Controls  
+vb:row{vb:text{text="Loop Length",width=100, style="strong",font="bold"},
+vb:button{text="Full",width=150,notifier=function() set_loop_length_for_selected_instrument("full") end},
+vb:button{text="Half",width=150,notifier=function() set_loop_length_for_selected_instrument("half") end}
+},        
 vb:row{vb:text{text="Set Loop Mode",width=100, style="strong",font="bold"},
-vb:button{text="Off",notifier=function() set_loop_mode_for_selected_instrument(renoise.Sample.LOOP_MODE_OFF) end},
-vb:button{text="Forward",notifier=function() set_loop_mode_for_selected_instrument(renoise.Sample.LOOP_MODE_FORWARD) end},
-vb:button{text="PingPong",notifier=function() set_loop_mode_for_selected_instrument(renoise.Sample.LOOP_MODE_PING_PONG) end},
-vb:button{text="Reverse",notifier=function() set_loop_mode_for_selected_instrument(renoise.Sample.LOOP_MODE_REVERSE)end}
+vb:button{text="Off",width=75,notifier=function() set_loop_mode_for_selected_instrument(renoise.Sample.LOOP_MODE_OFF) end},
+vb:button{text="Forward",width=75,notifier=function() set_loop_mode_for_selected_instrument(renoise.Sample.LOOP_MODE_FORWARD) end},
+vb:button{text="PingPong",width=75,notifier=function() set_loop_mode_for_selected_instrument(renoise.Sample.LOOP_MODE_PING_PONG) end},
+vb:button{text="Reverse",width=75,notifier=function() set_loop_mode_for_selected_instrument(renoise.Sample.LOOP_MODE_REVERSE)end}
 
 },
+
 vb:row{vb:text{text="PitchStepper",width=100,font="bold",style="strong"},
-vb:button{text="+12 -12",width=50,notifier=function() PakettiFillPitchStepper() end},
-vb:button{text="+24 -24",width=50,notifier=function() PakettiFillPitchStepperTwoOctaves() end},
-vb:button{text="0",width=50,notifier=function() PakettiClearStepper("Pitch Stepper") end},
+vb:button{text="+12 -12",width=100,notifier=function() PakettiFillPitchStepper() end},
+vb:button{text="+24 -24",width=100,notifier=function() PakettiFillPitchStepperTwoOctaves() end},
+vb:button{text="0",width=100,notifier=function() PakettiClearStepper("Pitch Stepper") end},
 },
 vb:row{
 vb:text{text="Instrument Pitch",width=100,font="bold",style="strong"},
 vb:switch {
-  width=250,
+  width=300,
 --  id = "instrument_pitch",
   items = {"-24", "-12", "0", "+12", "+24"},
   value = 3,
@@ -500,7 +1046,7 @@ vb:switch {
 }},
 vb:row{
   vb:button{
-    text="Follow Pattern",
+    text="Follow Pattern",width=160,
     notifier=function()
       if renoise.song().transport.follow_player then
         renoise.song().transport.follow_player = false
@@ -508,50 +1054,92 @@ vb:row{
         renoise.song().transport.follow_player = true
       end
     returnpe() end},
-   vb:button{text="1/8", notifier=function() jump_to_pattern_segment(1) end},
-   vb:button{text="2/8", notifier=function() jump_to_pattern_segment(2) end},
-   vb:button{text="3/8", notifier=function() jump_to_pattern_segment(3) end},
-   vb:button{text="4/8", notifier=function() jump_to_pattern_segment(4) end},
-   vb:button{text="5/8", notifier=function() jump_to_pattern_segment(5) end},
-   vb:button{text="6/8", notifier=function() jump_to_pattern_segment(6) end},
-   vb:button{text="7/8", notifier=function() jump_to_pattern_segment(7) end},
-   vb:button{text="8/8", notifier=function() jump_to_pattern_segment(8) end}},
+   vb:button{text="1/8", width=30,notifier=function() jump_to_pattern_segment(1) end},
+   vb:button{text="2/8", width=30,notifier=function() jump_to_pattern_segment(2) end},
+   vb:button{text="3/8", width=30,notifier=function() jump_to_pattern_segment(3) end},
+   vb:button{text="4/8", width=30,notifier=function() jump_to_pattern_segment(4) end},
+   vb:button{text="5/8", width=30,notifier=function() jump_to_pattern_segment(5) end},
+   vb:button{text="6/8", width=30,notifier=function() jump_to_pattern_segment(6) end},
+   vb:button{text="7/8", width=30,notifier=function() jump_to_pattern_segment(7) end},
+   vb:button{text="8/8", width=30,notifier=function() jump_to_pattern_segment(8) end}},
 
 -- Sample Duplication with Transpose
-vb:row{vb:text{text="Duplicate Samples",width=100,font="bold",style="strong"}},
-vb:row{
-  vb:button{text="-36",width=40,notifier=function() PakettiDuplicateInstrumentSamplesWithTranspose(-36) end},
-  vb:button{text="-24",width=40,notifier=function() PakettiDuplicateInstrumentSamplesWithTranspose(-24) end},
-  vb:button{text="-12",width=40,notifier=function() PakettiDuplicateInstrumentSamplesWithTranspose(-12) end},
-  vb:button{text="+12",width=40,notifier=function() PakettiDuplicateInstrumentSamplesWithTranspose(12) end},
-  vb:button{text="+24",width=40,notifier=function() PakettiDuplicateInstrumentSamplesWithTranspose(24) end},
-  vb:button{text="+36",width=40,notifier=function() PakettiDuplicateInstrumentSamplesWithTranspose(36) end}
+vb:row{vb:text{text="Duplicate Samples",width=130,font="bold",style="strong"},
+  vb:button{text="-36",width=45,notifier=function() PakettiDuplicateInstrumentSamplesWithTranspose(-36); if is_canvas_api_available() then update_transpose_availability(); if volume_canvas then volume_canvas:update() end end end},
+  vb:button{text="-24",width=45,notifier=function() PakettiDuplicateInstrumentSamplesWithTranspose(-24); if is_canvas_api_available() then update_transpose_availability(); if volume_canvas then volume_canvas:update() end end end},
+  vb:button{text="-12",width=45,notifier=function() PakettiDuplicateInstrumentSamplesWithTranspose(-12); if is_canvas_api_available() then update_transpose_availability(); if volume_canvas then volume_canvas:update() end end end},
+  vb:button{text="+12",width=45,notifier=function() PakettiDuplicateInstrumentSamplesWithTranspose(12); if is_canvas_api_available() then update_transpose_availability(); if volume_canvas then volume_canvas:update() end end end},
+  vb:button{text="+24",width=45,notifier=function() PakettiDuplicateInstrumentSamplesWithTranspose(24); if is_canvas_api_available() then update_transpose_availability(); if volume_canvas then volume_canvas:update() end end end},
+  vb:button{text="+36",width=45,notifier=function() PakettiDuplicateInstrumentSamplesWithTranspose(36); if is_canvas_api_available() then update_transpose_availability(); if volume_canvas then volume_canvas:update() end end end}
 },
 
--- Volume Controls for Transposed Samples
-vb:row{vb:text{text="Transpose Volumes",width=100,font="bold",style="strong"}},
+-- Volume controls  
+is_canvas_api_available() and canvas_title_button or vb:space{},
+is_canvas_api_available() and canvas_row or vb:space{},
+slider_title_button,
+slider_rows[1],
+slider_rows[2], 
+slider_rows[3],
+slider_rows[4],
+slider_rows[5],
+slider_rows[6],
+slider_rows[7],
+
+-- Expandable Paketti Steppers Section
 vb:row{
-  vb:text{text="-36:",width=25},
-  vb:slider{min=0,max=1,value=1,width=60,notifier=function(value) set_volume_for_transpose(-36,value) end},
-  vb:text{text="-24:",width=25},
-  vb:slider{min=0,max=1,value=1,width=60,notifier=function(value) set_volume_for_transpose(-24,value) end},
-  vb:text{text="-12:",width=25},
-  vb:slider{min=0,max=1,value=1,width=60,notifier=function(value) set_volume_for_transpose(-12,value) end}
+  steppers_toggle_button,
+  vb:text{
+    text = "Show Paketti Steppers Dialog Content",
+    style = "strong",
+    font = "bold",
+    width = 300
+  }
 },
-vb:row{
-  vb:text{text="+12:",width=25},
-  vb:slider{min=0,max=1,value=1,width=60,notifier=function(value) set_volume_for_transpose(12,value) end},
-  vb:text{text="+24:",width=25},
-  vb:slider{min=0,max=1,value=1,width=60,notifier=function(value) set_volume_for_transpose(24,value) end},
-  vb:text{text="+36:",width=25},
-  vb:slider{min=0,max=1,value=1,width=60,notifier=function(value) set_volume_for_transpose(36,value) end}
-}}
+
+
+-- Collapsible Steppers Content
+steppers_content_column
+}
+  
   -- Show the dialog
   local keyhandler = create_keyhandler_for_dialog(
     function() return dialog end,
     function(value) dialog = value end
   )
   dialog = renoise.app():show_custom_dialog("Paketti Stacker", dialog_content, keyhandler)
+  
+  -- Show which volume control mode is active and initialize
+  if is_canvas_api_available() and not prefer_sliders_over_canvas then
+    renoise.app():show_status("Paketti Stacker: Canvas mode (v6.2+ API) - Click title to switch to sliders")
+    -- Update canvas colors based on available transpose levels
+    update_transpose_availability()
+    if volume_canvas then
+      volume_canvas:update()
+    end
+  elseif is_canvas_api_available() and prefer_sliders_over_canvas then
+    renoise.app():show_status("Paketti Stacker: Slider mode (v6.2+ API, user preference) - Click title to switch to canvas")
+  else
+    renoise.app():show_status("Paketti Stacker: Slider mode (legacy API)")
+  end
+  
+  -- Set up instrument change observer
+  if not instrument_observable then
+    instrument_observable = renoise.song().selected_instrument_index_observable
+    instrument_observable:add_notifier(update_volume_controls_for_instrument)
+  end
+  
+  -- Initialize steppers section visibility
+  update_steppers_visibility()
+  
+  -- Set up dialog close cleanup
+  local original_close = dialog.close
+  dialog.close = function(self)
+    if instrument_observable then
+      pcall(function() instrument_observable:remove_notifier(update_volume_controls_for_instrument) end)
+      instrument_observable = nil
+    end
+    original_close(self)
+  end
 end
 
   function proceed_with_stacking()
@@ -702,8 +1290,6 @@ function auto_stack_from_existing_pattern()
     print("--- Auto Stack Complete ---")
     returnpe()
 end
-
-
 
 function LoadSliceIsolateStack()
   -- Initial Operations
