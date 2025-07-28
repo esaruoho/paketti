@@ -537,7 +537,7 @@ timed_require("PakettiInstrumentBox")        -- 280 lines, 0.50 ms
 timed_require("PakettiYTDLP")               -- 854 lines, 1.00 ms
 timed_require("PakettiStretch")              -- 925 lines, 1.50 ms
 timed_require("PakettiBeatDetect")           -- 396 lines, 1.00 ms
-timed_require("PakettiStacker")              -- 518 lines, 1.00 ms
+--timed_require("PakettiStacker")              -- 518 lines, 1.00 ms
 timed_require("PakettiRecorder")             -- 403 lines, 1.00 ms
 
 timed_require("PakettiFuzzySearchUtil")      -- New fuzzy search utility

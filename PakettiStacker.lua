@@ -1,5 +1,3 @@
-local vb = renoise.ViewBuilder()
-
 local dialog = nil
 local dialog_content = nil
 local steppers_expanded = false  -- Track steppers section visibility
@@ -405,6 +403,8 @@ function pakettiStackerDialog(proceed_with_stacking, on_switch_changed, PakettiI
   return 
   end
 
+  -- Create fresh ViewBuilder instance to avoid ID conflicts
+  local vb = renoise.ViewBuilder()
   
 --  local dialog = nil
 
@@ -419,18 +419,7 @@ function pakettiStackerDialog(proceed_with_stacking, on_switch_changed, PakettiI
     end
   end
 
-  -- Function to update steppers section visibility
-  local function update_steppers_visibility()
-    local steppers_content = vb.views["steppers_content"]
-    if steppers_content then
-      steppers_content.visible = steppers_expanded
-    end
-    
-    local toggle_button = vb.views["steppers_toggle"]
-    if toggle_button then
-      toggle_button.text = steppers_expanded and "▾" or "▴"
-    end
-  end
+  -- Steppers integration temporarily removed to fix ViewBuilder conflicts
 
   -- Dialog Content Definition
   local dialog_content = vb:column{
@@ -528,86 +517,41 @@ vb:row{
    vb:button{text="7/8", notifier=function() jump_to_pattern_segment(7) end},
    vb:button{text="8/8", notifier=function() jump_to_pattern_segment(8) end}},
 
--- Sample Duplication with Transpose (DRY approach)
+-- Sample Duplication with Transpose
 vb:row{vb:text{text="Duplicate Samples",width=100,font="bold",style="strong"}},
-vb:row(function()
-  local buttons = {}
-  local transpose_values = {-36, -24, -12, 12, 24, 36}
-  for _, transpose_value in ipairs(transpose_values) do
-    table.insert(buttons, vb:button{
-      text = string.format("%+d", transpose_value),
-      width = 40,
-      notifier = function() PakettiDuplicateInstrumentSamplesWithTranspose(transpose_value) end
-    })
-  end
-  return buttons
-end()),
+vb:row{
+  vb:button{text="-36",width=40,notifier=function() PakettiDuplicateInstrumentSamplesWithTranspose(-36) end},
+  vb:button{text="-24",width=40,notifier=function() PakettiDuplicateInstrumentSamplesWithTranspose(-24) end},
+  vb:button{text="-12",width=40,notifier=function() PakettiDuplicateInstrumentSamplesWithTranspose(-12) end},
+  vb:button{text="+12",width=40,notifier=function() PakettiDuplicateInstrumentSamplesWithTranspose(12) end},
+  vb:button{text="+24",width=40,notifier=function() PakettiDuplicateInstrumentSamplesWithTranspose(24) end},
+  vb:button{text="+36",width=40,notifier=function() PakettiDuplicateInstrumentSamplesWithTranspose(36) end}
+},
 
--- Volume Controls for Transposed Samples (DRY approach)
+-- Volume Controls for Transposed Samples
 vb:row{vb:text{text="Transpose Volumes",width=100,font="bold",style="strong"}},
-vb:row(function()
-  local controls = {}
-  local transpose_values = {-36, -24, -12}
-  for _, transpose_value in ipairs(transpose_values) do
-    table.insert(controls, vb:text{text = string.format("%+d:", transpose_value), width = 25})
-    table.insert(controls, vb:slider{
-      min = 0, max = 1, value = 1, width = 60,
-      notifier = function(value) set_volume_for_transpose(transpose_value, value) end
-    })
-  end
-  return controls
-end()),
-vb:row(function()
-  local controls = {}
-  local transpose_values = {12, 24, 36}
-  for _, transpose_value in ipairs(transpose_values) do
-    table.insert(controls, vb:text{text = string.format("%+d:", transpose_value), width = 25})
-    table.insert(controls, vb:slider{
-      min = 0, max = 1, value = 1, width = 60,
-      notifier = function(value) set_volume_for_transpose(transpose_value, value) end
-    })
-  end
-  return controls
-end()),
-   
-   -- Expandable Paketti Steppers Section
-   vb:row{
-     vb:button{
-       id = "steppers_toggle",
-       text = "▴", -- Start collapsed
-       width = 22,
-       notifier = function()
-         steppers_expanded = not steppers_expanded
-         update_steppers_visibility()
-       end
-     },
-     vb:text{
-       text = "Show Paketti Steppers Dialog Content",
-       style = "strong",
-       font = "bold",
-       width = 300
-     }
-   },
-   
-   -- Collapsible Steppers Content
-   vb:column{
-     id = "steppers_content",
-     style = "group",
-     margin = 6,
-     visible = false, -- Start hidden
-     
-     -- Include the Paketti Steppers dialog content using DRY principle
-     PakettiCreateStepperDialogContent(vb)
-   }}
+vb:row{
+  vb:text{text="-36:",width=25},
+  vb:slider{min=0,max=1,value=1,width=60,notifier=function(value) set_volume_for_transpose(-36,value) end},
+  vb:text{text="-24:",width=25},
+  vb:slider{min=0,max=1,value=1,width=60,notifier=function(value) set_volume_for_transpose(-24,value) end},
+  vb:text{text="-12:",width=25},
+  vb:slider{min=0,max=1,value=1,width=60,notifier=function(value) set_volume_for_transpose(-12,value) end}
+},
+vb:row{
+  vb:text{text="+12:",width=25},
+  vb:slider{min=0,max=1,value=1,width=60,notifier=function(value) set_volume_for_transpose(12,value) end},
+  vb:text{text="+24:",width=25},
+  vb:slider{min=0,max=1,value=1,width=60,notifier=function(value) set_volume_for_transpose(24,value) end},
+  vb:text{text="+36:",width=25},
+  vb:slider{min=0,max=1,value=1,width=60,notifier=function(value) set_volume_for_transpose(36,value) end}
+}}
   -- Show the dialog
   local keyhandler = create_keyhandler_for_dialog(
     function() return dialog end,
     function(value) dialog = value end
   )
   dialog = renoise.app():show_custom_dialog("Paketti Stacker", dialog_content, keyhandler)
-  
-  -- Initialize steppers section visibility
-  update_steppers_visibility()
 end
 
   function proceed_with_stacking()
