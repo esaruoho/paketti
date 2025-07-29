@@ -63,7 +63,7 @@ renoise.tool().app_new_document_observable:add_notifier(pakettiAutoDiskBrowserNe
 
 -- Menu entries
 renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:Xperimental/Work in Progress:Auto Control Disk Browser on Song Load",
+  name = "Main Menu:Tools:Paketti:Xperimental/WIP:Auto Control Disk Browser on Song Load",
   invoke = pakettiAutoHideDiskBrowserToggle,
   selected = pakettiAutoHideDiskBrowserIsEnabled
 }
@@ -1142,8 +1142,8 @@ function pakettiSampleVisualizerDialog()
     sample_viz_waveform_cache and #sample_viz_waveform_cache or 0))
 end
 
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Xperimental/Work in Progress:Visualize Sample (Canvas)",invoke = pakettiSampleVisualizerDialog}
-renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Xperimental/Work in Progress:Visualize Sample (Canvas)",invoke = pakettiSampleVisualizerDialog}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Xperimental/WIP:Visualize Sample (Canvas)",invoke = pakettiSampleVisualizerDialog}
+renoise.tool():add_menu_entry{name = "Sample Editor:Paketti:Xperimental/WIP:Visualize Sample (Canvas)",invoke = pakettiSampleVisualizerDialog}
 renoise.tool():add_menu_entry{name = "--Sample Editor Ruler:Visualize Sample (Canvas)",invoke = pakettiSampleVisualizerDialog}
 renoise.tool():add_keybinding{name = "Global:Paketti:Sample Visualizer (Canvas)",invoke = pakettiSampleVisualizerDialog}
 renoise.tool():add_midi_mapping{name = "Paketti:Sample Visualizer (Canvas)",invoke = function(message) if message:is_trigger() then pakettiSampleVisualizerDialog() end  end}
@@ -2642,7 +2642,7 @@ renoise.tool():add_midi_mapping{
 }
 
 -- ======================================
--- Paketti Experimental/Work in Progress Tools
+-- Paketti Experimental/WIP Tools
 -- ======================================
 -- Based on various danoise scripts - experimental features for testing
 
@@ -3032,74 +3032,74 @@ function pakettiKontaktExportSamples()
 end
 
 -- ======================================
--- Menu Entries for Experimental/Work in Progress Tools
+-- Menu Entries for Experimental/WIP Tools
 -- ======================================
 
 -- Sample Trimmer
 renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:Xperimental/Work in Progress:Sample Trimmer:Trim Selected Sample to Loop Points",
+  name = "Main Menu:Tools:Paketti:Xperimental/WIP:Sample Trimmer:Trim Selected Sample to Loop Points",
   invoke = pakettiTrimSelectedSampleToLoop
 }
 
 renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:Xperimental/Work in Progress:Sample Trimmer:Trim Selected Sample to Selection",
+  name = "Main Menu:Tools:Paketti:Xperimental/WIP:Sample Trimmer:Trim Selected Sample to Selection",
   invoke = pakettiTrimSelectedSampleToSelection
 }
 
 renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:Xperimental/Work in Progress:Sample Trimmer:Trim All Samples to Loop Points",
+  name = "Main Menu:Tools:Paketti:Xperimental/WIP:Sample Trimmer:Trim All Samples to Loop Points",
   invoke = pakettiTrimAllSamplesToLoop
 }
 
 renoise.tool():add_menu_entry{
-  name = "Sample Editor:Paketti:Xperimental/Work in Progress:Sample Trimmer:Trim Selected Sample to Loop Points",
+  name = "Sample Editor:Paketti:Xperimental/WIP:Sample Trimmer:Trim Selected Sample to Loop Points",
   invoke = pakettiTrimSelectedSampleToLoop
 }
 
 renoise.tool():add_menu_entry{
-  name = "Sample Editor:Paketti:Xperimental/Work in Progress:Sample Trimmer:Trim Selected Sample to Selection",
+  name = "Sample Editor:Paketti:Xperimental/WIP:Sample Trimmer:Trim Selected Sample to Selection",
   invoke = pakettiTrimSelectedSampleToSelection
 }
 
 renoise.tool():add_menu_entry{
-  name = "Sample Editor:Paketti:Xperimental/Work in Progress:Sample Trimmer:Trim All Samples to Loop Points",
+  name = "Sample Editor:Paketti:Xperimental/WIP:Sample Trimmer:Trim All Samples to Loop Points",
   invoke = pakettiTrimAllSamplesToLoop
 }
 
 -- Sample Renamer
 renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:Xperimental/Work in Progress:Sample Renamer:Rename with Note Names (Melodic)",
+  name = "Main Menu:Tools:Paketti:Xperimental/WIP:Sample Renamer:Rename with Note Names (Melodic)",
   invoke = pakettiRenameSamplesWithNoteNames
 }
 
 renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:Xperimental/Work in Progress:Sample Renamer:Rename with Drum Names (GM Kit)",
+  name = "Main Menu:Tools:Paketti:Xperimental/WIP:Sample Renamer:Rename with Drum Names (GM Kit)",
   invoke = pakettiRenameSamplesWithDrumNames
 }
 
 renoise.tool():add_menu_entry{
-  name = "Instrument Box:Paketti:Xperimental/Work in Progress:Sample Renamer:Rename with Note Names (Melodic)",
+  name = "Instrument Box:Paketti:Xperimental/WIP:Sample Renamer:Rename with Note Names (Melodic)",
   invoke = pakettiRenameSamplesWithNoteNames
 }
 
 renoise.tool():add_menu_entry{
-  name = "Instrument Box:Paketti:Xperimental/Work in Progress:Sample Renamer:Rename with Drum Names (GM Kit)",
+  name = "Instrument Box:Paketti:Xperimental/WIP:Sample Renamer:Rename with Drum Names (GM Kit)",
   invoke = pakettiRenameSamplesWithDrumNames
 }
 
 -- Kontakt Export
 renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:Xperimental/Work in Progress:Kontakt Export:Export Samples for Kontakt",
+  name = "Main Menu:Tools:Paketti:Xperimental/WIP:Kontakt Export:Export Samples for Kontakt",
   invoke = pakettiKontaktExportSamples
 }
 
 renoise.tool():add_menu_entry{
-  name = "Instrument Box:Paketti:Xperimental/Work in Progress:Kontakt Export:Export Samples for Kontakt",
+  name = "Instrument Box:Paketti:Xperimental/WIP:Kontakt Export:Export Samples for Kontakt",
   invoke = pakettiKontaktExportSamples
 }
 
 renoise.tool():add_menu_entry{
-  name = "Sample Editor:Paketti:Xperimental/Work in Progress:Kontakt Export:Export Samples for Kontakt",
+  name = "Sample Editor:Paketti:Xperimental/WIP:Kontakt Export:Export Samples for Kontakt",
   invoke = pakettiKontaktExportSamples
 }
 
@@ -3396,42 +3396,42 @@ end
 
 -- Sample Sorter
 renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:Xperimental/Work in Progress:Sample Sorter:Sort by Name",
+  name = "Main Menu:Tools:Paketti:Xperimental/WIP:Sample Sorter:Sort by Name",
   invoke = pakettiSortSamplesByName
 }
 
 renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:Xperimental/Work in Progress:Sample Sorter:Sort by Base Note",
+  name = "Main Menu:Tools:Paketti:Xperimental/WIP:Sample Sorter:Sort by Base Note",
   invoke = pakettiSortSamplesByBaseNote
 }
 
 renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:Xperimental/Work in Progress:Sample Sorter:Sort by Velocity",
+  name = "Main Menu:Tools:Paketti:Xperimental/WIP:Sample Sorter:Sort by Velocity",
   invoke = pakettiSortSamplesByVelocity
 }
 
 renoise.tool():add_menu_entry{
-  name = "Main Menu:Tools:Paketti:Xperimental/Work in Progress:Sample Sorter:Sort by Note->Velocity->Name",
+  name = "Main Menu:Tools:Paketti:Xperimental/WIP:Sample Sorter:Sort by Note->Velocity->Name",
   invoke = pakettiSortSamplesByMultipleCriteria
 }
 
 renoise.tool():add_menu_entry{
-  name = "Instrument Box:Paketti:Xperimental/Work in Progress:Sample Sorter:Sort by Name",
+  name = "Instrument Box:Paketti:Xperimental/WIP:Sample Sorter:Sort by Name",
   invoke = pakettiSortSamplesByName
 }
 
 renoise.tool():add_menu_entry{
-  name = "Instrument Box:Paketti:Xperimental/Work in Progress:Sample Sorter:Sort by Base Note",
+  name = "Instrument Box:Paketti:Xperimental/WIP:Sample Sorter:Sort by Base Note",
   invoke = pakettiSortSamplesByBaseNote
 }
 
 renoise.tool():add_menu_entry{
-  name = "Instrument Box:Paketti:Xperimental/Work in Progress:Sample Sorter:Sort by Velocity",
+  name = "Instrument Box:Paketti:Xperimental/WIP:Sample Sorter:Sort by Velocity",
   invoke = pakettiSortSamplesByVelocity
 }
 
 renoise.tool():add_menu_entry{
-  name = "Instrument Box:Paketti:Xperimental/Work in Progress:Sample Sorter:Sort by Note->Velocity->Name",
+  name = "Instrument Box:Paketti:Xperimental/WIP:Sample Sorter:Sort by Note->Velocity->Name",
   invoke = pakettiSortSamplesByMultipleCriteria
 }
 

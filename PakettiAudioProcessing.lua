@@ -268,7 +268,7 @@ end
 
 
 -- Function to create an audio diff sample
-local function create_audio_diff_sample()
+function create_audio_diff_sample()
   local song=renoise.song()
   local sample = song.selected_sample
   local duplicate = duplicate_sample()
@@ -526,42 +526,6 @@ local function modulate_and_diff_sample()
   modulate_samples()
   create_audio_diff_sample()
 end
-
--- Function to create an audio diff sample
-local function create_audio_diff_sample()
-  local song=renoise.song()
-  local sample = song.selected_sample
-  local duplicate = duplicate_sample()
-  if not duplicate then return end
-
-  local buffer1 = sample.sample_buffer
-  local buffer2 = duplicate.sample_buffer
-  if not buffer1.has_sample_data or not buffer2.has_sample_data then 
-    renoise.app():show_status("The Sample Buffer has no data.") 
-    return 
-  end
-
-  buffer1:prepare_sample_data_changes()
-
-  for c = 1, buffer1.number_of_channels do
-    for f = 1, buffer1.number_of_frames do
-      local diff_value = buffer1:sample_data(c, f) - buffer2:sample_data(c, f)
-      buffer1:set_sample_data(c, f, diff_value)
-    end
-  end
-
-  buffer1:finalize_sample_data_changes()
-
-  -- Copy sample settings and name
-  copy_sample_settings(sample, duplicate)
-
-  -- Limit the output to avoid clipping
-  limit_sample(buffer1)
-
-  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
-  renoise.app():show_status("Audio Diff applied.")
-end
-
 
 -- Function to render the sample at a new sample rate without changing its sound
 local function RenderSampleAtNewRate(target_sample_rate, target_bit_depth)
@@ -1008,11 +972,6 @@ function PakettiAudioProcessingToolsDialogClose()
   if dialog and dialog.visible then
     dialog:close()
   end
-end
-
--- Ensure focus returns to the middle frame after each button press
-local function set_middle_frame_focus()
-  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
 end
 
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Phase Inversion",invoke=function() phase_invert_sample() end}

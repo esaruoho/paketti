@@ -1027,7 +1027,7 @@ renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Effect Columns:(Gxx) 
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Effect Columns:Switch Effect Column/Note Column",invoke=function() switchcolumns() end}
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Effect Columns:ZBxx Jump To Row (Next)",invoke=function() JumpToNextRow() end}
   
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Xperimental/Work in Progress:Match Effect Column EditStep with Note Placement",invoke=function() toggle_match_editstep_effect() end}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Xperimental/WIP:Match Effect Column EditStep with Note Placement",invoke=function() toggle_match_editstep_effect() end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Match Note Column EditStep with Note Placement",invoke=function() toggle_match_editstep_note() end}
 renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti:Pattern:Clear Selected Track Above Current Row",invoke=function() clear_track_direction("above",false) end}
 renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Pattern:Clear Selected Track Below Current Row",invoke=function() clear_track_direction("below",false) end}
@@ -1294,31 +1294,31 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Reset Al
 
 
 
--- Xperimental/Work in Progress
-renoise.tool():add_menu_entry{name='Main Menu:Tools:Paketti:Xperimental/Work in Progress:BeatDetector Modified...',invoke=function() pakettiBeatDetectorDialog() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/Work in Progress:Paketti XRNS Probe",invoke = pakettiXRNSProbeShowDialog}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/Work in Progress:Expand to Triplets (Note every row, note every 2nd row)",invoke=function() pcall(detect_and_apply_triplet_pattern)end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/Work in Progress:Align Instrument Names",invoke=function() align_instrument_names() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/Work in Progress:Paketti YT-DLP Downloader...",invoke=function() pakettiYTDLPDialog() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/Work in Progress:EQ10 XY Control...",invoke = pakettiEQ10XYDialog}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/Work in Progress:XY Pad Sound Mixer",invoke=function() showXyPaddialog() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/Work in Progress:SBx Loop Playback",invoke=showSBX_dialog}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Xperimental/Work in Progress:Match Effect Column EditStep with Note Placement",invoke=function() toggle_match_editstep_effect() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/Work in Progress:Match Note Column EditStep with Note Placement",invoke=function() toggle_match_editstep_note() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/Work in Progress:Match EditStep with Delay Pattern",invoke=function() toggle_match_editstep() end}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Xperimental/Work in Progress:Paketti Tuplet Writer Dialog...",invoke=function() pakettiTupletDialog() end}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Xperimental/Work in Progress:PitchStepper Demo",invoke=function() pakettiPitchStepperDemo() end}
+-- Xperimental/WIP
+renoise.tool():add_menu_entry{name='Main Menu:Tools:Paketti:Xperimental/WIP:BeatDetector Modified...',invoke=function() pakettiBeatDetectorDialog() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Paketti XRNS Probe",invoke = pakettiXRNSProbeShowDialog}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Expand to Triplets (Note every row, note every 2nd row)",invoke=function() pcall(detect_and_apply_triplet_pattern)end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Align Instrument Names",invoke=function() align_instrument_names() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Paketti YT-DLP Downloader...",invoke=function() pakettiYTDLPDialog() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:EQ10 XY Control...",invoke = pakettiEQ10XYDialog}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:XY Pad Sound Mixer",invoke=function() showXyPaddialog() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:SBx Loop Playback",invoke=showSBX_dialog}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Xperimental/WIP:Match Effect Column EditStep with Note Placement",invoke=function() toggle_match_editstep_effect() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Match Note Column EditStep with Note Placement",invoke=function() toggle_match_editstep_note() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Match EditStep with Delay Pattern",invoke=function() toggle_match_editstep() end}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Xperimental/WIP:Paketti Tuplet Writer Dialog...",invoke=function() pakettiTupletDialog() end}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Xperimental/WIP:PitchStepper Demo",invoke=function() pakettiPitchStepperDemo() end}
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/Work in Progress:Audio Processing Tools...",invoke=function() pakettiAudioProcessingToolsDialog() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Audio Processing Tools...",invoke=function() pakettiAudioProcessingToolsDialog() end}
 local os_name = os.getenv("OS") or os.getenv("OSTYPE") or (io.popen("uname -s"):read("*l"))
 if os_name == "MACINTOSH" or os_name == "Darwin" then
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Xperimental/Work in Progress:Amigo:Import Embedded Amigo (AU) WAV into Sample",invoke=function() pakettiAmigoLoadIntoSample() end }
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/Work in Progress:Amigo:Open Amigo (AU) Sample Path",invoke=function() pakettiAmigoOpenSamplePath() end }
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Xperimental/WIP:Amigo:Import Embedded Amigo (AU) WAV into Sample",invoke=function() pakettiAmigoLoadIntoSample() end }
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Amigo:Open Amigo (AU) Sample Path",invoke=function() pakettiAmigoOpenSamplePath() end }
 
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Xperimental/Work in Progress:Amigo:Decode Active Plugin ParameterChunk Amigo (AU)",invoke=function() pakettiAmigoDecodeActiveParameterChunk() end }
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/Work in Progress:Amigo:Import Active Plugin Wavefile Amigo (AU)",invoke=function() pakettiAmigoImportWavefile() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/Work in Progress:Amigo:Set Active Plugin Pathname Amigo (AU)",invoke=function() pakettiAmigoSetActivePathname() end}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/Work in Progress:Amigo:Export Selected Sample to Amigo (AU)",invoke=function() pakettiAmigoExportSampleToAmigo() end}
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Xperimental/WIP:Amigo:Decode Active Plugin ParameterChunk Amigo (AU)",invoke=function() pakettiAmigoDecodeActiveParameterChunk() end }
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Amigo:Import Active Plugin Wavefile Amigo (AU)",invoke=function() pakettiAmigoImportWavefile() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Amigo:Set Active Plugin Pathname Amigo (AU)",invoke=function() pakettiAmigoSetActivePathname() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Amigo:Export Selected Sample to Amigo (AU)",invoke=function() pakettiAmigoExportSampleToAmigo() end}
 end
 
 -- Main Menu Options

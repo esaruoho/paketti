@@ -4720,5 +4720,5 @@ end
 
 --------------------------------------------------------------------------------
 renoise.tool():add_keybinding{name="Global:Paketti:Polyend Buddy (PTI File Browser)",invoke = show_polyend_buddy_dialog}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/Work in Progress:Polyend:Polyend Buddy (PTI File Browser)",invoke = show_polyend_buddy_dialog}
-renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Xperimental/Work in Progress:Polyend:Polyend Buddy (PTI File Browser)",invoke=show_polyend_buddy_dialog}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend:Polyend Buddy (PTI File Browser)",invoke = show_polyend_buddy_dialog}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Xperimental/WIP:Polyend:Polyend Buddy (PTI File Browser)",invoke=show_polyend_buddy_dialog}

@@ -1057,15 +1057,15 @@ end
 
 
 -- Menu entries and keybindings
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/Work in Progress:Polyend:Pattern Browser", invoke=PakettiPolyendPatternBrowser}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/Work in Progress:Polyend:Import Polyend Project", invoke=PakettiImportPolyendProject}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/Work in Progress:Polyend:Import Polyend Pattern", invoke=PakettiImportPolyendPattern}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/Work in Progress:Polyend:Import Polyend Pattern Tracks", invoke=PakettiImportPolyendPatternTracks}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend:Pattern Browser", invoke=PakettiPolyendPatternBrowser}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend:Import Polyend Project", invoke=PakettiImportPolyendProject}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend:Import Polyend Pattern", invoke=PakettiImportPolyendPattern}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Polyend:Import Polyend Pattern Tracks", invoke=PakettiImportPolyendPatternTracks}
 
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Xperimental/Work in Progress:Polyend:Polyend Pattern Browser", invoke=PakettiPolyendPatternBrowser}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Xperimental/Work in Progress:Polyend:Import Polyend Project", invoke=PakettiImportPolyendProject}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Xperimental/Work in Progress:Polyend:Import Polyend Pattern", invoke=PakettiImportPolyendPattern}
-renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Xperimental/Work in Progress:Polyend:Import Polyend Pattern Tracks", invoke=PakettiImportPolyendPatternTracks}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Xperimental/WIP:Polyend:Polyend Pattern Browser", invoke=PakettiPolyendPatternBrowser}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Xperimental/WIP:Polyend:Import Polyend Project", invoke=PakettiImportPolyendProject}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Xperimental/WIP:Polyend:Import Polyend Pattern", invoke=PakettiImportPolyendPattern}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Xperimental/WIP:Polyend:Import Polyend Pattern Tracks", invoke=PakettiImportPolyendPatternTracks}
 
 renoise.tool():add_keybinding{name="Global:Paketti:Show Polyend Pattern Browser", invoke=PakettiPolyendPatternBrowser}
 renoise.tool():add_keybinding{name="Global:Paketti:Import Polyend Project", invoke=PakettiImportPolyendProject}

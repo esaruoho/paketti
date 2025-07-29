@@ -851,10 +851,10 @@ local function import_m8i_file(filename)
 end
 
 -- Export menu entries
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Xperimental/Work in Progress:M8:Export Sample Chain", invoke = PakettiM8Export}
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Xperimental/Work in Progress:M8:Export Instrument", invoke = PakettiM8ExportInstrument}
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Xperimental/Work in Progress:M8:Import Sample Chain", invoke = PakettiM8Import}
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Xperimental/Work in Progress:M8:Import Instrument", invoke = PakettiM8ImportInstrument}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Xperimental/WIP:M8:Export Sample Chain", invoke = PakettiM8Export}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Xperimental/WIP:M8:Export Instrument", invoke = PakettiM8ExportInstrument}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Xperimental/WIP:M8:Import Sample Chain", invoke = PakettiM8Import}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Xperimental/WIP:M8:Import Instrument", invoke = PakettiM8ImportInstrument}
 
 renoise.tool():add_keybinding{name = "Global:Paketti:M8 Export Sample Chain", invoke = PakettiM8Export}
 renoise.tool():add_keybinding{name = "Global:Paketti:M8 Export Instrument", invoke = PakettiM8ExportInstrument}

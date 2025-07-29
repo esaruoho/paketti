@@ -1,51 +1,33 @@
--- Paketti files list (keep your existing list)
-local paketti_files = {
-  "Paketti0G01_Loader",
-  "PakettieSpeak",
-  "PakettiPlayerProSuite",
-  "PakettiChordsPlus",
-  "PakettiLaunchApp",
-  "PakettiSampleLoader",
-  "PakettiCustomization",
-  "PakettiDeviceChains",
-  "base64float",
-  "PakettiLoadDevices",
-  "PakettiSandbox",
-  "PakettiTupletGenerator",
-  "PakettiLoadPlugins",
-  "PakettiPatternSequencer",
-  "PakettiPatternMatrix",
-  "PakettiInstrumentBox",
-  "PakettiYTDLP",
-  "PakettiStretch",
-  "PakettiBeatDetect",
-  "PakettiStacker",
-  "PakettiRecorder",
-  "PakettiControls",
-  "PakettiKeyBindings",
-  "PakettiPhraseEditor",
-  "PakettiOctaMEDSuite",
-  "PakettiWavetabler",
-  "PakettiAudioProcessing",
-  "PakettiPatternEditorCheatSheet",
-  "PakettiThemeSelector",
-  "PakettiMidiPopulator",
-  "PakettiImpulseTracker",
-  "PakettiGater",
-  "PakettiAutomation",
-  "PakettiUnisonGenerator",
-  "PakettiMainMenuEntries",
-  "PakettiMidi",
-  "PakettiDynamicViews",
-  "PakettiEightOneTwenty",
-  "PakettiExperimental_Verify",
-  "PakettiLoaders",
-  "PakettiPatternEditor",
-  "PakettiTkna",
-  "PakettiRequests",
-  "PakettiSamples",
-  "Paketti35"
-}
+-- Dynamic Paketti files discovery using main.lua helper
+local function get_paketti_files()
+  -- Use the global helper function from main.lua for consistent file discovery
+  local files = PakettiGetAllLuaFiles()
+  
+  -- If the helper function returns nothing, fall back to hardcoded list
+  if #files == 0 then
+    print("PakettiActionSelector: Helper function returned no files, using fallback list")
+    files = {
+      "Paketti0G01_Loader", "PakettieSpeak", "PakettiPlayerProSuite", "PakettiChordsPlus",
+      "PakettiLaunchApp", "PakettiSampleLoader", "PakettiCustomization", "PakettiDeviceChains",
+      "base64float", "PakettiLoadDevices", "PakettiSandbox", "PakettiTupletGenerator",
+      "PakettiLoadPlugins", "PakettiPatternSequencer", "PakettiPatternMatrix", "PakettiInstrumentBox",
+      "PakettiYTDLP", "PakettiStretch", "PakettiBeatDetect", "PakettiStacker", "PakettiRecorder",
+      "PakettiControls", "PakettiKeyBindings", "PakettiPhraseEditor", "PakettiOctaMEDSuite",
+      "PakettiWavetabler", "PakettiAudioProcessing", "PakettiPatternEditorCheatSheet", "PakettiThemeSelector",
+      "PakettiMidiPopulator", "PakettiImpulseTracker", "PakettiGater", "PakettiAutomation",
+      "PakettiUnisonGenerator", "PakettiMainMenuEntries", "PakettiMidi", "PakettiDynamicViews",
+      "PakettiEightOneTwenty", "PakettiExperimental_Verify", "PakettiLoaders", "PakettiPatternEditor",
+      "PakettiTkna", "PakettiRequests", "PakettiSamples", "Paketti35", "PakettiAutocomplete",
+      "Research/FormulaDeviceManual", "hotelsinus_stepseq/hotelsinus_stepseq", "Sononymph/AppMain"
+    }
+  end
+  
+  print(string.format("PakettiActionSelector: Using %d .lua files for scanning", #files))
+  return files
+end
+
+-- Get the dynamic file list
+local paketti_files = get_paketti_files()
 
 local dialog = nil
 

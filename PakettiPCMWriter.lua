@@ -7231,7 +7231,7 @@ end
 
 
 
-renoise.tool():add_menu_entry{name = "--Main Menu:Tools:Paketti:Xperimental/Work in Progress:Paketti Single Cycle Waveform Writer...",invoke = PCMWriterShowPcmDialog}
+renoise.tool():add_menu_entry{name = "--Main Menu:Tools:Paketti:Xperimental/WIP:Paketti Single Cycle Waveform Writer...",invoke = PCMWriterShowPcmDialog}
 renoise.tool():add_menu_entry{name = "--Sample Editor:Paketti Gadgets:Paketti Single Cycle Waveform Writer...",invoke = PCMWriterShowPcmDialog}
 renoise.tool():add_keybinding{name = "Global:Paketti:Show Paketti Single Cycle Waveform Writer...",invoke = PCMWriterShowPcmDialog}
 

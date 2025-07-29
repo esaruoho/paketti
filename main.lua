@@ -219,6 +219,42 @@ function PakettiIsValidAudioFile(filename)
     return false
 end
 
+-- Global helper function to find all .lua files in Paketti bundle
+function PakettiGetAllLuaFiles()
+    local files = {}
+    local bundle_path = renoise.tool().bundle_path
+    
+    -- Get all .lua files in root directory
+    local root_lua_files = os.filenames(bundle_path, "*.lua")
+    for _, filename in ipairs(root_lua_files) do
+        local name_without_ext = filename:match("(.+)%.lua$")
+        if name_without_ext and name_without_ext ~= "main" and name_without_ext ~= "manifest" then
+            table.insert(files, name_without_ext)
+        end
+    end
+    
+    -- Manually check known subdirectories that contain .lua files
+    local known_subdirs = {"Research", "hotelsinus_stepseq", "Sononymph"}
+    
+    for _, subdir in ipairs(known_subdirs) do
+        local subdir_path = bundle_path .. subdir .. "/"
+        -- Check if subdirectory exists by trying to get filenames
+        local success, subdir_files = pcall(os.filenames, subdir_path, "*.lua")
+        if success and subdir_files then
+            for _, filename in ipairs(subdir_files) do
+                local name_without_ext = filename:match("(.+)%.lua$")
+                if name_without_ext then
+                    -- Include subdirectory path in the name
+                    table.insert(files, subdir .. "/" .. name_without_ext)
+                end
+            end
+        end
+    end
+    
+    print(string.format("PakettiGetAllLuaFiles: Found %d .lua files", #files))
+    return files
+end
+
 -- Global function to get files from directory with improved error handling and debugging
 function PakettiGetFilesInDirectory(dir)
     local files = {}
@@ -541,7 +577,7 @@ timed_require("PakettiStacker")              -- 518 lines, 1.00 ms
 timed_require("PakettiRecorder")             -- 403 lines, 1.00 ms
 
 timed_require("PakettiFuzzySearchUtil")      -- New fuzzy search utility
-timed_require("PakettiAutocomplete")         -- Autocomplete dialog system
+
 timed_require("PakettiKeyBindings")          -- 1443 lines, 2.00 ms
 timed_require("PakettiPhraseEditor")         -- 461 lines, 1.00 ms
 timed_require("PakettiControls")             -- 544 lines, 1.00 ms
@@ -639,6 +675,8 @@ end
 
 timed_require("PakettiRender")
 timed_require("PakettiOldschoolSlicePitch")
+
+--timed_require("PakettiAutocomplete")         -- Autocomplete dialog system
 
 --always have this at the end: PakettiMenuConfig MUST be at the end. otherwise there will be errors.
 timed_require("PakettiMenuConfig")

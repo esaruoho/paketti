@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<RenoiseScriptingTool doc_version="0">
+  <ApiVersion>6.2</ApiVersion>
+  <Author>unless</Author>
+  <Homepage>https://unlessgames.com/</Homepage>
+  <Donate>https://ko-fi.com/unlessgames</Donate>
+  <Repository>https://gitlab.com/unlessgames/unless_renoise</Repository>
+  <License>GPL</License>
+  <Discussion>https://forum.renoise.com/t/new-tool-3-4-command-palette</Discussion>
+  <Id>com.unlessgames.command_palette</Id>
+  <Version>2.7</Version>
+  <Name>command_palette</Name>
+  <Category>Workflow</Category>
+  <Description>Control all aspects of Renoise through the keyboard using a code editor style command palette.</Description>
+</RenoiseScriptingTool>
