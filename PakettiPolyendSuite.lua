@@ -4250,26 +4250,28 @@ function create_polyend_buddy_dialog(vb)
           local use_save_paths = get_use_save_paths() and get_pti_save_path() ~= ""
           
           -- Smart check: Only verify device connection if save path is ON the device
+          local device_not_connected = false
           if use_save_paths then
             local pti_save_path = get_pti_save_path()
             if polyend_buddy_root_path and pti_save_path and pti_save_path:find(polyend_buddy_root_path, 1, true) == 1 then
               print("-- Load 48→Drumkit Mono: Save path is on Polyend device - checking connection: " .. polyend_buddy_root_path)
               local device_connected = check_polyend_path_exists(polyend_buddy_root_path)
               if not device_connected then
-                print("-- Load 48→Drumkit Mono: Polyend device disconnected - cannot save to device path")
-                renoise.app():show_status("⚠️ Polyend device disconnected - cannot save to device path: " .. pti_save_path)
-                return
+                print("-- Load 48→Drumkit Mono: Polyend device disconnected - will prompt for save location after creating drumkit")
+                renoise.app():show_status("Polyend device disconnected - will create drumkit and prompt for save location")
+                device_not_connected = true
+                use_save_paths = false  -- Force prompt for save location
               end
             else
               print("-- Load 48→Drumkit Mono: Save path is local - no device checking needed")
             end
           end
           
-          -- Generate the drumkit (skip save prompt if we're using save paths)
+          -- Generate the drumkit (skip save prompt if we're using save paths and device is connected)
           save_pti_as_drumkit_mono(use_save_paths)
           
-          -- Auto-save if save paths are enabled, otherwise user already handled saving via prompt
-          if use_save_paths then
+          -- Auto-save if save paths are enabled and device is connected, otherwise user handled saving via prompt
+          if use_save_paths and not device_not_connected then
             auto_save_drumkit_if_enabled("Mono", nil)
             -- Trigger global refresh if available (from dialog context)
             if polyend_refresh_callback then
@@ -4290,26 +4292,28 @@ function create_polyend_buddy_dialog(vb)
           local use_save_paths = get_use_save_paths() and get_pti_save_path() ~= ""
           
           -- Smart check: Only verify device connection if save path is ON the device
+          local device_not_connected = false
           if use_save_paths then
             local pti_save_path = get_pti_save_path()
             if polyend_buddy_root_path and pti_save_path and pti_save_path:find(polyend_buddy_root_path, 1, true) == 1 then
               print("-- Load 48→Drumkit Stereo: Save path is on Polyend device - checking connection: " .. polyend_buddy_root_path)
               local device_connected = check_polyend_path_exists(polyend_buddy_root_path)
               if not device_connected then
-                print("-- Load 48→Drumkit Stereo: Polyend device disconnected - cannot save to device path")
-                renoise.app():show_status("⚠️ Polyend device disconnected - cannot save to device path: " .. pti_save_path)
-                return
+                print("-- Load 48→Drumkit Stereo: Polyend device disconnected - will prompt for save location after creating drumkit")
+                renoise.app():show_status("Polyend device disconnected - will create drumkit and prompt for save location")
+                device_not_connected = true
+                use_save_paths = false  -- Force prompt for save location
               end
             else
               print("-- Load 48→Drumkit Stereo: Save path is local - no device checking needed")
             end
           end
           
-          -- Generate the drumkit (skip save prompt if we're using save paths)
+          -- Generate the drumkit (skip save prompt if we're using save paths and device is connected)
           save_pti_as_drumkit_stereo(use_save_paths)
           
-          -- Auto-save if save paths are enabled, otherwise user already handled saving via prompt
-          if use_save_paths then
+          -- Auto-save if save paths are enabled and device is connected, otherwise user handled saving via prompt
+          if use_save_paths and not device_not_connected then
             auto_save_drumkit_if_enabled("Stereo", nil)
             -- Trigger global refresh if available (from dialog context)
             if polyend_refresh_callback then
@@ -4335,15 +4339,17 @@ function create_polyend_buddy_dialog(vb)
           -- Check if we should use save paths and if path is accessible upfront
           local use_save_paths = get_use_save_paths() and get_pti_save_path() ~= ""
           -- Smart check: Only verify device connection if save path is ON the device
+          local device_not_connected = false
           if use_save_paths then
             local pti_save_path = get_pti_save_path()
             if polyend_buddy_root_path and pti_save_path and pti_save_path:find(polyend_buddy_root_path, 1, true) == 1 then
               print("-- Load 48 Random→Drumkit Mono: Save path is on Polyend device - checking connection: " .. polyend_buddy_root_path)
               local device_connected = check_polyend_path_exists(polyend_buddy_root_path)
               if not device_connected then
-                print("-- Load 48 Random→Drumkit Mono: Polyend device disconnected - cannot save to device path")
-                renoise.app():show_status("⚠️ Polyend device disconnected - cannot save to device path: " .. pti_save_path)
-                return
+                print("-- Load 48 Random→Drumkit Mono: Polyend device disconnected - will prompt for save location after creating drumkit")
+                renoise.app():show_status("Polyend device disconnected - will create drumkit and prompt for save location")
+                device_not_connected = true
+                use_save_paths = false  -- Force prompt for save location
               end
             else
               print("-- Load 48 Random→Drumkit Mono: Save path is local - no device checking needed")
@@ -4364,11 +4370,11 @@ function create_polyend_buddy_dialog(vb)
               -- Loading completed, remove timer and generate drumkit
               renoise.tool():remove_timer(timer_function)
               
-              -- Generate the drumkit (skip save prompt if we're using save paths)
+              -- Generate the drumkit (skip save prompt if we're using save paths and device is connected)
               save_pti_as_drumkit_mono(use_save_paths)
               
-              -- Auto-save if save paths are enabled, otherwise user already handled saving via prompt
-              if use_save_paths then
+              -- Auto-save if save paths are enabled and device is connected, otherwise user handled saving via prompt
+              if use_save_paths and not device_not_connected then
                 auto_save_drumkit_if_enabled("Mono", nil)
                 -- Trigger global refresh if available (from dialog context)
                 if polyend_refresh_callback then
@@ -4391,15 +4397,17 @@ function create_polyend_buddy_dialog(vb)
           -- Check if we should use save paths and if path is accessible upfront
           local use_save_paths = get_use_save_paths() and get_pti_save_path() ~= ""
           -- Smart check: Only verify device connection if save path is ON the device
+          local device_not_connected = false
           if use_save_paths then
             local pti_save_path = get_pti_save_path()
             if polyend_buddy_root_path and pti_save_path and pti_save_path:find(polyend_buddy_root_path, 1, true) == 1 then
               print("-- Load 48 Random→Drumkit Stereo: Save path is on Polyend device - checking connection: " .. polyend_buddy_root_path)
               local device_connected = check_polyend_path_exists(polyend_buddy_root_path)
               if not device_connected then
-                print("-- Load 48 Random→Drumkit Stereo: Polyend device disconnected - cannot save to device path")
-                renoise.app():show_status("⚠️ Polyend device disconnected - cannot save to device path: " .. pti_save_path)
-                return
+                print("-- Load 48 Random→Drumkit Stereo: Polyend device disconnected - will prompt for save location after creating drumkit")
+                renoise.app():show_status("Polyend device disconnected - will create drumkit and prompt for save location")
+                device_not_connected = true
+                use_save_paths = false  -- Force prompt for save location
               end
             else
               print("-- Load 48 Random→Drumkit Stereo: Save path is local - no device checking needed")
@@ -4420,11 +4428,11 @@ function create_polyend_buddy_dialog(vb)
               -- Loading completed, remove timer and generate drumkit
               renoise.tool():remove_timer(timer_function)
               
-              -- Generate the drumkit (skip save prompt if we're using save paths)
+              -- Generate the drumkit (skip save prompt if we're using save paths and device is connected)
               save_pti_as_drumkit_stereo(use_save_paths)
               
-              -- Auto-save if save paths are enabled, otherwise user already handled saving via prompt
-              if use_save_paths then
+              -- Auto-save if save paths are enabled and device is connected, otherwise user handled saving via prompt
+              if use_save_paths and not device_not_connected then
                 auto_save_drumkit_if_enabled("Stereo", nil)
                 -- Trigger global refresh if available (from dialog context)
                 if polyend_refresh_callback then
