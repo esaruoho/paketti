@@ -1246,6 +1246,9 @@ calculate_command_score = function(command, search_terms)
     local name_lower = command.name:lower()
     local category_lower = command.category:lower()
     
+    -- Check if this is a numeric pattern (don't apply exact word bonuses to numeric searches)
+    local is_numeric_search = detect_numeric_pattern(term)
+    
     -- Exact name match (highest score)
     if name_lower == term then
       score = score + 1000
@@ -1253,6 +1256,16 @@ calculate_command_score = function(command, search_terms)
       score = score + 500
     elseif string.find(name_lower, term, 1, true) then  -- Contains term
       score = score + 100
+      
+      -- Extra bonus for exact word matches (only for non-numeric searches)
+      if not is_numeric_search then
+        -- Check if the term appears as a complete word (surrounded by word boundaries)
+        if string.find(name_lower, "%f[%w]" .. escape_pattern(term) .. "%f[%W]") then
+          score = score + 2000  -- MASSIVE bonus for exact word match like "dB"
+        elseif string.find(name_lower, escape_pattern(term) .. "$") then
+          score = score + 1500  -- Large bonus for term at end of name
+        end
+      end
     end
     
     -- Category match

@@ -3622,6 +3622,25 @@ function create_polyend_buddy_dialog(vb)
           renoise.app():show_status("Opened Local PTI folder")
           print("-- Local PTI: Opened local PTI path: " .. computer_pti_path)
         end
+      },
+      vb:button{
+        text = "Export as PTI",
+        width = polyendButtonWidth,
+        tooltip = "Export the currently selected instrument as PTI file",
+        notifier = function()
+          -- Check if we have a valid instrument and sample
+          local song = renoise.song()
+          local inst = song.selected_instrument
+          
+          if not inst or #inst.samples == 0 then
+            renoise.app():show_status("No instrument or sample selected")
+            print("-- PTI Export: No instrument or sample selected")
+            return
+          end
+          
+          -- Call the existing PTI save function
+          pti_savesample()
+        end
       }
     },
     

@@ -420,9 +420,41 @@ function normalize_all_samples_in_instrument()
     return
   end
 
-  local total_samples = #instrument.samples
-  if total_samples == 0 then
+  if #instrument.samples == 0 then
     renoise.app():show_warning("No samples in selected instrument")
+    return
+  end
+
+  local instrument_name = instrument.name ~= "" and instrument.name or string.format("Instrument %02d", renoise.song().selected_instrument_index)
+  
+  -- Check if first sample has slice markers
+  local has_slice_markers = false
+  if #instrument.samples > 0 then
+    local first_sample = instrument.samples[1]
+    has_slice_markers = #first_sample.slice_markers > 0
+  end
+  
+  -- Determine which samples to process based on slice markers
+  local samples_to_process = {}
+  if has_slice_markers then
+    -- Only process first sample if slice markers exist
+    if instrument.samples[1] and instrument.samples[1].sample_buffer.has_sample_data then
+      table.insert(samples_to_process, {index = 1, sample = instrument.samples[1]})
+    end
+    print(string.format("\nSlice markers detected in %s - normalizing only first sample", instrument_name))
+  else
+    -- Process all samples if no slice markers
+    for sample_index = 1, #instrument.samples do
+      local sample = instrument.samples[sample_index]
+      if sample.sample_buffer.has_sample_data then
+        table.insert(samples_to_process, {index = sample_index, sample = sample})
+      end
+    end
+    print(string.format("\nNo slice markers detected in %s - normalizing all %d samples", instrument_name, #samples_to_process))
+  end
+  
+  if #samples_to_process == 0 then
+    renoise.app():show_warning("No samples with data found in selected instrument")
     return
   end
 
@@ -435,14 +467,19 @@ function normalize_all_samples_in_instrument()
   local function process_func()
     local processed_samples = 0
     local skipped_samples = 0
+    local total_samples = #samples_to_process
 
-    for sample_idx = 1, total_samples do
-      local sample = instrument.samples[sample_idx]
+    for _, sample_info in ipairs(samples_to_process) do
+      local sample_idx = sample_info.index
+      local sample = sample_info.sample
+      local sample_name = sample.name ~= "" and sample.name or string.format("Sample %02d", sample_idx)
       
       -- Update progress dialog
       if dialog and dialog.visible then
-        vb.views.progress_text.text = string.format("Processing sample %d of %d", sample_idx, total_samples)
+        vb.views.progress_text.text = string.format("Processing %s (%d of %d)", sample_name, sample_idx, total_samples)
       end
+      
+      print(string.format("  Normalizing %s (sample %d)", sample_name, sample_idx))
       
       -- Skip invalid samples
       if not sample or not sample.sample_buffer.has_sample_data then
@@ -510,14 +547,21 @@ function normalize_all_samples_in_instrument()
       dialog:close()
     end
     
-    local msg = string.format("Normalized %d samples. Skipped %d samples.", 
-      processed_samples, skipped_samples)
-    renoise.app():show_status(msg)
+    -- Show completion status
+    local status_msg
+    if has_slice_markers then
+      status_msg = string.format("Normalized first sample in %s (sliced instrument). Skipped %d samples.", instrument_name, skipped_samples)
+    else
+      status_msg = string.format("Normalized %d samples in %s. Skipped %d samples.", processed_samples, instrument_name, skipped_samples)
+    end
+    renoise.app():show_status(status_msg)
+    print("-- " .. status_msg)
   end
 
   -- Create and start the ProcessSlicer
+  local dialog_title = has_slice_markers and "Normalizing First Sample (Sliced)" or "Normalizing All Samples"
   slicer = ProcessSlicer(process_func)
-  dialog, vb = slicer:create_dialog("Normalizing All Samples")
+  dialog, vb = slicer:create_dialog(dialog_title)
   slicer:start()
 end
 
@@ -1070,9 +1114,173 @@ function ReverseSelectedSliceInSample()
   slicer:start()
 end
 
+-- Reverse All Samples in Selected Instrument
+function ReverseAllSamplesInSelectedInstrument()
+  local song = renoise.song()
+  local last_yield_time = os.clock()
+  
+  -- Function to check if we should yield
+  local function should_yield()
+    local current_time = os.clock()
+    if current_time - last_yield_time >= PROCESS_YIELD_INTERVAL then
+      last_yield_time = current_time
+      return true
+    end
+    return false
+  end
+  
+  -- Check if we have any instruments
+  if #song.instruments == 0 then
+    renoise.app():show_status("No instruments available")
+    return
+  end
+  
+  -- Work with the currently selected instrument
+  local instrument = song.instruments[song.selected_instrument_index]
+  local instrument_name = instrument.name ~= "" and instrument.name or string.format("Instrument %02d", song.selected_instrument_index)
+  
+  -- Check if first sample has slice markers
+  local has_slice_markers = false
+  if #instrument.samples > 0 then
+    local first_sample = instrument.samples[1]
+    has_slice_markers = #first_sample.slice_markers > 0
+  end
+  
+  -- Determine which samples to process based on slice markers
+  local samples_to_process = {}
+  if has_slice_markers then
+    -- Only process first sample if slice markers exist
+    if instrument.samples[1] and instrument.samples[1].sample_buffer.has_sample_data then
+      table.insert(samples_to_process, {index = 1, sample = instrument.samples[1]})
+    end
+    print(string.format("\nSlice markers detected in %s - reversing only first sample", instrument_name))
+  else
+    -- Process all samples if no slice markers
+    for sample_index = 1, #instrument.samples do
+      local sample = instrument.samples[sample_index]
+      if sample.sample_buffer.has_sample_data then
+        table.insert(samples_to_process, {index = sample_index, sample = sample})
+      end
+    end
+    print(string.format("\nNo slice markers detected in %s - reversing all %d samples", instrument_name, #samples_to_process))
+  end
+  
+  if #samples_to_process == 0 then
+    renoise.app():show_status("No samples with data found in selected instrument")
+    return
+  end
+  
+  -- Create ProcessSlicer instance and dialog
+  local slicer = nil
+  local dialog = nil
+  local vb = nil
+  
+  -- Define the process function
+  local function process_func()
+    local processed_samples = 0
+    local total_samples = #samples_to_process
+    
+    for _, sample_info in ipairs(samples_to_process) do
+      local sample_index = sample_info.index
+      local sample = sample_info.sample
+      local buffer = sample.sample_buffer
+      
+      local sample_name = sample.name ~= "" and sample.name or string.format("Sample %02d", sample_index)
+      print(string.format("  Reversing %s (sample %d)", sample_name, sample_index))
+      
+      -- Reverse the entire sample
+      buffer:prepare_sample_data_changes()
+      
+      local num_channels = buffer.number_of_channels
+      local total_frames = buffer.number_of_frames
+      local half_frames = math.floor(total_frames / 2)
+      local processed_frames = 0
+      
+      -- Reverse by swapping frames from start and end moving inward
+      for offset = 0, half_frames - 1 do
+        local frame_a = 1 + offset
+        local frame_b = total_frames - offset
+        
+        for channel = 1, num_channels do
+          local temp = buffer:sample_data(channel, frame_a)
+          buffer:set_sample_data(channel, frame_a, buffer:sample_data(channel, frame_b))
+          buffer:set_sample_data(channel, frame_b, temp)
+        end
+        
+        processed_frames = processed_frames + 2
+        
+        -- Update progress every 1000 frames or when yielding
+        if processed_frames % 1000 == 0 or should_yield() then
+          local sample_progress = (processed_frames / total_frames) * 100
+          local overall_progress = ((processed_samples / total_samples) + (sample_progress / 100 / total_samples)) * 100
+          
+          if dialog and dialog.visible then
+            vb.views.progress_text.text = string.format("Reversing %s... %.1f%% (Overall: %.1f%%)", 
+              sample_name, sample_progress, overall_progress)
+          end
+          
+          if slicer:was_cancelled() then
+            buffer:finalize_sample_data_changes()
+            return
+          end
+          
+          if should_yield() then
+            coroutine.yield()
+          end
+        end
+      end
+      
+      buffer:finalize_sample_data_changes()
+      processed_samples = processed_samples + 1
+      
+      -- Update overall progress
+      local overall_progress = (processed_samples / total_samples) * 100
+      if dialog and dialog.visible then
+        vb.views.progress_text.text = string.format("Completed %s (%.1f%% overall)", 
+          sample_name, overall_progress)
+      end
+      
+      if slicer:was_cancelled() then
+        return
+      end
+      
+      if should_yield() then
+        coroutine.yield()
+      end
+    end
+    
+    -- Show completion status
+    if processed_samples > 0 then
+      local status_msg
+      if has_slice_markers then
+        status_msg = string.format("Reversed first sample in %s (sliced instrument)", instrument_name)
+      else
+        status_msg = string.format("Reversed %d samples in %s", processed_samples, instrument_name)
+      end
+      renoise.app():show_status(status_msg)
+      print("-- " .. status_msg)
+    else
+      renoise.app():show_status("No samples were reversed")
+    end
+    
+    if dialog and dialog.visible then
+      dialog:close()
+    end
+  end
+  
+  -- Create and start the ProcessSlicer
+  local dialog_title = has_slice_markers and "Reversing First Sample (Sliced)" or "Reversing All Samples"
+  slicer = ProcessSlicer(process_func)
+  dialog, vb = slicer:create_dialog(dialog_title)
+  slicer:start()
+end
+
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Reverse Selected Sample or Slice",invoke=ReverseSelectedSliceInSample}
 renoise.tool():add_keybinding{name="Sample Keyzones:Paketti:Reverse Selected Sample or Slice",invoke=ReverseSelectedSliceInSample}
 renoise.tool():add_midi_mapping{name="Paketti:Reverse Selected Sample or Slice",invoke=function(message) if message:is_trigger() then ReverseSelectedSliceInSample() end end}
+
+renoise.tool():add_keybinding{name="Global:Paketti:Reverse All Samples in Selected Instrument",invoke=ReverseAllSamplesInSelectedInstrument}
+renoise.tool():add_midi_mapping{name="Paketti:Reverse All Samples in Selected Instrument",invoke=function(message) if message:is_trigger() then ReverseAllSamplesInSelectedInstrument() end end}
 --------
 -- Version with callback support for automated workflows
 function normalize_selected_sample_by_slices_with_callback(completion_callback)

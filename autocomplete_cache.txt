@@ -1,6 +1,6 @@
 CACHE_VERSION=1.0
-SCAN_TIME=1753879187
-COMMAND_COUNT=4409
+SCAN_TIME=1753882760
+COMMAND_COUNT=4411
 Menu Entry|||DSP Chain:Paketti:Insert Random Device (AU/Native Only)|||DSP Chain|||function() insertRandomDevice(true) end|||DCPIRDANO,chain,paketti,insert,random,device,native,only|||PakettiMenuConfig
 Menu Entry|||DSP Chain:Paketti:Insert Random Device (All)|||DSP Chain|||function() insertRandomDevice(false) end|||DCPIRDA,chain,paketti,insert,random,device|||PakettiMenuConfig
 Menu Entry|||DSP Chain:Paketti:Inspect Track Device Chain|||DSP Chain|||inspectTrackDeviceChain|||DCPITDC,chain,paketti,inspect,track,device,chain|||PakettiPresetPlusPlus
@@ -2959,6 +2959,7 @@ Keybinding|||Global:Paketti:Resize all non-empty Patterns to 256|||Global|||func
 Keybinding|||Global:Paketti:Resize all non-empty Patterns to 384|||Global|||function() resize_all_non_empty_patterns_to(384) end|||GPRANEPT3,global,paketti,resize,empty,patterns|||PakettiRequests
 Keybinding|||Global:Paketti:Resize all non-empty Patterns to 512|||Global|||function() resize_all_non_empty_patterns_to(512) end|||GPRANEPT5,global,paketti,resize,empty,patterns|||PakettiRequests
 Keybinding|||Global:Paketti:Resize all non-empty Patterns to current Pattern length|||Global|||resize_all_non_empty_patterns_to_current_pattern_length|||GPRANEPTCPL,global,paketti,resize,empty,patterns,current,pattern,length|||PakettiRequests
+Keybinding|||Global:Paketti:Reverse All Samples in Selected Instrument|||Global|||ReverseAllSamplesInSelectedInstrument|||GPRASISI,global,paketti,reverse,samples,selected,instrument|||PakettiProcess
 Keybinding|||Global:Paketti:Rewind Playback by 4 steps|||Global|||function() upbyn(4) end|||GPRPB4S,global,paketti,rewind,playback,steps|||PakettiControls
 Keybinding|||Global:Paketti:Roll the Dice on Notes|||Global|||function() randomize_notes_in_selection() end|||GPRTDON,global,paketti,roll,dice,notes|||PakettiRequests
 Keybinding|||Global:Paketti:Run Notepad Device Code|||Global|||pakettiNotepadRun|||GPRNDC,global,paketti,notepad,device,code|||PakettiNotepadRun
@@ -5449,6 +5450,7 @@ MIDI Mapping|||Paketti:Reset Nudge Delay Output Delay to 0ms (ALL) (Rename) x[Tr
 MIDI Mapping|||Paketti:Reset Nudge Delay Output Delay to 0ms (ALL) x[Trigger]|||Paketti|||function(message) if message:is_trigger() then reset_output_delayALL(false) end end|||PRNDODT0AXT,paketti,reset,nudge,delay,output,delay,trigger|||PakettiControls
 MIDI Mapping|||Paketti:Reset Nudge Delay Output Delay to 0ms (Rename) x[Trigger]|||Paketti|||function(message) if message:is_trigger() then reset_output_delay(true) end end|||PRNDODT0RXT,paketti,reset,nudge,delay,output,delay,rename,trigger|||PakettiControls
 MIDI Mapping|||Paketti:Reset Nudge Delay Output Delay to 0ms x[Trigger]|||Paketti|||function(message) if message:is_trigger() then reset_output_delay(false) end end|||PRNDODT0XT,paketti,reset,nudge,delay,output,delay,trigger|||PakettiControls
+MIDI Mapping|||Paketti:Reverse All Samples in Selected Instrument|||Paketti|||function(message) if message:is_trigger() then ReverseAllSamplesInSelectedInstrument() end end|||PRASISI,paketti,reverse,samples,selected,instrument|||PakettiProcess
 MIDI Mapping|||Paketti:Reverse Selected Sample or Slice|||Paketti|||function(message) if message:is_trigger() then ReverseSelectedSliceInSample() end end|||PRSSOS,paketti,reverse,selected,sample,slice|||PakettiProcess
 MIDI Mapping|||Paketti:Rotate Sample Buffer Down x[Knob]|||Paketti|||function(message) local knob_value = message.int_value / 127 PakettiShiftSampleBufferDownwards(knob_value) end|||PRSBDXK,paketti,rotate,sample,buffer,down,knob|||PakettiExperimental_Verify
 MIDI Mapping|||Paketti:Rotate Sample Buffer Down x[Trigger]|||Paketti|||function(message) if message:is_trigger() then PakettiShiftSampleBufferDownwards(1) end end|||PRSBDXT,paketti,rotate,sample,buffer,down,trigger|||PakettiExperimental_Verify

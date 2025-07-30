@@ -968,15 +968,18 @@ function buildPTIHeader(inst, beat_slice_mode)
   -- Write active slice (offset 377) - which slice is selected
   if has_slices then
     local slice_count = math.min(48, #(inst.slice_markers or {}))
-    local active_slice = math.min(4, slice_count > 0 and slice_count - 1 or 0)
+    local active_slice = 0  -- Always use first slice as active slice for consistency
     write_at(378, string.char(active_slice))
     print(string.format("-- buildPTIHeader: Wrote active slice %d at offset 377", active_slice))
   end
   
   -- Additional missing fields for proper PTI format
-  -- Granular length (offset 378-379) - 441 = 10ms for working files
-  write_at(379, string.char(185, 1))       -- 441 as 16-bit LE (185 + 1*256 = 441)
-  print("-- buildPTIHeader: Writing granular length = 441 (10ms) at offset 378-379")
+  -- Only write granular length for non-sliced samples (granular mode)
+  if not has_slices then
+    -- Granular length (offset 378-379) - 441 = 10ms for working files
+    write_at(379, string.char(185, 1))       -- 441 as 16-bit LE (185 + 1*256 = 441)
+    print("-- buildPTIHeader: Writing granular length = 441 (10ms) at offset 378-379")
+  end
   
   -- Bit depth (offset 386) - 16 for working files
   write_at(387, string.char(16))

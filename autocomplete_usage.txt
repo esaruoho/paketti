@@ -1,23 +1,25 @@
+Mixer:Paketti:Enable All Devices on Track:2
+Mixer:Paketti Gadgets:Paketti Action Selector Dialog...:3
+Global:Paketti:Duplicate All Samples at -36 Transpose:1
+Global:Paketti:Reverse All Samples in Selected Instrument:3
+Sample Editor:Paketti:Audio Diff:1
+Global:Paketti:Set Selected Instrument All Loop 03 PingPong:1
+Global:Paketti:Set Selected Instrument Loop PingPong:1
+Sample Editor:Paketti Gadgets:BPM Calculation Dialog...:2
+Sample FX Mixer:Paketti Gadgets:CCizer Loader...:1
+Mixer:Paketti:Decrease All Track Volumes by 3dB:13
+Global:Paketti:Duplicate All Samples at +12 Transpose:1
+Global:Paketti:Normalize Sample Slices Independently:1
+Main Menu:Tools:Paketti:Plugins/Devices:Debug:Dump VST/VST3/AU/LADSPA/DSSI/Native Effects to Dialog...:1
 Global:Paketti:Duplicate All Samples at +24 Transpose:1
 DSP Device:Paketti:CCizer:Open CCizer Dialog:17
-Mixer:Paketti:Clear/Wipe Selected Track TrackDSPs:1
+Sample Editor:Paketti:Chebyshev Polynomial Waveshaper...:1
+Global:Paketti:Normalize All Samples in Instrument:2
 Global:Paketti:Duplicate All Samples at +36 Transpose:2
+Mixer:Paketti:CCizer:Open CCizer Dialog:2
+Mixer:Paketti:Clear/Wipe Selected Track TrackDSPs:1
+Pattern Editor:Paketti:Show BPM Calculation Dialog...:3
 Global:Paketti:Duplicate All Samples at -12 Transpose:1
-Global:Paketti:Set Selected Instrument Loop PingPong:1
+Pattern Editor:Paketti:Set BPM from Sample Length:1
 Main Menu:File:Paketti:Largest Samples Dialog...:1
 Global:Paketti:Duplicate All Samples at -24 Transpose:1
-Global:Paketti:Set Selected Instrument All Loop 03 PingPong:1
-Global:Paketti:Duplicate All Samples at -36 Transpose:1
-Sample Editor:Paketti Gadgets:BPM Calculation Dialog...:2
-Mixer:Paketti:Decrease All Track Volumes by 3dB:13
-Sample Editor:Paketti:Chebyshev Polynomial Waveshaper...:1
-Mixer:Paketti Gadgets:Paketti Action Selector Dialog...:3
-Pattern Editor:Paketti:Set BPM from Sample Length:1
-Main Menu:Tools:Paketti:Plugins/Devices:Debug:Dump VST/VST3/AU/LADSPA/DSSI/Native Effects to Dialog...:1
-Global:Paketti:Normalize All Samples in Instrument:2
-Pattern Editor:Paketti:Show BPM Calculation Dialog...:3
-Sample FX Mixer:Paketti Gadgets:CCizer Loader...:1
-Mixer:Paketti:CCizer:Open CCizer Dialog:2
-Global:Paketti:Duplicate All Samples at +12 Transpose:1
-Sample Editor:Paketti:Audio Diff:1
-Mixer:Paketti:Enable All Devices on Track:2
