@@ -451,20 +451,51 @@ function deleteUnusedSamples()
     end
     update_dialog(string.format("Found %d unique notes in total", notes_found), nil)
 
-    -- Process each instrument
-    for instr_idx, instrument in ipairs(song.instruments) do
-      -- Only process instruments that have samples and sample mappings
-      if #instrument.samples > 0 and instrument.sample_mappings[1] then
-        -- Check if any sample has slice markers
-        local has_slices = false
-        for _, sample in ipairs(instrument.samples) do
-          if #sample.slice_markers > 0 then
-            has_slices = true
-            break
+    -- Helper function to check if a sample is used by any mappings
+    local function is_sample_used(instrument, sample_idx, instr_idx)
+      -- Check all velocity layers for mappings that reference this sample
+      for layer_idx, layer in ipairs(instrument.sample_mappings) do
+        for mapping_idx, mapping in ipairs(layer) do
+          -- Check if this mapping points to our sample
+          if mapping.sample_index == sample_idx then
+            -- Skip mappings with velocity range [0,0] as they're effectively disabled
+            if mapping.velocity_range[1] == 0 and mapping.velocity_range[2] == 0 then
+              print(string.format("Sample %d has disabled mapping (velocity [0,0])", sample_idx))
+            else
+              -- Check if any note in the mapping range is used
+              if mapping.note_range then
+                for note = mapping.note_range[1], mapping.note_range[2] do
+                  if used_notes[instr_idx][note] then
+                    return true
+                  end
+                end
+              end
+            end
           end
         end
+      end
+      return false
+    end
 
-        if not has_slices then
+    -- Process each instrument
+    for instr_idx, instrument in ipairs(song.instruments) do
+      update_dialog(
+        string.format("Processing instrument %d/%d", instr_idx, #song.instruments),
+        string.format("Checking instrument %d (%s)", instr_idx, instrument.name)
+      )
+      
+      -- Only process instruments that have samples
+      if #instrument.samples > 0 then
+        -- Check if first sample has slice markers (memory rule about slice handling)
+        local first_sample = instrument.samples[1]
+        local has_slices = #first_sample.slice_markers > 0
+        
+        if has_slices then
+          update_dialog(
+            string.format("Processing instrument %d/%d", instr_idx, #song.instruments),
+            string.format("Skipping instrument %d: Contains sliced samples", instr_idx)
+          )
+        else
           -- Check if instrument is used at all
           local instrument_used = false
           for note, _ in pairs(used_notes[instr_idx]) do
@@ -480,59 +511,47 @@ function deleteUnusedSamples()
                 string.format("Processing unused instrument %d/%d", instr_idx, #song.instruments),
                 string.format("Deleting sample %d (instrument unused)", sample_idx)
               )
-              -- Just delete the sample slot directly since the instrument is unused
               instrument:delete_sample_at(sample_idx)
               deleted_count = deleted_count + 1
             end
           else
-            -- Instrument is used, check each sample
+            -- Instrument is used, check each sample individually
+            -- Process samples in reverse order to avoid index shifting issues
             for sample_idx = #instrument.samples, 1, -1 do
-              local mapping = instrument.sample_mappings[1][sample_idx]
-              if mapping then
-                -- Debug print velocity range
-                print(string.format("Instrument %d, Sample %d - Velocity Range: [%d,%d]", 
-                  instr_idx, sample_idx, 
-                  mapping.velocity_range[1], mapping.velocity_range[2]))
-
-                -- Check if this specific sample mapping is used
-                local sample_used = false
-                if mapping.note_range then
-                  for note = mapping.note_range[1], mapping.note_range[2] do
-                    if used_notes[instr_idx][note] then
-                      sample_used = true
-                      break
-                    end
-                  end
-                end
-
-                -- Delete sample if:
-                -- 1. It has velocity range [0,0] OR
-                -- 2. It's not used in the song (even if velocity range is [0,127])
-                if mapping.velocity_range[1] == 0 and mapping.velocity_range[2] == 0 then
-                  print(string.format("Deleting sample %d in instrument %d: Velocity range [0,0]", 
-                    sample_idx, instr_idx))
-                  -- Just delete the slot directly
+              update_dialog(
+                string.format("Processing instrument %d/%d", instr_idx, #song.instruments),
+                string.format("Checking sample %d/%d", sample_idx, #instrument.samples)
+              )
+              
+              local sample = instrument.samples[sample_idx]
+              
+              -- Only process samples that have actual sample data
+              if sample.sample_buffer and sample.sample_buffer.has_sample_data then
+                local sample_used = is_sample_used(instrument, sample_idx, instr_idx)
+                
+                if not sample_used then
+                  print(string.format("Deleting unused sample %d in instrument %d", sample_idx, instr_idx))
+                  update_dialog(
+                    string.format("Processing instrument %d/%d", instr_idx, #song.instruments),
+                    string.format("Deleting unused sample %d", sample_idx)
+                  )
                   instrument:delete_sample_at(sample_idx)
                   deleted_count = deleted_count + 1
-                elseif not sample_used then
-                  print(string.format("Deleting sample %d in instrument %d: No used notes in range", 
-                    sample_idx, instr_idx))
-                  -- Just delete the slot directly
-                  instrument:delete_sample_at(sample_idx)
-                  deleted_count = deleted_count + 1
+                else
+                  print(string.format("Keeping sample %d in instrument %d - it is used", sample_idx, instr_idx))
                 end
               else
-                -- No mapping, just delete the slot
+                -- Sample has no data, safe to delete
+                print(string.format("Deleting empty sample %d in instrument %d", sample_idx, instr_idx))
+                update_dialog(
+                  string.format("Processing instrument %d/%d", instr_idx, #song.instruments),
+                  string.format("Deleting empty sample %d", sample_idx)
+                )
                 instrument:delete_sample_at(sample_idx)
                 deleted_count = deleted_count + 1
               end
             end
           end
-        else
-          update_dialog(
-            string.format("Processing instrument %d/%d", instr_idx, #song.instruments),
-            string.format("Skipping instrument %d: Contains sliced samples", instr_idx)
-          )
         end
       end
     end

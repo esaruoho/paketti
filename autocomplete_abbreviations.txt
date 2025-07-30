@@ -1,1 +1,4 @@
+nate=Global:Track Devices:Load ValhallaDelay
+kittycat=Main Menu:Tools:Paketti Gadgets:Paketti Groovebox 8120...
 hello=DSP Device:Paketti:CCizer:Open CCizer Dialog
+loadd=Global:Track Devices:Load ValhallaDelay

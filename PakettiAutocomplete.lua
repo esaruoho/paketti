@@ -103,7 +103,7 @@ local function scan_preferences_xml()
         type = "Dynamic Plugin Loader",
         name = "Load Plugin " .. name,
         category = "Dynamic Plugin Loaders",
-        invoke = string.format("pakettiLoadPlugin('%s')", path),
+        invoke = string.format("loadPlugin('%s')", path),
         abbreviations = {"plugin", "load", name:lower()},
         source_file = "preferences.xml"
       })
@@ -565,11 +565,11 @@ local function filter_commands(filter_text)
         end
       end
       
-      -- Check user abbreviations
+      -- Check user abbreviations (exact match only to avoid duplicates)
       for abbrev, full_command in pairs(user_abbreviations) do
         if string.find(abbrev:lower(), term, 1, true) then
           for i, command in ipairs(base_commands) do
-            if string.find(command.name:lower(), full_command:lower(), 1, true) then
+            if command.name:lower() == full_command:lower() then  -- Exact match only
               term_candidates[i] = true
             end
           end
@@ -850,6 +850,15 @@ local function filter_commands(filter_text)
             score = score + 200
           end
           
+          -- Check for exact abbreviation match and give massive priority bonus
+          for abbrev, full_command in pairs(user_abbreviations) do
+            if abbrev:lower() == filter_lower and command.name:lower() == full_command:lower() then
+              score = score + 50000  -- MASSIVE bonus for exact abbreviation match
+              print("ABBREVIATION MATCH BONUS: '" .. abbrev .. "' -> '" .. command.name .. "' (+50000)")
+              break
+            end
+          end
+          
           -- Set priority reason
           command.priority_reason = nil
           for _, fav_name in ipairs(favorite_commands) do
@@ -922,6 +931,15 @@ local function filter_commands(filter_text)
               score = score + 100  -- Some bonus for other categories
             end
             
+            -- Check for exact abbreviation match and give massive priority bonus
+            for abbrev, full_command in pairs(user_abbreviations) do
+              if abbrev:lower() == filter_lower and command.name:lower() == full_command:lower() then
+                score = score + 50000  -- MASSIVE bonus for exact abbreviation match
+                print("ABBREVIATION MATCH BONUS: '" .. abbrev .. "' -> '" .. command.name .. "' (+50000)")
+                break
+              end
+            end
+            
             -- Set priority reason
             command.priority_reason = nil
             for _, fav_name in ipairs(favorite_commands) do
@@ -950,6 +968,15 @@ local function filter_commands(filter_text)
             if not added_commands[command.name] then
               local score = calculate_command_score(command, search_terms)
               
+              -- Check for exact abbreviation match and give massive priority bonus
+              for abbrev, full_command in pairs(user_abbreviations) do
+                if abbrev:lower() == filter_lower and command.name:lower() == full_command:lower() then
+                  score = score + 50000  -- MASSIVE bonus for exact abbreviation match
+                  print("ABBREVIATION MATCH BONUS: '" .. abbrev .. "' -> '" .. command.name .. "' (+50000)")
+                  break
+                end
+              end
+              
               -- Set priority reason
               command.priority_reason = nil
               for _, fav_name in ipairs(favorite_commands) do
@@ -974,6 +1001,15 @@ local function filter_commands(filter_text)
           -- Single-word search: prefer the group representative  
           if not added_commands[representative.name] then
             local score = calculate_command_score(representative, search_terms)
+            
+            -- Check for exact abbreviation match and give massive priority bonus
+            for abbrev, full_command in pairs(user_abbreviations) do
+              if abbrev:lower() == filter_lower and representative.name:lower() == full_command:lower() then
+                score = score + 50000  -- MASSIVE bonus for exact abbreviation match
+                print("ABBREVIATION MATCH BONUS: '" .. abbrev .. "' -> '" .. representative.name .. "' (+50000)")
+                break
+              end
+            end
             
             -- Set priority reason
             representative.priority_reason = nil
@@ -1075,10 +1111,25 @@ local function filter_commands(filter_text)
     return a.command.name < b.command.name
   end)
   
-  -- Extract just the commands (NO deduplication to preserve context grouping)
+  -- Extract just the commands with smart deduplication for recently used items
+  local deduplicated = {}
+  local command_names_seen = {}
+  
   for _, scored in ipairs(scored_commands) do
-    table.insert(filtered, scored.command)
+    local cmd = scored.command
+    local base_name = cmd.name
+    
+    -- If this command already exists without [RECENTLY] tag, skip the recently used version
+    if cmd.priority_reason == "[RECENTLY]" and command_names_seen[base_name] then
+      print("DEDUPE: Skipping recently used duplicate: " .. base_name)
+    else
+      table.insert(deduplicated, cmd)
+      command_names_seen[base_name] = true
+    end
   end
+  
+  -- Use deduplicated results
+  filtered = deduplicated
   
   print("filter_commands returning " .. #filtered .. " commands for '" .. filter_text .. "'")
   if #filtered > 0 then
@@ -1854,15 +1905,63 @@ local function execute_command(command)
   local success = false
   local error_msg = ""
   
-  -- Method 1: Try direct evaluation (for function calls like "pakettiFunction()")
-  print("METHOD 1: Trying direct evaluation...")
-  local func = loadstring("return " .. command.invoke)
-  if func then
-    print("✓ Successfully created function from invoke string")
-    local ok, result = pcall(func)
-    if ok and type(result) == "function" then
-      print("✓ Function loaded successfully, executing...")
-      local exec_ok, exec_err = pcall(result)
+  -- Method 1: Smart execution based on invoke string type
+  print("METHOD 1: Analyzing invoke string type...")
+  
+  -- Check if it's a function definition or direct call
+  if command.invoke:match("^function") then
+    -- Function definition: needs "return" prefix to get the function, then call it
+    print("DETECTED: Function definition - " .. command.invoke:sub(1, 50) .. "...")
+    
+    -- Special handling for MIDI mapping functions (they expect message parameter)
+    if command.invoke:match("function%s*%(message%)") then
+      print("DETECTED: MIDI mapping function - cannot execute without MIDI message")
+      success = true  -- Mark as "successful" to avoid falling through to Method 2
+      error_msg = ""  -- Clear error since this is expected behavior
+      renoise.app():show_status("MIDI mapping functions require MIDI input to execute")
+      print("INFO: MIDI mapping function detected - skipping execution")
+    else
+      -- Regular function definition - execute normally
+      local func = loadstring("return " .. command.invoke)
+      if func then
+        print("✓ Successfully created function from invoke string")
+        local ok, result = pcall(func)
+        if ok and type(result) == "function" then
+          print("✓ Function loaded successfully, executing...")
+          local exec_ok, exec_err = pcall(result)
+          if exec_ok then
+            success = true
+            print("✓ EXECUTION SUCCESSFUL!")
+          else
+            error_msg = "Error executing: " .. tostring(exec_err)
+            print("✗ Execution failed: " .. error_msg)
+          end
+        else
+          print("✗ Function loading failed or result is not a function")
+          if not ok then
+            print("Error: " .. tostring(result))
+          end
+        end
+      else
+        print("✗ Failed to create function from invoke string")
+      end
+    end
+  else
+    -- Direct function call: execute directly
+    print("DETECTED: Direct function call")
+    
+    -- Handle backward compatibility for old pakettiLoadPlugin commands
+    local invoke_string = command.invoke
+    if invoke_string:match("pakettiLoadPlugin%(") then
+      print("BACKWARD COMPATIBILITY: Converting pakettiLoadPlugin to loadPlugin")
+      invoke_string = invoke_string:gsub("pakettiLoadPlugin%(", "loadPlugin(")
+      print("CONVERTED: " .. invoke_string)
+    end
+    
+    local func = loadstring(invoke_string)
+    if func then
+      print("✓ Successfully created function from invoke string")
+      local exec_ok, exec_err = pcall(func)
       if exec_ok then
         success = true
         print("✓ EXECUTION SUCCESSFUL!")
@@ -1871,35 +1970,36 @@ local function execute_command(command)
         print("✗ Execution failed: " .. error_msg)
       end
     else
-      print("✗ Function loading failed or result is not a function")
-      print("Result type: " .. type(result))
-      if not ok then
-        print("Error: " .. tostring(result))
-      end
+      print("✗ Failed to create function from invoke string")
     end
-  else
-    print("✗ Failed to create function from invoke string")
   end
   
-  -- Method 2: Try global lookup (for simple function names)
+  -- Method 2: Try global lookup (for simple function names only)
   if not success then
     print("METHOD 2: Trying global function lookup...")
-    if _G[command.invoke] then
-      if type(_G[command.invoke]) == "function" then
-        print("✓ Found global function: " .. command.invoke)
-        local exec_ok, exec_err = pcall(_G[command.invoke])
-        if exec_ok then
-          success = true
-          print("✓ EXECUTION SUCCESSFUL!")
+    
+    -- Only try global lookup for simple function names (no parentheses)
+    if not command.invoke:match("[%(%)']") then
+      print("CHECKING: Simple function name: " .. command.invoke)
+      if _G[command.invoke] then
+        if type(_G[command.invoke]) == "function" then
+          print("✓ Found global function: " .. command.invoke)
+          local exec_ok, exec_err = pcall(_G[command.invoke])
+          if exec_ok then
+            success = true
+            print("✓ EXECUTION SUCCESSFUL!")
+          else
+            error_msg = "Error executing: " .. tostring(exec_err)
+            print("✗ Execution failed: " .. error_msg)
+          end
         else
-          error_msg = "Error executing: " .. tostring(exec_err)
-          print("✗ Execution failed: " .. error_msg)
+          print("✗ Global " .. command.invoke .. " exists but is not a function (type: " .. type(_G[command.invoke]) .. ")")
         end
       else
-        print("✗ Global " .. command.invoke .. " exists but is not a function (type: " .. type(_G[command.invoke]) .. ")")
+        print("✗ Global function " .. command.invoke .. " not found")
       end
     else
-      print("✗ Global function " .. command.invoke .. " not found")
+      print("SKIPPING: Complex invoke string, not suitable for global lookup: " .. command.invoke:sub(1, 50) .. "...")
     end
   end
   
@@ -2110,10 +2210,7 @@ function update_button_display(force_full_refresh)
           local command = current_filtered_commands[command_index]
           local button_text = ""
           
-          -- Add priority indicator
-          if command.priority_reason then
-            button_text = command.priority_reason .. " "
-          end
+          -- Priority indicator removed - visual color coding is sufficient
           
           -- Add usage count indicator for frequently used commands
           local usage = command_usage_count[command.name] or 0
@@ -2162,9 +2259,7 @@ function update_button_display(force_full_refresh)
       local command = current_filtered_commands[previous_suggestion_index]
       local button_text = ""
       
-      if command.priority_reason then
-        button_text = command.priority_reason .. " "
-      end
+      -- Priority indicator removed - visual color coding is sufficient
       
       local usage = command_usage_count[command.name] or 0
       local usage_indicator = ""
@@ -2201,9 +2296,7 @@ function update_button_display(force_full_refresh)
       local command = current_filtered_commands[selected_suggestion_index]
       local button_text = ""
       
-      if command.priority_reason then
-        button_text = command.priority_reason .. " "
-      end
+      -- Priority indicator removed - visual color coding is sufficient
       
       local usage = command_usage_count[command.name] or 0
       local usage_indicator = ""
@@ -2715,7 +2808,7 @@ function pakettiAutocompleteDialog()
   
   -- Create and show dialog
   autocomplete_dialog = renoise.app():show_custom_dialog(
-    "Paketti Autocomplete", 
+    "Paketti Function Search", 
     dialog_content,
     autocomplete_keyhandler
   )
@@ -2769,12 +2862,15 @@ function show_command_picker(abbreviation_text)
           local command = filtered_picker_commands[command_index]
           local button_text = string.format("[%s] %s", get_display_category(command), get_clean_command_name(command))
           
-          if command_index == picker_selected_index then
-            button_text = button_text .. " <<<"
-          end
-          
           command_buttons[i].text = button_text
           command_buttons[i].visible = true
+          
+          -- Use purple coloring for selected item instead of "<<<" text
+          if command_index == picker_selected_index then
+            command_buttons[i].color = {0x80, 0x00, 0x80} -- Deep purple (selected)
+          else
+            command_buttons[i].color = {0x00, 0x00, 0x00} -- Default color (unselected)
+          end
         else
           command_buttons[i].visible = false
         end
@@ -2817,7 +2913,7 @@ function show_command_picker(abbreviation_text)
     update_picker_scrollbar()
   end
   
-  local function update_picker_scrollbar()
+  function update_picker_scrollbar()
     if picker_scrollbar then
       local commands_count = #filtered_picker_commands
       if commands_count <= MAX_PICKER_BUTTONS then
@@ -2973,6 +3069,7 @@ function show_command_picker(abbreviation_text)
       height = 18,
       align = "left",
       visible = false,
+      color = {0x00, 0x00, 0x00}, -- Default color (needed for dynamic color changes)
       notifier = function()
         local command_index = i + picker_scroll_offset
         if command_index <= #filtered_picker_commands then
@@ -3050,7 +3147,7 @@ function show_command_picker(abbreviation_text)
       picker_vb:button{
         text = "Cancel",
         width = 80,
-        align = "left",
+        
         notifier = function()
           command_picker_dialog:close()
           command_picker_dialog = nil
@@ -3171,7 +3268,7 @@ function debug_show_sample_categories()
   print("=== END SAMPLE CATEGORIES ===")
 end
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Paketti Autocomplete...", invoke=pakettiAutocompleteToggle}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Paketti Function Search...", invoke=pakettiAutocompleteToggle}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Add Autocomplete Abbreviation...", invoke=pakettiAutocompleteAddAbbreviation}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Reset Autocomplete Usage Statistics", invoke=pakettiAutocompleteResetUsage}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Nuke Autocomplete Cache", invoke=pakettiAutocompleteNukeCache}
@@ -3182,11 +3279,11 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Debug A
     debug_multi_word_search(search_text) 
   end 
 end}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti Gadgets:Paketti Autocomplete...", invoke=pakettiAutocompleteToggle}
-renoise.tool():add_menu_entry{name="--Mixer:Paketti Gadgets:Paketti Autocomplete...", invoke=pakettiAutocompleteToggle}
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti Gadgets:Paketti Autocomplete...", invoke=pakettiAutocompleteToggle}
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti Gadgets:Paketti Autocomplete...", invoke=pakettiAutocompleteToggle}
-renoise.tool():add_keybinding{name="Global:Paketti:Paketti Autocomplete", invoke=pakettiAutocompleteToggle}
+renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti Gadgets:Paketti Function Search...", invoke=pakettiAutocompleteToggle}
+renoise.tool():add_menu_entry{name="--Mixer:Paketti Gadgets:Paketti Function Search...", invoke=pakettiAutocompleteToggle}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti Gadgets:Paketti Function Search...", invoke=pakettiAutocompleteToggle}
+renoise.tool():add_menu_entry{name="--Sample Editor:Paketti Gadgets:Paketti Function Search...", invoke=pakettiAutocompleteToggle}
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Function Search...", invoke=pakettiAutocompleteToggle}
 renoise.tool():add_keybinding{name="Global:Paketti:Add Autocomplete Abbreviation", invoke=pakettiAutocompleteAddAbbreviation}
 renoise.tool():add_keybinding{name="Global:Paketti:Reset Autocomplete Usage Statistics", invoke=pakettiAutocompleteResetUsage}
 renoise.tool():add_keybinding{name="Global:Paketti:Nuke Autocomplete Cache", invoke=pakettiAutocompleteNukeCache}
@@ -3197,9 +3294,9 @@ renoise.tool():add_keybinding{name="Global:Paketti:Debug Autocomplete Search", i
     debug_multi_word_search(search_text) 
   end 
 end}
-renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Paketti Autocomplete", invoke=pakettiAutocompleteToggle}
-renoise.tool():add_keybinding{name="Mixer:Paketti:Paketti Autocomplete", invoke=pakettiAutocompleteToggle}
-renoise.tool():add_midi_mapping{name="Paketti:Paketti Autocomplete", invoke=function(message) if message:is_trigger() then pakettiAutocompleteToggle() end end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Paketti Function Search...", invoke=pakettiAutocompleteToggle}
+renoise.tool():add_keybinding{name="Mixer:Paketti:Paketti Function Search...", invoke=pakettiAutocompleteToggle}
+renoise.tool():add_midi_mapping{name="Paketti:Paketti Function Search...", invoke=function(message) if message:is_trigger() then pakettiAutocompleteToggle() end end}
 
 -- Debug function to analyze multi-word search issues
 function debug_multi_word_search(search_text)
@@ -3321,4 +3418,6 @@ end
 
 -- Initialize commands when module loads
 --initialize_paketti_commands()
+
+
 

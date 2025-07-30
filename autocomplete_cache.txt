@@ -1,5 +1,5 @@
 CACHE_VERSION=1.0
-SCAN_TIME=1753882760
+SCAN_TIME=1753917767
 COMMAND_COUNT=4411
 Menu Entry|||DSP Chain:Paketti:Insert Random Device (AU/Native Only)|||DSP Chain|||function() insertRandomDevice(true) end|||DCPIRDANO,chain,paketti,insert,random,device,native,only|||PakettiMenuConfig
 Menu Entry|||DSP Chain:Paketti:Insert Random Device (All)|||DSP Chain|||function() insertRandomDevice(false) end|||DCPIRDA,chain,paketti,insert,random,device|||PakettiMenuConfig
@@ -5933,9 +5933,9 @@ MIDI Mapping|||Track Automation:Paketti:Midi Automation Curve Draw Selection x[K
           "down_center_linear", -- line down->center
           "apply_exponential_automation_curve_bottom_to_center", -- curve down->center
           "set_to_center" -- set to center|||TAPMACDSXK,track,automation,paketti,midi,automation,curve,draw,selection,knob|||PakettiMidi
-Dynamic Plugin Loader|||Load Plugin Surge XT (AU)|||Dynamic Plugin Loaders|||pakettiLoadPlugin('Audio/Generators/AU/aumu:SgXT:VmbA')|||plugin,load,surge xt (au)|||preferences.xml
-Dynamic Plugin Loader|||Load Plugin Surge XT (AU) + surgemacros|||Dynamic Plugin Loaders|||pakettiLoadPlugin('Audio/Generators/AU/aumu:SgXT:VmbA')|||plugin,load,surge xt (au) + surgemacros|||preferences.xml
-Dynamic Plugin Loader|||Load Plugin ZebraHZ (AU)|||Dynamic Plugin Loaders|||pakettiLoadPlugin('Audio/Generators/AU/aumu:SMHZ:UHfX')|||plugin,load,zebrahz (au)|||preferences.xml
+Dynamic Plugin Loader|||Load Plugin Surge XT (AU)|||Dynamic Plugin Loaders|||loadPlugin('Audio/Generators/AU/aumu:SgXT:VmbA')|||plugin,load,surge xt (au)|||preferences.xml
+Dynamic Plugin Loader|||Load Plugin Surge XT (AU) + surgemacros|||Dynamic Plugin Loaders|||loadPlugin('Audio/Generators/AU/aumu:SgXT:VmbA')|||plugin,load,surge xt (au) + surgemacros|||preferences.xml
+Dynamic Plugin Loader|||Load Plugin ZebraHZ (AU)|||Dynamic Plugin Loaders|||loadPlugin('Audio/Generators/AU/aumu:SMHZ:UHfX')|||plugin,load,zebrahz (au)|||preferences.xml
 Dynamic Device Loader|||Load Device Splitter (Native)|||Dynamic Device Loaders|||pakettiLoadDevice('Audio/Effects/Native/Splitter')|||device,load,splitter|||preferences.xml
 Dynamic Device Loader|||Load Device Transient Shaper (AudioUnit)|||Dynamic Device Loaders|||pakettiLoadDevice('Audio/Effects/AU/aufx:TrSh:Scha')|||device,load,transient shaper|||preferences.xml
 Dynamic Device Loader|||Load Device ValhallaFreqEcho (AudioUnit)|||Dynamic Device Loaders|||pakettiLoadDevice('Audio/Effects/AU/aufx:FqEh:oDin')|||device,load,valhallafreqecho|||preferences.xml
