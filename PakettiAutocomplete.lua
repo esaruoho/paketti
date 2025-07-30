@@ -330,15 +330,16 @@ end
 
 -- Helper function to extract just the dialog name from gadget commands
 local function get_gadget_dialog_name(command)
-  local clean_name = get_clean_command_name(command)
+  local name = command.name
   
-  -- Check if this is a Paketti Gadgets command
-  local gadget_name = clean_name:match("^Paketti Gadgets:(.+)$")
+  -- Look for "Paketti Gadgets:" anywhere in the command name and extract what comes after
+  local gadget_name = name:match("Paketti Gadgets:(.+)$")
   if gadget_name then
     return gadget_name
-  else
-    return clean_name
   end
+  
+  -- Fallback to cleaned name if no gadgets pattern found
+  return get_clean_command_name(command)
 end
 
 -- Helper function to check if current search is gadgets-related
@@ -2109,7 +2110,7 @@ function update_button_display(force_full_refresh)
           end
           
           -- Build the display text
-          if is_gadgets_search() and get_clean_command_name(command):find("^Paketti Gadgets:") then
+          if is_gadgets_search() and command.name:find("Paketti Gadgets:") then
             -- For gadgets search, show only the dialog name with status indicators
             local gadget_name = get_gadget_dialog_name(command)
             button_text = button_text .. gadget_name .. usage_indicator
@@ -2158,7 +2159,7 @@ function update_button_display(force_full_refresh)
         usage_indicator = " (" .. usage .. "x)"
       end
       
-      if is_gadgets_search() and get_clean_command_name(command):find("^Paketti Gadgets:") then
+      if is_gadgets_search() and command.name:find("Paketti Gadgets:") then
         -- For gadgets search, show only the dialog name with status indicators
         local gadget_name = get_gadget_dialog_name(command)
         button_text = button_text .. gadget_name .. usage_indicator
@@ -2197,7 +2198,7 @@ function update_button_display(force_full_refresh)
         usage_indicator = " (" .. usage .. "x)"
       end
       
-      if is_gadgets_search() and get_clean_command_name(command):find("^Paketti Gadgets:") then
+      if is_gadgets_search() and command.name:find("Paketti Gadgets:") then
         -- For gadgets search, show only the dialog name with status indicators
         local gadget_name = get_gadget_dialog_name(command)
         button_text = button_text .. gadget_name .. usage_indicator

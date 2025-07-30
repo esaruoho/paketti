@@ -676,7 +676,7 @@ end
 timed_require("PakettiRender")
 timed_require("PakettiOldschoolSlicePitch")
 
---timed_require("PakettiAutocomplete")         -- Autocomplete dialog system
+timed_require("PakettiAutocomplete")         -- Autocomplete dialog system
 
 --always have this at the end: PakettiMenuConfig MUST be at the end. otherwise there will be errors.
 timed_require("PakettiMenuConfig")
