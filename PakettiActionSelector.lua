@@ -22,7 +22,7 @@ local function get_paketti_files()
     }
   end
   
-  print(string.format("PakettiActionSelector: Using %d .lua files for scanning", #files))
+  -- print(string.format("PakettiActionSelector: Using %d .lua files for scanning", #files))
   return files
 end
 

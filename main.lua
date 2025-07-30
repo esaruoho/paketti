@@ -251,7 +251,7 @@ function PakettiGetAllLuaFiles()
         end
     end
     
-    print(string.format("PakettiGetAllLuaFiles: Found %d .lua files", #files))
+    -- print(string.format("PakettiGetAllLuaFiles: Found %d .lua files", #files))
     return files
 end
 
@@ -546,65 +546,50 @@ function pakettiRandomizeBPMNow()
   renoise.song().transport.bpm = random_bpm
   renoise.app():show_status(string.format("Paketti: Manually randomized BPM to %d", random_bpm))
 end
-
 --------
-
-
-timed_require("rx")                          -- 2318 lines, 2.00 ms
-timed_require("Paketti0G01_Loader")          -- 857 lines, 4.00 ms
---if renoise_version >= 3.4 then ]]--
-timed_require("PakettieSpeak")               -- 930 lines, 4.00 ms
-timed_require("PakettiPlayerProSuite")       -- 852 lines, 3.00 ms
---else
---  print("PakettieSpeak and PakettiPlayerProSuite require Renoise v3.4 or higher")
---end  
+timed_require("rx")
+timed_require("Paketti0G01_Loader")
+timed_require("PakettieSpeak")
+timed_require("PakettiPlayerProSuite")
 timed_require("PakettiChordsPlus")
 timed_require("PakettiLaunchApp")
---timed_require("PakettiCustomization")        -- 61 lines, 0.50 ms
-timed_require("PakettiDeviceChains")         -- 85 lines, 0.00 ms
-timed_require("base64float")                 -- 203 lines, 0.00 ms
-timed_require("PakettiLoadDevices")          -- 496 lines, 1.00 ms
-timed_require("PakettiSandbox")              -- 352 lines, 0.50 ms
-timed_require("PakettiTupletGenerator")      -- 386 lines, 0.50 ms
-timed_require("PakettiLoadPlugins")          -- 534 lines, 0.50 ms
-timed_require("PakettiPatternSequencer")     -- 47 lines, 0.50 ms
-timed_require("PakettiPatternMatrix")        -- 176 lines, 0.50 ms
-timed_require("PakettiInstrumentBox")        -- 280 lines, 0.50 ms
-timed_require("PakettiYTDLP")               -- 854 lines, 1.00 ms
-timed_require("PakettiStretch")              -- 925 lines, 1.50 ms
-timed_require("PakettiBeatDetect")           -- 396 lines, 1.00 ms
-timed_require("PakettiStacker")              -- 518 lines, 1.00 ms
-timed_require("PakettiRecorder")             -- 403 lines, 1.00 ms
-
-timed_require("PakettiFuzzySearchUtil")      -- New fuzzy search utility
-
-timed_require("PakettiKeyBindings")          -- 1443 lines, 2.00 ms
-timed_require("PakettiPhraseEditor")         -- 461 lines, 1.00 ms
-timed_require("PakettiControls")             -- 544 lines, 1.00 ms
-timed_require("PakettiOctaMEDSuite")         -- 601 lines, 1.00 ms
-timed_require("PakettiWavetabler")           -- 223 lines, 0.50 ms
-timed_require("PakettiAudioProcessing")      -- 1538 lines, 1.50 ms
-timed_require("PakettiPatternEditorCheatSheet") -- 953 lines, 1.00 ms
-timed_require("PakettiThemeSelector")        -- 516 lines, 4.50 ms
-timed_require("PakettiMidiPopulator")        -- 531 lines, 1.00 ms
-timed_require("PakettiImpulseTracker")       -- 2112 lines, 2.00 ms
-timed_require("PakettiGater")                -- 1233 lines, 2.50 ms
-timed_require("PakettiAutomation")           -- 2776 lines, 3.50 ms
-timed_require("PakettiUnisonGenerator")      -- 122 lines, 0.00 ms
-timed_require("PakettiMainMenuEntries")      -- 383 lines, 4.50 ms
-timed_require("PakettiMidi")                 -- 1692 lines, 5.50 ms
-timed_require("PakettiDynamicViews")         -- 703 lines, 9.00 ms
-timed_require("PakettiEightOneTwenty")       -- 1457 lines, 4.50 ms
-timed_require("PakettiExperimental_Verify")  -- 4543 lines, 8.50 ms
-timed_require("PakettiLoaders")              -- 3137 lines, 9.00 ms
-timed_require("PakettiPatternEditor")        -- 4583 lines, 11.50 ms
-timed_require("PakettiTkna")                 -- 1495 lines, 23.00 ms
-print ("REQUESTS LOADING")
-timed_require("PakettiRequests")             -- 9168 lines, 127.00 ms
-print ("REQUESTS LOADED")
-timed_require("PakettiSamples")              -- 4249 lines, 6.00 ms
-timed_require("Paketti35")
-timed_require("PakettiActionSelector")
+timed_require("PakettiDeviceChains")
+timed_require("base64float")
+timed_require("PakettiLoadDevices")
+timed_require("PakettiSandbox")
+timed_require("PakettiTupletGenerator")
+timed_require("PakettiLoadPlugins")
+timed_require("PakettiPatternSequencer")
+timed_require("PakettiPatternMatrix")
+timed_require("PakettiInstrumentBox")
+timed_require("PakettiYTDLP")
+timed_require("PakettiStretch")
+timed_require("PakettiBeatDetect")
+timed_require("PakettiStacker")
+timed_require("PakettiRecorder")
+timed_require("PakettiFuzzySearchUtil")
+timed_require("PakettiKeyBindings")
+timed_require("PakettiPhraseEditor")
+timed_require("PakettiControls")
+timed_require("PakettiOctaMEDSuite")
+timed_require("PakettiWavetabler")
+timed_require("PakettiAudioProcessing")
+timed_require("PakettiPatternEditorCheatSheet")
+timed_require("PakettiThemeSelector")
+timed_require("PakettiMidiPopulator")
+timed_require("PakettiImpulseTracker")
+timed_require("PakettiGater")
+timed_require("PakettiAutomation")
+timed_require("PakettiUnisonGenerator")
+timed_require("PakettiMainMenuEntries")
+timed_require("PakettiMidi")
+timed_require("PakettiDynamicViews")
+timed_require("PakettiEightOneTwenty")
+timed_require("PakettiExperimental_Verify")
+timed_require("PakettiLoaders")
+timed_require("PakettiPatternEditor")
+timed_require("PakettiTkna")
+timed_require("PakettiSamples")
 timed_require("Research/FormulaDeviceManual")
 timed_require("PakettiXRNSProbe")
 timed_require("PakettiAKWF")
@@ -630,7 +615,6 @@ timed_require("PakettiMODLoader")
 timed_require("PakettiPolyendSuite")
 timed_require("PakettiXMLizer")
 timed_require("PakettiDeviceValues")
---timed_require("PakettiAKAI")
 timed_require("PakettiMIDIMappings")
 timed_require("PakettiMIDIMappingCategories")
 timed_require("legacy_v2_8_tools")
@@ -658,32 +642,33 @@ timed_require("PakettiClearance")
 timed_require("PakettiRoutings")
 timed_require("PakettiViews")
 
--- Polyend functionality toggle
 local PolyendYes = false
 PolyendYes = true
--- Conditional Polyend functionality loading
 if PolyendYes then
   timed_require("PakettiPolyendPatternData")
 end
 
 if renoise.API_VERSION >= 6.2 then
+  timed_require("Paketti35")
   timed_require("PakettiPCMWriter")
   --timed_require("PakettiZyklusMPS1")
   timed_require("PakettiCanvasExperiments")
   timed_require("PakettiNotepadRun")
 end
 
+timed_require("PakettiRequests")
 timed_require("PakettiRender")
 timed_require("PakettiOldschoolSlicePitch")
-
-timed_require("PakettiAutocomplete")         -- Autocomplete dialog system
+timed_require("PakettiActionSelector")
+timed_require("PakettiAutocomplete")
+--timed_require("PakettiCustomization")        -- 61 lines, 0.50 ms
+--timed_require("PakettiAKAI")
 
 --always have this at the end: PakettiMenuConfig MUST be at the end. otherwise there will be errors.
 timed_require("PakettiMenuConfig")
-print(string.format("Total load time: %.3f seconds", os.clock() - init_time))
+local total_time = os.clock() - init_time
+print(string.format("Total load time: %.2f ms (%.3f seconds)", total_time * 1000, total_time))
 
 _AUTO_RELOAD_DEBUG = true
-
-
 
 

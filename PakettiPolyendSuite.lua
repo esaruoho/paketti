@@ -181,7 +181,7 @@ local function auto_save_drumkit_if_enabled(drumkit_type, vb)
 end
 
 -- Helper function to create local backup copy when enabled
-local function create_local_backup_copy(source_file_path, operation_name)
+function create_local_backup_copy(source_file_path, operation_name)
   if not get_use_computer_backup() then
     return false -- Local backup not enabled
   end

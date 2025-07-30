@@ -1,6 +1,6 @@
 CACHE_VERSION=1.0
-SCAN_TIME=1753823874
-COMMAND_COUNT=4402
+SCAN_TIME=1753879187
+COMMAND_COUNT=4409
 Menu Entry|||DSP Chain:Paketti:Insert Random Device (AU/Native Only)|||DSP Chain|||function() insertRandomDevice(true) end|||DCPIRDANO,chain,paketti,insert,random,device,native,only|||PakettiMenuConfig
 Menu Entry|||DSP Chain:Paketti:Insert Random Device (All)|||DSP Chain|||function() insertRandomDevice(false) end|||DCPIRDA,chain,paketti,insert,random,device|||PakettiMenuConfig
 Menu Entry|||DSP Chain:Paketti:Inspect Track Device Chain|||DSP Chain|||inspectTrackDeviceChain|||DCPITDC,chain,paketti,inspect,track,device,chain|||PakettiPresetPlusPlus
@@ -359,6 +359,12 @@ Menu Entry|||Main Menu:Tools:Paketti:!Preferences:Add Autocomplete Abbreviation.
 Menu Entry|||Main Menu:Tools:Paketti:!Preferences:Change Fonts (Agave)|||!Preferences|||function() ChangeFonts3() end|||MMTPPCFA,main,menu,tools,paketti,preferences,change,fonts,agave|||PakettiCustomization
 Menu Entry|||Main Menu:Tools:Paketti:!Preferences:Change Fonts (classic)|||!Preferences|||function() ChangeFonts1() end|||MMTPPCFC,main,menu,tools,paketti,preferences,change,fonts,classic|||PakettiCustomization
 Menu Entry|||Main Menu:Tools:Paketti:!Preferences:Change Fonts (default)|||!Preferences|||function() ChangeFonts2() end|||MMTPPCFD,main,menu,tools,paketti,preferences,change,fonts,default|||PakettiCustomization
+Menu Entry|||Main Menu:Tools:Paketti:!Preferences:Debug Autocomplete Search|||!Preferences|||function() 
+  local search_text = renoise.app():show_prompt("Debug Autocomplete", "Enter search text to debug:", "duplicate all")
+  if search_text and search_text ~= "" then 
+    debug_multi_word_search(search_text) 
+  end 
+end|||MMTPPDAS,main,menu,tools,paketti,preferences,debug,autocomplete,search|||PakettiAutocomplete
 Menu Entry|||Main Menu:Tools:Paketti:!Preferences:Debug:Dump Complete Renoise API|||!Preferences|||paketti_debug_dump_complete_renoise_api|||MMTPPDDCRA,main,menu,tools,paketti,preferences,debug,dump,complete,renoise|||PakettiCCizerLoader
 Menu Entry|||Main Menu:Tools:Paketti:!Preferences:Debug:Generate Paketti Midi Mappings to Console|||!Preferences|||function() generate_paketti_midi_mappings() end|||MMTPPDGPMMTC,main,menu,tools,paketti,preferences,debug,generate,paketti,midi,mappings,console|||PakettiMenuConfig
 Menu Entry|||Main Menu:Tools:Paketti:!Preferences:Debug:List of Installed Tools|||!Preferences|||function() pakettiListInstalledTools() end|||MMTPPDLOIT,main,menu,tools,paketti,preferences,debug,list,installed,tools|||PakettiExperimental_Verify
@@ -2223,6 +2229,12 @@ Keybinding|||Global:Paketti:Custom LFO Envelope Scale Slapback|||Global|||pakett
 Keybinding|||Global:Paketti:Cycle Disk Browser Category|||Global|||function() DiskBrowserCategoryCycler() end|||GPCDBC,global,paketti,cycle,disk,browser,category|||Paketti35
 Keybinding|||Global:Paketti:Cycle Overlap Mode|||Global|||overlayModeCycle|||GPCOM,global,paketti,cycle,overlap,mode|||PakettiSamples
 Keybinding|||Global:Paketti:Deactivate All Repeaters on All Tracks|||Global|||function() paketti_deactivate_all_repeaters() end|||GPDAROAT,global,paketti,deactivate,repeaters,tracks|||PakettiMidi
+Keybinding|||Global:Paketti:Debug Autocomplete Search|||Global|||function() 
+  local search_text = renoise.app():show_prompt("Debug Autocomplete", "Enter search text to debug:", "duplicate all")
+  if search_text and search_text ~= "" then 
+    debug_multi_word_search(search_text) 
+  end 
+end|||GPDAS,global,paketti,debug,autocomplete,search|||PakettiAutocomplete
 Keybinding|||Global:Paketti:Decrease All Track Volumes by 3dB|||Global|||function() pakettiDumpAllTrackVolumes(-3) end|||GPDATVB3,global,paketti,decrease,track,volumes|||PakettiRequests
 Keybinding|||Global:Paketti:Decrease EditStep by 1|||Global|||function() PakettiAdjustEditStep(-1) end|||GPDEB1,global,paketti,decrease,editstep|||PakettiControls
 Keybinding|||Global:Paketti:Decrease EditStep by 2|||Global|||function() PakettiAdjustEditStep(-2) end|||GPDEB2,global,paketti,decrease,editstep|||PakettiControls
@@ -2305,8 +2317,8 @@ Keybinding|||Global:Paketti:Export S1000 Sample...|||Global|||exportS1000Sample|
 Keybinding|||Global:Paketti:Export S3000 Sample...|||Global|||exportS3000Sample|||GPESS,global,paketti,export,s3000,sample|||PakettiAkaiS3000
 Keybinding|||Global:Paketti:Export S900/S950 Sample...|||Global|||exportS900Sample|||GPESSS,global,paketti,export,s900,s950,sample|||PakettiAkaiS900
 Keybinding|||Global:Paketti:Export Samples for Kontakt|||Global|||pakettiKontaktExportSamples|||GPESFK,global,paketti,export,samples,kontakt|||PakettiForeignSnippets
-Keybinding|||Global:Paketti:Export Wavetable|||Global|||paketti_export_wavetable|||GPEW,global,paketti,export,wavetable|||PakettiWTExport
 Keybinding|||Global:Paketti:Export Wavetable|||Global|||paketti_export_wavetable|||GPEW,global,paketti,export,wavetable|||PakettiWTImport
+Keybinding|||Global:Paketti:Export Wavetable|||Global|||paketti_export_wavetable|||GPEW,global,paketti,export,wavetable|||PakettiWTExport
 Keybinding|||Global:Paketti:Export XI (FastTracker II Extended Instrument)|||Global|||function() PakettiXIExport() end|||GPEXFIEI,global,paketti,export,fasttracker,extended,instrument|||PakettiXIExport
 Keybinding|||Global:Paketti:Export as Akai Format...|||Global|||exportCurrentSampleAsAkai|||GPEAAF,global,paketti,export,akai,format|||PakettiAkaiFormats
 Keybinding|||Global:Paketti:Expose/Hide Selected Device Parameters in Mixer|||Global|||function() exposeHideParametersInMixer() end|||GPEHSDPIM,global,paketti,expose,hide,selected,device,parameters,mixer|||PakettiLoaders
@@ -3071,6 +3083,10 @@ Keybinding|||Global:Paketti:Set Selected Instrument All Autofade On/Off|||Global
 Keybinding|||Global:Paketti:Set Selected Instrument All Autoseek Off|||Global|||function() selectedInstrumentAllAutoseekControl(0) end|||GPSSIAAO,global,paketti,selected,instrument,autoseek|||PakettiRequests
 Keybinding|||Global:Paketti:Set Selected Instrument All Autoseek On|||Global|||function() selectedInstrumentAllAutoseekControl(1) end|||GPSSIAAO,global,paketti,selected,instrument,autoseek|||PakettiRequests
 Keybinding|||Global:Paketti:Set Selected Instrument All Autoseek On/Off|||Global|||function() selectedInstrumentAllAutoseekToggle() end|||GPSSIAAOO,global,paketti,selected,instrument,autoseek|||PakettiRequests
+Keybinding|||Global:Paketti:Set Selected Instrument All Loop 00 Off|||Global|||pakettiSetSelectedInstrumentLoopOff|||GPSSIAL0O,global,paketti,selected,instrument,loop|||PakettiSamples
+Keybinding|||Global:Paketti:Set Selected Instrument All Loop 01 Forward|||Global|||pakettiSetSelectedInstrumentLoopForward|||GPSSIAL0F,global,paketti,selected,instrument,loop,forward|||PakettiSamples
+Keybinding|||Global:Paketti:Set Selected Instrument All Loop 02 Reverse|||Global|||pakettiSetSelectedInstrumentLoopReverse|||GPSSIAL0R,global,paketti,selected,instrument,loop,reverse|||PakettiSamples
+Keybinding|||Global:Paketti:Set Selected Instrument All Loop 03 PingPong|||Global|||pakettiSetSelectedInstrumentLoopPingPong|||GPSSIAL0P,global,paketti,selected,instrument,loop,pingpong|||PakettiSamples
 Keybinding|||Global:Paketti:Set Selected Instrument FX Group (Next)|||Global|||function() selectedInstrumentNextFXGroup() end|||GPSSIFGN,global,paketti,selected,instrument,group,next|||PakettiRequests
 Keybinding|||Global:Paketti:Set Selected Instrument FX Group (Previous)|||Global|||function() selectedInstrumentPreviousFXGroup() end|||GPSSIFGP,global,paketti,selected,instrument,group,previous|||PakettiRequests
 Keybinding|||Global:Paketti:Set Selected Instrument Finetune (+1)|||Global|||function()  selectedInstrumentFinetune(1) end|||GPSSIF1,+1,global,paketti,selected,instrument,finetune|||PakettiRequests
@@ -5333,6 +5349,7 @@ MIDI Mapping|||Paketti:Player Pro Effect Lower Value x[Knob]|||Paketti|||functio
     end
     print("=== MIDI MAPPING END ===")
   end|||PPPELVXK,paketti,player,effect,lower,value,knob|||PakettiPlayerProSuite
+MIDI Mapping|||Paketti:Polyend Buddy (PTI File Browser)|||Paketti|||function(message) if message:is_trigger() then show_polyend_buddy_dialog() end end|||PPBPFB,paketti,polyend,buddy,file,browser|||PakettiPolyendSuite
 MIDI Mapping|||Paketti:Previous Wavetable Cycle|||Paketti|||function(message) if message.boolean_value then move_loop_cycle(-1) end end|||PPWC,paketti,previous,wavetable,cycle|||PakettiWavetabler
 MIDI Mapping|||Paketti:Quick Humanize 10 x[Trigger]|||Paketti|||function(message) if message:is_trigger() then humanizeSelection(10, 5, 8) end end|||PQH1XT,paketti,quick,humanize,trigger|||PakettiRequests
 MIDI Mapping|||Paketti:Quick Humanize 20 x[Trigger]|||Paketti|||function(message) if message:is_trigger() then humanizeSelection(20, 8, 12) end end|||PQH2XT,paketti,quick,humanize,trigger|||PakettiRequests

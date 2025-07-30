@@ -3307,4 +3307,5 @@ function table_length(tbl)
 end
 
 -- Initialize commands when module loads
-initialize_paketti_commands()
+--initialize_paketti_commands()
+

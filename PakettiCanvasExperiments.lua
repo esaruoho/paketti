@@ -1319,7 +1319,6 @@ end
 
 -- Clean up observers when dialog closes
 function PakettiCanvasExperimentsCleanup()
-  print("CLEANUP: Starting aggressive cleanup to restore normal Renoise operation")
   
   -- CRITICAL: Turn off automation sync to stop all automation writing
   follow_automation = false
@@ -1336,10 +1335,7 @@ function PakettiCanvasExperimentsCleanup()
     device_selection_notifier = nil
   end
   
-  -- AGGRESSIVELY remove parameter observers first
   RemoveParameterObservers()
-  
-  -- AGGRESSIVELY remove canvas update timer
   RemoveCanvasUpdateTimer()
   
   -- FORCE RESET Renoise state that might have been hijacked
@@ -1347,7 +1343,6 @@ function PakettiCanvasExperimentsCleanup()
     local song = renoise.song()
     -- Restore normal follow player setting (don't force it to false)
     -- song.transport.follow_player = true  -- Let user control this
-    print("CLEANUP: ✅ Reset Renoise transport state")
   end)
   
   -- Clear all references
@@ -1370,8 +1365,6 @@ function PakettiCanvasExperimentsCleanup()
   parameter_values_B = {}
   crossfade_amount = 0.0
   current_edit_mode = "A"
-  
-  print("CLEANUP: ✅ Canvas Dialog cleanup complete")
 end
 
 -- Create the main dialog

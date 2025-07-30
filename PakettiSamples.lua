@@ -979,6 +979,110 @@ renoise.tool():add_keybinding{name="Sample Editor:Paketti:Set Loop Mode to 1 Off
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Set Loop Mode to 2 Forward",invoke=function() LoopState(2) end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Set Loop Mode to 3 Reverse",invoke=function() LoopState(3) end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Set Loop Mode to 4 PingPong",invoke=function() LoopState(4) end}
+
+-- Set Selected Instrument Loop functions (for ALL samples in the instrument)
+function pakettiSetSelectedInstrumentLoopOff()
+  local song = renoise.song()
+  local instrument = song.selected_instrument
+  
+  if not instrument then
+    renoise.app():show_status("No instrument selected.")
+    return
+  end
+  
+  local samples = instrument.samples
+  local num_samples = #samples
+  
+  if num_samples < 1 then
+    renoise.app():show_status("No samples in the selected instrument.")
+    return
+  end
+  
+  for i = 1, num_samples do
+    samples[i].loop_mode = renoise.Sample.LOOP_MODE_OFF
+  end
+  
+  renoise.app():show_status("Loop mode set to Off for " .. num_samples .. " samples.")
+end
+
+function pakettiSetSelectedInstrumentLoopForward()
+  local song = renoise.song()
+  local instrument = song.selected_instrument
+  
+  if not instrument then
+    renoise.app():show_status("No instrument selected.")
+    return
+  end
+  
+  local samples = instrument.samples
+  local num_samples = #samples
+  
+  if num_samples < 1 then
+    renoise.app():show_status("No samples in the selected instrument.")
+    return
+  end
+  
+  for i = 1, num_samples do
+    samples[i].loop_mode = renoise.Sample.LOOP_MODE_FORWARD
+  end
+  
+  renoise.app():show_status("Loop mode set to Forward for " .. num_samples .. " samples.")
+end
+
+function pakettiSetSelectedInstrumentLoopReverse()
+  local song = renoise.song()
+  local instrument = song.selected_instrument
+  
+  if not instrument then
+    renoise.app():show_status("No instrument selected.")
+    return
+  end
+  
+  local samples = instrument.samples
+  local num_samples = #samples
+  
+  if num_samples < 1 then
+    renoise.app():show_status("No samples in the selected instrument.")
+    return
+  end
+  
+  for i = 1, num_samples do
+    samples[i].loop_mode = renoise.Sample.LOOP_MODE_REVERSE
+  end
+  
+  renoise.app():show_status("Loop mode set to Reverse for " .. num_samples .. " samples.")
+end
+
+function pakettiSetSelectedInstrumentLoopPingPong()
+  local song = renoise.song()
+  local instrument = song.selected_instrument
+  
+  if not instrument then
+    renoise.app():show_status("No instrument selected.")
+    return
+  end
+  
+  local samples = instrument.samples
+  local num_samples = #samples
+  
+  if num_samples < 1 then
+    renoise.app():show_status("No samples in the selected instrument.")
+    return
+  end
+  
+  for i = 1, num_samples do
+    samples[i].loop_mode = renoise.Sample.LOOP_MODE_PING_PONG
+  end
+  
+  renoise.app():show_status("Loop mode set to PingPong for " .. num_samples .. " samples.")
+end
+
+-- Keybindings for Set Selected Instrument Loop functions
+renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Instrument All Loop 00 Off", invoke=pakettiSetSelectedInstrumentLoopOff}
+renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Instrument All Loop 01 Forward", invoke=pakettiSetSelectedInstrumentLoopForward}
+renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Instrument All Loop 02 Reverse", invoke=pakettiSetSelectedInstrumentLoopReverse}
+renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Instrument All Loop 03 PingPong", invoke=pakettiSetSelectedInstrumentLoopPingPong}
+
 ------------------
 function slicerough(changer)
 -- Limit changer to 255 (Renoise's maximum slice marker limit)
