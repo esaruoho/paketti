@@ -1366,6 +1366,9 @@ end
 function scan_computer_pti_files(root_path)
   local pti_files = {}
   local separator = package.config:sub(1,1)
+  local total_dirs_scanned = 0
+  local total_files_found = 0
+  local start_time = os.clock()
   
   if not root_path or root_path == "" then
     return pti_files
@@ -1376,17 +1379,20 @@ function scan_computer_pti_files(root_path)
     local success, files = pcall(os.filenames, path, "*")
     if not success then
       print(string.format("-- Local PTI: Warning - Cannot access directory: %s", path))
-      print(string.format("-- Local PTI: Error details: %s", tostring(files)))
       return
     end
     
     local success2, dirs = pcall(os.dirnames, path)
     if not success2 then
-      print(string.format("-- Local PTI: Warning - Cannot list subdirectories in: %s", path))
       dirs = {}
     end
     
-    print(string.format("-- Local PTI: Scanning %s - found %d files, %d dirs", path, #files, #dirs))
+    total_dirs_scanned = total_dirs_scanned + 1
+    
+    -- Show progress every 100 directories scanned for very large scans
+    if total_dirs_scanned % 100 == 0 then
+      print(string.format("-- Local PTI: Progress - Scanned %d directories, found %d PTI/WAV files...", total_dirs_scanned, total_files_found))
+    end
     
     -- Scan files in current directory
     for _, filename in ipairs(files) do
@@ -1394,29 +1400,24 @@ function scan_computer_pti_files(root_path)
       local full_path = path .. separator .. filename
       
              if (filename:lower():match("%.pti$") or filename:lower():match("%.wav$")) and not filename:match("^%._") then
-         table.insert(pti_files, {
-           display_name = relative_file_path,
-           full_path = full_path
-         })
-         local file_type = filename:lower():match("%.pti$") and "PTI" or "WAV"
-         print(string.format("-- Local PTI: Found %s file: %s", file_type, relative_file_path))
-       elseif filename:match("^%._") then
-         print(string.format("-- Local PTI: Skipping macOS metadata file: %s", relative_file_path))
-       end
+        table.insert(pti_files, {
+          display_name = relative_file_path,
+          full_path = full_path
+        })
+        total_files_found = total_files_found + 1
+      end
     end
     
     -- Recursively scan subdirectories (skip hidden/system folders)
     for _, dirname in ipairs(dirs) do
       -- Skip hidden folders (starting with .) and common system folders
       if not dirname:match("^%.") and 
-         dirname ~= "System Volume Information" and 
-         dirname ~= "$RECYCLE.BIN" and
-         dirname ~= "Thumbs.db" then
+        dirname ~= "System Volume Information" and 
+        dirname ~= "$RECYCLE.BIN" and
+        dirname ~= "Thumbs.db" then
         local sub_path = path .. separator .. dirname
         local sub_relative = relative_path == "" and dirname or (relative_path .. separator .. dirname)
         scan_directory(sub_path, sub_relative)
-      else
-        print(string.format("-- Local PTI: Skipping system/hidden folder: %s", dirname))
       end
     end
   end
@@ -1425,14 +1426,16 @@ function scan_computer_pti_files(root_path)
   local success, test_files = pcall(os.filenames, root_path, "*")
   if not success then
     print(string.format("-- Local PTI: Error - Root path does not exist or is not accessible: %s", root_path))
-    print(string.format("-- Local PTI: Error details: %s", tostring(test_files)))
     return pti_files
   end
   
-  print(string.format("-- Local PTI: Root path accessible, found %d files", #test_files))
+  print(string.format("-- Local PTI: Starting scan of path: %s", root_path))
   
   -- Start recursive scanning
   scan_directory(root_path, "")
+  
+  local scan_time = os.clock() - start_time
+  print(string.format("-- Local PTI: Scan complete - Found %d PTI/WAV files in %d directories (%.2f seconds)", total_files_found, total_dirs_scanned, scan_time))
   
   -- Sort by display name (case-insensitive)
   table.sort(pti_files, function(a, b)
@@ -3115,7 +3118,7 @@ function create_polyend_buddy_dialog(vb)
         tooltip = "Path to your Polyend device device or folder containing PTI files"
       },
       vb:button{
-        text = "Browse",
+        text = "Set Path",
         width = polyendButtonWidth,
         notifier = function()
           local selected_path = renoise.app():prompt_for_path("Select Polyend device Folder")
@@ -3165,7 +3168,7 @@ function create_polyend_buddy_dialog(vb)
     -- PTI files dropdown with Load button
     vb:row{
       vb:text{
-        text = "Polyend PTI Files",
+        text = "Device PTI Files",
         width = textWidth, style="strong",font="bold"
       },
       vb:popup{
@@ -3354,7 +3357,7 @@ function create_polyend_buddy_dialog(vb)
     -- WAV files dropdown with Load button
     vb:row{
       vb:text{
-        text = "Polyend WAV Files",
+        text = "Device WAV Files",
         width = textWidth, style="strong",font="bold"
       },
       vb:popup{

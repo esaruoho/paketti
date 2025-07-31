@@ -50,13 +50,70 @@ function PakettiCreateUnisonSamples()
   print("DEBUG: Starting Unison Generator")
   print("DEBUG: Original instrument has", #instrument.samples, "samples")
   print("DEBUG: Selected sample index:", selected_sample_index)
+  print("DEBUG: Duplicate whole instrument preference:", preferences.pakettiUnisonDuplicateInstrument.value)
+  
+  -- Check if instrument is already pakettified
+  local is_pakettified = false
+  
+  -- Check for plugins
+  if instrument.plugin_properties and instrument.plugin_properties.plugin_device then
+    is_pakettified = true
+    print("DEBUG: Instrument has plugin - considered pakettified")
+  end
+  
+  -- Check for active AHDSR envelope
+  if instrument.sample_modulation_sets[1] and instrument.sample_modulation_sets[1].devices[2] and instrument.sample_modulation_sets[1].devices[2].is_active then
+    is_pakettified = true
+    print("DEBUG: Instrument has active AHDSR envelope - considered pakettified")
+  end
+  
+  -- Check for macro assignments (if any macros are assigned to parameters)
+  for i = 1, 8 do
+    if instrument.macros[i] and #instrument.macros[i].mappings > 0 then
+      is_pakettified = true
+      print("DEBUG: Instrument has macro", i, "assigned - considered pakettified")
+      break
+    end
+  end
+  
+  print("DEBUG: Instrument is pakettified:", is_pakettified)
   
   local new_instrument_index = selected_instrument_index + 1
-  song:insert_instrument_at(new_instrument_index)
-  song.selected_instrument_index = new_instrument_index
-  local new_instrument = renoise.song().selected_instrument
+  local new_instrument
+  local external_editor_open = false
   
-  print("DEBUG: Created new instrument at index:", new_instrument_index)
+  if preferences.pakettiUnisonDuplicateInstrument.value and is_pakettified then
+    -- Store external editor state and close it temporarily if needed
+    if instrument.plugin_properties and instrument.plugin_properties.plugin_device then
+      external_editor_open = instrument.plugin_properties.plugin_device.external_editor_visible
+      if external_editor_open then
+        instrument.plugin_properties.plugin_device.external_editor_visible = false
+        print("DEBUG: Closed external plugin editor")
+      end
+    end
+    
+    -- Duplicate the entire instrument using copy_from
+    song:insert_instrument_at(new_instrument_index)
+    new_instrument = song.instruments[new_instrument_index]
+    new_instrument:copy_from(instrument)
+    
+    -- Copy phrases if they exist
+    if #instrument.phrases > 0 then
+      for phrase_index = 1, #instrument.phrases do
+        new_instrument:insert_phrase_at(phrase_index)
+        new_instrument.phrases[phrase_index]:copy_from(instrument.phrases[phrase_index])
+      end
+    end
+    
+    song.selected_instrument_index = new_instrument_index
+    print("DEBUG: Duplicated pakettified instrument using copy_from at index:", new_instrument_index)
+  else
+    -- Create new instrument for non-pakettified instruments or when preference is disabled
+    song:insert_instrument_at(new_instrument_index)
+    song.selected_instrument_index = new_instrument_index
+    new_instrument = renoise.song().selected_instrument
+    print("DEBUG: Created new instrument at index:", new_instrument_index, "(will be pakettified)")
+  end
 
 
   local phrases_to_copy = #instrument.phrases
@@ -69,31 +126,36 @@ function PakettiCreateUnisonSamples()
   
   print(string.format("\nNEW: Created empty Instrument[%d:'%s']", new_instrument_index, new_instrument.name))
   
-  -- First load the XRNI
-  print("\nLoading XRNI template...")
-  print(string.format("Pre-XRNI state: Instrument[%d:'%s']", new_instrument_index, new_instrument.name))
-  pakettiPreferencesDefaultInstrumentLoader()
-  print(string.format("Immediate post-XRNI state: Instrument[%d:'%s']", new_instrument_index, new_instrument.name))
-  
-  -- Force refresh our reference to the instrument
-  new_instrument = renoise.song().instruments[new_instrument_index]
-  print(string.format("After refresh: Instrument[%d:'%s']", new_instrument_index, new_instrument.name))
+  -- Only load XRNI template if we're not duplicating a pakettified instrument
+  if not (preferences.pakettiUnisonDuplicateInstrument.value and is_pakettified) then
+    -- First load the XRNI
+    print("\nLoading XRNI template...")
+    print(string.format("Pre-XRNI state: Instrument[%d:'%s']", new_instrument_index, new_instrument.name))
+    pakettiPreferencesDefaultInstrumentLoader()
+    print(string.format("Immediate post-XRNI state: Instrument[%d:'%s']", new_instrument_index, new_instrument.name))
+    
+    -- Force refresh our reference to the instrument
+    new_instrument = renoise.song().instruments[new_instrument_index]
+    print(string.format("After refresh: Instrument[%d:'%s']", new_instrument_index, new_instrument.name))
 
-  -- NOW copy the phrases after the XRNI is loaded
-  if phrases_to_copy > 0 then
-    print(string.format("\nCopying %d phrases from Instrument[%d:'%s'] to Instrument[%d:'%s']:", 
-      phrases_to_copy, selected_instrument_index, instrument.name, 
-      new_instrument_index, new_instrument.name))
-    for i = 1, phrases_to_copy do
-      print(string.format("  Creating phrase slot %d in Instrument[%d:'%s']...", 
-        i, new_instrument_index, new_instrument.name))
-      new_instrument:insert_phrase_at(i)
-      print(string.format("  Copying from Instrument[%d:'%s'] Phrase[%d:'%s'] (%d lines)", 
-        selected_instrument_index, instrument.name, i, instrument.phrases[i].name, #instrument.phrases[i].lines))
-      new_instrument.phrases[i]:copy_from(instrument.phrases[i])
-      print(string.format("  Result: Instrument[%d:'%s'] Phrase[%d:'%s'] (%d lines)", 
-        new_instrument_index, new_instrument.name, i, new_instrument.phrases[i].name, #new_instrument.phrases[i].lines))
+    -- NOW copy the phrases after the XRNI is loaded
+    if phrases_to_copy > 0 then
+      print(string.format("\nCopying %d phrases from Instrument[%d:'%s'] to Instrument[%d:'%s']:", 
+        phrases_to_copy, selected_instrument_index, instrument.name, 
+        new_instrument_index, new_instrument.name))
+      for i = 1, phrases_to_copy do
+        print(string.format("  Creating phrase slot %d in Instrument[%d:'%s']...", 
+          i, new_instrument_index, new_instrument.name))
+        new_instrument:insert_phrase_at(i)
+        print(string.format("  Copying from Instrument[%d:'%s'] Phrase[%d:'%s'] (%d lines)", 
+          selected_instrument_index, instrument.name, i, instrument.phrases[i].name, #instrument.phrases[i].lines))
+        new_instrument.phrases[i]:copy_from(instrument.phrases[i])
+        print(string.format("  Result: Instrument[%d:'%s'] Phrase[%d:'%s'] (%d lines)", 
+          new_instrument_index, new_instrument.name, i, new_instrument.phrases[i].name, #new_instrument.phrases[i].lines))
+      end
     end
+  else
+    print("\nSkipping XRNI template loading - using duplicated pakettified instrument")
   end
 
   print(string.format("\nFINAL STATE: Instrument[%d:'%s'] has %d phrases:", 
@@ -114,34 +176,68 @@ function PakettiCreateUnisonSamples()
     end
   end
 
-  -- Ensure we have at least one sample slot before copying
-  if #new_instrument.samples == 0 then
-    new_instrument:insert_sample_at(1)
-    print("DEBUG: Created first sample slot in new instrument")
-  end
-  
-  -- Validate sample slot exists before copying
-  if #new_instrument.samples >= 1 and new_instrument.samples[1] then
-    -- Copy sample buffer from the original instrument's selected sample to the new instrument
-    new_instrument.samples[1]:copy_from(original_sample)
-    -- Reset the first sample's panning to center
-    new_instrument.samples[1].panning = 0.5
-    new_instrument.samples[1].interpolation_mode = preferences.pakettiLoaderInterpolation.value
-    new_instrument.samples[1].oversample_enabled = preferences.pakettiLoaderOverSampling.value
-    new_instrument.samples[1].autofade = preferences.pakettiLoaderAutofade.value
-    new_instrument.samples[1].name = string.format("%s (Unison 0 [0] (Center))", original_sample_name)
-    print("DEBUG: Successfully copied original sample to slot 1")
+  if preferences.pakettiUnisonDuplicateInstrument.value and is_pakettified then
+    -- When duplicating a pakettified instrument, we already have all samples
+    -- We need to prepare the selected sample for unison processing
+    if selected_sample_index <= #new_instrument.samples and new_instrument.samples[selected_sample_index] then
+      local base_sample = new_instrument.samples[selected_sample_index]
+      base_sample.panning = 0.5
+      base_sample.interpolation_mode = preferences.pakettiLoaderInterpolation.value
+      base_sample.oversample_enabled = preferences.pakettiLoaderOverSampling.value
+      base_sample.autofade = preferences.pakettiLoaderAutofade.value
+      base_sample.name = string.format("%s (Unison 0 [0] (Center))", original_sample_name)
+      print("DEBUG: Prepared existing sample", selected_sample_index, "for unison processing")
+    else
+      renoise.app():show_status("Selected sample not found in duplicated instrument")
+      print("DEBUG: Selected sample", selected_sample_index, "not found in duplicated instrument")
+      -- Restore 0G01 state before returning
+      preferences._0G01_Loader.value=G01CurrentState 
+      manage_sample_count_observer(preferences._0G01_Loader.value)
+      return
+    end
   else
-    renoise.app():show_status("Failed to create first sample slot")
-    print("DEBUG: Failed to create or access first sample slot")
+    -- Original behavior: ensure we have at least one sample slot before copying
+    if #new_instrument.samples == 0 then
+      new_instrument:insert_sample_at(1)
+      print("DEBUG: Created first sample slot in new instrument")
+    end
+    
+    -- Validate sample slot exists before copying
+    if #new_instrument.samples >= 1 and new_instrument.samples[1] then
+      -- Copy sample buffer from the original instrument's selected sample to the new instrument
+      new_instrument.samples[1]:copy_from(original_sample)
+      -- Reset the first sample's panning to center
+      new_instrument.samples[1].panning = 0.5
+      new_instrument.samples[1].interpolation_mode = preferences.pakettiLoaderInterpolation.value
+      new_instrument.samples[1].oversample_enabled = preferences.pakettiLoaderOverSampling.value
+      new_instrument.samples[1].autofade = preferences.pakettiLoaderAutofade.value
+      new_instrument.samples[1].name = string.format("%s (Unison 0 [0] (Center))", original_sample_name)
+      print("DEBUG: Successfully copied original sample to slot 1")
+    else
+      renoise.app():show_status("Failed to create first sample slot")
+      print("DEBUG: Failed to create or access first sample slot")
+      -- Restore 0G01 state before returning
+      preferences._0G01_Loader.value=G01CurrentState 
+      manage_sample_count_observer(preferences._0G01_Loader.value)
+      return
+    end
+  end
+
+  -- Rename the new instrument to match the original instrument's name with " (Unison)" appended
+  new_instrument.name = original_instrument_name .. " (Unison)"
+
+  -- Determine base sample for copying
+  local base_sample_index = (preferences.pakettiUnisonDuplicateInstrument.value and is_pakettified) and selected_sample_index or 1
+  local base_sample = new_instrument.samples[base_sample_index]
+  
+  if not base_sample then
+    renoise.app():show_status("Base sample not found for unison processing")
+    print("DEBUG: Base sample at index", base_sample_index, "not found")
     -- Restore 0G01 state before returning
     preferences._0G01_Loader.value=G01CurrentState 
     manage_sample_count_observer(preferences._0G01_Loader.value)
     return
   end
-
-  -- Rename the new instrument to match the original instrument's name with " (Unison)" appended
-  new_instrument.name = original_instrument_name .. " (Unison)"
 
   -- Create 7 additional sample slots for unison
   for i = 2, 8 do
@@ -155,8 +251,8 @@ function PakettiCreateUnisonSamples()
     end
     
     -- Validate sample slot exists before copying
-    if #new_instrument.samples >= i and new_instrument.samples[i] and new_instrument.samples[1] then
-      new_instrument.samples[i]:copy_from(new_instrument.samples[1])
+    if #new_instrument.samples >= i and new_instrument.samples[i] and base_sample then
+      new_instrument.samples[i]:copy_from(base_sample)
       new_instrument.samples[i].loop_mode = 2
       new_instrument.samples[i].interpolation_mode = preferences.pakettiLoaderInterpolation.value
       new_instrument.samples[i].oversample_enabled = preferences.pakettiLoaderOverSampling.value
@@ -324,6 +420,11 @@ PakettiFillPitchStepperDigits(0.015,64)
 renoise.song().selected_phrase_index = original_phrase_index
 print(string.format("Restored selected_phrase_index to: %d", renoise.song().selected_phrase_index))
 
+  -- Restore external editor state if needed (only for pakettified duplicate mode)
+  if preferences.pakettiUnisonDuplicateInstrument.value and is_pakettified and external_editor_open and new_instrument.plugin_properties and new_instrument.plugin_properties.plugin_device then
+    new_instrument.plugin_properties.plugin_device.external_editor_visible = true
+    print("DEBUG: Restored external plugin editor")
+  end
 
   renoise.app():show_status("Unison samples created successfully.")
 

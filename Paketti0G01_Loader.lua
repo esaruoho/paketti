@@ -152,6 +152,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiUnisonDetune=25,
   pakettiUnisonDetuneFluctuation=true,
   pakettiUnisonDetuneHardSync=false,
+  pakettiUnisonDuplicateInstrument=true,
   pakettiDefaultXRNI = renoise.tool().bundle_path .. "Presets" .. separator .. "12st_Pitchbend.xrni",
   pakettiDefaultDrumkitXRNI = renoise.tool().bundle_path .. "Presets" .. separator .. "12st_Pitchbend_Drumkit_C0.xrni",
   ActionSelector = {
@@ -690,6 +691,9 @@ function pakettiPreferences()
   end
   if preferences.pakettiUnisonDetuneHardSync.value == nil then
     preferences.pakettiUnisonDetuneHardSync.value = false
+  end
+  if preferences.pakettiUnisonDuplicateInstrument.value == nil then
+    preferences.pakettiUnisonDuplicateInstrument.value = true
   end
 
   local pakettiDeviceChainPathDisplayId = "pakettiDeviceChainPathDisplay_" .. tostring(math.random(2, 30000))
@@ -1445,8 +1449,18 @@ vb:row{
             end
         }
     },
+    vb:row{
+        vb:text{text="Duplicate Instrument",width=150},
+        vb:checkbox{
+            value=preferences.pakettiUnisonDuplicateInstrument.value,
+            notifier=function(value)
+                preferences.pakettiUnisonDuplicateInstrument.value = value
+            end
+        }
+    },
          vb:row{vb:text{style="strong",text="Controls the detune range (±) used by the Unison Generator. Hard Sync: alternating ±max values."}},
          vb:row{vb:text{style="strong",text="Live-updates currently selected unison instrument."}},
+         vb:row{vb:text{style="strong",text="Duplicate whole Instrument: copies entire instrument (plugins, AHDSR, macros) before unison-ing."}},
   },
 },
       

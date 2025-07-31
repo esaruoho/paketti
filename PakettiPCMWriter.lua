@@ -6099,6 +6099,60 @@ function PCMWriterLoadCurrentSample()
     if crossfade_display then crossfade_display.text = string.format("%.1f%%", crossfade_amount * 100) end
   end
   
+  -- AUTO-PITCH DETECTION FOR LIVE PICKUP MODE
+  -- Check if sample is a standard single-cycle length and apply pitch correction if not already tuned
+  local standard_cycle_lengths = {32, 64, 128, 256, 512, 1024}
+  local is_standard_length = false
+  for _, length in ipairs(standard_cycle_lengths) do
+    if num_frames == length then
+      is_standard_length = true
+      break
+    end
+  end
+  
+  -- Apply automatic pitch detection if it's a standard length and not already properly tuned
+  if is_standard_length then
+    -- Check if sample is not already tuned (transpose=0 and fine_tune close to 0)
+    local needs_tuning = (sample.transpose == 0 and math.abs(sample.fine_tune) < 10)
+    
+    if needs_tuning then
+      -- Calculate pitch correction using existing algorithm
+      local pitch_correction = calculate_pitch_correction(buffer.sample_rate, num_frames, 1)
+      
+      -- Only apply correction if deviation is significant (>2 cents)
+      local cents_deviation = math.abs(pitch_correction.cents)
+      if cents_deviation > 2 then
+        sample.transpose = pitch_correction.transpose
+        sample.fine_tune = pitch_correction.fine_tune
+        
+        print(string.format("Live Pickup Auto-Pitch: %s (%.1f Hz) -> transpose: %d, fine_tune: %d (%.1f cents %s)", 
+          pitch_correction.note_name, pitch_correction.frequency, 
+          pitch_correction.transpose, pitch_correction.fine_tune,
+          cents_deviation, pitch_correction.cent_direction))
+        
+        -- Update sample name to reflect auto-tuning
+        local tuning_info = string.format(" [Auto: %s T:%d F:%d]", 
+          pitch_correction.note_name, pitch_correction.transpose, pitch_correction.fine_tune)
+        
+        if not string.find(sample.name, "Auto:") then
+          sample.name = sample.name .. tuning_info
+        end
+        
+        renoise.app():show_status("Live Pickup Mode: Loaded " .. num_frames .. " frame sample, auto-tuned to " .. pitch_correction.note_name .. " (Wave " .. current_wave_edit .. ")")
+      else
+        print(string.format("Live Pickup: Sample already well-tuned: %s (%.1f Hz, %.1f cents %s)", 
+          pitch_correction.note_name, pitch_correction.frequency,
+          cents_deviation, pitch_correction.cent_direction))
+        
+        renoise.app():show_status("Live Pickup Mode: Loaded " .. num_frames .. " frame sample for live editing (Wave " .. current_wave_edit .. ") - already well-tuned")
+      end
+    else
+      renoise.app():show_status("Live Pickup Mode: Loaded " .. num_frames .. " frame sample for live editing (Wave " .. current_wave_edit .. ") - already tuned")
+    end
+  else
+    renoise.app():show_status("Live Pickup Mode: Loaded " .. num_frames .. " frame sample for live editing (Wave " .. current_wave_edit .. ")")
+  end
+
   -- Enable live pickup mode
   live_pickup_mode = true
   live_pickup_sample = sample
