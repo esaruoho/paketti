@@ -4960,29 +4960,17 @@ function fillEmptySampleSlots()
       return
   end
 
-  -- Create table of used notes
-  local used_notes = {}
-  for _, mapping_group in ipairs(instrument.sample_mappings) do
-      for _, mapping in ipairs(mapping_group) do
-          if mapping.note_range then
-              for note = mapping.note_range[1], mapping.note_range[2] do
-                  used_notes[note] = true
-              end
-          end
-      end
-  end
-
-  -- Fill empty notes from C0 (0) to B9 (119)
-  for note = 0, 119 do
-      if not used_notes[note] then
+  -- STEP 1: Fill EmptiedUnused samples first (preserves existing mappings)
+  local filled_count = 0
+  for sample_index = 1, #instrument.samples do
+      local sample = instrument.samples[sample_index]
+      
+      -- Check if this sample is marked as EmptiedUnused
+      if sample.name == "EmptiedUnused" then
           if #sample_files == 0 then
-              renoise.app():show_status("Ran out of sample files.")
-              break
+              renoise.app():show_status(string.format("Filled %d EmptiedUnused slots, ran out of sample files.", filled_count))
+              return
           end
-
-          local sample_index = #instrument.samples + 1
-          instrument:insert_sample_at(sample_index)
-          local sample = instrument.samples[sample_index]
 
           local random_index = math.random(1, #sample_files)
           local selected_file = sample_files[random_index]
@@ -4994,6 +4982,7 @@ function fillEmptySampleSlots()
 
           if success then
             sample.name = selected_file:match("([^/\\]+)%.%w+$")
+            filled_count = filled_count + 1
             
             -- Apply all preferences from the original loader
 --[[            sample.interpolation_mode = preferences.pakettiLoaderInterpolation.value
@@ -5005,16 +4994,67 @@ function fillEmptySampleSlots()
             sample.new_note_action = preferences.pakettiLoaderNNA.value
             sample.loop_release = preferences.pakettiLoaderLoopExit.value
     ]]--        
-            -- Set both note_range and base_note to the current note
-            local mapping = instrument.sample_mappings[1][sample_index]
-            mapping.note_range = {note, note}
-            mapping.base_note = note
-            
-            local note_name = string.format("%s%d", string.char(65 + (note % 12)), math.floor(note / 12))
-            renoise.app():show_status(string.format("Mapped %s: %s", note_name, sample.name))
-        end end end end 
+            -- NOTE: Don't modify mappings - preserve existing ones!
+            renoise.app():show_status(string.format("Filled EmptiedUnused slot %d: %s", sample_index, sample.name))
+        end
+      end
+  end
+  
+  -- STEP 2: If we still have sample files, use original method for unmapped notes
+  if #sample_files > 0 then
+    -- Create table of used notes
+    local used_notes = {}
+    for _, mapping_group in ipairs(instrument.sample_mappings) do
+        for _, mapping in ipairs(mapping_group) do
+            if mapping.note_range then
+                for note = mapping.note_range[1], mapping.note_range[2] do
+                    used_notes[note] = true
+                end
+            end
+        end
+    end
 
+    -- Fill empty notes from C0 (0) to B9 (119)
+    for note = 0, 119 do
+        if not used_notes[note] then
+            if #sample_files == 0 then
+                break
+            end
 
+            local sample_index = #instrument.samples + 1
+            instrument:insert_sample_at(sample_index)
+            local sample = instrument.samples[sample_index]
+
+            local random_index = math.random(1, #sample_files)
+            local selected_file = sample_files[random_index]
+            table.remove(sample_files, random_index)
+
+            local success = pcall(function()
+                sample.sample_buffer:load_from(selected_file)
+            end)
+
+            if success then
+              sample.name = selected_file:match("([^/\\]+)%.%w+$")
+              filled_count = filled_count + 1
+              
+              -- Set both note_range and base_note to the current note
+              local mapping = instrument.sample_mappings[1][sample_index]
+              mapping.note_range = {note, note}
+              mapping.base_note = note
+              
+              local note_name = string.format("%s%d", string.char(65 + (note % 12)), math.floor(note / 12))
+              renoise.app():show_status(string.format("Mapped %s: %s", note_name, sample.name))
+          end 
+        end 
+    end
+  end
+  
+  if filled_count > 0 then
+      renoise.app():show_status(string.format("Filled %d sample slots total", filled_count))
+  else
+      renoise.app():show_status("No empty slots found to fill")
+  end 
+end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Fill Empty Sample Slots (Randomized Folder)",invoke=function() fillEmptySampleSlots() end}
 
