@@ -130,6 +130,8 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   renderBitDepth=32,
   renderBypass=false,
   RenderDCOffset=false,
+  experimentalRenderPriority="high",  -- "high" or "realtime"
+  experimentalRenderSilenceMultiplier=1,  -- 0, 1, 3, or 7 silences
   pakettiEditMode=1,
   pakettiLoaderInterpolation=1,
   pakettiLoaderFilterType="LP Clean",
@@ -888,6 +890,15 @@ local pakettiIRPathDisplayId = "pakettiIRPathDisplay_" .. tostring(math.random(2
             },
             vb:row{vb:text{text="DC Offset",width=150},vb:switch{items={"Off","On"},value=preferences.RenderDCOffset.value and 2 or 1,width=300,
               notifier=function(value) preferences.RenderDCOffset.value=(value==2) end}
+            },
+            vb:text{style="strong",font="bold",text="Experimental Render Settings"},
+            vb:row{vb:text{text="Render Priority",width=150},vb:switch{items={"High","Realtime"},value=preferences.experimentalRenderPriority.value=="high" and 1 or 2,width=300,
+              tooltip="High: switches to Realtime if Line Input device detected. Realtime: always uses realtime priority.",
+              notifier=function(value) preferences.experimentalRenderPriority.value=(value==1 and "high" or "realtime") end}
+            },
+            vb:row{vb:text{text="Silence Multiplier",width=150},vb:switch{items={"0","1","3","7"},value=(preferences.experimentalRenderSilenceMultiplier.value==0 and 1 or preferences.experimentalRenderSilenceMultiplier.value==1 and 2 or preferences.experimentalRenderSilenceMultiplier.value==3 and 3 or 4),width=300,
+              tooltip="Number of sample-length silences after playback for FX trails (0=no trails, 7=max trails).",
+              notifier=function(value) preferences.experimentalRenderSilenceMultiplier.value=(value==1 and 0 or value==2 and 1 or value==3 and 3 or 7) end}
             },
             vb:text{style = "strong", font = "bold", text="Rotate Sample Buffer Settings"},
             vb:row{

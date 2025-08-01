@@ -1515,14 +1515,76 @@ end
 function pakettiCalculateRenderBPM(sample_length_frames, sample_rate)
     local detected_bpm, beat_count = pakettiDetectSampleBPM(sample_length_frames, sample_rate)
     
-    -- Use detected BPM divided by 4 for rendering (to ensure full sample + trails fit)
-    local render_bpm = detected_bpm / 4
+    -- Use preference value for silence multiplier
+    local silence_multiplier = preferences.experimentalRenderSilenceMultiplier.value
+    local total_time_multiplier = 1 + silence_multiplier
+    local render_bpm = detected_bpm / total_time_multiplier
     
     print("=== RENDER BPM CALCULATION ===")
     print("Detected BPM:", string.format("%.1f", detected_bpm), "with", beat_count, "beats")
-    print("Render BPM:", string.format("%.1f", render_bpm), "(detected ÷ 4)")
+    print("Silence multiplier:", silence_multiplier, "(sample-length silences after playback)")
+    print("Total time multiplier:", total_time_multiplier, "(1 playback + " .. silence_multiplier .. " silences)")
+    print("Render BPM:", string.format("%.1f", render_bpm), "(detected ÷ " .. total_time_multiplier .. ")")
     
     return render_bpm, detected_bpm, beat_count
+end
+
+--------
+-- Peak Detection Helper
+--------
+
+function pakettiDetectSamplePeak(sample_buffer)
+    if not sample_buffer or not sample_buffer.has_sample_data then
+        return 0
+    end
+    
+    local peak = 0
+    local num_frames = sample_buffer.number_of_frames
+    local num_channels = sample_buffer.number_of_channels
+    local chunk_size = 10000
+    
+    print("DEBUG PEAK: Analyzing", num_frames, "frames in chunks of", chunk_size)
+    
+    -- Process in chunks of 10,000 frames for better performance
+    for channel = 1, num_channels do
+        for chunk_start = 1, num_frames, chunk_size do
+            local chunk_end = math.min(chunk_start + chunk_size - 1, num_frames)
+            local chunk_peak = 0
+            
+            -- Find peak within this chunk
+            for frame = chunk_start, chunk_end do
+                local sample_value = math.abs(sample_buffer:sample_data(channel, frame))
+                if sample_value > chunk_peak then
+                    chunk_peak = sample_value
+                end
+            end
+            
+            -- Update overall peak if this chunk's peak is higher
+            if chunk_peak > peak then
+                peak = chunk_peak
+            end
+        end
+    end
+    
+    print("DEBUG PEAK: Analysis complete, peak found:", string.format("%.6f", peak))
+    return peak
+end
+
+function pakettiTestPeakDetection()
+    local song = renoise.song()
+    local selected_sample = song.selected_sample
+    
+    if not selected_sample or not selected_sample.sample_buffer.has_sample_data then
+        renoise.app():show_status("Please select a sample with data first")
+        return
+    end
+    
+    local peak = pakettiDetectSamplePeak(selected_sample.sample_buffer)
+    local peak_db = math.lin2db(peak)
+    local msg = string.format("Sample Peak: %.6f (%.2f dB)", peak, peak_db)
+    
+    print("DEBUG:", msg)
+    renoise.app():show_status(msg)
 end
 
 --------
@@ -1530,11 +1592,14 @@ end
 -- Renders a long sample through track/sample FX by creating temporary playback environment
 --------
 
+-- Experimental render configuration now managed via preferences
+
 local experimental_render_context = {
     original_bpm = 0,
     original_lpb = 0,
     original_pattern_length = 0,
     original_pattern_index = 0,
+    original_track_headroom = 0,
     temp_pattern_created = false,
     temp_pattern_index = 0,
     source_track = 0,
@@ -1555,6 +1620,7 @@ function create_experimental_render_context()
         original_lpb = 0,
         original_pattern_length = 0,
         original_pattern_index = 0,
+        original_track_headroom = 0,
         temp_pattern_created = false,
         temp_pattern_index = 0,
         source_track = 0,
@@ -1603,11 +1669,12 @@ function pakettiExperimentalSampleFXRender()
     experimental_render_context.original_lpb = song.transport.lpb
     experimental_render_context.original_pattern_index = song.selected_pattern_index
     experimental_render_context.original_pattern_length = song.patterns[song.selected_pattern_index].number_of_lines
+    experimental_render_context.original_track_headroom = song.transport.track_headroom
     experimental_render_context.sample_length_seconds = sample_length_seconds
     experimental_render_context.source_track = song.selected_track_index
     experimental_render_context.original_instrument_index = song.selected_instrument_index
     
-    print("DEBUG EXP: Stored original state - BPM:", experimental_render_context.original_bpm, "LPB:", experimental_render_context.original_lpb)
+    print("DEBUG EXP: Stored original state - BPM:", experimental_render_context.original_bpm, "LPB:", experimental_render_context.original_lpb, "Headroom:", math.lin2db(experimental_render_context.original_track_headroom), "dB")
     
     -- Use intelligent BPM detection to find appropriate render BPM
     local render_bpm, detected_bpm, beat_count = pakettiCalculateRenderBPM(num_frames, sample_rate)
@@ -1619,7 +1686,7 @@ function pakettiExperimentalSampleFXRender()
     
     print("DEBUG EXP: Intelligent BPM detection complete")
     print("DEBUG EXP: Detected sample BPM:", string.format("%.1f", detected_bpm), "with", beat_count, "beats")
-    print("DEBUG EXP: Using render BPM:", string.format("%.1f", optimal_bpm), "for full sample + trails")
+    print("DEBUG EXP: Using render BPM:", string.format("%.1f", optimal_bpm), "for sample playback + " .. preferences.experimentalRenderSilenceMultiplier.value .. " trailing silences")
     
     experimental_render_context.calculated_bpm = optimal_bpm
     experimental_render_context.calculated_pattern_length = optimal_pattern_length
@@ -1652,11 +1719,12 @@ function pakettiExperimentalSampleFXRender()
     pattern_track:line(1).note_columns[1].instrument_value = experimental_render_context.original_instrument_index -1
     print("DEBUG EXP: Added C-4 note to line 1 with instrument", experimental_render_context.original_instrument_index - 1)
     
-    -- 5. Set BPM + LPB, resize pattern
+    -- 5. Set BPM + LPB, resize pattern, set headroom to 0dB
     song.patterns[temp_pattern_index].number_of_lines = optimal_pattern_length
     song.transport.bpm = optimal_bpm
     song.transport.lpb = target_lpb
-    print("DEBUG EXP: Set BPM to", optimal_bpm, "LPB to", target_lpb, "and resized pattern to", optimal_pattern_length, "lines")
+    song.transport.track_headroom = math.db2lin(0)  -- Set headroom to 0dB for maximum render quality
+    print("DEBUG EXP: Set BPM to", optimal_bpm, "LPB to", target_lpb, "pattern to", optimal_pattern_length, "lines, and headroom to 0dB")
     
     -- 6. Render
     start_experimental_rendering()
@@ -1664,20 +1732,22 @@ end
 
 function start_experimental_rendering()
     local song = renoise.song()
-    local render_priority = "high"
+    local render_priority = preferences.experimentalRenderPriority.value
     local selected_track = song.selected_track
     local dc_offset_added = false
     local dc_offset_position = 0
     
-    print("DEBUG EXP: Starting rendering process")
-    
-    -- Check for Line Input device
-    for _, device in ipairs(selected_track.devices) do
-        if device.name == "#Line Input" then
-            render_priority = "realtime"
-            break
+    -- Check for Line Input device if using high priority
+    if render_priority == "high" then
+        for _, device in ipairs(selected_track.devices) do
+            if device.name == "#Line Input" then
+                render_priority = "realtime"
+                break
+            end
         end
     end
+    
+    print("DEBUG EXP: Starting rendering process with", render_priority, "priority")
     
     -- Add DC Offset if enabled in preferences
     if preferences.RenderDCOffset.value then
@@ -1826,7 +1896,10 @@ end
 function monitor_experimental_rendering()
     if renoise.song().rendering then
         local progress = renoise.song().rendering_progress
-        print("Experimental rendering in progress: " .. (progress * 100) .. "% complete")
+        local progress_percent = progress * 100
+        local progress_msg = string.format("Experimental Rendering: %.2f%% complete", progress_percent)
+        print("Experimental rendering in progress: " .. progress_percent .. "% complete")
+        renoise.app():show_status(progress_msg)
     else
         renoise.tool():remove_timer(monitor_experimental_rendering)
         print("Experimental rendering not in progress or already completed.")
@@ -1838,9 +1911,12 @@ function cleanup_experimental_render()
     
     print("DEBUG EXP: Cleaning up experimental render")
     
-    -- Restore original BPM and LPB
+    -- Restore original BPM, LPB, and track headroom
     song.transport.bpm = experimental_render_context.original_bpm
     song.transport.lpb = experimental_render_context.original_lpb
+    song.transport.track_headroom = experimental_render_context.original_track_headroom
+    
+    print("DEBUG EXP: Restored original state - BPM:", experimental_render_context.original_bpm, "LPB:", experimental_render_context.original_lpb, "Headroom:", math.lin2db(experimental_render_context.original_track_headroom), "dB")
     
     -- 7. Return back to original pattern index
     if experimental_render_context.temp_pattern_created and experimental_render_context.temp_pattern_index > 0 then
@@ -1866,6 +1942,11 @@ renoise.tool():add_keybinding{name="Sample Editor:Paketti:Experimental Sample FX
 -- Menu entries  
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Experimental Sample FX Render",invoke=function() pakettiExperimentalSampleFXRender() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Experimental Sample FX Render",invoke=function() pakettiExperimentalSampleFXRender() end}
+
+-- Peak detection keybindings and menus
+renoise.tool():add_keybinding{name="Global:Paketti:Test Peak Detection",invoke=function() pakettiTestPeakDetection() end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Test Peak Detection",invoke=function() pakettiTestPeakDetection() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Test Peak Detection",invoke=function() pakettiTestPeakDetection() end}
 
 -- BPM calculation keybindings and menus
 renoise.tool():add_keybinding{name="Global:Paketti:Analyze Sample BPM (4 beats)",invoke=function() pakettiTestBPMCalculation() end}
@@ -1952,3 +2033,5 @@ renoise.tool():add_menu_entry{name="Sample Editor Ruler:Paketti:Intelligent BPM 
     local detected_bpm, beat_count = pakettiDetectSampleBPM(sample_buffer.number_of_frames, sample_buffer.sample_rate)
     renoise.app():show_status(string.format("Intelligent Detection: %.1f BPM (%d beats)", detected_bpm, beat_count))
 end}
+
+-- Experimental render settings now managed via preferences dialog

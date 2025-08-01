@@ -5991,6 +5991,36 @@ function PCMWriterLoadCurrentSample()
         sample = inst:sample(song.selected_sample_index)
       end
     
+    -- AUTO-PITCH DETECTION FOR NEWLY CREATED SAMPLE
+    -- Apply automatic pitch correction for standard single-cycle lengths
+    local standard_cycle_lengths = {32, 64, 128, 256, 512, 1024}
+    local is_standard_length = false
+    for _, length in ipairs(standard_cycle_lengths) do
+      if wave_size == length then
+        is_standard_length = true
+        break
+      end
+    end
+    
+    if is_standard_length then
+      -- Calculate pitch correction for the newly created sample
+      local pitch_correction = calculate_pitch_correction(44100, wave_size, 1)
+      
+      -- Apply pitch correction (no need to check if already tuned since this is a new sample)
+      sample.transpose = pitch_correction.transpose
+      sample.fine_tune = pitch_correction.fine_tune
+      
+      print(string.format("Live Pickup Auto-Pitch (New Sample): %s (%.1f Hz) -> transpose: %d, fine_tune: %d", 
+        pitch_correction.note_name, pitch_correction.frequency, 
+        pitch_correction.transpose, pitch_correction.fine_tune))
+      
+      -- Update sample name to reflect auto-tuning
+      local tuning_info = string.format(" [Auto: %s T:%d F:%d]", 
+        pitch_correction.note_name, pitch_correction.transpose, pitch_correction.fine_tune)
+      
+      sample.name = sample.name .. tuning_info
+    end
+    
     -- Enable live pickup mode
     live_pickup_mode = true
     live_pickup_sample = sample
@@ -6010,7 +6040,16 @@ function PCMWriterLoadCurrentSample()
     end
     PCMWriterUpdateHexDisplay()
     
-    renoise.app():show_status("Live Pickup Mode: No samples found, created new " .. wave_size .. " frame sample for live editing (Wave " .. current_wave_edit .. "). Start drawing!")
+    -- Create appropriate status message based on whether pitch correction was applied
+    local status_msg
+    if is_standard_length then
+      local pitch_correction = calculate_pitch_correction(44100, wave_size, 1)
+      status_msg = "Live Pickup Mode: Created new " .. wave_size .. " frame sample, auto-tuned to " .. pitch_correction.note_name .. " (Wave " .. current_wave_edit .. "). Start drawing!"
+    else
+      status_msg = "Live Pickup Mode: No samples found, created new " .. wave_size .. " frame sample for live editing (Wave " .. current_wave_edit .. "). Start drawing!"
+    end
+    
+    renoise.app():show_status(status_msg)
     
     -- Focus back to sample editor
   --  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR

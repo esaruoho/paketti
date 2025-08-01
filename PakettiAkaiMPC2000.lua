@@ -91,7 +91,7 @@ local function parse_mpc2000_snd(data)
   -- Sample boundaries and loop info
   sample.start = read_u32_le(data, 23)
   sample.loop_end = read_u32_le(data, 27)
-  sample.end = read_u32_le(data, 31) 
+  sample.end_marker = read_u32_le(data, 31) 
   sample.loop_length = read_u32_le(data, 35)
   sample.loop_mode = data:byte(39) -- 0=off, 1=on
   sample.beats_in_loop = data:byte(40) -- 1-16, default 1
@@ -102,8 +102,8 @@ local function parse_mpc2000_snd(data)
   local loop_end = sample.loop_end
   if sample.loop_mode == 1 then
     -- Validate loop_end against actual end
-    if loop_end > sample.end then
-      loop_end = sample.end
+    if loop_end > sample.end_marker then
+      loop_end = sample.end_marker
     end
     -- Calculate loop start: loop_end - loop_length + 1
     loop_start = loop_end - sample.loop_length + 1
@@ -118,7 +118,7 @@ local function parse_mpc2000_snd(data)
   sample.sample_data = {}
   local sample_data_start = 43 -- after 42-byte header
   local is_stereo = (sample.channels == 1) -- MPC2000: 0=mono, 1=stereo
-  local total_frames = sample.end - sample.start
+  local total_frames = sample.end_marker - sample.start
   
   if is_stereo then
     -- Stereo: deinterleave channels for Renoise (which expects separate channel arrays)
@@ -158,7 +158,7 @@ local function parse_mpc2000_snd(data)
   debug_print("  Channels:", is_stereo and "stereo" or "mono")
   debug_print("  Tuning:", sample.tune, "cents")
   debug_print("  Level:", sample.level)
-  debug_print("  Start:", sample.start, "End:", sample.end, "Frames:", total_frames)
+  debug_print("  Start:", sample.start, "End:", sample.end_marker, "Frames:", total_frames)
   debug_print("  Loop mode:", sample.loop_mode == 1 and "on" or "off")
   if sample.loop_mode == 1 then
     debug_print("  Loop: start=" .. loop_start .. " end=" .. loop_end .. " length=" .. sample.loop_length)
@@ -472,7 +472,6 @@ end
 
 -- Menu entries
 renoise.tool():add_keybinding{name = "Global:Paketti:Import MPC2000 SND Sample...",invoke = importMPC2000Sample}
-
 renoise.tool():add_keybinding{name = "Global:Paketti:Export MPC2000 SND Sample...",invoke = exportMPC2000Sample}
 
 
