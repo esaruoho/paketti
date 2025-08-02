@@ -26,9 +26,21 @@ local solo_mode = false
 local selection_only = false
 local print_once = false
 
+-- Valuebox references for updating from button clicks
+local volume_valuebox = nil
+local retrig_valuebox = nil
+local playback_valuebox = nil
+local panning_valuebox = nil
+
 -- Colors for buttons
-local normal_color = nil
-local highlight_color = {0x22, 0xaa, 0xff}
+local normal_color, highlight_color = {0,0,0}, {0x22 / 255, 0xaa / 255, 0xff / 255}
+local selected_color = {0x80, 0x00, 0x80}  -- Purple for selected step (exact format from working experimental dialog)
+
+-- Selection tracking for each gater type
+local selected_step_volume = nil
+local selected_step_retrig = nil  
+local selected_step_playback = nil
+local selected_step_panning = nil
 
 -- Helper function to safely switch to pattern editor only if not in sample/phrase editor
 local function safe_switch_to_pattern_editor()
@@ -43,6 +55,73 @@ end
 local buttons = {}
 local retrig_buttons = {}
 local playback_buttons = {}
+
+-- Function to update button colors based on selection and beat highlighting
+local function update_step_button_colors()
+  -- Update volume gater buttons
+  if buttons and #buttons > 0 then
+    for i = 1, #buttons do
+      local is_beat_marker = (i == 1 or i == 5 or i == 9 or i == 13)
+      local is_selected = (i == selected_step_volume)
+      
+      if is_selected then
+        buttons[i].color = selected_color  -- Purple for selected
+      elseif is_beat_marker then
+        buttons[i].color = highlight_color  -- Blue for beat markers  
+      else
+        buttons[i].color = normal_color  -- Default
+      end
+    end
+  end
+  
+  -- Update retrig gater buttons
+  if retrig_buttons and #retrig_buttons > 0 then
+    for i = 1, #retrig_buttons do
+      local is_beat_marker = (i == 1 or i == 5 or i == 9 or i == 13)
+      local is_selected = (i == selected_step_retrig)
+      
+      if is_selected then
+        retrig_buttons[i].color = selected_color
+      elseif is_beat_marker then
+        retrig_buttons[i].color = highlight_color
+      else
+        retrig_buttons[i].color = normal_color
+      end
+    end
+  end
+  
+  -- Update playback gater buttons
+  if playback_buttons and #playback_buttons > 0 then
+    for i = 1, #playback_buttons do
+      local is_beat_marker = (i == 1 or i == 5 or i == 9 or i == 13)
+      local is_selected = (i == selected_step_playback)
+      
+      if is_selected then
+        playback_buttons[i].color = selected_color
+      elseif is_beat_marker then
+        playback_buttons[i].color = highlight_color
+      else
+        playback_buttons[i].color = normal_color
+      end
+    end
+  end
+  
+  -- Update panning gater buttons  
+  if panning_buttons and #panning_buttons > 0 then
+    for i = 1, #panning_buttons do
+      local is_beat_marker = (i == 1 or i == 5 or i == 9 or i == 13)
+      local is_selected = (i == selected_step_panning)
+      
+      if is_selected then
+        panning_buttons[i].color = selected_color
+      elseif is_beat_marker then
+        panning_buttons[i].color = highlight_color
+      else
+        panning_buttons[i].color = normal_color
+      end
+    end
+  end
+end
 
 -- Paketti Gater Device Script
 
@@ -59,21 +138,35 @@ local function initialize_checkboxes(count)
   panning_buttons = {}
 
   for i = 1, count do
-    local is_highlight = (i == 1 or i == 5 or i == 9 or i == 13)
     buttons[i] = vb:button{
       text = string.format("%02d", i),
       width=30,
-      color = is_highlight and highlight_color or normal_color
+      color = normal_color,  -- Will be updated by update_step_button_colors()
+      notifier=(function(step)
+        return function()
+          set_active_steps_volume(step)
+        end
+      end)(i)
     }
     retrig_buttons[i] = vb:button{
       text = string.format("%02d", i),
       width=30,
-      color = is_highlight and highlight_color or normal_color
+      color = normal_color,  -- Will be updated by update_step_button_colors()
+      notifier=(function(step)
+        return function()
+          set_active_steps_retrig(step)
+        end
+      end)(i)
     }
     playback_buttons[i] = vb:button{
       text = string.format("%02d", i),
       width=30,
-      color = is_highlight and highlight_color or normal_color
+      color = normal_color,  -- Will be updated by update_step_button_colors()
+      notifier=(function(step)
+        return function()
+          set_active_steps_playback(step)
+        end
+      end)(i)
     }
     checkboxes[i] = vb:checkbox{
       value = false,
@@ -93,6 +186,7 @@ local function initialize_checkboxes(count)
         end
       end
     }
+    
     playback_checkboxes[i] = vb:checkbox{
       value = false,
       width=30,
@@ -147,42 +241,73 @@ local function initialize_checkboxes(count)
     panning_buttons[i] = vb:button{
       text = string.format("%02d", i),
       width=30,
-      color = (i == 1 or i == 5 or i == 9 or i == 13) and highlight_color or normal_color
+      color = normal_color,  -- Will be updated by update_step_button_colors()
+      notifier=(function(step)
+        return function()
+          set_active_steps_panning(step)
+        end
+      end)(i)
     }
   end
+  
+  -- Set initial button colors
+  update_step_button_colors()
 end
 
-initialize_checkboxes(num_checkboxes)
-
--- Set active steps based on the valuebox
-local function set_active_steps_volume(value)
+-- Set active steps functions (must be defined before button creation)
+function set_active_steps_volume(value)
   active_steps_volume = value
+  selected_step_volume = value  -- Track which step was selected
+  if volume_valuebox then
+    volume_valuebox.value = value
+  end
+  update_step_button_colors()  -- Update button colors
   renoise.app():show_status("Volume Gater: Step count set to " .. value)
   if not initializing then
     insert_commands()
   end
 end
 
-local function set_active_steps_retrig(value)
+function set_active_steps_retrig(value)
   active_steps_retrig = value
+  selected_step_retrig = value  -- Track which step was selected
+  if retrig_valuebox then
+    retrig_valuebox.value = value
+  end
+  update_step_button_colors()  -- Update button colors
+  renoise.app():show_status("Retrig Gater: Step count set to " .. value)
   if not initializing then
     insert_commands()
   end
 end
 
-local function set_active_steps_playback(value)
+function set_active_steps_playback(value)
   active_steps_playback = value
+  selected_step_playback = value  -- Track which step was selected
+  if playback_valuebox then
+    playback_valuebox.value = value
+  end
+  update_step_button_colors()  -- Update button colors
+  renoise.app():show_status("Playback Gater: Step count set to " .. value)
   if not initializing then
     insert_commands()
   end
 end
 
-local function set_active_steps_panning(value)
+function set_active_steps_panning(value)
   active_steps_panning = value
+  selected_step_panning = value  -- Track which step was selected
+  if panning_valuebox then
+    panning_valuebox.value = value
+  end
+  update_step_button_colors()  -- Update button colors
+  renoise.app():show_status("Panning Gater: Step count set to " .. value)
   if not initializing then
     insert_commands()
   end
 end
+
+initialize_checkboxes(num_checkboxes)
 
 -- Receive Volume checkboxes state
 local function receive_volume_checkboxes()
@@ -499,7 +624,7 @@ local function receive_playback_checkboxes()
   renoise.app():show_status("Received Playback Gater pattern")
 end
 
--- Receive Panning checkboxes state
+-- Receive Panning checkboxes state (READ-ONLY version)
 local function receive_panning_checkboxes()
   if not renoise.song() then return end
 
@@ -510,9 +635,10 @@ local function receive_panning_checkboxes()
   local track = renoise.song().selected_track
   local pattern_length = pattern.number_of_lines
 
-  -- First, read the current pattern to set checkbox states
+  -- Read the current pattern to set checkbox states
   for i = 1, num_checkboxes do
     local line = pattern:track(track_index):line(i)
+    local has_panning_data = false
 
     if panning_column_choice == "Panning Column" then
       renoise.song().selected_track.panning_column_visible = true
@@ -520,14 +646,17 @@ local function receive_panning_checkboxes()
         panning_left_checkboxes[i].value = true
         panning_center_checkboxes[i].value = false
         panning_right_checkboxes[i].value = false
+        has_panning_data = true
       elseif line:note_column(1).panning_string == "80" then
         panning_left_checkboxes[i].value = false
         panning_center_checkboxes[i].value = false
         panning_right_checkboxes[i].value = true
+        has_panning_data = true
       elseif line:note_column(1).panning_string == "40" then
         panning_left_checkboxes[i].value = false
         panning_center_checkboxes[i].value = true
         panning_right_checkboxes[i].value = false
+        has_panning_data = true
       end
     elseif panning_column_choice == "FX Column" then
       if line.effect_columns[4].number_string == "0P" then
@@ -535,90 +664,31 @@ local function receive_panning_checkboxes()
           panning_left_checkboxes[i].value = true
           panning_center_checkboxes[i].value = false
           panning_right_checkboxes[i].value = false
+          has_panning_data = true
         elseif line.effect_columns[4].amount_string == "FF" then
           panning_left_checkboxes[i].value = false
           panning_center_checkboxes[i].value = false
           panning_right_checkboxes[i].value = true
+          has_panning_data = true
         elseif line.effect_columns[4].amount_string == "7F" then
           panning_left_checkboxes[i].value = false
           panning_center_checkboxes[i].value = true
           panning_right_checkboxes[i].value = false
-        end
-      end
-    end
-  end
-
-  -- Now write the panning pattern based on checkboxes, but don't call insert_commands()
-  -- Clear the panning columns first
-  if panning_column_choice == "FX Column" then
-    clear_effect_column_4()
-  elseif panning_column_choice == "Panning Column" then
-    -- Only clear if not used by retrig
-    if retrig_column_choice ~= "Panning Column" then
-      clear_panning_column()
-    end
-  end
-  
-  -- Write panning pattern based on checkboxes
-  local all_panning_center = true
-  for i = 1, num_checkboxes do
-    if panning_left_checkboxes[i].value or panning_right_checkboxes[i].value then
-      all_panning_center = false
-      break
-    end
-  end
-
-  if not all_panning_center then
-    -- Only write up to active_steps_panning
-    for i = 1, active_steps_panning do
-      local line = pattern:track(track_index):line(i)
-      -- Get the actual checkbox index, looping if needed
-      local checkbox_idx = ((i - 1) % active_steps_panning) + 1
-      
-      if panning_column_choice == "Panning Column" then
-        renoise.song().selected_track.panning_column_visible = true
-        if panning_left_checkboxes[checkbox_idx].value then
-          line:note_column(1).panning_string = "00"
-        elseif panning_right_checkboxes[checkbox_idx].value then
-          line:note_column(1).panning_string = "80"
-        else
-          line:note_column(1).panning_string = "40"
-        end
-      elseif panning_column_choice == "FX Column" then
-        if panning_left_checkboxes[checkbox_idx].value then
-          line.effect_columns[4].number_string = "0P"
-          line.effect_columns[4].amount_string = "00"
-        elseif panning_right_checkboxes[checkbox_idx].value then
-          line.effect_columns[4].number_string = "0P"
-          line.effect_columns[4].amount_string = "FF"
-        else
-          line.effect_columns[4].number_string = "0P"
-          line.effect_columns[4].amount_string = "7F"
+          has_panning_data = true
         end
       end
     end
     
-    -- Replicate the panning pattern to the rest of the pattern
-    for row = active_steps_panning + 1, pattern_length do
-      local dest_line = pattern:track(track_index):line(row)
-      local source_row = ((row - 1) % active_steps_panning) + 1
-      local source_line = pattern:track(track_index):line(source_row)
-      
-      if panning_column_choice == "FX Column" then
-        dest_line.effect_columns[4]:copy_from(source_line.effect_columns[4])
-      elseif panning_column_choice == "Panning Column" then
-        for col = 1, #source_line.note_columns do
-          -- Only copy panning values, not retrig values
-          if string.sub(source_line.note_columns[col].panning_string, 1, 1) ~= "R" then
-            dest_line.note_columns[col].panning_string = source_line.note_columns[col].panning_string
-          end
-        end
-      end
+    -- If no panning data found, default to CENTER
+    if not has_panning_data then
+      panning_left_checkboxes[i].value = false
+      panning_center_checkboxes[i].value = true
+      panning_right_checkboxes[i].value = false
     end
   end
-  
+
+  -- Receive operation complete - no writing to pattern, only reading!
   initializing = false
-  safe_switch_to_pattern_editor()
   renoise.app():show_status("Received Panning Gater pattern")
 end
 
@@ -1965,7 +2035,7 @@ function insert_commands()
   if solo_mode then
     renoise.app():show_status("Gater pattern updated (SOLO mode - all tracks except selected)")
   else
-    renoise.app():show_status("Gater pattern updated")
+    --renoise.app():show_status("Gater pattern updated")
   end
 end
 
@@ -2279,12 +2349,8 @@ function PakettiReplicateAtCursorGater(transpose, tracks_option, row_option)
     return
   end
 
-  renoise.app():show_status("Replicated all Gater patterns")
+  --renoise.app():show_status("Replicated all Gater patterns")
 end
-
-
-
-
 
 -- Preset functionality
 local function apply_preset(preset, is_retrig, is_playback)
@@ -2342,6 +2408,29 @@ function pakettiGaterDialog()
   initializing = true -- Start initialization
 
   initialize_checkboxes(num_checkboxes)
+  
+  -- Create the dialog content in a separate function to reduce upvalues
+  local content = createGaterDialogContent()
+  
+  -- Create keyhandler that can manage dialog variable
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) dialog = value end
+  )
+  dialog = renoise.app():show_custom_dialog("Paketti Volume/Retrig/Playback/Panning Gater", content, keyhandler)
+  safe_switch_to_pattern_editor()
+
+  -- Automatically receive the current pattern state when opening the dialog
+  receive_volume_checkboxes()
+  receive_retrig_checkboxes()
+  receive_playback_checkboxes()
+  receive_panning_checkboxes()
+  
+  initializing = false -- End initialization
+end
+
+-- Separate function to create dialog content (reduces upvalues in main function)
+function createGaterDialogContent()
   local content = vb:column{
     vb:text{text="Volume Gater", font = "bold", style="strong" },
     vb:switch {
@@ -2365,15 +2454,18 @@ function pakettiGaterDialog()
    vb:row{
       buttons[1], buttons[2], buttons[3], buttons[4], buttons[5], buttons[6], buttons[7], buttons[8],
       buttons[9], buttons[10], buttons[11], buttons[12], buttons[13], buttons[14], buttons[15], buttons[16],
-      vb:valuebox{
-        min = 1,
-        max = 32,
-        value = active_steps_volume,
-        width=50,
-        notifier=function(value)
-          set_active_steps_volume(value)
-        end
-      }
+      (function()
+        volume_valuebox = vb:valuebox{
+          min = 1,
+          max = 32,
+          value = active_steps_volume,
+          width=50,
+          notifier=function(value)
+            set_active_steps_volume(value)
+          end
+        }
+        return volume_valuebox
+      end)()
     },
     vb:row(checkboxes),
     vb:row{
@@ -2434,13 +2526,16 @@ function pakettiGaterDialog()
     vb:row{
       retrig_buttons[1], retrig_buttons[2], retrig_buttons[3], retrig_buttons[4], retrig_buttons[5], retrig_buttons[6], retrig_buttons[7], retrig_buttons[8],
       retrig_buttons[9], retrig_buttons[10], retrig_buttons[11], retrig_buttons[12], retrig_buttons[13], retrig_buttons[14], retrig_buttons[15], retrig_buttons[16],
-      vb:valuebox{
-        min = 1,
-        max = 32,
-        value = active_steps_retrig,
-        width=50,
-        notifier = set_active_steps_retrig
-      }
+      (function()
+        retrig_valuebox = vb:valuebox{
+          min = 1,
+          max = 32,
+          value = active_steps_retrig,
+          width=50,
+          notifier = set_active_steps_retrig
+        }
+        return retrig_valuebox
+      end)()
     },
     vb:row(retrig_checkboxes),
     vb:row{
@@ -2464,13 +2559,16 @@ function pakettiGaterDialog()
     vb:row{
       playback_buttons[1], playback_buttons[2], playback_buttons[3], playback_buttons[4], playback_buttons[5], playback_buttons[6], playback_buttons[7], playback_buttons[8],
       playback_buttons[9], playback_buttons[10], playback_buttons[11], playback_buttons[12], playback_buttons[13], playback_buttons[14], playback_buttons[15], playback_buttons[16],
-      vb:valuebox{
-        min = 1,
-        max = num_checkboxes,
-        value = active_steps_playback,
-        width=50,
-        notifier = set_active_steps_playback
-      }
+      (function()
+        playback_valuebox = vb:valuebox{
+          min = 1,
+          max = num_checkboxes,
+          value = active_steps_playback,
+          width=50,
+          notifier = set_active_steps_playback
+        }
+        return playback_valuebox
+      end)()
     },
     vb:row(playback_checkboxes),
     vb:row{
@@ -2507,13 +2605,16 @@ function pakettiGaterDialog()
       panning_buttons[6], panning_buttons[7], panning_buttons[8], panning_buttons[9], 
       panning_buttons[10], panning_buttons[11], panning_buttons[12], panning_buttons[13], 
       panning_buttons[14], panning_buttons[15], panning_buttons[16],
-      vb:valuebox{
-        min = 1,
-        max = 32,
-        value = active_steps_panning,
-        width=50,
-        notifier = set_active_steps_panning
-      }
+      (function()
+        panning_valuebox = vb:valuebox{
+          min = 1,
+          max = 32,
+          value = active_steps_panning,
+          width=50,
+          notifier = set_active_steps_panning
+        }
+        return panning_valuebox
+      end)()
     },
     vb:row(panning_left_checkboxes),
     vb:row(panning_center_checkboxes),
@@ -2715,26 +2816,12 @@ function pakettiGaterDialog()
         receive_playback_checkboxes()
         receive_panning_checkboxes()
         initializing = false
-        insert_commands()
+        -- No insert_commands() - Global Receive should only read, not write!
       end}
     }
   }
 
-  -- Create keyhandler that can manage dialog variable
-  local keyhandler = create_keyhandler_for_dialog(
-    function() return dialog end,
-    function(value) dialog = value end
-  )
-  dialog = renoise.app():show_custom_dialog("Paketti Volume/Retrig/Playback/Panning Gater", content, keyhandler)
-  safe_switch_to_pattern_editor()
-
-  -- Automatically receive the current pattern state when opening the dialog
-  receive_volume_checkboxes()
-  receive_retrig_checkboxes()
-  receive_playback_checkboxes()
-  receive_panning_checkboxes()
-  
-  initializing = false -- End initialization
+  return content
 end
 
 -- Handle scenario when the dialog is closed by other means

@@ -691,6 +691,7 @@ if renoise.API_VERSION >= 6.2 then
   timed_require("PakettiNotepadRun")
 end
 
+--timed_require("PakettiExperimentalDialog")
 timed_require("PakettiRequests")
 timed_require("PakettiRender")
 timed_require("PakettiOldschoolSlicePitch")

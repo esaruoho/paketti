@@ -12,6 +12,9 @@ local MAX_STEPS = 16  -- Can be changed dynamically via UI switch
 -- Add this line right after stored_step_counts
 local sequential_load_current_row = 1
 
+-- BPM observable tracking
+local bpm_observer = nil
+
 -- "Random" keybinding: Selects a random sample and mutes others
 function sample_random()
   -- Initialize random seed for true randomness
@@ -114,10 +117,33 @@ function update_instrument_list_and_popups()
   end
 end
 
+-- Colors for step buttons (shared across all rows)
+local normal_color, highlight_color = {0,0,0}, {0x22 / 255, 0xaa / 255, 0xff / 255}  -- EXACT copy from PakettiGater.lua
+local selected_color = {0x80, 0x00, 0x80}  -- Purple for selected step (same as PakettiGater)
+
+-- Function to update button colors for a specific row
+local function update_row_button_colors(row_elements)
+  if row_elements.number_buttons then
+    for i = 1, #row_elements.number_buttons do
+      local is_beat_marker = (i == 1 or i == 5 or i == 9 or i == 13 or i == 17 or i == 21 or i == 25 or i == 29)
+      local is_selected = (i == row_elements.selected_step)
+      
+      if is_selected then
+        row_elements.number_buttons[i].color = selected_color  -- Purple for selected
+      elseif is_beat_marker then
+        row_elements.number_buttons[i].color = highlight_color  -- Black for beat markers  
+      else
+        row_elements.number_buttons[i].color = normal_color  -- Default
+      end
+    end
+  end
+end
+
 -- Function to create a row in the UI
 function PakettiEightSlotsByOneTwentyCreateRow(row_index)
   local row_elements = {}
-  local normal_color, highlight_color = nil, {0x22 / 255, 0xaa / 255, 0xff / 255}
+  
+
 
   -- Create Instrument Popup first
   local instrument_popup = vb:popup{
@@ -137,23 +163,32 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
   -- Create Number Buttons (1-MAX_STEPS)
   local number_buttons = {}
   for i = 1, MAX_STEPS do
-    local is_highlight = (i == 1 or i == 5 or i == 9 or i == 13 or i == 17 or i == 21 or i == 25 or i == 29)
     number_buttons[i] = vb:button{
       text = string.format("%02d", i),
       width=30,
-      color = is_highlight and highlight_color or normal_color,
-      notifier=function()
-        -- Update track name and valuebox
-        local track_index = track_indices[row_elements.track_popup.value]
-        local track = renoise.song():track(track_index)
-        updateTrackNameWithSteps(track, i)
-        row_elements.valuebox.value = i
-        row_elements.print_to_pattern()
-        renoise.app():show_status(string.format("Set steps to %d for row %d", i, row_index))
-      end,
+      color = normal_color,  -- Will be updated by update_row_button_colors()
+      notifier=(function(step)
+        return function()
+          -- Update track name and valuebox
+          local track_index = track_indices[row_elements.track_popup.value]
+          local track = renoise.song():track(track_index)
+          updateTrackNameWithSteps(track, step)
+          row_elements.valuebox.value = step
+          -- Update selected step
+          row_elements.selected_step = step
+          update_row_button_colors(row_elements)  -- Update button colors
+          row_elements.print_to_pattern()
+          renoise.app():show_status(string.format("Set steps to %d for row %d", step, row_index))
+        end
+      end)(i),
       active = true  -- Make buttons active
     }
   end
+  
+  -- Store number_buttons in row_elements for color updates
+  row_elements.number_buttons = number_buttons
+  
+
 
   -- Create number buttons row
   local number_buttons_plain = vb:row(number_buttons)
@@ -252,7 +287,6 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
 
   -- Store the row elements for later use
   row_elements.number_buttons_row = number_buttons_row
-  row_elements.number_buttons = number_buttons
   row_elements.transpose_rotary = transpose_rotary
   row_elements.output_delay_slider = output_delay_slider
   row_elements.output_delay_value_label = output_delay_value_label
@@ -314,6 +348,9 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
         renoise.song().selected_track_index = track_index
         -- Then update track name and pattern
         updateTrackNameWithSteps(track, value)
+        -- Update selected step
+        row_elements.selected_step = value
+        update_row_button_colors(row_elements)  -- Update button colors
         row_elements.print_to_pattern()
         --renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
       --else 
@@ -632,6 +669,14 @@ end
       -- Get step count from track name when initializing row
       local step_count = getStepsFromTrackName(track.name)
       valuebox.value = step_count
+      -- Only highlight button if step count is different from MAX_STEPS
+      -- This prevents default MAX_STEPS from being highlighted as "selected"
+      if step_count ~= MAX_STEPS then
+        row_elements.selected_step = step_count
+      else
+        row_elements.selected_step = nil  -- No selection for default MAX_STEPS
+      end
+      update_row_button_colors(row_elements)  -- Update button colors
 
       local current_delay = renoise.song().tracks[track_index].output_delay
       output_delay_slider.value = current_delay
@@ -1088,7 +1133,7 @@ function create_global_controls()
     --renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
     renoise.app().window.active_lower_frame = renoise.ApplicationWindow.LOWER_FRAME_TRACK_DSPS
   end}
-  bpm_display = vb:button{text="BPM: " .. tostring(renoise.song().transport.bpm),width=60, notifier = update_bpm}
+  bpm_display = vb:button{text="BPM: " .. tostring(renoise.song().transport.bpm),width=60, tooltip="Clicking on this button will randomize the BPM", notifier = update_bpm}
 
   local_groove_sliders = {}
   local_groove_labels = {}
@@ -1158,6 +1203,8 @@ local randomize_all_yxx_button = vb:button{
         MAX_STEPS = new_max_steps
         -- Close and reopen dialog with new step count
         if dialog and dialog.visible then
+          -- Cleanup BPM observable before closing
+          cleanup_bpm_observable()
           dialog:close()
           dialog = nil
           rows = {}
@@ -1653,6 +1700,14 @@ function set_global_steps(steps)
     local track = renoise.song():track(track_index)
     updateTrackNameWithSteps(track, steps)
     row_elements.valuebox.value = steps
+    -- Only highlight button if step count is different from MAX_STEPS
+    -- This prevents default MAX_STEPS from being highlighted as "selected"
+    if steps ~= MAX_STEPS then
+      row_elements.selected_step = steps
+    else
+      row_elements.selected_step = nil  -- No selection for default MAX_STEPS
+    end
+    update_row_button_colors(row_elements)
     row_elements.updating_steps = false
     row_elements.print_to_pattern()
   end
@@ -1661,13 +1716,43 @@ function set_global_steps(steps)
   --renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 end
 
+-- Function to update BPM display from observable
+function update_bpm_display()
+  if bpm_display then
+    bpm_display.text = "BPM: " .. tostring(renoise.song().transport.bpm)
+  end
+end
+
+-- Function to setup BPM observable
+function setup_bpm_observable()
+  -- Remove existing observer if any
+  if bpm_observer and renoise.song().transport.bpm_observable:has_notifier(bpm_observer) then
+    renoise.song().transport.bpm_observable:remove_notifier(bpm_observer)
+  end
+  
+  -- Add new observer
+  bpm_observer = function()
+    update_bpm_display()
+  end
+  
+  renoise.song().transport.bpm_observable:add_notifier(bpm_observer)
+end
+
+-- Function to cleanup BPM observable
+function cleanup_bpm_observable()
+  if bpm_observer and renoise.song().transport.bpm_observable:has_notifier(bpm_observer) then
+    renoise.song().transport.bpm_observable:remove_notifier(bpm_observer)
+    bpm_observer = nil
+  end
+end
+
 -- Functions to adjust BPM
 function increase_bpm()
   if initializing then return end
   local new_bpm = renoise.song().transport.bpm + 1
   if new_bpm > 999 then new_bpm = 999 end
   renoise.song().transport.bpm = new_bpm
-  if bpm_display then bpm_display.text="BPM: " .. tostring(renoise.song().transport.bpm) end
+  -- BPM display will be updated automatically by the observable
   --renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 end
 
@@ -1676,7 +1761,7 @@ function decrease_bpm()
   local new_bpm = renoise.song().transport.bpm - 1
   if new_bpm < 20 then new_bpm = 20 end
   renoise.song().transport.bpm = new_bpm
-  if bpm_display then bpm_display.text="BPM: " .. tostring(renoise.song().transport.bpm) end
+  -- BPM display will be updated automatically by the observable
   --renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 end
 
@@ -1685,7 +1770,7 @@ function divide_bpm()
   local new_bpm = math.floor(renoise.song().transport.bpm / 2)
   if new_bpm < 20 then new_bpm = 20 end
   renoise.song().transport.bpm = new_bpm
-  if bpm_display then bpm_display.text="BPM: " .. tostring(renoise.song().transport.bpm) end
+  -- BPM display will be updated automatically by the observable
   --renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 end
 
@@ -1694,7 +1779,7 @@ function multiply_bpm()
   local new_bpm = renoise.song().transport.bpm * 2
   if new_bpm > 999 then new_bpm = 999 end
   renoise.song().transport.bpm = new_bpm
-  if bpm_display then bpm_display.text="BPM: " .. tostring(renoise.song().transport.bpm) end
+  -- BPM display will be updated automatically by the observable
   --renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 end
 
@@ -1702,7 +1787,7 @@ function update_bpm()
   if initializing then return end
   local random_bpm = math.random(20, 300)
   renoise.song().transport.bpm = random_bpm
-  bpm_display.text="BPM: " .. tostring(random_bpm)
+  -- BPM display will be updated automatically by the observable
   renoise.app():show_status("BPM set to " .. random_bpm)
 end
 
@@ -1731,6 +1816,8 @@ end
 function pakettiEightSlotsByOneTwentyDialog()
   -- Check if dialog is already open and close it
   if dialog and dialog.visible then
+    -- Cleanup BPM observable before closing
+    cleanup_bpm_observable()
     dialog:close()
     dialog = nil
     return
@@ -1805,6 +1892,9 @@ function pakettiEightSlotsByOneTwentyDialog()
     function(value) dialog = value end
   )
   dialog = renoise.app():show_custom_dialog("Paketti Groovebox 8120", dc, keyhandler)
+  
+  -- Setup BPM observable after dialog is created
+  setup_bpm_observable()
 end
 
 
@@ -1993,6 +2083,8 @@ renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120:Toggle Step
     MAX_STEPS = (MAX_STEPS == 16) and 32 or 16
     -- If dialog is open, refresh it
     if dialog and dialog.visible then
+      -- Cleanup BPM observable before closing
+      cleanup_bpm_observable()
       dialog:close()
       dialog = nil
       rows = {}
@@ -2004,6 +2096,8 @@ end}
 
 function GrooveboxShowClose()
   if dialog and dialog.visible then
+    -- Cleanup BPM observable before closing
+    cleanup_bpm_observable()
     dialog:close()
     dialog = nil
     rows = {}

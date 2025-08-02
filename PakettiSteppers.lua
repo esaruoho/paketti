@@ -19,6 +19,11 @@ local offset_slider = nil
 local updating_offset_slider = false
 local global_stepcount_valuebox = nil
 
+-- Track instrument awareness
+local current_visible_stepper = nil
+local current_stepper_instrument = nil
+local instrument_change_observer = nil
+
 function pakettiPitchStepperDemo()
   if dialog and dialog.visible then
     dialog:close()
@@ -179,6 +184,56 @@ function PakettiApplyGlobalStepCountToAllSteppers()
   else
     renoise.app():show_status("No stepper devices found in current instrument")
   end
+end
+
+-- Instrument awareness functions
+function PakettiHandleInstrumentChange()
+  local new_instrument_index = renoise.song().selected_instrument_index
+  
+  -- Only handle if we have a visible stepper and instrument actually changed
+  if current_visible_stepper and current_stepper_instrument and 
+     current_stepper_instrument ~= new_instrument_index then
+    
+    print(string.format("Instrument changed from %d to %d, switching %s", 
+          current_stepper_instrument, new_instrument_index, current_visible_stepper))
+    
+    -- Hide stepper on old instrument
+    local old_instrument = renoise.song().instruments[current_stepper_instrument]
+    if old_instrument and old_instrument.sample_modulation_sets[1] then
+      local old_deviceIndex = nil
+      local old_devices = old_instrument.sample_modulation_sets[1].devices
+      for i = 1, #old_devices do
+        if old_devices[i].name == current_visible_stepper then
+          old_deviceIndex = i
+          break
+        end
+      end
+      if old_deviceIndex then
+        old_devices[old_deviceIndex].external_editor_visible = false
+      end
+    end
+    
+    -- Show same stepper type on new instrument
+    PakettiSetStepperVisible(current_visible_stepper, true, true)
+    
+    -- Update UI to reflect the change
+    PakettiUpdateStepSizeSwitch()
+    PakettiUpdateStepperSwitch()
+  end
+end
+
+function PakettiSetupInstrumentAwareness()
+  -- Remove existing observer if any
+  if instrument_change_observer then
+    renoise.song().selected_instrument_index_observable:remove_notifier(instrument_change_observer)
+  end
+  
+  -- Add new observer
+  instrument_change_observer = function()
+    PakettiHandleInstrumentChange()
+  end
+  
+  renoise.song().selected_instrument_index_observable:add_notifier(instrument_change_observer)
 end
 ---
 function PakettiFillStepperRandom(deviceName)
@@ -560,12 +615,21 @@ function PakettiShowStepper(deviceName)
     local was_visible = device.external_editor_visible
     device.external_editor_visible = not was_visible
     
+    -- Setup instrument awareness if not already done
+    if not instrument_change_observer then
+        PakettiSetupInstrumentAwareness()
+    end
+    
     -- Lock keyboard focus when opening the editor
     if not was_visible then
         renoise.app().window.lock_keyboard_focus = true
-        -- Apply global step count when showing a stepper
-        local global_step_count = PakettiGetGlobalStepCount()
-        device.length = global_step_count
+        -- Track visible stepper for instrument awareness
+        current_visible_stepper = deviceName
+        current_stepper_instrument = renoise.song().selected_instrument_index
+    else
+        -- Clear tracking when hiding stepper
+        current_visible_stepper = nil
+        current_stepper_instrument = nil
     end
     
     isPitchStepSomewhere = renoise.song().selected_track_index
@@ -612,13 +676,22 @@ function PakettiSetStepperVisible(deviceName, visible, skip_switch_update)
     local device = instrument.sample_modulation_sets[1].devices[deviceIndex]
     device.external_editor_visible = visible
     
+    -- Setup instrument awareness if not already done
+    if not instrument_change_observer then
+        PakettiSetupInstrumentAwareness()
+    end
+    
     -- Lock keyboard focus when opening the editor
     if visible then
         renoise.app().window.lock_keyboard_focus = true
         isPitchStepSomewhere = renoise.song().selected_track_index
-        -- Apply global step count when making a stepper visible
-        local global_step_count = PakettiGetGlobalStepCount()
-        device.length = global_step_count
+        -- Track visible stepper for instrument awareness
+        current_visible_stepper = deviceName
+        current_stepper_instrument = renoise.song().selected_instrument_index
+    else
+        -- Clear tracking when hiding stepper
+        current_visible_stepper = nil
+        current_stepper_instrument = nil
     end
     
     -- Only update switches if not called from switch notifier
@@ -662,6 +735,9 @@ function PakettiCreateStepperDialogContent(vb_instance)
         if value > 1 then
           PakettiSetStepperVisible(stepperTypes[value - 1], true, true) -- skip_switch_update = true
         else
+          -- Clear tracking when switching to "Off"
+          current_visible_stepper = nil
+          current_stepper_instrument = nil
           PakettiUpdateStepSizeSwitch()
         end
       end
@@ -799,6 +875,9 @@ function PakettiSteppersDialog()
     dialog=nil
     return
   end
+
+  -- Setup instrument awareness when dialog opens
+  PakettiSetupInstrumentAwareness()
 
   dialog = renoise.app():show_custom_dialog("Paketti Steppers",
     PakettiCreateStepperDialogContent(vb),
