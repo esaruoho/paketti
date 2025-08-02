@@ -1,9 +1,12 @@
+-- Configuration: Maximum steps per row (16 or 32)
+local MAX_STEPS = 16  -- Can be changed dynamically via UI switch
+
 local vb = renoise.ViewBuilder()
 local dialog
 local checkboxes = {}
 local retrig_checkboxes = {}
 local playback_checkboxes = {}
-local num_checkboxes = 16
+local num_checkboxes = MAX_STEPS
 local max_rows = 64
 local column_choice = "FX Column"
 local retrig_value = 4
@@ -61,7 +64,7 @@ local function update_step_button_colors()
   -- Update volume gater buttons
   if buttons and #buttons > 0 then
     for i = 1, #buttons do
-      local is_beat_marker = (i == 1 or i == 5 or i == 9 or i == 13)
+      local is_beat_marker = (i == 1 or i == 5 or i == 9 or i == 13 or i == 17 or i == 21 or i == 25 or i == 29)
       local is_selected = (i == selected_step_volume)
       
       if is_selected then
@@ -77,7 +80,7 @@ local function update_step_button_colors()
   -- Update retrig gater buttons
   if retrig_buttons and #retrig_buttons > 0 then
     for i = 1, #retrig_buttons do
-      local is_beat_marker = (i == 1 or i == 5 or i == 9 or i == 13)
+      local is_beat_marker = (i == 1 or i == 5 or i == 9 or i == 13 or i == 17 or i == 21 or i == 25 or i == 29)
       local is_selected = (i == selected_step_retrig)
       
       if is_selected then
@@ -93,7 +96,7 @@ local function update_step_button_colors()
   -- Update playback gater buttons
   if playback_buttons and #playback_buttons > 0 then
     for i = 1, #playback_buttons do
-      local is_beat_marker = (i == 1 or i == 5 or i == 9 or i == 13)
+      local is_beat_marker = (i == 1 or i == 5 or i == 9 or i == 13 or i == 17 or i == 21 or i == 25 or i == 29)
       local is_selected = (i == selected_step_playback)
       
       if is_selected then
@@ -109,7 +112,7 @@ local function update_step_button_colors()
   -- Update panning gater buttons  
   if panning_buttons and #panning_buttons > 0 then
     for i = 1, #panning_buttons do
-      local is_beat_marker = (i == 1 or i == 5 or i == 9 or i == 13)
+      local is_beat_marker = (i == 1 or i == 5 or i == 9 or i == 13 or i == 17 or i == 21 or i == 25 or i == 29)
       local is_selected = (i == selected_step_panning)
       
       if is_selected then
@@ -125,7 +128,7 @@ end
 
 -- Paketti Gater Device Script
 
-local function initialize_checkboxes(count)
+local function initialize_checkboxes()
   checkboxes = {}
   retrig_checkboxes = {}
   playback_checkboxes = {}
@@ -137,7 +140,7 @@ local function initialize_checkboxes(count)
   panning_right_checkboxes = {}
   panning_buttons = {}
 
-  for i = 1, count do
+  for i = 1, MAX_STEPS do
     buttons[i] = vb:button{
       text = string.format("%02d", i),
       width=30,
@@ -198,7 +201,7 @@ local function initialize_checkboxes(count)
     }
   end
 
-  for i = 1, count do
+  for i = 1, MAX_STEPS do
     panning_left_checkboxes[i] = vb:checkbox{
       value = false,
       width=30,
@@ -257,7 +260,13 @@ end
 -- Set active steps functions (must be defined before button creation)
 function set_active_steps_volume(value)
   active_steps_volume = value
-  selected_step_volume = value  -- Track which step was selected
+  -- Only highlight button if step count is different from MAX_STEPS
+  -- This prevents default MAX_STEPS from being highlighted as "selected"
+  if value ~= MAX_STEPS then
+    selected_step_volume = value  -- Track which step was selected
+  else
+    selected_step_volume = nil  -- No selection for default MAX_STEPS
+  end
   if volume_valuebox then
     volume_valuebox.value = value
   end
@@ -270,7 +279,13 @@ end
 
 function set_active_steps_retrig(value)
   active_steps_retrig = value
-  selected_step_retrig = value  -- Track which step was selected
+  -- Only highlight button if step count is different from MAX_STEPS
+  -- This prevents default MAX_STEPS from being highlighted as "selected"
+  if value ~= MAX_STEPS then
+    selected_step_retrig = value  -- Track which step was selected
+  else
+    selected_step_retrig = nil  -- No selection for default MAX_STEPS
+  end
   if retrig_valuebox then
     retrig_valuebox.value = value
   end
@@ -283,7 +298,13 @@ end
 
 function set_active_steps_playback(value)
   active_steps_playback = value
-  selected_step_playback = value  -- Track which step was selected
+  -- Only highlight button if step count is different from MAX_STEPS
+  -- This prevents default MAX_STEPS from being highlighted as "selected"
+  if value ~= MAX_STEPS then
+    selected_step_playback = value  -- Track which step was selected
+  else
+    selected_step_playback = nil  -- No selection for default MAX_STEPS
+  end
   if playback_valuebox then
     playback_valuebox.value = value
   end
@@ -296,7 +317,13 @@ end
 
 function set_active_steps_panning(value)
   active_steps_panning = value
-  selected_step_panning = value  -- Track which step was selected
+  -- Only highlight button if step count is different from MAX_STEPS
+  -- This prevents default MAX_STEPS from being highlighted as "selected"
+  if value ~= MAX_STEPS then
+    selected_step_panning = value  -- Track which step was selected
+  else
+    selected_step_panning = nil  -- No selection for default MAX_STEPS
+  end
   if panning_valuebox then
     panning_valuebox.value = value
   end
@@ -307,7 +334,40 @@ function set_active_steps_panning(value)
   end
 end
 
-initialize_checkboxes(num_checkboxes)
+-- Global step function that sets all 4 gaters to the same step count
+function set_global_steps_all_gaters(steps)
+  if initializing then return end
+  
+  active_steps_volume = steps
+  active_steps_retrig = steps
+  active_steps_playback = steps
+  active_steps_panning = steps
+  
+  -- Only highlight if different from MAX_STEPS
+  if steps ~= MAX_STEPS then
+    selected_step_volume = steps
+    selected_step_retrig = steps
+    selected_step_playback = steps
+    selected_step_panning = steps
+  else
+    selected_step_volume = nil
+    selected_step_retrig = nil
+    selected_step_playback = nil
+    selected_step_panning = nil
+  end
+  
+  -- Update all valueboxes
+  if volume_valuebox then volume_valuebox.value = steps end
+  if retrig_valuebox then retrig_valuebox.value = steps end
+  if playback_valuebox then playback_valuebox.value = steps end
+  if panning_valuebox then panning_valuebox.value = steps end
+  
+  update_step_button_colors()
+  renoise.app():show_status("All Gaters: Step count set to " .. steps)
+  insert_commands()
+end
+
+initialize_checkboxes()
 
 -- Receive Volume checkboxes state
 local function receive_volume_checkboxes()
@@ -1223,8 +1283,8 @@ function apply_gating_to_selection(selection_info)
         local vol_step = ((step_in_pattern - 1) % active_steps_volume) + 1
         local checkbox_idx, is_silence = nil, false
         
-        if vol_step <= 16 then
-          checkbox_idx = ((vol_step - 1) % 16) + 1
+            if vol_step <= MAX_STEPS then
+      checkbox_idx = ((vol_step - 1) % MAX_STEPS) + 1
         else
           is_silence = true
         end
@@ -1288,8 +1348,8 @@ function apply_gating_to_selection(selection_info)
         local retrig_step = ((step_in_pattern - 1) % active_steps_retrig) + 1
         local checkbox_idx, is_silence = nil, false
         
-        if retrig_step <= 16 then
-          checkbox_idx = ((retrig_step - 1) % 16) + 1
+            if retrig_step <= MAX_STEPS then
+      checkbox_idx = ((retrig_step - 1) % MAX_STEPS) + 1
         else
           is_silence = true
         end
@@ -1327,8 +1387,8 @@ function apply_gating_to_selection(selection_info)
         local playback_step = ((step_in_pattern - 1) % active_steps_playback) + 1
         local checkbox_idx, is_silence = nil, false
         
-        if playback_step <= 16 then
-          checkbox_idx = ((playback_step - 1) % 16) + 1
+            if playback_step <= MAX_STEPS then
+      checkbox_idx = ((playback_step - 1) % MAX_STEPS) + 1
         else
           is_silence = true
         end
@@ -1362,8 +1422,8 @@ function apply_gating_to_selection(selection_info)
         local panning_step = ((step_in_pattern - 1) % active_steps_panning) + 1
         local checkbox_idx, is_silence = nil, false
         
-        if panning_step <= 16 then
-          checkbox_idx = ((panning_step - 1) % 16) + 1
+            if panning_step <= MAX_STEPS then
+      checkbox_idx = ((panning_step - 1) % MAX_STEPS) + 1
         else
           is_silence = true
         end
@@ -1449,8 +1509,8 @@ function apply_gating_print_once()
     if any_volume_checked and i <= active_steps_volume then
       local checkbox_idx, is_silence = nil, false
       
-      if i <= 16 then
-        checkbox_idx = ((i - 1) % 16) + 1
+      if i <= MAX_STEPS then
+        checkbox_idx = ((i - 1) % MAX_STEPS) + 1
       else
         is_silence = true
       end
@@ -1510,8 +1570,8 @@ function apply_gating_print_once()
     if any_retrig_checked and i <= active_steps_retrig then
       local checkbox_idx, is_silence = nil, false
       
-      if i <= 16 then
-        checkbox_idx = ((i - 1) % 16) + 1
+      if i <= MAX_STEPS then
+        checkbox_idx = ((i - 1) % MAX_STEPS) + 1
       else
         is_silence = true
       end
@@ -1548,8 +1608,8 @@ function apply_gating_print_once()
     if any_playback_checked and i <= active_steps_playback then
       local checkbox_idx, is_silence = nil, false
       
-      if i <= 16 then
-        checkbox_idx = ((i - 1) % 16) + 1
+      if i <= MAX_STEPS then
+        checkbox_idx = ((i - 1) % MAX_STEPS) + 1
       else
         is_silence = true
       end
@@ -1580,8 +1640,8 @@ function apply_gating_print_once()
     if any_panning_not_center and i <= active_steps_panning then
       local checkbox_idx, is_silence = nil, false
       
-      if i <= 16 then
-        checkbox_idx = ((i - 1) % 16) + 1
+      if i <= MAX_STEPS then
+        checkbox_idx = ((i - 1) % MAX_STEPS) + 1
       else
         is_silence = true
       end
@@ -1724,9 +1784,9 @@ function insert_commands()
         local checkbox_idx
         local is_silence = false
         
-        if i <= 16 then
-          -- Steps 1-16: use checkbox pattern
-          checkbox_idx = ((i - 1) % 16) + 1
+        if i <= MAX_STEPS then
+          -- Steps 1-MAX_STEPS: use checkbox pattern
+          checkbox_idx = ((i - 1) % MAX_STEPS) + 1
         else
           -- Steps 17-32: silence
           is_silence = true  
@@ -1793,9 +1853,9 @@ function insert_commands()
         local checkbox_idx
         local is_silence = false
         
-        if i <= 16 then
-          -- Steps 1-16: use checkbox pattern
-          checkbox_idx = ((i - 1) % 16) + 1
+        if i <= MAX_STEPS then
+          -- Steps 1-MAX_STEPS: use checkbox pattern
+          checkbox_idx = ((i - 1) % MAX_STEPS) + 1
         else
           -- Steps 17-32: center (silence)
           is_silence = true
@@ -1843,9 +1903,9 @@ function insert_commands()
         local checkbox_idx
         local is_silence = false
         
-        if i <= 16 then
-          -- Steps 1-16: use checkbox pattern
-          checkbox_idx = ((i - 1) % 16) + 1
+        if i <= MAX_STEPS then
+          -- Steps 1-MAX_STEPS: use checkbox pattern
+          checkbox_idx = ((i - 1) % MAX_STEPS) + 1
         else
           -- Steps 17-32: no retrig (silence)
           is_silence = true
@@ -1889,9 +1949,9 @@ function insert_commands()
         local checkbox_idx
         local is_silence = false
         
-        if i <= 16 then
-          -- Steps 1-16: use checkbox pattern
-          checkbox_idx = ((i - 1) % 16) + 1
+        if i <= MAX_STEPS then
+          -- Steps 1-MAX_STEPS: use checkbox pattern
+          checkbox_idx = ((i - 1) % MAX_STEPS) + 1
         else
           -- Steps 17-32: normal playback (silence)
           is_silence = true
@@ -2407,7 +2467,7 @@ function pakettiGaterDialog()
     end
   initializing = true -- Start initialization
 
-  initialize_checkboxes(num_checkboxes)
+  initialize_checkboxes()
   
   -- Create the dialog content in a separate function to reduce upvalues
   local content = createGaterDialogContent()
@@ -2429,9 +2489,63 @@ function pakettiGaterDialog()
   initializing = false -- End initialization
 end
 
+-- Helper function to create dynamic button row
+local function create_dynamic_button_row(button_array)
+  local row_elements = {}
+  for i = 1, MAX_STEPS do
+    table.insert(row_elements, button_array[i])
+  end
+  return vb:row(row_elements)
+end
+
 -- Separate function to create dialog content (reduces upvalues in main function)
 function createGaterDialogContent()
+  -- Create step mode switch
+  local step_mode_switch = vb:switch{
+    items = {"16 Steps", "32 Steps"},
+    width = 150,
+    value = (MAX_STEPS == 32) and 2 or 1,
+    notifier = function(value)
+      local new_max_steps = (value == 2) and 32 or 16
+      if new_max_steps ~= MAX_STEPS then
+        MAX_STEPS = new_max_steps
+        num_checkboxes = MAX_STEPS
+        -- Close and reopen dialog with new step count
+        if dialog and dialog.visible then
+          -- Add cleanup code here before closing
+          if track_notifier and renoise.song().selected_track_index_observable:has_notifier(track_notifier) then
+            renoise.song().selected_track_index_observable:remove_notifier(track_notifier)
+          end
+          dialog:close()
+          dialog = nil
+          -- Reopen immediately with new settings
+          pakettiGaterDialog()
+        end
+        renoise.app():show_status("Gater switched to " .. new_max_steps .. " steps mode")
+      end
+    end
+  }
+
+  -- Create Global Step Buttons
+  local step_values = {"1", "2", "4", "6", "8", "12", "16", "24", "32"}
+  local global_step_buttons = vb:row{}
+  global_step_buttons:add_child(vb:text{text="Global Steps:", style="strong", font="bold"})
+  
+  for _, step in ipairs(step_values) do
+    global_step_buttons:add_child(vb:button{
+      text = step,
+      notifier=function()
+        if initializing then return end
+        set_global_steps_all_gaters(tonumber(step))
+      end
+    })
+  end
+
   local content = vb:column{
+    step_mode_switch,
+    vb:space{height = 5},
+    global_step_buttons,
+    vb:space{height = 10},
     vb:text{text="Volume Gater", font = "bold", style="strong" },
     vb:switch {
       items = { "FX Column (C00)", "Volume Column", "FX Column (L00)" },
@@ -2451,10 +2565,12 @@ function createGaterDialogContent()
         end
       end
         },
-   vb:row{
-      buttons[1], buttons[2], buttons[3], buttons[4], buttons[5], buttons[6], buttons[7], buttons[8],
-      buttons[9], buttons[10], buttons[11], buttons[12], buttons[13], buttons[14], buttons[15], buttons[16],
-      (function()
+   (function()
+      local button_row = {}
+      for i = 1, MAX_STEPS do
+        table.insert(button_row, buttons[i])
+      end
+      table.insert(button_row, (function()
         volume_valuebox = vb:valuebox{
           min = 1,
           max = 32,
@@ -2465,8 +2581,9 @@ function createGaterDialogContent()
           end
         }
         return volume_valuebox
-      end)()
-    },
+      end)())
+      return vb:row(button_row)
+    end)(),
     vb:row(checkboxes),
     vb:row{
       vb:button{ text="Clear", pressed = clear_volume_gater },
@@ -2523,10 +2640,12 @@ function createGaterDialogContent()
         end
       end
     },
-    vb:row{
-      retrig_buttons[1], retrig_buttons[2], retrig_buttons[3], retrig_buttons[4], retrig_buttons[5], retrig_buttons[6], retrig_buttons[7], retrig_buttons[8],
-      retrig_buttons[9], retrig_buttons[10], retrig_buttons[11], retrig_buttons[12], retrig_buttons[13], retrig_buttons[14], retrig_buttons[15], retrig_buttons[16],
-      (function()
+    (function()
+      local button_row = {}
+      for i = 1, MAX_STEPS do
+        table.insert(button_row, retrig_buttons[i])
+      end
+      table.insert(button_row, (function()
         retrig_valuebox = vb:valuebox{
           min = 1,
           max = 32,
@@ -2535,8 +2654,9 @@ function createGaterDialogContent()
           notifier = set_active_steps_retrig
         }
         return retrig_valuebox
-      end)()
-    },
+      end)())
+      return vb:row(button_row)
+    end)(),
     vb:row(retrig_checkboxes),
     vb:row{
       vb:button{ text="Clear", pressed = clear_retrig_checkboxes },
@@ -2556,20 +2676,23 @@ function createGaterDialogContent()
             vb:button{ text="Receive", pressed = receive_retrig_checkboxes }
     },
     vb:text{text="Playback Direction Gater", font = "bold", style="strong" },
-    vb:row{
-      playback_buttons[1], playback_buttons[2], playback_buttons[3], playback_buttons[4], playback_buttons[5], playback_buttons[6], playback_buttons[7], playback_buttons[8],
-      playback_buttons[9], playback_buttons[10], playback_buttons[11], playback_buttons[12], playback_buttons[13], playback_buttons[14], playback_buttons[15], playback_buttons[16],
-      (function()
+    (function()
+      local button_row = {}
+      for i = 1, MAX_STEPS do
+        table.insert(button_row, playback_buttons[i])
+      end
+      table.insert(button_row, (function()
         playback_valuebox = vb:valuebox{
           min = 1,
-          max = num_checkboxes,
+          max = 32,
           value = active_steps_playback,
           width=50,
           notifier = set_active_steps_playback
         }
         return playback_valuebox
-      end)()
-    },
+      end)())
+      return vb:row(button_row)
+    end)(),
     vb:row(playback_checkboxes),
     vb:row{
       vb:button{ text="Clear", pressed = clear_playback_checkboxes },
@@ -2600,12 +2723,12 @@ function createGaterDialogContent()
         end
       end
     },
-    vb:row{
-      panning_buttons[1], panning_buttons[2], panning_buttons[3], panning_buttons[4], panning_buttons[5], 
-      panning_buttons[6], panning_buttons[7], panning_buttons[8], panning_buttons[9], 
-      panning_buttons[10], panning_buttons[11], panning_buttons[12], panning_buttons[13], 
-      panning_buttons[14], panning_buttons[15], panning_buttons[16],
-      (function()
+    (function()
+      local button_row = {}
+      for i = 1, MAX_STEPS do
+        table.insert(button_row, panning_buttons[i])
+      end
+      table.insert(button_row, (function()
         panning_valuebox = vb:valuebox{
           min = 1,
           max = 32,
@@ -2614,8 +2737,9 @@ function createGaterDialogContent()
           notifier = set_active_steps_panning
         }
         return panning_valuebox
-      end)()
-    },
+      end)())
+      return vb:row(button_row)
+    end)(),
     vb:row(panning_left_checkboxes),
     vb:row(panning_center_checkboxes),
     vb:row(panning_right_checkboxes),
@@ -2867,6 +2991,26 @@ renoise.tool():add_midi_mapping{name="Paketti:Paketti Gater Dialog...",invoke=fu
     pakettiGaterDialog()
     safe_switch_to_pattern_editor()
   end end
+end}
+
+-- Add MIDI mapping for step mode switch
+renoise.tool():add_midi_mapping{name="Paketti:Paketti Gater:Toggle Step Mode (16/32)",invoke=function(message)
+  if message:is_trigger() then
+    -- Toggle between 16 and 32 steps
+    MAX_STEPS = (MAX_STEPS == 16) and 32 or 16
+    num_checkboxes = MAX_STEPS
+    -- If dialog is open, refresh it
+    if dialog and dialog.visible then
+      -- Add cleanup code here before closing
+      if track_notifier and renoise.song().selected_track_index_observable:has_notifier(track_notifier) then
+        renoise.song().selected_track_index_observable:remove_notifier(track_notifier)
+      end
+      dialog:close()
+      dialog = nil
+      pakettiGaterDialog()
+    end
+    renoise.app():show_status("Gater toggled to " .. MAX_STEPS .. " steps mode")
+  end
 end}
 
 function auto_grab_handler()
