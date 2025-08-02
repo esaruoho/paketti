@@ -1,6 +1,6 @@
 CACHE_VERSION=1.0
-SCAN_TIME=1753917767
-COMMAND_COUNT=4411
+SCAN_TIME=1754076323
+COMMAND_COUNT=4444
 Menu Entry|||DSP Chain:Paketti:Insert Random Device (AU/Native Only)|||DSP Chain|||function() insertRandomDevice(true) end|||DCPIRDANO,chain,paketti,insert,random,device,native,only|||PakettiMenuConfig
 Menu Entry|||DSP Chain:Paketti:Insert Random Device (All)|||DSP Chain|||function() insertRandomDevice(false) end|||DCPIRDA,chain,paketti,insert,random,device|||PakettiMenuConfig
 Menu Entry|||DSP Chain:Paketti:Inspect Track Device Chain|||DSP Chain|||inspectTrackDeviceChain|||DCPITDC,chain,paketti,inspect,track,device,chain|||PakettiPresetPlusPlus
@@ -137,7 +137,7 @@ Menu Entry|||Instrument Box:Paketti Gadgets:CCizer Loader...|||Instrument Box|||
 Menu Entry|||Instrument Box:Paketti Gadgets:Largest Samples Dialog...|||Instrument Box|||pakettiShowLargestSamplesDialog|||IBPGLSD,instrument,paketti,gadgets,largest,samples,dialog|||PakettiMenuConfig
 Menu Entry|||Instrument Box:Paketti Gadgets:Merge Instruments Dialog...|||Instrument Box|||function() pakettiMergeInstrumentsDialog() end|||IBPGMID,instrument,paketti,gadgets,merge,instruments,dialog|||PakettiMenuConfig
 Menu Entry|||Instrument Box:Paketti Gadgets:Open Paketti Init Phrase Dialog...|||Instrument Box|||function() pakettiPhraseSettings() end|||IBPGOPIPD,instrument,paketti,gadgets,open,paketti,init,phrase,dialog|||PakettiMenuConfig
-Menu Entry|||Instrument Box:Paketti Gadgets:Paketti Autocomplete...|||Instrument Box|||pakettiAutocompleteToggle|||IBPGPA,instrument,paketti,gadgets,paketti,autocomplete|||PakettiAutocomplete
+Menu Entry|||Instrument Box:Paketti Gadgets:Paketti Function Search...|||Instrument Box|||pakettiAutocompleteToggle|||IBPGPFS,instrument,paketti,gadgets,paketti,function,search|||PakettiAutocomplete
 Menu Entry|||Instrument Box:Paketti Gadgets:Paketti Global Volume Adjustment...|||Instrument Box|||function() pakettiGlobalVolumeDialog() end|||IBPGPGVA,instrument,paketti,gadgets,paketti,global,volume,adjustment|||PakettiMenuConfig
 Menu Entry|||Instrument Box:Paketti Gadgets:Paketti Stacker Dialog...|||Instrument Box|||function() pakettiStackerDialog(proceed_with_stacking, on_switch_changed, PakettiIsolateSlicesToInstrument) end|||IBPGPSD,instrument,paketti,gadgets,paketti,stacker,dialog|||PakettiMenuConfig
 Menu Entry|||Instrument Box:Paketti Gadgets:Paketti Steppers Dialog...|||Instrument Box|||function() PakettiSteppersDialog() end|||IBPGPSD,instrument,paketti,gadgets,paketti,steppers,dialog|||PakettiMenuConfig
@@ -177,7 +177,6 @@ Menu Entry|||Instrument Box:Paketti:Duplicate All Samples at +36 Transpose|||Ins
 Menu Entry|||Instrument Box:Paketti:Duplicate All Samples at -12 Transpose|||Instrument Box|||function() PakettiDuplicateInstrumentSamplesWithTranspose(-12) end|||IBPDASA1T,-12,instrument,paketti,duplicate,samples,transpose|||PakettiMenuConfig
 Menu Entry|||Instrument Box:Paketti:Duplicate All Samples at -24 Transpose|||Instrument Box|||function() PakettiDuplicateInstrumentSamplesWithTranspose(-24) end|||IBPDASA2T,-24,instrument,paketti,duplicate,samples,transpose|||PakettiMenuConfig
 Menu Entry|||Instrument Box:Paketti:Duplicate All Samples at -36 Transpose|||Instrument Box|||function() PakettiDuplicateInstrumentSamplesWithTranspose(-36) end|||IBPDASA3T,-36,instrument,paketti,duplicate,samples,transpose|||PakettiMenuConfig
-Menu Entry|||Instrument Box:Paketti:Export Wavetable...|||Instrument Box|||paketti_export_wavetable|||IBPEW,instrument,paketti,export,wavetable|||PakettiWTExport
 Menu Entry|||Instrument Box:Paketti:Export XI (FastTracker II Extended Instrument)|||Instrument Box|||function() PakettiXIExport() end|||IBPEXFIEI,instrument,paketti,export,fasttracker,extended,instrument|||PakettiXIExport
 Menu Entry|||Instrument Box:Paketti:Generate:AM Sinewave 1000Hz (20x mod)|||Generate|||function() createAmplitudeModulatedSinewaveSample(44100, 1000, 20, 30) end|||IBPGAS12M,instrument,paketti,generate,sinewave,1000hz|||PakettiExperimental_Verify
 Menu Entry|||Instrument Box:Paketti:Generate:AM Sinewave 440Hz (20x mod)|||Generate|||function() createAmplitudeModulatedSinewaveSample(44100, 440, 20, 30) end|||IBPGAS42M,instrument,paketti,generate,sinewave,440hz|||PakettiExperimental_Verify
@@ -346,6 +345,7 @@ Menu Entry|||Main Menu:Tools:Paketti Gadgets:Show Paketti Formula Dialog...|||To
 Menu Entry|||Main Menu:Tools:Paketti Gadgets:Show/Hide User Preference Devices Master Dialog (SlotShow)...|||Tools|||function() pakettiUserPreferencesShowerDialog() end|||MMTPGSHUPDMDS,main,menu,tools,paketti,gadgets,show,hide,user,preference,devices,master,dialog,slotshow|||PakettiMenuConfig
 Menu Entry|||Main Menu:Tools:Paketti Gadgets:Sononymph Dialog...|||Tools|||function() start(true) end|||MMTPGSD,main,menu,tools,paketti,gadgets,sononymph,dialog|||Sononymph/AppMain
 Menu Entry|||Main Menu:Tools:Paketti Gadgets:Track Routings...|||Tools|||function() pakettiTrackOutputRoutingsDialog() end|||MMTPGTR,main,menu,tools,paketti,gadgets,track,routings|||PakettiMenuConfig
+Menu Entry|||Main Menu:Tools:Paketti Gadgets:Transpose Blocks Dialog...|||Tools|||show_transpose_block_dialog|||MMTPGTBD,main,menu,tools,paketti,gadgets,transpose,blocks,dialog|||PakettiTransposeBlock
 Menu Entry|||Main Menu:Tools:Paketti Gadgets:Unison Generator|||Tools|||PakettiCreateUnisonSamples|||MMTPGUG,main,menu,tools,paketti,gadgets,unison,generator|||PakettiMenuConfig
 Menu Entry|||Main Menu:Tools:Paketti Selected Device Parameter Editor|||Tools|||PakettiCanvasExperimentsInit|||MMTPSDPE,main,menu,tools,paketti,selected,device,parameter,editor|||PakettiCanvasExperiments
 Menu Entry|||Main Menu:Tools:Paketti..:Metric Modulation:Advanced Subdivision Calculator|||Tools|||function() show_subdivision_calculator_dialog() end|||MMTPMMASC,main,menu,tools,paketti,metric,modulation,advanced,subdivision,calculator|||PakettiMetricModulation
@@ -354,37 +354,43 @@ Menu Entry|||Main Menu:Tools:Paketti..:Metric Modulation:Quick 2:3 (From triplet
 Menu Entry|||Main Menu:Tools:Paketti..:Metric Modulation:Quick 3:2 (Triplet feel)|||Tools|||function() convert_to_triplet_feel() end|||MMTPMMQ32TF,main,menu,tools,paketti,metric,modulation,quick,triplet,feel|||PakettiMetricModulation
 Menu Entry|||Main Menu:Tools:Paketti..:Metric Modulation:Quick 3:4 (3/4→4/4 feel)|||Tools|||function() convert_3_to_4_feel() end|||MMTPMMQ343444F,main,menu,tools,paketti,metric,modulation,quick,feel|||PakettiMetricModulation
 Menu Entry|||Main Menu:Tools:Paketti..:Metric Modulation:Quick 4:3 (4/4→3/4 feel)|||Tools|||function() convert_4_to_3_feel() end|||MMTPMMQ434434F,main,menu,tools,paketti,metric,modulation,quick,feel|||PakettiMetricModulation
+Menu Entry|||Main Menu:Tools:Paketti..:Pattern:Transpose Blocks Dialog...|||Tools|||show_transpose_block_dialog|||MMTPPTBD,main,menu,tools,paketti,pattern,transpose,blocks,dialog|||PakettiTransposeBlock
 Menu Entry|||Main Menu:Tools:Paketti:!!About:About Paketti/Donations...|||!!About|||function() pakettiAboutDonations() end|||MMTPAAPD,main,menu,tools,paketti,about,about,paketti,donations|||PakettiMenuConfig
-Menu Entry|||Main Menu:Tools:Paketti:!Preferences:Add Autocomplete Abbreviation...|||!Preferences|||pakettiAutocompleteAddAbbreviation|||MMTPPAAA,main,menu,tools,paketti,preferences,autocomplete,abbreviation|||PakettiAutocomplete
 Menu Entry|||Main Menu:Tools:Paketti:!Preferences:Change Fonts (Agave)|||!Preferences|||function() ChangeFonts3() end|||MMTPPCFA,main,menu,tools,paketti,preferences,change,fonts,agave|||PakettiCustomization
 Menu Entry|||Main Menu:Tools:Paketti:!Preferences:Change Fonts (classic)|||!Preferences|||function() ChangeFonts1() end|||MMTPPCFC,main,menu,tools,paketti,preferences,change,fonts,classic|||PakettiCustomization
 Menu Entry|||Main Menu:Tools:Paketti:!Preferences:Change Fonts (default)|||!Preferences|||function() ChangeFonts2() end|||MMTPPCFD,main,menu,tools,paketti,preferences,change,fonts,default|||PakettiCustomization
-Menu Entry|||Main Menu:Tools:Paketti:!Preferences:Debug Autocomplete Search|||!Preferences|||function() 
-  local search_text = renoise.app():show_prompt("Debug Autocomplete", "Enter search text to debug:", "duplicate all")
-  if search_text and search_text ~= "" then 
-    debug_multi_word_search(search_text) 
-  end 
-end|||MMTPPDAS,main,menu,tools,paketti,preferences,debug,autocomplete,search|||PakettiAutocomplete
 Menu Entry|||Main Menu:Tools:Paketti:!Preferences:Debug:Dump Complete Renoise API|||!Preferences|||paketti_debug_dump_complete_renoise_api|||MMTPPDDCRA,main,menu,tools,paketti,preferences,debug,dump,complete,renoise|||PakettiCCizerLoader
 Menu Entry|||Main Menu:Tools:Paketti:!Preferences:Debug:Generate Paketti Midi Mappings to Console|||!Preferences|||function() generate_paketti_midi_mappings() end|||MMTPPDGPMMTC,main,menu,tools,paketti,preferences,debug,generate,paketti,midi,mappings,console|||PakettiMenuConfig
 Menu Entry|||Main Menu:Tools:Paketti:!Preferences:Debug:List of Installed Tools|||!Preferences|||function() pakettiListInstalledTools() end|||MMTPPDLOIT,main,menu,tools,paketti,preferences,debug,list,installed,tools|||PakettiExperimental_Verify
 Menu Entry|||Main Menu:Tools:Paketti:!Preferences:Debug:Print Free KeyBindings to Terminal|||!Preferences|||print_free_combinations|||MMTPPDPFKTT,main,menu,tools,paketti,preferences,debug,print,free,keybindings,terminal|||PakettiMenuConfig
 Menu Entry|||Main Menu:Tools:Paketti:!Preferences:Find Free KeyBindings...|||!Preferences|||pakettiFreeKeybindingsDialog|||MMTPPFFK,main,menu,tools,paketti,preferences,find,free,keybindings|||PakettiMenuConfig
-Menu Entry|||Main Menu:Tools:Paketti:!Preferences:Nuke Autocomplete Cache|||!Preferences|||pakettiAutocompleteNukeCache|||MMTPPNAC,main,menu,tools,paketti,preferences,nuke,autocomplete,cache|||PakettiAutocomplete
+Menu Entry|||Main Menu:Tools:Paketti:!Preferences:Function Search Debug:Add Autocomplete Abbreviation...|||!Preferences|||pakettiAutocompleteAddAbbreviation|||MMTPPFSDAAA,main,menu,tools,paketti,preferences,function,search,debug,autocomplete,abbreviation|||PakettiAutocomplete
+Menu Entry|||Main Menu:Tools:Paketti:!Preferences:Function Search Debug:Debug Autocomplete Search|||!Preferences|||function() 
+  local search_text = renoise.app():show_prompt("Debug Autocomplete", "Enter search text to debug:", "duplicate all")
+  if search_text and search_text ~= "" then 
+    debug_multi_word_search(search_text) 
+  end 
+end|||MMTPPFSDDAS,main,menu,tools,paketti,preferences,function,search,debug,debug,autocomplete,search|||PakettiAutocomplete
+Menu Entry|||Main Menu:Tools:Paketti:!Preferences:Function Search Debug:Debug Autocomplete Shortcuts...|||!Preferences|||pakettiDebugAutocompleteShortcuts|||MMTPPFSDDAS,main,menu,tools,paketti,preferences,function,search,debug,debug,autocomplete,shortcuts|||PakettiAutocomplete
+Menu Entry|||Main Menu:Tools:Paketti:!Preferences:Function Search Debug:Debug Command+D Mappings...|||!Preferences|||pakettiDebugCommandDMappings|||MMTPPFSDDCDM,main,menu,tools,paketti,preferences,function,search,debug,debug,command,mappings|||PakettiAutocomplete
+Menu Entry|||Main Menu:Tools:Paketti:!Preferences:Function Search Debug:Debug Matching Logic...|||!Preferences|||pakettiDebugMatchingLogic|||MMTPPFSDDML,main,menu,tools,paketti,preferences,function,search,debug,debug,matching,logic|||PakettiAutocomplete
+Menu Entry|||Main Menu:Tools:Paketti:!Preferences:Function Search Debug:Nuke Autocomplete Cache|||!Preferences|||pakettiAutocompleteNukeCache|||MMTPPFSDNAC,main,menu,tools,paketti,preferences,function,search,debug,nuke,autocomplete,cache|||PakettiAutocomplete
+Menu Entry|||Main Menu:Tools:Paketti:!Preferences:Function Search Debug:Rebuild Autocomplete Cache|||!Preferences|||pakettiAutocompleteRebuildCache|||MMTPPFSDRAC,main,menu,tools,paketti,preferences,function,search,debug,rebuild,autocomplete,cache|||PakettiAutocomplete
+Menu Entry|||Main Menu:Tools:Paketti:!Preferences:Function Search Debug:Reset Autocomplete Usage Statistics|||!Preferences|||pakettiAutocompleteResetUsage|||MMTPPFSDRAUS,main,menu,tools,paketti,preferences,function,search,debug,reset,autocomplete,usage,statistics|||PakettiAutocomplete
+Menu Entry|||Main Menu:Tools:Paketti:!Preferences:Function Search Debug:Show Mapping Contents...|||!Preferences|||pakettiShowMappingContents|||MMTPPFSDSMC,main,menu,tools,paketti,preferences,function,search,debug,show,mapping,contents|||PakettiAutocomplete
 Menu Entry|||Main Menu:Tools:Paketti:!Preferences:Open Paketti Init Phrase Dialog...|||!Preferences|||function() pakettiPhraseSettings() end|||MMTPPOPIPD,main,menu,tools,paketti,preferences,open,paketti,init,phrase,dialog|||PakettiMenuConfig
 Menu Entry|||Main Menu:Tools:Paketti:!Preferences:Open Paketti Path|||!Preferences|||function() renoise.app():open_path(renoise.tool().bundle_path)end|||MMTPPOPP,main,menu,tools,paketti,preferences,open,paketti,path|||PakettiMenuConfig
-Menu Entry|||Main Menu:Tools:Paketti:!Preferences:Paketti Autocomplete...|||!Preferences|||pakettiAutocompleteToggle|||MMTPPPA,main,menu,tools,paketti,preferences,paketti,autocomplete|||PakettiAutocomplete
 Menu Entry|||Main Menu:Tools:Paketti:!Preferences:Paketti Dynamic View Preferences Dialog 1-4...|||!Preferences|||function() pakettiDynamicViewDialog(1, 4) end|||MMTPPPDVPD14,-4,main,menu,tools,paketti,preferences,paketti,dynamic,view,preferences,dialog|||PakettiMenuConfig
 Menu Entry|||Main Menu:Tools:Paketti:!Preferences:Paketti Dynamic View Preferences Dialog 5-8...|||!Preferences|||function() pakettiDynamicViewDialog(5, 8) end|||MMTPPPDVPD58,-8,main,menu,tools,paketti,preferences,paketti,dynamic,view,preferences,dialog|||PakettiMenuConfig
+Menu Entry|||Main Menu:Tools:Paketti:!Preferences:Paketti Function Search...|||!Preferences|||pakettiAutocompleteToggle|||MMTPPPFS,main,menu,tools,paketti,preferences,paketti,function,search|||PakettiAutocomplete
 Menu Entry|||Main Menu:Tools:Paketti:!Preferences:Paketti KeyBindings...|||!Preferences|||function() pakettiKeyBindingsDialog() end|||MMTPPPK,main,menu,tools,paketti,preferences,paketti,keybindings|||PakettiKeyBindings
 Menu Entry|||Main Menu:Tools:Paketti:!Preferences:Paketti Load Dynamic Views from a Textfile|||!Preferences|||function() load_dynamic_views_from_txt() end|||MMTPPPLDVFAT,main,menu,tools,paketti,preferences,paketti,load,dynamic,views,from,textfile|||PakettiMenuConfig
 Menu Entry|||Main Menu:Tools:Paketti:!Preferences:Paketti MIDI Mappings (Dynamic)...|||!Preferences|||function() pakettiMIDIMappingsDialog() end|||MMTPPPMMD,main,menu,tools,paketti,preferences,paketti,midi,mappings,dynamic|||PakettiMIDIMappings
 Menu Entry|||Main Menu:Tools:Paketti:!Preferences:Paketti MIDI Mappings...|||!Preferences|||function() pakettiMIDIMappingsDialog() end|||MMTPPPMM,main,menu,tools,paketti,preferences,paketti,midi,mappings|||PakettiMenuConfig
 Menu Entry|||Main Menu:Tools:Paketti:!Preferences:Paketti Preferences...|||!Preferences|||pakettiPreferences|||MMTPPPP,main,menu,tools,paketti,preferences,paketti,preferences|||PakettiMenuConfig
 Menu Entry|||Main Menu:Tools:Paketti:!Preferences:Paketti Save Dynamic Views as a Textfile|||!Preferences|||function() save_dynamic_views_to_txt() end|||MMTPPPSDVAAT,main,menu,tools,paketti,preferences,paketti,save,dynamic,views,textfile|||PakettiMenuConfig
-Menu Entry|||Main Menu:Tools:Paketti:!Preferences:Rebuild Autocomplete Cache|||!Preferences|||pakettiAutocompleteRebuildCache|||MMTPPRAC,main,menu,tools,paketti,preferences,rebuild,autocomplete,cache|||PakettiAutocomplete
 Menu Entry|||Main Menu:Tools:Paketti:!Preferences:Renoise KeyBindings Dialog...|||!Preferences|||function() pakettiRenoiseKeyBindingsDialog() end|||MMTPPRKD,main,menu,tools,paketti,preferences,renoise,keybindings,dialog|||PakettiMenuConfig
-Menu Entry|||Main Menu:Tools:Paketti:!Preferences:Reset Autocomplete Usage Statistics|||!Preferences|||pakettiAutocompleteResetUsage|||MMTPPRAUS,main,menu,tools,paketti,preferences,reset,autocomplete,usage,statistics|||PakettiAutocomplete
+Menu Entry|||Main Menu:Tools:Paketti:!Preferences:Test Shortcut Mappings...|||!Preferences|||pakettiTestShortcutMappings|||MMTPPTSM,main,menu,tools,paketti,preferences,test,shortcut,mappings|||PakettiAutocomplete
 Menu Entry|||Main Menu:Tools:Paketti:!Preferences:Toggle Automatically Open Selected Track Device Editors On/Off|||!Preferences|||PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode|||MMTPPTAOSTDEOO,main,menu,tools,paketti,preferences,toggle,automatically,open,selected,track,device,editors|||PakettiMenuConfig
 Menu Entry|||Main Menu:Tools:Paketti:!Preferences:Toggle BPM Randomization on New Songs On/Off|||!Preferences|||pakettiToggleRandomizeBPMOnNewSong|||MMTPPTBRONSOO,main,menu,tools,paketti,preferences,toggle,randomization,songs|||PakettiMenuConfig
 Menu Entry|||Main Menu:Tools:Paketti:!Preferences:Toggle Global Groove on Startup On/Off|||!Preferences|||pakettiToggleGlobalGrooveOnStartup|||MMTPPTGGOSOO,main,menu,tools,paketti,preferences,toggle,global,groove,startup|||PakettiMenuConfig
@@ -412,7 +418,7 @@ Menu Entry|||Main Menu:Tools:Paketti:Dump VST/AU/Native Effects to Clipboard|||T
 --) end|||MMTPDVANETC,main,menu,tools,paketti,dump,native,effects,clipboard|||legacy_quarantine
 Menu Entry|||Main Menu:Tools:Paketti:EZ Maximize Spectrum|||Tools|||function() EZMaximizeSpectrum() end|||MMTPEMS,main,menu,tools,paketti,maximize,spectrum|||legacy_v2_8_tools
 Menu Entry|||Main Menu:Tools:Paketti:Experimental (macOS Only) Config.XML overwriter (Destructive)|||Tools|||function() Experimental() end|||MMTPEMOCXOD,main,menu,tools,paketti,experimental,macos,only,config,overwriter,destructive|||legacy_quarantine
-Menu Entry|||Main Menu:Tools:Paketti:Export Wavetable...|||Tools|||paketti_export_wavetable|||MMTPEW,main,menu,tools,paketti,export,wavetable|||PakettiWTExport
+Menu Entry|||Main Menu:Tools:Paketti:Experimental Sample FX Render|||Tools|||function() pakettiExperimentalSampleFXRender() end|||MMTPESFR,main,menu,tools,paketti,experimental,sample,render|||PakettiRender
 Menu Entry|||Main Menu:Tools:Paketti:Export XI (FastTracker II Extended Instrument)|||Tools|||function() PakettiXIExport() end|||MMTPEXFIEI,main,menu,tools,paketti,export,fasttracker,extended,instrument|||PakettiXIExport
 Menu Entry|||Main Menu:Tools:Paketti:Global:Reset Basenote to Lowest Note Range|||Global|||pakettiResetBasenotesToLowestNoteRange|||MMTPGRBTLNR,main,menu,tools,paketti,global,reset,basenote,lowest,note,range|||PakettiForeignSnippets
 Menu Entry|||Main Menu:Tools:Paketti:Instruments:Beatsync Lines Double (All)|||Instruments|||function() doubleBeatSyncLinesAll() end|||MMTPIBLDA,main,menu,tools,paketti,instruments,beatsync,lines,double|||PakettiMenuConfig
@@ -831,8 +837,9 @@ Menu Entry|||Mixer:Paketti ChordsPlus:Duplicate Lowest Notes to New Track (Origi
 Menu Entry|||Mixer:Paketti ChordsPlus:Duplicate Lowest Notes to New Track (Selected Instrument)|||Mixer|||function() DuplicateSpecificNotesToNewTrack("lowest", "selected") end|||MPCDLNTNTSI,mixer,paketti,chordsplus,duplicate,lowest,notes,track,selected,instrument|||PakettiMenuConfig
 Menu Entry|||Mixer:Paketti Gadgets:CCizer Loader...|||Mixer|||PakettiCCizerLoader|||MPGCL,mixer,paketti,gadgets,ccizer,loader|||PakettiCCizerLoader
 Menu Entry|||Mixer:Paketti Gadgets:Paketti Action Selector Dialog...|||Mixer|||pakettiActionSelectorDialog|||MPGPASD,mixer,paketti,gadgets,paketti,action,selector,dialog|||PakettiMenuConfig
-Menu Entry|||Mixer:Paketti Gadgets:Paketti Autocomplete...|||Mixer|||pakettiAutocompleteToggle|||MPGPA,mixer,paketti,gadgets,paketti,autocomplete|||PakettiAutocomplete
 Menu Entry|||Mixer:Paketti Gadgets:Paketti BPM to MS Delay Calculator Dialog...|||Mixer|||pakettiBPMMSCalculator|||MPGPBTMDCD,mixer,paketti,gadgets,paketti,delay,calculator,dialog|||PakettiMenuConfig
+Menu Entry|||Mixer:Paketti Gadgets:Paketti Function Search...|||Mixer|||pakettiAutocompleteToggle|||MPGPFS,mixer,paketti,gadgets,paketti,function,search|||PakettiAutocomplete
+Menu Entry|||Mixer:Paketti GadgetsTranspose Blocks...|||Mixer|||show_transpose_block_dialog|||MPGB,mixer,paketti,gadgetstranspose,blocks|||PakettiTransposeBlock
 Menu Entry|||Mixer:Paketti:Add Gainer A to Selected Track|||Mixer|||function() AddGainerCrossfadeSelectedTrack("A") end|||MPAGATST,mixer,paketti,gainer,selected,track|||PakettiMenuConfig
 Menu Entry|||Mixer:Paketti:Add Gainer B to Selected Track|||Mixer|||function() AddGainerCrossfadeSelectedTrack("B") end|||MPAGBTST,mixer,paketti,gainer,selected,track|||PakettiMenuConfig
 Menu Entry|||Mixer:Paketti:Add Input Inertia Formula Device|||Mixer|||add_input_inertia|||MPAIIFD,mixer,paketti,input,inertia,formula,device|||PakettiMenuConfig
@@ -1037,10 +1044,10 @@ Menu Entry|||Pattern Editor:Paketti Gadgets:(WIP) Paketti Tuplet Writer Dialog..
 Menu Entry|||Pattern Editor:Paketti Gadgets:BPM Calculation Dialog...|||Pattern Editor|||pakettiBpmFromSampleDialog|||PEPGBCD,pattern,editor,paketti,gadgets,calculation,dialog|||PakettiMenuConfig
 Menu Entry|||Pattern Editor:Paketti Gadgets:CCizer Loader...|||Pattern Editor|||PakettiCCizerLoader|||PEPGCL,pattern,editor,paketti,gadgets,ccizer,loader|||PakettiCCizerLoader
 Menu Entry|||Pattern Editor:Paketti Gadgets:Paketti Action Selector Dialog...|||Pattern Editor|||pakettiActionSelectorDialog|||PEPGPASD,pattern,editor,paketti,gadgets,paketti,action,selector,dialog|||PakettiMenuConfig
-Menu Entry|||Pattern Editor:Paketti Gadgets:Paketti Autocomplete...|||Pattern Editor|||pakettiAutocompleteToggle|||PEPGPA,pattern,editor,paketti,gadgets,paketti,autocomplete|||PakettiAutocomplete
 Menu Entry|||Pattern Editor:Paketti Gadgets:Paketti Beat Structure Editor...|||Pattern Editor|||pakettiBeatStructureEditorDialog|||PEPGPBSE,pattern,editor,paketti,gadgets,paketti,beat,structure,editor|||PakettiMenuConfig
 Menu Entry|||Pattern Editor:Paketti Gadgets:Paketti Dialog of Dialogs...|||Pattern Editor|||function() pakettiDialogOfDialogsToggle() end|||PEPGPDOD,pattern,editor,paketti,gadgets,paketti,dialog,dialogs|||PakettiMenuConfig
 Menu Entry|||Pattern Editor:Paketti Gadgets:Paketti Effect Column CheatSheet...|||Pattern Editor|||function() pakettiPatternEditorCheatsheetDialog() end|||PEPGPECC,pattern,editor,paketti,gadgets,paketti,effect,column,cheatsheet|||PakettiMenuConfig
+Menu Entry|||Pattern Editor:Paketti Gadgets:Paketti Function Search...|||Pattern Editor|||pakettiAutocompleteToggle|||PEPGPFS,pattern,editor,paketti,gadgets,paketti,function,search|||PakettiAutocomplete
 Menu Entry|||Pattern Editor:Paketti Gadgets:Paketti Fuzzy Search Track...|||Pattern Editor|||pakettiFuzzySearchTrackDialog|||PEPGPFST,pattern,editor,paketti,gadgets,paketti,fuzzy,search,track|||PakettiMenuConfig
 Menu Entry|||Pattern Editor:Paketti Gadgets:Paketti Gater...|||Pattern Editor|||function()
     local max_rows = renoise.song().selected_pattern.number_of_lines
@@ -1051,6 +1058,7 @@ Menu Entry|||Pattern Editor:Paketti Gadgets:Paketti Gater...|||Pattern Editor|||
   end|||PEPGPG,pattern,editor,paketti,gadgets,paketti,gater|||PakettiMenuConfig
 Menu Entry|||Pattern Editor:Paketti Gadgets:Paketti Groovebox 8120...|||Pattern Editor|||function() GrooveboxShowClose() end|||PEPGPG8,pattern,editor,paketti,gadgets,paketti,groovebox,8120|||PakettiMenuConfig
 Menu Entry|||Pattern Editor:Paketti Gadgets:Paketti Timestretch Dialog...|||Pattern Editor|||pakettiTimestretchDialog|||PEPGPTD,pattern,editor,paketti,gadgets,paketti,timestretch,dialog|||PakettiMenuConfig
+Menu Entry|||Pattern Editor:Paketti Gadgets:Transpose Blocks Dialog...|||Pattern Editor|||show_transpose_block_dialog|||PEPGTBD,pattern,editor,paketti,gadgets,transpose,blocks,dialog|||PakettiTransposeBlock
 Menu Entry|||Pattern Editor:Paketti Gadgets:Value Interpolation Looper Dialog...|||Pattern Editor|||pakettiVolumeInterpolationLooper|||PEPGVILD,pattern,editor,paketti,gadgets,value,interpolation,looper,dialog|||PakettiMenuConfig
 Menu Entry|||Pattern Editor:Paketti Gadgets:VolDelayPan Slider Dialog...|||Pattern Editor|||function() pakettiVolDelayPanSliderDialog() end|||PEPGVSD,pattern,editor,paketti,gadgets,voldelaypan,slider,dialog|||PakettiMenuConfig
 Menu Entry|||Pattern Editor:Paketti..:Oldschool Slice Pitch Workflow (Copied)|||Pattern Editor|||function() pakettiOldschoolSlicePitchWorkflow("copied") end|||PEPOSPWC,pattern,editor,paketti,oldschool,slice,pitch,workflow,copied|||PakettiOldschoolSlicePitch
@@ -1523,6 +1531,34 @@ Menu Entry|||Sample Editor Ruler:Detect and Select Silence in Zoom|||Sample Edit
 Menu Entry|||Sample Editor Ruler:Flip Sample Buffer Selection Back|||Sample Editor Ruler|||function()pakettiSampleBufferFlipSelection(-1)end|||SERFSBSB,sample,editor,ruler,flip,sample,buffer,selection,back|||PakettiSamples
 Menu Entry|||Sample Editor Ruler:Flip Sample Buffer Selection Forward|||Sample Editor Ruler|||function()pakettiSampleBufferFlipSelection(1)end|||SERFSBSF,sample,editor,ruler,flip,sample,buffer,selection,forward|||PakettiSamples
 Menu Entry|||Sample Editor Ruler:Paketti Toggle Sample Selection Info|||Sample Editor Ruler|||toggleSampleDetails|||SERPTSSI,sample,editor,ruler,paketti,toggle,sample,selection,info|||PakettiMenuConfig
+Menu Entry|||Sample Editor Ruler:Paketti:Analyze Sample BPM (1 beat)|||Sample Editor Ruler|||function() 
+    local bpm = pakettiAnalyzeSampleBPM(1)
+    if bpm then renoise.app():show_status("Sample BPM (1 beat): " .. string.format("%.1f", bpm)) end
+end|||SERPASB1B,sample,editor,ruler,paketti,analyze,sample,beat|||PakettiRender
+Menu Entry|||Sample Editor Ruler:Paketti:Analyze Sample BPM (16 beats)|||Sample Editor Ruler|||function() 
+    local bpm = pakettiAnalyzeSampleBPM(16)
+    if bpm then renoise.app():show_status("Sample BPM (16 beats): " .. string.format("%.1f", bpm)) end
+end|||SERPASB1B,sample,editor,ruler,paketti,analyze,sample,beats|||PakettiRender
+Menu Entry|||Sample Editor Ruler:Paketti:Analyze Sample BPM (2 beats)|||Sample Editor Ruler|||function() 
+    local bpm = pakettiAnalyzeSampleBPM(2)
+    if bpm then renoise.app():show_status("Sample BPM (2 beats): " .. string.format("%.1f", bpm)) end
+end|||SERPASB2B,sample,editor,ruler,paketti,analyze,sample,beats|||PakettiRender
+Menu Entry|||Sample Editor Ruler:Paketti:Analyze Sample BPM (4 beats)|||Sample Editor Ruler|||function() pakettiTestBPMCalculation() end|||SERPASB4B,sample,editor,ruler,paketti,analyze,sample,beats|||PakettiRender
+Menu Entry|||Sample Editor Ruler:Paketti:Analyze Sample BPM (8 beats)|||Sample Editor Ruler|||function() 
+    local bpm = pakettiAnalyzeSampleBPM(8)
+    if bpm then renoise.app():show_status("Sample BPM (8 beats): " .. string.format("%.1f", bpm)) end
+end|||SERPASB8B,sample,editor,ruler,paketti,analyze,sample,beats|||PakettiRender
+Menu Entry|||Sample Editor Ruler:Paketti:Intelligent BPM Detection|||Sample Editor Ruler|||function() 
+    local song = renoise.song()
+    if not song.selected_sample or not song.selected_sample.sample_buffer or not song.selected_sample.sample_buffer.has_sample_data then
+        renoise.app():show_status("No sample selected or sample has no data")
+        return
+    end
+    
+    local sample_buffer = song.selected_sample.sample_buffer
+    local detected_bpm, beat_count = pakettiDetectSampleBPM(sample_buffer.number_of_frames, sample_buffer.sample_rate)
+    renoise.app():show_status(string.format("Intelligent Detection: %.1f BPM (%d beats)", detected_bpm, beat_count))
+end|||SERPIBD,sample,editor,ruler,paketti,intelligent,detection|||PakettiRender
 Menu Entry|||Sample Editor Ruler:Pakettify Current Instrument|||Sample Editor Ruler|||function() PakettiInjectDefaultXRNI() end|||SERPCI,sample,editor,ruler,pakettify,current,instrument|||PakettiMenuConfig
 Menu Entry|||Sample Editor Ruler:Select Center of Sample Buffer|||Sample Editor Ruler|||function()pakettiSampleBufferCenterSelector()end|||SERSCOSB,sample,editor,ruler,select,center,sample,buffer|||PakettiMenuConfig
 Menu Entry|||Sample Editor Ruler:Set Selection by Hex Offset...|||Sample Editor Ruler|||pakettiHexOffsetDialog|||SERSSBHO,sample,editor,ruler,selection,offset|||PakettiMenuConfig
@@ -1530,7 +1566,7 @@ Menu Entry|||Sample Editor Ruler:Show Instrument Info (Dialog)|||Sample Editor R
 Menu Entry|||Sample Editor Ruler:Show Instrument Info (Status)|||Sample Editor Ruler|||pakettiInstrumentInfoStatus|||SERSIIS,sample,editor,ruler,show,instrument,info,status|||PakettiForeignSnippets
 Menu Entry|||Sample Editor Ruler:Visualize Sample (Canvas)|||Sample Editor Ruler|||pakettiSampleVisualizerDialog|||SERVSC,sample,editor,ruler,visualize,sample,canvas|||PakettiForeignSnippets
 Menu Entry|||Sample Editor:Paketti Gadgets:BPM Calculation Dialog...|||Sample Editor|||pakettiBpmFromSampleDialog|||SEPGBCD,sample,editor,paketti,gadgets,calculation,dialog|||PakettiMenuConfig
-Menu Entry|||Sample Editor:Paketti Gadgets:Paketti Autocomplete...|||Sample Editor|||pakettiAutocompleteToggle|||SEPGPA,sample,editor,paketti,gadgets,paketti,autocomplete|||PakettiAutocomplete
+Menu Entry|||Sample Editor:Paketti Gadgets:Paketti Function Search...|||Sample Editor|||pakettiAutocompleteToggle|||SEPGPFS,sample,editor,paketti,gadgets,paketti,function,search|||PakettiAutocomplete
 Menu Entry|||Sample Editor:Paketti Gadgets:Paketti Sample Adjust Dialog...|||Sample Editor|||show_paketti_sample_adjust_dialog|||SEPGPSAD,sample,editor,paketti,gadgets,paketti,sample,adjust,dialog|||PakettiMenuConfig
 Menu Entry|||Sample Editor:Paketti Gadgets:Paketti Single Cycle Waveform Writer...|||Sample Editor|||PCMWriterShowPcmDialog|||SEPGPSCWW,sample,editor,paketti,gadgets,paketti,single,cycle,waveform,writer|||PakettiPCMWriter
 Menu Entry|||Sample Editor:Paketti Gadgets:Paketti YT-DLP Downloader...|||Sample Editor|||pakettiYTDLPDialog|||SEPGPYDD,sample,editor,paketti,gadgets,paketti,downloader|||PakettiMenuConfig
@@ -1553,6 +1589,15 @@ Menu Entry|||Sample Editor:Paketti..:Slices to Pattern (from current row)|||Samp
 Menu Entry|||Sample Editor:Paketti..:Slices to Pattern (from first row)|||Sample Editor|||function() pakettiSlicesToPattern(true) end|||SEPSTPFFR,sample,editor,paketti,slices,pattern,from,first|||PakettiOldschoolSlicePitch
 Menu Entry|||Sample Editor:Paketti..:Slices to Phrase (phrase only)|||Sample Editor|||function() pakettiSlicesToPhrase(false) end|||SEPSTPPO,sample,editor,paketti,slices,phrase,phrase,only|||PakettiOldschoolSlicePitch
 Menu Entry|||Sample Editor:Paketti..:Slices to Phrase (with trigger)|||Sample Editor|||function() pakettiSlicesToPhrase(true) end|||SEPSTPWT,sample,editor,paketti,slices,phrase,with,trigger|||PakettiOldschoolSlicePitch
+Menu Entry|||Sample Editor:Paketti:Analyze Sample BPM (1 beat)|||Sample Editor|||function() 
+    local bpm = pakettiAnalyzeSampleBPM(1)
+    if bpm then renoise.app():show_status("Sample BPM (1 beat): " .. string.format("%.1f", bpm)) end
+end|||SEPASB1B,sample,editor,paketti,analyze,sample,beat|||PakettiRender
+Menu Entry|||Sample Editor:Paketti:Analyze Sample BPM (4 beats)|||Sample Editor|||function() pakettiTestBPMCalculation() end|||SEPASB4B,sample,editor,paketti,analyze,sample,beats|||PakettiRender
+Menu Entry|||Sample Editor:Paketti:Analyze Sample BPM (8 beats)|||Sample Editor|||function() 
+    local bpm = pakettiAnalyzeSampleBPM(8)
+    if bpm then renoise.app():show_status("Sample BPM (8 beats): " .. string.format("%.1f", bpm)) end
+end|||SEPASB8B,sample,editor,paketti,analyze,sample,beats|||PakettiRender
 Menu Entry|||Sample Editor:Paketti:BPM Calculation Debug (Comprehensive)|||Sample Editor|||comprehensive_bpm_calculation_debug|||SEPBCDC,sample,editor,paketti,calculation,debug,comprehensive|||PakettiPitchControl
 Menu Entry|||Sample Editor:Paketti:Beatsync/Slices:Analyze Slice Markers|||Beatsync/Slices|||function() analyze_slice_markers() end|||SEPBSASM,sample,editor,paketti,beatsync,slices,analyze,slice,markers|||PakettiMenuConfig
 Menu Entry|||Sample Editor:Paketti:Beatsync/Slices:Beatsync Lines Double (All)|||Beatsync/Slices|||function() doubleBeatSyncLinesAll() end|||SEPBSBLDA,sample,editor,paketti,beatsync,slices,beatsync,lines,double|||PakettiMenuConfig
@@ -1601,6 +1646,7 @@ Menu Entry|||Sample Editor:Paketti:Duplicate Selected Sample at +12 transpose|||
 Menu Entry|||Sample Editor:Paketti:Duplicate Selected Sample at +24 transpose|||Sample Editor|||function() duplicate_sample_with_transpose(24) end|||SEPDSSA2T,+24,sample,editor,paketti,duplicate,selected,sample,transpose|||PakettiMenuConfig
 Menu Entry|||Sample Editor:Paketti:Duplicate Selected Sample at -12 transpose|||Sample Editor|||function() duplicate_sample_with_transpose(-12) end|||SEPDSSA1T,-12,sample,editor,paketti,duplicate,selected,sample,transpose|||PakettiMenuConfig
 Menu Entry|||Sample Editor:Paketti:Duplicate Selected Sample at -24 transpose|||Sample Editor|||function() duplicate_sample_with_transpose(-24) end|||SEPDSSA2T,-24,sample,editor,paketti,duplicate,selected,sample,transpose|||PakettiMenuConfig
+Menu Entry|||Sample Editor:Paketti:Experimental Sample FX Render|||Sample Editor|||function() pakettiExperimentalSampleFXRender() end|||SEPESFR,sample,editor,paketti,experimental,sample,render|||PakettiRender
 Menu Entry|||Sample Editor:Paketti:Export:Export Akai Program...|||Export|||function() exportAkaiProgram() end|||SEPEEAP,sample,editor,paketti,export,export,akai,program|||PakettiMenuConfig
 Menu Entry|||Sample Editor:Paketti:Export:Export Current Sample as AKP...|||Export|||exportCurrentSampleAsAKP|||SEPEECSAA,sample,editor,paketti,export,export,current,sample|||PakettiMenuConfig
 Menu Entry|||Sample Editor:Paketti:Export:Export MPC2000 SND Sample...|||Export|||function() exportMPC2000Sample() end|||SEPEEMSS,sample,editor,paketti,export,export,mpc2000,sample|||PakettiMenuConfig
@@ -1621,6 +1667,17 @@ Menu Entry|||Sample Editor:Paketti:Instruments:Add 84 Sample Slots to Instrument
 Menu Entry|||Sample Editor:Paketti:Instruments:Duplicate and Reverse Instrument|||Instruments|||function() PakettiDuplicateAndReverseInstrument() end|||SEPIDARI,sample,editor,paketti,instruments,duplicate,reverse,instrument|||PakettiMenuConfig
 Menu Entry|||Sample Editor:Paketti:Instruments:Set Selected Instrument Velocity Tracking Off|||Instruments|||function() selectedInstrumentVelocityTracking(0) end|||SEPISSIVTO,sample,editor,paketti,instruments,selected,instrument,velocity,tracking|||PakettiMenuConfig
 Menu Entry|||Sample Editor:Paketti:Instruments:Set Selected Instrument Velocity Tracking On|||Instruments|||function()  selectedInstrumentVelocityTracking(1) end|||SEPISSIVTO,sample,editor,paketti,instruments,selected,instrument,velocity,tracking|||PakettiMenuConfig
+Menu Entry|||Sample Editor:Paketti:Intelligent BPM Detection|||Sample Editor|||function() 
+    local song = renoise.song()
+    if not song.selected_sample or not song.selected_sample.sample_buffer or not song.selected_sample.sample_buffer.has_sample_data then
+        renoise.app():show_status("No sample selected or sample has no data")
+        return
+    end
+    
+    local sample_buffer = song.selected_sample.sample_buffer
+    local detected_bpm, beat_count = pakettiDetectSampleBPM(sample_buffer.number_of_frames, sample_buffer.sample_rate)
+    renoise.app():show_status(string.format("Intelligent Detection: %.1f BPM (%d beats)", detected_bpm, beat_count))
+end|||SEPIBD,sample,editor,paketti,intelligent,detection|||PakettiRender
 Menu Entry|||Sample Editor:Paketti:Isolate Selected Sample to New Instrument|||Sample Editor|||PakettiIsolateSelectedSampleToInstrument|||SEPISSTNI,sample,editor,paketti,isolate,selected,sample,instrument|||PakettiMenuConfig
 Menu Entry|||Sample Editor:Paketti:Isolate Slices - Play All Together|||Sample Editor|||function() isolate_slices_play_all_together() end|||SEPISPAT,sample,editor,paketti,isolate,slices,play,together|||PakettiSamples
 Menu Entry|||Sample Editor:Paketti:Isolate Slices or Samples to New Instruments|||Sample Editor|||PakettiIsolateSlices|||SEPISOSTNI,sample,editor,paketti,isolate,slices,samples,instruments|||PakettiMenuConfig
@@ -1739,6 +1796,7 @@ Menu Entry|||Sample Editor:Paketti:Show Instrument Info (Status)|||Sample Editor
 Menu Entry|||Sample Editor:Paketti:Slice to Pattern Sequencer Dialog...|||Sample Editor|||showSliceToPatternSequencerInterface|||SEPSTPSD,sample,editor,paketti,slice,pattern,sequencer,dialog|||PakettiExperimental_Verify
 Menu Entry|||Sample Editor:Paketti:Smart Beatsync from Selection|||Sample Editor|||function() BeatSyncFromSelection() end|||SEPSBFS,sample,editor,paketti,smart,beatsync,from,selection|||PakettiMenuConfig
 Menu Entry|||Sample Editor:Paketti:Snap Loop To Nearest Row|||Sample Editor|||snap_loop_to_rows|||SEPSLTNR,sample,editor,paketti,snap,loop,nearest|||PakettiMenuConfig
+Menu Entry|||Sample Editor:Paketti:Test Peak Detection|||Sample Editor|||function() pakettiTestPeakDetection() end|||SEPTPD,sample,editor,paketti,test,peak,detection|||PakettiRender
 Menu Entry|||Sample Editor:Paketti:Toggle Frequency Analysis|||Sample Editor|||toggleFrequencyAnalysis|||SEPTFA,sample,editor,paketti,toggle,frequency,analysis|||PakettiMenuConfig
 Menu Entry|||Sample Editor:Paketti:Toggle Loop Range (Selection)|||Sample Editor|||pakettiToggleLoopRangeSelection|||SEPTLRS,sample,editor,paketti,toggle,loop,range,selection|||PakettiMenuConfig
 Menu Entry|||Sample Editor:Paketti:Toggle Sample Selection Info|||Sample Editor|||toggleSampleDetails|||SEPTSSI,sample,editor,paketti,toggle,sample,selection,info|||PakettiMenuConfig
@@ -2098,6 +2156,7 @@ Keybinding|||Global:Paketti:Additive Record Follow Pattern (Dialog)|||Global|||f
 Keybinding|||Global:Paketti:Advanced Subdivision Calculator|||Global|||function() show_subdivision_calculator_dialog() end|||GPASC,global,paketti,advanced,subdivision,calculator|||PakettiMetricModulation
 Keybinding|||Global:Paketti:All Samples Loop Cycler (Backwards)|||Global|||function() Global_Paketti_cycle_loop_mode_all_samples(false) end|||GPASLCB,global,paketti,samples,loop,cycler,backwards|||PakettiSamples
 Keybinding|||Global:Paketti:All Samples Loop Cycler (Forwards)|||Global|||function() Global_Paketti_cycle_loop_mode_all_samples(true) end|||GPASLCF,global,paketti,samples,loop,cycler,forwards|||PakettiSamples
+Keybinding|||Global:Paketti:Analyze Sample BPM (4 beats)|||Global|||function() pakettiTestBPMCalculation() end|||GPASB4B,global,paketti,analyze,sample,beats|||PakettiRender
 Keybinding|||Global:Paketti:Auto Control Disk Browser on Song Load|||Global|||pakettiAutoHideDiskBrowserToggle|||GPACDBOSL,global,paketti,auto,control,disk,browser,song,load|||PakettiForeignSnippets
 Keybinding|||Global:Paketti:Automation Bottom to Center (Exp)|||Global|||automation_bottom_to_center_exp|||GPABTCE,global,paketti,automation,bottom,center|||PakettiAutomation
 Keybinding|||Global:Paketti:Automation Bottom to Center (Lin)|||Global|||automation_bottom_to_center_lin|||GPABTCL,global,paketti,automation,bottom,center|||PakettiAutomation
@@ -2309,6 +2368,7 @@ Keybinding|||Global:Paketti:Enable All Sample FX on All Instruments|||Global|||f
 Keybinding|||Global:Paketti:Enable All Sample FX on Selected Instrument|||Global|||function() sampleFXControls("single", true) end|||GPEASFOSI,global,paketti,enable,sample,selected,instrument|||PakettiRequests
 Keybinding|||Global:Paketti:Enable Looping in All Phrases|||Global|||pakettiEnableAllPhraseLooping|||GPELIAP,global,paketti,enable,looping,phrases|||PakettiForeignSnippets
 Keybinding|||Global:Paketti:Enable Looping in All Phrases Globally|||Global|||pakettiEnableAllPhraseLoopingGlobally|||GPELIAPG,global,paketti,enable,looping,phrases,globally|||PakettiForeignSnippets
+Keybinding|||Global:Paketti:Experimental Sample FX Render|||Global|||function() pakettiExperimentalSampleFXRender() end|||GPESFR,global,paketti,experimental,sample,render|||PakettiRender
 Keybinding|||Global:Paketti:Explode Notes to New Tracks|||Global|||function() explode_notes_to_tracks() end|||GPENTNT,global,paketti,explode,notes,tracks|||PakettiRequests
 Keybinding|||Global:Paketti:Export Akai Program...|||Global|||exportAkaiProgram|||GPEAP,global,paketti,export,akai,program|||PakettiAkaiPrograms
 Keybinding|||Global:Paketti:Export Current Sample as AKP...|||Global|||exportCurrentSampleAsAKP|||GPECSAA,global,paketti,export,current,sample|||PakettiAKAI
@@ -2318,7 +2378,6 @@ Keybinding|||Global:Paketti:Export S3000 Sample...|||Global|||exportS3000Sample|
 Keybinding|||Global:Paketti:Export S900/S950 Sample...|||Global|||exportS900Sample|||GPESSS,global,paketti,export,s900,s950,sample|||PakettiAkaiS900
 Keybinding|||Global:Paketti:Export Samples for Kontakt|||Global|||pakettiKontaktExportSamples|||GPESFK,global,paketti,export,samples,kontakt|||PakettiForeignSnippets
 Keybinding|||Global:Paketti:Export Wavetable|||Global|||paketti_export_wavetable|||GPEW,global,paketti,export,wavetable|||PakettiWTImport
-Keybinding|||Global:Paketti:Export Wavetable|||Global|||paketti_export_wavetable|||GPEW,global,paketti,export,wavetable|||PakettiWTExport
 Keybinding|||Global:Paketti:Export XI (FastTracker II Extended Instrument)|||Global|||function() PakettiXIExport() end|||GPEXFIEI,global,paketti,export,fasttracker,extended,instrument|||PakettiXIExport
 Keybinding|||Global:Paketti:Export as Akai Format...|||Global|||exportCurrentSampleAsAkai|||GPEAAF,global,paketti,export,akai,format|||PakettiAkaiFormats
 Keybinding|||Global:Paketti:Expose/Hide Selected Device Parameters in Mixer|||Global|||function() exposeHideParametersInMixer() end|||GPEHSDPIM,global,paketti,expose,hide,selected,device,parameters,mixer|||PakettiLoaders
@@ -2738,12 +2797,12 @@ Keybinding|||Global:Paketti:Output Routing (Non-Continual, Skip Master, Include 
 Keybinding|||Global:Paketti:PTI Export|||Global|||pti_savesample|||GPPE,global,paketti,export|||PakettiPTILoader
 Keybinding|||Global:Paketti:Paketti Action Selector Dialog...|||Global|||pakettiActionSelectorDialog|||GPPASD,global,paketti,paketti,action,selector,dialog|||PakettiActionSelector
 Keybinding|||Global:Paketti:Paketti Audio Processing Tools Dialog...|||Global|||function() pakettiAudioProcessingToolsDialog() end|||GPPAPTD,global,paketti,paketti,audio,processing,tools,dialog|||PakettiAudioProcessing
-Keybinding|||Global:Paketti:Paketti Autocomplete|||Global|||pakettiAutocompleteToggle|||GPPA,global,paketti,paketti,autocomplete|||PakettiAutocomplete
 Keybinding|||Global:Paketti:Paketti Automation|||Global|||function() initialize_doofer_monitoring() end|||GPPA,global,paketti,paketti,automation|||PakettiAutomation
 Keybinding|||Global:Paketti:Paketti BPM to MS Delay Calculator Dialog...|||Global|||pakettiBPMMSCalculator|||GPPBTMDCD,global,paketti,paketti,delay,calculator,dialog|||PakettiBPMToMS
 Keybinding|||Global:Paketti:Paketti Beat Structure Editor...|||Global|||pakettiBeatStructureEditorDialog|||GPPBSE,global,paketti,paketti,beat,structure,editor|||PakettiSandbox
 Keybinding|||Global:Paketti:Paketti Dynamic View Preferences Dialog 1-4...|||Global|||function() pakettiDynamicViewDialog(1, 4) end|||GPPDVPD14,-4,global,paketti,paketti,dynamic,view,preferences,dialog|||PakettiDynamicViews
 Keybinding|||Global:Paketti:Paketti Dynamic View Preferences Dialog 5-8...|||Global|||function() pakettiDynamicViewDialog(5, 8) end|||GPPDVPD58,-8,global,paketti,paketti,dynamic,view,preferences,dialog|||PakettiDynamicViews
+Keybinding|||Global:Paketti:Paketti Function Search...|||Global|||pakettiAutocompleteToggle|||GPPFS,global,paketti,paketti,function,search|||PakettiAutocomplete
 Keybinding|||Global:Paketti:Paketti Gater Dialog...|||Global|||function()
   if dialog and dialog.visible then
     -- Add cleanup code here before closing
@@ -3311,6 +3370,7 @@ Keybinding|||Global:Paketti:Switch to Automation Dynamic|||Global|||function() s
 Keybinding|||Global:Paketti:TPL Decrease (-1)|||Global|||function() adjust_lpb_bpb(0, -1) end|||GPTD1,-1,global,paketti,decrease|||PakettiPatternEditor
 Keybinding|||Global:Paketti:TPL Increase (+1)|||Global|||function() adjust_lpb_bpb(0, 1) end|||GPTI1,+1,global,paketti,increase|||PakettiPatternEditor
 Keybinding|||Global:Paketti:Test Dynamic MIDI Mapping Detection|||Global|||test_dynamic_mapping_detection|||GPTDMMD,global,paketti,test,dynamic,midi,mapping,detection|||PakettiMIDIMappings
+Keybinding|||Global:Paketti:Test Peak Detection|||Global|||function() pakettiTestPeakDetection() end|||GPTPD,global,paketti,test,peak,detection|||PakettiRender
 Keybinding|||Global:Paketti:Timestretch Dialog...|||Global|||pakettiTimestretchDialog|||GPTD,global,paketti,timestretch,dialog|||PakettiStretch
 Keybinding|||Global:Paketti:Toggle Additive Record Follow Pattern|||Global|||function() pakettiAdditiveRecordFollowToggle() end|||GPTARFP,global,paketti,toggle,additive,record,follow,pattern|||PakettiExperimental_Verify
 Keybinding|||Global:Paketti:Toggle Audition Current Line on Pattern Row Change|||Global|||function() PakettiToggleAuditionCurrentLineOnRowChange() end|||GPTACLOPRC,global,paketti,toggle,audition,current,line,pattern,change|||PakettiPatternEditor
@@ -3356,6 +3416,7 @@ Keybinding|||Global:Paketti:Toggle Solo Tracks|||Global|||PakettiToggleSoloTrack
 Keybinding|||Global:Paketti:TouchOSC Pattern Editor|||Global|||function() renoise.app().window.active_middle_frame=renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR end|||GPTPE,global,paketti,touchosc,pattern,editor|||PakettiRecorder
 Keybinding|||Global:Paketti:TouchOSC Sample Editor|||Global|||function() renoise.app().window.active_middle_frame=renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR end|||GPTSE,global,paketti,touchosc,sample,editor|||PakettiRecorder
 Keybinding|||Global:Paketti:TouchOSC Sample Recorder and Record|||Global|||function() handle_sample_recording() end|||GPTSRAR,global,paketti,touchosc,sample,recorder,record|||PakettiRecorder
+Keybinding|||Global:Paketti:Transpose Blocks Dialog...|||Global|||show_transpose_block_dialog|||GPTBD,global,paketti,transpose,blocks,dialog|||PakettiTransposeBlock
 Keybinding|||Global:Paketti:Trim Selected Sample to Loop Points|||Global|||pakettiTrimSelectedSampleToLoop|||GPTSSTLP,global,paketti,trim,selected,sample,loop,points|||PakettiForeignSnippets
 Keybinding|||Global:Paketti:Trim Selected Sample to Selection|||Global|||pakettiTrimSelectedSampleToSelection|||GPTSSTS,global,paketti,trim,selected,sample,selection|||PakettiForeignSnippets
 Keybinding|||Global:Paketti:UIOWA Sample Importer|||Global|||pakettiUIowaImporter|||GPUSI,global,paketti,uiowa,sample,importer|||PakettiForeignSnippets
@@ -3562,13 +3623,14 @@ Keybinding|||Mixer:Paketti:Move DSPs to Next Track|||Mixer|||function() move_dsp
 Keybinding|||Mixer:Paketti:Move DSPs to Previous Track|||Mixer|||function() move_dsps_to_adjacent_track(-1) end|||MPMDTPT,mixer,paketti,move,dsps,previous,track|||PakettiPatternEditor
 Keybinding|||Mixer:Paketti:Move Selected DSP to Next Track|||Mixer|||function() move_selected_dsp_to_adjacent_track(1) end|||MPMSDTNT,mixer,paketti,move,selected,next,track|||PakettiPatternEditor
 Keybinding|||Mixer:Paketti:Move Selected DSP to Previous Track|||Mixer|||function() move_selected_dsp_to_adjacent_track(-1) end|||MPMSDTPT,mixer,paketti,move,selected,previous,track|||PakettiPatternEditor
-Keybinding|||Mixer:Paketti:Paketti Autocomplete|||Mixer|||pakettiAutocompleteToggle|||MPPA,mixer,paketti,paketti,autocomplete|||PakettiAutocomplete
+Keybinding|||Mixer:Paketti:Paketti Function Search...|||Mixer|||pakettiAutocompleteToggle|||MPPFS,mixer,paketti,paketti,function,search|||PakettiAutocomplete
 Keybinding|||Mixer:Paketti:Paketti Pattern Doubler|||Mixer|||pakettiPatternDoubler|||MPPPD,mixer,paketti,paketti,pattern,doubler|||PakettiPatternEditor
 Keybinding|||Mixer:Paketti:Paketti Pattern Halver|||Mixer|||pakettiPatternHalver|||MPPPH,mixer,paketti,paketti,pattern,halver|||PakettiPatternEditor
 Keybinding|||Mixer:Paketti:Paketti Track Renamer Dialog...|||Mixer|||pakettiTrackRenamerDialog|||MPPTRD,mixer,paketti,paketti,track,renamer,dialog|||PakettiPatternEditor
 Keybinding|||Mixer:Paketti:Show Automation|||Mixer|||function() renoise.app().window.active_lower_frame=renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION end|||MPSA,mixer,paketti,show,automation|||PakettiAutomation
 Keybinding|||Mixer:Paketti:Switch to Automation|||Mixer|||function() showAutomation() end|||MPSTA,mixer,paketti,switch,automation|||PakettiAutomation
 Keybinding|||Mixer:Paketti:To Pattern Editor|||Mixer|||function() MixerToF2() end|||MPTPE,mixer,paketti,pattern,editor|||PakettiImpulseTracker
+Keybinding|||Mixer:Paketti:Transpose Blocks Dialog...|||Mixer|||show_transpose_block_dialog|||MPTBD,mixer,paketti,transpose,blocks,dialog|||PakettiTransposeBlock
 Keybinding|||Pattern Editor:Navigation:Paketti Jump to Column (Next) (Note/FX)|||Navigation|||function() cycle_column("next") end|||PENPJTCNNF,pattern,editor,navigation,paketti,jump,column,next,note|||PakettiPatternEditor
 Keybinding|||Pattern Editor:Navigation:Paketti Jump to Column (Previous) (Note/FX)|||Navigation|||function() cycle_column("prev") end|||PENPJTCPNF,pattern,editor,navigation,paketti,jump,column,previous,note|||PakettiPatternEditor
 Keybinding|||Pattern Editor:Navigation:Paketti Switch between Note/FX columns|||Navigation|||toggle_column_type|||PENPSBNFC,pattern,editor,navigation,paketti,switch,between,note,columns|||PakettiPatternEditor
@@ -3803,8 +3865,8 @@ globalChangeVisibleColumnState("panning",false) globalChangeVisibleColumnState("
 Keybinding|||Pattern Editor:Paketti:Hide Current and Select Previous Column|||Pattern Editor|||function() ExposeAndSelectColumn(-1) end|||PEPHCASPC,pattern,editor,paketti,hide,current,select,previous,column|||PakettiPatternEditor
 Keybinding|||Pattern Editor:Paketti:Humanize Selection...|||Pattern Editor|||showHumanizeDialog|||PEPHS,pattern,editor,paketti,humanize,selection|||PakettiRequests
 Keybinding|||Pattern Editor:Paketti:Impulse Tracker ALT-D Double Select|||Pattern Editor|||DoubleSelect|||PEPITADDS,pattern,editor,paketti,impulse,tracker,double,select|||PakettiImpulseTracker
-Keybinding|||Pattern Editor:Paketti:Impulse Tracker ALT-D Double Select Column|||Pattern Editor|||function() PakettiImpulseTrackerDoubleSelectColumn() end|||PEPITADDSC,pattern,editor,paketti,impulse,tracker,double,select,column|||PakettiImpulseTracker
 Keybinding|||Pattern Editor:Paketti:Impulse Tracker ALT-D Double Select Column|||Pattern Editor|||function() DoubleSelectColumnOnly() end|||PEPITADDSC,pattern,editor,paketti,impulse,tracker,double,select,column|||PakettiImpulseTracker
+Keybinding|||Pattern Editor:Paketti:Impulse Tracker ALT-D Double Select Column|||Pattern Editor|||function() PakettiImpulseTrackerDoubleSelectColumn() end|||PEPITADDSC,pattern,editor,paketti,impulse,tracker,double,select,column|||PakettiImpulseTracker
 Keybinding|||Pattern Editor:Paketti:Impulse Tracker ALT-D Double Select Pattern|||Pattern Editor|||function() DoubleSelectPattern() end|||PEPITADDSP,pattern,editor,paketti,impulse,tracker,double,select,pattern|||PakettiImpulseTracker
 Keybinding|||Pattern Editor:Paketti:Impulse Tracker ALT-D Double Select W/ Automation|||Pattern Editor|||function() DoubleSelectAutomation() end|||PEPITADDSWA,pattern,editor,paketti,impulse,tracker,double,select,automation|||PakettiImpulseTracker
 Keybinding|||Pattern Editor:Paketti:Impulse Tracker ALT-F Expand Selection|||Pattern Editor|||function() ExpandSelection() end|||PEPITAFES,pattern,editor,paketti,impulse,tracker,expand,selection|||PakettiImpulseTracker
@@ -3883,7 +3945,7 @@ Keybinding|||Pattern Editor:Paketti:Oldschool Slice Pitch Workflow (Copied)|||Pa
 Keybinding|||Pattern Editor:Paketti:Oldschool Slice Pitch Workflow (PingPong)|||Pattern Editor|||function() pakettiOldschoolSlicePitchWorkflow("pingpong") end|||PEPOSPWP,pattern,editor,paketti,oldschool,slice,pitch,workflow,pingpong|||PakettiOldschoolSlicePitch
 Keybinding|||Pattern Editor:Paketti:Oldschool Slice Pitch Workflow (Reversed)|||Pattern Editor|||function() pakettiOldschoolSlicePitchWorkflow("reversed") end|||PEPOSPWR,pattern,editor,paketti,oldschool,slice,pitch,workflow,reversed|||PakettiOldschoolSlicePitch
 Keybinding|||Pattern Editor:Paketti:Open Player Pro Tools Dialog...|||Pattern Editor|||pakettiPlayerProShowMainDialog|||PEPOPPTD,pattern,editor,paketti,open,player,tools,dialog|||PakettiPlayerProSuite
-Keybinding|||Pattern Editor:Paketti:Paketti Autocomplete|||Pattern Editor|||pakettiAutocompleteToggle|||PEPPA,pattern,editor,paketti,paketti,autocomplete|||PakettiAutocomplete
+Keybinding|||Pattern Editor:Paketti:Paketti Function Search...|||Pattern Editor|||pakettiAutocompleteToggle|||PEPPFS,pattern,editor,paketti,paketti,function,search|||PakettiAutocomplete
 Keybinding|||Pattern Editor:Paketti:Paketti Pattern Doubler|||Pattern Editor|||pakettiPatternDoubler|||PEPPPD,pattern,editor,paketti,paketti,pattern,doubler|||PakettiPatternEditor
 Keybinding|||Pattern Editor:Paketti:Paketti Pattern Halver|||Pattern Editor|||pakettiPatternHalver|||PEPPPH,pattern,editor,paketti,paketti,pattern,halver|||PakettiPatternEditor
 Keybinding|||Pattern Editor:Paketti:Paketti Track Renamer Dialog...|||Pattern Editor|||pakettiTrackRenamerDialog|||PEPPTRD,pattern,editor,paketti,paketti,track,renamer,dialog|||PakettiPatternEditor
@@ -4050,6 +4112,7 @@ Keybinding|||Pattern Editor:Paketti:Transpose +1 (Selection/Track)|||Pattern Edi
 Keybinding|||Pattern Editor:Paketti:Transpose +1 Note Column (Selection/Note Column)|||Pattern Editor|||function() PakettiTransposeNoteColumn(1) end|||PEPT1NCSNC,+1,pattern,editor,paketti,transpose,note,column,selection,note,column|||PakettiControls
 Keybinding|||Pattern Editor:Paketti:Transpose -1 (Selection/Track)|||Pattern Editor|||function() PakettiTranspose(-1) end|||PEPT1ST,-1,pattern,editor,paketti,transpose,selection,track|||PakettiControls
 Keybinding|||Pattern Editor:Paketti:Transpose -1 Note Column (Selection/Note Column)|||Pattern Editor|||function() PakettiTransposeNoteColumn(-1) end|||PEPT1NCSNC,-1,pattern,editor,paketti,transpose,note,column,selection,note,column|||PakettiControls
+Keybinding|||Pattern Editor:Paketti:Transpose Blocks Dialog...|||Pattern Editor|||show_transpose_block_dialog|||PEPTBD,pattern,editor,paketti,transpose,blocks,dialog|||PakettiTransposeBlock
 Keybinding|||Pattern Editor:Paketti:Transpose Octave Down (Selection/Track)|||Pattern Editor|||function() PakettiTranspose(-12) end|||PEPTODST,pattern,editor,paketti,transpose,octave,down,selection,track|||PakettiControls
 Keybinding|||Pattern Editor:Paketti:Transpose Octave Down Note Column (Selection/Note Column)|||Pattern Editor|||function() PakettiTransposeNoteColumn(-12) end|||PEPTODNCSNC,pattern,editor,paketti,transpose,octave,down,note,column,selection,note,column|||PakettiControls
 Keybinding|||Pattern Editor:Paketti:Transpose Octave Up (Selection/Track)|||Pattern Editor|||function() PakettiTranspose(12) end|||PEPTOUST,pattern,editor,paketti,transpose,octave,selection,track|||PakettiControls
@@ -4185,6 +4248,23 @@ Keybinding|||Phrase Editor:Paketti:Toggle Note Off on All Tracks on Current Row|
 Keybinding|||Phrase Editor:Paketti:Toggle Phrase Follow Pattern Playback Hack|||Phrase Editor|||observe_phrase_playhead|||PEPTPFPPH,phrase,editor,paketti,toggle,phrase,follow,pattern,playback,hack|||PakettiPhraseEditor
 Keybinding|||Phrase Editor:Paketti:Toggle Selected Phrase Looping|||Phrase Editor|||pakettiToggleSelectedPhraseLooping|||PEPTSPL,phrase,editor,paketti,toggle,selected,phrase,looping|||PakettiForeignSnippets
 Keybinding|||Sample Editor:Paketti:15 Frame Fade In & Fade Out|||Sample Editor|||function() apply_fade_in_out() end|||SEP1FFIFO,sample,editor,paketti,frame,fade,fade|||PakettiAudioProcessing
+Keybinding|||Sample Editor:Paketti:Analyze Sample BPM (1 beat)|||Sample Editor|||function() 
+    local bpm = pakettiAnalyzeSampleBPM(1)
+    if bpm then renoise.app():show_status("Sample BPM (1 beat): " .. string.format("%.1f", bpm)) end
+end|||SEPASB1B,sample,editor,paketti,analyze,sample,beat|||PakettiRender
+Keybinding|||Sample Editor:Paketti:Analyze Sample BPM (16 beats)|||Sample Editor|||function() 
+    local bpm = pakettiAnalyzeSampleBPM(16)
+    if bpm then renoise.app():show_status("Sample BPM (16 beats): " .. string.format("%.1f", bpm)) end
+end|||SEPASB1B,sample,editor,paketti,analyze,sample,beats|||PakettiRender
+Keybinding|||Sample Editor:Paketti:Analyze Sample BPM (2 beats)|||Sample Editor|||function() 
+    local bpm = pakettiAnalyzeSampleBPM(2)
+    if bpm then renoise.app():show_status("Sample BPM (2 beats): " .. string.format("%.1f", bpm)) end
+end|||SEPASB2B,sample,editor,paketti,analyze,sample,beats|||PakettiRender
+Keybinding|||Sample Editor:Paketti:Analyze Sample BPM (4 beats)|||Sample Editor|||function() pakettiTestBPMCalculation() end|||SEPASB4B,sample,editor,paketti,analyze,sample,beats|||PakettiRender
+Keybinding|||Sample Editor:Paketti:Analyze Sample BPM (8 beats)|||Sample Editor|||function() 
+    local bpm = pakettiAnalyzeSampleBPM(8)
+    if bpm then renoise.app():show_status("Sample BPM (8 beats): " .. string.format("%.1f", bpm)) end
+end|||SEPASB8B,sample,editor,paketti,analyze,sample,beats|||PakettiRender
 Keybinding|||Sample Editor:Paketti:Audio Diff|||Sample Editor|||function() create_audio_diff_sample() end|||SEPAD,sample,editor,paketti,audio,diff|||PakettiAudioProcessing
 Keybinding|||Sample Editor:Paketti:BPM Calculation Debug (Comprehensive)|||Sample Editor|||comprehensive_bpm_calculation_debug|||SEPBCDC,sample,editor,paketti,calculation,debug,comprehensive|||PakettiPitchControl
 Keybinding|||Sample Editor:Paketti:Clip bottom of waveform|||Sample Editor|||function() modulate_samples() end|||SEPCBOW,sample,editor,paketti,clip,bottom,waveform|||PakettiAudioProcessing
@@ -4220,6 +4300,7 @@ Keybinding|||Sample Editor:Paketti:Digitakt Quick Export Stereo|||Sample Editor|
 Keybinding|||Sample Editor:Paketti:Duplicate Sample Range, Mute Original|||Sample Editor|||duplicate_sample_range_and_mute_original|||SEPDSRMO,sample,editor,paketti,duplicate,sample,range,mute,original|||PakettiRequests
 Keybinding|||Sample Editor:Paketti:Duplicate, Maximize, 16bit, and Save as FLAC|||Sample Editor|||function() DuplicateMaximizeConvertAndSave("flac") end|||SEPDM1ASAF,sample,editor,paketti,duplicate,maximize,16bit,save,flac|||PakettiRequests
 Keybinding|||Sample Editor:Paketti:Duplicate, Maximize, 16bit, and Save as WAV|||Sample Editor|||function() DuplicateMaximizeConvertAndSave("wav") end|||SEPDM1ASAW,sample,editor,paketti,duplicate,maximize,16bit,save|||PakettiRequests
+Keybinding|||Sample Editor:Paketti:Experimental Sample FX Render|||Sample Editor|||function() pakettiExperimentalSampleFXRender() end|||SEPESFR,sample,editor,paketti,experimental,sample,render|||PakettiRender
 Keybinding|||Sample Editor:Paketti:Export OctaCycle to Octatrack|||Sample Editor|||function() PakettiOctaCycleExport() end|||SEPEOTO,sample,editor,paketti,export,octacycle,octatrack|||PakettiOctaCycle
 Keybinding|||Sample Editor:Paketti:Export to Octatrack (.WAV+.ot)|||Sample Editor|||function() PakettiOTExport() end|||SEPETOWO,sample,editor,paketti,export,octatrack|||PakettiOTExport
 Keybinding|||Sample Editor:Paketti:Export to Octatrack (.ot)|||Sample Editor|||function() PakettiOTExportOtOnly() end|||SEPETOO,sample,editor,paketti,export,octatrack|||PakettiOTExport
@@ -4238,6 +4319,17 @@ Keybinding|||Sample Editor:Paketti:Flip Sample by 1/4|||Sample Editor|||function
 Keybinding|||Sample Editor:Paketti:Flip Sample by 1/8|||Sample Editor|||function() PakettiFlipSample(1/8) end|||SEPFSB18,sample,editor,paketti,flip,sample|||PakettiSamples
 Keybinding|||Sample Editor:Paketti:Generate OctaCycle for Octatrack|||Sample Editor|||function() PakettiOctaCycle() end|||SEPGOFO,sample,editor,paketti,generate,octacycle,octatrack|||PakettiOctaCycle
 Keybinding|||Sample Editor:Paketti:Import Octatrack (.ot)|||Sample Editor|||function() PakettiOTImport() end|||SEPIOO,sample,editor,paketti,import,octatrack|||PakettiOTExport
+Keybinding|||Sample Editor:Paketti:Intelligent BPM Detection|||Sample Editor|||function() 
+    local song = renoise.song()
+    if not song.selected_sample or not song.selected_sample.sample_buffer or not song.selected_sample.sample_buffer.has_sample_data then
+        renoise.app():show_status("No sample selected or sample has no data")
+        return
+    end
+    
+    local sample_buffer = song.selected_sample.sample_buffer
+    local detected_bpm, beat_count = pakettiDetectSampleBPM(sample_buffer.number_of_frames, sample_buffer.sample_rate)
+    renoise.app():show_status(string.format("Intelligent Detection: %.1f BPM (%d beats)", detected_bpm, beat_count))
+end|||SEPIBD,sample,editor,paketti,intelligent,detection|||PakettiRender
 Keybinding|||Sample Editor:Paketti:Invert Left Channel|||Sample Editor|||function() PakettiSampleInvertLeftChannel() end|||SEPILC,sample,editor,paketti,invert,left,channel|||PakettiAudioProcessing
 Keybinding|||Sample Editor:Paketti:Invert Right Channel|||Sample Editor|||function() PakettiSampleInvertRightChannel() end|||SEPIRC,sample,editor,paketti,invert,right,channel|||PakettiAudioProcessing
 Keybinding|||Sample Editor:Paketti:Invert Right, Sum Mono|||Sample Editor|||function() invert_right_sum_mono() end|||SEPIRSM,sample,editor,paketti,invert,right,mono|||PakettiAudioProcessing
@@ -4334,6 +4426,7 @@ Keybinding|||Sample Editor:Paketti:Slices to Pattern (from first row)|||Sample E
 Keybinding|||Sample Editor:Paketti:Slices to Phrase (phrase only)|||Sample Editor|||function() pakettiSlicesToPhrase(false) end|||SEPSTPPO,sample,editor,paketti,slices,phrase,phrase,only|||PakettiOldschoolSlicePitch
 Keybinding|||Sample Editor:Paketti:Slices to Phrase (with trigger)|||Sample Editor|||function() pakettiSlicesToPhrase(true) end|||SEPSTPWT,sample,editor,paketti,slices,phrase,with,trigger|||PakettiOldschoolSlicePitch
 Keybinding|||Sample Editor:Paketti:Snap Loop To Nearest Row|||Sample Editor|||snap_loop_to_rows|||SEPSLTNR,sample,editor,paketti,snap,loop,nearest|||PakettiSamples
+Keybinding|||Sample Editor:Paketti:Test Peak Detection|||Sample Editor|||function() pakettiTestPeakDetection() end|||SEPTPD,sample,editor,paketti,test,peak,detection|||PakettiRender
 Keybinding|||Sample Editor:Paketti:Toggle Frequency Analysis|||Sample Editor|||toggleFrequencyAnalysis|||SEPTFA,sample,editor,paketti,toggle,frequency,analysis|||PakettiSamples
 Keybinding|||Sample Editor:Paketti:Toggle Loop Range (Selection)|||Sample Editor|||pakettiToggleLoopRangeSelection|||SEPTLRS,sample,editor,paketti,toggle,loop,range,selection|||PakettiSamples
 Keybinding|||Sample Editor:Paketti:Toggle Mono Device|||Sample Editor|||PakettiToggleMono|||SEPTMD,sample,editor,paketti,toggle,mono,device|||PakettiSamples
@@ -5197,9 +5290,9 @@ MIDI Mapping|||Paketti:Octave Slammer (-2 +2 octaves)|||Paketti|||function(messa
 MIDI Mapping|||Paketti:Octave Slammer (-3 +3 octaves)|||Paketti|||function(message) if message:is_trigger() then PakettiOctaveSlammer3() end end|||POS33O,-3,+3,paketti,octave,slammer,octaves|||PakettiSamples
 MIDI Mapping|||Paketti:Open Paketti Init Phrase Dialog...|||Paketti|||function(message) if message:is_trigger() then pakettiPhraseSettings() end end|||POPIPD,paketti,open,paketti,init,phrase,dialog|||PakettiPhraseEditor
 MIDI Mapping|||Paketti:Open VolDelayPan Slider Dialog...|||Paketti|||function(message)  if message:is_trigger() then pakettiVolDelayPanSliderDialog() end end|||POVSD,paketti,open,voldelaypan,slider,dialog|||PakettiRequests
-MIDI Mapping|||Paketti:Paketti Autocomplete|||Paketti|||function(message) if message:is_trigger() then pakettiAutocompleteToggle() end end|||PPA,paketti,paketti,autocomplete|||PakettiAutocomplete
 MIDI Mapping|||Paketti:Paketti Dynamic View Preferences Dialog 1-4...|||Paketti|||function() pakettiDynamicViewDialog(1, 4) end|||PPDVPD14,-4,paketti,paketti,dynamic,view,preferences,dialog|||PakettiDynamicViews
 MIDI Mapping|||Paketti:Paketti Dynamic View Preferences Dialog 5-8...|||Paketti|||function() pakettiDynamicViewDialog(5, 8) end|||PPDVPD58,-8,paketti,paketti,dynamic,view,preferences,dialog|||PakettiDynamicViews
+MIDI Mapping|||Paketti:Paketti Function Search...|||Paketti|||function(message) if message:is_trigger() then pakettiAutocompleteToggle() end end|||PPFS,paketti,paketti,function,search|||PakettiAutocomplete
 MIDI Mapping|||Paketti:Paketti Gater Dialog...|||Paketti|||function(message)
   if message:is_trigger() then
   if dialog and dialog.visible then

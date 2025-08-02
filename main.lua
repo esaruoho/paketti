@@ -196,6 +196,40 @@ function my_keyhandler_func(dialog, key)
   end
 end
 
+-- Helper function to print which sub-column is currently selected
+function whichSubcolumn()
+  local song = renoise.song()
+  local sub_column_type = song.selected_sub_column_type
+  local sub_column_name = "Unknown"
+  
+  if sub_column_type == renoise.Song.SUB_COLUMN_NOTE then
+    sub_column_name = "Note"
+  elseif sub_column_type == renoise.Song.SUB_COLUMN_INSTRUMENT then
+    sub_column_name = "Instrument"
+  elseif sub_column_type == renoise.Song.SUB_COLUMN_VOLUME then
+    sub_column_name = "Volume"
+  elseif sub_column_type == renoise.Song.SUB_COLUMN_PANNING then
+    sub_column_name = "Panning"
+  elseif sub_column_type == renoise.Song.SUB_COLUMN_DELAY then
+    sub_column_name = "Delay"
+  elseif sub_column_type == renoise.Song.SUB_COLUMN_SAMPLE_EFFECT_NUMBER then
+    sub_column_name = "Sample Effect Number"
+  elseif sub_column_type == renoise.Song.SUB_COLUMN_SAMPLE_EFFECT_AMOUNT then
+    sub_column_name = "Sample Effect Amount"
+  elseif sub_column_type == renoise.Song.SUB_COLUMN_EFFECT_NUMBER then
+    sub_column_name = "Effect Number"
+  elseif sub_column_type == renoise.Song.SUB_COLUMN_EFFECT_AMOUNT then
+    sub_column_name = "Effect Amount"
+  end
+  
+  print("Current sub-column: " .. sub_column_name .. " (type: " .. tostring(sub_column_type) .. ")")
+  return sub_column_type, sub_column_name
+end
+
+-- Add menu entry and keybinding for whichSubcolumn function
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Which Sub-Column?", invoke=whichSubcolumn}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Which Sub-Column?", invoke=whichSubcolumn}
+
 ------------------------------------------------
 local themes_path = renoise.tool().bundle_path .. "Themes/"
 local themes = os.filenames(themes_path, "*.xrnc")
@@ -641,6 +675,7 @@ timed_require("PakettiImport")
 timed_require("PakettiClearance")
 timed_require("PakettiRoutings")
 timed_require("PakettiViews")
+timed_require("PakettiTransposeBlock")
 
 local PolyendYes = false
 PolyendYes = true

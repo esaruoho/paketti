@@ -3247,6 +3247,146 @@ function PakettiReplicateNoteColumnAtCursor(transpose, row_option)
   end
 end
 
+-- Helper function for subcolumn replication logic
+local function replicate_subcolumn_content(subcolumn_type, is_note_column, is_effect_column, 
+                                          selected_note_column_index, selected_effect_column_index, 
+                                          source_line, dest_line)
+  if subcolumn_type == renoise.Song.SUB_COLUMN_NOTE and is_note_column then
+    local source_note = source_line.note_columns[selected_note_column_index]
+    local dest_note = dest_line.note_columns[selected_note_column_index]
+    if source_note and dest_note then
+      dest_note.note_value = source_note.note_value
+    end
+    
+  elseif subcolumn_type == renoise.Song.SUB_COLUMN_INSTRUMENT and is_note_column then
+    local source_note = source_line.note_columns[selected_note_column_index]
+    local dest_note = dest_line.note_columns[selected_note_column_index]
+    if source_note and dest_note then
+      dest_note.instrument_value = source_note.instrument_value
+    end
+    
+  elseif subcolumn_type == renoise.Song.SUB_COLUMN_VOLUME and is_note_column then
+    local source_note = source_line.note_columns[selected_note_column_index]
+    local dest_note = dest_line.note_columns[selected_note_column_index]
+    if source_note and dest_note then
+      dest_note.volume_value = source_note.volume_value
+    end
+    
+  elseif subcolumn_type == renoise.Song.SUB_COLUMN_PANNING and is_note_column then
+    local source_note = source_line.note_columns[selected_note_column_index]
+    local dest_note = dest_line.note_columns[selected_note_column_index]
+    if source_note and dest_note then
+      dest_note.panning_value = source_note.panning_value
+    end
+    
+  elseif subcolumn_type == renoise.Song.SUB_COLUMN_DELAY and is_note_column then
+    local source_note = source_line.note_columns[selected_note_column_index]
+    local dest_note = dest_line.note_columns[selected_note_column_index]
+    if source_note and dest_note then
+      dest_note.delay_value = source_note.delay_value
+    end
+    
+  elseif subcolumn_type == renoise.Song.SUB_COLUMN_SAMPLE_EFFECT_NUMBER and is_note_column then
+    local source_note = source_line.note_columns[selected_note_column_index]
+    local dest_note = dest_line.note_columns[selected_note_column_index]
+    if source_note and dest_note then
+      dest_note.effect_number_value = source_note.effect_number_value
+    end
+    
+  elseif subcolumn_type == renoise.Song.SUB_COLUMN_SAMPLE_EFFECT_AMOUNT and is_note_column then
+    local source_note = source_line.note_columns[selected_note_column_index]
+    local dest_note = dest_line.note_columns[selected_note_column_index]
+    if source_note and dest_note then
+      dest_note.effect_amount_value = source_note.effect_amount_value
+    end
+    
+  elseif subcolumn_type == renoise.Song.SUB_COLUMN_EFFECT_NUMBER and is_effect_column then
+    local source_fx = source_line.effect_columns[selected_effect_column_index]
+    local dest_fx = dest_line.effect_columns[selected_effect_column_index]
+    if source_fx and dest_fx then
+      dest_fx.number_value = source_fx.number_value
+    end
+    
+  elseif subcolumn_type == renoise.Song.SUB_COLUMN_EFFECT_AMOUNT and is_effect_column then
+    local source_fx = source_line.effect_columns[selected_effect_column_index]
+    local dest_fx = dest_line.effect_columns[selected_effect_column_index]
+    if source_fx and dest_fx then
+      dest_fx.amount_value = source_fx.amount_value
+    end
+  end
+end
+
+-- Function to replicate the currently selected subcolumn
+function PakettiReplicateSelectedSubcolumn(row_option)
+  local song = renoise.song()
+  local pattern = song.selected_pattern
+  local cursor_row = song.selected_line_index
+  local pattern_length = pattern.number_of_lines
+  local selected_track_index = song.selected_track_index
+  local selected_note_column_index = song.selected_note_column_index
+  local selected_effect_column_index = song.selected_effect_column_index
+  
+  -- Get current subcolumn type
+  local subcolumn_type, subcolumn_name = whichSubcolumn()
+  
+  -- Determine which column we're working with
+  local is_note_column = (selected_note_column_index > 0)
+  local is_effect_column = (selected_effect_column_index > 0)
+  
+  if not is_note_column and not is_effect_column then
+    renoise.app():show_status("No valid column selected.")
+    return
+  end
+  
+  -- Check if there is content to replicate based on row_option
+  if (cursor_row == pattern_length and row_option == "above_and_current") then
+    renoise.app():show_status("No rows to replicate.")
+    return
+  end
+  if (cursor_row == 1 and row_option == "above_current") then
+    row_option = "above_and_current"
+  end
+
+  -- Determine the repeat_length and starting row based on row_option
+  local repeat_length, start_row
+  if row_option == "above_current" then
+    if cursor_row == 1 then
+      renoise.app():show_status("You are on the first row, nothing to replicate.")
+      return
+    end
+    repeat_length = cursor_row - 1
+    start_row = cursor_row
+  elseif row_option == "above_and_current" then
+    repeat_length = cursor_row
+    start_row = cursor_row + 1
+    if cursor_row == pattern_length then
+      renoise.app():show_status("You are on the last row, nothing to replicate.")
+      return
+    end
+  else
+    renoise.app():show_status("Invalid row option: " .. tostring(row_option))
+    return
+  end
+
+  if repeat_length == 0 then
+    renoise.app():show_status("No rows to replicate.")
+    return
+  end
+  
+  for row = start_row, pattern_length do
+    local source_row = ((row - start_row) % repeat_length) + 1
+    local source_line = pattern:track(selected_track_index):line(source_row)
+    local dest_line = pattern:track(selected_track_index):line(row)
+    
+    replicate_subcolumn_content(subcolumn_type, is_note_column, is_effect_column,
+                               selected_note_column_index, selected_effect_column_index,
+                               source_line, dest_line)
+  end
+
+  local status_suffix = (row_option == "above_current") and " (above current)" or " (above + current)"
+  renoise.app():show_status("Replicated " .. subcolumn_name .. " subcolumn" .. status_suffix)
+end
+
 -- Helper function for column replication
 local function create_column_replicate_function(transpose, row_option)
   return function()
@@ -3288,6 +3428,31 @@ for _, row_opt in ipairs(row_options) do
     end}
   end
 end
+
+-- Menu entries, keybindings, and MIDI mappings for subcolumn replication
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Replicate:Replicate Selected Subcolumn Above Current Row", invoke=function()
+  PakettiReplicateSelectedSubcolumn("above_current")
+end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Replicate Selected Subcolumn Above Current Row", invoke=function()
+  PakettiReplicateSelectedSubcolumn("above_current")
+end}
+renoise.tool():add_midi_mapping{name="Paketti:Replicate Selected Subcolumn Above Current Row", invoke=function(message)
+  if message:is_trigger() then
+    PakettiReplicateSelectedSubcolumn("above_current")
+  end
+end}
+
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Replicate:Replicate Selected Subcolumn Above + Current", invoke=function()
+  PakettiReplicateSelectedSubcolumn("above_and_current")
+end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Replicate Selected Subcolumn Above + Current", invoke=function()
+  PakettiReplicateSelectedSubcolumn("above_and_current")
+end}
+renoise.tool():add_midi_mapping{name="Paketti:Replicate Selected Subcolumn Above + Current", invoke=function(message)
+  if message:is_trigger() then
+    PakettiReplicateSelectedSubcolumn("above_and_current")
+  end
+end}
 -------
 -------
 -- Main function to replicate content

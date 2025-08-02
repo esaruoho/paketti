@@ -1,13 +1,288 @@
-Debug: Total Paketti keybindings found - 6136
-0001:Global:Paketti: ∿ Custom LFO Envelope Scale FLIP: <Shortcut not Assigned>
-0002:Global:Paketti: ∿ Flip Automation Selection Horizontally: <Shortcut not Assigned>
-0003:Global:Paketti: ∿ Flip Automation Selection Vertically: <Shortcut not Assigned>
-0004:Global:Paketti: ∿ Flip Devices 1&2 On/Off: <Shortcut not Assigned>
-0005:Global:Paketti: ∿ Flip Gainers A/B: <Shortcut not Assigned>
-0006:Global:Paketti: ∿ Record & Follow Flip: <Shortcut not Assigned>
-0007:Sample Editor:Paketti: ∿ Flip Sample Buffer Selection Back: Option + Left
-0008:Sample Editor:Paketti: ∿ Flip Sample Buffer Selection Forward: Option + Right
-0009:Sample Editor:Paketti: ∿ Flip Sample by 1/16: <Shortcut not Assigned>
-0010:Sample Editor:Paketti: ∿ Flip Sample by 1/2: <Shortcut not Assigned>
-0011:Sample Editor:Paketti: ∿ Flip Sample by 1/4: <Shortcut not Assigned>
-0012:Sample Editor:Paketti: ∿ Flip Sample by 1/8: <Shortcut not Assigned>
+Debug: Total Paketti keybindings found - 6143
+0001:Automation:Paketti: ∿ Impulse Tracker ALT-D Double Select W/ Automation: Command + D
+0002:Global:Paketti: ∿ Add Gainer A to Selected Track: Option + O
+0003:Global:Paketti: ∿ Add Gainer B to Selected Track: Option + L
+0004:Global:Paketti: ∿ BPM Decrease (-0.1): Shift + RBracket
+0005:Global:Paketti: ∿ BPM Decrease (-0.5): Shift + Control + Backslash
+0006:Global:Paketti: ∿ BPM Decrease (-1): Backslash
+0007:Global:Paketti: ∿ BPM Increase (+0.1): Command + RBracket
+0008:Global:Paketti: ∿ BPM Increase (+0.5): Control + Backslash
+0009:Global:Paketti: ∿ BPM Increase (+1): Shift + Backslash
+0010:Global:Paketti: ∿ Capture Nearest Instrument and Octave (jump): Return
+0011:Global:Paketti: ∿ Clean Render&Save Selected Track/Group (.WAV): Shift + Control + R
+0012:Global:Paketti: ∿ Clear All TrackDSPs from Current Track: Shift + Option + T
+0013:Global:Paketti: ∿ Copy Above Effect Column: Command + Backslash
+0014:Global:Paketti: ∿ Copy Above Effect Column + Decrease Value: Shift + Option + Backslash
+0015:Global:Paketti: ∿ Copy Above Effect Column + Increase Value: Option + Backslash
+0016:Global:Paketti: ∿ Create New Instrument & Loop from Selection: Option + Command + Right
+0017:Global:Paketti: ∿ Crossfade Loop: Shift + Command + C
+0018:Global:Paketti: ∿ Cycle Paketti Dynamic View 01: F2
+0019:Global:Paketti: ∿ Cycle Paketti Dynamic View 02: F3
+0020:Global:Paketti: ∿ Cycle Paketti Dynamic View 03: F4
+0021:Global:Paketti: ∿ Cycle Paketti Dynamic View 04: F11
+0022:Global:Paketti: ∿ Double LFO Envelope Resolution: Control + H
+0023:Global:Paketti: ∿ Duplicate Instrument and Select New Instrument: Shift + Command + D
+0024:Global:Paketti: ∿ Duplicate and Reverse Instrument: Shift + Command + R
+0025:Global:Paketti: ∿ F4 Shift Midi Immediately: Shift + F4
+0026:Global:Paketti: ∿ Flood Fill Automation Selection: Option + Y
+0027:Global:Paketti: ∿ Flood Fill Column with Row: Shift + Option + Control + Down
+0028:Global:Paketti: ∿ Halve LFO Envelope Resolution: Shift + Control + H
+0029:Global:Paketti: ∿ Hide Track DSP Device External Editors for All Tracks: Command + H
+0030:Global:Paketti: ∿ Humanize Selection...: Option + H
+0031:Global:Paketti: ∿ Impulse Tracker ALT-Y Swap Block: Command + Y
+0032:Global:Paketti: ∿ Impulse Tracker CTRL-N New Song Dialog...: Control + N
+0033:Global:Paketti: ∿ Impulse Tracker CTRL-O Pattern to Sample: Control + O
+0034:Global:Paketti: ∿ Impulse Tracker F12 Master: F12
+0035:Global:Paketti: ∿ Impulse Tracker F5 Start Playback: F5
+0036:Global:Paketti: ∿ Impulse Tracker F7 Start Playback from Cursor Row: F7
+0037:Global:Paketti: ∿ Impulse Tracker F7 Start Playback from Cursor Row (2nd): RControl
+0038:Global:Paketti: ∿ Impulse Tracker F8 Stop Playback (Panic): F8
+0039:Global:Paketti: ∿ Insert Inverter Device to TrackDSP/SampleFX: Option + I
+0040:Global:Paketti: ∿ LFO Write Single Parameter Write to Automation: Shift + Control + 1
+0041:Global:Paketti: ∿ LFO Write to Effect Column 1 (0Dxx): Shift + Control + 2
+0042:Global:Paketti: ∿ LFO Write to Phrase LPB (1-64): Option + Grave
+0043:Global:Paketti: ∿ LFO Write to Selected Automation Parameter: Shift + Option + Grave
+0044:Global:Paketti: ∿ LFOEnvelopePan (Preset++): Shift + P
+0045:Global:Paketti: ∿ Load Device (AudioUnit) Transient Shaper: Shift + E
+0046:Global:Paketti: ∿ Load Device (AudioUnit) ValhallaFreqEcho: Shift + F
+0047:Global:Paketti: ∿ Load Device Chain EQ10 Macro Experimental: Shift + Q
+0048:Global:Paketti: ∿ Load FabFilter One: Option + F
+0049:Global:Paketti: ∿ Load New Instrument with Current Slice Markers: Option + N
+0050:Global:Paketti: ∿ Load Plugin Surge XT (AU) + surgemacros: Shift + Control + S
+0051:Global:Paketti: ∿ Load Plugin ZebraHZ (AU): Option + Z
+0052:Global:Paketti: ∿ Load Random AKWF Sample: Shift + Command + 1
+0053:Global:Paketti: ∿ Load Random Samples (12) into Single Instrument: Shift + Option + 1
+0054:Global:Paketti: ∿ Load Random Samples (32) from Path: Shift + Command + Control + P
+0055:Global:Paketti: ∿ Load Random amount (1...12) of AKWF Samples: Shift + Option + 2
+0056:Global:Paketti: ∿ Modify PitchStep Steps (Hard Detune): Shift + Option + Command + Control + P
+0057:Global:Paketti: ∿ Modify PitchStep Steps (Octave Up+2, Octave Down-2): Option + Command + P
+0058:Global:Paketti: ∿ Modify PitchStep Steps (Random): Shift + Option + Command + P
+0059:Global:Paketti: ∿ Normalize Sample Slices Independently: Shift + Command + N
+0060:Global:Paketti: ∿ Normalize Selected Sample or Slice: Command + N
+0061:Global:Paketti: ∿ Nudge Delay Output Delay +01ms (Rename): Control + Minus
+0062:Global:Paketti: ∿ Nudge Delay Output Delay -01ms: Control + Slash
+0063:Global:Paketti: ∿ OctaMED Note Spread Decrement: Shift + Command + Control + Left
+0064:Global:Paketti: ∿ OctaMED Note Spread Increment: Shift + Command + Control + Right
+0065:Global:Paketti: ∿ Open External Editor for Plugin: Apostrophe
+0066:Global:Paketti: ∿ Open Paketti Init Phrase Dialog...: Command + I
+0067:Global:Paketti: ∿ Open User Preferences Dialog...: Control + U
+0068:Global:Paketti: ∿ Open VolDelayPan Slider Dialog...: Control + M
+0069:Global:Paketti: ∿ Paketti Autocomplete: Control + A
+0070:Global:Paketti: ∿ Paketti Automation: Option + T
+0071:Global:Paketti: ∿ Paketti Gater Dialog...: Control + G
+0072:Global:Paketti: ∿ Paketti Groovebox 8120: Option + 8
+0073:Global:Paketti: ∿ Paketti MIDI Mappings (Dynamic)...: Shift + Command + M
+0074:Global:Paketti: ∿ Paketti Overdub 12 (No Metronome/No Line Input): Command + Minus
+0075:Global:Paketti: ∿ Paketti PitchBend Drumkit Sample Loader: Shift + Command + O
+0076:Global:Paketti: ∿ Paketti PitchBend Drumkit Sample Loader (Random): Option + Command + O
+0077:Global:Paketti: ∿ Paketti PitchBend Multiple Sample Loader: Command + O
+0078:Global:Paketti: ∿ Paketti PitchBend Multiple Sample Loader (Normalize): Shift + Option + O
+0079:Global:Paketti: ∿ Paketti Save Selected Sample .WAV: Command + W
+0080:Global:Paketti: ∿ Paketti Save Selected Sample Range .WAV: Shift + Command + W
+0081:Global:Paketti: ∿ Paketti Stacker Dialog...: Shift + Control + P
+0082:Global:Paketti: ∿ Paketti Steppers Dialog...: Control + D
+0083:Global:Paketti: ∿ Paketti Unison Generator: Option + U
+0084:Global:Paketti: ∿ Paketti eSpeak Text-to-Speech Dialog...: Control + E
+0085:Global:Paketti: ∿ Pakettify Current Instrument: Option + P
+0086:Global:Paketti: ∿ Pattern Effect Command CheatSheet: F1
+0087:Global:Paketti: ∿ Play Current Line in Phrase: Option + E
+0088:Global:Paketti: ∿ Polyend Buddy (PTI File Browser): Control + P
+0089:Global:Paketti: ∿ Previous Wavetable Cycle: Control + W
+0090:Global:Paketti: ∿ Quick LFO Custom Editor: Shift + Control + L
+0091:Global:Paketti: ∿ Randomize Automation Envelope: Shift + Option + R
+0092:Global:Paketti: ∿ Randomize Automation Envelopes for Device: Option + Command + R
+0093:Global:Paketti: ∿ Randomize Effect Column Parameters: Shift + Option + X
+0094:Global:Paketti: ∿ Randomize Selected Device: Option + R
+0095:Global:Paketti: ∿ Randomize Selected Instrument Modulation Filter Type: Shift + Option + M
+0096:Global:Paketti: ∿ Record+Follow Toggle (2nd): RShift
+0097:Global:Paketti: ∿ Record+Follow+Metronome Toggle: Shift + Escape
+0098:Global:Paketti: ∿ Reset Nudge Delay Output Delay to 0ms (ALL): Control + 0
+0099:Global:Paketti: ∿ Sample Pitch Modifier Dialog...: Shift + Option + P
+0100:Global:Paketti: ∿ Select First Instrument Box Slot: Shift + Option + Control + 1
+0101:Global:Paketti: ∿ Select Specific Track 01: Shift + 1
+0102:Global:Paketti: ∿ Select Specific Track 02: Shift + 2
+0103:Global:Paketti: ∿ Select Specific Track 03: Shift + 3
+0104:Global:Paketti: ∿ Select Specific Track 04: Shift + 4
+0105:Global:Paketti: ∿ Select Specific Track 05: Shift + 5
+0106:Global:Paketti: ∿ Select Specific Track 06: Shift + 6
+0107:Global:Paketti: ∿ Select Specific Track 07: Shift + 7
+0108:Global:Paketti: ∿ Select Specific Track 08: Shift + 8
+0109:Global:Paketti: ∿ Select Specific Track 09: Shift + 9
+0110:Global:Paketti: ∿ Select Specific Track 10: Shift + 0
+0111:Global:Paketti: ∿ Selected Track to Mono and Hard Left: Shift + Option + Command + Left
+0112:Global:Paketti: ∿ Selected Track to Mono and Hard Right: Shift + Option + Command + Right
+0113:Global:Paketti: ∿ Sequence Selection (Next): Command + Control + 2
+0114:Global:Paketti: ∿ Sequence Selection (Previous): Command + Control + 1
+0115:Global:Paketti: ∿ Show Automation Value Dialog...: Shift + Option + A
+0116:Global:Paketti: ∿ Show BPM Calculation Dialog...: Control + B
+0117:Global:Paketti: ∿ Show Paketti Formula Device Manual Dialog...: Shift + Option + F
+0118:Global:Paketti: ∿ Show Paketti KeyBindings Dialog...: Shift + Command + K
+0119:Global:Paketti: ∿ Show Paketti Preferences...: Shift + Command + Comma
+0120:Global:Paketti: ∿ Show Paketti Single Cycle Waveform Writer...: Shift + Option + C
+0121:Global:Paketti: ∿ Show Renoise KeyBindings Dialog...: Command + K
+0122:Global:Paketti: ∿ Show XO Plugin External Editor: Control + X
+0123:Global:Paketti: ∿ Show/Hide Track DSP and FX Chain Device External Editors: Shift + Command + H
+0124:Global:Paketti: ∿ Slice Count From Selection: Shift + Option + E
+0125:Global:Paketti: ∿ Smart Beatsync from Selection: Shift + Command + S
+0126:Global:Paketti: ∿ Snapshot Selected Device to Automation: Shift + Option + S
+0127:Global:Paketti: ∿ Start/Stop Sample Recording and Pakettify: Option + F3
+0128:Global:Paketti: ∿ Switch Middle Frames: Shift + Option + Z
+0129:Global:Paketti: ∿ Switch to Automation Dynamic: A
+0130:Global:Paketti: ∿ Toggle Audition Current Line on Pattern Row Change: Option + A
+0131:Global:Paketti: ∿ Toggle EditMode (3rd): Escape
+0132:Global:Paketti: ∿ Toggle Mute Tracks: Command + F9
+0133:Global:Paketti: ∿ Toggle Paketti Dialog of Dialogs...: Option + F1
+0134:Global:Paketti: ∿ Toggle Selected Phrase Looping: Shift + Option + Q
+0135:Global:Paketti: ∿ Toggle Solo Tracks: Command + F10
+0136:Global:Paketti: ∿ TouchOSC Pattern Editor: Option + F2
+0137:Global:Paketti: ∿ TouchOSC Sample Editor: Option + Control + F3
+0138:Global:Paketti: ∿ TouchOSC Sample Recorder and Record: Shift + Control + Grave
+0139:Global:Paketti: ∿ User-Defined Sample Folders...: Shift + Command + U
+0140:Global:Paketti: ∿ Wavetable Control: Option + W
+0141:Global:Paketti: ∿ Wipe Slices: Option + 0
+0142:Global:Paketti: ∿ Wipe&Slice (002): Option + 1
+0143:Global:Paketti: ∿ Wipe&Slice (004): Option + 2
+0144:Global:Paketti: ∿ Wipe&Slice (008): Option + 3
+0145:Global:Paketti: ∿ Wipe&Slice (016): Option + 4
+0146:Global:Paketti: ∿ Wipe&Slice (032): Option + 5
+0147:Global:Paketti: ∿ Wipe&Slice (064): Option + 6
+0148:Global:Paketti: ∿ Wipe&Slice (128): Option + 7
+0149:Global:Paketti: ∿ Wipe&Slice (256): Option + 9
+0150:Global:Paketti: ∿ Wipe&Slice&Write to Pattern: Shift + Option + 0
+0151:Global:Paketti Theme Selector: ∿ Pick a Random Theme (All): Shift + Option + Control + Comma
+0152:Global:Paketti Theme Selector: ∿ Pick a Random Theme (Favorites): Shift + Control + Comma
+0153:Mixer:Paketti: ∿ Clean Render Selected Track/Group (WAV Only): Command + R
+0154:Mixer:Paketti: ∿ Create Group and Move DSPs: Shift + Control + G
+0155:Mixer:Paketti: ∿ Duplicate Track and Instrument: Command + D
+0156:Mixer:Paketti: ∿ Hipass (Preset++): Shift + Option + H
+0157:Mixer:Paketti: ∿ Impulse Tracker Alt-Left Move Backwards One Channel (Wrap): Option + Left
+0158:Mixer:Paketti: ∿ Impulse Tracker Alt-Right Move Forwards One Channel (Wrap): Option + Right
+0159:Mixer:Paketti: ∿ Impulse Tracker End *2 behaviour: Option + Down
+0160:Mixer:Paketti: ∿ Impulse Tracker Home *2 behaviour: Option + Up
+0161:Mixer:Paketti: ∿ Move DSPs to Next Track: Command + Control + Right
+0162:Mixer:Paketti: ∿ Move DSPs to Previous Track: Command + Control + Left
+0163:Mixer:Paketti: ∿ Move Selected DSP to Next Track: Shift + Control + Right
+0164:Mixer:Paketti: ∿ Move Selected DSP to Previous Track: Shift + Control + Left
+0165:Mixer:Paketti: ∿ Paketti Pattern Doubler: Command + Grave
+0166:Mixer:Paketti: ∿ Paketti Pattern Halver: Shift + Command + Grave
+0167:Pattern Editor:Paketti: ∿ ChordsPlus Random Chord: Shift + Control + 3
+0168:Pattern Editor:Paketti: ∿ Clean Render Selected Track/Group (WAV Only): Command + R
+0169:Pattern Editor:Paketti: ∿ Clever Note Off Half Before: Command + PeakedBracket
+0170:Pattern Editor:Paketti: ∿ Clever Note Off Right After: Option + PeakedBracket
+0171:Pattern Editor:Paketti: ∿ Clever Note Off Right Before: Option + Control + PeakedBracket
+0172:Pattern Editor:Paketti: ∿ Cycle Chord Inversion Down: Shift + Control + Up
+0173:Pattern Editor:Paketti: ∿ Cycle Chord Inversion Up: Control + Up
+0174:Pattern Editor:Paketti: ∿ Delay Column Decrease (-1): Control + PeakedBracket
+0175:Pattern Editor:Paketti: ∿ Delay Column Decrease Selection/Row (-1): Control + Left
+0176:Pattern Editor:Paketti: ∿ Delay Column Decrease Selection/Row (-10): Shift + Control + Left
+0177:Pattern Editor:Paketti: ∿ Delay Column Increase (+1): Shift + Control + PeakedBracket
+0178:Pattern Editor:Paketti: ∿ Delay Column Increase Selection/Row (+1): Control + Right
+0179:Pattern Editor:Paketti: ∿ Delay Column Increase Selection/Row (+10): Shift + Control + Right
+0180:Pattern Editor:Paketti: ∿ Duplicate Selection with Padding&Move Cursor 1: Shift + Option + D
+0181:Pattern Editor:Paketti: ∿ Duplicate Selection with Padding&Move Cursor 2: Option + D
+0182:Pattern Editor:Paketti: ∿ Expose and Select Next Column: Shift + Command + Right
+0183:Pattern Editor:Paketti: ∿ Fill Effect Column with 0G01+0D00: Shift + Command + Down
+0184:Pattern Editor:Paketti: ∿ Fill Effect Column with 0G01+0U00: Shift + Command + Up
+0185:Pattern Editor:Paketti: ∿ Fit Sample Offset to Pattern (0Sxx Headless): Option + S
+0186:Pattern Editor:Paketti: ∿ Flood Fill Note and Instrument every 5 step: Shift + Option + 5
+0187:Pattern Editor:Paketti: ∿ Flood Fill Note and Instrument every 6 step: Shift + Option + 6
+0188:Pattern Editor:Paketti: ∿ Flood Fill Note and Instrument every 7 step: Shift + Option + 7
+0189:Pattern Editor:Paketti: ∿ Flood Fill Note and Instrument every 9 step: Shift + Option + 9
+0190:Pattern Editor:Paketti: ∿ Flood Fill with Selection: Control + F
+0191:Pattern Editor:Paketti: ∿ Generate Delay Value on Note Columns: Option + G
+0192:Pattern Editor:Paketti: ∿ Hide Current and Select Previous Column: Shift + Command + Left
+0193:Pattern Editor:Paketti: ∿ Impulse Tracker ALT-D Double Select W/ Automation: Command + D
+0194:Pattern Editor:Paketti: ∿ Impulse Tracker ALT-F Expand Selection: Command + F
+0195:Pattern Editor:Paketti: ∿ Impulse Tracker ALT-F Expand Selection Replicate: Shift + Command + F
+0196:Pattern Editor:Paketti: ∿ Impulse Tracker ALT-G Shrink Selection: Command + G
+0197:Pattern Editor:Paketti: ∿ Impulse Tracker ALT-G Shrink Selection Replicate: Shift + Command + G
+0198:Pattern Editor:Paketti: ∿ Impulse Tracker ALT-S Set Selection to Instrument: Command + S
+0199:Pattern Editor:Paketti: ∿ Impulse Tracker ALT-X Effect Column (Interpolate&Clear): Option + X
+0200:Pattern Editor:Paketti: ∿ Impulse Tracker Alt-Left Move Backwards One Channel (Wrap): Option + Left
+0201:Pattern Editor:Paketti: ∿ Impulse Tracker Alt-Right Move Forwards One Channel (Wrap): Option + Right
+0202:Pattern Editor:Paketti: ∿ Impulse Tracker End *2 behaviour: Option + Down
+0203:Pattern Editor:Paketti: ∿ Impulse Tracker Home *2 behaviour: Option + Up
+0204:Pattern Editor:Paketti: ∿ Impulse Tracker MixPaste: Option + M
+0205:Pattern Editor:Paketti: ∿ KapsLock CapsLock Caps Lock Note Off: Capital
+0206:Pattern Editor:Paketti: ∿ Match Current Sub Column Selection: Shift + Command + E
+0207:Pattern Editor:Paketti: ∿ Note-Off Paste (from Selection): Shift + Option + Control + P
+0208:Pattern Editor:Paketti: ∿ Nudge and Paste Selection: Shift + Option + Command + Down
+0209:Pattern Editor:Paketti: ∿ Paketti Pattern Doubler: Command + Grave
+0210:Pattern Editor:Paketti: ∿ Paketti Pattern Halver: Shift + Command + Grave
+0211:Pattern Editor:Paketti: ∿ Paketti Value Interpolation Looper Dialog...: Control + V
+0212:Pattern Editor:Paketti: ∿ Player Pro Transpose Selection or Note Column +1: Command + Q
+0213:Pattern Editor:Paketti: ∿ Player Pro Transpose Selection or Note Column +12: Shift + Command + Q
+0214:Pattern Editor:Paketti: ∿ Player Pro Transpose Selection or Note Column -1: Command + A
+0215:Pattern Editor:Paketti: ∿ Player Pro Transpose Selection or Note Column -12: Shift + Command + A
+0216:Pattern Editor:Paketti: ∿ Rename Tracks By Played Samples: Option + Command + Control + R
+0217:Pattern Editor:Paketti: ∿ Replicate All Above Current Row : Shift + Control + Down
+0218:Pattern Editor:Paketti: ∿ Replicate Selected Track Above Current Row : Control + Down
+0219:Pattern Editor:Paketti: ∿ Reverse Notes in Selection: Control + R
+0220:Pattern Editor:Paketti: ∿ Rotate Track Content to SelectionStart First: Shift + Option + Command + Up
+0221:Pattern Editor:Paketti: ∿ Selection in Pattern to Group: Shift + Control + G
+0222:Pattern Editor:Paketti: ∿ Set Pattern Length to 004 (004): Control + 1
+0223:Pattern Editor:Paketti: ∿ Set Pattern Length to 008 (008): Control + 2
+0224:Pattern Editor:Paketti: ∿ Set Pattern Length to 016 (010): Control + 3
+0225:Pattern Editor:Paketti: ∿ Set Pattern Length to 032 (020): Control + 4
+0226:Pattern Editor:Paketti: ∿ Set Pattern Length to 064 (040): Control + 5
+0227:Pattern Editor:Paketti: ∿ Set Pattern Length to 128 (080): Control + 6
+0228:Pattern Editor:Paketti: ∿ Set Pattern Length to 256 (100): Control + 7
+0229:Pattern Editor:Paketti: ∿ Set Pattern Length to 512 (200): Control + 8
+0230:Pattern Editor:Paketti: ∿ Shift Notes Left: Option + Command + Left
+0231:Pattern Editor:Paketti: ∿ Show Only Effect Columns: Shift + Control + 6
+0232:Pattern Editor:Paketti: ∿ Show Only Panning Columns: Shift + Control + 5
+0233:Pattern Editor:Paketti: ∿ Show Only Volume Columns: Shift + Control + 4
+0234:Pattern Editor:Paketti: ∿ Shrink to Triplets: Control + T
+0235:Pattern Editor:Paketti: ∿ Slide Selected Column Content Down: Command + Control + Down
+0236:Pattern Editor:Paketti: ∿ Slide Selected Column Content Up: Command + Control + Up
+0237:Pattern Editor:Paketti: ∿ Slide Selected Track Content Down: Option + Command + Down
+0238:Pattern Editor:Paketti: ∿ Toggle All Columns: Shift + Control + Q
+0239:Pattern Editor:Paketti: ∿ Toggle All Columns (No Sample Effects): Shift + Control + W
+0240:Pattern Editor:Paketti: ∿ Toggle Note Off in All Visible Note Columns: Shift + Capital
+0241:Pattern Editor:Paketti: ∿ Toggle Note Off in Selected Tracks: Option + Capital
+0242:Pattern Editor:Paketti: ∿ Toggle Note Off on All Tracks on Current Row: Control + Capital
+0243:Pattern Editor:Paketti: ∿ Transpose +1 Note Column (Selection/Note Column): Option + Command + Q
+0244:Pattern Editor:Paketti: ∿ Transpose -1 Note Column (Selection/Note Column): Option + Command + A
+0245:Pattern Editor:Paketti: ∿ Transpose Octave Down Note Column (Selection/Note Column): Shift + Option + Command + A
+0246:Pattern Editor:Paketti: ∿ Transpose Octave Up Note Column (Selection/Note Column): Shift + Option + Command + Q
+0247:Pattern Editor:Paketti: ∿ Write 0Sxx Command Random Slice/Offset: Shift + Control + X
+0248:Phrase Editor:Paketti: ∿ Expose and Select Next Column: Shift + Command + Right
+0249:Phrase Editor:Paketti: ∿ Hide Current and Select Previous Column: Shift + Command + Left
+0250:Phrase Editor:Paketti: ∿ Impulse Tracker ALT-D Double Select: Command + D
+0251:Phrase Editor:Paketti: ∿ Impulse Tracker ALT-F Expand Selection: Command + F
+0252:Phrase Editor:Paketti: ∿ Impulse Tracker ALT-F Expand Selection Replicate: Shift + Command + F
+0253:Phrase Editor:Paketti: ∿ Impulse Tracker ALT-G Shrink Selection: Command + G
+0254:Phrase Editor:Paketti: ∿ Impulse Tracker ALT-G Shrink Selection Replicate: Shift + Command + G
+0255:Phrase Editor:Paketti: ∿ Impulse Tracker End *2 behaviour: Option + Down
+0256:Phrase Editor:Paketti: ∿ Impulse Tracker Home *2 behaviour: Option + Up
+0257:Phrase Editor:Paketti: ∿ KapsLock CapsLock Caps Lock Note Off: Capital
+0258:Phrase Editor:Paketti: ∿ Set Phrase Length to 004 (004): Control + 1
+0259:Phrase Editor:Paketti: ∿ Set Phrase Length to 008 (008): Control + 2
+0260:Phrase Editor:Paketti: ∿ Set Phrase Length to 016 (010): Control + 3
+0261:Phrase Editor:Paketti: ∿ Set Phrase Length to 032 (020): Control + 4
+0262:Phrase Editor:Paketti: ∿ Set Phrase Length to 064 (040): Control + 5
+0263:Phrase Editor:Paketti: ∿ Set Phrase Length to 128 (080): Control + 6
+0264:Phrase Editor:Paketti: ∿ Set Phrase Length to 256 (100): Control + 7
+0265:Phrase Editor:Paketti: ∿ Set Phrase Length to 512 (200): Control + 8
+0266:Sample Editor:Paketti: ∿ Detect and Select Silence in Zoom: Option + S
+0267:Sample Editor:Paketti: ∿ Flip Sample Buffer Selection Back: Option + Left
+0268:Sample Editor:Paketti: ∿ Flip Sample Buffer Selection Forward: Option + Right
+0269:Sample Editor:Paketti: ∿ Move Slice End Left by 10: Command + Left
+0270:Sample Editor:Paketti: ∿ Move Slice End Left by 100: Shift + Command + Left
+0271:Sample Editor:Paketti: ∿ Move Slice End Right by 10: Command + Right
+0272:Sample Editor:Paketti: ∿ Move Slice End Right by 100: Shift + Command + Right
+0273:Sample Editor:Paketti: ∿ Move Slice Start Left by 10: Control + Left
+0274:Sample Editor:Paketti: ∿ Move Slice Start Left by 100: Shift + Control + Left
+0275:Sample Editor:Paketti: ∿ Move Slice Start Right by 10: Control + Right
+0276:Sample Editor:Paketti: ∿ Move Slice Start Right by 100: Shift + Control + Right
+0277:Sample Editor:Paketti: ∿ Protracker MOD Modulation...: Option + M
+0278:Sample Editor:Paketti: ∿ Reverse Selected Sample or Slice: Command + R
+0279:Sample Editor:Paketti: ∿ Rotate Sample Buffer Downwards: Shift + Control + Down
+0280:Sample Editor:Paketti: ∿ Rotate Sample Buffer Left 1000: Command + Control + Right
+0281:Sample Editor:Paketti: ∿ Rotate Sample Buffer Right 1000: Command + Control + Left
+0282:Sample Editor:Paketti: ∿ Rotate Sample Buffer Upwards: Shift + Control + Up
+0283:Sample Editor:Paketti: ∿ Select Loop Range: Shift + Option + Command + S
+0284:Sample Editor:Paketti: ∿ Toggle Loop Range (Selection): Command + L
+0285:Sample Editor:Paketti: ∿ Toggle Signed/Unsigned: Option + Command + A
+0286:Sample Editor:Paketti: ∿ Unmark / Clear Selection: Command + U
+0287:Sample Keyzones:Paketti: ∿ Reverse Selected Sample or Slice: Command + R

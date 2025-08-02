@@ -22,6 +22,7 @@ local command_picker_dialog = nil
 local suggestions_scrollbar = nil
 local prev_page_button = nil
 local next_page_button = nil
+local show_only_with_shortcuts_checkbox = nil
 
 -- Scrolling variables
 local MAX_VISIBLE_BUTTONS = 40
@@ -41,6 +42,10 @@ local command_usage_count = {}
 local last_scan_time = 0
 local current_context = "global"  -- global, pattern_editor, sample_editor, mixer, etc.
 
+-- Shortcut mapping cache
+local function_shortcut_mappings = {}
+local shortcut_cache_file_path = renoise.tool().bundle_path .. "autocomplete_shortcuts.txt"
+
 -- Autocomplete state (CP-style)
 local current_search_text = ""
 
@@ -48,6 +53,299 @@ local current_search_text = ""
 local cache_file_path = renoise.tool().bundle_path .. "autocomplete_cache.txt"
 local usage_file_path = renoise.tool().bundle_path .. "autocomplete_usage.txt"
 local favorites_file_path = renoise.tool().bundle_path .. "autocomplete_favorites.txt"
+
+-- Helper functions for KeyBindings.xml parsing (borrowed from PakettiKeyBindings.lua)
+local function detectOSAndGetKeyBindingsPath()
+  local os_name = os.platform() 
+  local renoise_version = renoise.RENOISE_VERSION:match("(%d+%.%d+%.%d+)") -- This will grab just "3.5.0" from "3.5.0 b8"
+  local key_bindings_path
+
+  if os_name == "WINDOWS" then
+    local home = os.getenv("USERPROFILE") or os.getenv("HOME")
+    key_bindings_path = home .. "\\AppData\\Roaming\\Renoise\\V" .. renoise_version .. "\\KeyBindings.xml"
+  elseif os_name == "MACINTOSH" then
+    local home = os.getenv("HOME")
+    key_bindings_path = home .. "/Library/Preferences/Renoise/V" .. renoise_version .. "/KeyBindings.xml"
+  else -- Assume Linux
+    local home = os.getenv("HOME")
+    key_bindings_path = home .. "/.config/Renoise/V" .. renoise_version .. "/KeyBindings.xml"
+  end
+
+  return key_bindings_path
+end
+
+local function decodeXMLString(value)
+  local replacements = {
+    ["&amp;"] = "&",
+    -- Add more replacements if needed
+  }
+  return value:gsub("(&amp;)", replacements)
+end
+
+local function convert_key_name(key)
+  -- Split the key combination into parts
+  local parts = {}
+  for part in key:gmatch("[^%+]+") do
+    -- Trim spaces
+    part = part:match("^%s*(.-)%s*$")
+    -- Convert special keys
+    if part == "Backslash" then part = "\\"
+    elseif part == "Slash" then part = "/"
+    elseif part == "Apostrophe" then part = "'"
+    elseif part == "PeakedBracket" then part = "<"
+    elseif part == "Capital" then part = "CapsLock"
+    elseif part == "Grave" then part = "§"
+    elseif part == "Comma" then part = ","
+    -- Shorten modifier keys for cleaner display
+    elseif part == "Command" then part = "CMD"
+    elseif part == "Control" then part = "CTRL"
+    elseif part == "Option" then part = "OPT"
+    end
+    table.insert(parts, part)
+  end
+  return table.concat(parts, " + ")
+end
+
+local function parseKeyBindingsXML(filePath, filter_type)
+  local fileHandle = io.open(filePath, "r")
+  if not fileHandle then
+    print("Debug: Failed to open the file - " .. filePath)
+    return {}
+  end
+
+  local content = fileHandle:read("*all")
+  fileHandle:close()
+
+  local keybindings = {}
+  local currentIdentifier = "nil"
+
+  for categorySection in content:gmatch("<Category>(.-)</Category>") do
+    local identifier = categorySection:match("<Identifier>(.-)</Identifier>") or "nil"
+    if identifier ~= "nil" then
+      currentIdentifier = identifier
+    end
+
+    for keyBindingSection in categorySection:gmatch("<KeyBinding>(.-)</KeyBinding>") do
+      local topic = keyBindingSection:match("<Topic>(.-)</Topic>")
+      
+      -- Apply filter based on filter_type
+      local should_include = false
+      if filter_type == "paketti" then
+        should_include = topic and topic:find("Paketti")
+      elseif filter_type == "renoise" or filter_type == "all" then
+        should_include = topic ~= nil
+      end
+      
+      if should_include then
+        local binding = keyBindingSection:match("<Binding>(.-)</Binding>") or "<No Binding>"
+        local key = keyBindingSection:match("<Key>(.-)</Key>") or "<Shortcut not Assigned>"
+
+        -- Decode XML entities
+        topic = decodeXMLString(topic)
+        binding = decodeXMLString(binding)
+        key = decodeXMLString(key)
+
+        table.insert(keybindings, { Identifier = currentIdentifier, Topic = topic, Binding = binding, Key = key })
+      end
+    end
+  end
+
+  return keybindings
+end
+
+-- Function to build function-shortcut mappings from KeyBindings.xml
+local function build_function_shortcut_mappings()
+  function_shortcut_mappings = {}
+  shortcut_lookup_cache = {} -- Clear lookup cache when rebuilding mappings
+  
+  local keyBindingsPath = detectOSAndGetKeyBindingsPath()
+  if not keyBindingsPath then
+    print("PakettiAutocomplete: Could not detect KeyBindings.xml path for shortcut mapping")
+    return
+  end
+  
+  print("PakettiAutocomplete: Building function-shortcut mappings from " .. keyBindingsPath)
+  
+  -- Parse both Paketti and Renoise keybindings
+  local pakettiBindings = parseKeyBindingsXML(keyBindingsPath, "paketti")
+  local renoiseBindings = parseKeyBindingsXML(keyBindingsPath, "renoise")
+  
+  local mappings_added = 0
+  
+  -- Add Paketti bindings using Binding as the key (this is the actual function name!)
+  for _, binding in ipairs(pakettiBindings) do
+    if binding.Key and binding.Key ~= "<Shortcut not Assigned>" and binding.Binding then
+      local binding_name = binding.Binding
+      local readableKey = convert_key_name(binding.Key)
+      
+      -- Strip the "∿ " prefix from Binding
+      -- Binding: "∿ Impulse Tracker F2 Pattern Editor" -> "Impulse Tracker F2 Pattern Editor"
+      local function_name = binding_name:match("^∿ (.+)") or binding_name
+      
+      -- Add "Paketti:" prefix to match autocomplete format
+      local autocomplete_name = "Paketti:" .. function_name
+      
+      -- Debug first few bindings
+      if mappings_added < 5 then
+        print("DEBUG: Paketti binding " .. (mappings_added + 1) .. ":")
+        print("  Original Binding: " .. binding_name)
+        print("  Function name: " .. function_name)
+        print("  Autocomplete name: " .. autocomplete_name)
+        print("  Key: " .. (binding.Key or "nil"))
+        print("  Storing as: '" .. autocomplete_name .. "' -> '" .. readableKey .. "'")
+      end
+      
+      -- Store the mapping using autocomplete format as key
+      function_shortcut_mappings[autocomplete_name] = readableKey
+      mappings_added = mappings_added + 1
+    end
+  end
+  
+  -- Add Renoise bindings using Binding as the key (this is the actual function name!)
+  for _, binding in ipairs(renoiseBindings) do
+    if binding.Key and binding.Key ~= "<Shortcut not Assigned>" and binding.Binding then
+      local binding_name = binding.Binding
+      local readableKey = convert_key_name(binding.Key)
+      
+      -- For Renoise bindings, use the Binding directly (no ∿ prefix to strip)
+      local function_name = binding_name
+      
+      -- Debug first few bindings
+      if mappings_added < 10 then
+        print("DEBUG: Renoise binding " .. (mappings_added + 1) .. ":")
+        print("  Binding: " .. binding_name)
+        print("  Key: " .. (binding.Key or "nil"))
+        print("  Storing as: '" .. function_name .. "' -> '" .. readableKey .. "'")
+      end
+      
+      -- Store the mapping using Binding as key
+      function_shortcut_mappings[function_name] = readableKey
+      mappings_added = mappings_added + 1
+    end
+  end
+  
+  print("PakettiAutocomplete: Built " .. mappings_added .. " function-shortcut mappings")
+end
+
+-- Function to save shortcut mappings to cache
+local function save_shortcut_mappings()
+  -- Count before saving
+  local count_before = 0
+  for _ in pairs(function_shortcut_mappings) do
+    count_before = count_before + 1
+  end
+  print("DEBUG: About to save " .. count_before .. " mappings")
+  
+  local file = io.open(shortcut_cache_file_path, "w")
+  if file then
+    file:write("SHORTCUT_CACHE_VERSION=1.0\n")
+    local written_count = 0
+    local error_count = 0
+    
+    for functionName, shortcut in pairs(function_shortcut_mappings) do
+      -- Check for problematic characters that might cause write issues
+      if functionName and shortcut and functionName ~= "" and shortcut ~= "" then
+        -- Use ||| delimiter to avoid conflicts (same as main cache)
+        local line = functionName .. "|||" .. shortcut .. "\n"
+        local success, err = pcall(function() file:write(line) end)
+        
+        if success then
+          written_count = written_count + 1
+          -- Debug first few writes
+          if written_count <= 3 then
+            print("DEBUG: Writing mapping " .. written_count .. ": " .. functionName .. " -> " .. shortcut)
+          end
+        else
+          error_count = error_count + 1
+          if error_count <= 3 then
+            print("DEBUG: Error writing mapping: " .. (err or "unknown error"))
+          end
+        end
+      else
+        error_count = error_count + 1
+        if error_count <= 3 then
+          print("DEBUG: Skipping invalid mapping: '" .. tostring(functionName) .. "' -> '" .. tostring(shortcut) .. "'")
+        end
+      end
+    end
+    file:close()
+    print("PakettiAutocomplete: Saved " .. written_count .. " shortcut mappings to cache (" .. error_count .. " errors)")
+  else
+    print("PakettiAutocomplete: Failed to save shortcut mappings to cache")
+  end
+end
+
+-- Function to load shortcut mappings from cache
+local function load_shortcut_mappings()
+  local file = io.open(shortcut_cache_file_path, "r")
+  if not file then 
+    print("PakettiAutocomplete: No shortcut cache file found")
+    return false 
+  end
+  
+  function_shortcut_mappings = {}
+  shortcut_lookup_cache = {} -- Clear lookup cache when loading new mappings
+  local version = file:read("*line")
+  
+  if not version or not version:match("SHORTCUT_CACHE_VERSION=1%.0") then
+    file:close()
+    print("PakettiAutocomplete: Invalid shortcut cache version")
+    return false
+  end
+  
+  local count = 0
+  for line in file:lines() do
+    local pos = string.find(line, "|||")
+    if pos then
+      local functionName = string.sub(line, 1, pos - 1)
+      local shortcut = string.sub(line, pos + 3)
+      function_shortcut_mappings[functionName] = shortcut
+      count = count + 1
+    end
+  end
+  file:close()
+  
+  print("PakettiAutocomplete: Loaded " .. count .. " shortcut mappings from cache")
+  return true
+end
+
+-- Performance cache for shortcut lookups
+local shortcut_lookup_cache = {}
+
+-- Function to get shortcut for a command (OPTIMIZED - no loops!)
+local function get_command_shortcut(command)
+  if not command or not command.name then 
+    return "" 
+  end
+  
+  local command_name = command.name
+  
+  -- Check cache first for instant lookup
+  if shortcut_lookup_cache[command_name] ~= nil then
+    return shortcut_lookup_cache[command_name]
+  end
+  
+  local result = ""
+  
+  -- Direct O(1) lookup: check if the command name matches any mapping
+  local shortcut = function_shortcut_mappings[command_name]
+  if shortcut then
+    result = " [" .. shortcut .. "]"
+  else
+    -- Try without prefix (remove "Paketti:" or other prefixes)
+    local command_without_prefix = command_name:match("^[^:]+:(.+)") or command_name
+    if command_without_prefix ~= command_name then
+      local shortcut_without_prefix = function_shortcut_mappings[command_without_prefix]
+      if shortcut_without_prefix then
+        result = " [" .. shortcut_without_prefix .. "]"
+      end
+    end
+  end
+  
+  -- Cache the result for future lookups
+  shortcut_lookup_cache[command_name] = result
+  return result
+end
 
 -- Dynamic file scanning using main.lua helper - finds ALL .lua files in Paketti tool
 local function get_all_paketti_files()
@@ -1150,6 +1448,21 @@ get_smart_ordered_commands = function()
   local ordered = {}
   local added = {}
   
+  -- Helper function to check if command has shortcuts (OPTIMIZED)
+  local function has_shortcut(command)
+    if not command or not command.name then return false end
+    
+    -- Check cache first for instant lookup
+    local cached_result = shortcut_lookup_cache[command.name]
+    if cached_result ~= nil then
+      return cached_result ~= ""
+    end
+    
+    -- Fall back to full lookup if not cached
+    local shortcut_result = get_command_shortcut(command)
+    return shortcut_result ~= ""
+  end
+  
   -- If we're in a specific context, ONLY show context-relevant commands
   if current_context ~= "global" then
     local context_count = 0
@@ -1158,7 +1471,14 @@ get_smart_ordered_commands = function()
     for _, command in ipairs(paketti_commands) do
       local unique_key = command.category .. "|" .. command.name
       local invoke_key = command.invoke or ""
-      if is_context_relevant(command) and not added[unique_key] and not seen_invokes[invoke_key] then
+      local include_command = is_context_relevant(command) and not added[unique_key] and not seen_invokes[invoke_key]
+      
+      -- If checkbox is checked, only include commands with shortcuts
+      if include_command and show_only_with_shortcuts_checkbox and show_only_with_shortcuts_checkbox.value then
+        include_command = has_shortcut(command)
+      end
+      
+      if include_command then
         context_count = context_count + 1
         seen_invokes[invoke_key] = true
         
@@ -1236,7 +1556,14 @@ get_smart_ordered_commands = function()
     for _, command in ipairs(paketti_commands) do
       local unique_key = command.category .. "|" .. command.name
       local invoke_key = command.invoke or ""
-      if command.name == fav_name and not added[unique_key] and not seen_invokes[invoke_key] then
+      local include_command = command.name == fav_name and not added[unique_key] and not seen_invokes[invoke_key]
+      
+      -- If checkbox is checked, only include commands with shortcuts
+      if include_command and show_only_with_shortcuts_checkbox and show_only_with_shortcuts_checkbox.value then
+        include_command = has_shortcut(command)
+      end
+      
+      if include_command then
         command.priority_reason = "[FAVORITE]"
         table.insert(ordered, command)
         added[unique_key] = true
@@ -1251,7 +1578,14 @@ get_smart_ordered_commands = function()
     for _, command in ipairs(paketti_commands) do
       local unique_key = command.category .. "|" .. command.name
       local invoke_key = command.invoke or ""
-      if command.name == recent_name and not added[unique_key] and not seen_invokes[invoke_key] then
+      local include_command = command.name == recent_name and not added[unique_key] and not seen_invokes[invoke_key]
+      
+      -- If checkbox is checked, only include commands with shortcuts
+      if include_command and show_only_with_shortcuts_checkbox and show_only_with_shortcuts_checkbox.value then
+        include_command = has_shortcut(command)
+      end
+      
+      if include_command then
         command.priority_reason = "[RECENTLY]"
         table.insert(ordered, command)
         added[unique_key] = true
@@ -1265,7 +1599,14 @@ get_smart_ordered_commands = function()
   for _, command in ipairs(paketti_commands) do
     local unique_key = command.category .. "|" .. command.name
     local invoke_key = command.invoke or ""
-    if not added[unique_key] and not seen_invokes[invoke_key] and is_context_relevant(command) then
+    local include_command = not added[unique_key] and not seen_invokes[invoke_key] and is_context_relevant(command)
+    
+    -- If checkbox is checked, only include commands with shortcuts
+    if include_command and show_only_with_shortcuts_checkbox and show_only_with_shortcuts_checkbox.value then
+      include_command = has_shortcut(command)
+    end
+    
+    if include_command then
       table.insert(ordered, command)
       added[unique_key] = true
       seen_invokes[invoke_key] = true
@@ -1276,7 +1617,14 @@ get_smart_ordered_commands = function()
   for _, command in ipairs(paketti_commands) do
     local unique_key = command.category .. "|" .. command.name
     local invoke_key = command.invoke or ""
-    if not added[unique_key] and not seen_invokes[invoke_key] then
+    local include_command = not added[unique_key] and not seen_invokes[invoke_key]
+    
+    -- If checkbox is checked, only include commands with shortcuts
+    if include_command and show_only_with_shortcuts_checkbox and show_only_with_shortcuts_checkbox.value then
+      include_command = has_shortcut(command)
+    end
+    
+    if include_command then
       command.priority_reason = nil
       table.insert(ordered, command)
       added[unique_key] = true
@@ -2226,18 +2574,20 @@ function update_button_display(force_full_refresh)
             button_text = button_text .. gadget_name .. usage_indicator
           else
             -- Normal display format
-            button_text = button_text .. string.format("[%s] %s%s", get_display_category(command), get_clean_command_name(command), usage_indicator)
+            button_text = button_text .. string.format("[%s] %s%s%s", get_display_category(command), get_clean_command_name(command), get_command_shortcut(command), usage_indicator)
           end
           
           suggestion_buttons[i].text = button_text
           
           -- Set background color for selected button and priority states
           if command_index == selected_suggestion_index then
-            suggestion_buttons[i].color = {0x80, 0x00, 0x80} -- Deep purple (selected)
+            suggestion_buttons[i].color = {0x80, 0x00, 0x80} -- Deep purple (selected) - highest priority
           elseif command.priority_reason == "[RECENTLY]" then
             suggestion_buttons[i].color = {0x80, 0x80, 0x80} -- Pale grey (recently used)
           elseif command.priority_reason == "[FAVORITE]" then
             suggestion_buttons[i].color = {0x80, 0x60, 0x00} -- Dark gold (favorite)
+          elseif get_command_shortcut(command) ~= "" then
+            suggestion_buttons[i].color = {0x00, 0x80, 0x00} -- Dark green (has shortcut)
           else
             suggestion_buttons[i].color = {0x00, 0x00, 0x00} -- Default (black/transparent)
           end
@@ -2273,7 +2623,7 @@ function update_button_display(force_full_refresh)
         button_text = button_text .. gadget_name .. usage_indicator
       else
         -- Normal display format
-        button_text = button_text .. string.format("[%s] %s%s", get_display_category(command), get_clean_command_name(command), usage_indicator)
+        button_text = button_text .. string.format("[%s] %s%s%s", get_display_category(command), get_clean_command_name(command), get_command_shortcut(command), usage_indicator)
       end
       
       print("Removing selection from command " .. previous_suggestion_index .. " (button " .. prev_button_index .. ")")
@@ -2283,6 +2633,8 @@ function update_button_display(force_full_refresh)
         suggestion_buttons[prev_button_index].color = {0x80, 0x80, 0x80} -- Pale grey (recently used)
       elseif command.priority_reason == "[FAVORITE]" then
         suggestion_buttons[prev_button_index].color = {0x80, 0x60, 0x00} -- Dark gold (favorite)
+      elseif get_command_shortcut(command) ~= "" then
+        suggestion_buttons[prev_button_index].color = {0x00, 0x80, 0x00} -- Dark green (has shortcut)
       else
         suggestion_buttons[prev_button_index].color = {0x00, 0x00, 0x00} -- Default color
       end
@@ -2310,7 +2662,7 @@ function update_button_display(force_full_refresh)
         button_text = button_text .. gadget_name .. usage_indicator
       else
         -- Normal display format
-        button_text = button_text .. string.format("[%s] %s%s", get_display_category(command), get_clean_command_name(command), usage_indicator)
+        button_text = button_text .. string.format("[%s] %s%s%s", get_display_category(command), get_clean_command_name(command), get_command_shortcut(command), usage_indicator)
       end
       
       print("Adding selection to command " .. selected_suggestion_index .. " (button " .. curr_button_index .. ")")
@@ -2562,6 +2914,14 @@ local function initialize_paketti_commands()
   load_usage_data()
   load_favorites()
   
+  -- Load or build shortcut mappings
+  local shortcuts_loaded = load_shortcut_mappings()
+  if not shortcuts_loaded then
+    print("PakettiAutocomplete: Shortcut cache not found, building from KeyBindings.xml...")
+    build_function_shortcut_mappings()
+    save_shortcut_mappings()
+  end
+  
   -- Build search index for fast filtering
   build_search_index()
   
@@ -2651,8 +3011,17 @@ function pakettiAutocompleteDialog()
     local command_index = i + current_scroll_offset
     if command_index <= #current_filtered_commands then
       local command = current_filtered_commands[command_index]
-      button_text = string.format("[%s] %s", get_display_category(command), get_clean_command_name(command))
+      button_text = string.format("[%s] %s%s", get_display_category(command), get_clean_command_name(command), get_command_shortcut(command))
       button_visible = true
+    end
+    
+    -- Determine button color based on whether command has shortcuts
+    local button_color = {0x00, 0x00, 0x00} -- Default black
+    if command_index <= #current_filtered_commands then
+      local command = current_filtered_commands[command_index]
+      if command and get_command_shortcut(command) ~= "" then
+        button_color = {0x00, 0x80, 0x00} -- Dark green for commands with shortcuts
+      end
     end
     
     suggestion_buttons[i] = autocomplete_vb:button{
@@ -2661,7 +3030,7 @@ function pakettiAutocompleteDialog()
       height = 18,
       align = "left",
       visible = button_visible,
-      color = {0x00, 0x00, 0x00}, -- Default color
+      color = button_color,
       notifier = function()
         handle_suggestion_click(i + current_scroll_offset)
       end
@@ -2803,6 +3172,25 @@ function pakettiAutocompleteDialog()
         style = "disabled",
         width = 120
       }
+    },
+    
+    autocomplete_vb:row{
+      (function()
+        show_only_with_shortcuts_checkbox = autocomplete_vb:checkbox{
+          value = false,
+          notifier = function(value)
+            -- Refresh the command list when checkbox changes
+            current_filtered_commands = get_smart_ordered_commands()
+            update_suggestions(current_search_text)
+          end
+        }
+        return show_only_with_shortcuts_checkbox
+      end)(),
+      autocomplete_vb:space{width = 5},
+      autocomplete_vb:text{
+        text = "Show only commands with shortcuts",
+        width = 250
+      }
     }
   }
   
@@ -2860,14 +3248,16 @@ function show_command_picker(abbreviation_text)
         local command_index = i + picker_scroll_offset
         if command_index <= #filtered_picker_commands then
           local command = filtered_picker_commands[command_index]
-          local button_text = string.format("[%s] %s", get_display_category(command), get_clean_command_name(command))
+          local button_text = string.format("[%s] %s%s", get_display_category(command), get_clean_command_name(command), get_command_shortcut(command))
           
           command_buttons[i].text = button_text
           command_buttons[i].visible = true
           
-          -- Use purple coloring for selected item instead of "<<<" text
+          -- Use purple coloring for selected item, dark green for shortcuts
           if command_index == picker_selected_index then
-            command_buttons[i].color = {0x80, 0x00, 0x80} -- Deep purple (selected)
+            command_buttons[i].color = {0x80, 0x00, 0x80} -- Deep purple (selected) - highest priority
+          elseif get_command_shortcut(command) ~= "" then
+            command_buttons[i].color = {0x00, 0x80, 0x00} -- Dark green (has shortcut)
           else
             command_buttons[i].color = {0x00, 0x00, 0x00} -- Default color (unselected)
           end
@@ -3213,12 +3603,16 @@ function pakettiAutocompleteRebuildCache()
   -- Clear everything first
   paketti_commands = {}
   search_index = {}
+  function_shortcut_mappings = {}
   os.remove(cache_file_path)
+  os.remove(shortcut_cache_file_path)
   
   -- Rebuild from scratch
   print("PakettiAutocomplete: Rebuilding cache from scratch...")
   scan_paketti_commands()
   save_commands_cache()
+  build_function_shortcut_mappings()
+  save_shortcut_mappings()
   build_search_index()
   
   -- If dialog is open, refresh display
@@ -3269,11 +3663,11 @@ function debug_show_sample_categories()
 end
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Paketti Function Search...", invoke=pakettiAutocompleteToggle}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Add Autocomplete Abbreviation...", invoke=pakettiAutocompleteAddAbbreviation}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Reset Autocomplete Usage Statistics", invoke=pakettiAutocompleteResetUsage}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Nuke Autocomplete Cache", invoke=pakettiAutocompleteNukeCache}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Rebuild Autocomplete Cache", invoke=pakettiAutocompleteRebuildCache}
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Debug Autocomplete Search", invoke=function() 
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Function Search Debug:Add Autocomplete Abbreviation...", invoke=pakettiAutocompleteAddAbbreviation}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Function Search Debug:Reset Autocomplete Usage Statistics", invoke=pakettiAutocompleteResetUsage}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Function Search Debug:Nuke Autocomplete Cache", invoke=pakettiAutocompleteNukeCache}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Function Search Debug:Rebuild Autocomplete Cache", invoke=pakettiAutocompleteRebuildCache}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Function Search Debug:Debug Autocomplete Search", invoke=function() 
   local search_text = renoise.app():show_prompt("Debug Autocomplete", "Enter search text to debug:", "duplicate all")
   if search_text and search_text ~= "" then 
     debug_multi_word_search(search_text) 
@@ -3297,6 +3691,291 @@ end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Paketti Function Search...", invoke=pakettiAutocompleteToggle}
 renoise.tool():add_keybinding{name="Mixer:Paketti:Paketti Function Search...", invoke=pakettiAutocompleteToggle}
 renoise.tool():add_midi_mapping{name="Paketti:Paketti Function Search...", invoke=function(message) if message:is_trigger() then pakettiAutocompleteToggle() end end}
+
+-- Test function to show shortcut mappings are working
+function pakettiTestShortcutMappings()
+  -- Force load shortcut mappings if not already loaded
+  if next(function_shortcut_mappings) == nil then
+    local shortcuts_loaded = load_shortcut_mappings()
+    if not shortcuts_loaded then
+      build_function_shortcut_mappings()
+      save_shortcut_mappings()
+    end
+  end
+  
+  -- Show some sample mappings
+  local sample_count = 0
+  local sample_text = "Sample function-shortcut mappings:\n\n"
+  
+  -- Show Paketti-related mappings first
+  for functionName, shortcut in pairs(function_shortcut_mappings) do
+    if sample_count < 15 and functionName:find("Paketti") then
+      sample_text = sample_text .. functionName .. " -> " .. shortcut .. "\n"
+      sample_count = sample_count + 1
+    end
+  end
+  
+  if sample_count == 0 then
+    sample_text = "No shortcut mappings found. Try rebuilding the autocomplete cache."
+  else
+    local total_count = 0
+    for _ in pairs(function_shortcut_mappings) do
+      total_count = total_count + 1
+    end
+    sample_text = sample_text .. "\nTotal mappings: " .. total_count
+    
+    -- Also check what a sample autocomplete command looks like
+    if #paketti_commands > 0 then
+      sample_text = sample_text .. "\n\nSample autocomplete command names:\n"
+      local cmd_count = 0
+      for _, cmd in ipairs(paketti_commands) do
+        if cmd_count < 5 and cmd.name and cmd.name:find("Function Search") then
+          sample_text = sample_text .. "'" .. cmd.name .. "' (category: " .. (cmd.category or "nil") .. ")\n"
+          
+          -- Test the shortcut function
+          local shortcut_result = get_command_shortcut(cmd)
+          sample_text = sample_text .. "  -> get_command_shortcut result: '" .. shortcut_result .. "'\n"
+          cmd_count = cmd_count + 1
+        end
+      end
+    end
+  end
+  
+  renoise.app():show_message(sample_text)
+end
+
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Test Shortcut Mappings...", invoke=pakettiTestShortcutMappings}
+
+-- Debug function to find what's causing the "Command + D" issue
+function pakettiDebugCommandDMappings()
+  -- Force load shortcut mappings if not already loaded
+  if next(function_shortcut_mappings) == nil then
+    local shortcuts_loaded = load_shortcut_mappings()
+    if not shortcuts_loaded then
+      build_function_shortcut_mappings()
+      save_shortcut_mappings()
+    end
+  end
+  
+  local cmd_d_mappings = {}
+  local all_shortcuts = {}
+  local total_mappings = 0
+  
+  for mapping_key, shortcut in pairs(function_shortcut_mappings) do
+    total_mappings = total_mappings + 1
+    if shortcut:find("CMD + D") or shortcut:find("Command + D") or shortcut == "D" or shortcut:find(" D") then
+      table.insert(cmd_d_mappings, {key = mapping_key, shortcut = shortcut})
+    end
+    
+    -- Count all unique shortcuts
+    if not all_shortcuts[shortcut] then
+      all_shortcuts[shortcut] = 0
+    end
+    all_shortcuts[shortcut] = all_shortcuts[shortcut] + 1
+  end
+  
+  -- Also show most common shortcuts
+  local common_shortcuts = {}
+  for shortcut, count in pairs(all_shortcuts) do
+    if count > 5 then -- Show shortcuts that appear more than 5 times
+      table.insert(common_shortcuts, {shortcut = shortcut, count = count})
+    end
+  end
+  
+  print("\n=== CMD+D MAPPINGS DEBUG ===")
+  print("Mappings with 'CMD + D' or 'Command + D' shortcut (" .. #cmd_d_mappings .. " out of " .. total_mappings .. "):")
+  
+  for i, mapping in ipairs(cmd_d_mappings) do
+    if i <= 10 then  -- Show first 10
+      print(i .. ": " .. mapping.key .. " -> " .. mapping.shortcut)
+    else
+      print("... and " .. (#cmd_d_mappings - 10) .. " more")
+      break
+    end
+  end
+  
+  -- Also show most common shortcuts
+  if #common_shortcuts > 0 then
+    print("\nMost common shortcuts:")
+    for i, item in ipairs(common_shortcuts) do
+      if i <= 10 then
+        print(item.shortcut .. " (" .. item.count .. " times)")
+      end
+    end
+  end
+  
+  print("=== END CMD+D DEBUG ===\n")
+end
+
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Function Search Debug:Debug Command+D Mappings...", invoke=pakettiDebugCommandDMappings}
+
+-- Debug function to trace the exact matching logic issue
+function pakettiDebugMatchingLogic()
+  -- Force load shortcut mappings and commands
+  if next(function_shortcut_mappings) == nil then
+    local shortcuts_loaded = load_shortcut_mappings()
+    if not shortcuts_loaded then
+      build_function_shortcut_mappings()
+      save_shortcut_mappings()
+    end
+  end
+  
+  if #paketti_commands == 0 then
+    renoise.app():show_message("No commands loaded yet. Open autocomplete first.")
+    return
+  end
+  
+  -- Test with a sample command
+  local test_command = nil
+  for _, cmd in ipairs(paketti_commands) do
+    if cmd.name and cmd.name:find("BPM") then
+      test_command = cmd
+      break
+    end
+  end
+  
+  if not test_command then
+    renoise.app():show_message("No BPM command found for testing")
+    return
+  end
+  
+  local debug_text = "Testing matching logic with command: '" .. test_command.name .. "'\n\n"
+  
+  -- Check what matches
+  local matches = {}
+  for mapping_key, shortcut in pairs(function_shortcut_mappings) do
+    if mapping_key:find(test_command.name, 1, true) then
+      table.insert(matches, {key = mapping_key, shortcut = shortcut})
+      if #matches <= 5 then -- Show first 5 matches
+        debug_text = debug_text .. "MATCH " .. #matches .. ": '" .. mapping_key .. "' -> " .. shortcut .. "\n"
+      end
+    end
+  end
+  
+  debug_text = debug_text .. "\nTotal matches: " .. #matches .. "\n"
+  
+  if #matches > 0 then
+    debug_text = debug_text .. "\nFirst match would return: [" .. matches[1].shortcut .. "]\n"
+  else
+    debug_text = debug_text .. "\nNo matches found\n"
+  end
+  
+  -- Also show some sample mapping keys for reference
+  debug_text = debug_text .. "\nSample mapping keys (first 5):\n"
+  local count = 0
+  for mapping_key, shortcut in pairs(function_shortcut_mappings) do
+    if count < 5 then
+      debug_text = debug_text .. (count + 1) .. ": '" .. mapping_key .. "' -> " .. shortcut .. "\n"
+      count = count + 1
+    else
+      break
+    end
+  end
+  
+  renoise.app():show_message(debug_text)
+end
+
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Function Search Debug:Debug Matching Logic...", invoke=pakettiDebugMatchingLogic}
+
+-- Debug function to trace the ACTUAL autocomplete display issue
+function pakettiDebugAutocompleteShortcuts()
+  -- Make sure everything is loaded
+  if #paketti_commands == 0 then
+    renoise.app():show_message("No commands loaded yet. Open autocomplete first.")
+    return
+  end
+  
+  if next(function_shortcut_mappings) == nil then
+    local shortcuts_loaded = load_shortcut_mappings()
+    if not shortcuts_loaded then
+      build_function_shortcut_mappings()
+      save_shortcut_mappings()
+    end
+  end
+  
+  local debug_text = "AUTOCOMPLETE SHORTCUT DEBUG:\n\n"
+  
+  -- Test with actual commands from the autocomplete
+  local test_commands = {}
+  for i, cmd in ipairs(paketti_commands) do
+    if i <= 5 and cmd.name then  -- Test with first 5 commands
+      table.insert(test_commands, cmd)
+    end
+  end
+  
+  debug_text = debug_text .. "Testing with " .. #test_commands .. " sample commands:\n\n"
+  
+  for i, cmd in ipairs(test_commands) do
+    debug_text = debug_text .. i .. ". Command: '" .. cmd.name .. "'\n"
+    debug_text = debug_text .. "   Category: " .. (cmd.category or "nil") .. "\n"
+    
+    -- Call the actual function that autocomplete uses
+    local shortcut_result = get_command_shortcut(cmd)
+    debug_text = debug_text .. "   get_command_shortcut() returned: '" .. shortcut_result .. "'\n"
+    
+    -- Show what the button text would be
+    local button_text = string.format("[%s] %s%s", cmd.category or "Unknown", cmd.name, shortcut_result)
+    debug_text = debug_text .. "   Button text: " .. button_text .. "\n\n"
+  end
+  
+  -- Show mapping count and some examples
+  local mapping_count = 0
+  for _ in pairs(function_shortcut_mappings) do mapping_count = mapping_count + 1 end
+  debug_text = debug_text .. "Total shortcut mappings: " .. mapping_count .. "\n\n"
+  
+  -- Show first few mappings
+  debug_text = debug_text .. "Sample mappings:\n"
+  local shown = 0
+  for mapping_key, shortcut in pairs(function_shortcut_mappings) do
+    if shown < 5 then
+      debug_text = debug_text .. (shown + 1) .. ": '" .. mapping_key .. "' -> '" .. shortcut .. "'\n"
+      shown = shown + 1
+    else
+      break
+    end
+  end
+  
+  renoise.app():show_message(debug_text)
+end
+
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Function Search Debug:Debug Autocomplete Shortcuts...", invoke=pakettiDebugAutocompleteShortcuts}
+
+-- Debug function to show actual mapping contents
+function pakettiShowMappingContents()
+  if next(function_shortcut_mappings) == nil then
+    local shortcuts_loaded = load_shortcut_mappings()
+    if not shortcuts_loaded then
+      build_function_shortcut_mappings()
+      save_shortcut_mappings()
+    end
+  end
+  
+  print("\n=== MAPPING CONTENTS DEBUG ===")
+  local count = 0
+  local total = 0
+  for _ in pairs(function_shortcut_mappings) do total = total + 1 end
+  
+  print("Total mappings: " .. total)
+  print("\nFirst 20 mappings:")
+  
+  -- Show first 20 mappings with full details
+  for mapping_key, shortcut in pairs(function_shortcut_mappings) do
+    if count < 20 then
+      print((count + 1) .. ": '" .. mapping_key .. "' -> '" .. shortcut .. "'")
+      count = count + 1
+    else
+      break
+    end
+  end
+  
+  if count == 0 then
+    print("No mappings found!")
+  end
+  
+  print("=== END MAPPING CONTENTS ===\n")
+end
+
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Function Search Debug:Show Mapping Contents...", invoke=pakettiShowMappingContents}
 
 -- Debug function to analyze multi-word search issues
 function debug_multi_word_search(search_text)
