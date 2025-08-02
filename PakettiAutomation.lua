@@ -2477,6 +2477,9 @@ function add_automation_points_for_notes()
     print("Created new automation envelope for parameter: " .. parameter.name)
   end
 
+  -- Keep track of how many points we add for summary
+  local points_added = 0
+
   -- Iterate through the lines in the pattern track to find notes
   for line_index = 1, pattern.number_of_lines do
     local line = pattern_track:line(line_index)
@@ -2488,17 +2491,21 @@ function add_automation_points_for_notes()
           -- Set the automation point at the line's position
           local value = 0.5 -- Default automation value (you can adjust this logic as needed)
           envelope:add_point_at(line_index, value)
-
-          renoise.app():show_status(
-            "Added automation point at line " .. line_index .. " with value " .. value
-          )
-          print("Added automation point at line " .. line_index .. " with value " .. value)
+          points_added = points_added + 1
+          break -- Found a note on this line, move to next line
         end
       end
     end
   end
 
-  renoise.app():show_status("Finished adding automation points for notes.")
+  -- Show summary instead of individual point notifications
+  if points_added > 0 then
+    renoise.app():show_status("Added " .. points_added .. " automation points for notes.")
+    print("Added " .. points_added .. " automation points for notes.")
+  else
+    renoise.app():show_status("No notes found in pattern.")
+    print("No notes found in pattern.")
+  end
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Generate Automation Points from Notes in Selected Track",invoke=function()

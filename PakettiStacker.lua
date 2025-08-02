@@ -40,6 +40,12 @@ local transpose_availability = {false, false, false, false, false, false, false}
 -- Observable for instrument changes
 local instrument_observable = nil
 
+-- Observable for pattern length changes
+local pattern_observable = nil
+
+-- Pattern navigation buttons (for dynamic updates)
+local pattern_buttons = {}
+
 -- User preference for volume controls (for v6.2+ users)
 local prefer_sliders_over_canvas = false
 
@@ -186,9 +192,9 @@ function PakettiStackerDrawVolumeCanvas(ctx)
     
     -- Draw bar outline (changes based on availability)
     if is_available then
-      ctx.stroke_color = {160, 120, 200, 255}  -- Lighter purple outline for available
+      ctx.stroke_color = {0, 0, 0, 255}  -- Black outline for available
     else
-      ctx.stroke_color = {80, 80, 80, 255}     -- Darker outline for unavailable
+      ctx.stroke_color = {0, 0, 0, 255}  -- Black outline for unavailable
     end
     ctx.line_width = 1
     ctx:stroke_rect(x + 2, y, bar_width - 4, bar_height)
@@ -397,12 +403,51 @@ function fix_sample_velocity_mappings()
   renoise.app():show_status("Velocity mappings updated, vel->vol set to OFF for " .. num_samples .. " samples.")
 end
 
+-- Function to update pattern navigation button texts based on current pattern length
+function update_pattern_buttons()
+  local song = renoise.song()
+  local pattern_length = song.selected_pattern.number_of_lines
+  
+  for i = 1, 8 do
+    if pattern_buttons[i] then
+      local row_number
+      
+      if pattern_length >= 8 then
+        -- Original logic for 8+ row patterns: divide into 8 equal segments
+        local segment = math.floor(pattern_length / 8)
+        row_number = segment * (i - 1)
+        if i == 8 then
+          row_number = segment * 7
+        end
+      else
+        -- Edge case for patterns shorter than 8 rows: repeat each row to fill all 8 buttons
+        row_number = math.floor((i - 1) * pattern_length / 8)
+      end
+      
+      pattern_buttons[i].text = string.format("%02d", row_number)
+    end
+  end
+end
+
 function jump_to_pattern_segment(segment_number)
   local song=renoise.song()
   song.transport.follow_player = false
   local pattern_length = song.selected_pattern.number_of_lines
-  local segment = math.floor(pattern_length / 8)
-  song.selected_line_index = segment * (segment_number - 1) + 1  -- Added +1 to start from first row
+  
+  local target_row
+  if pattern_length >= 8 then
+    -- Original logic for 8+ row patterns: divide into 8 equal segments
+    local segment = math.floor(pattern_length / 8)
+    target_row = segment * (segment_number - 1)
+    if segment_number == 8 then
+      target_row = segment * 7
+    end
+  else
+    -- Edge case for patterns shorter than 8 rows: repeat each row to fill all 8 buttons
+    target_row = math.floor((segment_number - 1) * pattern_length / 8)
+  end
+  
+  song.selected_line_index = target_row + 1  -- +1 because Renoise uses 1-based indexing
   returnpe()
 end
 -- Write notes with ramp-up velocities (01 to 127)
@@ -707,6 +752,69 @@ function on_switch_changed(selected_value)
   end
 end
 
+-- Variables for progress dialog
+local duplicate_all_slicer = nil
+local duplicate_all_progress_dialog = nil
+local duplicate_all_progress_vb = nil
+
+-- Function to duplicate samples with all octave transpositions (with progress dialog)
+function duplicate_all_octaves_process()
+  local transpose_values = {-36, -24, -12, 12, 24, 36}
+  
+  for i, transpose in ipairs(transpose_values) do
+    -- Update progress text if dialog exists
+    if duplicate_all_progress_dialog and duplicate_all_progress_vb then
+      duplicate_all_progress_vb.views.progress_text.text = 
+        string.format("Processing transpose %+d... (%d/%d)", transpose, i, #transpose_values)
+    end
+    
+    -- Check for cancellation
+    if duplicate_all_slicer and duplicate_all_slicer:was_cancelled() then
+      renoise.app():show_status("All octaves operation cancelled")
+      return
+    end
+    
+    PakettiDuplicateInstrumentSamplesWithTranspose(transpose, true)
+    
+    -- Yield control back to UI after each transpose
+    coroutine.yield()
+  end
+  
+  -- Update canvas after all operations are complete
+  if is_canvas_api_available() then
+    update_transpose_availability()
+    if volume_canvas then
+      volume_canvas:update()
+    end
+  end
+  
+  -- Close progress dialog
+  if duplicate_all_progress_dialog and duplicate_all_progress_dialog.visible then
+    duplicate_all_progress_dialog:close()
+  end
+  
+  renoise.app():show_status("All octave samples created: -36, -24, -12, +12, +24, +36")
+end
+
+-- Function to duplicate samples with all octave transpositions
+function duplicate_all_octaves()
+  -- Don't start if already running
+  if duplicate_all_slicer and duplicate_all_slicer:running() then
+    renoise.app():show_status("All octaves operation already in progress...")
+    return
+  end
+  
+  -- Create ProcessSlicer
+  duplicate_all_slicer = ProcessSlicer(duplicate_all_octaves_process)
+  
+  -- Create progress dialog
+  duplicate_all_progress_dialog, duplicate_all_progress_vb = 
+    duplicate_all_slicer:create_dialog("Processing All Octaves")
+  
+  -- Start the process
+  duplicate_all_slicer:start()
+end
+
 function pakettiStackerDialog(proceed_with_stacking, on_switch_changed, PakettiIsolateSlicesToInstrument)
   if dialog and dialog.visible then
   dialog:close()
@@ -783,6 +891,16 @@ function pakettiStackerDialog(proceed_with_stacking, on_switch_changed, PakettiI
 
   -- Initialize volume values by reading actual sample volumes
   update_volume_controls_for_instrument()
+
+  -- Create pattern navigation buttons with dynamic text
+  for i = 1, 8 do
+    local segment_num = i -- Create local copy for closure
+    pattern_buttons[i] = vb:button{
+      text="00", -- Will be updated by update_pattern_buttons()
+      width=37,
+      notifier=function() jump_to_pattern_segment(segment_num) end
+    }
+  end
 
   -- Create notifier functions for volume sliders
   local function create_volume_notifier(transpose_value, label_index)
@@ -1046,7 +1164,7 @@ vb:switch {
 }},
 vb:row{
   vb:button{
-    text="Follow Pattern",width=160,
+    text="Follow Pattern",width=104,
     notifier=function()
       if renoise.song().transport.follow_player then
         renoise.song().transport.follow_player = false
@@ -1054,23 +1172,24 @@ vb:row{
         renoise.song().transport.follow_player = true
       end
     returnpe() end},
-   vb:button{text="1/8", width=30,notifier=function() jump_to_pattern_segment(1) end},
-   vb:button{text="2/8", width=30,notifier=function() jump_to_pattern_segment(2) end},
-   vb:button{text="3/8", width=30,notifier=function() jump_to_pattern_segment(3) end},
-   vb:button{text="4/8", width=30,notifier=function() jump_to_pattern_segment(4) end},
-   vb:button{text="5/8", width=30,notifier=function() jump_to_pattern_segment(5) end},
-   vb:button{text="6/8", width=30,notifier=function() jump_to_pattern_segment(6) end},
-   vb:button{text="7/8", width=30,notifier=function() jump_to_pattern_segment(7) end},
-   vb:button{text="8/8", width=30,notifier=function() jump_to_pattern_segment(8) end}},
+   pattern_buttons[1],
+   pattern_buttons[2],
+   pattern_buttons[3],
+   pattern_buttons[4],
+   pattern_buttons[5],
+   pattern_buttons[6],
+   pattern_buttons[7],
+   pattern_buttons[8]},
 
 -- Sample Duplication with Transpose
 vb:row{vb:text{text="Duplicate Samples",width=130,font="bold",style="strong"},
-  vb:button{text="-36",width=45,notifier=function() PakettiDuplicateInstrumentSamplesWithTranspose(-36); if is_canvas_api_available() then update_transpose_availability(); if volume_canvas then volume_canvas:update() end end end},
-  vb:button{text="-24",width=45,notifier=function() PakettiDuplicateInstrumentSamplesWithTranspose(-24); if is_canvas_api_available() then update_transpose_availability(); if volume_canvas then volume_canvas:update() end end end},
-  vb:button{text="-12",width=45,notifier=function() PakettiDuplicateInstrumentSamplesWithTranspose(-12); if is_canvas_api_available() then update_transpose_availability(); if volume_canvas then volume_canvas:update() end end end},
-  vb:button{text="+12",width=45,notifier=function() PakettiDuplicateInstrumentSamplesWithTranspose(12); if is_canvas_api_available() then update_transpose_availability(); if volume_canvas then volume_canvas:update() end end end},
-  vb:button{text="+24",width=45,notifier=function() PakettiDuplicateInstrumentSamplesWithTranspose(24); if is_canvas_api_available() then update_transpose_availability(); if volume_canvas then volume_canvas:update() end end end},
-  vb:button{text="+36",width=45,notifier=function() PakettiDuplicateInstrumentSamplesWithTranspose(36); if is_canvas_api_available() then update_transpose_availability(); if volume_canvas then volume_canvas:update() end end end}
+  vb:button{text="-36",width=40,notifier=function() PakettiDuplicateInstrumentSamplesWithTranspose(-36); if is_canvas_api_available() then update_transpose_availability(); if volume_canvas then volume_canvas:update() end end end},
+  vb:button{text="-24",width=40,notifier=function() PakettiDuplicateInstrumentSamplesWithTranspose(-24); if is_canvas_api_available() then update_transpose_availability(); if volume_canvas then volume_canvas:update() end end end},
+  vb:button{text="-12",width=40,notifier=function() PakettiDuplicateInstrumentSamplesWithTranspose(-12); if is_canvas_api_available() then update_transpose_availability(); if volume_canvas then volume_canvas:update() end end end},
+  vb:button{text="+12",width=40,notifier=function() PakettiDuplicateInstrumentSamplesWithTranspose(12); if is_canvas_api_available() then update_transpose_availability(); if volume_canvas then volume_canvas:update() end end end},
+  vb:button{text="+24",width=40,notifier=function() PakettiDuplicateInstrumentSamplesWithTranspose(24); if is_canvas_api_available() then update_transpose_availability(); if volume_canvas then volume_canvas:update() end end end},
+  vb:button{text="+36",width=40,notifier=function() PakettiDuplicateInstrumentSamplesWithTranspose(36); if is_canvas_api_available() then update_transpose_availability(); if volume_canvas then volume_canvas:update() end end end},
+  vb:button{text="All",width=30,notifier=function() duplicate_all_octaves() end}
 },
 
 -- Volume controls  
@@ -1128,6 +1247,15 @@ steppers_content_column
     instrument_observable:add_notifier(update_volume_controls_for_instrument)
   end
   
+  -- Set up pattern length observer
+  if not pattern_observable then
+    pattern_observable = renoise.song().selected_pattern.number_of_lines_observable
+    pattern_observable:add_notifier(update_pattern_buttons)
+  end
+  
+  -- Initialize pattern button texts
+  update_pattern_buttons()
+  
   -- Initialize steppers section visibility
   update_steppers_visibility()
   
@@ -1137,6 +1265,10 @@ steppers_content_column
     if instrument_observable then
       pcall(function() instrument_observable:remove_notifier(update_volume_controls_for_instrument) end)
       instrument_observable = nil
+    end
+    if pattern_observable then
+      pcall(function() pattern_observable:remove_notifier(update_pattern_buttons) end)
+      pattern_observable = nil
     end
     original_close(self)
   end

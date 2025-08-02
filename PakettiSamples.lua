@@ -498,7 +498,7 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti PitchBend Drumkit Sample Loader",invoke=function() pitchBendDrumkitLoader() end}
 renoise.tool():add_midi_mapping{name="Paketti:Midi Paketti PitchBend Drumkit Sample Loader",invoke=function(message) if message:is_trigger() then pitchBendDrumkitLoader() end end}
 
-function loadRandomDrumkitSamples(num_samples)
+function loadRandomDrumkitSamples(num_samples, create_automation_device)
     -- Seed the random number generator with current time
     math.randomseed(os.time())
     -- Add some random calls to further randomize the sequence
@@ -630,6 +630,20 @@ function loadRandomDrumkitSamples(num_samples)
 
         if dialog and dialog.visible then
             dialog:close()
+        end
+
+        -- Add the *Instr. Macros device like pitchBendDrumkitLoader does
+        if create_automation_device ~= false and preferences.pakettiLoaderDontCreateAutomationDevice.value == false then 
+            -- Load the *Instr. Macros device and rename it
+            if song.selected_track.type == 2 then 
+                renoise.app():show_status("*Instr. Macro Device will not be added to the Master track.") 
+            else
+                loadnative("Audio/Effects/Native/*Instr. Macros")
+                
+                local macro_device = song.selected_track:device(2)
+                macro_device.display_name = instrument_slot_hex .. "_Drumkit"
+                song.selected_track.devices[2].is_maximized = false
+            end
         end
 
         -- Show summary of failed loads if any
@@ -3787,24 +3801,24 @@ renoise.tool():add_keybinding{name="Global:Paketti:Load Drumkit with Overlap Cyc
 DrumKitToOverlay(1) end}
 -------
 ---------------
-function PakettiDuplicateInstrumentSamplesWithTranspose(transpose_amount)
+function PakettiDuplicateInstrumentSamplesWithTranspose(transpose_amount, quiet)
   local song=renoise.song()
   local instrument = song.selected_instrument
   
   if not instrument then
-    renoise.app():show_status("No instrument selected.")
+    if not quiet then renoise.app():show_status("No instrument selected.") end
     return
   end
 
   if #instrument.samples == 0 then
-    renoise.app():show_status("No samples in instrument.")
+    if not quiet then renoise.app():show_status("No samples in instrument.") end
     return
   end
 
   -- Check ALL samples for slice markers
   for _, sample in ipairs(instrument.samples) do
     if #sample.slice_markers > 0 then
-      renoise.app():show_status("Cannot duplicate: Instrument contains sliced samples.")
+      if not quiet then renoise.app():show_status("Cannot duplicate: Instrument contains sliced samples.") end
       return
     end
   end
@@ -3818,7 +3832,7 @@ function PakettiDuplicateInstrumentSamplesWithTranspose(transpose_amount)
   end
 
   if #original_samples == 0 then
-    renoise.app():show_status("No original samples found to duplicate.")
+    if not quiet then renoise.app():show_status("No original samples found to duplicate.") end
     return
   end
 
@@ -3838,7 +3852,7 @@ function PakettiDuplicateInstrumentSamplesWithTranspose(transpose_amount)
   -- Check if this specific transpose already exists
   local requested_transpose = (transpose_amount >= 0 and "+" or "") .. transpose_amount
   if seen_transposes[requested_transpose] then
-    renoise.app():show_status(string.format("Samples with transpose %s already exist.", requested_transpose))
+    if not quiet then renoise.app():show_status(string.format("Samples with transpose %s already exist.", requested_transpose)) end
     return
   end
 
@@ -3896,8 +3910,8 @@ function PakettiDuplicateInstrumentSamplesWithTranspose(transpose_amount)
     sample_info.sample.volume = sample_info.target_volume
   end
 
-  renoise.app():show_status(string.format("Duplicated %d samples with transpose %d", 
-    #original_samples, transpose_amount))
+  if not quiet then renoise.app():show_status(string.format("Duplicated %d samples with transpose %d", 
+    #original_samples, transpose_amount)) end
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Duplicate All Samples at -36 Transpose",invoke=function() PakettiDuplicateInstrumentSamplesWithTranspose(-36) end}

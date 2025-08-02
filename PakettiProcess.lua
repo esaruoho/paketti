@@ -488,57 +488,89 @@ function normalize_all_samples_in_instrument()
         local buffer = sample.sample_buffer
         local num_channels = buffer.number_of_channels
         local num_frames = buffer.number_of_frames
+        local buffer_prepared = false
 
-        buffer:prepare_sample_data_changes()
+        -- Prepare sample data changes with error handling
+        local success, error_msg = pcall(function()
+          buffer:prepare_sample_data_changes()
+          buffer_prepared = true
+        end)
         
-        -- Set the selected sample index so user can see which sample is being processed
-        renoise.song().selected_sample_index = sample_idx
+        if not success then
+          print("Error preparing sample buffer for " .. sample_name .. ": " .. tostring(error_msg))
+          skipped_samples = skipped_samples + 1
+        else
+          -- Set the selected sample index so user can see which sample is being processed
+          renoise.song().selected_sample_index = sample_idx
 
-        -- Find peak value across all channels
-        local max_peak = 0
-        for frame = 1, num_frames, CHUNK_SIZE do
-          local chunk_end = math.min(frame + CHUNK_SIZE - 1, num_frames)
-          for channel = 1, num_channels do
-            for f = frame, chunk_end do
-              local sample_value = buffer:sample_data(channel, f)
-              max_peak = math.max(max_peak, math.abs(sample_value))
-            end
-          end
+          -- Find peak value across all channels
+          local max_peak = 0
+          local processing_complete = false
           
+          -- Check for cancellation before peak analysis
           if slicer:was_cancelled() then
-            buffer:finalize_sample_data_changes()
+            if buffer_prepared then
+              buffer:finalize_sample_data_changes()
+            end
             return
           end
           
-          coroutine.yield()
-        end
-
-        -- Skip if already normalized
-        if math.abs(max_peak - 1.0) < 0.0001 then
-          buffer:finalize_sample_data_changes()
-          skipped_samples = skipped_samples + 1
-        else
-          -- Apply normalization
-          local scale = 1.0 / max_peak
           for frame = 1, num_frames, CHUNK_SIZE do
             local chunk_end = math.min(frame + CHUNK_SIZE - 1, num_frames)
             for channel = 1, num_channels do
               for f = frame, chunk_end do
                 local sample_value = buffer:sample_data(channel, f)
-                buffer:set_sample_data(channel, f, sample_value * scale)
+                max_peak = math.max(max_peak, math.abs(sample_value))
               end
             end
             
             if slicer:was_cancelled() then
-              buffer:finalize_sample_data_changes()
+              if buffer_prepared then
+                buffer:finalize_sample_data_changes()
+              end
               return
             end
             
             coroutine.yield()
           end
 
-          buffer:finalize_sample_data_changes()
-          processed_samples = processed_samples + 1
+          -- Skip if already normalized
+          if math.abs(max_peak - 1.0) < 0.0001 then
+            if buffer_prepared then
+              buffer:finalize_sample_data_changes()
+              buffer_prepared = false
+            end
+            skipped_samples = skipped_samples + 1
+            processing_complete = true
+          else
+            -- Apply normalization
+            local scale = 1.0 / max_peak
+            for frame = 1, num_frames, CHUNK_SIZE do
+              local chunk_end = math.min(frame + CHUNK_SIZE - 1, num_frames)
+              for channel = 1, num_channels do
+                for f = frame, chunk_end do
+                  local sample_value = buffer:sample_data(channel, f)
+                  buffer:set_sample_data(channel, f, sample_value * scale)
+                end
+              end
+              
+              if slicer:was_cancelled() then
+                if buffer_prepared then
+                  buffer:finalize_sample_data_changes()
+                end
+                return
+              end
+              
+              coroutine.yield()
+            end
+
+            if buffer_prepared then
+              buffer:finalize_sample_data_changes()
+              buffer_prepared = false
+            end
+            processed_samples = processed_samples + 1
+            processing_complete = true
+          end
         end
       end
     end

@@ -47,6 +47,13 @@ end
 -- Function to save selected sample to temp and open with the selected app
 function saveSelectedSampleToTempAndOpen(app_path)
     if renoise.song() == nil then return end
+    
+    -- Check if app path is valid
+    if app_path == nil or app_path == "" or app_path == "None" then
+        renoise.app():show_status("No application selected. Please configure an app first.")
+        return
+    end
+    
     local song=renoise.song()
     if song.selected_sample == nil or not song.selected_sample.sample_buffer.has_sample_data then
         renoise.app():show_status("No sample data available.")
@@ -384,7 +391,9 @@ function appSelectionLaunchApp(app_path)
   end
 
   os.execute(command)
-  renoise.app():show_status("Launched app " .. app_path:match("([^/\\]+)%.app$"))
+  -- Extract app name from path, handling different platforms
+  local app_name = app_path:match("([^/\\]+)%.app$") or app_path:match("([^/\\]+)$") or app_path
+  renoise.app():show_status("Launched app " .. app_name)
 end
 
 function appSelectionRemoveMenuEntries()
@@ -423,7 +432,7 @@ function appSelectionCreateMenuEntries()
 --      local app_name = app_path:match("([^/\\]+)%.app$")
 local prefix = (i == 1) and "--" or ""  -- Add prefix only for first item
   
-local app_name = app_path:match("([^/\\]+)%.app$") or app_path:match("([^/\\]+)$")
+local app_name = app_path:match("([^/\\]+)%.app$") or app_path:match("([^/\\]+)$") or app_path
       local menu_entry_name = "Instrument Box:Paketti:Launch App:Launch App "..i.." "..app_name
       if not renoise.tool():has_menu_entry(menu_entry_name) then
         renoise.tool():add_menu_entry{name=menu_entry_name,invoke=function() appSelectionLaunchApp(app_path) end}

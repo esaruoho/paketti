@@ -991,7 +991,7 @@ end
         renoise.song().selected_track_index = track_index
         renoise.song().selected_instrument_index = instrument_index
       
-        local instrument = loadRandomDrumkitSamples(120)
+        local instrument = loadRandomDrumkitSamples(120, false)
         if not instrument then
           return
         end
