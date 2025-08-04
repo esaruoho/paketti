@@ -361,6 +361,11 @@ function loadnative(effect, name, preset_path, force_insertion_order)
           sample_devices[checkline].display_name = name 
         end
         
+        -- For sample FX chains, always open external editor regardless of preference
+        if device.external_editor_available then
+          device.external_editor_visible = true
+        end
+        
         -- Show status message for successful load
         local instrument_name = s.selected_instrument.name
         local chain_name = chain.name
@@ -384,8 +389,7 @@ function loadnative(effect, name, preset_path, force_insertion_order)
     end
     checkline = math.min(checkline, #sdevices + 1)
     
-    w.lower_frame_is_visible = true
-    w.active_lower_frame = 1
+    -- Check preference for device load behavior (will open dialog after device is loaded)
 
     local track_type = renoise.song().selected_track.type
     local device_name = get_device_name(effect)
@@ -461,6 +465,14 @@ function loadnative(effect, name, preset_path, force_insertion_order)
       end
       if name ~= nil then
         sdevices[checkline].display_name = name 
+      end
+      
+      -- Check preference for device load behavior - open external editor if available
+      if preferences.pakettiDeviceLoadBehaviour.value == 1 and device.external_editor_available then
+        device.external_editor_visible = true
+      elseif preferences.pakettiDeviceLoadBehaviour.value == 2 then
+        -- Open Selected Parameter Dialog
+        PakettiCanvasExperimentsInit()
       end
       
       -- Show status message for successful load
@@ -739,7 +751,9 @@ function loadvst(vstname, name, preset_path, force_insertion_order)
       if inserted_device.name == "AU: Koen Tanghe @ Smartelectronix: KTGranulator" then 
         return
       end
-      inserted_device.external_editor_visible = true 
+      
+      -- For sample FX chains, always open external editor regardless of preference
+      inserted_device.external_editor_visible = true
       inserted_device.is_maximized = false
 
       -- Additional device-specific parameter adjustments
@@ -848,7 +862,15 @@ function loadvst(vstname, name, preset_path, force_insertion_order)
     if inserted_device.name == "AU: Koen Tanghe @ Smartelectronix: KTGranulator" then 
       return
     end
-    inserted_device.external_editor_visible = true
+    
+    -- Check preference for device load behavior
+    if preferences.pakettiDeviceLoadBehaviour.value == 1 then
+      -- Open External Editor (default behavior)
+      inserted_device.external_editor_visible = true
+    else
+      -- Open Selected Parameter Dialog
+      PakettiCanvasExperimentsInit()
+    end
     inserted_device.is_maximized = false
     renoise.song().selected_device_index = checkline
 

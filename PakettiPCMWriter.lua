@@ -1,5 +1,6 @@
 local vb = renoise.ViewBuilder()
 local DIALOG_TITLE = "Paketti Single Cycle Waveform Writer"
+local separator = package.config:sub(1,1)  -- Gets \ for Windows, / for Unix
 
 -- Live Pickup Mode - Load current sample into editor
 local live_pickup_mode = false
@@ -5253,6 +5254,291 @@ function PCMWriterExportWaveBToSample()
   renoise.app():show_status(string.format("Wave B exported with %s interpolation, oversampling %s, auto-pitch correction", sample_interpolation_mode, sample_oversample_enabled and "enabled" or "disabled"))
 end
 
+function PCMWriterExportWaveAAndBToSample()
+  local song = renoise.song()
+  local inst = song.selected_instrument
+  
+  -- Always create a new instrument for A&B export
+  song:insert_instrument_at(song.selected_instrument_index + 1)
+  song.selected_instrument_index = song.selected_instrument_index + 1
+  inst = song.selected_instrument
+  
+  -- Load the pre-configured 12st_WT.xrni instrument
+  local preset_path = "Presets" .. separator .. "12st_WT.xrni"
+  
+  -- Function to check if a file exists
+  local function file_exists(file)
+    local f = io.open(file, "r")
+    if f then f:close() end
+    return f ~= nil
+  end
+
+  -- Check if the file exists, fallback if needed
+  if not file_exists(preset_path) then
+    preset_path = "Presets" .. separator .. "12st_Pitchbend.xrni"
+    renoise.app():show_status("12st_WT.xrni not found, using fallback 12st_Pitchbend.xrni")
+  end
+
+  print("Loading instrument from path: " .. preset_path)
+  renoise.app():load_instrument(preset_path)
+  inst = song.selected_instrument
+  
+  -- Create first sample slot for Wave A
+  local sample_slot_a = #inst.samples + 1
+  inst:insert_sample_at(sample_slot_a)
+  
+  local sample_a = inst:sample(sample_slot_a)
+  local buffer_a = sample_a.sample_buffer
+  
+  buffer_a:create_sample_data(44100, 16, 1, wave_size)
+  buffer_a:prepare_sample_data_changes()
+  
+  -- Export Wave A to first slot
+  for i = 1, wave_size do
+    local normalized_value = (wave_data_a[i] - 32768) / 32768
+    buffer_a:set_sample_data(1, i, normalized_value)
+  end
+  buffer_a:finalize_sample_data_changes()
+  
+  sample_a.name = string.format("PCM Wave A (%d frames)", wave_size)
+  
+  -- Enable loop mode and set properties for Wave A
+  sample_a.loop_mode = renoise.Sample.LOOP_MODE_FORWARD
+  sample_a.loop_start = 1
+  sample_a.loop_end = wave_size
+  
+  -- AUTOMATIC PITCH CORRECTION for Wave A
+  local pitch_correction_a = calculate_pitch_correction(44100, wave_size, 1)
+  local correction_status_a = ""
+  
+  -- Only apply correction if deviation is significant (>2 cents)
+  local cents_deviation_a = math.abs(pitch_correction_a.cents)
+  if cents_deviation_a > 2 then
+    sample_a.transpose = pitch_correction_a.transpose
+    sample_a.fine_tune = pitch_correction_a.fine_tune
+    correction_status_a = string.format(" -> Auto-tuned to %s (T:%d, F:%d)", 
+      pitch_correction_a.note_name, pitch_correction_a.transpose, pitch_correction_a.fine_tune)
+    sample_a.name = sample_a.name .. correction_status_a
+  end
+  
+  -- Set interpolation mode for Wave A
+  if sample_interpolation_mode == "linear" then
+    sample_a.interpolation_mode = renoise.Sample.INTERPOLATE_LINEAR
+  elseif sample_interpolation_mode == "cubic" then
+    sample_a.interpolation_mode = renoise.Sample.INTERPOLATE_CUBIC
+  elseif sample_interpolation_mode == "sinc" then
+    sample_a.interpolation_mode = renoise.Sample.INTERPOLATE_SINC
+  elseif sample_interpolation_mode == "none" then
+    sample_a.interpolation_mode = renoise.Sample.INTERPOLATE_NONE
+  else
+    sample_a.interpolation_mode = renoise.Sample.INTERPOLATE_LINEAR
+  end
+  
+  sample_a.oversample_enabled = sample_oversample_enabled
+  
+  -- Create second sample slot for Wave B
+  local sample_slot_b = #inst.samples + 1
+  inst:insert_sample_at(sample_slot_b)
+  song.selected_sample_index = sample_slot_b
+  
+  local sample_b = inst:sample(sample_slot_b)
+  local buffer_b = sample_b.sample_buffer
+  
+  buffer_b:create_sample_data(44100, 16, 1, wave_size)
+  buffer_b:prepare_sample_data_changes()
+  
+  -- Export Wave B to second slot
+  for i = 1, wave_size do
+    local normalized_value = (wave_data_b[i] - 32768) / 32768
+    buffer_b:set_sample_data(1, i, normalized_value)
+  end
+  buffer_b:finalize_sample_data_changes()
+  
+  sample_b.name = string.format("PCM Wave B (%d frames)", wave_size)
+  
+  -- Enable loop mode and set properties for Wave B
+  sample_b.loop_mode = renoise.Sample.LOOP_MODE_FORWARD
+  sample_b.loop_start = 1
+  sample_b.loop_end = wave_size
+  
+  -- AUTOMATIC PITCH CORRECTION for Wave B
+  local pitch_correction_b = calculate_pitch_correction(44100, wave_size, 1)
+  local correction_status_b = ""
+  
+  -- Only apply correction if deviation is significant (>2 cents)
+  local cents_deviation_b = math.abs(pitch_correction_b.cents)
+  if cents_deviation_b > 2 then
+    sample_b.transpose = pitch_correction_b.transpose
+    sample_b.fine_tune = pitch_correction_b.fine_tune
+    correction_status_b = string.format(" -> Auto-tuned to %s (T:%d, F:%d)", 
+      pitch_correction_b.note_name, pitch_correction_b.transpose, pitch_correction_b.fine_tune)
+    sample_b.name = sample_b.name .. correction_status_b
+  end
+  
+  -- Set interpolation mode for Wave B
+  if sample_interpolation_mode == "linear" then
+    sample_b.interpolation_mode = renoise.Sample.INTERPOLATE_LINEAR
+  elseif sample_interpolation_mode == "cubic" then
+    sample_b.interpolation_mode = renoise.Sample.INTERPOLATE_CUBIC
+  elseif sample_interpolation_mode == "sinc" then
+    sample_b.interpolation_mode = renoise.Sample.INTERPOLATE_SINC
+  elseif sample_interpolation_mode == "none" then
+    sample_b.interpolation_mode = renoise.Sample.INTERPOLATE_NONE
+  else
+    sample_b.interpolation_mode = renoise.Sample.INTERPOLATE_LINEAR
+  end
+  
+  sample_b.oversample_enabled = sample_oversample_enabled
+  
+  -- Assign each sample to its corresponding FX chain (the 12st_WT.xrni already has chains configured)
+  sample_a.device_chain_index = 1
+  sample_b.device_chain_index = 2
+  
+  -- Set FX chain names to match sample names for visual consistency
+  if #inst.sample_device_chains >= 1 then
+    inst.sample_device_chains[1].name = sample_a.name
+  end
+  if #inst.sample_device_chains >= 2 then
+    inst.sample_device_chains[2].name = sample_b.name
+  end
+  
+  -- Add track device chain setup for controlling the instrument
+  -- === TRACK DEVICE CHAIN RECREATION ===
+  -- Loading device 2: *Instr. Macros (*Instr. Macros)
+  loadnative("Audio/Effects/Native/*Instr. Macros", nil, nil, false)
+  if renoise.song().selected_device then
+    renoise.song().selected_device.display_name = "PAKETTI_PLACEHOLDER_002"
+  else
+    renoise.app():show_status("Warning: Could not set display name for *Instr. Macros device - no selected device")
+  end
+
+  -- Loading device 1: *LFO (*LFO)
+  loadnative("Audio/Effects/Native/*LFO", nil, nil, false)
+  if renoise.song().selected_device then
+    renoise.song().selected_device.display_name = "PAKETTI_PLACEHOLDER_001"
+  else
+    renoise.app():show_status("Warning: Could not set display name for *LFO device - no selected device")
+  end
+  -- PHASE 2: Apply XML to ALL devices (Last to First)
+  -- Apply XML for device 2: *Instr. Macros
+  for i, device in ipairs(renoise.song().selected_track.devices) do
+    if device.display_name == "PAKETTI_PLACEHOLDER_002" then
+      device.active_preset_data = [=[<?xml version="1.0" encoding="UTF-8"?>
+<FilterDevicePreset doc_version="14">
+  <DeviceSlot type="InstrumentMacroDevice">
+    <IsMaximized>false</IsMaximized>
+  </DeviceSlot>
+</FilterDevicePreset>
+]=]
+      break
+    end
+  end
+  -- Apply XML for device 1: *LFO
+  for i, device in ipairs(renoise.song().selected_track.devices) do
+    if device.display_name == "PAKETTI_PLACEHOLDER_001" then
+      device.active_preset_data = [=[<?xml version="1.0" encoding="UTF-8"?>
+<FilterDevicePreset doc_version="14">
+  <DeviceSlot type="LfoDevice">
+    <IsMaximized>true</IsMaximized>
+    <Amplitude>
+      <Value>0.0</Value>
+    </Amplitude>
+    <Offset>
+      <Value>0.0</Value>
+    </Offset>
+    <Frequency>
+      <Value>0.93749994</Value>
+    </Frequency>
+    <Type>
+      <Value>0.0</Value>
+    </Type>
+    <CustomEnvelope>
+      <PlayMode>Lines</PlayMode>
+      <Length>64</Length>
+      <ValueQuantum>0.0</ValueQuantum>
+      <Polarity>Unipolar</Polarity>
+      <Points>
+        <Point>0,0.0,0.0</Point>
+        <Point>63,1.0,0.0</Point>
+      </Points>
+    </CustomEnvelope>
+    <CustomEnvelopeOneShot>false</CustomEnvelopeOneShot>
+    <UseAdjustedEnvelopeLength>true</UseAdjustedEnvelopeLength>
+  </DeviceSlot>
+</FilterDevicePreset>
+]=]
+      break
+    end
+  end
+  -- PHASE 3: Apply Parameters to ALL devices (Last to First)
+  -- Apply parameters for device 2: *Instr. Macros
+  for i, device in ipairs(renoise.song().selected_track.devices) do
+    if device.display_name == "PAKETTI_PLACEHOLDER_002" then
+      device.parameters[2].value = 1
+      device.parameters[3].value = 0
+      device.parameters[4].value = 0
+      device.parameters[5].value = 0
+      device.parameters[6].value = 0
+      device.parameters[7].value = 0
+      device.parameters[8].value = 0.99599993228912
+      device.parameters[10].value = 0.5
+      break
+    end
+  end
+  -- Apply parameters for device 1: *LFO
+  for i, device in ipairs(renoise.song().selected_track.devices) do
+    if device.display_name == "PAKETTI_PLACEHOLDER_001" then
+      device.parameters[2].value = 2
+      device.parameters[3].value = 10
+      device.parameters[4].value = 0
+      break
+    end
+  end
+  -- PHASE 5: Apply Device Properties to ALL devices (Last to First)
+  -- Apply properties for device 2: *Instr. Macros
+  for i, device in ipairs(renoise.song().selected_track.devices) do
+    if device.display_name == "PAKETTI_PLACEHOLDER_002" then
+      device.display_name = "*Instr. Macros"
+      device.is_maximized = false
+      device.is_active = true
+      break
+    end
+  end
+  -- Apply properties for device 1: *LFO
+  for i, device in ipairs(renoise.song().selected_track.devices) do
+    if device.display_name == "PAKETTI_PLACEHOLDER_001" then
+      -- Keeping default LFO name "*LFO" - allowing parameter-based renaming
+      device.display_name = "Wavetable Mod *LFO"
+      device.is_maximized = true
+      device.parameters[4].show_in_mixer = true
+      device.parameters[5].show_in_mixer = true
+      device.parameters[6].show_in_mixer = true      
+      device.is_active = true
+      if device.external_editor_available then
+        device.external_editor_visible = false
+      end
+      break
+    end
+  end
+  
+  -- Set instrument name to reflect both waves
+  inst.name = string.format("PCM Waves A&B (%d frames)", wave_size)
+  if correction_status_a ~= "" or correction_status_b ~= "" then
+    inst.name = inst.name .. " -> Auto-tuned"
+  end
+  
+  -- Remove all placeholder samples if they exist
+  PCMWriterRemovePlaceholderSamples(inst, sample_slot_b)
+  
+  -- Auto-enter Live Pickup Mode if 12st_WT setup is detected
+  if PCMWriterDetect12stWTSetup() then
+    print("DEBUG: 12st_WT setup detected, auto-entering Live Pickup Mode")
+    PCMWriterEnterLivePickupMode()
+  end
+  
+  renoise.app():show_status(string.format("Waves A&B exported to new instrument with %s interpolation, oversampling %s, auto-pitch correction", sample_interpolation_mode, sample_oversample_enabled and "enabled" or "disabled"))
+end
+
 -- Remaining selection operation functions
 function PCMWriterInvertSelection()
   -- Preserve cursor position
@@ -5830,9 +6116,61 @@ local function update_dialog_on_selection_change()
     return
   end
   
-  -- Load the new sample into the PCM Writer
-  print("-- Live Pickup Mode: Auto-loading new sample: " .. new_sample.name)
-  PCMWriterLoadSampleToWaveform()
+  -- Enhanced logic for 12st_WT setup: switch wave edit mode instead of loading sample
+  local is_12st_wt_setup = PCMWriterDetect12stWTSetup()
+  
+  if is_12st_wt_setup then
+    -- In 12st_WT setup, sample slot selection should switch wave edit mode
+    if new_sample_index == 1 and current_wave_edit ~= "A" then
+      -- Switch to Wave A edit mode
+      print("-- Live Pickup Mode (12st_WT): Switching to Wave A edit mode")
+      current_wave_edit = "A"
+      
+      -- Update button colors if dialog is visible
+      if pcm_dialog and pcm_dialog.visible then
+        local edit_a_btn = vb.views.edit_a_btn
+        local edit_b_btn = vb.views.edit_b_btn
+        if edit_a_btn then edit_a_btn.color = COLOR_BUTTON_ACTIVE end
+        if edit_b_btn then edit_b_btn.color = COLOR_BUTTON_INACTIVE end
+      end
+      
+      -- Update canvas to show Wave A
+      if waveform_canvas then
+        waveform_canvas:update()
+      end
+      
+      renoise.app():show_status("Live Pickup: Switched to Wave A edit mode (sample slot 1)")
+      
+    elseif new_sample_index == 2 and current_wave_edit ~= "B" then
+      -- Switch to Wave B edit mode
+      print("-- Live Pickup Mode (12st_WT): Switching to Wave B edit mode")
+      current_wave_edit = "B"
+      
+      -- Update button colors if dialog is visible
+      if pcm_dialog and pcm_dialog.visible then
+        local edit_a_btn = vb.views.edit_a_btn
+        local edit_b_btn = vb.views.edit_b_btn
+        if edit_a_btn then edit_a_btn.color = COLOR_BUTTON_INACTIVE end
+        if edit_b_btn then edit_b_btn.color = COLOR_BUTTON_ACTIVE end
+      end
+      
+      -- Update canvas to show Wave B
+      if waveform_canvas then
+        waveform_canvas:update()
+      end
+      
+      renoise.app():show_status("Live Pickup: Switched to Wave B edit mode (sample slot 2)")
+      
+    else
+      -- Same sample slot as current wave edit mode, load the sample normally
+      print("-- Live Pickup Mode (12st_WT): Loading sample into current wave: " .. new_sample.name)
+      PCMWriterLoadSampleToWaveform()
+    end
+  else
+    -- Non-12st_WT setup: load the new sample into the PCM Writer normally
+    print("-- Live Pickup Mode: Auto-loading new sample: " .. new_sample.name)
+    PCMWriterLoadSampleToWaveform()
+  end
   
   -- Update tracking variables
   live_pickup_sample = new_sample
@@ -6102,21 +6440,73 @@ function PCMWriterLoadCurrentSample()
     wave_data_b[i] = 32768 
   end
   
-  -- Load sample data into currently selected wave
-  for i = 1, num_frames do
-    local sample_value = buffer:sample_data(1, i)  -- Assuming mono
-    -- Convert from -1..1 to 0..65535
-    local converted_value = math.floor((sample_value + 1) * 32767.5)
-    converted_value = math.max(0, math.min(65535, converted_value))
+  -- Enhanced loading for 12st_WT setup vs standard loading
+  local is_12st_wt_setup = PCMWriterDetect12stWTSetup()
+  
+  if is_12st_wt_setup then
+    -- Enhanced Live Pickup: Load both samples into both wave arrays
+    local sample1 = inst:sample(1)
+    local sample2 = inst:sample(2)
+    local buffer1 = sample1.sample_buffer
+    local buffer2 = sample2.sample_buffer
     
-    if current_wave_edit == "A" then
-      -- Load into Wave A, set Wave B to silence
-      wave_data_a[i] = converted_value
-      wave_data_b[i] = 32768
+    -- Check if both samples have data and match wave size
+    if buffer1.has_sample_data and buffer2.has_sample_data and 
+       buffer1.number_of_frames == wave_size and buffer2.number_of_frames == wave_size then
+      
+      -- Load sample 1 data into Wave A
+      for i = 1, wave_size do
+        local sample_value = buffer1:sample_data(1, i)
+        local converted_value = math.floor((sample_value + 1) * 32767.5)
+        converted_value = math.max(0, math.min(65535, converted_value))
+        wave_data_a[i] = converted_value
+      end
+      
+      -- Load sample 2 data into Wave B
+      for i = 1, wave_size do
+        local sample_value = buffer2:sample_data(1, i)
+        local converted_value = math.floor((sample_value + 1) * 32767.5)
+        converted_value = math.max(0, math.min(65535, converted_value))
+        wave_data_b[i] = converted_value
+      end
+      
+      renoise.app():show_status("Enhanced Live Pickup: Loaded sample slot 1 → Wave A, sample slot 2 → Wave B for bidirectional sync")
+      
     else
-      -- Load into Wave B, set Wave A to silence
-      wave_data_b[i] = converted_value
-      wave_data_a[i] = 32768
+      -- Fallback: Load current sample into current wave
+      for i = 1, num_frames do
+        local sample_value = buffer:sample_data(1, i)
+        local converted_value = math.floor((sample_value + 1) * 32767.5)
+        converted_value = math.max(0, math.min(65535, converted_value))
+        
+        if current_wave_edit == "A" then
+          wave_data_a[i] = converted_value
+          wave_data_b[i] = 32768  -- Silence
+        else
+          wave_data_b[i] = converted_value
+          wave_data_a[i] = 32768  -- Silence
+        end
+      end
+      renoise.app():show_status("Enhanced Live Pickup: 12st_WT detected but samples don't match - using fallback mode")
+    end
+    
+  else
+    -- Standard loading behavior: Load current sample into current wave
+    for i = 1, num_frames do
+      local sample_value = buffer:sample_data(1, i)  -- Assuming mono
+      -- Convert from -1..1 to 0..65535
+      local converted_value = math.floor((sample_value + 1) * 32767.5)
+      converted_value = math.max(0, math.min(65535, converted_value))
+      
+      if current_wave_edit == "A" then
+        -- Load into Wave A, set Wave B to silence
+        wave_data_a[i] = converted_value
+        wave_data_b[i] = 32768
+      else
+        -- Load into Wave B, set Wave A to silence
+        wave_data_b[i] = converted_value
+        wave_data_a[i] = 32768
+      end
     end
   end
   
@@ -6224,42 +6614,271 @@ function PCMWriterLoadCurrentSample()
   renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
 end
 
+-- Function to detect if we're in 12st_WT.xrni setup with dual sample chains
+function PCMWriterDetect12stWTSetup()
+  local song = renoise.song()
+  local inst = song.selected_instrument
+  
+  -- Check if we have at least 2 samples
+  if #inst.samples < 2 then
+    return false
+  end
+  
+  -- Check if we have at least 2 sample device chains
+  if #inst.sample_device_chains < 2 then
+    return false
+  end
+  
+  -- Check if sample 1 is assigned to chain 1 and sample 2 is assigned to chain 2
+  local sample1 = inst:sample(1)
+  local sample2 = inst:sample(2)
+  
+  if sample1.device_chain_index ~= 1 or sample2.device_chain_index ~= 2 then
+    return false
+  end
+  
+  -- Optional: Check if the chains have the expected devices (LFO, Gainer, Send)
+  local chain1 = inst.sample_device_chains[1]
+  local chain2 = inst.sample_device_chains[2]
+  
+  -- Basic check: each chain should have at least 3+ devices (including the sample mixer at index 1)
+  if #chain1.devices < 4 or #chain2.devices < 4 then
+    return false
+  end
+  
+  -- Check if we have LFO, Gainer, Send in expected positions
+  local has_lfo1 = chain1.devices[2] and chain1.devices[2].name == "*LFO"
+  local has_gainer1 = chain1.devices[3] and chain1.devices[3].name == "Gainer"
+  local has_send1 = chain1.devices[4] and chain1.devices[4].name == "#Send"
+  
+  local has_lfo2 = chain2.devices[2] and chain2.devices[2].name == "*LFO"
+  local has_gainer2 = chain2.devices[3] and chain2.devices[3].name == "Gainer"
+  local has_send2 = chain2.devices[4] and chain2.devices[4].name == "#Send"
+  
+  local result = has_lfo1 and has_gainer1 and has_send1 and has_lfo2 and has_gainer2 and has_send2
+  
+  return result
+end
+
+-- Function to find the "Wavetable Mod *LFO" track device
+function PCMWriterFindWavetableLFODevice()
+  local song = renoise.song()
+  local track = song.selected_track
+  
+  print("DEBUG: Looking for 'Wavetable Mod *LFO' device on track " .. track.name)
+  for i, device in ipairs(track.devices) do
+    print("DEBUG: Found device " .. i .. ": " .. device.display_name)
+    if device.display_name == "Wavetable Mod *LFO" then
+      print("DEBUG: Found Wavetable Mod *LFO device!")
+      return device
+    end
+  end
+  
+  print("DEBUG: Wavetable Mod *LFO device NOT found")
+  return nil
+end
+
+-- Function to check if we should show enhanced LFO controls
+function PCMWriterShouldShowLFOControls()
+  local has_setup = PCMWriterDetect12stWTSetup()
+  local has_lfo_device = PCMWriterFindWavetableLFODevice() ~= nil
+  
+  print("DEBUG: has_setup = " .. tostring(has_setup) .. ", has_lfo_device = " .. tostring(has_lfo_device))
+  
+  return has_setup and has_lfo_device
+end
+
+-- Function to initialize LFO controls with current device values
+function PCMWriterInitializeLFOControls()
+  print("DEBUG: PCMWriterInitializeLFOControls() called")
+  if not PCMWriterShouldShowLFOControls() or not pcm_dialog or not pcm_dialog.visible then
+    print("DEBUG: Exiting PCMWriterInitializeLFOControls early - conditions not met")
+    print("DEBUG: PCMWriterShouldShowLFOControls() = " .. tostring(PCMWriterShouldShowLFOControls()))
+    print("DEBUG: pcm_dialog exists = " .. tostring(pcm_dialog ~= nil))
+    print("DEBUG: pcm_dialog.visible = " .. tostring(pcm_dialog and pcm_dialog.visible))
+    return
+  end
+  print("DEBUG: Proceeding with LFO controls initialization")
+  
+  local lfo_device = PCMWriterFindWavetableLFODevice()
+  if not lfo_device then
+    return
+  end
+  
+  -- Read current LFO parameter values and clamp to slider ranges
+  local amplitude = math.max(0.0, math.min(1.0, lfo_device.parameters[4].value))  -- Amplitude (0.0-1.0)
+  local offset = math.max(-0.5, math.min(0.5, lfo_device.parameters[5].value))     -- Offset (-0.5-0.5)  
+  local frequency = math.max(0.000001, math.min(60, lfo_device.parameters[6].value))  -- Frequency (0.000001-60)
+  
+  -- Update UI sliders and labels with current values
+  if pcm_dialog and pcm_dialog.visible then
+    -- Make LFO controls row visible
+    local lfo_row = vb.views.lfo_controls_row
+    if lfo_row then 
+      print("DEBUG: Setting LFO controls row visible = true")
+      lfo_row.visible = true
+      print("DEBUG: LFO controls row visible is now: " .. tostring(lfo_row.visible))
+    else
+      print("DEBUG: ERROR - lfo_controls_row view not found!")
+      print("DEBUG: Available views in vb.views:")
+      for key, view in pairs(vb.views) do
+        if key:find("lfo") then
+          print("DEBUG:   " .. key .. " = " .. tostring(view))
+        end
+      end
+      print("DEBUG: Attempting workaround - trying to find any LFO row...")
+      -- Try alternative approaches to make LFO controls visible
+      if vb.views.lfo_amplitude_slider then
+        print("DEBUG: Found individual LFO sliders, setting their parent visible")
+        local parent = vb.views.lfo_amplitude_slider.parent
+        if parent then
+          parent.visible = true
+          print("DEBUG: Set parent of LFO sliders visible = true")
+        end
+      end
+    end
+    
+    local amp_slider = vb.views.lfo_amplitude_slider
+    local amp_label = vb.views.lfo_amplitude_label
+    local offset_slider = vb.views.lfo_offset_slider
+    local offset_label = vb.views.lfo_offset_label
+    local freq_slider = vb.views.lfo_frequency_slider
+    local freq_label = vb.views.lfo_frequency_label
+    
+    if amp_slider then amp_slider.value = amplitude end
+    if amp_label then amp_label.text = string.format("%.2f", amplitude) end
+    if offset_slider then offset_slider.value = offset end
+    if offset_label then offset_label.text = string.format("%.2f", offset) end
+    if freq_slider then freq_slider.value = frequency end
+                  if freq_label then 
+                -- Convert device value to LPC display (60 = 1 LPC), handle INF case
+                local lpc_value = 60 / frequency  -- Inverted: lower freq = higher LPC
+                local display_text = (frequency <= 0.000001) and "INF" or string.format("%.2fLPC", lpc_value)
+                freq_label.text = display_text
+              end
+    
+    print(string.format("LFO Controls Initialized: Amp=%.2f, Offset=%.2f, Freq=%.2f", amplitude, offset, frequency))
+  end
+end
+
+-- Function to enter Live Pickup Mode and setup LFO controls for 12st_WT
+function PCMWriterEnterLivePickupMode()
+  print("DEBUG: *** ENTERING LIVE PICKUP MODE ***")
+  local song = renoise.song()
+  local inst = song.selected_instrument
+  local sample = song.selected_sample
+  
+  if not sample then
+    print("DEBUG: No sample selected, aborting Live Pickup Mode")
+    renoise.app():show_status("No sample selected for Live Pickup Mode")
+    return
+  end
+  
+  print("DEBUG: Live Pickup Mode - sample and instrument found")
+  
+  -- Enable live pickup mode
+  live_pickup_mode = true
+  live_pickup_sample = sample
+  live_pickup_instrument = inst
+  live_pickup_sample_index = song.selected_sample_index
+  live_pickup_instrument_index = song.selected_instrument_index
+  
+  -- Load current sample data for dual-sample setup if detected
+  PCMWriterLoadCurrentSample()
+  
+  -- If 12st_WT setup is detected, initialize and show LFO controls
+  print("DEBUG: Checking if should show LFO controls...")
+  if PCMWriterShouldShowLFOControls() then
+    print("DEBUG: YES - Calling PCMWriterInitializeLFOControls()")
+    PCMWriterInitializeLFOControls()
+  else
+    print("DEBUG: NO - Not showing LFO controls")
+  end
+  
+  -- Update displays
+  PCMWriterUpdateAllDisplays()
+  
+  renoise.app():show_status("Live Pickup Mode enabled - waveform updates will sync to sample")
+end
+
 function PCMWriterUpdateLiveSample()
   if not live_pickup_mode or not live_pickup_sample then
     return
   end
   
+  -- Check if we're in 12st_WT setup for enhanced live pickup
+  local is_12st_wt_setup = PCMWriterDetect12stWTSetup()
+  
   -- Protected call to handle any sample access errors gracefully
   local success, error_msg = pcall(function()
-    -- Additional safety check - ensure the sample object is still valid
-    if not live_pickup_sample.sample_buffer or not live_pickup_sample.sample_buffer.has_sample_data then
-      live_pickup_mode = false
-      live_pickup_sample = nil
-      live_pickup_instrument = nil
-      return
+    if is_12st_wt_setup then
+      -- Enhanced live pickup for 12st_WT setup
+      local song = renoise.song()
+      local inst = song.selected_instrument
+      
+      -- Determine which sample to update based on current wave edit mode
+      local target_sample_index = (current_wave_edit == "A") and 1 or 2
+      local target_sample = inst:sample(target_sample_index)
+      local target_wave_data = (current_wave_edit == "A") and wave_data_a or wave_data_b
+      
+      -- Additional safety check
+      if not target_sample.sample_buffer or not target_sample.sample_buffer.has_sample_data then
+        renoise.app():show_status("Live Pickup Mode: Target sample buffer not available")
+        return
+      end
+      
+      local buffer = target_sample.sample_buffer
+      
+      -- Check if buffer size matches
+      if buffer.number_of_frames ~= wave_size then
+        renoise.app():show_status("Live Pickup Mode: Sample size mismatch for Wave " .. current_wave_edit)
+        return
+      end
+      
+      -- Update the appropriate sample with the current wave data
+      buffer:prepare_sample_data_changes()
+      for i = 1, wave_size do
+        -- Convert from 0..65535 to -1..1
+        local normalized_value = (target_wave_data[i] - 32768) / 32768
+        normalized_value = math.max(-1, math.min(1, normalized_value))
+        buffer:set_sample_data(1, i, normalized_value)
+      end
+      buffer:finalize_sample_data_changes()
+      
+      renoise.app():show_status("Live Pickup: Updated Wave " .. current_wave_edit .. " in sample slot " .. target_sample_index)
+      
+    else
+      -- Original live pickup behavior for non-12st_WT setups
+      -- Additional safety check - ensure the sample object is still valid
+      if not live_pickup_sample.sample_buffer or not live_pickup_sample.sample_buffer.has_sample_data then
+        live_pickup_mode = false
+        live_pickup_sample = nil
+        live_pickup_instrument = nil
+        return
+      end
+      
+      local buffer = live_pickup_sample.sample_buffer
+      
+      -- Check if buffer size still matches
+      if buffer.number_of_frames ~= wave_size then
+        live_pickup_mode = false
+        live_pickup_sample = nil
+        live_pickup_instrument = nil
+        renoise.app():show_status("Live Pickup Mode disabled: Sample size changed")
+        return
+      end
+      
+      -- Update the sample buffer with crossfaded result (purple line)
+      -- Note: wave_data contains the crossfaded result from Wave A and Wave B
+      buffer:prepare_sample_data_changes()
+      for i = 1, wave_size do
+        -- Convert crossfaded result from 0..65535 to -1..1
+        local normalized_value = (wave_data[i] / 32767.5) - 1
+        normalized_value = math.max(-1, math.min(1, normalized_value))
+        buffer:set_sample_data(1, i, normalized_value)
+      end
+      buffer:finalize_sample_data_changes()
     end
-    
-    local buffer = live_pickup_sample.sample_buffer
-    
-    -- Check if buffer size still matches
-    if buffer.number_of_frames ~= wave_size then
-      live_pickup_mode = false
-      live_pickup_sample = nil
-      live_pickup_instrument = nil
-      renoise.app():show_status("Live Pickup Mode disabled: Sample size changed")
-      return
-    end
-    
-    -- Update the sample buffer with crossfaded result (purple line)
-    -- Note: wave_data contains the crossfaded result from Wave A and Wave B
-    buffer:prepare_sample_data_changes()
-    for i = 1, wave_size do
-      -- Convert crossfaded result from 0..65535 to -1..1
-      local normalized_value = (wave_data[i] / 32767.5) - 1
-      normalized_value = math.max(-1, math.min(1, normalized_value))
-      buffer:set_sample_data(1, i, normalized_value)
-    end
-    buffer:finalize_sample_data_changes()
   end)
   
   if not success then
@@ -6290,7 +6909,7 @@ function PCMWriterShowPcmDialog()
   dialog_rebuilding = true
   
   -- Create fresh ViewBuilder instance to avoid ID conflicts
-  local vb = renoise.ViewBuilder()
+  vb = renoise.ViewBuilder()  -- Make it global so LFO controls can access it
   
   waveform_canvas = vb:canvas{
     width = wavetable_canvas_width,
@@ -6641,6 +7260,17 @@ function PCMWriterShowPcmDialog()
           local saved_cursor_pos = selected_sample_index
           print("DEBUG: Edit A clicked - cursor before switch: " .. tostring(saved_cursor_pos))
           current_wave_edit = "A"
+          
+          -- Enhanced: Switch to sample slot 1 if in 12st_WT setup
+          local is_12st_wt_setup = PCMWriterDetect12stWTSetup()
+          if is_12st_wt_setup then
+            local song = renoise.song()
+            song.selected_sample_index = 1
+            renoise.app():show_status("Now editing Wave A (sample slot 1)")
+          else
+            renoise.app():show_status("Now editing Wave A")
+          end
+          
           -- Update button colors
           if pcm_dialog and pcm_dialog.visible then
             local edit_a_btn = vb.views.edit_a_btn
@@ -6655,7 +7285,6 @@ function PCMWriterShowPcmDialog()
           if waveform_canvas then
             waveform_canvas:update()
           end
-          renoise.app():show_status("Now editing Wave A")
         end,
         id = "edit_a_btn"
       },
@@ -6668,6 +7297,17 @@ function PCMWriterShowPcmDialog()
           local saved_cursor_pos = selected_sample_index
           print("DEBUG: Edit B clicked - cursor before switch: " .. tostring(saved_cursor_pos))
           current_wave_edit = "B"
+          
+          -- Enhanced: Switch to sample slot 2 if in 12st_WT setup
+          local is_12st_wt_setup = PCMWriterDetect12stWTSetup()
+          if is_12st_wt_setup then
+            local song = renoise.song()
+            song.selected_sample_index = 2
+            renoise.app():show_status("Now editing Wave B (sample slot 2)")
+          else
+            renoise.app():show_status("Now editing Wave B")
+          end
+          
           -- Update button colors
           if pcm_dialog and pcm_dialog.visible then
             local edit_a_btn = vb.views.edit_a_btn
@@ -6682,7 +7322,6 @@ function PCMWriterShowPcmDialog()
           if waveform_canvas then
             waveform_canvas:update()
           end
-          renoise.app():show_status("Now editing Wave B")
         end,
         id = "edit_b_btn"
       },
@@ -6717,6 +7356,138 @@ function PCMWriterShowPcmDialog()
         notifier = PCMWriterSwapWaves
       }
     }, -- WAVE_AB_ROW ENDS
+    
+    -- Enhanced LFO Controls Row (always created, initially hidden)
+    vb:row{ -- LFO_CONTROLS_ROW STARTS
+      id = "lfo_controls_row",
+      visible = false, -- Initially hidden, shown when entering Live Pickup Mode with 12st_WT setup
+      vb:text{ text = "Wavetable LFO:", style = "strong" },
+      vb:text{ text = "Amplitude:", style = "normal" },
+      vb:slider{
+        id = "lfo_amplitude_slider",
+        min = 0.0,
+        max = 1.0,
+        value = 0.0,
+        width = 150,
+        tooltip = "LFO Amplitude",
+        notifier = function(value)
+          local lfo_device = PCMWriterFindWavetableLFODevice()
+          if lfo_device then
+            lfo_device.parameters[4].value = value -- Amplitude parameter
+            if pcm_dialog and pcm_dialog.visible then
+              local amp_label = vb.views.lfo_amplitude_label
+              if amp_label then
+                amp_label.text = string.format("%.2f", value)
+              end
+            end
+          end
+        end
+      },
+      vb:text{
+        id = "lfo_amplitude_label",
+        text = "0.00",
+        width = 30
+      },
+      vb:text{ text = "Offset:", style = "normal" },
+      vb:slider{
+        id = "lfo_offset_slider",
+        min = -0.5,
+        max = 0.5,
+        value = 0.0,
+        width = 150,
+        tooltip = "LFO Offset",
+        notifier = function(value)
+          local lfo_device = PCMWriterFindWavetableLFODevice()
+          if lfo_device then
+            lfo_device.parameters[5].value = value -- Offset parameter
+            if pcm_dialog and pcm_dialog.visible then
+              local offset_label = vb.views.lfo_offset_label
+              if offset_label then
+                offset_label.text = string.format("%.2f", value)
+              end
+            end
+          end
+        end
+      },
+      vb:text{
+        id = "lfo_offset_label",
+        text = "0.00",
+        width = 30
+      },
+      vb:text{ text = "Frequency:", style = "normal" },
+      vb:slider{
+        id = "lfo_frequency_slider",
+        min = 0.000001,
+        max = 60,
+        value = 1.0,
+        width = 150,
+        tooltip = "LFO Frequency",
+        notifier = function(value)
+          local lfo_device = PCMWriterFindWavetableLFODevice()
+          if lfo_device then
+            lfo_device.parameters[6].value = value -- Frequency parameter
+            if pcm_dialog and pcm_dialog.visible then
+              local freq_label = vb.views.lfo_frequency_label
+              if freq_label then
+                -- Convert device value to LPC display (60 = 1 LPC), handle INF case
+                local lpc_value = 60 / value  -- Inverted: lower freq = higher LPC
+                local display_text = (value <= 0.000001) and "INF" or string.format("%.2fLPC", lpc_value)
+                freq_label.text = display_text
+              end
+            end
+          end
+        end
+      },
+      vb:text{
+        id = "lfo_frequency_label",
+        text = "1.00",
+        width = 30
+      },
+      vb:button{
+        text = "Random",
+        width = 50,
+        tooltip = "Randomize all LFO parameters",
+        notifier = function()
+          local amp = math.random() * 0.8 + 0.1 -- 0.1 to 0.9
+          local offset = (math.random() - 0.5) * 0.8 -- -0.4 to 0.4 (within -0.5 to 0.5 range)
+          local freq = math.random() * 59.9 + 0.1 -- 0.1 to 60 (device value range)
+          
+          local lfo_device = PCMWriterFindWavetableLFODevice()
+          if lfo_device then
+            lfo_device.parameters[4].value = amp
+            lfo_device.parameters[5].value = offset
+            lfo_device.parameters[6].value = freq
+            
+            -- Update UI sliders and labels
+            if pcm_dialog and pcm_dialog.visible then
+              local amp_slider = vb.views.lfo_amplitude_slider
+              local amp_label = vb.views.lfo_amplitude_label
+              local offset_slider = vb.views.lfo_offset_slider
+              local offset_label = vb.views.lfo_offset_label
+              local freq_slider = vb.views.lfo_frequency_slider
+              local freq_label = vb.views.lfo_frequency_label
+              
+              if amp_slider then amp_slider.value = amp end
+              if amp_label then amp_label.text = string.format("%.2f", amp) end
+              if offset_slider then offset_slider.value = offset end
+              if offset_label then offset_label.text = string.format("%.2f", offset) end
+              if freq_slider then freq_slider.value = freq end
+              if freq_label then 
+                -- Convert device value to LPC display (60 = 1 LPC), handle INF case
+                local lpc_value = 60 / freq  -- Inverted: lower freq = higher LPC
+                local display_text = (freq <= 0.000001) and "INF" or string.format("%.2fLPC", lpc_value)
+                freq_label.text = display_text
+              end
+            end
+            
+            -- Convert frequency to LPC for status display
+            local freq_lpc = 60 / freq  -- Inverted: lower freq = higher LPC
+            local freq_display = (freq <= 0.000001) and "INF" or string.format("%.2fLPC", freq_lpc)
+            renoise.app():show_status(string.format("LFO Random: Amp=%.2f, Offset=%.2f, Freq=%s", amp, offset, freq_display))
+          end
+        end
+      }
+    }, -- LFO_CONTROLS_ROW ENDS
     
     -- Chebyshev controls row (conditional)
     not hideChebyshev and vb:row{ -- CHEBYSHEV_ROW STARTS
@@ -6952,6 +7723,12 @@ function PCMWriterShowPcmDialog()
           notifier = PCMWriterExportWaveBToSample
         }},
         vb:button{
+          text = "Write A&B",
+          width = 280,
+          tooltip = "Create new instrument with Wave A as slot 1 and Wave B as slot 2",
+          notifier = PCMWriterExportWaveAAndBToSample
+        },
+        vb:button{
           text = "Random Export to Slot",
           width = 280,
           tooltip = "Generate random waveform and export to sample slot",
@@ -7050,6 +7827,20 @@ function PCMWriterShowPcmDialog()
   end
   
   PCMWriterUpdateAllDisplays()
+  
+  -- Initialize LFO controls if in enhanced mode
+  PCMWriterInitializeLFOControls()
+  
+  -- Check for existing 12st_WT setup and auto-enter Live Pickup Mode
+  print("DEBUG: Checking for existing 12st_WT setup on dialog open...")
+  local has_12st_setup = PCMWriterDetect12stWTSetup()
+  print("DEBUG: has_12st_setup = " .. tostring(has_12st_setup) .. ", live_pickup_mode = " .. tostring(live_pickup_mode))
+  if has_12st_setup and not live_pickup_mode then
+    print("DEBUG: Existing 12st_WT setup detected on dialog open, auto-entering Live Pickup Mode")
+    PCMWriterEnterLivePickupMode()
+  else
+    print("DEBUG: Not auto-entering Live Pickup Mode")
+  end
   
   -- Clear the rebuilding flag after dialog is fully created
   dialog_rebuilding = false

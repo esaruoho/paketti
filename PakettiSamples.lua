@@ -835,67 +835,153 @@ function G01()
   end
 end
 -------------
+-- Global progress tracking variables for pitchBend loader
+local pitchbend_loader_progress = {
+  current_file_index = 0,
+  current_filename = "",
+  total_files = 0,
+  slicer = nil,
+  vb = nil,
+  dialog = nil
+}
+
 function pitchBendMultipleSampleLoader(normalize)
   local selected_sample_filenames = renoise.app():prompt_for_multiple_filenames_to_read({"*.wav", "*.aif", "*.flac", "*.mp3", "*.aiff"}, "Paketti PitchBend Multiple Sample Loader")
 
-  if #selected_sample_filenames > 0 then
-    rprint(selected_sample_filenames)
-    for index, filename in ipairs(selected_sample_filenames) do
-      local next_instrument = renoise.song().selected_instrument_index + 1
-      renoise.song():insert_instrument_at(next_instrument)
-      renoise.song().selected_instrument_index = next_instrument
-
-      pakettiPreferencesDefaultInstrumentLoader()
-
-      local selected_instrument = renoise.song().selected_instrument
-      selected_instrument.name = "Pitchbend Instrument"
-      selected_instrument.macros_visible = true
-      selected_instrument.sample_modulation_sets[1].name = "Pitchbend"
-
-      if #selected_instrument.samples == 0 then
-        selected_instrument:insert_sample_at(1)
-      end
-      renoise.song().selected_sample_index = 1
-
-      local filename_only = filename:match("^.+[/\\](.+)$")
-      local instrument_slot_hex = string.format("%02X", next_instrument - 1)
-
-      if selected_instrument.samples[1].sample_buffer:load_from(filename) then
-        renoise.app():show_status("Sample " .. filename_only .. " loaded successfully.")
-        local current_sample = selected_instrument.samples[1]
-        current_sample.name = string.format("%s_%s", instrument_slot_hex, filename_only)
-        selected_instrument.name = string.format("%s_%s", instrument_slot_hex, filename_only)
-
-        current_sample.interpolation_mode = preferences.pakettiLoaderInterpolation.value
-        current_sample.oversample_enabled = preferences.pakettiLoaderOverSampling.value
-        current_sample.autofade = preferences.pakettiLoaderAutofade.value
-        current_sample.autoseek = preferences.pakettiLoaderAutoseek.value
-        current_sample.loop_mode = preferences.pakettiLoaderLoopMode.value
-        current_sample.oneshot = preferences.pakettiLoaderOneshot.value
-        current_sample.new_note_action = preferences.pakettiLoaderNNA.value
-        current_sample.loop_release = preferences.pakettiLoaderLoopExit.value
-
-        renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
-        G01()
-if normalize then normalize_selected_sample() end
-
-if preferences.pakettiLoaderMoveSilenceToEnd.value ~= false then PakettiMoveSilence() end
-if preferences.pakettiLoaderNormalizeSamples.value ~= false then normalize_selected_sample() end
-if preferences.pakettiLoaderDontCreateAutomationDevice.value == false then 
-if renoise.song().selected_track.type == 2 then renoise.app():show_status("*Instr. Macro Device will not be added to the Master track.") return else
-        loadnative("Audio/Effects/Native/*Instr. Macros") 
-        local macro_device = renoise.song().selected_track:device(2)
-        macro_device.display_name = string.format("%s_%s", instrument_slot_hex, filename_only)
-        renoise.song().selected_track.devices[2].is_maximized = false
-        end
-      else
-        renoise.app():show_status("Failed to load the sample " .. filename_only)
-      end
-    else end 
-    end
-  else
+  if #selected_sample_filenames == 0 then
     renoise.app():show_status("No file selected.")
+    return
   end
+
+  rprint(selected_sample_filenames)
+  
+  -- Initialize progress tracking
+  pitchbend_loader_progress.current_file_index = 0
+  pitchbend_loader_progress.current_filename = ""
+  pitchbend_loader_progress.total_files = #selected_sample_filenames
+  
+  -- Create ProcessSlicer for the loading operation
+  pitchbend_loader_progress.slicer = ProcessSlicer(pitchBendMultipleSampleLoader_process, selected_sample_filenames, normalize)
+  pitchbend_loader_progress.dialog, pitchbend_loader_progress.vb = pitchbend_loader_progress.slicer:create_dialog("Loading Pitchbend Samples...")
+  
+  -- Start the process
+  pitchbend_loader_progress.slicer:start()
+  
+  -- Update progress text periodically
+  renoise.tool():add_timer(pitchBendMultipleSampleLoader_update_progress, 100)
+end
+
+function pitchBendMultipleSampleLoader_update_progress()
+  local progress = pitchbend_loader_progress
+  
+  if progress.slicer and progress.vb then
+    if progress.slicer:running() and not progress.slicer:was_cancelled() then
+      -- Update progress text
+      local progress_text = string.format("Processing file %d of %d...", progress.current_file_index, progress.total_files)
+      if progress.current_filename ~= "" then
+        progress_text = progress_text .. "\n" .. progress.current_filename
+      end
+      progress.vb.views.progress_text.text = progress_text
+    elseif not progress.slicer:running() then
+      -- Process completed or stopped
+      renoise.tool():remove_timer(pitchBendMultipleSampleLoader_update_progress)
+      if progress.dialog and progress.dialog.visible then
+        progress.dialog:close()
+      end
+      if not progress.slicer:was_cancelled() then
+        renoise.app():show_status("All samples loaded successfully.")
+      else
+        renoise.app():show_status("Sample loading cancelled.")
+      end
+      
+      -- Reset progress tracking
+      pitchbend_loader_progress = {
+        current_file_index = 0,
+        current_filename = "",
+        total_files = 0,
+        slicer = nil,
+        vb = nil,
+        dialog = nil
+      }
+    end
+  end
+end
+
+function pitchBendMultipleSampleLoader_process(selected_sample_filenames, normalize)
+  for index, filename in ipairs(selected_sample_filenames) do
+    pitchbend_loader_progress.current_file_index = index
+    pitchbend_loader_progress.current_filename = filename:match("^.+[/\\](.+)$") or filename
+    
+    -- Check for cancellation
+    if pitchbend_loader_progress.slicer and pitchbend_loader_progress.slicer:was_cancelled() then
+      renoise.app():show_status("Sample loading cancelled by user.")
+      break
+    end
+    
+    coroutine.yield()
+    
+    local next_instrument = renoise.song().selected_instrument_index + 1
+    renoise.song():insert_instrument_at(next_instrument)
+    renoise.song().selected_instrument_index = next_instrument
+
+    pakettiPreferencesDefaultInstrumentLoader()
+
+    local selected_instrument = renoise.song().selected_instrument
+    selected_instrument.name = "Pitchbend Instrument"
+    selected_instrument.macros_visible = true
+    selected_instrument.sample_modulation_sets[1].name = "Pitchbend"
+
+    if #selected_instrument.samples == 0 then
+      selected_instrument:insert_sample_at(1)
+    end
+    renoise.song().selected_sample_index = 1
+
+    local filename_only = filename:match("^.+[/\\](.+)$")
+    local instrument_slot_hex = string.format("%02X", next_instrument - 1)
+
+    if selected_instrument.samples[1].sample_buffer:load_from(filename) then
+      renoise.app():show_status("Sample " .. filename_only .. " loaded successfully.")
+      local current_sample = selected_instrument.samples[1]
+      current_sample.name = string.format("%s_%s", instrument_slot_hex, filename_only)
+      selected_instrument.name = string.format("%s_%s", instrument_slot_hex, filename_only)
+
+      current_sample.interpolation_mode = preferences.pakettiLoaderInterpolation.value
+      current_sample.oversample_enabled = preferences.pakettiLoaderOverSampling.value
+      current_sample.autofade = preferences.pakettiLoaderAutofade.value
+      current_sample.autoseek = preferences.pakettiLoaderAutoseek.value
+      current_sample.loop_mode = preferences.pakettiLoaderLoopMode.value
+      current_sample.oneshot = preferences.pakettiLoaderOneshot.value
+      current_sample.new_note_action = preferences.pakettiLoaderNNA.value
+      current_sample.loop_release = preferences.pakettiLoaderLoopExit.value
+
+      renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+      G01()
+      
+      if normalize then normalize_selected_sample() end
+
+      if preferences.pakettiLoaderMoveSilenceToEnd.value ~= false then PakettiMoveSilence() end
+      if preferences.pakettiLoaderNormalizeSamples.value ~= false then normalize_selected_sample() end
+      if preferences.pakettiLoaderDontCreateAutomationDevice.value == false then 
+        if renoise.song().selected_track.type == 2 then 
+          renoise.app():show_status("*Instr. Macro Device will not be added to the Master track.") 
+        else
+          loadnative("Audio/Effects/Native/*Instr. Macros") 
+          local macro_device = renoise.song().selected_track:device(2)
+          macro_device.display_name = string.format("%s_%s", instrument_slot_hex, filename_only)
+          renoise.song().selected_track.devices[2].is_maximized = false
+        end
+      end
+    else
+      renoise.app():show_status("Failed to load the sample " .. filename_only)
+    end
+    
+    -- Yield control back to allow UI updates
+    coroutine.yield()
+  end
+  
+  -- Reset progress tracking when complete
+  pitchbend_loader_progress.current_file_index = 0
+  pitchbend_loader_progress.current_filename = ""
 end
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti PitchBend Multiple Sample Loader",invoke=function() pitchBendMultipleSampleLoader() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti PitchBend Multiple Sample Loader (Normalize)",invoke=function() pitchBendMultipleSampleLoader(true) end}
@@ -1125,6 +1211,17 @@ manage_sample_count_observer(preferences._0G01_Loader.value)
 
     s.selected_sample_index = 1
     local currSamp = s.selected_sample_index
+    
+    -- Check for sample count vs slice markers
+    local first_sample = s.instruments[currInst].samples[1]
+    local has_slice_markers = first_sample.slice_markers and #first_sample.slice_markers > 0
+    local sample_count = #s.instruments[currInst].samples
+    
+    -- If no slice markers and more than one sample, show error and return
+    if not has_slice_markers and sample_count > 1 then
+        renoise.app():show_status("Wipe & Slice detected more than one sample, doing nothing.")
+        return
+    end
     
     local beatsync_lines={
       [2]=64,
@@ -5576,4 +5673,234 @@ renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Isolate Slices - Pl
 
 
 
+
+
+--------
+-- Write Permission Detection for Wave Batch Operations
+--------
+
+-- Test if a directory is writable by attempting to create a temporary file
+local function test_directory_writable_xrni(directory_path)
+  if not directory_path or directory_path == "" then
+    return false, "Invalid directory path"
+  end
+  
+  -- Create a unique temporary filename
+  local temp_filename = "paketti_wave_write_test_" .. os.time() .. ".tmp"
+  local temp_path = directory_path .. "/" .. temp_filename
+  
+  -- Try to create and write to the file
+  local success, err = pcall(function()
+    local file = io.open(temp_path, "w")
+    if not file then
+      error("Cannot create file")
+    end
+    file:write("test")
+    file:close()
+    
+    -- Clean up the test file
+    os.remove(temp_path)
+  end)
+  
+  return success, err
+end
+
+-- Prompt user to select a writable directory for XRNI files
+local function prompt_for_xrni_directory()
+  local dialog_result = renoise.app():prompt_for_path("Select a writable folder for XRNI files:")
+  
+  if dialog_result and dialog_result ~= "" then
+    local is_writable, error_msg = test_directory_writable_xrni(dialog_result)
+    if is_writable then
+      return dialog_result
+    else
+      renoise.app():show_error("Selected directory is not writable: " .. (error_msg or "Unknown error") .. "\nPlease select a different directory.")
+      return prompt_for_xrni_directory() -- Recursive call to try again
+    end
+  end
+  
+  return nil -- User cancelled or no valid directory selected
+end
+
+-- Check and get writable directory for wave batch operations
+local function get_writable_xrni_directory(source_directory)
+  -- First, test if the source directory is writable
+  local is_writable, error_msg = test_directory_writable_xrni(source_directory)
+  
+  if is_writable then
+    return source_directory
+  else
+    print("Source directory not writable:", source_directory, "Error:", error_msg)
+    renoise.app():show_warning(
+      "Cannot write to source directory: " .. source_directory .. "\n" ..
+      "Error: " .. (error_msg or "Permission denied") .. "\n\n" ..
+      "Please select a writable directory for XRNI files."
+    )
+    
+    return prompt_for_xrni_directory()
+  end
+end
+
+-- Wave Batch Converter: Save XRNI + Optionally Load into Renoise
+function PakettiBatchWaveToXRNI(load_into_renoise)
+  load_into_renoise = load_into_renoise or false
+  
+  local dialog_text = load_into_renoise and "Select folder with wave files to convert to XRNI and load" or "Select folder with wave files to convert to XRNI (save only)"
+  local folder_path = renoise.app():prompt_for_path(dialog_text)
+  
+  if folder_path and folder_path ~= "" then
+    -- Define wave file extensions to look for
+    local wave_extensions = {".wav", ".WAV", ".aiff", ".AIFF", ".aif", ".AIF", ".flac", ".FLAC"}
+    
+    -- Function to check if file has wave extension
+    local function is_wave_file(filename)
+      for _, ext in ipairs(wave_extensions) do
+        if filename:sub(-#ext) == ext then
+          return true
+        end
+      end
+      return false
+    end
+    
+    -- Function to get all wave files in directory
+    local function get_wave_files(directory)
+      local files = {}
+      local separator = package.config:sub(1,1)
+      
+      -- Get all files in the directory using Renoise's os.filenames API
+      local success, filenames = pcall(os.filenames, directory, "*")
+      if not success then
+        print("Error accessing directory: " .. tostring(filenames))
+        return files
+      end
+      
+      for _, filename in ipairs(filenames) do
+        if is_wave_file(filename) then
+          table.insert(files, directory .. separator .. filename)
+        end
+      end
+      
+      return files
+    end
+    
+    -- Get all wave files from the selected folder
+    local files = get_wave_files(folder_path)
+    
+    if #files == 0 then
+      renoise.app():show_status("No wave files found in selected folder")
+      return
+    end
+    
+    -- Check write permissions before starting batch conversion
+    local output_directory = get_writable_xrni_directory(folder_path)
+    
+    if not output_directory then
+      renoise.app():show_status("Wave batch conversion cancelled - no writable directory selected")
+      return
+    end
+    
+    -- Inform user about output directory if it's different from source
+    if output_directory ~= folder_path then
+      renoise.app():show_status("XRNI files will be saved to: " .. output_directory)
+    end
+    
+    local converted_count = 0
+    local failed_count = 0
+    local xrni_files = {}
+    
+    -- Step 1: CONVERT all wave files to XRNI with Paketti treatment
+    -- Create one temporary instrument slot for conversion
+    renoise.song():insert_instrument_at(renoise.song().selected_instrument_index + 1)
+    local temp_index = renoise.song().selected_instrument_index + 1
+    renoise.song().selected_instrument_index = temp_index
+    
+    for i, file_path in ipairs(files) do
+      local filename = file_path:match("[^/\\]+$")
+      -- Remove extension from filename for instrument name and XRNI filename
+      local base_name = filename:gsub("%.[^%.]+$", "")
+      local output_path = output_directory .. "/" .. base_name .. ".xrni"
+      
+      renoise.app():show_status(string.format("Converting %d/%d: %s", i, #files, base_name))
+      
+      local success, error_msg = pcall(function()
+        -- Clear temporary instrument for each conversion
+        renoise.song().selected_instrument:clear()
+        
+        -- Load Paketti default instrument into temporary slot
+        pakettiPreferencesDefaultInstrumentLoader()
+        
+        -- Load wave file as sample
+        local instrument = renoise.song().selected_instrument
+        
+        -- Clear the default sample if it exists and load our wave file
+        if #instrument.samples > 0 then
+          for sample_idx = #instrument.samples, 1, -1 do
+            instrument:delete_sample_at(sample_idx)
+          end
+        end
+        
+        -- Insert new sample and load the wave file
+        instrument:insert_sample_at(1)
+        renoise.song().selected_sample_index = 1
+        renoise.song().selected_sample.sample_buffer:load_from(file_path)
+        
+        -- Name the instrument
+        renoise.song().selected_instrument.name = base_name
+        
+        -- Save as XRNI file
+        renoise.app():save_instrument(output_path)
+        
+        -- Track successful conversions
+        table.insert(xrni_files, {path = output_path, name = base_name})
+      end)
+      
+      if success then
+        converted_count = converted_count + 1
+      else
+        failed_count = failed_count + 1
+        print("Failed to convert " .. base_name .. ": " .. tostring(error_msg))
+      end
+    end
+    
+    -- Step 2: If load_into_renoise, load each XRNI into separate instrument slots
+    if load_into_renoise and #xrni_files > 0 then
+      
+      for i, xrni_info in ipairs(xrni_files) do
+        local success, error_msg = pcall(function()
+          -- Create new instrument slot for each XRNI
+          local new_index = renoise.song().selected_instrument_index + 1
+          renoise.song():insert_instrument_at(new_index)
+          renoise.song().selected_instrument_index = new_index
+          
+          -- Load the XRNI file
+          renoise.app():load_instrument(xrni_info.path)
+        end)
+        
+        if not success then
+          print("Failed to load " .. xrni_info.name .. ": " .. tostring(error_msg))
+        end
+      end
+    end
+    
+    -- Clean up: remove the temporary instrument slot
+    renoise.song():delete_instrument_at(temp_index)
+    
+    local action_text = load_into_renoise and "converted & loaded" or "converted"
+    local output_info = (output_directory ~= folder_path) and (" (saved to: " .. output_directory .. ")") or ""
+    renoise.app():show_status(string.format("Wave Batch: %d %s, %d failed%s", converted_count, action_text, failed_count, output_info))
+  else
+    renoise.app():show_status("No folder selected for wave conversion")
+  end
+end
+
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Sample Tools:Batch Pakettify Wave Files in Folder to XRNI (Save Only)...", invoke = PakettiBatchWaveToXRNI}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Sample Tools:Batch Pakettify Wave Files in Folder to XRNI & Load...", invoke = function() PakettiBatchWaveToXRNI(true) end}
+renoise.tool():add_menu_entry{name="Disk Browser:Paketti:Batch Pakettify Wave Files in Folder to XRNI (Save Only)...", invoke = PakettiBatchWaveToXRNI}
+renoise.tool():add_menu_entry{name="Disk Browser:Paketti:Batch Pakettify Wave Files in Folder to XRNI & Load...", invoke = function() PakettiBatchWaveToXRNI(true) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Batch Pakettify Wave Files in Folder to XRNI (Save Only)...", invoke = PakettiBatchWaveToXRNI}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Batch Pakettify Wave Files in Folder to XRNI & Load...", invoke = function() PakettiBatchWaveToXRNI(true) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Batch Pakettify Wave Files in Folder to XRNI (Save Only)...", invoke = PakettiBatchWaveToXRNI}
+renoise.tool():add_keybinding{name="Global:Paketti:Batch Pakettify Wave Files in Folder to XRNI & Load...", invoke = function() PakettiBatchWaveToXRNI(true) end}
+renoise.tool():add_midi_mapping{name="Paketti:Batch Pakettify Wave Files in Folder to XRNI (Save Only) [Trigger]", invoke = function(message) if message:is_trigger() then PakettiBatchWaveToXRNI() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Batch Pakettify Wave Files in Folder to XRNI & Load [Trigger]", invoke = function(message) if message:is_trigger() then PakettiBatchWaveToXRNI(true) end end}
 

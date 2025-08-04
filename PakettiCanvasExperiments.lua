@@ -39,6 +39,9 @@ local crossfade_amount = 0.0   -- 0.0 = full A, 1.0 = full B
 local follow_automation = false
 local device_parameter_observers = {}
 
+-- Auto-switch to automation view when enabling automation sync (DEFAULT: OFF)
+local auto_show_automation = false
+
 -- Track which specific parameter is being manually edited (automation sync aware)
 local parameter_being_drawn = nil  -- Index of parameter currently being drawn
 local automation_reading_enabled = true
@@ -58,6 +61,98 @@ local COLOR_CROSSFADE = {80, 160, 40, 255}          -- Green for crossfade outli
 local canvas_update_timer = nil
 -- Remember previous device index for smart restoration
 local previous_device_index = nil
+
+-- Navigation functions for track and device switching
+function PakettiCanvasExperimentsSelectPreviousTrack()
+  local song = renoise.song()
+  local current_track = song.selected_track_index
+  local new_track = current_track - 1
+  if new_track < 1 then
+    new_track = #song.tracks
+  end
+  song.selected_track_index = new_track
+  renoise.app():show_status("Switched to track: " .. song.tracks[new_track].name)
+end
+
+function PakettiCanvasExperimentsSelectNextTrack()
+  local song = renoise.song()
+  local current_track = song.selected_track_index
+  local new_track = current_track + 1
+  if new_track > #song.tracks then
+    new_track = 1
+  end
+  song.selected_track_index = new_track
+  renoise.app():show_status("Switched to track: " .. song.tracks[new_track].name)
+end
+
+function PakettiCanvasExperimentsSelectPreviousDevice()
+  local song = renoise.song()
+  local track = song.selected_track
+  if #track.devices > 0 then
+    local current_device = song.selected_device_index or 1
+    local new_device = current_device - 1
+    if new_device < 1 then
+      new_device = #track.devices
+    end
+    song.selected_device_index = new_device
+    local device_name = track.devices[new_device].display_name or "Unknown"
+    renoise.app():show_status("Switched to device: " .. device_name)
+  else
+    renoise.app():show_status("No devices available on this track")
+  end
+end
+
+function PakettiCanvasExperimentsSelectNextDevice()
+  local song = renoise.song()
+  local track = song.selected_track
+  if #track.devices > 0 then
+    local current_device = song.selected_device_index or 1
+    local new_device = current_device + 1
+    if new_device > #track.devices then
+      new_device = 1
+    end
+    song.selected_device_index = new_device
+    local device_name = track.devices[new_device].display_name or "Unknown"
+    renoise.app():show_status("Switched to device: " .. device_name)
+  else
+    renoise.app():show_status("No devices available on this track")
+  end
+end
+
+-- Function to detect automation frame and selected parameter
+function PakettiCanvasExperimentsDetectAutomationSelection()
+  local song = renoise.song()
+  
+  -- Check if automation frame is displayed
+  local automation_frame_active = (renoise.app().window.active_lower_frame == renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION)
+  
+  if automation_frame_active then
+    -- Check if there's a selected automation parameter and device
+    local selected_automation_param = song.selected_automation_parameter
+    local selected_automation_device = song.selected_automation_device
+    
+    if selected_automation_param and selected_automation_param.is_automatable and selected_automation_device then
+      print("AUTOMATION_DETECTION: Automation frame active, parameter: " .. selected_automation_param.name)
+      print("AUTOMATION_DETECTION: Device: " .. selected_automation_device.display_name)
+      
+      -- Find the device index in the current track using display_name comparison
+      local current_track = song.selected_track
+      for device_index, device in ipairs(current_track.devices) do
+        if device.display_name == selected_automation_device.display_name then
+          print("AUTOMATION_DETECTION: Found device at index " .. device_index .. ": " .. device.display_name)
+          -- Select this device
+          song.selected_device_index = device_index
+          renoise.app():show_status("Auto-selected device from automation: " .. device.display_name .. " (" .. selected_automation_param.name .. ")")
+          return true
+        end
+      end
+      
+      print("AUTOMATION_DETECTION: Device not found in current track devices")
+    end
+  end
+  
+  return false
+end
 -- Randomization strength slider
 local randomize_strength = 50  -- Default 50%
 local randomize_slider_view = nil
@@ -737,6 +832,9 @@ function PakettiCanvasExperimentsInit()
   
   local song = renoise.song()
   
+  -- First, try to detect automation frame and auto-select device if applicable
+  local automation_detected = PakettiCanvasExperimentsDetectAutomationSelection()
+  
   -- Check if we have a selected device with safe access
   local selected_device = nil
   if song and song.selected_device then
@@ -917,9 +1015,8 @@ function PakettiCanvasExperimentsHandleMouse(ev)
               renoise.app():show_status("Drawing: Automation disabled for " .. param_info.name)
             else
               print("MOUSE_DOWN: ❌ Observer not found on parameter " .. parameter_being_drawn)
-              -- NUCLEAR OPTION: Remove ALL notifiers for this parameter to stop automation
-              print("MOUSE_DOWN: 🔥 REMOVING ALL NOTIFIERS for parameter " .. parameter_being_drawn .. " as safety measure")
-              parameter.value_observable:remove_all_notifiers()
+              -- NOTE: Observer will be rebuilt when mouse is released (see MOUSE_UP section)
+              print("MOUSE_DOWN: ⚠️ Observer missing for parameter " .. parameter_being_drawn .. " - will rebuild on mouse up")
             end
           else
             print("MOUSE_DOWN: ❌ No observer stored for parameter " .. parameter_being_drawn)
@@ -1389,6 +1486,42 @@ function PakettiCanvasExperimentsCreateDialog()
       style = "strong"
     },
     
+    -- Navigation controls
+    vb:row {
+      vb:button {
+        text = "Previous Track",
+        width = 100,
+        tooltip = "Switch to previous track",
+        notifier = function()
+          PakettiCanvasExperimentsSelectPreviousTrack()
+        end
+      },
+      vb:button {
+        text = "Previous Device",
+        width = 110,
+        tooltip = "Switch to previous device on current track",
+        notifier = function()
+          PakettiCanvasExperimentsSelectPreviousDevice()
+        end
+      },
+      vb:button {
+        text = "Next Device",
+        width = 100,
+        tooltip = "Switch to next device on current track",
+        notifier = function()
+          PakettiCanvasExperimentsSelectNextDevice()
+        end
+      },
+      vb:button {
+        text = "Next Track",
+        width = 90,
+        tooltip = "Switch to next track",
+        notifier = function()
+          PakettiCanvasExperimentsSelectNextTrack()
+        end
+      }
+    },
+    
     -- Canvas
     vb:canvas {
       id = "canvas_experiments_canvas",
@@ -1579,6 +1712,12 @@ function PakettiCanvasExperimentsCreateDialog()
           if follow_automation then
             SetupParameterObservers()
             renoise.app():show_status("Automation Sync ON: Canvas reads automation playback + writes when drawing")
+            
+            -- Auto-switch to automation view if option is enabled
+            if auto_show_automation then
+              renoise.app().window.active_lower_frame = renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION
+              renoise.app():show_status("Automation Sync ON + Switched to Automation View")
+            end
           else
             RemoveParameterObservers()
             renoise.app():show_status("Automation Sync OFF: Manual parameter control only")
@@ -1592,6 +1731,26 @@ function PakettiCanvasExperimentsCreateDialog()
         notifier = function()
           PakettiCanvasExperimentsRandomizeAutomation()
         end
+      }
+    },
+    
+    -- Automation view configuration
+    vb:row {
+      vb:checkbox {
+        id = "auto_show_automation_checkbox",
+        value = auto_show_automation,
+        notifier = function(value)
+          auto_show_automation = value
+          if value then
+            renoise.app():show_status("Auto-switch to Automation View: ENABLED")
+          else
+            renoise.app():show_status("Auto-switch to Automation View: DISABLED")
+          end
+        end
+      },
+      vb:text {
+        text = "Display Automation if pressing Automation Sync On",
+        tooltip = "When enabled, turning on Automation Sync will automatically switch to the Automation view"
       }
     },
     

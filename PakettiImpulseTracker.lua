@@ -2970,6 +2970,9 @@ function PakettiImpulseTrackerPatternToSample()
   
   print("DEBUG: Render options setup - sequence " .. song.selected_sequence_index .. ", lines 1-" .. pattern.number_of_lines)
   
+  -- Show status before rendering starts
+  renoise.app():show_status("Rendering in progress...")
+  
   -- Render the pattern
   print("STATUS: Rendering pattern " .. pattern_index .. " to sample...")
   
@@ -3057,9 +3060,11 @@ function PakettiPatternToSampleRenderComplete(temp_path, pattern_index)
     os.remove(temp_path)
     print("DEBUG: Temporary file cleaned up")
     
-    -- Success message
-    local status_msg = string.format("Pattern %d rendered to new instrument/sample (%d samples, %.1fs)", 
-      pattern_index, sample_buffer.number_of_frames, sample_buffer.number_of_frames / sample_buffer.sample_rate)
+    -- Success message with detailed information
+    local duration_seconds = sample_buffer.number_of_frames / sample_buffer.sample_rate
+    local status_msg = string.format("Instrument %02d saved with Pattern data %02d size %d frames %.1fs %dHz, %d-bit", 
+      song.selected_instrument_index, pattern_index, sample_buffer.number_of_frames, 
+      duration_seconds, sample_buffer.sample_rate, sample_buffer.bit_depth)
     
     print("STATUS: " .. status_msg)
     renoise.app():show_status(status_msg)

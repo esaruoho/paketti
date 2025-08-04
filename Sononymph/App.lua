@@ -495,6 +495,7 @@ function App:do_transfer()
   -- if any of these are true, instrument gets name of sample 
   local created_instrument = false 
   local instr_named_after_sample = false 
+  local created_new_instrument = false
 
 
   -- Debug: Show current preference values
@@ -510,6 +511,7 @@ function App:do_transfer()
     TRACE("Taking CREATE NEW INSTRUMENT path...")
     renoise.song():insert_instrument_at(renoise.song().selected_instrument_index+1)
     renoise.song().selected_instrument_index = renoise.song().selected_instrument_index + 1
+    created_new_instrument = true
     
     -- Inject Paketti default XRNI when creating new instrument
     TRACE("Auto-transfer creating new instrument - injecting Paketti XRNI...")
@@ -715,7 +717,7 @@ function App:do_transfer()
   local folder,filename,ext = cFilesystem.get_path_parts(self.selection_in_sononym.filename)
   sample.name = filename
   
-  if created_instrument or instr_named_after_sample then 
+  if created_instrument or instr_named_after_sample or created_new_instrument then 
     instr.name = filename
   end
   

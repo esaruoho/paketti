@@ -78,6 +78,39 @@ renoise.tool():add_keybinding{name="Global:Paketti:Numpad SelectPlay " .. i,invo
 end
 
 ------------------------------------------------------------------------------------------------------
+-- Global variable to track stepper cycling state
+local stepper_cycle_state = {
+  active = false,
+  current_instrument = nil,
+  current_step = 0
+}
+
+-- Stepper cycle order
+local stepper_cycle_order = {
+  "Cutoff Stepper",
+  "Resonance Stepper", 
+  "Pitch Stepper",
+  "Volume Stepper",
+  "Panning Stepper",
+  "Drive Stepper"
+}
+
+-- Function to reset stepper cycle state
+local function reset_stepper_cycle()
+  stepper_cycle_state.active = false
+  stepper_cycle_state.current_instrument = nil
+  stepper_cycle_state.current_step = 0
+end
+
+-- Function to hide all steppers
+local function hide_all_steppers()
+  if PakettiSetStepperVisible then
+    for _, stepper_name in ipairs(stepper_cycle_order) do
+      PakettiSetStepperVisible(stepper_name, false, true)
+    end
+  end
+end
+
 renoise.tool():add_keybinding{name="Global:Paketti:Capture Nearest Instrument and Octave (nojump)",invoke=function(repeated) capture_ins_oct("no") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Capture Nearest Instrument and Octave (nojump)",invoke=function(repeated) capture_ins_oct("no") end}
 renoise.tool():add_keybinding{name="Mixer:Paketti:Capture Nearest Instrument and Octave (nojump)",invoke=function(repeated) capture_ins_oct("no") end}
@@ -90,6 +123,9 @@ function capture_ins_oct(state)
    local current_track = renoise.song().selected_track_index
    local current_pattern = renoise.song().selected_pattern_index
    local found_note = false
+   
+   -- Check if we're in an effect column
+   local in_effect_column = (renoise.song().selected_effect_column_index > 0)
    
    -- Check if any notes exist for current instrument in track
    for pos, line in renoise.song().pattern_iterator:lines_in_pattern_track(current_pattern, current_track) do
@@ -170,8 +206,80 @@ function capture_ins_oct(state)
    if renoise.song().selected_instrument_index ~= closest_note.ins then
       renoise.song().selected_instrument_index = closest_note.ins
       renoise.song().transport.octave = closest_note.oct
-      renoise.app():show_status("Instrument captured. Run the script again to jump to the sample.")
+      
+      -- If in effect column and using "jump", start stepper cycle immediately
+      if in_effect_column and state == "yes" then
+         stepper_cycle_state.active = true
+         stepper_cycle_state.current_instrument = closest_note.ins
+         stepper_cycle_state.current_step = 1  -- Start at first stepper
+         
+         -- Show the first stepper immediately
+         local stepper_name = stepper_cycle_order[1]
+         if PakettiSetStepperVisible then
+            hide_all_steppers()
+            PakettiSetStepperVisible(stepper_name, true, true)
+            renoise.app():show_status(string.format("Showing %s (1/%d)", stepper_name, #stepper_cycle_order))
+         else
+            renoise.app():show_status("Stepper functions not available.")
+         end
+      else
+         renoise.app():show_status("Instrument captured. Run the script again to jump to the sample.")
+      end
       return
+   end
+
+   -- Handle stepper cycling if in effect column with "jump" state
+   if in_effect_column and state == "yes" then
+      -- If stepper cycle is active for this instrument, continue cycling
+      if stepper_cycle_state.active and stepper_cycle_state.current_instrument == renoise.song().selected_instrument_index then
+         stepper_cycle_state.current_step = stepper_cycle_state.current_step + 1
+         
+         -- If we've cycled through all steppers, go back to pattern editor
+         if stepper_cycle_state.current_step > #stepper_cycle_order then
+            hide_all_steppers()
+            reset_stepper_cycle()
+            renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+            renoise.app():show_status("Back to Pattern Editor.")
+            return
+         end
+         
+         -- Show the current stepper in the cycle
+         local stepper_name = stepper_cycle_order[stepper_cycle_state.current_step]
+         
+         if PakettiSetStepperVisible then
+            hide_all_steppers()
+            PakettiSetStepperVisible(stepper_name, true, true)
+            renoise.app():show_status(string.format("Showing %s (%d/%d)", stepper_name, stepper_cycle_state.current_step, #stepper_cycle_order))
+         else
+            renoise.app():show_status("Stepper functions not available.")
+            reset_stepper_cycle()
+         end
+         return
+      else
+         -- Instrument already selected but stepper cycle not active, start cycling immediately
+         stepper_cycle_state.active = true
+         stepper_cycle_state.current_instrument = renoise.song().selected_instrument_index
+         stepper_cycle_state.current_step = 1  -- Start at first stepper
+         
+         -- Show the first stepper immediately
+         local stepper_name = stepper_cycle_order[1]
+         if PakettiSetStepperVisible then
+            hide_all_steppers()
+            PakettiSetStepperVisible(stepper_name, true, true)
+            renoise.app():show_status(string.format("Showing %s (1/%d)", stepper_name, #stepper_cycle_order))
+         else
+            renoise.app():show_status("Stepper functions not available.")
+         end
+         return
+      end
+   end
+
+   -- Reset stepper cycle if not in effect column or using "no" state
+   if not in_effect_column or state == "no" then
+      if stepper_cycle_state.active then
+         hide_all_steppers()
+         reset_stepper_cycle()
+      end
    end
 
    -- Step 2: If in the Sample Editor, toggle back to the Pattern Editor
@@ -203,61 +311,15 @@ function capture_ins_oct(state)
       
       -- If no phrases, fall back to original sample editor behavior
       if instrument and #instrument.samples > 0 then
-         -- Debug print to show number of samples and mappings
-         print("Number of samples in instrument:", #instrument.samples)
-         print("Number of mapping sets:", #instrument.sample_mappings)
-         if #instrument.sample_mappings > 0 then
-            print("Number of mappings in first set:", #instrument.sample_mappings[1])
-         end
-
-         -- First check for a sample mapped to full velocity range (00-7F)
-         local full_range_sample_index = nil
+         -- Find sample by note mapping
+         local sample_index = 1
          for i, sample_map in ipairs(instrument.sample_mappings[1]) do
-            -- Debug print for each mapping
-            print(string.format("Sample %d velocity range: %d to %d", i, sample_map.velocity_range[1], sample_map.velocity_range[2]))
-            
-            -- Check if this sample covers full velocity range (00-7F) while others are limited
-            if sample_map.velocity_range[1] == 0 and sample_map.velocity_range[2] == 127 then
-               print("Found potential full velocity range sample at index", i)
-               local other_samples_limited = true
-               for j, other_map in ipairs(instrument.sample_mappings[1]) do
-                  if j ~= i then
-                     print(string.format("Checking other sample %d velocity range: %d to %d", j, other_map.velocity_range[1], other_map.velocity_range[2]))
-                     if other_map.velocity_range[1] ~= 0 or other_map.velocity_range[2] ~= 0 then
-                        other_samples_limited = false
-                        print("Found non-limited other sample at index", j)
-                        break
-                     end
-                  end
-               end
-               if other_samples_limited then
-                  full_range_sample_index = i
-                  print("Confirmed full velocity range sample at index", i)
-                  break
-               end
+            if closest_note.note >= sample_map.note_range[1] and closest_note.note <= sample_map.note_range[2] then
+               sample_index = i
+               break
             end
          end
-
-         -- If we found a full velocity range sample, use it
-         if full_range_sample_index then
-            print("Using full velocity range sample at index", full_range_sample_index)
-            renoise.song().selected_sample_index = full_range_sample_index
-            renoise.app():show_status(string.format("Found full velocity range sample at slot %d", full_range_sample_index))
-         else
-            print("No full velocity range sample found, falling back to note-based selection")
-            -- Otherwise fall back to original behavior - find sample by note
-            local sample_mapping = instrument.sample_mappings[1][1]
-            local first_sample_note = sample_mapping and sample_mapping.note_range[1] or 0
-            
-            local sample_index = 1
-            for i, sample_map in ipairs(instrument.sample_mappings[1]) do
-               if closest_note.note >= sample_map.note_range[1] and closest_note.note <= sample_map.note_range[2] then
-                  sample_index = i
-                  break
-               end
-            end
-            renoise.song().selected_sample_index = sample_index
-         end
+         renoise.song().selected_sample_index = sample_index
 
          renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
          renoise.app():show_status("Instrument and sample captured, jumping to Sample Editor.")

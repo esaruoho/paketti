@@ -108,6 +108,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiAutomationWipeAfterSwitch=true,
   SelectedSampleBeatSyncLines = false,
   pakettiLoadOrder = false,
+  pakettiDeviceLoadBehaviour = 1, -- 1=Open External Editor, 2=Open Selected Parameter Dialog
   pakettiOctaMEDNoteEchoDistance=2,
   pakettiOctaMEDNoteEchoMin=1,
   pakettiRotateSampleBufferCoarse=1000,
@@ -1261,6 +1262,19 @@ vb:row{
       end
     }
   },
+  vb:row{
+    vb:text{text="Device Load Behavior", style="strong",font="bold",width=150},
+    vb:switch{
+      items={"Open External Editor", "Open Selected Parameter Dialog"},
+      value=preferences.pakettiDeviceLoadBehaviour.value,
+      width=400,
+      notifier=function(value) 
+        preferences.pakettiDeviceLoadBehaviour.value = value
+        print("Device Load Behavior set to: " .. (value == 1 and "Open External Editor" or "Open Selected Parameter Dialog"))
+      end
+    }
+  },
+  vb:row{vb:text{style="strong",text="Controls behavior when loading VST/AU plugins and native devices"}},
     vb:row{
       vb:text{text="LFO Write Device Delete",style="strong",font="bold",width=150},
       vb:switch{

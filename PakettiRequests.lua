@@ -241,6 +241,96 @@ function selectedInstrumentAllFx(number)
   end
 end
 
+-- Function to distribute all samples to separate FX chains (one sample per FX chain)
+function selectedInstrumentDistributeToSeparateFxChains()
+  local instrument = renoise.song().instruments[renoise.song().selected_instrument_index]
+
+  -- Check if the instrument exists and has samples
+  if not instrument or #instrument.samples == 0 then
+    renoise.app():show_status("No samples to distribute to sample FX chains")
+    return
+  end
+
+  -- Check for slice markers on the first sample [[memory:4746832]]
+  local first_sample = instrument.samples[1]
+  local samples_to_process = {}
+  
+  if #first_sample.slice_markers > 0 then
+    -- If slice markers exist, only process the first sample
+    samples_to_process = {first_sample}
+  else
+    -- If no slice markers, process all samples
+    samples_to_process = instrument.samples
+  end
+
+  local num_samples = #samples_to_process
+  local num_existing_fx_chains = #instrument.sample_device_chains
+
+  -- Create additional FX chains if needed (each sample needs its own FX chain)
+  local fx_chains_needed = num_samples
+  local fx_chains_to_create = math.max(0, fx_chains_needed - num_existing_fx_chains)
+
+  for i = 1, fx_chains_to_create do
+    instrument:insert_sample_device_chain_at(num_existing_fx_chains + i)
+  end
+
+  -- Assign each sample to its corresponding FX chain (1-based indexing for FX chains)
+  for i, sample in ipairs(samples_to_process) do
+    sample.device_chain_index = i
+  end
+
+  renoise.app():show_status("Distributed " .. num_samples .. " sample(s) to separate FX chains")
+end
+
+-- Function to delete all sample FX chains (keeps only the first one)
+function selectedInstrumentDeleteAllSampleFxChains()
+  local instrument = renoise.song().instruments[renoise.song().selected_instrument_index]
+
+  -- Check if the instrument exists
+  if not instrument then
+    renoise.app():show_status("No instrument selected")
+    return
+  end
+
+  local num_fx_chains = #instrument.sample_device_chains
+
+  -- Check if there are any FX chains to delete
+  if num_fx_chains <= 1 then
+    renoise.app():show_status("Only one or no sample FX chains to delete")
+    return
+  end
+
+  -- Delete all FX chains except the first one (delete from highest index to lowest to avoid index shifting)
+  for i = num_fx_chains, 2, -1 do
+    instrument:delete_sample_device_chain_at(i)
+  end
+
+  -- Reset all samples to use the first (only remaining) FX chain
+  for i, sample in ipairs(instrument.samples) do
+    sample.device_chain_index = 1
+  end
+
+  local deleted_count = num_fx_chains - 1
+  renoise.app():show_status("Deleted " .. deleted_count .. " sample FX chain(s), kept the first one")
+end
+
+
+
+-- Menu entries and keybindings for distributing samples to separate FX chains
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Distribute All Samples to Separate FX Chains",invoke=function() selectedInstrumentDistributeToSeparateFxChains() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Distribute All Samples to Separate FX Chains",invoke=function() selectedInstrumentDistributeToSeparateFxChains() end}
+renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti:Distribute All Samples to Separate FX Chains",invoke=function() selectedInstrumentDistributeToSeparateFxChains() end}
+
+renoise.tool():add_keybinding{name="Global:Paketti:Distribute All Samples to Separate FX Chains",invoke=function() selectedInstrumentDistributeToSeparateFxChains() end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Distribute All Samples to Separate FX Chains",invoke=function() selectedInstrumentDistributeToSeparateFxChains() end}
+
+-- Menu entries and keybindings for deleting all sample FX chains
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Delete All Sample FX Chains",invoke=function() selectedInstrumentDeleteAllSampleFxChains() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Delete All Sample FX Chains",invoke=function() selectedInstrumentDeleteAllSampleFxChains() end}
+renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti:Delete All Sample FX Chains",invoke=function() selectedInstrumentDeleteAllSampleFxChains() end}
+
+renoise.tool():add_keybinding{name="Global:Paketti:Delete All Sample FX Chains",invoke=function() selectedInstrumentDeleteAllSampleFxChains() end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Delete All Sample FX Chains",invoke=function() selectedInstrumentDeleteAllSampleFxChains() end}
 
 
 -- Function to toggle the autofade setting for all samples in the selected instrument
@@ -9372,14 +9462,14 @@ for i=1,10 do
     invoke=function() FinderShowerByPath(preferences.UserPreferences["userPreferredDevice" .. slot].value, "selected_track") end
   }
 
-  renoise.tool():add_keybinding{name="Global:Paketti:Show/Hide Slot " .. slot .. " on Master",
+  renoise.tool():add_keybinding{name="Global:Paketti:Show/Hide SlotShow " .. slot .. " on Master",
     invoke=function() FinderShowerByPath(preferences.UserPreferences["userPreferredDevice" .. slot].value, "master") end
   }
 
-  renoise.tool():add_keybinding{name="Global:Paketti:Show/Hide Slot " .. slot .. " on Selected Track",
+  renoise.tool():add_keybinding{name="Global:Paketti:Show/Hide SlotShow " .. slot .. " on Selected Track",
     invoke=function() FinderShowerByPath(preferences.UserPreferences["userPreferredDevice" .. slot].value, "selected_track") end
   }
-renoise.tool():add_midi_mapping{name="Paketti:Show/Hide Slot " .. slot .. " on Master",
+renoise.tool():add_midi_mapping{name="Paketti:Show/Hide SlotShow " .. slot .. " on Master",
   invoke=function(message)
     if message:is_trigger() then
       FinderShowerByPath(preferences.UserPreferences["userPreferredDevice" .. slot].value, "master")

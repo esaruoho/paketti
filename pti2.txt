@@ -1,0 +1,192 @@
+# Instrument File Binary Format Documentation
+
+This document describes the binary layout of an Polyend Tracker Instrument file.
+
+File location and naming pattern: (project or workspace)/instruments/instrument_xx.pti
+
+---
+
+## 1. File Header 
+| Offset | Size (bytes) | Type         | Field Name             | Description                                  |
+|--------|--------------|--------------|------------------------|----------------------------------------------|
+| 0      | 2            | char[2]      | id_file                | File type identifier (e.g., 'TI' for instrument)|
+| 2      | 2            | uint16_t     | type                   | File type as a number (2 = instrument)       |
+| 4      | 4            | char[4]      | fwVersion              | Firmware version as 4 bytes: [major.minor.patch.beta]|
+| 8      | 4            | char[4]      | fileStructureVersion   | File structure version string |
+| 12     | 2            | uint16_t     | size                   | Size of the instrument data (bytes)                     |
+| 14     | 2            | padding      | (unnamed)              | 2 bytes of padding after header for alignment |
+
+*Note: All integer and float fields are little-endian.*
+
+---
+
+## 2. Instrument Data 
+
+### 2.1. Sample Bank Slot 
+| Offset | Size (bytes) | Type         | Field Name             | Description                                  |
+|--------|--------------|--------------|------------------------|----------------------------------------------|
+| 0      | 1            | uint8_t      | type                   | Sample type: 0 = WaveFile, 1 = Wavetable     |
+| 1      | 32           | char[32]     | file_name              | Sample file name (null-terminated)           |
+| 33     | 3            | padding      | (unnamed)              | 3 bytes of padding           |
+| 36     | 4            | uint32_t     | reserved               | set to 0                |
+| 40     | 4            | uint32_t     | length                 | 16bit sample count                           |
+| 44     | 2            | uint16_t     | wavetable_window_size  | Wavetable window size (possible values: 32, 64, 128, 256, 512, 1024, 2048, other may cause errors) |
+| 46     | 2            | padding      | (unnamed)              | 2 bytes of padding |
+| 48     | 4            | uint32_t     | wavetableWindowCount  | Wavetable window count                      |
+
+### 2.2. Instrument Main Fields
+| Offset | Size (bytes) | Type         | Field Name             | Description                                  |
+|--------|--------------|--------------|------------------------|----------------------------------------------|
+| 0      | 1            | uint8_t      | isActive               | Instrument active flag                       |
+| 1      | 3            | padding      | (unnamed)              | 3 bytes of padding after isActive            |
+| 4      | 41           | struct       | sample                 | Sample bank slot (see above)                 |
+| 45     | 4            | char[4]      | reserved               | Reserved field, set to 0                     |
+| 49     | 1            | uint8_t      | playMode               | Play mode (see table below)                  |
+| 50     | 3            | padding      | (unnamed)              | 3 bytes of padding after playMode            |
+| 53     | 2            | uint16_t     | startPoint             | Sample start point (0-65535) |
+| 55     | 2            | uint16_t     | loopPoint1             | Sample loop start (0-65535) |
+| 57     | 2            | uint16_t     | loopPoint2             | Sample loop end (0-65535) |
+| 59     | 2            | uint16_t     | endPoint               | Sample end point (0-65535) |
+| 61     | 2            | padding      | (unnamed)              | 2 bytes of padding after endPoint            |
+| 63     | 4            | uint32_t     | wavetableCurrentWindow | Wavetable current window  |
+| 67     | 120          | struct[6]    | envelope[6]            | Envelope generators (see below)              |
+| 187    | 48           | struct[6]    | lfo[6]                 | LFOs (see below)                             |
+| 235    | 4            | float        | cutOff                 | Filter cutoff (0-1.0)                               |
+| 239    | 4            | float        | resonance              | Filter resonance (0-1.0)                             |
+| 243    | 1            | uint8_t      | filterType             | Filter type: 0 = lowPass, 1 = highPass, 2 = bandPass (when filterEnable==0 and filterType==0, UI shows 'disabled') |
+| 244    | 1            | uint8_t      | filterEnable           | Filter enable flag (0/1)                     |
+| 245    | 1            | int8_t       | tune                   | Instrument tune(-24-24)                      |
+| 246    | 1            | int8_t       | fineTune               | Instrument fine tune (-100, 100)             |
+| 247    | 1            | uint8_t      | volume                 | Instrument volume (0-100, logarithmic scale, converted to dB for display) |
+| 248    | 2            | uint16_t     | reserved               | set to 0                                     |
+| 250    | 1            | padding      | (unnamed)              | 1 byte of padding              |
+| 251    | 2            | int16_t      | panning                | Panning (0-100, 50 = center)                 |
+| 253    | 1            | uint8_t      | delaySend              | Delay send (0-100)                           |
+| 254    | 96           | uint16_t[48] | slices                 | Slice points                                 |
+| 350    | 1            | padding      | (unnamed)              | 1 byte of padding before sliceNumber         |
+| 351    | 1            | uint8_t      | sliceNumber            | Number of slices (0-48)                      |
+| 352    | 1            | uint8_t      | selectedSlice          | Selected slice index                         |
+| 353    | 6            | struct       | granular               | Granular synthesis params (see below)        |
+| 359    | 1            | uint8_t      | reverbSend             | Reverb send  (0-100)                         |
+| 360    | 1            | uint8_t      | overdrive              | Overdrive (0-100)                            |
+| 361    | 1            | uint8_t      | bitDepth               | Bit depth  (4-16)                            |
+| 362    | 1            | int8_t       | reserved               | set to 0                                     |
+
+#### Play Mode Values 
+| Value | Description (UI Label)    |
+|-------|---------------------------|
+| 0     | 1-Shot                    |
+| 1     | Forward Loop              |
+| 2     | Backward Loop             |
+| 3     | Pingpong Loop             |
+| 4     | Slice                     |
+| 5     | Beat Slice                |
+| 6     | Wavetable                 |
+| 7     | Granular                  |
+
+
+#### 2.2.1. Envelope Generator 
+| Offset | Size (bytes) | Type         | Field Name             | Description                                  |
+|--------|--------------|--------------|------------------------|----------------------------------------------|
+| 0      | 4            | float        | amount                 | Envelope amount (0-1.0)                      |
+| 4      | 2            | uint16_t     | delay                  | Envelope delay (ms)                          |
+| 6      | 2            | uint16_t     | attack                 | Envelope attack (ms)                         |
+| 8      | 2            | uint16_t     | hold                   | Envelope hold   (ms)                         |
+| 10     | 2            | uint16_t     | decay                  | Envelope decay (ms)                          |
+| 12     | 4            | float        | sustain                | Envelope sustain  (0-1.0)                    |
+| 16     | 2            | uint16_t     | release                | Envelope release  (ms)                       |
+| 18     | 1            | uint8_t      | loop                   | Envelope loop flag (0/1)                     |
+| 19     | 1            | uint8_t      | enable                 | Envelope enable flag (0/1)                   |
+
+#### 2.2.2. LFO 
+| Offset | Size (bytes) | Type         | Field Name             | Description                                  |
+|--------|--------------|--------------|------------------------|----------------------------------------------|
+| 0      | 1            | uint8_t      | shape                  | LFO shape (see table below)                  |
+| 1      | 1            | uint8_t      | speed                  | LFO speed (0-28, see table below)            |
+| 2      | 2            | padding      | (unnamed)              | 2 bytes of padding after speed               |
+| 4      | 4            | float        | amount                 | LFO amount (0-1.0)                           |
+
+**LFO Shape Values:**
+
+| Value | UI Label   | Description         |
+|-------|-----------|---------------------|
+| 0     | Rev Saw   | Reverse Sawtooth    |
+| 1     | Saw       | Sawtooth            |
+| 2     | Triangle  | Triangle            |
+| 3     | Square    | Square              |
+| 4     | Random    | Random              |
+
+**LFO Speed Values:**
+
+| Value | UI Label    |
+|-------|-------------|
+| 0     | 128 steps   |
+| 1     | 96 steps    |
+| 2     | 64 steps    |
+| 3     | 48 steps    |
+| 4     | 32 steps    |
+| 5     | 24 steps    |
+| 6     | 16 steps    |
+| 7     | 12 steps    |
+| 8     | 8 steps     |
+| 9     | 6 steps     |
+| 10    | 4 steps     |
+| 11    | 3 steps     |
+| 12    | 2 steps     |
+| 13    | 3/2 step    |
+| 14    | 1 step      |
+| 15    | 3/4 step    |
+| 16    | 1/2 step    |
+| 17    | 3/8 step    |
+| 18    | 1/3 step    |
+| 19    | 1/4 step    |
+| 20    | 3/16 step   |
+| 21    | 1/6 step    |
+| 22    | 1/8 step    |
+| 23    | 1/12 step   |
+| 24    | 1/16 step   |
+| 25    | 1/24 step   |
+| 26    | 1/32 step   |
+| 27    | 1/48 step   |
+| 28    | 1/64 step   |
+
+#### 2.2.3. Granular Synthesis Params (strGranular)
+| Offset | Size (bytes) | Type         | Field Name             | Description                                  |
+|--------|--------------|--------------|------------------------|----------------------------------------------|
+| 0      | 2            | uint16_t     | grainLength            | Grain length  (44 - 44100 samples)
+| 2      | 2            | uint16_t     | currentPosition        | Current position (0-65535)                   |
+| 4      | 1            | uint8_t      | shape                  | Granular shape: 0 = Square, 1 = Triangle, 2 = Gauss |
+| 5      | 1            | uint8_t      | type                   | Granular type: 0 = Forward, 1 = Backward, 2 = PingPong |
+
+---
+
+## 3. CRC
+| Offset | Size (bytes) | Type         | Field Name             | Description                                  |
+|--------|--------------|--------------|------------------------|----------------------------------------------|
+| 374    | 4            | uint32_t     | crc                    | CRC checksum for the instrument (32-bit value, little-endian). Calculated over the entire file except the CRC field itself. Not verified on load. |
+
+
+
+## 4. File Size Summary
+
+
+| Component | Size (bytes) | Offset Range | Description |
+|-----------|--------------|--------------|-------------|
+| File Header | 16 | 0-15 | File identification and metadata |
+| Instrument Data | 374 | 16-389 | All instrument parameters and settings |
+| CRC | 4 | 390-393 | 32-bit checksum |
+
+
+
+## 5. Inspecting Instrument Files with patternRead.py
+
+You can use the python `instrumentRead.py` script in this repository to inspect and print the instrument data. 
+
+
+
+**Usage example:**
+
+    python instrumentRead.py instrument_01.pti
+
+
+

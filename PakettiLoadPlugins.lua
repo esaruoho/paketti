@@ -670,9 +670,18 @@ function pakettiLoadPluginsDialog()
     table.insert(dropdown_items, plugin_type_display_names[plugin_type])
   end
 
+  -- Find the index of the current plugin type for proper dropdown initialization
+  local current_plugin_index = 1
+  for i, plugin_type in ipairs(plugin_types) do
+    if plugin_type == current_plugin_type then
+      current_plugin_index = i
+      break
+    end
+  end
+
   local dropdown = vb:popup{
     items = dropdown_items,
-    value = 1,
+    value = current_plugin_index,
     notifier=function(index)
       current_plugin_type = plugin_types[index]
       updatePluginList()

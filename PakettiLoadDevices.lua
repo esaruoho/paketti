@@ -499,9 +499,18 @@ function pakettiLoadDevicesDialog()
   checkboxes = {}
   local track_index = renoise.song().selected_track_index
 
+  -- Find the index of the current device type for proper dropdown initialization
+  local current_device_index = 1
+  for i, device_type in ipairs(device_types) do
+    if device_type == current_device_type then
+      current_device_index = i
+      break
+    end
+  end
+
   local dropdown = vb:popup{
     items = device_types,
-    value = 1,
+    value = current_device_index,
     notifier=function(index)
       current_device_type = device_types[index]
       updateDeviceList()
