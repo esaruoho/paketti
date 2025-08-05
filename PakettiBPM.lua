@@ -1,6 +1,45 @@
 local vb = renoise.ViewBuilder()
 local dialog
 
+-- Test function that analyzes the currently selected sample (from PakettiRender.lua)
+function pakettiBPMTestCalculation()
+  local song = renoise.song()
+  
+  -- Check if we have a selected sample
+  if not song.selected_sample or not song.selected_sample.sample_buffer or not song.selected_sample.sample_buffer.has_sample_data then
+      renoise.app():show_status("No sample selected or sample has no data")
+      return
+  end
+  
+  local sample = song.selected_sample
+  local sample_buffer = sample.sample_buffer
+  
+  -- Get real sample data from Renoise
+  local sample_length_frames = sample_buffer.number_of_frames
+  local sample_rate = sample_buffer.sample_rate
+  local bit_depth = sample_buffer.bit_depth or 16
+  local num_channels = sample_buffer.number_of_channels
+  
+  -- Calculate sample length in seconds
+  local sample_length_seconds = sample_length_frames / sample_rate
+  
+  print("=== REAL SAMPLE ANALYSIS ===")
+  print("Sample name:", sample.name)
+  print("Sample length:", sample_length_frames, "frames")
+  print("Sample rate:", sample_rate, "Hz")
+  print("Bit depth:", bit_depth, "bits")
+  print("Channels:", num_channels)
+  print("Duration:", sample_length_seconds, "seconds")
+  
+  -- Assume it's a 4-beat loop for testing (user can modify this)
+  local assumed_beats = 4
+  local calculated_bpm = pakettiBPMCountFromSample(sample_length_frames, sample_rate, assumed_beats)
+  
+  renoise.app():show_status(string.format("Sample: %s | %d frames @ %dHz = %.2fs | Assuming %d beats = %.1f BPM", 
+      sample.name, sample_length_frames, sample_rate, sample_length_seconds, assumed_beats, calculated_bpm))
+end
+
+
 function pakettiBPMMSCalculator()
   if dialog and dialog.visible then
     dialog:close()
@@ -84,7 +123,7 @@ function pakettiBPMMSCalculator()
 
     for _, entry in ipairs(original_labels) do
       table.insert(rows, vb:row {
-        vb:text{ text = entry.label, font = "bold", style = "strong", width = 150 },
+        vb:text{ text = entry.label, font = "bold", style = "strong", width = 190 },
         text_views[entry.id]
       })
     end
@@ -94,15 +133,15 @@ function pakettiBPMMSCalculator()
 
     for _, item in ipairs(note_factors) do
       table.insert(rows, vb:row {
-        vb:text{ text = item.label.." Even", font = "bold", style = "strong", width = 150 },
+        vb:text{ text = item.label.." Even", font = "bold", style = "strong", width = 190 },
         text_views[item.label.." Even"]
       })
       table.insert(rows, vb:row {
-        vb:text{ text = item.label.." Dotted", font = "bold", style = "strong", width = 150 },
+        vb:text{ text = item.label.." Dotted", font = "bold", style = "strong", width = 190 },
         text_views[item.label.." Dotted"]
       })
       table.insert(rows, vb:row {
-        vb:text{ text = item.label.." Triplet", font = "bold", style = "strong", width = 150 },
+        vb:text{ text = item.label.." Triplet", font = "bold", style = "strong", width = 190 },
         text_views[item.label.." Triplet"]
       })
     end
@@ -239,43 +278,6 @@ function pakettiBPMCountFromSample(sample_length_frames, sample_rate, beats_in_s
     return bpm
 end
 
--- Test function that analyzes the currently selected sample (from PakettiRender.lua)
-function pakettiBPMTestCalculation()
-    local song = renoise.song()
-    
-    -- Check if we have a selected sample
-    if not song.selected_sample or not song.selected_sample.sample_buffer or not song.selected_sample.sample_buffer.has_sample_data then
-        renoise.app():show_status("No sample selected or sample has no data")
-        return
-    end
-    
-    local sample = song.selected_sample
-    local sample_buffer = sample.sample_buffer
-    
-    -- Get real sample data from Renoise
-    local sample_length_frames = sample_buffer.number_of_frames
-    local sample_rate = sample_buffer.sample_rate
-    local bit_depth = sample_buffer.bit_depth or 16
-    local num_channels = sample_buffer.number_of_channels
-    
-    -- Calculate sample length in seconds
-    local sample_length_seconds = sample_length_frames / sample_rate
-    
-    print("=== REAL SAMPLE ANALYSIS ===")
-    print("Sample name:", sample.name)
-    print("Sample length:", sample_length_frames, "frames")
-    print("Sample rate:", sample_rate, "Hz")
-    print("Bit depth:", bit_depth, "bits")
-    print("Channels:", num_channels)
-    print("Duration:", sample_length_seconds, "seconds")
-    
-    -- Assume it's a 4-beat loop for testing (user can modify this)
-    local assumed_beats = 4
-    local calculated_bpm = pakettiBPMCountFromSample(sample_length_frames, sample_rate, assumed_beats)
-    
-    renoise.app():show_status(string.format("Sample: %s | %d frames @ %dHz = %.2fs | Assuming %d beats = %.1f BPM", 
-        sample.name, sample_length_frames, sample_rate, sample_length_seconds, assumed_beats, calculated_bpm))
-end
 
 -- Function to analyze sample with custom beat count (from PakettiRender.lua)
 function pakettiBPMAnalyzeSample(beats_in_sample)

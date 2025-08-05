@@ -1,0 +1,1389 @@
+-- PakettiEQ10Experiment.lua
+-- EQ30 Band System using XML injection of EQ10 devices
+-- Drawable frequency response interface with real-time EQ curve modification
+
+local vb = renoise.ViewBuilder()
+local eq_dialog = nil
+local eq_canvas = nil
+local autofocus_enabled = true  -- Default to enabled for better UX
+local devices_minimized = false  -- Default to maximized (show full device parameters)
+local global_bandwidth = 0.12  -- Default bandwidth value (0.0001 to 1.0, smaller = sharper)
+local canvas_width = 1280
+local canvas_height = 480  -- Increased to accommodate band labels
+local content_margin = 50
+local content_width = canvas_width - (content_margin * 2)
+local content_height = canvas_height - (content_margin * 2)
+local content_x = content_margin
+local content_y = content_margin
+
+-- EQ30 frequency bands (Alesis M-EQ 230 specification - exact 1/3 octave)
+local eq30_frequencies = {
+  25, 31, 40, 50, 62, 80, 100, 125, 160, 200, 250, 320, 400, 500, 640, 800, 
+  1000, 1300, 1600, 2000, 2500, 3150, 4000, 5000, 6200, 8000, 10000, 13000, 16000, 20000
+}
+
+-- Calculate bandwidth values for TRUE 1/3 octave precision (Alesis M-EQ 230 style)
+-- Renoise EQ10 bandwidth parameter expects 0.0001 to 1 (smaller = sharper)
+local function calculate_third_octave_bandwidth(center_freq)
+  -- For sharp, surgical 1/3 octave bands (not fat and flabby)
+  -- Renoise bandwidth: smaller values = sharper bands
+  -- True 1/3 octave bandwidth ≈ 0.231, but we want sharper for precision
+  
+  if center_freq <= 100 then
+    return 0.15  -- Sharp for low frequencies
+  elseif center_freq <= 1000 then
+    return 0.12  -- Very sharp for midrange
+  elseif center_freq <= 8000 then
+    return 0.10  -- Surgical for presence range
+  else
+    return 0.15  -- Sharp for high frequencies
+  end
+end
+
+-- EQ band states: gain values in dB (-12 to +12)
+local eq_gains = {}
+for i = 1, #eq30_frequencies do
+  eq_gains[i] = 0.0  -- Start flat
+end
+
+-- Mouse interaction state
+local mouse_is_down = false
+local last_mouse_x = -1
+local last_mouse_y = -1
+
+-- Canvas colors (using same pattern as PakettiPCMWriter)
+local COLOR_GRID_LINES = {32, 64, 32, 255}        -- Dark green grid
+local COLOR_ZERO_LINE = {128, 128, 128, 255}      -- Gray center line
+local COLOR_EQ_CURVE = {255, 64, 255, 255}        -- Bright pink EQ curve
+local COLOR_FREQUENCY_MARKERS = {200, 200, 200, 255}  -- Light gray frequency markers
+local COLOR_GAIN_MARKERS = {180, 180, 180, 255}   -- Gain level markers
+local COLOR_MOUSE_CURSOR = {255, 255, 255, 255}   -- White mouse cursor
+local COLOR_BAND_LABELS = {255, 255, 255, 255}    -- White band labels
+
+-- Custom text rendering system for canvas (from PakettiCanvasExperiments.lua)
+local function draw_letter_A(ctx, x, y, size)
+  ctx:begin_path()
+  ctx:move_to(x, y + size)
+  ctx:line_to(x + size/2, y)
+  ctx:line_to(x + size, y + size)
+  ctx:move_to(x + size/4, y + size/2)
+  ctx:line_to(x + 3*size/4, y + size/2)
+  ctx:stroke()
+end
+
+local function draw_digit_0(ctx, x, y, size)
+  ctx:begin_path()
+  ctx:move_to(x, y)
+  ctx:line_to(x + size, y)
+  ctx:line_to(x + size, y + size)
+  ctx:line_to(x, y + size)
+  ctx:line_to(x, y)
+  ctx:line_to(x + size, y + size)
+  ctx:stroke()
+end
+
+local function draw_digit_1(ctx, x, y, size)
+  ctx:begin_path()
+  ctx:move_to(x + size/2, y)
+  ctx:line_to(x + size/2, y + size)
+  ctx:move_to(x + size/2, y)
+  ctx:line_to(x + size/4, y + size/4)
+  ctx:stroke()
+end
+
+local function draw_digit_2(ctx, x, y, size)
+  ctx:begin_path()
+  ctx:move_to(x, y)
+  ctx:line_to(x + size, y)
+  ctx:line_to(x + size, y + size/2)
+  ctx:line_to(x, y + size/2)
+  ctx:line_to(x, y + size)
+  ctx:line_to(x + size, y + size)
+  ctx:stroke()
+end
+
+local function draw_digit_3(ctx, x, y, size)
+  ctx:begin_path()
+  ctx:move_to(x, y)
+  ctx:line_to(x + size, y)
+  ctx:line_to(x + size, y + size/2)
+  ctx:line_to(x, y + size/2)
+  ctx:move_to(x + size, y + size/2)
+  ctx:line_to(x + size, y + size)
+  ctx:line_to(x, y + size)
+  ctx:stroke()
+end
+
+local function draw_digit_4(ctx, x, y, size)
+  ctx:begin_path()
+  ctx:move_to(x, y)
+  ctx:line_to(x, y + size/2)
+  ctx:line_to(x + size, y + size/2)
+  ctx:move_to(x + size, y)
+  ctx:line_to(x + size, y + size)
+  ctx:stroke()
+end
+
+local function draw_digit_5(ctx, x, y, size)
+  ctx:begin_path()
+  ctx:move_to(x + size, y)
+  ctx:line_to(x, y)
+  ctx:line_to(x, y + size/2)
+  ctx:line_to(x + size, y + size/2)
+  ctx:line_to(x + size, y + size)
+  ctx:line_to(x, y + size)
+  ctx:stroke()
+end
+
+local function draw_digit_6(ctx, x, y, size)
+  ctx:begin_path()
+  ctx:move_to(x + size, y)
+  ctx:line_to(x, y)
+  ctx:line_to(x, y + size)
+  ctx:line_to(x + size, y + size)
+  ctx:line_to(x + size, y + size/2)
+  ctx:line_to(x, y + size/2)
+  ctx:stroke()
+end
+
+local function draw_digit_7(ctx, x, y, size)
+  ctx:begin_path()
+  ctx:move_to(x, y)
+  ctx:line_to(x + size, y)
+  ctx:line_to(x + size/2, y + size)
+  ctx:stroke()
+end
+
+local function draw_digit_8(ctx, x, y, size)
+  ctx:begin_path()
+  ctx:move_to(x, y)
+  ctx:line_to(x + size, y)
+  ctx:line_to(x + size, y + size)
+  ctx:line_to(x, y + size)
+  ctx:line_to(x, y)
+  ctx:move_to(x, y + size/2)
+  ctx:line_to(x + size, y + size/2)
+  ctx:stroke()
+end
+
+local function draw_digit_9(ctx, x, y, size)
+  ctx:begin_path()
+  ctx:move_to(x + size, y + size)
+  ctx:line_to(x + size, y)
+  ctx:line_to(x, y)
+  ctx:line_to(x, y + size/2)
+  ctx:line_to(x + size, y + size/2)
+  ctx:stroke()
+end
+
+local function draw_letter_H(ctx, x, y, size)
+  ctx:begin_path()
+  ctx:move_to(x, y)
+  ctx:line_to(x, y + size)
+  ctx:move_to(x + size, y)
+  ctx:line_to(x + size, y + size)
+  ctx:move_to(x, y + size/2)
+  ctx:line_to(x + size, y + size/2)
+  ctx:stroke()
+end
+
+local function draw_letter_Z(ctx, x, y, size)
+  ctx:begin_path()
+  ctx:move_to(x, y)
+  ctx:line_to(x + size, y)
+  ctx:line_to(x, y + size)
+  ctx:line_to(x + size, y + size)
+  ctx:stroke()
+end
+
+local function draw_letter_K(ctx, x, y, size)
+  ctx:begin_path()
+  ctx:move_to(x, y)
+  ctx:line_to(x, y + size)
+  ctx:move_to(x + size, y)
+  ctx:line_to(x, y + size/2)
+  ctx:line_to(x + size, y + size)
+  ctx:stroke()
+end
+
+local function draw_space(ctx, x, y, size)
+  -- Space character - do nothing
+end
+
+-- Letter lookup table (subset for numbers and frequency labels)
+local letter_functions = {
+  A = draw_letter_A, H = draw_letter_H, Z = draw_letter_Z, K = draw_letter_K,
+  ["0"] = draw_digit_0, ["1"] = draw_digit_1, ["2"] = draw_digit_2, ["3"] = draw_digit_3,
+  ["4"] = draw_digit_4, ["5"] = draw_digit_5, ["6"] = draw_digit_6, ["7"] = draw_digit_7,
+  ["8"] = draw_digit_8, ["9"] = draw_digit_9, [" "] = draw_space
+}
+
+-- Function to draw text on canvas
+local function draw_canvas_text(ctx, text, x, y, size)
+  local current_x = x
+  local letter_spacing = size * 1.2
+  
+  for i = 1, #text do
+    local char = text:sub(i, i):upper()
+    local letter_func = letter_functions[char]
+    if letter_func then
+      letter_func(ctx, current_x, y, size)
+    end
+    current_x = current_x + letter_spacing
+  end
+end
+
+-- Convert frequency to canvas X position (logarithmic scale)
+local function freq_to_x(frequency)
+  local log_min = math.log10(eq30_frequencies[1])      -- 25 Hz
+  local log_max = math.log10(eq30_frequencies[#eq30_frequencies])  -- 20 kHz
+  local log_freq = math.log10(frequency)
+  local normalized = (log_freq - log_min) / (log_max - log_min)
+  return content_x + normalized * content_width
+end
+
+-- Convert canvas X position to frequency (logarithmic scale)
+local function x_to_freq(x)
+  local normalized = (x - content_x) / content_width
+  normalized = math.max(0, math.min(1, normalized))
+  local log_min = math.log10(eq30_frequencies[1])
+  local log_max = math.log10(eq30_frequencies[#eq30_frequencies])
+  local log_freq = log_min + normalized * (log_max - log_min)
+  return math.pow(10, log_freq)
+end
+
+-- Convert gain to canvas Y position (EQ10 full range: -20dB to +20dB)
+local function gain_to_y(gain_db)
+  local normalized = (gain_db + 20) / 40  -- -20 to +20 dB range (EQ10 maximum)
+  normalized = math.max(0, math.min(1, normalized))
+  return content_y + content_height - (normalized * content_height)
+end
+
+-- Convert canvas Y position to gain (EQ10 full range: -20dB to +20dB)
+local function y_to_gain(y)
+  local normalized = 1 - ((y - content_y) / content_height)
+  normalized = math.max(0, math.min(1, normalized))
+  return (normalized * 40) - 20  -- -20 to +20 dB range (EQ10 maximum)
+end
+
+-- Find nearest EQ band for a given frequency
+local function find_nearest_band(frequency)
+  local nearest_index = 1
+  local min_distance = math.abs(math.log10(frequency) - math.log10(eq30_frequencies[1]))
+  
+  for i = 2, #eq30_frequencies do
+    local distance = math.abs(math.log10(frequency) - math.log10(eq30_frequencies[i]))
+    if distance < min_distance then
+      min_distance = distance
+      nearest_index = i
+    end
+  end
+  
+  return nearest_index
+end
+
+-- No XML generation needed - using direct parameter control!
+
+-- Parameters set directly in device creation - no separate function needed!
+
+-- Debug: Show current parameter values of an EQ10 device (for troubleshooting)
+local function debug_eq_device_parameters(device, device_name)
+  print("=== " .. device_name .. " Parameters ===")
+  print("Gains (1-10):")
+  for i = 1, 10 do
+    if device.parameters[i] then
+      print(string.format("  Param %d: %.2f dB", i, device.parameters[i].value))
+    end
+  end
+  print("Frequencies (11-20):")
+  for i = 11, 20 do
+    if device.parameters[i] then
+      print(string.format("  Param %d: %.0f Hz", i, device.parameters[i].value))
+    end
+  end
+  print("Bandwidths (21-30):")
+  for i = 21, 30 do
+    if device.parameters[i] then
+      print(string.format("  Param %d: %.3f BW", i, device.parameters[i].value))
+    end
+  end
+end
+
+-- Live update EQ10 device GAIN parameter for specific band (only middle bands 2-9)
+local function update_eq_device_parameter(band_index, gain_value)
+  local song = renoise.song()
+  if not song or not song.selected_track then
+    return
+  end
+  
+  local track = song.selected_track
+  
+  -- EQ30 system: Find which EQ10 device this band belongs to (8+8+8+6 distribution)
+  local device_num, band_in_device
+  if band_index <= 8 then
+    device_num = 1
+    band_in_device = band_index  -- 1-8
+  elseif band_index <= 16 then
+    device_num = 2  
+    band_in_device = band_index - 8  -- 1-8
+  elseif band_index <= 24 then
+    device_num = 3
+    band_in_device = band_index - 16  -- 1-8
+  else -- bands 25-30
+    device_num = 4
+    band_in_device = band_index - 24  -- 1-6 (only 6 bands in device 4)
+  end
+  
+  -- Map to actual EQ10 parameters (2-9, skipping problematic 1st and 10th bands)
+  local eq_param_num = band_in_device + 1  -- band 1 maps to param 2, band 8 maps to param 9
+  
+  -- Find the corresponding EQ10 device on the track
+  local eq_device_count = 0
+  local target_device_index = nil
+  
+  for i, device in ipairs(track.devices) do
+    if device.device_path == "Audio/Effects/Native/EQ 10" then
+      eq_device_count = eq_device_count + 1
+      if eq_device_count == device_num then
+        target_device_index = i
+        -- Update ONLY the gain parameter (parameters 2-9 are our usable gains)
+        -- Skip parameters 1 and 10 (problematic bands)
+        if device.parameters[eq_param_num] then
+          device.parameters[eq_param_num].value = gain_value
+          -- Debug output
+          -- print(string.format("LIVE: EQ10-%d Param %d = %.1f dB", device_num, eq_param_num, gain_value))
+        end
+        break
+      end
+    end
+  end
+  
+  -- Autofocus the selected EQ10 device if enabled
+  if autofocus_enabled and target_device_index then
+    print(string.format("🎯 AUTOFOCUS DEBUG: Band %d → Device %d → Track Device Index %d", band_index, device_num, target_device_index))
+    
+    -- SAFETY: Double-check we have a valid song object before setting device index
+    local success, error_msg = pcall(function()
+      if song and song.selected_device_index ~= nil then
+        song.selected_device_index = target_device_index
+        
+        -- Make sure lower frame is visible and shows device chain
+        renoise.app().window.lower_frame_is_visible = true
+        renoise.app().window.active_lower_frame = renoise.ApplicationWindow.LOWER_FRAME_TRACK_DSPS
+        
+        print(string.format("🎯 Autofocus: Selected EQ30 Device %d at track index %d", device_num, target_device_index))
+      else
+        print("❌ AUTOFOCUS ERROR: Invalid song object")
+      end
+    end)
+    
+    if not success then
+      print(string.format("❌ AUTOFOCUS ERROR: %s", error_msg))
+    end
+  elseif autofocus_enabled then
+    print(string.format("❌ AUTOFOCUS FAIL: Band %d → Device %d → target_device_index is nil", band_index, device_num))
+  end
+end
+
+-- Ensure EQ10 devices exist on track (auto-create if needed)
+local function ensure_eq_devices_exist()
+  local song = renoise.song()
+  if not song or not song.selected_track then
+    return false
+  end
+  
+  local track = song.selected_track
+  local eq_count = 0
+  
+  -- Count existing EQ10 devices
+  for i, device in ipairs(track.devices) do
+    if device.device_path == "Audio/Effects/Native/EQ 10" then
+      eq_count = eq_count + 1
+    end
+  end
+  
+  -- Create missing EQ10 devices (need 4 for EQ30 system)
+  if eq_count < 4 then
+    print("Auto-creating missing EQ10 devices for EQ30 system...")
+    apply_eq30_to_track()
+    return true
+  end
+  
+  return true
+end
+
+-- Check if EQ10 devices are present on the selected track
+local function check_eq_devices_status()
+  local song = renoise.song()
+  if not song or not song.selected_track then
+    return false, "No track selected"
+  end
+  
+  local track = song.selected_track
+  local eq_count = 0
+  
+  for i, device in ipairs(track.devices) do
+    if device.device_path == "Audio/Effects/Native/EQ 10" then
+      eq_count = eq_count + 1
+    end
+  end
+  
+  if eq_count >= 4 then
+    return true, string.format("✅ %d EQ10 devices active - EQ30 system ready for drawing", eq_count)
+  elseif eq_count > 0 then
+    return false, string.format("⚠️ Only %d EQ10 devices found - need 4 for full EQ30 system", eq_count)
+  else
+    return false, "⚠️ No EQ10 devices found - click 'Recreate Devices' first"
+  end
+end
+
+-- Minimize/Maximize all EQ10 devices on the track
+local function toggle_eq_devices_size()
+  local song = renoise.song()
+  if not song or not song.selected_track then
+    renoise.app():show_status("No track selected")
+    return
+  end
+  
+  local track = song.selected_track
+  local eq_device_count = 0
+  
+  -- Find and toggle all EQ10 devices
+  for i, device in ipairs(track.devices) do
+    if device.device_path == "Audio/Effects/Native/EQ 10" then
+      device.is_maximized = not devices_minimized
+      eq_device_count = eq_device_count + 1
+    end
+  end
+  
+  if eq_device_count > 0 then
+    local action = devices_minimized and "minimized" or "maximized"
+    renoise.app():show_status(string.format("🔲 %d EQ10 devices %s", eq_device_count, action))
+  else
+    renoise.app():show_status("No EQ10 devices found to resize")
+  end
+end
+
+-- Update global bandwidth (Q) for all EQ bands across all devices
+local function update_global_bandwidth(bandwidth_value)
+  local song = renoise.song()
+  if not song or not song.selected_track then
+    return
+  end
+  
+  local track = song.selected_track
+  local updated_count = 0
+  
+  -- Update bandwidth parameters (21-30) for all EQ10 devices
+  for i, device in ipairs(track.devices) do
+    if device.device_path == "Audio/Effects/Native/EQ 10" then
+      -- Update bandwidth parameters 22-29 (middle 8 bands, skip problematic 21 and 30)
+      for param_idx = 22, 29 do
+        if device.parameters[param_idx] then
+          device.parameters[param_idx].value = bandwidth_value
+          updated_count = updated_count + 1
+        end
+      end
+    end
+  end
+  
+  -- Convert bandwidth to approximate Q for display (rough inverse relationship)
+  local approx_q = math.max(0.1, 1.0 / (bandwidth_value * 10))
+  
+  if updated_count > 0 then
+    renoise.app():show_status(string.format("🎛️ Global Q updated: %.2f (≈Q %.1f) across %d bands", bandwidth_value, approx_q, updated_count))
+  end
+end
+
+-- Update status text based on EQ device presence
+local function update_eq_status()
+  if not eq_dialog or not eq_dialog.visible then return end
+  
+  local has_eq, status_msg = check_eq_devices_status()
+  local status_view = vb.views.eq_status_text
+  if status_view then
+    status_view.text = status_msg
+  end
+end
+
+-- Apply EQ30 settings to Renoise track 
+-- Strategy: Direct parameter control for everything - no XML needed!
+local function apply_eq30_to_track()
+  print("=== APPLY EQ30 TO TRACK START ===")
+  
+  local song = renoise.song()
+  if not song then
+    print("ERROR: No song available")
+    renoise.app():show_status("ERROR: No song available")
+    return
+  end
+  
+  if not song.selected_track then
+    print("ERROR: No track selected")
+    renoise.app():show_status("ERROR: No track selected - select a track first")
+    return
+  end
+  
+  local track = song.selected_track
+  print("Selected track: " .. (track.name or "Unknown"))
+  print("Current devices on track: " .. #track.devices)
+  
+  -- EQ30 system using 4 EQ10 devices, only middle 8 bands each (avoid problematic 1st/10th bands)
+  local devices_needed = 4
+  local bands_per_device = 8  -- Only use bands 2-9 of each EQ10 device
+  
+  -- Clear existing EQ10 devices on track
+  local removed_count = 0
+  for i = #track.devices, 1, -1 do
+    local device = track.devices[i]
+    if device.device_path == "Audio/Effects/Native/EQ 10" then
+      print("Removing existing EQ10 device at position " .. i)
+      track:delete_device_at(i)
+      removed_count = removed_count + 1
+    end
+  end
+  print("Removed " .. removed_count .. " existing EQ10 devices")
+  
+  -- Create EQ10 devices for 30-band system
+  for device_idx = 1, devices_needed do
+    print("Creating EQ10 device " .. device_idx .. "/" .. devices_needed)
+    
+    local start_band = (device_idx - 1) * bands_per_device + 1
+    local end_band = math.min(device_idx * bands_per_device, #eq30_frequencies)
+    
+    -- Load EQ10 device with error handling
+    local success, error_msg = pcall(function()
+      track:insert_device_at("Audio/Effects/Native/EQ 10", #track.devices + 1)
+    end)
+    
+    if not success then
+      print("ERROR: Failed to insert EQ10 device: " .. tostring(error_msg))
+      renoise.app():show_status("ERROR: Failed to insert EQ10 device - " .. tostring(error_msg))
+      return
+    end
+    
+    local eq_device = track.devices[#track.devices]
+    if not eq_device then
+      print("ERROR: Failed to get inserted EQ10 device")
+      renoise.app():show_status("ERROR: Failed to get inserted EQ10 device")
+      return
+    end
+    
+    print("Successfully inserted EQ10 device, total devices now: " .. #track.devices)
+    
+    -- Set all parameters directly - no XML needed!
+    eq_device.display_name = string.format("EQ30 Device %d", device_idx)
+    
+    -- Set up only middle 8 bands (2-9) for this device - avoid problematic 1st/10th bands
+    -- Set unused bands 1 and 10 to neutral
+    eq_device.parameters[1].value = 0.0        -- Band 1: Gain = 0dB (unused)
+    eq_device.parameters[11].value = 1000      -- Band 1: Frequency = 1kHz  
+    eq_device.parameters[21].value = 0.5       -- Band 1: Bandwidth = 0.5
+    
+    eq_device.parameters[10].value = 0.0       -- Band 10: Gain = 0dB (unused)
+    eq_device.parameters[20].value = 1000      -- Band 10: Frequency = 1kHz
+    eq_device.parameters[30].value = 0.5       -- Band 10: Bandwidth = 0.5
+    
+    -- Configure middle 8 bands (2-9) with our frequencies
+    for band = 2, 9 do
+      local global_band = start_band + (band - 2)  -- band-2 because we start from band 2
+      
+      if global_band <= #eq30_frequencies then
+        local freq = eq30_frequencies[global_band]
+        local bandwidth_value = calculate_third_octave_bandwidth(freq)
+        
+        -- Set parameters directly (using bands 2-9):
+        eq_device.parameters[band].value = 0.0                    -- Gain (param 2-9) - start flat
+        eq_device.parameters[band + 10].value = freq              -- Frequency (param 12-19)
+        eq_device.parameters[band + 20].value = bandwidth_value   -- Bandwidth (param 22-29)
+        
+        print(string.format("  Band %d: %.0fHz, BW=%.2f (using EQ param %d)", global_band, freq, bandwidth_value, band))
+      else
+        -- Neutral values for unused bands
+        eq_device.parameters[band].value = 0.0              -- Gain = 0dB
+        eq_device.parameters[band + 10].value = 1000        -- Frequency = 1kHz
+        eq_device.parameters[band + 20].value = 0.5         -- Bandwidth = 0.5 (neutral)
+      end
+    end
+    
+    local end_band = math.min(start_band + bands_per_device - 1, #eq30_frequencies)
+    print(string.format("✅ EQ10-%d configured: %.0f-%.0fHz, sharp bandwidth precision", device_idx, eq30_frequencies[start_band], eq30_frequencies[end_band]))
+    
+    -- Debug: Show parameter values to verify settings
+    debug_eq_device_parameters(eq_device, "EQ30 Device " .. device_idx .. " (Middle 8 Bands Only)")
+    
+    -- Debug output showing the mapping
+    print(string.format("Created EQ10 device %d with bands %d-%d", device_idx, start_band, end_band))
+    print(string.format("  Frequency range: %.0fHz - %.0fHz", eq30_frequencies[start_band], eq30_frequencies[end_band]))
+    
+    -- Show non-zero gains for this device
+    for band = 1, 10 do
+      local global_band = start_band + band - 1
+      if global_band <= #eq30_frequencies and math.abs(eq_gains[global_band]) > 0.1 then
+        print(string.format("    Band %d (%.0fHz): %.1fdB", global_band, eq30_frequencies[global_band], eq_gains[global_band]))
+      end
+    end
+  end
+  
+  print("=== EQ30 ALESIS M-EQ 230 PRECISION SETUP COMPLETE ===")
+  print("Successfully created " .. devices_needed .. " EQ10 devices using middle 8 bands each (avoiding problematic 1st/10th bands)")
+  print("🎯 SHARP bandwidth 1/3 octave bands for PRECISE control (not fat and flabby!)")
+  print("📊 Alesis M-EQ 230 frequency specification: 25Hz-20kHz exact (30 frequencies + 2 spare)")
+  print("🎛️ ALL parameters set directly - no XML needed! Only parameters 2-9 used per device")
+  print("🔧 Bandwidth values: 0.10-0.15 for surgical precision (valid Renoise range: 0.0001-1)")
+  print("🚫 Parameters 1 & 10 disabled on each device (problematic bands avoided)")
+  print("Track now has " .. #track.devices .. " devices")
+  
+  -- Update status indicator
+  update_eq_status()
+  
+  renoise.app():show_status(string.format("✅ EQ30 Alesis M-EQ 230 Precision: %d devices, middle 8 bands each - draw for surgical control!", devices_needed))
+end
+
+-- Draw the EQ canvas
+local function draw_eq_canvas(ctx)
+  local w, h = canvas_width, canvas_height
+  
+  -- Clear canvas
+  ctx:clear_rect(0, 0, w, h)
+  
+  -- Draw background grid
+  ctx.stroke_color = COLOR_GRID_LINES
+  ctx.line_width = 1
+  
+  -- Vertical grid lines (frequency)
+  for i = 0, 10 do
+    local x = content_x + (i / 10) * content_width
+    ctx:begin_path()
+    ctx:move_to(x, content_y)
+    ctx:line_to(x, content_y + content_height)
+    ctx:stroke()
+  end
+  
+  -- Horizontal grid lines (gain)
+  for i = 0, 10 do
+    local y = content_y + (i / 10) * content_height
+    ctx:begin_path()
+    ctx:move_to(content_x, y)
+    ctx:line_to(content_x + content_width, y)
+    ctx:stroke()
+  end
+  
+  -- Draw zero line (0 dB)
+  ctx.stroke_color = COLOR_ZERO_LINE
+  ctx.line_width = 2
+  local zero_y = gain_to_y(0)
+  ctx:begin_path()
+  ctx:move_to(content_x, zero_y)
+  ctx:line_to(content_x + content_width, zero_y)
+  ctx:stroke()
+  
+  -- Draw device boundary markers (EQ30 system: 8+8+8+6 bands)
+  ctx.stroke_color = {255, 255, 0, 180}  -- Yellow boundaries
+  ctx.line_width = 3
+  local band_width = content_width / #eq30_frequencies
+  
+  -- Device 1 | Device 2 boundary (after band 8)
+  local boundary1_x = content_x + 8 * band_width
+  ctx:begin_path()
+  ctx:move_to(boundary1_x, content_y)
+  ctx:line_to(boundary1_x, content_y + content_height)
+  ctx:stroke()
+  
+  -- Device 2 | Device 3 boundary (after band 16)
+  local boundary2_x = content_x + 16 * band_width
+  ctx:begin_path()
+  ctx:move_to(boundary2_x, content_y)
+  ctx:line_to(boundary2_x, content_y + content_height)
+  ctx:stroke()
+  
+  -- Device 3 | Device 4 boundary (after band 24)
+  local boundary3_x = content_x + 24 * band_width
+  ctx:begin_path()
+  ctx:move_to(boundary3_x, content_y)
+  ctx:line_to(boundary3_x, content_y + content_height)
+  ctx:stroke()
+  
+  -- Draw frequency markers
+  ctx.stroke_color = COLOR_FREQUENCY_MARKERS
+  ctx.line_width = 1
+  local key_frequencies = {31, 63, 125, 250, 500, 1000, 2000, 4000, 8000, 16000}
+  for _, freq in ipairs(key_frequencies) do
+    local x = freq_to_x(freq)
+    if x >= content_x and x <= content_x + content_width then
+      ctx:begin_path()
+      ctx:move_to(x, content_y)
+      ctx:line_to(x, content_y + content_height)
+      ctx:stroke()
+    end
+  end
+  
+  -- Draw gain markers
+  ctx.stroke_color = COLOR_GAIN_MARKERS
+  ctx.line_width = 1
+  local gain_levels = {-20, -15, -10, -5, 0, 5, 10, 15, 20}
+  for _, gain in ipairs(gain_levels) do
+    local y = gain_to_y(gain)
+    ctx:begin_path()
+    ctx:move_to(content_x, y)
+    ctx:line_to(content_x + content_width, y)
+    ctx:stroke()
+  end
+  
+  -- Draw EQ BARS (like a real graphic EQ - Alesis M-EQ 230 style)
+  local band_width = content_width / #eq30_frequencies
+  local bar_margin = 2  -- Space between bars
+  local bar_width = band_width - (bar_margin * 2)
+  local zero_y = gain_to_y(0)  -- 0dB center line
+  
+  for i, freq in ipairs(eq30_frequencies) do
+    local gain = eq_gains[i]
+    local band_x = content_x + (i - 1) * band_width
+    local bar_x = band_x + bar_margin
+    
+    -- Use purple bars like PakettiCanvasExperiments.lua (professional EQ look) - brighter
+    local bar_color = {120, 40, 160, 255}  -- Purple like PakettiCanvasExperiments - full opacity
+    
+    -- Draw the EQ bar from 0dB center line
+    ctx.fill_color = bar_color
+    
+    if gain >= 0 then
+      -- Positive gain: bar extends upward from center
+      local bar_top_y = gain_to_y(gain)
+      local bar_height = zero_y - bar_top_y
+      if bar_height > 1 then  -- Only draw if visible
+        ctx:fill_rect(bar_x, bar_top_y, bar_width, bar_height)
+      end
+    else
+      -- Negative gain: bar extends downward from center
+      local bar_bottom_y = gain_to_y(gain)
+      local bar_height = bar_bottom_y - zero_y
+      if bar_height > 1 then  -- Only draw if visible
+        ctx:fill_rect(bar_x, zero_y, bar_width, bar_height)
+      end
+    end
+    
+    -- Draw bar outline for definition
+    ctx.stroke_color = {255, 255, 255, 100}  -- Light white outline
+    ctx.line_width = 1
+    if gain >= 0 and (zero_y - gain_to_y(gain)) > 1 then
+      ctx:begin_path()
+      ctx:rect(bar_x, gain_to_y(gain), bar_width, zero_y - gain_to_y(gain))
+      ctx:stroke()
+    elseif gain < 0 and (gain_to_y(gain) - zero_y) > 1 then
+      ctx:begin_path()
+      ctx:rect(bar_x, zero_y, bar_width, gain_to_y(gain) - zero_y)
+      ctx:stroke()
+    end
+    
+    -- Draw frequency name vertically using custom text rendering (EXACTLY like PakettiCanvasExperiments.lua)
+    if bar_width > 12 then  -- Only draw text if there's enough space
+      ctx.stroke_color = {200, 200, 200, 255}  -- Light gray text
+      ctx.line_width = 2  -- Make text bold by using thicker lines (like PakettiCanvasExperiments)
+      
+      -- Create frequency text (keep it simple and readable)
+      local freq_text
+      if freq >= 1000 then
+        if freq >= 10000 then
+          freq_text = string.format("%.0fK", freq / 1000)  -- 10K, 13K, 16K, 20K
+        else
+          freq_text = string.format("%.1fK", freq / 1000)  -- 1.0K, 1.3K, etc.
+        end
+      else
+        freq_text = tostring(freq)  -- 25, 31, 40, 50, etc.
+      end
+      
+      -- Draw frequency name vertically (rotated text effect - EXACTLY like PakettiCanvasExperiments.lua)
+      local bar_center_x = bar_x + (bar_width / 2)
+      local text_size = math.max(4, math.min(12, bar_width * 0.6))  -- Scale text reasonably to fit column
+      local text_start_y = content_y + 30  -- Start near top (below device indicators)
+      
+      -- Draw each character of the frequency name vertically (COPIED from PakettiCanvasExperiments.lua)
+      local letter_spacing = text_size + 4  -- Add 4 pixels between letters for better readability
+      -- Calculate how many characters can fit vertically
+      local max_chars = math.floor((content_height - 40) / letter_spacing)
+      if #freq_text > max_chars then
+        freq_text = freq_text:sub(1, max_chars - 3) .. "..."
+      end
+      
+      for char_index = 1, #freq_text do
+        local char = freq_text:sub(char_index, char_index)
+        local char_y = text_start_y + (char_index - 1) * letter_spacing
+        if char_y < content_y + content_height - text_size - 5 then  -- Don't draw outside content area
+          local char_func = letter_functions[char:upper()]
+          if char_func then
+            char_func(ctx, bar_center_x - text_size/2, char_y, text_size)
+          end
+        end
+      end
+    end
+    
+    -- Draw center divider line for each band
+    ctx.stroke_color = {64, 64, 64, 255}  -- Dark gray divider
+    ctx.line_width = 1
+    ctx:begin_path()
+    ctx:move_to(band_x, content_y)
+    ctx:line_to(band_x, content_y + content_height)
+    ctx:stroke()
+  end
+  
+  -- Band numbers at bottom (30 bands total for EQ30 system: 8+8+8+6)
+  ctx.stroke_color = COLOR_BAND_LABELS
+  ctx.line_width = 1
+  local band_width = content_width / #eq30_frequencies
+  
+  for i, freq in ipairs(eq30_frequencies) do
+    local band_x = content_x + (i - 1) * band_width
+    local bar_center_x = band_x + (band_width / 2)
+    local label_y_start = content_y + content_height + 10  -- Below the main content
+    
+    -- Draw ALL band numbers (01-30) below each column
+    local band_text = string.format("%02d", i)  -- 01, 02, 03, ..., 30
+    local text_size = math.max(3, math.min(6, band_width * 0.4))  -- Scale text to fit narrow columns
+    draw_canvas_text(ctx, band_text, bar_center_x - (#band_text * text_size/3), label_y_start, text_size)
+  end
+  
+  -- Draw device zone indicators (EQ30 system: 8+8+8+6 bands)
+  local band_width = content_width / #eq30_frequencies
+  
+  -- Device 1 zone indicator (bands 1-8) - Red
+  ctx.fill_color = {255, 100, 100, 40}  -- Light red
+  ctx:begin_path()
+  ctx:rect(content_x, content_y, 8 * band_width, 20)
+  ctx:fill()
+  
+  -- Device 2 zone indicator (bands 9-16) - Green
+  ctx.fill_color = {100, 255, 100, 40}  -- Light green
+  ctx:begin_path()
+  ctx:rect(content_x + 8 * band_width, content_y, 8 * band_width, 20)
+  ctx:fill()
+  
+  -- Device 3 zone indicator (bands 17-24) - Blue
+  ctx.fill_color = {100, 100, 255, 40}  -- Light blue
+  ctx:begin_path()
+  ctx:rect(content_x + 16 * band_width, content_y, 8 * band_width, 20)
+  ctx:fill()
+  
+  -- Device 4 zone indicator (bands 25-30) - Yellow (only 6 bands!)
+  ctx.fill_color = {255, 255, 100, 40}  -- Light yellow
+  ctx:begin_path()
+  ctx:rect(content_x + 24 * band_width, content_y, 6 * band_width, 20)  -- Only 6 bands wide
+  ctx:fill()
+  
+  -- Draw content area border
+  ctx.stroke_color = {80, 80, 120, 255}
+  ctx.line_width = 2
+  ctx:begin_path()
+  ctx:rect(content_x, content_y, content_width, content_height)
+  ctx:stroke()
+  
+  -- Draw overall canvas border
+  ctx.stroke_color = {255, 255, 255, 255}
+  ctx.line_width = 1
+  ctx:begin_path()
+  ctx:rect(0, 0, w, h)
+  ctx:stroke()
+  
+  -- Draw mouse cursor during interaction
+  if mouse_is_down and last_mouse_x >= 0 and last_mouse_y >= 0 then
+    ctx.stroke_color = COLOR_MOUSE_CURSOR
+    ctx.line_width = 1
+    
+    -- Vertical line
+    ctx:begin_path()
+    ctx:move_to(last_mouse_x, 0)
+    ctx:line_to(last_mouse_x, h)
+    ctx:stroke()
+    
+    -- Horizontal line
+    ctx:begin_path()
+    ctx:move_to(0, last_mouse_y)
+    ctx:line_to(w, last_mouse_y)
+    ctx:stroke()
+    
+    -- Center dot
+    ctx.stroke_color = {255, 0, 0, 255}
+    ctx.line_width = 2
+    ctx:begin_path()
+    ctx:arc(last_mouse_x, last_mouse_y, 3, 0, math.pi * 2, false)
+    ctx:stroke()
+  end
+end
+
+-- Handle mouse interaction for EQ curve drawing
+local function handle_eq_mouse(ev)
+  local w, h = canvas_width, canvas_height
+  
+  if ev.type == "exit" then
+    mouse_is_down = false
+    last_mouse_x = -1
+    last_mouse_y = -1
+    return
+  end
+  
+  -- Check if mouse is within content area
+  local mouse_in_content = ev.position.x >= content_x and ev.position.x <= (content_x + content_width) and 
+                          ev.position.y >= content_y and ev.position.y <= (content_y + content_height)
+  
+  if not mouse_in_content and ev.type ~= "up" then
+    return
+  end
+  
+  local x = ev.position.x
+  local y = ev.position.y
+  
+  -- Update mouse tracking
+  last_mouse_x = x
+  last_mouse_y = y
+  
+  if ev.type == "down" and ev.button == "left" then
+    mouse_is_down = true
+    if mouse_in_content then
+      -- NEW BAR SYSTEM: Direct mapping from X position to band index
+      local band_width = content_width / #eq30_frequencies
+      local band_index = math.floor((x - content_x) / band_width) + 1
+      band_index = math.max(1, math.min(#eq30_frequencies, band_index))
+      
+      local gain = y_to_gain(y)
+      eq_gains[band_index] = math.max(-20, math.min(20, gain))
+      
+      -- LIVE UPDATE: Immediately update the corresponding EQ10 device parameter
+      update_eq_device_parameter(band_index, eq_gains[band_index])
+      
+      if eq_canvas then
+        eq_canvas:update()
+      end
+      
+      -- Determine which EQ10 device this band belongs to (EQ30 system)
+      local device_num, band_in_device
+      if band_index <= 8 then
+        device_num = 1
+        band_in_device = band_index
+      elseif band_index <= 16 then
+        device_num = 2  
+        band_in_device = band_index - 8
+      elseif band_index <= 24 then
+        device_num = 3
+        band_in_device = band_index - 16
+      else -- bands 25-30
+        device_num = 4
+        band_in_device = band_index - 24
+      end
+      local eq_param_num = band_in_device + 1  -- Maps to params 2-9
+      local autofocus_indicator = autofocus_enabled and " 🎯" or ""
+      renoise.app():show_status(string.format("🎛️ LIVE EQ30: Device %d, Param %d (%.0f Hz): %.1f dB%s", device_num, eq_param_num, eq30_frequencies[band_index], eq_gains[band_index], autofocus_indicator))
+    end
+  elseif ev.type == "move" and mouse_is_down then
+    if mouse_in_content then
+      -- NEW BAR SYSTEM: Direct mapping from X position to band index
+      local band_width = content_width / #eq30_frequencies
+      local band_index = math.floor((x - content_x) / band_width) + 1
+      band_index = math.max(1, math.min(#eq30_frequencies, band_index))
+      
+      local gain = y_to_gain(y)
+      eq_gains[band_index] = math.max(-20, math.min(20, gain))
+      
+      -- LIVE UPDATE: Immediately update the corresponding EQ10 device parameter
+      update_eq_device_parameter(band_index, eq_gains[band_index])
+      
+      if eq_canvas then
+        eq_canvas:update()
+      end
+      
+      -- Determine which EQ10 device this band belongs to (EQ30 system)
+      local device_num, band_in_device
+      if band_index <= 8 then
+        device_num = 1
+        band_in_device = band_index
+      elseif band_index <= 16 then
+        device_num = 2  
+        band_in_device = band_index - 8
+      elseif band_index <= 24 then
+        device_num = 3
+        band_in_device = band_index - 16
+      else -- bands 25-30
+        device_num = 4
+        band_in_device = band_index - 24
+      end
+      local eq_param_num = band_in_device + 1  -- Maps to params 2-9
+      local autofocus_indicator = autofocus_enabled and " 🎯" or ""
+      renoise.app():show_status(string.format("🎛️ LIVE EQ30: Device %d, Param %d (%.0f Hz): %.1f dB%s", device_num, eq_param_num, eq30_frequencies[band_index], eq_gains[band_index], autofocus_indicator))
+    end
+  elseif ev.type == "up" and ev.button == "left" then
+    mouse_is_down = false
+    last_mouse_x = -1
+    last_mouse_y = -1
+    if eq_canvas then
+      eq_canvas:update()
+    end
+  end
+end
+
+-- Key handler function (using user's preferred pattern)
+local function my_keyhandler_func(dialog, key)
+  if key.modifiers == "command" and key.name == "h" then
+    if eq_dialog then
+      eq_dialog:close()
+      eq_dialog = nil
+    end
+    return nil
+  end
+  
+  return key
+end
+
+-- Reset EQ to flat response (BOTH canvas AND actual EQ10 device parameters) - NO AUTOFOCUS
+local function reset_eq_flat()
+  local song = renoise.song()
+  if not song or not song.selected_track then
+    renoise.app():show_status("No track selected")
+    return
+  end
+  
+  local track = song.selected_track
+  
+  -- Reset canvas display
+  for i = 1, #eq30_frequencies do
+    eq_gains[i] = 0.0
+  end
+  
+  -- Reset ALL EQ10 device parameters directly (no autofocus, no individual calls)
+  local eq_devices = {}
+  for i, device in ipairs(track.devices) do
+    if device.device_path == "Audio/Effects/Native/EQ 10" then
+      table.insert(eq_devices, device)
+    end
+  end
+  
+  local reset_count = 0
+  for device_idx, eq_device in ipairs(eq_devices) do
+    if device_idx <= 4 then  -- Only process first 4 EQ10 devices
+      -- Reset all gain parameters (2-9) to 0dB (skip problematic 1st/10th bands)
+      for param_idx = 2, 9 do
+        if eq_device.parameters[param_idx] then
+          eq_device.parameters[param_idx].value = 0.0
+          reset_count = reset_count + 1
+        end
+      end
+    end
+  end
+  
+  if eq_canvas then
+    eq_canvas:update()
+  end
+  
+  renoise.app():show_status(string.format("✅ EQ30 reset to flat: %d parameters reset to 0dB (no autofocus)", reset_count))
+end
+
+-- Auto-load existing EQ settings when dialog opens (silent operation - makes it "just work")
+local function auto_load_existing_eq_settings()
+  local song = renoise.song()
+  if not song or not song.selected_track then
+    return
+  end
+  
+  local track = song.selected_track
+  local eq_devices = {}
+  
+  -- Find all EQ10 devices
+  for i, device in ipairs(track.devices) do
+    if device.device_path == "Audio/Effects/Native/EQ 10" then
+      table.insert(eq_devices, device)
+    end
+  end
+  
+  -- Only auto-load if we have EQ devices (making it "just work")
+  if #eq_devices >= 1 then
+    print("🔄 Auto-loading existing EQ30 settings from " .. #eq_devices .. " devices...")
+    
+    -- Reset gains first
+    for i = 1, #eq30_frequencies do
+      eq_gains[i] = 0.0
+    end
+    
+    -- Load gain values from EQ10 devices (EQ30 system: only middle 8 bands per device)
+    for device_idx, device in ipairs(eq_devices) do
+      if device_idx <= 4 then  -- Process up to 4 devices for EQ30
+        local start_band = (device_idx - 1) * 8 + 1  -- 8 bands per device
+        
+        -- Load from parameters 2-9 (middle bands only, avoiding problematic 1st/10th)
+        for param_idx = 2, 9 do
+          local band_index = start_band + (param_idx - 2)  -- param 2 maps to band 1 of this device
+          if band_index <= #eq30_frequencies and device.parameters[param_idx] then
+            eq_gains[band_index] = device.parameters[param_idx].value
+          end
+        end
+      end
+    end
+    
+    -- Update canvas to show loaded settings
+    if eq_canvas then
+      eq_canvas:update()
+    end
+    
+    print("✅ Auto-loaded EQ30 settings from existing devices - canvas updated")
+  end
+end
+
+-- Load EQ curve from current track devices
+local function load_eq_from_track()
+  local song = renoise.song()
+  if not song or not song.selected_track then
+    renoise.app():show_status("No track selected")
+    return
+  end
+  
+  local track = song.selected_track
+  local eq_devices = {}
+  
+  -- Find EQ10 devices on track
+  for i, device in ipairs(track.devices) do
+    if device.device_path == "Audio/Effects/Native/EQ 10" then
+      table.insert(eq_devices, device)
+    end
+  end
+  
+  if #eq_devices == 0 then
+    renoise.app():show_status("No EQ10 devices found on selected track")
+    return
+  end
+  
+  -- Reset gains first
+  for i = 1, #eq30_frequencies do
+    eq_gains[i] = 0.0
+  end
+  
+  -- Load gain values from EQ10 devices (EQ30 system: only middle 8 bands per device)
+  for device_idx, device in ipairs(eq_devices) do
+    if device_idx <= 4 then  -- Process up to 4 devices for EQ30
+      local start_band = (device_idx - 1) * 8 + 1  -- 8 bands per device
+      
+      -- Load from parameters 2-9 (middle bands only, avoiding problematic 1st/10th)
+      for param_idx = 2, 9 do
+        local band_index = start_band + (param_idx - 2)  -- param 2 maps to band 1 of this device
+        if band_index <= #eq30_frequencies and device.parameters[param_idx] then
+          eq_gains[band_index] = device.parameters[param_idx].value
+          print(string.format("Loaded Device %d, Param %d → Band %d (%.0fHz): %.1f dB", 
+            device_idx, param_idx, band_index, eq30_frequencies[band_index], eq_gains[band_index]))
+        end
+      end
+    end
+  end
+  
+  if eq_canvas then
+    eq_canvas:update()
+  end
+  
+  update_eq_status()
+  renoise.app():show_status(string.format("✅ Loaded EQ30 settings from %d devices (middle 8 bands each)", #eq_devices))
+end
+
+-- Create the main EQ dialog
+local function create_eq_dialog()
+  if eq_dialog and eq_dialog.visible then
+    eq_dialog:close()
+  end
+  
+  local dialog_content = vb:column {
+    margin = 10,
+    
+    -- Info text
+    vb:text {
+      text = "🎛️ ALESIS M-EQ 230 Precision: EQ30 system using 4×EQ10 devices, middle 8 bands each",
+      style = "strong"
+    },
+    
+    -- Status indicator
+    vb:text {
+      id = "eq_status_text",
+      text = "🎯 Ready for surgical EQ control - avoiding problematic 1st/10th bands! Autofocus shows active device.",
+      style = "normal"
+    },
+    
+    -- Canvas
+    vb:canvas {
+      id = "eq_canvas",
+      width = canvas_width,
+      height = canvas_height,
+      mode = "plain",
+      render = draw_eq_canvas,
+      mouse_handler = handle_eq_mouse,
+      mouse_events = {"down", "up", "move", "exit"}
+    },
+    
+    -- Controls - Simplified for live interaction
+    vb:row {
+      vb:button {
+        text = "Load from Track", 
+        width = 120,
+        tooltip = "Load EQ settings from existing EQ10 devices",
+        notifier = function()
+          load_eq_from_track()
+        end
+      },
+      vb:button {
+        text = "Reset Flat",
+        width = 100,
+        tooltip = "Reset all bands to 0 dB (live updates)",
+        notifier = function()
+          reset_eq_flat()
+          -- Also update all device parameters to flat (EQ30 system)
+          for i = 1, #eq30_frequencies do
+            update_eq_device_parameter(i, 0.0)
+          end
+          renoise.app():show_status("🎛️ EQ30 reset to flat - middle 8 bands of all devices updated")
+        end
+      },
+      vb:button {
+        text = "Recreate Devices",
+        width = 130,
+        tooltip = "Force recreate the 4 EQ10 devices for EQ30 system",
+        notifier = function()
+          apply_eq30_to_track()
+          renoise.app():show_status("🎛️ EQ30 devices recreated - ready for live drawing!")
+        end
+      },
+      vb:button {
+        text = "Close",
+        width = 80,
+        notifier = function()
+          if eq_dialog then
+            eq_dialog:close()
+            eq_dialog = nil
+          end
+        end
+      }
+    },
+    
+    -- Autofocus option
+    vb:row {
+      vb:checkbox {
+        id = "autofocus_checkbox",
+        value = autofocus_enabled,
+        width = 20,
+        tooltip = "Automatically focus the EQ10 device being modified in the lower frame",
+        notifier = function(value)
+          autofocus_enabled = value
+          local status_text = autofocus_enabled and "enabled" or "disabled"
+          renoise.app():show_status(string.format("🎯 EQ10 device autofocus %s", status_text))
+        end
+      },
+      vb:text {
+        text = "Autofocus selected EQ10 device",
+        tooltip = "When enabled, automatically shows the EQ10 device being modified in the lower frame"
+      }
+    },
+    
+    -- Minimize/Maximize devices option
+    vb:row {
+      vb:checkbox {
+        id = "minimize_devices_checkbox",
+        value = devices_minimized,
+        width = 20,
+        tooltip = "Minimize or maximize all EQ10 devices to save screen space",
+        notifier = function(value)
+          devices_minimized = value
+          toggle_eq_devices_size()
+        end
+      },
+      vb:text {
+        text = "Minimize EQ10 devices",
+        tooltip = "When enabled, minimizes all EQ10 devices to save screen space and focus on the canvas"
+      }
+    },
+    
+    -- Global Q/Bandwidth control
+    vb:row {
+      vb:text {
+        text = "Global Q:",
+        width = 60,
+        tooltip = "Controls the bandwidth (sharpness) of all EQ bands simultaneously"
+      },
+      vb:slider {
+        id = "global_bandwidth_slider",
+        min = 0.05,  -- Sharp (high Q)
+        max = 0.8,   -- Wide (low Q)
+        value = global_bandwidth,
+        width = 200,
+        tooltip = "Adjust the bandwidth of all EQ bands (left = sharp, right = wide)",
+        notifier = function(value)
+          global_bandwidth = value
+          update_global_bandwidth(value)
+          -- Update the label
+          if vb.views.global_bandwidth_label then
+            local approx_q = math.max(0.1, 1.0 / (value * 10))
+            vb.views.global_bandwidth_label.text = string.format("BW:%.2f (≈Q %.1f)", value, approx_q)
+          end
+        end
+      },
+      vb:text {
+        id = "global_bandwidth_label",
+        text = string.format("BW:%.2f (≈Q %.1f)", global_bandwidth, math.max(0.1, 1.0 / (global_bandwidth * 10))),
+        width = 100,
+        tooltip = "Current bandwidth value and approximate Q factor"
+      }
+    },
+    
+    -- Frequency reference
+    vb:text {
+      text = "Alesis M-EQ 230 EQ30: 25Hz-20kHz (30 frequencies, 4×EQ10 devices, middle 8 bands each)",
+      style = "disabled"
+    }
+  }
+  
+  eq_dialog = renoise.app():show_custom_dialog("Paketti EQ10 Experiment - Alesis M-EQ 230 EQ30",dialog_content,my_keyhandler_func)
+  
+  eq_canvas = vb.views.eq_canvas
+  
+  -- Initialize autofocus checkbox state
+  if vb.views.autofocus_checkbox then
+    vb.views.autofocus_checkbox.value = autofocus_enabled
+  end
+  
+  -- Initialize minimize devices checkbox state
+  if vb.views.minimize_devices_checkbox then
+    vb.views.minimize_devices_checkbox.value = devices_minimized
+  end
+  
+  -- Initialize global bandwidth slider state
+  if vb.views.global_bandwidth_slider then
+    vb.views.global_bandwidth_slider.value = global_bandwidth
+  end
+  if vb.views.global_bandwidth_label then
+    local approx_q = math.max(0.1, 1.0 / (global_bandwidth * 10))
+    vb.views.global_bandwidth_label.text = string.format("BW:%.2f (≈Q %.1f)", global_bandwidth, approx_q)
+  end
+  
+  -- Auto-create EQ devices if they don't exist
+  ensure_eq_devices_exist()
+  
+  -- Auto-load existing EQ settings if devices already exist (makes it "just work")
+  auto_load_existing_eq_settings()
+  
+  -- Check initial EQ device status
+  update_eq_status()
+  
+  -- Check if we auto-loaded settings
+  local song = renoise.song()
+  local existing_devices = 0
+  if song and song.selected_track then
+    for i, device in ipairs(song.selected_track.devices) do
+      if device.device_path == "Audio/Effects/Native/EQ 10" then
+        existing_devices = existing_devices + 1
+      end
+    end
+  end
+  
+  local autofocus_status = autofocus_enabled and "with autofocus enabled" or "with autofocus disabled"
+  local load_status = existing_devices > 0 and " (auto-loaded existing settings)" or ""
+  renoise.app():show_status(string.format("🎯 Alesis M-EQ 230 EQ30 system ready - middle 8 bands × 4 devices %s%s!", autofocus_status, load_status))
+end
+
+-- Initialize the EQ30 experiment
+function PakettiEQ10ExperimentInit()
+  create_eq_dialog()
+end
+
+-- Add menu entry and keybinding
+renoise.tool():add_menu_entry {name = "Main Menu:Tools:Paketti EQ10 Experiment", invoke = PakettiEQ10ExperimentInit}
+renoise.tool():add_keybinding {name = "Global:Paketti:Paketti EQ10 Experiment", invoke = PakettiEQ10ExperimentInit}

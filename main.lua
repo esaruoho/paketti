@@ -609,11 +609,6 @@ timed_require("rx")
 timed_require("base64float")
 
 
---- Other trackers
-timed_require("PakettiImpulseTracker")
-timed_require("PakettiPlayerProSuite")
-timed_require("PakettiOctaMEDSuite")
-
 
 timed_require("Paketti0G01_Loader")
 timed_require("PakettieSpeak")
@@ -637,6 +632,15 @@ timed_require("PakettiPhraseEditor")
 timed_require("PakettiControls")
 timed_require("PakettiWavetabler")
 timed_require("PakettiAKWF")
+
+
+--- Other trackers
+timed_require("PakettiImpulseTracker")
+timed_require("PakettiPlayerProSuite")
+timed_require("PakettiOctaMEDSuite")
+
+
+
 
 timed_require("PakettiBeatDetect")
 
@@ -726,6 +730,7 @@ if renoise.API_VERSION >= 6.2 then
   --timed_require("PakettiZyklusMPS1")
   timed_require("PakettiCanvasExperiments")
   timed_require("PakettiNotepadRun")
+  timed_require("PakettiEQ10Experiment")
 end
 
 --timed_require("PakettiExperimentalDialog")
