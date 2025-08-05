@@ -533,6 +533,30 @@ function startup()
 else end
 end
 
+function startup_()
+  local s=renoise.song()
+--   renoise.app().window:select_preset(1)
+   
+   renoise.song().instruments[s.selected_instrument_index].active_tab=1
+    if renoise.app().window.active_middle_frame==0 and s.selected_sample.sample_buffer_observable:has_notifier(sample_loaded_change_to_sample_editor) then 
+    s.selected_sample.sample_buffer_observable:remove_notifier(sample_loaded_change_to_sample_editor)
+    else
+  --s.selected_sample.sample_buffer_observable:add_notifier(sample_loaded_change_to_sample_editor)
+
+    return
+    end
+end
+
+  function sample_loaded_change_to_sample_editor()
+--    renoise.app().window.active_middle_frame=4
+  end
+
+if not renoise.tool().app_new_document_observable:has_notifier(startup_) 
+   then renoise.tool().app_new_document_observable:add_notifier(startup_)
+   else renoise.tool().app_new_document_observable:remove_notifier(startup_)
+end
+
+
 -- Function to handle BPM randomization on new documents
 -- This is called by app_new_document_observable for both new and loaded songs
 function handleNewDocument()
@@ -582,13 +606,20 @@ function pakettiRandomizeBPMNow()
 end
 --------
 timed_require("rx")
+timed_require("base64float")
+
+
+--- Other trackers
+timed_require("PakettiImpulseTracker")
+timed_require("PakettiPlayerProSuite")
+timed_require("PakettiOctaMEDSuite")
+
+
 timed_require("Paketti0G01_Loader")
 timed_require("PakettieSpeak")
-timed_require("PakettiPlayerProSuite")
 timed_require("PakettiChordsPlus")
 timed_require("PakettiLaunchApp")
 timed_require("PakettiDeviceChains")
-timed_require("base64float")
 timed_require("PakettiLoadDevices")
 timed_require("PakettiSandbox")
 timed_require("PakettiTupletGenerator")
@@ -598,20 +629,21 @@ timed_require("PakettiPatternMatrix")
 timed_require("PakettiInstrumentBox")
 timed_require("PakettiYTDLP")
 timed_require("PakettiStretch")
-timed_require("PakettiBeatDetect")
 timed_require("PakettiStacker")
 timed_require("PakettiRecorder")
 timed_require("PakettiFuzzySearchUtil")
 timed_require("PakettiKeyBindings")
 timed_require("PakettiPhraseEditor")
 timed_require("PakettiControls")
-timed_require("PakettiOctaMEDSuite")
 timed_require("PakettiWavetabler")
+timed_require("PakettiAKWF")
+
+timed_require("PakettiBeatDetect")
+
 timed_require("PakettiAudioProcessing")
 timed_require("PakettiPatternEditorCheatSheet")
 timed_require("PakettiThemeSelector")
 timed_require("PakettiMidiPopulator")
-timed_require("PakettiImpulseTracker")
 timed_require("PakettiGater")
 timed_require("PakettiAutomation")
 timed_require("PakettiUnisonGenerator")
@@ -626,12 +658,21 @@ timed_require("PakettiTkna")
 timed_require("PakettiSamples")
 timed_require("Research/FormulaDeviceManual")
 timed_require("PakettiXRNSProbe")
-timed_require("PakettiAKWF")
 timed_require("PakettiSteppers")
+
+
+--- File Import / Export business
 timed_require("PakettiREXLoader")
 timed_require("PakettiRX2Loader")
 timed_require("PakettiPTILoader")
 timed_require("PakettiSF2Loader")
+timed_require("PakettiIFFLoader")
+timed_require("PakettiMODLoader")
+timed_require("PakettiOTExport")
+timed_require("PakettiXIExport")
+timed_require("PakettiWTImport")
+
+
 timed_require("process_slicer")
 timed_require("PakettiProcess")
 timed_require("PakettiSubColumnModifier")
@@ -639,13 +680,10 @@ timed_require("PakettiPatternLength")
 timed_require("PakettiKeyzoneDistributor")
 timed_require("PakettiHexSliceLoop")
 timed_require("PakettiMergeInstruments")
-timed_require("PakettiBPMToMS")
 timed_require("PakettiGlobalGrooveToDelayValues")
 timed_require("PakettiAmigoInspect")
 timed_require("PakettiRePitch")
 timed_require("PakettiPhraseGenerator")
-timed_require("PakettiIFFLoader")
-timed_require("PakettiMODLoader")
 timed_require("PakettiPolyendSuite")
 timed_require("PakettiXMLizer")
 timed_require("PakettiDeviceValues")
@@ -655,8 +693,6 @@ timed_require("legacy_v2_8_tools")
 timed_require("PakettiPitchControl")
 timed_require("hotelsinus_stepseq/hotelsinus_stepseq")
 timed_require("PakettiTuningDisplay")
-timed_require("PakettiOTExport")
-timed_require("PakettiXIExport")
 timed_require("PakettiOctaCycle")
 timed_require("PakettiOTSTRDImporter")
 timed_require("PakettiCCizerLoader")
@@ -669,13 +705,14 @@ timed_require("Sononymph/AppMain")
 timed_require("PakettiChebyshevWaveshaper")
 timed_require("PakettiMetricModulation")
 timed_require("PakettiPresetPlusPlus")
-timed_require("PakettiWTImport")
 timed_require("PakettiXRNIT")
 timed_require("PakettiImport")
 timed_require("PakettiClearance")
 timed_require("PakettiRoutings")
 timed_require("PakettiViews")
 timed_require("PakettiTransposeBlock")
+timed_require("PakettiBeatstructureEditor")
+timed_require("PakettiSlice")
 
 local PolyendYes = false
 PolyendYes = true
@@ -694,6 +731,7 @@ end
 --timed_require("PakettiExperimentalDialog")
 timed_require("PakettiRequests")
 timed_require("PakettiRender")
+timed_require("PakettiBPM")
 timed_require("PakettiOldschoolSlicePitch")
 timed_require("PakettiActionSelector")
 timed_require("PakettiAutocomplete")

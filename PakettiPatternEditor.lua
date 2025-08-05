@@ -6845,3 +6845,630 @@ if renoise.API_VERSION >= 6.2 then
   }
 end
 -- If API < 6.2, don't create any menu entries, keybindings, or MIDI mappings at all
+
+
+---
+-- Function to write notes in specified order (ascending, descending, or random)
+function writeNotesMethod(method)
+  local song=renoise.song()
+  local pattern = song:pattern(song.selected_pattern_index)
+  local track = pattern:track(song.selected_track_index)
+  local instrument = song.selected_instrument
+  local current_line = song.selected_line_index
+  local selected_note_column = song.selected_note_column_index
+  
+  if not instrument or not instrument.sample_mappings[1] then
+    renoise.app():show_status("No sample mappings found for this instrument")
+    return
+  end
+  
+  -- Create a table of all mapped notes
+  local notes = {}
+  for _, mapping in ipairs(instrument.sample_mappings[1]) do
+    if mapping.note_range then
+      for i = mapping.note_range[1], mapping.note_range[2] do
+        table.insert(notes, {
+          note = i,
+          mapping = mapping
+        })
+      end
+    end
+  end
+  
+  if #notes == 0 then
+    renoise.app():show_status("No valid sample mappings found for this instrument")
+    return
+  end
+  
+  -- Sort or shuffle based on method
+  if method == "ascending" then
+    table.sort(notes, function(a, b) return a.note < b.note end)
+  elseif method == "descending" then
+    table.sort(notes, function(a, b) return a.note > b.note end)
+  elseif method == "random" then
+    -- Fisher-Yates shuffle
+    for i = #notes, 2, -1 do
+      local j = math.random(i)
+      notes[i], notes[j] = notes[j], notes[i]
+    end
+  end
+  
+  local last_note = -1
+  local last_mapping = nil
+  
+  -- Write the notes
+  for i = 1, #notes do
+    if current_line <= pattern.number_of_lines then
+      local note_column = track:line(current_line):note_column(selected_note_column)
+      note_column.note_value = notes[i].note
+      note_column.instrument_value = song.selected_instrument_index - 1
+      current_line = current_line + 1
+      last_note = notes[i].note
+      last_mapping = notes[i].mapping
+    else
+      break
+    end
+  end
+  
+  if last_note ~= -1 and last_mapping then
+    local note_name = note_value_to_string(last_note)
+    renoise.app():show_status(string.format(
+      "Wrote notes until row %d at note %s (base note: %d)", 
+      current_line - 1, 
+      note_name,
+      last_mapping.base_note
+    ))
+  end
+end
+
+-- Function to write notes in specified order with EditStep (ascending, descending, or random)
+function writeNotesMethodEditStep(method)
+  local song=renoise.song()
+  local pattern = song:pattern(song.selected_pattern_index)
+  local track = pattern:track(song.selected_track_index)
+  local instrument = song.selected_instrument
+  local current_line = song.selected_line_index
+  local selected_note_column = song.selected_note_column_index
+  local edit_step = song.transport.edit_step
+  
+  -- If edit_step is 0, treat it as 1 (write to every row)
+  if edit_step == 0 then
+    edit_step = 1
+  end
+  
+  if not instrument or not instrument.sample_mappings[1] then
+    renoise.app():show_status("No sample mappings found for this instrument")
+    return
+  end
+  
+  -- Create a table of all mapped notes
+  local notes = {}
+  for _, mapping in ipairs(instrument.sample_mappings[1]) do
+    if mapping.note_range then
+      for i = mapping.note_range[1], mapping.note_range[2] do
+        table.insert(notes, {
+          note = i,
+          mapping = mapping
+        })
+      end
+    end
+  end
+  
+  if #notes == 0 then
+    renoise.app():show_status("No valid sample mappings found for this instrument")
+    return
+  end
+  
+  -- Sort or shuffle based on method
+  if method == "ascending" then
+    table.sort(notes, function(a, b) return a.note < b.note end)
+  elseif method == "descending" then
+    table.sort(notes, function(a, b) return a.note > b.note end)
+  elseif method == "random" then
+    -- Fisher-Yates shuffle
+    for i = #notes, 2, -1 do
+      local j = math.random(i)
+      notes[i], notes[j] = notes[j], notes[i]
+    end
+  end
+  
+  -- First, clear all existing notes in the selected note column from current line to end of pattern
+  for line_index = current_line, pattern.number_of_lines do
+    local note_column = track:line(line_index):note_column(selected_note_column)
+    note_column.note_value = renoise.PatternLine.EMPTY_NOTE
+    note_column.instrument_value = renoise.PatternLine.EMPTY_INSTRUMENT
+    note_column.volume_value = renoise.PatternLine.EMPTY_VOLUME
+    note_column.panning_value = renoise.PatternLine.EMPTY_PANNING
+    note_column.delay_value = renoise.PatternLine.EMPTY_DELAY
+    note_column.effect_number_value = renoise.PatternLine.EMPTY_EFFECT_NUMBER
+    note_column.effect_amount_value = renoise.PatternLine.EMPTY_EFFECT_AMOUNT
+  end
+  
+  local last_note = -1
+  local last_mapping = nil
+  local write_line = current_line
+  
+  -- Write the notes using EditStep
+  for i = 1, #notes do
+    if write_line <= pattern.number_of_lines then
+      local note_column = track:line(write_line):note_column(selected_note_column)
+      -- Write the new note
+      note_column.note_value = notes[i].note
+      note_column.instrument_value = song.selected_instrument_index - 1
+      write_line = write_line + edit_step
+      last_note = notes[i].note
+      last_mapping = notes[i].mapping
+    else
+      break
+    end
+  end
+  
+  if last_note ~= -1 and last_mapping then
+    local note_name = note_value_to_string(last_note)
+    renoise.app():show_status(string.format(
+      "Cleared and wrote notes with EditStep %d until row %d at note %s (base note: %d)", 
+      edit_step,
+      write_line - edit_step, 
+      note_name,
+      last_mapping.base_note
+    ))
+  end
+end
+
+-- Helper function to convert note value to string
+function note_value_to_string(value)
+  local notes = {"C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"}
+  local octave = math.floor(value / 12)
+  local note = notes[(value % 12) + 1]
+  return note .. octave
+end
+
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Write Notes Ascending",invoke=function() writeNotesMethod("ascending") end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Write Notes Descending",invoke=function() writeNotesMethod("descending") end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Write Notes Random",invoke=function() writeNotesMethod("random") end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Write Notes EditStep Ascending",invoke=function() writeNotesMethodEditStep("ascending") end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Write Notes EditStep Descending",invoke=function() writeNotesMethodEditStep("descending") end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Write Notes EditStep Random",invoke=function() writeNotesMethodEditStep("random") end}
+
+---
+-- Fit Sample Offset to Pattern
+-- Calculates sample length and spreads 0Sxx commands from 0S00 to 0SFE across pattern length
+-- This makes the sample play from beginning to end across the entire pattern
+-- Parameters:
+--   headless: if true, automatically clears track without prompting user
+function PakettiFitSampleOffsetToPattern(headless)
+  headless = headless or false  -- Default to interactive mode
+  
+  local song = renoise.song()
+  
+  -- Check if there's a selected sample
+  if not song.selected_sample or not song.selected_sample.sample_buffer.has_sample_data then
+    renoise.app():show_status("No sample selected or sample has no data")
+    print("ERROR: No sample selected or sample has no data")
+    return
+  end
+  
+  -- Check if there's a selected track
+  if not song.selected_track then
+    renoise.app():show_status("No track selected")
+    print("ERROR: No track selected")
+    return
+  end
+  
+  local sample = song.selected_sample
+  local sample_frames = sample.sample_buffer.number_of_frames
+  local sample_rate = sample.sample_buffer.sample_rate
+  local sample_duration = sample_frames / sample_rate
+  
+  local pattern_index = song.selected_pattern_index
+  local pattern = song:pattern(pattern_index)
+  local track_index = song.selected_track_index
+  local pattern_track = pattern:track(track_index)
+  local pattern_length = pattern.number_of_lines
+  
+  local mode_text = headless and " (Headless)" or ""
+  print(string.format("=== Fit Sample Offset to Pattern%s ===", mode_text))
+  print(string.format("Sample: '%s'", sample.name or "Unnamed"))
+  print(string.format("Sample length: %d frames (%.2f seconds at %.1fkHz)", sample_frames, sample_duration, sample_rate/1000))
+  print(string.format("Pattern: %d (length: %d rows)", pattern_index, pattern_length))
+  print(string.format("Track: %d ('%s')", track_index, song.selected_track.name or "Unnamed"))
+  
+  -- CRITICAL: Check for existing note to hijack BEFORE any clearing operations!
+  local current_line = song.selected_line
+  local hijack_note_value = nil
+  local hijack_instrument_value = nil
+  local hijack_note_string = "C-4"  -- Default fallback
+  
+  -- Look for existing note in current row BEFORE clearing
+  for col = 1, song.selected_track.visible_note_columns do
+    local note_column = current_line.note_columns[col]
+    if note_column.note_value ~= renoise.PatternLine.EMPTY_NOTE and 
+       note_column.note_string ~= "OFF" and 
+       note_column.note_value < 120 then
+      hijack_note_value = note_column.note_value
+      hijack_note_string = note_column.note_string
+      -- Use existing instrument if present, otherwise use selected instrument
+      if note_column.instrument_value ~= renoise.PatternLine.EMPTY_INSTRUMENT then
+        hijack_instrument_value = note_column.instrument_value
+      else
+        hijack_instrument_value = song.selected_instrument_index - 1
+      end
+      print(string.format("HIJACK: Found existing note %s (value %d) with instrument %02X on current row", 
+        hijack_note_string, hijack_note_value, hijack_instrument_value))
+      break
+    end
+  end
+  
+  -- Fallback to C-4 if no note found
+  if not hijack_note_value then
+    hijack_note_value = 48  -- C-4
+    hijack_instrument_value = song.selected_instrument_index - 1
+    print("HIJACK: No existing note found, using default C-4")
+  end
+  
+  local should_clear = false
+  
+  if headless then
+    -- Headless mode: automatically clear track
+    should_clear = true
+    print("Headless mode: automatically clearing track data...")
+  else
+    -- Interactive mode: ask user
+    -- Use the already-detected hijack note for the prompt
+    local prompt_note = hijack_note_string
+    if hijack_note_value == 48 and hijack_note_string == "C-4" then
+      prompt_note = "C-4 (default)"
+    else
+      prompt_note = hijack_note_string .. " (hijacked from current row)"
+    end
+    
+    local clear_track = renoise.app():show_prompt("Fit Sample Offset to Pattern", 
+      string.format("This will write 0Sxx commands from 0S00 to 0SFE across %d rows.\n\nSample: %s (%d frames, %.2fs)\nNote: %s\n\nClear existing track data first?", 
+        pattern_length, sample.name or "Unnamed", sample_frames, sample_duration, prompt_note),
+      {"Clear & Write", "Overwrite Only", "Cancel"})
+    
+    if clear_track == "Cancel" then
+      renoise.app():show_status("Operation cancelled")
+      return
+    end
+    
+    should_clear = (clear_track == "Clear & Write")
+  end
+  
+  -- Clear track if requested/required
+  if should_clear then
+    print("Clearing existing track data...")
+    for row = 1, pattern_length do
+      local line = pattern_track:line(row)
+      line:clear()
+    end
+  end
+
+  
+  -- Use even distribution formula: (row - 1) × (255 ÷ pattern_length)
+  local sxx_max = 0xFF -- Maximum possible Sxx value (255 in decimal)
+  
+  print(string.format("Writing 0Sxx commands across %d rows using hijacked note %s...", pattern_length, hijack_note_string))
+  
+  -- Write 0Sxx commands across the pattern
+  for row = 1, pattern_length do
+    -- Calculate which Sxx value for this row
+    -- Use formula: (row - 1) × (255 ÷ pattern_length) for even distribution
+    local sxx_value = math.floor((row - 1) * (255 / pattern_length))
+    sxx_value = math.max(0, math.min(sxx_value, 254)) -- Cap at SFE (254)
+    
+    -- Format as hex string for the S command
+    local sxx_string = string.format("%02X", sxx_value)
+    
+    -- Write to the pattern
+    local line = pattern_track:line(row)
+    
+    -- Set the 0S command in effect column 1
+    line.effect_columns[1].number_string = "0S"
+    line.effect_columns[1].amount_string = sxx_string
+    
+    -- Trigger the hijacked note to play the sample
+    line.note_columns[1].note_value = hijack_note_value
+    line.note_columns[1].instrument_value = hijack_instrument_value
+    
+    -- Debug output for first few and last few rows
+    if row <= 5 or row > pattern_length - 5 then
+      print(string.format("Row %03d: %s + 0S%s (%.1f%% through sample)", row, hijack_note_string, sxx_string, (row - 1) / (pattern_length - 1) * 100))
+    elseif row == 6 then
+      print("... (middle rows) ...")
+    end
+  end
+  
+  -- Show completion message
+  local success_msg = string.format("✓ Fit Sample Offset completed: %s + 0S00-0S%02X across %d rows", hijack_note_string, sxx_max - 1, pattern_length)
+  renoise.app():show_status(success_msg)
+  print(success_msg)
+  print(string.format("Sample will play from start to just before end across pattern length using hijacked note %s", hijack_note_string))
+  print("=====================================")
+end
+
+renoise.tool():add_menu_entry{name = "Pattern Editor:Paketti:Fit Sample Offset to Pattern (0Sxx)",invoke = function() PakettiFitSampleOffsetToPattern(false) end}
+renoise.tool():add_menu_entry{name = "Pattern Editor:Paketti:Fit Sample Offset to Pattern (0Sxx Headless)",invoke = function() PakettiFitSampleOffsetToPattern(true) end}
+
+renoise.tool():add_keybinding{name = "Pattern Editor:Paketti:Fit Sample Offset to Pattern (0Sxx)",invoke = function() PakettiFitSampleOffsetToPattern(false) end}
+renoise.tool():add_keybinding{name = "Pattern Editor:Paketti:Fit Sample Offset to Pattern (0Sxx Headless)",invoke = function() PakettiFitSampleOffsetToPattern(true) end}
+
+---
+-- Match Effect Column to Current Row (Forward Only)
+-- If current row has Y30, all other Yxx commands from current row to end of pattern become Y30
+
+function PakettiMatchEffectColumnToCurrentRowForward()
+  local song = renoise.song()
+  local track_index = song.selected_track_index
+  local track = song:track(track_index)
+  
+  -- Check if we're in a sequencer track
+  if track.type ~= renoise.Track.TRACK_TYPE_SEQUENCER then
+    renoise.app():show_status("This function only works on sequencer tracks")
+    return
+  end
+  
+  -- Determine which effect column to use
+  local target_effect_column_index = song.selected_effect_column_index
+  local current_effect_column = nil
+  
+  -- If no effect column is selected, use the first one
+  if not target_effect_column_index or target_effect_column_index == 0 then
+    target_effect_column_index = 1
+  end
+  
+  -- Get the effect column from current line
+  current_effect_column = song.selected_line:effect_column(target_effect_column_index)
+  
+  if not current_effect_column or current_effect_column.is_empty then
+    renoise.app():show_status(string.format("No effect in column %d of current row", target_effect_column_index))
+    return
+  end
+  
+  local target_command = current_effect_column.number_string
+  local target_value = current_effect_column.amount_value
+  
+  if target_command == "00" then
+    renoise.app():show_status("Current effect column is empty")
+    return
+  end
+  
+  local matches_found = 0
+  
+  -- Only work in current pattern, from current line to end
+  local current_pattern = song:pattern(song.selected_pattern_index)
+  local pattern_track = current_pattern:track(track_index)
+  local current_line_index = song.selected_line_index
+  local lines = current_pattern.number_of_lines
+  
+  -- Check each line from current line to end of pattern
+  for line_index = current_line_index + 1, lines do
+    local line = pattern_track:line(line_index)
+    
+    -- Only check the specific effect column index that was selected
+    if target_effect_column_index <= track.visible_effect_columns then
+      local effect_column = line:effect_column(target_effect_column_index)
+      
+      if effect_column and not effect_column.is_empty then
+        -- If this effect column has the same command but different value
+        if effect_column.number_string == target_command and 
+           effect_column.amount_value ~= target_value then
+          
+          -- Change it to match the target value
+          effect_column.amount_value = target_value
+          matches_found = matches_found + 1
+        end
+      end
+    end
+  end
+  
+  if matches_found > 0 then
+    renoise.app():show_status(string.format("Matched %d instances of %s to %s%02X in effect column %d (forward only)", 
+      matches_found, target_command, target_command, target_value, target_effect_column_index))
+  else
+    renoise.app():show_status(string.format("No other instances of %s found in effect column %d (forward only)", target_command, target_effect_column_index))
+  end
+  
+  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+end
+
+-- Match Effect Column to Current Row (All Rows)
+-- If current row has Y30, all other Yxx commands in current pattern become Y30
+
+function PakettiMatchEffectColumnToCurrentRowAll()
+  local song = renoise.song()
+  local track_index = song.selected_track_index
+  local track = song:track(track_index)
+  
+  -- Check if we're in a sequencer track
+  if track.type ~= renoise.Track.TRACK_TYPE_SEQUENCER then
+    renoise.app():show_status("This function only works on sequencer tracks")
+    return
+  end
+  
+  -- Determine which effect column to use
+  local target_effect_column_index = song.selected_effect_column_index
+  local current_effect_column = nil
+  
+  -- If no effect column is selected, use the first one
+  if not target_effect_column_index or target_effect_column_index == 0 then
+    target_effect_column_index = 1
+  end
+  
+  -- Get the effect column from current line
+  current_effect_column = song.selected_line:effect_column(target_effect_column_index)
+  
+  if not current_effect_column or current_effect_column.is_empty then
+    renoise.app():show_status(string.format("No effect in column %d of current row", target_effect_column_index))
+    return
+  end
+  
+  local target_command = current_effect_column.number_string
+  local target_value = current_effect_column.amount_value
+  
+  if target_command == "00" then
+    renoise.app():show_status("Current effect column is empty")
+    return
+  end
+  
+  local matches_found = 0
+  
+  -- Only work in current pattern, all rows
+  local current_pattern = song:pattern(song.selected_pattern_index)
+  local pattern_track = current_pattern:track(track_index)
+  local lines = current_pattern.number_of_lines
+  
+  -- Check each line in the current pattern (all rows)
+  for line_index = 1, lines do
+    local line = pattern_track:line(line_index)
+    
+    -- Only check the specific effect column index that was selected
+    if target_effect_column_index <= track.visible_effect_columns then
+      local effect_column = line:effect_column(target_effect_column_index)
+      
+      if effect_column and not effect_column.is_empty then
+        -- If this effect column has the same command but different value
+        if effect_column.number_string == target_command and 
+           effect_column.amount_value ~= target_value then
+          
+          -- Change it to match the target value
+          effect_column.amount_value = target_value
+          matches_found = matches_found + 1
+        end
+      end
+    end
+  end
+  
+  if matches_found > 0 then
+    renoise.app():show_status(string.format("Matched %d instances of %s to %s%02X in effect column %d (all rows)", 
+      matches_found, target_command, target_command, target_value, target_effect_column_index))
+  else
+    renoise.app():show_status(string.format("No other instances of %s found in effect column %d (all rows)", target_command, target_effect_column_index))
+  end
+  
+  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+end
+
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern Editor:Match Effect Column to Current Row (Forward)",invoke = PakettiMatchEffectColumnToCurrentRowForward}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern Editor:Match Effect Column to Current Row (All Rows)",invoke = PakettiMatchEffectColumnToCurrentRowAll}
+renoise.tool():add_keybinding{name = "Global:Paketti:Match Effect Column to Current Row (Forward)",invoke = PakettiMatchEffectColumnToCurrentRowForward}
+renoise.tool():add_keybinding{name = "Global:Paketti:Match Effect Column to Current Row (All Rows)",invoke = PakettiMatchEffectColumnToCurrentRowAll}
+renoise.tool():add_midi_mapping{name = "Paketti:Match Effect Column to Current Row (Forward)",invoke = PakettiMatchEffectColumnToCurrentRowForward}
+renoise.tool():add_midi_mapping{name = "Paketti:Match Effect Column to Current Row (All Rows)",invoke = PakettiMatchEffectColumnToCurrentRowAll}
+
+---------
+
+function GenerateDelayValue(scope)
+  local s = renoise.song()
+  local track = s.tracks[s.selected_track_index]
+  track.delay_column_visible = true
+  
+  local num_columns = track.visible_note_columns
+  local base_delay = 256 / num_columns
+  
+  -- Get target lines based on scope
+  local lines = {}
+  if scope == "row" then
+      table.insert(lines, s.selected_line_index)
+  elseif scope == "pattern" then
+      for i = 1, s.selected_pattern.number_of_lines do
+          table.insert(lines, i)
+      end
+  elseif scope == "selection" then
+      local selection = s.selection_in_pattern
+      if not selection then
+          renoise.app():show_status("No selection found!")
+          return
+      end
+      for i = selection.start_line, selection.end_line do
+          table.insert(lines, i)
+      end
+  end
+  
+  -- Apply to all target lines
+  for _, line_index in ipairs(lines) do
+      for i = 1, num_columns do
+          local delay_value = math.floor(base_delay * (i - 1))
+          s.patterns[s.selected_pattern_index].tracks[s.selected_track_index]
+              .lines[line_index].note_columns[i].delay_value = delay_value
+      end
+  end
+  
+  s.selected_note_column_index = 1
+end
+
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Generate Delay Value on Note Columns",invoke=function() GenerateDelayValue("row") end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Generate Delay Value on Entire Pattern",invoke=function() GenerateDelayValue("pattern") end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Generate Delay Value on Selection",invoke=function() GenerateDelayValue("selection") end}
+-- Function to get selected columns in the current selection
+local function get_selected_columns(track, start_line, end_line)
+  local selected_note_columns = {}
+  local selected_effect_columns = {}
+
+  for column_index = 1, #track:line(start_line).note_columns do
+    for line = start_line, end_line do
+      if track:line(line).note_columns[column_index].is_selected then
+        table.insert(selected_note_columns, column_index)
+        break
+      end
+    end
+  end
+
+  return selected_note_columns, selected_effect_columns
+end
+
+function GenerateDelayValueNotes(scope)
+  local s = renoise.song()
+  local track = s.tracks[s.selected_track_index]
+  track.delay_column_visible = true
+  
+  local lines = {}
+  if scope == "row" then
+      table.insert(lines, s.selected_line_index)
+  elseif scope == "pattern" then
+      for i = 1, s.selected_pattern.number_of_lines do
+          table.insert(lines, i)
+      end
+  elseif scope == "selection" then
+      local selection = s.selection_in_pattern
+      if not selection then
+          renoise.app():show_status("No selection found!")
+          return
+      end
+      for i = selection.start_line, selection.end_line do
+          table.insert(lines, i)
+      end
+  end
+  
+  for _, line_index in ipairs(lines) do
+      local line = s.patterns[s.selected_pattern_index].tracks[s.selected_track_index]:line(line_index)
+      
+      local actual_notes = 0
+      for i = 1, track.visible_note_columns do
+          local note_column = line.note_columns[i]
+          if note_column and note_column.note_string ~= "" and 
+             note_column.note_string ~= "OFF" and note_column.note_value < 120 then
+              actual_notes = actual_notes + 1
+          end
+      end
+      
+      if actual_notes > 1 then
+          local current_note = 0
+          for i = 1, track.visible_note_columns do
+              local note_column = line.note_columns[i]
+              if note_column and note_column.note_string ~= "" and 
+                 note_column.note_string ~= "OFF" and note_column.note_value < 120 then
+                  local delay = math.floor(256 * current_note / actual_notes)
+                  note_column.delay_value = delay
+                  current_note = current_note + 1
+              end
+          end
+      end
+  end
+end
+
+
+-- Add new keybindings for note-specific version
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Generate Delay Value (Notes Only, Row)",invoke=function() GenerateDelayValueNotes("row") end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Generate Delay Value (Notes Only, Pattern)",invoke=function() GenerateDelayValueNotes("pattern") end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Generate Delay Value (Notes Only, Selection)",invoke=function() GenerateDelayValueNotes("selection") end}

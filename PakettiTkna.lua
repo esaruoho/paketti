@@ -1748,28 +1748,6 @@ renoise.tool():add_keybinding{name="Global:Paketti:Double LPB",invoke=function()
 renoise.tool():add_keybinding{name="Global:Paketti:Halve LPB",invoke=function() PakettiLPBHalve() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Double Double LPB",invoke=function() PakettiLPBDouble() PakettiLPBDouble() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Halve Halve LPB",invoke=function() PakettiLPBHalve() PakettiLPBHalve() end}
-
-function halve_bpm()
-  local song=renoise.song()
-  local current_bpm=song.transport.bpm
-  local new_bpm=math.max(current_bpm/2,20)
-  song.transport.bpm=new_bpm
-  renoise.app():show_status("BPM halved from "..current_bpm.." to "..new_bpm)
-end
-
-function double_bpm()
-  local song=renoise.song()
-  local current_bpm=song.transport.bpm
-  local new_bpm=math.min(current_bpm*2,999)
-  song.transport.bpm=new_bpm
-  renoise.app():show_status("BPM doubled from "..current_bpm.." to "..new_bpm)
-end
-
-renoise.tool():add_keybinding{name="Global:Paketti:Halve BPM",invoke=function() halve_bpm() end}
-renoise.tool():add_keybinding{name="Global:Paketti:Double BPM",invoke=function() double_bpm() end}
-renoise.tool():add_keybinding{name="Global:Paketti:Halve Halve BPM",invoke=function() halve_bpm() halve_bpm() end}
-renoise.tool():add_keybinding{name="Global:Paketti:Double Double BPM",invoke=function() double_bpm() double_bpm() end}
-
 --------
 -- Studio Session Workflow: Make track mono and set hard left/right panning
 -- For treating stereo output as two mono channels to output to two amplifiers

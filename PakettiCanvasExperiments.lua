@@ -823,10 +823,8 @@ end
 
 -- Initialize the canvas experiments
 function PakettiCanvasExperimentsInit()
-  -- If dialog is already open, close it and cleanup (toggle behavior)
+  -- If dialog is already open, just return - let the device selection observer handle the device change
   if canvas_experiments_dialog and canvas_experiments_dialog.visible then
-    PakettiCanvasExperimentsCleanup()
-    canvas_experiments_dialog:close()
     return
   end
   
@@ -1408,7 +1406,49 @@ end
 
 -- Key handler function to pass keys back to Renoise
 function my_keyhandler_func(dialog, key)
-  -- CRITICAL: Pass ALL keys back to Renoise so normal shortcuts work
+  -- DEBUG: Show exactly what we're receiving
+  print("KEYHANDLER DEBUG:")
+  print("  key.name: '" .. tostring(key.name) .. "'")
+  print("  key.modifiers: '" .. tostring(key.modifiers) .. "'")
+  print("  key.modifiers type: " .. type(key.modifiers))
+  if type(key.modifiers) == "table" then
+    print("  modifiers table contents:")
+    for i, mod in ipairs(key.modifiers) do
+      print("    [" .. i .. "] = '" .. tostring(mod) .. "'")
+    end
+  end
+  print("  ---")
+  
+  -- Check for CMD-H to close dialog
+  if key.modifiers == "command" and key.name == "h" then
+    print("KEYHANDLER: CMD-H pressed - closing dialog")
+    print("KEYHANDLER: canvas_experiments_dialog exists: " .. tostring(canvas_experiments_dialog ~= nil))
+    
+    -- Store reference to dialog before cleanup (cleanup sets it to nil)
+    local dialog_to_close = canvas_experiments_dialog
+    
+    if dialog_to_close then
+      print("KEYHANDLER: canvas_experiments_dialog.visible: " .. tostring(dialog_to_close.visible))
+    end
+    
+    PakettiCanvasExperimentsCleanup()
+    
+    if dialog_to_close then
+      print("KEYHANDLER: Attempting to close dialog...")
+      local success, error_msg = pcall(function()
+        dialog_to_close:close()
+      end)
+      print("KEYHANDLER: Close success: " .. tostring(success))
+      if not success then
+        print("KEYHANDLER: Close error: " .. tostring(error_msg))
+      end
+    else
+      print("KEYHANDLER: No dialog to close!")
+    end
+    return nil -- Don't pass this key to Renoise
+  end
+  
+  -- CRITICAL: Pass ALL other keys back to Renoise so normal shortcuts work
   -- This ensures track selection, navigation, and all other Renoise shortcuts work normally
   print("KEYHANDLER: Passing key '" .. tostring(key.name) .. "' back to Renoise")
   return key
@@ -1648,17 +1688,8 @@ function PakettiCanvasExperimentsCreateDialog()
         end
       },
       vb:text {
-        text = "A/B automatically captured",
-        style = "disabled",
-        width = 120
-      }
-    },
-    
-    -- Crossfade controls
-    vb:row {
-      vb:text {
-        text = "Crossfade:",
-        width = 80
+        text = "Crossfade",
+        width = 40, style="strong",font="bold"
       },
       vb:slider {
         id = "crossfade_slider",
@@ -1678,9 +1709,11 @@ function PakettiCanvasExperimentsCreateDialog()
       vb:text {
         id = "crossfade_text",
         text = string.format("%.1f%%", crossfade_amount * 100),
-        width = 50
+        width = 50, style="strong",font="bold"
       }
+
     },
+    
     
     -- Automation controls
     vb:row {
@@ -1749,7 +1782,7 @@ function PakettiCanvasExperimentsCreateDialog()
         end
       },
       vb:text {
-        text = "Display Automation if pressing Automation Sync On",
+        text = "Display Automation if pressing Automation Sync On", font="bold",style="strong",
         tooltip = "When enabled, turning on Automation Sync will automatically switch to the Automation view"
       }
     },
@@ -1789,11 +1822,7 @@ function PakettiCanvasExperimentsCreateDialog()
         notifier = function()
           PakettiCanvasExperimentsResetToDefault()
         end
-      }
-    },
-    
-    -- Control buttons
-    vb:row {
+      },
       vb:button {
         text = "Refresh Device",
         width = 120,
@@ -1809,7 +1838,9 @@ function PakettiCanvasExperimentsCreateDialog()
           canvas_experiments_dialog:close()
         end
       }
-    }
+
+    },
+    
   }
   
   canvas_experiments_dialog = renoise.app():show_custom_dialog(

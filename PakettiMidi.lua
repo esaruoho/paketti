@@ -2923,10 +2923,10 @@ renoise.tool():add_keybinding{name="Global:Paketti:Delete All Repeaters from All
 }
 
 -- Menu entries for Repeater management
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Track/Devices:Deactivate All Repeaters on All Tracks",
+renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Plugins/Devices:Deactivate All Repeaters on All Tracks",
   invoke=function() paketti_deactivate_all_repeaters() end
 }
 
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Track/Devices:Delete All Repeaters from All Tracks",
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Plugins/Devices:Delete All Repeaters from All Tracks",
   invoke=function() paketti_delete_all_repeaters() end
 }

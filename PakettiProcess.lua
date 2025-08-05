@@ -3443,3 +3443,59 @@ local function crossfade_loop_edges_fixed_end()
 end
 
 
+
+
+---
+function paketti_build_sample_variants()
+  local instr=renoise.song().selected_instrument
+  if not instr then renoise.app():show_status("No instrument selected.") return end
+  local base_idx=renoise.song().selected_sample_index
+  local base=instr.samples[base_idx]
+  if not base then renoise.app():show_status("No sample selected.") return end
+  if not base.sample_buffer.has_sample_data then renoise.app():show_status("Empty sample.") return end
+
+  local name=base.name
+
+  local function clone_and_process(label, transform)
+    local new=instr:insert_sample_at(#instr.samples+1)
+    new:copy_from(base)
+    new.name=name.." ("..label..")"
+    new.volume=0.0  -- Set volume to -INF dB so user can fade them in manually
+
+    local buf=new.sample_buffer
+    buf:prepare_sample_data_changes()
+    for c=1,buf.number_of_channels do
+      for f=1,buf.number_of_frames do
+        local val=buf:sample_data(c,f)
+        buf:set_sample_data(c,f,math.max(-1.0,math.min(1.0,transform(val))))
+      end
+    end
+    buf:finalize_sample_data_changes()
+  end
+
+  clone_and_process("wrapped", function(val)
+    local i16=math.floor(val*32768)
+    local u16=(i16+65536)%65536
+    return ((u16/65535)*2.0)-1.0
+  end)
+
+  clone_and_process("unwrapped", function(val)
+    local u16=math.floor(((val+1.0)*0.5)*65535)
+    local i16=(u16>=32768) and (u16-65536) or u16
+    return i16/32768
+  end)
+
+  clone_and_process("scaled unsigned", function(val)
+    return (val+1.0)*0.5
+  end)
+
+  clone_and_process("scaled signed", function(val)
+    return (val*2.0)-1.0
+  end)
+
+  renoise.app().window.active_middle_frame=renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+  renoise.app():show_status("Created 4 wrecked variants of sample: "..name)
+end
+
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Build Sample Variants", invoke=paketti_build_sample_variants}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Build Sample Variants", invoke=paketti_build_sample_variants}

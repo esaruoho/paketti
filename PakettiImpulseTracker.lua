@@ -3318,3 +3318,158 @@ function paketti_float_sign()
   renoise.app():show_status("Sample scaled: unsigned → signed.")
 end
 
+
+---------
+
+
+
+
+
+
+
+
+
+-- from Paper
+-- Rough formula i hacked up: 
+-- ( 1 / (floor((5 * rate) / (3 * tempo)) / rate * speed) ) * 10
+
+-- and another Paper example:
+-- ( 1 / (floor((5 * rate) / (3 * tempo)) / rate * speed) ) * (rows_per_beat * 2.5)
+-- i think this is correct
+
+
+-- Paper simplified
+--- (rows_per_beat * 2.5 * rate) / (floor((5 * rate) / (3 * tempo)) * speed)
+
+-- from 8bitbubsy
+-- Take BPM 129 at 44100Hz as an example:
+-- samplesPerTick = 44100 / 129 = 341.860465116 --> truncated to 341.
+-- BPM = 44100.0 / samplesPerTick (341) = BPM 129.325 
+
+-- another example from 8bitbubsy
+-- realBPM = (rate / floor(rate / bpm * 2.5)) / (speed / 15) 
+-- result is (15 = 6*2.5)
+
+
+
+-- TODO: Does this work if you have a 192 pattern length?
+-- TODO: What if you wanna double it or halve it based on how many beats are there
+-- in the pattern?
+-- TODO: Consider those examples above.
+-- Dialog Reference
+local dialog = nil
+
+-- Default Values
+local speed = 6
+local tempo = 125
+local real_bpm = tempo / (speed / 6)
+
+
+-- Function to Calculate BPM
+local function calculate_bpm(speed, tempo)
+  -- Simple formula: if speed is 6, BPM equals tempo
+  -- If speed is higher than 6, BPM is lower, if speed is lower than 6, BPM is higher
+  local bpm = tempo / (speed / 6)
+  -- Check if BPM is within valid range (20 to 999)
+  if bpm < 20 or bpm > 999 then
+    return nil, {
+      string.format("Invalid BPM value '%.2f'", bpm),
+      "Valid values are (20 to 999)"
+    }
+  end
+  return bpm
+end
+
+-- GUI Dialog Function
+function pakettiSpeedTempoDialog()
+  if dialog and dialog.visible then
+    dialog:close()
+    dialog = nil
+    return
+  end
+
+  -- Valueboxes for Speed and Tempo
+  local vb = renoise.ViewBuilder()
+  local dialog_content = vb:column{margin=10,--spacing=8,
+    vb:row{
+      vb:column{
+        vb:text{text="Speed:"},
+        vb:valuebox{min=1,max=255,value=speed,
+          tostring=function(val) return string.format("%X", val) end,
+          tonumber=function(val) return tonumber(val, 16) end,
+          notifier=function(val)
+            speed = val
+            local calculated_bpm, error_msgs = calculate_bpm(speed, tempo)
+            real_bpm = calculated_bpm
+            vb.views.result_label.text = string.format("Speed %d Tempo %d is %.2f BPM", speed, tempo, real_bpm or 0)
+            if error_msgs then
+              vb.views.error_label1.text = error_msgs[1]
+              vb.views.error_label2.text = error_msgs[2]
+            else
+              vb.views.error_label1.text = ""
+              vb.views.error_label2.text = ""
+            end
+          end
+        }
+      },
+      vb:column{
+        vb:text{text="Tempo:"},
+        vb:valuebox{min=32,max=255,value=tempo,
+          notifier=function(val)
+            tempo = val
+            local calculated_bpm, error_msgs = calculate_bpm(speed, tempo)
+            real_bpm = calculated_bpm
+            vb.views.result_label.text = string.format("Speed %d Tempo %d is %.2f BPM", speed, tempo, real_bpm or 0)
+            if error_msgs then
+              vb.views.error_label1.text = error_msgs[1]
+              vb.views.error_label2.text = error_msgs[2]
+            else
+              vb.views.error_label1.text = ""
+              vb.views.error_label2.text = ""
+            end
+          end
+        }
+      }
+    },
+
+    -- Result Display
+    vb:row{
+      vb:text{id="result_label",text=string.format("Speed %d Tempo %d is %.2f BPM", speed, tempo, real_bpm)}
+    },
+
+    -- Error Display (split into two rows)
+    vb:row{vb:text{id="error_label1",text="",style="strong",font="bold"}},
+    vb:row{vb:text{id="error_label2",text="",style="strong",font="bold"}},
+    
+    -- Set BPM Button
+    vb:row{
+      vb:button{text="Set BPM",width=60,
+        notifier=function()
+          if not real_bpm then
+            renoise.app():show_status("Cannot set BPM - value out of valid range (20 to 999)")
+            return
+          end
+          renoise.song().transport.bpm = real_bpm
+          renoise.app():show_status(string.format("BPM set to %.2f", real_bpm))
+        end
+      },
+      vb:button{text="Close",width=60,
+        notifier=function()
+          if dialog and dialog.visible then
+            dialog:close()
+            dialog = nil
+          end
+        end
+      }
+    }
+  }
+
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) dialog = value end
+  )
+  dialog = renoise.app():show_custom_dialog("Speed and Tempo to BPM",dialog_content,keyhandler)
+  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Paketti Speed and Tempo to BPM Dialog...",invoke=pakettiSpeedTempoDialog}

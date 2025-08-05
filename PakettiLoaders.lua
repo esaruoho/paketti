@@ -1,3 +1,11 @@
+function pakettiListInstalledTools()
+  for i=1,#renoise.app().installed_tools do oprint (renoise.app().installed_tools[i].name) end
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:List of Installed Tools", invoke=function() pakettiListInstalledTools() end }
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Debug:List of Installed Tools", invoke=function() pakettiListInstalledTools() end }
+
+
 -------------------------------------------------------------------------------------------------
 -- Dump list of plugins, fx available to Terminal
 renoise.tool():add_keybinding{name="Global:Paketti:AU/VST/VST3/Native Plugins/Effects Lister Dump",invoke=function()
@@ -3479,3 +3487,90 @@ end
 
 
 
+
+
+---
+-- Define the simplified table for base time divisions from 1/1 to 1/128
+local base_time_divisions = {
+  [1] = "1 / 1", [2] = "1 / 2", [3] = "1 / 4", [4] = "1 / 8", 
+  [5] = "1 / 16", [6] = "1 / 32", [7] = "1 / 64", [8] = "1 / 128"
+}
+
+-- Function to load and apply parameters to the Repeater device
+function PakettiRepeaterParameters(step, mode)
+  -- Check if the Repeater device is already on the selected track
+  local track = renoise.song().selected_track
+  local device_found = false
+  local device_index = nil
+  
+  for i, device in ipairs(track.devices) do
+    if device.display_name == "Repeater" then
+      device_found = true
+      device_index = i
+      break
+    end
+  end
+  
+  -- Determine the mode name based on mode value
+  local mode_name = "Even"
+  if mode == 3 then
+    mode_name = "Triplet"
+  elseif mode == 4 then
+    mode_name = "Dotted"
+  end
+
+  -- If the device is found, check if the mode/step match
+  if device_found then
+    local device = track.devices[device_index]
+    local current_mode = device.parameters[1].value
+    local current_step_string = device.parameters[2].value_string -- Use value_string for step comparison
+    
+    -- If mode/step matches and device is active, deactivate the device
+    if device.is_active then
+      if current_mode == mode and current_step_string == base_time_divisions[step] then
+        device.is_active = false
+        renoise.app():show_status("Repeater bypassed")
+      else
+        -- If mode/step doesn't match, update parameters
+        device.parameters[1].value = mode -- Set the correct mode
+        device.parameters[2].value_string = base_time_divisions[step] -- Set the correct step using value_string
+        renoise.app():show_status("Repeater mode/step updated to: "..base_time_divisions[step].." "..mode_name)
+      end
+    else
+      -- If device is bypassed, update parameters and activate
+      device.parameters[1].value = mode -- Set the correct mode
+      device.parameters[2].value_string = base_time_divisions[step] -- Set the correct step using value_string
+      device.is_active = true
+      renoise.app():show_status("Repeater activated with mode/step: "..base_time_divisions[step].." "..mode_name)
+    end
+  else
+    -- If the device is not found, load it and apply the parameters
+    loadnative("Audio/Effects/Native/Repeater",nil,"./Presets/PakettiRepeaterHoldOff.xml")
+    renoise.app():show_status("Repeater loaded and parameters set")
+    
+    -- Set the mode (parameter 1)
+    track.devices[#track.devices].parameters[1].value = mode
+    
+    -- Set the step parameter using value_string
+    if step ~= nil then
+      track.devices[#track.devices].parameters[2].value_string = base_time_divisions[step] -- Set the chosen step using value_string
+      renoise.app():show_status("Repeater step set to: "..base_time_divisions[step].." "..mode_name)
+    end
+  end
+end
+
+-- Create keybindings for "Even", "Dotted", and "Triplet" for each base time division
+for step = 1, #base_time_divisions do
+  -- Even (mode 2)
+  renoise.tool():add_keybinding{name="Global:Paketti:Repeater " .. base_time_divisions[step] .. " Even",
+    invoke=function() PakettiRepeaterParameters(step, 2) end} -- Mode 2 is Even
+ 
+  
+  -- Triplet (mode 3)
+  renoise.tool():add_keybinding{name="Global:Paketti:Repeater " .. base_time_divisions[step] .. " Triplet",
+    invoke=function() PakettiRepeaterParameters(step, 3) end} -- Mode 3 is Triplet
+  
+  -- Dotted (mode 4)
+  renoise.tool():add_keybinding{name="Global:Paketti:Repeater " .. base_time_divisions[step] .. " Dotted",
+    invoke=function() PakettiRepeaterParameters(step, 4) end} -- Mode 4 is Dotted
+end

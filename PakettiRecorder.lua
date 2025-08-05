@@ -720,3 +720,119 @@ renoise.song().selected_instrument_index=renoise.song().selected_instrument_inde
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Start/Stop Sample Recording and Pakettify",invoke=function() handle_sample_recording() end}
+
+
+
+
+--------
+------------
+function start_stop_sample_and_loop_oh_my()
+  local w=renoise.app().window
+  local s=renoise.song()
+  local t=s.transport
+  local ss=s.selected_sample
+  local currTrak=s.selected_track_index
+  local currPatt=s.selected_pattern_index
+  
+  if w.sample_record_dialog_is_visible then
+      -- we are recording, stop
+      t:start_stop_sample_recording()
+      -- write note
+       ss.autoseek=true
+       s.patterns[currPatt].tracks[currTrak].lines[1].effect_columns[1].number_string="0G"
+       s.patterns[currPatt].tracks[currTrak].lines[1].effect_columns[1].amount_string="01"
+  
+  for i= 1,12 do
+  if s.patterns[currPatt].tracks[currTrak].lines[1].note_columns[i].is_empty==true then
+     s.patterns[currPatt].tracks[currTrak].lines[1].note_columns[i].note_string="C-4"
+     s.patterns[currPatt].tracks[currTrak].lines[1].note_columns[i].instrument_value=s.selected_instrument_index-1
+  else
+   if i == renoise.song().tracks[currTrak].visible_note_columns and i == 12
+    then renoise.song():insert_track_at(renoise.song().selected_track_index)
+     s.patterns[currPatt].tracks[currTrak].lines[1].note_columns[1].note_string="C-4"
+     s.patterns[currPatt].tracks[currTrak].lines[1].note_columns[1].instrument_value=s.selected_instrument_index-1
+  end
+  end
+  end
+  -- hide dialog
+      w.sample_record_dialog_is_visible = false
+    else
+      -- not recording. show dialog, start recording.
+      w.sample_record_dialog_is_visible = true
+      t:start_stop_sample_recording()
+    end
+  end
+  
+  ----------------------------
+  -- has-line-input + add-line-input
+  function has_line_input()
+  -- Write some code to find the line input in the correct place
+  local tr = renoise.song().selected_track
+   if tr.devices[2] and tr.devices[2].device_path=="Audio/Effects/Native/#Line Input" 
+    then return true
+   else
+    return false
+   end
+  end
+  
+  function add_line_input()
+  -- Write some code to add the line input in the correct place
+   loadnative("Audio/Effects/Native/#Line Input")
+  end
+  
+  function remove_line_input()
+  -- Write some code to remove the line input if it's in the correct place
+   renoise.song().selected_track:delete_device_at(2)
+  end
+  
+  -- recordamajic
+  function recordamajic9000(running)
+      if running then
+      renoise.song().transport.playing=true
+          -- start recording code here
+  renoise.app().window.sample_record_dialog_is_visible=true
+  renoise.app().window.lock_keyboard_focus=true
+  renoise.song().transport:start_stop_sample_recording()
+      else
+      -- Stop recording here
+      end
+  end
+  
+  renoise.tool():add_keybinding{name="Global:Paketti:Recordammajic9000",
+  invoke=function() if has_line_input() then 
+        recordtocurrenttrack()    
+        G01()
+   else add_line_input()
+        recordtocurrenttrack()
+        G01()
+   end end}
+  
+  -- turn samplerecorder ON
+  function SampleRecorderOn()
+  local howmany = table.count(renoise.song().selected_track.devices)
+  
+  if renoise.app().window.sample_record_dialog_is_visible==false then
+  renoise.app().window.sample_record_dialog_is_visible=true 
+  
+    if howmany == 1 then 
+      loadnative("Audio/Effects/Native/#Line Input")
+      return
+    else
+      if renoise.song().selected_track.devices[2].name=="#Line Input" then
+      renoise.song().selected_track:delete_device_at(2)
+      renoise.app().window.sample_record_dialog_is_visible=false
+      else
+      loadnative("Audio/Effects/Native/#Line Input")
+      return
+  end    
+    end  
+  
+  else renoise.app().window.sample_record_dialog_is_visible=false
+    if renoise.song().selected_track.devices[2].name=="#Line Input" then
+    renoise.song().selected_track:delete_device_at(2)
+    end
+  end
+  end
+  
+  renoise.tool():add_keybinding{name="Global:Paketti:Display Sample Recorder with #Line Input",invoke=function() SampleRecorderOn() end}
+  

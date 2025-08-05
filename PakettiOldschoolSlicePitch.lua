@@ -419,8 +419,374 @@ function pakettiOldschoolSlicePitchFillAllGapsPingPong()
   renoise.app():show_status(string.format("Filled %d gaps with pingpong loops", #gaps))
 end
 
-function pakettiSlicesToPattern(start_from_first_row)
+-- Balanced transient-based BPM detection - optimized for speed while preserving accuracy
+function pakettiBPMDetectFromTransients(buffer, estimated_beats)
+  estimated_beats = estimated_beats or 4 -- Default assumption
+  local frames = buffer.number_of_frames
+  local sample_rate = buffer.sample_rate
+  local channel = 1
+  
+  -- BALANCED: Smaller window for accuracy, 25% overlap for speed compromise  
+  local window_size = math.floor(sample_rate * 0.025) -- 25ms window (compromise)
+  local hop_size = math.floor(window_size * 0.75) -- 25% overlap (vs 50% overlap)
+  local energy_threshold = 0.52
+  local min_spacing = (150 / 1000) * sample_rate -- 150ms minimum spacing (back to original)
+  
+  local num_windows = math.floor((frames - window_size) / hop_size) + 1
+  
+  -- OPTIMIZED: Pre-allocate arrays with known size (vs table.insert)
+  local flux_values = {}
+  local prev_sum = 0
+  local max_energy = 0
+  local window_count = 0
+
+  -- OPTIMIZED: Single loop combines flux, energy, and max calculation
+  for pos = 1, frames - window_size, hop_size do
+    local sum = 0
+    local energy = 0
+    -- Inner loop optimized with less function calls
+    for i = 0, window_size - 1 do
+      local val = math.abs(buffer:sample_data(channel, pos + i))
+      sum = sum + val
+      energy = energy + (val * val) -- Faster than val^2
+    end
+    
+    local flux = math.max(0, sum - prev_sum)
+    window_count = window_count + 1
+    flux_values[window_count] = { pos = pos, flux = flux, energy = energy }
+    
+    -- Track max energy in same loop
+    if energy > max_energy then 
+      max_energy = energy 
+    end
+    prev_sum = sum
+  end
+
+  local local_energy_threshold = max_energy * energy_threshold
+  
+  -- BALANCED: Use proper median for accuracy, but optimize the sorting
+  local fluxes = {}
+  for i = 1, window_count do
+    fluxes[i] = flux_values[i].flux
+  end
+  table.sort(fluxes)
+  local median_flux = fluxes[math.floor(window_count / 2)]
+  local flux_threshold = median_flux * 1.3
+
+  -- ACCURATE: Process all transients (no early termination to preserve accuracy)
+  local transients = {}
+  local transient_count = 0
+  local last_transient = -min_spacing
+  
+  for i = 1, window_count do
+    local v = flux_values[i]
+    local spacing = v.pos - last_transient
+    if v.flux > flux_threshold and v.energy > local_energy_threshold and spacing > min_spacing then
+      transient_count = transient_count + 1
+      transients[transient_count] = v.pos
+      last_transient = v.pos
+    end
+  end
+
+  if transient_count < 2 then
+    print("Debug: Not enough transients detected, using project BPM")
+    return nil
+  end
+
+  local sample_duration_secs = frames / sample_rate
+  
+  -- INTELLIGENT: Analyze timing intervals + use user-specified beats for accuracy
+  local intervals = {}
+  for i = 2, transient_count do
+    local interval_frames = transients[i] - transients[i-1]
+    local interval_seconds = interval_frames / sample_rate
+    table.insert(intervals, interval_seconds)
+  end
+  
+  local detected_bpm
+  
+  if #intervals == 0 then
+    -- Fallback: use user-specified beats if no intervals
+    detected_bpm = (estimated_beats * 60) / sample_duration_secs
+  else
+    -- Method 1: Use user-specified beats (most accurate when user knows)
+    local user_bpm = (estimated_beats * 60) / sample_duration_secs
+    
+    -- Method 2: Analyze intervals to find subdivision pattern
+    table.sort(intervals)
+    local median_interval = intervals[math.floor(#intervals / 2)]
+    local interval_bpm = 60 / median_interval
+    
+    -- Test common subdivisions based on user's beat count
+    local candidate_bpms = {
+      user_bpm,         -- User-specified (most trusted)
+      interval_bpm,     -- 1:1 (each transient is a beat)
+      interval_bpm / 2, -- 1:2 (every other transient is a beat)  
+      interval_bpm / 3, -- 1:3 (triplets)
+      interval_bpm / 4, -- 1:4 (every 4th transient is a beat)
+      interval_bpm * 2, -- 2:1 (half-time feel)
+    }
+    
+    -- Prefer user BPM, but validate against interval analysis
+    detected_bpm = user_bpm
+    local best_score = 0 -- Start with user BPM as best
+    
+    -- Only override user BPM if interval analysis suggests something much more reasonable
+    for i, candidate in ipairs(candidate_bpms) do
+      if candidate >= 60 and candidate <= 200 then
+        local score = 1 / math.abs(candidate - user_bpm) -- Prefer candidates close to user BPM
+        if i == 1 then score = score * 2 end -- Boost user BPM preference
+        if score > best_score then
+          detected_bpm = candidate
+          best_score = score
+        end
+      end
+    end
+  end
+  
+  -- Constrain BPM to reasonable range
+  if detected_bpm < 30 then
+    detected_bpm = detected_bpm * 4
+  elseif detected_bpm < 60 then
+    detected_bpm = detected_bpm * 2
+  elseif detected_bpm > 400 then
+    detected_bpm = detected_bpm / 4
+  elseif detected_bpm > 200 then
+    detected_bpm = detected_bpm / 2
+  end
+
+  -- Calculate estimated beat count based on final BPM
+  local final_estimated_beats = math.floor((detected_bpm * sample_duration_secs) / 60)
+  
+  print(string.format("Debug: Detected %d transients, user specified %d beats, calculated BPM: %.2f", transient_count, estimated_beats, detected_bpm))
+  return detected_bpm, final_estimated_beats, transients
+end
+
+-- Standalone BPM detection function with interactive dialog
+function pakettiIntelligentBPMDetection()
+  local song = renoise.song()
+  local instrument = song.selected_instrument
+  
+  if not instrument or #instrument.samples == 0 then
+    renoise.app():show_status("There's no sample in this instrument")
+    return
+  end
+  
+  -- Create ViewBuilder dialog
+  local vb = renoise.ViewBuilder()
+  local dialog = nil
+  local current_detected_bpm = nil
+  local current_ballpark_bpm = nil
+  local instrument_observer = nil
+  local beats_in_sample = 4 -- Default assumption
+  local last_beats_update_time = 0
+  
+  local function update_current_bpm_display()
+    if vb.views.current_bpm_text then
+      vb.views.current_bpm_text.text = string.format("%.2f", song.transport.bpm)
+    end
+  end
+  
+  local function set_detected_bpm()
+    if current_detected_bpm then
+      song.transport.bpm = current_detected_bpm
+      update_current_bpm_display()
+      renoise.app():show_status(string.format("Project BPM set to %.2f", current_detected_bpm))
+    end
+  end
+  
+  local function set_ballpark_bpm()
+    if current_ballpark_bpm then
+      song.transport.bpm = current_ballpark_bpm
+      update_current_bpm_display()
+      renoise.app():show_status(string.format("Project BPM set to %.0f", current_ballpark_bpm))
+    end
+  end
+  
+  local function get_sample_details()
+    local instrument = song.selected_instrument
+    if not instrument or #instrument.samples == 0 then
+      return "No samples available"
+    end
+    
+    local sample = instrument.samples[song.selected_sample_index]
+    if not sample.sample_buffer or not sample.sample_buffer.has_sample_data then
+      return "No sample data"
+    end
+    
+    local buffer = sample.sample_buffer
+    local frames = buffer.number_of_frames or 0
+    local sample_rate = buffer.sample_rate or 44100
+    local duration = frames / sample_rate
+    local channels = buffer.number_of_channels or 1
+    local channels_text = channels == 1 and "Mono" or "Stereo"
+    local bit_depth = buffer.bit_depth or 16 -- Default to 16 if nil
+    
+    return string.format("%.2fs, %.0fHz, %dbit, %s", 
+      duration, sample_rate, bit_depth, channels_text)
+  end
+  
+  local function update_sample_analysis()
+    local instrument = song.selected_instrument
+    if not instrument or #instrument.samples == 0 then
+      -- Update UI to show no sample
+      if vb.views.detected_bpm_text then vb.views.detected_bpm_text.text = "N/A" end
+      if vb.views.ballpark_bpm_text then vb.views.ballpark_bpm_text.text = "N/A" end
+      if vb.views.transient_count_text then vb.views.transient_count_text.text = "N/A" end
+      if vb.views.sample_details_text then vb.views.sample_details_text.text = get_sample_details() end
+      if vb.views.detected_bpm_btn then vb.views.detected_bpm_btn.active = false end
+      if vb.views.ballpark_bpm_btn then vb.views.ballpark_bpm_btn.active = false end
+      -- Reset beats in sample to default when no sample
+      if vb.views.beats_in_sample_valuebox then vb.views.beats_in_sample_valuebox.value = 4 end
+      beats_in_sample = 4
+      current_detected_bpm = nil
+      current_ballpark_bpm = nil
+      return
+    end
+    
+    local sample = instrument.samples[song.selected_sample_index]
+    if not sample.sample_buffer or not sample.sample_buffer.has_sample_data then
+      -- Update UI to show no sample data
+      if vb.views.detected_bpm_text then vb.views.detected_bpm_text.text = "N/A" end
+      if vb.views.ballpark_bpm_text then vb.views.ballpark_bpm_text.text = "N/A" end
+      if vb.views.transient_count_text then vb.views.transient_count_text.text = "N/A" end
+      if vb.views.sample_details_text then vb.views.sample_details_text.text = get_sample_details() end
+      if vb.views.detected_bpm_btn then vb.views.detected_bpm_btn.active = false end
+      if vb.views.ballpark_bpm_btn then vb.views.ballpark_bpm_btn.active = false end
+      -- Reset beats in sample to default when no sample data
+      if vb.views.beats_in_sample_valuebox then vb.views.beats_in_sample_valuebox.value = 4 end
+      beats_in_sample = 4
+      current_detected_bpm = nil
+      current_ballpark_bpm = nil
+      return
+    end
+    
+    local buffer = sample.sample_buffer
+    local detected_bpm, detected_beats, transients = pakettiBPMDetectFromTransients(buffer, beats_in_sample)
+    
+    if detected_bpm then
+      local plausible_bpms = {60, 65, 70, 75, 80, 85, 90, 95, 100, 105, 110, 115, 120, 125, 128, 130, 135, 140, 145, 150, 155, 160, 165, 170, 175, 180, 185, 190, 195, 200}
+      local min_diff = math.huge
+      local nearest_plausible = detected_bpm
+      for _, p_bpm in ipairs(plausible_bpms) do
+        local diff = math.abs(detected_bpm - p_bpm)
+        if diff < min_diff then
+          min_diff = diff
+          nearest_plausible = p_bpm
+        end
+      end
+      
+      current_detected_bpm = detected_bpm
+      current_ballpark_bpm = nearest_plausible
+      
+      -- Update UI
+      if vb.views.detected_bpm_text then vb.views.detected_bpm_text.text = string.format("%.2f", detected_bpm) end
+      if vb.views.ballpark_bpm_text then vb.views.ballpark_bpm_text.text = string.format("%.0f", nearest_plausible) end
+      if vb.views.transient_count_text then vb.views.transient_count_text.text = string.format("%d", #transients) end
+      if vb.views.sample_details_text then vb.views.sample_details_text.text = get_sample_details() end
+      if vb.views.detected_bpm_btn then vb.views.detected_bpm_btn.active = true end
+      if vb.views.ballpark_bpm_btn then vb.views.ballpark_bpm_btn.active = true end
+    else
+      -- No BPM detected
+      current_detected_bpm = nil
+      current_ballpark_bpm = nil
+      
+      if vb.views.detected_bpm_text then vb.views.detected_bpm_text.text = "N/A" end
+      if vb.views.ballpark_bpm_text then vb.views.ballpark_bpm_text.text = "N/A" end
+      if vb.views.transient_count_text then vb.views.transient_count_text.text = "N/A" end
+      if vb.views.sample_details_text then vb.views.sample_details_text.text = get_sample_details() end
+      if vb.views.detected_bpm_btn then vb.views.detected_bpm_btn.active = false end
+      if vb.views.ballpark_bpm_btn then vb.views.ballpark_bpm_btn.active = false end
+    end
+  end
+  
+  local content = vb:column {
+    vb:row {
+      vb:text {text = "Current BPM", width = 140, style = "strong", font = "bold"},
+      vb:text {id = "current_bpm_text", text = string.format("%.2f", song.transport.bpm), width = 60, style = "strong"},
+    },
+    
+    vb:row {
+
+      vb:text {text = "Detected BPM", width = 140, style = "strong", font = "bold"},
+      vb:text {id = "detected_bpm_text", text = "N/A", width = 60, style = "strong"},
+      vb:button {id = "detected_bpm_btn", text = "Set BPM", width = 70, active = false, notifier = set_detected_bpm}
+    },
+    
+    vb:row {
+      vb:text {text = "Ballpark BPM", width = 140, style = "strong", font = "bold"},
+      vb:text {id = "ballpark_bpm_text", text = "N/A", width = 60, style = "strong"},
+      vb:button {id = "ballpark_bpm_btn", text = "Set BPM", width = 70, active = false, notifier = set_ballpark_bpm}
+    },
+    
+    vb:row {
+      vb:text {text = "Transient Count", width = 140, style = "strong", font = "bold"},
+      vb:text {id = "transient_count_text", text = "N/A", width = 60, style = "strong"},
+    },
+    
+    vb:row {
+      vb:text {text = "Sample Details", width = 140, style = "strong", font = "bold"},
+      vb:text {id = "sample_details_text", text = "N/A", width = 210, style = "strong"}
+    },
+    
+    vb:row {
+      vb:text {text = "Beats in Sample", width = 140, style = "strong", font = "bold"},
+      vb:valuebox {
+        id = "beats_in_sample_valuebox",
+        width = 60,
+        value = beats_in_sample,
+        min = 1,
+        max = 64,
+        tostring = function(val) return string.format("%02d", val) end,
+        tonumber = function(str) return tonumber(str) end,
+        notifier = function(val)
+          beats_in_sample = val
+          -- Throttle updates to prevent excessive recalculation
+          local current_time = os.clock() * 1000
+          if not last_beats_update_time or current_time - last_beats_update_time > 100 then
+            update_sample_analysis() -- Recalculate when beats value changes
+            last_beats_update_time = current_time
+          end
+        end
+      },
+      vb:text {text = "beats", width = 50, style = "normal"}
+    }
+  }
+  
+  dialog = renoise.app():show_custom_dialog("Intelligent BPM Detection", content, function()
+    -- Clean up observer when dialog closes (following PakettiPlayerProSuite.lua pattern)
+    if instrument_observer and song.selected_instrument_index_observable:has_notifier(instrument_observer) then
+      song.selected_instrument_index_observable:remove_notifier(instrument_observer)
+      print("Removed instrument observer for BPM dialog")
+    end
+  end)
+  
+  -- Set up observer for live updates with throttling to prevent excessive recalculation
+  local last_update_time = 0
+  local update_throttle_ms = 250 -- Minimum 250ms between updates
+  
+  instrument_observer = function()
+    local current_time = os.clock() * 1000 -- Convert to milliseconds
+    if current_time - last_update_time > update_throttle_ms then
+      update_sample_analysis()
+      last_update_time = current_time
+    end
+  end
+  
+  -- Check if notifier already exists, if not add it (following PakettiPlayerProSuite.lua pattern)
+  if not song.selected_instrument_index_observable:has_notifier(instrument_observer) then
+    song.selected_instrument_index_observable:add_notifier(instrument_observer)
+    print("Added instrument observer for BPM dialog")
+  end
+  
+  -- Initial update
+  update_sample_analysis()
+  update_current_bpm_display()
+end
+
+function pakettiSlicesToPattern(start_from_first_row, use_detected_bpm)
   start_from_first_row = start_from_first_row or false  -- Default to current row behavior
+  use_detected_bpm = use_detected_bpm or false -- Default to project BPM
   
   local song = renoise.song()
   local instrument = song.selected_instrument
@@ -472,6 +838,18 @@ function pakettiSlicesToPattern(start_from_first_row)
   local pattern_lines = pattern.number_of_lines
   local bpm = song.transport.bpm
   local lpb = song.transport.lpb
+  
+  -- Try to detect BPM from audio content if requested
+  if use_detected_bpm then
+    local detected_bpm, detected_beats, transients = pakettiBPMDetectFromTransients(buffer, #slice_markers - 1)
+    if detected_bpm then
+      bpm = detected_bpm
+      print(string.format("Debug: Using detected BPM: %.2f (was %.2f)", detected_bpm, song.transport.bpm))
+      renoise.app():show_status(string.format("Using detected BPM: %.2f", detected_bpm))
+    else
+      print("Debug: BPM detection failed, using project BPM")
+    end
+  end
   
   -- Calculate timing conversion
   local frames_per_second = sample_rate
@@ -583,7 +961,10 @@ function pakettiSlicesToPattern(start_from_first_row)
     #slice_markers - 1, start_line, mode_text))
 end
 
-function pakettiSlicesToPhrase(add_trigger_note)
+function pakettiSlicesToPhrase(add_trigger_note, use_detected_bpm)
+  add_trigger_note = add_trigger_note or false
+  use_detected_bpm = use_detected_bpm or false
+  
   local song = renoise.song()
   local instrument = song.selected_instrument
   
@@ -703,6 +1084,18 @@ function pakettiSlicesToPhrase(add_trigger_note)
     local bpm = song.transport.bpm
     local lpb = song.transport.lpb
     
+    -- Try to detect BPM from audio content if requested
+    if use_detected_bpm then
+      local detected_bpm, detected_beats, transients = pakettiBPMDetectFromTransients(buffer, slice_count)
+      if detected_bpm then
+        bpm = detected_bpm
+        print(string.format("Debug: Using detected BPM for phrase: %.2f (was %.2f)", detected_bpm, song.transport.bpm))
+        renoise.app():show_status(string.format("Phrase using detected BPM: %.2f", detected_bpm))
+      else
+        print("Debug: BPM detection failed for phrase, using project BPM")
+      end
+    end
+    
     -- Calculate timing conversion for phrase
     local frames_per_second = sample_rate
     local beats_per_second = bpm / 60
@@ -762,8 +1155,9 @@ end
 
 
 
-function pakettiOldschoolSlicePitchWorkflow(use_reversed_audio)
+function pakettiOldschoolSlicePitchWorkflow(use_reversed_audio, use_detected_bpm)
   use_reversed_audio = use_reversed_audio == nil and true or use_reversed_audio -- Default to true for backwards compatibility
+  use_detected_bpm = use_detected_bpm or false -- Default to project BPM
   
   local song = renoise.song()
   local instrument = song.selected_instrument
@@ -781,9 +1175,9 @@ function pakettiOldschoolSlicePitchWorkflow(use_reversed_audio)
   end
   print("Debug: Set all samples to Loop Mode Off")
   
-  -- Step 2: Output slices to pattern
+  -- Step 2: Output slices to pattern with optional BPM detection
   print("Debug: Outputting slices to pattern")
-  pakettiSlicesToPattern(true)  -- Start from first row in workflow
+  pakettiSlicesToPattern(true, use_detected_bpm)  -- Start from first row in workflow
   
   -- Step 3: Select track content and render to WAV file using Paketti Clean Render
   local pattern = song.selected_pattern
@@ -904,208 +1298,86 @@ function pakettiOldschoolSlicePitchWorkflow(use_reversed_audio)
   renoise.tool():add_timer(check_timer, 500)
 end
 
-
-
-
 -- Menu entries
-renoise.tool():add_menu_entry {
-  name = "Sample Editor:Paketti..:Oldschool Slice Pitch:Detect Gaps",
-  invoke = pakettiOldschoolSlicePitchDetectGaps
-}
+renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Oldschool Slice Pitch:Detect Gaps", invoke = pakettiOldschoolSlicePitchDetectGaps}
+renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Oldschool Slice Pitch:Detect Sample BPM", invoke = pakettiIntelligentBPMDetection}
+renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Detect Sample BPM", invoke = pakettiIntelligentBPMDetection}
+renoise.tool():add_menu_entry {name = "Main Menu:Tools:Paketti..:Detect Sample BPM", invoke = pakettiIntelligentBPMDetection}
+renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Oldschool Slice Pitch:Fill Selected Gap (Reversed)", invoke = pakettiOldschoolSlicePitchFillSelectedGap}
+renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Oldschool Slice Pitch:Fill Selected Gap (Copied)", invoke = pakettiOldschoolSlicePitchFillSelectedGapCopied}
+renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Oldschool Slice Pitch:Fill All Gaps (Reversed)", invoke = pakettiOldschoolSlicePitchFillAllGaps}
+renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Oldschool Slice Pitch:Fill All Gaps (Copied)", invoke = pakettiOldschoolSlicePitchFillAllGapsCopied}
+renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Oldschool Slice Pitch:Fill Selected Gap (PingPong)", invoke = pakettiOldschoolSlicePitchFillSelectedGapPingPong}
+renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Oldschool Slice Pitch:Fill All Gaps (PingPong)", invoke = pakettiOldschoolSlicePitchFillAllGapsPingPong}
+renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Oldschool Slice Pitch Workflow (Reversed)", invoke = function() pakettiOldschoolSlicePitchWorkflow("reversed") end}
+renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Oldschool Slice Pitch Workflow (Copied)", invoke = function() pakettiOldschoolSlicePitchWorkflow("copied") end}
+renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Oldschool Slice Pitch Workflow (PingPong)", invoke = function() pakettiOldschoolSlicePitchWorkflow("pingpong") end}
+renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Slices to Pattern (from first row)", invoke = function() pakettiSlicesToPattern(true) end}
+renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Slices to Pattern (from current row)", invoke = function() pakettiSlicesToPattern(false) end}
+renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Slices to Pattern (from first row)", invoke = function() pakettiSlicesToPattern(true) end}
+renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Slices to Pattern (from current row)", invoke = function() pakettiSlicesToPattern(false) end}
+renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Slices to Phrase (with trigger)", invoke = function() pakettiSlicesToPhrase(true) end}
+renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Slices to Phrase (phrase only)", invoke = function() pakettiSlicesToPhrase(false) end}
+renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Slices to Phrase (with trigger)", invoke = function() pakettiSlicesToPhrase(true) end}
+renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Slices to Phrase (phrase only)", invoke = function() pakettiSlicesToPhrase(false) end}
 
-renoise.tool():add_menu_entry {
-  name = "Sample Editor:Paketti..:Oldschool Slice Pitch:Fill Selected Gap (Reversed)",
-  invoke = pakettiOldschoolSlicePitchFillSelectedGap
-}
-
-renoise.tool():add_menu_entry {
-  name = "Sample Editor:Paketti..:Oldschool Slice Pitch:Fill Selected Gap (Copied)",
-  invoke = pakettiOldschoolSlicePitchFillSelectedGapCopied
-}
-
-renoise.tool():add_menu_entry {
-  name = "Sample Editor:Paketti..:Oldschool Slice Pitch:Fill All Gaps (Reversed)",
-  invoke = pakettiOldschoolSlicePitchFillAllGaps
-}
-
-renoise.tool():add_menu_entry {
-  name = "Sample Editor:Paketti..:Oldschool Slice Pitch:Fill All Gaps (Copied)",
-  invoke = pakettiOldschoolSlicePitchFillAllGapsCopied
-}
-
-renoise.tool():add_menu_entry {
-  name = "Sample Editor:Paketti..:Oldschool Slice Pitch:Fill Selected Gap (PingPong)",
-  invoke = pakettiOldschoolSlicePitchFillSelectedGapPingPong
-}
-
-renoise.tool():add_menu_entry {
-  name = "Sample Editor:Paketti..:Oldschool Slice Pitch:Fill All Gaps (PingPong)",
-  invoke = pakettiOldschoolSlicePitchFillAllGapsPingPong
-}
-
-renoise.tool():add_menu_entry {
-  name = "Pattern Editor:Paketti..:Oldschool Slice Pitch Workflow (Reversed)",
-  invoke = function() pakettiOldschoolSlicePitchWorkflow("reversed") end
-}
-
-renoise.tool():add_menu_entry {
-  name = "Pattern Editor:Paketti..:Oldschool Slice Pitch Workflow (Copied)",
-  invoke = function() pakettiOldschoolSlicePitchWorkflow("copied") end
-}
-
-renoise.tool():add_menu_entry {
-  name = "Pattern Editor:Paketti..:Oldschool Slice Pitch Workflow (PingPong)",
-  invoke = function() pakettiOldschoolSlicePitchWorkflow("pingpong") end
-}
-
-renoise.tool():add_menu_entry {
-  name = "Pattern Editor:Paketti..:Slices to Pattern (from first row)",
-  invoke = function() pakettiSlicesToPattern(true) end
-}
-
-renoise.tool():add_menu_entry {
-  name = "Pattern Editor:Paketti..:Slices to Pattern (from current row)",
-  invoke = function() pakettiSlicesToPattern(false) end
-}
-
-renoise.tool():add_menu_entry {
-  name = "Sample Editor:Paketti..:Slices to Pattern (from first row)", 
-  invoke = function() pakettiSlicesToPattern(true) end
-}
-
-renoise.tool():add_menu_entry {
-  name = "Sample Editor:Paketti..:Slices to Pattern (from current row)", 
-  invoke = function() pakettiSlicesToPattern(false) end
-}
-
-renoise.tool():add_menu_entry {
-  name = "Pattern Editor:Paketti..:Slices to Phrase (with trigger)",
-  invoke = function() pakettiSlicesToPhrase(true) end
-}
-
-renoise.tool():add_menu_entry {
-  name = "Pattern Editor:Paketti..:Slices to Phrase (phrase only)",
-  invoke = function() pakettiSlicesToPhrase(false) end
-}
-
-renoise.tool():add_menu_entry {
-  name = "Sample Editor:Paketti..:Slices to Phrase (with trigger)",
-  invoke = function() pakettiSlicesToPhrase(true) end
-}
-
-renoise.tool():add_menu_entry {
-  name = "Sample Editor:Paketti..:Slices to Phrase (phrase only)",
-  invoke = function() pakettiSlicesToPhrase(false) end
-}
+-- Enhanced versions with BPM detection
+renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Slices to Pattern (detected BPM, from first row)", invoke = function() pakettiSlicesToPattern(true, true) end}
+renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Slices to Pattern (detected BPM, from current row)", invoke = function() pakettiSlicesToPattern(false, true) end}
+renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Slices to Pattern (detected BPM, from first row)", invoke = function() pakettiSlicesToPattern(true, true) end}
+renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Slices to Pattern (detected BPM, from current row)", invoke = function() pakettiSlicesToPattern(false, true) end}
+renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Slices to Phrase (detected BPM, with trigger)", invoke = function() pakettiSlicesToPhrase(true, true) end}
+renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Slices to Phrase (detected BPM, phrase only)", invoke = function() pakettiSlicesToPhrase(false, true) end}
+renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Slices to Phrase (detected BPM, with trigger)", invoke = function() pakettiSlicesToPhrase(true, true) end}
+renoise.tool():add_menu_entry {name = "Sample Editor:Paketti..:Slices to Phrase (detected BPM, phrase only)", invoke = function() pakettiSlicesToPhrase(false, true) end}
+renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Oldschool Slice Pitch Workflow (Reversed, detected BPM)", invoke = function() pakettiOldschoolSlicePitchWorkflow("reversed", true) end}
+renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Oldschool Slice Pitch Workflow (Copied, detected BPM)", invoke = function() pakettiOldschoolSlicePitchWorkflow("copied", true) end}
+renoise.tool():add_menu_entry {name = "Pattern Editor:Paketti..:Oldschool Slice Pitch Workflow (PingPong, detected BPM)", invoke = function() pakettiOldschoolSlicePitchWorkflow("pingpong", true) end}
 
 -- Key bindings
-renoise.tool():add_keybinding {
-  name = "Sample Editor:Paketti:Detect Gaps in Sample",
-  invoke = pakettiOldschoolSlicePitchDetectGaps
-}
+renoise.tool():add_keybinding {name = "Sample Editor:Paketti:Detect Gaps in Sample", invoke = pakettiOldschoolSlicePitchDetectGaps}
+renoise.tool():add_keybinding {name = "Sample Editor:Paketti:Detect Sample BPM", invoke = pakettiIntelligentBPMDetection}
+renoise.tool():add_keybinding {name = "Global:Paketti:Detect Sample BPM", invoke = pakettiIntelligentBPMDetection}
+renoise.tool():add_keybinding {name = "Sample Editor:Paketti:Fill Selected Gap (Reversed)", invoke = pakettiOldschoolSlicePitchFillSelectedGap}
+renoise.tool():add_keybinding {name = "Sample Editor:Paketti:Fill Selected Gap (Copied)", invoke = pakettiOldschoolSlicePitchFillSelectedGapCopied}
+renoise.tool():add_keybinding {name = "Sample Editor:Paketti:Fill All Gaps (Reversed)", invoke = pakettiOldschoolSlicePitchFillAllGaps}
+renoise.tool():add_keybinding {name = "Sample Editor:Paketti:Fill All Gaps (Copied)", invoke = pakettiOldschoolSlicePitchFillAllGapsCopied}
+renoise.tool():add_keybinding {name = "Sample Editor:Paketti:Fill Selected Gap (PingPong)", invoke = pakettiOldschoolSlicePitchFillSelectedGapPingPong}
+renoise.tool():add_keybinding {name = "Sample Editor:Paketti:Fill All Gaps (PingPong)", invoke = pakettiOldschoolSlicePitchFillAllGapsPingPong}
+renoise.tool():add_keybinding {name = "Pattern Editor:Paketti:Oldschool Slice Pitch Workflow (Reversed)", invoke = function() pakettiOldschoolSlicePitchWorkflow("reversed") end}
+renoise.tool():add_keybinding {name = "Pattern Editor:Paketti:Oldschool Slice Pitch Workflow (Copied)", invoke = function() pakettiOldschoolSlicePitchWorkflow("copied") end}
+renoise.tool():add_keybinding {name = "Pattern Editor:Paketti:Oldschool Slice Pitch Workflow (PingPong)", invoke = function() pakettiOldschoolSlicePitchWorkflow("pingpong") end}
+renoise.tool():add_keybinding {name = "Pattern Editor:Paketti:Slices to Pattern (from first row)", invoke = function() pakettiSlicesToPattern(true) end}
+renoise.tool():add_keybinding {name = "Pattern Editor:Paketti:Slices to Pattern (from current row)", invoke = function() pakettiSlicesToPattern(false) end}
+renoise.tool():add_keybinding {name = "Sample Editor:Paketti:Slices to Pattern (from first row)", invoke = function() pakettiSlicesToPattern(true) end}
+renoise.tool():add_keybinding {name = "Sample Editor:Paketti:Slices to Pattern (from current row)", invoke = function() pakettiSlicesToPattern(false) end}
+renoise.tool():add_keybinding {name = "Pattern Editor:Paketti:Slices to Phrase (with trigger)", invoke = function() pakettiSlicesToPhrase(true) end}
+renoise.tool():add_keybinding {name = "Pattern Editor:Paketti:Slices to Phrase (phrase only)", invoke = function() pakettiSlicesToPhrase(false) end}
+renoise.tool():add_keybinding {name = "Sample Editor:Paketti:Slices to Phrase (with trigger)", invoke = function() pakettiSlicesToPhrase(true) end}
+renoise.tool():add_keybinding {name = "Sample Editor:Paketti:Slices to Phrase (phrase only)", invoke = function() pakettiSlicesToPhrase(false) end}
 
-renoise.tool():add_keybinding {
-  name = "Sample Editor:Paketti:Fill Selected Gap (Reversed)",
-  invoke = pakettiOldschoolSlicePitchFillSelectedGap
-}
-
-renoise.tool():add_keybinding {
-  name = "Sample Editor:Paketti:Fill Selected Gap (Copied)",
-  invoke = pakettiOldschoolSlicePitchFillSelectedGapCopied
-}
-
-renoise.tool():add_keybinding {
-  name = "Sample Editor:Paketti:Fill All Gaps (Reversed)",
-  invoke = pakettiOldschoolSlicePitchFillAllGaps
-}
-
-renoise.tool():add_keybinding {
-  name = "Sample Editor:Paketti:Fill All Gaps (Copied)",
-  invoke = pakettiOldschoolSlicePitchFillAllGapsCopied
-}
-
-renoise.tool():add_keybinding {
-  name = "Sample Editor:Paketti:Fill Selected Gap (PingPong)",
-  invoke = pakettiOldschoolSlicePitchFillSelectedGapPingPong
-}
-
-renoise.tool():add_keybinding {
-  name = "Sample Editor:Paketti:Fill All Gaps (PingPong)",
-  invoke = pakettiOldschoolSlicePitchFillAllGapsPingPong
-}
-
-renoise.tool():add_keybinding {
-  name = "Pattern Editor:Paketti:Oldschool Slice Pitch Workflow (Reversed)",
-  invoke = function() pakettiOldschoolSlicePitchWorkflow("reversed") end
-}
-
-renoise.tool():add_keybinding {
-  name = "Pattern Editor:Paketti:Oldschool Slice Pitch Workflow (Copied)",
-  invoke = function() pakettiOldschoolSlicePitchWorkflow("copied") end
-}
-
-renoise.tool():add_keybinding {
-  name = "Pattern Editor:Paketti:Oldschool Slice Pitch Workflow (PingPong)",
-  invoke = function() pakettiOldschoolSlicePitchWorkflow("pingpong") end
-}
-
-renoise.tool():add_keybinding {
-  name = "Pattern Editor:Paketti:Slices to Pattern (from first row)",
-  invoke = function() pakettiSlicesToPattern(true) end
-}
-
-renoise.tool():add_keybinding {
-  name = "Pattern Editor:Paketti:Slices to Pattern (from current row)",
-  invoke = function() pakettiSlicesToPattern(false) end
-}
-
-renoise.tool():add_keybinding {
-  name = "Sample Editor:Paketti:Slices to Pattern (from first row)",
-  invoke = function() pakettiSlicesToPattern(true) end
-}
-
-renoise.tool():add_keybinding {
-  name = "Sample Editor:Paketti:Slices to Pattern (from current row)",
-  invoke = function() pakettiSlicesToPattern(false) end
-}
-
-renoise.tool():add_keybinding {
-  name = "Pattern Editor:Paketti:Slices to Phrase (with trigger)",
-  invoke = function() pakettiSlicesToPhrase(true) end
-}
-
-renoise.tool():add_keybinding {
-  name = "Pattern Editor:Paketti:Slices to Phrase (phrase only)",
-  invoke = function() pakettiSlicesToPhrase(false) end
-}
-
-renoise.tool():add_keybinding {
-  name = "Sample Editor:Paketti:Slices to Phrase (with trigger)",
-  invoke = function() pakettiSlicesToPhrase(true) end
-}
-
-renoise.tool():add_keybinding {
-  name = "Sample Editor:Paketti:Slices to Phrase (phrase only)",
-  invoke = function() pakettiSlicesToPhrase(false) end
-} 
+-- Enhanced versions with BPM detection
+renoise.tool():add_keybinding {name = "Pattern Editor:Paketti:Slices to Pattern (detected BPM, from first row)", invoke = function() pakettiSlicesToPattern(true, true) end}
+renoise.tool():add_keybinding {name = "Pattern Editor:Paketti:Slices to Pattern (detected BPM, from current row)", invoke = function() pakettiSlicesToPattern(false, true) end}
+renoise.tool():add_keybinding {name = "Sample Editor:Paketti:Slices to Pattern (detected BPM, from first row)", invoke = function() pakettiSlicesToPattern(true, true) end}
+renoise.tool():add_keybinding {name = "Sample Editor:Paketti:Slices to Pattern (detected BPM, from current row)", invoke = function() pakettiSlicesToPattern(false, true) end}
+renoise.tool():add_keybinding {name = "Pattern Editor:Paketti:Slices to Phrase (detected BPM, with trigger)", invoke = function() pakettiSlicesToPhrase(true, true) end}
+renoise.tool():add_keybinding {name = "Pattern Editor:Paketti:Slices to Phrase (detected BPM, phrase only)", invoke = function() pakettiSlicesToPhrase(false, true) end}
+renoise.tool():add_keybinding {name = "Sample Editor:Paketti:Slices to Phrase (detected BPM, with trigger)", invoke = function() pakettiSlicesToPhrase(true, true) end}
+renoise.tool():add_keybinding {name = "Sample Editor:Paketti:Slices to Phrase (detected BPM, phrase only)", invoke = function() pakettiSlicesToPhrase(false, true) end}
+renoise.tool():add_keybinding {name = "Pattern Editor:Paketti:Oldschool Slice Pitch Workflow (Reversed, detected BPM)", invoke = function() pakettiOldschoolSlicePitchWorkflow("reversed", true) end}
+renoise.tool():add_keybinding {name = "Pattern Editor:Paketti:Oldschool Slice Pitch Workflow (Copied, detected BPM)", invoke = function() pakettiOldschoolSlicePitchWorkflow("copied", true) end}
+renoise.tool():add_keybinding {name = "Pattern Editor:Paketti:Oldschool Slice Pitch Workflow (PingPong, detected BPM)", invoke = function() pakettiOldschoolSlicePitchWorkflow("pingpong", true) end} 
 
 -- MIDI Mappings
-renoise.tool():add_midi_mapping {
-  name = "Paketti:Slices to Pattern (from first row)",
-  invoke = function(message) if message:is_trigger() then pakettiSlicesToPattern(true) end end
-}
+renoise.tool():add_midi_mapping {name = "Paketti:Slices to Pattern (from first row)", invoke = function(message) if message:is_trigger() then pakettiSlicesToPattern(true) end end}
+renoise.tool():add_midi_mapping {name = "Paketti:Slices to Pattern (from current row)", invoke = function(message) if message:is_trigger() then pakettiSlicesToPattern(false) end end}
+renoise.tool():add_midi_mapping {name = "Paketti:Slices to Phrase (with trigger)", invoke = function(message) if message:is_trigger() then pakettiSlicesToPhrase(true) end end}
+renoise.tool():add_midi_mapping {name = "Paketti:Slices to Phrase (phrase only)", invoke = function(message) if message:is_trigger() then pakettiSlicesToPhrase(false) end end}
 
-renoise.tool():add_midi_mapping {
-  name = "Paketti:Slices to Pattern (from current row)", 
-  invoke = function(message) if message:is_trigger() then pakettiSlicesToPattern(false) end end
-}
-
-renoise.tool():add_midi_mapping {
-  name = "Paketti:Slices to Phrase (with trigger)",
-  invoke = function(message) if message:is_trigger() then pakettiSlicesToPhrase(true) end end
-}
-
-renoise.tool():add_midi_mapping {
-  name = "Paketti:Slices to Phrase (phrase only)",
-  invoke = function(message) if message:is_trigger() then pakettiSlicesToPhrase(false) end end
-} 
+-- Enhanced MIDI mappings with BPM detection
+renoise.tool():add_midi_mapping {name = "Paketti:Slices to Pattern (detected BPM, from first row)", invoke = function(message) if message:is_trigger() then pakettiSlicesToPattern(true, true) end end}
+renoise.tool():add_midi_mapping {name = "Paketti:Slices to Pattern (detected BPM, from current row)", invoke = function(message) if message:is_trigger() then pakettiSlicesToPattern(false, true) end end}
+renoise.tool():add_midi_mapping {name = "Paketti:Slices to Phrase (detected BPM, with trigger)", invoke = function(message) if message:is_trigger() then pakettiSlicesToPhrase(true, true) end end}
+renoise.tool():add_midi_mapping {name = "Paketti:Slices to Phrase (detected BPM, phrase only)", invoke = function(message) if message:is_trigger() then pakettiSlicesToPhrase(false, true) end end}
+renoise.tool():add_midi_mapping {name = "Paketti:Detect Sample BPM", invoke = function(message) if message:is_trigger() then pakettiIntelligentBPMDetection() end end} 
