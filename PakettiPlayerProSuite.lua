@@ -137,7 +137,7 @@ local note_grid_vb
 local dialog
 local note_grid_instrument_observer
 
-local note_names = {"C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"}
+local note_names = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"}
 local notes = {}
 for octave = 0, 9 do
   for _, note in ipairs(note_names) do
@@ -556,6 +556,15 @@ end
 -- note_grid_instrument_observer is now declared at the top of the file
 
 function pakettiPlayerProNoteGridShowDropdownGrid()
+  -- Check API version - use canvas version for v6.2+, traditional for older
+  if renoise.API_VERSION >= 6.2 then
+    pakettiPlayerProNoteGridShowCanvasGrid()
+  else
+    pakettiPlayerProNoteGridShowTraditionalGrid()
+  end
+end
+
+function pakettiPlayerProNoteGridShowTraditionalGrid()
 renoise.app().window.active_middle_frame=1
 
   if dialog and dialog.visible then
@@ -685,6 +694,7 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Player Pro Transpose 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Player Pro Transpose Selection or Note Column -1",invoke=function() pakettiPlayerProTranspose(-1, "notecolumn", false) end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Player Pro Transpose Selection or Note Column +12",invoke=function() pakettiPlayerProTranspose(12, "notecolumn", false) end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Player Pro Transpose Selection or Note Column -12",invoke=function() pakettiPlayerProTranspose(-12, "notecolumn", false) end}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Player Pro Effect Dialog...",invoke=function() pakettiPlayerProEffectDialog() end}
 
 -- Transpose with Play/Audition versions
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Player Pro Transpose Selection or Row +1 with Play",invoke=function() pakettiPlayerProTranspose(1, "row", true) end}
@@ -699,7 +709,7 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Player Pro Transpose 
 local effect_dialog_vb = renoise.ViewBuilder()
 local effect_dialog
 
-local note_names = {"C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"}
+local note_names = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"}
 local notes = {}
 for octave = 0, 9 do
   for _, note in ipairs(note_names) do
@@ -911,6 +921,15 @@ function pakettiPlayerProEffectDialog()
     return
   end
   
+  -- Check API version - use canvas version for v6.2+, traditional for older
+  if renoise.API_VERSION >= 6.2 then
+    pakettiPlayerProEffectDialogCanvas()
+  else
+    pakettiPlayerProEffectDialogTraditional()
+  end
+end
+
+function pakettiPlayerProEffectDialogTraditional()
   dialog_initializing = true  -- Set flag before dialog creation
   local keyhandler = create_keyhandler_for_dialog(
     function() return effect_dialog end,
@@ -918,6 +937,1232 @@ function pakettiPlayerProEffectDialog()
   )
   effect_dialog = renoise.app():show_custom_dialog("FX", dialog_content, keyhandler)
   dialog_initializing = false  -- Clear flag after dialog is created
+  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+end
+
+-- Canvas-based Effect Hover Dialog for Renoise v6.2+
+local effect_canvas_dialog = nil
+local effect_canvas = nil
+local canvas_width = 44
+local canvas_height = 296
+local cell_width = 18
+local cell_height = 18
+local left_column_x = 2
+local right_column_x = 22
+local column_start_y = 3
+local hover_column = nil  -- "left" or "right"
+local hover_index = -1    -- 0-15
+local selected_x = 0      -- Left column (0-F)
+local selected_y = 0      -- Right column (0-F)
+local effect_status_text = nil
+
+-- Canvas update timer for automatic subcolumn detection
+local effect_canvas_update_timer = nil
+local last_sub_column_type = nil
+
+-- Canvas-based Note Grid Dialog for Renoise v6.2+
+local note_canvas_dialog = nil
+local note_canvas = nil
+local note_canvas_width = 420  -- 12 notes × 35px = 420px wide (more space!)
+local note_canvas_height = 165  -- 10 octaves × 15px + 1 row for 000/OFF = 165px (no extra space)
+local note_cell_width = 35
+local note_cell_height = 15
+local note_columns = 12  -- C, C#, D, D#, E, F, F#, G, G#, A, A#, B  
+local note_rows = 11     -- Octaves 0-9 + 1 row for 000/OFF
+local note_hover_column = -1  -- 0-11 (C to B)
+local note_hover_row = -1     -- 0-9 (octaves)
+local note_selected_note = ""
+local note_status_text = nil
+local note_editstep_enabled = false
+
+-- Canvas-based Main Dialog for Renoise v6.2+ (combines note and effect canvases)
+local main_canvas_dialog = nil
+local main_note_canvas = nil
+local main_effect_canvas = nil
+local main_note_status_text = nil
+local main_effect_status_text = nil
+
+
+
+-- Effect names for known effects (from PakettiPatternEditorCheatSheet.lua)
+local effect_names = {
+  ["0A"] = "Set arpeggio",
+  ["0U"] = "Slide Pitch up",
+  ["0D"] = "Slide Pitch down", 
+  ["0G"] = "Glide towards given note",
+  ["0I"] = "Fade Volume in",
+  ["0O"] = "Fade Volume out",
+  ["0C"] = "Cut volume to x after y ticks",
+  ["0Q"] = "Delay note",
+  ["0M"] = "Set note volume",
+  ["0S"] = "Trigger sample slice number",
+  ["0B"] = "Play Sample Backwards/forwards",
+  ["0R"] = "Retrigger line",
+  ["0Y"] = "Maybe trigger line with probability",
+  ["0Z"] = "Trigger Phrase",
+  ["0V"] = "Set Vibrato",
+  ["0T"] = "Set Tremolo",
+  ["0N"] = "Set Auto Pan",
+  ["0E"] = "Set Active Sample Envelope's Position",
+  ["0L"] = "Set Track Volume Level",
+  ["0P"] = "Set Track Pan",
+  ["0W"] = "Set Track Surround Width",
+  ["0J"] = "Set Track Routing",
+  ["0X"] = "Stop all notes and FX",
+  ["ZT"] = "Set tempo",
+  ["ZL"] = "Set Lines Per Beat (LPB)",
+  ["ZK"] = "Set Ticks Per Line (TPL)",
+  ["ZG"] = "Enable/disable Groove",
+  ["ZB"] = "Break pattern and jump to line",
+  ["ZD"] = "Delay (pause) pattern"
+}
+
+-- Canvas text drawing functions for the effect hover dialog
+local function draw_digit_0(ctx, x, y, size)
+  ctx:begin_path()
+  ctx:move_to(x, y)
+  ctx:line_to(x + size, y)
+  ctx:line_to(x + size, y + size)
+  ctx:line_to(x, y + size)
+  ctx:line_to(x, y)
+  ctx:stroke()
+end
+
+local function draw_digit_1(ctx, x, y, size)
+  ctx:begin_path()
+  ctx:move_to(x + size/2, y)
+  ctx:line_to(x + size/2, y + size)
+  ctx:stroke()
+end
+
+local function draw_digit_2(ctx, x, y, size)
+  ctx:begin_path()
+  ctx:move_to(x, y)
+  ctx:line_to(x + size, y)
+  ctx:line_to(x + size, y + size/2)
+  ctx:line_to(x, y + size/2)
+  ctx:line_to(x, y + size)
+  ctx:line_to(x + size, y + size)
+  ctx:stroke()
+end
+
+local function draw_digit_3(ctx, x, y, size)
+  ctx:begin_path()
+  ctx:move_to(x, y)
+  ctx:line_to(x + size, y)
+  ctx:line_to(x + size, y + size/2)
+  ctx:line_to(x, y + size/2)
+  ctx:move_to(x + size, y + size/2)
+  ctx:line_to(x + size, y + size)
+  ctx:line_to(x, y + size)
+  ctx:stroke()
+end
+
+local function draw_digit_4(ctx, x, y, size)
+  ctx:begin_path()
+  ctx:move_to(x, y)
+  ctx:line_to(x, y + size/2)
+  ctx:line_to(x + size, y + size/2)
+  ctx:move_to(x + size, y)
+  ctx:line_to(x + size, y + size)
+  ctx:stroke()
+end
+
+local function draw_digit_5(ctx, x, y, size)
+  ctx:begin_path()
+  ctx:move_to(x + size, y)
+  ctx:line_to(x, y)
+  ctx:line_to(x, y + size/2)
+  ctx:line_to(x + size, y + size/2)
+  ctx:line_to(x + size, y + size)
+  ctx:line_to(x, y + size)
+  ctx:stroke()
+end
+
+local function draw_digit_6(ctx, x, y, size)
+  ctx:begin_path()
+  ctx:move_to(x + size, y)
+  ctx:line_to(x, y)
+  ctx:line_to(x, y + size)
+  ctx:line_to(x + size, y + size)
+  ctx:line_to(x + size, y + size/2)
+  ctx:line_to(x, y + size/2)
+  ctx:stroke()
+end
+
+local function draw_digit_7(ctx, x, y, size)
+  ctx:begin_path()
+  ctx:move_to(x, y)
+  ctx:line_to(x + size, y)
+  ctx:line_to(x + size/2, y + size)
+  ctx:stroke()
+end
+
+local function draw_digit_8(ctx, x, y, size)
+  ctx:begin_path()
+  ctx:move_to(x, y)
+  ctx:line_to(x + size, y)
+  ctx:line_to(x + size, y + size)
+  ctx:line_to(x, y + size)
+  ctx:line_to(x, y)
+  ctx:move_to(x, y + size/2)
+  ctx:line_to(x + size, y + size/2)
+  ctx:stroke()
+end
+
+local function draw_digit_9(ctx, x, y, size)
+  ctx:begin_path()
+  ctx:move_to(x + size, y + size)
+  ctx:line_to(x + size, y)
+  ctx:line_to(x, y)
+  ctx:line_to(x, y + size/2)
+  ctx:line_to(x + size, y + size/2)
+  ctx:stroke()
+end
+
+local function draw_letter_A(ctx, x, y, size)
+  ctx:begin_path()
+  ctx:move_to(x, y + size)
+  ctx:line_to(x + size/2, y)
+  ctx:line_to(x + size, y + size)
+  ctx:move_to(x + size/4, y + size/2)
+  ctx:line_to(x + 3*size/4, y + size/2)
+  ctx:stroke()
+end
+
+local function draw_letter_B(ctx, x, y, size)
+  ctx:begin_path()
+  ctx:move_to(x, y)
+  ctx:line_to(x, y + size)
+  ctx:line_to(x + 3*size/4, y + size)
+  ctx:line_to(x + 3*size/4, y + size/2)
+  ctx:line_to(x, y + size/2)
+  ctx:line_to(x + 3*size/4, y + size/2)
+  ctx:line_to(x + 3*size/4, y)
+  ctx:line_to(x, y)
+  ctx:stroke()
+end
+
+local function draw_letter_C(ctx, x, y, size)
+  ctx:begin_path()
+  ctx:move_to(x + size, y)
+  ctx:line_to(x, y)
+  ctx:line_to(x, y + size)
+  ctx:line_to(x + size, y + size)
+  ctx:stroke()
+end
+
+local function draw_letter_D(ctx, x, y, size)
+  ctx:begin_path()
+  ctx:move_to(x, y)
+  ctx:line_to(x, y + size)
+  ctx:line_to(x + 3*size/4, y + size)
+  ctx:line_to(x + size, y + 3*size/4)
+  ctx:line_to(x + size, y + size/4)
+  ctx:line_to(x + 3*size/4, y)
+  ctx:line_to(x, y)
+  ctx:stroke()
+end
+
+local function draw_letter_E(ctx, x, y, size)
+  ctx:begin_path()
+  ctx:move_to(x + size, y)
+  ctx:line_to(x, y)
+  ctx:line_to(x, y + size)
+  ctx:line_to(x + size, y + size)
+  ctx:move_to(x, y + size/2)
+  ctx:line_to(x + 3*size/4, y + size/2)
+  ctx:stroke()
+end
+
+local function draw_letter_F(ctx, x, y, size)
+  ctx:begin_path()
+  ctx:move_to(x, y + size)
+  ctx:line_to(x, y)
+  ctx:line_to(x + size, y)
+  ctx:move_to(x, y + size/2)
+  ctx:line_to(x + 3*size/4, y + size/2)
+  ctx:stroke()
+end
+
+local function draw_letter_G(ctx, x, y, size)
+  ctx:begin_path()
+  ctx:move_to(x + size, y)
+  ctx:line_to(x, y)
+  ctx:line_to(x, y + size)
+  ctx:line_to(x + size, y + size)
+  ctx:line_to(x + size, y + size/2)
+  ctx:line_to(x + size/2, y + size/2)
+  ctx:stroke()
+end
+
+local function draw_letter_O(ctx, x, y, size)
+  ctx:begin_path()
+  ctx:move_to(x, y)
+  ctx:line_to(x + size, y)
+  ctx:line_to(x + size, y + size)
+  ctx:line_to(x, y + size)
+  ctx:line_to(x, y)
+  ctx:stroke()
+end
+
+local function draw_space(ctx, x, y, size)
+  -- Space character - do nothing
+end
+
+local function draw_dash(ctx, x, y, size)
+  ctx:begin_path()
+  ctx:move_to(x + size/4, y + size/2)
+  ctx:line_to(x + 3*size/4, y + size/2)
+  ctx:stroke()
+end
+
+local function draw_hash(ctx, x, y, size)
+  ctx:begin_path()
+  -- Two vertical lines
+  ctx:move_to(x + size/3, y + size/4)
+  ctx:line_to(x + size/3, y + 3*size/4)
+  ctx:move_to(x + 2*size/3, y + size/4)
+  ctx:line_to(x + 2*size/3, y + 3*size/4)
+  -- Two horizontal lines
+  ctx:move_to(x + size/6, y + size/3)
+  ctx:line_to(x + 5*size/6, y + size/3)
+  ctx:move_to(x + size/6, y + 2*size/3)
+  ctx:line_to(x + 5*size/6, y + 2*size/3)
+  ctx:stroke()
+end
+
+local function draw_plus(ctx, x, y, size)
+  ctx:begin_path()
+  -- Vertical line
+  ctx:move_to(x + size/2, y + size/4)
+  ctx:line_to(x + size/2, y + 3*size/4)
+  -- Horizontal line
+  ctx:move_to(x + size/4, y + size/2)
+  ctx:line_to(x + 3*size/4, y + size/2)
+  ctx:stroke()
+end
+
+-- Letter lookup table for canvas text rendering
+local letter_functions = {
+  ["0"] = draw_digit_0, ["1"] = draw_digit_1, ["2"] = draw_digit_2, ["3"] = draw_digit_3,
+  ["4"] = draw_digit_4, ["5"] = draw_digit_5, ["6"] = draw_digit_6, ["7"] = draw_digit_7,
+  ["8"] = draw_digit_8, ["9"] = draw_digit_9,
+  A = draw_letter_A, B = draw_letter_B, C = draw_letter_C, D = draw_letter_D,
+  E = draw_letter_E, F = draw_letter_F, G = draw_letter_G, O = draw_letter_O,
+  [" "] = draw_space, ["-"] = draw_dash, ["#"] = draw_hash, ["+"] = draw_plus
+}
+
+-- Function to draw text on canvas
+local function draw_canvas_text(ctx, text, x, y, size)
+  local current_x = x
+  local letter_spacing = size * 1.2
+  
+  for i = 1, #text do
+    local char = text:sub(i, i):upper()
+    local letter_func = letter_functions[char]
+    if letter_func then
+      letter_func(ctx, current_x, y, size)
+    end
+    current_x = current_x + letter_spacing
+  end
+end
+
+function pakettiPlayerProCanvasDrawEffect(ctx)
+  local w, h = canvas_width, canvas_height
+  
+  -- Clear canvas
+  ctx:clear_rect(0, 0, w, h)
+  
+  -- Determine if we should grey out 9-F values based on subcolumn
+  local should_grey_out_high_values = false
+  if preferences.pakettiPlayerProEffectCanvasSubColumn.value then
+    local song = renoise.song()
+    local sub_column_type = song.selected_sub_column_type
+    -- Grey out 9-F for volume (max 128), panning (max 128), delay (max 255 but commonly used up to 128)
+    if sub_column_type == renoise.Song.SUB_COLUMN_VOLUME or 
+       sub_column_type == renoise.Song.SUB_COLUMN_PANNING or
+       sub_column_type == renoise.Song.SUB_COLUMN_DELAY then
+      should_grey_out_high_values = true
+    end
+  end
+  
+  -- Color scheme based on mode
+  local bg_color, text_color, hover_color, selected_color, border_color, cell_bg_color, grey_bg_color, grey_text_color
+  
+  if preferences.pakettiPlayerProEffectDialogDarkMode.value then
+    -- Dark mode: black background, white text, white hover/selected
+    bg_color = {20, 20, 30, 255}
+    text_color = {255, 255, 255, 255}
+    hover_color = {255, 255, 255, 255}  -- White hover
+    selected_color = {255, 255, 255, 255}  -- White selected
+    border_color = {100, 100, 100, 255}
+    cell_bg_color = {40, 40, 50, 255}
+    grey_bg_color = {30, 30, 35, 255}  -- Darker grey for disabled
+    grey_text_color = {80, 80, 80, 255}  -- Dark grey text
+  else
+    -- Light mode: white background, black text, black hover/selected
+    bg_color = {240, 240, 250, 255}
+    text_color = {20, 20, 20, 255}
+    hover_color = {0, 0, 0, 255}  -- Black hover
+    selected_color = {0, 0, 0, 255}  -- Black selected
+    border_color = {150, 150, 150, 255}
+    cell_bg_color = {220, 220, 230, 255}
+    grey_bg_color = {200, 200, 200, 255}  -- Light grey for disabled
+    grey_text_color = {150, 150, 150, 255}  -- Light grey text
+  end
+  
+  -- Draw background
+  ctx.fill_color = bg_color
+  ctx:fill_rect(0, 0, w, h)
+  
+  -- Draw hex values (0-F) in two columns - tight layout starting from top
+  local hex_chars = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F"}
+  
+  for i = 0, 15 do
+    local y = column_start_y + i * cell_height
+    
+    -- Left column (X values)
+    local is_left_hovered = (hover_column == "left" and hover_index == i)
+    local is_left_selected = (selected_x == i)
+    
+    -- Check if this value should be greyed out (9-F when in volume/panning/delay)
+    local is_disabled = should_grey_out_high_values and i >= 9
+    
+    -- In write mode, only show hover, not persistent selection
+    local show_as_selected = false
+    if not is_disabled then
+      if preferences.pakettiPlayerProEffectCanvasWrite.value then
+        show_as_selected = is_left_hovered
+      else
+        show_as_selected = is_left_selected or is_left_hovered
+      end
+    end
+    
+    if is_disabled then
+      ctx.fill_color = grey_bg_color
+    elseif show_as_selected then
+      ctx.fill_color = selected_color
+    else
+      ctx.fill_color = cell_bg_color
+    end
+    ctx:fill_rect(left_column_x, y, cell_width, cell_height)
+    
+    ctx.stroke_color = border_color
+    ctx.line_width = 1
+    ctx:stroke_rect(left_column_x, y, cell_width, cell_height)
+    
+    if is_disabled then
+      ctx.stroke_color = grey_text_color
+    else
+      ctx.stroke_color = show_as_selected and bg_color or text_color
+    end
+    ctx.line_width = 1
+    draw_canvas_text(ctx, hex_chars[i + 1], left_column_x + 6, y + 6, 8)
+    
+    -- Right column (Y values)
+    local is_right_hovered = (hover_column == "right" and hover_index == i)
+    local is_right_selected = (selected_y == i)
+    
+    -- In write mode, only show hover, not persistent selection
+    local show_as_selected_right = false
+    if preferences.pakettiPlayerProEffectCanvasWrite.value then
+      show_as_selected_right = is_right_hovered
+    else
+      show_as_selected_right = is_right_selected or is_right_hovered
+    end
+    
+    if show_as_selected_right then
+      ctx.fill_color = selected_color
+    else
+      ctx.fill_color = cell_bg_color
+    end
+    ctx:fill_rect(right_column_x, y, cell_width, cell_height)
+    
+    ctx.stroke_color = border_color
+    ctx.line_width = 1
+    ctx:stroke_rect(right_column_x, y, cell_width, cell_height)
+    
+    ctx.stroke_color = show_as_selected_right and bg_color or text_color
+    ctx.line_width = 1
+    draw_canvas_text(ctx, hex_chars[i + 1], right_column_x + 6, y + 6, 8)
+  end
+end
+
+function pakettiPlayerProCanvasHandleMouse(ev)
+  local x = ev.position.x
+  local y = ev.position.y
+  
+  -- Reset hover state
+  hover_column = nil
+  hover_index = -1
+  
+  -- Check if mouse is over left column (X values)
+  if x >= left_column_x and x < left_column_x + cell_width and
+     y >= column_start_y and y < column_start_y + 16 * cell_height then
+    
+    local index = math.floor((y - column_start_y) / cell_height)
+    if index >= 0 and index <= 15 then
+      -- Check if this value should be disabled (9-F when in volume/panning/delay)
+      local should_grey_out_high_values = false
+      if preferences.pakettiPlayerProEffectCanvasSubColumn.value then
+        local song = renoise.song()
+        local sub_column_type = song.selected_sub_column_type
+        if sub_column_type == renoise.Song.SUB_COLUMN_VOLUME or 
+           sub_column_type == renoise.Song.SUB_COLUMN_PANNING or
+           sub_column_type == renoise.Song.SUB_COLUMN_DELAY then
+          should_grey_out_high_values = true
+        end
+      end
+      
+      local is_disabled = should_grey_out_high_values and index >= 9
+      
+      if not is_disabled then
+        hover_column = "left"
+        hover_index = index
+        
+        -- Write on hover ONLY if Write mode is enabled
+        if preferences.pakettiPlayerProEffectCanvasWrite.value and ev.type == "move" then
+        selected_x = index
+        local combined_hex = string.format("%X%X", selected_x, selected_y)
+        pakettiPlayerProCanvasWriteEffectToPattern("00", combined_hex)
+        -- Update status text
+        if effect_status_text then
+          local decimal_value = tonumber(combined_hex, 16)
+          effect_status_text.text = combined_hex .. "\n" .. decimal_value
+        end
+      else
+        -- Update status text for preview without writing
+        if ev.type == "move" and not preferences.pakettiPlayerProEffectCanvasWrite.value then
+          local temp_x = index
+          local combined_hex = string.format("%X%X", temp_x, selected_y)
+          if effect_status_text then
+            local decimal_value = tonumber(combined_hex, 16)
+            effect_status_text.text = combined_hex .. "\n" .. decimal_value
+          end
+        end
+      end
+      
+      -- Handle click on left column (always writes regardless of Write mode)
+      if ev.type == "down" then
+        selected_x = index
+        local combined_hex = string.format("%X%X", selected_x, selected_y)
+        pakettiPlayerProCanvasWriteEffectToPattern("00", combined_hex)
+        print("Selected X=" .. string.format("%X", selected_x) .. ", Effect=" .. combined_hex)
+        renoise.app():show_status("Selected X=" .. string.format("%X", selected_x) .. ", Effect Value=" .. combined_hex)
+        -- Update status text (show hex and decimal like legacy)
+        if effect_status_text then
+          local decimal_value = tonumber(combined_hex, 16)
+          effect_status_text.text = combined_hex .. "\n" .. decimal_value
+        end
+      end
+      end
+    end
+  end
+  
+  -- Check if mouse is over right column (Y values)
+  if x >= right_column_x and x < right_column_x + cell_width and
+     y >= column_start_y and y < column_start_y + 16 * cell_height then
+    
+    local index = math.floor((y - column_start_y) / cell_height)
+    if index >= 0 and index <= 15 then
+      hover_column = "right"
+      hover_index = index
+      
+      -- Write on hover ONLY if Write mode is enabled
+      if preferences.pakettiPlayerProEffectCanvasWrite.value and ev.type == "move" then
+        selected_y = index
+        local combined_hex = string.format("%X%X", selected_x, selected_y)
+        pakettiPlayerProCanvasWriteEffectToPattern("00", combined_hex)
+        -- Update status text
+        if effect_status_text then
+          local decimal_value = tonumber(combined_hex, 16)
+          effect_status_text.text = combined_hex .. "\n" .. decimal_value
+        end
+      else
+        -- Update status text for preview without writing
+        if ev.type == "move" and not preferences.pakettiPlayerProEffectCanvasWrite.value then
+          local temp_y = index
+          local combined_hex = string.format("%X%X", selected_x, temp_y)
+          if effect_status_text then
+            local decimal_value = tonumber(combined_hex, 16)
+            effect_status_text.text = combined_hex .. "\n" .. decimal_value
+          end
+        end
+      end
+      
+      -- Handle click on right column (always writes regardless of Write mode)
+      if ev.type == "down" then
+        selected_y = index
+        local combined_hex = string.format("%X%X", selected_x, selected_y)
+        pakettiPlayerProCanvasWriteEffectToPattern("00", combined_hex)
+        print("Selected Y=" .. string.format("%X", selected_y) .. ", Effect Amount=" .. combined_hex)
+        renoise.app():show_status("Selected Y=" .. string.format("%X", selected_y) .. ", Effect=" .. combined_hex)
+        -- Update status text (show hex and decimal like legacy)
+        if effect_status_text then
+          local decimal_value = tonumber(combined_hex, 16)
+          effect_status_text.text = combined_hex .. "\n" .. decimal_value
+        end
+      end
+    end
+  end
+  
+  -- Update canvas to reflect hover changes
+  if effect_canvas then
+    effect_canvas:update()
+  end
+end
+
+function pakettiPlayerProCanvasWriteEffectToPattern(effect_code, arg_value)
+  local song = renoise.song()
+  
+  -- Check if X checkbox is enabled for subcolumn detection
+  if preferences.pakettiPlayerProEffectCanvasSubColumn.value then
+    local sub_column_type = song.selected_sub_column_type
+    
+    -- Handle different subcolumn types
+    if sub_column_type == renoise.Song.SUB_COLUMN_VOLUME then
+      -- In volume subcolumn - write to volume_value
+      if song.selected_note_column then
+        local decimal_value = tonumber(arg_value, 16) or 0
+        song.selected_note_column.volume_value = math.min(decimal_value, 128) -- Volume max is 128
+      end
+      return
+    elseif sub_column_type == renoise.Song.SUB_COLUMN_PANNING then
+      -- In panning subcolumn - write to panning_value
+      if song.selected_note_column then
+        local decimal_value = tonumber(arg_value, 16) or 0
+        song.selected_note_column.panning_value = math.min(decimal_value, 128) -- Panning max is 128
+      end
+      return
+    elseif sub_column_type == renoise.Song.SUB_COLUMN_DELAY then
+      -- In delay subcolumn - write to delay_value
+      if song.selected_note_column then
+        local decimal_value = tonumber(arg_value, 16) or 0
+        song.selected_note_column.delay_value = math.min(decimal_value, 255) -- Delay max is 255
+      end
+      return
+    elseif sub_column_type == renoise.Song.SUB_COLUMN_EFFECT_NUMBER then
+      -- In effect number subcolumn - write to number
+      if song.selected_effect_column then
+        song.selected_effect_column.number_string = arg_value
+      end
+      return
+    elseif sub_column_type == renoise.Song.SUB_COLUMN_EFFECT_AMOUNT then
+      -- In effect amount subcolumn - write to amount_value
+      if song.selected_effect_column then
+        local decimal_value = tonumber(arg_value, 16) or 0
+        song.selected_effect_column.amount_value = decimal_value
+      end
+      return
+    elseif sub_column_type == renoise.Song.SUB_COLUMN_SAMPLE_EFFECT_NUMBER then
+      -- In sample effect number subcolumn
+      if song.selected_note_column then
+        song.selected_note_column.effect_number_string = arg_value
+      end
+      return
+    elseif sub_column_type == renoise.Song.SUB_COLUMN_SAMPLE_EFFECT_AMOUNT then
+      -- In sample effect amount subcolumn
+      if song.selected_note_column then
+        local decimal_value = tonumber(arg_value, 16) or 0
+        song.selected_note_column.effect_amount_value = decimal_value
+      end
+      return
+    end
+  end
+  
+  -- Default behavior: write to effect columns as amount_value
+  local decimal_value = tonumber(arg_value, 16) or 0
+  
+  -- Ensure effect columns are visible
+  if song.selection_in_pattern then
+    -- Write to selection
+    for t = song.selection_in_pattern.start_track, song.selection_in_pattern.end_track do
+      local track = song:track(t)
+      if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+        track.visible_effect_columns = math.max(track.visible_effect_columns, 1)
+        local note_columns_visible = track.visible_note_columns
+        local effect_columns_visible = track.visible_effect_columns
+        local total_columns_visible = note_columns_visible + effect_columns_visible
+        
+        local start_column = (t == song.selection_in_pattern.start_track) and song.selection_in_pattern.start_column or note_columns_visible + 1
+        local end_column = (t == song.selection_in_pattern.end_track) and song.selection_in_pattern.end_column or total_columns_visible
+        
+        for i = song.selection_in_pattern.start_line, song.selection_in_pattern.end_line do
+          for col = start_column, end_column do
+            local column_index = col - note_columns_visible
+            if column_index > 0 and column_index <= effect_columns_visible then
+              local effect_column = song:pattern(song.selected_pattern_index):track(t):line(i):effect_column(column_index)
+              if effect_column then
+                effect_column.amount_value = decimal_value
+              end
+            end
+          end
+        end
+      end
+    end
+  else
+    -- Write to current line
+    local track = song.selected_track
+    if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+      track.visible_effect_columns = math.max(track.visible_effect_columns, 1)
+      
+      if song.selected_effect_column_index > 0 then
+        -- Write to selected effect column
+        local effect_column = song.selected_effect_column
+        if effect_column then
+          effect_column.amount_value = decimal_value
+        end
+      else
+        -- Write to first effect column
+        local line = song.selected_line
+        local effect_column = line:effect_column(1)
+        if effect_column then
+          effect_column.amount_value = decimal_value
+        end
+      end
+    end
+  end
+  
+  -- Keep pattern editor focus
+  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+end
+
+function pakettiPlayerProEffectDialogCanvas()
+  if effect_canvas_dialog and effect_canvas_dialog.visible then
+    pakettiPlayerProEffectCanvasRemoveUpdateTimer()
+    effect_canvas_dialog:close()
+    effect_canvas_dialog = nil
+    return
+  end
+  
+  local vb = renoise.ViewBuilder()
+  
+  -- Create canvas first
+  effect_canvas = vb:canvas {
+    width = canvas_width,
+    height = canvas_height,
+    mode = "plain",
+    render = pakettiPlayerProCanvasDrawEffect,
+    mouse_handler = pakettiPlayerProCanvasHandleMouse,
+    mouse_events = {"down", "up", "move", "exit"}
+  }
+  
+  -- Create status text
+  effect_status_text = vb:text {
+    text = "00\n0",
+    font = "mono",
+    align = "center",
+    width = 44,
+    tooltip = "Current hex value and decimal equivalent"
+  }
+  
+  local dialog_content = vb:column {
+    margin = 5,
+    
+    -- Canvas for effect grid
+    effect_canvas,
+    
+    -- Status display outside canvas
+    effect_status_text,
+    
+    vb:column {
+      vb:button {
+        text = "CLR",
+        width = 44,
+        tooltip = "Clear selection",
+        notifier = function()
+          selected_x = 0
+          selected_y = 0
+          if effect_canvas then
+            effect_canvas:update()
+          end
+          if effect_status_text then
+            effect_status_text.text = "00\n0"
+          end
+          renoise.app():show_status("Cleared effect selection")
+        end
+      },
+      vb:button {
+        text = preferences.pakettiPlayerProEffectDialogDarkMode.value and "Light" or "Dark",
+        width = 44,
+        tooltip = "PlayerPro Dark or Light Mode",
+        notifier = function()
+          preferences.pakettiPlayerProEffectDialogDarkMode.value = not preferences.pakettiPlayerProEffectDialogDarkMode.value
+          
+          if effect_canvas then
+            effect_canvas:update()
+          end
+          -- Close and reopen dialog to update button text
+          if effect_canvas_dialog then
+            pakettiPlayerProEffectCanvasRemoveUpdateTimer()
+            effect_canvas_dialog:close()
+            effect_canvas_dialog = nil
+          end
+          pakettiPlayerProEffectDialogCanvas()
+        end
+      },
+      vb:row {
+        vb:checkbox {
+          value = preferences.pakettiPlayerProEffectCanvasWrite.value,
+          tooltip = "Write on hover when enabled, otherwise click to write",
+          notifier = function(value)
+            preferences.pakettiPlayerProEffectCanvasWrite.value = value
+          end
+        },
+        vb:text {
+          text = "W"
+        }
+      },
+      vb:row {
+        vb:checkbox {
+          value = preferences.pakettiPlayerProEffectCanvasSubColumn.value,
+          tooltip = "Auto-detect subcolumn (effect number/amount) when enabled",
+          notifier = function(value)
+            preferences.pakettiPlayerProEffectCanvasSubColumn.value = value
+          end
+        },
+        vb:text {
+          text = "X"
+        }
+      }
+    }
+  }
+  
+  local keyhandler = my_keyhandler_func
+  effect_canvas_dialog = renoise.app():show_custom_dialog("", dialog_content, keyhandler)
+  
+  -- Set focus to pattern editor
+  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+  
+  -- Setup canvas update timer for automatic subcolumn detection
+  pakettiPlayerProEffectCanvasSetupUpdateTimer()
+end
+
+-- Setup canvas update timer for automatic subcolumn detection
+function pakettiPlayerProEffectCanvasSetupUpdateTimer()
+  if effect_canvas_update_timer then
+    renoise.tool():remove_timer(effect_canvas_update_timer)
+  end
+  
+  effect_canvas_update_timer = function()
+    -- Check if dialog is still open
+    if not effect_canvas_dialog or not effect_canvas_dialog.visible or not effect_canvas then
+      pakettiPlayerProEffectCanvasRemoveUpdateTimer()
+      return
+    end
+    
+    -- Check if subcolumn has changed
+    local song = renoise.song()
+    local current_sub_column_type = song.selected_sub_column_type
+    
+    if current_sub_column_type ~= last_sub_column_type then
+      last_sub_column_type = current_sub_column_type
+      -- Update canvas when subcolumn changes
+      effect_canvas:update()
+    end
+  end
+  
+  -- Update every 100ms for responsive subcolumn detection
+  renoise.tool():add_timer(effect_canvas_update_timer, 100)
+end
+
+-- Remove canvas update timer
+function pakettiPlayerProEffectCanvasRemoveUpdateTimer()
+  if effect_canvas_update_timer then
+    pcall(function()
+      renoise.tool():remove_timer(effect_canvas_update_timer)
+    end)
+    effect_canvas_update_timer = nil
+  end
+end
+
+-- Canvas-based Note Grid Dialog for Renoise v6.2+
+function pakettiPlayerProNoteGridShowCanvasGrid()
+  if note_canvas_dialog and note_canvas_dialog.visible then
+    note_canvas_dialog:close()
+    note_canvas_dialog = nil
+    return
+  end
+  
+  local vb = renoise.ViewBuilder()
+  
+  -- Create canvas first
+  note_canvas = vb:canvas {
+    width = note_canvas_width,
+    height = note_canvas_height,
+    mode = "plain",
+    render = pakettiPlayerProNoteCanvasDrawGrid,
+    mouse_handler = pakettiPlayerProNoteCanvasHandleMouse,
+    mouse_events = {"down", "up", "move", "exit"}
+  }
+  
+  local dialog_content = vb:column {
+    --margin = 5,
+    
+    -- Canvas for note grid
+    note_canvas,
+    
+    -- Status display outside canvas
+    note_status_text,
+    
+    vb:row {
+      vb:checkbox {
+        value = note_editstep_enabled,
+        tooltip = "Fill Selection with EditStep",
+        notifier = function(value)
+          note_editstep_enabled = value
+        end
+      },
+      vb:text {
+        text = "EditStep"
+      },
+      vb:checkbox {
+        value = preferences.pakettiPlayerProNoteCanvasWrite.value,
+        tooltip = "Write on hover when enabled, otherwise click to write",
+        notifier = function(value)
+          preferences.pakettiPlayerProNoteCanvasWrite.value = value
+        end
+      },
+      vb:text {
+        text = "Write"
+      }
+    },
+    vb:row {
+      vb:checkbox {
+        value = preferences.pakettiPlayerProNoteCanvasSpray.value,
+        tooltip = "When EditStep + Write: spray notes following EditStep progression",
+        notifier = function(value)
+          preferences.pakettiPlayerProNoteCanvasSpray.value = value
+        end
+      },
+      vb:text {
+        text = "Spray"
+      },
+      vb:checkbox {
+        value = preferences.pakettiPlayerProNoteCanvasClearSelection.value,
+        tooltip = "Clear selection before writing notes with EditStep",
+        notifier = function(value)
+          preferences.pakettiPlayerProNoteCanvasClearSelection.value = value
+        end
+      },
+      vb:text {
+        text = "Clear Selection Before Write"
+      }
+    },
+    vb:row {
+      vb:button {
+        text = preferences.pakettiPlayerProEffectDialogDarkMode.value and "Light" or "Dark",
+        width = 60,
+        tooltip = "PlayerPro Dark or Light Mode",
+        notifier = function()
+          preferences.pakettiPlayerProEffectDialogDarkMode.value = not preferences.pakettiPlayerProEffectDialogDarkMode.value
+          
+          -- Update canvas immediately
+          if note_canvas then
+            note_canvas:update()
+          end
+          
+          -- Close and reopen dialog to update button text
+          if note_canvas_dialog then
+            note_canvas_dialog:close()
+            note_canvas_dialog = nil
+          end
+          pakettiPlayerProNoteGridShowCanvasGrid()
+        end
+      },
+      vb:button {
+        text = preferences.pakettiPlayerProNoteCanvasPianoKeys.value and "Piano Mode" or "Piano Mode",
+        width = 80,
+        tooltip = "Toggle piano key coloring (grey sharps)",
+        notifier = function()
+          preferences.pakettiPlayerProNoteCanvasPianoKeys.value = not preferences.pakettiPlayerProNoteCanvasPianoKeys.value
+          
+          -- Update canvas immediately
+          if note_canvas then
+            note_canvas:update()
+          end
+          
+          -- No need to restart dialog for piano mode toggle
+        end
+      }
+    }
+  }
+  
+  local keyhandler = my_keyhandler_func
+  note_canvas_dialog = renoise.app():show_custom_dialog("Note", dialog_content, keyhandler)
+  
+  -- Set focus to pattern editor
+  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+end
+
+function pakettiPlayerProNoteCanvasDrawGrid(ctx)
+  local w, h = note_canvas_width, note_canvas_height
+  
+  -- Clear canvas
+  ctx:clear_rect(0, 0, w, h)
+  
+  -- Color scheme - clean uniform by default, optional piano styling
+  local bg_color, white_key_color, black_key_color, hover_color, text_color, text_color_black, border_color
+  local use_piano_keys = preferences.pakettiPlayerProNoteCanvasPianoKeys.value
+  
+  if preferences.pakettiPlayerProEffectDialogDarkMode.value then
+    -- Dark mode
+    bg_color = {40, 40, 40, 255}         -- Dark background
+    white_key_color = {60, 60, 60, 255}  -- Dark cells (uniform or white keys)
+    black_key_color = use_piano_keys and {45, 45, 45, 255} or {60, 60, 60, 255}  -- Slightly darker for black keys (if enabled)
+    hover_color = {200, 200, 200, 255}   -- Light hover (inverted)
+    text_color = {200, 200, 200, 255}    -- Light text
+    text_color_black = {180, 180, 180, 255}  -- Slightly dimmer for black keys
+    border_color = {100, 100, 100, 255}  -- Gray border
+  else
+    -- Light mode
+    bg_color = {240, 240, 240, 255}      -- Light background
+    white_key_color = {255, 255, 255, 255}  -- White cells (uniform or white keys)
+    black_key_color = use_piano_keys and {245, 245, 245, 255} or {255, 255, 255, 255}  -- Pale grey for black keys (if enabled)
+    hover_color = {60, 60, 60, 255}      -- Dark hover (inverted)
+    text_color = {0, 0, 0, 255}          -- Black text
+    text_color_black = {60, 60, 60, 255}  -- Darker grey for black keys
+    border_color = {150, 150, 150, 255}  -- Gray border
+  end
+  
+  -- Draw background
+  ctx.fill_color = bg_color
+  ctx:fill_rect(0, 0, w, h)
+  
+  -- Define which notes are black keys (sharps/flats) - only used if piano keys preference is enabled
+  local black_keys = {false, true, false, true, false, false, true, false, true, false, true, false}  -- C, C#, D, D#, E, F, F#, G, G#, A, A#, B
+  
+  -- Draw grid (uniform by default, optional piano key styling)
+  for row = 0, note_rows - 1 do  -- Octaves 0-9 + special row
+    for col = 0, note_columns - 1 do  -- Notes C to B
+      local x = col * note_cell_width
+      local y = row * note_cell_height
+      
+      local is_hovered = (note_hover_column == col and note_hover_row == row)
+      local note_text = ""
+      
+      -- Handle special bottom row for 000 and OFF
+      if row == 10 then
+        if col == 0 then
+          note_text = "000"
+        elseif col == 1 then  
+          note_text = "OFF"
+        else
+          -- Skip empty cells in bottom row
+          goto continue
+        end
+      else
+        -- Normal note grid (octaves 0-9)
+        local note_name = note_names[col + 1]
+        if string.find(note_name, "#") then
+          note_text = note_name .. row  -- Sharp notes: "C#0", "D#1", etc. (no space)
+        else
+          note_text = note_name .. " " .. row  -- Natural notes: "C 0", "D 1", etc. (with space)
+        end
+      end
+      
+      local is_black_key = use_piano_keys and row < 10 and black_keys[col + 1]
+      
+      -- Choose colors based on preference
+      local current_cell_color = is_black_key and black_key_color or white_key_color
+      local current_text_color = is_black_key and text_color_black or text_color
+      
+      if is_hovered then
+        current_cell_color = hover_color
+        -- Invert text color on hover
+        if preferences.pakettiPlayerProEffectDialogDarkMode.value then
+          current_text_color = {0, 0, 0, 255}  -- Black text on light hover
+        else
+          current_text_color = {255, 255, 255, 255}  -- White text on dark hover
+        end
+      end
+      
+      -- Draw cell background
+      ctx.fill_color = current_cell_color
+      ctx:fill_rect(x, y, note_cell_width, note_cell_height)
+      
+      -- Draw border
+      ctx.stroke_color = border_color
+      ctx.line_width = 1
+      ctx:stroke_rect(x, y, note_cell_width, note_cell_height)
+      
+      -- Draw note text with dynamic centering in each cell
+      ctx.stroke_color = current_text_color
+      ctx.line_width = 1
+      
+      -- Special handling for "000" - add extra spacing between zeros
+      if note_text == "000" then
+        local text_size = 5
+        local zero_width = text_size * 1.2
+        local extra_spacing = 2  -- Extra pixels between zeros
+        local total_width = (zero_width * 3) + (extra_spacing * 2)
+        local start_x = x + (note_cell_width - total_width) / 2
+        
+        -- Draw each zero individually with extra spacing (vertically centered)
+        local center_y = y + (note_cell_height - text_size) / 2
+        draw_canvas_text(ctx, "0", start_x, center_y, text_size)
+        draw_canvas_text(ctx, "0", start_x + zero_width + extra_spacing, center_y, text_size)
+        draw_canvas_text(ctx, "0", start_x + (zero_width + extra_spacing) * 2, center_y, text_size)
+      else
+        -- Normal text centering
+        local text_size = 5
+        local letter_spacing = text_size * 1.2
+        local text_width = #note_text * letter_spacing - (letter_spacing - text_size) -- Subtract last letter's extra spacing
+        local centered_x = x + (note_cell_width - text_width) / 2
+        
+        -- Vertically center text in cell
+        local center_y = y + (note_cell_height - text_size) / 2
+        draw_canvas_text(ctx, note_text, centered_x, center_y, text_size)
+      end
+      
+      ::continue::
+    end
+  end
+end
+
+function pakettiPlayerProNoteCanvasHandleMouse(ev)
+  local x = ev.position.x
+  local y = ev.position.y
+  
+  -- Reset hover state
+  note_hover_column = -1
+  note_hover_row = -1
+  
+  -- Check if mouse is over the note grid
+  if x >= 0 and x < note_canvas_width and y >= 0 and y < note_canvas_height then
+    local col = math.floor(x / note_cell_width)
+    local row = math.floor(y / note_cell_height)
+    
+    if col >= 0 and col < note_columns and row >= 0 and row < note_rows then
+      -- Handle special bottom row (000, OFF)
+      if row == 10 then
+        if col == 0 then
+          note_hover_column = col
+          note_hover_row = row
+          note_selected_note = "000"
+          
+          if note_status_text then
+            note_status_text.text = "Note: 000 (Cut)"
+          end
+          
+          -- Write on hover if enabled
+          if preferences.pakettiPlayerProNoteCanvasWrite.value and ev.type == "move" then
+            pakettiPlayerProNoteCanvasInsertNote("000")
+          end
+          
+          -- Handle click
+          if ev.type == "down" then
+            pakettiPlayerProNoteCanvasInsertNote("000")
+          end
+        elseif col == 1 then
+          note_hover_column = col
+          note_hover_row = row
+          note_selected_note = "OFF"
+          
+          if note_status_text then
+            note_status_text.text = "Note: OFF"
+          end
+          
+          -- Write on hover if enabled
+          if preferences.pakettiPlayerProNoteCanvasWrite.value and ev.type == "move" then
+            pakettiPlayerProNoteCanvasInsertNote("OFF")
+          end
+          
+          -- Handle click
+          if ev.type == "down" then
+            pakettiPlayerProNoteCanvasInsertNote("OFF")
+          end
+        end
+        -- Skip other columns in row 10
+      else
+        -- Normal note grid (octaves 0-9)
+        note_hover_column = col
+        note_hover_row = row
+        
+        local note_name = note_names[col + 1] .. row  -- e.g., "C0"
+        note_selected_note = note_name
+        
+        -- Update status text
+        if note_status_text then
+          note_status_text.text = "Note: " .. note_name
+        end
+        
+        -- Write on hover if enabled
+        if preferences.pakettiPlayerProNoteCanvasWrite.value and ev.type == "move" then
+          pakettiPlayerProNoteCanvasInsertNote(note_name)
+        end
+        
+        -- Handle click (always writes regardless of Write mode)
+        if ev.type == "down" then
+          pakettiPlayerProNoteCanvasInsertNote(note_name)
+        end
+      end
+    end
+  end
+  
+  -- Update canvas
+  if note_canvas then
+    note_canvas:update()
+  end
+end
+
+function pakettiPlayerProNoteCanvasInsertNote(note)
+  local song = renoise.song()
+  local sel = song.selection_in_pattern
+  local pattern_index = song.selected_pattern_index
+  local note_to_insert = note == "000" and "---" or note
+  local step = song.transport.edit_step
+  
+  if sel then
+    -- Fill selection
+    local start_track = sel.start_track
+    local end_track = sel.end_track
+    local start_line = sel.start_line
+    local end_line = sel.end_line
+    
+    for track_index = start_track, end_track do
+      local track = song:track(track_index)
+      if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+        for line_index = start_line, end_line do
+          if note_editstep_enabled then
+            -- EditStep mode: fill every step
+            if (line_index - start_line) % step == 0 then
+              local note_column = song:pattern(pattern_index):track(track_index):line(line_index).note_columns[1]
+              if note_column then
+                note_column.note_string = note_to_insert
+                note_column.instrument_value = song.selected_instrument_index - 1
+              end
+            end
+          else
+            -- Normal mode: fill all lines
+            local note_column = song:pattern(pattern_index):track(track_index):line(line_index).note_columns[1]
+            if note_column then
+              note_column.note_string = note_to_insert
+              note_column.instrument_value = song.selected_instrument_index - 1
+            end
+          end
+        end
+      end
+    end
+    renoise.app():show_status("Filled selection with " .. note .. (note_editstep_enabled and " (EditStep)" or ""))
+  else
+    -- Insert at current position
+    local note_column = song.selected_note_column
+    if note_column then
+      note_column.note_string = note_to_insert
+      note_column.instrument_value = song.selected_instrument_index - 1
+      
+      -- Advance edit position if EditStep is enabled
+      if note_editstep_enabled and step > 0 then
+        song.selected_line_index = math.min(song.selected_line_index + step, song.selected_pattern.number_of_lines)
+      end
+      
+      renoise.app():show_status("Inserted " .. note)
+    end
+  end
+  
+  -- Keep pattern editor focus
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
 end
 
@@ -1334,6 +2579,371 @@ function pakettiPlayerProUpdateMainEffectArgumentDisplay()
 end
 
 function pakettiPlayerProShowMainDialog()
+  -- Check API version - use canvas version for v6.2+, traditional for older
+  if renoise.API_VERSION >= 6.2 then
+    pakettiPlayerProShowCanvasMainDialog()
+  else
+    pakettiPlayerProShowTraditionalMainDialog()
+  end
+end
+
+-- Canvas-based Main Dialog for Renoise v6.2+ (combines note and effect canvases)
+function pakettiPlayerProShowCanvasMainDialog()
+  if main_canvas_dialog and main_canvas_dialog.visible then
+    -- Clean up timer
+    pakettiPlayerProEffectCanvasRemoveUpdateTimer()
+    
+    main_canvas_dialog:close()
+    main_canvas_dialog = nil
+    return
+  end
+  
+  local vb = renoise.ViewBuilder()
+  
+  -- Create note canvas
+  main_note_canvas = vb:canvas {
+    width = note_canvas_width,
+    height = note_canvas_height,
+    mode = "plain",
+    render = pakettiPlayerProMainNoteCanvasDrawGrid,
+    mouse_handler = pakettiPlayerProMainNoteCanvasHandleMouse,
+    mouse_events = {"down", "up", "move", "exit"}
+  }
+  
+  -- Create effect canvas
+  main_effect_canvas = vb:canvas {
+    width = canvas_width,
+    height = canvas_height,
+    mode = "plain",
+    render = pakettiPlayerProMainEffectCanvasDrawEffect,
+    mouse_handler = pakettiPlayerProMainEffectCanvasHandleMouse,
+    mouse_events = {"down", "up", "move", "exit"}
+  }
+  
+  -- Create status texts
+  main_note_status_text = vb:text {
+    text = "Select a note",
+    font = "mono",
+    align = "center",
+    width = note_canvas_width,
+    tooltip = "Current note selection"
+  }
+  
+  main_effect_status_text = vb:text {
+    text = "00\n0",
+    font = "mono",
+    align = "center",
+    width = canvas_width,
+    tooltip = "Current hex value and decimal equivalent"
+  }
+  
+  local dialog_content = vb:column {
+    margin = 10,
+    
+    -- Title
+    vb:text {
+      text = "PlayerPro Canvas Tools",
+      font = "big",
+      style = "strong"
+    },
+    
+    -- Canvases side by side
+    vb:row {
+      -- Note canvas column
+      vb:column {
+        vb:text {
+          text = "Notes",
+          font = "bold",
+          style = "strong",
+          align = "center",
+          width = note_canvas_width
+        },
+        main_note_canvas,
+        main_note_status_text,
+        
+        -- Note controls
+        vb:row {
+          vb:checkbox {
+            value = note_editstep_enabled,
+            tooltip = "Fill Selection with EditStep",
+            notifier = function(value)
+              note_editstep_enabled = value
+            end
+          },
+          vb:text {
+            text = "EditStep"
+          },
+          vb:checkbox {
+            value = preferences.pakettiPlayerProNoteCanvasWrite.value,
+            tooltip = "Write on hover when enabled, otherwise click to write",
+            notifier = function(value)
+              preferences.pakettiPlayerProNoteCanvasWrite.value = value
+            end
+          },
+          vb:text {
+            text = "W"
+          }
+        }
+      },
+      
+      -- Spacer
+      vb:space { width = 20 },
+      
+      -- Effect canvas column
+      vb:column {
+        vb:text {
+          text = "Effects",
+          font = "bold",
+          style = "strong",
+          align = "center",
+          width = canvas_width
+        },
+        main_effect_canvas,
+        main_effect_status_text,
+        
+        -- Effect controls
+        vb:row {
+          vb:button {
+            text = "CLR",
+            width = 44,
+            tooltip = "Clear selection",
+            notifier = function()
+              selected_x = 0
+              selected_y = 0
+              if main_effect_canvas then
+                main_effect_canvas:update()
+              end
+              if main_effect_status_text then
+                main_effect_status_text.text = "00\n0"
+              end
+              renoise.app():show_status("Cleared effect selection")
+            end
+          }
+        },
+        vb:row {
+          vb:checkbox {
+            value = preferences.pakettiPlayerProEffectCanvasWrite.value,
+            tooltip = "Write on hover when enabled, otherwise click to write",
+            notifier = function(value)
+              preferences.pakettiPlayerProEffectCanvasWrite.value = value
+            end
+          },
+          vb:text {
+            text = "W"
+          },
+          vb:checkbox {
+            value = preferences.pakettiPlayerProEffectCanvasSubColumn.value,
+            tooltip = "Auto-detect subcolumn (effect number/amount) when enabled",
+            notifier = function(value)
+              preferences.pakettiPlayerProEffectCanvasSubColumn.value = value
+            end
+          },
+          vb:text {
+            text = "X"
+          }
+        }
+      }
+    },
+    
+    -- Global controls
+    vb:row {
+      vb:button {
+        text = preferences.pakettiPlayerProEffectDialogDarkMode.value and "Light" or "Dark",
+        width = 60,
+        tooltip = "PlayerPro Dark or Light Mode",
+        notifier = function()
+          preferences.pakettiPlayerProEffectDialogDarkMode.value = not preferences.pakettiPlayerProEffectDialogDarkMode.value
+          
+          -- Update both canvases
+          if main_note_canvas then
+            main_note_canvas:update()
+          end
+          if main_effect_canvas then
+            main_effect_canvas:update()
+          end
+          
+          -- Close and reopen dialog to update button text
+          if main_canvas_dialog then
+            -- Clean up timer before closing
+            pakettiPlayerProEffectCanvasRemoveUpdateTimer()
+            
+            main_canvas_dialog:close()
+            main_canvas_dialog = nil
+          end
+          pakettiPlayerProShowCanvasMainDialog()
+        end
+      },
+      vb:button {
+        text = "Close",
+        width = 60,
+        notifier = function()
+          -- Clean up timer
+          pakettiPlayerProEffectCanvasRemoveUpdateTimer()
+          
+          if main_canvas_dialog then
+            main_canvas_dialog:close()
+            main_canvas_dialog = nil
+          end
+        end
+      }
+    }
+  }
+  
+  local keyhandler = my_keyhandler_func
+  main_canvas_dialog = renoise.app():show_custom_dialog("PlayerPro Canvas Tools", dialog_content, keyhandler)
+  
+  -- Set focus to pattern editor
+  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+  
+  -- Setup canvas update timer for automatic subcolumn detection (for effect canvas)
+  pakettiPlayerProEffectCanvasSetupUpdateTimer()
+end
+
+-- Main note canvas drawing function (same as individual dialog but uses main_note_status_text)
+function pakettiPlayerProMainNoteCanvasDrawGrid(ctx, w, h)
+  pakettiPlayerProNoteCanvasDrawGrid(ctx, w, h)
+end
+
+-- Main note canvas mouse handler (same as individual dialog but uses main_note_status_text)
+function pakettiPlayerProMainNoteCanvasHandleMouse(ev)
+  local x = ev.position.x
+  local y = ev.position.y
+  
+  -- Reset hover state
+  note_hover_column = -1
+  note_hover_row = -1
+  
+  -- Check if mouse is over the note grid
+  if x >= 0 and x < note_canvas_width and y >= 0 and y < note_canvas_height then
+    local col = math.floor(x / note_cell_width)
+    local row = math.floor(y / note_cell_height)
+    
+    if col >= 0 and col < note_columns and row >= 0 and row < note_rows then
+      note_hover_column = col
+      note_hover_row = row
+      
+      local note_name = note_names[col + 1] .. row  -- e.g., "C-0"
+      note_selected_note = note_name
+      
+      -- Update status text (main dialog version)
+      if main_note_status_text then
+        main_note_status_text.text = "Note: " .. note_name
+      end
+      
+      -- Write on hover if enabled
+      if preferences.pakettiPlayerProNoteCanvasWrite.value and ev.type == "move" then
+        pakettiPlayerProMainNoteCanvasInsertNote(note_name)
+      end
+      
+      -- Handle click (always writes regardless of Write mode)
+      if ev.type == "down" then
+        pakettiPlayerProMainNoteCanvasInsertNote(note_name)
+      end
+    end
+  end
+  
+  -- Update canvas
+  if main_note_canvas then
+    main_note_canvas:update()
+  end
+end
+
+-- Main note insertion function (reuses the original note insertion logic)
+function pakettiPlayerProMainNoteCanvasInsertNote(note)
+  pakettiPlayerProNoteCanvasInsertNote(note)
+end
+
+-- Main effect canvas drawing function (same as individual dialog but uses main canvas variables)
+function pakettiPlayerProMainEffectCanvasDrawEffect(ctx, w, h)
+  pakettiPlayerProCanvasDrawEffect(ctx, w, h)
+end
+
+-- Main effect canvas mouse handler (same as individual dialog but uses main_effect_status_text)
+function pakettiPlayerProMainEffectCanvasHandleMouse(ev)
+  local x = ev.position.x
+  local y = ev.position.y
+
+  local new_hover_column = -1
+  local new_hover_index = -1
+
+  -- Check if mouse is over left column (0-F)
+  if x >= left_column_x and x < left_column_x + cell_width and y >= 0 and y < canvas_height then
+    local index = math.floor(y / cell_height)
+    if index >= 0 and index < 16 then
+      new_hover_column = 0  -- Left column
+      new_hover_index = index
+    end
+  end
+
+  -- Check if mouse is over right column (0-F)
+  if x >= right_column_x and x < right_column_x + cell_width and y >= 0 and y < canvas_height then
+    local index = math.floor(y / cell_height)
+    if index >= 0 and index < 16 then
+      new_hover_column = 1  -- Right column
+      new_hover_index = index
+    end
+  end
+
+  local song = renoise.song()
+  local disable_9_to_f = preferences.pakettiPlayerProEffectCanvasSubColumn.value and 
+    (song.selected_sub_column_type == renoise.Song.SUB_COLUMN_VOLUME or
+     song.selected_sub_column_type == renoise.Song.SUB_COLUMN_PANNING or 
+     song.selected_sub_column_type == renoise.Song.SUB_COLUMN_DELAY)
+
+  -- Check if the value is disabled (9-F for volume/panning/delay)
+  if disable_9_to_f and new_hover_index >= 9 then
+    new_hover_column = -1
+    new_hover_index = -1
+  end
+
+  hover_column = new_hover_column
+  hover_index = new_hover_index
+
+  -- Handle hover and click events
+  if hover_column ~= -1 and hover_index ~= -1 then
+    local hex_char = string.format("%X", hover_index)
+    local decimal_value = hover_index
+    local effect_code = string.format("%X%X", selected_x, selected_y)
+    local combined_hex = string.format("%X%X", hover_column == 0 and hover_index or selected_x, hover_column == 1 and hover_index or selected_y)
+    local combined_decimal = tonumber(combined_hex, 16)
+
+    -- Update status text (main dialog version)
+    if main_effect_status_text then
+      main_effect_status_text.text = combined_hex .. "\n" .. combined_decimal
+    end
+
+    -- Write on hover if enabled
+    if preferences.pakettiPlayerProEffectCanvasWrite.value and ev.type == "move" then
+      if hover_column == 0 then
+        selected_x = hover_index
+      else
+        selected_y = hover_index
+      end
+      local final_x_value = selected_x
+      local final_y_value = selected_y
+      pakettiPlayerProCanvasWriteEffectToPattern(final_x_value, final_y_value, string.format("%X", final_y_value))
+    end
+
+    -- Handle click (always writes regardless of Write mode)
+    if ev.type == "down" then
+      if hover_column == 0 then
+        selected_x = hover_index
+      else
+        selected_y = hover_index
+      end
+      local final_x_value = selected_x
+      local final_y_value = selected_y
+      pakettiPlayerProCanvasWriteEffectToPattern(final_x_value, final_y_value, string.format("%X", final_y_value))
+    end
+  end
+
+  -- Update canvas
+  if main_effect_canvas then
+    main_effect_canvas:update()
+  end
+end
+
+function pakettiPlayerProShowTraditionalMainDialog()
   if dialog and dialog.visible then
     -- Clean up observer before closing
     if main_dialog_instrument_observer then
@@ -1683,7 +3293,7 @@ function pakettiPlayerProShowMainDialog()
       }
     },
     main_vb:row{
-      --spacing=10,
+
       main_vb:button{
         text="Apply",
         width=100,

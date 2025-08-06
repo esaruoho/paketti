@@ -543,8 +543,34 @@ end
 
 local function draw_dash(ctx, x, y, size)
   ctx:begin_path()
-  ctx:move_to(x, y + size/2)
-  ctx:line_to(x + size, y + size/2)
+  ctx:move_to(x + size/4, y + size/2)
+  ctx:line_to(x + 3*size/4, y + size/2)
+  ctx:stroke()
+end
+
+local function draw_hash(ctx, x, y, size)
+  ctx:begin_path()
+  -- Two vertical lines
+  ctx:move_to(x + size/3, y + size/4)
+  ctx:line_to(x + size/3, y + 3*size/4)
+  ctx:move_to(x + 2*size/3, y + size/4)
+  ctx:line_to(x + 2*size/3, y + 3*size/4)
+  -- Two horizontal lines
+  ctx:move_to(x + size/6, y + size/3)
+  ctx:line_to(x + 5*size/6, y + size/3)
+  ctx:move_to(x + size/6, y + 2*size/3)
+  ctx:line_to(x + 5*size/6, y + 2*size/3)
+  ctx:stroke()
+end
+
+local function draw_plus(ctx, x, y, size)
+  ctx:begin_path()
+  -- Vertical line
+  ctx:move_to(x + size/2, y + size/4)
+  ctx:line_to(x + size/2, y + 3*size/4)
+  -- Horizontal line
+  ctx:move_to(x + size/4, y + size/2)
+  ctx:line_to(x + 3*size/4, y + size/2)
   ctx:stroke()
 end
 
@@ -560,7 +586,7 @@ local letter_functions = {
   ["0"] = draw_digit_0, ["1"] = draw_digit_1, ["2"] = draw_digit_2, ["3"] = draw_digit_3,
   ["4"] = draw_digit_4, ["5"] = draw_digit_5, ["6"] = draw_digit_6, ["7"] = draw_digit_7,
   ["8"] = draw_digit_8, ["9"] = draw_digit_9,
-  [" "] = draw_space, ["."] = draw_dot, ["-"] = draw_dash
+  [" "] = draw_space, ["."] = draw_dot, ["-"] = draw_dash, ["#"] = draw_hash, ["+"] = draw_plus
 }
 
 -- Function to draw text on canvas

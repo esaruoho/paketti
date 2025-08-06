@@ -115,6 +115,13 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiRotateSampleBufferFine=10,
   pakettiBlendValue = 40,
   pakettiDialogClose="esc",
+  pakettiPlayerProEffectDialogDarkMode = false,
+  pakettiPlayerProEffectCanvasWrite = false,
+  pakettiPlayerProEffectCanvasSubColumn = false,
+  pakettiPlayerProNoteCanvasWrite = false,
+  pakettiPlayerProNoteCanvasPianoKeys = false,
+  pakettiPlayerProNoteCanvasSpray = false,
+  pakettiPlayerProNoteCanvasClearSelection = true,
   pakettiInstrumentInfoDialogHeight=750,
   pakettiEnableGlobalGrooveOnStartup=false,
   pakettiRandomizeBPMOnNewSong=false,
@@ -1312,6 +1319,53 @@ vb:row{
         width=200,
         notifier=function(value) 
           preferences.pakettiShowSampleDetailsFrequencyAnalysis.value=(value==2)
+        end
+      }
+    },
+    vb:row{
+      vb:text{text="PlayerPro Effect Dialog Dark Mode",width=150},
+      vb:switch{items={"Light Mode","Dark Mode"},
+        value=preferences.pakettiPlayerProEffectDialogDarkMode.value and 2 or 1,
+        width=200,
+        notifier=function(value) 
+          preferences.pakettiPlayerProEffectDialogDarkMode.value=(value==2)
+          print(string.format("PlayerPro Effect Dialog mode changed to: %s", value == 2 and "Dark Mode" or "Light Mode"))
+        end
+      }
+    },
+    vb:row{
+      vb:text{text="PlayerPro Effect Canvas Write",width=150},
+      vb:checkbox{
+        value=preferences.pakettiPlayerProEffectCanvasWrite.value,
+        notifier=function(value)
+          preferences.pakettiPlayerProEffectCanvasWrite.value = value
+        end
+      }
+    },
+    vb:row{
+      vb:text{text="PlayerPro Effect Canvas SubColumn",width=150},
+      vb:checkbox{
+        value=preferences.pakettiPlayerProEffectCanvasSubColumn.value,
+        notifier=function(value)
+          preferences.pakettiPlayerProEffectCanvasSubColumn.value = value
+        end
+      }
+    },
+    vb:row{
+      vb:text{text="PlayerPro Note Canvas Write",width=150},
+      vb:checkbox{
+        value=preferences.pakettiPlayerProNoteCanvasWrite.value,
+        notifier=function(value)
+          preferences.pakettiPlayerProNoteCanvasWrite.value = value
+        end
+      }
+    },
+    vb:row{
+      vb:text{text="PlayerPro Note Canvas Piano Keys",width=150},
+      vb:checkbox{
+        value=preferences.pakettiPlayerProNoteCanvasPianoKeys.value,
+        notifier=function(value)
+          preferences.pakettiPlayerProNoteCanvasPianoKeys.value = value
         end
       }
     },
