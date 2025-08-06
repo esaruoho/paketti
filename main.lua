@@ -516,6 +516,9 @@ function startup()
         t.groove_enabled=true
       end
       
+      if preferences.pakettiPatternStatusMonitor.value then
+        enable_pattern_status_monitor()
+      end
 
       
       if preferences.pakettiThemeSelector.RenoiseLaunchRandomLoad.value then 

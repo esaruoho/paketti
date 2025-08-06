@@ -118,6 +118,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiInstrumentInfoDialogHeight=750,
   pakettiEnableGlobalGrooveOnStartup=false,
   pakettiRandomizeBPMOnNewSong=false,
+  pakettiPatternStatusMonitor=false,
   PakettiDeviceChainPath = "." .. separator .. "DeviceChains" .. separator,
   PakettiIRPath = "." .. separator .. "IR" .. separator,
   PakettiLFOWriteDelete=true,
@@ -850,6 +851,12 @@ local pakettiIRPathDisplayId = "pakettiIRPathDisplay_" .. tostring(math.random(2
                 notifier=function(value) preferences.pakettiRandomizeBPMOnNewSong.value=(value==2) end}
             },
             vb:row{vb:text{style="strong",text="Randomly set BPM (60-220) with bell curve around 120 for new songs (not loaded from file)"}},
+            vb:row{
+              vb:text{text="Pattern Status Monitor",width=150},
+              vb:switch{items={"Off","On"},value=preferences.pakettiPatternStatusMonitor.value and 2 or 1,width=200,
+                notifier=function(value) preferences.pakettiPatternStatusMonitor.value=(value==2) end}
+            },
+            vb:row{vb:text{style="strong",text="Show real-time effect/note column information in status bar"}},
             vb:row{
             vb:button{text="Load Pale Green Theme",width=150,notifier=function() update_loadPaleGreenTheme_preferences() end},
             vb:button{text="Load Plaid Zap .XRNI",width=150,notifier=function() renoise.app():load_instrument("Gifts/plaidzap.xrni") end},

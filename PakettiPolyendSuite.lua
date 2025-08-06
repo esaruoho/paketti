@@ -4099,6 +4099,7 @@ function create_polyend_buddy_dialog(vb)
         notifier = function()
           -- Check if we should use save paths
           local use_save_paths = vb.views["use_save_paths_checkbox"].value and vb.views["pti_save_path_textfield"].text ~= ""
+          local device_not_connected = false
           
           -- Smart check: Only verify device connection if save path is ON the device
           if use_save_paths then
@@ -4107,20 +4108,21 @@ function create_polyend_buddy_dialog(vb)
               print("-- PTI Drumkit Mono: Save path is on Polyend device - checking connection: " .. polyend_buddy_root_path)
               local device_connected = check_polyend_path_exists(polyend_buddy_root_path)
               if not device_connected then
-                print("-- PTI Drumkit Mono: Polyend device disconnected - cannot save to device path")
-                renoise.app():show_status("⚠️ Polyend device disconnected - cannot save to device path: " .. pti_save_path)
-                return
+                print("-- PTI Drumkit Mono: Polyend device disconnected - will prompt for save location after creating drumkit")
+                renoise.app():show_status("Polyend device disconnected - will create drumkit and prompt for save location")
+                device_not_connected = true
+                use_save_paths = false  -- Force prompt for save location
               end
             else
               print("-- PTI Drumkit Mono: Save path is local - no device checking needed")
             end
           end
           
-          -- Generate the drumkit (skip save prompt if we're using save paths)
+          -- Generate the drumkit (skip save prompt if we're using save paths and device is connected)
           save_pti_as_drumkit_mono(use_save_paths)
           
-          -- Auto-save if save paths are enabled, otherwise user already handled saving via prompt
-          if use_save_paths then
+          -- Auto-save if save paths are enabled and device is connected, otherwise user handled saving via prompt
+          if use_save_paths and not device_not_connected then
             auto_save_drumkit_if_enabled("Mono", vb)
           end
         end
@@ -4132,6 +4134,7 @@ function create_polyend_buddy_dialog(vb)
         notifier = function()
           -- Check if we should use save paths
           local use_save_paths = vb.views["use_save_paths_checkbox"].value and vb.views["pti_save_path_textfield"].text ~= ""
+          local device_not_connected = false
           
           -- Smart check: Only verify device connection if save path is ON the device
           if use_save_paths then
@@ -4140,20 +4143,21 @@ function create_polyend_buddy_dialog(vb)
               print("-- PTI Drumkit Stereo: Save path is on Polyend device - checking connection: " .. polyend_buddy_root_path)
               local device_connected = check_polyend_path_exists(polyend_buddy_root_path)
               if not device_connected then
-                print("-- PTI Drumkit Stereo: Polyend device disconnected - cannot save to device path")
-                renoise.app():show_status("⚠️ Polyend device disconnected - cannot save to device path: " .. pti_save_path)
-                return
+                print("-- PTI Drumkit Stereo: Polyend device disconnected - will prompt for save location after creating drumkit")
+                renoise.app():show_status("Polyend device disconnected - will create drumkit and prompt for save location")
+                device_not_connected = true
+                use_save_paths = false  -- Force prompt for save location
               end
             else
               print("-- PTI Drumkit Stereo: Save path is local - no device checking needed")
             end
           end
           
-          -- Generate the drumkit (skip save prompt if we're using save paths)
+          -- Generate the drumkit (skip save prompt if we're using save paths and device is connected)
           save_pti_as_drumkit_stereo(use_save_paths)
           
-          -- Auto-save if save paths are enabled, otherwise user already handled saving via prompt
-          if use_save_paths then
+          -- Auto-save if save paths are enabled and device is connected, otherwise user handled saving via prompt
+          if use_save_paths and not device_not_connected then
             auto_save_drumkit_if_enabled("Stereo", vb)
           end
         end

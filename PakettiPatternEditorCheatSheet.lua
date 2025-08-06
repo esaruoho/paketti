@@ -1434,6 +1434,16 @@ local function stop_status_monitor()
   last_status_position = nil
 end
 
+-- Function to enable status monitor (for startup)
+function enable_pattern_status_monitor()
+  if not status_monitor_enabled then
+    status_monitor_enabled = true
+    start_status_monitor()
+    show_current_status()  -- Show initial status
+    renoise.app():show_status("Pattern Status Monitor: ON - Effect/Note column info will be shown")
+  end
+end
+
 -- Function to toggle status monitor
 function toggle_pattern_status_monitor()
   status_monitor_enabled = not status_monitor_enabled
