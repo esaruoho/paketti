@@ -470,6 +470,8 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   SononymphShowTransferWarning = true,
   SononymphShowSearchWarning = true,
   SononymphShowPrefs = true,
+  -- Dialog of Dialogs Settings
+  pakettiDialogOfDialogsColumnsPerRow = 6,
 }
 
 renoise.tool().preferences = preferences

@@ -1,4 +1,4 @@
-local vb = renoise.ViewBuilder()
+--[[local vb = renoise.ViewBuilder()
 local dialog = nil
 local slider1_value_text
 local slider2_value_text
@@ -245,9 +245,9 @@ local function periodic_check()
   end
 end
 
-renoise.tool():add_timer(periodic_check, 100)
+--renoise.tool():add_timer(periodic_check, 100)
 
-PakettiPluginEditorPositionControlShowInitialDialog()
+--PakettiPluginEditorPositionControlShowInitialDialog()
 
 
 

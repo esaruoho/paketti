@@ -234,8 +234,8 @@ local function create_button_list()
     {"Dynamic Views 5-8", function() pakettiDynamicViewDialog(5,8) end},
     {"Automation Value Dialog", "pakettiAutomationValue"},
     {"Merge Instruments", "pakettiMergeInstrumentsDialog"},
-    {"Paketti Track DSP Device & Instrument Loader", "pakettiDeviceChainDialog"},
-    {"Paketti Volume/Delay/Pan Slider Controls", "pakettiVolDelayPanSliderDialog"},
+    {"Track DSP Device&Instrument Loader", "pakettiDeviceChainDialog"},
+    {"Volume/Delay/Pan Slider Controls", "pakettiVolDelayPanSliderDialog"},
     {"Paketti Global Volume Adjustment", "pakettiGlobalVolumeDialog"},
     {"Paketti Offset Dialog", "pakettiOffsetDialog"},
     {"PitchStepper Demo", "pakettiPitchStepperDemo"},
@@ -244,7 +244,7 @@ local function create_button_list()
     {"New Song Dialog", "pakettiImpulseTrackerNewSongDialog"},
     {"Paketti Stacker", function() pakettiStackerDialog(proceed_with_stacking) end},
     {"SlotShow", "pakettiUserPreferencesShowerDialog"},
-    {"Configure Launch App Selection/Paths", "pakettiAppSelectionDialog"},
+    {"Configure Launch App Selection/Path", "pakettiAppSelectionDialog"},
     {"Paketti KeyBindings", "pakettiKeyBindingsDialog"},
     {"Renoise KeyBindings", "pakettiRenoiseKeyBindingsDialog"},
     {"Find Free KeyBindings", "pakettiFreeKeybindingsDialog"},
@@ -293,9 +293,9 @@ local function create_button_list()
     {"Paketti Sequencer Settings Dialog", "pakettiSequencerSettingsDialog"},
     {"Paketti Steppers Dialog", "PakettiSteppersDialog"},
     {"Protracker MOD modulation Dialog", "showProtrackerModDialog"},
-    {"Paketti Slice to Pattern Sequencer Dialog", "showSliceToPatternSequencerInterface"},
-    {"Paketti Polyend Buddy", "show_polyend_buddy_dialog"},
-    {"Paketti Sample Pitch Modifier Dialog", "show_sample_pitch_modifier_dialog"},
+    {"Slice->Pattern Sequencer Dialog", "showSliceToPatternSequencerInterface"},
+    {"Polyend Buddy", "show_polyend_buddy_dialog"},
+    {"Sample Pitch Modifier Dialog", "show_sample_pitch_modifier_dialog"},
     {"BPM From Sample Length", "pakettiBpmFromSampleDialog"},
     {"Hotelsinus Stepsequencer","createStepSequencerDialog"},
     {"Hotelsinus Matrix Overview", "createMatrixOverview"},
@@ -311,7 +311,7 @@ local function create_button_list()
     table.insert(buttons, {"V3.5 GUI Demo", "pakettiGUIDemo"})
     table.insert(buttons, {"Paketti Enhanced Phrase Generator", "pakettiPhraseGeneratorDialog"})
     table.insert(buttons, {"Chebyshev Polynomial Waveshaper", "show_chebyshev_waveshaper"})
-    table.insert(buttons, {"Paketti Selected Device Parameter Editor", "PakettiCanvasExperimentsInit"})
+    table.insert(buttons, {"Paketti Device Parameter Editor", "PakettiCanvasExperimentsInit"})
   
   end
   
@@ -349,115 +349,434 @@ local function create_button_list()
   return buttons
 end
 
--- Function to create buttons from the list with optional filtering
-function pakettiDialogOfDialogs(search_query, custom_keyhandler)
-  search_query = search_query or ""
-  local vb = renoise.ViewBuilder()  -- Create fresh ViewBuilder instance to avoid ID conflicts
-  local button_list = create_button_list()  -- Get current button list
-  local total_count = #button_list  -- Store total count for display
+-- Dialog of dialogs state variables (autocomplete-style)
+local dod_current_search_text = ""
+local dod_filtered_buttons = {}
+local dod_selected_index = 1
+local dod_search_display_text = nil
+local dod_status_text = nil
+local dod_button_widgets = {}
+local dod_keyhandler = nil
+local dod_buttons_per_row = preferences.pakettiDialogOfDialogsColumnsPerRow.value  -- User-configurable buttons per row, loaded from preferences
+local dod_columns_valuebox = nil
+
+-- Function to update dialog of dialogs search display
+function update_dod_search_display()
+  if dod_search_display_text then
+    dod_search_display_text.text = "'" .. dod_current_search_text .. "'"
+  end
+end
+
+-- Function to update dialog of dialogs suggestions
+function update_dod_suggestions()
+  local button_list = create_button_list()
   
-  -- Apply fuzzy search filtering if search query is provided
-  if search_query ~= "" then
-    button_list = PakettiFuzzySearchUtil(button_list, search_query, {
+  -- Apply filtering if search text is provided
+  if dod_current_search_text ~= "" then
+    dod_filtered_buttons = PakettiFuzzySearchUtil(button_list, dod_current_search_text, {
       search_type = "substring",
       field_extractor = function(button_def)
         return {button_def[1]} -- Search in button name only
       end
     })
+  else
+    dod_filtered_buttons = button_list
   end
   
-  local filtered_count = #button_list  -- Count after filtering
+  -- Reset selection
+  dod_selected_index = (#dod_filtered_buttons > 0) and 1 or 0
   
-  local buttons_per_row = 7
-  local rows = {}
-  local current_row = {}
-  
-  for i, button_def in ipairs(button_list) do
-    local name, func = button_def[1], button_def[2]
-    table.insert(current_row, vb:button{
-      text = name,
-      width=120,
-      notifier = type(func) == "function" and func or function()
-        local global_func = _G[func]
-        if global_func then global_func() end
-      end
-    })
+  -- Update status text
+  if dod_status_text then
+    local max_buttons_to_show = 6 * 20  -- buttons_per_row * max_visible_rows
+    local visible_count = math.min(#dod_filtered_buttons, max_buttons_to_show)
+    local status_msg = string.format("(%d matches)", #dod_filtered_buttons)
     
-    if #current_row == buttons_per_row then
-      table.insert(rows, vb:row(current_row))
-      current_row = {}
+    if dod_current_search_text ~= "" then
+      status_msg = string.format("'%s' - %d matches", dod_current_search_text, #dod_filtered_buttons)
+    end
+    
+    if #dod_filtered_buttons > max_buttons_to_show then
+      status_msg = status_msg .. string.format(" - Showing first %d", visible_count)
+    end
+    
+    if #dod_filtered_buttons > 0 and dod_selected_index > 0 then
+      status_msg = status_msg .. string.format(" - Item %d selected", dod_selected_index)
+    end
+    dod_status_text.text = status_msg
+  end
+  
+  -- Update button display
+  update_dod_button_display()
+end
+
+-- Function to update button display (MAINTAINS FIXED GRID SIZE)
+function update_dod_button_display()
+  local button_index = 1
+  local max_buttons_to_show = dod_buttons_per_row * math.ceil(120 / dod_buttons_per_row)  -- buttons_per_row * max_visible_rows
+  
+  for row_idx, row_buttons in ipairs(dod_button_widgets) do
+    for col_idx, button in ipairs(row_buttons) do
+      if button_index <= #dod_filtered_buttons and button_index <= max_buttons_to_show then
+        local button_def = dod_filtered_buttons[button_index]
+        button.text = button_def[1]
+        button.visible = true
+        button.active = true  -- Enable clicking
+        
+        -- Set deep purple background for selected button
+        if button_index == dod_selected_index then
+          button.color = {0x80, 0x00, 0x80} -- Deep purple (selected)
+        else
+          button.color = {0x00, 0x00, 0x00} -- Default (black/transparent)
+        end
+      else
+        -- Empty button but ALWAYS VISIBLE to maintain fixed grid
+        button.text = ""
+        button.visible = true  -- KEEP VISIBLE to maintain grid size
+        button.active = false  -- Disable clicking
+        button.color = {0x00, 0x00, 0x00} -- Default color
+      end
+      button_index = button_index + 1
     end
   end
+end
+
+-- Function to move selection left (previous item in row)
+function move_dod_selection_left()
+  local buttons_per_row = dod_buttons_per_row
+  local max_buttons_to_show = buttons_per_row * math.ceil(120 / buttons_per_row)
+  local visible_count = math.min(#dod_filtered_buttons, max_buttons_to_show)
+  if visible_count > 0 then
+    if dod_selected_index <= 1 then
+      dod_selected_index = visible_count -- Wrap to last item
+    else
+      dod_selected_index = dod_selected_index - 1
+    end
+    print("DOD: Selection moved left to index " .. dod_selected_index)
+    update_dod_button_display()
+    update_dod_status_text()
+  end
+end
+
+-- Function to move selection right (next item in row)
+function move_dod_selection_right()
+  local buttons_per_row = dod_buttons_per_row
+  local max_buttons_to_show = buttons_per_row * math.ceil(120 / buttons_per_row)
+  local visible_count = math.min(#dod_filtered_buttons, max_buttons_to_show)
+  if visible_count > 0 then
+    if dod_selected_index >= visible_count then
+      dod_selected_index = 1 -- Wrap to first item
+    else
+      dod_selected_index = dod_selected_index + 1
+    end
+    print("DOD: Selection moved right to index " .. dod_selected_index)
+    update_dod_button_display()
+    update_dod_status_text()
+  end
+end
+
+-- Function to move selection up (previous row)
+function move_dod_selection_up()
+  local buttons_per_row = dod_buttons_per_row
+  local max_buttons_to_show = buttons_per_row * math.ceil(120 / buttons_per_row)
+  local visible_count = math.min(#dod_filtered_buttons, max_buttons_to_show)
+  if visible_count > 0 then
+    local new_index = dod_selected_index - buttons_per_row
+    if new_index < 1 then
+      -- Calculate position in last possible row
+      local current_col = ((dod_selected_index - 1) % buttons_per_row) + 1
+      local last_row_start = math.floor((visible_count - 1) / buttons_per_row) * buttons_per_row + 1
+      new_index = math.min(last_row_start + current_col - 1, visible_count)
+    end
+    dod_selected_index = new_index
+    print("DOD: Selection moved up to index " .. dod_selected_index)
+    update_dod_button_display()
+    update_dod_status_text()
+  end
+end
+
+-- Function to move selection down (next row)
+function move_dod_selection_down()
+  local buttons_per_row = dod_buttons_per_row
+  local max_buttons_to_show = buttons_per_row * math.ceil(120 / buttons_per_row)
+  local visible_count = math.min(#dod_filtered_buttons, max_buttons_to_show)
+  if visible_count > 0 then
+    local new_index = dod_selected_index + buttons_per_row
+    if new_index > visible_count then
+      -- Go to same column in first row
+      local current_col = ((dod_selected_index - 1) % buttons_per_row) + 1
+      new_index = current_col
+    end
+    dod_selected_index = new_index
+    print("DOD: Selection moved down to index " .. dod_selected_index)
+    update_dod_button_display()
+    update_dod_status_text()
+  end
+end
+
+-- Helper function to update status text (extracted to avoid duplication)
+function update_dod_status_text()
+  if dod_status_text then
+    local max_buttons_to_show = dod_buttons_per_row * math.ceil(120 / dod_buttons_per_row)  -- buttons_per_row * max_visible_rows
+    local visible_count = math.min(#dod_filtered_buttons, max_buttons_to_show)
+    local status_msg = string.format("(%d matches)", #dod_filtered_buttons)
+    
+    if dod_current_search_text ~= "" then
+      status_msg = string.format("'%s' - %d matches", dod_current_search_text, #dod_filtered_buttons)
+    end
+    
+    if #dod_filtered_buttons > max_buttons_to_show then
+      status_msg = status_msg .. string.format(" - Showing first %d", visible_count)
+    end
+    
+    if #dod_filtered_buttons > 0 and dod_selected_index > 0 then
+      status_msg = status_msg .. string.format(" - Item %d selected", dod_selected_index)
+    end
+    dod_status_text.text = status_msg
+  end
+end
+
+-- Function to execute selected dialog
+function execute_dod_selection()
+  if dod_selected_index > 0 and dod_selected_index <= #dod_filtered_buttons then
+    local button_def = dod_filtered_buttons[dod_selected_index]
+    local func = button_def[2]
+    
+    -- Execute the function (keep dialog open)
+    if type(func) == "function" then
+      func()
+    else
+      local global_func = _G[func]
+      if global_func then global_func() end
+    end
+    
+    print("DOD: Executed '" .. button_def[1] .. "' - dialog stays open")
+  end
+end
+
+-- Function to handle button clicks in dialog of dialogs
+local function handle_dod_button_click(button_index)
+  dod_selected_index = button_index
+  update_dod_button_display()  -- Update selection highlight
+  execute_dod_selection()  -- Execute but keep dialog open
+end
+
+-- Function to calculate optimal dialog width based on columns and content
+function calculate_dod_dialog_width(buttons_per_row, button_list)
+  local max_visible_rows = math.ceil(120 / buttons_per_row)
   
-  if #current_row > 0 then
+  -- Calculate column widths based on longest text in each column
+  local column_widths = {}
+  local total_button_width = 0
+  
+  for col = 1, buttons_per_row do
+    local max_length = 0
+    -- Check every button that would be in this column
+    for row = 0, max_visible_rows - 1 do
+      local button_index = row * buttons_per_row + col
+      if button_index <= #button_list then
+        local text_length = #button_list[button_index][1]
+        if text_length > max_length then
+          max_length = text_length
+        end
+      end
+    end
+    -- Convert character count to pixels (approx 7px per char + 16px padding)
+    column_widths[col] = math.max(80, math.min(200, max_length * 7 + 16))
+    total_button_width = total_button_width + column_widths[col]
+  end
+  
+  -- Calculate dialog width: button widths + minimal spacing + margins
+  local dialog_width = total_button_width  -- Add minimal padding
+  dialog_width = math.max(600, math.min(1800, dialog_width))  -- Reasonable limits
+  
+  print("DOD: Calculated width for " .. buttons_per_row .. " columns: " .. dialog_width .. "px (total button width: " .. total_button_width .. "px)")
+  return dialog_width, column_widths
+end
+
+-- Function to create buttons from the list with optional filtering (now autocomplete-style)
+function pakettiDialogOfDialogs(search_query, custom_keyhandler)
+  search_query = search_query or ""
+  dod_current_search_text = search_query
+  local vb = renoise.ViewBuilder()  -- Create fresh ViewBuilder instance to avoid ID conflicts
+  
+  -- Initialize filtered buttons - ALWAYS show all dialogs initially
+  local button_list = create_button_list()
+  
+  -- ENSURE we always show all dialogs when no search query
+  if search_query and search_query ~= "" then
+    dod_filtered_buttons = PakettiFuzzySearchUtil(button_list, search_query, {
+      search_type = "substring",
+      field_extractor = function(button_def)
+        return {button_def[1]} -- Search in button name only
+      end
+    })
+  else
+    -- Show ALL dialogs by default
+    dod_filtered_buttons = button_list
+  end
+  
+  -- Ensure we have buttons and valid selection
+  if #dod_filtered_buttons > 0 then
+    dod_selected_index = 1
+  else
+    dod_selected_index = 0
+  end
+  
+  -- Calculate dialog width and column widths based on current settings
+  local buttons_per_row = dod_buttons_per_row  -- User-configurable buttons per row
+  local max_visible_rows = math.ceil(120 / buttons_per_row)  -- Maintain ~120 total visible slots
+  local BUTTON_HEIGHT = 20  -- Normal button height like Renoise default
+  local max_buttons_to_show = buttons_per_row * max_visible_rows
+  
+  -- Calculate optimal dialog width and column widths
+  local dialog_width, column_widths = calculate_dod_dialog_width(buttons_per_row, button_list)
+
+  print("DOD: Using " .. buttons_per_row .. " buttons per row, max " .. max_visible_rows .. " rows")
+  
+  dod_button_widgets = {}
+  local rows = {}
+  local button_index = 1
+  local max_buttons_to_show = buttons_per_row * max_visible_rows
+  
+  -- Create a FIXED-SIZE button grid that never changes dimensions
+  for row = 1, max_visible_rows do
+    local current_row = {}
+    local row_buttons = {}
+    
+    -- Always create ALL buttons for EVERY row to maintain fixed grid size
+    for col = 1, buttons_per_row do
+      if button_index <= #dod_filtered_buttons and button_index <= max_buttons_to_show then
+        local button_text = dod_filtered_buttons[button_index][1]
+        
+        local button = vb:button{
+          text = button_text,
+          width = column_widths[col],  -- Use column-specific width
+          height = BUTTON_HEIGHT,
+          visible = true,  -- Show button with content
+          color = (button_index == dod_selected_index) and {0x80, 0x00, 0x80} or {0x00, 0x00, 0x00},
+          notifier = function()
+            handle_dod_button_click(button_index)
+          end
+        }
+        
+        table.insert(current_row, button)
+        table.insert(row_buttons, button)
+        button_index = button_index + 1
+      else
+        -- Create VISIBLE empty button to maintain FIXED grid structure
+        local placeholder = vb:button{
+          text = "",
+          width = column_widths[col],  -- Use column-specific width
+          height = BUTTON_HEIGHT,
+          visible = true,  -- ALWAYS visible to maintain grid size
+          active = false,  -- But disabled so can't be clicked
+          color = {0x00, 0x00, 0x00}  -- Default color
+        }
+        table.insert(current_row, placeholder)
+        table.insert(row_buttons, placeholder)
+      end
+    end
+    
+    table.insert(dod_button_widgets, row_buttons)
     table.insert(rows, vb:row(current_row))
   end
   
+  local visible_count = math.min(#dod_filtered_buttons, max_buttons_to_show)
+  print("DOD: Created " .. #rows .. " rows, showing " .. visible_count .. " of " .. #dod_filtered_buttons .. " dialogs")
+  
+  -- Debug: Show first few button names
+  if #dod_filtered_buttons > 0 then
+    print("DOD: First few buttons:")
+    for i = 1, math.min(5, #dod_filtered_buttons) do
+      print("  " .. i .. ": " .. dod_filtered_buttons[i][1])
+    end
+  else
+    print("DOD: ERROR - No buttons in dod_filtered_buttons!")
+  end
+  
   return vb:column{
-    
-
     vb:row{
-      vb:text{text="Search:", width=30,font="bold", style="strong"},
-      vb:textfield{
-        id="search_field",
-        width=350,
-        edit_mode = true,
-        text = search_query,
-        notifier=function(text)
-          -- Recreate the dialog content with filtered results
-          local filtered_content = pakettiDialogOfDialogs(text, custom_keyhandler)
-          if dialog_of_dialogs and dialog_of_dialogs.visible then
-            -- Get button list for count
-            local total_list = create_button_list()
-            local total_count = #total_list
-            local current_list = total_list
-            if text ~= "" then
-              current_list = PakettiFuzzySearchUtil(current_list, text, {
-                search_type = "substring",
-                field_extractor = function(button_def)
-                  return {button_def[1]} -- Search in button name only
-                end
-              })
-            end
-            local filtered_count = #current_list
-            -- Update dialog title and content with "X out of Y" format
-            local title = text ~= "" and 
-              string.format("Paketti Dialog of Dialogs (%d out of %d)", filtered_count, total_count) or
-              string.format("Paketti Dialog of Dialogs (%d)", total_count)
-            dialog_of_dialogs:close()
-            dialog_of_dialogs = renoise.app():show_custom_dialog(
-              title, 
-              filtered_content, 
-              custom_keyhandler
-            )
-          end
-        end
+      vb:text{
+        text = "Type to search:",
+        width = 100, font="bold",style="strong"
       },
-      vb:button{
-        text="Reset",
-        width=50,
-        notifier=function()
-          -- Reset to show all items
-          local all_button_list = create_button_list()
-          local all_dialog_count = #all_button_list
-          local reset_content = pakettiDialogOfDialogs("", custom_keyhandler)
-          if dialog_of_dialogs and dialog_of_dialogs.visible then
-            dialog_of_dialogs:close()
-            dialog_of_dialogs = renoise.app():show_custom_dialog(
-              string.format("Paketti Dialog of Dialogs (%d)", all_dialog_count), 
-              reset_content, 
-              custom_keyhandler
-            )
-          end
-        end
-      }
+      (function()
+        dod_search_display_text = vb:text{
+          width = 300,
+          text = "'" .. dod_current_search_text .. "'",
+          style = "strong"
+        }
+        return dod_search_display_text
+      end)()
     },
+    
+    -- Add columns per row control between search and dialogs
+    vb:row{
+      vb:text{
+        text = "Columns per row:",
+        width = 100,style="strong",font="bold"
+      },
+      (function()
+        dod_columns_valuebox = vb:valuebox{
+          min = 1,
+          max = 12,
+          value = dod_buttons_per_row,
+          width = 60,
+          notifier = function(value)
+            dod_buttons_per_row = value
+            preferences.pakettiDialogOfDialogsColumnsPerRow.value = value
+            preferences:save_as("preferences.xml")  -- Save preference immediately
+            rebuild_dod_dialog()
+          end
+        }
+        return dod_columns_valuebox
+      end)()
+    },
+    
+    vb:row{
+      vb:text{
+        text = "Dialogs:",
+        style = "strong",font="bold",
+        width = 100
+      },
+      (function()
+        dod_status_text = vb:text{
+          text = string.format("(%d matches)", #dod_filtered_buttons),font="bold",style="strong",
+          --style = "disabled",
+          width = 300
+        }
+        return dod_status_text
+      end)()
+    },
+    
     vb:column{
       style = "group",
-      margin=5,
+      width = dialog_width,  -- DYNAMIC WIDTH - adapts to number of columns but stays fixed during search
       unpack(rows)
     }
   }
+end
+
+-- Function to rebuild dialog when columns per row changes
+function rebuild_dod_dialog()
+  if dialog_of_dialogs and dialog_of_dialogs.visible then
+    local button_list = create_button_list()
+    local dialog_count = #button_list
+    
+    -- Close current dialog
+    dialog_of_dialogs:close()
+    
+    -- Recreate with new layout
+    dialog_of_dialogs = renoise.app():show_custom_dialog(
+      string.format("Paketti Dialog of Dialogs (%d)", dialog_count), 
+      pakettiDialogOfDialogs(dod_current_search_text, dod_keyhandler), 
+      dod_keyhandler
+    )
+    
+    -- Set focus to Renoise after dialog opens for key capture
+    renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
+  end
 end
 
 function pakettiDialogOfDialogsToggle()
@@ -469,22 +788,94 @@ function pakettiDialogOfDialogsToggle()
     local button_list = create_button_list()
     local dialog_count = #button_list
     
-    -- Create custom keyhandler for dialog of dialogs
-    local keyhandler
-    keyhandler = function(dialog, key)
-      local closer = preferences.pakettiDialogClose.value
+    -- Load columns per row setting from preferences
+    dod_buttons_per_row = preferences.pakettiDialogOfDialogsColumnsPerRow.value
+    
+    -- Reset search state
+    dod_current_search_text = ""
+    dod_selected_index = 1
+    
+    -- Create autocomplete-style keyhandler for dialog of dialogs
+    dod_keyhandler = function(dialog, key)
+      print("DOD: Key pressed - name: '" .. tostring(key.name) .. "', modifiers: '" .. tostring(key.modifiers) .. "'")
+      if key.name == "return" then
+        print("DOD: Enter key pressed - executing selection")
+        -- Execute selected dialog
+        execute_dod_selection()
+        return nil
+      elseif key.name == "left" then
+        print("DOD: Left key pressed")
+        move_dod_selection_left()
+        return nil
+      elseif key.name == "right" then
+        print("DOD: Right key pressed")
+        move_dod_selection_right()
+        return nil
+      elseif key.name == "up" then
+        print("DOD: Up key pressed")
+        move_dod_selection_up()
+        return nil
+      elseif key.name == "down" then
+        print("DOD: Down key pressed")
+        move_dod_selection_down()
+        return nil
+      elseif key.name == "esc" then
+        -- If there's text, clear it first
+        if dod_current_search_text ~= "" then
+          dod_current_search_text = ""
+          update_dod_search_display()
+          update_dod_suggestions()
+          return nil
+        end
+        -- If no text, fall through to closer key check
+      end
       
-      -- Handle close key (escape, etc.)
+      -- Check for close key
+      local closer = preferences.pakettiDialogClose.value
       if key.modifiers == "" and key.name == closer then
         dialog:close()
         dialog_of_dialogs = nil
         return nil
+      elseif key.name == "back" then
+        -- Remove last character (real-time like autocomplete)
+        if #dod_current_search_text > 0 then
+          dod_current_search_text = dod_current_search_text:sub(1, #dod_current_search_text - 1)
+          update_dod_search_display()
+          update_dod_suggestions()
+        end
+        return nil
+      elseif key.name == "delete" then
+        -- Clear all text (real-time)
+        dod_current_search_text = ""
+        update_dod_search_display()
+        update_dod_suggestions()
+        return nil
+      elseif key.name == "space" then
+        -- Add space character (real-time)
+        dod_current_search_text = dod_current_search_text .. " "
+        update_dod_search_display()
+        update_dod_suggestions()
+        return nil
+      elseif string.len(key.name) == 1 then
+        -- Add typed character immediately (real-time like autocomplete)
+        dod_current_search_text = dod_current_search_text .. key.name
+        update_dod_search_display()
+        update_dod_suggestions()
+        return nil
       else
+        -- Let other keys pass through
         return key
       end
     end
     
-    dialog_of_dialogs = renoise.app():show_custom_dialog(string.format("Paketti Dialog of Dialogs (%d)", dialog_count), pakettiDialogOfDialogs("", keyhandler), keyhandler)
+    dialog_of_dialogs = renoise.app():show_custom_dialog(
+      string.format("Paketti Dialog of Dialogs (%d)", dialog_count), 
+      pakettiDialogOfDialogs("", dod_keyhandler), 
+      dod_keyhandler
+    )
+    
+    -- Set focus to Renoise after dialog opens for key capture (like autocomplete)
+    renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
   end
 end
 
