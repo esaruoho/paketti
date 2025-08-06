@@ -136,6 +136,8 @@ dialog_content = vb:column{
 local note_grid_vb
 local dialog
 local note_grid_instrument_observer
+local canvas_instrument_observer
+local main_canvas_instrument_observer
 
 local note_names = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"}
 local notes = {}
@@ -2101,12 +2103,27 @@ end
 -- Canvas-based Note Grid Dialog for Renoise v6.2+
 function pakettiPlayerProNoteGridShowCanvasGrid()
   if note_canvas_dialog and note_canvas_dialog.visible then
+    -- Clean up canvas instrument observer
+    if canvas_instrument_observer then
+      PakettiPlayerProRemoveInstrumentObserver(canvas_instrument_observer)
+      canvas_instrument_observer = nil
+    end
     note_canvas_dialog:close()
     note_canvas_dialog = nil
     return
   end
   
   local vb = renoise.ViewBuilder()
+  
+  -- Create instrument items array
+  local instrument_items = {"<None>"}
+  for i = 0, #renoise.song().instruments - 1 do
+    local instrument = renoise.song().instruments[i + 1]
+    table.insert(instrument_items, string.format("%02X: %s", i, (instrument.name or "Untitled")))
+  end
+  
+  local selected_instrument_index = renoise.song().selected_instrument_index
+  local selected_instrument_value = selected_instrument_index + 1
   
   -- Create canvas first
   note_canvas = vb:canvas {
@@ -2120,6 +2137,46 @@ function pakettiPlayerProNoteGridShowCanvasGrid()
   
   local dialog_content = vb:column {
     --margin = 5,
+    
+    -- Instrument selector row
+    vb:row {
+      vb:text {
+        text = "Instrument",
+        style = "strong",
+        font = "bold"
+      },
+      vb:popup {
+        items = instrument_items,
+        width = 265,
+        id = "canvas_instrument_popup",
+        value = selected_instrument_value,
+        notifier = function(value)
+          local instrument
+          if value == 1 then
+            instrument = nil
+            renoise.song().selected_instrument_index = nil
+          else
+            instrument = value - 1
+            renoise.song().selected_instrument_index = instrument
+          end
+          print("Canvas Dialog - Instrument changed to: " .. tostring(instrument))
+        end
+      },
+      vb:button {
+        text = "Refresh",
+        width = 90,
+        notifier = function()
+          local updated_instrument_items = {"<None>"}
+          for i = 0, #renoise.song().instruments - 1 do
+            local instrument = renoise.song().instruments[i + 1]
+            table.insert(updated_instrument_items, string.format("%02X: %s", i, (instrument.name or "Untitled")))
+          end
+          if vb.views["canvas_instrument_popup"] then
+            vb.views["canvas_instrument_popup"].items = updated_instrument_items
+          end
+        end
+      }
+    },
     
     -- Canvas for note grid
     note_canvas,
@@ -2212,6 +2269,9 @@ function pakettiPlayerProNoteGridShowCanvasGrid()
   
   local keyhandler = my_keyhandler_func
   note_canvas_dialog = renoise.app():show_custom_dialog("PlayerPro Note Grid Dialog", dialog_content, keyhandler)
+  
+  -- Add instrument observer after dialog is created
+  canvas_instrument_observer = PakettiPlayerProCreateInstrumentObserver(vb, "canvas_instrument_popup", note_canvas_dialog)
   
   -- Set focus to pattern editor
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
@@ -2402,14 +2462,9 @@ function pakettiPlayerProNoteCanvasHandleMouse(ev)
         note_hover_column = col
         note_hover_row = row
         
-        -- Format note for Renoise: "C-0", "C#0", etc.
+        -- Format note for Renoise: "C-0", "C#-0", etc.
         local base_note = note_names[col + 1]
-        local note_name
-        if string.find(base_note, "#") then
-          note_name = base_note .. row  -- Sharp notes: "C#0"
-        else
-          note_name = base_note .. "-" .. row  -- Natural notes: "C-0"
-        end
+        local note_name = base_note .. "-" .. row  -- All notes: "C-0", "C#-0", etc.
         note_selected_note = note_name
         
         -- Update status text
@@ -2460,7 +2515,11 @@ function pakettiPlayerProNoteCanvasInsertNote(note)
               local note_column = song:pattern(pattern_index):track(track_index):line(line_index).note_columns[1]
               if note_column then
                 note_column.note_string = note_to_insert
-                note_column.instrument_value = song.selected_instrument_index - 1
+                if note == "000" or note == "OFF" then
+                  note_column.instrument_value = 255  -- Empty instrument
+                else
+                  note_column.instrument_value = song.selected_instrument_index - 1
+                end
               end
             end
           else
@@ -2468,7 +2527,11 @@ function pakettiPlayerProNoteCanvasInsertNote(note)
             local note_column = song:pattern(pattern_index):track(track_index):line(line_index).note_columns[1]
             if note_column then
               note_column.note_string = note_to_insert
-              note_column.instrument_value = song.selected_instrument_index - 1
+              if note == "000" or note == "OFF" then
+                note_column.instrument_value = 255  -- Empty instrument
+              else
+                note_column.instrument_value = song.selected_instrument_index - 1
+              end
             end
           end
         end
@@ -2480,7 +2543,11 @@ function pakettiPlayerProNoteCanvasInsertNote(note)
     local note_column = song.selected_note_column
     if note_column then
       note_column.note_string = note_to_insert
-      note_column.instrument_value = song.selected_instrument_index - 1
+      if note == "000" or note == "OFF" then
+        note_column.instrument_value = 255  -- Empty instrument
+      else
+        note_column.instrument_value = song.selected_instrument_index - 1
+      end
       
       -- Advance edit position if EditStep is enabled
       if note_editstep_enabled and step > 0 then
@@ -2922,12 +2989,28 @@ function pakettiPlayerProShowCanvasMainDialog()
     -- Clean up timer
     pakettiPlayerProEffectCanvasRemoveUpdateTimer()
     
+    -- Clean up main canvas instrument observer
+    if main_canvas_instrument_observer then
+      PakettiPlayerProRemoveInstrumentObserver(main_canvas_instrument_observer)
+      main_canvas_instrument_observer = nil
+    end
+    
     main_canvas_dialog:close()
     main_canvas_dialog = nil
     return
   end
   
   local vb = renoise.ViewBuilder()
+  
+  -- Create instrument items array
+  local instrument_items = {"<None>"}
+  for i = 0, #renoise.song().instruments - 1 do
+    local instrument = renoise.song().instruments[i + 1]
+    table.insert(instrument_items, string.format("%02X: %s", i, (instrument.name or "Untitled")))
+  end
+  
+  local selected_instrument_index = renoise.song().selected_instrument_index
+  local selected_instrument_value = selected_instrument_index + 1
   
   -- Create note canvas
   main_note_canvas = vb:canvas {
@@ -2974,6 +3057,46 @@ function pakettiPlayerProShowCanvasMainDialog()
       text = "PlayerPro Canvas Tools",
       font = "big",
       style = "strong"
+    },
+    
+    -- Instrument selector row
+    vb:row {
+      vb:text {
+        text = "Instrument",
+        style = "strong",
+        font = "bold"
+      },
+      vb:popup {
+        items = instrument_items,
+        width = 320,
+        id = "main_canvas_instrument_popup",
+        value = selected_instrument_value,
+        notifier = function(value)
+          local instrument
+          if value == 1 then
+            instrument = nil
+            renoise.song().selected_instrument_index = nil
+          else
+            instrument = value - 1
+            renoise.song().selected_instrument_index = instrument
+          end
+          print("Main Canvas Dialog - Instrument changed to: " .. tostring(instrument))
+        end
+      },
+      vb:button {
+        text = "Refresh",
+        width = 100,
+        notifier = function()
+          local updated_instrument_items = {"<None>"}
+          for i = 0, #renoise.song().instruments - 1 do
+            local instrument = renoise.song().instruments[i + 1]
+            table.insert(updated_instrument_items, string.format("%02X: %s", i, (instrument.name or "Untitled")))
+          end
+          if vb.views["main_canvas_instrument_popup"] then
+            vb.views["main_canvas_instrument_popup"].items = updated_instrument_items
+          end
+        end
+      }
     },
     
     -- Canvases side by side
@@ -3096,6 +3219,12 @@ function pakettiPlayerProShowCanvasMainDialog()
             -- Clean up timer before closing
             pakettiPlayerProEffectCanvasRemoveUpdateTimer()
             
+            -- Clean up main canvas instrument observer
+            if main_canvas_instrument_observer then
+              PakettiPlayerProRemoveInstrumentObserver(main_canvas_instrument_observer)
+              main_canvas_instrument_observer = nil
+            end
+            
             main_canvas_dialog:close()
             main_canvas_dialog = nil
           end
@@ -3109,6 +3238,12 @@ function pakettiPlayerProShowCanvasMainDialog()
           -- Clean up timer
           pakettiPlayerProEffectCanvasRemoveUpdateTimer()
           
+          -- Clean up main canvas instrument observer
+          if main_canvas_instrument_observer then
+            PakettiPlayerProRemoveInstrumentObserver(main_canvas_instrument_observer)
+            main_canvas_instrument_observer = nil
+          end
+          
           if main_canvas_dialog then
             main_canvas_dialog:close()
             main_canvas_dialog = nil
@@ -3120,6 +3255,9 @@ function pakettiPlayerProShowCanvasMainDialog()
   
   local keyhandler = my_keyhandler_func
   main_canvas_dialog = renoise.app():show_custom_dialog("PlayerPro Canvas Tools", dialog_content, keyhandler)
+  
+  -- Add instrument observer after dialog is created
+  main_canvas_instrument_observer = PakettiPlayerProCreateInstrumentObserver(vb, "main_canvas_instrument_popup", main_canvas_dialog)
   
   -- Set focus to pattern editor
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
@@ -3193,14 +3331,9 @@ function pakettiPlayerProMainNoteCanvasHandleMouse(ev)
         note_hover_column = col
         note_hover_row = row
         
-        -- Format note for Renoise: "C-0", "C#0", etc.
+        -- Format note for Renoise: "C-0", "C#-0", etc.
         local base_note = note_names[col + 1]
-        local note_name
-        if string.find(base_note, "#") then
-          note_name = base_note .. row  -- Sharp notes: "C#0"
-        else
-          note_name = base_note .. "-" .. row  -- Natural notes: "C-0"
-        end
+        local note_name = base_note .. "-" .. row  -- All notes: "C-0", "C#-0", etc.
         note_selected_note = note_name
         
         -- Update status text (main dialog version)

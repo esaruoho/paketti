@@ -402,11 +402,20 @@ function PakettiCreateUnisonSamples()
     end
   end
 
+PakettiFillPitchStepperDigits(0.015,64)
+
   -- Apply loop mode and other settings to all samples in the new instrument
   for i = 1, #new_instrument.samples do
     if new_instrument.samples[i] then
       local sample = new_instrument.samples[i]
-      sample.device_chain_index = 1
+      -- Check if device chain 1 exists, otherwise use default chain 0
+      if #new_instrument.sample_device_chains > 1 then
+        sample.device_chain_index = 1
+        print("DEBUG: Assigned sample", i, "to device chain 1")
+      else
+        sample.device_chain_index = 0
+        print("DEBUG: Assigned sample", i, "to device chain 0 (chain 1 not available)")
+      end
       sample.loop_mode = 2
     else
       print("DEBUG: Sample slot", i, "not available for final settings")
@@ -415,7 +424,6 @@ function PakettiCreateUnisonSamples()
 
   -- Set the instrument volume
 --  new_instrument.volume = 0.3
-PakettiFillPitchStepperDigits(0.015,64)
 
 renoise.song().selected_phrase_index = original_phrase_index
 print(string.format("Restored selected_phrase_index to: %d", renoise.song().selected_phrase_index))
