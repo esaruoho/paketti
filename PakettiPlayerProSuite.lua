@@ -2270,8 +2270,8 @@ function pakettiPlayerProNoteCanvasDrawGrid(ctx)
         elseif col == 1 then  
           note_text = "OFF"
         else
-          -- Skip empty cells in bottom row
-          goto continue
+          -- Skip empty cells in bottom row - don't draw anything
+          note_text = nil
         end
       else
         -- Normal note grid (octaves 0-9)
@@ -2283,61 +2283,62 @@ function pakettiPlayerProNoteCanvasDrawGrid(ctx)
         end
       end
       
-      local is_black_key = use_piano_keys and row < 10 and black_keys[col + 1]
-      
-      -- Choose colors based on preference
-      local current_cell_color = is_black_key and black_key_color or white_key_color
-      local current_text_color = is_black_key and text_color_black or text_color
-      
-      if is_hovered then
-        current_cell_color = hover_color
-        -- Invert text color on hover
-        if preferences.pakettiPlayerProEffectDialogDarkMode.value then
-          current_text_color = {0, 0, 0, 255}  -- Black text on light hover
+      -- Only draw if we have note text
+      if note_text then
+        local is_black_key = use_piano_keys and row < 10 and black_keys[col + 1]
+        
+        -- Choose colors based on preference
+        local current_cell_color = is_black_key and black_key_color or white_key_color
+        local current_text_color = is_black_key and text_color_black or text_color
+        
+        if is_hovered then
+          current_cell_color = hover_color
+          -- Invert text color on hover
+          if preferences.pakettiPlayerProEffectDialogDarkMode.value then
+            current_text_color = {0, 0, 0, 255}  -- Black text on light hover
+          else
+            current_text_color = {255, 255, 255, 255}  -- White text on dark hover
+          end
+        end
+        
+        -- Draw cell background
+        ctx.fill_color = current_cell_color
+        ctx:fill_rect(x, y, note_cell_width, note_cell_height)
+        
+        -- Draw border
+        ctx.stroke_color = border_color
+        ctx.line_width = 1
+        ctx:stroke_rect(x, y, note_cell_width, note_cell_height)
+        
+        -- Draw note text with dynamic centering in each cell
+        ctx.stroke_color = current_text_color
+        ctx.line_width = 1
+        
+        -- Special handling for "000" - add extra spacing between zeros
+        if note_text == "000" then
+          local text_size = 5
+          local zero_width = text_size * 1.2
+          local extra_spacing = 2  -- Extra pixels between zeros
+          local total_width = (zero_width * 3) + (extra_spacing * 2)
+          local start_x = x + (note_cell_width - total_width) / 2
+          
+          -- Draw each zero individually with extra spacing (vertically centered)
+          local center_y = y + (note_cell_height - text_size) / 2
+          draw_canvas_text(ctx, "0", start_x, center_y, text_size)
+          draw_canvas_text(ctx, "0", start_x + zero_width + extra_spacing, center_y, text_size)
+          draw_canvas_text(ctx, "0", start_x + (zero_width + extra_spacing) * 2, center_y, text_size)
         else
-          current_text_color = {255, 255, 255, 255}  -- White text on dark hover
+          -- Normal text centering
+          local text_size = 5
+          local letter_spacing = text_size * 1.2
+          local text_width = #note_text * letter_spacing - (letter_spacing - text_size) -- Subtract last letter's extra spacing
+          local centered_x = x + (note_cell_width - text_width) / 2
+          
+          -- Vertically center text in cell
+          local center_y = y + (note_cell_height - text_size) / 2
+          draw_canvas_text(ctx, note_text, centered_x, center_y, text_size)
         end
       end
-      
-      -- Draw cell background
-      ctx.fill_color = current_cell_color
-      ctx:fill_rect(x, y, note_cell_width, note_cell_height)
-      
-      -- Draw border
-      ctx.stroke_color = border_color
-      ctx.line_width = 1
-      ctx:stroke_rect(x, y, note_cell_width, note_cell_height)
-      
-      -- Draw note text with dynamic centering in each cell
-      ctx.stroke_color = current_text_color
-      ctx.line_width = 1
-      
-      -- Special handling for "000" - add extra spacing between zeros
-      if note_text == "000" then
-        local text_size = 5
-        local zero_width = text_size * 1.2
-        local extra_spacing = 2  -- Extra pixels between zeros
-        local total_width = (zero_width * 3) + (extra_spacing * 2)
-        local start_x = x + (note_cell_width - total_width) / 2
-        
-        -- Draw each zero individually with extra spacing (vertically centered)
-        local center_y = y + (note_cell_height - text_size) / 2
-        draw_canvas_text(ctx, "0", start_x, center_y, text_size)
-        draw_canvas_text(ctx, "0", start_x + zero_width + extra_spacing, center_y, text_size)
-        draw_canvas_text(ctx, "0", start_x + (zero_width + extra_spacing) * 2, center_y, text_size)
-      else
-        -- Normal text centering
-        local text_size = 5
-        local letter_spacing = text_size * 1.2
-        local text_width = #note_text * letter_spacing - (letter_spacing - text_size) -- Subtract last letter's extra spacing
-        local centered_x = x + (note_cell_width - text_width) / 2
-        
-        -- Vertically center text in cell
-        local center_y = y + (note_cell_height - text_size) / 2
-        draw_canvas_text(ctx, note_text, centered_x, center_y, text_size)
-      end
-      
-      ::continue::
     end
   end
 end
