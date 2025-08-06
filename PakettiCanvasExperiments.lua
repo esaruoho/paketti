@@ -937,7 +937,13 @@ function PakettiCanvasExperimentsInit()
   
   -- Set up device selection observer
   if device_selection_notifier then
-    song.selected_device_observable:remove_notifier(device_selection_notifier)
+    pcall(function()
+      if song and song.selected_device_observable then
+        song.selected_device_observable:remove_notifier(device_selection_notifier)
+        print("INIT: ✅ Removed existing device selection observer")
+      end
+    end)
+    device_selection_notifier = nil
   end
   
   device_selection_notifier = function()

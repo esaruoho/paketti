@@ -1,50 +1,50 @@
-Keybinding: Pattern Editor:Paketti:ChordsPlus Transposer Row -11
-Keybinding: Global:Paketti:Set Selected Sample Velocity Tracking On
-Keybinding: Global:Paketti:Generate Pure Sinewave 440Hz
-Keybinding: Pattern Editor:Paketti:Impulse Tracker ALT-D Double Select
-Keybinding: Global:Paketti:Play at Random Line in Current Pattern 2
-Keybinding: Global:Paketti:BPM Increase (+0.1)
-Keybinding: Global:Paketti:Add New Phrase
-Keybinding: Global:Paketti:Randomize Effect Column Smatter (0D Slide Down)
-Keybinding: Global:Paketti:Play at Random Line in Current Pattern 4
-Keybinding: Global:Paketti:Fullscreen (2nd)
-Keybinding: Global:Paketti:Randomize Effect Column Fill (0D Slide Down)
-Keybinding: Global:Paketti:Set Selected Sample Loop Release On/Off
-Keybinding: Phrase Editor:Paketti:Decrease Delay -10
-Keybinding: Sample Editor:Paketti:Create New Instrument & Loop from Selection
-Keybinding: Global:Paketti:Impulse Tracker ALT-Y Swap Block
-Keybinding: Global:Paketti:Move Track Left
-Keybinding: Global:Paketti:Set Selected Sample Volume to -INF dB
-Keybinding: Global:Paketti:Move Slice Start Left by 100
-Keybinding: Global:Paketti:BPM Decrease (-5)
-Keybinding: Global:Paketti:Bypass All Sample FX on Selected Instrument
-Keybinding: Global:Paketti:BPM Decrease (-0.5)
-Keybinding: Pattern Editor:Paketti:Effect Column Uxx Slide Pitch Up (+1) (2nd)
-Keybinding: Sample Editor:Process:Recursive Remove DC Offset Random Times
-Keybinding: Global:Paketti:Play at 100% Speed (Song BPM)
-Keybinding: Global:Paketti:Impulse Tracker 8 Play Current Line Only
-Keybinding: Global:Paketti:Automation Bottom to Center (Exp)
-Keybinding: Pattern Editor:Paketti:Effect Column Dxx Slide Pitch Down (+1) (2nd)
-Keybinding: Sample Editor:Paketti:Rotate Sample Buffer Left 10000
-Keybinding: Global:Paketti:Isolate Slices or Samples to New Instruments
-Keybinding: Global:Paketti:Loop Set Percussion
-Keybinding: Global:Paketti:Selected Instrument Midi Program +1 (Next)
-Keybinding: Sample Navigator:Paketti:Move Slice End Right by 100
-Keybinding: Pattern Editor:Paketti:Toggle All Columns
-Keybinding: Phrase Editor:Paketti:Impulse Tracker ALT-F Expand Selection Twice
-Keybinding: Global:Paketti:Set Selected Sample Beatsync Line (+1)
-Keybinding: Sample Editor:Paketti:Move Slice End Right by 500
-Keybinding: Global:Paketti:Toggle Keyboard Velocity
-Keybinding: Pattern Sequencer:Paketti:Keep Sequence Sorted On
-Keybinding: Global:Paketti:LFO Write to Phrase LPB (1-127)
-Keybinding: Phrase Editor:Paketti:Toggle Note Off in Selected Tracks
-Keybinding: Sample Editor:Paketti:Sample Loop Halve
-Keybinding: Pattern Editor:Paketti:Set Pattern Length to 006 (006)
-Keybinding: Pattern Matrix:Paketti:Jump to First Track In Next Group
-Menu Entry: Main Menu:File:Wipe Song Patterns
-Keybinding: Pattern Editor:Paketti:Wipe All Automation in Track on Current Pattern
-Keybinding: Sample Editor:Paketti:Move Slice Start Left by 500
-Keybinding: Pattern Editor:Paketti:Effect Column Uxx Slide Pitch Up (-10)
-Keybinding: Global:Paketti:Copy Above Effect Column + Decrease Value
-Keybinding: Global:Paketti:Set Selected Instrument Panning 1.0 (Right)
-Keybinding: Global:Paketti:Create New Phrase using Paketti Settings
+Menu Entry: Mixer:Paketti:LFO Write:LFO Write to Effect Column 1 (0Uxx)
+Menu Entry: Pattern Editor:Paketti:Record:Paketti Overdub 12 (No Metronome/Line Input)
+Menu Entry: Mixer:Paketti:Tracks:Panning - Set All Tracks to Hard Left
+Keybinding: Global:Paketti:Show Polyend Pattern Browser
+Keybinding: Global:Paketti:Master Track to Mono and Hard Right
+Menu Entry: Instrument Box:Paketti:Instruments:Isolate Selected Sample to New Instrument
+Keybinding: Global:Paketti:Fill Empty Sample Slots (Randomized Folder)
+Menu Entry: Main Menu:Tools:Paketti:Xperimental/WIP:EQ10 XY Control...
+Keybinding: Global:Paketti:Set Master Track Volume to 0.0dB
+Menu Entry: Main Menu:Tools:Paketti:Xperimental/WIP:M8:Export Sample Chain
+Menu Entry: Sample Editor:Paketti:Create New Instrument & Loop from Selection
+Menu Entry: Pattern Editor:Paketti ChordsPlus:Transposer Row -11
+Menu Entry: Sample Editor:Paketti:Map Sample to All Keyzones
+Menu Entry: Pattern Matrix:Paketti:Delay Output:Nudge Delay Output Delay -01ms
+Keybinding: Global:Paketti:Set Selected Instrument Global Volume (0.0dB)
+Keybinding: Pattern Editor:Paketti:Impulse Tracker ALT-X Volume Column (Interpolate&Clear)
+Keybinding: Pattern Editor:Paketti:Convert Global Groove to Delay on Selected Track/Group
+Keybinding: Global:Paketti:LFO 03 Squarewave
+Menu Entry: Mixer:Paketti:Tracks:Create Group and Move DSPs
+Keybinding: Pattern Editor:Paketti:Set Pattern Length to LPB*128
+Menu Entry: Main Menu:Tools:Paketti:Global:Reset Basenote to Lowest Note Range
+Keybinding: Global:Paketti:Computer Keyboard Velocity (Halve)
+Keybinding: Global:Paketti:Hide All Unused Columns (All Tracks)
+Keybinding: Global:Paketti:Double Double BPM
+Keybinding: Pattern Editor:Navigation:Paketti Jump to Column (Next) (Note/FX)
+Menu Entry: Pattern Editor:Paketti:Column Cycle Keyjazz:Column Cycle Keyjazz Special (2)
+Menu Entry: Pattern Editor:Paketti:Effect Columns:0R(LPB) Retrig On/Off
+Keybinding: Pattern Editor:Paketti:Fill Effect Column with 0G01+0U00
+Keybinding: Global:Paketti:Paketti eSpeak Text-to-Speech Dialog...
+Keybinding: Phrase Editor:Paketti:Toggle Phrase Follow Pattern Playback Hack
+Menu Entry: Main Menu:Paketti:Set Sync Mode to (Jack)
+Menu Entry: Sample Navigator:Paketti:Process:Normalize All Instruments -12dB
+Keybinding: Global:Paketti:Convert Beatsync to Sample Pitch
+Keybinding: Global:Paketti:Divide LPB by 4, return to Original
+Keybinding: Sample Editor:Paketti:Set Loop Mode to 4 PingPong
+Menu Entry: Main Menu:Tools:Paketti:Instruments:File Formats:Import S1000 Sample...
+Menu Entry: Instrument Box:Paketti:Initialize:Add 84 Sample Slots to Instrument
+Keybinding: Global:Paketti:Enable All Sample FX on All Instruments
+Menu Entry: Pattern Editor:Paketti ChordsPlus:Basic Triads - Minor (4-3)
+Menu Entry: Sample Modulation Matrix:Paketti:Modify PitchStep Steps (Random)
+Menu Entry: Main Menu:Tools:Paketti:V3.5:Show/Hide Disk Browser
+Keybinding: Global:Paketti:Randomize All Plugins in Song with User3 (%)
+Keybinding: Global:Paketti:Load 05 AKWF Samples with Overlap Random
+Menu Entry: Pattern Matrix:Paketti:Pattern Matrix Selection Expand
+Keybinding: Pattern Editor:Paketti:ChordsPlus Extract Bassline to New Track
+Menu Entry: Main Menu:Tools:Paketti:Plugins/Devices:Debug:List Available VST Plugins (Console)
+Keybinding: Pattern Editor:Paketti:Effect Column Uxx Slide Pitch Up (+1) (3rd)
+Keybinding: Sample Editor:Paketti:Show Selection Info
+Keybinding: Pattern Editor:Paketti:Slices to Phrase (detected BPM, phrase only)
+Keybinding: Global:Paketti:Generate MIDI Mappings to Console

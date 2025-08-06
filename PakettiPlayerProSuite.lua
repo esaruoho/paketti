@@ -1329,14 +1329,10 @@ function pakettiPlayerProCanvasDrawEffect(ctx)
     -- Check if this value should be greyed out (9-F when in volume/panning/delay)
     local is_disabled = should_grey_out_high_values and i >= 9
     
-    -- In write mode, only show hover, not persistent selection
+    -- Show persistent selection AND hover (both in write and preview mode)
     local show_as_selected = false
     if not is_disabled then
-      if preferences.pakettiPlayerProEffectCanvasWrite.value then
-        show_as_selected = is_left_hovered
-      else
-        show_as_selected = is_left_selected or is_left_hovered
-      end
+      show_as_selected = is_left_selected or is_left_hovered
     end
     
     if is_disabled then
@@ -1358,19 +1354,20 @@ function pakettiPlayerProCanvasDrawEffect(ctx)
       ctx.stroke_color = show_as_selected and bg_color or text_color
     end
     ctx.line_width = 1
-    draw_canvas_text(ctx, hex_chars[i + 1], left_column_x + 6, y + 6, 8)
+    -- Center text horizontally and vertically
+    local text_size = 8
+    local char_width = 5  -- Approximate width for single hex characters
+    local centered_x = left_column_x + (cell_width - char_width) / 2
+    local center_y = y + (cell_height - text_size) / 2
+    draw_canvas_text(ctx, hex_chars[i + 1], centered_x, center_y, text_size)
     
     -- Right column (Y values)
     local is_right_hovered = (hover_column == "right" and hover_index == i)
     local is_right_selected = (selected_y == i)
     
-    -- In write mode, only show hover, not persistent selection
+    -- Show persistent selection AND hover (both in write and preview mode)
     local show_as_selected_right = false
-    if preferences.pakettiPlayerProEffectCanvasWrite.value then
-      show_as_selected_right = is_right_hovered
-    else
-      show_as_selected_right = is_right_selected or is_right_hovered
-    end
+    show_as_selected_right = is_right_selected or is_right_hovered
     
     if show_as_selected_right then
       ctx.fill_color = selected_color
@@ -1385,7 +1382,12 @@ function pakettiPlayerProCanvasDrawEffect(ctx)
     
     ctx.stroke_color = show_as_selected_right and bg_color or text_color
     ctx.line_width = 1
-    draw_canvas_text(ctx, hex_chars[i + 1], right_column_x + 6, y + 6, 8)
+    -- Center text horizontally and vertically
+    local text_size = 8
+    local char_width = 5  -- Approximate width for single hex characters
+    local centered_x = right_column_x + (cell_width - char_width) / 2
+    local center_y = y + (cell_height - text_size) / 2
+    draw_canvas_text(ctx, hex_chars[i + 1], centered_x, center_y, text_size)
   end
 end
 
@@ -1423,24 +1425,23 @@ function pakettiPlayerProCanvasHandleMouse(ev)
         
         -- Write on hover ONLY if Write mode is enabled
         if preferences.pakettiPlayerProEffectCanvasWrite.value and ev.type == "move" then
-        selected_x = index
-        local combined_hex = string.format("%X%X", selected_x, selected_y)
-        pakettiPlayerProCanvasWriteEffectToPattern("00", combined_hex)
-        -- Update status text
-        if effect_status_text then
-          local decimal_value = tonumber(combined_hex, 16)
-          effect_status_text.text = combined_hex .. "\n" .. decimal_value
-        end
-      else
-        -- Update status text for preview without writing
-        if ev.type == "move" and not preferences.pakettiPlayerProEffectCanvasWrite.value then
-          local temp_x = index
-          local combined_hex = string.format("%X%X", temp_x, selected_y)
+          local combined_hex = string.format("%X%X", index, selected_y)
+          pakettiPlayerProCanvasWriteEffectToPattern("00", combined_hex)
+          selected_x = index  -- Only update selection AFTER writing
+          -- Update status text
           if effect_status_text then
             local decimal_value = tonumber(combined_hex, 16)
             effect_status_text.text = combined_hex .. "\n" .. decimal_value
           end
-        end
+        else
+          -- Update status text for preview without writing (don't change selections)
+          if ev.type == "move" and not preferences.pakettiPlayerProEffectCanvasWrite.value then
+            local temp_combined_hex = string.format("%X%X", index, selected_y)
+            if effect_status_text then
+              local decimal_value = tonumber(temp_combined_hex, 16)
+              effect_status_text.text = temp_combined_hex .. "\n" .. decimal_value
+            end
+          end
       end
       
       -- Handle click on left column (always writes regardless of Write mode)
@@ -1449,7 +1450,30 @@ function pakettiPlayerProCanvasHandleMouse(ev)
         local combined_hex = string.format("%X%X", selected_x, selected_y)
         pakettiPlayerProCanvasWriteEffectToPattern("00", combined_hex)
         print("Selected X=" .. string.format("%X", selected_x) .. ", Effect=" .. combined_hex)
-        renoise.app():show_status("Selected X=" .. string.format("%X", selected_x) .. ", Effect Value=" .. combined_hex)
+        -- Determine column type for status message
+        local song = renoise.song()
+        local column_info = ""
+        if preferences.pakettiPlayerProEffectCanvasSubColumn.value then
+          local sub_column_type = song.selected_sub_column_type
+          if sub_column_type == renoise.Song.SUB_COLUMN_VOLUME then
+            column_info = " (Volume Column)"
+          elseif sub_column_type == renoise.Song.SUB_COLUMN_PANNING then
+            column_info = " (Panning Column)"
+          elseif sub_column_type == renoise.Song.SUB_COLUMN_DELAY then
+            column_info = " (Delay Column)"
+          elseif sub_column_type == renoise.Song.SUB_COLUMN_SAMPLE_EFFECT_AMOUNT then
+            column_info = " (Sample FX Amount)"
+          elseif sub_column_type == renoise.Song.SUB_COLUMN_SAMPLE_EFFECT_NUMBER then
+            column_info = " (Sample FX Number)"
+          elseif sub_column_type == renoise.Song.SUB_COLUMN_EFFECT_NUMBER then
+            column_info = " (Effect Number)"
+          elseif sub_column_type == renoise.Song.SUB_COLUMN_EFFECT_AMOUNT then
+            column_info = " (Effect Amount)"
+          end
+        else
+          column_info = " (Effect Column)"
+        end
+        renoise.app():show_status("Selected X=" .. string.format("%X", selected_x) .. ", Value=" .. combined_hex .. column_info)
         -- Update status text (show hex and decimal like legacy)
         if effect_status_text then
           local decimal_value = tonumber(combined_hex, 16)
@@ -1471,22 +1495,21 @@ function pakettiPlayerProCanvasHandleMouse(ev)
       
       -- Write on hover ONLY if Write mode is enabled
       if preferences.pakettiPlayerProEffectCanvasWrite.value and ev.type == "move" then
-        selected_y = index
-        local combined_hex = string.format("%X%X", selected_x, selected_y)
+        local combined_hex = string.format("%X%X", selected_x, index)
         pakettiPlayerProCanvasWriteEffectToPattern("00", combined_hex)
+        selected_y = index  -- Only update selection AFTER writing
         -- Update status text
         if effect_status_text then
           local decimal_value = tonumber(combined_hex, 16)
           effect_status_text.text = combined_hex .. "\n" .. decimal_value
         end
       else
-        -- Update status text for preview without writing
+        -- Update status text for preview without writing (don't change selections)
         if ev.type == "move" and not preferences.pakettiPlayerProEffectCanvasWrite.value then
-          local temp_y = index
-          local combined_hex = string.format("%X%X", selected_x, temp_y)
+          local temp_combined_hex = string.format("%X%X", selected_x, index)
           if effect_status_text then
-            local decimal_value = tonumber(combined_hex, 16)
-            effect_status_text.text = combined_hex .. "\n" .. decimal_value
+            local decimal_value = tonumber(temp_combined_hex, 16)
+            effect_status_text.text = temp_combined_hex .. "\n" .. decimal_value
           end
         end
       end
@@ -1497,7 +1520,30 @@ function pakettiPlayerProCanvasHandleMouse(ev)
         local combined_hex = string.format("%X%X", selected_x, selected_y)
         pakettiPlayerProCanvasWriteEffectToPattern("00", combined_hex)
         print("Selected Y=" .. string.format("%X", selected_y) .. ", Effect Amount=" .. combined_hex)
-        renoise.app():show_status("Selected Y=" .. string.format("%X", selected_y) .. ", Effect=" .. combined_hex)
+        -- Determine column type for status message
+        local song = renoise.song()
+        local column_info = ""
+        if preferences.pakettiPlayerProEffectCanvasSubColumn.value then
+          local sub_column_type = song.selected_sub_column_type
+          if sub_column_type == renoise.Song.SUB_COLUMN_VOLUME then
+            column_info = " (Volume Column)"
+          elseif sub_column_type == renoise.Song.SUB_COLUMN_PANNING then
+            column_info = " (Panning Column)"
+          elseif sub_column_type == renoise.Song.SUB_COLUMN_DELAY then
+            column_info = " (Delay Column)"
+          elseif sub_column_type == renoise.Song.SUB_COLUMN_SAMPLE_EFFECT_AMOUNT then
+            column_info = " (Sample FX Amount)"
+          elseif sub_column_type == renoise.Song.SUB_COLUMN_SAMPLE_EFFECT_NUMBER then
+            column_info = " (Sample FX Number)"
+          elseif sub_column_type == renoise.Song.SUB_COLUMN_EFFECT_NUMBER then
+            column_info = " (Effect Number)"
+          elseif sub_column_type == renoise.Song.SUB_COLUMN_EFFECT_AMOUNT then
+            column_info = " (Effect Amount)"
+          end
+        else
+          column_info = " (Effect Column)"
+        end
+        renoise.app():show_status("Selected Y=" .. string.format("%X", selected_y) .. ", Value=" .. combined_hex .. column_info)
         -- Update status text (show hex and decimal like legacy)
         if effect_status_text then
           local decimal_value = tonumber(combined_hex, 16)
@@ -1516,56 +1562,262 @@ end
 function pakettiPlayerProCanvasWriteEffectToPattern(effect_code, arg_value)
   local song = renoise.song()
   
+  -- Function to make specific columns visible across selection
+  local function make_column_visible(column_type)
+    if song.selection_in_pattern then
+      for t = song.selection_in_pattern.start_track, song.selection_in_pattern.end_track do
+        local track = song:track(t)
+        if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+          if column_type == "volume" then
+            track.volume_column_visible = true
+          elseif column_type == "panning" then
+            track.panning_column_visible = true
+          elseif column_type == "delay" then
+            track.delay_column_visible = true
+          elseif column_type == "samplefx" then
+            track.sample_effects_column_visible = true
+          elseif column_type == "effect" then
+            track.visible_effect_columns = math.max(track.visible_effect_columns, 1)
+          end
+        end
+      end
+    else
+      local track = song.selected_track
+      if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+        if column_type == "volume" then
+          track.volume_column_visible = true
+        elseif column_type == "panning" then
+          track.panning_column_visible = true
+        elseif column_type == "delay" then
+          track.delay_column_visible = true
+        elseif column_type == "samplefx" then
+          track.sample_effects_column_visible = true
+        elseif column_type == "effect" then
+          track.visible_effect_columns = math.max(track.visible_effect_columns, 1)
+        end
+      end
+    end
+  end
+  
   -- Check if X checkbox is enabled for subcolumn detection
   if preferences.pakettiPlayerProEffectCanvasSubColumn.value then
     local sub_column_type = song.selected_sub_column_type
+    local decimal_value = tonumber(arg_value, 16) or 0
     
-    -- Handle different subcolumn types
+    -- Handle different subcolumn types with selection support
     if sub_column_type == renoise.Song.SUB_COLUMN_VOLUME then
       -- In volume subcolumn - write to volume_value
-      if song.selected_note_column then
-        local decimal_value = tonumber(arg_value, 16) or 0
-        song.selected_note_column.volume_value = math.min(decimal_value, 128) -- Volume max is 128
+      make_column_visible("volume")
+      
+      if song.selection_in_pattern then
+        for t = song.selection_in_pattern.start_track, song.selection_in_pattern.end_track do
+          local track = song:track(t)
+          if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+            local note_columns_visible = track.visible_note_columns
+            local start_column = (t == song.selection_in_pattern.start_track) and song.selection_in_pattern.start_column or 1
+            local end_column = (t == song.selection_in_pattern.end_track) and song.selection_in_pattern.end_column or note_columns_visible
+            for i = song.selection_in_pattern.start_line, song.selection_in_pattern.end_line do
+              for col = start_column, end_column do
+                if col <= note_columns_visible then
+                  local note_column = song:pattern(song.selected_pattern_index):track(t):line(i).note_columns[col]
+                  if note_column then
+                    note_column.volume_value = math.min(decimal_value, 128)
+                  end
+                end
+              end
+            end
+          end
+        end
+      else
+        if song.selected_note_column then
+          song.selected_note_column.volume_value = math.min(decimal_value, 128)
+        end
       end
       return
+      
     elseif sub_column_type == renoise.Song.SUB_COLUMN_PANNING then
       -- In panning subcolumn - write to panning_value
-      if song.selected_note_column then
-        local decimal_value = tonumber(arg_value, 16) or 0
-        song.selected_note_column.panning_value = math.min(decimal_value, 128) -- Panning max is 128
+      make_column_visible("panning")
+      
+      if song.selection_in_pattern then
+        for t = song.selection_in_pattern.start_track, song.selection_in_pattern.end_track do
+          local track = song:track(t)
+          if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+            local note_columns_visible = track.visible_note_columns
+            local start_column = (t == song.selection_in_pattern.start_track) and song.selection_in_pattern.start_column or 1
+            local end_column = (t == song.selection_in_pattern.end_track) and song.selection_in_pattern.end_column or note_columns_visible
+            for i = song.selection_in_pattern.start_line, song.selection_in_pattern.end_line do
+              for col = start_column, end_column do
+                if col <= note_columns_visible then
+                  local note_column = song:pattern(song.selected_pattern_index):track(t):line(i).note_columns[col]
+                  if note_column then
+                    note_column.panning_value = math.min(decimal_value, 128)
+                  end
+                end
+              end
+            end
+          end
+        end
+      else
+        if song.selected_note_column then
+          song.selected_note_column.panning_value = math.min(decimal_value, 128)
+        end
       end
       return
+      
     elseif sub_column_type == renoise.Song.SUB_COLUMN_DELAY then
       -- In delay subcolumn - write to delay_value
-      if song.selected_note_column then
-        local decimal_value = tonumber(arg_value, 16) or 0
-        song.selected_note_column.delay_value = math.min(decimal_value, 255) -- Delay max is 255
+      make_column_visible("delay")
+      
+      if song.selection_in_pattern then
+        for t = song.selection_in_pattern.start_track, song.selection_in_pattern.end_track do
+          local track = song:track(t)
+          if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+            local note_columns_visible = track.visible_note_columns
+            local start_column = (t == song.selection_in_pattern.start_track) and song.selection_in_pattern.start_column or 1
+            local end_column = (t == song.selection_in_pattern.end_track) and song.selection_in_pattern.end_column or note_columns_visible
+            for i = song.selection_in_pattern.start_line, song.selection_in_pattern.end_line do
+              for col = start_column, end_column do
+                if col <= note_columns_visible then
+                  local note_column = song:pattern(song.selected_pattern_index):track(t):line(i).note_columns[col]
+                  if note_column then
+                    note_column.delay_value = math.min(decimal_value, 255)
+                  end
+                end
+              end
+            end
+          end
+        end
+      else
+        if song.selected_note_column then
+          song.selected_note_column.delay_value = math.min(decimal_value, 255)
+        end
       end
       return
-    elseif sub_column_type == renoise.Song.SUB_COLUMN_EFFECT_NUMBER then
-      -- In effect number subcolumn - write to number
-      if song.selected_effect_column then
-        song.selected_effect_column.number_string = arg_value
-      end
-      return
-    elseif sub_column_type == renoise.Song.SUB_COLUMN_EFFECT_AMOUNT then
-      -- In effect amount subcolumn - write to amount_value
-      if song.selected_effect_column then
-        local decimal_value = tonumber(arg_value, 16) or 0
-        song.selected_effect_column.amount_value = decimal_value
-      end
-      return
-    elseif sub_column_type == renoise.Song.SUB_COLUMN_SAMPLE_EFFECT_NUMBER then
-      -- In sample effect number subcolumn
-      if song.selected_note_column then
-        song.selected_note_column.effect_number_string = arg_value
-      end
-      return
+      
     elseif sub_column_type == renoise.Song.SUB_COLUMN_SAMPLE_EFFECT_AMOUNT then
       -- In sample effect amount subcolumn
-      if song.selected_note_column then
-        local decimal_value = tonumber(arg_value, 16) or 0
-        song.selected_note_column.effect_amount_value = decimal_value
+      make_column_visible("samplefx")
+      
+      if song.selection_in_pattern then
+        for t = song.selection_in_pattern.start_track, song.selection_in_pattern.end_track do
+          local track = song:track(t)
+          if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+            local note_columns_visible = track.visible_note_columns
+            local start_column = (t == song.selection_in_pattern.start_track) and song.selection_in_pattern.start_column or 1
+            local end_column = (t == song.selection_in_pattern.end_track) and song.selection_in_pattern.end_column or note_columns_visible
+            for i = song.selection_in_pattern.start_line, song.selection_in_pattern.end_line do
+              for col = start_column, end_column do
+                if col <= note_columns_visible then
+                  local note_column = song:pattern(song.selected_pattern_index):track(t):line(i).note_columns[col]
+                  if note_column then
+                    note_column.effect_amount_value = decimal_value
+                  end
+                end
+              end
+            end
+          end
+        end
+      else
+        if song.selected_note_column then
+          song.selected_note_column.effect_amount_value = decimal_value
+        end
+      end
+      return
+      
+    elseif sub_column_type == renoise.Song.SUB_COLUMN_EFFECT_NUMBER then
+      -- In effect number subcolumn - write to number
+      make_column_visible("effect")
+      
+      if song.selection_in_pattern then
+        for t = song.selection_in_pattern.start_track, song.selection_in_pattern.end_track do
+          local track = song:track(t)
+          if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+            local note_columns_visible = track.visible_note_columns
+            local effect_columns_visible = track.visible_effect_columns
+            local total_columns_visible = note_columns_visible + effect_columns_visible
+            local start_column = (t == song.selection_in_pattern.start_track) and song.selection_in_pattern.start_column or note_columns_visible + 1
+            local end_column = (t == song.selection_in_pattern.end_track) and song.selection_in_pattern.end_column or total_columns_visible
+            for i = song.selection_in_pattern.start_line, song.selection_in_pattern.end_line do
+              for col = start_column, end_column do
+                local column_index = col - note_columns_visible
+                if column_index > 0 and column_index <= effect_columns_visible then
+                  local effect_column = song:pattern(song.selected_pattern_index):track(t):line(i):effect_column(column_index)
+                  if effect_column then
+                    effect_column.number_string = arg_value
+                  end
+                end
+              end
+            end
+          end
+        end
+      else
+        if song.selected_effect_column then
+          song.selected_effect_column.number_string = arg_value
+        end
+      end
+      return
+      
+    elseif sub_column_type == renoise.Song.SUB_COLUMN_EFFECT_AMOUNT then
+      -- In effect amount subcolumn - write to amount_value
+      make_column_visible("effect")
+      
+      if song.selection_in_pattern then
+        for t = song.selection_in_pattern.start_track, song.selection_in_pattern.end_track do
+          local track = song:track(t)
+          if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+            local note_columns_visible = track.visible_note_columns
+            local effect_columns_visible = track.visible_effect_columns
+            local total_columns_visible = note_columns_visible + effect_columns_visible
+            local start_column = (t == song.selection_in_pattern.start_track) and song.selection_in_pattern.start_column or note_columns_visible + 1
+            local end_column = (t == song.selection_in_pattern.end_track) and song.selection_in_pattern.end_column or total_columns_visible
+            for i = song.selection_in_pattern.start_line, song.selection_in_pattern.end_line do
+              for col = start_column, end_column do
+                local column_index = col - note_columns_visible
+                if column_index > 0 and column_index <= effect_columns_visible then
+                  local effect_column = song:pattern(song.selected_pattern_index):track(t):line(i):effect_column(column_index)
+                  if effect_column then
+                    effect_column.amount_value = decimal_value
+                  end
+                end
+              end
+            end
+          end
+        end
+      else
+        if song.selected_effect_column then
+          song.selected_effect_column.amount_value = decimal_value
+        end
+      end
+      return
+      
+    elseif sub_column_type == renoise.Song.SUB_COLUMN_SAMPLE_EFFECT_NUMBER then
+      -- In sample effect number subcolumn
+      make_column_visible("samplefx")
+      
+      if song.selection_in_pattern then
+        for t = song.selection_in_pattern.start_track, song.selection_in_pattern.end_track do
+          local track = song:track(t)
+          if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+            local note_columns_visible = track.visible_note_columns
+            local start_column = (t == song.selection_in_pattern.start_track) and song.selection_in_pattern.start_column or 1
+            local end_column = (t == song.selection_in_pattern.end_track) and song.selection_in_pattern.end_column or note_columns_visible
+            for i = song.selection_in_pattern.start_line, song.selection_in_pattern.end_line do
+              for col = start_column, end_column do
+                if col <= note_columns_visible then
+                  local note_column = song:pattern(song.selected_pattern_index):track(t):line(i).note_columns[col]
+                  if note_column then
+                    note_column.effect_number_string = arg_value
+                  end
+                end
+              end
+            end
+          end
+        end
+      else
+        if song.selected_note_column then
+          song.selected_note_column.effect_number_string = arg_value
+        end
       end
       return
     end
@@ -1672,15 +1924,84 @@ function pakettiPlayerProEffectDialogCanvas()
         width = 44,
         tooltip = "Clear selection",
         notifier = function()
-          selected_x = 0
-          selected_y = 0
+          local song = renoise.song()
+          
+          if preferences.pakettiPlayerProEffectCanvasSubColumn.value then
+            -- X mode: Clear the current subcolumn type across selection
+            local sub_column_type = song.selected_sub_column_type
+            local column_name = ""
+            
+            if sub_column_type == renoise.Song.SUB_COLUMN_VOLUME then
+              column_name = "Volume"
+              pakettiPlayerProCanvasWriteEffectToPattern("00", "00")  -- Clear volume
+            elseif sub_column_type == renoise.Song.SUB_COLUMN_PANNING then
+              column_name = "Panning" 
+              pakettiPlayerProCanvasWriteEffectToPattern("00", "40")  -- Center panning
+            elseif sub_column_type == renoise.Song.SUB_COLUMN_DELAY then
+              column_name = "Delay"
+              pakettiPlayerProCanvasWriteEffectToPattern("00", "00")  -- Clear delay
+            elseif sub_column_type == renoise.Song.SUB_COLUMN_SAMPLE_EFFECT_AMOUNT then
+              column_name = "Sample FX Amount"
+              pakettiPlayerProCanvasWriteEffectToPattern("00", "00")  -- Clear sample fx amount
+            elseif sub_column_type == renoise.Song.SUB_COLUMN_SAMPLE_EFFECT_NUMBER then
+              column_name = "Sample FX Number"
+              pakettiPlayerProCanvasWriteEffectToPattern("00", "00")  -- Clear sample fx number
+            elseif sub_column_type == renoise.Song.SUB_COLUMN_EFFECT_NUMBER then
+              column_name = "Effect Number"
+              pakettiPlayerProCanvasWriteEffectToPattern("00", "00")  -- Clear effect number
+            elseif sub_column_type == renoise.Song.SUB_COLUMN_EFFECT_AMOUNT then
+              column_name = "Effect Amount"
+              pakettiPlayerProCanvasWriteEffectToPattern("00", "00")  -- Clear effect amount
+            else
+              column_name = "Unknown Column"
+            end
+            
+            renoise.app():show_status("Cleared " .. column_name .. " column selection")
+          else
+            -- Normal mode: Clear effect columns and reset canvas selection
+            if song.selection_in_pattern then
+              -- Clear selection
+              for t = song.selection_in_pattern.start_track, song.selection_in_pattern.end_track do
+                local track = song:track(t)
+                local note_columns_visible = track.visible_note_columns
+                local effect_columns_visible = track.visible_effect_columns
+                local total_columns_visible = note_columns_visible + effect_columns_visible
+                
+                local start_column = (t == song.selection_in_pattern.start_track) and song.selection_in_pattern.start_column or note_columns_visible + 1
+                local end_column = (t == song.selection_in_pattern.end_track) and song.selection_in_pattern.end_column or total_columns_visible
+                
+                for i = song.selection_in_pattern.start_line, song.selection_in_pattern.end_line do
+                  for col = start_column, end_column do
+                    local column_index = col - note_columns_visible
+                    if column_index > 0 and column_index <= effect_columns_visible then
+                      local effect_column = song:pattern(song.selected_pattern_index):track(t):line(i):effect_column(column_index)
+                      if effect_column then
+                        effect_column:clear()
+                      end
+                    end
+                  end
+                end
+              end
+              renoise.app():show_status("Cleared effect columns in selection")
+            else
+              -- Clear current effect column
+              if song.selected_effect_column then
+                song.selected_effect_column:clear()
+                renoise.app():show_status("Cleared current effect column")
+              end
+            end
+            
+            -- Reset canvas selection
+            selected_x = 0
+            selected_y = 0
+          end
+          
           if effect_canvas then
             effect_canvas:update()
           end
           if effect_status_text then
             effect_status_text.text = "00\n0"
           end
-          renoise.app():show_status("Cleared effect selection")
         end
       },
       vb:button {
@@ -1890,7 +2211,7 @@ function pakettiPlayerProNoteGridShowCanvasGrid()
   }
   
   local keyhandler = my_keyhandler_func
-  note_canvas_dialog = renoise.app():show_custom_dialog("Note", dialog_content, keyhandler)
+  note_canvas_dialog = renoise.app():show_custom_dialog("PlayerPro Note Grid Dialog", dialog_content, keyhandler)
   
   -- Set focus to pattern editor
   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
@@ -1919,10 +2240,10 @@ function pakettiPlayerProNoteCanvasDrawGrid(ctx)
     -- Light mode
     bg_color = {240, 240, 240, 255}      -- Light background
     white_key_color = {255, 255, 255, 255}  -- White cells (uniform or white keys)
-    black_key_color = use_piano_keys and {245, 245, 245, 255} or {255, 255, 255, 255}  -- Pale grey for black keys (if enabled)
+    black_key_color = use_piano_keys and {200, 200, 200, 255} or {255, 255, 255, 255}  -- Medium grey for black keys (if enabled)
     hover_color = {60, 60, 60, 255}      -- Dark hover (inverted)
     text_color = {0, 0, 0, 255}          -- Black text
-    text_color_black = {60, 60, 60, 255}  -- Darker grey for black keys
+    text_color_black = {40, 40, 40, 255}  -- Dark grey text for black keys (better contrast)
     border_color = {150, 150, 150, 255}  -- Gray border
   end
   
@@ -2080,7 +2401,14 @@ function pakettiPlayerProNoteCanvasHandleMouse(ev)
         note_hover_column = col
         note_hover_row = row
         
-        local note_name = note_names[col + 1] .. row  -- e.g., "C0"
+        -- Format note for Renoise: "C-0", "C#0", etc.
+        local base_note = note_names[col + 1]
+        local note_name
+        if string.find(base_note, "#") then
+          note_name = base_note .. row  -- Sharp notes: "C#0"
+        else
+          note_name = base_note .. "-" .. row  -- Natural notes: "C-0"
+        end
         note_selected_note = note_name
         
         -- Update status text
@@ -2819,25 +3147,75 @@ function pakettiPlayerProMainNoteCanvasHandleMouse(ev)
     local row = math.floor(y / note_cell_height)
     
     if col >= 0 and col < note_columns and row >= 0 and row < note_rows then
-      note_hover_column = col
-      note_hover_row = row
-      
-      local note_name = note_names[col + 1] .. row  -- e.g., "C-0"
-      note_selected_note = note_name
-      
-      -- Update status text (main dialog version)
-      if main_note_status_text then
-        main_note_status_text.text = "Note: " .. note_name
-      end
-      
-      -- Write on hover if enabled
-      if preferences.pakettiPlayerProNoteCanvasWrite.value and ev.type == "move" then
-        pakettiPlayerProMainNoteCanvasInsertNote(note_name)
-      end
-      
-      -- Handle click (always writes regardless of Write mode)
-      if ev.type == "down" then
-        pakettiPlayerProMainNoteCanvasInsertNote(note_name)
+      -- Handle special bottom row (000, OFF)
+      if row == 10 then
+        if col == 0 then
+          note_hover_column = col
+          note_hover_row = row
+          note_selected_note = "000"
+          
+          if main_note_status_text then
+            main_note_status_text.text = "Note: 000 (Cut)"
+          end
+          
+          -- Write on hover if enabled
+          if preferences.pakettiPlayerProNoteCanvasWrite.value and ev.type == "move" then
+            pakettiPlayerProMainNoteCanvasInsertNote("000")
+          end
+          
+          -- Handle click
+          if ev.type == "down" then
+            pakettiPlayerProMainNoteCanvasInsertNote("000")
+          end
+        elseif col == 1 then
+          note_hover_column = col
+          note_hover_row = row
+          note_selected_note = "OFF"
+          
+          if main_note_status_text then
+            main_note_status_text.text = "Note: OFF"
+          end
+          
+          -- Write on hover if enabled
+          if preferences.pakettiPlayerProNoteCanvasWrite.value and ev.type == "move" then
+            pakettiPlayerProMainNoteCanvasInsertNote("OFF")
+          end
+          
+          -- Handle click
+          if ev.type == "down" then
+            pakettiPlayerProMainNoteCanvasInsertNote("OFF")
+          end
+        end
+        -- Skip other columns in row 10
+      else
+        -- Normal note grid (octaves 0-9)
+        note_hover_column = col
+        note_hover_row = row
+        
+        -- Format note for Renoise: "C-0", "C#0", etc.
+        local base_note = note_names[col + 1]
+        local note_name
+        if string.find(base_note, "#") then
+          note_name = base_note .. row  -- Sharp notes: "C#0"
+        else
+          note_name = base_note .. "-" .. row  -- Natural notes: "C-0"
+        end
+        note_selected_note = note_name
+        
+        -- Update status text (main dialog version)
+        if main_note_status_text then
+          main_note_status_text.text = "Note: " .. note_name
+        end
+        
+        -- Write on hover if enabled
+        if preferences.pakettiPlayerProNoteCanvasWrite.value and ev.type == "move" then
+          pakettiPlayerProMainNoteCanvasInsertNote(note_name)
+        end
+        
+        -- Handle click (always writes regardless of Write mode)
+        if ev.type == "down" then
+          pakettiPlayerProMainNoteCanvasInsertNote(note_name)
+        end
       end
     end
   end

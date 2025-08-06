@@ -874,16 +874,38 @@ function pakettiSlicesToPattern(start_from_first_row, use_detected_bpm)
   
   -- Find the base note for slices by looking at sample mappings
   local slice_base_note = 60 -- Default to C-4
-  local sample_mappings = instrument.sample_mappings[1] -- Note layer
   
-  -- Find the lowest note that has a mapping (usually the full sample)
-  for note = 0, 119 do
-    local mapping = sample_mappings[note + 1] -- Lua 1-based indexing
-    if mapping and mapping.sample then
-      -- First mapping found - slices typically start one note higher
-      slice_base_note = note + 1
-      print("Debug: Found mapping at note", note, "- slices start at", slice_base_note)
-      break
+  -- For sliced instruments, get the base note directly from the first sample's mapping
+  if #slice_markers > 0 then
+    -- The original sample (full sample) is at sample_mappings[1][1]
+    -- The first slice is at sample_mappings[1][2] (if it exists)
+    local sample_mappings = instrument.sample_mappings[1] -- Note layer
+    
+    if sample_mappings and #sample_mappings >= 2 then
+      -- Get the first slice mapping (slices start at index 2)
+      local first_slice_mapping = sample_mappings[2]
+      if first_slice_mapping and first_slice_mapping.base_note then
+        slice_base_note = first_slice_mapping.base_note
+        print("Debug: Found first slice base note directly:", slice_base_note)
+      else
+        -- Fallback: get original sample base note and add 1
+        local original_mapping = sample_mappings[1]
+        if original_mapping and original_mapping.base_note then
+          slice_base_note = original_mapping.base_note + 1
+          print("Debug: Using original sample base note + 1:", slice_base_note)
+        end
+      end
+    else
+      -- Fallback to original approach if mapping structure is unexpected
+      for note = 0, 119 do
+        local mapping = sample_mappings[note + 1] -- Lua 1-based indexing
+        if mapping and mapping.sample then
+          -- First mapping found - slices typically start one note higher
+          slice_base_note = note + 1
+          print("Debug: Fallback - found mapping at note", note, "- slices start at", slice_base_note)
+          break
+        end
+      end
     end
   end
   
@@ -1021,16 +1043,38 @@ function pakettiSlicesToPhrase(add_trigger_note, use_detected_bpm)
   
   -- Find the base note for slices by looking at sample mappings
   local slice_base_note = 60 -- Default to C-4
-  local sample_mappings = new_instrument.sample_mappings[1] -- Note layer
   
-  -- Find the lowest note that has a mapping (usually the full sample)
-  for note = 0, 119 do
-    local mapping = sample_mappings[note + 1] -- Lua 1-based indexing
-    if mapping and mapping.sample then
-      -- First mapping found - slices typically start one note higher
-      slice_base_note = note + 1
-      print("Debug: Found mapping at note", note, "- slices start at", slice_base_note)
-      break
+  -- For sliced instruments, get the base note directly from the first sample's mapping
+  if #slice_markers > 0 then
+    -- The original sample (full sample) is at sample_mappings[1][1]
+    -- The first slice is at sample_mappings[1][2] (if it exists)
+    local sample_mappings = new_instrument.sample_mappings[1] -- Note layer
+    
+    if sample_mappings and #sample_mappings >= 2 then
+      -- Get the first slice mapping (slices start at index 2)
+      local first_slice_mapping = sample_mappings[2]
+      if first_slice_mapping and first_slice_mapping.base_note then
+        slice_base_note = first_slice_mapping.base_note
+        print("Debug: Found first slice base note directly:", slice_base_note)
+      else
+        -- Fallback: get original sample base note and add 1
+        local original_mapping = sample_mappings[1]
+        if original_mapping and original_mapping.base_note then
+          slice_base_note = original_mapping.base_note + 1
+          print("Debug: Using original sample base note + 1:", slice_base_note)
+        end
+      end
+    else
+      -- Fallback to original approach if mapping structure is unexpected
+      for note = 0, 119 do
+        local mapping = sample_mappings[note + 1] -- Lua 1-based indexing
+        if mapping and mapping.sample then
+          -- First mapping found - slices typically start one note higher
+          slice_base_note = note + 1
+          print("Debug: Fallback - found mapping at note", note, "- slices start at", slice_base_note)
+          break
+        end
+      end
     end
   end
   
