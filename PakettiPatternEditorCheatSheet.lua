@@ -1292,7 +1292,7 @@ local function get_effect_description(effect_number)
 end
 
 -- Function to show status for current selection
-local function show_current_status()
+function show_current_status()
   if not status_monitor_enabled then return end
   
   local song = renoise.song()
@@ -1334,47 +1334,39 @@ local function show_current_status()
       
       -- Instrument information
       if note_column.instrument_value ~= renoise.PatternLine.EMPTY_INSTRUMENT then
-        table.insert(parts, string.format("Instr: %02X", note_column.instrument_value))
+        table.insert(parts, string.format("I:%02X", note_column.instrument_value))
       end
       
       -- Volume information
       if note_column.volume_value ~= renoise.PatternLine.EMPTY_VOLUME then
-        local vol_percent = math.floor((note_column.volume_value / 0x80) * 100)
-        table.insert(parts, string.format("Vol: 0x%02X (%d%%)", note_column.volume_value, vol_percent))
+        table.insert(parts, string.format("Vol:%02X", note_column.volume_value))
       end
       
       -- Panning information
       if note_column.panning_value ~= renoise.PatternLine.EMPTY_PANNING then
-        local pan_percent = math.floor((note_column.panning_value / 0x80) * 100)
-        local pan_desc = "Center"
-        if note_column.panning_value < 0x40 then
-          pan_desc = "Left"
-        elseif note_column.panning_value > 0x40 then
-          pan_desc = "Right"
-        end
-        table.insert(parts, string.format("Pan: 0x%02X (%s)", note_column.panning_value, pan_desc))
+        table.insert(parts, string.format("Pan:%02X", note_column.panning_value))
       end
       
       -- Delay information
       if note_column.delay_value ~= renoise.PatternLine.EMPTY_DELAY then
-        table.insert(parts, string.format("Delay: 0x%02X", note_column.delay_value))
+        table.insert(parts, string.format("Dly:%02X", note_column.delay_value))
       end
       
       -- Sample FX information
       if note_column.effect_number_value ~= renoise.PatternLine.EMPTY_EFFECT_NUMBER or
          note_column.effect_amount_value ~= renoise.PatternLine.EMPTY_EFFECT_AMOUNT then
         local fx_num = string.format("%02X", note_column.effect_number_value)
-        table.insert(parts, string.format("SampleFX: %s (0x%02X)", fx_num, note_column.effect_amount_value))
+        table.insert(parts, string.format("FX:%s%02X", fx_num, note_column.effect_amount_value))
       end
       
       if #parts > 0 then
-        status_text = "Note Column: " .. table.concat(parts, ", ")
+        status_text = table.concat(parts, " ")
       else
-        status_text = "Note Column: Empty"
+        status_text = "Empty"
       end
     end
   else
-    status_text = "Pattern Editor: No column selected"
+    status_text = "No column selected"
   end
   
   renoise.app():show_status(status_text)

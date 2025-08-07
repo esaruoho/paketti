@@ -125,6 +125,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiPlayerProNoteCanvasClearSelection = true,
   pakettiPlayerProAlwaysOpen = false,
   pakettiPlayerProSmartSubColumn = true,
+  pakettiPlayerProAutoHideOnFrameSwitch = true,
   pakettiInstrumentInfoDialogHeight=750,
   pakettiEnableGlobalGrooveOnStartup=false,
   pakettiRandomizeBPMOnNewSong=false,
@@ -1389,6 +1390,24 @@ vb:row{
               notifier=function(value) 
                 preferences.pakettiPlayerProSmartSubColumn.value=(value==2)
                 print(string.format("PlayerPro Smart SubColumn changed to: %s", value == 2 and "On" or "Off"))
+              end
+            }
+          },
+          vb:row{
+            vb:text{text="Auto-Hide on Frame Switch",width=150,tooltip="Automatically hide PlayerPro dialogs when switching away from Pattern Editor"},
+            vb:switch{items={"Off","On"},
+              value=preferences.pakettiPlayerProAutoHideOnFrameSwitch.value and 2 or 1,
+              width=200,
+              tooltip="Automatically hide PlayerPro dialogs when switching away from Pattern Editor",
+              notifier=function(value) 
+                preferences.pakettiPlayerProAutoHideOnFrameSwitch.value=(value==2)
+                -- Update the middle frame observer based on the new setting
+                if value == 2 then
+                  pakettiPlayerProStartMiddleFrameObserver()
+                else
+                  pakettiPlayerProStopMiddleFrameObserver()
+                end
+                print(string.format("PlayerPro Auto-Hide on Frame Switch changed to: %s", value == 2 and "On" or "Off"))
               end
             }
           },

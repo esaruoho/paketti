@@ -156,12 +156,11 @@ function timed_require(module_name)
 end
 print ("---------------------")
 
-
 -- Helper function to create a keyhandler that can manage a specific dialog variable
 function create_keyhandler_for_dialog(dialog_var_getter, dialog_var_setter)
   return function(dialog, key)
     local closer = preferences.pakettiDialogClose.value
-    print("Key handler called - key.name: '" .. tostring(key.name) .. "', key.modifiers: '" .. tostring(key.modifiers) .. "', closer: '" .. tostring(closer) .. "'")
+    print("KEYHANDLER DEBUG: name:'" .. tostring(key.name) .. "' modifiers:'" .. tostring(key.modifiers) .. "' closer:'" .. tostring(closer) .. "'")
     
     if key.modifiers == "" and key.name == closer then
       -- Clean up any observers that might exist
@@ -177,15 +176,14 @@ function create_keyhandler_for_dialog(dialog_var_getter, dialog_var_setter)
   end
 end
 
-
 -- Legacy function for backwards compatibility
 function my_keyhandler_func(dialog, key)
   local closer = preferences.pakettiDialogClose.value
-  print("Key handler called - key.name: '" .. tostring(key.name) .. "', key.modifiers: '" .. tostring(key.modifiers) .. "', closer: '" .. tostring(closer) .. "'")
+  print("KEYHANDLER DEBUG: name:'" .. tostring(key.name) .. "' modifiers:'" .. tostring(key.modifiers) .. "' closer:'" .. tostring(closer) .. "'")
   
   if key.modifiers == "" and key.name == closer then
     -- Clean up any observers that might exist
-    print("YO i got " .. closer)
+    --print("YO i got " .. closer)
     if cleanup_observers then
       cleanup_observers()
     end
@@ -520,8 +518,15 @@ function startup()
         enable_pattern_status_monitor()
       end
 
+      
       -- Initialize PlayerPro Always Open Dialog system
-      pakettiPlayerProInitializeAlwaysOpen()
+      -- Only initialize if we're in Pattern Editor to prevent unwanted dialog openings
+      if renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR then
+        pakettiPlayerProInitializeAlwaysOpen()
+      else
+        -- Initialize without opening dialogs if not in Pattern Editor
+        pakettiPlayerProStartMiddleFrameObserver()
+      end
 
       
       if preferences.pakettiThemeSelector.RenoiseLaunchRandomLoad.value then 

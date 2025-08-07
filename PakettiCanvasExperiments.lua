@@ -1437,19 +1437,9 @@ function PakettiCanvasExperimentsDrawCanvas(ctx)
 end
 
 -- Key handler function to pass keys back to Renoise
-function my_keyhandler_func(dialog, key)
-  -- DEBUG: Show exactly what we're receiving
-  print("KEYHANDLER DEBUG:")
-  print("  key.name: '" .. tostring(key.name) .. "'")
-  print("  key.modifiers: '" .. tostring(key.modifiers) .. "'")
-  print("  key.modifiers type: " .. type(key.modifiers))
-  if type(key.modifiers) == "table" then
-    print("  modifiers table contents:")
-    for i, mod in ipairs(key.modifiers) do
-      print("    [" .. i .. "] = '" .. tostring(mod) .. "'")
-    end
-  end
-  print("  ---")
+function paketti_canvas_keyhandler_func(dialog, key)
+  local closer = preferences.pakettiDialogClose.value
+  print("KEYHANDLER DEBUG: name:'" .. tostring(key.name) .. "' modifiers:'" .. tostring(key.modifiers) .. "' closer:'" .. tostring(closer) .. "'")
   
   -- Check for CMD-H to close dialog
   if key.modifiers == "command" and key.name == "h" then
@@ -1878,7 +1868,7 @@ function PakettiCanvasExperimentsCreateDialog()
   canvas_experiments_dialog = renoise.app():show_custom_dialog(
     title,
     dialog_content,
-    my_keyhandler_func
+    paketti_canvas_keyhandler_func
   )
   
   -- CRITICAL: Ensure cleanup happens when dialog is closed by user clicking X

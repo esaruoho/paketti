@@ -5748,79 +5748,107 @@ function PakettiBatchWaveToXRNI(load_into_renoise)
   local dialog_text = load_into_renoise and "Select folder with wave files to convert to XRNI and load" or "Select folder with wave files to convert to XRNI (save only)"
   local folder_path = renoise.app():prompt_for_path(dialog_text)
   
-  if folder_path and folder_path ~= "" then
-    -- Define wave file extensions to look for
-    local wave_extensions = {".wav", ".WAV", ".aiff", ".AIFF", ".aif", ".AIF", ".flac", ".FLAC"}
-    
-    -- Function to check if file has wave extension
-    local function is_wave_file(filename)
-      for _, ext in ipairs(wave_extensions) do
-        if filename:sub(-#ext) == ext then
-          return true
-        end
+  if not folder_path or folder_path == "" then
+    renoise.app():show_status("No folder selected for wave conversion")
+    return
+  end
+  
+  -- Define wave file extensions to look for
+  local wave_extensions = {".wav", ".WAV", ".aiff", ".AIFF", ".aif", ".AIF", ".flac", ".FLAC"}
+  
+  -- Function to check if file has wave extension
+  local function is_wave_file(filename)
+    for _, ext in ipairs(wave_extensions) do
+      if filename:sub(-#ext) == ext then
+        return true
       end
-      return false
     end
+    return false
+  end
+  
+  -- Function to get all wave files in directory
+  local function get_wave_files(directory)
+    local files = {}
+    local separator = package.config:sub(1,1)
     
-    -- Function to get all wave files in directory
-    local function get_wave_files(directory)
-      local files = {}
-      local separator = package.config:sub(1,1)
-      
-      -- Get all files in the directory using Renoise's os.filenames API
-      local success, filenames = pcall(os.filenames, directory, "*")
-      if not success then
-        print("Error accessing directory: " .. tostring(filenames))
-        return files
-      end
-      
-      for _, filename in ipairs(filenames) do
-        if is_wave_file(filename) then
-          table.insert(files, directory .. separator .. filename)
-        end
-      end
-      
+    -- Get all files in the directory using Renoise's os.filenames API
+    local success, filenames = pcall(os.filenames, directory, "*")
+    if not success then
+      print("Error accessing directory: " .. tostring(filenames))
       return files
     end
     
-    -- Get all wave files from the selected folder
-    local files = get_wave_files(folder_path)
-    
-    if #files == 0 then
-      renoise.app():show_status("No wave files found in selected folder")
-      return
+    for _, filename in ipairs(filenames) do
+      if is_wave_file(filename) then
+        table.insert(files, directory .. separator .. filename)
+      end
     end
     
-    -- Check write permissions before starting batch conversion
-    local output_directory = get_writable_xrni_directory(folder_path)
-    
-    if not output_directory then
-      renoise.app():show_status("Wave batch conversion cancelled - no writable directory selected")
-      return
-    end
-    
-    -- Inform user about output directory if it's different from source
-    if output_directory ~= folder_path then
-      renoise.app():show_status("XRNI files will be saved to: " .. output_directory)
-    end
-    
+    return files
+  end
+  
+  -- Get all wave files from the selected folder
+  local files = get_wave_files(folder_path)
+  
+  if #files == 0 then
+    renoise.app():show_status("No wave files found in selected folder")
+    return
+  end
+  
+  -- Check write permissions before starting batch conversion
+  local output_directory = get_writable_xrni_directory(folder_path)
+  
+  if not output_directory then
+    renoise.app():show_status("Wave batch conversion cancelled - no writable directory selected")
+    return
+  end
+  
+  -- Inform user about output directory if it's different from source
+  if output_directory ~= folder_path then
+    renoise.app():show_status("XRNI files will be saved to: " .. output_directory)
+  end
+  
+  -- Declare variables for ProcessSlicer
+  local process_slicer = nil
+  local progress_dialog = nil
+  local progress_vb = nil
+  
+  -- Process function that will run with ProcessSlicer
+  local function batch_process_func()
     local converted_count = 0
     local failed_count = 0
     local xrni_files = {}
+    local temp_index = nil
     
     -- Step 1: CONVERT all wave files to XRNI with Paketti treatment
     -- Create one temporary instrument slot for conversion
     renoise.song():insert_instrument_at(renoise.song().selected_instrument_index + 1)
-    local temp_index = renoise.song().selected_instrument_index + 1
+    temp_index = renoise.song().selected_instrument_index + 1
     renoise.song().selected_instrument_index = temp_index
     
     for i, file_path in ipairs(files) do
+      -- Check if process was cancelled
+      if process_slicer and process_slicer:was_cancelled() then
+        -- Clean up and exit
+        if temp_index then
+          renoise.song():delete_instrument_at(temp_index)
+        end
+        if progress_dialog and progress_dialog.visible then
+          progress_dialog:close()
+        end
+        renoise.app():show_status("Batch conversion cancelled")
+        return
+      end
+      
       local filename = file_path:match("[^/\\]+$")
       -- Remove extension from filename for instrument name and XRNI filename
       local base_name = filename:gsub("%.[^%.]+$", "")
       local output_path = output_directory .. "/" .. base_name .. ".xrni"
       
-      renoise.app():show_status(string.format("Converting %d/%d: %s", i, #files, base_name))
+      -- Update progress dialog
+      if progress_dialog and progress_dialog.visible and progress_vb then
+        progress_vb.views.progress_text.text = string.format("Converting %d/%d: %s", i, #files, base_name)
+      end
       
       local success, error_msg = pcall(function()
         -- Clear temporary instrument for each conversion
@@ -5844,8 +5872,20 @@ function PakettiBatchWaveToXRNI(load_into_renoise)
         renoise.song().selected_sample_index = 1
         renoise.song().selected_sample.sample_buffer:load_from(file_path)
         
-        -- Name the instrument
+        -- Apply Paketti Loader preferences to the sample
+        local sample = renoise.song().selected_sample
+        sample.interpolation_mode = preferences.pakettiLoaderInterpolation.value
+        sample.oversample_enabled = preferences.pakettiLoaderOverSampling.value
+        sample.autofade = preferences.pakettiLoaderAutofade.value
+        sample.autoseek = preferences.pakettiLoaderAutoseek.value
+        sample.oneshot = preferences.pakettiLoaderOneshot.value
+        sample.loop_mode = preferences.pakettiLoaderLoopMode.value
+        sample.new_note_action = preferences.pakettiLoaderNNA.value
+        sample.loop_release = preferences.pakettiLoaderLoopExit.value
+        
+        -- Name the instrument and the sample
         renoise.song().selected_instrument.name = base_name
+        sample.name = base_name
         
         -- Save as XRNI file
         renoise.app():save_instrument(output_path)
@@ -5860,12 +5900,34 @@ function PakettiBatchWaveToXRNI(load_into_renoise)
         failed_count = failed_count + 1
         print("Failed to convert " .. base_name .. ": " .. tostring(error_msg))
       end
+      
+      -- Yield control periodically for UI responsiveness
+      if i % 3 == 0 then
+        coroutine.yield()
+      end
     end
     
     -- Step 2: If load_into_renoise, load each XRNI into separate instrument slots
     if load_into_renoise and #xrni_files > 0 then
-      
       for i, xrni_info in ipairs(xrni_files) do
+        -- Check if process was cancelled
+        if process_slicer and process_slicer:was_cancelled() then
+          -- Clean up and exit
+          if temp_index then
+            renoise.song():delete_instrument_at(temp_index)
+          end
+          if progress_dialog and progress_dialog.visible then
+            progress_dialog:close()
+          end
+          renoise.app():show_status("Batch conversion cancelled during loading")
+          return
+        end
+        
+        -- Update progress dialog
+        if progress_dialog and progress_dialog.visible and progress_vb then
+          progress_vb.views.progress_text.text = string.format("Loading %d/%d: %s", i, #xrni_files, xrni_info.name)
+        end
+        
         local success, error_msg = pcall(function()
           -- Create new instrument slot for each XRNI
           local new_index = renoise.song().selected_instrument_index + 1
@@ -5879,18 +5941,36 @@ function PakettiBatchWaveToXRNI(load_into_renoise)
         if not success then
           print("Failed to load " .. xrni_info.name .. ": " .. tostring(error_msg))
         end
+        
+        -- Yield control periodically for UI responsiveness
+        if i % 2 == 0 then
+          coroutine.yield()
+        end
       end
     end
     
     -- Clean up: remove the temporary instrument slot
-    renoise.song():delete_instrument_at(temp_index)
+    if temp_index then
+      renoise.song():delete_instrument_at(temp_index)
+    end
+    
+    -- Close progress dialog
+    if progress_dialog and progress_dialog.visible then
+      progress_dialog:close()
+    end
     
     local action_text = load_into_renoise and "converted & loaded" or "converted"
     local output_info = (output_directory ~= folder_path) and (" (saved to: " .. output_directory .. ")") or ""
     renoise.app():show_status(string.format("Wave Batch: %d %s, %d failed%s", converted_count, action_text, failed_count, output_info))
-  else
-    renoise.app():show_status("No folder selected for wave conversion")
   end
+  
+  -- Create and start the ProcessSlicer
+  process_slicer = ProcessSlicer(batch_process_func)
+  progress_dialog, progress_vb = process_slicer:create_dialog("Batch Pakettify Progress")
+  process_slicer:start()
+  
+  -- Set focus back to Renoise after dialog opens
+  renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
 end
 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Sample Tools:Batch Pakettify Wave Files in Folder to XRNI (Save Only)...", invoke = PakettiBatchWaveToXRNI}
