@@ -287,8 +287,10 @@ local hex_items_per_row = 16
 local hex_textfield_width = 32  -- Width of hex editor textfields (matches canvas width)
 local tool_button_width = 60   -- Standard width for all tool buttons
 
--- Initialize empty wavetable (no default wave)
+  -- Initialize empty wavetable (no default wave)
 -- wavetable_waves starts empty - waves are added when user clicks "Add Current to Wavetable"
+
+-- AKWF dropdown will be initialized when dialog is shown
 
 -- WaveFunctions class from MorphSynth - Advanced wave generation with morphing capabilities
 class "WaveFunctions"
@@ -2193,6 +2195,255 @@ function PCMWriterCreateWavHeader(sample_rate, num_channels, num_samples, bits_p
                                   math.floor(data_size / 65536) % 256, math.floor(data_size / 16777216) % 256))
   
   return table.concat(header)
+end
+
+-- AKWF Integration Functions
+local akwf_dropdown_files = {}  -- Cache for dropdown selection
+local akwf_dropdown_filenames = {}  -- Display names for dropdown
+
+function PCMWriterInitializeAKWFDropdown()
+  -- Get full AKWF file list
+  local full_akwf_list = PCMWriterGetAKWFFileList()
+  
+  -- Include ALL AKWF files in dropdown (user requested all files)
+  akwf_dropdown_files = {}
+  akwf_dropdown_filenames = {"Pick a AKWF"}  -- First item is always random
+  
+  if #full_akwf_list > 0 then
+    -- Add ALL AKWF files to dropdown
+    for i = 1, #full_akwf_list do
+      local file_path = full_akwf_list[i]
+      local filename = file_path:match("([^/]+)%.wav$") or "AKWF"
+      table.insert(akwf_dropdown_files, file_path)
+      table.insert(akwf_dropdown_filenames, filename)
+    end
+    
+    print("DEBUG: AKWF dropdown initialized with ALL " .. #akwf_dropdown_filenames .. " items")
+  else
+    print("DEBUG: No AKWF files found for dropdown")
+  end
+end
+
+function PCMWriterLoadAKWFFromDropdown(dropdown_index, target_wave)
+  target_wave = target_wave or current_wave_edit
+  
+  if dropdown_index == 1 then
+    -- First item is just a placeholder "Pick a AKWF" - do nothing
+    return
+  end
+  
+  -- Get the actual file from our cached list
+  local file_index = dropdown_index - 1  -- Subtract 1 because first item is placeholder
+  if file_index > 0 and file_index <= #akwf_dropdown_files then
+    local file_path = akwf_dropdown_files[file_index]
+    local target_wave_data = (target_wave == "A") and wave_data_a or wave_data_b
+    
+    local success = PCMWriterLoadAKWFToWaveData(file_path, target_wave_data, wave_size)
+    if success then
+      local filename = file_path:match("([^/]+)%.wav$") or "AKWF"
+      renoise.app():show_status("Loaded AKWF: " .. filename .. " to Wave " .. target_wave)
+      
+      -- Update displays
+      PCMWriterUpdateCrossfadedWave()
+      PCMWriterUpdateAllDisplays()
+    else
+      renoise.app():show_status("Failed to load AKWF file")
+    end
+  end
+end
+
+function PCMWriterGetAKWFFileList()
+  -- Ultra-random seeding using multiple entropy sources
+  math.randomseed(os.time())
+  math.random(); math.random(); math.random()
+  local extra_random = math.random(1, 999999)
+  math.randomseed(os.time() + os.clock() * 1000000 + extra_random)
+  math.random(); math.random(); math.random(); math.random(); math.random()
+  
+  local tool_folder = renoise.tool().bundle_path .. "AKWF/"
+  local file_path = tool_folder .. "akwf.txt"
+  local wav_files = {}
+
+  -- Load .wav file paths from akwf.txt
+  local file = io.open(file_path, "r")
+  if file then
+    for line in file:lines() do
+      table.insert(wav_files, tool_folder .. line)  -- Combine relative path with tool_folder
+    end
+    file:close()
+  else
+    renoise.app():show_status("akwf.txt not found in " .. tool_folder)
+    return {}
+  end
+
+  -- Shuffle the wav_files array for even more randomness
+  for i = #wav_files, 2, -1 do
+    local j = math.random(1, i)
+    wav_files[i], wav_files[j] = wav_files[j], wav_files[i]
+  end
+  
+  return wav_files
+end
+
+function PCMWriterLoadAKWFToWaveData(file_path, target_wave_data, target_size)
+  target_wave_data = target_wave_data or wave_data
+  target_size = target_size or wave_size
+  
+  print("DEBUG: Loading AKWF file: " .. file_path)
+  print("DEBUG: Target size: " .. target_size)
+  
+  local song = renoise.song()
+  
+  -- Create a temporary instrument to load the AKWF sample
+  local temp_inst_index = #song.instruments + 1
+  song:insert_instrument_at(temp_inst_index)
+  local temp_inst = song:instrument(temp_inst_index)
+  
+  -- Load the AKWF file
+  local temp_sample = temp_inst:insert_sample_at(1)
+  temp_sample.sample_buffer:load_from(file_path)
+  
+  local buffer = temp_sample.sample_buffer
+  if not buffer.has_sample_data then
+    print("DEBUG: ERROR - No sample data in buffer!")
+    -- Clean up and return failure
+    song:delete_instrument_at(temp_inst_index)
+    return false
+  end
+  
+  local akwf_frames = buffer.number_of_frames
+  print("DEBUG: AKWF has " .. akwf_frames .. " frames")
+  
+  -- Convert AKWF sample data to PCM Writer wave data format
+  for i = 1, target_size do
+    local sample_pos = ((i - 1) / (target_size - 1)) * (akwf_frames - 1) + 1
+    local frame_index = math.floor(sample_pos)
+    frame_index = math.max(1, math.min(akwf_frames, frame_index))
+    
+    -- Get sample value and convert from -1..1 to 0..65535
+    local sample_value = buffer:sample_data(1, frame_index)
+    local pcm_value = math.floor((sample_value + 1) * 32767.5)
+    pcm_value = math.max(0, math.min(65535, pcm_value))
+    
+    target_wave_data[i] = pcm_value
+  end
+  
+  print("DEBUG: Successfully loaded AKWF data, first 3 values: " .. target_wave_data[1] .. ", " .. target_wave_data[2] .. ", " .. target_wave_data[3])
+  
+  -- Clean up temporary instrument
+  song:delete_instrument_at(temp_inst_index)
+  
+  return true
+end
+
+function PCMWriterLoadRandomAKWFToCurrentWave()
+  local akwf_files = PCMWriterGetAKWFFileList()
+  if #akwf_files == 0 then
+    renoise.app():show_status("No AKWF files found")
+    return false
+  end
+  
+  local random_file = akwf_files[math.random(1, #akwf_files)]
+  local target_wave_data = PCMWriterGetCurrentWaveData()
+  
+  local success = PCMWriterLoadAKWFToWaveData(random_file, target_wave_data, wave_size)
+  if success then
+    local filename = random_file:match("([^/]+)%.wav$") or "AKWF"
+    renoise.app():show_status("Loaded random AKWF: " .. filename .. " to Wave " .. current_wave_edit)
+    
+    -- Update displays
+    PCMWriterUpdateCrossfadedWave()
+    PCMWriterUpdateAllDisplays()
+    return true
+  else
+    renoise.app():show_status("Failed to load AKWF file")
+    return false
+  end
+end
+
+function PCMWriterLoad2RandomAKWFAndExport()
+  print("DEBUG: Starting PCMWriterLoad2RandomAKWFAndExport")
+  
+  -- TEMPORARILY DISABLE Live Pickup Mode to prevent interference
+  local was_live_pickup_active = live_pickup_mode
+  if live_pickup_mode then
+    print("DEBUG: Temporarily disabling Live Pickup Mode")
+    live_pickup_mode = false
+    live_pickup_sample = nil
+    live_pickup_instrument = nil
+  end
+  
+  local akwf_files = PCMWriterGetAKWFFileList()
+  print("DEBUG: Found " .. #akwf_files .. " AKWF files")
+  
+  if #akwf_files < 2 then
+    renoise.app():show_status("Need at least 2 AKWF files")
+    return
+  end
+  
+  -- Get two random different AKWF files
+  local file_a = akwf_files[math.random(1, #akwf_files)]
+  local file_b
+  repeat
+    file_b = akwf_files[math.random(1, #akwf_files)]
+  until file_b ~= file_a or #akwf_files == 1
+  
+  print("DEBUG: Selected files:")
+  print("DEBUG: File A: " .. file_a)
+  print("DEBUG: File B: " .. file_b)
+  
+  -- Load files into Wave A and Wave B
+  print("DEBUG: Loading AKWF files into wave data...")
+  local success_a = PCMWriterLoadAKWFToWaveData(file_a, wave_data_a, wave_size)
+  local success_b = PCMWriterLoadAKWFToWaveData(file_b, wave_data_b, wave_size)
+  
+  print("DEBUG: Load results - A: " .. tostring(success_a) .. ", B: " .. tostring(success_b))
+  
+  if success_a and success_b then
+    -- Verify wave data was actually loaded
+    print("DEBUG: Verifying wave data loaded correctly...")
+    print("DEBUG: Wave A first 5 samples: " .. wave_data_a[1] .. ", " .. wave_data_a[2] .. ", " .. wave_data_a[3] .. ", " .. wave_data_a[4] .. ", " .. wave_data_a[5])
+    print("DEBUG: Wave B first 5 samples: " .. wave_data_b[1] .. ", " .. wave_data_b[2] .. ", " .. wave_data_b[3] .. ", " .. wave_data_b[4] .. ", " .. wave_data_b[5])
+    
+    -- Update crossfaded wave
+    PCMWriterUpdateCrossfadedWave()
+    PCMWriterUpdateAllDisplays()
+    
+    local filename_a = file_a:match("([^/]+)%.wav$") or "AKWF_A"
+    local filename_b = file_b:match("([^/]+)%.wav$") or "AKWF_B"
+    
+    print("DEBUG: About to call PCMWriterExportWaveAAndBToSample...")
+    print("DEBUG: Current wave_size: " .. wave_size)
+    renoise.app():show_status("Loaded " .. filename_a .. " → Wave A, " .. filename_b .. " → Wave B")
+    
+    -- Now call the Write A&B function to create 12st_WT.xrni setup
+    PCMWriterExportWaveAAndBToSample()
+    print("DEBUG: PCMWriterExportWaveAAndBToSample completed")
+    
+    -- RE-ENABLE Live Pickup Mode after successful export
+    if was_live_pickup_active or PCMWriterDetect12stWTSetup() then
+      print("DEBUG: Re-enabling Live Pickup Mode")
+      PCMWriterEnterLivePickupMode()
+    end
+    
+  else
+    renoise.app():show_status("Failed to load AKWF files - A: " .. tostring(success_a) .. ", B: " .. tostring(success_b))
+    
+    -- RE-ENABLE Live Pickup Mode even on failure
+    if was_live_pickup_active then
+      print("DEBUG: Re-enabling Live Pickup Mode after failure")
+      live_pickup_mode = true
+    end
+  end
+end
+
+-- Safe wrapper function for menu/keybinding access (doesn't require PCM Writer dialog to be open)
+function PCMWriterSafeAKWFWavetableExport()
+  -- Initialize AKWF data first
+  PCMWriterInitializeAKWFDropdown()
+  
+  -- Call the main function
+  PCMWriterLoad2RandomAKWFAndExport()
 end
 
 -- Enhanced save functions
@@ -6900,6 +7151,9 @@ function PCMWriterShowPcmDialog()
     return
   end
   
+  -- Initialize AKWF dropdown data
+  PCMWriterInitializeAKWFDropdown()
+  
   -- Load hex editor visibility preference
   if preferences and preferences.singlewaveformwriterhex then
     hide_hex_editor = not preferences.singlewaveformwriterhex.value
@@ -7097,6 +7351,28 @@ function PCMWriterShowPcmDialog()
       width = 70,
       tooltip = "Cycle through geometric shapes",
       notifier = PCMWriterCycleGeometricShape
+    },
+    vb:text{ text = "AKWF A:", style = "strong" },
+    vb:popup{
+      id = "akwf_a_popup",
+      items = akwf_dropdown_filenames,
+      value = 1,
+      width = 150,
+      tooltip = "Select AKWF for Wave A",
+      notifier = function(idx)
+        PCMWriterLoadAKWFFromDropdown(idx, "A")
+      end
+    },
+    vb:text{ text = "AKWF B:", style = "strong" },
+    vb:popup{
+      id = "akwf_b_popup",
+      items = akwf_dropdown_filenames,
+      value = 1,
+      width = 150,
+      tooltip = "Select AKWF for Wave B",
+      notifier = function(idx)
+        PCMWriterLoadAKWFFromDropdown(idx, "B")
+      end
     }
   }, -- WAVEFORM_ROW ENDS
 
@@ -7354,6 +7630,12 @@ function PCMWriterShowPcmDialog()
         width = 60,
         tooltip = "Swap Wave A and Wave B",
         notifier = PCMWriterSwapWaves
+      },
+      vb:button{
+        text = "Random AKWF",
+        width = 80,
+        tooltip = "Load random AKWF to currently selected Wave (A or B)",
+        notifier = PCMWriterLoadRandomAKWFToCurrentWave
       }
     }, -- WAVE_AB_ROW ENDS
     
@@ -7727,6 +8009,12 @@ function PCMWriterShowPcmDialog()
           width = 280,
           tooltip = "Create new instrument with Wave A as slot 1 and Wave B as slot 2",
           notifier = PCMWriterExportWaveAAndBToSample
+        },
+        vb:button{
+          text = "Write AKWF A&B",
+          width = 280,
+          tooltip = "Load 2 random AKWF files and create 12st_WT.xrni wavetable instrument",
+          notifier = PCMWriterLoad2RandomAKWFAndExport
         },
         vb:button{
           text = "Random Export to Slot",
@@ -8115,7 +8403,10 @@ end
 
 
 
-renoise.tool():add_menu_entry{name = "--Main Menu:Tools:Paketti:Xperimental/WIP:Paketti Single Cycle Waveform Writer...",invoke = PCMWriterShowPcmDialog}
+renoise.tool():add_menu_entry{name = "--Main Menu:Tools:Paketti Gadgets:Paketti Single Cycle Waveform Writer...",invoke = PCMWriterShowPcmDialog}
+renoise.tool():add_menu_entry{name = "--Main Menu:Tools:Paketti:Xperimental/WIP:Load 2 Random AKWF as 12st_WT Wavetable",invoke = PCMWriterSafeAKWFWavetableExport}
 renoise.tool():add_menu_entry{name = "--Sample Editor:Paketti Gadgets:Paketti Single Cycle Waveform Writer...",invoke = PCMWriterShowPcmDialog}
+renoise.tool():add_menu_entry{name = "--Sample Editor:Paketti Gadgets:Load 2 Random AKWF as 12st_WT Wavetable",invoke = PCMWriterSafeAKWFWavetableExport}
 renoise.tool():add_keybinding{name = "Global:Paketti:Show Paketti Single Cycle Waveform Writer...",invoke = PCMWriterShowPcmDialog}
+renoise.tool():add_keybinding{name = "Global:Paketti:Write AKWF A&B to 12st_WT Wavetable",invoke = PCMWriterSafeAKWFWavetableExport}
 

@@ -865,6 +865,12 @@ function PakettiSeamlessCheckAndResizePattern()
   -- Save the original pattern size
   render_context.original_pattern_size = current_pattern_size
 
+  -- Check if pattern size is over 256 - seamless rendering doesn't support this
+  if current_pattern_size > 256 then
+    renoise.app():show_status("Cannot Seamless Render, maximum Pattern Length for Seamless Render is 256 rows, doing nothing.")
+    return false
+  end
+
   -- If pattern size is less than 257, double it up to a maximum of 512
   if current_pattern_size < 257 then
       -- Double the pattern size until it's no more than 512
@@ -878,7 +884,9 @@ function PakettiSeamlessCheckAndResizePattern()
   elseif render_context.original_pattern_size == 64 then pakettiResizeAndFill(128)
   elseif render_context.original_pattern_size == 32 then pakettiResizeAndFill(64)
   elseif render_context.original_pattern_size == 16 then pakettiResizeAndFill(32)
-  end end end
+  end end 
+  return true
+end
 
 function PakettiSeamlessRestorePatternSize()
   local song=renoise.song()
@@ -1033,7 +1041,14 @@ function PakettiSeamlessCleanRenderSelection()
   song:insert_instrument_at(renderedInstrument)
   song.selected_instrument_index = renderedInstrument
   print("selected_instrument_index after creating new instrument: " .. song.selected_instrument_index)
-  PakettiSeamlessCheckAndResizePattern()
+  
+  -- Check if pattern can be seamlessly rendered
+  if not PakettiSeamlessCheckAndResizePattern() then
+    -- Remove the instrument we just created since we're not going to render
+    song:delete_instrument_at(renderedInstrument)
+    return
+  end
+  
   if song:track(renderTrack).type == renoise.Track.TRACK_TYPE_GROUP then
       PakettiSeamlessRenderGroupTrack()
   else

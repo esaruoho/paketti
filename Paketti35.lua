@@ -631,7 +631,7 @@ if renoise.API_VERSION >= 6.2 then
     renoise.app().window.instrument_properties_is_visible = true
   end
   -- Mode 0 (Do Nothing) - leave instrument properties as they were
-  renoise.app().window.disk_browser_is_visible=preferences.pakettiDiskBrowserVisible.value
+
   renoise.app().window.instrument_properties_show_volume_transpose=true
   renoise.app().window.instrument_properties_show_trigger_options=true
   renoise.app().window.instrument_properties_show_scale_options=true

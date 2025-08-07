@@ -482,6 +482,7 @@ function loadnative(effect, name, preset_path, force_insertion_order)
         -- Open Selected Parameter Dialog
         PakettiCanvasExperimentsInit()
       end
+      -- Value 3 (do nothing) requires no action
       
       -- Show status message for successful load
       local track_name = s.selected_track.name
@@ -875,10 +876,11 @@ function loadvst(vstname, name, preset_path, force_insertion_order)
     if preferences.pakettiDeviceLoadBehaviour.value == 1 then
       -- Open External Editor (default behavior)
       inserted_device.external_editor_visible = true
-    else
+    elseif preferences.pakettiDeviceLoadBehaviour.value == 2 then
       -- Open Selected Parameter Dialog
       PakettiCanvasExperimentsInit()
     end
+    -- Value 3 (do nothing) requires no action
     inserted_device.is_maximized = false
     renoise.song().selected_device_index = checkline
 

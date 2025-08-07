@@ -520,6 +520,9 @@ function startup()
         enable_pattern_status_monitor()
       end
 
+      -- Initialize PlayerPro Always Open Dialog system
+      pakettiPlayerProInitializeAlwaysOpen()
+
       
       if preferences.pakettiThemeSelector.RenoiseLaunchRandomLoad.value then 
       pakettiThemeSelectorPickRandomThemeFromAll()
@@ -743,6 +746,7 @@ timed_require("PakettiBPM")
 timed_require("PakettiOldschoolSlicePitch")
 timed_require("PakettiActionSelector")
 timed_require("PakettiAutocomplete")
+timed_require("PakettiTreeStructure")
 --timed_require("PakettiCustomization")        -- 61 lines, 0.50 ms
 --timed_require("PakettiAKAI")
 

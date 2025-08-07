@@ -201,7 +201,7 @@ local function PakettiPlayerProNoteGridInsertNoteInPattern(note, instrument, edi
       line:note_column(col).instrument_string = instrument_string
     end
     print("Note column info - Instrument String: " .. line:note_column(col).instrument_string .. ", Instrument Value: " .. tostring(line:note_column(col).instrument_value))
-    renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+    renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
   end
 
   local function clear_note_line(line, col)
@@ -407,7 +407,7 @@ local function PakettiPlayerProCreateModularNoteGrid(vb_instance, config)
             -- Default behavior - just insert the note
             local instrument_value = renoise.song().selected_instrument_index
             PakettiPlayerProNoteGridInsertNoteInPattern(notes[index], instrument_value, config.editstep_checkbox_value)
-            renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+            renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
           end
         })
       end
@@ -430,7 +430,7 @@ function PakettiPlayerProNoteGridCreateGrid()
       local instrument_value = renoise.song().selected_instrument_index
       print("Note button clicked. Instrument Value: " .. tostring(instrument_value))
       PakettiPlayerProNoteGridInsertNoteInPattern(note, instrument_value, EditStepCheckboxValue)
-      renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+      renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
     end
   }
   
@@ -558,7 +558,45 @@ end
 -- note_grid_instrument_observer is now declared at the top of the file
 
 function pakettiPlayerProNoteGridShowDropdownGrid()
-  -- Check API version - use canvas version for v6.2+, traditional for older
+  -- Smart dialog selection based on current context
+  local song = renoise.song()
+  
+  -- Rule 1: If selection exists, always open note dialog
+  if song.selection_in_pattern then
+    -- Check API version - use canvas version for v6.2+, traditional for older
+    if renoise.API_VERSION >= 6.2 then
+      pakettiPlayerProNoteGridShowCanvasGrid()
+    else
+      pakettiPlayerProNoteGridShowTraditionalGrid()
+    end
+    return
+  end
+  
+  -- Rule 2: No selection - check current column context
+  local selected_track = song.selected_track
+  if selected_track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+    -- Rule 3: If in effect column, open effect dialog
+    if song.selected_effect_column_index > 0 then
+      pakettiPlayerProEffectDialog()
+      return
+    end
+    
+    -- Rule 4: If in note column, check subcolumn context (if preference enabled)
+    if preferences.pakettiPlayerProSmartSubColumn and preferences.pakettiPlayerProSmartSubColumn.value then
+      local sub_column_type = song.selected_sub_column_type
+      -- Check if we're in a non-note subcolumn
+      if sub_column_type == renoise.Song.SUB_COLUMN_VOLUME or
+         sub_column_type == renoise.Song.SUB_COLUMN_PANNING or
+         sub_column_type == renoise.Song.SUB_COLUMN_DELAY or
+         sub_column_type == renoise.Song.SUB_COLUMN_SAMPLE_EFFECT_NUMBER or
+         sub_column_type == renoise.Song.SUB_COLUMN_SAMPLE_EFFECT_AMOUNT then
+        pakettiPlayerProEffectDialog()
+        return
+      end
+    end
+  end
+  
+  -- Default: Open note dialog
   if renoise.API_VERSION >= 6.2 then
     pakettiPlayerProNoteGridShowCanvasGrid()
   else
@@ -588,7 +626,7 @@ renoise.app().window.active_middle_frame=1
     print("Dialog opened.")
     renoise.app():show_status("Opening Paketti PlayerPro Note Dialog")
     -- Return focus to the Pattern Editor
-    renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+    renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
   end
 end
 
@@ -621,6 +659,7 @@ renoise.app().window.active_middle_frame_observable:add_notifier(function()
 end)
 
 renoise.tool():add_keybinding{name="Global:Paketti:Open Player Pro Note Column Dialog...",invoke=pakettiPlayerProNoteGridShowDropdownGrid}
+renoise.tool():add_keybinding{name="Global:Paketti:Player Pro Intelligent Dialog...",invoke=pakettiPlayerProNoteGridShowDropdownGrid}
 
 PakettiPlayerProNoteGridAddNoteMenuEntries()
 --------------
@@ -906,7 +945,7 @@ local function pakettiPlayerProCreateMainNoteGrid(main_vb)
       pakettiPlayerProMainDialogInsertNoteInPattern(note, instrument, effect, effect_argument, volume, EditStepCheckboxValue)
       
       print("Inserted: " .. note .. " with EditStep: " .. tostring(EditStepCheckboxValue) .. ", Volume: " .. volume .. ", Effect: " .. tostring(effect))
-      renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+      renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
     end
   }
   
@@ -939,7 +978,7 @@ function pakettiPlayerProEffectDialogTraditional()
   )
   effect_dialog = renoise.app():show_custom_dialog("FX", dialog_content, keyhandler)
   dialog_initializing = false  -- Clear flag after dialog is created
-  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+  renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
 end
 
 -- Canvas-based Effect Hover Dialog for Renoise v6.2+
@@ -1879,7 +1918,7 @@ function pakettiPlayerProCanvasWriteEffectToPattern(effect_code, arg_value)
   end
   
   -- Keep pattern editor focus
-  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+  renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
 end
 
 function pakettiPlayerProEffectDialogCanvas()
@@ -2056,7 +2095,7 @@ function pakettiPlayerProEffectDialogCanvas()
   effect_canvas_dialog = renoise.app():show_custom_dialog("", dialog_content, keyhandler)
   
   -- Set focus to pattern editor
-  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+  renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
   
   -- Setup canvas update timer for automatic subcolumn detection
   pakettiPlayerProEffectCanvasSetupUpdateTimer()
@@ -2131,7 +2170,9 @@ function pakettiPlayerProNoteGridShowCanvasGrid()
     height = note_canvas_height,
     mode = "plain",
     render = pakettiPlayerProNoteCanvasDrawGrid,
-    mouse_handler = pakettiPlayerProNoteCanvasHandleMouse,
+    mouse_handler = function(ev)
+      pakettiPlayerProNoteCanvasHandleMouse(ev, note_status_text, note_canvas, pakettiPlayerProNoteCanvasInsertNote)
+    end,
     mouse_events = {"down", "up", "move", "exit"}
   }
   
@@ -2204,9 +2245,7 @@ function pakettiPlayerProNoteGridShowCanvasGrid()
       },
       vb:text {
         text = "Write"
-      }
-    },
-    vb:row {
+      },
       vb:checkbox {
         value = preferences.pakettiPlayerProNoteCanvasSpray.value,
         tooltip = "When EditStep + Write: spray notes following EditStep progression",
@@ -2226,6 +2265,36 @@ function pakettiPlayerProNoteGridShowCanvasGrid()
       },
       vb:text {
         text = "Clear Selection Before Write"
+      }
+    },
+    vb:row {
+      vb:checkbox {
+        value = preferences.pakettiPlayerProSmartSubColumn and preferences.pakettiPlayerProSmartSubColumn.value or false,
+        tooltip = "Open effect dialog when in volume/panning/delay/samplefx subcolumns",
+        notifier = function(value)
+          preferences.pakettiPlayerProSmartSubColumn.value = value
+        end
+      },
+      vb:text {
+        text = "Smart SubColumn"
+      }
+    },
+    vb:row {
+      vb:checkbox {
+        value = preferences.pakettiPlayerProAlwaysOpen and preferences.pakettiPlayerProAlwaysOpen.value or false,
+        tooltip = "Automatically open appropriate dialog when moving between note/effect columns",
+        notifier = function(value)
+          preferences.pakettiPlayerProAlwaysOpen.value = value
+          -- Start or stop the always open system
+          if value then
+            pakettiPlayerProStartAlwaysOpen()
+          else
+            pakettiPlayerProStopAlwaysOpen()
+          end
+        end
+      },
+      vb:text {
+        text = "Always Open Dialog"
       }
     },
     vb:row {
@@ -2274,7 +2343,7 @@ function pakettiPlayerProNoteGridShowCanvasGrid()
   canvas_instrument_observer = PakettiPlayerProCreateInstrumentObserver(vb, "canvas_instrument_popup", note_canvas_dialog)
   
   -- Set focus to pattern editor
-  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+  renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
 end
 
 function pakettiPlayerProNoteCanvasDrawGrid(ctx)
@@ -2288,13 +2357,13 @@ function pakettiPlayerProNoteCanvasDrawGrid(ctx)
   local use_piano_keys = preferences.pakettiPlayerProNoteCanvasPianoKeys.value
   
   if preferences.pakettiPlayerProEffectDialogDarkMode.value then
-    -- Dark mode
-    bg_color = {40, 40, 40, 255}         -- Dark background
-    white_key_color = {60, 60, 60, 255}  -- Dark cells (uniform or white keys)
-    black_key_color = use_piano_keys and {45, 45, 45, 255} or {60, 60, 60, 255}  -- Slightly darker for black keys (if enabled)
-    hover_color = {200, 200, 200, 255}   -- Light hover (inverted)
-    text_color = {200, 200, 200, 255}    -- Light text
-    text_color_black = {180, 180, 180, 255}  -- Slightly dimmer for black keys
+    -- Dark mode - match effect canvas colors
+    bg_color = {20, 20, 30, 255}         -- Dark background (same as effect canvas)
+    white_key_color = {40, 40, 50, 255}  -- Dark cells (same as effect canvas)
+    black_key_color = use_piano_keys and {30, 30, 35, 255} or {40, 40, 50, 255}  -- Slightly darker for black keys (if enabled)
+    hover_color = {255, 255, 255, 255}   -- White hover (same as effect canvas)
+    text_color = {255, 255, 255, 255}    -- White text (same as effect canvas)
+    text_color_black = {200, 200, 200, 255}  -- Slightly dimmer for black keys
     border_color = {100, 100, 100, 255}  -- Gray border
   else
     -- Light mode
@@ -2353,9 +2422,9 @@ function pakettiPlayerProNoteCanvasDrawGrid(ctx)
         
         if is_hovered then
           current_cell_color = hover_color
-          -- Invert text color on hover
+          -- Invert text color on hover (match effect canvas behavior)
           if preferences.pakettiPlayerProEffectDialogDarkMode.value then
-            current_text_color = {0, 0, 0, 255}  -- Black text on light hover
+            current_text_color = {20, 20, 30, 255}  -- Dark text on white hover (same as effect canvas)
           else
             current_text_color = {255, 255, 255, 255}  -- White text on dark hover
           end
@@ -2403,7 +2472,12 @@ function pakettiPlayerProNoteCanvasDrawGrid(ctx)
   end
 end
 
-function pakettiPlayerProNoteCanvasHandleMouse(ev)
+function pakettiPlayerProNoteCanvasHandleMouse(ev, status_text_widget, canvas_widget, insert_function)
+  -- Use provided parameters or fall back to default values
+  local status_text = status_text_widget or note_status_text
+  local canvas = canvas_widget or note_canvas
+  local insert_func = insert_function or pakettiPlayerProNoteCanvasInsertNote
+  
   local x = ev.position.x
   local y = ev.position.y
   
@@ -2424,36 +2498,36 @@ function pakettiPlayerProNoteCanvasHandleMouse(ev)
           note_hover_row = row
           note_selected_note = "000"
           
-          if note_status_text then
-            note_status_text.text = "Note: 000 (Cut)"
+          if status_text then
+            status_text.text = "Note: 000 (Cut)"
           end
           
           -- Write on hover if enabled
           if preferences.pakettiPlayerProNoteCanvasWrite.value and ev.type == "move" then
-            pakettiPlayerProNoteCanvasInsertNote("000")
+            insert_func("000")
           end
           
           -- Handle click
           if ev.type == "down" then
-            pakettiPlayerProNoteCanvasInsertNote("000")
+            insert_func("000")
           end
         elseif col == 1 then
           note_hover_column = col
           note_hover_row = row
           note_selected_note = "OFF"
           
-          if note_status_text then
-            note_status_text.text = "Note: OFF"
+          if status_text then
+            status_text.text = "Note: OFF"
           end
           
           -- Write on hover if enabled
           if preferences.pakettiPlayerProNoteCanvasWrite.value and ev.type == "move" then
-            pakettiPlayerProNoteCanvasInsertNote("OFF")
+            insert_func("OFF")
           end
           
           -- Handle click
           if ev.type == "down" then
-            pakettiPlayerProNoteCanvasInsertNote("OFF")
+            insert_func("OFF")
           end
         end
         -- Skip other columns in row 10
@@ -2462,32 +2536,37 @@ function pakettiPlayerProNoteCanvasHandleMouse(ev)
         note_hover_column = col
         note_hover_row = row
         
-        -- Format note for Renoise: "C-0", "C#-0", etc.
+        -- Format note for Renoise: "C-0", "C#0", etc.
         local base_note = note_names[col + 1]
-        local note_name = base_note .. "-" .. row  -- All notes: "C-0", "C#-0", etc.
+        local note_name
+        if string.find(base_note, "#") then
+          note_name = base_note .. row  -- Sharp notes: "C#0"
+        else
+          note_name = base_note .. "-" .. row  -- Natural notes: "C-0"
+        end
         note_selected_note = note_name
         
         -- Update status text
-        if note_status_text then
-          note_status_text.text = "Note: " .. note_name
+        if status_text then
+          status_text.text = "Note: " .. note_name
         end
         
         -- Write on hover if enabled
         if preferences.pakettiPlayerProNoteCanvasWrite.value and ev.type == "move" then
-          pakettiPlayerProNoteCanvasInsertNote(note_name)
+          insert_func(note_name)
         end
         
         -- Handle click (always writes regardless of Write mode)
         if ev.type == "down" then
-          pakettiPlayerProNoteCanvasInsertNote(note_name)
+          insert_func(note_name)
         end
       end
     end
   end
   
   -- Update canvas
-  if note_canvas then
-    note_canvas:update()
+  if canvas then
+    canvas:update()
   end
 end
 
@@ -2508,10 +2587,23 @@ function pakettiPlayerProNoteCanvasInsertNote(note)
     for track_index = start_track, end_track do
       local track = song:track(track_index)
       if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+        -- For EditStep mode with selection, first clear the entire selection, then write on EditStep lines
+        if note_editstep_enabled then
+          -- First pass: Clear the entire selection (both notes and instruments)
+          for clear_line_index = start_line, end_line do
+            local note_column = song:pattern(pattern_index):track(track_index):line(clear_line_index).note_columns[1]
+            if note_column then
+              note_column.note_string = "---"
+              note_column.instrument_value = 255  -- Empty instrument
+            end
+          end
+        end
+        
         for line_index = start_line, end_line do
           if note_editstep_enabled then
-            -- EditStep mode: fill every step
+            -- EditStep mode: write only on EditStep lines (selection already cleared above)
             if (line_index - start_line) % step == 0 then
+              -- Write note on EditStep lines
               local note_column = song:pattern(pattern_index):track(track_index):line(line_index).note_columns[1]
               if note_column then
                 note_column.note_string = note_to_insert
@@ -2522,6 +2614,7 @@ function pakettiPlayerProNoteCanvasInsertNote(note)
                 end
               end
             end
+            -- Note: non-EditStep lines remain cleared from first pass
           else
             -- Normal mode: fill all lines
             local note_column = song:pattern(pattern_index):track(track_index):line(line_index).note_columns[1]
@@ -2550,16 +2643,38 @@ function pakettiPlayerProNoteCanvasInsertNote(note)
       end
       
       -- Advance edit position if EditStep is enabled
+      local status_message = "Inserted " .. note
       if note_editstep_enabled and step > 0 then
-        song.selected_line_index = math.min(song.selected_line_index + step, song.selected_pattern.number_of_lines)
+        local new_line = song.selected_line_index + step
+        
+        -- Check if Spray mode is enabled and we would go beyond current pattern
+        if preferences.pakettiPlayerProNoteCanvasSpray.value and new_line > song.selected_pattern.number_of_lines then
+          -- Calculate how many lines we overshoot
+          local overshoot = new_line - song.selected_pattern.number_of_lines
+          
+          -- Go to next pattern
+          local next_pattern_index = song.selected_sequence_index + 1
+          if next_pattern_index <= #song.sequencer.pattern_sequence then
+            song.selected_sequence_index = next_pattern_index
+            song.selected_line_index = overshoot
+            status_message = "Sprayed " .. note .. " to next pattern, line " .. overshoot
+          else
+            -- Stay at the end of current pattern if no next pattern
+            song.selected_line_index = song.selected_pattern.number_of_lines
+            status_message = "Inserted " .. note .. " - End of sequence reached"
+          end
+        else
+          -- Normal behavior: stay within current pattern
+          song.selected_line_index = math.min(new_line, song.selected_pattern.number_of_lines)
+        end
       end
       
-      renoise.app():show_status("Inserted " .. note)
+      renoise.app():show_status(status_message)
     end
   end
   
   -- Keep pattern editor focus
-  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+  renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
 end
 
 ---------------
@@ -2767,7 +2882,7 @@ function pakettiPlayerProUpdateMainEffectDropdown()
     end
   end
   
-  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+  renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
 end
 
 function pakettiPlayerProUpdateMainEffectArgumentDisplay()
@@ -2971,7 +3086,7 @@ function pakettiPlayerProUpdateMainEffectArgumentDisplay()
     end
   end
   
-  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+  renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
 end
 
 function pakettiPlayerProShowMainDialog()
@@ -3032,15 +3147,10 @@ function pakettiPlayerProShowCanvasMainDialog()
     mouse_events = {"down", "up", "move", "exit"}
   }
   
-  -- Create status texts
-  main_note_status_text = vb:text {
-    text = "Select a note",
-    font = "mono",
-    align = "center",
-    width = note_canvas_width,
-    tooltip = "Current note selection"
-  }
+  -- No status text for note canvas (keep it minimal)
+  main_note_status_text = nil
   
+  -- Create status text for effect canvas only
   main_effect_status_text = vb:text {
     text = "00\n0",
     font = "mono",
@@ -3110,32 +3220,7 @@ function pakettiPlayerProShowCanvasMainDialog()
           align = "center",
           width = note_canvas_width
         },
-        main_note_canvas,
-        main_note_status_text,
-        
-        -- Note controls
-        vb:row {
-          vb:checkbox {
-            value = note_editstep_enabled,
-            tooltip = "Fill Selection with EditStep",
-            notifier = function(value)
-              note_editstep_enabled = value
-            end
-          },
-          vb:text {
-            text = "EditStep"
-          },
-          vb:checkbox {
-            value = preferences.pakettiPlayerProNoteCanvasWrite.value,
-            tooltip = "Write on hover when enabled, otherwise click to write",
-            notifier = function(value)
-              preferences.pakettiPlayerProNoteCanvasWrite.value = value
-            end
-          },
-          vb:text {
-            text = "W"
-          }
-        }
+        main_note_canvas
       },
       
       -- Spacer
@@ -3158,8 +3243,48 @@ function pakettiPlayerProShowCanvasMainDialog()
           vb:button {
             text = "CLR",
             width = 44,
-            tooltip = "Clear selection",
+            tooltip = "Clear effect column or subcolumn",
             notifier = function()
+              local song = renoise.song()
+              local column_info = ""
+              
+              -- Determine what to clear based on X mode
+              if preferences.pakettiPlayerProEffectCanvasSubColumn.value then
+                -- X mode enabled - clear specific subcolumn
+                local sub_column_type = song.selected_sub_column_type
+                
+                if sub_column_type == renoise.Song.SUB_COLUMN_VOLUME then
+                  pakettiPlayerProCanvasWriteEffectToPattern("00", "00")  -- Clear volume
+                  column_info = " (Volume Column)"
+                elseif sub_column_type == renoise.Song.SUB_COLUMN_PANNING then
+                  pakettiPlayerProCanvasWriteEffectToPattern("00", "40")  -- Clear panning (center = 64 = 0x40)
+                  column_info = " (Panning Column)"
+                elseif sub_column_type == renoise.Song.SUB_COLUMN_DELAY then
+                  pakettiPlayerProCanvasWriteEffectToPattern("00", "00")  -- Clear delay
+                  column_info = " (Delay Column)"
+                elseif sub_column_type == renoise.Song.SUB_COLUMN_SAMPLE_EFFECT_AMOUNT then
+                  pakettiPlayerProCanvasWriteEffectToPattern("00", "00")  -- Clear sample fx amount
+                  column_info = " (Sample FX Amount)"
+                elseif sub_column_type == renoise.Song.SUB_COLUMN_SAMPLE_EFFECT_NUMBER then
+                  pakettiPlayerProCanvasWriteEffectToPattern("00", "00")  -- Clear sample fx number
+                  column_info = " (Sample FX Number)"
+                elseif sub_column_type == renoise.Song.SUB_COLUMN_EFFECT_NUMBER then
+                  pakettiPlayerProCanvasWriteEffectToPattern("00", "00")  -- Clear effect number
+                  column_info = " (Effect Number)"
+                elseif sub_column_type == renoise.Song.SUB_COLUMN_EFFECT_AMOUNT then
+                  pakettiPlayerProCanvasWriteEffectToPattern("00", "00")  -- Clear effect amount
+                  column_info = " (Effect Amount)"
+                else
+                  pakettiPlayerProCanvasWriteEffectToPattern("00", "00")  -- Fallback
+                  column_info = " (Unknown Column)"
+                end
+              else
+                -- Normal mode - clear effect column
+                pakettiPlayerProCanvasWriteEffectToPattern("00", "00")
+                column_info = " (Effect Column)"
+              end
+              
+              -- Reset selection display
               selected_x = 0
               selected_y = 0
               if main_effect_canvas then
@@ -3168,7 +3293,8 @@ function pakettiPlayerProShowCanvasMainDialog()
               if main_effect_status_text then
                 main_effect_status_text.text = "00\n0"
               end
-              renoise.app():show_status("Cleared effect selection")
+              
+              renoise.app():show_status("Cleared 00" .. column_info)
             end
           }
         },
@@ -3260,7 +3386,7 @@ function pakettiPlayerProShowCanvasMainDialog()
   main_canvas_instrument_observer = PakettiPlayerProCreateInstrumentObserver(vb, "main_canvas_instrument_popup", main_canvas_dialog)
   
   -- Set focus to pattern editor
-  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+  renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
   
   -- Setup canvas update timer for automatic subcolumn detection (for effect canvas)
   pakettiPlayerProEffectCanvasSetupUpdateTimer()
@@ -3271,93 +3397,9 @@ function pakettiPlayerProMainNoteCanvasDrawGrid(ctx, w, h)
   pakettiPlayerProNoteCanvasDrawGrid(ctx, w, h)
 end
 
--- Main note canvas mouse handler (same as individual dialog but uses main_note_status_text)
+-- Main note canvas mouse handler (reuses the original logic with main status text)
 function pakettiPlayerProMainNoteCanvasHandleMouse(ev)
-  local x = ev.position.x
-  local y = ev.position.y
-  
-  -- Reset hover state
-  note_hover_column = -1
-  note_hover_row = -1
-  
-  -- Check if mouse is over the note grid
-  if x >= 0 and x < note_canvas_width and y >= 0 and y < note_canvas_height then
-    local col = math.floor(x / note_cell_width)
-    local row = math.floor(y / note_cell_height)
-    
-    if col >= 0 and col < note_columns and row >= 0 and row < note_rows then
-      -- Handle special bottom row (000, OFF)
-      if row == 10 then
-        if col == 0 then
-          note_hover_column = col
-          note_hover_row = row
-          note_selected_note = "000"
-          
-          if main_note_status_text then
-            main_note_status_text.text = "Note: 000 (Cut)"
-          end
-          
-          -- Write on hover if enabled
-          if preferences.pakettiPlayerProNoteCanvasWrite.value and ev.type == "move" then
-            pakettiPlayerProMainNoteCanvasInsertNote("000")
-          end
-          
-          -- Handle click
-          if ev.type == "down" then
-            pakettiPlayerProMainNoteCanvasInsertNote("000")
-          end
-        elseif col == 1 then
-          note_hover_column = col
-          note_hover_row = row
-          note_selected_note = "OFF"
-          
-          if main_note_status_text then
-            main_note_status_text.text = "Note: OFF"
-          end
-          
-          -- Write on hover if enabled
-          if preferences.pakettiPlayerProNoteCanvasWrite.value and ev.type == "move" then
-            pakettiPlayerProMainNoteCanvasInsertNote("OFF")
-          end
-          
-          -- Handle click
-          if ev.type == "down" then
-            pakettiPlayerProMainNoteCanvasInsertNote("OFF")
-          end
-        end
-        -- Skip other columns in row 10
-      else
-        -- Normal note grid (octaves 0-9)
-        note_hover_column = col
-        note_hover_row = row
-        
-        -- Format note for Renoise: "C-0", "C#-0", etc.
-        local base_note = note_names[col + 1]
-        local note_name = base_note .. "-" .. row  -- All notes: "C-0", "C#-0", etc.
-        note_selected_note = note_name
-        
-        -- Update status text (main dialog version)
-        if main_note_status_text then
-          main_note_status_text.text = "Note: " .. note_name
-        end
-        
-        -- Write on hover if enabled
-        if preferences.pakettiPlayerProNoteCanvasWrite.value and ev.type == "move" then
-          pakettiPlayerProMainNoteCanvasInsertNote(note_name)
-        end
-        
-        -- Handle click (always writes regardless of Write mode)
-        if ev.type == "down" then
-          pakettiPlayerProMainNoteCanvasInsertNote(note_name)
-        end
-      end
-    end
-  end
-  
-  -- Update canvas
-  if main_note_canvas then
-    main_note_canvas:update()
-  end
+  pakettiPlayerProNoteCanvasHandleMouse(ev, main_note_status_text, main_note_canvas, pakettiPlayerProMainNoteCanvasInsertNote)
 end
 
 -- Main note insertion function (reuses the original note insertion logic)
@@ -3739,7 +3781,7 @@ function pakettiPlayerProShowTraditionalMainDialog()
       renoise.app():show_status("Wrote Volume " .. vol_display .. " to " .. total_columns .. " Note Columns on " .. track_range)
     end
     
-    renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+    renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
   end
 
   -- Function moved to global scope
@@ -3827,7 +3869,7 @@ function pakettiPlayerProShowTraditionalMainDialog()
           -- Insert all selected values
           pakettiPlayerProMainDialogInsertNoteInPattern(nil, instrument, effect, effect_argument, volume, EditStepCheckboxValue)
           -- Return focus to the Pattern Editor
-          renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+          renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
         end
       },
       main_vb:button{
@@ -3856,7 +3898,7 @@ function pakettiPlayerProShowTraditionalMainDialog()
   -- Add instrument observer after dialog is created
   main_dialog_instrument_observer = PakettiPlayerProCreateInstrumentObserver(main_vb, "main_dialog_instrument_popup", dialog)
   
-  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+  renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
 end
 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Open Player Pro Tools Dialog...",invoke=pakettiPlayerProShowMainDialog}
@@ -3924,7 +3966,7 @@ function pakettiPlayerProMainDialogInsertNoteInPattern(note, instrument, effect,
       line:note_column(col).volume_string = volume
     end
     
-  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+  renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
 end
 
   local function clear_note_line(line, col)
@@ -4031,3 +4073,238 @@ renoise.tool():add_midi_mapping{name="Paketti:Player Pro Effect Lower Value x[Kn
     print("=== MIDI MAPPING END ===")
   end
 }
+
+-- Always Open Dialog System
+-- Global variables for the always open system
+local always_open_observers = {}
+local always_open_current_context = nil
+local always_open_last_cursor_state = nil
+local always_open_timer = nil
+
+-- Function to determine current pattern editor context with full cursor state
+function pakettiPlayerProGetCurrentContext()
+  local song = renoise.song()
+  local selected_track = song.selected_track
+  
+  -- Only handle sequencer tracks
+  if selected_track.type ~= renoise.Track.TRACK_TYPE_SEQUENCER then
+    return "none"
+  end
+  
+  -- Create full context including track/column position
+  local track_index = song.selected_track_index
+  local note_column_index = song.selected_note_column_index
+  local effect_column_index = song.selected_effect_column_index
+  local sub_column_type = song.selected_sub_column_type
+  
+  -- Check if we're in an effect column
+  if effect_column_index > 0 then
+    return "effect:" .. track_index .. ":" .. effect_column_index
+  end
+  
+  -- Check if smart subcolumn is enabled and we're in a non-note subcolumn
+  if preferences.pakettiPlayerProSmartSubColumn and preferences.pakettiPlayerProSmartSubColumn.value then
+    if sub_column_type == renoise.Song.SUB_COLUMN_VOLUME or
+       sub_column_type == renoise.Song.SUB_COLUMN_PANNING or
+       sub_column_type == renoise.Song.SUB_COLUMN_DELAY or
+       sub_column_type == renoise.Song.SUB_COLUMN_SAMPLE_EFFECT_NUMBER or
+       sub_column_type == renoise.Song.SUB_COLUMN_SAMPLE_EFFECT_AMOUNT then
+      return "effect:" .. track_index .. ":" .. note_column_index .. ":" .. sub_column_type
+    end
+  end
+  
+  -- Default to note context with position
+  return "note:" .. track_index .. ":" .. note_column_index
+end
+
+-- Timer function to monitor cursor position changes
+function pakettiPlayerProTimerContextMonitor()
+  -- Only monitor if always open is enabled
+  if not preferences.pakettiPlayerProAlwaysOpen or not preferences.pakettiPlayerProAlwaysOpen.value then
+    return
+  end
+  
+  -- Safe song access with error handling
+  local song
+  local success, error_msg = pcall(function()
+    song = renoise.song()
+  end)
+  
+  if not success or not song or not song.selected_track then
+    return
+  end
+  
+  -- Only monitor if we're in pattern editor
+  if renoise.app().window.active_middle_frame ~= renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR then
+    return
+  end
+  
+  -- Get current cursor state
+  local track_index = song.selected_track_index
+  local note_column_index = song.selected_note_column_index
+  local effect_column_index = song.selected_effect_column_index
+  local sub_column_type = song.selected_sub_column_type
+  
+  -- Create state hash for comparison
+  local current_state = track_index .. ":" .. note_column_index .. ":" .. effect_column_index .. ":" .. sub_column_type
+  
+  -- Check if cursor state changed
+  if current_state ~= always_open_last_cursor_state then
+    always_open_last_cursor_state = current_state
+    print("PlayerPro Always Open: Cursor state changed to " .. current_state)
+    pakettiPlayerProHandleContextChange()
+  end
+end
+
+-- Function to handle context changes
+function pakettiPlayerProHandleContextChange()
+  if not preferences.pakettiPlayerProAlwaysOpen or not preferences.pakettiPlayerProAlwaysOpen.value then
+    print("PlayerPro Always Open is disabled or not found")
+    return
+  end
+  
+  local new_context = pakettiPlayerProGetCurrentContext()
+  print("PlayerPro Always Open: Context changed from '" .. tostring(always_open_current_context) .. "' to '" .. tostring(new_context) .. "'")
+  
+  -- Only act if context actually changed
+  if new_context == always_open_current_context then
+    print("PlayerPro Always Open: Context unchanged, ignoring")
+    return
+  end
+  
+  always_open_current_context = new_context
+  print("PlayerPro Always Open: Switching to context: " .. new_context)
+  
+  -- Parse context type (note:track:column or effect:track:column)
+  local context_type = new_context:match("^([^:]+)")
+  
+  if context_type == "note" then
+    -- Close effect dialog if open, open note dialog
+    if effect_canvas_dialog and effect_canvas_dialog.visible then
+      effect_canvas_dialog:close()
+      effect_canvas_dialog = nil
+    end
+    if effect_dialog and effect_dialog.visible then
+      effect_dialog:close()
+      effect_dialog = nil
+    end
+    
+    -- Open note dialog (always ensure it's open when in note context)
+    if renoise.API_VERSION >= 6.2 then
+      if not note_canvas_dialog or not note_canvas_dialog.visible then
+        pakettiPlayerProNoteGridShowCanvasGrid()
+        renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
+      end
+    else
+      if not dialog or not dialog.visible then
+        pakettiPlayerProNoteGridShowTraditionalGrid()
+        renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
+      end
+    end
+    
+  elseif context_type == "effect" then
+    -- Close note dialog if open, open effect dialog
+    if note_canvas_dialog and note_canvas_dialog.visible then
+      note_canvas_dialog:close()
+      note_canvas_dialog = nil
+    end
+    if dialog and dialog.visible then
+      dialog:close()
+      dialog = nil
+    end
+    
+    -- Open effect dialog (check if not already open)
+    if not effect_canvas_dialog or not effect_canvas_dialog.visible then
+      if not effect_dialog or not effect_dialog.visible then
+        pakettiPlayerProEffectDialog()
+        renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
+      end
+    end
+    
+  elseif context_type == "none" then
+    -- Close all dialogs for non-sequencer tracks
+    if note_canvas_dialog and note_canvas_dialog.visible then
+      note_canvas_dialog:close()
+      note_canvas_dialog = nil
+    end
+    if dialog and dialog.visible then
+      dialog:close()
+      dialog = nil
+    end
+    if effect_canvas_dialog and effect_canvas_dialog.visible then
+      effect_canvas_dialog:close()
+      effect_canvas_dialog = nil
+    end
+    if effect_dialog and effect_dialog.visible then
+      effect_dialog:close()
+      effect_dialog = nil
+    end
+  end
+  
+  -- Ensure focus returns to Renoise after any dialog operations
+  renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
+end
+
+-- Function to start the always open system
+function pakettiPlayerProStartAlwaysOpen()
+  pakettiPlayerProStopAlwaysOpen()  -- Clean up any existing observers
+  
+  local song = renoise.song()
+  
+  -- Add observers for track changes only
+  if not song.selected_track_index_observable:has_notifier(pakettiPlayerProHandleContextChange) then
+    song.selected_track_index_observable:add_notifier(pakettiPlayerProHandleContextChange)
+    table.insert(always_open_observers, {observable = song.selected_track_index_observable, func = pakettiPlayerProHandleContextChange})
+  end
+  
+  -- Start timer to monitor cursor position changes (note/effect column changes and subcolumns)
+  if not always_open_timer then
+    always_open_timer = renoise.tool():add_timer(pakettiPlayerProTimerContextMonitor, 100) -- Check every 100ms
+  end
+  
+  -- Initialize current context and open appropriate dialog
+  always_open_current_context = nil
+  always_open_last_cursor_state = nil -- Reset cursor state
+  pakettiPlayerProHandleContextChange()
+  
+  renoise.app():show_status("PlayerPro Always Open Dialog: Enabled")
+end
+
+-- Function to stop the always open system
+function pakettiPlayerProStopAlwaysOpen()
+  -- Remove all observers with safety checks
+  for _, observer_info in ipairs(always_open_observers) do
+    -- Safety check: ensure observable still exists before accessing it
+    local success, has_notifier = pcall(function()
+      return observer_info.observable and observer_info.observable:has_notifier(observer_info.func)
+    end)
+    
+    if success and has_notifier then
+      local remove_success = pcall(function()
+        observer_info.observable:remove_notifier(observer_info.func)
+      end)
+      if not remove_success then
+        print("PlayerPro Always Open: Warning - Could not remove observer (observable may be nil)")
+      end
+    end
+  end
+  always_open_observers = {}
+  
+  -- Stop timer if running
+  if always_open_timer then
+    renoise.tool():remove_timer(pakettiPlayerProTimerContextMonitor)
+    always_open_timer = nil
+  end
+  
+  always_open_current_context = nil
+  always_open_last_cursor_state = nil
+  
+  renoise.app():show_status("PlayerPro Always Open Dialog: Disabled")
+end
+
+-- Initialize always open system on startup if preference is enabled
+function pakettiPlayerProInitializeAlwaysOpen()
+  if preferences.pakettiPlayerProAlwaysOpen and preferences.pakettiPlayerProAlwaysOpen.value then
+    pakettiPlayerProStartAlwaysOpen()
+  end
+end

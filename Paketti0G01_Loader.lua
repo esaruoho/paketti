@@ -6,6 +6,8 @@ local separator = package.config:sub(1,1)  -- Gets \ for Windows, / for Unix
 
 local DEBUG = false
 
+
+
 local filter_types = {"None", "LP Clean", "LP K35", "LP Moog", "LP Diode", "HP Clean","HP K35", "HP Moog", "BP Clean", "BP K35", "BP Moog", "BandPass","BandStop", "Vowel", "Comb", "Decimator", "Dist Shape", "Dist Fold","AM Sine", "AM Triangle", "AM Saw", "AM Pulse"}
 
 local filter_type_map = {}
@@ -96,7 +98,6 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettifyReplaceInstrument=false,
   pakettiInstrumentProperties=0,  -- 0=Do Nothing, 1=Hide, 2=Show
   pakettiPitchSliderRange=2,
-  pakettiDiskBrowserVisible=true,
   pakettiREXBundlePath = "." .. separator .. "rx2",
   pakettiShowSampleDetails=false,
   pakettiShowSampleDetailsFrequencyAnalysis=true,
@@ -108,7 +109,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiAutomationWipeAfterSwitch=true,
   SelectedSampleBeatSyncLines = false,
   pakettiLoadOrder = false,
-  pakettiDeviceLoadBehaviour = 1, -- 1=Open External Editor, 2=Open Selected Parameter Dialog
+  pakettiDeviceLoadBehaviour = 1, -- 1=Open External Editor, 2=Open Selected Parameter Dialog, 3=Do Nothing
   pakettiOctaMEDNoteEchoDistance=2,
   pakettiOctaMEDNoteEchoMin=1,
   pakettiRotateSampleBufferCoarse=1000,
@@ -122,6 +123,8 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiPlayerProNoteCanvasPianoKeys = false,
   pakettiPlayerProNoteCanvasSpray = false,
   pakettiPlayerProNoteCanvasClearSelection = true,
+  pakettiPlayerProAlwaysOpen = false,
+  pakettiPlayerProSmartSubColumn = true,
   pakettiInstrumentInfoDialogHeight=750,
   pakettiEnableGlobalGrooveOnStartup=false,
   pakettiRandomizeBPMOnNewSong=false,
@@ -755,8 +758,8 @@ local pakettiIRPathDisplayId = "pakettiIRPathDisplay_" .. tostring(math.random(2
     local dialog_content = vb:column{
       --margin=5,
       horizontal_rule(),
-      vb:row{
-        vb:column{
+      vb:row{ -- this is where the row structure starts.
+        vb:column{ -- first column.
           margin=5,width=600,style="group",      
           vb:column{
             style="group",margin=10,width="100%",
@@ -773,99 +776,76 @@ local pakettiIRPathDisplayId = "pakettiIRPathDisplay_" .. tostring(math.random(2
               vb:switch{items={"Off","On"},value=preferences.SelectedSampleBeatSyncLines.value and 2 or 1,width=200,
                 notifier=function(value) preferences.SelectedSampleBeatSyncLines.value=(value==2) end}
             },
-            vb:row{
-              vb:text{text="Always Open Track DSPs",width=150},
-              vb:switch{items={"Off","On"},value=preferences.pakettiAlwaysOpenDSPsOnTrack.value and 2 or 1,width=200,
-                notifier=function(value) 
-                  preferences.pakettiAlwaysOpenDSPsOnTrack.value=(value==2)
-                  PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode()
-                end}
-            },
-            vb:row{
-              vb:text{text="Replace Current Instrument",width=150},
-              vb:switch{items={"Off","On"},value=preferences.pakettifyReplaceInstrument.value and 2 or 1,width=200,
-                notifier=function(value) preferences.pakettifyReplaceInstrument.value=(value==2) end}
-            },
-            vb:row{vb:text{style="strong",text="Pakettification replaces current instrument instead of creating new one"}},
             
-
-            vb:row{
-              vb:text{text="Wipe Exploded Track",width=150},
-              vb:switch{items={"Off","On"},value=preferences.pakettiWipeExplodedTrack.value and 2 or 1,width=200,
-                notifier=function(value) preferences.pakettiWipeExplodedTrack.value=(value==2) end}
-            },
-            vb:row{
-              vb:text{text="Instrument Properties",width=150},
-              vb:switch{items={"Do Nothing","Hide","Show"},value=preferences.pakettiInstrumentProperties.value+1,width=300,
-                notifier=function(value) 
-                  preferences.pakettiInstrumentProperties.value=(value-1)
-                  -- Update the instrument properties visibility immediately
-                  if renoise.API_VERSION >= 6.2 then
-                    if preferences.pakettiInstrumentProperties.value == 1 then
-                      renoise.app().window.instrument_properties_is_visible = false
-                    elseif preferences.pakettiInstrumentProperties.value == 2 then
-                      renoise.app().window.instrument_properties_is_visible = true
+              vb:row{
+                vb:text{text="Always Open Track DSPs",width=150},
+                vb:switch{items={"Off","On"},value=preferences.pakettiAlwaysOpenDSPsOnTrack.value and 2 or 1,width=200,
+                  notifier=function(value) 
+                    preferences.pakettiAlwaysOpenDSPsOnTrack.value=(value==2)
+                    PakettiAutomaticallyOpenSelectedTrackDeviceExternalEditorsToggleAutoMode()
+                  end}},
+              vb:row{
+                vb:text{text="Replace Current Instrument",width=150,tooltip="Pakettification replaces current instrument instead of creating new one"},
+                vb:switch{items={"Off","On"},value=preferences.pakettifyReplaceInstrument.value and 2 or 1,width=200,tooltip="Pakettification replaces current instrument instead of creating new one",
+                  notifier=function(value) preferences.pakettifyReplaceInstrument.value=(value==2) end}},
+              vb:row{
+                vb:text{text="Wipe Exploded Track",width=150},
+                vb:switch{items={"Off","On"},value=preferences.pakettiWipeExplodedTrack.value and 2 or 1,width=200,
+                  notifier=function(value) preferences.pakettiWipeExplodedTrack.value=(value==2) end}},
+              vb:row{
+                vb:text{text="Instrument Properties",width=150,tooltip="Control Instrument Properties panel visibility on startup and when changed",},
+                vb:switch{items={"Do Nothing","Hide","Show"},tooltip="Control Instrument Properties panel visibility on startup and when changed",value=preferences.pakettiInstrumentProperties.value+1,width=300,
+                  notifier=function(value) 
+                    preferences.pakettiInstrumentProperties.value=(value-1)
+                    -- Update the instrument properties visibility immediately
+                    if renoise.API_VERSION >= 6.2 then
+                      if preferences.pakettiInstrumentProperties.value == 1 then
+                        renoise.app().window.instrument_properties_is_visible = false
+                      elseif preferences.pakettiInstrumentProperties.value == 2 then
+                        renoise.app().window.instrument_properties_is_visible = true
+                      end
+                      -- Mode 0 (Do Nothing) - no immediate action taken
                     end
-                    -- Mode 0 (Do Nothing) - no immediate action taken
-                  end
-                  local mode_names = {"Do Nothing", "Hide", "Show"}
-                  renoise.app():show_status("Instrument Properties Control: " .. mode_names[value])
-                end}
-            },
-            vb:row{vb:text{style="strong",text="Control Instrument Properties panel visibility on startup and when changed"}},
-            -- Only show Disk Browser Visible switch for API version 6.2 and above
-            renoise.API_VERSION >= 6.2 and vb:row{
-              vb:text{text="Disk Browser Visible",width=150},
-              vb:switch{items={"Off","On"},value=preferences.pakettiDiskBrowserVisible.value and 2 or 1,width=200,
-                notifier=function(value) 
-                  preferences.pakettiDiskBrowserVisible.value=(value==2)
-                  -- Update the disk browser visibility immediately
-                  renoise.app().window.disk_browser_is_visible = preferences.pakettiDiskBrowserVisible.value
-                end}
-            } or vb:space{height=1},
-            renoise.API_VERSION >= 6.2 and vb:row{vb:text{style="strong",text="Show/Hide Disk Browser panel on startup and when changed"}} or vb:space{height=1},
-            renoise.API_VERSION >= 6.2 and vb:row{
-              vb:text{text="Auto Control Disk Browser",width=150},
-              vb:switch{items={"Do Nothing","Hide on Song Load","Show on Song Load"},value=preferences.paketti_auto_disk_browser_mode.value+1,width=300,
-                notifier=function(value) 
-                  preferences.paketti_auto_disk_browser_mode.value=(value-1)
-                  local mode_names = {"Do Nothing", "Hide on Song Load", "Show on Song Load"}
-                  renoise.app():show_status("Auto Disk Browser Control: " .. mode_names[value])
-                end}
-            } or vb:space{height=1},
-            renoise.API_VERSION >= 6.2 and vb:row{vb:text{style="strong",text="Automatically control Disk Browser visibility when new songs are loaded"}} or vb:space{height=1},
-            vb:row{
-              vb:text{text="0G01 Loader",width=150},
-              vb:switch{items={"Off","On"},value=preferences._0G01_Loader.value and 2 or 1,width=200,
-                notifier=function(value)
-                  preferences._0G01_Loader.value=(value==2)
-                  update_0G01_loader_menu_entries()
-                end}
-            },
-            vb:row{vb:text{style="strong",text="Upon loading a Sample, inserts a C-4 and -G01 to New Track, Sample plays until end of length and triggers again."}},
-            vb:row{
-              vb:text{text="Random BPM",width=150},
-              vb:switch{items={"Off","On"},value=preferences.RandomBPM.value and 2 or 1,width=200,
-                notifier=function(value) preferences.RandomBPM.value=(value==2) end}
-            },
-            vb:row{
-              vb:text{text="Global Groove on Startup",width=150},
-              vb:switch{items={"Off","On"},value=preferences.pakettiEnableGlobalGrooveOnStartup.value and 2 or 1,width=200,
-                notifier=function(value) preferences.pakettiEnableGlobalGrooveOnStartup.value=(value==2) end}
-            },
-            vb:row{vb:text{style="strong",text="Automatically enable Global Groove when creating/loading songs"}},
-            vb:row{
-              vb:text{text="BPM Randomizer on New Songs",width=150},
-              vb:switch{items={"Off","On"},value=preferences.pakettiRandomizeBPMOnNewSong.value and 2 or 1,width=200,
-                notifier=function(value) preferences.pakettiRandomizeBPMOnNewSong.value=(value==2) end}
-            },
-            vb:row{vb:text{style="strong",text="Randomly set BPM (60-220) with bell curve around 120 for new songs (not loaded from file)"}},
-            vb:row{
-              vb:text{text="Pattern Status Monitor",width=150},
-              vb:switch{items={"Off","On"},value=preferences.pakettiPatternStatusMonitor.value and 2 or 1,width=200,
-                notifier=function(value) preferences.pakettiPatternStatusMonitor.value=(value==2) end}
-            },
-            vb:row{vb:text{style="strong",text="Show real-time effect/note column information in status bar"}},
+                    local mode_names = {"Do Nothing", "Hide", "Show"}
+                    renoise.app():show_status("Instrument Properties Control: " .. mode_names[value])
+                  end}},
+
+            -- Only show Disk Browser control for API version 6.2 and above
+            renoise.API_VERSION >= 6.2 and 
+              vb:row{
+                vb:text{text="Disk Browser Control",width=150,tooltip="Automatically control Disk Browser visibility when songs are loaded"},
+                vb:switch{items={"Do Nothing","Hide on Song Load","Show on Song Load"},value=preferences.paketti_auto_disk_browser_mode.value+1,width=300,tooltip="Automatically control Disk Browser visibility when songs are loaded",
+                  notifier=function(value) 
+                    preferences.paketti_auto_disk_browser_mode.value=(value-1)
+                    local mode_names = {"Do Nothing", "Hide on Song Load", "Show on Song Load"}
+                    renoise.app():show_status("Disk Browser Control: " .. mode_names[value])
+                  end}}
+
+             or vb:space{height=1},
+            
+              vb:row{
+                vb:text{text="0G01 Loader",width=150,tooltip="Upon loading a Sample, inserts a C-4 and -G01 to New Track, Sample plays until end of length and triggers again."},
+                vb:switch{items={"Off","On"},tooltip="Upon loading a Sample, inserts a C-4 and -G01 to New Track, Sample plays until end of length and triggers again.",value=preferences._0G01_Loader.value and 2 or 1,width=200,
+                  notifier=function(value)
+                    preferences._0G01_Loader.value=(value==2)
+                    update_0G01_loader_menu_entries()
+                  end}},
+              vb:row{
+                vb:text{text="Random BPM",width=150},
+                vb:switch{items={"Off","On"},value=preferences.RandomBPM.value and 2 or 1,width=200,
+                  notifier=function(value) preferences.RandomBPM.value=(value==2) end}},
+              vb:row{
+                vb:text{text="Global Groove on Startup",width=150,tooltip="Automatically enable Global Groove when creating/loading songs",},
+                vb:switch{items={"Off","On"},tooltip="Automatically enable Global Groove when creating/loading songs",value=preferences.pakettiEnableGlobalGrooveOnStartup.value and 2 or 1,width=200,
+                  notifier=function(value) preferences.pakettiEnableGlobalGrooveOnStartup.value=(value==2) end}},
+              vb:row{
+                vb:text{text="BPM Randomizer on New Songs",width=150,tooltip="Randomly set BPM (60-220) with bell curve around 120 for new songs (not loaded from file)",},
+                vb:switch{items={"Off","On"},tooltip="Randomly set BPM (60-220) with bell curve around 120 for new songs (not loaded from file)",value=preferences.pakettiRandomizeBPMOnNewSong.value and 2 or 1,width=200,
+                  notifier=function(value) preferences.pakettiRandomizeBPMOnNewSong.value=(value==2) end}},
+              vb:row{
+                vb:text{text="Pattern Status Monitor",width=150,tooltip="Show real-time effect/note column information in status bar",},
+                vb:switch{items={"Off","On"},tooltip="Show real-time effect/note column information in status bar",value=preferences.pakettiPatternStatusMonitor.value and 2 or 1,width=200,
+                  notifier=function(value) preferences.pakettiPatternStatusMonitor.value=(value==2) end}},
             vb:row{
             vb:button{text="Load Pale Green Theme",width=150,notifier=function() update_loadPaleGreenTheme_preferences() end},
             vb:button{text="Load Plaid Zap .XRNI",width=150,notifier=function() renoise.app():load_instrument("Gifts/plaidzap.xrni") end},
@@ -892,32 +872,28 @@ local pakettiIRPathDisplayId = "pakettiIRPathDisplay_" .. tostring(math.random(2
             vb:row{vb:text{text="Autofade",width=150},vb:switch{items={"Off","On"},value=preferences.selectionNewInstrumentAutofade.value and 2 or 1,width=200,
               notifier=function(value) 
               preferences.selectionNewInstrumentAutofade.value=(value==2) 
-              end}
-            },
+              end}},
           -- Render Settings wrapped in group
-            vb:text{style="strong",font="bold",text="Render Settings"}, -- Applied bold and strong
-            vb:row{vb:text{text="Sample Rate",width=150},vb:switch{items={"22050","44100","48000","88200","96000","192000"},value=find_sample_rate_index(preferences.renderSampleRate.value),width=300,
-              notifier=function(value) preferences.renderSampleRate.value=sample_rates[value] end}
-            },
-            vb:row{vb:text{text="Bit Depth",width=150},vb:switch{items={"16","24","32"},value=preferences.renderBitDepth.value==16 and 1 or preferences.renderBitDepth.value==24 and 2 or 3,width=300,
-              notifier=function(value) preferences.renderBitDepth.value=(value==1 and 16 or value==2 and 24 or 32) end}
-            },
-            vb:row{vb:text{text="Bypass Devices",width=150},vb:switch{items={"Off","On"},value=preferences.renderBypass.value and 2 or 1,width=300,
-              notifier=function(value) preferences.renderBypass.value=(value==2) end}
-            },
-            vb:row{vb:text{text="DC Offset",width=150},vb:switch{items={"Off","On"},value=preferences.RenderDCOffset.value and 2 or 1,width=300,
-              notifier=function(value) preferences.RenderDCOffset.value=(value==2) end}
-            },
+              vb:text{style="strong",font="bold",text="Render Settings"},
+              vb:row{vb:text{text="Sample Rate",width=150},vb:switch{items={"22050","44100","48000","88200","96000","192000"},value=find_sample_rate_index(preferences.renderSampleRate.value),width=300,
+                notifier=function(value) preferences.renderSampleRate.value=sample_rates[value] end}},
+            
+              vb:row{vb:text{text="Bit Depth",width=150},vb:switch{items={"16","24","32"},value=preferences.renderBitDepth.value==16 and 1 or preferences.renderBitDepth.value==24 and 2 or 3,width=300,
+                notifier=function(value) preferences.renderBitDepth.value=(value==1 and 16 or value==2 and 24 or 32) end}},
+            
+              vb:row{vb:text{text="Bypass Devices",width=150},vb:switch{items={"Off","On"},value=preferences.renderBypass.value and 2 or 1,width=300,
+                notifier=function(value) preferences.renderBypass.value=(value==2) end}},
+            
+              vb:row{vb:text{text="DC Offset",width=150},vb:switch{items={"Off","On"},value=preferences.RenderDCOffset.value and 2 or 1,width=300,
+                notifier=function(value) preferences.RenderDCOffset.value=(value==2) end}},
             vb:text{style="strong",font="bold",text="Experimental Render Settings"},
             vb:row{vb:text{text="Render Priority",width=150},vb:switch{items={"High","Realtime"},value=preferences.experimentalRenderPriority.value=="high" and 1 or 2,width=300,
               tooltip="High: switches to Realtime if Line Input device detected. Realtime: always uses realtime priority.",
-              notifier=function(value) preferences.experimentalRenderPriority.value=(value==1 and "high" or "realtime") end}
-            },
+              notifier=function(value) preferences.experimentalRenderPriority.value=(value==1 and "high" or "realtime") end}},
             vb:row{vb:text{text="Silence Multiplier",width=150},vb:switch{items={"0","1","3","7"},value=(preferences.experimentalRenderSilenceMultiplier.value==0 and 1 or preferences.experimentalRenderSilenceMultiplier.value==1 and 2 or preferences.experimentalRenderSilenceMultiplier.value==3 and 3 or 4),width=300,
               tooltip="Number of sample-length silences after playback for FX trails (0=no trails, 7=max trails).",
-              notifier=function(value) preferences.experimentalRenderSilenceMultiplier.value=(value==1 and 0 or value==2 and 1 or value==3 and 3 or 7) end}
-            },
-            vb:text{style = "strong", font = "bold", text="Rotate Sample Buffer Settings"},
+              notifier=function(value) preferences.experimentalRenderSilenceMultiplier.value=(value==1 and 0 or value==2 and 1 or value==3 and 3 or 7) end}},
+              vb:text{style = "strong", font = "bold", text="Rotate Sample Buffer Settings"},
             vb:row{
                 vb:text{text="Fine Control",width=150},
                 vb:slider{
@@ -945,12 +921,8 @@ local pakettiIRPathDisplayId = "pakettiIRPathDisplay_" .. tostring(math.random(2
                         preferences.pakettiRotateSampleBufferCoarse.value = value
                         coarse_value_label.text = tostring(value)
                     end
-                },
-                coarse_value_label
-            },
-          vb:text{style="strong",font="bold",text="Strip Silence Settings"}, -- Applied bold and strong
-
--- Modify the silence settings sliders
+                },coarse_value_label},
+            vb:text{style="strong",font="bold",text="Strip Silence Settings"},
 vb:row{
   vb:text{text="Strip Silence Threshold:",width=150},
   vb:minislider{
@@ -962,11 +934,7 @@ vb:row{
           threshold_label.text = string.format("%.3f%%", value * 100)
           preferences.PakettiStripSilenceThreshold.value = value
           update_strip_silence_preview(value)
-      end
-  },
-  threshold_label,
-},
-
+      end},threshold_label},
 vb:row{
   vb:text{text="Move Silence Threshold:",width=150},
   vb:minislider{
@@ -978,13 +946,11 @@ vb:row{
           begthreshold_label.text = string.format("%.3f%%", value * 100)
           preferences.PakettiMoveSilenceThreshold.value = value
           update_move_silence_preview(value)
-      end
-  },
-  begthreshold_label,
-      
+      end},begthreshold_label,},
+              vb:text{style="strong",font="bold",text="Edit Mode Colouring"}
 
-    },
-            vb:text{style="strong",font="bold",text="Edit Mode Colouring"}, -- Applied bold and strong
+              
+            ,
             vb:row{vb:text{text="Edit Mode",width=150},vb:switch{items={"None","Selected Track","All Tracks"},value=preferences.pakettiEditMode.value,width=300,
               notifier=function(value) preferences.pakettiEditMode.value=value end}
             },
@@ -1040,14 +1006,21 @@ vb:row{
                 notifier=function(value)
                   preferences.pakettiAutomationWipeAfterSwitch.value = (value == 2)
                 end
-              }}}},
+              }
+            }
+          },
+        },
         -- Column 2
         vb:column{
           style="group",margin=5,width=600,
           -- Paketti Loader Settings wrapped in group
           vb:column{
             style="group",margin=10,width="100%",
-            vb:text{style="strong",font="bold",text="Paketti Loader Settings"},
+            
+              vb:text{style="strong",font="bold",text="Paketti Loader Settings"}
+
+              
+            ,
             vb:row{
               vb:text{text="Skip Automation Device",width=150},
               vb:switch{items={"Off","On"},value=preferences.pakettiLoaderDontCreateAutomationDevice.value and 2 or 1,width=200,
@@ -1090,17 +1063,14 @@ vb:row{
             },
             vb:row{vb:text{text="Paketti Loader Settings (Drumkit Loader)", font="bold", style="strong"}},
             vb:row{vb:text{text="Move Beginning Silence",width=150},vb:switch{items={"Off","On"},value=preferences.pakettiLoaderMoveSilenceToEnd.value and 2 or 1,width=200,
-              notifier=function(value) preferences.pakettiLoaderMoveSilenceToEnd.value=(value==2) end}
-          },
+              notifier=function(value) preferences.pakettiLoaderMoveSilenceToEnd.value=(value==2) end}},
           vb:row{vb:text{text="Normalize Samples",width=150},vb:switch{items={"Off","On"},value=preferences.pakettiLoaderNormalizeSamples.value and 2 or 1,width=200,
-            notifier=function(value) preferences.pakettiLoaderNormalizeSamples.value=(value==2) end}
-        },
+            notifier=function(value) preferences.pakettiLoaderNormalizeSamples.value=(value==2) end}},
             vb:row{vb:text{text="Default XRNI to use:",width=150},vb:textfield{text=preferences.pakettiDefaultXRNI.value:match("[^/\\]+$"),width=300,id=pakettiDefaultXRNIDisplayId,notifier=function(value) preferences.pakettiDefaultXRNI.value=value end},vb:button{text="Browse",width=100,notifier=function()
               local filePath=renoise.app():prompt_for_filename_to_read({"*.XRNI"},"Paketti Default XRNI Selector Dialog")
               if filePath and filePath~="" then
                 preferences.pakettiDefaultXRNI.value=filePath
                 vb.views[pakettiDefaultXRNIDisplayId].text=filePath:match("[^/\\]+$")
-                
                 -- Save preferences immediately
                 preferences:save_as("preferences.xml")
               else
@@ -1124,9 +1094,7 @@ vb:row{
               
               -- Save preferences immediately
               preferences:save_as("preferences.xml")
-            end} },
-         
-         
+            end}},
             vb:row{vb:text{text="Default Drumkit XRNI to use:",width=150},vb:textfield{text=preferences.pakettiDefaultDrumkitXRNI.value:match("[^/\\]+$"),width=300,id=pakettiDefaultDrumkitXRNIDisplayId,notifier=function(value) preferences.pakettiDefaultDrumkitXRNI.value=value end},vb:button{text="Browse",width=100,notifier=function()
               local filePath=renoise.app():prompt_for_filename_to_read({"*.XRNI"},"Paketti Default Drumkit XRNI Selector Dialog")
               if filePath and filePath~="" then
@@ -1156,42 +1124,33 @@ vb:row{
               
               -- Save preferences immediately
               preferences:save_as("preferences.xml")
-            end} },
+            end}},
             vb:text{style="strong",font="bold",text="Wipe & Slices Settings"},
             vb:row{vb:text{text="Slice Loop Mode",width=150},create_loop_mode_switch(preferences.WipeSlices.WipeSlicesLoopMode) },
             vb:row{vb:text{text="Slice Loop Release/Exit Mode",width=150},vb:checkbox{value=preferences.WipeSlices.WipeSlicesLoopRelease.value,notifier=function(value) preferences.WipeSlices.WipeSlicesLoopRelease.value=value end} },
             vb:row{vb:text{text="Slice Beatsync Mode",width=150},vb:switch{items={"Repitch","Time-Stretch (Percussion)","Time-Stretch (Texture)","Off"},value=preferences.WipeSlices.WipeSlicesBeatSyncMode.value,width=420,
-              notifier=function(value) preferences.WipeSlices.WipeSlicesBeatSyncMode.value=value end}
-            },
+              notifier=function(value) preferences.WipeSlices.WipeSlicesBeatSyncMode.value=value end}},
             vb:row{vb:text{text="Slice One-Shot",width=150},vb:switch{items={"Off","On"},value=preferences.WipeSlices.WipeSlicesOneShot.value and 2 or 1,width=200,
-              notifier=function(value) preferences.WipeSlices.WipeSlicesOneShot.value=(value==2) end}
-            },
+              notifier=function(value) preferences.WipeSlices.WipeSlicesOneShot.value=(value==2) end}},
             vb:row{vb:text{text="Slice Autoseek",width=150},vb:switch{items={"Off","On"},value=preferences.WipeSlices.WipeSlicesAutoseek.value and 2 or 1,width=200,
-              notifier=function(value) preferences.WipeSlices.WipeSlicesAutoseek.value=(value==2) end}
-            },
+              notifier=function(value) preferences.WipeSlices.WipeSlicesAutoseek.value=(value==2) end}},
             vb:row{vb:text{text="Slice Autofade",width=150},vb:switch{items={"Off","On"},value=preferences.WipeSlices.WipeSlicesAutofade.value and 2 or 1,width=200,
-              notifier=function(value) preferences.WipeSlices.WipeSlicesAutofade.value=(value==2) end}
-            },
+              notifier=function(value) preferences.WipeSlices.WipeSlicesAutofade.value=(value==2) end}},
             vb:row{vb:text{text="New Note Action(NNA) Mode",width=150},vb:switch{items={"Cut","Note-Off","Continue"},value=preferences.WipeSlices.WipeSlicesNNA.value,width=300,
-              notifier=function(value) preferences.WipeSlices.WipeSlicesNNA.value=value end}
-            },
+              notifier=function(value) preferences.WipeSlices.WipeSlicesNNA.value=value end}},
             vb:row{vb:text{text="Mute Group",width=150},vb:switch{items={"Off","1","2","3","4","5","6","7","8","9","A","B","C","D","E","F"},value=preferences.WipeSlices.WipeSlicesMuteGroup.value+1,width=400,
-              notifier=function(value) preferences.WipeSlices.WipeSlicesMuteGroup.value=value-1 end}
-            },
+              notifier=function(value) preferences.WipeSlices.WipeSlicesMuteGroup.value=value-1 end}},
             vb:row{vb:text{text="Slice Loop EndHalf",width=150},vb:switch{items={"Off","On"},value=preferences.WipeSlices.SliceLoopMode.value and 2 or 1,width=200,
-          notifier=function(value) preferences.WipeSlices.SliceLoopMode.value=(value==2) end}
-          },
-    vb:row{
-      vb:text{text="Dialog Close Key",width=150, style="strong",font="bold"},
-      vb:popup{
-        items = dialog_close_keys,
-        value = table.find(dialog_close_keys, preferences.pakettiDialogClose.value) or 1,
-        width=200,
-        notifier=function(value)
-          preferences.pakettiDialogClose.value = dialog_close_keys[value]
-        end
-      },
-    },
+          notifier=function(value) preferences.WipeSlices.SliceLoopMode.value=(value==2) end}},
+      vb:row{
+        vb:text{text="Dialog Close Key",width=150, style="strong",font="bold"},
+        vb:popup{
+          items = dialog_close_keys,
+          value = table.find(dialog_close_keys, preferences.pakettiDialogClose.value) or 1,
+          width=200,
+          notifier=function(value)
+            preferences.pakettiDialogClose.value = dialog_close_keys[value]
+          end},},
     vb:text{style="strong", font="bold", text="Random Device Chain Loader Path"},
     vb:row{
         vb:textfield{
@@ -1278,19 +1237,28 @@ vb:row{
       end
     }
   },
-  vb:row{
-    vb:text{text="Device Load Behavior", style="strong",font="bold",width=150},
-    vb:switch{
-      items={"Open External Editor", "Open Selected Parameter Dialog"},
-      value=preferences.pakettiDeviceLoadBehaviour.value,
-      width=400,
-      notifier=function(value) 
-        preferences.pakettiDeviceLoadBehaviour.value = value
-        print("Device Load Behavior set to: " .. (value == 1 and "Open External Editor" or "Open Selected Parameter Dialog"))
-      end
-    }
-  },
-  vb:row{vb:text{style="strong",text="Controls behavior when loading VST/AU plugins and native devices"}},
+  
+    vb:row{
+      vb:text{text="Device Load Behavior", style="strong",font="bold",width=150,tooltip="Controls behavior when loading VST/AU plugins and native devices"},
+      vb:switch{
+        items={"Open External Editor", "Open Selected Parameter Dialog", "<do nothing>"},
+        value=preferences.pakettiDeviceLoadBehaviour.value,
+        tooltip="Controls behavior when loading VST/AU plugins and native devices",
+        width=400,
+        notifier=function(value) 
+          preferences.pakettiDeviceLoadBehaviour.value = value
+          local behavior_text = ""
+          if value == 1 then
+            behavior_text = "Open External Editor"
+          elseif value == 2 then
+            behavior_text = "Open Selected Parameter Dialog"
+          else
+            behavior_text = "<do nothing>"
+          end
+          print("Device Load Behavior set to: " .. behavior_text)
+        end
+      }
+    },
     vb:row{
       vb:text{text="LFO Write Device Delete",style="strong",font="bold",width=150},
       vb:switch{
@@ -1325,53 +1293,6 @@ vb:row{
       }
     },
     vb:row{
-      vb:text{text="PlayerPro Effect Dialog Dark Mode",width=150},
-      vb:switch{items={"Light Mode","Dark Mode"},
-        value=preferences.pakettiPlayerProEffectDialogDarkMode.value and 2 or 1,
-        width=200,
-        notifier=function(value) 
-          preferences.pakettiPlayerProEffectDialogDarkMode.value=(value==2)
-          print(string.format("PlayerPro Effect Dialog mode changed to: %s", value == 2 and "Dark Mode" or "Light Mode"))
-        end
-      }
-    },
-    vb:row{
-      vb:text{text="PlayerPro Effect Canvas Write",width=150},
-      vb:checkbox{
-        value=preferences.pakettiPlayerProEffectCanvasWrite.value,
-        notifier=function(value)
-          preferences.pakettiPlayerProEffectCanvasWrite.value = value
-        end
-      }
-    },
-    vb:row{
-      vb:text{text="PlayerPro Effect Canvas SubColumn",width=150},
-      vb:checkbox{
-        value=preferences.pakettiPlayerProEffectCanvasSubColumn.value,
-        notifier=function(value)
-          preferences.pakettiPlayerProEffectCanvasSubColumn.value = value
-        end
-      }
-    },
-    vb:row{
-      vb:text{text="PlayerPro Note Canvas Write",width=150},
-      vb:checkbox{
-        value=preferences.pakettiPlayerProNoteCanvasWrite.value,
-        notifier=function(value)
-          preferences.pakettiPlayerProNoteCanvasWrite.value = value
-        end
-      }
-    },
-    vb:row{
-      vb:text{text="PlayerPro Note Canvas Piano Keys",width=150},
-      vb:checkbox{
-        value=preferences.pakettiPlayerProNoteCanvasPianoKeys.value,
-        notifier=function(value)
-          preferences.pakettiPlayerProNoteCanvasPianoKeys.value = value
-        end
-      }
-    },
-    vb:row{
       vb:text{text="Frequency Analysis Cycles",width=150},
       vb:textfield{
         text=tostring(preferences.pakettiSampleDetailsCycles.value),
@@ -1382,177 +1303,271 @@ vb:row{
             preferences.pakettiSampleDetailsCycles.value = cycles
           end
         end
-      }
-    },
-    vb:text{style="strong",font="bold",text="Unison Generator Settings"},
-    vb:row{
-        vb:text{text="Unison Detune",width=150},
-        vb:slider{
-            min = 0,
-            max = 96,
-            value = preferences.pakettiUnisonDetune.value,
-            width=200,
-            notifier=function(value)
-                value = math.floor(value)  -- Ensure integer value
-                preferences.pakettiUnisonDetune.value = value
-                unison_detune_value_label.text = tostring(value)
-                
-                -- Smart update: if current instrument is a unison instrument, update live
-                local song = renoise.song()
-                if song and song.selected_instrument and song.selected_instrument.name:find("Unison") then
-                    local instrument = song.selected_instrument
-                    if #instrument.samples >= 8 then
-                        -- Get the original fine tune value from the first sample
-                        local original_fine_tune = instrument.samples[1].fine_tune
-                        
-                        -- Update samples 2-8 with new detune values
-                        for i = 2, 8 do
-                            local sample = instrument.samples[i]
-                            if sample then
-                                local detune_offset = 0
-                                -- Calculate detune offset based on hard sync and fluctuation settings
-                                if preferences.pakettiUnisonDetuneHardSync.value then
-                                    -- Hard sync: alternating -value, +value, -value, +value...
-                                    detune_offset = (i % 2 == 0) and -value or value
-                                elseif preferences.pakettiUnisonDetuneFluctuation.value then
-                                    -- Random fluctuation between -value and +value
-                                    detune_offset = math.random(-value, value)
-                                else
-                                    -- Fixed detune values distributed evenly
-                                    local detune_step = value / 4  -- Spread across 7 samples (2-8)
-                                    local sample_offset = i - 5  -- Center around sample 5, so: -3,-2,-1,0,1,2,3
-                                    detune_offset = math.floor(sample_offset * detune_step)
-                                end
-                                -- Apply offset to original fine tune, clamping to valid range
-                                sample.fine_tune = math.max(-127, math.min(127, original_fine_tune + detune_offset))
-                                -- Update sample name to reflect new detune value
-                                local original_name = sample.name:gsub("%s*%(Unison.*$", "")
-                                local panning_label = sample.panning == 0 and "50L" or "50R"
-                                sample.name = string.format("%s (Unison %d [%d] (%s))", original_name:gsub("%(Unison.*%)%s*", ""), i - 1, sample.fine_tune, panning_label)
-                            end
-                        end
-                        local mode = preferences.pakettiUnisonDetuneHardSync.value and "hard sync" or (preferences.pakettiUnisonDetuneFluctuation.value and "random" or "fixed")
-                        renoise.app():show_status(string.format("Updated unison detune to ±%d (%s) for current instrument", value, mode))
-                    end
-                end
-            end
-        },
-        unison_detune_value_label
-    },
-    vb:row{
-        vb:text{text="Random Fluctuation",width=150},
-        vb:checkbox{
-            value=preferences.pakettiUnisonDetuneFluctuation.value,
-            notifier=function(value)
-                preferences.pakettiUnisonDetuneFluctuation.value = value
-                
-                -- Smart update: if current instrument is a unison instrument, update live
-                local song = renoise.song()
-                if song and song.selected_instrument and song.selected_instrument.name:find("Unison") then
-                    local instrument = song.selected_instrument
-                    if #instrument.samples >= 8 then
-                        local detune_value = preferences.pakettiUnisonDetune.value
-                        -- Get the original fine tune value from the first sample
-                        local original_fine_tune = instrument.samples[1].fine_tune
-                        
-                        -- Update samples 2-8 with new detune method
-                        for i = 2, 8 do
-                            local sample = instrument.samples[i]
-                            if sample then
-                                local detune_offset = 0
-                                -- Calculate detune offset based on hard sync and fluctuation settings
-                                if preferences.pakettiUnisonDetuneHardSync.value then
-                                    -- Hard sync: alternating -value, +value, -value, +value...
-                                    detune_offset = (i % 2 == 0) and -detune_value or detune_value
-                                elseif value then
-                                    -- Random fluctuation between -value and +value
-                                    detune_offset = math.random(-detune_value, detune_value)
-                                else
-                                    -- Fixed detune values distributed evenly
-                                    local detune_step = detune_value / 4  -- Spread across 7 samples (2-8)
-                                    local sample_offset = i - 5  -- Center around sample 5, so: -3,-2,-1,0,1,2,3
-                                    detune_offset = math.floor(sample_offset * detune_step)
-                                end
-                                -- Apply offset to original fine tune, clamping to valid range
-                                sample.fine_tune = math.max(-127, math.min(127, original_fine_tune + detune_offset))
-                                -- Update sample name to reflect new detune value
-                                local original_name = sample.name:gsub("%s*%(Unison.*$", "")
-                                local panning_label = sample.panning == 0 and "50L" or "50R"
-                                sample.name = string.format("%s (Unison %d [%d] (%s))", original_name:gsub("%(Unison.*%)%s*", ""), i - 1, sample.fine_tune, panning_label)
-                            end
-                        end
-                        local mode = value and "random" or "fixed"
-                        renoise.app():show_status(string.format("Switched to %s detune mode for current unison instrument", mode))
-                    end
-                end
-            end
-        }
-    },
-    vb:row{
-        vb:text{text="Hard Sync",width=150},
-        vb:checkbox{
-            value=preferences.pakettiUnisonDetuneHardSync.value,
-            notifier=function(value)
-                preferences.pakettiUnisonDetuneHardSync.value = value
-                
-                -- Smart update: if current instrument is a unison instrument, update live
-                local song = renoise.song()
-                if song and song.selected_instrument and song.selected_instrument.name:find("Unison") then
-                    local instrument = song.selected_instrument
-                    if #instrument.samples >= 8 then
-                        local detune_value = preferences.pakettiUnisonDetune.value
-                        -- Get the original fine tune value from the first sample
-                        local original_fine_tune = instrument.samples[1].fine_tune
-                        
-                        -- Update samples 2-8 with new detune method
-                        for i = 2, 8 do
-                            local sample = instrument.samples[i]
-                            if sample then
-                                local detune_offset = 0
-                                -- Calculate detune offset based on hard sync and fluctuation settings
-                                if value then
-                                    -- Hard sync: alternating -value, +value, -value, +value...
-                                    detune_offset = (i % 2 == 0) and -detune_value or detune_value
-                                elseif preferences.pakettiUnisonDetuneFluctuation.value then
-                                    -- Random fluctuation between -value and +value
-                                    detune_offset = math.random(-detune_value, detune_value)
-                                else
-                                    -- Fixed detune values distributed evenly
-                                    local detune_step = detune_value / 4  -- Spread across 7 samples (2-8)
-                                    local sample_offset = i - 5  -- Center around sample 5, so: -3,-2,-1,0,1,2,3
-                                    detune_offset = math.floor(sample_offset * detune_step)
-                                end
-                                -- Apply offset to original fine tune, clamping to valid range
-                                sample.fine_tune = math.max(-127, math.min(127, original_fine_tune + detune_offset))
-                                -- Update sample name to reflect new detune value
-                                local original_name = sample.name:gsub("%s*%(Unison.*$", "")
-                                local panning_label = sample.panning == 0 and "50L" or "50R"
-                                sample.name = string.format("%s (Unison %d [%d] (%s))", original_name:gsub("%(Unison.*%)%s*", ""), i - 1, sample.fine_tune, panning_label)
-                            end
-                        end
-                        local mode = value and "hard sync" or (preferences.pakettiUnisonDetuneFluctuation.value and "random" or "fixed")
-                        renoise.app():show_status(string.format("Switched to %s detune mode for current unison instrument", mode))
-                    end
-                end
-            end
-        }
-    },
-    vb:row{
-        vb:text{text="Duplicate Instrument",width=150},
-        vb:checkbox{
-            value=preferences.pakettiUnisonDuplicateInstrument.value,
-            notifier=function(value)
-                preferences.pakettiUnisonDuplicateInstrument.value = value
-            end
-        }
-    },
-         vb:row{vb:text{style="strong",text="Controls the detune range (±) used by the Unison Generator. Hard Sync: alternating ±max values."}},
-         vb:row{vb:text{style="strong",text="Live-updates currently selected unison instrument."}},
-         vb:row{vb:text{style="strong",text="Duplicate whole Instrument: copies entire instrument (plugins, AHDSR, macros) before unison-ing."}},
-  },
+      } -- frequency analysis cycles textfield
+    }, -- frequency analysis cycles row
+  }, --
 },
       
-    },
+        --},
+        -- Column 3
+        vb:column{
+          style="group",margin=5,width=600,
+          vb:column{
+            style="group",margin=10,width="100%",
+            vb:text{style="strong",font="bold",text="Player Pro Settings"},
+          vb:row{
+            vb:text{text="Dialog Dark Mode",width=150},
+            vb:switch{items={"Light Mode","Dark Mode"},
+              value=preferences.pakettiPlayerProEffectDialogDarkMode.value and 2 or 1,
+              width=200,
+              notifier=function(value) 
+                preferences.pakettiPlayerProEffectDialogDarkMode.value=(value==2)
+                print(string.format("PlayerPro Effect Dialog mode changed to: %s", value == 2 and "Dark Mode" or "Light Mode"))
+              end
+            }
+          },
+          vb:row{
+            vb:text{text="Effect Canvas Write",width=150},
+            vb:checkbox{
+              value=preferences.pakettiPlayerProEffectCanvasWrite.value,
+              notifier=function(value)
+                preferences.pakettiPlayerProEffectCanvasWrite.value = value
+              end
+            }
+          },
+          vb:row{
+            vb:text{text="Effect Canvas SubColumn",width=150},
+            vb:checkbox{
+              value=preferences.pakettiPlayerProEffectCanvasSubColumn.value,
+              notifier=function(value)
+                preferences.pakettiPlayerProEffectCanvasSubColumn.value = value
+              end
+            }
+          },
+          vb:row{
+            vb:text{text="Note Canvas Write",width=150},
+            vb:checkbox{
+              value=preferences.pakettiPlayerProNoteCanvasWrite.value,
+              notifier=function(value)
+                preferences.pakettiPlayerProNoteCanvasWrite.value = value
+              end
+            }
+          },
+          vb:row{
+            vb:text{text="Note Canvas Piano Keys",width=150},
+            vb:checkbox{
+              value=preferences.pakettiPlayerProNoteCanvasPianoKeys.value,
+              notifier=function(value)
+                preferences.pakettiPlayerProNoteCanvasPianoKeys.value = value
+              end
+            }
+          },
+          vb:row{
+            vb:text{text="Always Open Dialog",width=150,tooltip="Automatically opens appropriate dialog based on cursor position"},
+            vb:switch{items={"Off","On"},
+              value=preferences.pakettiPlayerProAlwaysOpen.value and 2 or 1,
+              width=200,
+              tooltip="Automatically opens appropriate dialog based on cursor position",
+              notifier=function(value) 
+                preferences.pakettiPlayerProAlwaysOpen.value=(value==2)
+                -- Update the always open system immediately
+                if preferences.pakettiPlayerProAlwaysOpen.value then
+                  pakettiPlayerProStartAlwaysOpen()
+                else
+                  pakettiPlayerProStopAlwaysOpen()
+                end
+                print(string.format("PlayerPro Always Open changed to: %s", value == 2 and "On" or "Off"))
+              end
+            }
+          },
+          vb:row{
+            vb:text{text="Smart SubColumn",width=150,tooltip="Effect dialog opens when in volume/panning/delay/sample FX subcolumns"},
+            vb:switch{items={"Off","On"},
+              value=preferences.pakettiPlayerProSmartSubColumn.value and 2 or 1,
+              width=200,
+              tooltip="Effect dialog opens when in volume/panning/delay/sample FX subcolumns",
+              notifier=function(value) 
+                preferences.pakettiPlayerProSmartSubColumn.value=(value==2)
+                print(string.format("PlayerPro Smart SubColumn changed to: %s", value == 2 and "On" or "Off"))
+              end
+            }
+          },
+      
+
+
+
+
+
+          -- Unison Generator Settings wrapped in group
+
+            vb:text{style="strong",font="bold",text="Unison Generator Settings"},
+            vb:row{
+                vb:text{text="Unison Detune",width=150},
+                vb:slider{
+                    min = 0,
+                    max = 96,
+                    value = preferences.pakettiUnisonDetune.value,
+                    width=200,
+                    notifier=function(value)
+                        value = math.floor(value)  -- Ensure integer value
+                        preferences.pakettiUnisonDetune.value = value
+                        unison_detune_value_label.text = tostring(value)
+                        
+                        -- Smart update: if current instrument is a unison instrument, update live
+                        local song = renoise.song()
+                        if song and song.selected_instrument and song.selected_instrument.name:find("Unison") then
+                            local instrument = song.selected_instrument
+                            if #instrument.samples >= 8 then
+                                -- Get the original fine tune value from the first sample
+                                local original_fine_tune = instrument.samples[1].fine_tune
+                                
+                                -- Update samples 2-8 with new detune values
+                                for i = 2, 8 do
+                                    local sample = instrument.samples[i]
+                                    if sample then
+                                        local detune_offset = 0
+                                        -- Calculate detune offset based on hard sync and fluctuation settings
+                                        if preferences.pakettiUnisonDetuneHardSync.value then
+                                            -- Hard sync: alternating -value, +value, -value, +value...
+                                            detune_offset = (i % 2 == 0) and -value or value
+                                        elseif preferences.pakettiUnisonDetuneFluctuation.value then
+                                            -- Random fluctuation between -value and +value
+                                            detune_offset = math.random(-value, value)
+                                        else
+                                            -- Fixed detune values distributed evenly
+                                            local detune_step = value / 4  -- Spread across 7 samples (2-8)
+                                            local sample_offset = i - 5  -- Center around sample 5, so: -3,-2,-1,0,1,2,3
+                                            detune_offset = math.floor(sample_offset * detune_step)
+                                        end
+                                        -- Apply offset to original fine tune, clamping to valid range
+                                        sample.fine_tune = math.max(-127, math.min(127, original_fine_tune + detune_offset))
+                                        -- Update sample name to reflect new detune value
+                                        local original_name = sample.name:gsub("%s*%(Unison.*$", "")
+                                        local panning_label = sample.panning == 0 and "50L" or "50R"
+                                        sample.name = string.format("%s (Unison %d [%d] (%s))", original_name:gsub("%(Unison.*%)%s*", ""), i - 1, sample.fine_tune, panning_label)
+                                    end
+                                end
+                                local mode = preferences.pakettiUnisonDetuneHardSync.value and "hard sync" or (preferences.pakettiUnisonDetuneFluctuation.value and "random" or "fixed")
+                                renoise.app():show_status(string.format("Updated unison detune to ±%d (%s) for current instrument", value, mode))
+                            end
+                        end
+                    end
+                },
+                unison_detune_value_label
+            },
+            vb:row{
+                vb:text{text="Random Fluctuation",width=150},
+                vb:checkbox{
+                    value=preferences.pakettiUnisonDetuneFluctuation.value,
+                    notifier=function(value)
+                        preferences.pakettiUnisonDetuneFluctuation.value = value
+                        
+                        -- Smart update: if current instrument is a unison instrument, update live
+                        local song = renoise.song()
+                        if song and song.selected_instrument and song.selected_instrument.name:find("Unison") then
+                            local instrument = song.selected_instrument
+                            if #instrument.samples >= 8 then
+                                local detune_value = preferences.pakettiUnisonDetune.value
+                                -- Get the original fine tune value from the first sample
+                                local original_fine_tune = instrument.samples[1].fine_tune
+                                
+                                -- Update samples 2-8 with new detune method
+                                for i = 2, 8 do
+                                    local sample = instrument.samples[i]
+                                    if sample then
+                                        local detune_offset = 0
+                                        -- Calculate detune offset based on hard sync and fluctuation settings
+                                        if preferences.pakettiUnisonDetuneHardSync.value then
+                                            -- Hard sync: alternating -value, +value, -value, +value...
+                                            detune_offset = (i % 2 == 0) and -detune_value or detune_value
+                                        elseif value then
+                                            -- Random fluctuation between -value and +value
+                                            detune_offset = math.random(-detune_value, detune_value)
+                                        else
+                                            -- Fixed detune values distributed evenly
+                                            local detune_step = detune_value / 4  -- Spread across 7 samples (2-8)
+                                            local sample_offset = i - 5  -- Center around sample 5, so: -3,-2,-1,0,1,2,3
+                                            detune_offset = math.floor(sample_offset * detune_step)
+                                        end
+                                        -- Apply offset to original fine tune, clamping to valid range
+                                        sample.fine_tune = math.max(-127, math.min(127, original_fine_tune + detune_offset))
+                                        -- Update sample name to reflect new detune value
+                                        local original_name = sample.name:gsub("%s*%(Unison.*$", "")
+                                        local panning_label = sample.panning == 0 and "50L" or "50R"
+                                        sample.name = string.format("%s (Unison %d [%d] (%s))", original_name:gsub("%(Unison.*%)%s*", ""), i - 1, sample.fine_tune, panning_label)
+                                    end
+                                end
+                                local mode = value and "random" or "fixed"
+                                renoise.app():show_status(string.format("Switched to %s detune mode for current unison instrument", mode))
+                            end
+                        end
+                    end
+                }
+            },
+            vb:row{
+                vb:text{text="Hard Sync",width=150},
+                vb:checkbox{
+                    value=preferences.pakettiUnisonDetuneHardSync.value,
+                    notifier=function(value)
+                        preferences.pakettiUnisonDetuneHardSync.value = value
+                        
+                        -- Smart update: if current instrument is a unison instrument, update live
+                        local song = renoise.song()
+                        if song and song.selected_instrument and song.selected_instrument.name:find("Unison") then
+                            local instrument = song.selected_instrument
+                            if #instrument.samples >= 8 then
+                                local detune_value = preferences.pakettiUnisonDetune.value
+                                -- Get the original fine tune value from the first sample
+                                local original_fine_tune = instrument.samples[1].fine_tune
+                                
+                                -- Update samples 2-8 with new detune method
+                                for i = 2, 8 do
+                                    local sample = instrument.samples[i]
+                                    if sample then
+                                        local detune_offset = 0
+                                        -- Calculate detune offset based on hard sync and fluctuation settings
+                                        if value then
+                                            -- Hard sync: alternating -value, +value, -value, +value...
+                                            detune_offset = (i % 2 == 0) and -detune_value or detune_value
+                                        elseif preferences.pakettiUnisonDetuneFluctuation.value then
+                                            -- Random fluctuation between -value and +value
+                                            detune_offset = math.random(-detune_value, detune_value)
+                                        else
+                                            -- Fixed detune values distributed evenly
+                                            local detune_step = detune_value / 4  -- Spread across 7 samples (2-8)
+                                            local sample_offset = i - 5  -- Center around sample 5, so: -3,-2,-1,0,1,2,3
+                                            detune_offset = math.floor(sample_offset * detune_step)
+                                        end
+                                        -- Apply offset to original fine tune, clamping to valid range
+                                        sample.fine_tune = math.max(-127, math.min(127, original_fine_tune + detune_offset))
+                                        -- Update sample name to reflect new detune value
+                                        local original_name = sample.name:gsub("%s*%(Unison.*$", "")
+                                        local panning_label = sample.panning == 0 and "50L" or "50R"
+                                        sample.name = string.format("%s (Unison %d [%d] (%s))", original_name:gsub("%(Unison.*%)%s*", ""), i - 1, sample.fine_tune, panning_label)
+                                    end
+                                end
+                                local mode = value and "hard sync" or (preferences.pakettiUnisonDetuneFluctuation.value and "random" or "fixed")
+                                renoise.app():show_status(string.format("Switched to %s detune mode for current unison instrument", mode))
+                            end
+                        end
+                    end
+                }
+            },
+            vb:row{
+                vb:text{text="Duplicate Instrument",width=150},
+                vb:checkbox{
+                    value=preferences.pakettiUnisonDuplicateInstrument.value,
+                    notifier=function(value)
+                        preferences.pakettiUnisonDuplicateInstrument.value = value
+                    end
+                }
+            },
+            vb:row{vb:text{style="strong",text="Controls the detune range (±) used by the Unison Generator. Hard Sync: alternating ±max values."}},
+            vb:row{vb:text{style="strong",text="Live-updates currently selected unison instrument."}},
+            vb:row{vb:text{style="strong",text="Duplicate whole Instrument: copies entire instrument (plugins, AHDSR, macros) before unison-ing."}},
+          }
+        }
+      },
       
       vb:horizontal_aligner{mode="distribute",
         vb:button{text="Open Dialog of Dialogs",width="33%",notifier=function() 
@@ -1565,15 +1580,20 @@ vb:row{
         vb:button{text="Cancel",width="33%",notifier=function() dialog:close() end}
       }
     }
-  
-
     
-    -- Create keyhandler that can manage dialog variable
+    
+    -- Create simple keyhandler for preferences dialog
     local keyhandler = create_keyhandler_for_dialog(
       function() return dialog end,
       function(value) dialog = value end
     )
+    
+    -- Preferences dialog restored to stable layout (dynamic filtering disabled due to ViewBuilder limitations)
+    
     dialog = renoise.app():show_custom_dialog("Paketti Preferences", dialog_content, keyhandler)
+    
+    -- Set focus to Renoise after dialog opens for key capture
+    renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
 end
 
 function on_sample_count_change()
@@ -1695,4 +1715,5 @@ end
 safe_initialize()
 
 renoise.tool():add_keybinding{name="Global:Paketti:Show Paketti Preferences...",invoke=pakettiPreferences}
+
 

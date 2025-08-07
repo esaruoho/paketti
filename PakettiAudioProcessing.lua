@@ -528,7 +528,7 @@ local function modulate_and_diff_sample()
 end
 
 -- Function to render the sample at a new sample rate without changing its sound
-local function RenderSampleAtNewRate(target_sample_rate, target_bit_depth)
+function RenderSampleAtNewRate(target_sample_rate, target_bit_depth)
   local song=renoise.song()
   local instrument = song.selected_instrument
   local sample_index = song.selected_sample_index
