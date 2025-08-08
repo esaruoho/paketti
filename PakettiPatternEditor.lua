@@ -21,6 +21,19 @@ function muteUnmuteNoteColumn()
   end
 end
 
+-- Write Note Offs to All Tracks for First Row of current Pattern
+function PakettiNoteOffs_AllTracks_FirstRow_CurrentPattern()
+  local s = renoise.song()
+  PakettiToggleNoteOffAllTracks(0, s.selected_pattern_index)
+end
+
+-- Write Note Offs to All Tracks for First Pattern of Song, First Row
+function PakettiNoteOffs_AllTracks_FirstRow_FirstPattern()
+  local s = renoise.song()
+  local first_seq_pattern_index = s.sequencer.pattern_sequence[1]
+  PakettiToggleNoteOffAllTracks(0, first_seq_pattern_index)
+end
+
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Mute/Unmute Note Column",invoke=function() muteUnmuteNoteColumn() end}
 
 function voloff()
@@ -2866,7 +2879,7 @@ function PakettiToggleNoteOffAllColumns()
               line.note_columns[i].note_string = should_clear and "" or "OFF"
           end
       end
-      renoise.app():show_status("Toggled Note OFF in empty columns")
+      renoise.app():show_status("Toggled Note Off in empty columns")
       
   elseif renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_PHRASE_EDITOR then
       -- Ensure Renoise API version 6.2 or higher
@@ -2906,63 +2919,77 @@ function PakettiToggleNoteOffAllColumns()
               line.note_columns[i].note_string = should_clear and "" or "OFF"
           end
       end
-      renoise.app():show_status("Toggled Note OFF in empty phrase columns")
+      renoise.app():show_status("Toggled Note Off in empty phrase columns")
   end
 end
 
 -- Function to toggle note off on all tracks on current row
-function PakettiToggleNoteOffAllTracks()
+function PakettiToggleNoteOffAllTracks(target_line_index, target_pattern_index)
   local s = renoise.song()
-  
-  if renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR then
-      local cursor_pos = s.selected_line_index
-      
-      -- Count how many columns are OFF vs empty across all tracks
-      local off_count = 0
-      local empty_or_off_count = 0
-      
-      for t = 1, #s.tracks do
-          local track = s:track(t)
-          
-          if not (track.type == renoise.Track.TRACK_TYPE_GROUP or 
-                 track.type == renoise.Track.TRACK_TYPE_MASTER or 
-                 track.type == renoise.Track.TRACK_TYPE_SEND) then
-              local line = s.patterns[s.selected_pattern_index]:track(t):line(cursor_pos)
-              local count = track.visible_note_columns
-              
-              for i = 1, count do
-                  if line.note_columns[i].note_string == "OFF" then
-                      off_count = off_count + 1
-                      empty_or_off_count = empty_or_off_count + 1
-                  elseif line.note_columns[i].note_value == 121 then -- empty note
-                      empty_or_off_count = empty_or_off_count + 1
-                  end
-              end
-          end
-      end
-      
-      -- If all empty/OFF columns are OFF, clear them. Otherwise, set empty columns to OFF
-      local should_clear = (off_count == empty_or_off_count and empty_or_off_count > 0)
-      
-      for t = 1, #s.tracks do
-          local track = s:track(t)
-          
-          if not (track.type == renoise.Track.TRACK_TYPE_GROUP or 
-                 track.type == renoise.Track.TRACK_TYPE_MASTER or 
-                 track.type == renoise.Track.TRACK_TYPE_SEND) then
-              local line = s.patterns[s.selected_pattern_index]:track(t):line(cursor_pos)
-              local count = track.visible_note_columns
-              
-              for i = 1, count do
-                  if line.note_columns[i].note_string == "OFF" or
-                     line.note_columns[i].note_value == 121 then
-                      line.note_columns[i].note_string = should_clear and "" or "OFF"
-                  end
-              end
-          end
-      end
-      renoise.app():show_status("Toggled Note OFF in empty columns across tracks")
+
+  -- Resolve target pattern index
+  local pattern_index = target_pattern_index or s.selected_pattern_index
+  if pattern_index < 1 then pattern_index = 1 end
+  if pattern_index > #s.patterns then pattern_index = #s.patterns end
+
+  -- Resolve target line index (0 means first row)
+  local line_index
+  if target_line_index == nil then
+    line_index = s.selected_line_index
+  else
+    if target_line_index == 0 then
+      line_index = 1
+    else
+      line_index = target_line_index
+    end
   end
+
+  -- Clamp to pattern bounds
+  local max_lines = s.patterns[pattern_index].number_of_lines
+  if line_index < 1 then line_index = 1 end
+  if line_index > max_lines then line_index = max_lines end
+
+  -- Count how many columns are OFF vs empty across all regular tracks on the target line
+  local off_count = 0
+  local empty_or_off_count = 0
+
+  for t = 1, #s.tracks do
+    local track = s:track(t)
+    if not (track.type == renoise.Track.TRACK_TYPE_GROUP or 
+            track.type == renoise.Track.TRACK_TYPE_MASTER or 
+            track.type == renoise.Track.TRACK_TYPE_SEND) then
+      local line = s.patterns[pattern_index]:track(t):line(line_index)
+      local count = track.visible_note_columns
+      for i = 1, count do
+        if line.note_columns[i].note_string == "OFF" then
+          off_count = off_count + 1
+          empty_or_off_count = empty_or_off_count + 1
+        elseif line.note_columns[i].note_value == 121 then
+          empty_or_off_count = empty_or_off_count + 1
+        end
+      end
+    end
+  end
+
+  -- If all empty/OFF columns are OFF, clear them. Otherwise, set empty columns to OFF
+  local should_clear = (off_count == empty_or_off_count and empty_or_off_count > 0)
+
+  for t = 1, #s.tracks do
+    local track = s:track(t)
+    if not (track.type == renoise.Track.TRACK_TYPE_GROUP or 
+            track.type == renoise.Track.TRACK_TYPE_MASTER or 
+            track.type == renoise.Track.TRACK_TYPE_SEND) then
+      local line = s.patterns[pattern_index]:track(t):line(line_index)
+      local count = track.visible_note_columns
+      for i = 1, count do
+        if line.note_columns[i].note_string == "OFF" or
+           line.note_columns[i].note_value == 121 then
+          line.note_columns[i].note_string = should_clear and "" or "OFF"
+        end
+      end
+    end
+  end
+  renoise.app():show_status("Toggled Note Off in empty columns across tracks")
 end
 
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Toggle Note Off in All Visible Note Columns",  invoke = PakettiToggleNoteOffAllColumns}
@@ -3001,6 +3028,24 @@ renoise.tool():add_midi_mapping{name="Phrase Editor:Paketti:Toggle Note Off on A
     end
   end
 }
+
+-- Menu entries for Pattern Matrix, Pattern Sequencer, Pattern Editor
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Note Offs to All Tracks for First Row of Current Pattern", invoke=function() PakettiNoteOffs_AllTracks_FirstRow_CurrentPattern() end}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Note Offs to All Tracks for First Pattern of Song, First Row", invoke=function() PakettiNoteOffs_AllTracks_FirstRow_FirstPattern() end}
+renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Note Offs to All Tracks for First Row of Current Pattern", invoke=function() PakettiNoteOffs_AllTracks_FirstRow_CurrentPattern() end}
+renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Note Offs to All Tracks for First Pattern of Song, First Row", invoke=function() PakettiNoteOffs_AllTracks_FirstRow_FirstPattern() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Note Offs to All Tracks for First Row of Current Pattern", invoke=function() PakettiNoteOffs_AllTracks_FirstRow_CurrentPattern() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Note Offs to All Tracks for First Pattern of Song, First Row", invoke=function() PakettiNoteOffs_AllTracks_FirstRow_FirstPattern() end}
+
+-- Keybindings for Pattern Matrix, Pattern Sequencer, Pattern Editor, and Global
+renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Note Offs to All Tracks for First Row of Current Pattern", invoke=PakettiNoteOffs_AllTracks_FirstRow_CurrentPattern}
+renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Note Offs to All Tracks for First Pattern of Song, First Row", invoke=PakettiNoteOffs_AllTracks_FirstRow_FirstPattern}
+renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Note Offs to All Tracks for First Row of Current Pattern", invoke=PakettiNoteOffs_AllTracks_FirstRow_CurrentPattern}
+renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Note Offs to All Tracks for First Pattern of Song, First Row", invoke=PakettiNoteOffs_AllTracks_FirstRow_FirstPattern}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Note Offs to All Tracks for First Row of Current Pattern", invoke=PakettiNoteOffs_AllTracks_FirstRow_CurrentPattern}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Note Offs to All Tracks for First Pattern of Song, First Row", invoke=PakettiNoteOffs_AllTracks_FirstRow_FirstPattern}
+renoise.tool():add_keybinding{name="Global:Paketti:Note Offs to All Tracks for First Row of Current Pattern", invoke=PakettiNoteOffs_AllTracks_FirstRow_CurrentPattern}
+renoise.tool():add_keybinding{name="Global:Paketti:Note Offs to All Tracks for First Pattern of Song, First Row", invoke=PakettiNoteOffs_AllTracks_FirstRow_FirstPattern}
 -------
 
 
@@ -4884,7 +4929,7 @@ function PakettiNoteOffToSelection()
                   end
               end
           end
-          renoise.app():show_status("Toggled note OFF in pattern selection")
+          renoise.app():show_status("Toggled note Off in pattern selection")
       else
           -- Single note toggle in pattern editor
           local note_col_idx = s.selected_note_column_index
@@ -4901,7 +4946,7 @@ function PakettiNoteOffToSelection()
                   note_col.note_string = "OFF"
               end
           end
-          renoise.app():show_status("Toggled note OFF in pattern current note")
+          renoise.app():show_status("Toggled note Off in pattern current note")
       end
       
   -- Phrase Editor handling remains the same
@@ -4931,7 +4976,7 @@ function PakettiNoteOffToSelection()
                   end
               end
           end
-          renoise.app():show_status("Toggled note OFF in phrase selection")
+          renoise.app():show_status("Toggled note Off in phrase selection")
       else
           -- Single note toggle - use currently selected note column
           local note_col_idx = s.selected_phrase_note_column_index
@@ -4948,7 +4993,7 @@ function PakettiNoteOffToSelection()
                   note_col.note_string = "OFF"
               end
           end
-          renoise.app():show_status("Toggled note OFF in phrase current note")
+          renoise.app():show_status("Toggled note Off in phrase current note")
       end
   else
       renoise.app():show_status("Not in Pattern Editor or Phrase Editor")

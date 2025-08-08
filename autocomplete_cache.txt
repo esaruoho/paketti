@@ -1,6 +1,6 @@
 CACHE_VERSION=1.0
-SCAN_TIME=1754547782
-COMMAND_COUNT=4518
+SCAN_TIME=1754595033
+COMMAND_COUNT=4520
 Menu Entry|||DSP Chain:Paketti:Insert Random Device (AU/Native Only)|||DSP Chain|||function() insertRandomDevice(true) end|||DCPIRDANO,chain,paketti,insert,random,device,native,only|||PakettiMenuConfig
 Menu Entry|||DSP Chain:Paketti:Insert Random Device (All)|||DSP Chain|||function() insertRandomDevice(false) end|||DCPIRDA,chain,paketti,insert,random,device|||PakettiMenuConfig
 Menu Entry|||DSP Chain:Paketti:Inspect Track Device Chain|||DSP Chain|||inspectTrackDeviceChain|||DCPITDC,chain,paketti,inspect,track,device,chain|||PakettiPresetPlusPlus
@@ -348,6 +348,7 @@ Menu Entry|||Main Menu:Tools:Paketti Gadgets:Paketti Volume/Delay/Pan Slider Con
 Menu Entry|||Main Menu:Tools:Paketti Gadgets:Paketti eSpeak Text-to-Speech...|||Tools|||function()pakettieSpeakDialog()end|||MMTPGPETTS,main,menu,tools,paketti,gadgets,paketti,espeak,text,speech|||PakettiMenuConfig
 Menu Entry|||Main Menu:Tools:Paketti Gadgets:Pattern/Phrase Length Dialog...|||Tools|||function() pakettiLengthDialog() end|||MMTPGPPLD,main,menu,tools,paketti,gadgets,pattern,phrase,length,dialog|||PakettiMenuConfig
 Menu Entry|||Main Menu:Tools:Paketti Gadgets:Quick Load Device Dialog...|||Tools|||pakettiQuickLoadDialog|||MMTPGQLDD,main,menu,tools,paketti,gadgets,quick,load,device,dialog|||PakettiMenuConfig
+Menu Entry|||Main Menu:Tools:Paketti Gadgets:Sectionizer...|||Tools|||PakettiSectionizer|||MMTPGS,main,menu,tools,paketti,gadgets,sectionizer|||PakettiSandbox
 Menu Entry|||Main Menu:Tools:Paketti Gadgets:Show Paketti Formula Dialog...|||Tools|||pakettiFormulaDeviceDialog|||MMTPGSPFD,main,menu,tools,paketti,gadgets,show,paketti,formula,dialog|||PakettiMenuConfig
 Menu Entry|||Main Menu:Tools:Paketti Gadgets:Show/Hide User Preference Devices Master Dialog (SlotShow)...|||Tools|||function() pakettiUserPreferencesShowerDialog() end|||MMTPGSHUPDMDS,main,menu,tools,paketti,gadgets,show,hide,user,preference,devices,master,dialog,slotshow|||PakettiMenuConfig
 Menu Entry|||Main Menu:Tools:Paketti Gadgets:Sononymph Dialog...|||Tools|||function() start(true) end|||MMTPGSD,main,menu,tools,paketti,gadgets,sononymph,dialog|||Sononymph/AppMain
@@ -362,7 +363,7 @@ Menu Entry|||Main Menu:Tools:Paketti..:Metric Modulation:Quick 2:3 (From triplet
 Menu Entry|||Main Menu:Tools:Paketti..:Metric Modulation:Quick 3:2 (Triplet feel)|||Tools|||function() convert_to_triplet_feel() end|||MMTPMMQ32TF,main,menu,tools,paketti,metric,modulation,quick,triplet,feel|||PakettiMetricModulation
 Menu Entry|||Main Menu:Tools:Paketti..:Metric Modulation:Quick 3:4 (3/4→4/4 feel)|||Tools|||function() convert_3_to_4_feel() end|||MMTPMMQ343444F,main,menu,tools,paketti,metric,modulation,quick,feel|||PakettiMetricModulation
 Menu Entry|||Main Menu:Tools:Paketti..:Metric Modulation:Quick 4:3 (4/4→3/4 feel)|||Tools|||function() convert_4_to_3_feel() end|||MMTPMMQ434434F,main,menu,tools,paketti,metric,modulation,quick,feel|||PakettiMetricModulation
-Menu Entry|||Main Menu:Tools:Paketti..:Sectionizer...|||Tools|||PakettiSectionizer|||MMTPS,main,menu,tools,paketti,sectionizer|||PakettiSandbox
+Menu Entry|||Main Menu:Tools:Paketti..:Other..:PakettiStemSlicer...|||Tools|||pakettiStemSlicerDialog|||MMTPOP,main,menu,tools,paketti,other,pakettistemslicer|||PakettiStemSlicer
 Menu Entry|||Main Menu:Tools:Paketti:!!About:About Paketti/Donations...|||!!About|||function() pakettiAboutDonations() end|||MMTPAAPD,main,menu,tools,paketti,about,about,paketti,donations|||PakettiMenuConfig
 Menu Entry|||Main Menu:Tools:Paketti:!Preferences:Change Fonts (Agave)|||!Preferences|||function() ChangeFonts3() end|||MMTPPCFA,main,menu,tools,paketti,preferences,change,fonts,agave|||PakettiCustomization
 Menu Entry|||Main Menu:Tools:Paketti:!Preferences:Change Fonts (classic)|||!Preferences|||function() ChangeFonts1() end|||MMTPPCFC,main,menu,tools,paketti,preferences,change,fonts,classic|||PakettiCustomization
@@ -1480,6 +1481,7 @@ Menu Entry|||Pattern Matrix:Paketti:Xperimental/WIP:Polyend:Import Polyend Patte
 Menu Entry|||Pattern Matrix:Paketti:Xperimental/WIP:Polyend:Import Polyend Project|||Xperimental/WIP|||PakettiImportPolyendProject|||PMPXWPIPP,pattern,matrix,paketti,xperimental,polyend,import,polyend,project|||PakettiPolyendPatternData
 Menu Entry|||Pattern Matrix:Paketti:Xperimental/WIP:Polyend:Polyend Pattern Browser|||Xperimental/WIP|||PakettiPolyendPatternBrowser|||PMPXWPPPB,pattern,matrix,paketti,xperimental,polyend,polyend,pattern,browser|||PakettiPolyendPatternData
 Menu Entry|||Pattern Sequencer:Paketti Gadgets:Paketti Sequencer Settings Dialog...|||Pattern Sequencer|||pakettiSequencerSettingsDialog|||PSPGPSSD,pattern,sequencer,paketti,gadgets,paketti,sequencer,settings,dialog|||PakettiMenuConfig
+Menu Entry|||Pattern Sequencer:Paketti Gadgets:Sectionizer...|||Pattern Sequencer|||PakettiSectionizer|||PSPGS,pattern,sequencer,paketti,gadgets,sectionizer|||PakettiSandbox
 Menu Entry|||Pattern Sequencer:Paketti:Clone Current Sequence|||Pattern Sequencer|||clone_current_sequence|||PSPCCS,pattern,sequencer,paketti,clone,current,sequence|||PakettiMenuConfig
 Menu Entry|||Pattern Sequencer:Paketti:Clone and Expand Pattern to LPB*2|||Pattern Sequencer|||function() cloneAndExpandPatternToLPBDouble()end|||PSPCAEPTL2,pattern,sequencer,paketti,clone,expand,pattern|||PakettiMenuConfig
 Menu Entry|||Pattern Sequencer:Paketti:Clone and Shrink Pattern to LPB/2|||Pattern Sequencer|||function() cloneAndShrinkPatternToLPBHalve()end|||PSPCASPTL2,pattern,sequencer,paketti,clone,shrink,pattern|||PakettiMenuConfig
@@ -1504,7 +1506,6 @@ Menu Entry|||Pattern Sequencer:Paketti:Resize all non-empty Patterns:Resize all 
 Menu Entry|||Pattern Sequencer:Paketti:Resize all non-empty Patterns:Resize all non-empty Patterns to 384|||Resize all non-empty Patterns|||function() resize_all_non_empty_patterns_to(384) end|||PSPRANEPRANEPT3,pattern,sequencer,paketti,resize,empty,patterns,resize,empty,patterns|||PakettiMenuConfig
 Menu Entry|||Pattern Sequencer:Paketti:Resize all non-empty Patterns:Resize all non-empty Patterns to 512|||Resize all non-empty Patterns|||function() resize_all_non_empty_patterns_to(512) end|||PSPRANEPRANEPT5,pattern,sequencer,paketti,resize,empty,patterns,resize,empty,patterns|||PakettiMenuConfig
 Menu Entry|||Pattern Sequencer:Paketti:Resize all non-empty Patterns:Resize all non-empty Patterns to current Pattern length|||Resize all non-empty Patterns|||resize_all_non_empty_patterns_to_current_pattern_length|||PSPRANEPRANEPTCPL,pattern,sequencer,paketti,resize,empty,patterns,resize,empty,patterns,current,pattern,length|||PakettiMenuConfig
-Menu Entry|||Pattern Sequencer:Paketti:Sectionizer...|||Pattern Sequencer|||PakettiSectionizer|||PSPS,pattern,sequencer,paketti,sectionizer|||PakettiSandbox
 Menu Entry|||Pattern Sequencer:Paketti:Sequences/Sections:Add Current Section to Scheduled Sequences|||Sequences/Sections|||tknaAddCurrentSectionToScheduledSequences|||PSPSSACSTSS,pattern,sequencer,paketti,sequences,sections,current,section,scheduled,sequences|||PakettiMenuConfig
 Menu Entry|||Pattern Sequencer:Paketti:Sequences/Sections:Add Current Sequence to Scheduled List|||Sequences/Sections|||function() renoise.song().transport:add_scheduled_sequence(renoise.song().selected_sequence_index) end|||PSPSSACSTSL,pattern,sequencer,paketti,sequences,sections,current,sequence,scheduled,list|||PakettiMenuConfig
 Menu Entry|||Pattern Sequencer:Paketti:Sequences/Sections:Continue Current Sequence From Same Line|||Sequences/Sections|||function() tknaContinueCurrentSequenceFromCurrentLine() end|||PSPSSCCSFSL,pattern,sequencer,paketti,sequences,sections,continue,current,sequence,from,same,line|||PakettiMenuConfig
@@ -2925,6 +2926,7 @@ Keybinding|||Global:Paketti:Paketti eSpeak Refresh|||Global|||function()
       PakettieSpeakUpdateLineCount()
     else PakettieSpeakPrepare() end end|||GPPER,global,paketti,paketti,espeak,refresh|||PakettieSpeak
 Keybinding|||Global:Paketti:Paketti eSpeak Text-to-Speech Dialog...|||Global|||function() pakettieSpeakDialog() end|||GPPETTSD,global,paketti,paketti,espeak,text,speech,dialog|||PakettieSpeak
+Keybinding|||Global:Paketti:PakettiStemSlicer Dialog...|||Global|||pakettiStemSlicerDialog|||GPPD,global,paketti,pakettistemslicer,dialog|||PakettiStemSlicer
 Keybinding|||Global:Paketti:Pakettify Current Instrument|||Global|||function() PakettiInjectDefaultXRNI() end|||GPPCI,global,paketti,pakettify,current,instrument|||PakettiSamples
 Keybinding|||Global:Paketti:Pattern Editor <-> Midi Editor Switcher|||Global|||function() midi_imm() end|||GPPEMES,global,paketti,pattern,editor,midi,editor,switcher|||PakettiControls
 Keybinding|||Global:Paketti:Pattern Effect Command CheatSheet|||Global|||pakettiPatternEditorCheatsheetDialog|||GPPECC,global,paketti,pattern,effect,command,cheatsheet|||PakettiPatternEditorCheatSheet

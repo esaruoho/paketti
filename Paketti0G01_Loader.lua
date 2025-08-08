@@ -109,7 +109,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiAutomationWipeAfterSwitch=true,
   SelectedSampleBeatSyncLines = false,
   pakettiLoadOrder = false,
-  pakettiDeviceLoadBehaviour = 1, -- 1=Open External Editor, 2=Open Selected Parameter Dialog, 3=Do Nothing
+  pakettiDeviceLoadBehaviour = 3, -- 1=Open External Editor, 2=Open Selected Parameter Dialog, 3=Do Nothing
   pakettiOctaMEDNoteEchoDistance=2,
   pakettiOctaMEDNoteEchoMin=1,
   pakettiRotateSampleBufferCoarse=1000,
@@ -1242,16 +1242,23 @@ vb:row{
     vb:row{
       vb:text{text="Device Load Behavior", style="strong",font="bold",width=150,tooltip="Controls behavior when loading VST/AU plugins and native devices"},
       vb:switch{
-        items={"Open External Editor", "Open Selected Parameter Dialog", "<do nothing>"},
-        value=preferences.pakettiDeviceLoadBehaviour.value,
+        items={"<do nothing>", "Open External Editor", "Open Selected Parameter Dialog"},
+        value=(preferences.pakettiDeviceLoadBehaviour.value == 3 and 1 or preferences.pakettiDeviceLoadBehaviour.value == 1 and 2 or 3),
         tooltip="Controls behavior when loading VST/AU plugins and native devices",
         width=400,
         notifier=function(value) 
-          preferences.pakettiDeviceLoadBehaviour.value = value
-          local behavior_text = ""
+          -- Map UI order (1:DoNothing,2:External,3:Parameter) back to stored 1/2/3
           if value == 1 then
-            behavior_text = "Open External Editor"
+            preferences.pakettiDeviceLoadBehaviour.value = 3
           elseif value == 2 then
+            preferences.pakettiDeviceLoadBehaviour.value = 1
+          else
+            preferences.pakettiDeviceLoadBehaviour.value = 2
+          end
+          local behavior_text = ""
+          if preferences.pakettiDeviceLoadBehaviour.value == 1 then
+            behavior_text = "Open External Editor"
+          elseif preferences.pakettiDeviceLoadBehaviour.value == 2 then
             behavior_text = "Open Selected Parameter Dialog"
           else
             behavior_text = "<do nothing>"

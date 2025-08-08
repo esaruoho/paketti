@@ -339,6 +339,11 @@ function set_loop_length_for_selected_instrument(length_type)
         local half_point = math.floor(total_frames / 2)
         sample.loop_start = half_point
         sample.loop_end = total_frames
+      elseif length_type == "begin" then
+        -- Set loop to beginning half of sample (start to half point)
+        local half_point = math.floor(total_frames / 2)
+        sample.loop_start = 1
+        sample.loop_end = half_point
       end
       
       samples_processed = samples_processed + 1

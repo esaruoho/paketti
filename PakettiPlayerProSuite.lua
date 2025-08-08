@@ -998,6 +998,7 @@ local selected_x = 0      -- Left column (0-F)
 local selected_y = 0      -- Right column (0-F)
 local effect_status_text = nil
 local should_grey_right_column_high_values = false  -- Flag for greying 9-F in right column
+local previous_selected_y = 0  -- Memory for restoring col2 when returning from restricted state
 
 -- Function to check and update the grey flag
 -- Flags for column restrictions
@@ -1503,9 +1504,28 @@ function pakettiPlayerProCanvasHandleMouse(ev, status_text_widget, canvas_widget
         
         -- Write on hover ONLY if Write mode is enabled
         if preferences.pakettiPlayerProEffectCanvasWrite.value and ev.type == "move" then
-          local combined_hex = string.format("%X%X", index, selected_y)
+          selected_x = index  -- Update selection first
+          updateEffectCanvasGreyFlag()  -- Update flag when left column changes
+          
+          -- Handle col2 restriction and memory logic for hover
+          if should_grey_right_column_high_values then
+            -- Moving into restricted state (col1=8): save current col2 if > 0, then force to 0
+            if selected_y > 0 then
+              previous_selected_y = selected_y  -- Save current selection
+              selected_y = 0
+              effect_canvas:update()  -- Update canvas to show new selection
+            end
+          else
+            -- Moving out of restricted state (col1=0-7): restore previous col2 if we had one
+            if previous_selected_y > 0 then
+              selected_y = previous_selected_y
+              previous_selected_y = 0  -- Clear memory after restoring
+              effect_canvas:update()  -- Update canvas to show restored selection
+            end
+          end
+          
+          local combined_hex = string.format("%X%X", selected_x, selected_y)
           pakettiPlayerProCanvasWriteEffectToPattern("00", combined_hex)
-          selected_x = index  -- Only update selection AFTER writing
           -- Update status text
           if status_text_widget then
             local decimal_value = tonumber(combined_hex, 16)
@@ -1571,10 +1591,21 @@ function pakettiPlayerProCanvasHandleMouse(ev, status_text_widget, canvas_widget
         selected_x = index
         updateEffectCanvasGreyFlag()  -- Update flag when left column changes
         
-        -- If left column is 8 and we're in volume/panning, force right column to 0
-        if should_grey_right_column_high_values and selected_y > 0 then
-          selected_y = 0
-          effect_canvas:update()  -- Update canvas to show new selection
+        -- Handle col2 restriction and memory logic
+        if should_grey_right_column_high_values then
+          -- Moving into restricted state (col1=8): save current col2 if > 0, then force to 0
+          if selected_y > 0 then
+            previous_selected_y = selected_y  -- Save current selection
+            selected_y = 0
+            effect_canvas:update()  -- Update canvas to show new selection
+          end
+        else
+          -- Moving out of restricted state (col1=0-7): restore previous col2 if we had one
+          if previous_selected_y > 0 then
+            selected_y = previous_selected_y
+            previous_selected_y = 0  -- Clear memory after restoring
+            effect_canvas:update()  -- Update canvas to show restored selection
+          end
         end
         
         local combined_hex = string.format("%X%X", selected_x, selected_y)
@@ -1666,6 +1697,11 @@ function pakettiPlayerProCanvasHandleMouse(ev, status_text_widget, canvas_widget
       
       -- Write on hover ONLY if Write mode is enabled
       if preferences.pakettiPlayerProEffectCanvasWrite.value and ev.type == "move" then
+        -- Check if this is a restricted hover (trying to hover 1-F when col1=8)
+        if should_grey_right_column_high_values and index > 0 then
+          -- Prevent hovering on restricted values, but allow hovering on 0
+          return
+        end
         local combined_hex = string.format("%X%X", selected_x, index)
         pakettiPlayerProCanvasWriteEffectToPattern("00", combined_hex)
         selected_y = index  -- Only update selection AFTER writing
@@ -1704,6 +1740,11 @@ function pakettiPlayerProCanvasHandleMouse(ev, status_text_widget, canvas_widget
       else
         -- Update status text for preview without writing (don't change selections)
         if ev.type == "move" and not preferences.pakettiPlayerProEffectCanvasWrite.value then
+          -- Check if this is a restricted hover (trying to hover 1-F when col1=8)
+          if should_grey_right_column_high_values and index > 0 then
+            -- Prevent preview on restricted values, but allow preview on 0
+            return
+          end
           local temp_combined_hex = string.format("%X%X", selected_x, index)
           if effect_status_text then
             local decimal_value = tonumber(temp_combined_hex, 16)
@@ -1741,6 +1782,11 @@ function pakettiPlayerProCanvasHandleMouse(ev, status_text_widget, canvas_widget
       
       -- Handle click on right column (always writes regardless of Write mode)
       if ev.type == "down" then
+        -- Check if this is a restricted click (trying to click 1-F when col1=8)
+        if should_grey_right_column_high_values and index > 0 then
+          -- Prevent selecting restricted values, but allow clicking 0
+          return
+        end
         selected_y = index
         local combined_hex = string.format("%X%X", selected_x, selected_y)
         pakettiPlayerProCanvasWriteEffectToPattern("00", combined_hex)

@@ -1,21 +1,255 @@
+function DuplicateInstrumentAndSelectNewInstrument_Wrong()
+  local original_middle_frame = renoise.app().window.active_middle_frame
+  local dialog = nil
+  local vb = nil
+  local slicer = nil
+
+  local function process_func()
+    local rs = renoise.song()
+    if rs == nil or rs.selected_instrument == nil then
+      renoise.app():show_status("No instrument selected to duplicate.")
+      return
+    end
+
+    local i = rs.selected_instrument_index
+    local original_instrument = rs:instrument(i)
+    local external_editor_open = false
+    if original_instrument.plugin_properties and original_instrument.plugin_properties.plugin_device then
+      if original_instrument.plugin_properties.plugin_device.external_editor_visible then
+        external_editor_open = true
+        original_instrument.plugin_properties.plugin_device.external_editor_visible = false
+      end
+    end
+    renoise.app():show_status("Duplicating instrument at index " .. tostring(i) .. "...")
+
+    if dialog and dialog.visible and vb and vb.views and vb.views.progress_text then
+      vb.views.progress_text.text = "Inserting instrument slot..."
+    end
+    coroutine.yield()
+    if slicer and slicer:was_cancelled() then return end
+
+    rs:insert_instrument_at(i + 1)
+
+    if dialog and dialog.visible and vb and vb.views and vb.views.progress_text then
+      vb.views.progress_text.text = "Analyzing instrument..."
+    end
+    coroutine.yield()
+    if slicer and slicer:was_cancelled() then return end
+
+    local src_inst = rs:instrument(i)
+    local dst_inst = rs:instrument(i + 1)
+
+    -- Decide strategy: manual sliced copy for sample-heavy instruments, otherwise fallback to copy_from
+    local has_samples = (#src_inst.samples > 0)
+    local is_sample_heavy = false
+    if has_samples and src_inst.samples[1] and src_inst.samples[1].sample_buffer then
+      local sbuf = src_inst.samples[1].sample_buffer
+      if sbuf and sbuf.has_sample_data and sbuf.number_of_frames and sbuf.number_of_frames > 0 then
+        is_sample_heavy = true
+      end
+    end
+
+    if not is_sample_heavy and #src_inst.phrases == 0 then
+      -- Likely plugin or empty instrument: fast path via copy_from
+      if dialog and dialog.visible and vb and vb.views and vb.views.progress_text then
+        vb.views.progress_text.text = "Copying instrument (fast)..."
+      end
+      coroutine.yield()
+      if slicer and slicer:was_cancelled() then return end
+      dst_inst:copy_from(src_inst)
+    else
+      -- Manual, sliced duplication of samples and phrases to avoid timeouts
+      if dialog and dialog.visible and vb and vb.views and vb.views.progress_text then
+        vb.views.progress_text.text = "Copying samples..."
+      end
+      coroutine.yield()
+      if slicer and slicer:was_cancelled() then return end
+
+      local function ensure_sample_slot(index)
+        if index > #dst_inst.samples then
+          dst_inst:insert_sample_at(index)
+        end
+        return dst_inst:sample(index)
+      end
+
+      local function copy_sample_properties(dst_smp, src_smp)
+        dst_smp.name = src_smp.name
+        dst_smp.transpose = src_smp.transpose
+        dst_smp.fine_tune = src_smp.fine_tune
+        dst_smp.volume = src_smp.volume
+        dst_smp.panning = src_smp.panning
+        dst_smp.beat_sync_enabled = src_smp.beat_sync_enabled
+        dst_smp.beat_sync_lines = src_smp.beat_sync_lines
+        dst_smp.beat_sync_mode = src_smp.beat_sync_mode
+        dst_smp.autoseek = src_smp.autoseek
+        dst_smp.autofade = src_smp.autofade
+        dst_smp.loop_mode = src_smp.loop_mode
+        dst_smp.loop_start = src_smp.loop_start
+        dst_smp.loop_end = src_smp.loop_end
+        dst_smp.loop_release = src_smp.loop_release
+        dst_smp.new_note_action = src_smp.new_note_action
+        dst_smp.oneshot = src_smp.oneshot
+        dst_smp.mute_group = src_smp.mute_group
+        dst_smp.interpolation_mode = src_smp.interpolation_mode
+        dst_smp.oversample_enabled = src_smp.oversample_enabled
+      end
+
+      local function copy_buffer_chunked(dst_buf, src_buf)
+        dst_buf:prepare_sample_data_changes()
+        local total_frames = src_buf.number_of_frames or 0
+        local num_channels = src_buf.number_of_channels or 1
+        local chunk_size = 100000
+        local pos = 1
+        while pos <= total_frames do
+          local this_chunk = math.min(chunk_size, total_frames - pos + 1)
+          for frame = 0, this_chunk - 1 do
+            local fr = pos + frame
+            for ch = 1, num_channels do
+              dst_buf:set_sample_data(ch, fr, src_buf:sample_data(ch, fr))
+            end
+          end
+          pos = pos + this_chunk
+          if dialog and dialog.visible and vb and vb.views and vb.views.progress_text and total_frames > 0 then
+            local p = math.floor((pos - 1) / total_frames * 100)
+            vb.views.progress_text.text = "Copying sample data... " .. tostring(p) .. "%"
+          end
+          if slicer and slicer:was_cancelled() then
+            dst_buf:finalize_sample_data_changes()
+            return false
+          end
+          coroutine.yield()
+        end
+        dst_buf:finalize_sample_data_changes()
+        return true
+      end
+
+      -- Sliced instruments: copy first sample buffer and slice markers, then per-slice properties
+      local first = has_samples and src_inst.samples[1] or nil
+      local has_slices = first and (#first.slice_markers > 0)
+      if has_slices then
+        local dst_first = ensure_sample_slot(1)
+        local sbuf = first.sample_buffer
+        local dbuf = dst_first.sample_buffer
+        dbuf:create_sample_data(sbuf.sample_rate, sbuf.bit_depth, sbuf.number_of_channels, sbuf.number_of_frames)
+        if not copy_buffer_chunked(dbuf, sbuf) then return end
+
+        -- Clear existing slice markers (if any)
+        while #dst_first.slice_markers > 0 do
+          local marker_pos = dst_first.slice_markers[1]
+          dst_first:delete_slice_marker(marker_pos)
+        end
+        -- Insert markers from source
+        for _, marker in ipairs(first.slice_markers) do
+          dst_first:insert_slice_marker(marker)
+        end
+        copy_sample_properties(dst_first, first)
+
+        -- Copy per-slice properties to alias slots
+        for slice_idx = 2, #src_inst.samples do
+          local src_slice = src_inst.samples[slice_idx]
+          local dst_slice = ensure_sample_slot(slice_idx)
+          copy_sample_properties(dst_slice, src_slice)
+        end
+      else
+        -- Non-sliced instrument: copy each sample
+        for sidx = 1, #src_inst.samples do
+          local src_smp = src_inst.samples[sidx]
+          local dst_smp = ensure_sample_slot(sidx)
+          local sbuf = src_smp.sample_buffer
+          if sbuf and sbuf.has_sample_data and sbuf.number_of_frames and sbuf.number_of_frames > 0 then
+            local dbuf = dst_smp.sample_buffer
+            dbuf:create_sample_data(sbuf.sample_rate, sbuf.bit_depth, sbuf.number_of_channels, sbuf.number_of_frames)
+            if not copy_buffer_chunked(dbuf, sbuf) then return end
+          end
+          copy_sample_properties(dst_smp, src_smp)
+          if dialog and dialog.visible and vb and vb.views and vb.views.progress_text then
+            vb.views.progress_text.text = string.format("Copied sample %d/%d", sidx, #src_inst.samples)
+          end
+          coroutine.yield()
+          if slicer and slicer:was_cancelled() then return end
+        end
+      end
+
+      -- Copy phrases (fast, much smaller than sample data)
+      if dialog and dialog.visible and vb and vb.views and vb.views.progress_text then
+        vb.views.progress_text.text = "Copying phrases..."
+      end
+      for phrase_index = 1, #src_inst.phrases do
+        dst_inst:insert_phrase_at(phrase_index)
+        dst_inst.phrases[phrase_index]:copy_from(src_inst.phrases[phrase_index])
+        if dialog and dialog.visible and vb and vb.views and vb.views.progress_text then
+          vb.views.progress_text.text = string.format("Copied phrase %d/%d", phrase_index, #src_inst.phrases)
+        end
+        coroutine.yield()
+        if slicer and slicer:was_cancelled() then return end
+      end
+    end
+
+    coroutine.yield()
+    if slicer and slicer:was_cancelled() then return end
+
+    rs.selected_instrument_index = i + 1
+
+    if original_middle_frame == 3 then
+      renoise.app().window.active_middle_frame = 3
+    elseif original_middle_frame == 9 then
+      renoise.app().window.active_middle_frame = 9
+    else
+      renoise.app().window.active_middle_frame = original_middle_frame
+    end
+
+    renoise.app():show_status("Instrument duplicated and selected (index " .. tostring(i + 1) .. ")")
+
+    if external_editor_open then
+      local new_instrument = rs:instrument(i + 1)
+      if new_instrument and new_instrument.plugin_properties and new_instrument.plugin_properties.plugin_device then
+        new_instrument.plugin_properties.plugin_device.external_editor_visible = true
+      end
+    end
+
+    if dialog and dialog.visible then
+      dialog:close()
+    end
+  end
+
+  slicer = ProcessSlicer(process_func)
+  dialog, vb = slicer:create_dialog("Duplicating Instrument...")
+  if vb and vb.views and vb.views.progress_text then
+    vb.views.progress_text.text = "Preparing to duplicate instrument..."
+  end
+  slicer:start()
+end
+
 function DuplicateInstrumentAndSelectNewInstrument()
-local rs=renoise.song()
-if renoise.app().window.active_middle_frame==3 then 
-local i=rs.selected_instrument_index;rs:insert_instrument_at(i+1):copy_from(rs.selected_instrument);rs.selected_instrument_index=i+1
-renoise.app().window.active_middle_frame=3
-else
-if renoise.app().window.active_middle_frame == 9 then
-local i=rs.selected_instrument_index;rs:insert_instrument_at(i+1):copy_from(rs.selected_instrument);rs.selected_instrument_index=i+1
-renoise.app().window.active_middle_frame=9
-else
-local i=rs.selected_instrument_index;rs:insert_instrument_at(i+1):copy_from(rs.selected_instrument);rs.selected_instrument_index=i+1
-end
-end
+  local rs = renoise.song()
+  if rs == nil or rs.selected_instrument == nil then
+    renoise.app():show_status("No instrument selected to duplicate.")
+    return
+  end
+  local i = rs.selected_instrument_index
+  if renoise.app().window.active_middle_frame == 3 then
+    rs:insert_instrument_at(i + 1):copy_from(rs.selected_instrument)
+    rs.selected_instrument_index = i + 1
+    renoise.app().window.active_middle_frame = 3
+  else
+    if renoise.app().window.active_middle_frame == 9 then
+      rs:insert_instrument_at(i + 1):copy_from(rs.selected_instrument)
+      rs.selected_instrument_index = i + 1
+      renoise.app().window.active_middle_frame = 9
+    else
+      rs:insert_instrument_at(i + 1):copy_from(rs.selected_instrument)
+      rs.selected_instrument_index = i + 1
+    end
+  end
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Instrument and Select New Instrument",invoke=function() DuplicateInstrumentAndSelectNewInstrument() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Instrument and Select New Instrument (2nd)",invoke=function() DuplicateInstrumentAndSelectNewInstrument() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Instrument and Select New Instrument (3rd)",invoke=function() DuplicateInstrumentAndSelectNewInstrument() end}
+
+renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Instrument and Select New Instrument (Wrong)",invoke=function() DuplicateInstrumentAndSelectNewInstrument_Wrong() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Instrument and Select New Instrument (Wrong)(2nd)",invoke=function() DuplicateInstrumentAndSelectNewInstrument_Wrong() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Instrument and Select New Instrument (Wrong)(3rd)",invoke=function() DuplicateInstrumentAndSelectNewInstrument_Wrong() end}
 
 function duplicateSelectInstrumentToLastInstrument()
 local rs=renoise.song()

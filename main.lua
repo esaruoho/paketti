@@ -748,6 +748,7 @@ end
 timed_require("PakettiRequests")
 timed_require("PakettiRender")
 timed_require("PakettiBPM")
+timed_require("PakettiStemSlicer")
 timed_require("PakettiOldschoolSlicePitch")
 timed_require("PakettiActionSelector")
 timed_require("PakettiAutocomplete")

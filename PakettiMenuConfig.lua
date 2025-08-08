@@ -226,6 +226,11 @@ renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Process:Convert All Sa
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Process:Cross-fade Sample w/ Fade-In/Out",invoke=function() crossfade_with_fades() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Process:Cross-fade Loop Edges (Fixed End)",invoke=function() crossfade_loop_edges_fixed_end() end}
 
+  -- Sample Editor: Loop Length helpers for all samples in selected instrument
+  renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Process:Set All Samples in Selected Instrument to Full Loop",invoke=function() set_loop_length_for_selected_instrument("full") end}
+  renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Process:Set All Samples in Selected Instrument to End-Half Loop",invoke=function() set_loop_length_for_selected_instrument("half") end}
+  renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Process:Set All Samples in Selected Instrument to Beginning Half Loop",invoke=function() set_loop_length_for_selected_instrument("begin") end}
+
 
 -- Sample Editor Wipe&Slice
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Wipe&Slice:Wipe&Slice (002)",invoke=function() slicerough(2) end}
@@ -432,6 +437,11 @@ renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Isolate Selected Sa
 
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Process:Normalize Selected Sample -12dB",invoke=function() normalize_and_reduce("current_sample", -12) end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Process:Normalize Selected Instrument -12dB (All Samples & Slices)",invoke=function() normalize_and_reduce("all_samples", -12) end}
+
+  -- Sample Navigator: Loop Length helpers for all samples in selected instrument
+  renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Set All Samples in Selected Instrument to Full Loop",invoke=function() set_loop_length_for_selected_instrument("full") end}
+  renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Set All Samples in Selected Instrument to End-Half Loop",invoke=function() set_loop_length_for_selected_instrument("half") end}
+  renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Set All Samples in Selected Instrument to Beginning Half Loop",invoke=function() set_loop_length_for_selected_instrument("begin") end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Process:Normalize All Instruments -12dB",invoke=function() normalize_and_reduce("all_instruments", -12) end}
 
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Process:Normalize Slices Independently",invoke=function() normalize_selected_sample_by_slices() end}

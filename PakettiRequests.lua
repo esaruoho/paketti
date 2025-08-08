@@ -2284,6 +2284,15 @@ renoise.tool():add_keybinding{name="Sample Navigator:Paketti:Move Slice Start Ri
 renoise.tool():add_keybinding{name="Sample Navigator:Paketti:Move Slice End Left by 500",invoke=create_slice_move_function(false, -500)}
 renoise.tool():add_keybinding{name="Sample Navigator:Paketti:Move Slice End Right by 500",invoke=create_slice_move_function(false, 500)}
 
+-- Loop Length helpers for all samples in selected instrument (Sample Navigator + Sample Mappings)
+renoise.tool():add_keybinding{name="Sample Navigator:Paketti:Set All Samples in Selected Instrument to Full Loop",invoke=function() set_loop_length_for_selected_instrument("full") end}
+renoise.tool():add_keybinding{name="Sample Navigator:Paketti:Set All Samples in Selected Instrument to End-Half Loop",invoke=function() set_loop_length_for_selected_instrument("half") end}
+renoise.tool():add_keybinding{name="Sample Navigator:Paketti:Set All Samples in Selected Instrument to Beginning Half Loop",invoke=function() set_loop_length_for_selected_instrument("begin") end}
+
+renoise.tool():add_keybinding{name="Sample Mappings:Paketti:Set All Samples in Selected Instrument to Full Loop",invoke=function() set_loop_length_for_selected_instrument("full") end}
+renoise.tool():add_keybinding{name="Sample Mappings:Paketti:Set All Samples in Selected Instrument to End-Half Loop",invoke=function() set_loop_length_for_selected_instrument("half") end}
+renoise.tool():add_keybinding{name="Sample Mappings:Paketti:Set All Samples in Selected Instrument to Beginning Half Loop",invoke=function() set_loop_length_for_selected_instrument("begin") end}
+
 renoise.tool():add_keybinding{name="Global:Paketti:Move Slice Start Left by 10",invoke=create_slice_move_function(true, -10)}
 renoise.tool():add_keybinding{name="Global:Paketti:Move Slice Start Right by 10",invoke=create_slice_move_function(true, 10)}
 renoise.tool():add_keybinding{name="Global:Paketti:Move Slice End Left by 10",invoke=create_slice_move_function(false, -10)}
@@ -2335,8 +2344,15 @@ function PakettiIsolateSlices()
     new_sample.sample_buffer:prepare_sample_data_changes()
 
     for ch = 1, master_sample.sample_buffer.number_of_channels do
+      local frame_count = 0
       for frame = 1, slice_length do
         new_sample.sample_buffer:set_sample_data(ch, frame, master_sample.sample_buffer:sample_data(ch, start_frame + frame - 1))
+        frame_count = frame_count + 1
+        
+        -- Yield every 354,354 frames to maintain UI responsiveness for large slices
+        if frame_count % 354354 == 0 then
+          coroutine.yield()
+        end
       end
     end
 
@@ -2425,6 +2441,47 @@ function PakettiIsolateSlicesToInstrument()
     return
   end
 
+  local sample = instrument.samples[1]
+  local slice_count = #sample.slice_markers
+  
+  -- If only a few slices, use the fast direct method
+  if slice_count <= 8 and #instrument.samples <= 8 then
+    PakettiIsolateSlicesToInstrumentDirect()
+    return
+  end
+  
+  -- For larger operations, use ProcessSlicer for UI responsiveness
+  local process_slicer = ProcessSlicer(PakettiIsolateSlicesToInstrumentProcessed, 
+    selected_instrument_index, instrument, selected_sample_index)
+  
+  -- Create progress dialog
+  local progress_dialog, progress_vb = process_slicer:create_dialog("Isolating Slices...")
+  
+  -- Update progress periodically
+  local current_progress = "Starting slice isolation..."
+  local progress_timer = renoise.tool():add_timer(function()
+    if progress_dialog and progress_dialog.visible and progress_vb then
+      progress_vb.views.progress_text.text = current_progress
+    end
+    
+    if not process_slicer:running() then
+      renoise.tool():remove_timer(progress_timer)
+      if progress_dialog and progress_dialog.visible then
+        progress_dialog:close()
+      end
+    end
+  end, 100) -- Update every 100ms
+  
+  process_slicer:start()
+end
+
+-- Direct method for small operations (no ProcessSlicer overhead)
+function PakettiIsolateSlicesToInstrumentDirect()
+  local song=renoise.song()
+  local selected_instrument_index = song.selected_instrument_index
+  local instrument = song.selected_instrument
+  local selected_sample_index = song.selected_sample_index
+
   -- Helper function to create a new instrument
   local function create_new_instrumentWithSlices(name_suffix, index)
     song:insert_instrument_at(index)
@@ -2432,17 +2489,15 @@ function PakettiIsolateSlicesToInstrument()
     local defaultInstrument = preferences.pakettiDefaultDrumkitXRNI.value
     local fallbackInstrument = "Presets" .. separator .. "12st_Pitchbend_Drumkit_C0.xrni"
     
-  
-  --  renoise.app():load_instrument(renoise.tool().bundle_path .. "Presets/12st_Pitchbend_Drumkit_C0.xrni")
-  renoise.app():load_instrument(defaultInstrument)
+    renoise.app():load_instrument(defaultInstrument)
     local new_instrument = song.instruments[index]
     new_instrument.name = instrument.name .. name_suffix
     return new_instrument
   end
 
   -- Helper function to create a new sample with given sample data
-  local function create_new_sample(new_instrument, master_sample, start_frame, end_frame, sample_name, slice_sample)
-    local new_sample = new_instrument:insert_sample_at(#new_instrument.samples + 1)
+  local function create_new_sample(new_instrument, master_sample, start_frame, end_frame, sample_name, slice_sample, sample_index)
+    local new_sample = new_instrument:insert_sample_at(sample_index)
     new_sample.name = sample_name
 
     local slice_length = end_frame - start_frame + 1
@@ -2455,12 +2510,25 @@ function PakettiIsolateSlicesToInstrument()
     new_sample.sample_buffer:prepare_sample_data_changes()
 
     for ch = 1, master_sample.sample_buffer.number_of_channels do
+      local frame_count = 0
       for frame = 1, slice_length do
         new_sample.sample_buffer:set_sample_data(ch, frame, master_sample.sample_buffer:sample_data(ch, start_frame + frame - 1))
+        frame_count = frame_count + 1
+        
+        -- Yield every 354,354 frames to maintain UI responsiveness for large slices
+        if frame_count % 354354 == 0 then
+          coroutine.yield()
+        end
       end
     end
 
     new_sample.sample_buffer:finalize_sample_data_changes()
+    
+    -- Visual feedback: select this sample if we're in Sample Editor
+    if renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR then
+      song.selected_sample_index = sample_index
+      renoise.app():show_status(string.format("Processing slice %d: %s", sample_index, sample_name))
+    end
 
     -- Copy slice-specific sample properties from the slice sample (not master sample)
     if slice_sample then
@@ -2512,7 +2580,7 @@ function PakettiIsolateSlicesToInstrument()
         local sample_name = "Slice " .. string.format("%02X", i)
         -- Pass the slice sample (samples[i+1]) to get correct slice settings
         local slice_sample = instrument.samples[i + 1]
-        create_new_sample(new_instrument, sample, slice_start, slice_end, sample_name, slice_sample)
+        create_new_sample(new_instrument, sample, slice_start, slice_end, sample_name, slice_sample, i)
       else
         renoise.app():show_status("Invalid slice length calculated.")
         return
@@ -2538,6 +2606,157 @@ function PakettiIsolateSlicesToInstrument()
     #instrument.samples .. " Samples isolated into new Instruments"
   )
   renoise.song().selected_instrument:delete_sample_at(1)
+end
+
+-- ProcessSlicer-enabled function for large slice operations
+function PakettiIsolateSlicesToInstrumentProcessed(selected_instrument_index, instrument, selected_sample_index)
+  local song=renoise.song()
+  
+  -- Global progress variable accessible to timer
+  current_progress = "Initializing slice isolation..."
+  
+  -- Helper function to create a new instrument
+  local function create_new_instrumentWithSlices(name_suffix, index)
+    song:insert_instrument_at(index)
+    song.selected_instrument_index = index
+    local defaultInstrument = preferences.pakettiDefaultDrumkitXRNI.value
+    
+    renoise.app():load_instrument(defaultInstrument)
+    local new_instrument = song.instruments[index]
+    new_instrument.name = instrument.name .. name_suffix
+    return new_instrument
+  end
+
+  -- Helper function to create a new sample with given sample data
+  local function create_new_sample(new_instrument, master_sample, start_frame, end_frame, sample_name, slice_sample, sample_index)
+    local new_sample = new_instrument:insert_sample_at(sample_index)
+    new_sample.name = sample_name
+
+    local slice_length = end_frame - start_frame + 1
+    new_sample.sample_buffer:create_sample_data(
+      master_sample.sample_buffer.sample_rate,
+      master_sample.sample_buffer.bit_depth,
+      master_sample.sample_buffer.number_of_channels,
+      slice_length
+    )
+    new_sample.sample_buffer:prepare_sample_data_changes()
+
+    for ch = 1, master_sample.sample_buffer.number_of_channels do
+      local frame_count = 0
+      for frame = 1, slice_length do
+        new_sample.sample_buffer:set_sample_data(ch, frame, master_sample.sample_buffer:sample_data(ch, start_frame + frame - 1))
+        frame_count = frame_count + 1
+        
+        -- Yield every 354,354 frames to maintain UI responsiveness for large slices
+        if frame_count % 354354 == 0 then
+          coroutine.yield()
+        end
+      end
+    end
+
+    new_sample.sample_buffer:finalize_sample_data_changes()
+    
+    -- Visual feedback: select this sample if we're in Sample Editor
+    if renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR then
+      song.selected_sample_index = sample_index
+      renoise.app():show_status(string.format("Processing slice %d: %s", sample_index, sample_name))
+    end
+
+    -- Copy slice-specific sample properties
+    if slice_sample then
+      new_sample.autofade = slice_sample.autofade
+      new_sample.autoseek = slice_sample.autoseek
+      new_sample.loop_mode = slice_sample.loop_mode
+      new_sample.loop_start = slice_sample.loop_start
+      new_sample.loop_end = slice_sample.loop_end
+      new_sample.beat_sync_mode = slice_sample.beat_sync_mode
+      new_sample.beat_sync_lines = slice_sample.beat_sync_lines
+      new_sample.fine_tune = slice_sample.fine_tune
+      new_sample.volume = slice_sample.volume
+      new_sample.panning = slice_sample.panning
+      new_sample.new_note_action = slice_sample.new_note_action
+      new_sample.mute_group = slice_sample.mute_group
+      new_sample.oversample_enabled = slice_sample.oversample_enabled
+      new_sample.interpolation_mode = slice_sample.interpolation_mode
+    else
+      -- Copy from master sample
+      new_sample.autofade = master_sample.autofade
+      new_sample.autoseek = master_sample.autoseek
+      new_sample.loop_mode = master_sample.loop_mode
+      new_sample.loop_start = master_sample.loop_start
+      new_sample.loop_end = master_sample.loop_end
+      new_sample.beat_sync_mode = master_sample.beat_sync_mode
+      new_sample.beat_sync_lines = master_sample.beat_sync_lines
+      new_sample.fine_tune = master_sample.fine_tune
+      new_sample.volume = master_sample.volume
+      new_sample.panning = master_sample.panning
+      new_sample.new_note_action = master_sample.new_note_action
+      new_sample.mute_group = master_sample.mute_group
+      new_sample.oversample_enabled = master_sample.oversample_enabled
+      new_sample.interpolation_mode = master_sample.interpolation_mode
+    end
+  end
+
+  local sample = instrument.samples[1]
+  local insert_index = selected_instrument_index + 1
+
+  if #sample.slice_markers > 0 then
+    current_progress = "Creating new instrument for slices..."
+    coroutine.yield()
+    
+    -- Create one new instrument for all slices
+    local new_instrument = create_new_instrumentWithSlices(" (Isolated Slices)", insert_index)
+    
+    local total_slices = #sample.slice_markers
+    for i, slice_start in ipairs(sample.slice_markers) do
+      current_progress = string.format("Processing slice %d/%d...", i, total_slices)
+      
+      local slice_end = (i == #sample.slice_markers) and sample.sample_buffer.number_of_frames or sample.slice_markers[i + 1] - 1
+      local slice_length = slice_end - slice_start + 1
+
+      if slice_length > 0 then
+        local sample_name = "Slice " .. string.format("%02X", i)
+        local slice_sample = instrument.samples[i + 1]
+        create_new_sample(new_instrument, sample, slice_start, slice_end, sample_name, slice_sample, i)
+      else
+        renoise.app():show_status("Invalid slice length calculated.")
+        return
+      end
+      
+      -- Yield every few slices to maintain UI responsiveness
+      if i % 3 == 0 then
+        coroutine.yield()
+      end
+    end
+    song.selected_instrument_index = insert_index
+  else
+    -- No slices, handle samples as before
+    local total_samples = #instrument.samples
+    for i = 1, total_samples do
+      current_progress = string.format("Processing sample %d/%d...", i, total_samples)
+      
+      local sample = instrument.samples[i]
+      local new_instrument = create_new_instrumentWithSlices(" (Sample " .. string.format("%02X", i) .. ")", insert_index)
+      create_new_sample(new_instrument, sample, 1, sample.sample_buffer.number_of_frames, sample.name, nil)
+      insert_index = insert_index + 1
+      
+      coroutine.yield()
+    end
+    song.selected_instrument_index = selected_instrument_index + selected_sample_index
+  end
+
+  current_progress = "Finalizing..."
+  coroutine.yield()
+  
+  song.transport.octave = 3
+  renoise.app():show_status(
+    #sample.slice_markers > 0 and
+    #sample.slice_markers .. " Slices isolated into a new Instrument" or
+    #instrument.samples .. " Samples isolated into new Instruments"
+  )
+  renoise.song().selected_instrument:delete_sample_at(1)
+  
+  current_progress = "Complete!"
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Isolate Slices to New Instrument as Samples",invoke=PakettiIsolateSlicesToInstrument}

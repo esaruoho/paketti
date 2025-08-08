@@ -1080,6 +1080,11 @@ renoise.tool():add_keybinding{name="Sample Editor:Paketti:Set Loop Mode to 2 For
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Set Loop Mode to 3 Reverse",invoke=function() LoopState(3) end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Set Loop Mode to 4 PingPong",invoke=function() LoopState(4) end}
 
+-- Loop Length helpers for all samples in selected instrument
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Set All Samples in Selected Instrument to Full Loop",invoke=function() set_loop_length_for_selected_instrument("full") end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Set All Samples in Selected Instrument to End-Half Loop",invoke=function() set_loop_length_for_selected_instrument("half") end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Set All Samples in Selected Instrument to Beginning Half Loop",invoke=function() set_loop_length_for_selected_instrument("begin") end}
+
 -- Set Selected Instrument Loop functions (for ALL samples in the instrument)
 function pakettiSetSelectedInstrumentLoopOff()
   local song = renoise.song()

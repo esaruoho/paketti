@@ -82,6 +82,10 @@ function duplicate_pattern_and_clear_muted_above()
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Pattern Above & Clear Muted Tracks",invoke=duplicate_pattern_and_clear_muted_above}
+renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Duplicate Pattern Above & Clear Muted Tracks",invoke=duplicate_pattern_and_clear_muted_above}
+renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Duplicate Pattern Above & Clear Muted Tracks",invoke=duplicate_pattern_and_clear_muted_above}
+
+
 renoise.tool():add_midi_mapping{name="Paketti:Duplicate Pattern Above & Clear Muted",invoke=duplicate_pattern_and_clear_muted_above}
 
 
@@ -151,6 +155,8 @@ function duplicate_pattern_and_clear_muted()
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Pattern Below & Clear Muted Tracks",invoke=duplicate_pattern_and_clear_muted}
+renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Duplicate Pattern Below & Clear Muted Tracks",invoke=duplicate_pattern_and_clear_muted}
+renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Duplicate Pattern Below & Clear Muted Tracks",invoke=duplicate_pattern_and_clear_muted}
 renoise.tool():add_midi_mapping{name="Paketti:Duplicate Pattern Below & Clear Muted",invoke=duplicate_pattern_and_clear_muted}
 
 
