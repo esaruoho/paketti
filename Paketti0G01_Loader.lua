@@ -465,6 +465,8 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
     Automation = true,
     DiskBrowserFiles = true
   },
+  -- 1 = File, 2 = Paketti (File:Paketti), 3 = Both
+  pakettiFileMenuLocationMode = 3,
   SononymphAutostart = false,
   SononymphAutotransfercreatenew = false,
   SononymphAutotransfercreateslot = false,
@@ -756,7 +758,7 @@ local pakettiIRPathDisplayId = "pakettiIRPathDisplay_" .. tostring(math.random(2
     local pakettiDefaultXRNIDisplayId = "pakettiDefaultXRNIDisplay_" .. tostring(math.random(2,30000))
     local pakettiDefaultDrumkitXRNIDisplayId = "pakettiDefaultDrumkitXRNIDisplay_" .. tostring(math.random(2,30000))
 
-    local dialog_content = vb:column{
+  local dialog_content = vb:column{
       --margin=5,
       horizontal_rule(),
       vb:row{ -- this is where the row structure starts.
@@ -1018,10 +1020,20 @@ vb:row{
           vb:column{
             style="group",margin=10,width="100%",
             
-              vb:text{style="strong",font="bold",text="Paketti Loader Settings"}
+            vb:text{style="strong",font="bold",text="Paketti Loader Settings"}
 
               
             ,
+            vb:row{
+              vb:text{text="File Menu Location",width=150,tooltip="Choose where File-related Paketti menu entries appear"},
+              vb:switch{items={"File","Paketti","Both"},value=preferences.pakettiFileMenuLocationMode.value,width=300,
+                notifier=function(value)
+                  preferences.pakettiFileMenuLocationMode.value = value
+                  local labels = {"File","Paketti","Both"}
+                  renoise.app():show_status("Paketti File Menu Location: " .. (labels[value] or tostring(value)))
+                end}
+            },
+            vb:row{vb:text{style="strong",text="Controls whether entries are under File directly, File:Paketti submenu, or both."}},
             vb:row{
               vb:text{text="Skip Automation Device",width=150},
               vb:switch{items={"Off","On"},value=preferences.pakettiLoaderDontCreateAutomationDevice.value and 2 or 1,width=200,
@@ -1694,6 +1706,9 @@ function update_0G01_loader_menu_entries()
     manage_sample_count_observer(preferences._0G01_Loader.value)
     update_dynamic_menu_entries()
 end
+
+-- Update File vs File:Paketti menu entry visibility/location based on preference
+-- moved to PakettiMenuConfig.lua as a global
 
 function initialize_tool()
     update_0G01_loader_menu_entries()

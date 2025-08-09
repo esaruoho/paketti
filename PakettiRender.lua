@@ -1849,19 +1849,11 @@ function cleanup_experimental_render()
     print("DEBUG EXP: Restored original state - BPM:", song.transport.bpm, "LPB:", song.transport.lpb)
 end
 
--- Key bindings for experimental renderer
 renoise.tool():add_keybinding{name="Global:Paketti:Experimental Sample FX Render",invoke=function() pakettiExperimentalSampleFXRender() end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Experimental Sample FX Render",invoke=function() pakettiExperimentalSampleFXRender() end}
-
--- Menu entries  
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Experimental Sample FX Render",invoke=function() pakettiExperimentalSampleFXRender() end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Experimental Sample FX Render",invoke=function() pakettiExperimentalSampleFXRender() end}
-
--- Peak detection keybindings and menus
 renoise.tool():add_keybinding{name="Global:Paketti:Test Peak Detection",invoke=function() pakettiTestPeakDetection() end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Test Peak Detection",invoke=function() pakettiTestPeakDetection() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Test Peak Detection",invoke=function() pakettiTestPeakDetection() end}
 
--- BPM DETECTION KEYBINDINGS & MENUS MOVED TO PakettiBPM.lua
-
--- Experimental render settings now managed via preferences dialog
