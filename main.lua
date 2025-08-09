@@ -742,6 +742,7 @@ if renoise.API_VERSION >= 6.2 then
   timed_require("PakettiCanvasExperiments")
   timed_require("PakettiNotepadRun")
   timed_require("PakettiEQ10Experiment")
+  timed_require("PakettiMultitapExperiment")
 end
 
 --timed_require("PakettiExperimentalDialog")

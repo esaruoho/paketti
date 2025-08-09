@@ -438,7 +438,7 @@ renoise.tool():add_menu_entry{name="--Mixer:Paketti:Inspect Track Device Chain (
 
 function HipassPlusPlus()
 -- 1. Load Device (with Line Input protection)
-loadnative("Audio/Effects/Native/Digital Filter")
+loadnative("Audio/Effects/Native/Digital Filter", nil, nil, nil, true)
 -- 2. Inject Current Device State XML
 local device_xml = [=[<?xml version="1.0" encoding="UTF-8"?>
 <FilterDevicePreset doc_version="14">
@@ -495,7 +495,7 @@ function LFOEnvelopePanPresetPlusPlus()
 -- PHASE 1: Load All Devices (with Placeholders) - REVERSE ORDER
 -- Loading LAST device first, then second-last, etc. to maintain correct order
 -- Loading device 1: *LFO (LFOEnvelopePan)
-loadnative("Audio/Effects/Native/*LFO", nil, nil, false)
+loadnative("Audio/Effects/Native/*LFO", nil, nil, false, true)
 renoise.song().selected_device.display_name = "PAKETTI_PLACEHOLDER_001"
 -- PHASE 2: Apply XML to ALL devices (Last to First)
 -- Apply XML for device 1: *LFO
@@ -622,15 +622,15 @@ function inspectTrackDeviceChainTEST()
 -- PHASE 1: Load All Devices (with Placeholders) - REVERSE ORDER
 -- Loading LAST device first, then second-last, etc. to maintain correct order
 -- Loading device 3: Maximizer (Maximizer)
-loadnative("Audio/Effects/Native/Maximizer", nil, nil, false)
+loadnative("Audio/Effects/Native/Maximizer", nil, nil, false, true)
 renoise.song().selected_device.display_name = "PAKETTI_PLACEHOLDER_003"
 print("DEBUG: Loaded device 3 (Maximizer) with placeholder PAKETTI_PLACEHOLDER_003")
 -- Loading device 2: *LFO (*LFO (2))
-loadnative("Audio/Effects/Native/*LFO", nil, nil, false)
+loadnative("Audio/Effects/Native/*LFO", nil, nil, false, true)
 renoise.song().selected_device.display_name = "PAKETTI_PLACEHOLDER_002"
 print("DEBUG: Loaded device 2 (*LFO) with placeholder PAKETTI_PLACEHOLDER_002")
 -- Loading device 1: *LFO (*LFO)
-loadnative("Audio/Effects/Native/*LFO", nil, nil, false)
+loadnative("Audio/Effects/Native/*LFO", nil, nil, false, true)
 renoise.song().selected_device.display_name = "PAKETTI_PLACEHOLDER_001"
 print("DEBUG: Loaded device 1 (*LFO) with placeholder PAKETTI_PLACEHOLDER_001")
 -- PHASE 2: Apply XML to ALL devices (Last to First)

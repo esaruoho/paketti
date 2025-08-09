@@ -482,8 +482,8 @@ renoise.app():load_instrument(defaultInstrument)
   if preferences.pakettiLoaderMoveSilenceToEnd.value ~= false then PakettiMoveSilenceAllSamples() end
   if preferences.pakettiLoaderDontCreateAutomationDevice.value == false then 
   -- Load the *Instr. Macros device and rename it
-if renoise.song().selected_track.type == 2 then renoise.app():show_status("*Instr. Macro Device will not be added to the Master track.") return else
-  loadnative("Audio/Effects/Native/*Instr. Macros")
+ if renoise.song().selected_track.type == 2 then renoise.app():show_status("*Instr. Macro Device will not be added to the Master track.") return else
+   loadnative("Audio/Effects/Native/*Instr. Macros", nil, nil, nil, true)
   
   local macro_device = song.selected_track:device(2)
   macro_device.display_name = instrument_name_prefix
@@ -638,7 +638,7 @@ function loadRandomDrumkitSamples(num_samples, create_automation_device)
             if song.selected_track.type == 2 then 
                 renoise.app():show_status("*Instr. Macro Device will not be added to the Master track.") 
             else
-                loadnative("Audio/Effects/Native/*Instr. Macros")
+                loadnative("Audio/Effects/Native/*Instr. Macros", nil, nil, nil, true)
                 
                 local macro_device = song.selected_track:device(2)
                 macro_device.display_name = instrument_slot_hex .. "_Drumkit"
@@ -774,7 +774,7 @@ if renoise.song().selected_sample ~= nil then
   -- Load the *Instr. Macros device and rename it
   if preferences.pakettiLoaderDontCreateAutomationDevice.value == false then 
   if renoise.song().selected_track.type == 2 then renoise.app():show_status("*Instr. Macro Device will not be added to the Master track.") return else
-  loadnative("Audio/Effects/Native/*Instr. Macros")
+  loadnative("Audio/Effects/Native/*Instr. Macros", nil, nil, nil, true)
   end
   local macro_device = song.selected_track:device(2)
   macro_device.display_name = string.format("%s_%s", instrument_slot_hex, original_sample_name)
@@ -965,7 +965,7 @@ function pitchBendMultipleSampleLoader_process(selected_sample_filenames, normal
         if renoise.song().selected_track.type == 2 then 
           renoise.app():show_status("*Instr. Macro Device will not be added to the Master track.") 
         else
-          loadnative("Audio/Effects/Native/*Instr. Macros") 
+                loadnative("Audio/Effects/Native/*Instr. Macros", nil, nil, nil, true) 
           local macro_device = renoise.song().selected_track:device(2)
           macro_device.display_name = string.format("%s_%s", instrument_slot_hex, filename_only)
           renoise.song().selected_track.devices[2].is_maximized = false

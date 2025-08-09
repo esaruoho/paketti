@@ -1064,7 +1064,7 @@ end
       end
     end
     -- Add new *Instr. Macros device
-    loadnative("Audio/Effects/Native/*Instr. Macros")
+    loadnative("Audio/Effects/Native/*Instr. Macros", nil, nil, nil, true)
     local macro_device = track:device(#track.devices)
     macro_device.display_name = string.format("%02X_Drumkit", track_index - 1)
     macro_device.is_maximized = false
@@ -2441,7 +2441,7 @@ function loadSequentialDrumkitSamples()
         end
       end
       -- Add new *Instr. Macros device
-      loadnative("Audio/Effects/Native/*Instr. Macros")
+      loadnative("Audio/Effects/Native/*Instr. Macros", nil, nil, nil, true)
       local macro_device = song.selected_track:device(#song.selected_track.devices)
       macro_device.display_name = string.format("%02X_Drumkit", track_index - 1)
       macro_device.is_maximized = false

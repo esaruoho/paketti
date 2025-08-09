@@ -334,7 +334,7 @@ function rex_loadsample(filename)
 
   if preferences.pakettiLoaderDontCreateAutomationDevice.value == false then 
   if renoise.song().selected_track.type == 2 then renoise.app():show_status("*Instr. Macro Device will not be added to the Master track.") return else
-    loadnative("Audio/Effects/Native/*Instr. Macros") 
+    loadnative("Audio/Effects/Native/*Instr. Macros", nil, nil, nil, true)
     local macro_device = renoise.song().selected_track:device(2)
     macro_device.display_name = string.format("%02X", renoise.song().selected_instrument_index - 1) .. " " .. get_clean_filename(filename)
     renoise.song().selected_track.devices[2].is_maximized = false

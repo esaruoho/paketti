@@ -274,7 +274,7 @@ function rendering_done_callback(render_context)
         
         -- Add *Instr. Macros for timestretch mode
         if preferences.pakettiLoaderDontCreateAutomationDevice.value == false then 
-            loadnative("Audio/Effects/Native/*Instr. Macros")
+            loadnative("Audio/Effects/Native/*Instr. Macros", nil, nil, nil, true)
             song.selected_track.devices[2].is_maximized = false
         end
         
@@ -336,7 +336,7 @@ function rendering_done_callback(render_context)
 
         -- Add *Instr. Macros to selected Track
         if preferences.pakettiLoaderDontCreateAutomationDevice.value == false then
-            loadnative("Audio/Effects/Native/*Instr. Macros")
+            loadnative("Audio/Effects/Native/*Instr. Macros", nil, nil, nil, true)
             song.selected_track.devices[2].is_maximized = false
         end
 
@@ -591,7 +591,7 @@ Deselect_All()
   --    song.selected_pattern.tracks[renderedTrack].lines[1].effect_columns[1].amount_value = 01 
   -- Add Instr* Macros to selected Track
   if preferences.pakettiLoaderDontCreateAutomationDevice.value == false then 
-  loadnative("Audio/Effects/Native/*Instr. Macros")
+  loadnative("Audio/Effects/Native/*Instr. Macros", nil, nil, nil, true)
   renoise.song().selected_track.devices[2].is_maximized = false
   end
   -- Rename Sample Slot to Render Track
@@ -1340,7 +1340,7 @@ function selection_rendering_done_callback(render_context)
         pattern_track:line(1).effect_columns[1].amount_string="01"
 
         if preferences.pakettiLoaderDontCreateAutomationDevice.value == false then
-            loadnative("Audio/Effects/Native/*Instr. Macros")
+            loadnative("Audio/Effects/Native/*Instr. Macros", nil, nil, nil, true)
             song.selected_track.devices[2].is_maximized = false
         end
 

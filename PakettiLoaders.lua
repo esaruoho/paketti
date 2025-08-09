@@ -1,3 +1,6 @@
+-- Parameter editor gating threshold (local to this module)
+local PakettiParameterEditorMaxParams = 64
+
 function pakettiListInstalledTools()
   for i=1,#renoise.app().installed_tools do oprint (renoise.app().installed_tools[i].name) end
 end
@@ -241,10 +244,18 @@ s.selected_instrument.active_tab=2
 end
 renoise.tool():add_keybinding{name="Global:Paketti:Load Waldorf Attack (VST)",invoke=function() LoadAttack() end}
 -----------------------------------------------------------------------------------------------------
-function loadnative(effect, name, preset_path, force_insertion_order)
+
+
+function loadnative(effect, name, preset_path, force_insertion_order, silent)
   local checkline=nil
   local s=renoise.song()
   local w=renoise.app().window
+
+  -- Allow shorthand: loadnative(effect, true) to mean silent
+  if type(name) == "boolean" and preset_path == nil and force_insertion_order == nil and silent == nil then
+    silent = name
+    name = nil
+  end
 
   -- Define blacklists for different track types
   local master_blacklist={"Audio/Effects/Native/*Key Tracker", "Audio/Effects/Native/*Velocity Tracker", "Audio/Effects/Native/#Send", "Audio/Effects/Native/#Multiband Send", "Audio/Effects/Native/#Sidechain"}
@@ -269,6 +280,23 @@ function loadnative(effect, name, preset_path, force_insertion_order)
 
   if w.active_middle_frame == 6 then
     w.active_middle_frame = 7
+  end
+
+  -- Helper functions for plugin-specific behavior
+  local function is_schaack_transient_shaper(device)
+    if not device or not device.name then return false end
+    local n = string.lower(device.name)
+    local has_vendor = string.find(n, "schaack", 1, true) ~= nil
+    local has_product = (string.find(n, "transientshaper", 1, true) ~= nil) or (string.find(n, "transient shaper", 1, true) ~= nil)
+    return has_vendor and has_product
+  end
+
+  local function is_fabfilter_pro_q3(device)
+    if not device or not device.name then return false end
+    local n = string.lower(device.name)
+    local has_vendor = string.find(n, "fabfilter", 1, true) ~= nil
+    local has_product = (string.find(n, "pro-q 3", 1, true) ~= nil) or (string.find(n, "pro-q3", 1, true) ~= nil) or (string.find(n, "pro q 3", 1, true) ~= nil)
+    return has_vendor and has_product
   end
 
   if w.active_middle_frame == 7 then
@@ -369,9 +397,33 @@ function loadnative(effect, name, preset_path, force_insertion_order)
           sample_devices[checkline].display_name = name 
         end
         
-        -- For sample FX chains, always open external editor regardless of preference
-        if device.external_editor_available then
-          device.external_editor_visible = true
+        -- Editor behavior for sample FX chains
+        if not silent then
+          local open_external = true
+          local open_param_editor = false
+
+          if is_schaack_transient_shaper(device) then
+            open_external = false
+            open_param_editor = true
+          elseif is_fabfilter_pro_q3(device) then
+            open_external = true
+            open_param_editor = false
+          end
+
+          if open_param_editor then
+            local param_count = #device.parameters
+            local threshold = PakettiParameterEditorMaxParams or 64
+            if param_count > threshold then
+              open_param_editor = false
+            end
+          end
+
+          if open_external and device.external_editor_available then
+            device.external_editor_visible = true
+          end
+          if open_param_editor then
+            PakettiCanvasExperimentsInit()
+          end
         end
         
         -- Show status message for successful load
@@ -475,12 +527,33 @@ function loadnative(effect, name, preset_path, force_insertion_order)
         sdevices[checkline].display_name = name 
       end
       
-      -- Check preference for device load behavior - open external editor if available
-      if preferences.pakettiDeviceLoadBehaviour.value == 1 and device.external_editor_available then
-        device.external_editor_visible = true
-      elseif preferences.pakettiDeviceLoadBehaviour.value == 2 then
-        -- Open Selected Parameter Dialog
-        PakettiCanvasExperimentsInit()
+      -- Editor behavior for track devices
+      if not silent then
+        local open_external = (preferences.pakettiDeviceLoadBehaviour.value == 1)
+        local open_param_editor = (preferences.pakettiDeviceLoadBehaviour.value == 2)
+
+        if is_schaack_transient_shaper(device) then
+          open_external = false
+          open_param_editor = true
+        elseif is_fabfilter_pro_q3(device) then
+          open_external = true
+          open_param_editor = false
+        end
+
+        if open_param_editor then
+          local param_count = #device.parameters
+          local threshold = PakettiParameterEditorMaxParams or 64
+          if param_count > threshold then
+            open_param_editor = false
+          end
+        end
+
+        if open_external and device.external_editor_available then
+          device.external_editor_visible = true
+        end
+        if open_param_editor then
+          PakettiCanvasExperimentsInit()
+        end
       end
       -- Value 3 (do nothing) requires no action
       
@@ -691,10 +764,16 @@ renoise.tool():add_keybinding{name="Global:Track Devices:Load Renoise (Hidden) S
 -- TAL Reverb 4 Plugin opens with massive-ish Reverb
 -- ValhallaDSP ValhallaVintageVerb opens with 50% Wet instead of 100% Wet, and a long tail
 -- And each line input will become first.
-function loadvst(vstname, name, preset_path, force_insertion_order)
+function loadvst(vstname, name, preset_path, force_insertion_order, silent)
   local s = renoise.song()
   local raw = renoise.app().window
   local checkline = nil
+
+  -- Allow shorthand: loadvst(path, true) to mean silent
+  if type(name) == "boolean" and preset_path == nil and force_insertion_order == nil and silent == nil then
+    silent = name
+    name = nil
+  end
 
   if raw.lower_frame_is_visible == false then 
     raw.lower_frame_is_visible = false
@@ -704,6 +783,23 @@ function loadvst(vstname, name, preset_path, force_insertion_order)
 
   if raw.active_middle_frame == 6 then
     raw.active_middle_frame = 7 
+  end
+
+  -- Helper functions for plugin-specific behavior
+  local function is_schaack_transient_shaper(device)
+    if not device or not device.name then return false end
+    local n = string.lower(device.name)
+    local has_vendor = string.find(n, "schaack", 1, true) ~= nil
+    local has_product = (string.find(n, "transientshaper", 1, true) ~= nil) or (string.find(n, "transient shaper", 1, true) ~= nil)
+    return has_vendor and has_product
+  end
+
+  local function is_fabfilter_pro_q3(device)
+    if not device or not device.name then return false end
+    local n = string.lower(device.name)
+    local has_vendor = string.find(n, "fabfilter", 1, true) ~= nil
+    local has_product = (string.find(n, "pro-q 3", 1, true) ~= nil) or (string.find(n, "pro-q3", 1, true) ~= nil) or (string.find(n, "pro q 3", 1, true) ~= nil)
+    return has_vendor and has_product
   end
 
   if raw.active_middle_frame == 7 then
@@ -761,8 +857,34 @@ function loadvst(vstname, name, preset_path, force_insertion_order)
         return
       end
       
-      -- For sample FX chains, always open external editor regardless of preference
-      inserted_device.external_editor_visible = true
+      -- Editor behavior for sample FX chains
+      if not silent then
+        local open_external = true
+        local open_param_editor = false
+
+        if is_schaack_transient_shaper(inserted_device) then
+          open_external = false
+          open_param_editor = true
+        elseif is_fabfilter_pro_q3(inserted_device) then
+          open_external = true
+          open_param_editor = false
+        end
+
+        if open_param_editor then
+          local param_count = #inserted_device.parameters
+          local threshold = PakettiParameterEditorMaxParams or 64
+          if param_count > threshold then
+            open_param_editor = false
+          end
+        end
+
+        if open_external and inserted_device.external_editor_available then
+          inserted_device.external_editor_visible = true
+        end
+        if open_param_editor then
+          PakettiCanvasExperimentsInit()
+        end
+      end
       inserted_device.is_maximized = false
 
       -- Additional device-specific parameter adjustments
@@ -872,13 +994,33 @@ function loadvst(vstname, name, preset_path, force_insertion_order)
       return
     end
     
-    -- Check preference for device load behavior
-    if preferences.pakettiDeviceLoadBehaviour.value == 1 then
-      -- Open External Editor (default behavior)
-      inserted_device.external_editor_visible = true
-    elseif preferences.pakettiDeviceLoadBehaviour.value == 2 then
-      -- Open Selected Parameter Dialog
-      PakettiCanvasExperimentsInit()
+    -- Editor behavior for track devices
+    if not silent then
+      local open_external = (preferences.pakettiDeviceLoadBehaviour.value == 1)
+      local open_param_editor = (preferences.pakettiDeviceLoadBehaviour.value == 2)
+
+      if is_schaack_transient_shaper(inserted_device) then
+        open_external = false
+        open_param_editor = true
+      elseif is_fabfilter_pro_q3(inserted_device) then
+        open_external = true
+        open_param_editor = false
+      end
+
+      if open_param_editor then
+        local param_count = #inserted_device.parameters
+        local threshold = PakettiParameterEditorMaxParams or 64
+        if param_count > threshold then
+          open_param_editor = false
+        end
+      end
+
+      if open_external and inserted_device.external_editor_available then
+        inserted_device.external_editor_visible = true
+      end
+      if open_param_editor then
+        PakettiCanvasExperimentsInit()
+      end
     end
     -- Value 3 (do nothing) requires no action
     inserted_device.is_maximized = false

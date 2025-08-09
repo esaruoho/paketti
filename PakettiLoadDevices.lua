@@ -69,7 +69,7 @@ function loadDeviceFromPreferences()
     local success, err = pcall(function()
       renoise.tool():add_keybinding{name=keyBindingName,invoke=function()
           if device_type == "Native" then
-            loadnative(path)
+            loadnative(path, nil, nil, nil, true)
           else
             loadvst(path)
           end
@@ -78,7 +78,7 @@ function loadDeviceFromPreferences()
       renoise.tool():add_midi_mapping{name=midiMappingName,invoke=function(message)
           if message:is_trigger() then
             if device_type == "Native" then
-              loadnative(path)
+              loadnative(path, nil, nil, nil, true)
             else
               loadvst(path)
             end
@@ -114,7 +114,7 @@ function loadSelectedDevices()
     if cb_info.checkbox.value then
       local pluginPath = cb_info.path
       if current_device_type == "Native" then
-        loadnative(pluginPath)
+        loadnative(pluginPath, nil, nil, nil, true)
       else
         loadvst(pluginPath)
       end
@@ -147,7 +147,7 @@ function addDeviceAsShortcut()
           renoise.tool():add_keybinding{name=keyBindingName,
             invoke=function()
               if device_type == "Native" then
-                loadnative(path)
+                loadnative(path, nil, nil, nil, true)
               else
                 loadvst(path)
               end
@@ -156,7 +156,7 @@ function addDeviceAsShortcut()
           renoise.tool():add_midi_mapping{name=midiMappingName,invoke=function(message)
               if message:is_trigger() then
                 if device_type == "Native" then
-                  loadnative(path)
+                  loadnative(path, nil, nil, nil, true)
                 else
                   loadvst(path)
                 end
@@ -760,7 +760,7 @@ function pakettiQuickLoadDialog()
           
           -- Load the device
           if device_path:find("Native/") then
-            loadnative(device_path, line_input_index, in_sample_fx)
+            loadnative(device_path, line_input_index, in_sample_fx, nil, true)
           else
             loadvst(device_path, line_input_index, in_sample_fx)
           end

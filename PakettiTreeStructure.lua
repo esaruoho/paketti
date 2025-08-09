@@ -109,7 +109,7 @@ local tree_structure = {
 }
 
 -- Helper function to map tree items to actual Paketti commands
-local function get_paketti_command_for_item(item_name)
+function PakettiTreeStructureGetPakettiCommandForItem(item_name)
   -- This is a simplified mapping - in real implementation, 
   -- you would reference the actual Paketti functions
   local command_map = {
@@ -145,8 +145,8 @@ local function get_paketti_command_for_item(item_name)
 end
 
 -- Function to execute a selected command
-local function execute_tree_command(item_name)
-  local command = get_paketti_command_for_item(item_name)
+function PakettiTreeStructureExecuteTreeCommand(item_name)
+  local command = PakettiTreeStructureGetPakettiCommandForItem(item_name)
   if command then
     renoise.app():show_status("Executing: " .. item_name)
     
@@ -177,8 +177,19 @@ local function execute_tree_command(item_name)
   end
 end
 
+-- Function to update the tree display (global, defined before first use)
+function PakettiTreeStructureUpdateDisplay()
+  if not tree_dialog or not tree_dialog.visible then
+    return
+  end
+  
+  -- Close and recreate the dialog with updated content
+  tree_dialog:close()
+  PakettiTreeStructureShow()
+end
+
 -- Function to create tree content
-local function create_tree_content()
+function PakettiTreeStructureCreateTreeContent()
   local content = tree_vb:column{
     spacing = 2,
     margin = 5
@@ -208,7 +219,7 @@ local function create_tree_content()
           current_expanded_branch = i   -- Expand
           selected_item_index = 1
         end
-        update_tree_display()
+        PakettiTreeStructureUpdateDisplay()
       end
     }
     
@@ -232,7 +243,7 @@ local function create_tree_content()
           color = item_color,
           notifier = function()
             selected_item_index = j
-            update_tree_display()
+            PakettiTreeStructureUpdateDisplay()
           end
         }
         
@@ -247,19 +258,8 @@ local function create_tree_content()
   return content
 end
 
--- Function to update the tree display
-local function update_tree_display()
-  if not tree_dialog or not tree_dialog.visible then
-    return
-  end
-  
-  -- Close and recreate the dialog with updated content
-  tree_dialog:close()
-  PakettiTreeStructureShow()
-end
-
 -- Key handler function for tree navigation
-local function tree_keyhandler_func(dialog, key)
+function PakettiTreeStructureTreeKeyhandlerFunc(dialog, key)
   -- Check for dialog close first [[memory:5350415]]
   local closer = preferences.pakettiDialogClose.value
   if key.modifiers == "" and key.name == closer then
@@ -282,7 +282,7 @@ local function tree_keyhandler_func(dialog, key)
         current_expanded_branch = branch_num  -- Expand branch
         selected_item_index = 1
       end
-      update_tree_display()
+      PakettiTreeStructureUpdateDisplay()
       return nil
     end
   end
@@ -294,11 +294,11 @@ local function tree_keyhandler_func(dialog, key)
     -- Up/Down arrow navigation
     if key.modifiers == "" and key.name == "up" then
       selected_item_index = math.max(1, selected_item_index - 1)
-      update_tree_display()
+      PakettiTreeStructureUpdateDisplay()
       return nil
     elseif key.modifiers == "" and key.name == "down" then
       selected_item_index = math.min(#current_branch.items, selected_item_index + 1)
-      update_tree_display()
+      PakettiTreeStructureUpdateDisplay()
       return nil
     end
     
@@ -306,7 +306,7 @@ local function tree_keyhandler_func(dialog, key)
     if key.modifiers == "" and key.name == "return" then
       local selected_item = current_branch.items[selected_item_index]
       if selected_item then
-        execute_tree_command(selected_item)
+        PakettiTreeStructureExecuteTreeCommand(selected_item)
         -- Close dialog after execution
         tree_dialog:close()
         tree_dialog = nil
@@ -353,7 +353,7 @@ function PakettiTreeStructureShow()
   }
   
   -- Create tree content
-  local tree_content = create_tree_content()
+  local tree_content = PakettiTreeStructureCreateTreeContent()
   
   -- Create main dialog content
   local dialog_content = tree_vb:column{
@@ -366,7 +366,7 @@ function PakettiTreeStructureShow()
   }
   
   -- Show dialog [[memory:4460994]]
-  tree_dialog = renoise.app():show_custom_dialog("Paketti Tree Structure", dialog_content, tree_keyhandler_func)
+  tree_dialog = renoise.app():show_custom_dialog("Paketti Tree Structure", dialog_content, PakettiTreeStructureTreeKeyhandlerFunc)
   
   -- Set focus to Renoise window [[memory:4460994]]
   renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame

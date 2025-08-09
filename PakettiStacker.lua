@@ -1296,7 +1296,7 @@ end
     
     if preferences.pakettiLoaderDontCreateAutomationDevice.value == false then 
     -- Add *Instr. Macros device back
-    loadnative("Audio/Effects/Native/*Instr. Macros")
+    loadnative("Audio/Effects/Native/*Instr. Macros", nil, nil, nil, true)
 end
     local instrument = song.selected_instrument
     local samples = instrument.samples
@@ -1441,7 +1441,7 @@ pakettiStackerDialog(proceed_with_stacking, on_switch_changed, PakettiIsolateSli
     selectedInstrumentAllAutofadeControl(1)
     setSelectedInstrumentInterpolation(4)
     if preferences.pakettiLoaderDontCreateAutomationDevice.value == false then 
-    loadnative("Audio/Effects/Native/*Instr. Macros")
+    loadnative("Audio/Effects/Native/*Instr. Macros", nil, nil, nil, true)
     end
     renoise.app():show_status("The Slices have been turned to Samples. The Samples have been Stacked together. The Velocity controls the Sample Selection. The Pattern now has a ramp up for the samples.")
   end
