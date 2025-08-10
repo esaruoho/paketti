@@ -8,6 +8,136 @@ local function debugPrint(message)
   end
 end
 
+-- Dynamically apply File vs File:Paketti menu location (1=File, 2=Paketti, 3=Both)
+function PakettiMenuApplyFileMenuLocation(mode)
+  if not preferences or not preferences.pakettiMenuConfig or not preferences.pakettiMenuConfig.MainMenuFile then return end
+  if type(mode) ~= "number" then
+    mode = (preferences.pakettiFileMenuLocationMode and preferences.pakettiFileMenuLocationMode.value) or 3
+  end
+
+  local file_entries = {
+    "Main Menu:File:Paketti New Song Dialog...",
+    "Main Menu:File:Load Most Recently Saved Song",
+    "Main Menu:File:Save (Paketti Track Dater & Titler)...",
+    "Main Menu:File:Save Song with Timestamp",
+    "--Main Menu:File:Save All Samples to Folder...",
+    "--Main Menu:File:Save Unused Samples (.WAV&.XRNI)...",
+    "Main Menu:File:Save Unused Instruments (.XRNI)...",
+    "--Main Menu:File:Delete Unused Instruments...",
+    "Main Menu:File:Delete Unused Samples...",
+    "--Main Menu:File:Largest Samples Dialog...",
+    "Main Menu:File:Wipe Song Patterns",
+  }
+
+  local paketti_entries = {
+    "Main Menu:File:Paketti:Load Most Recently Saved Song",
+    "Main Menu:File:Paketti:Paketti New Song Dialog...",
+    "Main Menu:File:Paketti:Paketti Track Dater & Titler...",
+    "Main Menu:File:Paketti:Save Song with Timestamp",
+    "--Main Menu:File:Paketti:Save All Samples to Folder...",
+    "--Main Menu:File:Paketti:Save Unused Samples (.WAV&.XRNI)...",
+    "Main Menu:File:Paketti:Save Unused Instruments (.XRNI)...",
+    "--Main Menu:File:Paketti:Delete Unused Instruments...",
+    "Main Menu:File:Paketti:Delete Unused Samples...",
+    "--Main Menu:File:Paketti:Largest Samples Dialog...",
+    "Main Menu:File:Paketti:Wipe Song Patterns",
+  }
+
+  local function remove_list(list)
+    for i = 1, #list do
+      local n = list[i]
+      if renoise.tool():has_menu_entry(n) then
+        renoise.tool():remove_menu_entry(n)
+      end
+    end
+  end
+
+  local function ensure_file_entries()
+    if not renoise.tool():has_menu_entry("Main Menu:File:Paketti New Song Dialog...") then
+      renoise.tool():add_menu_entry{name="Main Menu:File:Paketti New Song Dialog...",invoke=function() pakettiImpulseTrackerNewSongDialog() end}
+    end
+    if not renoise.tool():has_menu_entry("Main Menu:File:Load Most Recently Saved Song") then
+      renoise.tool():add_menu_entry{name="Main Menu:File:Load Most Recently Saved Song",invoke=function() loadRecentlySavedSong() end}
+    end
+    if not renoise.tool():has_menu_entry("Main Menu:File:Save (Paketti Track Dater & Titler)...") then
+      renoise.tool():add_menu_entry{name="Main Menu:File:Save (Paketti Track Dater & Titler)...",invoke=pakettiTitlerDialog}
+    end
+    if not renoise.tool():has_menu_entry("Main Menu:File:Save Song with Timestamp") then
+      renoise.tool():add_menu_entry{name="Main Menu:File:Save Song with Timestamp",invoke=function() save_with_new_timestamp() end}
+    end
+    if not renoise.tool():has_menu_entry("--Main Menu:File:Save All Samples to Folder...") then
+      renoise.tool():add_menu_entry{name="--Main Menu:File:Save All Samples to Folder...",invoke = saveAllSamplesToFolder}
+    end
+    if not renoise.tool():has_menu_entry("--Main Menu:File:Save Unused Samples (.WAV&.XRNI)...") then
+      renoise.tool():add_menu_entry{name="--Main Menu:File:Save Unused Samples (.WAV&.XRNI)...",invoke=saveUnusedSamples}
+    end
+    if not renoise.tool():has_menu_entry("Main Menu:File:Save Unused Instruments (.XRNI)...") then
+      renoise.tool():add_menu_entry{name="Main Menu:File:Save Unused Instruments (.XRNI)...",invoke=saveUnusedInstruments}
+    end
+    if not renoise.tool():has_menu_entry("--Main Menu:File:Delete Unused Instruments...") then
+      renoise.tool():add_menu_entry{name="--Main Menu:File:Delete Unused Instruments...",invoke=deleteUnusedInstruments}
+    end
+    if not renoise.tool():has_menu_entry("Main Menu:File:Delete Unused Samples...") then
+      renoise.tool():add_menu_entry{name="Main Menu:File:Delete Unused Samples...",invoke=deleteUnusedSamples}
+    end
+    if not renoise.tool():has_menu_entry("--Main Menu:File:Largest Samples Dialog...") then
+      renoise.tool():add_menu_entry{name="--Main Menu:File:Largest Samples Dialog...",invoke = pakettiShowLargestSamplesDialog}
+    end
+    local wipe_fn = rawget(_G, "wipeSongPattern")
+    if type(wipe_fn) == "function" and not renoise.tool():has_menu_entry("Main Menu:File:Wipe Song Patterns") then
+      renoise.tool():add_menu_entry{name="Main Menu:File:Wipe Song Patterns",invoke=function() wipe_fn() end}
+    end
+  end
+
+  local function ensure_paketti_entries()
+    if not renoise.tool():has_menu_entry("Main Menu:File:Paketti:Load Most Recently Saved Song") then
+      renoise.tool():add_menu_entry{name="Main Menu:File:Paketti:Load Most Recently Saved Song",invoke=function() loadRecentlySavedSong() end}
+    end
+    if not renoise.tool():has_menu_entry("Main Menu:File:Paketti:Paketti New Song Dialog...") then
+      renoise.tool():add_menu_entry{name="Main Menu:File:Paketti:Paketti New Song Dialog...",invoke=function() pakettiImpulseTrackerNewSongDialog() end}
+    end
+    if not renoise.tool():has_menu_entry("Main Menu:File:Paketti:Paketti Track Dater & Titler...") then
+      renoise.tool():add_menu_entry{name="Main Menu:File:Paketti:Paketti Track Dater & Titler...",invoke=pakettiTitlerDialog}
+    end
+    if not renoise.tool():has_menu_entry("Main Menu:File:Paketti:Save Song with Timestamp") then
+      renoise.tool():add_menu_entry{name="Main Menu:File:Paketti:Save Song with Timestamp",invoke=function() save_with_new_timestamp() end}
+    end
+    if not renoise.tool():has_menu_entry("--Main Menu:File:Paketti:Save All Samples to Folder...") then
+      renoise.tool():add_menu_entry{name="--Main Menu:File:Paketti:Save All Samples to Folder...",invoke = saveAllSamplesToFolder}
+    end
+    if not renoise.tool():has_menu_entry("--Main Menu:File:Paketti:Save Unused Samples (.WAV&.XRNI)...") then
+      renoise.tool():add_menu_entry{name="--Main Menu:File:Paketti:Save Unused Samples (.WAV&.XRNI)...",invoke=saveUnusedSamples}
+    end
+    if not renoise.tool():has_menu_entry("Main Menu:File:Paketti:Save Unused Instruments (.XRNI)...") then
+      renoise.tool():add_menu_entry{name="Main Menu:File:Paketti:Save Unused Instruments (.XRNI)...",invoke=saveUnusedInstruments}
+    end
+    if not renoise.tool():has_menu_entry("--Main Menu:File:Paketti:Delete Unused Instruments...") then
+      renoise.tool():add_menu_entry{name="--Main Menu:File:Paketti:Delete Unused Instruments...",invoke=deleteUnusedInstruments}
+    end
+    if not renoise.tool():has_menu_entry("Main Menu:File:Paketti:Delete Unused Samples...") then
+      renoise.tool():add_menu_entry{name="Main Menu:File:Paketti:Delete Unused Samples...",invoke=deleteUnusedSamples}
+    end
+    if not renoise.tool():has_menu_entry("--Main Menu:File:Paketti:Largest Samples Dialog...") then
+      renoise.tool():add_menu_entry{name="--Main Menu:File:Paketti:Largest Samples Dialog...",invoke = pakettiShowLargestSamplesDialog}
+    end
+    local wipe_fn = rawget(_G, "wipeSongPattern")
+    if type(wipe_fn) == "function" and not renoise.tool():has_menu_entry("Main Menu:File:Paketti:Wipe Song Patterns") then
+      renoise.tool():add_menu_entry{name="Main Menu:File:Paketti:Wipe Song Patterns",invoke=function() wipe_fn() end}
+    end
+  end
+
+  if mode == 1 then
+    remove_list(paketti_entries)
+    ensure_file_entries()
+  elseif mode == 2 then
+    remove_list(file_entries)
+    ensure_paketti_entries()
+  else
+    ensure_file_entries()
+    ensure_paketti_entries()
+  end
+end
+
 -- Global helpers for adding/removing menu entries safely
 -- Removed dynamic helpers/updater to keep File menu configuration localized below
 
@@ -40,14 +170,14 @@ renoise.tool():add_menu_entry{name="--Instrument Box:Paketti:AKWF:Load 05 AKWF S
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti:AKWF:Load 12 AKWF Samples with Overlap Random",invoke=function() load_random_akwf_sample(12) DrumKitToOverlay(2) end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti:AKWF:Load 05 AKWF Samples with Overlap Cycle",invoke=function() load_random_akwf_sample(5) DrumKitToOverlay(1) end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti:AKWF:Load 12 AKWF Samples with Overlap Cycle",invoke=function() load_random_akwf_sample(12) DrumKitToOverlay(1) end}
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti:AKWF:Create Random AKWF Wavetable (032)",invoke=function() create_random_akwf_wavetable(32, false) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti:AKWF:Create Random AKWF Wavetable (064)",invoke=function() create_random_akwf_wavetable(64, false) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti:AKWF:Create Random AKWF Wavetable (128)",invoke=function() create_random_akwf_wavetable(128, false) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti:AKWF:Create Random AKWF Wavetable (256)",invoke=function() create_random_akwf_wavetable(256, false) end}
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti:AKWF:Create Random AKWF Wavetable (032,loop)",invoke=function() create_random_akwf_wavetable(32, true) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti:AKWF:Create Random AKWF Wavetable (064,loop)",invoke=function() create_random_akwf_wavetable(64, true) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti:AKWF:Create Random AKWF Wavetable (128,loop)",invoke=function() create_random_akwf_wavetable(128, true) end}
-renoise.tool():add_menu_entry{name="Instrument Box:Paketti:AKWF:Create Random AKWF Wavetable (256,loop)",invoke=function() create_random_akwf_wavetable(256, true) end}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti:AKWF:Create Random AKWF Wavetable (032)",invoke=function() PakettiWavetablerCreateRandomAKWFWavetable(32, false) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti:AKWF:Create Random AKWF Wavetable (064)",invoke=function() PakettiWavetablerCreateRandomAKWFWavetable(64, false) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti:AKWF:Create Random AKWF Wavetable (128)",invoke=function() PakettiWavetablerCreateRandomAKWFWavetable(128, false) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti:AKWF:Create Random AKWF Wavetable (256)",invoke=function() PakettiWavetablerCreateRandomAKWFWavetable(256, false) end}
+renoise.tool():add_menu_entry{name="--Instrument Box:Paketti:AKWF:Create Random AKWF Wavetable (032,loop)",invoke=function() PakettiWavetablerCreateRandomAKWFWavetable(32, true) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti:AKWF:Create Random AKWF Wavetable (064,loop)",invoke=function() PakettiWavetablerCreateRandomAKWFWavetable(64, true) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti:AKWF:Create Random AKWF Wavetable (128,loop)",invoke=function() PakettiWavetablerCreateRandomAKWFWavetable(128, true) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti:AKWF:Create Random AKWF Wavetable (256,loop)",invoke=function() PakettiWavetablerCreateRandomAKWFWavetable(256, true) end}
 
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Phrases:Create New Phrase using Paketti Settings",invoke=function() pakettiInitPhraseSettingsCreateNewPhrase() end}
 renoise.tool():add_menu_entry{name="--Instrument Box:Paketti:Phrases:Load XRNI & Wipe Phrases",invoke=function() loadXRNIWipePhrases() end}
@@ -1996,14 +2126,14 @@ renoise.tool():add_menu_entry{name="--Disk Browser Files:Paketti:AKWF:Load 05 AK
 renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti:AKWF:Load 12 AKWF Samples with Overlap Random",invoke=function() load_random_akwf_sample(12) DrumKitToOverlay(2) end}
 renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti:AKWF:Load 05 AKWF Samples with Overlap Cycle",invoke=function() load_random_akwf_sample(5) DrumKitToOverlay(1) end}
 renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti:AKWF:Load 12 AKWF Samples with Overlap Cycle",invoke=function() load_random_akwf_sample(12) DrumKitToOverlay(1) end}
-renoise.tool():add_menu_entry{name="--Disk Browser Files:Paketti:AKWF:Create Random AKWF Wavetable (032)",invoke=function() create_random_akwf_wavetable(32, false) end}
-renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti:AKWF:Create Random AKWF Wavetable (064)",invoke=function() create_random_akwf_wavetable(64, false) end}
-renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti:AKWF:Create Random AKWF Wavetable (128)",invoke=function() create_random_akwf_wavetable(128, false) end}
-renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti:AKWF:Create Random AKWF Wavetable (256)",invoke=function() create_random_akwf_wavetable(256, false) end}
-renoise.tool():add_menu_entry{name="--Disk Browser Files:Paketti:AKWF:Create Random AKWF Wavetable (032,loop)",invoke=function() create_random_akwf_wavetable(32, true) end}
-renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti:AKWF:Create Random AKWF Wavetable (064,loop)",invoke=function() create_random_akwf_wavetable(64, true) end}
-renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti:AKWF:Create Random AKWF Wavetable (128,loop)",invoke=function() create_random_akwf_wavetable(128, true) end}
-renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti:AKWF:Create Random AKWF Wavetable (256,loop)",invoke=function() create_random_akwf_wavetable(256, true) end}
+renoise.tool():add_menu_entry{name="--Disk Browser Files:Paketti:AKWF:Create Random AKWF Wavetable (032)",invoke=function() PakettiWavetablerCreateRandomAKWFWavetable(32, false) end}
+renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti:AKWF:Create Random AKWF Wavetable (064)",invoke=function() PakettiWavetablerCreateRandomAKWFWavetable(64, false) end}
+renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti:AKWF:Create Random AKWF Wavetable (128)",invoke=function() PakettiWavetablerCreateRandomAKWFWavetable(128, false) end}
+renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti:AKWF:Create Random AKWF Wavetable (256)",invoke=function() PakettiWavetablerCreateRandomAKWFWavetable(256, false) end}
+renoise.tool():add_menu_entry{name="--Disk Browser Files:Paketti:AKWF:Create Random AKWF Wavetable (032,loop)",invoke=function() PakettiWavetablerCreateRandomAKWFWavetable(32, true) end}
+renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti:AKWF:Create Random AKWF Wavetable (064,loop)",invoke=function() PakettiWavetablerCreateRandomAKWFWavetable(64, true) end}
+renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti:AKWF:Create Random AKWF Wavetable (128,loop)",invoke=function() PakettiWavetablerCreateRandomAKWFWavetable(128, true) end}
+renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti:AKWF:Create Random AKWF Wavetable (256,loop)",invoke=function() PakettiWavetablerCreateRandomAKWFWavetable(256, true) end}
 
 renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti:Phrases:Load XRNI & Disable Phrases",invoke=function() loadXRNIWipePhrasesTwo() end}
 renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti:Phrases:Load XRNI & Keep Phrases",invoke=function() loadXRNIKeepPhrases() end}

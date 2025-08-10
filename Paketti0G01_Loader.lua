@@ -1020,20 +1020,7 @@ vb:row{
           vb:column{
             style="group",margin=10,width="100%",
             
-            vb:text{style="strong",font="bold",text="Paketti Loader Settings"}
-
-              
-            ,
-            vb:row{
-              vb:text{text="File Menu Location",width=150,tooltip="Choose where File-related Paketti menu entries appear"},
-              vb:switch{items={"File","Paketti","Both"},value=preferences.pakettiFileMenuLocationMode.value,width=300,
-                notifier=function(value)
-                  preferences.pakettiFileMenuLocationMode.value = value
-                  local labels = {"File","Paketti","Both"}
-                  renoise.app():show_status("Paketti File Menu Location: " .. (labels[value] or tostring(value)))
-                end}
-            },
-            vb:row{vb:text{style="strong",text="Controls whether entries are under File directly, File:Paketti submenu, or both."}},
+            vb:text{style="strong",font="bold",text="Paketti Loader Settings"},
             vb:row{
               vb:text{text="Skip Automation Device",width=150},
               vb:switch{items={"Off","On"},value=preferences.pakettiLoaderDontCreateAutomationDevice.value and 2 or 1,width=200,
@@ -1603,7 +1590,21 @@ vb:row{
             vb:row{vb:text{style="strong",text="Controls the detune range (±) used by the Unison Generator. Hard Sync: alternating ±max values."}},
             vb:row{vb:text{style="strong",text="Live-updates currently selected unison instrument."}},
             vb:row{vb:text{style="strong",text="Duplicate whole Instrument: copies entire instrument (plugins, AHDSR, macros) before unison-ing."}},
-          }
+          
+          vb:row{
+            vb:text{text="File Menu Location",width=150,style="strong",font="bold",tooltip="Choose where File-related Paketti menu entries appear"},
+            vb:switch{items={"File","Paketti","Both"},value=preferences.pakettiFileMenuLocationMode.value,width=300,
+              notifier=function(value)
+                preferences.pakettiFileMenuLocationMode.value = value
+                 if type(PakettiMenuApplyFileMenuLocation) == "function" then
+                   PakettiMenuApplyFileMenuLocation(value)
+                 end
+                local labels = {"File","Paketti","Both"}
+                renoise.app():show_status("Paketti File Menu Location: " .. (labels[value] or tostring(value)))
+              end}
+          },
+          vb:row{vb:text{style="strong",text="Controls whether entries are under File directly, File:Paketti submenu, or both."}},
+        }
         }
       },
       

@@ -1,5 +1,5 @@
 -- Function to combine multiple sample buffers into wavetable
-function combine_samples_into_wavetable(samples, use_loop)
+function PakettiWavetablerCombineSamplesIntoWavetable(samples, use_loop)
   if #samples == 0 then
     renoise.app():show_status("No samples provided to combine")
     return nil
@@ -40,7 +40,7 @@ function combine_samples_into_wavetable(samples, use_loop)
 end
 
 -- Modified function to handle both looped and non-looped versions
-function create_random_akwf_wavetable(num_samples, use_loop)
+function PakettiWavetablerCreateRandomAKWFWavetable(num_samples, use_loop)
   -- Default to 64 samples if not specified
   num_samples = num_samples or 64
   -- Default to false if not specified
@@ -82,7 +82,7 @@ function create_random_akwf_wavetable(num_samples, use_loop)
   end
 
   -- Use appropriate combine function based on use_loop parameter
-  local wavetable = combine_samples_into_wavetable(collected_samples, use_loop)
+  local wavetable = PakettiWavetablerCombineSamplesIntoWavetable(collected_samples, use_loop)
   
   -- Clean up the temporary samples, but keep the wavetable
   for i = #instrument.samples, 2, -1 do
@@ -103,20 +103,20 @@ function create_random_akwf_wavetable(num_samples, use_loop)
   PakettiFillPitchStepperDigits(0.015,64)
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Create Random AKWF Wavetable (032)",invoke=function() create_random_akwf_wavetable(32, false) end}
-renoise.tool():add_keybinding{name="Global:Paketti:Create Random AKWF Wavetable (064)",invoke=function() create_random_akwf_wavetable(64, false) end}
-renoise.tool():add_keybinding{name="Global:Paketti:Create Random AKWF Wavetable (128)",invoke=function() create_random_akwf_wavetable(128, false) end}
-renoise.tool():add_keybinding{name="Global:Paketti:Create Random AKWF Wavetable (256)",invoke=function() create_random_akwf_wavetable(256, false) end}
-renoise.tool():add_keybinding{name="Global:Paketti:Create Random AKWF Wavetable (032,loop)",invoke=function() create_random_akwf_wavetable(32, true) end}
-renoise.tool():add_keybinding{name="Global:Paketti:Create Random AKWF Wavetable (064,loop)",invoke=function() create_random_akwf_wavetable(64, true) end}
-renoise.tool():add_keybinding{name="Global:Paketti:Create Random AKWF Wavetable (128,loop)",invoke=function() create_random_akwf_wavetable(128, true) end}
-renoise.tool():add_keybinding{name="Global:Paketti:Create Random AKWF Wavetable (256,loop)",invoke=function() create_random_akwf_wavetable(256, true) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Create Random AKWF Wavetable (032)",invoke=function() PakettiWavetablerCreateRandomAKWFWavetable(32, false) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Create Random AKWF Wavetable (064)",invoke=function() PakettiWavetablerCreateRandomAKWFWavetable(64, false) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Create Random AKWF Wavetable (128)",invoke=function() PakettiWavetablerCreateRandomAKWFWavetable(128, false) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Create Random AKWF Wavetable (256)",invoke=function() PakettiWavetablerCreateRandomAKWFWavetable(256, false) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Create Random AKWF Wavetable (032,loop)",invoke=function() PakettiWavetablerCreateRandomAKWFWavetable(32, true) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Create Random AKWF Wavetable (064,loop)",invoke=function() PakettiWavetablerCreateRandomAKWFWavetable(64, true) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Create Random AKWF Wavetable (128,loop)",invoke=function() PakettiWavetablerCreateRandomAKWFWavetable(128, true) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Create Random AKWF Wavetable (256,loop)",invoke=function() PakettiWavetablerCreateRandomAKWFWavetable(256, true) end}
 
 
 
 
 -- Function to calculate and set loop points for a specific cycle index
-function set_loop_points_for_cycle(sample, cycle_index)
+function PakettiWavetablerSetLoopPointsForCycle(sample, cycle_index)
   if not sample or not sample.sample_buffer then return end
   
   local frames_per_cycle = sample.loop_end - sample.loop_start + 1
@@ -136,18 +136,18 @@ function set_loop_points_for_cycle(sample, cycle_index)
 end
 
 -- Function to move to next/previous cycle
-function move_loop_cycle(offset)
+function PakettiWavetablerMoveLoopCycle(offset)
   local sample = renoise.song().selected_sample
   if not sample or not sample.sample_buffer then return end
   
   local frames_per_cycle = sample.loop_end - sample.loop_start + 1
   local current_cycle = math.floor(sample.loop_start / frames_per_cycle) + 1
   
-  set_loop_points_for_cycle(sample, current_cycle + offset)
+  PakettiWavetablerSetLoopPointsForCycle(sample, current_cycle + offset)
 end
 
 -- Function to set cycle from MIDI CC value (0-127)
-function set_cycle_from_midi(midi_value)
+function PakettiWavetablerSetCycleFromMidi(midi_value)
   local sample = renoise.song().selected_sample
   if not sample or not sample.sample_buffer then return end
   
@@ -157,12 +157,12 @@ function set_cycle_from_midi(midi_value)
   
   -- Map MIDI value (0-127) to cycle index (1-num_cycles)
   local cycle_index = math.floor((midi_value / 127) * num_cycles) + 1
-  set_loop_points_for_cycle(sample, cycle_index)
+  PakettiWavetablerSetLoopPointsForCycle(sample, cycle_index)
 end
 
-renoise.tool():add_keybinding{name="Global:Paketti:Next Wavetable Cycle",invoke=function() move_loop_cycle(1) end}
-renoise.tool():add_keybinding{name="Global:Paketti:Previous Wavetable Cycle",invoke=function() move_loop_cycle(-1) end}
-renoise.tool():add_midi_mapping{name="Paketti:Next Wavetable Cycle",invoke=function(message) if message.boolean_value then move_loop_cycle(1) end end}
-renoise.tool():add_midi_mapping{name="Paketti:Previous Wavetable Cycle",invoke=function(message) if message.boolean_value then move_loop_cycle(-1) end end}
-renoise.tool():add_midi_mapping{name="Paketti:Select Wavetable Cycle [Set]",invoke=function(message) if message.is_value then set_cycle_from_midi(message.value) end end}
+renoise.tool():add_keybinding{name="Global:Paketti:Next Wavetable Cycle",invoke=function() PakettiWavetablerMoveLoopCycle(1) end}
+renoise.tool():add_keybinding{name="Global:Paketti:Previous Wavetable Cycle",invoke=function() PakettiWavetablerMoveLoopCycle(-1) end}
+renoise.tool():add_midi_mapping{name="Paketti:Next Wavetable Cycle",invoke=function(message) if message.boolean_value then PakettiWavetablerMoveLoopCycle(1) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Previous Wavetable Cycle",invoke=function(message) if message.boolean_value then PakettiWavetablerMoveLoopCycle(-1) end end}
+renoise.tool():add_midi_mapping{name="Paketti:Select Wavetable Cycle [Set]",invoke=function(message) if message.is_value then PakettiWavetablerSetCycleFromMidi(message.value) end end}
 

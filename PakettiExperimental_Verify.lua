@@ -2714,7 +2714,7 @@ end
 --Wipes the pattern data, but not the samples or instruments.
 --WARNING: Does not reset current filename.
 -- TODO
---[[
+
 function wipeSongPattern()
 local s=renoise.song()
   for i=1,300 do
@@ -2731,7 +2731,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Wipe Song Patterns",invoke=fu
 renoise.tool():add_menu_entry{name="Main Menu:File:Wipe Song Patterns",invoke=function() wipeSongPattern() end}
 renoise.tool():add_menu_entry{name="Main Menu:File:Paketti:Wipe Song Patterns",invoke=function() wipeSongPattern() end}
 ----
---]]
+
 function get_master_track_index()
   for k,v in ripairs(renoise.song().tracks)
     do if v.type == renoise.Track.TRACK_TYPE_MASTER then return k end  
