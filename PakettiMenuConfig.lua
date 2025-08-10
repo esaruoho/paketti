@@ -83,9 +83,8 @@ function PakettiMenuApplyFileMenuLocation(mode)
     if not renoise.tool():has_menu_entry("--Main Menu:File:Largest Samples Dialog...") then
       renoise.tool():add_menu_entry{name="--Main Menu:File:Largest Samples Dialog...",invoke = pakettiShowLargestSamplesDialog}
     end
-    local wipe_fn = rawget(_G, "wipeSongPattern")
-    if type(wipe_fn) == "function" and not renoise.tool():has_menu_entry("Main Menu:File:Wipe Song Patterns") then
-      renoise.tool():add_menu_entry{name="Main Menu:File:Wipe Song Patterns",invoke=function() wipe_fn() end}
+    if type(wipeSongPattern) == "function" and not renoise.tool():has_menu_entry("Main Menu:File:Wipe Song Patterns") then
+      renoise.tool():add_menu_entry{name="Main Menu:File:Wipe Song Patterns",invoke=function() wipeSongPattern() end}
     end
   end
 
@@ -120,9 +119,8 @@ function PakettiMenuApplyFileMenuLocation(mode)
     if not renoise.tool():has_menu_entry("--Main Menu:File:Paketti:Largest Samples Dialog...") then
       renoise.tool():add_menu_entry{name="--Main Menu:File:Paketti:Largest Samples Dialog...",invoke = pakettiShowLargestSamplesDialog}
     end
-    local wipe_fn = rawget(_G, "wipeSongPattern")
-    if type(wipe_fn) == "function" and not renoise.tool():has_menu_entry("Main Menu:File:Paketti:Wipe Song Patterns") then
-      renoise.tool():add_menu_entry{name="Main Menu:File:Paketti:Wipe Song Patterns",invoke=function() wipe_fn() end}
+    if type(wipeSongPattern) == "function" and not renoise.tool():has_menu_entry("Main Menu:File:Paketti:Wipe Song Patterns") then
+      renoise.tool():add_menu_entry{name="Main Menu:File:Paketti:Wipe Song Patterns",invoke=function() wipeSongPattern() end}
     end
   end
 

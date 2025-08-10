@@ -1751,7 +1751,7 @@ function PakettiCanvasExperimentsCreateDialog()
         id = "follow_automation_button",
         text = "Automation Sync: OFF",
         width = 180,
-        color = COLOR_BUTTON_INACTIVE,
+        color = {64, 200, 64},
         tooltip = "Toggle bidirectional automation: read automation playback + write when drawing",
         notifier = function()
           follow_automation = not follow_automation
@@ -1760,7 +1760,7 @@ function PakettiCanvasExperimentsCreateDialog()
           -- Update button appearance
           if vb.views.follow_automation_button then
             vb.views.follow_automation_button.text = follow_automation and "Automation Sync: ON" or "Automation Sync: OFF"
-            vb.views.follow_automation_button.color = follow_automation and COLOR_BUTTON_ACTIVE or COLOR_BUTTON_INACTIVE
+            vb.views.follow_automation_button.color = follow_automation and {255, 64, 64} or {64, 200, 64}
           end
           
           -- Setup or remove parameter observers based on automation sync state
@@ -1785,6 +1785,39 @@ function PakettiCanvasExperimentsCreateDialog()
         tooltip = "Randomize current Edit A/B and write snapshot to automation",
         notifier = function()
           PakettiCanvasExperimentsRandomizeAutomation()
+        end
+      }
+    },
+
+    -- Automation playmode (Points/Lines/Curves)
+    vb:row {
+      vb:text { text = "Automation Playmode:", width = 130, style = "strong" },
+      vb:switch {
+        id = "canvas_playmode_switch",
+        items = {"Points","Lines","Curves"},
+        width = 300,
+        value = (preferences and preferences.PakettiCanvasAutomationPlaymode and preferences.PakettiCanvasAutomationPlaymode.value) or 2,
+        notifier = function(value)
+          if preferences and preferences.PakettiCanvasAutomationPlaymode then
+            preferences.PakettiCanvasAutomationPlaymode.value = value
+            preferences:save_as("preferences.xml")
+          end
+          local mode = renoise.PatternTrackAutomation.PLAYMODE_POINTS
+          if value == 2 then mode = renoise.PatternTrackAutomation.PLAYMODE_LINES
+          elseif value == 3 then mode = renoise.PatternTrackAutomation.PLAYMODE_CURVES end
+          -- Apply to existing envelopes of the selected device parameters
+          local song = renoise.song()
+          local pattern = song.selected_pattern_index
+          local track_index = song.selected_track_index
+          local pattern_track = song:pattern(pattern):track(track_index)
+          local changed = 0
+          if current_device and #device_parameters > 0 then
+            for i, pinfo in ipairs(device_parameters) do
+              local env = pattern_track:find_automation(pinfo.parameter)
+              if env then env.playmode = mode; changed = changed + 1 end
+            end
+          end
+          renoise.app():show_status("Canvas: Automation Playmode updated on " .. tostring(changed) .. " envelopes")
         end
       }
     },

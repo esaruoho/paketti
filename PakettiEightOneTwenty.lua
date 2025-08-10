@@ -14,6 +14,127 @@ local sequential_load_current_row = 1
 
 -- BPM observable tracking
 local bpm_observer = nil
+local instruments_list_observer = nil
+local beatsync_visible = false
+
+-- BeatSync UI/observer state
+local beatsync_checkboxes = {}
+local beatsync_valueboxes = {}
+local beatsync_updating = {}
+local beatsync_enabled_observers = {}
+local beatsync_lines_observers = {}
+local beatsync_attached_inst_index = {}
+local beatsync_attached_sample_index = {}
+local beatsync_mode_observers = {}
+local beatsync_mode_popups = {}
+
+-- Helper to find the primary 00-7F sample for an instrument
+function PakettiEightOneTwentyFindPrimarySampleIndex(instrument)
+  if not instrument or not instrument.samples or #instrument.samples == 0 then
+    return nil
+  end
+  for sample_idx, sample in ipairs(instrument.samples) do
+    local velocity_min = sample.sample_mapping and sample.sample_mapping.velocity_range and sample.sample_mapping.velocity_range[1]
+    local velocity_max = sample.sample_mapping and sample.sample_mapping.velocity_range and sample.sample_mapping.velocity_range[2]
+    if velocity_min == 0x00 and velocity_max == 0x7F then
+      return sample_idx
+    end
+  end
+  return 1
+end
+
+function PakettiEightOneTwentyDetachBeatsyncObserversFor(i)
+  local inst_idx = beatsync_attached_inst_index[i]
+  local smp_idx = beatsync_attached_sample_index[i]
+  if inst_idx and smp_idx then
+    local inst = renoise.song().instruments[inst_idx]
+    if inst and inst.samples and inst.samples[smp_idx] then
+      local smp = inst.samples[smp_idx]
+      if beatsync_enabled_observers[i] and smp.beat_sync_enabled_observable:has_notifier(beatsync_enabled_observers[i]) then
+        smp.beat_sync_enabled_observable:remove_notifier(beatsync_enabled_observers[i])
+      end
+      if beatsync_lines_observers[i] and smp.beat_sync_lines_observable:has_notifier(beatsync_lines_observers[i]) then
+        smp.beat_sync_lines_observable:remove_notifier(beatsync_lines_observers[i])
+      end
+    end
+  end
+  beatsync_enabled_observers[i] = nil
+  beatsync_lines_observers[i] = nil
+  beatsync_attached_inst_index[i] = nil
+  beatsync_attached_sample_index[i] = nil
+end
+
+function PakettiEightOneTwentyAttachBeatsyncObserversFor(i)
+  local row_elements = rows[i]
+  if not row_elements then return end
+  local inst_idx = row_elements.instrument_popup and row_elements.instrument_popup.value
+  local inst = inst_idx and renoise.song().instruments[inst_idx] or nil
+  if not inst then
+    PakettiEightOneTwentyDetachBeatsyncObserversFor(i)
+    return
+  end
+  local smp_idx = PakettiEightOneTwentyFindPrimarySampleIndex(inst)
+  if not smp_idx then
+    PakettiEightOneTwentyDetachBeatsyncObserversFor(i)
+    return
+  end
+  if beatsync_attached_inst_index[i] == inst_idx and beatsync_attached_sample_index[i] == smp_idx and beatsync_enabled_observers[i] and beatsync_lines_observers[i] then
+    return
+  end
+  PakettiEightOneTwentyDetachBeatsyncObserversFor(i)
+  local smp = inst.samples[smp_idx]
+  beatsync_enabled_observers[i] = function()
+    local enabled = smp.beat_sync_enabled and true or false
+    if beatsync_checkboxes[i] and beatsync_checkboxes[i].value ~= enabled then
+      beatsync_updating[i] = true
+      beatsync_checkboxes[i].value = enabled
+      beatsync_updating[i] = false
+    end
+  end
+  beatsync_lines_observers[i] = function()
+    local lines = smp.beat_sync_lines or 0
+    if beatsync_valueboxes[i] and beatsync_valueboxes[i].value ~= lines then
+      beatsync_updating[i] = true
+      beatsync_valueboxes[i].value = lines
+      beatsync_updating[i] = false
+    end
+  end
+  smp.beat_sync_enabled_observable:add_notifier(beatsync_enabled_observers[i])
+  smp.beat_sync_lines_observable:add_notifier(beatsync_lines_observers[i])
+  beatsync_attached_inst_index[i] = inst_idx
+  beatsync_attached_sample_index[i] = smp_idx
+  -- Prime UI
+  beatsync_enabled_observers[i]()
+  beatsync_lines_observers[i]()
+end
+
+function PakettiEightOneTwentyUpdateBeatsyncUiFor(i)
+  local row_elements = rows[i]
+  if not row_elements then return end
+  local inst_idx = row_elements.instrument_popup and row_elements.instrument_popup.value
+  local inst = inst_idx and renoise.song().instruments[inst_idx] or nil
+  if not inst or not inst.samples or #inst.samples == 0 then
+    if beatsync_checkboxes[i] then beatsync_checkboxes[i].active = false end
+    if beatsync_valueboxes[i] then beatsync_valueboxes[i].active = false end
+    PakettiEightOneTwentyDetachBeatsyncObserversFor(i)
+    return
+  end
+  local smp_idx = PakettiEightOneTwentyFindPrimarySampleIndex(inst)
+  local smp = smp_idx and inst.samples[smp_idx] or nil
+  if not smp then
+    if beatsync_checkboxes[i] then beatsync_checkboxes[i].active = false end
+    if beatsync_valueboxes[i] then beatsync_valueboxes[i].active = false end
+    PakettiEightOneTwentyDetachBeatsyncObserversFor(i)
+    return
+  end
+  if beatsync_checkboxes[i] then beatsync_checkboxes[i].active = true end
+  if beatsync_valueboxes[i] then beatsync_valueboxes[i].active = true end
+  beatsync_updating[i] = true
+  if beatsync_checkboxes[i] then beatsync_checkboxes[i].value = smp.beat_sync_enabled and true or false end
+  if beatsync_valueboxes[i] then beatsync_valueboxes[i].value = smp.beat_sync_lines or 0 end
+  beatsync_updating[i] = false
+  PakettiEightOneTwentyAttachBeatsyncObserversFor(i)
+end
 
 -- "Random" keybinding: Selects a random sample and mutes others
 function sample_random()
@@ -54,7 +175,8 @@ end
 
 -- Initialization
 local vb = renoise.ViewBuilder()
-local dialog, rows = nil, {}
+dialog = nil
+rows = {}
 local track_names, track_indices, instrument_names
 local play_checkbox, follow_checkbox, bpm_display, groove_enabled_checkbox, random_gate_button, fill_empty_label, fill_empty_slider, global_step_buttons, global_controls
 local local_groove_sliders, local_groove_labels
@@ -204,6 +326,7 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
     width=25,
     height = 25,
     notifier=function(value)
+      if row_elements and row_elements.updating_transpose then return end
       -- Get and select the track first
       local track_index = track_indices[row_elements.track_popup.value]
       if track_index then
@@ -489,6 +612,9 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
     value = default_track_index,
     notifier=function(value)
       row_elements.initialize_row()
+      if row_elements.attach_mute_observer then
+        row_elements.attach_mute_observer()
+      end
     end
   }
 
@@ -498,10 +624,57 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
     notifier=function(value)
       local track_index = track_indices[track_popup.value]
       local track = renoise.song().tracks[track_index]
-      track.mute_state = value and renoise.Track.MUTE_STATE_MUTED or renoise.Track.MUTE_STATE_ACTIVE
+      if row_elements and row_elements.updating_mute then return end
+      if track then
+        print("8120 MUTE UI → Track " .. tostring(track_index) .. " set to " .. (value and "MUTED" or "ACTIVE"))
+        track.mute_state = value and renoise.Track.MUTE_STATE_MUTED or renoise.Track.MUTE_STATE_ACTIVE
+      end
       --renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
     end
   }
+
+  -- Setup two-way sync for track mute state
+  row_elements.updating_mute = false
+  row_elements.attached_track_index = nil
+  row_elements.mute_observer_fn = nil
+
+  function row_elements.detach_mute_observer()
+    if row_elements.attached_track_index then
+      local idx = row_elements.attached_track_index
+      local trk = renoise.song().tracks[idx]
+      if trk and row_elements.mute_observer_fn and trk.mute_state_observable:has_notifier(row_elements.mute_observer_fn) then
+        trk.mute_state_observable:remove_notifier(row_elements.mute_observer_fn)
+        print("8120 MUTE OBSERVER: Detached from track " .. tostring(idx))
+      end
+    end
+    row_elements.attached_track_index = nil
+    row_elements.mute_observer_fn = nil
+  end
+
+  function row_elements.attach_mute_observer()
+    local idx = track_indices[track_popup.value]
+    if not idx then return end
+    if row_elements.attached_track_index == idx and row_elements.mute_observer_fn then
+      return
+    end
+    row_elements.detach_mute_observer()
+    local trk = renoise.song().tracks[idx]
+    if not trk then return end
+    row_elements.mute_observer_fn = function()
+      local is_muted = (trk.mute_state ~= renoise.Track.MUTE_STATE_ACTIVE)
+      if mute_checkbox.value ~= is_muted then
+        row_elements.updating_mute = true
+        mute_checkbox.value = is_muted
+        row_elements.updating_mute = false
+        print("8120 MUTE TRACK → UI track " .. tostring(idx) .. " now " .. (is_muted and "checked" or "unchecked"))
+      end
+    end
+    trk.mute_state_observable:add_notifier(row_elements.mute_observer_fn)
+    row_elements.attached_track_index = idx
+    -- Initialize UI from current state
+    row_elements.mute_observer_fn()
+    print("8120 MUTE OBSERVER: Attached to track " .. tostring(idx))
+  end
 
   -- Function to map sample index to slider value
   function row_elements.sample_to_slider_value(sample_index, num_samples)
@@ -557,6 +730,49 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
     end
   end
 
+  -- Two-way sync for instrument transpose → UI rotary
+  row_elements.updating_transpose = false
+  row_elements.attached_instrument_index = nil
+  row_elements.transpose_observer_fn = nil
+
+  function row_elements.detach_transpose_observer()
+    if row_elements.attached_instrument_index then
+      local idx = row_elements.attached_instrument_index
+      local inst = renoise.song().instruments[idx]
+      if inst and row_elements.transpose_observer_fn and inst.transpose_observable:has_notifier(row_elements.transpose_observer_fn) then
+        inst.transpose_observable:remove_notifier(row_elements.transpose_observer_fn)
+        print("8120 TRANSPOSE OBSERVER: Detached from instrument " .. tostring(idx))
+      end
+    end
+    row_elements.attached_instrument_index = nil
+    row_elements.transpose_observer_fn = nil
+  end
+
+  function row_elements.attach_transpose_observer()
+    local idx = row_elements.instrument_popup.value
+    if not idx then return end
+    if row_elements.attached_instrument_index == idx and row_elements.transpose_observer_fn then
+      return
+    end
+    row_elements.detach_transpose_observer()
+    local inst = renoise.song().instruments[idx]
+    if not inst then return end
+    row_elements.transpose_observer_fn = function()
+      local val = inst.transpose or 0
+      if transpose_rotary.value ~= val then
+        row_elements.updating_transpose = true
+        transpose_rotary.value = val
+        row_elements.updating_transpose = false
+        print("8120 TRANSPOSE INST → UI instrument " .. tostring(idx) .. " now " .. tostring(val))
+      end
+    end
+    inst.transpose_observable:add_notifier(row_elements.transpose_observer_fn)
+    row_elements.attached_instrument_index = idx
+    -- Initialize UI from current state
+    row_elements.transpose_observer_fn()
+    print("8120 TRANSPOSE OBSERVER: Attached to instrument " .. tostring(idx))
+  end
+
     -- Create Instrument Popup first
   local instrument_popup = vb:popup{
     items = instrument_names,
@@ -566,6 +782,10 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
       row_elements.print_to_pattern()
       row_elements.update_sample_name_label()
       renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+      if row_elements.attach_transpose_observer then
+        row_elements.attach_transpose_observer()
+      end
+      if beatsync_visible then update_beatsync_ui_for(row_index) end
     end
   }
   
@@ -717,12 +937,18 @@ end
       yxx_valuebox.value = 0  -- Initialize to 00 if no Yxx content
     end
 
-    local mute = track.mute_state == renoise.Track.MUTE_STATE_MUTED
+    local mute = (track.mute_state ~= renoise.Track.MUTE_STATE_ACTIVE)
+    row_elements.updating_mute = true
     mute_checkbox.value = mute
+    row_elements.updating_mute = false
 
   -- Find the current 00-7F sample and set slider accordingly
   local instrument = renoise.song().instruments[instrument_popup.value]
   if instrument then
+    -- Sync transpose knob to instrument on init
+    row_elements.updating_transpose = true
+    transpose_rotary.value = instrument.transpose or 0
+    row_elements.updating_transpose = false
     local found_samples = {}
     for sample_index, sample in ipairs(instrument.samples) do
       local velocity_min = sample.sample_mapping and sample.sample_mapping.velocity_range and sample.sample_mapping.velocity_range[1]
@@ -754,6 +980,11 @@ end
       instrument_popup.value = instrument_used + 1
     else
       instrument_popup.value = row_index  -- Set default instrument index to row number
+    end
+
+    -- Ensure transpose observer is attached to current instrument
+    if row_elements.attach_transpose_observer then
+      row_elements.attach_transpose_observer()
     end
 
     row_elements.update_sample_name_label()
@@ -1107,6 +1338,9 @@ end
 
   -- Initialize the Row
   row_elements.initialize_row()
+  if row_elements.attach_mute_observer then row_elements.attach_mute_observer() end
+  if row_elements.attach_transpose_observer then row_elements.attach_transpose_observer() end
+  -- Keep beatsync UI in sync when instrument popup changes is handled in the popup's constructor notifier
 
   return row, row_elements
 end
@@ -1854,6 +2088,16 @@ function pakettiEightSlotsByOneTwentyDialog()
     end
   end
 
+  -- Initialize beatsync foldout visibility from preference before building UI
+  if preferences and preferences.PakettiGroovebox8120AdditionalOptions ~= nil then
+    local pref_val = preferences.PakettiGroovebox8120AdditionalOptions
+    if type(pref_val) == "table" and pref_val.value ~= nil then
+      beatsync_visible = pref_val.value and true or false
+    else
+      beatsync_visible = pref_val and true or false
+    end
+  end
+
   local global_controls, global_groove_controls, global_buttons, global_step_buttons = create_global_controls()
   local dc = vb:column{global_controls, global_groove_controls, global_buttons, global_step_buttons, vb:space{height=8}}
   -- Create and add rows with spacing between them
@@ -1867,22 +2111,340 @@ function pakettiEightSlotsByOneTwentyDialog()
     rows[i] = elements
   end
 
+  -- Beatsync foldout UI: arrow + 8 rows (checkbox + valuebox per instrument)
+  local arrow_unique_id = "beatsync_toggle_" .. tostring(os.clock())
+  beatsync_content_id = "beatsync_content_" .. tostring(os.clock())
+  local arrow_button = vb:button{
+    id = arrow_unique_id,
+    text = beatsync_visible and "▾" or "▴",
+    width = 22,
+    notifier = function()
+      beatsync_visible = not beatsync_visible
+      if vb.views[beatsync_content_id] then vb.views[beatsync_content_id].visible = beatsync_visible end
+      vb.views[arrow_unique_id].text = beatsync_visible and "▾" or "▴"
+      -- rows is now globally initialized before this point, but guard anyway
+      if beatsync_visible and rows and #rows >= 1 then
+        for i = 1,8 do PakettiEightOneTwentyUpdateBeatsyncUiFor(i) end
+      end
+      if preferences and preferences.PakettiGroovebox8120AdditionalOptions ~= nil then
+        if type(preferences.PakettiGroovebox8120AdditionalOptions) == "table" and preferences.PakettiGroovebox8120AdditionalOptions.value ~= nil then
+          preferences.PakettiGroovebox8120AdditionalOptions.value = beatsync_visible
+        else
+          preferences.PakettiGroovebox8120AdditionalOptions = beatsync_visible
+        end
+        if preferences.save_as then preferences:save_as("preferences.xml") end
+      end
+    end
+  }
 
+  local beatsync_row = vb:row{}
+  beatsync_checkboxes = {}
+  beatsync_valueboxes = {}
+  beatsync_updating = {}
+  local beatsync_mode_popups = {}
+
+  for i=1,8 do
+    local idx = i
+    beatsync_updating[idx] = false
+    local cb = vb:checkbox{
+      value=false,
+      tooltip = string.format("Instrument %02d BeatSync On/Off (set to Off when value is 0)", idx),
+      notifier=function(value)
+        if beatsync_updating[idx] then return end
+        local re = rows[idx]
+        if not re then return end
+        local inst_idx = re.instrument_popup and re.instrument_popup.value
+        local inst = inst_idx and renoise.song().instruments[inst_idx] or nil
+        if not inst then return end
+        local smp_idx = PakettiEightOneTwentyFindPrimarySampleIndex(inst)
+        local smp = smp_idx and inst.samples[smp_idx] or nil
+        if not smp then return end
+        -- Select instrument and sample, show sample editor
+        renoise.song().selected_instrument_index = inst_idx
+        renoise.song().selected_sample_index = smp_idx
+        renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+        beatsync_updating[idx] = true
+        if value then
+          local new_lines = beatsync_valueboxes[idx] and beatsync_valueboxes[idx].value or 64
+          if new_lines < 1 then new_lines = 1 end
+          if new_lines > 512 then new_lines = 512 end
+          smp.beat_sync_lines = new_lines
+          smp.beat_sync_enabled = true
+        else
+          smp.beat_sync_enabled = false
+        end
+        beatsync_updating[idx] = false
+      end
+    }
+    local vb_lines = vb:valuebox{
+      min = 0,
+      max = 512,
+      value = 0,
+      width = 55,
+      tooltip = string.format("Instrument %02d BeatSync Lines (0 = Off)", idx),
+      notifier=function(val)
+        if beatsync_updating[idx] then return end
+        local re = rows[idx]
+        if not re then return end
+        local inst_idx = re.instrument_popup and re.instrument_popup.value
+        local inst = inst_idx and renoise.song().instruments[inst_idx] or nil
+        if not inst then return end
+        local smp_idx = PakettiEightOneTwentyFindPrimarySampleIndex(inst)
+        local smp = smp_idx and inst.samples[smp_idx] or nil
+        if not smp then return end
+        -- Select instrument and sample, show sample editor
+        renoise.song().selected_instrument_index = inst_idx
+        renoise.song().selected_sample_index = smp_idx
+        renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+        beatsync_updating[idx] = true
+        if val <= 0 then
+          smp.beat_sync_enabled = false
+          cb.value = false
+        else
+          if val > 512 then val = 512 end
+          smp.beat_sync_lines = val
+          smp.beat_sync_enabled = true
+          cb.value = true
+        end
+        beatsync_updating[idx] = false
+      end
+    }
+    beatsync_checkboxes[idx] = cb
+    beatsync_valueboxes[idx] = vb_lines
+    beatsync_row:add_child(vb:row{vb:text{text=string.format("%02d", idx), font="bold", style="strong", width=22}, cb, vb_lines})
+  end
+
+  -- BeatSync Mode row (per instrument)
+  local beatsync_modes_row = vb:row{}
+  local mode_items = {"Repitch","Time-Stretch (Percussion)","Time-Stretch (Texture)"}
+  for i=1,8 do
+    local idx = i
+    local popup = vb:popup{
+      items = mode_items,
+      width = 90,
+      value = (function()
+        local v = 1
+        if preferences and preferences.PakettiGroovebox8120Beatsync then
+          local raw = preferences.PakettiGroovebox8120Beatsync["Mode"..string.format("%02d", idx)]
+          if type(raw) == "number" then v = raw
+          elseif type(raw) == "table" and raw.value then v = tonumber(raw.value) or 1 end
+        end
+        if v < 1 or v > 3 then v = 1 end
+        return v
+      end)(),
+      notifier=function(val)
+        -- Persist preference
+        if preferences and preferences.PakettiGroovebox8120Beatsync then
+          preferences.PakettiGroovebox8120Beatsync["Mode"..string.format("%02d", idx)] = val
+          preferences:save_as("preferences.xml")
+        end
+        -- Apply to instrument sample if available
+        local re = rows[idx]
+        if not re then return end
+        local inst_idx = re.instrument_popup and re.instrument_popup.value
+        local inst = inst_idx and renoise.song().instruments[inst_idx] or nil
+        if not inst then return end
+        local smp_idx = PakettiEightOneTwentyFindPrimarySampleIndex(inst)
+        local smp = smp_idx and inst.samples[smp_idx] or nil
+        if not smp then return end
+        -- Select and show
+        renoise.song().selected_instrument_index = inst_idx
+        renoise.song().selected_sample_index = smp_idx
+        renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+        -- Map UI value 1..3 directly to API beat_sync_mode
+        smp.beat_sync_mode = val
+      end
+    }
+    beatsync_modes_row:add_child(vb:row{vb:text{text=string.format("%02d", idx), font="bold", style="strong", width=22}, popup})
+    beatsync_mode_popups[idx] = popup
+    -- Observe beat_sync_mode to reflect external changes
+    do
+      local re = rows[idx]
+      if re then
+        local inst_idx = re.instrument_popup and re.instrument_popup.value
+        local inst = inst_idx and renoise.song().instruments[inst_idx] or nil
+        if inst then
+          local smp_idx = PakettiEightOneTwentyFindPrimarySampleIndex(inst)
+          local smp = smp_idx and inst.samples[smp_idx] or nil
+          if smp and smp.beat_sync_mode_observable then
+            local function on_mode_change()
+              local v = smp.beat_sync_mode or 1
+              if v < 1 or v > 3 then v = 1 end
+              popup.value = v
+            end
+            smp.beat_sync_mode_observable:add_notifier(on_mode_change)
+            beatsync_mode_observers[idx] = on_mode_change
+          end
+        end
+      end
+    end
+  end
+
+  -- Global BeatSync Mode (auto-applies on change to all)
+  local global_mode_popup = vb:popup{
+    items = mode_items,
+    width = 110,
+    value = 1,
+    notifier=function()
+      local val = global_mode_popup.value
+      for i=1,8 do
+        if preferences and preferences.PakettiGroovebox8120Beatsync then
+          preferences.PakettiGroovebox8120Beatsync["Mode"..string.format("%02d", i)] = val
+        end
+        if beatsync_mode_popups and beatsync_mode_popups[i] then
+          beatsync_mode_popups[i].value = val
+        end
+        local re = rows[i]
+        if re then
+          local inst_idx = re.instrument_popup and re.instrument_popup.value
+          local inst = inst_idx and renoise.song().instruments[inst_idx] or nil
+          if inst then
+            local smp_idx = PakettiEightOneTwentyFindPrimarySampleIndex(inst)
+            local smp = smp_idx and inst.samples[smp_idx] or nil
+            if smp then
+              smp.beat_sync_mode = val
+              smp.beat_sync_enabled = true
+              if not smp.beat_sync_lines or smp.beat_sync_lines <= 0 then
+                local default_lines = (beatsync_valueboxes and beatsync_valueboxes[i] and beatsync_valueboxes[i].value) or 64
+                if default_lines < 1 then default_lines = 64 end
+                smp.beat_sync_lines = default_lines
+              end
+            end
+          end
+        end
+      end
+      if preferences and preferences.save_as then preferences:save_as("preferences.xml") end
+    end
+  }
+
+  -- Shared NNA items (used by global and per-instrument controls)
+  local nna_items = {"Cut","Note-Off","Continue"}
+  local nna_popups = {}
+
+  -- Global NNA (auto-applies on change to all)
+  local global_nna_popup = vb:popup{
+    items = nna_items,
+    width = 80,
+    value = 1,
+    notifier=function()
+      local val = global_nna_popup.value
+      for i=1,8 do
+        if preferences and preferences.PakettiGroovebox8120Beatsync then
+          preferences.PakettiGroovebox8120Beatsync["Nna"..string.format("%02d", i)] = val
+        end
+        if nna_popups and nna_popups[i] then
+          nna_popups[i].value = val
+        end
+        local re = rows[i]
+        if re then
+          local inst_idx = re.instrument_popup and re.instrument_popup.value
+          local inst = inst_idx and renoise.song().instruments[inst_idx] or nil
+          if inst then
+            local smp_idx = PakettiEightOneTwentyFindPrimarySampleIndex(inst)
+            local smp = smp_idx and inst.samples[smp_idx] or nil
+            if smp then smp.new_note_action = val end
+          end
+        end
+      end
+      if preferences and preferences.save_as then preferences:save_as("preferences.xml") end
+    end
+  }
+
+  -- NNA per-instrument row
+  local nna_row = vb:row{}
+  local nna_popups = {}
+  for i=1,8 do
+    local idx = i
+    local nna_popup = vb:popup{
+      items = nna_items,
+      width = 90,
+      value = (function()
+        local v = 1
+        -- Prefer real-time value from current instrument/sample if available
+        local re = rows[idx]
+        if re then
+          local inst_idx = re.instrument_popup and re.instrument_popup.value
+          local inst = inst_idx and renoise.song().instruments[inst_idx] or nil
+          if inst then
+            local smp_idx = PakettiEightOneTwentyFindPrimarySampleIndex(inst)
+            local smp = smp_idx and inst.samples[smp_idx] or nil
+            if smp and smp.new_note_action then
+              v = smp.new_note_action
+            end
+          end
+        end
+        -- Fallback to preference when instrument/sample not available
+        if v == 1 and preferences and preferences.PakettiGroovebox8120Beatsync then
+          local raw = preferences.PakettiGroovebox8120Beatsync["Nna"..string.format("%02d", idx)]
+          if type(raw) == "number" then v = raw
+          elseif type(raw) == "table" and raw.value then v = tonumber(raw.value) or v end
+        end
+        if v < 1 or v > 3 then v = 1 end
+        return v
+      end)(),
+      notifier=function(val)
+        if preferences and preferences.PakettiGroovebox8120Beatsync then
+          preferences.PakettiGroovebox8120Beatsync["Nna"..string.format("%02d", idx)] = val
+          preferences:save_as("preferences.xml")
+        end
+        local re = rows[idx]
+        if not re then return end
+        local inst_idx = re.instrument_popup and re.instrument_popup.value
+        local inst = inst_idx and renoise.song().instruments[inst_idx] or nil
+        if not inst then return end
+        local smp_idx = PakettiEightOneTwentyFindPrimarySampleIndex(inst)
+        local smp = smp_idx and inst.samples[smp_idx] or nil
+        if not smp then return end
+        renoise.song().selected_instrument_index = inst_idx
+        renoise.song().selected_sample_index = smp_idx
+        renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+        smp.new_note_action = val
+      end
+    }
+    nna_row:add_child(vb:row{vb:text{text=string.format("%02d", idx), font="bold", style="strong", width=22}, nna_popup})
+    nna_popups[idx] = nna_popup
+    -- Attach real-time observer so popup tracks changes outside the UI
+    local re = rows[idx]
+    if re then
+      local inst_idx = re.instrument_popup and re.instrument_popup.value
+      local inst = inst_idx and renoise.song().instruments[inst_idx] or nil
+      if inst then
+        local smp_idx = PakettiEightOneTwentyFindPrimarySampleIndex(inst)
+        local smp = smp_idx and inst.samples[smp_idx] or nil
+        if smp and smp.new_note_action_observable then
+          local function on_nna_change()
+            local v = smp.new_note_action or 1
+            if v < 1 or v > 3 then v = 1 end
+            nna_popup.value = v
+          end
+          smp.new_note_action_observable:add_notifier(on_nna_change)
+        end
+      end
+    end
+  end
+
+  local beatsync_container = vb:column{
+    vb:row{arrow_button, vb:text{text="BeatSync per Instrument (00-7F sample)", font="bold", style="strong"}},
+    vb:column{
+      id = beatsync_content_id,
+      visible = beatsync_visible,
+      beatsync_row,
+      beatsync_modes_row,
+      
+      vb:row{nna_row},
+      vb:row{vb:text{text="Global Beatsync", font="bold", style="strong", width=60}, global_mode_popup, vb:space{width=8}, vb:text{text="Global NNA", font="bold", style="strong", width=40}, global_nna_popup}
+    }
+  }
+  --dc:add_child(vb:space{height=6})
+  dc:add_child(beatsync_container)
+  -- Prime BeatSync UI from live song state when foldout starts visible
+  if beatsync_visible then
+    for i=1,8 do PakettiEightOneTwentyUpdateBeatsyncUiFor(i) end
+  end
   fetch_pattern()  -- Call fetch_pattern() to populate GUI elements from the pattern
 
   initializing = false  -- Set initializing flag to false after initialization
 
---[[  dc:add_child(vb:button{text="Run Debug", notifier=function()
-    debug_instruments_and_samples()
-    renoise.app():show_status("Debug information printed to console.")
-  end}) ]]--
---[[  dc:add_child(vb:button{text="Print to Pattern", notifier=function()
-    for i, elements in ipairs(rows) do
-      elements.print_to_pattern()
-    end
-    renoise.app():show_status("Pattern updated successfully.")
-    --renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
-  end})--]]
   for _, row_elements in ipairs(rows) do
     row_elements.update_sample_name_label()
   end
@@ -1895,6 +2457,70 @@ function pakettiEightSlotsByOneTwentyDialog()
   
   -- Setup BPM observable after dialog is created
   setup_bpm_observable()
+
+  -- No post-create visibility toggling required
+
+  -- Attach instruments list observer so newly inserted instruments wire up observers immediately
+  if instruments_list_observer and renoise.song().instruments_observable:has_notifier(instruments_list_observer) then
+    renoise.song().instruments_observable:remove_notifier(instruments_list_observer)
+  end
+  instruments_list_observer = function()
+    update_instrument_list_and_popups()
+    -- Reattach transpose observers for all rows to the new/changed instrument indices
+    for i = 1, #rows do
+      local re = rows[i]
+      if re and re.attach_transpose_observer then
+        re.attach_transpose_observer()
+      end
+      if beatsync_visible then PakettiEightOneTwentyUpdateBeatsyncUiFor(i) end
+    end
+  end
+  renoise.song().instruments_observable:add_notifier(instruments_list_observer)
+
+  -- Ensure Renoise receives keyboard focus per user rule
+  renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
+
+  -- Attach dialog close cleanup via idle watcher (no closed_observable on Dialog)
+  local dialog_idle_watcher
+  dialog_idle_watcher = function()
+    if not dialog or (dialog and not dialog.visible) then
+      if rows then
+        for i = 1, #rows do
+          local re = rows[i]
+          if re and re.detach_mute_observer then
+            re.detach_mute_observer()
+          end
+          if re and re.detach_transpose_observer then
+            re.detach_transpose_observer()
+          end
+        end
+      end
+      -- Detach beatsync observers
+      for i=1,8 do PakettiEightOneTwentyDetachBeatsyncObserversFor(i) end
+      -- Clear mode observers
+      beatsync_mode_observers = {}
+      cleanup_bpm_observable()
+      -- Persist preferences explicitly on close
+      if preferences and preferences.save_as then
+        preferences:save_as("preferences.xml")
+      end
+      -- Clear local BeatSync state tables; do not touch vb.views (read-only)
+      beatsync_checkboxes = {}
+      beatsync_valueboxes = {}
+      beatsync_updating = {}
+      if instruments_list_observer and renoise.song().instruments_observable:has_notifier(instruments_list_observer) then
+        renoise.song().instruments_observable:remove_notifier(instruments_list_observer)
+        instruments_list_observer = nil
+      end
+      if dialog_idle_watcher and renoise.tool().app_idle_observable:has_notifier(dialog_idle_watcher) then
+        renoise.tool().app_idle_observable:remove_notifier(dialog_idle_watcher)
+      end
+      dialog_idle_watcher = nil
+    end
+  end
+  if not renoise.tool().app_idle_observable:has_notifier(dialog_idle_watcher) then
+    renoise.tool().app_idle_observable:add_notifier(dialog_idle_watcher)
+  end
 end
 
 

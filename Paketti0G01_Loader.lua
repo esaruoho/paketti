@@ -133,6 +133,12 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   PakettiDeviceChainPath = "." .. separator .. "DeviceChains" .. separator,
   PakettiIRPath = "." .. separator .. "IR" .. separator,
   PakettiLFOWriteDelete=true,
+  -- EQ30 visual options
+  PakettiEQ30ColumnGradient=false,
+  -- EQ30 automation playmode (1=Points, 2=Lines, 3=Curves)
+  PakettiEQ30AutomationPlaymode=2,
+  -- Canvas Experiments automation playmode (1=Points, 2=Lines, 3=Curves)
+  PakettiCanvasAutomationPlaymode=2,
   upperFramePreference=0,
   _0G01_Loader=false,
   RandomBPM=false,
@@ -464,6 +470,27 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
     TrackDSPDevice = true,
     Automation = true,
     DiskBrowserFiles = true
+  },
+  -- Groovebox 8120: show/hide additional options foldout by default
+  PakettiGroovebox8120AdditionalOptions = false,
+  -- Groovebox 8120 per-instrument BeatSync mode defaults (1=Repitch, 2=Percussion, 3=Texture)
+  PakettiGroovebox8120Beatsync = {
+    Mode01 = 1,
+    Mode02 = 1,
+    Mode03 = 1,
+    Mode04 = 1,
+    Mode05 = 1,
+    Mode06 = 1,
+    Mode07 = 1,
+    Mode08 = 1,
+    Nna01 = 1,
+    Nna02 = 1,
+    Nna03 = 1,
+    Nna04 = 1,
+    Nna05 = 1,
+    Nna06 = 1,
+    Nna07 = 1,
+    Nna08 = 1,
   },
   -- 1 = File, 2 = Paketti (File:Paketti), 3 = Both
   pakettiFileMenuLocationMode = 3,

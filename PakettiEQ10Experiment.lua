@@ -53,6 +53,31 @@ local mouse_is_down = false
 local last_mouse_x = -1
 local last_mouse_y = -1
 
+-- Automation / Edit A-B state (replicated gadget semantics)
+local follow_automation = false
+local current_edit_mode = "A"  -- "A" or "B"
+local eq_values_A = {}
+local eq_values_B = {}
+local crossfade_amount = 0.0
+local eq_param_observers = {}
+local band_being_drawn = nil
+
+-- Cleanup EQ30 dialog state
+local function EQ30Cleanup()
+  -- turn off automation sync on close to avoid accidental writes next time
+  follow_automation = false
+  band_being_drawn = nil
+  pcall(function() remove_eq_param_observers() end)
+  -- Clear transient canvas state to avoid flashing old content
+  mouse_is_down = false
+  last_mouse_x = -1
+  last_mouse_y = -1
+  for i = 1, #eq30_frequencies do
+    eq_gains[i] = 0.0
+  end
+  eq_canvas = nil
+end
+
 -- Canvas colors (using same pattern as PakettiPCMWriter)
 local COLOR_GRID_LINES = {32, 64, 32, 255}        -- Dark green grid
 local COLOR_ZERO_LINE = {128, 128, 128, 255}      -- Gray center line
@@ -391,6 +416,198 @@ local function update_eq_device_parameter(band_index, gain_value)
     end
   elseif autofocus_enabled then
     print(string.format("AUTOFOCUS FAIL: Band %d → Device %d → target_device_index is nil", band_index, device_num))
+  end
+end
+
+-- Helper: get parameter object for band index (for automation writes)
+local function get_parameter_for_band(band_index)
+  local song = renoise.song()
+  if not song or not song.selected_track then return nil end
+  local track = song.selected_track
+  local device_num, band_in_device
+  if band_index <= 8 then
+    device_num = 1; band_in_device = band_index
+  elseif band_index <= 16 then
+    device_num = 2; band_in_device = band_index - 8
+  elseif band_index <= 24 then
+    device_num = 3; band_in_device = band_index - 16
+  else
+    device_num = 4; band_in_device = band_index - 24
+  end
+  local target_device = nil
+  local count = 0
+  for i, device in ipairs(track.devices) do
+    if device.device_path == "Audio/Effects/Native/EQ 10" then
+      count = count + 1
+      if count == device_num then
+        target_device = device; break
+      end
+    end
+  end
+  if not target_device then return nil end
+  local eq_param_num = band_in_device + 1
+  return target_device.parameters[eq_param_num]
+end
+
+-- Automation: write single parameter at current line
+local function write_parameter_to_automation(parameter, value, skip_select)
+  if not parameter then return end
+  local song = renoise.song()
+  local current_line = song.selected_line_index
+  local current_pattern = song.selected_pattern_index
+  local track_index = song.selected_track_index
+  local pattern_track = song:pattern(current_pattern):track(track_index)
+  local automation = pattern_track:find_automation(parameter)
+  if not automation then automation = pattern_track:create_automation(parameter) end
+  if not automation then return end
+  if automation:has_point_at(current_line) then automation:remove_point_at(current_line) end
+  local normalized_value = (value - parameter.value_min) / (parameter.value_max - parameter.value_min)
+  normalized_value = math.max(0.0, math.min(1.0, normalized_value))
+  automation:add_point_at(current_line, normalized_value)
+  if not skip_select then
+    song.selected_automation_parameter = parameter
+    renoise.app().window.lower_frame_is_visible = true
+    renoise.app().window.active_lower_frame = renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION
+  end
+end
+
+-- Automation: snapshot all bands to current line
+local function snapshot_all_bands_to_automation()
+  local written = 0
+  for i = 1, #eq30_frequencies do
+    local parameter = get_parameter_for_band(i)
+    if parameter then
+      write_parameter_to_automation(parameter, eq_gains[i], true)
+      written = written + 1
+    end
+  end
+  renoise.app():show_status("EQ30 Snapshot to automation: " .. tostring(written) .. " bands")
+end
+
+-- Automation: clear all automation for EQ30 bands on selected track
+local function clear_all_eq30_automation()
+  local song = renoise.song()
+  if not song or not song.selected_track then return end
+  local track_index = song.selected_track_index
+  local pattern = song.selected_pattern_index
+  local pattern_track = song:pattern(pattern):track(track_index)
+  local cleared = 0
+  for i = 1, #eq30_frequencies do
+    local parameter = get_parameter_for_band(i)
+    if parameter then
+      local automation = pattern_track:find_automation(parameter)
+      if automation then automation:clear(); cleared = cleared + 1 end
+    end
+  end
+  renoise.app():show_status("EQ30 Clear: " .. tostring(cleared) .. " automations cleared")
+end
+
+-- Automation: clean & snap (clear all then write line 1 snapshot)
+local function clean_and_snap_all_bands()
+  local song = renoise.song()
+  if not song or not song.selected_track then return end
+  local track_index = song.selected_track_index
+  local pattern = song.selected_pattern_index
+  local pattern_track = song:pattern(pattern):track(track_index)
+  -- Clear
+  clear_all_eq30_automation()
+  -- Write snapshot at line 1
+  local wrote = 0
+  for i = 1, #eq30_frequencies do
+    local parameter = get_parameter_for_band(i)
+    if parameter then
+      local automation = pattern_track:find_automation(parameter)
+      if not automation then automation = pattern_track:create_automation(parameter) end
+      if automation then
+        automation:clear()
+        local normalized_value = (eq_gains[i] - parameter.value_min) / (parameter.value_max - parameter.value_min)
+        normalized_value = math.max(0.0, math.min(1.0, normalized_value))
+        automation:add_point_at(1, normalized_value)
+        wrote = wrote + 1
+      end
+    end
+  end
+  renoise.app():show_status("EQ30 Clean & Snap: " .. tostring(wrote) .. " bands at line 1")
+end
+
+-- Set playmode for ALL EQ30 envelopes on the selected track (existing envelopes only)
+local function eq30_set_automation_playmode(mode)
+  local song = renoise.song()
+  if not song or not song.selected_track then return end
+  local track_index = song.selected_track_index
+  local pattern = song.selected_pattern_index
+  local pattern_track = song:pattern(pattern):track(track_index)
+  local changed = 0
+  for i = 1, #eq30_frequencies do
+    local parameter = get_parameter_for_band(i)
+    if parameter then
+      local env = pattern_track:find_automation(parameter)
+      if env then
+        env.playmode = mode
+        changed = changed + 1
+      end
+    end
+  end
+  local name = (mode == renoise.PatternTrackAutomation.PLAYMODE_POINTS and "Points") or (mode == renoise.PatternTrackAutomation.PLAYMODE_LINES and "Lines") or "Curves"
+  if changed > 0 then
+    renoise.app():show_status("EQ30 Automation Playmode → " .. name .. " on " .. tostring(changed) .. " envelopes")
+  else
+    renoise.app():show_status("EQ30: No existing envelopes to set playmode on")
+  end
+end
+
+-- Show automation envelope for specific EQ band and reveal Automation frame
+local function show_automation_for_band(band_index)
+  local parameter = get_parameter_for_band(band_index)
+  if not parameter then return end
+  local song = renoise.song()
+  song.selected_automation_parameter = parameter
+  renoise.app().window.lower_frame_is_visible = true
+  renoise.app().window.active_lower_frame = renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION
+end
+
+-- Remove all observers used for EQ30 automation following
+local function remove_eq_param_observers()
+  for parameter, observer in pairs(eq_param_observers) do
+    pcall(function()
+      if parameter and parameter.value_observable and parameter.value_observable:has_notifier(observer) then
+        parameter.value_observable:remove_notifier(observer)
+      end
+    end)
+  end
+  eq_param_observers = {}
+end
+
+-- Install observers so canvas follows automation and device changes
+local function setup_eq_param_observers()
+  remove_eq_param_observers()
+  local song = renoise.song()
+  if not song or not song.selected_track then return end
+  local track = song.selected_track
+  local device_counter = 0
+  for i, device in ipairs(track.devices) do
+    if device.device_path == "Audio/Effects/Native/EQ 10" then
+      device_counter = device_counter + 1
+      if device_counter <= 4 then
+        local start_band = (device_counter - 1) * 8 + 1
+        for param_idx = 2, 9 do
+          local band_index = start_band + (param_idx - 2)
+          if band_index <= #eq30_frequencies then
+            local parameter = device.parameters[param_idx]
+            if parameter and parameter.value_observable then
+              local observer = function()
+                if band_being_drawn ~= band_index then
+                  eq_gains[band_index] = parameter.value
+                  if eq_canvas then eq_canvas:update() end
+                end
+              end
+              parameter.value_observable:add_notifier(observer)
+              eq_param_observers[parameter] = observer
+            end
+          end
+        end
+      end
+    end
   end
 end
 
@@ -811,24 +1028,58 @@ local function draw_eq_canvas(ctx)
     local bar_x = band_x + bar_margin
     
     -- Use purple bars like PakettiCanvasExperiments.lua (professional EQ look) - brighter
-    local bar_color = {120, 40, 160, 255}  -- Purple like PakettiCanvasExperiments - full opacity
-    
-    -- Draw the EQ bar from 0dB center line
-    ctx.fill_color = bar_color
-    
-    if gain >= 0 then
-      -- Positive gain: bar extends upward from center
-      local bar_top_y = gain_to_y(gain)
-      local bar_height = zero_y - bar_top_y
-      if bar_height > 1 then  -- Only draw if visible
-        ctx:fill_rect(bar_x, bar_top_y, bar_width, bar_height)
+    local bar_color = {120, 40, 160, 255}
+
+    -- Optional gradient from middle (0 dB) to max/min
+    local gradient_enabled = false
+    if type(preferences) == "table" or type(preferences) == "userdata" then
+      if preferences.PakettiEQ30ColumnGradient and preferences.PakettiEQ30ColumnGradient.value ~= nil then
+        gradient_enabled = preferences.PakettiEQ30ColumnGradient.value
+      end
+    end
+
+    if gradient_enabled then
+      local steps = 16
+      if gain >= 0 then
+        local bar_top_y = gain_to_y(gain)
+        local total_h = zero_y - bar_top_y
+        if total_h > 1 then
+          local step_h = math.max(1, math.floor(total_h / steps))
+          for s = 0, steps - 1 do
+            local seg_y = zero_y - (s + 1) * step_h
+            if seg_y < bar_top_y then seg_y = bar_top_y end
+            local seg_h = math.min(step_h, zero_y - seg_y)
+            local alpha = 80 + math.floor(175 * (1 - (s / (steps - 1))))
+            ctx.fill_color = {bar_color[1], bar_color[2], bar_color[3], alpha}
+            if seg_h > 0 then ctx:fill_rect(bar_x, seg_y, bar_width, seg_h) end
+          end
+        end
+      else
+        local bar_bottom_y = gain_to_y(gain)
+        local total_h = bar_bottom_y - zero_y
+        if total_h > 1 then
+          local step_h = math.max(1, math.floor(total_h / steps))
+          for s = 0, steps - 1 do
+            local seg_y = zero_y + s * step_h
+            local remaining = bar_bottom_y - seg_y
+            local seg_h = math.min(step_h, remaining)
+            local alpha = 80 + math.floor(175 * (1 - (s / (steps - 1))))
+            ctx.fill_color = {bar_color[1], bar_color[2], bar_color[3], alpha}
+            if seg_h > 0 then ctx:fill_rect(bar_x, seg_y, bar_width, seg_h) end
+          end
+        end
       end
     else
-      -- Negative gain: bar extends downward from center
-      local bar_bottom_y = gain_to_y(gain)
-      local bar_height = bar_bottom_y - zero_y
-      if bar_height > 1 then  -- Only draw if visible
-        ctx:fill_rect(bar_x, zero_y, bar_width, bar_height)
+      -- Solid bar
+      ctx.fill_color = bar_color
+      if gain >= 0 then
+        local bar_top_y = gain_to_y(gain)
+        local bar_height = zero_y - bar_top_y
+        if bar_height > 1 then ctx:fill_rect(bar_x, bar_top_y, bar_width, bar_height) end
+      else
+        local bar_bottom_y = gain_to_y(gain)
+        local bar_height = bar_bottom_y - zero_y
+        if bar_height > 1 then ctx:fill_rect(bar_x, zero_y, bar_width, bar_height) end
       end
     end
     
@@ -854,18 +1105,18 @@ local function draw_eq_canvas(ctx)
       local freq_text
       if freq >= 1000 then
         if freq >= 10000 then
-          freq_text = string.format("%.0fK", freq / 1000)  -- 10K, 13K, 16K, 20K
+          freq_text = string.format("%.0f", freq / 1000) .. "kHz"
         else
-          freq_text = string.format("%.1fK", freq / 1000)  -- 1.0K, 1.3K, etc.
+          freq_text = string.format("%.1f", freq / 1000) .. "kHz"
         end
       else
-        freq_text = tostring(freq)  -- 25, 31, 40, 50, etc.
+        freq_text = tostring(freq) .. "Hz"
       end
       
       -- Draw frequency name vertically (rotated text effect - EXACTLY like PakettiCanvasExperiments.lua)
       local bar_center_x = bar_x + (bar_width / 2)
-      local text_size = math.max(4, math.min(12, bar_width * 0.6))  -- Scale text reasonably to fit column
-      local text_start_y = content_y + 30  -- Start near top (below device indicators)
+      local text_size = math.max(4, math.min(12, bar_width * 0.6))
+      local text_start_y = content_y + 22  -- Nudge up by roughly one character relative to previous
       
       -- Draw each character of the frequency name vertically (COPIED from PakettiCanvasExperiments.lua)
       local letter_spacing = text_size + 4  -- Add 4 pixels between letters for better readability
@@ -1015,10 +1266,20 @@ local function handle_eq_mouse(ev)
       
       local gain = y_to_gain(y)
       eq_gains[band_index] = math.max(-20, math.min(20, gain))
+      band_being_drawn = band_index
       
       -- LIVE UPDATE: Immediately update the corresponding EQ10 device parameter
       update_eq_device_parameter(band_index, eq_gains[band_index])
+      -- Automation write if enabled
+      if follow_automation == true then
+        local parameter = get_parameter_for_band(band_index)
+        write_parameter_to_automation(parameter, eq_gains[band_index], true)
+      end
       
+      if follow_automation then
+        show_automation_for_band(band_index)
+      end
+
       if eq_canvas then
         eq_canvas:update()
       end
@@ -1054,7 +1315,16 @@ local function handle_eq_mouse(ev)
       
       -- LIVE UPDATE: Immediately update the corresponding EQ10 device parameter
       update_eq_device_parameter(band_index, eq_gains[band_index])
+      -- Automation write if enabled
+      if follow_automation == true then
+        local parameter = get_parameter_for_band(band_index)
+        write_parameter_to_automation(parameter, eq_gains[band_index], true)
+      end
       
+      if follow_automation then
+        show_automation_for_band(band_index)
+      end
+
       if eq_canvas then
         eq_canvas:update()
       end
@@ -1082,6 +1352,7 @@ local function handle_eq_mouse(ev)
     mouse_is_down = false
     last_mouse_x = -1
     last_mouse_y = -1
+    band_being_drawn = nil
     if eq_canvas then
       eq_canvas:update()
     end
@@ -1250,8 +1521,15 @@ end
 -- Create the main EQ dialog
 local function create_eq_dialog()
   if eq_dialog and eq_dialog.visible then
+    pcall(function() EQ30Cleanup() end)
     eq_dialog:close()
   end
+
+  -- Defensive reset when opening fresh
+  EQ30Cleanup()
+
+  -- Small delay to ensure UI has torn down before creating a new dialog
+  -- Not using timers; just proceed to rebuild all views cleanly
   
   -- Create fresh ViewBuilder instance to avoid duplicate ID errors
   vb = renoise.ViewBuilder()
@@ -1320,6 +1598,7 @@ local function create_eq_dialog()
         width = 80,
         notifier = function()
           if eq_dialog then
+            pcall(function() EQ30Cleanup() end)
             eq_dialog:close()
             eq_dialog = nil
           end
@@ -1357,6 +1636,159 @@ local function create_eq_dialog()
           randomize_eq_curve("creative")
         end
       }
+    },
+
+    -- Visual options
+    vb:row {
+      vb:checkbox {
+        id = "eq30_gradient_checkbox",
+        value = (preferences and preferences.PakettiEQ30ColumnGradient and preferences.PakettiEQ30ColumnGradient.value) or false,
+        width = 20,
+        notifier = function(value)
+          if preferences and preferences.PakettiEQ30ColumnGradient then
+            preferences.PakettiEQ30ColumnGradient.value = value
+            preferences:save_as("preferences.xml")
+          end
+          if eq_canvas then eq_canvas:update() end
+          renoise.app():show_status("EQ30 Column Gradient: " .. (value and "On" or "Off"))
+        end
+      },
+      vb:text { text = "Gradient fill from 0dB to max/min", tooltip = "Visual gradient on EQ bars" }
+    },
+
+    -- Automation gadget (replicated semantics)
+    vb:row {
+      vb:button {
+        text = "Add Snapshot to Automation",
+        width = 180,
+        notifier = function()
+          snapshot_all_bands_to_automation()
+        end
+      },
+      vb:button {
+        id = "eq30_follow_automation_button",
+        text = "Automation Sync: OFF",
+        width = 170,
+        color = {64, 200, 64},
+        notifier = function()
+          follow_automation = not follow_automation
+          if vb.views.eq30_follow_automation_button then
+            vb.views.eq30_follow_automation_button.text = follow_automation and "Automation Sync: ON" or "Automation Sync: OFF"
+            vb.views.eq30_follow_automation_button.color = follow_automation and {255, 64, 64} or {64, 200, 64}
+          end
+          renoise.song().transport.follow_player = follow_automation
+          renoise.app():show_status("Automation Sync " .. (follow_automation and "ON" or "OFF"))
+          -- Observers are always active now; the toggle only controls writing and envelope auto-selection while drawing
+        end
+      },
+      vb:button {
+        text = "Randomize Automation",
+        width = 160,
+        notifier = function()
+          randomize_eq_curve("smooth")
+          snapshot_all_bands_to_automation()
+        end
+      }
+    },
+    vb:row {
+      vb:text { text = "Automation Playmode:", width = 130, style = "strong" },
+      vb:switch {
+        id = "eq30_playmode_switch",
+        width = 300,
+        items = {"Points","Lines","Curves"},
+        value = (preferences and preferences.PakettiEQ30AutomationPlaymode and preferences.PakettiEQ30AutomationPlaymode.value) or 2,
+        notifier = function(value)
+          if preferences and preferences.PakettiEQ30AutomationPlaymode then
+            preferences.PakettiEQ30AutomationPlaymode.value = value
+            preferences:save_as("preferences.xml")
+          end
+          local mode = renoise.PatternTrackAutomation.PLAYMODE_POINTS
+          if value == 2 then mode = renoise.PatternTrackAutomation.PLAYMODE_LINES
+          elseif value == 3 then mode = renoise.PatternTrackAutomation.PLAYMODE_CURVES end
+          eq30_set_automation_playmode(mode)
+        end
+      }
+    },
+    vb:row {
+      vb:text { text = "Automation Playmode:", width = 130, style = "strong" },
+      vb:switch {
+        id = "eq30_playmode_switch",
+        width = 300,
+        items = {"Points","Lines","Curves"},
+        value = 2,
+        notifier = function(value)
+          local mode = renoise.PatternTrackAutomation.PLAYMODE_POINTS
+          if value == 2 then mode = renoise.PatternTrackAutomation.PLAYMODE_LINES
+          elseif value == 3 then mode = renoise.PatternTrackAutomation.PLAYMODE_CURVES end
+          eq30_set_automation_playmode(mode)
+        end
+      }
+    },
+    vb:row {
+      vb:button {
+        text = "Clear",
+        width = 80,
+        notifier = function()
+          clear_all_eq30_automation()
+        end
+      },
+      vb:button {
+        text = "Clean & Snap",
+        width = 120,
+        notifier = function()
+          clean_and_snap_all_bands()
+        end
+      },
+      vb:text { text = "Edit A/B:", style = "strong", width = 60 },
+      vb:button {
+        id = "eq30_edit_a",
+        text = "Edit A",
+        width = 60,
+        notifier = function()
+          current_edit_mode = "A"
+          renoise.app():show_status("Edit A mode")
+        end
+      },
+      vb:button {
+        id = "eq30_edit_b",
+        text = "Edit B",
+        width = 60,
+        notifier = function()
+          -- capture current device state as A if A empty
+          if next(eq_values_A) == nil then
+            for i = 1, #eq30_frequencies do eq_values_A[i] = eq_gains[i] end
+          end
+          current_edit_mode = "B"
+          -- initialize B from current if empty
+          if next(eq_values_B) == nil then
+            for i = 1, #eq30_frequencies do eq_values_B[i] = eq_gains[i] end
+          end
+          renoise.app():show_status("Edit B mode")
+        end
+      },
+      vb:text { text = "Crossfade", width = 60, style = "strong" },
+      vb:slider {
+        id = "eq30_crossfade_slider",
+        min = 0.0,
+        max = 1.0,
+        value = crossfade_amount,
+        width = 250,
+        notifier = function(value)
+          crossfade_amount = value
+          -- Apply crossfade to device
+          if next(eq_values_A) ~= nil and next(eq_values_B) ~= nil then
+            for i = 1, #eq30_frequencies do
+              local a = eq_values_A[i] or 0.0
+              local b = eq_values_B[i] or 0.0
+              local v = a + (b - a) * value
+              eq_gains[i] = v
+              update_eq_device_parameter(i, v)
+            end
+            if eq_canvas then eq_canvas:update() end
+          end
+        end
+      },
+      vb:text { id = "eq30_crossfade_pct", text = string.format("%.1f%%", crossfade_amount * 100), width = 50, style = "strong" }
     },
     
     -- Autofocus option
@@ -1463,6 +1895,9 @@ local function create_eq_dialog()
   
   -- Auto-load existing EQ settings if devices already exist (makes it "just work")
   auto_load_existing_eq_settings()
+
+  -- Always set up observers so the canvas follows playback in realtime (like PakettiCanvasExperiments)
+  setup_eq_param_observers()
   
   -- Check initial EQ device status
   update_eq_status()
@@ -1481,6 +1916,14 @@ local function create_eq_dialog()
   local autofocus_status = autofocus_enabled and "with autofocus enabled" or "with autofocus disabled"
   local load_status = existing_devices > 0 and " (auto-loaded existing settings)" or ""
   renoise.app():show_status(string.format("Alesis M-EQ 230 EQ30 system ready - middle 8 bands × 4 devices %s%s!", autofocus_status, load_status))
+
+  -- Ensure toggle reflects actual follow_automation state on open
+  if vb.views.eq30_follow_automation_button then
+    vb.views.eq30_follow_automation_button.text = follow_automation and "Automation Sync: ON" or "Automation Sync: OFF"
+    vb.views.eq30_follow_automation_button.color = follow_automation and {255, 64, 64} or {64, 200, 64}
+  end
+
+  -- No closed_observable on Dialog in current API; cleanup is done on manual Close and before re-open
 end
 
 -- Initialize the EQ30 experiment
@@ -1491,3 +1934,38 @@ end
 -- Add menu entry and keybinding
 renoise.tool():add_menu_entry {name = "Main Menu:Tools:Paketti EQ30 Experiment", invoke = PakettiEQ10ExperimentInit}
 renoise.tool():add_keybinding {name = "Global:Paketti:Paketti EQ30 Experiment", invoke = PakettiEQ10ExperimentInit}
+
+-- Load & Show EQ30 toggle
+function PakettiEQ30LoadAndShowToggle()
+  local song = renoise.song()
+  if not song or not song.selected_track then
+    renoise.app():show_status("No track selected")
+    return
+  end
+  -- Count EQ10s
+  local eq_count = 0
+  for i, device in ipairs(song.selected_track.devices) do
+    if device.device_path == "Audio/Effects/Native/EQ 10" then
+      eq_count = eq_count + 1
+    end
+  end
+  local dialog_open = (eq_dialog and eq_dialog.visible)
+  if eq_count >= 4 then
+    -- We have EQ30 setup
+    if dialog_open then
+      eq_dialog:close(); eq_dialog = nil
+      renoise.app():show_status("EQ30: Hide")
+    else
+      PakettiEQ10ExperimentInit()
+      renoise.app():show_status("EQ30: Show")
+    end
+  else
+    -- Not present -> add and show
+    apply_eq30_to_track()
+    PakettiEQ10ExperimentInit()
+    renoise.app():show_status("EQ30: Added and Shown")
+  end
+end
+
+renoise.tool():add_keybinding {name = "Global:Paketti:Load & Show EQ30", invoke = PakettiEQ30LoadAndShowToggle}
+renoise.tool():add_menu_entry {name = "Main Menu:Tools:Load & Show EQ30", invoke = PakettiEQ30LoadAndShowToggle}
