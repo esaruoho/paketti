@@ -665,7 +665,7 @@ timed_require("PakettiUnisonGenerator")
 timed_require("PakettiMainMenuEntries")
 timed_require("PakettiMidi")
 timed_require("PakettiDynamicViews")
-timed_require("PakettiEightOneTwenty")
+
 timed_require("PakettiExperimental_Verify")
 timed_require("PakettiLoaders")
 timed_require("PakettiPatternEditor")
@@ -756,6 +756,8 @@ timed_require("PakettiAutocomplete")
 timed_require("PakettiTreeStructure")
 --timed_require("PakettiCustomization")        -- 61 lines, 0.50 ms
 --timed_require("PakettiAKAI")
+
+timed_require("PakettiEightOneTwenty")
 
 --always have this at the end: PakettiMenuConfig MUST be at the end. otherwise there will be errors.
 timed_require("PakettiMenuConfig")

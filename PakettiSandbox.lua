@@ -458,7 +458,7 @@ renoise.tool():add_midi_mapping{name = "Paketti:APC Test First 4 Pads ON",invoke
 renoise.tool():add_midi_mapping{name = "Paketti:APC Test First 4 Pads OFF",invoke = function(message) if message:is_trigger() then print("Test First 4 Pads OFF triggered!") pakettiAPCControlFirstFourPads("note_off") end end}
 
 -- Sectionizer menu entries and keybinding
-renoise.tool():add_menu_entry{name = "--Main Menu:Tools:Paketti Gadgets:Sectionizer...", invoke = PakettiSectionizer}
+renoise.tool():add_menu_entry{name = "--Main Menu:Tools:Paketti Gadgets:Sectionizer... (⌘-OPT-S)", invoke = PakettiSectionizer}
 renoise.tool():add_menu_entry{name = "--Pattern Sequencer:Paketti Gadgets:Sectionizer...", invoke = PakettiSectionizer}
 renoise.tool():add_keybinding{name = "Global:Paketti:Sectionizer...", invoke = PakettiSectionizer}
 ---

@@ -242,15 +242,139 @@ end
 -- Colors for step buttons (shared across all rows)
 local normal_color, highlight_color = {0,0,0}, {0x22 / 255, 0xaa / 255, 0xff / 255}  -- EXACT copy from PakettiGater.lua
 local selected_color = {0x80, 0x00, 0x80}  -- Purple for selected step (same as PakettiGater)
+-- Resolve playhead color from preferences
+function PakettiResolvePlayheadColor()
+  local choice = (preferences and preferences.PakettiGrooveboxPlayheadColor and preferences.PakettiGrooveboxPlayheadColor.value) or 2
+  if choice == 1 then return nil end -- None
+  if choice == 2 then return {255,128,0} end -- Bright Orange
+  if choice == 3 then return {64,0,96} end -- Deeper Purple (darker than selected purple)
+  if choice == 4 then return {0,0,0} end -- Black
+  if choice == 5 then return {255,255,255} end -- White
+  if choice == 6 then return {64,64,64} end -- Dark Grey
+  return {255,128,0}
+end
+play_color = PakettiResolvePlayheadColor()
+play_color_is_deeper_purple = false
+play_color_darker_variant = {40,0,72}
+
+function PakettiEightOneTwentyApplyPlayheadColor()
+  play_color = PakettiResolvePlayheadColor()
+  play_color_is_deeper_purple = false
+  if play_color and type(play_color) == "table" then
+    if play_color[1] == 64 and play_color[2] == 0 and play_color[3] == 96 then
+      play_color_is_deeper_purple = true
+    end
+  end
+  PakettiEightOneTwentyUpdatePlayheadHighlights()
+end
+
+-- Playhead UI update state
+playhead_timer_fn = nil
+playing_observer_fn = nil
+
+-- Update current-play-position highlight for all rows
+function PakettiEightOneTwentyUpdatePlayheadHighlights()
+  if not dialog or not dialog.visible then return end
+  local song = renoise.song()
+  if not song then return end
+  local current_line = song.selected_line_index
+  if song.transport.playing then
+    local pos = song.transport.playback_pos
+    if pos and pos.line then current_line = pos.line end
+  end
+  if current_line == nil then return end
+
+  for i = 1, #rows do
+    local row_elements = rows[i]
+    if row_elements and row_elements.number_buttons then
+      local steps = (row_elements.valuebox and row_elements.valuebox.value) or MAX_STEPS
+      if not steps or steps < 1 then steps = 1 end
+
+      local display_index
+
+      -- Windowed cycling behavior:
+      -- Advance only during the first MAX_STEPS lines of each "steps" window.
+      -- Example: steps=32 in a 64-line pattern -> animate on 1..16, freeze on 17..32,
+      -- restart on 33..48 (animate), freeze on 49..64, etc.
+      local within_steps_window_index = ((current_line - 1) % steps) + 1
+      if steps > MAX_STEPS then
+        if within_steps_window_index <= MAX_STEPS then
+          display_index = within_steps_window_index
+        else
+          -- During the frozen half of the window (e.g., 17..steps for steps=32)
+          -- do not highlight any button
+          display_index = nil
+        end
+      else
+        display_index = ((within_steps_window_index - 1) % MAX_STEPS) + 1
+      end
+      if row_elements.play_step_index ~= display_index then
+        row_elements.play_step_index = display_index
+        update_row_button_colors(row_elements)
+      end
+    end
+  end
+end
+
+-- Setup timer and observers for playhead highlight updates
+function PakettiEightOneTwentySetupPlayhead()
+  local song = renoise.song()
+  if not song then return end
+  if not playhead_timer_fn then
+    playhead_timer_fn = function()
+      PakettiEightOneTwentyUpdatePlayheadHighlights()
+    end
+    renoise.tool():add_timer(playhead_timer_fn, 40)
+  end
+  if not playing_observer_fn then
+    playing_observer_fn = function()
+      play_color = PakettiResolvePlayheadColor()
+      PakettiEightOneTwentyUpdatePlayheadHighlights()
+    end
+    if song.transport.playing_observable and not song.transport.playing_observable:has_notifier(playing_observer_fn) then
+      song.transport.playing_observable:add_notifier(playing_observer_fn)
+    end
+  end
+end
+
+-- Cleanup timer and observers
+function PakettiEightOneTwentyCleanupPlayhead()
+  local song = renoise.song()
+  if playhead_timer_fn then
+    if renoise.tool():has_timer(playhead_timer_fn) then
+      renoise.tool():remove_timer(playhead_timer_fn)
+    end
+    playhead_timer_fn = nil
+  end
+  if song and playing_observer_fn and song.transport.playing_observable and song.transport.playing_observable:has_notifier(playing_observer_fn) then
+    song.transport.playing_observable:remove_notifier(playing_observer_fn)
+  end
+  playing_observer_fn = nil
+  -- Clear play highlight state
+  for i = 1, #rows do
+    local re = rows[i]
+    if re and re.play_step_index then
+      re.play_step_index = nil
+      update_row_button_colors(re)
+    end
+  end
+end
 
 -- Function to update button colors for a specific row
-local function update_row_button_colors(row_elements)
+function update_row_button_colors(row_elements)
   if row_elements.number_buttons then
     for i = 1, #row_elements.number_buttons do
       local is_beat_marker = (i == 1 or i == 5 or i == 9 or i == 13 or i == 17 or i == 21 or i == 25 or i == 29)
       local is_selected = (i == row_elements.selected_step)
+      local is_play_step = (row_elements.play_step_index ~= nil and i == row_elements.play_step_index)
       
-      if is_selected then
+      if is_play_step then
+        local pc = play_color
+        if is_selected and play_color_is_deeper_purple then
+          pc = play_color_darker_variant
+        end
+        row_elements.number_buttons[i].color = pc
+      elseif is_selected then
         row_elements.number_buttons[i].color = selected_color  -- Purple for selected
       elseif is_beat_marker then
         row_elements.number_buttons[i].color = highlight_color  -- Black for beat markers  
@@ -297,7 +421,11 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
           updateTrackNameWithSteps(track, step)
           row_elements.valuebox.value = step
           -- Update selected step
-          row_elements.selected_step = step
+          if step == MAX_STEPS then
+            row_elements.selected_step = nil
+          else
+            row_elements.selected_step = step
+          end
           update_row_button_colors(row_elements)  -- Update button colors
           row_elements.print_to_pattern()
           renoise.app():show_status(string.format("Set steps to %d for row %d", step, row_index))
@@ -472,7 +600,11 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
         -- Then update track name and pattern
         updateTrackNameWithSteps(track, value)
         -- Update selected step
-        row_elements.selected_step = value
+        if value == MAX_STEPS then
+          row_elements.selected_step = nil
+        else
+          row_elements.selected_step = value
+        end
         update_row_button_colors(row_elements)  -- Update button colors
         row_elements.print_to_pattern()
         --renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
@@ -1182,7 +1314,19 @@ end
       reverse_sample(row_elements)
     end
   }
+  local eq30_button = vb:button{
+    text="EQ30",
+    notifier=function()
+      -- Ensure the correct track and instrument are selected for EQ30 to operate
+      local ti = track_indices and row_elements.track_popup and row_elements.track_popup.value and track_indices[row_elements.track_popup.value]
+      if ti then renoise.song().selected_track_index = ti end
+      local ii = row_elements.instrument_popup and row_elements.instrument_popup.value
+      if ii then renoise.song().selected_instrument_index = ii end
+      PakettiEQ30LoadAndShowToggle()
+    end
+  }
 
+  
   -- Define the Row Column Layout
   local row = vb:row{
     vb:column{transpose_column, mute_checkbox},
@@ -1318,7 +1462,7 @@ end
       vb:button{text="Sample", notifier = row_elements.select_instrument},
       vb:button{text="Automation", notifier = row_elements.show_automation},
 --      vb:button{text="Macros", notifier=row_elements.show_macros},
-      reverse_button,
+      reverse_button, eq30_button,
     
   },
     },
@@ -1936,10 +2080,10 @@ function set_global_steps(steps)
     row_elements.valuebox.value = steps
     -- Only highlight button if step count is different from MAX_STEPS
     -- This prevents default MAX_STEPS from being highlighted as "selected"
-    if steps ~= MAX_STEPS then
-      row_elements.selected_step = steps
+    if steps == MAX_STEPS then
+      row_elements.selected_step = nil
     else
-      row_elements.selected_step = nil  -- No selection for default MAX_STEPS
+      row_elements.selected_step = steps
     end
     update_row_button_colors(row_elements)
     row_elements.updating_steps = false
@@ -2099,7 +2243,60 @@ function pakettiEightSlotsByOneTwentyDialog()
   end
 
   local global_controls, global_groove_controls, global_buttons, global_step_buttons = create_global_controls()
-  local dc = vb:column{global_controls, global_groove_controls, global_buttons, global_step_buttons, vb:space{height=8}}
+  -- Add 'Initialize EQ30' to the top control row
+  local init_eq30_button = vb:button{
+    text = "Initialize EQ30",
+    notifier = function()
+      local song = renoise.song()
+      if not song then
+        renoise.app():show_status("No song available")
+        return
+      end
+      local initialized_count = 0
+      local skipped_count = 0
+      local max_tracks = math.min(8, #song.tracks)
+      for i = 1, max_tracks do
+        local trk = song:track(i)
+        if trk and trk.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+          -- Detect existing EQ30 setup: 4 EQ10 devices named "EQ30 Device *"
+          local eq30_named_count = 0
+          for di = 1, #trk.devices do
+            local dev = trk.devices[di]
+            if dev and dev.device_path == "Audio/Effects/Native/EQ 10" then
+              local dn = tostring(dev.display_name or "")
+              if string.sub(dn, 1, 11) == "EQ30 Device" then
+                eq30_named_count = eq30_named_count + 1
+              end
+            end
+          end
+          if eq30_named_count >= 4 then
+            print(string.format("EQ30 already present on track %d ('%s') - skipping init", i, trk.name))
+            skipped_count = skipped_count + 1
+          else
+            song.selected_track_index = i
+            if type(apply_eq30_to_track) == "function" then
+              print(string.format("Initializing EQ30 on track %d ('%s')", i, trk.name))
+              apply_eq30_to_track()
+              initialized_count = initialized_count + 1
+            elseif type(PakettiEQ30LoadAndShowToggle) == "function" then
+              -- Fallback: add devices if missing and avoid leaving the UI open
+              print(string.format("Fallback init via PakettiEQ30LoadAndShowToggle on track %d ('%s')", i, trk.name))
+              local dialog_was_visible = (eq_dialog and eq_dialog.visible)
+              PakettiEQ30LoadAndShowToggle()
+              if eq_dialog and eq_dialog.visible then eq_dialog:close() end
+              if dialog_was_visible and PakettiEQ10ExperimentInit then PakettiEQ10ExperimentInit() end
+              initialized_count = initialized_count + 1
+            else
+              print("EQ30 init functions not available")
+            end
+          end
+        end
+      end
+      renoise.app():show_status(string.format("EQ30: initialized %d track(s), skipped %d existing", initialized_count, skipped_count))
+    end
+  }
+  local top_row = vb:row{global_controls, vb:space{width=8}, init_eq30_button}
+  local dc = vb:column{top_row, global_groove_controls, global_buttons, global_step_buttons, vb:space{height=8}}
   -- Create and add rows with spacing between them
   for i = 1, 8 do
     if i > 1 then
@@ -2180,7 +2377,7 @@ function pakettiEightSlotsByOneTwentyDialog()
       min = 0,
       max = 512,
       value = 0,
-      width = 55,
+      width = 72,
       tooltip = string.format("Instrument %02d BeatSync Lines (0 = Off)", idx),
       notifier=function(val)
         if beatsync_updating[idx] then return end
@@ -2211,7 +2408,7 @@ function pakettiEightSlotsByOneTwentyDialog()
     }
     beatsync_checkboxes[idx] = cb
     beatsync_valueboxes[idx] = vb_lines
-    beatsync_row:add_child(vb:row{vb:text{text=string.format("%02d", idx), font="bold", style="strong", width=22}, cb, vb_lines})
+    beatsync_row:add_child(vb:row{vb:text{text=string.format("%02d", idx), font="bold", style="strong", width=22}, vb_lines, cb})
   end
 
   -- BeatSync Mode row (per instrument)
@@ -2457,6 +2654,8 @@ function pakettiEightSlotsByOneTwentyDialog()
   
   -- Setup BPM observable after dialog is created
   setup_bpm_observable()
+  -- Setup playhead highlight updates after dialog is created
+  PakettiEightOneTwentySetupPlayhead()
 
   -- No post-create visibility toggling required
 
@@ -2495,6 +2694,8 @@ function pakettiEightSlotsByOneTwentyDialog()
           end
         end
       end
+      -- Cleanup playhead observers/timer when dialog closes
+      PakettiEightOneTwentyCleanupPlayhead()
       -- Detach beatsync observers
       for i=1,8 do PakettiEightOneTwentyDetachBeatsyncObserversFor(i) end
       -- Clear mode observers

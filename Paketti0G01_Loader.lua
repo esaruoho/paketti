@@ -473,6 +473,8 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   },
   -- Groovebox 8120: show/hide additional options foldout by default
   PakettiGroovebox8120AdditionalOptions = false,
+  -- Groovebox 8120 playhead highlight color (1=None, 2=Bright Orange, 3=Deeper Purple, 4=Black, 5=White, 6=Dark Grey)
+  PakettiGrooveboxPlayheadColor = 3,
   -- Groovebox 8120 per-instrument BeatSync mode defaults (1=Repitch, 2=Percussion, 3=Texture)
   PakettiGroovebox8120Beatsync = {
     Mode01 = 1,
@@ -801,6 +803,7 @@ local pakettiIRPathDisplayId = "pakettiIRPathDisplay_" .. tostring(math.random(2
             },
             vb:row{vb:text{style="strong",text="Whether F2,F3,F4,F11 change the Upper Frame Scope state or not"}},            
             ]]--
+            vb:space{height=8},
             vb:row{
               vb:text{text="Selected Sample BeatSync",width=150},
               vb:switch{items={"Off","On"},value=preferences.SelectedSampleBeatSyncLines.value and 2 or 1,width=200,
@@ -1631,6 +1634,20 @@ vb:row{
               end}
           },
           vb:row{vb:text{style="strong",text="Controls whether entries are under File directly, File:Paketti submenu, or both."}},
+          vb:space{height=8},
+          vb:text{style="strong",font="bold",text="Groovebox 8120"},
+          vb:row{
+            vb:text{text="Playhead Color",width=150},
+            vb:switch{items={"None","Orange","Purple","Black","White","Grey"},
+              value=preferences.PakettiGrooveboxPlayheadColor.value,
+              width=422,
+              notifier=function(value)
+                preferences.PakettiGrooveboxPlayheadColor.value = value
+                if type(PakettiEightOneTwentyApplyPlayheadColor) == "function" then
+                  PakettiEightOneTwentyApplyPlayheadColor()
+                end
+              end}
+          },
         }
         }
       },
