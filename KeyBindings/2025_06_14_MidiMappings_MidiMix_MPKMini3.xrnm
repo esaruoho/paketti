@@ -715,5 +715,19 @@
         </MidiMapping>
       </MidiMappings>
     </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Load &amp; Show EQ30</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Notes</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>27</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
   </ActionMappings>
 </MidiActionMappingSet>

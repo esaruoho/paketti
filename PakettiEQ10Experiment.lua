@@ -94,7 +94,7 @@ end
 
 -- Canvas colors (using same pattern as PakettiPCMWriter)
 local COLOR_GRID_LINES = {32, 64, 32, 255}        -- Dark green grid
-local COLOR_ZERO_LINE = {128, 128, 128, 255}      -- Gray center line
+local COLOR_ZERO_LINE = {255, 255, 255, 255}      -- Bright white center line
 local COLOR_EQ_CURVE = {255, 64, 255, 255}        -- Bright pink EQ curve
 local COLOR_FREQUENCY_MARKERS = {200, 200, 200, 255}  -- Light gray frequency markers
 local COLOR_GAIN_MARKERS = {180, 180, 180, 255}   -- Gain level markers
@@ -258,12 +258,33 @@ local function draw_dot(ctx, x, y, size)
   ctx:stroke()
 end
 
+-- Draw a horizontal dash (minus sign)
+local function draw_dash(ctx, x, y, size)
+  ctx:begin_path()
+  ctx:move_to(x, y + size/2)
+  ctx:line_to(x + size, y + size/2)
+  ctx:stroke()
+end
+
+-- Draw a plus sign
+local function draw_plus(ctx, x, y, size)
+  ctx:begin_path()
+  -- Vertical
+  ctx:move_to(x + size/2, y)
+  ctx:line_to(x + size/2, y + size)
+  -- Horizontal
+  ctx:move_to(x, y + size/2)
+  ctx:line_to(x + size, y + size/2)
+  ctx:stroke()
+end
+
 -- Letter lookup table (subset for numbers and frequency labels)
 local letter_functions = {
   A = draw_letter_A, H = draw_letter_H, Z = draw_letter_Z, K = draw_letter_K,
   ["0"] = draw_digit_0, ["1"] = draw_digit_1, ["2"] = draw_digit_2, ["3"] = draw_digit_3,
   ["4"] = draw_digit_4, ["5"] = draw_digit_5, ["6"] = draw_digit_6, ["7"] = draw_digit_7,
-  ["8"] = draw_digit_8, ["9"] = draw_digit_9, [" "] = draw_space, ["."] = draw_dot
+  ["8"] = draw_digit_8, ["9"] = draw_digit_9, [" "] = draw_space, ["."] = draw_dot,
+  ["-"] = draw_dash, ["+"] = draw_plus
 }
 
 -- Function to draw text on canvas
@@ -669,7 +690,7 @@ local function check_eq_devices_status()
   end
   
   if eq_count >= 4 then
-    return true, string.format("%d EQ10 devices active - EQ30 system ready for drawing", eq_count)
+    return true, ""
   elseif eq_count > 0 then
     return false, string.format("Only %d EQ10 devices found - need 4 for full EQ30 system", eq_count)
   else
@@ -953,81 +974,35 @@ local function draw_eq_canvas(ctx)
   -- Clear canvas
   ctx:clear_rect(0, 0, w, h)
   
-  -- Draw background grid
-  ctx.stroke_color = COLOR_GRID_LINES
-  ctx.line_width = 1
+  -- Background grid removed; use precise guides and gain markers instead
   
-  -- Vertical grid lines (frequency)
-  for i = 0, 10 do
-    local x = content_x + (i / 10) * content_width
-    ctx:begin_path()
-    ctx:move_to(x, content_y)
-    ctx:line_to(x, content_y + content_height)
-    ctx:stroke()
-  end
-  
-  -- Horizontal grid lines (gain)
-  for i = 0, 10 do
-    local y = content_y + (i / 10) * content_height
-    ctx:begin_path()
-    ctx:move_to(content_x, y)
-    ctx:line_to(content_x + content_width, y)
-    ctx:stroke()
-  end
-  
-  -- Draw zero line (0 dB)
+  -- Draw zero line (0 dB) – thicker for strong center reference
   ctx.stroke_color = COLOR_ZERO_LINE
-  ctx.line_width = 2
+  ctx.line_width = 4
   local zero_y = gain_to_y(0)
   ctx:begin_path()
   ctx:move_to(content_x, zero_y)
   ctx:line_to(content_x + content_width, zero_y)
   ctx:stroke()
   
-  -- Draw device boundary markers (EQ30 system: 8+8+8+6 bands)
-  ctx.stroke_color = {255, 255, 0, 180}  -- Yellow boundaries
-  ctx.line_width = 3
+  -- Draw column-aligned vertical guides at each band boundary (lean green)
   local band_width = content_width / #eq30_frequencies
-  
-  -- Device 1 | Device 2 boundary (after band 8)
-  local boundary1_x = content_x + 8 * band_width
-  ctx:begin_path()
-  ctx:move_to(boundary1_x, content_y)
-  ctx:line_to(boundary1_x, content_y + content_height)
-  ctx:stroke()
-  
-  -- Device 2 | Device 3 boundary (after band 16)
-  local boundary2_x = content_x + 16 * band_width
-  ctx:begin_path()
-  ctx:move_to(boundary2_x, content_y)
-  ctx:line_to(boundary2_x, content_y + content_height)
-  ctx:stroke()
-  
-  -- Device 3 | Device 4 boundary (after band 24)
-  local boundary3_x = content_x + 24 * band_width
-  ctx:begin_path()
-  ctx:move_to(boundary3_x, content_y)
-  ctx:line_to(boundary3_x, content_y + content_height)
-  ctx:stroke()
-  
-  -- Draw frequency markers
-  ctx.stroke_color = COLOR_FREQUENCY_MARKERS
+  ctx.stroke_color = {64, 160, 64, 140}
   ctx.line_width = 1
-  local key_frequencies = {31, 63, 125, 250, 500, 1000, 2000, 4000, 8000, 16000}
-  for _, freq in ipairs(key_frequencies) do
-    local x = freq_to_x(freq)
-    if x >= content_x and x <= content_x + content_width then
-      ctx:begin_path()
-      ctx:move_to(x, content_y)
-      ctx:line_to(x, content_y + content_height)
-      ctx:stroke()
-    end
+  for i = 0, #eq30_frequencies do
+    local x = content_x + (i * band_width)
+    ctx:begin_path()
+    ctx:move_to(x, content_y)
+    ctx:line_to(x, content_y + content_height)
+    ctx:stroke()
   end
   
-  -- Draw gain markers
+  -- Device split guides removed per UX preference
+  
+  -- Draw gain markers exactly at {-20,-12,-6,-3,0,+3,+6,+12,+20}
   ctx.stroke_color = COLOR_GAIN_MARKERS
   ctx.line_width = 1
-  local gain_levels = {-20, -15, -10, -5, 0, 5, 10, 15, 20}
+  local gain_levels = {-20, -12, -6, -3, 0, 3, 6, 12, 20}
   for _, gain in ipairs(gain_levels) do
     local y = gain_to_y(gain)
     ctx:begin_path()
@@ -1050,52 +1025,53 @@ local function draw_eq_canvas(ctx)
     -- Use purple bars like PakettiCanvasExperiments.lua (professional EQ look) - brighter
     local bar_color = {120, 40, 160, 255}
 
-    -- Solid bar only (gradient removed)
+    -- Solid bar only (gradient removed) with a safe gap around the zero line (account for 4px thick line)
     ctx.fill_color = bar_color
     if gain >= 0 then
       local bar_top_y = gain_to_y(gain)
-      local bar_height = zero_y - bar_top_y
-      if bar_height > 1 then ctx:fill_rect(bar_x, bar_top_y, bar_width, bar_height) end
+      local bar_height = (zero_y - 3) - bar_top_y
+      if bar_height > 0 then ctx:fill_rect(bar_x, bar_top_y, bar_width, bar_height) end
     else
       local bar_bottom_y = gain_to_y(gain)
-      local bar_height = bar_bottom_y - zero_y
-      if bar_height > 1 then ctx:fill_rect(bar_x, zero_y, bar_width, bar_height) end
+      local start_y = zero_y + 3
+      local bar_height = bar_bottom_y - start_y
+      if bar_height > 0 then ctx:fill_rect(bar_x, start_y, bar_width, bar_height) end
     end
     
     -- Draw bar outline for definition
     ctx.stroke_color = {255, 255, 255, 100}  -- Light white outline
     ctx.line_width = 1
-    if gain >= 0 and (zero_y - gain_to_y(gain)) > 1 then
+    if gain >= 0 and ((zero_y - 3) - gain_to_y(gain)) > 0 then
       ctx:begin_path()
-      ctx:rect(bar_x, gain_to_y(gain), bar_width, zero_y - gain_to_y(gain))
+      ctx:rect(bar_x, gain_to_y(gain), bar_width, (zero_y - 3) - gain_to_y(gain))
       ctx:stroke()
-    elseif gain < 0 and (gain_to_y(gain) - zero_y) > 1 then
+    elseif gain < 0 and (gain_to_y(gain) - (zero_y + 3)) > 0 then
       ctx:begin_path()
-      ctx:rect(bar_x, zero_y, bar_width, gain_to_y(gain) - zero_y)
+      ctx:rect(bar_x, zero_y + 3, bar_width, gain_to_y(gain) - (zero_y + 3))
       ctx:stroke()
     end
     
-    -- Draw frequency name vertically using custom text rendering (EXACTLY like PakettiCanvasExperiments.lua)
+    -- Draw frequency name vertically using custom text rendering (no Hz/kHz suffix)
     if bar_width > 12 then  -- Only draw text if there's enough space
       ctx.stroke_color = {200, 200, 200, 255}  -- Light gray text
       ctx.line_width = 2  -- Make text bold by using thicker lines (like PakettiCanvasExperiments)
       
-      -- Create frequency text (keep it simple and readable)
+      -- Create compact frequency text without units
       local freq_text
       if freq >= 1000 then
         if freq >= 10000 then
-          freq_text = string.format("%.0f", freq / 1000) .. "kHz"
+          freq_text = string.format("%.0f", freq / 1000) .. "k"
         else
-          freq_text = string.format("%.1f", freq / 1000) .. "kHz"
+          freq_text = string.format("%.1f", freq / 1000) .. "k"
         end
       else
-        freq_text = tostring(freq) .. "Hz"
+        freq_text = tostring(freq)
       end
       
       -- Draw frequency name vertically (rotated text effect - EXACTLY like PakettiCanvasExperiments.lua)
       local bar_center_x = bar_x + (bar_width / 2)
       local text_size = math.max(4, math.min(12, bar_width * 0.6))
-      local text_start_y = content_y + 22  -- Nudge up by roughly one character relative to previous
+      local text_start_y = content_y + 15 - math.floor(text_size * 0.5)  -- lift by ~0.5 char
       
       -- Draw each character of the frequency name vertically (COPIED from PakettiCanvasExperiments.lua)
       local letter_spacing = text_size + 4  -- Add 4 pixels between letters for better readability
@@ -1117,13 +1093,7 @@ local function draw_eq_canvas(ctx)
       end
     end
     
-    -- Draw center divider line for each band
-    ctx.stroke_color = {64, 64, 64, 255}  -- Dark gray divider
-    ctx.line_width = 1
-    ctx:begin_path()
-    ctx:move_to(band_x, content_y)
-    ctx:line_to(band_x, content_y + content_height)
-    ctx:stroke()
+    -- No per-band divider lines to keep visual clean
   end
   
   -- Band numbers at bottom (30 bands total for EQ30 system: 8+8+8+6)
@@ -1142,32 +1112,29 @@ local function draw_eq_canvas(ctx)
     draw_canvas_text(ctx, band_text, bar_center_x - (#band_text * text_size/3), label_y_start, text_size)
   end
   
-  -- Draw device zone indicators (EQ30 system: 8+8+8+6 bands)
-  local band_width = content_width / #eq30_frequencies
-  
-  -- Device 1 zone indicator (bands 1-8) - Red
-  ctx.fill_color = {255, 100, 100, 40}  -- Light red
-  ctx:begin_path()
-  ctx:rect(content_x, content_y, 8 * band_width, 20)
-  ctx:fill()
-  
-  -- Device 2 zone indicator (bands 9-16) - Green
-  ctx.fill_color = {100, 255, 100, 40}  -- Light green
-  ctx:begin_path()
-  ctx:rect(content_x + 8 * band_width, content_y, 8 * band_width, 20)
-  ctx:fill()
-  
-  -- Device 3 zone indicator (bands 17-24) - Blue
-  ctx.fill_color = {100, 100, 255, 40}  -- Light blue
-  ctx:begin_path()
-  ctx:rect(content_x + 16 * band_width, content_y, 8 * band_width, 20)
-  ctx:fill()
-  
-  -- Device 4 zone indicator (bands 25-30) - Yellow (only 6 bands!)
-  ctx.fill_color = {255, 255, 100, 40}  -- Light yellow
-  ctx:begin_path()
-  ctx:rect(content_x + 24 * band_width, content_y, 6 * band_width, 20)  -- Only 6 bands wide
-  ctx:fill()
+  -- Side dB labels at left and right edges for measurement feel (+/-20, +/-12, +/-6, +/-3) – ensure only drawn once
+  ctx.stroke_color = COLOR_BAND_LABELS
+  ctx.line_width = 1
+  local label_size = 7
+  -- Include full range on sides
+  local levels = {20, 12, 6, 3, -3, -6, -12, -20}
+  for i = 1, #levels do
+    local lvl = levels[i]
+    local text
+    if lvl > 0 then
+      text = "+" .. tostring(lvl)
+    else
+      text = tostring(lvl)
+    end
+    local y = gain_to_y(lvl) - (label_size / 2)
+    local est_w = (#text * label_size) / 3
+    local left_x = content_x - est_w - 20
+    local right_x = content_x + content_width + 8
+    draw_canvas_text(ctx, text, left_x, y, label_size)
+    draw_canvas_text(ctx, text, right_x, y, label_size)
+  end
+
+  -- Corner min/max labels removed per request
   
   -- Draw content area border
   ctx.stroke_color = {80, 80, 120, 255}
@@ -1249,6 +1216,17 @@ local function handle_eq_mouse(ev)
   last_mouse_x = x
   last_mouse_y = y
   
+  -- Right-click anywhere in content area: reset to flat
+  if ev.type == "down" and ev.button == "right" then
+    for i = 1, #eq30_frequencies do
+      eq_gains[i] = 0.0
+      update_eq_device_parameter(i, 0.0)
+    end
+    if eq_canvas then eq_canvas:update() end
+    renoise.app():show_status("EQ30: Reset to flat (right-click)")
+    return
+  end
+
   if ev.type == "down" and ev.button == "left" then
     mouse_is_down = true
     if mouse_in_content then
@@ -1529,11 +1507,101 @@ local function create_eq_dialog()
   
   local dialog_content = vb:column {
     
-    -- Status indicator
-    vb:text {
-      id = "eq_status_text",
-      text = "Ready for surgical EQ control - avoiding problematic 1st/10th bands! Autofocus shows active device.",
-      style = "normal"
+    -- Status indicator removed to avoid an empty spacer row above the controls
+    
+    -- Top control row (above canvas): Reset Flat, Automation controls, Global Q
+    vb:row {
+      -- Reset Flat
+      vb:button {
+        text = "Reset Flat",
+        width = 100,
+        tooltip = "Reset all bands to 0 dB (live updates)",
+        notifier = function()
+          reset_eq_flat()
+          for i = 1, #eq30_frequencies do
+            update_eq_device_parameter(i, 0.0)
+          end
+          renoise.app():show_status("EQ30 reset to flat - middle 8 bands of all devices updated")
+        end
+      },
+      -- Snapshot to automation
+      vb:button {
+        text = "Add Snapshot to Automation",
+        width = 180,
+        notifier = function()
+          snapshot_all_bands_to_automation()
+        end
+      },
+      -- Clear automation
+      vb:button {
+        text = "Clear",
+        width = 80,
+        notifier = function()
+          clear_all_eq30_automation()
+        end
+      },
+      -- Clean & Snap automation
+      vb:button {
+        text = "Clean & Snap",
+        width = 120,
+        notifier = function()
+          clean_and_snap_all_bands()
+        end
+      },
+      -- Automation sync toggle
+      vb:button {
+        id = "eq30_follow_automation_button",
+        text = "Automation Sync: OFF",
+        width = 170,
+        color = {64, 200, 64},
+        notifier = function()
+          follow_automation = not follow_automation
+          if vb.views.eq30_follow_automation_button then
+            vb.views.eq30_follow_automation_button.text = follow_automation and "Automation Sync: ON" or "Automation Sync: OFF"
+            vb.views.eq30_follow_automation_button.color = follow_automation and {255, 64, 64} or {64, 200, 64}
+          end
+          renoise.song().transport.follow_player = follow_automation
+          renoise.app():show_status("Automation Sync " .. (follow_automation and "ON" or "OFF"))
+        end
+      },
+      -- Randomize automation
+      vb:button {
+        text = "Randomize Automation",
+        width = 160,
+        notifier = function()
+          randomize_eq_curve("smooth")
+          snapshot_all_bands_to_automation()
+        end
+      },
+      vb:space { width = 20 },
+      -- Global Q / Bandwidth
+      vb:text {
+        text = "Global Q",
+        width = 60, style = "strong", font = "bold",
+        tooltip = "Controls the bandwidth (sharpness) of all EQ bands simultaneously"
+      },
+      vb:slider {
+        id = "global_bandwidth_slider",
+        min = 0.05,
+        max = 0.8,
+        value = global_bandwidth,
+        width = 200,
+        tooltip = "Adjust the bandwidth of all EQ bands (left = sharp, right = wide)",
+        notifier = function(value)
+          global_bandwidth = value
+          update_global_bandwidth(value)
+          if vb.views.global_bandwidth_label then
+            local approx_q = math.max(0.1, 1.0 / (value * 10))
+            vb.views.global_bandwidth_label.text = string.format("BW:%.2f (≈Q %.1f)", value, approx_q)
+          end
+        end
+      },
+      vb:text {
+        id = "global_bandwidth_label",style="strong",font="bold",
+        text = string.format("BW:%.2f (≈Q %.1f)", global_bandwidth, math.max(0.1, 1.0 / (global_bandwidth * 10))),
+        width = 100,
+        tooltip = "Current bandwidth value and approximate Q factor"
+      }
     },
     
     -- Canvas
@@ -1606,19 +1674,7 @@ local function create_eq_dialog()
           end
         end
       },
-      vb:button {
-        text = "Reset Flat",
-        width = 100,
-        tooltip = "Reset all bands to 0 dB (live updates)",
-        notifier = function()
-          reset_eq_flat()
-          -- Also update all device parameters to flat (EQ30 system)
-          for i = 1, #eq30_frequencies do
-            update_eq_device_parameter(i, 0.0)
-          end
-          renoise.app():show_status("EQ30 reset to flat - middle 8 bands of all devices updated")
-        end
-      },
+      -- Reset Flat moved to the top control row
       vb:button {
         text = "Recreate Devices",
         width = 130,
@@ -1638,13 +1694,12 @@ local function create_eq_dialog()
             eq_dialog = nil
           end
         end
-      }
-    },
+      },
     
     -- Randomize buttons
-    vb:row {
+    
       vb:text {
-        text = "Randomize:",
+        text = "Randomize",style="strong",font="bold",
         width = 80
       },
       vb:button {
@@ -1670,47 +1725,8 @@ local function create_eq_dialog()
         notifier = function()
           randomize_eq_curve("creative")
         end
-      }
-    },
-
-    -- Visual options removed: gradient disabled
-
-    -- Automation gadget (replicated semantics)
-    vb:row {
-      vb:button {
-        text = "Add Snapshot to Automation",
-        width = 180,
-        notifier = function()
-          snapshot_all_bands_to_automation()
-        end
       },
-      vb:button {
-        id = "eq30_follow_automation_button",
-        text = "Automation Sync: OFF",
-        width = 170,
-        color = {64, 200, 64},
-        notifier = function()
-          follow_automation = not follow_automation
-          if vb.views.eq30_follow_automation_button then
-            vb.views.eq30_follow_automation_button.text = follow_automation and "Automation Sync: ON" or "Automation Sync: OFF"
-            vb.views.eq30_follow_automation_button.color = follow_automation and {255, 64, 64} or {64, 200, 64}
-          end
-          renoise.song().transport.follow_player = follow_automation
-          renoise.app():show_status("Automation Sync " .. (follow_automation and "ON" or "OFF"))
-          -- Observers are always active now; the toggle only controls writing and envelope auto-selection while drawing
-        end
-      },
-      vb:button {
-        text = "Randomize Automation",
-        width = 160,
-        notifier = function()
-          randomize_eq_curve("smooth")
-          snapshot_all_bands_to_automation()
-        end
-      }
-    },
-    vb:row {
-      vb:text { text = "Automation Playmode:", width = 130, style = "strong" },
+      vb:text { text = "Automation Playmode", width = 130, style = "strong",font="bold" },
       vb:switch {
         id = "eq30_playmode_switch_1",
         width = 300,
@@ -1729,74 +1745,6 @@ local function create_eq_dialog()
       }
     },
     vb:row {
-      vb:button {
-        text = "Clear",
-        width = 80,
-        notifier = function()
-          clear_all_eq30_automation()
-        end
-      },
-      vb:button {
-        text = "Clean & Snap",
-        width = 120,
-        notifier = function()
-          clean_and_snap_all_bands()
-        end
-      },
-      vb:text { text = "Edit A/B:", style = "strong", width = 60 },
-      vb:button {
-        id = "eq30_edit_a",
-        text = "Edit A",
-        width = 60,
-        notifier = function()
-          current_edit_mode = "A"
-          renoise.app():show_status("Edit A mode")
-        end
-      },
-      vb:button {
-        id = "eq30_edit_b",
-        text = "Edit B",
-        width = 60,
-        notifier = function()
-          -- capture current device state as A if A empty
-          if next(eq_values_A) == nil then
-            for i = 1, #eq30_frequencies do eq_values_A[i] = eq_gains[i] end
-          end
-          current_edit_mode = "B"
-          -- initialize B from current if empty
-          if next(eq_values_B) == nil then
-            for i = 1, #eq30_frequencies do eq_values_B[i] = eq_gains[i] end
-          end
-          renoise.app():show_status("Edit B mode")
-        end
-      },
-      vb:text { text = "Crossfade", width = 60, style = "strong" },
-      vb:slider {
-        id = "eq30_crossfade_slider",
-        min = 0.0,
-        max = 1.0,
-        value = crossfade_amount,
-        width = 250,
-        notifier = function(value)
-          crossfade_amount = value
-          -- Apply crossfade to device
-          if next(eq_values_A) ~= nil and next(eq_values_B) ~= nil then
-            for i = 1, #eq30_frequencies do
-              local a = eq_values_A[i] or 0.0
-              local b = eq_values_B[i] or 0.0
-              local v = a + (b - a) * value
-              eq_gains[i] = v
-              update_eq_device_parameter(i, v)
-            end
-            if eq_canvas then eq_canvas:update() end
-          end
-        end
-      },
-      vb:text { id = "eq30_crossfade_pct", text = string.format("%.1f%%", crossfade_amount * 100), width = 50, style = "strong" }
-    },
-    
-    -- Autofocus option
-    vb:row {
       vb:checkbox {
         id = "autofocus_checkbox",
         value = autofocus_enabled,
@@ -1811,11 +1759,8 @@ local function create_eq_dialog()
       vb:text {
         text = "Autofocus selected EQ10 device",
         tooltip = "When enabled, automatically shows the EQ10 device being modified in the lower frame"
-      }
-    },
-    
+      },
     -- Minimize/Maximize devices option
-    vb:row {
       vb:checkbox {
         id = "minimize_devices_checkbox",
         value = devices_minimized,
@@ -1832,37 +1777,7 @@ local function create_eq_dialog()
       }
     },
     
-    -- Global Q/Bandwidth control
-    vb:row {
-      vb:text {
-        text = "Global Q:",
-        width = 60,
-        tooltip = "Controls the bandwidth (sharpness) of all EQ bands simultaneously"
-      },
-      vb:slider {
-        id = "global_bandwidth_slider",
-        min = 0.05,  -- Sharp (high Q)
-        max = 0.8,   -- Wide (low Q)
-        value = global_bandwidth,
-        width = 200,
-        tooltip = "Adjust the bandwidth of all EQ bands (left = sharp, right = wide)",
-        notifier = function(value)
-          global_bandwidth = value
-          update_global_bandwidth(value)
-          -- Update the label
-          if vb.views.global_bandwidth_label then
-            local approx_q = math.max(0.1, 1.0 / (value * 10))
-            vb.views.global_bandwidth_label.text = string.format("BW:%.2f (≈Q %.1f)", value, approx_q)
-          end
-        end
-      },
-      vb:text {
-        id = "global_bandwidth_label",
-        text = string.format("BW:%.2f (≈Q %.1f)", global_bandwidth, math.max(0.1, 1.0 / (global_bandwidth * 10))),
-        width = 100,
-        tooltip = "Current bandwidth value and approximate Q factor"
-      }
-    },
+    -- Global Q controls moved to top control row
     
     
   }
@@ -1968,6 +1883,62 @@ function PakettiEQ30LoadAndShowToggle()
     renoise.app():show_status("EQ30: Added and Shown")
   end
 end
+-- Ensure EQ30 dialog is visible and follows the currently selected track
+function PakettiEQ30ShowAndFollow()
+  local song = renoise.song()
+  if not song then return end
 
-renoise.tool():add_keybinding {name = "Global:Paketti:Load & Show EQ30", invoke = PakettiEQ30LoadAndShowToggle}
-renoise.tool():add_menu_entry {name = "Main Menu:Tools:Load & Show EQ30", invoke = PakettiEQ30LoadAndShowToggle}
+  -- Open if not visible
+  if not (eq_dialog and eq_dialog.visible) then
+    PakettiEQ10ExperimentInit()
+  end
+
+  -- Enable create/follow mode programmatically and install the observer
+  create_follow_enabled = true
+  if vb and vb.views and vb.views.eq30_create_follow_button then
+    vb.views.eq30_create_follow_button.text = "Create/Follow: ON"
+    vb.views.eq30_create_follow_button.color = {255, 64, 64}
+  end
+
+  if song.selected_track_index_observable then
+    if not track_index_notifier then
+      track_index_notifier = function()
+        if not (eq_dialog and eq_dialog.visible and create_follow_enabled) then return end
+        pcall(function() remove_eq_param_observers() end)
+        local has_eq, _ = check_eq_devices_status()
+        if has_eq then
+          load_eq_from_track()
+          setup_eq_param_observers()
+        else
+          for i = 1, #eq30_frequencies do eq_gains[i] = 0.0 end
+          if eq_canvas then eq_canvas:update() end
+        end
+        update_eq_status()
+      end
+    end
+    if not song.selected_track_index_observable:has_notifier(track_index_notifier) then
+      song.selected_track_index_observable:add_notifier(track_index_notifier)
+    end
+    track_index_notifier()
+  end
+end
+
+-- Toggle: if dialog visible -> close, else show & follow
+function PakettiEQ30ToggleShowFollow()
+  if eq_dialog and eq_dialog.visible then
+    pcall(function() EQ30Cleanup() end)
+    eq_dialog:close(); eq_dialog = nil
+    renoise.app():show_status("EQ30: Hide")
+    return
+  end
+  PakettiEQ30ShowAndFollow()
+  renoise.app():show_status("EQ30: Show & Follow")
+end
+renoise.tool():add_keybinding {name = "Global:Paketti:Load & Show EQ30", invoke = PakettiEQ30ShowAndFollow}
+renoise.tool():add_menu_entry {name = "Main Menu:Tools:Load & Show EQ30", invoke = PakettiEQ30ShowAndFollow}
+renoise.tool():add_midi_mapping{name = "Paketti:Load & Show EQ30", invoke=function(message) if message:is_trigger() then PakettiEQ30ToggleShowFollow() end end}
+
+
+
+
+

@@ -434,6 +434,69 @@ renoise.tool():add_menu_entry{name="--Mixer:Paketti:Inspect Track Device Chain (
 
 
 
+function SeparateSyncLFOBeatsgo()
+  -- 1. Load Device (with Line Input protection)
+loadnative("Audio/Effects/Native/*Formula")
+-- 2. Inject Current Device State XML
+local device_xml = [=[<?xml version="1.0" encoding="UTF-8"?>
+<FilterDevicePreset doc_version="14">
+  <DeviceSlot type="FormulaMetaDevice">
+    <IsMaximized>true</IsMaximized>
+    <FormulaParagraphs>
+      <FormulaParagraph>calculation(A,B)</FormulaParagraph>
+    </FormulaParagraphs>
+    <FunctionsParagraphs>
+      <FunctionsParagraph>--[[</FunctionsParagraph>
+      <FunctionsParagraph>Simple formula for calculating LFO per pattern length</FunctionsParagraph>
+      <FunctionsParagraph>]]</FunctionsParagraph>
+      <FunctionsParagraph/>
+      <FunctionsParagraph>--[[</FunctionsParagraph>
+      <FunctionsParagraph>]]</FunctionsParagraph>
+      <FunctionsParagraph/>
+      <FunctionsParagraph>local function calculation(x,y)</FunctionsParagraph>
+      <FunctionsParagraph>  local spd_array = {16, 8, 4, 2, 1, 0.5, 0.25, 0.10, 0.01}</FunctionsParagraph>
+      <FunctionsParagraph>  local off_array  = {1, 0.66, 0.75, 0.8}</FunctionsParagraph>
+      <FunctionsParagraph>  local spd = x == 0 and spd_array[1] or spd_array[ceil(#spd_array*x)]</FunctionsParagraph>
+      <FunctionsParagraph>  local off = y == 0 and off_array[1] or off_array[ceil(#off_array*y)]</FunctionsParagraph>
+      <FunctionsParagraph>  return (((LINE)%(LPB*(spd*off)))/(LPB*(spd*off)))</FunctionsParagraph>
+      <FunctionsParagraph>end</FunctionsParagraph>
+    </FunctionsParagraphs>
+    <InputNameA>SPD</InputNameA>
+    <InputNameB>STR,TRP,DOT</InputNameB>
+    <InputNameC>NOT USED</InputNameC>
+    <EditorVisible>true</EditorVisible>
+    <InputA>
+      <Value>0.359402984</Value>
+    </InputA>
+    <InputB>
+      <Value>0.635881007</Value>
+    </InputB>
+    <InputC>
+      <Value>0.0</Value>
+    </InputC>
+  </DeviceSlot>
+</FilterDevicePreset>
+]=]
+renoise.song().selected_device.active_preset_data = device_xml
+-- 3. Set Mixer Parameter Visibility
+renoise.song().selected_device.parameters[1].show_in_mixer = true
+renoise.song().selected_device.parameters[2].show_in_mixer = true
+-- 4. Set Device Maximized State
+renoise.song().selected_device.is_maximized = true
+-- 5. Set External Editor State
+-- External editor not available for this device
+-- 6. Set Device Display Name
+renoise.song().selected_device.display_name = "Separate Sync LFO"
+-- 7. Set Device Enabled/Disabled State
+-- renoise.song().selected_device.is_active = true (default)
+-- Total parameters exposed in Mixer: 2
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:SeparateSyncLFO (Beatsgo) (Preset++)", invoke = SeparateSyncLFOBeatsgo}
+renoise.tool():add_menu_entry{name="--DSP Device:Paketti:Preset++:SeparateSyncLFO (Beatsgo LFO)", invoke = SeparateSyncLFOBeatsgo}
+renoise.tool():add_menu_entry{name="--Mixer:Paketti:Preset++:SeparateSyncLFO (Beatsgo LFO)", invoke = SeparateSyncLFOBeatsgo}
+
+
 
 
 function HipassPlusPlus()

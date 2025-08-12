@@ -3098,6 +3098,62 @@ end
 
 local textWidth = 130
 local polyendButtonWidth = 70
+
+-- Centralized tooltip array for Polyend Buddy dialog [[memory:5821545]]
+PakettiPolyendSuiteTooltips = {
+  [1] = "Path to your Polyend device device or folder containing PTI files", -- Root folder textfield (Polyend Device Root row)
+  [2] = "", -- Set Path button (Polyend Device Root row) - placeholder for future tooltip
+  [3] = "Open the Polyend device root folder in system file browser", -- Open Path button (Polyend Device Root row)
+  [4] = "Select a PTI file to load", -- PTI files popup (Device PTI Files row)
+  [5] = "Load the selected PTI file", -- Load PTI button (Device PTI Files row)
+  [6] = "Open the selected PTI file's folder in system file browser", -- Open Path button (Device PTI Files row)
+  [7] = "Analyze the selected PTI file and show detailed information (slices, format, etc.)", -- Analyze button (Device PTI Files row)
+  [8] = "Load PTI file, normalize all slices, then save as PTI with _normalized suffix", -- Normalize Slices button (Device PTI Files row)
+  [9] = "Select a WAV file to load", -- WAV files popup (Device WAV Files row)
+  [10] = "Load the selected WAV file", -- Load WAV button (Device WAV Files row)
+  [11] = "Open the selected WAV file's folder in system file browser", -- Open Path button (Device WAV Files row)
+  [12] = "Use configured save paths instead of prompting for location", -- Use Save Paths checkbox (Save Options row)
+  [13] = "Default folder for saving PTI files", -- PTI save path textfield (PTI Save Path row)
+  [14] = "", -- Set Path button (PTI Save Path row) - placeholder for future tooltip
+  [15] = "Open the PTI save folder in system file browser", -- Open Path button (PTI Save Path row)
+  [16] = "Default folder for saving WAV files", -- WAV save path textfield (WAV Save Path row)
+  [17] = "", -- Set Path button (WAV Save Path row) - placeholder for future tooltip
+  [18] = "Open the WAV save folder in system file browser", -- Open Path button (WAV Save Path row)
+  [19] = "Path to your local folder containing PTI files", -- Computer PTI path textfield (Computer PTI Path row)
+  [20] = "", -- Set Path button (Computer PTI Path row) - placeholder for future tooltip
+  [21] = "Open the local PTI folder in system file browser", -- Open Path button (Computer PTI Path row)
+  [22] = "Export the currently selected instrument as PTI file", -- Export as PTI button (Computer PTI Path row)
+  [23] = "Select a PTI or WAV file from your local folder to send to device", -- Computer files popup (Computer PTI Files row)
+  [24] = "Send the selected PTI or WAV file directly to Polyend device (choose destination folder)", -- Send to Device button (Computer PTI Files row)
+  [25] = "Analyze the selected local PTI file and show detailed information (slices, format, etc.)", -- Analyze button (Computer PTI Files row)
+  [26] = "Load local PTI file, normalize all slices, then save as PTI with _normalized suffix", -- Normalize Slices button (Computer PTI Files row)
+  [27] = "Automatically create backup copies of saved PTI/WAV files in the local backup folder", -- Use Computer Backup checkbox (Backup Options row)
+  [28] = "Default folder for backing up Polyend device to local storage", -- Backup path textfield (Computer Backup Path row)
+  [29] = "", -- Set Path button (Computer Backup Path row) - placeholder for future tooltip
+  [30] = "Open the local backup folder in system file browser", -- Open Path button (Computer Backup Path row)
+  [31] = "Select a PTI or WAV file from your local backup folder to send to device", -- Backup files popup (Computer Backup Files row)
+  [32] = "Send the selected backup PTI or WAV file directly to Polyend device (choose destination folder)", -- Send to Device button (Computer Backup Files row)
+  [33] = "Analyze the selected local backup PTI file and show detailed information (slices, format, etc.)", -- Analyze button (Computer Backup Files row)
+  [34] = "Load local backup PTI file, normalize all slices, then save as PTI with _normalized suffix", -- Normalize Slices button (Computer Backup Files row)
+  [35] = "Save current instrument/sample as PTI file", -- Save PTI button (Save Current Instrument row)
+  [36] = "Save current instrument/sample as WAV file", -- Save WAV button (Save Current Instrument row)
+  [37] = "Combine all samples in current instrument into a single sliced mono drumkit (all samples converted to mono)", -- PTI Drumkit Mono button (Quick Actions row)
+  [38] = "Combine all samples in current instrument into a single sliced drumkit (stereo if any sample is stereo, otherwise mono)", -- PTI Drumkit Stereo button (Quick Actions row)
+  [39] = "Copy any PTI file from your computer directly to the Polyend device (no conversion)", -- Dump PTI to Device button (Quick Actions row)
+  [40] = "Browse for any PTI file, normalize all slices, then save with _normalized suffix", -- PTI→Normalize Slices→PTI button (Quick Actions row)
+  [41] = "Load 48 samples manually, then generate a mono drumkit PTI", -- Load 48→Drumkit Mono button (Drumkit Generation row)
+  [42] = "Load 48 samples manually, then generate a stereo drumkit PTI", -- Load 48→Drumkit Stereo button (Drumkit Generation row)
+  [43] = "Load 48 random samples, then generate a mono drumkit PTI", -- Load 48 Random→Drumkit Mono button (Drumkit Generation row)
+  [44] = "Load 48 random samples, then generate a stereo drumkit PTI", -- Load 48 Random→Drumkit Stereo button (Drumkit Generation row)
+  [45] = "Convert RX2 file to PTI format", -- RX2 to PTI button (Conversion row)
+  [46] = "Create a complete backup of the entire Polyend device folder structure including all files and hidden files", -- Backup Device button (Device Management row)
+  [47] = "Select which Polyend device to get firmware for", -- Device selector popup (Firmware row)
+  [48] = "Open the firmware downloads page for the selected device", -- Get Firmware button (Firmware row)
+  [49] = "Automatically find, download and extract the latest firmware for the selected device", -- Auto-Update Firmware button (Firmware row)
+  [50] = "Open the Polyend Palettes sample packs store in your browser", -- Polyend Palettes button (Links row)
+  [51] = "Rescan the folder for PTI files or reconnect Polyend device" -- Refresh button (Refresh row)
+}
+
 -- Function to create the Polyend Buddy dialog content
 function create_polyend_buddy_dialog(vb)
   return vb:column{
@@ -3109,17 +3165,18 @@ function create_polyend_buddy_dialog(vb)
     vb:row{
     
       vb:text{
-        text = "Polyend device Root",
+        text = "Polyend Device Root",
         width = textWidth, style="strong",font="bold"},
       vb:textfield{
         id = "root_path_textfield",
         text = polyend_buddy_root_path,
         width = 400,
-        tooltip = "Path to your Polyend device device or folder containing PTI files"
+        tooltip = PakettiPolyendSuiteTooltips[1]
       },
       vb:button{
         text = "Set Path",
         width = polyendButtonWidth,
+        tooltip = PakettiPolyendSuiteTooltips[2],
         notifier = function()
           local selected_path = renoise.app():prompt_for_path("Select Polyend device Folder")
           if selected_path and selected_path ~= "" then
@@ -3140,7 +3197,7 @@ function create_polyend_buddy_dialog(vb)
       vb:button{
         text = "Open Path",
         width = polyendButtonWidth,
-        tooltip = "Open the Polyend device root folder in system file browser",
+        tooltip = PakettiPolyendSuiteTooltips[3],
         notifier = function()
           -- Check if root path is configured and exists
           if not polyend_buddy_root_path or polyend_buddy_root_path == "" then
@@ -3175,12 +3232,12 @@ function create_polyend_buddy_dialog(vb)
         id = "pti_files_popup",
         items = {"<No PTI files found, set device to USB Storage Mode and press Refresh>"},
         width = 400,
-        tooltip = "Select a PTI file to load"
+        tooltip = PakettiPolyendSuiteTooltips[4]
       },
       vb:button{
         text = "Load PTI",
         width = polyendButtonWidth,
-        tooltip = "Load the selected PTI file",
+        tooltip = PakettiPolyendSuiteTooltips[5],
         notifier = function()
           -- First check if Polyend device is still connected
           print("-- Load PTI: Checking device connection to: " .. (polyend_buddy_root_path or "Unknown"))
@@ -3232,7 +3289,7 @@ function create_polyend_buddy_dialog(vb)
       vb:button{
         text = "Open Path", 
         width = polyendButtonWidth,
-        tooltip = "Open the selected PTI file's folder in system file browser",
+        tooltip = PakettiPolyendSuiteTooltips[6],
         notifier = function()
           -- First check if Polyend device is connected
           print("-- Open PTI Path: Checking device connection to: " .. (polyend_buddy_root_path or "Unknown"))
@@ -3270,7 +3327,7 @@ function create_polyend_buddy_dialog(vb)
       vb:button{
         text = "Analyze", 
         width = polyendButtonWidth,
-        tooltip = "Analyze the selected PTI file and show detailed information (slices, format, etc.)",
+        tooltip = PakettiPolyendSuiteTooltips[7],
         notifier = function()
           -- First check if Polyend device is connected
           local path_exists = check_polyend_path_exists(polyend_buddy_root_path)
@@ -3304,7 +3361,7 @@ function create_polyend_buddy_dialog(vb)
       vb:button{
         text = "Normalize Slices", 
         width = polyendButtonWidth *1.5,
-        tooltip = "Load PTI file, normalize all slices, then save as PTI with _normalized suffix",
+        tooltip = PakettiPolyendSuiteTooltips[8],
         notifier = function()
           -- First check if Polyend device is connected
           print("-- Normalize Slices: Checking device connection to: " .. (polyend_buddy_root_path or "Unknown"))
@@ -3364,12 +3421,12 @@ function create_polyend_buddy_dialog(vb)
         id = "wav_files_popup",
         items = {"<No WAV files found, set device to USB Storage Mode and press Refresh>"},
         width = 400,
-        tooltip = "Select a WAV file to load"
+        tooltip = PakettiPolyendSuiteTooltips[9]
       },
       vb:button{
         text = "Load WAV",
         width = polyendButtonWidth,
-        tooltip = "Load the selected WAV file",
+        tooltip = PakettiPolyendSuiteTooltips[10],
         notifier = function()
           -- First check if Polyend device is still connected
           local path_exists = check_polyend_path_exists(polyend_buddy_root_path)
@@ -3405,7 +3462,7 @@ function create_polyend_buddy_dialog(vb)
       vb:button{
         text = "Open Path", 
         width = polyendButtonWidth,
-        tooltip = "Open the selected WAV file's folder in system file browser",
+        tooltip = PakettiPolyendSuiteTooltips[11],
         notifier = function()
           -- First check if Polyend device is connected
           local path_exists = check_polyend_path_exists(polyend_buddy_root_path)
@@ -3446,7 +3503,7 @@ function create_polyend_buddy_dialog(vb)
       vb:checkbox{
         id = "use_save_paths_checkbox",
         value = polyend_use_save_paths,
-        tooltip = "Use configured save paths instead of prompting for location",
+        tooltip = PakettiPolyendSuiteTooltips[12],
         notifier = function(value)
           polyend_use_save_paths = value
           save_paths_section_visible = value
@@ -3481,7 +3538,7 @@ function create_polyend_buddy_dialog(vb)
           id = "pti_save_path_textfield",
           text = polyend_pti_save_path ~= "" and polyend_pti_save_path or "<Set this Default Folder to save PTI files to your Polyend device>",
           width = 400,
-          tooltip = "Default folder for saving PTI files"
+          tooltip = PakettiPolyendSuiteTooltips[13]
         },
         vb:button{
           text = "Browse",
@@ -3504,7 +3561,7 @@ function create_polyend_buddy_dialog(vb)
         vb:button{
           text = "Open Path",
           width = polyendButtonWidth,
-          tooltip = "Open the PTI save folder in system file browser",
+          tooltip = PakettiPolyendSuiteTooltips[15],
           notifier = function()
             if not polyend_pti_save_path or polyend_pti_save_path == "" then
               renoise.app():show_status("Please configure PTI save path first.")
@@ -3533,7 +3590,7 @@ function create_polyend_buddy_dialog(vb)
           id = "wav_save_path_textfield",
           text = polyend_wav_save_path ~= "" and polyend_wav_save_path or "<Set this Default Folder to save WAV files to your Polyend device>",
           width = 400,
-          tooltip = "Default folder for saving WAV files"
+          tooltip = PakettiPolyendSuiteTooltips[16]
         },
         vb:button{
           text = "Browse",
@@ -3556,7 +3613,7 @@ function create_polyend_buddy_dialog(vb)
         vb:button{
           text = "Open Path",
           width = polyendButtonWidth,
-          tooltip = "Open the WAV save folder in system file browser",
+          tooltip = PakettiPolyendSuiteTooltips[18],
           notifier = function()
             if not polyend_wav_save_path or polyend_wav_save_path == "" then
               renoise.app():show_status("Please configure WAV save path first.")
@@ -3586,7 +3643,7 @@ function create_polyend_buddy_dialog(vb)
         id = "computer_pti_path_textfield",
         text = computer_pti_path,
         width = 400,
-        tooltip = "Path to your local folder containing PTI files"
+        tooltip = PakettiPolyendSuiteTooltips[19]
       },
       vb:button{
         text = "Browse",
@@ -3611,7 +3668,7 @@ function create_polyend_buddy_dialog(vb)
       vb:button{
         text = "Open Path",
         width = polyendButtonWidth,
-        tooltip = "Open the local PTI folder in system file browser",
+        tooltip = PakettiPolyendSuiteTooltips[21],
         notifier = function()
           -- Check if local PTI path is configured and exists
           if not computer_pti_path or computer_pti_path == "" then
@@ -3629,7 +3686,7 @@ function create_polyend_buddy_dialog(vb)
       vb:button{
         text = "Export as PTI",
         width = polyendButtonWidth,
-        tooltip = "Export the currently selected instrument as PTI file",
+        tooltip = PakettiPolyendSuiteTooltips[22],
         notifier = function()
           -- Check if we have a valid instrument and sample
           local song = renoise.song()
@@ -3657,12 +3714,12 @@ function create_polyend_buddy_dialog(vb)
         id = "computer_pti_popup",
         items = {"<Set Local PTI Path>"},
         width = 400,
-        tooltip = "Select a PTI or WAV file from your local folder to send to device"
+        tooltip = PakettiPolyendSuiteTooltips[23]
       },
       vb:button{
         text = "Send to Device",
         width = polyendButtonWidth*2,
-        tooltip = "Send the selected PTI or WAV file directly to Polyend device (choose destination folder)",
+        tooltip = PakettiPolyendSuiteTooltips[24],
         notifier = function()
           -- Check if Polyend device is connected before sending
           print("-- Send to Device: Checking device connection to: " .. (polyend_buddy_root_path or "Unknown"))
@@ -3703,7 +3760,7 @@ function create_polyend_buddy_dialog(vb)
       vb:button{
         text = "Analyze", 
         width = polyendButtonWidth,
-        tooltip = "Analyze the selected local PTI file and show detailed information (slices, format, etc.)",
+        tooltip = PakettiPolyendSuiteTooltips[25],
         notifier = function()
           local selected_index = vb.views["computer_pti_popup"].value
           
@@ -3729,7 +3786,7 @@ function create_polyend_buddy_dialog(vb)
       vb:button{
         text = "Normalize Slices", 
         width = polyendButtonWidth *1.5,
-        tooltip = "Load local PTI file, normalize all slices, then save as PTI with _normalized suffix",
+        tooltip = PakettiPolyendSuiteTooltips[26],
         notifier = function()
           local selected_index = vb.views["computer_pti_popup"].value
           
@@ -3772,7 +3829,7 @@ function create_polyend_buddy_dialog(vb)
       vb:checkbox{
         id = "use_computer_backup_checkbox",
         value = polyend_use_computer_backup,
-        tooltip = "Automatically create backup copies of saved PTI/WAV files in the local backup folder",
+        tooltip = PakettiPolyendSuiteTooltips[27],
         notifier = function(value)
           polyend_use_computer_backup = value
           backup_section_visible = value
@@ -3807,7 +3864,7 @@ function create_polyend_buddy_dialog(vb)
           id = "computer_backup_path_textfield",
           text = polyend_computer_backup_path ~= "" and polyend_computer_backup_path or "<Set this Local Folder for saving processed files to>",
           width = 400,
-          tooltip = "Default folder for backing up Polyend device to local storage"
+          tooltip = PakettiPolyendSuiteTooltips[28]
         },
         vb:button{
           text = "Browse",
@@ -3832,7 +3889,7 @@ function create_polyend_buddy_dialog(vb)
         vb:button{
           text = "Open Path",
           width = polyendButtonWidth,
-          tooltip = "Open the local backup folder in system file browser",
+          tooltip = PakettiPolyendSuiteTooltips[30],
           notifier = function()
             if not polyend_computer_backup_path or polyend_computer_backup_path == "" then
               renoise.app():show_status("Please configure local backup path first.")
@@ -3855,12 +3912,12 @@ function create_polyend_buddy_dialog(vb)
           id = "computer_backup_popup",
           items = {"<Set Local Backup Path>"},
           width = 400,
-          tooltip = "Select a PTI or WAV file from your local backup folder to send to device"
+          tooltip = PakettiPolyendSuiteTooltips[31]
         },
         vb:button{
           text = "Send to Device",
           width = polyendButtonWidth*2,
-          tooltip = "Send the selected backup PTI or WAV file directly to Polyend device (choose destination folder)",
+          tooltip = PakettiPolyendSuiteTooltips[32],
           notifier = function()
             -- Check if Polyend device is connected before sending backup
             print("-- Send Backup to Device: Checking device connection to: " .. (polyend_buddy_root_path or "Unknown"))
@@ -3901,7 +3958,7 @@ function create_polyend_buddy_dialog(vb)
         vb:button{
           text = "Analyze", 
           width = polyendButtonWidth,
-          tooltip = "Analyze the selected local backup PTI file and show detailed information (slices, format, etc.)",
+          tooltip = PakettiPolyendSuiteTooltips[33],
           notifier = function()
             local selected_index = vb.views["computer_backup_popup"].value
             
@@ -3927,7 +3984,7 @@ function create_polyend_buddy_dialog(vb)
         vb:button{
           text = "Normalize Slices", 
           width = polyendButtonWidth *1.5,
-          tooltip = "Load local backup PTI file, normalize all slices, then save as PTI with _normalized suffix",
+          tooltip = PakettiPolyendSuiteTooltips[34],
           notifier = function()
             local selected_index = vb.views["computer_backup_popup"].value
             
@@ -3970,7 +4027,7 @@ function create_polyend_buddy_dialog(vb)
       vb:button{
         text = "Save PTI",
         width = polyendButtonWidth,
-        tooltip = "Save current instrument/sample as PTI file",
+        tooltip = PakettiPolyendSuiteTooltips[35],
         notifier = function()
           -- Check if use save paths is enabled
           local use_save_paths = vb.views["use_save_paths_checkbox"].value
@@ -4032,7 +4089,7 @@ function create_polyend_buddy_dialog(vb)
       vb:button{
         text = "Save WAV",
         width = polyendButtonWidth,
-        tooltip = "Save current instrument/sample as WAV file",
+        tooltip = PakettiPolyendSuiteTooltips[36],
         notifier = function()
           -- Check if use save paths is enabled
           local use_save_paths = vb.views["use_save_paths_checkbox"].value
@@ -4095,7 +4152,7 @@ function create_polyend_buddy_dialog(vb)
       vb:button{
         text = "PTI Drumkit Mono",
         width = 130,
-        tooltip = "Combine all samples in current instrument into a single sliced mono drumkit (all samples converted to mono)",
+        tooltip = PakettiPolyendSuiteTooltips[37],
         notifier = function()
           -- Check if we should use save paths
           local use_save_paths = vb.views["use_save_paths_checkbox"].value and vb.views["pti_save_path_textfield"].text ~= ""
@@ -4130,7 +4187,7 @@ function create_polyend_buddy_dialog(vb)
       vb:button{
         text = "PTI Drumkit Stereo",
         width = 130,
-        tooltip = "Combine all samples in current instrument into a single sliced drumkit (stereo if any sample is stereo, otherwise mono)",
+        tooltip = PakettiPolyendSuiteTooltips[38],
         notifier = function()
           -- Check if we should use save paths
           local use_save_paths = vb.views["use_save_paths_checkbox"].value and vb.views["pti_save_path_textfield"].text ~= ""
@@ -4174,7 +4231,7 @@ function create_polyend_buddy_dialog(vb)
       vb:button{
         text = "Dump PTI to Device",
         width = 200,
-        tooltip = "Copy any PTI file from your computer directly to the Polyend device (no conversion)",
+        tooltip = PakettiPolyendSuiteTooltips[39],
         notifier = function()
           -- Check if Polyend device is connected before dumping
           print("-- Dump PTI: Checking device connection to: " .. (polyend_buddy_root_path or "Unknown"))
@@ -4197,7 +4254,7 @@ function create_polyend_buddy_dialog(vb)
       vb:button{
         text = "PTI→Normalize Slices→PTI",
         width = 200,
-        tooltip = "Browse for any PTI file, normalize all slices, then save with _normalized suffix",
+        tooltip = PakettiPolyendSuiteTooltips[40],
         notifier = function()
           -- Step 1: Browse for PTI file
           local source_pti = renoise.app():prompt_for_filename_to_read({"*.pti"}, "Select PTI file to normalize slices")
@@ -4248,7 +4305,7 @@ function create_polyend_buddy_dialog(vb)
       vb:button{
         text = "Load 48→Drumkit Mono",
         width = 200,
-        tooltip = "Load 48 samples manually, then generate a mono drumkit PTI",
+        tooltip = PakettiPolyendSuiteTooltips[41],
         notifier = function()
           -- Load 48 samples using the existing pitchbend drumkit loader (synchronous)
           pitchBendDrumkitLoader()
@@ -4290,7 +4347,7 @@ function create_polyend_buddy_dialog(vb)
       vb:button{
         text = "Load 48→Drumkit Stereo",
         width = 200,
-        tooltip = "Load 48 samples manually, then generate a stereo drumkit PTI",
+        tooltip = PakettiPolyendSuiteTooltips[42],
         notifier = function()
           -- Load 48 samples using the existing pitchbend drumkit loader (synchronous)
           pitchBendDrumkitLoader()
@@ -4341,7 +4398,7 @@ function create_polyend_buddy_dialog(vb)
       vb:button{
         text = "Load 48 Random→Drumkit Mono",
         width = 200,
-        tooltip = "Load 48 random samples, then generate a mono drumkit PTI",
+        tooltip = PakettiPolyendSuiteTooltips[43],
         notifier = function()
           -- Check if we should use save paths and if path is accessible upfront
           local use_save_paths = get_use_save_paths() and get_pti_save_path() ~= ""
@@ -4399,7 +4456,7 @@ function create_polyend_buddy_dialog(vb)
       vb:button{
         text = "Load 48 Random→Drumkit Stereo",
         width = 200,
-        tooltip = "Load 48 random samples, then generate a stereo drumkit PTI",
+        tooltip = PakettiPolyendSuiteTooltips[44],
         notifier = function()
           -- Check if we should use save paths and if path is accessible upfront
           local use_save_paths = get_use_save_paths() and get_pti_save_path() ~= ""
@@ -4466,7 +4523,7 @@ function create_polyend_buddy_dialog(vb)
       vb:button{
         text = "RX2→PTI",
         width = polyendButtonWidth*2,
-        tooltip = "Convert RX2 file to PTI format",
+        tooltip = PakettiPolyendSuiteTooltips[45],
         notifier = function()
           -- Call the existing RX2 to PTI conversion function
           rx2_to_pti_convert()
@@ -4484,7 +4541,7 @@ function create_polyend_buddy_dialog(vb)
       vb:button{
         text = "Backup to Folder",
         width = polyendButtonWidth*2,
-        tooltip = "Create a complete backup of the entire Polyend device folder structure including all files and hidden files",
+        tooltip = PakettiPolyendSuiteTooltips[46],
         notifier = function()
           -- Call the backup function
           backup_polyend_tracker()
@@ -4504,12 +4561,12 @@ function create_polyend_buddy_dialog(vb)
         items = {"Tracker+", "Tracker", "Mini"},
         value = 1,
         width = 140,
-        tooltip = "Select which Polyend device to get firmware for"
+        tooltip = PakettiPolyendSuiteTooltips[47]
       },
       vb:button{
         text = "Open Downloads",
         width = 130,
-        tooltip = "Open the firmware downloads page for the selected device",
+        tooltip = PakettiPolyendSuiteTooltips[48],
         notifier = function()
           local selected_device = vb.views["firmware_device_popup"].value
           local firmware_urls = {
@@ -4531,7 +4588,7 @@ function create_polyend_buddy_dialog(vb)
       vb:button{
         text = "Download Firmware",
         width = 130,
-        tooltip = "Automatically find, download and extract the latest firmware for the selected device",
+        tooltip = PakettiPolyendSuiteTooltips[49],
         notifier = function()
           local selected_device = vb.views["firmware_device_popup"].value
           local device_names = {"Tracker+", "Tracker", "Mini"}
@@ -4600,9 +4657,9 @@ function create_polyend_buddy_dialog(vb)
         width = textWidth, style="strong",font="bold"
       },
       vb:button{
-        text = "Open Polyend Palettes / Sample Packs",
+        text = "Open Polyend Palettes Website on your Browser",
         width = 400,
-        tooltip = "Open the Polyend Palettes sample packs store in your browser",
+        tooltip = PakettiPolyendSuiteTooltips[50],
         notifier = function()
           local palettes_url = "https://polyend.com/palettes/"
           print(string.format("-- Polyend Buddy: Opening Palettes store: %s", palettes_url))
@@ -4618,7 +4675,7 @@ function create_polyend_buddy_dialog(vb)
       vb:button{
         text = "Refresh",
         width = textWidth,
-        tooltip = "Rescan the folder for PTI files or reconnect Polyend device",
+        tooltip = PakettiPolyendSuiteTooltips[51],
         notifier = function()
           if polyend_buddy_root_path and polyend_buddy_root_path ~= "" then
             print("-- Polyend Buddy: Refreshing connection...")
