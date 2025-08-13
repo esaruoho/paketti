@@ -552,10 +552,11 @@ function PakettiEightOneTwentyHighlightRow(row_index)
   for i, row_elements in ipairs(rows) do
     local rc = row_elements and row_elements.row_container
     if rc then
+      -- Available row styles: plain | border | group | panel | body
       if i == row_index then
-        rc.style = "panel"  -- plain/border/group/panel/body
+        rc.style = "group" -- SELECTED: subtle outline
       else
-        rc.style = "body"   -- Not-selected rows: default/plain look
+        rc.style = "body"   -- NOT-SELECTED: light background
       end
     end
   end
@@ -1696,7 +1697,7 @@ end
   local left_controls = vb:column{labels_row, rotaries_row, toggles_labels_row, toggles_row}
 
   local row = vb:row{
-    style = "border",
+    style = "body",
     left_controls,
     vb:column{
     vb:row{number_buttons_row},
@@ -2031,7 +2032,7 @@ local randomize_all_yxx_button = vb:button{
   }
 
   -- Create Global Step Buttons
-  local step_values = {"1", "2", "4", "6", "8", "12", "16", "24", "32", "48", "64", "128", "192", "256", "384", "512", "<<", ">>"}
+  local step_values = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "24", "32", "48", "64", "128", "192", "256", "384", "512", "<<", ">>"}
   -- Add 32 to default step values if MAX_STEPS is 32
   if MAX_STEPS == 32 and not table.find(step_values, "32") then
     -- 32 is already in the list, so no need to add it
@@ -2084,6 +2085,16 @@ local randomize_all_yxx_button = vb:button{
       end
     })
   end
+
+  -- Add random stepcount button (applies random 1-16 to all rows)
+  global_step_buttons:add_child(vb:button{
+    text = "Rnd Stepcount",
+    midi_mapping = "Paketti:Paketti Groovebox 8120:Random Stepcount",
+    notifier = function()
+      if initializing then return end
+      PakettiEightOneTwentyRandomizeStepCounts()
+    end
+  })
 
 --global_controls:add_child(randomize_all_yxx_button)
   return global_controls, global_groove_controls, global_buttons, global_step_buttons
@@ -2466,6 +2477,29 @@ function set_global_steps(steps)
   
   renoise.app():show_status("All step counts set to " .. tostring(steps) .. ".")
   --renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+end
+
+-- Randomize per-row step counts between 1 and 16 and apply to all rows
+function PakettiEightOneTwentyRandomizeStepCounts()
+  if initializing then return end
+  local song = renoise.song()
+  for _, row_elements in ipairs(rows) do
+    row_elements.updating_steps = true
+    local random_steps = math.random(1, 16)
+    local track_index = track_indices[row_elements.track_popup.value]
+    local track = song:track(track_index)
+    updateTrackNameWithSteps(track, random_steps)
+    row_elements.valuebox.value = random_steps
+    if random_steps == MAX_STEPS then
+      row_elements.selected_step = nil
+    else
+      row_elements.selected_step = random_steps
+    end
+    update_row_button_colors(row_elements)
+    row_elements.updating_steps = false
+    row_elements.print_to_pattern()
+  end
+  renoise.app():show_status("Randomized step counts (1-16) for all rows.")
 end
 
 -- Function to update BPM display from observable
@@ -3178,7 +3212,12 @@ function assign_midi_mappings()
     if message:is_trigger() then reverse_all() end
   end}
 
-  local step_button_names = {"1", "2", "4", "6", "8", "12", "16", "24", "32", "48", "64", "128", "192", "256", "384", "512", "<<", ">>"}
+  -- MIDI mapping for randomizing stepcounts across all rows
+  renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120:Random Stepcount",invoke=function(message)
+    if message:is_trigger() then PakettiEightOneTwentyRandomizeStepCounts() end
+  end}
+
+  local step_button_names = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "24", "32", "48", "64", "128", "192", "256", "384", "512", "<<", ">>"}
   for _, step in ipairs(step_button_names) do
     renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120:Global Step " .. step,invoke=function(message)
       if message:is_trigger() then

@@ -1,219 +1,3 @@
--- Helper function to convert MIDI note number to note name
-function noteNumberToName(note_number)
-  local note_names = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"}
-  local octave = math.floor(note_number / 12) - 1
-  local note_index = (note_number % 12) + 1
-  return note_names[note_index] .. octave
-end
-
--- Helper function to find APC devices (APC Key 25, APC40, APC mini, etc.)
-function findAPCKey25()
-  local available_devices = renoise.Midi.available_output_devices()
-  
-  -- Look for any device containing "apc" in the name
-  for _, device_name in ipairs(available_devices) do
-    if string.find(string.lower(device_name), "apc") then
-      print("Found APC device: " .. device_name)
-      return device_name
-    end
-  end
-  
-  -- If no APC device found, show available devices for debugging
-  print("No APC device found. Available MIDI output devices:")
-  for i, device_name in ipairs(available_devices) do
-    print(string.format("[%d] => %s", i, device_name))
-  end
-  
-  return nil
-end
-
--- Sectionizer: Create sections from text input
-function PakettiSectionizer()
-  local vb = renoise.ViewBuilder()
-  local dialog = nil
-  
-  local function parseSectionText(text)
-    local sections = {}
-    local lines = {}
-    local song = renoise.song()
-    local current_pattern_rows = song.selected_pattern.number_of_lines
-    
-    -- Split text into lines
-    for line in text:gmatch("[^\r\n]+") do
-      table.insert(lines, line)
-    end
-    
-    for _, line in ipairs(lines) do
-      local trimmed = line:match("^%s*(.-)%s*$") -- Trim whitespace
-      if trimmed ~= "" then
-        -- Split by commas
-        local parts = {}
-        for part in trimmed:gmatch("([^,]+)") do
-          table.insert(parts, part:match("^%s*(.-)%s*$")) -- Trim each part
-        end
-        
-        if #parts >= 2 then
-          local section_name = parts[1]
-          local pattern_count = tonumber(parts[2])
-          local row_count = nil
-          local pattern_name_base = nil
-          
-          -- Parse optional row count (3rd parameter)
-          if parts[3] then
-            row_count = tonumber(parts[3])
-            if row_count then
-              row_count = math.floor(row_count)
-              row_count = math.max(1, math.min(512, row_count)) -- Clamp between 1-512
-            else
-              renoise.app():show_status("Invalid row count in line: " .. line)
-              return nil
-            end
-          else
-            row_count = current_pattern_rows -- Use current pattern's row count
-          end
-          
-          -- Parse optional pattern name base (4th parameter)
-          if parts[4] then
-            pattern_name_base = parts[4]
-          end
-          
-          if pattern_count and pattern_count > 0 then
-            table.insert(sections, {
-              name = section_name, 
-              count = pattern_count, 
-              rows = row_count,
-              pattern_name_base = pattern_name_base
-            })
-          else
-            renoise.app():show_status("Invalid pattern count for section: " .. section_name)
-            return nil
-          end
-        else
-          renoise.app():show_status("Invalid format in line: " .. line .. " (expected: name, count [, rows] [, pattern_name_base])")
-          return nil
-        end
-      end
-    end
-    
-    return sections
-  end
-  
-  local function createSections()
-    local text = vb.views.sectionizer_text.text
-    local sections = parseSectionText(text)
-    
-    if not sections or #sections == 0 then
-      renoise.app():show_status("No valid sections found")
-      return
-    end
-    
-    local song = renoise.song()
-    local sequencer = song.sequencer
-    local current_pos = song.selected_sequence_index -- Start from current position
-    
-    -- Create patterns and sections
-    for section_index, section in ipairs(sections) do
-      local section_start = current_pos
-      
-      -- Add the required number of patterns for this section
-      for i = 1, section.count do
-        local pattern_index
-        
-        if section_index == 1 and i == 1 then
-          -- For the first pattern of first section, use existing pattern
-          pattern_index = sequencer.pattern_sequence[current_pos]
-          if not pattern_index then
-            pattern_index = sequencer:insert_new_pattern_at(current_pos)
-          end
-        else
-          -- Create new pattern and insert it into the sequence
-          pattern_index = sequencer:insert_new_pattern_at(current_pos)
-        end
-        
-        -- Set pattern row count
-        song.patterns[pattern_index].number_of_lines = section.rows
-        
-        -- Set pattern name if specified
-        if section.pattern_name_base then
-          song.patterns[pattern_index].name = section.pattern_name_base .. tostring(i)
-        end
-        
-        current_pos = current_pos + 1
-      end
-      
-      -- Set section start flag and name at the start of this section
-      sequencer:set_sequence_is_start_of_section(section_start, true)
-      sequencer:set_sequence_section_name(section_start, section.name)
-      
-      renoise.app():show_status("Created section '" .. section.name .. "' with " .. section.count .. " patterns (" .. section.rows .. " rows each) starting at position " .. section_start)
-    end
-    
-    renoise.app():show_status("Sectionizer complete: Created " .. #sections .. " sections")
-    dialog:close()
-  end
-  
-  local dialog_content = vb:column {
-    margin = renoise.ViewBuilder.DEFAULT_DIALOG_MARGIN,
-    spacing = renoise.ViewBuilder.DEFAULT_CONTROL_SPACING,
-    
-    vb:text {
-      text = "Enter section definitions (one per line):",
-      font = "big"
-    },
-    
-    vb:text {
-      text = "Format: section_name, pattern_count [, rows] [, pattern_name_base]",
-      font = "italic"
-    },
-    
-    vb:text {
-      text = "Example:",
-      font = "italic"
-    },
-    
-    vb:multiline_textfield {
-      width = 400,
-      height = 80,
-      font = "mono",
-      text = "intro, 5, 64, hello\nbridge, 2, 128, world\nchorus, 5, 256, helloyep\noutro, 10, 512, worldyep",
-      style = "body",
-      active = false
-    },
-    
-    vb:space { height = 10 },
-    
-    vb:multiline_textfield {
-      id = "sectionizer_text",
-      width = 400,
-      height = 200,
-      font = "mono",
-      text = "intro, 5, 64, hello\nbridge, 2, 128, world\nchorus, 5, 256, helloyep\noutro, 10, 512, worldyep",
-      style = "border"
-    },
-    
-    vb:space { height = 10 },
-    
-    vb:row {
-      vb:button {
-        text = "Sectionizer",
-        width = 100,
-        notifier = createSections
-      },
-      
-      vb:button {
-        text = "Cancel",
-        width = 100,
-        notifier = function()
-          dialog:close()
-        end
-      }
-    }
-  }
-  
-  dialog = renoise.app():show_custom_dialog("Sectionizer", dialog_content, my_keyhandler_func)
-  renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
-end
-
 -- Function to control APC pads with note on/off messages
 function pakettiAPCControlPads(message_type)
   print("=== pakettiAPCControlPads called with message_type: " .. tostring(message_type) .. " ===")
@@ -457,8 +241,342 @@ renoise.tool():add_midi_mapping{name = "Paketti:APC Toggle ALL 8 Pads",invoke = 
 renoise.tool():add_midi_mapping{name = "Paketti:APC Test First 4 Pads ON",invoke = function(message) if message:is_trigger() then print("Test First 4 Pads ON triggered!") pakettiAPCControlFirstFourPads("note_on") end end}
 renoise.tool():add_midi_mapping{name = "Paketti:APC Test First 4 Pads OFF",invoke = function(message) if message:is_trigger() then print("Test First 4 Pads OFF triggered!") pakettiAPCControlFirstFourPads("note_off") end end}
 
+------------------
+
+-- Helper function to convert MIDI note number to note name
+function noteNumberToName(note_number)
+  local note_names = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"}
+  local octave = math.floor(note_number / 12) - 1
+  local note_index = (note_number % 12) + 1
+  return note_names[note_index] .. octave
+end
+
+-- Helper function to find APC devices (APC Key 25, APC40, APC mini, etc.)
+function findAPCKey25()
+  local available_devices = renoise.Midi.available_output_devices()
+  
+  -- Look for any device containing "apc" in the name
+  for _, device_name in ipairs(available_devices) do
+    if string.find(string.lower(device_name), "apc") then
+      print("Found APC device: " .. device_name)
+      return device_name
+    end
+  end
+  
+  -- If no APC device found, show available devices for debugging
+  print("No APC device found. Available MIDI output devices:")
+  for i, device_name in ipairs(available_devices) do
+    print(string.format("[%d] => %s", i, device_name))
+  end
+  
+  return nil
+end
+
+
+
+
+
+--------------
+-- Write ZT (BPM) and ZL (LPB) to the master track of a specific pattern's first line
+function PakettiSectionizerWriteZTandZLToPattern(pattern_index, bpm_value, lpb_value)
+  local song = renoise.song()
+  local master_index = get_master_track_index()
+
+  if not master_index then
+    renoise.app():show_status("Sectionizer: Could not resolve master track index")
+    return
+  end
+
+  if not song.patterns[pattern_index] then
+    renoise.app():show_status("Sectionizer: Invalid pattern index " .. tostring(pattern_index))
+    return
+  end
+
+  if bpm_value >= 256 then
+    renoise.app():show_status("Sectionizer: BPM " .. tostring(bpm_value) .. " >= 256; skipping ZT write for pattern " .. tostring(pattern_index))
+    return
+  end
+
+  if lpb_value < 1 then lpb_value = 1 end
+  if lpb_value > 255 then lpb_value = 255 end
+
+  song.tracks[master_index].visible_effect_columns = 2
+
+  local ptrack = song.patterns[pattern_index].tracks[master_index]
+  local first_line = ptrack.lines[1]
+
+  first_line.effect_columns[1].number_string = "ZT"
+  first_line.effect_columns[1].amount_value  = bpm_value
+  first_line.effect_columns[2].number_string = "ZL"
+  first_line.effect_columns[2].amount_value  = lpb_value
+end
+
+-- Sectionizer: Create sections from text input
+function PakettiSectionizer()
+  local vb = renoise.ViewBuilder()
+  local dialog = nil
+  
+  local function parseSectionText(text)
+    local sections = {}
+    local lines = {}
+    local song = renoise.song()
+    local current_pattern_rows = song.selected_pattern.number_of_lines
+    
+    -- Split text into lines
+    for line in text:gmatch("[^\r\n]+") do
+      table.insert(lines, line)
+    end
+    
+    for _, line in ipairs(lines) do
+      local trimmed = line:match("^%s*(.-)%s*$") -- Trim whitespace
+      if trimmed ~= "" then
+        -- Split by commas
+        local parts = {}
+        for part in trimmed:gmatch("([^,]+)") do
+          table.insert(parts, part:match("^%s*(.-)%s*$")) -- Trim each part
+        end
+        
+        if #parts >= 3 then
+          local section_name = parts[1]
+          local pattern_count = tonumber(parts[2])
+          local row_count = tonumber(parts[3]) or current_pattern_rows
+
+          if not pattern_count or pattern_count <= 0 then
+            renoise.app():show_status("Invalid pattern count for section: " .. section_name)
+            return nil
+          end
+
+          if not row_count then
+            renoise.app():show_status("Invalid pattern length (rows) in line: " .. line)
+            return nil
+          end
+
+          row_count = math.floor(row_count)
+          row_count = math.max(1, math.min(512, row_count))
+
+          local lpb_value = nil
+          local bpm_value = nil
+          local pattern_name_base = nil
+
+          -- Optional LPB/BPM pair. Only treat as LPB/BPM if BOTH are present and numeric.
+          if parts[4] and parts[5] and tonumber(parts[4]) and tonumber(parts[5]) then
+            lpb_value = tonumber(parts[4])
+            bpm_value = tonumber(parts[5])
+            pattern_name_base = parts[6]
+          else
+            -- No LPB/BPM given; do not write ZT/ZL. Optional 4th value becomes pattern name base.
+            pattern_name_base = parts[4]
+          end
+
+          table.insert(sections, {
+            name = section_name,
+            count = pattern_count,
+            rows = row_count,
+            lpb = lpb_value,
+            bpm = bpm_value,
+            pattern_name_base = pattern_name_base
+          })
+        else
+          renoise.app():show_status("Invalid format in line: " .. line .. " (expected: name, count, rows [, LPB, BPM] [, pattern_name_base])")
+          return nil
+        end
+      end
+    end
+    
+    return sections
+  end
+  
+  local function createSections()
+    local text = vb.views.sectionizer_text.text
+    local sections = parseSectionText(text)
+    
+    if not sections or #sections == 0 then
+      renoise.app():show_status("No valid sections found")
+      return
+    end
+    
+    local song = renoise.song()
+    local sequencer = song.sequencer
+    local current_pos = song.selected_sequence_index -- Start from current position
+    local append_info = false
+    if vb.views.sectionizer_append_info then
+      append_info = vb.views.sectionizer_append_info.value and true or false
+    end
+    
+    -- Create patterns and sections
+    for section_index, section in ipairs(sections) do
+      local section_start = current_pos
+      local suffix = ""
+      if append_info then
+        if section.bpm and section.lpb then
+          suffix = string.format(" [%d, %d&%d]", section.rows, section.lpb, section.bpm)
+        else
+          suffix = string.format(" [%d]", section.rows)
+        end
+      end
+      
+      -- Add the required number of patterns for this section
+      for i = 1, section.count do
+        local pattern_index
+        
+        if section_index == 1 and i == 1 then
+          -- For the first pattern of first section, use existing pattern
+          pattern_index = sequencer.pattern_sequence[current_pos]
+          if not pattern_index then
+            pattern_index = sequencer:insert_new_pattern_at(current_pos)
+          end
+        else
+          -- Create new pattern and insert it into the sequence
+          pattern_index = sequencer:insert_new_pattern_at(current_pos)
+        end
+        
+        -- Set pattern row count
+        song.patterns[pattern_index].number_of_lines = section.rows
+        
+        -- Set/append pattern name
+        local pname = song.patterns[pattern_index].name or ""
+        if section.pattern_name_base then
+          pname = section.pattern_name_base .. tostring(i)
+        end
+        if append_info and suffix ~= "" then
+          pname = (pname ~= "" and pname or pname) .. suffix
+        end
+        if pname ~= "" then
+          song.patterns[pattern_index].name = pname
+        end
+
+        -- Write BPM/LPB commands for this pattern only if both were provided
+        if section.bpm and section.lpb then
+          PakettiSectionizerWriteZTandZLToPattern(pattern_index, section.bpm, section.lpb)
+        end
+        
+        current_pos = current_pos + 1
+      end
+      
+      -- Set section start flag and name at the start of this section
+      sequencer:set_sequence_is_start_of_section(section_start, true)
+      if append_info and suffix ~= "" then
+        sequencer:set_sequence_section_name(section_start, section.name .. suffix)
+      else
+        sequencer:set_sequence_section_name(section_start, section.name)
+      end
+      
+      if section.bpm and section.lpb then
+        renoise.app():show_status("Created section '" .. section.name .. "' with " .. section.count .. " patterns (" .. section.rows .. " rows each, LPB=" .. tostring(section.lpb) .. ", BPM=" .. tostring(section.bpm) .. ") starting at position " .. section_start)
+      else
+        renoise.app():show_status("Created section '" .. section.name .. "' with " .. section.count .. " patterns (" .. section.rows .. " rows each) starting at position " .. section_start)
+      end
+    end
+    
+    renoise.app():show_status("Sectionizer complete: Created " .. #sections .. " sections")
+    dialog:close()
+  end
+  
+  local dialog_content = vb:column {
+    margin = renoise.ViewBuilder.DEFAULT_DIALOG_MARGIN,
+    spacing = renoise.ViewBuilder.DEFAULT_CONTROL_SPACING,
+    
+    vb:text {
+      text = "Enter section definitions (one per line):",
+      font = "big"
+    },
+    
+    vb:text {
+      text = "Format: section_name, pattern_count, rows [, LPB, BPM] [, pattern_name_base]",
+      font = "italic"
+    },
+    
+    vb:text {
+      text = "Example:",
+      font = "italic"
+    },
+    
+    vb:multiline_textfield {
+      width = 400,
+      height = 80,
+      font = "mono",
+      text = "intro, 5, 64, hello\nbridge, 2, 128, world\nchorus, 5, 256, 8, 120, helloyep\noutro, 10, 512, 8, 120, worldyep",
+      style = "body",
+      active = false
+    },
+    
+    vb:space { height = 10 },
+    
+    vb:multiline_textfield {
+      id = "sectionizer_text",
+      width = 400,
+      height = 200,
+      font = "mono",
+      text = "intro, 5, 64, hello\nbridge, 2, 128, world\nchorus, 5, 256, 8, 120, helloyep\noutro, 10, 512, 8, 120, worldyep",
+      style = "border"
+    },
+    vb:space { height = 6 },
+    vb:row {
+      vb:checkbox { id = "sectionizer_append_info", value = false },
+      vb:text { text = "Append [rows, LPB&BPM] to section and pattern names", style = "body" }
+    },
+    
+    vb:space { height = 10 },
+    
+    vb:row {
+      vb:button {
+        text = "Sectionizer",
+        width = 100,
+        notifier = createSections
+      },
+      vb:button {
+        text = "Clear",
+        width = 100,
+        notifier = function()
+          vb.views.sectionizer_text.text = ""
+          renoise.app():show_status("Sectionizer: cleared input")
+        end
+      },
+      
+      vb:button {
+        text = "Cancel",
+        width = 100,
+        notifier = function()
+          dialog:close()
+        end
+      }
+    }
+  }
+  
+  dialog = renoise.app():show_custom_dialog("Sectionizer", dialog_content, my_keyhandler_func)
+  renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
+end
+
+-- Clear all Pattern Names: sets every pattern's name to an empty string
+function PakettiPatternNamesClearAll()
+  local song = renoise.song()
+  local cleared = 0
+  local total = #song.patterns
+
+  for idx, pat in ipairs(song.patterns) do
+    if pat.name ~= nil and pat.name ~= "" then
+      pat.name = ""
+      cleared = cleared + 1
+    end
+  end
+
+  if cleared > 0 then
+    renoise.app():show_status(string.format("Cleared %d/%d pattern names", cleared, total))
+  else
+    renoise.app():show_status("No pattern names to clear")
+  end
+end
+
+
 -- Sectionizer menu entries and keybinding
 renoise.tool():add_menu_entry{name = "--Main Menu:Tools:Paketti Gadgets:Sectionizer... (⌘-OPT-S)", invoke = PakettiSectionizer}
 renoise.tool():add_menu_entry{name = "--Pattern Sequencer:Paketti Gadgets:Sectionizer...", invoke = PakettiSectionizer}
 renoise.tool():add_keybinding{name = "Global:Paketti:Sectionizer...", invoke = PakettiSectionizer}
+
+
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Patterns:Clear all Pattern Names", invoke = PakettiPatternNamesClearAll}
+renoise.tool():add_menu_entry{name = "--Pattern Sequencer:Paketti:Clear all Pattern Names", invoke = PakettiPatternNamesClearAll}
+renoise.tool():add_menu_entry{name = "--Pattern Matrix:Paketti:Pattern Tools:Clear all Pattern Names", invoke = PakettiPatternNamesClearAll}
+renoise.tool():add_menu_entry{name = "--Pattern Editor:Paketti:Pattern Tools:Clear all Pattern Names", invoke = PakettiPatternNamesClearAll}
+renoise.tool():add_keybinding{name = "Global:Paketti:Clear all Pattern Names", invoke = PakettiPatternNamesClearAll}
 ---

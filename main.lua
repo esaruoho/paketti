@@ -739,10 +739,13 @@ if renoise.API_VERSION >= 6.2 then
   timed_require("Paketti35")
   timed_require("PakettiPCMWriter")
   --timed_require("PakettiZyklusMPS1")
+  timed_require("PakettiCanvasFont")
+  timed_require("PakettiCanvasFontPreview")
   timed_require("PakettiCanvasExperiments")
   timed_require("PakettiNotepadRun")
-  timed_require("PakettiEQ10Experiment")
+  timed_require("PakettiEQ30")
   timed_require("PakettiMultitapExperiment")
+    --timed_require("PakettiPlayerProWaveformViewer")
 end
 
 --timed_require("PakettiExperimentalDialog")

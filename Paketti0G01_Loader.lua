@@ -137,6 +137,9 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   PakettiEQ30ColumnGradient=false,
   -- EQ30 automation playmode (1=Points, 2=Lines, 3=Curves)
   PakettiEQ30AutomationPlaymode=2,
+  -- EQ30 behavior preferences
+  PakettiEQ30Autofocus=true,
+  PakettiEQ30MinimizeDevices=false,
   -- Canvas Experiments automation playmode (1=Points, 2=Lines, 3=Curves)
   PakettiCanvasAutomationPlaymode=2,
   upperFramePreference=0,
@@ -1631,6 +1634,23 @@ vb:row{
                  end
                 local labels = {"File","Paketti","Both"}
                 renoise.app():show_status("Paketti File Menu Location: " .. (labels[value] or tostring(value)))
+              end}
+          },
+          vb:text{style="strong",font="bold",text="EQ30 Behavior"},
+          vb:row{
+            vb:text{text="Autofocus selected EQ10 device",width=150},
+            vb:switch{items={"False","True"},width=200,value=preferences.PakettiEQ30Autofocus.value and 2 or 1,
+              notifier=function(value)
+                preferences.PakettiEQ30Autofocus.value = (value==2)
+                preferences:save_as("preferences.xml")
+              end}
+          },
+          vb:row{
+            vb:text{text="Minimize EQ10 devices",width=150},
+            vb:switch{items={"False","True"},width=200,value=preferences.PakettiEQ30MinimizeDevices.value and 2 or 1,
+              notifier=function(value)
+                preferences.PakettiEQ30MinimizeDevices.value = (value==2)
+                preferences:save_as("preferences.xml")
               end}
           },
           vb:row{vb:text{style="strong",text="Controls whether entries are under File directly, File:Paketti submenu, or both."}},

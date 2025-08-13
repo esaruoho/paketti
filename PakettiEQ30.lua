@@ -8,12 +8,16 @@ local autofocus_enabled = true  -- Default to enabled for better UX
 local devices_minimized = false  -- Default to maximized (show full device parameters)
 local global_bandwidth = 0.12  -- Default bandwidth value (0.0001 to 1.0, smaller = sharper)
 local canvas_width = 1280
-local canvas_height = 480  -- Increased to accommodate band labels
-local content_margin = 50
-local content_width = canvas_width - (content_margin * 2)
-local content_height = canvas_height - (content_margin * 2)
-local content_x = content_margin
-local content_y = content_margin
+local canvas_height = 390  -- Increased to accommodate band labels
+-- Independent content margins
+local content_margin_x = 35  -- horizontal margin (left/right)
+local content_margin_y = 20 -- vertical margin (top/bottom)
+local content_width = canvas_width - (content_margin_x * 2)
+local content_height = canvas_height - (content_margin_y * 2)
+local content_x = content_margin_x
+local content_y = content_margin_y
+-- Vertical nudge for entire drawn content (does not change border)
+local content_y_offset = 8
 
 
 local eq30_frequencies = {
@@ -25,7 +29,7 @@ local eq30_frequencies = {
 
 
 -- Renoise EQ10 bandwidth parameter expects 0.0001 to 1 (smaller = sharper)
-local function calculate_third_octave_bandwidth(center_freq)
+function calculate_third_octave_bandwidth(center_freq)
   -- For sharp, surgical 1/3 octave bands (not fat and flabby)
   -- Renoise bandwidth: smaller values = sharper bands
   -- True 1/3 octave bandwidth ≈ 0.231, but we want sharper for precision
@@ -66,7 +70,7 @@ local create_follow_enabled = false
 local track_index_notifier = nil
 
 -- Cleanup EQ30 dialog state
-local function EQ30Cleanup()
+function EQ30Cleanup()
   -- turn off automation sync on close to avoid accidental writes next time
   follow_automation = false
   band_being_drawn = nil
@@ -101,209 +105,11 @@ local COLOR_GAIN_MARKERS = {180, 180, 180, 255}   -- Gain level markers
 local COLOR_MOUSE_CURSOR = {255, 255, 255, 255}   -- White mouse cursor
 local COLOR_BAND_LABELS = {255, 255, 255, 255}    -- White band labels
 
--- Custom text rendering system for canvas (from PakettiCanvasExperiments.lua)
-local function draw_letter_A(ctx, x, y, size)
-  ctx:begin_path()
-  ctx:move_to(x, y + size)
-  ctx:line_to(x + size/2, y)
-  ctx:line_to(x + size, y + size)
-  ctx:move_to(x + size/4, y + size/2)
-  ctx:line_to(x + 3*size/4, y + size/2)
-  ctx:stroke()
-end
-
-local function draw_digit_0(ctx, x, y, size)
-  ctx:begin_path()
-  ctx:move_to(x, y)
-  ctx:line_to(x + size, y)
-  ctx:line_to(x + size, y + size)
-  ctx:line_to(x, y + size)
-  ctx:line_to(x, y)
-  ctx:line_to(x + size, y + size)
-  ctx:stroke()
-end
-
-local function draw_digit_1(ctx, x, y, size)
-  ctx:begin_path()
-  ctx:move_to(x + size/2, y)
-  ctx:line_to(x + size/2, y + size)
-  ctx:move_to(x + size/2, y)
-  ctx:line_to(x + size/4, y + size/4)
-  ctx:stroke()
-end
-
-local function draw_digit_2(ctx, x, y, size)
-  ctx:begin_path()
-  ctx:move_to(x, y)
-  ctx:line_to(x + size, y)
-  ctx:line_to(x + size, y + size/2)
-  ctx:line_to(x, y + size/2)
-  ctx:line_to(x, y + size)
-  ctx:line_to(x + size, y + size)
-  ctx:stroke()
-end
-
-local function draw_digit_3(ctx, x, y, size)
-  ctx:begin_path()
-  ctx:move_to(x, y)
-  ctx:line_to(x + size, y)
-  ctx:line_to(x + size, y + size/2)
-  ctx:line_to(x, y + size/2)
-  ctx:move_to(x + size, y + size/2)
-  ctx:line_to(x + size, y + size)
-  ctx:line_to(x, y + size)
-  ctx:stroke()
-end
-
-local function draw_digit_4(ctx, x, y, size)
-  ctx:begin_path()
-  ctx:move_to(x, y)
-  ctx:line_to(x, y + size/2)
-  ctx:line_to(x + size, y + size/2)
-  ctx:move_to(x + size, y)
-  ctx:line_to(x + size, y + size)
-  ctx:stroke()
-end
-
-local function draw_digit_5(ctx, x, y, size)
-  ctx:begin_path()
-  ctx:move_to(x + size, y)
-  ctx:line_to(x, y)
-  ctx:line_to(x, y + size/2)
-  ctx:line_to(x + size, y + size/2)
-  ctx:line_to(x + size, y + size)
-  ctx:line_to(x, y + size)
-  ctx:stroke()
-end
-
-local function draw_digit_6(ctx, x, y, size)
-  ctx:begin_path()
-  ctx:move_to(x + size, y)
-  ctx:line_to(x, y)
-  ctx:line_to(x, y + size)
-  ctx:line_to(x + size, y + size)
-  ctx:line_to(x + size, y + size/2)
-  ctx:line_to(x, y + size/2)
-  ctx:stroke()
-end
-
-local function draw_digit_7(ctx, x, y, size)
-  ctx:begin_path()
-  ctx:move_to(x, y)
-  ctx:line_to(x + size, y)
-  ctx:line_to(x + size/2, y + size)
-  ctx:stroke()
-end
-
-local function draw_digit_8(ctx, x, y, size)
-  ctx:begin_path()
-  ctx:move_to(x, y)
-  ctx:line_to(x + size, y)
-  ctx:line_to(x + size, y + size)
-  ctx:line_to(x, y + size)
-  ctx:line_to(x, y)
-  ctx:move_to(x, y + size/2)
-  ctx:line_to(x + size, y + size/2)
-  ctx:stroke()
-end
-
-local function draw_digit_9(ctx, x, y, size)
-  ctx:begin_path()
-  ctx:move_to(x + size, y + size)
-  ctx:line_to(x + size, y)
-  ctx:line_to(x, y)
-  ctx:line_to(x, y + size/2)
-  ctx:line_to(x + size, y + size/2)
-  ctx:stroke()
-end
-
-local function draw_letter_H(ctx, x, y, size)
-  ctx:begin_path()
-  ctx:move_to(x, y)
-  ctx:line_to(x, y + size)
-  ctx:move_to(x + size, y)
-  ctx:line_to(x + size, y + size)
-  ctx:move_to(x, y + size/2)
-  ctx:line_to(x + size, y + size/2)
-  ctx:stroke()
-end
-
-local function draw_letter_Z(ctx, x, y, size)
-  ctx:begin_path()
-  ctx:move_to(x, y)
-  ctx:line_to(x + size, y)
-  ctx:line_to(x, y + size)
-  ctx:line_to(x + size, y + size)
-  ctx:stroke()
-end
-
-local function draw_letter_K(ctx, x, y, size)
-  ctx:begin_path()
-  ctx:move_to(x, y)
-  ctx:line_to(x, y + size)
-  ctx:move_to(x + size, y)
-  ctx:line_to(x, y + size/2)
-  ctx:line_to(x + size, y + size)
-  ctx:stroke()
-end
-
-local function draw_space(ctx, x, y, size)
-  -- Space character - do nothing
-end
-
-local function draw_dot(ctx, x, y, size)
-  ctx:begin_path()
-  ctx:move_to(x + size/2, y + size)
-  ctx:line_to(x + size/2, y + size - 2)
-  ctx:stroke()
-end
-
--- Draw a horizontal dash (minus sign)
-local function draw_dash(ctx, x, y, size)
-  ctx:begin_path()
-  ctx:move_to(x, y + size/2)
-  ctx:line_to(x + size, y + size/2)
-  ctx:stroke()
-end
-
--- Draw a plus sign
-local function draw_plus(ctx, x, y, size)
-  ctx:begin_path()
-  -- Vertical
-  ctx:move_to(x + size/2, y)
-  ctx:line_to(x + size/2, y + size)
-  -- Horizontal
-  ctx:move_to(x, y + size/2)
-  ctx:line_to(x + size, y + size/2)
-  ctx:stroke()
-end
-
--- Letter lookup table (subset for numbers and frequency labels)
-local letter_functions = {
-  A = draw_letter_A, H = draw_letter_H, Z = draw_letter_Z, K = draw_letter_K,
-  ["0"] = draw_digit_0, ["1"] = draw_digit_1, ["2"] = draw_digit_2, ["3"] = draw_digit_3,
-  ["4"] = draw_digit_4, ["5"] = draw_digit_5, ["6"] = draw_digit_6, ["7"] = draw_digit_7,
-  ["8"] = draw_digit_8, ["9"] = draw_digit_9, [" "] = draw_space, ["."] = draw_dot,
-  ["-"] = draw_dash, ["+"] = draw_plus
-}
-
--- Function to draw text on canvas
-local function draw_canvas_text(ctx, text, x, y, size)
-  local current_x = x
-  local letter_spacing = size * 1.2
-  
-  for i = 1, #text do
-    local char = text:sub(i, i):upper()
-    local letter_func = letter_functions[char]
-    if letter_func then
-      letter_func(ctx, current_x, y, size)
-    end
-    current_x = current_x + letter_spacing
-  end
-end
+-- Shared canvas font (moved to PakettiCanvasFont.lua)
+-- Use PakettiCanvasFontLetterFunctions for per-character drawing and PakettiCanvasFontDrawText for strings
 
 -- Convert frequency to canvas X position (logarithmic scale)
-local function freq_to_x(frequency)
+function freq_to_x(frequency)
   local log_min = math.log10(eq30_frequencies[1])      -- 25 Hz
   local log_max = math.log10(eq30_frequencies[#eq30_frequencies])  -- 20 kHz
   local log_freq = math.log10(frequency)
@@ -312,7 +118,7 @@ local function freq_to_x(frequency)
 end
 
 -- Convert canvas X position to frequency (logarithmic scale)
-local function x_to_freq(x)
+function x_to_freq(x)
   local normalized = (x - content_x) / content_width
   normalized = math.max(0, math.min(1, normalized))
   local log_min = math.log10(eq30_frequencies[1])
@@ -322,21 +128,21 @@ local function x_to_freq(x)
 end
 
 -- Convert gain to canvas Y position (EQ10 full range: -20dB to +20dB)
-local function gain_to_y(gain_db)
+function gain_to_y(gain_db)
   local normalized = (gain_db + 20) / 40  -- -20 to +20 dB range (EQ10 maximum)
   normalized = math.max(0, math.min(1, normalized))
-  return content_y + content_height - (normalized * content_height)
+  return (content_y - content_y_offset) + content_height - (normalized * content_height)
 end
 
 -- Convert canvas Y position to gain (EQ10 full range: -20dB to +20dB)
-local function y_to_gain(y)
-  local normalized = 1 - ((y - content_y) / content_height)
+function y_to_gain(y)
+  local normalized = 1 - ((y - (content_y - content_y_offset)) / content_height)
   normalized = math.max(0, math.min(1, normalized))
   return (normalized * 40) - 20  -- -20 to +20 dB range (EQ10 maximum)
 end
 
 -- Find nearest EQ band for a given frequency
-local function find_nearest_band(frequency)
+function find_nearest_band(frequency)
   local nearest_index = 1
   local min_distance = math.abs(math.log10(frequency) - math.log10(eq30_frequencies[1]))
   
@@ -356,7 +162,7 @@ end
 -- Parameters set directly in device creation - no separate function needed!
 
 -- Debug: Show current parameter values of an EQ10 device (for troubleshooting)
-local function debug_eq_device_parameters(device, device_name)
+function debug_eq_device_parameters(device, device_name)
   print("=== " .. device_name .. " Parameters ===")
   print("Gains (1-10):")
   for i = 1, 10 do
@@ -379,7 +185,7 @@ local function debug_eq_device_parameters(device, device_name)
 end
 
 -- Live update EQ10 device GAIN parameter for specific band (only middle bands 2-9)
-local function update_eq_device_parameter(band_index, gain_value)
+function update_eq_device_parameter(band_index, gain_value)
   local song = renoise.song()
   if not song or not song.selected_track then
     return
@@ -429,8 +235,6 @@ local function update_eq_device_parameter(band_index, gain_value)
   
   -- Autofocus the selected EQ10 device if enabled
   if autofocus_enabled and target_device_index then
-    print(string.format("AUTOFOCUS DEBUG: Band %d → Device %d → Track Device Index %d", band_index, device_num, target_device_index))
-    
     -- SAFETY: Double-check we have a valid song object before setting device index
     local success, error_msg = pcall(function()
       if song and song.selected_device_index ~= nil then
@@ -439,10 +243,6 @@ local function update_eq_device_parameter(band_index, gain_value)
         -- Make sure lower frame is visible and shows device chain
         renoise.app().window.lower_frame_is_visible = true
         renoise.app().window.active_lower_frame = renoise.ApplicationWindow.LOWER_FRAME_TRACK_DSPS
-        
-        print(string.format("Autofocus: Selected EQ30 Device %d at track index %d", device_num, target_device_index))
-      else
-        print("AUTOFOCUS ERROR: Invalid song object")
       end
     end)
     
@@ -455,7 +255,7 @@ local function update_eq_device_parameter(band_index, gain_value)
 end
 
 -- Helper: get parameter object for band index (for automation writes)
-local function get_parameter_for_band(band_index)
+function get_parameter_for_band(band_index)
   local song = renoise.song()
   if not song or not song.selected_track then return nil end
   local track = song.selected_track
@@ -485,7 +285,7 @@ local function get_parameter_for_band(band_index)
 end
 
 -- Automation: write single parameter at current line
-local function write_parameter_to_automation(parameter, value, skip_select)
+function write_parameter_to_automation(parameter, value, skip_select)
   if not parameter then return end
   local song = renoise.song()
   local current_line = song.selected_line_index
@@ -507,7 +307,7 @@ local function write_parameter_to_automation(parameter, value, skip_select)
 end
 
 -- Automation: snapshot all bands to current line
-local function snapshot_all_bands_to_automation()
+function snapshot_all_bands_to_automation()
   local written = 0
   for i = 1, #eq30_frequencies do
     local parameter = get_parameter_for_band(i)
@@ -520,7 +320,7 @@ local function snapshot_all_bands_to_automation()
 end
 
 -- Automation: clear all automation for EQ30 bands on selected track
-local function clear_all_eq30_automation()
+function clear_all_eq30_automation()
   local song = renoise.song()
   if not song or not song.selected_track then return end
   local track_index = song.selected_track_index
@@ -538,7 +338,7 @@ local function clear_all_eq30_automation()
 end
 
 -- Automation: clean & snap (clear all then write line 1 snapshot)
-local function clean_and_snap_all_bands()
+function clean_and_snap_all_bands()
   local song = renoise.song()
   if not song or not song.selected_track then return end
   local track_index = song.selected_track_index
@@ -566,7 +366,7 @@ local function clean_and_snap_all_bands()
 end
 
 -- Set playmode for ALL EQ30 envelopes on the selected track (existing envelopes only)
-local function eq30_set_automation_playmode(mode)
+function eq30_set_automation_playmode(mode)
   local song = renoise.song()
   if not song or not song.selected_track then return end
   local track_index = song.selected_track_index
@@ -592,7 +392,7 @@ local function eq30_set_automation_playmode(mode)
 end
 
 -- Show automation envelope for specific EQ band and reveal Automation frame
-local function show_automation_for_band(band_index)
+function show_automation_for_band(band_index)
   local parameter = get_parameter_for_band(band_index)
   if not parameter then return end
   local song = renoise.song()
@@ -602,7 +402,7 @@ local function show_automation_for_band(band_index)
 end
 
 -- Remove all observers used for EQ30 automation following
-local function remove_eq_param_observers()
+function remove_eq_param_observers()
   for parameter, observer in pairs(eq_param_observers) do
     pcall(function()
       if parameter and parameter.value_observable and parameter.value_observable:has_notifier(observer) then
@@ -614,7 +414,7 @@ local function remove_eq_param_observers()
 end
 
 -- Install observers so canvas follows automation and device changes
-local function setup_eq_param_observers()
+function setup_eq_param_observers()
   remove_eq_param_observers()
   local song = renoise.song()
   if not song or not song.selected_track then return end
@@ -647,7 +447,7 @@ local function setup_eq_param_observers()
 end
 
 -- Ensure EQ10 devices exist on track (auto-create if needed)
-local function ensure_eq_devices_exist()
+function ensure_eq_devices_exist()
   local song = renoise.song()
   if not song or not song.selected_track then
     return false
@@ -674,7 +474,7 @@ local function ensure_eq_devices_exist()
 end
 
 -- Check if EQ10 devices are present on the selected track
-local function check_eq_devices_status()
+function check_eq_devices_status()
   local song = renoise.song()
   if not song or not song.selected_track then
     return false, "No track selected"
@@ -699,7 +499,7 @@ local function check_eq_devices_status()
 end
 
 -- Minimize/Maximize all EQ10 devices on the track
-local function toggle_eq_devices_size()
+function toggle_eq_devices_size()
   local song = renoise.song()
   if not song or not song.selected_track then
     renoise.app():show_status("No track selected")
@@ -726,7 +526,7 @@ local function toggle_eq_devices_size()
 end
 
 -- Update global bandwidth (Q) for all EQ bands across all devices
-local function update_global_bandwidth(bandwidth_value)
+function update_global_bandwidth(bandwidth_value)
   local song = renoise.song()
   if not song or not song.selected_track then
     return
@@ -757,7 +557,7 @@ local function update_global_bandwidth(bandwidth_value)
 end
 
 -- Randomize EQ curve with different patterns
-local function randomize_eq_curve(pattern_type)
+function randomize_eq_curve(pattern_type)
   local song = renoise.song()
   if not song or not song.selected_track then
     return
@@ -817,7 +617,7 @@ local function randomize_eq_curve(pattern_type)
 end
 
 -- Update status text based on EQ device presence
-local function update_eq_status()
+function update_eq_status()
   if not eq_dialog or not eq_dialog.visible then return end
   
   local has_eq, status_msg = check_eq_devices_status()
@@ -968,7 +768,7 @@ function apply_eq30_to_track()
 end
 
 -- Draw the EQ canvas
-local function draw_eq_canvas(ctx)
+function draw_eq_canvas(ctx)
   local w, h = canvas_width, canvas_height
   
   -- Clear canvas
@@ -992,12 +792,10 @@ local function draw_eq_canvas(ctx)
   for i = 0, #eq30_frequencies do
     local x = content_x + (i * band_width)
     ctx:begin_path()
-    ctx:move_to(x, content_y)
-    ctx:line_to(x, content_y + content_height)
+    ctx:move_to(x, content_y - content_y_offset)
+    ctx:line_to(x, (content_y - content_y_offset) + content_height)
     ctx:stroke()
   end
-  
-  -- Device split guides removed per UX preference
   
   -- Draw gain markers exactly at {-20,-12,-6,-3,0,+3,+6,+12,+20}
   ctx.stroke_color = COLOR_GAIN_MARKERS
@@ -1071,7 +869,7 @@ local function draw_eq_canvas(ctx)
       -- Draw frequency name vertically (rotated text effect - EXACTLY like PakettiCanvasExperiments.lua)
       local bar_center_x = bar_x + (bar_width / 2)
       local text_size = math.max(4, math.min(12, bar_width * 0.6))
-      local text_start_y = content_y + 15 - math.floor(text_size * 0.5)  -- lift by ~0.5 char
+      local text_start_y = (content_y - content_y_offset) + 15 - math.floor(text_size * 0.5)  -- lift by ~0.5 char
       
       -- Draw each character of the frequency name vertically (COPIED from PakettiCanvasExperiments.lua)
       local letter_spacing = text_size + 4  -- Add 4 pixels between letters for better readability
@@ -1084,8 +882,8 @@ local function draw_eq_canvas(ctx)
       for char_index = 1, #freq_text do
         local char = freq_text:sub(char_index, char_index)
         local char_y = text_start_y + (char_index - 1) * letter_spacing
-        if char_y < content_y + content_height - text_size - 5 then  -- Don't draw outside content area
-          local char_func = letter_functions[char:upper()]
+        if char_y < (content_y - content_y_offset) + content_height - text_size - 5 then  -- Don't draw outside content area
+          local char_func = PakettiCanvasFontLetterFunctions[char:upper()]
           if char_func then
             char_func(ctx, bar_center_x - text_size/2, char_y, text_size)
           end
@@ -1104,12 +902,13 @@ local function draw_eq_canvas(ctx)
   for i, freq in ipairs(eq30_frequencies) do
     local band_x = content_x + (i - 1) * band_width
     local bar_center_x = band_x + (band_width / 2)
-    local label_y_start = content_y + content_height + 10  -- Below the main content
+    -- Allow vertical tweak of bottom band number labels via content_y_offset
+    local label_y_start = (content_y - content_y_offset) + content_height + 10
     
     -- Draw ALL band numbers (01-30) below each column
     local band_text = string.format("%02d", i)  -- 01, 02, 03, ..., 30
     local text_size = math.max(3, math.min(6, band_width * 0.4))  -- Scale text to fit narrow columns
-    draw_canvas_text(ctx, band_text, bar_center_x - (#band_text * text_size/3), label_y_start, text_size)
+    PakettiCanvasFontDrawText(ctx, band_text, bar_center_x - (#band_text * text_size/3), label_y_start, text_size)
   end
   
   -- Side dB labels at left and right edges for measurement feel (+/-20, +/-12, +/-6, +/-3) – ensure only drawn once
@@ -1130,17 +929,17 @@ local function draw_eq_canvas(ctx)
     local est_w = (#text * label_size) / 3
     local left_x = content_x - est_w - 20
     local right_x = content_x + content_width + 8
-    draw_canvas_text(ctx, text, left_x, y, label_size)
-    draw_canvas_text(ctx, text, right_x, y, label_size)
+    PakettiCanvasFontDrawText(ctx, text, left_x, y, label_size)
+    PakettiCanvasFontDrawText(ctx, text, right_x, y, label_size)
   end
 
   -- Corner min/max labels removed per request
   
-  -- Draw content area border
+  -- Draw content area border (shifted with vertical offset)
   ctx.stroke_color = {80, 80, 120, 255}
   ctx.line_width = 2
   ctx:begin_path()
-  ctx:rect(content_x, content_y, content_width, content_height)
+  ctx:rect(content_x, content_y - content_y_offset, content_width, content_height)
   ctx:stroke()
   
   -- Draw overall canvas border
@@ -1177,7 +976,7 @@ local function draw_eq_canvas(ctx)
 end
 
 -- Handle mouse interaction for EQ curve drawing
-local function handle_eq_mouse(ev)
+function handle_eq_mouse(ev)
   local w, h = canvas_width, canvas_height
   
   if ev.type == "exit" then
@@ -1201,15 +1000,19 @@ local function handle_eq_mouse(ev)
     end
   end
 
-  -- Check if mouse is within content area
-  local mouse_in_content = ev.position.x >= content_x and ev.position.x <= (content_x + content_width) and 
-                          ev.position.y >= content_y and ev.position.y <= (content_y + content_height)
+  -- Check if mouse is within content area (respect vertical offset so hotspots match visuals)
+  -- Allow some leniency outside the content vertically for better drawing UX
+  local content_top = (content_y - content_y_offset) - 12
+  local content_bottom = (content_y - content_y_offset) + content_height + 12
+  local mouse_in_content = ev.position.x >= content_x - 6 and ev.position.x <= (content_x + content_width + 6) and 
+                          ev.position.y >= content_top and ev.position.y <= content_bottom
   
   if not mouse_in_content and ev.type ~= "up" then
     return
   end
   
   local x = ev.position.x
+  -- Use raw mouse Y; y_to_gain already compensates for content_y_offset
   local y = ev.position.y
   
   -- Update mouse tracking
@@ -1270,9 +1073,9 @@ local function handle_eq_mouse(ev)
         device_num = 4
         band_in_device = band_index - 24
       end
+      -- Minimal status update without debug spam
       local eq_param_num = band_in_device + 1  -- Maps to params 2-9
-      local autofocus_indicator = autofocus_enabled and " [FOCUS]" or ""
-      renoise.app():show_status(string.format("LIVE EQ30: Device %d, Param %d (%.0f Hz): %.1f dB%s", device_num, eq_param_num, eq30_frequencies[band_index], eq_gains[band_index], autofocus_indicator))
+      renoise.app():show_status(string.format("LIVE EQ30: %.0f Hz: %.1f dB", eq30_frequencies[band_index], eq_gains[band_index]))
     end
   elseif ev.type == "move" and mouse_is_down then
     if mouse_in_content then
@@ -1315,9 +1118,8 @@ local function handle_eq_mouse(ev)
         device_num = 4
         band_in_device = band_index - 24
       end
-      local eq_param_num = band_in_device + 1  -- Maps to params 2-9
-      local autofocus_indicator = autofocus_enabled and " [FOCUS]" or ""
-      renoise.app():show_status(string.format("LIVE EQ30: Device %d, Param %d (%.0f Hz): %.1f dB%s", device_num, eq_param_num, eq30_frequencies[band_index], eq_gains[band_index], autofocus_indicator))
+      local eq_param_num = band_in_device + 1
+      renoise.app():show_status(string.format("LIVE EQ30: %.0f Hz: %.1f dB", eq30_frequencies[band_index], eq_gains[band_index]))
     end
   elseif ev.type == "up" and ev.button == "left" then
     mouse_is_down = false
@@ -1331,7 +1133,7 @@ local function handle_eq_mouse(ev)
 end
 
 -- Key handler function (using user's preferred pattern)
-local function my_keyhandler_func(dialog, key)
+function my_keyhandler_func(dialog, key)
   if key.modifiers == "command" and key.name == "h" then
     if eq_dialog then
       eq_dialog:close()
@@ -1344,7 +1146,7 @@ local function my_keyhandler_func(dialog, key)
 end
 
 -- Reset EQ to flat response (BOTH canvas AND actual EQ10 device parameters) - NO AUTOFOCUS
-local function reset_eq_flat()
+function reset_eq_flat()
   local song = renoise.song()
   if not song or not song.selected_track then
     renoise.app():show_status("No track selected")
@@ -1387,7 +1189,7 @@ local function reset_eq_flat()
 end
 
 -- Auto-load existing EQ settings when dialog opens (silent operation - makes it "just work")
-local function auto_load_existing_eq_settings()
+function auto_load_existing_eq_settings()
   local song = renoise.song()
   if not song or not song.selected_track then
     return
@@ -1437,7 +1239,7 @@ local function auto_load_existing_eq_settings()
 end
 
 -- Load EQ curve from current track devices
-local function load_eq_from_track()
+function load_eq_from_track()
   local song = renoise.song()
   if not song or not song.selected_track then
     renoise.app():show_status("No track selected")
@@ -1490,7 +1292,7 @@ local function load_eq_from_track()
 end
 
 -- Create the main EQ dialog
-local function create_eq_dialog()
+function create_eq_dialog()
   if eq_dialog and eq_dialog.visible then
     pcall(function() EQ30Cleanup() end)
     eq_dialog:close()
@@ -1553,12 +1355,12 @@ local function create_eq_dialog()
         id = "eq30_follow_automation_button",
         text = "Automation Sync: OFF",
         width = 170,
-        color = {64, 200, 64},
+        color = {96, 96, 96},
         notifier = function()
           follow_automation = not follow_automation
           if vb.views.eq30_follow_automation_button then
             vb.views.eq30_follow_automation_button.text = follow_automation and "Automation Sync: ON" or "Automation Sync: OFF"
-            vb.views.eq30_follow_automation_button.color = follow_automation and {255, 64, 64} or {64, 200, 64}
+            vb.views.eq30_follow_automation_button.color = follow_automation and {0, 120, 0} or {96, 96, 96}
           end
           renoise.song().transport.follow_player = follow_automation
           renoise.app():show_status("Automation Sync " .. (follow_automation and "ON" or "OFF"))
@@ -1629,13 +1431,13 @@ local function create_eq_dialog()
         id = "eq30_create_follow_button",
         text = "Create/Follow: OFF",
         width = 140,
-        color = {64, 200, 64},
+        color = {96, 96, 96},
         tooltip = "When ON: follow selected track, auto-load its EQ30; if missing, click canvas to create",
         notifier = function()
           create_follow_enabled = not create_follow_enabled
           if vb.views.eq30_create_follow_button then
             vb.views.eq30_create_follow_button.text = create_follow_enabled and "Create/Follow: ON" or "Create/Follow: OFF"
-            vb.views.eq30_create_follow_button.color = create_follow_enabled and {255, 64, 64} or {64, 200, 64}
+            vb.views.eq30_create_follow_button.color = create_follow_enabled and {0, 120, 0} or {96, 96, 96}
           end
           local song = renoise.song()
           if create_follow_enabled and song and song.selected_track_index_observable then
@@ -1744,42 +1546,7 @@ local function create_eq_dialog()
         end
       }
     },
-    vb:row {
-      vb:checkbox {
-        id = "autofocus_checkbox",
-        value = autofocus_enabled,
-        width = 20,
-        tooltip = "Automatically focus the EQ10 device being modified in the lower frame",
-        notifier = function(value)
-          autofocus_enabled = value
-          local status_text = autofocus_enabled and "enabled" or "disabled"
-          renoise.app():show_status(string.format("EQ10 device autofocus %s", status_text))
-        end
-      },
-      vb:text {
-        text = "Autofocus selected EQ10 device",
-        tooltip = "When enabled, automatically shows the EQ10 device being modified in the lower frame"
-      },
-    -- Minimize/Maximize devices option
-      vb:checkbox {
-        id = "minimize_devices_checkbox",
-        value = devices_minimized,
-        width = 20,
-        tooltip = "Minimize or maximize all EQ10 devices to save screen space",
-        notifier = function(value)
-          devices_minimized = value
-          toggle_eq_devices_size()
-        end
-      },
-      vb:text {
-        text = "Minimize EQ10 devices",
-        tooltip = "When enabled, minimizes all EQ10 devices to save screen space and focus on the canvas"
-      }
-    },
-    
-    -- Global Q controls moved to top control row
-    
-    
+
   }
   
   eq_dialog = renoise.app():show_custom_dialog("Paketti EQ30 with Automation Controls",dialog_content,my_keyhandler_func)
@@ -1788,14 +1555,13 @@ local function create_eq_dialog()
   -- Ensure Renoise grabs keyboard focus for the middle frame after opening the dialog
   renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
   
-  -- Initialize autofocus checkbox state
-  if vb.views.autofocus_checkbox then
-    vb.views.autofocus_checkbox.value = autofocus_enabled
+  -- Apply preferences for autofocus/minimize from global preferences
+  if preferences and preferences.PakettiEQ30Autofocus ~= nil then
+    autofocus_enabled = preferences.PakettiEQ30Autofocus.value and true or false
   end
-  
-  -- Initialize minimize devices checkbox state
-  if vb.views.minimize_devices_checkbox then
-    vb.views.minimize_devices_checkbox.value = devices_minimized
+  if preferences and preferences.PakettiEQ30MinimizeDevices ~= nil then
+    devices_minimized = preferences.PakettiEQ30MinimizeDevices.value and true or false
+    toggle_eq_devices_size()
   end
   
   -- Initialize global bandwidth slider state
@@ -1837,7 +1603,7 @@ local function create_eq_dialog()
   -- Ensure toggle reflects actual follow_automation state on open
   if vb.views.eq30_follow_automation_button then
     vb.views.eq30_follow_automation_button.text = follow_automation and "Automation Sync: ON" or "Automation Sync: OFF"
-    vb.views.eq30_follow_automation_button.color = follow_automation and {255, 64, 64} or {64, 200, 64}
+    vb.views.eq30_follow_automation_button.color = follow_automation and {0, 120, 0} or {96, 96, 96}
   end
 
   -- No closed_observable on Dialog in current API; cleanup is done on manual Close and before re-open
@@ -1897,7 +1663,7 @@ function PakettiEQ30ShowAndFollow()
   create_follow_enabled = true
   if vb and vb.views and vb.views.eq30_create_follow_button then
     vb.views.eq30_create_follow_button.text = "Create/Follow: ON"
-    vb.views.eq30_create_follow_button.color = {255, 64, 64}
+    vb.views.eq30_create_follow_button.color = {0, 120, 0}
   end
 
   if song.selected_track_index_observable then
