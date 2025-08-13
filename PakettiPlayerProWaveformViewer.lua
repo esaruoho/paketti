@@ -867,82 +867,84 @@ function PakettiPPWV_RenderCanvas(ctx)
   -- Draw events as waveforms
   for i = 1, #PakettiPPWV_events do
     local ev = PakettiPPWV_events[i]
+    local should_draw = true
     if PakettiPPWV_show_only_selected_track and ev.track_index ~= selected_track then
-      goto continue_event
+      should_draw = false
     end
-    local lane_idx = PakettiPPWV_show_only_selected_track and 1 or ev.track_index
-    local lane_top = (lane_idx - 1) * lane_height
-    local lane_mid = lane_top + lane_height / 2
-    local x1 = PakettiPPWV_LineDelayToX(ev.start_line, ev.start_delay or 0, num_lines)
-    local x2 = PakettiPPWV_LineDelayToX(ev.end_line, 0, num_lines)
-    if x2 < x1 + 1 then x2 = x1 + 1 end
-    local cache = nil
-    if ev.sample_index and ev.instrument_index and song.instruments[ev.instrument_index] then
-      local instr = song.instruments[ev.instrument_index]
-      if instr.samples[ev.sample_index] and instr.samples[ev.sample_index].sample_buffer and instr.samples[ev.sample_index].sample_buffer.has_sample_data then
-        cache = PakettiPPWV_GetCachedWaveform(ev.instrument_index, ev.sample_index)
-      end
-    end
-    if cache then
-      -- Color: selected vs normal
-      if ev.id == PakettiPPWV_selected_event_id or (PakettiPPWV_selected_ids and PakettiPPWV_selected_ids[ev.id]) then
-        ctx.stroke_color = {255,200,120,255}
-        ctx.line_width = 2
-      else
-        ctx.stroke_color = {100,255,150,200}
-        ctx.line_width = 1
-      end
-      ctx:begin_path()
-      local width = x2 - x1
-      local points = #cache
-      for px = 0, math.floor(width) do
-        local u = (px / math.max(1, width))
-        local idx = math.floor(u * (points - 1)) + 1
-        if idx < 1 then idx = 1 end
-        if idx > points then idx = points end
-        local sample_v = cache[idx]
-        local y = lane_mid - (sample_v * (lane_height * 0.45))
-        local x = x1 + px
-        if px == 0 then
-          if not is_vertical then ctx:move_to(x, y) else ctx:move_to(x, y) end
-        else
-          if not is_vertical then ctx:line_to(x, y) else ctx:line_to(x, y) end
+    if should_draw then
+      local lane_idx = PakettiPPWV_show_only_selected_track and 1 or ev.track_index
+      local lane_top = (lane_idx - 1) * lane_height
+      local lane_mid = lane_top + lane_height / 2
+      local x1 = PakettiPPWV_LineDelayToX(ev.start_line, ev.start_delay or 0, num_lines)
+      local x2 = PakettiPPWV_LineDelayToX(ev.end_line, 0, num_lines)
+      if x2 < x1 + 1 then x2 = x1 + 1 end
+      local cache = nil
+      if ev.sample_index and ev.instrument_index and song.instruments[ev.instrument_index] then
+        local instr = song.instruments[ev.instrument_index]
+        if instr.samples[ev.sample_index] and instr.samples[ev.sample_index].sample_buffer and instr.samples[ev.sample_index].sample_buffer.has_sample_data then
+          cache = PakettiPPWV_GetCachedWaveform(ev.instrument_index, ev.sample_index)
         end
       end
-      ctx:stroke()
-
-      -- Optional labels above the start of the waveform
-      if PakettiPPWV_show_labels then
-        local instr = song.instruments[ev.instrument_index]
-        local sample = instr and instr.samples and instr.samples[ev.sample_index]
-        local instr_num = string.format("%02d", ev.instrument_index)
-        local sample_name = sample and (sample.name ~= "" and sample.name or ("Sample " .. tostring(ev.sample_index))) or "Sample"
-        -- Attempt to read note from start line/column for clarity
-        local note_txt = ""
-        local ptrack = patt:track(ev.track_index)
-        local ln = ptrack:line(ev.start_line)
-        if ln and ln.note_columns and ln.note_columns[ev.column_index] then
-          local nc = ln.note_columns[ev.column_index]
-          if not nc.is_empty and nc.note_value and nc.note_value <= 119 then
-            -- Convert to simple C/D/E form
-            local names = {"C-","C#","D-","D#","E-","F-","F#","G-","G#","A-","A#","B-"}
-            local oct = math.floor(nc.note_value/12)
-            local n = names[(nc.note_value%12)+1] .. tostring(oct)
-            note_txt = n
+      if cache then
+        -- Color: selected vs normal
+        if ev.id == PakettiPPWV_selected_event_id or (PakettiPPWV_selected_ids and PakettiPPWV_selected_ids[ev.id]) then
+          ctx.stroke_color = {255,200,120,255}
+          ctx.line_width = 2
+        else
+          ctx.stroke_color = {100,255,150,200}
+          ctx.line_width = 1
+        end
+        ctx:begin_path()
+        local width = x2 - x1
+        local points = #cache
+        for px = 0, math.floor(width) do
+          local u = (px / math.max(1, width))
+          local idx = math.floor(u * (points - 1)) + 1
+          if idx < 1 then idx = 1 end
+          if idx > points then idx = points end
+          local sample_v = cache[idx]
+          local y = lane_mid - (sample_v * (lane_height * 0.45))
+          local x = x1 + px
+          if px == 0 then
+            if not is_vertical then ctx:move_to(x, y) else ctx:move_to(x, y) end
+          else
+            if not is_vertical then ctx:line_to(x, y) else ctx:line_to(x, y) end
           end
         end
-        local label = instr_num .. " " .. sample_name
-        if note_txt ~= "" then label = label .. " (" .. note_txt .. ")" end
-        ctx.stroke_color = {220,220,220,255}
-        ctx.line_width = 1
-        if not is_vertical then
-          PakettiPPWV_DrawText(ctx, label, x1 + 2, lane_top + 2, 7)
-        else
-          PakettiPPWV_DrawText(ctx, label, lane_top + 2, x1 + 2, 7)
+        ctx:stroke()
+
+        -- Optional labels above the start of the waveform
+        if PakettiPPWV_show_labels then
+          local instr = song.instruments[ev.instrument_index]
+          local sample = instr and instr.samples and instr.samples[ev.sample_index]
+          local instr_num = string.format("%02d", ev.instrument_index)
+          local sample_name = sample and (sample.name ~= "" and sample.name or ("Sample " .. tostring(ev.sample_index))) or "Sample"
+          -- Attempt to read note from start line/column for clarity
+          local note_txt = ""
+          local ptrack = patt:track(ev.track_index)
+          local ln = ptrack:line(ev.start_line)
+          if ln and ln.note_columns and ln.note_columns[ev.column_index] then
+            local nc = ln.note_columns[ev.column_index]
+            if not nc.is_empty and nc.note_value and nc.note_value <= 119 then
+              -- Convert to simple C/D/E form
+              local names = {"C-","C#","D-","D#","E-","F-","F#","G-","G#","A-","A#","B-"}
+              local oct = math.floor(nc.note_value/12)
+              local n = names[(nc.note_value%12)+1] .. tostring(oct)
+              note_txt = n
+            end
+          end
+          local label = instr_num .. " " .. sample_name
+          if note_txt ~= "" then label = label .. " (" .. note_txt .. ")" end
+          ctx.stroke_color = {220,220,220,255}
+          ctx.line_width = 1
+          if not is_vertical then
+            PakettiPPWV_DrawText(ctx, label, x1 + 2, lane_top + 2, 7)
+          else
+            PakettiPPWV_DrawText(ctx, label, lane_top + 2, x1 + 2, 7)
+          end
         end
       end
     end
-    ::continue_event::
   end
 
   -- Playback cursor
