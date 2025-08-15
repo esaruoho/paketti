@@ -257,6 +257,18 @@ function loadnative(effect, name, preset_path, force_insertion_order, silent)
     name = nil
   end
 
+  -- Backward-compatible overload handling for: loadnative(effect, insertion_index_number, in_sample_fx_boolean, ...)
+  local insertion_index_override = nil
+  local force_in_sample_fx = nil
+  if type(name) == "number" then
+    insertion_index_override = name
+    name = nil
+  end
+  if type(preset_path) == "boolean" then
+    force_in_sample_fx = preset_path
+    preset_path = nil
+  end
+
   -- Define blacklists for different track types
   local master_blacklist={"Audio/Effects/Native/*Key Tracker", "Audio/Effects/Native/*Velocity Tracker", "Audio/Effects/Native/#Send", "Audio/Effects/Native/#Multiband Send", "Audio/Effects/Native/#Sidechain"}
   local send_blacklist={"Audio/Effects/Native/*Key Tracker", "Audio/Effects/Native/*Velocity Tracker"}
@@ -299,7 +311,7 @@ function loadnative(effect, name, preset_path, force_insertion_order, silent)
     return has_vendor and has_product
   end
 
-  if w.active_middle_frame == 7 then
+  if (force_in_sample_fx ~= nil and force_in_sample_fx) or (w.active_middle_frame == 7) then
     local chain = s.selected_sample_device_chain
     local chain_index = s.selected_sample_device_chain_index
 
@@ -448,6 +460,15 @@ function loadnative(effect, name, preset_path, force_insertion_order, silent)
       checkline = (table.count(sdevices)) < 2 and 2 or (sdevices[2] and sdevices[2].name == "#Line Input" and 3 or 2)
     end
     checkline = math.min(checkline, #sdevices + 1)
+    
+    if insertion_index_override ~= nil then
+      local idx = tonumber(insertion_index_override)
+      if idx ~= nil then
+        if idx < 2 then idx = 2 end
+        if idx > (#sdevices + 1) then idx = #sdevices + 1 end
+        checkline = idx
+      end
+    end
     
     -- Check preference for device load behavior (will open dialog after device is loaded)
 
@@ -775,6 +796,19 @@ function loadvst(vstname, name, preset_path, force_insertion_order, silent)
     name = nil
   end
 
+  -- Backward-compatible overload handling for Quick Load calls:
+  -- loadvst(vstname, insertion_index_number, in_sample_fx_boolean, ...)
+  local insertion_index_override = nil
+  local force_in_sample_fx = nil
+  if type(name) == "number" then
+    insertion_index_override = name
+    name = nil
+  end
+  if type(preset_path) == "boolean" then
+    force_in_sample_fx = preset_path
+    preset_path = nil
+  end
+
   if raw.lower_frame_is_visible == false then 
     raw.lower_frame_is_visible = false
   else 
@@ -802,7 +836,7 @@ function loadvst(vstname, name, preset_path, force_insertion_order, silent)
     return has_vendor and has_product
   end
 
-  if raw.active_middle_frame == 7 then
+  if (force_in_sample_fx ~= nil and force_in_sample_fx) or (raw.active_middle_frame == 7) then
     -- Sample chain device handling
     local chain = s.selected_sample_device_chain
     local chain_index = s.selected_sample_device_chain_index
@@ -964,6 +998,15 @@ function loadvst(vstname, name, preset_path, force_insertion_order, silent)
       checkline = (table.count(devices)) < 2 and 2 or (devices[2] and devices[2].name == "#Line Input" and 3 or 2)
     end
     checkline = math.min(checkline, #devices + 1)
+
+    if insertion_index_override ~= nil then
+      local idx = tonumber(insertion_index_override)
+      if idx ~= nil then
+        if idx < 2 then idx = 2 end
+        if idx > (#devices + 1) then idx = #devices + 1 end
+        checkline = idx
+      end
+    end
 
     -- Smart Send device insertion logic for VST devices
     if load_at_end then

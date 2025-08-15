@@ -69,7 +69,7 @@ function loadDeviceFromPreferences()
     local success, err = pcall(function()
       renoise.tool():add_keybinding{name=keyBindingName,invoke=function()
           if device_type == "Native" then
-            loadnative(path, nil, nil, nil, true)
+            loadnative(path, nil, nil, nil, false)
           else
             loadvst(path)
           end
@@ -78,7 +78,7 @@ function loadDeviceFromPreferences()
       renoise.tool():add_midi_mapping{name=midiMappingName,invoke=function(message)
           if message:is_trigger() then
             if device_type == "Native" then
-              loadnative(path, nil, nil, nil, true)
+              loadnative(path, nil, nil, nil, false)
             else
               loadvst(path)
             end
@@ -114,7 +114,7 @@ function loadSelectedDevices()
     if cb_info.checkbox.value then
       local pluginPath = cb_info.path
       if current_device_type == "Native" then
-        loadnative(pluginPath, nil, nil, nil, true)
+        loadnative(pluginPath, nil, nil, nil, false)
       else
         loadvst(pluginPath)
       end
@@ -147,7 +147,7 @@ function addDeviceAsShortcut()
           renoise.tool():add_keybinding{name=keyBindingName,
             invoke=function()
               if device_type == "Native" then
-                loadnative(path, nil, nil, nil, true)
+                loadnative(path, nil, nil, nil, false)
               else
                 loadvst(path)
               end
@@ -156,7 +156,7 @@ function addDeviceAsShortcut()
           renoise.tool():add_midi_mapping{name=midiMappingName,invoke=function(message)
               if message:is_trigger() then
                 if device_type == "Native" then
-                  loadnative(path, nil, nil, nil, true)
+                  loadnative(path, nil, nil, nil, false)
                 else
                   loadvst(path)
                 end
@@ -706,24 +706,122 @@ function pakettiQuickLoadDialog()
       end
     end
   end
+
+  -- Fuzzy search state and helpers (autocomplete-style key handling)
+  local all_device_items = {}
+  for i = 1, #device_items do all_device_items[i] = device_items[i] end
+  local search_text = ""
+  local search_display = nil
+  local function filter_items()
+    local lower_search = string.lower(search_text)
+    if lower_search == "" then
+      device_items = {}
+      for i = 1, #all_device_items do device_items[i] = all_device_items[i] end
+    else
+      local terms = {}
+      for t in lower_search:gmatch("%S+") do table.insert(terms, t) end
+      local filtered = {}
+      for _, name in ipairs(all_device_items) do
+        local ln = string.lower(name)
+        local ok = true
+        for _, term in ipairs(terms) do
+          if not string.find(ln, term, 1, true) then ok = false break end
+        end
+        if ok then table.insert(filtered, name) end
+      end
+      device_items = filtered
+    end
+    if vb and vb.views and vb.views.device_selector then
+      local items_for_popup = device_items
+      if #device_items == 0 then
+        items_for_popup = {"<No matches>"}
+      end
+      vb.views.device_selector.items = items_for_popup
+      vb.views.device_selector.value = 1
+    end
+    if search_display then
+      local count = #device_items
+      search_display.text = "Type to search: '" .. search_text .. "' (" .. tostring(count) .. ")"
+    end
+    renoise.app():show_status("Quick Load: '" .. search_text .. "' - " .. tostring(#device_items) .. " matches")
+  end
+
+  local function execute_selected()
+    if #device_items == 0 then return end
+    local idx = vb.views.device_selector.value
+    if idx < 1 or idx > #device_items then return end
+    local selected_name = device_items[idx]
+    local device_path = device_paths[selected_name]
+    print("QuickLoad Execute: selected='" .. tostring(selected_name) .. "' path='" .. tostring(device_path) .. "'")
+    if not device_path or device_path == "" then
+      renoise.app():show_status("Quick Load: No path found for '" .. tostring(selected_name) .. "'")
+      return
+    end
+    local track = renoise.song().selected_track
+    if device_path:find("*Instr.") or device_path:find("*Key Tracker") or 
+       device_path:find("*Velocity Tracker") or device_path:find("*MIDI Control") then
+      if track.type == renoise.Track.TRACK_TYPE_GROUP then
+        renoise.app():show_status("Cannot load MIDI/Instrument devices on Group tracks")
+        return
+      elseif track.type == renoise.Track.TRACK_TYPE_SEND then
+        renoise.app():show_status("Cannot load MIDI/Instrument devices on Send tracks")
+        return
+      elseif track.type == renoise.Track.TRACK_TYPE_MASTER then
+        renoise.app():show_status("Cannot load MIDI/Instrument devices on Master track")
+        return
+      end
+    end
+    local in_sample_fx = (
+      renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EFFECTS
+      and renoise.song().selected_sample_index > 0
+    )
+    local line_input_index = nil
+    if not in_sample_fx then
+      for i, dev in ipairs(track.devices) do
+        if dev.name == "Line Input" then line_input_index = i break end
+      end
+    end
+
+    if in_sample_fx and string.find(device_path, "#Line Input", 1, true) then
+      renoise.app():show_status("Cannot load Line Input in Sample FX chain")
+      return
+    end
+    print("QuickLoad Execute: in_sample_fx=" .. tostring(in_sample_fx) .. " line_input_index=" .. tostring(line_input_index))
+    if device_path:find("Native/") then
+      print(string.format("QuickLoad Execute: calling loadnative(\"%s\", %s, %s, nil, false)", tostring(device_path), tostring(line_input_index), tostring(in_sample_fx)))
+      loadnative(device_path, line_input_index, in_sample_fx, nil, false)
+    else
+      print(string.format("QuickLoad Execute: calling loadvst(\"%s\", %s, %s, nil, false)", tostring(device_path), tostring(line_input_index), tostring(in_sample_fx)))
+      loadvst(device_path, line_input_index, in_sample_fx, nil, false)
+    end
+    renoise.app():show_status("Loaded: " .. selected_name)
+  end
   
   local content = vb:column{
---    margin=10,
---    spacing=10,  
     vb:row{
-      -- spacing=10,
+      (function()
+        search_display = vb:text{ text = "Type to search: ''", width = 300, style = "strong" }
+        return search_display
+      end)()
+    },
+    vb:row{
       vb:popup{
         id = "device_selector",
-        width=400,
+        width=300,
         items = device_items,
         value = 1
       },
       vb:button{
         text="Load",
-        width=60,
+        width=80,
         notifier=function()
           local selected_name = device_items[vb.views.device_selector.value]
           local device_path = device_paths[selected_name]
+          print("QuickLoad Button: selected='" .. tostring(selected_name) .. "' path='" .. tostring(device_path) .. "'")
+          if not device_path or device_path == "" then
+            renoise.app():show_status("Quick Load: No path found for '" .. tostring(selected_name) .. "'")
+            return
+          end
           local track = renoise.song().selected_track
           
           -- Check device restrictions based on track type
@@ -742,10 +840,10 @@ function pakettiQuickLoadDialog()
           end
           
           -- Check if we're in sample fx mode
-          local in_sample_fx = false
-          if renoise.song().selected_sample_index > 0 then
-            in_sample_fx = true
-          end
+          local in_sample_fx = (
+            renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EFFECTS
+            and renoise.song().selected_sample_index > 0
+          )
           
           -- Find Line Input position for insertion
           local line_input_index = nil
@@ -757,12 +855,20 @@ function pakettiQuickLoadDialog()
               end
             end
           end
+
+          if in_sample_fx and string.find(device_path, "#Line Input", 1, true) then
+            renoise.app():show_status("Cannot load Line Input in Sample FX chain")
+            return
+          end
           
           -- Load the device
+          print("QuickLoad Button: in_sample_fx=" .. tostring(in_sample_fx) .. " line_input_index=" .. tostring(line_input_index))
           if device_path:find("Native/") then
-            loadnative(device_path, line_input_index, in_sample_fx, nil, true)
+            print(string.format("QuickLoad Button: calling loadnative(\"%s\", %s, %s, nil, false)", tostring(device_path), tostring(line_input_index), tostring(in_sample_fx)))
+            loadnative(device_path, line_input_index, in_sample_fx, nil, false)
           else
-            loadvst(device_path, line_input_index, in_sample_fx)
+            print(string.format("QuickLoad Button: calling loadvst(\"%s\", %s, %s, nil, false)", tostring(device_path), tostring(line_input_index), tostring(in_sample_fx)))
+            loadvst(device_path, line_input_index, in_sample_fx, nil, false)
           end
           
           renoise.app():show_status("Loaded: " .. selected_name)
@@ -774,17 +880,91 @@ function pakettiQuickLoadDialog()
   -- Create dialog
   dialog = renoise.app():show_custom_dialog("Paketti Quick Load Device", 
     content,
-    function(dialog, key)
-      local closer = preferences.pakettiDialogClose.value
-      if key.modifiers == "" and key.name == closer then
-        dialog:close()
-        dialog = nil
+    function(dlg, key)
+      -- Autocomplete-style keyhandler (no textfield)
+      if key and (key.name == "<" or key.name == ">") then return key end
+      if key.name == "return" then
+        execute_selected()
+        return nil
+      elseif key.name == "up" then
+        if #device_items > 0 then
+          local v = vb.views.device_selector.value
+          if v <= 1 then v = #device_items else v = v - 1 end
+          vb.views.device_selector.value = v
+        end
+        return nil
+      elseif key.name == "down" then
+        if #device_items > 0 then
+          local maxv = math.max(1, #device_items)
+          local v = vb.views.device_selector.value
+          if v < 1 or v >= maxv then v = 1 else v = v + 1 end
+          vb.views.device_selector.value = v
+        end
+        return nil
+      elseif key.name == "prior" then
+        if #device_items > 0 then
+          local maxv = math.max(1, #device_items)
+          local v = vb.views.device_selector.value
+          if v < 1 then v = 1 end
+          v = math.max(1, v - 10)
+          vb.views.device_selector.value = v
+        end
+        return nil
+      elseif key.name == "next" then
+        if #device_items > 0 then
+          local maxv = math.max(1, #device_items)
+          local v = vb.views.device_selector.value
+          if v < 1 then v = 1 end
+          v = math.min(maxv, v + 10)
+          vb.views.device_selector.value = v
+        end
+        return nil
+      elseif key.name == "wheel_up" then
+        if #device_items > 0 then
+          local v = vb.views.device_selector.value
+          if v < 1 then v = 1 end
+          v = math.max(1, v - 3)
+          vb.views.device_selector.value = v
+        end
+        return nil
+      elseif key.name == "wheel_down" then
+        if #device_items > 0 then
+          local maxv = math.max(1, #device_items)
+          local v = vb.views.device_selector.value
+          if v < 1 then v = 1 end
+          v = math.min(maxv, v + 3)
+          vb.views.device_selector.value = v
+        end
+        return nil
+      elseif key.name == "esc" then
+        if search_text ~= "" then
+          search_text = ""
+          filter_items()
+          return nil
+        end
+        return my_keyhandler_func(dlg, key)
+      elseif key.name == "back" then
+        if #search_text > 0 then
+          search_text = search_text:sub(1, #search_text - 1)
+          filter_items()
+        end
+        return nil
+      elseif key.name == "delete" then
+        search_text = ""
+        filter_items()
+        return nil
+      elseif key.name == "space" then
+        search_text = search_text .. " "
+        filter_items()
+        return nil
+      elseif string.len(key.name) == 1 then
+        search_text = search_text .. key.name
+        filter_items()
         return nil
       else
-        return key
+        return my_keyhandler_func(dlg, key)
       end
-    end
-  )
+    end)
 
   -- Set focus to the dropdown
   vb.views.device_selector.value = 1

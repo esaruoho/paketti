@@ -66,6 +66,19 @@ renoise.song().selected_note_column_index = 1
 end
 
 ---------------
+function PakettiPatternEditorApplyF8FollowPreference()
+  local t = renoise.song().transport
+  local pref = preferences and preferences.PakettiImpulseTrackerF8 and preferences.PakettiImpulseTrackerF8.value or 1
+  if pref == 2 then
+    t.follow_player = true
+  elseif pref == 3 then
+    t.follow_player = false
+  else
+    -- Do Nothing
+  end
+end
+
+---------------
 function RecordFollowOffPattern()
 local t=renoise.song().transport
 local w = renoise.app().window

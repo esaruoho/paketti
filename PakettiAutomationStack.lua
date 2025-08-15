@@ -213,7 +213,13 @@ function PakettiAutomationStack_DrawGrid(ctx, W, H, num_lines, lpb)
   if pixels_per_line >= 6 then
     for line = PakettiAutomationStack_view_start_line, math.min(num_lines, PakettiAutomationStack_view_start_line + win - 1) do
       local x = PakettiAutomationStack_LineToX(line, num_lines)
-      if ((line-1) % lpb) == 0 then ctx.stroke_color = {70,70,100,220}; ctx.line_width = 2 else ctx.stroke_color = {40,40,60,140}; ctx.line_width = 1 end
+      if ((line-1) % (lpb*4)) == 0 then
+        ctx.stroke_color = {110,110,160,255}; ctx.line_width = 3
+      elseif ((line-1) % lpb) == 0 then
+        ctx.stroke_color = {80,80,120,220}; ctx.line_width = 2
+      else
+        ctx.stroke_color = {40,40,60,130}; ctx.line_width = 1
+      end
       ctx:begin_path(); ctx:move_to(x, 0); ctx:line_to(x, H); ctx:stroke()
     end
   else
@@ -221,7 +227,7 @@ function PakettiAutomationStack_DrawGrid(ctx, W, H, num_lines, lpb)
     for line = PakettiAutomationStack_view_start_line, math.min(num_lines, PakettiAutomationStack_view_start_line + win - 1) do
       if ((line-1) % lpb) == 0 then
         local x = PakettiAutomationStack_LineToX(line, num_lines)
-        ctx.stroke_color = {50,50,70,255}
+        ctx.stroke_color = {70,70,100,220}
         ctx:begin_path(); ctx:move_to(x, 0); ctx:line_to(x, H); ctx:stroke()
       end
     end
@@ -331,10 +337,14 @@ function PakettiAutomationStack_RenderLaneCanvas(automation_index, canvas_w, can
     local entry = PakettiAutomationStack_automations[automation_index]
     if not entry or not entry.automation then return end
 
-    -- Label
-    local label = string.format("%s — %s", entry.device_name or "Device", entry.name or "Param")
-    ctx.stroke_color = {255,255,255,255}
-    PakettiAutomationStack_DrawText(ctx, label, PakettiAutomationStack_gutter_width + 4, 4, 8)
+    -- Label block with device and parameter in uppercase
+    local label = string.format("%s", (entry.device_name or "DEVICE"))
+    local label2 = string.format("%s", (entry.name or "PARAM"))
+    ctx.fill_color = {20,20,30,255}
+    ctx:begin_path(); ctx:rect(2, 2, 160, 12); ctx:fill()
+    ctx.stroke_color = {180,220,255,255}
+    PakettiAutomationStack_DrawText(ctx, string.upper(label), 6, 4, 8)
+    PakettiAutomationStack_DrawText(ctx, string.upper(label2), 86, 4, 8)
 
     local a = entry.automation
     local points = a.points or {}
@@ -353,7 +363,7 @@ function PakettiAutomationStack_RenderLaneCanvas(automation_index, canvas_w, can
 
     if mode == renoise.PatternTrackAutomation.PLAYMODE_POINTS then
       -- Vertical bars with dots at values
-      ctx.stroke_color = {100,255,150,220}
+      ctx.stroke_color = {100,255,180,230}
       ctx.line_width = 2
       for i = 1, #points do
         local p = points[i]
@@ -362,15 +372,16 @@ function PakettiAutomationStack_RenderLaneCanvas(automation_index, canvas_w, can
         if x < gutter then x = gutter end
         if x > W - gutter then x = W - gutter end
         ctx:begin_path(); ctx:move_to(x, H-1); ctx:line_to(x, y); ctx:stroke()
-        ctx.stroke_color = {180,240,255,255}
-        ctx.line_width = 3
+        -- round marker
+        ctx.stroke_color = {200,255,255,255}
+        ctx.line_width = 2
         ctx:begin_path(); ctx:move_to(x-1, y); ctx:line_to(x+1, y); ctx:stroke()
-        ctx.stroke_color = {100,255,150,220}; ctx.line_width = 2
+        ctx.stroke_color = {100,255,180,230}; ctx.line_width = 2
       end
     elseif mode == renoise.PatternTrackAutomation.PLAYMODE_LINES then
       -- Linear segments between points
-      ctx.stroke_color = {100,255,150,220}
-      ctx.line_width = 2
+      ctx.stroke_color = {120,255,170,235}
+      ctx.line_width = 3
       ctx:begin_path()
       local p1 = points[1]
       local x1 = PakettiAutomationStack_MapTimeToX(p1.time, num_lines)
@@ -387,10 +398,21 @@ function PakettiAutomationStack_RenderLaneCanvas(automation_index, canvas_w, can
         ctx:line_to(x, y)
       end
       ctx:stroke()
+      -- small point markers
+      ctx.stroke_color = {200,255,255,255}
+      ctx.line_width = 2
+      for i = 1, #points do
+        local p = points[i]
+        local x = PakettiAutomationStack_MapTimeToX(p.time, num_lines)
+        local y = PakettiAutomationStack_ValueToY(p.value, H)
+        if x < gutter then x = gutter end
+        if x > W - gutter then x = W - gutter end
+        ctx:begin_path(); ctx:move_to(x-1, y); ctx:line_to(x+1, y); ctx:stroke()
+      end
     else
       -- Curves: smooth by Catmull-Rom / Hermite sampling between points
-      ctx.stroke_color = {255,200,120,240}
-      ctx.line_width = 2
+      ctx.stroke_color = {255,220,140,245}
+      ctx.line_width = 3
       for seg = 1, (#points - 1) do
         local p0 = points[math.max(1, seg-1)]
         local p1c = points[seg]

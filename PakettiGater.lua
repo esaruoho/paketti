@@ -2634,6 +2634,13 @@ function pakettiGaterDialog()
   initializing = false -- End initialization
 end
 
+-- Public entry: ensure a globally named function exists for external callers
+function PakettiGaterLoadAndShow()
+  pakettiGaterDialog()
+  -- Ensure Renoise keeps keyboard focus after opening
+  renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
+end
+
 -- Helper function to create dynamic button row
 local function create_dynamic_button_row(button_array)
   local row_elements = {}

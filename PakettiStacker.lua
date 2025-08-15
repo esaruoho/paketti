@@ -1291,8 +1291,8 @@ end
       end
     end
 
-    -- Run the isolation function
-    PakettiIsolateSlicesToInstrument()
+    -- Run the isolation function synchronously (no ProcessSlicer)
+    PakettiIsolateSlicesToInstrumentNoProcess()
     
     if preferences.pakettiLoaderDontCreateAutomationDevice.value == false then 
     -- Add *Instr. Macros device back

@@ -319,6 +319,7 @@ else
       t.playing=true
    -- ImpulseTrackerPlaySong()
    t.edit_mode=false end
+ if type(PakettiPatternEditorApplyF8FollowPreference) == "function" then PakettiPatternEditorApplyF8FollowPreference() end
 end}
 ----------------------------------------------------------------------------------------------------------------
 -- F11, or "Impulse Tracker Shortcut F11 display-change", "Order List",

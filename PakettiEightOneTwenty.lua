@@ -1499,6 +1499,9 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
       if instrument and #instrument.samples > 0 then
         value = math.min(value, #instrument.samples)
         pakettiSampleVelocityRangeChoke(value)
+        -- Switch to Sample Editor when the sample slider is moved
+        renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+        print("8120 SAMPLE SLIDER: switched to Sample Editor and selected sample " .. tostring(renoise.song().selected_sample_index))
       end
 
       row_elements.update_sample_name_label()
@@ -2445,7 +2448,9 @@ local randomize_all_yxx_button = vb:button{
   
   local global_groove_controls = vb:row{
     groove_enabled_checkbox, vb:text{text="Global Groove", font = "bold", style = "strong",width=100},
-    groove_controls, vb:button{text="Random Groove", midi_mapping="Paketti:Paketti Groovebox 8120:Random Groove", notifier = randomize_groove}
+    groove_controls, vb:button{text="Random Groove", midi_mapping="Paketti:Paketti Groovebox 8120:Random Groove", notifier = randomize_groove},
+    vb:text{text="|", style="strong", font="bold"},
+    vb:button{text="Duplicate Pattern", midi_mapping="Paketti:Paketti Groovebox 8120:Duplicate Pattern", notifier = PakettiEightOneTwentyDuplicatePattern}
   }
 
   -- Create Global Step Buttons
@@ -3868,6 +3873,50 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120",invoke=function() GrooveboxShowClose() end}
 renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120",invoke=function(message) if message:is_trigger() then GrooveboxShowClose() end end }
+
+-- Duplicate current pattern below and jump to it (no clearing of muted tracks)
+function PakettiEightOneTwentyDuplicatePattern()
+  local song=renoise.song()
+  local current_pattern_index=song.selected_pattern_index
+  local current_sequence_index=song.selected_sequence_index
+  local new_sequence_index = current_sequence_index + 1
+  local new_pattern_index = song.sequencer:insert_new_pattern_at(new_sequence_index)
+  song.patterns[new_pattern_index]:copy_from(song.patterns[current_pattern_index])
+  local original_name = song.patterns[current_pattern_index].name
+  if original_name == "" then
+    original_name = "Pattern " .. tostring(current_pattern_index)
+  end
+  song.patterns[new_pattern_index].name = original_name .. " (duplicate)"
+  song.selected_sequence_index = new_sequence_index
+  -- Copy mute states from original sequence slot to the new one
+  for track_index = 1, #song.tracks do
+    local is_muted = song.sequencer:track_sequence_slot_is_muted(track_index, current_sequence_index)
+    song.sequencer:set_track_sequence_slot_is_muted(track_index, new_sequence_index, is_muted)
+  end
+  -- Copy automation data explicitly to ensure full duplication
+  for track_index = 1, #song.tracks do
+    local original_track = song.patterns[current_pattern_index].tracks[track_index]
+    local new_track = song.patterns[new_pattern_index].tracks[track_index]
+    for _, automation in ipairs(original_track.automation) do
+      local parameter = automation.dest_parameter
+      local new_automation = new_track:find_automation(parameter)
+      if not new_automation then
+        new_automation = new_track:create_automation(parameter)
+      end
+      new_automation:copy_from(automation)
+    end
+  end
+  renoise.app():show_status("Duplicated pattern below and jumped to it.")
+end
+
+-- MIDI mapping and keybinding for Duplicate Pattern button in Groovebox 8120
+renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120:Duplicate Pattern",invoke=function(message)
+  if message:is_trigger() then PakettiEightOneTwentyDuplicatePattern() end
+end}
+renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Duplicate Pattern (Groovebox 8120)",invoke=PakettiEightOneTwentyDuplicatePattern}
+renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Duplicate Pattern (Groovebox 8120)",invoke=PakettiEightOneTwentyDuplicatePattern}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Duplicate Pattern (Groovebox 8120)",invoke=PakettiEightOneTwentyDuplicatePattern}
+renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Pattern (Groovebox 8120)",invoke=PakettiEightOneTwentyDuplicatePattern}
 
 -- Global Pitch Button: adjust transpose for all 8 groovebox instruments
 gbx_transpose_baseline = gbx_transpose_baseline or {nil,nil,nil,nil,nil,nil,nil,nil}

@@ -130,6 +130,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiEnableGlobalGrooveOnStartup=false,
   pakettiRandomizeBPMOnNewSong=false,
   pakettiPatternStatusMonitor=false,
+  PakettiImpulseTrackerF8=1,
   PakettiDeviceChainPath = "." .. separator .. "DeviceChains" .. separator,
   PakettiIRPath = "." .. separator .. "IR" .. separator,
   PakettiLFOWriteDelete=true,
@@ -1667,6 +1668,19 @@ vb:row{
                   PakettiEightOneTwentyApplyPlayheadColor()
                 end
               end}
+          },
+          vb:space{height=8},
+          vb:text{style="strong",font="bold",text="Impulse Tracker"},
+          vb:row{
+            vb:text{text="Impulse Tracker F8",width=150},
+            vb:switch{
+              items={"Do Nothing","Enable Follow","Stop Follow"},
+              value=preferences.PakettiImpulseTrackerF8.value,
+              width=400,
+              notifier=function(value)
+                preferences.PakettiImpulseTrackerF8.value = value
+              end
+            }
           },
         }
         }

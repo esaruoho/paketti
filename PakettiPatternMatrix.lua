@@ -162,3 +162,59 @@ renoise.tool():add_midi_mapping{name="Paketti:Duplicate Pattern Below & Clear Mu
 
 
 
+
+-- Duplicate Pattern (no clearing), standalone function to reuse in menus/shortcuts
+function PakettiDuplicatePattern()
+  local song=renoise.song()
+  local current_pattern_index=song.selected_pattern_index
+  local current_sequence_index=song.selected_sequence_index
+
+  local new_sequence_index = current_sequence_index + 1
+  local new_pattern_index = song.sequencer:insert_new_pattern_at(new_sequence_index)
+
+  song.patterns[new_pattern_index]:copy_from(song.patterns[current_pattern_index])
+
+  local original_name = song.patterns[current_pattern_index].name
+  if original_name == "" then
+    original_name = "Pattern " .. tostring(current_pattern_index)
+  end
+  song.patterns[new_pattern_index].name = original_name .. " (duplicate)"
+
+  -- Jump to the new pattern in the sequence
+  song.selected_sequence_index = new_sequence_index
+
+  -- Keep the mute states identical between sequence slots
+  for track_index = 1, #song.tracks do
+    local is_muted = song.sequencer:track_sequence_slot_is_muted(track_index, current_sequence_index)
+    song.sequencer:set_track_sequence_slot_is_muted(track_index, new_sequence_index, is_muted)
+  end
+
+  -- Ensure all automation is copied as well
+  for track_index = 1, #song.tracks do
+    local original_track = song.patterns[current_pattern_index].tracks[track_index]
+    local new_track = song.patterns[new_pattern_index].tracks[track_index]
+    for _, automation in ipairs(original_track.automation) do
+      local parameter = automation.dest_parameter
+      local new_automation = new_track:find_automation(parameter)
+      if not new_automation then
+        new_automation = new_track:create_automation(parameter)
+      end
+      new_automation:copy_from(automation)
+    end
+  end
+
+  renoise.app():show_status("Duplicated pattern below and jumped to it.")
+end
+
+-- Menu entry, keybindings, and MIDI mapping for Duplicate Pattern
+renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Duplicate Pattern (No Clear)",invoke=PakettiDuplicatePattern}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Duplicate Pattern (No Clear)",invoke=PakettiDuplicatePattern}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Duplicate Pattern (No Clear)",invoke=PakettiDuplicatePattern}
+
+renoise.tool():add_keybinding{name="Global:Paketti:Duplicate Pattern (No Clear)",invoke=PakettiDuplicatePattern}
+renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Duplicate Pattern (No Clear)",invoke=PakettiDuplicatePattern}
+renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Duplicate Pattern (No Clear)",invoke=PakettiDuplicatePattern}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Duplicate Pattern (No Clear)",invoke=PakettiDuplicatePattern}
+
+renoise.tool():add_midi_mapping{name="Paketti:Duplicate Pattern (No Clear)",invoke=PakettiDuplicatePattern}
+

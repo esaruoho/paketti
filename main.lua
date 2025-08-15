@@ -732,7 +732,8 @@ timed_require("PakettiViews")
 timed_require("PakettiTransposeBlock")
 timed_require("PakettiBeatstructureEditor")
 timed_require("PakettiSlice")
-
+timed_require("PakettiCaptureLastTake")
+timed_require("PakettiSlabOPatterns")
 local PolyendYes = false
 PolyendYes = true
 if PolyendYes then
@@ -748,9 +749,9 @@ if renoise.API_VERSION >= 6.2 then
   timed_require("PakettiCanvasExperiments")
   timed_require("PakettiNotepadRun")
   timed_require("PakettiEQ30")
-  timed_require("PakettiMultitapExperiment")
- --   timed_require("PakettiPlayerProWaveformViewer")
- --   timed_require("PakettiAutomationStack")
+  --timed_require("PakettiMultitapExperiment")
+  --  timed_require("PakettiPlayerProWaveformViewer")
+  --  timed_require("PakettiAutomationStack")
 end
 
 
@@ -762,7 +763,7 @@ timed_require("PakettiStemSlicer")
 timed_require("PakettiOldschoolSlicePitch")
 timed_require("PakettiActionSelector")
 timed_require("PakettiAutocomplete")
-timed_require("PakettiTreeStructure")
+--timed_require("PakettiTreeStructure")
 --timed_require("PakettiCustomization")        -- 61 lines, 0.50 ms
 --timed_require("PakettiAKAI")
 
