@@ -2,6 +2,10 @@
 
 -- Configuration: Maximum steps per row (16 or 32)
 local MAX_STEPS = 16  -- Can be changed dynamically via UI switch
+-- Globals used across features (declare early, avoid overengineering)
+gbx_transpose_baseline = {nil,nil,nil,nil,nil,nil,nil,nil}
+gbx_global_pitch_ui_prev_value = 0
+gbx_global_pitch_midi_prev_abs = nil
 --
 -- NOTE: Step mode can be changed dynamically:
 -- 1. Use the "16 Steps / 32 Steps" switch in the groovebox interface
@@ -27,6 +31,9 @@ local beatsync_attached_inst_index = {}
 local beatsync_attached_sample_index = {}
 local beatsync_mode_observers = {}
 local beatsync_mode_popups = {}
+-- Advanced (BeatSync + NNA) columns for per-row highlighting
+beatsync_adv_columns = {}
+-- Baseline for absolute global pitch control (already initialized above)
 
 -- Per-row recording state for Groovebox 8120
 gbx_record_phase = {0,0,0,0,0,0,0,0} -- 0=idle, 1=armed (dialog visible), 2=recording
@@ -546,8 +553,74 @@ function update_row_button_colors(row_elements)
   end
 end
 
+-- Preserve automation selection (device + parameter) when switching tracks
+function PakettiEightOneTwentyRestoreAutomationSelection(prev_device, prev_param, new_track_index)
+  local app = renoise.app()
+  if app.window.active_lower_frame ~= renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION then
+    return
+  end
+  if not prev_device or not prev_param then return end
+  local song = renoise.song()
+  local new_track = song.tracks[new_track_index]
+  if not new_track then return end
+  local target_device_index = nil
+  -- Prefer matching by intrinsic device.name (stable across tracks)
+  if prev_device.name then
+    for di, device in ipairs(new_track.devices) do
+      if device.name == prev_device.name then
+        target_device_index = di
+        break
+      end
+    end
+  end
+  -- Fallback: handle common case of *Instr. Macros specifically
+  if not target_device_index then
+    for di, device in ipairs(new_track.devices) do
+      if device.name == "*Instr. Macros" then
+        target_device_index = di
+        break
+      end
+    end
+  end
+  -- Last resort: try display_name equality (only if identical across tracks)
+  if not target_device_index and prev_device.display_name then
+    for di, device in ipairs(new_track.devices) do
+      if device.display_name == prev_device.display_name then
+        target_device_index = di
+        break
+      end
+    end
+  end
+  if not target_device_index then return end
+  song.selected_device_index = target_device_index
+  local device = new_track.devices[target_device_index]
+  local target_param = nil
+  for _, p in ipairs(device.parameters) do
+    if p.name == prev_param.name and p.is_automatable then
+      target_param = p
+      break
+    end
+  end
+  if not target_param then return end
+  song.selected_automation_parameter = target_param
+  local pattern = song.selected_pattern
+  local pattern_track = pattern and pattern.tracks and pattern.tracks[new_track_index]
+  if pattern_track then
+    local existing = pattern_track:find_automation(target_param)
+    if not existing then
+      local automation = pattern_track:create_automation(target_param)
+      if automation and pattern.number_of_lines and pattern.number_of_lines > 0 then
+        automation:add_point_at(1, 0.5)
+        automation:add_point_at(pattern.number_of_lines, 0.5)
+      end
+    end
+  end
+  renoise.app():show_status("Automation preserved: " .. (device.display_name or device.name) .. " / " .. target_param.name)
+end
+
 -- Highlight handling for 8x120 rows
 function PakettiEightOneTwentyHighlightRow(row_index)
+  if initializing then return end
   if not rows then return end
   for i, row_elements in ipairs(rows) do
     local rc = row_elements and row_elements.row_container
@@ -559,6 +632,14 @@ function PakettiEightOneTwentyHighlightRow(row_index)
         rc.style = "body"   -- NOT-SELECTED: light background
       end
     end
+      -- Mirror highlight to advanced beatsync/NNA columns
+      if beatsync_adv_columns and beatsync_adv_columns[i] then
+        if i == row_index then
+          beatsync_adv_columns[i].style = "group"
+        else
+          beatsync_adv_columns[i].style = "body"
+        end
+      end
   end
 end
 
@@ -574,7 +655,6 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
     notifier=function(value)
       row_elements.print_to_pattern()
       row_elements.update_sample_name_label()
-      renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
       -- Ensure transpose observer reattaches to the newly selected instrument
       if row_elements.attach_transpose_observer then
         row_elements.attach_transpose_observer()
@@ -602,10 +682,19 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
       color = normal_color,  -- Will be updated by update_row_button_colors()
       notifier=(function(step)
         return function()
-          PakettiEightOneTwentyHighlightRow(row_index)
+          if not initializing then PakettiEightOneTwentyHighlightRow(row_index) end
           -- Update track name and valuebox
           local track_index = track_indices[row_elements.track_popup.value]
           local track = renoise.song():track(track_index)
+          -- If automation is visible, capture current selection and switch track to this row
+          local prev_device, prev_param = nil, nil
+          if renoise.app().window.active_lower_frame == renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION then
+            prev_device = renoise.song().selected_automation_device
+            prev_param = renoise.song().selected_automation_parameter
+          end
+          if track_index then
+            renoise.song().selected_track_index = track_index
+          end
           updateTrackNameWithSteps(track, step)
           row_elements.valuebox.value = step
           -- Update selected step
@@ -616,6 +705,9 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
           end
           update_row_button_colors(row_elements)  -- Update button colors
           row_elements.print_to_pattern()
+          if track_index and prev_device and prev_param then
+            PakettiEightOneTwentyRestoreAutomationSelection(prev_device, prev_param, track_index)
+          end
           renoise.app():show_status(string.format("Set steps to %d for row %d", step, row_index))
         end
       end)(i),
@@ -643,11 +735,18 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
     width=25,
     height = 25,
     notifier=function(value)
-      PakettiEightOneTwentyHighlightRow(row_index)
+      if not initializing then PakettiEightOneTwentyHighlightRow(row_index) end
       if row_elements and row_elements.updating_transpose then return end
       -- Get and select the track first
       local track_index = track_indices[row_elements.track_popup.value]
+      local prev_device = nil
+      local prev_param = nil
       if track_index then
+        -- Capture current automation selection if automation frame is visible
+        if renoise.app().window.active_lower_frame == renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION then
+          prev_device = renoise.song().selected_automation_device
+          prev_param = renoise.song().selected_automation_parameter
+        end
         renoise.song().selected_track_index = track_index
       end
       
@@ -672,6 +771,10 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
         end
       end
       
+      -- Try to restore automation selection on this track
+      if track_index and prev_device and prev_param then
+        PakettiEightOneTwentyRestoreAutomationSelection(prev_device, prev_param, track_index)
+      end
       renoise.app():show_status(string.format("Set transpose to %+d for instrument %d: %s.", value, instrument_index, renoise.song().selected_sample.name))
     end
   }
@@ -685,8 +788,8 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
       value = (current_volume or 1.0) - 1.0,
       width=25,
       height = 25,
-      notifier=function(value)
-        PakettiEightOneTwentyHighlightRow(row_index)
+    notifier=function(value)
+      if not initializing then PakettiEightOneTwentyHighlightRow(row_index) end
         if row_elements and row_elements.updating_volume then return end
         local now = os.clock()
         -- Select row's track and instrument before applying change
@@ -737,7 +840,7 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
     value=renoise.song().tracks[row_index].output_delay,  -- Initialize with current value
     width=100,
     notifier=function(value)
-      PakettiEightOneTwentyHighlightRow(row_index)
+      if not initializing then PakettiEightOneTwentyHighlightRow(row_index) end
       local track_index = track_indices[row_elements.track_popup.value]
       if track_index then
         value = math.floor(value)  -- Ensure whole number
@@ -766,6 +869,183 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
   number_buttons_row:add_child(output_delay_value_label)
   number_buttons_row:add_child(output_delay_reset)
 
+  -- Row-level loop controls (per-instrument)
+  local function get_row_sample_for_full_velocity()
+    local instrument_index = row_elements.instrument_popup and row_elements.instrument_popup.value
+    local instrument = instrument_index and renoise.song().instruments[instrument_index]
+    if not instrument or not instrument.samples then return nil end
+    for sample_idx, sample in ipairs(instrument.samples) do
+      local vr = sample.sample_mapping and sample.sample_mapping.velocity_range
+      local vmin = vr and vr[1]
+      local vmax = vr and vr[2]
+      if vmin == 0x00 and vmax == 0x7F then
+        return sample
+      end
+    end
+    return instrument.samples[1]
+  end
+
+  -- Removed per-row loop range label computation; only loop mode switch is used now
+
+  local loop_sep = vb:text{text="|", font="bold", style="strong", width=8}
+  local loop_label = vb:text{text="Loop", style="strong", font="bold"}
+  -- Forward declaration so closures can reference it before assignment
+  local update_row_loop_ui
+  local loop_mode_switch = vb:switch{
+    items = {"Off","->","<-","<->"},
+    width = 140,
+    value = 1,
+    notifier = function(value)
+      PakettiEightOneTwentyHighlightRow(row_index)
+      renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+      -- Keep keyboard focus with Renoise
+      renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
+      local ti = track_indices and row_elements.track_popup and row_elements.track_popup.value and track_indices[row_elements.track_popup.value]
+      if ti then renoise.song().selected_track_index = ti end
+      local ii = row_elements.instrument_popup and row_elements.instrument_popup.value
+      if ii then renoise.song().selected_instrument_index = ii end
+      -- Select the 00-7F sample if present
+      do
+        local inst = ii and renoise.song().instruments[ii] or nil
+        if inst then
+          for sample_idx, sample in ipairs(inst.samples) do
+            local vr = sample.sample_mapping and sample.sample_mapping.velocity_range
+            local vmin = vr and vr[1]
+            local vmax = vr and vr[2]
+            if vmin == 0x00 and vmax == 0x7F then
+              renoise.song().selected_sample_index = sample_idx
+              break
+            end
+          end
+        end
+      end
+      local sample = get_row_sample_for_full_velocity()
+      if not sample then return end
+      if value == 1 then
+        sample.loop_mode = renoise.Sample.LOOP_MODE_OFF
+      elseif value == 2 then
+        sample.loop_mode = renoise.Sample.LOOP_MODE_FORWARD
+      elseif value == 3 then
+        sample.loop_mode = renoise.Sample.LOOP_MODE_REVERSE
+      elseif value == 4 then
+        sample.loop_mode = renoise.Sample.LOOP_MODE_PING_PONG
+      end
+      update_row_loop_ui()
+    end
+  }
+
+  -- Loop Range Switch (Full / Start Half / End Half)
+  local loop_range_switch = vb:switch{
+    items = {"[--]","[- ]","[ -]"},
+    width = 100,
+    value = 1,
+    notifier = function(val)
+      PakettiEightOneTwentyHighlightRow(row_index)
+      renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+      -- Keep keyboard focus with Renoise
+      renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
+      -- Select this row's track and instrument/sample
+      local ti = track_indices and row_elements.track_popup and row_elements.track_popup.value and track_indices[row_elements.track_popup.value]
+      if ti then renoise.song().selected_track_index = ti end
+      local ii = row_elements.instrument_popup and row_elements.instrument_popup.value
+      if ii then renoise.song().selected_instrument_index = ii end
+      do
+        local inst = ii and renoise.song().instruments[ii] or nil
+        if inst then
+          for sample_idx, sample in ipairs(inst.samples) do
+            local vr = sample.sample_mapping and sample.sample_mapping.velocity_range
+            local vmin = vr and vr[1]
+            local vmax = vr and vr[2]
+            if vmin == 0x00 and vmax == 0x7F then
+              renoise.song().selected_sample_index = sample_idx
+              break
+            end
+          end
+        end
+      end
+      local sample = get_row_sample_for_full_velocity()
+      if not sample then return end
+      local buf = sample.sample_buffer
+      if not buf or not buf.has_sample_data then return end
+      local n = buf.number_of_frames or 0
+      if n <= 1 then return end
+      local half = math.floor(n/2)
+      if val == 1 then
+        sample.loop_start = 1
+        sample.loop_end = n
+      elseif val == 2 then
+        sample.loop_start = 1
+        sample.loop_end = half
+      elseif val == 3 then
+        sample.loop_start = half
+        sample.loop_end = n
+      end
+      update_row_loop_ui()
+    end
+  }
+
+  update_row_loop_ui = function()
+    local sample = get_row_sample_for_full_velocity()
+    if not sample then
+      loop_mode_switch.value = 1
+      loop_mode_switch.active = false
+      loop_range_switch.active = false
+      return
+    end
+    loop_mode_switch.active = true
+    loop_range_switch.active = true
+    if sample.loop_mode == renoise.Sample.LOOP_MODE_OFF then
+      loop_mode_switch.value = 1
+    elseif sample.loop_mode == renoise.Sample.LOOP_MODE_FORWARD then
+      loop_mode_switch.value = 2
+    elseif sample.loop_mode == renoise.Sample.LOOP_MODE_REVERSE then
+      loop_mode_switch.value = 3
+    elseif sample.loop_mode == renoise.Sample.LOOP_MODE_PING_PONG then
+      loop_mode_switch.value = 4
+    else
+      loop_mode_switch.value = 2
+    end
+    -- Update range switch from current loop points
+    local buf = sample.sample_buffer
+    if buf and buf.has_sample_data then
+      local n = buf.number_of_frames or 0
+      if n > 0 then
+        local half = math.floor(n/2)
+        if sample.loop_start == 1 and sample.loop_end == n then
+          loop_range_switch.value = 1
+        elseif sample.loop_start == 1 and sample.loop_end == half then
+          loop_range_switch.value = 2
+        elseif sample.loop_start == half and sample.loop_end == n then
+          loop_range_switch.value = 3
+        else
+          -- Leave as-is when custom
+        end
+      end
+    end
+  end
+
+  -- Notifiers provided in constructors above
+
+  -- initial sync
+  update_row_loop_ui()
+  -- Observe instrument changes; sample change observable not available globally in Song
+  do
+    local song = renoise.song()
+    if song and song.selected_instrument_index_observable then
+      song.selected_instrument_index_observable:add_notifier(function()
+        update_row_loop_ui()
+      end)
+    end
+  end
+
+  -- Re-sync when instrument popup changes (extend existing notifier logic in constructor)
+  -- Ensure the instrument_popup constructor calls update_row_loop_ui(); add it there if missing
+
+  number_buttons_row:add_child(loop_sep)
+  number_buttons_row:add_child(loop_label)
+  number_buttons_row:add_child(loop_mode_switch)
+  number_buttons_row:add_child(loop_range_switch)
+
   -- Store the row elements for later use
   row_elements.number_buttons_row = number_buttons_row
   row_elements.output_delay_slider = output_delay_slider
@@ -780,6 +1060,11 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
       width=30,
       notifier=function()
         PakettiEightOneTwentyHighlightRow(row_index)
+        local prev_device, prev_param = nil, nil
+        if renoise.app().window.active_lower_frame == renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION then
+          prev_device = renoise.song().selected_automation_device
+          prev_param = renoise.song().selected_automation_parameter
+        end
         if not row_elements.updating_checkboxes then
           -- Get and select the track first
           local track_index = track_indices[row_elements.track_popup.value]
@@ -809,6 +1094,9 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
           
           -- Then print to pattern
           row_elements.print_to_pattern()
+          if track_index and prev_device and prev_param then
+            PakettiEightOneTwentyRestoreAutomationSelection(prev_device, prev_param, track_index)
+          end
         end
       end
     }
@@ -822,7 +1110,13 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
     value = MAX_STEPS,  -- Default to MAX_STEPS, will be updated in initialize_row()
     width=55,
     notifier=function(value)
+      if initializing then return end
       PakettiEightOneTwentyHighlightRow(row_index)
+      local prev_device, prev_param = nil, nil
+      if renoise.app().window.active_lower_frame == renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION then
+        prev_device = renoise.song().selected_automation_device
+        prev_param = renoise.song().selected_automation_parameter
+      end
       if not row_elements.updating_steps then
         local track_index = track_indices[row_elements.track_popup.value]
         local track = renoise.song():track(track_index)
@@ -838,6 +1132,9 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
         end
         update_row_button_colors(row_elements)  -- Update button colors
         row_elements.print_to_pattern()
+        if track_index and prev_device and prev_param then
+          PakettiEightOneTwentyRestoreAutomationSelection(prev_device, prev_param, track_index)
+        end
         --renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
       --else 
         --renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
@@ -846,11 +1143,48 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
   }
 
   -- Sample Name Label
-  local sample_name_label = vb:text{
+  local sample_name_label = vb:button{
     text="Sample Name",
-    font = "bold",
-    style = "strong"
+    width = 400,
+    notifier=function()
+      if not initializing then PakettiEightOneTwentyHighlightRow(row_index) end
+      local track_index = track_indices[row_elements.track_popup.value]
+      if track_index then renoise.song().selected_track_index = track_index end
+      local instrument_index = row_elements.instrument_popup.value
+      if instrument_index then renoise.song().selected_instrument_index = instrument_index end
+      local inst = renoise.song().instruments[instrument_index]
+      if inst then
+        for sample_idx, sample in ipairs(inst.samples) do
+          local vr = sample.sample_mapping and sample.sample_mapping.velocity_range
+          local vmin = vr and vr[1]
+          local vmax = vr and vr[2]
+          if vmin == 0x00 and vmax == 0x7F then
+            renoise.song().selected_sample_index = sample_idx
+            break
+          end
+        end
+      end
+      -- After selection, sync loop UI switches
+      if update_row_loop_ui then update_row_loop_ui() end
+    end
   }
+  -- Try to left-align the sample name within the button by adding leading space removal when updating text
+  row_elements.update_sample_name_label = function()
+    local instrument_index = instrument_popup.value
+    local instrument = renoise.song().instruments[instrument_index]
+    local sample_name = ""
+    if instrument and #instrument.samples > 0 then
+      local selected_sample = instrument.samples[renoise.song().selected_sample_index] or instrument.samples[1]
+      if selected_sample and selected_sample.name and selected_sample.name ~= "" then
+        sample_name = selected_sample.name
+      else
+        sample_name = instrument.name ~= "" and instrument.name or ("Instrument " .. tostring(instrument_index))
+      end
+    else
+      sample_name = instrument and (instrument.name ~= "" and instrument.name or ("Instrument " .. tostring(instrument_index))) or "Sample Name"
+    end
+    sample_name_label.text = sample_name
+  end
 
   -- Append valuebox and sample name label after checkboxes
   table.insert(checkbox_row_elements, valuebox)
@@ -864,7 +1198,7 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
         value = false,
         width=30,
         notifier=function()
-          PakettiEightOneTwentyHighlightRow(row_index)
+          if not initializing then PakettiEightOneTwentyHighlightRow(row_index) end
           if not row_elements.updating_yxx_checkboxes then
             local track_index = track_indices[row_elements.track_popup.value]
             if track_index then
@@ -903,17 +1237,18 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
       min = 0,
       max = 255,
       value = 0,  -- Initialize to 00
-      width=55,
+    width=55,
       tostring = function(value)
         return string.format("%02X", value)
       end,
       tonumber = function(text)
         return tonumber(text, 16)
       end,
-      notifier=function(value)
-        row_elements.print_to_pattern()
-        --renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
-      end
+    notifier=function(value)
+      if not initializing then PakettiEightOneTwentyHighlightRow(row_index) end
+      row_elements.print_to_pattern()
+      --renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+    end
     }  
   
     -- Create the slider that updates the valuebox
@@ -924,7 +1259,7 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
       value = 32, -- Default to 0x20
       width=100,
       notifier=function(value)
-        PakettiEightOneTwentyHighlightRow(row_index)
+        if not initializing then PakettiEightOneTwentyHighlightRow(row_index) end
         yxx_valuebox.value = math.floor(value)
         row_elements.print_to_pattern()
       end
@@ -940,7 +1275,7 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
     text="Random Yxx",
     width=70, -- Adjust width as needed
     notifier=function()
-      PakettiEightOneTwentyHighlightRow(row_index)
+      if not initializing then PakettiEightOneTwentyHighlightRow(row_index) end
       local random_value = math.random(0, 255)
       yxx_slider.value = random_value
       yxx_valuebox.value = random_value
@@ -953,7 +1288,7 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
     text="Clear Yxx",
     width=40, -- Adjust width as needed
     notifier=function()
-      PakettiEightOneTwentyHighlightRow(row_index)
+      if not initializing then PakettiEightOneTwentyHighlightRow(row_index) end
       for _, checkbox in ipairs(yxx_checkboxes) do
         checkbox.value = false
       end
@@ -978,7 +1313,7 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
     items = track_names,
     value = default_track_index,
     notifier=function(value)
-      PakettiEightOneTwentyHighlightRow(row_index)
+      if not initializing then PakettiEightOneTwentyHighlightRow(row_index) end
       row_elements.initialize_row()
       if row_elements.attach_mute_observer then
         row_elements.attach_mute_observer()
@@ -986,6 +1321,9 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
       if row_elements.attach_solo_observer then
         row_elements.attach_solo_observer()
       end
+      -- Clear any accidental selection caused by programmatic updates
+      row_elements.selected_step = nil
+      update_row_button_colors(row_elements)
     end
   }
 
@@ -993,12 +1331,41 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
     value = false,
     width=30,
     notifier=function(value)
+      if not initializing then PakettiEightOneTwentyHighlightRow(row_index) end
+      local prev_device, prev_param = nil, nil
+      if renoise.app().window.active_lower_frame == renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION then
+        prev_device = renoise.song().selected_automation_device
+        prev_param = renoise.song().selected_automation_parameter
+      end
       local track_index = track_indices[track_popup.value]
       local track = renoise.song().tracks[track_index]
       if row_elements and row_elements.updating_mute then return end
       if track then
         print("8120 MUTE UI → Track " .. tostring(track_index) .. " set to " .. (value and "MUTED" or "ACTIVE"))
         track.mute_state = value and renoise.Track.MUTE_STATE_MUTED or renoise.Track.MUTE_STATE_ACTIVE
+        -- Also select this row's track and instrument, and focus the 00-7F sample
+        if track_index then
+          renoise.song().selected_track_index = track_index
+        end
+        local instrument_index = instrument_popup and instrument_popup.value
+        if instrument_index then
+          renoise.song().selected_instrument_index = instrument_index
+          local inst = renoise.song().instruments[instrument_index]
+          if inst and inst.samples and #inst.samples > 0 then
+            for sample_idx, sample in ipairs(inst.samples) do
+              local vr = sample.sample_mapping and sample.sample_mapping.velocity_range
+              local vmin = vr and vr[1]
+              local vmax = vr and vr[2]
+              if vmin == 0x00 and vmax == 0x7F then
+                renoise.song().selected_sample_index = sample_idx
+                break
+              end
+            end
+          end
+        end
+      end
+      if track_index and prev_device and prev_param then
+        PakettiEightOneTwentyRestoreAutomationSelection(prev_device, prev_param, track_index)
       end
       --renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
     end
@@ -1120,8 +1487,14 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
         return
       end
       renoise.song().selected_instrument_index = instrument_index
-      -- Set the selected track before changing the sample
+      -- Set the selected track before changing the sample, preserving automation selection
       local track_index = track_indices[row_elements.track_popup.value]
+      local prev_device = nil
+      local prev_param = nil
+      if renoise.app().window.active_lower_frame == renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION then
+        prev_device = renoise.song().selected_automation_device
+        prev_param = renoise.song().selected_automation_parameter
+      end
       renoise.song().selected_track_index = track_index
       if instrument and #instrument.samples > 0 then
         value = math.min(value, #instrument.samples)
@@ -1129,7 +1502,10 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
       end
 
       row_elements.update_sample_name_label()
-      renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+      -- Try to restore automation selection on this track after changing sample focus
+      if track_index and prev_device and prev_param then
+        PakettiEightOneTwentyRestoreAutomationSelection(prev_device, prev_param, track_index)
+      end
     end
   }
 
@@ -1327,13 +1703,8 @@ end
       -- Get step count from track name when initializing row
       local step_count = getStepsFromTrackName(track.name)
       valuebox.value = step_count
-      -- Only highlight button if step count is different from MAX_STEPS
-      -- This prevents default MAX_STEPS from being highlighted as "selected"
-      if step_count ~= MAX_STEPS then
-        row_elements.selected_step = step_count
-      else
-        row_elements.selected_step = nil  -- No selection for default MAX_STEPS
-      end
+      -- Do not set selected_step during initialization. Start with no highlight.
+      row_elements.selected_step = nil
       update_row_button_colors(row_elements)  -- Update button colors
 
       local current_delay = renoise.song().tracks[track_index].output_delay
@@ -1487,19 +1858,16 @@ end
 
     update_instrument_list_and_popups()
     row_elements.random_button_pressed = row_elements.random_button_pressed
-    renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
   end
 
   -- Function to Refresh Instruments
   function row_elements.refresh_instruments()
     update_instrument_list_and_popups()
-    renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
   end
 
   -- Function to Select Instrument
   function row_elements.select_instrument()
     renoise.song().selected_instrument_index = instrument_popup.value
-    renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
     local track_index = track_indices[track_popup.value]
     local track = renoise.song().tracks[track_index]
     renoise.song().selected_track_index = track_index
@@ -1531,7 +1899,6 @@ end
     renoise.song().selected_track_index = 1
     row_elements.updating_checkboxes = false
     row_elements.updating_yxx_checkboxes = false
-    renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
   end
 
   -- Function to Randomize Steps
@@ -1616,7 +1983,6 @@ end
   renoise.song().selected_sample_index = selected_sample_index
   
   -- Switch views
-  renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
   renoise.app().window.lower_frame_is_visible = true
   renoise.app().window.active_lower_frame = renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION
   renoise.song().selected_track_index = track_indices[track_popup.value]
@@ -1662,6 +2028,21 @@ end
       end
     end
   }
+  local gater_button = vb:button{
+    text = "Gater",
+    notifier=function()
+      PakettiEightOneTwentyHighlightRow(row_index)
+      local ti = track_indices and row_elements.track_popup and row_elements.track_popup.value and track_indices[row_elements.track_popup.value]
+      if ti then renoise.song().selected_track_index = ti end
+      local ii = row_elements.instrument_popup and row_elements.instrument_popup.value
+      if ii then renoise.song().selected_instrument_index = ii end
+      if type(PakettiGaterLoadAndShow) == "function" then
+        PakettiGaterLoadAndShow()
+      else
+        pakettiGaterDialog()
+      end
+    end
+  }
 
   -- Row-level Record button (Arm -> Start -> Stop/Finalize)
   local record_button = vb:button{
@@ -1676,11 +2057,40 @@ end
 
   -- Define the Row Column Layout
   local solo_checkbox = vb:checkbox{value=false,width=30,notifier=function(value)
-    local track_index = track_indices[track_popup.value]
+    PakettiEightOneTwentyHighlightRow(row_index)
+    local prev_device, prev_param = nil, nil
+    if renoise.app().window.active_lower_frame == renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION then
+      prev_device = renoise.song().selected_automation_device
+      prev_param = renoise.song().selected_automation_parameter
+    end
+    local track_index = track_indices[track_popup.value] or row_index
     local track = renoise.song().tracks[track_index]
     if row_elements and row_elements.updating_solo then return end
     if track then
       track.solo_state = value and true or false
+    end
+    -- Select the row's track, instrument and 00-7F sample for immediate visual feedback
+    if track_index and track_index >= 1 and track_index <= #renoise.song().tracks then
+      renoise.song().selected_track_index = track_index
+    end
+    local instrument_index = row_elements.instrument_popup and row_elements.instrument_popup.value
+    if instrument_index and instrument_index >= 1 and instrument_index <= #renoise.song().instruments then
+      renoise.song().selected_instrument_index = instrument_index
+      local inst = renoise.song().instruments[instrument_index]
+      if inst then
+        for sample_idx, sample in ipairs(inst.samples) do
+          local vr = sample.sample_mapping and sample.sample_mapping.velocity_range
+          local vmin = vr and vr[1]
+          local vmax = vr and vr[2]
+          if vmin == 0x00 and vmax == 0x7F then
+            renoise.song().selected_sample_index = sample_idx
+            break
+          end
+        end
+      end
+    end
+    if track_index and prev_device and prev_param then
+      PakettiEightOneTwentyRestoreAutomationSelection(prev_device, prev_param, track_index)
     end
     PakettiEightOneTwentyApplySoloMutePolicy()
   end}
@@ -1706,8 +2116,8 @@ end
     vb:row{
       vb:button{
         text="<",
-        notifier=function()
-          PakettiEightOneTwentyHighlightRow(row_index)
+    notifier=function()
+      if not initializing then PakettiEightOneTwentyHighlightRow(row_index) end
           if initializing then return end
           row_elements.updating_checkboxes = true
           row_elements.updating_yxx_checkboxes = true
@@ -1727,8 +2137,8 @@ end
       },
       vb:button{
         text=">",
-        notifier=function()
-          PakettiEightOneTwentyHighlightRow(row_index)
+    notifier=function()
+      if not initializing then PakettiEightOneTwentyHighlightRow(row_index) end
           if initializing then return end
           row_elements.updating_checkboxes = true
           row_elements.updating_yxx_checkboxes = true
@@ -1748,8 +2158,8 @@ end
       },
       vb:button{
         text="Clear",
-        notifier=function()
-          PakettiEightOneTwentyHighlightRow(row_index)
+    notifier=function()
+      if not initializing then PakettiEightOneTwentyHighlightRow(row_index) end
           if initializing then return end
           row_elements.updating_checkboxes = true
           row_elements.updating_yxx_checkboxes = true
@@ -1833,7 +2243,7 @@ end
       vb:button{text="Show", notifier = row_elements.select_instrument},
       vb:button{text="Automation", notifier = row_elements.show_automation},
       --      vb:button{text="Macros", notifier=row_elements.show_macros},
-      reverse_button, eq30_button, steppers_button, record_button,
+      reverse_button, eq30_button, steppers_button, gater_button, record_button,
     
   },
     },
@@ -2002,7 +2412,6 @@ local randomize_all_yxx_button = vb:button{
         -- Reset all tracks' output delays and update all rows' displays
         for i = 1, 8 do
           song.tracks[i].output_delay = 0
-          -- Update the corresponding row's display
           if rows[i] then
             rows[i].output_delay_slider.value = 0
             rows[i].output_delay_value_label.text = string.format("%+04dms", 0)
@@ -2010,6 +2419,8 @@ local randomize_all_yxx_button = vb:button{
         end
       end
     },
+
+
 
     -- Add new Sequential Load button
     vb:button{
@@ -2022,6 +2433,12 @@ local randomize_all_yxx_button = vb:button{
       text="Sequential RandomLoad",
       notifier=function()
         loadSequentialDrumkitSamples()
+      end
+    },
+    vb:button{
+      text="Sequential RandomLoadAll",
+      notifier=function()
+        loadSequentialRandomLoadAll()
       end
     },    
   }
@@ -2490,11 +2907,8 @@ function PakettiEightOneTwentyRandomizeStepCounts()
     local track = song:track(track_index)
     updateTrackNameWithSteps(track, random_steps)
     row_elements.valuebox.value = random_steps
-    if random_steps == MAX_STEPS then
-      row_elements.selected_step = nil
-    else
-      row_elements.selected_step = random_steps
-    end
+    -- Do not set selected_step during randomization to avoid forcing a highlight
+    row_elements.selected_step = nil
     update_row_button_colors(row_elements)
     row_elements.updating_steps = false
     row_elements.print_to_pattern()
@@ -2731,7 +3145,27 @@ function pakettiEightSlotsByOneTwentyDialog()
       renoise.app():show_status(string.format("EQ30: initialized %d track(s), skipped %d existing", initialized_count, skipped_count))
     end
   }
-  local top_row = vb:row{global_controls, vb:space{width=8}, init_eq30_button}
+  -- Global Pitch Rotary (top-right)
+  local global_pitch_rotary = vb:rotary{
+    min = -120,
+    max = 120,
+    value = 0,
+    width = 20,
+    height = 20,
+    notifier = function(v)
+      -- Relative-from-previous behavior: compute delta and apply relative change
+      local new_v = math.floor(v)
+      local delta = new_v - (gbx_global_pitch_ui_prev_value or 0)
+      gbx_global_pitch_ui_prev_value = new_v
+      if delta ~= 0 then
+        PakettiGrooveboxGlobalPitch(delta)
+      end
+    end
+  }
+  local global_pitch_label = vb:text{text="Global Pitch", style="strong", font="bold"}
+  local global_pitch_column = vb:row{global_pitch_rotary, global_pitch_label}
+
+  local top_row = vb:row{global_controls, vb:space{width=8}, init_eq30_button, vb:space{width=8}, global_pitch_column}
   local dc = vb:column{top_row, global_groove_controls, global_buttons, global_step_buttons, vb:space{height=8}}
   -- Create and add rows with spacing between them
   for i = 1, 8 do
@@ -2795,7 +3229,6 @@ function pakettiEightSlotsByOneTwentyDialog()
         -- Select instrument and sample, show sample editor
         renoise.song().selected_instrument_index = inst_idx
         renoise.song().selected_sample_index = smp_idx
-        renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
         beatsync_updating[idx] = true
         if value then
           local new_lines = beatsync_valueboxes[idx] and beatsync_valueboxes[idx].value or 64
@@ -2828,7 +3261,6 @@ function pakettiEightSlotsByOneTwentyDialog()
         -- Select instrument and sample, show sample editor
         renoise.song().selected_instrument_index = inst_idx
         renoise.song().selected_sample_index = smp_idx
-        renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
         beatsync_updating[idx] = true
         if val <= 0 then
           smp.beat_sync_enabled = false
@@ -2844,7 +3276,9 @@ function pakettiEightSlotsByOneTwentyDialog()
     }
     beatsync_checkboxes[idx] = cb
     beatsync_valueboxes[idx] = vb_lines
-    beatsync_row:add_child(vb:row{vb:text{text=string.format("%02d", idx), font="bold", style="strong", width=22}, vb_lines, cb})
+    local col = vb:column{style="body", vb:row{vb:text{text=string.format("%02d", idx), font="bold", style="strong", width=22}, vb_lines, cb}}
+    beatsync_adv_columns[idx] = col
+    beatsync_row:add_child(col)
   end
 
   -- BeatSync Mode row (per instrument)
@@ -2883,12 +3317,12 @@ function pakettiEightSlotsByOneTwentyDialog()
         -- Select and show
         renoise.song().selected_instrument_index = inst_idx
         renoise.song().selected_sample_index = smp_idx
-        renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
         -- Map UI value 1..3 directly to API beat_sync_mode
         smp.beat_sync_mode = val
       end
     }
-    beatsync_modes_row:add_child(vb:row{vb:text{text=string.format("%02d", idx), font="bold", style="strong", width=22}, popup})
+    local col = vb:column{style="body", vb:row{vb:text{text=string.format("%02d", idx), font="bold", style="strong", width=22}, popup}}
+    beatsync_adv_columns[idx]:add_child(col)
     beatsync_mode_popups[idx] = popup
     -- Observe beat_sync_mode to reflect external changes
     do
@@ -3034,7 +3468,8 @@ function pakettiEightSlotsByOneTwentyDialog()
         smp.new_note_action = val
       end
     }
-    nna_row:add_child(vb:row{vb:text{text=string.format("%02d", idx), font="bold", style="strong", width=22}, nna_popup})
+    local col = vb:column{style="body", vb:row{vb:text{text=string.format("%02d", idx), font="bold", style="strong", width=22}, nna_popup}}
+    beatsync_adv_columns[idx]:add_child(col)
     nna_popups[idx] = nna_popup
     -- Attach real-time observer so popup tracks changes outside the UI
     local re = rows[idx]
@@ -3343,13 +3778,59 @@ function assign_midi_mappings()
     end
   end
   
-  -- Sample slider MIDI mappings for each row
+  -- Sample slider MIDI mappings for each row (works with or without dialog)
   for row = 1, 8 do
     renoise.tool():add_midi_mapping{name=string.format("Paketti:Paketti Groovebox 8120:Row%d Sample Slider", row),invoke=function(message)
-      if message:is_abs_value() and rows[row] and rows[row].slider then
-        -- Map MIDI value (0-127) to slider range (1-120)
-        local slider_value = math.floor((message.int_value / 127) * 119) + 1
+      if not message:is_abs_value() then return end
+      local slider_value = math.floor((message.int_value / 127) * 119) + 1
+      local song = renoise.song()
+      -- If dialog row exists, use existing slider logic and also select sample immediately
+      if rows and rows[row] and rows[row].slider then
         rows[row].slider.value = slider_value
+        -- Also explicitly select track/instrument/sample to reflect change instantly
+        if row <= #song.tracks and song:track(row).type == renoise.Track.TRACK_TYPE_SEQUENCER then
+          song.selected_track_index = row
+        end
+        if row <= #song.instruments then
+          song.selected_instrument_index = row
+          local inst = song.instruments[row]
+          if inst and inst.samples and #inst.samples > 0 then
+            local idx = slider_value
+            if idx > #inst.samples then idx = #inst.samples end
+            if idx < 1 then idx = 1 end
+            if inst.samples[1] and inst.samples[1].slice_markers and #inst.samples[1].slice_markers > 0 then
+              song.selected_sample_index = 1
+            else
+              song.selected_sample_index = idx
+            end
+          end
+        end
+        return
+      end
+      -- Headless: select track/instrument matching the row and apply selection
+      local track_index = row
+      if track_index <= #song.tracks and song:track(track_index).type == renoise.Track.TRACK_TYPE_SEQUENCER then
+        song.selected_track_index = track_index
+      end
+      local instrument_index = row
+      if instrument_index <= #song.instruments then
+        song.selected_instrument_index = instrument_index
+        local inst = song.instruments[instrument_index]
+        if inst and inst.samples and #inst.samples > 0 then
+          local idx = slider_value
+          if idx > #inst.samples then idx = #inst.samples end
+          if idx < 1 then idx = 1 end
+          -- Respect slice rule: if first sample has slices, select only sample 1
+          if inst.samples[1] and inst.samples[1].slice_markers and #inst.samples[1].slice_markers > 0 then
+            song.selected_sample_index = 1
+          else
+            song.selected_sample_index = idx
+          end
+          -- Ensure velocity mapping choke
+          if type(pakettiSampleVelocityRangeChoke) == "function" then
+            pakettiSampleVelocityRangeChoke(song.selected_sample_index)
+          end
+        end
       end
     end}
   end
@@ -3386,7 +3867,122 @@ function GrooveboxShowClose()
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Groovebox 8120",invoke=function() GrooveboxShowClose() end}
-renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120",invoke=function(message) GrooveboxShowClose() end }
+renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120",invoke=function(message) if message:is_trigger() then GrooveboxShowClose() end end }
+
+-- Global Pitch Button: adjust transpose for all 8 groovebox instruments
+gbx_transpose_baseline = gbx_transpose_baseline or {nil,nil,nil,nil,nil,nil,nil,nil}
+
+local function PakettiGrooveboxCaptureTransposeBaseline()
+  local song = renoise.song()
+  for row = 1, 8 do
+    local row_elements = rows and rows[row] or nil
+    local inst_idx = nil
+    if row_elements and row_elements.instrument_popup then
+      inst_idx = row_elements.instrument_popup.value
+    else
+      inst_idx = row
+    end
+    local inst = (inst_idx and song.instruments[inst_idx]) or nil
+    gbx_transpose_baseline[row] = inst and (inst.transpose or 0) or 0
+  end
+end
+
+function PakettiGrooveboxGlobalPitch(delta_semitones)
+  local song = renoise.song()
+  for row = 1, 8 do
+    local row_elements = rows and rows[row] or nil
+    local inst_idx = nil
+    if row_elements and row_elements.instrument_popup then
+      inst_idx = row_elements.instrument_popup.value
+    else
+      inst_idx = row
+    end
+    local inst = song.instruments[inst_idx]
+    if inst then
+      local new_transpose = (inst.transpose or 0) + delta_semitones
+      if new_transpose < -120 then new_transpose = -120 end
+      if new_transpose > 120 then new_transpose = 120 end
+      inst.transpose = new_transpose
+      if row_elements and row_elements.transpose_rotary then
+        local ui_val = new_transpose
+        if ui_val < -64 then ui_val = -64 end
+        if ui_val > 64 then ui_val = 64 end
+        row_elements.updating_transpose = true
+        row_elements.transpose_rotary.value = ui_val
+        row_elements.updating_transpose = false
+      end
+    end
+  end
+end
+
+function PakettiGrooveboxGlobalPitchAbsolute(absolute_offset)
+  local song = renoise.song()
+  if not (gbx_transpose_baseline and gbx_transpose_baseline[1] ~= nil) then
+    PakettiGrooveboxCaptureTransposeBaseline()
+  end
+  for row = 1, 8 do
+    local row_elements = rows and rows[row] or nil
+    local inst_idx = nil
+    if row_elements and row_elements.instrument_popup then
+      inst_idx = row_elements.instrument_popup.value
+    else
+      inst_idx = row
+    end
+    local inst = song.instruments[inst_idx]
+    if inst then
+      local base_val = gbx_transpose_baseline[row] or (inst.transpose or 0)
+      local target = base_val + absolute_offset
+      if target < -120 then target = -120 end
+      if target > 120 then target = 120 end
+      inst.transpose = target
+      if row_elements and row_elements.transpose_rotary then
+        local ui_val = target
+        if ui_val < -64 then ui_val = -64 end
+        if ui_val > 64 then ui_val = 64 end
+        row_elements.updating_transpose = true
+        row_elements.transpose_rotary.value = ui_val
+        row_elements.updating_transpose = false
+      end
+    end
+  end
+end
+
+-- MIDI mappings for Global Pitch Button
+renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120:Global Pitch Up [Trigger]",invoke=function(message)
+  if message:is_trigger() then PakettiGrooveboxGlobalPitch(1) end
+end}
+renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120:Global Pitch Down [Trigger]",invoke=function(message)
+  if message:is_trigger() then PakettiGrooveboxGlobalPitch(-1) end
+end}
+renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120:Global Pitch [Relative]",invoke=function(message)
+  if message:is_rel_value() then
+    local step = 0
+    if message.int_value > 0 then step = 1 elseif message.int_value < 0 then step = -1 end
+    if step ~= 0 then PakettiGrooveboxGlobalPitch(step) end
+  elseif message:is_abs_value() then
+    -- Treat absolute 0..127 as relative delta from previous absolute
+    local v = message.int_value
+    if gbx_global_pitch_midi_prev_abs == nil then
+      gbx_global_pitch_midi_prev_abs = v
+    end
+    local delta = v - gbx_global_pitch_midi_prev_abs
+    gbx_global_pitch_midi_prev_abs = v
+    if delta ~= 0 then PakettiGrooveboxGlobalPitch(delta) end
+  end
+end}
+
+-- Absolute global pitch (baseline + offset)
+renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120:Global Pitch [Absolute]",invoke=function(message)
+  if message:is_abs_value() then
+    -- Still support absolute-to-baseline by mapping 0..127 to -120..+120
+    local v = message.int_value
+    local offset = math.floor(((v / 127) * 240) - 120)
+    PakettiGrooveboxGlobalPitchAbsolute(offset)
+  elseif message:is_trigger() then
+    -- On trigger, capture a fresh baseline
+    PakettiGrooveboxCaptureTransposeBaseline()
+  end
+end}
 
 function debug_instruments_and_samples()
   print("----- Debug: Instruments and Samples (Velocity 00-7F) -----")
@@ -3542,7 +4138,6 @@ function loadSequentialSamplesWithFolderPrompts()
 
   -- Main processing function
   local function process()
-    renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
 
     for i = 1, 8 do
       -- Update status to show which part is processing
@@ -3838,8 +4433,6 @@ function loadSequentialDrumkitSamples()
 
   -- Main processing function for ProcessSlicer
   local function process()
-    -- Switch to sample editor at start
-    renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
 
     for i = 1, 8 do
       if slicer:was_cancelled() then
@@ -3975,6 +4568,238 @@ function loadSequentialDrumkitSamples()
 
   -- Start by prompting for folders
   promptNextFolder()
+end
+
+-- Function to load samples sequentially from ONE folder for all 8 parts (RandomLoadAll)
+function loadSequentialRandomLoadAll()
+  local base_folder = renoise.app():prompt_for_path("Select a single base folder for RandomLoadAll (used for all 8 parts)")
+  if not base_folder then
+    renoise.app():show_status("RandomLoadAll cancelled - no folder selected")
+    return
+  end
+
+  local folders = {}
+  for i = 1, 8 do
+    folders[i] = base_folder
+  end
+
+  -- Reuse the same ProcessSlicer UI and worker pattern as loadSequentialDrumkitSamples,
+  -- but without prompting per-part. This is effectively the same as loadSequentialDrumkitSamples
+  -- with identical folder input for every part.
+
+  local slicer = nil
+  local dialog = nil
+  local vb = nil
+  local status_labels = {}
+
+  local function getFilename(filepath)
+    return filepath:match("([^/\\]+)%.%w+$") or filepath
+  end
+
+  local function getFileSize(filepath)
+    local file = io.open(filepath, "rb")
+    if file then
+      local size = file:seek("end")
+      file:close()
+      return size
+    end
+    return 0
+  end
+
+  local function formatFileSize(size)
+    local units = {'B','KB','MB','GB'}
+    local unit_index = 1
+    while size > 1024 and unit_index < #units do
+      size = size / 1024
+      unit_index = unit_index + 1
+    end
+    return string.format("%.2f %s", size, units[unit_index])
+  end
+
+  local function capFilename(filename)
+    if #filename > 80 then
+      return filename:sub(1, 77) .. "..."
+    end
+    return filename
+  end
+
+  local function addInstrMacrosToTrack(track_index)
+    local song=renoise.song()
+    song.selected_instrument_index = track_index
+    song.selected_track_index = track_index
+    if song.selected_track.type ~= renoise.Track.TRACK_TYPE_MASTER then
+      for i = #song.selected_track.devices, 1, -1 do
+        local device = song.selected_track.devices[i]
+        if device.name == "*Instr. Macros" then
+          song.selected_track:delete_device_at(i)
+        end
+      end
+      loadnative("Audio/Effects/Native/*Instr. Macros", nil, nil, nil, true)
+      local macro_device = song.selected_track:device(#song.selected_track.devices)
+      macro_device.display_name = string.format("%02X_Drumkit", track_index - 1)
+      macro_device.is_maximized = false
+    end
+  end
+
+  local function processInstrument(instrument_index, folder_path)
+    local sample_files = PakettiGetFilesInDirectory(folder_path)
+    if #sample_files == 0 then
+      print(string.format("ERROR: No audio files found in folder: %s", folder_path))
+      return false, "No audio files found in folder " .. folder_path
+    end
+
+    local song=renoise.song()
+    song.selected_track_index = instrument_index
+    song.selected_instrument_index = instrument_index
+    local instrument = song.selected_instrument
+
+    local defaultInstrument = preferences.pakettiDefaultDrumkitXRNI.value
+    renoise.app():load_instrument(defaultInstrument)
+    instrument = song.selected_instrument
+    instrument.name = string.format("8120_%02d Kit", instrument_index)
+    instrument.macros_visible = true
+
+    local max_samples = 120
+    local num_samples_to_load = math.min(#sample_files, max_samples)
+    local failed_files = {}
+
+    for i = 1, num_samples_to_load do
+      local random_index = math.random(1, #sample_files)
+      local selected_file = sample_files[random_index]
+      table.remove(sample_files, random_index)
+
+      local file_size = getFileSize(selected_file)
+
+      if #instrument.samples < i then
+        instrument:insert_sample_at(i)
+      end
+
+      local load_failed = false
+      local error_msg = ""
+
+      local ok = pcall(function()
+        local buffer = instrument.samples[i].sample_buffer
+        if not buffer then
+          load_failed = true
+          error_msg = "No sample buffer available"
+          return
+        end
+        local load_ok, load_err = buffer:load_from(selected_file)
+        if not load_ok then
+          load_failed = true
+          error_msg = load_err or "Unknown error during load_from"
+          return
+        end
+        instrument.samples[i].name = getFilename(selected_file)
+      end)
+
+      if not ok or load_failed then
+        print(string.format("FAILED TO LOAD SAMPLE Part %d [%d/%d]: PATH: %s SIZE: %s",
+          instrument_index, i, num_samples_to_load, selected_file, formatFileSize(file_size)))
+        table.insert(failed_files, {index=i, path=selected_file, size=file_size, error=error_msg})
+      end
+
+      if dialog and dialog.visible then
+        local display_name = capFilename(getFilename(selected_file))
+        status_labels[instrument_index].text = string.format("Part %d/8: Loading sample %03d/%03d: %s",
+          instrument_index, i, num_samples_to_load, display_name)
+        status_labels[instrument_index].font = "bold"
+        status_labels[instrument_index].style = "strong"
+      end
+
+      if i % 5 == 0 then
+        coroutine.yield()
+      end
+    end
+
+    if #failed_files > 0 then
+      print(string.format("\nSUMMARY: Part %d had %d failed loads:", instrument_index, #failed_files))
+      for _, fail in ipairs(failed_files) do
+        print(string.format("Sample [%d/%d]: PATH: %s SIZE: %s",
+          fail.index, num_samples_to_load, fail.path, formatFileSize(fail.size)))
+      end
+      print("----------------------------------------")
+    end
+
+    return true
+  end
+
+  local function process()
+    for i = 1, 8 do
+      if slicer:was_cancelled() then
+        renoise.app():show_status("Sequential loading cancelled")
+        break
+      end
+
+      for j = i + 1, 8 do
+        local folder_name = getFilename(folders[j])
+        status_labels[j].text = string.format("Part %d/8: Queued - Random from %s", j, folder_name)
+        status_labels[j].font = "bold"
+        status_labels[j].style = "strong"
+      end
+
+      local success, error = processInstrument(i, folders[i])
+      if not success then
+        print(error)
+      end
+
+      coroutine.yield()
+    end
+
+    if dialog and dialog.visible then
+      dialog:close()
+    end
+
+    for i = 1, 8 do
+      local instrument = renoise.song():instrument(i)
+      if instrument then
+        for sample_idx, sample in ipairs(instrument.samples) do
+          sample.sample_mapping.velocity_range = {0, 0}
+          sample.sample_mapping.base_note = 48
+          sample.sample_mapping.note_range = {0, 119}
+        end
+        if #instrument.samples > 0 then
+          instrument.samples[1].sample_mapping.velocity_range = {0, 127}
+        end
+        if preferences.pakettiLoaderDontCreateAutomationDevice.value == false then
+          renoise.song().selected_track_index = i
+          addInstrMacrosToTrack(i)
+        end
+      end
+    end
+
+    update_instrument_list_and_popups()
+    renoise.app():show_status("Sequential loading completed - All instruments loaded")
+  end
+
+  local function startProcessing()
+    slicer = ProcessSlicer(process)
+    local vb = renoise.ViewBuilder()
+    local DEFAULT_MARGIN=renoise.ViewBuilder.DEFAULT_CONTROL_MARGIN
+    local DEFAULT_SPACING=renoise.ViewBuilder.DEFAULT_CONTROL_SPACING
+
+    local dialog_content = vb:column{margin=DEFAULT_MARGIN, spacing=DEFAULT_SPACING}
+    for i = 1, 8 do
+      local folder_name = getFilename(folders[i])
+      local status_label = vb:text{ text = string.format("Part %d/8: Queued - Random from %s", i, folder_name), font = "bold", style = "strong" }
+      status_labels[i] = status_label
+      dialog_content:add_child(status_label)
+    end
+    dialog_content:add_child(vb:button{ text = "Cancel", width = 80, notifier = function()
+      slicer:cancel()
+      if dialog and dialog.visible then dialog:close() end
+      renoise.app():show_status("Sequential loading cancelled by user")
+    end})
+
+    local keyhandler = create_keyhandler_for_dialog(
+      function() return dialog end,
+      function(value) dialog = value end
+    )
+    dialog = renoise.app():show_custom_dialog("Paketti Groovebox 8120 Sequential Load Progress Dialog", dialog_content, keyhandler)
+    slicer:start()
+  end
+
+  startProcessing()
 end
 
 -- Groovebox-specific Expand Selection Replicate function
@@ -4176,8 +5001,9 @@ local function set_groovebox_instrument_transpose(instrument_index, message)
   song.selected_track_index = instrument_index + 1
   
   -- Status update for debugging
-  renoise.app():show_status("Groovebox 8120: Instrument " .. string.format("%02d", instrument_index) .. " transpose adjusted to " .. instrument.transpose)
+  renoise.app():show_status(string.format("%02d", instrument_index) .. "  " .. instrument.transpose)
 end
+
 
 -- MIDI mappings for groovebox-specific instrument transpose
 for i=0,7 do

@@ -45,6 +45,121 @@ local selected_step_retrig = nil
 local selected_step_playback = nil
 local selected_step_panning = nil
 
+-- Playhead highlight (runtime) state and color (mirrors 8120 implementation)
+gater_play_color = nil
+gater_play_color_is_deeper_purple = false
+gater_play_color_darker_variant = {40,0,72}
+gater_play_step_index_volume = nil
+gater_play_step_index_retrig = nil
+gater_play_step_index_playback = nil
+gater_play_step_index_panning = nil
+gater_playhead_timer_fn = nil
+gater_playing_observer_fn = nil
+
+function PakettiGaterResolvePlayheadColor()
+  local choice = (preferences and preferences.PakettiGrooveboxPlayheadColor and preferences.PakettiGrooveboxPlayheadColor.value) or 2
+  if choice == 1 then return nil end -- None
+  if choice == 2 then return {255,128,0} end -- Bright Orange
+  if choice == 3 then return {64,0,96} end -- Deeper Purple
+  if choice == 4 then return {0,0,0} end -- Black
+  if choice == 5 then return {255,255,255} end -- White
+  if choice == 6 then return {64,64,64} end -- Dark Grey
+  return {255,128,0}
+end
+
+function PakettiGaterApplyPlayheadColor()
+  gater_play_color = PakettiGaterResolvePlayheadColor()
+  gater_play_color_is_deeper_purple = false
+  if gater_play_color and type(gater_play_color) == "table" then
+    if gater_play_color[1] == 64 and gater_play_color[2] == 0 and gater_play_color[3] == 96 then
+      gater_play_color_is_deeper_purple = true
+    end
+  end
+  PakettiGaterUpdatePlayheadHighlights()
+end
+
+function PakettiGaterUpdatePlayheadHighlights()
+  if not dialog or not dialog.visible then return end
+  local song = renoise.song()
+  if not song then return end
+  local current_line = song.selected_line_index
+  if song.transport.playing then
+    local pos = song.transport.playback_pos
+    if pos and pos.line then current_line = pos.line end
+  end
+  if not current_line then return end
+  local function compute_display_index(steps)
+    if not steps or steps < 1 then steps = 1 end
+    local within_steps_window_index = ((current_line - 1) % steps) + 1
+    if steps > MAX_STEPS then
+      if within_steps_window_index <= MAX_STEPS then
+        return within_steps_window_index
+      else
+        return nil
+      end
+    else
+      return ((within_steps_window_index - 1) % MAX_STEPS) + 1
+    end
+  end
+  local steps_volume = (volume_valuebox and volume_valuebox.value) or active_steps_volume or MAX_STEPS
+  local steps_retrig = (retrig_valuebox and retrig_valuebox.value) or active_steps_retrig or MAX_STEPS
+  local steps_playback = (playback_valuebox and playback_valuebox.value) or active_steps_playback or MAX_STEPS
+  local steps_panning = (panning_valuebox and panning_valuebox.value) or active_steps_panning or MAX_STEPS
+
+  local new_idx_vol = compute_display_index(steps_volume)
+  local new_idx_ret = compute_display_index(steps_retrig)
+  local new_idx_plb = compute_display_index(steps_playback)
+  local new_idx_pan = compute_display_index(steps_panning)
+
+  local changed = false
+  if gater_play_step_index_volume ~= new_idx_vol then gater_play_step_index_volume = new_idx_vol; changed = true end
+  if gater_play_step_index_retrig ~= new_idx_ret then gater_play_step_index_retrig = new_idx_ret; changed = true end
+  if gater_play_step_index_playback ~= new_idx_plb then gater_play_step_index_playback = new_idx_plb; changed = true end
+  if gater_play_step_index_panning ~= new_idx_pan then gater_play_step_index_panning = new_idx_pan; changed = true end
+  if changed then update_step_button_colors() end
+end
+
+function PakettiGaterSetupPlayhead()
+  local song = renoise.song()
+  if not song then return end
+  if not gater_playhead_timer_fn then
+    gater_playhead_timer_fn = function()
+      PakettiGaterUpdatePlayheadHighlights()
+    end
+    renoise.tool():add_timer(gater_playhead_timer_fn, 40)
+  end
+  if not gater_playing_observer_fn then
+    gater_playing_observer_fn = function()
+      gater_play_color = PakettiGaterResolvePlayheadColor()
+      PakettiGaterUpdatePlayheadHighlights()
+    end
+    if song.transport.playing_observable and not song.transport.playing_observable:has_notifier(gater_playing_observer_fn) then
+      song.transport.playing_observable:add_notifier(gater_playing_observer_fn)
+    end
+  end
+  PakettiGaterApplyPlayheadColor()
+end
+
+function PakettiGaterCleanupPlayhead()
+  local song = renoise.song()
+  if gater_playhead_timer_fn then
+    if renoise.tool():has_timer(gater_playhead_timer_fn) then
+      renoise.tool():remove_timer(gater_playhead_timer_fn)
+    end
+    gater_playhead_timer_fn = nil
+  end
+  if song and gater_playing_observer_fn and song.transport.playing_observable and song.transport.playing_observable:has_notifier(gater_playing_observer_fn) then
+    song.transport.playing_observable:remove_notifier(gater_playing_observer_fn)
+  end
+  gater_playing_observer_fn = nil
+  local had_any = (gater_play_step_index_volume ~= nil) or (gater_play_step_index_retrig ~= nil) or (gater_play_step_index_playback ~= nil) or (gater_play_step_index_panning ~= nil)
+  gater_play_step_index_volume = nil
+  gater_play_step_index_retrig = nil
+  gater_play_step_index_playback = nil
+  gater_play_step_index_panning = nil
+  if had_any then update_step_button_colors() end
+end
+
 -- Helper function to safely switch to pattern editor only if not in sample/phrase editor
 local function safe_switch_to_pattern_editor()
   local current_frame = renoise.app().window.active_middle_frame
@@ -60,14 +175,21 @@ local retrig_buttons = {}
 local playback_buttons = {}
 
 -- Function to update button colors based on selection and beat highlighting
-local function update_step_button_colors()
+function update_step_button_colors()
   -- Update volume gater buttons
   if buttons and #buttons > 0 then
     for i = 1, #buttons do
       local is_beat_marker = (i == 1 or i == 5 or i == 9 or i == 13 or i == 17 or i == 21 or i == 25 or i == 29)
       local is_selected = (i == selected_step_volume)
+      local is_play_step = (gater_play_step_index_volume ~= nil and i == gater_play_step_index_volume)
       
-      if is_selected then
+      if is_play_step then
+        local pc = gater_play_color
+        if is_selected and gater_play_color_is_deeper_purple then
+          pc = gater_play_color_darker_variant
+        end
+        buttons[i].color = pc
+      elseif is_selected then
         buttons[i].color = selected_color  -- Purple for selected
       elseif is_beat_marker then
         buttons[i].color = highlight_color  -- Blue for beat markers  
@@ -82,8 +204,15 @@ local function update_step_button_colors()
     for i = 1, #retrig_buttons do
       local is_beat_marker = (i == 1 or i == 5 or i == 9 or i == 13 or i == 17 or i == 21 or i == 25 or i == 29)
       local is_selected = (i == selected_step_retrig)
+      local is_play_step = (gater_play_step_index_retrig ~= nil and i == gater_play_step_index_retrig)
       
-      if is_selected then
+      if is_play_step then
+        local pc = gater_play_color
+        if is_selected and gater_play_color_is_deeper_purple then
+          pc = gater_play_color_darker_variant
+        end
+        retrig_buttons[i].color = pc
+      elseif is_selected then
         retrig_buttons[i].color = selected_color
       elseif is_beat_marker then
         retrig_buttons[i].color = highlight_color
@@ -98,8 +227,15 @@ local function update_step_button_colors()
     for i = 1, #playback_buttons do
       local is_beat_marker = (i == 1 or i == 5 or i == 9 or i == 13 or i == 17 or i == 21 or i == 25 or i == 29)
       local is_selected = (i == selected_step_playback)
+      local is_play_step = (gater_play_step_index_playback ~= nil and i == gater_play_step_index_playback)
       
-      if is_selected then
+      if is_play_step then
+        local pc = gater_play_color
+        if is_selected and gater_play_color_is_deeper_purple then
+          pc = gater_play_color_darker_variant
+        end
+        playback_buttons[i].color = pc
+      elseif is_selected then
         playback_buttons[i].color = selected_color
       elseif is_beat_marker then
         playback_buttons[i].color = highlight_color
@@ -114,8 +250,15 @@ local function update_step_button_colors()
     for i = 1, #panning_buttons do
       local is_beat_marker = (i == 1 or i == 5 or i == 9 or i == 13 or i == 17 or i == 21 or i == 25 or i == 29)
       local is_selected = (i == selected_step_panning)
+      local is_play_step = (gater_play_step_index_panning ~= nil and i == gater_play_step_index_panning)
       
-      if is_selected then
+      if is_play_step then
+        local pc = gater_play_color
+        if is_selected and gater_play_color_is_deeper_purple then
+          pc = gater_play_color_darker_variant
+        end
+        panning_buttons[i].color = pc
+      elseif is_selected then
         panning_buttons[i].color = selected_color
       elseif is_beat_marker then
         panning_buttons[i].color = highlight_color
@@ -2461,6 +2604,7 @@ function pakettiGaterDialog()
       if track_notifier and renoise.song().selected_track_index_observable:has_notifier(track_notifier) then
         renoise.song().selected_track_index_observable:remove_notifier(track_notifier)
       end
+      PakettiGaterCleanupPlayhead()
       dialog:close()
       dialog = nil
       return
@@ -2479,6 +2623,7 @@ function pakettiGaterDialog()
   )
   dialog = renoise.app():show_custom_dialog("Paketti Volume/Retrig/Playback/Panning Gater", content, keyhandler)
   safe_switch_to_pattern_editor()
+  PakettiGaterSetupPlayhead()
 
   -- Automatically receive the current pattern state when opening the dialog
   receive_volume_checkboxes()
@@ -2516,6 +2661,7 @@ function createGaterDialogContent()
           if track_notifier and renoise.song().selected_track_index_observable:has_notifier(track_notifier) then
             renoise.song().selected_track_index_observable:remove_notifier(track_notifier)
           end
+          PakettiGaterCleanupPlayhead()
           dialog:close()
           dialog = nil
           -- Reopen immediately with new settings
@@ -2526,10 +2672,122 @@ function createGaterDialogContent()
     end
   }
 
+  local another_stack=vb:button{ text="Wipe", pressed = wipe_gating_effects, tooltip="Wipe gating effects: from other tracks when Solo is on, from selected track when Solo is off" }
+  local global_clear=vb:button{ text="Global Clear", pressed = function()
+    initializing = true
+    -- Clear volume
+    for i = 1, num_checkboxes do
+      checkboxes[i].value = false
+    end
+    -- Clear retrig
+    for i = 1, num_checkboxes do
+      retrig_checkboxes[i].value = false
+    end
+    -- Clear playback
+    for i = 1, num_checkboxes do
+      playback_checkboxes[i].value = false
+    end
+    -- Clear panning (set all to center)
+    for i = 1, num_checkboxes do
+      panning_left_checkboxes[i].value = false
+      panning_center_checkboxes[i].value = true
+      panning_right_checkboxes[i].value = false
+    end
+
+    -- Clear all pattern content
+    suppress_status_messages = true  -- Prevent multiple status messages
+    
+    -- Clear volume content based on column choice
+    if column_choice == "FX Column" or column_choice == "FX Column (L00)" then
+      clear_effect_columns()
+    elseif column_choice == "Volume Column" then
+      clear_volume_column()
+    end
+    
+    -- Clear retrig content based on column choice
+    if retrig_column_choice == "FX Column" then
+      clear_retrig()
+    elseif retrig_column_choice == "Volume Column" then
+      if column_choice ~= "Volume Column" then  -- Only if not used by volume gater
+        clear_volume_column()
+      end
+    elseif retrig_column_choice == "Panning Column" then
+      if panning_column_choice ~= "Panning Column" then  -- Only if not used by panning gater
+        clear_panning_column()
+      end
+    end
+    
+    -- Clear playback content
+    clear_playback_effect()
+    
+    -- Clear panning content based on column choice
+    if panning_column_choice == "FX Column" then
+      clear_effect_column_4()
+    elseif panning_column_choice == "Panning Column" then
+      if retrig_column_choice ~= "Panning Column" then  -- Only if not used by retrig
+        clear_panning_column()
+      end
+    end
+
+    suppress_status_messages = false
+    initializing = false
+    insert_commands()  -- Single update at the end
+  end}
+
+  local global_random=vb:button{ text="Global Random", pressed = function()
+    -- Initialize random seed for true randomness
+    math.randomseed(os.time())
+    
+    initializing = true
+    -- Randomize volume
+    for i = 1, num_checkboxes do
+      checkboxes[i].value = math.random() > 0.5
+    end
+    -- Randomize retrig
+    for i = 1, num_checkboxes do
+      retrig_checkboxes[i].value = math.random() > 0.5
+    end
+    -- Randomize playback
+    for i = 1, num_checkboxes do
+      playback_checkboxes[i].value = math.random() > 0.5
+    end
+    -- Randomize panning
+    for i = 1, num_checkboxes do
+      local rand_choice = math.random(1, 3)
+      if rand_choice == 1 then
+        panning_left_checkboxes[i].value = true
+        panning_center_checkboxes[i].value = false
+        panning_right_checkboxes[i].value = false
+      elseif rand_choice == 2 then
+        panning_left_checkboxes[i].value = false
+        panning_center_checkboxes[i].value = true
+        panning_right_checkboxes[i].value = false
+      else
+        panning_left_checkboxes[i].value = false
+        panning_center_checkboxes[i].value = false
+        panning_right_checkboxes[i].value = true
+      end
+    end
+    initializing = false
+    insert_commands()  -- Single update at the end
+  end}
+
+  local global_receive=vb:button{ text="Global Receive", pressed = function()
+    initializing = true
+    receive_volume_checkboxes()
+    receive_retrig_checkboxes()
+    receive_playback_checkboxes()
+    receive_panning_checkboxes()
+    initializing = false
+    -- No insert_commands() - Global Receive should only read, not write!
+  end}
+
+
+
   -- Create Global Step Buttons
-  local step_values = {"1", "2", "4", "6", "8", "12", "16", "24", "32"}
+  local step_values = {"1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16", "24", "32"}
   local global_step_buttons = vb:row{}
-  global_step_buttons:add_child(vb:text{text="Global Steps:", style="strong", font="bold"})
+  global_step_buttons:add_child(vb:text{text="Global Steps", style="strong", font="bold"})
   
   for _, step in ipairs(step_values) do
     global_step_buttons:add_child(vb:button{
@@ -2542,10 +2800,9 @@ function createGaterDialogContent()
   end
 
   local content = vb:column{
-    step_mode_switch,
-    vb:space{height = 5},
+    vb:row{
+    step_mode_switch,another_stack,global_clear,global_random,global_receive},
     global_step_buttons,
-    vb:space{height = 10},
     vb:text{text="Volume Gater", font = "bold", style="strong" },
     vb:switch {
       items = { "FX Column (C00)", "Volume Column", "FX Column (L00)" },
@@ -2636,7 +2893,9 @@ function createGaterDialogContent()
       notifier=function(index)
         retrig_column_choice = (index == 1) and "FX Column" or (index == 2) and "Volume Column" or "Panning Column"
         if not initializing then
-          insert_commands()
+          initializing = true
+          receive_retrig_checkboxes()
+          initializing = false
         end
       end
     },
@@ -2673,6 +2932,8 @@ function createGaterDialogContent()
         initializing = false
         insert_commands()
       end},
+      vb:button{ text="Clear Volume Column", pressed = clear_volume_column },
+      vb:button{ text="Clear Panning Column", pressed = clear_panning_column },
             vb:button{ text="Receive", pressed = receive_retrig_checkboxes }
     },
     vb:text{text="Playback Direction Gater", font = "bold", style="strong" },
@@ -2758,6 +3019,8 @@ function createGaterDialogContent()
         initializing = false
         insert_commands()
       end},
+      vb:button{ text="Clear FX Column", pressed = clear_effect_column_4 },
+      vb:button{ text="Clear Panning Column", pressed = clear_panning_column },
             vb:button{ text="Receive", pressed = receive_panning_checkboxes },
     },
     vb:row{
@@ -2833,115 +3096,7 @@ function createGaterDialogContent()
         initializing = false
         insert_commands()  -- Single update at the end
       end},
-      vb:button{ text="Wipe", pressed = wipe_gating_effects, tooltip="Wipe gating effects: from other tracks when Solo is on, from selected track when Solo is off" },
-      vb:button{ text="Global Clear", pressed = function()
-        initializing = true
-        -- Clear volume
-        for i = 1, num_checkboxes do
-          checkboxes[i].value = false
-        end
-        -- Clear retrig
-        for i = 1, num_checkboxes do
-          retrig_checkboxes[i].value = false
-        end
-        -- Clear playback
-        for i = 1, num_checkboxes do
-          playback_checkboxes[i].value = false
-        end
-        -- Clear panning (set all to center)
-        for i = 1, num_checkboxes do
-          panning_left_checkboxes[i].value = false
-          panning_center_checkboxes[i].value = true
-          panning_right_checkboxes[i].value = false
-        end
 
-        -- Clear all pattern content
-        suppress_status_messages = true  -- Prevent multiple status messages
-        
-        -- Clear volume content based on column choice
-        if column_choice == "FX Column" or column_choice == "FX Column (L00)" then
-          clear_effect_columns()
-        elseif column_choice == "Volume Column" then
-          clear_volume_column()
-        end
-        
-        -- Clear retrig content based on column choice
-        if retrig_column_choice == "FX Column" then
-          clear_retrig()
-        elseif retrig_column_choice == "Volume Column" then
-          if column_choice ~= "Volume Column" then  -- Only if not used by volume gater
-            clear_volume_column()
-          end
-        elseif retrig_column_choice == "Panning Column" then
-          if panning_column_choice ~= "Panning Column" then  -- Only if not used by panning gater
-            clear_panning_column()
-          end
-        end
-        
-        -- Clear playback content
-        clear_playback_effect()
-        
-        -- Clear panning content based on column choice
-        if panning_column_choice == "FX Column" then
-          clear_effect_column_4()
-        elseif panning_column_choice == "Panning Column" then
-          if retrig_column_choice ~= "Panning Column" then  -- Only if not used by retrig
-            clear_panning_column()
-          end
-        end
-
-        suppress_status_messages = false
-        initializing = false
-        insert_commands()  -- Single update at the end
-      end},
-
-      vb:button{ text="Global Random", pressed = function()
-        -- Initialize random seed for true randomness
-        math.randomseed(os.time())
-        
-        initializing = true
-        -- Randomize volume
-        for i = 1, num_checkboxes do
-          checkboxes[i].value = math.random() > 0.5
-        end
-        -- Randomize retrig
-        for i = 1, num_checkboxes do
-          retrig_checkboxes[i].value = math.random() > 0.5
-        end
-        -- Randomize playback
-        for i = 1, num_checkboxes do
-          playback_checkboxes[i].value = math.random() > 0.5
-        end
-        -- Randomize panning
-        for i = 1, num_checkboxes do
-          local rand_choice = math.random(1, 3)
-          if rand_choice == 1 then
-            panning_left_checkboxes[i].value = true
-            panning_center_checkboxes[i].value = false
-            panning_right_checkboxes[i].value = false
-          elseif rand_choice == 2 then
-            panning_left_checkboxes[i].value = false
-            panning_center_checkboxes[i].value = true
-            panning_right_checkboxes[i].value = false
-          else
-            panning_left_checkboxes[i].value = false
-            panning_center_checkboxes[i].value = false
-            panning_right_checkboxes[i].value = true
-          end
-        end
-        initializing = false
-        insert_commands()  -- Single update at the end
-      end},
-
-        vb:button{ text="Global Receive", pressed = function()
-        initializing = true
-        receive_volume_checkboxes()
-        receive_retrig_checkboxes()
-        receive_playback_checkboxes()
-        receive_panning_checkboxes()
-        initializing = false
-        -- No insert_commands() - Global Receive should only read, not write!
-      end}
     }
   }
 
@@ -2962,6 +3117,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Paketti Gater Dialog...",invo
     if track_notifier and renoise.song().selected_track_index_observable:has_notifier(track_notifier) then
       renoise.song().selected_track_index_observable:remove_notifier(track_notifier)
     end
+    PakettiGaterCleanupPlayhead()
     dialog:close()
     dialog = nil
     return
@@ -2981,6 +3137,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Paketti Gater Dialog...",invoke=fu
     if track_notifier and renoise.song().selected_track_index_observable:has_notifier(track_notifier) then
       renoise.song().selected_track_index_observable:remove_notifier(track_notifier)
     end
+    PakettiGaterCleanupPlayhead()
     dialog:close()
     dialog = nil
     return
@@ -3005,6 +3162,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Paketti Gater:Toggle Step Mode (16
       if track_notifier and renoise.song().selected_track_index_observable:has_notifier(track_notifier) then
         renoise.song().selected_track_index_observable:remove_notifier(track_notifier)
       end
+      PakettiGaterCleanupPlayhead()
       dialog:close()
       dialog = nil
       pakettiGaterDialog()

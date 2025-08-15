@@ -3,9 +3,9 @@
 -- Allows visual editing of device parameters through a canvas interface
 
 local vb = renoise.ViewBuilder()
-local canvas_width = 1280  -- Increased from 1024
-local canvas_height = 500  -- Increased from 400
-local content_margin = 50  -- Margin around the content area
+local canvas_width = 1280  -- keep wide like EQ30
+local canvas_height = 390  -- reduced to take less vertical space (match EQ30)
+local content_margin = 3  -- tighter margin around the content area
 local content_width = canvas_width - (content_margin * 2)  -- 80% of canvas width
 local content_height = canvas_height - (content_margin * 2)  -- 80% of canvas height
 local content_x = content_margin
@@ -195,7 +195,7 @@ function PakettiCanvasExperimentsGetStatusText()
       track_name = song.selected_track.name
     end
     
-    local base_text = string.format("Track %s / %s [%s] / %d parameters", 
+    local base_text = string.format("Track %s / %s [%s] (%d)", 
       track_number, track_name, device_name, param_count)
     
     -- Safe current parameter access with multiple nil checks
@@ -206,7 +206,7 @@ function PakettiCanvasExperimentsGetStatusText()
        current_drawing_parameter.index then
       
       local param_info = current_drawing_parameter
-      local param_text = string.format(" - Parameter %d: %s = %.3f", 
+      local param_text = string.format(":%d: %s = %.3f", 
         param_info.index, param_info.name, param_info.parameter.value)
       return base_text .. param_text
     end
@@ -255,7 +255,7 @@ function PakettiCanvasExperimentsRefreshDevice()
   if vb.views.follow_automation_button then
     -- Update button to reflect actual follow_automation state
     vb.views.follow_automation_button.text = follow_automation and "Automation Sync: ON" or "Automation Sync: OFF"
-    vb.views.follow_automation_button.color = follow_automation and COLOR_BUTTON_ACTIVE or COLOR_BUTTON_INACTIVE
+    vb.views.follow_automation_button.color = follow_automation and {0, 120, 0} or {96, 96, 96}
   end
   
   -- Keep Renoise's follow player setting consistent with automation sync
@@ -1094,21 +1094,19 @@ function PakettiCanvasExperimentsCreateDialog()
   local vb = renoise.ViewBuilder()
   
   local dialog_content = vb:column {
-    margin = 10,
     
+  vb:row{    
     -- Dynamic status text showing track, device, and parameter info
     vb:text {
       id = "status_text_view",
       text = PakettiCanvasExperimentsGetStatusText(),
       font = "bold",
-      style = "strong"
+      style = "strong",width=680
     },
     
-    -- Navigation controls
-    vb:row {
       vb:button {
         text = "Previous Track",
-        width = 100,
+        width = 80,
         tooltip = "Switch to previous track",
         notifier = function()
           PakettiCanvasExperimentsSelectPreviousTrack()
@@ -1116,7 +1114,7 @@ function PakettiCanvasExperimentsCreateDialog()
       },
       vb:button {
         text = "Previous Device",
-        width = 110,
+        width = 80,
         tooltip = "Switch to previous device on current track",
         notifier = function()
           PakettiCanvasExperimentsSelectPreviousDevice()
@@ -1124,7 +1122,7 @@ function PakettiCanvasExperimentsCreateDialog()
       },
       vb:button {
         text = "Next Device",
-        width = 100,
+        width = 80,
         tooltip = "Switch to next device on current track",
         notifier = function()
           PakettiCanvasExperimentsSelectNextDevice()
@@ -1132,13 +1130,144 @@ function PakettiCanvasExperimentsCreateDialog()
       },
       vb:button {
         text = "Next Track",
-        width = 90,
+        width = 80,
         tooltip = "Switch to next track",
         notifier = function()
           PakettiCanvasExperimentsSelectNextTrack()
         end
+      },
+      vb:checkbox {
+
+        id = "auto_show_automation_checkbox",
+        value = auto_show_automation,
+        notifier = function(value)
+          auto_show_automation = value
+          if value then
+            renoise.app():show_status("Auto-switch to Automation View: ENABLED")
+          else
+            renoise.app():show_status("Auto-switch to Automation View: DISABLED")
+          end
+        end
+      },
+      vb:text {
+        text = "Automation Sync On: Show Automation", font="bold",style="strong",
+        tooltip = "When enabled, turning on Automation Sync will automatically switch to the Automation view"
       }
+    
+
+
     },
+    -- Automation controls
+    vb:row {
+      vb:button {
+        text = "Add Snapshot to Automation",
+        width = 180,
+        tooltip = "Add current parameter values as automation points",
+        notifier = function()
+          PakettiCanvasExperimentsSnapshotToAutomation()
+        end
+      },
+      vb:button {
+        text = "Clear",
+        width = 80,
+        tooltip = "Clear all automation for selected device - parameters become stable",
+        notifier = function()
+          PakettiCanvasExperimentsClearAutomation()
+        end
+      },
+      vb:button {
+        text = "Clean & Snap",
+        width = 120,
+        tooltip = "Clear automation + write current parameter values at line 1",
+        notifier = function()
+          PakettiCanvasExperimentsCleanAndSnap()
+        end
+      },
+      vb:button {
+        id = "follow_automation_button",
+        text = "Automation Sync: OFF",
+        width = 180,
+        color = {96, 96, 96},
+        tooltip = "Toggle bidirectional automation: read automation playback + write when drawing",
+        notifier = function()
+          follow_automation = not follow_automation
+          -- Also control follow_player as requested
+          renoise.song().transport.follow_player = follow_automation
+          -- Update button appearance
+          if vb.views.follow_automation_button then
+            vb.views.follow_automation_button.text = follow_automation and "Automation Sync: ON" or "Automation Sync: OFF"
+            vb.views.follow_automation_button.color = follow_automation and {0, 120, 0} or {96, 96, 96}
+          end
+          
+          -- Setup or remove parameter observers based on automation sync state
+          if follow_automation then
+            SetupParameterObservers()
+            renoise.app():show_status("Automation Sync ON: Canvas reads automation playback + writes when drawing")
+            
+            -- Auto-switch to automation view if option is enabled
+            if auto_show_automation then
+              renoise.app().window.active_lower_frame = renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION
+              renoise.app():show_status("Automation Sync ON + Switched to Automation View")
+            end
+          else
+            RemoveParameterObservers()
+            renoise.app():show_status("Automation Sync OFF: Manual parameter control only")
+          end
+        end
+      },
+      vb:button {
+        text = "Randomize Automation",
+        width = 150,
+        tooltip = "Randomize current Edit A/B and write snapshot to automation",
+        notifier = function()
+          PakettiCanvasExperimentsRandomizeAutomation()
+        end
+      },
+      vb:text { text = "Automation Playmode", width = 130, font="bold",style = "strong" },
+      vb:switch {
+        id = "canvas_playmode_switch",
+        items = {"Points","Lines","Curves"},
+        width = 300,
+        value = (preferences and preferences.PakettiCanvasAutomationPlaymode and preferences.PakettiCanvasAutomationPlaymode.value) or 2,
+        notifier = function(value)
+          if preferences and preferences.PakettiCanvasAutomationPlaymode then
+            preferences.PakettiCanvasAutomationPlaymode.value = value
+            preferences:save_as("preferences.xml")
+          end
+          local mode = renoise.PatternTrackAutomation.PLAYMODE_POINTS
+          if value == 2 then mode = renoise.PatternTrackAutomation.PLAYMODE_LINES
+          elseif value == 3 then mode = renoise.PatternTrackAutomation.PLAYMODE_CURVES end
+          -- Apply to existing envelopes of the selected device parameters
+          local song = renoise.song()
+          local pattern = song.selected_pattern_index
+          local track_index = song.selected_track_index
+          local pattern_track = song:pattern(pattern):track(track_index)
+          local changed = 0
+          if current_device and #device_parameters > 0 then
+            for i, pinfo in ipairs(device_parameters) do
+              local env = pattern_track:find_automation(pinfo.parameter)
+              if env then env.playmode = mode; changed = changed + 1 end
+            end
+          end
+          renoise.app():show_status("Canvas: Automation Playmode updated on " .. tostring(changed) .. " envelopes")
+        end
+      },
+      
+      vb:button {
+        text = "Toggle External Editor",
+        width = 141,
+        notifier = function()
+          if current_device then
+            current_device.external_editor_visible = not current_device.external_editor_visible
+          end
+        end
+      },
+
+
+    },
+
+
+
     
     -- Canvas
     vb:canvas {
@@ -1155,7 +1284,7 @@ function PakettiCanvasExperimentsCreateDialog()
     vb:row {
       vb:text {
         text = "Randomize Strength:",
-        width = 120
+        width = 120, style="strong",font="bold"
       },
       vb:slider {
         id = "randomize_slider_view",
@@ -1173,8 +1302,8 @@ function PakettiCanvasExperimentsCreateDialog()
       },
       vb:text {
         text = string.format("%.2f%%", randomize_strength),
-        width = math.max(47, parameter_width - 3),  -- actual parameter width minus 3
-        id = "randomize_percentage_text"
+        width = 30,
+        id = "randomize_percentage_text", style="strong",font="bold"
       },
       vb:button {
         id = "randomize_button",
@@ -1183,15 +1312,11 @@ function PakettiCanvasExperimentsCreateDialog()
         notifier = function()
           PakettiCanvasExperimentsRandomizeCurrentMode()
         end
-      }
-    },
-    
-    -- Edit A/B controls (inspired by PakettiPCMWriter)
-    vb:row {
+      },
       vb:text {
-        text = "Edit A/B:",
-        style = "strong",
-        width = 80
+        text = "Edit A/B",
+        style = "strong",font="bold",
+        width = 50
       },
       vb:button {
         id = "edit_a_button",
@@ -1290,143 +1415,13 @@ function PakettiCanvasExperimentsCreateDialog()
         width = 50, style="strong",font="bold"
       }
 
-    },
+    }
     
     
-    -- Automation controls
-    vb:row {
-      vb:button {
-        text = "Add Snapshot to Automation",
-        width = 180,
-        tooltip = "Add current parameter values as automation points",
-        notifier = function()
-          PakettiCanvasExperimentsSnapshotToAutomation()
-        end
-      },
-      vb:button {
-        id = "follow_automation_button",
-        text = "Automation Sync: OFF",
-        width = 180,
-        color = {64, 200, 64},
-        tooltip = "Toggle bidirectional automation: read automation playback + write when drawing",
-        notifier = function()
-          follow_automation = not follow_automation
-          -- Also control follow_player as requested
-          renoise.song().transport.follow_player = follow_automation
-          -- Update button appearance
-          if vb.views.follow_automation_button then
-            vb.views.follow_automation_button.text = follow_automation and "Automation Sync: ON" or "Automation Sync: OFF"
-            vb.views.follow_automation_button.color = follow_automation and {255, 64, 64} or {64, 200, 64}
-          end
-          
-          -- Setup or remove parameter observers based on automation sync state
-          if follow_automation then
-            SetupParameterObservers()
-            renoise.app():show_status("Automation Sync ON: Canvas reads automation playback + writes when drawing")
-            
-            -- Auto-switch to automation view if option is enabled
-            if auto_show_automation then
-              renoise.app().window.active_lower_frame = renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION
-              renoise.app():show_status("Automation Sync ON + Switched to Automation View")
-            end
-          else
-            RemoveParameterObservers()
-            renoise.app():show_status("Automation Sync OFF: Manual parameter control only")
-          end
-        end
-      },
-      vb:button {
-        text = "Randomize Automation",
-        width = 150,
-        tooltip = "Randomize current Edit A/B and write snapshot to automation",
-        notifier = function()
-          PakettiCanvasExperimentsRandomizeAutomation()
-        end
-      }
-    },
-
-    -- Automation playmode (Points/Lines/Curves)
-    vb:row {
-      vb:text { text = "Automation Playmode:", width = 130, style = "strong" },
-      vb:switch {
-        id = "canvas_playmode_switch",
-        items = {"Points","Lines","Curves"},
-        width = 300,
-        value = (preferences and preferences.PakettiCanvasAutomationPlaymode and preferences.PakettiCanvasAutomationPlaymode.value) or 2,
-        notifier = function(value)
-          if preferences and preferences.PakettiCanvasAutomationPlaymode then
-            preferences.PakettiCanvasAutomationPlaymode.value = value
-            preferences:save_as("preferences.xml")
-          end
-          local mode = renoise.PatternTrackAutomation.PLAYMODE_POINTS
-          if value == 2 then mode = renoise.PatternTrackAutomation.PLAYMODE_LINES
-          elseif value == 3 then mode = renoise.PatternTrackAutomation.PLAYMODE_CURVES end
-          -- Apply to existing envelopes of the selected device parameters
-          local song = renoise.song()
-          local pattern = song.selected_pattern_index
-          local track_index = song.selected_track_index
-          local pattern_track = song:pattern(pattern):track(track_index)
-          local changed = 0
-          if current_device and #device_parameters > 0 then
-            for i, pinfo in ipairs(device_parameters) do
-              local env = pattern_track:find_automation(pinfo.parameter)
-              if env then env.playmode = mode; changed = changed + 1 end
-            end
-          end
-          renoise.app():show_status("Canvas: Automation Playmode updated on " .. tostring(changed) .. " envelopes")
-        end
-      }
-    },
-    
-    -- Automation view configuration
-    vb:row {
-      vb:checkbox {
-        id = "auto_show_automation_checkbox",
-        value = auto_show_automation,
-        notifier = function(value)
-          auto_show_automation = value
-          if value then
-            renoise.app():show_status("Auto-switch to Automation View: ENABLED")
-          else
-            renoise.app():show_status("Auto-switch to Automation View: DISABLED")
-          end
-        end
-      },
-      vb:text {
-        text = "Display Automation if pressing Automation Sync On", font="bold",style="strong",
-        tooltip = "When enabled, turning on Automation Sync will automatically switch to the Automation view"
-      }
-    },
     
     -- Automation management buttons
-    vb:row {
-      vb:button {
-        text = "Clear",
-        width = 80,
-        color = {0xFF, 0x60, 0x60},  -- Light red for destructive action
-        tooltip = "Clear all automation for selected device - parameters become stable",
-        notifier = function()
-          PakettiCanvasExperimentsClearAutomation()
-        end
-      },
-      vb:button {
-        text = "Clean & Snap",
-        width = 120,
-        color = {0x60, 0xFF, 0x60},  -- Light green for creation action
-        tooltip = "Clear automation + write current parameter values at line 1",
-        notifier = function()
-          PakettiCanvasExperimentsCleanAndSnap()
-        end
-      },
-      vb:button {
-        text = "Toggle External Editor",
-        width = 150,
-        notifier = function()
-          if current_device then
-            current_device.external_editor_visible = not current_device.external_editor_visible
-          end
-        end
-      },
+--[[    vb:row {
+
       vb:button {
         text = "Reset All to Default",
         width = 150,
@@ -1451,14 +1446,17 @@ function PakettiCanvasExperimentsCreateDialog()
       }
 
     },
-    
-  }
+]]--    
+      }
   
   canvas_experiments_dialog = renoise.app():show_custom_dialog(
     title,
     dialog_content,
     paketti_canvas_keyhandler_func
   )
+  
+  -- Ensure Renoise grabs keyboard focus for the middle frame after opening the dialog
+  renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
   
   -- CRITICAL: Ensure cleanup happens when dialog is closed by user clicking X
   if canvas_experiments_dialog then

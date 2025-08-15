@@ -316,6 +316,126 @@ end
 
 
 
+-- Function to distribute all samples to separate Modulation Sets (one sample per Mod Set)
+function selectedInstrumentDistributeToSeparateModulationSets()
+  local instrument = renoise.song().instruments[renoise.song().selected_instrument_index]
+
+  -- Check if the instrument exists and has samples
+  if not instrument or #instrument.samples == 0 then
+    renoise.app():show_status("No samples to distribute to modulation sets")
+    return
+  end
+
+  -- Check for slice markers on the first sample [[memory:4746832]]
+  local first_sample = instrument.samples[1]
+  local samples_to_process = {}
+
+  if #first_sample.slice_markers > 0 then
+    -- If slice markers exist, only process the first sample
+    samples_to_process = {first_sample}
+  else
+    -- If no slice markers, process all samples
+    samples_to_process = instrument.samples
+  end
+
+  local num_samples = #samples_to_process
+  local num_existing_mod_sets = #instrument.sample_modulation_sets
+
+  -- Create additional Mod Sets if needed (each sample needs its own Mod Set)
+  local mod_sets_needed = num_samples
+  local mod_sets_to_create = math.max(0, mod_sets_needed - num_existing_mod_sets)
+
+  for i = 1, mod_sets_to_create do
+    instrument:insert_sample_modulation_set_at(num_existing_mod_sets + i)
+  end
+
+  -- Assign each sample to its corresponding Mod Set (1-based indexing for Mod Sets)
+  for i, sample in ipairs(samples_to_process) do
+    sample.modulation_set_index = i
+  end
+
+  renoise.app():show_status("Distributed " .. num_samples .. " sample(s) to separate modulation sets")
+end
+
+-- Function to distribute all samples to both separate FX chains and Modulation Sets
+function selectedInstrumentDistributeToSeparateFxAndModChains()
+  local instrument = renoise.song().instruments[renoise.song().selected_instrument_index]
+
+  -- Check if the instrument exists and has samples
+  if not instrument or #instrument.samples == 0 then
+    renoise.app():show_status("No samples to distribute to FX chains and modulation sets")
+    return
+  end
+
+  -- Check for slice markers on the first sample [[memory:4746832]]
+  local first_sample = instrument.samples[1]
+  local samples_to_process = {}
+
+  if #first_sample.slice_markers > 0 then
+    samples_to_process = {first_sample}
+  else
+    samples_to_process = instrument.samples
+  end
+
+  local num_samples = #samples_to_process
+
+  -- Ensure enough FX chains
+  local num_existing_fx_chains = #instrument.sample_device_chains
+  local fx_chains_needed = num_samples
+  local fx_chains_to_create = math.max(0, fx_chains_needed - num_existing_fx_chains)
+  for i = 1, fx_chains_to_create do
+    instrument:insert_sample_device_chain_at(num_existing_fx_chains + i)
+  end
+
+  -- Ensure enough Mod Sets
+  local num_existing_mod_sets = #instrument.sample_modulation_sets
+  local mod_sets_needed = num_samples
+  local mod_sets_to_create = math.max(0, mod_sets_needed - num_existing_mod_sets)
+  for i = 1, mod_sets_to_create do
+    instrument:insert_sample_modulation_set_at(num_existing_mod_sets + i)
+  end
+
+  -- Assign
+  for i, sample in ipairs(samples_to_process) do
+    sample.device_chain_index = i
+    sample.modulation_set_index = i
+  end
+
+  renoise.app():show_status("Distributed " .. num_samples .. " sample(s) to separate FX chains and modulation sets")
+end
+
+-- Function to delete all sample Modulation Sets (keeps only the first one)
+function selectedInstrumentDeleteAllSampleModulationSets()
+  local instrument = renoise.song().instruments[renoise.song().selected_instrument_index]
+
+  -- Check if the instrument exists
+  if not instrument then
+    renoise.app():show_status("No instrument selected")
+    return
+  end
+
+  local num_mod_sets = #instrument.sample_modulation_sets
+
+  -- Check if there are any Mod Sets to delete
+  if num_mod_sets <= 1 then
+    renoise.app():show_status("Only one or no modulation sets to delete")
+    return
+  end
+
+  -- Delete all Mod Sets except the first one (delete from highest index to lowest to avoid index shifting)
+  for i = num_mod_sets, 2, -1 do
+    instrument:delete_sample_modulation_set_at(i)
+  end
+
+  -- Reset all samples to use the first (only remaining) Mod Set
+  for i, sample in ipairs(instrument.samples) do
+    sample.modulation_set_index = 1
+  end
+
+  local deleted_count = num_mod_sets - 1
+  renoise.app():show_status("Deleted " .. deleted_count .. " modulation set(s), kept the first one")
+end
+
 -- Menu entries and keybindings for distributing samples to separate FX chains
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Distribute All Samples to Separate FX Chains",invoke=function() selectedInstrumentDistributeToSeparateFxChains() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Distribute All Samples to Separate FX Chains",invoke=function() selectedInstrumentDistributeToSeparateFxChains() end}
@@ -332,6 +452,29 @@ renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti:Delete All Sample FX
 renoise.tool():add_keybinding{name="Global:Paketti:Delete All Sample FX Chains",invoke=function() selectedInstrumentDeleteAllSampleFxChains() end}
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Delete All Sample FX Chains",invoke=function() selectedInstrumentDeleteAllSampleFxChains() end}
 
+
+-- Menu entries and keybindings for modulation set distribution/deletion
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Distribute All Samples to Separate Modulation Sets",invoke=function() selectedInstrumentDistributeToSeparateModulationSets() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Distribute All Samples to Separate Modulation Sets",invoke=function() selectedInstrumentDistributeToSeparateModulationSets() end}
+renoise.tool():add_menu_entry{name="Instrument Modulation:Paketti:Distribute All Samples to Separate Modulation Sets",invoke=function() selectedInstrumentDistributeToSeparateModulationSets() end}
+
+renoise.tool():add_keybinding{name="Global:Paketti:Distribute All Samples to Separate Modulation Sets",invoke=function() selectedInstrumentDistributeToSeparateModulationSets() end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Distribute All Samples to Separate Modulation Sets",invoke=function() selectedInstrumentDistributeToSeparateModulationSets() end}
+
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Distribute All Samples to Separate FX & Mod Sets",invoke=function() selectedInstrumentDistributeToSeparateFxAndModChains() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Distribute All Samples to Separate FX & Mod Sets",invoke=function() selectedInstrumentDistributeToSeparateFxAndModChains() end}
+renoise.tool():add_menu_entry{name="Sample FX Mixer:Paketti:Distribute All Samples to Separate FX & Mod Sets",invoke=function() selectedInstrumentDistributeToSeparateFxAndModChains() end}
+renoise.tool():add_menu_entry{name="Instrument Modulation:Paketti:Distribute All Samples to Separate FX & Mod Sets",invoke=function() selectedInstrumentDistributeToSeparateFxAndModChains() end}
+
+renoise.tool():add_keybinding{name="Global:Paketti:Distribute All Samples to Separate FX & Mod Sets",invoke=function() selectedInstrumentDistributeToSeparateFxAndModChains() end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Distribute All Samples to Separate FX & Mod Sets",invoke=function() selectedInstrumentDistributeToSeparateFxAndModChains() end}
+
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Delete All Modulation Sets",invoke=function() selectedInstrumentDeleteAllSampleModulationSets() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Delete All Modulation Sets",invoke=function() selectedInstrumentDeleteAllSampleModulationSets() end}
+renoise.tool():add_menu_entry{name="Instrument Modulation:Paketti:Delete All Modulation Sets",invoke=function() selectedInstrumentDeleteAllSampleModulationSets() end}
+
+renoise.tool():add_keybinding{name="Global:Paketti:Delete All Modulation Sets",invoke=function() selectedInstrumentDeleteAllSampleModulationSets() end}
+renoise.tool():add_keybinding{name="Sample Editor:Paketti:Delete All Modulation Sets",invoke=function() selectedInstrumentDeleteAllSampleModulationSets() end}
 
 -- Function to toggle the autofade setting for all samples in the selected instrument
 function selectedInstrumentAllAutofadeToggle()

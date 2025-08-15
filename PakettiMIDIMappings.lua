@@ -215,6 +215,9 @@ local PakettiMidiMappings = {
 }
 
   
+-- Global fuzzy search state for MIDI Mappings dialog
+midi_search_text = ""
+
 
 -- Function to dynamically discover all MIDI mappings in the tool
 function get_active_midi_mappings()
@@ -423,6 +426,7 @@ local grouped_mappings = {
 
 -- Variable to store the dialog reference
 local PakettiMidiMappingDialog = nil
+PakettiMidiMappingDialog_SearchDisplay = nil
 
 -- Add persistent settings to preferences
 if not preferences.PakettiMidiMappingsDialog then
@@ -460,13 +464,118 @@ end
 -- Function to handle key events
 function my_MidiMappingkeyhandler_func(dialog, key)
   local closer = preferences.pakettiDialogClose.value
+
+  -- Close dialog with configured closer if no modifiers and search empty
   if key.modifiers == "" and key.name == closer then
+    if midi_search_text and midi_search_text ~= "" then
+      midi_search_text = ""
+      if PakettiMidiMappingDialog_SearchDisplay then
+        PakettiMidiMappingDialog_SearchDisplay.text = "''"
+      end
+      -- Rebuild to clear filter
+      if pakettiMIDIMappingsDialog then
+        -- Close & reopen handled inside rebuild
+        -- Use the existing rebuild helper when available
+        -- Fallback: close directly if helper not in scope
+      end
+      -- We have a local rebuild function inside the dialog scope; since we cannot access it here,
+      -- we reopen the dialog to apply the cleared search
+      if PakettiMidiMappingDialog and PakettiMidiMappingDialog.visible then
+        PakettiMidiMappingDialog:close()
+        PakettiMidiMappingDialog = nil
+        pakettiMIDIMappingsDialog()
+      end
+      return nil
+    end
     dialog:close()
     PakettiMidiMappingDialog = nil
     return nil
-  else
+  end
+
+  -- Pass-through for '<' and '>' so Renoise can handle them
+  if key.name == "<" or key.name == ">" then
     return key
   end
+
+  -- Esc clears search first
+  if key.name == "esc" then
+    if midi_search_text ~= "" then
+      midi_search_text = ""
+      if PakettiMidiMappingDialog_SearchDisplay then
+        PakettiMidiMappingDialog_SearchDisplay.text = "''"
+      end
+      if PakettiMidiMappingDialog and PakettiMidiMappingDialog.visible then
+        PakettiMidiMappingDialog:close()
+        PakettiMidiMappingDialog = nil
+        pakettiMIDIMappingsDialog()
+      end
+      return nil
+    end
+    return key
+  end
+
+  -- Backspace removes last character
+  if key.name == "back" then
+    if midi_search_text and #midi_search_text > 0 then
+      midi_search_text = midi_search_text:sub(1, #midi_search_text - 1)
+      if PakettiMidiMappingDialog_SearchDisplay then
+        PakettiMidiMappingDialog_SearchDisplay.text = "'" .. midi_search_text .. "'"
+      end
+      if PakettiMidiMappingDialog and PakettiMidiMappingDialog.visible then
+        PakettiMidiMappingDialog:close()
+        PakettiMidiMappingDialog = nil
+        pakettiMIDIMappingsDialog()
+      end
+      return nil
+    end
+    return nil
+  end
+
+  -- Delete clears entire string
+  if key.name == "delete" then
+    if midi_search_text ~= "" then
+      midi_search_text = ""
+      if PakettiMidiMappingDialog_SearchDisplay then
+        PakettiMidiMappingDialog_SearchDisplay.text = "''"
+      end
+      if PakettiMidiMappingDialog and PakettiMidiMappingDialog.visible then
+        PakettiMidiMappingDialog:close()
+        PakettiMidiMappingDialog = nil
+        pakettiMIDIMappingsDialog()
+      end
+    end
+    return nil
+  end
+
+  -- Space appends a space
+  if key.name == "space" then
+    midi_search_text = (midi_search_text or "") .. " "
+    if PakettiMidiMappingDialog_SearchDisplay then
+      PakettiMidiMappingDialog_SearchDisplay.text = "'" .. midi_search_text .. "'"
+    end
+    if PakettiMidiMappingDialog and PakettiMidiMappingDialog.visible then
+      PakettiMidiMappingDialog:close()
+      PakettiMidiMappingDialog = nil
+      pakettiMIDIMappingsDialog()
+    end
+    return nil
+  end
+
+  -- Type-to-search for single printable characters
+  if string.len(key.name) == 1 then
+    midi_search_text = (midi_search_text or "") .. key.name
+    if PakettiMidiMappingDialog_SearchDisplay then
+      PakettiMidiMappingDialog_SearchDisplay.text = "'" .. midi_search_text .. "'"
+    end
+    if PakettiMidiMappingDialog and PakettiMidiMappingDialog.visible then
+      PakettiMidiMappingDialog:close()
+      PakettiMidiMappingDialog = nil
+      pakettiMIDIMappingsDialog()
+    end
+    return nil
+  end
+
+  return key
 end
 
 
@@ -663,6 +772,86 @@ function test_dynamic_mapping_detection()
   return total_found, total_expected
 end
 
+-- Split a search query into lowercase terms (space-separated) for fuzzy AND matching
+function PakettiMidiSplitSearchTerms(query)
+  local terms = {}
+  if not query or query == "" then return terms end
+  local lower = string.lower(query)
+  for term in lower:gmatch("%S+") do
+    table.insert(terms, term)
+  end
+  return terms
+end
+
+-- Compute fuzzy score for a single mapping name against terms
+-- Higher is better. Name/category starts-with and exact word matches get higher scores.
+function PakettiMidiComputeFuzzyScore(mapping_name, category_name, terms)
+  local score = 0
+  local name_lower = string.lower(mapping_name or "")
+  local category_lower = string.lower(category_name or "")
+
+  for _, term in ipairs(terms) do
+    if name_lower == term then
+      score = score + 1000
+    elseif name_lower:match("^" .. term:gsub("([%(%)%.%+%-%*%?%[%]%^%$%%])", "%%%1")) then
+      score = score + 500
+    elseif string.find(name_lower, term, 1, true) then
+      score = score + 100
+      if string.find(name_lower, "%f[%w]" .. term:gsub("([%(%)%.%+%-%*%?%[%]%^%$%%])", "%%%1") .. "%f[%W]") then
+        score = score + 300
+      end
+    end
+
+    if string.find(category_lower, term, 1, true) then
+      score = score + 50
+    end
+  end
+
+  return score
+end
+
+-- Apply fuzzy filter+ranking to a list of mappings (array of mapping display strings)
+-- Returns a new array sorted by score desc, then name asc
+function PakettiMidiApplyFuzzyFilter(mappings, query)
+  if not query or query == "" then return mappings end
+  local terms = PakettiMidiSplitSearchTerms(query)
+  if #terms == 0 then return mappings end
+
+  local results = {}
+
+  for _, mapping in ipairs(mappings) do
+    local clean_name = mapping:gsub("^[^:]*:", ""):gsub("^%s*", "")
+    local category_name = get_mapping_category and get_mapping_category(mapping) or ""
+
+    -- AND logic: require all terms to be present in name or category
+    local all_match = true
+    for _, term in ipairs(terms) do
+      local name_lower = string.lower(clean_name)
+      local category_lower = string.lower(category_name)
+      if not (string.find(name_lower, term, 1, true) or string.find(category_lower, term, 1, true)) then
+        all_match = false
+        break
+      end
+    end
+
+    if all_match then
+      local score = PakettiMidiComputeFuzzyScore(clean_name, category_name, terms)
+      table.insert(results, { name = mapping, score = score })
+    end
+  end
+
+  table.sort(results, function(a, b)
+    if a.score ~= b.score then return a.score > b.score end
+    return string.upper(a.name) < string.upper(b.name)
+  end)
+
+  local out = {}
+  for i = 1, #results do
+    table.insert(out, results[i].name)
+  end
+  return out
+end
+
 -- Function to create and show the MIDI mappings dialog
 function pakettiMIDIMappingsDialog()
   print("DEBUG: Starting pakettiMIDIMappingsDialog()")
@@ -712,6 +901,17 @@ function pakettiMIDIMappingsDialog()
   dialog_content:add_child(note)
   print("DEBUG: Added note")
 
+  -- Add CP-style search display (keyhandler-driven)
+  local search_display_row = vb:row{
+    vb:text{ text = "Type to search:", width = 110 },
+    (function()
+      local lbl = vb:text{ text = "'" .. (midi_search_text or "") .. "'", style = "strong", width = 400 }
+      PakettiMidiMappingDialog_SearchDisplay = lbl
+      return lbl
+    end)()
+  }
+  dialog_content:add_child(search_display_row)
+
   -- Create a row container for multiple columns
   local mappings_view = vb:row{
     spacing = CONTENT_SPACING,
@@ -728,6 +928,7 @@ function pakettiMIDIMappingsDialog()
   local assignment_main_category_selector = nil
   local assignment_sub_category_selector = nil
   local selected_mappings = {}  -- Track selected mappings for batch operations
+  local search_textfield = nil
 
   -- Function to create the category management dialog
   local function show_category_management_dialog()
@@ -1145,6 +1346,12 @@ function pakettiMIDIMappingsDialog()
     
     print("DEBUG: After alphabet filter, mappings_to_show count:", #mappings_to_show)
     
+    -- Apply fuzzy search filter if present
+    if midi_search_text and midi_search_text ~= "" then
+      mappings_to_show = PakettiMidiApplyFuzzyFilter(mappings_to_show, midi_search_text)
+      print("DEBUG: After fuzzy filter ('" .. midi_search_text .. "'), count:", #mappings_to_show)
+    end
+
     -- Sort mappings alphabetically by their clean names
     table.sort(mappings_to_show, function(a, b)
       local clean_a = a:gsub("^[^:]*:", ""):gsub("^%s*", "")
@@ -2007,6 +2214,8 @@ function pakettiMIDIMappingsDialog()
     function(dialog, key) return my_MidiMappingkeyhandler_func(dialog, key) end
   )
   print("DEBUG: Dialog shown successfully!")
+  -- Ensure Renoise captures keyboard focus after dialog opens (for consistent typing)
+  renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
 end
 
 -- Function to dynamically scan source files and build MIDI mapping function table

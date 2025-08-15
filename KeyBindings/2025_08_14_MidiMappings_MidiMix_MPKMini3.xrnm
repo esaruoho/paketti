@@ -1,0 +1,733 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<MidiActionMappingSet doc_version="0">
+  <ActionMappings>
+    <ActionMapping>
+      <Action>Paketti:Midi Selected Instrument Macro 3 (2nd) (Resonance)</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>72</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Midi Selected Instrument Macro 4 (2nd) (Cutoff LfoAmp)</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>73</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Midi Selected Instrument Macro 2 (2nd) (Cutoff)</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>71</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Set Repeater Value (Name Tracks) (2nd) x[Knob]</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>74</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Midi Selected Instrument Macro 6 (2nd) (Overdrive)</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>76</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Midi Selected Instrument Macro 7 (2nd) (ParallelCompression)</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>77</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Record Automation to Selected Parameter (2nd)</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>70</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Midi Selected Instrument Macro 5 (2nd) (Cutoff LfoFreq)</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>75</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Paketti Groovebox 8120</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Notes</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>25</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Midi Selected Instrument Macro 2 (Cutoff)</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>20</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Midi Selected Instrument Macro 3 (Resonance)</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>24</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Midi Selected Instrument Macro 4 (Cutoff LfoAmp)</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>28</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Midi Selected Instrument Macro 5 (Cutoff LfoFreq)</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>46</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Midi Selected Instrument Macro 6 (Overdrive)</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>50</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Midi Selected Instrument Macro 7 (ParallelCompression)</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>54</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Midi Selected Instrument Macro 8 (PB Inertia)</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>58</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Paketti Groovebox 8120:Row1 Sample Slider</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>18</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Paketti Groovebox 8120:Row2 Sample Slider</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>22</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Paketti Groovebox 8120:Row3 Sample Slider</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>26</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Paketti Groovebox 8120:Row4 Sample Slider</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>30</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Paketti Groovebox 8120:Row5 Sample Slider</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>48</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Paketti Groovebox 8120:Row6 Sample Slider</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>52</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Paketti Groovebox 8120:Row7 Sample Slider</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>56</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Paketti Groovebox 8120:Row8 Sample Slider</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>60</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Record Automation to Selected Parameter</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>16</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Paketti Groovebox 8120 Expand Selection Replicate Track 1 [Trigger]</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Notes</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>3</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Paketti Groovebox 8120 Expand Selection Replicate Track 2 [Trigger]</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Notes</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>6</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Paketti Groovebox 8120 Expand Selection Replicate Track 3 [Trigger]</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Notes</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>9</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Paketti Groovebox 8120 Expand Selection Replicate Track 4 [Trigger]</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Notes</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>12</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Paketti Groovebox 8120 Expand Selection Replicate Track 5 [Trigger]</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Notes</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>15</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Paketti Groovebox 8120 Expand Selection Replicate Track 6 [Trigger]</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Notes</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>18</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Paketti Groovebox 8120 Expand Selection Replicate Track 7 [Trigger]</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Notes</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>21</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Paketti Groovebox 8120 Expand Selection Replicate Track 8 [Trigger]</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Notes</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>24</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Paketti Groovebox 8120 Shrink Selection Replicate Track 1 [Trigger]</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Notes</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>1</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Paketti Groovebox 8120 Shrink Selection Replicate Track 2 [Trigger]</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Notes</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>4</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Paketti Groovebox 8120 Shrink Selection Replicate Track 3 [Trigger]</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Notes</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>7</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Paketti Groovebox 8120 Shrink Selection Replicate Track 4 [Trigger]</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Notes</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>10</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Paketti Groovebox 8120 Shrink Selection Replicate Track 5 [Trigger]</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Notes</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>13</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Paketti Groovebox 8120 Shrink Selection Replicate Track 6 [Trigger]</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Notes</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>16</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Paketti Groovebox 8120 Shrink Selection Replicate Track 7 [Trigger]</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Notes</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>19</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Paketti Groovebox 8120 Shrink Selection Replicate Track 8 [Trigger]</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Notes</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>22</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Paketti Groovebox 8120 Instrument 00 Transpose (-64-+64)</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>19</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Paketti Groovebox 8120 Instrument 01 Transpose (-64-+64)</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>23</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Paketti Groovebox 8120 Instrument 02 Transpose (-64-+64)</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>27</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Paketti Groovebox 8120 Instrument 03 Transpose (-64-+64)</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>31</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Paketti Groovebox 8120 Instrument 04 Transpose (-64-+64)</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>49</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Paketti Groovebox 8120 Instrument 05 Transpose (-64-+64)</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>53</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Paketti Groovebox 8120 Instrument 06 Transpose (-64-+64)</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>57</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Paketti Groovebox 8120 Instrument 07 Transpose (-64-+64)</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>61</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Load &amp; Show PakettiEQ30</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Notes</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>27</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Paketti Gater Dialog...</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Notes</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>26</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+    <ActionMapping>
+      <Action>Paketti:Paketti Groovebox 8120:Global Pitch [Relative]</Action>
+      <MidiMappings>
+        <MidiMapping>
+          <MappingMode>Controllers</MappingMode>
+          <ControllerMode>Absolute 7 bit</ControllerMode>
+          <NoteMode>Trigger</NoteMode>
+          <Channel>0</Channel>
+          <CCNumberOrNote>63</CCNumberOrNote>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+        </MidiMapping>
+      </MidiMappings>
+    </ActionMapping>
+  </ActionMappings>
+</MidiActionMappingSet>

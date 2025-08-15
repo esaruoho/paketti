@@ -500,8 +500,6 @@ function PakettiSectionizer()
       active = false
     },
     
-    vb:space { height = 10 },
-    
     vb:multiline_textfield {
       id = "sectionizer_text",
       width = 400,
@@ -510,13 +508,10 @@ function PakettiSectionizer()
       text = "intro, 5, 64, hello\nbridge, 2, 128, world\nchorus, 5, 256, 8, 120, helloyep\noutro, 10, 512, 8, 120, worldyep",
       style = "border"
     },
-    vb:space { height = 6 },
     vb:row {
       vb:checkbox { id = "sectionizer_append_info", value = false },
-      vb:text { text = "Append [rows, LPB&BPM] to section and pattern names", style = "body" }
+      vb:text { text = "Append [rows, LPB&BPM] to section and pattern names",  }
     },
-    
-    vb:space { height = 10 },
     
     vb:row {
       vb:button {
@@ -543,7 +538,7 @@ function PakettiSectionizer()
     }
   }
   
-  dialog = renoise.app():show_custom_dialog("Sectionizer", dialog_content, my_keyhandler_func)
+  dialog = renoise.app():show_custom_dialog("Paketti Sectionizer", dialog_content, my_keyhandler_func)
   renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
 end
 

@@ -1056,17 +1056,19 @@ function loadvst(vstname, name, preset_path, force_insertion_order, silent)
     end   
 
     if inserted_device.name == "AU: Valhalla DSP, LLC: ValhallaVintageVerb" then 
-      inserted_device.parameters[1].value = 0.304
+      inserted_device.parameters[1].value = 0
       inserted_device.parameters[3].value = 0.688
       inserted_device.parameters[15].value = 0.097
     end 
 
     if inserted_device.name == "AU: Valhalla DSP, LLC: ValhallaDelay" then
       inserted_device.parameters[23].value = 0.093999996781349
+      inserted_device.parameters[1].value = 0
     end
 
     if inserted_device.name == "AU: Valhalla DSP, LLC: ValhallaShimmer" then
       inserted_device.parameters[6].value = 0.095477387309074
+      inserted_device.parameters[1].value = 0
     end
     
     if inserted_device.name == "AU: Koen Tanghe @ Smartelectronix: KTGranulator" then 

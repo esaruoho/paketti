@@ -1615,8 +1615,9 @@ function PakettiEQ10ExperimentInit()
 end
 
 -- Add menu entry and keybinding
-renoise.tool():add_menu_entry {name = "Main Menu:Tools:Paketti EQ30 Experiment", invoke = PakettiEQ10ExperimentInit}
-renoise.tool():add_keybinding {name = "Global:Paketti:Paketti EQ30 Experiment", invoke = PakettiEQ10ExperimentInit}
+renoise.tool():add_menu_entry {name = "Main Menu:Tools:Paketti EQ30", invoke = PakettiEQ10ExperimentInit}
+renoise.tool():add_keybinding {name = "Global:Paketti:Paketti EQ30", invoke = PakettiEQ10ExperimentInit}
+renoise.tool():add_midi_mapping{name = "Paketti:Paketti EQ30", invoke = function(message) if message:is_trigger() then PakettiEQ10ExperimentInit() end end}
 
 -- Load & Show EQ30 toggle
 function PakettiEQ30LoadAndShowToggle()
@@ -1700,9 +1701,9 @@ function PakettiEQ30ToggleShowFollow()
   PakettiEQ30ShowAndFollow()
   renoise.app():show_status("EQ30: Show & Follow")
 end
-renoise.tool():add_keybinding {name = "Global:Paketti:Load & Show EQ30", invoke = PakettiEQ30ShowAndFollow}
-renoise.tool():add_menu_entry {name = "Main Menu:Tools:Load & Show EQ30", invoke = PakettiEQ30ShowAndFollow}
-renoise.tool():add_midi_mapping{name = "Paketti:Load & Show EQ30", invoke=function(message) if message:is_trigger() then PakettiEQ30ToggleShowFollow() end end}
+renoise.tool():add_keybinding {name = "Global:Paketti:Load & Show Paketti EQ30", invoke = PakettiEQ30ShowAndFollow}
+renoise.tool():add_menu_entry {name = "Main Menu:Tools:Load & Show Paketti EQ30", invoke = PakettiEQ30ShowAndFollow}
+renoise.tool():add_midi_mapping{name = "Paketti:Load & Show PakettiEQ30", invoke=function(message) if message:is_trigger() then PakettiEQ30ToggleShowFollow() end end}
 
 
 

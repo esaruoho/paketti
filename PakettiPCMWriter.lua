@@ -159,6 +159,26 @@ local function calculate_pitch_correction(sample_rate, wave_length_frames, cycle
   }
 end
 
+-- Apply pitch correction to a specific sample for standard single-cycle lengths
+function PCMWriterApplyPitchCorrectionToSample(sample, wave_length_frames)
+  if not sample then return end
+  local standard_cycle_lengths = {32, 64, 128, 256, 512, 1024}
+  local is_standard_length = false
+  for _, length in ipairs(standard_cycle_lengths) do
+    if wave_length_frames == length then
+      is_standard_length = true
+      break
+    end
+  end
+  if not is_standard_length then return end
+  local pitch_correction = calculate_pitch_correction(44100, wave_length_frames, 1)
+  local cents_deviation = math.abs(pitch_correction.cents)
+  if cents_deviation > 2 then
+    sample.transpose = pitch_correction.transpose
+    sample.fine_tune = pitch_correction.fine_tune
+  end
+end
+
 -- ========================================
 -- COLOR CONSTANTS - All canvas colors organized in one place
 -- ========================================
@@ -272,6 +292,10 @@ local canvas_interpolation_mode = "linear" -- "linear", "cubic", "bezier" for ca
 -- Sample export settings (separate from canvas display)
 local sample_interpolation_mode = "sinc" -- "none", "linear", "cubic", "sinc"
 local sample_oversample_enabled = true
+
+-- Loop mode setting for created/updated samples (Forward or PingPong)
+-- Applied in all creation/export paths before pitch correction
+sample_loop_mode = renoise.Sample.LOOP_MODE_FORWARD
 
 -- Wavetable state
 local wavetable_waves = {}
@@ -3214,7 +3238,7 @@ function PCMWriterExportMorphToInstrument()
     sample.name = wave.name
     
     -- Enable loop mode for each sample
-    sample.loop_mode = renoise.Sample.LOOP_MODE_FORWARD
+    sample.loop_mode = sample_loop_mode
     sample.loop_start = 1
     sample.loop_end = wave_size
     
@@ -3654,7 +3678,7 @@ function PCMWriterExportWavetableToSample()
                  sample.name = string.format("PCM Wave %02d (%d frames)", wave_idx, wave_size)
                  
                  -- Enable loop mode for each sample
-                 sample.loop_mode = renoise.Sample.LOOP_MODE_FORWARD
+                 sample.loop_mode = sample_loop_mode
                  sample.loop_start = 1
                  sample.loop_end = wave_size
                  
@@ -4970,7 +4994,7 @@ function PCMWriterCreate12RandomInstrument()
     sample.name = string.format("PCM A+B X%.0f%% %02d (%d frames)", crossfade_amount * 100, wave_num, wave_size)
     
     -- Enable loop mode for each sample
-    sample.loop_mode = renoise.Sample.LOOP_MODE_FORWARD
+    sample.loop_mode = sample_loop_mode
     sample.loop_start = 1
     sample.loop_end = wave_size
     
@@ -5137,7 +5161,7 @@ function PCMWriterCreate12ChebyshevInstrument()
     sample.name = string.format("PCM %s (%d frames)", wave.name, wave_size)
     
     -- Enable loop mode for each sample
-    sample.loop_mode = renoise.Sample.LOOP_MODE_FORWARD
+    sample.loop_mode = sample_loop_mode
     sample.loop_start = 1
     sample.loop_end = wave_size
     
@@ -5280,8 +5304,8 @@ function PCMWriterExportToSample()
   
   -- Sample is already selected (set above)
   
-  -- Enable loop mode (forward loop) and set loop points
-  sample.loop_mode = renoise.Sample.LOOP_MODE_FORWARD
+  -- Enable loop mode and set loop points
+  sample.loop_mode = sample_loop_mode
   sample.loop_start = 1
   sample.loop_end = wave_size
   
@@ -5383,7 +5407,7 @@ function PCMWriterExportWaveAToSample()
   inst.name = string.format("PCM Wave A (%d frames)", wave_size)
   
   -- Enable loop mode and set properties
-  sample.loop_mode = renoise.Sample.LOOP_MODE_FORWARD
+  sample.loop_mode = sample_loop_mode
   sample.loop_start = 1
   sample.loop_end = wave_size
   
@@ -5463,7 +5487,7 @@ function PCMWriterExportWaveBToSample()
   inst.name = string.format("PCM Wave B (%d frames)", wave_size)
   
   -- Enable loop mode and set properties
-  sample.loop_mode = renoise.Sample.LOOP_MODE_FORWARD
+  sample.loop_mode = sample_loop_mode
   sample.loop_start = 1
   sample.loop_end = wave_size
   
@@ -5554,7 +5578,7 @@ function PCMWriterExportWaveAAndBToSample()
   sample_a.name = string.format("PCM Wave A (%d frames)", wave_size)
   
   -- Enable loop mode and set properties for Wave A
-  sample_a.loop_mode = renoise.Sample.LOOP_MODE_FORWARD
+  sample_a.loop_mode = sample_loop_mode
   sample_a.loop_start = 1
   sample_a.loop_end = wave_size
   
@@ -5608,7 +5632,7 @@ function PCMWriterExportWaveAAndBToSample()
   sample_b.name = string.format("PCM Wave B (%d frames)", wave_size)
   
   -- Enable loop mode and set properties for Wave B
-  sample_b.loop_mode = renoise.Sample.LOOP_MODE_FORWARD
+  sample_b.loop_mode = sample_loop_mode
   sample_b.loop_start = 1
   sample_b.loop_end = wave_size
   
@@ -6546,7 +6570,7 @@ function PCMWriterLoadCurrentSample()
     
     -- Set sample properties
     sample.name = string.format("PCM Live Edit (%d frames)", wave_size)
-    sample.loop_mode = renoise.Sample.LOOP_MODE_FORWARD
+    sample.loop_mode = sample_loop_mode
     sample.loop_start = 1
     sample.loop_end = wave_size
     
@@ -7412,6 +7436,33 @@ function PCMWriterShowPcmDialog()
         end
       },
       vb:text{ text = "Oversampling", style = "strong" },
+      vb:switch{
+        id = "loop_mode_switch",
+        items = {"Forward", "PingPong"},
+        width = 200,
+        value = (sample_loop_mode == renoise.Sample.LOOP_MODE_PING_PONG) and 2 or 1,
+        tooltip = "Loop mode for newly created/updated samples",
+        notifier = function(idx)
+          local new_mode = (idx == 2) and renoise.Sample.LOOP_MODE_PING_PONG or renoise.Sample.LOOP_MODE_FORWARD
+          sample_loop_mode = new_mode
+          if live_pickup_mode then
+            local song = renoise.song()
+            local inst = song.selected_instrument
+            if PCMWriterDetect12stWTSetup() then
+              if #inst.samples >= 1 then inst:sample(1).loop_mode = new_mode end
+              if #inst.samples >= 2 then inst:sample(2).loop_mode = new_mode end
+              -- Re-pitch both samples if standard single-cycle size
+              if #inst.samples >= 1 then PCMWriterApplyPitchCorrectionToSample(inst:sample(1), wave_size) end
+              if #inst.samples >= 2 then PCMWriterApplyPitchCorrectionToSample(inst:sample(2), wave_size) end
+            elseif live_pickup_sample then
+              live_pickup_sample.loop_mode = new_mode
+              -- Re-pitch selected sample if standard single-cycle size
+              PCMWriterApplyPitchCorrectionToSample(live_pickup_sample, wave_size)
+            end
+            renoise.app():show_status("Live Pickup: Loop mode set to " .. ((idx == 2) and "PingPong" or "Forward"))
+          end
+        end
+      },
       vb:checkbox{
         value = hide_hex_editor,
         notifier = function(value)

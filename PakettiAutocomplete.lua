@@ -2686,6 +2686,10 @@ end
 
 -- TRUE Real-time keyhandler - captures every keystroke directly like Command Palette
 local function autocomplete_keyhandler(dialog, key)
+  -- Pass-through for '<' and '>' so Renoise can handle them
+  if key and (key.name == "<" or key.name == ">") then
+    return key
+  end
   if key.name == "return" then
     print("Enter key pressed! current_search_text='" .. current_search_text .. "', selected_index=" .. selected_suggestion_index)
     

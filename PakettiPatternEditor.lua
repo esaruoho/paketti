@@ -2928,16 +2928,27 @@ function PakettiToggleNoteOffAllTracks(target_line_index, target_pattern_index)
   local s = renoise.song()
 
   -- Resolve target pattern index
-  local pattern_index = target_pattern_index or s.selected_pattern_index
+  local pattern_index
+  if type(target_pattern_index) == "number" then
+    pattern_index = target_pattern_index
+  else
+    if target_pattern_index ~= nil then
+      print("PakettiToggleNoteOffAllTracks: non-number target_pattern_index=", tostring(target_pattern_index), ", defaulting to selected pattern")
+    end
+    pattern_index = s.selected_pattern_index
+  end
   if pattern_index < 1 then pattern_index = 1 end
   if pattern_index > #s.patterns then pattern_index = #s.patterns end
 
   -- Resolve target line index (0 means first row)
   local line_index
-  if target_line_index == nil then
+  if type(target_line_index) ~= "number" then
+    if target_line_index ~= nil then
+      print("PakettiToggleNoteOffAllTracks: non-number target_line_index=", tostring(target_line_index), ", defaulting to selected line")
+    end
     line_index = s.selected_line_index
   else
-    if target_line_index == 0 then
+    if target_line_index <= 0 then
       line_index = 1
     else
       line_index = target_line_index

@@ -588,6 +588,13 @@ renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Process:Convert All
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Process:Convert All Samples to 24-bit", invoke=function() convert_all_samples_to_bit_depth(24) end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Process:Convert All Samples to 32-bit", invoke=function() convert_all_samples_to_bit_depth(32) end}
 
+  -- Sample Navigator: Instruments – FX/Mod distribution and deletion
+  renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:FX/MOD:Distribute All Samples to Separate FX Chains",invoke=function() selectedInstrumentDistributeToSeparateFxChains() end}
+  renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:FX/MOD:Delete All Sample FX Chains",invoke=function() selectedInstrumentDeleteAllSampleFxChains() end}
+  renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:FX/MOD:Distribute All Samples to Separate Modulation Sets",invoke=function() selectedInstrumentDistributeToSeparateModulationSets() end}
+  renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:FX/MOD:Distribute All Samples to Separate FX & Mod Sets",invoke=function() selectedInstrumentDistributeToSeparateFxAndModChains() end}
+  renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:FX/MOD:Delete All Modulation Sets",invoke=function() selectedInstrumentDeleteAllSampleModulationSets() end}
+
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Process:Strip Silence",invoke=function() PakettiStripSilence() end}
 renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti:Process:Move Beginning Silence to End",invoke=function() PakettiMoveSilence() end}
 

@@ -13,6 +13,10 @@ lowerAutomation=renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION
 upperScopes=renoise.ApplicationWindow.UPPER_FRAME_TRACK_SCOPES
 upperSpectrum=renoise.ApplicationWindow.UPPER_FRAME_MASTER_SPECTRUM
 ----------------------------------------------------------------------------------------------------------------------------------------
+function vertsep()
+vb:text{text="|", font="bold", style="strong", width=8}
+end
+
 --from http://lua-users.org/lists/lua-l/2004-09/msg00054.html 
 function DEC_HEX(IN)
   local B,K,OUT,I,D=16,"0123456789ABCDEF","",0
@@ -745,7 +749,8 @@ if renoise.API_VERSION >= 6.2 then
   timed_require("PakettiNotepadRun")
   timed_require("PakettiEQ30")
   timed_require("PakettiMultitapExperiment")
-    --timed_require("PakettiPlayerProWaveformViewer")
+ --   timed_require("PakettiPlayerProWaveformViewer")
+ --   timed_require("PakettiAutomationStack")
 end
 
 --timed_require("PakettiExperimentalDialog")

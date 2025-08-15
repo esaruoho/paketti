@@ -14,14 +14,21 @@ end
 
 function PakettiCanvasFontDrawLetterB(ctx, x, y, size)
   ctx:begin_path()
+  -- left stem
   ctx:move_to(x, y)
   ctx:line_to(x, y + size)
-  ctx:line_to(x + 3*size/4, y + size)
-  ctx:line_to(x + 3*size/4, y + size/2)
+  -- upper bowl (rounded with diagonals), full width
+  ctx:move_to(x, y)
+  ctx:line_to(x + (13*size)/20, y)
+  ctx:line_to(x + size, y + size/4)
+  ctx:line_to(x + (13*size)/20, y + size/2)
+  -- lower bowl (rounded with diagonals), full width
+  ctx:move_to(x, y + size)
+  ctx:line_to(x + (13*size)/20, y + size)
+  ctx:line_to(x + size, y + 3*size/4)
+  ctx:line_to(x + (13*size)/20, y + size/2)
+  -- connect bowls to the left stem at midpoint
   ctx:line_to(x, y + size/2)
-  ctx:line_to(x + 3*size/4, y + size/2)
-  ctx:line_to(x + 3*size/4, y)
-  ctx:line_to(x, y)
   ctx:stroke()
 end
 
