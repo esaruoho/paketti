@@ -648,6 +648,7 @@ function pakettiDialogOfDialogs(search_query, custom_keyhandler)
     for col = 1, buttons_per_row do
       if button_index <= #dod_filtered_buttons and button_index <= max_buttons_to_show then
         local button_text = dod_filtered_buttons[button_index][1]
+        local current_index = button_index
         
         local button = vb:button{
           text = button_text,
@@ -656,7 +657,7 @@ function pakettiDialogOfDialogs(search_query, custom_keyhandler)
           visible = true,  -- Show button with content
           color = (button_index == dod_selected_index) and {0x80, 0x00, 0x80} or {0x00, 0x00, 0x00},
           notifier = function()
-            handle_dod_button_click(button_index)
+            handle_dod_button_click(current_index)
           end
         }
         

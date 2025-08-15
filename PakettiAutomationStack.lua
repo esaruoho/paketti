@@ -35,6 +35,7 @@ PakettiAutomationStack_is_drawing = false
 PakettiAutomationStack_last_draw_line = -1
 PakettiAutomationStack_last_draw_idx = -1
 PakettiAutomationStack_last_draw_value = -1
+PakettiAutomationStack_draw_playmode_index = 2 -- 1=Points,2=Lines,3=Curves
 
 -- Utility draw text helper
 function PakettiAutomationStack_DrawText(ctx, text, x, y, size)
@@ -240,12 +241,21 @@ function PakettiAutomationStack_YToValue(y, H)
   return v
 end
 
+function PakettiAutomationStack_PlaymodeForIndex(idx)
+  if idx == 1 then return renoise.PatternTrackAutomation.PLAYMODE_POINTS end
+  if idx == 3 then return renoise.PatternTrackAutomation.PLAYMODE_CURVES end
+  return renoise.PatternTrackAutomation.PLAYMODE_LINES
+end
+
 -- Write or remove point for a lane
 function PakettiAutomationStack_WritePoint(automation_index, line, value, remove)
   local song, patt, ptrack = PakettiAutomationStack_GetSongPatternTrack(); if not song or not patt or not ptrack then return end
   local entry = PakettiAutomationStack_automations[automation_index]; if not entry then return end
   local a = entry.automation
   if not a then return end
+  -- Ensure envelope playmode follows current draw mode
+  local desired = PakettiAutomationStack_PlaymodeForIndex(PakettiAutomationStack_draw_playmode_index)
+  if a.playmode ~= desired then a.playmode = desired end
   if remove then
     if a:has_point_at(line) then a:remove_point_at(line) end
   else
@@ -276,7 +286,7 @@ function PakettiAutomationStack_LaneMouse(automation_index, ev, lane_h)
   elseif ev.type == "move" then
     if PakettiAutomationStack_is_drawing and PakettiAutomationStack_last_draw_idx == automation_index then
       if line ~= PakettiAutomationStack_last_draw_line or math.abs(value - PakettiAutomationStack_last_draw_value) >= 0.001 then
-        -- Step across lines if we crossed more than one
+        -- Continuous draw: write point on the current line and interpolate if we skipped lines
         local start_l = PakettiAutomationStack_last_draw_line
         local end_l = line
         if start_l and end_l then
@@ -530,6 +540,22 @@ function PakettiAutomationStack_BuildContent()
       width = 300,
       value = PakettiAutomationStack_zoom_index,
       notifier = function(val) PakettiAutomationStack_SetZoomIndex(val) end
+    },
+    PakettiAutomationStack_vb:text{ text = "Mode:" },
+    PakettiAutomationStack_vb:switch{
+      id = "pas_mode_switch",
+      items = {"Points","Lines","Curves"},
+      width = 300,
+      value = PakettiAutomationStack_draw_playmode_index,
+      notifier = function(val)
+        PakettiAutomationStack_draw_playmode_index = val
+        -- Apply immediately to visible envelopes
+        for i = 1, #PakettiAutomationStack_automations do
+          local e = PakettiAutomationStack_automations[i]
+          if e and e.automation then e.automation.playmode = PakettiAutomationStack_PlaymodeForIndex(val) end
+        end
+        PakettiAutomationStack_RequestUpdate()
+      end
     },
     PakettiAutomationStack_vb:text{ text = "Page:" },
     PakettiAutomationStack_vb:scrollbar{ id = "pas_vscroll", min = 1, max = 2, value = PakettiAutomationStack_vertical_page_index, step = 1, pagestep = 1, autohide = false, notifier = function(val)
