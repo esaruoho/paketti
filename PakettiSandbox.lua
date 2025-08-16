@@ -575,3 +575,68 @@ renoise.tool():add_menu_entry{name = "--Pattern Matrix:Paketti:Pattern Tools:Cle
 renoise.tool():add_menu_entry{name = "--Pattern Editor:Paketti:Pattern Tools:Clear all Pattern Names", invoke = PakettiPatternNamesClearAll}
 renoise.tool():add_keybinding{name = "Global:Paketti:Clear all Pattern Names", invoke = PakettiPatternNamesClearAll}
 ---
+
+--[[
+
+local vb = renoise.ViewBuilder()
+local dialog = nil
+
+-- Parameters for the wacky filter
+local filter_params={chaos=0.5,cutoff=2000,resonance=0.7}
+
+-- Function to export, process, and reimport audio
+local function process_audio()
+  local song=renoise.song()
+  local selection = song.selection_in_pattern
+  if not selection then
+    renoise.app():show_status("No audio selection found")
+    return
+  end
+
+  -- Export selected audio to a WAV file
+  local sample = song.instruments[1].samples[1]
+  local output_path = os.tmpname() .. ".wav"
+  sample.sample_buffer:save_as(output_path, "wav")
+
+  -- Run Csound with the wacky filter
+  local csound_command = string.format(
+    "csound wacky_filter.csd -o %s -i %s -kcutoff %f -kresonance %f -kchaos %f",
+    output_path,
+    output_path,
+    filter_params.cutoff,
+    filter_params.resonance,
+    filter_params.chaos
+  )
+  os.execute(csound_command)
+
+  -- Load processed file back into Renoise
+  sample.sample_buffer:load_from(output_path)
+  renoise.app():show_status("Audio processed and reloaded")
+end
+
+-- Create GUI
+local function show_dialog()
+  if dialog and dialog.visible then
+    dialog:close()
+    return
+  end
+
+  local keyhandler = create_keyhandler_for_dialog(
+    function() return dialog end,
+    function(value) dialog = value end
+  )
+  dialog = renoise.app():show_custom_dialog("Wacky Filter", vb:row{
+    vb:column{
+      vb:slider{ min = 0, max = 1, value = filter_params.chaos, notifier=function(v) filter_params.chaos = v end},
+      vb:text{text="Chaos" },
+      vb:slider{ min = 20, max = 20000, value = filter_params.cutoff, notifier=function(v) filter_params.cutoff = v end},
+      vb:text{text="Cutoff" },
+      vb:slider{ min = 0.1, max = 10, value = filter_params.resonance, notifier=function(v) filter_params.resonance = v end},
+      vb:text{text="Resonance" },
+      vb:button{ text="Process Audio", notifier = process_audio }
+    }
+  }, keyhandler)
+end
+
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Xperimental/WIP:Wacky Filter",invoke=show_dialog}
+]]--

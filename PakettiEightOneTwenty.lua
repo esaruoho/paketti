@@ -728,10 +728,15 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
   local current_transpose = instrument and instrument.transpose or 0
   local current_volume = instrument and instrument.volume or 1.0
   
+  -- Clamp initial UI value for rotary to valid range
+  local init_transpose_val = current_transpose
+  if init_transpose_val < -64 then init_transpose_val = -64 end
+  if init_transpose_val > 64 then init_transpose_val = 64 end
+
   local transpose_rotary = vb:rotary {
     min = -64,
     max = 64,
-    value = current_transpose,
+    value = init_transpose_val,
     width=25,
     height = 25,
     notifier=function(value)
@@ -775,7 +780,7 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
       if track_index and prev_device and prev_param then
         PakettiEightOneTwentyRestoreAutomationSelection(prev_device, prev_param, track_index)
       end
-      renoise.app():show_status(string.format("Set transpose to %+d for instrument %d: %s.", value, instrument_index, renoise.song().selected_sample.name))
+      --renoise.app():show_status(string.format("Set transpose to %+d for instrument %d: %s.", value, instrument_index, renoise.song().selected_sample.name))
     end
   }
     -- Create transpose label
@@ -801,10 +806,11 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
         local inst = renoise.song().instruments[instrument_index]
         renoise.song().selected_instrument_index = instrument_index
         if inst then
-          -- Map rotary -1..+1 to instrument volume 0..2 (0.0 -> 1.0)
+          -- Map rotary -1..+1 to instrument volume 0..~1.99526 (0.0 -> 1.0)
           local mapped = (value + 1.0)
           if mapped < 0.0 then mapped = 0.0 end
-          if mapped > 2.0 then mapped = 2.0 end
+          local max_volume = 1.99525
+          if mapped > max_volume then mapped = max_volume end
           inst.volume = mapped
           -- Ensure the 00-7F velocity-mapped sample is selected for this instrument
           for sample_idx, sample in ipairs(inst.samples) do
@@ -1552,6 +1558,8 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
     if not inst then return end
     row_elements.transpose_observer_fn = function()
       local val = inst.transpose or 0
+      if val < -64 then val = -64 end
+      if val > 64 then val = 64 end
       if transpose_rotary.value ~= val then
         row_elements.updating_transpose = true
         transpose_rotary.value = val
@@ -1764,9 +1772,12 @@ end
   -- Find the current 00-7F sample and set slider accordingly
   local instrument = renoise.song().instruments[instrument_popup.value]
   if instrument then
-    -- Sync transpose knob to instrument on init
+    -- Sync transpose knob to instrument on init (clamped to UI range)
     row_elements.updating_transpose = true
-    transpose_rotary.value = instrument.transpose or 0
+    local init_t = instrument.transpose or 0
+    if init_t < -64 then init_t = -64 end
+    if init_t > 64 then init_t = 64 end
+    transpose_rotary.value = init_t
     row_elements.updating_transpose = false
     local found_samples = {}
     for sample_index, sample in ipairs(instrument.samples) do
@@ -5042,7 +5053,10 @@ local function set_groovebox_instrument_transpose(instrument_index, message)
   
   -- Update groovebox rotary if dialog is open and row exists
   if dialog and dialog.visible and rows[instrument_index + 1] and rows[instrument_index + 1].transpose_rotary then
-    rows[instrument_index + 1].transpose_rotary.value = transpose_value
+    local ui_val = transpose_value
+    if ui_val < -64 then ui_val = -64 end
+    if ui_val > 64 then ui_val = 64 end
+    rows[instrument_index + 1].transpose_rotary.value = ui_val
   end
   
   -- Select the instrument and track

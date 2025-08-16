@@ -36,6 +36,17 @@ PakettiAutomationStack_last_draw_line = -1
 PakettiAutomationStack_last_draw_idx = -1
 PakettiAutomationStack_last_draw_value = -1
 PakettiAutomationStack_draw_playmode_index = 2 -- 1=Points,2=Lines,3=Curves
+PakettiAutomationStack_selection_active = false
+PakettiAutomationStack_selection_start_line = nil
+PakettiAutomationStack_selection_end_line = nil
+PakettiAutomationStack_selection_lane_index = nil
+PakettiAutomationStack_show_all_vertically = false
+PakettiAutomationStack_count_text_view = nil
+PakettiAutomationStack_view_mode = 1 -- 1=Stack (multi lanes), 2=Single (overlay)
+PakettiAutomationStack_env_popup_view = nil
+PakettiAutomationStack_single_selected_index = 1
+PakettiAutomationStack_single_canvas_height = 320
+PakettiAutomationStack_copy_buffer = nil
 
 -- Utility draw text helper
 function PakettiAutomationStack_DrawText(ctx, text, x, y, size)
@@ -46,6 +57,34 @@ function PakettiAutomationStack_DrawText(ctx, text, x, y, size)
     ctx.stroke_color = {200,200,200,255}
     ctx:begin_path(); ctx:move_to(x, y); ctx:line_to(x+6, y); ctx:stroke()
   end
+end
+
+-- Key handler wrapper to support flood fill with Enter while delegating to my_keyhandler_func
+function PakettiAutomationStack_KeyHandler(dialog, key)
+  if key and key.modifiers == "" and (key.name == "return" or key.name == "enter") then
+    local song, patt, _ptrack = PakettiAutomationStack_GetSongPatternTrack()
+    if song and patt and PakettiAutomationStack_selection_active and PakettiAutomationStack_selection_lane_index then
+      local start_l = PakettiAutomationStack_selection_start_line or 1
+      local end_l = PakettiAutomationStack_selection_end_line or patt.number_of_lines
+      if start_l > end_l then local tmp = start_l; start_l = end_l; end_l = tmp end
+      local v = PakettiAutomationStack_last_draw_value
+      if not v then v = 0.0 end
+      for L = start_l, end_l do
+        PakettiAutomationStack_WritePoint(PakettiAutomationStack_selection_lane_index, L, v, false)
+      end
+      PakettiAutomationStack_selection_active = false
+      PakettiAutomationStack_selection_lane_index = nil
+      PakettiAutomationStack_selection_start_line = nil
+      PakettiAutomationStack_selection_end_line = nil
+      PakettiAutomationStack_RequestUpdate()
+      renoise.app():show_status("Automation Stack: Flood filled lines " .. tostring(start_l) .. "-" .. tostring(end_l))
+      return nil
+    end
+  end
+  if type(my_keyhandler_func) == "function" then
+    return my_keyhandler_func(dialog, key)
+  end
+  return key
 end
 
 -- Safe access helpers
@@ -79,7 +118,10 @@ end
 function PakettiAutomationStack_MapTimeToX(t, total_lines)
   local win = PakettiAutomationStack_GetWindowLines(total_lines)
   local view_start_t = (PakettiAutomationStack_view_start_line - 1)
-  local x = ((t - view_start_t) / win) * PakettiAutomationStack_canvas_width
+  local gutter = PakettiAutomationStack_gutter_width
+  local drawable = PakettiAutomationStack_canvas_width - (gutter * 2)
+  if drawable < 1 then drawable = 1 end
+  local x = gutter + ((t - view_start_t) / win) * drawable
   return x
 end
 
@@ -90,7 +132,13 @@ end
 -- Inverse mapping: canvas x to pattern line
 function PakettiAutomationStack_XToLine(x, total_lines)
   local win = PakettiAutomationStack_GetWindowLines(total_lines)
-  local t = (x / PakettiAutomationStack_canvas_width) * win + (PakettiAutomationStack_view_start_line - 1)
+  local gutter = PakettiAutomationStack_gutter_width
+  local drawable = PakettiAutomationStack_canvas_width - (gutter * 2)
+  if drawable < 1 then drawable = 1 end
+  local xt = x - gutter
+  if xt < 0 then xt = 0 end
+  if xt > drawable then xt = drawable end
+  local t = (xt / drawable) * win + (PakettiAutomationStack_view_start_line - 1)
   local line = math.floor(t) + 1
   if line < 1 then line = 1 end
   if line > total_lines then line = total_lines end
@@ -179,6 +227,7 @@ function PakettiAutomationStack_RebuildAutomations()
       end
     end
   end
+  PakettiAutomationStack_UpdateEnvPopup()
 end
 
 -- Redraw throttling
@@ -234,6 +283,248 @@ function PakettiAutomationStack_DrawGrid(ctx, W, H, num_lines, lpb)
   end
 end
 
+-- Draw a single automation into an existing canvas with selectable style/alpha
+function PakettiAutomationStack_DrawAutomation(entry, ctx, W, H, num_lines, color_main, color_point, line_width)
+  if not entry or not entry.automation then return end
+  local a = entry.automation
+  local points = a.points or {}
+  local mode = a.playmode or renoise.PatternTrackAutomation.PLAYMODE_POINTS
+  local gutter = PakettiAutomationStack_gutter_width
+  if #points == 0 then return end
+  if mode == renoise.PatternTrackAutomation.PLAYMODE_POINTS then
+    ctx.stroke_color = color_main
+    ctx.line_width = line_width
+    for i = 1, #points do
+      local p = points[i]
+      local x = PakettiAutomationStack_MapTimeToX((p.time or 1) - 1, num_lines)
+      local y = PakettiAutomationStack_ValueToY(p.value, H)
+      if x < gutter then x = gutter end
+      if x > W - gutter then x = W - gutter end
+      ctx:begin_path(); ctx:move_to(x, H-1); ctx:line_to(x, y); ctx:stroke()
+      ctx.stroke_color = color_point
+      ctx.line_width = math.max(1, line_width - 1)
+      ctx:begin_path(); ctx:move_to(x-1, y); ctx:line_to(x+1, y); ctx:stroke()
+      ctx.stroke_color = color_main
+      ctx.line_width = line_width
+    end
+  elseif mode == renoise.PatternTrackAutomation.PLAYMODE_LINES then
+    ctx.stroke_color = color_main
+    ctx.line_width = line_width
+    ctx:begin_path()
+    local p1 = points[1]
+    local x1 = PakettiAutomationStack_MapTimeToX((p1.time or 1) - 1, num_lines)
+    local y1 = PakettiAutomationStack_ValueToY(p1.value, H)
+    if x1 < gutter then x1 = gutter end
+    if x1 > W - gutter then x1 = W - gutter end
+    ctx:move_to(x1, y1)
+    for i = 2, #points do
+      local p = points[i]
+      local x = PakettiAutomationStack_MapTimeToX((p.time or 1) - 1, num_lines)
+      local y = PakettiAutomationStack_ValueToY(p.value, H)
+      if x < gutter then x = gutter end
+      if x > W - gutter then x = W - gutter end
+      ctx:line_to(x, y)
+    end
+    ctx:stroke()
+  else
+    ctx.stroke_color = color_main
+    ctx.line_width = line_width
+    for seg = 1, (#points - 1) do
+      local p0 = points[math.max(1, seg-1)]
+      local p1c = points[seg]
+      local p2 = points[seg+1]
+      local p3 = points[math.min(#points, seg+2)]
+      local x1 = PakettiAutomationStack_MapTimeToX((p1c.time or 1) - 1, num_lines)
+      local y1 = PakettiAutomationStack_ValueToY(p1c.value, H)
+      local x2 = PakettiAutomationStack_MapTimeToX((p2.time or 1) - 1, num_lines)
+      local y2 = PakettiAutomationStack_ValueToY(p2.value, H)
+      if x2 <= x1 then x2 = x1 + 1 end
+      local steps = math.max(8, math.floor((x2 - x1) / 6))
+      local function hermite(t, y_0, y_1, y_2, y_3)
+        local m1 = 0.5 * (y_2 - y_0)
+        local m2 = 0.5 * (y_3 - y_1)
+        local t2 = t * t
+        local t3 = t2 * t
+        local h00 = 2*t3 - 3*t2 + 1
+        local h10 = t3 - 2*t2 + t
+        local h01 = -2*t3 + 3*t2
+        local h11 = t3 - t2
+        return h00*y_1 + h10*m1 + h01*y_2 + h11*m2
+      end
+      ctx:begin_path()
+      for s = 0, steps do
+        local t = s / steps
+        local x = x1 + (x2 - x1) * t
+        local y = hermite(t, PakettiAutomationStack_ValueToY(p0.value, H), y1, y2, PakettiAutomationStack_ValueToY(p3.value, H))
+        if s == 0 then ctx:move_to(x, y) else ctx:line_to(x, y) end
+      end
+      ctx:stroke()
+    end
+  end
+end
+
+-- Single view renderer (overlay all automations, highlight selected)
+function PakettiAutomationStack_RenderSingleCanvas(canvas_w, canvas_h)
+  return function(ctx)
+    local song, patt, _ptrack = PakettiAutomationStack_GetSongPatternTrack()
+    local W = canvas_w or PakettiAutomationStack_canvas_width
+    local H = canvas_h or PakettiAutomationStack_single_canvas_height
+    ctx:clear_rect(0, 0, W, H)
+    if not song or not patt then return end
+    local num_lines = patt.number_of_lines
+    local lpb = song.transport.lpb
+    PakettiAutomationStack_DrawGrid(ctx, W, H, num_lines, lpb)
+
+    if #PakettiAutomationStack_automations == 0 then return end
+    local sel = PakettiAutomationStack_single_selected_index
+    if sel < 1 then sel = 1 end
+    if sel > #PakettiAutomationStack_automations then sel = #PakettiAutomationStack_automations end
+
+    -- Draw background automations dimmed
+    for i = 1, #PakettiAutomationStack_automations do
+      if i ~= sel then
+        local entry = PakettiAutomationStack_automations[i]
+        PakettiAutomationStack_DrawAutomation(entry, ctx, W, H, num_lines, {90,190,170,90}, {200,255,255,80}, 2)
+      end
+    end
+    -- Draw selected on top
+    local sel_entry = PakettiAutomationStack_automations[sel]
+    PakettiAutomationStack_DrawAutomation(sel_entry, ctx, W, H, num_lines, {120,255,170,235}, {200,255,255,255}, 3)
+    -- Title
+    local label = string.format("%s: %s", (sel_entry.device_name or "DEVICE"), (sel_entry.name or "PARAM"))
+    ctx.fill_color = {20,20,30,255}
+    ctx:begin_path(); ctx:rect(2, 2, W - 4, 12); ctx:fill()
+    ctx.stroke_color = {180,220,255,255}
+    PakettiAutomationStack_DrawText(ctx, string.upper(label), 6, 4, 8)
+  end
+end
+
+-- Mouse handler for Single view (operates on selected automation)
+function PakettiAutomationStack_SingleMouse(ev, lane_h)
+  local song, patt, _ptrack = PakettiAutomationStack_GetSongPatternTrack(); if not song or not patt then return end
+  if #PakettiAutomationStack_automations == 0 then return end
+  local num_lines = patt.number_of_lines
+  local x = ev.position.x
+  local y = ev.position.y
+  local line = PakettiAutomationStack_XToLine(x, num_lines)
+  local value = PakettiAutomationStack_YToValue(y, lane_h)
+  local mods = tostring(ev.modifiers or "")
+  local is_alt = (string.find(mods:lower(), "alt", 1, true) ~= nil) or (string.find(mods:lower(), "option", 1, true) ~= nil)
+  local idx = PakettiAutomationStack_single_selected_index
+  if idx < 1 then idx = 1 end
+  if idx > #PakettiAutomationStack_automations then idx = #PakettiAutomationStack_automations end
+  if ev.type == "down" and ev.button == "left" then
+    PakettiAutomationStack_is_drawing = true
+    PakettiAutomationStack_last_draw_line = line
+    PakettiAutomationStack_last_draw_idx = idx
+    PakettiAutomationStack_last_draw_value = value
+    PakettiAutomationStack_WritePoint(idx, line, value, is_alt)
+    PakettiAutomationStack_RequestUpdate()
+  elseif ev.type == "down" and ev.button == "right" then
+    local entry = PakettiAutomationStack_automations[idx]
+    if entry and entry.automation then
+      local a = entry.automation
+      if a.points and #a.points > 0 then
+        for i = #a.points, 1, -1 do
+          local pt = a.points[i]
+          if pt and pt.time then
+            local L = math.floor(pt.time)
+            if L < 1 then L = 1 end
+            a:remove_point_at(L)
+          end
+        end
+        PakettiAutomationStack_RequestUpdate()
+      end
+    end
+  elseif ev.type == "move" then
+    if PakettiAutomationStack_is_drawing and PakettiAutomationStack_last_draw_idx == idx then
+      if line ~= PakettiAutomationStack_last_draw_line or math.abs(value - PakettiAutomationStack_last_draw_value) >= 0.001 then
+        local start_l = PakettiAutomationStack_last_draw_line
+        local end_l = line
+        if start_l and end_l then
+          local step = (end_l >= start_l) and 1 or -1
+          local count = math.abs(end_l - start_l)
+          if count <= 1 then
+            PakettiAutomationStack_WritePoint(idx, line, value, is_alt)
+          else
+            for L = start_l, end_l, step do
+              local t = (count > 0) and (math.abs(L - start_l) / count) or 1.0
+              local v = PakettiAutomationStack_last_draw_value + (value - PakettiAutomationStack_last_draw_value) * t
+              PakettiAutomationStack_WritePoint(idx, L, v, is_alt)
+            end
+          end
+        end
+        PakettiAutomationStack_last_draw_line = line
+        PakettiAutomationStack_last_draw_value = value
+        PakettiAutomationStack_RequestUpdate()
+      end
+    end
+  elseif ev.type == "up" and ev.button == "left" then
+    PakettiAutomationStack_is_drawing = false
+    PakettiAutomationStack_last_draw_idx = -1
+    PakettiAutomationStack_RequestUpdate()
+  end
+end
+
+-- Update popup items from current automations
+function PakettiAutomationStack_UpdateEnvPopup()
+  if not PakettiAutomationStack_env_popup_view then return end
+  local items = {}
+  for i = 1, #PakettiAutomationStack_automations do
+    local e = PakettiAutomationStack_automations[i]
+    local label = string.format("%s: %s", (e.device_name or "Device"), (e.name or "Param"))
+    items[#items+1] = label
+  end
+  if #items == 0 then items = {"(none)"} end
+  PakettiAutomationStack_env_popup_view.items = items
+  if PakettiAutomationStack_single_selected_index < 1 then PakettiAutomationStack_single_selected_index = 1 end
+  if PakettiAutomationStack_single_selected_index > #items then PakettiAutomationStack_single_selected_index = #items end
+  PakettiAutomationStack_env_popup_view.value = PakettiAutomationStack_single_selected_index
+end
+
+-- Copy / Paste
+function PakettiAutomationStack_CopySelectedEnvelope()
+  local idx = PakettiAutomationStack_single_selected_index
+  if idx < 1 or idx > #PakettiAutomationStack_automations then renoise.app():show_status("Automation Stack: Nothing to copy") return end
+  local entry = PakettiAutomationStack_automations[idx]
+  if not entry or not entry.automation then renoise.app():show_status("Automation Stack: No automation to copy") return end
+  local a = entry.automation
+  local buf = { playmode = a.playmode, points = {} }
+  local pts = a.points or {}
+  for i = 1, #pts do
+    local p = pts[i]
+    buf.points[#buf.points+1] = { time = p.time, value = p.value }
+  end
+  PakettiAutomationStack_copy_buffer = buf
+  renoise.app():show_status("Automation Stack: Copied " .. tostring(#buf.points) .. " points")
+end
+
+function PakettiAutomationStack_PasteIntoSelectedEnvelope()
+  if not PakettiAutomationStack_copy_buffer or not PakettiAutomationStack_copy_buffer.points then
+    renoise.app():show_status("Automation Stack: Copy buffer is empty")
+    return
+  end
+  local idx = PakettiAutomationStack_single_selected_index
+  if idx < 1 or idx > #PakettiAutomationStack_automations then renoise.app():show_status("Automation Stack: No destination envelope") return end
+  local entry = PakettiAutomationStack_automations[idx]
+  if not entry or not entry.automation then renoise.app():show_status("Automation Stack: No destination envelope") return end
+  local a = entry.automation
+  -- Clear existing points
+  local pts = a.points or {}
+  for i = #pts, 1, -1 do
+    local pt = pts[i]
+    if pt and pt.time then a:remove_point_at(math.floor(pt.time)) end
+  end
+  -- Paste
+  a.playmode = PakettiAutomationStack_copy_buffer.playmode or a.playmode
+  for i = 1, #PakettiAutomationStack_copy_buffer.points do
+    local p = PakettiAutomationStack_copy_buffer.points[i]
+    a:add_point_at(math.floor(p.time), p.value)
+  end
+  PakettiAutomationStack_RequestUpdate()
+  renoise.app():show_status("Automation Stack: Pasted " .. tostring(#PakettiAutomationStack_copy_buffer.points) .. " points")
+end
+
 function PakettiAutomationStack_ValueToY(v, H)
   if v < 0 then v = 0 end
   if v > 1 then v = 1 end
@@ -283,13 +574,47 @@ function PakettiAutomationStack_LaneMouse(automation_index, ev, lane_h)
   local is_alt = (string.find(mods:lower(), "alt", 1, true) ~= nil) or (string.find(mods:lower(), "option", 1, true) ~= nil)
 
   if ev.type == "down" and ev.button == "left" then
+    local is_shift = (string.find(mods:lower(), "shift", 1, true) ~= nil)
+    if is_shift then
+      PakettiAutomationStack_selection_active = true
+      PakettiAutomationStack_selection_start_line = line
+      PakettiAutomationStack_selection_end_line = line
+      PakettiAutomationStack_selection_lane_index = automation_index
+      PakettiAutomationStack_last_draw_value = value
+      PakettiAutomationStack_RequestUpdate()
+      return
+    end
     PakettiAutomationStack_is_drawing = true
     PakettiAutomationStack_last_draw_line = line
     PakettiAutomationStack_last_draw_idx = automation_index
     PakettiAutomationStack_last_draw_value = value
     PakettiAutomationStack_WritePoint(automation_index, line, value, is_alt)
     PakettiAutomationStack_RequestUpdate()
+  elseif ev.type == "down" and ev.button == "right" then
+    -- Right-click: clear all points in this automation lane
+    local entry = PakettiAutomationStack_automations[automation_index]
+    if entry and entry.automation then
+      local a = entry.automation
+      if a.points and #a.points > 0 then
+        -- Remove from end to start to avoid index shifts
+        for i = #a.points, 1, -1 do
+          local pt = a.points[i]
+          if pt and pt.time then
+            local L = math.floor(pt.time)
+            if L < 1 then L = 1 end
+            a:remove_point_at(L)
+          end
+        end
+        PakettiAutomationStack_RequestUpdate()
+      end
+    end
   elseif ev.type == "move" then
+    local is_shift = (string.find(mods:lower(), "shift", 1, true) ~= nil)
+    if PakettiAutomationStack_selection_active and PakettiAutomationStack_selection_lane_index == automation_index and is_shift then
+      PakettiAutomationStack_selection_end_line = line
+      PakettiAutomationStack_RequestUpdate()
+      return
+    end
     if PakettiAutomationStack_is_drawing and PakettiAutomationStack_last_draw_idx == automation_index then
       if line ~= PakettiAutomationStack_last_draw_line or math.abs(value - PakettiAutomationStack_last_draw_value) >= 0.001 then
         -- Continuous draw: write point on the current line and interpolate if we skipped lines
@@ -337,14 +662,12 @@ function PakettiAutomationStack_RenderLaneCanvas(automation_index, canvas_w, can
     local entry = PakettiAutomationStack_automations[automation_index]
     if not entry or not entry.automation then return end
 
-    -- Label block with device and parameter in uppercase
-    local label = string.format("%s", (entry.device_name or "DEVICE"))
-    local label2 = string.format("%s", (entry.name or "PARAM"))
+    -- Label block with device and parameter formatted as "DEVICE: PARAMETER"
+    local label = string.format("%s: %s", (entry.device_name or "DEVICE"), (entry.name or "PARAM"))
     ctx.fill_color = {20,20,30,255}
-    ctx:begin_path(); ctx:rect(2, 2, 160, 12); ctx:fill()
+    ctx:begin_path(); ctx:rect(2, 2, W - 4, 12); ctx:fill()
     ctx.stroke_color = {180,220,255,255}
     PakettiAutomationStack_DrawText(ctx, string.upper(label), 6, 4, 8)
-    PakettiAutomationStack_DrawText(ctx, string.upper(label2), 86, 4, 8)
 
     local a = entry.automation
     local points = a.points or {}
@@ -367,7 +690,7 @@ function PakettiAutomationStack_RenderLaneCanvas(automation_index, canvas_w, can
       ctx.line_width = 2
       for i = 1, #points do
         local p = points[i]
-        local x = PakettiAutomationStack_MapTimeToX(p.time, num_lines)
+        local x = PakettiAutomationStack_MapTimeToX((p.time or 1) - 1, num_lines)
         local y = PakettiAutomationStack_ValueToY(p.value, H)
         if x < gutter then x = gutter end
         if x > W - gutter then x = W - gutter end
@@ -384,14 +707,14 @@ function PakettiAutomationStack_RenderLaneCanvas(automation_index, canvas_w, can
       ctx.line_width = 3
       ctx:begin_path()
       local p1 = points[1]
-      local x1 = PakettiAutomationStack_MapTimeToX(p1.time, num_lines)
+      local x1 = PakettiAutomationStack_MapTimeToX((p1.time or 1) - 1, num_lines)
       local y1 = PakettiAutomationStack_ValueToY(p1.value, H)
       if x1 < gutter then x1 = gutter end
       if x1 > W - gutter then x1 = W - gutter end
       ctx:move_to(x1, y1)
       for i = 2, #points do
         local p = points[i]
-        local x = PakettiAutomationStack_MapTimeToX(p.time, num_lines)
+        local x = PakettiAutomationStack_MapTimeToX((p.time or 1) - 1, num_lines)
         local y = PakettiAutomationStack_ValueToY(p.value, H)
         if x < gutter then x = gutter end
         if x > W - gutter then x = W - gutter end
@@ -403,7 +726,7 @@ function PakettiAutomationStack_RenderLaneCanvas(automation_index, canvas_w, can
       ctx.line_width = 2
       for i = 1, #points do
         local p = points[i]
-        local x = PakettiAutomationStack_MapTimeToX(p.time, num_lines)
+        local x = PakettiAutomationStack_MapTimeToX((p.time or 1) - 1, num_lines)
         local y = PakettiAutomationStack_ValueToY(p.value, H)
         if x < gutter then x = gutter end
         if x > W - gutter then x = W - gutter end
@@ -418,9 +741,9 @@ function PakettiAutomationStack_RenderLaneCanvas(automation_index, canvas_w, can
         local p1c = points[seg]
         local p2 = points[seg+1]
         local p3 = points[math.min(#points, seg+2)]
-        local x1 = PakettiAutomationStack_MapTimeToX(p1c.time, num_lines)
+        local x1 = PakettiAutomationStack_MapTimeToX((p1c.time or 1) - 1, num_lines)
         local y1 = PakettiAutomationStack_ValueToY(p1c.value, H)
-        local x2 = PakettiAutomationStack_MapTimeToX(p2.time, num_lines)
+        local x2 = PakettiAutomationStack_MapTimeToX((p2.time or 1) - 1, num_lines)
         local y2 = PakettiAutomationStack_ValueToY(p2.value, H)
         if x2 <= x1 then x2 = x1 + 1 end
         local steps = math.max(8, math.floor((x2 - x1) / 6))
@@ -455,7 +778,7 @@ function PakettiAutomationStack_RenderHeaderCanvas(canvas_w, canvas_h)
     local song, patt, _ptrack = PakettiAutomationStack_GetSongPatternTrack(); if not song or not patt then return end
     local x = ev.position.x
     local num_lines = patt.number_of_lines
-    local target_line = math.floor(((x / (canvas_w or PakettiAutomationStack_canvas_width)) * PakettiAutomationStack_GetWindowLines(num_lines)) + (PakettiAutomationStack_view_start_line - 1)) + 1
+    local target_line = PakettiAutomationStack_XToLine(x, num_lines)
     if target_line < 1 then target_line = 1 end
     if target_line > num_lines then target_line = num_lines end
     song.selected_line_index = target_line
@@ -490,6 +813,12 @@ function PakettiAutomationStack_RenderHeaderCanvas(canvas_w, canvas_h)
       local label = string.format("%02d", (line-1) % 100)
       PakettiAutomationStack_DrawText(ctx, label, x + 2, 2, row_label_size)
     end
+    -- Ensure last visible line is labeled (e.g., 64)
+    local x_last = PakettiAutomationStack_LineToX(view_end, num_lines)
+    ctx.stroke_color = {100,100,140,255}
+    ctx:begin_path(); ctx:move_to(x_last, 0); ctx:line_to(x_last, H); ctx:stroke()
+    local last_label = string.format("%02d", (view_end-1) % 100)
+    PakettiAutomationStack_DrawText(ctx, last_label, x_last + 2, 2, row_label_size)
     -- playhead
     local x_play = nil
     local play_line = nil
@@ -522,25 +851,59 @@ function PakettiAutomationStack_RebuildCanvases()
 
   local song, patt, _ptrack = PakettiAutomationStack_GetSongPatternTrack(); if not song or not patt then return end
   local total = #PakettiAutomationStack_automations
-  local start_idx = ((PakettiAutomationStack_vertical_page_index - 1) * PakettiAutomationStack_vertical_page_size) + 1
-  if start_idx < 1 then start_idx = 1 end
-  if start_idx > total then start_idx = math.max(1, total - PakettiAutomationStack_vertical_page_size + 1) end
-  local end_idx = math.min(total, start_idx + PakettiAutomationStack_vertical_page_size - 1)
 
-  for i = start_idx, end_idx do
+  if PakettiAutomationStack_view_mode == 2 then
+    -- Single view: one tall canvas + selection popup and buttons row
     local cw = PakettiAutomationStack_canvas_width
-    local ch = PakettiAutomationStack_lane_height
-    local idx_for_canvas = i
-    local c = PakettiAutomationStack_vb:canvas{
+    local ch = PakettiAutomationStack_single_canvas_height
+    local single_canvas = PakettiAutomationStack_vb:canvas{
       width = cw,
       height = ch,
       mode = "plain",
-      render = PakettiAutomationStack_RenderLaneCanvas(idx_for_canvas, cw, ch),
+      render = PakettiAutomationStack_RenderSingleCanvas(cw, ch),
       mouse_events = {"down","up","move"},
-      mouse_handler = function(ev) PakettiAutomationStack_LaneMouse(idx_for_canvas, ev, ch) end
+      mouse_handler = function(ev) PakettiAutomationStack_SingleMouse(ev, ch) end
     }
-    PakettiAutomationStack_container:add_child(c)
-    PakettiAutomationStack_track_canvases[#PakettiAutomationStack_track_canvases+1] = c
+    PakettiAutomationStack_container:add_child(single_canvas)
+    PakettiAutomationStack_track_canvases[#PakettiAutomationStack_track_canvases+1] = single_canvas
+
+    local select_row = PakettiAutomationStack_vb:row{
+      PakettiAutomationStack_vb:text{ text = "Envelope:" },
+      PakettiAutomationStack_vb:popup{ id = "pas_env_popup", items = {"(none)"}, width = 400, value = PakettiAutomationStack_single_selected_index, notifier = function(val)
+        PakettiAutomationStack_single_selected_index = val
+        PakettiAutomationStack_RequestUpdate()
+      end },
+      PakettiAutomationStack_vb:button{ text = "Copy", notifier = function() PakettiAutomationStack_CopySelectedEnvelope() end },
+      PakettiAutomationStack_vb:button{ text = "Paste", notifier = function() PakettiAutomationStack_PasteIntoSelectedEnvelope() end }
+    }
+    PakettiAutomationStack_container:add_child(select_row)
+    PakettiAutomationStack_env_popup_view = PakettiAutomationStack_vb.views.pas_env_popup
+    PakettiAutomationStack_UpdateEnvPopup()
+  else
+    -- Stack view: paged lanes
+    if PakettiAutomationStack_show_all_vertically then
+      PakettiAutomationStack_vertical_page_size = math.max(1, total)
+    end
+    local start_idx = ((PakettiAutomationStack_vertical_page_index - 1) * PakettiAutomationStack_vertical_page_size) + 1
+    if start_idx < 1 then start_idx = 1 end
+    if start_idx > total then start_idx = math.max(1, total - PakettiAutomationStack_vertical_page_size + 1) end
+    local end_idx = math.min(total, start_idx + PakettiAutomationStack_vertical_page_size - 1)
+
+    for i = start_idx, end_idx do
+      local cw = PakettiAutomationStack_canvas_width
+      local ch = PakettiAutomationStack_lane_height
+      local idx_for_canvas = i
+      local c = PakettiAutomationStack_vb:canvas{
+        width = cw,
+        height = ch,
+        mode = "plain",
+        render = PakettiAutomationStack_RenderLaneCanvas(idx_for_canvas, cw, ch),
+        mouse_events = {"down","up","move"},
+        mouse_handler = function(ev) PakettiAutomationStack_LaneMouse(idx_for_canvas, ev, ch) end
+      }
+      PakettiAutomationStack_container:add_child(c)
+      PakettiAutomationStack_track_canvases[#PakettiAutomationStack_track_canvases+1] = c
+    end
   end
 
   -- Update vertical scrollbar bounds
@@ -550,6 +913,9 @@ function PakettiAutomationStack_RebuildCanvases()
     PakettiAutomationStack_vscrollbar_view.max = math.max(2, pages)
     if PakettiAutomationStack_vertical_page_index > pages then PakettiAutomationStack_vertical_page_index = pages end
     PakettiAutomationStack_vscrollbar_view.value = PakettiAutomationStack_vertical_page_index
+  end
+  if PakettiAutomationStack_count_text_view then
+    PakettiAutomationStack_count_text_view.text = "(" .. tostring(total) .. ")"
   end
 end
 
@@ -579,12 +945,38 @@ function PakettiAutomationStack_BuildContent()
         PakettiAutomationStack_RequestUpdate()
       end
     },
+    PakettiAutomationStack_vb:text{ text = "View:" },
+    PakettiAutomationStack_vb:switch{
+      id = "pas_view_switch",
+      items = {"Stack","Single"},
+      width = 300,
+      value = (PakettiAutomationStack_view_mode == 2) and 2 or 1,
+      notifier = function(val)
+        PakettiAutomationStack_view_mode = (val == 2) and 2 or 1
+        PakettiAutomationStack_RebuildCanvases()
+        PakettiAutomationStack_RequestUpdate()
+      end
+    },
+    PakettiAutomationStack_vb:text{ text = "Show:" },
+    PakettiAutomationStack_vb:switch{
+      id = "pas_show_switch",
+      items = {"Page","All"},
+      width = 300,
+      value = PakettiAutomationStack_show_all_vertically and 2 or 1,
+      notifier = function(val)
+        PakettiAutomationStack_show_all_vertically = (val == 2)
+        PakettiAutomationStack_vertical_page_index = 1
+        PakettiAutomationStack_RebuildCanvases()
+        PakettiAutomationStack_RequestUpdate()
+      end
+    },
     PakettiAutomationStack_vb:text{ text = "Page:" },
     PakettiAutomationStack_vb:scrollbar{ id = "pas_vscroll", min = 1, max = 2, value = PakettiAutomationStack_vertical_page_index, step = 1, pagestep = 1, autohide = false, notifier = function(val)
       PakettiAutomationStack_vertical_page_index = val
       PakettiAutomationStack_RebuildCanvases()
       PakettiAutomationStack_RequestUpdate()
     end },
+    PakettiAutomationStack_vb:text{ id = "pas_count_text", text = "(0)" },
     PakettiAutomationStack_vb:button{ text = "Refresh", width = 80, notifier = function() PakettiAutomationStack_ForceRefresh() end }
   }
 
@@ -614,11 +1006,12 @@ function PakettiAutomationStack_ReopenDialog()
   if PakettiAutomationStack_dialog and PakettiAutomationStack_dialog.visible then PakettiAutomationStack_dialog:close() end
   PakettiAutomationStack_vb = renoise.ViewBuilder()
   local content = PakettiAutomationStack_BuildContent()
-  PakettiAutomationStack_dialog = renoise.app():show_custom_dialog("Paketti Automation Stack", content, my_keyhandler_func)
+  PakettiAutomationStack_dialog = renoise.app():show_custom_dialog("Paketti Automation Stack", content, PakettiAutomationStack_KeyHandler)
   PakettiAutomationStack_header_canvas = PakettiAutomationStack_vb.views.pas_header_canvas
   PakettiAutomationStack_scrollbar_view = PakettiAutomationStack_vb.views.pas_hscroll
   PakettiAutomationStack_vscrollbar_view = PakettiAutomationStack_vb.views.pas_vscroll
   PakettiAutomationStack_container = PakettiAutomationStack_vb.views.pas_tracks_container
+  PakettiAutomationStack_count_text_view = PakettiAutomationStack_vb.views.pas_count_text
   renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
   PakettiAutomationStack_RebuildAutomations()
   PakettiAutomationStack_UpdateScrollbars()

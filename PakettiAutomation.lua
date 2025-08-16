@@ -1740,6 +1740,7 @@ function showAutomationHardDynamic()
     app_window.active_middle_frame = 1
   end
 
+  renoise.app().window.lower_frame_is_visible = true
   -- Switch to Automation view if not already active
   if app_window.active_lower_frame ~= renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION then
     app_window.active_lower_frame = renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION

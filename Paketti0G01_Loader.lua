@@ -130,6 +130,8 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiEnableGlobalGrooveOnStartup=false,
   pakettiRandomizeBPMOnNewSong=false,
   pakettiPatternStatusMonitor=false,
+  
+  pakettiCaptureLastTakeSmartNoteOff=true,
   PakettiImpulseTrackerF8=1,
   PakettiDeviceChainPath = "." .. separator .. "DeviceChains" .. separator,
   PakettiIRPath = "." .. separator .. "IR" .. separator,
@@ -876,7 +878,7 @@ local pakettiIRPathDisplayId = "pakettiIRPathDisplay_" .. tostring(math.random(2
                 vb:switch{items={"Off","On"},tooltip="Automatically enable Global Groove when creating/loading songs",value=preferences.pakettiEnableGlobalGrooveOnStartup.value and 2 or 1,width=200,
                   notifier=function(value) preferences.pakettiEnableGlobalGrooveOnStartup.value=(value==2) end}},
               vb:row{
-                vb:text{text="BPM Randomizer on New Songs",width=150,tooltip="Randomly set BPM (60-220) with bell curve around 120 for new songs (not loaded from file)",},
+                vb:text{text="New Song BPM Randomizer",width=150,tooltip="Randomly set BPM (60-220) with bell curve around 120 for new songs (not loaded from file)",},
                 vb:switch{items={"Off","On"},tooltip="Randomly set BPM (60-220) with bell curve around 120 for new songs (not loaded from file)",value=preferences.pakettiRandomizeBPMOnNewSong.value and 2 or 1,width=200,
                   notifier=function(value) preferences.pakettiRandomizeBPMOnNewSong.value=(value==2) end}},
               vb:row{

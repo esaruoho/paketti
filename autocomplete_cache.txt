@@ -1,6 +1,6 @@
 CACHE_VERSION=1.0
-SCAN_TIME=1755175949
-COMMAND_COUNT=4630
+SCAN_TIME=1755287302
+COMMAND_COUNT=4660
 Menu Entry|||DSP Chain:Paketti:Insert Random Device (AU/Native Only)|||DSP Chain|||function() insertRandomDevice(true) end|||DCPIRDANO,chain,paketti,insert,random,device,native,only|||PakettiMenuConfig
 Menu Entry|||DSP Chain:Paketti:Insert Random Device (All)|||DSP Chain|||function() insertRandomDevice(false) end|||DCPIRDA,chain,paketti,insert,random,device|||PakettiMenuConfig
 Menu Entry|||DSP Chain:Paketti:Inspect Track Device Chain|||DSP Chain|||inspectTrackDeviceChain|||DCPITDC,chain,paketti,inspect,track,device,chain|||PakettiPresetPlusPlus
@@ -343,8 +343,10 @@ Menu Entry|||Main Menu:Paketti:Set Sync Mode to (Ableton Link)|||Main Menu|||fun
 Menu Entry|||Main Menu:Paketti:Set Sync Mode to (Internal)|||Main Menu|||function() setSyncMode(renoise.Transport.SYNC_MODE_INTERNAL) end|||MMPSSMTI,main,menu,paketti,sync,mode,internal|||Paketti35
 Menu Entry|||Main Menu:Paketti:Set Sync Mode to (Jack)|||Main Menu|||function() setSyncMode(renoise.Transport.SYNC_MODE_JACK)end|||MMPSSMTJ,main,menu,paketti,sync,mode,jack|||Paketti35
 Menu Entry|||Main Menu:Paketti:Set Sync Mode to (Midi Clock)|||Main Menu|||function() setSyncMode(renoise.Transport.SYNC_MODE_MIDI_CLOCK) end|||MMPSSMTMC,main,menu,paketti,sync,mode,midi,clock|||Paketti35
+Menu Entry|||Main Menu:Tools:Automation Stack|||Main Menu|||function() PakettiAutomationStackShowDialog() end|||MMTAS,main,menu,tools,automation,stack|||PakettiAutomationStack
 Menu Entry|||Main Menu:Tools:Chebyshev Polynomial Waveshaper...|||Main Menu|||show_chebyshev_waveshaper|||MMTCPW,main,menu,tools,chebyshev,polynomial,waveshaper|||PakettiChebyshevWaveshaper
 Menu Entry|||Main Menu:Tools:Load & Show Paketti EQ30|||Main Menu|||PakettiEQ30ShowAndFollow|||MMTLSPE,main,menu,tools,load,show,paketti,eq30|||PakettiEQ30
+Menu Entry|||Main Menu:Tools:Paketti Capture Last Take...|||Tools|||PakettiCaptureLastTakeToggle|||MMTPCLT,main,menu,tools,paketti,capture,last,take|||PakettiCaptureLastTake
 Menu Entry|||Main Menu:Tools:Paketti EQ30|||Tools|||PakettiEQ10ExperimentInit|||MMTPE,main,menu,tools,paketti,eq30|||PakettiEQ30
 Menu Entry|||Main Menu:Tools:Paketti Gadgets:CCizer Loader...|||Tools|||PakettiCCizerLoader|||MMTPGCL,main,menu,tools,paketti,gadgets,ccizer,loader|||PakettiCCizerLoader
 Menu Entry|||Main Menu:Tools:Paketti Gadgets:Fuzzy Search Track...|||Tools|||pakettiFuzzySearchTrackDialog|||MMTPGFST,main,menu,tools,paketti,gadgets,fuzzy,search,track|||PakettiMenuConfig
@@ -366,6 +368,7 @@ Menu Entry|||Main Menu:Tools:Paketti Gadgets:Paketti MIDI Populator...|||Tools||
 Menu Entry|||Main Menu:Tools:Paketti Gadgets:Paketti New Song Dialog...|||Tools|||function() pakettiImpulseTrackerNewSongDialog() end|||MMTPGPNSD,main,menu,tools,paketti,gadgets,paketti,song,dialog|||PakettiMenuConfig
 Menu Entry|||Main Menu:Tools:Paketti Gadgets:Paketti Sequencer Settings Dialog...|||Tools|||pakettiSequencerSettingsDialog|||MMTPGPSSD,main,menu,tools,paketti,gadgets,paketti,sequencer,settings,dialog|||PakettiMenuConfig
 Menu Entry|||Main Menu:Tools:Paketti Gadgets:Paketti Single Cycle Waveform Writer...|||Tools|||PCMWriterShowPcmDialog|||MMTPGPSCWW,main,menu,tools,paketti,gadgets,paketti,single,cycle,waveform,writer|||PakettiPCMWriter
+Menu Entry|||Main Menu:Tools:Paketti Gadgets:Paketti Slab'o'Patterns...|||Tools|||PakettiSlabOPatternsToggle|||MMTPGPSOP,main,menu,tools,paketti,gadgets,paketti,slab,patterns|||PakettiSlabOPatterns
 Menu Entry|||Main Menu:Tools:Paketti Gadgets:Paketti Stacker...|||Tools|||function() pakettiStackerDialog(proceed_with_stacking, on_switch_changed, PakettiIsolateSlicesToInstrument) end|||MMTPGPS,main,menu,tools,paketti,gadgets,paketti,stacker|||PakettiMenuConfig
 Menu Entry|||Main Menu:Tools:Paketti Gadgets:Paketti Theme Selector...|||Tools|||pakettiThemeSelectorDialogShow|||MMTPGPTS,main,menu,tools,paketti,gadgets,paketti,theme,selector|||PakettiMenuConfig
 Menu Entry|||Main Menu:Tools:Paketti Gadgets:Paketti Timestretch Dialog...|||Tools|||pakettiTimestretchDialog|||MMTPGPTD,main,menu,tools,paketti,gadgets,paketti,timestretch,dialog|||PakettiMenuConfig
@@ -1096,6 +1099,7 @@ Menu Entry|||Pattern Editor:Paketti Gadgets:BPM Calculation Dialog...|||Pattern 
 Menu Entry|||Pattern Editor:Paketti Gadgets:CCizer Loader...|||Pattern Editor|||PakettiCCizerLoader|||PEPGCL,pattern,editor,paketti,gadgets,ccizer,loader|||PakettiCCizerLoader
 Menu Entry|||Pattern Editor:Paketti Gadgets:Paketti Action Selector Dialog...|||Pattern Editor|||pakettiActionSelectorDialog|||PEPGPASD,pattern,editor,paketti,gadgets,paketti,action,selector,dialog|||PakettiMenuConfig
 Menu Entry|||Pattern Editor:Paketti Gadgets:Paketti Beat Structure Editor...|||Pattern Editor|||pakettiBeatStructureEditorDialog|||PEPGPBSE,pattern,editor,paketti,gadgets,paketti,beat,structure,editor|||PakettiMenuConfig
+Menu Entry|||Pattern Editor:Paketti Gadgets:Paketti Capture Last Take...|||Pattern Editor|||PakettiCaptureLastTakeToggle|||PEPGPCLT,pattern,editor,paketti,gadgets,paketti,capture,last,take|||PakettiCaptureLastTake
 Menu Entry|||Pattern Editor:Paketti Gadgets:Paketti Dialog of Dialogs...|||Pattern Editor|||function() pakettiDialogOfDialogsToggle() end|||PEPGPDOD,pattern,editor,paketti,gadgets,paketti,dialog,dialogs|||PakettiMenuConfig
 Menu Entry|||Pattern Editor:Paketti Gadgets:Paketti Effect Column CheatSheet...|||Pattern Editor|||function() pakettiPatternEditorCheatsheetDialog() end|||PEPGPECC,pattern,editor,paketti,gadgets,paketti,effect,column,cheatsheet|||PakettiMenuConfig
 Menu Entry|||Pattern Editor:Paketti Gadgets:Paketti Function Search...|||Pattern Editor|||pakettiAutocompleteToggle|||PEPGPFS,pattern,editor,paketti,gadgets,paketti,function,search|||PakettiAutocomplete
@@ -1108,6 +1112,7 @@ Menu Entry|||Pattern Editor:Paketti Gadgets:Paketti Gater...|||Pattern Editor|||
     end
   end|||PEPGPG,pattern,editor,paketti,gadgets,paketti,gater|||PakettiMenuConfig
 Menu Entry|||Pattern Editor:Paketti Gadgets:Paketti Groovebox 8120...|||Pattern Editor|||function() GrooveboxShowClose() end|||PEPGPG8,pattern,editor,paketti,gadgets,paketti,groovebox,8120|||PakettiMenuConfig
+Menu Entry|||Pattern Editor:Paketti Gadgets:Paketti Slab'o'Patterns...|||Pattern Editor|||PakettiSlabOPatternsToggle|||PEPGPSOP,pattern,editor,paketti,gadgets,paketti,slab,patterns|||PakettiSlabOPatterns
 Menu Entry|||Pattern Editor:Paketti Gadgets:Paketti Timestretch Dialog...|||Pattern Editor|||pakettiTimestretchDialog|||PEPGPTD,pattern,editor,paketti,gadgets,paketti,timestretch,dialog|||PakettiMenuConfig
 Menu Entry|||Pattern Editor:Paketti Gadgets:Transpose Blocks Dialog...|||Pattern Editor|||show_transpose_block_dialog|||PEPGTBD,pattern,editor,paketti,gadgets,transpose,blocks,dialog|||PakettiTransposeBlock
 Menu Entry|||Pattern Editor:Paketti Gadgets:Value Interpolation Looper Dialog...|||Pattern Editor|||pakettiVolumeInterpolationLooper|||PEPGVILD,pattern,editor,paketti,gadgets,value,interpolation,looper,dialog|||PakettiMenuConfig
@@ -1127,6 +1132,7 @@ Menu Entry|||Pattern Editor:Paketti..:Slices to Phrase (detected BPM, with trigg
 Menu Entry|||Pattern Editor:Paketti..:Slices to Phrase (phrase only)|||Pattern Editor|||function() pakettiSlicesToPhrase(false) end|||PEPSTPPO,pattern,editor,paketti,slices,phrase,phrase,only|||PakettiOldschoolSlicePitch
 Menu Entry|||Pattern Editor:Paketti..:Slices to Phrase (with trigger)|||Pattern Editor|||function() pakettiSlicesToPhrase(true) end|||PEPSTPWT,pattern,editor,paketti,slices,phrase,with,trigger|||PakettiOldschoolSlicePitch
 Menu Entry|||Pattern Editor:Paketti:Advanced Subdivision Calculator|||Pattern Editor|||function() show_subdivision_calculator_dialog() end|||PEPASC,pattern,editor,paketti,advanced,subdivision,calculator|||PakettiMetricModulation
+Menu Entry|||Pattern Editor:Paketti:Automation:Automation Stack|||Automation|||function() PakettiAutomationStackShowDialog() end|||PEPAAS,pattern,editor,paketti,automation,automation,stack|||PakettiAutomationStack
 Menu Entry|||Pattern Editor:Paketti:Automation:Convert FX to Automation|||Automation|||read_fx_to_automation|||PEPACFTA,pattern,editor,paketti,automation,convert,automation|||PakettiMenuConfig
 Menu Entry|||Pattern Editor:Paketti:Automation:Snapshot All Devices on Selected Track to Automation|||Automation|||snapshot_all_devices_to_automation|||PEPASADOSTTA,pattern,editor,paketti,automation,snapshot,devices,selected,track,automation|||PakettiMenuConfig
 Menu Entry|||Pattern Editor:Paketti:Automation:Snapshot Selected Device to Automation|||Automation|||snapshot_selected_device_to_automation|||PEPASSDTA,pattern,editor,paketti,automation,snapshot,selected,device,automation|||PakettiMenuConfig
@@ -1198,6 +1204,7 @@ Menu Entry|||Pattern Editor:Paketti:Devices:Move Selected DSP to Next Track|||De
 Menu Entry|||Pattern Editor:Paketti:Devices:Move Selected DSP to Previous Track|||Devices|||function() move_selected_dsp_to_adjacent_track(-1) end|||PEPDMSDTPT,pattern,editor,paketti,devices,move,selected,previous,track|||PakettiMenuConfig
 Menu Entry|||Pattern Editor:Paketti:Devices:Populate Send Tracks for All Tracks|||Devices|||PakettiPopulateSendTracksAllTracks|||PEPDPSTFAT,pattern,editor,paketti,devices,populate,send,tracks,tracks|||PakettiMenuConfig
 Menu Entry|||Pattern Editor:Paketti:Devices:Populate Send Tracks for Selected Track|||Devices|||PakettiPopulateSendTracksSelectedTrack|||PEPDPSTFST,pattern,editor,paketti,devices,populate,send,tracks,selected,track|||PakettiMenuConfig
+Menu Entry|||Pattern Editor:Paketti:Duplicate Pattern (No Clear)|||Pattern Editor|||PakettiDuplicatePattern|||PEPDPNC,pattern,editor,paketti,duplicate,pattern,clear|||PakettiPatternMatrix
 Menu Entry|||Pattern Editor:Paketti:EZ Maximize Spectrum|||Pattern Editor|||function() EZMaximizeSpectrum() end|||PEPEMS,pattern,editor,paketti,maximize,spectrum|||legacy_v2_8_tools
 Menu Entry|||Pattern Editor:Paketti:Effect Columns:(Dxx) Selection Slide Pitch Down +1|||Effect Columns|||function() effectamount(1,"0D") end|||PEPECDSSPD1,+1,pattern,editor,paketti,effect,columns,selection,slide,pitch,down|||PakettiMenuConfig
 Menu Entry|||Pattern Editor:Paketti:Effect Columns:(Dxx) Selection Slide Pitch Down +10|||Effect Columns|||function() effectamount(10,"0D") end|||PEPECDSSPD1,+10,pattern,editor,paketti,effect,columns,selection,slide,pitch,down|||PakettiMenuConfig
@@ -1444,6 +1451,7 @@ Menu Entry|||Pattern Matrix:Paketti Gadgets:Paketti Action Selector Dialog...|||
 Menu Entry|||Pattern Matrix:Paketti Gadgets:Paketti BPM to MS Delay Calculator Dialog...|||Pattern Matrix|||pakettiBPMMSCalculator|||PMPGPBTMDCD,pattern,matrix,paketti,gadgets,paketti,delay,calculator,dialog|||PakettiMenuConfig
 Menu Entry|||Pattern Matrix:Paketti Gadgets:Paketti Beat Structure Editor...|||Pattern Matrix|||pakettiBeatStructureEditorDialog|||PMPGPBSE,pattern,matrix,paketti,gadgets,paketti,beat,structure,editor|||PakettiMenuConfig
 Menu Entry|||Pattern Matrix:Paketti Gadgets:Paketti Sequencer Settings Dialog...|||Pattern Matrix|||pakettiSequencerSettingsDialog|||PMPGPSSD,pattern,matrix,paketti,gadgets,paketti,sequencer,settings,dialog|||PakettiMenuConfig
+Menu Entry|||Pattern Matrix:Paketti Gadgets:Paketti Slab'o'Patterns...|||Pattern Matrix|||PakettiSlabOPatternsToggle|||PMPGPSOP,pattern,matrix,paketti,gadgets,paketti,slab,patterns|||PakettiSlabOPatterns
 Menu Entry|||Pattern Matrix:Paketti Gadgets:Value Interpolation Looper Dialog...|||Pattern Matrix|||pakettiVolumeInterpolationLooper|||PMPGVILD,pattern,matrix,paketti,gadgets,value,interpolation,looper,dialog|||PakettiMenuConfig
 Menu Entry|||Pattern Matrix:Paketti:Automation Curves:Automation Ramp Down (Exp) for Pattern Matrix Selection|||Automation Curves|||automation_ramp_down_exp|||PMPACARDEFPMS,pattern,matrix,paketti,automation,curves,automation,ramp,down,pattern,matrix,selection|||PakettiMenuConfig
 Menu Entry|||Pattern Matrix:Paketti:Automation Curves:Automation Ramp Down (Lin) for Pattern Matrix Selection|||Automation Curves|||automation_ramp_down_lin|||PMPACARDLFPMS,pattern,matrix,paketti,automation,curves,automation,ramp,down,pattern,matrix,selection|||PakettiMenuConfig
@@ -1482,6 +1490,7 @@ Menu Entry|||Pattern Matrix:Paketti:Delay Output:Reset Delay Output Delay to 0ms
 Menu Entry|||Pattern Matrix:Paketti:Delay Output:Reset Delay Output Delay to 0ms (ALL) (Rename)|||Delay Output|||function() reset_output_delayALL(true) end|||PMPDORDODT0AR,pattern,matrix,paketti,delay,output,reset,delay,output,delay,rename|||PakettiMenuConfig
 Menu Entry|||Pattern Matrix:Paketti:Delay Output:Reset Delay Output Delay to 0ms (Rename)|||Delay Output|||function() reset_output_delay(true) end|||PMPDORDODT0R,pattern,matrix,paketti,delay,output,reset,delay,output,delay,rename|||PakettiMenuConfig
 Menu Entry|||Pattern Matrix:Paketti:Devices:Insert Stereo -> Mono device to End of ALL DSP Chains|||Devices|||function() insertMonoToAllTracksEnd() end|||PMPDISMDTEOADC,pattern,matrix,paketti,devices,insert,stereo,mono,device,chains|||PakettiMenuConfig
+Menu Entry|||Pattern Matrix:Paketti:Duplicate Pattern (No Clear)|||Pattern Matrix|||PakettiDuplicatePattern|||PMPDPNC,pattern,matrix,paketti,duplicate,pattern,clear|||PakettiPatternMatrix
 Menu Entry|||Pattern Matrix:Paketti:Duplicate Pattern Above & Clear Muted|||Pattern Matrix|||function() duplicate_pattern_and_clear_muted_above() end|||PMPDPACM,pattern,matrix,paketti,duplicate,pattern,above,clear,muted|||PakettiMenuConfig
 Menu Entry|||Pattern Matrix:Paketti:Duplicate Pattern Below & Clear Muted|||Pattern Matrix|||function() duplicate_pattern_and_clear_muted() end|||PMPDPBCM,pattern,matrix,paketti,duplicate,pattern,below,clear,muted|||PakettiMenuConfig
 Menu Entry|||Pattern Matrix:Paketti:Duplicate Track and Instrument|||Pattern Matrix|||function() duplicateTrackAndInstrument() end|||PMPDTAI,pattern,matrix,paketti,duplicate,track,instrument|||PakettiMenuConfig
@@ -1524,6 +1533,7 @@ Menu Entry|||Pattern Matrix:Paketti:Xperimental/WIP:Polyend:Import Polyend Patte
 Menu Entry|||Pattern Matrix:Paketti:Xperimental/WIP:Polyend:Import Polyend Project|||Xperimental/WIP|||PakettiImportPolyendProject|||PMPXWPIPP,pattern,matrix,paketti,xperimental,polyend,import,polyend,project|||PakettiPolyendPatternData
 Menu Entry|||Pattern Matrix:Paketti:Xperimental/WIP:Polyend:Polyend Pattern Browser|||Xperimental/WIP|||PakettiPolyendPatternBrowser|||PMPXWPPPB,pattern,matrix,paketti,xperimental,polyend,polyend,pattern,browser|||PakettiPolyendPatternData
 Menu Entry|||Pattern Sequencer:Paketti Gadgets:Paketti Sequencer Settings Dialog...|||Pattern Sequencer|||pakettiSequencerSettingsDialog|||PSPGPSSD,pattern,sequencer,paketti,gadgets,paketti,sequencer,settings,dialog|||PakettiMenuConfig
+Menu Entry|||Pattern Sequencer:Paketti Gadgets:Paketti Slab'o'Patterns...|||Pattern Sequencer|||PakettiSlabOPatternsToggle|||PSPGPSOP,pattern,sequencer,paketti,gadgets,paketti,slab,patterns|||PakettiSlabOPatterns
 Menu Entry|||Pattern Sequencer:Paketti Gadgets:Sectionizer...|||Pattern Sequencer|||PakettiSectionizer|||PSPGS,pattern,sequencer,paketti,gadgets,sectionizer|||PakettiSandbox
 Menu Entry|||Pattern Sequencer:Paketti:Clear all Pattern Names|||Pattern Sequencer|||PakettiPatternNamesClearAll|||PSPCAPN,pattern,sequencer,paketti,clear,pattern,names|||PakettiSandbox
 Menu Entry|||Pattern Sequencer:Paketti:Clone Current Sequence|||Pattern Sequencer|||clone_current_sequence|||PSPCCS,pattern,sequencer,paketti,clone,current,sequence|||PakettiMenuConfig
@@ -1531,6 +1541,7 @@ Menu Entry|||Pattern Sequencer:Paketti:Clone and Expand Pattern to LPB*2|||Patte
 Menu Entry|||Pattern Sequencer:Paketti:Clone and Shrink Pattern to LPB/2|||Pattern Sequencer|||function() cloneAndShrinkPatternToLPBHalve()end|||PSPCASPTL2,pattern,sequencer,paketti,clone,shrink,pattern|||PakettiMenuConfig
 Menu Entry|||Pattern Sequencer:Paketti:Create Pattern Sequencer Patterns based on Slice Count with Automatic Slice Printing|||Pattern Sequencer|||createPatternSequencerPatternsBasedOnSliceCount|||PSPCPSPBOSCWASP,pattern,sequencer,paketti,create,pattern,sequencer,patterns,based,slice,count,with,automatic,slice,printing|||PakettiMenuConfig
 Menu Entry|||Pattern Sequencer:Paketti:Delete all Pattern Sequences|||Pattern Sequencer|||function() delete_all_pattern_sequences() end|||PSPDAPS,pattern,sequencer,paketti,delete,pattern,sequences|||PakettiMenuConfig
+Menu Entry|||Pattern Sequencer:Paketti:Duplicate Pattern (No Clear)|||Pattern Sequencer|||PakettiDuplicatePattern|||PSPDPNC,pattern,sequencer,paketti,duplicate,pattern,clear|||PakettiPatternMatrix
 Menu Entry|||Pattern Sequencer:Paketti:Duplicate Selected Sequence Range|||Pattern Sequencer|||duplicate_selected_sequence_range|||PSPDSSR,pattern,sequencer,paketti,duplicate,selected,sequence,range|||PakettiMenuConfig
 Menu Entry|||Pattern Sequencer:Paketti:Keep Sequence Sorted False|||Pattern Sequencer|||function() renoise.song().sequencer.keep_sequence_sorted=false end|||PSPKSSF,pattern,sequencer,paketti,keep,sequence,sorted,false|||PakettiMenuConfig
 Menu Entry|||Pattern Sequencer:Paketti:Keep Sequence Sorted Toggle|||Pattern Sequencer|||function() 
@@ -2093,6 +2104,11 @@ Menu Entry|||Sample Navigator:Paketti:Export:Export S1000 Sample...|||Export|||f
 Menu Entry|||Sample Navigator:Paketti:Export:Export S3000 Sample...|||Export|||function() exportS3000Sample() end|||SNPEESS,sample,navigator,paketti,export,export,s3000,sample|||PakettiMenuConfig
 Menu Entry|||Sample Navigator:Paketti:Export:Export S900/S950 Sample...|||Export|||function() exportS900Sample() end|||SNPEESSS,sample,navigator,paketti,export,export,s900,s950,sample|||PakettiMenuConfig
 Menu Entry|||Sample Navigator:Paketti:Export:Export as Akai Format...|||Export|||function() exportCurrentSampleAsAkai() end|||SNPEEAAF,sample,navigator,paketti,export,export,akai,format|||PakettiMenuConfig
+Menu Entry|||Sample Navigator:Paketti:FX/MOD:Delete All Modulation Sets|||FX/MOD|||function() selectedInstrumentDeleteAllSampleModulationSets() end|||SNPFMDAMS,sample,navigator,paketti,delete,modulation,sets|||PakettiMenuConfig
+Menu Entry|||Sample Navigator:Paketti:FX/MOD:Delete All Sample FX Chains|||FX/MOD|||function() selectedInstrumentDeleteAllSampleFxChains() end|||SNPFMDASFC,sample,navigator,paketti,delete,sample,chains|||PakettiMenuConfig
+Menu Entry|||Sample Navigator:Paketti:FX/MOD:Distribute All Samples to Separate FX & Mod Sets|||FX/MOD|||function() selectedInstrumentDistributeToSeparateFxAndModChains() end|||SNPFMDASTSFMS,sample,navigator,paketti,distribute,samples,separate,sets|||PakettiMenuConfig
+Menu Entry|||Sample Navigator:Paketti:FX/MOD:Distribute All Samples to Separate FX Chains|||FX/MOD|||function() selectedInstrumentDistributeToSeparateFxChains() end|||SNPFMDASTSFC,sample,navigator,paketti,distribute,samples,separate,chains|||PakettiMenuConfig
+Menu Entry|||Sample Navigator:Paketti:FX/MOD:Distribute All Samples to Separate Modulation Sets|||FX/MOD|||function() selectedInstrumentDistributeToSeparateModulationSets() end|||SNPFMDASTSMS,sample,navigator,paketti,distribute,samples,separate,modulation,sets|||PakettiMenuConfig
 Menu Entry|||Sample Navigator:Paketti:Fill Empty Sample Slots (Randomized Folder)|||Sample Navigator|||function() fillEmptySampleSlots() end|||SNPFESSRF,sample,navigator,paketti,fill,empty,sample,slots,randomized,folder|||PakettiMenuConfig
 Menu Entry|||Sample Navigator:Paketti:Flip Sample Buffer Selection Back|||Sample Navigator|||function()pakettiSampleBufferFlipSelection(-1)end|||SNPFSBSB,sample,navigator,paketti,flip,sample,buffer,selection,back|||PakettiSamples
 Menu Entry|||Sample Navigator:Paketti:Flip Sample Buffer Selection Forward|||Sample Navigator|||function()pakettiSampleBufferFlipSelection(1)end|||SNPFSBSF,sample,navigator,paketti,flip,sample,buffer,selection,forward|||PakettiSamples
@@ -2456,6 +2472,8 @@ Keybinding|||Global:Paketti:Duplicate Instrument and Select New Instrument (3rd)
 Keybinding|||Global:Paketti:Duplicate Instrument and Select New Instrument (Wrong)|||Global|||function() DuplicateInstrumentAndSelectNewInstrument_Wrong() end|||GPDIASNIW,global,paketti,duplicate,instrument,select,instrument,wrong|||PakettiInstrumentBox
 Keybinding|||Global:Paketti:Duplicate Instrument and Select New Instrument (Wrong)(2nd)|||Global|||function() DuplicateInstrumentAndSelectNewInstrument_Wrong() end|||GPDIASNIW2,global,paketti,duplicate,instrument,select,instrument,wrong|||PakettiInstrumentBox
 Keybinding|||Global:Paketti:Duplicate Instrument and Select New Instrument (Wrong)(3rd)|||Global|||function() DuplicateInstrumentAndSelectNewInstrument_Wrong() end|||GPDIASNIW3,global,paketti,duplicate,instrument,select,instrument,wrong|||PakettiInstrumentBox
+Keybinding|||Global:Paketti:Duplicate Pattern (Groovebox 8120)|||Global|||PakettiEightOneTwentyDuplicatePattern|||GPDPG8,global,paketti,duplicate,pattern,groovebox,8120|||PakettiEightOneTwenty
+Keybinding|||Global:Paketti:Duplicate Pattern (No Clear)|||Global|||PakettiDuplicatePattern|||GPDPNC,global,paketti,duplicate,pattern,clear|||PakettiPatternMatrix
 Keybinding|||Global:Paketti:Duplicate Pattern Above & Clear Muted Tracks|||Global|||duplicate_pattern_and_clear_muted_above|||GPDPACMT,global,paketti,duplicate,pattern,above,clear,muted,tracks|||PakettiPatternMatrix
 Keybinding|||Global:Paketti:Duplicate Pattern Below & Clear Muted Tracks|||Global|||duplicate_pattern_and_clear_muted|||GPDPBCMT,global,paketti,duplicate,pattern,below,clear,muted,tracks|||PakettiPatternMatrix
 Keybinding|||Global:Paketti:Duplicate Selected Sample at +12 transpose|||Global|||function() duplicate_sample_with_transpose(12) end|||GPDSSA1T,+12,global,paketti,duplicate,selected,sample,transpose|||PakettiSamples
@@ -2644,6 +2662,7 @@ else
       t.playing=true
    -- ImpulseTrackerPlaySong()
    t.edit_mode=false end
+ if type(PakettiPatternEditorApplyF8FollowPreference) == "function" then PakettiPatternEditorApplyF8FollowPreference() end
 end|||GPITFSSPP,global,paketti,impulse,tracker,stop,start,playback,panic|||PakettiImpulseTracker
 Keybinding|||Global:Paketti:Impulse Tracker PageDown Jump Lines|||Global|||function() Jump(1) end|||GPITPJL,global,paketti,impulse,tracker,pagedown,jump,lines|||PakettiImpulseTracker
 Keybinding|||Global:Paketti:Impulse Tracker PageUp Jump Lines|||Global|||function() Jump(-1) end|||GPITPJL,global,paketti,impulse,tracker,pageup,jump,lines|||PakettiImpulseTracker
@@ -2912,6 +2931,7 @@ Keybinding|||Global:Paketti:Paketti Audio Processing Tools Dialog...|||Global|||
 Keybinding|||Global:Paketti:Paketti Automation|||Global|||function() initialize_doofer_monitoring() end|||GPPA,global,paketti,paketti,automation|||PakettiAutomation
 Keybinding|||Global:Paketti:Paketti BPM to MS Delay Calculator Dialog...|||Global|||pakettiBPMMSCalculator|||GPPBTMDCD,global,paketti,paketti,delay,calculator,dialog|||PakettiBPM
 Keybinding|||Global:Paketti:Paketti Beat Structure Editor...|||Global|||pakettiBeatStructureEditorDialog|||GPPBSE,global,paketti,paketti,beat,structure,editor|||PakettiBeatstructureEditor
+Keybinding|||Global:Paketti:Paketti Capture Last Take...|||Global|||PakettiCaptureLastTakeToggle|||GPPCLT,global,paketti,paketti,capture,last,take|||PakettiCaptureLastTake
 Keybinding|||Global:Paketti:Paketti Dynamic View Preferences Dialog 1-4...|||Global|||function() pakettiDynamicViewDialog(1, 4) end|||GPPDVPD14,-4,global,paketti,paketti,dynamic,view,preferences,dialog|||PakettiDynamicViews
 Keybinding|||Global:Paketti:Paketti Dynamic View Preferences Dialog 5-8...|||Global|||function() pakettiDynamicViewDialog(5, 8) end|||GPPDVPD58,-8,global,paketti,paketti,dynamic,view,preferences,dialog|||PakettiDynamicViews
 Keybinding|||Global:Paketti:Paketti EQ30|||Global|||PakettiEQ10ExperimentInit|||GPPE,global,paketti,paketti,eq30|||PakettiEQ30
@@ -2958,6 +2978,7 @@ Keybinding|||Global:Paketti:Paketti Save Selected Sample .WAV|||Global|||functio
 Keybinding|||Global:Paketti:Paketti Save Selected Sample Range .FLAC|||Global|||function() pakettiSaveSampleRange("flac") end|||GPPSSSRF,global,paketti,paketti,save,selected,sample,range,flac|||PakettiSamples
 Keybinding|||Global:Paketti:Paketti Save Selected Sample Range .WAV|||Global|||function() pakettiSaveSampleRange("wav") end|||GPPSSSRW,global,paketti,paketti,save,selected,sample,range|||PakettiSamples
 Keybinding|||Global:Paketti:Paketti Selected Device Parameter Editor|||Global|||PakettiCanvasExperimentsInit|||GPPSDPE,global,paketti,paketti,selected,device,parameter,editor|||PakettiCanvasExperiments
+Keybinding|||Global:Paketti:Paketti Slab'o'Patterns...|||Global|||PakettiSlabOPatternsToggle|||GPPSOP,global,paketti,paketti,slab,patterns|||PakettiSlabOPatterns
 Keybinding|||Global:Paketti:Paketti Speed and Tempo to BPM Dialog...|||Global|||pakettiSpeedTempoDialog|||GPPSATTBD,global,paketti,paketti,speed,tempo,dialog|||PakettiImpulseTracker
 Keybinding|||Global:Paketti:Paketti Stacker Dialog...|||Global|||function() pakettiStackerDialog(proceed_with_stacking, on_switch_changed, PakettiIsolateSlicesToInstrument) end|||GPPSD,global,paketti,paketti,stacker,dialog|||PakettiStacker
 Keybinding|||Global:Paketti:Paketti Steppers Dialog...|||Global|||function() PakettiSteppersDialog() end|||GPPSD,global,paketti,paketti,steppers,dialog|||PakettiSteppers
@@ -3757,6 +3778,7 @@ Keybinding|||Pattern Editor:Navigation:Paketti Jump to Column (Previous) (Note/F
 Keybinding|||Pattern Editor:Navigation:Paketti Switch between Note/FX columns|||Navigation|||toggle_column_type|||PENPSBNFC,pattern,editor,navigation,paketti,switch,between,note,columns|||PakettiPatternEditor
 Keybinding|||Pattern Editor:Paketti:Apply Note Column Sample Effects M00/MFF|||Pattern Editor|||function() applyNoteColumnEffects() end|||PEPANCSEMM,pattern,editor,paketti,apply,note,column,sample,effects|||PakettiPatternEditor
 Keybinding|||Pattern Editor:Paketti:Apply User-Set Tuning to Selected Track|||Pattern Editor|||apply_tuning_to_track|||PEPAUSTTST,pattern,editor,paketti,apply,user,tuning,selected,track|||PakettiTuningDisplay
+Keybinding|||Pattern Editor:Paketti:Automation Stack...|||Pattern Editor|||function() PakettiAutomationStackShowDialog() end|||PEPAS,pattern,editor,paketti,automation,stack|||PakettiAutomationStack
 Keybinding|||Pattern Editor:Paketti:BPM Calculation Debug (Comprehensive)|||Pattern Editor|||comprehensive_bpm_calculation_debug|||PEPBCDC,pattern,editor,paketti,calculation,debug,comprehensive|||PakettiPitchControl
 Keybinding|||Pattern Editor:Paketti:Build Sample Variants|||Pattern Editor|||paketti_build_sample_variants|||PEPBSV,pattern,editor,paketti,build,sample,variants|||PakettiProcess
 Keybinding|||Pattern Editor:Paketti:Capture Nearest Instrument and Octave (jump)|||Pattern Editor|||function(repeated) capture_ins_oct("yes") end|||PEPCNIAOJ,pattern,editor,paketti,capture,nearest,instrument,octave,jump|||PakettiInstrumentBox
@@ -3863,6 +3885,8 @@ Keybinding|||Pattern Editor:Paketti:Duplicate Highest Notes to New Track (Select
 Keybinding|||Pattern Editor:Paketti:Duplicate Lowest Notes to New Track & Duplicate Instrument|||Pattern Editor|||function() DuplicateSpecificNotesToNewTrack("lowest", "duplicate") end|||PEPDLNTNTDI,pattern,editor,paketti,duplicate,lowest,notes,track,duplicate,instrument|||PakettiChordsPlus
 Keybinding|||Pattern Editor:Paketti:Duplicate Lowest Notes to New Track (Original Instrument)|||Pattern Editor|||function() DuplicateSpecificNotesToNewTrack("lowest", "original") end|||PEPDLNTNTOI,pattern,editor,paketti,duplicate,lowest,notes,track,original,instrument|||PakettiChordsPlus
 Keybinding|||Pattern Editor:Paketti:Duplicate Lowest Notes to New Track (Selected Instrument)|||Pattern Editor|||function() DuplicateSpecificNotesToNewTrack("lowest", "selected") end|||PEPDLNTNTSI,pattern,editor,paketti,duplicate,lowest,notes,track,selected,instrument|||PakettiChordsPlus
+Keybinding|||Pattern Editor:Paketti:Duplicate Pattern (Groovebox 8120)|||Pattern Editor|||PakettiEightOneTwentyDuplicatePattern|||PEPDPG8,pattern,editor,paketti,duplicate,pattern,groovebox,8120|||PakettiEightOneTwenty
+Keybinding|||Pattern Editor:Paketti:Duplicate Pattern (No Clear)|||Pattern Editor|||PakettiDuplicatePattern|||PEPDPNC,pattern,editor,paketti,duplicate,pattern,clear|||PakettiPatternMatrix
 Keybinding|||Pattern Editor:Paketti:Duplicate Selection with Padding&Move Cursor 1|||Pattern Editor|||function() DuplicateSelectionWithPaddingMoveCursor(false) end|||PEPDSWPMC1,pattern,editor,paketti,duplicate,selection,with,padding,move,cursor|||PakettiPatternEditor
 Keybinding|||Pattern Editor:Paketti:Duplicate Selection with Padding&Move Cursor 2|||Pattern Editor|||function() DuplicateSelectionWithPaddingMoveCursor(true) end|||PEPDSWPMC2,pattern,editor,paketti,duplicate,selection,with,padding,move,cursor|||PakettiPatternEditor
 Keybinding|||Pattern Editor:Paketti:Effect Column 0R(LPB) Retrig On/Off|||Pattern Editor|||function() 
@@ -3986,8 +4010,8 @@ globalChangeVisibleColumnState("panning",false) globalChangeVisibleColumnState("
 Keybinding|||Pattern Editor:Paketti:Hide Current and Select Previous Column|||Pattern Editor|||function() ExposeAndSelectColumn(-1) end|||PEPHCASPC,pattern,editor,paketti,hide,current,select,previous,column|||PakettiPatternEditor
 Keybinding|||Pattern Editor:Paketti:Humanize Selection...|||Pattern Editor|||showHumanizeDialog|||PEPHS,pattern,editor,paketti,humanize,selection|||PakettiRequests
 Keybinding|||Pattern Editor:Paketti:Impulse Tracker ALT-D Double Select|||Pattern Editor|||DoubleSelect|||PEPITADDS,pattern,editor,paketti,impulse,tracker,double,select|||PakettiImpulseTracker
-Keybinding|||Pattern Editor:Paketti:Impulse Tracker ALT-D Double Select Column|||Pattern Editor|||function() PakettiImpulseTrackerDoubleSelectColumn() end|||PEPITADDSC,pattern,editor,paketti,impulse,tracker,double,select,column|||PakettiImpulseTracker
 Keybinding|||Pattern Editor:Paketti:Impulse Tracker ALT-D Double Select Column|||Pattern Editor|||function() DoubleSelectColumnOnly() end|||PEPITADDSC,pattern,editor,paketti,impulse,tracker,double,select,column|||PakettiImpulseTracker
+Keybinding|||Pattern Editor:Paketti:Impulse Tracker ALT-D Double Select Column|||Pattern Editor|||function() PakettiImpulseTrackerDoubleSelectColumn() end|||PEPITADDSC,pattern,editor,paketti,impulse,tracker,double,select,column|||PakettiImpulseTracker
 Keybinding|||Pattern Editor:Paketti:Impulse Tracker ALT-D Double Select Pattern|||Pattern Editor|||function() DoubleSelectPattern() end|||PEPITADDSP,pattern,editor,paketti,impulse,tracker,double,select,pattern|||PakettiImpulseTracker
 Keybinding|||Pattern Editor:Paketti:Impulse Tracker ALT-D Double Select W/ Automation|||Pattern Editor|||function() DoubleSelectAutomation() end|||PEPITADDSWA,pattern,editor,paketti,impulse,tracker,double,select,automation|||PakettiImpulseTracker
 Keybinding|||Pattern Editor:Paketti:Impulse Tracker ALT-F Expand Selection|||Pattern Editor|||function() ExpandSelection() end|||PEPITAFES,pattern,editor,paketti,impulse,tracker,expand,selection|||PakettiImpulseTracker
@@ -4074,6 +4098,7 @@ Keybinding|||Pattern Editor:Paketti:Open Player Pro Tools Dialog...|||Pattern Ed
 Keybinding|||Pattern Editor:Paketti:Paketti Function Search...|||Pattern Editor|||pakettiAutocompleteToggle|||PEPPFS,pattern,editor,paketti,paketti,function,search|||PakettiAutocomplete
 Keybinding|||Pattern Editor:Paketti:Paketti Pattern Doubler|||Pattern Editor|||pakettiPatternDoubler|||PEPPPD,pattern,editor,paketti,paketti,pattern,doubler|||PakettiPatternEditor
 Keybinding|||Pattern Editor:Paketti:Paketti Pattern Halver|||Pattern Editor|||pakettiPatternHalver|||PEPPPH,pattern,editor,paketti,paketti,pattern,halver|||PakettiPatternEditor
+Keybinding|||Pattern Editor:Paketti:Paketti Slab'o'Patterns...|||Pattern Editor|||PakettiSlabOPatternsToggle|||PEPPSOP,pattern,editor,paketti,paketti,slab,patterns|||PakettiSlabOPatterns
 Keybinding|||Pattern Editor:Paketti:Paketti Track Renamer Dialog...|||Pattern Editor|||pakettiTrackRenamerDialog|||PEPPTRD,pattern,editor,paketti,paketti,track,renamer,dialog|||PakettiPatternEditor
 Keybinding|||Pattern Editor:Paketti:Paketti Value Interpolation Looper Dialog...|||Pattern Editor|||pakettiVolumeInterpolationLooper|||PEPPVILD,pattern,editor,paketti,paketti,value,interpolation,looper,dialog|||PakettiPatternEditor
 Keybinding|||Pattern Editor:Paketti:Pattern Expand (dBlue)|||Pattern Editor|||function()
@@ -4282,6 +4307,8 @@ Keybinding|||Pattern Editor:Paketti:Write Notes EditStep Descending|||Pattern Ed
 Keybinding|||Pattern Editor:Paketti:Write Notes EditStep Random|||Pattern Editor|||function() writeNotesMethodEditStep("random") end|||PEPWNER,pattern,editor,paketti,write,notes,editstep,random|||PakettiPatternEditor
 Keybinding|||Pattern Editor:Paketti:Write Notes Random|||Pattern Editor|||function() writeNotesMethod("random") end|||PEPWNR,pattern,editor,paketti,write,notes,random|||PakettiPatternEditor
 Keybinding|||Pattern Editor:Selection:Impulse Tracker ALT-L Mark Track/Mark Pattern|||Pattern Editor|||function() MarkTrackMarkPattern() end|||PESITALMTMP,pattern,editor,selection,impulse,tracker,mark,track,mark,pattern|||PakettiImpulseTracker
+Keybinding|||Pattern Matrix:Paketti:Duplicate Pattern (Groovebox 8120)|||Pattern Matrix|||PakettiEightOneTwentyDuplicatePattern|||PMPDPG8,pattern,matrix,paketti,duplicate,pattern,groovebox,8120|||PakettiEightOneTwenty
+Keybinding|||Pattern Matrix:Paketti:Duplicate Pattern (No Clear)|||Pattern Matrix|||PakettiDuplicatePattern|||PMPDPNC,pattern,matrix,paketti,duplicate,pattern,clear|||PakettiPatternMatrix
 Keybinding|||Pattern Matrix:Paketti:Duplicate Pattern Above & Clear Muted Tracks|||Pattern Matrix|||duplicate_pattern_and_clear_muted_above|||PMPDPACMT,pattern,matrix,paketti,duplicate,pattern,above,clear,muted,tracks|||PakettiPatternMatrix
 Keybinding|||Pattern Matrix:Paketti:Duplicate Pattern Below & Clear Muted Tracks|||Pattern Matrix|||duplicate_pattern_and_clear_muted|||PMPDPBCMT,pattern,matrix,paketti,duplicate,pattern,below,clear,muted,tracks|||PakettiPatternMatrix
 Keybinding|||Pattern Matrix:Paketti:Jump to First Track In Next Group|||Pattern Matrix|||function() select_first_track_in_next_group(1) end|||PMPJTFTING,pattern,matrix,paketti,jump,first,track,next,group|||PakettiRequests
@@ -4295,6 +4322,8 @@ Keybinding|||Pattern Matrix:Paketti:Selection in Pattern Matrix to Group|||Patte
 Keybinding|||Pattern Matrix:Paketti:Switch to Automation|||Pattern Matrix|||function() showAutomation() end|||PMPSTA,pattern,matrix,paketti,switch,automation|||PakettiAutomation
 Keybinding|||Pattern Sequencer:Paketti:Clone Current Sequence|||Pattern Sequencer|||clone_current_sequence|||PSPCCS,pattern,sequencer,paketti,clone,current,sequence|||PakettiPatternSequencer
 Keybinding|||Pattern Sequencer:Paketti:Create Section From Selection|||Pattern Sequencer|||create_section_from_selection|||PSPCSFS,pattern,sequencer,paketti,create,section,from,selection|||PakettiPatternSequencer
+Keybinding|||Pattern Sequencer:Paketti:Duplicate Pattern (Groovebox 8120)|||Pattern Sequencer|||PakettiEightOneTwentyDuplicatePattern|||PSPDPG8,pattern,sequencer,paketti,duplicate,pattern,groovebox,8120|||PakettiEightOneTwenty
+Keybinding|||Pattern Sequencer:Paketti:Duplicate Pattern (No Clear)|||Pattern Sequencer|||PakettiDuplicatePattern|||PSPDPNC,pattern,sequencer,paketti,duplicate,pattern,clear|||PakettiPatternMatrix
 Keybinding|||Pattern Sequencer:Paketti:Duplicate Pattern Above & Clear Muted Tracks|||Pattern Sequencer|||duplicate_pattern_and_clear_muted_above|||PSPDPACMT,pattern,sequencer,paketti,duplicate,pattern,above,clear,muted,tracks|||PakettiPatternMatrix
 Keybinding|||Pattern Sequencer:Paketti:Duplicate Pattern Below & Clear Muted Tracks|||Pattern Sequencer|||duplicate_pattern_and_clear_muted|||PSPDPBCMT,pattern,sequencer,paketti,duplicate,pattern,below,clear,muted,tracks|||PakettiPatternMatrix
 Keybinding|||Pattern Sequencer:Paketti:Duplicate Selected Sequence Range|||Pattern Sequencer|||duplicate_selected_sequence_range|||PSPDSSR,pattern,sequencer,paketti,duplicate,selected,sequence,range|||PakettiPatternSequencer
@@ -4826,6 +4855,7 @@ MIDI Mapping|||Paketti:Disable Looping in All Phrases Globally|||Paketti|||funct
     end 
   end|||PDLIAPG,paketti,disable,looping,phrases,globally|||PakettiForeignSnippets
 MIDI Mapping|||Paketti:Duplicate Effect Column Content to Pattern or Selection|||Paketti|||pakettiDuplicateEffectColumnToPatternOrSelection|||PDECCTPOS,paketti,duplicate,effect,column,content,pattern,selection|||PakettiPatternEditor
+MIDI Mapping|||Paketti:Duplicate Pattern (No Clear)|||Paketti|||PakettiDuplicatePattern|||PDPNC,paketti,duplicate,pattern,clear|||PakettiPatternMatrix
 MIDI Mapping|||Paketti:Duplicate Pattern Above & Clear Muted|||Paketti|||duplicate_pattern_and_clear_muted_above|||PDPACM,paketti,duplicate,pattern,above,clear,muted|||PakettiPatternMatrix
 MIDI Mapping|||Paketti:Duplicate Pattern Below & Clear Muted|||Paketti|||duplicate_pattern_and_clear_muted|||PDPBCM,paketti,duplicate,pattern,below,clear,muted|||PakettiPatternMatrix
 MIDI Mapping|||Paketti:Duplicate Selected Sample at +12 transpose|||Paketti|||function(message) if message:is_trigger() then duplicate_sample_with_transpose(12) end end|||PDSSA1T,+12,paketti,duplicate,selected,sample,transpose|||PakettiSamples
@@ -5516,6 +5546,9 @@ MIDI Mapping|||Paketti:Paketti Groovebox 8120 Shrink Selection Replicate [Trigge
     PakettiGroovebox8120ShrinkSelectionReplicate()
   end
 end|||PPG8SSRT,paketti,paketti,groovebox,8120,shrink,selection,replicate,trigger|||PakettiEightOneTwenty
+MIDI Mapping|||Paketti:Paketti Groovebox 8120:Duplicate Pattern|||Paketti Groovebox 8120|||function(message)
+  if message:is_trigger() then PakettiEightOneTwentyDuplicatePattern() end
+end|||PPG8DP,paketti,paketti,groovebox,8120,duplicate,pattern|||PakettiEightOneTwenty
 MIDI Mapping|||Paketti:Paketti Groovebox 8120:Fetch Pattern|||Paketti Groovebox 8120|||function(message)
     if message:is_trigger() then fetch_pattern() end
   end|||PPG8FP,paketti,paketti,groovebox,8120,fetch,pattern|||PakettiEightOneTwenty

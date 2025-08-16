@@ -335,7 +335,7 @@ function PakettiSlabOPatternsBuildContent()
 
   local preset_buttons = vb:column{
     
-    vb:text{ text = "Presets", style = "strong" },
+    vb:text{ text = "Presets", style = "strong", font = "bold" },
     vb:switch{ width = 180, items = {"Overwrite","Append"}, value = PakettiSlabOPatternsPresetAppend and 2 or 1, notifier = function(v) PakettiSlabOPatternsPresetAppend = (v == 2) end },
     vb:button{ text = PakettiSlabOPatternsPresets[1].label, width = 180, notifier = function() PakettiSlabOPatternsApplyPreset(1) end },
     vb:button{ text = PakettiSlabOPatternsPresets[2].label, width = 180, notifier = function() PakettiSlabOPatternsApplyPreset(2) end },

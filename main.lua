@@ -641,6 +641,7 @@ timed_require("PakettiYTDLP")
 timed_require("PakettiStretch")
 timed_require("PakettiStacker")
 timed_require("PakettiRecorder")
+timed_require("PakettiHoldToFill")
 timed_require("PakettiFuzzySearchUtil")
 timed_require("PakettiKeyBindings")
 timed_require("PakettiPhraseEditor")
@@ -648,14 +649,10 @@ timed_require("PakettiControls")
 timed_require("PakettiWavetabler")
 timed_require("PakettiAKWF")
 
-
 --- Other trackers
 timed_require("PakettiImpulseTracker")
 timed_require("PakettiPlayerProSuite")
 timed_require("PakettiOctaMEDSuite")
-
-
-
 
 timed_require("PakettiBeatDetect")
 
@@ -703,7 +700,6 @@ timed_require("PakettiGlobalGrooveToDelayValues")
 timed_require("PakettiAmigoInspect")
 timed_require("PakettiRePitch")
 timed_require("PakettiPhraseGenerator")
-timed_require("PakettiPolyendSuite")
 timed_require("PakettiXMLizer")
 timed_require("PakettiDeviceValues")
 timed_require("PakettiMIDIMappings")
@@ -716,8 +712,8 @@ timed_require("PakettiOctaCycle")
 timed_require("PakettiOTSTRDImporter")
 timed_require("PakettiCCizerLoader")
 timed_require("PakettiDigitakt")
-timed_require("PakettiM8Export")
-timed_require("PakettiOP1Export")
+--timed_require("PakettiM8Export")
+--timed_require("PakettiOP1Export")
 timed_require("PakettiForeignSnippets")
 timed_require("PakettiManualSlicer")
 timed_require("Sononymph/AppMain")
@@ -734,6 +730,7 @@ timed_require("PakettiBeatstructureEditor")
 timed_require("PakettiSlice")
 timed_require("PakettiCaptureLastTake")
 timed_require("PakettiSlabOPatterns")
+timed_require("PakettiPolyendSuite")
 local PolyendYes = false
 PolyendYes = true
 if PolyendYes then
