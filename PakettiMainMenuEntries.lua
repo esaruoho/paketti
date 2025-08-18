@@ -22,6 +22,7 @@ local donations = {
   {"2025-07-21", "Jussi R.", 60.00},
   {"2025-07-28", "Leann Lai Syn Yuan", 4.38},
   {"2025-07-29", "Cosmic Ollie", 96.25},
+  {"2025-08-17", "Cubeinthebox", 16.39, {"Soundcloud", "https://soundcloud.com/thecubeinthebox"}},
 }
 
 local total_amount = 0
@@ -112,7 +113,7 @@ local dialog_content = vb:column{
   " and many others."},
 
   vb:text{text="Who made it possible:", style = "strong", font = "bold"},
-  vb:multiline_textfield{width=textfield_width, height = 40, text="Thanks to @lpn (Brothomstates) for suggesting that I could pick up and learn LUA, that it would not be beyond me. Really appreciate your (sometimes misplaced and ahead-of-time) faith in me. And thanks for the inspiration."},
+  vb:multiline_textfield{width=textfield_width, height = 40, text="Lassi Nikko aka Brothomstates told me, early on, that he thought I could learn LUA. So here we are. Thanks for everything, all the mentoring in trackers and musicmaking, and all the inspiration."},
 
   vb:text{text="Kudos:", style = "strong", font = "bold"},
   vb:multiline_textfield{width=textfield_width, height = 60, text = 

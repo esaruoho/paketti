@@ -1,3 +1,122 @@
+function PakettiUpdateTrackDeviceInstrumentReferences(old_instrument_index, new_instrument_index)
+  local song = renoise.song()
+  local devices_updated = 0
+  
+  print("DEBUG: Scanning track devices for instrument references (old:", old_instrument_index, "-> new:", new_instrument_index, ")")
+  
+  -- Scan all tracks for devices that might reference instruments
+  for track_index, track in ipairs(song.tracks) do
+    for device_index, device in ipairs(track.devices) do
+      -- Check for *Instr. Macros devices
+      if device.display_name and (string.find(device.display_name, "Instr") or string.find(device.display_name, "Macro")) then
+        -- Parameter 2 is typically the instrument index for *Instr. Macros
+        if device.parameters and #device.parameters >= 2 then
+          local current_target = device.parameters[2].value
+          -- Convert to 1-based index for comparison (Renoise uses 0-based internally for this parameter)
+          local current_instrument = math.floor(current_target) + 1
+          
+          if current_instrument == old_instrument_index then
+            -- Update to point to the new unison instrument (convert back to 0-based)
+            device.parameters[2].value = new_instrument_index - 1
+            devices_updated = devices_updated + 1
+            print("DEBUG: Updated " .. device.display_name .. " on track " .. track_index .. " from instrument " .. old_instrument_index .. " to " .. new_instrument_index)
+          end
+        end
+      end
+      
+      -- Check for LFO devices that might target instruments
+      if device.display_name and string.find(device.display_name, "LFO") then
+        -- Some LFO devices might have instrument targeting parameters
+        -- This would need to be checked case by case, but typically they target other parameters
+        -- For now, we'll just log that we found an LFO device
+        print("DEBUG: Found LFO device: " .. device.display_name .. " on track " .. track_index .. " (no instrument reference update needed)")
+      end
+    end
+  end
+  
+  if devices_updated > 0 then
+    print("DEBUG: Updated " .. devices_updated .. " track device(s) to point to the new unison instrument")
+    renoise.app():show_status("Updated " .. devices_updated .. " track device(s) to target unison instrument")
+  else
+    print("DEBUG: No track devices found that were targeting the original instrument")
+  end
+end
+
+function PakettiApplyFractionalShifting(sample, original_sample, fraction)
+  local success, error_msg = pcall(function()
+    local new_sample_buffer = sample.sample_buffer
+    
+    -- Validate sample buffer exists and has data
+    if not new_sample_buffer or not new_sample_buffer.has_sample_data then
+      error("Sample buffer not available for fractional shifting")
+    end
+    
+    -- Cache buffer dimensions to prevent race conditions
+    local orig_channels = original_sample.sample_buffer.number_of_channels
+    local orig_frames = original_sample.sample_buffer.number_of_frames
+    local new_channels = new_sample_buffer.number_of_channels
+    local new_frames = new_sample_buffer.number_of_frames
+    
+    -- Validate buffer dimensions match
+    if orig_channels ~= new_channels or orig_frames ~= new_frames then
+      error("Buffer dimension mismatch between original and new sample")
+    end
+    
+    -- Validate buffer dimensions are reasonable
+    if orig_channels <= 0 or orig_frames <= 0 or orig_channels > 8 or orig_frames > 10000000 then
+      error("Invalid buffer dimensions")
+    end
+    
+    new_sample_buffer:prepare_sample_data_changes()
+    
+    -- Double-check buffer state after prepare
+    if not new_sample_buffer.has_sample_data then
+      error("Sample buffer lost data after prepare_sample_data_changes")
+    end
+    
+    for channel = 1, orig_channels do
+      for frame = 1, orig_frames do
+        local new_frame_index = frame + math.floor(orig_frames * fraction)
+        
+        -- Proper bounds checking with wrap-around
+        while new_frame_index > orig_frames do
+          new_frame_index = new_frame_index - orig_frames
+        end
+        while new_frame_index < 1 do
+          new_frame_index = new_frame_index + orig_frames
+        end
+        
+        -- Additional bounds validation before buffer access
+        if channel >= 1 and channel <= orig_channels and 
+           frame >= 1 and frame <= orig_frames and
+           new_frame_index >= 1 and new_frame_index <= orig_frames then
+          
+          -- Validate buffer still has data before each access
+          if original_sample.sample_buffer.has_sample_data and new_sample_buffer.has_sample_data then
+            local sample_data = original_sample.sample_buffer:sample_data(channel, frame)
+            new_sample_buffer:set_sample_data(channel, new_frame_index, sample_data)
+          else
+            error("Buffer lost data during processing")
+          end
+        else
+          error("Buffer index out of bounds during fractional shifting")
+        end
+      end
+    end
+    
+    -- Final validation before finalize
+    if not new_sample_buffer.has_sample_data then
+      error("Sample buffer lost data before finalize")
+    end
+    
+    new_sample_buffer:finalize_sample_data_changes()
+  end)
+  
+  if not success then
+    print("DEBUG: Failed to apply fractional shifting:", tostring(error_msg))
+  end
+end
+
 function PakettiCreateUnisonSamples()
   local song=renoise.song()
   local selected_instrument_index = song.selected_instrument_index
@@ -239,7 +358,164 @@ function PakettiCreateUnisonSamples()
     return
   end
 
-  -- Create 7 additional sample slots for unison
+  -- Check if sample 1 starts with "PCM Wave A" and sample 2 starts with "PCM Wave B"
+  local use_dual_fx_chain_mode = false
+  if #new_instrument.samples >= 2 and new_instrument.samples[1] and new_instrument.samples[2] then
+    local sample1_name = new_instrument.samples[1].name or ""
+    local sample2_name = new_instrument.samples[2].name or ""
+    
+    if string.find(sample1_name, "PCM Wave A") == 1 and string.find(sample2_name, "PCM Wave B") == 1 then
+      use_dual_fx_chain_mode = true
+      print("DEBUG: Found PCM Wave A and PCM Wave B - using dual FX chain mode")
+    end
+  end
+  
+  if use_dual_fx_chain_mode then
+    print("DEBUG: Using wavetable mode - 5 copies each of PCM Wave A and PCM Wave B with fifths fractions")
+    
+    -- Store original sample names for both waves
+    local original_wave_a_name = new_instrument.samples[1].name:gsub("%s*%(Unison.*$", ""):gsub("^%s*(.-)%s*$", "%1")
+    local original_wave_b_name = new_instrument.samples[2].name:gsub("%s*%(Unison.*$", ""):gsub("^%s*(.-)%s*$", "%1")
+    
+    -- Set up the original PCM Wave A and PCM Wave B samples
+    local wave_a_sample = new_instrument.samples[1]
+    local wave_b_sample = new_instrument.samples[2]
+    
+    -- Configure original samples
+    wave_a_sample.panning = 0.5
+    wave_a_sample.interpolation_mode = preferences.pakettiLoaderInterpolation.value
+    wave_a_sample.oversample_enabled = preferences.pakettiLoaderOverSampling.value
+    wave_a_sample.autofade = preferences.pakettiLoaderAutofade.value
+    wave_a_sample.loop_mode = 2
+    wave_a_sample.device_chain_index = 1  -- FX Chain 1
+    wave_a_sample.name = string.format("%s (Unison 0 [0] (Center))", original_wave_a_name)
+    
+    wave_b_sample.panning = 0.5
+    wave_b_sample.interpolation_mode = preferences.pakettiLoaderInterpolation.value
+    wave_b_sample.oversample_enabled = preferences.pakettiLoaderOverSampling.value
+    wave_b_sample.autofade = preferences.pakettiLoaderAutofade.value
+    wave_b_sample.loop_mode = 2
+    wave_b_sample.device_chain_index = 2  -- FX Chain 2
+    wave_b_sample.name = string.format("%s (Unison 0 [0] (Center))", original_wave_b_name)
+    
+    -- Create 5 copies of PCM Wave A for FX Chain 1 (wavetable mode)
+    for i = 1, 5 do
+      local new_index = #new_instrument.samples + 1
+      new_instrument:insert_sample_at(new_index)
+      if new_instrument.samples[new_index] then
+        new_instrument.samples[new_index]:copy_from(wave_a_sample)
+        new_instrument.samples[new_index].device_chain_index = 1  -- FX Chain 1
+        print("DEBUG: Created PCM Wave A copy", i, "at index", new_index)
+      end
+    end
+    
+    -- Create 5 copies of PCM Wave B for FX Chain 2 (wavetable mode)
+    for i = 1, 5 do
+      local new_index = #new_instrument.samples + 1
+      new_instrument:insert_sample_at(new_index)
+      if new_instrument.samples[new_index] then
+        new_instrument.samples[new_index]:copy_from(wave_b_sample)
+        new_instrument.samples[new_index].device_chain_index = 2  -- FX Chain 2
+        print("DEBUG: Created PCM Wave B copy", i, "at index", new_index)
+      end
+    end
+    
+    -- Apply unison processing to both sets of samples (wavetable mode with fifths)
+    local fraction_values = {1/5, 2/5, 3/5, 4/5}
+    local unison_range = preferences.pakettiUnisonDetune.value or 25
+    local original_fine_tune_a = wave_a_sample.fine_tune
+    local original_fine_tune_b = wave_b_sample.fine_tune
+    
+    -- Check if samples are too large for fractional shifting
+    local skip_fractional_shifting_a = wave_a_sample.sample_buffer.has_sample_data and wave_a_sample.sample_buffer.number_of_frames > 500000
+    local skip_fractional_shifting_b = wave_b_sample.sample_buffer.has_sample_data and wave_b_sample.sample_buffer.number_of_frames > 500000
+    
+    -- Process PCM Wave A copies (samples 3-7, since 1=original A, 2=original B)
+    for i = 1, 5 do
+      local sample_index = 2 + i  -- Start after the two original samples
+      if new_instrument.samples[sample_index] then
+        local sample = new_instrument.samples[sample_index]
+        
+        -- Alternate panning
+        sample.panning = (i % 2 == 0) and 0.0 or 1.0
+        
+        -- Calculate detune offset
+        local detune_offset = 0
+        if preferences.pakettiUnisonDetuneHardSync.value then
+          detune_offset = (i % 2 == 0) and -unison_range or unison_range
+        elseif preferences.pakettiUnisonDetuneFluctuation.value then
+          detune_offset = math.random(-unison_range, unison_range)
+        else
+          local detune_step = unison_range / 2.5  -- Adjusted for 5 samples
+          local sample_offset = i - 3  -- Center around sample 3
+          detune_offset = math.floor(sample_offset * detune_step)
+        end
+        
+        sample.fine_tune = math.max(-127, math.min(127, original_fine_tune_a + detune_offset))
+        sample.loop_mode = 2
+        
+        -- Apply fractional shifting only to first 4 copies (1/5, 2/5, 3/5, 4/5)
+        if i <= 4 and not skip_fractional_shifting_a then
+          local fraction = fraction_values[i]
+          PakettiApplyFractionalShifting(sample, wave_a_sample, fraction)
+        end
+        
+        -- Rename sample
+        local panning_label = sample.panning == 0 and "50L" or "50R"
+        sample.name = string.format("%s (Unison %d [%d] (%s))", original_wave_a_name, i, sample.fine_tune, panning_label)
+      end
+    end
+    
+    -- Process PCM Wave B copies (samples 8-12)
+    for i = 1, 5 do
+      local sample_index = 7 + i  -- Start after the PCM Wave A copies
+      if new_instrument.samples[sample_index] then
+        local sample = new_instrument.samples[sample_index]
+        
+        -- Alternate panning
+        sample.panning = (i % 2 == 0) and 0.0 or 1.0
+        
+        -- Calculate detune offset
+        local detune_offset = 0
+        if preferences.pakettiUnisonDetuneHardSync.value then
+          detune_offset = (i % 2 == 0) and -unison_range or unison_range
+        elseif preferences.pakettiUnisonDetuneFluctuation.value then
+          detune_offset = math.random(-unison_range, unison_range)
+        else
+          local detune_step = unison_range / 2.5  -- Adjusted for 5 samples
+          local sample_offset = i - 3  -- Center around sample 3
+          detune_offset = math.floor(sample_offset * detune_step)
+        end
+        
+        sample.fine_tune = math.max(-127, math.min(127, original_fine_tune_b + detune_offset))
+        sample.loop_mode = 2
+        
+        -- Apply fractional shifting only to first 4 copies (1/5, 2/5, 3/5, 4/5)
+        if i <= 4 and not skip_fractional_shifting_b then
+          local fraction = fraction_values[i]
+          PakettiApplyFractionalShifting(sample, wave_b_sample, fraction)
+        end
+        
+        -- Rename sample
+        local panning_label = sample.panning == 0 and "50L" or "50R"
+        sample.name = string.format("%s (Unison %d [%d] (%s))", original_wave_b_name, i, sample.fine_tune, panning_label)
+      end
+    end
+    
+    -- Set volume for all samples (adjusted for 12 samples instead of 8)
+    local volume = math.db2lin(-21.5)  -- Adjusted for 12 samples: -18 - 20*log10(12/8) ≈ -21.5dB
+    for i = 1, #new_instrument.samples do
+      if new_instrument.samples[i] then
+        new_instrument.samples[i].volume = volume
+      end
+    end
+    
+
+    
+  else
+    print("DEBUG: Using standard unison mode")
+    
+    -- Create 7 additional sample slots for unison
   for i = 2, 8 do
     local success, error_msg = pcall(function()
       new_instrument:insert_sample_at(i)
@@ -392,7 +668,7 @@ function PakettiCreateUnisonSamples()
     sample.name = string.format("%s (Unison %d [%d] (%s))", original_sample_name, i - 1, sample.fine_tune, panning_label)
   end
 
-  -- Set the volume to -14 dB for each sample in the new instrument
+  -- Set the volume to -18 dB for each sample in the new instrument (8 samples total)
   local volume = math.db2lin(-18)
   for i = 1, #new_instrument.samples do
     if new_instrument.samples[i] then
@@ -421,6 +697,7 @@ PakettiFillPitchStepperDigits(0.015,64)
       print("DEBUG: Sample slot", i, "not available for final settings")
     end
   end
+  end  -- Close the else block for standard unison mode
 
   -- Set the instrument volume
 --  new_instrument.volume = 0.3
@@ -428,13 +705,20 @@ PakettiFillPitchStepperDigits(0.015,64)
 renoise.song().selected_phrase_index = original_phrase_index
 print(string.format("Restored selected_phrase_index to: %d", renoise.song().selected_phrase_index))
 
+  -- Update any track devices that were targeting the original instrument
+  PakettiUpdateTrackDeviceInstrumentReferences(selected_instrument_index, new_instrument_index)
+
   -- Restore external editor state if needed (only for pakettified duplicate mode)
   if preferences.pakettiUnisonDuplicateInstrument.value and is_pakettified and external_editor_open and new_instrument.plugin_properties and new_instrument.plugin_properties.plugin_device then
     new_instrument.plugin_properties.plugin_device.external_editor_visible = true
     print("DEBUG: Restored external plugin editor")
   end
 
-  renoise.app():show_status("Unison samples created successfully.")
+  if use_dual_fx_chain_mode then
+    renoise.app():show_status("Wavetable unison samples created successfully (5+5 copies with fifths fractions).")
+  else
+    renoise.app():show_status("Unison samples created successfully.")
+  end
 
   -- Restore 0G01 state before returning
   preferences._0G01_Loader.value=G01CurrentState 

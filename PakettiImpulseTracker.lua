@@ -2164,7 +2164,13 @@ function PakettiImpulseTrackerMoveForwardsTrackWrap()
   local selected_track = song.tracks[song.selected_track_index]
   if selected_track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
     if is_effect_column then
-      song.selected_effect_column_index = 1
+      -- Check if the track has visible effect columns before setting effect column index
+      if selected_track.visible_effect_columns > 0 then
+        song.selected_effect_column_index = 1
+      else
+        -- Fall back to note column if no effect columns are available
+        song.selected_note_column_index = 1
+      end
     else
       song.selected_note_column_index = 1
     end
@@ -2190,7 +2196,13 @@ function PakettiImpulseTrackerMoveBackwardsTrackWrap()
   local selected_track = song.tracks[song.selected_track_index]
   if selected_track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
     if is_effect_column then
-      song.selected_effect_column_index = 1
+      -- Check if the track has visible effect columns before setting effect column index
+      if selected_track.visible_effect_columns > 0 then
+        song.selected_effect_column_index = 1
+      else
+        -- Fall back to note column if no effect columns are available
+        song.selected_note_column_index = 1
+      end
     else
       song.selected_note_column_index = 1
     end
@@ -2217,7 +2229,13 @@ function PakettiImpulseTrackerMoveForwardsTrack()
   local selected_track = song.tracks[song.selected_track_index]
   if selected_track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
     if is_effect_column then
-      song.selected_effect_column_index = 1
+      -- Check if the track has visible effect columns before setting effect column index
+      if selected_track.visible_effect_columns > 0 then
+        song.selected_effect_column_index = 1
+      else
+        -- Fall back to note column if no effect columns are available
+        song.selected_note_column_index = 1
+      end
     else
       song.selected_note_column_index = 1
     end
@@ -2244,7 +2262,13 @@ function PakettiImpulseTrackerMoveBackwardsTrack()
   local selected_track = song.tracks[song.selected_track_index]
   if selected_track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
     if is_effect_column then
-      song.selected_effect_column_index = 1
+      -- Check if the track has visible effect columns before setting effect column index
+      if selected_track.visible_effect_columns > 0 then
+        song.selected_effect_column_index = 1
+      else
+        -- Fall back to note column if no effect columns are available
+        song.selected_note_column_index = 1
+      end
     else
       song.selected_note_column_index = 1
     end

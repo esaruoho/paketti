@@ -12,8 +12,13 @@ PakettiCapture_rows_details = {}
 PakettiCapture_sequences = {}
 PakettiCapture_current_notes = {}
 PakettiCapture_current_set = {}
-PakettiCapture_MAX_ROWS = 10
+PakettiCapture_MAX_ROWS = 16
 PakettiCapture_dump_buttons = {}
+PakettiCapture_audition_buttons = {}
+PakettiCapture_current_audition_slot = nil
+PakettiCapture_audition_notes = {}
+PakettiCapture_audition_samples = {}
+PakettiCapture_selected_audition_slot = 1
 PakettiCapture_DEBUG = true
 PakettiCapture_scrollbar = nil
 PakettiCapture_observers_active = false
@@ -266,6 +271,91 @@ function PakettiCapture_NoteValueToString(value)
   return name .. tostring(octave)
 end
 
+-- Stop any currently playing audition
+function PakettiCaptureAuditionStop()
+  if PakettiCapture_current_audition_slot == nil then return end
+  local song = renoise.song()
+  local selected_track_index = song.selected_track_index
+  local selected_instrument_index = song.selected_instrument_index
+  
+  -- Stop all notes that were triggered for this slot using instrument note off
+  if #PakettiCapture_audition_notes > 0 then
+    song:trigger_instrument_note_off(selected_instrument_index, selected_track_index, PakettiCapture_audition_notes)
+  end
+  
+  PakettiCapture_current_audition_slot = nil
+  PakettiCapture_audition_notes = {}
+  PakettiCapture_audition_samples = {}
+  
+  -- Update UI to reflect stopped state
+  PakettiCapture_UpdateUI()
+end
+
+-- Start audition for a specific slot
+function PakettiCaptureAuditionStart(slot_index)
+  if slot_index < 1 or slot_index > #PakettiCapture_sequences then return end
+  
+  -- Stop any currently playing audition first
+  PakettiCaptureAuditionStop()
+  
+  local song = renoise.song()
+  local selected_track_index = song.selected_track_index
+  local selected_instrument_index = song.selected_instrument_index
+  local instrument = song:instrument(selected_instrument_index)
+  
+  -- Get the notes from this slot
+  local seq = PakettiCapture_sequences[slot_index]
+  if not seq or #seq == 0 then return end
+  
+  -- Check if instrument exists
+  if not instrument then return end
+  
+  -- Convert note strings to values and trigger them using instrument 
+  PakettiCapture_current_audition_slot = slot_index
+  PakettiCapture_audition_notes = {}
+  PakettiCapture_audition_samples = {}
+  
+  if PakettiCapture_DEBUG then
+    print("PakettiCapture DEBUG: Using instrument " .. tostring(selected_instrument_index) .. " for audition")
+  end
+  
+  -- Convert all note strings to values first
+  local note_values = {}
+  for i = 1, #seq do
+    local note_string = seq[i]
+    local note_value = PakettiCapture_NoteStringToValue(note_string)
+    if note_value then
+      table.insert(note_values, note_value)
+      table.insert(PakettiCapture_audition_notes, note_value)
+    end
+  end
+  
+  -- Trigger all notes as a chord using instrument trigger (respects keyzones and instrument settings)
+  if PakettiCapture_DEBUG then
+    print("PakettiCapture DEBUG: Will trigger chord with " .. tostring(#note_values) .. " notes on instrument")
+    for j = 1, #note_values do
+      print("PakettiCapture DEBUG: Note " .. tostring(j) .. ": " .. tostring(note_values[j]))
+    end
+  end
+  
+  -- Trigger all notes as a chord in a single call using instrument
+  if #note_values > 0 then
+    song:trigger_instrument_note_on(selected_instrument_index, selected_track_index, note_values, 1.0)
+  end
+  
+  -- Update UI to reflect playing state
+  PakettiCapture_UpdateUI()
+end
+
+-- Toggle audition for a specific slot
+function PakettiCaptureAuditionToggle(slot_index)
+  if PakettiCapture_current_audition_slot == slot_index then
+    PakettiCaptureAuditionStop()
+  else
+    PakettiCaptureAuditionStart(slot_index)
+  end
+end
+
 -- Helper: convert key.name to note string based on current octave; returns nil if key is not a note key
 function PakettiCapture_KeyToNoteString(key_name)
   if not key_name then return nil end
@@ -295,6 +385,12 @@ function PakettiCapture_CommitCurrent()
   while #PakettiCapture_sequences > PakettiCapture_MAX_ROWS do
     table.remove(PakettiCapture_sequences, 1) -- drop oldest when exceeding max rows
   end
+  
+  -- Ensure selected audition slot is valid after adding new sequence
+  if PakettiCapture_selected_audition_slot > #PakettiCapture_sequences then
+    PakettiCapture_selected_audition_slot = #PakettiCapture_sequences
+  end
+  
   PakettiCapture_current_notes = {}
   PakettiCapture_current_set = {}
   PakettiCapture_UpdateUI()
@@ -303,10 +399,63 @@ end
 
 -- Clear all captured
 function PakettiCapture_ClearAll()
+  PakettiCaptureAuditionStop()  -- Stop any playing audition
   PakettiCapture_sequences = {}
   PakettiCapture_current_notes = {}
   PakettiCapture_current_set = {}
+  PakettiCapture_selected_audition_slot = 1  -- Reset selection to first slot
   PakettiCapture_UpdateUI()
+end
+
+-- Pick up notes from the current pattern track and fill slots
+function PakettiCapture_PickupFromPattern()
+  local song = renoise.song()
+  local track = song.selected_track
+  if not track or track.type ~= renoise.Track.TRACK_TYPE_SEQUENCER then
+    renoise.app():show_status("PakettiCapture: Not a sequencer track")
+    return
+  end
+  
+  PakettiCaptureAuditionStop()  -- Stop any playing audition
+  PakettiCapture_sequences = {}
+  local slot_count = 0
+  
+  local patt = song:pattern(song.selected_pattern_index)
+  local ptrack = patt:track(song.selected_track_index)
+  local num_lines = patt.number_of_lines
+  
+  if PakettiCapture_DEBUG then
+    print("PakettiCapture DEBUG: Scanning pattern with " .. tostring(num_lines) .. " lines")
+  end
+  
+  for line_idx = 1, num_lines do
+    if slot_count >= PakettiCapture_MAX_ROWS then break end -- Stop at 16 slots
+    
+    local line = ptrack:line(line_idx)
+    local notes_in_line = {}
+    
+    -- Scan all note columns in this line
+    local max_cols = math.min(12, #line.note_columns)
+    for col_idx = 1, max_cols do
+      local ncol = line:note_column(col_idx)
+      if not ncol.is_empty and ncol.note_string ~= "OFF" and ncol.note_string ~= "" then
+        table.insert(notes_in_line, ncol.note_string)
+      end
+    end
+    
+    -- If we found notes in this line, create a slot
+    if #notes_in_line > 0 then
+      slot_count = slot_count + 1
+      table.insert(PakettiCapture_sequences, notes_in_line)
+      if PakettiCapture_DEBUG then
+        print("PakettiCapture DEBUG: Line " .. tostring(line_idx) .. " -> Slot " .. tostring(slot_count) .. ": " .. table.concat(notes_in_line, " "))
+      end
+    end
+  end
+  
+  PakettiCapture_selected_audition_slot = 1  -- Reset selection to first slot
+  PakettiCapture_UpdateUI()
+  renoise.app():show_status("PakettiCapture: Picked up " .. tostring(slot_count) .. " slots from pattern")
 end
 
 -- Dump a specific row to the current pattern line, fitting visible note columns
@@ -493,8 +642,15 @@ function PakettiCapture_UpdateUI()
       if i <= #PakettiCapture_sequences then
         local seq = PakettiCapture_sequences[i]
         txt.text = table.concat(seq, " ")
+        -- Make selected audition slot bold
+        if PakettiCapture_selected_audition_slot == i then
+          txt.style = "strong"
+        else
+          txt.style = "normal"
+        end
       else
         txt.text = ""
+        txt.style = "normal"
       end
     end
   end
@@ -509,6 +665,24 @@ function PakettiCapture_UpdateUI()
     local btn = PakettiCapture_dump_buttons[i]
     if btn then
       btn.active = (i <= #PakettiCapture_sequences)
+    end
+  end
+
+  -- Update audition buttons active state and text
+  for i = 1, PakettiCapture_MAX_ROWS do
+    local audition_btn = PakettiCapture_audition_buttons[i]
+    if audition_btn then
+      local has_content = (i <= #PakettiCapture_sequences)
+      audition_btn.active = has_content
+      if has_content then
+        if PakettiCapture_current_audition_slot == i then
+          audition_btn.text = "Stop"
+        else
+          audition_btn.text = "Audition"
+        end
+      else
+        audition_btn.text = "Audition"
+      end
     end
   end
 
@@ -556,6 +730,31 @@ function PakettiCapture_KeyHandler(dialog, key)
     PakettiCapture_current_set = {}
     PakettiCapture_UpdateUI()
     return nil
+  elseif key and key.name == "up" then
+    -- Navigate up in audition slot selection
+    if PakettiCapture_selected_audition_slot > 1 then
+      PakettiCapture_selected_audition_slot = PakettiCapture_selected_audition_slot - 1
+    end
+    PakettiCapture_UpdateUI()
+    return nil
+  elseif key and key.name == "down" then
+    -- Navigate down in audition slot selection
+    local max_slot = math.min(PakettiCapture_MAX_ROWS, #PakettiCapture_sequences)
+    if PakettiCapture_selected_audition_slot < max_slot then
+      PakettiCapture_selected_audition_slot = PakettiCapture_selected_audition_slot + 1
+    end
+    PakettiCapture_UpdateUI()
+    return nil
+  elseif key and key.name == "space" then
+    -- Toggle audition for currently selected slot
+    if PakettiCapture_selected_audition_slot <= #PakettiCapture_sequences then
+      PakettiCaptureAuditionToggle(PakettiCapture_selected_audition_slot)
+    end
+    return nil
+  elseif key and key.modifiers == "control" and key.name == "p" then
+    -- Ctrl+P: Pick up from pattern
+    PakettiCapture_PickupFromPattern()
+    return nil
   end
 
   -- Map key to note; if mapped, append to current buffer and PASS THROUGH
@@ -597,9 +796,19 @@ function PakettiCapture_BuildRows()
       notifier = function() PakettiCapture_DumpRowDisplay(idx) end
     }
     PakettiCapture_dump_buttons[i] = btn
-    local rt = PakettiCapture_vb:text{ text = "", width = PakettiCapture_DIALOG_WIDTH - (PakettiCapture_SCROLLBAR_WIDTH + PakettiCapture_GAP + PakettiCapture_ROW_BUTTON_WIDTH + PakettiCapture_GAP), style = "normal" }
+    
+    local audition_btn = PakettiCapture_vb:button{
+      text = "Audition",
+      width = 60,
+      height = PakettiCapture_BUTTON_HEIGHT,
+      active = false,
+      notifier = function() PakettiCaptureAuditionToggle(idx) end
+    }
+    PakettiCapture_audition_buttons[i] = audition_btn
+    
+    local rt = PakettiCapture_vb:text{ text = "", width = PakettiCapture_DIALOG_WIDTH - (PakettiCapture_SCROLLBAR_WIDTH + PakettiCapture_GAP + PakettiCapture_ROW_BUTTON_WIDTH + PakettiCapture_GAP + 60 + PakettiCapture_GAP), style = "normal" }
     PakettiCapture_rows_text[i] = rt
-    table.insert(rows, PakettiCapture_vb:row{ height = PakettiCapture_BUTTON_HEIGHT, btn, rt })
+    table.insert(rows, PakettiCapture_vb:row{ height = PakettiCapture_BUTTON_HEIGHT, btn, audition_btn, rt })
   end
   return rows
 end
@@ -680,7 +889,7 @@ function PakettiCapture_RemoveObservers()
   cleanup_observers = nil
 end
 
--- Build fixed quick dump buttons (01..20) in two rows
+-- Build fixed quick dump buttons (01..16) in rows
 function PakettiCapture_BuildQuickDumpButtons()
   local rows = {}
   for i = 1, PakettiCapture_MAX_ROWS do
@@ -693,10 +902,20 @@ function PakettiCapture_BuildQuickDumpButtons()
       notifier = function() PakettiCapture_DumpRowDisplay(idx) end
     }
     PakettiCapture_dump_buttons[i] = btn
-    local txt = PakettiCapture_vb:text{ text = "", width = 400, style = "normal" }
+    
+    local audition_btn = PakettiCapture_vb:button{
+      text = "Audition",
+      width = 60,
+      height = PakettiCapture_BUTTON_HEIGHT,
+      active = false,
+      notifier = function() PakettiCaptureAuditionToggle(idx) end
+    }
+    PakettiCapture_audition_buttons[i] = audition_btn
+    
+    local txt = PakettiCapture_vb:text{ text = "", width = 300, style = "normal" }
     PakettiCapture_rows_text[i] = txt
     local txt_center = PakettiCapture_vb:vertical_aligner{ mode = "center", height = PakettiCapture_BUTTON_HEIGHT, txt }
-    table.insert(rows, PakettiCapture_vb:row{ height = PakettiCapture_BUTTON_HEIGHT, btn, txt_center })
+    table.insert(rows, PakettiCapture_vb:row{ height = PakettiCapture_BUTTON_HEIGHT, btn, audition_btn, txt_center })
   end
   return rows
 end
@@ -726,7 +945,8 @@ function PakettiCaptureLastTakeDialog()
     PakettiCapture_vb:row{
       PakettiCapture_vb:text{text="Captured Last Takes",font="bold",style="strong",width=160},
       PakettiCapture_vb:button{text="Commit Current (Enter)",width=120,notifier=PakettiCapture_CommitCurrent },
-      PakettiCapture_vb:button{text="Clear All (Shift-Enter)", width=120, notifier = PakettiCapture_ClearAll }
+      PakettiCapture_vb:button{text="Clear All (Shift-Enter)", width=120, notifier = PakettiCapture_ClearAll },
+      PakettiCapture_vb:button{text="Pick up from Pattern (Ctrl-P)", width=200, notifier = PakettiCapture_PickupFromPattern }
     },
     PakettiCapture_vb:row{
       PakettiCapture_vb:checkbox{ value = preferences.pakettiCaptureLastTakeSmartNoteOff.value, notifier = function(value)
@@ -792,6 +1012,7 @@ function PakettiCaptureLastTakeDialog()
     },
     PakettiCapture_vb:row{
       PakettiCapture_vb:button{ text = "Close", width = 40, notifier = function()
+        PakettiCaptureAuditionStop()  -- Stop any playing audition
         if PakettiCapture_midi_listening then PakettiCapture_StopMidiListening() end
         if PakettiCapture_dialog and PakettiCapture_dialog.visible then PakettiCapture_dialog:close() end
       end },
@@ -813,11 +1034,15 @@ function PakettiCaptureLastTakeDialog()
 
   -- Ensure Renoise keeps focus for keyboard
   renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
+  
+  -- Show keyboard controls info
+  renoise.app():show_status("PakettiCapture: Up/Down arrows=select slot (bold text), SPACE=audition selected, Ctrl+P=pickup from pattern")
 end
 
 -- Toggle
 function PakettiCaptureLastTakeToggle()
   if PakettiCapture_dialog and PakettiCapture_dialog.visible then
+    PakettiCaptureAuditionStop()  -- Stop any playing audition
     if PakettiCapture_midi_listening then PakettiCapture_StopMidiListening() end
     PakettiCapture_dialog:close()
     PakettiCapture_dialog = nil

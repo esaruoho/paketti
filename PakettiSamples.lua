@@ -5989,3 +5989,116 @@ renoise.tool():add_keybinding{name="Global:Paketti:Batch Pakettify Wave Files in
 renoise.tool():add_midi_mapping{name="Paketti:Batch Pakettify Wave Files in Folder to XRNI (Save Only) [Trigger]", invoke = function(message) if message:is_trigger() then PakettiBatchWaveToXRNI() end end}
 renoise.tool():add_midi_mapping{name="Paketti:Batch Pakettify Wave Files in Folder to XRNI & Load [Trigger]", invoke = function(message) if message:is_trigger() then PakettiBatchWaveToXRNI(true) end end}
 
+-- Place Sample to End at Pattern End
+-- Places the selected sample so it ends exactly at the pattern end
+function PakettiPlaceSampleToEndAtPatternEnd()
+  local song = renoise.song()
+  local selected_instrument = song.selected_instrument
+  
+  -- Check if we have a valid instrument and sample
+  if not selected_instrument or #selected_instrument.samples == 0 then
+    renoise.app():show_status("No sample selected or instrument is empty")
+    return
+  end
+  
+  local sample = selected_instrument.samples[1]
+  local sample_buffer = sample.sample_buffer
+  
+  if not sample_buffer.has_sample_data then
+    renoise.app():show_status("Selected sample has no data")
+    return
+  end
+  
+  -- Get current pattern info
+  local current_pattern = song.selected_pattern
+  local pattern_length = current_pattern.number_of_lines
+  local lpb = song.transport.lpb
+  local bpm = song.transport.bpm
+  
+  -- Get sample info
+  local sample_frames = sample_buffer.number_of_frames
+  local sample_rate = sample_buffer.sample_rate
+  
+  -- Calculate sample duration in seconds
+  local sample_duration_seconds = sample_frames / sample_rate
+  
+  -- Calculate how long each line is in seconds
+  local seconds_per_line = (60 / bpm) / lpb
+  
+  -- Calculate how many lines the sample takes
+  local sample_duration_lines = sample_duration_seconds / seconds_per_line
+  
+  -- Check if sample is longer than pattern
+  if sample_duration_lines > pattern_length then
+    renoise.app():show_status("Sample is longer than pattern duration - cannot fit")
+    return
+  end
+  
+  -- Calculate start line: pattern_end - sample_duration
+  -- Pattern ends at line pattern_length, so sample should start at:
+  local start_line_exact = pattern_length - sample_duration_lines + 1
+  
+  -- Split into line and fractional part
+  local note_line = math.max(1, math.floor(start_line_exact))
+  local line_fraction = start_line_exact - note_line
+  
+  -- Convert line fraction to ticks within the line
+  local sub_tick = line_fraction * lpb
+  
+  -- Ensure we don't place beyond pattern length
+  if note_line > pattern_length then
+    note_line = pattern_length
+  end
+  
+  -- Get current track
+  local current_track_index = song.selected_track_index
+  local current_track = song.tracks[current_track_index]
+  
+  -- Check if it's a regular track (not master/send)
+  if current_track.type ~= renoise.Track.TRACK_TYPE_SEQUENCER then
+    renoise.app():show_status("Please select a regular sequencer track")
+    return
+  end
+  
+  -- Get pattern track
+  local pattern_track = current_pattern:track(current_track_index)
+  local pattern_line = pattern_track:line(note_line)
+  
+  -- Make delay column visible
+  current_track.delay_column_visible = true
+  
+  -- Place note at C-4 (note value 48)
+  local note_column = pattern_line:note_column(1)
+  note_column.note_value = 48  -- C-4
+  note_column.instrument_value = song.selected_instrument_index - 1
+  
+  -- Apply delay for sub-tick precision
+  if sub_tick > 0 then
+    -- Convert sub-tick to delay value (0-255 range)
+    local delay_value = math.floor(sub_tick * (256 / lpb))
+    delay_value = math.min(255, math.max(0, delay_value))
+    note_column.delay_value = delay_value
+  end
+  
+  -- Move cursor to the placed note
+  song.selected_line_index = note_line
+  
+  -- Show status with timing info
+  local delay_info = ""
+  if sub_tick > 0 then
+    local delay_value = math.floor(sub_tick * (256 / lpb))
+    delay_value = math.min(255, math.max(0, delay_value))
+    delay_info = string.format(" +delay %02X (%.2f ticks)", delay_value, sub_tick)
+  end
+  local status_msg = string.format("Sample placed at line %d%s - duration %.2f lines (%.3fs)", 
+                                   note_line, delay_info, sample_duration_lines, sample_duration_seconds)
+  renoise.app():show_status(status_msg)
+end
+
+-- Add menu entries and keybindings
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Sample Tools:Place Sample to End at Pattern End", invoke = PakettiPlaceSampleToEndAtPatternEnd}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Place Sample to End at Pattern End", invoke = PakettiPlaceSampleToEndAtPatternEnd}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Place Sample to End at Pattern End", invoke = PakettiPlaceSampleToEndAtPatternEnd}
+renoise.tool():add_keybinding{name="Global:Paketti:Place Sample to End at Pattern End", invoke = PakettiPlaceSampleToEndAtPatternEnd}
+renoise.tool():add_midi_mapping{name="Paketti:Place Sample to End at Pattern End [Trigger]", invoke = function(message) if message:is_trigger() then PakettiPlaceSampleToEndAtPatternEnd() end end}
+
