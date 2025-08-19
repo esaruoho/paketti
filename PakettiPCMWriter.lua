@@ -5814,6 +5814,28 @@ function PCMWriterExportWaveAAndBToSample()
   renoise.app():show_status(string.format("Waves A&B exported to new instrument with %s interpolation, oversampling %s, auto-pitch correction", sample_interpolation_mode, sample_oversample_enabled and "enabled" or "disabled"))
 end
 
+-- Wrapper function for Write A&B followed by Unison processing
+function PCMWriterExportWaveAAndBToSampleWithUnison()
+  -- First call the regular Write A&B function
+  PCMWriterExportWaveAAndBToSample()
+  
+  -- Then call the unison generator
+  PakettiCreateUnisonSamples()
+  
+  renoise.app():show_status("Waves A&B exported and unison processing applied")
+end
+
+-- Wrapper function for Write AKWF A&B followed by Unison processing
+function PCMWriterLoad2RandomAKWFAndExportWithUnison()
+  -- First call the regular Write AKWF A&B function
+  PCMWriterLoad2RandomAKWFAndExport()
+  
+  -- Then call the unison generator
+  PakettiCreateUnisonSamples()
+  
+  renoise.app():show_status("Random AKWF files loaded as A&B and unison processing applied")
+end
+
 -- Remaining selection operation functions
 function PCMWriterInvertSelection()
   -- Preserve cursor position
@@ -7652,7 +7674,7 @@ function PCMWriterShowPcmDialog()
         end,
         id = "edit_b_btn"
       },
-      vb:text{ text = "Crossfade:", style = "normal" },
+      vb:text{ text = "Crossfade", style = "normal" },
       vb:slider{
         id = "crossfade_slider",
         min = 0.0,
@@ -8003,6 +8025,80 @@ function PCMWriterShowPcmDialog()
               PCMWriterLoadCurrentSample()
             end
           }
+        },
+        vb:row{
+          vb:button{
+            text = "DoubleFreq",
+            width = 140,
+            tooltip = "Resample to half length and repeat twice (double frequency)",
+            notifier = function()
+              local target_data = PCMWriterGetCurrentWaveData()
+              local half_length = math.floor(wave_size / 2)
+              if half_length < 1 then
+                renoise.app():show_status("Wave too short for DoubleFreq processing")
+                return
+              end
+              
+              -- Store original data
+              local original_data = {}
+              for i = 1, wave_size do
+                original_data[i] = target_data[i]
+              end
+              
+              -- First half: resample original to half length
+              for i = 1, half_length do
+                local source_pos = (i - 1) * (wave_size - 1) / (half_length - 1) + 1
+                local source_index = math.floor(source_pos)
+                local frac = source_pos - source_index
+                
+                -- Linear interpolation
+                local sample1 = original_data[source_index] or 32768
+                local sample2 = original_data[math.min(source_index + 1, wave_size)] or 32768
+                target_data[i] = math.floor(sample1 + frac * (sample2 - sample1))
+              end
+              
+              -- Second half: repeat the resampled data
+              for i = 1, half_length do
+                target_data[half_length + i] = target_data[i]
+              end
+              
+              -- Clear any remaining samples if wave_size is not exactly divisible by 2
+              for i = half_length * 2 + 1, wave_size do
+                target_data[i] = 32768 -- Center/silence value
+              end
+              
+              PCMWriterUpdateCrossfadedWave()
+              PCMWriterUpdateLiveSample()  -- Live update sample when processing
+              PCMWriterUpdateAllDisplays()
+              renoise.app():show_status(string.format("DoubleFreq applied to Wave %s: %d -> %d frames repeated", current_wave_edit, wave_size, half_length))
+            end
+          }
+        },
+        vb:row{
+          vb:button{
+            text = "Harmonic Drawbars",
+            width = 140,
+            tooltip = "Toggle harmonic drawbar mode - augment current waveform with harmonics",
+            notifier = function()
+              if harmonic_drawbar_mode then
+                PCMWriterExitHarmonicDrawbarMode()
+              else
+                PCMWriterEnterHarmonicDrawbarMode()
+              end
+            end
+          }
+        },
+        vb:row{
+          vb:canvas{
+            id = "harmonic_drawbar_canvas",
+            width = 140,
+            height = 80,
+            mode = "plain",
+            render = PCMWriterDrawHarmonicCanvas,
+            mouse_handler = PCMWriterHandleHarmonicMouse,
+            mouse_events = {"down", "up", "move", "exit"},
+            tooltip = "Augment current waveform with harmonics | Left-click: Draw levels | Right-click: Zero harmonic"
+          }
         }
       }, -- SAMPLE_TOOLS_COLUMN ENDS
       vb:column{ -- EXPORT_TOOLS_COLUMN STARTS
@@ -8055,18 +8151,32 @@ function PCMWriterShowPcmDialog()
           tooltip = "Export Wave B only (blue line)",
           notifier = PCMWriterExportWaveBToSample
         }},
+        vb:row{
         vb:button{
           text = "Write A&B",
-          width = 280,
+          width = 140,
           tooltip = "Create new instrument with Wave A as slot 1 and Wave B as slot 2",
           notifier = PCMWriterExportWaveAAndBToSample
         },
         vb:button{
+          text = "Write A&B (Unison)",
+          width = 140,
+          tooltip = "Create new instrument with Wave A&B and apply unison processing",
+          notifier = PCMWriterExportWaveAAndBToSampleWithUnison
+        }},
+        vb:row{
+        vb:button{
           text = "Write AKWF A&B",
-          width = 280,
+          width = 140,
           tooltip = "Load 2 random AKWF files and create 12st_WT.xrni wavetable instrument",
           notifier = PCMWriterLoad2RandomAKWFAndExport
         },
+        vb:button{
+          text = "Write AKWF A&B (Unison)",
+          width = 140,
+          tooltip = "Load 2 random AKWF files, create wavetable instrument and apply unison processing",
+          notifier = PCMWriterLoad2RandomAKWFAndExportWithUnison
+        }},
         vb:button{
           text = "Random Export to Slot",
           width = 280,
@@ -8152,6 +8262,9 @@ function PCMWriterShowPcmDialog()
 
   
   pcm_dialog = renoise.app():show_custom_dialog(DIALOG_TITLE, dialog_content, PCMWriterHandleKeyboard)
+  
+  -- Connect canvas references
+  harmonic_canvas = vb.views.harmonic_drawbar_canvas
   
   -- Add sample change notifier for Live Pickup Mode (like other working tools)
   local song = renoise.song()
@@ -8453,6 +8566,377 @@ end
 
 
 
+
+-- Harmonic Drawbar System Variables (Global scope for UI access)
+harmonic_drawbar_mode = false
+harmonic_levels = {}  -- H1 to H11 levels (0.0 to 1.0)
+harmonic_canvas = nil
+harmonic_mouse_down = false
+harmonic_last_mouse_x = -1
+harmonic_last_mouse_y = -1
+
+-- Initialize harmonic levels (all at 0.0 by default)
+for i = 1, 11 do
+  harmonic_levels[i] = 0.0
+end
+
+-- Enter Harmonic Drawbar Mode
+function PCMWriterEnterHarmonicDrawbarMode()
+  print("HARMONIC: Entering Harmonic Drawbar Mode")
+  print("HARMONIC: Will augment current wave: " .. current_wave_edit)
+  
+  -- No need to switch waves - work with whatever wave is currently active
+  
+  -- No UI changes needed - harmonic mode works with current wave settings
+  
+  -- Enable harmonic drawbar mode
+  harmonic_drawbar_mode = true
+  
+  -- Enable live pickup mode
+  live_pickup_mode = true
+  
+  -- Generate initial harmonics (H1 = 1.0, others = 0.0)
+  PCMWriterGenerateHarmonics()
+  
+  -- Update displays
+  PCMWriterUpdateAllDisplays()
+  if harmonic_canvas then
+    print("HARMONIC: Updating harmonic canvas")
+    harmonic_canvas:update()
+  else
+    print("HARMONIC: ERROR - harmonic_canvas is nil!")
+  end
+  
+  renoise.app():show_status("Harmonic Drawbar Mode: Augmenting " .. current_wave_edit .. " with harmonics, Live Pickup ON")
+end
+
+-- Exit Harmonic Drawbar Mode
+function PCMWriterExitHarmonicDrawbarMode()
+  print("HARMONIC: Exiting Harmonic Drawbar Mode")
+  harmonic_drawbar_mode = false
+  
+  -- Update displays
+  PCMWriterUpdateAllDisplays()
+  if harmonic_canvas then
+    harmonic_canvas:update()
+  end
+  
+  renoise.app():show_status("Harmonic Drawbar Mode: OFF")
+end
+
+-- Generate harmonics by augmenting the current waveform
+function PCMWriterGenerateHarmonics()
+  if not harmonic_drawbar_mode then
+    print("HARMONIC: Not in harmonic mode, skipping generation")
+    return
+  end
+  
+  print("HARMONIC: Augmenting current waveform with harmonics")
+  print("HARMONIC: Wave size = " .. wave_size)
+  print("HARMONIC: Current wave edit = " .. current_wave_edit)
+  
+  -- Get the current wave data as the base to augment
+  local current_wave_data = PCMWriterGetCurrentWaveData()
+  
+  print("HARMONIC: Starting harmonic augmentation of existing waveform")
+  
+  -- Store the original waveform data for restoration
+  local original_data = {}
+  for i = 1, wave_size do
+    original_data[i] = current_wave_data[i]
+  end
+  
+  -- Start with the original waveform and add harmonics to it
+  for i = 1, wave_size do
+    -- Convert original sample to -1..1 range
+    local mixed = (original_data[i] - 32768) / 32768
+    
+    -- Add each harmonic sine wave to the original waveform
+    for harmonic = 1, 11 do
+      local level = harmonic_levels[harmonic]
+      if level > 0.0 then
+        -- Use slider level directly as maximum amplitude (no additional scaling)
+        local scaled_level = level
+        
+        -- Calculate phase for this harmonic (harmonic 1 = fundamental, 2 = double freq, etc.)
+        local phase = ((i - 1) / wave_size) * harmonic * math.pi * 2
+        local sine_value = math.sin(phase)
+        
+        -- Add this harmonic sine wave to the mix
+        mixed = mixed + (sine_value * scaled_level)
+      end
+    end
+    
+    -- Apply overall volume scaling (0.7 = 70% volume to prevent clipping with harmonics)
+    mixed = mixed * 0.7
+    
+    -- Prevent clipping by normalizing if needed
+    if mixed > 1.0 then mixed = 1.0 end
+    if mixed < -1.0 then mixed = -1.0 end
+    
+    -- Convert back to 0-65535 range and write to current wave
+    current_wave_data[i] = math.floor((mixed * 32768) + 32768)
+  end
+  
+  -- Log active harmonics
+  local active_harmonics = {}
+  for harmonic = 1, 11 do
+    if harmonic_levels[harmonic] > 0.0 then
+      local scale = 1.0 - ((harmonic - 1) * 0.04)
+      table.insert(active_harmonics, string.format("H%d=%.2f", harmonic, harmonic_levels[harmonic] * scale))
+    end
+  end
+  
+  if #active_harmonics > 0 then
+    print("HARMONIC: Active harmonics: " .. table.concat(active_harmonics, ", "))
+  end
+  
+  -- Update crossfaded wave and live sample
+  PCMWriterUpdateCrossfadedWave()
+  PCMWriterUpdateLiveSample()
+  
+  print("HARMONIC: Augmented " .. current_wave_edit .. " with " .. #active_harmonics .. " harmonics")
+end
+
+-- Draw Harmonic Canvas (11 vertical sliders)
+function PCMWriterDrawHarmonicCanvas(ctx)
+  print("HARMONIC: Drawing harmonic canvas")
+  local w = 140
+  local h = 80
+  local margin = 2
+  local slider_width = (w - (margin * 12)) / 11  -- 11 sliders with margins
+  
+  -- Clear canvas
+  ctx:clear_rect(0, 0, w, h)
+  
+  -- Draw background
+  ctx.fill_color = {20, 20, 30, 255}
+  ctx:fill_rect(0, 0, w, h)
+  
+  -- Draw border
+  ctx.stroke_color = {100, 100, 100, 255}
+  ctx.line_width = 1
+  ctx:begin_path()
+  ctx:rect(0, 0, w, h)
+  ctx:stroke()
+  
+  -- Draw 11 harmonic sliders
+  for i = 1, 11 do
+    local x = margin + (i - 1) * (slider_width + margin)
+    local level = harmonic_levels[i]
+    local slider_height = h - (margin * 2)
+    local fill_height = level * slider_height
+    local fill_y = h - margin - fill_height
+    
+    -- Draw slider background (dark)
+    ctx.fill_color = {40, 40, 50, 255}
+    ctx:fill_rect(x, margin, slider_width, slider_height)
+    
+    -- Draw slider fill based on level
+    if level > 0.0 then
+      -- All harmonics use deep purple
+      local alpha = harmonic_drawbar_mode and 255 or 128  -- Dimmed when inactive
+      ctx.fill_color = {120, 40, 160, alpha}  -- Deep purple for all harmonics
+      ctx:fill_rect(x, fill_y, slider_width, fill_height)
+    end
+    
+    -- Draw slider border
+    ctx.stroke_color = {80, 80, 90, 255}
+    ctx.line_width = 1
+    ctx:begin_path()
+    ctx:rect(x, margin, slider_width, slider_height)
+    ctx:stroke()
+    
+    -- Draw harmonic number at bottom (simple line representation)
+    ctx.stroke_color = {150, 150, 150, 255}
+    ctx.line_width = 1
+    local text_y = h - margin + 2
+    
+    -- Draw simple number representation using lines
+    if i <= 9 then
+      -- Single digit - draw vertical lines
+      for j = 1, i do
+        local line_x = x + j * (slider_width / (i + 1))
+        ctx:begin_path()
+        ctx:move_to(line_x, text_y)
+        ctx:line_to(line_x, text_y + 4)
+        ctx:stroke()
+      end
+    else
+      -- Two digits (10, 11) - draw as "1" + dots
+      ctx:begin_path()
+      ctx:move_to(x + 2, text_y)
+      ctx:line_to(x + 2, text_y + 4)
+      ctx:stroke()
+      
+      -- Add dots for tens
+      local dots = i - 9
+      for j = 1, dots do
+        local dot_x = x + 4 + j * 2
+        ctx:begin_path()
+        ctx:move_to(dot_x, text_y + 2)
+        ctx:line_to(dot_x, text_y + 2)
+        ctx:stroke()
+      end
+    end
+  end
+  
+  -- Draw mode indicator
+  if harmonic_drawbar_mode then
+    ctx.fill_color = {0, 255, 0, 100}  -- Green overlay when active
+    ctx:fill_rect(0, 0, w, 3)
+  else
+    -- Draw "Click to activate" indicator when inactive
+    ctx.fill_color = {100, 100, 100, 80}  -- Gray overlay when inactive
+    ctx:fill_rect(0, 0, w, 3)
+    
+    -- Draw simple "READY" text using lines
+    ctx.stroke_color = {150, 150, 150, 200}
+    ctx.line_width = 1
+    local text_y = h / 2
+    
+    -- Draw "R" at left
+    ctx:begin_path()
+    ctx:move_to(5, text_y - 3)
+    ctx:line_to(5, text_y + 3)
+    ctx:move_to(5, text_y - 3)
+    ctx:line_to(8, text_y - 3)
+    ctx:move_to(5, text_y)
+    ctx:line_to(7, text_y)
+    ctx:move_to(7, text_y)
+    ctx:line_to(8, text_y + 3)
+    ctx:stroke()
+  end
+  
+  -- Draw mouse cursor if dragging
+  if harmonic_mouse_down and harmonic_last_mouse_x >= 0 and harmonic_last_mouse_y >= 0 then
+    ctx.stroke_color = {255, 255, 255, 255}
+    ctx.line_width = 1
+    ctx:begin_path()
+    ctx:move_to(harmonic_last_mouse_x, 0)
+    ctx:line_to(harmonic_last_mouse_x, h)
+    ctx:stroke()
+  end
+end
+
+-- Handle Harmonic Canvas Mouse Input
+function PCMWriterHandleHarmonicMouse(ev)
+  local w = 140
+  local h = 80
+  local margin = 2
+  local slider_width = (w - (margin * 12)) / 11
+  
+  if ev.type == "exit" then
+    return
+  end
+  
+  -- Check bounds
+  if ev.position.x < 0 or ev.position.x >= w or ev.position.y < 0 or ev.position.y >= h then
+    if ev.type == "up" and ev.button ~= "right" then
+      harmonic_mouse_down = false
+      harmonic_last_mouse_x = -1
+      harmonic_last_mouse_y = -1
+      if harmonic_canvas then
+        harmonic_canvas:update()
+      end
+    end
+    return
+  end
+  
+  local x = ev.position.x
+  local y = ev.position.y
+  
+  harmonic_last_mouse_x = x
+  harmonic_last_mouse_y = y
+  
+  if ev.type == "down" then
+    if ev.button == "right" then
+      -- Right-click: Zero out the clicked slider
+      local slider_index = math.floor((x - margin) / (slider_width + margin)) + 1
+      slider_index = math.max(1, math.min(11, slider_index))
+      
+      print(string.format("HARMONIC: Right-click zeroing H%d", slider_index))
+      harmonic_levels[slider_index] = 0.0
+      
+      -- Auto-enter harmonic mode if not already active
+      if not harmonic_drawbar_mode then
+        print("HARMONIC: Auto-entering harmonic mode due to right-click")
+        PCMWriterEnterHarmonicDrawbarMode()
+      end
+      
+      -- Regenerate harmonics and update displays
+      if harmonic_drawbar_mode then
+        PCMWriterGenerateHarmonics()
+        PCMWriterUpdateAllDisplays()
+      end
+      
+      -- Force canvas update
+      if harmonic_canvas then
+        harmonic_canvas:update()
+      end
+      
+      renoise.app():show_status(string.format("H%d: Zeroed (right-click)", slider_index))
+      
+    else
+      -- Left-click: Normal drawing behavior
+      harmonic_mouse_down = true
+      
+      -- Auto-enter harmonic drawbar mode when user starts drawing
+      if not harmonic_drawbar_mode then
+        print("HARMONIC: Auto-entering harmonic mode due to canvas interaction")
+        PCMWriterEnterHarmonicDrawbarMode()
+      end
+      
+      PCMWriterUpdateHarmonicSlider(x, y, w, h, margin, slider_width)
+    end
+  elseif ev.type == "up" then
+    -- Only reset mouse state for left-click release
+    if ev.button ~= "right" then
+      harmonic_mouse_down = false
+      harmonic_last_mouse_x = -1
+      harmonic_last_mouse_y = -1
+    end
+  elseif ev.type == "move" and harmonic_mouse_down then
+    PCMWriterUpdateHarmonicSlider(x, y, w, h, margin, slider_width)
+  end
+  
+  if harmonic_canvas then
+    harmonic_canvas:update()
+  end
+end
+
+-- Update harmonic slider based on mouse position
+function PCMWriterUpdateHarmonicSlider(x, y, w, h, margin, slider_width)
+  -- Determine which slider (1-11)
+  local slider_index = math.floor((x - margin) / (slider_width + margin)) + 1
+  slider_index = math.max(1, math.min(11, slider_index))
+  
+  -- Calculate level (0.0 to 1.0, inverted Y)
+  local slider_height = h - (margin * 2)
+  local level = 1.0 - ((y - margin) / slider_height)
+  level = math.max(0.0, math.min(1.0, level))
+  
+  -- Update harmonic level
+  harmonic_levels[slider_index] = level
+  
+  print(string.format("HARMONIC: H%d = %.2f", slider_index, level))
+  
+  -- Regenerate harmonics immediately
+  if harmonic_drawbar_mode then
+    PCMWriterGenerateHarmonics()
+    PCMWriterUpdateAllDisplays()
+  end
+  
+  -- Force canvas update
+  if harmonic_canvas then
+    print("HARMONIC: Force updating canvas after slider change")
+    harmonic_canvas:update()
+  else
+    print("HARMONIC: ERROR - Cannot update canvas, harmonic_canvas is nil")
+  end
+  
+  renoise.app():show_status(string.format("H%d: %.1f%%", slider_index, level * 100))
+end
 
 renoise.tool():add_menu_entry{name = "--Main Menu:Tools:Paketti Gadgets:Paketti Single Cycle Waveform Writer...",invoke = PCMWriterShowPcmDialog}
 renoise.tool():add_menu_entry{name = "--Main Menu:Tools:Paketti:Xperimental/WIP:Load 2 Random AKWF as 12st_WT Wavetable",invoke = PCMWriterSafeAKWFWavetableExport}

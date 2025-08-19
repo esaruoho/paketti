@@ -434,11 +434,75 @@ renoise.tool():add_menu_entry{name="--Mixer:Paketti:Inspect Track Device Chain (
 
 
 
+-- Helper function to load SeparateSyncLFO preset into container device
+function loadSeparateSyncLFOIntoContainer(device)
+  -- Define the SeparateSyncLFO device XML that should be injected
+  local formula_device_xml = [=[        <FormulaMetaDevice type="FormulaMetaDevice">
+          <SelectedPresetIsModified>true</SelectedPresetIsModified>
+          <CustomDeviceName>Separate Sync LFO</CustomDeviceName>
+          <IsMaximized>true</IsMaximized>
+          <IsSelected>true</IsSelected>
+          <IsActive>
+            <Value>1.0</Value>
+            <Visualization>Device only</Visualization>
+          </IsActive>
+          <FormulaParagraphs>
+            <FormulaParagraph>calculation(A,B)</FormulaParagraph>
+          </FormulaParagraphs>
+          <FunctionsParagraphs>
+            <FunctionsParagraph>--[[</FunctionsParagraph>
+            <FunctionsParagraph>Simple formula for calculating LFO per pattern length</FunctionsParagraph>
+            <FunctionsParagraph>]]</FunctionsParagraph>
+            <FunctionsParagraph/>
+            <FunctionsParagraph>--[[</FunctionsParagraph>
+            <FunctionsParagraph>]]</FunctionsParagraph>
+            <FunctionsParagraph/>
+            <FunctionsParagraph>local function calculation(x,y)</FunctionsParagraph>
+            <FunctionsParagraph>  local spd_array = {16, 8, 4, 2, 1, 0.5, 0.25, 0.10, 0.01}</FunctionsParagraph>
+            <FunctionsParagraph>  local off_array  = {1, 0.66, 0.75, 0.8}</FunctionsParagraph>
+            <FunctionsParagraph>  local spd = x == 0 and spd_array[1] or spd_array[ceil(#spd_array*x)]</FunctionsParagraph>
+            <FunctionsParagraph>  local off = y == 0 and off_array[1] or off_array[ceil(#off_array*y)]</FunctionsParagraph>
+            <FunctionsParagraph>  return (((LINE)%(LPB*(spd*off)))/(LPB*(spd*off)))</FunctionsParagraph>
+            <FunctionsParagraph>end</FunctionsParagraph>
+          </FunctionsParagraphs>
+          <InputNameA>SPD</InputNameA>
+          <InputNameB>STR,TRP,DOT</InputNameB>
+          <InputNameC>NOT USED</InputNameC>
+          <EditorVisible>true</EditorVisible>
+          <InputA>
+            <Value>0.359402984</Value>
+          </InputA>
+          <InputB>
+            <Value>0.635881007</Value>
+          </InputB>
+          <InputC>
+            <Value>0.0</Value>
+          </InputC>
+        </FormulaMetaDevice>]=]
+  
+  -- Define which parameters should be mapped to macros (based on original SeparateSyncLFO mixer exposure)
+  local mixer_params = {
+    {name = "SPD", index = 1, value = "0.359402984"},
+    {name = "STR,TRP,DOT", index = 2, value = "0.635881007"}
+  }
+  
+  loadPresetIntoContainer(device, formula_device_xml, "Separate Sync LFO", mixer_params)
+end
+
 function SeparateSyncLFOBeatsgo()
+  local selected_device = renoise.song().selected_device
+  
+  -- Check if we have a selected device that is a container
+  if selected_device and isContainerDevice(selected_device) then
+    loadSeparateSyncLFOIntoContainer(selected_device)
+    return
+  end
+  
+  -- Original behavior: load directly on track
   -- 1. Load Device (with Line Input protection)
-loadnative("Audio/Effects/Native/*Formula")
--- 2. Inject Current Device State XML
-local device_xml = [=[<?xml version="1.0" encoding="UTF-8"?>
+  loadnative("Audio/Effects/Native/*Formula")
+  -- 2. Inject Current Device State XML
+  local device_xml = [=[<?xml version="1.0" encoding="UTF-8"?>
 <FilterDevicePreset doc_version="14">
   <DeviceSlot type="FormulaMetaDevice">
     <IsMaximized>true</IsMaximized>
@@ -477,33 +541,576 @@ local device_xml = [=[<?xml version="1.0" encoding="UTF-8"?>
   </DeviceSlot>
 </FilterDevicePreset>
 ]=]
-renoise.song().selected_device.active_preset_data = device_xml
--- 3. Set Mixer Parameter Visibility
-renoise.song().selected_device.parameters[1].show_in_mixer = true
-renoise.song().selected_device.parameters[2].show_in_mixer = true
--- 4. Set Device Maximized State
-renoise.song().selected_device.is_maximized = true
--- 5. Set External Editor State
--- External editor not available for this device
--- 6. Set Device Display Name
-renoise.song().selected_device.display_name = "Separate Sync LFO"
--- 7. Set Device Enabled/Disabled State
--- renoise.song().selected_device.is_active = true (default)
--- Total parameters exposed in Mixer: 2
+  renoise.song().selected_device.active_preset_data = device_xml
+  -- 3. Set Mixer Parameter Visibility
+  renoise.song().selected_device.parameters[1].show_in_mixer = true
+  renoise.song().selected_device.parameters[2].show_in_mixer = true
+  -- 4. Set Device Maximized State
+  renoise.song().selected_device.is_maximized = true
+  -- 5. Set External Editor State
+  -- External editor not available for this device
+  -- 6. Set Device Display Name
+  renoise.song().selected_device.display_name = "Separate Sync LFO"
+  -- 7. Set Device Enabled/Disabled State
+  -- renoise.song().selected_device.is_active = true (default)
+  -- Total parameters exposed in Mixer: 2
 end
 
 renoise.tool():add_keybinding{name="Global:Paketti:SeparateSyncLFO (Beatsgo) (Preset++)", invoke = SeparateSyncLFOBeatsgo}
 renoise.tool():add_menu_entry{name="--DSP Device:Paketti:Preset++:SeparateSyncLFO (Beatsgo LFO)", invoke = SeparateSyncLFOBeatsgo}
+renoise.tool():add_menu_entry{name="--DSP Chain:Paketti:SeparateSyncLFO (Beatsgo) (Preset++)", invoke = SeparateSyncLFOBeatsgo}
 renoise.tool():add_menu_entry{name="--Mixer:Paketti:Preset++:SeparateSyncLFO (Beatsgo LFO)", invoke = SeparateSyncLFOBeatsgo}
 
 
 
 
+-- ==========================================
+-- CONTAINER DEVICE SUPPORT (SPLITTER & DOOFER)
+-- ==========================================
+-- 
+-- This system allows any Preset++ device to be loaded directly into
+-- Splitter or Doofer devices instead of onto the track.
+--
+-- How it works:
+-- 1. Each Preset++ function checks if selected device is a container
+-- 2. If so, it calls the appropriate "loadXIntoContainer" helper
+-- 3. The helper uses loadPresetIntoContainer() with device-specific XML
+-- 4. The XML is injected into DeviceChain0 for Splitter or main chain for Doofer
+--
+-- To add container support to a new Preset++ function:
+-- 1. Create a "loadXIntoContainer" helper with device XML (see examples below)
+-- 2. Add container detection at start of main function (see HipassPlusPlus example)
+-- 3. Call the helper and return early if container device detected
+--
+-- ==========================================
+
+-- Helper function to check if device is a container (Splitter or Doofer)
+function isContainerDevice(device)
+  if not device then return false end
+  return device.device_path == "Audio/Effects/Native/Splitter" or device.device_path == "Audio/Effects/Native/Doofer"
+end
+
+-- Helper function to create macro mapping XML for container devices
+function createMacroMapping(macro_index, param_name, param_index, chain_index, device_index, param_value)
+  local mapping_xml = string.format([=[    <Macro%d>
+      <Value>%s</Value>
+      <Name>%s</Name>
+      <Mappings>
+        <Mapping>
+          <DestChainIndex>%d</DestChainIndex>
+          <DestDeviceIndex>%d</DestDeviceIndex>
+          <DestParameterIndex>%d</DestParameterIndex>
+          <Min>0.0</Min>
+          <Max>1.0</Max>
+          <Scaling>Linear</Scaling>
+        </Mapping>
+      </Mappings>
+    </Macro%d>]=], 
+    macro_index, param_value or "50", param_name, chain_index, device_index, param_index, macro_index)
+  
+  return mapping_xml
+end
+
+-- Helper function to find the next available macro slot
+function findNextAvailableMacro(xml_content, max_macros)
+  max_macros = max_macros or 16  -- Default to 16 macros max
+  
+  for i = 0, max_macros - 1 do
+    local macro_pattern = "<Macro" .. i .. ">.-<Mappings>.-</Mappings>.-</Macro" .. i .. ">"
+    if not xml_content:find(macro_pattern) then
+      -- Check if it has any non-default content (not just name/value)
+      local basic_macro_pattern = "<Macro" .. i .. ">.-<Name>([^<]*)</Name>.-</Macro" .. i .. ">"
+      local name_match = xml_content:match(basic_macro_pattern)
+      if not name_match or name_match == "Macro " .. (i + 1) then
+        -- This macro is available (either doesn't exist or has default name)
+        return i
+      end
+    end
+  end
+  
+  return nil  -- No available macros found
+end
+
+-- Generic helper function to load any preset device into container device with macro mapping
+function loadPresetIntoContainer(device, device_xml, device_name, mixer_params)
+  local current_xml = device.active_preset_data
+  if not current_xml or current_xml == "" then
+    oprint("ERROR: Container device has no preset data to modify")
+    renoise.app():show_status("Container device has no preset data to modify")
+    return
+  end
+  
+  oprint("=== CONTAINER DEVICE DEBUG INFO ===")
+  oprint("Device path: " .. device.device_path)
+  oprint("Device name: " .. device_name)
+  oprint("Current XML length: " .. string.len(current_xml))
+  
+  -- Find available macro slots for this container device
+  local available_macros = {}
+  if mixer_params then
+    local start_macro = findNextAvailableMacro(current_xml, 16)
+    if start_macro then
+      oprint("Found available macro starting at: " .. start_macro)
+      for i = 1, #mixer_params do
+        local macro_index = start_macro + i - 1
+        if macro_index < 16 then  -- Don't exceed 16 macros
+          table.insert(available_macros, macro_index)
+          oprint("  Will use Macro" .. macro_index .. " for " .. mixer_params[i].name)
+        else
+          oprint("  WARNING: Ran out of available macros at parameter " .. i)
+          break
+        end
+      end
+    else
+      oprint("ERROR: No available macros found!")
+      renoise.app():show_status("No available macros in container device")
+      return
+    end
+  end
+  
+  -- Process mixer parameters for macro mapping (will be updated with correct chain for Splitter)
+  local macro_mappings = {}
+  local macro_params_to_expose = {}
+  local mixer_params_copy = mixer_params  -- Keep original for later processing
+  
+  -- For Splitter: inject into the currently visible chain 
+  if device.device_path == "Audio/Effects/Native/Splitter" then
+    oprint("Processing Splitter device...")
+    
+    -- Parse the currently visible chain from XML
+    local visible_chain_match = current_xml:match("<CurrentlyVisibleChain>(%d+)</CurrentlyVisibleChain>")
+    local visible_chain = visible_chain_match and tonumber(visible_chain_match) or 0
+    local target_chain_name = "DeviceChain" .. visible_chain
+    local layer_name = visible_chain == 0 and "Layer 1" or "Layer 2"
+    
+    oprint("Currently visible chain: " .. visible_chain .. " (" .. layer_name .. ")")
+    oprint("Target chain: " .. target_chain_name)
+    
+    -- Setup macro mappings with correct chain index for Splitter
+    if mixer_params_copy and #available_macros > 0 then
+      oprint("Setting up macro mappings for " .. #mixer_params_copy .. " parameters:")
+      for i, param_info in ipairs(mixer_params_copy) do
+        if i <= #available_macros then
+          local macro_index = available_macros[i]
+          oprint("  Macro" .. macro_index .. " -> " .. param_info.name .. " (param index " .. param_info.index .. ", chain " .. visible_chain .. ")")
+          table.insert(macro_mappings, createMacroMapping(macro_index, param_info.name, param_info.index, visible_chain, 0, param_info.value))
+          table.insert(macro_params_to_expose, macro_index + 1) -- Macro parameter indices (1-based for Splitter params)
+        else
+          oprint("  Skipping " .. param_info.name .. " - no more available macros")
+        end
+      end
+    end
+    
+    -- Debug: Check if target DeviceChain exists
+    local target_pattern = "<" .. target_chain_name .. ">"
+    if current_xml:find(target_pattern) then
+      oprint("Found " .. target_chain_name .. " in XML")
+    else
+      oprint("ERROR: " .. target_chain_name .. " not found in XML!")
+      oprint("XML content preview:")
+      oprint(current_xml:sub(1, 500) .. "...")
+      return
+    end
+    
+    -- Check if Devices exists within the target chain
+    local devices_pattern = "<" .. target_chain_name .. ">.-<Devices>"
+    local has_devices = current_xml:find(devices_pattern)
+    local pattern, replacement, new_xml
+    
+    if has_devices then
+      oprint("Found <Devices> within " .. target_chain_name .. " - injecting into existing devices")
+      -- Inject into existing <Devices> section
+      pattern = "(<" .. target_chain_name .. ">.-<Devices>)"
+      replacement = "%1\n" .. device_xml
+      new_xml = current_xml:gsub(pattern, replacement)
+    else
+      oprint("No <Devices> found in " .. target_chain_name .. " - creating new devices section")
+      -- Create a new <Devices> section before the closing tag
+      pattern = "(<" .. target_chain_name .. ">.-)(</DeviceChain" .. visible_chain .. ">)"
+      replacement = "%1\n      <Devices>\n" .. device_xml .. "\n      </Devices>\n    %2"
+      new_xml = current_xml:gsub(pattern, replacement)
+    end
+    
+    if new_xml ~= current_xml then
+      oprint("SUCCESS: Device XML injected")
+      
+      -- Now replace macro mappings if we have any
+      if #macro_mappings > 0 then
+        oprint("Injecting macro mappings...")
+        for i, macro_xml in ipairs(macro_mappings) do
+          if i <= #available_macros then
+            local macro_index = available_macros[i]
+            local macro_pattern = "(<Macro" .. macro_index .. ">.-</Macro" .. macro_index .. ">)"
+            new_xml = new_xml:gsub(macro_pattern, macro_xml)
+            oprint("  Replaced Macro" .. macro_index .. " with mapping")
+          end
+        end
+      end
+      
+      device.active_preset_data = new_xml
+      
+      -- Expose macro parameters to mixer
+      if #macro_params_to_expose > 0 then
+        oprint("Exposing macro parameters to mixer...")
+        for _, param_index in ipairs(macro_params_to_expose) do
+          device.parameters[param_index].show_in_mixer = true
+          oprint("  Exposed parameter " .. param_index .. " (" .. device.parameters[param_index].name .. ") to mixer")
+        end
+      end
+      
+      oprint(device_name .. " loaded into Splitter " .. target_chain_name .. " (" .. layer_name .. ") with macro mappings")
+      renoise.app():show_status(device_name .. " loaded into Splitter " .. layer_name .. " with macro mappings")
+    else
+      oprint("ERROR: Pattern replacement failed")
+      oprint("Pattern used: " .. pattern)
+      renoise.app():show_status("Could not modify Splitter XML - pattern not found")
+    end
+    
+  -- For Doofer: inject into the main device chain
+  elseif device.device_path == "Audio/Effects/Native/Doofer" then
+    oprint("Processing Doofer device...")
+    
+    -- Setup macro mappings for Doofer (always uses chain 0, device 0)
+    if mixer_params_copy and #available_macros > 0 then
+      oprint("Setting up macro mappings for " .. #mixer_params_copy .. " parameters:")
+      for i, param_info in ipairs(mixer_params_copy) do
+        if i <= #available_macros then
+          local macro_index = available_macros[i]
+          oprint("  Macro" .. macro_index .. " -> " .. param_info.name .. " (param index " .. param_info.index .. ", chain 0)")
+          table.insert(macro_mappings, createMacroMapping(macro_index, param_info.name, param_info.index, 0, 0, param_info.value))
+          table.insert(macro_params_to_expose, macro_index + 1) -- Macro parameter indices (1-based for Doofer params)
+        else
+          oprint("  Skipping " .. param_info.name .. " - no more available macros")
+        end
+      end
+    end
+    
+    -- Debug: Check if Devices exists
+    if current_xml:find("<Devices>") then
+      oprint("Found <Devices> in XML")
+    else
+      oprint("ERROR: <Devices> not found in XML!")
+      oprint("XML content preview:")
+      oprint(current_xml:sub(1, 500) .. "...")
+      return
+    end
+    
+    -- Look for the <Devices> section and inject the device
+    local pattern = "(<Devices>)"
+    local replacement = "%1\n" .. device_xml
+    local new_xml = current_xml:gsub(pattern, replacement)
+    
+    if new_xml ~= current_xml then
+      oprint("SUCCESS: Device XML injected")
+      
+      -- Now replace macro mappings if we have any
+      if #macro_mappings > 0 then
+        oprint("Injecting macro mappings...")
+        for i, macro_xml in ipairs(macro_mappings) do
+          if i <= #available_macros then
+            local macro_index = available_macros[i]
+            local macro_pattern = "(<Macro" .. macro_index .. ">.-</Macro" .. macro_index .. ">)"
+            new_xml = new_xml:gsub(macro_pattern, macro_xml)
+            oprint("  Replaced Macro" .. macro_index .. " with mapping")
+          end
+        end
+      end
+      
+      device.active_preset_data = new_xml
+      
+      -- Expose macro parameters to mixer
+      if #macro_params_to_expose > 0 then
+        oprint("Exposing macro parameters to mixer...")
+        for _, param_index in ipairs(macro_params_to_expose) do
+          device.parameters[param_index].show_in_mixer = true
+          oprint("  Exposed parameter " .. param_index .. " (" .. device.parameters[param_index].name .. ") to mixer")
+        end
+      end
+      
+      oprint(device_name .. " loaded into Doofer with macro mappings")
+      renoise.app():show_status(device_name .. " loaded into Doofer with macro mappings")
+    else
+      oprint("ERROR: Pattern replacement failed")
+      oprint("Pattern used: " .. pattern)
+      renoise.app():show_status("Could not modify Doofer XML - pattern not found")
+    end
+  end
+  
+  oprint("=== END DEBUG INFO ===")
+end
+
+-- Generic helper function to load multiple devices (device chain) into container device
+function loadDeviceChainIntoContainer(device, device_xmls, chain_name, mixer_params)
+  local current_xml = device.active_preset_data
+  if not current_xml or current_xml == "" then
+    renoise.app():show_status("Container device has no preset data to modify")
+    return
+  end
+  
+  -- Combine all device XMLs
+  local combined_xml = ""
+  for _, device_xml in ipairs(device_xmls) do
+    combined_xml = combined_xml .. "\n" .. device_xml
+  end
+  
+  -- Find available macro slots for this container device (device chain version)
+  local available_macros = {}
+  if mixer_params then
+    local start_macro = findNextAvailableMacro(current_xml, 16)
+    if start_macro then
+      for i = 1, #mixer_params do
+        local macro_index = start_macro + i - 1
+        if macro_index < 16 then  -- Don't exceed 16 macros
+          table.insert(available_macros, macro_index)
+        else
+          break
+        end
+      end
+    end
+  end
+  
+  -- Process mixer parameters for macro mapping (will be set correctly per device type)
+  local macro_mappings = {}
+  local macro_params_to_expose = {}
+  
+  -- For Splitter: inject into the currently visible chain
+  if device.device_path == "Audio/Effects/Native/Splitter" then
+    -- Parse the currently visible chain from XML
+    local visible_chain_match = current_xml:match("<CurrentlyVisibleChain>(%d+)</CurrentlyVisibleChain>")
+    local visible_chain = visible_chain_match and tonumber(visible_chain_match) or 0
+    local target_chain_name = "DeviceChain" .. visible_chain
+    local layer_name = visible_chain == 0 and "Layer 1" or "Layer 2"
+    
+    -- Setup macro mappings for Splitter device chain
+    if mixer_params then
+      for i, param_info in ipairs(mixer_params) do
+        if i <= #available_macros then
+          local macro_index = available_macros[i]
+          table.insert(macro_mappings, createMacroMapping(macro_index, param_info.name, param_info.index, visible_chain, param_info.device_index or 0, param_info.value))
+          table.insert(macro_params_to_expose, macro_index + 1)
+        end
+      end
+    end
+    
+    -- Look for the target DeviceChain section and inject the devices
+    local pattern = "(<" .. target_chain_name .. ">.-<Devices>)"
+    local replacement = "%1" .. combined_xml
+    local new_xml = current_xml:gsub(pattern, replacement)
+    
+    if new_xml ~= current_xml then
+      -- Apply macro mappings if we have any
+      if #macro_mappings > 0 then
+        for i, macro_xml in ipairs(macro_mappings) do
+          if i <= #available_macros then
+            local macro_index = available_macros[i]
+            local macro_pattern = "(<Macro" .. macro_index .. ">.-</Macro" .. macro_index .. ">)"
+            new_xml = new_xml:gsub(macro_pattern, macro_xml)
+          end
+        end
+      end
+      
+      device.active_preset_data = new_xml
+      
+      -- Expose macro parameters to mixer
+      if #macro_params_to_expose > 0 then
+        for _, param_index in ipairs(macro_params_to_expose) do
+          device.parameters[param_index].show_in_mixer = true
+        end
+      end
+      
+      renoise.app():show_status(chain_name .. " device chain loaded into Splitter " .. layer_name .. " with macro mappings")
+    else
+      renoise.app():show_status("Could not modify Splitter XML - pattern not found")
+    end
+    
+  -- For Doofer: inject into the main device chain
+  elseif device.device_path == "Audio/Effects/Native/Doofer" then
+    -- Setup macro mappings for Doofer device chain
+    if mixer_params then
+      for i, param_info in ipairs(mixer_params) do
+        if i <= #available_macros then
+          local macro_index = available_macros[i]
+          table.insert(macro_mappings, createMacroMapping(macro_index, param_info.name, param_info.index, 0, param_info.device_index or 0, param_info.value))
+          table.insert(macro_params_to_expose, macro_index + 1)
+        end
+      end
+    end
+    
+    -- Look for the <Devices> section and inject the devices
+    local pattern = "(<Devices>)"
+    local replacement = "%1" .. combined_xml
+    local new_xml = current_xml:gsub(pattern, replacement)
+    
+    if new_xml ~= current_xml then
+      -- Apply macro mappings if we have any
+      if #macro_mappings > 0 then
+        for i, macro_xml in ipairs(macro_mappings) do
+          if i <= #available_macros then
+            local macro_index = available_macros[i]
+            local macro_pattern = "(<Macro" .. macro_index .. ">.-</Macro" .. macro_index .. ">)"
+            new_xml = new_xml:gsub(macro_pattern, macro_xml)
+          end
+        end
+      end
+      
+      device.active_preset_data = new_xml
+      
+      -- Expose macro parameters to mixer
+      if #macro_params_to_expose > 0 then
+        for _, param_index in ipairs(macro_params_to_expose) do
+          device.parameters[param_index].show_in_mixer = true
+        end
+      end
+      
+      renoise.app():show_status(chain_name .. " device chain loaded into Doofer with macro mappings")
+    else
+      renoise.app():show_status("Could not modify Doofer XML - pattern not found")
+    end
+  end
+end
+
+-- Helper function to load Hipass preset into container device
+function loadHipassIntoContainer(device)
+  -- Define the Hipass device XML that should be injected
+  local hipass_device_xml = [=[        <DigitalFilterDevice type="DigitalFilterDevice">
+          <SelectedPresetIsModified>true</SelectedPresetIsModified>
+          <CustomDeviceName>Hipass (Preset++)</CustomDeviceName>
+          <IsMaximized>true</IsMaximized>
+          <IsSelected>true</IsSelected>
+          <IsActive>
+            <Value>1.0</Value>
+            <Visualization>Device only</Visualization>
+          </IsActive>
+          <OversamplingFactor>2x</OversamplingFactor>
+          <Model>Biquad</Model>
+          <Type>
+            <Value>3</Value>
+            <Visualization>Device only</Visualization>
+          </Type>
+          <Cutoff>
+            <Value>0.0</Value>
+            <Visualization>Mixer and Device</Visualization>
+          </Cutoff>
+          <Q>
+            <Value>0.125</Value>
+            <Visualization>Device only</Visualization>
+          </Q>
+          <Ripple>
+            <Value>0.0</Value>
+            <Visualization>Device only</Visualization>
+          </Ripple>
+          <Inertia>
+            <Value>0.0078125</Value>
+            <Visualization>Device only</Visualization>
+          </Inertia>
+          <ShowResponseView>true</ShowResponseView>
+          <ResponseViewMaxGain>18</ResponseViewMaxGain>
+        </DigitalFilterDevice>]=]
+  
+  -- Define which parameters should be mapped to macros (based on original Hipass++ mixer exposure)
+  local mixer_params = {
+    {name = "Cutoff", index = 2, value = "0.0"}  -- Cutoff parameter (index 2) from DigitalFilter device
+  }
+  
+  loadPresetIntoContainer(device, hipass_device_xml, "Hipass (Preset++)", mixer_params)
+end
+
+-- Helper function to load LFOEnvelopePan preset into container device
+function loadLFOEnvelopePanIntoContainer(device)
+  -- Define the LFO device XML that should be injected
+  local lfo_device_xml = [=[        <LfoDevice type="LfoDevice">
+          <SelectedPresetIsModified>true</SelectedPresetIsModified>
+          <CustomDeviceName>LFOEnvelopePan</CustomDeviceName>
+          <IsMaximized>true</IsMaximized>
+          <IsSelected>true</IsSelected>
+          <IsActive>
+            <Value>1.0</Value>
+            <Visualization>Device only</Visualization>
+          </IsActive>
+          <Amplitude>
+            <Value>1.0</Value>
+            <Visualization>Device only</Visualization>
+          </Amplitude>
+          <Offset>
+            <Value>0.0</Value>
+            <Visualization>Device only</Visualization>
+          </Offset>
+          <Frequency>
+            <Value>0.0292968769</Value>
+            <Visualization>Mixer and Device</Visualization>
+          </Frequency>
+          <Type>
+            <Value>4</Value>
+            <Visualization>Device only</Visualization>
+          </Type>
+          <CustomEnvelope>
+            <PlayMode>Lines</PlayMode>
+            <Length>1024</Length>
+            <ValueQuantum>0.0</ValueQuantum>
+            <Polarity>Unipolar</Polarity>
+            <Points>
+              <Point>0,0.5,0.0</Point>
+              <Point>1,0.5,0.0</Point>
+              <Point>2,0.5,0.0</Point>
+              <Point>3,0.5,0.0</Point>
+              <Point>4,0.5,0.0</Point>
+              <Point>5,0.5,0.0</Point>
+              <Point>6,0.5,0.0</Point>
+              <Point>7,0.5,0.0</Point>
+              <Point>8,0.5,0.0</Point>
+              <Point>9,0.5,0.0</Point>
+              <Point>10,0.5,0.0</Point>
+              <Point>11,0.5,0.0</Point>
+              <Point>12,0.5,0.0</Point>
+              <Point>13,0.5,0.0</Point>
+              <Point>14,0.5,0.0</Point>
+              <Point>15,0.5,0.0</Point>
+              <Point>1008,0.501805007,0.0</Point>
+              <Point>1009,0.501805007,0.0</Point>
+              <Point>1010,0.501805007,0.0</Point>
+              <Point>1011,0.501805007,0.0</Point>
+              <Point>1012,0.501805007,0.0</Point>
+              <Point>1013,0.501805007,0.0</Point>
+              <Point>1014,0.501805007,0.0</Point>
+              <Point>1015,0.501805007,0.0</Point>
+              <Point>1016,0.501805007,0.0</Point>
+              <Point>1017,0.501805007,0.0</Point>
+              <Point>1018,0.501805007,0.0</Point>
+              <Point>1019,0.501805007,0.0</Point>
+              <Point>1020,0.501805007,0.0</Point>
+              <Point>1021,0.501805007,0.0</Point>
+              <Point>1022,0.501805007,0.0</Point>
+              <Point>1023,0.501805007,0.0</Point>
+            </Points>
+          </CustomEnvelope>
+          <CustomEnvelopeOneShot>false</CustomEnvelopeOneShot>
+          <UseAdjustedEnvelopeLength>true</UseAdjustedEnvelopeLength>
+        </LfoDevice>]=]
+  
+  -- Define which parameters should be mapped to macros (based on original LFOEnvelopePan mixer exposure)
+  local mixer_params = {
+    {name = "Amplitude", index = 4, value = "1.0"},
+    {name = "Offset", index = 5, value = "0.0"},
+    {name = "Frequency", index = 6, value = "0.0292968769"}
+  }
+  
+  loadPresetIntoContainer(device, lfo_device_xml, "LFOEnvelopePan", mixer_params)
+end
+
 function HipassPlusPlus()
--- 1. Load Device (with Line Input protection)
-loadnative("Audio/Effects/Native/Digital Filter", nil, nil, nil, true)
--- 2. Inject Current Device State XML
-local device_xml = [=[<?xml version="1.0" encoding="UTF-8"?>
+  local selected_device = renoise.song().selected_device
+  
+  -- Check if we have a selected device that is a container
+  if selected_device and isContainerDevice(selected_device) then
+    loadHipassIntoContainer(selected_device)
+    return
+  end
+  
+  -- Original behavior: load directly on track
+  -- 1. Load Device (with Line Input protection)
+  loadnative("Audio/Effects/Native/Digital Filter", nil, nil, nil, true)
+  -- 2. Inject Current Device State XML
+  local device_xml = [=[<?xml version="1.0" encoding="UTF-8"?>
 <FilterDevicePreset doc_version="14">
   <DeviceSlot type="DigitalFilterDevice">
     <IsMaximized>true</IsMaximized>
@@ -529,21 +1136,22 @@ local device_xml = [=[<?xml version="1.0" encoding="UTF-8"?>
   </DeviceSlot>
 </FilterDevicePreset>
 ]=]
-renoise.song().selected_device.active_preset_data = device_xml
--- 3. Set Mixer Parameter Visibility
-renoise.song().selected_device.parameters[2].show_in_mixer = true
--- 4. Set Device Maximized State
-renoise.song().selected_device.is_maximized = true
--- 5. Set External Editor State
--- External editor not available for this device
--- 6. Set Device Display Name
-renoise.song().selected_device.display_name = "Hipass (Preset++)"
--- Total parameters exposed in Mixer: 1
+  renoise.song().selected_device.active_preset_data = device_xml
+  -- 3. Set Mixer Parameter Visibility
+  renoise.song().selected_device.parameters[2].show_in_mixer = true
+  -- 4. Set Device Maximized State
+  renoise.song().selected_device.is_maximized = true
+  -- 5. Set External Editor State
+  -- External editor not available for this device
+  -- 6. Set Device Display Name
+  renoise.song().selected_device.display_name = "Hipass (Preset++)"
+  -- Total parameters exposed in Mixer: 1
 
 end
 
 
 renoise.tool():add_menu_entry{name="--DSP Device:Paketti:Preset++:Hipass", invoke = HipassPlusPlus}
+renoise.tool():add_menu_entry{name="--DSP Chain:Paketti:Hipass (Preset++)", invoke = HipassPlusPlus}
 renoise.tool():add_menu_entry{name="--Mixer:Paketti:Preset++:Hipass", invoke = HipassPlusPlus}
 renoise.tool():add_keybinding{name="DSP Device:Paketti:Hipass (Preset++)", invoke = HipassPlusPlus}
 renoise.tool():add_keybinding{name="Mixer:Paketti:Hipass (Preset++)", invoke = HipassPlusPlus}
@@ -551,6 +1159,15 @@ renoise.tool():add_keybinding{name="Global:Paketti:Hipass (Preset++)", invoke = 
 
 
 function LFOEnvelopePanPresetPlusPlus()
+  local selected_device = renoise.song().selected_device
+  
+  -- Check if we have a selected device that is a container
+  if selected_device and isContainerDevice(selected_device) then
+    loadLFOEnvelopePanIntoContainer(selected_device)
+    return
+  end
+  
+  -- Original behavior: load directly on track using device chain recreation
 -- === TRACK DEVICE CHAIN RECREATION ===
 -- Track: Track 06
 -- Total devices (excluding Track Vol/Pan): 1
@@ -670,6 +1287,7 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:LFOEnvelopePan (Preset++)", invoke = LFOEnvelopePanPresetPlusPlus}
 renoise.tool():add_menu_entry{name="--DSP Device:Paketti:Preset++:LFOEnvelopePan", invoke = LFOEnvelopePanPresetPlusPlus}
+renoise.tool():add_menu_entry{name="--DSP Chain:Paketti:LFOEnvelopePan (Preset++)", invoke = LFOEnvelopePanPresetPlusPlus}
 renoise.tool():add_menu_entry{name="--Mixer:Paketti:Preset++:LFOEnvelopePan", invoke = LFOEnvelopePanPresetPlusPlus}
 
 

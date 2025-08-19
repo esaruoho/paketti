@@ -6900,40 +6900,62 @@ function create_sliders(row, initial_value, range, slider_set)
 end
 
 function create_row_controls(slider_set, initial_value, range, loop_default)
-  local row = vb:row{vb:text{text=slider_set:gsub("^%l", string.upper), font="bold", style="strong",width=60,}}
-
-  -- Pass slider_set to create_sliders so it knows which pattern to update
-  local sliders_row = create_sliders(row, initial_value, range, slider_set)
-
-  row:add_child(vb:valuebox{
-    min = 1,
-    max = 16,
-    value = loop_default,
-    notifier=function(value) 
-      loop_values[slider_set] = value 
-      -- Only update pattern if we're not receiving
-      if not is_receiving then
-        print_row(slider_set, slider_set, true)
-      end
-    end
-  })
-
-  row:add_child(vb:button{
-    text="Randomize",
-    notifier=function() randomize_row(slider_set) end
-  })
+  -- Create the main row with label and sliders
+  local main_row = vb:row{vb:text{text=slider_set:gsub("^%l", string.upper), font="bold", style="strong",width=60,}}
   
-  row:add_child(vb:button{
-    text="Print",
-    notifier=function() print_row(slider_set, slider_set) end
-  })
+  -- Pass slider_set to create_sliders so it knows which pattern to update
+  local sliders_row = create_sliders(main_row, initial_value, range, slider_set)
 
-  row:add_child(vb:button{text="Reset",notifier=function() reset_row(slider_set) print_row(slider_set, slider_set) end})
-  row:add_child(vb:button{text="Receive",notifier=function() receive_row(slider_set, slider_set, false) end})
-  row:add_child(vb:button{text="<",notifier=function() shift_row(slider_set, "left") end})
-  row:add_child(vb:button{text=">",notifier=function() shift_row(slider_set, "right") end})
+  -- Create the controls column that will contain valuebox and buttons
+  local controls_column = vb:column{
+    -- Step count valuebox
+    vb:valuebox{
+      min = 1,
+      max = 16,
+      value = loop_default,
+      notifier=function(value) 
+        loop_values[slider_set] = value 
+        -- Only update pattern if we're not receiving
+        if not is_receiving then
+          print_row(slider_set, slider_set, true)
+        end
+      end
+    },
+    
+    -- First row of buttons
+    vb:row{
+      vb:button{
+        text="Randomize",
+        notifier=function() randomize_row(slider_set) end
+      }},vb:row{
+      vb:button{
+        text="Write",
+        notifier=function() print_row(slider_set, slider_set) end
+      },      vb:button{
+        text="Read",
+        notifier=function() receive_row(slider_set, slider_set, false) end
+      }},vb:row{
+      vb:button{
+        text="Reset",
+        notifier=function() reset_row(slider_set) print_row(slider_set, slider_set) end
+      }}, 
+    -- Second row of buttons
+    vb:row{
+      vb:button{
+        text="<",
+        notifier=function() shift_row(slider_set, "left") end
+      },
+      vb:button{
+        text=">",
+        notifier=function() shift_row(slider_set, "right") end
+      }
+    }
+  }
+  
+  -- Add the controls column to the main row
+  main_row:add_child(controls_column)
 
-  return row, sliders_row
+  return main_row, sliders_row
 end
 
 function volume_interpolation()
@@ -7329,24 +7351,20 @@ function pakettiVolDelayPanSliderDialog()
   observe_track_changes()
 
   -- Layout the dialog with the auto-grab checkbox
-  local content = vb:column{volume_row,delay_row,panning_row,
-    vb:row{
-      vb:checkbox{
+  local content = vb:column{volume_row,delay_row,panning_row,vb:row{vb:checkbox{
         value = auto_grab_enabled,
         notifier=function(value)
           auto_grab_enabled = value
           renoise.app():show_status("Auto-grab " .. (value and "enabled" or "disabled"))
         end
-      },
-      vb:text{text="Auto-Grab", style="strong", font="bold"}},
-    vb:row{ -- Print All and Randomize All buttons
-      vb:button{text="Print All",notifier=function() print_all() end},
+      }, -- end checkbox
+      vb:text{text="Auto-Grab", style="strong", font="bold"},
+      vb:button{text="Write All",notifier=function() print_all() end},
       vb:button{text="Randomize All",notifier=function() randomizenongroovebox_all() end},
-      vb:button{text="Grab",notifier=function() global_receive() end},
+      vb:button{text="Read All",notifier=function() global_receive() end},
       vb:button{text="<<",notifier=function() global_shift_left() end},
-      vb:button{text=">>",notifier=function() global_shift_right() end}
-    }
-  }
+      vb:button{text=">>",notifier=function() global_shift_right() end}}}
+  
 
   -- Focus on the middle frame when dialog opens
   renoise.app().window.active_middle_frame = 1
