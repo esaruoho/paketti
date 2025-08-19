@@ -167,6 +167,7 @@ function iti_loadinstrument(filename)
   
   -- Parse and load samples
   local loaded_samples = {}
+  local iti_sample_data = {}  -- Store original ITI sample data for tuning
   local compressed_samples = {}
   
   if instrument_data.num_samples > 0 then
@@ -182,6 +183,9 @@ function iti_loadinstrument(filename)
       
       local sample_data = parse_iti_sample(data, sample_pos)
       if sample_data then
+        -- Store original ITI sample data for tuning calculations
+        iti_sample_data[i] = sample_data
+        
         -- Track compressed samples
         if bit_and(sample_data.flags, SAMPLE_COMPRESSED) ~= 0 then
           compressed_samples[i] = true
@@ -210,7 +214,7 @@ function iti_loadinstrument(filename)
   end
   
   -- Set up keyboard mapping
-  setup_keyboard_mapping(instrument, instrument_data.keyboard_table, loaded_samples)
+  setup_keyboard_mapping(instrument, instrument_data.keyboard_table, loaded_samples, iti_sample_data)
   
   -- Set up envelopes
   setup_envelopes(instrument, instrument_data.envelopes)
@@ -839,6 +843,7 @@ function it_decompress8_channel(file_data, start_pos, length, it215)
       value, pos = it_readbits(width, bitbuf, bitnum, file_data, pos)
       
       -- Check for width change patterns
+      local width_changed = false
       if width < 7 then
         -- Method 1 (1-6 bits): check for "100..." pattern
         if value == bit_lshift(1, width - 1) then
@@ -846,7 +851,7 @@ function it_decompress8_channel(file_data, start_pos, length, it215)
           new_width, pos = it_readbits(3, bitbuf, bitnum, file_data, pos)
           new_width = new_width + 1
           width = (new_width < width) and new_width or (new_width + 1)
-          goto continue
+          width_changed = true
         end
       elseif width < 9 then
         -- Method 2 (7-8 bits): border check
@@ -854,50 +859,51 @@ function it_decompress8_channel(file_data, start_pos, length, it215)
         if value > border and value <= (border + 8) then
           value = value - border
           width = (value < width) and value or (value + 1)
-          goto continue
+          width_changed = true
         end
       else
         -- Method 3 (9 bits): high bit check
         if bit_and(value, 0x100) ~= 0 then
           width = bit_and(value + 1, 0xFF)
-          goto continue
+          width_changed = true
         end
       end
       
-      -- Sign extend the value
-      local v
-      if width < 8 then
-        local shift = 8 - width
-        v = bit_lshift(value, shift)
-        -- Sign extend
-        if v >= 128 then
-          v = v - 256
+      -- Only process sample if width didn't change
+      if not width_changed then
+        -- Sign extend the value
+        local v
+        if width < 8 then
+          local shift = 8 - width
+          v = bit_lshift(value, shift)
+          -- Sign extend
+          if v >= 128 then
+            v = v - 256
+          end
+          v = bit_rshift(v, shift)
+          -- Clamp to signed 8-bit
+          if v > 127 then v = 127 end
+          if v < -128 then v = -128 end
+        else
+          v = value
+          if v > 127 then v = v - 256 end  -- Convert to signed
         end
-        v = bit_rshift(v, shift)
-        -- Clamp to signed 8-bit
-        if v > 127 then v = 127 end
-        if v < -128 then v = -128 end
-      else
-        v = value
-        if v > 127 then v = v - 256 end  -- Convert to signed
+        
+        -- Integrate the sample values
+        d1 = d1 + v
+        d2 = d2 + d1
+        
+        -- Clamp integrators to 8-bit signed range
+        if d1 > 127 then d1 = d1 - 256 end
+        if d1 < -128 then d1 = d1 + 256 end
+        if d2 > 127 then d2 = d2 - 256 end
+        if d2 < -128 then d2 = d2 + 256 end
+        
+        -- Store the sample (use d2 for IT215, d1 for IT214)
+        dest[dest_pos] = it215 and d2 or d1
+        dest_pos = dest_pos + 1
+        blkpos = blkpos + 1
       end
-      
-      -- Integrate the sample values
-      d1 = d1 + v
-      d2 = d2 + d1
-      
-      -- Clamp integrators to 8-bit signed range
-      if d1 > 127 then d1 = d1 - 256 end
-      if d1 < -128 then d1 = d1 + 256 end
-      if d2 > 127 then d2 = d2 - 256 end
-      if d2 < -128 then d2 = d2 + 256 end
-      
-      -- Store the sample (use d2 for IT215, d1 for IT214)
-      dest[dest_pos] = it215 and d2 or d1
-      dest_pos = dest_pos + 1
-      blkpos = blkpos + 1
-      
-      ::continue::
     end
     
     remaining_len = remaining_len - blklen
@@ -959,6 +965,7 @@ function it_decompress16_channel(file_data, start_pos, length, it215)
       value, pos = it_readbits(width, bitbuf, bitnum, file_data, pos)
       
       -- Check for width change patterns
+      local width_changed = false
       if width < 7 then
         -- Method 1 (1-6 bits): check for "100..." pattern
         if value == bit_lshift(1, width - 1) then
@@ -966,7 +973,7 @@ function it_decompress16_channel(file_data, start_pos, length, it215)
           new_width, pos = it_readbits(4, bitbuf, bitnum, file_data, pos)  -- 4 bits for 16-bit
           new_width = new_width + 1
           width = (new_width < width) and new_width or (new_width + 1)
-          goto continue
+          width_changed = true
         end
       elseif width < 17 then
         -- Method 2 (7-16 bits): border check
@@ -974,50 +981,51 @@ function it_decompress16_channel(file_data, start_pos, length, it215)
         if value > border and value <= (border + 16) then
           value = value - border
           width = (value < width) and value or (value + 1)
-          goto continue
+          width_changed = true
         end
       else
         -- Method 3 (17 bits): high bit check
         if bit_and(value, 0x10000) ~= 0 then
           width = bit_and(value + 1, 0xFF)
-          goto continue
+          width_changed = true
         end
       end
       
-      -- Sign extend the value
-      local v
-      if width < 16 then
-        local shift = 16 - width
-        v = bit_lshift(value, shift)
-        -- Sign extend
-        if v >= 32768 then
-          v = v - 65536
+      -- Only process sample if width didn't change
+      if not width_changed then
+        -- Sign extend the value
+        local v
+        if width < 16 then
+          local shift = 16 - width
+          v = bit_lshift(value, shift)
+          -- Sign extend
+          if v >= 32768 then
+            v = v - 65536
+          end
+          v = bit_rshift(v, shift)
+          -- Clamp to signed 16-bit
+          if v > 32767 then v = 32767 end
+          if v < -32768 then v = -32768 end
+        else
+          v = value
+          if v > 32767 then v = v - 65536 end  -- Convert to signed
         end
-        v = bit_rshift(v, shift)
-        -- Clamp to signed 16-bit
-        if v > 32767 then v = 32767 end
-        if v < -32768 then v = -32768 end
-      else
-        v = value
-        if v > 32767 then v = v - 65536 end  -- Convert to signed
+        
+        -- Integrate the sample values
+        d1 = d1 + v
+        d2 = d2 + d1
+        
+        -- Clamp integrators to 16-bit signed range
+        if d1 > 32767 then d1 = d1 - 65536 end
+        if d1 < -32768 then d1 = d1 + 65536 end
+        if d2 > 32767 then d2 = d2 - 65536 end
+        if d2 < -32768 then d2 = d2 + 65536 end
+        
+        -- Store the sample (use d2 for IT215, d1 for IT214)
+        dest[dest_pos] = it215 and d2 or d1
+        dest_pos = dest_pos + 1
+        blkpos = blkpos + 1
       end
-      
-      -- Integrate the sample values
-      d1 = d1 + v
-      d2 = d2 + d1
-      
-      -- Clamp integrators to 16-bit signed range
-      if d1 > 32767 then d1 = d1 - 65536 end
-      if d1 < -32768 then d1 = d1 + 65536 end
-      if d2 > 32767 then d2 = d2 - 65536 end
-      if d2 < -32768 then d2 = d2 + 65536 end
-      
-      -- Store the sample (use d2 for IT215, d1 for IT214)
-      dest[dest_pos] = it215 and d2 or d1
-      dest_pos = dest_pos + 1
-      blkpos = blkpos + 1
-      
-      ::continue::
     end
     
     remaining_len = remaining_len - blklen
@@ -1091,7 +1099,7 @@ function decompress_it_sample(data, start_pos, length, is_16bit, channels, it215
   return result
 end
 
-function setup_keyboard_mapping(instrument, keyboard_table, loaded_samples)
+function setup_keyboard_mapping(instrument, keyboard_table, loaded_samples, iti_sample_data)
   dprint("Setting up keyboard mapping")
   
   if #loaded_samples == 0 then
@@ -1150,45 +1158,82 @@ function setup_keyboard_mapping(instrument, keyboard_table, loaded_samples)
     sample_ranges[sample_idx] = ranges
     
     if #ranges > 1 then
-      dprint(string.format("Sample %d has %d non-continuous ranges - will create multiple mappings", sample_idx, #ranges))
+      dprint(string.format("Sample %d has %d non-continuous ranges - will use first range only", sample_idx, #ranges))
     end
   end
   
-  -- Clear existing mappings and create new ones for each range
-  local mappings = instrument.sample_mappings[renoise.Instrument.LAYER_NOTE_ON]
-  dprint("Clearing", #mappings, "default mappings")
+  -- Configure sample mappings directly (samples already exist from loading)
+  dprint("Configuring sample mappings for", #instrument.samples, "samples")
   
-  -- Clear all existing mappings
-  while #mappings > 0 do
-    instrument:delete_sample_mapping_at(renoise.Instrument.LAYER_NOTE_ON, 1)
-  end
-  
-  -- Create new mappings for each continuous range
+  -- Configure mappings for existing samples
   local mapping_count = 0
+  
+  -- Find the highest range to extend it to B-9
+  local highest_range_max = 0
   for sample_idx = 1, #loaded_samples do
     local ranges = sample_ranges[sample_idx]
-    if ranges then
-      for range_idx, range in ipairs(ranges) do
-        mapping_count = mapping_count + 1
-        
-        -- Create new sample mapping
-        local mapping = instrument:insert_sample_mapping_at(renoise.Instrument.LAYER_NOTE_ON, mapping_count)
-        
-        -- Set up the mapping
-        mapping.note_range = {range.min, range.max}
-        mapping.base_note = 60  -- C-4 reference
-        mapping.sample = sample_idx
-        
-        local note_name_min = ({"C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"})[range.min % 12 + 1] .. math.floor(range.min / 12)
-        local note_name_max = ({"C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"})[range.max % 12 + 1] .. math.floor(range.max / 12)
-          
-        dprint(string.format("✓ Created mapping %d: Sample %d, notes %d-%d (%s to %s)", 
-          mapping_count, sample_idx, range.min, range.max, note_name_min, note_name_max))
+    if ranges and #ranges >= 1 then
+      local range = ranges[1]
+      if range.max > highest_range_max then
+        highest_range_max = range.max
       end
     end
   end
   
-  dprint(string.format("Keyboard mapping completed: created %d mappings for %d samples", mapping_count, #loaded_samples))
+  -- Configure all samples with proper ITI-style mapping
+  for sample_idx = 1, #loaded_samples do
+    local ranges = sample_ranges[sample_idx]
+    if ranges and #ranges >= 1 then
+      local range = ranges[1]  -- Use first range for mapping
+      local sample = instrument.samples[sample_idx]
+      local iti_data = iti_sample_data[sample_idx]
+      
+      if sample and sample.sample_mapping and iti_data then
+        -- Extend the highest range to B-9 (note 119) for full keyboard coverage
+        local final_range_max = range.max
+        local is_highest_range = (range.max == highest_range_max)
+        if is_highest_range and range.max < 119 then
+          final_range_max = 119  -- Extend to B-9
+        end
+        
+        -- Configure the sample mapping directly
+        sample.sample_mapping.note_range = {range.min, final_range_max}
+        sample.sample_mapping.velocity_range = {0, 127}  -- Full velocity range
+        sample.sample_mapping.map_velocity_to_volume = true
+        sample.sample_mapping.map_key_to_pitch = true
+        
+        -- Use the original_note from the first keyboard entry in this range as the base_note!
+        -- This is what the ITI format actually stores - the intended base note for each mapping
+        local first_key_entry = keyboard_table[range.min + 1]  -- Convert back to 1-based indexing
+        local base_note = first_key_entry and first_key_entry.original_note or 60  -- Fallback to C-5
+        
+        sample.sample_mapping.base_note = base_note
+        
+        local note_name_min = ({"C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"})[range.min % 12 + 1] .. math.floor(range.min / 12)
+        local note_name_max = ({"C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"})[final_range_max % 12 + 1] .. math.floor(final_range_max / 12)
+        local base_note_name = ({"C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"})[base_note % 12 + 1] .. math.floor(base_note / 12)
+        
+        mapping_count = mapping_count + 1
+        if is_highest_range and final_range_max > range.max then
+          dprint(string.format("✓ Sample %d: notes %d-%d (%s to %s) [EXTENDED to B-9], base_note=%s (%d)", 
+            sample_idx, range.min, final_range_max, note_name_min, note_name_max, base_note_name, base_note))
+        else
+          dprint(string.format("✓ Sample %d: notes %d-%d (%s to %s), base_note=%s (%d)", 
+            sample_idx, range.min, final_range_max, note_name_min, note_name_max, base_note_name, base_note))
+        end
+        
+        if #ranges > 1 then
+          dprint(string.format("⚠ Sample %d has %d ranges, only using first range", sample_idx, #ranges))
+        end
+      end
+    end
+  end
+  
+  if mapping_count > 0 then
+    dprint(string.format("✓ Keyboard mapping completed: configured %d sample mappings", mapping_count))
+  else
+    dprint("⚠ No keyboard mappings configured - using default sample mappings")
+  end
 end
 
 function setup_envelopes(instrument, envelopes)

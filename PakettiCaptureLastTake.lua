@@ -509,11 +509,14 @@ function PakettiCapture_DumpRow(index)
       ncol.instrument_value = 255
     end
   end
-  for i = needed_cols + 1, max_cols do
-    local ncol = line:note_column(i)
-    if not ncol.is_empty then
-      ncol.note_string = ""
-      ncol.instrument_value = 255
+  -- Only clear extra columns if we actually have notes and more columns than needed
+  if needed > 0 and needed_cols < max_cols then
+    for i = needed_cols + 1, max_cols do
+      local ncol = line:note_column(i)
+      if not ncol.is_empty then
+        ncol.note_string = ""
+        ncol.instrument_value = 255
+      end
     end
   end
 

@@ -3016,15 +3016,57 @@ function PakettiToggleNoteOffAllTracks(target_line_index, target_pattern_index)
   renoise.app():show_status("Toggled Note Off in empty columns across tracks")
 end
 
+-- Function to place note-offs in all visible note columns without toggling
+function PakettiPlaceNoteOffAllColumns()
+  local s = renoise.song()
+  
+  if renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR then
+      -- Pattern Editor handling
+      local track = s.selected_track
+      local line = s.selected_line
+      local count = track.visible_note_columns
+      
+      for i = 1, count do
+          line.note_columns[i].note_string = "OFF"
+          line.note_columns[i].instrument_value = 255  -- Clear instrument
+      end
+      renoise.app():show_status("Placed Note Off in all visible note columns")
+      
+  elseif renoise.app().window.active_middle_frame == renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_PHRASE_EDITOR then
+      -- Phrase Editor handling
+      local phrase = s.selected_instrument.phrases[s.selected_phrase_index]
+      if phrase then
+          local line = phrase:line(s.selected_line_index)
+          local count = phrase.visible_note_columns
+          
+          for i = 1, count do
+              line.note_columns[i].note_string = "OFF"
+              line.note_columns[i].instrument_value = 255  -- Clear instrument
+          end
+          renoise.app():show_status("Placed Note Off in all visible phrase note columns")
+      end
+  end
+end
+
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Toggle Note Off in All Visible Note Columns",  invoke = PakettiToggleNoteOffAllColumns}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Place Note Off in All Visible Note Columns",  invoke = PakettiPlaceNoteOffAllColumns}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Toggle Note Off on All Tracks on Current Row",invoke = PakettiToggleNoteOffAllTracks}
 renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Toggle Note Off in All Visible Note Columns",invoke = PakettiToggleNoteOffAllColumns}
+renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Place Note Off in All Visible Note Columns",invoke = PakettiPlaceNoteOffAllColumns}
 renoise.tool():add_keybinding{name="Phrase Editor:Paketti:Toggle Note Off on All Tracks on Current Row",invoke = PakettiToggleNoteOffAllTracks}
 
 renoise.tool():add_midi_mapping{name="Pattern Editor:Paketti:Toggle Note Off in All Visible Note Columns [Trigger]",
   invoke=function(message)
     if message:is_trigger() then
       PakettiToggleNoteOffAllColumns()
+    end
+  end
+}
+
+renoise.tool():add_midi_mapping{name="Pattern Editor:Paketti:Place Note Off in All Visible Note Columns [Trigger]",
+  invoke=function(message)
+    if message:is_trigger() then
+      PakettiPlaceNoteOffAllColumns()
     end
   end
 }
@@ -3041,6 +3083,14 @@ renoise.tool():add_midi_mapping{name="Phrase Editor:Paketti:Toggle Note Off in A
   invoke=function(message)
     if message:is_trigger() then
       PakettiToggleNoteOffAllColumns()
+    end
+  end
+}
+
+renoise.tool():add_midi_mapping{name="Phrase Editor:Paketti:Place Note Off in All Visible Note Columns [Trigger]",
+  invoke=function(message)
+    if message:is_trigger() then
+      PakettiPlaceNoteOffAllColumns()
     end
   end
 }
