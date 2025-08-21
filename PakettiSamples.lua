@@ -5681,6 +5681,48 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Set to One-Shot + NNA Continue", invoke=function() oneshotcontinue() end}
 
+function PakettiNNASetAllInstrumentsSamplesCut()
+  local song = renoise.song()
+  
+  -- Check if any instruments exist
+  if #song.instruments == 0 then
+    renoise.app():show_status("No instruments available.")
+    return
+  end
+  
+  local instruments_processed = 0
+  local samples_processed = 0
+  
+  -- Iterate through all instruments
+  for instrument_index = 1, #song.instruments do
+    local instrument = song.instruments[instrument_index]
+    
+    -- Check if instrument has samples
+    if #instrument.samples > 0 then
+      instruments_processed = instruments_processed + 1
+      
+      -- Iterate through all samples in the instrument
+      for sample_index = 1, #instrument.samples do
+        local sample = instrument.samples[sample_index]
+        
+        -- Set NNA to Cut (1)
+        sample.new_note_action = 1
+        samples_processed = samples_processed + 1
+      end
+    end
+  end
+  
+  -- Show status message
+  if samples_processed > 0 then
+    renoise.app():show_status(string.format("Set NNA to Cut for %d samples across %d instruments", samples_processed, instruments_processed))
+  else
+    renoise.app():show_status("No samples found in any instruments.")
+  end
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Set All Instruments Samples NNA to Cut",invoke=function() PakettiNNASetAllInstrumentsSamplesCut() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti..:Samples..:Set All Instruments Samples NNA to Cut",invoke=function() PakettiNNASetAllInstrumentsSamplesCut() end}
+
 -- Function to toggle frequency analysis
 function toggleFrequencyAnalysis()
   if not isSampleEditorVisible() then

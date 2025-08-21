@@ -437,7 +437,7 @@ function offerReverseDialogForBuiltDrumkits(tasks)
   end
 
   local content = vb_local:column{
-    margin=8, spacing=6,
+
     vb_local:text{ text="Reverse created drumkits?", style="strong" },
     unpack(rows),
     vb_local:row{
@@ -581,20 +581,18 @@ function showStemSlicerSummary()
   end
 
   local content = vb_local:column{
-    margin = 8,
-    spacing = 6,
     vb_local:text{text = "Processing complete!", style = "strong"},
     vb_local:text{text = table.concat(summary_lines, "\n"), style = "normal"},
     unpack(error_display),
-    vb_local:space{height=6},
+    vb_local:space{height=1},
     vb_local:row{
       vb_local:text{text = "Grouping:", style = "normal", width = 80},
       vb_local:popup{ id = "grouping_popup", items = grouping_items, value = grouping_mode_index, width = 240 }
     },
-    vb_local:space{height=6},
+    vb_local:space{height=1},
     vb_local:text{text = "Quick Load (per instrument):", style = "strong"},
     vb_local:row{
-      spacing = 6,
+
       vb_local:button{ text = "Load 64", notifier = function() onQuickLoadSlices(last_output_folder, {64}, vb_local.views.grouping_popup.value) end},
       vb_local:button{ text = "Load 32", notifier = function() onQuickLoadSlices(last_output_folder, {32}, vb_local.views.grouping_popup.value) end},
       vb_local:button{ text = "Load 16", notifier = function() onQuickLoadSlices(last_output_folder, {16}, vb_local.views.grouping_popup.value) end},
@@ -604,7 +602,6 @@ function showStemSlicerSummary()
     },
     vb_local:space{height=6},
     vb_local:row{
-      spacing = 8,
       vb_local:button{ text = "Open Output Folder", notifier = function()
         openFolderInFinder(last_output_folder)
       end},
@@ -1852,7 +1849,7 @@ local function browseForFolder()
         audio_files = getSupportedAudioFiles(folder_path)
         
         if dialog and dialog.visible then
-            vb.views.folder_display.text = string.format("Folder: %s (%d files)", folder_path, #audio_files)
+            vb.views.folder_display.text = string.format("%s (%d files)", folder_path, #audio_files)
             vb.views.process_button.active = #audio_files > 0
         end
         
@@ -2013,16 +2010,18 @@ function pakettiStemSlicerDialogInternal()
         -- Folder selection
         vb:button{text="Browse Folder",width=120,notifier = browseForFolder},
         
-        vb:text{id="folder_display",text="No folder selected",width=400,style="normal"},
+        vb:text{id="folder_display",text="No folder selected",width=400,style="strong",font="bold"},
         -- BPM input
         vb:row{
             vb:text{
-                text = "Target BPM:",
-                width = 80
+                text = "Target BPM",
+                width = 100,
+                style = "strong", font="bold"
             },
             vb:valuebox{
                 id = "bpm_input",
                 value = target_bpm,
+                width=100,
                 min = 1,
                 max = 999,
                 notifier = function(value)
@@ -2030,15 +2029,11 @@ function pakettiStemSlicerDialogInternal()
                 end
             }
         },
-        
-        vb:space{height=8},
-        
         -- Master beat length selection
-        vb:text{
-            text = "Master Slice Size:",
-            style = "strong"
+        vb:row{vb:text{
+            text = "Master Slice Size",
+            style = "strong", font="bold",width=100
         },
-        vb:row{
             vb:popup{
                 id = "master_beat_popup",
                 items = {"4 beats", "8 beats", "16 beats", "32 beats", "64 beats"},
@@ -2065,8 +2060,8 @@ function pakettiStemSlicerDialogInternal()
         
         -- Subdivision checkboxes
         vb:text{
-            text = "Extract These Subdivisions:",
-            style = "strong"
+            text = "Extract These Subdivisions",
+            style = "strong", font="bold",
         },
         vb:column{
             vb:row{
@@ -2097,7 +2092,7 @@ function pakettiStemSlicerDialogInternal()
                         updateExtractBeatLengths()
                     end
                 },
-                vb:text{text = "8 beats"}
+                vb:text{text = "08 beats"}
             },
             vb:row{
                 vb:checkbox{
@@ -2107,25 +2102,15 @@ function pakettiStemSlicerDialogInternal()
                         updateExtractBeatLengths()
                     end
                 },
-                vb:text{text = "4 beats"}
+                vb:text{text = "04 beats"}
             }
-        },
-        
-        vb:space{height=8},
-        
+        },  
         vb:text{
-            text = "Naming format: originalname_XXbeats_sliceYY.wav",
+            text = "Naming format: originalname_XXbeats_sliceYY.wav, silent slices will be marked with _silence suffix",
             style = "normal"
-        },
-        
-        vb:text{
-            text = "Silent slices will be marked with _silence suffix",
-            style = "normal"
-        },
-    
+        },    
         -- Control buttons
         vb:row{
-            spacing = 8,
             vb:button{
                 id = "process_button",
                 text = "Start Processing",

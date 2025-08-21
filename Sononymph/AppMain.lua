@@ -122,7 +122,7 @@ renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Samples:Sononymph:L
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Samples:Sononymph:Load Selected Sample from Sononym (Prompt)", invoke = function() start(false) if app then app:load_selected_sample_from_sononym(true) end end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Samples:Sononymph:Load Selected Sample from Sononym (No Prompt)", invoke = function() start(false) if app then app:load_selected_sample_from_sononym(false) end end}
 
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets:Sononymph Dialog...", invoke = function() start(true) end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:Sononymph Dialog...", invoke = function() start(true) end}
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Samples:Sononymph:Toggle Sononym Auto-Transfer", invoke = function() start(false) if app then app:toggle_live_transfer() end end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Samples:Sononymph:Search Selected Sample in Sononym", invoke = search_selected_sample}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Samples:Sononymph:Load Selected Sample from Sononym (Prompt)", invoke = function() start(false) if app then app:load_selected_sample_from_sononym(true) end end}

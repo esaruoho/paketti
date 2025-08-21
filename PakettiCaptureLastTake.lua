@@ -25,10 +25,10 @@ PakettiCapture_observers_active = false
 PakettiCapture_current_tf = nil
 PakettiCapture_newest_label = nil
 PakettiCapture_BUTTON_HEIGHT = 20
-PakettiCapture_DIALOG_WIDTH = 500
+PakettiCapture_DIALOG_WIDTH = 620
 PakettiCapture_SCROLLBAR_WIDTH = 80
 PakettiCapture_ROW_BUTTON_WIDTH = 40
-PakettiCapture_LEFT_LABEL_WIDTH = 160
+PakettiCapture_LEFT_LABEL_WIDTH = 140
 PakettiCapture_TOP_DUMP_BTN_WIDTH = 160
 PakettiCapture_TOP_CLEAR_BTN_WIDTH = 180
 PakettiCapture_GAP = 1
@@ -45,6 +45,8 @@ PakettiGate_prev_line = nil
 -- hide features
 PakettiCapture_ExperimentalMIDICaptureDialog = true
 PakettiGate_ShowUI = true
+
+
 
 -- Helper: convert note string (e.g. "C-4", "D#5") to 0..119 value; returns nil for invalid or OFF
 function PakettiCapture_NoteStringToValue(note_string)
@@ -674,6 +676,8 @@ function PakettiCapture_DumpRowDisplay(display_index)
   PakettiCapture_DumpRow(real_index)
 end
 
+
+
 -- Update UI rows and log
 function PakettiCapture_UpdateUI()
   if not PakettiCapture_vb then return end
@@ -849,7 +853,7 @@ function PakettiCapture_BuildRows()
     }
     PakettiCapture_audition_buttons[i] = audition_btn
     
-    local rt = PakettiCapture_vb:text{ text = "", width = PakettiCapture_DIALOG_WIDTH - (PakettiCapture_SCROLLBAR_WIDTH + PakettiCapture_GAP + PakettiCapture_ROW_BUTTON_WIDTH + PakettiCapture_GAP + 60 + PakettiCapture_GAP), style = "normal" }
+    local rt = PakettiCapture_vb:text{ text = "", width = 240, style = "normal" }
     PakettiCapture_rows_text[i] = rt
     table.insert(rows, PakettiCapture_vb:row{ height = PakettiCapture_BUTTON_HEIGHT, btn, audition_btn, rt })
   end
@@ -955,7 +959,7 @@ function PakettiCapture_BuildQuickDumpButtons()
     }
     PakettiCapture_audition_buttons[i] = audition_btn
     
-    local txt = PakettiCapture_vb:text{ text = "", width = 300, style = "normal" }
+    local txt = PakettiCapture_vb:text{ text = "", width = 240, style = "normal" }
     PakettiCapture_rows_text[i] = txt
     local txt_center = PakettiCapture_vb:vertical_aligner{ mode = "center", height = PakettiCapture_BUTTON_HEIGHT, txt }
     table.insert(rows, PakettiCapture_vb:row{ height = PakettiCapture_BUTTON_HEIGHT, btn, audition_btn, txt_center })
@@ -974,14 +978,14 @@ function PakettiCaptureLastTakeDialog()
 
   PakettiCapture_log_view = PakettiCapture_vb:text{
     text = "Current: <empty>",
-    width = 360,
+    width = 200,
     style = "normal"
   }
 
   -- Build reusable views for rows where we need references
-  local current_tf_view = PakettiCapture_vb:text{ text = "", width = 400, style = "normal" }
+  local current_tf_view = PakettiCapture_vb:text{ text = "", width = 240, style = "normal" }
   PakettiCapture_current_tf = current_tf_view
-  local newest_label_view = PakettiCapture_vb:text{ text = "Newest: ", width = 400, style = "normal" }
+  local newest_label_view = PakettiCapture_vb:text{ text = "Newest: ", width = 240, style = "normal" }
   PakettiCapture_newest_label = newest_label_view
 
   local content = PakettiCapture_vb:column{
@@ -1002,11 +1006,11 @@ function PakettiCaptureLastTakeDialog()
       current_tf_view
     },
     (PakettiCapture_ExperimentalMIDICaptureDialog) and PakettiCapture_vb:row{
-      PakettiCapture_vb:text{ text = "MIDI Device:", width = 80, style = "normal" },
+      PakettiCapture_vb:text{ text = "MIDI Device", width = 80, style = "strong", font="bold" },
       PakettiCapture_vb:popup{
         items = renoise.Midi.available_input_devices(),
         value = math.max(1, table.find(renoise.Midi.available_input_devices(), PakettiCapture_SelectedMidiDeviceName or "") or 1),
-        width = 220,
+        width = 200,
         notifier = function(idx)
           local list = renoise.Midi.available_input_devices()
           local name = list[idx]
@@ -1024,7 +1028,11 @@ function PakettiCaptureLastTakeDialog()
           if val then PakettiCapture_StartMidiListening() else PakettiCapture_StopMidiListening() end
         end
       },
-      PakettiCapture_vb:text{ text = "Listen to MIDI", style = "normal" }
+      PakettiCapture_vb:text{ text = "Listen to MIDI", style = "normal" },
+      PakettiCapture_vb:space{ width = PakettiCapture_GAP },
+      PakettiGate_ShowUI and PakettiCapture_vb:button{ text = (PakettiGate_listening and "Stop EditStep Gate" or "Start EditStep Gate"), width = 160, notifier = function()
+        if PakettiGate_listening then PakettiGate_Stop() else PakettiGate_Start() end
+      end } or PakettiCapture_vb:space{ width = 1 }
     } or PakettiCapture_vb:space{ width = 1 },
     PakettiCapture_vb:row{
       PakettiCapture_vb:button{ text = "Dump to Current Row", width = 140, notifier = function()
@@ -1054,24 +1062,23 @@ function PakettiCaptureLastTakeDialog()
       PakettiCapture_vb:space{ width = PakettiCapture_GAP },
       PakettiCapture_vb:button{ text = "Alternate Pattern Phrasing", width = 140, notifier = function()
         PakettiCapture_AlternatePatternPhrasing()
-      end }
-    },
-    PakettiCapture_vb:row{
+      end },
+      PakettiCapture_vb:space{ width = PakettiCapture_GAP },
       PakettiCapture_vb:button{ text = "Close", width = 40, notifier = function()
         PakettiCaptureAuditionStop()  -- Stop any playing audition
         if PakettiCapture_midi_listening then PakettiCapture_StopMidiListening() end
         if PakettiCapture_dialog and PakettiCapture_dialog.visible then PakettiCapture_dialog:close() end
       end },
-      PakettiCapture_vb:text{ text = "|", font = "bold", style = "strong", width = 8 },
-      PakettiCapture_vb:button{ text = "Paketti Gater", width = 120, notifier = function()
-        if type(pakettiGaterDialog) == "function" then pakettiGaterDialog() end
-      end }
+      PakettiCapture_vb:space{ width = PakettiCapture_GAP },
+      PakettiCapture_vb:button{ 
+        text = "Paketti Gater", 
+        width = 150, 
+        notifier = function() 
+          pakettiGaterDialog() 
+        end 
+      }
     },
-    PakettiGate_ShowUI and PakettiCapture_vb:row{
-      PakettiCapture_vb:button{ text = (PakettiGate_listening and "Stop EditStep Gate" or "Start EditStep Gate"), width = 240, notifier = function()
-        if PakettiGate_listening then PakettiGate_Stop() else PakettiGate_Start() end
-      end }
-    } or PakettiCapture_vb:space{ width = 1 }
+
   }
   
   PakettiCapture_dialog = renoise.app():show_custom_dialog("Paketti Capture Last Take", content, PakettiCapture_KeyHandler)

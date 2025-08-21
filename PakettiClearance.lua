@@ -512,3 +512,158 @@ renoise.tool():add_keybinding{name="Global:Paketti:Delete Unused Samples",invoke
 renoise.tool():add_keybinding{name="Sample Keyzones:Paketti:Delete Unused Samples",invoke=deleteUnusedSamples}
 --------
 
+function PakettiClearanceRemoveEmptyTracks()
+  local song = renoise.song()
+  
+  -- Check if we have tracks to work with
+  if #song.tracks <= 1 then
+    renoise.app():show_status("Cannot remove tracks - song must have at least one track")
+    return
+  end
+  
+  local tracks_to_delete = {}
+  
+  -- Check each track for emptiness across all patterns
+  for track_index = 1, #song.tracks do
+    local track = song.tracks[track_index]
+    
+    -- Skip master track (cannot be deleted)
+    if track.type ~= renoise.Track.TRACK_TYPE_MASTER then
+      local is_empty_across_all_patterns = true
+      
+      -- Check if track is empty across all patterns
+      for pattern_index = 1, #song.patterns do
+        local pattern_track = song.patterns[pattern_index].tracks[track_index]
+        if not pattern_track.is_empty then
+          is_empty_across_all_patterns = false
+          break
+        end
+      end
+      
+      if is_empty_across_all_patterns then
+        table.insert(tracks_to_delete, track_index)
+      end
+    end
+  end
+  
+  if #tracks_to_delete == 0 then
+    renoise.app():show_status("No empty tracks found")
+    return
+  end
+  
+  -- Sort in descending order to avoid reindexing issues
+  table.sort(tracks_to_delete, function(a, b) return a > b end)
+  
+  -- Check if we would delete all regular tracks
+  local remaining_regular_tracks = 0
+  for track_index = 1, #song.tracks do
+    local track = song.tracks[track_index]
+    if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+      local will_be_deleted = false
+      for _, delete_index in ipairs(tracks_to_delete) do
+        if delete_index == track_index then
+          will_be_deleted = true
+          break
+        end
+      end
+      if not will_be_deleted then
+        remaining_regular_tracks = remaining_regular_tracks + 1
+      end
+    end
+  end
+  
+  if remaining_regular_tracks == 0 then
+    renoise.app():show_status("Cannot remove all regular tracks - song must have at least one regular track")
+    return
+  end
+  
+  local deleted_count = 0
+  for _, track_index in ipairs(tracks_to_delete) do
+    song:delete_track_at(track_index)
+    deleted_count = deleted_count + 1
+  end
+  
+  renoise.app():show_status(string.format("Removed %d empty tracks", deleted_count))
+end
+
+function PakettiClearanceRemoveEmptyTracksAndDSP()
+  local song = renoise.song()
+  
+  -- Check if we have tracks to work with
+  if #song.tracks <= 1 then
+    renoise.app():show_status("Cannot remove tracks - song must have at least one track")
+    return
+  end
+  
+  local tracks_to_delete = {}
+  
+  -- Check each track for emptiness across all patterns AND no DSP devices
+  for track_index = 1, #song.tracks do
+    local track = song.tracks[track_index]
+    
+    -- Skip master track (cannot be deleted)
+    if track.type ~= renoise.Track.TRACK_TYPE_MASTER then
+      local is_empty_across_all_patterns = true
+      
+      -- Check if track is empty across all patterns
+      for pattern_index = 1, #song.patterns do
+        local pattern_track = song.patterns[pattern_index].tracks[track_index]
+        if not pattern_track.is_empty then
+          is_empty_across_all_patterns = false
+          break
+        end
+      end
+      
+      -- Check if track has only the mixer device (device count <= 1 means only mixer)
+      local has_no_dsp = #track.devices <= 1
+      
+      if is_empty_across_all_patterns and has_no_dsp then
+        table.insert(tracks_to_delete, track_index)
+      end
+    end
+  end
+  
+  if #tracks_to_delete == 0 then
+    renoise.app():show_status("No empty tracks (with no DSP) found")
+    return
+  end
+  
+  -- Sort in descending order to avoid reindexing issues
+  table.sort(tracks_to_delete, function(a, b) return a > b end)
+  
+  -- Check if we would delete all regular tracks
+  local remaining_regular_tracks = 0
+  for track_index = 1, #song.tracks do
+    local track = song.tracks[track_index]
+    if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+      local will_be_deleted = false
+      for _, delete_index in ipairs(tracks_to_delete) do
+        if delete_index == track_index then
+          will_be_deleted = true
+          break
+        end
+      end
+      if not will_be_deleted then
+        remaining_regular_tracks = remaining_regular_tracks + 1
+      end
+    end
+  end
+  
+  if remaining_regular_tracks == 0 then
+    renoise.app():show_status("Cannot remove all regular tracks - song must have at least one regular track")
+    return
+  end
+  
+  local deleted_count = 0
+  for _, track_index in ipairs(tracks_to_delete) do
+    song:delete_track_at(track_index)
+    deleted_count = deleted_count + 1
+  end
+  
+  renoise.app():show_status(string.format("Removed %d empty tracks (with no DSP)", deleted_count))
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Remove Empty Tracks", invoke=PakettiClearanceRemoveEmptyTracks}
+renoise.tool():add_keybinding{name="Global:Paketti:Remove Empty Tracks (No Notes, No DSP)", invoke=PakettiClearanceRemoveEmptyTracksAndDSP}
+--------
+

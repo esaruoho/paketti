@@ -3677,10 +3677,10 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Functio
     debug_multi_word_search(search_text) 
   end 
 end}
-renoise.tool():add_menu_entry{name="--Pattern Editor:Paketti Gadgets:Paketti Function Search...", invoke=pakettiAutocompleteToggle}
-renoise.tool():add_menu_entry{name="--Mixer:Paketti Gadgets:Paketti Function Search...", invoke=pakettiAutocompleteToggle}
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti Gadgets:Paketti Function Search...", invoke=pakettiAutocompleteToggle}
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti Gadgets:Paketti Function Search...", invoke=pakettiAutocompleteToggle}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti Gadgets:Paketti Function Search...", invoke=pakettiAutocompleteToggle}
+renoise.tool():add_menu_entry{name="Mixer:Paketti Gadgets:Paketti Function Search...", invoke=pakettiAutocompleteToggle}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti Gadgets:Paketti Function Search...", invoke=pakettiAutocompleteToggle}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti Gadgets:Paketti Function Search...", invoke=pakettiAutocompleteToggle}
 renoise.tool():add_keybinding{name="Global:Paketti:Paketti Function Search...", invoke=pakettiAutocompleteToggle}
 renoise.tool():add_keybinding{name="Global:Paketti:Add Autocomplete Abbreviation", invoke=pakettiAutocompleteAddAbbreviation}
 renoise.tool():add_keybinding{name="Global:Paketti:Reset Autocomplete Usage Statistics", invoke=pakettiAutocompleteResetUsage}

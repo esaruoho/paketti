@@ -895,6 +895,18 @@ local function receive_panning_checkboxes()
   renoise.app():show_status("Received Panning Gater pattern")
 end
 
+-- Receive all checkboxes state (calls all individual receive functions)
+function receive_checkboxes()
+  if not renoise.song() then return end
+  
+  receive_volume_checkboxes()
+  receive_retrig_checkboxes()
+  receive_playback_checkboxes()
+  receive_panning_checkboxes()
+  
+  renoise.app():show_status("Received all Gater patterns")
+end
+
 local function rand_volume_checkboxes()
   if not renoise.song() then return end
 
@@ -2650,10 +2662,74 @@ local function create_dynamic_button_row(button_array)
   return vb:row(row_elements)
 end
 
--- Separate function to create dialog content (reduces upvalues in main function)
-function createGaterDialogContent()
+-- Create reusable gater dialog content - can be used by any dialog (like PakettiSteppers does)
+function PakettiCreateGaterDialogContent(vb_instance, is_embedded)
+  local vb_local = vb_instance or vb
+  
+  -- For embedded use, provide a functional but simplified interface
+  if is_embedded then
+    return vb_local:column{
+      vb_local:row{
+        vb_local:text{text="Paketti Gater Controls", font="bold", style="strong", width=200},
+      },
+      vb_local:row{
+        vb_local:button{text="Wipe", width=80, notifier=wipe_gating_effects},
+        vb_local:button{text="Clear All", width=80, notifier=function()
+          -- Clear all gating effects from current pattern
+          clear_effect_columns()
+          clear_volume_column() 
+          clear_retrig()
+          clear_playback_effect()
+          clear_effect_column_4()
+          clear_panning_column()
+          renoise.app():show_status("All gating effects cleared")
+        end},
+        vb_local:button{text="Random Vol", width=80, notifier=function()
+          for i = 1, 16 do
+            rand_volume_checkboxes()
+          end
+        end},
+        vb_local:button{text="Random Retrig", width=90, notifier=function()
+          for i = 1, 16 do  
+            rand_retrig_checkboxes()
+          end
+        end}
+      },
+      vb_local:row{
+        vb_local:text{text="Volume Gater:", width=100, style="strong"},
+        vb_local:switch {
+          items = { "FX Column (C00)", "Volume Column", "FX Column (L00)" },
+          value = 1,
+          width=300,
+          notifier=function(index)
+            column_choice = (index == 1) and "FX Column" or (index == 2) and "Volume Column" or "FX Column (L00)"
+            renoise.app():show_status("Volume gater set to " .. column_choice)
+          end
+        }
+      },
+      vb_local:row{
+        vb_local:text{text="Panning Gater:", width=100, style="strong"},
+        vb_local:switch {
+          items = { "FX Column", "Panning Column" },
+          value = 1,
+          width=300,
+          notifier=function(index)
+            panning_column_choice = (index == 1) and "FX Column" or "Panning Column"
+            renoise.app():show_status("Panning gater set to " .. panning_column_choice)
+          end
+        }
+      },
+      vb_local:row{
+        vb_local:button{text="Open Full Paketti Gater Dialog", width=400, notifier=function()
+          pakettiGaterDialog()
+        end}
+      },
+      vb_local:text{text="Full checkbox interface available in standalone Paketti Gater dialog", style="disabled"}
+    }
+  end
+  
   -- Create step mode switch
-  local step_mode_switch = vb:switch{
+  local step_mode_switch = vb_local:switch{
     items = {"16 Steps", "32 Steps"},
     width = 150,
     value = (MAX_STEPS == 32) and 2 or 1,
@@ -2662,8 +2738,8 @@ function createGaterDialogContent()
       if new_max_steps ~= MAX_STEPS then
         MAX_STEPS = new_max_steps
         num_checkboxes = MAX_STEPS
-        -- Close and reopen dialog with new step count
-        if dialog and dialog.visible then
+        -- Only close and reopen dialog if NOT embedded and dialog exists
+        if not is_embedded and dialog and dialog.visible then
           -- Add cleanup code here before closing
           if track_notifier and renoise.song().selected_track_index_observable:has_notifier(track_notifier) then
             renoise.song().selected_track_index_observable:remove_notifier(track_notifier)
@@ -2679,8 +2755,8 @@ function createGaterDialogContent()
     end
   }
 
-  local another_stack=vb:button{ text="Wipe", pressed = wipe_gating_effects, tooltip="Wipe gating effects: from other tracks when Solo is on, from selected track when Solo is off" }
-  local global_clear=vb:button{ text="Global Clear", pressed = function()
+  local another_stack=vb_local:button{ text="Wipe", pressed = wipe_gating_effects, tooltip="Wipe gating effects: from other tracks when Solo is on, from selected track when Solo is off" }
+  local global_clear=vb_local:button{ text="Global Clear", pressed = function()
     initializing = true
     -- Clear volume
     for i = 1, num_checkboxes do
@@ -2741,7 +2817,7 @@ function createGaterDialogContent()
     insert_commands()  -- Single update at the end
   end}
 
-  local global_random=vb:button{ text="Global Random", pressed = function()
+  local global_random=vb_local:button{ text="Global Random", pressed = function()
     -- Initialize random seed for true randomness
     math.randomseed(os.time())
     
@@ -2779,7 +2855,7 @@ function createGaterDialogContent()
     insert_commands()  -- Single update at the end
   end}
 
-  local global_receive=vb:button{ text="Global Receive", pressed = function()
+  local global_receive=vb_local:button{ text="Global Receive", pressed = function()
     initializing = true
     receive_volume_checkboxes()
     receive_retrig_checkboxes()
@@ -2793,11 +2869,11 @@ function createGaterDialogContent()
 
   -- Create Global Step Buttons
   local step_values = {"1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16", "24", "32"}
-  local global_step_buttons = vb:row{}
-  global_step_buttons:add_child(vb:text{text="Global Steps", style="strong", font="bold"})
+  local global_step_buttons = vb_local:row{}
+  global_step_buttons:add_child(vb_local:text{text="Global Steps", style="strong", font="bold"})
   
   for _, step in ipairs(step_values) do
-    global_step_buttons:add_child(vb:button{
+    global_step_buttons:add_child(vb_local:button{
       text = step,
       notifier=function()
         if initializing then return end
@@ -2806,16 +2882,17 @@ function createGaterDialogContent()
     })
   end
 
-  local content = vb:column{
-    vb:row{
+  local content = vb_local:column{
+    vb_local:row{
     step_mode_switch,another_stack,global_clear,global_random,global_receive},
     global_step_buttons,
-    vb:text{text="Volume Gater", font = "bold", style="strong" },
-    vb:switch {
-      items = { "FX Column (C00)", "Volume Column", "FX Column (L00)" },
-      value = 1,
-      width=300,
-      notifier=function(index)
+    vb_local:row{
+      vb_local:text{text="Volume Gater", font = "bold", style="strong" },
+      vb_local:switch {
+        items = { "FX Column (C00)", "Volume Column", "FX Column (L00)" },
+        value = 1,
+        width=300,
+        notifier=function(index)
         local previous_choice = column_choice
         column_choice = (index == 1) and "FX Column" or (index == 2) and "Volume Column" or "FX Column (L00)"
         
@@ -2828,14 +2905,15 @@ function createGaterDialogContent()
           insert_commands()
         end
       end
-        },
+        }
+    },
    (function()
       local button_row = {}
       for i = 1, MAX_STEPS do
         table.insert(button_row, buttons[i])
       end
       table.insert(button_row, (function()
-        volume_valuebox = vb:valuebox{
+        volume_valuebox = vb_local:valuebox{
           min = 1,
           max = 32,
           value = active_steps_volume,
@@ -2846,39 +2924,54 @@ function createGaterDialogContent()
         }
         return volume_valuebox
       end)())
-      return vb:row(button_row)
+      return vb_local:row(button_row)
     end)(),
-    vb:row(checkboxes),
-    vb:row{
-      vb:button{ text="Clear", pressed = clear_volume_gater },
-      vb:button{ text="Random", pressed = rand_volume_checkboxes },
-      vb:button{ text="<", pressed = function() 
+    vb_local:row(checkboxes),
+    vb_local:row{
+      vb_local:button{ text="Clear", pressed = clear_volume_gater },
+      vb_local:button{ text="Random", pressed = rand_volume_checkboxes },
+      vb_local:button{ text="<", pressed = function() 
         initializing = true
         shift_checkboxes("left")
         initializing = false
         insert_commands()
       end},
-      vb:button{ text=">", pressed = function() 
+      vb_local:button{ text=">", pressed = function() 
         initializing = true
         shift_checkboxes("right")
         initializing = false
         insert_commands()
       end},
-      vb:button{ text="Clear FX Column", pressed = clear_effect_columns },
-      vb:button{ text="Clear Volume Column", pressed = clear_volume_column },
-      vb:button{ text="Receive", pressed = receive_volume_checkboxes }
+      vb_local:button{ text="Clear FX Column", pressed = clear_effect_columns },
+      vb_local:button{ text="Clear Volume Column", pressed = clear_volume_column },
+      vb_local:button{ text="Receive", pressed = receive_volume_checkboxes }
     },
-    vb:row{
-      vb:button{ text="All", pressed = function() apply_preset("all", false, false) end},
-      vb:button{ text="Every 2nd", pressed = function() apply_preset("every_2nd", false, false) end},
-      vb:button{ text="Every 3rd", pressed = function() apply_preset("every_third", false, false) end},
-      vb:button{ text="Every 4th", pressed = function() apply_preset("every_fourth", false, false) end},
-      vb:button{ text="Jaguar", pressed = function() apply_preset("jaguar", false, false) end},
-      vb:button{ text="Caapi", pressed = function() apply_preset("caapi", false, false) end} 
+    vb_local:row{
+      vb_local:button{ text="All", pressed = function() apply_preset("all", false, false) end},
+      vb_local:button{ text="Every 2nd", pressed = function() apply_preset("every_2nd", false, false) end},
+      vb_local:button{ text="Every 3rd", pressed = function() apply_preset("every_third", false, false) end},
+      vb_local:button{ text="Every 4th", pressed = function() apply_preset("every_fourth", false, false) end},
+      vb_local:button{ text="Jaguar", pressed = function() apply_preset("jaguar", false, false) end},
+      vb_local:button{ text="Caapi", pressed = function() apply_preset("caapi", false, false) end} 
     },
-    vb:text{text="Retrig Gater", font = "bold", style="strong"},
-    vb:row{
-      vb:valuebox{
+    vb_local:row{
+      vb_local:text{text="Retrig Gater", font = "bold", style="strong"},
+      vb_local:switch {
+        items = { "FX Column", "Volume Column", "Panning Column" },
+        value = 1,
+        width=300,
+        notifier=function(index)
+          retrig_column_choice = (index == 1) and "FX Column" or (index == 2) and "Volume Column" or "Panning Column"
+          if not initializing then
+            initializing = true
+            receive_retrig_checkboxes()
+            initializing = false
+          end
+        end
+      }
+    },
+    vb_local:row{
+      vb_local:valuebox{
         min = 1,
         max = 15,
         value = retrig_value,
@@ -2891,20 +2984,7 @@ function createGaterDialogContent()
           end
         end
       },
-      vb:text{text="Retrig Speed" }
-    },
-    vb:switch {
-      items = { "FX Column", "Volume Column", "Panning Column" },
-      value = 1,
-      width=300,
-      notifier=function(index)
-        retrig_column_choice = (index == 1) and "FX Column" or (index == 2) and "Volume Column" or "Panning Column"
-        if not initializing then
-          initializing = true
-          receive_retrig_checkboxes()
-          initializing = false
-        end
-      end
+      vb_local:text{text="Retrig Speed" }
     },
     (function()
       local button_row = {}
@@ -2912,7 +2992,7 @@ function createGaterDialogContent()
         table.insert(button_row, retrig_buttons[i])
       end
       table.insert(button_row, (function()
-        retrig_valuebox = vb:valuebox{
+        retrig_valuebox = vb_local:valuebox{
           min = 1,
           max = 32,
           value = active_steps_retrig,
@@ -2921,36 +3001,36 @@ function createGaterDialogContent()
         }
         return retrig_valuebox
       end)())
-      return vb:row(button_row)
+      return vb_local:row(button_row)
     end)(),
-    vb:row(retrig_checkboxes),
-    vb:row{
-      vb:button{ text="Clear", pressed = clear_retrig_checkboxes },
-      vb:button{ text="Random", pressed = rand_retrig_checkboxes },
-      vb:button{ text="<", pressed = function() 
+    vb_local:row(retrig_checkboxes),
+    vb_local:row{
+      vb_local:button{ text="Clear", pressed = clear_retrig_checkboxes },
+      vb_local:button{ text="Random", pressed = rand_retrig_checkboxes },
+      vb_local:button{ text="<", pressed = function() 
         initializing = true
         shift_retrig_checkboxes("left")
         initializing = false
         insert_commands()
       end},
-      vb:button{ text=">", pressed = function() 
+      vb_local:button{ text=">", pressed = function() 
         initializing = true
         shift_retrig_checkboxes("right")
         initializing = false
         insert_commands()
       end},
-      vb:button{ text="Clear Volume Column", pressed = clear_volume_column },
-      vb:button{ text="Clear Panning Column", pressed = clear_panning_column },
-            vb:button{ text="Receive", pressed = receive_retrig_checkboxes }
+      vb_local:button{ text="Clear Volume Column", pressed = clear_volume_column },
+      vb_local:button{ text="Clear Panning Column", pressed = clear_panning_column },
+            vb_local:button{ text="Receive", pressed = receive_retrig_checkboxes }
     },
-    vb:text{text="Playback Direction Gater", font = "bold", style="strong" },
+    vb_local:text{text="Playback Direction Gater", font = "bold", style="strong" },
     (function()
       local button_row = {}
       for i = 1, MAX_STEPS do
         table.insert(button_row, playback_buttons[i])
       end
       table.insert(button_row, (function()
-        playback_valuebox = vb:valuebox{
+        playback_valuebox = vb_local:valuebox{
           min = 1,
           max = 32,
           value = active_steps_playback,
@@ -2959,37 +3039,39 @@ function createGaterDialogContent()
         }
         return playback_valuebox
       end)())
-      return vb:row(button_row)
+      return vb_local:row(button_row)
     end)(),
-    vb:row(playback_checkboxes),
-    vb:row{
-      vb:button{ text="Clear", pressed = clear_playback_checkboxes },
-      vb:button{ text="Random", pressed = rand_playback_checkboxes },
-      vb:button{ text="<", pressed = function() 
+    vb_local:row(playback_checkboxes),
+    vb_local:row{
+      vb_local:button{ text="Clear", pressed = clear_playback_checkboxes },
+      vb_local:button{ text="Random", pressed = rand_playback_checkboxes },
+      vb_local:button{ text="<", pressed = function() 
         initializing = true
         shift_playback_checkboxes("left")
         initializing = false
         insert_commands()
       end},
-      vb:button{ text=">", pressed = function() 
+      vb_local:button{ text=">", pressed = function() 
         initializing = true
         shift_playback_checkboxes("right")
         initializing = false
         insert_commands()
       end},
-            vb:button{ text="Receive", pressed = receive_playback_checkboxes }
+            vb_local:button{ text="Receive", pressed = receive_playback_checkboxes }
     },
-    vb:text{text="Panning Gater", font = "bold", style="strong" },
-    vb:switch {
-      items = { "FX Column", "Panning Column" },
-      value = 1,
-      width=300,
-      notifier=function(index)
-        panning_column_choice = (index == 1) and "FX Column" or "Panning Column"
-        if not initializing then
-          insert_commands()
+    vb_local:row{
+      vb_local:text{text="Panning Gater", font = "bold", style="strong" },
+      vb_local:switch {
+        items = { "FX Column", "Panning Column" },
+        value = 1,
+        width=300,
+        notifier=function(index)
+          panning_column_choice = (index == 1) and "FX Column" or "Panning Column"
+          if not initializing then
+            insert_commands()
+          end
         end
-      end
+      }
     },
     (function()
       local button_row = {}
@@ -2997,7 +3079,7 @@ function createGaterDialogContent()
         table.insert(button_row, panning_buttons[i])
       end
       table.insert(button_row, (function()
-        panning_valuebox = vb:valuebox{
+        panning_valuebox = vb_local:valuebox{
           min = 1,
           max = 32,
           value = active_steps_panning,
@@ -3006,33 +3088,33 @@ function createGaterDialogContent()
         }
         return panning_valuebox
       end)())
-      return vb:row(button_row)
+      return vb_local:row(button_row)
     end)(),
-    vb:row(panning_left_checkboxes),
-    vb:row(panning_center_checkboxes),
-    vb:row(panning_right_checkboxes),
-    vb:row{
-      vb:button{ text="Clear", pressed = clear_panning_checkboxes },
-      vb:button{ text="Random", pressed = rand_panning_checkboxes },
-      vb:button{ text="<", pressed = function() 
+    vb_local:row(panning_left_checkboxes),
+    vb_local:row(panning_center_checkboxes),
+    vb_local:row(panning_right_checkboxes),
+    vb_local:row{
+      vb_local:button{ text="Clear", pressed = clear_panning_checkboxes },
+      vb_local:button{ text="Random", pressed = rand_panning_checkboxes },
+      vb_local:button{ text="<", pressed = function() 
         initializing = true
         shift_panning_checkboxes("left")
         initializing = false
         insert_commands()
       end},
-      vb:button{ text=">", pressed = function() 
+      vb_local:button{ text=">", pressed = function() 
         initializing = true
         shift_panning_checkboxes("right")
         initializing = false
         insert_commands()
       end},
-      vb:button{ text="Clear FX Column", pressed = clear_effect_column_4 },
-      vb:button{ text="Clear Panning Column", pressed = clear_panning_column },
-            vb:button{ text="Receive", pressed = receive_panning_checkboxes },
+      vb_local:button{ text="Clear FX Column", pressed = clear_effect_column_4 },
+      vb_local:button{ text="Clear Panning Column", pressed = clear_panning_column },
+            vb_local:button{ text="Receive", pressed = receive_panning_checkboxes },
     },
-    vb:row{
-      --vb:text{text="Global", font="bold", style="strong"},
-      vb:checkbox{
+    vb_local:row{
+      --vb_local:text{text="Global", font="bold", style="strong"},
+      vb_local:checkbox{
         value = auto_grab,
         notifier=function(value)
           auto_grab = value
@@ -3053,8 +3135,8 @@ function createGaterDialogContent()
           end
         end
       },
-      vb:text{text="Auto-Grab", style="strong", font="bold" },
-      vb:checkbox{
+      vb_local:text{text="Auto-Grab", style="strong", font="bold" },
+      vb_local:checkbox{
         value = solo_mode,
         notifier=function(value)
           solo_mode = value
@@ -3063,8 +3145,8 @@ function createGaterDialogContent()
           end
         end
       },
-      vb:text{text="Solo", style="strong", font="bold", tooltip="When enabled, applies gating to ALL tracks EXCEPT the selected one" },
-      vb:checkbox{
+      vb_local:text{text="Solo", style="strong", font="bold", tooltip="When enabled, applies gating to ALL tracks EXCEPT the selected one" },
+      vb_local:checkbox{
         value = selection_only,
         notifier=function(value)
           selection_only = value
@@ -3073,8 +3155,8 @@ function createGaterDialogContent()
           end
         end
       },
-      vb:text{text="Selection Only", style="strong", font="bold", tooltip="When enabled, only applies gating to the selected range in pattern" },
-      vb:checkbox{
+      vb_local:text{text="Selection Only", style="strong", font="bold", tooltip="When enabled, only applies gating to the selected range in pattern" },
+      vb_local:checkbox{
         value = print_once,
         notifier=function(value)
           print_once = value
@@ -3083,9 +3165,9 @@ function createGaterDialogContent()
           end
         end
       },
-      vb:text{text="Print Once", style="strong", font="bold", tooltip="When enabled, applies gating pattern once starting from current line position" },
+      vb_local:text{text="Print Once", style="strong", font="bold", tooltip="When enabled, applies gating pattern once starting from current line position" },
       
-      vb:button{ text="<<", pressed = function()
+      vb_local:button{ text="<<", pressed = function()
         initializing = true  -- Prevent multiple updates
         shift_checkboxes("left")
         shift_retrig_checkboxes("left")
@@ -3094,7 +3176,7 @@ function createGaterDialogContent()
         initializing = false
         insert_commands()  -- Single update at the end
       end},
-      vb:button{ text=">>", pressed = function()
+      vb_local:button{ text=">>", pressed = function()
         initializing = true  -- Prevent multiple updates
         shift_checkboxes("right")
         shift_retrig_checkboxes("right")
@@ -3108,6 +3190,12 @@ function createGaterDialogContent()
   }
 
   return content
+end
+
+-- Separate function to create dialog content (reduces upvalues in main function)
+-- This now uses the shared interface function
+function createGaterDialogContent()
+  return PakettiCreateGaterDialogContent(vb, false)  -- Pass false for is_embedded
 end
 
 -- Handle scenario when the dialog is closed by other means

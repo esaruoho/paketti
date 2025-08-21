@@ -25,6 +25,8 @@ function PakettiMenuApplyFileMenuLocation(mode)
     "Main Menu:File:Save Unused Instruments (.XRNI)...",
     "--Main Menu:File:Delete Unused Instruments...",
     "Main Menu:File:Delete Unused Samples...",
+    "--Main Menu:File:Remove Empty Tracks...",
+    "Main Menu:File:Remove Empty Tracks (No Notes, No DSP)...",
     "--Main Menu:File:Largest Samples Dialog...",
     "Main Menu:File:Wipe Song Patterns",
   }
@@ -39,6 +41,8 @@ function PakettiMenuApplyFileMenuLocation(mode)
     "Main Menu:File:Paketti:Save Unused Instruments (.XRNI)...",
     "--Main Menu:File:Paketti:Delete Unused Instruments...",
     "Main Menu:File:Paketti:Delete Unused Samples...",
+    "--Main Menu:File:Paketti:Remove Empty Tracks...",
+    "Main Menu:File:Paketti:Remove Empty Tracks (No Notes, No DSP)...",
     "--Main Menu:File:Paketti:Largest Samples Dialog...",
     "Main Menu:File:Paketti:Wipe Song Patterns",
   }
@@ -80,6 +84,12 @@ function PakettiMenuApplyFileMenuLocation(mode)
     if not renoise.tool():has_menu_entry("Main Menu:File:Delete Unused Samples...") then
       renoise.tool():add_menu_entry{name="Main Menu:File:Delete Unused Samples...",invoke=deleteUnusedSamples}
     end
+    if not renoise.tool():has_menu_entry("--Main Menu:File:Remove Empty Tracks...") then
+      renoise.tool():add_menu_entry{name="--Main Menu:File:Remove Empty Tracks...",invoke=PakettiClearanceRemoveEmptyTracks}
+    end
+    if not renoise.tool():has_menu_entry("Main Menu:File:Remove Empty Tracks (No Notes, No DSP)...") then
+      renoise.tool():add_menu_entry{name="Main Menu:File:Remove Empty Tracks (No Notes, No DSP)...",invoke=PakettiClearanceRemoveEmptyTracksAndDSP}
+    end
     if not renoise.tool():has_menu_entry("--Main Menu:File:Largest Samples Dialog...") then
       renoise.tool():add_menu_entry{name="--Main Menu:File:Largest Samples Dialog...",invoke = pakettiShowLargestSamplesDialog}
     end
@@ -116,6 +126,12 @@ function PakettiMenuApplyFileMenuLocation(mode)
     if not renoise.tool():has_menu_entry("Main Menu:File:Paketti:Delete Unused Samples...") then
       renoise.tool():add_menu_entry{name="Main Menu:File:Paketti:Delete Unused Samples...",invoke=deleteUnusedSamples}
     end
+    if not renoise.tool():has_menu_entry("--Main Menu:File:Paketti:Remove Empty Tracks...") then
+      renoise.tool():add_menu_entry{name="--Main Menu:File:Paketti:Remove Empty Tracks...",invoke=PakettiClearanceRemoveEmptyTracks}
+    end
+    if not renoise.tool():has_menu_entry("Main Menu:File:Paketti:Remove Empty Tracks (No Notes, No DSP)...") then
+      renoise.tool():add_menu_entry{name="Main Menu:File:Paketti:Remove Empty Tracks (No Notes, No DSP)...",invoke=PakettiClearanceRemoveEmptyTracksAndDSP}
+    end
     if not renoise.tool():has_menu_entry("--Main Menu:File:Paketti:Largest Samples Dialog...") then
       renoise.tool():add_menu_entry{name="--Main Menu:File:Paketti:Largest Samples Dialog...",invoke = pakettiShowLargestSamplesDialog}
     end
@@ -143,16 +159,16 @@ end
 if preferences.pakettiMenuConfig.InstrumentBox then
   debugPrint("Instrument Box Menus Are Enabled")
 -- Gadgets
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti Gadgets:Paketti eSpeak Text-to-Speech...",invoke=function()pakettieSpeakDialog()end}
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti Gadgets:Largest Samples Dialog...",invoke = pakettiShowLargestSamplesDialog}
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti Gadgets:Paketti Stacker Dialog...",invoke=function() pakettiStackerDialog(proceed_with_stacking, on_switch_changed, PakettiIsolateSlicesToInstrument) end}
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti Gadgets:Paketti Timestretch Dialog...",invoke=pakettiTimestretchDialog}
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti Gadgets:Paketti Steppers Dialog...", invoke=function() PakettiSteppersDialog() end}
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti Gadgets:Paketti YT-DLP Downloader...",invoke=pakettiYTDLPDialog }
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti Gadgets:Merge Instruments Dialog...",invoke=function() pakettiMergeInstrumentsDialog() end}
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti Gadgets:Paketti Global Volume Adjustment...",invoke=function() pakettiGlobalVolumeDialog() end}
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti Gadgets:Open Paketti Init Phrase Dialog...",invoke=function() pakettiPhraseSettings() end}
-renoise.tool():add_menu_entry{name="--Instrument Box:Paketti Gadgets:Slice to Pattern Sequencer Dialog...",invoke = showSliceToPatternSequencerInterface}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti Gadgets:Paketti eSpeak Text-to-Speech...",invoke=function()pakettieSpeakDialog()end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti Gadgets:Largest Samples Dialog...",invoke = pakettiShowLargestSamplesDialog}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti Gadgets:Paketti Stacker Dialog...",invoke=function() pakettiStackerDialog(proceed_with_stacking, on_switch_changed, PakettiIsolateSlicesToInstrument) end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti Gadgets:Paketti Timestretch Dialog...",invoke=pakettiTimestretchDialog}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti Gadgets:Paketti Steppers Dialog...", invoke=function() PakettiSteppersDialog() end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti Gadgets:Paketti YT-DLP Downloader...",invoke=pakettiYTDLPDialog }
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti Gadgets:Merge Instruments Dialog...",invoke=function() pakettiMergeInstrumentsDialog() end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti Gadgets:Paketti Global Volume Adjustment...",invoke=function() pakettiGlobalVolumeDialog() end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti Gadgets:Open Paketti Init Phrase Dialog...",invoke=function() pakettiPhraseSettings() end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti Gadgets:Slice to Pattern Sequencer Dialog...",invoke = showSliceToPatternSequencerInterface}
 
 renoise.tool():add_menu_entry{name="--Instrument Box:Paketti:Steppers:Paketti Steppers Dialog...", invoke=function() PakettiSteppersDialog() end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Phrases:Open Paketti Init Phrase Dialog...",invoke=function() pakettiPhraseSettings() end}
@@ -274,15 +290,15 @@ end
 --- Sample Editor Config
 if preferences.pakettiMenuConfig.SampleEditor then
   debugPrint("Sample Editor Menus Are Enabled")
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti Gadgets:BPM Calculation Dialog...",invoke=pakettiBpmFromSampleDialog}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti Gadgets:BPM Calculation Dialog...",invoke=pakettiBpmFromSampleDialog}
 
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti Gadgets:User-Defined Sample Folders...",invoke=pakettiUserDefinedSamplesDialog}
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti Gadgets:Paketti YT-DLP Downloader...",invoke=pakettiYTDLPDialog }
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti Gadgets:Paketti Sample Adjust Dialog...",invoke = show_paketti_sample_adjust_dialog}
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti Gadgets:Set Selection by Hex Offset Dialog...", invoke = pakettiHexOffsetDialog}
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti Gadgets:Sample Cycle Tuning Calculator...",invoke=function() pakettiSimpleSampleTuningDialog() end}
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti Gadgets:Unison Generator Dialog",invoke=PakettiCreateUnisonSamples}
-renoise.tool():add_menu_entry{name="--Sample Editor:Paketti Gadgets:Paketti eSpeak Text-to-Speech...",invoke=function() pakettieSpeakDialog() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti Gadgets:User-Defined Sample Folders...",invoke=pakettiUserDefinedSamplesDialog}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti Gadgets:Paketti YT-DLP Downloader...",invoke=pakettiYTDLPDialog }
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti Gadgets:Paketti Sample Adjust Dialog...",invoke = show_paketti_sample_adjust_dialog}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti Gadgets:Set Selection by Hex Offset Dialog...", invoke = pakettiHexOffsetDialog}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti Gadgets:Sample Cycle Tuning Calculator...",invoke=function() pakettiSimpleSampleTuningDialog() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti Gadgets:Unison Generator Dialog",invoke=PakettiCreateUnisonSamples}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti Gadgets:Paketti eSpeak Text-to-Speech...",invoke=function() pakettieSpeakDialog() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Process:Paketti Sample Cycle Tuning Calculator...",invoke=function() pakettiSimpleSampleTuningDialog() end}
 
 -- Sample Editor Load
@@ -764,8 +780,8 @@ end
 --- Mixer Config
 if preferences.pakettiMenuConfig.Mixer then
   debugPrint("Mixer Menus Are Enabled")
-renoise.tool():add_menu_entry{name="--Mixer:Paketti Gadgets:Paketti Action Selector Dialog...",invoke = pakettiActionSelectorDialog}
-renoise.tool():add_menu_entry{name="--Mixer:Paketti Gadgets:Paketti BPM to MS Delay Calculator Dialog...", invoke = pakettiBPMMSCalculator}
+renoise.tool():add_menu_entry{name="Mixer:Paketti Gadgets:Paketti Action Selector Dialog...",invoke = pakettiActionSelectorDialog}
+renoise.tool():add_menu_entry{name="Mixer:Paketti Gadgets:Paketti BPM to MS Delay Calculator Dialog...", invoke = pakettiBPMMSCalculator}
 
 renoise.tool():add_menu_entry{name="--Mixer:Paketti:Inspect Selected Device",invoke=function() inspectEffect() end}
 
@@ -1351,36 +1367,36 @@ end
 if preferences.pakettiMenuConfig.MainMenuTools then
 debugPrint("Main Menu Tools Menus Are Enabled")
 --- Gadgets
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets:Fuzzy Search Track...",invoke = pakettiFuzzySearchTrackDialog}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets:Largest Samples Dialog...",invoke = pakettiShowLargestSamplesDialog}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets:Unison Generator",invoke=PakettiCreateUnisonSamples}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets:Show Paketti Formula Dialog...",invoke = pakettiFormulaDeviceDialog}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets:Paketti Stacker...",invoke=function() pakettiStackerDialog(proceed_with_stacking, on_switch_changed, PakettiIsolateSlicesToInstrument) end}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets:Paketti Beat Structure Editor...",invoke=pakettiBeatStructureEditorDialog}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:Fuzzy Search Track...",invoke = pakettiFuzzySearchTrackDialog}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:Largest Samples Dialog...",invoke = pakettiShowLargestSamplesDialog}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:Unison Generator",invoke=PakettiCreateUnisonSamples}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:Show Paketti Formula Dialog...",invoke = pakettiFormulaDeviceDialog}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:Paketti Stacker...",invoke=function() pakettiStackerDialog(proceed_with_stacking, on_switch_changed, PakettiIsolateSlicesToInstrument) end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:Paketti Beat Structure Editor...",invoke=pakettiBeatStructureEditorDialog}
 
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets:Keyzone Distributor Dialog...",invoke=function() pakettiKeyzoneDistributorDialog() end}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets:Paketti Action Selector Dialog...",invoke = pakettiActionSelectorDialog}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets:Paketti Timestretch Dialog...",invoke=pakettiTimestretchDialog}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets:Paketti Groovebox 8120...",invoke=function() GrooveboxShowClose() end}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets:Paketti BPM to MS Delay Calculator Dialog...", invoke = pakettiBPMMSCalculator}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets:Paketti Volume/Delay/Pan Slider Controls...",invoke=function() pakettiVolDelayPanSliderDialog() end}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets:Show/Hide User Preference Devices Master Dialog (SlotShow)...",invoke=function() pakettiUserPreferencesShowerDialog() end}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets:Quick Load Device Dialog...", invoke=pakettiQuickLoadDialog}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets:Paketti Sequencer Settings Dialog...",invoke = pakettiSequencerSettingsDialog}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets:Paketti Dialog of Dialogs...",invoke=function() pakettiDialogOfDialogsToggle() end}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets:Paketti New Song Dialog...",invoke=function() pakettiImpulseTrackerNewSongDialog() end}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets:Paketti Track Dater & Titler...",invoke=function() pakettiTitlerDialog() end}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets:Paketti Theme Selector...",invoke=pakettiThemeSelectorDialogShow }
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets:Paketti Gater...",invoke=function()
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:Keyzone Distributor Dialog...",invoke=function() pakettiKeyzoneDistributorDialog() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:Paketti Action Selector Dialog...",invoke = pakettiActionSelectorDialog}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:Paketti Timestretch Dialog...",invoke=pakettiTimestretchDialog}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:Paketti Groovebox 8120...",invoke=function() GrooveboxShowClose() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:Paketti BPM to MS Delay Calculator Dialog...", invoke = pakettiBPMMSCalculator}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:Paketti Volume/Delay/Pan Slider Controls...",invoke=function() pakettiVolDelayPanSliderDialog() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:Show/Hide User Preference Devices Master Dialog (SlotShow)...",invoke=function() pakettiUserPreferencesShowerDialog() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:Quick Load Device Dialog...", invoke=pakettiQuickLoadDialog}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:Paketti Sequencer Settings Dialog...",invoke = pakettiSequencerSettingsDialog}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:Paketti Dialog of Dialogs...",invoke=function() pakettiDialogOfDialogsToggle() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:Paketti New Song Dialog...",invoke=function() pakettiImpulseTrackerNewSongDialog() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:Paketti Track Dater & Titler...",invoke=function() pakettiTitlerDialog() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:Paketti Theme Selector...",invoke=pakettiThemeSelectorDialogShow }
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:Paketti Gater...",invoke=function()
           local max_rows = renoise.song().selected_pattern.number_of_lines
           if renoise.song() then
             pakettiGaterDialog()
             renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR end end}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets:Paketti MIDI Populator...",invoke=function() pakettiMIDIPopulator() end}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets:Track Routings...",invoke=function() pakettiTrackOutputRoutingsDialog() end}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets:Oblique Strategies...",invoke=function() pakettiObliqueStrategiesDialog() end}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets:Paketti Track Renamer...",invoke=function() pakettiTrackRenamerDialog() end}
-renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti Gadgets:Paketti eSpeak Text-to-Speech...",invoke=function()pakettieSpeakDialog()end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:Paketti MIDI Populator...",invoke=function() pakettiMIDIPopulator() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:Track Routings...",invoke=function() pakettiTrackOutputRoutingsDialog() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:Oblique Strategies...",invoke=function() pakettiObliqueStrategiesDialog() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:Paketti Track Renamer...",invoke=function() pakettiTrackRenamerDialog() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti Gadgets:Paketti eSpeak Text-to-Speech...",invoke=function()pakettieSpeakDialog()end}
     
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:File Formats:Convert RX2 to PTI",invoke=rx2_to_pti_convert}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:File Formats:Export .PTI Instrument",invoke=pti_savesample}
@@ -1818,12 +1834,12 @@ end
 --- Pattern Matrix Config
 if preferences.pakettiMenuConfig.PatternMatrix then
 -- Gadgets
-renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti Gadgets:Paketti Beat Structure Editor...",invoke=pakettiBeatStructureEditorDialog}
-renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti Gadgets:Paketti Action Selector Dialog...",invoke = pakettiActionSelectorDialog}
-renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti Gadgets:Value Interpolation Looper Dialog...",invoke = pakettiVolumeInterpolationLooper}
-renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti Gadgets:Paketti Sequencer Settings Dialog...",invoke = pakettiSequencerSettingsDialog}
-renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti Gadgets:Fuzzy Search Track Dialog...",invoke = pakettiFuzzySearchTrackDialog}
-renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti Gadgets:Paketti BPM to MS Delay Calculator Dialog...", invoke = pakettiBPMMSCalculator}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti Gadgets:Paketti Beat Structure Editor...",invoke=pakettiBeatStructureEditorDialog}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti Gadgets:Paketti Action Selector Dialog...",invoke = pakettiActionSelectorDialog}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti Gadgets:Value Interpolation Looper Dialog...",invoke = pakettiVolumeInterpolationLooper}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti Gadgets:Paketti Sequencer Settings Dialog...",invoke = pakettiSequencerSettingsDialog}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti Gadgets:Fuzzy Search Track Dialog...",invoke = pakettiFuzzySearchTrackDialog}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti Gadgets:Paketti BPM to MS Delay Calculator Dialog...", invoke = pakettiBPMMSCalculator}
 
 -- Pattern Matrix Devices
 renoise.tool():add_menu_entry{name="--Pattern Matrix:Paketti:Devices:Insert Stereo -> Mono device to End of ALL DSP Chains",invoke=function() insertMonoToAllTracksEnd() end}
@@ -2125,8 +2141,8 @@ end
 --- Disk Browser Files Config
 if preferences.pakettiMenuConfig.DiskBrowserFiles then
 debugPrint("Disk Browser Files Menus Are Enabled")
-renoise.tool():add_menu_entry{name="--Disk Browser Files:Paketti Gadgets:Paketti Stacker Dialog...",invoke=function() pakettiStackerDialog(proceed_with_stacking, on_switch_changed, PakettiIsolateSlicesToInstrument) end}
-renoise.tool():add_menu_entry{name="--Disk Browser Files:Paketti Gadgets:User-Defined Sample Folders...",invoke=pakettiUserDefinedSamplesDialog}
+renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti Gadgets:Paketti Stacker Dialog...",invoke=function() pakettiStackerDialog(proceed_with_stacking, on_switch_changed, PakettiIsolateSlicesToInstrument) end}
+renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti Gadgets:User-Defined Sample Folders...",invoke=pakettiUserDefinedSamplesDialog}
 renoise.tool():add_menu_entry{name="--Disk Browser:Paketti Gadgets:Paketti Dialog of Dialogs...",invoke=function() pakettiDialogOfDialogsToggle() end}
 renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti:AKWF:Load Random AKWF Sample",invoke=function() load_random_akwf_sample(1) end}
 renoise.tool():add_menu_entry{name="Disk Browser Files:Paketti:AKWF:Load Random amount (1...12) of AKWF Samples",invoke=function() load_random_akwf_sample("random") end}

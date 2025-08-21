@@ -577,3 +577,57 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Keep Sequence Sorted 
 renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Keep Sequence Sorted Off", invoke=function() PakettiKeepSequenceSorted(false) end}
 renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Keep Sequence Sorted On", invoke=function() PakettiKeepSequenceSorted(true) end}
 renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Keep Sequence Sorted Toggle", invoke=function() PakettiKeepSequenceSorted("toggle") end}
+
+-- Function to wipe empty patterns from the end of the pattern sequencer
+function PakettiWipeEmptyPatternsFromEnd()
+  local song = renoise.song()
+  local sequencer = song.sequencer
+  local pattern_sequence = sequencer.pattern_sequence
+  local total_sequences = #pattern_sequence
+  
+  if total_sequences == 0 then
+    renoise.app():show_status("No patterns in sequencer")
+    return
+  end
+  
+  -- Find the last non-empty pattern by working backwards from the end
+  local last_non_empty_pos = total_sequences
+  local empty_count = 0
+  
+  -- Start from the end and work backwards to find continuous empty patterns
+  for i = total_sequences, 1, -1 do
+    local pattern_index = pattern_sequence[i]
+    local pattern = song.patterns[pattern_index]
+    
+    if pattern.is_empty then
+      empty_count = empty_count + 1
+      last_non_empty_pos = i - 1
+    else
+      -- Found a non-empty pattern, stop here
+      break
+    end
+  end
+  
+  -- If no empty patterns found at the end, show status and return
+  if empty_count == 0 then
+    renoise.app():show_status("No empty patterns found at the end of sequencer")
+    return
+  end
+  
+  -- Don't delete all patterns - keep at least one
+  if last_non_empty_pos == 0 then
+    renoise.app():show_status("Cannot delete all patterns - keeping at least one pattern")
+    return
+  end
+  
+  -- Delete empty patterns from the end
+  for i = total_sequences, last_non_empty_pos + 1, -1 do
+    sequencer:delete_sequence_at(i)
+  end
+  
+  -- Show status message
+  renoise.app():show_status(string.format("Wiped %d empty patterns from end of sequencer", empty_count))
+end
+
+renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Wipe Empty Patterns From End", invoke=PakettiWipeEmptyPatternsFromEnd}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Wipe Empty Patterns From End", invoke=PakettiWipeEmptyPatternsFromEnd}
