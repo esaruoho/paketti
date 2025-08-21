@@ -42,6 +42,355 @@ local last_bpm_used = 0
 local last_master_beat = 64
 local last_subdivisions = {}
 
+-- Silence file optimization
+local silence_files_cache = {} -- Cache for generated silence files per beat length
+
+-- Progress tracking (OPTIMIZATION)
+local files_completed = 0
+local total_files_to_process = 0
+local current_sample_name = "Initializing..."
+
+-- Error tracking and recovery (OPTIMIZATION)
+local processing_errors = {}
+local files_skipped = 0
+local critical_errors = 0
+local consecutive_errors = 0 -- Circuit breaker for infinite error loops
+
+-- Memory leak prevention (CRITICAL)
+local processing_start_time_absolute = 0
+local last_memory_check = 0
+local exports_completed = 0
+
+-- EMERGENCY: Dialog flooding prevention
+local dialog_spawn_count = 0
+local last_dialog_spawn_time = 0
+local processing_is_complete = false
+local completion_handled = false -- Prevent multiple completion handlers
+
+-- EMERGENCY: Prevent dialog flooding
+function preventDialogFlooding(dialog_type)
+    local current_time = os.clock()
+    dialog_spawn_count = dialog_spawn_count + 1
+    
+    print(string.format("DIALOG CHECK: Type=%s, Count=%d, Complete=%s, Handled=%s", 
+        dialog_type or "unknown", dialog_spawn_count, tostring(processing_is_complete), tostring(completion_handled)))
+    
+    -- If too many dialogs spawned recently, KILL IT
+    if dialog_spawn_count > 3 and (current_time - last_dialog_spawn_time) < 5 then
+        print("EMERGENCY: Dialog flooding detected! Preventing dialog spawn.")
+        emergencyStopAllDialogs() -- Activate killswitch
+        return false -- Block dialog
+    end
+    
+    -- If processing is complete and dialogs keep spawning, KILL IT
+    if processing_is_complete and dialog_spawn_count > 2 then
+        print("EMERGENCY: Processing complete but dialogs keep spawning! Blocking.")
+        emergencyStopAllDialogs() -- Activate killswitch
+        return false -- Block dialog
+    end
+    
+    last_dialog_spawn_time = current_time
+    return true -- Allow dialog
+end
+
+-- Mark processing as complete
+function markProcessingComplete()
+    processing_is_complete = true
+    print("PROCESSING MARKED AS COMPLETE - No more dialogs should spawn")
+end
+
+-- EMERGENCY KILLSWITCH: Stop all dialogs and timers
+function emergencyStopAllDialogs()
+    print("EMERGENCY KILLSWITCH ACTIVATED - Stopping all dialogs and timers")
+    processing_is_complete = true
+    completion_handled = true
+    dialog_spawn_count = 1000 -- Force high count to block future dialogs
+    
+    -- CRITICAL: Clean up temp export instrument in emergency
+    if export_instrument_idx then
+        print("EMERGENCY CLEANUP: Removing temp export instrument")
+        cleanupExportInstrument()
+    end
+    
+    -- Kill any running timers
+    pcall(function()
+        if progress_timer then
+            renoise.tool():remove_timer(progress_timer)
+            progress_timer = nil
+        end
+    end)
+    
+    renoise.app():show_status("EMERGENCY: All StemSlicer dialogs and timers stopped")
+end
+
+-- Return to original dialog with completion status (FIXED: No new dialog)
+function returnToOriginalDialogWithCompletion()
+    -- EMERGENCY: Prevent dialog flooding
+    if not preventDialogFlooding("return_to_original") then
+        print("EMERGENCY: Blocked return to original dialog due to flooding")
+        return -- Don't show dialog
+    end
+    
+    -- If the original dialog is still open, update it with completion info
+    if dialog and dialog.visible and vb and vb.views then
+        print("UPDATING: Existing dialog with completion status")
+        
+        -- Update folder display to show completion status with clickable access
+        if vb.views.folder_display then
+            local completion_text = string.format("✅ COMPLETED: %d files processed", files_completed)
+            if files_skipped > 0 then
+                completion_text = completion_text .. string.format(" (%d skipped)", files_skipped)
+            end
+            completion_text = completion_text .. string.format("\nOUTPUT: %s", last_output_folder or "Unknown")
+            vb.views.folder_display.text = completion_text
+            vb.views.folder_display.style = "strong" -- Make it prominent
+        end
+        
+        -- Repurpose the "Browse Folder" button to "Open Output Folder" 
+        if last_output_folder then
+            print("REPURPOSING: Browse button to Open Output")
+            -- We can't change button text in ViewBuilder, but we can update the status
+            renoise.app():show_status("PakettiStemSlicer COMPLETE! Check the folder display above for results location")
+        end
+        
+        -- Update BPM display to show what was used
+        if vb.views.bpm_input and last_bpm_used then
+            vb.views.bpm_input.value = last_bpm_used
+        end
+        
+        print("UPDATED: Original dialog with completion info")
+    else
+        -- Fallback: Show summary dialog only if original dialog isn't available
+        print("FALLBACK: Original dialog not available, showing summary")
+        showStemSlicerSummary()
+    end
+end
+
+-- Convenient function to open the last output folder
+function openLastStemSlicerOutput()
+    if last_output_folder and last_output_folder ~= "" then
+        print("OPENING: Last StemSlicer output folder:", last_output_folder)
+        openFolderInFinder(last_output_folder)
+        renoise.app():show_status("Opened: " .. last_output_folder)
+    else
+        renoise.app():show_status("No StemSlicer output folder available")
+    end
+end
+
+-- Memory monitoring and leak prevention
+function checkMemoryUsage()
+    exports_completed = exports_completed + 1
+    local current_time = os.clock()
+    
+    -- Check every 10 exports or every 30 seconds
+    if exports_completed % 10 == 0 or (current_time - last_memory_check) > 30 then
+        last_memory_check = current_time
+        local elapsed = current_time - processing_start_time_absolute
+        
+        -- Force garbage collection to prevent memory accumulation
+        collectgarbage("collect")
+        
+        print(string.format("MEMORY CHECK: %d exports completed in %.1f seconds (%.1f exports/sec)", 
+            exports_completed, elapsed, exports_completed / math.max(elapsed, 1)))
+        
+        -- Safety timeout - if processing takes more than 2 hours, something is wrong
+        if elapsed > 7200 then -- 2 hours
+            logProcessingError("CRITICAL", "", "Processing timeout - exceeded 2 hours, possible infinite loop")
+            return false
+        end
+        
+        -- Safety check - if too many exports, something is wrong
+        if exports_completed > 50000 then -- 50k exports is way too many
+            logProcessingError("CRITICAL", "", "Too many exports - possible infinite loop, stopping")
+            return false
+        end
+    end
+    return true
+end
+
+-- Reset memory tracking for new session
+function resetMemoryTracking()
+    processing_start_time_absolute = os.clock()
+    last_memory_check = processing_start_time_absolute
+    exports_completed = 0
+    collectgarbage("collect") -- Clean start
+end
+
+-- Log error with context for debugging and recovery (WITH CIRCUIT BREAKER)
+function logProcessingError(error_type, file_path, details)
+    consecutive_errors = consecutive_errors + 1
+    
+    -- CIRCUIT BREAKER: Stop infinite error flooding
+    if consecutive_errors > 5 then
+        print("CIRCUIT BREAKER: Too many consecutive errors (" .. consecutive_errors .. "), stopping to prevent dialog flooding")
+        error("CIRCUIT_BREAKER_TRIGGERED: Stopping processing to prevent infinite error dialogs")
+    end
+    
+    local error_entry = {
+        type = error_type,
+        file = file_path or "unknown",
+        details = details or "no details",
+        timestamp = os.date("%H:%M:%S")
+    }
+    table.insert(processing_errors, error_entry)
+    print(string.format("ERROR [%s]: %s - %s (%s)", error_type, error_entry.file, details, error_entry.timestamp))
+    
+    if error_type == "CRITICAL" then
+        critical_errors = critical_errors + 1
+    else
+        files_skipped = files_skipped + 1
+    end
+end
+
+-- Reset consecutive error counter on successful operation
+function resetConsecutiveErrors()
+    consecutive_errors = 0
+end
+
+-- Clear error tracking for new processing session
+function clearErrorTracking()
+    processing_errors = {}
+    files_skipped = 0
+    critical_errors = 0
+    consecutive_errors = 0 -- Reset circuit breaker
+    completion_handled = false -- Reset completion handler flag
+    processing_is_complete = false -- Reset completion flag
+    dialog_spawn_count = 0 -- Reset dialog counter
+    current_sample_name = "Ready to start..." -- Reset sample display
+end
+
+-- Generate error summary for final report
+function generateErrorSummary()
+    if #processing_errors == 0 then
+        return "No errors encountered during processing."
+    end
+    
+    local summary = string.format("Processing completed with %d errors (%d files skipped):\n", #processing_errors, files_skipped)
+    for i, err in ipairs(processing_errors) do
+        if i <= 10 then  -- Show first 10 errors
+            summary = summary .. string.format("• [%s] %s: %s\n", err.type, err.file:match("[^/\\]+$") or err.file, err.details)
+        elseif i == 11 then
+            summary = summary .. string.format("... and %d more errors (check console for full log)\n", #processing_errors - 10)
+            break
+        end
+    end
+    return summary
+end
+
+-- Show current sample being processed
+function calculateProgress()
+    if total_files_to_process == 0 then
+        return current_progress
+    end
+    
+    local current_file_num = files_completed + 1
+    if files_completed >= total_files_to_process then
+        current_file_num = total_files_to_process
+    end
+    
+    return string.format("Processing Sample: %s (%d/%d)", current_sample_name, current_file_num, total_files_to_process)
+end
+
+-- Generate a silence file for a specific beat length and sample rate
+function generateSilenceFile(beat_length, sample_rate, output_folder)
+  local cache_key = string.format("%d_%d_wav", beat_length, sample_rate)
+  if silence_files_cache[cache_key] then
+    return silence_files_cache[cache_key]
+  end
+
+  local beat_duration_frames = calculateBeatDurationFrames(target_bpm, sample_rate)
+  local silence_frames = beat_duration_frames * beat_length
+  
+  -- CRITICAL SAFETY CHECK: Prevent massive silence file allocations
+  if silence_frames > 50000000 then -- 50M frames = ~17 minutes at 48kHz
+    error(string.format("Silence file too large: %d frames (%.1f minutes) - possible BPM calculation error", 
+        silence_frames, silence_frames / sample_rate / 60))
+  end
+  
+  -- Use reusable export instrument for silence generation (CRASH PREVENTION)
+  local export_idx = createExportInstrument()
+  local song = renoise.song()
+  local export_inst = song.instruments[export_idx]
+  local temp_sample = export_inst.samples[1]
+  
+  -- Create silent sample buffer
+  temp_sample.sample_buffer:create_sample_data(sample_rate, 16, 2, silence_frames)
+  temp_sample.sample_buffer:prepare_sample_data_changes()
+  
+  -- Fill with silence (zeros) with SAFE bounds checking (MEMORY LEAK FIX)
+  local frames_per_yield = 44100 -- Yield every second of audio
+  local max_silence_frames = math.min(silence_frames, 10000000) -- SAFETY: Never more than 10M frames
+  
+  if max_silence_frames > 5000000 then -- 5M frames = ~1.7 minutes at 48kHz
+    print("WARNING: Very large silence file requested:", max_silence_frames, "frames")
+  end
+  
+  for ch = 1, 2 do -- Stereo only
+    for frame = 1, max_silence_frames do
+      temp_sample.sample_buffer:set_sample_data(ch, frame, 0.0)
+      
+      -- Yield periodically for ProcessSlicer
+      if frame % frames_per_yield == 0 then
+        coroutine.yield()
+      end
+      
+      -- SAFETY BREAK - prevent infinite loops
+      if frame > silence_frames then
+        print("WARNING: Silence generation safety break triggered")
+        break
+      end
+    end
+  end
+  
+  temp_sample.sample_buffer:finalize_sample_data_changes()
+  
+  -- Export the silence file (ALWAYS as WAV - Renoise only supports wav/flac export)
+  local silence_filename = string.format("silence_%02dbeats.wav", beat_length)
+  local silence_path = output_folder .. "/" .. silence_filename
+  temp_sample.sample_buffer:save_as(silence_path, "wav")
+  
+  -- Reset consecutive error counter on successful silence generation
+  resetConsecutiveErrors()
+  
+  -- Memory leak prevention - check usage after silence generation
+  if not checkMemoryUsage() then
+    error("Processing timeout detected during silence generation - stopping to prevent system freeze")
+  end
+  
+  -- No deletion - reuse the same export instrument
+  
+  -- Cache the path
+  silence_files_cache[cache_key] = silence_path
+  print(string.format("Generated silence file: %s (%d frames)", silence_filename, silence_frames))
+  
+  return silence_path
+end
+
+-- Copy a silence file to a new location instead of re-generating
+function copySilenceFile(source_silence_path, target_path)
+  local success = pcall(function()
+    -- Use OS-specific file copy
+    local copy_cmd
+    if package.config:sub(1,1) == "\\" then  -- Windows
+      copy_cmd = string.format('copy "%s" "%s"', source_silence_path:gsub("/", "\\"), target_path:gsub("/", "\\"))
+    else  -- macOS and Linux
+      copy_cmd = string.format("cp '%s' '%s'", source_silence_path:gsub("'", "'\\''"), target_path:gsub("'", "'\\''"))
+    end
+    os.execute(copy_cmd)
+  end)
+  return success
+end
+
+-- Clear silence cache when starting new processing session
+function clearSilenceCache()
+  silence_files_cache = {}
+end
+
+-- Calculate beat duration in frames for given BPM and sample rate (MOVED UP FOR EARLY ACCESS)
+function calculateBeatDurationFrames(bpm, sample_rate)
+    return math.floor((60.0 / bpm) * sample_rate)
+end
+
 -- BPM observable wiring (keeps the dialog BPM in sync with transport)
 local stemslicer_bpm_observer = nil
 
@@ -201,9 +550,15 @@ local function updateExtractBeatLengths()
     table.sort(extract_beat_lengths, function(a, b) return a > b end)
 end
 
--- Summary dialog after processing
+-- Summary dialog after processing (WITH EMERGENCY FLOOD PREVENTION)
 function showStemSlicerSummary()
   if last_output_folder == "" then return end
+  
+  -- EMERGENCY: Prevent dialog flooding
+  if not preventDialogFlooding("completion") then
+    print("EMERGENCY: Blocked completion dialog due to flooding")
+    return -- Don't show dialog
+  end
   local vb_local = renoise.ViewBuilder()
   local summary_lines = {
     string.format("Exported folder: %s", last_selected_folder),
@@ -218,11 +573,19 @@ function showStemSlicerSummary()
   local grouping_items = {"Group by Sample (64→4)", "Group by Beat across Samples"}
   local grouping_mode_index = 1
 
+  -- Add error summary if there were errors
+  local error_display = {}
+  if #processing_errors > 0 then
+    table.insert(error_display, vb_local:text{text = generateErrorSummary(), style = "disabled"})
+    table.insert(error_display, vb_local:space{height=4})
+  end
+
   local content = vb_local:column{
     margin = 8,
     spacing = 6,
     vb_local:text{text = "Processing complete!", style = "strong"},
     vb_local:text{text = table.concat(summary_lines, "\n"), style = "normal"},
+    unpack(error_display),
     vb_local:space{height=6},
     vb_local:row{
       vb_local:text{text = "Grouping:", style = "normal", width = 80},
@@ -262,22 +625,29 @@ function openFolderInFinder(path)
   end
 end
 
--- Scan output folder and load non-silent slices grouped into instruments with headers
+-- Scan output folder and load non-silent slices grouped into instruments with headers (FIXED SILENCE FILTERING)
 function loadNonSilentSlicesIntoInstruments(folder)
-  local files = PakettiGetFilesInDirectory(folder)
-  if #files == 0 then
-    renoise.app():show_status("No files found in output folder")
-    print("No files found in output folder:", folder)
-    return
-  end
-  -- Filter out silent files
-  local non_silent = {}
-  for _, f in ipairs(files) do
-    if not f:lower():match("_silence%.") and not f:lower():match("_silent%.") then
-      table.insert(non_silent, f)
+  local all_files = PakettiGetFilesInDirectory(folder)
+  
+  -- CRITICAL FIX: Filter out ALL silence files before processing
+  local files = {}
+  for _, f in ipairs(all_files) do
+    if not isSilentSlicePath(f) then
+      table.insert(files, f)
     end
   end
-  table.sort(non_silent)
+  
+  print(string.format("loadNonSilentSlicesIntoInstruments: Filtered %d silence files, processing %d non-silence files", #all_files - #files, #files))
+  
+  if #files == 0 then
+    renoise.app():show_status("No non-silence files found in output folder")
+    print("No non-silence files found in output folder:", folder)
+    return
+  end
+  
+  -- Files are already filtered, just sort them
+  table.sort(files)
+  local non_silent = files -- Use filtered files directly
 
   local song = renoise.song()
   local by_sample_then_beats = {}
@@ -325,25 +695,34 @@ function loadNonSilentSlicesIntoInstruments(folder)
   end
 end
 
--- Quick-load handler with grouping and beat filters
+-- Quick-load handler with grouping and beat filters (EXCLUDES SILENCE FILES)
 function onQuickLoadSlices(folder, beats_filter, grouping_mode_index)
-  local files = PakettiGetFilesInDirectory(folder)
+  local all_files = PakettiGetFilesInDirectory(folder)
+  
+  -- FILTER OUT SILENCE FILES - they're useless for drumkits!
+  local files = {}
+  for _, file in ipairs(all_files) do
+    if not isSilentSlicePath(file) then
+      table.insert(files, file)
+    end
+  end
+  
   if #files == 0 then
-    renoise.app():show_status("No files to load.")
+    renoise.app():show_status("No non-silence files to load.")
     return
   end
-  -- Build map: sample_base -> beat -> {files}
+  
+  print(string.format("Filtered out silence files: %d total files, %d non-silence files", #all_files, #files))
+  -- Build map: sample_base -> beat -> {files} (silence files already filtered out)
   local map = {}
   for _, f in ipairs(files) do
-    if not f:lower():match("_silence%.") and not f:lower():match("_silent%.") then
-      local name = f:match("[^/\\]+$") or f
-      local base = name:gsub("_%d%dbeats.*$", "")
-      local beats = tonumber(name:match("_(%d%d)beats")) or 0
-      if beats > 0 then
-        map[base] = map[base] or {}
-        map[base][beats] = map[base][beats] or {}
-        table.insert(map[base][beats], f)
-      end
+    local name = f:match("[^/\\]+$") or f
+    local base = name:gsub("_%d%dbeats.*$", "")
+    local beats = tonumber(name:match("_(%d%d)beats")) or 0
+    if beats > 0 then
+      map[base] = map[base] or {}
+      map[base][beats] = map[base][beats] or {}
+      table.insert(map[base][beats], f)
     end
   end
 
@@ -474,18 +853,22 @@ function makeDrumkitInstrument(file_list, title, reverse_threshold)
 
   -- Ensure at least one sample
   if #inst.samples == 0 then inst:insert_sample_at(1) end
-  -- Fill zones sequentially
+  -- Fill zones sequentially with proper settings
   local zone_index = 1
   for _, f in ipairs(take) do
     if zone_index == 1 then
       inst.samples[1].sample_buffer:load_from(f)
       local fn = (f:match("[^/\\]+$") or f):gsub("%.%w+$", "")
       inst.samples[1].name = fn
+      -- Apply drumkit-specific settings to first sample
+      applyStemSlicerDrumkitSettings(inst.samples[1])
     else
       inst:insert_sample_at(zone_index)
       inst.samples[zone_index].sample_buffer:load_from(f)
       local fn = (f:match("[^/\\]+$") or f):gsub("%.%w+$", "")
       inst.samples[zone_index].name = fn
+      -- Apply drumkit-specific settings to each sample
+      applyStemSlicerDrumkitSettings(inst.samples[zone_index])
     end
     zone_index = zone_index + 1
     if zone_index > max_zones then break end
@@ -578,11 +961,43 @@ function startQuickLoadProcess(tasks)
   local slicer = ProcessSlicer(runner)
   slicer:start()
 end
--- Helper function to get supported audio files from folder
+-- Helper function to get supported audio files from folder (ONLY selected folder, no subfolders)
 local function getSupportedAudioFiles(folder_path)
-    -- Use the existing PakettiGetFilesInDirectory function from main.lua
-    -- which already handles cross-platform file discovery and filtering
-    return PakettiGetFilesInDirectory(folder_path)
+    local audio_files = {}
+    
+    if not folder_path or folder_path == "" then
+        return audio_files
+    end
+    
+    -- Get files only from the selected folder (non-recursive)
+    local success, files = pcall(os.filenames, folder_path, "*")
+    if not success then
+        print("Failed to read folder:", folder_path)
+        return audio_files
+    end
+    
+    -- Filter for supported audio formats
+    local supported_extensions = {"%.wav$", "%.aif$", "%.aiff$", "%.flac$"}
+    
+    for _, filename in ipairs(files) do
+        local full_path = folder_path .. "/" .. filename
+        local lower_filename = filename:lower()
+        
+        -- Check if file has supported audio extension
+        for _, ext_pattern in ipairs(supported_extensions) do
+            if lower_filename:match(ext_pattern) then
+                table.insert(audio_files, full_path)
+                break
+            end
+        end
+    end
+    
+    -- Sort files alphabetically
+    table.sort(audio_files)
+    
+    print(string.format("Found %d audio files in folder: %s", #audio_files, folder_path))
+    
+    return audio_files
 end
 
 -- Helper: compute output folder path for current selection
@@ -593,9 +1008,30 @@ end
 
 function isSilentSlicePath(path)
   if not path or path == "" then return false end
-  local p = string.lower(path)
-  -- Matches ..._silence.ext, ..._silent.ext, ...-silence.ext, ... silence.ext
-  return (p:match("[_%-%s]silence%.[%w]+$") ~= nil) or (p:match("_silent%.[%w]+$") ~= nil)
+  local filename = path:match("[^/\\]+$") or path
+  local p = string.lower(filename)
+  
+  -- COMPREHENSIVE SILENCE DETECTION - catch ALL silence file patterns:
+  
+  -- 1. Generated silence files (silence_04beats.wav, silence_32beats.wav, etc)
+  if p:match("^silence_") then return true end
+  
+  -- 2. Silence files with beat numbers (silence04beats.wav, silence32beats.wav)
+  if p:match("^silence%d+beats") then return true end
+  
+  -- 3. Files ending with _silence suffix before extension
+  if p:match("_silence%.[%w]+$") then return true end
+  
+  -- 4. Files ending with _silent suffix before extension  
+  if p:match("_silent%.[%w]+$") then return true end
+  
+  -- 5. Files with -silence- or _silence_ in middle
+  if p:match("[_%-%s]silence[_%-%s]") then return true end
+  
+  -- 6. Files that are just "silence" with extension
+  if p:match("^silence%.[%w]+$") then return true end
+  
+  return false
 end
 
 -- Instrument capacity guard
@@ -673,6 +1109,56 @@ function applyPakettiLoaderSettings(instrument)
   end
 end
 
+-- Apply drumkit-specific settings for StemSlicer (Cut, oversampling, interpolation)
+function applyStemSlicerDrumkitSettings(sample)
+  if not sample then return end
+  
+  -- Set to Cut mode for drumkit-style playback
+  sample.new_note_action = renoise.Sample.NEW_NOTE_ACTION_CUT
+  sample.oneshot = true
+  
+  -- Apply oversampling and interpolation settings from preferences if available
+  if preferences then
+    if preferences.pakettiLoaderOverSampling then 
+      sample.oversample_enabled = preferences.pakettiLoaderOverSampling.value 
+    end
+    if preferences.pakettiLoaderInterpolation then 
+      sample.interpolation_mode = preferences.pakettiLoaderInterpolation.value 
+    end
+    
+    -- Apply additional drumkit-optimized settings
+    if preferences.pakettiLoaderLoopMode then 
+      sample.loop_mode = renoise.Sample.LOOP_MODE_OFF  -- Force no loop for drumkits
+    else
+      sample.loop_mode = renoise.Sample.LOOP_MODE_OFF
+    end
+    
+    if preferences.pakettiLoaderAutofade then 
+      sample.autofade = preferences.pakettiLoaderAutofade.value 
+    end
+    if preferences.pakettiLoaderAutoseek then 
+      sample.autoseek = preferences.pakettiLoaderAutoseek.value 
+    end
+    if preferences.pakettiLoaderLoopExit then 
+      sample.loop_release = preferences.pakettiLoaderLoopExit.value 
+    end
+  else
+    -- Fallback settings when preferences not available
+    sample.oversample_enabled = false
+    sample.interpolation_mode = renoise.Sample.INTERPOLATE_LINEAR
+    sample.loop_mode = renoise.Sample.LOOP_MODE_OFF
+    sample.autofade = false
+    sample.autoseek = true
+    sample.loop_release = false
+  end
+  
+  print(string.format("Applied drumkit settings to sample: %s (Cut=%s, Oversample=%s, Interpolation=%d)", 
+    sample.name or "unnamed", 
+    tostring(sample.new_note_action == renoise.Sample.NEW_NOTE_ACTION_CUT),
+    tostring(sample.oversample_enabled),
+    sample.interpolation_mode))
+end
+
 -- Helper: finalize instrument according to Paketti conventions
 function finalizeInstrumentPaketti(instrument)
   removePlaceholderSamples(instrument)
@@ -693,79 +1179,209 @@ local function getFileExtension(filepath)
     return filepath:match("%.(%w+)$") or "wav"
 end
 
--- Calculate beat duration in frames for given BPM and sample rate
-local function calculateBeatDurationFrames(bpm, sample_rate)
-    return math.floor((60.0 / bpm) * sample_rate)
-end
 
--- Detect if a slice contains mostly silence
-local function detectSilence(sample_buffer, start_frame, end_frame, channels)
-    local total_rms = 0
-    local sample_count = 0
+
+-- Silence detection chunk size (30k frames as requested)
+local SILENCE_CHUNK_SIZE = 30000
+
+-- Global silence map cache per file processing session
+local current_silence_map = nil
+local current_silence_map_file = ""
+
+-- Create silence map for entire file using 30k frame chunks (HIERARCHICAL OPTIMIZATION)
+function createSilenceMapForFile(buffer, file_path)
+    -- Return cached map if already computed for this file
+    if current_silence_map and current_silence_map_file == file_path then
+        return current_silence_map
+    end
     
-    for ch = 1, channels do
-        for frame = start_frame, math.min(end_frame, sample_buffer.number_of_frames) do
-            local sample_val = sample_buffer:sample_data(ch, frame)
-            total_rms = total_rms + (sample_val * sample_val)
-            sample_count = sample_count + 1
+    if not buffer or not buffer.has_sample_data then 
+        current_silence_map = {}
+        current_silence_map_file = file_path
+        return current_silence_map 
+    end
+    
+    local total_frames = buffer.number_of_frames
+    local channels = buffer.number_of_channels
+    local silence_map = {}
+    
+    print(string.format("Creating silence map for %s (%d frames in %dk chunks)", 
+        file_path:match("[^/\\]+$") or file_path, total_frames, SILENCE_CHUNK_SIZE/1000))
+    
+    -- Divide file into 30k frame chunks and test each for silence
+    local chunk_idx = 1
+    local start_frame = 1
+    
+    while start_frame <= total_frames do
+        local end_frame = math.min(start_frame + SILENCE_CHUNK_SIZE - 1, total_frames)
+        local chunk_length = end_frame - start_frame + 1
+        
+        if chunk_length <= 0 then break end
+        
+        -- Test this 30k chunk for silence with proper sampling
+        local is_silent = true
+        local max_samples_per_chunk = 3000 -- Sample 3k frames from each 30k chunk
+        local step = math.max(1, math.floor(chunk_length / max_samples_per_chunk))
+        local total_rms = 0
+        local max_abs = 0
+        local sample_count = 0
+        
+        for ch = 1, channels do
+            local f = start_frame
+            while f <= end_frame and is_silent do
+                local v = buffer:sample_data(ch, f)
+                local av = math.abs(v)
+                if av > max_abs then max_abs = av end
+                total_rms = total_rms + (v * v)
+                sample_count = sample_count + 1
+                
+                -- Early exit if we find significant audio
+                if av > (SILENCE_THRESHOLD * 4) then
+                    is_silent = false
+                    break
+                end
+                
+                f = f + step
+            end
+            if not is_silent then break end
+        end
+        
+        -- Final RMS check if still potentially silent
+        if is_silent and sample_count > 0 then
+            local rms = math.sqrt(total_rms / sample_count)
+            is_silent = (rms < SILENCE_THRESHOLD and max_abs < (SILENCE_THRESHOLD * 4))
+        end
+        
+        silence_map[chunk_idx] = {
+            start_frame = start_frame,
+            end_frame = end_frame,
+            is_silent = is_silent
+        }
+        
+        chunk_idx = chunk_idx + 1
+        start_frame = end_frame + 1
+        
+        -- Yield occasionally during silence map creation
+        if chunk_idx % 20 == 0 then
+            coroutine.yield()
         end
     end
     
-    if sample_count == 0 then return true end
+    local silent_chunks = 0
+    for _, chunk in ipairs(silence_map) do
+        if chunk.is_silent then silent_chunks = silent_chunks + 1 end
+    end
     
-    local rms = math.sqrt(total_rms / sample_count)
-    return rms < SILENCE_THRESHOLD
+    print(string.format("Silence map created: %d chunks total, %d silent (%.1f%%)", 
+        #silence_map, silent_chunks, (silent_chunks / #silence_map) * 100))
+    
+    -- Cache the result
+    current_silence_map = silence_map
+    current_silence_map_file = file_path
+    
+    return silence_map
 end
 
-
-
--- Check if a region is silent
-local function checkSilence(buffer, start_frame, end_frame)
-    if not buffer or not buffer.has_sample_data then return true end
-    local length = end_frame - start_frame + 1
-    if length <= 0 then return true end
-
-    -- Probe up to 10k frames spread evenly across the region for reliability
-    local probes = math.min(length, 10000)
-    local step = math.max(1, math.floor(length / probes))
-    local total_rms = 0
-    local max_abs = 0
-    local count = 0
-
-    for ch = 1, buffer.number_of_channels do
-        local f = start_frame
-        while f <= end_frame do
-            local v = buffer:sample_data(ch, f)
-            local av = math.abs(v)
-            if av > max_abs then max_abs = av end
-            total_rms = total_rms + (v * v)
-            count = count + 1
-            f = f + step
+-- Check if a region is silent using the pre-computed silence map (HIERARCHICAL OPTIMIZATION)
+local function checkSilenceUsingMap(start_frame, end_frame, silence_map)
+    if not silence_map or #silence_map == 0 then return true end
+    
+    -- Find all chunks that overlap with this region
+    for _, chunk in ipairs(silence_map) do
+        -- Check if this chunk overlaps with our region
+        local chunk_start = chunk.start_frame
+        local chunk_end = chunk.end_frame
+        
+        -- If any part of our region overlaps with a non-silent chunk, the region is not silent
+        if not (end_frame < chunk_start or start_frame > chunk_end) then -- They overlap
+            if not chunk.is_silent then
+                return false -- Found non-silent chunk in our region
+            end
         end
     end
-
-    if count == 0 then return true end
-    local rms = math.sqrt(total_rms / count)
-
-    -- Consider silent if both RMS and peak are very low
-    if rms < SILENCE_THRESHOLD and max_abs < (SILENCE_THRESHOLD * 4) then
-        return true
-    end
-    return false
+    
+    return true -- All overlapping chunks are silent
 end
 
--- Export a specific region of a sample buffer to wav file
+-- Clear silence map when starting new file
+function clearSilenceMap()
+    current_silence_map = nil
+    current_silence_map_file = ""
+end
+
+-- Global reusable export instrument to prevent crashes (CRASH PREVENTION)
+local export_instrument_idx = nil
+
+-- Create reusable export instrument once per session
+function createExportInstrument()
+    if export_instrument_idx then return export_instrument_idx end
+    
+    local song = renoise.song()
+    export_instrument_idx = #song.instruments + 1
+    song:insert_instrument_at(export_instrument_idx)
+    local export_inst = song.instruments[export_instrument_idx]
+    export_inst.name = "PakettiStemSlicer_Export_Temp"
+    
+    if #export_inst.samples == 0 then
+        export_inst:insert_sample_at(1)
+    end
+    
+    print("Created reusable export instrument at index", export_instrument_idx)
+    return export_instrument_idx
+end
+
+-- Clean up export instrument at end of session (ENHANCED LOGGING)
+function cleanupExportInstrument()
+    if export_instrument_idx then
+        local song = renoise.song()
+        print(string.format("CLEANUP: Attempting to delete export instrument at index %d (total instruments: %d)", 
+            export_instrument_idx, #song.instruments))
+        
+        if export_instrument_idx <= #song.instruments then
+            local inst = song.instruments[export_instrument_idx]
+            print(string.format("CLEANUP: Found instrument '%s' at index %d", inst.name, export_instrument_idx))
+            
+            -- No yields needed since we're outside ProcessSlicer context
+            
+            song:delete_instrument_at(export_instrument_idx)
+            print("CLEANUP: Successfully deleted export instrument")
+        else
+            print(string.format("CLEANUP: Export instrument index %d is out of range (max: %d)", 
+                export_instrument_idx, #song.instruments))
+        end
+        export_instrument_idx = nil
+    else
+        print("CLEANUP: No export instrument to clean up (export_instrument_idx is nil)")
+    end
+end
+
+-- Export a specific region of a sample buffer to wav file (CRASH SAFE)
 local function exportSliceRegion(buffer, start_frame, end_frame, output_path)
     local success, error_msg = pcall(function()
+        -- CRITICAL OFF-BY-ONE PREVENTION: Clamp end_frame to buffer bounds
+        end_frame = math.min(end_frame, buffer.number_of_frames)
+        start_frame = math.max(start_frame, 1)
+        
         local slice_length = end_frame - start_frame + 1
         
-        -- Create temporary sample for export
-        local temp_song = renoise.song()
-        local temp_inst_idx = #temp_song.instruments + 1
-        temp_song:insert_instrument_at(temp_inst_idx)
-        local temp_inst = temp_song.instruments[temp_inst_idx]
-        temp_inst:insert_sample_at(1)
-        local temp_sample = temp_inst.samples[1]
+        -- CRITICAL SAFETY CHECK: Prevent massive buffer allocations
+        if slice_length > 50000000 then -- 50M frames = ~17 minutes at 48kHz
+            error(string.format("Slice too large: %d frames (%.1f minutes) - possible calculation error", 
+                slice_length, slice_length / 48000 / 60))
+        end
+        
+        if slice_length <= 0 then
+            error("Invalid slice length: " .. slice_length)
+        end
+        
+        print(string.format("EXPORT DEBUG: start=%d, end=%d, length=%d, buffer_frames=%d", 
+            start_frame, end_frame, slice_length, buffer.number_of_frames))
+        
+        -- Use reusable export instrument instead of creating new ones
+        local export_idx = createExportInstrument()
+        local song = renoise.song()
+        local export_inst = song.instruments[export_idx]
+        local temp_sample = export_inst.samples[1]
         
         -- Create buffer for the slice
         temp_sample.sample_buffer:create_sample_data(
@@ -777,23 +1393,49 @@ local function exportSliceRegion(buffer, start_frame, end_frame, output_path)
         
         temp_sample.sample_buffer:prepare_sample_data_changes()
         
-        -- Copy the region data
-        for ch = 1, buffer.number_of_channels do
-            for frame = 1, slice_length do
+        -- Copy the region data with SAFE bounds checking (MEMORY LEAK FIX)
+        local frames_per_yield = 44100 -- Yield every second of audio
+        local max_frame = math.min(slice_length, 10000000) -- SAFETY: Never more than 10M frames
+        
+        for ch = 1, math.min(buffer.number_of_channels, 8) do -- SAFETY: Max 8 channels
+            for frame = 1, max_frame do
                 local source_frame = start_frame + frame - 1
-                if source_frame <= end_frame then
+                
+                -- CRITICAL OFF-BY-ONE FIX: Ensure we never exceed buffer bounds
+                if source_frame >= 1 and source_frame <= math.min(buffer.number_of_frames, end_frame) then
                     temp_sample.sample_buffer:set_sample_data(ch, frame, buffer:sample_data(ch, source_frame))
+                else
+                    -- Fill with silence if out of bounds (this is normal for final slice)
+                    temp_sample.sample_buffer:set_sample_data(ch, frame, 0.0)
+                end
+                
+                -- Yield periodically to keep UI responsive
+                if frame % frames_per_yield == 0 then
+                    coroutine.yield()
+                end
+                
+                -- SAFETY BREAK - prevent infinite loops
+                if frame > slice_length then
+                    print("WARNING: Frame loop safety break triggered")
+                    break
                 end
             end
         end
         
         temp_sample.sample_buffer:finalize_sample_data_changes()
         
-        -- Export the slice
+        -- Export the slice (ALWAYS as WAV)
         temp_sample.sample_buffer:save_as(output_path, "wav")
         
-        -- Clean up
-        temp_song:delete_instrument_at(temp_inst_idx)
+        -- Reset consecutive error counter on successful export
+        resetConsecutiveErrors()
+        
+        -- Memory leak prevention - check usage after each export
+        if not checkMemoryUsage() then
+            error("Processing timeout detected - stopping to prevent system freeze")
+        end
+        
+        -- No deletion here - reuse the same instrument
     end)
     
     return success, error_msg or ""
@@ -809,9 +1451,13 @@ local function exportSlice(slice_sample, output_path)
     return success, error_msg or ""
 end
 
--- Process a single audio file using direct visual approach
+-- Process a single audio file using direct visual approach (SEQUENTIAL PROCESSING)
 local function processSingleFile(file_path, output_folder)
+    print("=== STARTING SEQUENTIAL PROCESSING ===")
     print("Processing file:", file_path)
+    
+    -- Ensure we're not doing anything else while processing this file
+    coroutine.yield() -- Give UI a chance to update before starting
     
     local song = renoise.song()
     local clean_name = getCleanFilename(file_path)
@@ -820,17 +1466,22 @@ local function processSingleFile(file_path, output_folder)
     current_progress = string.format("Loading %s into Renoise...", clean_name)
     coroutine.yield()
     
-    -- Step 1: Load sample into Renoise (new instrument)
+    -- Step 1: Use provided instrument or create new one (OPTIMIZATION)
+    local new_inst_idx
+    local new_inst
+    local sample
+    
+    -- CRASH FIX: Always create fresh instrument for each file (no reuse to avoid UI conflicts)
     local original_inst_count = #song.instruments
-    local new_inst_idx = original_inst_count + 1
+    new_inst_idx = original_inst_count + 1
     song:insert_instrument_at(new_inst_idx)
     song.selected_instrument_index = new_inst_idx
-    local new_inst = song.instruments[new_inst_idx]
+    new_inst = song.instruments[new_inst_idx]
     new_inst.name = clean_name
     
     new_inst:insert_sample_at(1)
     song.selected_sample_index = 1
-    local sample = new_inst.samples[1]
+    sample = new_inst.samples[1]
     sample.name = clean_name
     
     -- Load the file
@@ -844,6 +1495,7 @@ local function processSingleFile(file_path, output_folder)
         local error_msg = "Failed to load: " .. file_path
         print(error_msg)
         renoise.app():show_status(error_msg)
+        -- Clean up failed instrument immediately
         song:delete_instrument_at(new_inst_idx)
         return false
     end
@@ -854,7 +1506,31 @@ local function processSingleFile(file_path, output_folder)
     
     print(string.format("  Loaded into instrument %d: %d Hz, %d frames", new_inst_idx, sample_rate, total_frames))
     
+    -- Switch to sample editor view so user can see progress
+    renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
+    
+    -- Create silence map for entire file (HIERARCHICAL OPTIMIZATION)
+    current_progress = string.format("Analyzing audio patterns for %s...", clean_name)
+    coroutine.yield()
+    
+    local silence_map = createSilenceMapForFile(buffer, file_path)
+    
+    -- Pre-generate silence files for all beat lengths we'll need (OPTIMIZATION)
+    current_sample_name = string.format("%s - Preparing silence files", clean_name)
+    current_progress = string.format("Pre-generating silence files for %s...", clean_name)
+    coroutine.yield()
+    
+    local needed_beat_lengths = {master_beat_length}
+    for _, beat_length in ipairs(extract_beat_lengths) do
+        table.insert(needed_beat_lengths, beat_length)
+    end
+    
+    for _, beat_length in ipairs(needed_beat_lengths) do
+        generateSilenceFile(beat_length, sample_rate, output_folder)
+    end
+    
     -- Step 2: Add slice markers for master beat length
+    current_sample_name = string.format("%s - Adding %d-beat markers", clean_name, master_beat_length)
     current_progress = string.format("Adding %d-beat slice markers...", master_beat_length)
     coroutine.yield()
     
@@ -862,7 +1538,14 @@ local function processSingleFile(file_path, output_folder)
     local master_slice_frames = beat_duration_frames * master_beat_length
     local num_master_slices = math.floor(total_frames / master_slice_frames)
     
+    -- Check if there's a remainder that needs a final slice
+    local remainder_frames = total_frames - (num_master_slices * master_slice_frames)
+    local has_final_slice = remainder_frames > (master_slice_frames * 0.1) -- At least 10% of slice length
+    
     print(string.format("  Adding %d slice markers every %d frames (%d beats)", num_master_slices, master_slice_frames, master_beat_length))
+    if has_final_slice then
+        print(string.format("  Final slice: %d frames remainder (%.1f%% of full slice)", remainder_frames, (remainder_frames/master_slice_frames)*100))
+    end
     
     -- Clear existing markers and add new ones
     while #sample.slice_markers > 0 do
@@ -876,7 +1559,16 @@ local function processSingleFile(file_path, output_folder)
         end
     end
     
+    -- Add marker for final slice if there's a significant remainder
+    if has_final_slice then
+        local final_slice_start = num_master_slices * master_slice_frames + 1
+        if final_slice_start < total_frames then
+            sample:insert_slice_marker(final_slice_start)
+        end
+    end
+    
     -- Step 3: Save master beat slices directly from sample editor with visual selection
+    current_sample_name = string.format("%s - Exporting %d-beat slices", clean_name, master_beat_length)
     current_progress = string.format("Exporting %d-beat slices...", master_beat_length)
     coroutine.yield()
     
@@ -901,24 +1593,37 @@ local function processSingleFile(file_path, output_folder)
                 clean_name, master_beat_length, slice_idx, #slice_positions - 1)
             renoise.app():show_status(current_progress)
             
-            -- Check for silence
-            local is_silent = checkSilence(buffer, slice_start, slice_end)
+            -- Check for silence using pre-computed map (HIERARCHICAL OPTIMIZATION)
+            local is_silent = checkSilenceUsingMap(slice_start, slice_end, silence_map)
             local silence_suffix = is_silent and "_silence" or ""
             
-            -- Export this slice
-            local output_filename = string.format("%s_%02dbeats_slice%02d%s.%s", 
-                clean_name, master_beat_length, slice_idx, silence_suffix, file_ext)
+            local output_filename = string.format("%s_%02dbeats_slice%02d%s.wav", 
+                clean_name, master_beat_length, slice_idx, silence_suffix)
             local output_path = output_folder .. "/" .. output_filename
             
-            local export_success = exportSliceRegion(buffer, slice_start, slice_end, output_path)
-            if export_success then
-                print(string.format("    Exported: %s", output_filename))
+            local export_success = false
+            if is_silent then
+                -- OPTIMIZATION: Copy pre-generated silence file instead of exporting
+                local silence_source = generateSilenceFile(master_beat_length, sample_rate, output_folder)
+                export_success = copySilenceFile(silence_source, output_path)
+                if export_success then
+                    print(string.format("    Copied silence: %s", output_filename))
+                else
+                    print(string.format("    Failed to copy silence: %s", output_filename))
+                end
             else
-                local export_error = string.format("    Failed to export: %s", output_filename)
-                print(export_error)
-                renoise.app():show_status(export_error)
+                -- Export actual audio slice
+                export_success = exportSliceRegion(buffer, slice_start, slice_end, output_path)
+                if export_success then
+                    print(string.format("    Exported: %s", output_filename))
+                else
+                    local export_error = string.format("    Failed to export: %s", output_filename)
+                    print(export_error)
+                    renoise.app():show_status(export_error)
+                end
             end
             
+            -- Yield after each master slice export to prevent script timeout
             coroutine.yield()
         end
     end
@@ -928,6 +1633,7 @@ local function processSingleFile(file_path, output_folder)
         if beat_length < master_beat_length then
             local subdivisions_per_master = master_beat_length / beat_length
             
+            current_sample_name = string.format("%s - Creating %d-beat subdivisions", clean_name, beat_length)
             current_progress = string.format("Creating %d-beat subdivisions...", beat_length)
             coroutine.yield()
             
@@ -953,27 +1659,38 @@ local function processSingleFile(file_path, output_folder)
                             clean_name, beat_length, overall_slice_num, master_beat_length, slice_idx)
                         renoise.app():show_status(current_progress)
                         
-                        -- Check for silence
-                        local is_silent = checkSilence(buffer, sub_start, sub_end)
+                        -- Check for silence using pre-computed map (HIERARCHICAL OPTIMIZATION)
+                        local is_silent = checkSilenceUsingMap(sub_start, sub_end, silence_map)
                         local silence_suffix = is_silent and "_silence" or ""
                         
-                        -- Export subdivision
-                        local output_filename = string.format("%s_%02dbeats_slice%02d%s.%s", 
-                            clean_name, beat_length, overall_slice_num, silence_suffix, file_ext)
+                        local output_filename = string.format("%s_%02dbeats_slice%02d%s.wav", 
+                            clean_name, beat_length, overall_slice_num, silence_suffix)
                         local output_path = output_folder .. "/" .. output_filename
                         
-                        local export_success = exportSliceRegion(buffer, sub_start, sub_end, output_path)
-                        if export_success then
-                            print(string.format("    Exported: %s", output_filename))
+                        local export_success = false
+                        if is_silent then
+                            -- OPTIMIZATION: Copy pre-generated silence file instead of exporting
+                            local silence_source = generateSilenceFile(beat_length, sample_rate, output_folder)
+                            export_success = copySilenceFile(silence_source, output_path)
+                            if export_success then
+                                print(string.format("    Copied silence: %s", output_filename))
+                            else
+                                print(string.format("    Failed to copy silence: %s", output_filename))
+                            end
                         else
-                            local export_error = string.format("    Failed to export: %s", output_filename)
-                            print(export_error)
-                            renoise.app():show_status(export_error)
+                            -- Export actual audio subdivision
+                            export_success = exportSliceRegion(buffer, sub_start, sub_end, output_path)
+                            if export_success then
+                                print(string.format("    Exported: %s", output_filename))
+                            else
+                                local export_error = string.format("    Failed to export: %s", output_filename)
+                                print(export_error)
+                                renoise.app():show_status(export_error)
+                            end
                         end
                         
-                        if overall_slice_num % 3 == 0 then
-                            coroutine.yield()
-                        end
+                        -- Yield after each subdivision export to prevent script timeout
+                        coroutine.yield()
                     end
                 end
             end
@@ -981,6 +1698,15 @@ local function processSingleFile(file_path, output_folder)
     end
     
     print(string.format("  Completed processing: %s", clean_name))
+    
+    -- CRASH FIX: Clean up this file's instrument immediately after ALL exports are done
+    print(string.format("  Finalizing %s - ensuring all exports complete...", clean_name))
+    coroutine.yield() -- Let any pending operations complete
+    coroutine.yield() -- Extra safety yield
+    coroutine.yield() -- Even more safety
+    song:delete_instrument_at(new_inst_idx)
+    print(string.format("  ✓ Cleaned up instrument for: %s", clean_name))
+    
     return true
 end
 
@@ -992,6 +1718,25 @@ local function processAllFiles()
         renoise.app():show_status(error_msg)
         return
     end
+    
+    -- Clear silence cache and map for fresh processing session (OPTIMIZATION)
+    clearSilenceCache()
+    clearSilenceMap()
+    
+    -- Clear export instrument for fresh session (CRASH PREVENTION)
+    if export_instrument_idx then
+        cleanupExportInstrument()
+    end
+    
+    -- Initialize progress and error tracking (OPTIMIZATION)
+    files_completed = 0
+    total_files_to_process = #audio_files
+    current_sample_name = "Starting..."
+    clearErrorTracking()
+    
+    -- Initialize memory leak prevention (CRITICAL)
+    resetMemoryTracking()
+    print("MEMORY: Started with garbage collection and memory tracking")
     
     -- Create output folder
     local output_folder = selected_folder .. "/PakettiStemSlicer_Output"
@@ -1012,21 +1757,84 @@ local function processAllFiles()
     print(string.format("Files to process: %d", #audio_files))
     print(string.format("Beat lengths: %s", table.concat(ALL_BEAT_LENGTHS, ", ")))
     
-    -- Process each file
+    -- Process each file sequentially with complete cleanup (CRASH FIX)
     for file_idx, file_path in ipairs(audio_files) do
         if process_slicer and process_slicer:was_cancelled() then
             print("Processing cancelled by user")
+            
+            -- CRITICAL: Clean up temp export instrument when cancelled
+            if export_instrument_idx then
+                print("CLEANUP: Removing temp export instrument after cancellation")
+                cleanupExportInstrument()
+            end
+            
             break
         end
         
-        current_progress = string.format("Processing file %d/%d: %s", file_idx, #audio_files, getCleanFilename(file_path))
-        processSingleFile(file_path, output_folder)
-        coroutine.yield() -- Allow UI updates
+        -- Check for critical error threshold
+        if critical_errors >= 5 then
+            logProcessingError("CRITICAL", "", "Too many critical errors, stopping processing")
+            
+            -- CRITICAL: Clean up temp export instrument on error exit
+            if export_instrument_idx then
+                print("CLEANUP: Removing temp export instrument after critical errors")
+                cleanupExportInstrument()
+            end
+            
+            break
+        end
+        
+        -- Update current sample name for progress display
+        current_sample_name = getCleanFilename(file_path)
+        current_progress = string.format("Processing file %d/%d: %s", file_idx, #audio_files, current_sample_name)
+        
+        -- Clear silence map for each new file (HIERARCHICAL OPTIMIZATION)
+        clearSilenceMap()
+        
+        -- Process file completely before moving to next (SEQUENTIAL PROCESSING)
+        local status, result1 = pcall(function()
+            return processSingleFile(file_path, output_folder)
+        end)
+        
+        if status then
+            local success = result1
+            if success then
+                files_completed = files_completed + 1  -- Update progress tracking
+                print(string.format("Successfully completed file %d/%d", file_idx, #audio_files))
+                
+                -- Reset consecutive error counter on successful file completion
+                resetConsecutiveErrors()
+            else
+                logProcessingError("LOAD_FAILED", file_path, "Failed to load file")
+            end
+        else
+            local error_msg = tostring(result1)
+            if error_msg:find("memory") or error_msg:find("out of") then
+                logProcessingError("CRITICAL", file_path, "Memory error: " .. error_msg)
+            else
+                logProcessingError("PROCESSING_ERROR", file_path, error_msg)
+            end
+        end
+        
+        -- Extra safety yield between files to prevent overlapping operations
+        print(string.format("=== File %d/%d COMPLETE - Preparing for next file ===", file_idx, #audio_files))
+        coroutine.yield()
+        coroutine.yield()
+        coroutine.yield()
+        if file_idx < #audio_files then
+            print(string.format("=== Starting file %d/%d ===", file_idx + 1, #audio_files))
+        end
     end
     
     current_progress = "Processing complete!"
+    current_sample_name = "All files completed"
     print("=== Processing Complete ===")
-    renoise.app():show_status(string.format("PakettiStemSlicer: Processed %d files", #audio_files))
+    print(generateErrorSummary())
+    local status_msg = string.format("PakettiStemSlicer: Processed %d files", files_completed)
+    if files_skipped > 0 then
+        status_msg = status_msg .. string.format(" (%d skipped due to errors)", files_skipped)
+    end
+    renoise.app():show_status(status_msg)
     -- Save session context for summary dialog
     last_output_folder = output_folder
     last_selected_folder = selected_folder
@@ -1066,21 +1874,103 @@ local function startProcessing()
         return
     end
     
-    -- Create and start ProcessSlicer
-    process_slicer = ProcessSlicer(processAllFiles)
-    local progress_dialog, progress_vb = process_slicer:create_dialog("PakettiStemSlicer Processing...")
+    -- Create and start ProcessSlicer with cleanup wrapper
+    process_slicer = ProcessSlicer(function()
+        -- Run the main processing function
+        processAllFiles()
+        
+        -- Ensure cleanup happens after processing completes normally
+        if export_instrument_idx then
+            print("NORMAL COMPLETION: Final cleanup of temp export instrument")
+            cleanupExportInstrument()
+        end
+    end)
     
-    -- Update progress text periodically
-    local progress_timer = renoise.tool():add_timer(function()
+    local progress_dialog, progress_vb = process_slicer:create_dialog("Paketti Stem Slicer Processing...")
+    
+    -- Update progress text periodically and handle completion
+    local progress_timer = nil
+    progress_timer = renoise.tool():add_timer(function()
         if progress_dialog and progress_dialog.visible and progress_vb then
-            progress_vb.views.progress_text.text = current_progress
+            progress_vb.views.progress_text.text = calculateProgress()
         end
         
-        if not process_slicer:running() then
-            renoise.tool():remove_timer(progress_timer)
+        -- Check if ProcessSlicer was cancelled and handle cleanup
+        if not process_slicer:running() and process_slicer:was_cancelled() and not completion_handled then
+            completion_handled = true -- Prevent multiple handlers
+            print("PROCESS CANCELLED: Cleaning up temp export instrument")
+            
+            -- Clean up temp export instrument when cancelled via progress dialog
+            if export_instrument_idx then
+                print("CANCEL CLEANUP: Removing temp export instrument")
+                cleanupExportInstrument()
+            end
+            
+            if progress_timer then
+                renoise.tool():remove_timer(progress_timer)
+                progress_timer = nil
+            end
+            
+            -- Close progress dialog and return to original
             if progress_dialog and progress_dialog.visible then progress_dialog:close() end
-            -- Show summary dialog when done
-            showStemSlicerSummary()
+            returnToOriginalDialogWithCompletion()
+            
+        elseif not process_slicer:running() and not completion_handled then
+            completion_handled = true -- EMERGENCY: Prevent multiple completion handlers
+            markProcessingComplete() -- Mark processing as complete
+            
+            if progress_timer then
+                renoise.tool():remove_timer(progress_timer)
+                progress_timer = nil
+            end
+            
+            print("PROCESSING COMPLETE: Starting completion sequence (once only)")
+            
+            -- CRITICAL: Clean up temp export instrument OUTSIDE ProcessSlicer context
+            if export_instrument_idx then
+                print("CLEANUP: Removing temp export instrument")
+                cleanupExportInstrument()
+            end
+            
+            -- FIXED: Update progress dialog to show completion properly
+            if progress_dialog and progress_dialog.visible and progress_vb then
+                -- Update the title
+                if progress_dialog.title then
+                    print("UPDATING: Progress dialog title to show completion")
+                    -- Unfortunately, we can't change dialog title in Renoise
+                end
+                
+                -- Update progress text to show clean completion message
+                if progress_vb.views.progress_text then
+                    local completion_message = string.format("✅ Processing complete! %d files processed", files_completed)
+                    if files_skipped > 0 then
+                        completion_message = completion_message .. string.format(" (%d skipped)", files_skipped)
+                    end
+                    progress_vb.views.progress_text.text = completion_message
+                    print("UPDATED: Progress text to show clean completion message")
+                end
+                
+                -- Change button to "Close"
+                if progress_vb.views.cancel_button then
+                    progress_vb.views.cancel_button.text = "Close"
+                    print("UPDATED: Button text to 'Close'")
+                end
+                
+                -- Wait a moment before auto-closing to let user see completion
+                renoise.tool():add_timer(function()
+                    if progress_dialog and progress_dialog.visible then 
+                        progress_dialog:close() 
+                    end
+                    -- FIXED: Return to original dialog instead of showing new completion dialog
+                    print("TIMER: Returning to original dialog after 1.5 second delay")
+                    returnToOriginalDialogWithCompletion()
+                end, 1500) -- Wait 1.5 seconds
+            else
+                if progress_dialog and progress_dialog.visible then progress_dialog:close() end
+                -- FIXED: Return to original dialog instead of showing new completion dialog
+                print("DIRECT: Returning to original dialog immediately")
+                returnToOriginalDialogWithCompletion()
+            end
         end
     end, 100) -- Update every 100ms
     
@@ -1121,7 +2011,7 @@ function pakettiStemSlicerDialogInternal()
         
         
         -- Folder selection
-        vb:button{text="Browse Folder",width=100,notifier = browseForFolder},
+        vb:button{text="Browse Folder",width=120,notifier = browseForFolder},
         
         vb:text{id="folder_display",text="No folder selected",width=400,style="normal"},
         -- BPM input
@@ -1272,6 +2162,10 @@ function pakettiStemSlicerDialogInternal()
                         process_slicer:cancel()
                     end
                     cleanupStemSlicerBpmObservable()
+                    -- Clean up export instrument when dialog closes (CRASH PREVENTION)
+                    if export_instrument_idx then
+                        cleanupExportInstrument()
+                    end
                     dialog:close()
                     dialog = nil
                 end
@@ -1283,9 +2177,11 @@ function pakettiStemSlicerDialogInternal()
         function() return dialog end,
         function(value) dialog = value end
     )
-    dialog = renoise.app():show_custom_dialog("PakettiStemSlicer", content, keyhandler)
+    dialog = renoise.app():show_custom_dialog("Paketti Stem Slicer", content, keyhandler)
     setupStemSlicerBpmObservable()
 end
 
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti..:Other..:PakettiStemSlicer...",invoke = pakettiStemSlicerDialog}
-renoise.tool():add_keybinding{name = "Global:Paketti:PakettiStemSlicer Dialog...",invoke = pakettiStemSlicerDialog}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Gadgets:Paketti Stem Slicer...",invoke = pakettiStemSlicerDialog}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti..:Other..:Open Last Stem Slicer Output...",invoke = openLastStemSlicerOutput}
+renoise.tool():add_keybinding{name = "Global:Paketti:Paketti Stem Slicer Dialog...",invoke = pakettiStemSlicerDialog}
+renoise.tool():add_keybinding{name = "Global:Paketti:Open Last Stem Slicer Output...",invoke = openLastStemSlicerOutput}

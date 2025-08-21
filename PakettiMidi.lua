@@ -2604,6 +2604,140 @@ renoise.tool():add_file_import_hook{
 }
 
 -----------------------------------------------------------------------
+-- MIDI Automation Envelope Cycling
+-----------------------------------------------------------------------
+
+-- Function to handle MIDI knob cycling through automation envelopes
+function midiAutomationEnvelopeCycling(midi_message)
+  if not midi_message:is_abs_value() then
+    return
+  end
+  
+  local app_window = renoise.app().window
+  local song = renoise.song()
+  local track = song.selected_track
+  
+  -- Set active_middle_frame to 1 if not 1 or 2 (same as showAutomationHardDynamic)
+  if app_window.active_middle_frame ~= 1 and app_window.active_middle_frame ~= 2 then
+    app_window.active_middle_frame = 1
+  end
+
+  renoise.app().window.lower_frame_is_visible = true
+  -- Switch to Automation view if not already active
+  if app_window.active_lower_frame ~= renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION then
+    app_window.active_lower_frame = renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION
+    -- Give UI a moment to update before proceeding
+    return
+  end
+
+  -- Gather all automated parameters in the current track
+  local automated_parameters = {}
+  local selected_track_index = song.selected_track_index
+
+  for _, automation in ipairs(song.selected_pattern.tracks[selected_track_index].automation) do
+    table.insert(automated_parameters, automation.dest_parameter)
+  end
+
+  -- If no automation envelopes exist, show status and return
+  if #automated_parameters == 0 then
+    renoise.app():show_status("No automation envelopes found in current track")
+    return
+  end
+  
+  -- Map MIDI value (0-127) to automation envelope index (1 to #automated_parameters)
+  local envelope_index = math.floor((midi_message.int_value / 127) * (#automated_parameters - 0.01)) + 1
+  envelope_index = math.min(envelope_index, #automated_parameters)
+  
+  -- Select the automation parameter at the calculated index
+  song.selected_automation_parameter = automated_parameters[envelope_index]
+  
+  -- Show status with current selection
+  local param_name = automated_parameters[envelope_index].name or "Unknown"
+  renoise.app():show_status(string.format("Automation: %s (%d/%d)", param_name, envelope_index, #automated_parameters))
+end
+
+-- Function to handle relative MIDI knob cycling through automation envelopes
+function midiAutomationEnvelopeCyclingRelative(midi_message)
+  local app_window = renoise.app().window
+  local song = renoise.song()
+  local track = song.selected_track
+  
+  -- Set active_middle_frame to 1 if not 1 or 2 (same as showAutomationHardDynamic)
+  if app_window.active_middle_frame ~= 1 and app_window.active_middle_frame ~= 2 then
+    app_window.active_middle_frame = 1
+  end
+
+  renoise.app().window.lower_frame_is_visible = true
+  -- Switch to Automation view if not already active
+  if app_window.active_lower_frame ~= renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION then
+    app_window.active_lower_frame = renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION
+    -- Give UI a moment to update before proceeding
+    return
+  end
+
+  -- Gather all automated parameters in the current track
+  local automated_parameters = {}
+  local selected_track_index = song.selected_track_index
+
+  for _, automation in ipairs(song.selected_pattern.tracks[selected_track_index].automation) do
+    table.insert(automated_parameters, automation.dest_parameter)
+  end
+
+  -- If no automation envelopes exist, show status and return
+  if #automated_parameters == 0 then
+    renoise.app():show_status("No automation envelopes found in current track")
+    return
+  end
+  
+  -- Find current automation parameter index
+  local current_index = 1
+  local current_param = song.selected_automation_parameter
+  if current_param then
+    for i, param in ipairs(automated_parameters) do
+      if param == current_param then
+        current_index = i
+        break
+      end
+    end
+  end
+  
+  local new_index = current_index
+  
+  if midi_message:is_abs_value() then
+    -- Absolute mode: map 0-127 to envelope count
+    new_index = math.floor((midi_message.int_value / 127) * (#automated_parameters - 0.01)) + 1
+    new_index = math.min(new_index, #automated_parameters)
+  elseif midi_message:is_rel_value() then
+    -- Relative mode: step through envelopes
+    local step = (midi_message.int_value > 63) and 1 or -1
+    new_index = current_index + step
+    -- Wrap around
+    if new_index > #automated_parameters then new_index = 1
+    elseif new_index < 1 then new_index = #automated_parameters end
+  end
+  
+  -- Select the automation parameter at the calculated index
+  song.selected_automation_parameter = automated_parameters[new_index]
+  
+  -- Show status with current selection
+  local param_name = automated_parameters[new_index].name or "Unknown"
+  renoise.app():show_status(string.format("Automation: %s (%d/%d)", param_name, new_index, #automated_parameters))
+end
+
+-- Add MIDI mappings for automation envelope cycling
+renoise.tool():add_midi_mapping{name="Paketti:Cycle Through Automation Envelopes (Absolute) x[Knob]",
+  invoke=function(message) 
+    midiAutomationEnvelopeCycling(message) 
+  end
+}
+
+renoise.tool():add_midi_mapping{name="Paketti:Cycle Through Automation Envelopes (Absolute+Relative) x[Knob]",
+  invoke=function(message) 
+    midiAutomationEnvelopeCyclingRelative(message) 
+  end
+}
+
+-----------------------------------------------------------------------
 -- Standalone Sampling & Pattern Writing Implementation
 -----------------------------------------------------------------------
 

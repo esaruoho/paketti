@@ -2684,14 +2684,20 @@ function PakettiIsolateSlicesToInstrumentDirect()
       new_sample.loop_start = slice_sample.loop_start
       new_sample.loop_end = slice_sample.loop_end
       new_sample.beat_sync_mode = slice_sample.beat_sync_mode
+      new_sample.beat_sync_enabled = slice_sample.beat_sync_enabled
       new_sample.beat_sync_lines = slice_sample.beat_sync_lines
       new_sample.fine_tune = slice_sample.fine_tune
+      new_sample.transpose = slice_sample.transpose
       new_sample.volume = slice_sample.volume
       new_sample.panning = slice_sample.panning
       new_sample.new_note_action = slice_sample.new_note_action
       new_sample.mute_group = slice_sample.mute_group
       new_sample.oversample_enabled = slice_sample.oversample_enabled
       new_sample.interpolation_mode = slice_sample.interpolation_mode
+      new_sample.device_chain_index = slice_sample.device_chain_index
+      new_sample.modulation_set_index = slice_sample.modulation_set_index
+      -- Copy sample mapping base note
+      new_sample.sample_mapping.base_note = slice_sample.sample_mapping.base_note
     else
       -- Fallback: copy from master sample (for non-sliced samples)
       new_sample.autofade = master_sample.autofade
@@ -2700,14 +2706,20 @@ function PakettiIsolateSlicesToInstrumentDirect()
       new_sample.loop_start = master_sample.loop_start
       new_sample.loop_end = master_sample.loop_end
       new_sample.beat_sync_mode = master_sample.beat_sync_mode
+      new_sample.beat_sync_enabled = master_sample.beat_sync_enabled
       new_sample.beat_sync_lines = master_sample.beat_sync_lines
       new_sample.fine_tune = master_sample.fine_tune
+      new_sample.transpose = master_sample.transpose
       new_sample.volume = master_sample.volume
       new_sample.panning = master_sample.panning
       new_sample.new_note_action = master_sample.new_note_action
       new_sample.mute_group = master_sample.mute_group
       new_sample.oversample_enabled = master_sample.oversample_enabled
       new_sample.interpolation_mode = master_sample.interpolation_mode
+      new_sample.device_chain_index = master_sample.device_chain_index
+      new_sample.modulation_set_index = master_sample.modulation_set_index
+      -- Copy sample mapping base note
+      new_sample.sample_mapping.base_note = master_sample.sample_mapping.base_note
     end
   end
 
@@ -2823,14 +2835,20 @@ function PakettiIsolateSlicesToInstrumentNoProcess()
       new_sample.loop_start = slice_sample.loop_start
       new_sample.loop_end = slice_sample.loop_end
       new_sample.beat_sync_mode = slice_sample.beat_sync_mode
+      new_sample.beat_sync_enabled = slice_sample.beat_sync_enabled
       new_sample.beat_sync_lines = slice_sample.beat_sync_lines
       new_sample.fine_tune = slice_sample.fine_tune
+      new_sample.transpose = slice_sample.transpose
       new_sample.volume = slice_sample.volume
       new_sample.panning = slice_sample.panning
       new_sample.new_note_action = slice_sample.new_note_action
       new_sample.mute_group = slice_sample.mute_group
       new_sample.oversample_enabled = slice_sample.oversample_enabled
       new_sample.interpolation_mode = slice_sample.interpolation_mode
+      new_sample.device_chain_index = slice_sample.device_chain_index
+      new_sample.modulation_set_index = slice_sample.modulation_set_index
+      -- Copy sample mapping base note
+      new_sample.sample_mapping.base_note = slice_sample.sample_mapping.base_note
     else
       new_sample.autofade = master_sample.autofade
       new_sample.autoseek = master_sample.autoseek
@@ -2838,14 +2856,20 @@ function PakettiIsolateSlicesToInstrumentNoProcess()
       new_sample.loop_start = master_sample.loop_start
       new_sample.loop_end = master_sample.loop_end
       new_sample.beat_sync_mode = master_sample.beat_sync_mode
+      new_sample.beat_sync_enabled = master_sample.beat_sync_enabled
       new_sample.beat_sync_lines = master_sample.beat_sync_lines
       new_sample.fine_tune = master_sample.fine_tune
+      new_sample.transpose = master_sample.transpose
       new_sample.volume = master_sample.volume
       new_sample.panning = master_sample.panning
       new_sample.new_note_action = master_sample.new_note_action
       new_sample.mute_group = master_sample.mute_group
       new_sample.oversample_enabled = master_sample.oversample_enabled
       new_sample.interpolation_mode = master_sample.interpolation_mode
+      new_sample.device_chain_index = master_sample.device_chain_index
+      new_sample.modulation_set_index = master_sample.modulation_set_index
+      -- Copy sample mapping base note
+      new_sample.sample_mapping.base_note = master_sample.sample_mapping.base_note
     end
   end
 
@@ -2944,14 +2968,20 @@ function PakettiIsolateSlicesToInstrumentProcessed(selected_instrument_index, in
       new_sample.loop_start = slice_sample.loop_start
       new_sample.loop_end = slice_sample.loop_end
       new_sample.beat_sync_mode = slice_sample.beat_sync_mode
+      new_sample.beat_sync_enabled = slice_sample.beat_sync_enabled
       new_sample.beat_sync_lines = slice_sample.beat_sync_lines
       new_sample.fine_tune = slice_sample.fine_tune
+      new_sample.transpose = slice_sample.transpose
       new_sample.volume = slice_sample.volume
       new_sample.panning = slice_sample.panning
       new_sample.new_note_action = slice_sample.new_note_action
       new_sample.mute_group = slice_sample.mute_group
       new_sample.oversample_enabled = slice_sample.oversample_enabled
       new_sample.interpolation_mode = slice_sample.interpolation_mode
+      new_sample.device_chain_index = slice_sample.device_chain_index
+      new_sample.modulation_set_index = slice_sample.modulation_set_index
+      -- Copy sample mapping base note
+      new_sample.sample_mapping.base_note = slice_sample.sample_mapping.base_note
     else
       -- Copy from master sample
       new_sample.autofade = master_sample.autofade
@@ -2960,14 +2990,20 @@ function PakettiIsolateSlicesToInstrumentProcessed(selected_instrument_index, in
       new_sample.loop_start = master_sample.loop_start
       new_sample.loop_end = master_sample.loop_end
       new_sample.beat_sync_mode = master_sample.beat_sync_mode
+      new_sample.beat_sync_enabled = master_sample.beat_sync_enabled
       new_sample.beat_sync_lines = master_sample.beat_sync_lines
       new_sample.fine_tune = master_sample.fine_tune
+      new_sample.transpose = master_sample.transpose
       new_sample.volume = master_sample.volume
       new_sample.panning = master_sample.panning
       new_sample.new_note_action = master_sample.new_note_action
       new_sample.mute_group = master_sample.mute_group
       new_sample.oversample_enabled = master_sample.oversample_enabled
       new_sample.interpolation_mode = master_sample.interpolation_mode
+      new_sample.device_chain_index = master_sample.device_chain_index
+      new_sample.modulation_set_index = master_sample.modulation_set_index
+      -- Copy sample mapping base note
+      new_sample.sample_mapping.base_note = master_sample.sample_mapping.base_note
     end
   end
 

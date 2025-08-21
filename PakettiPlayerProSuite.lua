@@ -12,6 +12,13 @@ local label_map3={} -- Add this line
 local writing_enabled = false
 local dialog_initializing = true  -- Flag to prevent excessive status updates during initialization
 
+-- Experimental playback for transposed notes
+local experimentalPlay = true
+local pakettiPlayerPro_playing_notes = {}
+local pakettiPlayerPro_current_timer = nil
+local pakettiPlayerPro_playing_track = nil
+local pakettiPlayerPro_playing_instrument = nil
+
 local function update_combined_value()
   local combined_value=hex_text3.text..hex_text2.text
   combined_text1.text=combined_value
@@ -665,6 +672,69 @@ renoise.tool():add_keybinding{name="Global:Paketti:Open Player Pro Note Column D
 renoise.tool():add_keybinding{name="Global:Paketti:Player Pro Intelligent Dialog...",invoke=pakettiPlayerProNoteGridShowDropdownGrid}
 
 PakettiPlayerProNoteGridAddNoteMenuEntries()
+
+-- Stop any currently playing experimental notes
+function pakettiPlayerProStopPlayingNotes()
+  if #pakettiPlayerPro_playing_notes == 0 then return end
+  
+  local song = renoise.song()
+  if pakettiPlayerPro_playing_track and pakettiPlayerPro_playing_instrument then
+    song:trigger_instrument_note_off(pakettiPlayerPro_playing_instrument, pakettiPlayerPro_playing_track, pakettiPlayerPro_playing_notes)
+  end
+  
+  -- Clear the timer if it exists
+  if pakettiPlayerPro_current_timer then
+    pakettiPlayerPro_current_timer = nil
+  end
+  
+  -- Clear the arrays
+  pakettiPlayerPro_playing_notes = {}
+  pakettiPlayerPro_playing_track = nil
+  pakettiPlayerPro_playing_instrument = nil
+end
+
+-- Play transposed notes for experimental feedback
+function pakettiPlayerProPlayTransposedNotes(transposed_notes)
+  if not experimentalPlay then return end
+  
+  local song = renoise.song()
+  if not song.transport.playing then return end
+  
+  -- Stop any currently playing notes first
+  pakettiPlayerProStopPlayingNotes()
+  
+  local track = song.selected_track
+  if not track or track.type ~= renoise.Track.TRACK_TYPE_SEQUENCER then return end
+  
+  local selected_track_index = song.selected_track_index
+  local selected_instrument_index = song.selected_instrument_index
+  local instrument = song:instrument(selected_instrument_index)
+  
+  if not instrument then return end
+  
+  -- Collect valid note values (they're already note values, not strings)
+  local note_values = {}
+  for i = 1, #transposed_notes do
+    local note_value = transposed_notes[i]
+    if note_value and note_value >= 0 and note_value <= 119 then
+      table.insert(note_values, note_value)
+      table.insert(pakettiPlayerPro_playing_notes, note_value)
+    end
+  end
+  
+  if #note_values == 0 then return end
+  
+  -- Store track and instrument for note-off
+  pakettiPlayerPro_playing_track = selected_track_index
+  pakettiPlayerPro_playing_instrument = selected_instrument_index
+  
+  -- Trigger all notes as a chord
+  song:trigger_instrument_note_on(selected_instrument_index, selected_track_index, note_values, 1.0)
+  
+  -- Set up timer to stop notes after 1 second
+  pakettiPlayerPro_current_timer = renoise.tool():add_timer(pakettiPlayerProStopPlayingNotes, 1000)
+end
+
 --------------
 function pakettiPlayerProTranspose(steps, range, playback)
   local song=renoise.song()
@@ -673,6 +743,9 @@ function pakettiPlayerProTranspose(steps, range, playback)
 
   -- Determine the range to transpose
   local start_track, end_track, start_line, end_line, start_column, end_column
+  
+  -- For experimental playback, collect transposed notes
+  local transposed_notes = {}
 
   if selection ~= nil then
     start_track = selection.start_track
@@ -717,7 +790,13 @@ function pakettiPlayerProTranspose(steps, range, playback)
         if not note_column.is_empty then
           -- Skip transposing if note_value is 120 or 121
           if note_column.note_value < 120 then
-            note_column.note_value = (note_column.note_value + steps) % 120
+            local new_note_value = (note_column.note_value + steps) % 120
+            note_column.note_value = new_note_value
+            
+            -- Collect transposed note for experimental playback
+            if experimentalPlay and song.transport.playing then
+              table.insert(transposed_notes, new_note_value)
+            end
           end
         end
       end
@@ -726,7 +805,16 @@ function pakettiPlayerProTranspose(steps, range, playback)
   
   -- If playback is enabled, trigger the current line
   if playback then
-    song:trigger_pattern_line(song.selected_line_index)
+    if song.transport.playing then
+      renoise.app():show_status("Transpose & Play Line will only work if Playback is stopped, doing nothing.")
+    else
+      song:trigger_pattern_line(song.selected_line_index)
+    end
+  end
+  
+  -- Experimental playback: play transposed notes if transport is playing
+  if experimentalPlay and song.transport.playing and #transposed_notes > 0 then
+    pakettiPlayerProPlayTransposedNotes(transposed_notes)
   end
 end
 

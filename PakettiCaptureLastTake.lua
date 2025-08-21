@@ -43,8 +43,8 @@ PakettiGate_listening = false
 PakettiGate_latest_note_value = nil
 PakettiGate_prev_line = nil
 -- hide features
-PakettiCapture_ExperimentalMIDICaptureDialog = false
-PakettiGate_ShowUI = false
+PakettiCapture_ExperimentalMIDICaptureDialog = true
+PakettiGate_ShowUI = true
 
 -- Helper: convert note string (e.g. "C-4", "D#5") to 0..119 value; returns nil for invalid or OFF
 function PakettiCapture_NoteStringToValue(note_string)
@@ -354,6 +354,46 @@ function PakettiCaptureAuditionToggle(slot_index)
   else
     PakettiCaptureAuditionStart(slot_index)
   end
+end
+
+-- Put the currently auditioning slot to the first row of pattern and note-offs to last row
+function PakettiCapture_PutAuditionSlotToPattern()
+  if not PakettiCapture_current_audition_slot then
+    renoise.app():show_status("PakettiCapture: No slot is currently being auditioned")
+    return
+  end
+  
+  local slot_index = PakettiCapture_current_audition_slot
+  if slot_index < 1 or slot_index > #PakettiCapture_sequences then
+    renoise.app():show_status("PakettiCapture: Invalid audition slot")
+    return
+  end
+  
+  local song = renoise.song()
+  local track = song.selected_track
+  if not track or track.type ~= renoise.Track.TRACK_TYPE_SEQUENCER then
+    renoise.app():show_status("PakettiCapture: Not a sequencer track")
+    return
+  end
+  
+  local patt = song:pattern(song.selected_pattern_index)
+  local original_line = song.selected_line_index
+  
+  -- Stop audition first
+  PakettiCaptureAuditionStop()
+  
+  -- Put the slot to the first row of the pattern
+  song.selected_line_index = 1
+  PakettiCapture_DumpRow(slot_index)
+  
+  -- Place note-offs on the last row of the pattern
+  song.selected_line_index = patt.number_of_lines
+  PakettiCapture_PlaceNoteOffsAllColumns()
+  
+  -- Restore original line selection
+  song.selected_line_index = original_line
+  
+  renoise.app():show_status("PakettiCapture: Put audition slot " .. string.format("%02d", slot_index) .. " to pattern (first row + note-offs on last row)")
 end
 
 -- Helper: convert key.name to note string based on current octave; returns nil if key is not a note key
@@ -987,8 +1027,11 @@ function PakettiCaptureLastTakeDialog()
       PakettiCapture_vb:text{ text = "Listen to MIDI", style = "normal" }
     } or PakettiCapture_vb:space{ width = 1 },
     PakettiCapture_vb:row{
-      PakettiCapture_vb:button{ text = "Dump to Current Row", width = 180, notifier = function()
+      PakettiCapture_vb:button{ text = "Dump to Current Row", width = 140, notifier = function()
         PakettiCapture_DumpRowDisplay(#PakettiCapture_sequences)
+      end},
+      PakettiCapture_vb:button{ text = "Put Audition Slot to Pattern", width = 160, notifier = function()
+        PakettiCapture_PutAuditionSlotToPattern()
       end},
       newest_label_view
     },
@@ -1058,5 +1101,6 @@ end
 renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti Capture Last Take...", invoke = PakettiCaptureLastTakeToggle}
 renoise.tool():add_menu_entry{name = "--Pattern Editor:Paketti Gadgets:Paketti Capture Last Take...", invoke = PakettiCaptureLastTakeToggle}
 renoise.tool():add_keybinding{name = "Global:Paketti:Paketti Capture Last Take...", invoke = PakettiCaptureLastTakeToggle}
+renoise.tool():add_keybinding{name = "Global:Paketti:Put Audition Slot to Pattern", invoke = PakettiCapture_PutAuditionSlotToPattern}
 
 

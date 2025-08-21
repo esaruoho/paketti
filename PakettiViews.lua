@@ -367,3 +367,80 @@ end
 
 renoise.tool():add_keybinding{name="Global:Paketti:Hide All Unused Columns (All Tracks)", invoke=function() PakettiHideAllUnusedColumns() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Hide All Unused Columns (Selected Track)", invoke=function() PakettiHideAllUnusedColumns(false) end}
+
+-------
+-- Hide Unused Effect Columns specifically
+function PakettiHideUnusedEffectColumns()
+  local song = renoise.song()
+  local total_tracks_processed = 0
+  local total_effect_columns_hidden = 0
+  
+  print("=== PAKETTI HIDE UNUSED EFFECT COLUMNS DEBUG ===")
+  
+  -- Process all sequencer tracks
+  for track_index = 1, song.sequencer_track_count do
+    local track = song.tracks[track_index]
+    if track.type == renoise.Track.TRACK_TYPE_SEQUENCER then
+      print(string.format("Processing Track %d: %s", track_index, track.name))
+      
+      -- Initialize effect column usage tracking
+      local effect_columns_used = {}
+      for col = 1, track.max_effect_columns do
+        effect_columns_used[col] = false
+      end
+      
+      -- Scan all patterns for this track
+      for pattern_index = 1, #song.patterns do
+        local pattern = song.patterns[pattern_index]
+        
+        -- Skip empty patterns to optimize performance
+        if not pattern.is_empty then
+          local pattern_track = pattern.tracks[track_index]
+          
+          -- Scan all lines in this pattern
+          for line_index = 1, pattern.number_of_lines do
+            local line = pattern_track:line(line_index)
+            
+            -- Check effect columns
+            for col = 1, #line.effect_columns do
+              local effect_col = line.effect_columns[col]
+              if effect_col.number_string ~= "00" or effect_col.amount_value ~= 0 then
+                effect_columns_used[col] = true
+              end
+            end
+          end
+        end
+      end
+      
+      -- Hide unused effect columns (count from the end)
+      local last_used_effect_col = 0
+      for col = track.max_effect_columns, 1, -1 do
+        if effect_columns_used[col] then
+          last_used_effect_col = col
+          break
+        end
+      end
+      
+      if last_used_effect_col < track.visible_effect_columns then
+        local old_visible = track.visible_effect_columns
+        track.visible_effect_columns = last_used_effect_col
+        local hidden = old_visible - track.visible_effect_columns
+        total_effect_columns_hidden = total_effect_columns_hidden + hidden
+        print(string.format("  Effect columns: %d -> %d (hidden %d)", old_visible, track.visible_effect_columns, hidden))
+      else
+        print("  No unused effect columns found")
+      end
+      
+      total_tracks_processed = total_tracks_processed + 1
+    end
+  end
+  
+  print(string.format("=== SUMMARY: Processed %d tracks, hidden %d effect columns ===", total_tracks_processed, total_effect_columns_hidden))
+  renoise.app():show_status(string.format("Hide Unused Effect Columns: processed %d tracks, hidden %d effect columns", total_tracks_processed, total_effect_columns_hidden))
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Hide Unused Effect Columns", invoke=function() PakettiHideUnusedEffectColumns() end}
+
+-- Menu entries for Hide Unused Effect Columns
+renoise.tool():add_menu_entry{name="Main Menu:View:Paketti:Hide Unused Effect Columns", invoke=function() PakettiHideUnusedEffectColumns() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Hide Unused Effect Columns", invoke=function() PakettiHideUnusedEffectColumns() end}

@@ -5533,6 +5533,14 @@ function PCMWriterExportWaveAAndBToSample()
   local song = renoise.song()
   local inst = song.selected_instrument
   
+  -- Handle Live Pickup Mode collision: Turn off if active to prevent interference
+  local was_live_pickup_active = live_pickup_mode
+  if live_pickup_mode then
+    print("DEBUG: Wave A&B creation - temporarily disabling Live Pickup Mode to prevent interference")
+    live_pickup_mode = false
+    renoise.app():show_status("Live Pickup Mode disabled temporarily for Wave A&B creation")
+  end
+  
   -- Always create a new instrument for A&B export
   song:insert_instrument_at(song.selected_instrument_index + 1)
   song.selected_instrument_index = song.selected_instrument_index + 1
@@ -5805,24 +5813,33 @@ function PCMWriterExportWaveAAndBToSample()
   -- Remove all placeholder samples if they exist
   PCMWriterRemovePlaceholderSamples(inst, sample_slot_b)
   
-  -- Auto-enter Live Pickup Mode if 12st_WT setup is detected
-  if PCMWriterDetect12stWTSetup() then
-    print("DEBUG: 12st_WT setup detected, auto-entering Live Pickup Mode")
+  -- Re-enable Live Pickup Mode if it was active OR if 12st_WT setup is detected
+  if was_live_pickup_active or PCMWriterDetect12stWTSetup() then
+    print("DEBUG: Re-enabling Live Pickup Mode for new Wave A&B instrument")
     PCMWriterEnterLivePickupMode()
+    renoise.app():show_status(string.format("Waves A&B exported to new instrument with %s interpolation, oversampling %s, auto-pitch correction - Live Pickup Mode re-enabled", sample_interpolation_mode, sample_oversample_enabled and "enabled" or "disabled"))
+  else
+    renoise.app():show_status(string.format("Waves A&B exported to new instrument with %s interpolation, oversampling %s, auto-pitch correction", sample_interpolation_mode, sample_oversample_enabled and "enabled" or "disabled"))
   end
-  
-  renoise.app():show_status(string.format("Waves A&B exported to new instrument with %s interpolation, oversampling %s, auto-pitch correction", sample_interpolation_mode, sample_oversample_enabled and "enabled" or "disabled"))
 end
 
 -- Wrapper function for Write A&B followed by Unison processing
 function PCMWriterExportWaveAAndBToSampleWithUnison()
+  -- Check if Live Pickup Mode was active before Wave A&B creation
+  local was_live_pickup_active = live_pickup_mode
+  
   -- First call the regular Write A&B function
   PCMWriterExportWaveAAndBToSample()
   
   -- Then call the unison generator
   PakettiCreateUnisonSamples()
   
-  renoise.app():show_status("Waves A&B exported and unison processing applied")
+  -- Update status message to include Live Pickup Mode information if relevant
+  if was_live_pickup_active or live_pickup_mode then
+    renoise.app():show_status("Waves A&B exported and unison processing applied - Live Pickup Mode enabled")
+  else
+    renoise.app():show_status("Waves A&B exported and unison processing applied")
+  end
 end
 
 -- Wrapper function for Write AKWF A&B followed by Unison processing
@@ -6770,7 +6787,7 @@ function PCMWriterLoadCurrentSample()
       renoise.app():show_status("Enhanced Live Pickup: Loaded sample slot 1 → Wave A, sample slot 2 → Wave B for bidirectional sync")
       
     else
-      -- Fallback: Load current sample into current wave
+      -- Fallback: Load current sample into current wave only (preserves the other wave)
       for i = 1, num_frames do
         local sample_value = buffer:sample_data(1, i)
         local converted_value = math.floor((sample_value + 1) * 32767.5)
@@ -6778,36 +6795,44 @@ function PCMWriterLoadCurrentSample()
         
         if current_wave_edit == "A" then
           wave_data_a[i] = converted_value
-          wave_data_b[i] = 32768  -- Silence
+          -- Leave wave_data_b unchanged to preserve existing data
         else
           wave_data_b[i] = converted_value
-          wave_data_a[i] = 32768  -- Silence
+          -- Leave wave_data_a unchanged to preserve existing data
         end
       end
-      renoise.app():show_status("Enhanced Live Pickup: 12st_WT detected but samples don't match - using fallback mode")
+      renoise.app():show_status("Enhanced Live Pickup: 12st_WT detected but samples don't match - loaded into Wave " .. current_wave_edit)
     end
     
   else
-    -- Standard loading behavior: Load current sample into current wave
+    -- Standard loading behavior: For single-sample instruments, load into both waves
+    -- For multi-sample instruments, only load into current wave to preserve other data
+    local load_into_both = (#inst.samples == 1)
+    
     for i = 1, num_frames do
       local sample_value = buffer:sample_data(1, i)  -- Assuming mono
       -- Convert from -1..1 to 0..65535
       local converted_value = math.floor((sample_value + 1) * 32767.5)
       converted_value = math.max(0, math.min(65535, converted_value))
       
-      if current_wave_edit == "A" then
-        -- Load into Wave A, set Wave B to silence
+      if load_into_both then
+        -- Single sample: Load into both waves to support Wave A&B export
         wave_data_a[i] = converted_value
-        wave_data_b[i] = 32768
-      else
-        -- Load into Wave B, set Wave A to silence
         wave_data_b[i] = converted_value
-        wave_data_a[i] = 32768
+      else
+        -- Multi-sample: Only load into current wave to preserve other sample data
+        if current_wave_edit == "A" then
+          wave_data_a[i] = converted_value
+          -- Leave wave_data_b unchanged to preserve existing data
+        else
+          wave_data_b[i] = converted_value
+          -- Leave wave_data_a unchanged to preserve existing data
+        end
       end
     end
   end
   
-  -- Set crossfade to show the loaded wave
+  -- Set crossfade to show the current wave
   if current_wave_edit == "A" then
     crossfade_amount = 0.0  -- 0% = Wave A
   else
@@ -6864,19 +6889,23 @@ function PCMWriterLoadCurrentSample()
           sample.name = sample.name .. tuning_info
         end
         
-        renoise.app():show_status("Live Pickup Mode: Loaded " .. num_frames .. " frame sample, auto-tuned to " .. pitch_correction.note_name .. " (Wave " .. current_wave_edit .. ")")
+        local status_suffix = (#inst.samples == 1) and " (loaded into both Wave A & B)" or " (Wave " .. current_wave_edit .. ")"
+        renoise.app():show_status("Live Pickup Mode: Loaded " .. num_frames .. " frame sample, auto-tuned to " .. pitch_correction.note_name .. status_suffix)
       else
         print(string.format("Live Pickup: Sample already well-tuned: %s (%.1f Hz, %.1f cents %s)", 
           pitch_correction.note_name, pitch_correction.frequency,
           cents_deviation, pitch_correction.cent_direction))
         
-        renoise.app():show_status("Live Pickup Mode: Loaded " .. num_frames .. " frame sample for live editing (Wave " .. current_wave_edit .. ") - already well-tuned")
+        local status_suffix = (#inst.samples == 1) and " (loaded into both Wave A & B)" or " (Wave " .. current_wave_edit .. ")"
+        renoise.app():show_status("Live Pickup Mode: Loaded " .. num_frames .. " frame sample for live editing" .. status_suffix .. " - already well-tuned")
       end
     else
-      renoise.app():show_status("Live Pickup Mode: Loaded " .. num_frames .. " frame sample for live editing (Wave " .. current_wave_edit .. ") - already tuned")
+      local status_suffix = (#inst.samples == 1) and " (loaded into both Wave A & B)" or " (Wave " .. current_wave_edit .. ")"
+      renoise.app():show_status("Live Pickup Mode: Loaded " .. num_frames .. " frame sample for live editing" .. status_suffix .. " - already tuned")
     end
   else
-    renoise.app():show_status("Live Pickup Mode: Loaded " .. num_frames .. " frame sample for live editing (Wave " .. current_wave_edit .. ")")
+    local status_suffix = (#inst.samples == 1) and " (loaded into both Wave A & B)" or " (Wave " .. current_wave_edit .. ")"
+    renoise.app():show_status("Live Pickup Mode: Loaded " .. num_frames .. " frame sample for live editing" .. status_suffix)
   end
 
   -- Enable live pickup mode
@@ -6904,7 +6933,8 @@ function PCMWriterLoadCurrentSample()
     PCMWriterShowPcmDialog()
   end
   
-  renoise.app():show_status("Live Pickup Mode: Loaded " .. num_frames .. " frame sample for live editing (Wave " .. current_wave_edit .. ")")
+  local final_status_suffix = (#inst.samples == 1) and " (loaded into both Wave A & B)" or " (Wave " .. current_wave_edit .. ")"
+  renoise.app():show_status("Live Pickup Mode: Loaded " .. num_frames .. " frame sample for live editing" .. final_status_suffix)
   
   -- Focus back to sample editor
   --   renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
@@ -7094,6 +7124,22 @@ function PCMWriterEnterLivePickupMode()
   
   -- Update displays
   PCMWriterUpdateAllDisplays()
+  
+  -- Check if harmonics are already active and update instrument name accordingly
+  if harmonic_drawbar_mode then
+    local active_harmonics = {}
+    for harmonic = 1, 11 do
+      if harmonic_levels[harmonic] > 0.0 then
+        table.insert(active_harmonics, string.format("H%d=%.2f", harmonic, harmonic_levels[harmonic]))
+      end
+    end
+    
+    if #active_harmonics > 0 then
+      inst.name = string.format("%s (%d frames)", table.concat(active_harmonics, ","), wave_size)
+      sample.name = string.format("%s (%d frames)", table.concat(active_harmonics, ","), wave_size)
+      print("HARMONIC: Updated instrument name on Live Pickup Mode entry: " .. inst.name)
+    end
+  end
   
   renoise.app():show_status("Live Pickup Mode enabled - waveform updates will sync to sample")
 end
@@ -8099,6 +8145,28 @@ function PCMWriterShowPcmDialog()
             mouse_events = {"down", "up", "move", "exit"},
             tooltip = "Augment current waveform with harmonics | Left-click: Draw levels | Right-click: Zero harmonic"
           }
+        },
+        vb:row{
+          vb:text{
+            text = "Amplitude",
+            width = 60
+          },
+          vb:slider{
+            id = "harmonic_amplitude_slider",
+            min = 0.0,
+            max = 1.0,
+            value = 1.0,
+            width = 75,
+            tooltip = "Overall amplitude control (autogain applied)",
+            notifier = function(value)
+              harmonic_amplitude = value
+              if harmonic_drawbar_mode then
+                PCMWriterGenerateHarmonics()
+                PCMWriterUpdateAllDisplays()
+              end
+              renoise.app():show_status(string.format("Amplitude: %.1f%%", value * 100))
+            end
+          }
         }
       }, -- SAMPLE_TOOLS_COLUMN ENDS
       vb:column{ -- EXPORT_TOOLS_COLUMN STARTS
@@ -8292,6 +8360,18 @@ function PCMWriterShowPcmDialog()
     PCMWriterEnterLivePickupMode()
   else
     print("DEBUG: Not auto-entering Live Pickup Mode")
+  end
+  
+  -- Try to restore harmonic levels from existing instrument/sample names (if in live pickup mode)
+  if live_pickup_mode then
+    local restored = PCMWriterRestoreHarmonicLevels()
+    if restored then
+      print("HARMONIC: Restored harmonic levels from existing names on dialog open")
+      -- Update harmonic canvas if it exists
+      if harmonic_canvas then
+        harmonic_canvas:update()
+      end
+    end
   end
   
   -- Clear the rebuilding flag after dialog is fully created
@@ -8570,6 +8650,7 @@ end
 -- Harmonic Drawbar System Variables (Global scope for UI access)
 harmonic_drawbar_mode = false
 harmonic_levels = {}  -- H1 to H11 levels (0.0 to 1.0)
+harmonic_amplitude = 1.0  -- Amplitude control for autogain (0.0 to 1.0)
 harmonic_canvas = nil
 harmonic_mouse_down = false
 harmonic_last_mouse_x = -1
@@ -8595,7 +8676,19 @@ function PCMWriterEnterHarmonicDrawbarMode()
   -- Enable live pickup mode
   live_pickup_mode = true
   
-  -- Generate initial harmonics (H1 = 1.0, others = 0.0)
+  -- Try to restore harmonic levels from existing instrument/sample names
+  local restored = PCMWriterRestoreHarmonicLevels()
+  
+  if not restored then
+    -- No existing harmonics found - set H1 = 1.0, others = 0.0
+    print("HARMONIC: No existing harmonics found, setting H1=1.0")
+    for i = 1, 11 do
+      harmonic_levels[i] = 0.0
+    end
+    harmonic_levels[1] = 1.0
+  end
+  
+  -- Generate harmonics based on current levels
   PCMWriterGenerateHarmonics()
   
   -- Update displays
@@ -8615,6 +8708,15 @@ function PCMWriterExitHarmonicDrawbarMode()
   print("HARMONIC: Exiting Harmonic Drawbar Mode")
   harmonic_drawbar_mode = false
   
+  -- Reset instrument and sample names when exiting harmonic mode in live pickup
+  if live_pickup_mode and live_pickup_instrument then
+    live_pickup_instrument.name = string.format("PCM Wave %s (%d frames)", current_wave_edit, wave_size)
+    if live_pickup_sample then
+      live_pickup_sample.name = string.format("PCM Wave %s (%d frames)", current_wave_edit, wave_size)
+    end
+    print("HARMONIC: Reset instrument name to: " .. live_pickup_instrument.name)
+  end
+  
   -- Update displays
   PCMWriterUpdateAllDisplays()
   if harmonic_canvas then
@@ -8622,6 +8724,104 @@ function PCMWriterExitHarmonicDrawbarMode()
   end
   
   renoise.app():show_status("Harmonic Drawbar Mode: OFF")
+end
+
+-- Calculate autogain to prevent clipping while maximizing volume
+function PCMWriterCalculateAutogain()
+  -- Calculate the theoretical maximum amplitude that could be reached
+  local max_theoretical_amplitude = 0.0
+  
+  -- Add base waveform maximum (assuming worst case of 1.0)
+  local base_amplitude = 1.0
+  
+  -- Add all harmonic contributions
+  local harmonic_sum = 0.0
+  for harmonic = 1, 11 do
+    if harmonic_levels[harmonic] > 0.0 then
+      harmonic_sum = harmonic_sum + harmonic_levels[harmonic]
+    end
+  end
+  
+  -- Total theoretical maximum (base + all harmonics)
+  max_theoretical_amplitude = base_amplitude + harmonic_sum
+  
+  -- Calculate autogain factor to prevent clipping
+  local autogain_factor = 1.0
+  if max_theoretical_amplitude > 1.0 then
+    autogain_factor = 1.0 / max_theoretical_amplitude
+  end
+  
+  -- Apply user amplitude control
+  autogain_factor = autogain_factor * harmonic_amplitude
+  
+  return autogain_factor
+end
+
+-- Parse harmonic levels from instrument/sample name
+function PCMWriterParseHarmonicLevels(name)
+  if not name then return false end
+  
+  -- Look for harmonic pattern like "H1=0.50,H2=0.38,H3=0.25... (512 frames)"
+  -- Extract everything before " (number frames)"
+  local harmonic_data = string.match(name, "^(.+)%s+%(%d+%s+frames%)$")
+  
+  if not harmonic_data then
+    print("HARMONIC: No harmonic data found in name: " .. name)
+    return false
+  end
+  
+  print("HARMONIC: Found harmonic data: " .. harmonic_data)
+  
+  -- Reset all harmonic levels first
+  for i = 1, 11 do
+    harmonic_levels[i] = 0.0
+  end
+  
+  -- Parse individual harmonic values like "H1=0.50,H2=0.38"
+  local count = 0
+  for harmonic_str in string.gmatch(harmonic_data, "([^,]+)") do
+    local h_num, h_val = string.match(harmonic_str, "H(%d+)=([%d%.]+)")
+    if h_num and h_val then
+      local harmonic_index = tonumber(h_num)
+      local harmonic_value = tonumber(h_val)
+      
+      if harmonic_index and harmonic_value and harmonic_index >= 1 and harmonic_index <= 11 then
+        harmonic_levels[harmonic_index] = harmonic_value
+        count = count + 1
+        print(string.format("HARMONIC: Parsed H%d = %.2f", harmonic_index, harmonic_value))
+      end
+    end
+  end
+  
+  if count > 0 then
+    print(string.format("HARMONIC: Successfully parsed %d harmonic levels from name", count))
+    return true
+  else
+    print("HARMONIC: No valid harmonic levels found in name")
+    return false
+  end
+end
+
+-- Restore harmonic levels from current instrument/sample names
+function PCMWriterRestoreHarmonicLevels()
+  if not live_pickup_mode then
+    return false
+  end
+  
+  -- Try instrument name first
+  if live_pickup_instrument and PCMWriterParseHarmonicLevels(live_pickup_instrument.name) then
+    print("HARMONIC: Restored harmonic levels from instrument name")
+    return true
+  end
+  
+  -- Try sample name as fallback
+  if live_pickup_sample and PCMWriterParseHarmonicLevels(live_pickup_sample.name) then
+    print("HARMONIC: Restored harmonic levels from sample name")
+    return true
+  end
+  
+  print("HARMONIC: No harmonic levels found in instrument or sample names")
+  return false
 end
 
 -- Generate harmonics by augmenting the current waveform
@@ -8646,6 +8846,10 @@ function PCMWriterGenerateHarmonics()
     original_data[i] = current_wave_data[i]
   end
   
+  -- Calculate autogain factor once (optimization - doesn't change per sample)
+  local autogain_factor = PCMWriterCalculateAutogain()
+  print("HARMONIC: Using autogain factor = " .. string.format("%.3f", autogain_factor))
+  
   -- Start with the original waveform and add harmonics to it
   for i = 1, wave_size do
     -- Convert original sample to -1..1 range
@@ -8667,10 +8871,10 @@ function PCMWriterGenerateHarmonics()
       end
     end
     
-    -- Apply overall volume scaling (0.7 = 70% volume to prevent clipping with harmonics)
-    mixed = mixed * 0.7
+    -- Apply autogain to prevent clipping while maximizing volume
+    mixed = mixed * autogain_factor
     
-    -- Prevent clipping by normalizing if needed
+    -- Prevent clipping by normalizing if needed (should be rare with proper autogain)
     if mixed > 1.0 then mixed = 1.0 end
     if mixed < -1.0 then mixed = -1.0 end
     
@@ -8694,6 +8898,24 @@ function PCMWriterGenerateHarmonics()
   -- Update crossfaded wave and live sample
   PCMWriterUpdateCrossfadedWave()
   PCMWriterUpdateLiveSample()
+  
+  -- Update instrument and sample names to reflect harmonic content when in live pickup mode
+  if live_pickup_mode and live_pickup_instrument then
+    if #active_harmonics > 0 then
+      live_pickup_instrument.name = string.format("%s (%d frames)", table.concat(active_harmonics, ","), wave_size)
+      -- Also update sample name if available
+      if live_pickup_sample then
+        live_pickup_sample.name = string.format("%s (%d frames)", table.concat(active_harmonics, ","), wave_size)
+      end
+    else
+      -- No harmonics active - just base waveform
+      live_pickup_instrument.name = string.format("PCM Wave %s (%d frames)", current_wave_edit, wave_size)
+      if live_pickup_sample then
+        live_pickup_sample.name = string.format("PCM Wave %s (%d frames)", current_wave_edit, wave_size)
+      end
+    end
+    print("HARMONIC: Updated instrument name to: " .. live_pickup_instrument.name)
+  end
   
   print("HARMONIC: Augmented " .. current_wave_edit .. " with " .. #active_harmonics .. " harmonics")
 end

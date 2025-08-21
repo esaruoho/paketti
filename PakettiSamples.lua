@@ -1056,6 +1056,102 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:Add Sample Slot to Instrument",invoke=function() addSampleSlot(1) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Add 84 Sample Slots to Instrument",invoke=function() addSampleSlot(84) end}
 
+function PakettiSamplesInsertNewSampleSlotAndSelect()
+  local song = renoise.song()
+  local current_instrument = song.selected_instrument
+  
+  if current_instrument == nil then
+    renoise.app():show_status("No instrument selected")
+    return
+  end
+  
+  -- Protection: Check if this is a sliced instrument
+  if #current_instrument.samples > 0 and #current_instrument.samples[1].slice_markers > 0 then
+    renoise.app():show_status("Cannot modify sample slots on sliced instruments - modify slice markers instead")
+    return
+  end
+  
+  local current_sample_index = song.selected_sample_index
+  local new_sample_index = current_sample_index + 1
+  
+  -- Insert new sample slot at the next position
+  current_instrument:insert_sample_at(new_sample_index)
+  
+  -- Select the newly created sample slot
+  song.selected_sample_index = new_sample_index
+  
+  -- Apply PakettiLoader preferences to the new sample slot
+  local new_sample = current_instrument.samples[new_sample_index]
+  new_sample.interpolation_mode = preferences.pakettiLoaderInterpolation.value
+  new_sample.oversample_enabled = preferences.pakettiLoaderOverSampling.value
+  new_sample.autofade = preferences.pakettiLoaderAutofade.value
+  new_sample.autoseek = preferences.pakettiLoaderAutoseek.value
+  new_sample.oneshot = preferences.pakettiLoaderOneshot.value
+  new_sample.loop_mode = preferences.pakettiLoaderLoopMode.value
+  new_sample.new_note_action = preferences.pakettiLoaderNNA.value
+  new_sample.loop_release = preferences.pakettiLoaderLoopExit.value
+  
+  renoise.app():show_status("New sample slot inserted and selected at position " .. new_sample_index .. " (PakettiLoader preferences applied)")
+end
+
+function PakettiSamplesDeleteCurrentSampleAndSelectNext()
+  local song = renoise.song()
+  local current_instrument = song.selected_instrument
+  
+  if current_instrument == nil then
+    renoise.app():show_status("No instrument selected")
+    return
+  end
+  
+  local num_samples = #current_instrument.samples
+  
+  -- Protection: Check if there are any samples to delete
+  if num_samples == 0 then
+    renoise.app():show_status("No sample slots to delete")
+    return
+  end
+  
+  -- Protection: Check if this is a sliced instrument
+  if #current_instrument.samples > 0 and #current_instrument.samples[1].slice_markers > 0 then
+    renoise.app():show_status("Cannot modify sample slots on sliced instruments - modify slice markers instead")
+    return
+  end
+  
+  -- Protection: Don't delete the last sample if it's the only one with sample data
+  if num_samples == 1 and current_instrument.samples[1].sample_buffer.has_sample_data then
+    renoise.app():show_status("Cannot delete the only sample with data - create another sample first")
+    return
+  end
+  
+  local current_sample_index = song.selected_sample_index
+  
+  -- Delete the current sample
+  current_instrument:delete_sample_at(current_sample_index)
+  
+  -- Update sample count after deletion
+  num_samples = #current_instrument.samples
+  
+  -- Protection: If no samples left, don't try to select anything
+  if num_samples == 0 then
+    renoise.app():show_status("Sample deleted, no samples remaining in instrument")
+    return
+  end
+  
+  -- Select next sample, or the last one if we deleted the last sample
+  if current_sample_index > num_samples then
+    song.selected_sample_index = num_samples
+  else
+    song.selected_sample_index = current_sample_index
+  end
+  
+  renoise.app():show_status("Sample deleted, selected sample " .. song.selected_sample_index .. " of " .. num_samples)
+end
+
+renoise.tool():add_keybinding{name="Global:Paketti:Insert New Sample Slot & Select",invoke=function() PakettiSamplesInsertNewSampleSlotAndSelect() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Delete Current Sample & Select Next",invoke=function() PakettiSamplesDeleteCurrentSampleAndSelectNext() end}
+
+renoise.tool():add_midi_mapping{name="Paketti:Midi Insert New Sample Slot & Select",invoke=function(message) if message:is_trigger() then PakettiSamplesInsertNewSampleSlotAndSelect() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Midi Delete Current Sample & Select Next",invoke=function(message) if message:is_trigger() then PakettiSamplesDeleteCurrentSampleAndSelectNext() end end}
 
 -------------------------------------------------------------------------------------------------------------------------------
 function oneshotcontinue()
@@ -1373,6 +1469,137 @@ function wipeslices()
     renoise.app():show_status(instrument.name .. " now has 0 slices.")
 end
 
+-- Function to double the number of slices by adding markers between existing ones
+function doubleslices()
+    local s = renoise.song()
+    local currInst = s.selected_instrument_index
+    
+    -- Check if there is a valid instrument selected
+    if currInst == nil or currInst == 0 then
+        renoise.app():show_status("No instrument selected.")
+        return
+    end
+    
+    -- Check if there are any samples in the selected instrument
+    if #s.instruments[currInst].samples == 0 then
+        renoise.app():show_status("No samples available in the selected instrument.")
+        return
+    end
+    
+    local instrument = s.instruments[currInst]
+    local sample = instrument.samples[1]
+    
+    -- Check if the sample is valid and has sample data
+    if not sample or not sample.sample_buffer.has_sample_data then
+        renoise.app():show_status("No sample data available.")
+        return
+    end
+    
+    local slice_markers = sample.slice_markers
+    local current_slice_count = #slice_markers
+    
+    -- Need at least 1 slice marker to double
+    if current_slice_count < 1 then
+        renoise.app():show_status("No slices to double.")
+        return
+    end
+    
+    -- Check if doubling would exceed the 255 slice limit
+    -- Calculate how many new markers we would add
+    local potential_new_markers = current_slice_count + 1  -- +1 for marker between last slice and end
+    if current_slice_count + potential_new_markers > 255 then
+        renoise.app():show_status("Cannot double: would exceed maximum of 255 slices.")
+        return
+    end
+    
+    -- Calculate new slice positions between existing ones
+    local new_markers = {}
+    local total_frames = sample.sample_buffer.number_of_frames
+    
+    -- Add marker between start and first slice
+    if current_slice_count > 0 then
+        local midpoint = math.floor(slice_markers[1] / 2)
+        if midpoint > 0 then
+            table.insert(new_markers, midpoint)
+        end
+    end
+    
+    -- Add markers between consecutive slices
+    for i = 1, current_slice_count - 1 do
+        local start_pos = slice_markers[i]
+        local end_pos = slice_markers[i + 1]
+        local midpoint = math.floor((start_pos + end_pos) / 2)
+        table.insert(new_markers, midpoint)
+    end
+    
+    -- Add marker between last slice and end
+    if current_slice_count > 0 then
+        local start_pos = slice_markers[current_slice_count]
+        local midpoint = math.floor((start_pos + total_frames) / 2)
+        if midpoint < total_frames then
+            table.insert(new_markers, midpoint)
+        end
+    end
+    
+    -- Insert the new slice markers
+    for _, pos in ipairs(new_markers) do
+        sample:insert_slice_marker(pos)
+    end
+    
+    local new_slice_count = #sample.slice_markers
+    renoise.app():show_status("Doubled slices: " .. current_slice_count .. " -> " .. new_slice_count)
+end
+
+-- Function to halve the number of slices by removing every other marker
+function halveslices()
+    local s = renoise.song()
+    local currInst = s.selected_instrument_index
+    
+    -- Check if there is a valid instrument selected
+    if currInst == nil or currInst == 0 then
+        renoise.app():show_status("No instrument selected.")
+        return
+    end
+    
+    -- Check if there are any samples in the selected instrument
+    if #s.instruments[currInst].samples == 0 then
+        renoise.app():show_status("No samples available in the selected instrument.")
+        return
+    end
+    
+    local instrument = s.instruments[currInst]
+    local sample = instrument.samples[1]
+    
+    -- Check if the sample is valid and has sample data
+    if not sample or not sample.sample_buffer.has_sample_data then
+        renoise.app():show_status("No sample data available.")
+        return
+    end
+    
+    local slice_markers = sample.slice_markers
+    local current_slice_count = #slice_markers
+    
+    -- Need at least 2 slice markers to halve
+    if current_slice_count < 2 then
+        renoise.app():show_status("Need at least 2 slices to halve.")
+        return
+    end
+    
+    -- Collect markers to remove (every other one, starting from the 2nd)
+    local markers_to_remove = {}
+    for i = 2, current_slice_count, 2 do
+        table.insert(markers_to_remove, slice_markers[i])
+    end
+    
+    -- Remove the markers
+    for _, marker_pos in ipairs(markers_to_remove) do
+        sample:delete_slice_marker(marker_pos)
+    end
+    
+    local new_slice_count = #sample.slice_markers
+    renoise.app():show_status("Halved slices: " .. current_slice_count .. " -> " .. new_slice_count)
+end
+
 renoise.tool():add_keybinding{name="Global:Paketti:Wipe&Slice (002)",invoke=function() slicerough(2) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Wipe&Slice (004)",invoke=function() slicerough(4) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Wipe&Slice (008)",invoke=function() slicerough(8) end}
@@ -1382,6 +1609,8 @@ renoise.tool():add_keybinding{name="Global:Paketti:Wipe&Slice (064)",invoke=func
 renoise.tool():add_keybinding{name="Global:Paketti:Wipe&Slice (128)",invoke=function() slicerough(128) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Wipe&Slice (256)",invoke=function() slicerough(256) end}
 renoise.tool():add_keybinding{name="Global:Paketti:Wipe Slices",invoke=function() wipeslices() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Double Slices",invoke=function() doubleslices() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Halve Slices",invoke=function() halveslices() end}
 
 
 

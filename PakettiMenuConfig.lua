@@ -242,6 +242,8 @@ renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Wipe&Slice:Wipe&Slice
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Wipe&Slice:Wipe&Slice (128)",invoke=function() slicerough(128) end}
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Wipe&Slice:Wipe&Slice (256)",invoke=function() slicerough(256) end}
 renoise.tool():add_menu_entry{name="--Instrument Box:Paketti:Wipe&Slice:Wipe Slices",invoke=function() wipeslices() end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Wipe&Slice:Double Slices",invoke=function() doubleslices() end}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Wipe&Slice:Halve Slices",invoke=function() halveslices() end}
 
 renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Record:Start Sampling and Sample Editor (Record)",invoke=function() PakettiSampleAndToSampleEditor() end}
 renoise.tool():add_menu_entry{name="--Instrument Box:Paketti:Record:Paketti Overdub 12 (Metronome/Line Input)",invoke=function() recordtocurrenttrack(true, true,12) end}
@@ -373,6 +375,8 @@ renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Wipe&Slice:Wipe&Slice 
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Wipe&Slice:Wipe&Slice (128)",invoke=function() slicerough(128) end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Wipe&Slice:Wipe&Slice (256)",invoke=function() slicerough(256) end}
 renoise.tool():add_menu_entry{name="--Sample Editor:Paketti:Wipe&Slice:Wipe Slices",invoke=function() wipeslices() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Wipe&Slice:Double Slices",invoke=function() doubleslices() end}
+renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Wipe&Slice:Halve Slices",invoke=function() halveslices() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Wipe&Slice:Slice Count From Selection",invoke=function() pakettiSlicesFromSelection() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Wipe&Slice:Prepare Sample for Slicing (Setup + First Slice + Write Note)",invoke=function() prepare_sample_for_slicing() end}
 renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Wipe&Slice:Auto-Slice Using First Slice Length",invoke=function() detect_first_slice_and_auto_slice() end}
@@ -531,6 +535,8 @@ renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Wipe&Slice:Wipe&Sli
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Wipe&Slice:Wipe&Slice (128)",invoke=function() slicerough(128) end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Wipe&Slice:Wipe&Slice (256)",invoke=function() slicerough(256) end}
 renoise.tool():add_menu_entry{name="--Sample Navigator:Paketti:Wipe&Slice:Wipe Slices",invoke=function() wipeslices() end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Wipe&Slice:Double Slices",invoke=function() doubleslices() end}
+renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Wipe&Slice:Halve Slices",invoke=function() halveslices() end}
 
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Autofade/Autoseek:Set Selected Instrument All Autofade On",invoke=function() selectedInstrumentAllAutofadeControl(1) end}
 renoise.tool():add_menu_entry{name="Sample Navigator:Paketti:Autofade/Autoseek:Set Selected Instrument All Autoseek On",invoke=function() selectedInstrumentAllAutoseekControl(1) end}
@@ -1505,7 +1511,7 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Show 
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Merge Instruments Dialog...",invoke=function() pakettiMergeInstrumentsDialog() end}
 
 renoise.tool():add_menu_entry{name="--Main Menu:Tools:Paketti:Samples:Paketti Offset Dialog...",invoke=pakettiOffsetDialog }
-renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Replace FC with 0L",invoke=function() ReplaceLegacyEffect("FC", "0L") end}
+--renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Replace FC with 0L",invoke=function() ReplaceLegacyEffect("FC", "0L") end}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Instruments:Group Samples by Name to New Instruments", invoke=PakettiGroupSamplesByName}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Delete Unused Columns", invoke = deleteUnusedColumns}
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:!Preferences:Toggle Global Groove on Startup On/Off",invoke=pakettiToggleGlobalGrooveOnStartup}

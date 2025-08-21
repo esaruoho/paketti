@@ -358,26 +358,34 @@ function PakettiCreateUnisonSamples()
     return
   end
 
-  -- Check if sample 1 starts with "PCM Wave A" and sample 2 starts with "PCM Wave B"
+  
+  -- Check if there are 2 samples routed to different FX chains OR old-style PCM Wave naming
   local use_dual_fx_chain_mode = false
   if #new_instrument.samples >= 2 and new_instrument.samples[1] and new_instrument.samples[2] then
     local sample1_name = new_instrument.samples[1].name or ""
     local sample2_name = new_instrument.samples[2].name or ""
+    local sample1_fx_chain = new_instrument.samples[1].device_chain_index
+    local sample2_fx_chain = new_instrument.samples[2].device_chain_index
     
-    if string.find(sample1_name, "PCM Wave A") == 1 and string.find(sample2_name, "PCM Wave B") == 1 then
+    -- Check for FX chain routing (sample 1 -> chain 1, sample 2 -> chain 2)
+    if sample1_fx_chain == 1 and sample2_fx_chain == 2 then
       use_dual_fx_chain_mode = true
-      print("DEBUG: Found PCM Wave A and PCM Wave B - using dual FX chain mode")
+      print("DEBUG: Found samples routed to different FX chains (1->1, 2->2) - using dual FX chain mode")
+    -- Fallback: Check for old-style PCM Wave naming
+    elseif string.find(sample1_name, "PCM Wave A") == 1 and string.find(sample2_name, "PCM Wave B") == 1 then
+      use_dual_fx_chain_mode = true
+      print("DEBUG: Found PCM Wave A and PCM Wave B names - using dual FX chain mode")
     end
   end
   
   if use_dual_fx_chain_mode then
-    print("DEBUG: Using wavetable mode - 5 copies each of PCM Wave A and PCM Wave B with fifths fractions")
+    print("DEBUG: Using wavetable mode - 5 copies each of Wave A and Wave B with fifths fractions")
     
     -- Store original sample names for both waves
     local original_wave_a_name = new_instrument.samples[1].name:gsub("%s*%(Unison.*$", ""):gsub("^%s*(.-)%s*$", "%1")
     local original_wave_b_name = new_instrument.samples[2].name:gsub("%s*%(Unison.*$", ""):gsub("^%s*(.-)%s*$", "%1")
     
-    -- Set up the original PCM Wave A and PCM Wave B samples
+    -- Set up the original Wave A and Wave B samples
     local wave_a_sample = new_instrument.samples[1]
     local wave_b_sample = new_instrument.samples[2]
     
@@ -398,25 +406,25 @@ function PakettiCreateUnisonSamples()
     wave_b_sample.device_chain_index = 2  -- FX Chain 2
     wave_b_sample.name = string.format("%s (Unison 0 [0] (Center))", original_wave_b_name)
     
-    -- Create 5 copies of PCM Wave A for FX Chain 1 (wavetable mode)
+    -- Create 5 copies of Wave A for FX Chain 1 (wavetable mode)
     for i = 1, 5 do
       local new_index = #new_instrument.samples + 1
       new_instrument:insert_sample_at(new_index)
       if new_instrument.samples[new_index] then
         new_instrument.samples[new_index]:copy_from(wave_a_sample)
         new_instrument.samples[new_index].device_chain_index = 1  -- FX Chain 1
-        print("DEBUG: Created PCM Wave A copy", i, "at index", new_index)
+        print("DEBUG: Created Wave A copy", i, "at index", new_index)
       end
     end
     
-    -- Create 5 copies of PCM Wave B for FX Chain 2 (wavetable mode)
+    -- Create 5 copies of Wave B for FX Chain 2 (wavetable mode)
     for i = 1, 5 do
       local new_index = #new_instrument.samples + 1
       new_instrument:insert_sample_at(new_index)
       if new_instrument.samples[new_index] then
         new_instrument.samples[new_index]:copy_from(wave_b_sample)
         new_instrument.samples[new_index].device_chain_index = 2  -- FX Chain 2
-        print("DEBUG: Created PCM Wave B copy", i, "at index", new_index)
+        print("DEBUG: Created Wave B copy", i, "at index", new_index)
       end
     end
     
@@ -430,7 +438,7 @@ function PakettiCreateUnisonSamples()
     local skip_fractional_shifting_a = wave_a_sample.sample_buffer.has_sample_data and wave_a_sample.sample_buffer.number_of_frames > 500000
     local skip_fractional_shifting_b = wave_b_sample.sample_buffer.has_sample_data and wave_b_sample.sample_buffer.number_of_frames > 500000
     
-    -- Process PCM Wave A copies (samples 3-7, since 1=original A, 2=original B)
+    -- Process Wave A copies (samples 3-7, since 1=original A, 2=original B)
     for i = 1, 5 do
       local sample_index = 2 + i  -- Start after the two original samples
       if new_instrument.samples[sample_index] then
@@ -466,9 +474,9 @@ function PakettiCreateUnisonSamples()
       end
     end
     
-    -- Process PCM Wave B copies (samples 8-12)
+    -- Process Wave B copies (samples 8-12)
     for i = 1, 5 do
-      local sample_index = 7 + i  -- Start after the PCM Wave A copies
+      local sample_index = 7 + i  -- Start after the Wave A copies
       if new_instrument.samples[sample_index] then
         local sample = new_instrument.samples[sample_index]
         
