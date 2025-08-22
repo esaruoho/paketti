@@ -1,0 +1,70 @@
+PB PitchBend
+1 Mod Wheel
+87   VCF Freq (Cutoff)
+88   VCF Reso (Resonance)
+89   VCF Env Amount
+90   VCF Release
+91   VCF Sustain
+92   VCF Decay
+93   VCF Attack
+2    Breath
+3    Master Tune
+7    Main Volume
+49   Osc A Saw
+50   Osc A Square
+51   Osc B Saw
+52   Osc B Tri
+53   Osc B Square
+54   Osc B Sync
+55   Pmod Freq A
+56   Pmod VCF
+57   LFO Shape
+58   LFO Speed
+59   LFO Targets
+60   VCF Keyboard
+61   VCF Env EXP
+62   VCF Env Speed
+63   VCA Env EXP
+64   Sustain Pedal
+65   Unison
+66   Bender Target
+67   Mod Wheel Amount
+68   Chromatic Pitch A
+69   Chromatic Pitch B
+70   Mod Wheel Target
+71   Vibrato Target
+72   VCA Env Speed
+73   Arp Mode
+74   LFO Dest Freq
+75   LFO Dest Filter
+76   LFO Dest PWM
+
+80   Osc A Freq
+81   Osc A Vol
+82   Osc A PW
+83   Osc B Freq
+84   Osc B Vol
+85   Osc B PW
+86   Osc B Fine
+94   VCA Release
+95   VCA Sustain
+100  VCA Decay
+101  VCA Attack
+102  Pmod Filter Env Amount
+103  Pmod OSC B Amount
+104  LFO Freq
+105  LFO Amount
+106  Glide
+107  VCA Velocity
+108  VCF Velocity
+109  Mod Delay
+110  Vibrato Freq
+111  Vibrato Amount
+112  Unison Detune
+113  Noise
+114  VCA Aftertouch Amount
+115  VCF Aftertouch Amount
+116  LFO Aftertouch Amount
+
+
+

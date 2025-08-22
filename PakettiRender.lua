@@ -1506,6 +1506,206 @@ end
 -- Renders a long sample through track/sample FX by creating temporary playback environment
 --------
 
+-- Helper functions for slice detection and note calculation
+function pakettiDetectSlicedInstrument(instrument)
+    if not instrument or #instrument.samples == 0 then
+        return false
+    end
+    
+    local first_sample = instrument.samples[1]
+    return #first_sample.slice_markers > 0
+end
+
+function pakettiDetectSampleTriggerNote(instrument, sample_index)
+    if not instrument or not pakettiDetectSlicedInstrument(instrument) then
+        return "C-4"  -- Default note for non-sliced instruments
+    end
+    
+    -- For sliced instruments, find the key mapping of the first sample (the original whole sample)
+    local first_sample = instrument.samples[1]
+    if not first_sample then
+        return "C-4"
+    end
+    
+    -- Get the base note mapping of the first sample
+    local base_note = first_sample.sample_mapping.base_note
+    
+    -- Convert note number to note string
+    local note_names = {"C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"}
+    local note = base_note % 12
+    local octave = math.floor(base_note / 12)
+    
+    return note_names[note + 1] .. octave
+end
+
+function pakettiCopySliceMarkers(source_sample, target_sample)
+    if not source_sample or not target_sample then
+        print("DEBUG SLICE: Cannot copy slice markers - invalid samples")
+        return false
+    end
+    
+    if #source_sample.slice_markers == 0 then
+        print("DEBUG SLICE: No slice markers to copy")
+        return false
+    end
+    
+    -- Get sample rates to calculate scaling factor
+    local source_sample_rate = source_sample.sample_buffer.sample_rate
+    local target_sample_rate = target_sample.sample_buffer.sample_rate
+    local scaling_factor = target_sample_rate / source_sample_rate
+    
+    print("DEBUG SLICE: Source sample rate:", source_sample_rate, "Hz")
+    print("DEBUG SLICE: Target sample rate:", target_sample_rate, "Hz") 
+    print("DEBUG SLICE: Scaling factor:", scaling_factor)
+    
+    -- Copy each slice marker from source to target, scaling position by sample rate ratio
+    for i, marker_pos in ipairs(source_sample.slice_markers) do
+        local scaled_marker_pos = math.floor(marker_pos * scaling_factor + 0.5)  -- Round to nearest integer
+        target_sample:insert_slice_marker(scaled_marker_pos)
+        print("DEBUG SLICE: Copied slice marker", i, "from position", marker_pos, "to scaled position", scaled_marker_pos)
+    end
+    
+    print("DEBUG SLICE: Successfully copied", #source_sample.slice_markers, "slice markers with scaling factor", scaling_factor)
+    return true
+end
+
+function pakettiCopySliceSettings(source_instrument, target_instrument)
+    if not source_instrument or not target_instrument then
+        print("DEBUG SLICE: Cannot copy slice settings - invalid instruments")
+        return false
+    end
+    
+    if not pakettiDetectSlicedInstrument(source_instrument) then
+        print("DEBUG SLICE: Source instrument is not sliced, no slice settings to copy")
+        return false
+    end
+    
+    local source_samples = source_instrument.samples
+    local target_samples = target_instrument.samples
+    
+    -- Copy ALL settings from each original slice to corresponding new slice
+    for i = 1, #source_samples do
+        local source_slice = source_samples[i]
+        local target_slice = target_samples[i]
+        
+        if source_slice and target_slice then
+            print("DEBUG SLICE: Copying ALL settings from original slice", i, "to new slice", i)
+            
+            -- Copy ALL sample properties - EVERYTHING!
+            target_slice.panning = source_slice.panning
+            target_slice.volume = source_slice.volume
+            target_slice.transpose = source_slice.transpose
+            target_slice.fine_tune = source_slice.fine_tune
+            
+            -- Copy beat sync settings (ALL of them)
+            target_slice.beat_sync_enabled = source_slice.beat_sync_enabled
+            target_slice.beat_sync_lines = source_slice.beat_sync_lines
+            target_slice.beat_sync_mode = source_slice.beat_sync_mode
+            
+            -- Copy playback settings (ALL of them)
+            target_slice.interpolation_mode = source_slice.interpolation_mode
+            target_slice.oversample_enabled = source_slice.oversample_enabled
+            target_slice.new_note_action = source_slice.new_note_action
+            target_slice.oneshot = source_slice.oneshot
+            target_slice.mute_group = source_slice.mute_group
+            target_slice.autoseek = source_slice.autoseek
+            target_slice.autofade = source_slice.autofade
+            
+            -- Copy loop settings (ALL of them)
+            target_slice.loop_mode = source_slice.loop_mode
+            target_slice.loop_release = source_slice.loop_release
+            
+            -- Scale loop points if they exist and are within the sample
+            if source_slice.loop_start > 1 and source_slice.loop_end > source_slice.loop_start then
+                local source_sample_rate = source_slice.sample_buffer.sample_rate
+                local target_sample_rate = target_slice.sample_buffer.sample_rate
+                local scaling_factor = target_sample_rate / source_sample_rate
+                
+                local scaled_loop_start = math.floor(source_slice.loop_start * scaling_factor + 0.5)
+                local scaled_loop_end = math.floor(source_slice.loop_end * scaling_factor + 0.5)
+                
+                -- Ensure loop points are within target sample bounds
+                if scaled_loop_start >= 1 and scaled_loop_end <= target_slice.sample_buffer.number_of_frames then
+                    target_slice.loop_start = scaled_loop_start
+                    target_slice.loop_end = scaled_loop_end
+                    print("DEBUG SLICE: Scaled loop points for slice", i, "from", source_slice.loop_start, "-", source_slice.loop_end, "to", scaled_loop_start, "-", scaled_loop_end)
+                end
+            end
+            
+            -- Copy modulation and device chain indices
+            target_slice.modulation_set_index = source_slice.modulation_set_index
+            target_slice.device_chain_index = source_slice.device_chain_index
+            
+            print("  Slice", i, "settings: Vol:", target_slice.volume, "Pan:", target_slice.panning, "Transpose:", target_slice.transpose, "Mute:", target_slice.mute_group, "NNA:", target_slice.new_note_action)
+        end
+    end
+    
+    print("DEBUG SLICE: Successfully copied settings for", #source_samples, "slices")
+    return true
+end
+
+function pakettiCopyBaseSampleSettings(source_sample, target_sample)
+    if not source_sample or not target_sample then
+        print("DEBUG SLICE: Cannot copy base sample settings - invalid samples")
+        return false
+    end
+    
+    print("DEBUG SLICE: Copying ALL base sample settings from original to new sample")
+    
+    -- Copy ALL sample properties - EVERYTHING!
+    target_sample.panning = source_sample.panning
+    target_sample.volume = source_sample.volume
+    target_sample.transpose = source_sample.transpose
+    target_sample.fine_tune = source_sample.fine_tune
+    
+    -- Copy beat sync settings (ALL of them)
+    target_sample.beat_sync_enabled = source_sample.beat_sync_enabled
+    target_sample.beat_sync_lines = source_sample.beat_sync_lines
+    target_sample.beat_sync_mode = source_sample.beat_sync_mode
+    
+    -- Copy playback settings (ALL of them)
+    target_sample.interpolation_mode = source_sample.interpolation_mode
+    target_sample.oversample_enabled = source_sample.oversample_enabled
+    target_sample.new_note_action = source_sample.new_note_action
+    target_sample.oneshot = source_sample.oneshot
+    target_sample.mute_group = source_sample.mute_group
+    target_sample.autoseek = source_sample.autoseek
+    target_sample.autofade = source_sample.autofade
+    
+    -- Copy loop settings (ALL of them)
+    target_sample.loop_mode = source_sample.loop_mode
+    target_sample.loop_release = source_sample.loop_release
+    
+    -- Scale loop points if they exist and are within the sample
+    if source_sample.loop_start > 1 and source_sample.loop_end > source_sample.loop_start then
+        local source_sample_rate = source_sample.sample_buffer.sample_rate
+        local target_sample_rate = target_sample.sample_buffer.sample_rate
+        local scaling_factor = target_sample_rate / source_sample_rate
+        
+        local scaled_loop_start = math.floor(source_sample.loop_start * scaling_factor + 0.5)
+        local scaled_loop_end = math.floor(source_sample.loop_end * scaling_factor + 0.5)
+        
+        -- Ensure loop points are within target sample bounds
+        if scaled_loop_start >= 1 and scaled_loop_end <= target_sample.sample_buffer.number_of_frames then
+            target_sample.loop_start = scaled_loop_start
+            target_sample.loop_end = scaled_loop_end
+            print("DEBUG SLICE: Scaled base sample loop points from", source_sample.loop_start, "-", source_sample.loop_end, "to", scaled_loop_start, "-", scaled_loop_end)
+        end
+    end
+    
+    -- Copy modulation and device chain indices
+    target_sample.modulation_set_index = source_sample.modulation_set_index
+    target_sample.device_chain_index = source_sample.device_chain_index
+    
+    print("DEBUG SLICE: Successfully copied ALL base sample settings:")
+    print("  - Volume:", target_sample.volume, "Panning:", target_sample.panning)
+    print("  - Transpose:", target_sample.transpose, "Fine tune:", target_sample.fine_tune)
+    print("  - Beat sync:", target_sample.beat_sync_enabled, "Lines:", target_sample.beat_sync_lines)
+    print("  - Mute group:", target_sample.mute_group, "NNA:", target_sample.new_note_action)
+    print("  - Loop mode:", target_sample.loop_mode, "Autofade:", target_sample.autofade, "Autoseek:", target_sample.autoseek)
+    return true
+end
+
 -- Experimental render configuration now managed via preferences
 
 local experimental_render_context = {
@@ -1519,13 +1719,15 @@ local experimental_render_context = {
     source_track = 0,
     target_instrument = 0,
     original_instrument_index = 0,
+    original_sample_index = 0,
     temp_file_path = "",
     sample_length_seconds = 0,
     calculated_bpm = 0,
     calculated_pattern_length = 0,
     dc_offset_added = false,
     dc_offset_position = 0,
-    num_tracks_before = 0
+    num_tracks_before = 0,
+    is_sliced_instrument = false
 }
 
 function create_experimental_render_context()
@@ -1540,13 +1742,15 @@ function create_experimental_render_context()
         source_track = 0,
         target_instrument = 0,
         original_instrument_index = 0,
+        original_sample_index = 0,
         temp_file_path = "",
         sample_length_seconds = 0,
         calculated_bpm = 0,
         calculated_pattern_length = 0,
         dc_offset_added = false,
         dc_offset_position = 0,
-        num_tracks_before = 0
+        num_tracks_before = 0,
+        is_sliced_instrument = false
     }
 end
 
@@ -1561,8 +1765,20 @@ function pakettiExperimentalSampleFXRender()
     
     print("DEBUG EXP: Starting experimental sample FX render")
     
-    local sample = song.selected_sample
-    local sample_buffer = sample.sample_buffer
+    local selected_instrument = song.selected_instrument
+    local is_sliced = pakettiDetectSlicedInstrument(selected_instrument)
+    
+    -- For sliced instruments, use the FIRST sample (original whole sample) for BPM calculation
+    local sample_for_calculation
+    if is_sliced then
+        sample_for_calculation = selected_instrument.samples[1]  -- Always use first sample for sliced instruments
+        print("DEBUG EXP: Detected sliced instrument - using first sample for BPM calculation")
+    else
+        sample_for_calculation = song.selected_sample  -- Use selected sample for regular instruments
+        print("DEBUG EXP: Regular instrument - using selected sample for BPM calculation")
+    end
+    
+    local sample_buffer = sample_for_calculation.sample_buffer
     
     -- Calculate sample length in seconds
     local sample_rate = sample_buffer.sample_rate
@@ -1587,6 +1803,8 @@ function pakettiExperimentalSampleFXRender()
     experimental_render_context.sample_length_seconds = sample_length_seconds
     experimental_render_context.source_track = song.selected_track_index
     experimental_render_context.original_instrument_index = song.selected_instrument_index
+    experimental_render_context.original_sample_index = song.selected_sample_index
+    experimental_render_context.is_sliced_instrument = is_sliced
     
     print("DEBUG EXP: Stored original state - BPM:", experimental_render_context.original_bpm, "LPB:", experimental_render_context.original_lpb, "Headroom:", math.lin2db(experimental_render_context.original_track_headroom), "dB")
     
@@ -1626,12 +1844,28 @@ function pakettiExperimentalSampleFXRender()
     song.selected_pattern:clear()
     print("DEBUG EXP: Cleared cloned pattern", temp_pattern_index)
     
-    -- 4. Input C-4
+    -- 4. Input appropriate note (C-4 for normal samples, or detected note for sliced instruments)
     local temp_pattern = song.patterns[temp_pattern_index]
     local pattern_track = temp_pattern:track(song.selected_track_index)
-    pattern_track:line(1).note_columns[1].note_string = "C-4"
-    pattern_track:line(1).note_columns[1].instrument_value = experimental_render_context.original_instrument_index -1
-    print("DEBUG EXP: Added C-4 note to line 1 with instrument", experimental_render_context.original_instrument_index - 1)
+    
+    -- Detect appropriate trigger note for the selected sample
+    local selected_instrument = song:instrument(experimental_render_context.original_instrument_index)
+    local selected_sample_index = song.selected_sample_index
+    local trigger_note = pakettiDetectSampleTriggerNote(selected_instrument, selected_sample_index)
+    
+    if experimental_render_context.is_sliced_instrument then
+        print("DEBUG EXP: Detected sliced instrument with", #selected_instrument.samples[1].slice_markers, "slice markers")
+        print("DEBUG EXP: First sample (original whole sample) is mapped to note", trigger_note, "- using this to trigger complete sample")
+    end
+    
+    pattern_track:line(1).note_columns[1].note_string = trigger_note
+    pattern_track:line(1).note_columns[1].instrument_value = experimental_render_context.original_instrument_index - 1
+    
+    if pakettiDetectSlicedInstrument(selected_instrument) then
+        print("DEBUG EXP: Added", trigger_note, "note to line 1 for sliced instrument sample", selected_sample_index, "with instrument", experimental_render_context.original_instrument_index - 1)
+    else
+        print("DEBUG EXP: Added", trigger_note, "note to line 1 with instrument", experimental_render_context.original_instrument_index - 1)
+    end
     
     -- 5. Set BPM + LPB, resize pattern, set headroom to 0dB
     song.patterns[temp_pattern_index].number_of_lines = optimal_pattern_length
@@ -1793,13 +2027,55 @@ function experimental_rendering_done_callback()
     os.remove(experimental_render_context.temp_file_path)
     
     -- Name the result
-    local original_name = song:instrument(experimental_render_context.target_instrument - 1).name
+    local original_instrument = song:instrument(experimental_render_context.target_instrument - 1)
+    local original_name = original_instrument.name
     local result_name = original_name .. " (FX Processed)"
     new_instrument.name = result_name
     new_instrument.samples[1].name = result_name
     new_instrument.samples[1].autofade = true
     
     print("DEBUG EXP: Loaded result into instrument:", result_name)
+    
+    -- Copy ALL settings from original to new instrument
+    if experimental_render_context.is_sliced_instrument then
+        print("DEBUG EXP: SLICED INSTRUMENT - Copying ALL settings from original sliced instrument to new FX-processed instrument")
+        local original_sample = original_instrument.samples[1]  -- Slice markers are always in first sample
+        local target_sample = new_instrument.samples[1]
+        
+        -- STEP 1: Copy ALL base sample settings from original first sample to new first sample
+        -- (transpose, finetune, beat sync, mute group, NNA, autofade, autoseek, interpolation, oversampling, panning, volume, loops, etc.)
+        if pakettiCopyBaseSampleSettings(original_sample, target_sample) then
+            print("DEBUG EXP: ✓ Copied ALL base sample settings from original to new first sample")
+        else
+            print("DEBUG EXP: ✗ Failed to copy base sample settings")
+        end
+        
+        -- STEP 2: Copy slice markers (this creates the slice aliases automatically)
+        if pakettiCopySliceMarkers(original_sample, target_sample) then
+            print("DEBUG EXP: ✓ Copied slice markers - new slices created")
+            
+            -- STEP 3: Copy ALL settings from each original slice to each corresponding new slice
+            -- (transpose, finetune, beat sync, mute group, NNA, autofade, autoseek, interpolation, oversampling, panning, volume, loops, etc.)
+            if pakettiCopySliceSettings(original_instrument, new_instrument) then
+                print("DEBUG EXP: ✓ Copied ALL slice settings from original slices to new slices")
+            else
+                print("DEBUG EXP: ✗ Failed to copy slice settings")
+            end
+        else
+            print("DEBUG EXP: ✗ Failed to copy slice markers")
+        end
+    else
+        print("DEBUG EXP: REGULAR INSTRUMENT - Copying ALL settings from original sample to new FX-processed sample")
+        -- For non-sliced instruments, copy ALL settings from original sample to new sample
+        local original_sample = song:instrument(experimental_render_context.target_instrument - 1).samples[experimental_render_context.original_sample_index]
+        local target_sample = new_instrument.samples[1]
+        
+        if pakettiCopyBaseSampleSettings(original_sample, target_sample) then
+            print("DEBUG EXP: ✓ Copied ALL sample settings from original to new sample")
+        else
+            print("DEBUG EXP: ✗ Failed to copy sample settings")
+        end
+    end
     
     -- Cleanup and restore original state
     cleanup_experimental_render()

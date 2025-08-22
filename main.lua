@@ -755,6 +755,7 @@ end
 
 --timed_require("PakettiExperimentalDialog")
 timed_require("PakettiRequests")
+timed_require("PakettiInstrumentTranspose")
 timed_require("PakettiRender")
 timed_require("PakettiBPM")
 timed_require("PakettiStemSlicer")

@@ -779,38 +779,6 @@ end
 renoise.tool():add_keybinding{name="Global:Paketti:12st PitchBend Instrument Init",invoke=function() pitchedInstrument(12) end}
 renoise.tool():add_keybinding{name="Global:Paketti:PitchBend Drumkit Instrument Init",invoke=function() pitchedDrumkit() end}
 
-function transposeAllSamplesInInstrument(amount)
-    -- Access the currently selected instrument in Renoise
-    local instrument = renoise.song().selected_instrument
-    -- Iterate through all samples in the instrument
-    for i = 1, #instrument.samples do
-        -- Access each sample's transpose property
-        local currentTranspose = instrument.samples[i].transpose
-        local newTranspose = currentTranspose + amount
-        -- Clamp the transpose value to be within the valid range of -120 to 120
-        if newTranspose > 120 then
-            newTranspose = 120
-        elseif newTranspose < -120 then
-            newTranspose = -120
-        end
-        -- Apply the new transpose value to the sample
-        instrument.samples[i].transpose = newTranspose
-    end
-end
-
-renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Instrument Transpose (-1)",invoke=function() transposeAllSamplesInInstrument(-1) end}
-renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Instrument Transpose (+1)",invoke=function() transposeAllSamplesInInstrument(1) end}
-renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Instrument Transpose (-12)",invoke=function() transposeAllSamplesInInstrument(-12) end}
-renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Instrument Transpose (+12)",invoke=function() transposeAllSamplesInInstrument(12) end}
-
-function resetInstrumentTranspose(amount)
-    local instrument = renoise.song().selected_instrument
-    for i = 1, #instrument.samples do
-        instrument.samples[i].transpose = 0
-    end
-end
-
-renoise.tool():add_keybinding{name="Global:Paketti:Set Selected Instrument Transpose 0 (Reset)",invoke=function() resetInstrumentTranspose(0) end}
 
 ---
 --another from casiino:
