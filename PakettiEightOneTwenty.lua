@@ -2036,7 +2036,10 @@ end
       local ii = row_elements.instrument_popup and row_elements.instrument_popup.value
       if ii then renoise.song().selected_instrument_index = ii end
       if type(PakettiSteppersDialog) == "function" then
-        PakettiSteppersDialog()
+        -- Check if steppers dialog is already visible, if so, don't call function (which would close it)
+        if not PakettiSteppersDialogIsOpen() then
+          PakettiSteppersDialog()
+        end
       else
         renoise.app():show_status("PakettiSteppersDialog not available")
       end
@@ -4170,7 +4173,20 @@ function loadSequentialSamplesWithFolderPrompts()
           instrument.samples[i].sample_mapping.note_range = {0, 119}
         end)
         
-        if not success then
+        if success then
+          -- Apply Paketti Loader preferences to the sample
+          local sample = instrument.samples[i]
+          if preferences then
+            if preferences.pakettiLoaderAutofade then sample.autofade = preferences.pakettiLoaderAutofade.value end
+            if preferences.pakettiLoaderAutoseek then sample.autoseek = preferences.pakettiLoaderAutoseek.value end
+            if preferences.pakettiLoaderInterpolation then sample.interpolation_mode = preferences.pakettiLoaderInterpolation.value end
+            if preferences.pakettiLoaderOverSampling then sample.oversample_enabled = preferences.pakettiLoaderOverSampling.value end
+            if preferences.pakettiLoaderOneshot then sample.oneshot = preferences.pakettiLoaderOneshot.value end
+            if preferences.pakettiLoaderNNA then sample.new_note_action = preferences.pakettiLoaderNNA.value end
+            if preferences.pakettiLoaderLoopMode then sample.loop_mode = preferences.pakettiLoaderLoopMode.value end
+            if preferences.pakettiLoaderLoopExit then sample.loop_release = preferences.pakettiLoaderLoopExit.value end
+          end
+        else
           print(string.format("Failed to load sample %d: %s", i, selected_file))
         end
       end
@@ -4451,6 +4467,21 @@ function loadSequentialDrumkitSamples()
         -- Set the name only if load succeeded
         instrument.samples[i].name = getFilename(selected_file)
       end)
+
+      -- Apply Paketti Loader preferences if loading succeeded
+      if ok and not load_failed then
+        local sample = instrument.samples[i]
+        if preferences then
+          if preferences.pakettiLoaderAutofade then sample.autofade = preferences.pakettiLoaderAutofade.value end
+          if preferences.pakettiLoaderAutoseek then sample.autoseek = preferences.pakettiLoaderAutoseek.value end
+          if preferences.pakettiLoaderInterpolation then sample.interpolation_mode = preferences.pakettiLoaderInterpolation.value end
+          if preferences.pakettiLoaderOverSampling then sample.oversample_enabled = preferences.pakettiLoaderOverSampling.value end
+          if preferences.pakettiLoaderOneshot then sample.oneshot = preferences.pakettiLoaderOneshot.value end
+          if preferences.pakettiLoaderNNA then sample.new_note_action = preferences.pakettiLoaderNNA.value end
+          if preferences.pakettiLoaderLoopMode then sample.loop_mode = preferences.pakettiLoaderLoopMode.value end
+          if preferences.pakettiLoaderLoopExit then sample.loop_release = preferences.pakettiLoaderLoopExit.value end
+        end
+      end
 
       -- Check both pcall result and our own error flag
       if not ok or load_failed then
@@ -4753,6 +4784,21 @@ function loadSequentialRandomLoadAll()
         end
         instrument.samples[i].name = getFilename(selected_file)
       end)
+
+      -- Apply Paketti Loader preferences if loading succeeded
+      if ok and not load_failed then
+        local sample = instrument.samples[i]
+        if preferences then
+          if preferences.pakettiLoaderAutofade then sample.autofade = preferences.pakettiLoaderAutofade.value end
+          if preferences.pakettiLoaderAutoseek then sample.autoseek = preferences.pakettiLoaderAutoseek.value end
+          if preferences.pakettiLoaderInterpolation then sample.interpolation_mode = preferences.pakettiLoaderInterpolation.value end
+          if preferences.pakettiLoaderOverSampling then sample.oversample_enabled = preferences.pakettiLoaderOverSampling.value end
+          if preferences.pakettiLoaderOneshot then sample.oneshot = preferences.pakettiLoaderOneshot.value end
+          if preferences.pakettiLoaderNNA then sample.new_note_action = preferences.pakettiLoaderNNA.value end
+          if preferences.pakettiLoaderLoopMode then sample.loop_mode = preferences.pakettiLoaderLoopMode.value end
+          if preferences.pakettiLoaderLoopExit then sample.loop_release = preferences.pakettiLoaderLoopExit.value end
+        end
+      end
 
       if not ok or load_failed then
         print(string.format("FAILED TO LOAD SAMPLE Part %d [%d/%d]: PATH: %s SIZE: %s",

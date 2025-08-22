@@ -10,6 +10,11 @@ local STEPPER_TYPES = {
 local vb=renoise.ViewBuilder()
 local dialog=nil
 
+-- Global function to check if steppers dialog is open
+function PakettiSteppersDialogIsOpen()
+  return dialog and dialog.visible
+end
+
 local stepsize_switch = nil
 local stepper_switch = nil
 local updating_switch = false

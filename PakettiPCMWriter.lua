@@ -316,6 +316,25 @@ local tool_button_width = 60   -- Standard width for all tool buttons
 
 -- AKWF dropdown will be initialized when dialog is shown
 
+-- Helper function to validate track type for wavetable operations
+function PCMWriterValidateTrackForWavetable()
+  local song = renoise.song()
+  local selected_track = song.selected_track
+  
+  if selected_track.type == renoise.Track.TRACK_TYPE_MASTER then
+    renoise.app():show_status("Cannot create wavetable instrument on Master track. Please select a regular track.")
+    return false
+  elseif selected_track.type == renoise.Track.TRACK_TYPE_SEND then
+    renoise.app():show_status("Cannot create wavetable instrument on Send track. Please select a regular track.")
+    return false
+  elseif selected_track.type == renoise.Track.TRACK_TYPE_GROUP then
+    renoise.app():show_status("Cannot create wavetable instrument on Group track. Please select a regular track.")
+    return false
+  end
+  
+  return true
+end
+
 -- WaveFunctions class from MorphSynth - Advanced wave generation with morphing capabilities
 class "WaveFunctions"
 
@@ -2386,6 +2405,11 @@ function PCMWriterLoadRandomAKWFToCurrentWave()
 end
 
 function PCMWriterLoad2RandomAKWFAndExport()
+  -- Validate track type before proceeding
+  if not PCMWriterValidateTrackForWavetable() then
+    return
+  end
+  
   print("DEBUG: Starting PCMWriterLoad2RandomAKWFAndExport")
   
   -- TEMPORARILY DISABLE Live Pickup Mode to prevent interference
@@ -5530,6 +5554,11 @@ function PCMWriterExportWaveBToSample()
 end
 
 function PCMWriterExportWaveAAndBToSample()
+  -- Validate track type before proceeding
+  if not PCMWriterValidateTrackForWavetable() then
+    return
+  end
+  
   local song = renoise.song()
   local inst = song.selected_instrument
   
@@ -5825,6 +5854,11 @@ end
 
 -- Wrapper function for Write A&B followed by Unison processing
 function PCMWriterExportWaveAAndBToSampleWithUnison()
+  -- Validate track type before proceeding
+  if not PCMWriterValidateTrackForWavetable() then
+    return
+  end
+  
   -- Check if Live Pickup Mode was active before Wave A&B creation
   local was_live_pickup_active = live_pickup_mode
   
@@ -5844,6 +5878,11 @@ end
 
 -- Wrapper function for Write AKWF A&B followed by Unison processing
 function PCMWriterLoad2RandomAKWFAndExportWithUnison()
+  -- Validate track type before proceeding
+  if not PCMWriterValidateTrackForWavetable() then
+    return
+  end
+  
   -- First call the regular Write AKWF A&B function
   PCMWriterLoad2RandomAKWFAndExport()
   

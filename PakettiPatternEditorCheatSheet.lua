@@ -794,11 +794,20 @@ function pakettiPatternEditorCheatsheetDialog()
       end
     },
     vb:button{
-      text="Mini Cheatsheet",
-      tooltip = "Open the minimized cheatsheet dialog",
+      text="Minimize Horizontal",
+      tooltip = "Open the minimized cheatsheet dialog (horizontal layout)",
       width=globalwidth,
       pressed = function()
         show_mini_cheatsheet()
+        renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
+      end
+    },
+    vb:button{
+      text="Minimize Vertical",
+      tooltip = "Open the minimized cheatsheet dialog (vertical layout)",
+      width=globalwidth,
+      pressed = function()
+        show_mini_cheatsheet_vertical()
         renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_PATTERN_EDITOR
       end
     },
@@ -1273,9 +1282,138 @@ function show_mini_cheatsheet()
   mini_dialog = renoise.app():show_custom_dialog("Paketti Minimize Cheatsheet", dialog_content, keyhandler)
 end
 
+-- Vertical version of the minimized cheatsheet
+function show_mini_cheatsheet_vertical()
+  local vb = renoise.ViewBuilder()
+  
+  -- Close the full cheatsheet if it's open
+  if dialog and dialog.visible then
+    dialog:close()
+    dialog = nil
+  end
+  
+  if mini_dialog and mini_dialog.visible then
+    mini_dialog:close()
+    return
+  end
+
+  -- Create dropdown items
+  local dropdown_items = {}
+  for i, effect in ipairs(mini_effects) do
+    dropdown_items[i] = effect[2] .. " - " .. effect[3]
+  end
+
+  local selected_effect_index = mini_selected_effect_index
+  local hex_value = mini_hex_value
+
+  local percentage_text = vb:text{
+    text = string.format("%d%% Fill (0x%02X)", math.floor((hex_value / 255) * 100), hex_value)
+  }
+
+  -- Apply random effect
+  local function apply_random_effect()
+    local random_index = math.random(1, #mini_effects)
+    selected_effect_index = random_index
+    mini_selected_effect_index = random_index  -- Update persistent state
+    local selected_effect = mini_effects[selected_effect_index]
+    apply_mini_effect_direct(selected_effect[1], hex_value)
+    renoise.app():show_status(string.format("Random effect: %s", selected_effect[2]))
+    -- Update the dropdown to show the randomly selected effect
+    if mini_dialog and mini_dialog.visible then
+      mini_dialog:close()
+      show_mini_cheatsheet_vertical()
+    end
+  end
+
+  local dialog_content = vb:column{
+    spacing = 10,
+    
+    -- Dropdown at top
+    vb:popup{
+      items = dropdown_items,
+      value = selected_effect_index,
+      width = 400,
+      notifier = function(index)
+        selected_effect_index = index
+        mini_selected_effect_index = index  -- Update persistent state
+        -- Apply effect when dropdown changes
+        local selected_effect = mini_effects[selected_effect_index]
+        apply_mini_effect_direct(selected_effect[1], hex_value)
+      end
+    },
+    
+    -- Vertical slider in middle
+    vb:horizontal_aligner{
+      mode = "center",
+      vb:minislider{
+        width = 50,
+        height = 200,
+        min = 0,
+        max = 255,
+        value = hex_value,
+        notifier = function(value)
+          hex_value = math.floor(value + 0.5)
+          mini_hex_value = hex_value  -- Update persistent state
+          local percentage = math.floor((hex_value / 255) * 100)
+          percentage_text.text = string.format("%d%% Fill (0x%02X)", percentage, hex_value)
+          -- Apply effect in real-time
+          local selected_effect = mini_effects[selected_effect_index]
+          apply_mini_effect_direct(selected_effect[1], hex_value)
+        end
+      }
+    },
+    
+    -- Value text
+    vb:horizontal_aligner{
+      mode = "center",
+      percentage_text
+    },
+    
+    -- Buttons at bottom
+    vb:row{
+      spacing = 5,
+      vb:button{
+        text = "Random",
+        width = 60,
+        notifier = apply_random_effect
+      },
+      vb:button{
+        text = "Maximize",
+        width = 70,
+        notifier = function()
+          -- Close mini dialog and open full cheatsheet
+          if mini_dialog and mini_dialog.visible then
+            mini_dialog:close()
+            mini_dialog = nil
+          end
+          pakettiPatternEditorCheatsheetDialog()
+        end
+      }
+    }
+  }
+
+  local function keyhandler(dialog, key)
+    local closer = "esc"
+    if preferences and preferences.pakettiDialogClose then
+      closer = preferences.pakettiDialogClose.value
+    end
+    if key.modifiers == "" and key.name == closer then
+      dialog:close()
+      mini_dialog = nil
+      return nil
+    else
+      return key
+    end
+  end
+
+  mini_dialog = renoise.app():show_custom_dialog("Paketti Minimize Cheatsheet (Vertical)", dialog_content, keyhandler)
+end
+
 -- Add menu entry and keybinding for minimized cheatsheet
-renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern Editor:Paketti Cheatsheet Minimize...", invoke = show_mini_cheatsheet}
-renoise.tool():add_keybinding{name = "Global:Paketti:Show Minimize Cheatsheet", invoke = show_mini_cheatsheet}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern Editor:Paketti Cheatsheet Minimize Horizontal...", invoke = show_mini_cheatsheet}
+renoise.tool():add_keybinding{name = "Global:Paketti:Show Minimize Cheatsheet Horizontal", invoke = show_mini_cheatsheet}
+renoise.tool():add_menu_entry{name = "Main Menu:Tools:Paketti:Pattern Editor:Paketti Cheatsheet Minimize Vertical...", invoke = show_mini_cheatsheet_vertical}
+renoise.tool():add_keybinding{name = "Global:Paketti:Show Minimize Cheatsheet Vertical", invoke = show_mini_cheatsheet_vertical}
 
 
 -- Pattern Effect/Note Column Status Monitor
