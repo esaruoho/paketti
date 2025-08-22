@@ -2328,6 +2328,7 @@ function create_global_controls()
       end
       renoise.song().transport.groove_amounts = groove_values
       renoise.song().transport.groove_enabled = true
+      groove_enabled_checkbox.value = true
       renoise.song().selected_track_index = renoise.song().sequencer_track_count + 1
     end}
     groove_controls:add_child(vb:row{local_groove_sliders[i], local_groove_labels[i]})

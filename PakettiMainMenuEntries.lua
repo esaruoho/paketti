@@ -858,10 +858,13 @@ function pakettiDialogOfDialogsToggle()
         update_dod_suggestions()
         return nil
       elseif string.len(key.name) == 1 then
-        -- Add typed character immediately (real-time like autocomplete)
-        dod_current_search_text = dod_current_search_text .. key.name
-        update_dod_search_display()
-        update_dod_suggestions()
+        -- Ignore the '<' character altogether (prevents interference from shift-cmd-< etc)
+        if key.name ~= "<" then
+          -- Add typed character immediately (real-time like autocomplete)
+          dod_current_search_text = dod_current_search_text .. key.name
+          update_dod_search_display()
+          update_dod_suggestions()
+        end
         return nil
       else
         -- Let other keys pass through

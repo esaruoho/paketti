@@ -13,7 +13,7 @@ local writing_enabled = false
 local dialog_initializing = true  -- Flag to prevent excessive status updates during initialization
 
 -- Experimental playback for transposed notes
-local experimentalPlay = true
+local experimentalPlay = false
 local pakettiPlayerPro_playing_notes = {}
 local pakettiPlayerPro_current_timer = nil
 local pakettiPlayerPro_playing_track = nil
@@ -679,7 +679,20 @@ function pakettiPlayerProStopPlayingNotes()
   
   local song = renoise.song()
   if pakettiPlayerPro_playing_track and pakettiPlayerPro_playing_instrument then
-    song:trigger_instrument_note_off(pakettiPlayerPro_playing_instrument, pakettiPlayerPro_playing_track, pakettiPlayerPro_playing_notes)
+    -- Remove duplicates from playing notes before triggering note_off
+    local unique_notes = {}
+    local note_set = {}
+    for i = 1, #pakettiPlayerPro_playing_notes do
+      local note = pakettiPlayerPro_playing_notes[i]
+      if not note_set[note] then
+        note_set[note] = true
+        table.insert(unique_notes, note)
+      end
+    end
+    
+    if #unique_notes > 0 then
+      song:trigger_instrument_note_off(pakettiPlayerPro_playing_instrument, pakettiPlayerPro_playing_track, unique_notes)
+    end
   end
   
   -- Clear the timer if it exists
@@ -693,7 +706,7 @@ function pakettiPlayerProStopPlayingNotes()
   pakettiPlayerPro_playing_instrument = nil
 end
 
--- Play transposed notes for experimental feedback
+-- Play transposed notes for experimental feedback with sequential timing
 function pakettiPlayerProPlayTransposedNotes(transposed_notes)
   if not experimentalPlay then return end
   
@@ -712,27 +725,74 @@ function pakettiPlayerProPlayTransposedNotes(transposed_notes)
   
   if not instrument then return end
   
-  -- Collect valid note values (they're already note values, not strings)
-  local note_values = {}
+  if #transposed_notes == 0 then return end
+  
+  -- Group notes by line for sequential playback
+  local notes_by_line = {}
+  local min_line = nil
+  
   for i = 1, #transposed_notes do
-    local note_value = transposed_notes[i]
-    if note_value and note_value >= 0 and note_value <= 119 then
-      table.insert(note_values, note_value)
-      table.insert(pakettiPlayerPro_playing_notes, note_value)
+    local note_data = transposed_notes[i]
+    if note_data.note and note_data.note >= 0 and note_data.note <= 119 then
+      local line = note_data.line
+      if not notes_by_line[line] then
+        notes_by_line[line] = {}
+      end
+      table.insert(notes_by_line[line], note_data.note)
+      
+      -- Track the minimum line for timing calculation
+      if not min_line or line < min_line then
+        min_line = line
+      end
     end
   end
   
-  if #note_values == 0 then return end
+  -- Calculate timing based on Renoise's tempo
+  local bpm = song.transport.bpm
+  local lpb = song.transport.lpb
+  local ms_per_line = (60000 / bpm) / lpb
   
   -- Store track and instrument for note-off
   pakettiPlayerPro_playing_track = selected_track_index
   pakettiPlayerPro_playing_instrument = selected_instrument_index
   
-  -- Trigger all notes as a chord
-  song:trigger_instrument_note_on(selected_instrument_index, selected_track_index, note_values, 1.0)
+  -- Schedule notes to be played sequentially
+  for line, notes in pairs(notes_by_line) do
+    local delay = (line - min_line) * ms_per_line
+    
+    -- Remove duplicates from notes on this line
+    local unique_notes = {}
+    local note_set = {}
+    for j = 1, #notes do
+      if not note_set[notes[j]] then
+        note_set[notes[j]] = true
+        table.insert(unique_notes, notes[j])
+      end
+    end
+    
+    if #unique_notes > 0 then
+      renoise.tool():add_timer(function()
+        -- Add notes to playing notes list for cleanup
+        for k = 1, #unique_notes do
+          table.insert(pakettiPlayerPro_playing_notes, unique_notes[k])
+        end
+        
+        -- Trigger notes on this line
+        song:trigger_instrument_note_on(selected_instrument_index, selected_track_index, unique_notes, 1.0)
+      end, math.max(1, math.floor(delay)))
+    end
+  end
   
-  -- Set up timer to stop notes after 1 second
-  pakettiPlayerPro_current_timer = renoise.tool():add_timer(pakettiPlayerProStopPlayingNotes, 1000)
+  -- Set up cleanup timer to stop all notes after the sequence plus some sustain
+  local total_duration = 0
+  for line in pairs(notes_by_line) do
+    local line_time = (line - min_line) * ms_per_line
+    if line_time > total_duration then
+      total_duration = line_time
+    end
+  end
+  
+  pakettiPlayerPro_current_timer = renoise.tool():add_timer(pakettiPlayerProStopPlayingNotes, math.max(1000, total_duration + 500))
 end
 
 --------------
@@ -744,7 +804,7 @@ function pakettiPlayerProTranspose(steps, range, playback)
   -- Determine the range to transpose
   local start_track, end_track, start_line, end_line, start_column, end_column
   
-  -- For experimental playback, collect transposed notes
+  -- For experimental playback, collect transposed notes with timing info
   local transposed_notes = {}
 
   if selection ~= nil then
@@ -793,9 +853,14 @@ function pakettiPlayerProTranspose(steps, range, playback)
             local new_note_value = (note_column.note_value + steps) % 120
             note_column.note_value = new_note_value
             
-            -- Collect transposed note for experimental playback
+            -- Collect transposed note for experimental playback with timing info
             if experimentalPlay and song.transport.playing then
-              table.insert(transposed_notes, new_note_value)
+              table.insert(transposed_notes, {
+                note = new_note_value,
+                line = line_index,
+                track = track_index,
+                column = column_index
+              })
             end
           end
         end

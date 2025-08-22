@@ -646,6 +646,45 @@ local function is_gadgets_search()
   return search_lower:find("gadget") or search_lower:find("gad") or search_lower == "g"
 end
 
+-- Helper function to detect and fix doubled first letters (e.g., "eexpose" -> "expose")
+local function detect_doubled_first_letter(text)
+  if not text or #text < 2 then
+    return nil
+  end
+  
+  -- Check if first two characters are the same letter
+  local first_char = text:sub(1, 1):lower()
+  local second_char = text:sub(2, 2):lower()
+  
+  if first_char == second_char and first_char:match("[a-z]") then
+    -- Return the corrected version without the doubled first letter
+    return text:sub(2)
+  end
+  
+  return nil
+end
+
+-- Test function for doubled letter detection (can be called from console for testing)
+function test_doubled_letter_detection()
+  local test_cases = {
+    {"eexpose", "expose"},
+    {"ssample", "sample"},
+    {"ttranspose", "transpose"},
+    {"expose", nil},  -- no doubled letter
+    {"12", nil},      -- numbers
+    {"e", nil},       -- too short
+    {"", nil}         -- empty
+  }
+  
+  print("Testing doubled letter detection:")
+  for _, case in ipairs(test_cases) do
+    local input, expected = case[1], case[2]
+    local result = detect_doubled_first_letter(input)
+    local status = (result == expected) and "PASS" or "FAIL"
+    print(string.format("  %s: '%s' -> %s (expected %s)", status, input, tostring(result), tostring(expected)))
+  end
+end
+
 -- CP-style: No autocomplete fill, just real-time filtering
 
 -- Smart command grouping and numeric pattern detection
@@ -817,6 +856,14 @@ local function filter_commands(filter_text)
         -- Direct name/category match
         if string.find(name_lower, term, 1, true) or string.find(category_lower, term, 1, true) then
           candidate_indices[i] = true
+        else
+          -- Try corrected version if original doesn't match (for doubled first letters)
+          local corrected_term = detect_doubled_first_letter(term)
+          if corrected_term then
+            if string.find(name_lower, corrected_term, 1, true) or string.find(category_lower, corrected_term, 1, true) then
+              candidate_indices[i] = true
+            end
+          end
         end
         
         -- Abbreviation match
@@ -824,6 +871,13 @@ local function filter_commands(filter_text)
           if string.find(abbrev:lower(), term, 1, true) then
             candidate_indices[i] = true
             break
+          else
+            -- Try corrected version for abbreviations too
+            local corrected_term = detect_doubled_first_letter(term)
+            if corrected_term and string.find(abbrev:lower(), corrected_term, 1, true) then
+              candidate_indices[i] = true
+              break
+            end
           end
         end
       end
@@ -849,6 +903,18 @@ local function filter_commands(filter_text)
         elseif string.find(category_lower, term, 1, true) then
           term_candidates[i] = true
           found_match = true
+        else
+          -- Try corrected version if original doesn't match (for doubled first letters)
+          local corrected_term = detect_doubled_first_letter(term)
+          if corrected_term then
+            if string.find(name_lower, corrected_term, 1, true) then
+              term_candidates[i] = true
+              found_match = true
+            elseif string.find(category_lower, corrected_term, 1, true) then
+              term_candidates[i] = true
+              found_match = true
+            end
+          end
         end
         
         -- Abbreviation match (only if no direct match found)
@@ -858,6 +924,14 @@ local function filter_commands(filter_text)
               term_candidates[i] = true
               found_match = true
               break
+            else
+              -- Try corrected version for abbreviations too
+              local corrected_term = detect_doubled_first_letter(term)
+              if corrected_term and string.find(abbrev:lower(), corrected_term, 1, true) then
+                term_candidates[i] = true
+                found_match = true
+                break
+              end
             end
           end
         end
@@ -869,6 +943,16 @@ local function filter_commands(filter_text)
           for i, command in ipairs(base_commands) do
             if command.name:lower() == full_command:lower() then  -- Exact match only
               term_candidates[i] = true
+            end
+          end
+        else
+          -- Try corrected version for user abbreviations too
+          local corrected_term = detect_doubled_first_letter(term)
+          if corrected_term and string.find(abbrev:lower(), corrected_term, 1, true) then
+            for i, command in ipairs(base_commands) do
+              if command.name:lower() == full_command:lower() then  -- Exact match only
+                term_candidates[i] = true
+              end
             end
           end
         end

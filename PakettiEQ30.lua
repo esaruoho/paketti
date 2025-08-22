@@ -184,7 +184,7 @@ function debug_eq_device_parameters(device, device_name)
   end
 end
 
--- Live update EQ10 device GAIN parameter for specific band (only middle bands 2-9)
+-- Live update EQ10 device GAIN parameter for specific band (handles both EQ30 and EQ64 systems)
 function update_eq_device_parameter(band_index, gain_value)
   local song = renoise.song()
   if not song or not song.selected_track then
@@ -193,24 +193,23 @@ function update_eq_device_parameter(band_index, gain_value)
   
   local track = song.selected_track
   
-  -- EQ30 system: Find which EQ10 device this band belongs to (8+8+8+6 distribution)
-  local device_num, band_in_device
-  if band_index <= 8 then
-    device_num = 1
-    band_in_device = band_index  -- 1-8
-  elseif band_index <= 16 then
-    device_num = 2  
-    band_in_device = band_index - 8  -- 1-8
-  elseif band_index <= 24 then
-    device_num = 3
-    band_in_device = band_index - 16  -- 1-8
-  else -- bands 25-30
-    device_num = 4
-    band_in_device = band_index - 24  -- 1-6 (only 6 bands in device 4)
-  end
+  -- Determine system type based on number of frequency bands
+  local total_bands = #eq30_frequencies
+  local bands_per_device = 8  -- Always use 8 bands per device (parameters 2-9)
+  local devices_needed = math.ceil(total_bands / bands_per_device)
+  
+  -- Find which EQ10 device this band belongs to
+  local device_num = math.ceil(band_index / bands_per_device)
+  local band_in_device = ((band_index - 1) % bands_per_device) + 1  -- 1-8
   
   -- Map to actual EQ10 parameters (2-9, skipping problematic 1st and 10th bands)
   local eq_param_num = band_in_device + 1  -- band 1 maps to param 2, band 8 maps to param 9
+  
+  -- Validate device and parameter numbers
+  if device_num > devices_needed or eq_param_num < 2 or eq_param_num > 9 then
+    print(string.format("ERROR: Invalid mapping - Band %d → Device %d, Param %d", band_index, device_num, eq_param_num))
+    return
+  end
   
   -- Find the corresponding EQ10 device on the track
   local eq_device_count = 0
@@ -225,12 +224,19 @@ function update_eq_device_parameter(band_index, gain_value)
         -- Skip parameters 1 and 10 (problematic bands)
         if device.parameters[eq_param_num] then
           device.parameters[eq_param_num].value = gain_value
-          -- Debug output
-          -- print(string.format("LIVE: EQ10-%d Param %d = %.1f dB", device_num, eq_param_num, gain_value))
+          -- Debug output for troubleshooting
+          -- print(string.format("LIVE: EQ%d Band %d → Device %d Param %d = %.1f dB", total_bands, band_index, device_num, eq_param_num, gain_value))
+        else
+          print(string.format("ERROR: Parameter %d not found on device %d", eq_param_num, device_num))
         end
         break
       end
     end
+  end
+  
+  if not target_device_index then
+    print(string.format("ERROR: Could not find EQ10 device %d for band %d", device_num, band_index))
+    return
   end
   
   -- Autofocus the selected EQ10 device if enabled
@@ -249,39 +255,42 @@ function update_eq_device_parameter(band_index, gain_value)
     if not success then
       print(string.format("AUTOFOCUS ERROR: %s", error_msg))
     end
-  elseif autofocus_enabled then
-    print(string.format("AUTOFOCUS FAIL: Band %d → Device %d → target_device_index is nil", band_index, device_num))
   end
 end
 
--- Helper: get parameter object for band index (for automation writes)
+-- Helper: get parameter object for band index (for automation writes) - handles both EQ30 and EQ64
 function get_parameter_for_band(band_index)
   local song = renoise.song()
   if not song or not song.selected_track then return nil end
   local track = song.selected_track
-  local device_num, band_in_device
-  if band_index <= 8 then
-    device_num = 1; band_in_device = band_index
-  elseif band_index <= 16 then
-    device_num = 2; band_in_device = band_index - 8
-  elseif band_index <= 24 then
-    device_num = 3; band_in_device = band_index - 16
-  else
-    device_num = 4; band_in_device = band_index - 24
-  end
+  
+  -- Use same logic as update_eq_device_parameter for consistency
+  local bands_per_device = 8  -- Always use 8 bands per device (parameters 2-9)
+  local device_num = math.ceil(band_index / bands_per_device)
+  local band_in_device = ((band_index - 1) % bands_per_device) + 1  -- 1-8
+  local eq_param_num = band_in_device + 1  -- band 1 maps to param 2, band 8 maps to param 9
+  
+  -- Find the target device
   local target_device = nil
   local count = 0
   for i, device in ipairs(track.devices) do
     if device.device_path == "Audio/Effects/Native/EQ 10" then
       count = count + 1
       if count == device_num then
-        target_device = device; break
+        target_device = device
+        break
       end
     end
   end
+  
   if not target_device then return nil end
-  local eq_param_num = band_in_device + 1
-  return target_device.parameters[eq_param_num]
+  
+  -- Validate parameter number and return the gain parameter
+  if eq_param_num >= 2 and eq_param_num <= 9 then
+    return target_device.parameters[eq_param_num]
+  else
+    return nil
+  end
 end
 
 -- Automation: write single parameter at current line
@@ -1615,9 +1624,9 @@ function PakettiEQ10ExperimentInit()
 end
 
 -- Add menu entry and keybinding
-renoise.tool():add_menu_entry {name = "Main Menu:Tools:Paketti EQ30", invoke = PakettiEQ10ExperimentInit}
-renoise.tool():add_keybinding {name = "Global:Paketti:Paketti EQ30", invoke = PakettiEQ10ExperimentInit}
-renoise.tool():add_midi_mapping{name = "Paketti:Paketti EQ30", invoke = function(message) if message:is_trigger() then PakettiEQ10ExperimentInit() end end}
+--renoise.tool():add_menu_entry {name = "Main Menu:Tools:Paketti EQ30", invoke = PakettiEQ10ExperimentInit}
+--renoise.tool():add_keybinding {name = "Global:Paketti:Paketti EQ30", invoke = PakettiEQ10ExperimentInit}
+--renoise.tool():add_midi_mapping{name = "Paketti:Paketti EQ30", invoke = function(message) if message:is_trigger() then PakettiEQ10ExperimentInit() end end}
 
 -- Load & Show EQ30 toggle
 function PakettiEQ30LoadAndShowToggle()
@@ -1704,6 +1713,509 @@ end
 renoise.tool():add_keybinding {name = "Global:Paketti:Load & Show Paketti EQ30", invoke = PakettiEQ30ShowAndFollow}
 renoise.tool():add_menu_entry {name = "Main Menu:Tools:Load & Show Paketti EQ30", invoke = PakettiEQ30ShowAndFollow}
 renoise.tool():add_midi_mapping{name = "Paketti:Load & Show PakettiEQ30", invoke=function(message) if message:is_trigger() then PakettiEQ30ToggleShowFollow() end end}
+
+-- Paketti EQ30 Unused Note Frequency Reduction Flavor
+-- Analyzes selected track for used notes, generates EQ bands for unused note frequencies
+
+-- Convert note value to frequency (A4 = 440Hz reference)
+function note_to_frequency(note_value)
+  if note_value == 121 then return nil end -- OFF/empty note
+  return 440 * math.pow(2, (note_value - 69) / 12)
+end
+
+-- Scan selected track pattern(s) for used notes
+function analyze_track_used_notes()
+  local song = renoise.song()
+  if not song or not song.selected_track then
+    return {}
+  end
+  
+  local track_index = song.selected_track_index
+  local pattern_index = song.selected_pattern_index
+  local pattern = song:pattern(pattern_index)
+  local pattern_track = pattern:track(track_index)
+  
+  local used_notes = {}
+  
+  -- Scan all note columns in current pattern
+  for line_index = 1, pattern.number_of_lines do
+    local line = pattern_track:line(line_index)
+    for col_index = 1, #line.note_columns do
+      local note_col = line.note_columns[col_index]
+      if note_col.note_value ~= 121 and note_col.note_value >= 0 and note_col.note_value <= 119 then
+        used_notes[note_col.note_value] = true
+      end
+    end
+  end
+  
+  print("=== Used Notes Analysis ===")
+  local note_names = {"C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"}
+  local count = 0
+  for note_value, _ in pairs(used_notes) do
+    local octave = math.floor(note_value / 12)
+    local note_name = note_names[(note_value % 12) + 1] .. octave
+    local freq = note_to_frequency(note_value)
+    print(string.format("  %s (note %d) = %.1f Hz", note_name, note_value, freq))
+    count = count + 1
+  end
+  print(string.format("Total used notes: %d", count))
+  
+  return used_notes
+end
+
+-- Generate unused note frequencies for EQ30 system
+function generate_unused_note_frequencies(used_notes)
+  local unused_frequencies = {}
+  local note_names = {"C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"}
+  
+  -- Find the range of used notes
+  local min_note, max_note = 119, 0
+  for note_value, _ in pairs(used_notes) do
+    min_note = math.min(min_note, note_value)
+    max_note = math.max(max_note, note_value)
+  end
+  
+  if min_note > max_note then
+    -- No notes found, fall back to default frequencies
+    return eq30_frequencies
+  end
+  
+  -- Expand range by 1 octave in each direction for more comprehensive coverage
+  local range_start = math.max(0, min_note - 12)
+  local range_end = math.min(119, max_note + 12)
+  
+  print("=== Generating Unused Note Frequencies ===")
+  print(string.format("Note range: %d to %d (expanded for coverage)", range_start, range_end))
+  
+  -- Collect unused notes in the expanded range
+  local unused_notes = {}
+  for note_value = range_start, range_end do
+    if not used_notes[note_value] then
+      local freq = note_to_frequency(note_value)
+      if freq and freq >= 20 and freq <= 20000 then -- Audible range
+        table.insert(unused_notes, {note = note_value, freq = freq})
+        local octave = math.floor(note_value / 12)
+        local note_name = note_names[(note_value % 12) + 1] .. octave
+        print(string.format("  Unused: %s (note %d) = %.1f Hz", note_name, note_value, freq))
+      end
+    end
+  end
+  
+  -- Sort by frequency
+  table.sort(unused_notes, function(a, b) return a.freq < b.freq end)
+  
+  -- Extract frequencies and limit to 30 bands (EQ30 system)
+  for i = 1, math.min(30, #unused_notes) do
+    unused_frequencies[i] = unused_notes[i].freq
+  end
+  
+  -- If we have fewer than 30 unused notes, fill remaining slots with harmonics
+  if #unused_frequencies < 30 then
+    print("=== Adding Harmonic Frequencies ===")
+    local original_count = #unused_frequencies
+    
+    -- Add 2nd and 3rd harmonics of used notes (potential interference frequencies)
+    for note_value, _ in pairs(used_notes) do
+      if #unused_frequencies >= 30 then break end
+      
+      local fundamental_freq = note_to_frequency(note_value)
+      
+      -- 2nd harmonic (octave)
+      local second_harmonic = fundamental_freq * 2
+      if second_harmonic <= 20000 then
+        table.insert(unused_frequencies, second_harmonic)
+        print(string.format("  Added 2nd harmonic: %.1f Hz", second_harmonic))
+      end
+      
+      if #unused_frequencies >= 30 then break end
+      
+      -- 3rd harmonic
+      local third_harmonic = fundamental_freq * 3
+      if third_harmonic <= 20000 then
+        table.insert(unused_frequencies, third_harmonic)
+        print(string.format("  Added 3rd harmonic: %.1f Hz", third_harmonic))
+      end
+    end
+    
+    -- Sort again after adding harmonics
+    table.sort(unused_frequencies)
+    
+    -- Limit to exactly 30 bands
+    while #unused_frequencies > 30 do
+      table.remove(unused_frequencies)
+    end
+    
+    print(string.format("Final frequency count: %d (was %d unused notes)", #unused_frequencies, original_count))
+  end
+  
+  -- If still not enough frequencies, pad with default EQ30 frequencies
+  if #unused_frequencies < 30 then
+    print("=== Padding with Standard Frequencies ===")
+    for i = #unused_frequencies + 1, 30 do
+      if i <= #eq30_frequencies then
+        unused_frequencies[i] = eq30_frequencies[i]
+        print(string.format("  Padded with standard: %.0f Hz", eq30_frequencies[i]))
+      end
+    end
+  end
+  
+  print(string.format("=== Generated %d unused note frequencies ===", #unused_frequencies))
+  
+  return unused_frequencies
+end
+
+-- Create EQ30 dialog with unused note frequencies
+function create_unused_note_eq_dialog()
+  -- Analyze current track
+  local used_notes = analyze_track_used_notes()
+  
+  if not used_notes or not next(used_notes) then
+    renoise.app():show_status("No notes found on selected track - select a track with notes first")
+    return
+  end
+  
+  -- Generate unused note frequencies
+  local unused_frequencies = generate_unused_note_frequencies(used_notes)
+  
+  -- Temporarily replace the global frequency table
+  local original_frequencies = eq30_frequencies
+  eq30_frequencies = unused_frequencies
+  
+  -- Reset gains for new frequency set
+  eq_gains = {}
+  for i = 1, #eq30_frequencies do
+    eq_gains[i] = 0.0
+  end
+  
+  -- Create the dialog using existing EQ30 framework
+  create_eq_dialog()
+  
+  -- Show analysis results
+  local note_count = 0
+  for _, _ in pairs(used_notes) do note_count = note_count + 1 end
+  
+  renoise.app():show_status(string.format("EQ30 Unused Note Reducer: %d used notes analyzed, %d reduction frequencies loaded", 
+    note_count, #eq30_frequencies))
+  
+  print("=== EQ30 Unused Note Frequency Reduction Active ===")
+  print("Use this EQ to notch out frequencies that might clash with your melody")
+  print("Right-click canvas to reset, left-click/drag to adjust individual bands")
+end
+
+-- Wrapper function for menu/keybinding
+function PakettiEQ30UnusedNoteFrequencyReductionFlavor()
+  create_unused_note_eq_dialog()
+end
+
+-- Add menu entries and keybindings for the new feature
+renoise.tool():add_menu_entry {name = "Main Menu:Tools:Paketti EQ30 Unused Note Frequency Reduction Flavor", invoke = PakettiEQ30UnusedNoteFrequencyReductionFlavor}
+renoise.tool():add_keybinding {name = "Global:Paketti:Paketti EQ30 Unused Note Frequency Reduction Flavor", invoke = PakettiEQ30UnusedNoteFrequencyReductionFlavor}
+renoise.tool():add_midi_mapping{name = "Paketti:Paketti EQ30 Unused Note Frequency Reduction Flavor", invoke = function(message) if message:is_trigger() then PakettiEQ30UnusedNoteFrequencyReductionFlavor() end end}
+
+-- EQ64 Unused Note Frequency Reduction (64-band version using 8 EQ10 devices)
+-- Generate unused note frequencies for EQ64 system (64 bands)
+function generate_unused_note_frequencies_64(used_notes)
+  local unused_frequencies = {}
+  local note_names = {"C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"}
+  
+  -- Find the range of used notes
+  local min_note, max_note = 119, 0
+  for note_value, _ in pairs(used_notes) do
+    min_note = math.min(min_note, note_value)
+    max_note = math.max(max_note, note_value)
+  end
+  
+  if min_note > max_note then
+    -- No notes found, fall back to extended default frequencies
+    local extended_freqs = {}
+    -- Create 64 logarithmically spaced frequencies from 20Hz to 20kHz
+    for i = 1, 64 do
+      local log_pos = (i - 1) / 63
+      local freq = 20 * math.pow(1000, log_pos) -- 20Hz to 20kHz logarithmic
+      extended_freqs[i] = freq
+    end
+    return extended_freqs
+  end
+  
+  -- Expand range by 1 octave in each direction (more musical for 64-band coverage)
+  local range_start = math.max(0, min_note - 12)
+  local range_end = math.min(119, max_note + 12)
+  
+  print("=== Generating 64-Band Unused Note Frequencies ===")
+  print(string.format("Note range: %d to %d (expanded 1 octave for musical coverage)", range_start, range_end))
+  
+  -- Collect unused notes in the expanded range
+  local unused_notes = {}
+  for note_value = range_start, range_end do
+    if not used_notes[note_value] then
+      local freq = note_to_frequency(note_value)
+      if freq and freq >= 20 and freq <= 20000 then -- Audible range
+        table.insert(unused_notes, {note = note_value, freq = freq})
+        local octave = math.floor(note_value / 12)
+        local note_name = note_names[(note_value % 12) + 1] .. octave
+        print(string.format("  Unused: %s (note %d) = %.1f Hz", note_name, note_value, freq))
+      end
+    end
+  end
+  
+  -- Sort by frequency
+  table.sort(unused_notes, function(a, b) return a.freq < b.freq end)
+  
+  -- Extract frequencies and limit to 64 bands (EQ64 system)
+  for i = 1, math.min(64, #unused_notes) do
+    unused_frequencies[i] = unused_notes[i].freq
+  end
+  
+  -- If we have fewer than 64 unused notes, fill remaining slots with harmonics and sub-harmonics
+  if #unused_frequencies < 64 then
+    print("=== Adding Harmonic & Sub-Harmonic Frequencies for 64-Band Coverage ===")
+    local original_count = #unused_frequencies
+    
+    -- Add selective harmonics of used notes (only 2nd and 3rd harmonics for musical relevance)
+    for note_value, _ in pairs(used_notes) do
+      if #unused_frequencies >= 64 then break end
+      
+      local fundamental_freq = note_to_frequency(note_value)
+      
+      -- Add only 2nd harmonic (octave) and 3rd harmonic (musical fifth above octave)
+      for harmonic = 2, 3 do
+        if #unused_frequencies >= 64 then break end
+        local harmonic_freq = fundamental_freq * harmonic
+        if harmonic_freq <= 20000 then
+          table.insert(unused_frequencies, harmonic_freq)
+          print(string.format("  Added %d%s harmonic: %.1f Hz", harmonic, 
+            (harmonic == 2 and "nd") or "rd", harmonic_freq))
+        end
+      end
+    end
+    
+    -- Sort again after adding harmonics
+    table.sort(unused_frequencies)
+    
+    -- Limit to exactly 64 bands
+    while #unused_frequencies > 64 do
+      table.remove(unused_frequencies)
+    end
+    
+    print(string.format("After harmonics: %d frequencies (was %d unused notes)", #unused_frequencies, original_count))
+  end
+  
+  -- If still not enough frequencies, pad with musically relevant frequencies
+  if #unused_frequencies < 64 then
+    print("=== Padding with Musical Frequencies ===")
+    local current_count = #unused_frequencies
+    
+    -- Fill remaining slots with frequencies between existing ones (interpolation)
+    table.sort(unused_frequencies)  -- Ensure sorted order
+    local gaps_filled = {}
+    
+    -- Find gaps between existing frequencies and fill them
+    for i = 1, #unused_frequencies - 1 do
+      if current_count >= 64 then break end
+      local freq1 = unused_frequencies[i]
+      local freq2 = unused_frequencies[i + 1]
+      local ratio = freq2 / freq1
+      
+      -- If there's a significant gap (more than 1.5x), add frequencies in between
+      if ratio > 1.5 then
+        local mid_freq = math.sqrt(freq1 * freq2)  -- Geometric mean
+        table.insert(gaps_filled, mid_freq)
+        current_count = current_count + 1
+        print(string.format("  Filled gap between %.1f and %.1f Hz with %.1f Hz", freq1, freq2, mid_freq))
+      end
+    end
+    
+    -- Add the gap-filling frequencies
+    for _, freq in ipairs(gaps_filled) do
+      table.insert(unused_frequencies, freq)
+    end
+    
+    -- If still not enough, use traditional EQ30 frequencies as fallback
+    if #unused_frequencies < 64 then
+      for i = #unused_frequencies + 1, 64 do
+        if i <= #eq30_frequencies then
+          table.insert(unused_frequencies, eq30_frequencies[i])
+          print(string.format("  Padded with standard EQ30: %.0f Hz", eq30_frequencies[i]))
+        else
+          -- Create additional frequencies based on musical intervals
+          local base_freq = unused_frequencies[#unused_frequencies]
+          local new_freq = base_freq * 1.2  -- Minor third interval
+          if new_freq <= 20000 then
+            table.insert(unused_frequencies, new_freq)
+            print(string.format("  Added musical interval: %.1f Hz", new_freq))
+          end
+        end
+      end
+    end
+    
+    -- Final sort and limit
+    table.sort(unused_frequencies)
+    while #unused_frequencies > 64 do
+      table.remove(unused_frequencies)
+    end
+  end
+  
+  print(string.format("=== Generated %d unused note frequencies for EQ64 ===", #unused_frequencies))
+  
+  return unused_frequencies
+end
+
+-- Apply EQ64 system to track (8 EQ10 devices for 64 bands)
+function apply_eq64_to_track()
+  print("=== APPLY EQ64 TO TRACK START ===")
+  
+  local song = renoise.song()
+  if not song then
+    print("ERROR: No song available")
+    renoise.app():show_status("ERROR: No song available")
+    return
+  end
+  
+  if not song.selected_track then
+    print("ERROR: No track selected")
+    renoise.app():show_status("ERROR: No track selected - select a track first")
+    return
+  end
+  
+  local track = song.selected_track
+  print("Selected track: " .. (track.name or "Unknown"))
+  
+  -- EQ64 system using 8 EQ10 devices, only middle 8 bands each
+  local devices_needed = 8
+  local bands_per_device = 8  -- Only use bands 2-9 of each EQ10 device
+  
+  -- Clear existing EQ10 devices on track
+  local removed_count = 0
+  for i = #track.devices, 1, -1 do
+    local device = track.devices[i]
+    if device.device_path == "Audio/Effects/Native/EQ 10" then
+      print("Removing existing EQ10 device at position " .. i)
+      track:delete_device_at(i)
+      removed_count = removed_count + 1
+    end
+  end
+  print("Removed " .. removed_count .. " existing EQ10 devices")
+  
+  -- Create EQ10 devices for 64-band system
+  for device_idx = 1, devices_needed do
+    print("Creating EQ10 device " .. device_idx .. "/" .. devices_needed)
+    
+    local start_band = (device_idx - 1) * bands_per_device + 1
+    local end_band = math.min(device_idx * bands_per_device, #eq30_frequencies)
+    
+    -- Load EQ10 device with error handling
+    local success, error_msg = pcall(function()
+      track:insert_device_at("Audio/Effects/Native/EQ 10", #track.devices + 1)
+    end)
+    
+    if not success then
+      print("ERROR: Failed to insert EQ10 device: " .. tostring(error_msg))
+      renoise.app():show_status("ERROR: Failed to insert EQ10 device - " .. tostring(error_msg))
+      return
+    end
+    
+    local eq_device = track.devices[#track.devices]
+    if not eq_device then
+      print("ERROR: Failed to get inserted EQ10 device")
+      renoise.app():show_status("ERROR: Failed to get inserted EQ10 device")
+      return
+    end
+    
+    -- Set all parameters directly
+    eq_device.display_name = string.format("EQ64 Device %d", device_idx)
+    
+    -- Set unused bands 1 and 10 to neutral
+    eq_device.parameters[1].value = 0.0        -- Band 1: Gain = 0dB (unused)
+    eq_device.parameters[11].value = 1000      -- Band 1: Frequency = 1kHz  
+    eq_device.parameters[21].value = 0.5       -- Band 1: Bandwidth = 0.5
+    
+    eq_device.parameters[10].value = 0.0       -- Band 10: Gain = 0dB (unused)
+    eq_device.parameters[20].value = 1000      -- Band 10: Frequency = 1kHz
+    eq_device.parameters[30].value = 0.5       -- Band 10: Bandwidth = 0.5
+    
+    -- Configure middle 8 bands (2-9) with our frequencies
+    for band = 2, 9 do
+      local global_band = start_band + (band - 2)  -- band-2 because we start from band 2
+      
+      if global_band <= #eq30_frequencies then
+        local freq = eq30_frequencies[global_band]
+        local bandwidth_value = calculate_third_octave_bandwidth(freq)
+        
+        -- Set parameters directly (using bands 2-9):
+        eq_device.parameters[band].value = 0.0                    -- Gain (param 2-9) - start flat
+        eq_device.parameters[band + 10].value = freq              -- Frequency (param 12-19)
+        eq_device.parameters[band + 20].value = bandwidth_value   -- Bandwidth (param 22-29)
+        
+        print(string.format("  Band %d: %.1fHz, BW=%.2f (using EQ param %d)", global_band, freq, bandwidth_value, band))
+      else
+        -- Neutral values for unused bands
+        eq_device.parameters[band].value = 0.0              -- Gain = 0dB
+        eq_device.parameters[band + 10].value = 1000        -- Frequency = 1kHz
+        eq_device.parameters[band + 20].value = 0.5         -- Bandwidth = 0.5 (neutral)
+      end
+    end
+    
+    print(string.format("EQ10-%d configured for EQ64 system", device_idx))
+  end
+  
+  print("=== EQ64 SETUP COMPLETE ===")
+  print("Successfully created " .. devices_needed .. " EQ10 devices for 64-band system")
+  print("Each device uses middle 8 bands (2-9) for precise control")
+  
+  renoise.app():show_status("EQ64 system created: 8 EQ10 devices with 64 total bands")
+end
+
+-- Create EQ64 dialog with unused note frequencies (64 bands)
+function create_unused_note_eq64_dialog()
+  -- Analyze current track
+  local used_notes = analyze_track_used_notes()
+  
+  if not used_notes or not next(used_notes) then
+    renoise.app():show_status("No notes found on selected track - select a track with notes first")
+    return
+  end
+  
+  -- Generate 64 unused note frequencies
+  local unused_frequencies = generate_unused_note_frequencies_64(used_notes)
+  
+  -- Temporarily replace the global frequency table with 64 frequencies
+  local original_frequencies = eq30_frequencies
+  eq30_frequencies = unused_frequencies
+  
+  -- Reset gains for new frequency set (64 bands)
+  eq_gains = {}
+  for i = 1, #eq30_frequencies do
+    eq_gains[i] = 0.0
+  end
+  
+  -- Create EQ64 devices first
+  apply_eq64_to_track()
+  
+  -- Create the dialog using existing EQ30 framework (but with 64 frequencies)
+  create_eq_dialog()
+  
+  -- Show analysis results
+  local note_count = 0
+  for _, _ in pairs(used_notes) do note_count = note_count + 1 end
+  
+  renoise.app():show_status(string.format("EQ64 Unused Note Reducer: %d used notes analyzed, %d reduction frequencies loaded", 
+    note_count, #eq30_frequencies))
+  
+  print("=== EQ64 Unused Note Frequency Reduction Active ===")
+  print("64-band system for ultra-precise frequency cleanup")
+  print("Use this EQ to surgically notch out frequencies that clash with your melody")
+  print("Right-click canvas to reset, left-click/drag to adjust individual bands")
+end
+
+-- Wrapper function for menu/keybinding
+function PakettiEQ64UnusedNoteFrequencyReductionFlavor()
+  create_unused_note_eq64_dialog()
+end
+
+-- Add menu entries and keybindings for the 64-band version
+renoise.tool():add_menu_entry {name = "Main Menu:Tools:Paketti EQ64 Unused Note Frequency Reduction Flavor", invoke = PakettiEQ64UnusedNoteFrequencyReductionFlavor}
+renoise.tool():add_keybinding {name = "Global:Paketti:Paketti EQ64 Unused Note Frequency Reduction Flavor", invoke = PakettiEQ64UnusedNoteFrequencyReductionFlavor}
+renoise.tool():add_midi_mapping{name = "Paketti:Paketti EQ64 Unused Note Frequency Reduction Flavor", invoke = function(message) if message:is_trigger() then PakettiEQ64UnusedNoteFrequencyReductionFlavor() end end}
 
 
 

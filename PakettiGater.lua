@@ -400,6 +400,138 @@ local function initialize_checkboxes()
   update_step_button_colors()
 end
 
+-- Version of initialize_checkboxes that takes a ViewBuilder instance
+-- This allows creating fresh elements with any ViewBuilder to avoid conflicts
+function initialize_checkboxes_with_vb(vb_instance)
+  local vb_local = vb_instance
+  
+  checkboxes = {}
+  retrig_checkboxes = {}
+  playback_checkboxes = {}
+  buttons = {}
+  retrig_buttons = {}
+  playback_buttons = {}
+  panning_left_checkboxes = {}
+  panning_center_checkboxes = {}
+  panning_right_checkboxes = {}
+  panning_buttons = {}
+
+  for i = 1, MAX_STEPS do
+    buttons[i] = vb_local:button{
+      text = string.format("%02d", i),
+      width=30,
+      color = normal_color,  -- Will be updated by update_step_button_colors()
+      notifier=(function(step)
+        return function()
+          set_active_steps_volume(step)
+        end
+      end)(i)
+    }
+    retrig_buttons[i] = vb_local:button{
+      text = string.format("%02d", i),
+      width=30,
+      color = normal_color,  -- Will be updated by update_step_button_colors()
+      notifier=(function(step)
+        return function()
+          set_active_steps_retrig(step)
+        end
+      end)(i)
+    }
+    playback_buttons[i] = vb_local:button{
+      text = string.format("%02d", i),
+      width=30,
+      color = normal_color,  -- Will be updated by update_step_button_colors()
+      notifier=(function(step)
+        return function()
+          set_active_steps_playback(step)
+        end
+      end)(i)
+    }
+    checkboxes[i] = vb_local:checkbox{
+      value = false,
+      width=30,
+      notifier=function()
+        if not initializing then
+          insert_commands()
+        end
+      end
+    }
+    retrig_checkboxes[i] = vb_local:checkbox{
+      value = false,
+      width=30,
+      notifier=function()
+        if not initializing then
+          insert_commands()
+        end
+      end
+    }
+    
+    playback_checkboxes[i] = vb_local:checkbox{
+      value = false,
+      width=30,
+      notifier=function()
+        if not initializing then
+          insert_commands()
+        end
+      end
+    }
+  end
+
+  for i = 1, MAX_STEPS do
+    panning_left_checkboxes[i] = vb_local:checkbox{
+      value = false,
+      width=30,
+      notifier=function()
+        if panning_left_checkboxes[i].value then
+          panning_center_checkboxes[i].value = false
+          panning_right_checkboxes[i].value = false
+        end
+        if not initializing then
+          insert_commands()
+        end
+      end
+    }
+    panning_center_checkboxes[i] = vb_local:checkbox{
+      value = true,
+      width=30,
+      notifier=function()
+        if panning_center_checkboxes[i].value then
+          panning_left_checkboxes[i].value = false
+          panning_right_checkboxes[i].value = false
+        end
+        if not initializing then
+          insert_commands()
+        end
+      end
+    }
+    panning_right_checkboxes[i] = vb_local:checkbox{
+      value = false,
+      width=30,
+      notifier=function()
+        if panning_right_checkboxes[i].value then
+          panning_left_checkboxes[i].value = false
+          panning_center_checkboxes[i].value = false
+        end
+        if not initializing then
+          insert_commands()
+        end
+      end
+    }
+    panning_buttons[i] = vb_local:button{
+      text = string.format("%02d", i),
+      width=30,
+      color = normal_color,  -- Will be updated by update_step_button_colors()
+      notifier=(function(step)
+        return function()
+          set_active_steps_panning(step)
+        end
+      end)(i)
+    }
+  end
+
+  update_step_button_colors()
+end
+
 -- Set active steps functions (must be defined before button creation)
 function set_active_steps_volume(value)
   active_steps_volume = value
@@ -2663,70 +2795,12 @@ local function create_dynamic_button_row(button_array)
 end
 
 -- Create reusable gater dialog content - can be used by any dialog (like PakettiSteppers does)
-function PakettiCreateGaterDialogContent(vb_instance, is_embedded)
+function PakettiCreateGaterDialogContent(vb_instance)
   local vb_local = vb_instance or vb
   
-  -- For embedded use, provide a functional but simplified interface
-  if is_embedded then
-    return vb_local:column{
-      vb_local:row{
-        vb_local:text{text="Paketti Gater Controls", font="bold", style="strong", width=200},
-      },
-      vb_local:row{
-        vb_local:button{text="Wipe", width=80, notifier=wipe_gating_effects},
-        vb_local:button{text="Clear All", width=80, notifier=function()
-          -- Clear all gating effects from current pattern
-          clear_effect_columns()
-          clear_volume_column() 
-          clear_retrig()
-          clear_playback_effect()
-          clear_effect_column_4()
-          clear_panning_column()
-          renoise.app():show_status("All gating effects cleared")
-        end},
-        vb_local:button{text="Random Vol", width=80, notifier=function()
-          for i = 1, 16 do
-            rand_volume_checkboxes()
-          end
-        end},
-        vb_local:button{text="Random Retrig", width=90, notifier=function()
-          for i = 1, 16 do  
-            rand_retrig_checkboxes()
-          end
-        end}
-      },
-      vb_local:row{
-        vb_local:text{text="Volume Gater:", width=100, style="strong"},
-        vb_local:switch {
-          items = { "FX Column (C00)", "Volume Column", "FX Column (L00)" },
-          value = 1,
-          width=300,
-          notifier=function(index)
-            column_choice = (index == 1) and "FX Column" or (index == 2) and "Volume Column" or "FX Column (L00)"
-            renoise.app():show_status("Volume gater set to " .. column_choice)
-          end
-        }
-      },
-      vb_local:row{
-        vb_local:text{text="Panning Gater:", width=100, style="strong"},
-        vb_local:switch {
-          items = { "FX Column", "Panning Column" },
-          value = 1,
-          width=300,
-          notifier=function(index)
-            panning_column_choice = (index == 1) and "FX Column" or "Panning Column"
-            renoise.app():show_status("Panning gater set to " .. panning_column_choice)
-          end
-        }
-      },
-      vb_local:row{
-        vb_local:button{text="Open Full Paketti Gater Dialog", width=400, notifier=function()
-          pakettiGaterDialog()
-        end}
-      },
-      vb_local:text{text="Full checkbox interface available in standalone Paketti Gater dialog", style="disabled"}
-    }
-  end
+  -- Initialize/reinitialize checkboxes with the provided ViewBuilder instance
+  -- This overwrites the global arrays with fresh elements to avoid ViewBuilder conflicts
+  initialize_checkboxes_with_vb(vb_local)
   
   -- Create step mode switch
   local step_mode_switch = vb_local:switch{
@@ -2738,8 +2812,8 @@ function PakettiCreateGaterDialogContent(vb_instance, is_embedded)
       if new_max_steps ~= MAX_STEPS then
         MAX_STEPS = new_max_steps
         num_checkboxes = MAX_STEPS
-        -- Only close and reopen dialog if NOT embedded and dialog exists
-        if not is_embedded and dialog and dialog.visible then
+        -- Only close and reopen dialog if standalone dialog exists
+        if dialog and dialog.visible then
           -- Add cleanup code here before closing
           if track_notifier and renoise.song().selected_track_index_observable:has_notifier(track_notifier) then
             renoise.song().selected_track_index_observable:remove_notifier(track_notifier)
@@ -3195,7 +3269,7 @@ end
 -- Separate function to create dialog content (reduces upvalues in main function)
 -- This now uses the shared interface function
 function createGaterDialogContent()
-  return PakettiCreateGaterDialogContent(vb, false)  -- Pass false for is_embedded
+  return PakettiCreateGaterDialogContent(vb)
 end
 
 -- Handle scenario when the dialog is closed by other means

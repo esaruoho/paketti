@@ -46,6 +46,11 @@ PakettiGate_prev_line = nil
 PakettiCapture_ExperimentalMIDICaptureDialog = true
 PakettiGate_ShowUI = true
 
+-- Gater expandable section variables
+PakettiCapture_gater_expanded = false
+PakettiCapture_gater_toggle_button = nil
+PakettiCapture_gater_content_column = nil
+
 
 
 -- Helper: convert note string (e.g. "C-4", "D#5") to 0..119 value; returns nil for invalid or OFF
@@ -201,6 +206,23 @@ end
 if renoise.tool().app_idle_observable then
   if not renoise.tool().app_idle_observable:has_notifier(PakettiCapture_IdleCheck) then
     renoise.tool().app_idle_observable:add_notifier(PakettiCapture_IdleCheck)
+  end
+end
+
+-- Function to update gater section visibility
+function PakettiCapture_UpdateGaterVisibility()
+  if PakettiCapture_gater_content_column then
+    PakettiCapture_gater_content_column.visible = PakettiCapture_gater_expanded
+    
+    -- Setup/cleanup playhead timer based on visibility
+    if PakettiCapture_gater_expanded then
+      PakettiGaterSetupPlayhead()
+    else
+      PakettiGaterCleanupPlayhead()
+    end
+  end
+  if PakettiCapture_gater_toggle_button then
+    PakettiCapture_gater_toggle_button.text = PakettiCapture_gater_expanded and "▾" or "▴"
   end
 end
 
@@ -988,12 +1010,31 @@ function PakettiCaptureLastTakeDialog()
   local newest_label_view = PakettiCapture_vb:text{ text = "Newest: ", width = 240, style = "normal" }
   PakettiCapture_newest_label = newest_label_view
 
+  -- Create gater UI elements without IDs to avoid conflicts
+  PakettiCapture_gater_toggle_button = PakettiCapture_vb:button{
+    text = "▴", -- Start collapsed
+    width = 22,
+    notifier = function()
+      PakettiCapture_gater_expanded = not PakettiCapture_gater_expanded
+      PakettiCapture_UpdateGaterVisibility()
+    end
+  }
+  
+  PakettiCapture_gater_content_column = PakettiCapture_vb:column{
+    style = "group",
+    margin = 6,
+    visible = false, -- Start hidden
+    
+    -- Include the Paketti Gater dialog content using DRY principle
+    PakettiCreateGaterDialogContent(PakettiCapture_vb)
+  }
+
   local content = PakettiCapture_vb:column{
     PakettiCapture_vb:row{
       PakettiCapture_vb:text{text="Captured Last Takes",font="bold",style="strong",width=160},
       PakettiCapture_vb:button{text="Commit Current (Enter)",width=120,notifier=PakettiCapture_CommitCurrent },
       PakettiCapture_vb:button{text="Clear All (Shift-Enter)", width=120, notifier = PakettiCapture_ClearAll },
-      PakettiCapture_vb:button{text="Pick up from Pattern (Ctrl-P)", width=200, notifier = PakettiCapture_PickupFromPattern }
+      PakettiCapture_vb:button{text="Pick up from Pattern (Ctrl-P)", width=150, notifier = PakettiCapture_PickupFromPattern }
     },
     PakettiCapture_vb:row{
       PakettiCapture_vb:checkbox{ value = preferences.pakettiCaptureLastTakeSmartNoteOff.value, notifier = function(value)
@@ -1067,17 +1108,25 @@ function PakettiCaptureLastTakeDialog()
       PakettiCapture_vb:button{ text = "Close", width = 40, notifier = function()
         PakettiCaptureAuditionStop()  -- Stop any playing audition
         if PakettiCapture_midi_listening then PakettiCapture_StopMidiListening() end
+        PakettiGaterCleanupPlayhead()  -- Cleanup gater playhead timer
         if PakettiCapture_dialog and PakettiCapture_dialog.visible then PakettiCapture_dialog:close() end
       end },
-      PakettiCapture_vb:space{ width = PakettiCapture_GAP },
-      PakettiCapture_vb:button{ 
-        text = "Paketti Gater", 
-        width = 150, 
-        notifier = function() 
-          pakettiGaterDialog() 
-        end 
+      PakettiCapture_vb:space{ width = PakettiCapture_GAP }
+    },
+
+    -- Expandable Paketti Gater Section
+    PakettiCapture_vb:row{
+      PakettiCapture_gater_toggle_button,
+      PakettiCapture_vb:text{
+        text = "Show Paketti Gater Dialog Content",
+        style = "strong",
+        font = "bold",
+        width = 300
       }
     },
+
+    -- Collapsible Gater Content
+    PakettiCapture_gater_content_column
 
   }
   
@@ -1088,6 +1137,9 @@ function PakettiCaptureLastTakeDialog()
   -- Ensure Renoise keeps focus for keyboard
   renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
   
+  -- Initialize gater section visibility
+  PakettiCapture_UpdateGaterVisibility()
+  
   -- Show keyboard controls info
   renoise.app():show_status("PakettiCapture: Up/Down arrows=select slot (bold text), SPACE=audition selected, Ctrl+P=pickup from pattern")
 end
@@ -1097,6 +1149,7 @@ function PakettiCaptureLastTakeToggle()
   if PakettiCapture_dialog and PakettiCapture_dialog.visible then
     PakettiCaptureAuditionStop()  -- Stop any playing audition
     if PakettiCapture_midi_listening then PakettiCapture_StopMidiListening() end
+    PakettiGaterCleanupPlayhead()  -- Cleanup gater playhead timer
     PakettiCapture_dialog:close()
     PakettiCapture_dialog = nil
   else
