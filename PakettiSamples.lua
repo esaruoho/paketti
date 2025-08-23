@@ -5191,6 +5191,14 @@ function duplicateTrackAndInstrument()
   
   -- Copy phrases if they exist
   if #original_instrument.phrases > 0 then
+    -- Check if copying phrases would exceed the 126 phrase limit
+    local existing_phrases = #new_instrument.phrases
+    local phrases_to_copy = #original_instrument.phrases
+    
+    if existing_phrases + phrases_to_copy > 126 then
+      error("Cannot copy phrases: Would exceed maximum of 126 phrases per instrument (currently has " .. existing_phrases .. ", trying to add " .. phrases_to_copy .. ")")
+    end
+    
     for phrase_index = 1, #original_instrument.phrases do
       new_instrument:insert_phrase_at(phrase_index)
       new_instrument.phrases[phrase_index]:copy_from(original_instrument.phrases[phrase_index])

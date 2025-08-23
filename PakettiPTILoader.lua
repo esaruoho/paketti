@@ -74,8 +74,9 @@ function pti_loadsample(filepath)
   smp.sample_buffer:create_sample_data(44100, 16, is_stereo and 2 or 1, sample_length)
   local buffer = smp.sample_buffer
 
-  -- Read the number of valid slices from the header (1-indexed Lua)
-  local slice_count = string.byte(header, 377)
+  -- Read slice data according to PTI format specification
+  local slice_count = string.byte(header, 377)  -- Offset 376 + 1 for Lua 1-based indexing
+  local active_slice = string.byte(header, 378)  -- Offset 377 + 1 for Lua 1-based indexing
 
   print(string.format("-- Format: %s, %dHz, %d-bit, %d frames, sliceCount = %d", 
     is_stereo and "Stereo" or "Mono", 44100, 16, sample_length, slice_count))
@@ -86,7 +87,6 @@ function pti_loadsample(filepath)
   local playback_mode = string.byte(header, 77)
   local volume = string.byte(header, 273)
   local panning = string.byte(header, 277)
-  local active_slice = string.byte(header, 378)
   local wavetable_flag = string.byte(header, 21)
   
   print(string.format("-- PTI IMPORT DEBUG: playback_mode=%d, volume=%d, panning=%d", playback_mode or 0, volume or 0, panning or 0))
@@ -315,6 +315,36 @@ function pti_loadsample(filepath)
       local frame = math.floor((raw_value / 65535) * sample_length)
       table.insert(slice_frames, frame)
       print(string.format("-- DEBUG: Slice %02d: calculated frame = %d", i+1, frame))
+    end
+  end
+
+  -- Check if we should use Polyend Slice processing instead of normal slice processing
+  -- Only process if it's mode 4 (Slice), NOT mode 5 (Beat Slice)
+  if slice_count > 0 and playback_mode == 4 and type(PakettiPolyendSliceSwitcherProcessInstrument) == "function" then
+    print("-- DEBUG: Detected Slice mode (4) PTI with slices, attempting Polyend Slice processing")
+    local success = PakettiPolyendSliceSwitcherProcessInstrument(
+      renoise.song().selected_instrument,
+      slice_frames,
+      clean_name,
+      active_slice or 0
+    )
+    
+    if success then
+      renoise.app():show_status(string.format("PTI imported as Polyend Slices: %d slices", slice_count))
+      print("-- PTI loaded successfully with Polyend Slice processing")
+      return -- Exit early, Polyend processing handles everything
+    else
+      print("-- Polyend processing failed, continuing with normal slice processing")
+    end
+  else
+    if slice_count > 0 then
+      if playback_mode == 5 then
+        print(string.format("-- Beat Slice mode (5) PTI detected with %d slices - using normal Renoise slice processing", slice_count))
+      else
+        print(string.format("-- PTI with %d slices but playback mode %d (not Slice mode 4) - using normal processing", slice_count, playback_mode))
+      end
+    else
+      print("-- No slices detected")
     end
   end
 

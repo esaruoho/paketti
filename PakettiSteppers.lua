@@ -12,7 +12,7 @@ local dialog=nil
 
 -- Global function to check if steppers dialog is open
 function PakettiSteppersDialogIsOpen()
-  return dialog and dialog.visible
+  return dialog ~= nil and dialog.visible == true
 end
 
 local stepsize_switch = nil
@@ -33,6 +33,8 @@ function pakettiPitchStepperDemo()
   if dialog and dialog.visible then
     dialog:close()
     dialog=nil
+    -- Cleanup instrument awareness when dialog closes
+    PakettiCleanupInstrumentAwareness()
     return
   end
 
@@ -239,6 +241,20 @@ function PakettiSetupInstrumentAwareness()
   end
   
   renoise.song().selected_instrument_index_observable:add_notifier(instrument_change_observer)
+end
+
+function PakettiCleanupInstrumentAwareness()
+  -- Remove observer if it exists
+  if instrument_change_observer then
+    renoise.song().selected_instrument_index_observable:remove_notifier(instrument_change_observer)
+    instrument_change_observer = nil
+  end
+  
+  -- Clear tracking variables
+  current_visible_stepper = nil
+  current_stepper_instrument = nil
+  
+  print("Steppers instrument awareness cleaned up")
 end
 ---
 function PakettiFillStepperRandom(deviceName)
@@ -878,6 +894,8 @@ function PakettiSteppersDialog()
   if dialog and dialog.visible then
     dialog:close()
     dialog=nil
+    -- Cleanup instrument awareness when dialog closes
+    PakettiCleanupInstrumentAwareness()
     return
   end
 

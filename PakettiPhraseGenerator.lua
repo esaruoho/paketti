@@ -1882,16 +1882,17 @@ end
              duplicateTrackAndInstrument()
            end)
            
-           if not success then
-             -- Check if it's the phrase limit error
-             if error_msg and error_msg:find("can only have up to 126 phrase per instrument") then
-               renoise.app():show_status("Cannot duplicate: Instrument already has maximum number of phrases (126)")
-             else
-               -- Show other errors as-is
-               renoise.app():show_status("Duplication failed: " .. tostring(error_msg))
-             end
-             return
-           end
+                     if not success then
+            -- Check if it's the phrase limit error
+            if error_msg and (error_msg:find("can only have up to 126 phrase per instrument") or 
+                             error_msg:find("Would exceed maximum of 126 phrases per instrument")) then
+              renoise.app():show_status("Cannot duplicate: Instrument already has maximum number of phrases (126)")
+            else
+              -- Show other errors as-is
+              renoise.app():show_status("Duplication failed: " .. tostring(error_msg))
+            end
+            return
+          end
            
            -- Auto-enable "Always Render" and "Play Until End" after successful duplication
            current_settings.always_render = true

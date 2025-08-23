@@ -169,6 +169,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiLoaderLoopExit=false,
   pakettiLoaderMoveSilenceToEnd=false,
   pakettiLoaderNormalizeSamples=false,
+  pakettiPolyendOpenDialog=true,
   selectionNewInstrumentSelect=false,
   selectionNewInstrumentLoop=2,
   selectionNewInstrumentInterpolation=4,
@@ -1684,6 +1685,10 @@ vb:row{
               end
             }
           },
+          vb:text{style="strong",font="bold",text="Polyend Suite Settings"},
+          vb:row{vb:text{text="Open Slice Dialog",width=150,tooltip="Automatically open Polyend Slice Switcher dialog when loading PTI files with slices"},vb:switch{items={"Off","On"},value=preferences.pakettiPolyendOpenDialog.value and 2 or 1,width=200,tooltip="Automatically open Polyend Slice Switcher dialog when loading PTI files with slices",
+            notifier=function(value) preferences.pakettiPolyendOpenDialog.value=(value==2) end}},
+
         }
         }
       },

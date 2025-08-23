@@ -7591,3 +7591,185 @@ end
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Generate Delay Value (Notes Only, Row)",invoke=function() GenerateDelayValueNotes("row") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Generate Delay Value (Notes Only, Pattern)",invoke=function() GenerateDelayValueNotes("pattern") end}
 renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Generate Delay Value (Notes Only, Selection)",invoke=function() GenerateDelayValueNotes("selection") end}
+
+-- Tempo Interpolation Feature
+-- Function to extract BPM from a pattern by looking for ZT effect commands
+function PakettiTempoExtractBPMFromPattern(pattern_index)
+  local song = renoise.song()
+  local pattern = song.patterns[pattern_index]
+  local master_track_index = get_master_track_index()
+  
+  if not master_track_index then
+    return nil
+  end
+  
+  local master_track = pattern.tracks[master_track_index]
+  
+  -- Look through all lines in the pattern for ZT effect commands
+  for line_index = 1, pattern.number_of_lines do
+    local line = master_track:line(line_index)
+    for col_index = 1, #line.effect_columns do
+      local effect_col = line.effect_columns[col_index]
+      if effect_col.number_string == "ZT" and effect_col.amount_value > 0 then
+        return effect_col.amount_value
+      end
+    end
+  end
+  
+  -- No ZT effect found, return nil
+  return nil
+end
+
+-- Main tempo interpolation function
+function PakettiTempoInterpolateCurrentToNext()
+  local song = renoise.song()
+  local current_seq_index = song.selected_sequence_index
+  local sequencer = song.sequencer
+  local pattern_sequence = sequencer.pattern_sequence
+  
+  -- Check if there is a next pattern in the sequence
+  if current_seq_index >= #pattern_sequence then
+    renoise.app():show_status("No next pattern in sequence to interpolate to")
+    return
+  end
+  
+  -- Get current and next pattern indices
+  local current_pattern_index = pattern_sequence[current_seq_index]
+  local next_pattern_index = pattern_sequence[current_seq_index + 1]
+  
+  -- Get BPM values from both patterns
+  local current_bpm = PakettiTempoExtractBPMFromPattern(current_pattern_index)
+  local next_bpm = PakettiTempoExtractBPMFromPattern(next_pattern_index)
+  
+  -- Fallback to transport BPM if no ZT effects found
+  if not current_bpm then
+    current_bpm = song.transport.bpm
+  end
+  if not next_bpm then
+    next_bpm = song.transport.bpm
+    renoise.app():show_status("Warning: Next pattern has no BPM info, using current transport BPM")
+  end
+  
+  -- Check if interpolation is needed
+  local optimal_bpm = (current_bpm < next_bpm) and (next_bpm - 1) or (next_bpm + 1)
+  if current_bpm == optimal_bpm then
+    renoise.app():show_status("Current pattern already at optimal BPM (" .. current_bpm .. ") for smooth transition, no interpolation needed")
+    return
+  end
+  
+  -- Check BPM range limits for ZT command
+  if current_bpm > 255 or next_bpm > 255 then
+    renoise.app():show_status("Cannot interpolate: BPM over 255 (ZTFF) - ZT command maximum exceeded")
+    return
+  end
+  
+  if current_bpm < 20 or next_bpm < 20 then
+    renoise.app():show_status("Cannot interpolate: BPM under 20 (ZT14) - ZT command minimum exceeded")
+    return
+  end
+  
+  -- Check if target_end_bpm would be out of valid range
+  local target_end_bpm_check = (current_bpm < next_bpm) and (next_bpm - 1) or (next_bpm + 1)
+  if target_end_bpm_check > 255 then
+    renoise.app():show_status("Cannot interpolate: Target end BPM would be over 255 (ZTFF) - adjust next pattern BPM")
+    return
+  elseif target_end_bpm_check < 20 then
+    renoise.app():show_status("Cannot interpolate: Target end BPM would be under 20 (ZT14) - adjust next pattern BPM")
+    return
+  end
+  
+  -- Get current pattern and its length
+  local current_pattern = song.patterns[current_pattern_index]
+  local pattern_length = current_pattern.number_of_lines
+  local master_track_index = get_master_track_index()
+  
+  if not master_track_index then
+    renoise.app():show_status("Could not find master track")
+    return
+  end
+  
+  -- Ensure master track has enough effect columns visible
+  song.tracks[master_track_index].visible_effect_columns = math.max(song.tracks[master_track_index].visible_effect_columns, 1)
+  
+  -- Calculate BPM difference and step
+  -- For smooth transition, we stop 1 BPM away from next pattern's starting BPM
+  local target_end_bpm
+  if current_bpm < next_bpm then
+    -- Raising BPM: stop 1 BPM below next pattern's BPM
+    target_end_bpm = next_bpm - 1
+  else
+    -- Lowering BPM: stop 1 BPM above next pattern's BPM  
+    target_end_bpm = next_bpm + 1
+  end
+  local bpm_diff = target_end_bpm - current_bpm
+  local master_track = current_pattern.tracks[master_track_index]
+  
+  -- Write interpolated BPM values throughout the pattern
+  local bpm_changes_written = 0
+  local bpm_range = math.abs(bpm_diff)
+  
+  -- Calculate how many lines per BPM change to ensure smooth progression
+  local lines_per_bpm_change = 1
+  if bpm_range > 0 then
+    lines_per_bpm_change = math.max(1, math.floor(pattern_length / bpm_range))
+  end
+  
+  local last_written_bpm = current_bpm
+  
+  for line_index = 1, pattern_length do
+    -- Calculate exact interpolated BPM for this line
+    local progress = (line_index - 1) / (pattern_length - 1)
+    local exact_interpolated_bpm = current_bpm + (bpm_diff * progress)
+    
+    -- Round to nearest integer for smooth progression
+    local target_bpm = math.floor(exact_interpolated_bpm + 0.5)
+    
+    -- Clamp BPM to valid ZT range (20-255)
+    target_bpm = math.max(20, math.min(255, target_bpm))
+    
+    -- Write BPM change if we've hit a new BPM value or it's the first line
+    if target_bpm ~= last_written_bpm or line_index == 1 then
+      -- Find effect column for tempo interpolation
+      local line = master_track:line(line_index)
+      local effect_col = nil
+      
+      -- First, look for existing ZT commands to overwrite
+      for col_index = 1, #line.effect_columns do
+        if line.effect_columns[col_index].number_string == "ZT" then
+          effect_col = line.effect_columns[col_index]
+          break
+        end
+      end
+      
+      -- If no existing ZT command, look for empty column
+      if not effect_col then
+        for col_index = 1, #line.effect_columns do
+          if line.effect_columns[col_index].number_string == "00" or line.effect_columns[col_index].number_string == "" then
+            effect_col = line.effect_columns[col_index]
+            break
+          end
+        end
+      end
+      
+      -- If still no column found, use the first column (overwrite whatever is there)
+      if not effect_col then
+        effect_col = line.effect_columns[1]
+      end
+      
+      -- Write the ZT command with interpolated BPM
+      effect_col.number_string = "ZT"
+      effect_col.amount_value = target_bpm
+      bpm_changes_written = bpm_changes_written + 1
+      last_written_bpm = target_bpm
+    end
+  end
+  
+  -- Update the transport BPM to the starting BPM
+  song.transport.bpm = current_bpm
+  
+  renoise.app():show_status(string.format("Tempo interpolation complete: %d BPM → %d BPM (%d changes written)", 
+    current_bpm, target_end_bpm, bpm_changes_written))
+end
+
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:BPM Interpolate Current to Next Pattern", invoke=PakettiTempoInterpolateCurrentToNext}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:BPM Interpolate Current to Next Pattern", invoke=PakettiTempoInterpolateCurrentToNext}
