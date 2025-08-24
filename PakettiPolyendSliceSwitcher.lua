@@ -11,6 +11,7 @@ local slice_instrument = nil
 -- Global variables to track polyend slice state
 paketti_polyend_slice_active = false
 paketti_polyend_slice_instrument_index = nil
+paketti_polyend_slice_notifier_added = false
 
 -- Function to check if current instrument has polyend slice setup
 function PakettiPolyendSliceSwitcherIsActive()
@@ -205,6 +206,9 @@ function PakettiPolyendSliceSwitcherProcessInstrument(instrument, slice_markers,
   paketti_polyend_slice_active = true
   paketti_polyend_slice_instrument_index = renoise.song().selected_instrument_index
   
+  -- Setup instrument change notifier
+  PakettiPolyendSliceSwitcherSetupNotifier()
+  
   print(string.format("-- Total slices to create: %d", total_slices))
   
   -- Get the original sample data (this should be the full sample from normal PTI loading)
@@ -361,7 +365,7 @@ renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Polyend Slice Switch
 }
 
 -- Instrument selection observable to deactivate when switching instruments
-local function check_instrument_change()
+function PakettiPolyendSliceSwitcherCheckInstrumentChange()
   if paketti_polyend_slice_active and 
      paketti_polyend_slice_instrument_index and
      paketti_polyend_slice_instrument_index ~= renoise.song().selected_instrument_index then
@@ -371,13 +375,37 @@ local function check_instrument_change()
     paketti_polyend_slice_instrument_index = nil
     slice_instrument = nil
     
+    -- Remove the notifier when deactivating
+    PakettiPolyendSliceSwitcherRemoveNotifier()
+    
     if dialog and dialog.visible then
       dialog:close()
     end
   end
 end
 
--- Add notifier for instrument changes
-renoise.song().selected_instrument_index_observable:add_notifier(check_instrument_change)
+-- Function to setup observable notifier (called when polyend slice is activated)
+function PakettiPolyendSliceSwitcherSetupNotifier()
+  if not paketti_polyend_slice_notifier_added then
+    local song = renoise.song()
+    if song then
+      song.selected_instrument_index_observable:add_notifier(PakettiPolyendSliceSwitcherCheckInstrumentChange)
+      paketti_polyend_slice_notifier_added = true
+      print("-- Polyend Slice instrument change notifier added")
+    end
+  end
+end
+
+-- Function to remove observable notifier
+function PakettiPolyendSliceSwitcherRemoveNotifier()
+  if paketti_polyend_slice_notifier_added then
+    local song = renoise.song()
+    if song then
+      song.selected_instrument_index_observable:remove_notifier(PakettiPolyendSliceSwitcherCheckInstrumentChange)
+      paketti_polyend_slice_notifier_added = false
+      print("-- Polyend Slice instrument change notifier removed")
+    end
+  end
+end
 
 print("PakettiPolyendSliceSwitcher.lua loaded successfully")

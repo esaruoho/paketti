@@ -157,6 +157,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   RenderDCOffset=false,
   experimentalRenderPriority="high",  -- "high" or "realtime"
   experimentalRenderSilenceMultiplier=1,  -- 0, 1, 3, or 7 silences
+  experimentalRenderRemoveSilence=false,  -- Remove silence from end after rendering
   pakettiEditMode=1,
   pakettiLoaderInterpolation=1,
   pakettiLoaderFilterType="LP Clean",
@@ -933,6 +934,9 @@ local pakettiIRPathDisplayId = "pakettiIRPathDisplay_" .. tostring(math.random(2
             vb:row{vb:text{text="Silence Multiplier",width=150},vb:switch{items={"0","1","3","7"},value=(preferences.experimentalRenderSilenceMultiplier.value==0 and 1 or preferences.experimentalRenderSilenceMultiplier.value==1 and 2 or preferences.experimentalRenderSilenceMultiplier.value==3 and 3 or 4),width=300,
               tooltip="Number of sample-length silences after playback for FX trails (0=no trails, 7=max trails).",
               notifier=function(value) preferences.experimentalRenderSilenceMultiplier.value=(value==1 and 0 or value==2 and 1 or value==3 and 3 or 7) end}},
+            vb:row{vb:text{text="Remove Silence from End",width=150},vb:switch{items={"Off","On"},value=preferences.experimentalRenderRemoveSilence.value and 2 or 1,width=300,
+              tooltip="Automatically remove silence from the end of rendered samples using Strip Silence functionality.",
+              notifier=function(value) preferences.experimentalRenderRemoveSilence.value=(value==2) end}},
               vb:text{style = "strong", font = "bold", text="Rotate Sample Buffer Settings"},
             vb:row{
                 vb:text{text="Fine Control",width=150},

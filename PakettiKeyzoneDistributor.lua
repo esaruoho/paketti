@@ -115,13 +115,27 @@ function PakettiKeyzoneDistributorParseFilename(filename)
   -- Remove file extension
   local name_without_ext = string.match(filename, "(.+)%..+$") or filename
   
-  -- Pattern 1: Two MIDI numbers (drumhit_48_64, 01_48_64, etc.)
+  -- Pattern 1: Sample number + target key (01_69, 02_72, etc.)
+  -- This should be interpreted as sample order + target key, not as a range
+  local sample_num, target_key = string.match(name_without_ext, "^(%d%d?)_(%d%d?%d?)$")
+  if sample_num and target_key then
+    sample_num = tonumber(sample_num)
+    target_key = tonumber(target_key)
+    
+    if sample_num and target_key and target_key >= 0 and target_key <= 119 then
+      debug_print(string.format("Found sample number %d with target key %d", sample_num, target_key))
+      return {target_key, target_key, sample_num} -- Return target key twice + sample number for special handling
+    end
+  end
+  
+  -- Pattern 2: Actual MIDI ranges (drumhit_48_64, etc. - where first number > 12 or context suggests range)
   local low_midi, high_midi = string.match(name_without_ext, "(%d%d?%d?)_(%d%d?%d?)$")
   if low_midi and high_midi then
     low_midi = tonumber(low_midi)
     high_midi = tonumber(high_midi)
     
-    if low_midi and high_midi and low_midi >= 0 and high_midi <= 119 and low_midi <= high_midi then
+    -- Only treat as range if it makes sense (first number is higher, suggesting actual range)
+    if low_midi and high_midi and low_midi >= 0 and high_midi <= 119 and low_midi <= high_midi and low_midi > 12 then
       debug_print(string.format("Found MIDI range: %d-%d", low_midi, high_midi))
       return {low_midi, high_midi}
     end
@@ -210,6 +224,24 @@ function PakettiKeyzoneDistributorParseFilename(filename)
   return nil
 end
 
+-- Function to store original keyzone positions
+function PakettiKeyzoneDistributorStoreOriginalPositions()
+  local instrument = renoise.song().selected_instrument
+  if not instrument or #instrument.samples == 0 then
+    return
+  end
+  
+  original_positions = {}
+  for idx, sample in ipairs(instrument.samples) do
+    local smap = sample.sample_mapping
+    original_positions[idx] = {
+      base_note = smap.base_note,
+      note_range = {smap.note_range[1], smap.note_range[2]}
+    }
+  end
+  debug_print("Stored original positions for " .. #original_positions .. " samples")
+end
+
 -- Scan folder and collect file information with keyrange detection
 function PakettiKeyzoneDistributorScanFolder(folder_path)
   local file_info_list = {}
@@ -223,6 +255,9 @@ function PakettiKeyzoneDistributorScanFolder(folder_path)
   end
   
   debug_print(string.format("Scanning %d audio files for keyrange information...", #files))
+  
+  local instrument_groups = {}      -- Grouped by instrument number (01_, 02_, etc.)
+  local regular_files = {}          -- For other files
   
   for _, file_path in ipairs(files) do
     -- Extract just the filename from the full path
@@ -239,11 +274,79 @@ function PakettiKeyzoneDistributorScanFolder(folder_path)
       enabled = true  -- Default to enabled
     }
     
+    -- Check if this is a sample-numbered file (has 3 elements: low, high, sample_num)
+    if keyrange and #keyrange == 3 then
+      file_info.instrument_number = keyrange[3]
+      file_info.target_key = keyrange[1]
+      
+      -- Group by instrument number
+      if not instrument_groups[file_info.instrument_number] then
+        instrument_groups[file_info.instrument_number] = {}
+      end
+      table.insert(instrument_groups[file_info.instrument_number], file_info)
+    else
+      table.insert(regular_files, file_info)
+    end
+  end
+  
+  -- Process each instrument group to create continuous ranges
+  local processed_files = {}
+  
+  for instrument_num, files_in_group in pairs(instrument_groups) do
+    -- Sort files by target key within each instrument group
+    table.sort(files_in_group, function(a, b)
+      return a.target_key < b.target_key
+    end)
+    
+    debug_print(string.format("Processing instrument %02d with %d files", instrument_num, #files_in_group))
+    
+    -- Create continuous ranges for this instrument
+    for i, file_info in ipairs(files_in_group) do
+      if i == 1 then
+        -- First sample in this instrument: map from 0 to its target key
+        file_info.keyrange = {0, file_info.target_key}
+        debug_print(string.format("Instrument %02d, file %d (%s): First sample, mapping 0-%d", 
+          instrument_num, i, file_info.filename, file_info.target_key))
+      else
+        -- Subsequent samples: map from current target key to next target key - 1 (or 119 if last)
+        local start_key = file_info.target_key
+        local end_key
+        
+        if i < #files_in_group then
+          -- Not the last file - map up to next target key - 1
+          end_key = files_in_group[i + 1].target_key - 1
+        else
+          -- Last file - map to 119
+          end_key = 119
+        end
+        
+        file_info.keyrange = {start_key, end_key}
+        debug_print(string.format("Instrument %02d, file %d (%s): mapping %d-%d", 
+          instrument_num, i, file_info.filename, start_key, end_key))
+      end
+      
+      table.insert(processed_files, file_info)
+    end
+  end
+  
+  -- Sort processed files by instrument number, then by target key
+  table.sort(processed_files, function(a, b)
+    if a.instrument_number == b.instrument_number then
+      return a.target_key < b.target_key
+    end
+    return a.instrument_number < b.instrument_number
+  end)
+  
+  -- Combine processed instrument files with regular files
+  for _, file_info in ipairs(processed_files) do
+    table.insert(file_info_list, file_info)
+  end
+  for _, file_info in ipairs(regular_files) do
     table.insert(file_info_list, file_info)
   end
   
-  debug_print(string.format("Found keyrange information for %d files", 
-    #file_info_list))
+  debug_print(string.format("Found keyrange information for %d files (%d instrument-grouped, %d regular)", 
+    #file_info_list, #processed_files, #regular_files))
   
   return file_info_list
 end
@@ -262,6 +365,11 @@ function PakettiKeyzoneDistributorGenerateFileListText(file_info_list)
       else
         keyrange_text = string.format("Range %d-%d", file_info.keyrange[1], file_info.keyrange[2])
       end
+      
+      -- Add instrument info for grouped files
+      if file_info.instrument_number then
+        keyrange_text = keyrange_text .. string.format(" (Inst %02d)", file_info.instrument_number)
+      end
     end
     
     local line = string.format("%s %s | %s", status, file_info.filename, keyrange_text)
@@ -271,79 +379,234 @@ function PakettiKeyzoneDistributorGenerateFileListText(file_info_list)
   return table.concat(text_lines, "\n")
 end
 
--- Apply filename-based keyrange mapping to samples
+-- Function to apply Paketti loader preferences to a sample
+function PakettiKeyzoneDistributorApplyLoaderSettings(sample)
+  if not sample or not preferences then return end
+  
+  sample.interpolation_mode = preferences.pakettiLoaderInterpolation.value
+  sample.oversample_enabled = preferences.pakettiLoaderOverSampling.value
+  sample.autofade = preferences.pakettiLoaderAutofade.value
+  sample.autoseek = preferences.pakettiLoaderAutoseek.value
+  sample.oneshot = preferences.pakettiLoaderOneshot.value
+  sample.loop_mode = preferences.pakettiLoaderLoopMode.value
+  sample.new_note_action = preferences.pakettiLoaderNNA.value
+  sample.loop_release = preferences.pakettiLoaderLoopExit.value
+  
+  debug_print(string.format("Applied Paketti loader settings to sample: %s", sample.name))
+end
+
+-- Function to apply special processing options
+function PakettiKeyzoneDistributorApplyProcessingOptions(sample)
+  if not sample or not sample.sample_buffer or not sample.sample_buffer.has_sample_data then return end
+  
+  -- Move silence to end if enabled
+  if preferences.pakettiLoaderMoveSilenceToEnd and preferences.pakettiLoaderMoveSilenceToEnd.value then
+    pakettiSampleBufferMoveSilenceToEnd()
+    debug_print(string.format("Moved silence to end for sample: %s", sample.name))
+  end
+  
+  -- Normalize sample if enabled
+  if preferences.pakettiLoaderNormalizeSamples and preferences.pakettiLoaderNormalizeSamples.value then
+    sample.sample_buffer:prepare_sample_data_changes()
+    sample.sample_buffer:normalize()
+    sample.sample_buffer:finalize_sample_data_changes()
+    debug_print(string.format("Normalized sample: %s", sample.name))
+  end
+end
+
+-- Load samples from folder and apply filename-based keyrange mapping
 function PakettiKeyzoneDistributorApplyFilenameMapping(file_info_list)
-  local instrument = renoise.song().selected_instrument
-  
-  if not instrument then
-    renoise.app():show_status("No instrument selected!")
+  if #file_info_list == 0 then
+    renoise.app():show_status("No files to load!")
     return
   end
   
-  if #instrument.samples == 0 then
-    renoise.app():show_status("No samples in instrument!")
-    return
-  end
+  debug_print(string.format("Loading and mapping %d files", #file_info_list))
   
-  debug_print(string.format("Applying filename mapping to %d samples", #instrument.samples))
+  -- Group files by instrument number
+  local instrument_groups = {}
+  local regular_files = {}
   
-  local mapped_count = 0
-  local skipped_count = 0
-  
-  for i, sample in ipairs(instrument.samples) do
-    local file_info = file_info_list[i]
-    
-    if file_info and file_info.enabled and file_info.keyrange then
-      local smap = sample.sample_mapping
-      local low_note = file_info.keyrange[1]
-      local high_note = file_info.keyrange[2]
-      
-      -- Set the keyzone range
-      smap.note_range = {low_note, high_note}
-      
-      -- Set base note to middle of range (or the single note if range is same)
-      local base_note = math.floor(low_note + (high_note - low_note) / 2)
-      smap.base_note = base_note
-      
-      debug_print(string.format("Sample %d (%s): mapped to %d-%d (base: %d)", 
-        i, file_info.filename, low_note, high_note, base_note))
-      
-      mapped_count = mapped_count + 1
-    else
-      skipped_count = skipped_count + 1
-      if file_info then
-        debug_print(string.format("Sample %d (%s): skipped (no range or disabled)", 
-          i, file_info.filename))
+  for _, file_info in ipairs(file_info_list) do
+    if file_info.enabled and file_info.keyrange and file_info.full_path then
+      if file_info.instrument_number then
+        -- Group by instrument number
+        if not instrument_groups[file_info.instrument_number] then
+          instrument_groups[file_info.instrument_number] = {}
+        end
+        table.insert(instrument_groups[file_info.instrument_number], file_info)
       else
-        debug_print(string.format("Sample %d: skipped (no file info)", i))
+        table.insert(regular_files, file_info)
+      end
+    end
+  end
+  
+  local total_loaded = 0
+  local total_mapped = 0
+  local total_failed = 0
+  local instruments_created = 0
+  local song = renoise.song()
+  local starting_instrument_index = song.selected_instrument_index
+  
+  -- Process each instrument group
+  for instrument_num, files_in_group in pairs(instrument_groups) do
+    debug_print(string.format("Creating instrument for group %02d with %d files", instrument_num, #files_in_group))
+    
+    -- Create a new instrument after the current selected instrument
+    local new_instrument_index = starting_instrument_index + instruments_created + 1
+    local new_instrument = song:insert_instrument_at(new_instrument_index)
+    song.selected_instrument_index = new_instrument_index
+    instruments_created = instruments_created + 1
+    
+    -- Load default XRNI configuration first
+    if pakettiPreferencesDefaultInstrumentLoader then
+      pakettiPreferencesDefaultInstrumentLoader()
+      debug_print("Applied pakettiPreferencesDefaultInstrumentLoader")
+      -- Re-get the instrument reference after loading default configuration
+      new_instrument = song.selected_instrument
+    else
+      debug_print("pakettiPreferencesDefaultInstrumentLoader not found")
+    end
+    
+    local loaded_count = 0
+    local mapped_count = 0
+    local failed_count = 0
+    
+    -- Sort files in this group by target key
+    table.sort(files_in_group, function(a, b)
+      return a.target_key < b.target_key
+    end)
+    
+    -- Generate instrument name from first and last filenames
+    local first_filename = files_in_group[1].filename:match("(.+)%..+$") or files_in_group[1].filename
+    local last_filename = files_in_group[#files_in_group].filename:match("(.+)%..+$") or files_in_group[#files_in_group].filename
+    new_instrument.name = string.format("%s-%s", first_filename, last_filename)
+    
+    -- Load samples into this instrument
+    for i, file_info in ipairs(files_in_group) do
+      debug_print(string.format("Loading file %d into instrument %02d: %s", i, instrument_num, file_info.full_path))
+      
+      -- Try to load the sample
+      local success, error_msg = pcall(function()
+        local new_sample = new_instrument:insert_sample_at(#new_instrument.samples + 1)
+        new_sample.sample_buffer:load_from(file_info.full_path)
+        loaded_count = loaded_count + 1
+        
+        -- Apply keyzone mapping immediately after loading
+        local smap = new_sample.sample_mapping
+        local low_note = file_info.keyrange[1]
+        local high_note = file_info.keyrange[2]
+        
+        -- Set the keyzone range
+        smap.note_range = {low_note, high_note}
+        
+        -- Set base note to the target key from filename (the original pitch of the sample)
+        local base_note
+        if file_info.target_key then
+          -- For instrument-grouped files (01_69, etc.), use the target key from filename
+          base_note = file_info.target_key
+        else
+          -- For other files, use middle of range as fallback
+          base_note = math.floor(low_note + (high_note - low_note) / 2)
+        end
+        smap.base_note = base_note
+        
+        -- Set sample name to filename (without extension)
+        local filename_only = string.match(file_info.filename, "(.+)%..+$") or file_info.filename
+        new_sample.name = filename_only
+        
+        local base_note_source = file_info.target_key and "filename" or "range middle"
+        debug_print(string.format("Instrument %02d, Sample %d (%s): loaded and mapped to %d-%d (base: %d from %s)", 
+          instrument_num, i, file_info.filename, low_note, high_note, base_note, base_note_source))
+        
+        mapped_count = mapped_count + 1
+      end)
+      
+      if not success then
+        failed_count = failed_count + 1
+        debug_print(string.format("Failed to load %s: %s", file_info.filename, tostring(error_msg)))
+        print("Error loading sample: " .. tostring(error_msg))
+      end
+    end
+    
+    -- Clean up any "Placeholder sample" left behind
+    for i = #new_instrument.samples, 1, -1 do
+      if new_instrument.samples[i].name == "Placeholder sample" then
+        new_instrument:delete_sample_at(i)
+        debug_print("Removed placeholder sample")
+      end
+    end
+    
+    -- Apply Paketti Loader Settings to all samples
+    for i, sample in ipairs(new_instrument.samples) do
+      PakettiKeyzoneDistributorApplyLoaderSettings(sample)
+      PakettiKeyzoneDistributorApplyProcessingOptions(sample)
+    end
+    
+    total_loaded = total_loaded + loaded_count
+    total_mapped = total_mapped + mapped_count
+    total_failed = total_failed + failed_count
+    
+    debug_print(string.format("Instrument %02d complete: %d loaded, %d mapped, %d failed", 
+      instrument_num, loaded_count, mapped_count, failed_count))
+  end
+  
+  -- Handle regular files in current selected instrument if any
+  if #regular_files > 0 then
+    local current_instrument = song.selected_instrument
+    if current_instrument then
+      debug_print(string.format("Loading %d regular files into current instrument", #regular_files))
+      
+      -- Clear existing samples first
+      while #current_instrument.samples > 0 do
+        current_instrument:delete_sample_at(1)
+      end
+      
+      for i, file_info in ipairs(regular_files) do
+        local success, error_msg = pcall(function()
+          local new_sample = current_instrument:insert_sample_at(#current_instrument.samples + 1)
+          new_sample.sample_buffer:load_from(file_info.full_path)
+          
+          local smap = new_sample.sample_mapping
+          local low_note = file_info.keyrange[1]
+          local high_note = file_info.keyrange[2]
+          smap.note_range = {low_note, high_note}
+          smap.base_note = math.floor(low_note + (high_note - low_note) / 2)
+          
+          local filename_only = string.match(file_info.filename, "(.+)%..+$") or file_info.filename
+          new_sample.name = filename_only
+          
+          -- Apply Paketti Loader Settings
+          PakettiKeyzoneDistributorApplyLoaderSettings(new_sample)
+          PakettiKeyzoneDistributorApplyProcessingOptions(new_sample)
+          
+          total_loaded = total_loaded + 1
+          total_mapped = total_mapped + 1
+        end)
+        
+        if not success then
+          total_failed = total_failed + 1
+        end
       end
     end
   end
   
   -- Store the new positions as original for transpose
-  store_original_positions()
+  PakettiKeyzoneDistributorStoreOriginalPositions()
   
-  renoise.app():show_status(string.format("Applied filename mapping: %d mapped, %d skipped", 
-    mapped_count, skipped_count))
+  local status_msg = string.format("Created %d instruments, loaded %d samples, mapped %d ranges", 
+    instruments_created, total_loaded, total_mapped)
+  
+  if total_failed > 0 then
+    status_msg = status_msg .. string.format(" (%d failed)", total_failed)
+  end
+  
+  renoise.app():show_status(status_msg)
+  debug_print(string.format("Loading complete: %d instruments created, %d loaded, %d mapped, %d failed", 
+    instruments_created, total_loaded, total_mapped, total_failed))
 end
 
--- Function to store original keyzone positions
-local function store_original_positions()
-  local instrument = renoise.song().selected_instrument
-  if not instrument or #instrument.samples == 0 then
-    return
-  end
-  
-  original_positions = {}
-  for idx, sample in ipairs(instrument.samples) do
-    local smap = sample.sample_mapping
-    original_positions[idx] = {
-      base_note = smap.base_note,
-      note_range = {smap.note_range[1], smap.note_range[2]}
-    }
-  end
-  debug_print("Stored original positions for " .. #original_positions .. " samples")
-end
+
 
 -- Function to transpose from original positions (not cumulative)
 local function transpose_keyzones(transpose_by)
@@ -354,7 +617,7 @@ local function transpose_keyzones(transpose_by)
   end
   
   if #original_positions == 0 then
-    store_original_positions()
+    PakettiKeyzoneDistributorStoreOriginalPositions()
   end
   
   debug_print(string.format("Transposing %d samples by %d semitones from original", #instrument.samples, transpose_by))
@@ -556,7 +819,7 @@ local function distribute_samples(keys_per_sample, base_note_mode)
   end
   
   -- Store the new positions as original for transpose
-  store_original_positions()
+  PakettiKeyzoneDistributorStoreOriginalPositions()
   
   -- Show appropriate status message
   if reached_limit then
@@ -831,7 +1094,7 @@ function pakettiKeyzoneDistributorDialog()
       view_builder:multiline_text {
         width = 400,
         height = 120,
-                  text = "No folder selected...\n\nSupported filename patterns:\n• drumhit_48_64 (MIDI range)\n• sample_c4_g4 (note range)\n• 01_64 (single MIDI note)\n• kick_c-4 (single note with underscore)\n• kickA4 (note directly attached)\n• snareGS4 (G# directly attached)\n• hat-bb3 (Bb with dash)\n• mc101_b-192_c-4 (complex with dashes)",
+                  text = "No folder selected...\n\nThis will create multiple instruments.\n\nSupported filename patterns:\n• 00_59, 00_60... → Creates \"00_59-00_79\" with keyzones\n• 01_59, 01_60... → Creates \"01_59-01_79\" with keyzones\n• 02_72, 02_75... → Creates \"02_72-02_89\" with keyzones\n• etc.\n\n• drumhit_48_64 (MIDI range) → Current instrument\n• sample_c4_g4 (note range) → Current instrument",
         font = "mono",
         id = "file_list_multiline"
       }
@@ -840,13 +1103,13 @@ function pakettiKeyzoneDistributorDialog()
     view_builder:row {
       view_builder:text {
         width = 140,
-        text = "Apply Mapping",
+        text = "Create Instruments",
         font = "bold",
         style = "strong",
       },
-      view_builder:button {
-        text = "Apply to Samples",
-        width = 120,
+              view_builder:button {
+          text = "Create Instruments",
+          width = 120,
         notifier = function()
           if #current_file_list == 0 then
             renoise.app():show_status("No files scanned. Please select a folder first.")
@@ -857,7 +1120,7 @@ function pakettiKeyzoneDistributorDialog()
         end
       },
       view_builder:text {
-        text = "← Map detected ranges to instrument samples"
+        text = "← Create instruments from grouped samples"
       }
     },
 
@@ -1008,7 +1271,7 @@ function pakettiKeyzoneDistributorFilenameDialog()
         filename_view_builder:multiline_text {
           width = 500,
           height = 200,
-          text = "No folder selected...\n\nSupported filename patterns:\n• drumhit_48_64 (MIDI range 48-64)\n• sample_c4_g4 (note range C4-G4)\n• 01_64 (single MIDI note 64)\n• kick_c-4 (single note C4 with underscore)\n• kickA4 (note A4 directly attached)\n• snareGS4 (G# directly attached)\n• hat-bb3 (Bb with dash)\n• mc101_b-192_c-4 (complex naming)\n• amf_340_g#2 (sharp in middle)\n\nFiles will be mapped to instrument samples in order.",
+          text = "No folder selected...\n\nThis will automatically create multiple instruments.\n\nSupported filename patterns:\n• 00_59, 00_60, 00_61... → Creates \"00_59-00_79\"\n• 01_59, 01_60, 01_61... → Creates \"01_59-01_79\" \n• 02_72, 02_75... → Creates \"02_72-02_89\"\n• etc.\n\n• drumhit_48_64 (MIDI range) → Current instrument\n• sample_c4_g4 (note range) → Current instrument\n• kick_c-4, kickA4, snareGS4, hat-bb3 → Current instrument\n• mc101_b-192_c-4, amf_340_g#2 → Current instrument",
           font = "mono",
           id = "filename_file_list"
         }
@@ -1017,12 +1280,12 @@ function pakettiKeyzoneDistributorFilenameDialog()
       filename_view_builder:row {
         filename_view_builder:text {
           width = 140,
-          text = "Apply Mapping",
+          text = "Create Instruments",
           font = "bold",
           style = "strong",
         },
         filename_view_builder:button {
-          text = "Apply to Samples",
+          text = "Load & Map Samples",
           width = 120,
           notifier = function()
             if #current_file_list == 0 then
@@ -1044,6 +1307,7 @@ end
 -- Keybindings and MIDI mappings
 renoise.tool():add_keybinding{name="Global:Paketti:Show Keyzone Distributor Dialog...",invoke=function() pakettiKeyzoneDistributorDialog() end}
 renoise.tool():add_midi_mapping{name="Paketti:Show Keyzone Distributor Dialog...",invoke=function(message) if message:is_trigger() then pakettiKeyzoneDistributorDialog() end end}
-
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Keyzone Distributor",invoke=function() pakettiKeyzoneDistributorDialog() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Show Filename-Based Keyzone Mapping...",invoke=function() pakettiKeyzoneDistributorFilenameDialog() end}
 renoise.tool():add_midi_mapping{name="Paketti:Show Filename-Based Keyzone Mapping...",invoke=function(message) if message:is_trigger() then pakettiKeyzoneDistributorFilenameDialog() end end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Filename-Based Keyzone Mapping",invoke=function() pakettiKeyzoneDistributorFilenameDialog() end}

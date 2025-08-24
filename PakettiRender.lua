@@ -1798,6 +1798,19 @@ function pakettiExperimentalSampleFXRender()
     experimental_render_context.original_bpm = song.transport.bpm
     experimental_render_context.original_lpb = song.transport.lpb
     experimental_render_context.original_pattern_index = song.selected_pattern_index
+    
+    -- Save loop mode state for sliced instruments
+    if is_sliced then
+        local first_sample = selected_instrument.samples[1]
+        experimental_render_context.original_loop_mode = first_sample.loop_mode
+        experimental_render_context.is_sliced_instrument = true
+        print("DEBUG EXP: Saved loop mode for sliced instrument:", first_sample.loop_mode)
+        -- Set loop mode to Off for rendering
+        first_sample.loop_mode = renoise.Sample.LOOP_MODE_OFF
+        print("DEBUG EXP: Set loop mode to Off for rendering")
+    else
+        experimental_render_context.is_sliced_instrument = false
+    end
     experimental_render_context.original_pattern_length = song.patterns[song.selected_pattern_index].number_of_lines
     experimental_render_context.original_track_headroom = song.transport.track_headroom
     experimental_render_context.sample_length_seconds = sample_length_seconds
@@ -2077,10 +2090,20 @@ function experimental_rendering_done_callback()
         end
     end
     
+    -- Apply optional silence removal before cleanup
+    if preferences.experimentalRenderRemoveSilence.value then
+        print("DEBUG EXP: Applying silence removal to rendered sample")
+        -- Select the newly created sample for silence removal
+        song.selected_instrument_index = experimental_render_context.target_instrument
+        song.selected_sample_index = 1
+        PakettiStripSilence()
+        renoise.app():show_status("Experimental FX render complete: " .. result_name .. " (silence removed)")
+    else
+        renoise.app():show_status("Experimental FX render complete: " .. result_name)
+    end
+    
     -- Cleanup and restore original state
     cleanup_experimental_render()
-    
-    renoise.app():show_status("Experimental FX render complete: " .. result_name)
 end
 
 function monitor_experimental_rendering()
@@ -2105,6 +2128,16 @@ function cleanup_experimental_render()
     song.transport.bpm = experimental_render_context.original_bpm
     song.transport.lpb = experimental_render_context.original_lpb
     song.transport.track_headroom = experimental_render_context.original_track_headroom
+    
+    -- Restore original loop mode for sliced instruments
+    if experimental_render_context.is_sliced_instrument and experimental_render_context.original_loop_mode then
+        local original_instrument = song:instrument(experimental_render_context.target_instrument - 1)
+        if original_instrument and #original_instrument.samples > 0 then
+            local first_sample = original_instrument.samples[1]
+            first_sample.loop_mode = experimental_render_context.original_loop_mode
+            print("DEBUG EXP: Restored loop mode for sliced instrument to:", experimental_render_context.original_loop_mode)
+        end
+    end
     
     print("DEBUG EXP: Restored original state - BPM:", experimental_render_context.original_bpm, "LPB:", experimental_render_context.original_lpb, "Headroom:", math.lin2db(experimental_render_context.original_track_headroom), "dB")
     

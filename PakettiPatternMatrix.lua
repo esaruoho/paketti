@@ -218,3 +218,245 @@ renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Duplicate Pattern (No
 
 renoise.tool():add_midi_mapping{name="Paketti:Duplicate Pattern (No Clear)",invoke=PakettiDuplicatePattern}
 
+-- Swap pattern slot with the one above
+function PakettiSwapPatternSlotWithAbove()
+  local song = renoise.song()
+  local current_sequence_index = song.selected_sequence_index
+  local current_track_index = song.selected_track_index
+  
+  -- Check if there's a pattern above
+  if current_sequence_index <= 1 then
+    renoise.app():show_status("There is no pattern above the one you're on, doing nothing")
+    return
+  end
+  
+  local target_sequence_index = current_sequence_index - 1
+  local current_pattern_index = song.sequencer.pattern_sequence[current_sequence_index]
+  local target_pattern_index = song.sequencer.pattern_sequence[target_sequence_index]
+  
+  -- Get pattern data for both positions
+  local current_pattern = song.patterns[current_pattern_index]
+  local target_pattern = song.patterns[target_pattern_index]
+  
+  -- Swap the track data between patterns
+  PakettiSwapTrackDataBetweenPatterns(current_pattern, target_pattern, current_track_index)
+  
+  renoise.app():show_status("Swapped pattern slot with the one above")
+end
+
+-- Swap pattern slot with the one below
+function PakettiSwapPatternSlotWithBelow()
+  local song = renoise.song()
+  local current_sequence_index = song.selected_sequence_index
+  local current_track_index = song.selected_track_index
+  
+  -- Check if there's a pattern below
+  if current_sequence_index >= #song.sequencer.pattern_sequence then
+    renoise.app():show_status("There is no pattern below the one you're on, doing nothing")
+    return
+  end
+  
+  local target_sequence_index = current_sequence_index + 1
+  local current_pattern_index = song.sequencer.pattern_sequence[current_sequence_index]
+  local target_pattern_index = song.sequencer.pattern_sequence[target_sequence_index]
+  
+  -- Get pattern data for both positions
+  local current_pattern = song.patterns[current_pattern_index]
+  local target_pattern = song.patterns[target_pattern_index]
+  
+  -- Swap the track data between patterns
+  PakettiSwapTrackDataBetweenPatterns(current_pattern, target_pattern, current_track_index)
+  
+  renoise.app():show_status("Swapped pattern slot with the one below")
+end
+
+-- Helper function to swap track data between two patterns, handling different lengths
+function PakettiSwapTrackDataBetweenPatterns(pattern_a, pattern_b, track_index)
+  local current_track_a = pattern_a.tracks[track_index]
+  local current_track_b = pattern_b.tracks[track_index]
+  
+  local pattern_a_lines = pattern_a.number_of_lines
+  local pattern_b_lines = pattern_b.number_of_lines
+  
+  -- Create temporary storage for track data
+  local temp_track_data = {}
+  local temp_automation_data = {}
+  
+  -- Store track A data (all lines, even beyond pattern B length)
+  temp_track_data.lines = {}
+  for line_index = 1, pattern_a_lines do
+    temp_track_data.lines[line_index] = {}
+    temp_track_data.lines[line_index].note_columns = {}
+    temp_track_data.lines[line_index].effect_columns = {}
+    
+    -- Store note columns
+    for col_index = 1, #current_track_a.lines[line_index].note_columns do
+      local note_col = current_track_a.lines[line_index].note_columns[col_index]
+      temp_track_data.lines[line_index].note_columns[col_index] = {
+        note_value = note_col.note_value,
+        instrument_value = note_col.instrument_value,
+        volume_value = note_col.volume_value,
+        panning_value = note_col.panning_value,
+        delay_value = note_col.delay_value,
+        effect_number_value = note_col.effect_number_value,
+        effect_amount_value = note_col.effect_amount_value
+      }
+    end
+    
+    -- Store effect columns
+    for col_index = 1, #current_track_a.lines[line_index].effect_columns do
+      local effect_col = current_track_a.lines[line_index].effect_columns[col_index]
+      temp_track_data.lines[line_index].effect_columns[col_index] = {
+        number_value = effect_col.number_value,
+        amount_value = effect_col.amount_value
+      }
+    end
+  end
+  
+  -- Store automation data for track A
+  temp_automation_data = {}
+  for _, automation in ipairs(current_track_a.automation) do
+    local temp_automation = {
+      parameter = automation.dest_parameter,
+      points = {}
+    }
+    for _, point in ipairs(automation.points) do
+      table.insert(temp_automation.points, {time = point.time, value = point.value})
+    end
+    table.insert(temp_automation_data, temp_automation)
+  end
+  
+  -- Clear track A
+  current_track_a:clear()
+  
+  -- Copy track B to track A, handling length differences
+  if pattern_b_lines <= pattern_a_lines then
+    -- Pattern B is shorter or same length - copy and loop if necessary
+    for line_index = 1, pattern_a_lines do
+      local source_line_index = ((line_index - 1) % pattern_b_lines) + 1
+      current_track_a:line(line_index):copy_from(current_track_b:line(source_line_index))
+    end
+  else
+    -- Pattern B is longer - copy all lines (only what fits will play)
+    for line_index = 1, pattern_b_lines do
+      if line_index <= pattern_a_lines then
+        current_track_a:line(line_index):copy_from(current_track_b:line(line_index))
+      end
+    end
+  end
+  
+  -- Copy automation from B to A
+  for _, automation in ipairs(current_track_b.automation) do
+    local parameter = automation.dest_parameter
+    local new_automation = current_track_a:find_automation(parameter)
+    if not new_automation then
+      new_automation = current_track_a:create_automation(parameter)
+    end
+    new_automation:copy_from(automation)
+  end
+  
+  -- Clear track B
+  current_track_b:clear()
+  
+  -- Copy stored track A data to track B, handling length differences
+  if pattern_a_lines <= pattern_b_lines then
+    -- Stored data is shorter or same length - copy and loop if necessary
+    for line_index = 1, pattern_b_lines do
+      local source_line_index = ((line_index - 1) % pattern_a_lines) + 1
+      local source_line = temp_track_data.lines[source_line_index]
+      
+      -- Copy note columns
+      for col_index, note_col_data in pairs(source_line.note_columns) do
+        if current_track_b.lines[line_index].note_columns[col_index] then
+          local note_col = current_track_b.lines[line_index].note_columns[col_index]
+          note_col.note_value = note_col_data.note_value
+          note_col.instrument_value = note_col_data.instrument_value
+          note_col.volume_value = note_col_data.volume_value
+          note_col.panning_value = note_col_data.panning_value
+          note_col.delay_value = note_col_data.delay_value
+          note_col.effect_number_value = note_col_data.effect_number_value
+          note_col.effect_amount_value = note_col_data.effect_amount_value
+        end
+      end
+      
+      -- Copy effect columns
+      for col_index, effect_col_data in pairs(source_line.effect_columns) do
+        if current_track_b.lines[line_index].effect_columns[col_index] then
+          local effect_col = current_track_b.lines[line_index].effect_columns[col_index]
+          effect_col.number_value = effect_col_data.number_value
+          effect_col.amount_value = effect_col_data.amount_value
+        end
+      end
+    end
+  else
+    -- Stored data is longer - copy all lines (only what fits will play)
+    for line_index = 1, pattern_a_lines do
+      if line_index <= pattern_b_lines then
+        local source_line = temp_track_data.lines[line_index]
+        
+        -- Copy note columns
+        for col_index, note_col_data in pairs(source_line.note_columns) do
+          if current_track_b.lines[line_index].note_columns[col_index] then
+            local note_col = current_track_b.lines[line_index].note_columns[col_index]
+            note_col.note_value = note_col_data.note_value
+            note_col.instrument_value = note_col_data.instrument_value
+            note_col.volume_value = note_col_data.volume_value
+            note_col.panning_value = note_col_data.panning_value
+            note_col.delay_value = note_col_data.delay_value
+            note_col.effect_number_value = note_col_data.effect_number_value
+            note_col.effect_amount_value = note_col_data.effect_amount_value
+          end
+        end
+        
+        -- Copy effect columns
+        for col_index, effect_col_data in pairs(source_line.effect_columns) do
+          if current_track_b.lines[line_index].effect_columns[col_index] then
+            local effect_col = current_track_b.lines[line_index].effect_columns[col_index]
+            effect_col.number_value = effect_col_data.number_value
+            effect_col.amount_value = effect_col_data.amount_value
+          end
+        end
+      end
+    end
+  end
+  
+  -- Copy stored automation from A to B
+  for _, temp_automation in ipairs(temp_automation_data) do
+    local parameter = temp_automation.parameter
+    local new_automation = current_track_b:find_automation(parameter)
+    if not new_automation then
+      new_automation = current_track_b:create_automation(parameter)
+    end
+    
+    -- Clear existing points and add the stored ones
+    new_automation:clear()
+    for _, point in ipairs(temp_automation.points) do
+      new_automation:add_point_at(point.time, point.value)
+    end
+  end
+end
+
+-- Menu entries for Swap Pattern Slot functions
+renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Swap Pattern Slot with Above",invoke=PakettiSwapPatternSlotWithAbove}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Swap Pattern Slot with Above",invoke=PakettiSwapPatternSlotWithAbove}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Swap Pattern Slot with Above",invoke=PakettiSwapPatternSlotWithAbove}
+
+renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Swap Pattern Slot with Below",invoke=PakettiSwapPatternSlotWithBelow}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Swap Pattern Slot with Below",invoke=PakettiSwapPatternSlotWithBelow}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Swap Pattern Slot with Below",invoke=PakettiSwapPatternSlotWithBelow}
+
+-- Keybindings for Swap Pattern Slot functions
+renoise.tool():add_keybinding{name="Global:Paketti:Swap Pattern Slot with Above",invoke=PakettiSwapPatternSlotWithAbove}
+renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Swap Pattern Slot with Above",invoke=PakettiSwapPatternSlotWithAbove}
+renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Swap Pattern Slot with Above",invoke=PakettiSwapPatternSlotWithAbove}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Swap Pattern Slot with Above",invoke=PakettiSwapPatternSlotWithAbove}
+
+renoise.tool():add_keybinding{name="Global:Paketti:Swap Pattern Slot with Below",invoke=PakettiSwapPatternSlotWithBelow}
+renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Swap Pattern Slot with Below",invoke=PakettiSwapPatternSlotWithBelow}
+renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Swap Pattern Slot with Below",invoke=PakettiSwapPatternSlotWithBelow}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Swap Pattern Slot with Below",invoke=PakettiSwapPatternSlotWithBelow}
+
+-- MIDI mappings for Swap Pattern Slot functions
+renoise.tool():add_midi_mapping{name="Paketti:Swap Pattern Slot with Above",invoke=PakettiSwapPatternSlotWithAbove}
+renoise.tool():add_midi_mapping{name="Paketti:Swap Pattern Slot with Below",invoke=PakettiSwapPatternSlotWithBelow}
+
