@@ -171,6 +171,7 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   pakettiLoaderMoveSilenceToEnd=false,
   pakettiLoaderNormalizeSamples=false,
   pakettiPolyendOpenDialog=true,
+  pakettiExplodeTrackNaming=true,  -- Enable note+instrument naming for exploded tracks (e.g. "C-4 MyInstrument")
   selectionNewInstrumentSelect=false,
   selectionNewInstrumentLoop=2,
   selectionNewInstrumentInterpolation=4,
@@ -1662,6 +1663,13 @@ vb:row{
               end}
           },
           vb:row{vb:text{style="strong",text="Controls whether entries are under File directly, File:Paketti submenu, or both."}},
+          vb:space{height=8},
+          vb:text{style="strong",font="bold",text="Pattern Editor"},
+          vb:row{
+            vb:text{text="Exploded Track Naming",width=150,tooltip="Use 'C-4 InstrumentName' format for exploded tracks instead of 'C-4 Notes'"},
+            vb:switch{items={"Off","On"},value=preferences.pakettiExplodeTrackNaming.value and 2 or 1,width=200,tooltip="Use 'C-4 InstrumentName' format for exploded tracks instead of 'C-4 Notes'",
+              notifier=function(value) preferences.pakettiExplodeTrackNaming.value=(value==2) end}
+          },
           vb:space{height=8},
           vb:text{style="strong",font="bold",text="Groovebox 8120"},
           vb:row{

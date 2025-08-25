@@ -2642,6 +2642,80 @@ renoise.tool():add_midi_mapping{
 }
 
 -- ======================================
+-- Paketti Global View Preset Cycling
+-- ======================================
+-- Based on ledger.scripts.PatternShortcuts - cycle through Renoise's built-in global view presets
+
+local paketti_current_view_preset = 1
+
+function PakettiSelectNextGlobalViewPreset()
+  if paketti_current_view_preset == 8 then
+    paketti_current_view_preset = 1
+    renoise.app().window:select_preset(paketti_current_view_preset)
+  else
+    renoise.app().window:select_preset(paketti_current_view_preset + 1)
+    paketti_current_view_preset = paketti_current_view_preset + 1
+  end
+  
+  renoise.app():show_status(string.format("Global View Preset: %d", paketti_current_view_preset))
+  print(string.format("-- Paketti Global View Preset: Selected preset %d", paketti_current_view_preset))
+end
+
+function PakettiSelectPreviousGlobalViewPreset()
+  if paketti_current_view_preset == 1 then
+    paketti_current_view_preset = 8
+    renoise.app().window:select_preset(paketti_current_view_preset)
+  else
+    renoise.app().window:select_preset(paketti_current_view_preset - 1)
+    paketti_current_view_preset = paketti_current_view_preset - 1
+  end
+  
+  renoise.app():show_status(string.format("Global View Preset: %d", paketti_current_view_preset))
+  print(string.format("-- Paketti Global View Preset: Selected preset %d", paketti_current_view_preset))
+end
+
+-- Menu entries
+renoise.tool():add_menu_entry{
+  name = "Main Menu:Tools:Paketti:Navigation:Cycle Forward through Global View Presets",
+  invoke = PakettiSelectNextGlobalViewPreset
+}
+
+renoise.tool():add_menu_entry{
+  name = "Main Menu:Tools:Paketti:Navigation:Cycle Backwards through Global View Presets", 
+  invoke = PakettiSelectPreviousGlobalViewPreset
+}
+
+-- Keybindings
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Cycle Forward through Global View Presets",
+  invoke = PakettiSelectNextGlobalViewPreset
+}
+
+renoise.tool():add_keybinding{
+  name = "Global:Paketti:Cycle Backwards through Global View Presets",
+  invoke = PakettiSelectPreviousGlobalViewPreset
+}
+
+-- MIDI mappings
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Cycle Forward through Global View Presets",
+  invoke = function(message) 
+    if message:is_trigger() then 
+      PakettiSelectNextGlobalViewPreset() 
+    end 
+  end
+}
+
+renoise.tool():add_midi_mapping{
+  name = "Paketti:Cycle Backwards through Global View Presets",
+  invoke = function(message) 
+    if message:is_trigger() then 
+      PakettiSelectPreviousGlobalViewPreset() 
+    end 
+  end
+}
+
+-- ======================================
 -- Paketti Experimental/WIP Tools
 -- ======================================
 -- Based on various danoise scripts - experimental features for testing

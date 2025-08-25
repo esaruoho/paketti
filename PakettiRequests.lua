@@ -9030,8 +9030,770 @@ function note_string(note_value)
   return notes[note_index] .. octave
 end
 
+-- Enhanced explode function with corrected order (first note column -> first track)
+function explode_notes_to_tracks_ordered()
+    local song=renoise.song()
+    local selected_track_index = song.selected_track_index
+    local selected_track = song:track(selected_track_index)
+    local pattern = song.selected_pattern
+    local track_data = pattern:track(selected_track_index)
+    
+    -- Store original edit mode state
+    local original_edit_mode = song.transport.edit_mode
+    -- Temporarily disable edit mode
+    song.transport.edit_mode = false
+
+    -- Check if there are any notes
+    local found_notes = false
+    for column_index = 1, selected_track.visible_note_columns do
+      for line_index = 1, pattern.number_of_lines do
+        local line = track_data:line(line_index)
+        local note = line.note_columns[column_index]
+        if note.note_value > 0 and note.note_value < 120 then
+          found_notes = true
+          break
+        end
+      end
+      if found_notes then break end
+    end
+    
+    if not found_notes then
+      renoise.app():show_status("There are no notes on the currently selected track, doing nothing.")
+      song.transport.edit_mode = original_edit_mode
+      return
+    end
+  
+    -- Store all unique notes and their positions, keeping track of simultaneous notes
+    local notes_map = {}
+    local sorted_notes = {}  -- To maintain order
+    
+    -- Go through all visible note columns
+    for line_index = 1, pattern.number_of_lines do
+      local simultaneous_notes = {}
+      
+      for column_index = 1, selected_track.visible_note_columns do
+        local line = track_data:line(line_index)
+        local note = line.note_columns[column_index]
+        
+        if note.note_value > 0 and note.note_value < 120 then
+          local note_name = note_string(note.note_value)
+          
+          -- Initialize the note map entry if it doesn't exist
+          if not notes_map[note_name] then
+            notes_map[note_name] = {
+              max_simultaneous = 1,
+              notes = {},
+              first_seen_line = line_index,
+              first_seen_column = column_index
+            }
+            table.insert(sorted_notes, note_name)
+          end
+          
+          -- Count simultaneous notes of the same pitch
+          if not simultaneous_notes[note_name] then
+            simultaneous_notes[note_name] = 1
+          else
+            simultaneous_notes[note_name] = simultaneous_notes[note_name] + 1
+            notes_map[note_name].max_simultaneous = math.max(notes_map[note_name].max_simultaneous, simultaneous_notes[note_name])
+          end
+          
+          -- Store position information for the note
+          local note_info = {
+            line_index = line_index,
+            column_index = simultaneous_notes[note_name],
+            note_value = note.note_value,
+            instrument_value = note.instrument_value,
+            volume_value = note.volume_value,
+            panning_value = note.panning_value,
+            note_offs = {}
+          }
+          
+          -- Look ahead for note-offs
+          local next_index = line_index + 1
+          while next_index <= pattern.number_of_lines do
+            local next_line = track_data:line(next_index)
+            local next_note = next_line.note_columns[column_index]
+            
+            if next_note.note_value == 120 then  -- Note-off
+              table.insert(note_info.note_offs, next_index)
+              next_index = next_index + 1
+            else
+              break
+            end
+          end
+          
+          table.insert(notes_map[note_name].notes, note_info)
+        end
+      end
+    end
+    
+    -- Sort notes by first appearance (line, then column) to maintain order
+    table.sort(sorted_notes, function(a, b)
+      local note_a = notes_map[a]
+      local note_b = notes_map[b]
+      if note_a.first_seen_line == note_b.first_seen_line then
+        return note_a.first_seen_column < note_b.first_seen_column
+      end
+      return note_a.first_seen_line < note_b.first_seen_line
+    end)
+    
+    -- Create new tracks for each unique note in correct order
+    local track_insert_index = selected_track_index + 1
+    for _, note_name in ipairs(sorted_notes) do
+      local note_data = notes_map[note_name]
+      
+      -- Create new track after the selected track
+      song:insert_track_at(track_insert_index)
+      local new_track = song:track(track_insert_index)
+      
+      -- Set track name based on preference
+      if preferences.pakettiExplodeTrackNaming.value then
+        local instrument_name = song.selected_instrument.name
+        new_track.name = note_name .. " " .. instrument_name
+      else
+        new_track.name = note_name .. " Notes"
+      end
+      
+      -- Set the number of visible note columns needed for simultaneous notes
+      new_track.visible_note_columns = note_data.max_simultaneous
+      
+      -- Copy notes to new track
+      for _, note_info in ipairs(note_data.notes) do
+        local new_track_data = pattern:track(track_insert_index)
+        
+        -- Place the note in the appropriate column
+        local line = new_track_data:line(note_info.line_index)
+        local note_column = line.note_columns[note_info.column_index]
+        note_column.note_value = note_info.note_value
+        note_column.instrument_value = note_info.instrument_value
+        note_column.volume_value = note_info.volume_value
+        note_column.panning_value = note_info.panning_value
+        
+        -- Place any associated note-offs
+        for _, off_index in ipairs(note_info.note_offs) do
+          local off_line = new_track_data:line(off_index)
+          off_line.note_columns[note_info.column_index].note_value = 120  -- Note-off
+        end
+      end
+      
+      track_insert_index = track_insert_index + 1
+    end
+  
+    -- Wipe the original track if the preference is enabled
+    if preferences.pakettiWipeExplodedTrack.value then
+      local original_track_data = pattern:track(selected_track_index)
+      for line_index = 1, pattern.number_of_lines do
+        local line = original_track_data:line(line_index)
+        for column_index = 1, selected_track.visible_note_columns do
+          local note = line.note_columns[column_index]
+          note:clear()
+        end
+      end
+    end
+    
+    -- Restore original edit mode state
+    song.transport.edit_mode = original_edit_mode
+    renoise.app():show_status("Exploded " .. #sorted_notes .. " note types to new tracks (ordered)")
+end
+
+-- Explode to New Tracks for Whole Song
+function explode_notes_to_tracks_whole_song()
+    local song=renoise.song()
+    local selected_track_index = song.selected_track_index
+    local selected_track = song:track(selected_track_index)
+    
+    -- Store original edit mode state
+    local original_edit_mode = song.transport.edit_mode
+    song.transport.edit_mode = false
+
+    -- Find all non-empty patterns that contain this track
+    local patterns_with_notes = {}
+    local global_notes_map = {}
+    local sorted_notes = {}
+    
+    -- Scan all patterns for notes on the selected track
+    for pattern_index = 1, #song.patterns do
+      local pattern = song:pattern(pattern_index)
+      local track_data = pattern:track(selected_track_index)
+      local pattern_has_notes = false
+      
+      -- Check if this pattern has any notes
+      for line_index = 1, pattern.number_of_lines do
+        for column_index = 1, selected_track.visible_note_columns do
+          local line = track_data:line(line_index)
+          local note = line.note_columns[column_index]
+          if note.note_value > 0 and note.note_value < 120 then
+            pattern_has_notes = true
+            break
+          end
+        end
+        if pattern_has_notes then break end
+      end
+      
+      if pattern_has_notes then
+        table.insert(patterns_with_notes, pattern_index)
+        
+        -- Collect notes from this pattern
+        for line_index = 1, pattern.number_of_lines do
+          local simultaneous_notes = {}
+          
+          for column_index = 1, selected_track.visible_note_columns do
+            local line = track_data:line(line_index)
+            local note = line.note_columns[column_index]
+            
+            if note.note_value > 0 and note.note_value < 120 then
+              local note_name = note_string(note.note_value)
+              
+              -- Initialize the global note map entry if it doesn't exist
+              if not global_notes_map[note_name] then
+                global_notes_map[note_name] = {
+                  max_simultaneous = 1,
+                  patterns = {},
+                  first_seen_pattern = pattern_index,
+                  first_seen_line = line_index,
+                  first_seen_column = column_index
+                }
+                table.insert(sorted_notes, note_name)
+              end
+              
+              -- Initialize pattern entry for this note
+              if not global_notes_map[note_name].patterns[pattern_index] then
+                global_notes_map[note_name].patterns[pattern_index] = {
+                  notes = {}
+                }
+              end
+              
+              -- Count simultaneous notes
+              if not simultaneous_notes[note_name] then
+                simultaneous_notes[note_name] = 1
+              else
+                simultaneous_notes[note_name] = simultaneous_notes[note_name] + 1
+                global_notes_map[note_name].max_simultaneous = math.max(
+                  global_notes_map[note_name].max_simultaneous, 
+                  simultaneous_notes[note_name]
+                )
+              end
+              
+              -- Store note info
+              local note_info = {
+                line_index = line_index,
+                column_index = simultaneous_notes[note_name],
+                note_value = note.note_value,
+                instrument_value = note.instrument_value,
+                volume_value = note.volume_value,
+                panning_value = note.panning_value,
+                note_offs = {}
+              }
+              
+              -- Look ahead for note-offs
+              local next_index = line_index + 1
+              while next_index <= pattern.number_of_lines do
+                local next_line = track_data:line(next_index)
+                local next_note = next_line.note_columns[column_index]
+                
+                if next_note.note_value == 120 then
+                  table.insert(note_info.note_offs, next_index)
+                  next_index = next_index + 1
+                else
+                  break
+                end
+              end
+              
+              table.insert(global_notes_map[note_name].patterns[pattern_index].notes, note_info)
+            end
+          end
+        end
+      end
+    end
+    
+    if #patterns_with_notes == 0 then
+      renoise.app():show_status("No notes found on selected track in any pattern, doing nothing.")
+      song.transport.edit_mode = original_edit_mode
+      return
+    end
+    
+    -- Sort notes by first appearance across all patterns
+    table.sort(sorted_notes, function(a, b)
+      local note_a = global_notes_map[a]
+      local note_b = global_notes_map[b]
+      if note_a.first_seen_pattern == note_b.first_seen_pattern then
+        if note_a.first_seen_line == note_b.first_seen_line then
+          return note_a.first_seen_column < note_b.first_seen_column
+        end
+        return note_a.first_seen_line < note_b.first_seen_line
+      end
+      return note_a.first_seen_pattern < note_b.first_seen_pattern
+    end)
+    
+    -- Create new tracks for each unique note in correct order
+    local track_insert_index = selected_track_index + 1
+    for _, note_name in ipairs(sorted_notes) do
+      local note_data = global_notes_map[note_name]
+      
+      -- Create new track after the selected track
+      song:insert_track_at(track_insert_index)
+      local new_track = song:track(track_insert_index)
+      
+      -- Set track name based on preference
+      if preferences.pakettiExplodeTrackNaming.value then
+        local instrument_name = song.selected_instrument.name
+        new_track.name = note_name .. " " .. instrument_name
+      else
+        new_track.name = note_name .. " Notes"
+      end
+      
+      -- Set the number of visible note columns needed
+      new_track.visible_note_columns = note_data.max_simultaneous
+      
+      -- Copy notes to new track for all patterns
+      for pattern_index, pattern_notes in pairs(note_data.patterns) do
+        local pattern = song:pattern(pattern_index)
+        local new_track_data = pattern:track(track_insert_index)
+        
+        for _, note_info in ipairs(pattern_notes.notes) do
+          -- Place the note in the appropriate column
+          local line = new_track_data:line(note_info.line_index)
+          local note_column = line.note_columns[note_info.column_index]
+          note_column.note_value = note_info.note_value
+          note_column.instrument_value = note_info.instrument_value
+          note_column.volume_value = note_info.volume_value
+          note_column.panning_value = note_info.panning_value
+          
+          -- Place any associated note-offs
+          for _, off_index in ipairs(note_info.note_offs) do
+            local off_line = new_track_data:line(off_index)
+            off_line.note_columns[note_info.column_index].note_value = 120
+          end
+        end
+      end
+      
+      track_insert_index = track_insert_index + 1
+    end
+  
+    -- Wipe the original track if the preference is enabled
+    if preferences.pakettiWipeExplodedTrack.value then
+      for _, pattern_index in ipairs(patterns_with_notes) do
+        local pattern = song:pattern(pattern_index)
+        local original_track_data = pattern:track(selected_track_index)
+        for line_index = 1, pattern.number_of_lines do
+          local line = original_track_data:line(line_index)
+          for column_index = 1, selected_track.visible_note_columns do
+            local note = line.note_columns[column_index]
+            note:clear()
+          end
+        end
+      end
+    end
+    
+    -- Restore original edit mode state
+    song.transport.edit_mode = original_edit_mode
+    renoise.app():show_status("Exploded " .. #sorted_notes .. " note types across " .. #patterns_with_notes .. " patterns to new tracks")
+end
+
 renoise.tool():add_midi_mapping{name="Paketti:Explode Notes to New Tracks",invoke=function() explode_notes_to_tracks() end}
 renoise.tool():add_keybinding{name="Global:Paketti:Explode Notes to New Tracks",invoke=function() explode_notes_to_tracks() end}
+renoise.tool():add_midi_mapping{name="Paketti:Explode Notes to New Tracks (Ordered)",invoke=function() explode_notes_to_tracks_ordered() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Explode Notes to New Tracks (Ordered)",invoke=function() explode_notes_to_tracks_ordered() end}
+renoise.tool():add_midi_mapping{name="Paketti:Explode Notes to New Tracks (Whole Song)",invoke=function() explode_notes_to_tracks_whole_song() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Explode Notes to New Tracks (Whole Song)",invoke=function() explode_notes_to_tracks_whole_song() end}
+
+-- Note Column Squeeze Functions - Smart note occupancy tracking
+function squeeze_note_columns_pattern()
+    local song=renoise.song()
+    local selected_track_index = song.selected_track_index
+    local selected_track = song:track(selected_track_index)
+    local pattern = song.selected_pattern
+    local track_data = pattern:track(selected_track_index)
+    
+    -- Store original edit mode state
+    local original_edit_mode = song.transport.edit_mode
+    song.transport.edit_mode = false
+
+    -- Check if it's a sequencer track
+    if selected_track.type ~= renoise.Track.TRACK_TYPE_SEQUENCER then
+        renoise.app():show_status("Note column squeeze only works on sequencer tracks.")
+        song.transport.edit_mode = original_edit_mode
+        return
+    end
+    
+    -- First pass: check if there are ANY note-offs in the pattern
+    local has_note_offs = false
+    local all_notes = {}
+    
+    for line_index = 1, pattern.number_of_lines do
+        local line = track_data:line(line_index)
+        
+        for column_index = 1, selected_track.visible_note_columns do
+            local note = line.note_columns[column_index]
+            if not note.is_empty then
+                if note.note_value == 120 then
+                    has_note_offs = true
+                    table.insert(all_notes, {
+                        line = line_index,
+                        is_note_off = true
+                    })
+                elseif note.note_value > 0 and note.note_value < 120 then
+                    table.insert(all_notes, {
+                        line = line_index,
+                        is_note_off = false,
+                        note_value = note.note_value,
+                        instrument_value = note.instrument_value,
+                        volume_value = note.volume_value,
+                        panning_value = note.panning_value,
+                        delay_value = note.delay_value
+                    })
+                end
+            end
+        end
+    end
+    
+    if #all_notes == 0 then
+        renoise.app():show_status("No notes found in pattern, nothing to squeeze.")
+        song.transport.edit_mode = original_edit_mode
+        return
+    end
+    
+    -- Sort notes by line
+    table.sort(all_notes, function(a, b) return a.line < b.line end)
+    
+    local squeezed_notes = {}
+    local max_columns_used = 0
+    
+    if has_note_offs then
+        -- Smart mode: respect note-offs and timing
+        local column_occupancy = {}  -- column_occupancy[col] = line_when_free
+        
+        for _, note_data in ipairs(all_notes) do
+            if not note_data.is_note_off then
+                -- Find when this note ends (note-off or end of pattern)
+                local note_end = pattern.number_of_lines + 1  -- Default: note plays until end
+                
+                -- Look for note-off in same column as original note
+                for search_line = note_data.line + 1, pattern.number_of_lines do
+                    for search_col = 1, selected_track.visible_note_columns do
+                        local search_note = track_data:line(search_line).note_columns[search_col]
+                        if search_note.note_value == 120 then  -- Found note-off
+                            note_end = search_line
+                            break
+                        elseif search_note.note_value > 0 and search_note.note_value < 120 then  -- Found new note
+                            note_end = search_line
+                            break
+                        end
+                    end
+                    if note_end <= search_line then break end
+                end
+                
+                -- Find first available column
+                local assigned_column = nil
+                for col = 1, 12 do
+                    if not column_occupancy[col] or column_occupancy[col] <= note_data.line then
+                        assigned_column = col
+                        break
+                    end
+                end
+                
+                if assigned_column then
+                    column_occupancy[assigned_column] = note_end
+                    table.insert(squeezed_notes, {
+                        line = note_data.line,
+                        column = assigned_column,
+                        note_value = note_data.note_value,
+                        instrument_value = note_data.instrument_value,
+                        volume_value = note_data.volume_value,
+                        panning_value = note_data.panning_value,
+                        delay_value = note_data.delay_value
+                    })
+                end
+            end
+        end
+    else
+        -- Simple mode: no note-offs, just pack notes together by line
+        local line_notes = {}
+        
+        -- Group notes by line
+        for _, note_data in ipairs(all_notes) do
+            if not note_data.is_note_off then
+                if not line_notes[note_data.line] then
+                    line_notes[note_data.line] = {}
+                end
+                table.insert(line_notes[note_data.line], note_data)
+            end
+        end
+        
+        -- Pack notes efficiently
+        for line_index, notes_on_line in pairs(line_notes) do
+            for col_index, note_data in ipairs(notes_on_line) do
+                table.insert(squeezed_notes, {
+                    line = line_index,
+                    column = col_index,
+                    note_value = note_data.note_value,
+                    instrument_value = note_data.instrument_value,
+                    volume_value = note_data.volume_value,
+                    panning_value = note_data.panning_value,
+                    delay_value = note_data.delay_value
+                })
+            end
+        end
+    end
+    
+    -- Calculate max_columns_used AFTER squeezing by looking at actual squeezed data
+    max_columns_used = 0
+    for _, note_data in ipairs(squeezed_notes) do
+        max_columns_used = math.max(max_columns_used, note_data.column)
+    end
+    
+    -- Clear all note columns first
+    for line_index = 1, pattern.number_of_lines do
+        local line = track_data:line(line_index)
+        for column_index = 1, selected_track.visible_note_columns do
+            line.note_columns[column_index]:clear()
+        end
+    end
+    
+    -- Re-populate with squeezed data
+    for _, note_data in ipairs(squeezed_notes) do
+        if note_data.column <= selected_track.visible_note_columns then
+            local line = track_data:line(note_data.line)
+            local note_column = line.note_columns[note_data.column]
+            note_column.note_value = note_data.note_value
+            note_column.instrument_value = note_data.instrument_value
+            note_column.volume_value = note_data.volume_value
+            note_column.panning_value = note_data.panning_value
+            note_column.delay_value = note_data.delay_value
+        end
+    end
+    
+    -- Restore original edit mode state
+    song.transport.edit_mode = original_edit_mode
+    local mode_text = has_note_offs and "timing-aware" or "simple"
+    renoise.app():show_status("Squeezed pattern notes (" .. mode_text .. " mode) into " .. max_columns_used .. " columns")
+end
+
+function squeeze_note_columns_whole_song()
+    local song=renoise.song()
+    local selected_track_index = song.selected_track_index
+    local selected_track = song:track(selected_track_index)
+    
+    -- Store original edit mode state
+    local original_edit_mode = song.transport.edit_mode
+    song.transport.edit_mode = false
+
+    -- Check if it's a sequencer track
+    if selected_track.type ~= renoise.Track.TRACK_TYPE_SEQUENCER then
+        renoise.app():show_status("Note column squeeze only works on sequencer tracks.")
+        song.transport.edit_mode = original_edit_mode
+        return
+    end
+    
+    -- First pass: check if there are ANY note-offs in the entire song
+    local has_note_offs_globally = false
+    local patterns_with_notes = {}
+    local all_pattern_data = {}
+    
+    for pattern_index = 1, #song.patterns do
+        local pattern = song:pattern(pattern_index)
+        local track_data = pattern:track(selected_track_index)
+        local all_notes = {}
+        local pattern_has_notes = false
+        
+        for line_index = 1, pattern.number_of_lines do
+            local line = track_data:line(line_index)
+            
+            for column_index = 1, selected_track.visible_note_columns do
+                local note = line.note_columns[column_index]
+                if not note.is_empty then
+                    pattern_has_notes = true
+                    if note.note_value == 120 then
+                        has_note_offs_globally = true
+                        table.insert(all_notes, {
+                            line = line_index,
+                            is_note_off = true
+                        })
+                    elseif note.note_value > 0 and note.note_value < 120 then
+                        table.insert(all_notes, {
+                            line = line_index,
+                            is_note_off = false,
+                            note_value = note.note_value,
+                            instrument_value = note.instrument_value,
+                            volume_value = note.volume_value,
+                            panning_value = note.panning_value,
+                            delay_value = note.delay_value
+                        })
+                    end
+                end
+            end
+        end
+        
+        if pattern_has_notes then
+            table.insert(patterns_with_notes, pattern_index)
+            table.sort(all_notes, function(a, b) return a.line < b.line end)
+            all_pattern_data[pattern_index] = all_notes
+        end
+    end
+    
+    if #patterns_with_notes == 0 then
+        renoise.app():show_status("No notes found on selected track in any pattern, nothing to squeeze.")
+        song.transport.edit_mode = original_edit_mode
+        return
+    end
+    
+
+    
+    -- Process each pattern based on global note-off presence
+    local global_max_columns_needed = 0
+    local all_pattern_squeezed_data = {}
+    
+    for _, pattern_index in ipairs(patterns_with_notes) do
+        local pattern = song:pattern(pattern_index)
+        local track_data = pattern:track(selected_track_index)
+        local all_notes = all_pattern_data[pattern_index]
+        local squeezed_notes = {}
+        local pattern_max_columns_used = 0
+        
+        if has_note_offs_globally then
+            -- Smart mode: respect note-offs and timing
+            local column_occupancy = {}
+            
+            for _, note_data in ipairs(all_notes) do
+                if not note_data.is_note_off then
+                    -- Find when this note ends (note-off or end of pattern)
+                    local note_end = pattern.number_of_lines + 1
+                    
+                    -- Look for note-off in same column as original note
+                    for search_line = note_data.line + 1, pattern.number_of_lines do
+                        for search_col = 1, selected_track.visible_note_columns do
+                            local search_note = track_data:line(search_line).note_columns[search_col]
+                            if search_note.note_value == 120 then  -- Found note-off
+                                note_end = search_line
+                                break
+                            elseif search_note.note_value > 0 and search_note.note_value < 120 then  -- Found new note
+                                note_end = search_line
+                                break
+                            end
+                        end
+                        if note_end <= search_line then break end
+                    end
+                    
+                    -- Find first available column
+                    local assigned_column = nil
+                    for col = 1, 12 do
+                        if not column_occupancy[col] or column_occupancy[col] <= note_data.line then
+                            assigned_column = col
+                            break
+                        end
+                    end
+                    
+                                if assigned_column then
+                column_occupancy[assigned_column] = note_end
+                table.insert(squeezed_notes, {
+                    line = note_data.line,
+                    column = assigned_column,
+                    note_value = note_data.note_value,
+                    instrument_value = note_data.instrument_value,
+                    volume_value = note_data.volume_value,
+                    panning_value = note_data.panning_value,
+                    delay_value = note_data.delay_value
+                })
+            end
+                end
+            end
+        else
+            -- Simple mode: no note-offs anywhere, just pack notes together by line
+            local line_notes = {}
+            
+            -- Group notes by line
+            for _, note_data in ipairs(all_notes) do
+                if not note_data.is_note_off then
+                    if not line_notes[note_data.line] then
+                        line_notes[note_data.line] = {}
+                    end
+                    table.insert(line_notes[note_data.line], note_data)
+                end
+            end
+            
+            -- Pack notes efficiently
+            for line_index, notes_on_line in pairs(line_notes) do
+                for col_index, note_data in ipairs(notes_on_line) do
+                    table.insert(squeezed_notes, {
+                        line = line_index,
+                        column = col_index,
+                        note_value = note_data.note_value,
+                        instrument_value = note_data.instrument_value,
+                        volume_value = note_data.volume_value,
+                        panning_value = note_data.panning_value,
+                        delay_value = note_data.delay_value
+                    })
+                end
+            end
+        end
+        
+        -- Calculate pattern_max_columns_used AFTER squeezing by looking at actual squeezed data
+        pattern_max_columns_used = 0
+        for _, note_data in ipairs(squeezed_notes) do
+            pattern_max_columns_used = math.max(pattern_max_columns_used, note_data.column)
+        end
+        
+        all_pattern_squeezed_data[pattern_index] = squeezed_notes
+        global_max_columns_needed = math.max(global_max_columns_needed, pattern_max_columns_used)
+    end
+    
+    -- Second pass: clear and repopulate all affected patterns
+    for _, pattern_index in ipairs(patterns_with_notes) do
+        local pattern = song:pattern(pattern_index)
+        local track_data = pattern:track(selected_track_index)
+        local squeezed_notes = all_pattern_squeezed_data[pattern_index]
+        
+        -- Clear all note columns first
+        for line_index = 1, pattern.number_of_lines do
+            local line = track_data:line(line_index)
+            for column_index = 1, selected_track.visible_note_columns do
+                line.note_columns[column_index]:clear()
+            end
+        end
+        
+        -- Re-populate with squeezed data
+        for _, note_data in ipairs(squeezed_notes) do
+            if note_data.column <= global_max_columns_needed then
+                local line = track_data:line(note_data.line)
+                local note_column = line.note_columns[note_data.column]
+                note_column.note_value = note_data.note_value
+                note_column.instrument_value = note_data.instrument_value
+                note_column.volume_value = note_data.volume_value
+                note_column.panning_value = note_data.panning_value
+                note_column.delay_value = note_data.delay_value
+            end
+        end
+    end
+    
+    -- Restore original edit mode state
+    song.transport.edit_mode = original_edit_mode
+    
+    -- Update visible note columns to match what's actually needed
+    local target_columns = math.max(1, math.min(global_max_columns_needed, 12))
+    local old_columns = selected_track.visible_note_columns
+    
+    selected_track.visible_note_columns = target_columns
+    
+    local mode_text = has_note_offs_globally and "timing-aware" or "simple"
+    renoise.app():show_status("Squeezed " .. #patterns_with_notes .. " patterns (" .. mode_text .. " mode): " .. old_columns .. " → " .. target_columns .. " note columns")
+end
+
+renoise.tool():add_midi_mapping{name="Paketti:Squeeze Note Columns (Pattern)",invoke=function() squeeze_note_columns_pattern() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Squeeze Note Columns (Pattern)",invoke=function() squeeze_note_columns_pattern() end}
+renoise.tool():add_midi_mapping{name="Paketti:Squeeze Note Columns (Whole Song)",invoke=function() squeeze_note_columns_whole_song() end}
+renoise.tool():add_keybinding{name="Global:Paketti:Squeeze Note Columns (Whole Song)",invoke=function() squeeze_note_columns_whole_song() end}
+
+-- Add menu entries for new functions
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Explode Notes to New Tracks (Ordered)",invoke=function() explode_notes_to_tracks_ordered() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Explode Notes to New Tracks (Whole Song)",invoke=function() explode_notes_to_tracks_whole_song() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Squeeze Note Columns (Pattern)",invoke=function() squeeze_note_columns_pattern() end}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Pattern Editor:Squeeze Note Columns (Whole Song)",invoke=function() squeeze_note_columns_whole_song() end}
+
+-- Also add to Pattern Editor context menu
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Explode Notes to New Tracks (Ordered)",invoke=function() explode_notes_to_tracks_ordered() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Explode Notes to New Tracks (Whole Song)",invoke=function() explode_notes_to_tracks_whole_song() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Squeeze Note Columns (Pattern)",invoke=function() squeeze_note_columns_pattern() end}
+renoise.tool():add_menu_entry{name="Pattern Editor:Paketti:Squeeze Note Columns (Whole Song)",invoke=function() squeeze_note_columns_whole_song() end}
 -------
 -- Direction and scope enums
 local DIRECTION = { PREVIOUS = 1, NEXT = 2 }
