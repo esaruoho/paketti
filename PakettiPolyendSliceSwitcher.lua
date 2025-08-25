@@ -353,6 +353,7 @@ renoise.tool():add_keybinding{name="Global:Paketti:Polyend Slice Dialog Toggle",
   end
 }
 
+
 -- Menu entries
 renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Polyend Slice Switcher...",
   invoke=function()
