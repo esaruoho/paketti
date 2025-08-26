@@ -1307,7 +1307,9 @@ function show_mini_cheatsheet_vertical()
   local hex_value = mini_hex_value
 
   local percentage_text = vb:text{
-    text = string.format("%d%% Fill (0x%02X)", math.floor((hex_value / 255) * 100), hex_value)
+    style = "strong",
+    font = "bold",
+    text = string.format("%03d%% Fill (0x%02X)", math.floor((hex_value / 255) * 100), hex_value)
   }
 
   -- Apply random effect
@@ -1325,14 +1327,26 @@ function show_mini_cheatsheet_vertical()
     end
   end
 
+  -- Apply random value
+  local function apply_random_value()
+    hex_value = math.random(0, 255)
+    mini_hex_value = hex_value  -- Update persistent state
+    local percentage = math.floor((hex_value / 255) * 100)
+    percentage_text.text = string.format("%03d%% Fill (0x%02X)", percentage, hex_value)
+    -- Apply effect with new random value
+    local selected_effect = mini_effects[selected_effect_index]
+    apply_mini_effect_direct(selected_effect[1], hex_value)
+    renoise.app():show_status(string.format("Random value: 0x%02X (%03d%%)", hex_value, percentage))
+  end
+
   local dialog_content = vb:column{
-    spacing = 10,
+    
     
     -- Dropdown at top
     vb:popup{
       items = dropdown_items,
       value = selected_effect_index,
-      width = 400,
+      width = 100,
       notifier = function(index)
         selected_effect_index = index
         mini_selected_effect_index = index  -- Update persistent state
@@ -1355,7 +1369,7 @@ function show_mini_cheatsheet_vertical()
           hex_value = math.floor(value + 0.5)
           mini_hex_value = hex_value  -- Update persistent state
           local percentage = math.floor((hex_value / 255) * 100)
-          percentage_text.text = string.format("%d%% Fill (0x%02X)", percentage, hex_value)
+          percentage_text.text = string.format("%03d%% Fill (0x%02X)", percentage, hex_value)
           -- Apply effect in real-time
           local selected_effect = mini_effects[selected_effect_index]
           apply_mini_effect_direct(selected_effect[1], hex_value)
@@ -1370,16 +1384,27 @@ function show_mini_cheatsheet_vertical()
     },
     
     -- Buttons at bottom
-    vb:row{
-      spacing = 5,
+    vb:horizontal_aligner{
+      mode = "center",
       vb:button{
         text = "Random",
-        width = 60,
+        width = 100,
         notifier = apply_random_effect
-      },
+      }
+    },
+    vb:horizontal_aligner{
+      mode = "center",
+      vb:button{
+        text = "Randomize",
+        width = 100,
+        notifier = apply_random_value
+      }
+    },
+    vb:horizontal_aligner{
+      mode = "center",
       vb:button{
         text = "Maximize",
-        width = 70,
+        width = 100,
         notifier = function()
           -- Close mini dialog and open full cheatsheet
           if mini_dialog and mini_dialog.visible then
@@ -1406,7 +1431,7 @@ function show_mini_cheatsheet_vertical()
     end
   end
 
-  mini_dialog = renoise.app():show_custom_dialog("Paketti Minimize Cheatsheet (Vertical)", dialog_content, keyhandler)
+  mini_dialog = renoise.app():show_custom_dialog("Vert", dialog_content, keyhandler)
 end
 
 -- Add menu entry and keybinding for minimized cheatsheet

@@ -484,6 +484,11 @@ preferences = renoise.Document.create("ScriptingToolPreferences") {
   PakettiGroovebox8120AdditionalOptions = false,
   -- Groovebox 8120 playhead highlight color (1=None, 2=Bright Orange, 3=Deeper Purple, 4=Black, 5=White, 6=Dark Grey)
   PakettiGrooveboxPlayheadColor = 3,
+  -- Groovebox 8120 main preferences
+  PakettiGroovebox8120 = {
+    Collapse = false,
+    AppendTracksAndInstruments = true,
+  },
   -- Groovebox 8120 per-instrument BeatSync mode defaults (1=Repitch, 2=Percussion, 3=Texture)
   PakettiGroovebox8120Beatsync = {
     Mode01 = 1,
@@ -1672,6 +1677,26 @@ vb:row{
           },
           vb:space{height=8},
           vb:text{style="strong",font="bold",text="Groovebox 8120"},
+          vb:row{
+            vb:text{text="Collapse",width=150,tooltip="Default collapse state for first 8 tracks when opening Groovebox 8120"},
+            vb:switch{items={"Off","On"},
+              value=preferences.PakettiGroovebox8120.Collapse.value and 2 or 1,
+              width=200,
+              tooltip="Default collapse state for first 8 tracks when opening Groovebox 8120",
+              notifier=function(value)
+                preferences.PakettiGroovebox8120.Collapse.value = (value == 2)
+              end}
+          },
+          vb:row{
+            vb:text{text="Append Tracks & Instruments",width=150,tooltip="Safely create 8 tracks and 8 instruments when opening Groovebox 8120 for the first time"},
+            vb:switch{items={"Off","On"},
+              value=preferences.PakettiGroovebox8120.AppendTracksAndInstruments.value and 2 or 1,
+              width=200,
+              tooltip="Safely create 8 tracks and 8 instruments when opening Groovebox 8120 for the first time",
+              notifier=function(value)
+                preferences.PakettiGroovebox8120.AppendTracksAndInstruments.value = (value == 2)
+              end}
+          },
           vb:row{
             vb:text{text="Playhead Color",width=150},
             vb:switch{items={"None","Orange","Purple","Black","White","Grey"},

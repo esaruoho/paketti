@@ -29,6 +29,7 @@ function PakettiMenuApplyFileMenuLocation(mode)
     "Main Menu:File:Remove Empty Tracks (No Notes, No DSP)...",
     "--Main Menu:File:Largest Samples Dialog...",
     "Main Menu:File:Wipe Song Patterns",
+    "Main Menu:File:Clear Unused Patterns",
   }
 
   local paketti_entries = {
@@ -45,6 +46,7 @@ function PakettiMenuApplyFileMenuLocation(mode)
     "Main Menu:File:Paketti:Remove Empty Tracks (No Notes, No DSP)...",
     "--Main Menu:File:Paketti:Largest Samples Dialog...",
     "Main Menu:File:Paketti:Wipe Song Patterns",
+    "Main Menu:File:Paketti:Clear Unused Patterns",
   }
 
   local function remove_list(list)
@@ -96,6 +98,9 @@ function PakettiMenuApplyFileMenuLocation(mode)
     if type(wipeSongPattern) == "function" and not renoise.tool():has_menu_entry("Main Menu:File:Wipe Song Patterns") then
       renoise.tool():add_menu_entry{name="Main Menu:File:Wipe Song Patterns",invoke=function() wipeSongPattern() end}
     end
+    if type(PakettiClearUnusedPatterns) == "function" and not renoise.tool():has_menu_entry("Main Menu:File:Clear Unused Patterns") then
+      renoise.tool():add_menu_entry{name="Main Menu:File:Clear Unused Patterns",invoke=PakettiClearUnusedPatterns}
+    end
   end
 
   local function ensure_paketti_entries()
@@ -137,6 +142,9 @@ function PakettiMenuApplyFileMenuLocation(mode)
     end
     if type(wipeSongPattern) == "function" and not renoise.tool():has_menu_entry("Main Menu:File:Paketti:Wipe Song Patterns") then
       renoise.tool():add_menu_entry{name="Main Menu:File:Paketti:Wipe Song Patterns",invoke=function() wipeSongPattern() end}
+    end
+    if type(PakettiClearUnusedPatterns) == "function" and not renoise.tool():has_menu_entry("Main Menu:File:Paketti:Clear Unused Patterns") then
+      renoise.tool():add_menu_entry{name="Main Menu:File:Paketti:Clear Unused Patterns",invoke=PakettiClearUnusedPatterns}
     end
   end
 
@@ -1813,6 +1821,9 @@ if preferences.pakettiMenuConfig.MainMenuFile then
     renoise.tool():add_menu_entry{name="--Main Menu:File:Delete Unused Instruments...",invoke=deleteUnusedInstruments}
     renoise.tool():add_menu_entry{name="Main Menu:File:Delete Unused Samples...",invoke=deleteUnusedSamples}
     renoise.tool():add_menu_entry{name="--Main Menu:File:Largest Samples Dialog...",invoke = pakettiShowLargestSamplesDialog}
+    if type(PakettiClearUnusedPatterns) == "function" then
+      renoise.tool():add_menu_entry{name="Main Menu:File:Clear Unused Patterns",invoke=PakettiClearUnusedPatterns}
+    end
   end
 
   -- File -> Paketti
@@ -1827,6 +1838,9 @@ if preferences.pakettiMenuConfig.MainMenuFile then
     renoise.tool():add_menu_entry{name="--Main Menu:File:Paketti:Delete Unused Instruments...",invoke=deleteUnusedInstruments}
     renoise.tool():add_menu_entry{name="Main Menu:File:Paketti:Delete Unused Samples...",invoke=deleteUnusedSamples}
     renoise.tool():add_menu_entry{name="--Main Menu:File:Paketti:Largest Samples Dialog...",invoke = pakettiShowLargestSamplesDialog}
+    if type(PakettiClearUnusedPatterns) == "function" then
+      renoise.tool():add_menu_entry{name="Main Menu:File:Paketti:Clear Unused Patterns",invoke=PakettiClearUnusedPatterns}
+    end
   end
 
 end

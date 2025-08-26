@@ -9183,7 +9183,7 @@ function explode_notes_to_tracks()
     
     -- Restore original edit mode state
     song.transport.edit_mode = original_edit_mode
-    renoise.app():show_status("Exploded " .. #sorted_notes .. " note types to new tracks (ordered)")
+    renoise.app():show_status("Exploded " .. #sorted_streams .. " note types to new tracks")
 end
 
 -- Helper function to convert note value to string
@@ -9520,7 +9520,7 @@ function explode_notes_to_tracks_whole_song()
     
     -- Restore original edit mode state
     song.transport.edit_mode = original_edit_mode
-    renoise.app():show_status("Exploded " .. #sorted_notes .. " note types across " .. #patterns_with_notes .. " patterns to new tracks")
+    renoise.app():show_status("Exploded " .. #sorted_streams .. " note types across " .. #patterns_with_notes .. " patterns to new tracks")
 end
 
 renoise.tool():add_midi_mapping{name="Paketti:Explode Notes to New Tracks",invoke=function() explode_notes_to_tracks() end}

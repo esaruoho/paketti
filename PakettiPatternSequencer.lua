@@ -631,3 +631,46 @@ end
 
 renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Wipe Empty Patterns From End", invoke=PakettiWipeEmptyPatternsFromEnd}
 renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Wipe Empty Patterns From End", invoke=PakettiWipeEmptyPatternsFromEnd}
+
+-- Function to clear unused patterns (patterns not in the pattern sequencer)
+function PakettiClearUnusedPatterns()
+  local song = renoise.song()
+  local sequencer = song.sequencer
+  local pattern_sequence = sequencer.pattern_sequence
+  local patterns = song.patterns
+  
+  -- Create a set of used pattern indices
+  local used_patterns = {}
+  for i = 1, #pattern_sequence do
+    local pattern_index = pattern_sequence[i]
+    used_patterns[pattern_index] = true
+  end
+  
+  -- Clear unused patterns and count them
+  local cleared_count = 0
+  for pattern_index = 1, #patterns do
+    if not used_patterns[pattern_index] then
+      -- This pattern is not used in the sequencer
+      if not patterns[pattern_index].is_empty then
+        -- Only count non-empty patterns as "cleared"
+        cleared_count = cleared_count + 1
+      end
+      -- Clear the pattern regardless of whether it was empty
+      patterns[pattern_index]:clear()
+    end
+  end
+  
+  -- Show status message
+  if cleared_count > 0 then
+    renoise.app():show_status("Cleared " .. cleared_count .. " unused patterns")
+  else
+    renoise.app():show_status("No unused patterns found")
+  end
+end
+
+renoise.tool():add_keybinding{name="Pattern Sequencer:Paketti:Clear Unused Patterns", invoke=PakettiClearUnusedPatterns}
+renoise.tool():add_keybinding{name="Global:Paketti:Clear Unused Patterns", invoke=PakettiClearUnusedPatterns}
+renoise.tool():add_keybinding{name="Pattern Matrix:Paketti:Clear Unused Patterns", invoke=PakettiClearUnusedPatterns}
+renoise.tool():add_keybinding{name="Pattern Editor:Paketti:Clear Unused Patterns", invoke=PakettiClearUnusedPatterns}
+renoise.tool():add_menu_entry{name="Pattern Matrix:Paketti:Clear Unused Patterns", invoke=PakettiClearUnusedPatterns}
+renoise.tool():add_menu_entry{name="Pattern Sequencer:Paketti:Clear Unused Patterns", invoke=PakettiClearUnusedPatterns}

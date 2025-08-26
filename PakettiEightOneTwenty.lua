@@ -2414,6 +2414,149 @@ local randomize_all_yxx_button = vb:button{
       fill_empty_label,
       fill_empty_slider}}
 
+  -- Function to check if groovebox tracks exist
+  function PakettiGrooveboxCheckTracksExist()
+    local song = renoise.song()
+    if not song then return false end
+    
+    local groovebox_tracks_found = 0
+    for i = 1, math.min(8, song.sequencer_track_count) do
+      if song.tracks[i] and song.tracks[i].name:match("8120_%d+") then
+        groovebox_tracks_found = groovebox_tracks_found + 1
+      end
+    end
+    
+    return groovebox_tracks_found >= 8
+  end
+
+  -- Function to check if groovebox instruments exist (just check for the end marker)
+  function PakettiGrooveboxCheckInstrumentsExist()
+    local song = renoise.song()
+    if not song then return false end
+    
+    for i = 1, #song.instruments do
+      local instrument_name = song.instruments[i].name
+      if instrument_name == "=== Groovebox 8120 Ends ===" then
+        return true
+      end
+    end
+    
+    return false
+  end
+
+  -- Function to safely append groovebox tracks
+  function PakettiGrooveboxAppendTracks()
+    local song = renoise.song()
+    if not song then
+      renoise.app():show_status("No song available")
+      return false
+    end
+    
+    -- Insert 8 tracks at the beginning with proper naming
+    for i = 8, 1, -1 do
+      song:insert_track_at(1)
+      local base_name = string.format("8120_%02d", i)
+      song.tracks[1].name = string.format("%s[%03d]", base_name, MAX_STEPS)
+    end
+    
+    renoise.app():show_status("Created 8 Groovebox tracks")
+    return true
+  end
+
+  -- Function to safely append groovebox instruments (just ensure the end marker exists)
+  function PakettiGrooveboxAppendInstruments()
+    local song = renoise.song()
+    if not song then
+      renoise.app():show_status("No song available")
+      return false
+    end
+    
+    -- Ensure we have at least 8 instruments
+    while #song.instruments < 8 do
+      song:insert_instrument_at(#song.instruments + 1)
+    end
+    
+    -- Insert end marker instrument after the first 8 instruments (position 9)
+    song:insert_instrument_at(9)
+    song.instruments[9].name = "=== Groovebox 8120 Ends ==="
+    
+    renoise.app():show_status("Created Groovebox end marker")
+    return true
+  end
+
+  -- Function to safely append groovebox tracks and instruments if needed
+  function PakettiGrooveboxSafeAppend()
+    if not preferences.PakettiGroovebox8120.AppendTracksAndInstruments.value then
+      return
+    end
+    
+    local tracks_exist = PakettiGrooveboxCheckTracksExist()
+    local instruments_exist = PakettiGrooveboxCheckInstrumentsExist()
+    
+    if not tracks_exist then
+      PakettiGrooveboxAppendTracks()
+    end
+    
+    if not instruments_exist then
+      PakettiGrooveboxAppendInstruments()
+    end
+    
+    if not tracks_exist or not instruments_exist then
+      renoise.app():show_status("Groovebox setup completed")
+    end
+  end
+
+  -- Function to check if first 8 tracks are collapsed
+  function PakettiGrooveboxGetFirstEightTracksCollapsedState()
+    local song = renoise.song()
+    if not song then
+      return preferences.PakettiGroovebox8120.Collapse.value
+    end
+    
+    local track_count = math.min(8, song.sequencer_track_count)
+    local collapsed_count = 0
+    
+    for i = 1, track_count do
+      if song.tracks[i] and song.tracks[i].collapsed then
+        collapsed_count = collapsed_count + 1
+      end
+    end
+    
+    -- Return true if more than half are collapsed, or use preference default if no tracks
+    if track_count == 0 then
+      return preferences.PakettiGroovebox8120.Collapse.value
+    end
+    return collapsed_count > (track_count / 2)
+  end
+
+  -- Function to toggle collapse state of first 8 tracks
+  function PakettiGrooveboxCollapseFirstEightTracks(should_collapse)
+    local song = renoise.song()
+    if not song then
+      renoise.app():show_status("No song available")
+      return
+    end
+    
+    local track_count = math.min(8, song.sequencer_track_count)
+    for i = 1, track_count do
+      if song.tracks[i] then
+        song.tracks[i].collapsed = should_collapse
+      end
+    end
+    
+    local status_text = should_collapse and "Collapsed first 8 tracks" or "Expanded first 8 tracks"
+    renoise.app():show_status(status_text)
+  end
+
+  local collapse_checkbox = vb:checkbox{
+    value = preferences.PakettiGroovebox8120.Collapse.value,
+    notifier = function(value)
+      PakettiGrooveboxCollapseFirstEightTracks(value)
+      -- Update preference to remember user's choice
+      preferences.PakettiGroovebox8120.Collapse.value = value
+    end
+  }
+
   local global_buttons = vb:row{
     vb:text{text="Global", style="strong", font="bold"},
     vb:button{text="Clear All", notifier = clear_all},
@@ -2423,6 +2566,9 @@ local randomize_all_yxx_button = vb:button{
 
     reverse_all_button,
     randomize_all_yxx_button,
+    vb:space{width=8},
+    collapse_checkbox,
+    vb:text{text="Collapse", style="strong", font="bold"},
     vb:button{
       text="Reset Output Delay",
       notifier=function()
@@ -3530,6 +3676,12 @@ function pakettiEightSlotsByOneTwentyDialog()
     for i=1,8 do PakettiEightOneTwentyUpdateBeatsyncUiFor(i) end
   end
   fetch_pattern()  -- Call fetch_pattern() to populate GUI elements from the pattern
+
+  -- Safely append groovebox tracks and instruments if needed
+  PakettiGrooveboxSafeAppend()
+
+  -- Apply collapse preference setting when dialog opens
+  PakettiGrooveboxCollapseFirstEightTracks(preferences.PakettiGroovebox8120.Collapse.value)
 
   initializing = false  -- Set initializing flag to false after initialization
 
