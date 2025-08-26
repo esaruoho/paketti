@@ -79,6 +79,93 @@ function saveSelectedSampleToTempAndOpen(app_path)
     renoise.app():show_status("Sample sent to " .. app_path)
 end
 
+-- Function to save selected sample range to temp and open with the selected app
+function saveSelectedSampleRangeToTempAndOpen(app_path)
+    if renoise.song() == nil then return end
+    
+    -- Check if app path is valid
+    if app_path == nil or app_path == "" or app_path == "None" then
+        renoise.app():show_status("No application selected. Please configure an app first.")
+        return
+    end
+    
+    local song = renoise.song()
+    local selected_sample = song.selected_sample
+    
+    if not selected_sample or not selected_sample.sample_buffer.has_sample_data then
+        renoise.app():show_status("No sample data available.")
+        return
+    end
+    
+    local sample_buffer = selected_sample.sample_buffer
+    
+    -- Check if there's a valid selection range
+    if not sample_buffer.selection_range or #sample_buffer.selection_range < 2 then
+        renoise.app():show_status("No valid selection range found. Please select a range in the sample editor.")
+        return
+    end
+    
+    local selection_start = sample_buffer.selection_range[1]
+    local selection_end = sample_buffer.selection_range[2]
+    
+    -- Check if selection is valid
+    if selection_start == selection_end then
+        renoise.app():show_status("No selection range is defined. Please select a range in the sample editor.")
+        return
+    end
+    
+    -- Create a temporary instrument and sample to hold the range
+    local original_instrument_index = song.selected_instrument_index
+    local new_instrument = song:insert_instrument_at(#song.instruments + 1)
+    local new_sample = new_instrument:insert_sample_at(1)
+    
+    -- Create new sample buffer with the selection range data
+    new_sample.sample_buffer:create_sample_data(
+        sample_buffer.sample_rate,
+        sample_buffer.bit_depth,
+        sample_buffer.number_of_channels,
+        selection_end - selection_start + 1
+    )
+    
+    new_sample.sample_buffer:prepare_sample_data_changes()
+    
+    -- Copy the selection range to the new sample buffer
+    for c = 1, sample_buffer.number_of_channels do
+        for f = selection_start, selection_end do
+            new_sample.sample_buffer:set_sample_data(c, f - selection_start + 1, sample_buffer:sample_data(c, f))
+        end
+    end
+    
+    new_sample.sample_buffer:finalize_sample_data_changes()
+    
+    -- Save the range to a temporary file
+    local temp_file_path = os.tmpname() .. ".wav"
+    new_sample.sample_buffer:save_as(temp_file_path, "wav")
+    
+    -- Clean up: delete the temporary instrument and reselect original instrument
+    song:delete_instrument_at(#song.instruments)
+    song.selected_instrument_index = original_instrument_index
+    
+    -- Detect the operating system and launch the app
+    local os_name = os.platform()
+    local command
+
+    if os_name == "WINDOWS" then
+        command = 'start "" "' .. app_path .. '" "' .. temp_file_path .. '"'
+    elseif os_name == "MACINTOSH" then
+        command = 'open -a "' .. app_path .. '" "' .. temp_file_path .. '"'
+    else
+        command = 'exec "' .. app_path .. '" "' .. temp_file_path .. '" &'
+    end
+
+    os.execute(command)
+    
+    local selection_length = selection_end - selection_start + 1
+    local duration_ms = (selection_length / sample_buffer.sample_rate) * 1000
+    renoise.app():show_status(string.format("Sample range sent to %s (frames %d-%d, %.1fms)", 
+        app_path, selection_start, selection_end, duration_ms))
+end
+
 -- Create the dialog UI
 local function create_dialog_content(closeLA_dialog)
     app_paths = {}
@@ -93,10 +180,14 @@ local function create_dialog_content(closeLA_dialog)
                 notifier=function() saveSelectedSampleToTempAndOpen(preferences.AppSelection.AppSelection1.value) 
                 end,
                 width=200},
+            vb:button{text="Send Sample Range to App",
+                notifier=function() saveSelectedSampleRangeToTempAndOpen(preferences.AppSelection.AppSelection1.value) 
+                end,
+                width=200},
             (function()
                 local path = vb:text{
                     text=(preferences.AppSelection.AppSelection1.value ~= "" and preferences.AppSelection.AppSelection1.value or "None"),
-                    width=600,
+                    width=400,
                     font="bold", style="strong"}
                 app_paths[1] = path
                 return path
@@ -105,10 +196,11 @@ local function create_dialog_content(closeLA_dialog)
         vb:row{
             vb:button{text="Browse",notifier=function() appSelectionBrowseForApp(2) end},
             vb:button{text="Send Selected Sample to App",notifier=function() saveSelectedSampleToTempAndOpen(preferences.AppSelection.AppSelection2.value) end,width=200},
+            vb:button{text="Send Sample Range to App",notifier=function() saveSelectedSampleRangeToTempAndOpen(preferences.AppSelection.AppSelection2.value) end,width=200},
             (function()
                 local path = vb:text{
                     text=(preferences.AppSelection.AppSelection2.value ~= "" and preferences.AppSelection.AppSelection2.value or "None"),
-                    width=600,
+                    width=400,
                     font="bold",style="strong"}
                 app_paths[2] = path
                 return path
@@ -117,10 +209,12 @@ local function create_dialog_content(closeLA_dialog)
         vb:row{vb:button{text="Browse",notifier=function() appSelectionBrowseForApp(3) end},
             vb:button{text="Send Selected Sample to App",notifier=function() 
                     saveSelectedSampleToTempAndOpen(preferences.AppSelection.AppSelection3.value) end,width=200},
+            vb:button{text="Send Sample Range to App",notifier=function() 
+                    saveSelectedSampleRangeToTempAndOpen(preferences.AppSelection.AppSelection3.value) end,width=200},
             (function()
                 local path = vb:text{
                     text=(preferences.AppSelection.AppSelection3.value ~= "" and preferences.AppSelection.AppSelection3.value or "None"),
-                    width=600,
+                    width=400,
                     font="bold",style="strong"}
                 app_paths[3] = path
                 return path
@@ -130,10 +224,14 @@ local function create_dialog_content(closeLA_dialog)
                 notifier=function() 
                     saveSelectedSampleToTempAndOpen(preferences.AppSelection.AppSelection4.value) 
                 end,width=200},
+            vb:button{text="Send Sample Range to App",
+                notifier=function() 
+                    saveSelectedSampleRangeToTempAndOpen(preferences.AppSelection.AppSelection4.value) 
+                end,width=200},
             (function()
                 local path = vb:text{
                     text=(preferences.AppSelection.AppSelection4.value ~= "" and preferences.AppSelection.AppSelection4.value or "None"),
-                    width=600,
+                    width=400,
                     font="bold",style="strong"}
                 app_paths[4] = path
                 return path
@@ -142,10 +240,13 @@ local function create_dialog_content(closeLA_dialog)
             vb:button{text="Send Selected Sample to App",
                 notifier=function() saveSelectedSampleToTempAndOpen(preferences.AppSelection.AppSelection5.value) end, width=200
             },
+            vb:button{text="Send Sample Range to App",
+                notifier=function() saveSelectedSampleRangeToTempAndOpen(preferences.AppSelection.AppSelection5.value) end, width=200
+            },
             (function()
                 local path = vb:text{
                     text=(preferences.AppSelection.AppSelection5.value ~= "" and preferences.AppSelection.AppSelection5.value or "None"),
-                    width=600,
+                    width=400,
                     font="bold",style="strong"}
                 app_paths[5] = path
                 return path
@@ -157,10 +258,16 @@ local function create_dialog_content(closeLA_dialog)
                     saveSelectedSampleToTempAndOpen(preferences.AppSelection.AppSelection6.value) 
                 end,
                 width=200},
+            vb:button{
+                text="Send Sample Range to App",
+                notifier=function() 
+                    saveSelectedSampleRangeToTempAndOpen(preferences.AppSelection.AppSelection6.value) 
+                end,
+                width=200},
             (function()
                 local path = vb:text{
                     text=(preferences.AppSelection.AppSelection6.value ~= "" and preferences.AppSelection.AppSelection6.value or "None"),
-                    width=600,
+                    width=400,
                     font="bold",style="strong"}
                 app_paths[6] = path
                 return path
@@ -242,35 +349,7 @@ function pakettiAppSelectionDialog()
     end), keyhandler)
 end
 
-for i=1, 6 do
-  local app_path = preferences.AppSelection["AppSelection"..i].value
-  -- Only create entries if app_path exists and isn't empty
-  if app_path and app_path ~= "" then
-      renoise.tool():add_keybinding{name="Global:Paketti:Send Selected Sample to AppSelection" .. i,
-          invoke=function()
-              saveSelectedSampleToTempAndOpen(app_path)
-          end
-      }
-      renoise.tool():add_menu_entry{name="Sample Editor:Paketti:Launch App:Send Selected Sample to AppSelection" .. i,
-          invoke=function()
-              saveSelectedSampleToTempAndOpen(app_path)
-          end
-      }
-      renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Launch App:Send Selected Sample to AppSelection" .. i,
-          invoke=function()
-              saveSelectedSampleToTempAndOpen(app_path)
-          end
-      }
-
-      renoise.tool():add_midi_mapping{name="Paketti:Send Selected Sample to AppSelection" .. i,
-          invoke=function(message)
-              if message:is_trigger() then 
-                  saveSelectedSampleToTempAndOpen(app_path)
-              end
-          end
-      }
-  end
-end
+-- Static keybindings and MIDI mappings moved to dynamic creation in appSelectionCreateMenuEntries()
 
 for i=1, 3 do
     renoise.tool():add_keybinding{name="Global:Paketti:Save Sample to Smart/Backup Folder " .. i,invoke=function() saveSampleToSmartFolder(i) end}
@@ -426,39 +505,182 @@ function appSelectionCreateMenuEntries()
   local apps_present = false
 
   -- Create menu entries for each app selection
+  -- First pass: Add "Send Selected Sample" entries with dynamic names
   for i, app_path in ipairs(app_selections) do
     if app_path ~= "" then
       apps_present = true
---      local app_name = app_path:match("([^/\\]+)%.app$")
-local prefix = (i == 1) and "--" or ""  -- Add prefix only for first item
+      local app_name = app_path:match("([^/\\]+)%.app$") or app_path:match("([^/\\]+)$") or app_path
+      
+      -- Send Selected Sample entries (with dynamic app names)
+      local menu_entry_name = "Instrument Box:Paketti:Launch App:Send Selected Sample to App "..i.." "..app_name
+      if not renoise.tool():has_menu_entry(menu_entry_name) then
+        renoise.tool():add_menu_entry{name=menu_entry_name,invoke=function() saveSelectedSampleToTempAndOpen(app_path) end}
+        table.insert(added_menu_entries, menu_entry_name)
+      end
+
+      menu_entry_name = "Main Menu:Tools:Paketti:Launch App:Send Selected Sample to App "..i.." "..app_name
+      if not renoise.tool():has_menu_entry(menu_entry_name) then
+        renoise.tool():add_menu_entry{name=menu_entry_name,
+          invoke=function() saveSelectedSampleToTempAndOpen(app_path) end
+        }
+        table.insert(added_menu_entries, menu_entry_name)
+      end
+      
+      menu_entry_name = "Sample Navigator:Paketti:Launch App:Send Selected Sample to App "..i.." "..app_name
+      if not renoise.tool():has_menu_entry(menu_entry_name) then
+        renoise.tool():add_menu_entry{name=menu_entry_name,
+          invoke=function() saveSelectedSampleToTempAndOpen(app_path) end
+        }
+        table.insert(added_menu_entries, menu_entry_name)
+      end
+      
+      menu_entry_name = "Sample Editor:Paketti:Launch App:Send Selected Sample to App "..i.." "..app_name
+      if not renoise.tool():has_menu_entry(menu_entry_name) then
+        renoise.tool():add_menu_entry{name=menu_entry_name,
+          invoke=function() saveSelectedSampleToTempAndOpen(app_path) end
+        }
+        table.insert(added_menu_entries, menu_entry_name)
+      end
+      
+      -- Dynamic keybindings and MIDI mappings for Send Selected Sample
+      local keybinding_name = "Global:Paketti:Send Selected Sample to App "..i.." "..app_name
+      if not renoise.tool():has_keybinding(keybinding_name) then
+        renoise.tool():add_keybinding{name=keybinding_name,
+            invoke=function()
+                saveSelectedSampleToTempAndOpen(app_path)
+            end
+        }
+      end
+      
+      local midi_mapping_name = "Paketti:Send Selected Sample to App "..i.." "..app_name
+      if not renoise.tool():has_midi_mapping(midi_mapping_name) then
+        renoise.tool():add_midi_mapping{name=midi_mapping_name,
+            invoke=function(message)
+                if message:is_trigger() then 
+                    saveSelectedSampleToTempAndOpen(app_path)
+                end
+            end
+        }
+      end
+    end
+  end
   
-local app_name = app_path:match("([^/\\]+)%.app$") or app_path:match("([^/\\]+)$") or app_path
-      local menu_entry_name = "Instrument Box:Paketti:Launch App:Launch App "..i.." "..app_name
+  -- Second pass: Add "Send Selected Sample Range" entries with separators
+  for i, app_path in ipairs(app_selections) do
+    if app_path ~= "" then
+      local app_name = app_path:match("([^/\\]+)%.app$") or app_path:match("([^/\\]+)$") or app_path
+      local prefix = (i == 1) and "--" or ""  -- Add separator only for first range item
+      
+      -- Send Selected Sample Range entries
+      local menu_entry_name = prefix.."Instrument Box:Paketti:Launch App:Send Selected Sample Range to App "..i.." "..app_name
+      if not renoise.tool():has_menu_entry(menu_entry_name) then
+        renoise.tool():add_menu_entry{name=menu_entry_name,invoke=function() saveSelectedSampleRangeToTempAndOpen(app_path) end}
+        table.insert(added_menu_entries, menu_entry_name)
+      end
+
+      menu_entry_name = prefix.."Main Menu:Tools:Paketti:Launch App:Send Selected Sample Range to App "..i.." "..app_name
+      if not renoise.tool():has_menu_entry(menu_entry_name) then
+        renoise.tool():add_menu_entry{name=menu_entry_name,
+          invoke=function() saveSelectedSampleRangeToTempAndOpen(app_path) end
+        }
+        table.insert(added_menu_entries, menu_entry_name)
+      end
+      
+      menu_entry_name = prefix.."Sample Navigator:Paketti:Launch App:Send Selected Sample Range to App "..i.." "..app_name
+      if not renoise.tool():has_menu_entry(menu_entry_name) then
+        renoise.tool():add_menu_entry{name=menu_entry_name,
+          invoke=function() saveSelectedSampleRangeToTempAndOpen(app_path) end
+        }
+        table.insert(added_menu_entries, menu_entry_name)
+      end
+      
+      menu_entry_name = prefix.."Sample Editor:Paketti:Launch App:Send Selected Sample Range to App "..i.." "..app_name
+      if not renoise.tool():has_menu_entry(menu_entry_name) then
+        renoise.tool():add_menu_entry{name=menu_entry_name,
+          invoke=function() saveSelectedSampleRangeToTempAndOpen(app_path) end
+        }
+        table.insert(added_menu_entries, menu_entry_name)
+      end
+      
+      -- Dynamic keybindings and MIDI mappings for Send Selected Sample Range
+      local keybinding_name = "Global:Paketti:Send Selected Sample Range to App "..i.." "..app_name
+      if not renoise.tool():has_keybinding(keybinding_name) then
+        renoise.tool():add_keybinding{name=keybinding_name,
+            invoke=function()
+                saveSelectedSampleRangeToTempAndOpen(app_path)
+            end
+        }
+      end
+      
+      local midi_mapping_name = "Paketti:Send Selected Sample Range to App "..i.." "..app_name
+      if not renoise.tool():has_midi_mapping(midi_mapping_name) then
+        renoise.tool():add_midi_mapping{name=midi_mapping_name,
+            invoke=function(message)
+                if message:is_trigger() then 
+                    saveSelectedSampleRangeToTempAndOpen(app_path)
+                end
+            end
+        }
+      end
+    end
+  end
+  
+  -- Third pass: Add "Launch App" entries with separators
+  for i, app_path in ipairs(app_selections) do
+    if app_path ~= "" then
+      local app_name = app_path:match("([^/\\]+)%.app$") or app_path:match("([^/\\]+)$") or app_path
+      local prefix = (i == 1) and "--" or ""  -- Add separator only for first launch item
+      
+      -- Launch App entries
+      local menu_entry_name = prefix.."Instrument Box:Paketti:Launch App:Launch App "..i.." "..app_name
       if not renoise.tool():has_menu_entry(menu_entry_name) then
         renoise.tool():add_menu_entry{name=menu_entry_name,invoke=function() appSelectionLaunchApp(app_path) end}
         table.insert(added_menu_entries, menu_entry_name)
       end
 
-      menu_entry_name = "Main Menu:Tools:Paketti:Launch App:Launch App "..i.." "..app_name
+      menu_entry_name = prefix.."Main Menu:Tools:Paketti:Launch App:Launch App "..i.." "..app_name
       if not renoise.tool():has_menu_entry(menu_entry_name) then
         renoise.tool():add_menu_entry{name=menu_entry_name,
           invoke=function() appSelectionLaunchApp(app_path) end
         }
         table.insert(added_menu_entries, menu_entry_name)
       end
-      menu_entry_name = "Sample Navigator:Paketti:Launch App:Launch App "..i.." "..app_name
+      
+      menu_entry_name = prefix.."Sample Navigator:Paketti:Launch App:Launch App "..i.." "..app_name
       if not renoise.tool():has_menu_entry(menu_entry_name) then
         renoise.tool():add_menu_entry{name=menu_entry_name,
           invoke=function() appSelectionLaunchApp(app_path) end
         }
         table.insert(added_menu_entries, menu_entry_name)
       end
-      menu_entry_name = "Sample Editor:Paketti:Launch App:Launch App "..i.." "..app_name
+      
+      menu_entry_name = prefix.."Sample Editor:Paketti:Launch App:Launch App "..i.." "..app_name
       if not renoise.tool():has_menu_entry(menu_entry_name) then
         renoise.tool():add_menu_entry{name=menu_entry_name,
           invoke=function() appSelectionLaunchApp(app_path) end
         }
         table.insert(added_menu_entries, menu_entry_name)
+      end
+      
+      -- Dynamic keybindings and MIDI mappings for Launch App
+      local keybinding_name = "Global:Paketti:Launch App "..i.." "..app_name
+      if not renoise.tool():has_keybinding(keybinding_name) then
+        renoise.tool():add_keybinding{name=keybinding_name,
+            invoke=function()
+                appSelectionLaunchApp(app_path)
+            end
+        }
+      end
+      
+      local midi_mapping_name = "Paketti:Launch App "..i.." "..app_name
+      if not renoise.tool():has_midi_mapping(midi_mapping_name) then
+        renoise.tool():add_midi_mapping{name=midi_mapping_name,
+            invoke=function(message)
+                if message:is_trigger() then 
+                    appSelectionLaunchApp(app_path)
+                end
+            end
+        }
       end
     end
   end

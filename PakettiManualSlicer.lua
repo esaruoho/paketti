@@ -70,11 +70,12 @@ function paketti_manual_slicer_slices_worker(instrument, sample)
   print("Found " .. slice_count .. " slices in sample")
   print("Original sample: " .. total_frames .. " frames, " .. sample_rate .. "Hz, " .. bit_depth .. "bit, " .. num_channels .. " channels")
   
-  -- Calculate target slice count (next power of 2)
+  -- Calculate target slice count (next power of 2, max 255)
   local target_slice_count = 2
   while target_slice_count < slice_count do
     target_slice_count = target_slice_count * 2
   end
+  target_slice_count = math.min(target_slice_count, 255)  -- Cap at 255 (Renoise limit)
   
   local extra_slices = target_slice_count - slice_count
   print("Target slice count: " .. target_slice_count .. " (adding " .. extra_slices .. " silent slices)")
@@ -209,8 +210,19 @@ function paketti_manual_slicer_slices_worker(instrument, sample)
   
   for i = 1, target_slice_count do
     local marker_position = (i - 1) * longest_slice_frames + 1
-    new_sample:insert_slice_marker(marker_position)
-    print(string.format("Created slice marker %d at frame %d", i, marker_position))
+    
+    -- Protection: Check Renoise slice marker limit
+    local success, error_msg = pcall(function()
+      new_sample:insert_slice_marker(marker_position)
+    end)
+    
+    if success then
+      print(string.format("Created slice marker %d at frame %d", i, marker_position))
+    else
+      print(string.format("Warning: Could not create slice marker %d (Renoise limit reached): %s", i, tostring(error_msg)))
+      renoise.app():show_status(string.format("Warning: Created %d slices (Renoise limit reached)", i - 1))
+      break  -- Stop creating more markers
+    end
   end
   
   -- Copy sample settings from original
@@ -286,7 +298,7 @@ function paketti_manual_slicer_samples_worker(source_instrument, num_samples, di
   while target_slice_count < num_samples do
     target_slice_count = target_slice_count * 2
   end
-  target_slice_count = math.min(target_slice_count, 256)  -- Cap at 256
+  target_slice_count = math.min(target_slice_count, 255)  -- Cap at 255 (Renoise limit)
   
   print(string.format("-- Manual Slicer: Max duration: %d frames @ 48kHz", max_duration_frames))
   print(string.format("-- Manual Slicer: Target slice count: %d (from %d samples)", target_slice_count, num_samples))
@@ -448,7 +460,17 @@ function paketti_manual_slicer_samples_worker(source_instrument, num_samples, di
   renoise.app():show_status("Manual Slicer: Creating slice markers...")
   
   for i = 1, #slice_positions do
-    master_sample:insert_slice_marker(slice_positions[i])
+    -- Protection: Check Renoise slice marker limit
+    local success, error_msg = pcall(function()
+      master_sample:insert_slice_marker(slice_positions[i])
+    end)
+    
+    if not success then
+      print(string.format("Warning: Could not create slice marker %d (Renoise limit reached): %s", i, tostring(error_msg)))
+      renoise.app():show_status(string.format("Warning: Created %d slices (Renoise limit reached)", i - 1))
+      break  -- Stop creating more markers
+    end
+    
     if i % 10 == 0 then
       coroutine.yield()
     end

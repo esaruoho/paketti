@@ -3613,7 +3613,6 @@ function pakettiUserDefinedSamplesDialog()
     }
 
     local button_row = vb:row{
-      spacing=8,
       vb:text{ text="Folder " .. formatDigits(2,i) .. ":" },
       browse_button,
       textfield,
@@ -5092,8 +5091,6 @@ function pakettiShowLargestSamplesDialog()
     for i = 1, math.min(40, #samples) do
       local sample = samples[i]
       dialog_content:add_child(vb:row{
-    --    margin=0,
-    --    spacing=0,  
         vb:button{
           width=40,
           text="Show",

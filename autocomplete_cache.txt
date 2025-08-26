@@ -1,6 +1,6 @@
 CACHE_VERSION=1.0
-SCAN_TIME=1756124137
-COMMAND_COUNT=4753
+SCAN_TIME=1756182222
+COMMAND_COUNT=4749
 Menu Entry|||DSP Chain:Paketti:Hipass (Preset++)|||DSP Chain|||HipassPlusPlus|||DCPHP,chain,paketti,hipass,preset|||PakettiPresetPlusPlus
 Menu Entry|||DSP Chain:Paketti:Insert Random Device (AU/Native Only)|||DSP Chain|||function() insertRandomDevice(true) end|||DCPIRDANO,chain,paketti,insert,random,device,native,only|||PakettiMenuConfig
 Menu Entry|||DSP Chain:Paketti:Insert Random Device (All)|||DSP Chain|||function() insertRandomDevice(false) end|||DCPIRDA,chain,paketti,insert,random,device|||PakettiMenuConfig
@@ -615,7 +615,6 @@ Menu Entry|||Main Menu:Tools:Paketti:Pattern Editor:Duplicate Effect Column Cont
 Menu Entry|||Main Menu:Tools:Paketti:Pattern Editor:Duplicate Pattern Above & Clear Muted|||Pattern Editor|||duplicate_pattern_and_clear_muted_above|||MMTPPEDPACM,main,menu,tools,paketti,pattern,editor,duplicate,pattern,above,clear,muted|||PakettiMenuConfig
 Menu Entry|||Main Menu:Tools:Paketti:Pattern Editor:Duplicate Pattern Below & Clear Muted|||Pattern Editor|||duplicate_pattern_and_clear_muted|||MMTPPEDPBCM,main,menu,tools,paketti,pattern,editor,duplicate,pattern,below,clear,muted|||PakettiMenuConfig
 Menu Entry|||Main Menu:Tools:Paketti:Pattern Editor:Explode Notes to New Tracks|||Pattern Editor|||function() explode_notes_to_tracks() end|||MMTPPEENTNT,main,menu,tools,paketti,pattern,editor,explode,notes,tracks|||PakettiMenuConfig
-Menu Entry|||Main Menu:Tools:Paketti:Pattern Editor:Explode Notes to New Tracks (Ordered)|||Pattern Editor|||function() explode_notes_to_tracks_ordered() end|||MMTPPEENTNTO,main,menu,tools,paketti,pattern,editor,explode,notes,tracks,ordered|||PakettiRequests
 Menu Entry|||Main Menu:Tools:Paketti:Pattern Editor:Explode Notes to New Tracks (Whole Song)|||Pattern Editor|||function() explode_notes_to_tracks_whole_song() end|||MMTPPEENTNTWS,main,menu,tools,paketti,pattern,editor,explode,notes,tracks,whole,song|||PakettiRequests
 Menu Entry|||Main Menu:Tools:Paketti:Pattern Editor:Find Note (Next, Pattern)|||Pattern Editor|||function() GotoNote(DIRECTION.NEXT, SCOPE.PATTERN) end|||MMTPPEFNNP,main,menu,tools,paketti,pattern,editor,find,note,next,pattern|||PakettiRequests
 Menu Entry|||Main Menu:Tools:Paketti:Pattern Editor:Find Note (Next, Pattern, Play)|||Pattern Editor|||function() GotoNote(DIRECTION.NEXT, SCOPE.PATTERN, true) end|||MMTPPEFNNPP,main,menu,tools,paketti,pattern,editor,find,note,next,pattern,play|||PakettiRequests
@@ -1285,7 +1284,6 @@ Menu Entry|||Pattern Editor:Paketti:Effect Columns:Wipe All Effect Columns on Se
 Menu Entry|||Pattern Editor:Paketti:Effect Columns:Wipe All Effect Columns on Selected Track on Song|||Effect Columns|||function() wipe_effect_columns(false, true) end|||PEPECWAECOSTOS,pattern,editor,paketti,effect,columns,wipe,effect,columns,selected,track,song|||PakettiMenuConfig
 Menu Entry|||Pattern Editor:Paketti:Effect Columns:Wipe All Effect Columns on Song|||Effect Columns|||function() wipe_effect_columns(true, true) end|||PEPECWAECOS,pattern,editor,paketti,effect,columns,wipe,effect,columns,song|||PakettiMenuConfig
 Menu Entry|||Pattern Editor:Paketti:Effect Columns:ZBxx Jump To Row (Next)|||Effect Columns|||function() JumpToNextRow() end|||PEPECZJTRN,pattern,editor,paketti,effect,columns,zbxx,jump,next|||PakettiMenuConfig
-Menu Entry|||Pattern Editor:Paketti:Explode Notes to New Tracks (Ordered)|||Pattern Editor|||function() explode_notes_to_tracks_ordered() end|||PEPENTNTO,pattern,editor,paketti,explode,notes,tracks,ordered|||PakettiRequests
 Menu Entry|||Pattern Editor:Paketti:Explode Notes to New Tracks (Whole Song)|||Pattern Editor|||function() explode_notes_to_tracks_whole_song() end|||PEPENTNTWS,pattern,editor,paketti,explode,notes,tracks,whole,song|||PakettiRequests
 Menu Entry|||Pattern Editor:Paketti:Fit Sample Offset to Pattern (0Sxx Headless)|||Pattern Editor|||function() PakettiFitSampleOffsetToPattern(true) end|||PEPFSOTP0H,pattern,editor,paketti,sample,offset,pattern,0sxx,headless|||PakettiPatternEditor
 Menu Entry|||Pattern Editor:Paketti:Fit Sample Offset to Pattern (0Sxx)|||Pattern Editor|||function() PakettiFitSampleOffsetToPattern(false) end|||PEPFSOTP0,pattern,editor,paketti,sample,offset,pattern,0sxx|||PakettiPatternEditor
@@ -2545,7 +2543,6 @@ Keybinding|||Global:Paketti:Enable Looping in All Phrases|||Global|||pakettiEnab
 Keybinding|||Global:Paketti:Enable Looping in All Phrases Globally|||Global|||pakettiEnableAllPhraseLoopingGlobally|||GPELIAPG,global,paketti,enable,looping,phrases,globally|||PakettiForeignSnippets
 Keybinding|||Global:Paketti:Experimental Sample FX Render|||Global|||function() pakettiExperimentalSampleFXRender() end|||GPESFR,global,paketti,experimental,sample,render|||PakettiRender
 Keybinding|||Global:Paketti:Explode Notes to New Tracks|||Global|||function() explode_notes_to_tracks() end|||GPENTNT,global,paketti,explode,notes,tracks|||PakettiRequests
-Keybinding|||Global:Paketti:Explode Notes to New Tracks (Ordered)|||Global|||function() explode_notes_to_tracks_ordered() end|||GPENTNTO,global,paketti,explode,notes,tracks,ordered|||PakettiRequests
 Keybinding|||Global:Paketti:Explode Notes to New Tracks (Whole Song)|||Global|||function() explode_notes_to_tracks_whole_song() end|||GPENTNTWS,global,paketti,explode,notes,tracks,whole,song|||PakettiRequests
 Keybinding|||Global:Paketti:Export Akai Program...|||Global|||exportAkaiProgram|||GPEAP,global,paketti,export,akai,program|||PakettiAkaiPrograms
 Keybinding|||Global:Paketti:Export Current Sample as AKP...|||Global|||exportCurrentSampleAsAKP|||GPECSAA,global,paketti,export,current,sample|||PakettiAKAI
@@ -4079,8 +4076,8 @@ globalChangeVisibleColumnState("panning",false) globalChangeVisibleColumnState("
 Keybinding|||Pattern Editor:Paketti:Hide Current and Select Previous Column|||Pattern Editor|||function() ExposeAndSelectColumn(-1) end|||PEPHCASPC,pattern,editor,paketti,hide,current,select,previous,column|||PakettiPatternEditor
 Keybinding|||Pattern Editor:Paketti:Humanize Selection...|||Pattern Editor|||showHumanizeDialog|||PEPHS,pattern,editor,paketti,humanize,selection|||PakettiRequests
 Keybinding|||Pattern Editor:Paketti:Impulse Tracker ALT-D Double Select|||Pattern Editor|||DoubleSelect|||PEPITADDS,pattern,editor,paketti,impulse,tracker,double,select|||PakettiImpulseTracker
-Keybinding|||Pattern Editor:Paketti:Impulse Tracker ALT-D Double Select Column|||Pattern Editor|||function() DoubleSelectColumnOnly() end|||PEPITADDSC,pattern,editor,paketti,impulse,tracker,double,select,column|||PakettiImpulseTracker
 Keybinding|||Pattern Editor:Paketti:Impulse Tracker ALT-D Double Select Column|||Pattern Editor|||function() PakettiImpulseTrackerDoubleSelectColumn() end|||PEPITADDSC,pattern,editor,paketti,impulse,tracker,double,select,column|||PakettiImpulseTracker
+Keybinding|||Pattern Editor:Paketti:Impulse Tracker ALT-D Double Select Column|||Pattern Editor|||function() DoubleSelectColumnOnly() end|||PEPITADDSC,pattern,editor,paketti,impulse,tracker,double,select,column|||PakettiImpulseTracker
 Keybinding|||Pattern Editor:Paketti:Impulse Tracker ALT-D Double Select Pattern|||Pattern Editor|||function() DoubleSelectPattern() end|||PEPITADDSP,pattern,editor,paketti,impulse,tracker,double,select,pattern|||PakettiImpulseTracker
 Keybinding|||Pattern Editor:Paketti:Impulse Tracker ALT-D Double Select W/ Automation|||Pattern Editor|||function() DoubleSelectAutomation() end|||PEPITADDSWA,pattern,editor,paketti,impulse,tracker,double,select,automation|||PakettiImpulseTracker
 Keybinding|||Pattern Editor:Paketti:Impulse Tracker ALT-F Expand Selection|||Pattern Editor|||function() ExpandSelection() end|||PEPITAFES,pattern,editor,paketti,impulse,tracker,expand,selection|||PakettiImpulseTracker
@@ -5016,7 +5013,6 @@ MIDI Mapping|||Paketti:Expand Selection Replicate [Trigger]|||Paketti|||function
   end
 end|||PESRT,paketti,expand,selection,replicate,trigger|||PakettiImpulseTracker
 MIDI Mapping|||Paketti:Explode Notes to New Tracks|||Paketti|||function() explode_notes_to_tracks() end|||PENTNT,paketti,explode,notes,tracks|||PakettiRequests
-MIDI Mapping|||Paketti:Explode Notes to New Tracks (Ordered)|||Paketti|||function() explode_notes_to_tracks_ordered() end|||PENTNTO,paketti,explode,notes,tracks,ordered|||PakettiRequests
 MIDI Mapping|||Paketti:Explode Notes to New Tracks (Whole Song)|||Paketti|||function() explode_notes_to_tracks_whole_song() end|||PENTNTWS,paketti,explode,notes,tracks,whole,song|||PakettiRequests
 MIDI Mapping|||Paketti:Export Samples for Kontakt|||Paketti|||function(message) 
     if message:is_trigger() then 
