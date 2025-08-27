@@ -636,6 +636,8 @@ end
 
 -- Randomly shift each note in each slot by ±12 or ±24 semitones
 function PakettiCapture_AlternatePhrasing()
+  trueRandomSeed()
+
   if #PakettiCapture_sequences == 0 then return end
   local shifts = { -12, 12,}
   for s = 1, #PakettiCapture_sequences do

@@ -118,6 +118,8 @@ function PakettiApplyFractionalShifting(sample, original_sample, fraction)
 end
 
 function PakettiCreateUnisonSamples()
+  trueRandomSeed()
+
   local song=renoise.song()
   local selected_instrument_index = song.selected_instrument_index
   local instrument = song.selected_instrument

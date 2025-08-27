@@ -665,6 +665,19 @@ function pakettiMIDIPopulator()
 
   -- Initialize the GUI elements
   local rows = {}
+  
+  -- Create header row
+  local header_row = vb:horizontal_aligner{
+    mode = "right",
+    vb:text{text="",width=100}, -- Empty space for track label column
+    vb:text{text="MIDI Input",width=150, style="strong"},
+    vb:text{text="Ch",width=40, style="strong"},
+    vb:text{text="MIDI Output",width=150, style="strong"}, 
+    vb:text{text="Ch",width=40, style="strong"},
+    vb:text{text="CCizer TXTfile",width=150, style="strong"},
+    vb:text{text="Plugin Name",width=150, style="strong"}
+  }
+  
   for i = 1, 16 do
     rows[i] = vb:horizontal_aligner{
       mode = "right",
@@ -828,6 +841,7 @@ function pakettiMIDIPopulator()
       vb:button{text="Clear Plugin Selection",width=200, notifier = clear_plugin_selection}
     },
     horizontal_rule(),
+    header_row,
     vb:column(rows),
     vb:horizontal_aligner{mode = "right", vb:row{
       vb:text{text="Note Columns:"}, 

@@ -49,7 +49,7 @@ function PakettiEightOneTwentyRowRecordToggle(row_index)
   local instrument_popup = row_elements.instrument_popup
   if not track_popup or not instrument_popup then return end
 
-  local ti = track_indices and track_popup.value and track_indices[track_popup.value]
+  local ti = track_indices and track_popup and track_popup.value and track_indices[track_popup.value]
   local ii = instrument_popup.value
   if ti then song.selected_track_index = ti end
   if ii then song.selected_instrument_index = ii end
@@ -273,6 +273,9 @@ local vb = renoise.ViewBuilder()
 dialog = nil
 rows = {}
 local track_names, track_indices, instrument_names
+track_names = {}  -- Initialize as empty table to avoid nil errors
+track_indices = {}  -- Initialize as empty table to avoid nil errors
+instrument_names = {}  -- Initialize as empty table to avoid nil errors
 local play_checkbox, follow_checkbox, bpm_display, groove_enabled_checkbox, random_gate_button, fill_empty_label, fill_empty_slider, global_step_buttons, global_controls
 local local_groove_sliders, local_groove_labels
 local number_buttons_row
@@ -557,65 +560,106 @@ end
 function PakettiEightOneTwentyRestoreAutomationSelection(prev_device, prev_param, new_track_index)
   local app = renoise.app()
   if app.window.active_lower_frame ~= renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION then
+    print("8120 AUTOMATION DEBUG: Not in automation view, skipping restoration")
     return
   end
-  if not prev_device or not prev_param then return end
+  if not prev_device or not prev_param then 
+    print("8120 AUTOMATION DEBUG: No previous device/parameter to restore")
+    return 
+  end
+  
+  print("8120 AUTOMATION DEBUG: Trying to restore '" .. (prev_param.name or "unknown") .. "' from '" .. (prev_device.name or "unknown") .. "' to track " .. new_track_index)
+  
   local song = renoise.song()
   local new_track = song.tracks[new_track_index]
-  if not new_track then return end
+  if not new_track then 
+    print("8120 AUTOMATION DEBUG: New track doesn't exist")
+    return 
+  end
+  
+  -- List all devices on the new track for debugging
+  print("8120 AUTOMATION DEBUG: Available devices on track " .. new_track_index .. ":")
+  for di, device in ipairs(new_track.devices) do
+    print("  [" .. di .. "] " .. (device.name or "unnamed") .. " / " .. (device.display_name or "no display name"))
+  end
+  
+  -- Only restore if we can find EXACT matches - no fallbacks that might jump to wrong parameters
   local target_device_index = nil
-  -- Prefer matching by intrinsic device.name (stable across tracks)
-  if prev_device.name then
-    for di, device in ipairs(new_track.devices) do
-      if device.name == prev_device.name then
-        target_device_index = di
-        break
-      end
+  for di, device in ipairs(new_track.devices) do
+    if device.name == prev_device.name then
+      target_device_index = di
+      print("8120 AUTOMATION DEBUG: Found matching device at index " .. di)
+      break
     end
   end
-  -- Fallback: handle common case of *Instr. Macros specifically
-  if not target_device_index then
-    for di, device in ipairs(new_track.devices) do
-      if device.name == "*Instr. Macros" then
-        target_device_index = di
-        break
-      end
-    end
+  
+  -- If we can't find exact device match, don't try fallbacks - just exit
+  if not target_device_index then 
+    print("8120 AUTOMATION DEBUG: Device '" .. (prev_device.name or "unknown") .. "' not found on new track, preserving current automation selection")
+    return 
   end
-  -- Last resort: try display_name equality (only if identical across tracks)
-  if not target_device_index and prev_device.display_name then
-    for di, device in ipairs(new_track.devices) do
-      if device.display_name == prev_device.display_name then
-        target_device_index = di
-        break
-      end
-    end
-  end
-  if not target_device_index then return end
+  
   song.selected_device_index = target_device_index
   local device = new_track.devices[target_device_index]
+  
+  -- List all parameters on the device for debugging  
+  print("8120 AUTOMATION DEBUG: Available parameters on device '" .. device.name .. "':")
+  for pi, p in ipairs(device.parameters) do
+    if p.is_automatable then
+      print("  [" .. pi .. "] " .. (p.name or "unnamed") .. " (automatable)")
+    end
+  end
+  
   local target_param = nil
   for _, p in ipairs(device.parameters) do
     if p.name == prev_param.name and p.is_automatable then
       target_param = p
+      print("8120 AUTOMATION DEBUG: Found matching parameter '" .. p.name .. "'")
       break
     end
   end
-  if not target_param then return end
-  song.selected_automation_parameter = target_param
+  
+  -- If we can't find exact parameter match, don't force anything - just exit
+  if not target_param then 
+    print("8120 AUTOMATION DEBUG: Parameter '" .. (prev_param.name or "unknown") .. "' not found on new track, preserving current automation selection")
+    return 
+  end
+  
+  -- Check if automation envelope exists - if not, create it FIRST before setting parameter
   local pattern = song.selected_pattern
   local pattern_track = pattern and pattern.tracks and pattern.tracks[new_track_index]
   if pattern_track then
     local existing = pattern_track:find_automation(target_param)
-    if not existing then
+    if existing then
+      if #existing.points == 0 then
+        -- Envelope exists but is empty - add default points to prevent Renoise from falling back to other parameters
+        local default_value = target_param.value  -- Use current parameter value
+        existing:add_point_at(1, default_value)
+        existing:add_point_at(pattern.number_of_lines, default_value)
+        print("8120 AUTOMATION DEBUG: Added default points to empty " .. target_param.name .. " envelope (value: " .. default_value .. ")")
+      else
+        print("8120 AUTOMATION DEBUG: Envelope for " .. target_param.name .. " already has " .. #existing.points .. " points")
+      end
+    else
+      -- No automation envelope exists - create one BEFORE setting the parameter to prevent fallback
+      print("8120 AUTOMATION DEBUG: No automation envelope exists for " .. target_param.name .. ", creating one FIRST")
       local automation = pattern_track:create_automation(target_param)
       if automation and pattern.number_of_lines and pattern.number_of_lines > 0 then
-        automation:add_point_at(1, 0.5)
-        automation:add_point_at(pattern.number_of_lines, 0.5)
+        local default_value = target_param.value  -- Use current parameter value
+        automation:add_point_at(1, default_value)
+        automation:add_point_at(pattern.number_of_lines, default_value)
+        print("8120 AUTOMATION DEBUG: Created new " .. target_param.name .. " envelope with value " .. default_value .. " BEFORE setting parameter")
+      else
+        print("8120 AUTOMATION DEBUG: Failed to create automation envelope for " .. target_param.name)
       end
     end
   end
-  renoise.app():show_status("Automation preserved: " .. (device.display_name or device.name) .. " / " .. target_param.name)
+  
+  -- NOW set the automation parameter - envelope should exist so no fallback to pitchbend
+  song.selected_automation_parameter = target_param
+  print("8120 AUTOMATION DEBUG: Successfully set automation parameter to '" .. target_param.name .. "' AFTER ensuring envelope exists")
+  
+  print("8120 AUTOMATION DEBUG: Restoration complete for " .. (device.display_name or device.name) .. " / " .. target_param.name)
 end
 
 -- Highlight handling for 8x120 rows
@@ -1065,12 +1109,14 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
       value = false,
       width=30,
       notifier=function()
-        PakettiEightOneTwentyHighlightRow(row_index)
+        -- CAPTURE automation selection BEFORE any track/instrument changes
         local prev_device, prev_param = nil, nil
         if renoise.app().window.active_lower_frame == renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION then
           prev_device = renoise.song().selected_automation_device
           prev_param = renoise.song().selected_automation_parameter
+          print("8120 AUTOMATION DEBUG: CAPTURED parameter before changes: '" .. (prev_param and prev_param.name or "none") .. "'")
         end
+        PakettiEightOneTwentyHighlightRow(row_index)
         if not row_elements.updating_checkboxes then
           -- Get and select the track first
           local track_index = track_indices[row_elements.track_popup.value]
@@ -1282,6 +1328,7 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
     width=70, -- Adjust width as needed
     notifier=function()
       if not initializing then PakettiEightOneTwentyHighlightRow(row_index) end
+      trueRandomSeed()
       local random_value = math.random(0, 255)
       yxx_slider.value = random_value
       yxx_valuebox.value = random_value
@@ -1388,7 +1435,7 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
       local trk = renoise.song().tracks[idx]
       if trk and row_elements.mute_observer_fn and trk.mute_state_observable:has_notifier(row_elements.mute_observer_fn) then
         trk.mute_state_observable:remove_notifier(row_elements.mute_observer_fn)
-        print("8120 MUTE OBSERVER: Detached from track " .. tostring(idx))
+        -- Observer detached silently
       end
     end
     row_elements.attached_track_index = nil
@@ -1417,7 +1464,7 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
     row_elements.attached_track_index = idx
     -- Initialize UI from current state
     row_elements.mute_observer_fn()
-    print("8120 MUTE OBSERVER: Attached to track " .. tostring(idx))
+    -- Observer attached silently
   end
 
   -- Solo observers attach/detach definitions
@@ -1431,7 +1478,7 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
       local trk = renoise.song().tracks[idx]
       if trk and row_elements.solo_observer_fn and trk.solo_state_observable and trk.solo_state_observable:has_notifier(row_elements.solo_observer_fn) then
         trk.solo_state_observable:remove_notifier(row_elements.solo_observer_fn)
-        print("8120 SOLO OBSERVER: Detached from track " .. tostring(idx))
+        -- Observer detached silently
       end
     end
     row_elements.attached_track_index_solo = nil
@@ -1460,7 +1507,7 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
     row_elements.attached_track_index_solo = idx
     -- Initialize UI from current state
     row_elements.solo_observer_fn()
-    print("8120 SOLO OBSERVER: Attached to track " .. tostring(idx))
+    -- Observer attached silently
   end
 
   -- Function to map sample index to slider value
@@ -1507,7 +1554,7 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
         pakettiSampleVelocityRangeChoke(value)
         -- Switch to Sample Editor when the sample slider is moved
         renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_INSTRUMENT_SAMPLE_EDITOR
-        print("8120 SAMPLE SLIDER: switched to Sample Editor and selected sample " .. tostring(renoise.song().selected_sample_index))
+        -- Switched to Sample Editor silently
       end
 
       row_elements.update_sample_name_label()
@@ -1540,7 +1587,7 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
       local inst = renoise.song().instruments[idx]
       if inst and row_elements.transpose_observer_fn and inst.transpose_observable:has_notifier(row_elements.transpose_observer_fn) then
         inst.transpose_observable:remove_notifier(row_elements.transpose_observer_fn)
-        print("8120 TRANSPOSE OBSERVER: Detached from instrument " .. tostring(idx))
+        -- Observer detached silently
       end
     end
     row_elements.attached_instrument_index = nil
@@ -1571,7 +1618,7 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
     row_elements.attached_instrument_index = idx
     -- Initialize UI from current state
     row_elements.transpose_observer_fn()
-    print("8120 TRANSPOSE OBSERVER: Attached to instrument " .. tostring(idx))
+    -- Observer attached silently
   end
 
   -- Two-way sync for instrument volume → UI rotary
@@ -1585,7 +1632,7 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
       local inst = renoise.song().instruments[idx]
       if inst and row_elements.volume_observer_fn and inst.volume_observable and inst.volume_observable:has_notifier(row_elements.volume_observer_fn) then
         inst.volume_observable:remove_notifier(row_elements.volume_observer_fn)
-        print("8120 VOLUME OBSERVER: Detached from instrument " .. tostring(idx))
+        -- Observer detached silently
       end
     end
     row_elements.attached_instrument_index_for_volume = nil
@@ -1615,7 +1662,7 @@ function PakettiEightSlotsByOneTwentyCreateRow(row_index)
     row_elements.attached_instrument_index_for_volume = idx
     -- Initialize UI from current state
     row_elements.volume_observer_fn()
-    print("8120 VOLUME OBSERVER: Attached to instrument " .. tostring(idx))
+    -- Observer attached silently
   end
 
   -- instrument_popup already created earlier and stored into row_elements
@@ -1918,6 +1965,8 @@ end
   -- Function to Randomize Steps
   function row_elements.randomize()
     if initializing then return end
+    trueRandomSeed()
+    
     row_elements.updating_checkboxes = true
     row_elements.updating_yxx_checkboxes = true
     for i = 1, MAX_STEPS do
@@ -1930,48 +1979,35 @@ end
   end
 
   function row_elements.show_automation()
+    -- Highlight this row in the 8120 interface
+    PakettiEightOneTwentyHighlightRow(row_index)
+    
     local song=renoise.song()
     local track_index = track_indices[track_popup.value]
     local track = song.tracks[track_index]
+    local instrument_index = instrument_popup.value
+    
+    -- Select both the track and instrument for this row
+    song.selected_track_index = track_index
+    song.selected_instrument_index = instrument_index
+    
+    -- Select the primary sample (00-7F velocity range) for this instrument
+    local instrument = song.instruments[instrument_index]
+    if instrument and instrument.samples then
+      local primary_sample_index = PakettiEightOneTwentyFindPrimarySampleIndex(instrument)
+      if primary_sample_index then
+        song.selected_sample_index = primary_sample_index
+      end
+    end
     
     -- First switch to mixer view and show automation
     renoise.app().window.active_middle_frame = renoise.ApplicationWindow.MIDDLE_FRAME_MIXER
     renoise.app().window.lower_frame_is_visible = true
     renoise.app().window.active_lower_frame = renoise.ApplicationWindow.LOWER_FRAME_TRACK_AUTOMATION
     
-    -- Select the track
-    song.selected_track_index = track_index
-    
-    -- Find and select the PitchBend parameter
-    local found_pitchbend = false
-    for device_index, device in ipairs(track.devices) do
-      for param_index, param in ipairs(device.parameters) do
-        if param.name:find("Pitchbend") then
-          song.selected_automation_parameter = param
-          
-          -- Create automation in the pattern if it doesn't exist
-          local pattern = song.selected_pattern
-          local pattern_track = pattern.tracks[track_index]
-          local existing_automation = pattern_track:find_automation(param)
-          
-          -- If no automation exists, create it
-          if not existing_automation then
-            local automation = pattern_track:create_automation(param)
-            automation:add_point_at(1, 0.5) -- Start at middle
-            automation:add_point_at(pattern.number_of_lines, 0.5) -- End at middle
-            add_automation_points_for_notes()            
-          end
-          found_pitchbend = true
-          renoise.app():show_status(string.format('Track "%s" Pitchbend automation for %s', track.name, renoise.song().selected_sample.name))
-          break
-        end
-      end
-      if found_pitchbend then break end
-    end
-    
-    if not found_pitchbend then
-      renoise.app():show_status(string.format('No Pitchbend automation found in Track "%s"', track.name))
-    end
+    -- Just switch to automation view - don't force any specific parameter
+    -- The user can manually select the parameter they want to automate
+    renoise.app():show_status(string.format('Row %d: Track "%s" + Instrument "%s" automation opened', row_index, track.name, instrument.name))
   end
 
 
@@ -2362,6 +2398,8 @@ function create_global_controls()
 local randomize_all_yxx_button = vb:button{
   text="Random Yxx",
   notifier=function()
+    trueRandomSeed()
+    
     for _, row_elements in ipairs(rows) do
       local random_value = math.random(0, 255)
       row_elements.yxx_slider.value = random_value
@@ -2886,6 +2924,8 @@ end
 function random_gate()
   if initializing then return end
   
+  trueRandomSeed()
+  
   -- Set batch update mode
   for _, row_elements in ipairs(rows) do
     row_elements.updating_checkboxes = true
@@ -2955,6 +2995,8 @@ end
 -- Function to fill empty steps
 function fill_empty_steps(probability)
   if initializing then return end
+  trueRandomSeed()
+  
   for _, row_elements in ipairs(rows) do
     row_elements.updating_checkboxes = true
     row_elements.updating_yxx_checkboxes = true
@@ -3011,6 +3053,8 @@ end
 function randomize_all()
   if initializing then return end
   
+  trueRandomSeed()
+  
   -- First set all rows to update mode
   for _, row_elements in ipairs(rows) do
     row_elements.updating_checkboxes = true
@@ -3065,6 +3109,8 @@ end
 -- Randomize per-row step counts between 1 and 16 and apply to all rows
 function PakettiEightOneTwentyRandomizeStepCounts()
   if initializing then return end
+  trueRandomSeed()
+  
   local song = renoise.song()
   for _, row_elements in ipairs(rows) do
     row_elements.updating_steps = true
@@ -3151,6 +3197,8 @@ end
 
 function update_bpm()
   if initializing then return end
+  trueRandomSeed()
+
   local random_bpm = math.random(20, 300)
   renoise.song().transport.bpm = random_bpm
   -- BPM display will be updated automatically by the observable
@@ -3160,6 +3208,8 @@ end
 -- Function to randomize groove
 function randomize_groove()
   if initializing then return end
+  trueRandomSeed()
+
   local groove_values = {}
   for i = 1, 4 do
     local random_value = math.random()
@@ -3552,33 +3602,53 @@ function pakettiEightSlotsByOneTwentyDialog()
 
   -- Shared NNA items (used by global and per-instrument controls)
   local nna_items = {"Cut","Note-Off","Continue"}
+  local global_nna_items = {"<None>","Cut","Note-Off","Continue"}
   local nna_popups = {}
 
   -- Global NNA (auto-applies on change to all)
-  local global_nna_popup = vb:popup{
-    items = nna_items,
+  local global_nna_popup
+  global_nna_popup = vb:popup{
+    items = global_nna_items,
     width = 80,
-    value = 1,
+    value = 1,  -- Start at "<None>"
     notifier=function()
       local val = global_nna_popup.value
+      
+      -- If "<None>" is selected, don't apply anything
+      if val == 1 then
+        renoise.app():show_status("Global NNA: <None> selected - no changes applied")
+        return
+      end
+      
+      -- Convert global popup value to actual NNA value (subtract 1 because of <None> offset)
+      local nna_val = val - 1
+      local total_samples_affected = 0
+      
       for i=1,8 do
         if preferences and preferences.PakettiGroovebox8120Beatsync then
-          preferences.PakettiGroovebox8120Beatsync["Nna"..string.format("%02d", i)] = val
+          preferences.PakettiGroovebox8120Beatsync["Nna"..string.format("%02d", i)] = nna_val
         end
         if nna_popups and nna_popups[i] then
-          nna_popups[i].value = val
+          nna_popups[i].value = nna_val
         end
         local re = rows[i]
         if re then
           local inst_idx = re.instrument_popup and re.instrument_popup.value
           local inst = inst_idx and renoise.song().instruments[inst_idx] or nil
-          if inst then
-            local smp_idx = PakettiEightOneTwentyFindPrimarySampleIndex(inst)
-            local smp = smp_idx and inst.samples[smp_idx] or nil
-            if smp then smp.new_note_action = val end
+          if inst and inst.samples then
+            -- Apply NNA to ALL samples in this instrument, not just the primary one
+            for sample_idx, sample in ipairs(inst.samples) do
+              sample.new_note_action = nna_val
+              total_samples_affected = total_samples_affected + 1
+            end
           end
         end
       end
+      
+      local nna_names = {"Cut", "Note-Off", "Continue"}
+      local nna_name = nna_names[nna_val] or "Unknown"
+      renoise.app():show_status(string.format("Global NNA: Set %s on %d samples across all 8 instruments", nna_name, total_samples_affected))
+      
       if preferences and preferences.save_as then preferences:save_as("preferences.xml") end
     end
   }
@@ -3688,7 +3758,7 @@ function pakettiEightSlotsByOneTwentyDialog()
   for _, row_elements in ipairs(rows) do
     row_elements.update_sample_name_label()
   end
-  debug_instruments_and_samples()
+  -- Debug output removed
     local keyhandler = create_keyhandler_for_dialog(
     function() return dialog end,
     function(value) dialog = value end
@@ -4200,28 +4270,7 @@ renoise.tool():add_midi_mapping{name="Paketti:Paketti Groovebox 8120:Global Pitc
   end
 end}
 
-function debug_instruments_and_samples()
-  print("----- Debug: Instruments and Samples (Velocity 00-7F) -----")
-  for row_index, row_elements in ipairs(rows) do
-    local instrument_index = row_elements.instrument_popup.value
-    local instrument = renoise.song().instruments[instrument_index]
-    local instrument_name = instrument and (instrument.name ~= "" and instrument.name or "Instrument " .. instrument_index) or "Unknown Instrument"
-    if instrument then
-      local sample_count = #instrument.samples
-      if sample_count > 0 then
-        for sample_index, sample in ipairs(instrument.samples) do
-          local velocity_min = sample.sample_mapping and sample.sample_mapping.velocity_range and sample.sample_mapping.velocity_range[1] or nil
-          local velocity_max = sample.sample_mapping and sample.sample_mapping.velocity_range and sample.sample_mapping.velocity_range[2] or nil
-          if velocity_min == 0x00 and velocity_max == 0x7F then
-            local sample_name = sample.name ~= "" and sample.name or "Sample " .. sample_index
-            print(string.format("Row %d: Instrument [%d] '%s', Sample [%d] '%s' has Velocity Range: %02X-%02X", row_index, instrument_index, instrument_name, sample_index, sample_name, velocity_min, velocity_max))
-          end
-        end
-      end
-    end
-  end
-  print("----- End of Debug -----")
-end
+-- Debug function removed to reduce console noise
 
 
 function PakettiEightOneTwentyInit()
@@ -4334,7 +4383,11 @@ function loadSequentialSamplesWithFolderPrompts()
             if preferences.pakettiLoaderInterpolation then sample.interpolation_mode = preferences.pakettiLoaderInterpolation.value end
             if preferences.pakettiLoaderOverSampling then sample.oversample_enabled = preferences.pakettiLoaderOverSampling.value end
             if preferences.pakettiLoaderOneshot then sample.oneshot = preferences.pakettiLoaderOneshot.value end
-            if preferences.pakettiLoaderNNA then sample.new_note_action = preferences.pakettiLoaderNNA.value end
+            if preferences.pakettiLoaderNNA then 
+              sample.new_note_action = preferences.pakettiLoaderNNA.value 
+            else 
+              sample.new_note_action = 1  -- Default to Cut if no preference set
+            end
             if preferences.pakettiLoaderLoopMode then sample.loop_mode = preferences.pakettiLoaderLoopMode.value end
             if preferences.pakettiLoaderLoopExit then sample.loop_release = preferences.pakettiLoaderLoopExit.value end
           end
@@ -4629,7 +4682,11 @@ function loadSequentialDrumkitSamples()
           if preferences.pakettiLoaderInterpolation then sample.interpolation_mode = preferences.pakettiLoaderInterpolation.value end
           if preferences.pakettiLoaderOverSampling then sample.oversample_enabled = preferences.pakettiLoaderOverSampling.value end
           if preferences.pakettiLoaderOneshot then sample.oneshot = preferences.pakettiLoaderOneshot.value end
-          if preferences.pakettiLoaderNNA then sample.new_note_action = preferences.pakettiLoaderNNA.value end
+          if preferences.pakettiLoaderNNA then 
+            sample.new_note_action = preferences.pakettiLoaderNNA.value 
+          else 
+            sample.new_note_action = 1  -- Default to Cut if no preference set
+          end
           if preferences.pakettiLoaderLoopMode then sample.loop_mode = preferences.pakettiLoaderLoopMode.value end
           if preferences.pakettiLoaderLoopExit then sample.loop_release = preferences.pakettiLoaderLoopExit.value end
         end
@@ -4822,6 +4879,11 @@ function loadSequentialRandomLoadAll()
     return
   end
 
+  -- Seed the random number generator with current time for truly random results
+  math.randomseed(os.time())
+  -- Add some additional random calls to further randomize the sequence
+  math.random(); math.random(); math.random()
+
   local folders = {}
   for i = 1, 8 do
     folders[i] = base_folder
@@ -4946,7 +5008,11 @@ function loadSequentialRandomLoadAll()
           if preferences.pakettiLoaderInterpolation then sample.interpolation_mode = preferences.pakettiLoaderInterpolation.value end
           if preferences.pakettiLoaderOverSampling then sample.oversample_enabled = preferences.pakettiLoaderOverSampling.value end
           if preferences.pakettiLoaderOneshot then sample.oneshot = preferences.pakettiLoaderOneshot.value end
-          if preferences.pakettiLoaderNNA then sample.new_note_action = preferences.pakettiLoaderNNA.value end
+          if preferences.pakettiLoaderNNA then 
+            sample.new_note_action = preferences.pakettiLoaderNNA.value 
+          else 
+            sample.new_note_action = 1  -- Default to Cut if no preference set
+          end
           if preferences.pakettiLoaderLoopMode then sample.loop_mode = preferences.pakettiLoaderLoopMode.value end
           if preferences.pakettiLoaderLoopExit then sample.loop_release = preferences.pakettiLoaderLoopExit.value end
         end

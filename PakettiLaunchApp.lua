@@ -60,7 +60,14 @@ function saveSelectedSampleToTempAndOpen(app_path)
         return
     end
 
-    local temp_file_path = os.tmpname() .. ".wav"
+    -- Use sample name with -tmpSave before .wav extension
+    local sample_name = song.selected_sample.name
+    if sample_name == "" then
+        sample_name = "UnnamedSample"
+    end
+    -- Remove any existing .wav extension and add -tmpSave.wav
+    sample_name = sample_name:gsub("%.wav$", "")
+    local temp_file_path = os.tmpname():gsub("[^/\\]*$", "") .. sample_name .. "-tmpSave.wav"
     song.selected_sample.sample_buffer:save_as(temp_file_path, "wav")
     
     -- Detect the operating system
@@ -138,8 +145,14 @@ function saveSelectedSampleRangeToTempAndOpen(app_path)
     
     new_sample.sample_buffer:finalize_sample_data_changes()
     
-    -- Save the range to a temporary file
-    local temp_file_path = os.tmpname() .. ".wav"
+    -- Save the range to a temporary file using sample name with -tmpSave before .wav extension
+    local sample_name = selected_sample.name
+    if sample_name == "" then
+        sample_name = "UnnamedSample"
+    end
+    -- Remove any existing .wav extension and add -tmpSave.wav
+    sample_name = sample_name:gsub("%.wav$", "")
+    local temp_file_path = os.tmpname():gsub("[^/\\]*$", "") .. sample_name .. "-tmpSave.wav"
     new_sample.sample_buffer:save_as(temp_file_path, "wav")
     
     -- Clean up: delete the temporary instrument and reselect original instrument

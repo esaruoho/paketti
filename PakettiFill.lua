@@ -59,12 +59,97 @@ function PakettiFillValueToNote(note_value)
   return note_names[note_index], octave
 end
 
--- Generate random note within range
+-- Generate random note within range (simple version)
 function PakettiFillGenerateRandomNote(from_note, to_note)
   if from_note > to_note then
     from_note, to_note = to_note, from_note
   end
   return math.random(from_note, to_note)
+end
+
+-- Get all actually mapped notes for current instrument
+function PakettiFillGetMappedNotes()
+  local song = renoise.song()
+  local instrument = song:instrument(song.selected_instrument_index)
+  
+  if not instrument or #instrument.samples == 0 then
+    return {48} -- Default C-4
+  end
+  
+  -- Collect all actually mapped notes
+  local mapped_notes = {}
+  local first_sample_has_slices = false
+  local slice_count = 0
+  local slice_start_note = nil
+  
+  -- Check if first sample has slice markers
+  if #instrument.samples > 0 then
+    local first_sample = instrument:sample(1)
+    if first_sample and #first_sample.slice_markers > 0 then
+      first_sample_has_slices = true
+      slice_count = #first_sample.slice_markers + 1
+      
+      -- Get the slice start note
+      local first_mapping = first_sample.sample_mapping
+      if first_mapping and first_mapping.note_range and #first_mapping.note_range >= 2 then
+        slice_start_note = first_mapping.note_range[1]
+      end
+    end
+  end
+  
+  local start_sample_index = 1
+  
+  -- If first sample has slices, include slice notes and start from second sample for regular samples
+  if first_sample_has_slices then
+    -- Add slice notes to mapped notes
+    if slice_start_note then
+      for i = 0, slice_count - 1 do
+        table.insert(mapped_notes, slice_start_note + i)
+      end
+    end
+    
+    -- Start regular sample scanning from second sample (if it exists)
+    if #instrument.samples > 1 then
+      start_sample_index = 2
+    else
+      start_sample_index = #instrument.samples + 1 -- Skip regular sample loop
+    end
+  end
+  
+  -- Scan through regular samples and their mappings
+  for sample_index = start_sample_index, #instrument.samples do
+    local sample = instrument:sample(sample_index)
+    
+    -- Get the sample mapping for this sample
+    local mapping = sample.sample_mapping
+    if mapping and mapping.note_range and #mapping.note_range >= 2 then
+      -- Add all notes in this mapping's range
+      for note = mapping.note_range[1], mapping.note_range[2] do
+        table.insert(mapped_notes, note)
+      end
+    end
+  end
+  
+  -- Return sorted mapped notes, or default
+  if #mapped_notes > 0 then
+    table.sort(mapped_notes)
+    return mapped_notes
+  else
+    return {48} -- Default C-4
+  end
+end
+
+-- Generate random note from actually mapped samples (for Euclidean mode)
+function PakettiFillGenerateRandomMappedNote()
+  local mapped_notes = PakettiFillGetMappedNotes()
+  return mapped_notes[math.random(1, #mapped_notes)]
+end
+
+-- Generate distributed note from mapped samples (for Euclidean From-To mode)
+function PakettiFillGenerateDistributedMappedNote(ratio)
+  local mapped_notes = PakettiFillGetMappedNotes()
+  local index = math.max(1, math.min(#mapped_notes, math.floor(ratio * #mapped_notes) + 1))
+  return mapped_notes[index]
 end
 
 -- Get available effects (not blacklisted)
@@ -140,6 +225,90 @@ function PakettiFillGenerateEuclideanPattern(events, pattern_length)
   return pattern
 end
 
+-- Get optimal From/To note range for current instrument in Euclidean mode
+function PakettiFillGetOptimalNoteRange()
+  local song = renoise.song()
+  local instrument = song:instrument(song.selected_instrument_index)
+  
+  if not instrument or #instrument.samples == 0 then
+    return 48, 60  -- Default C-4 to C-5 if no samples
+  end
+  
+  -- Check if first sample has slice markers
+  local first_sample_has_slices = false
+  local slice_count = 0
+  local slice_start_note = nil
+  
+  if #instrument.samples > 0 then
+    local first_sample = instrument:sample(1)
+    if first_sample and #first_sample.slice_markers > 0 then
+      first_sample_has_slices = true
+      slice_count = #first_sample.slice_markers + 1
+      
+      -- Get the slice start note
+      local first_mapping = first_sample.sample_mapping
+      if first_mapping and first_mapping.note_range and #first_mapping.note_range >= 2 then
+        slice_start_note = first_mapping.note_range[1]
+      end
+    end
+  end
+  
+  -- Read actual sample mappings to find mapped note ranges
+  local mapped_notes = {}
+  local start_sample_index = 1
+  
+  -- If first sample has slices, include slice range and start from second sample for regular samples
+  if first_sample_has_slices then
+    -- Add slice notes to mapped range
+    if slice_start_note then
+      for i = 0, slice_count - 1 do
+        mapped_notes[slice_start_note + i] = true
+      end
+    end
+    
+    -- Start regular sample scanning from second sample (if it exists)
+    if #instrument.samples > 1 then
+      start_sample_index = 2
+    else
+      start_sample_index = #instrument.samples + 1 -- Skip regular sample loop
+    end
+  end
+  
+  -- Scan through regular samples and their mappings
+  for sample_index = start_sample_index, #instrument.samples do
+    local sample = instrument:sample(sample_index)
+    
+    -- Get the sample mapping for this sample
+    local mapping = sample.sample_mapping
+    if mapping and mapping.note_range and #mapping.note_range >= 2 then
+      -- Add all notes in this mapping's range
+      for note = mapping.note_range[1], mapping.note_range[2] do
+        mapped_notes[note] = true
+      end
+    end
+  end
+  
+  -- Find the lowest and highest mapped notes
+  local min_note = nil
+  local max_note = nil
+  
+  for note = 0, 119 do  -- C-0 to B-9
+    if mapped_notes[note] then
+      if min_note == nil then
+        min_note = note
+      end
+      max_note = note
+    end
+  end
+  
+  -- Return actual mapped range, or default if nothing found
+  if min_note and max_note then
+    return min_note, max_note
+  else
+    return 48, 60  -- Default C-4 to C-5 if no mappings found
+  end
+end
+
 -- Get sample name for note value from current instrument (truncated to 15 chars)
 function PakettiFillGetSampleName(note_value)
   local song = renoise.song()
@@ -150,22 +319,62 @@ function PakettiFillGetSampleName(note_value)
     return string.format("%s%d", note_name, octave)
   end
   
-  -- Simple approach: use note value to map to sample index
-  -- C-4 (48) = sample 1, C#4 (49) = sample 2, etc.
-  local sample_index = (note_value % #instrument.samples) + 1
-  local sample = instrument:sample(sample_index)
+  -- Check if first sample has slice markers
+  local first_sample_has_slices = false
+  local slice_count = 0
+  local slice_start_note = nil
   
-  if sample and sample.name and sample.name ~= "" then
-    -- Truncate to 9 characters max to fit 80px width
-    local name = sample.name
-    if #name > 9 then
-      name = string.sub(name, 1, 9) .. ".."
+  if #instrument.samples > 0 then
+    local first_sample = instrument:sample(1)
+    if first_sample and #first_sample.slice_markers > 0 then
+      first_sample_has_slices = true
+      slice_count = #first_sample.slice_markers + 1
+      
+      -- Get the slice start note
+      local first_mapping = first_sample.sample_mapping
+      if first_mapping and first_mapping.note_range and #first_mapping.note_range >= 2 then
+        slice_start_note = first_mapping.note_range[1]
+      end
     end
-    return name
-  else
-    -- Sample exists but no name, use sample index
-    return "Sample " .. tostring(sample_index)
   end
+  
+  -- PRIORITY 1: Check for sliced sample first
+  if first_sample_has_slices and slice_start_note then
+    -- Check if this note falls within the actual slice range
+    local slice_end_note = slice_start_note + slice_count - 1
+    if note_value >= slice_start_note and note_value <= slice_end_note then
+      local slice_index = note_value - slice_start_note + 1
+      return string.format("slice%02d", slice_index)
+    end
+  end
+  
+  -- PRIORITY 2: Find which regular sample is mapped to this note
+  for sample_index = 1, #instrument.samples do
+    local sample = instrument:sample(sample_index)
+    
+    -- Skip the first sample if it has slices (regardless of how many samples we have)
+    if not (first_sample_has_slices and sample_index == 1) then
+      local mapping = sample.sample_mapping
+      if mapping and mapping.note_range and #mapping.note_range >= 2 then
+        if note_value >= mapping.note_range[1] and note_value <= mapping.note_range[2] then
+          -- Found a regular sample mapping
+          if sample.name and sample.name ~= "" then
+            local name = sample.name
+            if #name > 9 then
+              name = string.sub(name, 1, 9) .. ".."
+            end
+            return name
+          else
+            return "Sample"
+          end
+        end
+      end
+    end
+  end
+  
+  -- PRIORITY 3: If no sample mapping found, return note name
+  local note_name, octave = PakettiFillValueToNote(note_value)
+  return string.format("%s%d", note_name, octave)
 end
 
 -- Check Where? conditions (Polyend-style logic)
@@ -218,6 +427,8 @@ end
 
 -- Apply fill to pattern selection
 function PakettiFillApplyFill(density, fill_type, from_note, to_note, constant_note, use_random_fx, effects_only, selected_effect, where_mode, step_interval, selected_effect_index, effect_min_value, effect_max_value, use_editstep)
+  trueRandomSeed()
+  
   local song = renoise.song()
   local selection = song.selection_in_pattern
   
@@ -301,15 +512,40 @@ function PakettiFillApplyFill(density, fill_type, from_note, to_note, constant_n
               -- Generate note based on fill type
               local note_value
               if fill_type == 1 then -- Constant
-                note_value = constant_note
+                if where_mode == 7 then -- Euclidean: ensure constant note is mapped
+                  local mapped_notes = PakettiFillGetMappedNotes()
+                  -- Check if constant_note is in mapped notes
+                  local is_mapped = false
+                  for _, mapped_note in ipairs(mapped_notes) do
+                    if mapped_note == constant_note then
+                      is_mapped = true
+                      break
+                    end
+                  end
+                  -- Use constant note if mapped, otherwise use first mapped note
+                  note_value = is_mapped and constant_note or mapped_notes[1]
+                else
+                  note_value = constant_note
+                end
               elseif fill_type == 2 then -- From-To (distributed evenly)
-                -- Calculate position in range based on line position
-                local range_size = selection.end_line - selection.start_line
-                local line_position = line_index - selection.start_line
-                local ratio = range_size > 0 and line_position / range_size or 0
-                note_value = math.floor(from_note + (ratio * (to_note - from_note)))
+                if where_mode == 7 then -- Euclidean: distribute across mapped notes
+                  local range_size = selection.end_line - selection.start_line
+                  local line_position = line_index - selection.start_line
+                  local ratio = range_size > 0 and line_position / range_size or 0
+                  note_value = PakettiFillGenerateDistributedMappedNote(ratio)
+                else
+                  -- Calculate position in range based on line position
+                  local range_size = selection.end_line - selection.start_line
+                  local line_position = line_index - selection.start_line
+                  local ratio = range_size > 0 and line_position / range_size or 0
+                  note_value = math.floor(from_note + (ratio * (to_note - from_note)))
+                end
               else -- Random
-                note_value = PakettiFillGenerateRandomNote(from_note, to_note)
+                if where_mode == 7 then -- Euclidean: use actually mapped notes
+                  note_value = PakettiFillGenerateRandomMappedNote()
+                else
+                  note_value = PakettiFillGenerateRandomNote(from_note, to_note)
+                end
               end
               
               -- Set the note
@@ -405,6 +641,9 @@ function PakettiFillShowDialog()
   local effect_min_value = paketti_fill_effect_min_value
   local effect_max_value = paketti_fill_effect_max_value
   local use_editstep = paketti_fill_use_editstep
+  
+  -- Function to update effects only checkbox (declare before use)
+  local update_effects_only_checkbox = nil
   
   -- Density slider (vertical)
   local density_label = vb:text{
@@ -619,6 +858,16 @@ function PakettiFillShowDialog()
     notifier = function(value)
       where_mode = value
       paketti_fill_where_mode = value  -- Save to global
+      
+      -- Auto-check "FX Only" checkbox when "FX" or "No FX" is selected
+      if where_mode == 3 or where_mode == 4 then -- "FX" or "No FX"
+        effects_only = true
+        paketti_fill_effects_only = true
+        if update_effects_only_checkbox then
+          update_effects_only_checkbox()  -- Update checkbox after variables are set
+        end
+      end
+      
       -- Update UI based on mode
       if where_mode == 6 then -- Each (uses transport.edit_step)
         density_label.text = "Density"
@@ -644,8 +893,27 @@ function PakettiFillShowDialog()
           to_note_slider.active = true
         end
         
+        -- Set optimal From/To range for available samples
+        local optimal_from, optimal_to = PakettiFillGetOptimalNoteRange()
+        from_note_value = optimal_from
+        to_note_value = optimal_to
+        paketti_fill_from_note_value = from_note_value
+        paketti_fill_to_note_value = to_note_value
+        from_note_slider.value = from_note_value
+        to_note_slider.value = to_note_value
+        
         density_label.text = "Events"
         density_slider.max = 16  -- Max events should be reasonable
+        
+        -- Set sensible default event count when switching to Euclidean
+        if use_editstep then
+          local edit_step = renoise.song().transport.edit_step
+          density_value = math.max(1, math.min(4, edit_step)) -- Default to EditStep or max 4 events
+        else
+          density_value = 1  -- Default to 1 event
+        end
+        paketti_fill_density_value = density_value  -- Save to global
+        density_slider.value = density_value
         density_value_text.text = tostring(density_value)
         
         -- Update Step Length or EditStep display based on checkbox
@@ -662,6 +930,23 @@ function PakettiFillShowDialog()
         
         from_label.text = "From Sample"
         to_label.text = "To Sample"
+        
+        -- Set optimal From/To range for available samples
+        local optimal_from, optimal_to = PakettiFillGetOptimalNoteRange()
+        from_note_value = optimal_from
+        to_note_value = optimal_to
+        paketti_fill_from_note_value = from_note_value
+        paketti_fill_to_note_value = to_note_value
+        
+        -- Constrain sliders to actual mapped range
+        from_note_slider.min = optimal_from
+        from_note_slider.max = optimal_to
+        to_note_slider.min = optimal_from
+        to_note_slider.max = optimal_to
+        
+        from_note_slider.value = from_note_value
+        to_note_slider.value = to_note_value
+        
         -- Update text displays to show sample names
         from_note_text.text = PakettiFillGetSampleName(from_note_value)
         to_note_text.text = PakettiFillGetSampleName(to_note_value)
@@ -673,6 +958,13 @@ function PakettiFillShowDialog()
         step_interval_slider.active = false  -- Disable for other modes
         from_label.text = "From"
         to_label.text = "To"
+        
+        -- Reset sliders to full range when not in Euclidean mode
+        from_note_slider.min = 0
+        from_note_slider.max = 119
+        to_note_slider.min = 0
+        to_note_slider.max = 119
+        
         -- Update text displays to show note names
         local from_note_name, from_octave = PakettiFillValueToNote(from_note_value)
         from_note_text.text = string.format("%s%d", from_note_name, from_octave)
@@ -692,6 +984,11 @@ function PakettiFillShowDialog()
     table.insert(effect_names, effect[2] .. " - " .. effect[3])
   end
   
+  -- Function to update effect parameter slider active state (declare before use)
+  local function update_effect_sliders_active()
+    -- Will be defined after sliders are created
+  end
+  
   local effect_selector = vb:popup{
     items = effect_names,
     value = selected_effect_index,
@@ -699,22 +996,21 @@ function PakettiFillShowDialog()
     notifier = function(value)
       selected_effect_index = value
       paketti_fill_selected_effect_index = value  -- Save to global
+      update_effect_sliders_active()  -- Update slider active state when effect changes
     end
   }
-  
-  -- Effect Parameter Min/Max Controls (visible when Random FX is checked)
+
+  -- Effect Parameter Min/Max Controls (always visible, enabled when Random FX or specific effect selected)
   local effect_min_label = vb:text{
     text = "Min",
     style = "strong",
-    font = "bold",
-    visible = use_random_fx
+    font = "bold"
   }
   
   local effect_min_value_text = vb:text{
     text = string.format("%02X", effect_min_value),
     style = "strong",
     font = "bold",
-    visible = use_random_fx,
     width = 80  -- Fixed width to match other columns
   }
   
@@ -725,7 +1021,7 @@ function PakettiFillShowDialog()
     width = 80,  -- Match other sliders
     height = 200,  -- Match From/To sliders
     steps = {1, 16},  -- Small step: 1, Big step: 16 (0x10)
-    visible = use_random_fx,
+    active = false,  -- Initially disabled
     notifier = function(value)
       effect_min_value = math.floor(value)
       paketti_fill_effect_min_value = effect_min_value  -- Save to global
@@ -743,15 +1039,13 @@ function PakettiFillShowDialog()
   local effect_max_label = vb:text{
     text = "Max",
     style = "strong",
-    font = "bold",
-    visible = use_random_fx
+    font = "bold"
   }
   
   local effect_max_value_text = vb:text{
     text = string.format("%02X", effect_max_value),
     style = "strong",
     font = "bold",
-    visible = use_random_fx,
     width = 80  -- Fixed width to match other columns
   }
   
@@ -762,7 +1056,7 @@ function PakettiFillShowDialog()
     width = 80,  -- Match other sliders
     height = 200,  -- Match From/To sliders
     steps = {1, 16},  -- Small step: 1, Big step: 16 (0x10)
-    visible = use_random_fx,
+    active = false,  -- Initially disabled
     notifier = function(value)
       effect_max_value = math.floor(value)
       paketti_fill_effect_max_value = effect_max_value  -- Save to global
@@ -777,14 +1071,12 @@ function PakettiFillShowDialog()
     end
   }
   
-  -- Random FX checkbox
-  local random_fx_checkbox = vb:checkbox{
-    value = use_random_fx,
-    notifier = function(value)
-      use_random_fx = value
-      paketti_fill_use_random_fx = value  -- Save to global
-    end
-  }
+  -- Now define the actual update function after sliders are created
+  update_effect_sliders_active = function()
+    local should_be_active = use_random_fx or (selected_effect_index > 1)  -- Active if Random FX checked OR specific effect selected (not <No Effect>)
+    effect_min_slider.active = should_be_active
+    effect_max_slider.active = should_be_active
+  end
   
   -- Random FX checkbox
   local random_fx_checkbox = vb:checkbox{
@@ -792,13 +1084,7 @@ function PakettiFillShowDialog()
     notifier = function(value)
       use_random_fx = value
       paketti_fill_use_random_fx = value  -- Save to global
-      -- Show/hide effect min/max sliders based on Random FX checkbox
-      effect_min_label.visible = use_random_fx
-      effect_min_slider.visible = use_random_fx
-      effect_min_value_text.visible = use_random_fx
-      effect_max_label.visible = use_random_fx
-      effect_max_slider.visible = use_random_fx
-      effect_max_value_text.visible = use_random_fx
+      update_effect_sliders_active()  -- Update slider active state when Random FX changes
     end
   }
   
@@ -810,6 +1096,11 @@ function PakettiFillShowDialog()
       paketti_fill_effects_only = value  -- Save to global
     end
   }
+  
+  -- Now define the actual update function after checkbox is created
+  update_effects_only_checkbox = function()
+    effects_only_checkbox.value = effects_only
+  end
   
   -- Configure Effects button
   local configure_effects_button = vb:button{
@@ -1037,8 +1328,52 @@ function PakettiFillShowDialog()
   -- Set active middle frame after showing dialog
   renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
   
+  -- Set initial effect slider active state
+  update_effect_sliders_active()
+  
   -- Force update UI state based on current mode
   if where_mode == 7 then -- Euclidean mode
+    -- Auto-switch from Constant to Random for Euclidean mode
+    if fill_type == 1 then -- If currently Constant
+      fill_type = 3 -- Change to Random
+      paketti_fill_fill_type = fill_type  -- Save to global
+      fill_type_popup.value = fill_type
+    end
+    
+    -- Set sensible default event count when opening in Euclidean mode
+    if use_editstep then
+      local edit_step = renoise.song().transport.edit_step
+      density_value = math.max(1, math.min(4, edit_step)) -- Default to EditStep or max 4 events
+    else
+      density_value = 1  -- Default to 1 event
+    end
+    paketti_fill_density_value = density_value  -- Save to global
+    density_slider.value = density_value
+    density_value_text.text = tostring(density_value)
+    
+    -- Set optimal From/To range for available samples
+    local optimal_from, optimal_to = PakettiFillGetOptimalNoteRange()
+    from_note_value = optimal_from
+    to_note_value = optimal_to
+    paketti_fill_from_note_value = from_note_value
+    paketti_fill_to_note_value = to_note_value
+    
+    -- Constrain sliders to actual mapped range
+    from_note_slider.min = optimal_from
+    from_note_slider.max = optimal_to
+    to_note_slider.min = optimal_from
+    to_note_slider.max = optimal_to
+    
+    from_note_slider.value = from_note_value
+    to_note_slider.value = to_note_value
+    
+    -- Update display texts to show sample names
+    from_note_text.text = PakettiFillGetSampleName(from_note_value)
+    to_note_text.text = PakettiFillGetSampleName(to_note_value)
+    
+    -- Enable to_note_slider for Euclidean mode (needs both From and To samples)
+    to_note_slider.active = true
+    
     step_interval_slider.active = not use_editstep
     if use_editstep then
       step_interval_text.text = "EditStep"

@@ -47,6 +47,7 @@ PakettiAutomationStack_env_popup_view = nil
 PakettiAutomationStack_single_selected_index = 1
 PakettiAutomationStack_single_canvas_height = 320
 PakettiAutomationStack_copy_buffer = nil
+PakettiAutomationStack_automation_hashes = {} -- Individual automation hashes for change detection
 
 -- Utility draw text helper
 function PakettiAutomationStack_DrawText(ctx, text, x, y, size)
@@ -199,6 +200,69 @@ function PakettiAutomationStack_BuildAutomationHash()
     end
   end
   return table.concat(acc, ":")
+end
+
+-- Build individual automation hashes for change detection
+function PakettiAutomationStack_BuildIndividualHashes()
+  local song, patt, ptrack = PakettiAutomationStack_GetSongPatternTrack()
+  if not song or not patt or not ptrack then return {} end
+  local hashes = {}
+  local track = song.tracks[song.selected_track_index]
+  if not track then return hashes end
+  local auto_index = 1
+  for d = 1, #track.devices do
+    local dev = track.devices[d]
+    for pi = 1, #dev.parameters do
+      local param = dev.parameters[pi]
+      if param.is_automatable then
+        local a = ptrack:find_automation(param)
+        if a then
+          local acc = {}
+          local ok1, pm = pcall(function() return a.playmode end)
+          acc[#acc+1] = tostring(pm or "?")
+          acc[#acc+1] = tostring(param.name or "?")
+          local points = a.points
+          if points then
+            acc[#acc+1] = tostring(#points)
+            local sumt = 0; local sumv = 0
+            for j = 1, #points do
+              local p = points[j]
+              sumt = sumt + (p.time or 0)
+              sumv = sumv + math.floor(((p.value or 0)*1000)+0.5)
+            end
+            acc[#acc+1] = tostring(sumt)
+            acc[#acc+1] = tostring(sumv)
+          end
+          hashes[auto_index] = table.concat(acc, ":")
+          auto_index = auto_index + 1
+        end
+      end
+    end
+  end
+  return hashes
+end
+
+-- Detect which automation changed and auto-select it
+function PakettiAutomationStack_DetectChangedAutomation()
+  local new_hashes = PakettiAutomationStack_BuildIndividualHashes()
+  for i = 1, #new_hashes do
+    local old_hash = PakettiAutomationStack_automation_hashes[i]
+    local new_hash = new_hashes[i]
+    if old_hash and old_hash ~= new_hash then
+      -- This automation changed, auto-select it
+      if PakettiAutomationStack_view_mode == 2 then
+        -- Single view mode
+        PakettiAutomationStack_single_selected_index = i
+        PakettiAutomationStack_UpdateEnvPopup()
+        local entry = PakettiAutomationStack_automations[i]
+        if entry then
+          renoise.app():show_status("Auto-selected: " .. (entry.device_name or "Device") .. ": " .. (entry.name or "Parameter"))
+        end
+      end
+      break -- Only select the first changed automation
+    end
+  end
+  PakettiAutomationStack_automation_hashes = new_hashes
 end
 
 -- Rebuild automation list
@@ -390,12 +454,14 @@ function PakettiAutomationStack_RenderSingleCanvas(canvas_w, canvas_h)
     -- Draw selected on top
     local sel_entry = PakettiAutomationStack_automations[sel]
     PakettiAutomationStack_DrawAutomation(sel_entry, ctx, W, H, num_lines, {120,255,170,235}, {200,255,255,255}, 3)
-    -- Title
-    local label = string.format("%s: %s", (sel_entry.device_name or "DEVICE"), (sel_entry.name or "PARAM"))
-    ctx.fill_color = {20,20,30,255}
-    ctx:begin_path(); ctx:rect(2, 2, W - 4, 12); ctx:fill()
-    ctx.stroke_color = {180,220,255,255}
-    PakettiAutomationStack_DrawText(ctx, string.upper(label), 6, 4, 8)
+    -- Title for selected automation only
+    if sel_entry then
+      local label = string.format("%s: %s", (sel_entry.device_name or "DEVICE"), (sel_entry.name or "PARAM"))
+      ctx.fill_color = {20,20,30,255}
+      ctx:begin_path(); ctx:rect(2, 2, W - 4, 12); ctx:fill()
+      ctx.stroke_color = {180,220,255,255}
+      PakettiAutomationStack_DrawText(ctx, string.upper(label), 6, 4, 8)
+    end
   end
 end
 
@@ -1014,6 +1080,8 @@ function PakettiAutomationStack_ReopenDialog()
   PakettiAutomationStack_count_text_view = PakettiAutomationStack_vb.views.pas_count_text
   renoise.app().window.active_middle_frame = renoise.app().window.active_middle_frame
   PakettiAutomationStack_RebuildAutomations()
+  -- Initialize automation hashes for change detection
+  PakettiAutomationStack_automation_hashes = PakettiAutomationStack_BuildIndividualHashes()
   PakettiAutomationStack_UpdateScrollbars()
   PakettiAutomationStack_RebuildCanvases()
   PakettiAutomationStack_RequestUpdate()
@@ -1050,10 +1118,14 @@ function PakettiAutomationStack_TimerTick()
   local hash = PakettiAutomationStack_BuildAutomationHash()
   if hash ~= PakettiAutomationStack_last_hash then
     PakettiAutomationStack_last_hash = hash
+    -- Detect which specific automation changed for auto-selection
+    PakettiAutomationStack_DetectChangedAutomation()
     PakettiAutomationStack_RebuildAutomations()
     PakettiAutomationStack_RebuildCanvases()
     PakettiAutomationStack_RequestUpdate()
   else
+    -- Even if overall hash didn't change, check for individual automation changes
+    PakettiAutomationStack_DetectChangedAutomation()
     PakettiAutomationStack_RequestUpdate()
   end
 end
@@ -1071,6 +1143,7 @@ function PakettiAutomationStack_Cleanup()
   PakettiAutomationStack_track_canvases = {}
   PakettiAutomationStack_scrollbar_view = nil
   PakettiAutomationStack_vscrollbar_view = nil
+  PakettiAutomationStack_automation_hashes = {} -- Clear automation hashes
 end
 
 -- Menu + Keybinding entries

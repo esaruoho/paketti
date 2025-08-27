@@ -317,10 +317,17 @@ function rex_loadsample(filename)
   end
   dprint(string.format("Added %d slice markers in total (including start)", #slice_offsets + 1))
 
-  -- Enable oversampling for all slices
+  -- Apply Paketti loader settings to all slice samples
   for i = 1, #new_smp.slice_markers do
-    renoise.song().selected_instrument.samples[i+1].oversample_enabled = preferences.pakettiLoaderOverSampling.value
-    dprint(string.format("Enabled oversampling for slice %d", i))
+    local slice_sample = renoise.song().selected_instrument.samples[i+1]
+    slice_sample.oversample_enabled = preferences.pakettiLoaderOverSampling.value
+    slice_sample.autofade = preferences.pakettiLoaderAutofade.value
+    slice_sample.autoseek = preferences.pakettiLoaderAutoseek.value
+    slice_sample.interpolation_mode = preferences.pakettiLoaderInterpolation.value
+    slice_sample.oneshot = preferences.pakettiLoaderOneshot.value
+    slice_sample.new_note_action = preferences.pakettiLoaderNNA.value
+    slice_sample.loop_release = preferences.pakettiLoaderLoopExit.value
+    dprint(string.format("Applied Paketti loader settings to slice %d", i))
   end
 
   -- Set names

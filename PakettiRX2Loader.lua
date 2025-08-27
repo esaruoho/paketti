@@ -389,6 +389,25 @@ end
     smp.loop_release = preferences.pakettiLoaderLoopExit.value
   end
   
+  -- Apply Paketti loader settings to all slice samples
+  if preferences and #smp.slice_markers > 0 then
+    print("Applying Paketti loader settings to " .. #smp.slice_markers .. " slice samples")
+    for i = 1, #smp.slice_markers do
+      local slice_sample = current_instrument.samples[i + 1]
+      if slice_sample then
+        slice_sample.autofade = preferences.pakettiLoaderAutofade.value
+        slice_sample.autoseek = preferences.pakettiLoaderAutoseek.value
+        slice_sample.loop_mode = preferences.pakettiLoaderLoopMode.value
+        slice_sample.interpolation_mode = preferences.pakettiLoaderInterpolation.value
+        slice_sample.oversample_enabled = preferences.pakettiLoaderOverSampling.value
+        slice_sample.oneshot = preferences.pakettiLoaderOneshot.value
+        slice_sample.new_note_action = preferences.pakettiLoaderNNA.value
+        slice_sample.loop_release = preferences.pakettiLoaderLoopExit.value
+        print("Applied Paketti loader settings to slice sample " .. (i + 1))
+      end
+    end
+  end
+  
 
 
   -- Clean up temporary files to avoid conflicts with subsequent imports

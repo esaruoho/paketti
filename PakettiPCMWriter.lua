@@ -6492,6 +6492,18 @@ local function update_dialog_on_selection_change()
         waveform_canvas:update()
       end
       
+      -- Update harmonic drawbars if in harmonic mode [[memory:6653553]]
+      if harmonic_drawbar_mode and harmonic_canvas then
+        print("-- Live Pickup Mode (12st_WT): Loading Wave A harmonic data into drawbars")
+        local restored = PCMWriterRestoreHarmonicLevels()
+        if restored then
+          harmonic_canvas:update()
+          print("-- Live Pickup Mode (12st_WT): Harmonic drawbars updated to show Wave A settings")
+        else
+          print("-- Live Pickup Mode (12st_WT): No harmonic data found for Wave A")
+        end
+      end
+      
       renoise.app():show_status("Live Pickup: Switched to Wave A edit mode (sample slot 1)")
       
     elseif new_sample_index == 2 and current_wave_edit ~= "B" then
@@ -6510,6 +6522,18 @@ local function update_dialog_on_selection_change()
       -- Update canvas to show Wave B
       if waveform_canvas then
         waveform_canvas:update()
+      end
+      
+      -- Update harmonic drawbars if in harmonic mode [[memory:6653553]]
+      if harmonic_drawbar_mode and harmonic_canvas then
+        print("-- Live Pickup Mode (12st_WT): Loading Wave B harmonic data into drawbars")
+        local restored = PCMWriterRestoreHarmonicLevels()
+        if restored then
+          harmonic_canvas:update()
+          print("-- Live Pickup Mode (12st_WT): Harmonic drawbars updated to show Wave B settings")
+        else
+          print("-- Live Pickup Mode (12st_WT): No harmonic data found for Wave B")
+        end
       end
       
       renoise.app():show_status("Live Pickup: Switched to Wave B edit mode (sample slot 2)")
@@ -7705,6 +7729,18 @@ function PCMWriterShowPcmDialog()
             renoise.app():show_status("Now editing Wave A")
           end
           
+          -- Update harmonic drawbars if in harmonic mode and 12st_WT setup [[memory:6653553]]
+          if is_12st_wt_setup and harmonic_drawbar_mode and harmonic_canvas and live_pickup_mode then
+            print("HARMONIC: Edit A clicked - loading Wave A harmonic data into drawbars")
+            local restored = PCMWriterRestoreHarmonicLevels()
+            if restored then
+              harmonic_canvas:update()
+              print("HARMONIC: Edit A - harmonic drawbars updated to show Wave A settings")
+            else
+              print("HARMONIC: Edit A - no harmonic data found for Wave A")
+            end
+          end
+          
           -- Update button colors
           if pcm_dialog and pcm_dialog.visible then
             local edit_a_btn = vb.views.edit_a_btn
@@ -7740,6 +7776,18 @@ function PCMWriterShowPcmDialog()
             renoise.app():show_status("Now editing Wave B (sample slot 2)")
           else
             renoise.app():show_status("Now editing Wave B")
+          end
+          
+          -- Update harmonic drawbars if in harmonic mode and 12st_WT setup [[memory:6653553]]
+          if is_12st_wt_setup and harmonic_drawbar_mode and harmonic_canvas and live_pickup_mode then
+            print("HARMONIC: Edit B clicked - loading Wave B harmonic data into drawbars")
+            local restored = PCMWriterRestoreHarmonicLevels()
+            if restored then
+              harmonic_canvas:update()
+              print("HARMONIC: Edit B - harmonic drawbars updated to show Wave B settings")
+            else
+              print("HARMONIC: Edit B - no harmonic data found for Wave B")
+            end
           end
           
           -- Update button colors
@@ -8847,16 +8895,34 @@ function PCMWriterRestoreHarmonicLevels()
     return false
   end
   
-  -- Try instrument name first
-  if live_pickup_instrument and PCMWriterParseHarmonicLevels(live_pickup_instrument.name) then
-    print("HARMONIC: Restored harmonic levels from instrument name")
-    return true
-  end
-  
-  -- Try sample name as fallback
-  if live_pickup_sample and PCMWriterParseHarmonicLevels(live_pickup_sample.name) then
-    print("HARMONIC: Restored harmonic levels from sample name")
-    return true
+  -- In 12st_WT setup, prioritize currently selected sample over tracking variables
+  local is_12st_wt_setup = PCMWriterDetect12stWTSetup()
+  if is_12st_wt_setup then
+    local song = renoise.song()
+    local current_sample = song.selected_sample
+    if current_sample and PCMWriterParseHarmonicLevels(current_sample.name) then
+      print("HARMONIC: Restored harmonic levels from currently selected sample: " .. current_sample.name)
+      return true
+    end
+    
+    local current_instrument = song.selected_instrument
+    if current_instrument and PCMWriterParseHarmonicLevels(current_instrument.name) then
+      print("HARMONIC: Restored harmonic levels from currently selected instrument")
+      return true
+    end
+  else
+    -- Standard live pickup mode - use tracking variables
+    -- Try instrument name first
+    if live_pickup_instrument and PCMWriterParseHarmonicLevels(live_pickup_instrument.name) then
+      print("HARMONIC: Restored harmonic levels from instrument name")
+      return true
+    end
+    
+    -- Try sample name as fallback
+    if live_pickup_sample and PCMWriterParseHarmonicLevels(live_pickup_sample.name) then
+      print("HARMONIC: Restored harmonic levels from sample name")
+      return true
+    end
   end
   
   print("HARMONIC: No harmonic levels found in instrument or sample names")
@@ -8921,12 +8987,12 @@ function PCMWriterGenerateHarmonics()
     current_wave_data[i] = math.floor((mixed * 32768) + 32768)
   end
   
-  -- Log active harmonics
+  -- Log active harmonics (store original levels without scaling for name)
   local active_harmonics = {}
   for harmonic = 1, 11 do
     if harmonic_levels[harmonic] > 0.0 then
-      local scale = 1.0 - ((harmonic - 1) * 0.04)
-      table.insert(active_harmonics, string.format("H%d=%.2f", harmonic, harmonic_levels[harmonic] * scale))
+      -- Store original harmonic level in sample name without degrading scaling
+      table.insert(active_harmonics, string.format("H%d=%.2f", harmonic, harmonic_levels[harmonic]))
     end
   end
   
@@ -8962,6 +9028,20 @@ end
 -- Draw Harmonic Canvas (11 vertical sliders)
 function PCMWriterDrawHarmonicCanvas(ctx)
   print("HARMONIC: Drawing harmonic canvas")
+  
+  -- Debug: Show current harmonic levels
+  local level_debug = {}
+  for i = 1, 11 do
+    if harmonic_levels[i] > 0.0 then
+      table.insert(level_debug, string.format("H%d=%.2f", i, harmonic_levels[i]))
+    end
+  end
+  if #level_debug > 0 then
+    print("HARMONIC: Canvas drawing with levels: " .. table.concat(level_debug, ","))
+  else
+    print("HARMONIC: Canvas drawing with all levels at 0.0")
+  end
+  
   local w = 140
   local h = 80
   local margin = 2

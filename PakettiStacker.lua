@@ -600,6 +600,8 @@ end
 
 -- Write notes with random velocities, respecting the last sample's velocity range
 function write_random_velocity_notes()
+  trueRandomSeed()
+
   local song=renoise.song()
   local pattern = song.selected_pattern
   local start_line_index = song.selected_line_index
@@ -1157,7 +1159,17 @@ vb:switch {
   width=300,
 --  id = "instrument_pitch",
   items = {"-24", "-12", "0", "+12", "+24"},
-  value = 3,
+  value = (function()
+    -- Read current instrument transpose and convert to switch index
+    local current_transpose = renoise.song().selected_instrument.transpose
+    local pitch_values = {-24, -12, 0, 12, 24}
+    for i, pitch in ipairs(pitch_values) do
+      if pitch == current_transpose then
+        return i
+      end
+    end
+    return 3 -- Default to "0" if not found
+  end)(),
   notifier=function(index)
     -- Convert the selected index to the corresponding pitch value
     local pitch_values = {-24, -12, 0, 12, 24}
@@ -1172,11 +1184,13 @@ vb:row{
     text="Follow Pattern",width=104,
     notifier=function()
       if renoise.song().transport.follow_player then
-        renoise.song().transport.follow_player = false
+        -- Already on, just move to pattern editor
+        returnpe()
       else
         renoise.song().transport.follow_player = true
+        returnpe()
       end
-    returnpe() end},
+    end},
    pattern_buttons[1],
    pattern_buttons[2],
    pattern_buttons[3],

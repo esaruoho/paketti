@@ -2847,7 +2847,8 @@ function PakettiIsolateSlicesToInstrumentNoProcess()
       local slice_end = (i == #sample.slice_markers) and sample.sample_buffer.number_of_frames or sample.slice_markers[i + 1] - 1
       local slice_length = slice_end - slice_start + 1
       if slice_length > 0 then
-        local sample_name = "Slice " .. string.format("%02X", i)
+        local original_name = sample.name or "Sample"
+        local sample_name = original_name .. "_slice" .. string.format("%02d", i)
         local slice_sample = instrument.samples[i + 1]
         create_new_sample(new_instrument, sample, slice_start, slice_end, sample_name, slice_sample, i)
       else
@@ -4496,6 +4497,8 @@ end
 
 -- Function to generate a random string
 local function PakettiTitlerGenerateRandomString(length)
+  trueRandomSeed()
+
   local charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
   local result = {}
   for i = 1, length do
@@ -4507,6 +4510,8 @@ end
 
 -- Function to randomize from a textfile
 local function PakettiTitlerRandomizeFromTextfile(file_path, count)
+  trueRandomSeed()
+
   local words = {}
   for line in io.lines(file_path) do
     for word in line:gmatch("%w+") do
@@ -5258,6 +5263,8 @@ renoise.tool():add_keybinding{name="Sample Editor:Paketti:Duplicate Sample Range
 ------
 -- Define the function for randomizing pitch and finetune with custom ranges
 local function randomize_sample_pitch_and_finetune(random_range_pitch, random_range_finetune)
+  trueRandomSeed()
+
   local sample=renoise.song().selected_sample
 
   -- Check if a sample is selected
@@ -6339,6 +6346,8 @@ end
 
 -- Humanize Function - Randomizes delay, volume, and pan for selected notes
 function humanizeSelection(delay_amount, volume_amount, pan_amount)
+  trueRandomSeed()
+
   local song = renoise.song()
   local selection = selection_in_pattern_pro()
   

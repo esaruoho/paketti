@@ -567,6 +567,8 @@ end
 
 -- Randomize EQ curve with different patterns
 function randomize_eq_curve(pattern_type)
+  trueRandomSeed()
+
   local song = renoise.song()
   if not song or not song.selected_track then
     return

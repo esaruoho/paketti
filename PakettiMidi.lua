@@ -2077,6 +2077,8 @@ end
 
 -- Function to write random slice or offset commands
 function write_random_slice_command()
+  trueRandomSeed()
+
   local song=renoise.song()
   local pattern = song:pattern(song.selected_pattern_index)
   local track = pattern:track(song.selected_track_index)

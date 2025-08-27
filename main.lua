@@ -27,6 +27,13 @@ function DEC_HEX(IN)
   end
   return OUT
 end
+
+-- Global function for truly random seeding - used throughout Paketti
+function trueRandomSeed()
+  math.randomseed(os.time())
+  -- Add some additional random calls to further randomize the sequence
+  math.random(); math.random(); math.random()
+end
 --
 local init_time = os.clock()
 -- Function to check if an instrument uses effects or has an empty FX chain and adjust name accordingly
@@ -751,8 +758,8 @@ if renoise.API_VERSION >= 6.2 then
   timed_require("PakettiNotepadRun")
   timed_require("PakettiEQ30")
  -- timed_require("PakettiMultitapExperiment")
-  --  timed_require("PakettiPlayerProWaveformViewer")
-  --  timed_require("PakettiAutomationStack")
+ --   timed_require("PakettiPlayerProWaveformViewer")
+ -- timed_require("PakettiAutomationStack")
 end
 
 

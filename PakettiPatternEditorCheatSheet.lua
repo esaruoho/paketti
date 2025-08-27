@@ -88,6 +88,8 @@ local effects = {
 -- Randomization Functions for Effect Columns
 
 function randomizeSmatterEffectColumnCustom(effect_command, fill_percentage, min_value, max_value)
+  trueRandomSeed()
+
   local song=renoise.song()
   local selection = song.selection_in_pattern
   local randomize_switch = preferences.pakettiCheatSheet.pakettiCheatSheetRandomizeSwitch.value

@@ -1111,7 +1111,7 @@ function applyStemSlicerDrumkitSettings(sample)
   if not sample then return end
   
   -- Set to Cut mode for drumkit-style playback
-  sample.new_note_action = renoise.Sample.NEW_NOTE_ACTION_CUT
+  sample.new_note_action = 1
   sample.oneshot = true
   
   -- Apply oversampling and interpolation settings from preferences if available
@@ -1151,7 +1151,7 @@ function applyStemSlicerDrumkitSettings(sample)
   
   print(string.format("Applied drumkit settings to sample: %s (Cut=%s, Oversample=%s, Interpolation=%d)", 
     sample.name or "unnamed", 
-    tostring(sample.new_note_action == renoise.Sample.NEW_NOTE_ACTION_CUT),
+    tostring(sample.new_note_action == 1),
     tostring(sample.oversample_enabled),
     sample.interpolation_mode))
 end

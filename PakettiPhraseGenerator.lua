@@ -1372,12 +1372,14 @@ end
  end
  
  -- Update randomize_all_settings function with proper ranges
- function randomize_all_settings()
-   -- Store old values to detect changes
-   local old_settings = table.copy(current_settings)
-   
-   -- Randomize scale
-   current_settings.scale = SCALE_NAMES[math.random(#SCALE_NAMES)]
+function randomize_all_settings()
+  trueRandomSeed()
+  
+  -- Store old values to detect changes
+  local old_settings = table.copy(current_settings)
+  
+  -- Randomize scale
+  current_settings.scale = SCALE_NAMES[math.random(#SCALE_NAMES)]
    
    -- Randomize unit - simple random choice
    current_settings.unit = RHYTHM_UNITS[math.random(#RHYTHM_UNITS)]
