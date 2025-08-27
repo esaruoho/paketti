@@ -697,7 +697,7 @@ function PakettiFillShowDialog()
     text = string.format("%s%d", PakettiFillValueToNote(from_note_value)),
     style = "strong",
     font = "bold",
-    width = 80  -- Fixed width to prevent jittering
+
   }
   
   local from_note_slider = vb:slider{
@@ -729,7 +729,7 @@ function PakettiFillShowDialog()
     text = string.format("%s%d", PakettiFillValueToNote(to_note_value)),
     style = "strong",
     font = "bold",
-    width = 80  -- Fixed width to prevent jittering
+
   }
   
   local to_note_slider = vb:slider{
@@ -888,6 +888,15 @@ function PakettiFillShowDialog()
         step_interval_slider.active = false  -- Disable slider for Each mode
         from_label.text = "From"
         to_label.text = "To"
+
+        -- Reset sliders to full range when switching from Euclidean mode
+        from_note_slider.min = 0
+        from_note_slider.max = 119
+        to_note_slider.min = 0
+        to_note_slider.max = 119
+        -- Reset width to allow auto-sizing for note names
+        from_note_text.width = 1
+        to_note_text.width = 1
         -- Update text displays to show note names
         local from_note_name, from_octave = PakettiFillValueToNote(from_note_value)
         from_note_text.text = string.format("%s%d", from_note_name, from_octave)
@@ -941,6 +950,8 @@ function PakettiFillShowDialog()
         from_label.text = "From Sample"
         to_label.text = "To Sample"
         
+
+        
         -- Set optimal From/To range for available samples
         local optimal_from, optimal_to = PakettiFillGetOptimalNoteRange()
         from_note_value = math.min(119, optimal_from)
@@ -957,6 +968,10 @@ function PakettiFillShowDialog()
         from_note_slider.value = from_note_value
         to_note_slider.value = to_note_value
         
+        -- Set fixed width for consistent sample name alignment
+        from_note_text.width = 80
+        to_note_text.width = 80
+        
         -- Update text displays to show sample names
         from_note_text.text = PakettiFillGetSampleName(from_note_value)
         to_note_text.text = PakettiFillGetSampleName(to_note_value)
@@ -968,6 +983,11 @@ function PakettiFillShowDialog()
         step_interval_slider.active = false  -- Disable for other modes
         from_label.text = "From"
         to_label.text = "To"
+        
+        -- Reset width to allow auto-sizing for note names
+        from_note_text.width = 1
+        to_note_text.width = 1
+
         
         -- Reset sliders to full range when not in Euclidean mode
         from_note_slider.min = 0
@@ -1021,7 +1041,7 @@ function PakettiFillShowDialog()
     text = string.format("%02X", effect_min_value),
     style = "strong",
     font = "bold",
-    width = 80  -- Fixed width to match other columns
+
   }
   
   local effect_min_slider = vb:slider{
@@ -1056,7 +1076,7 @@ function PakettiFillShowDialog()
     text = string.format("%02X", effect_max_value),
     style = "strong",
     font = "bold",
-    width = 80  -- Fixed width to match other columns
+
   }
   
   local effect_max_slider = vb:slider{
@@ -1376,6 +1396,10 @@ function PakettiFillShowDialog()
     
     from_note_slider.value = from_note_value
     to_note_slider.value = to_note_value
+    
+    -- Set fixed width for consistent sample name alignment
+    from_note_text.width = 80
+    to_note_text.width = 80
     
     -- Update display texts to show sample names
     from_note_text.text = PakettiFillGetSampleName(from_note_value)
