@@ -64,6 +64,9 @@ function PakettiFillGenerateRandomNote(from_note, to_note)
   if from_note > to_note then
     from_note, to_note = to_note, from_note
   end
+  -- Clamp to valid note range
+  from_note = math.max(0, math.min(119, from_note))
+  to_note = math.max(0, math.min(119, to_note))
   return math.random(from_note, to_note)
 end
 
@@ -104,7 +107,10 @@ function PakettiFillGetMappedNotes()
     -- Add slice notes to mapped notes
     if slice_start_note then
       for i = 0, slice_count - 1 do
-        table.insert(mapped_notes, slice_start_note + i)
+        local note = slice_start_note + i
+        if note <= 119 then  -- Clamp to max valid note
+          table.insert(mapped_notes, note)
+        end
       end
     end
     
@@ -262,7 +268,10 @@ function PakettiFillGetOptimalNoteRange()
     -- Add slice notes to mapped range
     if slice_start_note then
       for i = 0, slice_count - 1 do
-        mapped_notes[slice_start_note + i] = true
+        local note = slice_start_note + i
+        if note <= 119 then  -- Clamp to max valid note
+          mapped_notes[note] = true
+        end
       end
     end
     
@@ -301,9 +310,9 @@ function PakettiFillGetOptimalNoteRange()
     end
   end
   
-  -- Return actual mapped range, or default if nothing found
+  -- Return actual mapped range, or default if nothing found (clamp to max 119)
   if min_note and max_note then
-    return min_note, max_note
+    return min_note, math.min(119, max_note)
   else
     return 48, 60  -- Default C-4 to C-5 if no mappings found
   end
@@ -548,7 +557,8 @@ function PakettiFillApplyFill(density, fill_type, from_note, to_note, constant_n
                 end
               end
               
-              -- Set the note
+              -- Set the note (clamp to valid range)
+              note_value = math.max(0, math.min(119, note_value))
               note_column.note_value = note_value
               note_column.instrument_value = song.selected_instrument_index - 1
             end
@@ -698,7 +708,7 @@ function PakettiFillShowDialog()
     height = 200,
     steps = {1, 12},  -- Small step: 1 semitone, Big step: 1 octave
     notifier = function(value)
-      from_note_value = math.floor(value)
+      from_note_value = math.min(119, math.floor(value))  -- Clamp to max 119
       paketti_fill_from_note_value = from_note_value  -- Save to global
       if where_mode == 7 then -- Euclidean: show sample names
         from_note_text.text = PakettiFillGetSampleName(from_note_value)
@@ -731,7 +741,7 @@ function PakettiFillShowDialog()
     steps = {1, 12},  -- Small step: 1 semitone, Big step: 1 octave
     active = false, -- Start disabled since we're in Constant mode
     notifier = function(value)
-      to_note_value = math.floor(value)
+      to_note_value = math.min(119, math.floor(value))  -- Clamp to max 119
       paketti_fill_to_note_value = to_note_value  -- Save to global
       if where_mode == 7 then -- Euclidean: show sample names
         to_note_text.text = PakettiFillGetSampleName(to_note_value)
@@ -895,8 +905,8 @@ function PakettiFillShowDialog()
         
         -- Set optimal From/To range for available samples
         local optimal_from, optimal_to = PakettiFillGetOptimalNoteRange()
-        from_note_value = optimal_from
-        to_note_value = optimal_to
+        from_note_value = math.min(119, optimal_from)
+        to_note_value = math.min(119, optimal_to)
         paketti_fill_from_note_value = from_note_value
         paketti_fill_to_note_value = to_note_value
         from_note_slider.value = from_note_value
@@ -933,8 +943,8 @@ function PakettiFillShowDialog()
         
         -- Set optimal From/To range for available samples
         local optimal_from, optimal_to = PakettiFillGetOptimalNoteRange()
-        from_note_value = optimal_from
-        to_note_value = optimal_to
+        from_note_value = math.min(119, optimal_from)
+        to_note_value = math.min(119, optimal_to)
         paketti_fill_from_note_value = from_note_value
         paketti_fill_to_note_value = to_note_value
         
@@ -1353,8 +1363,8 @@ function PakettiFillShowDialog()
     
     -- Set optimal From/To range for available samples
     local optimal_from, optimal_to = PakettiFillGetOptimalNoteRange()
-    from_note_value = optimal_from
-    to_note_value = optimal_to
+    from_note_value = math.min(119, optimal_from)
+    to_note_value = math.min(119, optimal_to)
     paketti_fill_from_note_value = from_note_value
     paketti_fill_to_note_value = to_note_value
     
