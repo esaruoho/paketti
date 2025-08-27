@@ -628,13 +628,30 @@ function rx2_to_pti_convert()
       print("-- RX2→PTI: Save path is on Polyend device - checking connection: " .. polyend_buddy_root_path)
       local device_connected = check_polyend_path_exists(polyend_buddy_root_path)
       if not device_connected then
-        print("-- RX2→PTI: Polyend device disconnected - cannot save to device path")
-        renoise.app():show_status("⚠️ Polyend device disconnected - cannot save RX2→PTI to device path: " .. pti_save_path)
-        return
+        print("-- RX2→PTI: Polyend device disconnected - will prompt for save location")
+        renoise.app():show_status("Polyend device disconnected - will prompt for save location")
+        -- Fall back to prompting for save location
+        pti_filename = renoise.app():prompt_for_filename_to_write("pti", "Save converted .RX2 as .PTI to...")
+        if pti_filename == "" then
+          print("-- PTI export cancelled by user")
+          return
+        end
+        print("-- PTI export filename: " .. pti_filename)
+      else
+        -- Device connected, use configured save path
+        local safe_name = instrument_name:gsub("[^%w%-%_]", "_") -- Replace unsafe characters
+        local separator = package.config:sub(1,1)
+        local base_path = pti_save_path .. separator .. safe_name .. ".pti"
+        
+        -- Generate unique filename if file already exists
+        pti_filename = generate_unique_filename(base_path)
+        local final_filename = pti_filename:match("[^/\\]+$") or "converted.pti"
+        
+        print("-- PTI export using save path: " .. pti_filename)
       end
     else
       print("-- RX2→PTI: Save path is local - no device checking needed: " .. pti_save_path)
-    end
+      -- Use configured local save path
       local safe_name = instrument_name:gsub("[^%w%-%_]", "_") -- Replace unsafe characters
       local separator = package.config:sub(1,1)
       local base_path = pti_save_path .. separator .. safe_name .. ".pti"
@@ -644,6 +661,7 @@ function rx2_to_pti_convert()
       local final_filename = pti_filename:match("[^/\\]+$") or "converted.pti"
       
       print("-- PTI export using save path: " .. pti_filename)
+    end
   else
     -- Prompt for PTI save location
     pti_filename = renoise.app():prompt_for_filename_to_write("pti", "Save converted .RX2 as .PTI to...")
@@ -3139,7 +3157,7 @@ PakettiPolyendSuiteTooltips = {
   [36] = "Save current instrument/sample as WAV file", -- Save WAV button (Save Current Instrument row)
   [37] = "Combine all samples in current instrument into a single sliced mono drumkit (all samples converted to mono)", -- PTI Drumkit Mono button (Quick Actions row)
   [38] = "Combine all samples in current instrument into a single sliced drumkit (stereo if any sample is stereo, otherwise mono)", -- PTI Drumkit Stereo button (Quick Actions row)
-  [39] = "Copy any PTI file from your computer directly to the Polyend device (no conversion)", -- Dump PTI to Device button (Quick Actions row)
+  [39] = "Browse your computer for any PTI file and copy it directly to your Polyend device (no conversion, just file copy)", -- Copy PTI File to Device button (Local PTI/WAV Files section)
   [40] = "Browse for any PTI file, normalize all slices, then save with _normalized suffix", -- PTI→Normalize Slices→PTI button (Quick Actions row)
   [41] = "Load 48 samples manually, then generate a mono drumkit PTI", -- Load 48→Drumkit Mono button (Drumkit Generation row)
   [42] = "Load 48 samples manually, then generate a stereo drumkit PTI", -- Load 48→Drumkit Stereo button (Drumkit Generation row)
@@ -3820,6 +3838,37 @@ function create_polyend_buddy_dialog(vb)
       }
     },
     
+    -- Copy PTI File to Device row (moved from Quick Actions)
+    vb:row{
+      vb:text{
+        text = "Copy PTI to Device",
+        width = textWidth, style="strong",font="bold"
+      },
+      vb:button{
+        text = "Browse & Copy PTI File to Device",
+        width = 400,
+        tooltip = PakettiPolyendSuiteTooltips[39],
+        notifier = function()
+          -- Check if Polyend device is connected before dumping
+          print("-- Copy PTI to Device: Checking device connection to: " .. (polyend_buddy_root_path or "Unknown"))
+          local path_exists = check_polyend_path_exists(polyend_buddy_root_path)
+          if not path_exists then
+            print("-- Polyend Buddy: Connection lost during Copy PTI to Device operation")
+            local status_msg = "⚠️ " .. POLYEND_DEVICE_NOT_CONNECTED_MSG .. " Path: " .. (polyend_buddy_root_path or "Unknown")
+            renoise.app():show_status(status_msg)
+            -- Update dialog status if available
+            if vb.views["pti_count_text"] then
+              vb.views["pti_count_text"].text = status_msg
+            end
+            return
+          end
+          
+          -- Call the dump PTI function
+          dump_pti_to_device()
+        end
+      }
+    },
+    
     -- Use local backup checkbox (moved above the backup section)
     vb:row{
       vb:text{
@@ -4032,6 +4081,7 @@ function create_polyend_buddy_dialog(vb)
           -- Check if use save paths is enabled
           local use_save_paths = vb.views["use_save_paths_checkbox"].value
           local pti_save_path = vb.views["pti_save_path_textfield"].text
+          local device_not_connected = false
           
           if use_save_paths and pti_save_path and pti_save_path ~= "" then
             -- Smart check: Only verify device connection if save path is ON the device
@@ -4039,9 +4089,10 @@ function create_polyend_buddy_dialog(vb)
               print("-- Save PTI: Save path is on Polyend device - checking connection: " .. polyend_buddy_root_path)
               local device_connected = check_polyend_path_exists(polyend_buddy_root_path)
               if not device_connected then
-                print("-- Save PTI: Polyend device disconnected - cannot save to device path")
-                renoise.app():show_status("⚠️ Polyend device disconnected - cannot save to device path: " .. pti_save_path)
-                return
+                print("-- Save PTI: Polyend device disconnected - will prompt for save location")
+                renoise.app():show_status("Polyend device disconnected - will prompt for save location")
+                device_not_connected = true
+                use_save_paths = false  -- Force prompt for save location
               end
             else
               print("-- Save PTI: Save path is local - no device checking needed: " .. pti_save_path)
@@ -4094,6 +4145,7 @@ function create_polyend_buddy_dialog(vb)
           -- Check if use save paths is enabled
           local use_save_paths = vb.views["use_save_paths_checkbox"].value
           local wav_save_path = vb.views["wav_save_path_textfield"].text
+          local device_not_connected = false
           
           if use_save_paths and wav_save_path and wav_save_path ~= "" then
             -- Smart check: Only verify device connection if save path is ON the device
@@ -4101,9 +4153,10 @@ function create_polyend_buddy_dialog(vb)
               print("-- Save WAV: Save path is on Polyend device - checking connection: " .. polyend_buddy_root_path)
               local device_connected = check_polyend_path_exists(polyend_buddy_root_path)
               if not device_connected then
-                print("-- Save WAV: Polyend device disconnected - cannot save to device path")
-                renoise.app():show_status("⚠️ Polyend device disconnected - cannot save to device path: " .. wav_save_path)
-                return
+                print("-- Save WAV: Polyend device disconnected - will prompt for save location")
+                renoise.app():show_status("Polyend device disconnected - will prompt for save location")
+                device_not_connected = true
+                use_save_paths = false  -- Force prompt for save location
               end
             else
               print("-- Save WAV: Save path is local - no device checking needed: " .. wav_save_path)
@@ -4221,35 +4274,11 @@ function create_polyend_buddy_dialog(vb)
       }
     },
     
-    -- Dump row
+    -- Quick Actions row  
     vb:row{
-      
       vb:text{
-        text = "Dump",
+        text = "Quick Actions",
         width = textWidth, style="strong",font="bold"
-      },
-      vb:button{
-        text = "Dump PTI to Device",
-        width = 200,
-        tooltip = PakettiPolyendSuiteTooltips[39],
-        notifier = function()
-          -- Check if Polyend device is connected before dumping
-          print("-- Dump PTI: Checking device connection to: " .. (polyend_buddy_root_path or "Unknown"))
-          local path_exists = check_polyend_path_exists(polyend_buddy_root_path)
-          if not path_exists then
-            print("-- Polyend Buddy: Connection lost during Dump PTI operation")
-            local status_msg = "⚠️ " .. POLYEND_DEVICE_NOT_CONNECTED_MSG .. " Path: " .. (polyend_buddy_root_path or "Unknown")
-            renoise.app():show_status(status_msg)
-            -- Update dialog status if available
-            if vb.views["pti_count_text"] then
-              vb.views["pti_count_text"].text = status_msg
-            end
-            return
-          end
-          
-          -- Call the dump PTI function
-          dump_pti_to_device()
-        end
       },
       vb:button{
         text = "PTI→Normalize Slices→PTI",

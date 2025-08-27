@@ -1379,7 +1379,7 @@ function create_eq_dialog()
       },
       -- Randomize automation
       vb:button {
-        text = "Randomize Automation",
+        text = "Randomize Automation Step",
         width = 160,
         notifier = function()
           randomize_eq_curve("smooth")

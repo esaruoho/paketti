@@ -3682,3 +3682,67 @@ function detect_zero_crossings()
 end
 
 renoise.tool():add_keybinding{name="Sample Editor:Paketti:Detect Zero Crossings",invoke=detect_zero_crossings}
+
+--------
+-- Load RingMod Instrument Functions
+--------
+
+function PakettiLoadRingModInstrument()
+  local separator = package.config:sub(1,1)  -- Gets \ for Windows, / for Unix
+  local song = renoise.song()
+  local index = song.selected_instrument_index + 1
+  
+  -- Insert new instrument and select it
+  song:insert_instrument_at(index)
+  song.selected_instrument_index = index
+  
+  -- Load the RingMod instrument template
+  local ringmod_instrument = "Presets" .. separator .. "RingMod.xrni"
+  
+  local success, error_msg = pcall(function()
+    renoise.app():load_instrument(renoise.tool().bundle_path .. ringmod_instrument)
+  end)
+  
+  if success then
+    renoise.app():show_status("RingMod instrument loaded successfully")
+  else
+    renoise.app():show_status("Failed to load RingMod.xrni: " .. tostring(error_msg))
+  end
+end
+
+function PakettiLoadRingModLegacyInstrument()
+  local separator = package.config:sub(1,1)  -- Gets \ for Windows, / for Unix
+  local song = renoise.song()
+  local index = song.selected_instrument_index + 1
+  
+  -- Insert new instrument and select it
+  song:insert_instrument_at(index)
+  song.selected_instrument_index = index
+  
+  -- Load the RingMod Legacy instrument template
+  local ringmod_legacy_instrument = "Presets" .. separator .. "RingModLegacy.xrni"
+  
+  local success, error_msg = pcall(function()
+    renoise.app():load_instrument(renoise.tool().bundle_path .. ringmod_legacy_instrument)
+  end)
+  
+  if success then
+    renoise.app():show_status("RingMod Legacy instrument loaded successfully")
+  else
+    renoise.app():show_status("Failed to load RingModLegacy.xrni: " .. tostring(error_msg))
+  end
+end
+
+-- Menu entries
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Load RingMod Instrument", invoke = PakettiLoadRingModInstrument}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Load RingMod Instrument", invoke = PakettiLoadRingModInstrument}
+renoise.tool():add_menu_entry{name="Main Menu:Tools:Paketti:Load RingMod Legacy Instrument", invoke = PakettiLoadRingModLegacyInstrument}
+renoise.tool():add_menu_entry{name="Instrument Box:Paketti:Load RingMod Legacy Instrument", invoke = PakettiLoadRingModLegacyInstrument}
+
+-- Keybindings
+renoise.tool():add_keybinding{name="Global:Paketti:Load RingMod Instrument", invoke = PakettiLoadRingModInstrument}
+renoise.tool():add_keybinding{name="Global:Paketti:Load RingMod Legacy Instrument", invoke = PakettiLoadRingModLegacyInstrument}
+
+-- MIDI mappings
+renoise.tool():add_midi_mapping{name="Paketti:Load RingMod Instrument [Trigger]", invoke = function(message) if message:is_trigger() then PakettiLoadRingModInstrument() end end}
+renoise.tool():add_midi_mapping{name="Paketti:Load RingMod Legacy Instrument [Trigger]", invoke = function(message) if message:is_trigger() then PakettiLoadRingModLegacyInstrument() end end}
